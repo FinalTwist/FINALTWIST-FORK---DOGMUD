@@ -115,7 +115,7 @@ var buffApplyPathAllowlist = map[string]string{
 
 	// ── mob holders: no client, so no line could reach anyone ───────────────
 	"internal/usercommands/character.go|413":     "the holder is a MOB (m.Character), and buff 99 is a perma-gear pin, not something a player reads",
-	"internal/hooks/item_procs.go|266":           "the holder is a MOB (m.Character); an item proc stunning a mob has nobody to tell",
+	"internal/hooks/item_procs.go|265":           "the holder is a MOB (m.Character); an item proc stunning a mob has nobody to tell",
 	"internal/hooks/manifester_companions.go|40": "the holder is a MOB (a summoned companion), not a player",
 
 	// ── secret buffs: silence is the authored intent ────────────────────────

@@ -263,6 +263,27 @@ func TestProcApplyCondition_Bleed(t *testing.T) {
 	}
 }
 
+// TestProcApplyCondition_BleedSpecMissing_ReturnsFalse pins the
+// AddBuffMagnitude error path: with the Bleeding spec absent from the
+// registry, the add fails, and procApplyCondition must report that failure
+// rather than claim success -- a false positive here has dispatchItemProcs
+// burn the proc's cooldown for a bleed that never landed.
+//
+// Null probe: reverting procApplyCondition's case 1 to ignore
+// AddBuffMagnitude's error (`return true` unconditionally) turns this red.
+func TestProcApplyCondition_BleedSpecMissing_ReturnsFalse(t *testing.T) {
+	defer buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{})()
+	target := characters.New()
+
+	if procApplyCondition(target, map[string]float64{
+		"condition": 1,
+		"duration":  6,
+		"magnitude": 12,
+	}) {
+		t.Fatal("procApplyCondition must return false when the Bleeding spec is missing and the add fails")
+	}
+}
+
 func TestProcApplyCondition_NilAndUnknown(t *testing.T) {
 	defer seedAllRegistries()()
 	if procApplyCondition(nil, map[string]float64{"condition": 1}) {

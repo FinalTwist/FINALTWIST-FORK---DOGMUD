@@ -212,8 +212,7 @@ func procApplyCondition(target *characters.Character, params map[string]float64)
 	}
 	switch int(params["condition"]) {
 	case 1:
-		_ = target.AddBuffMagnitude(buffs.BuffIdBleeding, dur, -mag, "itemproc")
-		return true
+		return target.AddBuffMagnitude(buffs.BuffIdBleeding, dur, -mag, "itemproc") == nil
 	}
 	return false
 }
