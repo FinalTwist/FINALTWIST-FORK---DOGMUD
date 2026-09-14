@@ -220,11 +220,14 @@ func (b *BuffSpec) GetValue() int {
 	return val
 }
 
-func (b *BuffSpec) VisibleNameDesc() (name, description string) {
-	if b.Secret {
-		return "Mysterious Affliction", "Unknown"
-	}
-	return b.Name, b.Description
+// Listed reports whether a held record appears in the player's condition
+// lists: the in-game `conditions` command and the Char.Conditions GMCP
+// payload. Both call this, so the two can never disagree. A hidden record is
+// left out because it would tell you that you are hidden; a secret record is
+// engine bookkeeping or a state the player is not meant to know about (owner
+// ruling 2026-09-14: shown in neither list, not as "Mysterious Affliction").
+func (b *BuffSpec) Listed() bool {
+	return !b.Secret && !slices.Contains(b.Flags, Hidden)
 }
 
 type BuffMessage struct {

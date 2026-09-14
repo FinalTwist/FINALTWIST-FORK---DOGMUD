@@ -84,60 +84,20 @@ func TestBuffSpec_GetValue(t *testing.T) {
 		})
 	}
 }
-func TestBuffSpec_VisibleNameDesc(t *testing.T) {
-	tests := []struct {
-		name     string
-		spec     BuffSpec
-		wantName string
-		wantDesc string
+func TestBuffSpec_Listed(t *testing.T) {
+	cases := []struct {
+		name string
+		spec BuffSpec
+		want bool
 	}{
-		{
-			name: "Secret buff returns mysterious values",
-			spec: BuffSpec{
-				Secret:      true,
-				Name:        "Poison",
-				Description: "Deals damage over time",
-			},
-			wantName: "Mysterious Affliction",
-			wantDesc: "Unknown",
-		},
-		{
-			name: "Non-secret buff returns actual name and description",
-			spec: BuffSpec{
-				Secret:      false,
-				Name:        "Fast Healing",
-				Description: "Increases health recovery",
-			},
-			wantName: "Fast Healing",
-			wantDesc: "Increases health recovery",
-		},
-		{
-			name: "Empty name and description, not secret",
-			spec: BuffSpec{
-				Secret:      false,
-				Name:        "",
-				Description: "",
-			},
-			wantName: "",
-			wantDesc: "",
-		},
-		{
-			name: "Empty name and description, secret",
-			spec: BuffSpec{
-				Secret:      true,
-				Name:        "",
-				Description: "",
-			},
-			wantName: "Mysterious Affliction",
-			wantDesc: "Unknown",
-		},
+		{"plain", BuffSpec{Name: "Stoneskin"}, true},
+		{"hidden", BuffSpec{Name: "Hidden", Flags: []Flag{Hidden}}, false},
+		{"secret", BuffSpec{Name: "Respawn Grace", Secret: true}, false},
+		{"hidden and secret", BuffSpec{Name: "Both", Secret: true, Flags: []Flag{Hidden}}, false},
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotName, gotDesc := tt.spec.VisibleNameDesc()
-			assert.Equal(t, tt.wantName, gotName)
-			assert.Equal(t, tt.wantDesc, gotDesc)
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			assert.Equal(t, c.want, c.spec.Listed())
 		})
 	}
 }

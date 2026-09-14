@@ -1,6 +1,9 @@
 package buffs
 
-import "slices"
+import (
+	"slices"
+	"strconv"
+)
 
 // Stack is one application of a stacking record: its own remaining rounds and
 // its own signed per-round amount (negative harms). See the Stacking flag.
@@ -12,6 +15,16 @@ type Stack struct {
 // IsStacking reports whether the spec carries the Stacking flag.
 func (b *BuffSpec) IsStacking() bool {
 	return slices.Contains(b.Flags, Stacking)
+}
+
+// DisplayName is the name a condition list shows for a held record: the
+// spec's name, with the live stack count appended when more than one stack is
+// live ("Bleeding (3)").
+func DisplayName(b *Buff, spec *BuffSpec) string {
+	if len(b.Stacks) > 1 {
+		return spec.Name + " (" + strconv.Itoa(len(b.Stacks)) + ")"
+	}
+	return spec.Name
 }
 
 // tickAmountFor converts an applier's magnitude into the signed per-round

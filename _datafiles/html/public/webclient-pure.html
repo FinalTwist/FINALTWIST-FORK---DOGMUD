@@ -2141,11 +2141,12 @@
 
             // Everything affecting the character, rendered as chips. One list:
             // Char.Conditions is a name-keyed map of held buff records (the
-            // server omits stealth buffs like Hidden/Empathic Shroud, and
-            // supplies the qualitative duration word itself). This used to be
-            // two loops over two payloads, one for buffs and one array for the
-            // combat-condition enum; the enum is gone and the second payload
-            // was retired with it.
+            // server omits hidden records like Hidden/Empathic Shroud and
+            // secret ones like Respawn Grace, and supplies the qualitative
+            // duration word itself). This used to be two loops over two
+            // payloads, one for buffs and one array for the combat-condition
+            // enum; the enum is gone and the second payload was retired with
+            // it.
             var chips = '';
 
             var conditions = charObj.Conditions || null;

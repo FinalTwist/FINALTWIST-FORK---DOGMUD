@@ -2,7 +2,6 @@ package gmcp
 
 import (
 	"math"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -645,74 +644,7 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 
 	if all || g.wantsGMCPPayload(`Char.Conditions`, gmcpModule) {
 
-		// One payload, one source. Buff records ARE the conditions now, so
-		// this map is everything the client used to get as Char.Affects plus
-		// the qualitative duration word Char.Conditions used to carry. The
-		// client renders one chip per entry and no longer has to reconcile
-		// two lists that overlapped.
-		c := configs.GetTimingConfig()
-
-		payload.Conditions = make(map[string]GMCPCondition)
-
-		nameIncrement := 0
-		for _, buff := range user.Character.GetBuffs() {
-
-			buffSpec := buffs.GetBuffSpec(buff.BuffId)
-			if buffSpec == nil {
-				continue
-			}
-
-			// Stealth buffs (Hidden, Empathic Shroud, etc.) are deliberately not
-			// surfaced to the client — mirrors the `conditions` command filter and
-			// the no-end-message design on the hidden buff. If you can't know who
-			// spotted you, you shouldn't be told you're hidden.
-			if slices.Contains(buffSpec.Flags, buffs.Hidden) {
-				continue
-			}
-
-			timeLeft, timeMax := -1, -1
-			roundsLeft := 0
-
-			if !buff.PermaBuff {
-				var totalRounds int
-				roundsLeft, totalRounds = buffs.GetDurations(buff, buffSpec)
-				if roundsLeft < 0 {
-					roundsLeft = 0
-				}
-				timeMax = c.RoundsToSeconds(totalRounds)
-				timeLeft = c.RoundsToSeconds(roundsLeft)
-			}
-
-			name, desc := buffSpec.VisibleNameDesc()
-
-			buffSource := buff.Source
-			if buffSource == `` {
-				buffSource = `unknown`
-			}
-			cond := GMCPCondition{
-				Name:         name,
-				Description:  desc,
-				DurationMax:  timeMax,
-				DurationLeft: timeLeft,
-				// A permabuff reports roundsLeft 0, which the label reads as
-				// "sustained" — the same word the old condition list used for
-				// a permanent entry.
-				Duration: conditionDurationLabel(roundsLeft),
-				Type:     buffSource,
-			}
-
-			cond.Mods = make(map[string]int)
-			for name, value := range buffSpec.StatMods {
-				cond.Mods[name] = value
-			}
-
-			if _, ok := payload.Conditions[name]; ok {
-				nameIncrement++
-				name += `#` + strconv.Itoa(nameIncrement)
-			}
-
-			payload.Conditions[name] = cond
-		}
+		payload.Conditions = buildConditionsPayload(user.Character)
 
 		if !all {
 			return payload.Conditions, `Char.Conditions`
@@ -789,6 +721,72 @@ func conditionDurationLabel(rounds int) string {
 	default:
 		return "extended"
 	}
+}
+
+// buildConditionsPayload builds Char.Conditions for one character. One
+// payload, one source: buff records ARE the conditions, so this map is
+// everything the client used to get as Char.Affects plus the qualitative
+// duration word the old Char.Conditions list carried. BuffSpec.Listed decides
+// what appears, the same predicate the in-game `conditions` command uses, so
+// the web client and the text list show the same records. The map is keyed by
+// the plain spec name (a repeat takes a `#n` suffix); the entry's name is
+// buffs.DisplayName, which appends a stacking record's live count.
+func buildConditionsPayload(ch *characters.Character) map[string]GMCPCondition {
+	c := configs.GetTimingConfig()
+	conditions := make(map[string]GMCPCondition)
+
+	nameIncrement := 0
+	for _, buff := range ch.GetBuffs() {
+
+		buffSpec := buffs.GetBuffSpec(buff.BuffId)
+		if buffSpec == nil || !buffSpec.Listed() {
+			continue
+		}
+
+		timeLeft, timeMax := -1, -1
+		roundsLeft := 0
+
+		if !buff.PermaBuff {
+			var totalRounds int
+			roundsLeft, totalRounds = buffs.GetDurations(buff, buffSpec)
+			if roundsLeft < 0 {
+				roundsLeft = 0
+			}
+			timeMax = c.RoundsToSeconds(totalRounds)
+			timeLeft = c.RoundsToSeconds(roundsLeft)
+		}
+
+		buffSource := buff.Source
+		if buffSource == `` {
+			buffSource = `unknown`
+		}
+		cond := GMCPCondition{
+			Name:         buffs.DisplayName(buff, buffSpec),
+			Description:  buffSpec.Description,
+			DurationMax:  timeMax,
+			DurationLeft: timeLeft,
+			// A permabuff reports roundsLeft 0, which the label reads as
+			// "sustained", the same word the old condition list used for a
+			// permanent entry.
+			Duration: conditionDurationLabel(roundsLeft),
+			Type:     buffSource,
+		}
+
+		cond.Mods = make(map[string]int)
+		for name, value := range buffSpec.StatMods {
+			cond.Mods[name] = value
+		}
+
+		key := buffSpec.Name
+		if _, ok := conditions[key]; ok {
+			nameIncrement++
+			key += `#` + strconv.Itoa(nameIncrement)
+		}
+
+		conditions[key] = cond
+	}
+
+	return conditions
 }
 
 // /////////////////

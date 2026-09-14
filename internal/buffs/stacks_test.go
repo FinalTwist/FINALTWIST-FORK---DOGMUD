@@ -302,3 +302,19 @@ func TestAddStackRefusesZeroMagnitude(t *testing.T) {
 		t.Fatal("a refused add must hold nothing")
 	}
 }
+
+func TestDisplayName(t *testing.T) {
+	spec := stackingSpec()
+	one := &Buff{BuffId: 930, Stacks: []Stack{{RoundsLeft: 2, Amount: -1}}}
+	three := &Buff{BuffId: 930, Stacks: []Stack{{2, -1}, {3, -1}, {4, -1}}}
+	plain := &Buff{BuffId: 930}
+	if got := DisplayName(plain, spec); got != "Gash" {
+		t.Fatalf("no stacks: %q, want %q", got, "Gash")
+	}
+	if got := DisplayName(one, spec); got != "Gash" {
+		t.Fatalf("one stack: %q, want %q (a count of one says nothing)", got, "Gash")
+	}
+	if got := DisplayName(three, spec); got != "Gash (3)" {
+		t.Fatalf("three stacks: %q, want %q", got, "Gash (3)")
+	}
+}
