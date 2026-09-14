@@ -369,6 +369,12 @@ func (bs *Buffs) AddBuffMagnitude(buffId int, triggers int, magnitude float64) b
 // buffIds before checking whether GetBuffSpec finds anything, so "held"
 // does not imply a spec exists). Room mutators use this to keep a buff
 // alive for the whole visit without re-narrating it.
+//
+// A stacking record can only be added through AddBuffMagnitude, because a
+// stack needs its own rounds and amount that this call has no room to carry;
+// a stacking spec is refused rather than topped up to the spec's single
+// TriggerCount, which would misreport a live record's duration or, on an
+// expired-but-unpruned one with no stacks, revive it to tick for nothing.
 func (bs *Buffs) RefreshBuff(buffId int) bool {
 	idx, ok := bs.buffIds[buffId]
 	if !ok {
@@ -377,6 +383,10 @@ func (bs *Buffs) RefreshBuff(buffId int) bool {
 
 	buffInfo := GetBuffSpec(buffId)
 	if buffInfo == nil {
+		return false
+	}
+
+	if buffInfo.IsStacking() {
 		return false
 	}
 

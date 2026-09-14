@@ -1,6 +1,9 @@
 package buffs
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 // Ids clear of seedRegistry's 100/101/106 and of other packages' test fixtures.
 const (
@@ -105,5 +108,35 @@ func TestRefreshBuff_HeldDeadIdReturnsFalse(t *testing.T) {
 	}
 	if bs.RefreshBuff(refreshTestDeadBuffId) {
 		t.Error("RefreshBuff returned true for a held buff with no live spec")
+	}
+}
+
+// A stacking record can only be added through AddBuffMagnitude (see
+// TestAddBuffRefusesAStackingSpec / TestAddBuffScaledRefusesAStackingSpec),
+// so RefreshBuff must decline it too: topping TriggersLeft back up to the
+// spec's TriggerCount would either revive an expired-but-unpruned record
+// with no stacks (phantom end line on its next tick) or, on a live one,
+// misreport its duration as the spec default rather than its longest stack.
+// Room buff paths call this (rooms.go), so a stacking bleed authored into a
+// room's buffids would otherwise get exactly this treatment on every visit.
+func TestRefreshBuff_RefusesAStackingSpec(t *testing.T) {
+	spec := stackingSpec()
+	restore := SeedBuffsForTest(map[int]*BuffSpec{spec.BuffId: spec})
+	defer restore()
+
+	bs := New()
+	bs.AddBuffMagnitude(spec.BuffId, 3, -2)
+	bs.AddBuffMagnitude(spec.BuffId, 5, -3)
+	wantStacks := append([]Stack{}, bs.List[0].Stacks...)
+	wantTriggersLeft := bs.List[0].TriggersLeft
+
+	if bs.RefreshBuff(spec.BuffId) {
+		t.Fatal("RefreshBuff must refuse a stacking spec")
+	}
+	if got := bs.List[0].Stacks; !reflect.DeepEqual(got, wantStacks) {
+		t.Fatalf("Stacks = %+v, want unchanged %+v", got, wantStacks)
+	}
+	if got := bs.List[0].TriggersLeft; got != wantTriggersLeft {
+		t.Fatalf("TriggersLeft = %d, want unchanged %d", got, wantTriggersLeft)
 	}
 }

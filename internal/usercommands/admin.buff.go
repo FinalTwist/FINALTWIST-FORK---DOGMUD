@@ -120,8 +120,18 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				if targetUser := users.GetByUserId(targetUserId); targetUser != nil {
 					// Get the buff
 					if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil {
-						targetUser.AddBuff(buffId, `admin`)
-						user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) applied to %s.", buffId, buffSpec.Name, targetUser.Character.Name))
+						// A stacking record can only be added through
+						// AddBuffMagnitude, which supplies the rounds and
+						// amount a stack needs; the queued add this command
+						// sends carries neither, and Buffs.AddBuff now
+						// refuses it. Catch that here instead of telling the
+						// admin it applied when nothing landed.
+						if buffSpec.IsStacking() {
+							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", buffId, buffSpec.Name))
+						} else {
+							targetUser.AddBuff(buffId, `admin`)
+							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) applied to %s.", buffId, buffSpec.Name, targetUser.Character.Name))
+						}
 
 					} else {
 						user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff Id %d not found.", buffId))
@@ -136,8 +146,13 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				if targetMob := mobs.GetInstance(targetMobInstanceId); targetMob != nil {
 					// Get the buff
 					if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil {
-						targetMob.AddBuff(buffId, `admin`)
-						user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) applied to %s.", buffSpec.BuffId, buffSpec.Name, targetMob.Character.Name))
+						// See the matching comment in the player branch above.
+						if buffSpec.IsStacking() {
+							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", buffSpec.BuffId, buffSpec.Name))
+						} else {
+							targetMob.AddBuff(buffId, `admin`)
+							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) applied to %s.", buffSpec.BuffId, buffSpec.Name, targetMob.Character.Name))
+						}
 
 					} else {
 						user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff Id %d not found.", buffId))
