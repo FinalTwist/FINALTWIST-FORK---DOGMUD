@@ -8,8 +8,8 @@ fight against a pack wears you down, and the bleeding goes on after the fight
 until your wounds close. The conditions list and your client show how many
 wounds are open. Spell poison now burns every moment it lasts rather than now
 and then, so over its whole span it does somewhat more harm than before.
-Struggling to get up off the ground now costs you your full flurry of attacks
-that moment, for you just as it always did for creatures. A few housekeeping
+While you are still struggling up off the ground, each weapon manages only a
+single attack, for you just as it always did for creatures. A few housekeeping
 effects no longer show in the conditions list or in your client at all.
 
 ## 2026-09-13: Shields hold as long as they should, and afflictions follow you
