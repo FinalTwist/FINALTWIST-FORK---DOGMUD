@@ -98,8 +98,11 @@ func TestStackingAmountFloorsToOneInSign(t *testing.T) {
 	}
 }
 
-// Nothing produces a stacking record with no stacks, but if one exists it must
-// not reach the tick path: a zero TickAmount there falls back to tick_percent.
+// A plain AddBuff/AddBuffScaled is refused for a stacking spec (see
+// TestAddBuffRefusesAStackingSpec) and addStack refuses a zero magnitude (see
+// TestAddStackRefusesZeroMagnitude), so only a hand-built or legacy
+// (pre-slice-1b) record can hold no stacks. If one exists it must not reach
+// the tick path: a zero TickAmount there falls back to tick_percent.
 func TestStackingRecordWithNoStacksExpiresWithoutFiring(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
@@ -123,14 +126,17 @@ func TestRemoveBuffClearsStacks(t *testing.T) {
 	}
 }
 
-// A cancel path can expire a record without clearing its stacks (HasFlag with
-// expire, CancelBuffsWithFlag). A new stack landing before the prune must not
-// resurrect the old ones.
+// A cancel path (HasFlag with expire, which CancelBuffsWithFlag calls) expires
+// a record through Buff.expire(), which already clears Stacks (see
+// TestHasFlagExpireClearsStacks). This test covers the same shape from
+// addStack's side: a new stack landing on an expired, unpruned record must
+// not resurrect the old ones, whether or not something upstream already
+// cleared them.
 func TestStackingAddOnAnExpiredRecordStartsFresh(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
 	bs.AddBuffMagnitude(930, 3, -2)
-	bs.List[0].TriggersLeft = TriggersLeftExpired
+	bs.HasFlag(Bleeding, true)
 	bs.AddBuffMagnitude(930, 5, -3)
 	if want := []Stack{{RoundsLeft: 5, Amount: -3}}; !reflect.DeepEqual(bs.List[0].Stacks, want) {
 		t.Fatalf("Stacks = %+v, want %+v", bs.List[0].Stacks, want)
@@ -189,13 +195,37 @@ func TestStacksRoundTripThroughYaml(t *testing.T) {
 // SpecialMoveCooldown), ticked every round. After warm-up the live count is
 // exactly Rounds/4 when that divides evenly, and moves between floor and ceil
 // when it does not.
+//
+// It also pins the tick's arithmetic: TickAmount on the round's fired record
+// must be -2 times however many stacks were live going INTO that tick. That
+// count is read off bs.List before calling Trigger, not recomputed, because
+// nothing else touches the record between one iteration's tick+add and the
+// next iteration's tick.
 func TestStackEquilibriumAtTheShippedCooldown(t *testing.T) {
 	cases := []struct{ rounds, lo, hi int }{{8, 2, 2}, {10, 2, 3}, {12, 3, 3}}
 	for _, c := range cases {
 		withSpecs(t, stackingSpec())
 		bs := New()
 		for r := 0; r < 40; r++ {
-			bs.Trigger()
+			stacksBefore := 0
+			if len(bs.List) > 0 {
+				stacksBefore = len(bs.List[0].Stacks)
+			}
+
+			fired := bs.Trigger()
+			if stacksBefore == 0 {
+				if len(fired) != 0 {
+					t.Fatalf("stack length %d, round %d: fired %d records with no stacks live going in", c.rounds, r, len(fired))
+				}
+			} else {
+				if len(fired) != 1 {
+					t.Fatalf("stack length %d, round %d: want 1 fired record, got %d", c.rounds, r, len(fired))
+				}
+				if want := -2 * stacksBefore; fired[0].TickAmount != want {
+					t.Fatalf("stack length %d, round %d: TickAmount = %d, want %d (%d stacks live going into the tick)", c.rounds, r, fired[0].TickAmount, want, stacksBefore)
+				}
+			}
+
 			if r%4 == 0 {
 				bs.AddBuffMagnitude(930, c.rounds, -2)
 			}
@@ -206,5 +236,69 @@ func TestStackEquilibriumAtTheShippedCooldown(t *testing.T) {
 				t.Fatalf("stack length %d, round %d: %d live stacks, want %d to %d", c.rounds, r, n, c.lo, c.hi)
 			}
 		}
+	}
+}
+
+// HasFlag's expire branch backs CancelBuffsWithFlag, including
+// CancelBuffsWithFlag(buffs.All) on death (Life_Cascades.go). It must clear
+// Stacks along with TriggersLeft: AddBuff, AddBuffScaled and RefreshBuff can
+// all revive an expired, unpruned record, and without this a dead bleed's
+// stale stacks would come back to life on the next add.
+func TestHasFlagExpireClearsStacks(t *testing.T) {
+	withSpecs(t, stackingSpec())
+	bs := New()
+	bs.AddBuffMagnitude(930, 3, -2)
+	if !bs.HasFlag(Bleeding, true) {
+		t.Fatal("HasFlag(expire) must find the bleeding record")
+	}
+	b := bs.List[0]
+	if len(b.Stacks) != 0 {
+		t.Fatalf("Stacks = %+v, want none: the expire branch must clear them", b.Stacks)
+	}
+	if !b.Expired() {
+		t.Fatal("the record must be expired")
+	}
+}
+
+// A stacking record can only be added through AddBuffMagnitude, because only
+// that door supplies a stack's rounds and amount. AddBuff and AddBuffScaled
+// are also public (admin buff command, UserRecord.AddBuff, Mob.AddBuff,
+// worn-item permabuffs), and Buff_ApplyBuffs.go routes a zero-magnitude,
+// zero-trigger event to AddBuff, so both must refuse a stacking spec instead
+// of creating a live record with no stacks that later prints a phantom end
+// line.
+func TestAddBuffRefusesAStackingSpec(t *testing.T) {
+	withSpecs(t, stackingSpec())
+	bs := New()
+	if bs.AddBuff(930, false) {
+		t.Fatal("AddBuff must refuse a stacking spec")
+	}
+	if bs.HasBuff(930) {
+		t.Fatal("a refused add must hold nothing")
+	}
+}
+
+func TestAddBuffScaledRefusesAStackingSpec(t *testing.T) {
+	withSpecs(t, stackingSpec())
+	bs := New()
+	if bs.AddBuffScaled(930, 1.0) {
+		t.Fatal("AddBuffScaled must refuse a stacking spec")
+	}
+	if bs.HasBuff(930) {
+		t.Fatal("a refused add must hold nothing")
+	}
+}
+
+// A zero-magnitude stack would still lengthen the record (a new RoundsLeft
+// entry) and print a bleed line on its own tick, for zero harm. addStack
+// refuses it outright rather than snapshot a Amount of 0.
+func TestAddStackRefusesZeroMagnitude(t *testing.T) {
+	withSpecs(t, stackingSpec())
+	bs := New()
+	if bs.AddBuffMagnitude(930, 3, 0) {
+		t.Fatal("a zero-magnitude stack must be refused")
+	}
+	if bs.HasBuff(930) {
+		t.Fatal("a refused add must hold nothing")
 	}
 }

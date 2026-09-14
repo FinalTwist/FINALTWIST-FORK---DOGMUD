@@ -100,8 +100,8 @@ const (
 	// Stacking marks a tick record where every application is its own stack
 	// with its own timer, instead of refreshing the one instance. The record
 	// ticks the sum of its live stacks once a round and ends with its longest
-	// stack. It requires tick_from_magnitude and a one-round triggerrate. The
-	// bleed record carries it (slice 1b, 2026-09-14).
+	// stack. It requires tick_from_magnitude and a one-round triggerrate.
+	// Meant for the bleed record (122).
 	Stacking Flag = `stacking`
 
 	// Arbitrarily chosen round for calculating trigger round counts

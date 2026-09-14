@@ -32,14 +32,23 @@ func tickAmountFor(magnitude float64) int {
 }
 
 // addStack appends one stack to a stacking record, creating the record on the
-// first stack. rounds 0 means the spec's triggercount. An expired record that
-// has not been pruned yet (a cancel path expires without clearing) starts
-// fresh rather than resurrecting its old stacks.
+// first stack. rounds 0 means the spec's triggercount. magnitude 0 is
+// refused: a zero-amount stack would still lengthen the record and print a
+// bleed line on its own tick, for no harm landed.
+//
+// Every internal path that expires a held record now clears its stacks
+// through Buff.expire() (RemoveBuff, HasFlag's expire branch, tickStacks), so
+// an expired, unpruned record should already hold none. The clear below is a
+// cheap defensive second guard, not the primary defense, for a record that
+// somehow reached TriggersLeft <= 0 without going through expire().
 func (bs *Buffs) addStack(spec *BuffSpec, rounds int, magnitude float64) bool {
+	if magnitude == 0 {
+		return false
+	}
 	if idx, ok := bs.buffIds[spec.BuffId]; ok && bs.List[idx].Expired() {
 		bs.List[idx].Stacks = nil
 	}
-	if !bs.AddBuffScaled(spec.BuffId, 1.0) {
+	if !bs.addBuffScaled(spec.BuffId, 1.0) {
 		return false
 	}
 	idx, ok := bs.buffIds[spec.BuffId]
@@ -58,7 +67,13 @@ func (bs *Buffs) addStack(spec *BuffSpec, rounds int, magnitude float64) bool {
 // syncStacks derives the record-level fields every other reader uses from the
 // live stacks: TriggersLeft is the longest stack (so Expired, GetDurations,
 // the prune pass and both condition lists see a record that lives as long as
-// its longest stack), and TickAmount and Magnitude are the sum.
+// its longest stack). TickAmount and Magnitude are the sum of the live
+// stacks' amounts, which is accurate for both right after an add. tickStacks
+// calls this too, then overwrites TickAmount with the amount that just
+// landed this round (summed before the round's stacks are decremented and
+// dropped), which is a different figure from Magnitude once any tick has
+// happened. Between ticks, a caller that wants "the whole bleed" should read
+// Stacks or Magnitude, never TickAmount.
 func (b *Buff) syncStacks() {
 	longest, sum := 0, 0
 	for _, s := range b.Stacks {
@@ -78,7 +93,7 @@ func (b *Buff) syncStacks() {
 // when there are no stacks to tick.
 func (b *Buff) tickStacks() bool {
 	if len(b.Stacks) == 0 {
-		b.TriggersLeft = TriggersLeftExpired
+		b.expire()
 		return false
 	}
 	landed := 0

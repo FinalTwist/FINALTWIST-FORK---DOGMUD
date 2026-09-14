@@ -49,6 +49,17 @@ func (b *Buff) Expired() bool {
 	return b.TriggersLeft <= TriggersLeftExpired
 }
 
+// expire marks a held record expired for the prune pass and clears its
+// stacks in the same step. Every internal path that expires a still-held
+// record (RemoveBuff, HasFlag's expire branch, tickStacks) must go through
+// this rather than setting TriggersLeft directly: AddBuff, AddBuffScaled and
+// RefreshBuff can all revive an expired, unpruned record, and one that kept
+// its old stacks would come back to life with them still live.
+func (b *Buff) expire() {
+	b.TriggersLeft = TriggersLeftExpired
+	b.Stacks = nil
+}
+
 // A list of applied buffs
 type Buffs struct {
 	List      []*Buff
@@ -111,8 +122,7 @@ func (bs *Buff) Name() string {
 
 func (bs *Buffs) RemoveBuff(buffId int) bool {
 	if index, ok := bs.buffIds[buffId]; ok {
-		bs.List[index].TriggersLeft = TriggersLeftExpired
-		bs.List[index].Stacks = nil
+		bs.List[index].expire()
 		return true
 	}
 	return false
@@ -182,7 +192,7 @@ func (bs *Buffs) HasFlag(action Flag, expire bool) bool {
 		if b.BuffId == 0 {
 			bs.List = append(bs.List[:index], bs.List[index+1:]...)
 		} else {
-			b.TriggersLeft = TriggersLeftExpired
+			b.expire()
 			bs.List[index] = b
 		}
 	}
@@ -250,8 +260,24 @@ func (bs *Buffs) Started(buffId int) {
 	}
 }
 
-// AddBuffScaled adds a buff with its duration multiplied by durationMult.
+// AddBuffScaled adds a buff with its duration multiplied by durationMult. A
+// stacking record can only be added through AddBuffMagnitude, because a
+// stack needs its own rounds and amount that this call has no room to carry;
+// a stacking spec is refused rather than left to create a live record with
+// no stacks.
 func (bs *Buffs) AddBuffScaled(buffId int, durationMult float64) bool {
+	if spec := GetBuffSpec(buffId); spec != nil && spec.IsStacking() {
+		return false
+	}
+	return bs.addBuffScaled(buffId, durationMult)
+}
+
+// addBuffScaled is the writer AddBuffScaled and the non-stacking branch of
+// AddBuffMagnitude share. addStack also calls it, once per new stack, to
+// create or touch the record before it appends that stack, which is why this
+// unexported form does not itself refuse a stacking spec: AddBuffScaled's
+// exported wrapper is where that refusal belongs.
+func (bs *Buffs) addBuffScaled(buffId int, durationMult float64) bool {
 	if buffInfo := GetBuffSpec(buffId); buffInfo != nil {
 
 		// Poison immunity (Stone Stomach): a poison-flagged buff is refused
@@ -315,7 +341,7 @@ func (bs *Buffs) AddBuffMagnitude(buffId int, triggers int, magnitude float64) b
 	if spec := GetBuffSpec(buffId); spec != nil && spec.IsStacking() {
 		return bs.addStack(spec, triggers, magnitude)
 	}
-	if !bs.AddBuffScaled(buffId, 1.0) {
+	if !bs.addBuffScaled(buffId, 1.0) {
 		return false
 	}
 	idx, ok := bs.buffIds[buffId]
@@ -362,8 +388,17 @@ func (bs *Buffs) RefreshBuff(buffId int) bool {
 	return true
 }
 
+// AddBuff applies a record for the spec's own trigger count, or unlimited
+// when isPermanent. A stacking record can only be added through
+// AddBuffMagnitude, because a stack needs its own rounds and amount that this
+// call has no room to carry; a stacking spec is refused rather than left to
+// create a live record with no stacks.
 func (bs *Buffs) AddBuff(buffId int, isPermanent bool) bool {
 	if buffInfo := GetBuffSpec(buffId); buffInfo != nil {
+
+		if buffInfo.IsStacking() {
+			return false
+		}
 
 		// Poison immunity (Stone Stomach): a poison-flagged buff is refused
 		// while the holder is immune. Checked here so every application path,
