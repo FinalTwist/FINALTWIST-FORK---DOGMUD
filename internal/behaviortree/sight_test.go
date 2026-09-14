@@ -3,7 +3,7 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -24,9 +24,9 @@ func sightScene(t *testing.T, biome string) (*mobs.Mob, *rooms.Room) {
 		"cave": {BiomeId: "cave", DarkArea: true},
 		"city": {BiomeId: "city", LitArea: true},
 	}))
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		sightNightVisionBuffId:  {BuffId: sightNightVisionBuffId, Name: "Night Vision", Flags: []buffs.Flag{buffs.NightVision}},
-		sightIlluminationBuffId: {BuffId: sightIlluminationBuffId, Name: "Illumination", Flags: []buffs.Flag{buffs.EmitsLight}},
+	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+		sightNightVisionBuffId:  {BuffId: sightNightVisionBuffId, Name: "Night Vision", Flags: []conditions.Flag{conditions.NightVision}},
+		sightIlluminationBuffId: {BuffId: sightIlluminationBuffId, Name: "Illumination", Flags: []conditions.Flag{conditions.EmitsLight}},
 	}))
 
 	room := &rooms.Room{RoomId: 8100, Biome: biome}
@@ -40,7 +40,7 @@ func sightScene(t *testing.T, biome string) (*mobs.Mob, *rooms.Room) {
 			Name:      "Watcher",
 			RoomId:    8100,
 			Health:    100,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 			SpeciesId: 1,
 		},

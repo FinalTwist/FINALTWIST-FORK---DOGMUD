@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -81,7 +81,7 @@ func seedCasterMob(t *testing.T, instanceId int, spellbook map[string]int) (*mob
 	m.Character.HealthMax.Base = 100
 	m.Character.HealthMax.Value = 100
 	m.Character.SpellBook = spellbook
-	m.Character.Buffs = buffs.New()
+	m.Character.Buffs = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{400 + instanceId: m},
 		map[int]*mobs.Mob{instanceId: m},
@@ -171,8 +171,8 @@ func TestPureCaster_DefenseCovered_SingleEnemy_CastsHarmSingle(t *testing.T) {
 	// SeedConditionRecordsForTest must run AFTER it to add Minor Shield's
 	// spec back in (additive) before AddBuffMagnitude needs it.
 	defer seedBuffOnChar(t, &mob.Character, 27)()
-	defer buffs.SeedConditionRecordsForTest()()
-	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, 20, 75, "test")
+	defer conditions.SeedConditionRecordsForTest()()
+	_ = mob.Character.AddBuffMagnitude(conditions.BuffIdMinorShield, 20, 75, "test")
 	// AddBuffMagnitude validates the embedded Character directly, which
 	// installs a PLAYER Presence/Perception (Character.Validate()'s nil
 	// guard); mob.Validate() puts the mob ones back so TryMobBehavior sees a
@@ -213,8 +213,8 @@ func TestPureCaster_NoCandidates_FallsThrough(t *testing.T) {
 	// SeedConditionRecordsForTest must run AFTER it to add Minor Shield's
 	// spec back in (additive) before AddBuffMagnitude needs it.
 	defer seedBuffOnChar(t, &mob.Character, 27)()
-	defer buffs.SeedConditionRecordsForTest()()
-	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, 20, 75, "test")
+	defer conditions.SeedConditionRecordsForTest()()
+	_ = mob.Character.AddBuffMagnitude(conditions.BuffIdMinorShield, 20, 75, "test")
 	// AddBuffMagnitude validates the embedded Character directly, which
 	// installs a PLAYER Presence/Perception (Character.Validate()'s nil
 	// guard); mob.Validate() puts the mob ones back so TryMobBehavior sees a

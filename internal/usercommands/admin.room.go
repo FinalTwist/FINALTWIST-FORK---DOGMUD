@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gamelock"
@@ -387,8 +387,8 @@ func editLockAndTrap(cmdPrompt *prompt.Prompt, user *users.UserRecord, lock game
 
 			buffOptions := []templates.NameDescription{}
 
-			for _, buffId := range buffs.GetAllBuffIds() {
-				if b := buffs.GetBuffSpec(buffId); b != nil {
+			for _, buffId := range conditions.GetAllBuffIds() {
+				if b := conditions.GetBuffSpec(buffId); b != nil {
 
 					if b.Name == `empty` {
 						continue

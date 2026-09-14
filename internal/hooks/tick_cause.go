@@ -3,7 +3,7 @@ package hooks
 import (
 	"slices"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 )
 
 // tickCauseFor reports the death-cause tag a damaging health tick from spec
@@ -20,14 +20,14 @@ import (
 // the harm lands and stamp LastTickCause only on a non-empty result, so a
 // record that is neither poison nor bleeding leaves whatever cause the last
 // qualifying tick left behind untouched.
-func tickCauseFor(spec *buffs.BuffSpec) string {
+func tickCauseFor(spec *conditions.BuffSpec) string {
 	if spec == nil {
 		return ""
 	}
-	if slices.Contains(spec.Flags, buffs.Poison) {
+	if slices.Contains(spec.Flags, conditions.Poison) {
 		return "poison"
 	}
-	if slices.Contains(spec.Flags, buffs.Bleeding) {
+	if slices.Contains(spec.Flags, conditions.Bleeding) {
 		return "bleeding out"
 	}
 	return ""

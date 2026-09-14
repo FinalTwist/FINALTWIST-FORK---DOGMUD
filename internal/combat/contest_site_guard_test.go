@@ -25,7 +25,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -285,7 +285,7 @@ func TestEveryChannelUsesUniformDefenceSkillWeight(t *testing.T) {
 	build := func(skill skills.SkillTag, level int) *characters.Character {
 		c := &characters.Character{
 			Name:   "guard",
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 			Skills: map[string]int{string(skill): level},
 		}
 		c.Stats.Dexterity.ValueAdj = 100

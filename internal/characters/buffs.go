@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/species"
@@ -17,21 +17,21 @@ func (c *Character) IsDisabled() bool {
 	return c.Health <= 0
 }
 
-func (c *Character) HasBuffFlag(buffFlag buffs.Flag) bool {
+func (c *Character) HasBuffFlag(buffFlag conditions.Flag) bool {
 	return c.Buffs.HasFlag(buffFlag, false)
 }
 
 // HasFlagFromAnySource returns true if the character has the given flag from
 // either active buffs OR permanent mutation effects. Use this instead of
 // HasBuffFlag when the check should also honor mutation-granted flags.
-func (c *Character) HasFlagFromAnySource(buffFlag buffs.Flag) bool {
+func (c *Character) HasFlagFromAnySource(buffFlag conditions.Flag) bool {
 	if c.Buffs.HasFlag(buffFlag, false) {
 		return true
 	}
 	return mutations.HasMutationFlag(c.Mutations, string(buffFlag))
 }
 
-func (c *Character) CancelBuffsWithFlag(buffFlag buffs.Flag) bool {
+func (c *Character) CancelBuffsWithFlag(buffFlag conditions.Flag) bool {
 	if c.Buffs.HasFlag(buffFlag, true) {
 		c.Validate(true)
 		// Hidden flag is special: the Awareness FSM mirrors the buff
@@ -58,7 +58,7 @@ func (c *Character) CancelBuffsWithFlag(buffFlag buffs.Flag) bool {
 		//
 		// Asking the FSM directly is correct for every caller and cannot
 		// drift again: if stealth is still on after a cancel, end it.
-		if c.Awareness != nil && !c.Buffs.HasFlag(buffs.Hidden, false) &&
+		if c.Awareness != nil && !c.Buffs.HasFlag(conditions.Hidden, false) &&
 			c.Awareness.State() == awareness.Hidden {
 			_ = c.Awareness.TransitionToRevealing(
 				state.TransitionReason{Trigger: awareness.TriggerObserverSearch})
@@ -81,14 +81,14 @@ func (c *Character) CancelBuffsWithFlag(buffFlag buffs.Flag) bool {
 func (c *Character) CancelCombatBuffs() {
 	filtered := make([]int, 0, len(c.permaBuffIds))
 	for _, id := range c.permaBuffIds {
-		spec := buffs.GetBuffSpec(id)
+		spec := conditions.GetBuffSpec(id)
 		if spec == nil {
 			filtered = append(filtered, id)
 			continue
 		}
 		keep := true
 		for _, f := range spec.Flags {
-			if f == buffs.CancelIfCombat {
+			if f == conditions.CancelIfCombat {
 				keep = false
 				break
 			}
@@ -99,7 +99,7 @@ func (c *Character) CancelCombatBuffs() {
 	}
 	c.permaBuffIds = filtered
 
-	c.CancelBuffsWithFlag(buffs.CancelIfCombat)
+	c.CancelBuffsWithFlag(conditions.CancelIfCombat)
 }
 
 func (c *Character) HasBuff(buffId int) bool {
@@ -171,7 +171,7 @@ func (c *Character) TrackBuffStarted(buffId int) {
 	c.Buffs.Started(buffId)
 }
 
-func (c *Character) GetBuffs(buffId ...int) []*buffs.Buff {
+func (c *Character) GetBuffs(buffId ...int) []*conditions.Buff {
 	return c.Buffs.GetBuffs(buffId...)
 }
 

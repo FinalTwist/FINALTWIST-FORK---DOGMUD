@@ -3,7 +3,7 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -13,11 +13,11 @@ import (
 // skulldBuffSpec seeds buff 9 (Hidden) for behaviortree-package tests that
 // need AddBuff(9) to work. A single var so the same seed is shared by all
 // tests in this file.
-var skulldBuffSpec = map[int]*buffs.BuffSpec{
+var skulldBuffSpec = map[int]*conditions.BuffSpec{
 	9: {
 		BuffId:        9,
 		Name:          "Hidden",
-		Flags:         []buffs.Flag{buffs.Hidden},
+		Flags:         []conditions.Flag{conditions.Hidden},
 		TriggerCount:  15,
 		RoundInterval: 1,
 	},
@@ -28,7 +28,7 @@ var skulldBuffSpec = map[int]*buffs.BuffSpec{
 // TestActTrySneak_SuccessWhenNoObservers verifies that a mob alone in a
 // room succeeds at sneak and acquires the Hidden buff.
 func TestActTrySneak_SuccessWhenNoObservers(t *testing.T) {
-	cleanBuffs := buffs.SeedBuffsForTest(skulldBuffSpec)
+	cleanBuffs := conditions.SeedBuffsForTest(skulldBuffSpec)
 	defer cleanBuffs()
 
 	cleanRoom := seedTestRoom(t, 1, "TestZone")
@@ -63,7 +63,7 @@ func TestActTrySneak_SuccessWhenNoObservers(t *testing.T) {
 // TestActTrySneak_AlreadyHiddenReturnsSuccess verifies that a mob that is
 // already hidden returns Success (AlreadyHidden path from actions.Sneak).
 func TestActTrySneak_AlreadyHiddenReturnsSuccess(t *testing.T) {
-	cleanBuffs := buffs.SeedBuffsForTest(skulldBuffSpec)
+	cleanBuffs := conditions.SeedBuffsForTest(skulldBuffSpec)
 	defer cleanBuffs()
 
 	cleanRoom := seedTestRoom(t, 1, "TestZone")
@@ -320,7 +320,7 @@ func TestActTryShadow_FailureWhenNotHidden(t *testing.T) {
 // TestActTryShadow_FailureNoTarget verifies that shadow returns Failure
 // when there is no resolvable target (even when hidden).
 func TestActTryShadow_FailureNoTarget(t *testing.T) {
-	cleanBuffs := buffs.SeedBuffsForTest(skulldBuffSpec)
+	cleanBuffs := conditions.SeedBuffsForTest(skulldBuffSpec)
 	defer cleanBuffs()
 
 	cleanRoom := seedTestRoom(t, 1, "TestZone")

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	mobcmd "github.com/GoMudEngine/GoMud/internal/mobcommands"
@@ -88,7 +88,7 @@ func usersForRhetoricRefusal(t *testing.T) *users.UserRecord {
 	user.Character.Conviction = 0
 	user.Character.Cooldowns = characters.Cooldowns{}
 	user.Character.Skills = map[string]int{}
-	user.Character.Buffs = buffs.New()
+	user.Character.Buffs = conditions.New()
 	events.DrainQueuedMessagesForTest(user.UserId)
 	return user
 }

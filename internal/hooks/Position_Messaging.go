@@ -19,7 +19,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -385,7 +385,7 @@ func sendSilentStartText(c *characters.Character, buffId int) {
 	if u == nil {
 		return
 	}
-	spec := buffs.GetBuffSpec(buffId)
+	spec := conditions.GetBuffSpec(buffId)
 	if spec == nil {
 		return
 	}

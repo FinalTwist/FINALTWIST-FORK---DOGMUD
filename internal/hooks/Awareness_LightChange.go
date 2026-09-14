@@ -1,7 +1,7 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -66,7 +66,7 @@ func onRoomChangeForAwareness(e events.Event) events.ListenerReturn {
 
 	// Only act when the mover emits light — a non-emitting actor's movement
 	// doesn't change room visibility.
-	if c == nil || !c.HasFlagFromAnySource(buffs.EmitsLight) {
+	if c == nil || !c.HasFlagFromAnySource(conditions.EmitsLight) {
 		return events.Continue
 	}
 

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -74,7 +74,7 @@ func seedArchetypeMob(t *testing.T, instanceId int, spellbook map[string]int) (*
 	m.Character.Name = "testmob"
 	m.Character.Conviction = 500
 	m.Character.SpellBook = spellbook
-	m.Character.Buffs = buffs.New()
+	m.Character.Buffs = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{300 + instanceId: m},
 		map[int]*mobs.Mob{instanceId: m},
@@ -88,10 +88,10 @@ func seedArchetypeMob(t *testing.T, instanceId int, spellbook map[string]int) (*
 // spec so the buffs package doesn't panic on lookup.
 func seedBuffOnChar(t *testing.T, char *characters.Character, buffId int) func() {
 	t.Helper()
-	cleanupBuff := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanupBuff := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		buffId: {BuffId: buffId, Name: "TestBuff"},
 	})
-	char.Buffs.List = append(char.Buffs.List, &buffs.Buff{
+	char.Buffs.List = append(char.Buffs.List, &conditions.Buff{
 		BuffId:       buffId,
 		TriggersLeft: 5,
 	})

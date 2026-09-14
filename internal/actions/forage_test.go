@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/forager"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -34,7 +34,7 @@ func newForageFakeActor(t *testing.T, name string, room *rooms.Room, isPlayer bo
 	t.Helper()
 	c := &characters.Character{
 		Name:  name,
-		Buffs: buffs.New(),
+		Buffs: conditions.New(),
 	}
 	c.Stats.Perception.ValueAdj = 100
 	return &forageFakeActor{
@@ -50,7 +50,7 @@ func newForageMobActor(t *testing.T, mob *mobs.Mob, room *rooms.Room) *forageFak
 	t.Helper()
 	c := &characters.Character{
 		Name:  mob.Character.Name,
-		Buffs: buffs.New(),
+		Buffs: conditions.New(),
 	}
 	return &forageFakeActor{
 		char:      c,
@@ -90,7 +90,7 @@ func newForageTestMob(t *testing.T, instId int, name string, roomId int) *mobs.M
 		InstanceId: instId,
 	}
 	m.Character.Name = name
-	m.Character.Buffs = buffs.New()
+	m.Character.Buffs = conditions.New()
 	m.Character.RoomId = roomId
 	return m
 }

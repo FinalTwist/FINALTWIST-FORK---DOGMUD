@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -151,7 +151,7 @@ func makeHPPartyMob(
 		HomeRoomId: 1,
 	}
 	mob.Character.Name = "HPTestMob"
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	mob.Character.Health = health
 	mob.Character.HealthMax = stats.StatInfo{Base: healthMaxVal, Value: healthMaxVal}
 	mob.Character.StaminaMax = stats.StatInfo{Base: 100, Value: 100}
@@ -200,7 +200,7 @@ func TestCondPartyMemberBelowPct_SPBelow_Success(t *testing.T) {
 		HomeRoomId: 1,
 	}
 	mob.Character.Name = "SPTestMob"
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	mob.Character.Health = 100
 	mob.Character.HealthMax = stats.StatInfo{Base: 100, Value: 100}
 	mob.Character.Stamina = 10
@@ -256,7 +256,7 @@ func TestCondPartyInCombat_MemberInCombat_Success(t *testing.T) {
 		HomeRoomId: 1,
 	}
 	mob.Character.Name = "CombatMob"
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	mob.Character.SetAggro(5, 0, characters.DefaultAttack)
 	mobs.SetInstanceForTest(8010, mob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8010, nil) })
@@ -283,7 +283,7 @@ func TestCondPartyInCombat_NoCombat_Failure(t *testing.T) {
 		HomeRoomId: 1,
 	}
 	mob.Character.Name = "PeacefulMob"
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	// Aggro is nil (not in combat)
 	mobs.SetInstanceForTest(8011, mob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8011, nil) })
@@ -312,7 +312,7 @@ func TestCondPartyLeaderInCombat_LeaderInCombat_Success(t *testing.T) {
 		HomeRoomId: 1,
 	}
 	leaderMob.Character.Name = "LeaderCombat"
-	leaderMob.Character.Buffs = buffs.New()
+	leaderMob.Character.Buffs = conditions.New()
 	leaderMob.Character.SetAggro(3, 0, characters.DefaultAttack)
 	mobs.SetInstanceForTest(8020, leaderMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8020, nil) })
@@ -331,7 +331,7 @@ func TestCondPartyLeaderInCombat_LeaderInCombat_Success(t *testing.T) {
 		HomeRoomId: 1,
 	}
 	memberMob.Character.Name = "FollowerMob"
-	memberMob.Character.Buffs = buffs.New()
+	memberMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(8021, memberMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8021, nil) })
 
@@ -354,7 +354,7 @@ func TestCondPartyLeaderInCombat_LeaderNotInCombat_Failure(t *testing.T) {
 		HomeRoomId: 1,
 	}
 	leaderMob.Character.Name = "LeaderPeace"
-	leaderMob.Character.Buffs = buffs.New()
+	leaderMob.Character.Buffs = conditions.New()
 	// Aggro is nil
 	mobs.SetInstanceForTest(8022, leaderMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8022, nil) })
@@ -409,7 +409,7 @@ func TestCondPartyInRoom_AllSameRoom_Success(t *testing.T) {
 		HomeRoomId: 8100,
 	}
 	leaderMob.Character.Name = "Leader"
-	leaderMob.Character.Buffs = buffs.New()
+	leaderMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(8030, leaderMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8030, nil) })
 
@@ -427,7 +427,7 @@ func TestCondPartyInRoom_AllSameRoom_Success(t *testing.T) {
 		HomeRoomId: 8100,
 	}
 	memberMob.Character.Name = "Member"
-	memberMob.Character.Buffs = buffs.New()
+	memberMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(8031, memberMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8031, nil) })
 
@@ -455,7 +455,7 @@ func TestCondPartyInRoom_MembersDispersed_Failure(t *testing.T) {
 		HomeRoomId: 8101,
 	}
 	leaderMob.Character.Name = "Leader"
-	leaderMob.Character.Buffs = buffs.New()
+	leaderMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(8032, leaderMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8032, nil) })
 
@@ -473,7 +473,7 @@ func TestCondPartyInRoom_MembersDispersed_Failure(t *testing.T) {
 		HomeRoomId: 8102,
 	}
 	memberMob.Character.Name = "Straggler"
-	memberMob.Character.Buffs = buffs.New()
+	memberMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(8033, memberMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8033, nil) })
 
@@ -497,7 +497,7 @@ func TestCondPartyInRoom_MemberRoomNil_Failure(t *testing.T) {
 		HomeRoomId: 1,
 	}
 	mob.Character.Name = "NilRoomMob"
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(8034, mob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8034, nil) })
 
@@ -529,7 +529,7 @@ func TestCondPartyAtHome_AllAtHome_Success(t *testing.T) {
 		HomeRoomId: 8200,
 	}
 	mob.Character.Name = "HomeMob"
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(8040, mob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8040, nil) })
 
@@ -561,7 +561,7 @@ func TestCondPartyAtHome_MemberAway_Failure(t *testing.T) {
 		HomeRoomId: 8201,
 	}
 	leaderMob.Character.Name = "HomeLeader"
-	leaderMob.Character.Buffs = buffs.New()
+	leaderMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(8041, leaderMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8041, nil) })
 
@@ -579,7 +579,7 @@ func TestCondPartyAtHome_MemberAway_Failure(t *testing.T) {
 		HomeRoomId: 8202,
 	}
 	memberMob.Character.Name = "Wanderer"
-	memberMob.Character.Buffs = buffs.New()
+	memberMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(8042, memberMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8042, nil) })
 
@@ -602,7 +602,7 @@ func TestCondPartyAtHome_HomeRoomZero_Failure(t *testing.T) {
 		HomeRoomId: 1,
 	}
 	mob.Character.Name = "NoHomeMob"
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(8043, mob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(8043, nil) })
 

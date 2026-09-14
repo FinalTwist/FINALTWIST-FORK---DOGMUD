@@ -3,7 +3,7 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/forager"
@@ -34,7 +34,7 @@ func TestMobRoomChange_KnowledgeObservers_ForagerTriggers(t *testing.T) {
 		MobId: mobs.MobId(foragerTemplateId),
 		Character: characters.Character{
 			Name:  "Tova",
-			Buffs: buffs.New(),
+			Buffs: conditions.New(),
 		},
 	}
 	foragerInst := &mobs.Mob{
@@ -43,14 +43,14 @@ func TestMobRoomChange_KnowledgeObservers_ForagerTriggers(t *testing.T) {
 		Character: characters.Character{
 			Name:   "Tova",
 			RoomId: roomId,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 	observerSpec := &mobs.Mob{
 		MobId: mobs.MobId(observerTemplateId),
 		Character: characters.Character{
 			Name:  "citizen",
-			Buffs: buffs.New(),
+			Buffs: conditions.New(),
 		},
 	}
 	observerInst := &mobs.Mob{
@@ -59,7 +59,7 @@ func TestMobRoomChange_KnowledgeObservers_ForagerTriggers(t *testing.T) {
 		Character: characters.Character{
 			Name:   "citizen",
 			RoomId: roomId,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 
@@ -109,7 +109,7 @@ func TestMobRoomChange_KnowledgeObservers_NonForagerSilent(t *testing.T) {
 		MobId: mobs.MobId(regularTemplateId),
 		Character: characters.Character{
 			Name:  "wanderer",
-			Buffs: buffs.New(),
+			Buffs: conditions.New(),
 		},
 	}
 	regularInst := &mobs.Mob{
@@ -118,14 +118,14 @@ func TestMobRoomChange_KnowledgeObservers_NonForagerSilent(t *testing.T) {
 		Character: characters.Character{
 			Name:   "wanderer",
 			RoomId: roomId,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 	observerSpec := &mobs.Mob{
 		MobId: mobs.MobId(observerTemplateId),
 		Character: characters.Character{
 			Name:  "bystander",
-			Buffs: buffs.New(),
+			Buffs: conditions.New(),
 		},
 	}
 	observerInst := &mobs.Mob{
@@ -134,7 +134,7 @@ func TestMobRoomChange_KnowledgeObservers_NonForagerSilent(t *testing.T) {
 		Character: characters.Character{
 			Name:   "bystander",
 			RoomId: roomId,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 

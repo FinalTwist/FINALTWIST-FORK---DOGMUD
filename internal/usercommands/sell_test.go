@@ -16,7 +16,7 @@ package usercommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -51,7 +51,7 @@ func seedMerchantInRoom(t *testing.T, user *users.UserRecord, goldAmount int) (i
 			Name:   "Merchant",
 			RoomId: 1,
 			Gold:   goldAmount,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 			// Price=100, Quantity=0 → GetSellPrice returns ceil(100*1.0*0.25)=25.
 			// Each subsequent sell increments Quantity which lowers the price.
 			Shop: characters.Shop{

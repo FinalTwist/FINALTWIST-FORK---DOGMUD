@@ -3,7 +3,7 @@ package actions
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -22,7 +22,7 @@ import (
 // 113 of 132 authored schedules put the NPC to sleep IN their own workplace, so
 // most shopkeepers in the world are asleep on the spot at night.
 func TargetAsleep(c *characters.Character) bool {
-	return c != nil && c.HasBuffFlag(buffs.Sleeping)
+	return c != nil && c.HasBuffFlag(conditions.Sleeping)
 }
 
 // RefuseIfAsleep is the single gate every player-initiated interaction with an

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -246,7 +246,7 @@ func TestMvM_AttackerStatGainEmitsRoomMessage(t *testing.T) {
 func TestMvP_ConditionShieldAppliedOnceNotDoubleDipped(t *testing.T) {
 	cleanupRegistries := seedAllRegistries()
 	defer cleanupRegistries()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	defUser := users.GetByUserId(1)
 	require.NotNil(t, defUser)
@@ -262,7 +262,7 @@ func TestMvP_ConditionShieldAppliedOnceNotDoubleDipped(t *testing.T) {
 	// integer-percent value the spell stores; the magnitude maps 1:1 into
 	// the mitigation percentage at characters/combat.go:185).
 	const magnitude float64 = 30
-	_ = defUser.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, 10, magnitude, "test")
+	_ = defUser.Character.AddBuffMagnitude(conditions.BuffIdMinorShield, 10, magnitude, "test")
 
 	// After applying: GetPhysicalMitigation should add exactly magnitude/100.
 	got := defUser.Character.GetPhysicalMitigation()

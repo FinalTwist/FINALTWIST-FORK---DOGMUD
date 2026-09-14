@@ -3,7 +3,7 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -17,7 +17,7 @@ func seedSmartAmbient() func() {
 		999955: {ItemId: 999955, Name: "vigor potion", Type: items.Potion, BuffIds: []int{54}},
 		999956: {ItemId: 999956, Name: "renewal potion", Type: items.Potion, BuffIds: []int{55}},
 	})
-	restoreB := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	restoreB := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		54: {BuffId: 54, Name: "Vigor", Description: "vigor", RoundInterval: 5, TriggerCount: 100},
 		55: {BuffId: 55, Name: "Renewal", Description: "renewal", RoundInterval: 5, TriggerCount: 100},
 	})

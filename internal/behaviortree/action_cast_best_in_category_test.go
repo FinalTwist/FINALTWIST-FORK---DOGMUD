@@ -4,7 +4,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -101,7 +101,7 @@ func TestCollectCategoryCandidates_MultipleCandidatesAllIncluded(t *testing.T) {
 	cleanup := seedCategorySpells(t)
 	defer cleanup()
 
-	char := &characters.Character{Conviction: 100, Buffs: buffs.New()}
+	char := &characters.Character{Conviction: 100, Buffs: conditions.New()}
 	// spellbook: d1, d2, other, broke, compreq, summon, charm, compsum
 	sb := map[string]int{"d1": 1, "d2": 1, "other": 1, "broke": 1, "compreq": 1, "summon": 1, "charm": 1, "compsum": 1}
 	got := collectCategoryCandidates(char, sb, "self_defense", 1, "test")
@@ -127,7 +127,7 @@ func TestCollectCategoryCandidates_MultipleCandidatesAllIncluded(t *testing.T) {
 func TestCollectCategoryCandidates_SkipsBuffAlreadyActive(t *testing.T) {
 	cleanup := seedCategorySpells(t)
 	defer cleanup()
-	cleanupBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanupBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		10: {BuffId: 10, Name: "TestBuff10"},
 		11: {BuffId: 11, Name: "TestBuff11"},
 	})
@@ -136,8 +136,8 @@ func TestCollectCategoryCandidates_SkipsBuffAlreadyActive(t *testing.T) {
 	// Build a Buffs tracker with buff 10 already in the list, then Validate()
 	// to rebuild the internal buffIds index. This avoids calling char.AddBuff
 	// which triggers Character.Validate() and may clamp Conviction to 0.
-	b := buffs.New()
-	b.List = append(b.List, &buffs.Buff{BuffId: 10, TriggersLeft: 5})
+	b := conditions.New()
+	b.List = append(b.List, &conditions.Buff{BuffId: 10, TriggersLeft: 5})
 	b.Validate(true)
 
 	char := &characters.Character{Conviction: 100, Buffs: b}
@@ -160,7 +160,7 @@ func TestCollectCategoryCandidates_SkipsShieldAlreadyActive(t *testing.T) {
 	cleanup := seedCategorySpells(t)
 	defer cleanup()
 
-	char := &characters.Character{Conviction: 100, Buffs: buffs.New()}
+	char := &characters.Character{Conviction: 100, Buffs: conditions.New()}
 	// Manually mark the character as having a shield by using HasShield check.
 	// HasShield() checks worn equipment, which we can't easily set without full
 	// item setup. Instead, verify the shield-active path doesn't panic and
@@ -185,7 +185,7 @@ func TestCollectCategoryCandidates_SkipsInsufficientCP(t *testing.T) {
 	})
 	defer cleanup()
 
-	char := &characters.Character{Conviction: 50, Buffs: buffs.New()}
+	char := &characters.Character{Conviction: 50, Buffs: conditions.New()}
 	sb := map[string]int{"expensive": 1, "cheap": 1}
 	got := collectCategoryCandidates(char, sb, "self_defense", 1, "test")
 	if len(got) != 1 {
@@ -203,7 +203,7 @@ func TestCollectCategoryCandidates_SkipsComponentTag(t *testing.T) {
 	})
 	defer cleanup()
 
-	char := &characters.Character{Conviction: 100, Buffs: buffs.New()}
+	char := &characters.Character{Conviction: 100, Buffs: conditions.New()}
 	got := collectCategoryCandidates(char, map[string]int{"compreq": 1}, "self_defense", 1, "test")
 	if len(got) != 0 {
 		t.Fatalf("want 0 (component required), got %d", len(got))
@@ -217,7 +217,7 @@ func TestCollectCategoryCandidates_SkipsSummonComponentId(t *testing.T) {
 	})
 	defer cleanup()
 
-	char := &characters.Character{Conviction: 100, Buffs: buffs.New()}
+	char := &characters.Character{Conviction: 100, Buffs: conditions.New()}
 	got := collectCategoryCandidates(char, map[string]int{"compsum": 1}, "self_defense", 1, "test")
 	if len(got) != 0 {
 		t.Fatalf("want 0 (summon component required), got %d", len(got))
@@ -231,7 +231,7 @@ func TestCollectCategoryCandidates_SkipsSummonMobId(t *testing.T) {
 	})
 	defer cleanup()
 
-	char := &characters.Character{Conviction: 100, Buffs: buffs.New()}
+	char := &characters.Character{Conviction: 100, Buffs: conditions.New()}
 	got := collectCategoryCandidates(char, map[string]int{"summon": 1}, "self_defense", 1, "test")
 	if len(got) != 0 {
 		t.Fatalf("want 0 (summon spell), got %d", len(got))
@@ -245,7 +245,7 @@ func TestCollectCategoryCandidates_SkipsCharmEffectType(t *testing.T) {
 	})
 	defer cleanup()
 
-	char := &characters.Character{Conviction: 100, Buffs: buffs.New()}
+	char := &characters.Character{Conviction: 100, Buffs: conditions.New()}
 	got := collectCategoryCandidates(char, map[string]int{"charm": 1}, "self_defense", 1, "test")
 	if len(got) != 0 {
 		t.Fatalf("want 0 (charm spell), got %d", len(got))
@@ -260,7 +260,7 @@ func TestCollectCategoryCandidates_DeletedSpellIdDoesNotCrash(t *testing.T) {
 	})
 	defer cleanup()
 
-	char := &characters.Character{Conviction: 100, Buffs: buffs.New()}
+	char := &characters.Character{Conviction: 100, Buffs: conditions.New()}
 	sb := map[string]int{"ghost": 1, "real": 1}
 	// Should not crash; ghost excluded, real included.
 	got := collectCategoryCandidates(char, sb, "self_defense", 1, "test")
@@ -286,7 +286,7 @@ func TestCastBestInCategory_RankingSelectsHighestScore(t *testing.T) {
 	})
 	defer cleanup()
 
-	char := &characters.Character{Conviction: 500, Buffs: buffs.New()}
+	char := &characters.Character{Conviction: 500, Buffs: conditions.New()}
 	sb := map[string]int{"lo": 1, "mid": 1, "hi": 1}
 
 	candidates := collectCategoryCandidates(char, sb, "self_defense", 1, "test")
@@ -324,7 +324,7 @@ func TestCastBestInCategory_TieBreaksBySpellIdAsc(t *testing.T) {
 	})
 	defer cleanup()
 
-	char := &characters.Character{Conviction: 500, Buffs: buffs.New()}
+	char := &characters.Character{Conviction: 500, Buffs: conditions.New()}
 	candidates := collectCategoryCandidates(char, map[string]int{"aaa": 1, "zzz": 1}, "self_defense", 1, "test")
 	if len(candidates) != 2 {
 		t.Fatalf("want 2, got %d", len(candidates))

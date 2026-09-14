@@ -1,4 +1,4 @@
-package buffs
+package conditions
 
 // SeedBuffsForTest replaces the global buffs map with the supplied test data
 // and returns a cleanup function that restores the original.

@@ -3,7 +3,7 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -39,7 +39,7 @@ func (h *helpCallerActor) GetName() string                     { return h.name }
 func TestRoundTick_BleedDamagesPlayer(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
 	require.NotNil(t, u)
@@ -48,7 +48,7 @@ func TestRoundTick_BleedDamagesPlayer(t *testing.T) {
 	// stats/balance config, clobbering a raw HealthMax.Value. Seeding Base
 	// keeps HealthMax comfortably above the 40 this test needs.
 	u.Character.HealthMax.Base = 100
-	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 20, -5, "test")
+	_ = u.Character.AddBuffMagnitude(conditions.BuffIdBleeding, 20, -5, "test")
 	u.Character.Health = 40
 	_ = drainPlain(1)
 
@@ -66,20 +66,20 @@ func TestRoundTick_BleedDamagesPlayer(t *testing.T) {
 	assert.GreaterOrEqual(t, u.Character.Health, 35, "AutoHeal must not re-apply the bleed")
 	assert.Less(t, u.Character.Health, 40, "AutoHeal's own regen should be small next to the 5-point bleed it must not repeat")
 
-	u.Character.RemoveBuff(buffs.BuffIdBleeding)
+	u.Character.RemoveBuff(conditions.BuffIdBleeding)
 	u.Character.Health = 50
 }
 
 func TestRoundTick_BleedDamagesMob(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	mob := mobs.GetInstance(100)
 	require.NotNil(t, mob)
 
 	mob.Character.HealthMax.Base = 100
-	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -50, "test")
+	_ = mob.Character.AddBuffMagnitude(conditions.BuffIdBleeding, 1, -50, "test")
 	mob.Character.Health = 2
 
 	// tickMobBuffs runs in MobRoundTick's idle lane, before the active-zone
@@ -91,28 +91,28 @@ func TestRoundTick_BleedDamagesMob(t *testing.T) {
 	assert.Less(t, mob.Character.Health, 1,
 		"overkilled health must still satisfy the `< 1` death gate; health=%d", mob.Character.Health)
 
-	mob.Character.RemoveBuff(buffs.BuffIdBleeding)
+	mob.Character.RemoveBuff(conditions.BuffIdBleeding)
 	mob.Character.Health = 50
 }
 
 func TestRoundTick_BleedMinDamageOne(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	mob := mobs.GetInstance(100)
 	require.NotNil(t, mob)
 
 	mob.Character.HealthMax.Base = 100
 	// Magnitude -0.5 truncates to 0, so the stack's amount is floored to -1.
-	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -0.5, "test")
+	_ = mob.Character.AddBuffMagnitude(conditions.BuffIdBleeding, 1, -0.5, "test")
 	mob.Character.Health = 50
 
 	MobRoundTick(events.NewRound{RoundNumber: 1})
 
 	assert.Equal(t, 49, mob.Character.Health)
 
-	mob.Character.RemoveBuff(buffs.BuffIdBleeding)
+	mob.Character.RemoveBuff(conditions.BuffIdBleeding)
 	mob.Character.Health = 50
 }
 
@@ -126,7 +126,7 @@ func TestRoundTick_BleedMinDamageOne(t *testing.T) {
 func TestRoundTick_BleedLineLandsOnExpiringTick(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
 	require.NotNil(t, u)
@@ -136,8 +136,8 @@ func TestRoundTick_BleedLineLandsOnExpiringTick(t *testing.T) {
 	_ = drainPlain(1)
 
 	u.Character.HealthMax.Base = 100
-	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -5, "test")
-	require.Equal(t, 1, u.Character.Buffs.GetBuffs(buffs.BuffIdBleeding)[0].TriggersLeft,
+	_ = u.Character.AddBuffMagnitude(conditions.BuffIdBleeding, 1, -5, "test")
+	require.Equal(t, 1, u.Character.Buffs.GetBuffs(conditions.BuffIdBleeding)[0].TriggersLeft,
 		"a one-round stack: the tick under test is its last")
 	// Health is set AFTER the add, because the door validates on add.
 	u.Character.Health = 80
@@ -149,7 +149,7 @@ func TestRoundTick_BleedLineLandsOnExpiringTick(t *testing.T) {
 	assert.Equal(t, 1, countContaining(drainPlain(1), "Blood seeps from your wounds!"),
 		"the expiring tick must still send the bleed flavour line, exactly once")
 
-	u.Character.RemoveBuff(buffs.BuffIdBleeding)
+	u.Character.RemoveBuff(conditions.BuffIdBleeding)
 	u.Character.Health = 50
 }
 
@@ -159,14 +159,14 @@ func TestRoundTick_BleedLineLandsOnExpiringTick(t *testing.T) {
 func TestRoundTick_BleedStacksSumIntoOneHarmPerRound_Player(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
 	require.NotNil(t, u)
 	u.Character.HealthMax.Base = 100
-	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 3, -2, "test")
-	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 5, -3, "test")
-	require.Len(t, u.Character.Buffs.GetBuffs(buffs.BuffIdBleeding), 1, "two stacks, one record")
+	_ = u.Character.AddBuffMagnitude(conditions.BuffIdBleeding, 3, -2, "test")
+	_ = u.Character.AddBuffMagnitude(conditions.BuffIdBleeding, 5, -3, "test")
+	require.Len(t, u.Character.Buffs.GetBuffs(conditions.BuffIdBleeding), 1, "two stacks, one record")
 	u.Character.Health = 80
 	_ = drainPlain(1)
 
@@ -181,20 +181,20 @@ func TestRoundTick_BleedStacksSumIntoOneHarmPerRound_Player(t *testing.T) {
 		}
 	}
 
-	u.Character.RemoveBuff(buffs.BuffIdBleeding)
+	u.Character.RemoveBuff(conditions.BuffIdBleeding)
 	u.Character.Health = 50
 }
 
 func TestRoundTick_BleedStacksSumIntoOneHarmPerRound_Mob(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	mob := mobs.GetInstance(100)
 	require.NotNil(t, mob)
 	mob.Character.HealthMax.Base = 100
-	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 3, -2, "test")
-	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 5, -3, "test")
+	_ = mob.Character.AddBuffMagnitude(conditions.BuffIdBleeding, 3, -2, "test")
+	_ = mob.Character.AddBuffMagnitude(conditions.BuffIdBleeding, 5, -3, "test")
 	mob.Character.Health = 80
 
 	for round, want := range []int{75, 70, 65, 62, 59, 59} {
@@ -202,7 +202,7 @@ func TestRoundTick_BleedStacksSumIntoOneHarmPerRound_Mob(t *testing.T) {
 		assert.Equal(t, want, mob.Character.Health, "round %d", round+1)
 	}
 
-	mob.Character.RemoveBuff(buffs.BuffIdBleeding)
+	mob.Character.RemoveBuff(conditions.BuffIdBleeding)
 	mob.Character.Health = 50
 }
 

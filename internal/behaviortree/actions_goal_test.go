@@ -3,7 +3,7 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/goals"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/planners"
@@ -25,7 +25,7 @@ func buildGoalMob(t *testing.T, instanceId int, mobId mobs.MobId, name string, r
 	mob.Character.HealthMax.Value = 100
 	mob.Character.Stamina = 100
 	mob.Character.StaminaMax.Value = 100
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	mob.Character.Stats.Strength.ValueAdj = 100
 	mob.Character.Stats.Dexterity.ValueAdj = 100
 	mob.Character.Stats.Vitality.ValueAdj = 100

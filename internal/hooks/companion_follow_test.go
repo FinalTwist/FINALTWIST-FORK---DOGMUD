@@ -3,7 +3,7 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -40,7 +40,7 @@ func seedFollowRegistries(t *testing.T) func() {
 			Name:      "Wolf",
 			RoomId:    1,
 			Health:    40,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 		},
 	}

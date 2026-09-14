@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 )
 
@@ -16,7 +16,7 @@ const sleepBuffId = 15
 func newChar() *characters.Character {
 	c := characters.New()
 	c.Name = "Marn"
-	c.Buffs = buffs.New()
+	c.Buffs = conditions.New()
 	return c
 }
 
@@ -30,7 +30,7 @@ func sleeper(t *testing.T) *characters.Character {
 	if err := c.AddBuff(sleepBuffId, true); err != nil {
 		t.Fatalf("could not apply the sleep buff (id %d): %v — has it been renumbered?", sleepBuffId, err)
 	}
-	if !c.HasBuffFlag(buffs.Sleeping) {
+	if !c.HasBuffFlag(conditions.Sleeping) {
 		t.Fatalf("buff %d applied but does not carry the Sleeping flag", sleepBuffId)
 	}
 	return c

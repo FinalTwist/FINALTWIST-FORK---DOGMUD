@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -58,7 +58,7 @@ func seedTestMob(t *testing.T, templateId int, instanceId int, homeRoomId int, n
 		Character: characters.Character{
 			Name:      name,
 			RoomId:    homeRoomId,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Awareness: awareness.NewMachine(),
 		},
 	}
@@ -69,7 +69,7 @@ func seedTestMob(t *testing.T, templateId int, instanceId int, homeRoomId int, n
 		Character: characters.Character{
 			Name:      name,
 			RoomId:    homeRoomId,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Awareness: awareness.NewMachine(),
 		},
 	}
@@ -89,17 +89,17 @@ func seedTwoMobs(t *testing.T, roomId int,
 	t.Helper()
 	specs := map[int]*mobs.Mob{
 		template1: {MobId: mobs.MobId(template1), Character: characters.Character{
-			Name: name1, RoomId: roomId, Buffs: buffs.New(), Awareness: awareness.NewMachine(),
+			Name: name1, RoomId: roomId, Buffs: conditions.New(), Awareness: awareness.NewMachine(),
 		}},
 		template2: {MobId: mobs.MobId(template2), Character: characters.Character{
-			Name: name2, RoomId: roomId, Buffs: buffs.New(), Awareness: awareness.NewMachine(),
+			Name: name2, RoomId: roomId, Buffs: conditions.New(), Awareness: awareness.NewMachine(),
 		}},
 	}
 	instances := map[int]*mobs.Mob{
 		instance1: {MobId: mobs.MobId(template1), InstanceId: instance1, HomeRoomId: roomId,
-			Character: characters.Character{Name: name1, RoomId: roomId, Buffs: buffs.New(), Awareness: awareness.NewMachine()}},
+			Character: characters.Character{Name: name1, RoomId: roomId, Buffs: conditions.New(), Awareness: awareness.NewMachine()}},
 		instance2: {MobId: mobs.MobId(template2), InstanceId: instance2, HomeRoomId: roomId,
-			Character: characters.Character{Name: name2, RoomId: roomId, Buffs: buffs.New(), Awareness: awareness.NewMachine()}},
+			Character: characters.Character{Name: name2, RoomId: roomId, Buffs: conditions.New(), Awareness: awareness.NewMachine()}},
 	}
 	return mobs.SeedMobsForTest(specs, instances)
 }

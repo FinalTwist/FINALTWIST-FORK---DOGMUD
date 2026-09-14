@@ -3,7 +3,7 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 )
@@ -85,7 +85,7 @@ func seedLookoutMob(t *testing.T, instanceId int) (*mobs.Mob, func()) {
 	}
 	m.Character.Name = "testmob"
 	m.Character.Conviction = 500
-	m.Character.Buffs = buffs.New()
+	m.Character.Buffs = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{300 + instanceId: m},
 		map[int]*mobs.Mob{instanceId: m},

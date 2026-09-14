@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -37,9 +37,9 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			var foundBuffIds []int
 
 			if args[0] == "list" {
-				foundBuffIds = buffs.GetAllBuffIds()
+				foundBuffIds = conditions.GetAllBuffIds()
 			} else {
-				foundBuffIds = buffs.SearchBuffs(args[1])
+				foundBuffIds = conditions.SearchBuffs(args[1])
 			}
 
 			sort.Ints(foundBuffIds)
@@ -51,7 +51,7 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				rows = append(rows, []string{"No Matches", "No Matches", "No Matches"})
 			} else {
 				for _, buffId := range foundBuffIds {
-					if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil {
+					if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil {
 						flags := []string{}
 						for _, flag := range buffSpec.Flags {
 							flags = append(flags, string(flag))
@@ -91,7 +91,7 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				buffId, _ = strconv.Atoi(args[1])
 				if buffId == 0 {
 					// Grab the first match
-					foundBuffIds := buffs.SearchBuffs(args[1])
+					foundBuffIds := conditions.SearchBuffs(args[1])
 					if len(foundBuffIds) > 0 {
 						buffId = foundBuffIds[0]
 					}
@@ -102,7 +102,7 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				buffId, _ = strconv.Atoi(args[0])
 				if buffId == 0 {
 					// Grab the first match
-					foundBuffIds := buffs.SearchBuffs(args[0])
+					foundBuffIds := conditions.SearchBuffs(args[0])
 					if len(foundBuffIds) > 0 {
 						buffId = foundBuffIds[0]
 					}
@@ -119,7 +119,7 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				// get the user
 				if targetUser := users.GetByUserId(targetUserId); targetUser != nil {
 					// Get the buff
-					if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil {
+					if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil {
 						// A stacking record can only be added through
 						// AddBuffMagnitude, which supplies the rounds and
 						// amount a stack needs; the queued add this command
@@ -145,7 +145,7 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				// get the user
 				if targetMob := mobs.GetInstance(targetMobInstanceId); targetMob != nil {
 					// Get the buff
-					if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil {
+					if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil {
 						// See the matching comment in the player branch above.
 						if buffSpec.IsStacking() {
 							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", buffSpec.BuffId, buffSpec.Name))

@@ -1,7 +1,7 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -60,7 +60,7 @@ func wireLifeCrossMachineCascades(c *characters.Character) {
 
 				// 5. Buffs → cancel all, permanent ones included (All skips
 				//    only already-expired records, never PermaBuff).
-				c.CancelBuffsWithFlag(buffs.All)
+				c.CancelBuffsWithFlag(conditions.All)
 
 				// 5a. End this life's epoch. THIS MUST STAY BESIDE THE BUFF
 				// STRIP ABOVE. The strip clears every buff the character holds,

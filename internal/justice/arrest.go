@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/bounties"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
@@ -406,7 +406,7 @@ func ExecuteArrest(player *characters.Character, userId int, faction string, isM
 	// travels the event that would narrate it and is ours to send, alongside
 	// the arrest-context line.
 	if u := users.GetByUserId(userId); u != nil {
-		if spec := buffs.GetBuffSpec(jailedBuffId); spec != nil {
+		if spec := conditions.GetBuffSpec(jailedBuffId); spec != nil {
 			line := spec.AuthoredStartLine(textutil.TokenContext{
 				SourceName:      u.Character.GetCharacterName(true),
 				SourcePlainName: u.Character.GetCharacterName(false),

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -50,8 +50,8 @@ func castSightScene(t *testing.T, biome string) (*castSightActor, *rooms.Room) {
 		"city":    {BiomeId: "city", LitArea: true},
 		"default": {BiomeId: "default", LitArea: true},
 	}))
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		castSightInfraredBuffId: {BuffId: castSightInfraredBuffId, Name: "Test Infrared", Flags: []buffs.Flag{buffs.InfraredVision}},
+	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+		castSightInfraredBuffId: {BuffId: castSightInfraredBuffId, Name: "Test Infrared", Flags: []conditions.Flag{conditions.InfraredVision}},
 	}))
 	t.Cleanup(spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		"sight-heal": {SpellId: "sight-heal", Name: "Sight Heal", Type: spells.HelpSingle, BaseFolds: 2, Cost: 5},

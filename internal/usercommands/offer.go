@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -47,7 +47,7 @@ func Offer(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			continue
 		}
 
-		user.Character.CancelBuffsWithFlag(buffs.Hidden)
+		user.Character.CancelBuffsWithFlag(conditions.Hidden)
 
 		if item.IsSpecial() {
 

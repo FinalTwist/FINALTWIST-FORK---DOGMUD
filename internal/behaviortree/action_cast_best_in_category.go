@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -224,7 +224,7 @@ func spellEffectAlreadyActive(char *characters.Character, sd *spells.SpellData) 
 			return true
 		}
 	}
-	if sd.EffectType == "shield" && char.Buffs.HasEffect(buffs.EffectMitigationFlat) {
+	if sd.EffectType == "shield" && char.Buffs.HasEffect(conditions.EffectMitigationFlat) {
 		return true
 	}
 	return false

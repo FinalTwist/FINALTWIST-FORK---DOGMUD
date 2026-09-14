@@ -1,7 +1,7 @@
 package actions
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -140,7 +140,7 @@ func ExecuteDrain(actor Actor) DrainResult {
 	bleedDmg := 0
 	if result.Hit {
 		bleedDmg = bleedPerRound(char.Stats.Strength.ValueAdj, cfg.DrainBleedStrengthDivisor, cfg.DrainBleedMin)
-		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, int(cfg.DrainBleedRounds), -float64(bleedDmg), "drain")
+		_ = target.Char.AddBuffMagnitude(conditions.BuffIdBleeding, int(cfg.DrainBleedRounds), -float64(bleedDmg), "drain")
 	}
 
 	// Lifesteal: heal the attacker for a fraction of damage dealt. Gated on
@@ -306,7 +306,7 @@ func ExecuteDrainArea(actor Actor) DrainAreaResult {
 		// Bleed is a status effect (binary), so it stays gated on a clean hit.
 		if moveResult.Hit {
 			pr.BleedDmg = bleedPerRound(char.Stats.Strength.ValueAdj, cfg.DrainBleedStrengthDivisor, cfg.DrainBleedMin)
-			_ = target.Character.AddBuffMagnitude(buffs.BuffIdBleeding, int(cfg.DrainBleedRounds), -float64(pr.BleedDmg), "drain")
+			_ = target.Character.AddBuffMagnitude(conditions.BuffIdBleeding, int(cfg.DrainBleedRounds), -float64(pr.BleedDmg), "drain")
 		}
 
 		// Lifesteal reads the damage actually applied, per U6's shared partial

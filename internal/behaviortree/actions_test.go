@@ -15,7 +15,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -492,7 +492,7 @@ func TestActRemoveBuff_RemovesBuffFromUser(t *testing.T) {
 
 	// Seed a single buff spec for buff id 100. TriggerCount > 0 ensures
 	// the buff lives long enough for the act-then-assert cycle.
-	cleanBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		100: {BuffId: 100, Name: "TestBuff", TriggerCount: 5, RoundInterval: 1},
 	})
 	defer cleanBuffs()
@@ -586,7 +586,7 @@ func TestActSummonCompanion_HostileSetsAggroAndEngages(t *testing.T) {
 		Character: characters.Character{
 			Name:   "TestCaller",
 			RoomId: 1,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 	callerInstance := &mobs.Mob{
@@ -596,7 +596,7 @@ func TestActSummonCompanion_HostileSetsAggroAndEngages(t *testing.T) {
 		Character: characters.Character{
 			Name:   "TestCaller",
 			RoomId: 1,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 	companionSpec := &mobs.Mob{
@@ -604,7 +604,7 @@ func TestActSummonCompanion_HostileSetsAggroAndEngages(t *testing.T) {
 		Character: characters.Character{
 			Name:   "TestCompanion",
 			RoomId: 1,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 	cleanMobs := mobs.SeedMobsForTest(
@@ -724,7 +724,7 @@ func TestActSummonCompanion_HostileFallsBackWithoutEventUserId(t *testing.T) {
 		Character: characters.Character{
 			Name:   "TestCaller",
 			RoomId: 1,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 	callerInstance := &mobs.Mob{
@@ -734,7 +734,7 @@ func TestActSummonCompanion_HostileFallsBackWithoutEventUserId(t *testing.T) {
 		Character: characters.Character{
 			Name:   "TestCaller",
 			RoomId: 1,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 	companionSpec := &mobs.Mob{
@@ -742,7 +742,7 @@ func TestActSummonCompanion_HostileFallsBackWithoutEventUserId(t *testing.T) {
 		Character: characters.Character{
 			Name:   "TestCompanion",
 			RoomId: 1,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 	cleanMobs := mobs.SeedMobsForTest(

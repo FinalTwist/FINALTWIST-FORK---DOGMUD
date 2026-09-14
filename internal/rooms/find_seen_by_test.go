@@ -3,7 +3,7 @@ package rooms
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -36,8 +36,8 @@ func seenByHide(t *testing.T, c *characters.Character) {
 // the first hidden, the second not.
 func seenByRoom(t *testing.T) (*Room, *characters.Character) {
 	t.Helper()
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		seenByVeilBuffId: {BuffId: seenByVeilBuffId, Name: "Test Veil", Flags: []buffs.Flag{buffs.SeeHidden}},
+	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+		seenByVeilBuffId: {BuffId: seenByVeilBuffId, Name: "Test Veil", Flags: []conditions.Flag{conditions.SeeHidden}},
 	}))
 	viewer := users.NewTestUser(seenByViewerId, "aliceia", "Aliceia", 97601)
 	hider := users.NewTestUser(seenByHiderId, "kesh", "Kesh", 97602)
@@ -57,7 +57,7 @@ func seenByRoom(t *testing.T) (*Room, *characters.Character) {
 		m := &mobs.Mob{InstanceId: g.id}
 		m.Character.Name = "Guard"
 		m.Character.RoomId = seenByRoomId
-		m.Character.Buffs = buffs.New()
+		m.Character.Buffs = conditions.New()
 		m.Character.Awareness = awareness.NewMachine()
 		if g.hidden {
 			seenByHide(t, &m.Character)

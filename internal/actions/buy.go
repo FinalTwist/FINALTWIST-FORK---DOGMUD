@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -97,7 +97,7 @@ func buildLegacyCatalog(saleItems characters.Shop) legacyShopCatalog {
 			continue
 		}
 		if saleItem.BuffId > 0 {
-			buffInfo := buffs.GetBuffSpec(saleItem.BuffId)
+			buffInfo := conditions.GetBuffSpec(saleItem.BuffId)
 			if buffInfo == nil {
 				continue
 			}
@@ -747,7 +747,7 @@ func executePurchaseItem(buyer Actor, shopMob *mobs.Mob, shopUser *users.UserRec
 // executePurchaseBuff applies the bought buff to the buyer and
 // emits the merchant emote follow-up.
 func executePurchaseBuff(buyer Actor, shopMob *mobs.Mob, shopUser *users.UserRecord, matchedShopItem characters.ShopItem, price int, tradeInString string) {
-	buffSpec := buffs.GetBuffSpec(matchedShopItem.BuffId)
+	buffSpec := conditions.GetBuffSpec(matchedShopItem.BuffId)
 	buyerName := buyer.GetName()
 
 	if shopMob != nil {

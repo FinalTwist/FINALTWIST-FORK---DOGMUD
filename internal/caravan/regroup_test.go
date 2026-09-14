@@ -3,7 +3,7 @@ package caravan
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -36,7 +36,7 @@ func seedLeaderAndStrandedWagon(t *testing.T, roomA, roomB int) (*mobs.Mob, *mob
 	}
 	leader.Character.Name = "Ketil"
 	leader.Character.RoomId = roomA
-	leader.Character.Buffs = buffs.New()
+	leader.Character.Buffs = conditions.New()
 	ra.AddMob(leader.InstanceId)
 
 	wagon := &mobs.Mob{
@@ -47,7 +47,7 @@ func seedLeaderAndStrandedWagon(t *testing.T, roomA, roomB int) (*mobs.Mob, *mob
 	}
 	wagon.Character.Name = "caravan wagon"
 	wagon.Character.RoomId = roomB
-	wagon.Character.Buffs = buffs.New()
+	wagon.Character.Buffs = conditions.New()
 	rb.AddMob(wagon.InstanceId)
 
 	cleanMobs := mobs.SeedMobsForTest(

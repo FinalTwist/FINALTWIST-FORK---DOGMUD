@@ -1,4 +1,4 @@
-package buffs
+package conditions
 
 // Record ids the engine names in code. The YAML under
 // _datafiles/world/dogmud/buffs/ is the definition; these constants exist so

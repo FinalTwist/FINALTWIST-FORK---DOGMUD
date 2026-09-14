@@ -5,8 +5,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -24,13 +24,13 @@ import (
 // through the slice; slice 3 is the one that deliberately changes them.
 
 func TestWireFreeze_CharacterSaveKeys(t *testing.T) {
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	c := characters.Character{}
 	c.Buffs.Validate(true)
-	require.True(t, c.Buffs.AddBuffMagnitude(buffs.BuffIdBleeding, 3, -2))
-	require.True(t, c.Buffs.AddBuffMagnitude(buffs.BuffIdBleeding, 5, -3))
-	c.Buffs.List = append(c.Buffs.List, &buffs.Buff{BuffId: buffs.BuffIdWarcry, PermaBuff: true, TriggersLeft: 1})
+	require.True(t, c.Buffs.AddBuffMagnitude(conditions.BuffIdBleeding, 3, -2))
+	require.True(t, c.Buffs.AddBuffMagnitude(conditions.BuffIdBleeding, 5, -3))
+	c.Buffs.List = append(c.Buffs.List, &conditions.Buff{BuffId: conditions.BuffIdWarcry, PermaBuff: true, TriggersLeft: 1})
 
 	out, err := yaml.Marshal(&c)
 	require.NoError(t, err)
@@ -44,7 +44,7 @@ func TestWireFreeze_CharacterSaveKeys(t *testing.T) {
 	require.Len(t, list, 2)
 
 	bleed := list[0].(map[any]any)
-	assert.EqualValues(t, buffs.BuffIdBleeding, bleed["buffid"], "a record's id must stay under `buffid:`")
+	assert.EqualValues(t, conditions.BuffIdBleeding, bleed["buffid"], "a record's id must stay under `buffid:`")
 	assert.Contains(t, bleed, "triggersleft")
 	assert.Contains(t, bleed, "stacks", "stacks must stay under `stacks:`")
 	stack := bleed["stacks"].([]any)[0].(map[any]any)
@@ -57,13 +57,13 @@ func TestWireFreeze_CharacterSaveKeys(t *testing.T) {
 	var back characters.Character
 	require.NoError(t, yaml.Unmarshal(out, &back))
 	require.Len(t, back.Buffs.List, 2)
-	assert.Equal(t, buffs.BuffIdBleeding, back.Buffs.List[0].BuffId)
+	assert.Equal(t, conditions.BuffIdBleeding, back.Buffs.List[0].BuffId)
 	assert.Len(t, back.Buffs.List[0].Stacks, 2)
 	assert.True(t, back.Buffs.List[1].PermaBuff)
 }
 
 func TestWireFreeze_ConditionFileKeys(t *testing.T) {
-	var s buffs.BuffSpec
+	var s conditions.BuffSpec
 	doc := "buffid: 950\nname: Probe\ntriggerrate: 1 round\ntriggercount: 2\n" +
 		"start_remove_buffs: [3]\neffects:\n  damage_mult: magnitude\nflags:\n  - stacking\n" +
 		"tick_pool: health\ntick_from_magnitude: true\n"
@@ -78,8 +78,8 @@ func TestWireFreeze_ConditionFileKeys(t *testing.T) {
 	assert.Equal(t, "health", s.TickPool, "`tick_pool:` must still parse")
 	assert.True(t, s.TickFromMagnitude, "`tick_from_magnitude:` must still parse")
 	assert.Equal(t, []int{3}, s.StartRemoveBuffs, "`start_remove_buffs:` must still parse")
-	assert.True(t, s.Effects[buffs.EffectDamageMult].UsesMagnitude)
-	assert.Equal(t, []buffs.Flag{buffs.Stacking}, s.Flags)
+	assert.True(t, s.Effects[conditions.EffectDamageMult].UsesMagnitude)
+	assert.Equal(t, []conditions.Flag{conditions.Stacking}, s.Flags)
 }
 
 func TestWireFreeze_ShippedConditionFilesLoadInBothWorlds(t *testing.T) {
@@ -97,10 +97,10 @@ func TestWireFreeze_ShippedConditionFilesLoadInBothWorlds(t *testing.T) {
 			cfg.FilePaths.DataFiles = configs.ConfigString(filepath.Join(filepath.Dir(here), "_datafiles", "world", world))
 			cfg.Network.LogoutRounds = 3
 			configs.SetConfigForTest(t, cfg)
-			restore := buffs.SeedBuffsForTest(nil)
+			restore := conditions.SeedBuffsForTest(nil)
 			defer restore()
-			buffs.LoadDataFiles()
-			assert.NotEmpty(t, buffs.GetAllBuffIds(), "the %s world's condition files must load under today's keys", world)
+			conditions.LoadDataFiles()
+			assert.NotEmpty(t, conditions.GetAllBuffIds(), "the %s world's condition files must load under today's keys", world)
 		})
 	}
 }

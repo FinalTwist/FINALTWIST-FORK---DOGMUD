@@ -3,7 +3,7 @@ package rooms
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -21,7 +21,7 @@ const (
 // directly, mirroring internal/hooks/buff_room_text_test.go's unexported
 // expire() helper (that helper is not visible outside package hooks, so it
 // is mirrored here rather than imported).
-func refreshTestSetTriggersLeft(t *testing.T, list []*buffs.Buff, buffId, left int) {
+func refreshTestSetTriggersLeft(t *testing.T, list []*conditions.Buff, buffId, left int) {
 	t.Helper()
 	for _, b := range list {
 		if b.BuffId == buffId {
@@ -42,7 +42,7 @@ func refreshTestSetTriggersLeft(t *testing.T, list []*buffs.Buff, buffId, left i
 // Character.HasBuff immediately after the call, and it must queue exactly one
 // Buff event, while the refreshed holder must queue none.
 func TestApplyBuffIdToPlayers_HeldBuffIsRefreshedNotRelapsed(t *testing.T) {
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		refreshTestHeldBuffId:    {BuffId: refreshTestHeldBuffId, Name: "Test Zone Press", TriggerCount: 3, RoundInterval: 1},
 		refreshTestGrantedBuffId: {BuffId: refreshTestGrantedBuffId, Name: "Test Zone Grant", TriggerCount: 3, RoundInterval: 1},
 	}))
@@ -112,14 +112,14 @@ func TestApplyBuffIdToPlayers_HeldBuffIsRefreshedNotRelapsed(t *testing.T) {
 // player one: ApplyBuffIdToMobs must refresh a mob that already holds the
 // buff instead of skipping it until it lapses and gets re-added.
 func TestApplyBuffIdToMobs_HeldBuffIsRefreshedNotRelapsed(t *testing.T) {
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		refreshTestMobBuffId: {BuffId: refreshTestMobBuffId, Name: "Test Zone Press (mob)", TriggerCount: 3, RoundInterval: 1},
 	}))
 
 	const mobInstanceId = 7321
 	m := &mobs.Mob{InstanceId: mobInstanceId}
 	m.Character.Name = "Test Guard"
-	m.Character.Buffs = buffs.New()
+	m.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(mobInstanceId, m)
 	t.Cleanup(func() { mobs.SetInstanceForTest(mobInstanceId, nil) })
 

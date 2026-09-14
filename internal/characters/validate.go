@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -194,11 +194,11 @@ func (c *Character) RecalculateStats() {
 		if b.Expired() {
 			continue
 		}
-		spec := buffs.GetBuffSpec(b.BuffId)
+		spec := conditions.GetBuffSpec(b.BuffId)
 		if spec == nil {
 			continue
 		}
-		v, ok := spec.Effects[buffs.EffectPoolMaxPct]
+		v, ok := spec.Effects[conditions.EffectPoolMaxPct]
 		if !ok {
 			continue
 		}

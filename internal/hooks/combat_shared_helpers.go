@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -58,7 +58,7 @@ func calcSpellDamageForCharacter(spellData *spells.SpellData, caster *characters
 
 		// #22 crash-site: inside the buried hull, belief-driven power is suppressed.
 		// (caster is already non-nil — the enclosing branch requires it.)
-		if caster.HasBuffFlag(buffs.Dampened) {
+		if caster.HasBuffFlag(conditions.Dampened) {
 			factor := float64(configs.GetBalanceConfig().CrashSiteSuppressionFactor)
 			rawDmg *= factor
 			if rawDmg < 1 {
@@ -523,10 +523,10 @@ func cancelCraftOrSalvageOnDamage(ch *characters.Character) {
 // removes the buff; if we checked after the cancel, the flag would already
 // be gone and OnSleeperWoken would never fire.
 func cancelDamageBuffs(ch *characters.Character) {
-	if ch.HasBuffFlag(buffs.Sleeping) {
+	if ch.HasBuffFlag(conditions.Sleeping) {
 		mobs.OnSleeperWoken(ch)
 	}
-	ch.CancelBuffsWithFlag(buffs.CancelOnDamage)
+	ch.CancelBuffsWithFlag(conditions.CancelOnDamage)
 }
 
 // =============================================================================

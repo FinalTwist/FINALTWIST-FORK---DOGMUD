@@ -3,7 +3,7 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -11,11 +11,11 @@ import (
 
 // hiddenBuffSpec is the minimal BuffSpec required to make AddBuff(9) succeed.
 // TriggerCount > 0 keeps the buff alive through the assertion.
-var hiddenBuffSpec = map[int]*buffs.BuffSpec{
+var hiddenBuffSpec = map[int]*conditions.BuffSpec{
 	9: {
 		BuffId:        9,
 		Name:          "Hidden",
-		Flags:         []buffs.Flag{buffs.Hidden},
+		Flags:         []conditions.Flag{conditions.Hidden},
 		TriggerCount:  15,
 		RoundInterval: 1,
 	},
@@ -24,7 +24,7 @@ var hiddenBuffSpec = map[int]*buffs.BuffSpec{
 // ─── condMobIsHidden ─────────────────────────────────────────────────────────
 
 func TestCondMobIsHidden_TrueWhenBuffPresent(t *testing.T) {
-	cleanBuffs := buffs.SeedBuffsForTest(hiddenBuffSpec)
+	cleanBuffs := conditions.SeedBuffsForTest(hiddenBuffSpec)
 	defer cleanBuffs()
 
 	cleanMob := seedTestMob(t, 5, 105, 1, "TestThief")
@@ -59,7 +59,7 @@ func TestCondMobIsHidden_FalseWhenInstanceMissing(t *testing.T) {
 // ─── condTargetIsHidden ──────────────────────────────────────────────────────
 
 func TestCondTargetIsHidden_TrueWhenTargetBuffPresent(t *testing.T) {
-	cleanBuffs := buffs.SeedBuffsForTest(hiddenBuffSpec)
+	cleanBuffs := conditions.SeedBuffsForTest(hiddenBuffSpec)
 	defer cleanBuffs()
 
 	cleanMob := seedTestMob(t, 5, 105, 1, "TestMob")
@@ -80,7 +80,7 @@ func TestCondTargetIsHidden_TrueWhenTargetBuffPresent(t *testing.T) {
 }
 
 func TestCondTargetIsHidden_TrueViaSoftTarget(t *testing.T) {
-	cleanBuffs := buffs.SeedBuffsForTest(hiddenBuffSpec)
+	cleanBuffs := conditions.SeedBuffsForTest(hiddenBuffSpec)
 	defer cleanBuffs()
 
 	cleanMob := seedTestMob(t, 5, 105, 1, "TestMob")

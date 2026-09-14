@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -40,7 +40,7 @@ func makePartyMob(t *testing.T, instanceId int, roomId int) (*mobs.Mob, *parties
 	}
 	mob.Character.Name = "TestPartyMob"
 	mob.Character.RoomId = roomId
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(instanceId, mob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(instanceId, nil) })
 
@@ -279,7 +279,7 @@ func TestActPartyFollowLeader_NoOpsWhenCallerHasActivePatrol(t *testing.T) {
 		PatrolId:   "thornwall_runner_circuit",
 	}
 	m.Character.Name = "Lars"
-	m.Character.Buffs = buffs.New()
+	m.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(instId, m)
 	t.Cleanup(func() { mobs.SetInstanceForTest(instId, nil) })
 
@@ -304,7 +304,7 @@ func TestActPartyFollowLeader_AlreadyWithLeaderReturnsSuccess(t *testing.T) {
 	}
 	leaderMob.Character.Name = "Leader"
 	leaderMob.Character.RoomId = 56
-	leaderMob.Character.Buffs = buffs.New()
+	leaderMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(5100, leaderMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(5100, nil) })
 
@@ -319,7 +319,7 @@ func TestActPartyFollowLeader_AlreadyWithLeaderReturnsSuccess(t *testing.T) {
 	}
 	memberMob.Character.Name = "Member"
 	memberMob.Character.RoomId = 56
-	memberMob.Character.Buffs = buffs.New()
+	memberMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(5008, memberMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(5008, nil) })
 
@@ -386,7 +386,7 @@ func TestActPartyAssistTarget_CopiesLeaderAggro(t *testing.T) {
 	}
 	leaderMob.Character.Name = "Leader"
 	leaderMob.Character.RoomId = 58
-	leaderMob.Character.Buffs = buffs.New()
+	leaderMob.Character.Buffs = conditions.New()
 	// Leader is attacking user 7.
 	leaderMob.Character.SetAggro(7, 0, characters.DefaultAttack)
 	mobs.SetInstanceForTest(5200, leaderMob)
@@ -407,7 +407,7 @@ func TestActPartyAssistTarget_CopiesLeaderAggro(t *testing.T) {
 	}
 	memberMob.Character.Name = "Member"
 	memberMob.Character.RoomId = 58
-	memberMob.Character.Buffs = buffs.New()
+	memberMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(5010, memberMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(5010, nil) })
 
@@ -490,7 +490,7 @@ func TestActPartyEnsureNpcParty_MissingParamsReturnsFailure(t *testing.T) {
 	mob := &mobs.Mob{MobId: mobs.MobId(1), InstanceId: 6002, HomeRoomId: 61}
 	mob.Character.Name = "TestEnsure"
 	mob.Character.RoomId = 61
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(6002, mob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(6002, nil) })
 
@@ -520,7 +520,7 @@ func TestActPartyEnsureNpcParty_NoLeaderSpawnedCallerBecomesLeader(t *testing.T)
 	mob := &mobs.Mob{MobId: mobs.MobId(285), InstanceId: 6003, HomeRoomId: 62}
 	mob.Character.Name = "bandit caster"
 	mob.Character.RoomId = 62
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(6003, mob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(6003, nil) })
 
@@ -554,7 +554,7 @@ func TestActPartyEnsureNpcParty_LeaderSpawnedFirstCreatesParty(t *testing.T) {
 	leaderMob := &mobs.Mob{MobId: mobs.MobId(286), InstanceId: 6100, HomeRoomId: 63}
 	leaderMob.Character.Name = "Soren"
 	leaderMob.Character.RoomId = 63
-	leaderMob.Character.Buffs = buffs.New()
+	leaderMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(6100, leaderMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(6100, nil) })
 
@@ -562,7 +562,7 @@ func TestActPartyEnsureNpcParty_LeaderSpawnedFirstCreatesParty(t *testing.T) {
 	memberMob := &mobs.Mob{MobId: mobs.MobId(284), InstanceId: 6004, HomeRoomId: 63}
 	memberMob.Character.Name = "bandit fighter"
 	memberMob.Character.RoomId = 63
-	memberMob.Character.Buffs = buffs.New()
+	memberMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(6004, memberMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(6004, nil) })
 
@@ -611,7 +611,7 @@ func TestActPartyEnsureNpcParty_InterimConsolidation(t *testing.T) {
 	lookoutMob := &mobs.Mob{MobId: mobs.MobId(283), InstanceId: 7001, HomeRoomId: 65}
 	lookoutMob.Character.Name = "bandit lookout"
 	lookoutMob.Character.RoomId = 65
-	lookoutMob.Character.Buffs = buffs.New()
+	lookoutMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(7001, lookoutMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(7001, nil) })
 
@@ -635,7 +635,7 @@ func TestActPartyEnsureNpcParty_InterimConsolidation(t *testing.T) {
 	leaderMob := &mobs.Mob{MobId: mobs.MobId(286), InstanceId: 7002, HomeRoomId: 65}
 	leaderMob.Character.Name = "Soren"
 	leaderMob.Character.RoomId = 65
-	leaderMob.Character.Buffs = buffs.New()
+	leaderMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(7002, leaderMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(7002, nil) })
 
@@ -681,7 +681,7 @@ func TestActPartyEnsureNpcParty_InterimNoOpUntilLeaderLoads(t *testing.T) {
 	mob := &mobs.Mob{MobId: mobs.MobId(283), InstanceId: 7010, HomeRoomId: 66}
 	mob.Character.Name = "bandit lookout"
 	mob.Character.RoomId = 66
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(7010, mob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(7010, nil) })
 
@@ -722,7 +722,7 @@ func TestActPartyEnsureNpcParty_LeaderCallsEnsureOnSelf(t *testing.T) {
 	leaderMob := &mobs.Mob{MobId: mobs.MobId(286), InstanceId: 6005, HomeRoomId: 64}
 	leaderMob.Character.Name = "Soren"
 	leaderMob.Character.RoomId = 64
-	leaderMob.Character.Buffs = buffs.New()
+	leaderMob.Character.Buffs = conditions.New()
 	mobs.SetInstanceForTest(6005, leaderMob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(6005, nil) })
 

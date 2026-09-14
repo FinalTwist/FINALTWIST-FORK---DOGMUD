@@ -7,7 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/keywords"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -414,7 +414,7 @@ func TryCommand(cmd string, rest string, userId int, flags events.EventFlag) (bo
 	}
 
 	// Cancel any buffs they have that get cancelled based on them doing anything at all
-	user.Character.CancelBuffsWithFlag(buffs.CancelOnAction)
+	user.Character.CancelBuffsWithFlag(conditions.CancelOnAction)
 
 	// Fold-casting intercept: while holding folds, most action commands are blocked.
 	// Informational commands (AllowedWhenDowned=true) pass through.

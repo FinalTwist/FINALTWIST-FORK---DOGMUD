@@ -8,7 +8,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
 	"github.com/GoMudEngine/GoMud/internal/bountyhunter"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
@@ -220,7 +220,7 @@ func tickMobBuffs(mob *mobs.Mob, mobInstanceId int) {
 		triggeredBuffIds := []int{}
 		for _, buff := range triggeredBuffs {
 			if buff.TickAmount != 0 {
-				if mobBuffSpec := buffs.GetBuffSpec(buff.BuffId); mobBuffSpec != nil {
+				if mobBuffSpec := conditions.GetBuffSpec(buff.BuffId); mobBuffSpec != nil {
 					// buff.TickAmount is SIGNED: buffs.ComputeTickAmount returns a
 					// negative value for TickPercent < 0, so this is a
 					// damage-over-time delivery path as well as a regen one.
@@ -276,9 +276,9 @@ func tickMobBuffs(mob *mobs.Mob, mobInstanceId int) {
 			// for the record's close, not a substitute for the trigger text
 			// on a one-trigger record. Same shape as the mob branch of
 			// PruneBuffs, so the line gets the same buff colour.
-			if trigSpec := buffs.GetBuffSpec(buff.BuffId); trigSpec != nil && len(trigSpec.Narration(buffs.PhaseTrigger).Observer) > 0 {
+			if trigSpec := conditions.GetBuffSpec(buff.BuffId); trigSpec != nil && len(trigSpec.Narration(conditions.PhaseTrigger).Observer) > 0 {
 				if room := rooms.LoadRoom(mob.Character.RoomId); room != nil {
-					roles := trigSpec.Narrate(buffs.PhaseTrigger, textutil.TokenContext{
+					roles := trigSpec.Narrate(conditions.PhaseTrigger, textutil.TokenContext{
 						SourceName:      mobDisplayName(mob, room, 0),
 						SourcePlainName: mob.Character.GetCharacterName(false),
 					})

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -29,7 +29,7 @@ type fakeActor struct {
 func newFakeActor(name string, statAdj, healthMax int, isPlayer bool) *fakeActor {
 	c := &characters.Character{
 		Name:  name,
-		Buffs: buffs.New(),
+		Buffs: conditions.New(),
 	}
 	c.Stats.Strength.ValueAdj = statAdj
 	c.Stats.Dexterity.ValueAdj = statAdj
@@ -107,7 +107,7 @@ func TestConsider_ZeroTargetPower(t *testing.T) {
 	// Construct a target with truly zero PowerScore: all ValueAdj=0,
 	// no health, no skills, no mutations.
 	target := &fakeActor{
-		char:     &characters.Character{Name: "Ghost", Buffs: buffs.New()},
+		char:     &characters.Character{Name: "Ghost", Buffs: conditions.New()},
 		name:     "Ghost",
 		isPlayer: false,
 		statUses: map[string]int{},

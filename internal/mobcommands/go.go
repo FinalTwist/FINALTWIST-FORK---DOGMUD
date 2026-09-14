@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -103,7 +103,7 @@ func sendMovementMessage(room *rooms.Room, visualCat messaging.Category, visualM
 func Go(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	// If has a buff that prevents combat, skip the player
-	if mob.Character.HasBuffFlag(buffs.NoMovement) {
+	if mob.Character.HasBuffFlag(conditions.NoMovement) {
 		return true, nil
 	}
 

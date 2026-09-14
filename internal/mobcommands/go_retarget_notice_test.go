@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -31,7 +31,7 @@ func goRetargetNoticePlainText(line string) string {
 // player has no night vision, so the notice must say "something" and must
 // not name mob B (the mob the player is retargeted onto) anywhere.
 func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName(t *testing.T) {
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{}))
+	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{}))
 
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
 		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
@@ -45,7 +45,7 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName(t *testing.T) 
 		MobId: 9300, InstanceId: 9301, HomeRoomId: 9300,
 		Character: characters.Character{
 			Name: "Departing Wolf", RoomId: 9300, Health: 100,
-			Buffs: buffs.New(), Cooldowns: map[string]int{}, SpeciesId: 1,
+			Buffs: conditions.New(), Cooldowns: map[string]int{}, SpeciesId: 1,
 		},
 	}
 	mobA.Character.HealthMax.Value = 100
@@ -56,7 +56,7 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName(t *testing.T) 
 		MobId: 9302, InstanceId: 9303, HomeRoomId: 9300,
 		Character: characters.Character{
 			Name: "Windscour Wyrm", RoomId: 9300, Health: 100,
-			Buffs: buffs.New(), Cooldowns: map[string]int{}, SpeciesId: 1,
+			Buffs: conditions.New(), Cooldowns: map[string]int{}, SpeciesId: 1,
 		},
 	}
 	mobB.Character.HealthMax.Value = 100
@@ -92,7 +92,7 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName(t *testing.T) 
 // covered above; this drives the companion branch so it cannot regress
 // silently while the direct branch's test stays green.
 func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName_CompanionBranch(t *testing.T) {
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{}))
+	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{}))
 
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
 		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
@@ -106,7 +106,7 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName_CompanionBranc
 		MobId: 9400, InstanceId: 9401, HomeRoomId: 9400,
 		Character: characters.Character{
 			Name: "Departing Wolf", RoomId: 9400, Health: 100,
-			Buffs: buffs.New(), Cooldowns: map[string]int{}, SpeciesId: 1,
+			Buffs: conditions.New(), Cooldowns: map[string]int{}, SpeciesId: 1,
 		},
 	}
 	mobA.Character.HealthMax.Value = 100
@@ -117,7 +117,7 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName_CompanionBranc
 		MobId: 9402, InstanceId: 9403, HomeRoomId: 9400,
 		Character: characters.Character{
 			Name: "Windscour Wyrm", RoomId: 9400, Health: 100,
-			Buffs: buffs.New(), Cooldowns: map[string]int{}, SpeciesId: 1,
+			Buffs: conditions.New(), Cooldowns: map[string]int{}, SpeciesId: 1,
 		},
 	}
 	mobB.Character.HealthMax.Value = 100
@@ -128,7 +128,7 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName_CompanionBranc
 		MobId: 9404, InstanceId: 9405, HomeRoomId: 9400,
 		Character: characters.Character{
 			Name: "Spirit Wolf", RoomId: 9400, Health: 100,
-			Buffs: buffs.New(), Cooldowns: map[string]int{}, SpeciesId: 1,
+			Buffs: conditions.New(), Cooldowns: map[string]int{}, SpeciesId: 1,
 		},
 	}
 	companion.Character.HealthMax.Value = 100

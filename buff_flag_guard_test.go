@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"gopkg.in/yaml.v3"
 )
 
@@ -37,9 +37,9 @@ func TestEveryDogmudBuffFlagIsDeclared(t *testing.T) {
 		if err := yaml.Unmarshal(raw, &b); err != nil {
 			t.Fatalf("%s: %v", f, err)
 		}
-		spec := &buffs.BuffSpec{BuffId: b.BuffId, Name: b.Name}
+		spec := &conditions.BuffSpec{BuffId: b.BuffId, Name: b.Name}
 		for _, fl := range b.Flags {
-			spec.Flags = append(spec.Flags, buffs.Flag(fl))
+			spec.Flags = append(spec.Flags, conditions.Flag(fl))
 		}
 		if err := spec.ValidateFlags(); err != nil {
 			problems = append(problems, filepath.Base(f)+": "+err.Error())

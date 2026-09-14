@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/species"
@@ -50,7 +50,7 @@ func useDogmudTemplates(t *testing.T) {
 func TestTemplateFreeze_ConditionsListReadsPermanent(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 	useDogmudTemplates(t)
 
 	out, err := templates.Process("character/conditions", []conditionEntry{
@@ -68,7 +68,7 @@ func TestTemplateFreeze_StatusReadsTheBrokenLimbRecord(t *testing.T) {
 	useDogmudTemplates(t)
 
 	user, _ := getTestUserAndRoom(t)
-	restore := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		83: {BuffId: 83, Name: "Broken Limb", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 10},
 	})
 	defer restore()
@@ -84,7 +84,7 @@ func TestTemplateFreeze_IdentifyReadsConditionIds(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	useDogmudTemplates(t)
-	restore := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		940: {BuffId: 940, Name: "Probe Glow", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 5},
 		941: {BuffId: 941, Name: "Probe Rend", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 5},
 	})
@@ -106,7 +106,7 @@ func TestTemplateFreeze_SpeciesHelpReadsConditionIds(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	useDogmudTemplates(t)
-	restore := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		942: {BuffId: 942, Name: "Probe Hide", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 5},
 	})
 	defer restore()

@@ -3,7 +3,7 @@ package actions
 import (
 	"math"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
@@ -118,6 +118,6 @@ func ApplyWarcryEffect(char *characters.Character) (float64, int) {
 	// One record carries both the bookkeeping and the magnitude; the damage
 	// multiplier the reader wants is 1 + bonus. duration is the exact integer
 	// the shout computed (25 scaled by shout amp).
-	_ = char.AddBuffMagnitude(buffs.BuffIdWarcry, duration, 1.0+bonus, "warcry")
+	_ = char.AddBuffMagnitude(conditions.BuffIdWarcry, duration, 1.0+bonus, "warcry")
 	return bonus, duration
 }

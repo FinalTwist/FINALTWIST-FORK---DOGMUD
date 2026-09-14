@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
@@ -37,7 +37,7 @@ func TestAttack_PlayerAttackImmune_RebuffsAttack(t *testing.T) {
 			Name:   "Caravan Guard",
 			RoomId: 1,
 			Health: 100,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 	immuneMob.Character.HealthMax.Value = 100
@@ -111,7 +111,7 @@ func TestAttackBumpsOpinion(t *testing.T) {
 			Name:      "Skeleton",
 			RoomId:    1,
 			Health:    50,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 		},
 	}
@@ -155,7 +155,7 @@ func TestAttackOnSameTargetDoesNotDoubleBump(t *testing.T) {
 			Name:      "Skeleton",
 			RoomId:    1,
 			Health:    50,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 		},
 	}
@@ -203,7 +203,7 @@ func TestTargetSwitchBumpsNewMobOpinion(t *testing.T) {
 		HomeRoomId: 1,
 		Character: characters.Character{
 			Name: "Skeleton", RoomId: 1, Health: 50,
-			Buffs: buffs.New(), Cooldowns: map[string]int{},
+			Buffs: conditions.New(), Cooldowns: map[string]int{},
 		},
 	}
 	mobA.Character.HealthMax.Value = 100
@@ -218,7 +218,7 @@ func TestTargetSwitchBumpsNewMobOpinion(t *testing.T) {
 		HomeRoomId: 1,
 		Character: characters.Character{
 			Name: "Merchant", RoomId: 1, Health: 50,
-			Buffs: buffs.New(), Cooldowns: map[string]int{},
+			Buffs: conditions.New(), Cooldowns: map[string]int{},
 		},
 	}
 	mobB.Character.HealthMax.Value = 100
@@ -292,7 +292,7 @@ enemies: []
 			Name:      "city beggar",
 			RoomId:    1,
 			Health:    50,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 		},
 	}

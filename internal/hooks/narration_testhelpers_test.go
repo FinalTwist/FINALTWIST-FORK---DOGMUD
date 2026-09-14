@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/stretchr/testify/require"
@@ -49,7 +49,7 @@ const (
 // func. Call it AFTER `defer cleanup()` and `defer` its result, so it restores
 // before the fixture does: SeedBuffsForTest replaces the whole registry.
 func seedNarrationBuffs() func() {
-	return buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	return conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		glowBuffId: {BuffId: glowBuffId, Name: "Test Glow", RoundInterval: 5, TriggerCount: 3,
 			StartRoomText: "{source} glows."},
 		shiverBuffId: {BuffId: shiverBuffId, Name: "Test Shiver", RoundInterval: 1, TriggerCount: 3,
@@ -57,13 +57,13 @@ func seedNarrationBuffs() func() {
 		fadeBuffId: {BuffId: fadeBuffId, Name: "Test Fade", RoundInterval: 5, TriggerCount: 3,
 			EndRoomText: "{source} fades."},
 		nightEyesBuffId: {BuffId: nightEyesBuffId, Name: "Test Night Eyes",
-			Flags: []buffs.Flag{buffs.NightVision}},
+			Flags: []conditions.Flag{conditions.NightVision}},
 		heatEyesBuffId: {BuffId: heatEyesBuffId, Name: "Test Heat Eyes",
-			Flags: []buffs.Flag{buffs.InfraredVision}},
+			Flags: []conditions.Flag{conditions.InfraredVision}},
 		lanternBuffId: {BuffId: lanternBuffId, Name: "Test Lantern", RoundInterval: 5, TriggerCount: 3,
-			Flags: []buffs.Flag{buffs.EmitsLight}, EndRoomText: "{source}'s light gutters out."},
+			Flags: []conditions.Flag{conditions.EmitsLight}, EndRoomText: "{source}'s light gutters out."},
 		dozeBuffId: {BuffId: dozeBuffId, Name: "Test Doze",
-			Flags: []buffs.Flag{buffs.Sleeping}},
+			Flags: []conditions.Flag{conditions.Sleeping}},
 	})
 }
 

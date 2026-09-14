@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/dialogue"
@@ -105,7 +105,7 @@ func TestSmoke_ServerBootsCleanWithRealData(t *testing.T) {
 		{"rooms", len(rooms.GetAllRoomIds())},
 		{"mob templates", len(mobs.AllMobTemplates())},
 		{"spells", len(spells.GetAllSpells())},
-		{"buffs", len(buffs.GetAllBuffIds())},
+		{"buffs", len(conditions.GetAllBuffIds())},
 		{"quests", len(quests.GetAllQuests())},
 		{"crafting recipes", len(crafting.GetAll())},
 	}

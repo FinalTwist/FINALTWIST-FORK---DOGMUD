@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/dialogue"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
@@ -221,7 +221,7 @@ func realBuildDeps() buildDeps {
 		isNonEuclidean: func(plane int) bool { return rooms.GetPlaneRegistry().IsNonEuclidean(plane) },
 		mobExists:      func(id int) bool { return mobs.GetMobSpec(mobs.MobId(id)) != nil },
 		itemExists:     func(id int) bool { return items.GetItemSpec(id) != nil },
-		buffExists:     func(id int) bool { return buffs.GetBuffSpec(id) != nil },
+		buffExists:     func(id int) bool { return conditions.GetBuffSpec(id) != nil },
 	}
 }
 

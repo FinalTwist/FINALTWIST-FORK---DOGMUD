@@ -3,7 +3,7 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -23,7 +23,7 @@ const (
 )
 
 func seedNoticeBuffs() func() {
-	return buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	return conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		quietBuffId:  {BuffId: quietBuffId, Name: "Test Quiet", RoundInterval: 5, TriggerCount: 3},
 		hushedBuffId: {BuffId: hushedBuffId, Name: "Test Hushed", Secret: true, RoundInterval: 5, TriggerCount: 3, StartUserText: "You should never read this.", EndUserText: "Nor this."},
 	})
@@ -82,7 +82,7 @@ func TestBuffNotice_SecretBuffIsSilentAtBothEnds(t *testing.T) {
 func TestBuffNotice_ScaledEventStillNarratesTheStart(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		scaledBuffId: {BuffId: scaledBuffId, Name: "Test Scaled", RoundInterval: 1, TriggerCount: 10},
 	})
 	defer restore()
@@ -115,14 +115,14 @@ func TestBuffNotice_ScaledEventStillNarratesTheStart(t *testing.T) {
 func TestBuffNotice_MagnitudeEventAppliesSilently(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
-	assert.Equal(t, events.Continue, ApplyBuffs(events.Buff{UserId: 1, BuffId: buffs.BuffIdMinorShield, Triggers: 7, Magnitude: 9, Source: "test"}))
+	assert.Equal(t, events.Continue, ApplyBuffs(events.Buff{UserId: 1, BuffId: conditions.BuffIdMinorShield, Triggers: 7, Magnitude: 9, Source: "test"}))
 
 	holder := users.GetByUserId(1)
 	require.NotNil(t, holder)
-	assert.Equal(t, 7, holder.Character.Buffs.TriggersLeft(buffs.BuffIdMinorShield))
-	assert.Equal(t, float64(9), holder.Character.Buffs.Effect(buffs.EffectMitigationFlat))
+	assert.Equal(t, 7, holder.Character.Buffs.TriggersLeft(conditions.BuffIdMinorShield))
+	assert.Equal(t, float64(9), holder.Character.Buffs.Effect(conditions.EffectMitigationFlat))
 }
 
 // Buff ids for the immunity pair, clear of the notice fixtures above.
@@ -139,11 +139,11 @@ const (
 func TestBuffNotice_ARefusedPoisonBuffNarratesNothing(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		immunityNoticeBuffId: {BuffId: immunityNoticeBuffId, Name: "Test Stone Stomach", RoundInterval: 1, TriggerCount: 5,
-			Flags: []buffs.Flag{buffs.PoisonImmunity}, StartUserText: "Nothing could turn your stomach now.", EndUserText: "Your stomach is ordinary again."},
+			Flags: []conditions.Flag{conditions.PoisonImmunity}, StartUserText: "Nothing could turn your stomach now.", EndUserText: "Your stomach is ordinary again."},
 		venomNoticeBuffId: {BuffId: venomNoticeBuffId, Name: "Test Venom", RoundInterval: 1, TriggerCount: 5,
-			Flags: []buffs.Flag{buffs.Poison}, StartUserText: "You feel venom seeping into your bloodstream!",
+			Flags: []conditions.Flag{conditions.Poison}, StartUserText: "You feel venom seeping into your bloodstream!",
 			StartRoomText: "{source} winces as venom takes hold.", EndUserText: "The venom subsides."},
 	})
 	defer restore()
@@ -171,12 +171,12 @@ func TestBuffNotice_ARefusedPoisonBuffNarratesNothing(t *testing.T) {
 func TestBuffNotice_ARefusedPoisonedRecordNarratesNothing(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		immunityNoticeBuffId: {BuffId: immunityNoticeBuffId, Name: "Test Stone Stomach", RoundInterval: 1, TriggerCount: 5,
-			Flags: []buffs.Flag{buffs.PoisonImmunity}, StartUserText: "Nothing could turn your stomach now.", EndUserText: "Your stomach is ordinary again."},
+			Flags: []conditions.Flag{conditions.PoisonImmunity}, StartUserText: "Nothing could turn your stomach now.", EndUserText: "Your stomach is ordinary again."},
 	})
 	defer restore()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 	original := runSpellChannelAttack
 	runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 		return spellContestAttackWin()
@@ -191,7 +191,7 @@ func TestBuffNotice_ARefusedPoisonedRecordNarratesNothing(t *testing.T) {
 	spell := &spells.SpellData{SpellId: "test-blight", Name: "Blight", Type: spells.HarmSingle, EffectType: "dot"}
 	resolveMobSpellAgainstPlayer(mobs.GetInstance(100), target, rooms.LoadRoom(1), spell, combat.AttackSide{}, 10)
 
-	assert.False(t, target.Character.HasBuff(buffs.BuffIdPoisoned), "the record was refused")
+	assert.False(t, target.Character.HasBuff(conditions.BuffIdPoisoned), "the record was refused")
 	assert.Equal(t, 0, countContaining(drainPlain(1), "afflicts you"), "the immune victim reads nothing")
 	assert.Equal(t, 0, countContaining(drainPlain(2), "afflicts"), "and the room is told nothing either")
 }

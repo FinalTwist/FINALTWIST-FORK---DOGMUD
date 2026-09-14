@@ -3,7 +3,7 @@ package hooks
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -32,7 +32,7 @@ func dropMobLootAndSetCorpse(m *mobs.Mob, room *rooms.Room) {
 	// up (corpse container vs. room floor) is decided below by CorpsesEnabled.
 	var loot rooms.Container
 
-	if !m.Character.HasBuffFlag(buffs.PermaGear) {
+	if !m.Character.HasBuffFlag(conditions.PermaGear) {
 
 		// Carried items: 100% base drop chance (per-item DropChance
 		// still applies via ShouldDrop).

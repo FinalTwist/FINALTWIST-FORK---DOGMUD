@@ -3,7 +3,7 @@ package characters
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
 )
@@ -26,11 +26,11 @@ import (
 // This pins the fix at the primitive rather than at the shoot call site,
 // because every CancelCombatBuffs caller inherited the same hole.
 func TestCancelCombatBuffs_DrivesAwarenessOutOfHidden(t *testing.T) {
-	restore := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		9: {
 			BuffId: 9,
 			Name:   "Hidden",
-			Flags:  []buffs.Flag{buffs.Hidden, buffs.CancelIfCombat},
+			Flags:  []conditions.Flag{conditions.Hidden, conditions.CancelIfCombat},
 		},
 	})
 	defer restore()
@@ -59,7 +59,7 @@ func TestCancelCombatBuffs_DrivesAwarenessOutOfHidden(t *testing.T) {
 		t.Error("CancelCombatBuffs must end stealth: IsHidden() reads the " +
 			"awareness FSM, so cancelling the mirror buff alone is not enough")
 	}
-	if c.HasBuffFlag(buffs.Hidden) {
+	if c.HasBuffFlag(conditions.Hidden) {
 		t.Error("the Hidden buff should also be gone")
 	}
 }

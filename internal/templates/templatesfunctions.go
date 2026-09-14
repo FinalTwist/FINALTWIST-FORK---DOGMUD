@@ -8,7 +8,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
 	"github.com/GoMudEngine/GoMud/internal/combat"
@@ -148,14 +148,14 @@ var (
 		"splitstring":  util.SplitStringNL,
 		"ansiparse":    TplAnsiParse,
 		"buffname": func(buffId int) string {
-			buffSpec := buffs.GetBuffSpec(buffId)
+			buffSpec := conditions.GetBuffSpec(buffId)
 			if buffSpec == nil {
 				return "Unknown"
 			}
 			return buffSpec.Name
 		},
 		"buffduration": func(buffId int) string {
-			buffSpec := buffs.GetBuffSpec(buffId)
+			buffSpec := conditions.GetBuffSpec(buffId)
 			if buffSpec == nil {
 				return "Unknown"
 			}
@@ -183,7 +183,7 @@ var (
 			return skills.GetTitle(char.Mutations, char.GetAllSkillRanks(), char.Stats)
 		},
 		"roundstotime": func(rounds int) string {
-			if rounds >= buffs.TriggersLeftUnlimited {
+			if rounds >= conditions.TriggersLeftUnlimited {
 				return `Unlimited`
 			}
 			return formatDuration(rounds * int(configs.GetTimingConfig().RoundSeconds))

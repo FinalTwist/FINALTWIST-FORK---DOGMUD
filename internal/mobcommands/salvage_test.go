@@ -3,7 +3,7 @@ package mobcommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -46,7 +46,7 @@ func buildSalvageFixtures(t *testing.T) (*mobs.Mob, *rooms.Room, func()) {
 			Name:      "Tova",
 			RoomId:    1,
 			Health:    80,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 			Skills:    map[string]int{string(skills.Salvage): 30},
 		},
@@ -135,7 +135,7 @@ func TestSalvage_CorpseNotEligible_SkippedSilently(t *testing.T) {
 			Name:      "Tova",
 			RoomId:    1,
 			Health:    80,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 			Skills:    map[string]int{string(skills.Salvage): 30},
 		},

@@ -6,7 +6,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/factions"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -322,7 +322,7 @@ func (b *GameBridge) ApplyBuff(bf BuffDef) {
 	// The hook drops an unknown spec without a word, so an authoring typo in a
 	// quest reward would otherwise vanish. The old direct add surfaced it
 	// through the error it returned; this keeps that signal.
-	if buffs.GetBuffSpec(bf.Buff) == nil {
+	if conditions.GetBuffSpec(bf.Buff) == nil {
 		mudlog.Error("GameBridge.ApplyBuff", "buff", bf.Buff, "error", "no such buff spec")
 		return
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -272,7 +272,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 					}
 				}
 				// Chunk 3.3: sleeping suffix
-				if player.Character != nil && player.Character.HasBuffFlag(buffs.Sleeping) {
+				if player.Character != nil && player.Character.HasBuffFlag(conditions.Sleeping) {
 					playerEntry += ` <ansi fg="8">(asleep)</ansi>`
 				}
 				details.VisiblePlayers = append(details.VisiblePlayers, playerEntry)
@@ -346,7 +346,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 			mobNameStr := mobName.String()
 
 			// Chunk 3.3: sleeping suffix
-			if mob.Character.HasBuffFlag(buffs.Sleeping) {
+			if mob.Character.HasBuffFlag(conditions.Sleeping) {
 				mobNameStr += ` <ansi fg="8">(asleep)</ansi>`
 			}
 

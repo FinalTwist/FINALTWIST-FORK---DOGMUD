@@ -1,7 +1,7 @@
 package actions
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -138,7 +138,7 @@ func ExecuteThrottle(actor Actor) ThrottleResult {
 		// Strength / ThrottleBleedStrengthDivisor per round, floor
 		// ThrottleBleedMin); the choke's primary DoT is stamina drain.
 		bleedDmg = bleedPerRound(char.Stats.Strength.ValueAdj, cfg.ThrottleBleedStrengthDivisor, cfg.ThrottleBleedMin)
-		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, int(cfg.ThrottleBleedRounds), -float64(bleedDmg), "throttle")
+		_ = target.Char.AddBuffMagnitude(conditions.BuffIdBleeding, int(cfg.ThrottleBleedRounds), -float64(bleedDmg), "throttle")
 
 		// Stamina-over-time: apply the Throttled DoT buff (id 89).
 		_ = target.Char.AddBuff(89, false)

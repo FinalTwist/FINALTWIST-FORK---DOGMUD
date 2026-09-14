@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/bounties"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -967,11 +967,11 @@ func TestExecuteArrest_PlayerReadsTheJailStartLineAndHoldsTheBuff(t *testing.T) 
 	aDecayFn = func() int { return 5 }
 	bNowFn = func() uint64 { return 100 }
 
-	restoreBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	restoreBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		jailedBuffId: {
 			BuffId:        jailedBuffId,
 			Name:          "Jailed",
-			Flags:         []buffs.Flag{buffs.SilentStart},
+			Flags:         []conditions.Flag{conditions.SilentStart},
 			TriggerCount:  1,
 			RoundInterval: 1,
 			StartUserText: startLine,

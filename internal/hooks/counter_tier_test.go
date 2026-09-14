@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -282,7 +282,7 @@ func TestSpellCounter_PlayerVsPlayerAndMobVsMob(t *testing.T) {
 	mobCaster.Character.HealthMax.Value = 100000
 	mobTarget := critEffectFighter("Counter Golem", 100)
 	mobDefender := &mobs.Mob{MobId: 2, InstanceId: 999, Character: *mobTarget}
-	mobDefender.Character.Buffs = buffs.New()
+	mobDefender.Character.Buffs = conditions.New()
 
 	calls = 0
 	side2 := spellAttackSideFor(spell, &mobCaster.Character)

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -61,7 +61,7 @@ func Give(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	if target.IsPlayer() {
 
 		targetUser := target.(*actions.UserActor).User
-		mob.Character.CancelBuffsWithFlag(buffs.Hidden)
+		mob.Character.CancelBuffsWithFlag(conditions.Hidden)
 
 		// Swap the item location
 		if giveItem.ItemId > 0 {
@@ -95,7 +95,7 @@ func Give(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	// Mob target
 	//
 	m := target.(*actions.MobActor).Mob
-	mob.Character.CancelBuffsWithFlag(buffs.Hidden)
+	mob.Character.CancelBuffsWithFlag(conditions.Hidden)
 
 	// Swap the item location
 	if giveItem.ItemId > 0 {

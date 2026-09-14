@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -162,7 +162,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		spoiledTox := float64(itemSpec.Toxicity) * 3.0
 		user.Character.AddToxicity(spoiledTox)
 
-		user.Character.CancelBuffsWithFlag(buffs.Hidden)
+		user.Character.CancelBuffsWithFlag(conditions.Hidden)
 
 		// Consume the item
 		if fromBandolier {
@@ -207,7 +207,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		}
 	}
 
-	user.Character.CancelBuffsWithFlag(buffs.Hidden)
+	user.Character.CancelBuffsWithFlag(conditions.Hidden)
 
 	// Consume the item
 	if fromBandolier {
@@ -273,7 +273,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		// apply (5, 7, 47) none declares tick_variance, so the recomputation is
 		// deterministic, while no tick_pool buff carries a max-pool statmod, so
 		// it reads the same pool.
-		if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil && buffSpec.TickPool != "" {
+		if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil && buffSpec.TickPool != "" {
 			var maxPool int
 			switch buffSpec.TickPool {
 			case "health":
@@ -283,7 +283,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			case "conviction":
 				maxPool = user.Character.ConvictionMax.Value
 			}
-			tickAmt := buffs.ComputeTickAmount(maxPool, buffSpec.TickPercent, buffSpec.TickVariance, buffSpec.TickMin, 1.0)
+			tickAmt := conditions.ComputeTickAmount(maxPool, buffSpec.TickPercent, buffSpec.TickVariance, buffSpec.TickMin, 1.0)
 			user.Character.Buffs.SetTickAmount(buffId, tickAmt)
 		}
 	}

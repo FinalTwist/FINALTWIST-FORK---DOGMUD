@@ -6,7 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -361,7 +361,7 @@ func applyCombatDamageBonuses(atk, def actions.Actor, res *combat.AttackResult) 
 	}
 
 	// Conviction Surge: +15% damage on hit when DamageBonus buff flag set.
-	if atkChar.HasBuffFlag(buffs.DamageBonus) {
+	if atkChar.HasBuffFlag(conditions.DamageBonus) {
 		bonusDmg := int(math.Round(float64(res.DamageToTarget) * 0.15))
 		if bonusDmg < 1 {
 			bonusDmg = 1

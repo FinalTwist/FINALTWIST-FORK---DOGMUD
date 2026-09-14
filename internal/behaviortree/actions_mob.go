@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/exit"
@@ -151,7 +151,7 @@ func pickEligibleRoomPlayer(room *rooms.Room) int {
 		if user == nil {
 			continue
 		}
-		if user.Character.HasBuffFlag(buffs.NoAggroTarget) {
+		if user.Character.HasBuffFlag(conditions.NoAggroTarget) {
 			continue
 		}
 		if user.Character.Health < 1 {

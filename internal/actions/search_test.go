@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -34,7 +34,7 @@ type searchFakeActor struct {
 func newSearchFakeActor(name string, room *rooms.Room, isPlayer bool, userId int) *searchFakeActor {
 	c := &characters.Character{
 		Name:  name,
-		Buffs: buffs.New(),
+		Buffs: conditions.New(),
 	}
 	c.Stats.Perception.ValueAdj = 100
 	return &searchFakeActor{
@@ -49,7 +49,7 @@ func newSearchFakeActor(name string, room *rooms.Room, isPlayer bool, userId int
 func newSearchMobActor(name string, room *rooms.Room, mobInstId int) *searchFakeActor {
 	c := &characters.Character{
 		Name:  name,
-		Buffs: buffs.New(),
+		Buffs: conditions.New(),
 	}
 	return &searchFakeActor{
 		char:      c,
@@ -96,7 +96,7 @@ func newSearchTestMob(instId int, name string, roomId int) *mobs.Mob {
 		InstanceId: instId,
 	}
 	m.Character.Name = name
-	m.Character.Buffs = buffs.New()
+	m.Character.Buffs = conditions.New()
 	m.Character.RoomId = roomId
 	return m
 }

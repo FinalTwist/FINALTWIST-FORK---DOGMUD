@@ -3,7 +3,7 @@ package combat_test
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
@@ -22,7 +22,7 @@ import (
 // binary would read as "nothing applied" and pass for the wrong reason.
 func seedSubmissionBuffSpecs(t *testing.T) func() {
 	t.Helper()
-	return buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	return conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		combat.BrokenLimbBuffId: {
 			BuffId:        combat.BrokenLimbBuffId,
 			Name:          "Broken Limb",

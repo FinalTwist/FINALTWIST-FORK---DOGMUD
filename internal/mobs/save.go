@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/casing"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -144,7 +144,7 @@ func ValidateMobSpec(m *Mob) error {
 		return fmt.Errorf(`surrender_policy %q invalid; valid: "", never, always, "auto-tap-below <N>"`, sp)
 	}
 	for _, bid := range m.BuffIds {
-		if buffs.GetBuffSpec(bid) == nil {
+		if conditions.GetBuffSpec(bid) == nil {
 			return fmt.Errorf("buff id %d does not exist", bid)
 		}
 	}

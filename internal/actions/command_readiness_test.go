@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/species"
@@ -26,7 +26,7 @@ func newTestMob(t *testing.T, cfg func(*mobs.Mob)) *mobs.Mob {
 	m.Character.Conviction = 999
 	m.Character.ConvictionMax.Value = 999
 	setCombatPositionParallel(&m.Character, position.Standing)
-	m.Character.Buffs = buffs.New()                      // Properly initialize buffs maps
+	m.Character.Buffs = conditions.New()                      // Properly initialize buffs maps
 	m.Character.SetAggro(1, 0, characters.DefaultAttack) // user 1 as generic target
 	if cfg != nil {
 		cfg(m)
@@ -142,7 +142,7 @@ func TestCommandIsReady_IsCrafting_BlocksEveryCommand(t *testing.T) {
 }
 
 func seedBuffsForTest() func() {
-	return buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	return conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		79: {BuffId: 79, Name: "Warcry", TriggerCount: 10, RoundInterval: 1},
 		80: {BuffId: 80, Name: "Rally", TriggerCount: 10, RoundInterval: 1},
 	})

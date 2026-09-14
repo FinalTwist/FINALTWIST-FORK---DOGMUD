@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -16,7 +16,7 @@ import (
 // A stacking spec (buffs.Stacking) can only be added through
 // AddBuffMagnitude, which supplies the rounds and amount a stack needs.
 // Buffs.AddBuff and Buffs.AddBuffScaled now refuse one outright (see
-// internal/buffs review fixes), and admin.buff.go's `buff <id>` queues its
+// internal/conditions review fixes), and admin.buff.go's `buff <id>` queues its
 // add through exactly that door (UserRecord.AddBuff / Mob.AddBuff, both
 // events.Buff with no magnitude or triggers). Before this fix the command
 // told the admin the buff was "applied" regardless, which was a lie: the
@@ -30,11 +30,11 @@ const adminBuffStackingTestId = 9401
 func seedAdminBuffStackingUser(t *testing.T) (*users.UserRecord, *rooms.Room, func()) {
 	t.Helper()
 
-	cleanupBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanupBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		adminBuffStackingTestId: {
 			BuffId: adminBuffStackingTestId, Name: "Test Gash",
 			TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 4,
-			Flags:    []buffs.Flag{buffs.Bleeding, buffs.Stacking},
+			Flags:    []conditions.Flag{conditions.Bleeding, conditions.Stacking},
 			TickPool: "health", TickFromMagnitude: true,
 		},
 	})
@@ -87,11 +87,11 @@ func TestAdminBuff_RefusesAStackingSpecOnAPlayer(t *testing.T) {
 func seedAdminBuffStackingMob(t *testing.T) (*users.UserRecord, *rooms.Room, *mobs.Mob, func()) {
 	t.Helper()
 
-	cleanupBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanupBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		adminBuffStackingTestId: {
 			BuffId: adminBuffStackingTestId, Name: "Test Gash",
 			TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 4,
-			Flags:    []buffs.Flag{buffs.Bleeding, buffs.Stacking},
+			Flags:    []conditions.Flag{conditions.Bleeding, conditions.Stacking},
 			TickPool: "health", TickFromMagnitude: true,
 		},
 	})
@@ -112,7 +112,7 @@ func seedAdminBuffStackingMob(t *testing.T) (*users.UserRecord, *rooms.Room, *mo
 			Name:   "Stackratling",
 			RoomId: 1,
 			Health: 10,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 	cleanupMobs := mobs.SeedMobsForTest(nil, map[int]*mobs.Mob{9442: mob})

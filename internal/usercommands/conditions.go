@@ -1,7 +1,7 @@
 package usercommands
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -39,13 +39,13 @@ func Conditions(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 func conditionEntries(c *characters.Character) []conditionEntry {
 	entries := []conditionEntry{}
 	for _, buff := range c.GetBuffs() {
-		spec := buffs.GetBuffSpec(buff.BuffId)
+		spec := conditions.GetBuffSpec(buff.BuffId)
 		if spec == nil || !spec.Listed() {
 			continue
 		}
-		roundsLeft, _ := buffs.GetDurations(buff, spec)
+		roundsLeft, _ := conditions.GetDurations(buff, spec)
 		entries = append(entries, conditionEntry{
-			Name:        buffs.DisplayName(buff, spec),
+			Name:        conditions.DisplayName(buff, spec),
 			Description: spec.Description,
 			RoundsLeft:  roundsLeft,
 			PermaBuff:   buff.PermaBuff,

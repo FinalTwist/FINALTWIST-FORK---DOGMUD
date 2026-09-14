@@ -2,7 +2,7 @@ package usercommands
 
 import (
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -91,7 +91,7 @@ func sendMoveDefenceShortage(targetUser *users.UserRecord, lines moveDefence) {
 // internal/messaging/predicates.go:66 already flags that seam as temporary. A
 // shared helper package for two call sites would be the wrong shape today.
 func canSeeInDark(u *users.UserRecord, room *rooms.Room) bool {
-	return room.GetVisibility() >= 1 || u.Character.HasFlagFromAnySource(buffs.NightVision)
+	return room.GetVisibility() >= 1 || u.Character.HasFlagFromAnySource(conditions.NightVision)
 }
 
 // acteeDefenceLine renders the defender's personal defence line, anonymized

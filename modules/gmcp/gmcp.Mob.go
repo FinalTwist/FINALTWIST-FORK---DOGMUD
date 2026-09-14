@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
@@ -757,8 +757,8 @@ func collectMobEnums() mobEnums {
 		WornSlots:          wornSlotNames(),
 		Species:            map[string]string{},
 	}
-	for _, id := range buffs.GetAllBuffIds() {
-		if spec := buffs.GetBuffSpec(id); spec != nil {
+	for _, id := range conditions.GetAllBuffIds() {
+		if spec := conditions.GetBuffSpec(id); spec != nil {
 			e.Buffs = append(e.Buffs, idName{Id: id, Name: spec.Name})
 		}
 	}

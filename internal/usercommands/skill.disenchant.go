@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/enchantments"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -69,7 +69,7 @@ func Disenchant(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 	// the old condition's did; the record's pool_max_pct effect reads the
 	// magnitude we pass here. AddBuffMagnitude validates synchronously, so the
 	// pool clamp lands before this command returns.
-	_ = user.Character.AddBuffMagnitude(buffs.BuffIdEnchantWithdrawal, penaltyRounds, reservePct, reservePool)
+	_ = user.Character.AddBuffMagnitude(conditions.BuffIdEnchantWithdrawal, penaltyRounds, reservePct, reservePool)
 
 	user.SendText(messaging.CategorySystem, `<ansi fg="magenta">You pry the Chrysalis free. It comes away screaming — a `+
 		`soundless wail that reverberates through your bones. The item `+
@@ -88,7 +88,7 @@ func Disenchant(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 	// applied earlier because the pool clamp must land before the command
 	// returns, but its line is the CONSEQUENCE of prying the Chrysalis free,
 	// so the player has to read the act first.
-	if withdrawalSpec := buffs.GetBuffSpec(buffs.BuffIdEnchantWithdrawal); withdrawalSpec != nil {
+	if withdrawalSpec := conditions.GetBuffSpec(conditions.BuffIdEnchantWithdrawal); withdrawalSpec != nil {
 		line := withdrawalSpec.AuthoredStartLine(textutil.TokenContext{
 			SourceName:      user.Character.GetCharacterName(true),
 			SourcePlainName: user.Character.GetCharacterName(false),

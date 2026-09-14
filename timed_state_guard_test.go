@@ -13,9 +13,9 @@ import (
 // Slice 1 of the conditions unification deleted the second collection of
 // timed state (characters.CombatCondition). This guard keeps it deleted: no
 // struct under internal/ or modules/ may declare a field named Duration or
-// RoundsLeft alongside a Magnitude outside internal/buffs, and no identifier
+// RoundsLeft alongside a Magnitude outside internal/conditions, and no identifier
 // may spell HasCondition, AddCondition or CombatCondition. Timed state is a
-// buffs.Buff, read through Buffs.Effect; see internal/buffs/context.md.
+// buffs.Buff, read through Buffs.Effect; see internal/conditions/context.md.
 var forbiddenTimedStateIdents = []string{"HasCondition", "AddCondition", "RemoveCondition", "CombatCondition", "ConditionType", "TickConditions"}
 
 func TestNoSecondTimedStateCollection(t *testing.T) {
@@ -58,8 +58,8 @@ func TestNoSecondTimedStateCollection(t *testing.T) {
 							}
 						}
 					}
-					if hasDuration && hasMagnitude && !strings.HasPrefix(filepath.ToSlash(path), "internal/buffs/") {
-						problems = append(problems, filepath.ToSlash(fset.Position(x.Pos()).String())+" declares a Duration+Magnitude struct outside internal/buffs; timed state is a buffs.Buff")
+					if hasDuration && hasMagnitude && !strings.HasPrefix(filepath.ToSlash(path), "internal/conditions/") {
+						problems = append(problems, filepath.ToSlash(fset.Position(x.Pos()).String())+" declares a Duration+Magnitude struct outside internal/conditions; timed state is a buffs.Buff")
 					}
 				}
 				return true
@@ -76,6 +76,6 @@ func TestNoSecondTimedStateCollection(t *testing.T) {
 		}
 	}
 	if len(problems) > 0 {
-		t.Fatalf("%d timed-state problem(s):\n  %s\n\nTimed state on a character is a buffs.Buff record read through Buffs.Effect; see internal/buffs/context.md.", len(problems), strings.Join(problems, "\n  "))
+		t.Fatalf("%d timed-state problem(s):\n  %s\n\nTimed state on a character is a buffs.Buff record read through Buffs.Effect; see internal/conditions/context.md.", len(problems), strings.Join(problems, "\n  "))
 	}
 }

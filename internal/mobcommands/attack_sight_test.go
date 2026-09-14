@@ -3,7 +3,7 @@ package mobcommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -20,7 +20,7 @@ import (
 // the defect is that attack.go passed a nil viewer, so calling the helper with
 // a viewer would pass even with the bug in place.
 func TestMobAttackCannotNameAHiddenPlayer(t *testing.T) {
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{}))
+	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{}))
 
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
 		"city": {BiomeId: "city", LitArea: true},
@@ -33,7 +33,7 @@ func TestMobAttackCannotNameAHiddenPlayer(t *testing.T) {
 		MobId: 8200, InstanceId: 8201, HomeRoomId: 8200,
 		Character: characters.Character{
 			Name: "Lurker", RoomId: 8200, Health: 100,
-			Buffs: buffs.New(), Cooldowns: map[string]int{}, SpeciesId: 1,
+			Buffs: conditions.New(), Cooldowns: map[string]int{}, SpeciesId: 1,
 		},
 	}
 	m.Character.HealthMax.Value = 100

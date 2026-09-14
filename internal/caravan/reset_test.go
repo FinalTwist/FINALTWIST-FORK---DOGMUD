@@ -3,7 +3,7 @@ package caravan
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -56,7 +56,7 @@ func seedResetFixture(t *testing.T) (*mobs.Mob, *mobs.Mob, func()) {
 	}
 	leader.Character.Name = "Ketil"
 	leader.Character.RoomId = midCycleRoom // start mid-cycle, not at depot
-	leader.Character.Buffs = buffs.New()
+	leader.Character.Buffs = conditions.New()
 	mid.AddMob(leader.InstanceId)
 
 	wagon := &mobs.Mob{
@@ -67,7 +67,7 @@ func seedResetFixture(t *testing.T) (*mobs.Mob, *mobs.Mob, func()) {
 	}
 	wagon.Character.Name = "caravan wagon"
 	wagon.Character.RoomId = wagonStrandedRoom
-	wagon.Character.Buffs = buffs.New()
+	wagon.Character.Buffs = conditions.New()
 	stranded.AddMob(wagon.InstanceId)
 
 	cleanMobs := mobs.SeedMobsForTest(

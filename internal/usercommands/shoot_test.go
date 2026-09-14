@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
@@ -238,7 +238,7 @@ func TestShoot_CrossRoomLoaded_NoShooterAggro_MobPursues(t *testing.T) {
 			Name:      "Skeleton",
 			RoomId:    2,
 			Health:    100000,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 		},
 	}
@@ -307,7 +307,7 @@ enemies: []
 			Name:      "city beggar",
 			RoomId:    1,
 			Health:    100000,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 		},
 	}
@@ -416,7 +416,7 @@ func TestShoot_RefusedNonCombatant_NoAggro(t *testing.T) {
 			RoomId:       1,
 			Health:       500,
 			NonCombatant: true,
-			Buffs:        buffs.New(),
+			Buffs:        conditions.New(),
 			Cooldowns:    map[string]int{},
 		},
 	}

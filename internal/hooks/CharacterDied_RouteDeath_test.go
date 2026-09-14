@@ -3,7 +3,7 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -30,7 +30,7 @@ func newRouteDeathTestMob(t *testing.T, health int) *mobs.Mob {
 			Name:      "Route-Death-Dummy",
 			RoomId:    1,
 			Health:    health,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 		},
 	}
@@ -46,12 +46,12 @@ func newRouteDeathTestMob(t *testing.T, health int) *mobs.Mob {
 // seedReviveBuff registers a buff spec carrying the ReviveOnDeath flag.
 func seedReviveBuff(t *testing.T) {
 	t.Helper()
-	cleanup := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanup := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		deathProtectionBuffId: {
 			BuffId:       deathProtectionBuffId,
 			Name:         "Death Protection",
 			TriggerCount: 1000000,
-			Flags:        []buffs.Flag{buffs.ReviveOnDeath},
+			Flags:        []conditions.Flag{conditions.ReviveOnDeath},
 		},
 	})
 	t.Cleanup(cleanup)
@@ -122,7 +122,7 @@ func TestRouteAttributedDeath_ReviveHealsAndClearsQueue(t *testing.T) {
 		t.Fatalf("AddBuff: %v", err)
 	}
 
-	if !mob.Character.HasBuffFlag(buffs.ReviveOnDeath) {
+	if !mob.Character.HasBuffFlag(conditions.ReviveOnDeath) {
 		t.Fatal("precondition: buff did not apply the ReviveOnDeath flag")
 	}
 	mob.Character.DeathQueued = true
@@ -139,7 +139,7 @@ func TestRouteAttributedDeath_ReviveHealsAndClearsQueue(t *testing.T) {
 	if mob.Character.DeathQueued {
 		t.Error("DeathQueued still set after a revive; the character can never be killed again")
 	}
-	if mob.Character.HasBuffFlag(buffs.ReviveOnDeath) {
+	if mob.Character.HasBuffFlag(conditions.ReviveOnDeath) {
 		t.Error("revive buff was not consumed")
 	}
 }

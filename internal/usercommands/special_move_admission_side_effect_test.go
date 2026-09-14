@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -126,7 +126,7 @@ func resetSpecialMoveWrapperFixture(t *testing.T, user *users.UserRecord, target
 		SpeciesId: speciesID,
 		Health:    100,
 		Stamina:   stamina,
-		Buffs:     buffs.New(),
+		Buffs:     conditions.New(),
 		Cooldowns: map[string]int{},
 	}
 	user.Character.HealthMax.Value = 100

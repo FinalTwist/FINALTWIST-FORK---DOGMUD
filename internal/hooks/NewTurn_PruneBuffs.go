@@ -1,7 +1,7 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -41,9 +41,9 @@ func PruneBuffs(e events.Event) events.ListenerReturn {
 					for _, buffInfo := range buffsToPrune {
 						// Send the end notice (authored, or the generic line;
 						// a secret buff is silent).
-						endBuffSpec := buffs.GetBuffSpec(buffInfo.BuffId)
-						if endBuffSpec != nil && endBuffSpec.Narration(buffs.PhaseEnd).Len() > 0 {
-							roles := endBuffSpec.Narrate(buffs.PhaseEnd, textutil.TokenContext{
+						endBuffSpec := conditions.GetBuffSpec(buffInfo.BuffId)
+						if endBuffSpec != nil && endBuffSpec.Narration(conditions.PhaseEnd).Len() > 0 {
+							roles := endBuffSpec.Narrate(conditions.PhaseEnd, textutil.TokenContext{
 								SourceName:      user.Character.GetCharacterName(true),
 								SourcePlainName: user.Character.GetCharacterName(false),
 							})
@@ -97,8 +97,8 @@ func PruneBuffs(e events.Event) events.ListenerReturn {
 		if buffsToPrune := mob.Character.Buffs.Prune(); len(buffsToPrune) > 0 {
 			for _, buffInfo := range buffsToPrune {
 				// Send YAML end text (if defined).
-				endBuffSpec := buffs.GetBuffSpec(buffInfo.BuffId)
-				if endBuffSpec != nil && len(endBuffSpec.Narration(buffs.PhaseEnd).Observer) > 0 {
+				endBuffSpec := conditions.GetBuffSpec(buffInfo.BuffId)
+				if endBuffSpec != nil && len(endBuffSpec.Narration(conditions.PhaseEnd).Observer) > 0 {
 					// The mob tag, not the player one: see Buff_ApplyBuffs.go.
 					// Visual, not audio, for the same reason as start text. The
 					// holder line is rendered and dropped: a mob has no client.
@@ -106,7 +106,7 @@ func PruneBuffs(e events.Event) events.ListenerReturn {
 					if r := rooms.LoadRoom(mob.Character.RoomId); r != nil {
 						sourceName = mobDisplayName(mob, r, 0)
 					}
-					roles := endBuffSpec.Narrate(buffs.PhaseEnd, textutil.TokenContext{
+					roles := endBuffSpec.Narrate(conditions.PhaseEnd, textutil.TokenContext{
 						SourceName:      sourceName,
 						SourcePlainName: mob.Character.GetCharacterName(false),
 					})
@@ -131,9 +131,9 @@ func PruneBuffs(e events.Event) events.ListenerReturn {
 // light buff's line is judged as if the room were still lit, because its light
 // went out when the buff expired, a round before this prune: see
 // Room.SendTextVisualAsLit. Every other end line is judged by the room as it is.
-func sendBuffEndRoomText(r *rooms.Room, spec *buffs.BuffSpec, msg string, skip ...int) {
+func sendBuffEndRoomText(r *rooms.Room, spec *conditions.BuffSpec, msg string, skip ...int) {
 	for _, flag := range spec.Flags {
-		if flag == buffs.EmitsLight {
+		if flag == conditions.EmitsLight {
 			r.SendTextVisualAsLit(messaging.CategoryBuffExpire, msg, skip...)
 			return
 		}

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -35,7 +35,7 @@ func newSalvageFakeActor(t *testing.T, name string, room *rooms.Room, isPlayer b
 	t.Helper()
 	c := &characters.Character{
 		Name:  name,
-		Buffs: buffs.New(),
+		Buffs: conditions.New(),
 	}
 	c.Stats.Perception.ValueAdj = 100
 	return &salvageFakeActor{
@@ -51,7 +51,7 @@ func newSalvageMobActor(t *testing.T, mob *mobs.Mob, room *rooms.Room) *salvageF
 	t.Helper()
 	c := &characters.Character{
 		Name:  mob.Character.Name,
-		Buffs: buffs.New(),
+		Buffs: conditions.New(),
 	}
 	return &salvageFakeActor{
 		char:      c,
@@ -89,7 +89,7 @@ func newSalvageTestMob(t *testing.T, instId int, name string, roomId int) *mobs.
 		InstanceId: instId,
 	}
 	m.Character.Name = name
-	m.Character.Buffs = buffs.New()
+	m.Character.Buffs = conditions.New()
 	m.Character.RoomId = roomId
 	return m
 }

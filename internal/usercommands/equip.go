@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -208,7 +208,7 @@ func Equip(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			}
 
 			// Place the new item
-			user.Character.CancelBuffsWithFlag(buffs.Hidden)
+			user.Character.CancelBuffsWithFlag(conditions.Hidden)
 			user.Character.RemoveItem(matchItem)
 			*targetSlot.ItemPtr = matchItem
 

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -67,7 +67,7 @@ func stagedAdmissionFixture(t *testing.T, speciesID int) (*users.UserRecord, *ro
 	target.Character.HealthMax.Value = 1_000_000
 	target.Character.Stamina = 1_000_000
 	target.Character.StaminaMax.Value = 1_000_000
-	target.Character.Buffs = buffs.New()
+	target.Character.Buffs = conditions.New()
 	setCombatPositionParallel(&target.Character, position.Standing)
 
 	events.DrainQueuedPlayerAttackedMobsForTest(0)

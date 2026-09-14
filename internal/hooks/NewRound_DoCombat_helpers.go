@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -426,7 +426,7 @@ func sendDarkRoomCombatFallback(room *rooms.Room, excludeUserIds ...int) {
 			continue
 		}
 		u := users.GetByUserId(uid)
-		if u != nil && !u.Character.HasFlagFromAnySource(buffs.NightVision) {
+		if u != nil && !u.Character.HasFlagFromAnySource(conditions.NightVision) {
 			u.SendText(messaging.CategoryDefault, `<ansi fg="yellow">You hear the sounds of fighting nearby.</ansi>`)
 		}
 	}

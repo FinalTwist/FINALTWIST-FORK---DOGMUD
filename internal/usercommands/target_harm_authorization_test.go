@@ -3,7 +3,7 @@ package usercommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -31,7 +31,7 @@ func seedTargetTestMob(t *testing.T, room *rooms.Room, instanceId int, name stri
 			Name:   name,
 			RoomId: room.RoomId,
 			Health: 100,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 		},
 	}
 	m.Character.HealthMax.Value = 100

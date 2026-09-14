@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -27,7 +27,7 @@ func TestHandleMobAIDecision_NilAggro_NoPanic(t *testing.T) {
 	mob := &mobs.Mob{
 		Character: characters.Character{
 			Name:  "Kiting Archer",
-			Buffs: buffs.New(),
+			Buffs: conditions.New(),
 		},
 	}
 	mob.Character.EndAggro() // target left the room; aggro cleared mid-round
@@ -86,7 +86,7 @@ func TestHandleMobCombat_ArcherKitesAndFiresAfterAggroLoss(t *testing.T) {
 			Name:      "Bandit Archer",
 			RoomId:    roomB,
 			Health:    100,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 		},
 	}

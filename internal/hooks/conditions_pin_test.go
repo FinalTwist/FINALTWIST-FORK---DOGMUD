@@ -3,7 +3,7 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -26,10 +26,10 @@ import (
 func TestPin_PoisonTickKillsAndNamesTheCause(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
-	_ = u.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, 1, -5, "pin")
+	_ = u.Character.AddBuffMagnitude(conditions.BuffIdPoisoned, 1, -5, "pin")
 	u.Character.Health = 1
 
 	// No regen lands in the round tick: 1 - 5 <= 0.
@@ -50,10 +50,10 @@ func TestPin_PoisonTickKillsAndNamesTheCause(t *testing.T) {
 func TestPin_BleedTickKillsAndNamesTheCause(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
-	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -5, "pin")
+	_ = u.Character.AddBuffMagnitude(conditions.BuffIdBleeding, 1, -5, "pin")
 	u.Character.Health = 1
 
 	// No regen lands in the round tick: 1 - 5 <= 0.
@@ -74,7 +74,7 @@ func TestPin_BleedTickKillsAndNamesTheCause(t *testing.T) {
 // capturing worldevents.EmitWorldEvent). Order matters: poisoned wins over
 // bleeding because the poison check runs first.
 func TestPin_DeathCauseOrder(t *testing.T) {
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	newChar := func() *characters.Character {
 		c := &characters.Character{}
@@ -84,20 +84,20 @@ func TestPin_DeathCauseOrder(t *testing.T) {
 
 	t.Run("poisoned", func(t *testing.T) {
 		c := newChar()
-		_ = c.AddBuffMagnitude(buffs.BuffIdPoisoned, 10, -5, "pin")
+		_ = c.AddBuffMagnitude(conditions.BuffIdPoisoned, 10, -5, "pin")
 		require.Equal(t, "poison", deathCauseFor(c))
 	})
 
 	t.Run("bleeding", func(t *testing.T) {
 		c := newChar()
-		_ = c.AddBuffMagnitude(buffs.BuffIdBleeding, 10, -3, "pin")
+		_ = c.AddBuffMagnitude(conditions.BuffIdBleeding, 10, -3, "pin")
 		require.Equal(t, "bleeding out", deathCauseFor(c))
 	})
 
 	t.Run("poisoned and bleeding, poison wins", func(t *testing.T) {
 		c := newChar()
-		_ = c.AddBuffMagnitude(buffs.BuffIdPoisoned, 10, -5, "pin")
-		_ = c.AddBuffMagnitude(buffs.BuffIdBleeding, 10, -3, "pin")
+		_ = c.AddBuffMagnitude(conditions.BuffIdPoisoned, 10, -5, "pin")
+		_ = c.AddBuffMagnitude(conditions.BuffIdBleeding, 10, -3, "pin")
 		require.Equal(t, "poison", deathCauseFor(c))
 	})
 }
@@ -109,7 +109,7 @@ func TestPin_DeathCauseOrder(t *testing.T) {
 // that stale cause read out. Without the round check a tick cause from an
 // earlier, unrelated fight could outlive it and misname a later death.
 func TestPin_AStaleTickCauseDoesNotNameTheDeath(t *testing.T) {
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 	defer util.ResetRoundCountForTest()
 	// Self-contained: pin the counter rather than inheriting whatever round an
 	// earlier test in this binary left behind. RoundCountMinimum is comfortably

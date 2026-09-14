@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
@@ -176,14 +176,14 @@ func TestFleeCost_IdleRaceAfterDeathDoesNotPayOrClaimAttempt(t *testing.T) {
 // admission available to an asynchronous round resolver.
 func TestFleeCost_RejectedCommandClearsOrphanedAdmission(t *testing.T) {
 	const noFleeBuffID = 99849
-	cleanupBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanupBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		noFleeBuffID: {
 			BuffId:        noFleeBuffID,
 			Name:          "test no-flee",
 			Description:   "rejects a flee command",
 			RoundInterval: 1,
 			TriggerCount:  1,
-			Flags:         []buffs.Flag{buffs.NoFlee},
+			Flags:         []conditions.Flag{conditions.NoFlee},
 		},
 	})
 	defer cleanupBuffs()

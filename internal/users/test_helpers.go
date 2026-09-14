@@ -3,7 +3,7 @@ package users
 import (
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
 	"github.com/GoMudEngine/GoMud/internal/state/combatphase"
@@ -59,7 +59,7 @@ func NewTestUser(userId int, username string, charName string, connId uint64) *U
 		RoomId:    1,
 		Health:    100,
 		Stamina:   100,
-		Buffs:     buffs.New(),
+		Buffs:     conditions.New(),
 		Cooldowns: map[string]int{},
 		Awareness: awareness.NewMachine(),
 		Position:  position.NewMachine(),

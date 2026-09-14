@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -31,7 +31,7 @@ type trackFakeActor struct {
 func newTrackFakeActor(name string, room *rooms.Room, isPlayer bool, userId int) *trackFakeActor {
 	c := &characters.Character{
 		Name:  name,
-		Buffs: buffs.New(),
+		Buffs: conditions.New(),
 	}
 	c.Stats.Perception.ValueAdj = 100
 	return &trackFakeActor{
@@ -46,7 +46,7 @@ func newTrackFakeActor(name string, room *rooms.Room, isPlayer bool, userId int)
 func newTrackMobActor(name string, room *rooms.Room, mobInstId int) *trackFakeActor {
 	c := &characters.Character{
 		Name:  name,
-		Buffs: buffs.New(),
+		Buffs: conditions.New(),
 	}
 	return &trackFakeActor{
 		char:      c,
@@ -82,7 +82,7 @@ func newTrackTestMob(instId int, name string, roomId int) *mobs.Mob {
 		InstanceId: instId,
 	}
 	m.Character.Name = name
-	m.Character.Buffs = buffs.New()
+	m.Character.Buffs = conditions.New()
 	m.Character.RoomId = roomId
 	return m
 }

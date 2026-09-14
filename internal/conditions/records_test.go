@@ -1,4 +1,4 @@
-package buffs
+package conditions
 
 import (
 	"path/filepath"
@@ -11,7 +11,7 @@ import (
 
 // dogmudDataDirForBuffsTest finds the repo's real world data, mirroring
 // internal/narration/snapshot_test.go's dogmudDataDir: this file lives at
-// internal/buffs/records_test.go, so the repo root is two levels up.
+// internal/conditions/records_test.go, so the repo root is two levels up.
 func dogmudDataDirForBuffsTest(t *testing.T) string {
 	t.Helper()
 	_, here, _, ok := runtime.Caller(0)

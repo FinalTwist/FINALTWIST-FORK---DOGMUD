@@ -1,7 +1,7 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -32,7 +32,7 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 
 	//mudlog.Debug(`Event`, `type`, evt.Type(), `UserId`, evt.UserId, `MobInstanceId`, evt.MobInstanceId, `BuffId`, evt.BuffId)
 
-	buffInfo := buffs.GetBuffSpec(evt.BuffId)
+	buffInfo := conditions.GetBuffSpec(evt.BuffId)
 	if buffInfo == nil {
 		return events.Continue
 	}
@@ -117,7 +117,7 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 	//
 	// A mob holder has no client, so only room text can reach anyone; without
 	// it there is nothing to render and the name and room lookups are skipped.
-	startText := buffInfo.Narration(buffs.PhaseStart)
+	startText := buffInfo.Narration(conditions.PhaseStart)
 	holderCanRead := evt.UserId != 0 && len(startText.Actee) > 0
 	if !wasAlreadyActive && (holderCanRead || len(startText.Observer) > 0) {
 		var charName, charPlainName string
@@ -147,7 +147,7 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 		}
 
 		if charName != "" {
-			roles := buffInfo.Narrate(buffs.PhaseStart, textutil.TokenContext{
+			roles := buffInfo.Narrate(conditions.PhaseStart, textutil.TokenContext{
 				SourceName:      charName,
 				SourcePlainName: charPlainName,
 			})
@@ -169,7 +169,7 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 	}
 
 	// Remove buffs listed in start_remove_buffs (cure effects)
-	if buffSpec := buffs.GetBuffSpec(evt.BuffId); buffSpec != nil && len(buffSpec.StartRemoveBuffs) > 0 {
+	if buffSpec := conditions.GetBuffSpec(evt.BuffId); buffSpec != nil && len(buffSpec.StartRemoveBuffs) > 0 {
 		for _, removeId := range buffSpec.StartRemoveBuffs {
 			targetChar.RemoveBuff(removeId)
 		}

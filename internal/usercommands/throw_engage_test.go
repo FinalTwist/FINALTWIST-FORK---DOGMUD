@@ -3,7 +3,7 @@ package usercommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -20,7 +20,7 @@ func newTestThrower() *users.UserRecord {
 		Name:      "Thrower",
 		RoomId:    1,
 		Health:    400,
-		Buffs:     buffs.New(),
+		Buffs:     conditions.New(),
 		Cooldowns: map[string]int{},
 	}
 	c.HealthMax.Value = 400

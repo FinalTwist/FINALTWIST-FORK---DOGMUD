@@ -3,7 +3,7 @@ package hooks
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -98,5 +98,5 @@ func resolvePurgeAffliction(user *users.UserRecord, room *rooms.Room, target pur
 		}, aud)
 	}
 
-	target.char.CancelBuffsWithFlag(buffs.Poison)
+	target.char.CancelBuffsWithFlag(conditions.Poison)
 }

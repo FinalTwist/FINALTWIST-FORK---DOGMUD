@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -21,7 +21,7 @@ func TestBuy_AffixedStockItem(t *testing.T) {
 	m := &mobs.Mob{}
 	m.Character.Name = "Buyer"
 	m.Character.Gold = 1000
-	m.Character.Buffs = buffs.New()
+	m.Character.Buffs = conditions.New()
 	m.Character.Stats.Strength.ValueAdj = 100 // carry capacity
 	buyer := &MobActor{Mob: m}
 

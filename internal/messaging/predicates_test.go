@@ -3,7 +3,7 @@ package messaging
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
@@ -63,7 +63,7 @@ func TestCanSeeShapesBlindedNoInfrared(t *testing.T) {
 	if CanSeeShapes(c, nil) {
 		t.Fatal("Blinded observer must NOT see shapes, even with nil/lit room")
 	}
-	_ = buffs.InfraredVision // ensure the flag constant exists
+	_ = conditions.InfraredVision // ensure the flag constant exists
 }
 
 func TestNilCharacterDefaultsToSeeing(t *testing.T) {
@@ -83,18 +83,18 @@ func TestNilCharacterDefaultsToSeeing(t *testing.T) {
 func setSleeping(t *testing.T, c *characters.Character) {
 	t.Helper()
 	const sleepBuffId = 9001
-	restore := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		sleepBuffId: {
 			BuffId: sleepBuffId,
 			Name:   "Test Sleep",
-			Flags:  []buffs.Flag{buffs.Sleeping},
+			Flags:  []conditions.Flag{conditions.Sleeping},
 		},
 	})
 	t.Cleanup(restore)
 	if err := c.AddBuff(sleepBuffId, true); err != nil {
 		t.Fatalf("applying the sleeping buff failed: %v", err)
 	}
-	if !c.HasBuffFlag(buffs.Sleeping) {
+	if !c.HasBuffFlag(conditions.Sleeping) {
 		t.Fatal("precondition: the character should now carry the Sleeping flag")
 	}
 }

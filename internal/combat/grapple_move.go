@@ -1,7 +1,7 @@
 package combat
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -56,7 +56,7 @@ func ExecuteGrappleMove(attacker, defender *characters.Character,
 		if result.NormalizedMargin < 0.5 {
 			// The record's literal 0.85 (EffectDefenseMult) is the effect;
 			// the magnitude argument here is unused.
-			_ = attacker.AddBuffMagnitude(buffs.BuffIdOffBalance, 1, 0, "failed grapple")
+			_ = attacker.AddBuffMagnitude(conditions.BuffIdOffBalance, 1, 0, "failed grapple")
 			result.DefensePenalty = true
 		}
 

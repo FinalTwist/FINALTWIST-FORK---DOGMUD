@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -122,7 +122,7 @@ func seedFireMobInRoom(t *testing.T, defenderRoomId int, defenderDex int) (int, 
 	defChar.Name = "Skeleton"
 	defChar.RoomId = defenderRoomId
 	defChar.Health = 100000
-	defChar.Buffs = buffs.New()
+	defChar.Buffs = conditions.New()
 	defChar.Cooldowns = map[string]int{}
 	defChar.Stats.Dexterity.ValueAdj = defenderDex
 

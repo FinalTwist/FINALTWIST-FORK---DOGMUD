@@ -3,7 +3,7 @@ package characters
 import (
 	"math"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
@@ -183,7 +183,7 @@ func (c *Character) GetPhysicalMitigation() float64 {
 	// folded their statmod sibling — physical was the odd one out, so buffs like
 	// Cocoon (104) and Ironhide Brew (61) that reserve physical_mitigation as a
 	// statmod silently did nothing until this line.
-	nonGearMit := int(c.Buffs.Effect(buffs.EffectMitigationFlat))
+	nonGearMit := int(c.Buffs.Effect(conditions.EffectMitigationFlat))
 	nonGearMit += mutations.GetNaturalArmor(c.Mutations)
 	nonGearMit += c.StatMod("physical_mitigation")
 	if speciesInfo := species.GetSpecies(c.SpeciesId); speciesInfo != nil {
@@ -294,7 +294,7 @@ func (c *Character) GetDefenseScoreFor(defenseType string, includeSkill bool) fl
 		// blinded combat condition, which multiplied dodge by 0.5-0.7 but had
 		// no producer either — the enum is gone, the seam stays, and a future
 		// record that wants to blur dodge declares `dodge_mult` and is read.
-		score *= c.Buffs.Effect(buffs.EffectDodgeMult)
+		score *= c.Buffs.Effect(conditions.EffectDodgeMult)
 		return score
 
 	case DefenseParry:

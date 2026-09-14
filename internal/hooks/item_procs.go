@@ -3,7 +3,7 @@ package hooks
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -212,7 +212,7 @@ func procApplyCondition(target *characters.Character, params map[string]float64)
 	}
 	switch int(params["condition"]) {
 	case 1:
-		return target.AddBuffMagnitude(buffs.BuffIdBleeding, dur, -mag, "itemproc") == nil
+		return target.AddBuffMagnitude(conditions.BuffIdBleeding, dur, -mag, "itemproc") == nil
 	}
 	return false
 }

@@ -6,7 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -105,7 +105,7 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 			continue
 		}
 
-		if user.Character.HasBuffFlag(buffs.NoCombat) {
+		if user.Character.HasBuffFlag(conditions.NoCombat) {
 			continue
 		}
 
@@ -247,7 +247,7 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 			continue
 		}
 
-		if mob.Character.HasBuffFlag(buffs.NoCombat) {
+		if mob.Character.HasBuffFlag(conditions.NoCombat) {
 			continue
 		}
 
@@ -267,7 +267,7 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 		// even though its swings are already suppressed (5.1c smoke BUG-04).
 		if targetUserId := mob.Character.CurrentCombatTarget().UserId; targetUserId > 0 {
 			if tgt := users.GetByUserId(targetUserId); tgt != nil &&
-				tgt.Character.HasBuffFlag(buffs.NoAggroTarget) {
+				tgt.Character.HasBuffFlag(conditions.NoAggroTarget) {
 				targeting.Release(&mob.Character, targeting.ReasonDisengage)
 				continue
 			}
@@ -518,12 +518,12 @@ func snapshotSleepingVictims() (sleepingUserIds map[int]bool, sleepingMobInstanc
 	sleepingUserIds = map[int]bool{}
 	sleepingMobInstanceIds = map[int]bool{}
 	for _, uid := range users.GetOnlineUserIds() {
-		if u := users.GetByUserId(uid); u != nil && u.Character.HasBuffFlag(buffs.Sleeping) {
+		if u := users.GetByUserId(uid); u != nil && u.Character.HasBuffFlag(conditions.Sleeping) {
 			sleepingUserIds[uid] = true
 		}
 	}
 	for _, mobId := range mobs.GetAllMobInstanceIds() {
-		if m := mobs.GetInstance(mobId); m != nil && m.Character.HasBuffFlag(buffs.Sleeping) {
+		if m := mobs.GetInstance(mobId); m != nil && m.Character.HasBuffFlag(conditions.Sleeping) {
 			sleepingMobInstanceIds[mobId] = true
 		}
 	}

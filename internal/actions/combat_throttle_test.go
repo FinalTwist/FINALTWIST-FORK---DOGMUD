@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -99,11 +99,11 @@ func TestThrottle_NotFanged(t *testing.T) {
 // applies the Bleeding record and Throttled buff (id 89) to the target.
 func TestThrottle_Executed_BleedAndBuff(t *testing.T) {
 	// Seed buff 89 so AddBuff can find it.
-	buffCleanup := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	buffCleanup := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		89: {BuffId: 89, Name: "Throttled", TriggerCount: 3, RoundInterval: 1},
 	})
 	defer buffCleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	// Seed a fanged species.
 	speciesCleanup := species.SeedSpeciesForTest(map[int]*species.Species{
@@ -119,7 +119,7 @@ func TestThrottle_Executed_BleedAndBuff(t *testing.T) {
 	targetMob.Character.Stamina = 500
 	targetMob.Character.StaminaMax.Value = 500
 	targetMob.Character.Stats.Dexterity.ValueAdj = 1
-	targetMob.Character.Buffs = buffs.New()
+	targetMob.Character.Buffs = conditions.New()
 	setCombatPositionParallel(&targetMob.Character, position.Standing)
 	mobs.SetInstanceForTest(targetMob.InstanceId, targetMob)
 	defer mobs.SetInstanceForTest(targetMob.InstanceId, nil)
@@ -152,12 +152,12 @@ func TestThrottle_Executed_BleedAndBuff(t *testing.T) {
 	}
 
 	// The Bleeding record should be applied.
-	assert.True(t, targetMob.Character.HasBuff(buffs.BuffIdBleeding),
+	assert.True(t, targetMob.Character.HasBuff(conditions.BuffIdBleeding),
 		"target should have the Bleeding record after a successful throttle")
 
 	// The sign pin: throttle must apply a HARMING record (negative magnitude
 	// and tick snapshot), not a healing one.
-	held := targetMob.Character.GetBuffs(buffs.BuffIdBleeding)
+	held := targetMob.Character.GetBuffs(conditions.BuffIdBleeding)
 	if assert.Len(t, held, 1, "expected exactly one held Bleeding record") {
 		assert.Less(t, held[0].Magnitude, 0.0, "throttle's Bleeding record must carry a negative magnitude")
 		assert.Less(t, held[0].TickAmount, 0, "throttle's Bleeding record must carry a negative tick snapshot")
@@ -209,7 +209,7 @@ func TestThrottle_CastInterrupt(t *testing.T) {
 	}()
 
 	// Seed buff 89.
-	buffCleanup := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	buffCleanup := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		89: {BuffId: 89, Name: "Throttled", TriggerCount: 3, RoundInterval: 1},
 	})
 	defer buffCleanup()
@@ -233,7 +233,7 @@ func TestThrottle_CastInterrupt(t *testing.T) {
 	targetMob.Character.ConvictionMax.Value = 100
 	targetMob.Character.Stats.Dexterity.ValueAdj = 1
 	targetMob.Character.Stats.Willpower.ValueAdj = 1
-	targetMob.Character.Buffs = buffs.New()
+	targetMob.Character.Buffs = conditions.New()
 	setCombatPositionParallel(&targetMob.Character, position.Standing)
 	// Set the target into a casting state.
 	setCastingForTest(&targetMob.Character, activity.CastingData{
@@ -330,7 +330,7 @@ func TestThrottle_CastInterrupt_OverwhelmingCaster(t *testing.T) {
 	// Deliberately NOT overriding ConcentrationFloor — this test exercises
 	// the shipped 2% mercy floor, not the pinned-to-0 guaranteed case above.
 
-	buffCleanup := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	buffCleanup := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		89: {BuffId: 89, Name: "Throttled", TriggerCount: 3, RoundInterval: 1},
 	})
 	defer buffCleanup()
@@ -357,7 +357,7 @@ func TestThrottle_CastInterrupt_OverwhelmingCaster(t *testing.T) {
 	// the move's own to-hit roll, independent of the concentration contest.
 	targetMob.Character.Stats.Dexterity.ValueAdj = 1
 	targetMob.Character.Skills = map[string]int{string(skills.Spellcasting): 100}
-	targetMob.Character.Buffs = buffs.New()
+	targetMob.Character.Buffs = conditions.New()
 	setCombatPositionParallel(&targetMob.Character, position.Standing)
 	mobs.SetInstanceForTest(targetMob.InstanceId, targetMob)
 	defer mobs.SetInstanceForTest(targetMob.InstanceId, nil)

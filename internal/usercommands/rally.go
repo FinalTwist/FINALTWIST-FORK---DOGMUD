@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -54,7 +54,7 @@ func Rally(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			if memberUser == nil || memberUser.Character.RoomId != user.Character.RoomId {
 				continue
 			}
-			_ = memberUser.Character.AddBuffMagnitude(buffs.BuffIdRally, result.Duration, 1.0+result.Bonus, "rally")
+			_ = memberUser.Character.AddBuffMagnitude(conditions.BuffIdRally, result.Duration, 1.0+result.Bonus, "rally")
 			memberUser.SendText(messaging.CategorySystem,
 				fmt.Sprintf(`<ansi fg="cyan-bold"><ansi fg="username">%s</ansi>'s rallying cry steadies your nerves!</ansi>`, user.Character.Name))
 			applyRallyToCompanions(memberUser, room, result.Bonus, result.Duration)
@@ -83,7 +83,7 @@ func Rally(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 				if memberUser == nil || memberUser.Character.RoomId != user.Character.RoomId {
 					continue
 				}
-				_ = memberUser.Character.AddBuffMagnitude(buffs.BuffIdWarcry, wd, 1.0+wb, "warcry")
+				_ = memberUser.Character.AddBuffMagnitude(conditions.BuffIdWarcry, wd, 1.0+wb, "warcry")
 				// M1 audit defect: this fold loop is a copy of the primary
 				// party loop above that kept the buff apply and dropped the
 				// line telling the member. Wording matches warcry.go's own
@@ -111,6 +111,6 @@ func applyRallyToCompanions(owner *users.UserRecord, room *rooms.Room, bonus flo
 		if mob.Character.RoomId != owner.Character.RoomId {
 			continue
 		}
-		_ = mob.Character.AddBuffMagnitude(buffs.BuffIdRally, duration, 1.0+bonus, "rally")
+		_ = mob.Character.AddBuffMagnitude(conditions.BuffIdRally, duration, 1.0+bonus, "rally")
 	}
 }

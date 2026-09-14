@@ -4,7 +4,7 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -71,7 +71,7 @@ func (c *CleanupModule) userTrashCommand(rest string, user *users.UserRecord, ro
 		user.SendText(messaging.CategoryError, fmt.Sprintf(`You don't have a "%s" to trash.`, rest))
 	} else {
 
-		isSneaking := user.Character.HasBuffFlag(buffs.Hidden)
+		isSneaking := user.Character.HasBuffFlag(conditions.Hidden)
 
 		user.Character.RemoveItem(matchItem)
 

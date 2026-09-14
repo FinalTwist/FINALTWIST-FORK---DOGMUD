@@ -3,7 +3,7 @@ package combat
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/pets"
@@ -97,7 +97,7 @@ func TestBuildWeaponSetup_ShootingWeaponMeleeClamp(t *testing.T) {
 // mitigation. The join rate is identical in expectation for both, so the ratio
 // of accumulated damage isolates the mitigation factor.
 func TestApplyPetDamage_RespectsPhysicalMitigation(t *testing.T) {
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	const (
 		iterations  = 20000
@@ -133,11 +133,11 @@ func TestApplyPetDamage_RespectsPhysicalMitigation(t *testing.T) {
 	// either.
 	newTarget := func(mitigationPct int) *characters.Character {
 		c := &characters.Character{RoomId: 1}
-		c.Buffs = buffs.New()
+		c.Buffs = conditions.New()
 		c.HealthMax.Value = 500
 		c.Health = 500
 		if mitigationPct > 0 {
-			_ = c.AddBuffMagnitude(buffs.BuffIdMinorShield, 100, float64(mitigationPct), "test")
+			_ = c.AddBuffMagnitude(conditions.BuffIdMinorShield, 100, float64(mitigationPct), "test")
 		}
 		return c
 	}

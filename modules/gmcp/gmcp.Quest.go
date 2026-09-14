@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/factions"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -68,7 +68,7 @@ func realQuestValidators() quests.QuestValidators {
 		MobExists:     func(id int) bool { return mobs.GetMobSpec(mobs.MobId(id)) != nil },
 		ItemExists:    func(id int) bool { return items.GetItemSpec(id) != nil },
 		RoomExists:    func(id int) bool { return rooms.LoadRoomTemplate(id) != nil },
-		BuffExists:    func(id int) bool { return buffs.GetBuffSpec(id) != nil },
+		BuffExists:    func(id int) bool { return conditions.GetBuffSpec(id) != nil },
 		SpellExists:   func(id string) bool { return spells.GetSpell(id) != nil },
 		SkillExists:   func(name string) bool { return skillNames[name] },
 		StatExists:    func(name string) bool { return statNames[name] },
@@ -278,8 +278,8 @@ func collectQuestEnums() questEnums {
 		}
 	}
 	sort.Slice(e.QuestTokens, func(i, j int) bool { return e.QuestTokens[i].Token < e.QuestTokens[j].Token })
-	for _, id := range buffs.GetAllBuffIds() {
-		if spec := buffs.GetBuffSpec(id); spec != nil {
+	for _, id := range conditions.GetAllBuffIds() {
+		if spec := conditions.GetBuffSpec(id); spec != nil {
 			e.Buffs = append(e.Buffs, idName{Id: id, Name: spec.Name})
 		}
 	}

@@ -1,7 +1,7 @@
 package actions
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -32,7 +32,7 @@ func CalcSneakScore(c *characters.Character, effectiveLit bool) float64 {
 		float64(c.GetSkillLevel(skills.Skullduggery))*float64(cfg.SkillWeight) +
 		mutations.GetStealthBonus(c.Mutations)
 
-	emits := c.HasFlagFromAnySource(buffs.EmitsLight)
+	emits := c.HasFlagFromAnySource(conditions.EmitsLight)
 
 	switch {
 	case emits && !effectiveLit:
@@ -52,7 +52,7 @@ func CalcSneakScore(c *characters.Character, effectiveLit bool) float64 {
 // that specific observer).
 func CalcSneakScoreVsObserver(sneaker, observer *characters.Character, room *rooms.Room) float64 {
 	effectiveLit := room.GetVisibility() >= 1 ||
-		observer.HasFlagFromAnySource(buffs.NightVision)
+		observer.HasFlagFromAnySource(conditions.NightVision)
 	return CalcSneakScore(sneaker, effectiveLit)
 }
 

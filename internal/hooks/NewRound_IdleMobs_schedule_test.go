@@ -3,7 +3,7 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -300,7 +300,7 @@ func TestScheduleTick_SuppressSleepIdle_WhenWokenMidSleepWindow(t *testing.T) {
 
 	mob := &mobs.Mob{ScheduleId: "sleepy_test"}
 	mob.Character.RoomId = 1234
-	mob.Character.Buffs = buffs.New() // awake: no Sleeping flag
+	mob.Character.Buffs = conditions.New() // awake: no Sleeping flag
 
 	plan := scheduleTickPlan(mob, 23 /* inside the sleep window */)
 	if !plan.HasSchedule {
@@ -318,7 +318,7 @@ func TestScheduleTick_SuppressSleepIdle_NotSetOutsideSleepWindow(t *testing.T) {
 
 	mob := &mobs.Mob{ScheduleId: "sleepy_test"}
 	mob.Character.RoomId = 1234
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 
 	plan := scheduleTickPlan(mob, 10 /* awake window */)
 	if plan.SuppressSleepIdle {

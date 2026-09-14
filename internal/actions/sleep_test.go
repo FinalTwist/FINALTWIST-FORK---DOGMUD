@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -47,7 +47,7 @@ func newSleepActor(t *testing.T, inCombat bool, isPlayer bool) *sleepFakeActor {
 	t.Helper()
 	c := characters.New()
 	c.Name = "Sleeper"
-	c.Buffs = buffs.New()
+	c.Buffs = conditions.New()
 	if inCombat {
 		// SetAggro requires a valid target; use the compat helper.
 		c.SetAggro(0, 9001, characters.DefaultAttack)
@@ -66,17 +66,17 @@ func newSleepActor(t *testing.T, inCombat bool, isPlayer bool) *sleepFakeActor {
 // tests that share the same test binary. Returns a cleanup func.
 func seedSleepBuff(t *testing.T) func() {
 	t.Helper()
-	return buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	return conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		9: {
 			BuffId:       9,
 			Name:         "Hidden",
-			Flags:        []buffs.Flag{buffs.Hidden},
+			Flags:        []conditions.Flag{conditions.Hidden},
 			TriggerCount: 1000000,
 		},
 		15: {
 			BuffId:       15,
 			Name:         "Sleeping",
-			Flags:        []buffs.Flag{buffs.Sleeping, buffs.CancelOnDamage},
+			Flags:        []conditions.Flag{conditions.Sleeping, conditions.CancelOnDamage},
 			TriggerCount: 1000000, // effectively infinite — governed by cancel flags
 		},
 	})
@@ -99,7 +99,7 @@ func TestSleep_AppliesBuffOnSuccess(t *testing.T) {
 	if !res.Success {
 		t.Fatalf("expected Success, got %+v", res)
 	}
-	if !actor.char.HasBuffFlag(buffs.Sleeping) {
+	if !actor.char.HasBuffFlag(conditions.Sleeping) {
 		t.Errorf("expected Sleeping flag applied after Sleep()")
 	}
 }
@@ -111,7 +111,7 @@ func TestSleep_AppliesBuffOnSuccess(t *testing.T) {
 // world shipping without buff 15.
 func TestSleep_BuffUnavailable_NoRawErrorLeak(t *testing.T) {
 	// Deliberately seed an EMPTY buff registry so AddBuff(15) fails.
-	cleanup := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{})
+	cleanup := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{})
 	defer cleanup()
 
 	actor := newSleepActor(t, false /* notInCombat */, true)
@@ -143,7 +143,7 @@ func TestSleep_BlocksInCombat(t *testing.T) {
 	if res.Success {
 		t.Errorf("expected failure when in combat, got %+v", res)
 	}
-	if actor.char.HasBuffFlag(buffs.Sleeping) {
+	if actor.char.HasBuffFlag(conditions.Sleeping) {
 		t.Errorf("expected Sleeping NOT applied during combat")
 	}
 	if len(actor.sent) == 0 {
@@ -198,17 +198,17 @@ func TestSleep_IdempotentWhenAlreadySleeping(t *testing.T) {
 func TestSleep_PlayerReadsTheStartLine(t *testing.T) {
 	const startLine = "You lie down and let sleep take you."
 
-	cleanup := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanup := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		9: {
 			BuffId:       9,
 			Name:         "Hidden",
-			Flags:        []buffs.Flag{buffs.Hidden},
+			Flags:        []conditions.Flag{conditions.Hidden},
 			TriggerCount: 1000000,
 		},
 		15: {
 			BuffId:        15,
 			Name:          "Sleeping",
-			Flags:         []buffs.Flag{buffs.SilentStart, buffs.Sleeping, buffs.CancelOnDamage},
+			Flags:         []conditions.Flag{conditions.SilentStart, conditions.Sleeping, conditions.CancelOnDamage},
 			TriggerCount:  1000000,
 			StartUserText: startLine,
 		},

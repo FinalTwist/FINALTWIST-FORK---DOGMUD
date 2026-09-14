@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -109,7 +109,7 @@ func seedSellMerchant(t *testing.T, merchantGold int) func() {
 			Name:   "Merchant",
 			RoomId: 1,
 			Gold:   merchantGold,
-			Buffs:  buffs.New(),
+			Buffs:  conditions.New(),
 			Shop: characters.Shop{
 				{ItemId: sellTestItemId, Price: 100, Quantity: 0, QuantityMax: 0},
 			},
@@ -143,7 +143,7 @@ func newSellerActor(t *testing.T, isPlayer bool, itemIds ...int) Actor {
 		u := users.NewTestUser(1, "seller", "Seller", 1)
 		u.Character.RoomId = 1
 		u.Character.Gold = 0
-		u.Character.Buffs = buffs.New()
+		u.Character.Buffs = conditions.New()
 		for _, id := range itemIds {
 			require.True(t, u.Character.StoreItem(items.New(id)), "store item %d", id)
 		}
@@ -154,7 +154,7 @@ func newSellerActor(t *testing.T, isPlayer bool, itemIds ...int) Actor {
 		Name:   "MobSeller",
 		RoomId: 1,
 		Gold:   0,
-		Buffs:  buffs.New(),
+		Buffs:  conditions.New(),
 	}
 	for _, id := range itemIds {
 		require.True(t, c.StoreItem(items.New(id)), "store item %d", id)

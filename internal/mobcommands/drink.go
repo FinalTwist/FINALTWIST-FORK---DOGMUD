@@ -3,7 +3,7 @@ package mobcommands
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -26,7 +26,7 @@ func Drink(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			return true, nil
 		}
 
-		mob.Character.CancelBuffsWithFlag(buffs.Hidden)
+		mob.Character.CancelBuffsWithFlag(conditions.Hidden)
 
 		mob.Character.UseItem(matchItem)
 

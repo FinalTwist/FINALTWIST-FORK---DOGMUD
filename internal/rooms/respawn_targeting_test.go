@@ -3,7 +3,7 @@ package rooms
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -50,7 +50,7 @@ func dyMobInstance(instId, mobId int, name string) *mobs.Mob {
 			Name:      name,
 			RoomId:    dyRoomId,
 			Health:    50,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 		},
 	}

@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -30,15 +30,15 @@ const (
 )
 
 // loadAuthoredBuffSpec reads one shipped buff file into a spec.
-func loadAuthoredBuffSpec(t *testing.T, path string, wantId int) *buffs.BuffSpec {
+func loadAuthoredBuffSpec(t *testing.T, path string, wantId int) *conditions.BuffSpec {
 	t.Helper()
 	raw, err := os.ReadFile(path)
 	require.NoError(t, err, "the shipped buff file must be readable from internal/hooks")
-	var spec buffs.BuffSpec
+	var spec conditions.BuffSpec
 	require.NoError(t, yaml.Unmarshal(raw, &spec))
 	require.Equal(t, wantId, spec.BuffId, "%s must be the buff this narration covers", path)
 	require.NotEmpty(t, spec.StartUserText, "%s must carry start_user_text", path)
-	require.Contains(t, spec.Flags, buffs.SilentStart,
+	require.Contains(t, spec.Flags, conditions.SilentStart,
 		"%s must be silent-start, or the event path would narrate it twice", path)
 	return &spec
 }
@@ -49,7 +49,7 @@ func seedAuthoredSubmissionBuffs(t *testing.T) (restore func(), brokenLine, stun
 	t.Helper()
 	broken := loadAuthoredBuffSpec(t, brokenLimbBuffFile, combat.BrokenLimbBuffId)
 	stunned := loadAuthoredBuffSpec(t, stunnedBuffFile, combat.StunnedBuffId)
-	restore = buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	restore = conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		broken.BuffId:  broken,
 		stunned.BuffId: stunned,
 	})

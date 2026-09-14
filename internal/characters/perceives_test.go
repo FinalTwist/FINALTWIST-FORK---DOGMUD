@@ -3,7 +3,7 @@ package characters
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
@@ -57,8 +57,8 @@ func TestPerceives(t *testing.T) {
 	})
 
 	t.Run("see-hidden from a buff, with no pet", func(t *testing.T) {
-		t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-			perceivesVeilBuffId: {BuffId: perceivesVeilBuffId, Name: "Test Veil", Flags: []buffs.Flag{buffs.SeeHidden}},
+		t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+			perceivesVeilBuffId: {BuffId: perceivesVeilBuffId, Name: "Test Veil", Flags: []conditions.Flag{conditions.SeeHidden}},
 		}))
 		viewer := perceivesChar(t, "Viewer")
 		if err := viewer.AddBuff(perceivesVeilBuffId, true); err != nil {
@@ -77,7 +77,7 @@ func TestPerceives(t *testing.T) {
 	t.Run("see-hidden from a mutation", func(t *testing.T) {
 		t.Cleanup(mutations.SeedMutationsForTest(map[string]*mutations.MutationSpec{
 			"test-eyes": {MutationId: "test-eyes", Name: "Test Eyes",
-				Pros: []mutations.MutationEffect{{Type: "flag", Target: string(buffs.SeeHidden), Value: 1}}},
+				Pros: []mutations.MutationEffect{{Type: "flag", Target: string(conditions.SeeHidden), Value: 1}}},
 		}))
 		viewer := perceivesChar(t, "Viewer")
 		viewer.Mutations = map[string]int{"test-eyes": 1}

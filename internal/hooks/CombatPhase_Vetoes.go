@@ -1,7 +1,7 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -77,7 +77,7 @@ func wireCombatPhaseVetoes(c *characters.Character) {
 		// this is independent of Presence and predates the machine.
 		if t.IsPlayer() {
 			if u := users.GetByUserId(t.UserId); u != nil {
-				if u.Character.HasBuffFlag(buffs.NoAggroTarget) {
+				if u.Character.HasBuffFlag(conditions.NoAggroTarget) {
 					return false
 				}
 				switch u.Character.Presence.State() {

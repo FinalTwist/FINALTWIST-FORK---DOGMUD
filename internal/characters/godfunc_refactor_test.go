@@ -10,7 +10,7 @@ package characters
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/species"
 	"github.com/GoMudEngine/GoMud/internal/statmods"
@@ -24,8 +24,8 @@ import (
 
 // newTestBuffs returns a zero-value Buffs instance that is safe to embed in a
 // manually-constructed Character.
-func newTestBuffs() buffs.Buffs {
-	return buffs.New()
+func newTestBuffs() conditions.Buffs {
+	return conditions.New()
 }
 
 // validStats returns a deterministic stat block for Validate/RecalculateStats

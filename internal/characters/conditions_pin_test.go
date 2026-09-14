@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 )
 
 // Pins for the conditions unification (slice 1). Each literal below is what
@@ -35,10 +35,10 @@ func pinCharacter() *Character {
 }
 
 func TestPin_ShieldAddsFlatPhysicalMitigation(t *testing.T) {
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 	c := pinCharacter()
 	before := c.GetPhysicalMitigation()
-	_ = c.AddBuffMagnitude(buffs.BuffIdMinorShield, 10, 12, "pin") // SETUP
+	_ = c.AddBuffMagnitude(conditions.BuffIdMinorShield, 10, 12, "pin") // SETUP
 	c.Buffs.Validate(true)
 	got := c.GetPhysicalMitigation() - before
 	if math.Abs(got-0.12) > 1e-9 {
@@ -55,13 +55,13 @@ func TestPin_ShieldAddsFlatPhysicalMitigation(t *testing.T) {
 // under the test. The withdrawal application itself lives at
 // validate.go:187-241.
 func TestPin_WithdrawalCutsThePoolMaximumByTheFraction(t *testing.T) {
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 	c := pinCharacter()
 	c.Validate()
 	baseHealth := c.HealthMax.Value
 	baseStamina := c.StaminaMax.Value
 
-	_ = c.AddBuffMagnitude(buffs.BuffIdEnchantWithdrawal, 50, 0.25, "health") // SETUP: Task 10
+	_ = c.AddBuffMagnitude(conditions.BuffIdEnchantWithdrawal, 50, 0.25, "health") // SETUP: Task 10
 	c.Validate()
 
 	wantHealth := baseHealth - int(math.Floor(float64(baseHealth)*0.25))
@@ -75,13 +75,13 @@ func TestPin_WithdrawalCutsThePoolMaximumByTheFraction(t *testing.T) {
 
 func TestPin_WithdrawalOnStaminaAndConviction(t *testing.T) {
 	t.Run("stamina", func(t *testing.T) {
-		defer buffs.SeedConditionRecordsForTest()()
+		defer conditions.SeedConditionRecordsForTest()()
 		c := pinCharacter()
 		c.Validate()
 		baseHealth := c.HealthMax.Value
 		baseStamina := c.StaminaMax.Value
 
-		_ = c.AddBuffMagnitude(buffs.BuffIdEnchantWithdrawal, 50, 0.5, "stamina") // SETUP: Task 10
+		_ = c.AddBuffMagnitude(conditions.BuffIdEnchantWithdrawal, 50, 0.5, "stamina") // SETUP: Task 10
 		c.Validate()
 
 		wantStamina := baseStamina - int(math.Floor(float64(baseStamina)*0.5))
@@ -94,13 +94,13 @@ func TestPin_WithdrawalOnStaminaAndConviction(t *testing.T) {
 	})
 
 	t.Run("conviction", func(t *testing.T) {
-		defer buffs.SeedConditionRecordsForTest()()
+		defer conditions.SeedConditionRecordsForTest()()
 		c := pinCharacter()
 		c.Validate()
 		baseHealth := c.HealthMax.Value
 		baseConviction := c.ConvictionMax.Value
 
-		_ = c.AddBuffMagnitude(buffs.BuffIdEnchantWithdrawal, 50, 0.5, "conviction") // SETUP: Task 10
+		_ = c.AddBuffMagnitude(conditions.BuffIdEnchantWithdrawal, 50, 0.5, "conviction") // SETUP: Task 10
 		c.Validate()
 
 		wantConviction := baseConviction - int(math.Floor(float64(baseConviction)*0.5))
@@ -126,16 +126,16 @@ func TestPin_WithdrawalOnStaminaAndConviction(t *testing.T) {
 // it: the record that used to read "health" now reads "stamina", and only
 // the stamina penalty applies.
 func TestPin_ASecondWithdrawalReplacesTheFirst(t *testing.T) {
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 	c := pinCharacter()
 	c.Validate()
 
-	_ = c.AddBuffMagnitude(buffs.BuffIdEnchantWithdrawal, 50, 0.25, "health")
+	_ = c.AddBuffMagnitude(conditions.BuffIdEnchantWithdrawal, 50, 0.25, "health")
 	if c.HealthMax.Value != 150 {
 		t.Fatalf("first withdrawal (health, 0.25 of base 200) must read 150, got %d", c.HealthMax.Value)
 	}
 
-	_ = c.AddBuffMagnitude(buffs.BuffIdEnchantWithdrawal, 50, 0.5, "stamina")
+	_ = c.AddBuffMagnitude(conditions.BuffIdEnchantWithdrawal, 50, 0.5, "stamina")
 	if c.HealthMax.Value != 200 {
 		t.Fatalf("a second withdrawal on the same record must replace the first: health max must return to base 200, got %d", c.HealthMax.Value)
 	}
@@ -156,7 +156,7 @@ func TestPin_ASecondWithdrawalReplacesTheFirst(t *testing.T) {
 // second. Appending directly to List is how the old first-wins pin built its
 // pair, and the loop reads List, not the index.
 func TestPin_AMisSourcedWithdrawalDoesNotShadowAValidOne(t *testing.T) {
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 	c := pinCharacter()
 	c.Validate()
 	baseStamina := c.StaminaMax.Value
@@ -165,8 +165,8 @@ func TestPin_AMisSourcedWithdrawalDoesNotShadowAValidOne(t *testing.T) {
 	}
 
 	c.Buffs.List = append(c.Buffs.List,
-		&buffs.Buff{BuffId: buffs.BuffIdEnchantWithdrawal, Source: "bogus", TriggersLeft: 50, Magnitude: 0.9},
-		&buffs.Buff{BuffId: buffs.BuffIdEnchantWithdrawal, Source: "stamina", TriggersLeft: 50, Magnitude: 0.5},
+		&conditions.Buff{BuffId: conditions.BuffIdEnchantWithdrawal, Source: "bogus", TriggersLeft: 50, Magnitude: 0.9},
+		&conditions.Buff{BuffId: conditions.BuffIdEnchantWithdrawal, Source: "stamina", TriggersLeft: 50, Magnitude: 0.5},
 	)
 	c.Buffs.Validate(true)
 	c.Validate()

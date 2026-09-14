@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -302,8 +302,8 @@ func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 	})
 
 	// Chunk 3.3: failed theft wakes a sleeping victim.
-	if m.Character.HasBuffFlag(buffs.Sleeping) {
-		m.Character.CancelBuffsWithFlag(buffs.Sleeping)
+	if m.Character.HasBuffFlag(conditions.Sleeping) {
+		m.Character.CancelBuffsWithFlag(conditions.Sleeping)
 		mobs.OnSleeperWoken(&m.Character)
 	}
 
@@ -391,8 +391,8 @@ func stealFromPlayer(actor Actor, targetUserId int, attackerScore float64,
 		})
 
 		// Chunk 3.3: failed theft wakes a sleeping victim.
-		if targetUser.Character.HasBuffFlag(buffs.Sleeping) {
-			targetUser.Character.CancelBuffsWithFlag(buffs.Sleeping)
+		if targetUser.Character.HasBuffFlag(conditions.Sleeping) {
+			targetUser.Character.CancelBuffsWithFlag(conditions.Sleeping)
 			mobs.OnSleeperWoken(targetUser.Character)
 		}
 

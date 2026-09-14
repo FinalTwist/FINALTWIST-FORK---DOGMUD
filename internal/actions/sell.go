@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -259,7 +259,7 @@ func sellOneToMerchant(seller Actor, itemName string, room *rooms.Room,
 		return 0, SellStopRejected
 	}
 
-	char.CancelBuffsWithFlag(buffs.Hidden)
+	char.CancelBuffsWithFlag(conditions.Hidden)
 	// Affixed instance loot is sellable despite carrying a per-instance Spec;
 	// every other custom-spec item (enchanted / blob / uses) stays blocked.
 	if item.IsSpecial() && !item.Affixed {

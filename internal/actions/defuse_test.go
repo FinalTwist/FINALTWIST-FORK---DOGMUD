@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/gamelock"
@@ -429,4 +429,4 @@ func TestDefuse_NoTrapsOnLock(t *testing.T) {
 }
 
 // Ensure buffs package is used (for Buffs.New in room/character init).
-var _ = buffs.New
+var _ = conditions.New

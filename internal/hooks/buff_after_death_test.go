@@ -3,7 +3,7 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -31,11 +31,11 @@ func setupBuffAfterDeath(t *testing.T) *users.UserRecord {
 	t.Cleanup(seedAllRegistries())
 	// One seed call: each SeedBuffsForTest replaces the registry, so a second
 	// call would drop the tick record.
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		rendingAfterDeathBuffId: {BuffId: rendingAfterDeathBuffId, Name: "Test Rending Bleed",
 			RoundInterval: 1, TriggerCount: 4, StartUserText: "Your wounds tear open."},
 		deathProtectionBuffId: {BuffId: deathProtectionBuffId, Name: "Death Protection",
-			TriggerCount: 1000000, Flags: []buffs.Flag{buffs.ReviveOnDeath}},
+			TriggerCount: 1000000, Flags: []conditions.Flag{conditions.ReviveOnDeath}},
 	}))
 
 	u := users.GetByUserId(1)
@@ -149,7 +149,7 @@ func TestApplyBuffs_BuffQueuedBeforeAReviveStillApplies(t *testing.T) {
 	require.Len(t, queuedBuffs, 1)
 
 	RouteAttributedDeath(died[0])
-	require.False(t, u.Character.HasBuffFlag(buffs.ReviveOnDeath), "precondition: the revive fired")
+	require.False(t, u.Character.HasBuffFlag(conditions.ReviveOnDeath), "precondition: the revive fired")
 
 	assert.Equal(t, events.Continue, ApplyBuffs(queuedBuffs[0]))
 	assert.True(t, u.Character.HasBuff(rendingAfterDeathBuffId),

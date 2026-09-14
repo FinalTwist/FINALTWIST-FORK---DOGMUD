@@ -3,7 +3,7 @@ package actions
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/textutil"
@@ -37,7 +37,7 @@ func Sleep(actor Actor, opts SleepOptions) SleepResult {
 	}
 
 	// Idempotent: already sleeping — nothing to do.
-	if c.HasBuffFlag(buffs.Sleeping) {
+	if c.HasBuffFlag(conditions.Sleeping) {
 		return SleepResult{Success: true}
 	}
 
@@ -73,7 +73,7 @@ func Sleep(actor Actor, opts SleepOptions) SleepResult {
 	// AuthoredStartLine, not StartUserNotice(), which is empty by design for a
 	// silent-start buff. A mob holder has no client, so only a player gets it.
 	if actor.IsPlayer() {
-		if spec := buffs.GetBuffSpec(15); spec != nil {
+		if spec := conditions.GetBuffSpec(15); spec != nil {
 			// Tagged for {source}, plain for {source_plain}, the textutil
 			// contract every narration site follows. Buff 15's line carries no
 			// token today, so this is for the day one is authored.

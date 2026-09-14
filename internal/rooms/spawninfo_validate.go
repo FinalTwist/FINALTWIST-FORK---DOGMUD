@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 )
@@ -150,7 +150,7 @@ func ValidateSpawnEntryLive(s SpawnInfo, containers map[string]Container) error 
 	return ValidateSpawnEntry(s, SpawnValidators{
 		MobExists:  func(id int) bool { return mobs.GetMobSpec(mobs.MobId(id)) != nil },
 		ItemExists: func(id int) bool { return items.GetItemSpec(id) != nil },
-		BuffExists: func(id int) bool { return buffs.GetBuffSpec(id) != nil },
+		BuffExists: func(id int) bool { return conditions.GetBuffSpec(id) != nil },
 		PeriodOK:   RealPeriodOK,
 		Containers: set,
 	})

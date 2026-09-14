@@ -3,7 +3,7 @@ package caravan
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -17,7 +17,7 @@ func TestFindWagonInRoom_ReturnsWagon(t *testing.T) {
 		Zone:       "TestZone",
 	}
 	wagon.Character.Name = "TestWagon"
-	wagon.Character.Buffs = buffs.New()
+	wagon.Character.Buffs = conditions.New()
 	wagon.Character.RoomId = 9999
 
 	r := &rooms.Room{
@@ -79,7 +79,7 @@ func TestFindWagonInRoom_NonWagonMobReturnsNil(t *testing.T) {
 		Zone:       "TestZone",
 	}
 	other.Character.Name = "NotAWagon"
-	other.Character.Buffs = buffs.New()
+	other.Character.Buffs = conditions.New()
 	other.Character.RoomId = 9997
 
 	r := &rooms.Room{
@@ -112,7 +112,7 @@ func TestFindMobByTemplateInRoom_FindsByTemplate(t *testing.T) {
 		Zone:       "TestZone",
 	}
 	dobb.Character.Name = "Dobb"
-	dobb.Character.Buffs = buffs.New()
+	dobb.Character.Buffs = conditions.New()
 	dobb.Character.RoomId = 9990
 
 	r := &rooms.Room{

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -31,7 +31,7 @@ func Shout(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	}
 
 	isSneaking := user.Character.IsHidden()
-	isDrunk := user.Character.HasBuffFlag(buffs.Drunk)
+	isDrunk := user.Character.HasBuffFlag(conditions.Drunk)
 
 	rest = strings.ToUpper(rest)
 
@@ -69,16 +69,16 @@ func Shout(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			continue
 		}
 		if other := users.GetByUserId(otherUserId); other != nil {
-			if other.Character.HasBuffFlag(buffs.Sleeping) {
-				other.Character.CancelBuffsWithFlag(buffs.Sleeping)
+			if other.Character.HasBuffFlag(conditions.Sleeping) {
+				other.Character.CancelBuffsWithFlag(conditions.Sleeping)
 				mobs.OnSleeperWoken(other.Character)
 			}
 		}
 	}
 	for _, mobInstanceId := range room.GetMobs() {
 		if m := mobs.GetInstance(mobInstanceId); m != nil {
-			if m.Character.HasBuffFlag(buffs.Sleeping) {
-				m.Character.CancelBuffsWithFlag(buffs.Sleeping)
+			if m.Character.HasBuffFlag(conditions.Sleeping) {
+				m.Character.CancelBuffsWithFlag(conditions.Sleeping)
 				mobs.OnSleeperWoken(&m.Character)
 			}
 		}

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/enchantments"
@@ -77,7 +77,7 @@ func TestMain(m *testing.M) {
 func seedAllRegistries() func() {
 	cleanupKeywords := keywords.SeedKeywordsForTest()
 
-	cleanupBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanupBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		100: {
 			BuffId:        100,
 			Name:          "Test Strength Buff",
@@ -92,7 +92,7 @@ func seedAllRegistries() func() {
 			RoundInterval: 3,
 			TriggerCount:  5,
 			TriggerNow:    true,
-			Flags:         []buffs.Flag{buffs.Poison},
+			Flags:         []conditions.Flag{conditions.Poison},
 		},
 	})
 
@@ -102,7 +102,7 @@ func seedAllRegistries() func() {
 	// "a refused shout applied no record" assertion in this package pass for
 	// the wrong reason. Additive, so it must be undone BEFORE cleanupBuffs
 	// restores the original registry.
-	cleanupConditionRecords := buffs.SeedConditionRecordsForTest()
+	cleanupConditionRecords := conditions.SeedConditionRecordsForTest()
 
 	testMobSpecs := map[int]*mobs.Mob{
 		1: {
@@ -136,7 +136,7 @@ func seedAllRegistries() func() {
 				Name:      "Skeleton",
 				RoomId:    1,
 				Health:    50,
-				Buffs:     buffs.New(),
+				Buffs:     conditions.New(),
 				Cooldowns: map[string]int{},
 			},
 		},
@@ -740,20 +740,20 @@ func TestStand_CancelsSleeping(t *testing.T) {
 	cleanupKeywords := keywords.SeedKeywordsForTest()
 	defer cleanupKeywords()
 
-	cleanupBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanupBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		15: {
 			BuffId:        15,
 			Name:          "Sleeping",
 			Description:   "You are getting much needed rest.",
 			RoundInterval: 1,
 			TriggerCount:  100000,
-			Flags:         []buffs.Flag{buffs.Sleeping, buffs.CancelOnAction, buffs.CancelIfCombat, buffs.CancelOnDamage},
+			Flags:         []conditions.Flag{conditions.Sleeping, conditions.CancelOnAction, conditions.CancelIfCombat, conditions.CancelOnDamage},
 		},
 	})
 	defer cleanupBuffs()
 
 	u := users.NewTestUser(99, "sleeper", "Sleeperton", 9999)
-	u.Character.Buffs = buffs.New()
+	u.Character.Buffs = conditions.New()
 	u.Character.StaminaMax.Value = 100
 	u.Character.Stamina = 100
 
@@ -783,7 +783,7 @@ func TestStand_CancelsSleeping(t *testing.T) {
 	setCombatPositionParallel(u.Character, position.Standing)
 	u.Character.Buffs.AddBuff(15, false)
 
-	require.True(t, u.Character.HasBuffFlag(buffs.Sleeping),
+	require.True(t, u.Character.HasBuffFlag(conditions.Sleeping),
 		"test setup: Sleeping buff must be applied before calling Stand")
 	require.True(t, u.Character.IsStanding(),
 		"test setup: character must be standing (not prone/supine)")
@@ -791,7 +791,7 @@ func TestStand_CancelsSleeping(t *testing.T) {
 	handled, err := Stand("", u, room, 0)
 	assert.True(t, handled)
 	assert.NoError(t, err)
-	assert.False(t, u.Character.HasBuffFlag(buffs.Sleeping),
+	assert.False(t, u.Character.HasBuffFlag(conditions.Sleeping),
 		"Sleeping buff must be cancelled by stand")
 }
 
@@ -2647,7 +2647,7 @@ func TestDisenchant(t *testing.T) {
 	// off this record (see B4's fix: a mis-sourced record must not shadow a
 	// valid one).
 	t.Run("successful_disenchant_leaves_a_withdrawal_record_on_its_reserve_pool", func(t *testing.T) {
-		defer buffs.SeedConditionRecordsForTest()()
+		defer conditions.SeedConditionRecordsForTest()()
 		defer enchantments.SeedEnchantmentsForTest(map[string]*enchantments.EnchantmentDef{
 			"test-enchant": {
 				EnchantId:   "test-enchant",
@@ -2678,7 +2678,7 @@ func TestDisenchant(t *testing.T) {
 		assert.True(t, handled)
 		assert.NoError(t, err)
 
-		held := user.Character.Buffs.GetBuffs(buffs.BuffIdEnchantWithdrawal)
+		held := user.Character.Buffs.GetBuffs(conditions.BuffIdEnchantWithdrawal)
 		require.Len(t, held, 1, "disenchant must leave exactly one held withdrawal record")
 		assert.Equal(t, "stamina", held[0].Source, "the withdrawal record's Source must be the item's reserve pool")
 		assert.InDelta(t, 0.05, held[0].Magnitude, 0.0001, "the withdrawal record's Magnitude must equal the seeded reserve fraction")

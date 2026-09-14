@@ -9,7 +9,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
@@ -212,7 +212,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 									// Idle flavor text is visual — only nightvision players see it
 									for _, uid := range room.GetPlayers() {
 										u := users.GetByUserId(uid)
-										if u != nil && u.Character.HasFlagFromAnySource(buffs.NightVision) {
+										if u != nil && u.Character.HasFlagFromAnySource(conditions.NightVision) {
 											u.SendText(messaging.CategoryRoomDescription, wrappedMsg)
 										}
 									}
@@ -253,7 +253,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 					triggeredBuffIds := []int{}
 					for _, buff := range triggeredBuffs {
 
-						trigBuffSpec := buffs.GetBuffSpec(buff.BuffId)
+						trigBuffSpec := conditions.GetBuffSpec(buff.BuffId)
 
 						// Send YAML trigger text (if defined), including on
 						// the buff's final, expiring trigger. PruneBuffs'
@@ -286,8 +286,8 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						// expiring one; the prune pass's end line follows as
 						// the intended second line, not a replacement for the
 						// first.
-						if trigBuffSpec != nil && trigBuffSpec.Narration(buffs.PhaseTrigger).Len() > 0 {
-							roles := trigBuffSpec.Narrate(buffs.PhaseTrigger, textutil.TokenContext{
+						if trigBuffSpec != nil && trigBuffSpec.Narration(conditions.PhaseTrigger).Len() > 0 {
+							roles := trigBuffSpec.Narrate(conditions.PhaseTrigger, textutil.TokenContext{
 								SourceName:      user.Character.GetCharacterName(true),
 								SourcePlainName: user.Character.GetCharacterName(false),
 							})
@@ -321,7 +321,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 								case "conviction":
 									maxPool = user.Character.ConvictionMax.Value
 								}
-								tickAmt = buffs.ComputeTickAmount(maxPool, trigBuffSpec.TickPercent, trigBuffSpec.TickVariance, trigBuffSpec.TickMin, 1.0)
+								tickAmt = conditions.ComputeTickAmount(maxPool, trigBuffSpec.TickPercent, trigBuffSpec.TickVariance, trigBuffSpec.TickMin, 1.0)
 								user.Character.Buffs.SetTickAmount(buff.BuffId, tickAmt)
 							}
 							// tickAmt is SIGNED: buffs.ComputeTickAmount returns a
@@ -437,7 +437,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						// used to hardcode. That 2.0 default is a balance number
 						// living in Go rather than config.yaml and belongs on the
 						// config audit list.
-						mutCatalystMult := user.Character.Buffs.ProgressMult(buffs.MutationRate)
+						mutCatalystMult := user.Character.Buffs.ProgressMult(conditions.MutationRate)
 						user.Character.MutationProgress += float64(mb.MutationProgressGainPerRound) * eyeMult * mutCatalystMult
 						// Phase 24.1: Use rarity-weighted load instead of flat event count
 						load := mutations.GetMutationLoad(user.Character.Mutations)

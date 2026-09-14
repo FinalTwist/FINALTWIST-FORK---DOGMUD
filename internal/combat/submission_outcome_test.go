@@ -390,8 +390,8 @@ func TestPB_323_SurrenderNeverTap_AttackerSubdue_Fires(t *testing.T) {
 		"PB-323: subdue fires regardless of never-tap surrender policy")
 }
 
-// PB-330: Broken-arm debuff statmod — verified in internal/buffs package.
-// TestPB_330 and TestPB_332 live in internal/buffs/buffs_test.go (internal
+// PB-330: Broken-arm debuff statmod — verified in internal/conditions package.
+// TestPB_330 and TestPB_332 live in internal/conditions/buffs_test.go (internal
 // package) where the buff registry can be seeded without the YAML loader.
 // See TestPB_330_BrokenLimbBuff_StatModApplied and
 // TestPB_332_BrokenLimbBuff_ExpiresNaturally in that file.

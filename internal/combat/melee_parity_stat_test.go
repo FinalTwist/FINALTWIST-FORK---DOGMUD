@@ -40,7 +40,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -351,7 +351,7 @@ func TestMeleeParityDamagePerSwing(t *testing.T) {
 			defender := parityCombatant(t, "parity defender")
 
 			if cell.mitPct > 0 {
-				t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+				t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 					parityMitBuffId: {
 						BuffId:       parityMitBuffId,
 						Name:         "parity mitigation",
@@ -359,7 +359,7 @@ func TestMeleeParityDamagePerSwing(t *testing.T) {
 						StatMods:     statmods.StatMods{"physical_mitigation": cell.mitPct},
 					},
 				}))
-				defender.Buffs.List = append(defender.Buffs.List, &buffs.Buff{
+				defender.Buffs.List = append(defender.Buffs.List, &conditions.Buff{
 					BuffId: parityMitBuffId, TriggersLeft: 1000000000,
 				})
 				defender.Buffs.Validate(true)

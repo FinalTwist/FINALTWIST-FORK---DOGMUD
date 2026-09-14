@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -20,7 +20,7 @@ func newAggroTestMob(instanceId int) *mobs.Mob {
 			Name:      "Target-Dummy",
 			RoomId:    1,
 			Health:    100,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 		},
 	}
@@ -34,7 +34,7 @@ func newAggroTestUser() *users.UserRecord {
 		Character: &characters.Character{
 			Name:      "Aggressor",
 			RoomId:    1,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 		},
 	}

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -21,11 +21,11 @@ import (
 // expire sets a buff's remaining triggers to the pruning threshold, so the next
 // PruneBuffs removes it and sends its end text. Deterministic, unlike counting
 // ticks.
-func expire(t *testing.T, list []*buffs.Buff, buffId int) {
+func expire(t *testing.T, list []*conditions.Buff, buffId int) {
 	t.Helper()
 	for _, b := range list {
 		if b.BuffId == buffId {
-			b.TriggersLeft = buffs.TriggersLeftExpired
+			b.TriggersLeft = conditions.TriggersLeftExpired
 			return
 		}
 	}

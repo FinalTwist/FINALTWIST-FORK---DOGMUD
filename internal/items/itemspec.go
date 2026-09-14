@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/casing"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
@@ -560,7 +560,7 @@ func (i *ItemSpec) AutoCalculateValue() {
 
 	// Get the value of any buff it applies
 	for _, buffId := range i.BuffIds {
-		if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil {
+		if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil {
 			val += buffSpec.GetValue()
 		}
 	}

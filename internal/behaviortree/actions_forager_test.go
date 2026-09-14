@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/exit"
@@ -39,7 +39,7 @@ func buildForagerMob(
 	mob.Character.RoomId = roomId
 	mob.Character.Health = hp
 	mob.Character.HealthMax.Value = hpMax
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Buffs = conditions.New()
 	mob.Character.Stats.Strength.ValueAdj = 100
 	mob.Character.Stats.Dexterity.ValueAdj = 100
 	mob.Character.Stats.Vitality.ValueAdj = 100

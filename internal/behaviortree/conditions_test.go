@@ -3,7 +3,7 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -474,7 +474,7 @@ func seedMultipleEnemiesRoom(
 			Character: characters.Character{
 				Name:   name,
 				RoomId: roomId,
-				Buffs:  buffs.New(),
+				Buffs:  conditions.New(),
 			},
 		}
 		instances[iid] = &mobs.Mob{
@@ -485,7 +485,7 @@ func seedMultipleEnemiesRoom(
 				Name:    name,
 				RoomId:  roomId,
 				Charmed: charm,
-				Buffs:   buffs.New(),
+				Buffs:   conditions.New(),
 			},
 		}
 	}

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -57,9 +57,9 @@ func speciesData(w http.ResponseWriter, r *http.Request) {
 	tplData := map[string]any{}
 	tplData[`speciesInfo`] = *speciesInfo
 
-	buffSpecs := []buffs.BuffSpec{}
-	for _, buffId := range buffs.GetAllBuffIds() {
-		if b := buffs.GetBuffSpec(buffId); b != nil {
+	buffSpecs := []conditions.BuffSpec{}
+	for _, buffId := range conditions.GetAllBuffIds() {
+		if b := conditions.GetBuffSpec(buffId); b != nil {
 			if b.Name == `empty` {
 				continue
 			}

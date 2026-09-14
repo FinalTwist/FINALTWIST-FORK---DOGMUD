@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -142,7 +142,7 @@ type Character struct {
 	Items           []items.Item   `yaml:"items,omitempty"`          // The items the character is holding
 	ComponentItems  []items.Item   `yaml:"componentitems,omitempty"` // Contents of equipped component bag
 	PotionItems     []items.Item   `yaml:"potionitems,omitempty"`    // Contents of equipped potion bandolier
-	Buffs           buffs.Buffs    `yaml:"buffs,omitempty"`          // The buffs the character has active
+	Buffs           conditions.Buffs    `yaml:"buffs,omitempty"`          // The buffs the character has active
 	Equipment       Worn           `yaml:"equipment,omitempty"`      // The equipment the character is wearing
 	HealthMax       stats.StatInfo `yaml:"-"`                        // The maximum health of the character. Don't write to yaml since is dynamically calculated.
 	StaminaMax      stats.StatInfo `yaml:"-"`                        // The maximum stamina of the character. Don't write to yaml since is dynamically calculated.
@@ -397,7 +397,7 @@ func New() *Character {
 		KnownRecipes:               crafting.GetStarterRecipes(), // All recipes with skill_minimum == 0
 		CharmedMobs:                []int{},
 		Items:                      []items.Item{},
-		Buffs:                      buffs.New(),
+		Buffs:                      conditions.New(),
 		Equipment:                  Worn{},
 		Cooldowns:                  make(Cooldowns), // Initialize cooldowns map
 		MiscData:                   make(map[string]any),
@@ -958,5 +958,5 @@ func (c *Character) Perceives(other *Character) bool {
 	if c == other || !other.IsHidden() {
 		return true
 	}
-	return c.HasFlagFromAnySource(buffs.SeeHidden)
+	return c.HasFlagFromAnySource(conditions.SeeHidden)
 }

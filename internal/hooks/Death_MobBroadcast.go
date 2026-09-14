@@ -3,7 +3,7 @@ package hooks
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -60,7 +60,7 @@ func wireMobDeathBroadcast(c *characters.Character) {
 					if u == nil {
 						continue
 					}
-					if u.Character.HasFlagFromAnySource(buffs.NightVision) {
+					if u.Character.HasFlagFromAnySource(conditions.NightVision) {
 						u.SendText(messaging.CategoryDeath, deathMsg)
 					} else {
 						u.SendText(messaging.CategoryDeath, soundMsg)

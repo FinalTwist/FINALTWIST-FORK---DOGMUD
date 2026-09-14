@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -318,7 +318,7 @@ func buildBuffRows(stock characters.Shop, hasGold, hasTrade bool) ([]string, [][
 
 	for _, stockBuff := range stock {
 
-		buffInfo := buffs.GetBuffSpec(stockBuff.BuffId)
+		buffInfo := conditions.GetBuffSpec(stockBuff.BuffId)
 		if buffInfo == nil {
 			continue
 		}

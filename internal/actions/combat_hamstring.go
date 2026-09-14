@@ -1,7 +1,7 @@
 package actions
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -131,7 +131,7 @@ func ExecuteHamstring(actor Actor) HamstringResult {
 	bleedDmg := 0
 	if result.Hit {
 		bleedDmg = bleedPerRound(char.Stats.Strength.ValueAdj, cfg.HamstringBleedStrengthDivisor, cfg.HamstringBleedMin)
-		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, int(cfg.HamstringBleedRounds), -float64(bleedDmg), "hamstring")
+		_ = target.Char.AddBuffMagnitude(conditions.BuffIdBleeding, int(cfg.HamstringBleedRounds), -float64(bleedDmg), "hamstring")
 	}
 
 	// Determine source/target types for analytics.

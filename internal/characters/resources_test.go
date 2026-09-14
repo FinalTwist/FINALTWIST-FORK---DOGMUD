@@ -3,19 +3,19 @@ package characters
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/stats"
 )
 
 // seedSleepingBuff registers a minimal Sleeping buff spec in the global
 // buffs registry for the duration of the test. Returns a cleanup func.
 func seedSleepingBuff() func() {
-	return buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	return conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		15: {
 			BuffId:       15,
 			Name:         "Sleeping",
 			TriggerCount: 1000000000, // unlimited
-			Flags:        []buffs.Flag{buffs.Sleeping},
+			Flags:        []conditions.Flag{conditions.Sleeping},
 		},
 	})
 }
@@ -25,7 +25,7 @@ func seedSleepingBuff() func() {
 // requires data-file-loaded buff specs). We build a minimal Buff and call
 // Validate() so the flag index is rebuilt.
 func applySleepingBuff(c *Character) {
-	c.Buffs.List = append(c.Buffs.List, &buffs.Buff{
+	c.Buffs.List = append(c.Buffs.List, &conditions.Buff{
 		BuffId:       15,
 		TriggersLeft: 1000000000,
 	})
@@ -41,7 +41,7 @@ func TestHealthPerRound_SleepMultiplier(t *testing.T) {
 
 	c := &Character{
 		HealthMax: stats.StatInfo{Value: 1000},
-		Buffs:     buffs.New(),
+		Buffs:     conditions.New(),
 	}
 
 	base := c.HealthPerRound()
@@ -137,7 +137,7 @@ func TestStaminaPerRound_SleepMultiplier(t *testing.T) {
 
 	c := &Character{
 		StaminaMax: stats.StatInfo{Value: 1000},
-		Buffs:      buffs.New(),
+		Buffs:      conditions.New(),
 	}
 
 	base := c.StaminaPerRound()
@@ -164,7 +164,7 @@ func TestConvictionPerRound_SleepMultiplier(t *testing.T) {
 
 	c := &Character{
 		ConvictionMax: stats.StatInfo{Value: 1000},
-		Buffs:         buffs.New(),
+		Buffs:         conditions.New(),
 	}
 
 	base := c.ConvictionPerRound()
@@ -191,11 +191,11 @@ func TestHealthPerRound_NoSleepNoBoost(t *testing.T) {
 
 	c1 := &Character{
 		HealthMax: stats.StatInfo{Value: 1000},
-		Buffs:     buffs.New(),
+		Buffs:     conditions.New(),
 	}
 	c2 := &Character{
 		HealthMax: stats.StatInfo{Value: 1000},
-		Buffs:     buffs.New(),
+		Buffs:     conditions.New(),
 	}
 	// Only c2 gets the sleeping buff.
 	applySleepingBuff(c2)

@@ -3,7 +3,7 @@ package usercommands
 import (
 	"errors"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -34,7 +34,7 @@ func Suicide(rest string, user *users.UserRecord, room *rooms.Room, flags events
 	// Revive-on-death buff: heal + clear buff, no death.
 	// This path must NEVER reach the Life machine — it keeps the
 	// character Alive.
-	if user.Character.HasBuffFlag(buffs.ReviveOnDeath) {
+	if user.Character.HasBuffFlag(conditions.ReviveOnDeath) {
 		// U5c: this resolves the character's life state without going through
 		// Die, so clear the queued-death token here too. Otherwise a
 		// CharacterDied still in flight from the blow that brought them here
@@ -48,7 +48,7 @@ func Suicide(rest string, user *users.UserRecord, room *rooms.Room, flags events
 			`<ansi fg="username">`+user.Character.Name+`</ansi> is suddenly revived in a shower of sparks!`,
 			user.UserId,
 		)
-		user.Character.CancelBuffsWithFlag(buffs.ReviveOnDeath)
+		user.Character.CancelBuffsWithFlag(conditions.ReviveOnDeath)
 		return true, nil
 	}
 

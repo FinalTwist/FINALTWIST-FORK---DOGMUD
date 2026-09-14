@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
@@ -44,7 +44,7 @@ type rhetoricActionCase struct {
 	invalidate func(*characters.Character)
 	// effectKind is the record's mechanical effect, checked wherever the test
 	// asserts the buff's presence. Zero value for taunt, which carries neither.
-	effectKind buffs.EffectKind
+	effectKind conditions.EffectKind
 }
 
 var rhetoricTargetID = 9700
@@ -68,7 +68,7 @@ func rhetoricActionCases() []rhetoricActionCase {
 				return rhetoricActionOutcome{cost: result.Cost, executed: result.Executed, onCooldown: result.OnCooldown, invalid: result.AlreadyActive, selfBuffID: 80, bonus: result.Bonus}
 			},
 			invalidate: func(char *characters.Character) { char.AddBuff(80, false) },
-			effectKind: buffs.EffectDefenseMult,
+			effectKind: conditions.EffectDefenseMult,
 		},
 		{
 			name:   "warcry",
@@ -78,7 +78,7 @@ func rhetoricActionCases() []rhetoricActionCase {
 				return rhetoricActionOutcome{cost: result.Cost, executed: result.Executed, onCooldown: result.OnCooldown, invalid: result.AlreadyActive, selfBuffID: 79, bonus: result.Bonus}
 			},
 			invalidate: func(char *characters.Character) { char.AddBuff(79, false) },
-			effectKind: buffs.EffectDamageMult,
+			effectKind: conditions.EffectDamageMult,
 		},
 	}
 }
@@ -94,7 +94,7 @@ func newRhetoricActor(t *testing.T, player bool, conviction, rhetoric int) (*rec
 	target.ConvictionMax.Base = 1_000_000
 	target.ConvictionMax.Recalculate()
 	target.Stats.Willpower.ValueAdj = 1_000_000
-	target.Buffs = buffs.New()
+	target.Buffs = conditions.New()
 	targetMob := &mobs.Mob{InstanceId: rhetoricTargetID, Character: *target}
 	targetMob.Character.MobInstanceId = targetMob.InstanceId
 	mobs.SetInstanceForTest(targetMob.InstanceId, targetMob)
@@ -108,7 +108,7 @@ func newRhetoricActor(t *testing.T, player bool, conviction, rhetoric int) (*rec
 	char.ConvictionMax.Recalculate()
 	char.Stats.Charisma.ValueAdj = 1
 	char.Skills[string(skills.Rhetoric)] = rhetoric
-	char.Buffs = buffs.New()
+	char.Buffs = conditions.New()
 	char.SetAggro(0, targetMob.InstanceId, characters.DefaultAttack)
 	room := &rooms.Room{RoomId: 1}
 
@@ -146,7 +146,7 @@ func assertRhetoricRefusalCarryPreserved(t *testing.T, actor Actor, char *charac
 func TestTauntRallyWarcryRefusalIsAtomicForPlayerAndMob(t *testing.T) {
 	cleanup := seedBuffsForTest()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	for _, tc := range rhetoricActionCases() {
 		for _, player := range []bool{true, false} {
@@ -192,7 +192,7 @@ func TestTauntRallyWarcryRefusalIsAtomicForPlayerAndMob(t *testing.T) {
 func TestTauntRallyWarcryReadOnlyGatesPreserveHiddenState(t *testing.T) {
 	cleanup := seedBuffsForTest()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	for _, tc := range rhetoricActionCases() {
 		t.Run(tc.name+"/invalid", func(t *testing.T) {
@@ -240,7 +240,7 @@ func TestTauntRallyWarcryReadOnlyGatesPreserveHiddenState(t *testing.T) {
 func TestRallyWarcryPaidBuffsChargeOnceBeforeEffects(t *testing.T) {
 	cleanup := seedBuffsForTest()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	for _, tc := range rhetoricActionCases()[1:] {
 		for _, player := range []bool{true, false} {
@@ -440,7 +440,7 @@ func TestTauntPaidSwappedAggroPreservesBothTargetsAndRound(t *testing.T) {
 	replacement.ConvictionMax.Recalculate()
 	replacement.Conviction = 1_000_000
 	replacement.Stats.Willpower.ValueAdj = 1_000_000
-	replacement.Buffs = buffs.New()
+	replacement.Buffs = conditions.New()
 	replacement.SetAggro(808, 0, characters.DefaultAttack)
 	replacement.SetRoundsWaiting(6)
 	replacementMob := &mobs.Mob{InstanceId: rhetoricTargetID, Character: *replacement}
@@ -477,7 +477,7 @@ func TestTauntPaidSwappedAggroPreservesBothTargetsAndRound(t *testing.T) {
 func TestTauntRallyWarcryPaidStaleCooldownPreservesEffects(t *testing.T) {
 	cleanup := seedBuffsForTest()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	for _, tc := range rhetoricActionCases() {
 		t.Run(tc.name, func(t *testing.T) {

@@ -1,7 +1,7 @@
 package combat
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -85,7 +85,7 @@ func SleepingForceCrit(defender *characters.Character) bool {
 	if defender == nil {
 		return false
 	}
-	if defender.HasBuffFlag(buffs.Sleeping) {
+	if defender.HasBuffFlag(conditions.Sleeping) {
 		return true
 	}
 	if sleepingSnapshot.round != util.GetRoundCount() {

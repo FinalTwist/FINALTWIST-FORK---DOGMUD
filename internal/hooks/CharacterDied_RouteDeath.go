@@ -1,7 +1,7 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -62,7 +62,7 @@ func RouteAttributedDeath(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
-	if char.HasBuffFlag(buffs.ReviveOnDeath) {
+	if char.HasBuffFlag(conditions.ReviveOnDeath) {
 		reviveInsteadOfDeath(char)
 		char.DeathQueued = false
 		return events.Continue
@@ -119,7 +119,7 @@ func reviveInsteadOfDeath(char *characters.Character) {
 		)
 	}
 
-	char.CancelBuffsWithFlag(buffs.ReviveOnDeath)
+	char.CancelBuffsWithFlag(conditions.ReviveOnDeath)
 }
 
 // shouldSweepReap reports whether the backstop sweep should kill this

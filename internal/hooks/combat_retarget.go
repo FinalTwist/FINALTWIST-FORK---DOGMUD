@@ -5,7 +5,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/targeting"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -173,7 +173,7 @@ func CompanionAutoTarget(mob *mobs.Mob, room *rooms.Room) {
 	// Grace-period defense-in-depth: if the owner is grace-protected,
 	// no mob should be aggressing them (SetAggro already gates at the
 	// source), and the companion has nothing to defend against.
-	if owner.Character.HasBuffFlag(buffs.NoAggroTarget) {
+	if owner.Character.HasBuffFlag(conditions.NoAggroTarget) {
 		return
 	}
 

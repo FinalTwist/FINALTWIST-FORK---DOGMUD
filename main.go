@@ -23,11 +23,11 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/audio"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
 	"github.com/GoMudEngine/GoMud/internal/bounties"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/caravan"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/conversations"
@@ -309,7 +309,7 @@ func main() {
 		if user == nil {
 			return false
 		}
-		return user.Character.HasBuffFlag(buffs.NoAggroTarget)
+		return user.Character.HasBuffFlag(conditions.NoAggroTarget)
 	})
 
 	// Register the prompt visibility check so the fight prompt can hide
@@ -1632,7 +1632,7 @@ func loadAllDataFiles(isReload bool) {
 		return rooms.LoadRoom(roomId) != nil
 	})
 	rooms.RebuildZonePlayerCount() // build the zone → player-count index
-	buffs.LoadDataFiles()          // Load buffs before items for cost calculation reasons
+	conditions.LoadDataFiles()     // Load buffs before items for cost calculation reasons
 	items.LoadDataFiles()
 	// Pinnacle Stage 1: sentient item voices. Must load AFTER items so the
 	// voice_id cross-validation can see every item's ItemSpec.
@@ -1691,11 +1691,11 @@ func loadAllDataFiles(isReload bool) {
 	mutations.ValidateBodyPartTags()
 	mutations.ValidateGraph()
 	species.ValidateBodyPartTags(mutations.HasSpec)
-	species.ValidateSpeciesBuffIds(buffs.HasSpec)
+	species.ValidateSpeciesBuffIds(conditions.HasSpec)
 
 	// Slice C: a non-secret buff without authored start/end text still speaks
 	// (the generic notice), but say so at boot. The root guard blocks a merge.
-	buffs.WarnSilentNotices()
+	conditions.WarnSilentNotices()
 
 	// One minimal-decode scan builds the whole character-name index; the old
 	// per-mob CharacterNameSearch closure re-scanned (and fully decoded) every

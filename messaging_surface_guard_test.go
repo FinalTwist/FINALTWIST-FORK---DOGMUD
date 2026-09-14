@@ -70,14 +70,14 @@ var textSurfaceRegistry = map[string]surfaceEntry{
 	"wait_user_text": {narration, "internal/spells/spells.go SpellData.WaitUserText -- actor-side line narrated during a spell's cast-time channel/wait."},
 	"wait_room_text": {narration, "internal/spells/spells.go SpellData.WaitRoomText -- room-side line narrated during a spell's cast-time channel/wait, paired with wait_user_text."},
 
-	// -- Buff narration: internal/buffs/buffspec.go BuffSpec, all six fields
+	// -- Buff narration: internal/conditions/buffspec.go BuffSpec, all six fields
 	// present on the 101 buff YAML files (start/trigger/end x user/room). --
-	"start_user_text":   {narration, "internal/buffs/buffspec.go BuffSpec.StartUserText -- actor-side line narrated when a buff is applied; one of six start/trigger/end x user/room fields across 101 buff files."},
-	"start_room_text":   {narration, "internal/buffs/buffspec.go BuffSpec.StartRoomText -- room-side line narrated when a buff is applied, paired with start_user_text."},
-	"trigger_user_text": {narration, "internal/buffs/buffspec.go BuffSpec.TriggerUserText -- actor-side line narrated each time a periodic buff tick fires (e.g. poison, regen)."},
-	"trigger_room_text": {narration, "internal/buffs/buffspec.go BuffSpec.TriggerRoomText -- room-side line narrated each time a periodic buff tick fires, paired with trigger_user_text."},
-	"end_user_text":     {narration, "internal/buffs/buffspec.go BuffSpec.EndUserText -- actor-side line narrated when a buff expires or is removed."},
-	"end_room_text":     {narration, "internal/buffs/buffspec.go BuffSpec.EndRoomText -- room-side line narrated when a buff expires or is removed, paired with end_user_text."},
+	"start_user_text":   {narration, "internal/conditions/buffspec.go BuffSpec.StartUserText -- actor-side line narrated when a buff is applied; one of six start/trigger/end x user/room fields across 101 buff files."},
+	"start_room_text":   {narration, "internal/conditions/buffspec.go BuffSpec.StartRoomText -- room-side line narrated when a buff is applied, paired with start_user_text."},
+	"trigger_user_text": {narration, "internal/conditions/buffspec.go BuffSpec.TriggerUserText -- actor-side line narrated each time a periodic buff tick fires (e.g. poison, regen)."},
+	"trigger_room_text": {narration, "internal/conditions/buffspec.go BuffSpec.TriggerRoomText -- room-side line narrated each time a periodic buff tick fires, paired with trigger_user_text."},
+	"end_user_text":     {narration, "internal/conditions/buffspec.go BuffSpec.EndUserText -- actor-side line narrated when a buff expires or is removed."},
+	"end_room_text":     {narration, "internal/conditions/buffspec.go BuffSpec.EndRoomText -- room-side line narrated when a buff expires or is removed, paired with end_user_text."},
 
 	// -- Crafting narration: internal/crafting/crafting.go Recipe, 126 recipe
 	// files. Crafting currently has NO audience split -- a single message,

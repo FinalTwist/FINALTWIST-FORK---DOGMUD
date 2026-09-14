@@ -3,7 +3,7 @@ package usercommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -16,7 +16,7 @@ import (
 // nothing. Buff 76, the weakness it was designed to leave behind, was authored
 // in full and referenced by nothing at all.
 func TestApplyPurgeEffects(t *testing.T) {
-	cleanup := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanup := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		61: {BuffId: 61, Name: "Ironhide Brew", TriggerCount: 400, RoundInterval: 1},
 		76: {BuffId: 76, Name: "Purging Weakness", TriggerCount: 50, RoundInterval: 1},
 	})
@@ -41,7 +41,7 @@ func TestApplyPurgeEffects(t *testing.T) {
 
 	// RemoveBuff only marks TriggersLeft as expired; the map entry HasBuff
 	// checks isn't evicted until the next round's Prune() sweep (see
-	// internal/buffs/buffs.go RemoveBuff/Prune, and the same pattern pinned by
+	// internal/conditions/buffs.go RemoveBuff/Prune, and the same pattern pinned by
 	// internal/hooks/pinnacle_ambient_smart_test.go). Prune here to observe the
 	// post-sweep state a real drinker would see a moment later.
 	c.Buffs.Prune()

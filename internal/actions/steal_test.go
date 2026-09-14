@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -26,7 +26,7 @@ func newStealTestMob(instanceId int, gold int, perception int) *mobs.Mob {
 		InstanceId: instanceId,
 	}
 	m.Character.Name = "Bandit"
-	m.Character.Buffs = buffs.New()
+	m.Character.Buffs = conditions.New()
 	m.Character.Stats.Perception.ValueAdj = perception
 	m.Character.Gold = gold
 	return m

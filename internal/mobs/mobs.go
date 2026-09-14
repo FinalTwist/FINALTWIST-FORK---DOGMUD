@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/casing"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -673,7 +673,7 @@ func newMobByIdInternal(mobId MobId, homeRoomId int, skipInstanceLoad bool, forc
 
 		mob.Character.SetPermaBuffs(mob.BuffIds)
 
-		mob.Character.Buffs = buffs.New()
+		mob.Character.Buffs = conditions.New()
 
 		// Deep copy item slices to prevent shared backing array with template.
 		// Without this, giving items to a mob instance can contaminate the

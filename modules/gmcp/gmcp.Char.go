@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/casing"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -733,12 +733,12 @@ func conditionDurationLabel(rounds int) string {
 // buffs.DisplayName, which appends a stacking record's live count.
 func buildConditionsPayload(ch *characters.Character) map[string]GMCPCondition {
 	c := configs.GetTimingConfig()
-	conditions := make(map[string]GMCPCondition)
+	held := make(map[string]GMCPCondition)
 
 	nameIncrement := 0
 	for _, buff := range ch.GetBuffs() {
 
-		buffSpec := buffs.GetBuffSpec(buff.BuffId)
+		buffSpec := conditions.GetBuffSpec(buff.BuffId)
 		if buffSpec == nil || !buffSpec.Listed() {
 			continue
 		}
@@ -748,7 +748,7 @@ func buildConditionsPayload(ch *characters.Character) map[string]GMCPCondition {
 
 		if !buff.PermaBuff {
 			var totalRounds int
-			roundsLeft, totalRounds = buffs.GetDurations(buff, buffSpec)
+			roundsLeft, totalRounds = conditions.GetDurations(buff, buffSpec)
 			if roundsLeft < 0 {
 				roundsLeft = 0
 			}
@@ -761,7 +761,7 @@ func buildConditionsPayload(ch *characters.Character) map[string]GMCPCondition {
 			buffSource = `unknown`
 		}
 		cond := GMCPCondition{
-			Name:         buffs.DisplayName(buff, buffSpec),
+			Name:         conditions.DisplayName(buff, buffSpec),
 			Description:  buffSpec.Description,
 			DurationMax:  timeMax,
 			DurationLeft: timeLeft,
@@ -778,15 +778,15 @@ func buildConditionsPayload(ch *characters.Character) map[string]GMCPCondition {
 		}
 
 		key := buffSpec.Name
-		if _, ok := conditions[key]; ok {
+		if _, ok := held[key]; ok {
 			nameIncrement++
 			key += `#` + strconv.Itoa(nameIncrement)
 		}
 
-		conditions[key] = cond
+		held[key] = cond
 	}
 
-	return conditions
+	return held
 }
 
 // /////////////////

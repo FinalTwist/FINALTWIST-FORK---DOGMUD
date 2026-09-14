@@ -3,7 +3,7 @@ package usercommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/stretchr/testify/assert"
@@ -39,7 +39,7 @@ func TestRegression_MeleeSpecialsRefuseCharmedTargets(t *testing.T) {
 				Name:      "Loyal Hound",
 				RoomId:    room.RoomId,
 				Health:    100,
-				Buffs:     buffs.New(),
+				Buffs:     conditions.New(),
 				Cooldowns: map[string]int{},
 			},
 		}

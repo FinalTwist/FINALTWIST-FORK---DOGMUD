@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -44,7 +44,7 @@ func Get(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 		if room.Gold > 0 {
 
-			mob.Character.CancelBuffsWithFlag(buffs.Hidden) // No longer sneaking
+			mob.Character.CancelBuffsWithFlag(conditions.Hidden) // No longer sneaking
 
 			actor := &actions.MobActor{Mob: mob, Room: room}
 			goldAmt := room.Gold
@@ -85,7 +85,7 @@ func Get(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	result := actions.GetItemFromFloor(actor, rest, getFromStash)
 
 	if result.Found && result.Err == nil {
-		mob.Character.CancelBuffsWithFlag(buffs.Hidden) // No longer sneaking
+		mob.Character.CancelBuffsWithFlag(conditions.Hidden) // No longer sneaking
 
 		room.SendTextVisual(messaging.CategoryLoot,
 			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> picks up the <ansi fg="itemname">%s</ansi>...`, mob.Character.Name, result.Item.DisplayName()))

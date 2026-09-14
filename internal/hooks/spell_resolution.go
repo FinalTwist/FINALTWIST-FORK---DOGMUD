@@ -6,7 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -643,7 +643,7 @@ func applyMobEffect_dot(
 	if dotAmount < 1 {
 		dotAmount = 1
 	}
-	afflicted := mob.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil
+	afflicted := mob.Character.AddBuffMagnitude(conditions.BuffIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil
 	setMobSpellAggro(user, mob)
 	if afflicted && user != nil {
 		user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
@@ -766,7 +766,7 @@ func applyMobEffect_buff(
 		mob.AddBuff(buffId, "spell")
 		// Compute tick snapshot for config-driven buffs
 		if user != nil {
-			if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil && buffSpec.TickPool != "" {
+			if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil && buffSpec.TickPool != "" {
 				skillLevel := user.Character.GetSkillLevel(skills.Spellcasting)
 				scalingMult := combat.SkillMultiplier(skillLevel)
 				// Apply weapon spell damage multiplier if equipped, scaled
@@ -785,7 +785,7 @@ func applyMobEffect_buff(
 				case "conviction":
 					maxPool = mob.Character.ConvictionMax.Value
 				}
-				tickAmt := buffs.ComputeTickAmount(maxPool, buffSpec.TickPercent, buffSpec.TickVariance, buffSpec.TickMin, scalingMult)
+				tickAmt := conditions.ComputeTickAmount(maxPool, buffSpec.TickPercent, buffSpec.TickVariance, buffSpec.TickMin, scalingMult)
 				mob.Character.Buffs.SetTickAmount(buffId, tickAmt)
 			}
 		}
@@ -847,7 +847,7 @@ func applyMobEffect_heal(
 	if durationRounds < 6 {
 		durationRounds = 6
 	}
-	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdRegenerating, durationRounds, regenMult, "heal spell")
+	_ = mob.Character.AddBuffMagnitude(conditions.BuffIdRegenerating, durationRounds, regenMult, "heal spell")
 	sendVisualRoomText(room, messaging.CategorySpellVital, fmt.Sprintf(
 		`<ansi fg="cyan">%s</ansi>'s %s washes over %s, knitting wounds shut.`,
 		casterName, spellData.Name, mName))
@@ -1026,7 +1026,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 		}
 
 	case "purge":
-		target.Character.CancelBuffsWithFlag(buffs.Poison)
+		target.Character.CancelBuffsWithFlag(conditions.Poison)
 		if target.UserId != user.UserId {
 			messaging.SendTrio(messaging.Trio{
 				Actor: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
@@ -1067,7 +1067,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 		if durationRounds < 6 {
 			durationRounds = 6
 		}
-		_ = target.Character.AddBuffMagnitude(buffs.BuffIdRegenerating, durationRounds, regenMult, "heal spell")
+		_ = target.Character.AddBuffMagnitude(conditions.BuffIdRegenerating, durationRounds, regenMult, "heal spell")
 		if target.UserId != user.UserId {
 			messaging.SendTrio(messaging.Trio{
 				Actor: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
@@ -1094,7 +1094,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 		for _, buffId := range spellData.BuffIds {
 			target.AddBuff(buffId, "spell")
 			// Compute tick snapshot for config-driven buffs
-			if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil && buffSpec.TickPool != "" {
+			if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil && buffSpec.TickPool != "" {
 				skillLevel := user.Character.GetSkillLevel(skills.Spellcasting)
 				scalingMult := combat.SkillMultiplier(skillLevel)
 				// Apply weapon spell damage multiplier if equipped, scaled
@@ -1113,7 +1113,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 				case "conviction":
 					maxPool = target.Character.ConvictionMax.Value
 				}
-				tickAmt := buffs.ComputeTickAmount(maxPool, buffSpec.TickPercent, buffSpec.TickVariance, buffSpec.TickMin, scalingMult)
+				tickAmt := conditions.ComputeTickAmount(maxPool, buffSpec.TickPercent, buffSpec.TickVariance, buffSpec.TickMin, scalingMult)
 				target.Character.Buffs.SetTickAmount(buffId, tickAmt)
 			}
 		}
@@ -1170,7 +1170,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 		if out.AttackerCrit {
 			shieldBonus = int(float64(shieldBonus) * 1.5)
 		}
-		_ = target.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, duration, float64(shieldBonus), "spell")
+		_ = target.Character.AddBuffMagnitude(conditions.BuffIdMinorShield, duration, float64(shieldBonus), "spell")
 		if target.UserId != user.UserId {
 			messaging.SendTrio(messaging.Trio{
 				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
@@ -1487,7 +1487,7 @@ func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spell
 		if durationRounds < 6 {
 			durationRounds = 6
 		}
-		_ = mob.Character.AddBuffMagnitude(buffs.BuffIdRegenerating, durationRounds, regenMult, "heal spell")
+		_ = mob.Character.AddBuffMagnitude(conditions.BuffIdRegenerating, durationRounds, regenMult, "heal spell")
 		sendVisualRoomText(room, messaging.CategorySpellVital, fmt.Sprintf(
 			`%s channels restorative magic.`, mobDisplayName(mob, room, 0)))
 	case "buff":
@@ -1495,7 +1495,7 @@ func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spell
 			mob.AddBuff(buffId, "spell")
 			// Compute tick snapshot for config-driven buffs (matches
 			// applyMobEffect_buff for consistency across all caster paths).
-			if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil && buffSpec.TickPool != "" {
+			if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil && buffSpec.TickPool != "" {
 				skillLevel := mob.Character.GetSkillLevel(skills.Spellcasting)
 				scalingMult := combat.SkillMultiplier(skillLevel)
 				var maxPool int
@@ -1507,7 +1507,7 @@ func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spell
 				case "conviction":
 					maxPool = mob.Character.ConvictionMax.Value
 				}
-				tickAmt := buffs.ComputeTickAmount(maxPool, buffSpec.TickPercent, buffSpec.TickVariance, buffSpec.TickMin, scalingMult)
+				tickAmt := conditions.ComputeTickAmount(maxPool, buffSpec.TickPercent, buffSpec.TickVariance, buffSpec.TickMin, scalingMult)
 				mob.Character.Buffs.SetTickAmount(buffId, tickAmt)
 			}
 		}
@@ -1526,7 +1526,7 @@ func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spell
 			}
 		}
 		duration := calcSpellDuration(spellData.BaseFolds, skillLevel, spellData.CasterStatValue(mob.Character.Stats))
-		_ = mob.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, duration, float64(shieldBonus), "spell")
+		_ = mob.Character.AddBuffMagnitude(conditions.BuffIdMinorShield, duration, float64(shieldBonus), "spell")
 		sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
 			`A shimmering barrier forms around %s.`, mobDisplayName(mob, room, 0)))
 	}
@@ -1667,7 +1667,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 		if dotAmount < 1 {
 			dotAmount = 1
 		}
-		if target.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil {
+		if target.Character.AddBuffMagnitude(conditions.BuffIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil {
 			messaging.SendTrio(messaging.Trio{
 				Actor: messaging.NoLine,
 				Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(

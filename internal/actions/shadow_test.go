@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -22,11 +22,11 @@ import (
 func init() {
 	// Seed buff 9 with the Hidden flag. TriggerCount > 0 so the buff is
 	// not considered expired immediately after application.
-	buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		9: {
 			BuffId:       9,
 			Name:         "Hidden",
-			Flags:        []buffs.Flag{buffs.Hidden},
+			Flags:        []conditions.Flag{conditions.Hidden},
 			TriggerCount: 1000000, // effectively permanent for tests
 		},
 	})
@@ -43,7 +43,7 @@ func init() {
 // Awareness state machine to Hidden so that c.IsHidden() returns true.
 // Requires that the buff spec for id 9 has been seeded via init() above.
 func addHiddenBuff(char *characters.Character) {
-	char.Buffs = buffs.New()
+	char.Buffs = conditions.New()
 	// AddBuff calls GetBuffSpec internally; works because of the seeded spec.
 	char.Buffs.AddBuff(9, true /* permanent for test purposes */)
 	// Sync Awareness machine: reset to Visible, then advance to Hidden.
@@ -67,7 +67,7 @@ func newShadowPlayerActor(dex int, skillRank int, withHidden bool) *stubActorWit
 	if skillRank > 0 {
 		char.Skills[string(skills.Skullduggery)] = skillRank
 	}
-	char.Buffs = buffs.New()
+	char.Buffs = conditions.New()
 	if withHidden {
 		addHiddenBuff(char)
 	}
@@ -88,7 +88,7 @@ func newShadowMobActor(dex int, skillRank int, withHidden bool) *stubActorWithId
 	if skillRank > 0 {
 		char.Skills[string(skills.Skullduggery)] = skillRank
 	}
-	char.Buffs = buffs.New()
+	char.Buffs = conditions.New()
 	if withHidden {
 		addHiddenBuff(char)
 	}
@@ -104,7 +104,7 @@ func newShadowMobActor(dex int, skillRank int, withHidden bool) *stubActorWithId
 // Use between trials when shadow might not remove the buff but the test
 // wants a consistent starting state.
 func resetHiddenBuff(actor *stubActorWithId) {
-	actor.char.Buffs = buffs.New()
+	actor.char.Buffs = conditions.New()
 	addHiddenBuff(actor.char)
 }
 

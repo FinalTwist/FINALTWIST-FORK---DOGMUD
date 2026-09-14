@@ -5,7 +5,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
@@ -214,7 +214,7 @@ func calcSwingCount(sourceChar *characters.Character, weapon items.Item, weaponS
 	}
 
 	// Haste buff: significant attack speed boost
-	if sourceChar.HasBuffFlag(buffs.Haste) {
+	if sourceChar.HasBuffFlag(conditions.Haste) {
 		swings *= float64(bal.HasteSwingMultiplier)
 	}
 
@@ -230,7 +230,7 @@ func calcSwingCount(sourceChar *characters.Character, weapon items.Item, weaponS
 
 	// Recovering record: caps swings (1 today; the record's literal). Zero
 	// means no cap is held.
-	if attacksCap := sourceChar.Buffs.Effect(buffs.EffectAttacksCap); attacksCap > 0 && result > int(attacksCap) {
+	if attacksCap := sourceChar.Buffs.Effect(conditions.EffectAttacksCap); attacksCap > 0 && result > int(attacksCap) {
 		result = int(attacksCap)
 	}
 
@@ -480,7 +480,7 @@ func buildDamageParams(sourceChar *characters.Character, targetChar *characters.
 		// suppressed. GetDamageMultiplier returns the bonus fraction (applied
 		// as 1.0+bonus), so dampen the full multiplier and re-extract the bonus
 		// (penalties, i.e. multiplier <= 1.0, are left untouched by DampenBonus).
-		if sourceChar.HasBuffFlag(buffs.Dampened) {
+		if sourceChar.HasBuffFlag(conditions.Dampened) {
 			factor := float64(configs.GetBalanceConfig().CrashSiteSuppressionFactor)
 			mutDmgMult = mutations.DampenBonus(1.0+mutDmgMult, factor) - 1.0
 		}
@@ -489,7 +489,7 @@ func buildDamageParams(sourceChar *characters.Character, targetChar *characters.
 	}
 
 	// Warcry record: the damage multiplier is the record's magnitude (1 + bonus).
-	if warcryMult := sourceChar.Buffs.Effect(buffs.EffectDamageMult); warcryMult != 1.0 {
+	if warcryMult := sourceChar.Buffs.Effect(conditions.EffectDamageMult); warcryMult != 1.0 {
 		dmgMean *= warcryMult
 		rawDmgForCrit *= warcryMult
 	}
@@ -744,7 +744,7 @@ func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.
 		// Rally record: defense score multiplier from the rhetoric shout. The
 		// same door folds the grapple exposure (Task 5) and any other defense
 		// multiplier.
-		defenseScore *= targetChar.Buffs.Effect(buffs.EffectDefenseMult)
+		defenseScore *= targetChar.Buffs.Effect(conditions.EffectDefenseMult)
 
 		// Stage 8.5: Apply third-party vulnerability penalty
 		if isThirdParty {

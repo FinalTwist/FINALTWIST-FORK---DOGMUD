@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -36,8 +36,8 @@ func counterTrioRoom(t *testing.T, biome string) *rooms.Room {
 		"city":    {BiomeId: "city", LitArea: true},
 		"default": {BiomeId: "default", LitArea: true},
 	}))
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		counterTrioInfraredBuffId: {BuffId: counterTrioInfraredBuffId, Name: "Test Heat Eyes", Flags: []buffs.Flag{buffs.InfraredVision}},
+	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+		counterTrioInfraredBuffId: {BuffId: counterTrioInfraredBuffId, Name: "Test Heat Eyes", Flags: []conditions.Flag{conditions.InfraredVision}},
 	}))
 	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{
 		7511: users.NewTestUser(7511, "aliceia", "Aliceia", 97511),

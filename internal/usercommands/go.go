@@ -5,7 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -161,7 +161,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 		}
 	}
 	// If has a buff that prevents combat, skip the player
-	if user.Character.HasBuffFlag(buffs.NoMovement) {
+	if user.Character.HasBuffFlag(conditions.NoMovement) {
 		user.SendText(messaging.CategorySystem, "You can't do that!")
 		return true, nil
 	}
@@ -809,21 +809,21 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 			// sleepers in the destination room. False positives possible if
 			// the room was already lit; acceptable for chunk 3.3 scope (most
 			// NPC sleep rooms are dim/dark indoors).
-			if user.Character.HasFlagFromAnySource(buffs.EmitsLight) {
+			if user.Character.HasFlagFromAnySource(conditions.EmitsLight) {
 				for _, otherUserId := range destRoom.GetPlayers() {
 					if otherUserId == user.UserId {
 						continue
 					}
 					if other := users.GetByUserId(otherUserId); other != nil &&
-						other.Character.HasBuffFlag(buffs.Sleeping) {
-						other.Character.CancelBuffsWithFlag(buffs.Sleeping)
+						other.Character.HasBuffFlag(conditions.Sleeping) {
+						other.Character.CancelBuffsWithFlag(conditions.Sleeping)
 						mobs.OnSleeperWoken(other.Character)
 					}
 				}
 				for _, mobInstId := range destRoom.GetMobs() {
 					if m := mobs.GetInstance(mobInstId); m != nil &&
-						m.Character.HasBuffFlag(buffs.Sleeping) {
-						m.Character.CancelBuffsWithFlag(buffs.Sleeping)
+						m.Character.HasBuffFlag(conditions.Sleeping) {
+						m.Character.CancelBuffsWithFlag(conditions.Sleeping)
 						mobs.OnSleeperWoken(&m.Character)
 					}
 				}
@@ -961,7 +961,7 @@ func findRelateableEligiblePairsInRoom(room *rooms.Room) []relateableMobPair {
 		if m.Character.IsInCombat() {
 			continue
 		}
-		if m.Character.HasBuffFlag(buffs.Sleeping) {
+		if m.Character.HasBuffFlag(conditions.Sleeping) {
 			continue
 		}
 		if m.Path.Len() > 0 || m.Path.Current() != nil {

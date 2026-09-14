@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -63,7 +63,7 @@ func seedTargetResolutionRegistries(t *testing.T) func() {
 				Name:      "Skeleton",
 				RoomId:    1,
 				Health:    50,
-				Buffs:     buffs.New(),
+				Buffs:     conditions.New(),
 				Cooldowns: map[string]int{},
 			},
 		},
@@ -75,7 +75,7 @@ func seedTargetResolutionRegistries(t *testing.T) func() {
 				Name:      "Wraith",
 				RoomId:    1,
 				Health:    50,
-				Buffs:     buffs.New(),
+				Buffs:     conditions.New(),
 				Cooldowns: map[string]int{},
 			},
 		},

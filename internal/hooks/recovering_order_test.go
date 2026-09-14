@@ -3,7 +3,7 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
@@ -22,7 +22,7 @@ import (
 func TestUserRoundTick_RecoveringIsLiveWhenCombatRuns(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
 	require.NotNil(t, u)
@@ -32,19 +32,19 @@ func TestUserRoundTick_RecoveringIsLiveWhenCombatRuns(t *testing.T) {
 
 	UserRoundTick(events.NewRound{RoundNumber: 1})
 	require.True(t, u.Character.IsProne(), "precondition: round 1 is inside the minimum recovery period")
-	assert.Equal(t, 1.0, u.Character.Buffs.Effect(buffs.EffectAttacksCap),
+	assert.Equal(t, 1.0, u.Character.Buffs.Effect(conditions.EffectAttacksCap),
 		"round 1: the swing cap must be live after the round tick, where DoCombat reads it")
 
 	UserRoundTick(events.NewRound{RoundNumber: 2})
 	require.True(t, u.Character.IsProne(), "precondition: round 2 consumes the last minimum round")
-	assert.Equal(t, 1.0, u.Character.Buffs.Effect(buffs.EffectAttacksCap),
+	assert.Equal(t, 1.0, u.Character.Buffs.Effect(conditions.EffectAttacksCap),
 		"round 2: last round's record expired, and this round's attempt re-added it")
 
 	UserRoundTick(events.NewRound{RoundNumber: 3})
 	require.False(t, u.Character.IsProne(), "precondition: nobody holds the player down, so round 3 is a free stand")
 	// Reads the cap at the point DoCombat reads it: hook registration order in
 	// internal/hooks/hooks.go is UserRoundTick, then MobRoundTick, then DoCombat.
-	assert.Equal(t, 0.0, u.Character.Buffs.Effect(buffs.EffectAttacksCap),
+	assert.Equal(t, 0.0, u.Character.Buffs.Effect(conditions.EffectAttacksCap),
 		"round 3: stood up, so no cap carries into this round's combat")
 }
 
@@ -58,7 +58,7 @@ func TestUserRoundTick_RecoveringIsLiveWhenCombatRuns(t *testing.T) {
 func TestUserRoundTick_DyingPlayerDoesNotScrambleToFeet(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
 	require.NotNil(t, u)
@@ -66,7 +66,7 @@ func TestUserRoundTick_DyingPlayerDoesNotScrambleToFeet(t *testing.T) {
 	require.NoError(t, u.Character.Position.TransitionToProne(position.ProneData{MinRecoveryRounds: 0},
 		state.TransitionReason{Trigger: position.TriggerKnockdownFaceForward}))
 
-	require.NoError(t, u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -1000, "test"))
+	require.NoError(t, u.Character.AddBuffMagnitude(conditions.BuffIdBleeding, 1, -1000, "test"))
 	u.Character.Health = 5
 
 	drainPlain(u.UserId)

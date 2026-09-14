@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -75,13 +75,13 @@ func TestConsume_NoCorpses(t *testing.T) {
 	assert.NoError(t, err)
 
 	// No condition applied when nothing to eat
-	assert.False(t, mob.Character.HasBuff(buffs.BuffIdRegenerating))
+	assert.False(t, mob.Character.HasBuff(conditions.BuffIdRegenerating))
 }
 
 func TestConsume_EatsCorpseAndAppliesRegen(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	mob, room := getTestMobAndRoom(t)
 
@@ -101,15 +101,15 @@ func TestConsume_EatsCorpseAndAppliesRegen(t *testing.T) {
 	assert.Empty(t, room.Corpses)
 
 	// Mob should have the Regenerating record
-	assert.True(t, mob.Character.HasBuff(buffs.BuffIdRegenerating))
-	assert.InDelta(t, 2.0, mob.Character.Buffs.Effect(buffs.EffectRegenMult), 1e-9)
-	assert.Equal(t, 6, mob.Character.Buffs.TriggersLeft(buffs.BuffIdRegenerating))
+	assert.True(t, mob.Character.HasBuff(conditions.BuffIdRegenerating))
+	assert.InDelta(t, 2.0, mob.Character.Buffs.Effect(conditions.EffectRegenMult), 1e-9)
+	assert.Equal(t, 6, mob.Character.Buffs.TriggersLeft(conditions.BuffIdRegenerating))
 }
 
 func TestConsume_SkipsPrunableCorpses(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	mob, room := getTestMobAndRoom(t)
 
@@ -134,7 +134,7 @@ func TestConsume_SkipsPrunableCorpses(t *testing.T) {
 	// Only the prunable one should remain
 	assert.Len(t, room.Corpses, 1)
 	assert.Equal(t, "Old Bones", room.Corpses[0].Character.Name)
-	assert.True(t, mob.Character.HasBuff(buffs.BuffIdRegenerating))
+	assert.True(t, mob.Character.HasBuff(conditions.BuffIdRegenerating))
 }
 
 func TestConsume_AllPrunable(t *testing.T) {
@@ -156,7 +156,7 @@ func TestConsume_AllPrunable(t *testing.T) {
 
 	// Nothing consumed — all prunable
 	assert.Len(t, room.Corpses, 1)
-	assert.False(t, mob.Character.HasBuff(buffs.BuffIdRegenerating))
+	assert.False(t, mob.Character.HasBuff(conditions.BuffIdRegenerating))
 }
 
 // ─── Flee ───────────────────────────────────────────────────────────────────
@@ -484,8 +484,8 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
 	})
 	defer restoreBiomes()
-	restoreBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		9001: {BuffId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []buffs.Flag{buffs.InfraredVision}},
+	restoreBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+		9001: {BuffId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []conditions.Flag{conditions.InfraredVision}},
 	})
 	defer restoreBuffs()
 
@@ -560,8 +560,8 @@ func TestMobTauntAndHowlRuntimeHideIndexedActorAndExcludeDefender(t *testing.T) 
 				"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
 			})
 			defer restoreBiomes()
-			restoreBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-				9001: {BuffId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []buffs.Flag{buffs.InfraredVision}},
+			restoreBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+				9001: {BuffId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []conditions.Flag{conditions.InfraredVision}},
 			})
 			defer restoreBuffs()
 

@@ -1,7 +1,7 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
@@ -58,7 +58,7 @@ func wireAwarenessFromCombatPhase(c *characters.Character) {
 			case from == awareness.Hidden &&
 				(to == awareness.Revealing || to == awareness.Visible):
 				// Remove buff #9 via cancel-on-flag mechanism.
-				c.CancelBuffsWithFlag(buffs.Hidden)
+				c.CancelBuffsWithFlag(conditions.Hidden)
 			}
 		})
 }

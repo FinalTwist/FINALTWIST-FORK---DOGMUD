@@ -3,7 +3,7 @@ package mobcommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -35,7 +35,7 @@ func buildGroupHateRoom(t *testing.T) (bandit, caravanMob *mobs.Mob, room *rooms
 			Name:      "Bandit Lookout",
 			RoomId:    9999,
 			Health:    100,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 			SpeciesId: 1, // avoids nil from species.GetSpecies() in HatesSpecies branch
 		},
@@ -52,7 +52,7 @@ func buildGroupHateRoom(t *testing.T) (bandit, caravanMob *mobs.Mob, room *rooms
 			Name:      "Caravan Guard Ketil",
 			RoomId:    9999,
 			Health:    100,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 			SpeciesId: 1,
 		},
@@ -164,7 +164,7 @@ func TestLookForTrouble_NoAggroWhenGroupHateMissing(t *testing.T) {
 			Name:      "Neutral Guard",
 			RoomId:    9999,
 			Health:    100,
-			Buffs:     buffs.New(),
+			Buffs:     conditions.New(),
 			Cooldowns: map[string]int{},
 			SpeciesId: 1,
 		},

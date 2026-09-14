@@ -3,7 +3,7 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -19,7 +19,7 @@ import (
 // 100/101, so aoe_stun's AddBuff(84) would silently fail without this.
 func seedStunBuff(t *testing.T) func() {
 	t.Helper()
-	return buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	return conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		84: {
 			BuffId:        84,
 			Name:          "Stunned",
@@ -39,7 +39,7 @@ func addTestMob(instanceId int, nonCombatant bool) *mobs.Mob {
 			Name:         "Test Beast",
 			RoomId:       1,
 			NonCombatant: nonCombatant,
-			Buffs:        buffs.New(),
+			Buffs:        conditions.New(),
 			Cooldowns:    map[string]int{},
 		},
 	}
@@ -234,7 +234,7 @@ func TestDispatchOnHitProcs_Lifesteal(t *testing.T) {
 // directly (constructing a full death flow is unnecessary here).
 func TestProcApplyCondition_Bleed(t *testing.T) {
 	defer seedAllRegistries()()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 	target := characters.New()
 
 	ok := procApplyCondition(target, map[string]float64{
@@ -245,13 +245,13 @@ func TestProcApplyCondition_Bleed(t *testing.T) {
 	if !ok {
 		t.Fatal("apply_condition should execute")
 	}
-	if !target.HasBuff(buffs.BuffIdBleeding) {
+	if !target.HasBuff(conditions.BuffIdBleeding) {
 		t.Fatal("target should be bleeding")
 	}
-	if got := target.Buffs.TriggersLeft(buffs.BuffIdBleeding); got != 6 {
+	if got := target.Buffs.TriggersLeft(conditions.BuffIdBleeding); got != 6 {
 		t.Fatalf("expected 6: duration is the stack's rounds and the record ticks every round, got %d", got)
 	}
-	held := target.GetBuffs(buffs.BuffIdBleeding)
+	held := target.GetBuffs(conditions.BuffIdBleeding)
 	if len(held) != 1 {
 		t.Fatalf("expected exactly one held Bleeding record, got %d", len(held))
 	}
@@ -272,7 +272,7 @@ func TestProcApplyCondition_Bleed(t *testing.T) {
 // Null probe: reverting procApplyCondition's case 1 to ignore
 // AddBuffMagnitude's error (`return true` unconditionally) turns this red.
 func TestProcApplyCondition_BleedSpecMissing_ReturnsFalse(t *testing.T) {
-	defer buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{})()
+	defer conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{})()
 	target := characters.New()
 
 	if procApplyCondition(target, map[string]float64{
@@ -300,7 +300,7 @@ func TestProcApplyCondition_NilAndUnknown(t *testing.T) {
 // bleed to the opponent — mirrors TestDispatchOnHitProcs_Lifesteal.
 func TestDispatchOnGrappleProcs_Bleed(t *testing.T) {
 	defer seedAllRegistries()()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 	enableItemProcs(t)
 	defer items.SeedItemsForTest(map[int]*items.ItemSpec{
 		999921: {ItemId: 999921, Name: "spiked harness", Type: items.Body,
@@ -314,7 +314,7 @@ func TestDispatchOnGrappleProcs_Bleed(t *testing.T) {
 
 	dispatchItemProcs("on_grapple", wearer, opponent, nil, 0)
 
-	if !opponent.HasBuff(buffs.BuffIdBleeding) {
+	if !opponent.HasBuff(conditions.BuffIdBleeding) {
 		t.Fatal("on_grapple apply_condition expected the opponent to be bleeding")
 	}
 }

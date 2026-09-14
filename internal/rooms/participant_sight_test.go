@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -32,8 +32,8 @@ func sightTestRoom(t *testing.T, biome string) *Room {
 		"city":    {BiomeId: "city", LitArea: true},
 		"default": {BiomeId: "default", LitArea: true},
 	}))
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		sightTestInfraredBuffId: {BuffId: sightTestInfraredBuffId, Name: "Test Heat Eyes", Flags: []buffs.Flag{buffs.InfraredVision}},
+	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+		sightTestInfraredBuffId: {BuffId: sightTestInfraredBuffId, Name: "Test Heat Eyes", Flags: []conditions.Flag{conditions.InfraredVision}},
 	}))
 	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{
 		7411: users.NewTestUser(7411, "aliceia", "Aliceia", 97411),

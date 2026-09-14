@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -71,7 +71,7 @@ func TestMain(m *testing.M) {
 func seedAllRegistries() func() {
 	cleanupKeywords := keywords.SeedKeywordsForTest()
 
-	cleanupBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanupBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		100: {
 			BuffId:        100,
 			Name:          "Test Strength Buff",
@@ -86,7 +86,7 @@ func seedAllRegistries() func() {
 			RoundInterval: 3,
 			TriggerCount:  5,
 			TriggerNow:    true,
-			Flags:         []buffs.Flag{buffs.Poison},
+			Flags:         []conditions.Flag{conditions.Poison},
 		},
 	})
 
@@ -122,7 +122,7 @@ func seedAllRegistries() func() {
 				Name:      "Skeleton",
 				RoomId:    1,
 				Health:    50,
-				Buffs:     buffs.New(),
+				Buffs:     conditions.New(),
 				Cooldowns: map[string]int{},
 				Awareness: awareness.NewMachine(),
 				Life:      life.NewMachine(),
@@ -145,7 +145,7 @@ func seedAllRegistries() func() {
 				Name:          "Merchant",
 				RoomId:        1,
 				Health:        100,
-				Buffs:         buffs.New(),
+				Buffs:         conditions.New(),
 				Cooldowns:     map[string]int{},
 				Awareness:     awareness.NewMachine(),
 				Life:          life.NewMachine(),
@@ -733,13 +733,13 @@ func TestLookForTrouble_SkipsGraceProtectedPlayer(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
-	cleanupGraceBuff := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanupGraceBuff := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		81: {
 			BuffId:        81,
 			Name:          "Respawn Grace",
 			RoundInterval: 1,
 			TriggerCount:  3,
-			Flags:         []buffs.Flag{buffs.NoAggroTarget},
+			Flags:         []conditions.Flag{conditions.NoAggroTarget},
 		},
 	})
 	defer cleanupGraceBuff()
@@ -753,7 +753,7 @@ func TestLookForTrouble_SkipsGraceProtectedPlayer(t *testing.T) {
 	require.NotNil(t, u1)
 	u1.Character.Health = 100
 	require.NoError(t, u1.Character.AddBuff(81, false))
-	require.True(t, u1.Character.HasBuffFlag(buffs.NoAggroTarget),
+	require.True(t, u1.Character.HasBuffFlag(conditions.NoAggroTarget),
 		"grace buff must register NoAggroTarget flag")
 
 	handled, err := LookForTrouble("", mob, room)

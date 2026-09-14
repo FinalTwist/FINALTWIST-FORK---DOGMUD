@@ -3,7 +3,7 @@ package perception_test
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
@@ -21,7 +21,7 @@ import (
 // is not immediately expired on add.
 func seedBlindBuffs(t *testing.T) func() {
 	t.Helper()
-	cleanup := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanup := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		perception.BuffIdBlinded: {
 			BuffId:        perception.BuffIdBlinded,
 			Name:          "Blinded",

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -199,7 +199,7 @@ func TestPinnacleAmbientPotions(t *testing.T) {
 			IsBandolier: true, BandolierCapacity: 4, AmbientPotions: true},
 		999955: {ItemId: 999955, Name: "vigor potion", Type: items.Potion, BuffIds: []int{54}},
 	})()
-	defer buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	defer conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
 		54: {BuffId: 54, Name: "Vigor", Description: "test vigor", RoundInterval: 5, TriggerCount: 100},
 	})()
 

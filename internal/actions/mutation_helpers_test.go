@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
@@ -17,7 +17,7 @@ import (
 func newTestMobBare(t *testing.T) *mobs.Mob {
 	t.Helper()
 	m := &mobs.Mob{InstanceId: 9900}
-	m.Character.Buffs = buffs.New()
+	m.Character.Buffs = conditions.New()
 	m.Character.Cooldowns = make(map[string]int)
 	return m
 }

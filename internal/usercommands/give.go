@@ -7,7 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -76,7 +76,7 @@ func Give(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 			targetUser := target.(*actions.UserActor).User
 
-			user.Character.CancelBuffsWithFlag(buffs.Hidden)
+			user.Character.CancelBuffsWithFlag(conditions.Hidden)
 
 			// Swap the item location
 			if giveItem.ItemId > 0 {
@@ -156,7 +156,7 @@ func Give(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			return true, nil
 		}
 
-		user.Character.CancelBuffsWithFlag(buffs.Hidden)
+		user.Character.CancelBuffsWithFlag(conditions.Hidden)
 
 		// Swap the item location
 		if giveItem.ItemId > 0 || giveGoldAmount > 0 {

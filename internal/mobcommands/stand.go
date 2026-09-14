@@ -3,7 +3,7 @@ package mobcommands
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -23,8 +23,8 @@ func Stand(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	// Cancel Sleeping FIRST so a standing-but-sleeping mob wakes regardless
 	// of position-state. Mirrors usercommands/stand.go.
-	if mob.Character.HasBuffFlag(buffs.Sleeping) {
-		mob.Character.CancelBuffsWithFlag(buffs.Sleeping)
+	if mob.Character.HasBuffFlag(conditions.Sleeping) {
+		mob.Character.CancelBuffsWithFlag(conditions.Sleeping)
 		mobs.OnSleeperWoken(&mob.Character)
 	}
 
