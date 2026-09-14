@@ -117,7 +117,8 @@ tripled the spell dot's total, so the owner halved the two spell dot
   `UserRoundTick` gated the whole tick body on `!buff.Expired()`, so the one
   and only tick of a one-trigger record never landed. The mob tick never had
   the defect. Fixed in this slice, which means every player-held tick record
-  now lands one more tick than it did before.
+  now lands one more tick than it did before. The owner ruled this extra
+  final tick intended behaviour, not a side effect to correct (2026-09-14).
 
 ## Architecture
 

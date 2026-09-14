@@ -1125,7 +1125,8 @@ had already decremented it once. Minor Shield is buff 119 now, decays once a
 round with every other record, and narrates its end wherever it ends rather
 than only in combat. The helper and its mob-side twin are deleted (conditions
 unification, 2026-09-12). A combat shield therefore lasts about twice as long
-as it did on prod.
+as it did on prod. The owner ruled that longer combat duration intended
+behaviour, not a regression to fix (2026-09-14).
 
 #### 2c. Fold Casting Check
 `handlePlayerFoldCasting(user, userId)` — If the player typed

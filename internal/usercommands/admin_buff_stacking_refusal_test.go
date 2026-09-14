@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
@@ -70,6 +72,81 @@ func TestAdminBuff_RefusesAStackingSpecOnAPlayer(t *testing.T) {
 		t.Errorf("no stacking refusal sent; got:\n%s", msgs)
 	}
 	if user.Character.Buffs.HasBuff(adminBuffStackingTestId) {
+		t.Error("a refused add must hold nothing")
+	}
+}
+
+// seedAdminBuffStackingMob mirrors seedAdminBuffStackingUser for the MOB
+// branch of the same refusal (admin.buff.go's second `buffSpec.IsStacking()`
+// guard, ~line 150). It needs its own room registered with the rooms
+// package, because the len(args)>=2 path in Buff() re-resolves the room via
+// rooms.LoadRoom(user.Character.RoomId) rather than using the room argument
+// the command was called with. The mob instance is seeded and placed in that
+// room the same way internal/usercommands/attack_test.go builds a mob
+// fixture (mobs.SeedMobsForTest + room.AddMob).
+func seedAdminBuffStackingMob(t *testing.T) (*users.UserRecord, *rooms.Room, *mobs.Mob, func()) {
+	t.Helper()
+
+	cleanupBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+		adminBuffStackingTestId: {
+			BuffId: adminBuffStackingTestId, Name: "Test Gash",
+			TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 4,
+			Flags:    []buffs.Flag{buffs.Bleeding, buffs.Stacking},
+			TickPool: "health", TickFromMagnitude: true,
+		},
+	})
+
+	u := users.NewTestUser(9441, "stackadmin", "Stackadmin", uint64(9441))
+	u.Role = users.RoleAdmin
+	u.Character.RoomId = 1
+	cleanupUsers := users.SeedUsersForTest(map[int]*users.UserRecord{9441: u})
+
+	room := &rooms.Room{RoomId: 1}
+	cleanupRooms := rooms.SeedRoomsForTest(map[int]*rooms.Room{1: room}, nil)
+
+	mob := &mobs.Mob{
+		MobId:      1,
+		InstanceId: 9442,
+		HomeRoomId: 1,
+		Character: characters.Character{
+			Name:   "Stackratling",
+			RoomId: 1,
+			Health: 10,
+			Buffs:  buffs.New(),
+		},
+	}
+	cleanupMobs := mobs.SeedMobsForTest(nil, map[int]*mobs.Mob{9442: mob})
+	room.AddMob(9442)
+
+	events.DrainQueuedMessagesForTest(u.UserId)
+
+	return u, room, mob, func() {
+		events.DrainQueuedMessagesForTest(u.UserId)
+		room.RemoveMob(9442)
+		cleanupMobs()
+		cleanupRooms()
+		cleanupUsers()
+		cleanupBuffs()
+	}
+}
+
+func TestAdminBuff_RefusesAStackingSpecOnAMob(t *testing.T) {
+	user, room, mob, cleanup := seedAdminBuffStackingMob(t)
+	defer cleanup()
+
+	handled, err := Buff("stackratling "+strconv.Itoa(adminBuffStackingTestId), user, room, 0)
+	if err != nil || !handled {
+		t.Fatalf("command errored: handled=%v err=%v", handled, err)
+	}
+
+	msgs := strings.Join(events.DrainQueuedMessagesForTest(user.UserId), "\n")
+	if strings.Contains(msgs, "applied to") {
+		t.Errorf("must not claim the buff applied; got:\n%s", msgs)
+	}
+	if !strings.Contains(msgs, "stack") {
+		t.Errorf("no stacking refusal sent; got:\n%s", msgs)
+	}
+	if mob.Character.Buffs.HasBuff(adminBuffStackingTestId) {
 		t.Error("a refused add must hold nothing")
 	}
 }
