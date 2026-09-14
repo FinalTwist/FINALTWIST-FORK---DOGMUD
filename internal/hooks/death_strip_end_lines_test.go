@@ -7,7 +7,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/life"
-	"github.com/GoMudEngine/GoMud/internal/worldevents"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,16 +26,11 @@ import (
 // strip that also pruned would blind deathCauseFor (it reads the held Bleeding
 // record by id), so the "bleeding out" assertion pins that the silent prune
 // waits until every Alive -> Dead observer has run, whatever order they were
-// registered in.
-//
-// The real announcement also runs: the first Validate (inside
-// AddBuffMagnitude below) fires the OnCharacterCreated wiring on this fixture
-// character. It emits the PvE death into the shared world event feed, so the
-// feed is emptied on cleanup or the gossip tests read "bleeding out".
+// registered in. (The real announcement runs too, from the fixture's
+// production wiring, which registers it before the cascade.)
 func TestDeathStrip_ExpiredRecordsDoNotNarrateAfterRespawn(t *testing.T) {
 	u := setupBuffAfterDeath(t)
 	t.Cleanup(buffs.SeedConditionRecordsForTest())
-	t.Cleanup(worldevents.ResetForTest)
 	cause := ""
 	u.Character.Life.Inner().AfterTransition("test_death_cause",
 		func(from, to life.State, _ state.TransitionReason) {
@@ -60,8 +54,11 @@ func TestDeathStrip_ExpiredRecordsDoNotNarrateAfterRespawn(t *testing.T) {
 
 	died := events.DrainQueuedCharacterDiedForTest()
 	require.Len(t, died, 1, "the bleed tick must queue the death")
+	epochBefore := u.Character.LifeEpoch
 	RouteAttributedDeath(died[0])
 	require.True(t, u.Character.IsAlive(), "precondition: the player respawned")
+	require.Equal(t, epochBefore+1, u.Character.LifeEpoch,
+		"precondition: the death cascade is wired exactly once")
 
 	assert.Equal(t, "bleeding out", cause,
 		"the death cause must still read the held Bleeding record")

@@ -9,6 +9,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/life"
 	"github.com/GoMudEngine/GoMud/internal/users"
+	"github.com/GoMudEngine/GoMud/internal/worldevents"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,8 +19,13 @@ import (
 const rendingAfterDeathBuffId = 7110
 
 // setupBuffAfterDeath seeds the registries and a tick record, and gives user 1
-// a real Life machine wired to the death cascade, so Die runs the same
-// Alive -> Dead -> Respawning -> Alive sequence the game does.
+// a real Life machine carrying the production death wiring, so Die runs the
+// same Alive -> Dead -> Respawning -> Alive sequence the game does.
+//
+// The wiring comes from the character's first Validate, which fires the
+// OnCharacterCreated callbacks exactly once, in production order. Wiring the
+// cascade by hand as well would register it twice, because any later Validate
+// (every buff add runs one) fires the callbacks anyway.
 func setupBuffAfterDeath(t *testing.T) *users.UserRecord {
 	t.Helper()
 	t.Cleanup(seedAllRegistries())
@@ -35,11 +41,25 @@ func setupBuffAfterDeath(t *testing.T) *users.UserRecord {
 	u := users.GetByUserId(1)
 	require.NotNil(t, u)
 	u.Character.Life = life.NewMachine()
-	wireLifeCrossMachineCascades(u.Character)
+	// Validate recalculates stats and pools from Base, and the test user
+	// carries only Value/ValueAdj, so give it real bases or its health max
+	// floors at 1 and any hit kills.
+	seedRacialStats(u, 0)
+	u.Character.HealthMax.Base = 200
+	u.Character.StaminaMax.Base = 100
+	u.Character.ConvictionMax.Base = 50
+	_ = u.Character.Validate()
+	u.Character.Health = u.Character.HealthMax.Value
+	// The real death announcement is part of that wiring and emits a PvE
+	// death into the shared world event feed, which the gossip tests read.
+	t.Cleanup(worldevents.ResetForTest)
 
+	// The message queue is package-global: drain every seeded user, or a
+	// line an earlier test sent to the room is read as this test's.
 	events.DrainQueuedCharacterDiedForTest()
 	events.DrainQueuedBuffsForTest(0)
 	drainPlain(1)
+	drainPlain(2)
 	return u
 }
 
@@ -61,7 +81,7 @@ func TestApplyBuffs_BuffQueuedBeforeDeathDoesNotLandAfterRespawn(t *testing.T) {
 
 	// The killing blow, then the on-hit buff, in the order the combat round
 	// queues them.
-	u.Character.ApplyHarm(characters.PoolHealth, 500, state.ActorRef{MobInstanceId: 100})
+	u.Character.ApplyHarm(characters.PoolHealth, u.Character.HealthMax.Value+100, state.ActorRef{MobInstanceId: 100})
 	u.AddBuff(rendingAfterDeathBuffId, "mutation")
 
 	died := events.DrainQueuedCharacterDiedForTest()
@@ -120,7 +140,7 @@ func TestApplyBuffs_BuffQueuedBeforeAReviveStillApplies(t *testing.T) {
 	u := setupBuffAfterDeath(t)
 	require.NoError(t, u.Character.AddBuff(deathProtectionBuffId, true))
 
-	u.Character.ApplyHarm(characters.PoolHealth, 500, state.ActorRef{MobInstanceId: 100})
+	u.Character.ApplyHarm(characters.PoolHealth, u.Character.HealthMax.Value+100, state.ActorRef{MobInstanceId: 100})
 	u.AddBuff(rendingAfterDeathBuffId, "mutation")
 
 	died := events.DrainQueuedCharacterDiedForTest()

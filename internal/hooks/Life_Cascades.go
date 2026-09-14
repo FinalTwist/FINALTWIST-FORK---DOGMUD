@@ -93,12 +93,15 @@ func wireLifeCrossMachineCascades(c *characters.Character) {
 				// (Mobs don't reach Respawning; their instances
 				// get cleaned up by the despawn observer.)
 
-				// 0. Remove the records the death strip expired, SILENTLY.
-				// The strip only expires them, so the next NewTurn prune used
+				// 0. Remove every expired-but-held record, SILENTLY. The death
+				// strip only expires records, so the next NewTurn prune used
 				// to remove them and narrate every end line to wherever the
 				// player now stood ("Your wounds stop bleeding." in the
-				// Mending Hut, playtest 7d0dad99c4709fc0). A record cancelled
-				// any other way, or run out on its own, still narrates there.
+				// Mending Hut, playtest 7d0dad99c4709fc0). This is not limited
+				// to the strip's records: one that expired earlier the same
+				// turn (cancel-on-combat just before the killing blow) and was
+				// not yet pruned is removed silently too. A record that ran out
+				// or was cancelled and pruned before the death still narrated.
 				//
 				// Here and not beside the strip: the strip runs INSIDE the
 				// Alive -> Dead observers, and the death announcement's
