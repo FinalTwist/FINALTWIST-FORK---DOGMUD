@@ -1,0 +1,42 @@
+# Conditions slice 1b: the BLEEDER. You start in the Ironwind Steppe, where
+# hostile steppe wolves roam and hamstring their prey. Quote every line about
+# your wounds VERBATIM. Companions may follow you; ignore them.
+# 3 commands per round on the AI port; the overflow is dropped.
+
+ephemeral:
+  profile: veteran
+  start_room: 3015
+  budgets:
+    wall_clock: 35m
+
+goals:
+  - >-
+    FIND WOLVES. Type `look`. If no steppe wolf is here, walk to a nearby
+    steppe room and look again, until you share a room with at least one
+    wolf. Tell the party channel where you are.
+  - >-
+    LET THEM BITE. Let the wolves attack you. Fight back only lightly (plain
+    attacks, no special moves or spells) so the fight lasts many rounds. If
+    your health drops below a third, stop fighting and step into a room with
+    no wolves, then come back when rested.
+  - >-
+    STACKS. Every three or four rounds of fighting, type `conditions` and
+    quote the Bleeding row exactly. Expect "Bleeding" and, once more than one
+    wound is open, "Bleeding (2)" or "Bleeding (3)". Report the highest count
+    you saw.
+  - >-
+    ONE LINE PER ROUND. Count how often "Blood seeps from your wounds!"
+    arrives. More than one copy in the same round is the defect. Quote a
+    stretch of several rounds so the rhythm can be judged.
+  - >-
+    AFTER THE FIGHT. When a fight ends (you win, or you leave the wolves),
+    stay out of combat and type `conditions` every few rounds. Quote the
+    Bleeding row each time. Expect the bleeding to keep going for a while,
+    then "Your wounds stop bleeding." once. Report roughly how many rounds
+    it lasted after the fight.
+  - >-
+    If no wolf ever hamstrings you in twenty rounds of fighting, say so, and
+    report which special attacks the wolves did use.
+  - >-
+    Judge every line as writing. Quote anything with a raw number, a literal
+    "{source}", or that reads twice.

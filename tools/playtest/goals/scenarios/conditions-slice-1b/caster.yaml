@@ -1,0 +1,32 @@
+# Conditions slice 1b: the CASTER. You start in the Rift Chamber, where Sable
+# sells arena fights. Quote every line VERBATIM.
+# 3 commands per round on the AI port; the overflow is dropped.
+
+ephemeral:
+  profile: specialist-caster
+  start_room: 5000
+  budgets:
+    wall_clock: 35m
+
+goals:
+  - >-
+    ARENA. Type `ask sable arena 350`. When the fight begins, type
+    `cast blood-boil` at the arena mob. If it fizzles or is resisted, cast it
+    again. Quote the line that says it afflicts the mob.
+  - >-
+    POISON. Watch the mob for several rounds and quote what you see about it.
+    You yourself should NOT read "The poison burns through your veins!" for a
+    poison on the mob.
+  - >-
+    RECOVERY. If you are knocked to the ground, quote the stand or slip lines
+    and count your own attack lines in each round you are still down. Expect
+    no more than one attack per weapon in such a round. If you are never
+    knocked down, say so.
+  - >-
+    DEATH. Keep fighting until you die (buy a harder fight with a larger gold
+    amount if needed, for example `ask sable arena 2000`). After you respawn,
+    type `conditions` at once and quote the whole output. A row named
+    "Respawn Grace" or "Mysterious Affliction" is the defect.
+  - >-
+    Judge every line as writing. Quote anything with a raw number, a literal
+    "{source}", or that reads twice.
