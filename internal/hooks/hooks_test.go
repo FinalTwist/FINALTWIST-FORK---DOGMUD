@@ -935,7 +935,8 @@ func TestRoundTick_PoisonDamage(t *testing.T) {
 	// deleted in slice 1 (the record's own tick path in UserRoundTick applies
 	// the harm). If it were revived in record-reading form, this same round's
 	// regen-gate call would double the damage already applied above instead of
-	// only adding a small regen.
+	// only adding a small regen. Round 3 because AutoHeal acts only on a
+	// multiple of three (NewRound_AutoHeal.go), not because it follows round 2.
 	result := AutoHeal(events.NewRound{RoundNumber: 3})
 	require.Equal(t, events.Continue, result)
 	hpr := u1.Character.HealthPerRound()

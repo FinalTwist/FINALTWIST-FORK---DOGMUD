@@ -145,8 +145,8 @@ var buffApplyPathAllowlist = map[string]string{
 	"internal/combat/grapple_move.go|59": "former combat condition (one-round penalty): quiet record; must apply synchronously inside the round tick",
 
 	// ── former combat condition: Minor Shield is now one record (Task 6;
-	// re-keyed slice 1b when the dot comment above shrank and shifted every
-	// later line in the file) ────────────────────────────────────────────
+	// re-keyed slice 1b when the dot producer comments in
+	// spell_resolution.go shrank and shifted every later line in that file) ──
 	"internal/hooks/spell_resolution.go|1173": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 	"internal/hooks/spell_resolution.go|1529": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
