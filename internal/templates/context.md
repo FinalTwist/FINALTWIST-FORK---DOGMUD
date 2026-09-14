@@ -13,6 +13,9 @@ The `internal/templates` package provides a comprehensive template processing sy
 - **layout.go**: Template layout and structure management
 - **layout_test.go**: Layout system unit tests
 - **name_description.go**: Name and description template utilities
+- **testing_support.go**: `SetFSForTest`, a test-only helper (not a `_test.go`
+  file, so it ships in the binary but is only ever called from tests, mirroring
+  `configs.SetConfigForTest`)
 
 ### Key Structures
 
@@ -76,6 +79,18 @@ Cached template with metadata for efficient reuse and cache invalidation.
   - Searches registered file systems first (plugins)
   - Falls back to core data files
   - Enables conditional template loading
+
+- **SetFSForTest(t *testing.T, filesystems ...fs.ReadFileFS)** (`testing_support.go`):
+  use this in tests instead of `RegisterFS`. `RegisterFS` only appends and has
+  no matching unregister, so a call from a test leaks that filesystem into
+  every later test sharing the same test binary process — and because
+  `readFile`'s zero-registrations behavior is "vacuously succeed with empty
+  content" rather than "fail", that leak silently changes what unrelated
+  tests render. `SetFSForTest` replaces `fileSystems` for the calling test
+  only and restores it via `t.Cleanup`. It is **not safe with parallel tests**
+  (`t.Parallel()`): `fileSystems` is an unlocked package-level var, so two
+  tests racing `SetFSForTest` step on each other's registrations and
+  cleanups.
 
 ### Configuration Management
 - **SetAnsiFlag(flag AnsiFlag)**: Sets global ANSI processing override

@@ -11,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/species"
+	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -113,4 +114,22 @@ func TestTemplateFreeze_SpeciesHelpReadsConditionIds(t *testing.T) {
 	out, err := templates.Process("help/species", []species.Species{{Name: "Probe", BuffIds: []int{942}}}, 0)
 	require.NoError(t, err)
 	assert.Contains(t, out, "Probe Hide", "species help reads $speciesInfo.BuffIds")
+}
+
+// TestWireFreeze_SpellCategoryStillGroupsBuffEffectType pins spells.go:32's
+// `case "buff", "shield", "purge":` inside spellCategory, the other string
+// literal reading effect_type: buff (see wire_freeze_test.go at the repo
+// root and internal/hooks/wire_freeze_test.go for the dispatch-side ones).
+// It decides which sort bucket the `spells` command lists a spell under.
+//
+// A Neutral-type spell is the probe that actually distinguishes this case
+// from its fallthrough: an effect_type: buff spell matches the case FIRST
+// and returns 2 regardless of Type, but if that case literal ever stops
+// matching "buff", a Neutral-type spell falls through to the `sp.Type ==
+// spells.Neutral` branch below and returns 0 instead — a real, visible
+// change to where the spell lists in the `spells` command.
+func TestWireFreeze_SpellCategoryStillGroupsBuffEffectType(t *testing.T) {
+	got := spellCategory(&spells.SpellData{EffectType: "buff", Type: spells.Neutral})
+	assert.Equal(t, 2, got,
+		"an effect_type: buff spell must still sort into the buff/shield/purge display category (usercommands/spells.go's spellCategory)")
 }

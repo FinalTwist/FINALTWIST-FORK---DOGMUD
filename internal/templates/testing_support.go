@@ -22,6 +22,11 @@ import (
 // FilePaths.DataFiles. A single unscoped RegisterFS call flips that default
 // for everything downstream in the same run, so anything that needs a real,
 // disk-backed render in one test must use this instead.
+//
+// Use this in tests instead of RegisterFS, which appends and leaks. This is
+// not safe with parallel tests (t.Parallel()): fileSystems is an unlocked
+// package-level var, so two tests racing SetFSForTest step on each other's
+// registrations and cleanups.
 func SetFSForTest(t *testing.T, filesystems ...fs.ReadFileFS) {
 	t.Helper()
 	original := fileSystems

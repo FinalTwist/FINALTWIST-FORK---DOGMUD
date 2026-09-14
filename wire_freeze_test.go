@@ -69,6 +69,14 @@ func TestWireFreeze_ConditionFileKeys(t *testing.T) {
 		"tick_pool: health\ntick_from_magnitude: true\n"
 	require.NoError(t, yaml.Unmarshal([]byte(doc), &s))
 	assert.Equal(t, 950, s.BuffId, "`buffid:` must still name the record")
+	// yaml.v2 ignores unknown keys rather than erroring, so `name:`,
+	// `triggercount:`, `tick_pool:` and `tick_from_magnitude:` are otherwise
+	// unpinned by this test: a tag typo on any of them would silently drop
+	// the value to its zero state and nothing here would notice.
+	assert.Equal(t, "Probe", s.Name, "`name:` must still parse")
+	assert.Equal(t, 2, s.TriggerCount, "`triggercount:` must still parse")
+	assert.Equal(t, "health", s.TickPool, "`tick_pool:` must still parse")
+	assert.True(t, s.TickFromMagnitude, "`tick_from_magnitude:` must still parse")
 	assert.Equal(t, []int{3}, s.StartRemoveBuffs, "`start_remove_buffs:` must still parse")
 	assert.True(t, s.Effects[buffs.EffectDamageMult].UsesMagnitude)
 	assert.Equal(t, []buffs.Flag{buffs.Stacking}, s.Flags)
