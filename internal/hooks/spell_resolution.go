@@ -635,17 +635,15 @@ func applyMobEffect_dot(
 	// An immune target refuses the record, and nothing that did not happen
 	// may be narrated. The cast still earns aggro: it was made.
 	//
-	// The hook applied int(magnitude) per round with a floor of one; the
-	// record's negative snapshot is that harm. The old hook landed that
-	// harm only every third round while dotDuration ticked down every
-	// round; the record keeps that cadence itself now (buff 121's
-	// triggerrate is three rounds), so TickTriggers converts dotDuration
-	// into the matching trigger count instead of one trigger per round.
+	// The record's negative snapshot is int(magnitude) harm, floored at
+	// one. Buff 121 ticks every round (slice 1b, owner ruling 2026-09-14;
+	// it used to land every third round), so dotDuration is the trigger
+	// count as it stands.
 	dotAmount := magnitude
 	if dotAmount < 1 {
 		dotAmount = 1
 	}
-	afflicted := mob.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, buffs.TickTriggers(dotDuration), -float64(dotAmount), "spell") == nil
+	afflicted := mob.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil
 	setMobSpellAggro(user, mob)
 	if afflicted && user != nil {
 		user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
@@ -1661,17 +1659,15 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 		// An immune target refuses the record, and nothing that did not happen
 		// may be narrated. The targeting commit below still stands: the mob cast.
 		//
-		// The hook applied int(magnitude) per round with a floor of one; the
-		// record's negative snapshot is that harm. The old hook landed that
-		// harm only every third round while dotDuration ticked down every
-		// round; the record keeps that cadence itself now (buff 121's
-		// triggerrate is three rounds), so TickTriggers converts dotDuration
-		// into the matching trigger count instead of one trigger per round.
+		// The record's negative snapshot is int(magnitude) harm, floored at
+		// one. Buff 121 ticks every round (slice 1b, owner ruling 2026-09-14;
+		// it used to land every third round), so dotDuration is the trigger
+		// count as it stands.
 		dotAmount := magnitude
 		if dotAmount < 1 {
 			dotAmount = 1
 		}
-		if target.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, buffs.TickTriggers(dotDuration), -float64(dotAmount), "spell") == nil {
+		if target.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil {
 			messaging.SendTrio(messaging.Trio{
 				Actor: messaging.NoLine,
 				Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
