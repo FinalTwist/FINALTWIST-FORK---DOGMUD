@@ -121,8 +121,14 @@ the record is expired and pruned with its normal end line). Both round-tick
 paths already read `buff.TickAmount` after `Trigger` returns, so neither the
 player nor the mob tick path changes: one sum is one harm, one wake, one
 cancel, one death-cause stamp, one trigger line per round however many stacks
-are live. A stack added this round first ticks next round, like any record
-today.
+are live. Every bleed producer runs inside combat, which is after that
+round's tick (hook order `UserRoundTick`, `MobRoundTick`, `DoCombat`), so a
+new stack first ticks on the next round's tick. `Trigger` itself does not
+delay a fresh stack: one added and then ticked straight away ticks at once,
+as any one-round record does. A stacking record that somehow holds no stacks
+(nothing produces one; slice 1 is undeployed, so no save carries a
+pre-stacking bleed) is not ticked: `Trigger` expires it without returning it,
+so no zero-amount tick can reach the tick path's `tick_percent` fallback.
 
 **Removal.** `RemoveBuff` expires the record and clears its stacks, so a cure
 removes the whole bleed.
@@ -240,15 +246,18 @@ confirm red, restore).
 
 - **`internal/buffs`:** two adds make two stacks, not an overwrite; the record's
   `TriggersLeft` tracks the longest stack; `Trigger` sums, decrements and drops
-  stacks and expires the record with the last one; a stack added this round
-  does not tick this round; `RemoveBuff` clears stacks; `Validate` rejects
+  stacks and expires the record with the last one; a stacking record with no
+  stacks expires without ticking; `RemoveBuff` clears stacks; `Validate` rejects
   `stacking` without `tick_from_magnitude` or with a longer interval; a
   non-stacking record still overwrites; stacks survive a YAML round trip;
   `DisplayName` shows the count only above one stack.
-- **Equilibrium, measured:** a table test applies one stack every
-  `SpecialMoveCooldown` rounds for 40 rounds with each move's shipped knobs
-  and asserts the live stack count settles in 2 to 3 and the per-round damage
-  matches the plan's stated figure.
+- **Equilibrium, two gates.** In `internal/configs`, a test loads the shipped
+  `config.yaml` and asserts, for each move, stack length / `SpecialMoveCooldown`
+  in [2, 3] and a stack's total at Strength 100 in [1.5, 3] times the old
+  single hit. In `internal/buffs` (which cannot read balance knobs without the
+  shipped file), a simulation adds one stack every 4 rounds for 40 rounds at
+  stack lengths 8, 10 and 12 and asserts the live count after warm-up is
+  exactly 2, 2 to 3, and 3.
 - **Hooks:** a player and a mob holding three stacks take the summed harm once
   per round with one trigger line; death by bleed still names "bleeding out";
   the spell dot lands on consecutive rounds for `dotDuration` rounds.
@@ -256,11 +265,13 @@ confirm red, restore).
   attempt, driven through `UserRoundTick` rather than by adding the record
   directly (the direct-add test already existed and passed while the real
   path was inert).
-- **Both lists:** one table test drives a character holding a plain, a hidden,
-  a secret and a stacked record through the `conditions` command output and
-  the `Char.Conditions` payload, and asserts the same visible set in both
-  (plain and stacked only) and that the stacked `name` carries the count.
-  `Listed()` has its own four-case test.
+- **Both lists:** the two lists live in different packages, so each is
+  extracted into a function that takes a character (`conditionEntries` in
+  `internal/usercommands`, `buildConditionsPayload` in `modules/gmcp`) and
+  each has a test with the SAME fixture (a plain, a hidden, a secret and a
+  stacked record) and the SAME expected visible set (plain and stacked only,
+  the stacked name carrying its count). `Listed()` has its own four-case test;
+  it is the one predicate both call, which is what keeps them agreeing.
 - **Config:** each of the fifteen knobs is present in the committed
   `config.yaml` blob, and its default guard does not overwrite a shipped value.
 - **Guard:** the apply-path guard allowlist is re-keyed to the producers' new
