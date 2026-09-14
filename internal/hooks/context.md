@@ -967,6 +967,17 @@ Cross-machine cleanup that fires on two Life transitions:
   separate `c.Conditions = nil` clear that sat beside it was deleted with the
   combat condition enum on 2026-09-12; the former conditions are ordinary
   records and the buff cancel covers them.)
+- Bumps `Character.LifeEpoch`, beside the buff cancel. That cancel only
+  reaches HELD buffs. A buff still queued on `events.Buff` is stamped with the
+  epoch it was aimed at, and `ApplyBuffs` refuses one whose epoch no longer
+  matches (or whose holder is not alive), with no add and no notice. The epoch
+  is the test rather than `IsAlive` or `DeathQueued` because of flush order:
+  the killing swing queues its `CharacterDied` before its on-hit buff, and
+  `RouteAttributedDeath` cascades a player back to Alive with `DeathQueued`
+  cleared before the buff flushes. A ReviveOnDeath save ends no life, so the
+  blow's buff still lands on the revived character. Pinned by
+  `buff_after_death_test.go` (playtest 7d0dad99c4709fc0: a Rending Bleed from
+  the killing blow killed the respawned player a second time).
 
 **Dead → Respawning:**
 - Refills all resource pools to 5% of max

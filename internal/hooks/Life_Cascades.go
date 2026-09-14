@@ -62,6 +62,19 @@ func wireLifeCrossMachineCascades(c *characters.Character) {
 				//    only already-expired records, never PermaBuff).
 				c.CancelBuffsWithFlag(buffs.All)
 
+				// 5a. End this life's epoch. THIS MUST STAY BESIDE THE BUFF
+				// STRIP ABOVE. The strip clears every buff the character holds,
+				// but a buff still QUEUED on events.Buff is not held yet: the
+				// killing swing's on-hit buff is queued after its CharacterDied,
+				// the queue is FIFO, and Die cascades a player back to Alive
+				// with DeathQueued cleared before that buff flushes. Neither
+				// IsAlive nor DeathQueued can tell it apart from a live buff by
+				// then, so ApplyBuffs compares the epoch the event was stamped
+				// with instead. A Rending Bleed from the killing blow bled a
+				// respawned player to a second death in the Mending Hut
+				// (playtest 7d0dad99c4709fc0).
+				c.LifeEpoch++
+
 				// 5b. Toxicity → clear. THIS MUST STAY BESIDE THE BUFF STRIP
 				// ABOVE, because that strip is what justifies it: toxicity is
 				// the price of a potion's effect, and the line above has just

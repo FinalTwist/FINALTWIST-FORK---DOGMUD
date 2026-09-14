@@ -304,6 +304,11 @@ A refusal is a refusal all the way out: `Character.AddBuff` returns an error,
 returns an `error` the two spell dot sites test before narrating. `HasFlag` guards a nil
 spec, since every add now asks it and a save can hold a dead buff id.
 
+`Buff_ApplyBuffs` also refuses, the same way and before any add, an event whose
+`LifeEpoch` no longer matches its holder's `Character.LifeEpoch`: the holder
+died after it was queued, so the buff was aimed at a life that has ended. See
+the Alive to Dead cascade in `internal/hooks/context.md`.
+
 ### Flag Usage Patterns
 
 The sketch below is abridged and predates two fixes in the live body: `All`

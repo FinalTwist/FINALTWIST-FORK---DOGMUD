@@ -58,6 +58,23 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 		targetChar = buffUser.Character
 	}
 
+	// A buff queued for a life that has since ended is stale: refuse it with no
+	// add and no notice. The death cascade bumps LifeEpoch beside its buff
+	// strip, so this is the queued half of that strip.
+	//
+	// The test is the epoch, not IsAlive or DeathQueued, because of the order
+	// the queue flushes in. The killing swing queues its CharacterDied first
+	// and its on-hit buff second; RouteAttributedDeath then cascades a player
+	// Dead -> Respawning -> Alive and clears DeathQueued before this listener
+	// runs, so by then the respawned player looks alive and unqueued. Nor may
+	// it be DeathQueued alone: a ReviveOnDeath save never ends the life, and
+	// the blow's buff still belongs on the revived character. The !IsAlive
+	// half refuses a holder observed mid-death, which no legitimate buff
+	// targets. Buffs queued after the respawn carry the new epoch and land.
+	if evt.LifeEpoch != targetChar.LifeEpoch || !targetChar.IsAlive() {
+		return events.Continue
+	}
+
 	if evt.BuffId < 0 {
 		targetChar.RemoveBuff(buffInfo.BuffId * -1)
 		return events.Continue

@@ -33,6 +33,10 @@ type Buff struct {
 	// through AddBuffMagnitude. Zero both means the DurationMult path.
 	Magnitude float64
 	Triggers  int
+	// LifeEpoch is the holder's Character.LifeEpoch when the buff was queued.
+	// The producers stamp it; ApplyBuffs refuses the event if the holder has
+	// died since, because the buff was aimed at a life that has ended.
+	LifeEpoch uint64
 }
 
 func (b Buff) Type() string { return `Buff` }

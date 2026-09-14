@@ -1362,6 +1362,15 @@ exactly the population it exists to reap.
 the same round still lands and still counts toward the damage map, but it does
 not re-queue and does not re-attribute.
 
+**`LifeEpoch` is the queued-buff half of the death buff strip.** Runtime only
+(`yaml:"-"`). The Alive to Dead cascade in `hooks/Life_Cascades.go` bumps it
+beside `CancelBuffsWithFlag(buffs.All)`. Every `events.Buff` producer
+(`users.UserRecord.AddBuff` / `AddBuffScaled` / `AddBuffMagnitude`,
+`mobs.Mob.AddBuff`) stamps the holder's current epoch, and `hooks.ApplyBuffs`
+refuses an event from an ended life. Neither `DeathQueued` nor `IsAlive` can
+do this job: by the time a buff queued in the killing round flushes, the
+player has already respawned and the token is spent.
+
 **`ApplyHealthChange` takes a source and it is required.** It wraps `ApplyHarm`,
 and all eight of `combat.go`'s damage sites go through it, so a wrapper that
 supplied an empty ref would make every melee death anonymous. A zero ref is

@@ -89,9 +89,9 @@ var (
 // and carry no allowlist entry.
 var buffApplyPathAllowlist = map[string]string{
 	// ── The sanctioned consumer of the event ────────────────────────────────
-	"internal/hooks/Buff_ApplyBuffs.go|87": "this IS the hook the event feeds; it is where every routed buff is finally applied",
-	"internal/hooks/Buff_ApplyBuffs.go|89": "this IS the hook the event feeds; it is where every routed buff is finally applied",
-	"internal/hooks/Buff_ApplyBuffs.go|91": "this IS the hook the event feeds; it is where every routed buff is finally applied",
+	"internal/hooks/Buff_ApplyBuffs.go|104": "this IS the hook the event feeds; it is where every routed buff is finally applied",
+	"internal/hooks/Buff_ApplyBuffs.go|106": "this IS the hook the event feeds; it is where every routed buff is finally applied",
+	"internal/hooks/Buff_ApplyBuffs.go|108": "this IS the hook the event feeds; it is where every routed buff is finally applied",
 
 	// ── silent-start buffs whose applier narrates the moment itself ─────────
 	"internal/actions/combat_throttle.go|144": "buff 89 is silent-start; the throttle move narrates the choke as it lands and must apply it in the same tick",
@@ -119,7 +119,7 @@ var buffApplyPathAllowlist = map[string]string{
 	"internal/hooks/manifester_companions.go|40": "the holder is a MOB (a summoned companion), not a player",
 
 	// ── secret buffs: silence is the authored intent ────────────────────────
-	"internal/hooks/Life_Cascades.go|85": "buff 81 Respawn Grace is secret:true, so StartUserNotice is empty by design and the event would narrate nothing anyway",
+	"internal/hooks/Life_Cascades.go|98": "buff 81 Respawn Grace is secret:true, so StartUserNotice is empty by design and the event would narrate nothing anyway",
 
 	// ── the event path cannot express what the call needs ───────────────────
 	"internal/hooks/Awareness_Cascades.go|57": "buff 9 must be applied PERMANENT so the awareness state machine owns its lifecycle; the event path has no permanent form, and the transition callback holds only a Character",
