@@ -222,9 +222,9 @@ func TestPinnacleAmbientPotions(t *testing.T) {
 		t.Fatal("ambient buff should apply once attuned")
 	}
 
-	// Remove the potion → fingerprint changes → its buff is revoked (marked
+	// Remove the potion → fingerprint changes → its condition is revoked (marked
 	// expired, then evicted by the engine's per-turn prune — the same
-	// mark-expired + prune path WornBuffIds use on unequip).
+	// mark-expired + prune path WornConditionIds use on unequip).
 	c.PotionItems = nil
 	tickAmbientPotions(u, 151)
 	c.Conditions.Prune()
@@ -232,7 +232,7 @@ func TestPinnacleAmbientPotions(t *testing.T) {
 		t.Fatal("removing the potion should revoke its ambient buff")
 	}
 
-	// Re-slot the potion → re-attunement → after it expires, the buff re-applies.
+	// Re-slot the potion → re-attunement → after it expires, the condition re-applies.
 	c.PotionItems = append(c.PotionItems, items.New(999955))
 	tickAmbientPotions(u, 152) // fingerprint change re-stamps attunement
 	c.SetMiscData("pinnacle_bandolier_attune_round", uint64(152))

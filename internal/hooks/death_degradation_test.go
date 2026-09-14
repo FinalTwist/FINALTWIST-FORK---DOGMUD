@@ -172,7 +172,7 @@ func TestStatDecay_AtOrBelowFloorIsUntouched(t *testing.T) {
 	}
 }
 
-// Mods come from equipment and buffs. They must NOT count toward the floor, or
+// Mods come from equipment and conditions. They must NOT count toward the floor, or
 // a permanent penalty would hinge on what someone happened to be wearing when
 // they died: put a +20 ring on and the floor silently stops protecting you.
 func TestStatDecay_ModsDoNotCountTowardTheFloor(t *testing.T) {

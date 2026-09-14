@@ -369,8 +369,8 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 			// Noun highlighting is universal (2026-06-12). It was formerly
 			// gated on the room.nouns role permission or a pet with the
-			// SeeNouns buff flag — but the default user role can never hold
-			// permissions and no dogmud-world buff carries see-nouns, so the
+			// SeeNouns condition flag — but the default user role can never hold
+			// permissions and no dogmud-world condition carries see-nouns, so the
 			// gate made the feature admin-only by accident. Discoverability
 			// for everyone beats a vestigial perk.
 			renderNouns := true

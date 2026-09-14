@@ -15,11 +15,11 @@ type SleepOptions struct{}
 
 // SleepResult is the structured outcome of a Sleep call.
 type SleepResult struct {
-	Success bool   // true if the buff was applied (or was already applied — idempotent)
+	Success bool   // true if the condition was applied (or was already applied — idempotent)
 	Reason  string // empty on success; populated on failure (e.g., "in combat")
 }
 
-// Sleep applies the Sleeping buff (id 15) to the actor's character. Used by
+// Sleep applies the Sleeping condition (id 15) to the actor's character. Used by
 // the player sleep command, the mob sleep command, and the schedule executor
 // (via mob.Command("sleep")).
 //
@@ -29,7 +29,7 @@ type SleepResult struct {
 // combat ends.
 //
 // Idempotent: if the actor is already sleeping, returns Success without
-// re-applying the buff or re-emitting the room emote.
+// re-applying the condition or re-emitting the room emote.
 func Sleep(actor Actor, opts SleepOptions) SleepResult {
 	c := actor.GetCharacter()
 	if c == nil {
@@ -50,16 +50,16 @@ func Sleep(actor Actor, opts SleepOptions) SleepResult {
 		return SleepResult{Success: false, Reason: "in combat"}
 	}
 
-	// Apply buff 15 (Sleeping) synchronously, on the character. It cannot go
+	// Apply condition 15 (Sleeping) synchronously, on the character. It cannot go
 	// through the user's event path because the idempotence check above reads
 	// the Sleeping flag back, so a queued apply would let a second sleep in the
 	// same tick emit the room emote twice. (The schedule executor is not the
 	// reason: it reads the flag on a later tick, by which time an event would
-	// have drained.) Buff 15 is therefore flagged silent-start, and the applier
+	// have drained.) Condition 15 is therefore flagged silent-start, and the applier
 	// owes the holder the start line: that is what the SendText below is for.
-	// The buff YAML has no room text, so the third-person visual is also ours.
+	// The condition YAML has no room text, so the third-person visual is also ours.
 	if err := c.AddCondition(15, false); err != nil {
-		// Never surface the raw internal error (it leaks the buff id). Log it
+		// Never surface the raw internal error (it leaks the condition id). Log it
 		// for ops and give the player clean flavor.
 		mudlog.Error("Sleep", "msg", "AddBuff(15 Sleeping) failed", "actor", actor.GetName(), "error", err)
 		if actor.IsPlayer() {
@@ -71,11 +71,11 @@ func Sleep(actor Actor, opts SleepOptions) SleepResult {
 
 	// The start line the silent-start flag makes ours to send. Read through
 	// AuthoredStartLine, not StartUserNotice(), which is empty by design for a
-	// silent-start buff. A mob holder has no client, so only a player gets it.
+	// silent-start condition. A mob holder has no client, so only a player gets it.
 	if actor.IsPlayer() {
 		if spec := conditions.GetConditionSpec(15); spec != nil {
 			// Tagged for {source}, plain for {source_plain}, the textutil
-			// contract every narration site follows. Buff 15's line carries no
+			// contract every narration site follows. Condition 15's line carries no
 			// token today, so this is for the day one is authored.
 			line := spec.AuthoredStartLine(textutil.TokenContext{
 				SourceName:      c.GetCharacterName(true),

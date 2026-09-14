@@ -11,7 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/state/life"
 )
 
-// deathProtectionConditionId is the buff carrying the ReviveOnDeath flag,
+// deathProtectionConditionId is the condition carrying the ReviveOnDeath flag,
 // _datafiles/world/default/buffs/35-death_protection.yaml.
 const deathProtectionConditionId = 35
 
@@ -43,7 +43,7 @@ func newRouteDeathTestMob(t *testing.T, health int) *mobs.Mob {
 	return m
 }
 
-// seedReviveCondition registers a buff spec carrying the ReviveOnDeath flag.
+// seedReviveCondition registers a condition spec carrying the ReviveOnDeath flag.
 func seedReviveCondition(t *testing.T) {
 	t.Helper()
 	cleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
@@ -63,10 +63,10 @@ func seedReviveCondition(t *testing.T) {
 //
 // The race this closes: a player takes a lethal hit (DeathQueued set, event
 // queued, still IsAlive until the flush), then runs `suicide` in that window.
-// With ReviveOnDeath they are healed and the buff is CONSUMED. The stale event
-// then flushed, found them alive with no buff left, and killed them anyway —
+// With ReviveOnDeath they are healed and the condition is CONSUMED. The stale event
+// then flushed, found them alive with no condition left, and killed them anyway —
 // real corpse, real bounty, gold to the original killer, for a player who was
-// healthy a moment earlier. The buff exists precisely to prevent that.
+// healthy a moment earlier. The condition exists precisely to prevent that.
 //
 // !IsAlive() cannot catch this: the out-of-band resolution leaves them ALIVE.
 func TestRouteAttributedDeath_StaleEventIsInertOnceDeathQueuedIsCleared(t *testing.T) {
@@ -112,7 +112,7 @@ func TestRouteAttributedDeath_UnknownVictimIsInert(t *testing.T) {
 	}
 }
 
-// ReviveOnDeath must heal, cancel the buff, clear DeathQueued and NOT die.
+// ReviveOnDeath must heal, cancel the condition, clear DeathQueued and NOT die.
 // Leaving DeathQueued set would make the character permanently unkillable;
 // leaving health negative would just hand the kill to the sweep next tick.
 func TestRouteAttributedDeath_ReviveHealsAndClearsQueue(t *testing.T) {

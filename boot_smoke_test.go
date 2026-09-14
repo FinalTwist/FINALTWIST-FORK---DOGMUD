@@ -244,7 +244,7 @@ var knownIgnoredDialogueKeys = map[string]bool{}
 // Several entries below are genuine content bugs worth fixing, listed in the
 // audit doc rather than silently accepted:
 //   - `scriptag` on mobs.Mob: almost certainly a typo for `scripttag`.
-//   - `visible` / `sequential` / `expireMessage` on buffs.BuffSpec.
+//   - `visible` / `sequential` / `expireMessage` on conditions.ConditionSpec.
 //   - `zone` on exit.RoomExit (136x): authored values doing nothing.
 //
 // `cooldown` on rooms.SpawnInfo was cleared 2026-07-25: 59 authored lines

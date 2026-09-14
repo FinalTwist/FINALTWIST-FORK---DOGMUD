@@ -13,13 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Buff room lines describe what the room SEES ("A warm glow surrounds Alice"),
+// Condition room lines describe what the room SEES ("A warm glow surrounds Alice"),
 // but went out on the audio channel, which is never sight-gated, so blind and
 // unsighted observers received them. M2 fixed the same defect for
-// cast_room_text; these three buff phases were never touched.
+// cast_room_text; these three condition phases were never touched.
 
-// expire sets a buff's remaining triggers to the pruning threshold, so the next
-// PruneBuffs removes it and sends its end text. Deterministic, unlike counting
+// expire sets a condition's remaining triggers to the pruning threshold, so the next
+// PruneConditions removes it and sends its end text. Deterministic, unlike counting
 // ticks.
 func expire(t *testing.T, list []*conditions.Condition, conditionId int) {
 	t.Helper()
@@ -174,9 +174,9 @@ func TestConditionEndRoomText_MobHolderIsVisualAndUsesTheMobTag(t *testing.T) {
 }
 
 // TestMobConditionTriggerRoomText is the D4 guard. The player round tick has always
-// sent a triggered buff's trigger_room_text; tickMobBuffs never did, so a mob
-// holding a trigger-text buff showed nothing. No mob holder of the shipped
-// trigger-text buffs could be staged in a playtest, so this is its only check.
+// sent a triggered condition's trigger_room_text; tickMobConditions never did, so a mob
+// holding a trigger-text condition showed nothing. No mob holder of the shipped
+// trigger-text conditions could be staged in a playtest, so this is its only check.
 func TestMobConditionTriggerRoomText(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
@@ -199,21 +199,21 @@ func TestMobConditionTriggerRoomText(t *testing.T) {
 	}
 	assert.Equal(t, 1, delivered, "the trigger line must arrive exactly once")
 
-	// Sight-gated like every other buff room line.
+	// Sight-gated like every other condition room line.
 	darken(t, 1)
 	drainPlain(2)
 	tickMobConditions(mob, 100)
 	assert.Equal(t, 0, countContaining(drainPlain(2), "shivers."))
 }
 
-// A light buff's end line describes the light going out, and the moment a
+// A light condition's end line describes the light going out, and the moment a
 // light goes out is seen by everyone in the room with working eyes. But the
-// light stops counting the instant the buff EXPIRES (Buffs.HasFlag skips
-// expired buffs, and expiry happens on the round tick), while its end text is
+// light stops counting the instant the condition EXPIRES (Conditions.HasFlag skips
+// expired conditions, and expiry happens on the round tick), while its end text is
 // sent later, at the turn's prune. So a plain visual send judged sight in a
 // room that was already dark, and silenced the line for exactly the people
 // who had been seeing by that light. Found by the Task 2 review against
-// shipped buff 1, Illumination.
+// shipped condition 1, Illumination.
 
 func TestConditionEndRoomText_LightConditionEndIsSeenByItsOwnLight_Player(t *testing.T) {
 	cleanup := seedAllRegistries()

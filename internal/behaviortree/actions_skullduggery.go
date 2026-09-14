@@ -87,7 +87,7 @@ func actTryPlant(params map[string]any, ctx *EvalContext) Result {
 
 // actTryShadow runs actions.Shadow against the resolved target.
 // The actions.Shadow implementation enforces the hidden-required precondition
-// and returns Reason:"not hidden" when the mob lacks buff 9. Returns Failure
+// and returns Reason:"not hidden" when the mob lacks condition 9. Returns Failure
 // in that case.
 func actTryShadow(params map[string]any, ctx *EvalContext) Result {
 	mob, opts := resolveShadowOptsFromContext(ctx)

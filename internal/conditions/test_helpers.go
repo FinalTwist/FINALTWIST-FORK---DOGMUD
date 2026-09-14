@@ -1,6 +1,6 @@
 package conditions
 
-// SeedConditionsForTest replaces the global buffs map with the supplied test data
+// SeedConditionsForTest replaces the global conditions map with the supplied test data
 // and returns a cleanup function that restores the original.
 // Intended for cross-package integration tests (hooks, commands).
 func SeedConditionsForTest(conditionMap map[int]*ConditionSpec) func() {
@@ -13,10 +13,10 @@ func SeedConditionsForTest(conditionMap map[int]*ConditionSpec) func() {
 
 // SeedConditionRecordsForTest adds the condition records (79, 80, 117 to 123)
 // to whatever spec map is current, with exactly the shipped mechanical shape
-// AND the shipped start/trigger/end text (see each buff's
+// AND the shipped start/trigger/end text (see each condition's
 // _datafiles/world/dogmud/buffs YAML), and returns a cleanup that removes
 // them again. Additive on purpose: a package fixture that already seeded its
-// own buffs keeps them.
+// own conditions keeps them.
 func SeedConditionRecordsForTest() func() {
 	mag := EffectValue{UsesMagnitude: true}
 	records := []*ConditionSpec{

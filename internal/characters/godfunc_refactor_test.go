@@ -22,7 +22,7 @@ import (
 // Test helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-// newTestConditions returns a zero-value Buffs instance that is safe to embed in a
+// newTestConditions returns a zero-value Conditions instance that is safe to embed in a
 // manually-constructed Character.
 func newTestConditions() conditions.Conditions {
 	return conditions.New()

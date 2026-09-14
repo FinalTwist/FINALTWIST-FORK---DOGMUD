@@ -10,8 +10,8 @@ import (
 )
 
 // TestCatsEyeDraughtGrantsNightVision guards a flag spelling. The draught's
-// buff listed `night-vision`, but the constant every sight check reads is
-// `nightvision`, and nothing normalises or validates buff flag names at load.
+// condition listed `night-vision`, but the constant every sight check reads is
+// `nightvision`, and nothing normalises or validates condition flag names at load.
 // So the draught granted no night vision at all, while its item description
 // promised that "the darkness becomes transparent".
 func TestCatsEyeDraughtGrantsNightVision(t *testing.T) {

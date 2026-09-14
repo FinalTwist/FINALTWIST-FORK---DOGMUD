@@ -154,7 +154,7 @@ func TestResolveSubmissionOutcome_SuccessCrippleArmbar(t *testing.T) {
 		SubType: position.SubArmbar,
 	}
 	combat.ResolveSubmissionOutcome(atk, def, result, combat.RoleTop)
-	// Cripple with arm sub: death cascade + broken-limb buff (T9 stub).
+	// Cripple with arm sub: death cascade + broken-limb condition (T9 stub).
 	// For T7: verify the cascade fired.
 	assert.False(t, def.IsAlive(),
 		"defender should enter death cascade on cripple+arm policy")
@@ -195,19 +195,19 @@ func TestResolveSubmissionOutcome_CritMercyAppliesStunnedStub(t *testing.T) {
 		SubType: position.SubArmbar,
 	}
 	combat.ResolveSubmissionOutcome(atk, def, result, combat.RoleTop)
-	// Crit + mercy: clean release; applyStunnedBuff is a T10 stub.
+	// Crit + mercy: clean release; applyStunnedCondition is a T10 stub.
 	// For T7: verify the mercy path still fires (defender alive, grapple broken).
 	assert.False(t, atk.IsGrappling(), "grapple broken on crit+mercy")
 	assert.True(t, def.IsAlive(), "defender alive after crit+mercy release")
 }
 
 func TestResolveSubmissionOutcome_CrippleAppliesBrokenLimbCondition(t *testing.T) {
-	// This test verifies that cripple policy applies the broken-limb buff
+	// This test verifies that cripple policy applies the broken-limb condition
 	// for submission types that affect limbs (e.g., armbar, omoplata,
-	// kimura, americana). The actual buff spec (id 83) is loaded from YAML
-	// at server startup, so this unit test can't verify the buff exists in
+	// kimura, americana). The actual condition spec (id 83) is loaded from YAML
+	// at server startup, so this unit test can't verify the condition exists in
 	// the registry. Instead, we verify the death cascade occurs and the
-	// applyBrokenLimbBuff call path is exercised (no panic).
+	// applyBrokenLimbCondition call path is exercised (no panic).
 	atk, def := setupMountWithMobDefender(t)
 	atk.SubmissionPolicy = characters.PolicyCripple
 	result := combat.SubmissionAttemptResult{
@@ -215,8 +215,8 @@ func TestResolveSubmissionOutcome_CrippleAppliesBrokenLimbCondition(t *testing.T
 		SubType: position.SubArmbar,
 	}
 	combat.ResolveSubmissionOutcome(atk, def, result, combat.RoleTop)
-	// Cripple with armbar: death cascade fires + applyBrokenLimbBuff called.
-	// The buff's actual existence is verified at server boot when YAML is loaded.
+	// Cripple with armbar: death cascade fires + applyBrokenLimbCondition called.
+	// The condition's actual existence is verified at server boot when YAML is loaded.
 	assert.False(t, def.IsAlive(),
 		"defender should enter death cascade on cripple+armbar")
 }
@@ -262,8 +262,8 @@ func TestPB_307_MercyRelease_DefenderNeverTap(t *testing.T) {
 }
 
 // PB-313: Crit sub roll, policy=subdue.
-// Recipient should NOT receive the Stunned buff (they enter the death cascade;
-// buff would be a no-op). The subdue death-cascade outcome still fires.
+// Recipient should NOT receive the Stunned condition (they enter the death cascade;
+// condition would be a no-op). The subdue death-cascade outcome still fires.
 func TestPB_313_CritSubdue_NoStunnedCondition(t *testing.T) {
 	// Use mob defender so Die() stays Dead (players respawn synchronously).
 	atk, def := setupMountWithMobDefender(t)
@@ -276,10 +276,10 @@ func TestPB_313_CritSubdue_NoStunnedCondition(t *testing.T) {
 	// Subdue: death cascade fires (mob stays Dead).
 	assert.False(t, def.IsAlive(),
 		"PB-313: defender should enter death cascade on crit+subdue")
-	// Stunned buff (id 84) must NOT have been applied because policy≠mercy.
-	// The defender entered the death cascade before any buff could matter;
-	// confirm HasBuff returns false (buff registry not seeded in unit tests,
-	// so HasBuff(84) will be false either way — but that's the correct state).
+	// Stunned condition (id 84) must NOT have been applied because policy≠mercy.
+	// The defender entered the death cascade before any condition could matter;
+	// confirm HasCondition returns false (condition registry not seeded in unit tests,
+	// so HasCondition(84) will be false either way — but that's the correct state).
 	assert.False(t, def.HasCondition(84),
 		"PB-313: Stunned buff must not be applied on crit+subdue (death cascade fires)")
 }
@@ -390,8 +390,8 @@ func TestPB_323_SurrenderNeverTap_AttackerSubdue_Fires(t *testing.T) {
 		"PB-323: subdue fires regardless of never-tap surrender policy")
 }
 
-// PB-330: Broken-arm debuff statmod — verified in internal/conditions package.
-// TestPB_330 and TestPB_332 live in internal/conditions/buffs_test.go (internal
-// package) where the buff registry can be seeded without the YAML loader.
-// See TestPB_330_BrokenLimbBuff_StatModApplied and
-// TestPB_332_BrokenLimbBuff_ExpiresNaturally in that file.
+// PB-330: Broken-arm harmful condition statmod — verified in internal/conditions package.
+// TestPB_330 and TestPB_332 live in internal/conditions/conditions_test.go (internal
+// package) where the condition registry can be seeded without the YAML loader.
+// See TestPB_330_BrokenLimbCondition_StatModApplied and
+// TestPB_332_BrokenLimbCondition_ExpiresNaturally in that file.

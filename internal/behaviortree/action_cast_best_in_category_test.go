@@ -23,7 +23,7 @@ func spellIds(sds []*spells.SpellData) []string {
 }
 
 // seedCategorySpells installs a minimal self_defense spell catalog and
-// returns the cleanup function. Buff IDs used: 10, 11.
+// returns the cleanup function. Condition IDs used: 10, 11.
 func seedCategorySpells(t *testing.T) func() {
 	t.Helper()
 	return spells.SeedSpellsForTest(map[string]*spells.SpellData{
@@ -133,8 +133,8 @@ func TestCollectCategoryCandidates_SkipsConditionAlreadyActive(t *testing.T) {
 	})
 	defer cleanupConditions()
 
-	// Build a Buffs tracker with buff 10 already in the list, then Validate()
-	// to rebuild the internal buffIds index. This avoids calling char.AddBuff
+	// Build a Conditions tracker with condition 10 already in the list, then Validate()
+	// to rebuild the internal conditionIds index. This avoids calling char.AddCondition
 	// which triggers Character.Validate() and may clamp Conviction to 0.
 	b := conditions.New()
 	b.List = append(b.List, &conditions.Condition{ConditionId: 10, TriggersLeft: 5})
@@ -147,7 +147,7 @@ func TestCollectCategoryCandidates_SkipsConditionAlreadyActive(t *testing.T) {
 
 	sb := map[string]int{"d1": 1, "d2": 1}
 	got := collectCategoryCandidates(char, sb, "self_defense", 1, "test")
-	// d1 should be excluded (buff 10 active), d2 should be included
+	// d1 should be excluded (condition 10 active), d2 should be included
 	if len(got) != 1 {
 		t.Fatalf("want 1 candidate (d2 only), got %d: %v", len(got), spellIds(got))
 	}

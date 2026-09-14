@@ -430,13 +430,13 @@ func (u *UserRecord) AddCondition(conditionId int, source string) {
 
 }
 
-// AddConditionScaled queues a buff whose duration is scaled, the way potion
+// AddConditionScaled queues a condition whose duration is scaled, the way potion
 // potency and crafting skill scale them. It travels the same event as
-// AddBuff, so the holder still reads the start notice; applying through
+// AddCondition, so the holder still reads the start notice; applying through
 // Character.AddConditionScaled directly would land in silence.
 func (u *UserRecord) AddConditionScaled(conditionId int, durationMult float64, source string) {
 
-	// Normalise a non-positive multiplier to the authored duration. Buffs.AddBuffScaled
+	// Normalise a non-positive multiplier to the authored duration. Conditions.AddConditionScaled
 	// clamps a zero to a single trigger, but the hook reads 0 as "unscaled" and would
 	// send it down the full-duration path, so the two disagree unless it is fixed here.
 	if durationMult <= 0 {
@@ -470,7 +470,7 @@ func (u *UserRecord) AddConditionMagnitude(conditionId int, triggers int, magnit
 	})
 }
 
-// lifeEpoch is the epoch every queued buff is stamped with, so ApplyBuffs can
+// lifeEpoch is the epoch every queued condition is stamped with, so ApplyConditions can
 // refuse one aimed at a life the holder has since ended. A record with no
 // character stamps zero, which matches a fresh character.
 func (u *UserRecord) lifeEpoch() uint64 {

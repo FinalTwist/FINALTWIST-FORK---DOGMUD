@@ -15,12 +15,12 @@ import (
 // cause reads "poison" — this is the regression case the fix exists for.
 //
 // TestPin_PoisonTickKillsAndNamesTheCause: a ONE-trigger poison record has
-// its only trigger land on the first UserRoundTick call (buff 121 ticks
-// every round), and that trigger is also the record's LAST: Buffs.Trigger()
-// decrements TriggersLeft before returning the buff, so the record already
+// its only trigger land on the first UserRoundTick call (condition 121 ticks
+// every round), and that trigger is also the record's LAST: Conditions.Trigger()
+// decrements TriggersLeft before returning the condition, so the record already
 // reads Expired by the time deathCauseFor runs. deathCauseFor must still read
 // "poison" immediately after (the expired-but-still-held record read by id),
-// AND after PruneBuffs removes the expired record outright (from
+// AND after PruneConditions removes the expired record outright (from
 // Character.LastTickCause, stamped by the tick that landed the harm) — the
 // prune race the fix also covers.
 func TestPin_PoisonTickKillsAndNamesTheCause(t *testing.T) {

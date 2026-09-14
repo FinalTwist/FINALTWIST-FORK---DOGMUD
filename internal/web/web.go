@@ -532,7 +532,7 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn, string)) 
 
 // This wraps the handler functiojn with a game lock (mutex) to keep the mud from
 // Concurrently accessing the same memory
-// bufferedResponse collects a handler's output in memory instead of writing it
+// conditioneredResponse collects a handler's output in memory instead of writing it
 // to the network. See RunWithMUDLocked for why that matters.
 type bufferedResponse struct {
 	header http.Header

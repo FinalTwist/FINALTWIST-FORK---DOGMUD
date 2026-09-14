@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// seedRegistry populates the global buffs map with diverse specs for testing.
+// seedRegistry populates the global conditions map with diverse specs for testing.
 // Returns a cleanup function that restores the original map.
 func seedRegistry() func() {
 	orig := conditions
@@ -101,7 +101,7 @@ func seedRegistry() func() {
 	return func() { conditions = orig }
 }
 
-// ─── Buffs.Validate ─────────────────────────────────────────────────────────
+// ─── Conditions.Validate ─────────────────────────────────────────────────────────
 
 func TestConditions_Validate(t *testing.T) {
 	cleanup := seedRegistry()
@@ -119,18 +119,18 @@ func TestConditions_Validate(t *testing.T) {
 	assert.Contains(t, bs.conditionIds, 100)
 	assert.Contains(t, bs.conditionIds, 103)
 
-	// Haste flag should map to buff 100
+	// Haste flag should map to condition 100
 	hasteIds := bs.GetConditionIdsWithFlag(Haste)
 	assert.Contains(t, hasteIds, 100)
 
-	// NightVision flag should map to buff 103. (This fixture used the Accuracy
+	// NightVision flag should map to condition 103. (This fixture used the Accuracy
 	// flag until U6b deleted it as an upstream stowaway; any flag serves — the
 	// test pins registry flag→id mapping, not any particular flag.)
 	nvIds := bs.GetConditionIdsWithFlag(NightVision)
 	assert.Contains(t, nvIds, 103)
 }
 
-// ─── Buffs.HasFlag ──────────────────────────────────────────────────────────
+// ─── Conditions.HasFlag ──────────────────────────────────────────────────────────
 
 func TestConditions_HasFlag(t *testing.T) {
 	cleanup := seedRegistry()
@@ -161,18 +161,18 @@ func TestConditions_HasFlag(t *testing.T) {
 		bs2 := New()
 		bs2.AddCondition(105, false) // Slow
 		assert.True(t, bs2.HasFlag(Slow, true))
-		// After expire, the buff should be marked expired
+		// After expire, the condition should be marked expired
 		idx := bs2.conditionIds[105]
 		assert.Equal(t, TriggersLeftExpired, bs2.List[idx].TriggersLeft)
 	})
 }
 
 // TestConditions_HasFlag_AllMatchesFlaglessCondition verifies that action==All matches
-// (and can expire) a buff that declares NO flags — e.g. pure regen potion
-// buffs like Healing Salve (buff 54). Regression: the per-flag loop in
-// HasFlag skipped flagless buffs entirely, so CancelBuffsWithFlag(buffs.All)
-// on death left them active. Buff 108 ("Quick Heal") has no Flags, mirroring
-// the potion regen buffs.
+// (and can expire) a condition that declares NO flags — e.g. pure regen potion
+// conditions like Healing Salve (condition 54). Regression: the per-flag loop in
+// HasFlag skipped flagless conditions entirely, so CancelConditionsWithFlag(conditions.All)
+// on death left them active. Condition 108 ("Quick Heal") has no Flags, mirroring
+// the potion regen conditions.
 func TestConditions_HasFlag_AllMatchesFlaglessCondition(t *testing.T) {
 	cleanup := seedRegistry()
 	defer cleanup()
@@ -180,11 +180,11 @@ func TestConditions_HasFlag_AllMatchesFlaglessCondition(t *testing.T) {
 	bs := New()
 	require.True(t, bs.AddCondition(108, false)) // Quick Heal — no Flags
 
-	// The All wildcard must see a flagless buff.
+	// The All wildcard must see a flagless condition.
 	assert.True(t, bs.HasFlag(All, false),
 		"All must match a buff that declares no flags")
 
-	// Expire mode must mark the flagless buff expired.
+	// Expire mode must mark the flagless condition expired.
 	assert.True(t, bs.HasFlag(All, true),
 		"All+expire must match the flagless buff")
 	idx, ok := bs.conditionIds[108]
@@ -193,7 +193,7 @@ func TestConditions_HasFlag_AllMatchesFlaglessCondition(t *testing.T) {
 		"flagless buff must be expired by HasFlag(All, true)")
 }
 
-// ─── Buffs.GetBuffIdsWithFlag ───────────────────────────────────────────────
+// ─── Conditions.GetConditionIdsWithFlag ───────────────────────────────────────────────
 
 func TestConditions_GetConditionIdsWithFlag(t *testing.T) {
 	cleanup := seedRegistry()
@@ -212,7 +212,7 @@ func TestConditions_GetConditionIdsWithFlag(t *testing.T) {
 	assert.Empty(t, poisonIds)
 }
 
-// ─── Buffs.Trigger ──────────────────────────────────────────────────────────
+// ─── Conditions.Trigger ──────────────────────────────────────────────────────────
 
 func TestConditions_Trigger(t *testing.T) {
 	cleanup := seedRegistry()
@@ -250,7 +250,7 @@ func TestConditions_Trigger(t *testing.T) {
 		bs.AddCondition(100, false) // Haste, interval=2
 		bs.AddCondition(106, false) // NightVision, interval=1
 
-		// Only trigger buffId 106
+		// Only trigger conditionId 106
 		triggered := bs.Trigger(106)
 		// Both get RoundCounter incremented but only 106 matches filter
 		// Actually looking at the code, the filter logic has a bug where it
@@ -260,7 +260,7 @@ func TestConditions_Trigger(t *testing.T) {
 	})
 }
 
-// ─── Buffs.Prune ────────────────────────────────────────────────────────────
+// ─── Conditions.Prune ────────────────────────────────────────────────────────────
 
 func TestConditions_Prune(t *testing.T) {
 	cleanup := seedRegistry()
@@ -270,7 +270,7 @@ func TestConditions_Prune(t *testing.T) {
 	bs.AddCondition(100, false) // Haste
 	bs.AddCondition(101, false) // Venom
 
-	// Expire one buff
+	// Expire one condition
 	bs.List[0].TriggersLeft = TriggersLeftExpired
 
 	pruned := bs.Prune()
@@ -284,7 +284,7 @@ func TestConditions_Prune(t *testing.T) {
 	assert.NotContains(t, bs.conditionIds, 100)
 }
 
-// ─── Buffs.StatMod ──────────────────────────────────────────────────────────
+// ─── Conditions.StatMod ──────────────────────────────────────────────────────────
 
 func TestConditions_StatMod(t *testing.T) {
 	cleanup := seedRegistry()
@@ -300,7 +300,7 @@ func TestConditions_StatMod(t *testing.T) {
 	assert.Equal(t, 0, bs.StatMod("charisma"))
 }
 
-// ─── Buffs.AddBuff stacking ────────────────────────────────────────────────
+// ─── Conditions.AddCondition stacking ────────────────────────────────────────────────
 
 func TestConditions_AddCondition_Stacking(t *testing.T) {
 	cleanup := seedRegistry()
@@ -346,7 +346,7 @@ func TestConditions_AddCondition_Stacking(t *testing.T) {
 }
 
 // TestGetDurations covers a record whose TriggersLeft still matches its spec
-// default, which is what a bare AddBuff produces. Every case here reports the
+// default, which is what a bare AddCondition produces. Every case here reports the
 // same numbers the old spec-only formula
 // (TriggerCount*RoundInterval - RoundCounter) reported, and each case names
 // that arithmetic beside the new one: for a default add the two agree, which
@@ -422,7 +422,7 @@ func TestGetDurations(t *testing.T) {
 			wantTotal:  0,
 		},
 		{
-			// A permabuff keeps the spec answer rather than reporting
+			// A permanent condition keeps the spec answer rather than reporting
 			// TriggersLeftUnlimited * RoundInterval rounds.
 			name: "Unlimited triggers",
 			args: args{
@@ -444,7 +444,7 @@ func TestGetDurations(t *testing.T) {
 }
 
 // TestGetDurations_ExactTriggerCountReadsTheInstance is the case the old
-// formula got wrong. AddBuffMagnitude — the door every former combat
+// formula got wrong. AddConditionMagnitude — the door every former combat
 // condition goes through — applies an EXACT trigger count, so a record can
 // hold far fewer triggers than its spec declares. The spec-only formula
 // answered with the spec's lifetime (30 rounds for a 10-trigger,
@@ -636,7 +636,7 @@ func TestConditions_Started(t *testing.T) {
 			if idx, ok := bs.conditionIds[tt.arg]; ok && idx < len(bs.List) {
 				assert.Equal(t, tt.wantOnStart, bs.List[idx].OnStartWaiting)
 			} else if len(bs.List) > 0 {
-				// If buff does not exist, original value should remain unchanged
+				// If condition does not exist, original value should remain unchanged
 				assert.Equal(t, tt.wantOnStart, bs.List[0].OnStartWaiting)
 			}
 		})
@@ -861,9 +861,9 @@ func TestCondition_Expired(t *testing.T) {
 
 // ── T19: Behavior Matrix PB-330 / PB-332 ─────────────────────────────────────
 
-// PB-330: Broken-limb buff (id 83) statmod: -25 str, -25 dex, -10 vit.
-// Seeds buff 83 into the registry directly (bypasses the YAML loader) and
-// verifies that a Buff carrying id 83 returns the expected StatMod values.
+// PB-330: Broken-limb condition (id 83) statmod: -25 str, -25 dex, -10 vit.
+// Seeds condition 83 into the registry directly (bypasses the YAML loader) and
+// verifies that a Condition carrying id 83 returns the expected StatMod values.
 func TestPB_330_BrokenLimbCondition_StatModApplied(t *testing.T) {
 	orig := conditions
 	conditions = map[int]*ConditionSpec{
@@ -894,8 +894,8 @@ func TestPB_330_BrokenLimbCondition_StatModApplied(t *testing.T) {
 		"PB-330: broken-limb buff must not affect charisma")
 }
 
-// PB-332: Broken-limb buff expires naturally via round-tick decrement.
-// Seeds buff 83 and verifies that a Buffs instance carrying it decrements
+// PB-332: Broken-limb condition expires naturally via round-tick decrement.
+// Seeds condition 83 and verifies that a Conditions instance carrying it decrements
 // TriggersLeft each round and eventually reaches TriggersLeftExpired (0).
 func TestPB_332_BrokenLimbCondition_ExpiresNaturally(t *testing.T) {
 	orig := conditions
@@ -913,7 +913,7 @@ func TestPB_332_BrokenLimbCondition_ExpiresNaturally(t *testing.T) {
 	bs := New()
 	bs.AddCondition(83, false)
 
-	// Confirm buff is present and not yet expired.
+	// Confirm condition is present and not yet expired.
 	assert.False(t, bs.List[0].Expired(),
 		"PB-332: broken-limb buff must not be expired on application")
 
@@ -922,7 +922,7 @@ func TestPB_332_BrokenLimbCondition_ExpiresNaturally(t *testing.T) {
 		bs.Trigger()
 	}
 
-	// After TriggerCount triggers, buff should be expired.
+	// After TriggerCount triggers, condition should be expired.
 	assert.True(t, bs.List[0].Expired(),
 		"PB-332: broken-limb buff must be expired after all trigger rounds elapsed")
 
@@ -932,12 +932,12 @@ func TestPB_332_BrokenLimbCondition_ExpiresNaturally(t *testing.T) {
 	assert.Empty(t, bs.List, "PB-332: buff list should be empty after prune")
 }
 
-// ─── Buffs.ProgressMult ─────────────────────────────────────────────────────
+// ─── Conditions.ProgressMult ─────────────────────────────────────────────────────
 
 // seedProgressMultRegistry seeds its own specs rather than extending
-// seedRegistry, whose fixture counts other tests assert on. Buff 200 carries
+// seedRegistry, whose fixture counts other tests assert on. Condition 200 carries
 // the skill-progress flag and declares no progress_mult, so it must fall back
-// to the historic 2.0. Buff 201 declares 3.0. Buff 202 carries an unrelated
+// to the historic 2.0. Condition 201 declares 3.0. Condition 202 carries an unrelated
 // flag and must never contribute.
 func seedProgressMultRegistry() func() {
 	orig := conditions

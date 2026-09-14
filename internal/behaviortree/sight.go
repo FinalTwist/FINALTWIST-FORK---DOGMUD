@@ -12,10 +12,10 @@ import (
 // combatContext.sourceCanSee from CanSeeSightImpairedOnly, so a mob's decisions
 // and its darkness combat penalty cannot disagree about whether it can see.
 //
-// Two things flow through here for free. Restoring buff 29 works because the
+// Two things flow through here for free. Restoring condition 29 works because the
 // predicate ends by reading the NightVision flag, and a light carried by ANY
 // player or mob lifts the darkness for everyone, because Room.GetVisibility
-// adds +1 when someone in the room has buffs.EmitsLight. That second one is
+// adds +1 when someone in the room has conditions.EmitsLight. That second one is
 // what keeps the Ironwind cave bosses attacking: neither has night vision.
 //
 // A nil mob or room returns true. These run on every behaviour tree tick and a

@@ -321,12 +321,12 @@ func atLeastOneCost(cost int) int {
 // the primitives deliberately do not have.
 //
 // The eight melee call sites in internal/combat/combat.go depend on the
-// CancelCombatBuffs below, which reaches CancelBuffsWithFlag -> Validate(true)
+// CancelCombatConditions below, which reaches CancelConditionsWithFlag -> Validate(true)
 // -> a full stat recalculation. Routing them straight at ApplyHarm would drop
-// the on-death combat-buff cancel for every melee kill in the game.
+// the on-death combat-condition cancel for every melee kill in the game.
 //
 // Ordering note (verified, U5b-1): the pre-U5b implementation called
-// CancelCombatBuffs BEFORE writing c.Health, then overwrote c.Health
+// CancelCombatConditions BEFORE writing c.Health, then overwrote c.Health
 // unconditionally. Validate does read and write c.Health -- the reservation
 // clamp, the enchant-withdrawal shrink and validatePoolClamps all do -- but
 // every one of those writes is guarded by `c.Health > <positive>`, so none can
@@ -354,7 +354,7 @@ func (c *Character) ApplyHealthChange(healthChange int, source state.ActorRef) i
 		applied = c.ApplyRestore(PoolHealth, healthChange)
 	}
 
-	// Any drop below 0 means dead; cancel combat-scoped buffs. Death itself is
+	// Any drop below 0 means dead; cancel combat-scoped conditions. Death itself is
 	// processed by the per-round hooks (NewRound_DoCombat + NewRound_AutoHeal);
 	// this function only applies the raw change.
 	if c.Health < 0 {

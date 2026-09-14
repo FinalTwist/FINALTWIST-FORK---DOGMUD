@@ -617,8 +617,8 @@ func GetSpellPowerMultiplier(owned map[string]int) float64 {
 	return sumEffects(owned, "spell_power", "")
 }
 
-// GetOnHitConditions returns the buff ids that owned mutations apply to a struck
-// target on a landed melee/natural hit (effect type "on_hit_buff", Value = buff id).
+// GetOnHitConditions returns the condition ids that owned mutations apply to a struck
+// target on a landed melee/natural hit (effect type "on_hit_buff", Value = condition id).
 func GetOnHitConditions(owned map[string]int) []int {
 	var out []int
 	for id := range owned {
@@ -635,9 +635,9 @@ func GetOnHitConditions(owned map[string]int) []int {
 	return out
 }
 
-// GetReflectRiderConditions returns the buff ids that owned mutations apply to an
+// GetReflectRiderConditions returns the condition ids that owned mutations apply to an
 // attacker when this defender's reflect fires (effect type "on_reflect_buff",
-// Value = buff id). Mirrors GetOnHitBuffs but the buff lands on whoever struck
+// Value = condition id). Mirrors GetOnHitConditions but the condition lands on whoever struck
 // you — the Ironhide Reflect Skin flavors (Molten burn, Frostbite chill,
 // Voltaic shock) carry these.
 func GetReflectRiderConditions(owned map[string]int) []int {

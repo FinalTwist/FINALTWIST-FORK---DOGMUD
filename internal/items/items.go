@@ -399,7 +399,7 @@ func (i *Item) GetDiceRoll() (attacks int, dCount int, dSides int, bonus int, co
 }
 
 // Gets distribution damage parameters for the item.
-// Returns (attacks, baseDamage, variance, critBuffs).
+// Returns (attacks, baseDamage, variance, critConditions).
 // If the item uses BaseDamage/Variance, returns those directly.
 // Otherwise, converts legacy dice notation to distribution parameters.
 func (i *Item) GetDistributionDamage() (attacks int, baseDamage float64, variance float64, conditionOnCrit []int) {

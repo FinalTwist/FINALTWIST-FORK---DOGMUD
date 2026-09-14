@@ -14,9 +14,9 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
-// seedStunCondition registers buff 84 (the 1-round stagger-Stun) into the buff
-// registry for the duration of a test. seedAllRegistries seeds only buffs
-// 100/101, so aoe_stun's AddBuff(84) would silently fail without this.
+// seedStunCondition registers condition 84 (the 1-round stagger-Stun) into the condition
+// registry for the duration of a test. seedAllRegistries seeds only conditions
+// 100/101, so aoe_stun's AddCondition(84) would silently fail without this.
 func seedStunCondition(t *testing.T) func() {
 	t.Helper()
 	return conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
@@ -264,13 +264,13 @@ func TestProcApplyCondition_Bleed(t *testing.T) {
 }
 
 // TestProcApplyCondition_BleedSpecMissing_ReturnsFalse pins the
-// AddBuffMagnitude error path: with the Bleeding spec absent from the
+// AddConditionMagnitude error path: with the Bleeding spec absent from the
 // registry, the add fails, and procApplyCondition must report that failure
 // rather than claim success -- a false positive here has dispatchItemProcs
 // burn the proc's cooldown for a bleed that never landed.
 //
 // Null probe: reverting procApplyCondition's case 1 to ignore
-// AddBuffMagnitude's error (`return true` unconditionally) turns this red.
+// AddConditionMagnitude's error (`return true` unconditionally) turns this red.
 func TestProcApplyCondition_BleedSpecMissing_ReturnsFalse(t *testing.T) {
 	defer conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{})()
 	target := characters.New()

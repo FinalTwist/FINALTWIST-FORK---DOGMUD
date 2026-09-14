@@ -410,10 +410,10 @@ func cmdCharacterHire(user *users.UserRecord, room *rooms.Room, cmdPrompt *promp
 		m.Character.Bank = 0                 // Clear bank
 		m.Character.Shop = characters.Shop{} // Clear shop
 
-		m.Character.AddCondition(99, true) // Give a perma-gear buff, so that items can't be removed.
-		// NOTE: dogmud renumbered the default buff set — the upstream "Alt
-		// Character Mob" perma-gear buff was id 36, which here is psychic_anchor.
-		// The perma-gear buff lives at id 99 (99-alt_character_mob.yaml).
+		m.Character.AddCondition(99, true) // Give a perma-gear condition, so that items can't be removed.
+		// NOTE: dogmud renumbered the default condition set — the upstream "Alt
+		// Character Mob" perma-gear condition was id 36, which here is psychic_anchor.
+		// The perma-gear condition lives at id 99 (99-alt_character_mob.yaml).
 
 		room.AddMob(m.InstanceId)
 

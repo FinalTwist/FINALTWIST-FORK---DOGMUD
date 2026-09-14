@@ -93,7 +93,7 @@ func craftPlannerMobKnowsRecipe(mob *mobs.Mob, recipeId string) bool {
 
 // craftPlannerMobMeetsRecipeSkill reports whether the mob's skill level meets
 // the recipe's required minimum. Uses Character.GetSkillLevel which folds in
-// equipment/buff StatMod bonuses.
+// equipment/condition StatMod bonuses.
 func craftPlannerMobMeetsRecipeSkill(mob *mobs.Mob, r *crafting.RecipeSpec) bool {
 	return mob.Character.GetSkillLevel(skills.SkillTag(r.Skill)) >= r.SkillMinimum
 }

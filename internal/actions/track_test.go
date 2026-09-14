@@ -110,7 +110,7 @@ func TestTrack_NoArgEmptyRoom(t *testing.T) {
 }
 
 // TestTrack_ActiveTrackMobNoMatchFails confirms active-track mode with
-// an unresolvable target sets Reason and does NOT apply buff 86.
+// an unresolvable target sets Reason and does NOT apply condition 86.
 func TestTrack_ActiveTrackMobNoMatchFails(t *testing.T) {
 	room := newTrackTestRoom(9102)
 	actor := newTrackFakeActor("TrackTester2", room, false, 2)
@@ -141,7 +141,7 @@ func TestTrack_MobActorSilent(t *testing.T) {
 }
 
 // TestTrack_CancelTracking confirms CancelTracking flag returns cleanly
-// without applying any buff.
+// without applying any condition.
 func TestTrack_CancelTracking(t *testing.T) {
 	room := newTrackTestRoom(9104)
 	actor := newTrackFakeActor("TrackTester3", room, true, 3)

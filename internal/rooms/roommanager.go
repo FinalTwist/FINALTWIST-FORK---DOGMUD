@@ -454,7 +454,7 @@ func MoveToRoom(userId int, toRoomId int, isSpawn ...bool) error {
 		}
 	}
 	//
-	// Done adding mutator buffs
+	// Done adding mutator conditions
 	//
 
 	user.Character.RoomId = newRoom.RoomId

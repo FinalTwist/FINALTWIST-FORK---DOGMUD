@@ -78,8 +78,8 @@ func PayFine(rest string, user *users.UserRecord, room *rooms.Room, flags events
 		user.Character.Bank -= remaining
 	}
 	// Send the payment line BEFORE ResolveDetention so it reads before the
-	// buff's release flavor ("The cell door swings open..."). Don't mention the
-	// door here — the Jailed buff's end_user_text owns that line (avoids the
+	// condition's release flavor ("The cell door swings open..."). Don't mention the
+	// door here — the Jailed condition's end_user_text owns that line (avoids the
 	// double door message; 5.1c smoke BUG-01).
 	user.SendText(messaging.CategorySystem, fmt.Sprintf(
 		`You count out <ansi fg="gold">%d gold</ansi> and settle your fine with the guards.`, fine))

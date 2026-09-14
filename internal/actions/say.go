@@ -15,7 +15,7 @@ type SayResult struct {
 	Text       string
 }
 
-// Say handles shared say logic: checks the Hidden buff, fires the exit echo,
+// Say handles shared say logic: checks the Hidden condition, fires the exit echo,
 // and fires the Communication event. The caller handles: mute checks, drunk
 // text, self-message, room formatting, and darkness-aware display.
 func Say(actor Actor, text string) SayResult {

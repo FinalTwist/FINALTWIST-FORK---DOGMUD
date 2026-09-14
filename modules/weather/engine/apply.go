@@ -135,11 +135,11 @@ func Reconcile(weather map[sim.ZoneId]sim.WeatherType) {
 	}
 }
 
-// StripConditions clears the buff id lists on every loaded weather-* and season-*
-// mutator spec — the BuffsEnabled=false path. GetMutatorSpec returns the
+// StripConditions clears the condition id lists on every loaded weather-* and season-*
+// mutator spec — the ConditionsEnabled=false path. GetMutatorSpec returns the
 // registry's live pointer, so this affects all future applications. Returns
 // the count stripped. Boot-time only: there is no restore path, so
-// re-enabling buffs requires a reload.
+// re-enabling conditions requires a reload.
 func StripConditions() int {
 	n := 0
 	for _, id := range mutators.GetAllMutatorIds() {
@@ -154,13 +154,13 @@ func StripConditions() int {
 	return n
 }
 
-// ApplyConditionOverrides rewires PlayerBuffIds on the registered OUTDOOR weather
-// specs per the BuffOverrides.<type> config: each entry replaces that type's
-// player buff list wholesale (an empty list strips it; Mob/Native lists are
-// untouched). Indoor variants are buff-free by rule and never touched (the
+// ApplyConditionOverrides rewires PlayerConditionIds on the registered OUTDOOR weather
+// specs per the ConditionOverrides.<type> config: each entry replaces that type's
+// player condition list wholesale (an empty list strips it; Mob/Native lists are
+// untouched). Indoor variants are condition-free by rule and never touched (the
 // "weather-"+type id can't match a "-indoor" spec). Boot-time spec mutation
-// with the same mechanism and no-restore caveat as StripBuffs — and the module
-// always runs it BEFORE StripBuffs, so BuffsEnabled=false wins over any
+// with the same mechanism and no-restore caveat as StripConditions — and the module
+// always runs it BEFORE StripConditions, so ConditionsEnabled=false wins over any
 // override (spec §3). Returns the number of specs changed.
 func ApplyConditionOverrides(overrides map[string][]int) int {
 	return applyConditionOverrides(mutators.GetMutatorSpec, overrides)

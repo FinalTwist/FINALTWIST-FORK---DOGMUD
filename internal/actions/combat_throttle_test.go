@@ -96,9 +96,9 @@ func TestThrottle_NotFanged(t *testing.T) {
 }
 
 // TestThrottle_Executed_BleedAndCondition verifies that on a hit a fanged attacker
-// applies the Bleeding record and Throttled buff (id 89) to the target.
+// applies the Bleeding record and Throttled condition (id 89) to the target.
 func TestThrottle_Executed_BleedAndCondition(t *testing.T) {
-	// Seed buff 89 so AddBuff can find it.
+	// Seed condition 89 so AddCondition can find it.
 	conditionCleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		89: {ConditionId: 89, Name: "Throttled", TriggerCount: 3, RoundInterval: 1},
 	})
@@ -171,7 +171,7 @@ func TestThrottle_Executed_BleedAndCondition(t *testing.T) {
 			"the stack lasts ThrottleBleedRounds")
 	}
 
-	// Throttled buff (id 89) should be applied.
+	// Throttled condition (id 89) should be applied.
 	assert.True(t, targetMob.Character.HasCondition(89),
 		"target should have Throttled buff (id 89) after a successful throttle")
 }
@@ -208,7 +208,7 @@ func TestThrottle_CastInterrupt(t *testing.T) {
 		})
 	}()
 
-	// Seed buff 89.
+	// Seed condition 89.
 	conditionCleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		89: {ConditionId: 89, Name: "Throttled", TriggerCount: 3, RoundInterval: 1},
 	})

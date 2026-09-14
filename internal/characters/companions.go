@@ -21,14 +21,14 @@ import (
 //     from pet YAML definitions, not mob templates. CompanionInfo requires
 //     a MobId to respawn the companion on login.
 //
-//   - Pets provide stat mods and buffs directly to the player character
-//     (GetStatMod, GetBuffs). The Companions system does not have this concept.
+//   - Pets provide stat mods and conditions directly to the player character
+//     (GetStatMod, GetConditions). The Companions system does not have this concept.
 //
 //   - Pets have their own inventory (Pet.Items) which has no counterpart in
 //     CompanionInfo.
 //
 // Migration plan (future work):
-//  1. Create pet-backed mob templates that mirror each pet type's stats/buffs.
+//  1. Create pet-backed mob templates that mirror each pet type's stats/conditions.
 //  2. Add a PetMobId field to each pet YAML definition.
 //  3. In Validate(), create a CompanionInfo{SourceType: CompanionPet, MobId: …}
 //     for each existing Pet and clear Character.Pet.
@@ -209,7 +209,7 @@ const ManifestationPoolCoefficient = 5
 // whose base_pool values were tuned against exactly this shape: the Core
 // Guardian and Warden Prime summon repair frames at base_pool 50, Old Edrin at
 // 60, and the Sentinel at 300. Putting them on the companion formula would nerf
-// the Sentinel's adds roughly fivefold and buff the Core Guardian's by about a
+// the Sentinel's adds roughly fivefold and condition the Core Guardian's by about a
 // fifth, neither of which U7b intends.
 //
 // Config knobs: ManifestStatScaleChaFactor (default 150, NOT 200 -- the pre-U7b

@@ -16,26 +16,26 @@ import (
 //			 at a time matching the string return value.
 //		 Example: See `RedrawPrompt`
 //
-// Used to apply or remove buffs
+// Used to apply or remove conditions
 type Condition struct {
 	UserId        int
 	MobInstanceId int
 	ConditionId   int
 	Source        string // optional source such as spell,
-	// DurationMult scales how long the buff lasts. 0 or 1 means the authored
-	// duration; anything else scales TriggersLeft, as Character.AddBuffScaled
+	// DurationMult scales how long the condition lasts. 0 or 1 means the authored
+	// duration; anything else scales TriggersLeft, as Character.AddConditionScaled
 	// does. Carried on the event so scaled applications still travel the one
 	// door that narrates the start.
 	DurationMult float64
 	// Magnitude is the per-instance strength for a record whose effects read
 	// it, and Triggers the exact trigger count (for a one-round record, the
 	// rounds); either non-zero routes the event
-	// through AddBuffMagnitude. Zero both means the DurationMult path.
+	// through AddConditionMagnitude. Zero both means the DurationMult path.
 	Magnitude float64
 	Triggers  int
-	// LifeEpoch is the holder's Character.LifeEpoch when the buff was queued.
-	// The producers stamp it; ApplyBuffs refuses the event if the holder has
-	// died since, because the buff was aimed at a life that has ended.
+	// LifeEpoch is the holder's Character.LifeEpoch when the condition was queued.
+	// The producers stamp it; ApplyConditions refuses the event if the holder has
+	// died since, because the condition was aimed at a life that has ended.
 	LifeEpoch uint64
 }
 

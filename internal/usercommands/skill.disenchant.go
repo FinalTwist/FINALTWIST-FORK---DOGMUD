@@ -65,9 +65,9 @@ func Disenchant(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 	bal := configs.GetBalanceConfig()
 	penaltyRounds := int(bal.EnchantRemovalPenaltyRounds)
 
-	// Enchant Withdrawal (buff 123): the pool name rides on Source exactly as
+	// Enchant Withdrawal (condition 123): the pool name rides on Source exactly as
 	// the old condition's did; the record's pool_max_pct effect reads the
-	// magnitude we pass here. AddBuffMagnitude validates synchronously, so the
+	// magnitude we pass here. AddConditionMagnitude validates synchronously, so the
 	// pool clamp lands before this command returns.
 	_ = user.Character.AddConditionMagnitude(conditions.ConditionIdEnchantWithdrawal, penaltyRounds, reservePct, reservePool)
 
@@ -78,8 +78,8 @@ func Disenchant(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 		`for the connection it has lost. The withdrawal will pass... `+
 		`in time.</ansi>`)
 
-	// AddBuffMagnitude applies synchronously and never travels events.Buff, so
-	// ApplyBuffs' start notice never fires for this record; same reason sleep
+	// AddConditionMagnitude applies synchronously and never travels events.Condition, so
+	// ApplyConditions' start notice never fires for this record; same reason sleep
 	// (15), arrest (88), stun (84) and broken limb (83) read their own start
 	// line through AuthoredStartLine instead. Render and send record 123's
 	// here, the same door those sites use.

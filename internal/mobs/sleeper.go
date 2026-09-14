@@ -6,7 +6,7 @@ import (
 )
 
 // OnSleeperWoken is the central wake-event hook. Called by every code
-// path that cancels the Sleeping buff on a character outside of natural
+// path that cancels the Sleeping condition on a character outside of natural
 // segment-end (damage, failed steal, shout, light-on-entry, stand).
 //
 // For scheduled mobs, it stamps "schedule_wake_round" in MiscData so

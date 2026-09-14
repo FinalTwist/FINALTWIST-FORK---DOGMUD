@@ -19,11 +19,11 @@ type conditionEntry struct {
 }
 
 // Conditions lists everything currently affecting the player: one entry per
-// held, unexpired, listed buff record, with its display name, description and
+// held, unexpired, listed condition record, with its display name, description and
 // a duration.
 //
 // There is one loop because there is one source. This command used to print
-// the buff list and then a second list of combat conditions from an enum with
+// the condition list and then a second list of combat conditions from an enum with
 // its own tick, which is why warcry and rally needed a mirror flag to keep
 // them out of the first list. The enum is gone; records are the conditions.
 func Conditions(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
@@ -32,9 +32,9 @@ func Conditions(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 	return true, nil
 }
 
-// conditionEntries builds the rows. BuffSpec.Listed decides what appears, the
+// conditionEntries builds the rows. ConditionSpec.Listed decides what appears, the
 // same predicate the Char.Conditions GMCP payload uses, so the text list and
-// the web client show the same records. buffs.DisplayName appends a stacking
+// the web client show the same records. conditions.DisplayName appends a stacking
 // record's live count.
 func conditionEntries(c *characters.Character) []conditionEntry {
 	entries := []conditionEntry{}

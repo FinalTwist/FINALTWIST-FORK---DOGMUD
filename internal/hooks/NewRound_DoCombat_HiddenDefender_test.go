@@ -21,7 +21,7 @@ import (
 // TestHandleCombatRound_HiddenDefenderClearsHiddenState locks in the
 // chunk-1 / chunk-4b fix for the "can't seem to find your target"
 // targeting bug. Setup:
-//   - Mob defender is fully hidden (Awareness FSM = Hidden AND buff #9
+//   - Mob defender is fully hidden (Awareness FSM = Hidden AND condition #9
 //     active — matches the ambusher-spawn pattern used by mobs like
 //     thornwall_highwayman with `idlecommands: [sneak]`).
 //   - Player attacker has aggro on the mob (as if just executed
@@ -30,13 +30,13 @@ import (
 //
 // Expected after the call:
 //   - mob.Character.IsHidden() == false (Awareness FSM forced Visible
-//     via ForceVisible; cascade strips buff #9 too).
+//     via ForceVisible; cascade strips condition #9 too).
 //
 // Without the fix, the FSM stays at Hidden because the cascade in
 // Awareness_Cascades.go only fires on the defender's OWN CombatPhase
 // Idle→Engaging transition — which doesn't happen when the defender
 // is targeted but never SetAggro's the attacker. The legacy
-// CancelCombatBuffs call strips the buff but leaves the FSM stale, so
+// CancelCombatConditions call strips the condition but leaves the FSM stale, so
 // IsHidden (FSM-driven post-chunk-1) keeps returning true and the
 // IsHidden check at handleCombatRound bails every round.
 //
@@ -71,10 +71,10 @@ func TestHandleCombatRound_HiddenDefenderClearsHiddenState(t *testing.T) {
 	// TransitionToConcealing below.
 	m.Character.Validate()
 
-	// Put the mob into the hidden state — both the FSM and the buff.
+	// Put the mob into the hidden state — both the FSM and the condition.
 	// Match the production ambusher path: TransitionToConcealing →
 	// ResolveConcealment(true). The Awareness_Cascades observer adds
-	// buff #9 automatically on the cascade.
+	// condition #9 automatically on the cascade.
 	err := m.Character.Awareness.TransitionToConcealing(
 		awareness.ConcealingData{},
 		state.TransitionReason{Trigger: "test_setup"},

@@ -38,7 +38,7 @@ func dogmudSpecies(t *testing.T) map[int]*Species {
 	return out
 }
 
-// Eight species declare buff 29, and the buff was absent from dogmud entirely,
+// Eight species declare condition 29, and the condition was absent from dogmud entirely,
 // so 67 mobs were silently blind in their own caves. This pins the list so a
 // later data edit cannot quietly shrink it.
 func TestNightVisionSpeciesDeclareCondition29(t *testing.T) {
@@ -51,8 +51,8 @@ func TestNightVisionSpeciesDeclareCondition29(t *testing.T) {
 	}
 }
 
-// The regression itself: every buff a dogmud species references must exist as a
-// dogmud buff file. Buff 29 failed this for months and nothing noticed.
+// The regression itself: every condition a dogmud species references must exist as a
+// dogmud condition file. Condition 29 failed this for months and nothing noticed.
 func TestEverySpeciesConditionIdHasADogmudFile(t *testing.T) {
 	all := dogmudSpecies(t)
 	conditionDir := filepath.Join("..", "..", "_datafiles", "world", "dogmud", "buffs")

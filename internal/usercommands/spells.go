@@ -14,7 +14,7 @@ import (
 
 // spellEntry holds a display row together with its sort keys.
 type spellEntry struct {
-	category   int // 0=utility, 1=heal, 2=buff, 3=damage, 4=summon
+	category   int // 0=utility, 1=heal, 2=condition, 3=damage, 4=summon
 	targetRank int // 0=self, 1=single, 2=group, 3=area
 	difficulty int
 	row        []string
@@ -42,7 +42,7 @@ func spellCategory(sp *spells.SpellData) int {
 	if sp.Type == spells.Neutral {
 		return 0
 	}
-	// Debuffs applied via harmful buff spells
+	// Harmful conditions applied via harmful condition spells
 	if sp.Type == spells.HarmSingle || sp.Type == spells.HarmMulti || sp.Type == spells.HarmArea {
 		return 3
 	}

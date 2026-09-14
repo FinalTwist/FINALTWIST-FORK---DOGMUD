@@ -22,7 +22,7 @@ import (
 //
 // This is also the single place the prechecks Die's doc used to delegate to
 // callers now live. They were not in fact handled at each call site: only the
-// suicide commands checked ReviveOnDeath, so the buff was inert on every combat
+// suicide commands checked ReviveOnDeath, so the condition was inert on every combat
 // and damage-over-time death before U5c.
 func RouteAttributedDeath(e events.Event) events.ListenerReturn {
 
@@ -53,10 +53,10 @@ func RouteAttributedDeath(e events.Event) events.ListenerReturn {
 	// !IsAlive() above cannot cover this on its own, because the out-of-band
 	// resolution can leave the character ALIVE. The case that matters: a player
 	// takes a lethal hit, then runs `suicide` before the flush. With
-	// ReviveOnDeath they are healed and the buff is CONSUMED, so this listener
-	// would find them alive, with no buff left to save them, and kill them
+	// ReviveOnDeath they are healed and the condition is CONSUMED, so this listener
+	// would find them alive, with no condition left to save them, and kill them
 	// anyway — real corpse, real bounty, gold to the original killer, for a
-	// player who was healthy a moment earlier, defeating the one buff that
+	// player who was healthy a moment earlier, defeating the one condition that
 	// exists to prevent exactly that.
 	if !char.DeathQueued {
 		return events.Continue
@@ -98,7 +98,7 @@ func resolveDyingCharacter(evt events.CharacterDied) *characters.Character {
 }
 
 // reviveInsteadOfDeath mirrors the revive branch in mobcommands/suicide.go:
-// full heal, announce, consume the buff.
+// full heal, announce, consume the condition.
 //
 // Health MUST come back above zero. Skipping the death while leaving health
 // negative just hands the kill to the backstop sweep on the next tick, which

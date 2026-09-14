@@ -1632,7 +1632,7 @@ func loadAllDataFiles(isReload bool) {
 		return rooms.LoadRoom(roomId) != nil
 	})
 	rooms.RebuildZonePlayerCount() // build the zone → player-count index
-	conditions.LoadDataFiles()     // Load buffs before items for cost calculation reasons
+	conditions.LoadDataFiles()     // Load conditions before items for cost calculation reasons
 	items.LoadDataFiles()
 	// Pinnacle Stage 1: sentient item voices. Must load AFTER items so the
 	// voice_id cross-validation can see every item's ItemSpec.
@@ -1693,7 +1693,7 @@ func loadAllDataFiles(isReload bool) {
 	species.ValidateBodyPartTags(mutations.HasSpec)
 	species.ValidateSpeciesConditionIds(conditions.HasSpec)
 
-	// Slice C: a non-secret buff without authored start/end text still speaks
+	// Slice C: a non-secret condition without authored start/end text still speaks
 	// (the generic notice), but say so at boot. The root guard blocks a merge.
 	conditions.WarnSilentNotices()
 

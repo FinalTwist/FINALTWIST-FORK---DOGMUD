@@ -29,7 +29,7 @@ func TestNewMachine_InitialSighted(t *testing.T) {
 	}
 }
 
-// PE-002: Sighted → Blinded via buff applied.
+// PE-002: Sighted → Blinded via condition applied.
 func TestSightedToBlindedOnConditionApplied(t *testing.T) {
 	m := NewMachine()
 	if err := m.TransitionTo(Blinded, state.TransitionReason{Trigger: TriggerConditionApplied}); err != nil {
@@ -40,11 +40,11 @@ func TestSightedToBlindedOnConditionApplied(t *testing.T) {
 	}
 }
 
-// PE-003: Same Sighted→Blinded path, this time carrying a buffId metadata
+// PE-003: Same Sighted→Blinded path, this time carrying a conditionId metadata
 // payload identifying flashbang as the source. The FSM itself ignores
 // metadata — it's a pass-through payload for observers/consumers to use
 // during the messaging-framework wiring. Trigger string is identical to
-// PE-002 (both use TriggerBuffApplied).
+// PE-002 (both use TriggerConditionApplied).
 func TestSightedToBlindedOnFlashbang(t *testing.T) {
 	m := NewMachine()
 	if err := m.TransitionTo(Blinded, state.TransitionReason{Trigger: TriggerConditionApplied, Metadata: map[string]any{"buffId": ConditionIdFlashbangBlindness}}); err != nil {
@@ -58,9 +58,9 @@ func TestSightedToBlindedOnFlashbang(t *testing.T) {
 // PE-004 (Sighted → Blinded via condition added) and PE-007 (the reverse)
 // were deleted with the ConditionBlinded source by the conditions unification
 // (slice 1, 2026-09-12). Both edges are still covered, by PE-003/PE-005/PE-006
-// on the buff triggers, which are now the only triggers there are.
+// on the condition triggers, which are now the only triggers there are.
 
-// PE-005: Blinded → Sighted via buff expired.
+// PE-005: Blinded → Sighted via condition expired.
 func TestBlindedToSightedOnConditionExpired(t *testing.T) {
 	m := NewMachine()
 	_ = m.TransitionTo(Blinded, state.TransitionReason{Trigger: TriggerConditionApplied})

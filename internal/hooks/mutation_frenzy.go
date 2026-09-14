@@ -1,7 +1,7 @@
 package hooks
 
-// bloodFrenzyConditionId is the Blood Frenzy state buff (see 100-blood_frenzy.yaml).
-// The buff carries the damage-bonus + no-flee flags and lapses after 2 rounds
+// bloodFrenzyConditionId is the Blood Frenzy state condition (see 100-blood_frenzy.yaml).
+// The condition carries the damage-bonus + no-flee flags and lapses after 2 rounds
 // unless the per-round trigger re-applies it.
 const bloodFrenzyConditionId = 100
 

@@ -13,7 +13,7 @@ import (
 /*
 Skullduggery Skill
 Level 3 - Defuse: attempt to disarm a trap on a locked exit or container.
-Consumes a disarm kit. Success clears trapbuffids; failure triggers the trap.
+Consumes a disarm kit. Success clears trapconditionids; failure triggers the trap.
 */
 func Defuse(rest string, user *users.UserRecord,
 	room *rooms.Room, flags events.EventFlag) (bool, error) {

@@ -49,7 +49,7 @@ func TestRenderHonoursANonZeroIndex(t *testing.T) {
 	}
 }
 
-// TestRenderSkipsEmptyRoles is the Kind B case: buffs, spells, quests and
+// TestRenderSkipsEmptyRoles is the Kind B case: conditions, spells, quests and
 // crafting hold a single authored string and have no actee, so most roles are
 // absent. An absent role must render empty rather than panicking or borrowing
 // another role's text.

@@ -588,7 +588,7 @@ func ParseDiceRoll(dRoll string) (attacks int, dCount int, dSides int, bonus int
 
 	var dice []string
 
-	// After # is a list of buffId's separated by commas
+	// After # is a list of conditionId's separated by commas
 	if strings.Contains(dRoll, `#`) {
 		parts := strings.Split(dRoll, `#`)
 		dRoll = parts[0]

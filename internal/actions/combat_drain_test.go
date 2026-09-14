@@ -112,7 +112,7 @@ func TestDrain_HealAndBleed(t *testing.T) {
 	targetMob.Character.HealthMax.Value = 500
 	targetMob.Character.Health = 500
 	targetMob.Character.Stats.Dexterity.ValueAdj = 1 // near-zero evasion
-	// A raw mob literal's Buffs is the zero value (nil maps); AddBuffMagnitude
+	// A raw mob literal's Conditions is the zero value (nil maps); AddConditionMagnitude
 	// (the Bleeding record's door) writes into those maps directly and would
 	// panic on a nil map without this init, unlike the old condition path.
 	targetMob.Character.Conditions = conditions.New()
@@ -208,8 +208,8 @@ func TestDrain_PartialDamageHealsWithoutBleed(t *testing.T) {
 	targetMob.Character.HealthMax.Value = 100000
 	targetMob.Character.Health = 100000
 	targetMob.Character.Stats.Dexterity.ValueAdj = 130
-	// A raw mob literal's Buffs is the zero value (nil maps); a full (non-
-	// partial) hit elsewhere in the retry loop below calls AddBuffMagnitude,
+	// A raw mob literal's Conditions is the zero value (nil maps); a full (non-
+	// partial) hit elsewhere in the retry loop below calls AddConditionMagnitude,
 	// which would panic on those nil maps without this init.
 	targetMob.Character.Conditions = conditions.New()
 	setCombatPositionParallel(&targetMob.Character, position.Standing)
@@ -251,11 +251,11 @@ func TestDrain_PartialDamageHealsWithoutBleed(t *testing.T) {
 
 	assert.Greater(t, res.Healed, 0,
 		"lifesteal should heal the attacker on a defended partial: it reads damage actually dealt, not the Hit flag")
-	// HasBuff ignores expiry (it only checks presence in the id index), and
-	// the per-iteration reset above calls RemoveBuff, which marks a held
+	// HasCondition ignores expiry (it only checks presence in the id index), and
+	// the per-iteration reset above calls RemoveCondition, which marks a held
 	// record expired in place rather than deleting it — so a stale record
-	// from an earlier full-hit iteration would still read HasBuff==true.
-	// GetBuffs filters expired records, which is what this assertion needs.
+	// from an earlier full-hit iteration would still read HasCondition==true.
+	// GetConditions filters expired records, which is what this assertion needs.
 	assert.Empty(t, targetMob.Character.GetConditions(conditions.ConditionIdBleeding),
 		"bleed stays hit-only; a defended partial must not apply the Bleeding record")
 }

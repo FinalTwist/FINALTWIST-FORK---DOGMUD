@@ -161,7 +161,7 @@ func (c *Character) TrainSkill(skillName string, targetLevel ...int) int {
 
 // Gets the current value of the skillname provided.
 //
-// Returns the trained rank from c.Skills plus any equipment / buff / pet
+// Returns the trained rank from c.Skills plus any equipment / condition / pet
 // StatMod contributions matching the skill name. Equipment can carry skill
 // bonuses via the same StatMods map that holds stat bonuses (the affix
 // generator at items/affixgen.go writes skill names into StatMods directly,
@@ -180,7 +180,7 @@ func (c *Character) GetSkillLevel(skillName skills.SkillTag) int {
 		base = level
 	}
 
-	// Equipment / buff / pet StatMods can buff skill rolls.
+	// Equipment / condition / pet StatMods can condition skill rolls.
 	bonus := c.StatMod(string(skillName))
 
 	return base + bonus

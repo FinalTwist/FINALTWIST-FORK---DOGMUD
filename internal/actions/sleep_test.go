@@ -16,7 +16,7 @@ import (
 
 // sleepFakeActor is a minimal Actor for sleep tests. It exposes the full
 // Actor interface with a real *characters.Character so that
-// Character.AddBuff / Character.HasBuffFlag work correctly without a real
+// Character.AddCondition / Character.HasConditionFlag work correctly without a real
 // server event queue. SendText messages are captured for assertion.
 type sleepFakeActor struct {
 	awardRecorder // records Actor.AwardResolved calls
@@ -33,7 +33,7 @@ func (a *sleepFakeActor) GetName() string                        { return a.char
 func (a *sleepFakeActor) IsPlayer() bool                         { return a.isPlayer }
 func (a *sleepFakeActor) GetUserId() int                         { return a.userId }
 func (a *sleepFakeActor) GetMobInstanceId() int                  { return 0 }
-func (a *sleepFakeActor) AddCondition(_ int, _ string)           {} // no-op: Sleep calls c.AddBuff directly
+func (a *sleepFakeActor) AddCondition(_ int, _ string)           {} // no-op: Sleep calls c.AddCondition directly
 func (a *sleepFakeActor) OnSkillUse(_ string) bool               { return false }
 func (a *sleepFakeActor) OnStatUse(_ string) bool                { return false }
 func (a *sleepFakeActor) SendRoomCommunication(_ string, _ bool) {}
@@ -61,8 +61,8 @@ func newSleepActor(t *testing.T, inCombat bool, isPlayer bool) *sleepFakeActor {
 	}
 }
 
-// seedSleepCondition seeds buff spec 15 (Sleeping) so that Character.AddBuff(15,
-// false) succeeds. Also re-seeds buff 9 (Hidden) to avoid breaking shadow
+// seedSleepCondition seeds condition spec 15 (Sleeping) so that Character.AddCondition(15,
+// false) succeeds. Also re-seeds condition 9 (Hidden) to avoid breaking shadow
 // tests that share the same test binary. Returns a cleanup func.
 func seedSleepCondition(t *testing.T) func() {
 	t.Helper()
@@ -87,7 +87,7 @@ func seedSleepCondition(t *testing.T) func() {
 // ---------------------------------------------------------------------------
 
 // TestSleep_AppliesConditionOnSuccess verifies that Sleep returns Success and
-// sets the Sleeping buff flag on the character.
+// sets the Sleeping condition flag on the character.
 func TestSleep_AppliesConditionOnSuccess(t *testing.T) {
 	cleanup := seedSleepCondition(t)
 	defer cleanup()
@@ -105,12 +105,12 @@ func TestSleep_AppliesConditionOnSuccess(t *testing.T) {
 }
 
 // TestSleep_ConditionUnavailable_NoRawErrorLeak verifies that when the Sleeping
-// buff spec can't be applied (e.g. the buff is missing from the world data),
-// the player gets a clean message rather than the raw internal AddBuff error
-// that leaks the buff id ("...buffId: 15"). Regression guard for the dogmud
-// world shipping without buff 15.
+// condition spec can't be applied (e.g. the condition is missing from the world data),
+// the player gets a clean message rather than the raw internal AddCondition error
+// that leaks the condition id ("...conditionId: 15"). Regression guard for the dogmud
+// world shipping without condition 15.
 func TestSleep_ConditionUnavailable_NoRawErrorLeak(t *testing.T) {
-	// Deliberately seed an EMPTY buff registry so AddBuff(15) fails.
+	// Deliberately seed an EMPTY condition registry so AddCondition(15) fails.
 	cleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{})
 	defer cleanup()
 
@@ -177,7 +177,7 @@ func TestSleep_IdempotentWhenAlreadySleeping(t *testing.T) {
 
 	actor := newSleepActor(t, false, true)
 
-	// First call applies the buff.
+	// First call applies the condition.
 	first := Sleep(actor, SleepOptions{})
 	if !first.Success {
 		t.Fatalf("first Sleep() expected Success, got %+v", first)
@@ -191,8 +191,8 @@ func TestSleep_IdempotentWhenAlreadySleeping(t *testing.T) {
 }
 
 // TestSleep_PlayerReadsTheStartLine pins that the sleeper is told they went to
-// sleep. Buff 15 is flagged silent-start because Sleep applies it
-// synchronously and so it never travels the event that narrates a buff start;
+// sleep. Condition 15 is flagged silent-start because Sleep applies it
+// synchronously and so it never travels the event that narrates a condition start;
 // the flag makes the line the applier's to send, and before this it was sent
 // by nobody at all. A mob holder has no client, so it gets nothing.
 func TestSleep_PlayerReadsTheStartLine(t *testing.T) {

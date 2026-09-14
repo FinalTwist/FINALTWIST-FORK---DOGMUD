@@ -26,7 +26,7 @@ func AttemptCritDisarm(source *characters.Character, target *characters.Characte
 		Success: false,
 	}
 
-	// Check for PermaGear buff immunity
+	// Check for PermaGear condition immunity
 	if target.HasConditionFlag(conditions.PermaGear) {
 		return result
 	}

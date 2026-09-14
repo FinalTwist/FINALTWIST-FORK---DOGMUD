@@ -110,7 +110,7 @@ func TestApplyConditionOverrides(t *testing.T) {
 	if got := specs["weather-blizzard"].PlayerConditionIds; len(got) != 0 {
 		t.Errorf("blizzard buffs not stripped: %v", got)
 	}
-	// Indoor variants are buff-free by rule and never overridden.
+	// Indoor variants are condition-free by rule and never overridden.
 	if got := specs["weather-storm-indoor"].PlayerConditionIds; got != nil {
 		t.Errorf("indoor spec must be untouched: %v", got)
 	}

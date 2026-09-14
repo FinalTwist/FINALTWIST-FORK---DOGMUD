@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// The Kind B stores own their text. Every buff, spell and quest-reward line is
+// The Kind B stores own their text. Every condition, spell and quest-reward line is
 // rendered through the store's Narrate door, so a site never reads a field
 // and never decides for itself which audience a line is for. This guard keeps
 // it that way: outside the owning package, no production file may name the

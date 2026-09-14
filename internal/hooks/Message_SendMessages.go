@@ -47,7 +47,7 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 	// chat — the Deafened moderation filter below is load-bearing) and
 	// direct events.Message{RoomId} constructions. The IsQuiet /
 	// SuperHearing filter currently has zero emitters in DOGMud (no dogmud
-	// buff grants superhearing) — dormant upstream-compat, kept for
+	// condition grants superhearing) — dormant upstream-compat, kept for
 	// cherry-pick parity. Audited 2026-07-10.
 	if message.RoomId > 0 {
 

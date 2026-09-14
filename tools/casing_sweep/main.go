@@ -8,7 +8,7 @@
 // Safety gate (verified before adding each entry to targets):
 //
 //	rooms  title:      display-only; rooms matched by ID.
-//	buffs  name:       display-only; buffs matched by integer BuffId.
+//	conditions  name:       display-only; conditions matched by integer ConditionId.
 //	spells name:       FindSpellByName lowercases both sides (case-insensitive).
 //	mobs   name:       findMobByName/MobIdByName use stringMatch (ToLower both).
 //	items  name:       FindItemByName/NameMatch lower both sides (case-insensitive).

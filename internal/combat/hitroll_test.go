@@ -126,7 +126,7 @@ func TestCalcSwingCount_HardCap(t *testing.T) {
 func TestCalcSwingCount_RecoveryForcesOne(t *testing.T) {
 	defer conditions.SeedConditionRecordsForTest()()
 	ch := &characters.Character{}
-	// Base, not ValueAdj/Value: character.AddBuffMagnitude runs the full
+	// Base, not ValueAdj/Value: character.AddConditionMagnitude runs the full
 	// c.Validate(), whose RecalculateStats() overwrites ValueAdj/Value from
 	// Base+Training+Mods (Training and Mods are 0 on this bare fixture, so
 	// ValueAdj/Value end up equal to what Base is set to here).
@@ -137,7 +137,7 @@ func TestCalcSwingCount_RecoveryForcesOne(t *testing.T) {
 	ch.Conditions.Validate(true)
 	// Force ValueAdj/Value from Base BEFORE the record lands, so the baseline
 	// swing count below is driven by dexterity, not by an un-Validated fixture
-	// sitting at its zero value. Without this, deleting the AddBuffMagnitude
+	// sitting at its zero value. Without this, deleting the AddConditionMagnitude
 	// call below still passes: swings would floor to 1 because Dexterity.
 	// ValueAdj is 0, not because the recovery cap fired.
 	_ = ch.Validate()
@@ -151,7 +151,7 @@ func TestCalcSwingCount_RecoveryForcesOne(t *testing.T) {
 
 // A Recovering record applied and then ticked contributes nothing to the swing
 // count: the cap lives exactly one tick. Both round ticks therefore add it
-// AFTER their buff tick (MobRoundTick always did; UserRoundTick since slice
+// AFTER their condition tick (MobRoundTick always did; UserRoundTick since slice
 // 1b), so it is live when DoCombat runs.
 // TestUserRoundTick_RecoveringIsLiveWhenCombatRuns in internal/hooks pins the
 // player order.
@@ -678,8 +678,8 @@ func TestCalcSwingCount_WeaponSwingsAtWeaponSkill(t *testing.T) {
 
 // ─── the two EffectDefenseMult / EffectDamageMult readers ──────────────────
 //
-// TestOffBalanceRecordIsTheDefenseMultiplier (above) pins the buffs-layer
-// getter: a held record changes what Buffs.Effect returns. Neither reader in
+// TestOffBalanceRecordIsTheDefenseMultiplier (above) pins the conditions-layer
+// getter: a held record changes what Conditions.Effect returns. Neither reader in
 // combat_helpers.go that actually CONSUMES that getter was pinned: whether a
 // held damage_mult record reaches both dmgMean and rawDmgForCrit in
 // buildDamageParams, and whether a held defense_mult record reaches the
@@ -688,10 +688,10 @@ func TestCalcSwingCount_WeaponSwingsAtWeaponSkill(t *testing.T) {
 
 // newDamageMultCharacter builds a bare-hands combatant with full health at a
 // deterministic Base stat spread. Base, not the derived stat/pool fields: see
-// TestCalcSwingCount_RecoveryForcesOne and the AddBuffMagnitude trap it notes
-// -- AddBuffMagnitude calls Character.Validate(), which recomputes ValueAdj
+// TestCalcSwingCount_RecoveryForcesOne and the AddConditionMagnitude trap it notes
+// -- AddConditionMagnitude calls Character.Validate(), which recomputes ValueAdj
 // and HealthMax.Value from Base on every call, so a fixture that set those
-// derived fields directly would have them silently reset the moment a buff
+// derived fields directly would have them silently reset the moment a condition
 // is added.
 func newDamageMultCharacter(t *testing.T) *characters.Character {
 	t.Helper()
@@ -737,16 +737,16 @@ func TestDamageMultRecordScalesMeanAndCritRaw(t *testing.T) {
 
 // captureDefenseScore runs runBestOfAllDefenseWithRunner for a single dodge
 // candidate and returns the entry's Score exactly as handed to the contest,
-// before any roll or cost commit. buffFn, if non-nil, applies a record to the
-// defender first (through AddBuffMagnitude, which re-validates the
+// before any roll or cost commit. conditionFn, if non-nil, applies a record to the
+// defender first (through AddConditionMagnitude, which re-validates the
 // character -- see newDamageMultCharacter's comment on why the fixture below
 // only ever sets Base fields).
 func captureDefenseScore(t *testing.T, conditionFn func(*characters.Character)) float64 {
 	t.Helper()
 	pinDefenceAdmissionConfig(t)
 	attacker, defender := defenceAdmissionCharacters()
-	// Validate the BASELINE defender too. AddBuffMagnitude validates as a side
-	// effect, so without this the no-buff capture is the only un-validated one
+	// Validate the BASELINE defender too. AddConditionMagnitude validates as a side
+	// effect, so without this the no-condition capture is the only un-validated one
 	// and the ratios below would fold in any validation drift as if it were
 	// the record's doing.
 	require.NoError(t, defender.Validate())
@@ -775,11 +775,11 @@ func captureDefenseScore(t *testing.T, conditionFn func(*characters.Character)) 
 
 // TestDefenseMultRecordReachesDefenseScore pins Task 4's defense-side door:
 // runBestOfAllDefenseWithRunner must multiply defenseScore by
-// Buffs.Effect(EffectDefenseMult) before handing the entry to the contest.
+// Conditions.Effect(EffectDefenseMult) before handing the entry to the contest.
 // Rally (magnitude-based) and Off Balance (literal 0.85) both write that
-// effect, and Buffs.Effect composes multiple held records multiplicatively,
+// effect, and Conditions.Effect composes multiple held records multiplicatively,
 // so holding both must yield 1.2 * 0.85 = 1.02. Sabotage: comment out
-// "defenseScore *= ...Effect(buffs.EffectDefenseMult)" in
+// "defenseScore *= ...Effect(conditions.EffectDefenseMult)" in
 // runBestOfAllDefenseWithRunner -- this test must go red on all three cases.
 func TestDefenseMultRecordReachesDefenseScore(t *testing.T) {
 	defer conditions.SeedConditionRecordsForTest()()

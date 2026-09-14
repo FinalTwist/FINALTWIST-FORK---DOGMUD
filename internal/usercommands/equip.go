@@ -251,7 +251,7 @@ func Equip(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 				ItemsRemoved: displaced,
 			})
 
-			// Trigger any outstanding buff onStart events
+			// Trigger any outstanding condition onStart events
 			if len(iSpec.WornConditionIds) > 0 {
 				for _, condition := range user.Character.Conditions.List {
 					if condition.OnStartWaiting {
@@ -309,7 +309,7 @@ func Equip(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 			sendReservationDisclosure(user, beforeReservation)
 
-			// Trigger any outstanding buff onStart events
+			// Trigger any outstanding condition onStart events
 			if len(result.Item.GetSpec().WornConditionIds) > 0 {
 				for _, condition := range user.Character.Conditions.List {
 					if condition.OnStartWaiting {

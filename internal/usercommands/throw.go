@@ -461,7 +461,7 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 		// Everything the blast actually touched engages: full hits, and
 		// defended targets the splash still damaged. A defensive crit (zero
-		// damage, no buffs) walked away clean.
+		// damage, no conditions) walked away clean.
 		if hit || dmg > 0 {
 			hitMobs = append(hitMobs, mob)
 		}

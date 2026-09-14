@@ -8,14 +8,14 @@ import (
 )
 
 // The slice A infrared tester is the ONLY way to stand a shapes-only player in
-// a room (nothing in dogmud content grants buff 85), so its buff has to arrive
+// a room (nothing in dogmud content grants condition 85), so its condition has to arrive
 // ALIVE.
 //
 // Presence in the list is not enough, and asserting only that is a gate that
-// cannot fail: the 2026-09-11 playtest ran with buff 85 sitting in the list
-// while the character made out nothing. Buff.Expired() is TriggersLeft <= 0 and
-// never consults PermaBuff, GetBuffs filters expired buffs out and Prune
-// deletes them, so a profile buff with no triggersleft is born dead.
+// cannot fail: the 2026-09-11 playtest ran with condition 85 sitting in the list
+// while the character made out nothing. Condition.Expired() is TriggersLeft <= 0 and
+// never consults Permanent, GetConditions filters expired conditions out and Prune
+// deletes them, so a profile condition with no triggersleft is born dead.
 func TestSliceAInfraredProfileCarriesALiveCondition85(t *testing.T) {
 	dir := filepath.Join("..", "..", "tools", "playtest", "profiles")
 	u, err := LoadTemplate(dir, "slice-a-infrared")

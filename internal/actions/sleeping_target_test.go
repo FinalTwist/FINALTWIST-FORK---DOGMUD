@@ -7,12 +7,12 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 )
 
-// sleepConditionId is the buff the sleep action applies. Pinned here so a renumber
+// sleepConditionId is the condition the sleep action applies. Pinned here so a renumber
 // fails loudly in this test instead of silently disabling every sleep guard.
 const sleepConditionId = 15
 
 // newChar builds a character the way sleep_test.go does — characters.New()
-// plus an initialized Buffs, or AddBuff nil-panics.
+// plus an initialized Conditions, or AddCondition nil-panics.
 func newChar() *characters.Character {
 	c := characters.New()
 	c.Name = "Marn"
@@ -20,9 +20,9 @@ func newChar() *characters.Character {
 	return c
 }
 
-// sleeper returns a character carrying the Sleeping buff flag. Reuses
-// seedSleepBuff from sleep_test.go — the buff spec registry is not loaded in
-// unit tests, so AddBuff fails without it.
+// sleeper returns a character carrying the Sleeping condition flag. Reuses
+// seedSleepCondition from sleep_test.go — the condition spec registry is not loaded in
+// unit tests, so AddCondition fails without it.
 func sleeper(t *testing.T) *characters.Character {
 	t.Helper()
 	t.Cleanup(seedSleepCondition(t))

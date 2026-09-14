@@ -172,7 +172,7 @@ func TestWaitRound_DarkRoomHidesTargetNameFromAttacker(t *testing.T) {
 
 // TestWaitRound_DarkRoomInfraredDefenderStillGetsDarkLine pins the swing
 // path's convention that infrared is not clear sight: CanSeeSightImpairedOnly
-// checks buffs.NightVision, not buffs.InfraredVision, so a defender who can
+// checks conditions.NightVision, not conditions.InfraredVision, so a defender who can
 // only see shapes in the dark still reads the fixed dark line, not the
 // authored one.
 func TestWaitRound_DarkRoomInfraredDefenderStillGetsDarkLine(t *testing.T) {

@@ -58,7 +58,7 @@ const (
 	BuyReasonSelfTarget       = "self_target"
 )
 
-// legacyShopCatalog enumerates the in-stock items + buffs offered by a
+// legacyShopCatalog enumerates the in-stock items + conditions offered by a
 // legacy Character.Shop. Merc and pet sale types are intentionally NOT
 // surfaced (spec 2.1 drops them).
 type legacyShopCatalog struct {
@@ -118,7 +118,7 @@ func buildLegacyCatalog(saleItems characters.Shop) legacyShopCatalog {
 	return cat
 }
 
-// allNames returns the union of item + buff display names in the catalog
+// allNames returns the union of item + condition display names in the catalog
 // for fuzzy matching. Merc/pet names are intentionally excluded.
 func (c *legacyShopCatalog) allNames() []string {
 	all := make([]string, 0, len(c.itemNames)+len(c.conditionNames))
@@ -497,7 +497,7 @@ func tryPurchaseLegacy(buyer Actor, request string, shopMob *mobs.Mob, shopUser 
 }
 
 // tryPurchaseFromInventory attempts a single purchase against a
-// ShopInventory-backed mob merchant. Buff/merc/pet purchases are
+// ShopInventory-backed mob merchant. Condition/merc/pet purchases are
 // NOT handled here — ShopInventory only carries items.
 func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, shopInv *shops.ShopInventory) BuyResult {
 	cfg := shops.PricingConfigFromBalance()
@@ -744,7 +744,7 @@ func executePurchaseItem(buyer Actor, shopMob *mobs.Mob, shopUser *users.UserRec
 	buyer.GetCharacter().StoreItem(newItm)
 }
 
-// executePurchaseCondition applies the bought buff to the buyer and
+// executePurchaseCondition applies the bought condition to the buyer and
 // emits the merchant emote follow-up.
 func executePurchaseCondition(buyer Actor, shopMob *mobs.Mob, shopUser *users.UserRecord, matchedShopItem characters.ShopItem, price int, tradeInString string) {
 	conditionSpec := conditions.GetConditionSpec(matchedShopItem.ConditionId)

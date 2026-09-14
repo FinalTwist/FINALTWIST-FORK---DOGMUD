@@ -13,20 +13,20 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-// A stacking spec (buffs.Stacking) can only be added through
-// AddBuffMagnitude, which supplies the rounds and amount a stack needs.
-// Buffs.AddBuff and Buffs.AddBuffScaled now refuse one outright (see
-// internal/conditions review fixes), and admin.buff.go's `buff <id>` queues its
-// add through exactly that door (UserRecord.AddBuff / Mob.AddBuff, both
-// events.Buff with no magnitude or triggers). Before this fix the command
-// told the admin the buff was "applied" regardless, which was a lie: the
+// A stacking spec (conditions.Stacking) can only be added through
+// AddConditionMagnitude, which supplies the rounds and amount a stack needs.
+// Conditions.AddCondition and Conditions.AddConditionScaled now refuse one outright (see
+// internal/conditions review fixes), and admin.condition.go's `condition <id>` queues its
+// add through exactly that door (UserRecord.AddCondition / Mob.AddCondition, both
+// events.Condition with no magnitude or triggers). Before this fix the command
+// told the admin the condition was "applied" regardless, which was a lie: the
 // queued add was silently refused downstream and nothing landed.
 const adminConditionStackingTestId = 9401
 
 // seedAdminConditionStackingUser builds a minimal, self-contained fixture (own
-// user, room and buff registry) rather than reusing seedAllRegistries, so
+// user, room and condition registry) rather than reusing seedAllRegistries, so
 // adding the one stacking spec this test needs cannot disturb any other
-// test's shared buff ids.
+// test's shared condition ids.
 func seedAdminConditionStackingUser(t *testing.T) (*users.UserRecord, *rooms.Room, func()) {
 	t.Helper()
 
@@ -76,10 +76,10 @@ func TestAdminCondition_RefusesAStackingSpecOnAPlayer(t *testing.T) {
 	}
 }
 
-// seedAdminConditionStackingMob mirrors seedAdminBuffStackingUser for the MOB
-// branch of the same refusal (admin.buff.go's second `buffSpec.IsStacking()`
+// seedAdminConditionStackingMob mirrors seedAdminConditionStackingUser for the MOB
+// branch of the same refusal (admin.condition.go's second `conditionSpec.IsStacking()`
 // guard, ~line 150). It needs its own room registered with the rooms
-// package, because the len(args)>=2 path in Buff() re-resolves the room via
+// package, because the len(args)>=2 path in Condition() re-resolves the room via
 // rooms.LoadRoom(user.Character.RoomId) rather than using the room argument
 // the command was called with. The mob instance is seeded and placed in that
 // room the same way internal/usercommands/attack_test.go builds a mob

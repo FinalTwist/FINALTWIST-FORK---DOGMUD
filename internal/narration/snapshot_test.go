@@ -134,12 +134,12 @@ func setupRealStores(t *testing.T) {
 
 	cfg := configs.GetConfig()
 	cfg.FilePaths.DataFiles = configs.ConfigString(dogmudDataDir(t))
-	// Buff 0 (Meditating) derives its TriggerCount from this at Validate time
+	// Condition 0 (Meditating) derives its TriggerCount from this at Validate time
 	// and refuses 0; the shipped config.yaml says 3. Set it explicitly rather
 	// than load config.yaml: that file is skip-worktree and differs per
 	// machine, and a golden must not have a per-machine input. DataFiles and
 	// LogoutRounds are the only config keys the three loaders read (verified
-	// 2026-09-12); every other knob is a Go zero value here. The loaded buff,
+	// 2026-09-12); every other knob is a Go zero value here. The loaded condition,
 	// spell and quest maps stay populated after this test; nothing else in
 	// this package reads them.
 	cfg.Network.LogoutRounds = 3
@@ -791,7 +791,7 @@ func buildItemVoicesGolden(t *testing.T) string {
 }
 
 // ---------------------------------------------------------------------
-// Kind B stores (M3 item 5b): buffs, spells, quests. Single strings per
+// Kind B stores (M3 item 5b): conditions, spells, quests. Single strings per
 // lifecycle phase, no pool, so no picker is involved: the golden freezes the
 // substitution and the notice logic, keyed by the AUTHORED key name so a
 // swapped role shows up as a changed row.
@@ -807,16 +807,16 @@ var kindBSource = textutil.TokenContext{
 	TargetPlainName: "Targetticus",
 }
 
-// kindBNoTarget is the same source with no target, which is how every buff
+// kindBNoTarget is the same source with no target, which is how every condition
 // site and the quest bridge render: they never know a target.
 var kindBNoTarget = textutil.TokenContext{
 	SourceName:      kindBSource.SourceName,
 	SourcePlainName: kindBSource.SourcePlainName,
 }
 
-// Store 8: buffs (internal/conditions, six *_user_text / *_room_text fields)
+// Store 8: conditions (internal/conditions, six *_user_text / *_room_text fields)
 //
-// Since M3 item 5b this builder reads through BuffSpec.Narrate and
+// Since M3 item 5b this builder reads through ConditionSpec.Narrate and
 // AuthoredStartLine; the emitted rows, their order and the header are
 // unchanged from the pre-migration recording, which is the byte-identity
 // proof.

@@ -33,9 +33,9 @@ var KnownTemplateIDs = []string{
 	//
 	// m2-actor carries extra-arms (the arm slot whose equip path dropped its
 	// room line does not exist without it), resonant-larynx (the only route to
-	// the rally and warcry fold loops that used to buff party members in
+	// the rally and warcry fold loops that used to condition party members in
 	// silence), and an effect_type: buff spell (a shield spell does not reach
-	// the buff case at all).
+	// the condition case at all).
 	//
 	// m2-witness is deliberately plain and carries NO night vision or
 	// infrared, because two of the changes under test are about what a player
@@ -43,7 +43,7 @@ var KnownTemplateIDs = []string{
 	// those lanes.
 	"m2-actor",
 	"m2-witness",
-	// The slice A infrared tester. NOTHING in dogmud content grants buff 85
+	// The slice A infrared tester. NOTHING in dogmud content grants condition 85
 	// (InfraredVision): no spell, item, mutation or species references it, so
 	// this profile is the only way to stand a shapes-only player in a room.
 	// Without it the "aims at shapes, not names" lane cannot run at all.

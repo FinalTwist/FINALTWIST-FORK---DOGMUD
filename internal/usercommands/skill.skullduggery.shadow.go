@@ -20,7 +20,7 @@ Skullduggery Skill
 Level 3 - Shadow: follow a target between rooms while remaining hidden.
 When the target moves, the shadower automatically moves with them.
 A target-specific detection roll alerts the target if they sense pursuit.
-Shadow ends if the shadower loses their hidden buff or manually stops.
+Shadow ends if the shadower loses their hidden condition or manually stops.
 */
 func Shadow(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 

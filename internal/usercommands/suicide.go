@@ -31,15 +31,15 @@ func Suicide(rest string, user *users.UserRecord, room *rooms.Room, flags events
 	}
 	user.Character.LastSuicideRound = currentRound
 
-	// Revive-on-death buff: heal + clear buff, no death.
+	// Revive-on-death condition: heal + clear condition, no death.
 	// This path must NEVER reach the Life machine — it keeps the
 	// character Alive.
 	if user.Character.HasConditionFlag(conditions.ReviveOnDeath) {
 		// U5c: this resolves the character's life state without going through
 		// Die, so clear the queued-death token here too. Otherwise a
 		// CharacterDied still in flight from the blow that brought them here
-		// would flush afterwards, find them alive with the revive buff already
-		// consumed, and kill them anyway — defeating the buff outright.
+		// would flush afterwards, find them alive with the revive condition already
+		// consumed, and kill them anyway — defeating the condition outright.
 		user.Character.DeathQueued = false
 
 		user.Character.Health = user.Character.HealthMax.Value

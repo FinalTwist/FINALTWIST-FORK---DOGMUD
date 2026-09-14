@@ -98,9 +98,9 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 	// End Room Alerts
 	//
 	// Noun highlighting is universal (2026-06-12). It was formerly gated
-	// on the room.nouns role permission or a pet with the SeeNouns buff
+	// on the room.nouns role permission or a pet with the SeeNouns condition
 	// flag — but the default user role can never hold permissions and no
-	// dogmud-world buff carries see-nouns, so the gate made the feature
+	// dogmud-world condition carries see-nouns, so the gate made the feature
 	// admin-only by accident. Discoverability for everyone beats a
 	// vestigial perk.
 	renderNouns := true
@@ -428,8 +428,8 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 
 	if searchMobName := user.Character.GetMiscData(`tracking-mob`); searchMobName != nil {
 
-		// Buff-absent cleanup: if tracking misc data was set but the
-		// active-tracking buff expired or was removed, drop the misc
+		// Condition-absent cleanup: if tracking misc data was set but the
+		// active-tracking condition expired or was removed, drop the misc
 		// data so the render doesn't fire forever.
 		if !user.Character.HasCondition(86) {
 			user.Character.SetMiscData("tracking-mob", nil)
@@ -502,8 +502,8 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 
 	if searchUserName := user.Character.GetMiscData(`tracking-user`); searchUserName != nil {
 
-		// Buff-absent cleanup: if tracking misc data was set but the
-		// active-tracking buff expired or was removed, drop the misc
+		// Condition-absent cleanup: if tracking misc data was set but the
+		// active-tracking condition expired or was removed, drop the misc
 		// data so the render doesn't fire forever.
 		if !user.Character.HasCondition(86) {
 			user.Character.SetMiscData("tracking-mob", nil)

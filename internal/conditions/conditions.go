@@ -12,10 +12,10 @@ const (
 )
 
 type Condition struct {
-	ConditionId    int    `yaml:"buffid"`                   // Which buff template does it refer to? The tag pins the save key through the slice 2 rename.
-	Source         string `yaml:"source,omitempty"`         // Optional source identifier for where this buff originated. Example: spell, item, area
+	ConditionId    int    `yaml:"buffid"`                   // Which condition template does it refer to? The tag pins the save key through the slice 2 rename.
+	Source         string `yaml:"source,omitempty"`         // Optional source identifier for where this condition originated. Example: spell, item, area
 	OnStartWaiting bool   `yaml:"onstartwaiting,omitempty"` // Is the onstart event waiting to trigger?
-	Permanent      bool   `yaml:"permabuff,omitempty"`      // Is this buff from a worn item or race?
+	Permanent      bool   `yaml:"permabuff,omitempty"`      // Is this condition from a worn item or race?
 	// Need to instance track the following:
 	RoundCounter int `yaml:"roundcounter,omitempty"` // How many rounds have passed. Triggers on (RoundCounter%RoundInterval == 0)
 	TriggersLeft int `yaml:"triggersleft,omitempty"` // How many times it triggers
@@ -51,20 +51,20 @@ func (b *Condition) Expired() bool {
 
 // expire marks a held record expired for the prune pass and clears its
 // stacks in the same step. Every internal path that expires a still-held
-// record (RemoveBuff, HasFlag's expire branch, tickStacks) must go through
-// this rather than setting TriggersLeft directly: AddBuff, AddBuffScaled and
-// RefreshBuff can all revive an expired, unpruned record, and one that kept
+// record (RemoveCondition, HasFlag's expire branch, tickStacks) must go through
+// this rather than setting TriggersLeft directly: AddCondition, AddConditionScaled and
+// RefreshCondition can all revive an expired, unpruned record, and one that kept
 // its old stacks would come back to life with them still live.
 func (b *Condition) expire() {
 	b.TriggersLeft = TriggersLeftExpired
 	b.Stacks = nil
 }
 
-// A list of applied buffs
+// A list of applied conditions
 type Conditions struct {
 	List           []*Condition
-	conditionFlags map[Flag][]int // a map of buff flags to the index of the buff
-	conditionIds   map[int]int    // a map of a buffId to it position in buffList
+	conditionFlags map[Flag][]int // a map of condition flags to the index of the condition
+	conditionIds   map[int]int    // a map of a conditionId to it position in conditionList
 }
 
 func New() Conditions {
@@ -157,15 +157,15 @@ func (bs *Conditions) HasFlag(action Flag, expire bool) bool {
 			continue
 		}
 
-		// Determine whether this buff matches the requested flag.
-		// action == All matches EVERY non-expired buff, including buffs
-		// that declare no flags at all — e.g. pure regen potion buffs
-		// like Healing Salve (buff 54). The old per-flag loop never ran
-		// for a flagless buff, so CancelBuffsWithFlag(buffs.All) on death
-		// silently left those buffs active.
+		// Determine whether this condition matches the requested flag.
+		// action == All matches EVERY non-expired condition, including conditions
+		// that declare no flags at all — e.g. pure regen potion conditions
+		// like Healing Salve (condition 54). The old per-flag loop never ran
+		// for a flagless condition, so CancelConditionsWithFlag(conditions.All) on death
+		// silently left those conditions active.
 		matches := action == All
 		if !matches {
-			// A save can carry a buff id whose spec is gone, and Validate indexes
+			// A save can carry a condition id whose spec is gone, and Validate indexes
 			// it anyway, so the lookup can come back nil. ProgressMult guards the
 			// same way.
 			spec := GetConditionSpec(b.ConditionId)
@@ -185,9 +185,9 @@ func (bs *Conditions) HasFlag(action Flag, expire bool) bool {
 			return found
 		}
 
-		// Expire mode: mark/remove this buff and keep scanning so every
-		// matching buff is expired (required for action == All).
-		// Buff zero is special, and if force cancelled, it is removed
+		// Expire mode: mark/remove this condition and keep scanning so every
+		// matching condition is expired (required for action == All).
+		// Condition zero is special, and if force cancelled, it is removed
 		// from the list outright.
 		if b.ConditionId == 0 {
 			bs.List = append(bs.List[:index], bs.List[index+1:]...)
@@ -200,23 +200,23 @@ func (bs *Conditions) HasFlag(action Flag, expire bool) bool {
 	return found
 }
 
-// defaultProgressMult is what a buff carrying skill-progress or mutation-rate
+// defaultProgressMult is what a condition carrying skill-progress or mutation-rate
 // is worth when it declares no progress_mult of its own. It is the literal the
-// two consuming call sites hardcoded before a buff could say otherwise, kept
-// here so every existing buff behaves exactly as it did.
+// two consuming call sites hardcoded before a condition could say otherwise, kept
+// here so every existing condition behaves exactly as it did.
 const defaultProgressMult = 2.0
 
-// ProgressMult reports how much the held buffs carrying flag quicken the
+// ProgressMult reports how much the held conditions carrying flag quicken the
 // progression that flag gates: skill progression for SkillProgress, mutation
-// progress for MutationRate. It returns 1.0 when no held buff carries the
+// progress for MutationRate. It returns 1.0 when no held condition carries the
 // flag, so a caller can multiply unconditionally.
 //
-// A flagged buff with no progress_mult contributes defaultProgressMult. Held
-// flagged buffs do not stack; the strongest value wins.
+// A flagged condition with no progress_mult contributes defaultProgressMult. Held
+// flagged conditions do not stack; the strongest value wins.
 func (bs *Conditions) ProgressMult(flag Flag) float64 {
 
 	// Same fast negative as HasFlag: the flag index is only ever a filter,
-	// since it keeps entries for buffs that have since expired.
+	// since it keeps entries for conditions that have since expired.
 	if flag != All {
 		if _, ok := bs.conditionFlags[flag]; !ok {
 			return 1.0
@@ -260,8 +260,8 @@ func (bs *Conditions) Started(conditionId int) {
 	}
 }
 
-// AddConditionScaled adds a buff with its duration multiplied by durationMult. A
-// stacking record can only be added through AddBuffMagnitude, because a
+// AddConditionScaled adds a condition with its duration multiplied by durationMult. A
+// stacking record can only be added through AddConditionMagnitude, because a
 // stack needs its own rounds and amount that this call has no room to carry;
 // a stacking spec is refused rather than left to create a live record with
 // no stacks.
@@ -272,15 +272,15 @@ func (bs *Conditions) AddConditionScaled(conditionId int, durationMult float64) 
 	return bs.addConditionScaled(conditionId, durationMult)
 }
 
-// addConditionScaled is the writer AddBuffScaled and the non-stacking branch of
-// AddBuffMagnitude share. addStack also calls it, once per new stack, to
+// addConditionScaled is the writer AddConditionScaled and the non-stacking branch of
+// AddConditionMagnitude share. addStack also calls it, once per new stack, to
 // create or touch the record before it appends that stack, which is why this
-// unexported form does not itself refuse a stacking spec: AddBuffScaled's
+// unexported form does not itself refuse a stacking spec: AddConditionScaled's
 // exported wrapper is where that refusal belongs.
 func (bs *Conditions) addConditionScaled(conditionId int, durationMult float64) bool {
 	if conditionInfo := GetConditionSpec(conditionId); conditionInfo != nil {
 
-		// Poison immunity (Stone Stomach): a poison-flagged buff is refused
+		// Poison immunity (Stone Stomach): a poison-flagged condition is refused
 		// while the holder is immune. Checked here so every application path,
 		// event or direct, honours it. Silent: the immunity's own start line
 		// already told the player.
@@ -330,7 +330,7 @@ func (bs *Conditions) addConditionScaled(conditionId int, durationMult float64) 
 // triggers is the exact trigger count, not a duration in rounds. Every record
 // that goes through this door today ticks once a round, so the trigger count
 // is the rounds. It is an int on
-// purpose: AddBuffScaled truncates float64(count) * mult, and 3.3 * 10 is
+// purpose: AddConditionScaled truncates float64(count) * mult, and 3.3 * 10 is
 // 32.999... in binary, so a multiplier would shorten some durations by a
 // round. The former conditions all computed an integer.
 //
@@ -358,18 +358,18 @@ func (bs *Conditions) AddConditionMagnitude(conditionId int, triggers int, magni
 	return true
 }
 
-// RefreshCondition tops a held buff's remaining triggers back up to the spec's
+// RefreshCondition tops a held condition's remaining triggers back up to the spec's
 // TriggerCount and touches nothing else: RoundCounter keeps its cadence
-// (AddBuff resets it, which would starve any buff whose RoundInterval is
-// above one), PermaBuff and TickAmount are left alone. A buff already
+// (AddCondition resets it, which would starve any condition whose RoundInterval is
+// above one), Permanent and TickAmount are left alone. A condition already
 // permanent (TriggersLeftUnlimited) is left as-is rather than clamped down
-// to a finite TriggerCount. Returns false when the buff is not held or has
+// to a finite TriggerCount. Returns false when the condition is not held or has
 // no live spec (a save can carry a dead id: Validate indexes it into
-// buffIds before checking whether GetBuffSpec finds anything, so "held"
-// does not imply a spec exists). Room mutators use this to keep a buff
+// conditionIds before checking whether GetConditionSpec finds anything, so "held"
+// does not imply a spec exists). Room mutators use this to keep a condition
 // alive for the whole visit without re-narrating it.
 //
-// A stacking record can only be added through AddBuffMagnitude, because a
+// A stacking record can only be added through AddConditionMagnitude, because a
 // stack needs its own rounds and amount that this call has no room to carry;
 // a stacking spec is refused rather than topped up to the spec's single
 // TriggerCount, which would misreport a live record's duration or, on an
@@ -399,7 +399,7 @@ func (bs *Conditions) RefreshCondition(conditionId int) bool {
 
 // AddCondition applies a record for the spec's own trigger count, or unlimited
 // when isPermanent. A stacking record can only be added through
-// AddBuffMagnitude, because a stack needs its own rounds and amount that this
+// AddConditionMagnitude, because a stack needs its own rounds and amount that this
 // call has no room to carry; a stacking spec is refused rather than left to
 // create a live record with no stacks.
 func (bs *Conditions) AddCondition(conditionId int, isPermanent bool) bool {
@@ -409,7 +409,7 @@ func (bs *Conditions) AddCondition(conditionId int, isPermanent bool) bool {
 			return false
 		}
 
-		// Poison immunity (Stone Stomach): a poison-flagged buff is refused
+		// Poison immunity (Stone Stomach): a poison-flagged condition is refused
 		// while the holder is immune. Checked here so every application path,
 		// event or direct, honours it. Silent: the immunity's own start line
 		// already told the player.
@@ -452,13 +452,13 @@ func (bs *Conditions) AddCondition(conditionId int, isPermanent bool) bool {
 	return false
 }
 
-// Returns what buffs were triggered
+// Returns what conditions were triggered
 func (bs *Conditions) Trigger(conditionId ...int) (triggeredConditions []*Condition) {
 
 	for idx, b := range bs.List {
 
-		// Special case where 1 or more specific buffId's were expectred to trigger (ONLY!)
-		// This might happen if a buff needs to trigger before a round begins
+		// Special case where 1 or more specific conditionId's were expectred to trigger (ONLY!)
+		// This might happen if a condition needs to trigger before a round begins
 		if len(conditionId) > 0 {
 			for _, id := range conditionId {
 				if b.ConditionId != id {
@@ -469,12 +469,12 @@ func (bs *Conditions) Trigger(conditionId ...int) (triggeredConditions []*Condit
 
 		if conditionInfo := GetConditionSpec(b.ConditionId); conditionInfo != nil {
 
-			// Pure flag buffs (no triggerrate set in YAML) have
+			// Pure flag conditions (no triggerrate set in YAML) have
 			// RoundInterval==0 and are never meant to tick — they're
 			// just stat-mod + flag markers (e.g., Hidden #9). Skip
 			// them in the trigger loop so the modulo below doesn't
 			// divide by zero. They're removed by explicit
-			// CancelBuff* paths (e.g., cancel-on-combat flag) or by
+			// CancelCondition* paths (e.g., cancel-on-combat flag) or by
 			// time-based duration if one is later authored.
 			if conditionInfo.RoundInterval < 1 {
 				continue
@@ -561,7 +561,7 @@ func (bs *Conditions) Prune() (prunedConditions []*Condition) {
 
 		if prune {
 			prunedConditions = append(prunedConditions, b)
-			// remove the buff
+			// remove the condition
 			bs.List = append(bs.List[:i], bs.List[i+1:]...)
 			didPrune = true
 		}
@@ -575,8 +575,8 @@ func (bs *Conditions) Prune() (prunedConditions []*Condition) {
 	return prunedConditions
 }
 
-// SetTickAmount sets the TickAmount on the most recently added buff with
-// the given buffId. Called right after AddBuff to set the snapshot.
+// SetTickAmount sets the TickAmount on the most recently added condition with
+// the given conditionId. Called right after AddCondition to set the snapshot.
 func (bs *Conditions) SetTickAmount(conditionId int, amount int) {
 	if idx, ok := bs.conditionIds[conditionId]; ok {
 		bs.List[idx].TickAmount = amount
@@ -587,9 +587,9 @@ func (bs *Conditions) SetTickAmount(conditionId int, amount int) {
 // had in total, both in rounds rather than triggers.
 //
 // roundsLeft reads the instance, not the spec. It used to be
-// spec.TriggerCount*spec.RoundInterval - buff.RoundCounter, which is only
-// right for a record added at its spec default: every AddBuffMagnitude and
-// AddBuffScaled producer sets an exact trigger count, and a record added with
+// spec.TriggerCount*spec.RoundInterval - condition.RoundCounter, which is only
+// right for a record added at its spec default: every AddConditionMagnitude and
+// AddConditionScaled producer sets an exact trigger count, and a record added with
 // 2 of a spec's 10 triggers displayed 30 rounds remaining instead of 6.
 // TriggersLeft*RoundInterval is the whole rounds still owed; RoundCounter
 // modulo RoundInterval is how far into the current interval the record
@@ -599,8 +599,8 @@ func (bs *Conditions) SetTickAmount(conditionId int, amount int) {
 // less than roundsLeft — a record refreshed above its spec default would
 // otherwise report a remainder larger than its own total.
 //
-// An unlimited record (a permabuff) keeps the old answer rather than a
-// nine-digit one: its callers gate on Buff.PermaBuff and render "sustained".
+// An unlimited record (a permanent condition) keeps the old answer rather than a
+// nine-digit one: its callers gate on Condition.Permanent and render "sustained".
 func GetDurations(condition *Condition, spec *ConditionSpec) (roundsLeft int, totalRounds int) {
 
 	if spec.RoundInterval < 1 {

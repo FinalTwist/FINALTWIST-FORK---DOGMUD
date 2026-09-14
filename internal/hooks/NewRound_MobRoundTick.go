@@ -221,15 +221,15 @@ func tickMobConditions(mob *mobs.Mob, mobInstanceId int) {
 		for _, condition := range triggeredConditions {
 			if condition.TickAmount != 0 {
 				if mobConditionSpec := conditions.GetConditionSpec(condition.ConditionId); mobConditionSpec != nil {
-					// buff.TickAmount is SIGNED: buffs.ComputeTickAmount returns a
+					// condition.TickAmount is SIGNED: conditions.ComputeTickAmount returns a
 					// negative value for TickPercent < 0, so this is a
 					// damage-over-time delivery path as well as a regen one.
 					// Routing it to ApplyRestore alone would silently delete every
-					// DoT buff, because ApplyRestore no-ops on non-positive input.
+					// DoT condition, because ApplyRestore no-ops on non-positive input.
 					// Hence the sign split; ApplyHarm takes a POSITIVE amount, so
 					// negate.
 					//
-					// DoT buffs carry no applier, so the harm source is anonymous
+					// DoT conditions carry no applier, so the harm source is anonymous
 					// (state.ActorRef{}). See ApplyHarm's docstring.
 					tickAmt := condition.TickAmount
 					switch mobConditionSpec.TickPool {
@@ -268,14 +268,14 @@ func tickMobConditions(mob *mobs.Mob, mobInstanceId int) {
 				}
 			}
 			// Trigger text. The player round tick has always sent it; this mob
-			// tick never did, so a mob holding a trigger-text buff showed
+			// tick never did, so a mob holding a trigger-text condition showed
 			// nothing. Room line only, because a mob has no client. Visual,
 			// because the text describes what the room sees. Sent on every
 			// trigger, including the expiring one (whole-branch review,
-			// slice 1): PruneBuffs' end narration is a separate, later line
+			// slice 1): PruneConditions' end narration is a separate, later line
 			// for the record's close, not a substitute for the trigger text
 			// on a one-trigger record. Same shape as the mob branch of
-			// PruneBuffs, so the line gets the same buff colour.
+			// PruneConditions, so the line gets the same condition colour.
 			if trigSpec := conditions.GetConditionSpec(condition.ConditionId); trigSpec != nil && len(trigSpec.Narration(conditions.PhaseTrigger).Observer) > 0 {
 				if room := rooms.LoadRoom(mob.Character.RoomId); room != nil {
 					roles := trigSpec.Narrate(conditions.PhaseTrigger, textutil.TokenContext{

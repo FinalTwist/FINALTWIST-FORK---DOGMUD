@@ -1,4 +1,4 @@
-// Package worldevents provides a ring-buffer–based recording system for
+// Package worldevents provides a ring-conditioner–based recording system for
 // notable in-world occurrences (mob mutations, pack milestones, rare crafts,
 // etc.). Events carry a significance tier and region information so that
 // future display systems (town crier, rumor NPCs) can filter by locality.

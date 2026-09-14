@@ -53,9 +53,9 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		shopInv := shops.GetShopInventory(mob.Zone, int(mob.MobId), mob.HomeRoomId)
 		if shopInv != nil {
 			stock := buildShopStockFromInventory(shopInv, user)
-			// Also include non-item entries (buffs, mercs, pets) from legacy shop
+			// Also include non-item entries (conditions, mercs, pets) from legacy shop
 			for _, si := range mob.Character.Shop {
-				if si.ItemId == 0 { // buff, merc, or pet entry
+				if si.ItemId == 0 { // condition, merc, or pet entry
 					stock = append(stock, si)
 				}
 			}
@@ -142,7 +142,7 @@ func buildShopStockFromInventory(shopInv *shops.ShopInventory, user *users.UserR
 	return stock
 }
 
-// partitionShopStock splits shop stock into four categories: items, mercs, buffs, pets.
+// partitionShopStock splits shop stock into four categories: items, mercs, conditions, pets.
 func partitionShopStock(stock characters.Shop) (itemStock, mercStock, conditionStock, petStock characters.Shop) {
 	for _, saleItem := range stock {
 
@@ -508,7 +508,7 @@ func renderPlayerMerchantListing(user *users.UserRecord, stock characters.Shop, 
 	}
 
 	if len(conditionStock) > 0 {
-		// Pre-existing behavior preserved: checks itemStock instead of buffStock, uses Price > 0 instead of >= 0
+		// Pre-existing behavior preserved: checks itemStock instead of conditionStock, uses Price > 0 instead of >= 0
 		hasGold, hasTrade := checkGoldTrade(itemStock, false)
 		headers, rows := buildConditionRows(conditionStock, hasGold, hasTrade)
 		sortRowsByCol(rows, 2)

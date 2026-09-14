@@ -32,7 +32,7 @@ type Species struct {
 	SpeciesId    int `yaml:"speciesid"`
 	Name         string
 	Description  string
-	ConditionIds []int `yaml:"buffids"` // Permabuffs this species always has. The tag pins the file key through the slice 2 rename.
+	ConditionIds []int `yaml:"buffids"` // Permanent conditions this species always has. The tag pins the file key through the slice 2 rename.
 	Size         Size
 	UnarmedName  string
 	// NaturalAttack is the combat-message subtype an unarmed member of this
@@ -338,13 +338,13 @@ func ValidateBodyPartTags(mutationIdExists func(id string) bool) {
 	}
 }
 
-// ValidateSpeciesConditionIds scans all loaded species and panics on any buff id
-// that does not exist. Called from main after species + buffs are loaded.
+// ValidateSpeciesConditionIds scans all loaded species and panics on any condition id
+// that does not exist. Called from main after species + conditions are loaded.
 //
-// buffIdExists is a callback for cross-package lookup — pass buffs.HasSpec.
+// conditionIdExists is a callback for cross-package lookup — pass conditions.HasSpec.
 // Same shape as ValidateBodyPartTags above, for the same reason.
 //
-// This exists because buff 29 (Night Vision) was referenced by eight species
+// This exists because condition 29 (Night Vision) was referenced by eight species
 // and absent from dogmud entirely, so 67 mobs of 641 were silently blind in
 // their own caves. Nothing failed, because nothing checked.
 func ValidateSpeciesConditionIds(conditionIdExists func(id int) bool) {

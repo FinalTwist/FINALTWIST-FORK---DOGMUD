@@ -510,12 +510,12 @@ func DrainQueuedSkillUsedForTest(userId int) []SkillUsed {
 	return found
 }
 
-// DrainQueuedConditionsForTest removes and returns the queued Buff events for a
-// user. A userId of 0 drains every queued Buff event, mob ones included, since
-// a mob's buff event carries MobInstanceId and leaves UserId zero. Buff
+// DrainQueuedConditionsForTest removes and returns the queued Condition events for a
+// user. A userId of 0 drains every queued Condition event, mob ones included, since
+// a mob's condition event carries MobInstanceId and leaves UserId zero. Condition
 // application is the one door
-// that narrates a buff's start, so a test that wants to prove a code path
-// applies a player buff correctly asserts on the event, not on the character.
+// that narrates a condition's start, so a test that wants to prove a code path
+// applies a player condition correctly asserts on the event, not on the character.
 //
 // FOR TEST USE ONLY. Mutates the queue. Call it once to discard leftovers from
 // an earlier test, then again to assert on what the code under test queued.

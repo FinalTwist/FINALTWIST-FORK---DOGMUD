@@ -16,7 +16,7 @@ const (
 
 // Config is the resolved module configuration (keys live under
 // Modules.weather.* and default from files/data-overlays/config.yaml). Keys
-// are flat (BuffsEnabled, not Buffs.Enabled) because plugin config lookup
+// are flat (ConditionsEnabled, not Conditions.Enabled) because plugin config lookup
 // reads flattened scalar leaves.
 type Config struct {
 	Enabled            bool
@@ -31,7 +31,7 @@ type Config struct {
 	EmoteEveryRounds     int     // ambient emote cadence in rounds (jittered ±25%, >= 5)
 	EmoteMildChancePct   int     // ambient emit chance (%) at felt intensity 0
 	EmoteStrongChancePct int     // ambient emit chance (%) at felt intensity 1
-	ConditionsEnabled    bool    // false strips buff ids from weather mutator specs
+	ConditionsEnabled    bool    // false strips condition ids from weather mutator specs
 	Persist              bool    // save/restore fronts + RNG across reboots
 	SeasonsEnabled       bool    // false runs exactly as v1 weather (no season layer)
 }

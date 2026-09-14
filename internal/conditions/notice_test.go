@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// One door for the player-side buff line: authored text first, a generic line
-// underneath, silence for a secret buff. Forty-six dogmud buffs had neither a
+// One door for the player-side condition line: authored text first, a generic line
+// underneath, silence for a secret condition. Forty-six dogmud conditions had neither a
 // start nor an end line before slice C.
 func TestConditionNotices(t *testing.T) {
 	authored := &ConditionSpec{ConditionId: 1, Name: "Venom", StartUserText: "Venom burns.", EndUserText: "The venom subsides."}
@@ -42,9 +42,9 @@ func TestSilentNoticeConditionsListsOnlyNonSecretConditionsRelyingOnTheFallback(
 	assert.Equal(t, []string{"11 Half (end)", "12 Bare (start, end)"}, SilentNoticeConditions(), "sorted by id")
 }
 
-// A silent-start buff leaves the start to whatever applies it. Warcry and
-// rally bypass events.Buff entirely (Character.AddBuff); the bloom detox
-// drink does reach Buff_ApplyBuffs on the unscaled path, and the flag keeps
+// A silent-start condition leaves the start to whatever applies it. Warcry and
+// rally bypass events.Condition entirely (Character.AddCondition); the bloom detox
+// drink does reach Condition_ApplyConditions on the unscaled path, and the flag keeps
 // the drink's own purge narration from being doubled. Either way the
 // resolver must say nothing at start
 // even when start_user_text is (wrongly) authored, and the listing must not
@@ -66,7 +66,7 @@ func TestSilentStartConditionNotListedForMissingStart(t *testing.T) {
 	assert.Equal(t, []string{}, SilentNoticeConditions(), "a silent-start buff with an authored end is not silent by accident")
 }
 
-// A hidden buff must never announce its end: if you can't know who spotted
+// A hidden condition must never announce its end: if you can't know who spotted
 // you, you can't know you've been spotted. The flag wins even over authored
 // end text, and the listing must not flag the missing end as a problem.
 func TestHiddenConditionHasNoEndNotice(t *testing.T) {
@@ -86,7 +86,7 @@ func TestHiddenConditionNotListedForMissingEnd(t *testing.T) {
 	assert.Equal(t, []string{}, SilentNoticeConditions(), "a hidden buff with no end text is silent by design, not by accident")
 }
 
-// A quiet buff (prone recovery, the grapple exposure) is reapplied every
+// A quiet condition (prone recovery, the grapple exposure) is reapplied every
 // round it persists, so it never emits a start or end line by design, not by
 // missing authored text. The listing must not flag either as a problem.
 func TestQuietConditionNotListedForMissingNotices(t *testing.T) {

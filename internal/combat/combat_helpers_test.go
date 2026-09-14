@@ -123,7 +123,7 @@ func TestApplyPetDamage_RespectsPhysicalMitigation(t *testing.T) {
 	// GetPhysicalMitigation()'s non-gear term, so it sets mitigation without
 	// needing the item data files loaded.
 	//
-	// Fixture trap: AddBuffMagnitude re-validates the character as a side
+	// Fixture trap: AddConditionMagnitude re-validates the character as a side
 	// effect, and Character.Validate() derives HealthMax.Value from
 	// HealthMax.Base + stats + balance config rather than honoring a
 	// directly assigned .Value — so the HealthMax/Health = 500 below is

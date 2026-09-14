@@ -14,7 +14,7 @@ const defensiveCasterYAML = "../../_datafiles/world/dogmud/behaviors/archetypes/
 
 // seedDefensiveCasterSpells seeds the production spells the rewritten
 // defensive_caster archetype's four consumers actually carry in their
-// spellbooks: chrysalis-cocoon (self_defense, buff 52) / conviction-spike
+// spellbooks: chrysalis-cocoon (self_defense, condition 52) / conviction-spike
 // and conviction-barrage (harm_single / harm_multi) for the three
 // previously-spellbook-less consumers (219/74/321), plus 285 bandit_caster's
 // mind-spike / nerve-disruption (harm_single) / mend-wounds (self_heal).
@@ -91,7 +91,7 @@ func seedDefensiveCasterMob(t *testing.T, instanceId int, spellbook map[string]i
 
 // TestDefensiveCaster_FullHP_WithoutConditions_CastsCocoonFirst verifies the
 // goblin_shaman/tunnel_shaman/elemental_queen spellbook shape (219/74/321,
-// as content-fixed alongside this rewrite): full HP, no buffs, single
+// as content-fixed alongside this rewrite): full HP, no conditions, single
 // self_defense candidate (chrysalis-cocoon) wins the self_defense branch
 // before harm is ever considered.
 func TestDefensiveCaster_FullHP_WithoutConditions_CastsCocoonFirst(t *testing.T) {
@@ -121,8 +121,8 @@ func TestDefensiveCaster_FullHP_WithoutConditions_CastsCocoonFirst(t *testing.T)
 // TestDefensiveCaster_CocoonActive_SingleEnemy_CastsHarmSingle verifies the
 // cast_best_in_category "already active" semantics from
 // action_cast_best_in_category.go: spellEffectAlreadyActive skips a
-// candidate when ANY of its BuffIds is already present on the caster.
-// chrysalis-cocoon carries BuffIds:[52], so seeding buff 52 (not the Minor
+// candidate when ANY of its ConditionIds is already present on the caster.
+// chrysalis-cocoon carries ConditionIds:[52], so seeding condition 52 (not the Minor
 // Shield record, which is a different, EffectType=="shield" check that
 // chrysalis-cocoon also has but isn't required to trip this skip) is
 // sufficient to remove it as a self_defense candidate. With no other
@@ -141,9 +141,9 @@ func TestDefensiveCaster_CocoonActive_SingleEnemy_CastsHarmSingle(t *testing.T) 
 	defer cleanup()
 	defer events.DrainQueuedInputsForTest(mob.InstanceId)
 
-	// Buff 52 is what chrysalis-cocoon's cast actually grants; seeding it
+	// Condition 52 is what chrysalis-cocoon's cast actually grants; seeding it
 	// is what makes spellEffectAlreadyActive skip the spell via the
-	// BuffIds branch.
+	// ConditionIds branch.
 	defer seedConditionOnChar(t, &mob.Character, 52)()
 
 	ok := TryMobBehavior(mob.InstanceId, EventContext{EventType: "mob_combat_round"})
@@ -161,7 +161,7 @@ func TestDefensiveCaster_CocoonActive_SingleEnemy_CastsHarmSingle(t *testing.T) 
 // TestDefensiveCaster_BanditCaster285Shape_NoSelfDefense_CastsHarmSingle
 // mirrors mob 285 bandit_caster's actual spellbook: no self_defense spell
 // known at all, so that branch has no candidates and Fails regardless of
-// buff state. Ranking: nerve-disruption (base_folds 5 x cost 40 = 200)
+// condition state. Ranking: nerve-disruption (base_folds 5 x cost 40 = 200)
 // outranks mind-spike (base_folds 2 x cost 20 = 40), so nerve-disruption
 // wins the harm_single branch.
 func TestDefensiveCaster_BanditCaster285Shape_NoSelfDefense_CastsHarmSingle(t *testing.T) {

@@ -211,7 +211,7 @@ type Balance struct {
 	SubmissionAttemptCritZ ConfigFloat `yaml:"submission_attempt_crit_z"` // Defender-side shortcut: drift z >= this opens a bottom-sub window regardless of margin
 	SubBadZThreshold       ConfigFloat `yaml:"sub_bad_z_threshold"`       // Z-score below which the sub roll's bad-tier (attempter falls prone) fires
 	SubGoldLossFraction    ConfigFloat `yaml:"sub_gold_loss_fraction"`    // Fraction of carried gold transferred to the aggressor on subdue/cripple
-	BrokenLimbBuffDuration ConfigInt   `yaml:"broken_limb_buff_duration"` // Duration in rounds for the broken-limb buff; expires naturally via standard buff tick
+	BrokenLimbBuffDuration ConfigInt   `yaml:"broken_limb_buff_duration"` // Duration in rounds for the broken-limb condition; expires naturally via standard condition tick
 
 	// ── CHUNK 4E: THIRD-PARTY INTERFERENCE ──────────────────────────────────
 	// See docs/superpowers/specs/ chunk-4e design.
@@ -306,7 +306,7 @@ type Balance struct {
 
 	// ── COMBAT: DAMAGE ───────────────────────────────────────────────────────
 	// Legacy unarmed knobs — still used by GetDefaultDistributionDamage() for
-	// attack count and crit buff calculation. Damage values are overridden by
+	// attack count and crit condition calculation. Damage values are overridden by
 	// the unified pipeline (UnarmedDamageMultiplier + CalcRawDamage).
 	UnarmedBaseDamage               ConfigFloat `yaml:"UnarmedBaseDamage"`               // Base damage before stat bonuses (default 2.0)
 	UnarmedStrengthDivisor          ConfigFloat `yaml:"UnarmedStrengthDivisor"`          // Str / this = damage bonus (default 25.0)
@@ -314,7 +314,7 @@ type Balance struct {
 	UnarmedBaseVariance             ConfigFloat `yaml:"UnarmedBaseVariance"`             // Base randomness of unarmed hits (default 3.0)
 	UnarmedDamageMultiplier         ConfigFloat `yaml:"UnarmedDamageMultiplier"`         // Fist damage multiplier for new pipeline (default 0.30)
 	UnarmedSpeedMultiplier          ConfigFloat `yaml:"UnarmedSpeedMultiplier"`          // Unarmed attack speed — slightly faster than light weapons (default 1.4)
-	HasteSwingMultiplier            ConfigFloat `yaml:"HasteSwingMultiplier"`            // Swing count multiplier when haste buff is active (default 1.50)
+	HasteSwingMultiplier            ConfigFloat `yaml:"HasteSwingMultiplier"`            // Swing count multiplier when haste condition is active (default 1.50)
 	SkillMultiplierBase             ConfigFloat `yaml:"SkillMultiplierBase"`             // Skill multiplier at rank 0 (default 1.0)
 	SkillMultiplierMax              ConfigFloat `yaml:"SkillMultiplierMax"`              // Skill multiplier at soft cap (default 3.0)
 	SkillWeight                     ConfigFloat `yaml:"SkillWeight"`                     // Global multiplier on skill contributions in additive formulas (default 2.0)

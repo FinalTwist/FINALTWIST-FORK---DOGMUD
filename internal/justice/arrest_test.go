@@ -942,10 +942,10 @@ func TestExecuteArrest_FallsBackToStaticCellOnInstanceFailure(t *testing.T) {
 }
 
 // TestExecuteArrest_PlayerReadsTheJailStartLineAndHoldsTheCondition pins both halves
-// of the arrest's buff delivery. Buff 88 is applied synchronously on the
+// of the arrest's condition delivery. Condition 88 is applied synchronously on the
 // character because its no-go and no-aggro-target flags are read within the
 // same round dispatch as the arrest, so it cannot travel the event that
-// narrates a buff start; it is flagged silent-start and ExecuteArrest owes the
+// narrates a condition start; it is flagged silent-start and ExecuteArrest owes the
 // player the line instead. Before that send existed, a jailed player read
 // nothing about being held until their sentence was served or their fine paid.
 func TestExecuteArrest_PlayerReadsTheJailStartLineAndHoldsTheCondition(t *testing.T) {
@@ -990,7 +990,7 @@ func TestExecuteArrest_PlayerReadsTheJailStartLineAndHoldsTheCondition(t *testin
 	}
 
 	// Synchronous: the no-go flag has to be in place before this returns, or a
-	// spamming player walks out of the cell before the buff lands.
+	// spamming player walks out of the cell before the condition lands.
 	if !u.Character.HasCondition(jailedConditionId) {
 		t.Errorf("the Jailed buff must be held the moment ExecuteArrest returns, not queued")
 	}

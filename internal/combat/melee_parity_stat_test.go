@@ -26,7 +26,7 @@ package combat
 // hands. Attack score = dodge score = 100 + 30×SkillWeight(2.0) = 160, crit
 // bar = CritBarFor(30,30) = 2.0 both ways, ContestFloor 0.125. Three
 // mitigation cells on the defender: light (0%), mid (40%), BIS (75% — the
-// PhysicalMitigationCap). Mitigation is injected as a buff statmod
+// PhysicalMitigationCap). Mitigation is injected as a condition statmod
 // (physical_mitigation), which GetPhysicalMitigation folds in alongside gear.
 //
 // Knob values are pinned to the Go defaults the test binary actually runs
@@ -56,7 +56,7 @@ const (
 	// ±10% gate.
 	paritySwings = 200000
 
-	// parityMitConditionId seeds a test-only buff spec carrying the cell's
+	// parityMitConditionId seeds a test-only condition spec carrying the cell's
 	// physical_mitigation statmod.
 	parityMitConditionId = 9001
 

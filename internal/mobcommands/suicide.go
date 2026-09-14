@@ -12,7 +12,7 @@ import (
 
 func Suicide(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
-	// ReviveOnDeath buff: heal and clear, no death — unless rest ==
+	// ReviveOnDeath condition: heal and clear, no death — unless rest ==
 	// "vanish" which forces unconditional despawn.
 	if rest != `vanish` && mob.Character.HasConditionFlag(conditions.ReviveOnDeath) {
 		// U5c: resolves the life state without going through Die, so clear the

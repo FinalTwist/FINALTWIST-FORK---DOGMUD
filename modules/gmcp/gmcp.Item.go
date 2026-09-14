@@ -231,7 +231,7 @@ func procEffectIds() []string  { return items.ValidProcEffects() }
 func itemVoiceIds() []string   { return itemvoices.AllVoiceIds() }
 
 // reqToSpec starts from the loaded spec so fields the form does NOT cover
-// (procs, reserves, worn-buffs, mutation drip, etc.) survive a Save untouched.
+// (procs, reserves, worn-conditions, mutation drip, etc.) survive a Save untouched.
 func reqToSpec(base *items.ItemSpec, req itemUpdateReq) items.ItemSpec {
 	s := *base
 	s.Name, s.DisplayName, s.NameSimple, s.Description = req.Name, req.DisplayName, req.NameSimple, req.Description

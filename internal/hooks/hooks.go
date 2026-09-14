@@ -11,7 +11,7 @@ import (
 // Register hooks here...
 func RegisterListeners() {
 
-	// Buffs
+	// Conditions
 	events.RegisterListener(events.Condition{}, ApplyConditions)
 
 	// U5c: attributed death, queued by ApplyHarm at the harm site and resolved

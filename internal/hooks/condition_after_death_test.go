@@ -25,11 +25,11 @@ const rendingAfterDeathConditionId = 7110
 // The wiring comes from the character's first Validate, which fires the
 // OnCharacterCreated callbacks exactly once, in production order. Wiring the
 // cascade by hand as well would register it twice, because any later Validate
-// (every buff add runs one) fires the callbacks anyway.
+// (every condition add runs one) fires the callbacks anyway.
 func setupConditionAfterDeath(t *testing.T) *users.UserRecord {
 	t.Helper()
 	t.Cleanup(seedAllRegistries())
-	// One seed call: each SeedBuffsForTest replaces the registry, so a second
+	// One seed call: each SeedConditionsForTest replaces the registry, so a second
 	// call would drop the tick record.
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		rendingAfterDeathConditionId: {ConditionId: rendingAfterDeathConditionId, Name: "Test Rending Bleed",
@@ -63,23 +63,23 @@ func setupConditionAfterDeath(t *testing.T) *users.UserRecord {
 	return u
 }
 
-// A buff queued in the same combat round as the killing blow must not land on
+// A condition queued in the same combat round as the killing blow must not land on
 // the respawned player.
 //
 // The playtest (run 7d0dad99c4709fc0): a scarred steppe wolf's rending-claws
-// on-hit buff was queued by applyCombatDamageBonuses AFTER the swing's own
+// on-hit condition was queued by applyCombatDamageBonuses AFTER the swing's own
 // ApplyHarm had queued the CharacterDied. The queue is FIFO within a priority,
-// so RouteAttributedDeath ran first: Die stripped every buff and cascaded the
+// so RouteAttributedDeath ran first: Die stripped every condition and cascaded the
 // player all the way back to Alive at 5% health, clearing DeathQueued. Only
-// then did ApplyBuffs apply a fresh Rending Bleed, which bled the player to a
+// then did ApplyConditions apply a fresh Rending Bleed, which bled the player to a
 // second death in the Mending Hut.
 //
-// This replays that queue order through the real producer (UserRecord.AddBuff),
-// the real death listener and the real buff listener.
+// This replays that queue order through the real producer (UserRecord.AddCondition),
+// the real death listener and the real condition listener.
 func TestApplyConditions_ConditionQueuedBeforeDeathDoesNotLandAfterRespawn(t *testing.T) {
 	u := setupConditionAfterDeath(t)
 
-	// The killing blow, then the on-hit buff, in the order the combat round
+	// The killing blow, then the on-hit condition, in the order the combat round
 	// queues them.
 	u.Character.ApplyHarm(characters.PoolHealth, u.Character.HealthMax.Value+100, state.ActorRef{MobInstanceId: 100})
 	u.AddCondition(rendingAfterDeathConditionId, "mutation")
@@ -92,7 +92,7 @@ func TestApplyConditions_ConditionQueuedBeforeDeathDoesNotLandAfterRespawn(t *te
 	RouteAttributedDeath(died[0])
 
 	// Why neither "is alive" nor "has a death queued" can be the refusal on
-	// its own: by the time the buff event flushes, the player has already
+	// its own: by the time the condition event flushes, the player has already
 	// respawned and the death token is spent.
 	require.True(t, u.Character.IsAlive(), "precondition: Die cascades a player back to Alive")
 	require.False(t, u.Character.DeathQueued, "precondition: the death token is cleared")
@@ -104,8 +104,8 @@ func TestApplyConditions_ConditionQueuedBeforeDeathDoesNotLandAfterRespawn(t *te
 	assert.Equal(t, 0, countContaining(drainPlain(1), "Your wounds tear open."),
 		"and the respawned player must not be told it took hold")
 
-	// A buff queued AFTER the respawn is aimed at the new life and lands. This
-	// is the path every respawn-time buff takes (the room mutator buffs the
+	// A condition queued AFTER the respawn is aimed at the new life and lands. This
+	// is the path every respawn-time condition takes (the room mutator conditions the
 	// respawn teleport queues on arrival).
 	u.AddCondition(rendingAfterDeathConditionId, "area")
 	fresh := events.DrainQueuedConditionsForTest(1)
@@ -133,8 +133,8 @@ func TestApplyConditions_ConditionQueuedOnALivingPlayerApplies(t *testing.T) {
 	assert.Equal(t, 1, countContaining(drainPlain(1), "Your wounds tear open."))
 }
 
-// A queued death that a ReviveOnDeath buff turns into a revive never ends the
-// life, so a buff from the same blow still lands on the revived character.
+// A queued death that a ReviveOnDeath condition turns into a revive never ends the
+// life, so a condition from the same blow still lands on the revived character.
 // This is why the refusal is not "a death was queued".
 func TestApplyConditions_ConditionQueuedBeforeAReviveStillApplies(t *testing.T) {
 	u := setupConditionAfterDeath(t)

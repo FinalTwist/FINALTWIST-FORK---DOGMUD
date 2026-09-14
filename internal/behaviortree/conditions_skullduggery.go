@@ -6,7 +6,7 @@ import (
 )
 
 // condMobIsHidden returns Success when the calling mob carries the Hidden
-// buff (buff 9). Used to gate stealth-dependent branches in the thief
+// condition (condition 9). Used to gate stealth-dependent branches in the thief
 // archetype — only attempt to steal or flee-while-stealing when already
 // concealed.
 func condMobIsHidden(params map[string]any, ctx *EvalContext) Result {
@@ -21,7 +21,7 @@ func condMobIsHidden(params map[string]any, ctx *EvalContext) Result {
 }
 
 // condTargetIsHidden returns Success when the resolved target carries the
-// Hidden buff. Resolution order: SoftTarget → Event.UserId → CombatPhase.
+// Hidden condition. Resolution order: SoftTarget → Event.UserId → CombatPhase.
 //
 // SoftTarget priority ensures the thief archetype's steal-and-flee sequence
 // checks the same player picked by target_random_player_in_room.

@@ -31,7 +31,7 @@ type schedulePlan struct {
 
 	// WantsWake: transitioning OUT of an activity: sleeping segment
 	// (the prior segment had activity sleeping; this tick's segment
-	// does not). Triggers explicit CancelBuffsWithFlag(Sleeping).
+	// does not). Triggers explicit CancelConditionsWithFlag(Sleeping).
 	WantsWake bool
 
 	// SuppressSleepIdle: the current segment is activity: sleeping but the mob

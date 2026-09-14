@@ -18,14 +18,14 @@ import (
 )
 
 // bloomWaferItemId is the item ID for the Bloom Wafer (40108).
-// The wafer's effect (Communion buff, addiction tick, mutation roll) is
+// The wafer's effect (Communion condition, addiction tick, mutation roll) is
 // handled as a special case in Drink rather than through the generic buffids
 // path, because it also needs to stamp BloomLastDoseRound and call
 // BloomAdvanceMutation.
 const bloomWaferItemId = 40108
 
 // ysoldesPurgeItemId is the item ID for Ysolde's Purge (40109).
-// The purge carries a heavy toxicity load (26) and buff 93 (Bloom Detox)
+// The purge carries a heavy toxicity load (26) and condition 93 (Bloom Detox)
 // through the normal drink path. Its special-case here drives the addiction
 // step-down. It also bypasses the toxicity pre-check — addicts presenting
 // for detox are expected to already have elevated toxicity, and the flood is
@@ -36,9 +36,9 @@ const ysoldesPurgeItemId = 40109
 // other detox besides Ysolde's Purge.
 const purgingDraughtItemId = 30052
 
-// Potion-effect buffs occupy a contiguous id block. 76 is the purge's own
-// weakness debuff: it is APPLIED by a purge, never stripped by one. 70 is the
-// draught's flavour buff, which carries no statmods and expires after a round;
+// Potion-effect conditions occupy a contiguous id block. 76 is the purge's own
+// weakness harmful condition: it is APPLIED by a purge, never stripped by one. 70 is the
+// draught's flavour condition, which carries no statmods and expires after a round;
 // a purge leaves it alone so the drinker still sees that they drank something.
 const (
 	potionConditionIdMin       = 54
@@ -62,15 +62,15 @@ func bypassesToxicityGate(itemId int) bool {
 // carrying, clears the toxicity those potions cost, and leaves them weakened
 // for it.
 //
-// All three have to happen here. The draught declares only buff 70, which has a
-// description and no statmods, and there is no buff scripting layer -- so none
-// of the item's advertised behaviour existed. Buff 76 was authored with the
+// All three have to happen here. The draught declares only condition 70, which has a
+// description and no statmods, and there is no condition scripting layer -- so none
+// of the item's advertised behaviour existed. Condition 76 was authored with the
 // intended penalty and wired to nothing.
 //
 // It takes the user record, not the character, because the weakness has to be
-// added through the event path: applying it with Character.AddBuffScaled queued
-// nothing, so Buff_ApplyBuffs never ran and the drinker read no line for a
-// fifty-round debuff. The strips and the toxicity clear stay synchronous.
+// added through the event path: applying it with Character.AddConditionScaled queued
+// nothing, so Condition_ApplyConditions never ran and the drinker read no line for a
+// fifty-round harmful condition. The strips and the toxicity clear stay synchronous.
 func applyPurgeEffects(u *users.UserRecord) {
 	c := u.Character
 	for id := potionConditionIdMin; id <= potionConditionIdMax; id++ {
@@ -179,7 +179,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			`<ansi fg="username">%s</ansi> drinks something and immediately gags.`,
 			user.Character.Name), user.UserId)
 
-		// Apply nausea debuff (buff 75) through the event, so the holder reads
+		// Apply nausea harmful condition (condition 75) through the event, so the holder reads
 		// its start line.
 		user.AddCondition(75, `drink`)
 
@@ -257,21 +257,21 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		durationMult *= 1.0 + float64(matchItem.CraftSkill)/100.0
 	}
 
-	// Apply buffs with scaled duration. Scaled and unscaled both go through the
-	// user, so Buff_ApplyBuffs runs and the drinker reads the buff's start line;
+	// Apply conditions with scaled duration. Scaled and unscaled both go through the
+	// user, so Condition_ApplyConditions runs and the drinker reads the condition's start line;
 	// the multiplier rides on the event. Applying the scaled case through
-	// Character.AddBuffScaled instead is what made Purging Weakness silent.
+	// Character.AddConditionScaled instead is what made Purging Weakness silent.
 	for _, conditionId := range itemSpec.ConditionIds {
 		user.AddConditionScaled(conditionId, durationMult, `drink`)
-		// Compute tick snapshot for config-driven buffs (no stat scaling for
-		// potions). SetTickAmount below is live on a RE-drink, where the buff is
+		// Compute tick snapshot for config-driven conditions (no stat scaling for
+		// potions). SetTickAmount below is live on a RE-drink, where the condition is
 		// still held and its index hits; it is a no-op only on the first
-		// application, because the apply above is queued and the buff is not in
+		// application, because the apply above is queued and the condition is not in
 		// the list yet. Either way the amount is the same: NewRound_UserRoundTick
-		// recomputes a tick_pool buff whose TickAmount is still 0 with the same
-		// scalingMult of 1.0, and of the three tick_pool buffs a drinkable can
+		// recomputes a tick_pool condition whose TickAmount is still 0 with the same
+		// scalingMult of 1.0, and of the three tick_pool conditions a drinkable can
 		// apply (5, 7, 47) none declares tick_variance, so the recomputation is
-		// deterministic, while no tick_pool buff carries a max-pool statmod, so
+		// deterministic, while no tick_pool condition carries a max-pool statmod, so
 		// it reads the same pool.
 		if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil && conditionSpec.TickPool != "" {
 			var maxPool int
@@ -289,7 +289,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	}
 
 	// ── Ysolde's Purge special-case ──────────────────────────────────────────
-	// Toxicity (26) and the detox debuff (buff 93) are applied by the normal
+	// Toxicity (26) and the detox harmful condition (condition 93) are applied by the normal
 	// drink path above. Here we drive the addiction step-down -- the brutal-
 	// fast path to clean.
 	if itemSpec.ItemId == ysoldesPurgeItemId {
@@ -300,7 +300,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	}
 
 	// ── Purging Draught special-case ─────────────────────────────────────────
-	// The draught declares only buff 70, which is a flavour line with no
+	// The draught declares only condition 70, which is a flavour line with no
 	// statmods, so every effect it advertises has to be wired here -- exactly
 	// as Ysolde's Purge and the Bloom Wafer are. Its own toxicity was applied
 	// by the normal path above and is cleared again here, which is correct: you
@@ -315,12 +315,12 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	// ── Bloom Wafer special-case ──────────────────────────────────────────────
 	// The wafer has no buffids in its YAML; all Bloom effects are wired here.
 	// Toxicity (20) was already applied by the normal path above — don't
-	// apply it again. The order relative to the buff loop above doesn't matter
+	// apply it again. The order relative to the condition loop above doesn't matter
 	// since the loop is empty for this item.
 	if itemSpec.ItemId == bloomWaferItemId {
 		bal := configs.GetBalanceConfig()
 
-		// Communion high. Buff 90's YAML baseline is 30 rounds; scale it by the
+		// Communion high. Condition 90's YAML baseline is 30 rounds; scale it by the
 		// BloomCommunionRounds knob so config actually tunes the duration.
 		communionMult := float64(bal.BloomCommunionRounds) / 30.0
 		if communionMult <= 0 {

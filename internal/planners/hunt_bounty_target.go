@@ -45,7 +45,7 @@ func huntBountyTargetPlanner(mob *mobs.Mob, _ *goals.Goal) PlanResult {
 		// target offline — hold; the dispatch manager suspends/ends the hunt
 		return PlanResult{Status: StatusRunning}
 	}
-	// Jailed detection: no buffs.Jailed flag constant exists; detect via the
+	// Jailed detection: no conditions.Jailed flag constant exists; detect via the
 	// jail_until_round MiscData key stamped by justice.ExecuteArrest.
 	jailed := u.Character.GetMiscData("jail_until_round") != nil
 	cmd, status := huntDecision(jailed, mob.Character.RoomId, u.Character.RoomId, uid)

@@ -186,7 +186,7 @@ func Cast(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	//
 	// The resolution-time checks STAY as a backstop and must not be removed. A
 	// multi-round channel gives the world time to move the ceiling out from
-	// under a cast that was affordable when it began: gear comes off, a buff
+	// under a cast that was affordable when it began: gear comes off, a condition
 	// lapses and shrinks the pool, another companion arrives.
 	//
 	// SummonPetMultiplier is 0 for charm, and CompanionReserveBase(0) is the

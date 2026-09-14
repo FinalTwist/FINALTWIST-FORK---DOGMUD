@@ -11,7 +11,7 @@ import (
 // expression `1.12 * 0.85` is instead folded by the compiler at arbitrary
 // constant precision and rounded to float64 once at the end, which lands one
 // ULP away (0.9519999999999999572... vs 0.9520000000000000728...) — a classic
-// double-rounding mismatch, not a bug in Buffs.Effect. Computed through a
+// double-rounding mismatch, not a bug in Conditions.Effect. Computed through a
 // variable so Go cannot constant-fold it.
 func floatDefenseMultWant() float64 {
 	a := 1.12
@@ -193,7 +193,7 @@ func TestAddConditionMagnitudeZeroRoundsMeansTheSpecDefault(t *testing.T) {
 }
 
 // Exact triggers (rounds for a one-round interval), not a multiplier:
-// AddBuffScaled truncates float64(count) *
+// AddConditionScaled truncates float64(count) *
 // mult, and 3.3 * 10 is 32.999... in binary, which would have shortened a
 // 33-round ward to 32. Every former condition passes the integer it computed.
 func TestAddConditionMagnitudeRoundsAreExact(t *testing.T) {
@@ -213,7 +213,7 @@ func TestAddConditionMagnitudeRoundsAreExact(t *testing.T) {
 // lands on the immune holder (every other condition is unaffected), and
 // without immunity the poison record lands (immunity is the only thing
 // refusing it). Both are reproduced here on the record's replacement,
-// AddBuffMagnitude, so poison immunity is not narrowed to "the poison record
+// AddConditionMagnitude, so poison immunity is not narrowed to "the poison record
 // is always refused."
 func TestAddConditionMagnitudeRefusesPoisonUnderImmunity(t *testing.T) {
 	withSpecs(t,
@@ -249,7 +249,7 @@ func TestQuietSilencesBothNotices(t *testing.T) {
 }
 
 // SeedConditionRecordsForTest is additive: a package fixture that already
-// seeded its own buffs (the hooks fixture replaces the whole map) keeps
+// seeded its own conditions (the hooks fixture replaces the whole map) keeps
 // them, and the nine condition ids land on top. The cleanup must remove
 // exactly the nine ids it added and restore whatever was there before.
 func TestSeedConditionRecordsForTestIsAdditiveAndReversible(t *testing.T) {

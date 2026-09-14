@@ -38,7 +38,7 @@ type SpellData struct {
 	EffectMagnitude    int       `yaml:"effect_magnitude,omitempty"`     // Legacy: base damage/heal amount
 	DamageMultiplier   float64   `yaml:"damage_multiplier,omitempty"`    // Spell damage multiplier for new pipeline (Stage 34)
 	EffectDuration     int       `yaml:"effect_duration,omitempty"`      // DoT tick count (default 0 = use 3)
-	ConditionIds       []int     `yaml:"buff_ids,omitempty"`             // Buff IDs to apply (for "buff" effect type)
+	ConditionIds       []int     `yaml:"buff_ids,omitempty"`             // Condition IDs to apply (for "buff" effect type)
 	QuestRequired      string    `yaml:"quest_required,omitempty"`       // Quest token required before spell can be discovered
 	MobOnly            bool      `yaml:"mob_only,omitempty"`             // Boss/NPC signature ability: players may never DISCOVER it. See GetEligibleSpells.
 	NoDamageInterrupt  bool      `yaml:"no_damage_interrupt,omitempty"`  // Telegraphed casts: skip damage/position concentration-break (still interrupted by the disruptor system)
@@ -84,7 +84,7 @@ const (
 
 	// DOG Spell Schools
 	SchoolElemental     = "elemental"     // Fire, ice, lightning, earth, wind - offensive elemental magic
-	SchoolEnhancement   = "enhancement"   // Buffs, shields, enchantments - augmentation magic
+	SchoolEnhancement   = "enhancement"   // Conditions, shields, enchantments - augmentation magic
 	SchoolMental        = "mental"        // Illusions, charms, telepathy - mind-affecting magic (Psionics skill)
 	SchoolVital         = "vital"         // Healing, curing, life/death manipulation - vital force magic
 	SchoolManifestation = "manifestation" // Companion summoning, charming, binding - uses Charisma+manifestation

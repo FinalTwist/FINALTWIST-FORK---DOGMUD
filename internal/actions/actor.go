@@ -43,7 +43,7 @@ type Actor interface {
 	// players.
 	GetMobInstanceId() int
 
-	// AddCondition applies a buff to this actor via the event queue.
+	// AddCondition applies a condition to this actor via the event queue.
 	AddCondition(conditionId int, source string)
 
 	// OnSkillUse triggers skill progression (and the skill's governing stat).

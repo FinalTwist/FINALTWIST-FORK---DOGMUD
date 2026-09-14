@@ -80,7 +80,7 @@ func TestMigrateDetunedRangedWeapons_ReachesEveryCarriedCollection(t *testing.T)
 // a brand-new account, which plays its whole first session on an in-memory
 // record that never passes through LoadUser -- reaches its first migration with
 // no marker of any kind. If it acquired a post-detune bow in the meantime
-// (enchanting, an affix roll, a rename and a worn buff all materialise
+// (enchanting, an affix roll, a rename and a worn condition all materialise
 // Item.Spec), a marker-guarded migration would rescale a CORRECT item to about
 // 1.01, silently and permanently.
 //

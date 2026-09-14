@@ -7,7 +7,7 @@ import (
 )
 
 // EffectKind is one of the closed set of mechanical effects a record may
-// declare. Combat reads them through Buffs.Effect. The set is closed on
+// declare. Combat reads them through Conditions.Effect. The set is closed on
 // purpose: a new kind is a code change with a reader, never a data change.
 type EffectKind string
 
@@ -17,7 +17,7 @@ const (
 	EffectDodgeMult      EffectKind = "dodge_mult"      // dodge score multiplier (no producer today; kept for parity with the reader)
 	EffectRegenMult      EffectKind = "regen_mult"      // multiplier on base health regen (heal spells, corpse feeding)
 	EffectMitigationFlat EffectKind = "mitigation_flat" // flat physical mitigation points (wards)
-	EffectPoolMaxPct     EffectKind = "pool_max_pct"    // fraction taken off a pool maximum; the pool rides on Buff.Source
+	EffectPoolMaxPct     EffectKind = "pool_max_pct"    // fraction taken off a pool maximum; the pool rides on Condition.Source
 	EffectAttacksCap     EffectKind = "attacks_cap"     // upper bound on swings per round
 )
 
@@ -70,7 +70,7 @@ func (v EffectValue) MarshalYAML() (interface{}, error) {
 }
 
 // validateEffects refuses an unknown key and a magnitude-bound tick without a
-// pool. It is called from BuffSpec.Validate.
+// pool. It is called from ConditionSpec.Validate.
 func (b *ConditionSpec) validateEffects() error {
 	keys := make([]string, 0, len(b.Effects))
 	for k := range b.Effects {

@@ -15,8 +15,8 @@ import (
 //   - tracking-user misc (string match on CharacterName)
 //   - tracking-display-count misc (cleared alongside tracking-user)
 //   - shadow-target-user misc (int match on UserId)
-//   - buff 86 (Active Tracking) — only if tracking-user state was on this char
-//   - buff 87 (Shadowing) — only if shadow-target-user state was on this char
+//   - condition 86 (Active Tracking) — only if tracking-user state was on this char
+//   - condition 87 (Shadowing) — only if shadow-target-user state was on this char
 func PlayerDespawnTrackingCleanup(e events.Event) events.ListenerReturn {
 	evt, ok := e.(events.PlayerDespawn)
 	if !ok {

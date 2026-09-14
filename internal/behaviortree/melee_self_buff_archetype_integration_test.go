@@ -26,7 +26,7 @@ const archetypeYAML = "../../_datafiles/world/dogmud/behaviors/archetypes/melee_
 //  5. events.InspectQueuedInputForTest verifies the cast command
 //
 // Test 1: fresh mob with an offense spell → casts self_offense
-// Test 2: surge buff already active, only defense spells → selector
+// Test 2: surge condition already active, only defense spells → selector
 //         falls through offense (Failure) → casts self_defense
 // Test 3: defense-only mob → offense always Failure → casts self_defense
 
@@ -82,10 +82,10 @@ func seedArchetypeMob(t *testing.T, instanceId int, spellbook map[string]int) (*
 	return m, cleanup
 }
 
-// seedConditionOnChar seeds a buff as active on the character, using the same
-// pattern as action_cast_best_in_category_test.go: directly set Buffs.List
-// then call Validate(true) to rebuild the buffIds index. Also seeds the buff
-// spec so the buffs package doesn't panic on lookup.
+// seedConditionOnChar seeds a condition as active on the character, using the same
+// pattern as action_cast_best_in_category_test.go: directly set Conditions.List
+// then call Validate(true) to rebuild the conditionIds index. Also seeds the condition
+// spec so the conditions package doesn't panic on lookup.
 func seedConditionOnChar(t *testing.T, char *characters.Character, conditionId int) func() {
 	t.Helper()
 	cleanupCondition := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
@@ -131,7 +131,7 @@ func TestMeleeSelfCondition_FreshMobCastsSelfOffense(t *testing.T) {
 }
 
 // TestMeleeSelfCondition_WithSurgeActiveCastsIronWill verifies the full selector
-// fallthrough: when the offense buff (surge, buff 26) is already active, the
+// fallthrough: when the offense condition (surge, condition 26) is already active, the
 // offense child returns Failure and the selector falls through to defense.
 // The defense action picks iron-will (score 6×45=270) over conviction-ward
 // (score 4×30=120).
@@ -146,7 +146,7 @@ func TestMeleeSelfCondition_WithSurgeActiveCastsIronWill(t *testing.T) {
 	defer cleanup()
 	defer events.DrainQueuedInputsForTest(mob.InstanceId)
 
-	// Mark surge buff 26 as active so the offense child finds no eligible
+	// Mark surge condition 26 as active so the offense child finds no eligible
 	// spell and returns Failure, forcing the selector to try defense.
 	cleanupCondition := seedConditionOnChar(t, &mob.Character, 26)
 	defer cleanupCondition()

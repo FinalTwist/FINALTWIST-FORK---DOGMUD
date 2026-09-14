@@ -10,8 +10,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-// skulldConditionSpec seeds buff 9 (Hidden) for behaviortree-package tests that
-// need AddBuff(9) to work. A single var so the same seed is shared by all
+// skulldConditionSpec seeds condition 9 (Hidden) for behaviortree-package tests that
+// need AddCondition(9) to work. A single var so the same seed is shared by all
 // tests in this file.
 var skulldConditionSpec = map[int]*conditions.ConditionSpec{
 	9: {
@@ -26,7 +26,7 @@ var skulldConditionSpec = map[int]*conditions.ConditionSpec{
 // ─── try_sneak ───────────────────────────────────────────────────────────────
 
 // TestActTrySneak_SuccessWhenNoObservers verifies that a mob alone in a
-// room succeeds at sneak and acquires the Hidden buff.
+// room succeeds at sneak and acquires the Hidden condition.
 func TestActTrySneak_SuccessWhenNoObservers(t *testing.T) {
 	cleanConditions := conditions.SeedConditionsForTest(skulldConditionSpec)
 	defer cleanConditions()
@@ -55,8 +55,8 @@ func TestActTrySneak_SuccessWhenNoObservers(t *testing.T) {
 	if mob.Character.Stamina >= 100 {
 		t.Errorf("expected successful sneak to pay stamina, still have %d", mob.Character.Stamina)
 	}
-	// Note: mob.AddBuff enqueues an event rather than applying synchronously,
-	// so HasBuffFlag is not reliable here without an event-loop tick.
+	// Note: mob.AddCondition enqueues an event rather than applying synchronously,
+	// so HasConditionFlag is not reliable here without an event-loop tick.
 	// Verifying Success return is sufficient to confirm Sneak fired correctly.
 }
 
@@ -288,7 +288,7 @@ func TestActTryPlant_FailureNoItemInBackpack(t *testing.T) {
 // ─── try_shadow ──────────────────────────────────────────────────────────────
 
 // TestActTryShadow_FailureWhenNotHidden verifies that shadow returns Failure
-// when the acting mob does not carry buff 9 (Hidden).
+// when the acting mob does not carry condition 9 (Hidden).
 func TestActTryShadow_FailureWhenNotHidden(t *testing.T) {
 	cleanRoom := seedTestRoom(t, 1, "TestZone")
 	defer cleanRoom()
@@ -301,7 +301,7 @@ func TestActTryShadow_FailureWhenNotHidden(t *testing.T) {
 	mob.Character.HealthMax.Value = 500
 	mob.Character.Health = 500
 	mob.Character.EndAggro()
-	// No Hidden buff.
+	// No Hidden condition.
 
 	room := rooms.LoadRoom(1)
 	room.AddMob(105)

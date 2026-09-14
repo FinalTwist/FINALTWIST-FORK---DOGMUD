@@ -313,11 +313,11 @@ func (b *GameBridge) LearnRecipe(recipe string) {
 	}
 }
 
-// ApplyCondition adds the given buff to the player.
+// ApplyCondition adds the given condition to the player.
 //
-// Through the user record, not the character: a quest reward buff applied with
-// Character.AddBuff queues nothing, so Buff_ApplyBuffs never runs and the
-// player reads no line for the buff their quest just earned them.
+// Through the user record, not the character: a quest reward condition applied with
+// Character.AddCondition queues nothing, so Condition_ApplyConditions never runs and the
+// player reads no line for the condition their quest just earned them.
 func (b *GameBridge) ApplyCondition(bf ConditionDef) {
 	// The hook drops an unknown spec without a word, so an authoring typo in a
 	// quest reward would otherwise vanish. The old direct add surfaced it

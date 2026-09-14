@@ -11,16 +11,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Slice E: every flag a dogmud buff carries must be one the engine declares,
-// spelled exactly. An unknown flag used to load silently and do nothing: the
-// Cat's Eye Draught shipped `night-vision` for `nightvision` and gave no night
-// vision for weeks, and Stone Stomach's `poison-immunity` was read by nothing
-// at all. LoadDataFiles now panics on one; this fails the merge before it can
-// reach a boot.
+// Slice E: every flag a dogmud condition carries must be one the engine
+// declares, spelled exactly. An unknown flag used to load silently and do
+// nothing: the Cat's Eye Draught shipped `night-vision` for `nightvision`
+// and gave no night vision for weeks, and Stone Stomach's `poison-immunity`
+// was read by nothing at all. LoadDataFiles now panics on one; this fails
+// the merge before it can reach a boot.
 func TestEveryDogmudConditionFlagIsDeclared(t *testing.T) {
 	files, err := filepath.Glob(filepath.Join("_datafiles", "world", "dogmud", "buffs", "*.yaml"))
 	if err != nil || len(files) == 0 {
-		t.Fatalf("no buff files: %v", err)
+		t.Fatalf("no condition files: %v", err)
 	}
 	sort.Strings(files)
 	var problems []string
@@ -46,6 +46,6 @@ func TestEveryDogmudConditionFlagIsDeclared(t *testing.T) {
 		}
 	}
 	if len(problems) > 0 {
-		t.Fatalf("%d unknown buff flags:\n  %s", len(problems), strings.Join(problems, "\n  "))
+		t.Fatalf("%d unknown condition flags:\n  %s", len(problems), strings.Join(problems, "\n  "))
 	}
 }

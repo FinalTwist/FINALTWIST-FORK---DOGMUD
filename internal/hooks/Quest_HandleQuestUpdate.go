@@ -335,7 +335,7 @@ func HandleQuestUpdate(e events.Event) events.ListenerReturn {
 				questUser.SendText(messaging.CategoryLoot, fmt.Sprintf(`You receive a <ansi fg="itemname">%s</ansi>!`, firstName))
 			}
 		}
-		// Buff reward?
+		// Condition reward?
 		if questInfo.Rewards.ConditionId > 0 {
 			questUser.AddCondition(questInfo.Rewards.ConditionId, `quest`)
 		}

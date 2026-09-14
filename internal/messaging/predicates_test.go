@@ -75,9 +75,9 @@ func TestNilCharacterDefaultsToSeeing(t *testing.T) {
 	}
 }
 
-// setSleeping gives the character the Sleeping buff flag.
+// setSleeping gives the character the Sleeping condition flag.
 //
-// Unlike blindness, sleep is not a Perception state -- it is a buff flag, so
+// Unlike blindness, sleep is not a Perception state -- it is a condition flag, so
 // this seeds a minimal spec into the global registry and applies it. The
 // registry is restored by the returned cleanup.
 func setSleeping(t *testing.T, c *characters.Character) {

@@ -996,7 +996,7 @@ func TestUserRecord_Prompt(t *testing.T) {
 	})
 }
 
-// ─── SendText / AddBuff / SendWebClientCommand ────────────────────────────
+// ─── SendText / AddCondition / SendWebClientCommand ────────────────────────────
 
 func TestUserRecord_SendText(t *testing.T) {
 	u := &UserRecord{UserId: 1}
@@ -1010,10 +1010,10 @@ func TestUserRecord_AddCondition(t *testing.T) {
 	u.AddCondition(1, "test")
 }
 
-// TestUserRecord_AddConditionScaled pins that a scaled buff still travels the buff
-// event, carrying the multiplier. Character.AddBuffScaled applies in place and
-// queues nothing, so a player buff added that way never reaches
-// Buff_ApplyBuffs and never narrates its start: that is how Purging Weakness
+// TestUserRecord_AddConditionScaled pins that a scaled condition still travels the condition
+// event, carrying the multiplier. Character.AddConditionScaled applies in place and
+// queues nothing, so a player condition added that way never reaches
+// Condition_ApplyConditions and never narrates its start: that is how Purging Weakness
 // landed in silence in play.
 func TestUserRecord_AddConditionScaled(t *testing.T) {
 	const userId = 9931

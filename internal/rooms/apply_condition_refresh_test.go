@@ -9,16 +9,16 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-// Buff ids clear of other rooms package fixtures (sightTestInfraredBuffId is
-// 7401, seenByVeilBuffId is 7621).
+// Condition ids clear of other rooms package fixtures (sightTestInfraredConditionId is
+// 7401, seenByVeilConditionId is 7621).
 const (
 	refreshTestHeldConditionId    = 7301 // "Test Zone Press": already held, must refresh
 	refreshTestGrantedConditionId = 7302 // "Test Zone Grant": not yet held, event path
 	refreshTestMobConditionId     = 7303 // "Test Zone Press (mob)": mob-side refresh
 )
 
-// refreshTestSetTriggersLeft mutates a held buff's remaining triggers
-// directly, mirroring internal/hooks/buff_room_text_test.go's unexported
+// refreshTestSetTriggersLeft mutates a held condition's remaining triggers
+// directly, mirroring internal/hooks/condition_room_text_test.go's unexported
 // expire() helper (that helper is not visible outside package hooks, so it
 // is mirrored here rather than imported).
 func refreshTestSetTriggersLeft(t *testing.T, list []*conditions.Condition, conditionId, left int) {
@@ -32,15 +32,15 @@ func refreshTestSetTriggersLeft(t *testing.T, list []*conditions.Condition, cond
 	t.Fatalf("buff %d not found on held list", conditionId)
 }
 
-// A room mutator's playerbuffids run every round. A player who already holds
-// the buff must have it REFRESHED (TriggersLeft reset), not skipped until it
+// A room mutator's playerconditionids run every round. A player who already holds
+// the condition must have it REFRESHED (TriggersLeft reset), not skipped until it
 // lapses and gets re-added a round later: the skip is what turned slice C's
 // authored notices into a start/end loop every few rounds. A player who does
-// not yet hold the buff still goes through the normal grant path, which is
-// the async events.Buff queue (UserRecord.AddBuff only enqueues; it does not
-// apply the buff synchronously), so it must NOT already show up on
-// Character.HasBuff immediately after the call, and it must queue exactly one
-// Buff event, while the refreshed holder must queue none.
+// not yet hold the condition still goes through the normal grant path, which is
+// the async events.Condition queue (UserRecord.AddCondition only enqueues; it does not
+// apply the condition synchronously), so it must NOT already show up on
+// Character.HasCondition immediately after the call, and it must queue exactly one
+// Condition event, while the refreshed holder must queue none.
 func TestApplyConditionIdToPlayers_HeldConditionIsRefreshedNotRelapsed(t *testing.T) {
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		refreshTestHeldConditionId:    {ConditionId: refreshTestHeldConditionId, Name: "Test Zone Press", TriggerCount: 3, RoundInterval: 1},
@@ -51,9 +51,9 @@ func TestApplyConditionIdToPlayers_HeldConditionIsRefreshedNotRelapsed(t *testin
 		7312: users.NewTestUser(7312, "newcomer", "Newcomer", 97312),
 	}))
 
-	// Separate rooms, each with a single mutator buff id: ApplyBuffIdToPlayers
+	// Separate rooms, each with a single mutator condition id: ApplyConditionIdToPlayers
 	// applies every id in its list to every player in the room, so sharing a
-	// room (or a buffIds slice) between the held and the granted case would
+	// room (or a conditionIds slice) between the held and the granted case would
 	// have each player also receive a grant for the other case's id, muddying
 	// the event counts this test asserts on.
 	heldRoom := &Room{RoomId: 7310}
@@ -73,8 +73,8 @@ func TestApplyConditionIdToPlayers_HeldConditionIsRefreshedNotRelapsed(t *testin
 		t.Fatal("precondition: the newcomer should not start with the granted buff")
 	}
 
-	// Discard anything left over from AddBuff/SeedUsersForTest setup above,
-	// then read only what ApplyBuffIdToPlayers itself queues.
+	// Discard anything left over from AddCondition/SeedUsersForTest setup above,
+	// then read only what ApplyConditionIdToPlayers itself queues.
 	events.DrainQueuedConditionsForTest(7311)
 	events.DrainQueuedConditionsForTest(7312)
 
@@ -91,11 +91,11 @@ func TestApplyConditionIdToPlayers_HeldConditionIsRefreshedNotRelapsed(t *testin
 		t.Errorf("held player has %d queued Buff events, want 0: a refresh queues no event and so renders no start text", len(got))
 	}
 
-	// The player without the buff goes through the async grant path
-	// (UserRecord.AddBuff), which only enqueues events.Buff; it does not
-	// apply the buff synchronously. Confirming it did NOT appear yet is what
+	// The player without the condition goes through the async grant path
+	// (UserRecord.AddCondition), which only enqueues events.Condition; it does not
+	// apply the condition synchronously. Confirming it did NOT appear yet is what
 	// distinguishes this call from the held player's synchronous refresh, and
-	// confirming exactly one Buff event landed proves the grant still happens.
+	// confirming exactly one Condition event landed proves the grant still happens.
 	if newcomer.Character.HasCondition(refreshTestGrantedConditionId) {
 		t.Error("newcomer already carries the granted buff synchronously; expected the async event path (grant not yet applied)")
 	}
@@ -109,8 +109,8 @@ func TestApplyConditionIdToPlayers_HeldConditionIsRefreshedNotRelapsed(t *testin
 }
 
 // The mob-side room applier has the same lapse-and-reapply shape as the
-// player one: ApplyBuffIdToMobs must refresh a mob that already holds the
-// buff instead of skipping it until it lapses and gets re-added.
+// player one: ApplyConditionIdToMobs must refresh a mob that already holds the
+// condition instead of skipping it until it lapses and gets re-added.
 func TestApplyConditionIdToMobs_HeldConditionIsRefreshedNotRelapsed(t *testing.T) {
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		refreshTestMobConditionId: {ConditionId: refreshTestMobConditionId, Name: "Test Zone Press (mob)", TriggerCount: 3, RoundInterval: 1},

@@ -11,13 +11,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// internal/combat sends no player text anywhere in the package, so buffs 83
+// internal/combat sends no player text anywhere in the package, so conditions 83
 // Broken Limb and 84 Stunned are applied synchronously and silently here and
 // the submission hook owes the victim their authored start line. It can only
 // do that if the resolver says what it applied, which is what
 // SubmissionOutcomeEffects is for. These lanes pin that report.
 //
-// The registry has to be seeded: Character.AddBuff fails for a buff id with no
+// The registry has to be seeded: Character.AddCondition fails for a condition id with no
 // spec, and the report is gated on the apply actually landing, so an unseeded
 // binary would read as "nothing applied" and pass for the wrong reason.
 func seedSubmissionConditionSpecs(t *testing.T) func() {

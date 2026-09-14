@@ -38,9 +38,9 @@ import (
 
 // hideForAmbushTest puts a character into awareness.Hidden.
 //
-// It drives the Awareness machine and does NOT add buff #9: Character.IsHidden
-// reads the machine alone, and the buff registry these tests seed does not
-// carry #9. Mirrors addHiddenBuff in internal/actions/shadow_test.go.
+// It drives the Awareness machine and does NOT add condition #9: Character.IsHidden
+// reads the machine alone, and the condition registry these tests seed does not
+// carry #9. Mirrors addHiddenCondition in internal/actions/shadow_test.go.
 func hideForAmbushTest(t *testing.T, c *characters.Character) {
 	t.Helper()
 	if c.Awareness == nil {

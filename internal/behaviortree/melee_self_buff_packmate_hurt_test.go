@@ -11,7 +11,7 @@ const meleeSelfConditionYAML2 = "../../_datafiles/world/dogmud/behaviors/archety
 // TestMeleeSelfCondition_PackmateHurt_SetsAggroOnAttacker verifies the
 // packmate_hurt handler engages the attacker by setting Aggro. The
 // archetype's normal mob_combat_round cascade (including
-// self-buff behavior) fires on the next tick.
+// self-condition behavior) fires on the next tick.
 func TestMeleeSelfCondition_PackmateHurt_SetsAggroOnAttacker(t *testing.T) {
 	LoadArchetypeForTest(t, "melee_self_buff", meleeSelfConditionYAML2)
 

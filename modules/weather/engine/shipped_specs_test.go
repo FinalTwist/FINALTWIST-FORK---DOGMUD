@@ -14,7 +14,7 @@ import (
 // module depends on: no respawnrate (fights the reconciler), no decayintoid
 // (MutatorList.Remove instantly resurrects the decay target), decayrate
 // present (self-heal if the module is disabled mid-storm), outdooronly set
-// (indoor rooms must not render weather), no buff ids (presentation-only),
+// (indoor rooms must not render weather), no condition ids (presentation-only),
 // weather- namespace, and loader-compatible filenames.
 func TestShippedWeatherMutatorSpecs(t *testing.T) {
 	dir := filepath.Join("..", "..", "..", "_datafiles", "world", "dogmud", "mutators")

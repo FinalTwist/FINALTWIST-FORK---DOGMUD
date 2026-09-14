@@ -2,8 +2,8 @@ package species
 
 import "testing"
 
-// The guard that would have caught buff 29 on the day it broke: a species
-// referencing a buff id with no definition must fail the boot, not run for
+// The guard that would have caught condition 29 on the day it broke: a species
+// referencing a condition id with no definition must fail the boot, not run for
 // months with 67 mobs silently blind.
 func TestValidateSpeciesConditionIdsPanicsOnMissingCondition(t *testing.T) {
 	orig := allSpecies

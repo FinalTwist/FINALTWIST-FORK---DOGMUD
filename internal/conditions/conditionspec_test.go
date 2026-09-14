@@ -102,11 +102,11 @@ func TestConditionSpec_Listed(t *testing.T) {
 	}
 }
 func TestGetConditionSpec(t *testing.T) {
-	// Save and restore original buffs map
+	// Save and restore original conditions map
 	origConditions := conditions
 	defer func() { conditions = origConditions }()
 
-	// Setup test buffs
+	// Setup test conditions
 	conditions = map[int]*ConditionSpec{
 		1: {ConditionId: 1, Name: "Test Buff 1"},
 		2: {ConditionId: 2, Name: "Test Buff 2"},

@@ -27,7 +27,7 @@ type AttackTarget struct {
 // wrapper. Call this only when rest is non-empty.
 //
 // The Hidden → SurpriseAttack promotion is NOT done here either — call
-// EngageAggroType (below) for that, and leave the Hidden buff for the combat
+// EngageAggroType (below) for that, and leave the Hidden condition for the combat
 // loop's CancelIfCombat pass.
 func FindAttackTarget(rest string, room *rooms.Room, actorUserId int, actorMobInstanceId int, viewer *characters.Character) AttackTarget {
 

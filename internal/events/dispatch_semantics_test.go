@@ -42,7 +42,7 @@ func TestDispatchRoutesOnlyMatchingTypes(t *testing.T) {
 		return Continue
 	})
 
-	// Dispatch an event of a type the Buff listener did not register for.
+	// Dispatch an event of a type the Condition listener did not register for.
 	DoListeners(Quest{})
 
 	assert.Equal(t, []string{"Quest"}, wildcardSaw,

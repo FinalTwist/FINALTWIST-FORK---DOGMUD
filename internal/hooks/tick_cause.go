@@ -11,8 +11,8 @@ import (
 // the Poison flag, "bleeding out" for one carrying Bleeding, "" for anything
 // else (including a nil spec).
 //
-// This exists because Buffs.Trigger() decrements TriggersLeft before
-// returning the triggered buff, so a tick that is the record's LAST trigger
+// This exists because Conditions.Trigger() decrements TriggersLeft before
+// returning the triggered condition, so a tick that is the record's LAST trigger
 // arrives at the caller already Expired. deathCauseFor's flag read used to
 // skip expired records outright, so the last tick of a bleed or a poison
 // killed the holder while reporting "their own

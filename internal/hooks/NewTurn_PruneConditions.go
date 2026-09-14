@@ -12,7 +12,7 @@ import (
 )
 
 //
-// Prune all buffs that have expired.
+// Prune all conditions that have expired.
 //
 
 func PruneConditions(e events.Event) events.ListenerReturn {
@@ -30,7 +30,7 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 		// Get rooom
 		if room := rooms.LoadRoom(roomId); room != nil {
 
-			// Handle outstanding player buffs
+			// Handle outstanding player conditions
 			logOff := false
 			for _, uId := range room.GetPlayers(rooms.FindWithConditions) {
 
@@ -40,7 +40,7 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 				if conditionsToPrune := user.Character.Conditions.Prune(); len(conditionsToPrune) > 0 {
 					for _, conditionInfo := range conditionsToPrune {
 						// Send the end notice (authored, or the generic line;
-						// a secret buff is silent).
+						// a secret condition is silent).
 						endConditionSpec := conditions.GetConditionSpec(conditionInfo.ConditionId)
 						if endConditionSpec != nil && endConditionSpec.Narration(conditions.PhaseEnd).Len() > 0 {
 							roles := endConditionSpec.Narrate(conditions.PhaseEnd, textutil.TokenContext{
@@ -58,7 +58,7 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 						}
 
 						if conditionInfo.ConditionId == 0 { // Log them out // logoff // logout
-							if !user.Character.HasAdjective(`zombie`) { // if they are currently a zombie, we don't log them out from this buff being removed
+							if !user.Character.HasAdjective(`zombie`) { // if they are currently a zombie, we don't log them out from this condition being removed
 								logOff = true
 							}
 						}
@@ -67,8 +67,8 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 					user.Character.Validate()
 
 					// Push a Char update so the web client's Status &
-					// Conditions panel refreshes immediately on buff
-					// expiry. GMCP listens to BuffsTriggered and queues
+					// Conditions panel refreshes immediately on condition
+					// expiry. GMCP listens to ConditionsTriggered and queues
 					// Char.Conditions; reusing it here (on
 					// the removal batch) avoids a stale panel until some
 					// unrelated Char event fires. Player-only — the mob
@@ -89,7 +89,7 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 		}
 	}
 
-	// Handle outstanding mob buffs
+	// Handle outstanding mob conditions
 	for _, mobInstanceId := range mobs.GetAllMobInstanceIds() {
 
 		mob := mobs.GetInstance(mobInstanceId)
@@ -99,7 +99,7 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 				// Send YAML end text (if defined).
 				endConditionSpec := conditions.GetConditionSpec(conditionInfo.ConditionId)
 				if endConditionSpec != nil && len(endConditionSpec.Narration(conditions.PhaseEnd).Observer) > 0 {
-					// The mob tag, not the player one: see Buff_ApplyBuffs.go.
+					// The mob tag, not the player one: see Condition_ApplyConditions.go.
 					// Visual, not audio, for the same reason as start text. The
 					// holder line is rendered and dropped: a mob has no client.
 					sourceName := mob.Character.GetCharacterName(true)
@@ -127,9 +127,9 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 
 }
 
-// sendConditionEndRoomText sends a buff's end room line on the visual channel. A
-// light buff's line is judged as if the room were still lit, because its light
-// went out when the buff expired, a round before this prune: see
+// sendConditionEndRoomText sends a condition's end room line on the visual channel. A
+// light condition's line is judged as if the room were still lit, because its light
+// went out when the condition expired, a round before this prune: see
 // Room.SendTextVisualAsLit. Every other end line is judged by the room as it is.
 func sendConditionEndRoomText(r *rooms.Room, spec *conditions.ConditionSpec, msg string, skip ...int) {
 	for _, flag := range spec.Flags {

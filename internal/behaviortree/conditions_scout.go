@@ -42,7 +42,7 @@ func condRoomHasHiddenEntity(params map[string]any, ctx *EvalContext) Result {
 	return Failure
 }
 
-// condMobIsTracking returns Success when the self mob carries buff 86
+// condMobIsTracking returns Success when the self mob carries condition 86
 // (Active Tracking).
 func condMobIsTracking(params map[string]any, ctx *EvalContext) Result {
 	mob := mobs.GetInstance(ctx.InstanceId)

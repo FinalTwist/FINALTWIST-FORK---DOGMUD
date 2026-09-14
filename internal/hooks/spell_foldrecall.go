@@ -30,7 +30,7 @@ func validateFoldRecall(actor actions.Actor) bool {
 		}
 	}
 
-	// A no-go root (Psychic Anchor, or a Jailed holding-cell buff — 5.1c) pins
+	// A no-go root (Psychic Anchor, or a Jailed holding-cell condition — 5.1c) pins
 	// the body in place; recall can't slip free of it either.
 	if char.HasConditionFlag(conditions.NoMovement) {
 		actor.SendText(messaging.CategorySpellFold, "You are held fast and cannot recall away.")

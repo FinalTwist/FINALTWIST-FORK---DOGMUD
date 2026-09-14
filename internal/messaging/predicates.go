@@ -16,7 +16,7 @@ type RoomVisibility interface {
 
 // CanSeeClearly returns true if the observer can read normal-text
 // visual broadcasts in this room. Composes Perception state, room
-// lighting, and the NightVision buff flag.
+// lighting, and the NightVision condition flag.
 //
 // Blinded observers (any source) return false unconditionally.
 // A nil observer defaults to true (defensive — pre-init characters
@@ -28,7 +28,7 @@ func CanSeeClearly(observer *characters.Character, room RoomVisibility) bool {
 	if observer.Perception != nil && observer.Perception.State() == perception.Blinded {
 		return false
 	}
-	// Sleep is a perception state, even though it is carried as a buff flag
+	// Sleep is a perception state, even though it is carried as a condition flag
 	// rather than by the Perception machine. This pipeline had no concept of it
 	// at all until 2026-08-31, so a sleeping player kept receiving every visual
 	// broadcast in the room: NPC dialogue, ambient flavour, arrivals.

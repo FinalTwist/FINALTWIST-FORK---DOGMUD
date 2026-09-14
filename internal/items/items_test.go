@@ -597,7 +597,7 @@ func TestRedescribe(t *testing.T) {
 	assert.Equal(t, "A newly forged blade.", spec.Description)
 }
 
-// ─── AddWornBuff ────────────────────────────────────────────────────────────
+// ─── AddWornCondition ────────────────────────────────────────────────────────────
 
 func TestAddWornCondition(t *testing.T) {
 	cleanup := seedRegistry()

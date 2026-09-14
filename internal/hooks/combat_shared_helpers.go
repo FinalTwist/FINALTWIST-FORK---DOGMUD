@@ -514,13 +514,13 @@ func cancelCraftOrSalvageOnDamage(ch *characters.Character) {
 }
 
 // cancelDamageConditions fires the Sleeping wake hook (if the character is asleep)
-// and then cancels all active buffs with the CancelOnDamage flag.
+// and then cancels all active conditions with the CancelOnDamage flag.
 //
 // Call this immediately after any damage > 0 is committed to a character's
 // Health — melee hits, spell hits, DoT ticks.
 //
-// Order matters: HasBuffFlag(Sleeping) is read BEFORE CancelBuffsWithFlag
-// removes the buff; if we checked after the cancel, the flag would already
+// Order matters: HasConditionFlag(Sleeping) is read BEFORE CancelConditionsWithFlag
+// removes the condition; if we checked after the cancel, the flag would already
 // be gone and OnSleeperWoken would never fire.
 func cancelDamageConditions(ch *characters.Character) {
 	if ch.HasConditionFlag(conditions.Sleeping) {

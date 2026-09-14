@@ -128,7 +128,7 @@ func TestGrapple_GroundBeatsStanding_NoSelfCancellation(t *testing.T) {
 }
 
 // The crit threshold must no longer respond to position at all — that job now
-// belongs to the attack score. (The Accuracy/Blink buff modifiers this
+// belongs to the attack score. (The Accuracy/Blink condition modifiers this
 // comment used to name were deleted by U6b as upstream stowaways.)
 //
 // This uses a STANDING grapple deliberately. A ground grapple would pass

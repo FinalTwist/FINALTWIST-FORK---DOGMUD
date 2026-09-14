@@ -39,7 +39,7 @@ const (
 	Blacksmithing SkillTag = `blacksmithing` // Metal weapons, armor, tools
 	Alchemy       SkillTag = `alchemy`       // Potions, salves, medicines
 	Tailoring     SkillTag = `tailoring`     // Cloth and leather goods
-	Cooking       SkillTag = `cooking`       // Food preparation, buffs from meals
+	Cooking       SkillTag = `cooking`       // Food preparation, conditions from meals
 	Jewelcrafting SkillTag = `jewelcrafting` // Rings, pendants, gemwork
 	Enchanting    SkillTag = `enchanting`    // Imbuing items with magic (31.6)
 	Salvage       SkillTag = `salvage`       // Breaking down items for materials

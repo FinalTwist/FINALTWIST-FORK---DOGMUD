@@ -44,7 +44,7 @@ const (
 // behavior for any faction without an explicit release_room field.
 const barracksRoomId = 473
 
-// jailedConditionId is the buff applied to jailed players (88-jailed.yaml).
+// jailedConditionId is the condition applied to jailed players (88-jailed.yaml).
 const jailedConditionId = 88
 
 // ---------------------------------------------------------------------------
@@ -304,21 +304,21 @@ func factionCellDescription(faction string) string {
 // ---------------------------------------------------------------------------
 
 // ExecuteArrest hauls a surrendered player to the faction's holding cell,
-// applies the Jailed buff (buff 88) for the sentence duration, stamps the
+// applies the Jailed condition (condition 88) for the sentence duration, stamps the
 // jail record in MiscData, and sends drag-to-jail flavor to the player.
 // Returns false (no-op) if the faction has no registered holding cell.
 //
-// The Jailed buff duration is set via Character.AddBuffScaled: the buff's
+// The Jailed condition duration is set via Character.AddConditionScaled: the condition's
 // triggercount (1) is scaled by float64(rounds) so TriggersLeft == rounds.
-// The buff will therefore expire naturally after `rounds` ticks. The
+// The condition will therefore expire naturally after `rounds` ticks. The
 // jail_until_round MiscData key provides a parallel time-stamp so Task 9's
-// per-round release check can also fire when the buff has already expired.
+// per-round release check can also fire when the condition has already expired.
 //
-// Character.AddBuffScaled, not the user record's event path, ON PURPOSE: the
-// buff's no-go and no-aggro-target flags are read within the same round
+// Character.AddConditionScaled, not the user record's event path, ON PURPOSE: the
+// condition's no-go and no-aggro-target flags are read within the same round
 // dispatch as the arrest, so it has to be in place before this function
 // returns. It is therefore flagged silent-start, and this function sends the
-// buff's authored start line to the player itself.
+// condition's authored start line to the player itself.
 func ExecuteArrest(player *characters.Character, userId int, faction string, isMurder bool) bool {
 	staticCell := cellRoomFn(faction)
 	releaseRoom := releaseRoomFn(faction)
@@ -375,22 +375,22 @@ func ExecuteArrest(player *characters.Character, userId int, faction string, isM
 		aSetCellDescFn(instanceId, factionCellDescription(faction))
 	}
 
-	// Apply the Jailed buff scaled to `rounds` triggers so it expires
-	// naturally at the end of the sentence. The buff also carries the
+	// Apply the Jailed condition scaled to `rounds` triggers so it expires
+	// naturally at the end of the sentence. The condition also carries the
 	// no-aggro-target flag, which makes the jailed player invisible to ALL mob
 	// aggro paths (LookForTrouble, retarget, etc.) — without it, a guard that
 	// reaches the cell re-acquires aggro and fights the prisoner (smoke BUG-04;
 	// RunGuardEnforcement's own exemption only covered the justice tick, not the
 	// legacy group-hostile LookForTrouble path).
 	//
-	// Synchronously, on the character, and deliberately so. Both of this buff's
+	// Synchronously, on the character, and deliberately so. Both of this condition's
 	// flags are read inside the SAME synchronous NewRound dispatch that an
 	// arrest runs in, and an event queued from inside a listener pops only
 	// after that dispatch finishes: NewRound_DoCombat reads no-aggro-target
 	// later in the same dispatch than MobRoundTick, and an events.Input the
 	// input worker pushed after NewRound was queued carries a lower order than
-	// a Buff queued here, so go.go and flee.go could read no-go absent and let
-	// a spamming player walk out of the cell before the buff landed. Buff 88 is
+	// a Condition queued here, so go.go and flee.go could read no-go absent and let
+	// a spamming player walk out of the cell before the condition landed. Condition 88 is
 	// therefore flagged silent-start, and the arrest sends its start line
 	// itself, down with the arrival flavor.
 	_ = player.AddConditionScaled(jailedConditionId, float64(rounds))
@@ -401,7 +401,7 @@ func ExecuteArrest(player *characters.Character, userId int, faction string, isM
 	// Haul the player to the holding cell.
 	_ = aMoveFn(userId, cell)
 
-	// Arrival flavor. Buff 88 is silent-start because it has to be applied
+	// Arrival flavor. Condition 88 is silent-start because it has to be applied
 	// synchronously (see the apply above), so its authored start line never
 	// travels the event that would narrate it and is ours to send, alongside
 	// the arrest-context line.
@@ -419,7 +419,7 @@ func ExecuteArrest(player *characters.Character, userId int, faction string, isM
 			fmt.Sprintf("A guard seizes you and hauls you to the holding cell. "+
 				"You have been placed under arrest by the %s.", factionName))
 	} else {
-		// The buff landed on the character either way; only the prose is lost.
+		// The condition landed on the character either way; only the prose is lost.
 		mudlog.Warn("justice", "msg", "ExecuteArrest: no user record for the arrested player, so the jail start line and arrest flavor could not be sent", "userId", userId)
 	}
 
@@ -531,7 +531,7 @@ func HandleJailedDespawn(player *characters.Character) {
 
 // ResolveDetention ends a detention (timer expiry OR fine paid): resolves the
 // stamped crimes, withdraws the issuing faction's open bounties, resets rep
-// to the floor only if currently below it, removes the Jailed buff, clears
+// to the floor only if currently below it, removes the Jailed condition, clears
 // the jail record, and moves the player to the arresting faction's release
 // room (or barracksRoomId as a fallback). Returns false if the player has no
 // active jail record.
@@ -560,7 +560,7 @@ func ResolveDetention(player *characters.Character, userId int) bool {
 		aTeardownCellFn(instId)
 	}
 
-	// Remove the Jailed buff.
+	// Remove the Jailed condition.
 	player.RemoveCondition(jailedConditionId)
 
 	// Clear all jail MiscData keys.
@@ -580,7 +580,7 @@ func ResolveDetention(player *characters.Character, userId int) bool {
 	}
 	_ = aMoveFn(userId, releaseRoom)
 
-	// No release flavor here: removing the Jailed buff (above) fires its
+	// No release flavor here: removing the Jailed condition (above) fires its
 	// end_user_text ("The cell door swings open. You are free to go."), which
 	// covers both the payfine and timer-expiry paths. Sending it again here
 	// double-printed the line (5.1c smoke BUG-01).
@@ -595,7 +595,7 @@ func ResolveDetention(player *characters.Character, userId int) bool {
 // RestoreJailOnLogin reconciles a returning player's jail state. The sentence
 // clock (UntilRound) is absolute and persists across logout/restart; the
 // ephemeral cell does not. On login: if the sentence elapsed while away, release
-// the player; otherwise re-create a fresh cell instance, refresh the Jailed buff
+// the player; otherwise re-create a fresh cell instance, refresh the Jailed condition
 // to the remaining rounds, and place the player inside. No-op when not jailed.
 func RestoreJailOnLogin(player *characters.Character, userId int) {
 	if player == nil || player.MiscData == nil {
@@ -627,7 +627,7 @@ func RestoreJailOnLogin(player *characters.Character, userId int) {
 		entry = sc
 	} else {
 		// Both instanced and static cell paths failed. The player remains jailed
-		// (buff + record intact) but will be placed in the release room until the
+		// (condition + record intact) but will be placed in the release room until the
 		// timer fires. This is a soft-lock state — log a warning so operators can
 		// diagnose the misconfiguration.
 		mudlog.Warn("justice", "msg", "RestoreJailOnLogin: no cell available (instance + static both failed); placing jailed player in release room until timer release", "userId", userId, "faction", faction)

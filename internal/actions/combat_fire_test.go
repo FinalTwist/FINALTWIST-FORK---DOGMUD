@@ -349,8 +349,8 @@ func TestFire_UnseenTargetIsRejectedBeforeAdmission(t *testing.T) {
 				// ExecuteFire reads the Perception machine, not a source
 				// record, so the machine is driven straight here. The old
 				// setup added the blinded combat condition, which the
-				// enum deletion took with it; seeding a blind buff instead
-				// would replace the package-wide buff registry that the
+				// enum deletion took with it; seeding a blind condition instead
+				// would replace the package-wide condition registry that the
 				// hidden-target cases in this same table depend on.
 				require.NoError(t, char.Perception.TransitionTo(perception.Blinded,
 					state.TransitionReason{Trigger: "test-setup"}))

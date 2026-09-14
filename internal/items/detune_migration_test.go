@@ -141,7 +141,7 @@ func TestMigrateDetunedBow_IsIdempotent(t *testing.T) {
 // both produce empty MiscData, and a brand-new account plays its ENTIRE first
 // session on an in-memory record that never passes through LoadUser. Anything
 // that materialises Item.Spec -- an enchant, an affix roll, a rename, a worn
-// buff -- pins the bow at the new 2.75. The first migration afterwards would
+// condition -- pins the bow at the new 2.75. The first migration afterwards would
 // then rescale an already-correct item down to about 1.01.
 func TestMigrateDetunedBow_LeavesAPostDetuneItemAlone(t *testing.T) {
 	seedWarbowTemplate(t)

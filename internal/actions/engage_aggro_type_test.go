@@ -44,7 +44,7 @@ func newAggroTestRoom() *rooms.Room {
 }
 
 // newAggroAttackerMob builds a minimal attacker mob with Cooldowns
-// initialized. Call addHiddenBuff(&mob.Character) to make it hidden.
+// initialized. Call addHiddenCondition(&mob.Character) to make it hidden.
 func newAggroAttackerMob(instanceId int) *mobs.Mob {
 	m := &mobs.Mob{InstanceId: instanceId}
 	m.Character.Cooldowns = make(map[string]int)

@@ -97,10 +97,10 @@ func seedAllRegistries() func() {
 	})
 
 	// The shipped condition records (79 Warcry, 80 Rally, 117 to 123) on top
-	// of the two test specs above. Without them the shouts' AddBuffMagnitude
+	// of the two test specs above. Without them the shouts' AddConditionMagnitude
 	// calls find no spec and silently do nothing, which makes every
 	// "a refused shout applied no record" assertion in this package pass for
-	// the wrong reason. Additive, so it must be undone BEFORE cleanupBuffs
+	// the wrong reason. Additive, so it must be undone BEFORE cleanupConditions
 	// restores the original registry.
 	cleanupConditionRecords := conditions.SeedConditionRecordsForTest()
 
@@ -732,11 +732,11 @@ func TestStand(t *testing.T) {
 }
 
 // TestStand_CancelsSleeping verifies chunk 3.3: stand cancels the Sleeping
-// buff before the "already standing" bail, so a standing-but-sleeping player
+// condition before the "already standing" bail, so a standing-but-sleeping player
 // wakes on `stand` even though their position state would otherwise short-
 // circuit the handler.
 func TestStand_CancelsSleeping(t *testing.T) {
-	// Seed standard registries plus the Sleeping buff (id 15).
+	// Seed standard registries plus the Sleeping condition (id 15).
 	cleanupKeywords := keywords.SeedKeywordsForTest()
 	defer cleanupKeywords()
 
@@ -779,7 +779,7 @@ func TestStand_CancelsSleeping(t *testing.T) {
 	defer cleanupRooms()
 	room.AddPlayer(99)
 
-	// Apply the Sleeping buff so the player is standing-but-asleep.
+	// Apply the Sleeping condition so the player is standing-but-asleep.
 	setCombatPositionParallel(u.Character, position.Standing)
 	u.Character.Conditions.AddCondition(15, false)
 
@@ -2683,10 +2683,10 @@ func TestDisenchant(t *testing.T) {
 		assert.Equal(t, "stamina", held[0].Source, "the withdrawal record's Source must be the item's reserve pool")
 		assert.InDelta(t, 0.05, held[0].Magnitude, 0.0001, "the withdrawal record's Magnitude must equal the seeded reserve fraction")
 
-		// Whole-branch review (slice 1): AddBuffMagnitude applies synchronously
-		// and never travels events.Buff, so ApplyBuffs' start notice never
+		// Whole-branch review (slice 1): AddConditionMagnitude applies synchronously
+		// and never travels events.Condition, so ApplyConditions' start notice never
 		// fired for this record; the line reached no one. Disenchant now
-		// renders it itself through buffs.AuthoredStartLine.
+		// renders it itself through conditions.AuthoredStartLine.
 		sent := strings.Join(events.DrainQueuedMessagesForTest(user.UserId), "")
 		assert.Contains(t, sent, "The severed bond leaves a hollow in you that will take time to fill.",
 			"the withdrawal record's start line must reach the user")
@@ -4616,7 +4616,7 @@ func TestPvpToggle(t *testing.T) {
 	})
 }
 
-// ─── Deeper Coverage: Conditions with buffs ─────────────────────────────────
+// ─── Deeper Coverage: Conditions with conditions ─────────────────────────────────
 
 func TestConditionsWithConditions(t *testing.T) {
 	cleanup := seedAllRegistries()
@@ -4669,7 +4669,7 @@ func TestEmoteAliasThroughDispatcher(t *testing.T) {
 	})
 }
 
-// ─── Deeper Coverage: Admin Buff search ─────────────────────────────────────
+// ─── Deeper Coverage: Admin Condition search ─────────────────────────────────────
 
 func TestAdminConditionDeep(t *testing.T) {
 	cleanup := seedAllRegistries()
@@ -6573,7 +6573,7 @@ func TestGetLockRender(t *testing.T) {
 	})
 }
 
-// ─── Deeper admin.buff ──────────────────────────────────────────────────────
+// ─── Deeper admin.condition ──────────────────────────────────────────────────────
 
 func TestAdminConditionMoreBranches(t *testing.T) {
 	cleanup := seedAllRegistries()
@@ -6811,7 +6811,7 @@ func TestBuildMercRows(t *testing.T) {
 	})
 }
 
-// ─── buildBuffRows ──────────────────────────────────────────────────────────
+// ─── buildConditionRows ──────────────────────────────────────────────────────────
 
 func TestBuildConditionRows(t *testing.T) {
 	cleanup := seedAllRegistries()
@@ -7295,7 +7295,7 @@ func TestCharacterSubCommands(t *testing.T) {
 	room.IsCharacterRoom = false
 }
 
-// ─── Admin Buff more sub-commands ───────────────────────────────────────────
+// ─── Admin Condition more sub-commands ───────────────────────────────────────────
 
 func TestAdminConditionAllBranches(t *testing.T) {
 	cleanup := seedAllRegistries()

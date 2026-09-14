@@ -230,8 +230,8 @@ func TestMvM_AttackerStatGainEmitsRoomMessage(t *testing.T) {
 // magnitude is already added inside the mitigation layer
 // (GetPhysicalMitigation; the legacy GetDefense path was removed
 // 2026-08-03). The deleted block was applying a *second* reduction equal
-// to half the magnitude on top of that. Minor Shield is now the buff record
-// (BuffIdMinorShield, Task 6) rather than the enum condition, but the
+// to half the magnitude on top of that. Minor Shield is now the condition record
+// (ConditionIdMinorShield, Task 6) rather than the enum condition, but the
 // mitigation-layer contract this test pins is unchanged.
 //
 // Rather than try to drive a full attack with deterministic damage (combat
@@ -270,10 +270,10 @@ func TestMvP_ConditionShieldAppliedOnceNotDoubleDipped(t *testing.T) {
 	assert.InDelta(t, want, got, 1e-9,
 		"shield magnitude must contribute exactly magnitude/100 to GetPhysicalMitigation (one application, not two)")
 
-	// The old trailing sanity check here cleared defUser.Character.Buffs and
-	// asserted mitigation was UNCHANGED, to prove unrelated buff state could
+	// The old trailing sanity check here cleared defUser.Character.Conditions and
+	// asserted mitigation was UNCHANGED, to prove unrelated condition state could
 	// not leak into the condition-derived mitigation number. That premise no
-	// longer holds post-Task-6: Minor Shield IS a Buffs record now, so
-	// clearing Buffs clears the shield itself. There is nothing left to
+	// longer holds post-Task-6: Minor Shield IS a Conditions record now, so
+	// clearing Conditions clears the shield itself. There is nothing left to
 	// sanity-check that the assertion above does not already cover.
 }

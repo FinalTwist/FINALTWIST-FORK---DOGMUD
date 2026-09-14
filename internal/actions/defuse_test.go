@@ -113,8 +113,8 @@ func seedDisarmKit(actor *stubActorWithId, itemId int, bonus int) {
 	actor.char.Items = append(actor.char.Items, kit)
 }
 
-// buffIds returns the AddBuff calls recorded on a stubActorWithId.
-// The base stubActor.AddBuff discards calls; we override here to track them.
+// conditionIds returns the AddCondition calls recorded on a stubActorWithId.
+// The base stubActor.AddCondition discards calls; we override here to track them.
 type trackingActor struct {
 	*stubActorWithId
 	conditionIds []int
@@ -284,7 +284,7 @@ func TestDefuse_FailureTriggers(t *testing.T) {
 			assert.Equal(t, []int{defuseTestTrapConditionId}, result.TriggeredTraps)
 			assert.True(t, result.KitConsumed,
 				"kit is consumed even on failure")
-			// The trackingActor overrides AddBuff; verify it was called.
+			// The trackingActor overrides AddCondition; verify it was called.
 			assert.Contains(t, tracker.conditionIds, defuseTestTrapConditionId,
 				"trap buff should have been applied to the actor on failure")
 		}
@@ -409,7 +409,7 @@ func TestDefuse_NoTrapsOnLock(t *testing.T) {
 	actor := newDefuseActor(100, 5)
 	seedDisarmKit(actor, 9970, 0)
 
-	// Container has a lock but TrapBuffIds is empty.
+	// Container has a lock but TrapConditionIds is empty.
 	actor.room.Containers = map[string]rooms.Container{
 		defuseTestContainerName: {
 			Lock: gamelock.Lock{
@@ -428,5 +428,5 @@ func TestDefuse_NoTrapsOnLock(t *testing.T) {
 		"disarm kit should not be consumed when the lock has no traps")
 }
 
-// Ensure buffs package is used (for Buffs.New in room/character init).
+// Ensure conditions package is used (for Conditions.New in room/character init).
 var _ = conditions.New

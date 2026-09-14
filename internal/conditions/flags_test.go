@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Every Flag constant declared in buffspec.go must be in AllFlags, or the
-// load-time guard would reject a buff that uses a perfectly good flag.
+// Every Flag constant declared in conditionspec.go must be in AllFlags, or the
+// load-time guard would reject a condition that uses a perfectly good flag.
 func TestAllFlagsNamesEveryDeclaredConstant(t *testing.T) {
-	src, err := os.ReadFile("buffspec.go")
+	src, err := os.ReadFile("conditionspec.go")
 	require.NoError(t, err)
 	// Every character but the delimiter, so a constant declared with an
 	// unexpected spelling (an underscore, a digit, a capital) is caught rather
@@ -55,7 +55,7 @@ const (
 )
 
 // The load-time guard is what makes a misspelled flag a boot failure instead
-// of a buff that silently does nothing, so the walk over the loaded registry
+// of a condition that silently does nothing, so the walk over the loaded registry
 // is a named function a test can call. With it inlined in LoadDataFiles there
 // was nothing red to see: no test loads world YAML.
 func TestValidateLoadedFlagsPanicsOnAnUnknownFlag(t *testing.T) {

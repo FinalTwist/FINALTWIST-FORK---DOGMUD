@@ -38,7 +38,7 @@ func Fire(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	// Cross-room reveal (mirror melee's reveal-on-engage and the player shoot
 	// path): a hidden mob whose cross-room shot deals ANY damage (a clean hit
 	// or a defended partial) drops stealth. Same-room shots reveal through the
-	// combat round handler's CancelCombatBuffs once the target is aggroed; a
+	// combat round handler's CancelCombatConditions once the target is aggroed; a
 	// cross-room shooter never enters that loop, so without this it would
 	// stay hidden forever. Only a zero-damage cross-room miss stays hidden —
 	// the sniper gets exactly one free clean miss, not one free hit.

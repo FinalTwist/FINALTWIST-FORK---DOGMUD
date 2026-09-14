@@ -61,15 +61,15 @@ func TestPurgeAffliction_NamedMobTargetIsPurgedNotTheCaster(t *testing.T) {
 	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", Type: spells.HelpSingle}
 	resolveSpell(caster, activity.CastingData{SpellId: "purge-affliction", TargetMobInstanceIds: []int{100}}, spell, room)
 
-	// HasBuff is NOT the probe: a purge marks the buff expired
-	// (Buffs.HasFlag(flag, true) sets TriggersLeftExpired) and leaves it in the
-	// list for the round sweep to collect, so HasBuff stays true for a purged
-	// buff. HasFlag(_, false) skips expired buffs, which is what "no longer
+	// HasCondition is NOT the probe: a purge marks the condition expired
+	// (Conditions.HasFlag(flag, true) sets TriggersLeftExpired) and leaves it in the
+	// list for the round sweep to collect, so HasCondition stays true for a purged
+	// condition. HasFlag(_, false) skips expired conditions, which is what "no longer
 	// poisoned" means.
 	assert.False(t, mob.Character.Conditions.HasFlag(conditions.Poison, false), "the named mob is purged")
-	// HasBuff is NOT the probe here either, for the same reason as above: a
+	// HasCondition is NOT the probe here either, for the same reason as above: a
 	// cancelled record is marked expired in place and left in the list for
-	// the round sweep, so HasBuff would stay true. GetBuffs filters expired
+	// the round sweep, so HasCondition would stay true. GetConditions filters expired
 	// entries, so an empty result is the real "no longer holds it" check.
 	assert.Empty(t, mob.Character.GetConditions(conditions.ConditionIdPoisoned), "the poisoned record is purged")
 	assert.True(t, caster.Character.Conditions.HasFlag(conditions.Poison, false), "the caster keeps their own poison")

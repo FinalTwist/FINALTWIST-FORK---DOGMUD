@@ -15,14 +15,14 @@ const (
 	broodFloorReserve        = 200 // cheap floor companion (before reduction); first-pass
 )
 
-// tickCompanionEmpowerment refreshes the "Empowered by Bond" buff (105) on the
+// tickCompanionEmpowerment refreshes the "Empowered by Bond" condition (105) on the
 // owner's in-room companions each round, while the owner holds a
 // companion_empowerment mutation (Symbiotic Bond / Spirit Tether / Beast Bond).
 //
 // This is a DEDICATED empowerment applied by the owner's mutation — it does NOT
-// mirror the owner's own buffs. That distinction matters: rally and warcry
-// already fan their buffs out to companions (applyRallyToCompanions), so copying
-// the owner's buff list here would double-apply them. A separate buff can't.
+// mirror the owner's own conditions. That distinction matters: rally and warcry
+// already fan their conditions out to companions (applyRallyToCompanions), so copying
+// the owner's condition list here would double-apply them. A separate condition can't.
 //
 // Called per-round from UserRoundTick. Mirrors applyRallyToCompanions' fan-out.
 func tickCompanionEmpowerment(user *users.UserRecord, room *rooms.Room) {

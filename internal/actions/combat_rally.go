@@ -13,18 +13,18 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
 )
 
-// RallyResult reports the outcome of a rally cooldown+buff application.
+// RallyResult reports the outcome of a rally cooldown+condition application.
 type RallyResult struct {
 	Cost          characters.CostCommitResult
 	Executed      bool    // true if the rally actually applied
 	OnCooldown    bool    // blocked by shared special-move cooldown
 	Crafting      bool    // blocked because the actor is mid-craft
-	AlreadyActive bool    // blocked because the rally buff is already on this actor
+	AlreadyActive bool    // blocked because the rally condition is already on this actor
 	Bonus         float64 // mitigation bonus the condition carries (0.05..0.20)
 	Duration      int     // condition duration in rounds
 }
 
-// ExecuteRally performs the cooldown check + self-buff application shared by
+// ExecuteRally performs the cooldown check + self-condition application shared by
 // both the player "rally" command and the mob "rally" command. Callers handle
 // any fan-out (party members, companions, room broadcast) and player-facing
 // text.
@@ -38,7 +38,7 @@ func ExecuteRally(actor Actor) RallyResult {
 		return RallyResult{Crafting: true}
 	}
 
-	// Skip if the rally buff is already active on this actor —
+	// Skip if the rally condition is already active on this actor —
 	// re-casting would just burn the cooldown for no new effect.
 	if char.HasCondition(80) {
 		return RallyResult{AlreadyActive: true}
@@ -88,7 +88,7 @@ func ExecuteRally(actor Actor) RallyResult {
 }
 
 // ApplyRallyEffect computes the rally magnitude (rhetoric + charisma, then
-// shout-amp scaled) and applies the rally condition + buff to char, returning
+// shout-amp scaled) and applies the rally condition to char, returning
 // the bonus and duration for the caller to fan out to allies. It performs NO
 // cooldown or activity gating — ExecuteRally owns those. Exposed so the
 // shout-stacking mutation (Resonant Larynx) can loose a rally as part of another

@@ -143,8 +143,8 @@ func (c *Character) ProgressionChanceForSkill(skillName string, bonusMultiplier 
 
 	// Phase 24.2: Apply mutation skill progression multiplier
 	mutSkillMult := 1.0 + mutations.GetSkillProgressionMultiplier(c.Mutations)
-	// Phase 25.3: a skill-progress buff quickens skill progression chance. The
-	// magnitude now lives on the buff: a buff with no progress_mult is worth
+	// Phase 25.3: a skill-progress condition quickens skill progression chance. The
+	// magnitude now lives on the condition: a condition with no progress_mult is worth
 	// 2.0, the historic literal this line used to hardcode. That 2.0 default
 	// is a balance number living in Go rather than config.yaml and belongs on
 	// the config audit list.
@@ -418,9 +418,9 @@ func (c *Character) OnSkillUseScaled(skillName string, userId int, bonusMultipli
 	// GATED ON THE LOSS, never on bonusMultiplier < 1.0. Awarding progression
 	// on losses would otherwise turn every "use this skill N times" quest into
 	// "fail at it N times". But a sub-1.0 multiplier does NOT mean a loss: a
-	// self-buff cast is a WINNING action arriving at
+	// self-condition cast is a WINNING action arriving at
 	// SelfCastProgressionMultiplier (ships 0.5), and gating on the multiplier
-	// would silently stop self-buff casts from ticking skill_use quests, with
+	// would silently stop self-condition casts from ticking skill_use quests, with
 	// no error message anywhere. That is why Lost is its own field rather than
 	// something inferred from Multiplier. See
 	// TestOnSkillUseScaled_WinningSubOneMultiplierStillEmitsSkillUsed.

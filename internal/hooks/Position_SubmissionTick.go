@@ -131,7 +131,7 @@ func processSubmissionTickForChar(c *characters.Character) {
 		"atkZ", result.AttackerZScore,
 	)
 
-	// The resolver reports the silent-start buffs it applied (Broken Limb,
+	// The resolver reports the silent-start conditions it applied (Broken Limb,
 	// Stunned) because internal/combat sends no player text: their authored
 	// start line is ours to deliver, and it goes out right after the outcome
 	// so the victim reads the consequence with the beat that caused it.

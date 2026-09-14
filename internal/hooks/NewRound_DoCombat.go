@@ -27,11 +27,11 @@ func DoCombat(e events.Event) events.ListenerReturn {
 
 	evt := e.(events.NewRound)
 
-	// Chunk 3.3: snapshot victims with the Sleeping buff flag BEFORE any
+	// Chunk 3.3: snapshot victims with the Sleeping condition flag BEFORE any
 	// damage events resolve this round. cancel-on-damage (in
 	// applyCombatProgression) fires mid-round after each attacker's turn;
 	// without a snapshot, later attackers would miss the forceCrit window
-	// because the buff was already cleared by the first hit. Taking the
+	// because the condition was already cleared by the first hit. Taking the
 	// snapshot here — once, at the very start of the round, before
 	// handlePlayerCombat and handleMobCombat both run — ensures every
 	// attacker in both passes sees a consistent, unmodified set of sleeping
@@ -295,11 +295,11 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 			continue
 		}
 
-		// Only run the full combat prep (buff stripping, etc.) when
+		// Only run the full combat prep (condition stripping, etc.) when
 		// actually fighting or when the mob might enter combat this round.
 		if mob.Character.IsInCombat() {
-			// Strip combat-cancelling buffs (Hidden, etc.) and remove
-			// their permabuff entries so Validate() doesn't re-apply them.
+			// Strip combat-cancelling conditions (Hidden, etc.) and remove
+			// their permanent condition entries so Validate() doesn't re-apply them.
 			mob.Character.CancelCombatConditions()
 
 			if handleMobFoldCasting(mob, mobRoom) {
@@ -364,7 +364,7 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 		// skip both the legacy AI and handleCombatRound for this mob.
 		//
 		// Legacy preferredSpell has a hardcoded priority (shield → heal →
-		// harm-list) that would otherwise preempt archetype self-buffs every
+		// harm-list) that would otherwise preempt archetype self-conditions every
 		// round. Firing here makes the archetype authoritative.
 		btCtx := behaviortree.EventContext{
 			EventType: "mob_combat_round",
@@ -502,7 +502,7 @@ func applyMoonMods(ch *characters.Character, moonMod float64) func() {
 }
 
 // snapshotSleepingVictims walks all online users and all mob instances and
-// records which ones currently have the Sleeping buff flag. The two maps are
+// records which ones currently have the Sleeping condition flag. The two maps are
 // published to the combat package (combat.PublishSleepingSnapshot) so that
 // both melee combat passes AND every channel attack resolving later in the
 // same round (Task 17) can resolve forceCrit=true — via

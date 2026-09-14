@@ -66,7 +66,7 @@ func Flee(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		user.SetTempData(fleeIncludeSkillTempKey, nil)
 	}
 
-	// A no-go root (e.g. a Jailed holding-cell buff — 5.1c) pins the player in
+	// A no-go root (e.g. a Jailed holding-cell condition — 5.1c) pins the player in
 	// place; flee must honor it too, or it becomes a jail-escape hole (the
 	// directional `go` block alone is bypassable via flee — smoke BUG-02).
 	if user.Character.HasConditionFlag(conditions.NoMovement) {

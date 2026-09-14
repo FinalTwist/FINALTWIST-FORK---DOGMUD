@@ -78,7 +78,7 @@ func TestExpectedRankForUses_InvertsUsesToReach(t *testing.T) {
 
 // The dashboard must display the chance production rolls. Bare
 // CalculateProgressionChance omitted StatProgressionRate and every per-stat,
-// per-skill, mutation and buff multiplier -- the reason this page could never
+// per-skill, mutation and condition multiplier -- the reason this page could never
 // have surfaced the sealed stats Phase B fixed.
 func TestPlayerOverview_ChanceMatchesProduction(t *testing.T) {
 	testBalance(t)

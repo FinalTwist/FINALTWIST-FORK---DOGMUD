@@ -154,7 +154,7 @@ func condPackmateBelowHpRatio(params map[string]any, ctx *EvalContext) Result {
 // condPackmateIsTanking returns Success if any same-room packmate has
 // an active Aggro (is engaged in combat). Used by the support_caster
 // archetype to gate "shield the tank" behavior — if a packmate is
-// actively tanking, prioritize casting defensive buffs on them.
+// actively tanking, prioritize casting defensive conditions on them.
 func condPackmateIsTanking(params map[string]any, ctx *EvalContext) Result {
 	self := mobs.GetInstance(ctx.InstanceId)
 	if self == nil {

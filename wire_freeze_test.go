@@ -85,7 +85,7 @@ func TestWireFreeze_ConditionFileKeys(t *testing.T) {
 func TestWireFreeze_ShippedConditionFilesLoadInBothWorlds(t *testing.T) {
 	// This package (root, package main) has no TestMain; every test that
 	// exercises a mudlog call sets up the logger itself (see
-	// boot_smoke_test.go). buffs.LoadDataFiles logs on success and panics on
+	// boot_smoke_test.go). conditions.LoadDataFiles logs on success and panics on
 	// a nil logger if nothing else in this test binary run has set one up yet.
 	mudlog.SetupLogger(nil, `LOW`, ``, false)
 

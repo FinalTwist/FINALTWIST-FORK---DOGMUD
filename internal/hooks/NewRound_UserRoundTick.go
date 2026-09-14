@@ -248,7 +248,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 				if triggeredConditions := user.Character.Conditions.Trigger(); len(triggeredConditions) > 0 {
 
 					//
-					// Fire onTrigger for buff script
+					// Fire onTrigger for condition script
 					//
 					triggeredConditionIds := []int{}
 					for _, condition := range triggeredConditions {
@@ -256,23 +256,23 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						trigConditionSpec := conditions.GetConditionSpec(condition.ConditionId)
 
 						// Send YAML trigger text (if defined), including on
-						// the buff's final, expiring trigger. PruneBuffs'
+						// the condition's final, expiring trigger. PruneConditions'
 						// own end narration still follows as a separate
 						// line for the record's close. Matches the mob
-						// round tick's tickMobBuffs, which narrates its own
+						// round tick's tickMobConditions, which narrates its own
 						// trigger text the same way.
 						//
 						// Bug found migrating Bleeding to a record (slice 1,
 						// task 9): this used to gate the WHOLE loop body —
 						// text AND the TickPool harm/restore below — behind
 						// !Expired(), which silently dropped the tick/harm
-						// effect on any buff's final trigger (invisible until
+						// effect on any condition's final trigger (invisible until
 						// now because every existing record used a trigger
 						// count far above 1: Warcry/Rally 25, MinorShield/
 						// Regenerating/Poisoned 10). A record created with
 						// exactly one trigger left, which slice 1's three-round
 						// Bleeding produced for every ordinary duration, never
-						// applied its one and only tick. tickMobBuffs
+						// applied its one and only tick. tickMobConditions
 						// never had this defect: it always applies TickAmount
 						// and always narrates the flavor text too.
 						//
@@ -296,19 +296,19 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 							}
 							if roles.Observer != "" {
 								if r := rooms.LoadRoom(user.Character.RoomId); r != nil {
-									r.SendTextVisual(messaging.CategoryConditionApply, roles.Observer, user.UserId) // visual: see Buff_ApplyBuffs.go start text
+									r.SendTextVisual(messaging.CategoryConditionApply, roles.Observer, user.UserId) // visual: see Condition_ApplyConditions.go start text
 								}
 							}
 						}
 
 						// Apply config-driven tick amount. TickAmount is
 						// normally snapshot at apply time (spell/drink
-						// paths), but area/mutator-applied buffs go through
-						// the async AddBuff event and never snapshot it —
-						// so for a tick_pool buff with TickAmount still 0,
+						// paths), but area/mutator-applied conditions go through
+						// the async AddCondition event and never snapshot it —
+						// so for a tick_pool condition with TickAmount still 0,
 						// compute and cache it here (e.g. hazard-room DoTs).
 						// Runs on EVERY trigger, including the final one that
-						// also expires the buff (see the note above).
+						// also expires the condition (see the note above).
 						if trigConditionSpec != nil && trigConditionSpec.TickPool != "" {
 							tickAmt := condition.TickAmount
 							if tickAmt == 0 {
@@ -324,15 +324,15 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 								tickAmt = conditions.ComputeTickAmount(maxPool, trigConditionSpec.TickPercent, trigConditionSpec.TickVariance, trigConditionSpec.TickMin, 1.0)
 								user.Character.Conditions.SetTickAmount(condition.ConditionId, tickAmt)
 							}
-							// tickAmt is SIGNED: buffs.ComputeTickAmount returns a
+							// tickAmt is SIGNED: conditions.ComputeTickAmount returns a
 							// negative value for TickPercent < 0, so this is a
 							// damage-over-time delivery path as well as a regen one.
 							// Routing it to ApplyRestore alone would silently delete
-							// every DoT buff, because ApplyRestore no-ops on
+							// every DoT condition, because ApplyRestore no-ops on
 							// non-positive input. Hence the sign split; ApplyHarm
 							// takes a POSITIVE amount, so negate.
 							//
-							// DoT buffs carry no applier, so the harm source is
+							// DoT conditions carry no applier, so the harm source is
 							// anonymous (state.ActorRef{}). See ApplyHarm's docstring.
 							switch trigConditionSpec.TickPool {
 							case "health":
@@ -347,7 +347,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 									cancelDamageConditions(user.Character)
 									// Capture the cause at the moment the tick lands: a
 									// tick that is the record's last trigger arrives
-									// already Expired (Buffs.Trigger decrements
+									// already Expired (Conditions.Trigger decrements
 									// TriggersLeft before returning it), and the record
 									// can also be pruned before the death announcement
 									// listener runs. See tickCauseFor and deathCauseFor.
@@ -380,7 +380,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 
 				// Stage 7.5: Attempt automatic recovery from prone (contested
 				// if someone is holding the character down, free otherwise).
-				// AFTER the buff tick, the order MobRoundTick uses: a failed or
+				// AFTER the condition tick, the order MobRoundTick uses: a failed or
 				// gated attempt adds the one-round Recovering record (118,
 				// attacks_cap 1), and when it ran before the tick, the tick
 				// expired the record before DoCombat could read it, so a player
@@ -431,8 +431,8 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 					canDeepen := mutations.CanDeepen(user.Character.Mutations)
 					if canAcquire || canDeepen {
 						eyeMult := 0.5 + gametime.GetEyePhase()
-						// Phase 25.3: a mutation-rate buff quickens mutation progress
-						// gain. The magnitude now lives on the buff: a buff with no
+						// Phase 25.3: a mutation-rate condition quickens mutation progress
+						// gain. The magnitude now lives on the condition: a condition with no
 						// progress_mult is worth 2.0, the historic literal this line
 						// used to hardcode. That 2.0 default is a balance number
 						// living in Go rather than config.yaml and belongs on the
@@ -628,7 +628,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 										} else if pool, added, breach := enchantApplyWouldBreach(user.Character, targetItem, recipe.EnchantType); breach {
 											// U7b: craft.go refuses this before the work starts, but
 											// the rounds in between are not free of change: a worn
-											// enchantment can tier up mid-craft, and a lapsing buff
+											// enchantment can tier up mid-craft, and a lapsing condition
 											// can shrink the pool the ceiling is measured against.
 											// Refusing here still returns the materials, exactly as
 											// the "no longer equipped" case above does.

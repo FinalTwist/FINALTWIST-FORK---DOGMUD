@@ -160,7 +160,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 			user.SendText(messaging.CategorySystem, `<ansi fg="red">Your movement interrupts your salvaging.</ansi>`)
 		}
 	}
-	// If has a buff that prevents combat, skip the player
+	// If has a condition that prevents combat, skip the player
 	if user.Character.HasConditionFlag(conditions.NoMovement) {
 		user.SendText(messaging.CategorySystem, "You can't do that!")
 		return true, nil
@@ -168,10 +168,10 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 
 	c := configs.GetTextFormatsConfig()
 
-	// Check both the buff flag (set by event queue on next tick) and the
+	// Check both the condition flag (set by event queue on next tick) and the
 	// misc-data flag (set synchronously by sneak command). This handles
 	// the case where the player sneaks then immediately moves before the
-	// buff event processes.
+	// condition event processes.
 	isSneaking := user.Character.IsHidden()
 	if !isSneaking {
 		if sneakFlag, ok := user.Character.GetMiscData(`sneaking`).(bool); ok && sneakFlag {
@@ -515,7 +515,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 				if !shadowIsTargetingUser(shadowP, user.UserId) {
 					continue
 				}
-				// Buff-absent guard: misc data set but buff 87 gone means the
+				// Condition-absent guard: misc data set but condition 87 gone means the
 				// shadow expired or was cancelled out-of-band. Clear stale state
 				// and skip the auto-follow so a dead/logged-off target can't drag
 				// the player to an unexpected room.
@@ -529,7 +529,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 
 				// After the move attempt, check if the shadower is still hidden.
 				// The room-entry detection in go.go runs for the shadower's move,
-				// so if they were spotted their hidden buff will already be gone.
+				// so if they were spotted their hidden condition will already be gone.
 				if !shadowP.Character.IsHidden() {
 					endShadow(shadowP, "You've been spotted -- your shadow ends.")
 					continue
@@ -596,9 +596,9 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 				if spotted {
 					// Drive the Awareness FSM out of Hidden — the mirror
 					// cascade in Awareness_Cascades.go handles
-					// CancelBuffsWithFlag(buffs.Hidden) and clears the
-					// hidden state. Calling CancelBuffsWithFlag directly
-					// here would expire buff 9 but leave the FSM in
+					// CancelConditionsWithFlag(conditions.Hidden) and clears the
+					// hidden state. Calling CancelConditionsWithFlag directly
+					// here would expire condition 9 but leave the FSM in
 					// Hidden, so IsHidden() would still return true and
 					// the next attack would still surprise-strike.
 					_ = user.Character.Awareness.TransitionToRevealing(
@@ -607,7 +607,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 					isSneaking = false
 					// Intentionally silent — if the observer is itself hidden,
 					// surfacing their name leaks information the player can't
-					// see. The Hidden buff's end_user_text ("You no longer feel
+					// see. The Hidden condition's end_user_text ("You no longer feel
 					// sneaky.") on the next tick is sufficient signal that
 					// stealth dropped.
 				}

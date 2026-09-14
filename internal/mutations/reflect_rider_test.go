@@ -14,7 +14,7 @@ func TestGetReflectRiderConditions(t *testing.T) {
 	})
 	defer cleanup()
 
-	// Flavored variant carries its rider buff id.
+	// Flavored variant carries its rider condition id.
 	got := GetReflectRiderConditions(map[string]int{"reflect-skin-molten": 1})
 	if len(got) != 1 || got[0] != 106 {
 		t.Fatalf("GetReflectRiderBuffs(molten) = %v, want [106]", got)

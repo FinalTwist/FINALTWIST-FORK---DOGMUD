@@ -14,7 +14,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/playtestenv"
 )
 
-// syncBuffer is a race-safe io.Writer for capturing ready JSON while Run /
+// syncConditioner is a race-safe io.Writer for capturing ready JSON while Run /
 // RunScenario is still waiting on stop/deadline (integration tests only).
 type syncBuffer struct {
 	mu  sync.Mutex

@@ -21,7 +21,7 @@ func TestCompressContestGap_IdentityAtZero(t *testing.T) {
 }
 
 // Compression must never touch a contest the attacker is not winning. This is
-// what stops it buffing underdogs, which is a separate design decision.
+// what stops it conditioning underdogs, which is a separate design decision.
 func TestCompressContestGap_LeavesUnderdogsAlone(t *testing.T) {
 	got := compressContestGap(105, []contest.Entry{{Score: 185}}, 2.8)
 	assert.Equal(t, 185.0, got[0].Score, "an attacker behind on score must be unchanged")
@@ -199,7 +199,7 @@ func TestRunContest_CompressionReducesLopsidedWins(t *testing.T) {
 }
 
 // An underdog's outcome must be untouched at every saturation -- the ahead-only
-// rule is what keeps this a crit fix rather than a buff to weak attackers.
+// rule is what keeps this a crit fix rather than a condition to weak attackers.
 func TestRunContest_UnderdogUnaffected(t *testing.T) {
 	const trials = 40000
 

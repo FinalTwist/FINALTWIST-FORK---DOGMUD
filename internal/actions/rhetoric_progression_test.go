@@ -43,7 +43,7 @@ type rhetoricActionCase struct {
 	execute    func(Actor) rhetoricActionOutcome
 	invalidate func(*characters.Character)
 	// effectKind is the record's mechanical effect, checked wherever the test
-	// asserts the buff's presence. Zero value for taunt, which carries neither.
+	// asserts the condition's presence. Zero value for taunt, which carries neither.
 	effectKind conditions.EffectKind
 }
 

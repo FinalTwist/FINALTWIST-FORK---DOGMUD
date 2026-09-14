@@ -9,7 +9,7 @@ import (
 )
 
 // Shadow lets a mob begin shadowing a target while hidden. The mob
-// must already carry the Hidden buff (buff 9). The mob command CLI
+// must already carry the Hidden condition (condition 9). The mob command CLI
 // accepts the target name as the argument. For btree-driven shadowing
 // the action is called via actions.Shadow directly (Task 13).
 func Shadow(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {

@@ -118,10 +118,10 @@ func TestPin_WithdrawalOnStaminaAndConviction(t *testing.T) {
 // first enchant-withdrawal entry, so a second entry appended directly to that
 // slice was silently ignored (the enum's own writer never produced two live
 // entries; only a direct append could). That
-// history is gone now that withdrawal is buff record 123: a Buffs list
-// holds one entry per buff id, and AddBuffMagnitude on a held id refreshes
-// it in place (buffs.go's AddBuffScaled early-return branch), overwriting
-// Magnitude, TriggersLeft and, via Character.AddBuffMagnitude, Source. So a
+// history is gone now that withdrawal is condition record 123: a Conditions list
+// holds one entry per condition id, and AddConditionMagnitude on a held id refreshes
+// it in place (conditions.go's AddConditionScaled early-return branch), overwriting
+// Magnitude, TriggersLeft and, via Character.AddConditionMagnitude, Source. So a
 // second disenchant does not silently no-op alongside the first, it REPLACES
 // it: the record that used to read "health" now reads "stamina", and only
 // the stamina penalty applies.
@@ -151,8 +151,8 @@ func TestPin_ASecondWithdrawalReplacesTheFirst(t *testing.T) {
 // through to the break and swallow it. The enum path had the same shape and
 // the same hazard, so this is a fidelity pin, not a new rule.
 //
-// Two id-123 records have to be built by hand: the buffIds index holds one
-// entry per id, so AddBuffMagnitude would refresh the first rather than add a
+// Two id-123 records have to be built by hand: the conditionIds index holds one
+// entry per id, so AddConditionMagnitude would refresh the first rather than add a
 // second. Appending directly to List is how the old first-wins pin built its
 // pair, and the loop reads List, not the index.
 func TestPin_AMisSourcedWithdrawalDoesNotShadowAValidOne(t *testing.T) {

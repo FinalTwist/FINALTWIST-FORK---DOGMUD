@@ -908,7 +908,7 @@ func TestAutoHeal_HealthCapsAtMax(t *testing.T) {
 }
 
 // TestRoundTick_PoisonDamage pins slice 1b's cadence: the spell dot record
-// (buff 121) ticks every round (owner ruling 2026-09-14; it used to keep the
+// (condition 121) ticks every round (owner ruling 2026-09-14; it used to keep the
 // old AutoHeal hook's every-third-round cadence). A one-round record lands its
 // harm and its line on the first round tick, which is also its last.
 func TestRoundTick_PoisonDamage(t *testing.T) {
@@ -1098,7 +1098,7 @@ func TestAutoHeal_RegeneratingRecordMultipliesOutOfCombatRegen(t *testing.T) {
 	u1 := users.GetByUserId(1)
 	u1.Character.EndAggro() // out of combat: base %-regen applies
 
-	// AddBuffMagnitude (below) calls Validate(), which recomputes
+	// AddConditionMagnitude (below) calls Validate(), which recomputes
 	// HealthMax.Value from Base + Training + Mods. Seed a large Base up
 	// front and validate once so both measurements below read the same
 	// HealthMax the hook itself will see.
@@ -1146,7 +1146,7 @@ func TestAutoHeal_RegeneratingRecordMultipliesInCombatRegen(t *testing.T) {
 	u1 := users.GetByUserId(1)
 	u1.Character.SetAggro(0, 100, characters.DefaultAttack) // in combat: no base regen applies
 
-	// AddBuffMagnitude (below) calls Validate(), which recomputes
+	// AddConditionMagnitude (below) calls Validate(), which recomputes
 	// HealthMax.Value from Base + Training + Mods. Seed a large Base up
 	// front and validate once so both measurements below read the same
 	// HealthMax the hook itself will see.
@@ -1186,13 +1186,13 @@ func TestAutoHeal_RegeneratingRecordMultipliesInCombatRegen(t *testing.T) {
 	u1.Character.EndAggro()
 }
 
-// ─── ApplyBuffs ───────────────────────────────────────────────────────────────
+// ─── ApplyConditions ───────────────────────────────────────────────────────────────
 
 func TestApplyConditions_WrongEventType(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
-	// Pass a NewRound event instead of Buff — should return Cancel
+	// Pass a NewRound event instead of Condition — should return Cancel
 	evt := events.NewRound{RoundNumber: 1}
 	result := ApplyConditions(evt)
 	assert.Equal(t, events.Continue, result, "a wrong event type is not this listener's to veto")
@@ -1253,12 +1253,12 @@ func TestApplyConditions_NegativeConditionRemoves(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
-	// First add the buff
+	// First add the condition
 	u := users.GetByUserId(1)
 	u.Character.AddCondition(100, false)
 	assert.True(t, u.Character.HasCondition(100))
 
-	// Now send negative buff ID to remove
+	// Now send negative condition ID to remove
 	evt := events.Condition{UserId: 1, ConditionId: -100}
 	result := ApplyConditions(evt)
 	assert.Equal(t, events.Continue, result)
@@ -1333,8 +1333,8 @@ func TestMobDisplayName(t *testing.T) {
 // per round: once by the enum's own tick in the round ticks and again by
 // handlePlayerShieldDecay / the mob branch in DoCombat. Task 6 deleted the
 // second decrement entirely; the record now decays exactly once per round,
-// through Buffs.Trigger() in UserRoundTick, and narrates its end through the
-// PruneBuffs pass like every other buff.
+// through Conditions.Trigger() in UserRoundTick, and narrates its end through the
+// PruneConditions pass like every other condition.
 
 func TestMinorShieldRecordExpiresOnceAndNarratesItsEnd(t *testing.T) {
 	cleanup := seedAllRegistries()
@@ -1349,9 +1349,9 @@ func TestMinorShieldRecordExpiresOnceAndNarratesItsEnd(t *testing.T) {
 	assert.Equal(t, 10.0, u.Character.Conditions.Effect(conditions.EffectMitigationFlat),
 		"the mitigation effect must be live before the round ticks")
 
-	// UserRoundTick's Buffs.Trigger() is the one door that decrements a
-	// buff's TriggersLeft each round; PruneBuffs is the one door that removes
-	// an expired buff and sends its authored end text.
+	// UserRoundTick's Conditions.Trigger() is the one door that decrements a
+	// condition's TriggersLeft each round; PruneConditions is the one door that removes
+	// an expired condition and sends its authored end text.
 	UserRoundTick(events.NewRound{RoundNumber: 1})
 	PruneConditions(events.NewTurn{TurnNumber: 1})
 
@@ -1412,7 +1412,7 @@ func TestHandleMobAIDecision_DefaultAttack(t *testing.T) {
 	assert.False(t, result, "0 activity level + no combat commands should skip")
 }
 
-// ─── PruneBuffs ───────────────────────────────────────────────────────────────
+// ─── PruneConditions ───────────────────────────────────────────────────────────────
 
 func TestPruneConditions_NoPanic(t *testing.T) {
 	cleanup := seedAllRegistries()

@@ -87,7 +87,7 @@ func clearRoomAggroOnDeparture(room *rooms.Room, departingInstanceId int) {
 //
 // It now delegates to Room.SendTextVisualWithAudio rather than deciding for
 // itself. The hand-rolled version it replaced tested ONLY
-// buffs.NightVision, which meant it ignored blindness, sleep and infrared: a
+// conditions.NightVision, which meant it ignored blindness, sleep and infrared: a
 // BLINDED player who happened to carry night vision was shown the named line,
 // and a player with infrared got the sound cue when they should have got
 // shapes. The shared primitive reads the same perception predicates the rest
@@ -102,7 +102,7 @@ func sendMovementMessage(room *rooms.Room, visualCat messaging.Category, visualM
 
 func Go(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
-	// If has a buff that prevents combat, skip the player
+	// If has a condition that prevents combat, skip the player
 	if mob.Character.HasConditionFlag(conditions.NoMovement) {
 		return true, nil
 	}

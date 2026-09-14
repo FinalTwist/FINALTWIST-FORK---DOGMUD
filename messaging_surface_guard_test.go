@@ -70,18 +70,19 @@ var textSurfaceRegistry = map[string]surfaceEntry{
 	"wait_user_text": {narration, "internal/spells/spells.go SpellData.WaitUserText -- actor-side line narrated during a spell's cast-time channel/wait."},
 	"wait_room_text": {narration, "internal/spells/spells.go SpellData.WaitRoomText -- room-side line narrated during a spell's cast-time channel/wait, paired with wait_user_text."},
 
-	// -- Buff narration: internal/conditions/buffspec.go BuffSpec, all six fields
-	// present on the 101 buff YAML files (start/trigger/end x user/room). --
-	"start_user_text":   {narration, "internal/conditions/buffspec.go BuffSpec.StartUserText -- actor-side line narrated when a buff is applied; one of six start/trigger/end x user/room fields across 101 buff files."},
-	"start_room_text":   {narration, "internal/conditions/buffspec.go BuffSpec.StartRoomText -- room-side line narrated when a buff is applied, paired with start_user_text."},
-	"trigger_user_text": {narration, "internal/conditions/buffspec.go BuffSpec.TriggerUserText -- actor-side line narrated each time a periodic buff tick fires (e.g. poison, regen)."},
-	"trigger_room_text": {narration, "internal/conditions/buffspec.go BuffSpec.TriggerRoomText -- room-side line narrated each time a periodic buff tick fires, paired with trigger_user_text."},
-	"end_user_text":     {narration, "internal/conditions/buffspec.go BuffSpec.EndUserText -- actor-side line narrated when a buff expires or is removed."},
-	"end_room_text":     {narration, "internal/conditions/buffspec.go BuffSpec.EndRoomText -- room-side line narrated when a buff expires or is removed, paired with end_user_text."},
+	// -- Condition narration: internal/conditions/conditionspec.go ConditionSpec,
+	// all six fields present on the 101 condition YAML files (start/trigger/end
+	// x user/room). --
+	"start_user_text":   {narration, "internal/conditions/conditionspec.go ConditionSpec.StartUserText -- actor-side line narrated when a condition is applied; one of six start/trigger/end x user/room fields across 101 condition files."},
+	"start_room_text":   {narration, "internal/conditions/conditionspec.go ConditionSpec.StartRoomText -- room-side line narrated when a condition is applied, paired with start_user_text."},
+	"trigger_user_text": {narration, "internal/conditions/conditionspec.go ConditionSpec.TriggerUserText -- actor-side line narrated each time a periodic condition tick fires (e.g. poison, regen)."},
+	"trigger_room_text": {narration, "internal/conditions/conditionspec.go ConditionSpec.TriggerRoomText -- room-side line narrated each time a periodic condition tick fires, paired with trigger_user_text."},
+	"end_user_text":     {narration, "internal/conditions/conditionspec.go ConditionSpec.EndUserText -- actor-side line narrated when a condition expires or is removed."},
+	"end_room_text":     {narration, "internal/conditions/conditionspec.go ConditionSpec.EndRoomText -- room-side line narrated when a condition expires or is removed, paired with end_user_text."},
 
 	// -- Crafting narration: internal/crafting/crafting.go Recipe, 126 recipe
 	// files. Crafting currently has NO audience split -- a single message,
-	// not actor/room pairs like spells and buffs. --
+	// not actor/room pairs like spells and conditions. --
 	"success_message": {narration, "internal/crafting/crafting.go Recipe.SuccessMessage -- narrated crafting-outcome line on a successful craft, 126 recipe files; no user/room split exists for crafting."},
 	"failure_message": {narration, "internal/crafting/crafting.go Recipe.FailureMessage -- narrated crafting-outcome line on a failed craft, paired with success_message; same no-audience-split gap."},
 
@@ -476,7 +477,7 @@ func messagingSurfaceSplitSchema(keyFiles map[string]map[string]bool, yamlTagKey
 // exactly the kind of regression this guard exists to catch.
 //
 // Both directions were verified on 2026-08-31. Adding an unregistered
-// `whispered_room_text` key to TWO probe buffs failed the guard by name; adding
+// `whispered_room_text` key to TWO probe conditions failed the guard by name; adding
 // a `nonexistent_probe_text` registry entry failed it as stale; and a
 // `solo_probe_text` key in a SINGLE file correctly did not require
 // registration, proving the 2-file schema threshold. Re-verify the same way
@@ -633,7 +634,7 @@ func TestEveryTextSurfaceIsRegistered(t *testing.T) {
 //
 // So: this guard covers 4 of the audit's 7 confirmed defects -- the ones
 // that really are "one event, missing a viewpoint": hooks/spell_resolution.go's
-// buff case, usercommands/rally.go and warcry.go's Resonant Larynx fold, and
+// condition case, usercommands/rally.go and warcry.go's Resonant Larynx fold, and
 // usercommands/admin.zap.go's engaged-target path -- and does not claim the
 // other 3. A false "covers everything" would be worse than this honest gap.
 //
@@ -1128,10 +1129,10 @@ func narrationViewpointsLabel(s narrationCandidateSite) string {
 // value under a name other than "room"/"user"/"actor" -- each read against
 // source and marked as such in its own Reason.
 //
-// Four entries carry verdictGap: hooks/spell_resolution.go's buff case
+// Four entries carry verdictGap: hooks/spell_resolution.go's condition case
 // (missing the room broadcast its sibling heal case has),
 // usercommands/rally.go and usercommands/warcry.go's Resonant Larynx fold
-// (silently reapplying the paired buff with no SendText), and
+// (silently reapplying the paired condition with no SendText), and
 // usercommands/admin.zap.go's engaged-target path (drops the victim to 1 HP
 // with no message). These stay registered, not fixed, on purpose: the
 // contract is set equality with what the walk finds today, and fixing one
@@ -1148,7 +1149,7 @@ var narrationViewpointRegistry = map[string]narrationEntry{
 	"actions/plant.go|<ansi fg=\"mobname\">%s</ansi> spots you slipping something into":                                     {verdictCorrect, true, false, true, "audit: failed plant in a container, spotted -- container has no owner; the spotter is an observer (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, actions/plant.go:431)"},
 	"actions/search.go|You snoop around for a bit...\\n":                                                                    {verdictCorrect, true, false, true, "audit: player begins searching the room -- solo action (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, actions/search.go:112)"},
 	"actions/shadow.go|You begin shadowing <ansi fg=\"username\">%s</ansi>,":                                                {verdictCorrect, true, true, false, "shadow is a covert-observation skill; the target is privately notified they are being shadowed via a separate SendText this walk groups elsewhere, but the room is deliberately not told, which would defeat the point of a stealth skill. Not part of the 2026-09-07 audit; read against source for this guard."},
-	"actions/sleep.go|messaging.CategoryBuffApply, line":                                                                    {verdictCorrect, true, false, true, "buff 15's start line, sent by the applier because the buff is silent-start and Sleep must apply it synchronously. Going to sleep has no actee; the room gets the third-person visual from the room.SendTextVisual immediately below, so actor+observer is the full set. Not part of the 2026-09-07 audit; read against source for this guard; since M3 item 5b the line comes from BuffSpec.AuthoredStartLine."},
+	"actions/sleep.go|messaging.CategoryConditionApply, line":                                                               {verdictCorrect, true, false, true, "condition 15's start line, sent by the applier because the condition is silent-start and Sleep must apply it synchronously. Going to sleep has no actee; the room gets the third-person visual from the room.SendTextVisual immediately below, so actor+observer is the full set. Not part of the 2026-09-07 audit; read against source for this guard; since M3 item 5b the line comes from ConditionSpec.AuthoredStartLine."},
 	"actions/steal.go|<ansi fg=\"mobname\">%s</ansi> catches you in the act!":                                               {verdictCorrect, true, false, true, "audit: failed steal from a mob, caught -- actee is a mob (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, actions/steal.go:286)"},
 	"actions/steal.go|<ansi fg=\"mobname\">%s</ansi> spots you reaching into the":                                           {verdictCorrect, true, false, true, "audit: failed steal from a container, spotted -- container has no owner (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, actions/steal.go:554)"},
 	"behaviortree/actions_dialogue.go|messaging.CategoryNPCDialogue, textutil.SubstituteTokens(userText, tokenCtx)":         {verdictCorrect, true, false, true, "audit: NPC dialogue delivered to the asking player -- actee is a mob (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, behaviortree/actions_dialogue.go:37)"},
@@ -1177,7 +1178,7 @@ var narrationViewpointRegistry = map[string]narrationEntry{
 	"hooks/spell_resolution.go|spellSchoolCategory(spellData), roles.Actor":                                                 {verdictCorrect, true, false, true, "authored magic_user_text/magic_room_text through the spell store's door (M3 item 5b): caster plus room; the room send is `r.SendText`, which this walk's observer recogniser cannot see (it only knows the receiver name `room`), so the booleans say actor+observer; the target is reached by the effect's own narration below."},
 
 	// M3 item 5a (2026-09-11): the self-cast branches of applyPlayerEffect's
-	// purge, heal and buff arms. One line to the caster and one room line naming
+	// purge, heal and condition arms. One line to the caster and one room line naming
 	// them; no actee, because the caster and the target are the same person.
 	"hooks/spell_resolution.go|<ansi fg=\"green\">You purge the afflictions from your body.%s</ansi>":              {verdictCorrect, true, false, true, "self-cast purge: the caster is the target, so there is no separate actee; sendVisualRoomText names the caster to the room. Sibling of the spell_purgeaffliction.go self-cast row."},
 	"hooks/spell_resolution.go|<ansi fg=\"green\">A warm glow of healing magic envelops you. Your wounds begin to": {verdictCorrect, true, false, true, "self-cast heal: the caster is the target, so there is no separate actee; sendVisualRoomText tells the room the caster channels restorative magic, the wording applyMobSelfEffect already uses."},

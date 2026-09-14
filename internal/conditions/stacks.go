@@ -50,7 +50,7 @@ func tickAmountFor(magnitude float64) int {
 // bleed line on its own tick, for no harm landed.
 //
 // Every internal path that expires a held record now clears its stacks
-// through Buff.expire() (RemoveBuff, HasFlag's expire branch, tickStacks), so
+// through Condition.expire() (RemoveCondition, HasFlag's expire branch, tickStacks), so
 // an expired, unpruned record should already hold none. The clear below is a
 // cheap defensive second guard, not the primary defense, for a record that
 // somehow reached TriggersLeft <= 0 without going through expire().

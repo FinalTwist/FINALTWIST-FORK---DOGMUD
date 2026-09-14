@@ -1,7 +1,7 @@
 // Package-level note on TODO-ADAPT stubs below:
 //
 // mobSkillRank delegates to Character.GetSkillLevel — the canonical
-// accessor that incorporates equipment/buff StatMod bonuses.
+// accessor that incorporates equipment/condition StatMod bonuses.
 //
 // skillTrainingProximity always returns 1 ("in zone, not current room")
 // as a deliberate 4.3 heuristic shortcut. The fuller per-skill training-
@@ -87,7 +87,7 @@ func masterySkillContextScore(g *goals.Goal, mob *mobs.Mob) float64 {
 // ─── TODO-ADAPT helpers ──────────────────────────────────────────────────────
 
 // mobSkillRank returns the mob's current rank in the named skill,
-// including any equipment/buff StatMod bonuses, via the canonical
+// including any equipment/condition StatMod bonuses, via the canonical
 // Character.GetSkillLevel accessor. Verified against
 // internal/characters/skills.go:166.
 func mobSkillRank(mob *mobs.Mob, skillName string) int {

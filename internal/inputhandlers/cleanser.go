@@ -65,7 +65,7 @@ func CleanserInputHandler(clientInput *connections.ClientInput, sharedState map[
 		return -1
 	}, string(clientInput.DataIn)))
 
-	// Add all input to the currentBuffer
+	// Add all input to the currentConditioner
 	clientInput.Buffer = append(clientInput.Buffer, clientInput.DataIn...)
 
 	return true

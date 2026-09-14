@@ -14,17 +14,17 @@ import (
 // usercommands/shoot.go carries a guard whose comment says it exists precisely
 // to stop that: "a cross-room shooter never enters that loop, so a hidden
 // sniper would stay hidden forever ... a cross-room shot that deals ANY damage
-// drops stealth." It called CancelCombatBuffs and did nothing.
+// drops stealth." It called CancelCombatConditions and did nothing.
 //
-// The reason: buff 9 Hidden carries BOTH `hidden` and `cancel-on-combat`, so
-// CancelCombatBuffs -> CancelBuffsWithFlag(CancelIfCombat) genuinely stripped
-// the buff, but the awareness rescue inside CancelBuffsWithFlag was guarded by
-// `buffFlag == buffs.Hidden` -- a question about the ARGUMENT, not about
+// The reason: condition 9 Hidden carries BOTH `hidden` and `cancel-on-combat`, so
+// CancelCombatConditions -> CancelConditionsWithFlag(CancelIfCombat) genuinely stripped
+// the condition, but the awareness rescue inside CancelConditionsWithFlag was guarded by
+// `conditionFlag == conditions.Hidden` -- a question about the ARGUMENT, not about
 // whether stealth had actually ended. IsHidden() reads the FSM, so the shooter
 // stayed hidden.
 //
 // This pins the fix at the primitive rather than at the shoot call site,
-// because every CancelCombatBuffs caller inherited the same hole.
+// because every CancelCombatConditions caller inherited the same hole.
 func TestCancelCombatConditions_DrivesAwarenessOutOfHidden(t *testing.T) {
 	restore := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		9: {

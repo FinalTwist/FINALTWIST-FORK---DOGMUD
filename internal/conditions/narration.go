@@ -7,7 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/textutil"
 )
 
-// Phase selects which of a buff's three narrated moments to render. A buff
+// Phase selects which of a condition's three narrated moments to render. A condition
 // holds one line per phase and audience, so the phase IS the selector: there
 // is no pool and nothing to pick.
 type Phase uint8
@@ -20,9 +20,9 @@ const (
 
 // Narration assembles the variants for one phase.
 //
-// The holder's line is the ACTEE: the buff happens to them. The room's line is
+// The holder's line is the ACTEE: the condition happens to them. The room's line is
 // the Observer. Actor is empty and reserved for the caster, which M6 authors
-// once events.Buff carries a caster (owner ruling, 2026-09-12). Start and End
+// once events.Condition carries a caster (owner ruling, 2026-09-12). Start and End
 // go through StartUserNotice / EndUserNotice, so the secret, hidden,
 // silent-start and generic-fallback rules stay in their one door.
 func (b *ConditionSpec) Narration(p Phase) narration.Variants {
@@ -44,11 +44,11 @@ func (b *ConditionSpec) Narrate(p Phase, ctx textutil.TokenContext) narration.Ro
 }
 
 // AuthoredStartLine renders start_user_text as written, ignoring the notice
-// rules. It is the door for the applier of a silent-start buff, which narrates
-// the start itself because the buff never travels the event that would:
+// rules. It is the door for the applier of a silent-start condition, which narrates
+// the start itself because the condition never travels the event that would:
 // sleep (15), arrest (88), stun (84) and broken limb (83). Enchant Withdrawal
 // (123) is not silent-start, but disenchant applies it through
-// AddBuffMagnitude, which is also synchronous and never travels events.Buff,
+// AddConditionMagnitude, which is also synchronous and never travels events.Condition,
 // so it reads the same door for the same reason.
 func (b *ConditionSpec) AuthoredStartLine(ctx textutil.TokenContext) string {
 	return textutil.SubstituteTokens(b.StartUserText, ctx)
@@ -56,7 +56,7 @@ func (b *ConditionSpec) AuthoredStartLine(ctx textutil.TokenContext) string {
 
 // validateNarration refuses a phase whose authored text cannot be rendered:
 // a whitespace-only line, which ValidateVariants reports as an empty variant.
-// It checks the RAW fields, not the notices, so a silent-start buff's hidden
+// It checks the RAW fields, not the notices, so a silent-start condition's hidden
 // start line is checked too. The trigger phase has no notice wrapper, so for
 // it the raw fields and Narration agree; it is listed here so all three
 // phases are checked in one place.
@@ -71,7 +71,7 @@ func (b *ConditionSpec) validateNarration() error {
 			continue
 		}
 		v := narration.Variants{Actee: textutil.Pool(ph.user), Observer: textutil.Pool(ph.room)}
-		// No expected role set: a buff may legitimately author only a holder
+		// No expected role set: a condition may legitimately author only a holder
 		// line or only a room line, so no fixed shape exists to declare. The
 		// blank-variant check is what this call is for.
 		if err := narration.ValidateVariants(v, 1); err != nil {

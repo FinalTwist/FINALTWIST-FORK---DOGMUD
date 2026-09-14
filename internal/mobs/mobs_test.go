@@ -1038,10 +1038,10 @@ func TestGetSellPriceTooManyVarieties(t *testing.T) {
 	assert.Equal(t, 0, price)
 }
 
-// ─── AddBuff ──────────────────────────────────────────────────────────────
+// ─── AddCondition ──────────────────────────────────────────────────────────────
 
-// TestAddCondition asserts the buff event is actually queued with the right payload.
-// Previously this test had no assertion and passed even if AddBuff were a
+// TestAddCondition asserts the condition event is actually queued with the right payload.
+// Previously this test had no assertion and passed even if AddCondition were a
 // no-op. Draining the queue via ProcessEvents lets a listener observe it.
 func TestAddCondition(t *testing.T) {
 	var got []events.Condition

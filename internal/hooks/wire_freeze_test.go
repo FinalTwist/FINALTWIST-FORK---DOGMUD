@@ -24,28 +24,28 @@ import (
 // without the compiler noticing (a string literal, not an identifier) and
 // without the parse-only freeze test going red. Each of these four subtests
 // drives a REAL `effect_type: buff` spell through one of the four dispatch
-// shapes and asserts the buff was actually queued for the target, so a
+// shapes and asserts the condition was actually queued for the target, so a
 // broken case literal shows up here even though it can't show up in a
 // yaml.Unmarshal-only test.
 //
-// Buff application queues an events.Buff and narrates on drain (see
-// events.DrainQueuedBuffsForTest's doc comment) rather than landing
+// Condition application queues an events.Condition and narrates on drain (see
+// events.DrainQueuedConditionsForTest's doc comment) rather than landing
 // synchronously, so — following the pattern that comment prescribes and that
-// buff_after_death_test.go / buff_notice_test.go already use — these assert
-// on the queued event, not on Character.Buffs.HasBuff.
+// condition_after_death_test.go / condition_notice_test.go already use —
+// these assert on the queued event, not on Character.Conditions.HasCondition.
 //
 // Fixture pattern and the runSpellChannelAttack override for the two
 // contested paths follow TestDotProducerRecordsNegativeHarm_MobTarget and
 // TestDotProducerRecordsNegativeHarm_PlayerTarget (hooks_test.go), the
 // existing tests that already drive applyMobEffect and
-// resolveMobSpellAgainstPlayer this way. Buff id 100 ("Test Strength Buff")
+// resolveMobSpellAgainstPlayer this way. Condition id 100 ("Test Strength Buff")
 // comes from seedAllRegistries and carries no TickPool, so the tick-snapshot
 // branch inside each case is not exercised here — only that the dispatch
-// queued the right buff for the right holder.
+// queued the right condition for the right holder.
 func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 
 	// spell_resolution.go:906 — applyMobEffect's top-level switch, a
-	// player's spell landing on a mob, dispatching to applyMobEffect_buff.
+	// player's spell landing on a mob, dispatching to applyMobEffect_condition.
 	t.Run("PlayerCastsOnMob", func(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
@@ -73,7 +73,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 	})
 
 	// spell_resolution.go:1093 — applyPlayerEffect's switch (reached via
-	// resolveAgainstPlayer), the player self/single buff path: caster and
+	// resolveAgainstPlayer), the player self/single condition path: caster and
 	// target are the same UserRecord.
 	t.Run("PlayerSelfCast", func(t *testing.T) {
 		cleanup := seedAllRegistries()
@@ -106,7 +106,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 	})
 
 	// spell_resolution.go:1493 — applyMobSelfEffect's switch, a mob's
-	// special-move buffing itself.
+	// special-move conditioning itself.
 	t.Run("MobSelfCast", func(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()

@@ -34,7 +34,7 @@ func drainPlain(userId int) []string {
 	return out
 }
 
-// Buff ids for narration tests. Chosen well clear of the fixture's 100 and 101.
+// Condition ids for narration tests. Chosen well clear of the fixture's 100 and 101.
 const (
 	glowConditionId      = 7001 // start_room_text
 	shiverConditionId    = 7002 // trigger_room_text, fires every round
@@ -45,9 +45,9 @@ const (
 	dozeConditionId      = 7007 // puts the bearer to sleep; RoundInterval 0, so it never ticks
 )
 
-// seedNarrationConditions installs the narration test buffs and returns the restore
+// seedNarrationConditions installs the narration test conditions and returns the restore
 // func. Call it AFTER `defer cleanup()` and `defer` its result, so it restores
-// before the fixture does: SeedBuffsForTest replaces the whole registry.
+// before the fixture does: SeedConditionsForTest replaces the whole registry.
 func seedNarrationConditions() func() {
 	return conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		glowConditionId: {ConditionId: glowConditionId, Name: "Test Glow", RoundInterval: 5, TriggerCount: 3,

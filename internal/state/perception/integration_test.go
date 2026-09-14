@@ -9,15 +9,15 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
 )
 
-// seedBlindConditions registers minimal BuffSpec entries for the two blind-source
-// buff IDs (3 = Blinded, 77 = Flashbang Blindness) into the global buff
+// seedBlindConditions registers minimal ConditionSpec entries for the two blind-source
+// condition IDs (3 = Blinded, 77 = Flashbang Blindness) into the global condition
 // registry and returns a cleanup function that restores the original state.
 //
-// Without seeded specs, buffs.AddBuff returns false (spec not found) and
-// characters.AddBuff returns an error, causing every PE-INT test to fail
+// Without seeded specs, conditions.AddCondition returns false (spec not found) and
+// characters.AddCondition returns an error, causing every PE-INT test to fail
 // at setup rather than at the assertion under test.
 //
-// TriggerCount=5, RoundInterval=1 gives a non-zero lifespan so the buff
+// TriggerCount=5, RoundInterval=1 gives a non-zero lifespan so the condition
 // is not immediately expired on add.
 func seedBlindConditions(t *testing.T) func() {
 	t.Helper()
@@ -41,14 +41,14 @@ func seedBlindConditions(t *testing.T) func() {
 }
 
 // TestMain initialises the mudlog logger once for all integration tests in
-// this file. buffs.Validate() calls mudlog.Warn when it encounters an unknown
-// buffId; without initialisation the logger panics on a nil receiver.
+// this file. conditions.Validate() calls mudlog.Warn when it encounters an unknown
+// conditionId; without initialisation the logger panics on a nil receiver.
 func TestMain(m *testing.M) {
 	mudlog.SetupLogger(nil, "", "", false)
 	m.Run()
 }
 
-// PE-INT-001: AddBuff(3) → Blinded.
+// PE-INT-001: AddCondition(3) → Blinded.
 func TestIntegration_ConditionBlindedAppliesBlinded(t *testing.T) {
 	defer seedBlindConditions(t)()
 
@@ -64,11 +64,11 @@ func TestIntegration_ConditionBlindedAppliesBlinded(t *testing.T) {
 	}
 }
 
-// PE-INT-002: AddBuff(3) + AddBuff(77) + RemoveBuff(3) → still Blinded.
+// PE-INT-002: AddCondition(3) + AddCondition(77) + RemoveCondition(3) → still Blinded.
 //
 // The second source used to be the ConditionBlinded enum entry. The enum is
-// gone and buffs 3 and 77 are the two blind sources that remain, so the
-// overlap this test exists to pin is now buff-on-buff.
+// gone and conditions 3 and 77 are the two blind sources that remain, so the
+// overlap this test exists to pin is now condition-on-condition.
 func TestIntegration_OverlapKeepsBlinded(t *testing.T) {
 	defer seedBlindConditions(t)()
 
@@ -99,7 +99,7 @@ func TestIntegration_AllSourcesClearedReturnsSighted(t *testing.T) {
 	}
 }
 
-// PE-INT-004 (PE-010 from spec matrix): re-applying buff while already
+// PE-INT-004 (PE-010 from spec matrix): re-applying condition while already
 // Blinded is a no-op (no ErrInvalidTransition propagated, no log spam).
 func TestIntegration_ReapplyConditionNoOp(t *testing.T) {
 	defer seedBlindConditions(t)()
@@ -108,9 +108,9 @@ func TestIntegration_ReapplyConditionNoOp(t *testing.T) {
 	if err := c.AddCondition(perception.ConditionIdBlinded, false); err != nil {
 		t.Fatalf("first AddBuff: %v", err)
 	}
-	// Re-add the same buff (the buff system stacks duration, but the
+	// Re-add the same condition (the condition system stacks duration, but the
 	// blind-source state is the same). The current-state guard in
-	// AddBuff prevents the transition from firing twice.
+	// AddCondition prevents the transition from firing twice.
 	if err := c.AddCondition(perception.ConditionIdBlinded, false); err != nil {
 		t.Fatalf("second AddBuff: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestIntegration_ReapplyConditionNoOp(t *testing.T) {
 	}
 }
 
-// PE-INT-005: Flashbang (buff 77) drives the same Perception transitions.
+// PE-INT-005: Flashbang (condition 77) drives the same Perception transitions.
 func TestIntegration_FlashbangBlindness(t *testing.T) {
 	defer seedBlindConditions(t)()
 
@@ -136,8 +136,8 @@ func TestIntegration_FlashbangBlindness(t *testing.T) {
 	}
 }
 
-// PE-INT-007: Mixed source order — flashbang first, then buff 3, then the
-// flashbang removed → still Blinded (buff 3 still active).
+// PE-INT-007: Mixed source order — flashbang first, then condition 3, then the
+// flashbang removed → still Blinded (condition 3 still active).
 func TestIntegration_MixedSourceOrder(t *testing.T) {
 	defer seedBlindConditions(t)()
 
@@ -156,7 +156,7 @@ func TestIntegration_MixedSourceOrder(t *testing.T) {
 		t.Errorf("after AddBuff(3) while already blinded, state = %v, want Blinded", c.Perception.State())
 	}
 	c.RemoveCondition(perception.ConditionIdFlashbangBlindness)
-	// Buff 3 still active → still Blinded.
+	// Condition 3 still active → still Blinded.
 	if c.Perception.State() != perception.Blinded {
 		t.Errorf("after RemoveBuff(77) (buff 3 still active), state = %v, want Blinded", c.Perception.State())
 	}

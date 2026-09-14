@@ -213,7 +213,7 @@ func calcSwingCount(sourceChar *characters.Character, weapon items.Item, weaponS
 		swings *= (1.0 - encumbrancePenalty)
 	}
 
-	// Haste buff: significant attack speed boost
+	// Haste condition: significant attack speed boost
 	if sourceChar.HasConditionFlag(conditions.Haste) {
 		swings *= float64(bal.HasteSwingMultiplier)
 	}
@@ -597,7 +597,7 @@ func calcAttackScore(sourceChar *characters.Character, targetChar *characters.Ch
 // floor; as defender, they push a mob attacker's bar up to the ceiling.
 //
 // Chunk 5.11c: position-based crit modifiers live in calcAttackScore, not
-// here. Do not reintroduce them. The old Accuracy/Blink buff branches were
+// here. Do not reintroduce them. The old Accuracy/Blink condition branches were
 // DELETED by U6b — upstream stowaways no shipped content ever granted.
 func calcCritThreshold(sourceChar *characters.Character, targetChar *characters.Character) float64 {
 	return CritBarFor(sourceChar.GetCombatSkillLevel(), targetChar.GetCombatSkillLevel())
@@ -1435,8 +1435,8 @@ func calcHitDamage(result *AttackResult, isCrit bool, openingStrike bool, sdp sw
 	return int(math.Round(math.Max(0, damageResult.Value))), openingStrike
 }
 
-// swingDamageParamsWithCritBuffs is a type alias to carry critBuffs through calcHitDamage
-// critBuffs are stored via sdp so they pass through naturally.
+// swingDamageParamsWithCritConditions is a type alias to carry critConditions through calcHitDamage
+// critConditions are stored via sdp so they pass through naturally.
 
 // meleeDisplaySubtype computes the subtype used to select AUTO-ATTACK melee
 // swing narration. Two rules apply, in order:

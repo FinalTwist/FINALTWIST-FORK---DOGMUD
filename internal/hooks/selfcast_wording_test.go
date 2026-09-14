@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// These replace TestApplyPlayerEffect_PurgeSelf, _HealSelf and _BuffSelf,
+// These replace TestApplyPlayerEffect_PurgeSelf, _HealSelf and _ConditionSelf,
 // which called applyPlayerEffect(u, u, ...) and asserted NOTHING, so they could
 // never have caught that a self-caster was told about themselves twice and in
 // the third person, or that the room read "Aliceia's Heal envelops Aliceia".

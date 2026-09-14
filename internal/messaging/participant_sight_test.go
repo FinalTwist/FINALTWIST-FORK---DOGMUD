@@ -20,7 +20,7 @@ const (
 )
 
 // sightChar returns a fresh character carrying the given test flags. The three
-// flag buffs are seeded once per test, so applying one never replaces another.
+// flag conditions are seeded once per test, so applying one never replaces another.
 func sightChar(t *testing.T, flags ...conditions.Flag) *characters.Character {
 	t.Helper()
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
@@ -79,8 +79,8 @@ func TestParticipantSight_NilObserverSeesFully(t *testing.T) {
 	}
 }
 
-// Infrared from a mutation counts the same as from a buff: the predicate reads
-// HasFlagFromAnySource, and a change to HasBuffFlag would silently drop it.
+// Infrared from a mutation counts the same as from a condition: the predicate reads
+// HasFlagFromAnySource, and a change to HasConditionFlag would silently drop it.
 func TestParticipantSight_InfraredFromAMutation(t *testing.T) {
 	t.Cleanup(mutations.SeedMutationsForTest(map[string]*mutations.MutationSpec{
 		"test-heat-pits": {MutationId: "test-heat-pits", Name: "Test Heat Pits",

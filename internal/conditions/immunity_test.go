@@ -38,8 +38,8 @@ func TestPoisonImmunityRefusesPoisonConditions(t *testing.T) {
 	assert.True(t, unprotected.AddCondition(immunityTestVenomId, false), "without immunity poison lands")
 }
 
-// The real Venom (buff 39) is a negative health tick, and until this slice it
-// carried no flags at all, so CancelBuffsWithFlag(Poison) in Purge Affliction
+// The real Venom (condition 39) is a negative health tick, and until this slice it
+// carried no flags at all, so CancelConditionsWithFlag(Poison) in Purge Affliction
 // and Cleansing Wave matched nothing and the immunity would have refused
 // nothing real. A spec shaped like the shipped file must be refused.
 func TestPoisonImmunityRefusesAHealthTickVenom(t *testing.T) {
@@ -61,10 +61,10 @@ func TestPoisonImmunityRefusesAHealthTickVenom(t *testing.T) {
 
 const immunityTestDeadConditionId = 9405 // held (indexed by Validate) but no live spec
 
-// A save can carry a buff id whose spec is gone, and Validate indexes it
-// anyway. HasFlag dereferenced GetBuffSpec without a nil check, so once AddBuff
+// A save can carry a condition id whose spec is gone, and Validate indexes it
+// anyway. HasFlag dereferenced GetConditionSpec without a nil check, so once AddCondition
 // started asking HasFlag(PoisonImmunity) on every add, a character holding a
-// dead id ahead of the immunity buff would crash on the next venom crit.
+// dead id ahead of the immunity condition would crash on the next venom crit.
 func TestHasFlagSurvivesAHeldConditionWithNoSpec(t *testing.T) {
 	restore := SeedConditionsForTest(map[int]*ConditionSpec{
 		immunityTestStoneStomachId: {ConditionId: immunityTestStoneStomachId, Name: "Test Stone Stomach", TriggerCount: 5, RoundInterval: 1, Flags: []Flag{PoisonImmunity}},
@@ -73,7 +73,7 @@ func TestHasFlagSurvivesAHeldConditionWithNoSpec(t *testing.T) {
 	defer restore()
 
 	// The dead id is first in the list, so the flag scan reaches it before the
-	// immunity buff it is looking for.
+	// immunity condition it is looking for.
 	bs := Conditions{List: []*Condition{{ConditionId: immunityTestDeadConditionId, TriggersLeft: 3}}}
 	bs.Validate()
 	if _, ok := bs.conditionIds[immunityTestDeadConditionId]; !ok {

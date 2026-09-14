@@ -14,13 +14,13 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-// ApplyConditions applies a queued buff to its holder and narrates the start.
+// ApplyConditions applies a queued condition to its holder and narrates the start.
 //
-// Every nothing-to-do exit (wrong type, unknown buff, missing holder, an add
+// Every nothing-to-do exit (wrong type, unknown condition, missing holder, an add
 // the primitive refused) returns Continue, not Cancel. Cancel stops every
 // later listener on the same event, and a listener that merely has nothing to
-// do must not veto the event for a second listener such as a client buff bar.
-// This is the only listener on events.Buff today; the convention is what keeps
+// do must not veto the event for a second listener such as a client condition bar.
+// This is the only listener on events.Condition today; the convention is what keeps
 // that true in effect if another is ever added.
 func ApplyConditions(e events.Event) events.ListenerReturn {
 
@@ -30,7 +30,7 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
-	//mudlog.Debug(`Event`, `type`, evt.Type(), `UserId`, evt.UserId, `MobInstanceId`, evt.MobInstanceId, `BuffId`, evt.BuffId)
+	//mudlog.Debug(`Event`, `type`, evt.Type(), `UserId`, evt.UserId, `MobInstanceId`, evt.MobInstanceId, `ConditionId`, evt.ConditionId)
 
 	conditionInfo := conditions.GetConditionSpec(evt.ConditionId)
 	if conditionInfo == nil {
@@ -58,19 +58,19 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 		targetChar = conditionUser.Character
 	}
 
-	// A buff queued for a life that has since ended is stale: refuse it with no
-	// add and no notice. The death cascade bumps LifeEpoch beside its buff
+	// A condition queued for a life that has since ended is stale: refuse it with no
+	// add and no notice. The death cascade bumps LifeEpoch beside its condition
 	// strip, so this is the queued half of that strip.
 	//
 	// The test is the epoch, not IsAlive or DeathQueued, because of the order
 	// the queue flushes in. The killing swing queues its CharacterDied first
-	// and its on-hit buff second; RouteAttributedDeath then cascades a player
+	// and its on-hit condition second; RouteAttributedDeath then cascades a player
 	// Dead -> Respawning -> Alive and clears DeathQueued before this listener
 	// runs, so by then the respawned player looks alive and unqueued. Nor may
 	// it be DeathQueued alone: a ReviveOnDeath save never ends the life, and
-	// the blow's buff still belongs on the revived character. The !IsAlive
-	// half refuses a holder observed mid-death, which no legitimate buff
-	// targets. Buffs queued after the respawn carry the new epoch and land.
+	// the blow's condition still belongs on the revived character. The !IsAlive
+	// half refuses a holder observed mid-death, which no legitimate condition
+	// targets. Conditions queued after the respawn carry the new epoch and land.
 	if evt.LifeEpoch != targetChar.LifeEpoch || !targetChar.IsAlive() {
 		return events.Continue
 	}
@@ -80,23 +80,23 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
-	// Snapshot whether the buff was already active BEFORE we add/refresh.
+	// Snapshot whether the condition was already active BEFORE we add/refresh.
 	// Used below to suppress start text on a pure refresh — refreshing an
-	// already-active buff (e.g. ambusher's mob_idle → add_buff 9 tick)
+	// already-active condition (e.g. ambusher's mob_idle → add_condition 9 tick)
 	// shouldn't re-fire "{source} disappears into the shadows." every round.
 	wasAlreadyActive := targetChar.HasCondition(evt.ConditionId)
 
-	// Apply the buff. A DurationMult of 0 or 1 means the authored duration, and
-	// for 1.0 AddBuffScaled is equivalent to AddBuff(id, false): both set
-	// TriggersLeft to the spec's TriggerCount with PermaBuff false, and both
-	// refresh an already-held buff in place rather than appending a second copy.
+	// Apply the condition. A DurationMult of 0 or 1 means the authored duration, and
+	// for 1.0 AddConditionScaled is equivalent to AddCondition(id, false): both set
+	// TriggersLeft to the spec's TriggerCount with Permanent false, and both
+	// refresh an already-held condition in place rather than appending a second copy.
 	//
-	// The error is NOT discardable. It once reported only an unknown buff id,
-	// which buffInfo above already ruled out, but the primitives now also refuse
-	// a poison-flagged buff when the holder carries poison-immunity. Narrating a
-	// buff that never landed told an immune player venom was seeping into their
+	// The error is NOT discardable. It once reported only an unknown condition id,
+	// which conditionInfo above already ruled out, but the primitives now also refuse
+	// a poison-flagged condition when the holder carries poison-immunity. Narrating a
+	// condition that never landed told an immune player venom was seeping into their
 	// bloodstream, so a refusal returns here and nothing below it runs: no start
-	// notice, no start_remove_buffs cure, no TrackBuffStarted, no BuffsTriggered.
+	// notice, no start_remove_buffs cure, no TrackConditionStarted, no ConditionsTriggered.
 	// The same refusal applies on the magnitude path, for a former condition
 	// applied through this door instead of synchronously.
 	var addErr error
@@ -112,7 +112,7 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 	}
 
 	//
-	// Send the start notice (authored, or the generic line; a secret buff is
+	// Send the start notice (authored, or the generic line; a secret condition is
 	// silent) only on first application, not on refresh.
 	//
 	// A mob holder has no client, so only room text can reach anyone; without
@@ -151,7 +151,7 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 				SourceName:      charName,
 				SourcePlainName: charPlainName,
 			})
-			// The holder is the ACTEE: the buff happens to them. A mob holder
+			// The holder is the ACTEE: the condition happens to them. A mob holder
 			// has no client, so its line is rendered and dropped.
 			if roles.Actee != "" && holder != nil {
 				holder.SendText(messaging.CategoryConditionApply, roles.Actee)
@@ -168,7 +168,7 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 		}
 	}
 
-	// Remove buffs listed in start_remove_buffs (cure effects)
+	// Remove conditions listed in start_remove_buffs (cure effects)
 	if conditionSpec := conditions.GetConditionSpec(evt.ConditionId); conditionSpec != nil && len(conditionSpec.StartRemoveConditions) > 0 {
 		for _, removeId := range conditionSpec.StartRemoveConditions {
 			targetChar.RemoveCondition(removeId)
@@ -178,13 +178,13 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 	targetChar.TrackConditionStarted(evt.ConditionId)
 
 	//
-	// If the buff calls for an immediate triggering
+	// If the condition calls for an immediate triggering
 	//
 	if conditionInfo.TriggerNow {
 
 		// U5c: BACKSTOP only. A DoT tick that routed through ApplyHarm has
 		// already queued an ATTRIBUTED death, and shouldSweepReap skips those.
-		// What still lands here is a buff that dropped health by some other
+		// What still lands here is a condition that dropped health by some other
 		// route, which has no killer to name.
 		if evt.MobInstanceId > 0 && shouldSweepReap(targetChar) {
 			mudlog.Debug("U5c backstop", "reason", "unattributed buff-tick death",

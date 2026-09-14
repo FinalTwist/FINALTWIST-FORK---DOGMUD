@@ -162,7 +162,7 @@ type mobEnums struct {
 	SubmissionPolicies []string          `json:"submissionPolicies"`
 	WornSlots          []string          `json:"wornSlots"`
 	Groups             []string          `json:"groups"` // observed values across existing mobs, as suggestions
-	Conditions         []idName          `json:"buffs"`  // id pickers (epic followup: no more bare-numeric buff ids)
+	Conditions         []idName          `json:"buffs"`  // id pickers (epic followup: no more bare-numeric condition ids)
 }
 
 type mobDetail struct {

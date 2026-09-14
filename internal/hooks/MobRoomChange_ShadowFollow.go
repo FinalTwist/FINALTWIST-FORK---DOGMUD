@@ -2,9 +2,9 @@ package hooks
 
 // MobRoomChange_ShadowFollow.go — Chunk 2.8 smoke fix
 //
-// Closes the gap where `shadow <mob>` applied buff 87 and set
+// Closes the gap where `shadow <mob>` applied condition 87 and set
 // shadow-target-mob, but had no movement consumer. When a mob moves, any
-// player shadowing it (buff 87 + hidden + in old room) is auto-followed to
+// player shadowing it (condition 87 + hidden + in old room) is auto-followed to
 // the destination, mirroring the user-target path at usercommands/go.go:380-421.
 
 import (
@@ -20,7 +20,7 @@ import (
 
 // MobRoomChangeShadowFollow auto-moves any player who is shadowing the
 // moving mob, as long as they are still hidden and in the old room. On
-// entry into the new room, if the hidden buff is gone (room-entry detection
+// entry into the new room, if the hidden condition is gone (room-entry detection
 // already fired during Command("go ...")) the shadow is torn down inline —
 // mirroring endShadow in skill.skullduggery.shadow.go without importing
 // the usercommands package.
@@ -48,7 +48,7 @@ func MobRoomChangeShadowFollow(e events.Event) events.ListenerReturn {
 		if u == nil {
 			continue
 		}
-		// Must carry the shadowing buff.
+		// Must carry the shadowing condition.
 		if !u.Character.HasCondition(shadowingCondition) {
 			continue
 		}
@@ -75,7 +75,7 @@ func MobRoomChangeShadowFollow(e events.Event) events.ListenerReturn {
 		u.Command(exitName)
 
 		// After-move spotted check: if the room-entry detection stripped
-		// the hidden buff, end shadow now. Mirrors go.go:411-414.
+		// the hidden condition, end shadow now. Mirrors go.go:411-414.
 		if !u.Character.IsHidden() {
 			inlineShadowEnd(u, "You've been spotted -- your shadow ends.")
 		}
@@ -86,7 +86,7 @@ func MobRoomChangeShadowFollow(e events.Event) events.ListenerReturn {
 
 // inlineShadowEnd replicates endShadow from skill.skullduggery.shadow.go
 // without importing the usercommands package. Clears shadow misc state,
-// removes buff 87, starts the cooldown, and delivers the reason message.
+// removes condition 87, starts the cooldown, and delivers the reason message.
 func inlineShadowEnd(u *users.UserRecord, reason string) {
 	u.Character.SetMiscData("shadow-target-user", nil)
 	u.Character.SetMiscData("shadow-target-mob", nil)

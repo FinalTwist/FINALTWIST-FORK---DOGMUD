@@ -96,7 +96,7 @@ var u8HelpExceptions = map[string]string{
 	"help/blacksmithing": "recipe table: skill, ingredients and craft rounds are the reference",
 	"help/jewelcrafting": "recipe table: skill, ingredients and craft rounds are the reference",
 
-	// SPELL AND BUFF REFERENCE CARDS ("Time: 4 rounds", "Reserve: 1% at tier 0").
+	// SPELL AND CONDITION REFERENCE CARDS ("Time: 4 rounds", "Reserve: 1% at tier 0").
 	// The no-hard-numbers rule targets combat and spell MESSAGES, where a raw
 	// number breaks immersion mid-fight. A reference card a player deliberately
 	// looks up is the documented exception, like the status sheet.

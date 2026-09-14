@@ -11,9 +11,9 @@ import (
 
 // magnitudeBounds are generous sane ranges per effect type — tight enough to
 // catch a fat-finger, loose enough for playtest tuning. Values are LEVEL-1 base
-// magnitudes (the deepening curve scales them at ranks 2-4). Buff-id effect
+// magnitudes (the deepening curve scales them at ranks 2-4). Condition-id effect
 // types (aura_*, on_hit_buff, on_reflect_buff) are intentionally OMITTED — their
-// "value" is a buff id, not a magnitude.
+// "value" is a condition id, not a magnitude.
 var magnitudeBounds = map[string][2]float64{
 	"reflect_damage":              {1, 30},
 	"natural_armor":               {-25, 25},

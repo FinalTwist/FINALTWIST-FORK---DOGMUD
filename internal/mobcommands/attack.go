@@ -64,7 +64,7 @@ func Attack(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			mob.PlayerAttacked(attackPlayerId)
 
 			// Hidden mobs open from stealth: the first strike of the combat
-			// round resolves as a surprise. Don't clear the Hidden buff here
+			// round resolves as a surprise. Don't clear the Hidden condition here
 			// — leave it for the combat loop's CancelIfCombat pass so the
 			// opener resolves with the mob still hidden.
 			// EngageAggroType gates on hidden state AND the special-move
@@ -113,7 +113,7 @@ func Attack(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		if m != nil {
 
 			// See above: EngageAggroType decides, not IsHidden alone.
-			// Validate refreshes buff-derived state before the hidden check
+			// Validate refreshes condition-derived state before the hidden check
 			// inside EngageAggroType.
 			if mob.Character.IsHidden() {
 				mob.Character.Validate(true)

@@ -15,8 +15,8 @@ import (
 // were written as subjectless fragments ("unlocks the strongbox") and one used
 // {source} that nothing filled in.
 //
-// It is stricter than buffs and spells, which only WARN on an unknown token.
-// A new rule with no shipped violations can refuse at no cost; upgrading buffs
+// It is stricter than conditions and spells, which only WARN on an unknown token.
+// A new rule with no shipped violations can refuse at no cost; upgrading conditions
 // and spells would change what is allowed to boot, so that is filed.
 func RoomTextProblems(text string) []string {
 	var problems []string

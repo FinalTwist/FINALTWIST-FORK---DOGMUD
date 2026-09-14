@@ -3,7 +3,7 @@
 // activity, position, control, and presence. Two-state FSM (Sighted /
 // Blinded) gating broadcast visibility and active-inspection.
 //
-// SHIPS DORMANT in chunk 6. Transitions fire correctly via buff /
+// SHIPS DORMANT in chunk 6. Transitions fire correctly via condition /
 // condition observers, but no consumer reads the state yet. The future
 // centralized messaging framework chunk will consume this primitive
 // (broadcast cutover, infrared rendering, look-cmd gating, color
@@ -70,7 +70,7 @@ func (m *Machine) Self() state.ActorRef { return m.self }
 // TransitionTo moves the machine to the target state. Returns
 // ErrInvalidTransition if the transition isn't allowed by the table
 // (e.g., Blinded→Blinded). Errors are non-fatal and discardable at
-// most call sites — re-applying a buff while already Blinded is a
+// most call sites — re-applying a condition while already Blinded is a
 // no-op, not an error.
 func (m *Machine) TransitionTo(to State, r state.TransitionReason) error {
 	if m == nil || m.inner == nil {

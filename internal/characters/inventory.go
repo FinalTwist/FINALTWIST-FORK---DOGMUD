@@ -197,7 +197,7 @@ func (c *Character) StoreItem(i items.Item) bool {
 		beltSpec := c.Equipment.Belt.GetSpec()
 		if beltSpec.IsBandolier && beltSpec.BandolierCapacity > 0 && len(c.PotionItems) < beltSpec.BandolierCapacity {
 			// Ambient bandoliers (e.g. the Vitalis Bandolier) passively tick
-			// every slotted potion's effect each round. Same-type buffs dedupe,
+			// every slotted potion's effect each round. Same-type conditions dedupe,
 			// so a duplicate potion type is a wasted slot that only exists to
 			// stack near-immortal regen — cap ambient bandoliers to one of each
 			// potion type. Duplicates fall through to the backpack. Ordinary

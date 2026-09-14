@@ -52,7 +52,7 @@ func isTimeout(err error) bool {
 
 // TestWriteDeadlineBoundsBlockedWrite is the core proof for the deadline fix.
 //
-// net.Pipe() is a fully synchronous, zero-buffer connection: a write blocks
+// net.Pipe() is a fully synchronous, zero-conditioner connection: a write blocks
 // until the peer reads. Nothing ever reads here, so without a write deadline
 // this Write would block forever - which is exactly what a real client with a
 // full TCP receive window did to the game loop.
@@ -91,7 +91,7 @@ func TestWriteDeadlineBoundsBlockedWrite(t *testing.T) {
 
 // NOTE: a real-TCP variant of the test above was tried and removed. Windows
 // loopback absorbed a 32 MiB write into socket buffers in ~30ms even with
-// SetWriteBuffer/SetReadBuffer shrunk to 2 KiB, so the assertion proved
+// SetWriteConditioner/SetReadConditioner shrunk to 2 KiB, so the assertion proved
 // nothing there. net.Pipe is the stronger seam anyway: it has no buffer at
 // all, and the deadline call under test (cd.conn.SetWriteDeadline) is on the
 // net.Conn interface, so it is transport-agnostic.

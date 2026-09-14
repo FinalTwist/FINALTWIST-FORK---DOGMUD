@@ -13,10 +13,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Buffs 83 Broken Limb and 84 Stunned are applied by the submission outcome
+// Conditions 83 Broken Limb and 84 Stunned are applied by the submission outcome
 // inside internal/combat, which sends no player text at all, so their authored
 // start_user_text reached nobody: a player whose arm was just snapped read the
-// submission's outcome line and nothing about the break. Both buffs are now
+// submission's outcome line and nothing about the break. Both conditions are now
 // flagged silent-start and this hook owes the victim the start line, right
 // after the outcome. These lanes are that debt.
 //
@@ -29,7 +29,7 @@ const (
 	stunnedConditionFile    = "../../_datafiles/world/dogmud/buffs/84-stunned.yaml"
 )
 
-// loadAuthoredConditionSpec reads one shipped buff file into a spec.
+// loadAuthoredConditionSpec reads one shipped condition file into a spec.
 func loadAuthoredConditionSpec(t *testing.T, path string, wantId int) *conditions.ConditionSpec {
 	t.Helper()
 	raw, err := os.ReadFile(path)

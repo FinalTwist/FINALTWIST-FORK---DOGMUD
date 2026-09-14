@@ -429,13 +429,13 @@ func GetFilteredSummaryByAttackType(attackType string) AnalyticsSummary {
 	return computeSummary(filtered)
 }
 
-// GetBufferLen returns the number of events currently in the buffer.
+// GetConditionerLen returns the number of events currently in the buffer.
 // Must be called under util.LockMud().
 func GetBufferLen() int {
 	return len(eventBuffer)
 }
 
-// ResetBuffer clears the event buffer and returns the count of events cleared.
+// ResetConditioner clears the event buffer and returns the count of events cleared.
 // Must be called under util.LockMud().
 func ResetBuffer() int {
 	ct := len(eventBuffer)

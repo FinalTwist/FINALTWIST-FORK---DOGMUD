@@ -482,7 +482,7 @@ func TestActIntercept_SetsCtxIntercepted(t *testing.T) {
 	}
 }
 
-// ─── remove_buff ─────────────────────────────────────────────────────
+// ─── remove_condition ─────────────────────────────────────────────────────
 
 func TestActRemoveCondition_RemovesConditionFromUser(t *testing.T) {
 	fn := LookupAction("remove_buff")
@@ -490,8 +490,8 @@ func TestActRemoveCondition_RemovesConditionFromUser(t *testing.T) {
 		t.Fatal("remove_buff not registered")
 	}
 
-	// Seed a single buff spec for buff id 100. TriggerCount > 0 ensures
-	// the buff lives long enough for the act-then-assert cycle.
+	// Seed a single condition spec for condition id 100. TriggerCount > 0 ensures
+	// the condition lives long enough for the act-then-assert cycle.
 	cleanConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		100: {ConditionId: 100, Name: "TestBuff", TriggerCount: 5, RoundInterval: 1},
 	})
@@ -513,7 +513,7 @@ func TestActRemoveCondition_RemovesConditionFromUser(t *testing.T) {
 		t.Fatalf("expected Success, got %v", result)
 	}
 
-	// RemoveBuff sets TriggersLeft=0 (Expired). GetBuffs filters expired
+	// RemoveCondition sets TriggersLeft=0 (Expired). GetConditions filters expired
 	// out, so a zero-length result confirms the removal contract.
 	if got := user.Character.GetConditions(100); len(got) != 0 {
 		t.Errorf("expected 0 active buffs with id 100 after remove, got %d", len(got))

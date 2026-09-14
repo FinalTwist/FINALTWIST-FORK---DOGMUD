@@ -98,8 +98,8 @@ func TestStackingAmountFloorsToOneInSign(t *testing.T) {
 	}
 }
 
-// A plain AddBuff/AddBuffScaled is refused for a stacking spec (see
-// TestAddBuffRefusesAStackingSpec) and addStack refuses a zero magnitude (see
+// A plain AddCondition/AddConditionScaled is refused for a stacking spec (see
+// TestAddConditionRefusesAStackingSpec) and addStack refuses a zero magnitude (see
 // TestAddStackRefusesZeroMagnitude), so only a hand-built or legacy
 // (pre-slice-1b) record can hold no stacks. If one exists it must not reach
 // the tick path: a zero TickAmount there falls back to tick_percent.
@@ -126,8 +126,8 @@ func TestRemoveConditionClearsStacks(t *testing.T) {
 	}
 }
 
-// A cancel path (HasFlag with expire, which CancelBuffsWithFlag calls) expires
-// a record through Buff.expire(), which already clears Stacks (see
+// A cancel path (HasFlag with expire, which CancelConditionsWithFlag calls) expires
+// a record through Condition.expire(), which already clears Stacks (see
 // TestHasFlagExpireClearsStacks). This test covers the same shape from
 // addStack's side: a new stack landing on an expired, unpruned record must
 // not resurrect the old ones, whether or not something upstream already
@@ -239,9 +239,9 @@ func TestStackEquilibriumAtTheShippedCooldown(t *testing.T) {
 	}
 }
 
-// HasFlag's expire branch backs CancelBuffsWithFlag, including
-// CancelBuffsWithFlag(buffs.All) on death (Life_Cascades.go). It must clear
-// Stacks along with TriggersLeft: AddBuff, AddBuffScaled and RefreshBuff can
+// HasFlag's expire branch backs CancelConditionsWithFlag, including
+// CancelConditionsWithFlag(conditions.All) on death (Life_Cascades.go). It must clear
+// Stacks along with TriggersLeft: AddCondition, AddConditionScaled and RefreshCondition can
 // all revive an expired, unpruned record, and without this a dead bleed's
 // stale stacks would come back to life on the next add.
 func TestHasFlagExpireClearsStacks(t *testing.T) {
@@ -260,12 +260,13 @@ func TestHasFlagExpireClearsStacks(t *testing.T) {
 	}
 }
 
-// A stacking record can only be added through AddBuffMagnitude, because only
-// that door supplies a stack's rounds and amount. AddBuff and AddBuffScaled
-// are also public (admin buff command, UserRecord.AddBuff, Mob.AddBuff,
-// worn-item permabuffs), and Buff_ApplyBuffs.go routes a zero-magnitude,
-// zero-trigger event to AddBuff, so both must refuse a stacking spec instead
-// of creating a live record with no stacks that later prints a phantom end
+// A stacking record can only be added through AddConditionMagnitude, because
+// only that door supplies a stack's rounds and amount. AddCondition and
+// AddConditionScaled are also public (admin condition command,
+// UserRecord.AddCondition, Mob.AddCondition, worn-item permanent conditions),
+// and Condition_ApplyConditions.go routes a zero-magnitude, zero-trigger
+// event to AddCondition, so both must refuse a stacking spec instead of
+// creating a live record with no stacks that later prints a phantom end
 // line.
 func TestAddConditionRefusesAStackingSpec(t *testing.T) {
 	withSpecs(t, stackingSpec())

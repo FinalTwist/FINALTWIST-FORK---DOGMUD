@@ -9,7 +9,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-// seedSmartAmbient seeds an ambient bandolier + two distinct-buff potions.
+// seedSmartAmbient seeds an ambient bandolier + two distinct-condition potions.
 func seedSmartAmbient() func() {
 	restoreI := items.SeedItemsForTest(map[int]*items.ItemSpec{
 		999954: {ItemId: 999954, Name: "Vitalis Bandolier", Type: items.Belt,
@@ -25,7 +25,7 @@ func seedSmartAmbient() func() {
 }
 
 // TestAmbientSmartReset_KeepsExistingWhenAddingSecond is the core "smarter reset"
-// guarantee: attuning a newly-added potion must NOT drop the buff you already
+// guarantee: attuning a newly-added potion must NOT drop the condition you already
 // had. This is the fix for the prod complaint that crafting more potions made
 // the whole bandolier feel broken.
 func TestAmbientSmartReset_KeepsExistingWhenAddingSecond(t *testing.T) {
@@ -34,7 +34,7 @@ func TestAmbientSmartReset_KeepsExistingWhenAddingSecond(t *testing.T) {
 	u := users.NewTestUser(720, "smart", "SmartReset", 7720)
 	c := u.Character
 	c.Equipment.Belt = items.New(999954)
-	c.PotionItems = append(c.PotionItems, items.New(999955)) // buff 54
+	c.PotionItems = append(c.PotionItems, items.New(999955)) // condition 54
 
 	// Attune the first potion.
 	tickAmbientPotions(u, 100) // fp change -> attuning, nothing applied
@@ -47,8 +47,8 @@ func TestAmbientSmartReset_KeepsExistingWhenAddingSecond(t *testing.T) {
 		t.Fatal("buff 54 should be attuned and active")
 	}
 
-	// Add a SECOND, distinct potion. The already-attuned buff 54 must NOT drop.
-	c.PotionItems = append(c.PotionItems, items.New(999956)) // buff 55
+	// Add a SECOND, distinct potion. The already-attuned condition 54 must NOT drop.
+	c.PotionItems = append(c.PotionItems, items.New(999956)) // condition 55
 	tickAmbientPotions(u, 151)                               // fp change: 55 new, 54 kept
 	if !c.Conditions.HasCondition(54) {
 		t.Fatal("adding a second potion must NOT revoke the already-attuned buff 54")
@@ -67,7 +67,7 @@ func TestAmbientSmartReset_KeepsExistingWhenAddingSecond(t *testing.T) {
 }
 
 // TestAmbientSmartReset_RemoveRevokesOnlyThatCondition proves removing one potion
-// revokes only its buff, leaving the others active (no full re-attune).
+// revokes only its condition, leaving the others active (no full re-attune).
 func TestAmbientSmartReset_RemoveRevokesOnlyThatCondition(t *testing.T) {
 	defer seedSmartAmbient()()
 
@@ -85,10 +85,10 @@ func TestAmbientSmartReset_RemoveRevokesOnlyThatCondition(t *testing.T) {
 		t.Fatalf("both should attune (54=%v 55=%v)", c.Conditions.HasCondition(54), c.Conditions.HasCondition(55))
 	}
 
-	// Remove the buff-54 potion (keep only the buff-55 one).
+	// Remove the condition-54 potion (keep only the condition-55 one).
 	c.PotionItems = c.PotionItems[1:]
 	tickAmbientPotions(u, 151) // fp change: 54 gone
-	c.Conditions.Prune()       // RemoveBuff marks expired; the per-turn prune evicts it
+	c.Conditions.Prune()       // RemoveCondition marks expired; the per-turn prune evicts it
 	if c.Conditions.HasCondition(54) {
 		t.Fatal("the removed potion's buff 54 should be revoked")
 	}

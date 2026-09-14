@@ -12,7 +12,7 @@ const leaderYAML = "../../_datafiles/world/dogmud/behaviors/archetypes/leader.ya
 
 // TestLeader_PackmateHurt_RallyOrWarcryThenEngage verifies the leader's
 // packmate_hurt handler: queues rally or warcry (command_best_of fires the
-// first ready one — CommandIsReady skips if the buff is already active),
+// first ready one — CommandIsReady skips if the condition is already active),
 // then engages the attacker via the existing attack action (sets Aggro).
 func TestLeader_PackmateHurt_RallyOrWarcryThenEngage(t *testing.T) {
 	LoadArchetypeForTest(t, "leader", leaderYAML)

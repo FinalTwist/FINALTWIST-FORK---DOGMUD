@@ -26,7 +26,7 @@ import (
 // their initial full Char push yet (e.g. a web client whose websocket GMCP frame
 // raced the login burst, so isGMCPEnabled was still false at PlayerSpawn time).
 // Without this, the Status & Conditions header + conditions only recover when a
-// later CharacterChanged fires (e.g. a buff add/refresh). The next NewRound
+// later CharacterChanged fires (e.g. a condition add/refresh). The next NewRound
 // re-pushes "Char" once for these users and clears them, guaranteeing delivery
 // after the connection is GMCP-ready. Mirrors the pattern in gmcp.Automation.go.
 // Steady-state cost is zero once drained.
@@ -696,7 +696,7 @@ type GMCPCharModule_Payload struct {
 //
 // One entry per held record, keyed by its visible name (a repeated name takes
 // a `#n` suffix). This is the former Char.Affects shape plus Duration, the
-// qualitative word the retired Char.Conditions list carried; a permabuff
+// qualitative word the retired Char.Conditions list carried; a permanent condition
 // reports DurationMax/DurationLeft -1 and Duration "sustained".
 type GMCPCondition struct {
 	Name         string         `json:"name"`
@@ -724,13 +724,13 @@ func conditionDurationLabel(rounds int) string {
 }
 
 // buildConditionsPayload builds Char.Conditions for one character. One
-// payload, one source: buff records ARE the conditions, so this map is
+// payload, one source: condition records ARE the conditions, so this map is
 // everything the client used to get as Char.Affects plus the qualitative
-// duration word the old Char.Conditions list carried. BuffSpec.Listed decides
+// duration word the old Char.Conditions list carried. ConditionSpec.Listed decides
 // what appears, the same predicate the in-game `conditions` command uses, so
 // the web client and the text list show the same records. The map is keyed by
 // the plain spec name (a repeat takes a `#n` suffix); the entry's name is
-// buffs.DisplayName, which appends a stacking record's live count.
+// conditions.DisplayName, which appends a stacking record's live count.
 func buildConditionsPayload(ch *characters.Character) map[string]GMCPCondition {
 	c := configs.GetTimingConfig()
 	held := make(map[string]GMCPCondition)
@@ -765,7 +765,7 @@ func buildConditionsPayload(ch *characters.Character) map[string]GMCPCondition {
 			Description:  conditionSpec.Description,
 			DurationMax:  timeMax,
 			DurationLeft: timeLeft,
-			// A permabuff reports roundsLeft 0, which the label reads as
+			// A permanent condition reports roundsLeft 0, which the label reads as
 			// "sustained", the same word the old condition list used for a
 			// permanent entry.
 			Duration: conditionDurationLabel(roundsLeft),

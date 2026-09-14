@@ -24,11 +24,11 @@ func dogmudDataDirForConditionsTest(t *testing.T) string {
 
 // loadRealDogmudConditions points the engine's file-paths config at the real
 // DOGMud world data and loads it through the production loader
-// (buffs.LoadDataFiles, called here as LoadDataFiles since this file is
-// package buffs), then restores the package's buff map to whatever it held
+// (conditions.LoadDataFiles, called here as LoadDataFiles since this file is
+// package conditions), then restores the package's condition map to whatever it held
 // before the test. Mirrors setupRealStores in
 // internal/narration/snapshot_test.go, which is the only other place in the
-// repo that boots the real buff files through their loader; this package's
+// repo that boots the real condition files through their loader; this package's
 // own shipped_flags_test.go instead yaml.Unmarshals a single file directly,
 // which cannot exercise Validate()'s RoundInterval derivation or the
 // duplicate-id/filename checks LoadAllFlatFiles performs.
@@ -40,7 +40,7 @@ func loadRealDogmudConditions(t *testing.T) {
 
 	cfg := configs.GetConfig()
 	cfg.FilePaths.DataFiles = configs.ConfigString(dogmudDataDirForConditionsTest(t))
-	// Buff 0 (Meditating) derives its TriggerCount from LogoutRounds at
+	// Condition 0 (Meditating) derives its TriggerCount from LogoutRounds at
 	// Validate time and refuses a count below 1; the shipped config.yaml
 	// says 3, but that file carries skip-worktree and is not read here.
 	cfg.Network.LogoutRounds = 3
@@ -49,7 +49,7 @@ func loadRealDogmudConditions(t *testing.T) {
 	LoadDataFiles()
 }
 
-// TestShippedConditionRecordsMatchTestHelperShape loads the real dogmud buff
+// TestShippedConditionRecordsMatchTestHelperShape loads the real dogmud condition
 // files (79, 80, 117 to 123) through the production loader, then compares
 // each one's mechanical shape against what SeedConditionRecordsForTest
 // builds. That helper is the shape every other package's fixture trusts

@@ -356,12 +356,12 @@ func fireSubmissionResolutionMessage(
 	sendSubmissionTriple(attempter, recipient, tmpl, subs)
 }
 
-// narrateSubmissionEffects tells a player victim about the buffs the
+// narrateSubmissionEffects tells a player victim about the conditions the
 // submission outcome just applied, right after it applied them.
 //
-// Buffs 83 Broken Limb and 84 Stunned are applied synchronously on the
+// Conditions 83 Broken Limb and 84 Stunned are applied synchronously on the
 // character inside internal/combat, which sends no player text anywhere in the
-// package, so their authored start_user_text never travelled the buff event
+// package, so their authored start_user_text never travelled the condition event
 // that would have narrated it: a player whose arm was just snapped read the
 // submission's outcome line and nothing at all about the break. Both are
 // flagged silent-start, and this is the applier's side of that bargain.
@@ -374,9 +374,9 @@ func narrateSubmissionEffects(effects combat.SubmissionOutcomeEffects) {
 	sendSilentStartText(effects.BrokenLimbVictim, combat.BrokenLimbConditionId)
 }
 
-// sendSilentStartText sends a silent-start buff's authored start line to c,
+// sendSilentStartText sends a silent-start condition's authored start line to c,
 // when c is a player. Reads it through AuthoredStartLine, not
-// StartUserNotice(), which is empty by design for a silent-start buff.
+// StartUserNotice(), which is empty by design for a silent-start condition.
 func sendSilentStartText(c *characters.Character, conditionId int) {
 	if c == nil {
 		return

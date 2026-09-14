@@ -13,7 +13,7 @@ import (
 // wireLifeCrossMachineCascades registers cascade handlers on
 // each character's Life machine. On Alive→Dead, force other
 // state machines to terminal states and clear scattered state.
-// On Dead→Respawning, reset resources + apply grace buff.
+// On Dead→Respawning, reset resources + apply grace condition.
 //
 // Per-actor concrete effects (loot, teleport, decay, KD
 // tracking) live in their own observer files
@@ -58,24 +58,24 @@ func wireLifeCrossMachineCascades(c *characters.Character) {
 				//    lived here is removed in chunk-4b R4 now that all
 				//    production readers go through the FSM predicates.
 
-				// 5. Buffs → cancel all, permanent ones included (All skips
-				//    only already-expired records, never PermaBuff).
+				// 5. Conditions → cancel all, permanent ones included (All skips
+				//    only already-expired records, never Permanent).
 				c.CancelConditionsWithFlag(conditions.All)
 
-				// 5a. End this life's epoch. THIS MUST STAY BESIDE THE BUFF
-				// STRIP ABOVE. The strip clears every buff the character holds,
-				// but a buff still QUEUED on events.Buff is not held yet: the
-				// killing swing's on-hit buff is queued after its CharacterDied,
+				// 5a. End this life's epoch. THIS MUST STAY BESIDE THE CONDITION
+				// STRIP ABOVE. The strip clears every condition the character holds,
+				// but a condition still QUEUED on events.Condition is not held yet: the
+				// killing swing's on-hit condition is queued after its CharacterDied,
 				// the queue is FIFO, and Die cascades a player back to Alive
-				// with DeathQueued cleared before that buff flushes. Neither
-				// IsAlive nor DeathQueued can tell it apart from a live buff by
-				// then, so ApplyBuffs compares the epoch the event was stamped
+				// with DeathQueued cleared before that condition flushes. Neither
+				// IsAlive nor DeathQueued can tell it apart from a live condition by
+				// then, so ApplyConditions compares the epoch the event was stamped
 				// with instead. A Rending Bleed from the killing blow bled a
 				// respawned player to a second death in the Mending Hut
 				// (playtest 7d0dad99c4709fc0).
 				c.LifeEpoch++
 
-				// 5b. Toxicity → clear. THIS MUST STAY BESIDE THE BUFF STRIP
+				// 5b. Toxicity → clear. THIS MUST STAY BESIDE THE CONDITION STRIP
 				// ABOVE, because that strip is what justifies it: toxicity is
 				// the price of a potion's effect, and the line above has just
 				// removed every effect the player paid for. Leaving toxicity
@@ -89,7 +89,7 @@ func wireLifeCrossMachineCascades(c *characters.Character) {
 				c.Toxicity = 0
 
 			case from == life.Dead && to == life.Respawning:
-				// Player respawn cascade: resource reset + grace buff.
+				// Player respawn cascade: resource reset + grace condition.
 				// (Mobs don't reach Respawning; their instances
 				// get cleaned up by the despawn observer.)
 
@@ -111,7 +111,7 @@ func wireLifeCrossMachineCascades(c *characters.Character) {
 				// Respawning fires, every Dead observer has returned.
 				//
 				// Before the pool resets below, because Validate reconciles
-				// stats and clamps pools. BuffsTriggered is not narration: it
+				// stats and clamps pools. ConditionsTriggered is not narration: it
 				// is what refreshes the client's conditions panel, as the
 				// prune pass does.
 				if pruned := c.Conditions.Prune(); len(pruned) > 0 {

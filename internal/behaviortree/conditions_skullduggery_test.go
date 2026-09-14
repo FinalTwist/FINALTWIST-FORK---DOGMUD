@@ -9,8 +9,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-// hiddenConditionSpec is the minimal BuffSpec required to make AddBuff(9) succeed.
-// TriggerCount > 0 keeps the buff alive through the assertion.
+// hiddenConditionSpec is the minimal ConditionSpec required to make AddCondition(9) succeed.
+// TriggerCount > 0 keeps the condition alive through the assertion.
 var hiddenConditionSpec = map[int]*conditions.ConditionSpec{
 	9: {
 		ConditionId:   9,

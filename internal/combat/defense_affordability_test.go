@@ -14,7 +14,7 @@ import (
 // ValueAdj is set directly rather than via Base+Recalculate because stat
 // compression was removed on 2026-08-02: ValueAdj == Value always, and the
 // combat scoring path reads ValueAdj. This matches avoidance_test.go's idiom.
-// characters.New() initialises Position, Buffs, Cooldowns and Stats and calls
+// characters.New() initialises Position, Conditions, Cooldowns and Stats and calls
 // Validate(), so the fixture survives the positional checks in the loop.
 func defenceFixture(defenderStamina int) (*characters.Character, *characters.Character) {
 	attacker := characters.New()

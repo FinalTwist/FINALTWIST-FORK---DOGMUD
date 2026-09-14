@@ -19,8 +19,8 @@ const (
 //   - tracking-mob misc data (string match on CharacterName)
 //   - tracking-display-count misc data (cleared alongside tracking-mob)
 //   - shadow-target-mob misc data (int match on InstanceId)
-//   - buff 86 (Active Tracking) — only if tracking-mob pointed at this mob
-//   - buff 87 (Shadowing) — only if shadow-target-mob pointed at this mob
+//   - condition 86 (Active Tracking) — only if tracking-mob pointed at this mob
+//   - condition 87 (Shadowing) — only if shadow-target-mob pointed at this mob
 func MobDeathTrackingCleanup(e events.Event) events.ListenerReturn {
 	evt, ok := e.(events.MobDeath)
 	if !ok {

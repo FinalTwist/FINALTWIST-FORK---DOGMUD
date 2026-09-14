@@ -10,7 +10,7 @@ import (
 )
 
 // TestDeathClearsToxicity pins the rule that toxicity is the PRICE OF AN EFFECT,
-// so with no effect there is no price. Death already strips every buff, which
+// so with no effect there is no price. Death already strips every condition, which
 // takes away the potion effects the toxicity was paid for; leaving the toxicity
 // behind charges the player a second time for a benefit they no longer hold.
 // They have also already lost the potions, the materials and the brewing time.

@@ -89,7 +89,7 @@ func Warcry(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 				}
 				_ = memberUser.Character.AddConditionMagnitude(conditions.ConditionIdRally, rd, 1.0+rb, "rally")
 				// M1 audit defect: this fold loop is a copy of the primary
-				// party loop above that kept the buff apply and dropped the
+				// party loop above that kept the condition apply and dropped the
 				// line telling the member. Wording matches rally.go's own
 				// member line, because what is being applied here IS a rally.
 				memberUser.SendText(messaging.CategorySystem,

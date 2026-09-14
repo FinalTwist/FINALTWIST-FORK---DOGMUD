@@ -14,7 +14,7 @@ import (
 
 // The Recovering record (118, attacks_cap 1) must still be live when DoCombat
 // runs, which is after UserRoundTick returns (hook order in hooks.go). It used
-// to be added by the stand attempt and expired by the same hook's buff tick,
+// to be added by the stand attempt and expired by the same hook's condition tick,
 // so a player never felt it while mobs always did (owner ruling 2026-09-14:
 // make it bite). This drives the real round tick, not a direct add: the
 // direct-add test in internal/combat passed the whole time the player path was
@@ -49,7 +49,7 @@ func TestUserRoundTick_RecoveringIsLiveWhenCombatRuns(t *testing.T) {
 }
 
 // A dying player must not stand up mid-death. A lethal bleed/poison tick in
-// the buff-trigger block above queues the death (ApplyHarm sets DeathQueued,
+// the condition-trigger block above queues the death (ApplyHarm sets DeathQueued,
 // Health < 1) before the recovery block now runs, so without a guard the
 // moved block would send "You scramble to your feet!" and award progression
 // to a character whose death is already in flight. MobRoundTick already skips

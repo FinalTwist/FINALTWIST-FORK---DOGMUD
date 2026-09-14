@@ -518,7 +518,7 @@ func seedTestRoomWithExistingMobs(t *testing.T, roomId int, zone string, list []
 
 	for _, mob := range list {
 		mob.Character.RoomId = roomId
-		// Buffs is a struct value; only init if it has no entries yet.
+		// Conditions is a struct value; only init if it has no entries yet.
 		if len(mob.Character.Conditions.List) == 0 {
 			mob.Character.Conditions = conditions.New()
 		}

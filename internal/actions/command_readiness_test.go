@@ -26,7 +26,7 @@ func newTestMob(t *testing.T, cfg func(*mobs.Mob)) *mobs.Mob {
 	m.Character.Conviction = 999
 	m.Character.ConvictionMax.Value = 999
 	setCombatPositionParallel(&m.Character, position.Standing)
-	m.Character.Conditions = conditions.New()            // Properly initialize buffs maps
+	m.Character.Conditions = conditions.New()            // Properly initialize conditions maps
 	m.Character.SetAggro(1, 0, characters.DefaultAttack) // user 1 as generic target
 	if cfg != nil {
 		cfg(m)

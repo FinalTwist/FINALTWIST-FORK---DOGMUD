@@ -13,20 +13,20 @@ func (b *ConditionSpec) hasFlag(f Flag) bool {
 	return slices.Contains(b.Flags, f)
 }
 
-// StartUserNotice is the line the holder reads when this buff lands: the
+// StartUserNotice is the line the holder reads when this condition lands: the
 // authored start_user_text, or "<Name> takes effect." when none is authored.
-// A secret buff says nothing. A silent-start buff also says nothing at start
+// A secret condition says nothing. A silent-start condition also says nothing at start
 // because whatever applies it narrates the moment itself: warcry and rally go
-// through Character.AddBuff, which never queues the buff event, so no line
+// through Character.AddCondition, which never queues the condition event, so no line
 // could reach the holder anyway; the bloom detox drink DOES reach
-// Buff_ApplyBuffs on the unscaled drink path, and the flag is what keeps the
+// Condition_ApplyConditions on the unscaled drink path, and the flag is what keeps the
 // purge's own narration from being doubled. Authored start_user_text is not
-// consulted for a silent-start buff. A buff with no name keeps its authored line but
+// consulted for a silent-start condition. A condition with no name keeps its authored line but
 // gets no generic one, rather than print " takes effect."; the root guard
-// fails the build on a nameless non-secret buff.
+// fails the build on a nameless non-secret condition.
 //
-// This is the one door for the player-side start line. Buff_ApplyBuffs reads
-// it instead of StartUserText, so a buff added without text can no longer
+// This is the one door for the player-side start line. Condition_ApplyConditions reads
+// it instead of StartUserText, so a condition added without text can no longer
 // land in silence.
 func (b *ConditionSpec) StartUserNotice() string {
 	if b.Secret {
@@ -47,10 +47,10 @@ func (b *ConditionSpec) StartUserNotice() string {
 	return fmt.Sprintf("%s takes effect.", b.Name)
 }
 
-// EndUserNotice is the line the holder reads when this buff ends: the
+// EndUserNotice is the line the holder reads when this condition ends: the
 // authored end_user_text, or "<Name> has expired." when none is authored.
-// A secret buff says nothing; a nameless one keeps its authored line only.
-// A hidden buff (Hidden, Empathic Shroud) also says nothing at end, even
+// A secret condition says nothing; a nameless one keeps its authored line only.
+// A hidden condition (Hidden, Empathic Shroud) also says nothing at end, even
 // over authored text: a hider must not learn when their cover lapsed, or
 // the notice itself becomes the leak. Room text still goes out through the
 // prune pass, since observers' view of the reappearance is not the secret.
@@ -74,7 +74,7 @@ func (b *ConditionSpec) EndUserNotice() string {
 	return fmt.Sprintf("%s has expired.", b.Name)
 }
 
-// SilentNoticeConditions lists every loaded non-secret buff that relies on the
+// SilentNoticeConditions lists every loaded non-secret condition that relies on the
 // generic line for its start or end notice, as "<id> <name> (start, end)".
 // Sorted by id. The root guard keeps this empty for the shipped world; the
 // boot warning reports it for any other world or a hot edit.
@@ -104,8 +104,8 @@ func SilentNoticeConditions() []string {
 	return out
 }
 
-// WarnSilentNotices logs one warning per buff relying on the generic notice.
-// Wired at boot after the buffs load. A warning, not a panic: the generic
+// WarnSilentNotices logs one warning per condition relying on the generic notice.
+// Wired at boot after the conditions load. A warning, not a panic: the generic
 // line exists so play continues; the root guard is what blocks a merge.
 func WarnSilentNotices() {
 	for _, entry := range SilentNoticeConditions() {

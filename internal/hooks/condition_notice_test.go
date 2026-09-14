@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Buff ids clear of the fixture and of the narration buffs (7001-7007).
+// Condition ids clear of the fixture and of the narration conditions (7001-7007).
 const (
 	quietConditionId  = 7101 // no authored text at all
 	hushedConditionId = 7102 // secret, with authored text that must never show
@@ -73,9 +73,9 @@ func TestConditionNotice_SecretConditionIsSilentAtBothEnds(t *testing.T) {
 }
 
 // TestConditionNotice_ScaledEventStillNarratesTheStart pins the delivery path for a
-// buff whose duration is scaled. Potion potency and crafting skill scale a
-// buff's duration, and the drink path used to do that by calling
-// Character.AddBuffScaled directly, which queues nothing: Purging Weakness
+// condition whose duration is scaled. Potion potency and crafting skill scale a
+// condition's duration, and the drink path used to do that by calling
+// Character.AddConditionScaled directly, which queues nothing: Purging Weakness
 // landed in play with no line at all. The multiplier now rides on the event,
 // so a scaled application takes the same one door as an unscaled one and the
 // holder reads the start notice.
@@ -106,12 +106,12 @@ func TestConditionNotice_ScaledEventStillNarratesTheStart(t *testing.T) {
 }
 
 // TestConditionNotice_MagnitudeEventAppliesSilently pins the event-path door for a
-// former combat condition: Character.AddBuffMagnitude is what every condition
+// former combat condition: Character.AddConditionMagnitude is what every condition
 // site calls synchronously, but the event carries Triggers/Magnitude too, for
 // a future caller (a spell or item) that wants the start notice through the
 // queue instead. Minor Shield is silent-start, so no start line is expected;
 // this only pins that the exact trigger count and the magnitude-derived
-// effect both survive the trip through ApplyBuffs.
+// effect both survive the trip through ApplyConditions.
 func TestConditionNotice_MagnitudeEventAppliesSilently(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
@@ -125,16 +125,16 @@ func TestConditionNotice_MagnitudeEventAppliesSilently(t *testing.T) {
 	assert.Equal(t, float64(9), holder.Character.Conditions.Effect(conditions.EffectMitigationFlat))
 }
 
-// Buff ids for the immunity pair, clear of the notice fixtures above.
+// Condition ids for the immunity pair, clear of the notice fixtures above.
 const (
 	immunityNoticeConditionId = 7104 // poison-immunity, the Stone Stomach shape
 	venomNoticeConditionId    = 7105 // poison, authored start text for both audiences
 )
 
 // A refused add must not narrate. An immune player taking a serpent or
-// arachnid crit (species critbuffids carry buff 39) read "You feel venom
+// arachnid crit (species critconditionids carry condition 39) read "You feel venom
 // seeping into your bloodstream!" and the room read that it took hold, for a
-// buff that never landed: the add's bool was discarded and the notice was
+// condition that never landed: the add's bool was discarded and the notice was
 // gated on wasAlreadyActive alone.
 func TestConditionNotice_ARefusedPoisonConditionNarratesNothing(t *testing.T) {
 	cleanup := seedAllRegistries()
@@ -165,9 +165,9 @@ func TestConditionNotice_ARefusedPoisonConditionNarratesNothing(t *testing.T) {
 }
 
 // The other half of the same rule, for the poison tick record rather than an
-// ordinary buff: a mob's dot cast at an immune player added nothing and still
+// ordinary condition: a mob's dot cast at an immune player added nothing and still
 // narrated "afflicts you!" to the victim and the affliction to the room,
-// because AddBuffMagnitude returns an error for the call site to test.
+// because AddConditionMagnitude returns an error for the call site to test.
 func TestConditionNotice_ARefusedPoisonedRecordNarratesNothing(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()

@@ -7,8 +7,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/stats"
 )
 
-// seedSleepingCondition registers a minimal Sleeping buff spec in the global
-// buffs registry for the duration of the test. Returns a cleanup func.
+// seedSleepingCondition registers a minimal Sleeping condition spec in the global
+// conditions registry for the duration of the test. Returns a cleanup func.
 func seedSleepingCondition() func() {
 	return conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		15: {
@@ -21,8 +21,8 @@ func seedSleepingCondition() func() {
 }
 
 // applySleepingCondition directly injects the Sleeping flag into a character's
-// Buffs list without going through the full add-buff pipeline (which
-// requires data-file-loaded buff specs). We build a minimal Buff and call
+// Conditions list without going through the full add-condition pipeline (which
+// requires data-file-loaded condition specs). We build a minimal Condition and call
 // Validate() so the flag index is rebuilt.
 func applySleepingCondition(c *Character) {
 	c.Conditions.List = append(c.Conditions.List, &conditions.Condition{
@@ -34,7 +34,7 @@ func applySleepingCondition(c *Character) {
 
 // TestHealthPerRound_SleepMultiplier verifies that HealthPerRound returns a
 // value multiplied by SleepRegenMultiplier (default 5.0) when the character
-// has the Sleeping buff flag.
+// has the Sleeping condition flag.
 func TestHealthPerRound_SleepMultiplier(t *testing.T) {
 	cleanup := seedSleepingCondition()
 	defer cleanup()
@@ -197,7 +197,7 @@ func TestHealthPerRound_NoSleepNoBoost(t *testing.T) {
 		HealthMax:  stats.StatInfo{Value: 1000},
 		Conditions: conditions.New(),
 	}
-	// Only c2 gets the sleeping buff.
+	// Only c2 gets the sleeping condition.
 	applySleepingCondition(c2)
 
 	plain := c1.HealthPerRound()

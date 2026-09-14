@@ -33,7 +33,7 @@ func (h *helpCallerActor) GetName() string                     { return h.name }
 // ─── Bleeding record tick ──────────────────────────────────────────────────
 
 // The Bleeding record (122) ticks every round and STACKS (slice 1b, owner
-// ruling 2026-09-14): each AddBuffMagnitude is its own stack with its own
+// ruling 2026-09-14): each AddConditionMagnitude is its own stack with its own
 // rounds, and one round tick lands the sum of the live stacks as ONE harm with
 // ONE flavour line.
 func TestRoundTick_BleedDamagesPlayer(t *testing.T) {
@@ -82,7 +82,7 @@ func TestRoundTick_BleedDamagesMob(t *testing.T) {
 	_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdBleeding, 1, -50, "test")
 	mob.Character.Health = 2
 
-	// tickMobBuffs runs in MobRoundTick's idle lane, before the active-zone
+	// tickMobConditions runs in MobRoundTick's idle lane, before the active-zone
 	// check, so it fires for every mob regardless of zone activity.
 	MobRoundTick(events.NewRound{RoundNumber: 1})
 
@@ -117,11 +117,11 @@ func TestRoundTick_BleedMinDamageOne(t *testing.T) {
 }
 
 // A one-round stack's only tick is also its last. The player tick used to gate
-// its whole body on !buff.Expired(), so that tick applied nothing and said
+// its whole body on !condition.Expired(), so that tick applied nothing and said
 // nothing. This pins the expiring tick: the harm lands AND the flavour line
 // goes out, exactly once.
 //
-// Null probe: restoring `!buff.Expired() &&` to the text gate in
+// Null probe: restoring `!condition.Expired() &&` to the text gate in
 // NewRound_UserRoundTick.go turns the line assertion red.
 func TestRoundTick_BleedLineLandsOnExpiringTick(t *testing.T) {
 	cleanup := seedAllRegistries()

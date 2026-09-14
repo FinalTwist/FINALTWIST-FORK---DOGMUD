@@ -8,19 +8,19 @@ import (
 )
 
 // HasAnyBlindSource returns true if any active blind source is currently
-// affecting this character. Used by Perception expire-paths in AddBuff and
-// RemoveBuff to decide whether to fire the Blinded→Sighted transition when
+// affecting this character. Used by Perception expire-paths in AddCondition and
+// RemoveCondition to decide whether to fire the Blinded→Sighted transition when
 // one of multiple overlapping sources clears.
 //
 // Sources checked:
-//   - Buff 3 (Blinded) — _datafiles/world/dogmud/buffs/3-blinded.yaml
-//   - Buff 77 (Flashbang Blindness) — _datafiles/world/dogmud/buffs/77-flashbang_blindness.yaml
+//   - Condition 3 (Blinded) — _datafiles/world/dogmud/buffs/3-blinded.yaml
+//   - Condition 77 (Flashbang Blindness) — _datafiles/world/dogmud/buffs/77-flashbang_blindness.yaml
 //
-// Note: uses TriggersLeft > 0 rather than HasBuff to correctly detect the
-// "just removed" state. RemoveBuff marks a buff expired (TriggersLeft=0) but
+// Note: uses TriggersLeft > 0 rather than HasCondition to correctly detect the
+// "just removed" state. RemoveCondition marks a condition expired (TriggersLeft=0) but
 // defers the actual map-entry prune to the next game-tick Advance call.
-// HasBuff checks map membership only and returns true for expired buffs;
-// TriggersLeft > 0 returns false immediately after RemoveBuff fires.
+// HasCondition checks map membership only and returns true for expired conditions;
+// TriggersLeft > 0 returns false immediately after RemoveCondition fires.
 func (c *Character) HasAnyBlindSource() bool {
 	if c == nil {
 		return false

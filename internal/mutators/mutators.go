@@ -62,9 +62,9 @@ type MutatorSpec struct {
 	AlertModifier       *TextModifier `yaml:"alertmodifier,omitempty"` // These can only append.
 	// End text based changes
 	DecayIntoId        string                   `yaml:"decayintoid,omitempty"`     // Id of another Mutator that replaces this one when it decays. This can be a circular behavior.
-	PlayerConditionIds []int                    `yaml:"playerbuffids,omitempty"`   // buffId's that apply conditionally TO PLAYERS AND PLAYER FOLLOWERS
-	MobConditionIds    []int                    `yaml:"mobbuffids,omitempty"`      // buffId's that apply conditionally TO MOBS
-	NativeConditionIds []int                    `yaml:"nativebuffids,omitempty"`   // buffId's that apply conditionally TO MOBS THAT SPAWNED IN THIS ROOM
+	PlayerConditionIds []int                    `yaml:"playerbuffids,omitempty"`   // conditionId's that apply conditionally TO PLAYERS AND PLAYER FOLLOWERS
+	MobConditionIds    []int                    `yaml:"mobbuffids,omitempty"`      // conditionId's that apply conditionally TO MOBS
+	NativeConditionIds []int                    `yaml:"nativebuffids,omitempty"`   // conditionId's that apply conditionally TO MOBS THAT SPAWNED IN THIS ROOM
 	DecayRate          string                   `yaml:"decayrate,omitempty"`       // how long until it is gone
 	RespawnRate        string                   `yaml:"respawnrate,omitempty"`     // daily, weekly, 1 day, 3 day, monthly, etc.
 	LightMod           int                      `yaml:"lightmod,omitempty"`        //  -2 to 2 (change). If result is 0 = none. 1 = can see this room. 2 = can see this room and all exits

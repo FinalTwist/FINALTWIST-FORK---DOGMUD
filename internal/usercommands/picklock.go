@@ -122,7 +122,7 @@ func Picklock(rest string, user *users.UserRecord, room *rooms.Room, flags event
 
 	sequence := util.GetLockSequence(lockId, lockStrength, string(configs.GetServerConfig().Seed), lockRotation)
 
-	// Calculate any presolve from buffs, gear, pet perks, etc.
+	// Calculate any presolve from conditions, gear, pet perks, etc.
 	if len(keyring_sequence) == 0 {
 		if presolve := user.Character.StatMod(string(statmods.Picklock)); presolve > 0 {
 			// All locks bottom out at 3 pins

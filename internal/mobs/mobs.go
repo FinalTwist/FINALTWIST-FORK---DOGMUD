@@ -53,7 +53,7 @@ type ItemTrade struct {
 	AcceptedItemIds   []int         `yaml:"accepteditemids,omitempty,flow"` // Must provide every item id in this list.
 	AcceptedGold      int           `yaml:"acceptedgold,omitempty,flow"`    // Must provide at least this much gold.
 	PrizeItemIds      []int         `yaml:"prizeitemids,omitempty,flow"`    // Will give these items in exchange.
-	PrizeConditionIds []int         `yaml:"prizebuffids,omitempty,flow"`    // Will give these buffs in exchange.
+	PrizeConditionIds []int         `yaml:"prizebuffids,omitempty,flow"`    // Will give these conditions in exchange.
 	PrizeRoomId       int           `yaml:"prizeroomid,omitempty,flow"`     // Will move player to this room in exchange.
 	PrizeQuestIds     []string      `yaml:"prizequestids,omitempty,flow"`   // What quest id's will be awarded?
 	PrizeGold         int           `yaml:"prizegold,omitempty,flow"`       // How much gold are they given?
@@ -120,7 +120,7 @@ type Mob struct {
 	WanderCount        int             `yaml:"-"`                             // How many times this mob has wandered
 	ScriptTag          string          `yaml:"scripttag"`                     // Script for this mob: mobs/frostfang/scripts/{mobId}-{mobname}-{ScriptTag}.js
 	QuestFlags         []string        `yaml:"questflags,omitempty,flow"`     // What quest flags are set on this mob?
-	ConditionIds       []int           `yaml:"buffids,omitempty"`             // Buff Id's this mob always has upon spawn
+	ConditionIds       []int           `yaml:"buffids,omitempty"`             // Condition Id's this mob always has upon spawn
 	LLMProfile         *llm.LLMProfile `yaml:"llmprofile,omitempty"`          // Optional LLM-driven dialogue profile
 	Archetype          string          `yaml:"archetype,omitempty"`           // "fighting", "casting", or "" (default even distribution)
 	DefaultDisposition int             `yaml:"default_disposition,omitempty"` // Per-NPC starting disposition score on the [-100, +100] scale; 0 means neutral. Used by internal/opinions to seed first-time interactions and as the asymptote for decay.

@@ -72,7 +72,7 @@ func wireCombatPhaseVetoes(c *characters.Character) {
 		// you went AFK in a dangerous room, you deserve it." Dormant mobs
 		// will auto-wake on attack via the T7 wake-on-attack hook.
 		//
-		// Respawn grace remains orthogonal: the NoAggroTarget buff
+		// Respawn grace remains orthogonal: the NoAggroTarget condition
 		// (post-respawn grace window) ALSO blocks aggro on players —
 		// this is independent of Presence and predates the machine.
 		if t.IsPlayer() {

@@ -10,16 +10,16 @@ import (
 
 // wireAwarenessFromCombatPhase registers cascade handlers on
 // each character that bridge Combat Phase transitions to
-// Awareness state changes, and mirror Awareness state to buff #9.
+// Awareness state changes, and mirror Awareness state to condition #9.
 //
 // Two cascade directions:
 //
 //  1. Combat Phase → Awareness:
 //     - Idle → Engaging: Hidden → Revealing
 //
-//  2. Awareness → Buff #9:
-//     - Entering Hidden: AddBuff(9, false)
-//     - Leaving Hidden (to Revealing or Visible): CancelBuffsWithFlag(Hidden)
+//  2. Awareness → Condition #9:
+//     - Entering Hidden: AddCondition(9, false)
+//     - Leaving Hidden (to Revealing or Visible): CancelConditionsWithFlag(Hidden)
 //
 // Stealth breaks the instant the ambusher engages — there is no
 // surprise round to protect any more. The opening strike keys off
@@ -40,24 +40,24 @@ func wireAwarenessFromCombatPhase(c *characters.Character) {
 			}
 		})
 
-	// 2. Awareness state → buff #9 mirror.
+	// 2. Awareness state → condition #9 mirror.
 	c.Awareness.Inner().AfterTransition("awareness_buff_mirror",
 		func(from, to awareness.State, r state.TransitionReason) {
 			switch {
 			case to == awareness.Hidden:
-				// Apply buff #9 as permanent — the awareness state
-				// machine owns lifecycle. Buff #9 has no triggerrate
+				// Apply condition #9 as permanent — the awareness state
+				// machine owns lifecycle. Condition #9 has no triggerrate
 				// (dropped in d282c4ab), so TriggerCount=0 would
-				// otherwise mark TriggersLeft=0 and the buff would
+				// otherwise mark TriggersLeft=0 and the condition would
 				// prune on the next NewTurn (firing "You no longer
 				// feel sneaky." while the awareness state still
 				// reports Hidden — split source of truth).
 				// The Revealing/Visible transitions cancel it via
-				// CancelBuffsWithFlag(Hidden) below.
+				// CancelConditionsWithFlag(Hidden) below.
 				_ = c.AddCondition(9, true)
 			case from == awareness.Hidden &&
 				(to == awareness.Revealing || to == awareness.Visible):
-				// Remove buff #9 via cancel-on-flag mechanism.
+				// Remove condition #9 via cancel-on-flag mechanism.
 				c.CancelConditionsWithFlag(conditions.Hidden)
 			}
 		})

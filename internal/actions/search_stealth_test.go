@@ -20,7 +20,7 @@ func hiddenMobRoom(t *testing.T, roomId, instId, sneakRank int) *rooms.Room {
 	m.Character.Stats.Dexterity.Base = 100
 	m.Character.Stats.Dexterity.Recalculate()
 	m.Character.Conditions = conditions.New()
-	// IsHidden() reads the Awareness FSM, not a buff. Concealing then resolving
+	// IsHidden() reads the Awareness FSM, not a condition. Concealing then resolving
 	// is the only route into awareness.Hidden.
 	m.Character.Awareness = awareness.NewMachine()
 	reason := state.TransitionReason{Trigger: "search_stealth_test"}

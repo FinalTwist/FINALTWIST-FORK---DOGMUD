@@ -20,14 +20,14 @@ import (
 
 /*
 * Role Permissions:
-* buff 				(All)
+* condition 				(All)
  */
 func Condition(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
 	// args should look like one of the following:
-	// target buffId - put buff on target if in the room
-	// buffId - put buff on self
-	// search searchTerm - search for buff by name, display results
+	// target conditionId - put condition on target if in the room
+	// conditionId - put condition on self
+	// search searchTerm - search for condition by name, display results
 	args := util.SplitButRespectQuotes(rest)
 
 	if len(args) > 0 {
@@ -118,12 +118,12 @@ func Condition(rest string, user *users.UserRecord, room *rooms.Room, flags even
 			if targetUserId > 0 {
 				// get the user
 				if targetUser := users.GetByUserId(targetUserId); targetUser != nil {
-					// Get the buff
+					// Get the condition
 					if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil {
 						// A stacking record can only be added through
-						// AddBuffMagnitude, which supplies the rounds and
+						// AddConditionMagnitude, which supplies the rounds and
 						// amount a stack needs; the queued add this command
-						// sends carries neither, and Buffs.AddBuff now
+						// sends carries neither, and Conditions.AddCondition now
 						// refuses it. Catch that here instead of telling the
 						// admin it applied when nothing landed.
 						if conditionSpec.IsStacking() {
@@ -144,7 +144,7 @@ func Condition(rest string, user *users.UserRecord, room *rooms.Room, flags even
 			if targetMobInstanceId > 0 {
 				// get the user
 				if targetMob := mobs.GetInstance(targetMobInstanceId); targetMob != nil {
-					// Get the buff
+					// Get the condition
 					if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil {
 						// See the matching comment in the player branch above.
 						if conditionSpec.IsStacking() {

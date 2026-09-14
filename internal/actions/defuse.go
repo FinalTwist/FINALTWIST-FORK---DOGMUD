@@ -26,7 +26,7 @@ type DefuseResult struct {
 	KitConsumed bool   // disarm kit was consumed (always true when a kit was
 	//                       present and the attempt proceeded past the kit gate)
 	KitBonusUsed   int    // stat bonus contributed by the consumed kit
-	TriggeredTraps []int  // on failure, buff IDs of traps that fired
+	TriggeredTraps []int  // on failure, condition IDs of traps that fired
 	Reason         string // when Succeeded==false, why (empty on success)
 }
 
@@ -243,7 +243,7 @@ func resolveDefuseLockTarget(actor Actor, room *rooms.Room, noun string) defuseL
 	return defuseLockTarget{kind: lockTargetNone}
 }
 
-// clearDefuseTrap removes the trap buff IDs from the target lock and notifies
+// clearDefuseTrap removes the trap condition IDs from the target lock and notifies
 // the room on success.
 func clearDefuseTrap(actor Actor, room *rooms.Room, tgt defuseLockTarget) {
 	switch tgt.kind {

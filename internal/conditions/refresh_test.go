@@ -13,8 +13,8 @@ const (
 	refreshTestDeadConditionId      = 9304 // held (indexed by Validate) but no live spec
 )
 
-// RefreshBuff must top TriggersLeft back up without resetting RoundCounter.
-// AddBuff resets both, which would starve any buff whose RoundInterval is
+// RefreshCondition must top TriggersLeft back up without resetting RoundCounter.
+// AddCondition resets both, which would starve any condition whose RoundInterval is
 // above one: refreshed every round, RoundCounter would be zeroed every round
 // and Trigger's `RoundCounter % RoundInterval == 0` would never see anything
 // but 0 % N == 0 on round 1, then reset again before round 2 ever accumulates.
@@ -32,7 +32,7 @@ func TestRefreshCondition_KeepsCadenceAcrossRepeatedRefreshes(t *testing.T) {
 	triggerTotal := 0
 	// Trigger then refresh here; production refreshes first (Room.RoundTick)
 	// and triggers after. The count is the same either way only because
-	// RefreshBuff leaves RoundCounter alone, which is the point under test.
+	// RefreshCondition leaves RoundCounter alone, which is the point under test.
 	for round := 1; round <= 6; round++ {
 		triggered := bs.Trigger()
 		triggerTotal += len(triggered)
@@ -52,9 +52,9 @@ func TestRefreshCondition_KeepsCadenceAcrossRepeatedRefreshes(t *testing.T) {
 	}
 }
 
-// A permanent held buff (isPermanent true on AddBuff) must stay permanent
-// through a refresh: RefreshBuff must not read the spec's finite TriggerCount
-// over top of TriggersLeftUnlimited, and must not touch PermaBuff.
+// A permanent held condition (isPermanent true on AddCondition) must stay permanent
+// through a refresh: RefreshCondition must not read the spec's finite TriggerCount
+// over top of TriggersLeftUnlimited, and must not touch Permanent.
 func TestRefreshCondition_LeavesAPermanentConditionPermanent(t *testing.T) {
 	restore := SeedConditionsForTest(map[int]*ConditionSpec{
 		refreshTestPermanentConditionId: {ConditionId: refreshTestPermanentConditionId, Name: "Test Perma", TriggerCount: 3, RoundInterval: 1},
@@ -92,9 +92,9 @@ func TestRefreshCondition_UnheldIdReturnsFalse(t *testing.T) {
 	}
 }
 
-// A save can carry a buff id whose content was later removed. Buffs.Validate
-// indexes it into buffIds before checking whether GetBuffSpec finds anything,
-// so the id is "held" by the buffIds map despite having no live spec. Refresh
+// A save can carry a condition id whose content was later removed. Conditions.Validate
+// indexes it into conditionIds before checking whether GetConditionSpec finds anything,
+// so the id is "held" by the conditionIds map despite having no live spec. Refresh
 // must decline rather than guess a TriggerCount.
 func TestRefreshCondition_HeldDeadIdReturnsFalse(t *testing.T) {
 	restore := SeedConditionsForTest(map[int]*ConditionSpec{})
@@ -111,13 +111,13 @@ func TestRefreshCondition_HeldDeadIdReturnsFalse(t *testing.T) {
 	}
 }
 
-// A stacking record can only be added through AddBuffMagnitude (see
-// TestAddBuffRefusesAStackingSpec / TestAddBuffScaledRefusesAStackingSpec),
-// so RefreshBuff must decline it too: topping TriggersLeft back up to the
+// A stacking record can only be added through AddConditionMagnitude (see
+// TestAddConditionRefusesAStackingSpec / TestAddConditionScaledRefusesAStackingSpec),
+// so RefreshCondition must decline it too: topping TriggersLeft back up to the
 // spec's TriggerCount would either revive an expired-but-unpruned record
 // with no stacks (phantom end line on its next tick) or, on a live one,
 // misreport its duration as the spec default rather than its longest stack.
-// Room buff paths call this (rooms.go), so a stacking bleed authored into a
+// Room condition paths call this (rooms.go), so a stacking bleed authored into a
 // room's buffids would otherwise get exactly this treatment on every visit.
 func TestRefreshCondition_RefusesAStackingSpec(t *testing.T) {
 	spec := stackingSpec()

@@ -56,8 +56,8 @@ const (
 	Drunk  Flag = `drunk`
 
 	// Protective flags. PoisonImmunity is the answer to Poison: while it is
-	// held, poison-flagged buffs and the poisoned condition are refused.
-	// Stone Stomach (buff 64) is the shipped holder.
+	// held, poison-flagged conditions and the poisoned condition are refused.
+	// Stone Stomach (condition 64) is the shipped holder.
 	PoisonImmunity Flag = `poison-immunity`
 
 	// Useful flags
@@ -71,7 +71,7 @@ const (
 	Hydrated       Flag = `hydrated`
 	Thirsty        Flag = `thirsty`
 
-	// Phase 25 spell buff flags
+	// Phase 25 spell condition flags
 	Haste         Flag = `haste`
 	DamageBonus   Flag = `damage-bonus`
 	Slow          Flag = `slow`
@@ -84,7 +84,7 @@ const (
 
 	Dampened Flag = `dampened` // #22 crash-site: Chrysalis suppression — mutation/spell power scaled down
 
-	// SilentStart marks a buff whose start is narrated by whatever applies it
+	// SilentStart marks a condition whose start is narrated by whatever applies it
 	// (warcry, rally, the bloom detox drink), so it has no start notice of
 	// its own and the guard does not require start_user_text. The end notice
 	// is unaffected.
@@ -108,13 +108,13 @@ const (
 	validationRound = 1000000
 )
 
-// AllFlags is every flag the engine understands. LoadDataFiles rejects a buff
+// AllFlags is every flag the engine understands. LoadDataFiles rejects a condition
 // whose flags include anything else, exactly as spelled: the Cat's Eye
 // Draught shipped with `night-vision` for `nightvision` and did nothing for
 // weeks. TestAllFlagsNamesEveryDeclaredConstant keeps this list honest.
 //
 // The All sentinel is deliberately absent: it is the empty string, a query
-// wildcard, never something a buff file may carry.
+// wildcard, never something a condition file may carry.
 var AllFlags = []Flag{
 	NoCombat,
 	NoMovement,
@@ -160,19 +160,19 @@ var (
 )
 
 type ConditionSpec struct {
-	ConditionId   int               `yaml:"buffid"` // Unique identifier for this buff spec. The tag pins the file key through the slice 2 rename.
-	Name          string            // The name of the buff
-	Description   string            // A description of the buff
-	Secret        bool              // Whether or not the buff is secret (not displayed to the user)
-	TriggerNow    bool              `yaml:"triggernow,omitempty"`    // if true, buff triggers once right when it is applied
+	ConditionId   int               `yaml:"buffid"` // Unique identifier for this condition spec. The tag pins the file key through the slice 2 rename.
+	Name          string            // The name of the condition
+	Description   string            // A description of the condition
+	Secret        bool              // Whether or not the condition is secret (not displayed to the user)
+	TriggerNow    bool              `yaml:"triggernow,omitempty"`    // if true, condition triggers once right when it is applied
 	TriggerRate   string            `yaml:"triggerrate,omitempty"`   // How often should it trigger? (time string)
 	RoundInterval int               `yaml:"roundinterval,omitempty"` // triggers every x rounds
 	TriggerCount  int               `yaml:"triggercount,omitempty"`  // How many times it triggers before it is removed
-	StatMods      statmods.StatMods `yaml:"statmods,omitempty"`      // stat mods for the duration of the buff
-	Flags         []Flag            `yaml:"flags,omitempty"`         // A list of actions and such that this buff prevents or enables
+	StatMods      statmods.StatMods `yaml:"statmods,omitempty"`      // stat mods for the duration of the condition
+	Flags         []Flag            `yaml:"flags,omitempty"`         // A list of actions and such that this condition prevents or enables
 
 	// ProgressMult is the multiplier applied by the skill-progress and
-	// mutation-rate flags while this buff is held. 0 means the default
+	// mutation-rate flags while this condition is held. 0 means the default
 	// (2.0, the historic literal). The strongest held value wins.
 	ProgressMult float64 `yaml:"progress_mult,omitempty"`
 
@@ -184,15 +184,15 @@ type ConditionSpec struct {
 	EndUserText     string `yaml:"end_user_text,omitempty"`
 	EndRoomText     string `yaml:"end_room_text,omitempty"`
 
-	// Config-driven tick fields — replaces JS onTrigger for heal/DoT buffs
+	// Config-driven tick fields — replaces JS onTrigger for heal/DoT conditions
 	TickPool              string  `yaml:"tick_pool,omitempty"`          // "health", "stamina", "conviction"
 	TickPercent           float64 `yaml:"tick_percent,omitempty"`       // Base % of max pool. Positive=heal, negative=damage
 	TickVariance          float64 `yaml:"tick_variance,omitempty"`      // Random variance added to percent
 	TickMin               int     `yaml:"tick_min,omitempty"`           // Minimum absolute tick amount (default 1)
-	StartRemoveConditions []int   `yaml:"start_remove_buffs,omitempty"` // Buff IDs to remove when this buff starts
+	StartRemoveConditions []int   `yaml:"start_remove_buffs,omitempty"` // Condition IDs to remove when this condition starts
 
 	// Effects is the closed mechanical vocabulary combat reads through
-	// Buffs.Effect. See effects.go. A value is a number or the word
+	// Conditions.Effect. See effects.go. A value is a number or the word
 	// "magnitude".
 	Effects map[EffectKind]EffectValue `yaml:"effects,omitempty"`
 	// TickFromMagnitude marks a tick record whose per-round amount is the
@@ -201,7 +201,7 @@ type ConditionSpec struct {
 	TickFromMagnitude bool `yaml:"tick_from_magnitude,omitempty"`
 }
 
-// Calculates the value of this buff
+// Calculates the value of this condition
 func (b *ConditionSpec) GetValue() int {
 	val := 0
 
@@ -263,7 +263,7 @@ func GetAllConditionIds() []int {
 	return results
 }
 
-// Searches for buffs whose name contains text and returns their Ids
+// Searches for conditions whose name contains text and returns their Ids
 func SearchConditions(searchTerm string) []int {
 
 	searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
@@ -324,7 +324,7 @@ func (b *ConditionSpec) Validate() error {
 		}
 	}
 
-	// If this is the quit/meditating buff, override the trigger count
+	// If this is the quit/meditating condition, override the trigger count
 	if b.ConditionId == 0 {
 		b.TriggerCount = int(configs.GetNetworkConfig().LogoutRounds)
 	}
@@ -357,11 +357,11 @@ func (b *ConditionSpec) Validate() error {
 	return nil
 }
 
-// ValidateLoadedFlags panics on the first loaded buff carrying a flag the
+// ValidateLoadedFlags panics on the first loaded condition carrying a flag the
 // engine does not declare, naming the id, name and flag. LoadDataFiles calls
-// it, so a typo in a buff file fails the boot rather than loading silently and
-// doing nothing; species.ValidateSpeciesBuffIds guards its data the same way.
-// Ids are walked in order so the panic names the same buff every time.
+// it, so a typo in a condition file fails the boot rather than loading silently and
+// doing nothing; species.ValidateSpeciesConditionIds guards its data the same way.
+// Ids are walked in order so the panic names the same condition every time.
 func ValidateLoadedFlags() {
 	ids := make([]int, 0, len(conditions))
 	for id := range conditions {
@@ -421,9 +421,9 @@ func LoadDataFiles() {
 	mudlog.Info("buffSpec.LoadDataFiles()", "loadedCount", len(conditions), "Time Taken", time.Since(start))
 }
 
-// HasSpec reports whether a buff id is defined. Mirrors mutations.HasSpec so
+// HasSpec reports whether a condition id is defined. Mirrors mutations.HasSpec so
 // cross-package validators can take it as an injected checker, which is how
-// species.ValidateSpeciesBuffIds consumes it.
+// species.ValidateSpeciesConditionIds consumes it.
 func HasSpec(conditionId int) bool {
 	return GetConditionSpec(conditionId) != nil
 }

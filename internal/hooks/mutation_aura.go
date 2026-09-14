@@ -20,8 +20,8 @@ func auraRecipients(playerIds []int, ownerId int) []int {
 	return out
 }
 
-// applyRoomAllyAuras applies each in-combat ally-aura owner's buff to the other
-// players in the room. Buffs go through the user AddBuff wrapper (start text +
+// applyRoomAllyAuras applies each in-combat ally-aura owner's condition to the other
+// players in the room. Conditions go through the user AddCondition wrapper (start text +
 // GMCP; silent on refresh), and are short-lived so they lapse when the aura
 // owner leaves or the fight ends.
 func applyRoomAllyAuras(room *rooms.Room) {
@@ -59,8 +59,8 @@ func applyRoomAllyAuras(room *rooms.Room) {
 	}
 }
 
-// applyRoomEnemyAuras applies each in-combat enemy-aura owner's debuff to the
-// in-combat mobs in the room. Buffs go through the mob AddBuff wrapper (room
+// applyRoomEnemyAuras applies each in-combat enemy-aura owner's harmful condition to the
+// in-combat mobs in the room. Conditions go through the mob AddCondition wrapper (room
 // text + GMCP; silent on refresh) and are short-lived so they lapse when the
 // owner leaves or the fight ends.
 func applyRoomEnemyAuras(room *rooms.Room) {
@@ -81,7 +81,7 @@ func applyRoomEnemyAuras(room *rooms.Room) {
 	}
 	for _, mid := range room.GetMobs() {
 		mob := mobs.GetInstance(mid)
-		// Skip charmed/summoned allied mobs — an enemy aura must never debuff
+		// Skip charmed/summoned allied mobs — an enemy aura must never harmful condition
 		// its own side's combat pets (they are in-combat mobs in the room too).
 		if mob == nil || !mob.Character.IsInCombat() || mob.Character.IsCharmed() {
 			continue

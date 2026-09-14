@@ -724,7 +724,7 @@ func TestLookForTrouble(t *testing.T) {
 }
 
 // Regression for Fix A (shipped 2026-04-22): LookForTrouble must
-// skip players with the NoAggroTarget buff flag (respawn grace).
+// skip players with the NoAggroTarget condition flag (respawn grace).
 // Without the early-continue, a hostile mob in the player's room
 // would re-issue attack commands every idle tick; SetAggro bounces
 // them, but the "prepares to fight" text fires anyway and combat
@@ -746,7 +746,7 @@ func TestLookForTrouble_SkipsGraceProtectedPlayer(t *testing.T) {
 
 	// Mob 100 (seeded in seedAllRegistries) is hostile:true and in
 	// room 1 alongside user 1. A normal LookForTrouble pass would
-	// pick user 1 as a target; the grace buff must prevent that.
+	// pick user 1 as a target; the grace condition must prevent that.
 	mob, room := getTestMobAndRoom(t)
 
 	u1 := users.GetByUserId(1)

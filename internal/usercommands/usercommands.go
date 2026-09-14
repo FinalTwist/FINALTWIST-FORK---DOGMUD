@@ -413,7 +413,7 @@ func TryCommand(cmd string, rest string, userId int, flags events.EventFlag) (bo
 
 	}
 
-	// Cancel any buffs they have that get cancelled based on them doing anything at all
+	// Cancel any conditions they have that get cancelled based on them doing anything at all
 	user.Character.CancelConditionsWithFlag(conditions.CancelOnAction)
 
 	// Fold-casting intercept: while holding folds, most action commands are blocked.

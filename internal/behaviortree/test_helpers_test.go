@@ -129,10 +129,10 @@ func seedTestRoom(t *testing.T, roomId int, zone string) func() {
 	)
 }
 
-// grantHiddenCondition adds buff 9 to the character AND advances the Awareness
+// grantHiddenCondition adds condition 9 to the character AND advances the Awareness
 // state machine to Hidden so that char.IsHidden() returns true.
-// Callers must have seeded hiddenBuffSpec (or equivalent) before calling.
-// Uses a fatal error if AddBuff fails so tests get a clear message.
+// Callers must have seeded hiddenConditionSpec (or equivalent) before calling.
+// Uses a fatal error if AddCondition fails so tests get a clear message.
 func grantHiddenCondition(t *testing.T, char *characters.Character) {
 	t.Helper()
 	if err := char.AddCondition(9, false); err != nil {

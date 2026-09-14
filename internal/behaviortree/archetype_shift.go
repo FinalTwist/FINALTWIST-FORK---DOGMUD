@@ -36,7 +36,7 @@ var shiftEligibleFrom = map[string]bool{
 
 // shiftTargetWhitelist is the TO set: archetypes any mob can credibly
 // play. archer is excluded (needs a ranged weapon + ammo we can't
-// conjure); ambusher is TO-only (any mob can take the Hidden buff,
+// conjure); ambusher is TO-only (any mob can take the Hidden condition,
 // but authored ambushers keep their tuning).
 var shiftTargetWhitelist = map[string]bool{
 	"generic_fighter":  true,

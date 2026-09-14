@@ -13,10 +13,20 @@ import (
 // Slice 1 of the conditions unification deleted the second collection of
 // timed state (characters.CombatCondition). This guard keeps it deleted: no
 // struct under internal/ or modules/ may declare a field named Duration or
-// RoundsLeft alongside a Magnitude outside internal/conditions, and no identifier
-// may spell HasCondition, AddCondition or CombatCondition. Timed state is a
-// buffs.Buff, read through Buffs.Effect; see internal/conditions/context.md.
-var forbiddenTimedStateIdents = []string{"HasCondition", "AddCondition", "RemoveCondition", "CombatCondition", "ConditionType", "TickConditions"}
+// RoundsLeft alongside a Magnitude outside internal/conditions. Timed state is
+// a conditions.Condition, read through Conditions.Effect; see
+// internal/conditions/context.md.
+//
+// The deleted collection's own method names (HasCondition, AddCondition,
+// RemoveCondition) used to sit in this identifier list too, but slice 2 of
+// the conditions unification renamed the ONE surviving primitive's Condition-named
+// API to those exact spellings (conditions.Conditions.HasCondition became
+// conditions.Conditions.HasCondition, and so on), so the plain spelling can
+// no longer tell the deleted collection apart from the real one. The struct
+// check above covers the same danger (a second Duration+Magnitude
+// collection), so only the deleted type's own leftover names, never reused by
+// the rename, stay forbidden here.
+var forbiddenTimedStateIdents = []string{"CombatCondition", "ConditionType", "TickConditions"}
 
 func TestNoSecondTimedStateCollection(t *testing.T) {
 	fset := token.NewFileSet()

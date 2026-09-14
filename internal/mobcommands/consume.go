@@ -12,7 +12,7 @@ import (
 // fleshGolemSpeciesId is the speciesId for the flesh golem mob type.
 const fleshGolemSpeciesId = 35
 
-// Consume lets a mob eat a corpse in the room to gain a regeneration buff.
+// Consume lets a mob eat a corpse in the room to gain a regeneration condition.
 // This is an idle/out-of-combat command — no aggro requirement.
 // Flesh golems (speciesId 35) receive enhanced absorption with stronger regen
 // and distinctive flavor text.

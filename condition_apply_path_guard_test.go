@@ -17,9 +17,10 @@ import (
 
 // The discriminator this guard rests on, pinned so the compiler checks it
 // rather than a comment asserting it. Every event-path add ends in a source
-// string; no direct, silent add does. If someone gives Character.AddBuff a
-// source parameter, or drops one from UserRecord.AddBuff, these stop compiling
-// and the guard is fixed deliberately instead of quietly going blind.
+// string; no direct, silent add does. If someone gives Character.AddCondition
+// a source parameter, or drops one from UserRecord.AddCondition, these stop
+// compiling and the guard is fixed deliberately instead of quietly going
+// blind.
 var (
 	_ func(int, bool) error                 = (*characters.Character)(nil).AddCondition
 	_ func(int, float64) error              = (*characters.Character)(nil).AddConditionScaled
@@ -32,75 +33,80 @@ var (
 	_ func(int, string)                     = (*actions.MobActor)(nil).AddCondition
 )
 
-// Slice C delivery path: a player buff must travel the events.Buff event, so
-// the Buff_ApplyBuffs hook runs and narrates the start through
-// buffs.BuffSpec.StartUserNotice. A direct character-level add
-// (Character.AddBuff / Character.AddBuffScaled, or Buffs.AddBuff beneath them)
-// applies the buff in place and queues nothing, so the hook never runs and the
-// holder reads no line at all. That is not a theoretical gap: a playtest drank
-// a Purging Draught and took fifty rounds of Purging Weakness in silence, and
-// the same defect was hiding in the quest reward path, the Bloom crash and
-// withdrawal, the arrest, and sleep.
+// Slice C delivery path: a player condition must travel the events.Condition
+// event, so the Condition_ApplyConditions hook runs and narrates the start
+// through conditions.ConditionSpec.StartUserNotice. A direct character-level
+// add (Character.AddCondition / Character.AddConditionScaled, or
+// Conditions.AddCondition beneath them) applies the condition in place and
+// queues nothing, so the hook never runs and the holder reads no line at
+// all. That is not a theoretical gap: a playtest drank a Purging Draught and
+// took fifty rounds of Purging Weakness in silence, and the same defect was
+// hiding in the quest reward path, the Bloom crash and withdrawal, the
+// arrest, and sleep.
 //
 // How the two are told apart WITHOUT relying on receiver names: every
 // event-path method ends in a source string, and no direct one does. The
 // signatures are pinned by the compiler above, not asserted here.
 //
-//	users.UserRecord.AddBuff(buffId int, source string)
-//	users.UserRecord.AddBuffScaled(buffId int, durationMult float64, source string)
-//	mobs.Mob.AddBuff(buffId int, source string)
-//	actions.Actor.AddBuff(buffId int, source string)   // UserActor + MobActor
+//	users.UserRecord.AddCondition(conditionId int, source string)
+//	users.UserRecord.AddConditionScaled(conditionId int, durationMult float64, source string)
+//	mobs.Mob.AddCondition(conditionId int, source string)
+//	actions.Actor.AddCondition(conditionId int, source string)   // UserActor + MobActor
 //
-//	characters.Character.AddBuff(buffId int, isPermanent bool)      // silent
-//	characters.Character.AddBuffScaled(buffId int, durationMult float64) // silent
-//	buffs.Buffs.AddBuff / AddBuffScaled                            // silent
+//	characters.Character.AddCondition(conditionId int, isPermanent bool)      // silent
+//	characters.Character.AddConditionScaled(conditionId int, durationMult float64) // silent
+//	conditions.Conditions.AddCondition / AddConditionScaled                  // silent
 //
 // A call passes when its ARITY and its final argument both fit the event-path
-// shape: two arguments for AddBuff, three for AddBuffScaled, with a last
-// argument that could be a string (a literal, or an identifier or selector, so
-// a variable source is never mistaken for a silent add). The bool literals are
-// excluded from that, since `false` is an identifier to a text scanner and is
-// exactly what the silent Character.AddBuff takes. Checking arity as well as
-// the argument is what keeps the two-argument Character.AddBuffScaled(id, mult)
-// caught, whose bare float variable would otherwise read as a source.
+// shape: two arguments for AddCondition, three for AddConditionScaled, with a
+// last argument that could be a string (a literal, or an identifier or
+// selector, so a variable source is never mistaken for a silent add). The
+// bool literals are excluded from that, since `false` is an identifier to a
+// text scanner and is exactly what the silent Character.AddCondition takes.
+// Checking arity as well as the argument is what keeps the two-argument
+// Character.AddConditionScaled(id, mult) caught, whose bare float variable
+// would otherwise read as a source.
 //
-// Every other call is a silent add and needs a reason in the allowlist below,
-// keyed "file|line". Legitimate reasons: the holder is a mob (no client to read
-// a line), the buff is flagged silent-start and its applier narrates the moment
-// itself, the buff has to be in place before the function returns, or the buff
-// is secret. When a legitimate direct add moves, update its line number here;
-// when a new one appears, either route it through the event path or record why
-// it cannot be.
+// Every other call is a silent add and needs a reason in the allowlist
+// below, keyed "file|line". Legitimate reasons: the holder is a mob (no
+// client to read a line), the condition is flagged silent-start and its
+// applier narrates the moment itself, the condition has to be in place
+// before the function returns, or the condition is secret. When a
+// legitimate direct add moves, update its line number here; when a new one
+// appears, either route it through the event path or record why it cannot
+// be.
 //
-// Character.AddBuffMagnitude and UserRecord.AddBuffMagnitude share one
-// four-argument shape ending in a source string, so arity cannot tell the
-// silent character door from the event-queuing user door apart the way it
-// does for AddBuff/AddBuffScaled; isEventPathCall reads every AddBuffMagnitude
-// call as a direct add, the safe reading, and every former-condition producer
-// site OUTSIDE the primitive packages is allowlisted by hand with a reason
-// worded like "former combat condition (warcry/rally): silent-start record,
-// the shout narrates; must apply synchronously so the fan-out and the
-// same-round combat read it". The allowlist below is a census of producers
-// outside primitivePackages, not of every producer: primitivePackages exempts
-// internal/characters wholesale (it defines the primitive being called), so
-// the three former-condition producers inside it, the prone-recovery
-// AddBuffMagnitude(buffs.BuffIdRecovering, ...) calls in
+// Character.AddConditionMagnitude and UserRecord.AddConditionMagnitude share
+// one four-argument shape ending in a source string, so arity cannot tell
+// the silent character door from the event-queuing user door apart the way
+// it does for AddCondition/AddConditionScaled; isEventPathCall reads every
+// AddConditionMagnitude call as a direct add, the safe reading, and every
+// former-condition producer site OUTSIDE the primitive packages is
+// allowlisted by hand with a reason worded like "former combat condition
+// (warcry/rally): silent-start record, the shout narrates; must apply
+// synchronously so the fan-out and the same-round combat read it". The
+// allowlist below is a census of producers outside primitivePackages, not of
+// every producer: primitivePackages exempts internal/characters wholesale
+// (it defines the primitive being called), so the three former-condition
+// producers inside it, the prone-recovery
+// AddConditionMagnitude(conditions.ConditionIdRecovering, ...) calls in
 // internal/characters/skills.go (lines 76, 99, 103), never reach this walk
 // and carry no allowlist entry.
 var conditionApplyPathAllowlist = map[string]string{
 	// ── The sanctioned consumer of the event ────────────────────────────────
-	"internal/hooks/Buff_ApplyBuffs.go|104": "this IS the hook the event feeds; it is where every routed buff is finally applied",
-	"internal/hooks/Buff_ApplyBuffs.go|106": "this IS the hook the event feeds; it is where every routed buff is finally applied",
-	"internal/hooks/Buff_ApplyBuffs.go|108": "this IS the hook the event feeds; it is where every routed buff is finally applied",
+	"internal/hooks/Condition_ApplyConditions.go|104": "this IS the hook the event feeds; it is where every routed condition is finally applied",
+	"internal/hooks/Condition_ApplyConditions.go|106": "this IS the hook the event feeds; it is where every routed condition is finally applied",
+	"internal/hooks/Condition_ApplyConditions.go|108": "this IS the hook the event feeds; it is where every routed condition is finally applied",
 
-	// ── silent-start buffs whose applier narrates the moment itself ─────────
-	"internal/actions/combat_throttle.go|144": "buff 89 is silent-start; the throttle move narrates the choke as it lands and must apply it in the same tick",
-	"internal/actions/sleep.go|61":            "buff 15 is silent-start; Sleep reads the Sleeping flag back for its own idempotence check, so it sends the start line itself",
+	// ── silent-start conditions whose applier narrates the moment itself ────
+	"internal/actions/combat_throttle.go|144": "condition 89 is silent-start; the throttle move narrates the choke as it lands and must apply it in the same tick",
+	"internal/actions/sleep.go|61":            "condition 15 is silent-start; Sleep reads the Sleeping flag back for its own idempotence check, so it sends the start line itself",
 
 	// ── former combat conditions: warcry and rally are now one record each,
-	// applied via AddBuffMagnitude (buffs.BuffIdWarcry / buffs.BuffIdRally),
-	// both silent-start; the shout narrates itself and must apply synchronously
-	// so the fan-out and the same-round combat read it ─────────────────────
+	// applied via AddConditionMagnitude (conditions.ConditionIdWarcry /
+	// conditions.ConditionIdRally), both silent-start; the shout narrates
+	// itself and must apply synchronously so the fan-out and the same-round
+	// combat read it ────────────────────────────────────────────────────────
 	"internal/actions/combat_warcry.go|121": "former combat condition (warcry/rally): silent-start record, the shout narrates; must apply synchronously so the fan-out and the same-round combat read it",
 	"internal/actions/combat_rally.go|119":  "former combat condition (warcry/rally): silent-start record, the shout narrates; must apply synchronously so the fan-out and the same-round combat read it",
 	"internal/usercommands/warcry.go|57":    "former combat condition (warcry/rally): silent-start record, the shout narrates; must apply synchronously so the fan-out and the same-round combat read it",
@@ -114,29 +120,29 @@ var conditionApplyPathAllowlist = map[string]string{
 	"internal/usercommands/skill.disenchant.go|72": "former combat condition (withdrawal): the disenchant command narrates; must apply synchronously so Validate clamps the pool now",
 
 	// ── mob holders: no client, so no line could reach anyone ───────────────
-	"internal/usercommands/character.go|413":     "the holder is a MOB (m.Character), and buff 99 is a perma-gear pin, not something a player reads",
+	"internal/usercommands/character.go|413":     "the holder is a MOB (m.Character), and condition 99 is a perma-gear pin, not something a player reads",
 	"internal/hooks/item_procs.go|265":           "the holder is a MOB (m.Character); an item proc stunning a mob has nobody to tell",
 	"internal/hooks/manifester_companions.go|40": "the holder is a MOB (a summoned companion), not a player",
 
-	// ── secret buffs: silence is the authored intent ────────────────────────
-	"internal/hooks/Life_Cascades.go|131": "buff 81 Respawn Grace is secret:true, so StartUserNotice is empty by design and the event would narrate nothing anyway",
+	// ── secret conditions: silence is the authored intent ───────────────────
+	"internal/hooks/Life_Cascades.go|131": "condition 81 Respawn Grace is secret:true, so StartUserNotice is empty by design and the event would narrate nothing anyway",
 
 	// ── the event path cannot express what the call needs ───────────────────
-	"internal/hooks/Awareness_Cascades.go|57": "buff 9 must be applied PERMANENT so the awareness state machine owns its lifecycle; the event path has no permanent form, and the transition callback holds only a Character",
+	"internal/hooks/Awareness_Cascades.go|57": "condition 9 must be applied PERMANENT so the awareness state machine owns its lifecycle; the event path has no permanent form, and the transition callback holds only a Character",
 
 	// ── routing would narrate the wrong thing, or narrate it repeatedly ─────
-	"internal/hooks/pinnacle_tick.go|335": "the bandolier continuously re-applies any slotted potion buff that has lapsed, so routing would re-narrate each potion's start line on every lapse; the pinnacle announces attunement once itself",
-	"internal/hooks/pinnacle_tick.go|349": "the bandolier continuously re-applies any slotted potion buff that has lapsed, so routing would re-narrate each potion's start line on every lapse; the pinnacle announces attunement once itself",
-	"internal/justice/arrest.go|641":      "RestoreJailOnLogin re-applies an already-running sentence after the RemoveBuff above, so the hook would read it as a fresh application and clang the cell door shut on every login",
+	"internal/hooks/pinnacle_tick.go|335": "the bandolier continuously re-applies any slotted potion condition that has lapsed, so routing would re-narrate each potion's start line on every lapse; the pinnacle announces attunement once itself",
+	"internal/hooks/pinnacle_tick.go|349": "the bandolier continuously re-applies any slotted potion condition that has lapsed, so routing would re-narrate each potion's start line on every lapse; the pinnacle announces attunement once itself",
+	"internal/justice/arrest.go|641":      "RestoreJailOnLogin re-applies an already-running sentence after the RemoveCondition above, so the hook would read it as a fresh application and clang the cell door shut on every login",
 
-	// ── the buff must be in place before the function returns ───────────────
+	// ── the condition must be in place before the function returns ─────────
 	"internal/justice/arrest.go|396": "silent-start, the arrest narrates; no-go and no-aggro-target are read in the same round dispatch",
 
 	// ── the applier's caller narrates, because internal/combat cannot ───────
 	// internal/combat holds only a *characters.Character and sends no player
 	// text anywhere in the package, so ResolveSubmissionOutcome reports the
-	// buffs it applied and Position_SubmissionTick delivers each authored
-	// start line to a player victim through narrateSubmissionEffects.
+	// conditions it applied and Position_SubmissionTick delivers each
+	// authored start line to a player victim through narrateSubmissionEffects.
 	"internal/combat/submission_outcome.go|327": "silent-start; the submission hook narrates the start right after the outcome; must apply synchronously",
 	"internal/combat/submission_outcome.go|338": "silent-start; the submission hook narrates the start right after the outcome; must apply synchronously",
 
@@ -174,14 +180,15 @@ var conditionApplyPathAllowlist = map[string]string{
 	"internal/hooks/item_procs.go|215":         "former combat condition (bleed): silent-start record, the proc's item narrates; must apply synchronously within the move's resolution",
 }
 
-// primitivePackages define Character.AddBuff / Buffs.AddBuff themselves, so
-// every call inside them is the primitive or its own internal plumbing.
+// primitivePackages define Character.AddCondition / Conditions.AddCondition
+// themselves, so every call inside them is the primitive or its own internal
+// plumbing.
 var primitivePackages = []string{
-	filepath.Join("internal", "buffs"),
+	filepath.Join("internal", "conditions"),
 	filepath.Join("internal", "characters"),
 }
 
-var conditionAddCallPattern = regexp.MustCompile(`\.(AddBuff(?:Scaled|Magnitude)?)\(`)
+var conditionAddCallPattern = regexp.MustCompile(`\.(AddCondition(?:Scaled|Magnitude)?)\(`)
 
 // identifierArgPattern matches a bare identifier or field selector, which is
 // how a variable source reaches these calls: src, reason, source, evt.Source.
@@ -190,14 +197,14 @@ var identifierArgPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za
 // couldBeSourceArg reports whether a call's final argument could be a source
 // string. A string literal always can. A bare identifier or selector can too,
 // so an event-path call passing a variable is never reported as silent; that
-// costs a little precision on a call like AddBuffScaled(id, mult) whose last
-// argument is a bare float variable, which is why each remaining direct add is
-// still allowlisted by hand.
+// costs a little precision on a call like AddConditionScaled(id, mult) whose
+// last argument is a bare float variable, which is why each remaining direct
+// add is still allowlisted by hand.
 //
 // The bool literals are the exception that matters: `true` and `false` are
 // identifiers in Go's grammar, and they are exactly what
-// Character.AddBuff(id, isPermanent) is given, so accepting them would blind
-// the guard to the single most common silent add in the codebase.
+// Character.AddCondition(id, isPermanent) is given, so accepting them would
+// blind the guard to the single most common silent add in the codebase.
 func couldBeSourceArg(arg string) bool {
 	if strings.HasPrefix(arg, `"`) || strings.HasPrefix(arg, "`") {
 		return true
@@ -251,13 +258,14 @@ func callArgs(src string, openParen int) (args []string, ok bool) {
 
 // isEventPathCall reports whether a matched call is one of the event-path adds.
 // Both the ARITY and the final argument have to fit, which is what keeps the
-// rule sharp in each direction: AddBuffScaled takes a source only in its
-// three-argument form, so the silent two-argument Character.AddBuffScaled(id,
-// mult) is still caught even though a bare float variable looks like an
-// identifier, while a correct call passing a variable source is never reported
-// as silent. The second result is false when the call could not be parsed.
+// rule sharp in each direction: AddConditionScaled takes a source only in its
+// three-argument form, so the silent two-argument
+// Character.AddConditionScaled(id, mult) is still caught even though a bare
+// float variable looks like an identifier, while a correct call passing a
+// variable source is never reported as silent. The second result is false
+// when the call could not be parsed.
 func isEventPathCall(src string, method string, openParen int) (eventPath bool, parsed bool) {
-	if method == "AddBuffMagnitude" {
+	if method == "AddConditionMagnitude" {
 		// The character door and the user door share a four-argument shape
 		// ending in a source string, so arity cannot tell them apart. Treat
 		// every call as a direct add: the safe reading, since a producer
@@ -269,7 +277,7 @@ func isEventPathCall(src string, method string, openParen int) (eventPath bool, 
 		return false, false
 	}
 	want := 2
-	if method == "AddBuffScaled" {
+	if method == "AddConditionScaled" {
 		want = 3
 	}
 	if len(args) != want {
@@ -333,11 +341,11 @@ func TestPlayerConditionsTravelTheEventPath(t *testing.T) {
 				if lineEnd < lineStart {
 					lineEnd = len(src)
 				}
-				rule := "an event-path buff add ends in a source string; this call does not, so it applies the buff in place, Buff_ApplyBuffs never runs, and the holder reads nothing."
-				advice := fmt.Sprintf("Route it through users.UserRecord.AddBuff / AddBuffScaled (or the mobs.Mob / actions.Actor equivalent, which all take a source string), or add %q to buffApplyPathAllowlist with a reason.", key)
-				if method := src[loc[2]:loc[3]]; method == "AddBuffMagnitude" {
-					rule = "the character door applies in place and the user door queues the event, but they share one four-argument shape, so this guard reads every AddBuffMagnitude call as a direct add (the safe reading). Record why in buffApplyPathAllowlist, or confirm the call is the user door and record that instead."
-					advice = "Routing it through users.UserRecord.AddBuffMagnitude does not silence this guard; allowlist it either way, noting which door it is."
+				rule := "an event-path condition add ends in a source string; this call does not, so it applies the condition in place, Condition_ApplyConditions never runs, and the holder reads nothing."
+				advice := fmt.Sprintf("Route it through users.UserRecord.AddCondition / AddConditionScaled (or the mobs.Mob / actions.Actor equivalent, which all take a source string), or add %q to conditionApplyPathAllowlist with a reason.", key)
+				if method := src[loc[2]:loc[3]]; method == "AddConditionMagnitude" {
+					rule = "the character door applies in place and the user door queues the event, but they share one four-argument shape, so this guard reads every AddConditionMagnitude call as a direct add (the safe reading). Record why in conditionApplyPathAllowlist, or confirm the call is the user door and record that instead."
+					advice = "Routing it through users.UserRecord.AddConditionMagnitude does not silence this guard; allowlist it either way, noting which door it is."
 				}
 				problems = append(problems, fmt.Sprintf(
 					"%s: %s\n      THE RULE: %s\n      %s",
@@ -365,11 +373,11 @@ func TestPlayerConditionsTravelTheEventPath(t *testing.T) {
 	sort.Strings(stale)
 	for _, key := range stale {
 		problems = append(problems, fmt.Sprintf(
-			"%s: allowlisted but no direct buff add is on that line any more; find where it moved and update the key", key))
+			"%s: allowlisted but no direct condition add is on that line any more; find where it moved and update the key", key))
 	}
 
 	if len(problems) > 0 {
 		sort.Strings(problems)
-		t.Fatalf("%d buff delivery path problems:\n  - %s", len(problems), strings.Join(problems, "\n  - "))
+		t.Fatalf("%d condition delivery path problems:\n  - %s", len(problems), strings.Join(problems, "\n  - "))
 	}
 }
