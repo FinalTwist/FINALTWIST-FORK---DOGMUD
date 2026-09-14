@@ -23,7 +23,7 @@ func seedCasterSpells(t *testing.T) func() {
 		"iron-will": {
 			SpellId: "iron-will", Name: "Iron Will",
 			Type: spells.HelpSingle, Cost: 45, BaseFolds: 6,
-			EffectType: "buff", BuffIds: []int{27},
+			EffectType: "buff", ConditionIds: []int{27},
 			Categories: []string{"self_defense"},
 		},
 		"conviction-ward": {
@@ -81,7 +81,7 @@ func seedCasterMob(t *testing.T, instanceId int, spellbook map[string]int) (*mob
 	m.Character.HealthMax.Base = 100
 	m.Character.HealthMax.Value = 100
 	m.Character.SpellBook = spellbook
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{400 + instanceId: m},
 		map[int]*mobs.Mob{instanceId: m},
@@ -170,9 +170,9 @@ func TestPureCaster_DefenseCovered_SingleEnemy_CastsHarmSingle(t *testing.T) {
 	// record). seedBuffOnChar replaces the whole spec map with just {27}, so
 	// SeedConditionRecordsForTest must run AFTER it to add Minor Shield's
 	// spec back in (additive) before AddBuffMagnitude needs it.
-	defer seedBuffOnChar(t, &mob.Character, 27)()
+	defer seedConditionOnChar(t, &mob.Character, 27)()
 	defer conditions.SeedConditionRecordsForTest()()
-	_ = mob.Character.AddBuffMagnitude(conditions.BuffIdMinorShield, 20, 75, "test")
+	_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, 20, 75, "test")
 	// AddBuffMagnitude validates the embedded Character directly, which
 	// installs a PLAYER Presence/Perception (Character.Validate()'s nil
 	// guard); mob.Validate() puts the mob ones back so TryMobBehavior sees a
@@ -212,9 +212,9 @@ func TestPureCaster_NoCandidates_FallsThrough(t *testing.T) {
 	// seedBuffOnChar replaces the whole spec map with just {27}, so
 	// SeedConditionRecordsForTest must run AFTER it to add Minor Shield's
 	// spec back in (additive) before AddBuffMagnitude needs it.
-	defer seedBuffOnChar(t, &mob.Character, 27)()
+	defer seedConditionOnChar(t, &mob.Character, 27)()
 	defer conditions.SeedConditionRecordsForTest()()
-	_ = mob.Character.AddBuffMagnitude(conditions.BuffIdMinorShield, 20, 75, "test")
+	_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, 20, 75, "test")
 	// AddBuffMagnitude validates the embedded Character directly, which
 	// installs a PLAYER Presence/Perception (Character.Validate()'s nil
 	// guard); mob.Validate() puts the mob ones back so TryMobBehavior sees a

@@ -17,7 +17,7 @@ import (
 func newTestMobBare(t *testing.T) *mobs.Mob {
 	t.Helper()
 	m := &mobs.Mob{InstanceId: 9900}
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	m.Character.Cooldowns = make(map[string]int)
 	return m
 }

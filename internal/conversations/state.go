@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/relationships"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -69,7 +69,7 @@ type MobConversant interface {
 
 	// Character state checks
 	ConvIsInCombat() bool
-	ConvHasBuffFlag(flag conditions.Flag) bool
+	ConvHasConditionFlag(flag conditions.Flag) bool
 	ConvAggro() bool // true when the character is in combat
 
 	// Path state
@@ -311,7 +311,7 @@ func isFullyIdle(m MobConversant) bool {
 	if m.ConvAggro() || m.ConvIsInCombat() {
 		return false
 	}
-	if m.ConvHasBuffFlag(conditions.Sleeping) {
+	if m.ConvHasConditionFlag(conditions.Sleeping) {
 		return false
 	}
 	if m.ConvPathLen() > 0 || m.ConvPathCurrentNonNil() {
@@ -333,7 +333,7 @@ func isFullyIdleForConversation(m MobConversant) bool {
 	if m.ConvAggro() || m.ConvIsInCombat() {
 		return false
 	}
-	if m.ConvHasBuffFlag(conditions.Sleeping) {
+	if m.ConvHasConditionFlag(conditions.Sleeping) {
 		return false
 	}
 	if isInConversation(m) {

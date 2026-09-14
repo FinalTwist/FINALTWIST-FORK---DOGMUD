@@ -30,23 +30,23 @@ func (c *recordingCtx) SetQuestFlag(key, value string) {
 // meaning what it meant.
 func (c *recordingCtx) Narrate(v narration.Variants) { c.textsSent = append(c.textsSent, v.Actor...) }
 
-func (c *recordingCtx) ConsumeItem(int)           {}
-func (c *recordingCtx) ChargeGold(int)            {}
-func (c *recordingCtx) SpawnMob(SpawnDef)         {}
-func (c *recordingCtx) SpawnItem(SpawnDef)        {}
-func (c *recordingCtx) TeachSpell(string)         {}
-func (c *recordingCtx) TrainSkill(string, int)    {}
-func (c *recordingCtx) IncreaseStat(string, int)  {}
-func (c *recordingCtx) LearnRecipe(string)        {}
-func (c *recordingCtx) ApplyBuff(BuffDef)         {}
-func (c *recordingCtx) Teleport(int)              {}
-func (c *recordingCtx) LockExits(ExitLock)        {}
-func (c *recordingCtx) UnlockExits(ExitLock)      {}
-func (c *recordingCtx) QueueNpcSay(NpcSayDef)     {}
-func (c *recordingCtx) QueueSequence(SequenceDef) {}
-func (c *recordingCtx) GiveMutation()             {}
-func (c *recordingCtx) BumpRep(string, int)       {}
-func (c *recordingCtx) GetUserId() int            { return 1 }
+func (c *recordingCtx) ConsumeItem(int)             {}
+func (c *recordingCtx) ChargeGold(int)              {}
+func (c *recordingCtx) SpawnMob(SpawnDef)           {}
+func (c *recordingCtx) SpawnItem(SpawnDef)          {}
+func (c *recordingCtx) TeachSpell(string)           {}
+func (c *recordingCtx) TrainSkill(string, int)      {}
+func (c *recordingCtx) IncreaseStat(string, int)    {}
+func (c *recordingCtx) LearnRecipe(string)          {}
+func (c *recordingCtx) ApplyCondition(ConditionDef) {}
+func (c *recordingCtx) Teleport(int)                {}
+func (c *recordingCtx) LockExits(ExitLock)          {}
+func (c *recordingCtx) UnlockExits(ExitLock)        {}
+func (c *recordingCtx) QueueNpcSay(NpcSayDef)       {}
+func (c *recordingCtx) QueueSequence(SequenceDef)   {}
+func (c *recordingCtx) GiveMutation()               {}
+func (c *recordingCtx) BumpRep(string, int)         {}
+func (c *recordingCtx) GetUserId() int              { return 1 }
 
 // badBountyAction returns an action that ExecuteAction rejects: declare_bounty
 // with an unknown issuer type.

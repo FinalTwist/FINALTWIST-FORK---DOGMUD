@@ -3,9 +3,9 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -30,11 +30,11 @@ func charmTestMob(t *testing.T, instanceId, roomId int) *mobs.Mob {
 		InstanceId: instanceId,
 		HomeRoomId: roomId,
 		Character: characters.Character{
-			Name:      "Bandit Scout",
-			RoomId:    roomId,
-			Health:    30,
-			Buffs:     conditions.New(),
-			Cooldowns: map[string]int{},
+			Name:       "Bandit Scout",
+			RoomId:     roomId,
+			Health:     30,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	m.Character.HealthMax.Value = 30

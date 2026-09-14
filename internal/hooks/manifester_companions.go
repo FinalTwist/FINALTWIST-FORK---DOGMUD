@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	empoweredByBondBuff = 105
-	broodSpawnMobId     = 9613
-	broodFloorReserve   = 200 // cheap floor companion (before reduction); first-pass
+	empoweredByBondCondition = 105
+	broodSpawnMobId          = 9613
+	broodFloorReserve        = 200 // cheap floor companion (before reduction); first-pass
 )
 
 // tickCompanionEmpowerment refreshes the "Empowered by Bond" buff (105) on the
@@ -37,7 +37,7 @@ func tickCompanionEmpowerment(user *users.UserRecord, room *rooms.Room) {
 		if mob == nil || mob.Character.RoomId != user.Character.RoomId {
 			continue
 		}
-		mob.Character.AddBuff(empoweredByBondBuff, false)
+		mob.Character.AddCondition(empoweredByBondCondition, false)
 	}
 }
 

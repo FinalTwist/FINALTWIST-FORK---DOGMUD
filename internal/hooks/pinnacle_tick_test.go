@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -197,10 +197,10 @@ func TestPinnacleAmbientPotions(t *testing.T) {
 	defer items.SeedItemsForTest(map[int]*items.ItemSpec{
 		999954: {ItemId: 999954, Name: "ambient bandolier", Type: items.Belt,
 			IsBandolier: true, BandolierCapacity: 4, AmbientPotions: true},
-		999955: {ItemId: 999955, Name: "vigor potion", Type: items.Potion, BuffIds: []int{54}},
+		999955: {ItemId: 999955, Name: "vigor potion", Type: items.Potion, ConditionIds: []int{54}},
 	})()
-	defer conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		54: {BuffId: 54, Name: "Vigor", Description: "test vigor", RoundInterval: 5, TriggerCount: 100},
+	defer conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		54: {ConditionId: 54, Name: "Vigor", Description: "test vigor", RoundInterval: 5, TriggerCount: 100},
 	})()
 
 	u := users.NewTestUser(703, "bandit", "Bandolier", 7703)
@@ -211,14 +211,14 @@ func TestPinnacleAmbientPotions(t *testing.T) {
 	// First tick: fingerprint changes ("" → belt+potion), stamps the attunement
 	// cooldown and applies NOTHING yet.
 	tickAmbientPotions(u, 100)
-	if c.Buffs.HasBuff(54) {
+	if c.Conditions.HasCondition(54) {
 		t.Fatal("buff must not apply during the initial attunement window")
 	}
 
 	// Simulate attunement having expired, then tick with unchanged contents.
 	c.SetMiscData("pinnacle_bandolier_attune_round", uint64(100))
 	tickAmbientPotions(u, 150)
-	if !c.Buffs.HasBuff(54) {
+	if !c.Conditions.HasCondition(54) {
 		t.Fatal("ambient buff should apply once attuned")
 	}
 
@@ -227,8 +227,8 @@ func TestPinnacleAmbientPotions(t *testing.T) {
 	// mark-expired + prune path WornBuffIds use on unequip).
 	c.PotionItems = nil
 	tickAmbientPotions(u, 151)
-	c.Buffs.Prune()
-	if c.Buffs.HasBuff(54) {
+	c.Conditions.Prune()
+	if c.Conditions.HasCondition(54) {
 		t.Fatal("removing the potion should revoke its ambient buff")
 	}
 
@@ -237,7 +237,7 @@ func TestPinnacleAmbientPotions(t *testing.T) {
 	tickAmbientPotions(u, 152) // fingerprint change re-stamps attunement
 	c.SetMiscData("pinnacle_bandolier_attune_round", uint64(152))
 	tickAmbientPotions(u, 200)
-	if !c.Buffs.HasBuff(54) {
+	if !c.Conditions.HasCondition(54) {
 		t.Fatal("ambient buff should re-apply after re-attunement expires")
 	}
 }

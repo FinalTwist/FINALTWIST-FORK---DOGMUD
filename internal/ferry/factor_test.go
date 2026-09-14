@@ -3,8 +3,8 @@ package ferry
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/warehouse"
@@ -205,7 +205,7 @@ func TestLoadFromWarehouse_DrawsWarehouseStockFirst(t *testing.T) {
 
 	factor := &mobs.Mob{MobId: 9577, InstanceId: 80950}
 	factor.Character.Name = "Test Factor"
-	factor.Character.Buffs = conditions.New()
+	factor.Character.Conditions = conditions.New()
 	characters.ApplyMobOverrides(&factor.Character, 0, 0, 5000)
 
 	c := TradeCircuit{

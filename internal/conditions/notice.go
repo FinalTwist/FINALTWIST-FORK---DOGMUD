@@ -9,7 +9,7 @@ import (
 )
 
 // hasFlag reports whether this spec carries the given flag.
-func (b *BuffSpec) hasFlag(f Flag) bool {
+func (b *ConditionSpec) hasFlag(f Flag) bool {
 	return slices.Contains(b.Flags, f)
 }
 
@@ -28,7 +28,7 @@ func (b *BuffSpec) hasFlag(f Flag) bool {
 // This is the one door for the player-side start line. Buff_ApplyBuffs reads
 // it instead of StartUserText, so a buff added without text can no longer
 // land in silence.
-func (b *BuffSpec) StartUserNotice() string {
+func (b *ConditionSpec) StartUserNotice() string {
 	if b.Secret {
 		return ""
 	}
@@ -55,7 +55,7 @@ func (b *BuffSpec) StartUserNotice() string {
 // the notice itself becomes the leak. Room text still goes out through the
 // prune pass, since observers' view of the reappearance is not the secret.
 // The player prune pass reads it instead of EndUserText.
-func (b *BuffSpec) EndUserNotice() string {
+func (b *ConditionSpec) EndUserNotice() string {
 	if b.Secret {
 		return ""
 	}
@@ -74,16 +74,16 @@ func (b *BuffSpec) EndUserNotice() string {
 	return fmt.Sprintf("%s has expired.", b.Name)
 }
 
-// SilentNoticeBuffs lists every loaded non-secret buff that relies on the
+// SilentNoticeConditions lists every loaded non-secret buff that relies on the
 // generic line for its start or end notice, as "<id> <name> (start, end)".
 // Sorted by id. The root guard keeps this empty for the shipped world; the
 // boot warning reports it for any other world or a hot edit.
-func SilentNoticeBuffs() []string {
-	ids := GetAllBuffIds()
+func SilentNoticeConditions() []string {
+	ids := GetAllConditionIds()
 	sort.Ints(ids)
 	out := []string{}
 	for _, id := range ids {
-		b := GetBuffSpec(id)
+		b := GetConditionSpec(id)
 		if b == nil || b.Secret {
 			continue
 		}
@@ -108,7 +108,7 @@ func SilentNoticeBuffs() []string {
 // Wired at boot after the buffs load. A warning, not a panic: the generic
 // line exists so play continues; the root guard is what blocks a merge.
 func WarnSilentNotices() {
-	for _, entry := range SilentNoticeBuffs() {
+	for _, entry := range SilentNoticeConditions() {
 		mudlog.Warn("buffs.WarnSilentNotices", "buff", entry, "notice", "relies on the generic takes effect / has expired line; author start_user_text and end_user_text")
 	}
 }

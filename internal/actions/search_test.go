@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -33,8 +33,8 @@ type searchFakeActor struct {
 
 func newSearchFakeActor(name string, room *rooms.Room, isPlayer bool, userId int) *searchFakeActor {
 	c := &characters.Character{
-		Name:  name,
-		Buffs: conditions.New(),
+		Name:       name,
+		Conditions: conditions.New(),
 	}
 	c.Stats.Perception.ValueAdj = 100
 	return &searchFakeActor{
@@ -48,8 +48,8 @@ func newSearchFakeActor(name string, room *rooms.Room, isPlayer bool, userId int
 
 func newSearchMobActor(name string, room *rooms.Room, mobInstId int) *searchFakeActor {
 	c := &characters.Character{
-		Name:  name,
-		Buffs: conditions.New(),
+		Name:       name,
+		Conditions: conditions.New(),
 	}
 	return &searchFakeActor{
 		char:      c,
@@ -66,7 +66,7 @@ func (a *searchFakeActor) GetName() string                        { return a.nam
 func (a *searchFakeActor) IsPlayer() bool                         { return a.isPlayer }
 func (a *searchFakeActor) GetUserId() int                         { return a.userId }
 func (a *searchFakeActor) GetMobInstanceId() int                  { return a.mobInstId }
-func (a *searchFakeActor) AddBuff(_ int, _ string)                {}
+func (a *searchFakeActor) AddCondition(_ int, _ string)           {}
 func (a *searchFakeActor) OnSkillUse(_ string) bool               { return false }
 func (a *searchFakeActor) OnStatUse(_ string) bool                { return false }
 func (a *searchFakeActor) SendRoomCommunication(_ string, _ bool) {}
@@ -96,7 +96,7 @@ func newSearchTestMob(instId int, name string, roomId int) *mobs.Mob {
 		InstanceId: instId,
 	}
 	m.Character.Name = name
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	m.Character.RoomId = roomId
 	return m
 }

@@ -32,19 +32,19 @@ func fakeQuest(id int, name string) *quests.Quest {
 
 func (w *fakeQuestWorld) deps() questDeps {
 	v := quests.QuestValidators{
-		StepExists:     func(string) bool { return true },
-		MobExists:      func(int) bool { return true },
-		ItemExists:     func(id int) bool { return id != 888 },
-		RoomExists:     func(int) bool { return true },
-		BuffExists:     func(int) bool { return true },
-		SpellExists:    func(string) bool { return true },
-		SkillExists:    func(string) bool { return true },
-		StatExists:     func(string) bool { return true },
-		RecipeExists:   func(string) bool { return true },
-		FactionExists:  func(string) bool { return true },
-		FlagDeclared:   func(string, string) bool { return true },
-		DialogueGrants: func(string) bool { return false },
-		MobHasDialogue: func(int) bool { return true },
+		StepExists:      func(string) bool { return true },
+		MobExists:       func(int) bool { return true },
+		ItemExists:      func(id int) bool { return id != 888 },
+		RoomExists:      func(int) bool { return true },
+		ConditionExists: func(int) bool { return true },
+		SpellExists:     func(string) bool { return true },
+		SkillExists:     func(string) bool { return true },
+		StatExists:      func(string) bool { return true },
+		RecipeExists:    func(string) bool { return true },
+		FactionExists:   func(string) bool { return true },
+		FlagDeclared:    func(string, string) bool { return true },
+		DialogueGrants:  func(string) bool { return false },
+		MobHasDialogue:  func(int) bool { return true },
 	}
 	return questDeps{
 		load: func(id int) *quests.Quest { return w.specs[id] },

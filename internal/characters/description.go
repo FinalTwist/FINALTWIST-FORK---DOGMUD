@@ -5,8 +5,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/casing"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/species"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -163,7 +163,7 @@ func (c *Character) GetAdjectives() []string {
 		retAdjectives = append(retAdjectives, `hidden`)
 	}
 
-	if c.HasBuffFlag(conditions.Poison) {
+	if c.HasConditionFlag(conditions.Poison) {
 		retAdjectives = append(retAdjectives, `poisoned`)
 	}
 	// End dynamic adjectives

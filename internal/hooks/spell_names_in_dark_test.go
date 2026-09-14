@@ -39,10 +39,10 @@ func TestCrossCastHeal_InTheDarkNobodyIsNamed(t *testing.T) {
 func TestCrossCastHeal_InfraredTargetReadsAFigure(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	darken(t, 1)
-	require.True(t, users.GetByUserId(2).Character.Buffs.AddBuff(heatEyesBuffId, true))
+	require.True(t, users.GetByUserId(2).Character.Conditions.AddCondition(heatEyesConditionId, true))
 	drainPlain(1)
 	drainPlain(2)
 

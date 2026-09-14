@@ -25,10 +25,10 @@ func (c *Character) HasAnyBlindSource() bool {
 	if c == nil {
 		return false
 	}
-	if c.Buffs.TriggersLeft(perception.BuffIdBlinded) > 0 {
+	if c.Conditions.TriggersLeft(perception.ConditionIdBlinded) > 0 {
 		return true
 	}
-	if c.Buffs.TriggersLeft(perception.BuffIdFlashbangBlindness) > 0 {
+	if c.Conditions.TriggersLeft(perception.ConditionIdFlashbangBlindness) > 0 {
 		return true
 	}
 	return false

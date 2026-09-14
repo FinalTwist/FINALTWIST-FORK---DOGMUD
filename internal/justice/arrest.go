@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/bounties"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/factions"
@@ -44,8 +44,8 @@ const (
 // behavior for any faction without an explicit release_room field.
 const barracksRoomId = 473
 
-// jailedBuffId is the buff applied to jailed players (88-jailed.yaml).
-const jailedBuffId = 88
+// jailedConditionId is the buff applied to jailed players (88-jailed.yaml).
+const jailedConditionId = 88
 
 // ---------------------------------------------------------------------------
 // Config-reader seams (tests override).
@@ -393,7 +393,7 @@ func ExecuteArrest(player *characters.Character, userId int, faction string, isM
 	// a spamming player walk out of the cell before the buff landed. Buff 88 is
 	// therefore flagged silent-start, and the arrest sends its start line
 	// itself, down with the arrival flavor.
-	_ = player.AddBuffScaled(jailedBuffId, float64(rounds))
+	_ = player.AddConditionScaled(jailedConditionId, float64(rounds))
 
 	// Drop any combat the player was in — they're in custody now, not fighting.
 	targeting.Release(player, targeting.ReasonDisengage)
@@ -406,13 +406,13 @@ func ExecuteArrest(player *characters.Character, userId int, faction string, isM
 	// travels the event that would narrate it and is ours to send, alongside
 	// the arrest-context line.
 	if u := users.GetByUserId(userId); u != nil {
-		if spec := conditions.GetBuffSpec(jailedBuffId); spec != nil {
+		if spec := conditions.GetConditionSpec(jailedConditionId); spec != nil {
 			line := spec.AuthoredStartLine(textutil.TokenContext{
 				SourceName:      u.Character.GetCharacterName(true),
 				SourcePlainName: u.Character.GetCharacterName(false),
 			})
 			if line != "" {
-				u.SendText(messaging.CategoryBuffApply, line)
+				u.SendText(messaging.CategoryConditionApply, line)
 			}
 		}
 		u.SendText(messaging.CategorySystem,
@@ -480,7 +480,7 @@ func HandleJailedDeath(player *characters.Character) {
 	if instId, _ := miscDataInt(player.MiscData, keyJailInstanceId); instId != 0 {
 		aTeardownCellFn(instId)
 	}
-	player.RemoveBuff(jailedBuffId) // defensive; death cascade usually already cleared it
+	player.RemoveCondition(jailedConditionId) // defensive; death cascade usually already cleared it
 	player.SetMiscData(keyJailUntilRound, nil)
 	player.SetMiscData(keyJailFineOriginal, nil)
 	player.SetMiscData(keyJailDecayPerRound, nil)
@@ -561,7 +561,7 @@ func ResolveDetention(player *characters.Character, userId int) bool {
 	}
 
 	// Remove the Jailed buff.
-	player.RemoveBuff(jailedBuffId)
+	player.RemoveCondition(jailedConditionId)
 
 	// Clear all jail MiscData keys.
 	player.SetMiscData(keyJailUntilRound, nil)
@@ -637,8 +637,8 @@ func RestoreJailOnLogin(player *characters.Character, userId int) {
 	player.SetMiscData(keyJailInstanceId, instanceId)
 	player.SetMiscData(keyJailCellRoom, entry)
 
-	player.RemoveBuff(jailedBuffId)
-	_ = player.AddBuffScaled(jailedBuffId, float64(until-now))
+	player.RemoveCondition(jailedConditionId)
+	_ = player.AddConditionScaled(jailedConditionId, float64(until-now))
 
 	_ = aMoveFn(userId, entry)
 }

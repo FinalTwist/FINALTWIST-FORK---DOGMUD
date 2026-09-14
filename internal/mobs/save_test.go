@@ -144,7 +144,7 @@ func TestSaveMobSpec_RejectsDanglingRefs(t *testing.T) {
 	}
 
 	bad = m
-	bad.BuffIds = []int{999999}
+	bad.ConditionIds = []int{999999}
 	if err := SaveMobSpec(bad); err == nil {
 		t.Error("expected rejection: dangling buff id")
 	}

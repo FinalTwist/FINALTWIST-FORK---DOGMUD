@@ -36,7 +36,7 @@ func seedLeaderAndStrandedWagon(t *testing.T, roomA, roomB int) (*mobs.Mob, *mob
 	}
 	leader.Character.Name = "Ketil"
 	leader.Character.RoomId = roomA
-	leader.Character.Buffs = conditions.New()
+	leader.Character.Conditions = conditions.New()
 	ra.AddMob(leader.InstanceId)
 
 	wagon := &mobs.Mob{
@@ -47,7 +47,7 @@ func seedLeaderAndStrandedWagon(t *testing.T, roomA, roomB int) (*mobs.Mob, *mob
 	}
 	wagon.Character.Name = "caravan wagon"
 	wagon.Character.RoomId = roomB
-	wagon.Character.Buffs = conditions.New()
+	wagon.Character.Conditions = conditions.New()
 	rb.AddMob(wagon.InstanceId)
 
 	cleanMobs := mobs.SeedMobsForTest(

@@ -3,8 +3,8 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/species"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -26,7 +26,7 @@ func newTestMob(t *testing.T, cfg func(*mobs.Mob)) *mobs.Mob {
 	m.Character.Conviction = 999
 	m.Character.ConvictionMax.Value = 999
 	setCombatPositionParallel(&m.Character, position.Standing)
-	m.Character.Buffs = conditions.New()                      // Properly initialize buffs maps
+	m.Character.Conditions = conditions.New()            // Properly initialize buffs maps
 	m.Character.SetAggro(1, 0, characters.DefaultAttack) // user 1 as generic target
 	if cfg != nil {
 		cfg(m)
@@ -141,27 +141,27 @@ func TestCommandIsReady_IsCrafting_BlocksEveryCommand(t *testing.T) {
 	}
 }
 
-func seedBuffsForTest() func() {
-	return conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		79: {BuffId: 79, Name: "Warcry", TriggerCount: 10, RoundInterval: 1},
-		80: {BuffId: 80, Name: "Rally", TriggerCount: 10, RoundInterval: 1},
+func seedConditionsForTest() func() {
+	return conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		79: {ConditionId: 79, Name: "Warcry", TriggerCount: 10, RoundInterval: 1},
+		80: {ConditionId: 80, Name: "Rally", TriggerCount: 10, RoundInterval: 1},
 	})
 }
 
 // ─── Rally AlreadyActive ───────────────────────────────────────────────────
 
-func TestCommandIsReady_Rally_BuffAlreadyActive_False(t *testing.T) {
-	cleanup := seedBuffsForTest()
+func TestCommandIsReady_Rally_ConditionAlreadyActive_False(t *testing.T) {
+	cleanup := seedConditionsForTest()
 	defer cleanup()
 
 	m := newTestMob(t, nil)
-	m.Character.AddBuff(80, false)
+	m.Character.AddCondition(80, false)
 	actor := &MobActor{Mob: m, Room: nil}
 	assert.False(t, CommandIsReady(actor, "rally"))
 }
 
-func TestCommandIsReady_Rally_BuffNotActive_True(t *testing.T) {
-	cleanup := seedBuffsForTest()
+func TestCommandIsReady_Rally_ConditionNotActive_True(t *testing.T) {
+	cleanup := seedConditionsForTest()
 	defer cleanup()
 
 	m := newTestMob(t, nil)
@@ -171,18 +171,18 @@ func TestCommandIsReady_Rally_BuffNotActive_True(t *testing.T) {
 
 // ─── Warcry AlreadyActive ──────────────────────────────────────────────────
 
-func TestCommandIsReady_Warcry_BuffAlreadyActive_False(t *testing.T) {
-	cleanup := seedBuffsForTest()
+func TestCommandIsReady_Warcry_ConditionAlreadyActive_False(t *testing.T) {
+	cleanup := seedConditionsForTest()
 	defer cleanup()
 
 	m := newTestMob(t, nil)
-	m.Character.AddBuff(79, false)
+	m.Character.AddCondition(79, false)
 	actor := &MobActor{Mob: m, Room: nil}
 	assert.False(t, CommandIsReady(actor, "warcry"))
 }
 
-func TestCommandIsReady_Warcry_BuffNotActive_True(t *testing.T) {
-	cleanup := seedBuffsForTest()
+func TestCommandIsReady_Warcry_ConditionNotActive_True(t *testing.T) {
+	cleanup := seedConditionsForTest()
 	defer cleanup()
 
 	m := newTestMob(t, nil)

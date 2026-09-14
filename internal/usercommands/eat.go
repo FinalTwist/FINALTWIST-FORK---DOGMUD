@@ -62,7 +62,7 @@ func Eat(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 			}
 		}
 
-		user.Character.CancelBuffsWithFlag(conditions.Hidden)
+		user.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(`You eat some of the <ansi fg="itemname">%s</ansi>.`, matchItem.DisplayName()))
 		room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="username">%s</ansi> eats some <ansi fg="itemname">%s</ansi>.`, user.Character.Name, matchItem.DisplayName()), user.UserId)
@@ -78,8 +78,8 @@ func Eat(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 
 		}
 
-		for _, buffId := range itemSpec.BuffIds {
-			user.AddBuff(buffId, `food`)
+		for _, conditionId := range itemSpec.ConditionIds {
+			user.AddCondition(conditionId, `food`)
 		}
 
 	}

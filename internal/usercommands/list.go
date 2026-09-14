@@ -6,9 +6,9 @@ import (
 	"strconv"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -143,7 +143,7 @@ func buildShopStockFromInventory(shopInv *shops.ShopInventory, user *users.UserR
 }
 
 // partitionShopStock splits shop stock into four categories: items, mercs, buffs, pets.
-func partitionShopStock(stock characters.Shop) (itemStock, mercStock, buffStock, petStock characters.Shop) {
+func partitionShopStock(stock characters.Shop) (itemStock, mercStock, conditionStock, petStock characters.Shop) {
 	for _, saleItem := range stock {
 
 		if saleItem.ItemId > 0 {
@@ -156,8 +156,8 @@ func partitionShopStock(stock characters.Shop) (itemStock, mercStock, buffStock,
 			continue
 		}
 
-		if saleItem.BuffId > 0 {
-			buffStock = append(buffStock, saleItem)
+		if saleItem.ConditionId > 0 {
+			conditionStock = append(conditionStock, saleItem)
 		}
 
 		if saleItem.PetType != `` {
@@ -304,8 +304,8 @@ func buildMercRows(stock characters.Shop, hasGold, hasTrade bool) ([]string, [][
 	return headers, rows
 }
 
-// buildBuffRows constructs table headers and rows for a buffs/enchantments shop section.
-func buildBuffRows(stock characters.Shop, hasGold, hasTrade bool) ([]string, [][]string) {
+// buildConditionRows constructs table headers and rows for a buffs/enchantments shop section.
+func buildConditionRows(stock characters.Shop, hasGold, hasTrade bool) ([]string, [][]string) {
 	headers := []string{"Qty", "Enchantment"}
 	if hasGold {
 		headers = append(headers, "Price")
@@ -316,34 +316,34 @@ func buildBuffRows(stock characters.Shop, hasGold, hasTrade bool) ([]string, [][
 
 	rows := [][]string{}
 
-	for _, stockBuff := range stock {
+	for _, stockCondition := range stock {
 
-		buffInfo := conditions.GetBuffSpec(stockBuff.BuffId)
-		if buffInfo == nil {
+		conditionInfo := conditions.GetConditionSpec(stockCondition.ConditionId)
+		if conditionInfo == nil {
 			continue
 		}
 
 		qtyStr := `N/A`
-		if stockBuff.QuantityMax != 0 {
-			qtyStr = strconv.Itoa(stockBuff.Quantity)
+		if stockCondition.QuantityMax != 0 {
+			qtyStr = strconv.Itoa(stockCondition.Quantity)
 		}
 
 		entryRow := []string{
 			qtyStr,
-			buffInfo.Name,
+			conditionInfo.Name,
 		}
 
 		if hasGold {
-			if stockBuff.Price > 0 {
-				entryRow = append(entryRow, strconv.Itoa(stockBuff.Price))
+			if stockCondition.Price > 0 {
+				entryRow = append(entryRow, strconv.Itoa(stockCondition.Price))
 			} else {
 				entryRow = append(entryRow, ``)
 			}
 		}
 
 		if hasTrade {
-			if stockBuff.TradeItemId > 0 {
-				tradeItm := items.New(stockBuff.TradeItemId)
+			if stockCondition.TradeItemId > 0 {
+				tradeItm := items.New(stockCondition.TradeItemId)
 				entryRow = append(entryRow, tradeItm.DisplayName())
 			} else {
 				entryRow = append(entryRow, ``)
@@ -434,9 +434,9 @@ func renderShopTable(user *users.UserRecord, title, colorPattern, sellerName, se
 // renderMobMerchantListing renders all shop sections for a mob merchant.
 // Returns false if the merchant has nothing in stock.
 func renderMobMerchantListing(user *users.UserRecord, stock characters.Shop, sellerName string) bool {
-	itemStock, mercStock, buffStock, petStock := partitionShopStock(stock)
+	itemStock, mercStock, conditionStock, petStock := partitionShopStock(stock)
 
-	if len(itemStock) == 0 && len(mercStock) == 0 && len(buffStock) == 0 && len(petStock) == 0 {
+	if len(itemStock) == 0 && len(mercStock) == 0 && len(conditionStock) == 0 && len(petStock) == 0 {
 		return false
 	}
 
@@ -460,9 +460,9 @@ func renderMobMerchantListing(user *users.UserRecord, stock characters.Shop, sel
 			`To Hire a merc, type: <ansi fg="command">hire [name]</ansi>`)
 	}
 
-	if len(buffStock) > 0 {
-		hasGold, hasTrade := checkGoldTrade(buffStock, true)
-		headers, rows := buildBuffRows(buffStock, hasGold, hasTrade)
+	if len(conditionStock) > 0 {
+		hasGold, hasTrade := checkGoldTrade(conditionStock, true)
+		headers, rows := buildConditionRows(conditionStock, hasGold, hasTrade)
 		sortRowsByCol(rows, 2)
 		renderShopTable(user, `Enchantments`, `rainbow`, sellerName, sellerTag, headers, rows,
 			`To buy an enchantment, type: <ansi fg="command">buy [name]</ansi>`)
@@ -482,9 +482,9 @@ func renderMobMerchantListing(user *users.UserRecord, stock characters.Shop, sel
 // renderPlayerMerchantListing renders all shop sections for a player merchant.
 // browsingUserName is passed for the pet section title (pre-existing behavior preserved).
 func renderPlayerMerchantListing(user *users.UserRecord, stock characters.Shop, sellerName, browsingUserName string) {
-	itemStock, mercStock, buffStock, petStock := partitionShopStock(stock)
+	itemStock, mercStock, conditionStock, petStock := partitionShopStock(stock)
 
-	if len(itemStock) == 0 && len(mercStock) == 0 && len(buffStock) == 0 && len(petStock) == 0 {
+	if len(itemStock) == 0 && len(mercStock) == 0 && len(conditionStock) == 0 && len(petStock) == 0 {
 		return
 	}
 
@@ -507,10 +507,10 @@ func renderPlayerMerchantListing(user *users.UserRecord, stock characters.Shop, 
 			`To Hire a merc, type: <ansi fg="command">hire [name]</ansi>`)
 	}
 
-	if len(buffStock) > 0 {
+	if len(conditionStock) > 0 {
 		// Pre-existing behavior preserved: checks itemStock instead of buffStock, uses Price > 0 instead of >= 0
 		hasGold, hasTrade := checkGoldTrade(itemStock, false)
-		headers, rows := buildBuffRows(buffStock, hasGold, hasTrade)
+		headers, rows := buildConditionRows(conditionStock, hasGold, hasTrade)
 		sortRowsByCol(rows, 2)
 		renderShopTable(user, `Enchantments`, `rainbow`, sellerName, sellerTag, headers, rows,
 			`To buy an enchantment, type: <ansi fg="command">buy [name]</ansi>`)

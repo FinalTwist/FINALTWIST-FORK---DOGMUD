@@ -3,9 +3,9 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -15,11 +15,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const purgeTestPoisonBuffId = 7201
+const purgeTestPoisonConditionId = 7201
 
 func seedPurgeTestPoison() func() {
-	return conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		purgeTestPoisonBuffId: {BuffId: purgeTestPoisonBuffId, Name: "Test Venom", RoundInterval: 1, TriggerCount: 5,
+	return conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		purgeTestPoisonConditionId: {ConditionId: purgeTestPoisonConditionId, Name: "Test Venom", RoundInterval: 1, TriggerCount: 5,
 			Flags: []conditions.Flag{conditions.Poison}, StartUserText: "venom", EndUserText: "gone"},
 	})
 }
@@ -51,9 +51,9 @@ func TestPurgeAffliction_NamedMobTargetIsPurgedNotTheCaster(t *testing.T) {
 	room := rooms.LoadRoom(1)
 	caster := users.GetByUserId(1)
 	mob := mobs.GetInstance(100)
-	require.True(t, caster.Character.Buffs.AddBuff(purgeTestPoisonBuffId, false))
-	require.True(t, mob.Character.Buffs.AddBuff(purgeTestPoisonBuffId, false))
-	require.NoError(t, mob.Character.AddBuffMagnitude(conditions.BuffIdPoisoned, 5, -1, "test"),
+	require.True(t, caster.Character.Conditions.AddCondition(purgeTestPoisonConditionId, false))
+	require.True(t, mob.Character.Conditions.AddCondition(purgeTestPoisonConditionId, false))
+	require.NoError(t, mob.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, 5, -1, "test"),
 		"setup must actually land the record or the purge assertion below is vacuous")
 	drainPlain(1)
 	drainPlain(2)
@@ -66,13 +66,13 @@ func TestPurgeAffliction_NamedMobTargetIsPurgedNotTheCaster(t *testing.T) {
 	// list for the round sweep to collect, so HasBuff stays true for a purged
 	// buff. HasFlag(_, false) skips expired buffs, which is what "no longer
 	// poisoned" means.
-	assert.False(t, mob.Character.Buffs.HasFlag(conditions.Poison, false), "the named mob is purged")
+	assert.False(t, mob.Character.Conditions.HasFlag(conditions.Poison, false), "the named mob is purged")
 	// HasBuff is NOT the probe here either, for the same reason as above: a
 	// cancelled record is marked expired in place and left in the list for
 	// the round sweep, so HasBuff would stay true. GetBuffs filters expired
 	// entries, so an empty result is the real "no longer holds it" check.
-	assert.Empty(t, mob.Character.GetBuffs(conditions.BuffIdPoisoned), "the poisoned record is purged")
-	assert.True(t, caster.Character.Buffs.HasFlag(conditions.Poison, false), "the caster keeps their own poison")
+	assert.Empty(t, mob.Character.GetConditions(conditions.ConditionIdPoisoned), "the poisoned record is purged")
+	assert.True(t, caster.Character.Conditions.HasFlag(conditions.Poison, false), "the caster keeps their own poison")
 	casterLines := drainPlain(1)
 	// The mob name is rendered by mobDisplayName, which appends the adjectives
 	// the mob carries at the moment of the cast, so the line reads
@@ -125,7 +125,7 @@ func TestPurgeAffliction_MobTargetThatLeftTheRoomIsNeitherPurgedNorNarrated(t *t
 	pinSpellContest(t)
 	room := rooms.LoadRoom(1)
 	mob := mobs.GetInstance(100)
-	require.True(t, mob.Character.Buffs.AddBuff(purgeTestPoisonBuffId, false))
+	require.True(t, mob.Character.Conditions.AddCondition(purgeTestPoisonConditionId, false))
 	// The companion wandered north mid-fold.
 	rooms.LoadRoom(1).RemoveMob(100)
 	mob.Character.RoomId = 2
@@ -135,7 +135,7 @@ func TestPurgeAffliction_MobTargetThatLeftTheRoomIsNeitherPurgedNorNarrated(t *t
 
 	casterLines, bystanderLines := castPurgeAtMob(t, room)
 
-	assert.True(t, mob.Character.Buffs.HasFlag(conditions.Poison, false), "an absent mob is not purged")
+	assert.True(t, mob.Character.Conditions.HasFlag(conditions.Poison, false), "an absent mob is not purged")
 	assert.Equal(t, 0, countContaining(casterLines, "purging energy"), "no purge line for an absent target")
 	assert.Equal(t, 0, countContaining(bystanderLines, "purging energy"))
 	assert.Equal(t, 0, countContaining(casterLines, "from your body"), "and no fallback to self-cast")
@@ -149,14 +149,14 @@ func TestPurgeAffliction_DeadMobTargetIsNeitherPurgedNorNarrated(t *testing.T) {
 	pinSpellContest(t)
 	room := rooms.LoadRoom(1)
 	mob := mobs.GetInstance(100)
-	require.True(t, mob.Character.Buffs.AddBuff(purgeTestPoisonBuffId, false))
+	require.True(t, mob.Character.Conditions.AddCondition(purgeTestPoisonConditionId, false))
 	mob.Character.Health = 0 // the companion dropped mid-fold
 	drainPlain(1)
 	drainPlain(2)
 
 	casterLines, bystanderLines := castPurgeAtMob(t, room)
 
-	assert.True(t, mob.Character.Buffs.HasFlag(conditions.Poison, false), "a dead mob is not purged")
+	assert.True(t, mob.Character.Conditions.HasFlag(conditions.Poison, false), "a dead mob is not purged")
 	assert.Equal(t, 0, countContaining(casterLines, "purging energy"), "no purge line for a dead target")
 	assert.Equal(t, 0, countContaining(bystanderLines, "purging energy"))
 	assert.Equal(t, 0, countContaining(casterLines, "from your body"), "and no fallback to self-cast")
@@ -171,7 +171,7 @@ func TestPurgeAffliction_PlayerTargetThatLeftTheRoomIsNeitherPurgedNorNarrated(t
 	room := rooms.LoadRoom(1)
 	caster := users.GetByUserId(1)
 	target := users.GetByUserId(2)
-	require.True(t, target.Character.Buffs.AddBuff(purgeTestPoisonBuffId, false))
+	require.True(t, target.Character.Conditions.AddCondition(purgeTestPoisonConditionId, false))
 	// Bobrick walked north mid-fold.
 	rooms.LoadRoom(1).RemovePlayer(2)
 	target.Character.RoomId = 2
@@ -182,7 +182,7 @@ func TestPurgeAffliction_PlayerTargetThatLeftTheRoomIsNeitherPurgedNorNarrated(t
 	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", Type: spells.HelpSingle}
 	resolveSpell(caster, activity.CastingData{SpellId: "purge-affliction", TargetUserIds: []int{2}}, spell, room)
 
-	assert.True(t, target.Character.Buffs.HasFlag(conditions.Poison, false), "an absent player is not purged")
+	assert.True(t, target.Character.Conditions.HasFlag(conditions.Poison, false), "an absent player is not purged")
 	targetLines := drainPlain(2)
 	assert.Equal(t, 0, countContaining(targetLines, "purges the afflictions from your body"))
 	casterLines := drainPlain(1)
@@ -202,7 +202,7 @@ func TestPurgeAffliction_DownedPlayerTargetStillPresentIsPurged(t *testing.T) {
 	room := rooms.LoadRoom(1)
 	caster := users.GetByUserId(1)
 	target := users.GetByUserId(2)
-	require.True(t, target.Character.Buffs.AddBuff(purgeTestPoisonBuffId, false))
+	require.True(t, target.Character.Conditions.AddCondition(purgeTestPoisonConditionId, false))
 	target.Character.Health = 0
 	drainPlain(1)
 	drainPlain(2)
@@ -210,7 +210,7 @@ func TestPurgeAffliction_DownedPlayerTargetStillPresentIsPurged(t *testing.T) {
 	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", Type: spells.HelpSingle}
 	resolveSpell(caster, activity.CastingData{SpellId: "purge-affliction", TargetUserIds: []int{2}}, spell, room)
 
-	assert.False(t, target.Character.Buffs.HasFlag(conditions.Poison, false), "a downed ally in the room is still purged")
+	assert.False(t, target.Character.Conditions.HasFlag(conditions.Poison, false), "a downed ally in the room is still purged")
 	assert.Equal(t, 1, countContaining(drainPlain(2), "purges the afflictions from your body"))
 	assert.Equal(t, 1, countContaining(drainPlain(1), "purging energy"))
 }

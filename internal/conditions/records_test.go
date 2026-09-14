@@ -9,10 +9,10 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 )
 
-// dogmudDataDirForBuffsTest finds the repo's real world data, mirroring
+// dogmudDataDirForConditionsTest finds the repo's real world data, mirroring
 // internal/narration/snapshot_test.go's dogmudDataDir: this file lives at
 // internal/conditions/records_test.go, so the repo root is two levels up.
-func dogmudDataDirForBuffsTest(t *testing.T) string {
+func dogmudDataDirForConditionsTest(t *testing.T) string {
 	t.Helper()
 	_, here, _, ok := runtime.Caller(0)
 	if !ok {
@@ -22,7 +22,7 @@ func dogmudDataDirForBuffsTest(t *testing.T) string {
 	return filepath.Join(root, "_datafiles", "world", "dogmud")
 }
 
-// loadRealDogmudBuffs points the engine's file-paths config at the real
+// loadRealDogmudConditions points the engine's file-paths config at the real
 // DOGMud world data and loads it through the production loader
 // (buffs.LoadDataFiles, called here as LoadDataFiles since this file is
 // package buffs), then restores the package's buff map to whatever it held
@@ -32,14 +32,14 @@ func dogmudDataDirForBuffsTest(t *testing.T) string {
 // own shipped_flags_test.go instead yaml.Unmarshals a single file directly,
 // which cannot exercise Validate()'s RoundInterval derivation or the
 // duplicate-id/filename checks LoadAllFlatFiles performs.
-func loadRealDogmudBuffs(t *testing.T) {
+func loadRealDogmudConditions(t *testing.T) {
 	t.Helper()
 
-	orig := buffs
-	t.Cleanup(func() { buffs = orig })
+	orig := conditions
+	t.Cleanup(func() { conditions = orig })
 
 	cfg := configs.GetConfig()
-	cfg.FilePaths.DataFiles = configs.ConfigString(dogmudDataDirForBuffsTest(t))
+	cfg.FilePaths.DataFiles = configs.ConfigString(dogmudDataDirForConditionsTest(t))
 	// Buff 0 (Meditating) derives its TriggerCount from LogoutRounds at
 	// Validate time and refuses a count below 1; the shipped config.yaml
 	// says 3, but that file carries skip-worktree and is not read here.
@@ -56,18 +56,18 @@ func loadRealDogmudBuffs(t *testing.T) {
 // (hooks, combat); if a shipped YAML file drifts from it, those fixtures
 // would keep passing against a shape production no longer ships.
 func TestShippedConditionRecordsMatchTestHelperShape(t *testing.T) {
-	loadRealDogmudBuffs(t)
+	loadRealDogmudConditions(t)
 
 	ids := []int{
-		BuffIdWarcry, BuffIdRally, BuffIdOffBalance, BuffIdRecovering,
-		BuffIdMinorShield, BuffIdRegenerating, BuffIdPoisoned, BuffIdBleeding,
-		BuffIdEnchantWithdrawal,
+		ConditionIdWarcry, ConditionIdRally, ConditionIdOffBalance, ConditionIdRecovering,
+		ConditionIdMinorShield, ConditionIdRegenerating, ConditionIdPoisoned, ConditionIdBleeding,
+		ConditionIdEnchantWithdrawal,
 	}
 
 	// BEFORE: snapshot what the shipped YAML files actually loaded.
-	shipped := map[int]*BuffSpec{}
+	shipped := map[int]*ConditionSpec{}
 	for _, id := range ids {
-		got := GetBuffSpec(id)
+		got := GetConditionSpec(id)
 		if got == nil {
 			t.Fatalf("buff id %d did not load from the shipped dogmud buff files", id)
 		}
@@ -79,7 +79,7 @@ func TestShippedConditionRecordsMatchTestHelperShape(t *testing.T) {
 	defer restore()
 
 	for _, id := range ids {
-		want := GetBuffSpec(id)
+		want := GetConditionSpec(id)
 		got := shipped[id]
 
 		if !reflect.DeepEqual(got.Flags, want.Flags) {

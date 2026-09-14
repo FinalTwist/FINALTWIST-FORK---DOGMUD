@@ -5,8 +5,8 @@ import (
 	"sort"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -219,12 +219,12 @@ func spellHasCategory(sd *spells.SpellData, category string) bool {
 // If neither mechanism matches, returns false (conservative — may recast but
 // won't silently stall the tree).
 func spellEffectAlreadyActive(char *characters.Character, sd *spells.SpellData) bool {
-	for _, bid := range sd.BuffIds {
-		if char.HasBuff(bid) {
+	for _, bid := range sd.ConditionIds {
+		if char.HasCondition(bid) {
 			return true
 		}
 	}
-	if sd.EffectType == "shield" && char.Buffs.HasEffect(conditions.EffectMitigationFlat) {
+	if sd.EffectType == "shield" && char.Conditions.HasEffect(conditions.EffectMitigationFlat) {
 		return true
 	}
 	return false

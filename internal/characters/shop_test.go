@@ -124,33 +124,33 @@ func TestShop_Destock(t *testing.T) {
 		{
 			name: "Destock with MobId and BuffId match",
 			initialShop: Shop{
-				{ItemId: 7, MobId: 1, BuffId: 2, Quantity: 2, QuantityMax: 5},
+				{ItemId: 7, MobId: 1, ConditionId: 2, Quantity: 2, QuantityMax: 5},
 			},
-			destockItem: ShopItem{ItemId: 7, MobId: 1, BuffId: 2},
+			destockItem: ShopItem{ItemId: 7, MobId: 1, ConditionId: 2},
 			expectedShop: Shop{
-				{ItemId: 7, MobId: 1, BuffId: 2, Quantity: 1, QuantityMax: 5},
+				{ItemId: 7, MobId: 1, ConditionId: 2, Quantity: 1, QuantityMax: 5},
 			},
 			expectedResult: true,
 		},
 		{
 			name: "Destock with MobId mismatch returns false",
 			initialShop: Shop{
-				{ItemId: 8, MobId: 1, BuffId: 2, Quantity: 2, QuantityMax: 5},
+				{ItemId: 8, MobId: 1, ConditionId: 2, Quantity: 2, QuantityMax: 5},
 			},
-			destockItem: ShopItem{ItemId: 8, MobId: 2, BuffId: 2},
+			destockItem: ShopItem{ItemId: 8, MobId: 2, ConditionId: 2},
 			expectedShop: Shop{
-				{ItemId: 8, MobId: 1, BuffId: 2, Quantity: 2, QuantityMax: 5},
+				{ItemId: 8, MobId: 1, ConditionId: 2, Quantity: 2, QuantityMax: 5},
 			},
 			expectedResult: false,
 		},
 		{
 			name: "Destock with BuffId mismatch returns false",
 			initialShop: Shop{
-				{ItemId: 9, MobId: 1, BuffId: 2, Quantity: 2, QuantityMax: 5},
+				{ItemId: 9, MobId: 1, ConditionId: 2, Quantity: 2, QuantityMax: 5},
 			},
-			destockItem: ShopItem{ItemId: 9, MobId: 1, BuffId: 3},
+			destockItem: ShopItem{ItemId: 9, MobId: 1, ConditionId: 3},
 			expectedShop: Shop{
-				{ItemId: 9, MobId: 1, BuffId: 2, Quantity: 2, QuantityMax: 5},
+				{ItemId: 9, MobId: 1, ConditionId: 2, Quantity: 2, QuantityMax: 5},
 			},
 			expectedResult: false,
 		},
@@ -165,7 +165,7 @@ func TestShop_Destock(t *testing.T) {
 			for i := range tt.expectedShop {
 				assert.Equal(t, tt.expectedShop[i].ItemId, shop[i].ItemId)
 				assert.Equal(t, tt.expectedShop[i].MobId, shop[i].MobId)
-				assert.Equal(t, tt.expectedShop[i].BuffId, shop[i].BuffId)
+				assert.Equal(t, tt.expectedShop[i].ConditionId, shop[i].ConditionId)
 				assert.Equal(t, tt.expectedShop[i].Quantity, shop[i].Quantity)
 				assert.Equal(t, tt.expectedShop[i].QuantityMax, shop[i].QuantityMax)
 			}

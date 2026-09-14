@@ -94,8 +94,8 @@ const (
 	// Other.
 	CategoryLoot
 	CategoryEquipment
-	CategoryBuffApply
-	CategoryBuffExpire
+	CategoryConditionApply
+	CategoryConditionExpire
 	CategoryMutation
 	CategoryToxin
 
@@ -221,9 +221,9 @@ func (c Category) String() string {
 		return "loot"
 	case CategoryEquipment:
 		return "equipment"
-	case CategoryBuffApply:
+	case CategoryConditionApply:
 		return "buff-apply"
-	case CategoryBuffExpire:
+	case CategoryConditionExpire:
 		return "buff-expire"
 	case CategoryMutation:
 		return "mutation"

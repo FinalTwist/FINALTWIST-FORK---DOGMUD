@@ -46,7 +46,7 @@ func Show(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		return true, nil
 	}
 
-	user.Character.CancelBuffsWithFlag(conditions.Hidden)
+	user.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 	if showItem.ItemId == 0 {
 		user.SendText(messaging.CategorySystem, "Something went wrong.")

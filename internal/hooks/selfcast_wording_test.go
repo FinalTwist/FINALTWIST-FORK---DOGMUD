@@ -29,7 +29,7 @@ func TestSelfCastPurge_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 	drainPlain(1)
 	drainPlain(2)
 
-	_ = u.Character.AddBuffMagnitude(conditions.BuffIdPoisoned, 10, -5, "test")
+	_ = u.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, 10, -5, "test")
 	spell := &spells.SpellData{SpellId: "cleansing-wave", Name: "Cleansing Wave", EffectType: "purge"}
 	applyPlayerEffect(u, u, room, spell, 10, spellContestAttackWin())
 
@@ -61,7 +61,7 @@ func TestSelfCastHeal_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 	assert.Equal(t, 0, countContaining(observer, "envelops Aliceia in healing light"))
 }
 
-func TestSelfCastBuff_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
+func TestSelfCastCondition_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	u := users.GetByUserId(1)
@@ -69,7 +69,7 @@ func TestSelfCastBuff_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 	drainPlain(1)
 	drainPlain(2)
 
-	spell := &spells.SpellData{SpellId: "bless", Name: "Bless", EffectType: "buff", BuffIds: []int{100}}
+	spell := &spells.SpellData{SpellId: "bless", Name: "Bless", EffectType: "buff", ConditionIds: []int{100}}
 	applyPlayerEffect(u, u, room, spell, 0, spellContestAttackWin())
 
 	caster, observer := drainPlain(1), drainPlain(2)
@@ -116,7 +116,7 @@ func TestCrossCast_WordingUnchanged(t *testing.T) {
 			"Your Purge cleanses Bobrick of afflictions.", "Aliceia's Purge purges the toxins from your body."},
 		{&spells.SpellData{SpellId: "heal", Name: "Heal", EffectType: "heal", EffectMagnitude: 3},
 			"You weave restorative magic around Bobrick.", "Aliceia's Heal envelops you in healing energy."},
-		{&spells.SpellData{SpellId: "bless", Name: "Bless", EffectType: "buff", BuffIds: []int{100}},
+		{&spells.SpellData{SpellId: "bless", Name: "Bless", EffectType: "buff", ConditionIds: []int{100}},
 			"Your Bless takes effect on Bobrick!", "Aliceia's Bless takes effect on you!"},
 	}
 	for _, c := range cases {
@@ -195,7 +195,7 @@ func TestCrossCast_RoomLinesUnchanged(t *testing.T) {
 			"Aliceia's Purge cleanses Bobrick."},
 		{&spells.SpellData{SpellId: "heal", Name: "Heal", EffectType: "heal", EffectMagnitude: 3},
 			"Aliceia's Heal envelops Bobrick in healing light."},
-		{&spells.SpellData{SpellId: "bless", Name: "Bless", EffectType: "buff", BuffIds: []int{100}},
+		{&spells.SpellData{SpellId: "bless", Name: "Bless", EffectType: "buff", ConditionIds: []int{100}},
 			"Aliceia's Bless settles over Bobrick."},
 	}
 	for _, c := range cases {

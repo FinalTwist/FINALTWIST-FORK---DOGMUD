@@ -89,8 +89,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/grapplemessaging"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -725,7 +725,7 @@ func TestSnapshotStores(t *testing.T) {
 		checkGolden(t, "itemvoices.golden", buildItemVoicesGolden(t))
 	})
 	t.Run("buffs", func(t *testing.T) {
-		checkGolden(t, "buffs.golden", buildBuffsGolden(t))
+		checkGolden(t, "buffs.golden", buildConditionsGolden(t))
 	})
 	t.Run("spells", func(t *testing.T) {
 		checkGolden(t, "spells.golden", buildSpellsGolden(t))
@@ -820,7 +820,7 @@ var kindBNoTarget = textutil.TokenContext{
 // AuthoredStartLine; the emitted rows, their order and the header are
 // unchanged from the pre-migration recording, which is the byte-identity
 // proof.
-func buildBuffsGolden(t *testing.T) string {
+func buildConditionsGolden(t *testing.T) string {
 	t.Helper()
 
 	var b strings.Builder
@@ -834,13 +834,13 @@ func buildBuffsGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# (89) does not, its move narrates the choke itself.\n")
 	fmt.Fprintf(&b, "# dimensions: buff id x authored key; source only, buffs never know a target\n\n")
 
-	ids := conditions.GetAllBuffIds()
+	ids := conditions.GetAllConditionIds()
 	sort.Ints(ids)
 	if len(ids) == 0 {
 		t.Fatal("no buffs loaded; setupRealStores must call buffs.LoadDataFiles()")
 	}
 	for _, id := range ids {
-		spec := conditions.GetBuffSpec(id)
+		spec := conditions.GetConditionSpec(id)
 		if spec == nil {
 			t.Fatalf("buff %d has no spec", id)
 		}

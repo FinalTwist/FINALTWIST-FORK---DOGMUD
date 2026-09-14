@@ -84,7 +84,7 @@ func TestEngageAggroType(t *testing.T) {
 	t.Run("no_target_is_a_default_attack", func(t *testing.T) {
 		room := newAggroTestRoom()
 		attacker := newAggroAttackerMob(9814)
-		addHiddenBuff(&attacker.Character)
+		addHiddenCondition(&attacker.Character)
 		require.True(t, attacker.Character.IsHidden(),
 			"precondition: attacker is hidden, so the nil-target guard is reachable")
 		require.Zero(t, attacker.Character.Cooldowns["special-move"],
@@ -118,7 +118,7 @@ func TestEngageAggroType(t *testing.T) {
 	t.Run("hidden_but_on_cooldown_is_a_default_attack", func(t *testing.T) {
 		room := newAggroTestRoom()
 		attacker := newAggroAttackerMob(9810)
-		addHiddenBuff(&attacker.Character)
+		addHiddenCondition(&attacker.Character)
 		// Pre-seed the cooldown so TryCooldown returns false.
 		attacker.Character.Cooldowns["special-move"] = 5
 		victim := newAggroAttackerMob(9811)
@@ -139,7 +139,7 @@ func TestEngageAggroType(t *testing.T) {
 	t.Run("hidden_with_free_cooldown_is_a_surprise_and_claims_it", func(t *testing.T) {
 		room := newAggroTestRoom()
 		attacker := newAggroAttackerMob(9812)
-		addHiddenBuff(&attacker.Character)
+		addHiddenCondition(&attacker.Character)
 		victim := newAggroAttackerMob(9813)
 		require.True(t, attacker.Character.IsHidden(), "precondition: attacker is hidden")
 		require.Zero(t, attacker.Character.Cooldowns["special-move"],

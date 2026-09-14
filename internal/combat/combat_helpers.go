@@ -5,8 +5,8 @@ import (
 	"math"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -47,18 +47,18 @@ type combatContext struct {
 
 // weaponSetup holds pre-computed weapon info for a single weapon swing.
 type weaponSetup struct {
-	weapon        items.Item
-	weaponName    string
-	weaponSubType items.ItemSubType
-	attacks       int
-	baseDmg       float64
-	dmgVariance   float64
-	critBuffs     []int
-	weaponSpeed   float64
-	weaponDmgMult float64
-	isOffhand     bool
-	penalty       int // dual wield penalty
-	swingCount    int // planned before the round's aggregate Stamina commit
+	weapon         items.Item
+	weaponName     string
+	weaponSubType  items.ItemSubType
+	attacks        int
+	baseDmg        float64
+	dmgVariance    float64
+	critConditions []int
+	weaponSpeed    float64
+	weaponDmgMult  float64
+	isOffhand      bool
+	penalty        int // dual wield penalty
+	swingCount     int // planned before the round's aggregate Stamina commit
 }
 
 // attackPlan is the immutable-ish pre-payment snapshot calculateCombat
@@ -81,11 +81,11 @@ type attackPlan struct {
 // below moved the means. See internal/dice/context.md and
 // combat.ExecuteSkillMove, which has always rolled this way.
 type swingDamageParams struct {
-	dmgMean       float64
-	rawDmgForCrit float64
-	critDmgMult   float64 // chunk 5.11g: skill-scaled crit worth, applied to rawDmgForCrit only
-	critBuffs     []int
-	msgSeed       int
+	dmgMean        float64
+	rawDmgForCrit  float64
+	critDmgMult    float64 // chunk 5.11g: skill-scaled crit worth, applied to rawDmgForCrit only
+	critConditions []int
+	msgSeed        int
 
 	// openingStrikeMult is the skullduggery stack for the ONE opening strike of
 	// a surprise attack. 1.0 otherwise. Applied to the crit MEAN before the roll
@@ -214,7 +214,7 @@ func calcSwingCount(sourceChar *characters.Character, weapon items.Item, weaponS
 	}
 
 	// Haste buff: significant attack speed boost
-	if sourceChar.HasBuffFlag(conditions.Haste) {
+	if sourceChar.HasConditionFlag(conditions.Haste) {
 		swings *= float64(bal.HasteSwingMultiplier)
 	}
 
@@ -230,7 +230,7 @@ func calcSwingCount(sourceChar *characters.Character, weapon items.Item, weaponS
 
 	// Recovering record: caps swings (1 today; the record's literal). Zero
 	// means no cap is held.
-	if attacksCap := sourceChar.Buffs.Effect(conditions.EffectAttacksCap); attacksCap > 0 && result > int(attacksCap) {
+	if attacksCap := sourceChar.Conditions.Effect(conditions.EffectAttacksCap); attacksCap > 0 && result > int(attacksCap) {
 		result = int(attacksCap)
 	}
 
@@ -377,7 +377,7 @@ func buildWeaponSetup(sourceChar *characters.Character, targetChar *characters.C
 		penalty:       calcDualWieldPenalty(sourceChar, idx, total),
 	}
 
-	ws.attacks, ws.baseDmg, ws.dmgVariance, ws.critBuffs = sourceChar.GetDefaultDistributionDamage()
+	ws.attacks, ws.baseDmg, ws.dmgVariance, ws.critConditions = sourceChar.GetDefaultDistributionDamage()
 
 	// Non-human basic attacks render through the species' natural-attack
 	// subtype (bite/claws/slam/...) instead of generic. A real equipped weapon
@@ -391,7 +391,7 @@ func buildWeaponSetup(sourceChar *characters.Character, targetChar *characters.C
 		itemSpec := weapon.GetSpec()
 		ws.weaponName = weapon.DisplayName()
 		ws.weaponSubType = itemSpec.Subtype
-		ws.attacks, ws.baseDmg, ws.dmgVariance, ws.critBuffs = weapon.GetDistributionDamage()
+		ws.attacks, ws.baseDmg, ws.dmgVariance, ws.critConditions = weapon.GetDistributionDamage()
 		ws.weaponSpeed = itemSpec.GetSpeedMultiplier()
 
 		// Racial bonus
@@ -480,7 +480,7 @@ func buildDamageParams(sourceChar *characters.Character, targetChar *characters.
 		// suppressed. GetDamageMultiplier returns the bonus fraction (applied
 		// as 1.0+bonus), so dampen the full multiplier and re-extract the bonus
 		// (penalties, i.e. multiplier <= 1.0, are left untouched by DampenBonus).
-		if sourceChar.HasBuffFlag(conditions.Dampened) {
+		if sourceChar.HasConditionFlag(conditions.Dampened) {
 			factor := float64(configs.GetBalanceConfig().CrashSiteSuppressionFactor)
 			mutDmgMult = mutations.DampenBonus(1.0+mutDmgMult, factor) - 1.0
 		}
@@ -489,7 +489,7 @@ func buildDamageParams(sourceChar *characters.Character, targetChar *characters.
 	}
 
 	// Warcry record: the damage multiplier is the record's magnitude (1 + bonus).
-	if warcryMult := sourceChar.Buffs.Effect(conditions.EffectDamageMult); warcryMult != 1.0 {
+	if warcryMult := sourceChar.Conditions.Effect(conditions.EffectDamageMult); warcryMult != 1.0 {
 		dmgMean *= warcryMult
 		rawDmgForCrit *= warcryMult
 	}
@@ -744,7 +744,7 @@ func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.
 		// Rally record: defense score multiplier from the rhetoric shout. The
 		// same door folds the grapple exposure (Task 5) and any other defense
 		// multiplier.
-		defenseScore *= targetChar.Buffs.Effect(conditions.EffectDefenseMult)
+		defenseScore *= targetChar.Conditions.Effect(conditions.EffectDefenseMult)
 
 		// Stage 8.5: Apply third-party vulnerability penalty
 		if isThirdParty {
@@ -1396,7 +1396,7 @@ func calcHitDamage(result *AttackResult, isCrit bool, openingStrike bool, sdp sw
 	// mean and consume the flag, then merely scale the result by damageMult.
 	if isCrit {
 		result.Crit = true
-		result.BuffTarget = sdp.critBuffs
+		result.ConditionTarget = sdp.critConditions
 		// Crits bypass mitigation, so they roll around the UNmitigated mean —
 		// and therefore must take their spread from that same mean. RollStat
 		// derives stdDev = mean * RollSpread internally, which is the only way

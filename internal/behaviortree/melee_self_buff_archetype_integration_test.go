@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -38,13 +38,13 @@ func seedArchetypeSpells(t *testing.T) func() {
 		"conviction-surge": {
 			SpellId: "conviction-surge", Name: "Conviction Surge",
 			Type: spells.HelpSingle, Cost: 35, BaseFolds: 4,
-			EffectType: "buff", BuffIds: []int{26},
+			EffectType: "buff", ConditionIds: []int{26},
 			Categories: []string{"self_offense"},
 		},
 		"iron-will": {
 			SpellId: "iron-will", Name: "Iron Will",
 			Type: spells.HelpSingle, Cost: 45, BaseFolds: 6,
-			EffectType: "buff", BuffIds: []int{27},
+			EffectType: "buff", ConditionIds: []int{27},
 			Categories: []string{"self_defense"},
 		},
 		"conviction-ward": {
@@ -56,7 +56,7 @@ func seedArchetypeSpells(t *testing.T) func() {
 		"conviction-armor": {
 			SpellId: "conviction-armor", Name: "Conviction Armor",
 			Type: spells.HelpSingle, Cost: 50, BaseFolds: 6,
-			EffectType: "buff", BuffIds: []int{38},
+			EffectType: "buff", ConditionIds: []int{38},
 			Categories: []string{"self_defense"},
 		},
 	})
@@ -74,7 +74,7 @@ func seedArchetypeMob(t *testing.T, instanceId int, spellbook map[string]int) (*
 	m.Character.Name = "testmob"
 	m.Character.Conviction = 500
 	m.Character.SpellBook = spellbook
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{300 + instanceId: m},
 		map[int]*mobs.Mob{instanceId: m},
@@ -82,30 +82,30 @@ func seedArchetypeMob(t *testing.T, instanceId int, spellbook map[string]int) (*
 	return m, cleanup
 }
 
-// seedBuffOnChar seeds a buff as active on the character, using the same
+// seedConditionOnChar seeds a buff as active on the character, using the same
 // pattern as action_cast_best_in_category_test.go: directly set Buffs.List
 // then call Validate(true) to rebuild the buffIds index. Also seeds the buff
 // spec so the buffs package doesn't panic on lookup.
-func seedBuffOnChar(t *testing.T, char *characters.Character, buffId int) func() {
+func seedConditionOnChar(t *testing.T, char *characters.Character, conditionId int) func() {
 	t.Helper()
-	cleanupBuff := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		buffId: {BuffId: buffId, Name: "TestBuff"},
+	cleanupCondition := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		conditionId: {ConditionId: conditionId, Name: "TestBuff"},
 	})
-	char.Buffs.List = append(char.Buffs.List, &conditions.Buff{
-		BuffId:       buffId,
+	char.Conditions.List = append(char.Conditions.List, &conditions.Condition{
+		ConditionId:  conditionId,
 		TriggersLeft: 5,
 	})
-	char.Buffs.Validate(true)
-	if !char.HasBuff(buffId) {
-		t.Fatalf("seedBuffOnChar: HasBuff(%d) false after seeding — setup broken", buffId)
+	char.Conditions.Validate(true)
+	if !char.HasCondition(conditionId) {
+		t.Fatalf("seedBuffOnChar: HasBuff(%d) false after seeding — setup broken", conditionId)
 	}
-	return cleanupBuff
+	return cleanupCondition
 }
 
-// TestMeleeSelfBuff_FreshMobCastsSelfOffense is a full end-to-end pipeline
+// TestMeleeSelfCondition_FreshMobCastsSelfOffense is a full end-to-end pipeline
 // test: real YAML loaded, TryMobBehavior fires, delayed action drained, and
 // the queued "cast conviction-surge" is verified.
-func TestMeleeSelfBuff_FreshMobCastsSelfOffense(t *testing.T) {
+func TestMeleeSelfCondition_FreshMobCastsSelfOffense(t *testing.T) {
 	defer seedArchetypeSpells(t)()
 	LoadArchetypeForTest(t, "melee_self_buff", archetypeYAML)
 
@@ -130,12 +130,12 @@ func TestMeleeSelfBuff_FreshMobCastsSelfOffense(t *testing.T) {
 	}
 }
 
-// TestMeleeSelfBuff_WithSurgeActiveCastsIronWill verifies the full selector
+// TestMeleeSelfCondition_WithSurgeActiveCastsIronWill verifies the full selector
 // fallthrough: when the offense buff (surge, buff 26) is already active, the
 // offense child returns Failure and the selector falls through to defense.
 // The defense action picks iron-will (score 6×45=270) over conviction-ward
 // (score 4×30=120).
-func TestMeleeSelfBuff_WithSurgeActiveCastsIronWill(t *testing.T) {
+func TestMeleeSelfCondition_WithSurgeActiveCastsIronWill(t *testing.T) {
 	defer seedArchetypeSpells(t)()
 	LoadArchetypeForTest(t, "melee_self_buff", archetypeYAML)
 
@@ -148,8 +148,8 @@ func TestMeleeSelfBuff_WithSurgeActiveCastsIronWill(t *testing.T) {
 
 	// Mark surge buff 26 as active so the offense child finds no eligible
 	// spell and returns Failure, forcing the selector to try defense.
-	cleanupBuff := seedBuffOnChar(t, &mob.Character, 26)
-	defer cleanupBuff()
+	cleanupCondition := seedConditionOnChar(t, &mob.Character, 26)
+	defer cleanupCondition()
 
 	ok := TryMobBehavior(mob.InstanceId, EventContext{EventType: "mob_combat_round"})
 	if !ok {
@@ -162,11 +162,11 @@ func TestMeleeSelfBuff_WithSurgeActiveCastsIronWill(t *testing.T) {
 	}
 }
 
-// TestMeleeSelfBuff_FireElementalCastsDefenseOnly verifies that a mob with
+// TestMeleeSelfCondition_FireElementalCastsDefenseOnly verifies that a mob with
 // only self_defense spells correctly falls through the offense child (Failure)
 // and casts the highest-scoring defense spell (conviction-armor, 300 > ward, 120).
 // This covers the fire elemental archetype case (stays on melee_self_buff).
-func TestMeleeSelfBuff_FireElementalCastsDefenseOnly(t *testing.T) {
+func TestMeleeSelfCondition_FireElementalCastsDefenseOnly(t *testing.T) {
 	defer seedArchetypeSpells(t)()
 	LoadArchetypeForTest(t, "melee_self_buff", archetypeYAML)
 

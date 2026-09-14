@@ -61,7 +61,7 @@ func Give(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	if target.IsPlayer() {
 
 		targetUser := target.(*actions.UserActor).User
-		mob.Character.CancelBuffsWithFlag(conditions.Hidden)
+		mob.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 		// Swap the item location
 		if giveItem.ItemId > 0 {
@@ -95,7 +95,7 @@ func Give(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	// Mob target
 	//
 	m := target.(*actions.MobActor).Mob
-	mob.Character.CancelBuffsWithFlag(conditions.Hidden)
+	mob.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 	// Swap the item location
 	if giveItem.ItemId > 0 {

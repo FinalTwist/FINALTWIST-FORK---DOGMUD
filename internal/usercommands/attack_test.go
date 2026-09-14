@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/factions"
@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestAttack_PlayerAttackImmune_RebuffsAttack verifies that a mob with
+// TestAttack_PlayerAttackImmune_RejectsAttack verifies that a mob with
 // PlayerAttackImmune: true cannot be attacked by players — aggro must not be
 // set on the user after attacking such a mob.
-func TestAttack_PlayerAttackImmune_RebuffsAttack(t *testing.T) {
+func TestAttack_PlayerAttackImmune_RejectsAttack(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
@@ -34,10 +34,10 @@ func TestAttack_PlayerAttackImmune_RebuffsAttack(t *testing.T) {
 		NonCombatant:       false,
 		PlayerAttackImmune: true,
 		Character: characters.Character{
-			Name:   "Caravan Guard",
-			RoomId: 1,
-			Health: 100,
-			Buffs:  conditions.New(),
+			Name:       "Caravan Guard",
+			RoomId:     1,
+			Health:     100,
+			Conditions: conditions.New(),
 		},
 	}
 	immuneMob.Character.HealthMax.Value = 100
@@ -108,11 +108,11 @@ func TestAttackBumpsOpinion(t *testing.T) {
 		HomeRoomId: 1,
 		AutoAggro:  false,
 		Character: characters.Character{
-			Name:      "Skeleton",
-			RoomId:    1,
-			Health:    50,
-			Buffs:     conditions.New(),
-			Cooldowns: map[string]int{},
+			Name:       "Skeleton",
+			RoomId:     1,
+			Health:     50,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	target.Character.HealthMax.Value = 100
@@ -152,11 +152,11 @@ func TestAttackOnSameTargetDoesNotDoubleBump(t *testing.T) {
 		HomeRoomId: 1,
 		AutoAggro:  false,
 		Character: characters.Character{
-			Name:      "Skeleton",
-			RoomId:    1,
-			Health:    50,
-			Buffs:     conditions.New(),
-			Cooldowns: map[string]int{},
+			Name:       "Skeleton",
+			RoomId:     1,
+			Health:     50,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	target.Character.HealthMax.Value = 100
@@ -203,7 +203,7 @@ func TestTargetSwitchBumpsNewMobOpinion(t *testing.T) {
 		HomeRoomId: 1,
 		Character: characters.Character{
 			Name: "Skeleton", RoomId: 1, Health: 50,
-			Buffs: conditions.New(), Cooldowns: map[string]int{},
+			Conditions: conditions.New(), Cooldowns: map[string]int{},
 		},
 	}
 	mobA.Character.HealthMax.Value = 100
@@ -218,7 +218,7 @@ func TestTargetSwitchBumpsNewMobOpinion(t *testing.T) {
 		HomeRoomId: 1,
 		Character: characters.Character{
 			Name: "Merchant", RoomId: 1, Health: 50,
-			Buffs: conditions.New(), Cooldowns: map[string]int{},
+			Conditions: conditions.New(), Cooldowns: map[string]int{},
 		},
 	}
 	mobB.Character.HealthMax.Value = 100
@@ -289,11 +289,11 @@ enemies: []
 		AutoAggro:  false,
 		Groups:     []string{"thornwall_citizens"},
 		Character: characters.Character{
-			Name:      "city beggar",
-			RoomId:    1,
-			Health:    50,
-			Buffs:     conditions.New(),
-			Cooldowns: map[string]int{},
+			Name:       "city beggar",
+			RoomId:     1,
+			Health:     50,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	target.Character.HealthMax.Value = 100

@@ -1,9 +1,9 @@
 package actions
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -125,7 +125,7 @@ func ExecuteMaul(actor Actor) MaulResult {
 	bleedDmg := 0
 	if result.Hit {
 		bleedDmg = bleedPerRound(char.Stats.Strength.ValueAdj, cfg.MaulBleedStrengthDivisor, cfg.MaulBleedMin)
-		_ = target.Char.AddBuffMagnitude(conditions.BuffIdBleeding, int(cfg.MaulBleedRounds), -float64(bleedDmg), "maul")
+		_ = target.Char.AddConditionMagnitude(conditions.ConditionIdBleeding, int(cfg.MaulBleedRounds), -float64(bleedDmg), "maul")
 	}
 
 	// Determine source/target types for analytics.

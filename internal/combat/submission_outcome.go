@@ -15,11 +15,11 @@ import (
 // and internal/combat sends no player text anywhere, so the applier's caller
 // owes the victim the authored start line. See SubmissionOutcomeEffects.
 const (
-	// BrokenLimbBuffId is buff 83, applied by a cripple-policy success on a
+	// BrokenLimbConditionId is buff 83, applied by a cripple-policy success on a
 	// joint submission.
-	BrokenLimbBuffId = 83
-	// StunnedBuffId is buff 84, applied by a crit-tier mercy release.
-	StunnedBuffId = 84
+	BrokenLimbConditionId = 83
+	// StunnedConditionId is buff 84, applied by a crit-tier mercy release.
+	StunnedConditionId = 84
 )
 
 // SubmissionOutcomeEffects reports the silent-start buffs
@@ -184,7 +184,7 @@ func applySuccessByPolicy(
 	// the recipient in play. For subdue/cripple/lethal the recipient
 	// enters the death cascade and the buff would be a no-op.
 	if result.Tier == SubTierCrit && policy == characters.PolicyMercy {
-		if applyStunnedBuff(recipient) {
+		if applyStunnedCondition(recipient) {
 			effects.StunnedVictim = recipient
 		}
 	}
@@ -291,7 +291,7 @@ func applyDeathCascade(
 	}
 
 	if brokenLimb {
-		return applyBrokenLimbBuff(victim, brokenBodyPart)
+		return applyBrokenLimbCondition(victim, brokenBodyPart)
 	}
 	return false
 }
@@ -309,7 +309,7 @@ func snapshotVictimDamage(victim *characters.Character) map[int]int {
 	return dst
 }
 
-// applyBrokenLimbBuff applies the chunk-4d broken-limb buff (id 83).
+// applyBrokenLimbCondition applies the chunk-4d broken-limb buff (id 83).
 // Reports whether it landed: the caller narrates the authored start line to
 // a player victim, and a break nobody took must not be announced.
 //
@@ -317,23 +317,23 @@ func snapshotVictimDamage(victim *characters.Character) map[int]int {
 // event, because the outcome path above reads the victim's state back in the
 // same round dispatch. Buff 83 is therefore flagged silent-start and its
 // start line belongs to whoever called us.
-func applyBrokenLimbBuff(victim *characters.Character, bodyPart string) bool {
+func applyBrokenLimbCondition(victim *characters.Character, bodyPart string) bool {
 	if victim == nil || bodyPart == "" {
 		return false
 	}
 	// The body part ("arm" / "shoulder") is flavor only, spent by the
 	// resolution narration in Position_Messaging. Future per-arm tracking
 	// could drive weapon-specific accuracy penalties.
-	return victim.AddBuff(BrokenLimbBuffId, false) == nil
+	return victim.AddCondition(BrokenLimbConditionId, false) == nil
 }
 
-// applyStunnedBuff applies the 1-round Stunned buff (id 84). Reports whether
+// applyStunnedCondition applies the 1-round Stunned buff (id 84). Reports whether
 // it landed, for the same reason applyBrokenLimbBuff does. Buff 84 is
 // silent-start on the same grounds: it is applied synchronously and
 // internal/combat cannot send the holder a line.
-func applyStunnedBuff(c *characters.Character) bool {
+func applyStunnedCondition(c *characters.Character) bool {
 	if c == nil {
 		return false
 	}
-	return c.AddBuff(StunnedBuffId, false) == nil
+	return c.AddCondition(StunnedConditionId, false) == nil
 }

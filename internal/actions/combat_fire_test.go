@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/costs"
@@ -122,7 +122,7 @@ func seedFireMobInRoom(t *testing.T, defenderRoomId int, defenderDex int) (int, 
 	defChar.Name = "Skeleton"
 	defChar.RoomId = defenderRoomId
 	defChar.Health = 100000
-	defChar.Buffs = conditions.New()
+	defChar.Conditions = conditions.New()
 	defChar.Cooldowns = map[string]int{}
 	defChar.Stats.Dexterity.ValueAdj = defenderDex
 
@@ -339,7 +339,7 @@ func TestFire_UnseenTargetIsRejectedBeforeAdmission(t *testing.T) {
 			target := mobs.GetInstance(500)
 			require.NotNil(t, target)
 			if tc.hideTarget {
-				addHiddenBuff(&target.Character)
+				addHiddenCondition(&target.Character)
 			}
 
 			char := fireAttacker()

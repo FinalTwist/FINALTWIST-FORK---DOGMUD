@@ -76,8 +76,8 @@ var (
 		`character`:       {Character, true, true, false},
 		`bank`:            {Bank, false, true, false},
 		`break`:           {Break, false, true, false},
-		`build`:           {Build, false, true, true}, // Admin only
-		`buff`:            {Buff, false, true, true},  // Admin only
+		`build`:           {Build, false, true, true},     // Admin only
+		`buff`:            {Condition, false, true, true}, // Admin only
 		`buy`:             {Buy, false, true, false},
 		`caravan`:         {Caravan, true, true, true}, // Admin only
 		`cancel`:          {Cancel, true, true, false},
@@ -414,7 +414,7 @@ func TryCommand(cmd string, rest string, userId int, flags events.EventFlag) (bo
 	}
 
 	// Cancel any buffs they have that get cancelled based on them doing anything at all
-	user.Character.CancelBuffsWithFlag(conditions.CancelOnAction)
+	user.Character.CancelConditionsWithFlag(conditions.CancelOnAction)
 
 	// Fold-casting intercept: while holding folds, most action commands are blocked.
 	// Informational commands (AllowedWhenDowned=true) pass through.

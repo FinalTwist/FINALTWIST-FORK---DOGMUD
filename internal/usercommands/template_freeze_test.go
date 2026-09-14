@@ -55,7 +55,7 @@ func TestTemplateFreeze_ConditionsListReadsPermanent(t *testing.T) {
 
 	out, err := templates.Process("character/conditions", []conditionEntry{
 		{Name: "Bleeding (2)", Description: "Wounds seeping blood.", RoundsLeft: 4},
-		{Name: "Stoneskin", Description: "Skin like rock.", PermaBuff: true},
+		{Name: "Stoneskin", Description: "Skin like rock.", Permanent: true},
 	}, 0)
 	require.NoError(t, err)
 	assert.Contains(t, out, "Bleeding (2)")
@@ -68,12 +68,12 @@ func TestTemplateFreeze_StatusReadsTheBrokenLimbRecord(t *testing.T) {
 	useDogmudTemplates(t)
 
 	user, _ := getTestUserAndRoom(t)
-	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		83: {BuffId: 83, Name: "Broken Limb", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 10},
+	restore := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		83: {ConditionId: 83, Name: "Broken Limb", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 10},
 	})
 	defer restore()
-	user.Character.Buffs.Validate(true)
-	require.True(t, user.Character.Buffs.AddBuff(83, false))
+	user.Character.Conditions.Validate(true)
+	require.True(t, user.Character.Conditions.AddCondition(83, false))
 
 	out, err := templates.Process("character/status", user, user.UserId)
 	require.NoError(t, err)
@@ -84,14 +84,14 @@ func TestTemplateFreeze_IdentifyReadsConditionIds(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	useDogmudTemplates(t)
-	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		940: {BuffId: 940, Name: "Probe Glow", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 5},
-		941: {BuffId: 941, Name: "Probe Rend", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 5},
+	restore := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		940: {ConditionId: 940, Name: "Probe Glow", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 5},
+		941: {ConditionId: 941, Name: "Probe Rend", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 5},
 	})
 	defer restore()
 
-	spec := items.ItemSpec{ItemId: 99940, Name: "probe", BuffIds: []int{940}}
-	spec.Damage.CritBuffIds = []int{941}
+	spec := items.ItemSpec{ItemId: 99940, Name: "probe", ConditionIds: []int{940}}
+	spec.Damage.CritConditionIds = []int{941}
 	item := items.Item{ItemId: 99940}
 	out, err := templates.Process("descriptions/identify", struct {
 		Item     *items.Item
@@ -106,17 +106,17 @@ func TestTemplateFreeze_SpeciesHelpReadsConditionIds(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	useDogmudTemplates(t)
-	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		942: {BuffId: 942, Name: "Probe Hide", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 5},
+	restore := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		942: {ConditionId: 942, Name: "Probe Hide", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 5},
 	})
 	defer restore()
 
-	out, err := templates.Process("help/species", []species.Species{{Name: "Probe", BuffIds: []int{942}}}, 0)
+	out, err := templates.Process("help/species", []species.Species{{Name: "Probe", ConditionIds: []int{942}}}, 0)
 	require.NoError(t, err)
 	assert.Contains(t, out, "Probe Hide", "species help reads $speciesInfo.BuffIds")
 }
 
-// TestWireFreeze_SpellCategoryStillGroupsBuffEffectType pins spells.go:32's
+// TestWireFreeze_SpellCategoryStillGroupsConditionEffectType pins spells.go:32's
 // `case "buff", "shield", "purge":` inside spellCategory, the other string
 // literal reading effect_type: buff (see wire_freeze_test.go at the repo
 // root and internal/hooks/wire_freeze_test.go for the dispatch-side ones).
@@ -128,7 +128,7 @@ func TestTemplateFreeze_SpeciesHelpReadsConditionIds(t *testing.T) {
 // matching "buff", a Neutral-type spell falls through to the `sp.Type ==
 // spells.Neutral` branch below and returns 0 instead — a real, visible
 // change to where the spell lists in the `spells` command.
-func TestWireFreeze_SpellCategoryStillGroupsBuffEffectType(t *testing.T) {
+func TestWireFreeze_SpellCategoryStillGroupsConditionEffectType(t *testing.T) {
 	got := spellCategory(&spells.SpellData{EffectType: "buff", Type: spells.Neutral})
 	assert.Equal(t, 2, got,
 		"an effect_type: buff spell must still sort into the buff/shield/purge display category (usercommands/spells.go's spellCategory)")

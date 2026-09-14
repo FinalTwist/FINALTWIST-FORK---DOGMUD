@@ -1,8 +1,8 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
 	"github.com/GoMudEngine/GoMud/internal/state/combatphase"
@@ -54,11 +54,11 @@ func wireAwarenessFromCombatPhase(c *characters.Character) {
 				// reports Hidden — split source of truth).
 				// The Revealing/Visible transitions cancel it via
 				// CancelBuffsWithFlag(Hidden) below.
-				_ = c.AddBuff(9, true)
+				_ = c.AddCondition(9, true)
 			case from == awareness.Hidden &&
 				(to == awareness.Revealing || to == awareness.Visible):
 				// Remove buff #9 via cancel-on-flag mechanism.
-				c.CancelBuffsWithFlag(conditions.Hidden)
+				c.CancelConditionsWithFlag(conditions.Hidden)
 			}
 		})
 }

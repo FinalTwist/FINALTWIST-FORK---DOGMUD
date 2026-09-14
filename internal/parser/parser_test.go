@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/keywords"
@@ -40,7 +40,7 @@ func seedParserTest(t *testing.T) (Scope, func()) {
 	cleanMobs := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{1: {MobId: 1, Zone: "TestZone", Character: characters.Character{Name: "Skeleton"}}},
 		map[int]*mobs.Mob{100: {MobId: 1, InstanceId: 100, HomeRoomId: 1,
-			Character: characters.Character{Name: "Skeleton", RoomId: 1, Buffs: conditions.New(), Cooldowns: map[string]int{}}}},
+			Character: characters.Character{Name: "Skeleton", RoomId: 1, Conditions: conditions.New(), Cooldowns: map[string]int{}}}},
 	)
 
 	u := users.NewTestUser(1, "alice", "Aliceia", 1001)

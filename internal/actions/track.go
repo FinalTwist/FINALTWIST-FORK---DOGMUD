@@ -55,7 +55,7 @@ type TrackResult struct {
 	ActiveTargetMobInstId int    // 0 when not mob target
 	ActiveTargetName      string // for caller messaging
 	DirectionExit         string // best exit toward target
-	BuffApplied           bool   // true when buff 86 applied
+	ConditionApplied      bool   // true when buff 86 applied
 
 	// Common.
 	// Detail is the resolved read quality. It REPLACES the old RollValue float:
@@ -67,9 +67,9 @@ type TrackResult struct {
 	Reason     string // human-readable reason on failure
 }
 
-// activeTrackingBuffId is the buff applied when active tracking starts.
+// activeTrackingConditionId is the buff applied when active tracking starts.
 // See _datafiles/world/dogmud/buffs/86-active_tracking.yaml.
-const activeTrackingBuffId = 86
+const activeTrackingConditionId = 86
 
 // Track runs the Perception+Search trail-read. With TargetNoun set (or
 // resolved via TargetFrom), attempts active-tracking: locates the trail
@@ -91,7 +91,7 @@ func Track(actor Actor, opts TrackOptions) TrackResult {
 		char.SetMiscData("tracking-mob", nil)
 		char.SetMiscData("tracking-user", nil)
 		char.SetMiscData("tracking-display-count", nil)
-		char.RemoveBuff(activeTrackingBuffId)
+		char.RemoveCondition(activeTrackingConditionId)
 		if actor.IsPlayer() {
 			actor.SendText(messaging.CategorySystem, `You stop tracking.`)
 		}
@@ -292,8 +292,8 @@ func Track(actor Actor, opts TrackOptions) TrackResult {
 
 		char.SetMiscData(miscKey, miscVal)
 		char.SetMiscData("tracking-display-count", nil)
-		actor.AddBuff(activeTrackingBuffId, "skill")
-		result.BuffApplied = true
+		actor.AddCondition(activeTrackingConditionId, "skill")
+		result.ConditionApplied = true
 		result.ActiveTargetUserId = targetUserId
 		result.ActiveTargetMobInstId = targetMobId
 		result.ActiveTargetName = targetName

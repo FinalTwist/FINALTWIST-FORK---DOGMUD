@@ -17,22 +17,22 @@ func (c *Character) IsDisabled() bool {
 	return c.Health <= 0
 }
 
-func (c *Character) HasBuffFlag(buffFlag conditions.Flag) bool {
-	return c.Buffs.HasFlag(buffFlag, false)
+func (c *Character) HasConditionFlag(conditionFlag conditions.Flag) bool {
+	return c.Conditions.HasFlag(conditionFlag, false)
 }
 
 // HasFlagFromAnySource returns true if the character has the given flag from
 // either active buffs OR permanent mutation effects. Use this instead of
 // HasBuffFlag when the check should also honor mutation-granted flags.
-func (c *Character) HasFlagFromAnySource(buffFlag conditions.Flag) bool {
-	if c.Buffs.HasFlag(buffFlag, false) {
+func (c *Character) HasFlagFromAnySource(conditionFlag conditions.Flag) bool {
+	if c.Conditions.HasFlag(conditionFlag, false) {
 		return true
 	}
-	return mutations.HasMutationFlag(c.Mutations, string(buffFlag))
+	return mutations.HasMutationFlag(c.Mutations, string(conditionFlag))
 }
 
-func (c *Character) CancelBuffsWithFlag(buffFlag conditions.Flag) bool {
-	if c.Buffs.HasFlag(buffFlag, true) {
+func (c *Character) CancelConditionsWithFlag(conditionFlag conditions.Flag) bool {
+	if c.Conditions.HasFlag(conditionFlag, true) {
 		c.Validate(true)
 		// Hidden flag is special: the Awareness FSM mirrors the buff
 		// via Awareness_Cascades.go. If a caller cancels the buff
@@ -58,7 +58,7 @@ func (c *Character) CancelBuffsWithFlag(buffFlag conditions.Flag) bool {
 		//
 		// Asking the FSM directly is correct for every caller and cannot
 		// drift again: if stealth is still on after a cancel, end it.
-		if c.Awareness != nil && !c.Buffs.HasFlag(conditions.Hidden, false) &&
+		if c.Awareness != nil && !c.Conditions.HasFlag(conditions.Hidden, false) &&
 			c.Awareness.State() == awareness.Hidden {
 			_ = c.Awareness.TransitionToRevealing(
 				state.TransitionReason{Trigger: awareness.TriggerObserverSearch})
@@ -68,7 +68,7 @@ func (c *Character) CancelBuffsWithFlag(buffFlag conditions.Flag) bool {
 	return false
 }
 
-// CancelCombatBuffs cancels all active buffs with the CancelIfCombat flag
+// CancelCombatConditions cancels all active buffs with the CancelIfCombat flag
 // AND strips matching buffs from the permaBuffIds list so they don't
 // re-apply during Validate(). Call this when a character enters combat
 // (as attacker or defender) or dies.
@@ -78,10 +78,10 @@ func (c *Character) CancelBuffsWithFlag(buffFlag conditions.Flag) bool {
 // re-applied every Validate() call — the combat system would strip the
 // active instance but the next Validate would put it right back. This
 // surfaced as "(hidden)" tags persisting on ambushers mid-combat.
-func (c *Character) CancelCombatBuffs() {
-	filtered := make([]int, 0, len(c.permaBuffIds))
-	for _, id := range c.permaBuffIds {
-		spec := conditions.GetBuffSpec(id)
+func (c *Character) CancelCombatConditions() {
+	filtered := make([]int, 0, len(c.permanentConditionIds))
+	for _, id := range c.permanentConditionIds {
+		spec := conditions.GetConditionSpec(id)
 		if spec == nil {
 			filtered = append(filtered, id)
 			continue
@@ -97,55 +97,55 @@ func (c *Character) CancelCombatBuffs() {
 			filtered = append(filtered, id)
 		}
 	}
-	c.permaBuffIds = filtered
+	c.permanentConditionIds = filtered
 
-	c.CancelBuffsWithFlag(conditions.CancelIfCombat)
+	c.CancelConditionsWithFlag(conditions.CancelIfCombat)
 }
 
-func (c *Character) HasBuff(buffId int) bool {
-	return c.Buffs.HasBuff(buffId)
+func (c *Character) HasCondition(conditionId int) bool {
+	return c.Conditions.HasCondition(conditionId)
 }
 
-// RefreshBuff tops a held buff's triggers back up without resetting its
+// RefreshCondition tops a held buff's triggers back up without resetting its
 // round cadence or running Validate: a refresh changes no statmod or flag,
 // so there is nothing for Validate to rebuild.
-func (c *Character) RefreshBuff(buffId int) bool {
-	return c.Buffs.RefreshBuff(buffId)
+func (c *Character) RefreshCondition(conditionId int) bool {
+	return c.Conditions.RefreshCondition(conditionId)
 }
 
-func (c *Character) AddBuff(buffId int, isPermanent bool) error {
-	buffId = int(math.Abs(float64(buffId)))
-	if !c.Buffs.AddBuff(buffId, isPermanent) {
-		return fmt.Errorf(`failed to add buff. target: "%s" buffId: %d`, c.Name, buffId)
+func (c *Character) AddCondition(conditionId int, isPermanent bool) error {
+	conditionId = int(math.Abs(float64(conditionId)))
+	if !c.Conditions.AddCondition(conditionId, isPermanent) {
+		return fmt.Errorf(`failed to add buff. target: "%s" buffId: %d`, c.Name, conditionId)
 	}
 	// Chunk 6 (Perception): blind-source buffs trigger Sighted → Blinded.
 	// Guard against re-entry: only fire if state is currently Sighted.
-	if (buffId == perception.BuffIdBlinded || buffId == perception.BuffIdFlashbangBlindness) &&
+	if (conditionId == perception.ConditionIdBlinded || conditionId == perception.ConditionIdFlashbangBlindness) &&
 		c.Perception != nil && c.Perception.State() == perception.Sighted {
 		_ = c.Perception.TransitionTo(perception.Blinded,
-			state.TransitionReason{Trigger: perception.TriggerBuffApplied, Metadata: map[string]any{"buffId": buffId}})
+			state.TransitionReason{Trigger: perception.TriggerConditionApplied, Metadata: map[string]any{"buffId": conditionId}})
 	}
 	c.Validate()
 	return nil
 }
 
-// AddBuffScaled adds a buff with its duration scaled by durationMult.
-func (c *Character) AddBuffScaled(buffId int, durationMult float64) error {
-	buffId = int(math.Abs(float64(buffId)))
-	if !c.Buffs.AddBuffScaled(buffId, durationMult) {
-		return fmt.Errorf(`failed to add buff. target: "%s" buffId: %d`, c.Name, buffId)
+// AddConditionScaled adds a buff with its duration scaled by durationMult.
+func (c *Character) AddConditionScaled(conditionId int, durationMult float64) error {
+	conditionId = int(math.Abs(float64(conditionId)))
+	if !c.Conditions.AddConditionScaled(conditionId, durationMult) {
+		return fmt.Errorf(`failed to add buff. target: "%s" buffId: %d`, c.Name, conditionId)
 	}
 	// Chunk 6 (Perception): see AddBuff above.
-	if (buffId == perception.BuffIdBlinded || buffId == perception.BuffIdFlashbangBlindness) &&
+	if (conditionId == perception.ConditionIdBlinded || conditionId == perception.ConditionIdFlashbangBlindness) &&
 		c.Perception != nil && c.Perception.State() == perception.Sighted {
 		_ = c.Perception.TransitionTo(perception.Blinded,
-			state.TransitionReason{Trigger: perception.TriggerBuffApplied, Metadata: map[string]any{"buffId": buffId}})
+			state.TransitionReason{Trigger: perception.TriggerConditionApplied, Metadata: map[string]any{"buffId": conditionId}})
 	}
 	c.Validate()
 	return nil
 }
 
-// AddBuffMagnitude applies a record synchronously for an exact trigger count
+// AddConditionMagnitude applies a record synchronously for an exact trigger count
 // with a per-instance magnitude. It is what every former combat-condition site
 // calls: those effects must be in place within the same round tick (a shout,
 // a ward, a bleed) and their appliers narrate the moment themselves, so the
@@ -155,85 +155,85 @@ func (c *Character) AddBuffScaled(buffId int, durationMult float64) error {
 // round, so the trigger count is the rounds; a stacking record takes it as the
 // new stack's rounds. source overwrites the held record's Source on every
 // call, so a stacking record carries its last applier's source.
-func (c *Character) AddBuffMagnitude(buffId int, triggers int, magnitude float64, source string) error {
-	buffId = int(math.Abs(float64(buffId)))
-	if !c.Buffs.AddBuffMagnitude(buffId, triggers, magnitude) {
-		return fmt.Errorf(`failed to add buff. target: "%s" buffId: %d`, c.Name, buffId)
+func (c *Character) AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string) error {
+	conditionId = int(math.Abs(float64(conditionId)))
+	if !c.Conditions.AddConditionMagnitude(conditionId, triggers, magnitude) {
+		return fmt.Errorf(`failed to add buff. target: "%s" buffId: %d`, c.Name, conditionId)
 	}
-	for _, b := range c.Buffs.GetBuffs(buffId) {
+	for _, b := range c.Conditions.GetConditions(conditionId) {
 		b.Source = source
 	}
 	_ = c.Validate()
 	return nil
 }
 
-func (c *Character) TrackBuffStarted(buffId int) {
-	c.Buffs.Started(buffId)
+func (c *Character) TrackConditionStarted(conditionId int) {
+	c.Conditions.Started(conditionId)
 }
 
-func (c *Character) GetBuffs(buffId ...int) []*conditions.Buff {
-	return c.Buffs.GetBuffs(buffId...)
+func (c *Character) GetConditions(conditionId ...int) []*conditions.Condition {
+	return c.Conditions.GetConditions(conditionId...)
 }
 
-func (c *Character) RemoveBuff(buffId int) {
-	buffId = int(math.Abs(float64(buffId)))
-	c.Buffs.RemoveBuff(buffId)
+func (c *Character) RemoveCondition(conditionId int) {
+	conditionId = int(math.Abs(float64(conditionId)))
+	c.Conditions.RemoveCondition(conditionId)
 	// Chunk 6 (Perception): clearing a blind-source buff may flip
 	// Blinded → Sighted, but only if no other blind source remains.
-	if (buffId == perception.BuffIdBlinded || buffId == perception.BuffIdFlashbangBlindness) &&
+	if (conditionId == perception.ConditionIdBlinded || conditionId == perception.ConditionIdFlashbangBlindness) &&
 		c.Perception != nil && c.Perception.State() == perception.Blinded && !c.HasAnyBlindSource() {
 		_ = c.Perception.TransitionTo(perception.Sighted,
-			state.TransitionReason{Trigger: perception.TriggerBuffExpired, Metadata: map[string]any{"buffId": buffId}})
+			state.TransitionReason{Trigger: perception.TriggerConditionExpired, Metadata: map[string]any{"buffId": conditionId}})
 	}
 	c.Validate()
 }
 
 // Used with SpawnInfo to gift spawning mobs with permabuffs
-func (c *Character) SetPermaBuffs(buffIds []int) {
-	c.permaBuffIds = buffIds
+func (c *Character) SetPermanentConditions(conditionIds []int) {
+	c.permanentConditionIds = conditionIds
 }
 
-// RemovePermaBuff removes a buff ID from the permanent buff list so
+// RemovePermanentCondition removes a buff ID from the permanent buff list so
 // it won't be re-applied during Validate(). Use this when a permabuff
 // should be permanently lost (e.g., revealing a hidden mob).
-func (c *Character) RemovePermaBuff(buffId int) {
-	for i, id := range c.permaBuffIds {
-		if id == buffId {
-			c.permaBuffIds = append(c.permaBuffIds[:i], c.permaBuffIds[i+1:]...)
+func (c *Character) RemovePermanentCondition(conditionId int) {
+	for i, id := range c.permanentConditionIds {
+		if id == conditionId {
+			c.permanentConditionIds = append(c.permanentConditionIds[:i], c.permanentConditionIds[i+1:]...)
 			return
 		}
 	}
 }
 
-func (c *Character) reapplyPermabuffs(removedItems ...items.Item) {
+func (c *Character) reapplyPermanentConditions(removedItems ...items.Item) {
 
-	buffIdCount := map[int]int{}
+	conditionIdCount := map[int]int{}
 
-	for _, buffId := range c.permaBuffIds {
-		buffIdCount[buffId] = 100 // Special case permabuffs associated with certain mobs
+	for _, conditionId := range c.permanentConditionIds {
+		conditionIdCount[conditionId] = 100 // Special case permabuffs associated with certain mobs
 	}
 
 	// Apply any buffs that come from a species
 	if rInfo := species.GetSpecies(c.SpeciesId); rInfo != nil {
-		for _, buffId := range rInfo.BuffIds {
-			buffIdCount[buffId] = 100 // Don't allow species buffs to be removed, keep this number high
+		for _, conditionId := range rInfo.ConditionIds {
+			conditionIdCount[conditionId] = 100 // Don't allow species buffs to be removed, keep this number high
 		}
 	}
 
 	// Apply any buffs from pet
 	if c.Pet.Exists() {
-		for _, buffId := range c.Pet.GetBuffs() {
-			buffIdCount[buffId] = 100 // Don't allow pet buffs to be removed, keep this number high
+		for _, conditionId := range c.Pet.GetConditions() {
+			conditionIdCount[conditionId] = 100 // Don't allow pet buffs to be removed, keep this number high
 		}
 	}
 
 	// Track any buffs that come from an item
 	// If these don't show up as still being required by an item (such as a yaml file was changed)
 	// This will cause them to be removed.
-	for _, b := range c.Buffs.List {
-		if b.PermaBuff {
-			if _, ok := buffIdCount[b.BuffId]; !ok {
-				buffIdCount[b.BuffId] = 0
+	for _, b := range c.Conditions.List {
+		if b.Permanent {
+			if _, ok := conditionIdCount[b.ConditionId]; !ok {
+				conditionIdCount[b.ConditionId] = 0
 			}
 		}
 	}
@@ -241,26 +241,26 @@ func (c *Character) reapplyPermabuffs(removedItems ...items.Item) {
 	// Make a list of all item buffs provided by existing worn items
 	for _, itm := range c.GetAllWornItems() {
 		spec := itm.GetSpec()
-		for _, buffId := range spec.WornBuffIds {
-			buffIdCount[buffId] = buffIdCount[buffId] + 1
+		for _, conditionId := range spec.WornConditionIds {
+			conditionIdCount[conditionId] = conditionIdCount[conditionId] + 1
 		}
 
 	}
 	// Remove any buffs that come specifically from item
 	for _, removedItem := range removedItems {
 		iSpec := removedItem.GetSpec()
-		if len(iSpec.WornBuffIds) > 0 {
-			for _, buffId := range iSpec.WornBuffIds {
-				buffIdCount[buffId] = buffIdCount[buffId] - 1
+		if len(iSpec.WornConditionIds) > 0 {
+			for _, conditionId := range iSpec.WornConditionIds {
+				conditionIdCount[conditionId] = conditionIdCount[conditionId] - 1
 			}
 		}
 	}
 
-	for buffId, ct := range buffIdCount {
+	for conditionId, ct := range conditionIdCount {
 		if ct < 1 {
-			c.RemoveBuff(buffId)
+			c.RemoveCondition(conditionId)
 		} else {
-			c.AddBuff(buffId, true)
+			c.AddCondition(conditionId, true)
 		}
 	}
 }

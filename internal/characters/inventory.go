@@ -193,7 +193,7 @@ func (c *Character) StoreItem(i items.Item) bool {
 	}
 
 	// Auto-route potions and throwables to the bandolier
-	if (iSpec.Type == items.Potion || (iSpec.Subtype == items.Drinkable && len(iSpec.BuffIds) > 0) || iSpec.Subtype == items.Throwable) && c.Equipment.Belt.ItemId > 0 {
+	if (iSpec.Type == items.Potion || (iSpec.Subtype == items.Drinkable && len(iSpec.ConditionIds) > 0) || iSpec.Subtype == items.Throwable) && c.Equipment.Belt.ItemId > 0 {
 		beltSpec := c.Equipment.Belt.GetSpec()
 		if beltSpec.IsBandolier && beltSpec.BandolierCapacity > 0 && len(c.PotionItems) < beltSpec.BandolierCapacity {
 			// Ambient bandoliers (e.g. the Vitalis Bandolier) passively tick

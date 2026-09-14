@@ -19,8 +19,8 @@ var transitions = state.TransitionTable[State]{
 // (slice 1, 2026-09-12) deleted the enum it lived in; the constants went with
 // it. Blindness has exactly two sources, both buffs.
 const (
-	TriggerBuffApplied = "buff_applied"
-	TriggerBuffExpired = "buff_expired"
+	TriggerConditionApplied = "buff_applied"
+	TriggerConditionExpired = "buff_expired"
 )
 
 // Blind-source buff IDs. Detected by ID rather than by flag because
@@ -28,6 +28,6 @@ const (
 // have stat mods. Adding flags to the YAML would touch data; detecting
 // by ID keeps chunk 6 dormant on the data side.
 const (
-	BuffIdBlinded            = 3  // _datafiles/world/dogmud/buffs/3-blinded.yaml
-	BuffIdFlashbangBlindness = 77 // _datafiles/world/dogmud/buffs/77-flashbang_blindness.yaml
+	ConditionIdBlinded            = 3  // _datafiles/world/dogmud/buffs/3-blinded.yaml
+	ConditionIdFlashbangBlindness = 77 // _datafiles/world/dogmud/buffs/77-flashbang_blindness.yaml
 )

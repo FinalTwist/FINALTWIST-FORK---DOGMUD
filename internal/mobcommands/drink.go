@@ -26,14 +26,14 @@ func Drink(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			return true, nil
 		}
 
-		mob.Character.CancelBuffsWithFlag(conditions.Hidden)
+		mob.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 		mob.Character.UseItem(matchItem)
 
 		room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> drinks <ansi fg="itemname">%s</ansi>.`, mob.Character.Name, matchItem.DisplayName()))
 
-		for _, buffId := range itemSpec.BuffIds {
-			mob.AddBuff(buffId, `drink`)
+		for _, conditionId := range itemSpec.ConditionIds {
+			mob.AddCondition(conditionId, `drink`)
 		}
 	}
 

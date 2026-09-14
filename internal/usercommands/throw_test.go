@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -382,11 +382,11 @@ func newTestMob(instanceId int) *mobs.Mob {
 		InstanceId: instanceId,
 		HomeRoomId: 1,
 		Character: characters.Character{
-			Name:      "Warden-Prime",
-			RoomId:    1,
-			Health:    500,
-			Buffs:     conditions.New(),
-			Cooldowns: map[string]int{},
+			Name:       "Warden-Prime",
+			RoomId:     1,
+			Health:     500,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	m.Character.HealthMax.Value = 500

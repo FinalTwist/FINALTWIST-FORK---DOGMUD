@@ -419,22 +419,22 @@ func (u *UserRecord) CommandFlagged(inputTxt string, flagData events.EventFlag, 
 
 }
 
-func (u *UserRecord) AddBuff(buffId int, source string) {
+func (u *UserRecord) AddCondition(conditionId int, source string) {
 
-	events.AddToQueue(events.Buff{
-		UserId:    u.UserId,
-		BuffId:    buffId,
-		Source:    source,
-		LifeEpoch: u.lifeEpoch(),
+	events.AddToQueue(events.Condition{
+		UserId:      u.UserId,
+		ConditionId: conditionId,
+		Source:      source,
+		LifeEpoch:   u.lifeEpoch(),
 	})
 
 }
 
-// AddBuffScaled queues a buff whose duration is scaled, the way potion
+// AddConditionScaled queues a buff whose duration is scaled, the way potion
 // potency and crafting skill scale them. It travels the same event as
 // AddBuff, so the holder still reads the start notice; applying through
-// Character.AddBuffScaled directly would land in silence.
-func (u *UserRecord) AddBuffScaled(buffId int, durationMult float64, source string) {
+// Character.AddConditionScaled directly would land in silence.
+func (u *UserRecord) AddConditionScaled(conditionId int, durationMult float64, source string) {
 
 	// Normalise a non-positive multiplier to the authored duration. Buffs.AddBuffScaled
 	// clamps a zero to a single trigger, but the hook reads 0 as "unscaled" and would
@@ -443,9 +443,9 @@ func (u *UserRecord) AddBuffScaled(buffId int, durationMult float64, source stri
 		durationMult = 1.0
 	}
 
-	events.AddToQueue(events.Buff{
+	events.AddToQueue(events.Condition{
 		UserId:       u.UserId,
-		BuffId:       buffId,
+		ConditionId:  conditionId,
 		Source:       source,
 		DurationMult: durationMult,
 		LifeEpoch:    u.lifeEpoch(),
@@ -453,20 +453,20 @@ func (u *UserRecord) AddBuffScaled(buffId int, durationMult float64, source stri
 
 }
 
-// AddBuffMagnitude queues a record with an exact trigger count and a
+// AddConditionMagnitude queues a record with an exact trigger count and a
 // per-instance magnitude through the event path, so the holder reads the
 // start notice. Former conditions apply synchronously through
-// Character.AddBuffMagnitude instead; this door is for a spell or item that
+// Character.AddConditionMagnitude instead; this door is for a spell or item that
 // wants the notice too. triggers is the exact trigger count, which for a
 // one-round record is the rounds.
-func (u *UserRecord) AddBuffMagnitude(buffId int, triggers int, magnitude float64, source string) {
-	events.AddToQueue(events.Buff{
-		UserId:    u.UserId,
-		BuffId:    buffId,
-		Source:    source,
-		Triggers:  triggers,
-		Magnitude: magnitude,
-		LifeEpoch: u.lifeEpoch(),
+func (u *UserRecord) AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string) {
+	events.AddToQueue(events.Condition{
+		UserId:      u.UserId,
+		ConditionId: conditionId,
+		Source:      source,
+		Triggers:    triggers,
+		Magnitude:   magnitude,
+		LifeEpoch:   u.lifeEpoch(),
 	})
 }
 

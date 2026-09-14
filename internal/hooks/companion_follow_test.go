@@ -3,8 +3,8 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -37,11 +37,11 @@ func seedFollowRegistries(t *testing.T) func() {
 		InstanceId: 200,
 		HomeRoomId: 1,
 		Character: characters.Character{
-			Name:      "Wolf",
-			RoomId:    1,
-			Health:    40,
-			Buffs:     conditions.New(),
-			Cooldowns: map[string]int{},
+			Name:       "Wolf",
+			RoomId:     1,
+			Health:     40,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	mobInst.Character.HealthMax.Value = 40

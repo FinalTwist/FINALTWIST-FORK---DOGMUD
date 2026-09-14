@@ -20,7 +20,7 @@ import (
 // the harm lands and stamp LastTickCause only on a non-empty result, so a
 // record that is neither poison nor bleeding leaves whatever cause the last
 // qualifying tick left behind untouched.
-func tickCauseFor(spec *conditions.BuffSpec) string {
+func tickCauseFor(spec *conditions.ConditionSpec) string {
 	if spec == nil {
 		return ""
 	}

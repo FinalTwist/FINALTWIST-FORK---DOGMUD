@@ -19,11 +19,11 @@ import (
 // report every mob and item as non-existent and every valid-list test would
 // fail for the wrong reason.
 type SpawnValidators struct {
-	MobExists  func(id int) bool
-	ItemExists func(id int) bool
-	BuffExists func(id int) bool
-	PeriodOK   func(period string) bool
-	Containers map[string]struct{} // container nouns present in THIS room
+	MobExists       func(id int) bool
+	ItemExists      func(id int) bool
+	ConditionExists func(id int) bool
+	PeriodOK        func(period string) bool
+	Containers      map[string]struct{} // container nouns present in THIS room
 }
 
 // ValidateSpawnEntry enforces the spawn-entry rules an author can get wrong.
@@ -65,8 +65,8 @@ func ValidateSpawnEntry(s SpawnInfo, v SpawnValidators) error {
 		}
 	}
 
-	for _, b := range s.BuffIds {
-		if !v.BuffExists(b) {
+	for _, b := range s.ConditionIds {
+		if !v.ConditionExists(b) {
 			return fmt.Errorf("buff %d does not exist", b)
 		}
 	}
@@ -148,10 +148,10 @@ func ValidateSpawnEntryLive(s SpawnInfo, containers map[string]Container) error 
 		set[name] = struct{}{}
 	}
 	return ValidateSpawnEntry(s, SpawnValidators{
-		MobExists:  func(id int) bool { return mobs.GetMobSpec(mobs.MobId(id)) != nil },
-		ItemExists: func(id int) bool { return items.GetItemSpec(id) != nil },
-		BuffExists: func(id int) bool { return conditions.GetBuffSpec(id) != nil },
-		PeriodOK:   RealPeriodOK,
-		Containers: set,
+		MobExists:       func(id int) bool { return mobs.GetMobSpec(mobs.MobId(id)) != nil },
+		ItemExists:      func(id int) bool { return items.GetItemSpec(id) != nil },
+		ConditionExists: func(id int) bool { return conditions.GetConditionSpec(id) != nil },
+		PeriodOK:        RealPeriodOK,
+		Containers:      set,
 	})
 }

@@ -21,15 +21,15 @@ import (
 // expire sets a buff's remaining triggers to the pruning threshold, so the next
 // PruneBuffs removes it and sends its end text. Deterministic, unlike counting
 // ticks.
-func expire(t *testing.T, list []*conditions.Buff, buffId int) {
+func expire(t *testing.T, list []*conditions.Condition, conditionId int) {
 	t.Helper()
 	for _, b := range list {
-		if b.BuffId == buffId {
+		if b.ConditionId == conditionId {
 			b.TriggersLeft = conditions.TriggersLeftExpired
 			return
 		}
 	}
-	t.Fatalf("buff %d not found to expire", buffId)
+	t.Fatalf("buff %d not found to expire", conditionId)
 }
 
 // rawLineContaining returns the first raw (still tagged) line whose plain text
@@ -43,51 +43,51 @@ func rawLineContaining(raw []string, want string) string {
 	return ""
 }
 
-func TestBuffStartRoomText_SightedObserverSeesIt(t *testing.T) {
+func TestConditionStartRoomText_SightedObserverSeesIt(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	drainPlain(2)
 
-	assert.Equal(t, events.Continue, ApplyBuffs(events.Buff{UserId: 1, BuffId: glowBuffId}))
+	assert.Equal(t, events.Continue, ApplyConditions(events.Condition{UserId: 1, ConditionId: glowConditionId}))
 	assert.Equal(t, 1, countContaining(drainPlain(2), "Aliceia glows."))
 }
 
-func TestBuffStartRoomText_UnsightedObserverInTheDarkGetsNothing(t *testing.T) {
+func TestConditionStartRoomText_UnsightedObserverInTheDarkGetsNothing(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	darken(t, 1)
 	drainPlain(2)
 
-	ApplyBuffs(events.Buff{UserId: 1, BuffId: glowBuffId})
+	ApplyConditions(events.Condition{UserId: 1, ConditionId: glowConditionId})
 	assert.Equal(t, 0, countContaining(drainPlain(2), "glows."),
 		"an observer who cannot see must not be told what a buff looks like")
 }
 
-func TestBuffStartRoomText_NightVisionSeesItInTheDark(t *testing.T) {
+func TestConditionStartRoomText_NightVisionSeesItInTheDark(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	darken(t, 1)
-	require.True(t, users.GetByUserId(2).Character.Buffs.AddBuff(nightEyesBuffId, true))
+	require.True(t, users.GetByUserId(2).Character.Conditions.AddCondition(nightEyesConditionId, true))
 	drainPlain(2)
 
-	ApplyBuffs(events.Buff{UserId: 1, BuffId: glowBuffId})
+	ApplyConditions(events.Condition{UserId: 1, ConditionId: glowConditionId})
 	assert.Equal(t, 1, countContaining(drainPlain(2), "Aliceia glows."))
 }
 
-func TestBuffStartRoomText_MobHolderUsesTheMobTag(t *testing.T) {
+func TestConditionStartRoomText_MobHolderUsesTheMobTag(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	events.DrainQueuedMessagesForTest(2)
 
-	ApplyBuffs(events.Buff{MobInstanceId: 100, BuffId: glowBuffId})
+	ApplyConditions(events.Condition{MobInstanceId: 100, ConditionId: glowConditionId})
 	line := rawLineContaining(events.DrainQueuedMessagesForTest(2), "Skeleton glows.")
 	require.NotEmpty(t, line, "the observer must receive the mob's start text")
 	assert.Contains(t, line, `fg="mobname`)
@@ -95,98 +95,98 @@ func TestBuffStartRoomText_MobHolderUsesTheMobTag(t *testing.T) {
 		"a mob holder was tagged with the player colour")
 }
 
-func TestBuffTriggerRoomText_UnsightedObserverInTheDarkGetsNothing(t *testing.T) {
+func TestConditionTriggerRoomText_UnsightedObserverInTheDarkGetsNothing(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	darken(t, 1)
-	require.True(t, users.GetByUserId(1).Character.Buffs.AddBuff(shiverBuffId, false))
+	require.True(t, users.GetByUserId(1).Character.Conditions.AddCondition(shiverConditionId, false))
 	drainPlain(2)
 
 	UserRoundTick(events.NewRound{RoundNumber: 1})
 	assert.Equal(t, 0, countContaining(drainPlain(2), "shivers."))
 }
 
-func TestBuffTriggerRoomText_SightedObserverSeesIt(t *testing.T) {
+func TestConditionTriggerRoomText_SightedObserverSeesIt(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
-	require.True(t, users.GetByUserId(1).Character.Buffs.AddBuff(shiverBuffId, false))
+	require.True(t, users.GetByUserId(1).Character.Conditions.AddCondition(shiverConditionId, false))
 	drainPlain(2)
 
 	UserRoundTick(events.NewRound{RoundNumber: 1})
 	assert.Equal(t, 1, countContaining(drainPlain(2), "Aliceia shivers."))
 }
 
-func TestBuffEndRoomText_UnsightedObserverInTheDarkGetsNothing(t *testing.T) {
+func TestConditionEndRoomText_UnsightedObserverInTheDarkGetsNothing(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	darken(t, 1)
 	holder := users.GetByUserId(1)
-	require.True(t, holder.Character.Buffs.AddBuff(fadeBuffId, false))
-	expire(t, holder.Character.Buffs.List, fadeBuffId)
+	require.True(t, holder.Character.Conditions.AddCondition(fadeConditionId, false))
+	expire(t, holder.Character.Conditions.List, fadeConditionId)
 	drainPlain(2)
 
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	assert.Equal(t, 0, countContaining(drainPlain(2), "fades."))
 }
 
-func TestBuffEndRoomText_SightedObserverSeesIt(t *testing.T) {
+func TestConditionEndRoomText_SightedObserverSeesIt(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	holder := users.GetByUserId(1)
-	require.True(t, holder.Character.Buffs.AddBuff(fadeBuffId, false))
-	expire(t, holder.Character.Buffs.List, fadeBuffId)
+	require.True(t, holder.Character.Conditions.AddCondition(fadeConditionId, false))
+	expire(t, holder.Character.Conditions.List, fadeConditionId)
 	drainPlain(2)
 
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	assert.Equal(t, 1, countContaining(drainPlain(2), "Aliceia fades."))
 }
 
-func TestBuffEndRoomText_MobHolderIsVisualAndUsesTheMobTag(t *testing.T) {
+func TestConditionEndRoomText_MobHolderIsVisualAndUsesTheMobTag(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	mob := mobs.GetInstance(100)
-	require.True(t, mob.Character.Buffs.AddBuff(fadeBuffId, false))
-	expire(t, mob.Character.Buffs.List, fadeBuffId)
+	require.True(t, mob.Character.Conditions.AddCondition(fadeConditionId, false))
+	expire(t, mob.Character.Conditions.List, fadeConditionId)
 	events.DrainQueuedMessagesForTest(2)
 
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	line := rawLineContaining(events.DrainQueuedMessagesForTest(2), "Skeleton fades.")
 	require.NotEmpty(t, line)
 	assert.Contains(t, line, `fg="mobname`)
 
 	// And the same line is gated by sight.
-	require.True(t, mob.Character.Buffs.AddBuff(fadeBuffId, false))
-	expire(t, mob.Character.Buffs.List, fadeBuffId)
+	require.True(t, mob.Character.Conditions.AddCondition(fadeConditionId, false))
+	expire(t, mob.Character.Conditions.List, fadeConditionId)
 	darken(t, 1)
 	drainPlain(2)
-	PruneBuffs(events.NewTurn{TurnNumber: 2})
+	PruneConditions(events.NewTurn{TurnNumber: 2})
 	assert.Equal(t, 0, countContaining(drainPlain(2), "fades."))
 }
 
-// TestMobBuffTriggerRoomText is the D4 guard. The player round tick has always
+// TestMobConditionTriggerRoomText is the D4 guard. The player round tick has always
 // sent a triggered buff's trigger_room_text; tickMobBuffs never did, so a mob
 // holding a trigger-text buff showed nothing. No mob holder of the shipped
 // trigger-text buffs could be staged in a playtest, so this is its only check.
-func TestMobBuffTriggerRoomText(t *testing.T) {
+func TestMobConditionTriggerRoomText(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	mob := mobs.GetInstance(100)
-	require.True(t, mob.Character.Buffs.AddBuff(shiverBuffId, false))
+	require.True(t, mob.Character.Conditions.AddCondition(shiverConditionId, false))
 	events.DrainQueuedMessagesForTest(2)
 
-	tickMobBuffs(mob, 100)
+	tickMobConditions(mob, 100)
 	raw := events.DrainQueuedMessagesForTest(2)
 	line := rawLineContaining(raw, "Skeleton shivers.")
 	require.NotEmpty(t, line, "a sighted observer must see the mob's trigger text")
@@ -202,7 +202,7 @@ func TestMobBuffTriggerRoomText(t *testing.T) {
 	// Sight-gated like every other buff room line.
 	darken(t, 1)
 	drainPlain(2)
-	tickMobBuffs(mob, 100)
+	tickMobConditions(mob, 100)
 	assert.Equal(t, 0, countContaining(drainPlain(2), "shivers."))
 }
 
@@ -215,56 +215,56 @@ func TestMobBuffTriggerRoomText(t *testing.T) {
 // who had been seeing by that light. Found by the Task 2 review against
 // shipped buff 1, Illumination.
 
-func TestBuffEndRoomText_LightBuffEndIsSeenByItsOwnLight_Player(t *testing.T) {
+func TestConditionEndRoomText_LightConditionEndIsSeenByItsOwnLight_Player(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	darken(t, 1)
 	room := rooms.LoadRoom(1)
 	holder := users.GetByUserId(1)
-	require.True(t, holder.Character.Buffs.AddBuff(lanternBuffId, false))
+	require.True(t, holder.Character.Conditions.AddCondition(lanternConditionId, false))
 	require.GreaterOrEqual(t, room.GetVisibility(), 1, "the lantern must light the cave, or this test proves nothing")
-	expire(t, holder.Character.Buffs.List, lanternBuffId)
+	expire(t, holder.Character.Conditions.List, lanternConditionId)
 	require.Zero(t, room.GetVisibility(), "the light is already out once the buff expires, before any prune")
 	drainPlain(2)
 
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	assert.Equal(t, 1, countContaining(drainPlain(2), "Aliceia's light gutters out."))
 }
 
-// TestBuffEndRoomText_LightBuffEnd_SleeperStillGetsNothing proves the light
+// TestConditionEndRoomText_LightConditionEnd_SleeperStillGetsNothing proves the light
 // line is still a SIGHT line, not audio: an observer who cannot see for a
 // reason other than darkness is not told.
-func TestBuffEndRoomText_LightBuffEnd_SleeperStillGetsNothing(t *testing.T) {
+func TestConditionEndRoomText_LightConditionEnd_SleeperStillGetsNothing(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	darken(t, 1)
 	holder := users.GetByUserId(1)
-	require.True(t, holder.Character.Buffs.AddBuff(lanternBuffId, false))
-	require.True(t, users.GetByUserId(2).Character.Buffs.AddBuff(dozeBuffId, true))
-	expire(t, holder.Character.Buffs.List, lanternBuffId)
+	require.True(t, holder.Character.Conditions.AddCondition(lanternConditionId, false))
+	require.True(t, users.GetByUserId(2).Character.Conditions.AddCondition(dozeConditionId, true))
+	expire(t, holder.Character.Conditions.List, lanternConditionId)
 	drainPlain(2)
 
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	assert.Equal(t, 0, countContaining(drainPlain(2), "light gutters out"))
 }
 
-func TestBuffEndRoomText_LightBuffEndIsSeenByItsOwnLight_Mob(t *testing.T) {
+func TestConditionEndRoomText_LightConditionEndIsSeenByItsOwnLight_Mob(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	darken(t, 1)
 	room := rooms.LoadRoom(1)
 	mob := mobs.GetInstance(100)
-	require.True(t, mob.Character.Buffs.AddBuff(lanternBuffId, false))
+	require.True(t, mob.Character.Conditions.AddCondition(lanternConditionId, false))
 	require.GreaterOrEqual(t, room.GetVisibility(), 1, "the lantern must light the cave, or this test proves nothing")
-	expire(t, mob.Character.Buffs.List, lanternBuffId)
+	expire(t, mob.Character.Conditions.List, lanternConditionId)
 	drainPlain(2)
 
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	assert.Equal(t, 1, countContaining(drainPlain(2), "Skeleton's light gutters out."))
 }

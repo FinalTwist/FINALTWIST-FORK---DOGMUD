@@ -3,16 +3,16 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	sightNightVisionBuffId  = 29
-	sightIlluminationBuffId = 1
+	sightNightVisionConditionId  = 29
+	sightIlluminationConditionId = 1
 )
 
 // sightScene stands one mob (instance 8101) in room 8100 of the given biome.
@@ -24,9 +24,9 @@ func sightScene(t *testing.T, biome string) (*mobs.Mob, *rooms.Room) {
 		"cave": {BiomeId: "cave", DarkArea: true},
 		"city": {BiomeId: "city", LitArea: true},
 	}))
-	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		sightNightVisionBuffId:  {BuffId: sightNightVisionBuffId, Name: "Night Vision", Flags: []conditions.Flag{conditions.NightVision}},
-		sightIlluminationBuffId: {BuffId: sightIlluminationBuffId, Name: "Illumination", Flags: []conditions.Flag{conditions.EmitsLight}},
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		sightNightVisionConditionId:  {ConditionId: sightNightVisionConditionId, Name: "Night Vision", Flags: []conditions.Flag{conditions.NightVision}},
+		sightIlluminationConditionId: {ConditionId: sightIlluminationConditionId, Name: "Illumination", Flags: []conditions.Flag{conditions.EmitsLight}},
 	}))
 
 	room := &rooms.Room{RoomId: 8100, Biome: biome}
@@ -37,12 +37,12 @@ func sightScene(t *testing.T, biome string) (*mobs.Mob, *rooms.Room) {
 		InstanceId: 8101,
 		HomeRoomId: 8100,
 		Character: characters.Character{
-			Name:      "Watcher",
-			RoomId:    8100,
-			Health:    100,
-			Buffs:     conditions.New(),
-			Cooldowns: map[string]int{},
-			SpeciesId: 1,
+			Name:       "Watcher",
+			RoomId:     8100,
+			Health:     100,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
+			SpeciesId:  1,
 		},
 	}
 	m.Character.HealthMax.Value = 100
@@ -55,7 +55,7 @@ func TestMobCanSeeDarkRoom(t *testing.T) {
 	m, room := sightScene(t, "cave")
 	require.False(t, mobCanSee(m, room), "an unlit cave blinds a mob with no night vision")
 
-	require.NoError(t, m.Character.AddBuff(sightNightVisionBuffId, true))
+	require.NoError(t, m.Character.AddCondition(sightNightVisionConditionId, true))
 	require.True(t, mobCanSee(m, room), "night vision restores sight in the dark")
 }
 

@@ -3,8 +3,8 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +25,7 @@ func buildForagerCondMob(
 	mob.Character.RoomId = 1
 	mob.Character.Health = hp
 	mob.Character.HealthMax.Value = hpMax
-	mob.Character.Buffs = conditions.New()
+	mob.Character.Conditions = conditions.New()
 	mob.Character.Stats.Strength.ValueAdj = 100
 	mobs.SetInstanceForTest(instanceId, mob)
 	t.Cleanup(func() { mobs.SetInstanceForTest(instanceId, nil) })

@@ -11,10 +11,10 @@ import (
 // seedRegistry populates the global buffs map with diverse specs for testing.
 // Returns a cleanup function that restores the original map.
 func seedRegistry() func() {
-	orig := buffs
-	buffs = map[int]*BuffSpec{
+	orig := conditions
+	conditions = map[int]*ConditionSpec{
 		100: {
-			BuffId:        100,
+			ConditionId:   100,
 			Name:          "Haste",
 			Description:   "You move with supernatural speed.",
 			TriggerCount:  10,
@@ -22,7 +22,7 @@ func seedRegistry() func() {
 			Flags:         []Flag{Haste},
 		},
 		101: {
-			BuffId:        101,
+			ConditionId:   101,
 			Name:          "Venom",
 			Description:   "Poison courses through your veins.",
 			TriggerCount:  5,
@@ -31,7 +31,7 @@ func seedRegistry() func() {
 			StatMods:      statmods.StatMods{"strength": -5},
 		},
 		102: {
-			BuffId:        102,
+			ConditionId:   102,
 			Name:          "Shadow Cloak",
 			Description:   "You are hidden from sight.",
 			TriggerCount:  8,
@@ -39,7 +39,7 @@ func seedRegistry() func() {
 			Flags:         []Flag{Hidden},
 		},
 		103: {
-			BuffId:        103,
+			ConditionId:   103,
 			Name:          "Eagle Eye",
 			Description:   "Your aim is true.",
 			TriggerCount:  6,
@@ -48,7 +48,7 @@ func seedRegistry() func() {
 			StatMods:      statmods.StatMods{"perception": 10, "dexterity": 5},
 		},
 		104: {
-			BuffId:        104,
+			ConditionId:   104,
 			Name:          "Titan Fury",
 			Description:   "Strength and damage surge through you.",
 			TriggerCount:  4,
@@ -56,7 +56,7 @@ func seedRegistry() func() {
 			Flags:         []Flag{DamageBonus, Haste, NoCombat},
 		},
 		105: {
-			BuffId:        105,
+			ConditionId:   105,
 			Name:          "Lethargy",
 			Description:   "Everything feels sluggish.",
 			TriggerCount:  7,
@@ -64,7 +64,7 @@ func seedRegistry() func() {
 			Flags:         []Flag{Slow},
 		},
 		106: {
-			BuffId:        106,
+			ConditionId:   106,
 			Name:          "Night Sight",
 			Description:   "You can see in the dark.",
 			TriggerCount:  12,
@@ -72,7 +72,7 @@ func seedRegistry() func() {
 			Flags:         []Flag{NightVision},
 		},
 		107: {
-			BuffId:        107,
+			ConditionId:   107,
 			Name:          "Secret Affliction",
 			Description:   "Something mysterious ails you.",
 			Secret:        true,
@@ -81,7 +81,7 @@ func seedRegistry() func() {
 			Flags:         []Flag{Poison},
 		},
 		108: {
-			BuffId:        108,
+			ConditionId:   108,
 			Name:          "Quick Heal",
 			Description:   "Instant healing pulse.",
 			TriggerNow:    true,
@@ -90,7 +90,7 @@ func seedRegistry() func() {
 			StatMods:      statmods.StatMods{"vitality": 8},
 		},
 		109: {
-			BuffId:        109,
+			ConditionId:   109,
 			Name:          "Warmth",
 			Description:   "You feel warm.",
 			TriggerCount:  20,
@@ -98,47 +98,47 @@ func seedRegistry() func() {
 			Flags:         []Flag{Warmed},
 		},
 	}
-	return func() { buffs = orig }
+	return func() { conditions = orig }
 }
 
 // ─── Buffs.Validate ─────────────────────────────────────────────────────────
 
-func TestBuffs_Validate(t *testing.T) {
+func TestConditions_Validate(t *testing.T) {
 	cleanup := seedRegistry()
 	defer cleanup()
 
-	bs := &Buffs{
-		List: []*Buff{
-			{BuffId: 100, TriggersLeft: 10},
-			{BuffId: 103, TriggersLeft: 6},
+	bs := &Conditions{
+		List: []*Condition{
+			{ConditionId: 100, TriggersLeft: 10},
+			{ConditionId: 103, TriggersLeft: 6},
 		},
 	}
 	bs.Validate()
 
-	assert.Len(t, bs.buffIds, 2)
-	assert.Contains(t, bs.buffIds, 100)
-	assert.Contains(t, bs.buffIds, 103)
+	assert.Len(t, bs.conditionIds, 2)
+	assert.Contains(t, bs.conditionIds, 100)
+	assert.Contains(t, bs.conditionIds, 103)
 
 	// Haste flag should map to buff 100
-	hasteIds := bs.GetBuffIdsWithFlag(Haste)
+	hasteIds := bs.GetConditionIdsWithFlag(Haste)
 	assert.Contains(t, hasteIds, 100)
 
 	// NightVision flag should map to buff 103. (This fixture used the Accuracy
 	// flag until U6b deleted it as an upstream stowaway; any flag serves — the
 	// test pins registry flag→id mapping, not any particular flag.)
-	nvIds := bs.GetBuffIdsWithFlag(NightVision)
+	nvIds := bs.GetConditionIdsWithFlag(NightVision)
 	assert.Contains(t, nvIds, 103)
 }
 
 // ─── Buffs.HasFlag ──────────────────────────────────────────────────────────
 
-func TestBuffs_HasFlag(t *testing.T) {
+func TestConditions_HasFlag(t *testing.T) {
 	cleanup := seedRegistry()
 	defer cleanup()
 
 	bs := New()
-	bs.AddBuff(100, false) // Haste
-	bs.AddBuff(104, false) // DamageBonus, Haste, NoCombat
+	bs.AddCondition(100, false) // Haste
+	bs.AddCondition(104, false) // DamageBonus, Haste, NoCombat
 
 	t.Run("single flag present", func(t *testing.T) {
 		assert.True(t, bs.HasFlag(Haste, false))
@@ -159,26 +159,26 @@ func TestBuffs_HasFlag(t *testing.T) {
 
 	t.Run("expire mode removes buff", func(t *testing.T) {
 		bs2 := New()
-		bs2.AddBuff(105, false) // Slow
+		bs2.AddCondition(105, false) // Slow
 		assert.True(t, bs2.HasFlag(Slow, true))
 		// After expire, the buff should be marked expired
-		idx := bs2.buffIds[105]
+		idx := bs2.conditionIds[105]
 		assert.Equal(t, TriggersLeftExpired, bs2.List[idx].TriggersLeft)
 	})
 }
 
-// TestBuffs_HasFlag_AllMatchesFlaglessBuff verifies that action==All matches
+// TestConditions_HasFlag_AllMatchesFlaglessCondition verifies that action==All matches
 // (and can expire) a buff that declares NO flags — e.g. pure regen potion
 // buffs like Healing Salve (buff 54). Regression: the per-flag loop in
 // HasFlag skipped flagless buffs entirely, so CancelBuffsWithFlag(buffs.All)
 // on death left them active. Buff 108 ("Quick Heal") has no Flags, mirroring
 // the potion regen buffs.
-func TestBuffs_HasFlag_AllMatchesFlaglessBuff(t *testing.T) {
+func TestConditions_HasFlag_AllMatchesFlaglessCondition(t *testing.T) {
 	cleanup := seedRegistry()
 	defer cleanup()
 
 	bs := New()
-	require.True(t, bs.AddBuff(108, false)) // Quick Heal — no Flags
+	require.True(t, bs.AddCondition(108, false)) // Quick Heal — no Flags
 
 	// The All wildcard must see a flagless buff.
 	assert.True(t, bs.HasFlag(All, false),
@@ -187,7 +187,7 @@ func TestBuffs_HasFlag_AllMatchesFlaglessBuff(t *testing.T) {
 	// Expire mode must mark the flagless buff expired.
 	assert.True(t, bs.HasFlag(All, true),
 		"All+expire must match the flagless buff")
-	idx, ok := bs.buffIds[108]
+	idx, ok := bs.conditionIds[108]
 	require.True(t, ok)
 	assert.Equal(t, TriggersLeftExpired, bs.List[idx].TriggersLeft,
 		"flagless buff must be expired by HasFlag(All, true)")
@@ -195,32 +195,32 @@ func TestBuffs_HasFlag_AllMatchesFlaglessBuff(t *testing.T) {
 
 // ─── Buffs.GetBuffIdsWithFlag ───────────────────────────────────────────────
 
-func TestBuffs_GetBuffIdsWithFlag(t *testing.T) {
+func TestConditions_GetConditionIdsWithFlag(t *testing.T) {
 	cleanup := seedRegistry()
 	defer cleanup()
 
 	bs := New()
-	bs.AddBuff(100, false) // Haste
-	bs.AddBuff(104, false) // DamageBonus, Haste, NoCombat
+	bs.AddCondition(100, false) // Haste
+	bs.AddCondition(104, false) // DamageBonus, Haste, NoCombat
 
-	hasteIds := bs.GetBuffIdsWithFlag(Haste)
+	hasteIds := bs.GetConditionIdsWithFlag(Haste)
 	assert.Len(t, hasteIds, 2)
 	assert.Contains(t, hasteIds, 100)
 	assert.Contains(t, hasteIds, 104)
 
-	poisonIds := bs.GetBuffIdsWithFlag(Poison)
+	poisonIds := bs.GetConditionIdsWithFlag(Poison)
 	assert.Empty(t, poisonIds)
 }
 
 // ─── Buffs.Trigger ──────────────────────────────────────────────────────────
 
-func TestBuffs_Trigger(t *testing.T) {
+func TestConditions_Trigger(t *testing.T) {
 	cleanup := seedRegistry()
 	defer cleanup()
 
 	t.Run("round counter increments and triggers at interval", func(t *testing.T) {
 		bs := New()
-		bs.AddBuff(100, false) // RoundInterval=2, TriggerCount=10
+		bs.AddCondition(100, false) // RoundInterval=2, TriggerCount=10
 
 		// Round 1: counter becomes 1, 1%2 != 0 → no trigger
 		triggered := bs.Trigger()
@@ -230,13 +230,13 @@ func TestBuffs_Trigger(t *testing.T) {
 		// Round 2: counter becomes 2, 2%2 == 0 → trigger
 		triggered = bs.Trigger()
 		assert.Len(t, triggered, 1)
-		assert.Equal(t, 100, triggered[0].BuffId)
+		assert.Equal(t, 100, triggered[0].ConditionId)
 		assert.Equal(t, 9, bs.List[0].TriggersLeft) // decremented from 10
 	})
 
 	t.Run("unlimited triggers don't decrement", func(t *testing.T) {
 		bs := New()
-		bs.AddBuff(106, true) // permanent → TriggersLeftUnlimited
+		bs.AddCondition(106, true) // permanent → TriggersLeftUnlimited
 
 		// NightVision has RoundInterval=1, so triggers every round
 		triggered := bs.Trigger()
@@ -247,8 +247,8 @@ func TestBuffs_Trigger(t *testing.T) {
 
 	t.Run("specific buffId targeting", func(t *testing.T) {
 		bs := New()
-		bs.AddBuff(100, false) // Haste, interval=2
-		bs.AddBuff(106, false) // NightVision, interval=1
+		bs.AddCondition(100, false) // Haste, interval=2
+		bs.AddCondition(106, false) // NightVision, interval=1
 
 		// Only trigger buffId 106
 		triggered := bs.Trigger(106)
@@ -262,37 +262,37 @@ func TestBuffs_Trigger(t *testing.T) {
 
 // ─── Buffs.Prune ────────────────────────────────────────────────────────────
 
-func TestBuffs_Prune(t *testing.T) {
+func TestConditions_Prune(t *testing.T) {
 	cleanup := seedRegistry()
 	defer cleanup()
 
 	bs := New()
-	bs.AddBuff(100, false) // Haste
-	bs.AddBuff(101, false) // Venom
+	bs.AddCondition(100, false) // Haste
+	bs.AddCondition(101, false) // Venom
 
 	// Expire one buff
 	bs.List[0].TriggersLeft = TriggersLeftExpired
 
 	pruned := bs.Prune()
 	assert.Len(t, pruned, 1)
-	assert.Equal(t, 100, pruned[0].BuffId)
+	assert.Equal(t, 100, pruned[0].ConditionId)
 	assert.Len(t, bs.List, 1)
-	assert.Equal(t, 101, bs.List[0].BuffId)
+	assert.Equal(t, 101, bs.List[0].ConditionId)
 
 	// Indices should be rebuilt
-	assert.Contains(t, bs.buffIds, 101)
-	assert.NotContains(t, bs.buffIds, 100)
+	assert.Contains(t, bs.conditionIds, 101)
+	assert.NotContains(t, bs.conditionIds, 100)
 }
 
 // ─── Buffs.StatMod ──────────────────────────────────────────────────────────
 
-func TestBuffs_StatMod(t *testing.T) {
+func TestConditions_StatMod(t *testing.T) {
 	cleanup := seedRegistry()
 	defer cleanup()
 
 	bs := New()
-	bs.AddBuff(101, false) // Venom: strength -5
-	bs.AddBuff(103, false) // Eagle Eye: perception +10, dexterity +5
+	bs.AddCondition(101, false) // Venom: strength -5
+	bs.AddCondition(103, false) // Eagle Eye: perception +10, dexterity +5
 
 	assert.Equal(t, -5, bs.StatMod("strength"))
 	assert.Equal(t, 10, bs.StatMod("perception"))
@@ -302,14 +302,14 @@ func TestBuffs_StatMod(t *testing.T) {
 
 // ─── Buffs.AddBuff stacking ────────────────────────────────────────────────
 
-func TestBuffs_AddBuff_Stacking(t *testing.T) {
+func TestConditions_AddCondition_Stacking(t *testing.T) {
 	cleanup := seedRegistry()
 	defer cleanup()
 
 	bs := New()
 
 	t.Run("add new buff", func(t *testing.T) {
-		ok := bs.AddBuff(100, false)
+		ok := bs.AddCondition(100, false)
 		assert.True(t, ok)
 		assert.Len(t, bs.List, 1)
 		assert.Equal(t, 10, bs.List[0].TriggersLeft)
@@ -318,30 +318,30 @@ func TestBuffs_AddBuff_Stacking(t *testing.T) {
 	t.Run("refresh existing buff", func(t *testing.T) {
 		// Drain some triggers
 		bs.List[0].TriggersLeft = 2
-		ok := bs.AddBuff(100, false)
+		ok := bs.AddCondition(100, false)
 		assert.True(t, ok)
 		assert.Len(t, bs.List, 1, "should not add duplicate")
 		assert.Equal(t, 10, bs.List[0].TriggersLeft, "should refresh triggers")
 	})
 
 	t.Run("add second buff", func(t *testing.T) {
-		ok := bs.AddBuff(101, false)
+		ok := bs.AddCondition(101, false)
 		assert.True(t, ok)
 		assert.Len(t, bs.List, 2)
 	})
 
 	t.Run("nonexistent spec returns false", func(t *testing.T) {
-		ok := bs.AddBuff(99999, false)
+		ok := bs.AddCondition(99999, false)
 		assert.False(t, ok)
 		assert.Len(t, bs.List, 2, "list unchanged")
 	})
 
 	t.Run("permanent buff", func(t *testing.T) {
-		ok := bs.AddBuff(106, true)
+		ok := bs.AddCondition(106, true)
 		assert.True(t, ok)
-		idx := bs.buffIds[106]
+		idx := bs.conditionIds[106]
 		assert.Equal(t, TriggersLeftUnlimited, bs.List[idx].TriggersLeft)
-		assert.True(t, bs.List[idx].PermaBuff)
+		assert.True(t, bs.List[idx].Permanent)
 	})
 }
 
@@ -354,8 +354,8 @@ func TestBuffs_AddBuff_Stacking(t *testing.T) {
 // deliberate change is the zero-interval row.
 func TestGetDurations(t *testing.T) {
 	type args struct {
-		buff *Buff
-		spec *BuffSpec
+		condition *Condition
+		spec      *ConditionSpec
 	}
 	tests := []struct {
 		name       string
@@ -366,8 +366,8 @@ func TestGetDurations(t *testing.T) {
 		{
 			name: "Normal case",
 			args: args{
-				buff: &Buff{TriggersLeft: 5, RoundCounter: 2},
-				spec: &BuffSpec{TriggerCount: 5, RoundInterval: 3},
+				condition: &Condition{TriggersLeft: 5, RoundCounter: 2},
+				spec:      &ConditionSpec{TriggerCount: 5, RoundInterval: 3},
 			},
 			wantRounds: 13, // new: (5*3)-(2%3) = 15-2 = 13; old: (5*3)-2 = 13
 			wantTotal:  15,
@@ -375,8 +375,8 @@ func TestGetDurations(t *testing.T) {
 		{
 			name: "Zero rounds passed",
 			args: args{
-				buff: &Buff{TriggersLeft: 4, RoundCounter: 0},
-				spec: &BuffSpec{TriggerCount: 4, RoundInterval: 2},
+				condition: &Condition{TriggersLeft: 4, RoundCounter: 0},
+				spec:      &ConditionSpec{TriggerCount: 4, RoundInterval: 2},
 			},
 			wantRounds: 8, // new: (4*2)-(0%2) = 8; old: (4*2)-0 = 8
 			wantTotal:  8,
@@ -384,8 +384,8 @@ func TestGetDurations(t *testing.T) {
 		{
 			name: "All rounds passed",
 			args: args{
-				buff: &Buff{TriggersLeft: 0, RoundCounter: 12},
-				spec: &BuffSpec{TriggerCount: 3, RoundInterval: 4},
+				condition: &Condition{TriggersLeft: 0, RoundCounter: 12},
+				spec:      &ConditionSpec{TriggerCount: 3, RoundInterval: 4},
 			},
 			wantRounds: 0, // new: (0*4)-(12%4) = 0; old: (3*4)-12 = 0
 			wantTotal:  12,
@@ -393,8 +393,8 @@ func TestGetDurations(t *testing.T) {
 		{
 			name: "RoundCounter greater than total",
 			args: args{
-				buff: &Buff{TriggersLeft: 0, RoundCounter: 10},
-				spec: &BuffSpec{TriggerCount: 2, RoundInterval: 4},
+				condition: &Condition{TriggersLeft: 0, RoundCounter: 10},
+				spec:      &ConditionSpec{TriggerCount: 2, RoundInterval: 4},
 			},
 			wantRounds: -2, // new: (0*4)-(10%4) = -2; old: (2*4)-10 = -2
 			wantTotal:  8,
@@ -402,8 +402,8 @@ func TestGetDurations(t *testing.T) {
 		{
 			name: "Zero trigger count",
 			args: args{
-				buff: &Buff{TriggersLeft: 0, RoundCounter: 1},
-				spec: &BuffSpec{TriggerCount: 0, RoundInterval: 5},
+				condition: &Condition{TriggersLeft: 0, RoundCounter: 1},
+				spec:      &ConditionSpec{TriggerCount: 0, RoundInterval: 5},
 			},
 			wantRounds: -1, // new: (0*5)-(1%5) = -1; old: (0*5)-1 = -1
 			wantTotal:  0,
@@ -415,8 +415,8 @@ func TestGetDurations(t *testing.T) {
 			// remainder (-3) for it.
 			name: "Zero round interval",
 			args: args{
-				buff: &Buff{TriggersLeft: 4, RoundCounter: 3},
-				spec: &BuffSpec{TriggerCount: 4, RoundInterval: 0},
+				condition: &Condition{TriggersLeft: 4, RoundCounter: 3},
+				spec:      &ConditionSpec{TriggerCount: 4, RoundInterval: 0},
 			},
 			wantRounds: 0,
 			wantTotal:  0,
@@ -426,8 +426,8 @@ func TestGetDurations(t *testing.T) {
 			// TriggersLeftUnlimited * RoundInterval rounds.
 			name: "Unlimited triggers",
 			args: args{
-				buff: &Buff{TriggersLeft: TriggersLeftUnlimited, RoundCounter: 2},
-				spec: &BuffSpec{TriggerCount: 5, RoundInterval: 3},
+				condition: &Condition{TriggersLeft: TriggersLeftUnlimited, RoundCounter: 2},
+				spec:      &ConditionSpec{TriggerCount: 5, RoundInterval: 3},
 			},
 			wantRounds: 13,
 			wantTotal:  15,
@@ -436,7 +436,7 @@ func TestGetDurations(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			gotRounds, gotTotal := GetDurations(tt.args.buff, tt.args.spec)
+			gotRounds, gotTotal := GetDurations(tt.args.condition, tt.args.spec)
 			assert.Equal(t, tt.wantRounds, gotRounds)
 			assert.Equal(t, tt.wantTotal, gotTotal)
 		})
@@ -452,45 +452,45 @@ func TestGetDurations(t *testing.T) {
 // held, so the `conditions` command and the web client's chips both showed a
 // duration the record would never reach.
 func TestGetDurations_ExactTriggerCountReadsTheInstance(t *testing.T) {
-	const buffId = 9401
-	defer SeedBuffsForTest(map[int]*BuffSpec{
-		buffId: {BuffId: buffId, Name: "Exact Count", TriggerCount: 10, RoundInterval: 3},
+	const conditionId = 9401
+	defer SeedConditionsForTest(map[int]*ConditionSpec{
+		conditionId: {ConditionId: conditionId, Name: "Exact Count", TriggerCount: 10, RoundInterval: 3},
 	})()
-	spec := GetBuffSpec(buffId)
+	spec := GetConditionSpec(conditionId)
 	require.NotNil(t, spec)
 
 	bs := New()
-	require.True(t, bs.AddBuffMagnitude(buffId, 2, 1.0))
+	require.True(t, bs.AddConditionMagnitude(conditionId, 2, 1.0))
 
-	buff := bs.GetBuffs(buffId)[0]
-	require.Equal(t, 2, buff.TriggersLeft)
+	condition := bs.GetConditions(conditionId)[0]
+	require.Equal(t, 2, condition.TriggersLeft)
 
 	// Before any tick: two triggers of three rounds each are still owed.
 	// The old formula said 30 here, the spec's whole lifetime.
-	roundsLeft, totalRounds := GetDurations(buff, spec)
+	roundsLeft, totalRounds := GetDurations(condition, spec)
 	assert.Equal(t, 6, roundsLeft, "two triggers at a three-round interval is six rounds")
 	assert.Equal(t, 30, totalRounds, "total stays the spec lifetime so a bar has a stable scale")
 
 	// One round in: still two triggers owed, one round into the interval.
 	bs.Trigger()
-	require.Equal(t, 1, buff.RoundCounter)
-	require.Equal(t, 2, buff.TriggersLeft)
-	roundsLeft, _ = GetDurations(buff, spec)
+	require.Equal(t, 1, condition.RoundCounter)
+	require.Equal(t, 2, condition.TriggersLeft)
+	roundsLeft, _ = GetDurations(condition, spec)
 	assert.Equal(t, 5, roundsLeft)
 
 	// Three rounds in: the first trigger has fired and the interval reset,
 	// leaving one trigger of three rounds.
 	bs.Trigger()
 	bs.Trigger()
-	require.Equal(t, 3, buff.RoundCounter)
-	require.Equal(t, 1, buff.TriggersLeft)
-	roundsLeft, _ = GetDurations(buff, spec)
+	require.Equal(t, 3, condition.RoundCounter)
+	require.Equal(t, 1, condition.TriggersLeft)
+	roundsLeft, _ = GetDurations(condition, spec)
 	assert.Equal(t, 3, roundsLeft)
 }
-func TestBuffs_HasBuff(t *testing.T) {
+func TestConditions_HasCondition(t *testing.T) {
 	type fields struct {
-		list    []*Buff
-		buffIds map[int]int
+		list         []*Condition
+		conditionIds map[int]int
 	}
 	tests := []struct {
 		name   string
@@ -501,11 +501,11 @@ func TestBuffs_HasBuff(t *testing.T) {
 		{
 			name: "Buff exists in buffIds",
 			fields: fields{
-				list: []*Buff{
-					{BuffId: 1},
-					{BuffId: 2},
+				list: []*Condition{
+					{ConditionId: 1},
+					{ConditionId: 2},
 				},
-				buffIds: map[int]int{1: 0, 2: 1},
+				conditionIds: map[int]int{1: 0, 2: 1},
 			},
 			arg:  1,
 			want: true,
@@ -513,11 +513,11 @@ func TestBuffs_HasBuff(t *testing.T) {
 		{
 			name: "Buff does not exist in buffIds",
 			fields: fields{
-				list: []*Buff{
-					{BuffId: 1},
-					{BuffId: 2},
+				list: []*Condition{
+					{ConditionId: 1},
+					{ConditionId: 2},
 				},
-				buffIds: map[int]int{1: 0, 2: 1},
+				conditionIds: map[int]int{1: 0, 2: 1},
 			},
 			arg:  3,
 			want: false,
@@ -525,8 +525,8 @@ func TestBuffs_HasBuff(t *testing.T) {
 		{
 			name: "Empty buffIds map",
 			fields: fields{
-				list:    []*Buff{},
-				buffIds: map[int]int{},
+				list:         []*Condition{},
+				conditionIds: map[int]int{},
 			},
 			arg:  1,
 			want: false,
@@ -534,8 +534,8 @@ func TestBuffs_HasBuff(t *testing.T) {
 		{
 			name: "BuffIds map is nil",
 			fields: fields{
-				list:    []*Buff{},
-				buffIds: nil,
+				list:         []*Condition{},
+				conditionIds: nil,
 			},
 			arg:  1,
 			want: false,
@@ -544,18 +544,18 @@ func TestBuffs_HasBuff(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			bs := &Buffs{
-				List:    tt.fields.list,
-				buffIds: tt.fields.buffIds,
+			bs := &Conditions{
+				List:         tt.fields.list,
+				conditionIds: tt.fields.conditionIds,
 			}
-			assert.Equal(t, tt.want, bs.HasBuff(tt.arg))
+			assert.Equal(t, tt.want, bs.HasCondition(tt.arg))
 		})
 	}
 }
-func TestBuffs_Started(t *testing.T) {
+func TestConditions_Started(t *testing.T) {
 	type fields struct {
-		list    []*Buff
-		buffIds map[int]int
+		list         []*Condition
+		conditionIds map[int]int
 	}
 	tests := []struct {
 		name         string
@@ -567,11 +567,11 @@ func TestBuffs_Started(t *testing.T) {
 		{
 			name: "Buff exists and OnStartWaiting is true",
 			fields: fields{
-				list: []*Buff{
-					{BuffId: 1, OnStartWaiting: true},
-					{BuffId: 2, OnStartWaiting: true},
+				list: []*Condition{
+					{ConditionId: 1, OnStartWaiting: true},
+					{ConditionId: 2, OnStartWaiting: true},
 				},
-				buffIds: map[int]int{1: 0, 2: 1},
+				conditionIds: map[int]int{1: 0, 2: 1},
 			},
 			arg:          1,
 			wantOnStart:  false,
@@ -580,10 +580,10 @@ func TestBuffs_Started(t *testing.T) {
 		{
 			name: "Buff exists and OnStartWaiting is already false",
 			fields: fields{
-				list: []*Buff{
-					{BuffId: 1, OnStartWaiting: false},
+				list: []*Condition{
+					{ConditionId: 1, OnStartWaiting: false},
 				},
-				buffIds: map[int]int{1: 0},
+				conditionIds: map[int]int{1: 0},
 			},
 			arg:          1,
 			wantOnStart:  false,
@@ -592,10 +592,10 @@ func TestBuffs_Started(t *testing.T) {
 		{
 			name: "Buff does not exist",
 			fields: fields{
-				list: []*Buff{
-					{BuffId: 1, OnStartWaiting: true},
+				list: []*Condition{
+					{ConditionId: 1, OnStartWaiting: true},
 				},
-				buffIds: map[int]int{1: 0},
+				conditionIds: map[int]int{1: 0},
 			},
 			arg:          2,
 			wantOnStart:  true,
@@ -604,8 +604,8 @@ func TestBuffs_Started(t *testing.T) {
 		{
 			name: "Empty buffIds map",
 			fields: fields{
-				list:    []*Buff{},
-				buffIds: map[int]int{},
+				list:         []*Condition{},
+				conditionIds: map[int]int{},
 			},
 			arg:          1,
 			wantOnStart:  false,
@@ -614,8 +614,8 @@ func TestBuffs_Started(t *testing.T) {
 		{
 			name: "buffIds is nil",
 			fields: fields{
-				list:    []*Buff{},
-				buffIds: nil,
+				list:         []*Condition{},
+				conditionIds: nil,
 			},
 			arg:          1,
 			wantOnStart:  false,
@@ -625,15 +625,15 @@ func TestBuffs_Started(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			bs := &Buffs{
-				List:    tt.fields.list,
-				buffIds: tt.fields.buffIds,
+			bs := &Conditions{
+				List:         tt.fields.list,
+				conditionIds: tt.fields.conditionIds,
 			}
 			if tt.shouldChange && len(bs.List) > 0 {
-				assert.True(t, bs.List[bs.buffIds[tt.arg]].OnStartWaiting)
+				assert.True(t, bs.List[bs.conditionIds[tt.arg]].OnStartWaiting)
 			}
 			bs.Started(tt.arg)
-			if idx, ok := bs.buffIds[tt.arg]; ok && idx < len(bs.List) {
+			if idx, ok := bs.conditionIds[tt.arg]; ok && idx < len(bs.List) {
 				assert.Equal(t, tt.wantOnStart, bs.List[idx].OnStartWaiting)
 			} else if len(bs.List) > 0 {
 				// If buff does not exist, original value should remain unchanged
@@ -642,10 +642,10 @@ func TestBuffs_Started(t *testing.T) {
 		})
 	}
 }
-func TestBuffs_TriggersLeft(t *testing.T) {
+func TestConditions_TriggersLeft(t *testing.T) {
 	type fields struct {
-		list    []*Buff
-		buffIds map[int]int
+		list         []*Condition
+		conditionIds map[int]int
 	}
 	tests := []struct {
 		name   string
@@ -656,11 +656,11 @@ func TestBuffs_TriggersLeft(t *testing.T) {
 		{
 			name: "Buff exists and has positive TriggersLeft",
 			fields: fields{
-				list: []*Buff{
-					{BuffId: 1, TriggersLeft: 3},
-					{BuffId: 2, TriggersLeft: 5},
+				list: []*Condition{
+					{ConditionId: 1, TriggersLeft: 3},
+					{ConditionId: 2, TriggersLeft: 5},
 				},
-				buffIds: map[int]int{1: 0, 2: 1},
+				conditionIds: map[int]int{1: 0, 2: 1},
 			},
 			arg:  2,
 			want: 5,
@@ -668,10 +668,10 @@ func TestBuffs_TriggersLeft(t *testing.T) {
 		{
 			name: "Buff exists and has zero TriggersLeft",
 			fields: fields{
-				list: []*Buff{
-					{BuffId: 1, TriggersLeft: 0},
+				list: []*Condition{
+					{ConditionId: 1, TriggersLeft: 0},
 				},
-				buffIds: map[int]int{1: 0},
+				conditionIds: map[int]int{1: 0},
 			},
 			arg:  1,
 			want: 0,
@@ -679,10 +679,10 @@ func TestBuffs_TriggersLeft(t *testing.T) {
 		{
 			name: "Buff exists and has negative TriggersLeft",
 			fields: fields{
-				list: []*Buff{
-					{BuffId: 1, TriggersLeft: -2},
+				list: []*Condition{
+					{ConditionId: 1, TriggersLeft: -2},
 				},
-				buffIds: map[int]int{1: 0},
+				conditionIds: map[int]int{1: 0},
 			},
 			arg:  1,
 			want: -2,
@@ -690,10 +690,10 @@ func TestBuffs_TriggersLeft(t *testing.T) {
 		{
 			name: "Buff does not exist in buffIds",
 			fields: fields{
-				list: []*Buff{
-					{BuffId: 1, TriggersLeft: 3},
+				list: []*Condition{
+					{ConditionId: 1, TriggersLeft: 3},
 				},
-				buffIds: map[int]int{1: 0},
+				conditionIds: map[int]int{1: 0},
 			},
 			arg:  2,
 			want: 0,
@@ -701,8 +701,8 @@ func TestBuffs_TriggersLeft(t *testing.T) {
 		{
 			name: "buffIds is nil",
 			fields: fields{
-				list:    []*Buff{{BuffId: 1, TriggersLeft: 7}},
-				buffIds: nil,
+				list:         []*Condition{{ConditionId: 1, TriggersLeft: 7}},
+				conditionIds: nil,
 			},
 			arg:  1,
 			want: 0,
@@ -710,8 +710,8 @@ func TestBuffs_TriggersLeft(t *testing.T) {
 		{
 			name: "buffIds is empty map",
 			fields: fields{
-				list:    []*Buff{{BuffId: 1, TriggersLeft: 7}},
-				buffIds: map[int]int{},
+				list:         []*Condition{{ConditionId: 1, TriggersLeft: 7}},
+				conditionIds: map[int]int{},
 			},
 			arg:  1,
 			want: 0,
@@ -720,18 +720,18 @@ func TestBuffs_TriggersLeft(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			bs := &Buffs{
-				List:    tt.fields.list,
-				buffIds: tt.fields.buffIds,
+			bs := &Conditions{
+				List:         tt.fields.list,
+				conditionIds: tt.fields.conditionIds,
 			}
 			assert.Equal(t, tt.want, bs.TriggersLeft(tt.arg))
 		})
 	}
 }
-func TestBuffs_RemoveBuff(t *testing.T) {
+func TestConditions_RemoveCondition(t *testing.T) {
 	type fields struct {
-		list    []*Buff
-		buffIds map[int]int
+		list         []*Condition
+		conditionIds map[int]int
 	}
 	tests := []struct {
 		name         string
@@ -744,11 +744,11 @@ func TestBuffs_RemoveBuff(t *testing.T) {
 		{
 			name: "Buff exists and is removed",
 			fields: fields{
-				list: []*Buff{
-					{BuffId: 1, TriggersLeft: 5},
-					{BuffId: 2, TriggersLeft: 3},
+				list: []*Condition{
+					{ConditionId: 1, TriggersLeft: 5},
+					{ConditionId: 2, TriggersLeft: 3},
 				},
-				buffIds: map[int]int{1: 0, 2: 1},
+				conditionIds: map[int]int{1: 0, 2: 1},
 			},
 			arg:          2,
 			wantResult:   true,
@@ -758,10 +758,10 @@ func TestBuffs_RemoveBuff(t *testing.T) {
 		{
 			name: "Buff does not exist",
 			fields: fields{
-				list: []*Buff{
-					{BuffId: 1, TriggersLeft: 5},
+				list: []*Condition{
+					{ConditionId: 1, TriggersLeft: 5},
 				},
-				buffIds: map[int]int{1: 0},
+				conditionIds: map[int]int{1: 0},
 			},
 			arg:          3,
 			wantResult:   false,
@@ -771,8 +771,8 @@ func TestBuffs_RemoveBuff(t *testing.T) {
 		{
 			name: "buffIds is nil",
 			fields: fields{
-				list:    []*Buff{{BuffId: 1, TriggersLeft: 7}},
-				buffIds: nil,
+				list:         []*Condition{{ConditionId: 1, TriggersLeft: 7}},
+				conditionIds: nil,
 			},
 			arg:          1,
 			wantResult:   false,
@@ -782,8 +782,8 @@ func TestBuffs_RemoveBuff(t *testing.T) {
 		{
 			name: "buffIds is empty map",
 			fields: fields{
-				list:    []*Buff{{BuffId: 1, TriggersLeft: 7}},
-				buffIds: map[int]int{},
+				list:         []*Condition{{ConditionId: 1, TriggersLeft: 7}},
+				conditionIds: map[int]int{},
 			},
 			arg:          1,
 			wantResult:   false,
@@ -793,11 +793,11 @@ func TestBuffs_RemoveBuff(t *testing.T) {
 		{
 			name: "Multiple buffs, remove first",
 			fields: fields{
-				list: []*Buff{
-					{BuffId: 10, TriggersLeft: 2},
-					{BuffId: 20, TriggersLeft: 4},
+				list: []*Condition{
+					{ConditionId: 10, TriggersLeft: 2},
+					{ConditionId: 20, TriggersLeft: 4},
 				},
-				buffIds: map[int]int{10: 0, 20: 1},
+				conditionIds: map[int]int{10: 0, 20: 1},
 			},
 			arg:          10,
 			wantResult:   true,
@@ -808,13 +808,13 @@ func TestBuffs_RemoveBuff(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			bs := &Buffs{
-				List:    tt.fields.list,
-				buffIds: tt.fields.buffIds,
+			bs := &Conditions{
+				List:         tt.fields.list,
+				conditionIds: tt.fields.conditionIds,
 			}
-			result := bs.RemoveBuff(tt.arg)
+			result := bs.RemoveCondition(tt.arg)
 			assert.Equal(t, tt.wantResult, result)
-			if idx, ok := bs.buffIds[tt.arg]; ok && tt.shouldModify {
+			if idx, ok := bs.conditionIds[tt.arg]; ok && tt.shouldModify {
 				assert.Equal(t, tt.wantTriggers, bs.List[idx].TriggersLeft)
 			} else if len(bs.List) > 0 {
 				// If not modified, original value should remain
@@ -823,7 +823,7 @@ func TestBuffs_RemoveBuff(t *testing.T) {
 		})
 	}
 }
-func TestBuff_Expired(t *testing.T) {
+func TestCondition_Expired(t *testing.T) {
 	tests := []struct {
 		name         string
 		triggersLeft int
@@ -853,7 +853,7 @@ func TestBuff_Expired(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			b := &Buff{TriggersLeft: tt.triggersLeft}
+			b := &Condition{TriggersLeft: tt.triggersLeft}
 			assert.Equal(t, tt.want, b.Expired())
 		})
 	}
@@ -864,11 +864,11 @@ func TestBuff_Expired(t *testing.T) {
 // PB-330: Broken-limb buff (id 83) statmod: -25 str, -25 dex, -10 vit.
 // Seeds buff 83 into the registry directly (bypasses the YAML loader) and
 // verifies that a Buff carrying id 83 returns the expected StatMod values.
-func TestPB_330_BrokenLimbBuff_StatModApplied(t *testing.T) {
-	orig := buffs
-	buffs = map[int]*BuffSpec{
+func TestPB_330_BrokenLimbCondition_StatModApplied(t *testing.T) {
+	orig := conditions
+	conditions = map[int]*ConditionSpec{
 		83: {
-			BuffId:        83,
+			ConditionId:   83,
 			Name:          "Broken Limb",
 			Description:   "A grapple submission cranked the joint past its limit.",
 			TriggerCount:  900,
@@ -880,9 +880,9 @@ func TestPB_330_BrokenLimbBuff_StatModApplied(t *testing.T) {
 			},
 		},
 	}
-	defer func() { buffs = orig }()
+	defer func() { conditions = orig }()
 
-	b := &Buff{BuffId: 83, TriggersLeft: 900}
+	b := &Condition{ConditionId: 83, TriggersLeft: 900}
 
 	assert.Equal(t, -25, b.StatMod("strength"),
 		"PB-330: broken-limb buff must apply -25 strength")
@@ -897,21 +897,21 @@ func TestPB_330_BrokenLimbBuff_StatModApplied(t *testing.T) {
 // PB-332: Broken-limb buff expires naturally via round-tick decrement.
 // Seeds buff 83 and verifies that a Buffs instance carrying it decrements
 // TriggersLeft each round and eventually reaches TriggersLeftExpired (0).
-func TestPB_332_BrokenLimbBuff_ExpiresNaturally(t *testing.T) {
-	orig := buffs
-	buffs = map[int]*BuffSpec{
+func TestPB_332_BrokenLimbCondition_ExpiresNaturally(t *testing.T) {
+	orig := conditions
+	conditions = map[int]*ConditionSpec{
 		83: {
-			BuffId:        83,
+			ConditionId:   83,
 			Name:          "Broken Limb",
 			TriggerCount:  3, // shortened to 3 for test speed (real=900)
 			RoundInterval: 1,
 			StatMods:      statmods.StatMods{"strength": -25},
 		},
 	}
-	defer func() { buffs = orig }()
+	defer func() { conditions = orig }()
 
 	bs := New()
-	bs.AddBuff(83, false)
+	bs.AddCondition(83, false)
 
 	// Confirm buff is present and not yet expired.
 	assert.False(t, bs.List[0].Expired(),
@@ -940,10 +940,10 @@ func TestPB_332_BrokenLimbBuff_ExpiresNaturally(t *testing.T) {
 // to the historic 2.0. Buff 201 declares 3.0. Buff 202 carries an unrelated
 // flag and must never contribute.
 func seedProgressMultRegistry() func() {
-	orig := buffs
-	buffs = map[int]*BuffSpec{
+	orig := conditions
+	conditions = map[int]*ConditionSpec{
 		200: {
-			BuffId:        200,
+			ConditionId:   200,
 			Name:          "Plain Attunement",
 			Description:   "Learning comes a little easier.",
 			TriggerCount:  10,
@@ -951,7 +951,7 @@ func seedProgressMultRegistry() func() {
 			Flags:         []Flag{SkillProgress},
 		},
 		201: {
-			BuffId:        201,
+			ConditionId:   201,
 			Name:          "Savant Draught",
 			Description:   "Learning comes much easier.",
 			TriggerCount:  10,
@@ -960,7 +960,7 @@ func seedProgressMultRegistry() func() {
 			ProgressMult:  3.0,
 		},
 		202: {
-			BuffId:        202,
+			ConditionId:   202,
 			Name:          "Plain Warmth",
 			Description:   "You feel warm.",
 			TriggerCount:  10,
@@ -968,45 +968,45 @@ func seedProgressMultRegistry() func() {
 			Flags:         []Flag{Warmed},
 		},
 	}
-	return func() { buffs = orig }
+	return func() { conditions = orig }
 }
 
-func TestBuffs_ProgressMult(t *testing.T) {
+func TestConditions_ProgressMult(t *testing.T) {
 	cleanup := seedProgressMultRegistry()
 	defer cleanup()
 
 	t.Run("no flagged buff held is neutral", func(t *testing.T) {
 		bs := New()
-		require.True(t, bs.AddBuff(202, false)) // Warmed, not SkillProgress
+		require.True(t, bs.AddCondition(202, false)) // Warmed, not SkillProgress
 		assert.Equal(t, 1.0, bs.ProgressMult(SkillProgress),
 			"a caller multiplies unconditionally, so the empty case must be 1.0")
 	})
 
 	t.Run("a flagged buff with no progress_mult is the historic 2.0", func(t *testing.T) {
 		bs := New()
-		require.True(t, bs.AddBuff(200, false))
+		require.True(t, bs.AddCondition(200, false))
 		assert.Equal(t, 2.0, bs.ProgressMult(SkillProgress))
 	})
 
 	t.Run("the strongest held value wins", func(t *testing.T) {
 		bs := New()
-		require.True(t, bs.AddBuff(200, false)) // defaults to 2.0
-		require.True(t, bs.AddBuff(201, false)) // declares 3.0
+		require.True(t, bs.AddCondition(200, false)) // defaults to 2.0
+		require.True(t, bs.AddCondition(201, false)) // declares 3.0
 		assert.Equal(t, 3.0, bs.ProgressMult(SkillProgress),
 			"flagged buffs do not stack; the strongest one wins")
 	})
 
 	t.Run("an expired flagged buff does not count", func(t *testing.T) {
 		bs := New()
-		require.True(t, bs.AddBuff(201, false))
-		require.True(t, bs.RemoveBuff(201))
+		require.True(t, bs.AddCondition(201, false))
+		require.True(t, bs.RemoveCondition(201))
 		assert.Equal(t, 1.0, bs.ProgressMult(SkillProgress),
 			"ProgressMult must skip expired buffs the way HasFlag does")
 	})
 
 	t.Run("an unrelated flag is unaffected", func(t *testing.T) {
 		bs := New()
-		require.True(t, bs.AddBuff(201, false))
+		require.True(t, bs.AddCondition(201, false))
 		assert.Equal(t, 1.0, bs.ProgressMult(MutationRate))
 	})
 }

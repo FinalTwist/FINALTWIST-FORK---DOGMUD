@@ -29,7 +29,7 @@ func PlayerDespawnTrackingCleanup(e events.Event) events.ListenerReturn {
 	clearPointers := func(c interface {
 		GetMiscData(string) any
 		SetMiscData(string, any)
-		RemoveBuff(int)
+		RemoveCondition(int)
 	}) {
 		// Tracking by name.
 		if leavingName != "" {
@@ -37,7 +37,7 @@ func PlayerDespawnTrackingCleanup(e events.Event) events.ListenerReturn {
 				if s, ok := v.(string); ok && s == leavingName {
 					c.SetMiscData("tracking-user", nil)
 					c.SetMiscData("tracking-display-count", nil)
-					c.RemoveBuff(activeTrackingBuff)
+					c.RemoveCondition(activeTrackingCondition)
 				}
 			}
 		}
@@ -45,7 +45,7 @@ func PlayerDespawnTrackingCleanup(e events.Event) events.ListenerReturn {
 		if v := c.GetMiscData("shadow-target-user"); v != nil {
 			if id, ok := v.(int); ok && id == leavingUserId {
 				c.SetMiscData("shadow-target-user", nil)
-				c.RemoveBuff(shadowingBuff)
+				c.RemoveCondition(shadowingCondition)
 			}
 		}
 	}

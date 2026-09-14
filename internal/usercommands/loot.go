@@ -121,7 +121,7 @@ func lootCorpseAll(user *users.UserRecord, room *rooms.Room, corpseIdx int) {
 	}
 
 	if tookSomething {
-		user.Character.CancelBuffsWithFlag(conditions.Hidden) // No longer sneaking
+		user.Character.CancelConditionsWithFlag(conditions.Hidden) // No longer sneaking
 		room.SendTextVisual(messaging.CategoryLoot,
 			fmt.Sprintf(`<ansi fg="username">%s</ansi> loots the <ansi fg="mob-corpse">%s</ansi>.`, user.Character.Name, corpse.DisplayName()),
 			user.UserId,

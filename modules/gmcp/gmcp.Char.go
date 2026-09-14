@@ -6,9 +6,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/casing"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -61,7 +61,7 @@ func init() {
 	events.RegisterListener(GMCPCharUpdate{}, g.buildAndSendGMCPPayload)
 	events.RegisterListener(events.CharacterStatsChanged{}, g.statsChangeHandler)
 	events.RegisterListener(events.CharacterChanged{}, g.charChangeHandler)
-	events.RegisterListener(events.BuffsTriggered{}, g.buffTriggeredHandler)
+	events.RegisterListener(events.ConditionsTriggered{}, g.conditionTriggeredHandler)
 	// Char.Quests carries the quest marker's next_room / next_dir, and BOTH are
 	// computed from where the player is standing at send time. Without this the
 	// payload only ever refreshed when a quest changed, so the next-step arrow
@@ -139,9 +139,9 @@ func (g *GMCPCharModule) roomChangeHandler(e events.Event) events.ListenerReturn
 	return events.Continue
 }
 
-func (g *GMCPCharModule) buffTriggeredHandler(e events.Event) events.ListenerReturn {
+func (g *GMCPCharModule) conditionTriggeredHandler(e events.Event) events.ListenerReturn {
 
-	evt, typeOk := e.(events.BuffsTriggered)
+	evt, typeOk := e.(events.ConditionsTriggered)
 	if !typeOk {
 		return events.Continue // Return false to stop halt the event chain for this event
 	}
@@ -736,19 +736,19 @@ func buildConditionsPayload(ch *characters.Character) map[string]GMCPCondition {
 	held := make(map[string]GMCPCondition)
 
 	nameIncrement := 0
-	for _, buff := range ch.GetBuffs() {
+	for _, condition := range ch.GetConditions() {
 
-		buffSpec := conditions.GetBuffSpec(buff.BuffId)
-		if buffSpec == nil || !buffSpec.Listed() {
+		conditionSpec := conditions.GetConditionSpec(condition.ConditionId)
+		if conditionSpec == nil || !conditionSpec.Listed() {
 			continue
 		}
 
 		timeLeft, timeMax := -1, -1
 		roundsLeft := 0
 
-		if !buff.PermaBuff {
+		if !condition.Permanent {
 			var totalRounds int
-			roundsLeft, totalRounds = conditions.GetDurations(buff, buffSpec)
+			roundsLeft, totalRounds = conditions.GetDurations(condition, conditionSpec)
 			if roundsLeft < 0 {
 				roundsLeft = 0
 			}
@@ -756,28 +756,28 @@ func buildConditionsPayload(ch *characters.Character) map[string]GMCPCondition {
 			timeLeft = c.RoundsToSeconds(roundsLeft)
 		}
 
-		buffSource := buff.Source
-		if buffSource == `` {
-			buffSource = `unknown`
+		conditionSource := condition.Source
+		if conditionSource == `` {
+			conditionSource = `unknown`
 		}
 		cond := GMCPCondition{
-			Name:         conditions.DisplayName(buff, buffSpec),
-			Description:  buffSpec.Description,
+			Name:         conditions.DisplayName(condition, conditionSpec),
+			Description:  conditionSpec.Description,
 			DurationMax:  timeMax,
 			DurationLeft: timeLeft,
 			// A permabuff reports roundsLeft 0, which the label reads as
 			// "sustained", the same word the old condition list used for a
 			// permanent entry.
 			Duration: conditionDurationLabel(roundsLeft),
-			Type:     buffSource,
+			Type:     conditionSource,
 		}
 
 		cond.Mods = make(map[string]int)
-		for name, value := range buffSpec.StatMods {
+		for name, value := range conditionSpec.StatMods {
 			cond.Mods[name] = value
 		}
 
-		key := buffSpec.Name
+		key := conditionSpec.Name
 		if _, ok := held[key]; ok {
 			nameIncrement++
 			key += `#` + strconv.Itoa(nameIncrement)

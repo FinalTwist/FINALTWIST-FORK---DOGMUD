@@ -154,13 +154,13 @@ var AllFlags = []Flag{
 }
 
 var (
-	buffs map[int]*BuffSpec = make(map[int]*BuffSpec)
+	conditions map[int]*ConditionSpec = make(map[int]*ConditionSpec)
 
 	validationCalculator = gametime.GetDate(validationRound)
 )
 
-type BuffSpec struct {
-	BuffId        int               `yaml:"buffid"` // Unique identifier for this buff spec. The tag pins the file key through the slice 2 rename.
+type ConditionSpec struct {
+	ConditionId   int               `yaml:"buffid"` // Unique identifier for this buff spec. The tag pins the file key through the slice 2 rename.
 	Name          string            // The name of the buff
 	Description   string            // A description of the buff
 	Secret        bool              // Whether or not the buff is secret (not displayed to the user)
@@ -185,11 +185,11 @@ type BuffSpec struct {
 	EndRoomText     string `yaml:"end_room_text,omitempty"`
 
 	// Config-driven tick fields — replaces JS onTrigger for heal/DoT buffs
-	TickPool         string  `yaml:"tick_pool,omitempty"`          // "health", "stamina", "conviction"
-	TickPercent      float64 `yaml:"tick_percent,omitempty"`       // Base % of max pool. Positive=heal, negative=damage
-	TickVariance     float64 `yaml:"tick_variance,omitempty"`      // Random variance added to percent
-	TickMin          int     `yaml:"tick_min,omitempty"`           // Minimum absolute tick amount (default 1)
-	StartRemoveBuffs []int   `yaml:"start_remove_buffs,omitempty"` // Buff IDs to remove when this buff starts
+	TickPool              string  `yaml:"tick_pool,omitempty"`          // "health", "stamina", "conviction"
+	TickPercent           float64 `yaml:"tick_percent,omitempty"`       // Base % of max pool. Positive=heal, negative=damage
+	TickVariance          float64 `yaml:"tick_variance,omitempty"`      // Random variance added to percent
+	TickMin               int     `yaml:"tick_min,omitempty"`           // Minimum absolute tick amount (default 1)
+	StartRemoveConditions []int   `yaml:"start_remove_buffs,omitempty"` // Buff IDs to remove when this buff starts
 
 	// Effects is the closed mechanical vocabulary combat reads through
 	// Buffs.Effect. See effects.go. A value is a number or the word
@@ -202,7 +202,7 @@ type BuffSpec struct {
 }
 
 // Calculates the value of this buff
-func (b *BuffSpec) GetValue() int {
+func (b *ConditionSpec) GetValue() int {
 	val := 0
 
 	for _, v := range b.StatMods {
@@ -226,55 +226,55 @@ func (b *BuffSpec) GetValue() int {
 // left out because it would tell you that you are hidden; a secret record is
 // engine bookkeeping or a state the player is not meant to know about (owner
 // ruling 2026-09-14: shown in neither list, not as "Mysterious Affliction").
-func (b *BuffSpec) Listed() bool {
+func (b *ConditionSpec) Listed() bool {
 	return !b.Secret && !slices.Contains(b.Flags, Hidden)
 }
 
-type BuffMessage struct {
+type ConditionMessage struct {
 	User string
 	Room string
 }
 
-type BuffMessages struct {
-	Start  BuffMessage
-	Effect BuffMessage
-	End    BuffMessage
+type ConditionMessages struct {
+	Start  ConditionMessage
+	Effect ConditionMessage
+	End    ConditionMessage
 }
 
-func GetBuffSpec(buffId int) *BuffSpec {
-	if buffId < 0 {
-		buffId *= -1
+func GetConditionSpec(conditionId int) *ConditionSpec {
+	if conditionId < 0 {
+		conditionId *= -1
 	}
 
-	if buff, ok := buffs[buffId]; ok {
-		return buff
+	if condition, ok := conditions[conditionId]; ok {
+		return condition
 	}
 
 	return nil
 }
 
-func GetAllBuffIds() []int {
+func GetAllConditionIds() []int {
 
-	var results []int = make([]int, 0, len(buffs))
-	for _, buff := range buffs {
-		results = append(results, buff.BuffId)
+	var results []int = make([]int, 0, len(conditions))
+	for _, condition := range conditions {
+		results = append(results, condition.ConditionId)
 	}
 
 	return results
 }
 
 // Searches for buffs whose name contains text and returns their Ids
-func SearchBuffs(searchTerm string) []int {
+func SearchConditions(searchTerm string) []int {
 
 	searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
 
 	var results []int = make([]int, 0, 2)
 
-	for _, buff := range buffs {
-		if strings.Contains(strings.ToLower(buff.Name), searchTerm) {
-			results = append(results, buff.BuffId)
-		} else if strings.Contains(strings.ToLower(buff.Description), searchTerm) {
-			results = append(results, buff.BuffId)
+	for _, condition := range conditions {
+		if strings.Contains(strings.ToLower(condition.Name), searchTerm) {
+			results = append(results, condition.ConditionId)
+		} else if strings.Contains(strings.ToLower(condition.Description), searchTerm) {
+			results = append(results, condition.ConditionId)
 		}
 	}
 
@@ -282,12 +282,12 @@ func SearchBuffs(searchTerm string) []int {
 }
 
 // Presumably to ensure the datafile hasn't messed something up.
-func (b *BuffSpec) Id() int {
-	return b.BuffId
+func (b *ConditionSpec) Id() int {
+	return b.ConditionId
 }
 
 // Presumably to ensure the datafile hasn't messed something up.
-func (b *BuffSpec) Validate() error {
+func (b *ConditionSpec) Validate() error {
 
 	// Validate YAML text tokens
 	for _, text := range []string{
@@ -296,7 +296,7 @@ func (b *BuffSpec) Validate() error {
 		b.EndUserText, b.EndRoomText,
 	} {
 		for _, w := range textutil.ValidateTokens(text) {
-			mudlog.Warn("Buff.Validate", "buffId", b.BuffId, "warning", w)
+			mudlog.Warn("Buff.Validate", "buffId", b.ConditionId, "warning", w)
 		}
 	}
 
@@ -315,17 +315,17 @@ func (b *BuffSpec) Validate() error {
 		case "health", "stamina", "conviction":
 			// valid
 		default:
-			return fmt.Errorf("buffId %d (%s) has invalid tick_pool %q (must be health/stamina/conviction)", b.BuffId, b.Name, b.TickPool)
+			return fmt.Errorf("buffId %d (%s) has invalid tick_pool %q (must be health/stamina/conviction)", b.ConditionId, b.Name, b.TickPool)
 		}
 		if !b.TickFromMagnitude {
 			if b.TickPercent == 0 {
-				mudlog.Warn("Buff.Validate", "buffId", b.BuffId, "warning", "tick_pool set but tick_percent is 0")
+				mudlog.Warn("Buff.Validate", "buffId", b.ConditionId, "warning", "tick_pool set but tick_percent is 0")
 			}
 		}
 	}
 
 	// If this is the quit/meditating buff, override the trigger count
-	if b.BuffId == 0 {
+	if b.ConditionId == 0 {
 		b.TriggerCount = int(configs.GetNetworkConfig().LogoutRounds)
 	}
 
@@ -334,10 +334,10 @@ func (b *BuffSpec) Validate() error {
 		b.RoundInterval = int(validationCalculator.AddPeriod(b.TriggerRate) - validationRound)
 
 		if b.TriggerCount < 1 {
-			return fmt.Errorf("buffId %d (%s) has a TriggersCount of < 1, must be at least 1", b.BuffId, b.Name)
+			return fmt.Errorf("buffId %d (%s) has a TriggersCount of < 1, must be at least 1", b.ConditionId, b.Name)
 		}
 		if b.RoundInterval < 1 {
-			return fmt.Errorf("buffId %d (%s) has a RoundInterval of < 1, must be at least 1. Is %s a valid time string?", b.BuffId, b.Name, b.TriggerRate)
+			return fmt.Errorf("buffId %d (%s) has a RoundInterval of < 1, must be at least 1. Is %s a valid time string?", b.ConditionId, b.Name, b.TriggerRate)
 		}
 	}
 
@@ -347,10 +347,10 @@ func (b *BuffSpec) Validate() error {
 	// leaves it 0 and is refused too.
 	if b.IsStacking() {
 		if !b.TickFromMagnitude {
-			return fmt.Errorf("buffId %d (%s) is stacking without tick_from_magnitude; a stack's amount is the applier's magnitude", b.BuffId, b.Name)
+			return fmt.Errorf("buffId %d (%s) is stacking without tick_from_magnitude; a stack's amount is the applier's magnitude", b.ConditionId, b.Name)
 		}
 		if b.RoundInterval != 1 {
-			return fmt.Errorf("buffId %d (%s) is stacking with triggerrate %q; a stack counts rounds, so the record must tick every round", b.BuffId, b.Name, b.TriggerRate)
+			return fmt.Errorf("buffId %d (%s) is stacking with triggerrate %q; a stack counts rounds, so the record must tick every round", b.ConditionId, b.Name, b.TriggerRate)
 		}
 	}
 
@@ -363,13 +363,13 @@ func (b *BuffSpec) Validate() error {
 // doing nothing; species.ValidateSpeciesBuffIds guards its data the same way.
 // Ids are walked in order so the panic names the same buff every time.
 func ValidateLoadedFlags() {
-	ids := make([]int, 0, len(buffs))
-	for id := range buffs {
+	ids := make([]int, 0, len(conditions))
+	for id := range conditions {
 		ids = append(ids, id)
 	}
 	slices.Sort(ids)
 	for _, id := range ids {
-		if err := buffs[id].ValidateFlags(); err != nil {
+		if err := conditions[id].ValidateFlags(); err != nil {
 			panic(err)
 		}
 	}
@@ -377,21 +377,21 @@ func ValidateLoadedFlags() {
 
 // ValidateFlags reports the first flag this spec carries that the engine does
 // not declare. Compared exactly; nothing is normalised.
-func (b *BuffSpec) ValidateFlags() error {
+func (b *ConditionSpec) ValidateFlags() error {
 	for _, f := range b.Flags {
 		if !slices.Contains(AllFlags, f) {
-			return fmt.Errorf("buffId %d (%s) carries unknown flag %q; see buffs.AllFlags", b.BuffId, b.Name, f)
+			return fmt.Errorf("buffId %d (%s) carries unknown flag %q; see buffs.AllFlags", b.ConditionId, b.Name, f)
 		}
 	}
 	return nil
 }
 
-func (b *BuffSpec) Filename() string {
+func (b *ConditionSpec) Filename() string {
 	filename := util.ConvertForFilename(b.Name)
-	return fmt.Sprintf("%d-%s.yaml", b.BuffId, filename)
+	return fmt.Sprintf("%d-%s.yaml", b.ConditionId, filename)
 }
 
-func (b *BuffSpec) Filepath() string {
+func (b *ConditionSpec) Filepath() string {
 	return b.Filename()
 }
 
@@ -401,29 +401,29 @@ func LoadDataFiles() {
 	start := time.Now()
 
 	dataPath := string(configs.GetFilePathsConfig().DataFiles) + `/buffs`
-	tmpBuffs, err := fileloader.LoadAllFlatFiles[int, *BuffSpec](dataPath)
+	tmpConditions, err := fileloader.LoadAllFlatFiles[int, *ConditionSpec](dataPath)
 	if err != nil {
 		panic(errors.Wrap(err, `filepath: `+dataPath))
 	}
 
-	for id, b := range tmpBuffs {
+	for id, b := range tmpConditions {
 		if b.Name != "" {
 			casing.AssertCanonical(b.Name, "buff", fmt.Sprintf("%d", id))
 		}
 	}
 
-	buffs = tmpBuffs
+	conditions = tmpConditions
 
 	// A flag the engine does not declare is a typo that would load silently and
 	// do nothing, the way the Cat's Eye Draught did. Fail the boot instead.
 	ValidateLoadedFlags()
 
-	mudlog.Info("buffSpec.LoadDataFiles()", "loadedCount", len(buffs), "Time Taken", time.Since(start))
+	mudlog.Info("buffSpec.LoadDataFiles()", "loadedCount", len(conditions), "Time Taken", time.Since(start))
 }
 
 // HasSpec reports whether a buff id is defined. Mirrors mutations.HasSpec so
 // cross-package validators can take it as an injected checker, which is how
 // species.ValidateSpeciesBuffIds consumes it.
-func HasSpec(buffId int) bool {
-	return GetBuffSpec(buffId) != nil
+func HasSpec(conditionId int) bool {
+	return GetConditionSpec(conditionId) != nil
 }

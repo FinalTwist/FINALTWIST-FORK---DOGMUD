@@ -444,12 +444,12 @@ func MoveToRoom(userId int, toRoomId int, isSpawn ...bool) error {
 	//
 	for mut := range newRoom.ActiveMutators {
 		spec := mut.GetSpec()
-		if len(spec.PlayerBuffIds) == 0 {
+		if len(spec.PlayerConditionIds) == 0 {
 			continue
 		}
-		for _, buffId := range spec.PlayerBuffIds {
-			if !user.Character.HasBuff(buffId) {
-				user.AddBuff(buffId, `area`)
+		for _, conditionId := range spec.PlayerConditionIds {
+			if !user.Character.HasCondition(conditionId) {
+				user.AddCondition(conditionId, `area`)
 			}
 		}
 	}

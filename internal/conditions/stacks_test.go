@@ -7,14 +7,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func stackingSpec() *BuffSpec {
-	return &BuffSpec{BuffId: 930, Name: "Gash", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 4,
+func stackingSpec() *ConditionSpec {
+	return &ConditionSpec{ConditionId: 930, Name: "Gash", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 4,
 		Flags: []Flag{Bleeding, Stacking}, TickPool: "health", TickFromMagnitude: true}
 }
 
-func heldOne(t *testing.T, bs *Buffs, id int) *Buff {
+func heldOne(t *testing.T, bs *Conditions, id int) *Condition {
 	t.Helper()
-	held := bs.GetBuffs(id)
+	held := bs.GetConditions(id)
 	if len(held) != 1 {
 		t.Fatalf("want exactly one held record %d, got %d", id, len(held))
 	}
@@ -24,7 +24,7 @@ func heldOne(t *testing.T, bs *Buffs, id int) *Buff {
 func TestStackingAddAppendsAStackInsteadOfOverwriting(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
-	if !bs.AddBuffMagnitude(930, 3, -2) || !bs.AddBuffMagnitude(930, 5, -3) {
+	if !bs.AddConditionMagnitude(930, 3, -2) || !bs.AddConditionMagnitude(930, 5, -3) {
 		t.Fatal("both adds must land")
 	}
 	b := heldOne(t, &bs, 930)
@@ -42,8 +42,8 @@ func TestStackingAddAppendsAStackInsteadOfOverwriting(t *testing.T) {
 func TestStackingTriggerSumsDecrementsAndDropsStacks(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
-	bs.AddBuffMagnitude(930, 2, -2)
-	bs.AddBuffMagnitude(930, 4, -3)
+	bs.AddConditionMagnitude(930, 2, -2)
+	bs.AddConditionMagnitude(930, 4, -3)
 
 	type round struct {
 		tick         int
@@ -83,7 +83,7 @@ func TestStackingTriggerSumsDecrementsAndDropsStacks(t *testing.T) {
 func TestStackingZeroTriggersUsesTheSpecCount(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
-	bs.AddBuffMagnitude(930, 0, -1)
+	bs.AddConditionMagnitude(930, 0, -1)
 	if got := heldOne(t, &bs, 930).Stacks[0].RoundsLeft; got != 4 {
 		t.Fatalf("RoundsLeft = %d, want the spec's triggercount 4", got)
 	}
@@ -92,7 +92,7 @@ func TestStackingZeroTriggersUsesTheSpecCount(t *testing.T) {
 func TestStackingAmountFloorsToOneInSign(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
-	bs.AddBuffMagnitude(930, 2, -0.5)
+	bs.AddConditionMagnitude(930, 2, -0.5)
 	if got := heldOne(t, &bs, 930).Stacks[0].Amount; got != -1 {
 		t.Fatalf("Amount = %d, want -1: a non-zero magnitude never snapshots to zero", got)
 	}
@@ -106,7 +106,7 @@ func TestStackingAmountFloorsToOneInSign(t *testing.T) {
 func TestStackingRecordWithNoStacksExpiresWithoutFiring(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
-	bs.List = append(bs.List, &Buff{BuffId: 930, TriggersLeft: 3, TickAmount: -5})
+	bs.List = append(bs.List, &Condition{ConditionId: 930, TriggersLeft: 3, TickAmount: -5})
 	bs.Validate(true)
 	if fired := bs.Trigger(); len(fired) != 0 {
 		t.Fatalf("a stacking record with no stacks must not fire, got %d", len(fired))
@@ -116,11 +116,11 @@ func TestStackingRecordWithNoStacksExpiresWithoutFiring(t *testing.T) {
 	}
 }
 
-func TestRemoveBuffClearsStacks(t *testing.T) {
+func TestRemoveConditionClearsStacks(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
-	bs.AddBuffMagnitude(930, 3, -2)
-	bs.RemoveBuff(930)
+	bs.AddConditionMagnitude(930, 3, -2)
+	bs.RemoveCondition(930)
 	if len(bs.List[0].Stacks) != 0 {
 		t.Fatalf("RemoveBuff must clear the stacks, got %+v", bs.List[0].Stacks)
 	}
@@ -135,20 +135,20 @@ func TestRemoveBuffClearsStacks(t *testing.T) {
 func TestStackingAddOnAnExpiredRecordStartsFresh(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
-	bs.AddBuffMagnitude(930, 3, -2)
+	bs.AddConditionMagnitude(930, 3, -2)
 	bs.HasFlag(Bleeding, true)
-	bs.AddBuffMagnitude(930, 5, -3)
+	bs.AddConditionMagnitude(930, 5, -3)
 	if want := []Stack{{RoundsLeft: 5, Amount: -3}}; !reflect.DeepEqual(bs.List[0].Stacks, want) {
 		t.Fatalf("Stacks = %+v, want %+v", bs.List[0].Stacks, want)
 	}
 }
 
 func TestNonStackingRecordStillOverwrites(t *testing.T) {
-	withSpecs(t, &BuffSpec{BuffId: 931, Name: "Sting", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 4,
+	withSpecs(t, &ConditionSpec{ConditionId: 931, Name: "Sting", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 4,
 		TickPool: "health", TickFromMagnitude: true})
 	bs := New()
-	bs.AddBuffMagnitude(931, 3, -2)
-	bs.AddBuffMagnitude(931, 5, -3)
+	bs.AddConditionMagnitude(931, 3, -2)
+	bs.AddConditionMagnitude(931, 5, -3)
 	b := heldOne(t, &bs, 931)
 	if b.TriggersLeft != 5 || b.TickAmount != -3 || len(b.Stacks) != 0 {
 		t.Fatalf("a non-stacking record overwrites: TriggersLeft %d TickAmount %d Stacks %+v, want 5 -3 []", b.TriggersLeft, b.TickAmount, b.Stacks)
@@ -156,14 +156,14 @@ func TestNonStackingRecordStillOverwrites(t *testing.T) {
 }
 
 func TestValidateRefusesStackingWithoutTickFromMagnitude(t *testing.T) {
-	s := &BuffSpec{BuffId: 932, Name: "Bad", TriggerRate: "1 round", TriggerCount: 1, Flags: []Flag{Stacking}, TickPool: "health", TickPercent: -1}
+	s := &ConditionSpec{ConditionId: 932, Name: "Bad", TriggerRate: "1 round", TriggerCount: 1, Flags: []Flag{Stacking}, TickPool: "health", TickPercent: -1}
 	if err := s.Validate(); err == nil {
 		t.Fatal("a stacking record without tick_from_magnitude must be refused")
 	}
 }
 
 func TestValidateRefusesStackingSlowerThanOneRound(t *testing.T) {
-	s := &BuffSpec{BuffId: 933, Name: "Bad", TriggerRate: "3 rounds", TriggerCount: 1, Flags: []Flag{Stacking}, TickPool: "health", TickFromMagnitude: true}
+	s := &ConditionSpec{ConditionId: 933, Name: "Bad", TriggerRate: "3 rounds", TriggerCount: 1, Flags: []Flag{Stacking}, TickPool: "health", TickFromMagnitude: true}
 	if err := s.Validate(); err == nil {
 		t.Fatal("a stacking record must tick every round: a stack counts rounds")
 	}
@@ -176,13 +176,13 @@ func TestValidateAcceptsAWellFormedStackingRecord(t *testing.T) {
 }
 
 func TestStacksRoundTripThroughYaml(t *testing.T) {
-	in := []*Buff{{BuffId: 930, TriggersLeft: 5, TickAmount: -5, Magnitude: -5,
+	in := []*Condition{{ConditionId: 930, TriggersLeft: 5, TickAmount: -5, Magnitude: -5,
 		Stacks: []Stack{{RoundsLeft: 3, Amount: -2}, {RoundsLeft: 5, Amount: -3}}}}
 	out, err := yaml.Marshal(in)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var back []*Buff
+	var back []*Condition
 	if err := yaml.Unmarshal(out, &back); err != nil {
 		t.Fatal(err)
 	}
@@ -227,7 +227,7 @@ func TestStackEquilibriumAtTheShippedCooldown(t *testing.T) {
 			}
 
 			if r%4 == 0 {
-				bs.AddBuffMagnitude(930, c.rounds, -2)
+				bs.AddConditionMagnitude(930, c.rounds, -2)
 			}
 			if r < 12 {
 				continue
@@ -247,7 +247,7 @@ func TestStackEquilibriumAtTheShippedCooldown(t *testing.T) {
 func TestHasFlagExpireClearsStacks(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
-	bs.AddBuffMagnitude(930, 3, -2)
+	bs.AddConditionMagnitude(930, 3, -2)
 	if !bs.HasFlag(Bleeding, true) {
 		t.Fatal("HasFlag(expire) must find the bleeding record")
 	}
@@ -267,24 +267,24 @@ func TestHasFlagExpireClearsStacks(t *testing.T) {
 // zero-trigger event to AddBuff, so both must refuse a stacking spec instead
 // of creating a live record with no stacks that later prints a phantom end
 // line.
-func TestAddBuffRefusesAStackingSpec(t *testing.T) {
+func TestAddConditionRefusesAStackingSpec(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
-	if bs.AddBuff(930, false) {
+	if bs.AddCondition(930, false) {
 		t.Fatal("AddBuff must refuse a stacking spec")
 	}
-	if bs.HasBuff(930) {
+	if bs.HasCondition(930) {
 		t.Fatal("a refused add must hold nothing")
 	}
 }
 
-func TestAddBuffScaledRefusesAStackingSpec(t *testing.T) {
+func TestAddConditionScaledRefusesAStackingSpec(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
-	if bs.AddBuffScaled(930, 1.0) {
+	if bs.AddConditionScaled(930, 1.0) {
 		t.Fatal("AddBuffScaled must refuse a stacking spec")
 	}
-	if bs.HasBuff(930) {
+	if bs.HasCondition(930) {
 		t.Fatal("a refused add must hold nothing")
 	}
 }
@@ -295,19 +295,19 @@ func TestAddBuffScaledRefusesAStackingSpec(t *testing.T) {
 func TestAddStackRefusesZeroMagnitude(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
-	if bs.AddBuffMagnitude(930, 3, 0) {
+	if bs.AddConditionMagnitude(930, 3, 0) {
 		t.Fatal("a zero-magnitude stack must be refused")
 	}
-	if bs.HasBuff(930) {
+	if bs.HasCondition(930) {
 		t.Fatal("a refused add must hold nothing")
 	}
 }
 
 func TestDisplayName(t *testing.T) {
 	spec := stackingSpec()
-	one := &Buff{BuffId: 930, Stacks: []Stack{{RoundsLeft: 2, Amount: -1}}}
-	three := &Buff{BuffId: 930, Stacks: []Stack{{2, -1}, {3, -1}, {4, -1}}}
-	plain := &Buff{BuffId: 930}
+	one := &Condition{ConditionId: 930, Stacks: []Stack{{RoundsLeft: 2, Amount: -1}}}
+	three := &Condition{ConditionId: 930, Stacks: []Stack{{2, -1}, {3, -1}, {4, -1}}}
+	plain := &Condition{ConditionId: 930}
 	if got := DisplayName(plain, spec); got != "Gash" {
 		t.Fatalf("no stacks: %q, want %q", got, "Gash")
 	}

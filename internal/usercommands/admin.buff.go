@@ -22,7 +22,7 @@ import (
 * Role Permissions:
 * buff 				(All)
  */
-func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+func Condition(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
 	// args should look like one of the following:
 	// target buffId - put buff on target if in the room
@@ -34,30 +34,30 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 		if (len(args) >= 2 && args[0] == "search") || (len(args) == 1 && args[0] == "list") {
 
-			var foundBuffIds []int
+			var foundConditionIds []int
 
 			if args[0] == "list" {
-				foundBuffIds = conditions.GetAllBuffIds()
+				foundConditionIds = conditions.GetAllConditionIds()
 			} else {
-				foundBuffIds = conditions.SearchBuffs(args[1])
+				foundConditionIds = conditions.SearchConditions(args[1])
 			}
 
-			sort.Ints(foundBuffIds)
+			sort.Ints(foundConditionIds)
 
 			headers := []string{"Id", "Description", "Flags"}
 			rows := [][]string{}
 
-			if len(foundBuffIds) == 0 {
+			if len(foundConditionIds) == 0 {
 				rows = append(rows, []string{"No Matches", "No Matches", "No Matches"})
 			} else {
-				for _, buffId := range foundBuffIds {
-					if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil {
+				for _, conditionId := range foundConditionIds {
+					if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil {
 						flags := []string{}
-						for _, flag := range buffSpec.Flags {
+						for _, flag := range conditionSpec.Flags {
 							flags = append(flags, string(flag))
 						}
-						rows = append(rows, []string{strconv.Itoa(buffSpec.BuffId), buffSpec.Name, strings.Join(flags, ", ")})
-						rows = append(rows, []string{``, `-` + buffSpec.Description, ``})
+						rows = append(rows, []string{strconv.Itoa(conditionSpec.ConditionId), conditionSpec.Name, strings.Join(flags, ", ")})
+						rows = append(rows, []string{``, `-` + conditionSpec.Description, ``})
 					}
 				}
 			}
@@ -69,7 +69,7 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 			targetUserId := 0
 			targetMobInstanceId := 0
-			buffId := 0
+			conditionId := 0
 
 			if len(args) >= 2 {
 
@@ -88,28 +88,28 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				// (on err, both IDs stay 0; downstream `if targetUserId > 0` /
 				// `if targetMobInstanceId > 0` branches won't fire)
 
-				buffId, _ = strconv.Atoi(args[1])
-				if buffId == 0 {
+				conditionId, _ = strconv.Atoi(args[1])
+				if conditionId == 0 {
 					// Grab the first match
-					foundBuffIds := conditions.SearchBuffs(args[1])
-					if len(foundBuffIds) > 0 {
-						buffId = foundBuffIds[0]
+					foundConditionIds := conditions.SearchConditions(args[1])
+					if len(foundConditionIds) > 0 {
+						conditionId = foundConditionIds[0]
 					}
 				}
 
 			} else if len(args) == 1 {
 				targetUserId = user.UserId
-				buffId, _ = strconv.Atoi(args[0])
-				if buffId == 0 {
+				conditionId, _ = strconv.Atoi(args[0])
+				if conditionId == 0 {
 					// Grab the first match
-					foundBuffIds := conditions.SearchBuffs(args[0])
-					if len(foundBuffIds) > 0 {
-						buffId = foundBuffIds[0]
+					foundConditionIds := conditions.SearchConditions(args[0])
+					if len(foundConditionIds) > 0 {
+						conditionId = foundConditionIds[0]
 					}
 				}
 			}
 
-			if buffId == 0 {
+			if conditionId == 0 {
 				user.SendText(messaging.CategorySystem, "buffId must be an integer > 0.")
 				return true, nil
 
@@ -119,22 +119,22 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				// get the user
 				if targetUser := users.GetByUserId(targetUserId); targetUser != nil {
 					// Get the buff
-					if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil {
+					if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil {
 						// A stacking record can only be added through
 						// AddBuffMagnitude, which supplies the rounds and
 						// amount a stack needs; the queued add this command
 						// sends carries neither, and Buffs.AddBuff now
 						// refuses it. Catch that here instead of telling the
 						// admin it applied when nothing landed.
-						if buffSpec.IsStacking() {
-							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", buffId, buffSpec.Name))
+						if conditionSpec.IsStacking() {
+							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", conditionId, conditionSpec.Name))
 						} else {
-							targetUser.AddBuff(buffId, `admin`)
-							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) applied to %s.", buffId, buffSpec.Name, targetUser.Character.Name))
+							targetUser.AddCondition(conditionId, `admin`)
+							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) applied to %s.", conditionId, conditionSpec.Name, targetUser.Character.Name))
 						}
 
 					} else {
-						user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff Id %d not found.", buffId))
+						user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff Id %d not found.", conditionId))
 					}
 
 					return true, nil
@@ -145,17 +145,17 @@ func Buff(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				// get the user
 				if targetMob := mobs.GetInstance(targetMobInstanceId); targetMob != nil {
 					// Get the buff
-					if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil {
+					if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil {
 						// See the matching comment in the player branch above.
-						if buffSpec.IsStacking() {
-							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", buffSpec.BuffId, buffSpec.Name))
+						if conditionSpec.IsStacking() {
+							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", conditionSpec.ConditionId, conditionSpec.Name))
 						} else {
-							targetMob.AddBuff(buffId, `admin`)
-							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) applied to %s.", buffSpec.BuffId, buffSpec.Name, targetMob.Character.Name))
+							targetMob.AddCondition(conditionId, `admin`)
+							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) applied to %s.", conditionSpec.ConditionId, conditionSpec.Name, targetMob.Character.Name))
 						}
 
 					} else {
-						user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff Id %d not found.", buffId))
+						user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff Id %d not found.", conditionId))
 					}
 
 					return true, nil

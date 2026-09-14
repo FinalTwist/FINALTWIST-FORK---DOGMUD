@@ -3,8 +3,8 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/stretchr/testify/require"
 )
@@ -30,9 +30,9 @@ func TestApplyWarcryEffectAppliesOneRecord(t *testing.T) {
 	require.GreaterOrEqual(t, bonus, 0.05)
 	require.LessOrEqual(t, bonus, 0.20)
 	require.Equal(t, 25, duration)
-	require.Equal(t, 25, char.Buffs.TriggersLeft(conditions.BuffIdWarcry))
-	require.InDelta(t, 1.0+bonus, char.Buffs.Effect(conditions.EffectDamageMult), 1e-9)
-	require.Len(t, char.Buffs.List, 1, "warcry must apply exactly one buff record")
+	require.Equal(t, 25, char.Conditions.TriggersLeft(conditions.ConditionIdWarcry))
+	require.InDelta(t, 1.0+bonus, char.Conditions.Effect(conditions.EffectDamageMult), 1e-9)
+	require.Len(t, char.Conditions.List, 1, "warcry must apply exactly one buff record")
 }
 
 // TestApplyRallyEffectAppliesOneRecord mirrors the warcry pin for rally's
@@ -46,7 +46,7 @@ func TestApplyRallyEffectAppliesOneRecord(t *testing.T) {
 	require.GreaterOrEqual(t, bonus, 0.05)
 	require.LessOrEqual(t, bonus, 0.20)
 	require.Equal(t, 25, duration)
-	require.Equal(t, 25, char.Buffs.TriggersLeft(conditions.BuffIdRally))
-	require.InDelta(t, 1.0+bonus, char.Buffs.Effect(conditions.EffectDefenseMult), 1e-9)
-	require.Len(t, char.Buffs.List, 1, "rally must apply exactly one buff record")
+	require.Equal(t, 25, char.Conditions.TriggersLeft(conditions.ConditionIdRally))
+	require.InDelta(t, 1.0+bonus, char.Conditions.Effect(conditions.EffectDefenseMult), 1e-9)
+	require.Len(t, char.Conditions.List, 1, "rally must apply exactly one buff record")
 }

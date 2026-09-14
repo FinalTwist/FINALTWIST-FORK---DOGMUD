@@ -11,7 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-const sightTestInfraredBuffId = 7401
+const sightTestInfraredConditionId = 7401
 
 var sightTestTag = regexp.MustCompile(`<[^>]*>`)
 
@@ -32,8 +32,8 @@ func sightTestRoom(t *testing.T, biome string) *Room {
 		"city":    {BiomeId: "city", LitArea: true},
 		"default": {BiomeId: "default", LitArea: true},
 	}))
-	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		sightTestInfraredBuffId: {BuffId: sightTestInfraredBuffId, Name: "Test Heat Eyes", Flags: []conditions.Flag{conditions.InfraredVision}},
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		sightTestInfraredConditionId: {ConditionId: sightTestInfraredConditionId, Name: "Test Heat Eyes", Flags: []conditions.Flag{conditions.InfraredVision}},
 	}))
 	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{
 		7411: users.NewTestUser(7411, "aliceia", "Aliceia", 97411),
@@ -50,7 +50,7 @@ func sightTestRoom(t *testing.T, biome string) *Room {
 
 func TestSendTextVisualHidingNames_InfraredObserverReadsFigures(t *testing.T) {
 	r := sightTestRoom(t, "cave")
-	if !users.GetByUserId(7413).Character.Buffs.AddBuff(sightTestInfraredBuffId, true) {
+	if !users.GetByUserId(7413).Character.Conditions.AddCondition(sightTestInfraredConditionId, true) {
 		t.Fatal("precondition: the observer should now carry infrared")
 	}
 	r.SendTextVisualHidingNames(messaging.CategoryKick, "Aliceia kicks Bobrick!",
@@ -85,7 +85,7 @@ func TestSendTextVisualHidingNames_LitObserverReadsTheNames(t *testing.T) {
 
 func TestRoomParticipantSight_JudgesTheUserInThisRoom(t *testing.T) {
 	r := sightTestRoom(t, "cave")
-	users.GetByUserId(7412).Character.Buffs.AddBuff(sightTestInfraredBuffId, true)
+	users.GetByUserId(7412).Character.Conditions.AddCondition(sightTestInfraredConditionId, true)
 
 	if d := r.ParticipantSight(7411); d != messaging.SightNone {
 		t.Errorf("no vision in a cave = %v, want SightNone", d)
@@ -102,7 +102,7 @@ func TestRoomParticipantSight_JudgesTheUserInThisRoom(t *testing.T) {
 // whole: the tag is anonymized before bare names are hidden.
 func TestSendTextVisualHidingNames_PartOfATagDoesNotLeakTheRest(t *testing.T) {
 	r := sightTestRoom(t, "cave")
-	if !users.GetByUserId(7413).Character.Buffs.AddBuff(sightTestInfraredBuffId, true) {
+	if !users.GetByUserId(7413).Character.Conditions.AddCondition(sightTestInfraredConditionId, true) {
 		t.Fatal("precondition: the observer should now carry infrared")
 	}
 	r.SendTextVisualHidingNames(messaging.CategoryKick,

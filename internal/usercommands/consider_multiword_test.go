@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/stretchr/testify/assert"
@@ -18,11 +18,11 @@ func considerTestMob(instId int, name string, roomId int) *mobs.Mob {
 		InstanceId: instId,
 		HomeRoomId: roomId,
 		Character: characters.Character{
-			Name:      name,
-			RoomId:    roomId,
-			Health:    30,
-			Buffs:     conditions.New(),
-			Cooldowns: map[string]int{},
+			Name:       name,
+			RoomId:     roomId,
+			Health:     30,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 }

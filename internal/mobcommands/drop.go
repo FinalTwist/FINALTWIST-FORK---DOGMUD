@@ -58,7 +58,7 @@ func Drop(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		}
 	}
 
-	if mob.Character.HasBuffFlag(conditions.PermaGear) {
+	if mob.Character.HasConditionFlag(conditions.PermaGear) {
 		return true, nil
 	}
 

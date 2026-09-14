@@ -41,10 +41,10 @@ const purgingDraughtItemId = 30052
 // draught's flavour buff, which carries no statmods and expires after a round;
 // a purge leaves it alone so the drinker still sees that they drank something.
 const (
-	potionBuffIdMin       = 54
-	potionBuffIdMax       = 75
-	purgingDraughtBuffId  = 70
-	purgingWeaknessBuffId = 76
+	potionConditionIdMin       = 54
+	potionConditionIdMax       = 75
+	purgingDraughtConditionId  = 70
+	purgingWeaknessConditionId = 76
 )
 
 // bypassesToxicityGate reports whether an item skips the pre-check that refuses
@@ -73,14 +73,14 @@ func bypassesToxicityGate(itemId int) bool {
 // fifty-round debuff. The strips and the toxicity clear stay synchronous.
 func applyPurgeEffects(u *users.UserRecord) {
 	c := u.Character
-	for id := potionBuffIdMin; id <= potionBuffIdMax; id++ {
-		if id == purgingDraughtBuffId {
+	for id := potionConditionIdMin; id <= potionConditionIdMax; id++ {
+		if id == purgingDraughtConditionId {
 			continue
 		}
-		c.RemoveBuff(id)
+		c.RemoveCondition(id)
 	}
 	c.Toxicity = 0
-	u.AddBuffScaled(purgingWeaknessBuffId, 1.0, `drink`)
+	u.AddConditionScaled(purgingWeaknessConditionId, 1.0, `drink`)
 }
 
 // catalystOfUnmakingItemId is #22 crash-site: drinking it scours ALL mutations
@@ -162,7 +162,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		spoiledTox := float64(itemSpec.Toxicity) * 3.0
 		user.Character.AddToxicity(spoiledTox)
 
-		user.Character.CancelBuffsWithFlag(conditions.Hidden)
+		user.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 		// Consume the item
 		if fromBandolier {
@@ -181,7 +181,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 		// Apply nausea debuff (buff 75) through the event, so the holder reads
 		// its start line.
-		user.AddBuff(75, `drink`)
+		user.AddCondition(75, `drink`)
 
 		// Recipe discovery chance: 10% + (alchemySkill * 0.5)%
 		alchSkill := user.Character.GetSkillLevel(skills.Alchemy)
@@ -207,7 +207,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		}
 	}
 
-	user.Character.CancelBuffsWithFlag(conditions.Hidden)
+	user.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 	// Consume the item
 	if fromBandolier {
@@ -261,8 +261,8 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	// user, so Buff_ApplyBuffs runs and the drinker reads the buff's start line;
 	// the multiplier rides on the event. Applying the scaled case through
 	// Character.AddBuffScaled instead is what made Purging Weakness silent.
-	for _, buffId := range itemSpec.BuffIds {
-		user.AddBuffScaled(buffId, durationMult, `drink`)
+	for _, conditionId := range itemSpec.ConditionIds {
+		user.AddConditionScaled(conditionId, durationMult, `drink`)
 		// Compute tick snapshot for config-driven buffs (no stat scaling for
 		// potions). SetTickAmount below is live on a RE-drink, where the buff is
 		// still held and its index hits; it is a no-op only on the first
@@ -273,9 +273,9 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		// apply (5, 7, 47) none declares tick_variance, so the recomputation is
 		// deterministic, while no tick_pool buff carries a max-pool statmod, so
 		// it reads the same pool.
-		if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil && buffSpec.TickPool != "" {
+		if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil && conditionSpec.TickPool != "" {
 			var maxPool int
-			switch buffSpec.TickPool {
+			switch conditionSpec.TickPool {
 			case "health":
 				maxPool = user.Character.HealthMax.Value
 			case "stamina":
@@ -283,8 +283,8 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			case "conviction":
 				maxPool = user.Character.ConvictionMax.Value
 			}
-			tickAmt := conditions.ComputeTickAmount(maxPool, buffSpec.TickPercent, buffSpec.TickVariance, buffSpec.TickMin, 1.0)
-			user.Character.Buffs.SetTickAmount(buffId, tickAmt)
+			tickAmt := conditions.ComputeTickAmount(maxPool, conditionSpec.TickPercent, conditionSpec.TickVariance, conditionSpec.TickMin, 1.0)
+			user.Character.Conditions.SetTickAmount(conditionId, tickAmt)
 		}
 	}
 
@@ -326,7 +326,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		if communionMult <= 0 {
 			communionMult = 1.0
 		}
-		user.AddBuffScaled(90, communionMult, `drink`)
+		user.AddConditionScaled(90, communionMult, `drink`)
 
 		// Tick addiction counter.
 		user.Character.AddBloomAddiction(int(bal.BloomAddictionPerDose))

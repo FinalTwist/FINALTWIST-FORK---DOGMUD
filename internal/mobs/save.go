@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/casing"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -143,8 +143,8 @@ func ValidateMobSpec(m *Mob) error {
 	if sp := m.SurrenderPolicy; sp != "" && sp != "never" && sp != "always" && !strings.HasPrefix(sp, "auto-tap-below ") {
 		return fmt.Errorf(`surrender_policy %q invalid; valid: "", never, always, "auto-tap-below <N>"`, sp)
 	}
-	for _, bid := range m.BuffIds {
-		if conditions.GetBuffSpec(bid) == nil {
+	for _, bid := range m.ConditionIds {
+		if conditions.GetConditionSpec(bid) == nil {
 			return fmt.Errorf("buff id %d does not exist", bid)
 		}
 	}

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/audio"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
@@ -53,7 +53,7 @@ const (
 	FindHostile        FindFlag = 0b00000010000 // will auto-attack players
 	FindMerchant       FindFlag = 0b00000100000 // is a merchant
 	FindDowned         FindFlag = 0b00001000000 // hp < 1
-	FindBuffed         FindFlag = 0b00010000000 // has a buff
+	FindWithConditions FindFlag = 0b00010000000 // has a buff
 	FindHasLight       FindFlag = 0b00100000000 // has a light source
 	FindHasPet         FindFlag = 0b01000000000 // has a pet
 	FindNative         FindFlag = 0b10000000000 // spawns in this room
@@ -696,9 +696,9 @@ func (r *Room) AddTemporaryExit(exitName string, t exit.TemporaryRoomExit) bool 
 // or flag. RefreshBuff tops the triggers back up and nothing else, so the
 // buff stays active for the whole visit: one start line on entry, one end
 // line on leaving, none in between.
-func (r *Room) ApplyBuffIdToPlayers(buffIds []int, source string) {
+func (r *Room) ApplyConditionIdToPlayers(conditionIds []int, source string) {
 
-	if len(buffIds) == 0 {
+	if len(conditionIds) == 0 {
 		return
 	}
 
@@ -706,12 +706,12 @@ func (r *Room) ApplyBuffIdToPlayers(buffIds []int, source string) {
 
 		if u := users.GetByUserId(uid); u != nil {
 
-			for _, bId := range buffIds {
-				if u.Character.HasBuff(bId) {
-					u.Character.RefreshBuff(bId)
+			for _, bId := range conditionIds {
+				if u.Character.HasCondition(bId) {
+					u.Character.RefreshCondition(bId)
 					continue
 				}
-				u.AddBuff(bId, source)
+				u.AddCondition(bId, source)
 			}
 		}
 
@@ -723,9 +723,9 @@ func (r *Room) ApplyBuffIdToPlayers(buffIds []int, source string) {
 // instead of letting it lapse and re-applying it. See ApplyBuffIdToPlayers:
 // the same lapse-and-reapply loop applied here, narrating the buff's end
 // room text every few rounds for as long as the mob stayed.
-func (r *Room) ApplyBuffIdToMobs(buffIds []int, source string) {
+func (r *Room) ApplyConditionIdToMobs(conditionIds []int, source string) {
 
-	if len(buffIds) == 0 {
+	if len(conditionIds) == 0 {
 		return
 	}
 
@@ -733,12 +733,12 @@ func (r *Room) ApplyBuffIdToMobs(buffIds []int, source string) {
 
 		if m := mobs.GetInstance(miid); m != nil {
 
-			for _, bId := range buffIds {
-				if m.Character.HasBuff(bId) {
-					m.Character.RefreshBuff(bId)
+			for _, bId := range conditionIds {
+				if m.Character.HasCondition(bId) {
+					m.Character.RefreshCondition(bId)
 					continue
 				}
-				m.AddBuff(bId, source)
+				m.AddCondition(bId, source)
 			}
 		}
 
@@ -749,9 +749,9 @@ func (r *Room) ApplyBuffIdToMobs(buffIds []int, source string) {
 // applies buffs to any native mobs in the room, refreshing one a mob already
 // holds instead of letting it lapse and re-applying it. See
 // ApplyBuffIdToPlayers for why AddBuff is the wrong tool for a refresh.
-func (r *Room) ApplyBuffIdToNativeMobs(buffIds []int, source string) {
+func (r *Room) ApplyConditionIdToNativeMobs(conditionIds []int, source string) {
 
-	if len(buffIds) == 0 {
+	if len(conditionIds) == 0 {
 		return
 	}
 
@@ -759,12 +759,12 @@ func (r *Room) ApplyBuffIdToNativeMobs(buffIds []int, source string) {
 
 		if m := mobs.GetInstance(miid); m != nil {
 
-			for _, bId := range buffIds {
-				if m.Character.HasBuff(bId) {
-					m.Character.RefreshBuff(bId)
+			for _, bId := range conditionIds {
+				if m.Character.HasCondition(bId) {
+					m.Character.RefreshCondition(bId)
 					continue
 				}
-				m.AddBuff(bId, source)
+				m.AddCondition(bId, source)
 			}
 		}
 
@@ -772,7 +772,7 @@ func (r *Room) ApplyBuffIdToNativeMobs(buffIds []int, source string) {
 
 }
 
-func (r *Room) SpawnTempContainer(name string, duration string, lockDifficulty int, trapBuffIds ...int) string {
+func (r *Room) SpawnTempContainer(name string, duration string, lockDifficulty int, trapConditionIds ...int) string {
 
 	c := Container{}
 
@@ -781,8 +781,8 @@ func (r *Room) SpawnTempContainer(name string, duration string, lockDifficulty i
 
 	c.Lock.Difficulty = uint8(lockDifficulty)
 
-	if len(trapBuffIds) > 0 {
-		c.Lock.TrapBuffIds = trapBuffIds
+	if len(trapConditionIds) > 0 {
+		c.Lock.TrapConditionIds = trapConditionIds
 	}
 
 	containerName := name
@@ -977,8 +977,8 @@ func (r *Room) Prepare(checkAdjacentRooms bool) {
 					mob.Character.Shop.Restock()
 				}
 
-				if len(spawnInfo.BuffIds) > 0 {
-					mob.Character.SetPermaBuffs(spawnInfo.BuffIds)
+				if len(spawnInfo.ConditionIds) > 0 {
+					mob.Character.SetPermanentConditions(spawnInfo.ConditionIds)
 				}
 
 				// If there are idle commands for this spawn, overwrite.
@@ -1294,7 +1294,7 @@ func (r *Room) MarkExitTrapDefused(exitName string) {
 		return
 	}
 
-	exitInfo.Lock.TrapBuffIds = nil
+	exitInfo.Lock.TrapConditionIds = nil
 	r.Exits[exitName] = exitInfo
 
 	for _, existing := range r.DefusedExits {
@@ -1315,10 +1315,10 @@ func (r *Room) applyDefusedExits() {
 			// The authored exit was renamed or removed — nothing to clear.
 			continue
 		}
-		if exitInfo.Lock.TrapBuffIds == nil {
+		if exitInfo.Lock.TrapConditionIds == nil {
 			continue
 		}
-		exitInfo.Lock.TrapBuffIds = nil
+		exitInfo.Lock.TrapConditionIds = nil
 		r.Exits[exitName] = exitInfo
 	}
 }
@@ -1697,7 +1697,7 @@ func (r *Room) GetMobs(findTypes ...FindFlag) []int {
 			continue
 		}
 
-		if typeFlag&FindBuffed == FindBuffed && len(mob.Character.Buffs.List) > 0 {
+		if typeFlag&FindWithConditions == FindWithConditions && len(mob.Character.Conditions.List) > 0 {
 			mobMatches = append(mobMatches, mobId)
 			continue
 		}
@@ -1787,7 +1787,7 @@ func (r *Room) GetPlayers(findTypes ...FindFlag) []int {
 			continue
 		}
 
-		if typeFlag&FindBuffed == FindBuffed && len(user.Character.Buffs.List) > 0 {
+		if typeFlag&FindWithConditions == FindWithConditions && len(user.Character.Conditions.List) > 0 {
 			playerMatches = append(playerMatches, userId)
 			continue
 		}
@@ -2676,9 +2676,9 @@ func (r *Room) RoundTick() {
 
 	for mut := range r.ActiveMutators {
 		spec := mut.GetSpec()
-		r.ApplyBuffIdToPlayers(spec.PlayerBuffIds, `area`)
-		r.ApplyBuffIdToMobs(spec.MobBuffIds, `area`)
-		r.ApplyBuffIdToNativeMobs(spec.NativeBuffIds, `area`)
+		r.ApplyConditionIdToPlayers(spec.PlayerConditionIds, `area`)
+		r.ApplyConditionIdToMobs(spec.MobConditionIds, `area`)
+		r.ApplyConditionIdToNativeMobs(spec.NativeConditionIds, `area`)
 	}
 	//
 	// Done adding mutator buffs

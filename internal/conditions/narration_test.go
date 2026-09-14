@@ -8,8 +8,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/textutil"
 )
 
-func glowSpec() *BuffSpec {
-	return &BuffSpec{BuffId: 500, Name: "Glow", StartRoomText: "A glow surrounds {source}.", EndUserText: "The glow fades.", TriggerUserText: "You shimmer."}
+func glowSpec() *ConditionSpec {
+	return &ConditionSpec{ConditionId: 500, Name: "Glow", StartRoomText: "A glow surrounds {source}.", EndUserText: "The glow fades.", TriggerUserText: "You shimmer."}
 }
 
 func TestNarrationStartPutsTheHolderInActeeAndUsesTheNotice(t *testing.T) {
@@ -35,7 +35,7 @@ func TestNarrationTriggerAndEnd(t *testing.T) {
 	}
 }
 
-func TestNarrationSecretBuffHasNoHolderLine(t *testing.T) {
+func TestNarrationSecretConditionHasNoHolderLine(t *testing.T) {
 	s := glowSpec()
 	s.Secret = true
 	v := s.Narration(PhaseStart)
@@ -55,7 +55,7 @@ func TestNarrateSubstitutesTheHolderName(t *testing.T) {
 }
 
 func TestNarrateAPhaseWithNoTextRendersNothing(t *testing.T) {
-	s := &BuffSpec{BuffId: 501, Name: "Quiet", Secret: true}
+	s := &ConditionSpec{ConditionId: 501, Name: "Quiet", Secret: true}
 	if v := s.Narration(PhaseStart); v.Len() != 0 {
 		t.Fatalf("expected no variants, got %+v", v)
 	}
@@ -65,7 +65,7 @@ func TestNarrateAPhaseWithNoTextRendersNothing(t *testing.T) {
 }
 
 func TestAuthoredStartLineIgnoresTheSilentStartRule(t *testing.T) {
-	s := &BuffSpec{BuffId: 502, Name: "Sleeping", Flags: []Flag{SilentStart}, StartUserText: "You lie down, {source_plain}."}
+	s := &ConditionSpec{ConditionId: 502, Name: "Sleeping", Flags: []Flag{SilentStart}, StartUserText: "You lie down, {source_plain}."}
 	if got := s.StartUserNotice(); got != "" {
 		t.Fatalf("notice should be silent for silent-start, got %q", got)
 	}
@@ -88,7 +88,7 @@ func TestValidateRefusesAWhitespaceOnlyLine(t *testing.T) {
 }
 
 func TestValidateReadsTheRawStartLineEvenWhenTheNoticeIsSilent(t *testing.T) {
-	s := &BuffSpec{BuffId: 503, Name: "Sleeping", Flags: []Flag{SilentStart}, StartUserText: "   "}
+	s := &ConditionSpec{ConditionId: 503, Name: "Sleeping", Flags: []Flag{SilentStart}, StartUserText: "   "}
 	if got := s.StartUserNotice(); got != "" {
 		t.Fatalf("precondition: the notice must be silent for silent-start, got %q", got)
 	}

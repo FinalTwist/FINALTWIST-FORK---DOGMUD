@@ -11,7 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/species"
 )
 
-func (c *Character) GetDefaultDiceRoll() (attacks int, dCount int, dSides int, bonus int, buffOnCrit []int) {
+func (c *Character) GetDefaultDiceRoll() (attacks int, dCount int, dSides int, bonus int, conditionOnCrit []int) {
 	// default racial
 	speciesInfo := species.GetSpecies(c.SpeciesId)
 	if speciesInfo == nil {
@@ -25,7 +25,7 @@ func (c *Character) GetDefaultDiceRoll() (attacks int, dCount int, dSides int, b
 	dCount = speciesInfo.Damage.DiceCount
 	dSides = speciesInfo.Damage.SideCount
 	bonus = speciesInfo.Damage.BonusDamage
-	buffOnCrit = speciesInfo.Damage.CritBuffIds
+	conditionOnCrit = speciesInfo.Damage.CritConditionIds
 
 	dCount += int(math.Floor((float64(c.Stats.Dexterity.ValueAdj) / 50)))
 	dSides += int(math.Floor((float64(c.Stats.Strength.ValueAdj) / 12)))
@@ -38,13 +38,13 @@ func (c *Character) GetDefaultDiceRoll() (attacks int, dCount int, dSides int, b
 		dSides = speciesInfo.Damage.SideCount
 	}
 
-	return attacks, dCount, dSides, bonus, buffOnCrit
+	return attacks, dCount, dSides, bonus, conditionOnCrit
 }
 
 // GetDefaultDistributionDamage returns distribution damage parameters for unarmed combat.
 // Uses CalculateUnarmedDamage to scale with Strength and Unarmed Combat skill.
 // This provides meaningful progression for unarmed fighters.
-func (c *Character) GetDefaultDistributionDamage() (attacks int, baseDamage float64, variance float64, buffOnCrit []int) {
+func (c *Character) GetDefaultDistributionDamage() (attacks int, baseDamage float64, variance float64, conditionOnCrit []int) {
 	speciesInfo := species.GetSpecies(c.SpeciesId)
 	if speciesInfo == nil {
 		// See GetDefaultDiceRoll: nil for an unknown SpeciesId. The attacks
@@ -56,12 +56,12 @@ func (c *Character) GetDefaultDistributionDamage() (attacks int, baseDamage floa
 	if attacks < 1 {
 		attacks = 1
 	}
-	buffOnCrit = speciesInfo.Damage.CritBuffIds
+	conditionOnCrit = speciesInfo.Damage.CritConditionIds
 
 	// Use skill-based unarmed damage calculation (Stage 7.3)
 	baseDamage, variance = c.CalculateUnarmedDamage()
 
-	return attacks, baseDamage, variance, buffOnCrit
+	return attacks, baseDamage, variance, conditionOnCrit
 }
 
 // CalculateUnarmedDamage returns the base damage and variance for unarmed attacks.
@@ -183,7 +183,7 @@ func (c *Character) GetPhysicalMitigation() float64 {
 	// folded their statmod sibling — physical was the odd one out, so buffs like
 	// Cocoon (104) and Ironhide Brew (61) that reserve physical_mitigation as a
 	// statmod silently did nothing until this line.
-	nonGearMit := int(c.Buffs.Effect(conditions.EffectMitigationFlat))
+	nonGearMit := int(c.Conditions.Effect(conditions.EffectMitigationFlat))
 	nonGearMit += mutations.GetNaturalArmor(c.Mutations)
 	nonGearMit += c.StatMod("physical_mitigation")
 	if speciesInfo := species.GetSpecies(c.SpeciesId); speciesInfo != nil {
@@ -294,7 +294,7 @@ func (c *Character) GetDefenseScoreFor(defenseType string, includeSkill bool) fl
 		// blinded combat condition, which multiplied dodge by 0.5-0.7 but had
 		// no producer either — the enum is gone, the seam stays, and a future
 		// record that wants to blur dodge declares `dodge_mult` and is read.
-		score *= c.Buffs.Effect(conditions.EffectDodgeMult)
+		score *= c.Conditions.Effect(conditions.EffectDodgeMult)
 		return score
 
 	case DefenseParry:

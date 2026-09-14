@@ -17,7 +17,7 @@ func TriggerVenomCoat(actor Actor, opts MutationOpts) MutationResult {
 
 	// Event-queue-safe buff application (per the Wave 2 gotcha — routes through
 	// ApplyBuffs so start-text + GMCP conditions refresh).
-	actor.AddBuff(103, "venom-coat")
+	actor.AddCondition(103, "venom-coat")
 
 	if actor.IsPlayer() {
 		actor.SendText(messaging.CategoryMutation,

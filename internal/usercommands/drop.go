@@ -85,7 +85,7 @@ func Drop(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			return true, nil
 		}
 
-		user.Character.CancelBuffsWithFlag(conditions.Hidden)
+		user.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 		if err := actions.FloorDropGold(dropAmt, user.Character, room); err != nil {
 			user.SendText(messaging.CategorySystem, "Oops!")
@@ -118,7 +118,7 @@ func Drop(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			if !result.Found {
 				break
 			}
-			user.Character.CancelBuffsWithFlag(conditions.Hidden)
+			user.Character.CancelConditionsWithFlag(conditions.Hidden)
 			dropped++
 		}
 		if dropped == 0 {
@@ -140,7 +140,7 @@ func Drop(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	if !result.Found {
 		user.SendText(messaging.CategorySystem, fmt.Sprintf("You don't have a %s to drop.", rest))
 	} else {
-		user.Character.CancelBuffsWithFlag(conditions.Hidden)
+		user.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 		iSpec := result.Item.GetSpec()
 

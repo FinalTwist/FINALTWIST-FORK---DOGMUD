@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -235,11 +235,11 @@ func TestShoot_CrossRoomLoaded_NoShooterAggro_MobPursues(t *testing.T) {
 		InstanceId: 400,
 		HomeRoomId: 2,
 		Character: characters.Character{
-			Name:      "Skeleton",
-			RoomId:    2,
-			Health:    100000,
-			Buffs:     conditions.New(),
-			Cooldowns: map[string]int{},
+			Name:       "Skeleton",
+			RoomId:     2,
+			Health:     100000,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	target.Character.HealthMax.Value = 100000
@@ -304,11 +304,11 @@ enemies: []
 		HomeRoomId: 1,
 		Groups:     []string{"thornwall_citizens"},
 		Character: characters.Character{
-			Name:      "city beggar",
-			RoomId:    1,
-			Health:    100000,
-			Buffs:     conditions.New(),
-			Cooldowns: map[string]int{},
+			Name:       "city beggar",
+			RoomId:     1,
+			Health:     100000,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	target.Character.HealthMax.Value = 100000
@@ -416,7 +416,7 @@ func TestShoot_RefusedNonCombatant_NoAggro(t *testing.T) {
 			RoomId:       1,
 			Health:       500,
 			NonCombatant: true,
-			Buffs:        conditions.New(),
+			Conditions:   conditions.New(),
 			Cooldowns:    map[string]int{},
 		},
 	}

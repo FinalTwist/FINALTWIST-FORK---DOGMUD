@@ -171,8 +171,8 @@ type AttackResult struct {
 	CritSource              string          // "rolled"|"sleeping"|"crit_on_win"; diagnostic only, see SwingEvent.CritSource
 	Fumble                  bool            // defaults false
 	DoubleFumble            bool            // defaults false
-	BuffSource              []int           // defaults 0
-	BuffTarget              []int           // defaults 0
+	ConditionSource         []int           // defaults 0
+	ConditionTarget         []int           // defaults 0
 	DamageToTarget          int             // defaults 0
 	DamageToTargetReduction int             // defaults 0
 	DamageToSource          int             // defaults 0

@@ -29,14 +29,14 @@ func TestRegression_PanickingListenerDoesNotEscape(t *testing.T) {
 		ClearListeners()
 		defer ClearListeners()
 
-		RegisterListener(Buff{}, func(e Event) ListenerReturn {
+		RegisterListener(Condition{}, func(e Event) ListenerReturn {
 			panic("listener blew up")
 		})
 
 		// The bare call must not panic. Without recovery this takes down the
 		// process, so a plain assert.NotPanics is the whole point of the test.
 		assert.NotPanics(t, func() {
-			DoListeners(Buff{BuffId: 1})
+			DoListeners(Condition{ConditionId: 1})
 		}, "a panicking listener must not escape DoListeners")
 	})
 
@@ -46,20 +46,20 @@ func TestRegression_PanickingListenerDoesNotEscape(t *testing.T) {
 
 		firstRan, thirdRan := false, false
 
-		RegisterListener(Buff{}, func(e Event) ListenerReturn {
+		RegisterListener(Condition{}, func(e Event) ListenerReturn {
 			firstRan = true
 			return Continue
 		})
-		RegisterListener(Buff{}, func(e Event) ListenerReturn {
+		RegisterListener(Condition{}, func(e Event) ListenerReturn {
 			panic("middle listener blew up")
 		})
-		RegisterListener(Buff{}, func(e Event) ListenerReturn {
+		RegisterListener(Condition{}, func(e Event) ListenerReturn {
 			thirdRan = true
 			return Continue
 		})
 
 		require.NotPanics(t, func() {
-			DoListeners(Buff{BuffId: 1})
+			DoListeners(Condition{ConditionId: 1})
 		})
 
 		assert.True(t, firstRan, "listeners before the panicking one must run")
@@ -71,13 +71,13 @@ func TestRegression_PanickingListenerDoesNotEscape(t *testing.T) {
 		ClearListeners()
 		defer ClearListeners()
 
-		RegisterListener(Buff{}, func(e Event) ListenerReturn {
+		RegisterListener(Condition{}, func(e Event) ListenerReturn {
 			panic("boom")
 		})
 
 		var got ListenerReturn
 		require.NotPanics(t, func() {
-			got = DoListeners(Buff{BuffId: 1})
+			got = DoListeners(Condition{ConditionId: 1})
 		})
 
 		assert.Equal(t, Continue, got,
@@ -91,21 +91,21 @@ func TestRegression_PanickingListenerDoesNotEscape(t *testing.T) {
 		ClearListeners()
 		defer ClearListeners()
 
-		RegisterListener(Buff{}, func(e Event) ListenerReturn {
+		RegisterListener(Condition{}, func(e Event) ListenerReturn {
 			panic("boom")
 		})
 
-		require.NotPanics(t, func() { DoListeners(Buff{BuffId: 1}) })
+		require.NotPanics(t, func() { DoListeners(Condition{ConditionId: 1}) })
 
 		// A second, independent dispatch must not deadlock or misbehave.
 		ClearListeners()
 		ran := false
-		RegisterListener(Buff{}, func(e Event) ListenerReturn {
+		RegisterListener(Condition{}, func(e Event) ListenerReturn {
 			ran = true
 			return Continue
 		})
 
-		require.NotPanics(t, func() { DoListeners(Buff{BuffId: 2}) })
+		require.NotPanics(t, func() { DoListeners(Condition{ConditionId: 2}) })
 		assert.True(t, ran, "the listener lock must not be left held after a recovered panic")
 	})
 
@@ -115,15 +115,15 @@ func TestRegression_PanickingListenerDoesNotEscape(t *testing.T) {
 		defer ClearListeners()
 
 		laterRan := false
-		RegisterListener(Buff{}, func(e Event) ListenerReturn {
+		RegisterListener(Condition{}, func(e Event) ListenerReturn {
 			return Cancel
 		})
-		RegisterListener(Buff{}, func(e Event) ListenerReturn {
+		RegisterListener(Condition{}, func(e Event) ListenerReturn {
 			laterRan = true
 			return Continue
 		})
 
-		got := DoListeners(Buff{BuffId: 1})
+		got := DoListeners(Condition{ConditionId: 1})
 
 		assert.Equal(t, Cancel, got, "Cancel must still propagate")
 		assert.False(t, laterRan, "Cancel must still stop later listeners")

@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	activeTrackingBuff = 86
-	shadowingBuff      = 87
+	activeTrackingCondition = 86
+	shadowingCondition      = 87
 )
 
 // MobDeathTrackingCleanup clears tracking/shadow state on any character
@@ -35,7 +35,7 @@ func MobDeathTrackingCleanup(e events.Event) events.ListenerReturn {
 	clearPointers := func(c interface {
 		GetMiscData(string) any
 		SetMiscData(string, any)
-		RemoveBuff(int)
+		RemoveCondition(int)
 	}) {
 		// Tracking by name.
 		if dyingName != "" {
@@ -43,7 +43,7 @@ func MobDeathTrackingCleanup(e events.Event) events.ListenerReturn {
 				if s, ok := v.(string); ok && s == dyingName {
 					c.SetMiscData("tracking-mob", nil)
 					c.SetMiscData("tracking-display-count", nil)
-					c.RemoveBuff(activeTrackingBuff)
+					c.RemoveCondition(activeTrackingCondition)
 				}
 			}
 		}
@@ -51,7 +51,7 @@ func MobDeathTrackingCleanup(e events.Event) events.ListenerReturn {
 		if v := c.GetMiscData("shadow-target-mob"); v != nil {
 			if id, ok := v.(int); ok && id == dyingInstanceId {
 				c.SetMiscData("shadow-target-mob", nil)
-				c.RemoveBuff(shadowingBuff)
+				c.RemoveCondition(shadowingCondition)
 			}
 		}
 	}

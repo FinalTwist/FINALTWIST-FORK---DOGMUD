@@ -6,9 +6,9 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
@@ -105,7 +105,7 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 			continue
 		}
 
-		if user.Character.HasBuffFlag(conditions.NoCombat) {
+		if user.Character.HasConditionFlag(conditions.NoCombat) {
 			continue
 		}
 
@@ -140,7 +140,7 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 			}
 		}
 
-		user.Character.CancelCombatBuffs()
+		user.Character.CancelCombatConditions()
 
 		uRoom := rooms.LoadRoom(user.Character.RoomId)
 		if uRoom == nil {
@@ -247,7 +247,7 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 			continue
 		}
 
-		if mob.Character.HasBuffFlag(conditions.NoCombat) {
+		if mob.Character.HasConditionFlag(conditions.NoCombat) {
 			continue
 		}
 
@@ -267,7 +267,7 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 		// even though its swings are already suppressed (5.1c smoke BUG-04).
 		if targetUserId := mob.Character.CurrentCombatTarget().UserId; targetUserId > 0 {
 			if tgt := users.GetByUserId(targetUserId); tgt != nil &&
-				tgt.Character.HasBuffFlag(conditions.NoAggroTarget) {
+				tgt.Character.HasConditionFlag(conditions.NoAggroTarget) {
 				targeting.Release(&mob.Character, targeting.ReasonDisengage)
 				continue
 			}
@@ -300,7 +300,7 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 		if mob.Character.IsInCombat() {
 			// Strip combat-cancelling buffs (Hidden, etc.) and remove
 			// their permabuff entries so Validate() doesn't re-apply them.
-			mob.Character.CancelCombatBuffs()
+			mob.Character.CancelCombatConditions()
 
 			if handleMobFoldCasting(mob, mobRoom) {
 				continue
@@ -518,12 +518,12 @@ func snapshotSleepingVictims() (sleepingUserIds map[int]bool, sleepingMobInstanc
 	sleepingUserIds = map[int]bool{}
 	sleepingMobInstanceIds = map[int]bool{}
 	for _, uid := range users.GetOnlineUserIds() {
-		if u := users.GetByUserId(uid); u != nil && u.Character.HasBuffFlag(conditions.Sleeping) {
+		if u := users.GetByUserId(uid); u != nil && u.Character.HasConditionFlag(conditions.Sleeping) {
 			sleepingUserIds[uid] = true
 		}
 	}
 	for _, mobId := range mobs.GetAllMobInstanceIds() {
-		if m := mobs.GetInstance(mobId); m != nil && m.Character.HasBuffFlag(conditions.Sleeping) {
+		if m := mobs.GetInstance(mobId); m != nil && m.Character.HasConditionFlag(conditions.Sleeping) {
 			sleepingMobInstanceIds[mobId] = true
 		}
 	}

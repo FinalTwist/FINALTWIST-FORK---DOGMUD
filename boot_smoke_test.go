@@ -105,7 +105,7 @@ func TestSmoke_ServerBootsCleanWithRealData(t *testing.T) {
 		{"rooms", len(rooms.GetAllRoomIds())},
 		{"mob templates", len(mobs.AllMobTemplates())},
 		{"spells", len(spells.GetAllSpells())},
-		{"buffs", len(conditions.GetAllBuffIds())},
+		{"buffs", len(conditions.GetAllConditionIds())},
 		{"quests", len(quests.GetAllQuests())},
 		{"crafting recipes", len(crafting.GetAll())},
 	}

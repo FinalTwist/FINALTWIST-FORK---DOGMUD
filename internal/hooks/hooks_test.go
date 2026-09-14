@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
@@ -36,16 +36,16 @@ func TestMain(m *testing.M) {
 // seedAllRegistries populates all 5 dependency registries with sensible test
 // defaults and returns a combined cleanup function.
 func seedAllRegistries() func() {
-	cleanupBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+	cleanupConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		100: {
-			BuffId:        100,
+			ConditionId:   100,
 			Name:          "Test Strength Buff",
 			Description:   "Boosts strength for testing",
 			RoundInterval: 5,
 			TriggerCount:  3,
 		},
 		101: {
-			BuffId:        101,
+			ConditionId:   101,
 			Name:          "Test Poison",
 			Description:   "Damage over time for testing",
 			RoundInterval: 3,
@@ -84,11 +84,11 @@ func seedAllRegistries() func() {
 			AutoAggro:  true,
 			Groups:     []string{"undead"},
 			Character: characters.Character{
-				Name:      "Skeleton",
-				RoomId:    1,
-				Health:    50,
-				Buffs:     conditions.New(),
-				Cooldowns: map[string]int{},
+				Name:       "Skeleton",
+				RoomId:     1,
+				Health:     50,
+				Conditions: conditions.New(),
+				Cooldowns:  map[string]int{},
 			},
 		},
 	}
@@ -197,7 +197,7 @@ func seedAllRegistries() func() {
 		cleanupRooms()
 		cleanupUsers()
 		cleanupMobs()
-		cleanupBuffs()
+		cleanupConditions()
 	}
 }
 
@@ -922,7 +922,7 @@ func TestRoundTick_PoisonDamage(t *testing.T) {
 	// Seeding Base keeps HealthMax comfortably above the 80 this test needs.
 	u1.Character.HealthMax.Base = 100
 	u1.Character.Health = 80
-	_ = u1.Character.AddBuffMagnitude(conditions.BuffIdPoisoned, 1, -5, "test")
+	_ = u1.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, 1, -5, "test")
 	u1.Character.Health = 80
 	drainPlain(1)
 
@@ -960,7 +960,7 @@ func TestRoundTick_PoisonDamage_TriggerLineOnNonFinalTick(t *testing.T) {
 	u1 := users.GetByUserId(1)
 	u1.Character.HealthMax.Base = 100
 	u1.Character.Health = 80
-	_ = u1.Character.AddBuffMagnitude(conditions.BuffIdPoisoned, 2, -5, "test")
+	_ = u1.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, 2, -5, "test")
 	u1.Character.Health = 80
 	drainPlain(1)
 
@@ -987,7 +987,7 @@ func TestRoundTick_TriggerLineLandsOnExpiringTick(t *testing.T) {
 	u1 := users.GetByUserId(1)
 	u1.Character.HealthMax.Base = 100
 	u1.Character.Health = 80
-	_ = u1.Character.AddBuffMagnitude(conditions.BuffIdPoisoned, 1, -5, "test")
+	_ = u1.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, 1, -5, "test")
 	drainPlain(1)
 
 	UserRoundTick(events.NewRound{RoundNumber: 1})
@@ -1031,7 +1031,7 @@ func TestDotProducerRecordsNegativeHarm_MobTarget(t *testing.T) {
 	dmg := applyMobEffect(u, u.Character, mob, room, dotSpell, 10, spellContestAttackWin())
 	assert.Equal(t, 0, dmg, "the dot effect deals no immediate damage")
 
-	recs := mob.Character.GetBuffs(conditions.BuffIdPoisoned)
+	recs := mob.Character.GetConditions(conditions.ConditionIdPoisoned)
 	require.Len(t, recs, 1)
 	assert.Less(t, recs[0].Magnitude, 0.0, "the producer's harm sign must be negative")
 	assert.Less(t, recs[0].TickAmount, 0, "the snapshot tick amount must be negative")
@@ -1069,7 +1069,7 @@ func TestDotProducerRecordsNegativeHarm_PlayerTarget(t *testing.T) {
 		wantDuration = 3
 	}
 
-	recs := target.Character.GetBuffs(conditions.BuffIdPoisoned)
+	recs := target.Character.GetConditions(conditions.ConditionIdPoisoned)
 	require.Len(t, recs, 1)
 	assert.Less(t, recs[0].Magnitude, 0.0, "the producer's harm sign must be negative")
 	assert.Less(t, recs[0].TickAmount, 0, "the snapshot tick amount must be negative")
@@ -1120,7 +1120,7 @@ func TestAutoHeal_RegeneratingRecordMultipliesOutOfCombatRegen(t *testing.T) {
 		"no tick text without an active Regenerating record")
 
 	u1.Character.Health = 10
-	require.NoError(t, u1.Character.AddBuffMagnitude(conditions.BuffIdRegenerating, 5, 3.0, "test"))
+	require.NoError(t, u1.Character.AddConditionMagnitude(conditions.ConditionIdRegenerating, 5, 3.0, "test"))
 
 	result = AutoHeal(events.NewRound{RoundNumber: 6})
 	require.Equal(t, events.Continue, result)
@@ -1166,7 +1166,7 @@ func TestAutoHeal_RegeneratingRecordMultipliesInCombatRegen(t *testing.T) {
 	assert.Equal(t, 0, countContaining(firstLines, "Your wounds knit closed."),
 		"no tick text without an active Regenerating record")
 
-	require.NoError(t, u1.Character.AddBuffMagnitude(conditions.BuffIdRegenerating, 5, 2.0, "test"))
+	require.NoError(t, u1.Character.AddConditionMagnitude(conditions.ConditionIdRegenerating, 5, 2.0, "test"))
 
 	result = AutoHeal(events.NewRound{RoundNumber: 6})
 	require.Equal(t, events.Continue, result)
@@ -1188,79 +1188,79 @@ func TestAutoHeal_RegeneratingRecordMultipliesInCombatRegen(t *testing.T) {
 
 // ─── ApplyBuffs ───────────────────────────────────────────────────────────────
 
-func TestApplyBuffs_WrongEventType(t *testing.T) {
+func TestApplyConditions_WrongEventType(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
 	// Pass a NewRound event instead of Buff — should return Cancel
 	evt := events.NewRound{RoundNumber: 1}
-	result := ApplyBuffs(evt)
+	result := ApplyConditions(evt)
 	assert.Equal(t, events.Continue, result, "a wrong event type is not this listener's to veto")
 }
 
-func TestApplyBuffs_InvalidBuffId(t *testing.T) {
+func TestApplyConditions_InvalidConditionId(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
-	evt := events.Buff{UserId: 1, BuffId: 99999} // nonexistent
-	result := ApplyBuffs(evt)
+	evt := events.Condition{UserId: 1, ConditionId: 99999} // nonexistent
+	result := ApplyConditions(evt)
 	assert.Equal(t, events.Continue, result, "nothing to do for an unknown buff ID, and no veto")
 }
 
-func TestApplyBuffs_InvalidUserId(t *testing.T) {
+func TestApplyConditions_InvalidUserId(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
-	evt := events.Buff{UserId: 99999, BuffId: 100}
-	result := ApplyBuffs(evt)
+	evt := events.Condition{UserId: 99999, ConditionId: 100}
+	result := ApplyConditions(evt)
 	assert.Equal(t, events.Continue, result, "nothing to do for an unknown user ID, and no veto")
 }
 
-func TestApplyBuffs_InvalidMobInstanceId(t *testing.T) {
+func TestApplyConditions_InvalidMobInstanceId(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
-	evt := events.Buff{MobInstanceId: 99999, BuffId: 100}
-	result := ApplyBuffs(evt)
+	evt := events.Condition{MobInstanceId: 99999, ConditionId: 100}
+	result := ApplyConditions(evt)
 	assert.Equal(t, events.Continue, result, "nothing to do for an unknown mob instance, and no veto")
 }
 
-func TestApplyBuffs_AppliesBuffToUser(t *testing.T) {
+func TestApplyConditions_AppliesConditionToUser(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
-	evt := events.Buff{UserId: 1, BuffId: 100}
-	result := ApplyBuffs(evt)
+	evt := events.Condition{UserId: 1, ConditionId: 100}
+	result := ApplyConditions(evt)
 	assert.Equal(t, events.Continue, result)
 
 	u := users.GetByUserId(1)
-	assert.True(t, u.Character.HasBuff(100), "user should have buff 100")
+	assert.True(t, u.Character.HasCondition(100), "user should have buff 100")
 }
 
-func TestApplyBuffs_AppliesBuffToMob(t *testing.T) {
+func TestApplyConditions_AppliesConditionToMob(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
-	evt := events.Buff{MobInstanceId: 100, BuffId: 100}
-	result := ApplyBuffs(evt)
+	evt := events.Condition{MobInstanceId: 100, ConditionId: 100}
+	result := ApplyConditions(evt)
 	assert.Equal(t, events.Continue, result)
 
 	mob := mobs.GetInstance(100)
-	assert.True(t, mob.Character.HasBuff(100), "mob should have buff 100")
+	assert.True(t, mob.Character.HasCondition(100), "mob should have buff 100")
 }
 
-func TestApplyBuffs_NegativeBuffRemoves(t *testing.T) {
+func TestApplyConditions_NegativeConditionRemoves(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
 	// First add the buff
 	u := users.GetByUserId(1)
-	u.Character.AddBuff(100, false)
-	assert.True(t, u.Character.HasBuff(100))
+	u.Character.AddCondition(100, false)
+	assert.True(t, u.Character.HasCondition(100))
 
 	// Now send negative buff ID to remove
-	evt := events.Buff{UserId: 1, BuffId: -100}
-	result := ApplyBuffs(evt)
+	evt := events.Condition{UserId: 1, ConditionId: -100}
+	result := ApplyConditions(evt)
 	assert.Equal(t, events.Continue, result)
 }
 
@@ -1345,17 +1345,17 @@ func TestMinorShieldRecordExpiresOnceAndNarratesItsEnd(t *testing.T) {
 	require.NotNil(t, u)
 	drainPlain(1)
 
-	_ = u.Character.AddBuffMagnitude(conditions.BuffIdMinorShield, 1, 10.0, "test")
-	assert.Equal(t, 10.0, u.Character.Buffs.Effect(conditions.EffectMitigationFlat),
+	_ = u.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, 1, 10.0, "test")
+	assert.Equal(t, 10.0, u.Character.Conditions.Effect(conditions.EffectMitigationFlat),
 		"the mitigation effect must be live before the round ticks")
 
 	// UserRoundTick's Buffs.Trigger() is the one door that decrements a
 	// buff's TriggersLeft each round; PruneBuffs is the one door that removes
 	// an expired buff and sends its authored end text.
 	UserRoundTick(events.NewRound{RoundNumber: 1})
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 
-	assert.False(t, u.Character.HasBuff(conditions.BuffIdMinorShield),
+	assert.False(t, u.Character.HasCondition(conditions.ConditionIdMinorShield),
 		"a 1-round shield must be gone after one round tick and one prune pass")
 	assert.Equal(t, 1, countContaining(drainPlain(1), "Your Minor Shield dissipates."))
 }
@@ -1376,13 +1376,13 @@ func TestMinorShieldRecordDecaysOncePerRound(t *testing.T) {
 	u := users.GetByUserId(1)
 	require.NotNil(t, u)
 
-	_ = u.Character.AddBuffMagnitude(conditions.BuffIdMinorShield, 2, 10.0, "test")
-	require.Equal(t, 2, u.Character.Buffs.TriggersLeft(conditions.BuffIdMinorShield))
+	_ = u.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, 2, 10.0, "test")
+	require.Equal(t, 2, u.Character.Conditions.TriggersLeft(conditions.ConditionIdMinorShield))
 
 	UserRoundTick(events.NewRound{RoundNumber: 1})
 	DoCombat(events.NewRound{RoundNumber: 1})
 
-	assert.Equal(t, 1, u.Character.Buffs.TriggersLeft(conditions.BuffIdMinorShield),
+	assert.Equal(t, 1, u.Character.Conditions.TriggersLeft(conditions.ConditionIdMinorShield),
 		"the shield must decay exactly once per round")
 }
 
@@ -1414,13 +1414,13 @@ func TestHandleMobAIDecision_DefaultAttack(t *testing.T) {
 
 // ─── PruneBuffs ───────────────────────────────────────────────────────────────
 
-func TestPruneBuffs_NoPanic(t *testing.T) {
+func TestPruneConditions_NoPanic(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
 	// Just verify no panic with seeded registries
 	evt := events.NewTurn{TurnNumber: 1}
-	result := PruneBuffs(evt)
+	result := PruneConditions(evt)
 	assert.Equal(t, events.Continue, result)
 }
 
@@ -1946,14 +1946,14 @@ func TestMobRoundTick_TicksMinorShieldRecord(t *testing.T) {
 	defer conditions.SeedConditionRecordsForTest()()
 
 	mob := mobs.GetInstance(100)
-	_ = mob.Character.AddBuffMagnitude(conditions.BuffIdMinorShield, 3, 10.0, "test")
+	_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, 3, 10.0, "test")
 
 	evt := events.NewRound{RoundNumber: 1}
 	MobRoundTick(evt)
 
 	// The record should still exist but its trigger count decremented.
-	assert.True(t, mob.Character.HasBuff(conditions.BuffIdMinorShield))
-	assert.Equal(t, 2, mob.Character.Buffs.TriggersLeft(conditions.BuffIdMinorShield))
+	assert.True(t, mob.Character.HasCondition(conditions.ConditionIdMinorShield))
+	assert.Equal(t, 2, mob.Character.Conditions.TriggersLeft(conditions.ConditionIdMinorShield))
 }
 
 // ─── ApplyMoonMods ────────────────────────────────────────────────────────────
@@ -2618,21 +2618,21 @@ func TestApplyMobEffect_Knockdown(t *testing.T) {
 	assert.True(t, mob.Character.IsSupine() || mob.Character.IsProne(), "mob should be knocked down")
 }
 
-func TestApplyMobEffect_Buff(t *testing.T) {
+func TestApplyMobEffect_Condition(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	u := users.GetByUserId(1)
 	mob := mobs.GetInstance(100)
 	room := rooms.LoadRoom(1)
 
-	buffSpell := &spells.SpellData{
-		SpellId:    "weaken",
-		Name:       "Weaken",
-		Type:       spells.HarmSingle,
-		EffectType: "buff",
-		BuffIds:    []int{100},
+	conditionSpell := &spells.SpellData{
+		SpellId:      "weaken",
+		Name:         "Weaken",
+		Type:         spells.HarmSingle,
+		EffectType:   "buff",
+		ConditionIds: []int{100},
 	}
-	dmg := applyMobEffect(u, u.Character, mob, room, buffSpell, 0, spellContestAttackWin())
+	dmg := applyMobEffect(u, u.Character, mob, room, conditionSpell, 0, spellContestAttackWin())
 	assert.Equal(t, 0, dmg)
 }
 
@@ -2682,7 +2682,7 @@ func TestApplyPlayerEffect_Purge(t *testing.T) {
 		Name:       "Purge",
 		EffectType: "purge",
 	}
-	_ = target.Character.AddBuffMagnitude(conditions.BuffIdPoisoned, 10, -5, "test")
+	_ = target.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, 10, -5, "test")
 	applyPlayerEffect(caster, target, room, purgeSpell, 10, spellContestAttackWin())
 }
 
@@ -2718,20 +2718,20 @@ func TestApplyPlayerEffect_HealCrit(t *testing.T) {
 	applyPlayerEffect(caster, target, room, healSpell, 3, spellContestAttackCrit())
 }
 
-func TestApplyPlayerEffect_Buff(t *testing.T) {
+func TestApplyPlayerEffect_Condition(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	caster := users.GetByUserId(1)
 	target := users.GetByUserId(2)
 	room := rooms.LoadRoom(1)
 
-	buffSpell := &spells.SpellData{
-		SpellId:    "bless",
-		Name:       "Bless",
-		EffectType: "buff",
-		BuffIds:    []int{100},
+	conditionSpell := &spells.SpellData{
+		SpellId:      "bless",
+		Name:         "Bless",
+		EffectType:   "buff",
+		ConditionIds: []int{100},
 	}
-	applyPlayerEffect(caster, target, room, buffSpell, 0, spellContestAttackWin())
+	applyPlayerEffect(caster, target, room, conditionSpell, 0, spellContestAttackWin())
 }
 
 func TestApplyPlayerEffect_Shield(t *testing.T) {
@@ -2830,11 +2830,11 @@ func TestResolveMobSpell_MobVsMob(t *testing.T) {
 		InstanceId: 101,
 		HomeRoomId: 1,
 		Character: characters.Character{
-			Name:      "Target Mob",
-			RoomId:    1,
-			Health:    50,
-			Buffs:     conditions.New(),
-			Cooldowns: map[string]int{},
+			Name:       "Target Mob",
+			RoomId:     1,
+			Health:     50,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	mob2.Character.HealthMax.Value = 100
@@ -3056,12 +3056,12 @@ func TestHandleIdleMobs_GossiperMob(t *testing.T) {
 		ActivityLevel: 7,
 		Groups:        []string{"humanoid", "gossiper"},
 		Character: characters.Character{
-			Name:      "old Fen",
-			Zone:      "TestZone",
-			RoomId:    1,
-			Health:    50,
-			Buffs:     conditions.New(),
-			Cooldowns: map[string]int{},
+			Name:       "old Fen",
+			Zone:       "TestZone",
+			RoomId:     1,
+			Health:     50,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	gossiperMob.Character.HealthMax.Value = 100

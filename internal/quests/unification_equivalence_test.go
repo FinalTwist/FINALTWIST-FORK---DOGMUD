@@ -33,7 +33,7 @@ type oldQuestReward struct {
 	QuestId       string // binds "questid"
 	Gold          int
 	ItemId        int // binds "itemid"
-	BuffId        int
+	ConditionId   int `yaml:"buffid"` // slice 2 rename would otherwise silently rebind this tag-less field to "conditionid"; the tag pins the old "buffid" key so this frozen historical copy keeps parsing what it always parsed.
 	SkillInfo     string
 	StatInfo      string `yaml:"stat_info,omitempty"`
 	RecipeInfo    string `yaml:"recipe_info,omitempty"`
@@ -94,7 +94,7 @@ type oldEngineStep struct {
 type oldEngineRewards struct {
 	Gold          int    `yaml:"gold,omitempty"`
 	ItemId        int    `yaml:"item_id,omitempty"`
-	BuffId        int    `yaml:"buff_id,omitempty"`
+	ConditionId   int    `yaml:"buff_id,omitempty"`
 	SpellId       string `yaml:"spell_id,omitempty"`
 	SkillInfo     string `yaml:"skill_info,omitempty"`
 	StatInfo      string `yaml:"stat_info,omitempty"`
@@ -132,29 +132,29 @@ type oldConditions struct {
 }
 
 type oldActionDef struct {
-	Grant         string               `yaml:"grant,omitempty"`
-	ConsumeItem   int                  `yaml:"consume_item,omitempty"`
-	GiveItem      int                  `yaml:"give_item,omitempty"`
-	GiveGold      int                  `yaml:"give_gold,omitempty"`
-	ChargeGold    int                  `yaml:"charge_gold,omitempty"`
-	NpcSay        *oldNpcSayDef        `yaml:"npc_say,omitempty"`
-	SendText      string               `yaml:"send_text,omitempty"`
-	RoomText      string               `yaml:"room_text,omitempty"`
-	SpawnMob      *oldSpawnDef         `yaml:"spawn_mob,omitempty"`
-	SpawnItem     *oldSpawnDef         `yaml:"spawn_item,omitempty"`
-	LockExits     *oldExitLock         `yaml:"lock_exits,omitempty"`
-	UnlockExits   *oldExitLock         `yaml:"unlock_exits,omitempty"`
-	TeachSpell    string               `yaml:"teach_spell,omitempty"`
-	TrainSkill    *oldSkillDef         `yaml:"train_skill,omitempty"`
-	TrainStat     *oldStatDef          `yaml:"train_stat,omitempty"`
-	LearnRecipe   *oldRecipeDef        `yaml:"learn_recipe,omitempty"`
-	ApplyBuff     *oldBuffDef          `yaml:"apply_buff,omitempty"`
-	Teleport      int                  `yaml:"teleport,omitempty"`
-	GiveMutation  bool                 `yaml:"give_mutation,omitempty"`
-	SetFlag       *oldQuestFlagAction  `yaml:"set_flag,omitempty"`
-	Sequence      *oldSequenceDef      `yaml:"sequence,omitempty"`
-	BumpRep       *oldBumpRepDef       `yaml:"bump_rep,omitempty"`
-	DeclareBounty *oldDeclareBountyDef `yaml:"declare_bounty,omitempty"`
+	Grant          string               `yaml:"grant,omitempty"`
+	ConsumeItem    int                  `yaml:"consume_item,omitempty"`
+	GiveItem       int                  `yaml:"give_item,omitempty"`
+	GiveGold       int                  `yaml:"give_gold,omitempty"`
+	ChargeGold     int                  `yaml:"charge_gold,omitempty"`
+	NpcSay         *oldNpcSayDef        `yaml:"npc_say,omitempty"`
+	SendText       string               `yaml:"send_text,omitempty"`
+	RoomText       string               `yaml:"room_text,omitempty"`
+	SpawnMob       *oldSpawnDef         `yaml:"spawn_mob,omitempty"`
+	SpawnItem      *oldSpawnDef         `yaml:"spawn_item,omitempty"`
+	LockExits      *oldExitLock         `yaml:"lock_exits,omitempty"`
+	UnlockExits    *oldExitLock         `yaml:"unlock_exits,omitempty"`
+	TeachSpell     string               `yaml:"teach_spell,omitempty"`
+	TrainSkill     *oldSkillDef         `yaml:"train_skill,omitempty"`
+	TrainStat      *oldStatDef          `yaml:"train_stat,omitempty"`
+	LearnRecipe    *oldRecipeDef        `yaml:"learn_recipe,omitempty"`
+	ApplyCondition *oldConditionDef     `yaml:"apply_buff,omitempty"`
+	Teleport       int                  `yaml:"teleport,omitempty"`
+	GiveMutation   bool                 `yaml:"give_mutation,omitempty"`
+	SetFlag        *oldQuestFlagAction  `yaml:"set_flag,omitempty"`
+	Sequence       *oldSequenceDef      `yaml:"sequence,omitempty"`
+	BumpRep        *oldBumpRepDef       `yaml:"bump_rep,omitempty"`
+	DeclareBounty  *oldDeclareBountyDef `yaml:"declare_bounty,omitempty"`
 }
 
 type oldBumpRepDef struct {
@@ -220,9 +220,9 @@ type oldRecipeDef struct {
 	Recipe string `yaml:"recipe"`
 }
 
-type oldBuffDef struct {
-	Buff   int    `yaml:"buff"`
-	Source string `yaml:"source,omitempty"`
+type oldConditionDef struct {
+	Condition int    `yaml:"buff"`
+	Source    string `yaml:"source,omitempty"`
 }
 
 type oldSequenceDef struct {
@@ -261,7 +261,7 @@ func chdirRepoRootForTest(t *testing.T) {
 
 func rewardsEqualOld(n QuestReward, o oldQuestReward) bool {
 	return n.QuestId == o.QuestId && n.Gold == o.Gold && n.ItemId == o.ItemId &&
-		n.BuffId == o.BuffId && n.SkillInfo == o.SkillInfo && n.StatInfo == o.StatInfo &&
+		n.ConditionId == o.ConditionId && n.SkillInfo == o.SkillInfo && n.StatInfo == o.StatInfo &&
 		n.RecipeInfo == o.RecipeInfo && n.ItemInfo == o.ItemInfo && n.SpellId == o.SpellId &&
 		n.PlayerMessage == o.PlayerMessage && n.RoomMessage == o.RoomMessage &&
 		n.RoomId == o.RoomId && n.RepFaction == o.RepFaction && n.RepAmount == o.RepAmount

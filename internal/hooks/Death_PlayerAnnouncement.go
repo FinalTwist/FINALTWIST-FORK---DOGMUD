@@ -3,8 +3,8 @@ package hooks
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -195,9 +195,9 @@ func deathCauseFor(c *characters.Character) string {
 	}
 	// Check for lethal conditions.
 	if causeOfDeath == "" {
-		if c.HasBuff(conditions.BuffIdPoisoned) {
+		if c.HasCondition(conditions.ConditionIdPoisoned) {
 			causeOfDeath = "poison"
-		} else if c.HasBuff(conditions.BuffIdBleeding) {
+		} else if c.HasCondition(conditions.ConditionIdBleeding) {
 			causeOfDeath = "bleeding out"
 		} else if c.LastTickCause != "" && util.GetRoundCount()-c.LastTickCauseRound <= 1 {
 			causeOfDeath = c.LastTickCause

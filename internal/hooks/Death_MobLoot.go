@@ -32,7 +32,7 @@ func dropMobLootAndSetCorpse(m *mobs.Mob, room *rooms.Room) {
 	// up (corpse container vs. room floor) is decided below by CorpsesEnabled.
 	var loot rooms.Container
 
-	if !m.Character.HasBuffFlag(conditions.PermaGear) {
+	if !m.Character.HasConditionFlag(conditions.PermaGear) {
 
 		// Carried items: 100% base drop chance (per-item DropChance
 		// still applies via ShouldDrop).

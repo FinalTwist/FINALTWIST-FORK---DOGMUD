@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -43,7 +43,7 @@ func TestGenericFighter_HeardCallforhelp_IssuesGoCommand(t *testing.T) {
 	responder.Character.Health = 100
 	responder.Character.Stamina = 100
 	responder.Character.Conviction = 500
-	responder.Character.Buffs = conditions.New()
+	responder.Character.Conditions = conditions.New()
 
 	seed := mobs.SeedMobsForTest(nil, map[int]*mobs.Mob{
 		100:   caller,
@@ -100,7 +100,7 @@ func TestLookout_HeardCallforhelp_IssuesGoCommand(t *testing.T) {
 	responder.Character.Health = 100
 	responder.Character.Stamina = 100
 	responder.Character.Conviction = 500
-	responder.Character.Buffs = conditions.New()
+	responder.Character.Conditions = conditions.New()
 
 	seed := mobs.SeedMobsForTest(nil, map[int]*mobs.Mob{
 		100:   caller,

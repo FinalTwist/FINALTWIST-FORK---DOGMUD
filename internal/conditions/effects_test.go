@@ -19,17 +19,17 @@ func floatDefenseMultWant() float64 {
 	return a * b
 }
 
-func withSpecs(t *testing.T, specs ...*BuffSpec) {
+func withSpecs(t *testing.T, specs ...*ConditionSpec) {
 	t.Helper()
-	m := map[int]*BuffSpec{}
+	m := map[int]*ConditionSpec{}
 	for _, s := range specs {
-		m[s.BuffId] = s
+		m[s.ConditionId] = s
 	}
-	t.Cleanup(SeedBuffsForTest(m))
+	t.Cleanup(SeedConditionsForTest(m))
 }
 
 func TestEffectValueParsesANumberOrTheWordMagnitude(t *testing.T) {
-	var s BuffSpec
+	var s ConditionSpec
 	err := yaml.Unmarshal([]byte("buffid: 900\nname: Probe\neffects:\n  damage_mult: magnitude\n  defense_mult: 0.85\n"), &s)
 	if err != nil {
 		t.Fatal(err)
@@ -44,7 +44,7 @@ func TestEffectValueParsesANumberOrTheWordMagnitude(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var back BuffSpec
+	var back ConditionSpec
 	if err := yaml.Unmarshal(out, &back); err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestEffectValueParsesANumberOrTheWordMagnitude(t *testing.T) {
 }
 
 func TestValidateRefusesAnUnknownEffectKey(t *testing.T) {
-	var s BuffSpec
+	var s ConditionSpec
 	if err := yaml.Unmarshal([]byte("buffid: 901\nname: Probe\neffects:\n  damage_multt: 1\n"), &s); err != nil {
 		t.Fatal(err)
 	}
@@ -64,11 +64,11 @@ func TestValidateRefusesAnUnknownEffectKey(t *testing.T) {
 }
 
 func TestValidateRefusesTickFromMagnitudeWithoutAPool(t *testing.T) {
-	s := &BuffSpec{BuffId: 902, Name: "Probe", TickFromMagnitude: true}
+	s := &ConditionSpec{ConditionId: 902, Name: "Probe", TickFromMagnitude: true}
 	if err := s.Validate(); err == nil {
 		t.Fatal("tick_from_magnitude needs tick_pool")
 	}
-	s2 := &BuffSpec{BuffId: 903, Name: "Probe", TickFromMagnitude: true, TickPool: "health", TickPercent: -0.1, TriggerRate: "1 round", TriggerCount: 3}
+	s2 := &ConditionSpec{ConditionId: 903, Name: "Probe", TickFromMagnitude: true, TickPool: "health", TickPercent: -0.1, TriggerRate: "1 round", TriggerCount: 3}
 	if err := s2.Validate(); err == nil {
 		t.Fatal("tick_from_magnitude and tick_percent cannot both be set")
 	}
@@ -76,17 +76,17 @@ func TestValidateRefusesTickFromMagnitudeWithoutAPool(t *testing.T) {
 
 func TestEffectMultipliesFlatsSumCapsTakeTheMinimum(t *testing.T) {
 	withSpecs(t,
-		&BuffSpec{BuffId: 910, Name: "Shout", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectDamageMult: {UsesMagnitude: true}, EffectDefenseMult: {UsesMagnitude: true}}},
-		&BuffSpec{BuffId: 911, Name: "Exposed", TriggerRate: "1 round", TriggerCount: 1, Effects: map[EffectKind]EffectValue{EffectDefenseMult: {Literal: 0.85}, EffectAttacksCap: {Literal: 1}}},
-		&BuffSpec{BuffId: 912, Name: "Ward", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectMitigationFlat: {UsesMagnitude: true}}},
-		&BuffSpec{BuffId: 913, Name: "Ward2", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectMitigationFlat: {UsesMagnitude: true}, EffectAttacksCap: {Literal: 3}}},
+		&ConditionSpec{ConditionId: 910, Name: "Shout", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectDamageMult: {UsesMagnitude: true}, EffectDefenseMult: {UsesMagnitude: true}}},
+		&ConditionSpec{ConditionId: 911, Name: "Exposed", TriggerRate: "1 round", TriggerCount: 1, Effects: map[EffectKind]EffectValue{EffectDefenseMult: {Literal: 0.85}, EffectAttacksCap: {Literal: 1}}},
+		&ConditionSpec{ConditionId: 912, Name: "Ward", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectMitigationFlat: {UsesMagnitude: true}}},
+		&ConditionSpec{ConditionId: 913, Name: "Ward2", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectMitigationFlat: {UsesMagnitude: true}, EffectAttacksCap: {Literal: 3}}},
 	)
-	bs := Buffs{}
+	bs := Conditions{}
 	bs.Validate(true)
-	bs.AddBuffMagnitude(910, 5, 1.12)
-	bs.AddBuffMagnitude(911, 1, 0)
-	bs.AddBuffMagnitude(912, 5, 12)
-	bs.AddBuffMagnitude(913, 5, 5)
+	bs.AddConditionMagnitude(910, 5, 1.12)
+	bs.AddConditionMagnitude(911, 1, 0)
+	bs.AddConditionMagnitude(912, 5, 12)
+	bs.AddConditionMagnitude(913, 5, 5)
 
 	if got := bs.Effect(EffectDamageMult); got != 1.12 {
 		t.Fatalf("damage mult: got %v", got)
@@ -112,20 +112,20 @@ func TestEffectMultipliesFlatsSumCapsTakeTheMinimum(t *testing.T) {
 }
 
 func TestMagnitudeZeroOnAMultiplierContributesNothing(t *testing.T) {
-	withSpecs(t, &BuffSpec{BuffId: 914, Name: "Hollow", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectDamageMult: {UsesMagnitude: true}}})
-	bs := Buffs{}
+	withSpecs(t, &ConditionSpec{ConditionId: 914, Name: "Hollow", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectDamageMult: {UsesMagnitude: true}}})
+	bs := Conditions{}
 	bs.Validate(true)
-	bs.AddBuffMagnitude(914, 5, 0)
+	bs.AddConditionMagnitude(914, 5, 0)
 	if got := bs.Effect(EffectDamageMult); got != 1 {
 		t.Fatalf("a zero magnitude must not zero the product: got %v", got)
 	}
 }
 
 func TestExpiredRecordsDoNotContribute(t *testing.T) {
-	withSpecs(t, &BuffSpec{BuffId: 915, Name: "Brief", TriggerRate: "1 round", TriggerCount: 1, RoundInterval: 1, Effects: map[EffectKind]EffectValue{EffectAttacksCap: {Literal: 1}}})
-	bs := Buffs{}
+	withSpecs(t, &ConditionSpec{ConditionId: 915, Name: "Brief", TriggerRate: "1 round", TriggerCount: 1, RoundInterval: 1, Effects: map[EffectKind]EffectValue{EffectAttacksCap: {Literal: 1}}})
+	bs := Conditions{}
 	bs.Validate(true)
-	bs.AddBuffMagnitude(915, 1, 1)
+	bs.AddConditionMagnitude(915, 1, 1)
 	if got := bs.Effect(EffectAttacksCap); got != 1 {
 		t.Fatalf("held: %v", got)
 	}
@@ -135,19 +135,19 @@ func TestExpiredRecordsDoNotContribute(t *testing.T) {
 	}
 }
 
-func TestAddBuffMagnitudeSetsTheSnapshotForATickRecord(t *testing.T) {
-	withSpecs(t, &BuffSpec{BuffId: 916, Name: "Venomed", TriggerRate: "1 round", TriggerCount: 4, TickPool: "health", TickFromMagnitude: true})
-	bs := Buffs{}
+func TestAddConditionMagnitudeSetsTheSnapshotForATickRecord(t *testing.T) {
+	withSpecs(t, &ConditionSpec{ConditionId: 916, Name: "Venomed", TriggerRate: "1 round", TriggerCount: 4, TickPool: "health", TickFromMagnitude: true})
+	bs := Conditions{}
 	bs.Validate(true)
-	if !bs.AddBuffMagnitude(916, 6, -5) {
+	if !bs.AddConditionMagnitude(916, 6, -5) {
 		t.Fatal("add refused")
 	}
-	b := bs.GetBuffs(916)[0]
+	b := bs.GetConditions(916)[0]
 	if b.Magnitude != -5 || b.TickAmount != -5 || b.TriggersLeft != 6 {
 		t.Fatalf("magnitude -5 for 6 rounds must become tick snapshot -5 with 6 triggers, got %+v", *b)
 	}
-	bs.AddBuffMagnitude(916, 3, -9)
-	b = bs.GetBuffs(916)[0]
+	bs.AddConditionMagnitude(916, 3, -9)
+	b = bs.GetConditions(916)[0]
 	if b.Magnitude != -9 || b.TickAmount != -9 || b.TriggersLeft != 3 {
 		t.Fatalf("a re-add overwrites magnitude, snapshot and duration: %+v", *b)
 	}
@@ -159,9 +159,9 @@ func TestAddBuffMagnitudeSetsTheSnapshotForATickRecord(t *testing.T) {
 // record, so a zero snapshot would tick for nothing forever. int() truncates
 // toward zero, same as the old poison/bleed hook, so a magnitude that
 // truncates to zero floors to 1 in its own sign instead.
-func TestAddBuffMagnitudeTickSnapshotFloorsToOneInItsSign(t *testing.T) {
-	withSpecs(t, &BuffSpec{BuffId: 922, Name: "Trickle", TriggerRate: "1 round", TriggerCount: 4, TickPool: "health", TickFromMagnitude: true})
-	bs := Buffs{}
+func TestAddConditionMagnitudeTickSnapshotFloorsToOneInItsSign(t *testing.T) {
+	withSpecs(t, &ConditionSpec{ConditionId: 922, Name: "Trickle", TriggerRate: "1 round", TriggerCount: 4, TickPool: "health", TickFromMagnitude: true})
+	bs := Conditions{}
 	bs.Validate(true)
 
 	cases := []struct {
@@ -174,20 +174,20 @@ func TestAddBuffMagnitudeTickSnapshotFloorsToOneInItsSign(t *testing.T) {
 		{-7.9, -7},
 	}
 	for _, c := range cases {
-		bs.AddBuffMagnitude(922, 4, c.magnitude)
-		b := bs.GetBuffs(922)[0]
+		bs.AddConditionMagnitude(922, 4, c.magnitude)
+		b := bs.GetConditions(922)[0]
 		if b.TickAmount != c.wantTick {
 			t.Fatalf("magnitude %v: got TickAmount %d, want %d", c.magnitude, b.TickAmount, c.wantTick)
 		}
 	}
 }
 
-func TestAddBuffMagnitudeZeroRoundsMeansTheSpecDefault(t *testing.T) {
-	withSpecs(t, &BuffSpec{BuffId: 920, Name: "Default", TriggerRate: "1 round", TriggerCount: 7, Effects: map[EffectKind]EffectValue{EffectDamageMult: {UsesMagnitude: true}}})
-	bs := Buffs{}
+func TestAddConditionMagnitudeZeroRoundsMeansTheSpecDefault(t *testing.T) {
+	withSpecs(t, &ConditionSpec{ConditionId: 920, Name: "Default", TriggerRate: "1 round", TriggerCount: 7, Effects: map[EffectKind]EffectValue{EffectDamageMult: {UsesMagnitude: true}}})
+	bs := Conditions{}
 	bs.Validate(true)
-	bs.AddBuffMagnitude(920, 0, 1.5)
-	if got := bs.GetBuffs(920)[0].TriggersLeft; got != 7 {
+	bs.AddConditionMagnitude(920, 0, 1.5)
+	if got := bs.GetConditions(920)[0].TriggersLeft; got != 7 {
 		t.Fatalf("rounds 0 must take the spec's triggercount, got %d", got)
 	}
 }
@@ -196,13 +196,13 @@ func TestAddBuffMagnitudeZeroRoundsMeansTheSpecDefault(t *testing.T) {
 // AddBuffScaled truncates float64(count) *
 // mult, and 3.3 * 10 is 32.999... in binary, which would have shortened a
 // 33-round ward to 32. Every former condition passes the integer it computed.
-func TestAddBuffMagnitudeRoundsAreExact(t *testing.T) {
-	withSpecs(t, &BuffSpec{BuffId: 921, Name: "Exact", TriggerRate: "1 round", TriggerCount: 10, Effects: map[EffectKind]EffectValue{EffectMitigationFlat: {UsesMagnitude: true}}})
-	bs := Buffs{}
+func TestAddConditionMagnitudeRoundsAreExact(t *testing.T) {
+	withSpecs(t, &ConditionSpec{ConditionId: 921, Name: "Exact", TriggerRate: "1 round", TriggerCount: 10, Effects: map[EffectKind]EffectValue{EffectMitigationFlat: {UsesMagnitude: true}}})
+	bs := Conditions{}
 	bs.Validate(true)
 	for _, rounds := range []int{1, 3, 33, 37, 250} {
-		bs.AddBuffMagnitude(921, rounds, 1)
-		if got := bs.GetBuffs(921)[0].TriggersLeft; got != rounds {
+		bs.AddConditionMagnitude(921, rounds, 1)
+		if got := bs.GetConditions(921)[0].TriggersLeft; got != rounds {
 			t.Fatalf("rounds %d became %d", rounds, got)
 		}
 	}
@@ -215,34 +215,34 @@ func TestAddBuffMagnitudeRoundsAreExact(t *testing.T) {
 // refusing it). Both are reproduced here on the record's replacement,
 // AddBuffMagnitude, so poison immunity is not narrowed to "the poison record
 // is always refused."
-func TestAddBuffMagnitudeRefusesPoisonUnderImmunity(t *testing.T) {
+func TestAddConditionMagnitudeRefusesPoisonUnderImmunity(t *testing.T) {
 	withSpecs(t,
-		&BuffSpec{BuffId: 917, Name: "Stone", TriggerRate: "1 round", TriggerCount: 5, Flags: []Flag{PoisonImmunity}},
-		&BuffSpec{BuffId: 918, Name: "Toxin", TriggerRate: "1 round", TriggerCount: 5, Flags: []Flag{Poison}, TickPool: "health", TickFromMagnitude: true},
-		&BuffSpec{BuffId: BuffIdBleeding, Name: "Bleeding", TriggerRate: "3 rounds", TriggerCount: 5, Flags: []Flag{Bleeding}, TickPool: "health", TickFromMagnitude: true},
+		&ConditionSpec{ConditionId: 917, Name: "Stone", TriggerRate: "1 round", TriggerCount: 5, Flags: []Flag{PoisonImmunity}},
+		&ConditionSpec{ConditionId: 918, Name: "Toxin", TriggerRate: "1 round", TriggerCount: 5, Flags: []Flag{Poison}, TickPool: "health", TickFromMagnitude: true},
+		&ConditionSpec{ConditionId: ConditionIdBleeding, Name: "Bleeding", TriggerRate: "3 rounds", TriggerCount: 5, Flags: []Flag{Bleeding}, TickPool: "health", TickFromMagnitude: true},
 	)
-	bs := Buffs{}
+	bs := Conditions{}
 	bs.Validate(true)
-	bs.AddBuff(917, false)
-	if bs.AddBuffMagnitude(918, 5, -3) {
+	bs.AddCondition(917, false)
+	if bs.AddConditionMagnitude(918, 5, -3) {
 		t.Fatal("a poison record must be refused under poison immunity")
 	}
 
 	// Control: every other record still lands while immune to poison only.
-	if !bs.AddBuffMagnitude(BuffIdBleeding, 5, -3) {
+	if !bs.AddConditionMagnitude(ConditionIdBleeding, 5, -3) {
 		t.Fatal("a non-poison record must still land under poison immunity")
 	}
 
 	// Control: without immunity the poison record lands.
-	unprotected := Buffs{}
+	unprotected := Conditions{}
 	unprotected.Validate(true)
-	if !unprotected.AddBuffMagnitude(918, 5, -3) {
+	if !unprotected.AddConditionMagnitude(918, 5, -3) {
 		t.Fatal("without immunity the poison record must land")
 	}
 }
 
 func TestQuietSilencesBothNotices(t *testing.T) {
-	s := &BuffSpec{BuffId: 919, Name: "Off Balance", Flags: []Flag{Quiet}, StartUserText: "x", EndUserText: "y"}
+	s := &ConditionSpec{ConditionId: 919, Name: "Off Balance", Flags: []Flag{Quiet}, StartUserText: "x", EndUserText: "y"}
 	if s.StartUserNotice() != "" || s.EndUserNotice() != "" {
 		t.Fatal("a quiet record sends no line at either end")
 	}
@@ -253,38 +253,38 @@ func TestQuietSilencesBothNotices(t *testing.T) {
 // them, and the nine condition ids land on top. The cleanup must remove
 // exactly the nine ids it added and restore whatever was there before.
 func TestSeedConditionRecordsForTestIsAdditiveAndReversible(t *testing.T) {
-	pre := &BuffSpec{BuffId: BuffIdWarcry, Name: "Pre-existing"}
-	restoreBase := SeedBuffsForTest(map[int]*BuffSpec{BuffIdWarcry: pre})
+	pre := &ConditionSpec{ConditionId: ConditionIdWarcry, Name: "Pre-existing"}
+	restoreBase := SeedConditionsForTest(map[int]*ConditionSpec{ConditionIdWarcry: pre})
 	defer restoreBase()
 
 	restore := SeedConditionRecordsForTest()
 
 	ids := []int{
-		BuffIdWarcry, BuffIdRally, BuffIdOffBalance, BuffIdRecovering,
-		BuffIdMinorShield, BuffIdRegenerating, BuffIdPoisoned, BuffIdBleeding,
-		BuffIdEnchantWithdrawal,
+		ConditionIdWarcry, ConditionIdRally, ConditionIdOffBalance, ConditionIdRecovering,
+		ConditionIdMinorShield, ConditionIdRegenerating, ConditionIdPoisoned, ConditionIdBleeding,
+		ConditionIdEnchantWithdrawal,
 	}
 	for _, id := range ids {
-		if GetBuffSpec(id) == nil {
+		if GetConditionSpec(id) == nil {
 			t.Fatalf("buff id %d did not resolve after seeding", id)
 		}
 	}
-	if GetBuffSpec(BuffIdWarcry).Name != "Warcry" {
-		t.Fatalf("seeding must overwrite id %d with the condition record, got %+v", BuffIdWarcry, GetBuffSpec(BuffIdWarcry))
+	if GetConditionSpec(ConditionIdWarcry).Name != "Warcry" {
+		t.Fatalf("seeding must overwrite id %d with the condition record, got %+v", ConditionIdWarcry, GetConditionSpec(ConditionIdWarcry))
 	}
 
 	restore()
 
 	for _, id := range ids {
-		if id == BuffIdWarcry {
+		if id == ConditionIdWarcry {
 			continue
 		}
-		if GetBuffSpec(id) != nil {
-			t.Fatalf("cleanup must remove buff id %d, still present: %+v", id, GetBuffSpec(id))
+		if GetConditionSpec(id) != nil {
+			t.Fatalf("cleanup must remove buff id %d, still present: %+v", id, GetConditionSpec(id))
 		}
 	}
-	if got := GetBuffSpec(BuffIdWarcry); got != pre {
-		t.Fatalf("cleanup must restore the pre-existing spec at id %d, got %+v", BuffIdWarcry, got)
+	if got := GetConditionSpec(ConditionIdWarcry); got != pre {
+		t.Fatalf("cleanup must restore the pre-existing spec at id %d, got %+v", ConditionIdWarcry, got)
 	}
 }
 

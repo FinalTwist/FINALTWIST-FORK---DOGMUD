@@ -47,7 +47,7 @@ func Offer(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			continue
 		}
 
-		user.Character.CancelBuffsWithFlag(conditions.Hidden)
+		user.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 		if item.IsSpecial() {
 

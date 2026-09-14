@@ -17,7 +17,7 @@ import (
 // vision for weeks, and Stone Stomach's `poison-immunity` was read by nothing
 // at all. LoadDataFiles now panics on one; this fails the merge before it can
 // reach a boot.
-func TestEveryDogmudBuffFlagIsDeclared(t *testing.T) {
+func TestEveryDogmudConditionFlagIsDeclared(t *testing.T) {
 	files, err := filepath.Glob(filepath.Join("_datafiles", "world", "dogmud", "buffs", "*.yaml"))
 	if err != nil || len(files) == 0 {
 		t.Fatalf("no buff files: %v", err)
@@ -30,14 +30,14 @@ func TestEveryDogmudBuffFlagIsDeclared(t *testing.T) {
 			t.Fatal(err)
 		}
 		var b struct {
-			BuffId int      `yaml:"buffid"`
-			Name   string   `yaml:"name"`
-			Flags  []string `yaml:"flags"`
+			ConditionId int      `yaml:"buffid"`
+			Name        string   `yaml:"name"`
+			Flags       []string `yaml:"flags"`
 		}
 		if err := yaml.Unmarshal(raw, &b); err != nil {
 			t.Fatalf("%s: %v", f, err)
 		}
-		spec := &conditions.BuffSpec{BuffId: b.BuffId, Name: b.Name}
+		spec := &conditions.ConditionSpec{ConditionId: b.ConditionId, Name: b.Name}
 		for _, fl := range b.Flags {
 			spec.Flags = append(spec.Flags, conditions.Flag(fl))
 		}

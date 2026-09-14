@@ -9,7 +9,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
 )
 
-const perceivesVeilBuffId = 7301
+const perceivesVeilConditionId = 7301
 
 func perceivesChar(t *testing.T, name string) *Character {
 	t.Helper()
@@ -57,11 +57,11 @@ func TestPerceives(t *testing.T) {
 	})
 
 	t.Run("see-hidden from a buff, with no pet", func(t *testing.T) {
-		t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-			perceivesVeilBuffId: {BuffId: perceivesVeilBuffId, Name: "Test Veil", Flags: []conditions.Flag{conditions.SeeHidden}},
+		t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+			perceivesVeilConditionId: {ConditionId: perceivesVeilConditionId, Name: "Test Veil", Flags: []conditions.Flag{conditions.SeeHidden}},
 		}))
 		viewer := perceivesChar(t, "Viewer")
-		if err := viewer.AddBuff(perceivesVeilBuffId, true); err != nil {
+		if err := viewer.AddCondition(perceivesVeilConditionId, true); err != nil {
 			t.Fatalf("applying see-hidden: %v", err)
 		}
 		if viewer.Pet.Exists() {

@@ -3,8 +3,8 @@ package hooks
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -86,7 +86,7 @@ func wireCompanionAssist(c *characters.Character) {
 		// Grace-period: if the owner has the respawn-grace buff, no mob
 		// should be targeting them. Companions stand down to avoid pulling
 		// the mob into a fight before grace expires.
-		if owner.Character.HasBuffFlag(conditions.NoAggroTarget) {
+		if owner.Character.HasConditionFlag(conditions.NoAggroTarget) {
 			return
 		}
 

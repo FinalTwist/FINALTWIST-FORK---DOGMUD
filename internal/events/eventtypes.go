@@ -17,10 +17,10 @@ import (
 //		 Example: See `RedrawPrompt`
 //
 // Used to apply or remove buffs
-type Buff struct {
+type Condition struct {
 	UserId        int
 	MobInstanceId int
-	BuffId        int
+	ConditionId   int
 	Source        string // optional source such as spell,
 	// DurationMult scales how long the buff lasts. 0 or 1 means the authored
 	// duration; anything else scales TriggersLeft, as Character.AddBuffScaled
@@ -39,15 +39,15 @@ type Buff struct {
 	LifeEpoch uint64
 }
 
-func (b Buff) Type() string { return `Buff` }
+func (b Condition) Type() string { return `Buff` }
 
-type BuffsTriggered struct {
+type ConditionsTriggered struct {
 	UserId        int
 	MobInstanceId int
-	BuffIds       []int
+	ConditionIds  []int
 }
 
-func (b BuffsTriggered) Type() string { return `BuffsTriggered` }
+func (b ConditionsTriggered) Type() string { return `BuffsTriggered` }
 
 // AutomationChanged fires when a user's macros/aliases/ticks/triggers change,
 // so the Char.Automation GMCP payload can be re-pushed.

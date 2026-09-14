@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -175,10 +175,10 @@ func TestFleeCost_IdleRaceAfterDeathDoesNotPayOrClaimAttempt(t *testing.T) {
 // orphaned handoff. A rejected command cannot leave an earlier attempt's
 // admission available to an asynchronous round resolver.
 func TestFleeCost_RejectedCommandClearsOrphanedAdmission(t *testing.T) {
-	const noFleeBuffID = 99849
-	cleanupBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		noFleeBuffID: {
-			BuffId:        noFleeBuffID,
+	const noFleeConditionID = 99849
+	cleanupConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		noFleeConditionID: {
+			ConditionId:   noFleeConditionID,
 			Name:          "test no-flee",
 			Description:   "rejects a flee command",
 			RoundInterval: 1,
@@ -186,12 +186,12 @@ func TestFleeCost_RejectedCommandClearsOrphanedAdmission(t *testing.T) {
 			Flags:         []conditions.Flag{conditions.NoFlee},
 		},
 	})
-	defer cleanupBuffs()
+	defer cleanupConditions()
 
 	u, room, cleanup := fleeFixture(t, 9257, 99850, 0)
 	defer cleanup()
 	u.SetTempData(fleeIncludeSkillTempKey, fleeAdmission{includeSkill: false})
-	if !u.Character.Buffs.AddBuff(noFleeBuffID, false) {
+	if !u.Character.Conditions.AddCondition(noFleeConditionID, false) {
 		t.Fatal("fixture could not apply the no-flee buff")
 	}
 

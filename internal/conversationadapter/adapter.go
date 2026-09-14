@@ -41,8 +41,8 @@ func (a *mobAdapter) ConvSetMiscData(key string, val any) {
 
 func (a *mobAdapter) ConvIsInCombat() bool { return a.mob.Character.IsInCombat() }
 
-func (a *mobAdapter) ConvHasBuffFlag(f conditions.Flag) bool {
-	return a.mob.Character.HasBuffFlag(f)
+func (a *mobAdapter) ConvHasConditionFlag(f conditions.Flag) bool {
+	return a.mob.Character.HasConditionFlag(f)
 }
 
 // ConvAggro returns true when the mob has an active aggro target.

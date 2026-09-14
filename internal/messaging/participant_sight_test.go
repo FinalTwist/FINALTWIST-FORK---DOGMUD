@@ -3,8 +3,8 @@ package messaging
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 )
 
@@ -14,28 +14,28 @@ type sightLight int
 func (l sightLight) GetVisibility() int { return int(l) }
 
 const (
-	sightInfraredBuffId = 9101
-	sightNightBuffId    = 9102
-	sightSleepBuffId    = 9103
+	sightInfraredConditionId = 9101
+	sightNightConditionId    = 9102
+	sightSleepConditionId    = 9103
 )
 
 // sightChar returns a fresh character carrying the given test flags. The three
 // flag buffs are seeded once per test, so applying one never replaces another.
 func sightChar(t *testing.T, flags ...conditions.Flag) *characters.Character {
 	t.Helper()
-	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		sightInfraredBuffId: {BuffId: sightInfraredBuffId, Name: "Test Infrared", Flags: []conditions.Flag{conditions.InfraredVision}},
-		sightNightBuffId:    {BuffId: sightNightBuffId, Name: "Test Night", Flags: []conditions.Flag{conditions.NightVision}},
-		sightSleepBuffId:    {BuffId: sightSleepBuffId, Name: "Test Sleep", Flags: []conditions.Flag{conditions.Sleeping}},
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		sightInfraredConditionId: {ConditionId: sightInfraredConditionId, Name: "Test Infrared", Flags: []conditions.Flag{conditions.InfraredVision}},
+		sightNightConditionId:    {ConditionId: sightNightConditionId, Name: "Test Night", Flags: []conditions.Flag{conditions.NightVision}},
+		sightSleepConditionId:    {ConditionId: sightSleepConditionId, Name: "Test Sleep", Flags: []conditions.Flag{conditions.Sleeping}},
 	}))
 	c := newChar(t)
 	ids := map[conditions.Flag]int{
-		conditions.InfraredVision: sightInfraredBuffId,
-		conditions.NightVision:    sightNightBuffId,
-		conditions.Sleeping:       sightSleepBuffId,
+		conditions.InfraredVision: sightInfraredConditionId,
+		conditions.NightVision:    sightNightConditionId,
+		conditions.Sleeping:       sightSleepConditionId,
 	}
 	for _, f := range flags {
-		if err := c.AddBuff(ids[f], true); err != nil {
+		if err := c.AddCondition(ids[f], true); err != nil {
 			t.Fatalf("applying %s: %v", f, err)
 		}
 	}

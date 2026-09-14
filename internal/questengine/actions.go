@@ -31,7 +31,7 @@ type ActionContext interface {
 	TrainSkill(skill string, level int)
 	IncreaseStat(stat string, amount int)
 	LearnRecipe(recipe string)
-	ApplyBuff(b BuffDef)
+	ApplyCondition(b ConditionDef)
 	Teleport(roomId int)
 	LockExits(e ExitLock)
 	UnlockExits(e ExitLock)
@@ -118,9 +118,9 @@ func ExecuteAction(a ActionDef, ctx ActionContext) error {
 		ctx.LearnRecipe(a.LearnRecipe.Recipe)
 		return nil
 	}
-	if a.ApplyBuff != nil {
-		LogVerboseF(ctx.GetUserId(), "apply buff %d", a.ApplyBuff.Buff)
-		ctx.ApplyBuff(*a.ApplyBuff)
+	if a.ApplyCondition != nil {
+		LogVerboseF(ctx.GetUserId(), "apply buff %d", a.ApplyCondition.Condition)
+		ctx.ApplyCondition(*a.ApplyCondition)
 		return nil
 	}
 	if a.Teleport > 0 {

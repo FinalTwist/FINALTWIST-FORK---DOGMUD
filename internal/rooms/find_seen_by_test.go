@@ -3,8 +3,8 @@ package rooms
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	seenByRoomId        = 7600
-	seenByViewerId      = 7601
-	seenByHiderId       = 7602
-	seenByHiddenGuardId = 7611
-	seenByGuardId       = 7612
-	seenByVeilBuffId    = 7621
+	seenByRoomId          = 7600
+	seenByViewerId        = 7601
+	seenByHiderId         = 7602
+	seenByHiddenGuardId   = 7611
+	seenByGuardId         = 7612
+	seenByVeilConditionId = 7621
 )
 
 func seenByHide(t *testing.T, c *characters.Character) {
@@ -36,8 +36,8 @@ func seenByHide(t *testing.T, c *characters.Character) {
 // the first hidden, the second not.
 func seenByRoom(t *testing.T) (*Room, *characters.Character) {
 	t.Helper()
-	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		seenByVeilBuffId: {BuffId: seenByVeilBuffId, Name: "Test Veil", Flags: []conditions.Flag{conditions.SeeHidden}},
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		seenByVeilConditionId: {ConditionId: seenByVeilConditionId, Name: "Test Veil", Flags: []conditions.Flag{conditions.SeeHidden}},
 	}))
 	viewer := users.NewTestUser(seenByViewerId, "aliceia", "Aliceia", 97601)
 	hider := users.NewTestUser(seenByHiderId, "kesh", "Kesh", 97602)
@@ -57,7 +57,7 @@ func seenByRoom(t *testing.T) (*Room, *characters.Character) {
 		m := &mobs.Mob{InstanceId: g.id}
 		m.Character.Name = "Guard"
 		m.Character.RoomId = seenByRoomId
-		m.Character.Buffs = conditions.New()
+		m.Character.Conditions = conditions.New()
 		m.Character.Awareness = awareness.NewMachine()
 		if g.hidden {
 			seenByHide(t, &m.Character)
@@ -85,7 +85,7 @@ func TestFindByNameSeenBy_HiddenPlayerCannotBeNamed(t *testing.T) {
 
 func TestFindByNameSeenBy_SeeHiddenNamesThem(t *testing.T) {
 	r, viewer := seenByRoom(t)
-	if err := viewer.AddBuff(seenByVeilBuffId, true); err != nil {
+	if err := viewer.AddCondition(seenByVeilConditionId, true); err != nil {
 		t.Fatalf("applying see-hidden: %v", err)
 	}
 	if pId, _ := r.FindByNameSeenBy(viewer, "kesh"); pId != seenByHiderId {

@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/keywords"
@@ -71,16 +71,16 @@ func TestMain(m *testing.M) {
 func seedAllRegistries() func() {
 	cleanupKeywords := keywords.SeedKeywordsForTest()
 
-	cleanupBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+	cleanupConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		100: {
-			BuffId:        100,
+			ConditionId:   100,
 			Name:          "Test Strength Buff",
 			Description:   "Boosts strength for testing",
 			RoundInterval: 5,
 			TriggerCount:  3,
 		},
 		101: {
-			BuffId:        101,
+			ConditionId:   101,
 			Name:          "Test Poison",
 			Description:   "Damage over time for testing",
 			RoundInterval: 3,
@@ -119,13 +119,13 @@ func seedAllRegistries() func() {
 			AutoAggro:  true,
 			Groups:     []string{"undead"},
 			Character: characters.Character{
-				Name:      "Skeleton",
-				RoomId:    1,
-				Health:    50,
-				Buffs:     conditions.New(),
-				Cooldowns: map[string]int{},
-				Awareness: awareness.NewMachine(),
-				Life:      life.NewMachine(),
+				Name:       "Skeleton",
+				RoomId:     1,
+				Health:     50,
+				Conditions: conditions.New(),
+				Cooldowns:  map[string]int{},
+				Awareness:  awareness.NewMachine(),
+				Life:       life.NewMachine(),
 				// Position seeded to mirror a production mob, which gets its
 				// Position FSM from Validate(). Struct-literal fixtures skip
 				// New()/Validate(), so without this the machine is nil and
@@ -145,7 +145,7 @@ func seedAllRegistries() func() {
 				Name:          "Merchant",
 				RoomId:        1,
 				Health:        100,
-				Buffs:         conditions.New(),
+				Conditions:    conditions.New(),
 				Cooldowns:     map[string]int{},
 				Awareness:     awareness.NewMachine(),
 				Life:          life.NewMachine(),
@@ -273,7 +273,7 @@ func seedAllRegistries() func() {
 		cleanupRooms()
 		cleanupUsers()
 		cleanupMobs()
-		cleanupBuffs()
+		cleanupConditions()
 		cleanupKeywords()
 	}
 }
@@ -733,16 +733,16 @@ func TestLookForTrouble_SkipsGraceProtectedPlayer(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
-	cleanupGraceBuff := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+	cleanupGraceCondition := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		81: {
-			BuffId:        81,
+			ConditionId:   81,
 			Name:          "Respawn Grace",
 			RoundInterval: 1,
 			TriggerCount:  3,
 			Flags:         []conditions.Flag{conditions.NoAggroTarget},
 		},
 	})
-	defer cleanupGraceBuff()
+	defer cleanupGraceCondition()
 
 	// Mob 100 (seeded in seedAllRegistries) is hostile:true and in
 	// room 1 alongside user 1. A normal LookForTrouble pass would
@@ -752,8 +752,8 @@ func TestLookForTrouble_SkipsGraceProtectedPlayer(t *testing.T) {
 	u1 := users.GetByUserId(1)
 	require.NotNil(t, u1)
 	u1.Character.Health = 100
-	require.NoError(t, u1.Character.AddBuff(81, false))
-	require.True(t, u1.Character.HasBuffFlag(conditions.NoAggroTarget),
+	require.NoError(t, u1.Character.AddCondition(81, false))
+	require.True(t, u1.Character.HasConditionFlag(conditions.NoAggroTarget),
 		"grace buff must register NoAggroTarget flag")
 
 	handled, err := LookForTrouble("", mob, room)

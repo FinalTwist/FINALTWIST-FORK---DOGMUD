@@ -10,12 +10,12 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-// skulldBuffSpec seeds buff 9 (Hidden) for behaviortree-package tests that
+// skulldConditionSpec seeds buff 9 (Hidden) for behaviortree-package tests that
 // need AddBuff(9) to work. A single var so the same seed is shared by all
 // tests in this file.
-var skulldBuffSpec = map[int]*conditions.BuffSpec{
+var skulldConditionSpec = map[int]*conditions.ConditionSpec{
 	9: {
-		BuffId:        9,
+		ConditionId:   9,
 		Name:          "Hidden",
 		Flags:         []conditions.Flag{conditions.Hidden},
 		TriggerCount:  15,
@@ -28,8 +28,8 @@ var skulldBuffSpec = map[int]*conditions.BuffSpec{
 // TestActTrySneak_SuccessWhenNoObservers verifies that a mob alone in a
 // room succeeds at sneak and acquires the Hidden buff.
 func TestActTrySneak_SuccessWhenNoObservers(t *testing.T) {
-	cleanBuffs := conditions.SeedBuffsForTest(skulldBuffSpec)
-	defer cleanBuffs()
+	cleanConditions := conditions.SeedConditionsForTest(skulldConditionSpec)
+	defer cleanConditions()
 
 	cleanRoom := seedTestRoom(t, 1, "TestZone")
 	defer cleanRoom()
@@ -63,8 +63,8 @@ func TestActTrySneak_SuccessWhenNoObservers(t *testing.T) {
 // TestActTrySneak_AlreadyHiddenReturnsSuccess verifies that a mob that is
 // already hidden returns Success (AlreadyHidden path from actions.Sneak).
 func TestActTrySneak_AlreadyHiddenReturnsSuccess(t *testing.T) {
-	cleanBuffs := conditions.SeedBuffsForTest(skulldBuffSpec)
-	defer cleanBuffs()
+	cleanConditions := conditions.SeedConditionsForTest(skulldConditionSpec)
+	defer cleanConditions()
 
 	cleanRoom := seedTestRoom(t, 1, "TestZone")
 	defer cleanRoom()
@@ -80,7 +80,7 @@ func TestActTrySneak_AlreadyHiddenReturnsSuccess(t *testing.T) {
 	room := rooms.LoadRoom(1)
 	room.AddMob(105)
 
-	grantHiddenBuff(t, &mob.Character)
+	grantHiddenCondition(t, &mob.Character)
 
 	ctx := &EvalContext{InstanceId: 105, RoomId: 1}
 	if r := actTrySneak(map[string]any{}, ctx); r != Success {
@@ -320,8 +320,8 @@ func TestActTryShadow_FailureWhenNotHidden(t *testing.T) {
 // TestActTryShadow_FailureNoTarget verifies that shadow returns Failure
 // when there is no resolvable target (even when hidden).
 func TestActTryShadow_FailureNoTarget(t *testing.T) {
-	cleanBuffs := conditions.SeedBuffsForTest(skulldBuffSpec)
-	defer cleanBuffs()
+	cleanConditions := conditions.SeedConditionsForTest(skulldConditionSpec)
+	defer cleanConditions()
 
 	cleanRoom := seedTestRoom(t, 1, "TestZone")
 	defer cleanRoom()
@@ -336,7 +336,7 @@ func TestActTryShadow_FailureNoTarget(t *testing.T) {
 	room := rooms.LoadRoom(1)
 	room.AddMob(105)
 
-	if err := mob.Character.AddBuff(9, false); err != nil {
+	if err := mob.Character.AddCondition(9, false); err != nil {
 		t.Fatalf("AddBuff(9) failed: %v", err)
 	}
 

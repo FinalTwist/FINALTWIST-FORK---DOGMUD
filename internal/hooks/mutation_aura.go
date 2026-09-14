@@ -34,8 +34,8 @@ func applyRoomAllyAuras(room *rooms.Room) {
 		if owner == nil || !owner.Character.IsInCombat() {
 			continue
 		}
-		buffIds := mutations.GetAllyAuraBuffs(owner.Character.Mutations)
-		if len(buffIds) == 0 {
+		conditionIds := mutations.GetAllyAuraConditions(owner.Character.Mutations)
+		if len(conditionIds) == 0 {
 			continue
 		}
 		// Project only onto the owner's PARTY — never strangers or PvP foes.
@@ -52,8 +52,8 @@ func applyRoomAllyAuras(room *rooms.Room) {
 			if ally == nil {
 				continue
 			}
-			for _, buffId := range buffIds {
-				ally.AddBuff(buffId, "aura")
+			for _, conditionId := range conditionIds {
+				ally.AddCondition(conditionId, "aura")
 			}
 		}
 	}
@@ -68,15 +68,15 @@ func applyRoomEnemyAuras(room *rooms.Room) {
 	if len(playerIds) == 0 {
 		return
 	}
-	var debuffs []int
+	var harmfulConditions []int
 	for _, ownerId := range playerIds {
 		owner := users.GetByUserId(ownerId)
 		if owner == nil || !owner.Character.IsInCombat() {
 			continue
 		}
-		debuffs = append(debuffs, mutations.GetEnemyAuraBuffs(owner.Character.Mutations)...)
+		harmfulConditions = append(harmfulConditions, mutations.GetEnemyAuraConditions(owner.Character.Mutations)...)
 	}
-	if len(debuffs) == 0 {
+	if len(harmfulConditions) == 0 {
 		return
 	}
 	for _, mid := range room.GetMobs() {
@@ -86,8 +86,8 @@ func applyRoomEnemyAuras(room *rooms.Room) {
 		if mob == nil || !mob.Character.IsInCombat() || mob.Character.IsCharmed() {
 			continue
 		}
-		for _, buffId := range debuffs {
-			mob.AddBuff(buffId, "aura")
+		for _, conditionId := range harmfulConditions {
+			mob.AddCondition(conditionId, "aura")
 		}
 	}
 }

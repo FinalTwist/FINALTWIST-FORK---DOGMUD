@@ -24,7 +24,7 @@ type (
 	SkillDef         = quests.SkillDef
 	StatDef          = quests.StatDef
 	RecipeDef        = quests.RecipeDef
-	BuffDef          = quests.BuffDef
+	ConditionDef     = quests.ConditionDef
 	SequenceDef      = quests.SequenceDef
 )
 

@@ -771,12 +771,12 @@ func TestRollDice(t *testing.T) {
 // TestParseDiceRoll checks parsing the format "[attacks@]XdY±Z#...".
 func TestParseDiceRoll(t *testing.T) {
 	tests := []struct {
-		in           string
-		wantAttacks  int
-		wantDCount   int
-		wantDSides   int
-		wantBonus    int
-		wantBuffCrit []int
+		in                string
+		wantAttacks       int
+		wantDCount        int
+		wantDSides        int
+		wantBonus         int
+		wantConditionCrit []int
 	}{
 		{"1d6", 1, 1, 6, 0, []int{}},
 		{"2@1d3+2", 2, 1, 3, 2, []int{}},
@@ -789,10 +789,10 @@ func TestParseDiceRoll(t *testing.T) {
 		if a != tt.wantAttacks || dC != tt.wantDCount || dS != tt.wantDSides || bonus != tt.wantBonus {
 			t.Errorf("ParseDiceRoll(%q) = (%d,%d,%d,%d,%v), want (%d,%d,%d,%d,%v)",
 				tt.in, a, dC, dS, bonus, crit,
-				tt.wantAttacks, tt.wantDCount, tt.wantDSides, tt.wantBonus, tt.wantBuffCrit)
+				tt.wantAttacks, tt.wantDCount, tt.wantDSides, tt.wantBonus, tt.wantConditionCrit)
 		}
-		if len(crit) != len(tt.wantBuffCrit) {
-			t.Errorf("ParseDiceRoll(%q) buffOnCrit got %v, want %v", tt.in, crit, tt.wantBuffCrit)
+		if len(crit) != len(tt.wantConditionCrit) {
+			t.Errorf("ParseDiceRoll(%q) buffOnCrit got %v, want %v", tt.in, crit, tt.wantConditionCrit)
 		}
 	}
 }
@@ -800,13 +800,13 @@ func TestParseDiceRoll(t *testing.T) {
 // TestFormatDiceRoll checks the inverse of ParseDiceRoll.
 func TestFormatDiceRoll(t *testing.T) {
 	tests := []struct {
-		name       string
-		attacks    int
-		dCount     int
-		dSides     int
-		bonus      int
-		buffOnCrit []int
-		want       string
+		name            string
+		attacks         int
+		dCount          int
+		dSides          int
+		bonus           int
+		conditionOnCrit []int
+		want            string
 	}{
 		{"basic", 1, 1, 6, 0, []int{}, "1d6"},
 		{"multiple attacks", 2, 1, 3, 2, []int{}, "2@1d3+2"},
@@ -815,10 +815,10 @@ func TestFormatDiceRoll(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := FormatDiceRoll(tt.attacks, tt.dCount, tt.dSides, tt.bonus, tt.buffOnCrit)
+		got := FormatDiceRoll(tt.attacks, tt.dCount, tt.dSides, tt.bonus, tt.conditionOnCrit)
 		if got != tt.want {
 			t.Errorf("FormatDiceRoll(%d,%d,%d,%d,%v) = %q, want %q",
-				tt.attacks, tt.dCount, tt.dSides, tt.bonus, tt.buffOnCrit,
+				tt.attacks, tt.dCount, tt.dSides, tt.bonus, tt.conditionOnCrit,
 				got, tt.want)
 		}
 	}

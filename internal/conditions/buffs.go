@@ -11,11 +11,11 @@ const (
 	TriggersLeftUnlimited = 1000000000
 )
 
-type Buff struct {
-	BuffId         int    `yaml:"buffid"`                   // Which buff template does it refer to? The tag pins the save key through the slice 2 rename.
+type Condition struct {
+	ConditionId    int    `yaml:"buffid"`                   // Which buff template does it refer to? The tag pins the save key through the slice 2 rename.
 	Source         string `yaml:"source,omitempty"`         // Optional source identifier for where this buff originated. Example: spell, item, area
 	OnStartWaiting bool   `yaml:"onstartwaiting,omitempty"` // Is the onstart event waiting to trigger?
-	PermaBuff      bool   `yaml:"permabuff,omitempty"`      // Is this buff from a worn item or race?
+	Permanent      bool   `yaml:"permabuff,omitempty"`      // Is this buff from a worn item or race?
 	// Need to instance track the following:
 	RoundCounter int `yaml:"roundcounter,omitempty"` // How many rounds have passed. Triggers on (RoundCounter%RoundInterval == 0)
 	TriggersLeft int `yaml:"triggersleft,omitempty"` // How many times it triggers
@@ -35,17 +35,17 @@ type Buff struct {
 	Stacks []Stack `yaml:"stacks,omitempty"`
 }
 
-func (b *Buff) StatMod(statName string) int {
+func (b *Condition) StatMod(statName string) int {
 	if b.Expired() {
 		return 0
 	}
-	if buffInfo := GetBuffSpec(b.BuffId); buffInfo != nil {
-		return buffInfo.StatMods.Get(statName)
+	if conditionInfo := GetConditionSpec(b.ConditionId); conditionInfo != nil {
+		return conditionInfo.StatMods.Get(statName)
 	}
 	return 0
 }
 
-func (b *Buff) Expired() bool {
+func (b *Condition) Expired() bool {
 	return b.TriggersLeft <= TriggersLeftExpired
 }
 
@@ -55,98 +55,98 @@ func (b *Buff) Expired() bool {
 // this rather than setting TriggersLeft directly: AddBuff, AddBuffScaled and
 // RefreshBuff can all revive an expired, unpruned record, and one that kept
 // its old stacks would come back to life with them still live.
-func (b *Buff) expire() {
+func (b *Condition) expire() {
 	b.TriggersLeft = TriggersLeftExpired
 	b.Stacks = nil
 }
 
 // A list of applied buffs
-type Buffs struct {
-	List      []*Buff
-	buffFlags map[Flag][]int // a map of buff flags to the index of the buff
-	buffIds   map[int]int    // a map of a buffId to it position in buffList
+type Conditions struct {
+	List           []*Condition
+	conditionFlags map[Flag][]int // a map of buff flags to the index of the buff
+	conditionIds   map[int]int    // a map of a buffId to it position in buffList
 }
 
-func New() Buffs {
-	return Buffs{
-		List:      []*Buff{},
-		buffFlags: make(map[Flag][]int),
-		buffIds:   make(map[int]int),
+func New() Conditions {
+	return Conditions{
+		List:           []*Condition{},
+		conditionFlags: make(map[Flag][]int),
+		conditionIds:   make(map[int]int),
 	}
 }
 
-func (bs *Buffs) Validate(forceRebuild ...bool) {
-	if bs.buffFlags == nil {
-		bs.buffFlags = make(map[Flag][]int)
+func (bs *Conditions) Validate(forceRebuild ...bool) {
+	if bs.conditionFlags == nil {
+		bs.conditionFlags = make(map[Flag][]int)
 	}
-	if bs.buffIds == nil {
-		bs.buffIds = make(map[int]int)
+	if bs.conditionIds == nil {
+		bs.conditionIds = make(map[int]int)
 	}
 
-	if (len(bs.List) != len(bs.buffIds)) || (len(forceRebuild) > 0 && forceRebuild[0]) {
+	if (len(bs.List) != len(bs.conditionIds)) || (len(forceRebuild) > 0 && forceRebuild[0]) {
 		// Rebuild
-		bs.buffIds = make(map[int]int)
-		bs.buffFlags = make(map[Flag][]int)
+		bs.conditionIds = make(map[int]int)
+		bs.conditionFlags = make(map[Flag][]int)
 
 		for idx, b := range bs.List {
-			bs.buffIds[b.BuffId] = idx
-			bSpec := GetBuffSpec(b.BuffId)
+			bs.conditionIds[b.ConditionId] = idx
+			bSpec := GetConditionSpec(b.ConditionId)
 			if bSpec == nil {
-				mudlog.Warn("buffs.Validate()", "buffId", b.BuffId, "error", "invalid character buffId")
+				mudlog.Warn("buffs.Validate()", "buffId", b.ConditionId, "error", "invalid character buffId")
 				continue
 			}
 			for _, flag := range bSpec.Flags {
-				if _, ok := bs.buffFlags[flag]; !ok {
-					bs.buffFlags[flag] = []int{}
+				if _, ok := bs.conditionFlags[flag]; !ok {
+					bs.conditionFlags[flag] = []int{}
 				}
-				bs.buffFlags[flag] = append(bs.buffFlags[flag], idx)
+				bs.conditionFlags[flag] = append(bs.conditionFlags[flag], idx)
 			}
 		}
 	}
 }
 
-func (bs *Buffs) StatMod(statName string) int {
-	buffAmt := 0
+func (bs *Conditions) StatMod(statName string) int {
+	conditionAmt := 0
 	for _, b := range bs.List {
-		buffAmt += b.StatMod(statName)
+		conditionAmt += b.StatMod(statName)
 	}
-	return buffAmt
+	return conditionAmt
 }
 
-func (bs *Buff) Name() string {
-	if sp := GetBuffSpec(bs.BuffId); sp != nil {
+func (bs *Condition) Name() string {
+	if sp := GetConditionSpec(bs.ConditionId); sp != nil {
 		return sp.Name
 	}
 	return ""
 }
 
-func (bs *Buffs) RemoveBuff(buffId int) bool {
-	if index, ok := bs.buffIds[buffId]; ok {
+func (bs *Conditions) RemoveCondition(conditionId int) bool {
+	if index, ok := bs.conditionIds[conditionId]; ok {
 		bs.List[index].expire()
 		return true
 	}
 	return false
 }
 
-func (bs *Buffs) TriggersLeft(buffId int) int {
-	if idx, ok := bs.buffIds[buffId]; ok {
+func (bs *Conditions) TriggersLeft(conditionId int) int {
+	if idx, ok := bs.conditionIds[conditionId]; ok {
 		return bs.List[idx].TriggersLeft
 	}
 	return 0
 }
 
-func (bs *Buffs) GetBuffIdsWithFlag(action Flag) []int {
-	buffIds := []int{}
-	for _, idx := range bs.buffFlags[action] {
-		buffIds = append(buffIds, bs.List[idx].BuffId)
+func (bs *Conditions) GetConditionIdsWithFlag(action Flag) []int {
+	conditionIds := []int{}
+	for _, idx := range bs.conditionFlags[action] {
+		conditionIds = append(conditionIds, bs.List[idx].ConditionId)
 	}
-	return buffIds
+	return conditionIds
 }
 
-func (bs *Buffs) HasFlag(action Flag, expire bool) bool {
+func (bs *Conditions) HasFlag(action Flag, expire bool) bool {
 
 	if action != All {
-		if _, ok := bs.buffFlags[action]; !ok {
+		if _, ok := bs.conditionFlags[action]; !ok {
 			return false
 		}
 	}
@@ -168,7 +168,7 @@ func (bs *Buffs) HasFlag(action Flag, expire bool) bool {
 			// A save can carry a buff id whose spec is gone, and Validate indexes
 			// it anyway, so the lookup can come back nil. ProgressMult guards the
 			// same way.
-			spec := GetBuffSpec(b.BuffId)
+			spec := GetConditionSpec(b.ConditionId)
 			if spec == nil {
 				continue
 			}
@@ -189,7 +189,7 @@ func (bs *Buffs) HasFlag(action Flag, expire bool) bool {
 		// matching buff is expired (required for action == All).
 		// Buff zero is special, and if force cancelled, it is removed
 		// from the list outright.
-		if b.BuffId == 0 {
+		if b.ConditionId == 0 {
 			bs.List = append(bs.List[:index], bs.List[index+1:]...)
 		} else {
 			b.expire()
@@ -213,12 +213,12 @@ const defaultProgressMult = 2.0
 //
 // A flagged buff with no progress_mult contributes defaultProgressMult. Held
 // flagged buffs do not stack; the strongest value wins.
-func (bs *Buffs) ProgressMult(flag Flag) float64 {
+func (bs *Conditions) ProgressMult(flag Flag) float64 {
 
 	// Same fast negative as HasFlag: the flag index is only ever a filter,
 	// since it keeps entries for buffs that have since expired.
 	if flag != All {
-		if _, ok := bs.buffFlags[flag]; !ok {
+		if _, ok := bs.conditionFlags[flag]; !ok {
 			return 1.0
 		}
 	}
@@ -228,99 +228,99 @@ func (bs *Buffs) ProgressMult(flag Flag) float64 {
 		if b.Expired() {
 			continue
 		}
-		spec := GetBuffSpec(b.BuffId)
+		spec := GetConditionSpec(b.ConditionId)
 		if spec == nil {
 			continue
 		}
 		if flag != All && !slices.Contains(spec.Flags, flag) {
 			continue
 		}
-		buffMult := defaultProgressMult
+		conditionMult := defaultProgressMult
 		if spec.ProgressMult > 0 {
-			buffMult = spec.ProgressMult
+			conditionMult = spec.ProgressMult
 		}
-		if buffMult > mult {
-			mult = buffMult
+		if conditionMult > mult {
+			mult = conditionMult
 		}
 	}
 
 	return mult
 }
 
-func (bs *Buffs) HasBuff(buffId int) bool {
-	if _, ok := bs.buffIds[buffId]; ok {
+func (bs *Conditions) HasCondition(conditionId int) bool {
+	if _, ok := bs.conditionIds[conditionId]; ok {
 		return true
 	}
 	return false
 }
 
-func (bs *Buffs) Started(buffId int) {
-	if idx, ok := bs.buffIds[buffId]; ok {
+func (bs *Conditions) Started(conditionId int) {
+	if idx, ok := bs.conditionIds[conditionId]; ok {
 		bs.List[idx].OnStartWaiting = false
 	}
 }
 
-// AddBuffScaled adds a buff with its duration multiplied by durationMult. A
+// AddConditionScaled adds a buff with its duration multiplied by durationMult. A
 // stacking record can only be added through AddBuffMagnitude, because a
 // stack needs its own rounds and amount that this call has no room to carry;
 // a stacking spec is refused rather than left to create a live record with
 // no stacks.
-func (bs *Buffs) AddBuffScaled(buffId int, durationMult float64) bool {
-	if spec := GetBuffSpec(buffId); spec != nil && spec.IsStacking() {
+func (bs *Conditions) AddConditionScaled(conditionId int, durationMult float64) bool {
+	if spec := GetConditionSpec(conditionId); spec != nil && spec.IsStacking() {
 		return false
 	}
-	return bs.addBuffScaled(buffId, durationMult)
+	return bs.addConditionScaled(conditionId, durationMult)
 }
 
-// addBuffScaled is the writer AddBuffScaled and the non-stacking branch of
+// addConditionScaled is the writer AddBuffScaled and the non-stacking branch of
 // AddBuffMagnitude share. addStack also calls it, once per new stack, to
 // create or touch the record before it appends that stack, which is why this
 // unexported form does not itself refuse a stacking spec: AddBuffScaled's
 // exported wrapper is where that refusal belongs.
-func (bs *Buffs) addBuffScaled(buffId int, durationMult float64) bool {
-	if buffInfo := GetBuffSpec(buffId); buffInfo != nil {
+func (bs *Conditions) addConditionScaled(conditionId int, durationMult float64) bool {
+	if conditionInfo := GetConditionSpec(conditionId); conditionInfo != nil {
 
 		// Poison immunity (Stone Stomach): a poison-flagged buff is refused
 		// while the holder is immune. Checked here so every application path,
 		// event or direct, honours it. Silent: the immunity's own start line
 		// already told the player.
-		if slices.Contains(buffInfo.Flags, Poison) && bs.HasFlag(PoisonImmunity, false) {
+		if slices.Contains(conditionInfo.Flags, Poison) && bs.HasFlag(PoisonImmunity, false) {
 			return false
 		}
 
-		triggers := int(float64(buffInfo.TriggerCount) * durationMult)
+		triggers := int(float64(conditionInfo.TriggerCount) * durationMult)
 		if triggers < 1 {
 			triggers = 1
 		}
-		newBuff := Buff{
-			BuffId:       buffInfo.BuffId,
+		newCondition := Condition{
+			ConditionId:  conditionInfo.ConditionId,
 			RoundCounter: 0,
-			PermaBuff:    false,
+			Permanent:    false,
 			TriggersLeft: triggers,
 		}
 
-		if idx, ok := bs.buffIds[buffId]; ok {
-			bs.List[idx].TriggersLeft = newBuff.TriggersLeft
+		if idx, ok := bs.conditionIds[conditionId]; ok {
+			bs.List[idx].TriggersLeft = newCondition.TriggersLeft
 			bs.List[idx].RoundCounter = 0
-			bs.List[idx].PermaBuff = newBuff.PermaBuff
+			bs.List[idx].Permanent = newCondition.Permanent
 			return true
 		}
 
-		bs.List = append(bs.List, &newBuff)
+		bs.List = append(bs.List, &newCondition)
 		listIndex := len(bs.List) - 1
-		bs.buffIds[buffId] = listIndex
-		for _, flag := range buffInfo.Flags {
-			if _, ok := bs.buffFlags[flag]; !ok {
-				bs.buffFlags[flag] = []int{}
+		bs.conditionIds[conditionId] = listIndex
+		for _, flag := range conditionInfo.Flags {
+			if _, ok := bs.conditionFlags[flag]; !ok {
+				bs.conditionFlags[flag] = []int{}
 			}
-			bs.buffFlags[flag] = append(bs.buffFlags[flag], listIndex)
+			bs.conditionFlags[flag] = append(bs.conditionFlags[flag], listIndex)
 		}
 		return true
 	}
 	return false
 }
 
-// AddBuffMagnitude applies a record for an EXACT trigger count with a
+// AddConditionMagnitude applies a record for an EXACT trigger count with a
 // per-instance magnitude. It is the writer door for every record that used to
 // be a combat condition. triggers 0 means the spec's own triggercount. A held
 // record of the same id is refreshed and its magnitude, triggers and tick
@@ -336,14 +336,14 @@ func (bs *Buffs) addBuffScaled(buffId int, durationMult float64) bool {
 //
 // A stacking record (see the Stacking flag) appends a stack instead of
 // overwriting; triggers is then that stack's rounds.
-func (bs *Buffs) AddBuffMagnitude(buffId int, triggers int, magnitude float64) bool {
-	if spec := GetBuffSpec(buffId); spec != nil && spec.IsStacking() {
+func (bs *Conditions) AddConditionMagnitude(conditionId int, triggers int, magnitude float64) bool {
+	if spec := GetConditionSpec(conditionId); spec != nil && spec.IsStacking() {
 		return bs.addStack(spec, triggers, magnitude)
 	}
-	if !bs.addBuffScaled(buffId, 1.0) {
+	if !bs.addConditionScaled(conditionId, 1.0) {
 		return false
 	}
-	idx, ok := bs.buffIds[buffId]
+	idx, ok := bs.conditionIds[conditionId]
 	if !ok {
 		return false
 	}
@@ -351,14 +351,14 @@ func (bs *Buffs) AddBuffMagnitude(buffId int, triggers int, magnitude float64) b
 		bs.List[idx].TriggersLeft = triggers
 	}
 	bs.List[idx].Magnitude = magnitude
-	if spec := GetBuffSpec(buffId); spec != nil && spec.TickFromMagnitude {
+	if spec := GetConditionSpec(conditionId); spec != nil && spec.TickFromMagnitude {
 		// The magnitude IS the signed per-round amount; see tickAmountFor.
 		bs.List[idx].TickAmount = tickAmountFor(magnitude)
 	}
 	return true
 }
 
-// RefreshBuff tops a held buff's remaining triggers back up to the spec's
+// RefreshCondition tops a held buff's remaining triggers back up to the spec's
 // TriggerCount and touches nothing else: RoundCounter keeps its cadence
 // (AddBuff resets it, which would starve any buff whose RoundInterval is
 // above one), PermaBuff and TickAmount are left alone. A buff already
@@ -374,38 +374,38 @@ func (bs *Buffs) AddBuffMagnitude(buffId int, triggers int, magnitude float64) b
 // a stacking spec is refused rather than topped up to the spec's single
 // TriggerCount, which would misreport a live record's duration or, on an
 // expired-but-unpruned one with no stacks, revive it to tick for nothing.
-func (bs *Buffs) RefreshBuff(buffId int) bool {
-	idx, ok := bs.buffIds[buffId]
+func (bs *Conditions) RefreshCondition(conditionId int) bool {
+	idx, ok := bs.conditionIds[conditionId]
 	if !ok {
 		return false
 	}
 
-	buffInfo := GetBuffSpec(buffId)
-	if buffInfo == nil {
+	conditionInfo := GetConditionSpec(conditionId)
+	if conditionInfo == nil {
 		return false
 	}
 
-	if buffInfo.IsStacking() {
+	if conditionInfo.IsStacking() {
 		return false
 	}
 
-	if bs.List[idx].PermaBuff {
+	if bs.List[idx].Permanent {
 		return true
 	}
 
-	bs.List[idx].TriggersLeft = buffInfo.TriggerCount
+	bs.List[idx].TriggersLeft = conditionInfo.TriggerCount
 	return true
 }
 
-// AddBuff applies a record for the spec's own trigger count, or unlimited
+// AddCondition applies a record for the spec's own trigger count, or unlimited
 // when isPermanent. A stacking record can only be added through
 // AddBuffMagnitude, because a stack needs its own rounds and amount that this
 // call has no room to carry; a stacking spec is refused rather than left to
 // create a live record with no stacks.
-func (bs *Buffs) AddBuff(buffId int, isPermanent bool) bool {
-	if buffInfo := GetBuffSpec(buffId); buffInfo != nil {
+func (bs *Conditions) AddCondition(conditionId int, isPermanent bool) bool {
+	if conditionInfo := GetConditionSpec(conditionId); conditionInfo != nil {
 
-		if buffInfo.IsStacking() {
+		if conditionInfo.IsStacking() {
 			return false
 		}
 
@@ -413,37 +413,37 @@ func (bs *Buffs) AddBuff(buffId int, isPermanent bool) bool {
 		// while the holder is immune. Checked here so every application path,
 		// event or direct, honours it. Silent: the immunity's own start line
 		// already told the player.
-		if slices.Contains(buffInfo.Flags, Poison) && bs.HasFlag(PoisonImmunity, false) {
+		if slices.Contains(conditionInfo.Flags, Poison) && bs.HasFlag(PoisonImmunity, false) {
 			return false
 		}
 
-		newBuff := Buff{
-			BuffId:       buffInfo.BuffId,
+		newCondition := Condition{
+			ConditionId:  conditionInfo.ConditionId,
 			RoundCounter: 0,
-			PermaBuff:    false,
-			TriggersLeft: buffInfo.TriggerCount,
+			Permanent:    false,
+			TriggersLeft: conditionInfo.TriggerCount,
 		}
 
 		if isPermanent {
-			newBuff.TriggersLeft = TriggersLeftUnlimited
-			newBuff.PermaBuff = true
+			newCondition.TriggersLeft = TriggersLeftUnlimited
+			newCondition.Permanent = true
 		}
 
-		if idx, ok := bs.buffIds[buffId]; ok {
-			bs.List[idx].TriggersLeft = newBuff.TriggersLeft
+		if idx, ok := bs.conditionIds[conditionId]; ok {
+			bs.List[idx].TriggersLeft = newCondition.TriggersLeft
 			bs.List[idx].RoundCounter = 0
-			bs.List[idx].PermaBuff = newBuff.PermaBuff
+			bs.List[idx].Permanent = newCondition.Permanent
 			return true
 		}
 
-		bs.List = append(bs.List, &newBuff)
+		bs.List = append(bs.List, &newCondition)
 		listIndex := len(bs.List) - 1
-		bs.buffIds[buffId] = listIndex
-		for _, flag := range buffInfo.Flags {
-			if _, ok := bs.buffFlags[flag]; !ok {
-				bs.buffFlags[flag] = []int{}
+		bs.conditionIds[conditionId] = listIndex
+		for _, flag := range conditionInfo.Flags {
+			if _, ok := bs.conditionFlags[flag]; !ok {
+				bs.conditionFlags[flag] = []int{}
 			}
-			bs.buffFlags[flag] = append(bs.buffFlags[flag], listIndex)
+			bs.conditionFlags[flag] = append(bs.conditionFlags[flag], listIndex)
 		}
 
 		return true
@@ -453,21 +453,21 @@ func (bs *Buffs) AddBuff(buffId int, isPermanent bool) bool {
 }
 
 // Returns what buffs were triggered
-func (bs *Buffs) Trigger(buffId ...int) (triggeredBuffs []*Buff) {
+func (bs *Conditions) Trigger(conditionId ...int) (triggeredConditions []*Condition) {
 
 	for idx, b := range bs.List {
 
 		// Special case where 1 or more specific buffId's were expectred to trigger (ONLY!)
 		// This might happen if a buff needs to trigger before a round begins
-		if len(buffId) > 0 {
-			for _, id := range buffId {
-				if b.BuffId != id {
+		if len(conditionId) > 0 {
+			for _, id := range conditionId {
+				if b.ConditionId != id {
 					continue
 				}
 			}
 		}
 
-		if buffInfo := GetBuffSpec(b.BuffId); buffInfo != nil {
+		if conditionInfo := GetConditionSpec(b.ConditionId); conditionInfo != nil {
 
 			// Pure flag buffs (no triggerrate set in YAML) have
 			// RoundInterval==0 and are never meant to tick — they're
@@ -476,7 +476,7 @@ func (bs *Buffs) Trigger(buffId ...int) (triggeredBuffs []*Buff) {
 			// divide by zero. They're removed by explicit
 			// CancelBuff* paths (e.g., cancel-on-combat flag) or by
 			// time-based duration if one is later authored.
-			if buffInfo.RoundInterval < 1 {
+			if conditionInfo.RoundInterval < 1 {
 				continue
 			}
 
@@ -484,16 +484,16 @@ func (bs *Buffs) Trigger(buffId ...int) (triggeredBuffs []*Buff) {
 			// We do this first so that it's the first thing that happens AFTER a full round has already passed.
 			if b.TriggersLeft > 0 {
 				b.RoundCounter++
-				if b.RoundCounter%buffInfo.RoundInterval == 0 {
-					if buffInfo.IsStacking() {
+				if b.RoundCounter%conditionInfo.RoundInterval == 0 {
+					if conditionInfo.IsStacking() {
 						// A stacking record ticks its stacks and derives
 						// TriggersLeft from them; see tickStacks.
 						if b.tickStacks() {
-							triggeredBuffs = append(triggeredBuffs, b)
+							triggeredConditions = append(triggeredConditions, b)
 						}
 					} else {
 						// It cannot be pruned unless it is triggered
-						triggeredBuffs = append(triggeredBuffs, b)
+						triggeredConditions = append(triggeredConditions, b)
 						if b.TriggersLeft != TriggersLeftUnlimited {
 							b.TriggersLeft--
 						} else {
@@ -509,34 +509,34 @@ func (bs *Buffs) Trigger(buffId ...int) (triggeredBuffs []*Buff) {
 
 	}
 
-	return triggeredBuffs
+	return triggeredConditions
 }
 
-func (bs *Buffs) GetBuffs(buffId ...int) []*Buff {
-	retBuffs := []*Buff{}
+func (bs *Conditions) GetConditions(conditionId ...int) []*Condition {
+	retConditions := []*Condition{}
 	for _, b := range bs.List {
 		if !b.Expired() {
 
-			if len(buffId) > 0 {
-				for _, id := range buffId {
-					if b.BuffId != id {
+			if len(conditionId) > 0 {
+				for _, id := range conditionId {
+					if b.ConditionId != id {
 						continue
 					}
-					retBuffs = append(retBuffs, b)
+					retConditions = append(retConditions, b)
 				}
 			} else {
-				retBuffs = append(retBuffs, b)
+				retConditions = append(retConditions, b)
 			}
 
 		}
 	}
-	return retBuffs
+	return retConditions
 }
 
-func (bs *Buffs) Prune() (prunedBuffs []*Buff) {
+func (bs *Conditions) Prune() (prunedConditions []*Condition) {
 
 	if len(bs.List) == 0 {
-		return prunedBuffs
+		return prunedConditions
 	}
 
 	var prune bool = false
@@ -547,9 +547,9 @@ func (bs *Buffs) Prune() (prunedBuffs []*Buff) {
 
 		b := bs.List[i] // Get a ptr to the data within the slice
 
-		buffInfo := GetBuffSpec(b.BuffId)
+		conditionInfo := GetConditionSpec(b.ConditionId)
 
-		if buffInfo == nil {
+		if conditionInfo == nil {
 			prune = true
 		} else {
 			// If there's no more life left to it, prune it
@@ -560,7 +560,7 @@ func (bs *Buffs) Prune() (prunedBuffs []*Buff) {
 		}
 
 		if prune {
-			prunedBuffs = append(prunedBuffs, b)
+			prunedConditions = append(prunedConditions, b)
 			// remove the buff
 			bs.List = append(bs.List[:i], bs.List[i+1:]...)
 			didPrune = true
@@ -572,13 +572,13 @@ func (bs *Buffs) Prune() (prunedBuffs []*Buff) {
 		bs.Validate(true)
 	}
 
-	return prunedBuffs
+	return prunedConditions
 }
 
 // SetTickAmount sets the TickAmount on the most recently added buff with
 // the given buffId. Called right after AddBuff to set the snapshot.
-func (bs *Buffs) SetTickAmount(buffId int, amount int) {
-	if idx, ok := bs.buffIds[buffId]; ok {
+func (bs *Conditions) SetTickAmount(conditionId int, amount int) {
+	if idx, ok := bs.conditionIds[conditionId]; ok {
 		bs.List[idx].TickAmount = amount
 	}
 }
@@ -601,7 +601,7 @@ func (bs *Buffs) SetTickAmount(buffId int, amount int) {
 //
 // An unlimited record (a permabuff) keeps the old answer rather than a
 // nine-digit one: its callers gate on Buff.PermaBuff and render "sustained".
-func GetDurations(buff *Buff, spec *BuffSpec) (roundsLeft int, totalRounds int) {
+func GetDurations(condition *Condition, spec *ConditionSpec) (roundsLeft int, totalRounds int) {
 
 	if spec.RoundInterval < 1 {
 		// A pure flag record never ticks, so it has no duration to report.
@@ -610,11 +610,11 @@ func GetDurations(buff *Buff, spec *BuffSpec) (roundsLeft int, totalRounds int) 
 
 	totalRounds = spec.TriggerCount * spec.RoundInterval
 
-	if buff.TriggersLeft == TriggersLeftUnlimited {
-		return totalRounds - buff.RoundCounter, totalRounds
+	if condition.TriggersLeft == TriggersLeftUnlimited {
+		return totalRounds - condition.RoundCounter, totalRounds
 	}
 
-	roundsLeft = buff.TriggersLeft*spec.RoundInterval - buff.RoundCounter%spec.RoundInterval
+	roundsLeft = condition.TriggersLeft*spec.RoundInterval - condition.RoundCounter%spec.RoundInterval
 
 	return roundsLeft, max(totalRounds, roundsLeft)
 }

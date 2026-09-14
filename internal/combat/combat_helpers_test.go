@@ -3,8 +3,8 @@ package combat
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/pets"
 	"github.com/GoMudEngine/GoMud/internal/species"
@@ -133,11 +133,11 @@ func TestApplyPetDamage_RespectsPhysicalMitigation(t *testing.T) {
 	// either.
 	newTarget := func(mitigationPct int) *characters.Character {
 		c := &characters.Character{RoomId: 1}
-		c.Buffs = conditions.New()
+		c.Conditions = conditions.New()
 		c.HealthMax.Value = 500
 		c.Health = 500
 		if mitigationPct > 0 {
-			_ = c.AddBuffMagnitude(conditions.BuffIdMinorShield, 100, float64(mitigationPct), "test")
+			_ = c.AddConditionMagnitude(conditions.ConditionIdMinorShield, 100, float64(mitigationPct), "test")
 		}
 		return c
 	}

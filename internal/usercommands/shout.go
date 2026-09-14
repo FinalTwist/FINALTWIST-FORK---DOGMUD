@@ -31,7 +31,7 @@ func Shout(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	}
 
 	isSneaking := user.Character.IsHidden()
-	isDrunk := user.Character.HasBuffFlag(conditions.Drunk)
+	isDrunk := user.Character.HasConditionFlag(conditions.Drunk)
 
 	rest = strings.ToUpper(rest)
 
@@ -69,16 +69,16 @@ func Shout(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			continue
 		}
 		if other := users.GetByUserId(otherUserId); other != nil {
-			if other.Character.HasBuffFlag(conditions.Sleeping) {
-				other.Character.CancelBuffsWithFlag(conditions.Sleeping)
+			if other.Character.HasConditionFlag(conditions.Sleeping) {
+				other.Character.CancelConditionsWithFlag(conditions.Sleeping)
 				mobs.OnSleeperWoken(other.Character)
 			}
 		}
 	}
 	for _, mobInstanceId := range room.GetMobs() {
 		if m := mobs.GetInstance(mobInstanceId); m != nil {
-			if m.Character.HasBuffFlag(conditions.Sleeping) {
-				m.Character.CancelBuffsWithFlag(conditions.Sleeping)
+			if m.Character.HasConditionFlag(conditions.Sleeping) {
+				m.Character.CancelConditionsWithFlag(conditions.Sleeping)
 				mobs.OnSleeperWoken(&m.Character)
 			}
 		}

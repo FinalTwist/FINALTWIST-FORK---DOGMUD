@@ -86,7 +86,7 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 
 				// If this is a quiet message, make sure the player can hear it
 				if message.IsQuiet {
-					if !user.Character.HasBuffFlag(conditions.SuperHearing) {
+					if !user.Character.HasConditionFlag(conditions.SuperHearing) {
 						continue
 					}
 				}

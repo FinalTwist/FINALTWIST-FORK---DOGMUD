@@ -16,14 +16,14 @@ import (
 // while the character made out nothing. Buff.Expired() is TriggersLeft <= 0 and
 // never consults PermaBuff, GetBuffs filters expired buffs out and Prune
 // deletes them, so a profile buff with no triggersleft is born dead.
-func TestSliceAInfraredProfileCarriesALiveBuff85(t *testing.T) {
+func TestSliceAInfraredProfileCarriesALiveCondition85(t *testing.T) {
 	dir := filepath.Join("..", "..", "tools", "playtest", "profiles")
 	u, err := LoadTemplate(dir, "slice-a-infrared")
 	require.NoError(t, err)
 
 	var found bool
-	for _, b := range u.Character.Buffs.List {
-		if b.BuffId != 85 {
+	for _, b := range u.Character.Conditions.List {
+		if b.ConditionId != 85 {
 			continue
 		}
 		found = true

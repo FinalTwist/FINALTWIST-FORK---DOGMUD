@@ -21,26 +21,26 @@ type StatIncreaseCall struct {
 
 // mockActionContext tracks all actions executed for test assertions.
 type mockActionContext struct {
-	granted        []string
-	consumedItems  []int
-	givenItems     []int
-	givenGold      int
-	gold           int
-	sentTexts      []string
-	roomTexts      []string
-	spawnedMobs    []SpawnDef
-	spawnedItems   []SpawnDef
-	taughtSpells   []string
-	appliedBuffs   []BuffDef
-	teleported     int
-	lockedExits    []ExitLock
-	unlockedExits  []ExitLock
-	npcSays        []NpcSayDef
-	sequences      []SequenceDef
-	bumpedRep      []BumpRepCall
-	increasedStats []StatIncreaseCall
-	learnedRecipes []string
-	userId         int
+	granted           []string
+	consumedItems     []int
+	givenItems        []int
+	givenGold         int
+	gold              int
+	sentTexts         []string
+	roomTexts         []string
+	spawnedMobs       []SpawnDef
+	spawnedItems      []SpawnDef
+	taughtSpells      []string
+	appliedConditions []ConditionDef
+	teleported        int
+	lockedExits       []ExitLock
+	unlockedExits     []ExitLock
+	npcSays           []NpcSayDef
+	sequences         []SequenceDef
+	bumpedRep         []BumpRepCall
+	increasedStats    []StatIncreaseCall
+	learnedRecipes    []string
+	userId            int
 }
 
 func newMockActionContext(userId int) *mockActionContext {
@@ -82,7 +82,9 @@ func (m *mockActionContext) IncreaseStat(stat string, amount int) {
 func (m *mockActionContext) LearnRecipe(recipe string) {
 	m.learnedRecipes = append(m.learnedRecipes, recipe)
 }
-func (m *mockActionContext) ApplyBuff(b BuffDef)            { m.appliedBuffs = append(m.appliedBuffs, b) }
+func (m *mockActionContext) ApplyCondition(b ConditionDef) {
+	m.appliedConditions = append(m.appliedConditions, b)
+}
 func (m *mockActionContext) Teleport(roomId int)            { m.teleported = roomId }
 func (m *mockActionContext) LockExits(e ExitLock)           { m.lockedExits = append(m.lockedExits, e) }
 func (m *mockActionContext) UnlockExits(e ExitLock)         { m.unlockedExits = append(m.unlockedExits, e) }

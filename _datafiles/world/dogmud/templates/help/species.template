@@ -27,7 +27,7 @@ Here is some useful species detail:
   <ansi fg="yellow">First Aid:</ansi>   {{ if $speciesInfo.KnowsFirstAid }}<ansi fg="123">Yes</ansi>{{ else }}<ansi fg="210">No</ansi>{{ end }}
   <ansi fg="yellow">Gear Slots:</ansi>  {{ if eq (len $speciesInfo.GetEnabledSlots) 0 }}<ansi fg="234">*None*</ansi>{{end}}{{ range $slotIndex, $slotName := $speciesInfo.GetEnabledSlots }}{{if gt $slotIndex 0 }}{{ if eq (mod $slotIndex 5) 0 }}{{ printf "\n               " }}{{ end }}{{ end }}<ansi fg="157">{{ padRight 9 (uc $slotName) }}</ansi>{{ end }}
   <ansi fg="yellow">Stat Gains:</ansi>  <ansi fg="234">None -- every character begins at the human baseline (all six stats near 100) and grows through use, not from species.</ansi>
-  <ansi fg="yellow">Buffs:</ansi>       {{if eq (len $speciesInfo.BuffIds) 0}}<ansi fg="234">*None*</ansi>{{end}}{{ range $slotIndex, $buffId := $speciesInfo.BuffIds }}{{if gt $slotIndex 0 }}{{ printf "\n               " }}{{ end }}<ansi fg="buff">{{ buffname $buffId }}</ansi>{{ end }}
+  <ansi fg="yellow">Buffs:</ansi>       {{if eq (len $speciesInfo.ConditionIds) 0}}<ansi fg="234">*None*</ansi>{{end}}{{ range $slotIndex, $buffId := $speciesInfo.ConditionIds }}{{if gt $slotIndex 0 }}{{ printf "\n               " }}{{ end }}<ansi fg="buff">{{ buffname $buffId }}</ansi>{{ end }}
 
 └──────────────────────────────────────────────────────────────────────────────┘
 {{ end }}

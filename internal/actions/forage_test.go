@@ -3,8 +3,8 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/forager"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -33,8 +33,8 @@ type forageFakeActor struct {
 func newForageFakeActor(t *testing.T, name string, room *rooms.Room, isPlayer bool, userId int) *forageFakeActor {
 	t.Helper()
 	c := &characters.Character{
-		Name:  name,
-		Buffs: conditions.New(),
+		Name:       name,
+		Conditions: conditions.New(),
 	}
 	c.Stats.Perception.ValueAdj = 100
 	return &forageFakeActor{
@@ -49,8 +49,8 @@ func newForageFakeActor(t *testing.T, name string, room *rooms.Room, isPlayer bo
 func newForageMobActor(t *testing.T, mob *mobs.Mob, room *rooms.Room) *forageFakeActor {
 	t.Helper()
 	c := &characters.Character{
-		Name:  mob.Character.Name,
-		Buffs: conditions.New(),
+		Name:       mob.Character.Name,
+		Conditions: conditions.New(),
 	}
 	return &forageFakeActor{
 		char:      c,
@@ -67,7 +67,7 @@ func (a *forageFakeActor) GetName() string                        { return a.nam
 func (a *forageFakeActor) IsPlayer() bool                         { return a.isPlayer }
 func (a *forageFakeActor) GetUserId() int                         { return a.userId }
 func (a *forageFakeActor) GetMobInstanceId() int                  { return a.mobInstId }
-func (a *forageFakeActor) AddBuff(_ int, _ string)                {}
+func (a *forageFakeActor) AddCondition(_ int, _ string)           {}
 func (a *forageFakeActor) OnSkillUse(_ string) bool               { return false }
 func (a *forageFakeActor) OnStatUse(_ string) bool                { return false }
 func (a *forageFakeActor) SendRoomCommunication(_ string, _ bool) {}
@@ -90,7 +90,7 @@ func newForageTestMob(t *testing.T, instId int, name string, roomId int) *mobs.M
 		InstanceId: instId,
 	}
 	m.Character.Name = name
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	m.Character.RoomId = roomId
 	return m
 }

@@ -103,7 +103,7 @@ func sendMovementMessage(room *rooms.Room, visualCat messaging.Category, visualM
 func Go(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	// If has a buff that prevents combat, skip the player
-	if mob.Character.HasBuffFlag(conditions.NoMovement) {
+	if mob.Character.HasConditionFlag(conditions.NoMovement) {
 		return true, nil
 	}
 

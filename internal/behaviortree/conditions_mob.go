@@ -45,13 +45,13 @@ func condMobAtHome(params map[string]any, ctx *EvalContext) Result {
 	return Failure
 }
 
-func condMobHasBuff(params map[string]any, ctx *EvalContext) Result {
+func condMobHasCondition(params map[string]any, ctx *EvalContext) Result {
 	mob := mobs.GetInstance(ctx.InstanceId)
 	if mob == nil {
 		return Failure
 	}
-	buffId := getIntParam(params, "buff_id")
-	if mob.Character.HasBuff(buffId) {
+	conditionId := getIntParam(params, "buff_id")
+	if mob.Character.HasCondition(conditionId) {
 		return Success
 	}
 	return Failure

@@ -3,8 +3,8 @@ package messaging
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
 )
@@ -82,19 +82,19 @@ func TestNilCharacterDefaultsToSeeing(t *testing.T) {
 // registry is restored by the returned cleanup.
 func setSleeping(t *testing.T, c *characters.Character) {
 	t.Helper()
-	const sleepBuffId = 9001
-	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		sleepBuffId: {
-			BuffId: sleepBuffId,
-			Name:   "Test Sleep",
-			Flags:  []conditions.Flag{conditions.Sleeping},
+	const sleepConditionId = 9001
+	restore := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		sleepConditionId: {
+			ConditionId: sleepConditionId,
+			Name:        "Test Sleep",
+			Flags:       []conditions.Flag{conditions.Sleeping},
 		},
 	})
 	t.Cleanup(restore)
-	if err := c.AddBuff(sleepBuffId, true); err != nil {
+	if err := c.AddCondition(sleepConditionId, true); err != nil {
 		t.Fatalf("applying the sleeping buff failed: %v", err)
 	}
-	if !c.HasBuffFlag(conditions.Sleeping) {
+	if !c.HasConditionFlag(conditions.Sleeping) {
 		t.Fatal("precondition: the character should now carry the Sleeping flag")
 	}
 }

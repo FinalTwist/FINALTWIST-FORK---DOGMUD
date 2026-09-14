@@ -19,7 +19,7 @@ func hiddenMobRoom(t *testing.T, roomId, instId, sneakRank int) *rooms.Room {
 	m.Character.Skills = map[string]int{"skullduggery": sneakRank}
 	m.Character.Stats.Dexterity.Base = 100
 	m.Character.Stats.Dexterity.Recalculate()
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	// IsHidden() reads the Awareness FSM, not a buff. Concealing then resolving
 	// is the only route into awareness.Hidden.
 	m.Character.Awareness = awareness.NewMachine()

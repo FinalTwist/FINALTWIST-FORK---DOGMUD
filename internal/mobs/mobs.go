@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/casing"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/conversations"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -50,16 +50,16 @@ var (
 )
 
 type ItemTrade struct {
-	AcceptedItemIds []int         `yaml:"accepteditemids,omitempty,flow"` // Must provide every item id in this list.
-	AcceptedGold    int           `yaml:"acceptedgold,omitempty,flow"`    // Must provide at least this much gold.
-	PrizeItemIds    []int         `yaml:"prizeitemids,omitempty,flow"`    // Will give these items in exchange.
-	PrizeBuffIds    []int         `yaml:"prizebuffids,omitempty,flow"`    // Will give these buffs in exchange.
-	PrizeRoomId     int           `yaml:"prizeroomid,omitempty,flow"`     // Will move player to this room in exchange.
-	PrizeQuestIds   []string      `yaml:"prizequestids,omitempty,flow"`   // What quest id's will be awarded?
-	PrizeGold       int           `yaml:"prizegold,omitempty,flow"`       // How much gold are they given?
-	PrizeCommands   []string      `yaml:"prizecommands,omitempty,flow"`   // What commands will be executed?
-	GivenItems      map[int][]int `yaml:"-"`                              // key = userId, value = Items given. Should only contain items from AcceptedItemIds
-	GivenGold       map[int]int   `yaml:"-"`                              // key = userId, value = how much gold is given
+	AcceptedItemIds   []int         `yaml:"accepteditemids,omitempty,flow"` // Must provide every item id in this list.
+	AcceptedGold      int           `yaml:"acceptedgold,omitempty,flow"`    // Must provide at least this much gold.
+	PrizeItemIds      []int         `yaml:"prizeitemids,omitempty,flow"`    // Will give these items in exchange.
+	PrizeConditionIds []int         `yaml:"prizebuffids,omitempty,flow"`    // Will give these buffs in exchange.
+	PrizeRoomId       int           `yaml:"prizeroomid,omitempty,flow"`     // Will move player to this room in exchange.
+	PrizeQuestIds     []string      `yaml:"prizequestids,omitempty,flow"`   // What quest id's will be awarded?
+	PrizeGold         int           `yaml:"prizegold,omitempty,flow"`       // How much gold are they given?
+	PrizeCommands     []string      `yaml:"prizecommands,omitempty,flow"`   // What commands will be executed?
+	GivenItems        map[int][]int `yaml:"-"`                              // key = userId, value = Items given. Should only contain items from AcceptedItemIds
+	GivenGold         map[int]int   `yaml:"-"`                              // key = userId, value = how much gold is given
 }
 
 type MobForHire struct {
@@ -120,7 +120,7 @@ type Mob struct {
 	WanderCount        int             `yaml:"-"`                             // How many times this mob has wandered
 	ScriptTag          string          `yaml:"scripttag"`                     // Script for this mob: mobs/frostfang/scripts/{mobId}-{mobname}-{ScriptTag}.js
 	QuestFlags         []string        `yaml:"questflags,omitempty,flow"`     // What quest flags are set on this mob?
-	BuffIds            []int           `yaml:"buffids,omitempty"`             // Buff Id's this mob always has upon spawn
+	ConditionIds       []int           `yaml:"buffids,omitempty"`             // Buff Id's this mob always has upon spawn
 	LLMProfile         *llm.LLMProfile `yaml:"llmprofile,omitempty"`          // Optional LLM-driven dialogue profile
 	Archetype          string          `yaml:"archetype,omitempty"`           // "fighting", "casting", or "" (default even distribution)
 	DefaultDisposition int             `yaml:"default_disposition,omitempty"` // Per-NPC starting disposition score on the [-100, +100] scale; 0 means neutral. Used by internal/opinions to seed first-time interactions and as the asymptote for decay.
@@ -671,9 +671,9 @@ func newMobByIdInternal(mobId MobId, homeRoomId int, skipInstanceLoad bool, forc
 		mob.Character.Stamina = mob.Character.StaminaMax.Value
 		mob.Character.Conviction = mob.Character.ConvictionMax.Value
 
-		mob.Character.SetPermaBuffs(mob.BuffIds)
+		mob.Character.SetPermanentConditions(mob.ConditionIds)
 
-		mob.Character.Buffs = conditions.New()
+		mob.Character.Conditions = conditions.New()
 
 		// Deep copy item slices to prevent shared backing array with template.
 		// Without this, giving items to a mob instance can contaminate the
@@ -856,11 +856,11 @@ func (m *Mob) ShorthandId() string {
 	return fmt.Sprintf(`#%d`, m.InstanceId)
 }
 
-func (m *Mob) AddBuff(buffId int, source string) {
+func (m *Mob) AddCondition(conditionId int, source string) {
 
-	events.AddToQueue(events.Buff{
+	events.AddToQueue(events.Condition{
 		MobInstanceId: m.InstanceId,
-		BuffId:        buffId,
+		ConditionId:   conditionId,
 		Source:        source,
 		LifeEpoch:     m.Character.LifeEpoch,
 	})

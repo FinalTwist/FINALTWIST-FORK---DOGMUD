@@ -71,7 +71,7 @@ func (v EffectValue) MarshalYAML() (interface{}, error) {
 
 // validateEffects refuses an unknown key and a magnitude-bound tick without a
 // pool. It is called from BuffSpec.Validate.
-func (b *BuffSpec) validateEffects() error {
+func (b *ConditionSpec) validateEffects() error {
 	keys := make([]string, 0, len(b.Effects))
 	for k := range b.Effects {
 		keys = append(keys, string(k))
@@ -86,15 +86,15 @@ func (b *BuffSpec) validateEffects() error {
 			}
 		}
 		if !known {
-			return fmt.Errorf("buffId %d (%s) declares unknown effect %q; see buffs.AllEffectKinds", b.BuffId, b.Name, k)
+			return fmt.Errorf("buffId %d (%s) declares unknown effect %q; see buffs.AllEffectKinds", b.ConditionId, b.Name, k)
 		}
 	}
 	if b.TickFromMagnitude {
 		if b.TickPool == "" {
-			return fmt.Errorf("buffId %d (%s) sets tick_from_magnitude without tick_pool", b.BuffId, b.Name)
+			return fmt.Errorf("buffId %d (%s) sets tick_from_magnitude without tick_pool", b.ConditionId, b.Name)
 		}
 		if b.TickPercent != 0 {
-			return fmt.Errorf("buffId %d (%s) sets both tick_from_magnitude and tick_percent; the applier's magnitude IS the per-round amount", b.BuffId, b.Name)
+			return fmt.Errorf("buffId %d (%s) sets both tick_from_magnitude and tick_percent; the applier's magnitude IS the per-round amount", b.ConditionId, b.Name)
 		}
 	}
 	return nil
@@ -105,7 +105,7 @@ func (b *BuffSpec) validateEffects() error {
 // flats and pool fractions sum (identity 0), attacks_cap takes the minimum
 // (0 meaning no cap). This is the ONE door combat reads timed state through.
 // It never calls HasFlag with expire=true, which mutates.
-func (bs *Buffs) Effect(kind EffectKind) float64 {
+func (bs *Conditions) Effect(kind EffectKind) float64 {
 	product := 1.0
 	sum := 0.0
 	capValue := 0.0
@@ -113,7 +113,7 @@ func (bs *Buffs) Effect(kind EffectKind) float64 {
 		if b.Expired() {
 			continue
 		}
-		spec := GetBuffSpec(b.BuffId)
+		spec := GetConditionSpec(b.ConditionId)
 		if spec == nil {
 			continue
 		}
@@ -149,12 +149,12 @@ func (bs *Buffs) Effect(kind EffectKind) float64 {
 }
 
 // HasEffect reports whether any held, unexpired record declares the kind.
-func (bs *Buffs) HasEffect(kind EffectKind) bool {
+func (bs *Conditions) HasEffect(kind EffectKind) bool {
 	for _, b := range bs.List {
 		if b.Expired() {
 			continue
 		}
-		if spec := GetBuffSpec(b.BuffId); spec != nil {
+		if spec := GetConditionSpec(b.ConditionId); spec != nil {
 			if _, ok := spec.Effects[kind]; ok {
 				return true
 			}

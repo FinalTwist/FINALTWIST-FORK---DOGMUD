@@ -92,7 +92,7 @@ func TestBuildItemUpdate_RoundTripsAdvancedFields(t *testing.T) {
 		ReserveHealthPct: 0.25, VoiceId: "blackrazor", TauntPull: true,
 		HungerRounds: 50, HungerDrainPct: 0.01,
 		MutationTickInterval: 10, MutationTickChance: 5, MutationRarityFloor: 3,
-		WornBuffIds: []int{7, 9},
+		WornConditionIds: []int{7, 9},
 	})
 	if !res.Ok {
 		t.Fatalf("update should succeed, got %+v", res)
@@ -107,8 +107,8 @@ func TestBuildItemUpdate_RoundTripsAdvancedFields(t *testing.T) {
 		got.MutationTickInterval != 10 || got.MutationTickChance != 5 || got.MutationRarityFloor != 3 {
 		t.Errorf("advanced scalars not round-tripped: %+v", got)
 	}
-	if len(got.WornBuffIds) != 2 || got.WornBuffIds[0] != 7 {
-		t.Errorf("worn buffs not round-tripped: %+v", got.WornBuffIds)
+	if len(got.WornConditionIds) != 2 || got.WornConditionIds[0] != 7 {
+		t.Errorf("worn buffs not round-tripped: %+v", got.WornConditionIds)
 	}
 }
 

@@ -3,8 +3,8 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -30,8 +30,8 @@ type trackFakeActor struct {
 
 func newTrackFakeActor(name string, room *rooms.Room, isPlayer bool, userId int) *trackFakeActor {
 	c := &characters.Character{
-		Name:  name,
-		Buffs: conditions.New(),
+		Name:       name,
+		Conditions: conditions.New(),
 	}
 	c.Stats.Perception.ValueAdj = 100
 	return &trackFakeActor{
@@ -45,8 +45,8 @@ func newTrackFakeActor(name string, room *rooms.Room, isPlayer bool, userId int)
 
 func newTrackMobActor(name string, room *rooms.Room, mobInstId int) *trackFakeActor {
 	c := &characters.Character{
-		Name:  name,
-		Buffs: conditions.New(),
+		Name:       name,
+		Conditions: conditions.New(),
 	}
 	return &trackFakeActor{
 		char:      c,
@@ -63,7 +63,7 @@ func (a *trackFakeActor) GetName() string                        { return a.name
 func (a *trackFakeActor) IsPlayer() bool                         { return a.isPlayer }
 func (a *trackFakeActor) GetUserId() int                         { return a.userId }
 func (a *trackFakeActor) GetMobInstanceId() int                  { return a.mobInstId }
-func (a *trackFakeActor) AddBuff(_ int, _ string)                {}
+func (a *trackFakeActor) AddCondition(_ int, _ string)           {}
 func (a *trackFakeActor) OnSkillUse(_ string) bool               { return false }
 func (a *trackFakeActor) OnStatUse(_ string) bool                { return false }
 func (a *trackFakeActor) SendRoomCommunication(_ string, _ bool) {}
@@ -82,7 +82,7 @@ func newTrackTestMob(instId int, name string, roomId int) *mobs.Mob {
 		InstanceId: instId,
 	}
 	m.Character.Name = name
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	m.Character.RoomId = roomId
 	return m
 }
@@ -104,7 +104,7 @@ func TestTrack_NoArgEmptyRoom(t *testing.T) {
 	if result.Visitors == nil {
 		t.Error("Visitors should be a non-nil slice, not nil")
 	}
-	if result.BuffApplied {
+	if result.ConditionApplied {
 		t.Error("BuffApplied should be false on trail-scan mode")
 	}
 }
@@ -117,7 +117,7 @@ func TestTrack_ActiveTrackMobNoMatchFails(t *testing.T) {
 
 	result := Track(actor, TrackOptions{TargetNoun: "nonexistent_target"})
 
-	if result.BuffApplied {
+	if result.ConditionApplied {
 		t.Error("BuffApplied should be false when target unresolved")
 	}
 	if result.ActiveTargetUserId != 0 || result.ActiveTargetMobInstId != 0 {
@@ -148,7 +148,7 @@ func TestTrack_CancelTracking(t *testing.T) {
 
 	result := Track(actor, TrackOptions{CancelTracking: true})
 
-	if result.BuffApplied {
+	if result.ConditionApplied {
 		t.Error("BuffApplied should be false on cancel path")
 	}
 	// Player actor should receive the stop message.

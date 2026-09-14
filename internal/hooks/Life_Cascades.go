@@ -1,8 +1,8 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
@@ -60,7 +60,7 @@ func wireLifeCrossMachineCascades(c *characters.Character) {
 
 				// 5. Buffs → cancel all, permanent ones included (All skips
 				//    only already-expired records, never PermaBuff).
-				c.CancelBuffsWithFlag(conditions.All)
+				c.CancelConditionsWithFlag(conditions.All)
 
 				// 5a. End this life's epoch. THIS MUST STAY BESIDE THE BUFF
 				// STRIP ABOVE. The strip clears every buff the character holds,
@@ -114,21 +114,21 @@ func wireLifeCrossMachineCascades(c *characters.Character) {
 				// stats and clamps pools. BuffsTriggered is not narration: it
 				// is what refreshes the client's conditions panel, as the
 				// prune pass does.
-				if pruned := c.Buffs.Prune(); len(pruned) > 0 {
+				if pruned := c.Conditions.Prune(); len(pruned) > 0 {
 					_ = c.Validate()
 					if uid := c.GetUserId(); uid != 0 {
 						prunedIds := make([]int, 0, len(pruned))
 						for _, b := range pruned {
-							prunedIds = append(prunedIds, b.BuffId)
+							prunedIds = append(prunedIds, b.ConditionId)
 						}
-						events.AddToQueue(events.BuffsTriggered{UserId: uid, BuffIds: prunedIds})
+						events.AddToQueue(events.ConditionsTriggered{UserId: uid, ConditionIds: prunedIds})
 					}
 				}
 
 				c.Health = c.HealthMax.Value / 20         // 5%
 				c.Stamina = c.StaminaMax.Value / 20       // 5%
 				c.Conviction = c.ConvictionMax.Value / 20 // 5%
-				_ = c.AddBuff(81, false)                  // NoAggroTarget grace
+				_ = c.AddCondition(81, false)             // NoAggroTarget grace
 
 				// Clear damage ledger and notify vitals subscribers.
 				clear(c.PlayerDamage)

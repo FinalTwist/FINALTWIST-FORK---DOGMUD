@@ -3,8 +3,8 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -29,7 +29,7 @@ func TestPin_PoisonTickKillsAndNamesTheCause(t *testing.T) {
 	defer conditions.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
-	_ = u.Character.AddBuffMagnitude(conditions.BuffIdPoisoned, 1, -5, "pin")
+	_ = u.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, 1, -5, "pin")
 	u.Character.Health = 1
 
 	// No regen lands in the round tick: 1 - 5 <= 0.
@@ -40,7 +40,7 @@ func TestPin_PoisonTickKillsAndNamesTheCause(t *testing.T) {
 	require.Equal(t, "poison", deathCauseFor(u.Character), "before prune: the expired-but-still-held record must still be read")
 	u.Character.LastTickCause = stampedCause // restore: the after-prune assertion below exercises the fallback
 
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	require.Equal(t, "poison", deathCauseFor(u.Character), "after prune: LastTickCause must carry the cause once the record is gone")
 }
 
@@ -53,7 +53,7 @@ func TestPin_BleedTickKillsAndNamesTheCause(t *testing.T) {
 	defer conditions.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
-	_ = u.Character.AddBuffMagnitude(conditions.BuffIdBleeding, 1, -5, "pin")
+	_ = u.Character.AddConditionMagnitude(conditions.ConditionIdBleeding, 1, -5, "pin")
 	u.Character.Health = 1
 
 	// No regen lands in the round tick: 1 - 5 <= 0.
@@ -64,7 +64,7 @@ func TestPin_BleedTickKillsAndNamesTheCause(t *testing.T) {
 	require.Equal(t, "bleeding out", deathCauseFor(u.Character), "before prune: the expired-but-still-held record must still be read")
 	u.Character.LastTickCause = stampedCause // restore: the after-prune assertion below exercises the fallback
 
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	require.Equal(t, "bleeding out", deathCauseFor(u.Character), "after prune: LastTickCause must carry the cause once the record is gone")
 }
 
@@ -78,26 +78,26 @@ func TestPin_DeathCauseOrder(t *testing.T) {
 
 	newChar := func() *characters.Character {
 		c := &characters.Character{}
-		c.Buffs.Validate(true)
+		c.Conditions.Validate(true)
 		return c
 	}
 
 	t.Run("poisoned", func(t *testing.T) {
 		c := newChar()
-		_ = c.AddBuffMagnitude(conditions.BuffIdPoisoned, 10, -5, "pin")
+		_ = c.AddConditionMagnitude(conditions.ConditionIdPoisoned, 10, -5, "pin")
 		require.Equal(t, "poison", deathCauseFor(c))
 	})
 
 	t.Run("bleeding", func(t *testing.T) {
 		c := newChar()
-		_ = c.AddBuffMagnitude(conditions.BuffIdBleeding, 10, -3, "pin")
+		_ = c.AddConditionMagnitude(conditions.ConditionIdBleeding, 10, -3, "pin")
 		require.Equal(t, "bleeding out", deathCauseFor(c))
 	})
 
 	t.Run("poisoned and bleeding, poison wins", func(t *testing.T) {
 		c := newChar()
-		_ = c.AddBuffMagnitude(conditions.BuffIdPoisoned, 10, -5, "pin")
-		_ = c.AddBuffMagnitude(conditions.BuffIdBleeding, 10, -3, "pin")
+		_ = c.AddConditionMagnitude(conditions.ConditionIdPoisoned, 10, -5, "pin")
+		_ = c.AddConditionMagnitude(conditions.ConditionIdBleeding, 10, -3, "pin")
 		require.Equal(t, "poison", deathCauseFor(c))
 	})
 }
@@ -117,7 +117,7 @@ func TestPin_AStaleTickCauseDoesNotNameTheDeath(t *testing.T) {
 	util.SetRoundCountForTest(util.RoundCountMinimum)
 
 	c := &characters.Character{}
-	c.Buffs.Validate(true)
+	c.Conditions.Validate(true)
 
 	current := util.GetRoundCount()
 	c.LastTickCause = "poison"

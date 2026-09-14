@@ -15,7 +15,7 @@ import (
 // Prune all buffs that have expired.
 //
 
-func PruneBuffs(e events.Event) events.ListenerReturn {
+func PruneConditions(e events.Event) events.ListenerReturn {
 
 	/*
 		evt, typeOk := e.(events.NewTurn)
@@ -32,32 +32,32 @@ func PruneBuffs(e events.Event) events.ListenerReturn {
 
 			// Handle outstanding player buffs
 			logOff := false
-			for _, uId := range room.GetPlayers(rooms.FindBuffed) {
+			for _, uId := range room.GetPlayers(rooms.FindWithConditions) {
 
 				user := users.GetByUserId(uId)
 
 				logOff = false
-				if buffsToPrune := user.Character.Buffs.Prune(); len(buffsToPrune) > 0 {
-					for _, buffInfo := range buffsToPrune {
+				if conditionsToPrune := user.Character.Conditions.Prune(); len(conditionsToPrune) > 0 {
+					for _, conditionInfo := range conditionsToPrune {
 						// Send the end notice (authored, or the generic line;
 						// a secret buff is silent).
-						endBuffSpec := conditions.GetBuffSpec(buffInfo.BuffId)
-						if endBuffSpec != nil && endBuffSpec.Narration(conditions.PhaseEnd).Len() > 0 {
-							roles := endBuffSpec.Narrate(conditions.PhaseEnd, textutil.TokenContext{
+						endConditionSpec := conditions.GetConditionSpec(conditionInfo.ConditionId)
+						if endConditionSpec != nil && endConditionSpec.Narration(conditions.PhaseEnd).Len() > 0 {
+							roles := endConditionSpec.Narrate(conditions.PhaseEnd, textutil.TokenContext{
 								SourceName:      user.Character.GetCharacterName(true),
 								SourcePlainName: user.Character.GetCharacterName(false),
 							})
 							if roles.Actee != "" {
-								user.SendText(messaging.CategoryBuffExpire, roles.Actee)
+								user.SendText(messaging.CategoryConditionExpire, roles.Actee)
 							}
 							if roles.Observer != "" {
 								if r := rooms.LoadRoom(user.Character.RoomId); r != nil {
-									sendBuffEndRoomText(r, endBuffSpec, roles.Observer, user.UserId)
+									sendConditionEndRoomText(r, endConditionSpec, roles.Observer, user.UserId)
 								}
 							}
 						}
 
-						if buffInfo.BuffId == 0 { // Log them out // logoff // logout
+						if conditionInfo.ConditionId == 0 { // Log them out // logoff // logout
 							if !user.Character.HasAdjective(`zombie`) { // if they are currently a zombie, we don't log them out from this buff being removed
 								logOff = true
 							}
@@ -73,11 +73,11 @@ func PruneBuffs(e events.Event) events.ListenerReturn {
 					// the removal batch) avoids a stale panel until some
 					// unrelated Char event fires. Player-only — the mob
 					// prune branch below has no UserId and is skipped.
-					prunedIds := make([]int, 0, len(buffsToPrune))
-					for _, buffInfo := range buffsToPrune {
-						prunedIds = append(prunedIds, buffInfo.BuffId)
+					prunedIds := make([]int, 0, len(conditionsToPrune))
+					for _, conditionInfo := range conditionsToPrune {
+						prunedIds = append(prunedIds, conditionInfo.ConditionId)
 					}
-					events.AddToQueue(events.BuffsTriggered{UserId: user.UserId, BuffIds: prunedIds})
+					events.AddToQueue(events.ConditionsTriggered{UserId: user.UserId, ConditionIds: prunedIds})
 
 					if logOff {
 						mudlog.Info("MEDITATION LOGOFF")
@@ -94,11 +94,11 @@ func PruneBuffs(e events.Event) events.ListenerReturn {
 
 		mob := mobs.GetInstance(mobInstanceId)
 
-		if buffsToPrune := mob.Character.Buffs.Prune(); len(buffsToPrune) > 0 {
-			for _, buffInfo := range buffsToPrune {
+		if conditionsToPrune := mob.Character.Conditions.Prune(); len(conditionsToPrune) > 0 {
+			for _, conditionInfo := range conditionsToPrune {
 				// Send YAML end text (if defined).
-				endBuffSpec := conditions.GetBuffSpec(buffInfo.BuffId)
-				if endBuffSpec != nil && len(endBuffSpec.Narration(conditions.PhaseEnd).Observer) > 0 {
+				endConditionSpec := conditions.GetConditionSpec(conditionInfo.ConditionId)
+				if endConditionSpec != nil && len(endConditionSpec.Narration(conditions.PhaseEnd).Observer) > 0 {
 					// The mob tag, not the player one: see Buff_ApplyBuffs.go.
 					// Visual, not audio, for the same reason as start text. The
 					// holder line is rendered and dropped: a mob has no client.
@@ -106,13 +106,13 @@ func PruneBuffs(e events.Event) events.ListenerReturn {
 					if r := rooms.LoadRoom(mob.Character.RoomId); r != nil {
 						sourceName = mobDisplayName(mob, r, 0)
 					}
-					roles := endBuffSpec.Narrate(conditions.PhaseEnd, textutil.TokenContext{
+					roles := endConditionSpec.Narrate(conditions.PhaseEnd, textutil.TokenContext{
 						SourceName:      sourceName,
 						SourcePlainName: mob.Character.GetCharacterName(false),
 					})
 					if roles.Observer != "" {
 						if r := rooms.LoadRoom(mob.Character.RoomId); r != nil {
-							sendBuffEndRoomText(r, endBuffSpec, roles.Observer)
+							sendConditionEndRoomText(r, endConditionSpec, roles.Observer)
 						}
 					}
 				}
@@ -127,16 +127,16 @@ func PruneBuffs(e events.Event) events.ListenerReturn {
 
 }
 
-// sendBuffEndRoomText sends a buff's end room line on the visual channel. A
+// sendConditionEndRoomText sends a buff's end room line on the visual channel. A
 // light buff's line is judged as if the room were still lit, because its light
 // went out when the buff expired, a round before this prune: see
 // Room.SendTextVisualAsLit. Every other end line is judged by the room as it is.
-func sendBuffEndRoomText(r *rooms.Room, spec *conditions.BuffSpec, msg string, skip ...int) {
+func sendConditionEndRoomText(r *rooms.Room, spec *conditions.ConditionSpec, msg string, skip ...int) {
 	for _, flag := range spec.Flags {
 		if flag == conditions.EmitsLight {
-			r.SendTextVisualAsLit(messaging.CategoryBuffExpire, msg, skip...)
+			r.SendTextVisualAsLit(messaging.CategoryConditionExpire, msg, skip...)
 			return
 		}
 	}
-	r.SendTextVisual(messaging.CategoryBuffExpire, msg, skip...)
+	r.SendTextVisual(messaging.CategoryConditionExpire, msg, skip...)
 }

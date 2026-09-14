@@ -3,8 +3,8 @@ package usercommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
@@ -16,9 +16,9 @@ import (
 // nothing. Buff 76, the weakness it was designed to leave behind, was authored
 // in full and referenced by nothing at all.
 func TestApplyPurgeEffects(t *testing.T) {
-	cleanup := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		61: {BuffId: 61, Name: "Ironhide Brew", TriggerCount: 400, RoundInterval: 1},
-		76: {BuffId: 76, Name: "Purging Weakness", TriggerCount: 50, RoundInterval: 1},
+	cleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		61: {ConditionId: 61, Name: "Ironhide Brew", TriggerCount: 400, RoundInterval: 1},
+		76: {ConditionId: 76, Name: "Purging Weakness", TriggerCount: 50, RoundInterval: 1},
 	})
 	defer cleanup()
 
@@ -27,13 +27,13 @@ func TestApplyPurgeEffects(t *testing.T) {
 	c.Stats.Vitality.Recalculate()
 	u := &users.UserRecord{UserId: 7104, Character: c}
 
-	if err := c.AddBuffScaled(61, 1.0); err != nil {
+	if err := c.AddConditionScaled(61, 1.0); err != nil {
 		t.Fatalf("setup: AddBuffScaled(61) = %v", err)
 	}
 	c.Toxicity = 40
-	events.DrainQueuedBuffsForTest(u.UserId) // start from a clean queue
+	events.DrainQueuedConditionsForTest(u.UserId) // start from a clean queue
 
-	if !c.HasBuff(61) {
+	if !c.HasCondition(61) {
 		t.Fatalf("setup: expected the potion buff to be present before the purge")
 	}
 
@@ -44,9 +44,9 @@ func TestApplyPurgeEffects(t *testing.T) {
 	// internal/conditions/buffs.go RemoveBuff/Prune, and the same pattern pinned by
 	// internal/hooks/pinnacle_ambient_smart_test.go). Prune here to observe the
 	// post-sweep state a real drinker would see a moment later.
-	c.Buffs.Prune()
+	c.Conditions.Prune()
 
-	if c.HasBuff(61) {
+	if c.HasCondition(61) {
 		t.Errorf("potion buff 61 survived the purge; it must be stripped")
 	}
 	if c.Toxicity != 0 {
@@ -57,10 +57,10 @@ func TestApplyPurgeEffects(t *testing.T) {
 	// Character.AddBuffScaled applied it silently: the drinker took a
 	// fifty-round stat penalty and read nothing about it. Buff_ApplyBuffs is
 	// what narrates the start, and only the event reaches it.
-	queued := events.DrainQueuedBuffsForTest(u.UserId)
-	var weakness *events.Buff
+	queued := events.DrainQueuedConditionsForTest(u.UserId)
+	var weakness *events.Condition
 	for i := range queued {
-		if queued[i].BuffId == 76 {
+		if queued[i].ConditionId == 76 {
 			weakness = &queued[i]
 		}
 	}

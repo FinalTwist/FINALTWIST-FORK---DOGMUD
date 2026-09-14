@@ -103,7 +103,7 @@ func actTryTrack(params map[string]any, ctx *EvalContext) Result {
 
 	// Buff applied → trail found in adjacent rooms → success.
 	// In-room hit also sets ActiveTarget* → success.
-	if result.BuffApplied || result.ActiveTargetUserId != 0 || result.ActiveTargetMobInstId != 0 {
+	if result.ConditionApplied || result.ActiveTargetUserId != 0 || result.ActiveTargetMobInstId != 0 {
 		// Seed SoftTarget for downstream consumers.
 		if result.ActiveTargetUserId != 0 {
 			ctx.SoftTarget = state.ActorRef{UserId: result.ActiveTargetUserId}
@@ -171,7 +171,7 @@ func actMoveTowardTracked(params map[string]any, ctx *EvalContext) Result {
 	if mob == nil {
 		return Failure
 	}
-	if !mob.Character.HasBuff(86) {
+	if !mob.Character.HasCondition(86) {
 		// Buff expired or otherwise gone — clear stale misc data.
 		mob.Character.SetMiscData("tracking-mob", nil)
 		mob.Character.SetMiscData("tracking-user", nil)

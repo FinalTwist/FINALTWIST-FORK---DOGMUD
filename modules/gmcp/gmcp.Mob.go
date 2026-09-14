@@ -23,8 +23,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/dialogue"
@@ -130,7 +130,7 @@ type mobUpdateReq struct {
 	// hooks
 	ScriptTag         string   `json:"scriptTag"`
 	BehaviorArchetype string   `json:"behaviorArchetype"`
-	BuffIds           []int    `json:"buffIds"`
+	ConditionIds      []int    `json:"buffIds"`
 	QuestFlags        []string `json:"questFlags"`
 	SpawnMutations    []string `json:"spawnMutations"`
 	MutationChance    int      `json:"mutationChance"`
@@ -162,7 +162,7 @@ type mobEnums struct {
 	SubmissionPolicies []string          `json:"submissionPolicies"`
 	WornSlots          []string          `json:"wornSlots"`
 	Groups             []string          `json:"groups"` // observed values across existing mobs, as suggestions
-	Buffs              []idName          `json:"buffs"`  // id pickers (epic followup: no more bare-numeric buff ids)
+	Conditions         []idName          `json:"buffs"`  // id pickers (epic followup: no more bare-numeric buff ids)
 }
 
 type mobDetail struct {
@@ -263,7 +263,7 @@ func mobToReq(m *mobs.Mob) mobUpdateReq {
 		KnowsFacts: m.KnowsFacts, DefaultDisposition: m.DefaultDisposition,
 		FoldAnchorRoom: m.FoldAnchorRoom, StorageChestRoom: m.StorageChestRoom,
 		ScriptTag: m.ScriptTag, BehaviorArchetype: m.BehaviorArchetype,
-		BuffIds: m.BuffIds, QuestFlags: m.QuestFlags,
+		ConditionIds: m.ConditionIds, QuestFlags: m.QuestFlags,
 		SpawnMutations: m.SpawnMutations, MutationChance: m.MutationChance,
 		CarryCapacity: m.CarryCapacityOverride, HealthMax: m.HealthMaxOverride, StaminaMax: m.StaminaMaxOverride,
 		CorpseName: m.CorpseName, CorpseDescription: m.CorpseDescription,
@@ -387,7 +387,7 @@ func reqToMob(base *mobs.Mob, req mobUpdateReq) mobs.Mob {
 	}
 	m.DefaultDisposition, m.FoldAnchorRoom, m.StorageChestRoom = req.DefaultDisposition, req.FoldAnchorRoom, req.StorageChestRoom
 	m.ScriptTag, m.BehaviorArchetype = req.ScriptTag, req.BehaviorArchetype
-	m.BuffIds, m.QuestFlags = req.BuffIds, req.QuestFlags
+	m.ConditionIds, m.QuestFlags = req.ConditionIds, req.QuestFlags
 	m.SpawnMutations, m.MutationChance = req.SpawnMutations, req.MutationChance
 	if req.LLMProfileJSON != "-" {
 		// "-" is the Update route's sentinel meaning "field absent from this
@@ -757,12 +757,12 @@ func collectMobEnums() mobEnums {
 		WornSlots:          wornSlotNames(),
 		Species:            map[string]string{},
 	}
-	for _, id := range conditions.GetAllBuffIds() {
-		if spec := conditions.GetBuffSpec(id); spec != nil {
-			e.Buffs = append(e.Buffs, idName{Id: id, Name: spec.Name})
+	for _, id := range conditions.GetAllConditionIds() {
+		if spec := conditions.GetConditionSpec(id); spec != nil {
+			e.Conditions = append(e.Conditions, idName{Id: id, Name: spec.Name})
 		}
 	}
-	sort.Slice(e.Buffs, func(i, j int) bool { return e.Buffs[i].Id < e.Buffs[j].Id })
+	sort.Slice(e.Conditions, func(i, j int) bool { return e.Conditions[i].Id < e.Conditions[j].Id })
 	for _, s := range species.GetAllSpecies() {
 		e.Species[fmt.Sprintf("%d", s.SpeciesId)] = s.Name
 	}

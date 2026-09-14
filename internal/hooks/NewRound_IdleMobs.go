@@ -227,7 +227,7 @@ func conversationsTriggerEligible(mob *mobs.Mob) bool {
 		return false
 	}
 	// Sleeping mob shouldn't start chatting.
-	if mob.Character.HasBuffFlag(conditions.Sleeping) {
+	if mob.Character.HasConditionFlag(conditions.Sleeping) {
 		return false
 	}
 	// Mid-walk on a path — let the mob arrive before striking up a chat.

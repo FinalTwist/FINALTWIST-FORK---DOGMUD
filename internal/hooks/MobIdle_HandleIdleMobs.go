@@ -45,7 +45,7 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
 	// ticks, gossip, floor-loot grabs, goal pursuit, or behavior-tree idle
 	// emotes. The schedule executor and damage/wake events own the wake
 	// transition — not this idle handler.
-	if mob.Character.HasBuffFlag(conditions.Sleeping) {
+	if mob.Character.HasConditionFlag(conditions.Sleeping) {
 		return events.Continue
 	}
 

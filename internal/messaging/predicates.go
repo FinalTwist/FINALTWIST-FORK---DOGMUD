@@ -1,8 +1,8 @@
 package messaging
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
 )
 
@@ -36,7 +36,7 @@ func CanSeeClearly(observer *characters.Character, room RoomVisibility) bool {
 	// AUDIO IS DELIBERATELY UNAFFECTED. Room.SendText bypasses this gate, so a
 	// shout still reaches a sleeper and still wakes them (shout.go owns that
 	// wake trigger). Gating audio here would make sleep unwakeable by sound.
-	if observer.HasBuffFlag(conditions.Sleeping) {
+	if observer.HasConditionFlag(conditions.Sleeping) {
 		return false
 	}
 	if room == nil || roomIsLit(room) {
@@ -102,7 +102,7 @@ func CanSeeShapes(observer *characters.Character, room RoomVisibility) bool {
 	// Must be repeated here, not inherited. CanSeeClearly returning false is
 	// the NORMAL path into this function (that is what "in the dark" means), so
 	// a sleeper reaching the infrared branch would see shapes while asleep.
-	if observer.HasBuffFlag(conditions.Sleeping) {
+	if observer.HasConditionFlag(conditions.Sleeping) {
 		return false
 	}
 	return observer.HasFlagFromAnySource(conditions.InfraredVision)

@@ -288,7 +288,7 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	for _, id := range applied {
 		appliedSet[id] = true
 	}
-	desired := desiredAmbientBuffs(c.PotionItems)
+	desired := desiredAmbientConditions(c.PotionItems)
 
 	// Content-change detection (see mechanism note above).
 	fp := bandolierFingerprint(belt, c.PotionItems)
@@ -303,7 +303,7 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 			if desired[id] {
 				kept = append(kept, id)
 			} else {
-				c.RemoveBuff(id)
+				c.RemoveCondition(id)
 			}
 		}
 
@@ -331,8 +331,8 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	// already-active buffs refreshed but hold the pending one back.
 	if attune, ok := readMiscRound(c.GetMiscData("pinnacle_bandolier_attune_round")); ok && now < attune {
 		for _, id := range applied {
-			if desired[id] && !c.Buffs.HasBuff(id) {
-				_ = c.AddBuffScaled(id, 1.30)
+			if desired[id] && !c.Conditions.HasCondition(id) {
+				_ = c.AddConditionScaled(id, 1.30)
 			}
 		}
 		return
@@ -345,8 +345,8 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 		if !appliedSet[id] {
 			newlyApplied = true
 		}
-		if !c.Buffs.HasBuff(id) {
-			_ = c.AddBuffScaled(id, 1.30)
+		if !c.Conditions.HasCondition(id) {
+			_ = c.AddConditionScaled(id, 1.30)
 		}
 	}
 	if _, ok := readMiscRound(c.GetMiscData("pinnacle_bandolier_attune_round")); ok {
@@ -365,13 +365,13 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	c.SetMiscData("pinnacle_bandolier_buffs", ids)
 }
 
-// desiredAmbientBuffs is the set of buff ids emitted by the potions currently
+// desiredAmbientConditions is the set of buff ids emitted by the potions currently
 // slotted in the bandolier.
-func desiredAmbientBuffs(potions []items.Item) map[int]bool {
+func desiredAmbientConditions(potions []items.Item) map[int]bool {
 	out := map[int]bool{}
 	for _, p := range potions {
-		for _, buffId := range p.GetSpec().BuffIds {
-			out[buffId] = true
+		for _, conditionId := range p.GetSpec().ConditionIds {
+			out[conditionId] = true
 		}
 	}
 	return out
@@ -381,7 +381,7 @@ func desiredAmbientBuffs(potions []items.Item) map[int]bool {
 // tracking key.
 func revokeAmbient(c *characters.Character, applied []int) {
 	for _, id := range applied {
-		c.RemoveBuff(id)
+		c.RemoveCondition(id)
 	}
 	if len(applied) > 0 {
 		c.SetMiscData("pinnacle_bandolier_buffs", []int{})

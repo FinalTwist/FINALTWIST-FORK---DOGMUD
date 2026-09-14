@@ -341,7 +341,7 @@ func SetZombieUser(userId int) {
 
 	// Cross-package calls outside lock
 	u.Character.SetAdjective(`zombie`, true)
-	u.Character.RemoveBuff(0)
+	u.Character.RemoveCondition(0)
 
 	// Prevent guide mob dupes
 	for _, miid := range u.Character.CharmedMobs {

@@ -45,10 +45,10 @@ func CommandIsReady(actor Actor, cmd string) bool {
 		return char.IsInCombat()
 
 	case "rally":
-		return !char.HasBuff(80)
+		return !char.HasCondition(80)
 
 	case "warcry":
-		return !char.HasBuff(79)
+		return !char.HasCondition(79)
 
 	case "trip":
 		if !char.IsInCombat() {

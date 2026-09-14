@@ -3,8 +3,8 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -29,12 +29,12 @@ type recordingActor struct {
 }
 
 type rhetoricActionOutcome struct {
-	cost       characters.CostCommitResult
-	executed   bool
-	onCooldown bool
-	invalid    bool
-	selfBuffID int
-	bonus      float64
+	cost            characters.CostCommitResult
+	executed        bool
+	onCooldown      bool
+	invalid         bool
+	selfConditionID int
+	bonus           float64
 }
 
 type rhetoricActionCase struct {
@@ -65,9 +65,9 @@ func rhetoricActionCases() []rhetoricActionCase {
 			action: costs.ActionRally,
 			execute: func(actor Actor) rhetoricActionOutcome {
 				result := ExecuteRally(actor)
-				return rhetoricActionOutcome{cost: result.Cost, executed: result.Executed, onCooldown: result.OnCooldown, invalid: result.AlreadyActive, selfBuffID: 80, bonus: result.Bonus}
+				return rhetoricActionOutcome{cost: result.Cost, executed: result.Executed, onCooldown: result.OnCooldown, invalid: result.AlreadyActive, selfConditionID: 80, bonus: result.Bonus}
 			},
-			invalidate: func(char *characters.Character) { char.AddBuff(80, false) },
+			invalidate: func(char *characters.Character) { char.AddCondition(80, false) },
 			effectKind: conditions.EffectDefenseMult,
 		},
 		{
@@ -75,9 +75,9 @@ func rhetoricActionCases() []rhetoricActionCase {
 			action: costs.ActionWarcry,
 			execute: func(actor Actor) rhetoricActionOutcome {
 				result := ExecuteWarcry(actor)
-				return rhetoricActionOutcome{cost: result.Cost, executed: result.Executed, onCooldown: result.OnCooldown, invalid: result.AlreadyActive, selfBuffID: 79, bonus: result.Bonus}
+				return rhetoricActionOutcome{cost: result.Cost, executed: result.Executed, onCooldown: result.OnCooldown, invalid: result.AlreadyActive, selfConditionID: 79, bonus: result.Bonus}
 			},
-			invalidate: func(char *characters.Character) { char.AddBuff(79, false) },
+			invalidate: func(char *characters.Character) { char.AddCondition(79, false) },
 			effectKind: conditions.EffectDamageMult,
 		},
 	}
@@ -94,7 +94,7 @@ func newRhetoricActor(t *testing.T, player bool, conviction, rhetoric int) (*rec
 	target.ConvictionMax.Base = 1_000_000
 	target.ConvictionMax.Recalculate()
 	target.Stats.Willpower.ValueAdj = 1_000_000
-	target.Buffs = conditions.New()
+	target.Conditions = conditions.New()
 	targetMob := &mobs.Mob{InstanceId: rhetoricTargetID, Character: *target}
 	targetMob.Character.MobInstanceId = targetMob.InstanceId
 	mobs.SetInstanceForTest(targetMob.InstanceId, targetMob)
@@ -108,7 +108,7 @@ func newRhetoricActor(t *testing.T, player bool, conviction, rhetoric int) (*rec
 	char.ConvictionMax.Recalculate()
 	char.Stats.Charisma.ValueAdj = 1
 	char.Skills[string(skills.Rhetoric)] = rhetoric
-	char.Buffs = conditions.New()
+	char.Conditions = conditions.New()
 	char.SetAggro(0, targetMob.InstanceId, characters.DefaultAttack)
 	room := &rooms.Room{RoomId: 1}
 
@@ -144,7 +144,7 @@ func assertRhetoricRefusalCarryPreserved(t *testing.T, actor Actor, char *charac
 }
 
 func TestTauntRallyWarcryRefusalIsAtomicForPlayerAndMob(t *testing.T) {
-	cleanup := seedBuffsForTest()
+	cleanup := seedConditionsForTest()
 	defer cleanup()
 	defer conditions.SeedConditionRecordsForTest()()
 
@@ -163,7 +163,7 @@ func TestTauntRallyWarcryRefusalIsAtomicForPlayerAndMob(t *testing.T) {
 				target.SetRoundsWaiting(6)
 				targetAggroBefore := target.CurrentCombatTarget()
 				targetConviction := target.Conviction
-				targetBuffs := len(target.Buffs.GetBuffs())
+				targetConditions := len(target.Conditions.GetConditions())
 
 				result := tc.execute(actor)
 
@@ -177,11 +177,11 @@ func TestTauntRallyWarcryRefusalIsAtomicForPlayerAndMob(t *testing.T) {
 				require.Zero(t, char.RoundsWaiting())
 				require.Equal(t, targetConviction, target.Conviction)
 				require.Equal(t, targetAggroBefore, target.CurrentCombatTarget())
-				require.Len(t, target.Buffs.GetBuffs(), targetBuffs)
+				require.Len(t, target.Conditions.GetConditions(), targetConditions)
 				require.Empty(t, actor.skillsUsed)
-				if result.selfBuffID != 0 {
-					require.False(t, char.HasBuff(result.selfBuffID))
-					require.InDelta(t, 1.0, char.Buffs.Effect(tc.effectKind), 1e-9, "a refused shout must leave no magnitude behind")
+				if result.selfConditionID != 0 {
+					require.False(t, char.HasCondition(result.selfConditionID))
+					require.InDelta(t, 1.0, char.Conditions.Effect(tc.effectKind), 1e-9, "a refused shout must leave no magnitude behind")
 				}
 				assertRhetoricRefusalCarryPreserved(t, actor, char, tc.action)
 			})
@@ -190,7 +190,7 @@ func TestTauntRallyWarcryRefusalIsAtomicForPlayerAndMob(t *testing.T) {
 }
 
 func TestTauntRallyWarcryReadOnlyGatesPreserveHiddenState(t *testing.T) {
-	cleanup := seedBuffsForTest()
+	cleanup := seedConditionsForTest()
 	defer cleanup()
 	defer conditions.SeedConditionRecordsForTest()()
 
@@ -229,16 +229,16 @@ func TestTauntRallyWarcryReadOnlyGatesPreserveHiddenState(t *testing.T) {
 			require.Zero(t, char.RoundsWaiting())
 			require.Equal(t, targetConviction, target.Conviction)
 			require.Empty(t, actor.skillsUsed)
-			if result.selfBuffID != 0 {
-				require.False(t, char.HasBuff(result.selfBuffID))
-				require.InDelta(t, 1.0, char.Buffs.Effect(tc.effectKind), 1e-9, "a refused shout must leave no magnitude behind")
+			if result.selfConditionID != 0 {
+				require.False(t, char.HasCondition(result.selfConditionID))
+				require.InDelta(t, 1.0, char.Conditions.Effect(tc.effectKind), 1e-9, "a refused shout must leave no magnitude behind")
 			}
 		})
 	}
 }
 
-func TestRallyWarcryPaidBuffsChargeOnceBeforeEffects(t *testing.T) {
-	cleanup := seedBuffsForTest()
+func TestRallyWarcryPaidConditionsChargeOnceBeforeEffects(t *testing.T) {
+	cleanup := seedConditionsForTest()
 	defer cleanup()
 	defer conditions.SeedConditionRecordsForTest()()
 
@@ -262,9 +262,9 @@ func TestRallyWarcryPaidBuffsChargeOnceBeforeEffects(t *testing.T) {
 				require.Equal(t, awareness.Visible, char.Awareness.State())
 				require.Greater(t, char.Cooldowns["special-move"], 0)
 				require.Equal(t, 1, char.RoundsWaiting())
-				require.True(t, char.HasBuff(result.selfBuffID))
-				require.Len(t, char.Buffs.List, 1, "a shout must apply exactly one buff record")
-				require.InDelta(t, 1.0+result.bonus, char.Buffs.Effect(tc.effectKind), 1e-9)
+				require.True(t, char.HasCondition(result.selfConditionID))
+				require.Len(t, char.Conditions.List, 1, "a shout must apply exactly one buff record")
+				require.InDelta(t, 1.0+result.bonus, char.Conditions.Effect(tc.effectKind), 1e-9)
 				require.Equal(t, []string{string(skills.Rhetoric)}, actor.skillsUsed)
 			})
 		}
@@ -400,7 +400,7 @@ func TestTauntPaidMovedTargetPreservesEffectsAndEngagement(t *testing.T) {
 	target.SetRoundsWaiting(8)
 	targetAggro := target.CurrentCombatTarget()
 	targetConviction := target.Conviction
-	targetBuffs := len(target.Buffs.GetBuffs())
+	targetConditions := len(target.Conditions.GetConditions())
 	race := &rhetoricAdmissionRaceActor{Actor: actor, onAdmission: func() {
 		target.RoomId = 2
 	}}
@@ -418,7 +418,7 @@ func TestTauntPaidMovedTargetPreservesEffectsAndEngagement(t *testing.T) {
 	require.Zero(t, char.RoundsWaiting())
 	require.Equal(t, targetConviction, target.Conviction)
 	require.Equal(t, targetAggro, target.CurrentCombatTarget())
-	require.Len(t, target.Buffs.GetBuffs(), targetBuffs)
+	require.Len(t, target.Conditions.GetConditions(), targetConditions)
 	require.Empty(t, actor.skillsUsed)
 }
 
@@ -429,7 +429,7 @@ func TestTauntPaidSwappedAggroPreservesBothTargetsAndRound(t *testing.T) {
 	original.SetRoundsWaiting(7)
 	originalAggro := original.CurrentCombatTarget()
 	originalConviction := original.Conviction
-	originalBuffs := len(original.Buffs.GetBuffs())
+	originalConditions := len(original.Conditions.GetConditions())
 
 	rhetoricTargetID++
 	replacement := characters.New()
@@ -440,7 +440,7 @@ func TestTauntPaidSwappedAggroPreservesBothTargetsAndRound(t *testing.T) {
 	replacement.ConvictionMax.Recalculate()
 	replacement.Conviction = 1_000_000
 	replacement.Stats.Willpower.ValueAdj = 1_000_000
-	replacement.Buffs = conditions.New()
+	replacement.Conditions = conditions.New()
 	replacement.SetAggro(808, 0, characters.DefaultAttack)
 	replacement.SetRoundsWaiting(6)
 	replacementMob := &mobs.Mob{InstanceId: rhetoricTargetID, Character: *replacement}
@@ -449,7 +449,7 @@ func TestTauntPaidSwappedAggroPreservesBothTargetsAndRound(t *testing.T) {
 	replacement = &replacementMob.Character
 	replacementAggro := replacement.CurrentCombatTarget()
 	replacementConviction := replacement.Conviction
-	replacementBuffs := len(replacement.Buffs.GetBuffs())
+	replacementConditions := len(replacement.Conditions.GetConditions())
 	race := &rhetoricAdmissionRaceActor{Actor: actor, onAdmission: func() {
 		char.SetAggro(0, replacementMob.InstanceId, characters.DefaultAttack)
 	}}
@@ -467,15 +467,15 @@ func TestTauntPaidSwappedAggroPreservesBothTargetsAndRound(t *testing.T) {
 	require.Zero(t, char.RoundsWaiting())
 	require.Equal(t, originalConviction, original.Conviction)
 	require.Equal(t, originalAggro, original.CurrentCombatTarget())
-	require.Len(t, original.Buffs.GetBuffs(), originalBuffs)
+	require.Len(t, original.Conditions.GetConditions(), originalConditions)
 	require.Equal(t, replacementConviction, replacement.Conviction)
 	require.Equal(t, replacementAggro, replacement.CurrentCombatTarget())
-	require.Len(t, replacement.Buffs.GetBuffs(), replacementBuffs)
+	require.Len(t, replacement.Conditions.GetConditions(), replacementConditions)
 	require.Empty(t, actor.skillsUsed)
 }
 
 func TestTauntRallyWarcryPaidStaleCooldownPreservesEffects(t *testing.T) {
-	cleanup := seedBuffsForTest()
+	cleanup := seedConditionsForTest()
 	defer cleanup()
 	defer conditions.SeedConditionRecordsForTest()()
 
@@ -498,9 +498,9 @@ func TestTauntRallyWarcryPaidStaleCooldownPreservesEffects(t *testing.T) {
 			require.Zero(t, char.RoundsWaiting())
 			require.Equal(t, targetConviction, target.Conviction)
 			require.Empty(t, actor.skillsUsed)
-			if result.selfBuffID != 0 {
-				require.False(t, char.HasBuff(result.selfBuffID))
-				require.InDelta(t, 1.0, char.Buffs.Effect(tc.effectKind), 1e-9, "a refused shout must leave no magnitude behind")
+			if result.selfConditionID != 0 {
+				require.False(t, char.HasCondition(result.selfConditionID))
+				require.InDelta(t, 1.0, char.Conditions.Effect(tc.effectKind), 1e-9, "a refused shout must leave no magnitude behind")
 			}
 		})
 	}

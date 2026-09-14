@@ -43,7 +43,7 @@ func Fire(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	// stay hidden forever. Only a zero-damage cross-room miss stays hidden —
 	// the sniper gets exactly one free clean miss, not one free hit.
 	if result.CrossRoom && dealt {
-		mob.Character.CancelCombatBuffs()
+		mob.Character.CancelCombatConditions()
 	}
 
 	mobName := fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mob.Character.Name)

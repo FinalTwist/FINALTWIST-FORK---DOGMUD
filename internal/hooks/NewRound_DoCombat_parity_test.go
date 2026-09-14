@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -262,7 +262,7 @@ func TestMvP_ConditionShieldAppliedOnceNotDoubleDipped(t *testing.T) {
 	// integer-percent value the spell stores; the magnitude maps 1:1 into
 	// the mitigation percentage at characters/combat.go:185).
 	const magnitude float64 = 30
-	_ = defUser.Character.AddBuffMagnitude(conditions.BuffIdMinorShield, 10, magnitude, "test")
+	_ = defUser.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, 10, magnitude, "test")
 
 	// After applying: GetPhysicalMitigation should add exactly magnitude/100.
 	got := defUser.Character.GetPhysicalMitigation()

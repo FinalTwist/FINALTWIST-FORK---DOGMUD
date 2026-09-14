@@ -148,7 +148,7 @@ func (c *Character) ProgressionChanceForSkill(skillName string, bonusMultiplier 
 	// 2.0, the historic literal this line used to hardcode. That 2.0 default
 	// is a balance number living in Go rather than config.yaml and belongs on
 	// the config audit list.
-	buffSkillMult := c.Buffs.ProgressMult(conditions.SkillProgress)
+	conditionSkillMult := c.Conditions.ProgressMult(conditions.SkillProgress)
 
 	// Mobs decay against their own soft cap: they fight far more often than
 	// players, so sharing the player curve would leave them flat for too long.
@@ -158,7 +158,7 @@ func (c *Character) ProgressionChanceForSkill(skillName string, bonusMultiplier 
 	}
 	chance := CalculateProgressionChance(virtualRank, softCap) *
 		bonusMultiplier * skills.GetProgressionMultiplier(skillName) *
-		mutSkillMult * buffSkillMult
+		mutSkillMult * conditionSkillMult
 	if chance > 1.0 {
 		chance = 1.0
 	}

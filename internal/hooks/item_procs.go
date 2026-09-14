@@ -3,8 +3,8 @@ package hooks
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -212,7 +212,7 @@ func procApplyCondition(target *characters.Character, params map[string]float64)
 	}
 	switch int(params["condition"]) {
 	case 1:
-		return target.AddBuffMagnitude(conditions.BuffIdBleeding, dur, -mag, "itemproc") == nil
+		return target.AddConditionMagnitude(conditions.ConditionIdBleeding, dur, -mag, "itemproc") == nil
 	}
 	return false
 }
@@ -262,7 +262,7 @@ func procAoeStun(owner *characters.Character, room *rooms.Room, params map[strin
 		if mobs.CheckPlayerHarm(m).Blocked() {
 			continue
 		}
-		_ = m.Character.AddBuff(84, false)
+		_ = m.Character.AddCondition(84, false)
 		stunned++
 	}
 

@@ -1,13 +1,13 @@
 package conditions
 
-// SeedBuffsForTest replaces the global buffs map with the supplied test data
+// SeedConditionsForTest replaces the global buffs map with the supplied test data
 // and returns a cleanup function that restores the original.
 // Intended for cross-package integration tests (hooks, commands).
-func SeedBuffsForTest(buffMap map[int]*BuffSpec) func() {
-	orig := buffs
-	buffs = buffMap
+func SeedConditionsForTest(conditionMap map[int]*ConditionSpec) func() {
+	orig := conditions
+	conditions = conditionMap
 	return func() {
-		buffs = orig
+		conditions = orig
 	}
 }
 
@@ -19,33 +19,33 @@ func SeedBuffsForTest(buffMap map[int]*BuffSpec) func() {
 // own buffs keeps them.
 func SeedConditionRecordsForTest() func() {
 	mag := EffectValue{UsesMagnitude: true}
-	records := []*BuffSpec{
-		{BuffId: BuffIdWarcry, Name: "Warcry", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 25, Flags: []Flag{SilentStart}, Effects: map[EffectKind]EffectValue{EffectDamageMult: mag}, EndUserText: "The fervor of the warcry fades from you."},
-		{BuffId: BuffIdRally, Name: "Rally", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 25, Flags: []Flag{SilentStart}, Effects: map[EffectKind]EffectValue{EffectDefenseMult: mag}, EndUserText: "The strength of the rally drains from you."},
-		{BuffId: BuffIdOffBalance, Name: "Off Balance", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 1, Flags: []Flag{Quiet}, Effects: map[EffectKind]EffectValue{EffectDefenseMult: {Literal: 0.85}}},
-		{BuffId: BuffIdRecovering, Name: "Recovering", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 1, Flags: []Flag{Quiet}, Effects: map[EffectKind]EffectValue{EffectAttacksCap: {Literal: 1}}},
-		{BuffId: BuffIdMinorShield, Name: "Minor Shield", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 10, Flags: []Flag{SilentStart}, Effects: map[EffectKind]EffectValue{EffectMitigationFlat: mag}, EndUserText: "Your Minor Shield dissipates.", EndRoomText: "{source}'s Minor Shield dissipates."},
-		{BuffId: BuffIdRegenerating, Name: "Regenerating", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 10, Flags: []Flag{SilentStart}, Effects: map[EffectKind]EffectValue{EffectRegenMult: mag}, EndUserText: "The healing magic in your wounds runs its course."},
-		{BuffId: BuffIdPoisoned, Name: "Poisoned", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 10, Flags: []Flag{Poison, SilentStart}, TickPool: "health", TickFromMagnitude: true, TriggerUserText: `<ansi fg="green">The poison burns through your veins!</ansi>`, EndUserText: "The poison in your veins finally burns itself out."},
-		{BuffId: BuffIdBleeding, Name: "Bleeding", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 4, Flags: []Flag{Bleeding, SilentStart, Stacking}, TickPool: "health", TickFromMagnitude: true, TriggerUserText: `<ansi fg="red">Blood seeps from your wounds!</ansi>`, EndUserText: "Your wounds stop bleeding."},
-		{BuffId: BuffIdEnchantWithdrawal, Name: "Enchant Withdrawal", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 10, Effects: map[EffectKind]EffectValue{EffectPoolMaxPct: mag}, StartUserText: "The severed bond leaves a hollow in you that will take time to fill.", EndUserText: "The hollow the severed bond left in you has finally closed."},
+	records := []*ConditionSpec{
+		{ConditionId: ConditionIdWarcry, Name: "Warcry", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 25, Flags: []Flag{SilentStart}, Effects: map[EffectKind]EffectValue{EffectDamageMult: mag}, EndUserText: "The fervor of the warcry fades from you."},
+		{ConditionId: ConditionIdRally, Name: "Rally", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 25, Flags: []Flag{SilentStart}, Effects: map[EffectKind]EffectValue{EffectDefenseMult: mag}, EndUserText: "The strength of the rally drains from you."},
+		{ConditionId: ConditionIdOffBalance, Name: "Off Balance", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 1, Flags: []Flag{Quiet}, Effects: map[EffectKind]EffectValue{EffectDefenseMult: {Literal: 0.85}}},
+		{ConditionId: ConditionIdRecovering, Name: "Recovering", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 1, Flags: []Flag{Quiet}, Effects: map[EffectKind]EffectValue{EffectAttacksCap: {Literal: 1}}},
+		{ConditionId: ConditionIdMinorShield, Name: "Minor Shield", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 10, Flags: []Flag{SilentStart}, Effects: map[EffectKind]EffectValue{EffectMitigationFlat: mag}, EndUserText: "Your Minor Shield dissipates.", EndRoomText: "{source}'s Minor Shield dissipates."},
+		{ConditionId: ConditionIdRegenerating, Name: "Regenerating", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 10, Flags: []Flag{SilentStart}, Effects: map[EffectKind]EffectValue{EffectRegenMult: mag}, EndUserText: "The healing magic in your wounds runs its course."},
+		{ConditionId: ConditionIdPoisoned, Name: "Poisoned", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 10, Flags: []Flag{Poison, SilentStart}, TickPool: "health", TickFromMagnitude: true, TriggerUserText: `<ansi fg="green">The poison burns through your veins!</ansi>`, EndUserText: "The poison in your veins finally burns itself out."},
+		{ConditionId: ConditionIdBleeding, Name: "Bleeding", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 4, Flags: []Flag{Bleeding, SilentStart, Stacking}, TickPool: "health", TickFromMagnitude: true, TriggerUserText: `<ansi fg="red">Blood seeps from your wounds!</ansi>`, EndUserText: "Your wounds stop bleeding."},
+		{ConditionId: ConditionIdEnchantWithdrawal, Name: "Enchant Withdrawal", TriggerRate: "1 round", RoundInterval: 1, TriggerCount: 10, Effects: map[EffectKind]EffectValue{EffectPoolMaxPct: mag}, StartUserText: "The severed bond leaves a hollow in you that will take time to fill.", EndUserText: "The hollow the severed bond left in you has finally closed."},
 	}
-	if buffs == nil {
-		buffs = map[int]*BuffSpec{}
+	if conditions == nil {
+		conditions = map[int]*ConditionSpec{}
 	}
-	replaced := map[int]*BuffSpec{}
+	replaced := map[int]*ConditionSpec{}
 	for _, r := range records {
-		if old, ok := buffs[r.BuffId]; ok {
-			replaced[r.BuffId] = old
+		if old, ok := conditions[r.ConditionId]; ok {
+			replaced[r.ConditionId] = old
 		}
-		buffs[r.BuffId] = r
+		conditions[r.ConditionId] = r
 	}
 	return func() {
 		for _, r := range records {
-			delete(buffs, r.BuffId)
+			delete(conditions, r.ConditionId)
 		}
 		for id, old := range replaced {
-			buffs[id] = old
+			conditions[id] = old
 		}
 	}
 }

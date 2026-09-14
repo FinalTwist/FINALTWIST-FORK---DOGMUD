@@ -49,7 +49,7 @@ func (f *fakeActor) GetName() string                                    { return
 func (f *fakeActor) IsPlayer() bool                                     { return f.isPlayer }
 func (f *fakeActor) GetUserId() int                                     { return f.userId }
 func (f *fakeActor) GetMobInstanceId() int                              { return f.mobInstId }
-func (f *fakeActor) AddBuff(buffId int, source string)                  {}
+func (f *fakeActor) AddCondition(conditionId int, source string)        {}
 func (f *fakeActor) OnSkillUse(skillName string) bool                   { return false }
 func (f *fakeActor) OnStatUse(statName string) bool                     { return false }
 func (f *fakeActor) AwardResolved(won bool, cands ...progression.Candidate) {

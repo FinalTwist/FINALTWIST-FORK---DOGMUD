@@ -21,15 +21,15 @@ import (
 // source parameter, or drops one from UserRecord.AddBuff, these stop compiling
 // and the guard is fixed deliberately instead of quietly going blind.
 var (
-	_ func(int, bool) error                 = (*characters.Character)(nil).AddBuff
-	_ func(int, float64) error              = (*characters.Character)(nil).AddBuffScaled
-	_ func(int, int, float64, string) error = (*characters.Character)(nil).AddBuffMagnitude
-	_ func(int, string)                     = (*users.UserRecord)(nil).AddBuff
-	_ func(int, float64, string)            = (*users.UserRecord)(nil).AddBuffScaled
-	_ func(int, int, float64, string)       = (*users.UserRecord)(nil).AddBuffMagnitude
-	_ func(int, string)                     = (*mobs.Mob)(nil).AddBuff
-	_ func(int, string)                     = (*actions.UserActor)(nil).AddBuff
-	_ func(int, string)                     = (*actions.MobActor)(nil).AddBuff
+	_ func(int, bool) error                 = (*characters.Character)(nil).AddCondition
+	_ func(int, float64) error              = (*characters.Character)(nil).AddConditionScaled
+	_ func(int, int, float64, string) error = (*characters.Character)(nil).AddConditionMagnitude
+	_ func(int, string)                     = (*users.UserRecord)(nil).AddCondition
+	_ func(int, float64, string)            = (*users.UserRecord)(nil).AddConditionScaled
+	_ func(int, int, float64, string)       = (*users.UserRecord)(nil).AddConditionMagnitude
+	_ func(int, string)                     = (*mobs.Mob)(nil).AddCondition
+	_ func(int, string)                     = (*actions.UserActor)(nil).AddCondition
+	_ func(int, string)                     = (*actions.MobActor)(nil).AddCondition
 )
 
 // Slice C delivery path: a player buff must travel the events.Buff event, so
@@ -87,7 +87,7 @@ var (
 // AddBuffMagnitude(buffs.BuffIdRecovering, ...) calls in
 // internal/characters/skills.go (lines 76, 99, 103), never reach this walk
 // and carry no allowlist entry.
-var buffApplyPathAllowlist = map[string]string{
+var conditionApplyPathAllowlist = map[string]string{
 	// ── The sanctioned consumer of the event ────────────────────────────────
 	"internal/hooks/Buff_ApplyBuffs.go|104": "this IS the hook the event feeds; it is where every routed buff is finally applied",
 	"internal/hooks/Buff_ApplyBuffs.go|106": "this IS the hook the event feeds; it is where every routed buff is finally applied",
@@ -181,7 +181,7 @@ var primitivePackages = []string{
 	filepath.Join("internal", "characters"),
 }
 
-var buffAddCallPattern = regexp.MustCompile(`\.(AddBuff(?:Scaled|Magnitude)?)\(`)
+var conditionAddCallPattern = regexp.MustCompile(`\.(AddBuff(?:Scaled|Magnitude)?)\(`)
 
 // identifierArgPattern matches a bare identifier or field selector, which is
 // how a variable source reaches these calls: src, reason, source, evt.Source.
@@ -278,7 +278,7 @@ func isEventPathCall(src string, method string, openParen int) (eventPath bool, 
 	return couldBeSourceArg(args[len(args)-1]), true
 }
 
-func TestPlayerBuffsTravelTheEventPath(t *testing.T) {
+func TestPlayerConditionsTravelTheEventPath(t *testing.T) {
 	var problems []string
 	seen := map[string]bool{}
 
@@ -309,7 +309,7 @@ func TestPlayerBuffsTravelTheEventPath(t *testing.T) {
 			// Slash-normalised so a key reads the same on every platform.
 			slashPath := filepath.ToSlash(path)
 
-			for _, loc := range buffAddCallPattern.FindAllStringSubmatchIndex(src, -1) {
+			for _, loc := range conditionAddCallPattern.FindAllStringSubmatchIndex(src, -1) {
 				openParen := loc[1] - 1
 				eventPath, parsed := isEventPathCall(src, src[loc[2]:loc[3]], openParen)
 				if parsed && eventPath {
@@ -324,7 +324,7 @@ func TestPlayerBuffsTravelTheEventPath(t *testing.T) {
 					continue
 				}
 				key := fmt.Sprintf("%s|%d", slashPath, lineNo)
-				if _, ok := buffApplyPathAllowlist[key]; ok {
+				if _, ok := conditionApplyPathAllowlist[key]; ok {
 					seen[key] = true
 					continue
 				}
@@ -357,7 +357,7 @@ func TestPlayerBuffsTravelTheEventPath(t *testing.T) {
 	// so the real add at the new line is pardoned by nothing, and the entry now
 	// pardons whatever happens to sit there instead.
 	var stale []string
-	for key := range buffApplyPathAllowlist {
+	for key := range conditionApplyPathAllowlist {
 		if !seen[key] {
 			stale = append(stale, key)
 		}

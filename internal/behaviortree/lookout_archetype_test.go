@@ -85,7 +85,7 @@ func seedLookoutMob(t *testing.T, instanceId int) (*mobs.Mob, func()) {
 	}
 	m.Character.Name = "testmob"
 	m.Character.Conviction = 500
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{300 + instanceId: m},
 		map[int]*mobs.Mob{instanceId: m},

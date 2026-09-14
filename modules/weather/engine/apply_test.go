@@ -80,11 +80,11 @@ func TestReconcileList(t *testing.T) {
 	}
 }
 
-func TestApplyBuffOverrides(t *testing.T) {
+func TestApplyConditionOverrides(t *testing.T) {
 	specs := map[string]*mutators.MutatorSpec{
-		"weather-storm":        {MutatorId: "weather-storm", PlayerBuffIds: []int{59002}, MobBuffIds: []int{4}},
+		"weather-storm":        {MutatorId: "weather-storm", PlayerConditionIds: []int{59002}, MobConditionIds: []int{4}},
 		"weather-storm-indoor": {MutatorId: "weather-storm-indoor"},
-		"weather-blizzard":     {MutatorId: "weather-blizzard", PlayerBuffIds: []int{59001}},
+		"weather-blizzard":     {MutatorId: "weather-blizzard", PlayerConditionIds: []int{59001}},
 	}
 	lookup := func(id string) *mutators.MutatorSpec { return specs[id] }
 
@@ -98,25 +98,25 @@ func TestApplyBuffOverrides(t *testing.T) {
 		"blizzard": {},     // explicit strip (key present, empty value)
 		"hail":     {1},    // no such spec: ignored (warn-once)
 	}
-	if n := applyBuffOverrides(lookup, src); n != 2 {
+	if n := applyConditionOverrides(lookup, src); n != 2 {
 		t.Fatalf("specs changed = %d, want 2", n)
 	}
-	if got := specs["weather-storm"].PlayerBuffIds; !reflect.DeepEqual(got, []int{7, 8}) {
+	if got := specs["weather-storm"].PlayerConditionIds; !reflect.DeepEqual(got, []int{7, 8}) {
 		t.Errorf("storm PlayerBuffIds = %v, want [7 8]", got)
 	}
-	if got := specs["weather-storm"].MobBuffIds; !reflect.DeepEqual(got, []int{4}) {
+	if got := specs["weather-storm"].MobConditionIds; !reflect.DeepEqual(got, []int{4}) {
 		t.Errorf("storm MobBuffIds must be untouched: %v", got)
 	}
-	if got := specs["weather-blizzard"].PlayerBuffIds; len(got) != 0 {
+	if got := specs["weather-blizzard"].PlayerConditionIds; len(got) != 0 {
 		t.Errorf("blizzard buffs not stripped: %v", got)
 	}
 	// Indoor variants are buff-free by rule and never overridden.
-	if got := specs["weather-storm-indoor"].PlayerBuffIds; got != nil {
+	if got := specs["weather-storm-indoor"].PlayerConditionIds; got != nil {
 		t.Errorf("indoor spec must be untouched: %v", got)
 	}
 	// The spec must not alias the config map's backing array.
 	src["storm"][0] = 99
-	if specs["weather-storm"].PlayerBuffIds[0] != 7 {
+	if specs["weather-storm"].PlayerConditionIds[0] != 7 {
 		t.Error("spec PlayerBuffIds aliases the override map")
 	}
 }

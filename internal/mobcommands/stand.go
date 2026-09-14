@@ -23,8 +23,8 @@ func Stand(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	// Cancel Sleeping FIRST so a standing-but-sleeping mob wakes regardless
 	// of position-state. Mirrors usercommands/stand.go.
-	if mob.Character.HasBuffFlag(conditions.Sleeping) {
-		mob.Character.CancelBuffsWithFlag(conditions.Sleeping)
+	if mob.Character.HasConditionFlag(conditions.Sleeping) {
+		mob.Character.CancelConditionsWithFlag(conditions.Sleeping)
 		mobs.OnSleeperWoken(&mob.Character)
 	}
 

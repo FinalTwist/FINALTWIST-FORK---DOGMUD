@@ -114,7 +114,7 @@ func scheduleTickPlan(mob *mobs.Mob, hour24 int) schedulePlan {
 
 	// Awake inside a sleep window (a player roused them and the grace is
 	// holding) — the sleep-flavoured idle pool must not keep firing.
-	if seg.Activity == "sleeping" && !mob.Character.HasBuffFlag(conditions.Sleeping) {
+	if seg.Activity == "sleeping" && !mob.Character.HasConditionFlag(conditions.Sleeping) {
 		plan.SuppressSleepIdle = true
 	}
 
@@ -159,7 +159,7 @@ func applySchedulePlan(mob *mobs.Mob, plan schedulePlan) {
 
 	// Chunk 3.3: wake first — clear stale sleep from a prior sleep segment.
 	if plan.WantsWake {
-		mob.Character.CancelBuffsWithFlag(conditions.Sleeping)
+		mob.Character.CancelConditionsWithFlag(conditions.Sleeping)
 	}
 
 	if plan.SegmentChanged {
@@ -195,7 +195,7 @@ func applySchedulePlan(mob *mobs.Mob, plan schedulePlan) {
 		mob.Character.SetMiscData("schedule_path_fail_count", 0)
 	}
 	// Chunk 3.3: sleep last — only if at target and not already sleeping.
-	if plan.WantsSleep && !mob.Character.HasBuffFlag(conditions.Sleeping) {
+	if plan.WantsSleep && !mob.Character.HasConditionFlag(conditions.Sleeping) {
 		mob.Command("sleep")
 	}
 

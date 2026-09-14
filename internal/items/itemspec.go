@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/casing"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -220,14 +220,14 @@ const (
 )
 
 type Damage struct {
-	Attacks     int    `yaml:"attacks,omitempty"`     // How many attacks this weapon gets (usually 1)
-	DiceRoll    string `yaml:"diceroll,omitempty"`    // legacy: 1d6, etc.
-	CritBuffIds []int  `yaml:"critbuffids,omitempty"` // If this damage is a crit, what buffs does it apply?
-	DiceCount   int    `yaml:"dicecount,omitempty"`   // how many dice to roll for this weapons damage
-	SideCount   int    `yaml:"sidecount,omitempty"`   // how many sides per dice roll
-	BonusDamage int    `yaml:"bonusdamage,omitempty"` // flat damage bonus, so for example 1d6+1
-	BaseDamage  int    `yaml:"basedamage,omitempty"`  // distribution mode: mean damage
-	Variance    int    `yaml:"variance,omitempty"`    // distribution mode: standard deviation
+	Attacks          int    `yaml:"attacks,omitempty"`     // How many attacks this weapon gets (usually 1)
+	DiceRoll         string `yaml:"diceroll,omitempty"`    // legacy: 1d6, etc.
+	CritConditionIds []int  `yaml:"critbuffids,omitempty"` // If this damage is a crit, what buffs does it apply?
+	DiceCount        int    `yaml:"dicecount,omitempty"`   // how many dice to roll for this weapons damage
+	SideCount        int    `yaml:"sidecount,omitempty"`   // how many sides per dice roll
+	BonusDamage      int    `yaml:"bonusdamage,omitempty"` // flat damage bonus, so for example 1d6+1
+	BaseDamage       int    `yaml:"basedamage,omitempty"`  // distribution mode: mean damage
+	Variance         int    `yaml:"variance,omitempty"`    // distribution mode: standard deviation
 }
 
 type ItemMessage string
@@ -257,11 +257,11 @@ var validProcEffects = map[string]bool{
 
 // The blueprint for an item
 type ItemSpec struct {
-	ItemId      int
-	Value       int
-	Uses        int   `yaml:"uses,omitempty"`        // How many uses it starts with
-	BuffIds     []int `yaml:"buffids,omitempty"`     // What buffs it can apply (if used)
-	WornBuffIds []int `yaml:"wornbuffids,omitempty"` // BuffId's that are applied while worn, and expired when removed.
+	ItemId           int
+	Value            int
+	Uses             int   `yaml:"uses,omitempty"`        // How many uses it starts with
+	ConditionIds     []int `yaml:"buffids,omitempty"`     // What buffs it can apply (if used)
+	WornConditionIds []int `yaml:"wornbuffids,omitempty"` // BuffId's that are applied while worn, and expired when removed.
 	// ── Pinnacle Stage 1: procs, reserves, bandolier, mutation drip, hunger, voice ──
 	Procs                 []ItemProc `yaml:"procs,omitempty"`                   // data-driven combat procs
 	ReserveHealthPct      float64    `yaml:"reserve_health_pct,omitempty"`      // 0-1 fraction of HealthMax reserved while equipped
@@ -391,7 +391,7 @@ func (d *Damage) String() string {
 
 func (d *Damage) FormatDiceRoll() string {
 
-	d.DiceRoll = util.FormatDiceRoll(d.Attacks, d.DiceCount, d.SideCount, d.BonusDamage, d.CritBuffIds)
+	d.DiceRoll = util.FormatDiceRoll(d.Attacks, d.DiceCount, d.SideCount, d.BonusDamage, d.CritConditionIds)
 
 	return d.DiceRoll
 }
@@ -559,9 +559,9 @@ func (i *ItemSpec) AutoCalculateValue() {
 		i.ConvictionMitigation*i.ConvictionMitigation) * 17
 
 	// Get the value of any buff it applies
-	for _, buffId := range i.BuffIds {
-		if buffSpec := conditions.GetBuffSpec(buffId); buffSpec != nil {
-			val += buffSpec.GetValue()
+	for _, conditionId := range i.ConditionIds {
+		if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil {
+			val += conditionSpec.GetValue()
 		}
 	}
 

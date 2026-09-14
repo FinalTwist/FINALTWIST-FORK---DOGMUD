@@ -3,20 +3,20 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 )
 
-// sleepBuffId is the buff the sleep action applies. Pinned here so a renumber
+// sleepConditionId is the buff the sleep action applies. Pinned here so a renumber
 // fails loudly in this test instead of silently disabling every sleep guard.
-const sleepBuffId = 15
+const sleepConditionId = 15
 
 // newChar builds a character the way sleep_test.go does — characters.New()
 // plus an initialized Buffs, or AddBuff nil-panics.
 func newChar() *characters.Character {
 	c := characters.New()
 	c.Name = "Marn"
-	c.Buffs = conditions.New()
+	c.Conditions = conditions.New()
 	return c
 }
 
@@ -25,13 +25,13 @@ func newChar() *characters.Character {
 // unit tests, so AddBuff fails without it.
 func sleeper(t *testing.T) *characters.Character {
 	t.Helper()
-	t.Cleanup(seedSleepBuff(t))
+	t.Cleanup(seedSleepCondition(t))
 	c := newChar()
-	if err := c.AddBuff(sleepBuffId, true); err != nil {
-		t.Fatalf("could not apply the sleep buff (id %d): %v — has it been renumbered?", sleepBuffId, err)
+	if err := c.AddCondition(sleepConditionId, true); err != nil {
+		t.Fatalf("could not apply the sleep buff (id %d): %v — has it been renumbered?", sleepConditionId, err)
 	}
-	if !c.HasBuffFlag(conditions.Sleeping) {
-		t.Fatalf("buff %d applied but does not carry the Sleeping flag", sleepBuffId)
+	if !c.HasConditionFlag(conditions.Sleeping) {
+		t.Fatalf("buff %d applied but does not carry the Sleeping flag", sleepConditionId)
 	}
 	return c
 }

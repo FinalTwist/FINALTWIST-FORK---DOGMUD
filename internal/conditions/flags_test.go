@@ -41,8 +41,8 @@ func TestAllFlagsNamesEveryDeclaredConstant(t *testing.T) {
 }
 
 func TestUnknownFlagIsRejectedAtLoad(t *testing.T) {
-	assert.NoError(t, (&BuffSpec{BuffId: 1, Name: "Fine", Flags: []Flag{Poison, NightVision}}).ValidateFlags())
-	err := (&BuffSpec{BuffId: 65, Name: "Cat's Eye Draught", Flags: []Flag{"night-vision"}}).ValidateFlags()
+	assert.NoError(t, (&ConditionSpec{ConditionId: 1, Name: "Fine", Flags: []Flag{Poison, NightVision}}).ValidateFlags())
+	err := (&ConditionSpec{ConditionId: 65, Name: "Cat's Eye Draught", Flags: []Flag{"night-vision"}}).ValidateFlags()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "night-vision")
 	assert.Contains(t, err.Error(), "65")
@@ -50,8 +50,8 @@ func TestUnknownFlagIsRejectedAtLoad(t *testing.T) {
 
 // Ids clear of the other fixtures in this package.
 const (
-	flagsTestUnknownFlagBuffId = 9421
-	flagsTestCleanBuffId       = 9422
+	flagsTestUnknownFlagConditionId = 9421
+	flagsTestCleanConditionId       = 9422
 )
 
 // The load-time guard is what makes a misspelled flag a boot failure instead
@@ -59,8 +59,8 @@ const (
 // is a named function a test can call. With it inlined in LoadDataFiles there
 // was nothing red to see: no test loads world YAML.
 func TestValidateLoadedFlagsPanicsOnAnUnknownFlag(t *testing.T) {
-	restore := SeedBuffsForTest(map[int]*BuffSpec{
-		flagsTestUnknownFlagBuffId: {BuffId: flagsTestUnknownFlagBuffId, Name: "Test Draught", Flags: []Flag{"night-vision"}},
+	restore := SeedConditionsForTest(map[int]*ConditionSpec{
+		flagsTestUnknownFlagConditionId: {ConditionId: flagsTestUnknownFlagConditionId, Name: "Test Draught", Flags: []Flag{"night-vision"}},
 	})
 	defer restore()
 
@@ -77,8 +77,8 @@ func TestValidateLoadedFlagsPanicsOnAnUnknownFlag(t *testing.T) {
 }
 
 func TestValidateLoadedFlagsAcceptsACleanRegistry(t *testing.T) {
-	restore := SeedBuffsForTest(map[int]*BuffSpec{
-		flagsTestCleanBuffId: {BuffId: flagsTestCleanBuffId, Name: "Test Clean", Flags: []Flag{Poison, PoisonImmunity}},
+	restore := SeedConditionsForTest(map[int]*ConditionSpec{
+		flagsTestCleanConditionId: {ConditionId: flagsTestCleanConditionId, Name: "Test Clean", Flags: []Flag{Poison, PoisonImmunity}},
 	})
 	defer restore()
 

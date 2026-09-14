@@ -7,10 +7,10 @@ import (
 
 // Ids clear of seedRegistry's 100/101/106 and of other packages' test fixtures.
 const (
-	refreshTestCadenceBuffId = 9301 // RoundInterval 2, TriggerCount 5
-	refreshTestPermaBuffId   = 9302 // RoundInterval 1, TriggerCount 3, granted permanent
-	refreshTestUnheldBuffId  = 9303 // never added
-	refreshTestDeadBuffId    = 9304 // held (indexed by Validate) but no live spec
+	refreshTestCadenceConditionId   = 9301 // RoundInterval 2, TriggerCount 5
+	refreshTestPermanentConditionId = 9302 // RoundInterval 1, TriggerCount 3, granted permanent
+	refreshTestUnheldConditionId    = 9303 // never added
+	refreshTestDeadConditionId      = 9304 // held (indexed by Validate) but no live spec
 )
 
 // RefreshBuff must top TriggersLeft back up without resetting RoundCounter.
@@ -18,14 +18,14 @@ const (
 // above one: refreshed every round, RoundCounter would be zeroed every round
 // and Trigger's `RoundCounter % RoundInterval == 0` would never see anything
 // but 0 % N == 0 on round 1, then reset again before round 2 ever accumulates.
-func TestRefreshBuff_KeepsCadenceAcrossRepeatedRefreshes(t *testing.T) {
-	restore := SeedBuffsForTest(map[int]*BuffSpec{
-		refreshTestCadenceBuffId: {BuffId: refreshTestCadenceBuffId, Name: "Test Cadence", TriggerCount: 5, RoundInterval: 2},
+func TestRefreshCondition_KeepsCadenceAcrossRepeatedRefreshes(t *testing.T) {
+	restore := SeedConditionsForTest(map[int]*ConditionSpec{
+		refreshTestCadenceConditionId: {ConditionId: refreshTestCadenceConditionId, Name: "Test Cadence", TriggerCount: 5, RoundInterval: 2},
 	})
 	defer restore()
 
 	bs := New()
-	if !bs.AddBuff(refreshTestCadenceBuffId, false) {
+	if !bs.AddCondition(refreshTestCadenceConditionId, false) {
 		t.Fatal("precondition: could not grant the cadence buff")
 	}
 
@@ -37,11 +37,11 @@ func TestRefreshBuff_KeepsCadenceAcrossRepeatedRefreshes(t *testing.T) {
 		triggered := bs.Trigger()
 		triggerTotal += len(triggered)
 
-		if !bs.RefreshBuff(refreshTestCadenceBuffId) {
+		if !bs.RefreshCondition(refreshTestCadenceConditionId) {
 			t.Fatalf("round %d: RefreshBuff returned false for a held buff", round)
 		}
 
-		idx := bs.buffIds[refreshTestCadenceBuffId]
+		idx := bs.conditionIds[refreshTestCadenceConditionId]
 		if got := bs.List[idx].TriggersLeft; got != 5 {
 			t.Fatalf("round %d: TriggersLeft = %d, want 5 (topped back up)", round, got)
 		}
@@ -55,23 +55,23 @@ func TestRefreshBuff_KeepsCadenceAcrossRepeatedRefreshes(t *testing.T) {
 // A permanent held buff (isPermanent true on AddBuff) must stay permanent
 // through a refresh: RefreshBuff must not read the spec's finite TriggerCount
 // over top of TriggersLeftUnlimited, and must not touch PermaBuff.
-func TestRefreshBuff_LeavesAPermanentBuffPermanent(t *testing.T) {
-	restore := SeedBuffsForTest(map[int]*BuffSpec{
-		refreshTestPermaBuffId: {BuffId: refreshTestPermaBuffId, Name: "Test Perma", TriggerCount: 3, RoundInterval: 1},
+func TestRefreshCondition_LeavesAPermanentConditionPermanent(t *testing.T) {
+	restore := SeedConditionsForTest(map[int]*ConditionSpec{
+		refreshTestPermanentConditionId: {ConditionId: refreshTestPermanentConditionId, Name: "Test Perma", TriggerCount: 3, RoundInterval: 1},
 	})
 	defer restore()
 
 	bs := New()
-	if !bs.AddBuff(refreshTestPermaBuffId, true) {
+	if !bs.AddCondition(refreshTestPermanentConditionId, true) {
 		t.Fatal("precondition: could not grant the permanent buff")
 	}
 
-	if !bs.RefreshBuff(refreshTestPermaBuffId) {
+	if !bs.RefreshCondition(refreshTestPermanentConditionId) {
 		t.Fatal("RefreshBuff returned false for a held permanent buff")
 	}
 
-	idx := bs.buffIds[refreshTestPermaBuffId]
-	if !bs.List[idx].PermaBuff {
+	idx := bs.conditionIds[refreshTestPermanentConditionId]
+	if !bs.List[idx].Permanent {
 		t.Error("RefreshBuff cleared PermaBuff on a permanent buff")
 	}
 	if got := bs.List[idx].TriggersLeft; got != TriggersLeftUnlimited {
@@ -80,14 +80,14 @@ func TestRefreshBuff_LeavesAPermanentBuffPermanent(t *testing.T) {
 }
 
 // An id never granted is not held, so nothing to refresh.
-func TestRefreshBuff_UnheldIdReturnsFalse(t *testing.T) {
-	restore := SeedBuffsForTest(map[int]*BuffSpec{
-		refreshTestUnheldBuffId: {BuffId: refreshTestUnheldBuffId, Name: "Test Unheld", TriggerCount: 3, RoundInterval: 1},
+func TestRefreshCondition_UnheldIdReturnsFalse(t *testing.T) {
+	restore := SeedConditionsForTest(map[int]*ConditionSpec{
+		refreshTestUnheldConditionId: {ConditionId: refreshTestUnheldConditionId, Name: "Test Unheld", TriggerCount: 3, RoundInterval: 1},
 	})
 	defer restore()
 
 	bs := New()
-	if bs.RefreshBuff(refreshTestUnheldBuffId) {
+	if bs.RefreshCondition(refreshTestUnheldConditionId) {
 		t.Error("RefreshBuff returned true for an id never added")
 	}
 }
@@ -96,17 +96,17 @@ func TestRefreshBuff_UnheldIdReturnsFalse(t *testing.T) {
 // indexes it into buffIds before checking whether GetBuffSpec finds anything,
 // so the id is "held" by the buffIds map despite having no live spec. Refresh
 // must decline rather than guess a TriggerCount.
-func TestRefreshBuff_HeldDeadIdReturnsFalse(t *testing.T) {
-	restore := SeedBuffsForTest(map[int]*BuffSpec{})
+func TestRefreshCondition_HeldDeadIdReturnsFalse(t *testing.T) {
+	restore := SeedConditionsForTest(map[int]*ConditionSpec{})
 	defer restore()
 
-	bs := Buffs{List: []*Buff{{BuffId: refreshTestDeadBuffId, TriggersLeft: 3}}}
+	bs := Conditions{List: []*Condition{{ConditionId: refreshTestDeadConditionId, TriggersLeft: 3}}}
 	bs.Validate()
 
-	if _, ok := bs.buffIds[refreshTestDeadBuffId]; !ok {
+	if _, ok := bs.conditionIds[refreshTestDeadConditionId]; !ok {
 		t.Fatal("precondition: Validate should have indexed the dead id anyway")
 	}
-	if bs.RefreshBuff(refreshTestDeadBuffId) {
+	if bs.RefreshCondition(refreshTestDeadConditionId) {
 		t.Error("RefreshBuff returned true for a held buff with no live spec")
 	}
 }
@@ -119,18 +119,18 @@ func TestRefreshBuff_HeldDeadIdReturnsFalse(t *testing.T) {
 // misreport its duration as the spec default rather than its longest stack.
 // Room buff paths call this (rooms.go), so a stacking bleed authored into a
 // room's buffids would otherwise get exactly this treatment on every visit.
-func TestRefreshBuff_RefusesAStackingSpec(t *testing.T) {
+func TestRefreshCondition_RefusesAStackingSpec(t *testing.T) {
 	spec := stackingSpec()
-	restore := SeedBuffsForTest(map[int]*BuffSpec{spec.BuffId: spec})
+	restore := SeedConditionsForTest(map[int]*ConditionSpec{spec.ConditionId: spec})
 	defer restore()
 
 	bs := New()
-	bs.AddBuffMagnitude(spec.BuffId, 3, -2)
-	bs.AddBuffMagnitude(spec.BuffId, 5, -3)
+	bs.AddConditionMagnitude(spec.ConditionId, 3, -2)
+	bs.AddConditionMagnitude(spec.ConditionId, 5, -3)
 	wantStacks := append([]Stack{}, bs.List[0].Stacks...)
 	wantTriggersLeft := bs.List[0].TriggersLeft
 
-	if bs.RefreshBuff(spec.BuffId) {
+	if bs.RefreshCondition(spec.ConditionId) {
 		t.Fatal("RefreshBuff must refuse a stacking spec")
 	}
 	if got := bs.List[0].Stacks; !reflect.DeepEqual(got, wantStacks) {

@@ -38,7 +38,7 @@ func getAllMatchingFromFloor(user *users.UserRecord, room *rooms.Room, itemName 
 			break
 		}
 
-		user.Character.CancelBuffsWithFlag(conditions.Hidden)
+		user.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 		if user.Character.StoreItem(matchItem) {
 			room.RemoveItem(matchItem, false)
@@ -385,7 +385,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 			if corpse.Loot.Gold < 1 {
 				user.SendText(messaging.CategorySystem, "There's no gold to grab.")
 			} else {
-				user.Character.CancelBuffsWithFlag(conditions.Hidden) // No longer sneaking
+				user.Character.CancelConditionsWithFlag(conditions.Hidden) // No longer sneaking
 
 				amt := corpse.Loot.Gold
 				corpse.Loot.Gold -= amt
@@ -417,7 +417,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 			return true, nil
 		}
 
-		user.Character.CancelBuffsWithFlag(conditions.Hidden) // No longer sneaking
+		user.Character.CancelConditionsWithFlag(conditions.Hidden) // No longer sneaking
 
 		if user.Character.StoreItem(matchItem) {
 			events.AddToQueue(events.ItemOwnership{
@@ -505,7 +505,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 				user.SendText(messaging.CategorySystem, "There's no gold to grab.")
 			} else {
 
-				user.Character.CancelBuffsWithFlag(conditions.Hidden) // No longer sneaking
+				user.Character.CancelConditionsWithFlag(conditions.Hidden) // No longer sneaking
 
 				goldAmt := container.Gold
 				user.Character.Gold += goldAmt
@@ -535,7 +535,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 			user.SendText(messaging.CategorySystem, fmt.Sprintf(`You don't see a %s in the <ansi fg="container">%s</ansi>.`, rest, containerName))
 		} else {
 
-			user.Character.CancelBuffsWithFlag(conditions.Hidden) // No longer sneaking
+			user.Character.CancelConditionsWithFlag(conditions.Hidden) // No longer sneaking
 
 			// Trigger onFound event
 			if user.Character.StoreItem(matchItem) {
@@ -580,7 +580,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 				user.SendText(messaging.CategorySystem, "There's no gold to grab.")
 			} else {
 
-				user.Character.CancelBuffsWithFlag(conditions.Hidden) // No longer sneaking
+				user.Character.CancelConditionsWithFlag(conditions.Hidden) // No longer sneaking
 
 				goldAmt := room.Gold
 				if err := actions.GetGoldFromFloor(&actions.UserActor{User: user, Room: room}, goldAmt); err == nil {
@@ -658,7 +658,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		}
 
 		if found {
-			user.Character.CancelBuffsWithFlag(conditions.Hidden) // No longer sneaking
+			user.Character.CancelConditionsWithFlag(conditions.Hidden) // No longer sneaking
 
 			if getFromStash {
 				user.SendText(messaging.CategorySystem,

@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/stretchr/testify/assert"
@@ -25,33 +25,33 @@ import (
 // this test invented.
 
 const (
-	brokenLimbBuffFile = "../../_datafiles/world/dogmud/buffs/83-broken_limb.yaml"
-	stunnedBuffFile    = "../../_datafiles/world/dogmud/buffs/84-stunned.yaml"
+	brokenLimbConditionFile = "../../_datafiles/world/dogmud/buffs/83-broken_limb.yaml"
+	stunnedConditionFile    = "../../_datafiles/world/dogmud/buffs/84-stunned.yaml"
 )
 
-// loadAuthoredBuffSpec reads one shipped buff file into a spec.
-func loadAuthoredBuffSpec(t *testing.T, path string, wantId int) *conditions.BuffSpec {
+// loadAuthoredConditionSpec reads one shipped buff file into a spec.
+func loadAuthoredConditionSpec(t *testing.T, path string, wantId int) *conditions.ConditionSpec {
 	t.Helper()
 	raw, err := os.ReadFile(path)
 	require.NoError(t, err, "the shipped buff file must be readable from internal/hooks")
-	var spec conditions.BuffSpec
+	var spec conditions.ConditionSpec
 	require.NoError(t, yaml.Unmarshal(raw, &spec))
-	require.Equal(t, wantId, spec.BuffId, "%s must be the buff this narration covers", path)
+	require.Equal(t, wantId, spec.ConditionId, "%s must be the buff this narration covers", path)
 	require.NotEmpty(t, spec.StartUserText, "%s must carry start_user_text", path)
 	require.Contains(t, spec.Flags, conditions.SilentStart,
 		"%s must be silent-start, or the event path would narrate it twice", path)
 	return &spec
 }
 
-// seedAuthoredSubmissionBuffs installs the two shipped specs and returns both
+// seedAuthoredSubmissionConditions installs the two shipped specs and returns both
 // the restore func and their authored lines, tag-stripped for comparison.
-func seedAuthoredSubmissionBuffs(t *testing.T) (restore func(), brokenLine, stunnedLine string) {
+func seedAuthoredSubmissionConditions(t *testing.T) (restore func(), brokenLine, stunnedLine string) {
 	t.Helper()
-	broken := loadAuthoredBuffSpec(t, brokenLimbBuffFile, combat.BrokenLimbBuffId)
-	stunned := loadAuthoredBuffSpec(t, stunnedBuffFile, combat.StunnedBuffId)
-	restore = conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		broken.BuffId:  broken,
-		stunned.BuffId: stunned,
+	broken := loadAuthoredConditionSpec(t, brokenLimbConditionFile, combat.BrokenLimbConditionId)
+	stunned := loadAuthoredConditionSpec(t, stunnedConditionFile, combat.StunnedConditionId)
+	restore = conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		broken.ConditionId:  broken,
+		stunned.ConditionId: stunned,
 	})
 	return restore, plainText(broken.StartUserText), plainText(stunned.StartUserText)
 }
@@ -59,7 +59,7 @@ func seedAuthoredSubmissionBuffs(t *testing.T) (restore func(), brokenLine, stun
 func TestSubmissionStunIsNarratedToAPlayerVictim(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore, _, stunnedLine := seedAuthoredSubmissionBuffs(t)
+	restore, _, stunnedLine := seedAuthoredSubmissionConditions(t)
 	defer restore()
 	drainPlain(1)
 
@@ -78,7 +78,7 @@ func TestSubmissionStunIsNarratedToAPlayerVictim(t *testing.T) {
 func TestSubmissionBrokenLimbIsNarratedToAPlayerVictim(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore, brokenLine, _ := seedAuthoredSubmissionBuffs(t)
+	restore, brokenLine, _ := seedAuthoredSubmissionConditions(t)
 	defer restore()
 	drainPlain(1)
 
@@ -103,7 +103,7 @@ func TestSubmissionBrokenLimbIsNarratedToAPlayerVictim(t *testing.T) {
 func TestSubmissionEffectsNarrateOnlyToTheVictim(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore, brokenLine, stunnedLine := seedAuthoredSubmissionBuffs(t)
+	restore, brokenLine, stunnedLine := seedAuthoredSubmissionConditions(t)
 	defer restore()
 	drainPlain(1)
 	drainPlain(2)
@@ -128,7 +128,7 @@ func TestSubmissionEffectsNarrateOnlyToTheVictim(t *testing.T) {
 func TestSubmissionEffectsSayNothingToAMobVictim(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore, brokenLine, stunnedLine := seedAuthoredSubmissionBuffs(t)
+	restore, brokenLine, stunnedLine := seedAuthoredSubmissionConditions(t)
 	defer restore()
 	drainPlain(1)
 	drainPlain(2)
@@ -153,7 +153,7 @@ func TestSubmissionEffectsSayNothingToAMobVictim(t *testing.T) {
 func TestSubmissionEffectsWithNothingAppliedSendNothing(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore, _, _ := seedAuthoredSubmissionBuffs(t)
+	restore, _, _ := seedAuthoredSubmissionConditions(t)
 	defer restore()
 	drainPlain(1)
 

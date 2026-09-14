@@ -21,7 +21,7 @@ func buildMutationMob(t *testing.T, instanceId int, mobId mobs.MobId, roomId int
 	mob.Character.HealthMax.Value = 100
 	mob.Character.Stamina = 100
 	mob.Character.StaminaMax.Value = 100
-	mob.Character.Buffs = conditions.New()
+	mob.Character.Conditions = conditions.New()
 	mob.Character.Stats.Strength.ValueAdj = 100
 	mob.Character.Stats.Dexterity.ValueAdj = 100
 	mob.Character.Stats.Vitality.ValueAdj = 100

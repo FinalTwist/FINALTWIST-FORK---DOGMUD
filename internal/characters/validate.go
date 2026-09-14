@@ -190,11 +190,11 @@ func (c *Character) RecalculateStats() {
 	// Source matches a pool wins. A record with no matching Source is
 	// mis-sourced and is skipped rather than ending the loop, so it cannot
 	// shadow a valid record later in the list.
-	for _, b := range c.Buffs.List {
+	for _, b := range c.Conditions.List {
 		if b.Expired() {
 			continue
 		}
-		spec := conditions.GetBuffSpec(b.BuffId)
+		spec := conditions.GetConditionSpec(b.ConditionId)
 		if spec == nil {
 			continue
 		}
@@ -588,7 +588,7 @@ func (c *Character) validateMutationSlots() {
 }
 
 // Returns whether a correction was in order
-func (c *Character) Validate(recalcPermaBuffs ...bool) error {
+func (c *Character) Validate(recalcPermanentConditions ...bool) error {
 
 	if c == nil {
 		return errors.New("cannot validate a nil character")
@@ -691,7 +691,7 @@ func (c *Character) Validate(recalcPermaBuffs ...bool) error {
 	if c.Name == "" {
 		c.Name = defaultName
 	}
-	c.Buffs.Validate()
+	c.Conditions.Validate()
 
 	// Ensure all known skills exist at rank 1 minimum.
 	c.Skills = ensureAllSkills(c.Skills)
@@ -715,8 +715,8 @@ func (c *Character) Validate(recalcPermaBuffs ...bool) error {
 	// Apply mutation-driven slot rules (extra arms, tail, disable-legs).
 	c.validateMutationSlots()
 
-	if len(recalcPermaBuffs) > 0 && recalcPermaBuffs[0] {
-		c.reapplyPermabuffs()
+	if len(recalcPermanentConditions) > 0 && recalcPermanentConditions[0] {
+		c.reapplyPermanentConditions()
 	}
 
 	// Record identity on the CombatPhase machine. Idempotent and zero-ref safe,

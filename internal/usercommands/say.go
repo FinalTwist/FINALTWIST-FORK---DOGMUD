@@ -20,7 +20,7 @@ func Say(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		return true, nil
 	}
 
-	if user.Character.HasBuffFlag(conditions.Drunk) {
+	if user.Character.HasConditionFlag(conditions.Drunk) {
 		rest = drunkify(rest)
 	}
 

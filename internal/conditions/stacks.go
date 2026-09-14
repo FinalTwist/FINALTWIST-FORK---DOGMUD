@@ -13,14 +13,14 @@ type Stack struct {
 }
 
 // IsStacking reports whether the spec carries the Stacking flag.
-func (b *BuffSpec) IsStacking() bool {
+func (b *ConditionSpec) IsStacking() bool {
 	return slices.Contains(b.Flags, Stacking)
 }
 
 // DisplayName is the name a condition list shows for a held record: the
 // spec's name, with the live stack count appended when more than one stack is
 // live ("Bleeding (3)").
-func DisplayName(b *Buff, spec *BuffSpec) string {
+func DisplayName(b *Condition, spec *ConditionSpec) string {
 	if len(b.Stacks) > 1 {
 		return spec.Name + " (" + strconv.Itoa(len(b.Stacks)) + ")"
 	}
@@ -54,17 +54,17 @@ func tickAmountFor(magnitude float64) int {
 // an expired, unpruned record should already hold none. The clear below is a
 // cheap defensive second guard, not the primary defense, for a record that
 // somehow reached TriggersLeft <= 0 without going through expire().
-func (bs *Buffs) addStack(spec *BuffSpec, rounds int, magnitude float64) bool {
+func (bs *Conditions) addStack(spec *ConditionSpec, rounds int, magnitude float64) bool {
 	if magnitude == 0 {
 		return false
 	}
-	if idx, ok := bs.buffIds[spec.BuffId]; ok && bs.List[idx].Expired() {
+	if idx, ok := bs.conditionIds[spec.ConditionId]; ok && bs.List[idx].Expired() {
 		bs.List[idx].Stacks = nil
 	}
-	if !bs.addBuffScaled(spec.BuffId, 1.0) {
+	if !bs.addConditionScaled(spec.ConditionId, 1.0) {
 		return false
 	}
-	idx, ok := bs.buffIds[spec.BuffId]
+	idx, ok := bs.conditionIds[spec.ConditionId]
 	if !ok {
 		return false
 	}
@@ -87,7 +87,7 @@ func (bs *Buffs) addStack(spec *BuffSpec, rounds int, magnitude float64) bool {
 // dropped), which is a different figure from Magnitude once any tick has
 // happened. Between ticks, a caller that wants "the whole bleed" should read
 // Stacks or Magnitude, never TickAmount.
-func (b *Buff) syncStacks() {
+func (b *Condition) syncStacks() {
 	longest, sum := 0, 0
 	for _, s := range b.Stacks {
 		longest = max(longest, s.RoundsLeft)
@@ -104,7 +104,7 @@ func (b *Buff) syncStacks() {
 // spent ones drop; TriggersLeft becomes the longest remaining stack and
 // Magnitude the sum still to come. Returns false, having expired the record,
 // when there are no stacks to tick.
-func (b *Buff) tickStacks() bool {
+func (b *Condition) tickStacks() bool {
 	if len(b.Stacks) == 0 {
 		b.expire()
 		return false

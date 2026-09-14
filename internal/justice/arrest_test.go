@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/bounties"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -941,14 +941,14 @@ func TestExecuteArrest_FallsBackToStaticCellOnInstanceFailure(t *testing.T) {
 	}
 }
 
-// TestExecuteArrest_PlayerReadsTheJailStartLineAndHoldsTheBuff pins both halves
+// TestExecuteArrest_PlayerReadsTheJailStartLineAndHoldsTheCondition pins both halves
 // of the arrest's buff delivery. Buff 88 is applied synchronously on the
 // character because its no-go and no-aggro-target flags are read within the
 // same round dispatch as the arrest, so it cannot travel the event that
 // narrates a buff start; it is flagged silent-start and ExecuteArrest owes the
 // player the line instead. Before that send existed, a jailed player read
 // nothing about being held until their sentence was served or their fine paid.
-func TestExecuteArrest_PlayerReadsTheJailStartLineAndHoldsTheBuff(t *testing.T) {
+func TestExecuteArrest_PlayerReadsTheJailStartLineAndHoldsTheCondition(t *testing.T) {
 	const startLine = "The cell door clangs shut behind you."
 	const arrestedUserId = 8801
 
@@ -967,9 +967,9 @@ func TestExecuteArrest_PlayerReadsTheJailStartLineAndHoldsTheBuff(t *testing.T) 
 	aDecayFn = func() int { return 5 }
 	bNowFn = func() uint64 { return 100 }
 
-	restoreBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		jailedBuffId: {
-			BuffId:        jailedBuffId,
+	restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		jailedConditionId: {
+			ConditionId:   jailedConditionId,
 			Name:          "Jailed",
 			Flags:         []conditions.Flag{conditions.SilentStart},
 			TriggerCount:  1,
@@ -977,7 +977,7 @@ func TestExecuteArrest_PlayerReadsTheJailStartLineAndHoldsTheBuff(t *testing.T) 
 			StartUserText: startLine,
 		},
 	})
-	defer restoreBuffs()
+	defer restoreConditions()
 
 	u := users.NewTestUser(arrestedUserId, "jailbird", "Jailbird", 0)
 	restoreUsers := users.SeedUsersForTest(map[int]*users.UserRecord{arrestedUserId: u})
@@ -991,7 +991,7 @@ func TestExecuteArrest_PlayerReadsTheJailStartLineAndHoldsTheBuff(t *testing.T) 
 
 	// Synchronous: the no-go flag has to be in place before this returns, or a
 	// spamming player walks out of the cell before the buff lands.
-	if !u.Character.HasBuff(jailedBuffId) {
+	if !u.Character.HasCondition(jailedConditionId) {
 		t.Errorf("the Jailed buff must be held the moment ExecuteArrest returns, not queued")
 	}
 

@@ -15,7 +15,7 @@ func newCargoTestMob(instId, mobId int, name string) *mobs.Mob {
 		InstanceId: instId,
 	}
 	m.Character.Name = name
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	// Carry capacity needs to be high enough for transfer tests.
 	// Real strength happens at instance-creation time via stat training;
 	// for unit testing we can set the cap-derived field directly if

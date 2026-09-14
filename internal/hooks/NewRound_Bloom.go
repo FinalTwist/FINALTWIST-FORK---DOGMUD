@@ -41,7 +41,7 @@ func BloomTick(e events.Event) events.ListenerReturn {
 		// user.Character is *characters.Character — use directly.
 		c := user.Character
 
-		hasCommunion := c.HasBuff(90)
+		hasCommunion := c.HasCondition(90)
 
 		// ── 1. Crash on Communion end ─────────────────────────────────────────
 		// BloomHadCommunion was set to true last tick while buff 90 was active.
@@ -55,7 +55,7 @@ func BloomTick(e events.Event) events.ListenerReturn {
 		// hand-rolled warning that used to sit here said the same thing in
 		// different words, so it goes rather than double up on the authored one.
 		if c.BloomHadCommunion && !hasCommunion {
-			user.AddBuffScaled(91, float64(bal.BloomCrashRoundsMult), "bloom")
+			user.AddConditionScaled(91, float64(bal.BloomCrashRoundsMult), "bloom")
 		}
 		// Always mirror the current state for the next tick's detection.
 		c.BloomHadCommunion = hasCommunion
@@ -73,8 +73,8 @@ func BloomTick(e events.Event) events.ListenerReturn {
 				// Through the user record, for the same reason as the crash
 				// above: buff 92's authored start line is the one door, and the
 				// duplicate warning that used to follow this call is gone.
-				if !c.HasBuff(92) {
-					user.AddBuffScaled(92, 1.0, "bloom") // baseline 200 rounds
+				if !c.HasCondition(92) {
+					user.AddConditionScaled(92, 1.0, "bloom") // baseline 200 rounds
 				}
 			}
 		}
@@ -91,7 +91,7 @@ func BloomTick(e events.Event) events.ListenerReturn {
 				c.BloomLastDoseRound += decayRounds
 				if c.BloomAddiction == 0 {
 					// Fully clean: remove any lingering Withdrawal buff.
-					c.RemoveBuff(92)
+					c.RemoveCondition(92)
 					user.SendText(messaging.CategoryWarning,
 						`The craving has finally loosened its grip. You feel `+
 							`clean — or as close to it as you're likely to get.`)

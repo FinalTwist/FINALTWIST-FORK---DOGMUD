@@ -336,8 +336,8 @@ func HandleQuestUpdate(e events.Event) events.ListenerReturn {
 			}
 		}
 		// Buff reward?
-		if questInfo.Rewards.BuffId > 0 {
-			questUser.AddBuff(questInfo.Rewards.BuffId, `quest`)
+		if questInfo.Rewards.ConditionId > 0 {
+			questUser.AddCondition(questInfo.Rewards.ConditionId, `quest`)
 		}
 		// Stage 3.5: XP rewards removed. Progression is skill-based.
 		// Skill reward? Supports one OR several skills (see parseSkillGrants).

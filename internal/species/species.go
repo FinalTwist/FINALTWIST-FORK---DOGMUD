@@ -29,12 +29,12 @@ const (
 )
 
 type Species struct {
-	SpeciesId   int `yaml:"speciesid"`
-	Name        string
-	Description string
-	BuffIds     []int `yaml:"buffids"` // Permabuffs this species always has. The tag pins the file key through the slice 2 rename.
-	Size        Size
-	UnarmedName string
+	SpeciesId    int `yaml:"speciesid"`
+	Name         string
+	Description  string
+	ConditionIds []int `yaml:"buffids"` // Permabuffs this species always has. The tag pins the file key through the slice 2 rename.
+	Size         Size
+	UnarmedName  string
 	// NaturalAttack is the combat-message subtype an unarmed member of this
 	// species uses for BASIC attacks (e.g. items.Bite, items.Claws). Empty =>
 	// humanoid default (Unarmed -> generic). Must be a known items.ItemSubType
@@ -338,7 +338,7 @@ func ValidateBodyPartTags(mutationIdExists func(id string) bool) {
 	}
 }
 
-// ValidateSpeciesBuffIds scans all loaded species and panics on any buff id
+// ValidateSpeciesConditionIds scans all loaded species and panics on any buff id
 // that does not exist. Called from main after species + buffs are loaded.
 //
 // buffIdExists is a callback for cross-package lookup — pass buffs.HasSpec.
@@ -347,10 +347,10 @@ func ValidateBodyPartTags(mutationIdExists func(id string) bool) {
 // This exists because buff 29 (Night Vision) was referenced by eight species
 // and absent from dogmud entirely, so 67 mobs of 641 were silently blind in
 // their own caves. Nothing failed, because nothing checked.
-func ValidateSpeciesBuffIds(buffIdExists func(id int) bool) {
+func ValidateSpeciesConditionIds(conditionIdExists func(id int) bool) {
 	for _, sp := range allSpecies {
-		for _, id := range sp.BuffIds {
-			if !buffIdExists(id) {
+		for _, id := range sp.ConditionIds {
+			if !conditionIdExists(id) {
 				panic(fmt.Sprintf(
 					"species %q (id %d): unknown buff id in buffids: %d",
 					sp.Name, sp.SpeciesId, id))

@@ -30,7 +30,7 @@ func TestActAttack_MobAttacker_TargetsAttackerNotRandomPlayer(t *testing.T) {
 	defender.Character.Name = "ketil"
 	defender.Character.RoomId = 10001
 	defender.Character.Health = 100
-	defender.Character.Buffs = conditions.New()
+	defender.Character.Conditions = conditions.New()
 
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{357: defender},

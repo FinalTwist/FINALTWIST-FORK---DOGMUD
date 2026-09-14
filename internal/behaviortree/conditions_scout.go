@@ -49,7 +49,7 @@ func condMobIsTracking(params map[string]any, ctx *EvalContext) Result {
 	if mob == nil {
 		return Failure
 	}
-	if mob.Character.HasBuff(86) {
+	if mob.Character.HasCondition(86) {
 		return Success
 	}
 	return Failure

@@ -37,7 +37,7 @@ func Sleep(actor Actor, opts SleepOptions) SleepResult {
 	}
 
 	// Idempotent: already sleeping — nothing to do.
-	if c.HasBuffFlag(conditions.Sleeping) {
+	if c.HasConditionFlag(conditions.Sleeping) {
 		return SleepResult{Success: true}
 	}
 
@@ -58,7 +58,7 @@ func Sleep(actor Actor, opts SleepOptions) SleepResult {
 	// have drained.) Buff 15 is therefore flagged silent-start, and the applier
 	// owes the holder the start line: that is what the SendText below is for.
 	// The buff YAML has no room text, so the third-person visual is also ours.
-	if err := c.AddBuff(15, false); err != nil {
+	if err := c.AddCondition(15, false); err != nil {
 		// Never surface the raw internal error (it leaks the buff id). Log it
 		// for ops and give the player clean flavor.
 		mudlog.Error("Sleep", "msg", "AddBuff(15 Sleeping) failed", "actor", actor.GetName(), "error", err)
@@ -73,7 +73,7 @@ func Sleep(actor Actor, opts SleepOptions) SleepResult {
 	// AuthoredStartLine, not StartUserNotice(), which is empty by design for a
 	// silent-start buff. A mob holder has no client, so only a player gets it.
 	if actor.IsPlayer() {
-		if spec := conditions.GetBuffSpec(15); spec != nil {
+		if spec := conditions.GetConditionSpec(15); spec != nil {
 			// Tagged for {source}, plain for {source_plain}, the textutil
 			// contract every narration site follows. Buff 15's line carries no
 			// token today, so this is for the day one is authored.
@@ -82,7 +82,7 @@ func Sleep(actor Actor, opts SleepOptions) SleepResult {
 				SourcePlainName: c.GetCharacterName(false),
 			})
 			if line != "" {
-				actor.SendText(messaging.CategoryBuffApply, line)
+				actor.SendText(messaging.CategoryConditionApply, line)
 			}
 		}
 	}

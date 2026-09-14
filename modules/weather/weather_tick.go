@@ -30,8 +30,8 @@ func (m *weatherModule) startSim(round uint64) {
 	m.simCfg = m.cfg.simConfig()
 	m.loadContent()
 	m.loadSeasons()
-	if !m.cfg.BuffsEnabled {
-		n := engine.StripBuffs()
+	if !m.cfg.ConditionsEnabled {
+		n := engine.StripConditions()
 		mudlog.Info("Weather: buffs disabled by config", "specsStripped", n)
 	}
 	m.loadOrInitState(round)

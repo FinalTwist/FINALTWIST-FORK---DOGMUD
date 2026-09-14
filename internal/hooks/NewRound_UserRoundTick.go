@@ -9,8 +9,8 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/enchantments"
@@ -245,15 +245,15 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 					user.Character.Charmed.RoundsRemaining--
 				}
 
-				if triggeredBuffs := user.Character.Buffs.Trigger(); len(triggeredBuffs) > 0 {
+				if triggeredConditions := user.Character.Conditions.Trigger(); len(triggeredConditions) > 0 {
 
 					//
 					// Fire onTrigger for buff script
 					//
-					triggeredBuffIds := []int{}
-					for _, buff := range triggeredBuffs {
+					triggeredConditionIds := []int{}
+					for _, condition := range triggeredConditions {
 
-						trigBuffSpec := conditions.GetBuffSpec(buff.BuffId)
+						trigConditionSpec := conditions.GetConditionSpec(condition.ConditionId)
 
 						// Send YAML trigger text (if defined), including on
 						// the buff's final, expiring trigger. PruneBuffs'
@@ -286,17 +286,17 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						// expiring one; the prune pass's end line follows as
 						// the intended second line, not a replacement for the
 						// first.
-						if trigBuffSpec != nil && trigBuffSpec.Narration(conditions.PhaseTrigger).Len() > 0 {
-							roles := trigBuffSpec.Narrate(conditions.PhaseTrigger, textutil.TokenContext{
+						if trigConditionSpec != nil && trigConditionSpec.Narration(conditions.PhaseTrigger).Len() > 0 {
+							roles := trigConditionSpec.Narrate(conditions.PhaseTrigger, textutil.TokenContext{
 								SourceName:      user.Character.GetCharacterName(true),
 								SourcePlainName: user.Character.GetCharacterName(false),
 							})
 							if roles.Actee != "" {
-								user.SendText(messaging.CategoryBuffApply, roles.Actee)
+								user.SendText(messaging.CategoryConditionApply, roles.Actee)
 							}
 							if roles.Observer != "" {
 								if r := rooms.LoadRoom(user.Character.RoomId); r != nil {
-									r.SendTextVisual(messaging.CategoryBuffApply, roles.Observer, user.UserId) // visual: see Buff_ApplyBuffs.go start text
+									r.SendTextVisual(messaging.CategoryConditionApply, roles.Observer, user.UserId) // visual: see Buff_ApplyBuffs.go start text
 								}
 							}
 						}
@@ -309,11 +309,11 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						// compute and cache it here (e.g. hazard-room DoTs).
 						// Runs on EVERY trigger, including the final one that
 						// also expires the buff (see the note above).
-						if trigBuffSpec != nil && trigBuffSpec.TickPool != "" {
-							tickAmt := buff.TickAmount
+						if trigConditionSpec != nil && trigConditionSpec.TickPool != "" {
+							tickAmt := condition.TickAmount
 							if tickAmt == 0 {
 								var maxPool int
-								switch trigBuffSpec.TickPool {
+								switch trigConditionSpec.TickPool {
 								case "health":
 									maxPool = user.Character.HealthMax.Value
 								case "stamina":
@@ -321,8 +321,8 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 								case "conviction":
 									maxPool = user.Character.ConvictionMax.Value
 								}
-								tickAmt = conditions.ComputeTickAmount(maxPool, trigBuffSpec.TickPercent, trigBuffSpec.TickVariance, trigBuffSpec.TickMin, 1.0)
-								user.Character.Buffs.SetTickAmount(buff.BuffId, tickAmt)
+								tickAmt = conditions.ComputeTickAmount(maxPool, trigConditionSpec.TickPercent, trigConditionSpec.TickVariance, trigConditionSpec.TickMin, 1.0)
+								user.Character.Conditions.SetTickAmount(condition.ConditionId, tickAmt)
 							}
 							// tickAmt is SIGNED: buffs.ComputeTickAmount returns a
 							// negative value for TickPercent < 0, so this is a
@@ -334,7 +334,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 							//
 							// DoT buffs carry no applier, so the harm source is
 							// anonymous (state.ActorRef{}). See ApplyHarm's docstring.
-							switch trigBuffSpec.TickPool {
+							switch trigConditionSpec.TickPool {
 							case "health":
 								if tickAmt > 0 {
 									user.Character.ApplyRestore(characters.PoolHealth, tickAmt)
@@ -344,14 +344,14 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 									// cancel-on-damage records, as the poison and
 									// bleed hook always did (slice 1, change 5).
 									cancelCraftOrSalvageOnDamage(user.Character)
-									cancelDamageBuffs(user.Character)
+									cancelDamageConditions(user.Character)
 									// Capture the cause at the moment the tick lands: a
 									// tick that is the record's last trigger arrives
 									// already Expired (Buffs.Trigger decrements
 									// TriggersLeft before returning it), and the record
 									// can also be pruned before the death announcement
 									// listener runs. See tickCauseFor and deathCauseFor.
-									if cause := tickCauseFor(trigBuffSpec); cause != "" {
+									if cause := tickCauseFor(trigConditionSpec); cause != "" {
 										user.Character.LastTickCause = cause
 										user.Character.LastTickCauseRound = util.GetRoundCount()
 									}
@@ -371,11 +371,11 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 							}
 						}
 
-						triggeredBuffIds = append(triggeredBuffIds, buff.BuffId)
+						triggeredConditionIds = append(triggeredConditionIds, condition.ConditionId)
 
 					}
 
-					events.AddToQueue(events.BuffsTriggered{UserId: user.UserId, BuffIds: triggeredBuffIds})
+					events.AddToQueue(events.ConditionsTriggered{UserId: user.UserId, ConditionIds: triggeredConditionIds})
 				}
 
 				// Stage 7.5: Attempt automatic recovery from prone (contested
@@ -424,7 +424,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 				if user.Character.IsInCombat() {
 					// Blood Frenzy: enter/refresh the frenzy state while wounded.
 					if shouldFrenzy(mutations.HasMutationFlag(user.Character.Mutations, "battle-frenzy"), user.Character.Health, user.Character.HealthMax.Value) {
-						user.AddBuff(bloodFrenzyBuffId, "blood-frenzy")
+						user.AddCondition(bloodFrenzyConditionId, "blood-frenzy")
 					}
 					mb := configs.GetBalanceConfig()
 					canAcquire := len(user.Character.Mutations) < int(mb.MutationMaxCount)
@@ -437,7 +437,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						// used to hardcode. That 2.0 default is a balance number
 						// living in Go rather than config.yaml and belongs on the
 						// config audit list.
-						mutCatalystMult := user.Character.Buffs.ProgressMult(conditions.MutationRate)
+						mutCatalystMult := user.Character.Conditions.ProgressMult(conditions.MutationRate)
 						user.Character.MutationProgress += float64(mb.MutationProgressGainPerRound) * eyeMult * mutCatalystMult
 						// Phase 24.1: Use rarity-weighted load instead of flat event count
 						load := mutations.GetMutationLoad(user.Character.Mutations)

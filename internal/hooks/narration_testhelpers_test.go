@@ -36,33 +36,33 @@ func drainPlain(userId int) []string {
 
 // Buff ids for narration tests. Chosen well clear of the fixture's 100 and 101.
 const (
-	glowBuffId      = 7001 // start_room_text
-	shiverBuffId    = 7002 // trigger_room_text, fires every round
-	fadeBuffId      = 7003 // end_room_text
-	nightEyesBuffId = 7004 // grants NightVision; RoundInterval 0, so it never ticks
-	heatEyesBuffId  = 7005 // grants InfraredVision; RoundInterval 0, so it never ticks
-	lanternBuffId   = 7006 // a light source with end_room_text
-	dozeBuffId      = 7007 // puts the bearer to sleep; RoundInterval 0, so it never ticks
+	glowConditionId      = 7001 // start_room_text
+	shiverConditionId    = 7002 // trigger_room_text, fires every round
+	fadeConditionId      = 7003 // end_room_text
+	nightEyesConditionId = 7004 // grants NightVision; RoundInterval 0, so it never ticks
+	heatEyesConditionId  = 7005 // grants InfraredVision; RoundInterval 0, so it never ticks
+	lanternConditionId   = 7006 // a light source with end_room_text
+	dozeConditionId      = 7007 // puts the bearer to sleep; RoundInterval 0, so it never ticks
 )
 
-// seedNarrationBuffs installs the narration test buffs and returns the restore
+// seedNarrationConditions installs the narration test buffs and returns the restore
 // func. Call it AFTER `defer cleanup()` and `defer` its result, so it restores
 // before the fixture does: SeedBuffsForTest replaces the whole registry.
-func seedNarrationBuffs() func() {
-	return conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		glowBuffId: {BuffId: glowBuffId, Name: "Test Glow", RoundInterval: 5, TriggerCount: 3,
+func seedNarrationConditions() func() {
+	return conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		glowConditionId: {ConditionId: glowConditionId, Name: "Test Glow", RoundInterval: 5, TriggerCount: 3,
 			StartRoomText: "{source} glows."},
-		shiverBuffId: {BuffId: shiverBuffId, Name: "Test Shiver", RoundInterval: 1, TriggerCount: 3,
+		shiverConditionId: {ConditionId: shiverConditionId, Name: "Test Shiver", RoundInterval: 1, TriggerCount: 3,
 			TriggerRoomText: "{source} shivers."},
-		fadeBuffId: {BuffId: fadeBuffId, Name: "Test Fade", RoundInterval: 5, TriggerCount: 3,
+		fadeConditionId: {ConditionId: fadeConditionId, Name: "Test Fade", RoundInterval: 5, TriggerCount: 3,
 			EndRoomText: "{source} fades."},
-		nightEyesBuffId: {BuffId: nightEyesBuffId, Name: "Test Night Eyes",
+		nightEyesConditionId: {ConditionId: nightEyesConditionId, Name: "Test Night Eyes",
 			Flags: []conditions.Flag{conditions.NightVision}},
-		heatEyesBuffId: {BuffId: heatEyesBuffId, Name: "Test Heat Eyes",
+		heatEyesConditionId: {ConditionId: heatEyesConditionId, Name: "Test Heat Eyes",
 			Flags: []conditions.Flag{conditions.InfraredVision}},
-		lanternBuffId: {BuffId: lanternBuffId, Name: "Test Lantern", RoundInterval: 5, TriggerCount: 3,
+		lanternConditionId: {ConditionId: lanternConditionId, Name: "Test Lantern", RoundInterval: 5, TriggerCount: 3,
 			Flags: []conditions.Flag{conditions.EmitsLight}, EndRoomText: "{source}'s light gutters out."},
-		dozeBuffId: {BuffId: dozeBuffId, Name: "Test Doze",
+		dozeConditionId: {ConditionId: dozeConditionId, Name: "Test Doze",
 			Flags: []conditions.Flag{conditions.Sleeping}},
 	})
 }

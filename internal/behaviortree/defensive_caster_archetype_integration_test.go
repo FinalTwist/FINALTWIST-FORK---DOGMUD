@@ -27,7 +27,7 @@ func seedDefensiveCasterSpells(t *testing.T) func() {
 		"chrysalis-cocoon": {
 			SpellId: "chrysalis-cocoon", Name: "Chrysalis Cocoon",
 			Type: spells.HelpSingle, Cost: 60, BaseFolds: 8,
-			EffectType: "shield", EffectMagnitude: 125, BuffIds: []int{52},
+			EffectType: "shield", EffectMagnitude: 125, ConditionIds: []int{52},
 			Categories: []string{"self_defense"},
 		},
 		// self_heal
@@ -53,7 +53,7 @@ func seedDefensiveCasterSpells(t *testing.T) func() {
 		"nerve-disruption": {
 			SpellId: "nerve-disruption", Name: "Nerve Disruption",
 			Type: spells.HarmSingle, Cost: 40, BaseFolds: 5,
-			EffectType: "buff", BuffIds: []int{30},
+			EffectType: "buff", ConditionIds: []int{30},
 			Categories: []string{"harm_single"},
 		},
 		// harm_multi
@@ -81,7 +81,7 @@ func seedDefensiveCasterMob(t *testing.T, instanceId int, spellbook map[string]i
 	m.Character.Health = 100
 	m.Character.HealthMax.Value = 100
 	m.Character.SpellBook = spellbook
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{500 + instanceId: m},
 		map[int]*mobs.Mob{instanceId: m},
@@ -89,12 +89,12 @@ func seedDefensiveCasterMob(t *testing.T, instanceId int, spellbook map[string]i
 	return m, cleanup
 }
 
-// TestDefensiveCaster_FullHP_Unbuffed_CastsCocoonFirst verifies the
+// TestDefensiveCaster_FullHP_WithoutConditions_CastsCocoonFirst verifies the
 // goblin_shaman/tunnel_shaman/elemental_queen spellbook shape (219/74/321,
 // as content-fixed alongside this rewrite): full HP, no buffs, single
 // self_defense candidate (chrysalis-cocoon) wins the self_defense branch
 // before harm is ever considered.
-func TestDefensiveCaster_FullHP_Unbuffed_CastsCocoonFirst(t *testing.T) {
+func TestDefensiveCaster_FullHP_WithoutConditions_CastsCocoonFirst(t *testing.T) {
 	defer seedDefensiveCasterSpells(t)()
 	LoadArchetypeForTest(t, "defensive_caster", defensiveCasterYAML)
 
@@ -144,7 +144,7 @@ func TestDefensiveCaster_CocoonActive_SingleEnemy_CastsHarmSingle(t *testing.T) 
 	// Buff 52 is what chrysalis-cocoon's cast actually grants; seeding it
 	// is what makes spellEffectAlreadyActive skip the spell via the
 	// BuffIds branch.
-	defer seedBuffOnChar(t, &mob.Character, 52)()
+	defer seedConditionOnChar(t, &mob.Character, 52)()
 
 	ok := TryMobBehavior(mob.InstanceId, EventContext{EventType: "mob_combat_round"})
 	if !ok {

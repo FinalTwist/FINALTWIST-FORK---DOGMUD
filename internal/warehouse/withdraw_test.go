@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -144,7 +144,7 @@ func setupReleaseTestFixtures(t *testing.T, stock []shops.StockEntry) func() {
 		Zone:       releaseTestZone,
 	}
 	vendor.Character.Name = "TestReleaseVendor"
-	vendor.Character.Buffs = conditions.New()
+	vendor.Character.Conditions = conditions.New()
 	vendor.Character.RoomId = releaseTestRoomId
 	vendor.Character.Shop = characters.Shop{
 		{ItemId: 1, QuantityMax: 5, Quantity: 5},

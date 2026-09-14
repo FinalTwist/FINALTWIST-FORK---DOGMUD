@@ -16,8 +16,8 @@
 {{- range $statName, $qty := $spec.StatMods }}{{ $hasMods = true }}
    {{ statModDescription $statName $qty }}
 {{- end }}
-{{- if gt (len $spec.BuffIds) 0 }}{{ $hasMods = true }}
-{{- range $idx, $buffId := $spec.BuffIds }}
+{{- if gt (len $spec.ConditionIds) 0 }}{{ $hasMods = true }}
+{{- range $idx, $buffId := $spec.ConditionIds }}
    <ansi fg="yellow">Applies:</ansi>     <ansi fg="spellname">{{ buffname $buffId }}</ansi> - {{ buffduration $buffId }}
 {{- end }}{{ end }}
 {{- if not $hasMods }}
@@ -30,8 +30,8 @@
    It's <ansi fg="red-bold">CURSED!</ansi>{{ end }}
 {{- if gt (len $spec.Element.String) 0 }}{{ $hasMagic = true }}
    <ansi fg="yellow">Element:</ansi>     {{ padRight 53 (uc $spec.Element.String) }}{{ end }}
-{{- if gt (len $spec.Damage.CritBuffIds) 0 }}{{ $hasMagic = true }}
-{{- range $idx, $buffId := $spec.Damage.CritBuffIds }}
+{{- if gt (len $spec.Damage.CritConditionIds) 0 }}{{ $hasMagic = true }}
+{{- range $idx, $buffId := $spec.Damage.CritConditionIds }}
    <ansi fg="yellow">Crits Apply:</ansi> <ansi fg="spellname">{{ buffname $buffId }}</ansi> - {{ buffduration $buffId }}
 {{- end }}{{ end }}
 {{- if not $hasMagic }}

@@ -56,7 +56,7 @@ func LookForTrouble(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) 
 			// commands every idle tick. The commands bounce at SetAggro but
 			// the "prepares to fight" message is still sent each time, and
 			// the mob starts fighting the instant grace expires.
-			if user.Character.HasBuffFlag(conditions.NoAggroTarget) {
+			if user.Character.HasConditionFlag(conditions.NoAggroTarget) {
 				continue
 			}
 

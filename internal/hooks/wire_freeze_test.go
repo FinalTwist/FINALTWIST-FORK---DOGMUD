@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestWireFreeze_EffectTypeBuffStillApplies is a slice 2 (conditions
+// TestWireFreeze_EffectTypeConditionStillApplies is a slice 2 (conditions
 // unification) freeze test. wire_freeze_test.go at the repo root pins that
 // `effect_type: buff` still PARSES to the Go string "buff" — but nothing
 // reads that string except four `case "buff":` literals in
@@ -42,33 +42,33 @@ import (
 // comes from seedAllRegistries and carries no TickPool, so the tick-snapshot
 // branch inside each case is not exercised here — only that the dispatch
 // queued the right buff for the right holder.
-func TestWireFreeze_EffectTypeBuffStillApplies(t *testing.T) {
+func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 
 	// spell_resolution.go:906 — applyMobEffect's top-level switch, a
 	// player's spell landing on a mob, dispatching to applyMobEffect_buff.
 	t.Run("PlayerCastsOnMob", func(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
-		events.DrainQueuedBuffsForTest(0)
+		events.DrainQueuedConditionsForTest(0)
 
 		u := users.GetByUserId(1)
 		mob := mobs.GetInstance(100)
 		room := rooms.LoadRoom(1)
 
 		spell := &spells.SpellData{
-			SpellId:    "test-wire-freeze-buff-mob",
-			Name:       "Test Ward",
-			Type:       spells.HelpSingle,
-			EffectType: "buff",
-			BuffIds:    []int{100},
+			SpellId:      "test-wire-freeze-buff-mob",
+			Name:         "Test Ward",
+			Type:         spells.HelpSingle,
+			EffectType:   "buff",
+			ConditionIds: []int{100},
 		}
 
 		applyMobEffect(u, u.Character, mob, room, spell, 0, spellContestAttackWin())
 
-		queued := events.DrainQueuedBuffsForTest(0)
+		queued := events.DrainQueuedConditionsForTest(0)
 		require.Len(t, queued, 1,
 			"a player's effect_type: buff spell landing on a mob must queue exactly one buff (spell_resolution.go's applyMobEffect case \"buff\")")
-		assert.Equal(t, 100, queued[0].BuffId)
+		assert.Equal(t, 100, queued[0].ConditionId)
 		assert.Equal(t, mob.InstanceId, queued[0].MobInstanceId)
 	})
 
@@ -78,7 +78,7 @@ func TestWireFreeze_EffectTypeBuffStillApplies(t *testing.T) {
 	t.Run("PlayerSelfCast", func(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
-		events.DrainQueuedBuffsForTest(0)
+		events.DrainQueuedConditionsForTest(0)
 		original := runSpellChannelAttack
 		runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 			return spellContestAttackWin()
@@ -89,19 +89,19 @@ func TestWireFreeze_EffectTypeBuffStillApplies(t *testing.T) {
 		room := rooms.LoadRoom(1)
 
 		spell := &spells.SpellData{
-			SpellId:    "test-wire-freeze-buff-self",
-			Name:       "Test Fortify",
-			Type:       spells.HelpSingle,
-			EffectType: "buff",
-			BuffIds:    []int{100},
+			SpellId:      "test-wire-freeze-buff-self",
+			Name:         "Test Fortify",
+			Type:         spells.HelpSingle,
+			EffectType:   "buff",
+			ConditionIds: []int{100},
 		}
 
 		resolveAgainstPlayer(u, u, room, spell, combat.AttackSide{}, 0)
 
-		queued := events.DrainQueuedBuffsForTest(0)
+		queued := events.DrainQueuedConditionsForTest(0)
 		require.Len(t, queued, 1,
 			"a player self-casting an effect_type: buff spell must queue exactly one buff (spell_resolution.go's applyPlayerEffect case \"buff\")")
-		assert.Equal(t, 100, queued[0].BuffId)
+		assert.Equal(t, 100, queued[0].ConditionId)
 		assert.Equal(t, u.UserId, queued[0].UserId)
 	})
 
@@ -110,24 +110,24 @@ func TestWireFreeze_EffectTypeBuffStillApplies(t *testing.T) {
 	t.Run("MobSelfCast", func(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
-		events.DrainQueuedBuffsForTest(0)
+		events.DrainQueuedConditionsForTest(0)
 
 		mob := mobs.GetInstance(100)
 		room := rooms.LoadRoom(1)
 
 		spell := &spells.SpellData{
-			SpellId:    "test-wire-freeze-buff-mobself",
-			Name:       "Test Rally Cry",
-			EffectType: "buff",
-			BuffIds:    []int{100},
+			SpellId:      "test-wire-freeze-buff-mobself",
+			Name:         "Test Rally Cry",
+			EffectType:   "buff",
+			ConditionIds: []int{100},
 		}
 
 		applyMobSelfEffect(mob, room, spell, 0)
 
-		queued := events.DrainQueuedBuffsForTest(0)
+		queued := events.DrainQueuedConditionsForTest(0)
 		require.Len(t, queued, 1,
 			"a mob self-casting an effect_type: buff spell must queue exactly one buff (spell_resolution.go's applyMobSelfEffect case \"buff\")")
-		assert.Equal(t, 100, queued[0].BuffId)
+		assert.Equal(t, 100, queued[0].ConditionId)
 		assert.Equal(t, mob.InstanceId, queued[0].MobInstanceId)
 	})
 
@@ -136,7 +136,7 @@ func TestWireFreeze_EffectTypeBuffStillApplies(t *testing.T) {
 	t.Run("MobCastsOnPlayer", func(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
-		events.DrainQueuedBuffsForTest(0)
+		events.DrainQueuedConditionsForTest(0)
 		original := runSpellChannelAttack
 		runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 			return spellContestAttackWin()
@@ -148,19 +148,19 @@ func TestWireFreeze_EffectTypeBuffStillApplies(t *testing.T) {
 		room := rooms.LoadRoom(1)
 
 		spell := &spells.SpellData{
-			SpellId:    "test-wire-freeze-buff-mobcast",
-			Name:       "Test Hex Ward",
-			Type:       spells.HelpSingle,
-			EffectType: "buff",
-			BuffIds:    []int{100},
+			SpellId:      "test-wire-freeze-buff-mobcast",
+			Name:         "Test Hex Ward",
+			Type:         spells.HelpSingle,
+			EffectType:   "buff",
+			ConditionIds: []int{100},
 		}
 
 		resolveMobSpellAgainstPlayer(caster, target, room, spell, combat.AttackSide{}, 0)
 
-		queued := events.DrainQueuedBuffsForTest(0)
+		queued := events.DrainQueuedConditionsForTest(0)
 		require.Len(t, queued, 1,
 			"a mob's effect_type: buff spell landing on a player must queue exactly one buff (spell_resolution.go's resolveMobSpellAgainstPlayer case \"buff\")")
-		assert.Equal(t, 100, queued[0].BuffId)
+		assert.Equal(t, 100, queued[0].ConditionId)
 		assert.Equal(t, target.UserId, queued[0].UserId)
 	})
 }

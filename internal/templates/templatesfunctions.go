@@ -8,10 +8,10 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/language"
@@ -147,30 +147,30 @@ var (
 		"stringor":     stringOr,
 		"splitstring":  util.SplitStringNL,
 		"ansiparse":    TplAnsiParse,
-		"buffname": func(buffId int) string {
-			buffSpec := conditions.GetBuffSpec(buffId)
-			if buffSpec == nil {
+		"buffname": func(conditionId int) string {
+			conditionSpec := conditions.GetConditionSpec(conditionId)
+			if conditionSpec == nil {
 				return "Unknown"
 			}
-			return buffSpec.Name
+			return conditionSpec.Name
 		},
-		"buffduration": func(buffId int) string {
-			buffSpec := conditions.GetBuffSpec(buffId)
-			if buffSpec == nil {
+		"buffduration": func(conditionId int) string {
+			conditionSpec := conditions.GetConditionSpec(conditionId)
+			if conditionSpec == nil {
 				return "Unknown"
 			}
 
-			if buffSpec.RoundInterval == 1 && buffSpec.TriggerCount == 1 {
+			if conditionSpec.RoundInterval == 1 && conditionSpec.TriggerCount == 1 {
 				return `Activates once`
 			}
 
 			var roundCt string
-			if buffSpec.RoundInterval > 1 {
-				roundCt = fmt.Sprintf(`%d rounds`, buffSpec.RoundInterval)
+			if conditionSpec.RoundInterval > 1 {
+				roundCt = fmt.Sprintf(`%d rounds`, conditionSpec.RoundInterval)
 			} else {
 				roundCt = `round`
 			}
-			return fmt.Sprintf("Activates every %s (%dx total)", roundCt, buffSpec.TriggerCount)
+			return fmt.Sprintf("Activates every %s (%dx total)", roundCt, conditionSpec.TriggerCount)
 		},
 		"formatdiceroll": func(roll string) string {
 			a, d, s, b, _ := util.ParseDiceRoll(roll)

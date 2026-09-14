@@ -188,12 +188,12 @@ func TestProcess_CharacterConditionsTemplate(t *testing.T) {
 		Name        string
 		Description string
 		RoundsLeft  int
-		PermaBuff   bool
+		Permanent   bool
 	}
 
 	data := []condition{
-		{Name: "Blessed", Description: "A warm glow surrounds you.", RoundsLeft: 10, PermaBuff: false},
-		{Name: "NightVision", Description: "You can see in the dark.", RoundsLeft: 0, PermaBuff: true},
+		{Name: "Blessed", Description: "A warm glow surrounds you.", RoundsLeft: 10, Permanent: false},
+		{Name: "NightVision", Description: "You can see in the dark.", RoundsLeft: 0, Permanent: true},
 	}
 
 	result, err := Process("character/conditions", data)

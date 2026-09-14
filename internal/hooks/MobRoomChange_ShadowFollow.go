@@ -49,7 +49,7 @@ func MobRoomChangeShadowFollow(e events.Event) events.ListenerReturn {
 			continue
 		}
 		// Must carry the shadowing buff.
-		if !u.Character.HasBuff(shadowingBuff) {
+		if !u.Character.HasCondition(shadowingCondition) {
 			continue
 		}
 		// Must still be hidden.
@@ -90,7 +90,7 @@ func MobRoomChangeShadowFollow(e events.Event) events.ListenerReturn {
 func inlineShadowEnd(u *users.UserRecord, reason string) {
 	u.Character.SetMiscData("shadow-target-user", nil)
 	u.Character.SetMiscData("shadow-target-mob", nil)
-	u.Character.RemoveBuff(shadowingBuff)
+	u.Character.RemoveCondition(shadowingCondition)
 
 	cfg := configs.GetBalanceConfig()
 	cooldownKey := skills.Skullduggery.String(`shadow`)

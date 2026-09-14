@@ -165,7 +165,7 @@ func Fire(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	// free clean miss, not one free hit. (Same-room shooter aggro is set inside
 	// ExecuteFire, AFTER cost admission, so a refused shot never engages.)
 	if result.CrossRoom && dealt {
-		user.Character.CancelCombatBuffs()
+		user.Character.CancelCombatConditions()
 	}
 
 	// --- Retaliation + crime (mob targets only) ---

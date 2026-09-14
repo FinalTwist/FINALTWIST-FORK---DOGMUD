@@ -19,9 +19,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -370,14 +370,14 @@ func fireSubmissionResolutionMessage(
 // fireSubmissionResolutionMessage's outcome triple; this is only the victim's
 // private consequence line. A mob victim has no client, so it gets nothing.
 func narrateSubmissionEffects(effects combat.SubmissionOutcomeEffects) {
-	sendSilentStartText(effects.StunnedVictim, combat.StunnedBuffId)
-	sendSilentStartText(effects.BrokenLimbVictim, combat.BrokenLimbBuffId)
+	sendSilentStartText(effects.StunnedVictim, combat.StunnedConditionId)
+	sendSilentStartText(effects.BrokenLimbVictim, combat.BrokenLimbConditionId)
 }
 
 // sendSilentStartText sends a silent-start buff's authored start line to c,
 // when c is a player. Reads it through AuthoredStartLine, not
 // StartUserNotice(), which is empty by design for a silent-start buff.
-func sendSilentStartText(c *characters.Character, buffId int) {
+func sendSilentStartText(c *characters.Character, conditionId int) {
 	if c == nil {
 		return
 	}
@@ -385,7 +385,7 @@ func sendSilentStartText(c *characters.Character, buffId int) {
 	if u == nil {
 		return
 	}
-	spec := conditions.GetBuffSpec(buffId)
+	spec := conditions.GetConditionSpec(conditionId)
 	if spec == nil {
 		return
 	}
@@ -396,7 +396,7 @@ func sendSilentStartText(c *characters.Character, buffId int) {
 	if line == "" {
 		return
 	}
-	u.SendText(messaging.CategoryBuffApply, line)
+	u.SendText(messaging.CategoryConditionApply, line)
 }
 
 func init() {

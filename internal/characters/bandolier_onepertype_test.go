@@ -13,8 +13,8 @@ func TestStoreItem_AmbientBandolier_OnePerType(t *testing.T) {
 	defer items.SeedItemsForTest(map[int]*items.ItemSpec{
 		999970: {ItemId: 999970, Name: "Vitalis Bandolier", Type: items.Belt,
 			IsBandolier: true, BandolierCapacity: 4, AmbientPotions: true},
-		999971: {ItemId: 999971, Name: "healing salve", Type: items.Potion, BuffIds: []int{54}, Weight: 0.1},
-		999972: {ItemId: 999972, Name: "elixir", Type: items.Potion, BuffIds: []int{55}, Weight: 0.1},
+		999971: {ItemId: 999971, Name: "healing salve", Type: items.Potion, ConditionIds: []int{54}, Weight: 0.1},
+		999972: {ItemId: 999972, Name: "elixir", Type: items.Potion, ConditionIds: []int{55}, Weight: 0.1},
 	})()
 
 	c := New()
@@ -50,7 +50,7 @@ func TestStoreItem_NonAmbientBandolier_AllowsDuplicates(t *testing.T) {
 	defer items.SeedItemsForTest(map[int]*items.ItemSpec{
 		999973: {ItemId: 999973, Name: "plain bandolier", Type: items.Belt,
 			IsBandolier: true, BandolierCapacity: 4, AmbientPotions: false},
-		999974: {ItemId: 999974, Name: "healing salve", Type: items.Potion, BuffIds: []int{54}, Weight: 0.1},
+		999974: {ItemId: 999974, Name: "healing salve", Type: items.Potion, ConditionIds: []int{54}, Weight: 0.1},
 	})()
 
 	c := New()

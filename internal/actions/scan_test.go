@@ -3,8 +3,8 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -29,8 +29,8 @@ type scanFakeActor struct {
 
 func newScanFakeActor(name string, room *rooms.Room, isPlayer bool, userId int) *scanFakeActor {
 	c := &characters.Character{
-		Name:  name,
-		Buffs: conditions.New(),
+		Name:       name,
+		Conditions: conditions.New(),
 	}
 	c.Stats.Perception.ValueAdj = 100
 	return &scanFakeActor{
@@ -44,8 +44,8 @@ func newScanFakeActor(name string, room *rooms.Room, isPlayer bool, userId int) 
 
 func newScanMobActor(name string, room *rooms.Room, mobInstId int) *scanFakeActor {
 	c := &characters.Character{
-		Name:  name,
-		Buffs: conditions.New(),
+		Name:       name,
+		Conditions: conditions.New(),
 	}
 	return &scanFakeActor{
 		char:      c,
@@ -62,7 +62,7 @@ func (a *scanFakeActor) GetName() string                        { return a.name 
 func (a *scanFakeActor) IsPlayer() bool                         { return a.isPlayer }
 func (a *scanFakeActor) GetUserId() int                         { return a.userId }
 func (a *scanFakeActor) GetMobInstanceId() int                  { return a.mobInstId }
-func (a *scanFakeActor) AddBuff(_ int, _ string)                {}
+func (a *scanFakeActor) AddCondition(_ int, _ string)           {}
 func (a *scanFakeActor) OnSkillUse(_ string) bool               { return false }
 func (a *scanFakeActor) OnStatUse(_ string) bool                { return false }
 func (a *scanFakeActor) SendRoomCommunication(_ string, _ bool) {}
@@ -81,7 +81,7 @@ func newScanTestMob(instId int, name string, roomId int) *mobs.Mob {
 		InstanceId: instId,
 	}
 	m.Character.Name = name
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	m.Character.RoomId = roomId
 	return m
 }

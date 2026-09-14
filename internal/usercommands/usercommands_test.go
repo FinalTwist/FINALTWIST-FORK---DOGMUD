@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/enchantments"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -77,16 +77,16 @@ func TestMain(m *testing.M) {
 func seedAllRegistries() func() {
 	cleanupKeywords := keywords.SeedKeywordsForTest()
 
-	cleanupBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+	cleanupConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		100: {
-			BuffId:        100,
+			ConditionId:   100,
 			Name:          "Test Strength Buff",
 			Description:   "Boosts strength for testing",
 			RoundInterval: 5,
 			TriggerCount:  3,
 		},
 		101: {
-			BuffId:        101,
+			ConditionId:   101,
 			Name:          "Test Poison",
 			Description:   "Damage over time for testing",
 			RoundInterval: 3,
@@ -133,11 +133,11 @@ func seedAllRegistries() func() {
 			AutoAggro:  true,
 			Groups:     []string{"undead"},
 			Character: characters.Character{
-				Name:      "Skeleton",
-				RoomId:    1,
-				Health:    50,
-				Buffs:     conditions.New(),
-				Cooldowns: map[string]int{},
+				Name:       "Skeleton",
+				RoomId:     1,
+				Health:     50,
+				Conditions: conditions.New(),
+				Cooldowns:  map[string]int{},
 			},
 		},
 	}
@@ -315,7 +315,7 @@ func seedAllRegistries() func() {
 		cleanupUsers()
 		cleanupMobs()
 		cleanupConditionRecords()
-		cleanupBuffs()
+		cleanupConditions()
 		cleanupKeywords()
 	}
 }
@@ -740,9 +740,9 @@ func TestStand_CancelsSleeping(t *testing.T) {
 	cleanupKeywords := keywords.SeedKeywordsForTest()
 	defer cleanupKeywords()
 
-	cleanupBuffs := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+	cleanupConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		15: {
-			BuffId:        15,
+			ConditionId:   15,
 			Name:          "Sleeping",
 			Description:   "You are getting much needed rest.",
 			RoundInterval: 1,
@@ -750,10 +750,10 @@ func TestStand_CancelsSleeping(t *testing.T) {
 			Flags:         []conditions.Flag{conditions.Sleeping, conditions.CancelOnAction, conditions.CancelIfCombat, conditions.CancelOnDamage},
 		},
 	})
-	defer cleanupBuffs()
+	defer cleanupConditions()
 
 	u := users.NewTestUser(99, "sleeper", "Sleeperton", 9999)
-	u.Character.Buffs = conditions.New()
+	u.Character.Conditions = conditions.New()
 	u.Character.StaminaMax.Value = 100
 	u.Character.Stamina = 100
 
@@ -781,9 +781,9 @@ func TestStand_CancelsSleeping(t *testing.T) {
 
 	// Apply the Sleeping buff so the player is standing-but-asleep.
 	setCombatPositionParallel(u.Character, position.Standing)
-	u.Character.Buffs.AddBuff(15, false)
+	u.Character.Conditions.AddCondition(15, false)
 
-	require.True(t, u.Character.HasBuffFlag(conditions.Sleeping),
+	require.True(t, u.Character.HasConditionFlag(conditions.Sleeping),
 		"test setup: Sleeping buff must be applied before calling Stand")
 	require.True(t, u.Character.IsStanding(),
 		"test setup: character must be standing (not prone/supine)")
@@ -791,7 +791,7 @@ func TestStand_CancelsSleeping(t *testing.T) {
 	handled, err := Stand("", u, room, 0)
 	assert.True(t, handled)
 	assert.NoError(t, err)
-	assert.False(t, u.Character.HasBuffFlag(conditions.Sleeping),
+	assert.False(t, u.Character.HasConditionFlag(conditions.Sleeping),
 		"Sleeping buff must be cancelled by stand")
 }
 
@@ -1929,7 +1929,7 @@ func TestAdminLocate(t *testing.T) {
 	})
 }
 
-func TestAdminBuff(t *testing.T) {
+func TestAdminCondition(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
@@ -1937,13 +1937,13 @@ func TestAdminBuff(t *testing.T) {
 	defer func() { user.Role = users.RoleUser }()
 
 	t.Run("no_args", func(t *testing.T) {
-		handled, err := Buff("", user, room, 0)
+		handled, err := Condition("", user, room, 0)
 		assert.True(t, handled)
 		assert.NoError(t, err)
 	})
 
 	t.Run("search", func(t *testing.T) {
-		handled, err := Buff("search test", user, room, 0)
+		handled, err := Condition("search test", user, room, 0)
 		assert.True(t, handled)
 		assert.NoError(t, err)
 	})
@@ -2678,7 +2678,7 @@ func TestDisenchant(t *testing.T) {
 		assert.True(t, handled)
 		assert.NoError(t, err)
 
-		held := user.Character.Buffs.GetBuffs(conditions.BuffIdEnchantWithdrawal)
+		held := user.Character.Conditions.GetConditions(conditions.ConditionIdEnchantWithdrawal)
 		require.Len(t, held, 1, "disenchant must leave exactly one held withdrawal record")
 		assert.Equal(t, "stamina", held[0].Source, "the withdrawal record's Source must be the item's reserve pool")
 		assert.InDelta(t, 0.05, held[0].Magnitude, 0.0001, "the withdrawal record's Magnitude must equal the seeded reserve fraction")
@@ -4618,18 +4618,18 @@ func TestPvpToggle(t *testing.T) {
 
 // ─── Deeper Coverage: Conditions with buffs ─────────────────────────────────
 
-func TestConditionsWithBuffs(t *testing.T) {
+func TestConditionsWithConditions(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
 	user, room := getTestUserAndRoom(t)
 
 	t.Run("conditions_with_buff", func(t *testing.T) {
-		user.Character.Buffs.AddBuff(100, false)
+		user.Character.Conditions.AddCondition(100, false)
 		handled, err := Conditions("", user, room, 0)
 		assert.True(t, handled)
 		assert.NoError(t, err)
-		user.Character.Buffs.RemoveBuff(100)
+		user.Character.Conditions.RemoveCondition(100)
 	})
 }
 
@@ -4671,7 +4671,7 @@ func TestEmoteAliasThroughDispatcher(t *testing.T) {
 
 // ─── Deeper Coverage: Admin Buff search ─────────────────────────────────────
 
-func TestAdminBuffDeep(t *testing.T) {
+func TestAdminConditionDeep(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
@@ -4679,13 +4679,13 @@ func TestAdminBuffDeep(t *testing.T) {
 	defer func() { user.Role = users.RoleUser }()
 
 	t.Run("search_nonexistent", func(t *testing.T) {
-		handled, err := Buff("search zzz_nothing", user, room, 0)
+		handled, err := Condition("search zzz_nothing", user, room, 0)
 		assert.True(t, handled)
 		assert.NoError(t, err)
 	})
 
 	t.Run("give_buff", func(t *testing.T) {
-		handled, err := Buff("100", user, room, 0)
+		handled, err := Condition("100", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
@@ -5741,23 +5741,23 @@ func TestPartitionShopStock(t *testing.T) {
 	stock := characters.Shop{
 		{ItemId: 10, Price: 100},
 		{MobId: 5, Price: 200},
-		{BuffId: 3, Price: 50},
+		{ConditionId: 3, Price: 50},
 		{PetType: "dog", Price: 300},
 		{ItemId: 11, Price: 150},
 	}
 
-	itemStock, mercStock, buffStock, petStock := partitionShopStock(stock)
+	itemStock, mercStock, conditionStock, petStock := partitionShopStock(stock)
 	assert.Len(t, itemStock, 2)
 	assert.Len(t, mercStock, 1)
-	assert.Len(t, buffStock, 1)
+	assert.Len(t, conditionStock, 1)
 	assert.Len(t, petStock, 1)
 }
 
 func TestPartitionShopStockEmpty(t *testing.T) {
-	itemStock, mercStock, buffStock, petStock := partitionShopStock(nil)
+	itemStock, mercStock, conditionStock, petStock := partitionShopStock(nil)
 	assert.Nil(t, itemStock)
 	assert.Nil(t, mercStock)
-	assert.Nil(t, buffStock)
+	assert.Nil(t, conditionStock)
 	assert.Nil(t, petStock)
 }
 
@@ -6575,7 +6575,7 @@ func TestGetLockRender(t *testing.T) {
 
 // ─── Deeper admin.buff ──────────────────────────────────────────────────────
 
-func TestAdminBuffMoreBranches(t *testing.T) {
+func TestAdminConditionMoreBranches(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
@@ -6583,19 +6583,19 @@ func TestAdminBuffMoreBranches(t *testing.T) {
 	defer func() { user.Role = users.RoleUser }()
 
 	t.Run("buff_add_to_user", func(t *testing.T) {
-		handled, err := Buff("alice 1", user, room, 0)
+		handled, err := Condition("alice 1", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
 
 	t.Run("buff_remove_from_user", func(t *testing.T) {
-		handled, err := Buff("alice remove 1", user, room, 0)
+		handled, err := Condition("alice remove 1", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
 
 	t.Run("buff_invalid_id", func(t *testing.T) {
-		handled, err := Buff("alice 99999", user, room, 0)
+		handled, err := Condition("alice 99999", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
@@ -6813,24 +6813,24 @@ func TestBuildMercRows(t *testing.T) {
 
 // ─── buildBuffRows ──────────────────────────────────────────────────────────
 
-func TestBuildBuffRows(t *testing.T) {
+func TestBuildConditionRows(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
 	t.Run("valid_buff", func(t *testing.T) {
 		stock := characters.Shop{
-			{BuffId: 100, Price: 50, Quantity: 1, QuantityMax: 5},
+			{ConditionId: 100, Price: 50, Quantity: 1, QuantityMax: 5},
 		}
-		headers, rows := buildBuffRows(stock, true, false)
+		headers, rows := buildConditionRows(stock, true, false)
 		assert.Contains(t, headers, "Price")
 		_ = rows
 	})
 
 	t.Run("invalid_buff", func(t *testing.T) {
 		stock := characters.Shop{
-			{BuffId: 99999, Price: 25},
+			{ConditionId: 99999, Price: 25},
 		}
-		_, rows := buildBuffRows(stock, true, false)
+		_, rows := buildConditionRows(stock, true, false)
 		assert.Len(t, rows, 0)
 	})
 }
@@ -7297,7 +7297,7 @@ func TestCharacterSubCommands(t *testing.T) {
 
 // ─── Admin Buff more sub-commands ───────────────────────────────────────────
 
-func TestAdminBuffAllBranches(t *testing.T) {
+func TestAdminConditionAllBranches(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
@@ -7305,13 +7305,13 @@ func TestAdminBuffAllBranches(t *testing.T) {
 	defer func() { user.Role = users.RoleUser }()
 
 	t.Run("buff_list", func(t *testing.T) {
-		handled, err := Buff("list", user, room, 0)
+		handled, err := Condition("list", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
 
 	t.Run("buff_info", func(t *testing.T) {
-		handled, err := Buff("info 100", user, room, 0)
+		handled, err := Condition("info 100", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})

@@ -1,8 +1,8 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -14,7 +14,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-// ApplyBuffs applies a queued buff to its holder and narrates the start.
+// ApplyConditions applies a queued buff to its holder and narrates the start.
 //
 // Every nothing-to-do exit (wrong type, unknown buff, missing holder, an add
 // the primitive refused) returns Continue, not Cancel. Cancel stops every
@@ -22,9 +22,9 @@ import (
 // do must not veto the event for a second listener such as a client buff bar.
 // This is the only listener on events.Buff today; the convention is what keeps
 // that true in effect if another is ever added.
-func ApplyBuffs(e events.Event) events.ListenerReturn {
+func ApplyConditions(e events.Event) events.ListenerReturn {
 
-	evt, typeOk := e.(events.Buff)
+	evt, typeOk := e.(events.Condition)
 	if !typeOk {
 		mudlog.Error("Event", "Expected Type", "Buff", "Actual Type", e.Type())
 		return events.Continue
@@ -32,8 +32,8 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 
 	//mudlog.Debug(`Event`, `type`, evt.Type(), `UserId`, evt.UserId, `MobInstanceId`, evt.MobInstanceId, `BuffId`, evt.BuffId)
 
-	buffInfo := conditions.GetBuffSpec(evt.BuffId)
-	if buffInfo == nil {
+	conditionInfo := conditions.GetConditionSpec(evt.ConditionId)
+	if conditionInfo == nil {
 		return events.Continue
 	}
 
@@ -41,21 +41,21 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 
 	if evt.MobInstanceId > 0 {
 
-		buffMob := mobs.GetInstance(evt.MobInstanceId)
-		if buffMob == nil {
+		conditionMob := mobs.GetInstance(evt.MobInstanceId)
+		if conditionMob == nil {
 			return events.Continue
 		}
 
-		targetChar = &buffMob.Character
+		targetChar = &conditionMob.Character
 
 	} else {
 
-		buffUser := users.GetByUserId(evt.UserId)
-		if buffUser == nil {
+		conditionUser := users.GetByUserId(evt.UserId)
+		if conditionUser == nil {
 			return events.Continue
 		}
 
-		targetChar = buffUser.Character
+		targetChar = conditionUser.Character
 	}
 
 	// A buff queued for a life that has since ended is stale: refuse it with no
@@ -75,8 +75,8 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
-	if evt.BuffId < 0 {
-		targetChar.RemoveBuff(buffInfo.BuffId * -1)
+	if evt.ConditionId < 0 {
+		targetChar.RemoveCondition(conditionInfo.ConditionId * -1)
 		return events.Continue
 	}
 
@@ -84,7 +84,7 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 	// Used below to suppress start text on a pure refresh — refreshing an
 	// already-active buff (e.g. ambusher's mob_idle → add_buff 9 tick)
 	// shouldn't re-fire "{source} disappears into the shadows." every round.
-	wasAlreadyActive := targetChar.HasBuff(evt.BuffId)
+	wasAlreadyActive := targetChar.HasCondition(evt.ConditionId)
 
 	// Apply the buff. A DurationMult of 0 or 1 means the authored duration, and
 	// for 1.0 AddBuffScaled is equivalent to AddBuff(id, false): both set
@@ -101,11 +101,11 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 	// applied through this door instead of synchronously.
 	var addErr error
 	if evt.Magnitude != 0 || evt.Triggers > 0 {
-		addErr = targetChar.AddBuffMagnitude(evt.BuffId, evt.Triggers, evt.Magnitude, evt.Source)
+		addErr = targetChar.AddConditionMagnitude(evt.ConditionId, evt.Triggers, evt.Magnitude, evt.Source)
 	} else if evt.DurationMult > 0 && evt.DurationMult != 1.0 {
-		addErr = targetChar.AddBuffScaled(evt.BuffId, evt.DurationMult)
+		addErr = targetChar.AddConditionScaled(evt.ConditionId, evt.DurationMult)
 	} else {
-		addErr = targetChar.AddBuff(evt.BuffId, false)
+		addErr = targetChar.AddCondition(evt.ConditionId, false)
 	}
 	if addErr != nil {
 		return events.Continue
@@ -117,7 +117,7 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 	//
 	// A mob holder has no client, so only room text can reach anyone; without
 	// it there is nothing to render and the name and room lookups are skipped.
-	startText := buffInfo.Narration(conditions.PhaseStart)
+	startText := conditionInfo.Narration(conditions.PhaseStart)
 	holderCanRead := evt.UserId != 0 && len(startText.Actee) > 0
 	if !wasAlreadyActive && (holderCanRead || len(startText.Observer) > 0) {
 		var charName, charPlainName string
@@ -147,14 +147,14 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 		}
 
 		if charName != "" {
-			roles := buffInfo.Narrate(conditions.PhaseStart, textutil.TokenContext{
+			roles := conditionInfo.Narrate(conditions.PhaseStart, textutil.TokenContext{
 				SourceName:      charName,
 				SourcePlainName: charPlainName,
 			})
 			// The holder is the ACTEE: the buff happens to them. A mob holder
 			// has no client, so its line is rendered and dropped.
 			if roles.Actee != "" && holder != nil {
-				holder.SendText(messaging.CategoryBuffApply, roles.Actee)
+				holder.SendText(messaging.CategoryConditionApply, roles.Actee)
 			}
 			// Visual, not audio. Start text describes what the room SEES
 			// ("A warm glow surrounds Alice"), and Room.SendText is never
@@ -162,25 +162,25 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 			// fixed the same defect for cast_room_text.
 			if roles.Observer != "" {
 				if r := rooms.LoadRoom(roomId); r != nil {
-					r.SendTextVisual(messaging.CategoryBuffApply, roles.Observer, excludeId)
+					r.SendTextVisual(messaging.CategoryConditionApply, roles.Observer, excludeId)
 				}
 			}
 		}
 	}
 
 	// Remove buffs listed in start_remove_buffs (cure effects)
-	if buffSpec := conditions.GetBuffSpec(evt.BuffId); buffSpec != nil && len(buffSpec.StartRemoveBuffs) > 0 {
-		for _, removeId := range buffSpec.StartRemoveBuffs {
-			targetChar.RemoveBuff(removeId)
+	if conditionSpec := conditions.GetConditionSpec(evt.ConditionId); conditionSpec != nil && len(conditionSpec.StartRemoveConditions) > 0 {
+		for _, removeId := range conditionSpec.StartRemoveConditions {
+			targetChar.RemoveCondition(removeId)
 		}
 	}
 
-	targetChar.TrackBuffStarted(evt.BuffId)
+	targetChar.TrackConditionStarted(evt.ConditionId)
 
 	//
 	// If the buff calls for an immediate triggering
 	//
-	if buffInfo.TriggerNow {
+	if conditionInfo.TriggerNow {
 
 		// U5c: BACKSTOP only. A DoT tick that routed through ApplyHarm has
 		// already queued an ATTRIBUTED death, and shouldSweepReap skips those.
@@ -194,7 +194,7 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 
 	}
 
-	events.AddToQueue(events.BuffsTriggered{UserId: evt.UserId, MobInstanceId: evt.MobInstanceId, BuffIds: []int{evt.BuffId}})
+	events.AddToQueue(events.ConditionsTriggered{UserId: evt.UserId, MobInstanceId: evt.MobInstanceId, ConditionIds: []int{evt.ConditionId}})
 
 	return events.Continue
 }

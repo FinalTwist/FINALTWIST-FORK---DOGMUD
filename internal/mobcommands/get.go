@@ -44,7 +44,7 @@ func Get(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 		if room.Gold > 0 {
 
-			mob.Character.CancelBuffsWithFlag(conditions.Hidden) // No longer sneaking
+			mob.Character.CancelConditionsWithFlag(conditions.Hidden) // No longer sneaking
 
 			actor := &actions.MobActor{Mob: mob, Room: room}
 			goldAmt := room.Gold
@@ -85,7 +85,7 @@ func Get(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	result := actions.GetItemFromFloor(actor, rest, getFromStash)
 
 	if result.Found && result.Err == nil {
-		mob.Character.CancelBuffsWithFlag(conditions.Hidden) // No longer sneaking
+		mob.Character.CancelConditionsWithFlag(conditions.Hidden) // No longer sneaking
 
 		room.SendTextVisual(messaging.CategoryLoot,
 			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> picks up the <ansi fg="itemname">%s</ansi>...`, mob.Character.Name, result.Item.DisplayName()))

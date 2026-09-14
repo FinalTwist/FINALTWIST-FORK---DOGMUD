@@ -12,9 +12,9 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -151,7 +151,7 @@ func pickEligibleRoomPlayer(room *rooms.Room) int {
 		if user == nil {
 			continue
 		}
-		if user.Character.HasBuffFlag(conditions.NoAggroTarget) {
+		if user.Character.HasConditionFlag(conditions.NoAggroTarget) {
 			continue
 		}
 		if user.Character.Health < 1 {

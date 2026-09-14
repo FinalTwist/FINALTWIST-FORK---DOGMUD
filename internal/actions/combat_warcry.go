@@ -3,8 +3,8 @@ package actions
 import (
 	"math"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
@@ -40,7 +40,7 @@ func ExecuteWarcry(actor Actor) WarcryResult {
 
 	// Skip if the warcry buff is already active on this actor —
 	// re-casting would just burn the cooldown for no new effect.
-	if char.HasBuff(79) {
+	if char.HasCondition(79) {
 		return WarcryResult{AlreadyActive: true}
 	}
 
@@ -118,6 +118,6 @@ func ApplyWarcryEffect(char *characters.Character) (float64, int) {
 	// One record carries both the bookkeeping and the magnitude; the damage
 	// multiplier the reader wants is 1 + bonus. duration is the exact integer
 	// the shout computed (25 scaled by shout amp).
-	_ = char.AddBuffMagnitude(conditions.BuffIdWarcry, duration, 1.0+bonus, "warcry")
+	_ = char.AddConditionMagnitude(conditions.ConditionIdWarcry, duration, 1.0+bonus, "warcry")
 	return bonus, duration
 }

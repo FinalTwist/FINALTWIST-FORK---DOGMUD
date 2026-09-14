@@ -41,24 +41,24 @@ func dogmudSpecies(t *testing.T) map[int]*Species {
 // Eight species declare buff 29, and the buff was absent from dogmud entirely,
 // so 67 mobs were silently blind in their own caves. This pins the list so a
 // later data edit cannot quietly shrink it.
-func TestNightVisionSpeciesDeclareBuff29(t *testing.T) {
+func TestNightVisionSpeciesDeclareCondition29(t *testing.T) {
 	all := dogmudSpecies(t)
 	want := []int{2, 4, 5, 8, 9, 11, 17, 24}
 	for _, id := range want {
 		sp := all[id]
 		require.NotNil(t, sp, "species %d missing", id)
-		require.Contains(t, sp.BuffIds, 29, "species %d (%s) should declare night vision", id, sp.Name)
+		require.Contains(t, sp.ConditionIds, 29, "species %d (%s) should declare night vision", id, sp.Name)
 	}
 }
 
 // The regression itself: every buff a dogmud species references must exist as a
 // dogmud buff file. Buff 29 failed this for months and nothing noticed.
-func TestEverySpeciesBuffIdHasADogmudFile(t *testing.T) {
+func TestEverySpeciesConditionIdHasADogmudFile(t *testing.T) {
 	all := dogmudSpecies(t)
-	buffDir := filepath.Join("..", "..", "_datafiles", "world", "dogmud", "buffs")
+	conditionDir := filepath.Join("..", "..", "_datafiles", "world", "dogmud", "buffs")
 	for id, sp := range all {
-		for _, bid := range sp.BuffIds {
-			matches, err := filepath.Glob(filepath.Join(buffDir, strconv.Itoa(bid)+"-*.yaml"))
+		for _, bid := range sp.ConditionIds {
+			matches, err := filepath.Glob(filepath.Join(conditionDir, strconv.Itoa(bid)+"-*.yaml"))
 			require.NoError(t, err)
 			require.NotEmpty(t, matches,
 				"species %d (%s) references buff %d, which has no file in dogmud/buffs", id, sp.Name, bid)

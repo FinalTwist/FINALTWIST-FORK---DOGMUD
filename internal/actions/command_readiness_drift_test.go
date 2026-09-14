@@ -756,7 +756,7 @@ func runExecuteAndReadExecuted(cmd string, actor Actor) bool {
 // SYNC POINT: when adding a new gate to CommandIsReady or an
 // Execute*, add the corresponding drift row here.
 func TestCommandReadinessDrift(t *testing.T) {
-	cleanup := seedBuffsForTest()
+	cleanup := seedConditionsForTest()
 	defer cleanup()
 
 	// Seed a legged species for the trip_ready / kick_ready "happy path" rows.
@@ -811,7 +811,7 @@ func TestCommandReadinessDrift(t *testing.T) {
 			func(m *mobs.Mob) { m.Character.Cooldowns = characters.Cooldowns{"special-move": 3} },
 			false, "OnCooldown"},
 		{"rally_already_active", "rally",
-			func(m *mobs.Mob) { m.Character.AddBuff(80, false) },
+			func(m *mobs.Mob) { m.Character.AddCondition(80, false) },
 			false, "AlreadyActive"},
 
 		// ─── warcry ───────────────────────────────────────────────
@@ -823,7 +823,7 @@ func TestCommandReadinessDrift(t *testing.T) {
 			func(m *mobs.Mob) { m.Character.Cooldowns = characters.Cooldowns{"special-move": 3} },
 			false, "OnCooldown"},
 		{"warcry_already_active", "warcry",
-			func(m *mobs.Mob) { m.Character.AddBuff(79, false) },
+			func(m *mobs.Mob) { m.Character.AddCondition(79, false) },
 			false, "AlreadyActive"},
 
 		// ─── trip ─────────────────────────────────────────────────

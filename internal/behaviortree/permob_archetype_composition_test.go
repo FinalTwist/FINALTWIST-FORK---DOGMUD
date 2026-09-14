@@ -104,7 +104,7 @@ func seedOverlayMob(t *testing.T, instanceId int, archetype string) (*mobs.Mob, 
 	m.Character.Name = "testbandit"
 	m.Character.Health = 100
 	m.Character.HealthMax.Value = 100
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{400 + instanceId: m},
 		map[int]*mobs.Mob{instanceId: m},

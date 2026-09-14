@@ -304,7 +304,7 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	}, aud)
 
 	hasDamage := spec.DamageMultiplier > 0
-	hasBuffs := len(spec.BuffIds) > 0
+	hasConditions := len(spec.ConditionIds) > 0
 	hitCount := 0
 	fumbled := false
 	// Everything the throw connected with, so an out-of-combat opener can
@@ -352,9 +352,9 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 				user.SendText(messaging.CategorySystem, fmt.Sprintf(
 					`<ansi fg="red">The explosion sears you! (%s)</ansi>`, dmgDesc))
 			}
-			if hasBuffs {
-				for _, buffId := range spec.BuffIds {
-					user.AddBuff(buffId, `grenade-fumble`)
+			if hasConditions {
+				for _, conditionId := range spec.ConditionIds {
+					user.AddCondition(conditionId, `grenade-fumble`)
 				}
 			}
 			break // Fumble ends the AoE loop
@@ -446,9 +446,9 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 					mob.Character.Name, dmgDesc))
 			}
 
-			if hasBuffs {
-				for _, buffId := range spec.BuffIds {
-					mob.AddBuff(buffId, `grenade`)
+			if hasConditions {
+				for _, conditionId := range spec.ConditionIds {
+					mob.AddCondition(conditionId, `grenade`)
 				}
 				user.SendText(messaging.CategorySystem, fmt.Sprintf(
 					`<ansi fg="mobname">%s</ansi> is caught in the blast!`,

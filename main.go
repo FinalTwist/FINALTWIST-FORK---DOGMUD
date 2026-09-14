@@ -309,7 +309,7 @@ func main() {
 		if user == nil {
 			return false
 		}
-		return user.Character.HasBuffFlag(conditions.NoAggroTarget)
+		return user.Character.HasConditionFlag(conditions.NoAggroTarget)
 	})
 
 	// Register the prompt visibility check so the fight prompt can hide
@@ -1691,7 +1691,7 @@ func loadAllDataFiles(isReload bool) {
 	mutations.ValidateBodyPartTags()
 	mutations.ValidateGraph()
 	species.ValidateBodyPartTags(mutations.HasSpec)
-	species.ValidateSpeciesBuffIds(conditions.HasSpec)
+	species.ValidateSpeciesConditionIds(conditions.HasSpec)
 
 	// Slice C: a non-secret buff without authored start/end text still speaks
 	// (the generic notice), but say so at boot. The root guard blocks a merge.

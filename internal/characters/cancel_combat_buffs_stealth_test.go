@@ -25,12 +25,12 @@ import (
 //
 // This pins the fix at the primitive rather than at the shoot call site,
 // because every CancelCombatBuffs caller inherited the same hole.
-func TestCancelCombatBuffs_DrivesAwarenessOutOfHidden(t *testing.T) {
-	restore := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+func TestCancelCombatConditions_DrivesAwarenessOutOfHidden(t *testing.T) {
+	restore := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		9: {
-			BuffId: 9,
-			Name:   "Hidden",
-			Flags:  []conditions.Flag{conditions.Hidden, conditions.CancelIfCombat},
+			ConditionId: 9,
+			Name:        "Hidden",
+			Flags:       []conditions.Flag{conditions.Hidden, conditions.CancelIfCombat},
 		},
 	})
 	defer restore()
@@ -46,20 +46,20 @@ func TestCancelCombatBuffs_DrivesAwarenessOutOfHidden(t *testing.T) {
 	if c.Awareness.State() != awareness.Hidden {
 		t.Fatalf("expected Hidden, got %v", c.Awareness.State())
 	}
-	if err := c.AddBuff(9, true); err != nil {
+	if err := c.AddCondition(9, true); err != nil {
 		t.Fatalf("applying buff 9 failed: %v", err)
 	}
 	if !c.IsHidden() {
 		t.Fatal("precondition: the character should be hidden")
 	}
 
-	c.CancelCombatBuffs()
+	c.CancelCombatConditions()
 
 	if c.IsHidden() {
 		t.Error("CancelCombatBuffs must end stealth: IsHidden() reads the " +
 			"awareness FSM, so cancelling the mirror buff alone is not enough")
 	}
-	if c.HasBuffFlag(conditions.Hidden) {
+	if c.HasConditionFlag(conditions.Hidden) {
 		t.Error("the Hidden buff should also be gone")
 	}
 }

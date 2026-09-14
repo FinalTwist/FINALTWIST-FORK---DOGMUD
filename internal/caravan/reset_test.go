@@ -56,7 +56,7 @@ func seedResetFixture(t *testing.T) (*mobs.Mob, *mobs.Mob, func()) {
 	}
 	leader.Character.Name = "Ketil"
 	leader.Character.RoomId = midCycleRoom // start mid-cycle, not at depot
-	leader.Character.Buffs = conditions.New()
+	leader.Character.Conditions = conditions.New()
 	mid.AddMob(leader.InstanceId)
 
 	wagon := &mobs.Mob{
@@ -67,7 +67,7 @@ func seedResetFixture(t *testing.T) (*mobs.Mob, *mobs.Mob, func()) {
 	}
 	wagon.Character.Name = "caravan wagon"
 	wagon.Character.RoomId = wagonStrandedRoom
-	wagon.Character.Buffs = conditions.New()
+	wagon.Character.Conditions = conditions.New()
 	stranded.AddMob(wagon.InstanceId)
 
 	cleanMobs := mobs.SeedMobsForTest(

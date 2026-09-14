@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
@@ -33,7 +33,7 @@ func (a *sleepFakeActor) GetName() string                        { return a.char
 func (a *sleepFakeActor) IsPlayer() bool                         { return a.isPlayer }
 func (a *sleepFakeActor) GetUserId() int                         { return a.userId }
 func (a *sleepFakeActor) GetMobInstanceId() int                  { return 0 }
-func (a *sleepFakeActor) AddBuff(_ int, _ string)                {} // no-op: Sleep calls c.AddBuff directly
+func (a *sleepFakeActor) AddCondition(_ int, _ string)           {} // no-op: Sleep calls c.AddBuff directly
 func (a *sleepFakeActor) OnSkillUse(_ string) bool               { return false }
 func (a *sleepFakeActor) OnStatUse(_ string) bool                { return false }
 func (a *sleepFakeActor) SendRoomCommunication(_ string, _ bool) {}
@@ -47,7 +47,7 @@ func newSleepActor(t *testing.T, inCombat bool, isPlayer bool) *sleepFakeActor {
 	t.Helper()
 	c := characters.New()
 	c.Name = "Sleeper"
-	c.Buffs = conditions.New()
+	c.Conditions = conditions.New()
 	if inCombat {
 		// SetAggro requires a valid target; use the compat helper.
 		c.SetAggro(0, 9001, characters.DefaultAttack)
@@ -61,20 +61,20 @@ func newSleepActor(t *testing.T, inCombat bool, isPlayer bool) *sleepFakeActor {
 	}
 }
 
-// seedSleepBuff seeds buff spec 15 (Sleeping) so that Character.AddBuff(15,
+// seedSleepCondition seeds buff spec 15 (Sleeping) so that Character.AddBuff(15,
 // false) succeeds. Also re-seeds buff 9 (Hidden) to avoid breaking shadow
 // tests that share the same test binary. Returns a cleanup func.
-func seedSleepBuff(t *testing.T) func() {
+func seedSleepCondition(t *testing.T) func() {
 	t.Helper()
-	return conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+	return conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		9: {
-			BuffId:       9,
+			ConditionId:  9,
 			Name:         "Hidden",
 			Flags:        []conditions.Flag{conditions.Hidden},
 			TriggerCount: 1000000,
 		},
 		15: {
-			BuffId:       15,
+			ConditionId:  15,
 			Name:         "Sleeping",
 			Flags:        []conditions.Flag{conditions.Sleeping, conditions.CancelOnDamage},
 			TriggerCount: 1000000, // effectively infinite — governed by cancel flags
@@ -86,10 +86,10 @@ func seedSleepBuff(t *testing.T) func() {
 // Tests
 // ---------------------------------------------------------------------------
 
-// TestSleep_AppliesBuffOnSuccess verifies that Sleep returns Success and
+// TestSleep_AppliesConditionOnSuccess verifies that Sleep returns Success and
 // sets the Sleeping buff flag on the character.
-func TestSleep_AppliesBuffOnSuccess(t *testing.T) {
-	cleanup := seedSleepBuff(t)
+func TestSleep_AppliesConditionOnSuccess(t *testing.T) {
+	cleanup := seedSleepCondition(t)
 	defer cleanup()
 
 	actor := newSleepActor(t, false /* notInCombat */, true)
@@ -99,19 +99,19 @@ func TestSleep_AppliesBuffOnSuccess(t *testing.T) {
 	if !res.Success {
 		t.Fatalf("expected Success, got %+v", res)
 	}
-	if !actor.char.HasBuffFlag(conditions.Sleeping) {
+	if !actor.char.HasConditionFlag(conditions.Sleeping) {
 		t.Errorf("expected Sleeping flag applied after Sleep()")
 	}
 }
 
-// TestSleep_BuffUnavailable_NoRawErrorLeak verifies that when the Sleeping
+// TestSleep_ConditionUnavailable_NoRawErrorLeak verifies that when the Sleeping
 // buff spec can't be applied (e.g. the buff is missing from the world data),
 // the player gets a clean message rather than the raw internal AddBuff error
 // that leaks the buff id ("...buffId: 15"). Regression guard for the dogmud
 // world shipping without buff 15.
-func TestSleep_BuffUnavailable_NoRawErrorLeak(t *testing.T) {
+func TestSleep_ConditionUnavailable_NoRawErrorLeak(t *testing.T) {
 	// Deliberately seed an EMPTY buff registry so AddBuff(15) fails.
-	cleanup := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{})
+	cleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{})
 	defer cleanup()
 
 	actor := newSleepActor(t, false /* notInCombat */, true)
@@ -133,7 +133,7 @@ func TestSleep_BuffUnavailable_NoRawErrorLeak(t *testing.T) {
 // TestSleep_BlocksInCombat verifies that Sleep returns Failure and sends
 // a user-facing message when the actor is in combat.
 func TestSleep_BlocksInCombat(t *testing.T) {
-	cleanup := seedSleepBuff(t)
+	cleanup := seedSleepCondition(t)
 	defer cleanup()
 
 	actor := newSleepActor(t, true /* inCombat */, true)
@@ -143,7 +143,7 @@ func TestSleep_BlocksInCombat(t *testing.T) {
 	if res.Success {
 		t.Errorf("expected failure when in combat, got %+v", res)
 	}
-	if actor.char.HasBuffFlag(conditions.Sleeping) {
+	if actor.char.HasConditionFlag(conditions.Sleeping) {
 		t.Errorf("expected Sleeping NOT applied during combat")
 	}
 	if len(actor.sent) == 0 {
@@ -154,7 +154,7 @@ func TestSleep_BlocksInCombat(t *testing.T) {
 // TestSleep_MobActorSilentInCombat verifies that a mob actor in combat
 // receives no message (mob.SendText is a no-op, actor.sent stays empty).
 func TestSleep_MobActorSilentInCombat(t *testing.T) {
-	cleanup := seedSleepBuff(t)
+	cleanup := seedSleepCondition(t)
 	defer cleanup()
 
 	actor := newSleepActor(t, true /* inCombat */, false /* mob, not player */)
@@ -172,7 +172,7 @@ func TestSleep_MobActorSilentInCombat(t *testing.T) {
 // TestSleep_IdempotentWhenAlreadySleeping verifies that calling Sleep on a
 // character that is already sleeping returns Success without error.
 func TestSleep_IdempotentWhenAlreadySleeping(t *testing.T) {
-	cleanup := seedSleepBuff(t)
+	cleanup := seedSleepCondition(t)
 	defer cleanup()
 
 	actor := newSleepActor(t, false, true)
@@ -198,15 +198,15 @@ func TestSleep_IdempotentWhenAlreadySleeping(t *testing.T) {
 func TestSleep_PlayerReadsTheStartLine(t *testing.T) {
 	const startLine = "You lie down and let sleep take you."
 
-	cleanup := conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+	cleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		9: {
-			BuffId:       9,
+			ConditionId:  9,
 			Name:         "Hidden",
 			Flags:        []conditions.Flag{conditions.Hidden},
 			TriggerCount: 1000000,
 		},
 		15: {
-			BuffId:        15,
+			ConditionId:   15,
 			Name:          "Sleeping",
 			Flags:         []conditions.Flag{conditions.SilentStart, conditions.Sleeping, conditions.CancelOnDamage},
 			TriggerCount:  1000000,

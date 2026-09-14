@@ -5,9 +5,9 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/conversationadapter"
@@ -161,7 +161,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 		}
 	}
 	// If has a buff that prevents combat, skip the player
-	if user.Character.HasBuffFlag(conditions.NoMovement) {
+	if user.Character.HasConditionFlag(conditions.NoMovement) {
 		user.SendText(messaging.CategorySystem, "You can't do that!")
 		return true, nil
 	}
@@ -519,7 +519,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 				// shadow expired or was cancelled out-of-band. Clear stale state
 				// and skip the auto-follow so a dead/logged-off target can't drag
 				// the player to an unexpected room.
-				if !shadowP.Character.HasBuff(87) {
+				if !shadowP.Character.HasCondition(87) {
 					shadowP.Character.SetMiscData("shadow-target-user", nil)
 					shadowP.Character.SetMiscData("shadow-target-mob", nil)
 					continue
@@ -815,15 +815,15 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 						continue
 					}
 					if other := users.GetByUserId(otherUserId); other != nil &&
-						other.Character.HasBuffFlag(conditions.Sleeping) {
-						other.Character.CancelBuffsWithFlag(conditions.Sleeping)
+						other.Character.HasConditionFlag(conditions.Sleeping) {
+						other.Character.CancelConditionsWithFlag(conditions.Sleeping)
 						mobs.OnSleeperWoken(other.Character)
 					}
 				}
 				for _, mobInstId := range destRoom.GetMobs() {
 					if m := mobs.GetInstance(mobInstId); m != nil &&
-						m.Character.HasBuffFlag(conditions.Sleeping) {
-						m.Character.CancelBuffsWithFlag(conditions.Sleeping)
+						m.Character.HasConditionFlag(conditions.Sleeping) {
+						m.Character.CancelConditionsWithFlag(conditions.Sleeping)
 						mobs.OnSleeperWoken(&m.Character)
 					}
 				}
@@ -961,7 +961,7 @@ func findRelateableEligiblePairsInRoom(room *rooms.Room) []relateableMobPair {
 		if m.Character.IsInCombat() {
 			continue
 		}
-		if m.Character.HasBuffFlag(conditions.Sleeping) {
+		if m.Character.HasConditionFlag(conditions.Sleeping) {
 			continue
 		}
 		if m.Path.Len() > 0 || m.Path.Current() != nil {

@@ -329,13 +329,13 @@ func (i *Item) GetSpec() ItemSpec {
 	return *iSpec
 }
 
-func (i *Item) AddWornBuff(buffId int) {
+func (i *Item) AddWornCondition(conditionId int) {
 	if i.Spec == nil {
 		specCopy := *GetItemSpec(i.ItemId)
 		i.Spec = &specCopy
 	}
 
-	i.Spec.WornBuffIds = append(i.Spec.WornBuffIds, buffId)
+	i.Spec.WornConditionIds = append(i.Spec.WornConditionIds, conditionId)
 }
 
 func (i *Item) Rename(newName string, displayNameOrStyle ...string) {
@@ -390,19 +390,19 @@ func (i *Item) IsCursed() bool {
 
 // Gets the specifics of the item damage
 // Considers overrides
-func (i *Item) GetDiceRoll() (attacks int, dCount int, dSides int, bonus int, buffOnCrit []int) {
+func (i *Item) GetDiceRoll() (attacks int, dCount int, dSides int, bonus int, conditionOnCrit []int) {
 	if i.ItemId < 1 {
 		return 1, 1, 3, 0, []int{} // Default Damages
 	}
 	dmg := i.GetDamage()
-	return dmg.Attacks, dmg.DiceCount, dmg.SideCount, dmg.BonusDamage, dmg.CritBuffIds
+	return dmg.Attacks, dmg.DiceCount, dmg.SideCount, dmg.BonusDamage, dmg.CritConditionIds
 }
 
 // Gets distribution damage parameters for the item.
 // Returns (attacks, baseDamage, variance, critBuffs).
 // If the item uses BaseDamage/Variance, returns those directly.
 // Otherwise, converts legacy dice notation to distribution parameters.
-func (i *Item) GetDistributionDamage() (attacks int, baseDamage float64, variance float64, buffOnCrit []int) {
+func (i *Item) GetDistributionDamage() (attacks int, baseDamage float64, variance float64, conditionOnCrit []int) {
 	if i.ItemId < 1 {
 		return 1, 2.0, 1.0, []int{} // Default unarmed
 	}
@@ -412,11 +412,11 @@ func (i *Item) GetDistributionDamage() (attacks int, baseDamage float64, varianc
 		attacks = 1
 	}
 	if dmg.BaseDamage > 0 {
-		return attacks, float64(dmg.BaseDamage), float64(dmg.Variance), dmg.CritBuffIds
+		return attacks, float64(dmg.BaseDamage), float64(dmg.Variance), dmg.CritConditionIds
 	}
 	// Fallback: convert legacy dice to distribution
 	mean, stdDev := dice.DiceToDistribution(dmg.DiceCount, dmg.SideCount, dmg.BonusDamage)
-	return attacks, math.Round(mean), math.Round(stdDev), dmg.CritBuffIds
+	return attacks, math.Round(mean), math.Round(stdDev), dmg.CritConditionIds
 }
 
 func (i *Item) IsSpecial() bool {

@@ -281,7 +281,7 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 				continue
 			}
 
-			if u.Character.HasBuffFlag(conditions.Hidden) {
+			if u.Character.HasConditionFlag(conditions.Hidden) {
 				continue
 			}
 
@@ -309,7 +309,7 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 				continue
 			}
 
-			if mob.Character.HasBuffFlag(conditions.Hidden) {
+			if mob.Character.HasConditionFlag(conditions.Hidden) {
 				continue
 			}
 

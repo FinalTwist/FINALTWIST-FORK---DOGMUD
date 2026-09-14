@@ -8,8 +8,8 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
 	"github.com/GoMudEngine/GoMud/internal/bountyhunter"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -128,7 +128,7 @@ func MobRoundTick(e events.Event) events.ListenerReturn {
 		// other charm setter in the tree uses CharmPermanent or 99999, so in
 		// practice nothing but this spell reaches it.
 		tickMobCharmState(mob)
-		tickMobBuffs(mob, mobInstanceId)
+		tickMobConditions(mob, mobInstanceId)
 		tickMobRecomputeGoals(mob, roundCount) // chunk 4.2 — strategic-layer selection
 		if room != nil && mobs.IsGuardMob(mob.Groups) {
 			tEnf := time.Now()
@@ -165,7 +165,7 @@ func MobRoundTick(e events.Event) events.ListenerReturn {
 		tickMobProneRecovery(mob)
 		tickMobMutationAcquisition(mob, &mb)
 		if mob.Character.IsInCombat() && shouldFrenzy(mutations.HasMutationFlag(mob.Character.Mutations, "battle-frenzy"), mob.Character.Health, mob.Character.HealthMax.Value) {
-			mob.AddBuff(bloodFrenzyBuffId, "blood-frenzy")
+			mob.AddCondition(bloodFrenzyConditionId, "blood-frenzy")
 		}
 		tickMobCrafting(mob)
 		revalidateMobStats(mob)
@@ -214,13 +214,13 @@ func tickMobCharmDuration(mob *mobs.Mob) {
 	}
 }
 
-// tickMobBuffs — current inline block at lines 124–160.
-func tickMobBuffs(mob *mobs.Mob, mobInstanceId int) {
-	if triggeredBuffs := mob.Character.Buffs.Trigger(); len(triggeredBuffs) > 0 {
-		triggeredBuffIds := []int{}
-		for _, buff := range triggeredBuffs {
-			if buff.TickAmount != 0 {
-				if mobBuffSpec := conditions.GetBuffSpec(buff.BuffId); mobBuffSpec != nil {
+// tickMobConditions — current inline block at lines 124–160.
+func tickMobConditions(mob *mobs.Mob, mobInstanceId int) {
+	if triggeredConditions := mob.Character.Conditions.Trigger(); len(triggeredConditions) > 0 {
+		triggeredConditionIds := []int{}
+		for _, condition := range triggeredConditions {
+			if condition.TickAmount != 0 {
+				if mobConditionSpec := conditions.GetConditionSpec(condition.ConditionId); mobConditionSpec != nil {
 					// buff.TickAmount is SIGNED: buffs.ComputeTickAmount returns a
 					// negative value for TickPercent < 0, so this is a
 					// damage-over-time delivery path as well as a regen one.
@@ -231,15 +231,15 @@ func tickMobBuffs(mob *mobs.Mob, mobInstanceId int) {
 					//
 					// DoT buffs carry no applier, so the harm source is anonymous
 					// (state.ActorRef{}). See ApplyHarm's docstring.
-					tickAmt := buff.TickAmount
-					switch mobBuffSpec.TickPool {
+					tickAmt := condition.TickAmount
+					switch mobConditionSpec.TickPool {
 					case "health":
 						if tickAmt > 0 {
 							mob.Character.ApplyRestore(characters.PoolHealth, tickAmt)
 						} else if tickAmt < 0 {
 							mob.Character.ApplyHarm(characters.PoolHealth, -tickAmt, state.ActorRef{})
 							cancelCraftOrSalvageOnDamage(&mob.Character)
-							cancelDamageBuffs(&mob.Character)
+							cancelDamageConditions(&mob.Character)
 							// See tickCauseFor and deathCauseFor: captures the
 							// cause at tick-landing time so a record already
 							// Expired or pruned by the time a death is
@@ -247,7 +247,7 @@ func tickMobBuffs(mob *mobs.Mob, mobInstanceId int) {
 							// cause yet — mob deaths do not announce one —
 							// this is stamped for symmetry with the player
 							// tick path.
-							if cause := tickCauseFor(mobBuffSpec); cause != "" {
+							if cause := tickCauseFor(mobConditionSpec); cause != "" {
 								mob.Character.LastTickCause = cause
 								mob.Character.LastTickCauseRound = util.GetRoundCount()
 							}
@@ -276,20 +276,20 @@ func tickMobBuffs(mob *mobs.Mob, mobInstanceId int) {
 			// for the record's close, not a substitute for the trigger text
 			// on a one-trigger record. Same shape as the mob branch of
 			// PruneBuffs, so the line gets the same buff colour.
-			if trigSpec := conditions.GetBuffSpec(buff.BuffId); trigSpec != nil && len(trigSpec.Narration(conditions.PhaseTrigger).Observer) > 0 {
+			if trigSpec := conditions.GetConditionSpec(condition.ConditionId); trigSpec != nil && len(trigSpec.Narration(conditions.PhaseTrigger).Observer) > 0 {
 				if room := rooms.LoadRoom(mob.Character.RoomId); room != nil {
 					roles := trigSpec.Narrate(conditions.PhaseTrigger, textutil.TokenContext{
 						SourceName:      mobDisplayName(mob, room, 0),
 						SourcePlainName: mob.Character.GetCharacterName(false),
 					})
 					if roles.Observer != "" {
-						room.SendTextVisual(messaging.CategoryBuffApply, roles.Observer)
+						room.SendTextVisual(messaging.CategoryConditionApply, roles.Observer)
 					}
 				}
 			}
-			triggeredBuffIds = append(triggeredBuffIds, buff.BuffId)
+			triggeredConditionIds = append(triggeredConditionIds, condition.ConditionId)
 		}
-		events.AddToQueue(events.BuffsTriggered{MobInstanceId: mobInstanceId, BuffIds: triggeredBuffIds})
+		events.AddToQueue(events.ConditionsTriggered{MobInstanceId: mobInstanceId, ConditionIds: triggeredConditionIds})
 	}
 }
 

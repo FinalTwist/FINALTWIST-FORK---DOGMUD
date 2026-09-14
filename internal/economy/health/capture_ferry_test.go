@@ -3,9 +3,9 @@ package health_test
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/caravan"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/economy/health"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/ferry"
@@ -44,7 +44,7 @@ func TestCaptureSnapshot_FerryFactors(t *testing.T) {
 		Zone:       "Stillwater", // template-stable zone; matches the throughput key below
 	}
 	factor.Character.Name = "A Lakeway Factor"
-	factor.Character.Buffs = conditions.New()
+	factor.Character.Conditions = conditions.New()
 	factor.Character.RoomId = roomId
 	// Deterministic carry capacity — item specs aren't loaded in test, so
 	// per-item weights resolve to 0 (mirrors the caravan/forager capture
@@ -125,7 +125,7 @@ func TestCaptureSnapshot_FerryFactors_NonFactorMobsExcluded(t *testing.T) {
 		Zone:       "Stillwater",
 	}
 	plain.Character.Name = "Not A Factor Right Now"
-	plain.Character.Buffs = conditions.New()
+	plain.Character.Conditions = conditions.New()
 	plain.Character.RoomId = roomId
 
 	mobs.SetInstanceForTest(plain.InstanceId, plain)

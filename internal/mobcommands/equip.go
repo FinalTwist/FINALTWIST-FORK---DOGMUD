@@ -14,7 +14,7 @@ import (
 
 func Equip(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
-	if mob.Character.HasBuffFlag(conditions.PermaGear) {
+	if mob.Character.HasConditionFlag(conditions.PermaGear) {
 		mob.Command(`emote struggles with their gear for a while, then gives up.`)
 		return true, nil
 	}

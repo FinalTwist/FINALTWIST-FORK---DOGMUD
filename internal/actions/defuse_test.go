@@ -3,8 +3,8 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/gamelock"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -36,7 +36,7 @@ func init() {
 // Defuse test helpers
 // ---------------------------------------------------------------------------
 
-const defuseTestTrapBuffId = 42
+const defuseTestTrapConditionId = 42
 const defuseTestContainerName = "chest"
 const defuseTestExitName = "north"
 
@@ -69,8 +69,8 @@ func newDefuseRoom(difficulty uint8) *rooms.Room {
 	r.Containers = map[string]rooms.Container{
 		defuseTestContainerName: {
 			Lock: gamelock.Lock{
-				Difficulty:  difficulty,
-				TrapBuffIds: []int{defuseTestTrapBuffId},
+				Difficulty:       difficulty,
+				TrapConditionIds: []int{defuseTestTrapConditionId},
 			},
 		},
 	}
@@ -80,8 +80,8 @@ func newDefuseRoom(difficulty uint8) *rooms.Room {
 		defuseTestExitName: {
 			RoomId: 2,
 			Lock: gamelock.Lock{
-				Difficulty:  difficulty,
-				TrapBuffIds: []int{defuseTestTrapBuffId},
+				Difficulty:       difficulty,
+				TrapConditionIds: []int{defuseTestTrapConditionId},
 			},
 		},
 	}
@@ -117,11 +117,11 @@ func seedDisarmKit(actor *stubActorWithId, itemId int, bonus int) {
 // The base stubActor.AddBuff discards calls; we override here to track them.
 type trackingActor struct {
 	*stubActorWithId
-	buffIds []int
+	conditionIds []int
 }
 
-func (a *trackingActor) AddBuff(buffId int, source string) {
-	a.buffIds = append(a.buffIds, buffId)
+func (a *trackingActor) AddCondition(conditionId int, source string) {
+	a.conditionIds = append(a.conditionIds, conditionId)
 }
 
 func newTrackingActor(perception int, skillRank int) *trackingActor {
@@ -209,8 +209,8 @@ func TestDefuse_Success(t *testing.T) {
 		actor.room.Containers = map[string]rooms.Container{
 			defuseTestContainerName: {
 				Lock: gamelock.Lock{
-					Difficulty:  1,
-					TrapBuffIds: []int{defuseTestTrapBuffId},
+					Difficulty:       1,
+					TrapConditionIds: []int{defuseTestTrapConditionId},
 				},
 			},
 		}
@@ -224,7 +224,7 @@ func TestDefuse_Success(t *testing.T) {
 				"kit should be consumed on success")
 			// Verify trap was cleared from the container.
 			container := actor.room.Containers[defuseTestContainerName]
-			assert.Nil(t, container.Lock.TrapBuffIds,
+			assert.Nil(t, container.Lock.TrapConditionIds,
 				"trap buff IDs should be nil after successful defuse")
 			// Kit should be gone from backpack.
 			_, stillHas := actor.char.FindInBackpack("disarm kit")
@@ -269,23 +269,23 @@ func TestDefuse_FailureTriggers(t *testing.T) {
 		tracker.room.Containers = map[string]rooms.Container{
 			defuseTestContainerName: {
 				Lock: gamelock.Lock{
-					Difficulty:  100,
-					TrapBuffIds: []int{defuseTestTrapBuffId},
+					Difficulty:       100,
+					TrapConditionIds: []int{defuseTestTrapConditionId},
 				},
 			},
 		}
-		tracker.buffIds = nil
+		tracker.conditionIds = nil
 
 		result := Defuse(tracker, DefuseOptions{TargetNoun: defuseTestContainerName})
 		if !result.Succeeded {
 			failedTrials++
 			assert.NotEmpty(t, result.TriggeredTraps,
 				"TriggeredTraps should list the trap buff IDs on failure")
-			assert.Equal(t, []int{defuseTestTrapBuffId}, result.TriggeredTraps)
+			assert.Equal(t, []int{defuseTestTrapConditionId}, result.TriggeredTraps)
 			assert.True(t, result.KitConsumed,
 				"kit is consumed even on failure")
 			// The trackingActor overrides AddBuff; verify it was called.
-			assert.Contains(t, tracker.buffIds, defuseTestTrapBuffId,
+			assert.Contains(t, tracker.conditionIds, defuseTestTrapConditionId,
 				"trap buff should have been applied to the actor on failure")
 		}
 	}
@@ -337,7 +337,7 @@ func TestDefuse_ExitTarget(t *testing.T) {
 		assert.True(t, result.KitConsumed)
 		exitInfo, ok := actor.room.Exits[defuseTestExitName]
 		require.True(t, ok, "exit should still exist")
-		assert.Nil(t, exitInfo.Lock.TrapBuffIds,
+		assert.Nil(t, exitInfo.Lock.TrapConditionIds,
 			"exit trap buff IDs should be nil after successful defuse")
 	} else {
 		// On failure, TriggeredTraps must be populated.
@@ -361,8 +361,8 @@ func TestDefuse_SkillProgressionFires(t *testing.T) {
 		actor.room.Containers = map[string]rooms.Container{
 			defuseTestContainerName: {
 				Lock: gamelock.Lock{
-					Difficulty:  5,
-					TrapBuffIds: []int{defuseTestTrapBuffId},
+					Difficulty:       5,
+					TrapConditionIds: []int{defuseTestTrapConditionId},
 				},
 			},
 		}
@@ -413,8 +413,8 @@ func TestDefuse_NoTrapsOnLock(t *testing.T) {
 	actor.room.Containers = map[string]rooms.Container{
 		defuseTestContainerName: {
 			Lock: gamelock.Lock{
-				Difficulty:  5,
-				TrapBuffIds: []int{}, // no traps
+				Difficulty:       5,
+				TrapConditionIds: []int{}, // no traps
 			},
 		},
 	}

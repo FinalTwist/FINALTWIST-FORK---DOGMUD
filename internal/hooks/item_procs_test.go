@@ -3,8 +3,8 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -14,14 +14,14 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
-// seedStunBuff registers buff 84 (the 1-round stagger-Stun) into the buff
+// seedStunCondition registers buff 84 (the 1-round stagger-Stun) into the buff
 // registry for the duration of a test. seedAllRegistries seeds only buffs
 // 100/101, so aoe_stun's AddBuff(84) would silently fail without this.
-func seedStunBuff(t *testing.T) func() {
+func seedStunCondition(t *testing.T) func() {
 	t.Helper()
-	return conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
+	return conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		84: {
-			BuffId:        84,
+			ConditionId:   84,
 			Name:          "Stunned",
 			Description:   "Reeling — no meaningful attack or defense this round.",
 			RoundInterval: 1,
@@ -39,7 +39,7 @@ func addTestMob(instanceId int, nonCombatant bool) *mobs.Mob {
 			Name:         "Test Beast",
 			RoomId:       1,
 			NonCombatant: nonCombatant,
-			Buffs:        conditions.New(),
+			Conditions:   conditions.New(),
 			Cooldowns:    map[string]int{},
 		},
 	}
@@ -54,7 +54,7 @@ func addTestMob(instanceId int, nonCombatant bool) *mobs.Mob {
 
 func TestProcAoeStun_StunsHostilesSkipsProtected(t *testing.T) {
 	defer seedAllRegistries()()
-	defer seedStunBuff(t)()
+	defer seedStunCondition(t)()
 	enableItemProcs(t)
 
 	// seedAllRegistries already places hostile mob instance 100 (Skeleton,
@@ -76,13 +76,13 @@ func TestProcAoeStun_StunsHostilesSkipsProtected(t *testing.T) {
 		t.Fatal("aoe_stun should execute (true) with hostile mobs present")
 	}
 
-	if !hostileA.Character.HasBuff(84) {
+	if !hostileA.Character.HasCondition(84) {
 		t.Error("hostile mob 100 should be stunned (buff 84)")
 	}
-	if !hostileB.Character.HasBuff(84) {
+	if !hostileB.Character.HasCondition(84) {
 		t.Error("hostile mob 201 should be stunned (buff 84)")
 	}
-	if nonCombatant.Character.HasBuff(84) {
+	if nonCombatant.Character.HasCondition(84) {
 		t.Error("non-combatant mob 202 must NOT be stunned")
 	}
 }
@@ -93,7 +93,7 @@ func TestProcAoeStun_StunsHostilesSkipsProtected(t *testing.T) {
 // by seedAllRegistries with no party, so user 2 is a non-party bystander.
 func TestProcAoeStun_SkipsCharmedCompanions(t *testing.T) {
 	defer seedAllRegistries()()
-	defer seedStunBuff(t)()
+	defer seedStunCondition(t)()
 	enableItemProcs(t)
 
 	hostile := mobs.GetInstance(100)
@@ -108,13 +108,13 @@ func TestProcAoeStun_SkipsCharmedCompanions(t *testing.T) {
 	if ok := procAoeStun(owner, rooms.LoadRoom(1), map[string]float64{}); !ok {
 		t.Fatal("aoe_stun should execute with a hostile present")
 	}
-	if !hostile.Character.HasBuff(84) {
+	if !hostile.Character.HasCondition(84) {
 		t.Error("hostile mob 100 should be stunned")
 	}
-	if ownerCompanion.Character.HasBuff(84) {
+	if ownerCompanion.Character.HasCondition(84) {
 		t.Error("owner-charmed companion 203 must NOT be stunned")
 	}
-	if bystanderCompanion.Character.HasBuff(84) {
+	if bystanderCompanion.Character.HasCondition(84) {
 		t.Error("non-party bystander's companion 204 must NOT be stunned")
 	}
 }
@@ -123,7 +123,7 @@ func TestProcAoeStun_SkipsCharmedCompanions(t *testing.T) {
 // (so the caller does not burn the proc's cooldown).
 func TestProcAoeStun_EmptyRoomReturnsFalse(t *testing.T) {
 	defer seedAllRegistries()()
-	defer seedStunBuff(t)()
+	defer seedStunCondition(t)()
 	enableItemProcs(t)
 
 	owner := users.GetByUserId(1).Character
@@ -139,7 +139,7 @@ func TestProcAoeStun_EmptyRoomReturnsFalse(t *testing.T) {
 // nothing and returns false — no Stage-2 mob wields an aoe_stun item.
 func TestProcAoeStun_MobOwnerIsNoOp(t *testing.T) {
 	defer seedAllRegistries()()
-	defer seedStunBuff(t)()
+	defer seedStunCondition(t)()
 	enableItemProcs(t)
 
 	hostile := mobs.GetInstance(100)
@@ -148,7 +148,7 @@ func TestProcAoeStun_MobOwnerIsNoOp(t *testing.T) {
 	if ok := procAoeStun(mobOwner, rooms.LoadRoom(1), map[string]float64{}); ok {
 		t.Fatal("aoe_stun from a mob owner should return false")
 	}
-	if hostile.Character.HasBuff(84) {
+	if hostile.Character.HasCondition(84) {
 		t.Error("mob-owner aoe_stun must not stun anything")
 	}
 }
@@ -245,13 +245,13 @@ func TestProcApplyCondition_Bleed(t *testing.T) {
 	if !ok {
 		t.Fatal("apply_condition should execute")
 	}
-	if !target.HasBuff(conditions.BuffIdBleeding) {
+	if !target.HasCondition(conditions.ConditionIdBleeding) {
 		t.Fatal("target should be bleeding")
 	}
-	if got := target.Buffs.TriggersLeft(conditions.BuffIdBleeding); got != 6 {
+	if got := target.Conditions.TriggersLeft(conditions.ConditionIdBleeding); got != 6 {
 		t.Fatalf("expected 6: duration is the stack's rounds and the record ticks every round, got %d", got)
 	}
-	held := target.GetBuffs(conditions.BuffIdBleeding)
+	held := target.GetConditions(conditions.ConditionIdBleeding)
 	if len(held) != 1 {
 		t.Fatalf("expected exactly one held Bleeding record, got %d", len(held))
 	}
@@ -272,7 +272,7 @@ func TestProcApplyCondition_Bleed(t *testing.T) {
 // Null probe: reverting procApplyCondition's case 1 to ignore
 // AddBuffMagnitude's error (`return true` unconditionally) turns this red.
 func TestProcApplyCondition_BleedSpecMissing_ReturnsFalse(t *testing.T) {
-	defer conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{})()
+	defer conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{})()
 	target := characters.New()
 
 	if procApplyCondition(target, map[string]float64{
@@ -314,7 +314,7 @@ func TestDispatchOnGrappleProcs_Bleed(t *testing.T) {
 
 	dispatchItemProcs("on_grapple", wearer, opponent, nil, 0)
 
-	if !opponent.HasBuff(conditions.BuffIdBleeding) {
+	if !opponent.HasCondition(conditions.ConditionIdBleeding) {
 		t.Fatal("on_grapple apply_condition expected the opponent to be bleeding")
 	}
 }

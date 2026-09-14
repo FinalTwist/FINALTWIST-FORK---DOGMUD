@@ -3,8 +3,8 @@ package actions
 import (
 	"math"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
@@ -40,7 +40,7 @@ func ExecuteRally(actor Actor) RallyResult {
 
 	// Skip if the rally buff is already active on this actor —
 	// re-casting would just burn the cooldown for no new effect.
-	if char.HasBuff(80) {
+	if char.HasCondition(80) {
 		return RallyResult{AlreadyActive: true}
 	}
 
@@ -116,6 +116,6 @@ func ApplyRallyEffect(char *characters.Character) (float64, int) {
 	// One record carries both the bookkeeping and the magnitude; the defense
 	// multiplier the reader wants is 1 + bonus. duration is the exact integer
 	// the shout computed (25 scaled by shout amp).
-	_ = char.AddBuffMagnitude(conditions.BuffIdRally, duration, 1.0+bonus, "rally")
+	_ = char.AddConditionMagnitude(conditions.ConditionIdRally, duration, 1.0+bonus, "rally")
 	return bonus, duration
 }

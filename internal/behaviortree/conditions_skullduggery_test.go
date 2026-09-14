@@ -9,11 +9,11 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-// hiddenBuffSpec is the minimal BuffSpec required to make AddBuff(9) succeed.
+// hiddenConditionSpec is the minimal BuffSpec required to make AddBuff(9) succeed.
 // TriggerCount > 0 keeps the buff alive through the assertion.
-var hiddenBuffSpec = map[int]*conditions.BuffSpec{
+var hiddenConditionSpec = map[int]*conditions.ConditionSpec{
 	9: {
-		BuffId:        9,
+		ConditionId:   9,
 		Name:          "Hidden",
 		Flags:         []conditions.Flag{conditions.Hidden},
 		TriggerCount:  15,
@@ -23,15 +23,15 @@ var hiddenBuffSpec = map[int]*conditions.BuffSpec{
 
 // ─── condMobIsHidden ─────────────────────────────────────────────────────────
 
-func TestCondMobIsHidden_TrueWhenBuffPresent(t *testing.T) {
-	cleanBuffs := conditions.SeedBuffsForTest(hiddenBuffSpec)
-	defer cleanBuffs()
+func TestCondMobIsHidden_TrueWhenConditionPresent(t *testing.T) {
+	cleanConditions := conditions.SeedConditionsForTest(hiddenConditionSpec)
+	defer cleanConditions()
 
 	cleanMob := seedTestMob(t, 5, 105, 1, "TestThief")
 	defer cleanMob()
 
 	mob := mobs.GetInstance(105)
-	grantHiddenBuff(t, &mob.Character)
+	grantHiddenCondition(t, &mob.Character)
 
 	ctx := &EvalContext{InstanceId: 105}
 	if r := condMobIsHidden(map[string]any{}, ctx); r != Success {
@@ -39,7 +39,7 @@ func TestCondMobIsHidden_TrueWhenBuffPresent(t *testing.T) {
 	}
 }
 
-func TestCondMobIsHidden_FalseWhenNoBuff(t *testing.T) {
+func TestCondMobIsHidden_FalseWhenNoCondition(t *testing.T) {
 	cleanMob := seedTestMob(t, 5, 105, 1, "TestThief")
 	defer cleanMob()
 
@@ -58,9 +58,9 @@ func TestCondMobIsHidden_FalseWhenInstanceMissing(t *testing.T) {
 
 // ─── condTargetIsHidden ──────────────────────────────────────────────────────
 
-func TestCondTargetIsHidden_TrueWhenTargetBuffPresent(t *testing.T) {
-	cleanBuffs := conditions.SeedBuffsForTest(hiddenBuffSpec)
-	defer cleanBuffs()
+func TestCondTargetIsHidden_TrueWhenTargetConditionPresent(t *testing.T) {
+	cleanConditions := conditions.SeedConditionsForTest(hiddenConditionSpec)
+	defer cleanConditions()
 
 	cleanMob := seedTestMob(t, 5, 105, 1, "TestMob")
 	defer cleanMob()
@@ -68,7 +68,7 @@ func TestCondTargetIsHidden_TrueWhenTargetBuffPresent(t *testing.T) {
 	defer cleanUser()
 
 	user := users.GetByUserId(42)
-	grantHiddenBuff(t, user.Character)
+	grantHiddenCondition(t, user.Character)
 
 	ctx := &EvalContext{
 		InstanceId: 105,
@@ -80,8 +80,8 @@ func TestCondTargetIsHidden_TrueWhenTargetBuffPresent(t *testing.T) {
 }
 
 func TestCondTargetIsHidden_TrueViaSoftTarget(t *testing.T) {
-	cleanBuffs := conditions.SeedBuffsForTest(hiddenBuffSpec)
-	defer cleanBuffs()
+	cleanConditions := conditions.SeedConditionsForTest(hiddenConditionSpec)
+	defer cleanConditions()
 
 	cleanMob := seedTestMob(t, 5, 105, 1, "TestMob")
 	defer cleanMob()
@@ -92,7 +92,7 @@ func TestCondTargetIsHidden_TrueViaSoftTarget(t *testing.T) {
 	// This exercises the SoftTarget priority path in resolveSkullduggeryTarget
 	// (chunk-2.7 fix: target_random_player_in_room sets SoftTarget, not Aggro).
 	user := users.GetByUserId(42)
-	grantHiddenBuff(t, user.Character)
+	grantHiddenCondition(t, user.Character)
 
 	ctx := &EvalContext{
 		InstanceId: 105, // no Event.UserId

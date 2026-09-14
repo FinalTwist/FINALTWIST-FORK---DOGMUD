@@ -13,7 +13,7 @@ import (
 
 func pinCharacter() *Character {
 	c := &Character{}
-	c.Buffs.Validate(true)
+	c.Conditions.Validate(true)
 	c.Name = "Pin"
 	// Base, not just Value: RecalculateStats (validate.go:30-267) only ever
 	// writes .Mods and then calls StatInfo.Recalculate() (Value = Base +
@@ -38,8 +38,8 @@ func TestPin_ShieldAddsFlatPhysicalMitigation(t *testing.T) {
 	defer conditions.SeedConditionRecordsForTest()()
 	c := pinCharacter()
 	before := c.GetPhysicalMitigation()
-	_ = c.AddBuffMagnitude(conditions.BuffIdMinorShield, 10, 12, "pin") // SETUP
-	c.Buffs.Validate(true)
+	_ = c.AddConditionMagnitude(conditions.ConditionIdMinorShield, 10, 12, "pin") // SETUP
+	c.Conditions.Validate(true)
 	got := c.GetPhysicalMitigation() - before
 	if math.Abs(got-0.12) > 1e-9 {
 		t.Fatalf("shield 12 must add exactly 0.12 mitigation, got %v", got)
@@ -61,7 +61,7 @@ func TestPin_WithdrawalCutsThePoolMaximumByTheFraction(t *testing.T) {
 	baseHealth := c.HealthMax.Value
 	baseStamina := c.StaminaMax.Value
 
-	_ = c.AddBuffMagnitude(conditions.BuffIdEnchantWithdrawal, 50, 0.25, "health") // SETUP: Task 10
+	_ = c.AddConditionMagnitude(conditions.ConditionIdEnchantWithdrawal, 50, 0.25, "health") // SETUP: Task 10
 	c.Validate()
 
 	wantHealth := baseHealth - int(math.Floor(float64(baseHealth)*0.25))
@@ -81,7 +81,7 @@ func TestPin_WithdrawalOnStaminaAndConviction(t *testing.T) {
 		baseHealth := c.HealthMax.Value
 		baseStamina := c.StaminaMax.Value
 
-		_ = c.AddBuffMagnitude(conditions.BuffIdEnchantWithdrawal, 50, 0.5, "stamina") // SETUP: Task 10
+		_ = c.AddConditionMagnitude(conditions.ConditionIdEnchantWithdrawal, 50, 0.5, "stamina") // SETUP: Task 10
 		c.Validate()
 
 		wantStamina := baseStamina - int(math.Floor(float64(baseStamina)*0.5))
@@ -100,7 +100,7 @@ func TestPin_WithdrawalOnStaminaAndConviction(t *testing.T) {
 		baseHealth := c.HealthMax.Value
 		baseConviction := c.ConvictionMax.Value
 
-		_ = c.AddBuffMagnitude(conditions.BuffIdEnchantWithdrawal, 50, 0.5, "conviction") // SETUP: Task 10
+		_ = c.AddConditionMagnitude(conditions.ConditionIdEnchantWithdrawal, 50, 0.5, "conviction") // SETUP: Task 10
 		c.Validate()
 
 		wantConviction := baseConviction - int(math.Floor(float64(baseConviction)*0.5))
@@ -130,12 +130,12 @@ func TestPin_ASecondWithdrawalReplacesTheFirst(t *testing.T) {
 	c := pinCharacter()
 	c.Validate()
 
-	_ = c.AddBuffMagnitude(conditions.BuffIdEnchantWithdrawal, 50, 0.25, "health")
+	_ = c.AddConditionMagnitude(conditions.ConditionIdEnchantWithdrawal, 50, 0.25, "health")
 	if c.HealthMax.Value != 150 {
 		t.Fatalf("first withdrawal (health, 0.25 of base 200) must read 150, got %d", c.HealthMax.Value)
 	}
 
-	_ = c.AddBuffMagnitude(conditions.BuffIdEnchantWithdrawal, 50, 0.5, "stamina")
+	_ = c.AddConditionMagnitude(conditions.ConditionIdEnchantWithdrawal, 50, 0.5, "stamina")
 	if c.HealthMax.Value != 200 {
 		t.Fatalf("a second withdrawal on the same record must replace the first: health max must return to base 200, got %d", c.HealthMax.Value)
 	}
@@ -164,11 +164,11 @@ func TestPin_AMisSourcedWithdrawalDoesNotShadowAValidOne(t *testing.T) {
 		t.Fatalf("fixture: stamina max must start at 100, got %d", baseStamina)
 	}
 
-	c.Buffs.List = append(c.Buffs.List,
-		&conditions.Buff{BuffId: conditions.BuffIdEnchantWithdrawal, Source: "bogus", TriggersLeft: 50, Magnitude: 0.9},
-		&conditions.Buff{BuffId: conditions.BuffIdEnchantWithdrawal, Source: "stamina", TriggersLeft: 50, Magnitude: 0.5},
+	c.Conditions.List = append(c.Conditions.List,
+		&conditions.Condition{ConditionId: conditions.ConditionIdEnchantWithdrawal, Source: "bogus", TriggersLeft: 50, Magnitude: 0.9},
+		&conditions.Condition{ConditionId: conditions.ConditionIdEnchantWithdrawal, Source: "stamina", TriggersLeft: 50, Magnitude: 0.5},
 	)
-	c.Buffs.Validate(true)
+	c.Conditions.Validate(true)
 	c.Validate()
 
 	if c.StaminaMax.Value != 50 {

@@ -17,8 +17,8 @@ import (
 func TestCatsEyeDraughtGrantsNightVision(t *testing.T) {
 	data, err := os.ReadFile("../../_datafiles/world/dogmud/buffs/65-cats_eye_draught.yaml")
 	require.NoError(t, err)
-	var spec BuffSpec
+	var spec ConditionSpec
 	require.NoError(t, yaml.Unmarshal(data, &spec))
-	require.Equal(t, 65, spec.BuffId, "read the wrong file, so this test proves nothing")
+	require.Equal(t, 65, spec.ConditionId, "read the wrong file, so this test proves nothing")
 	assert.Contains(t, spec.Flags, NightVision)
 }

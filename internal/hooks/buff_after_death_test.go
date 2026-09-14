@@ -3,8 +3,8 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/life"
@@ -14,11 +14,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// rendingAfterDeathBuffId is a tick record shaped like 115 Rending Bleed
+// rendingAfterDeathConditionId is a tick record shaped like 115 Rending Bleed
 // (one-round trigger rate, four triggers), clear of the other hooks fixtures.
-const rendingAfterDeathBuffId = 7110
+const rendingAfterDeathConditionId = 7110
 
-// setupBuffAfterDeath seeds the registries and a tick record, and gives user 1
+// setupConditionAfterDeath seeds the registries and a tick record, and gives user 1
 // a real Life machine carrying the production death wiring, so Die runs the
 // same Alive -> Dead -> Respawning -> Alive sequence the game does.
 //
@@ -26,15 +26,15 @@ const rendingAfterDeathBuffId = 7110
 // OnCharacterCreated callbacks exactly once, in production order. Wiring the
 // cascade by hand as well would register it twice, because any later Validate
 // (every buff add runs one) fires the callbacks anyway.
-func setupBuffAfterDeath(t *testing.T) *users.UserRecord {
+func setupConditionAfterDeath(t *testing.T) *users.UserRecord {
 	t.Helper()
 	t.Cleanup(seedAllRegistries())
 	// One seed call: each SeedBuffsForTest replaces the registry, so a second
 	// call would drop the tick record.
-	t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-		rendingAfterDeathBuffId: {BuffId: rendingAfterDeathBuffId, Name: "Test Rending Bleed",
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		rendingAfterDeathConditionId: {ConditionId: rendingAfterDeathConditionId, Name: "Test Rending Bleed",
 			RoundInterval: 1, TriggerCount: 4, StartUserText: "Your wounds tear open."},
-		deathProtectionBuffId: {BuffId: deathProtectionBuffId, Name: "Death Protection",
+		deathProtectionConditionId: {ConditionId: deathProtectionConditionId, Name: "Death Protection",
 			TriggerCount: 1000000, Flags: []conditions.Flag{conditions.ReviveOnDeath}},
 	}))
 
@@ -57,7 +57,7 @@ func setupBuffAfterDeath(t *testing.T) *users.UserRecord {
 	// The message queue is package-global: drain every seeded user, or a
 	// line an earlier test sent to the room is read as this test's.
 	events.DrainQueuedCharacterDiedForTest()
-	events.DrainQueuedBuffsForTest(0)
+	events.DrainQueuedConditionsForTest(0)
 	drainPlain(1)
 	drainPlain(2)
 	return u
@@ -76,18 +76,18 @@ func setupBuffAfterDeath(t *testing.T) *users.UserRecord {
 //
 // This replays that queue order through the real producer (UserRecord.AddBuff),
 // the real death listener and the real buff listener.
-func TestApplyBuffs_BuffQueuedBeforeDeathDoesNotLandAfterRespawn(t *testing.T) {
-	u := setupBuffAfterDeath(t)
+func TestApplyConditions_ConditionQueuedBeforeDeathDoesNotLandAfterRespawn(t *testing.T) {
+	u := setupConditionAfterDeath(t)
 
 	// The killing blow, then the on-hit buff, in the order the combat round
 	// queues them.
 	u.Character.ApplyHarm(characters.PoolHealth, u.Character.HealthMax.Value+100, state.ActorRef{MobInstanceId: 100})
-	u.AddBuff(rendingAfterDeathBuffId, "mutation")
+	u.AddCondition(rendingAfterDeathConditionId, "mutation")
 
 	died := events.DrainQueuedCharacterDiedForTest()
 	require.Len(t, died, 1, "the lethal harm must queue the death")
-	queuedBuffs := events.DrainQueuedBuffsForTest(1)
-	require.Len(t, queuedBuffs, 1, "the on-hit buff must be queued")
+	queuedConditions := events.DrainQueuedConditionsForTest(1)
+	require.Len(t, queuedConditions, 1, "the on-hit buff must be queued")
 
 	RouteAttributedDeath(died[0])
 
@@ -98,8 +98,8 @@ func TestApplyBuffs_BuffQueuedBeforeDeathDoesNotLandAfterRespawn(t *testing.T) {
 	require.False(t, u.Character.DeathQueued, "precondition: the death token is cleared")
 	drainPlain(1)
 
-	assert.Equal(t, events.Continue, ApplyBuffs(queuedBuffs[0]))
-	assert.False(t, u.Character.HasBuff(rendingAfterDeathBuffId),
+	assert.Equal(t, events.Continue, ApplyConditions(queuedConditions[0]))
+	assert.False(t, u.Character.HasCondition(rendingAfterDeathConditionId),
 		"a buff aimed at the life that just ended must not land on the respawned player")
 	assert.Equal(t, 0, countContaining(drainPlain(1), "Your wounds tear open."),
 		"and the respawned player must not be told it took hold")
@@ -107,51 +107,51 @@ func TestApplyBuffs_BuffQueuedBeforeDeathDoesNotLandAfterRespawn(t *testing.T) {
 	// A buff queued AFTER the respawn is aimed at the new life and lands. This
 	// is the path every respawn-time buff takes (the room mutator buffs the
 	// respawn teleport queues on arrival).
-	u.AddBuff(rendingAfterDeathBuffId, "area")
-	fresh := events.DrainQueuedBuffsForTest(1)
+	u.AddCondition(rendingAfterDeathConditionId, "area")
+	fresh := events.DrainQueuedConditionsForTest(1)
 	require.Len(t, fresh, 1)
-	assert.Equal(t, events.Continue, ApplyBuffs(fresh[0]))
-	assert.True(t, u.Character.HasBuff(rendingAfterDeathBuffId),
+	assert.Equal(t, events.Continue, ApplyConditions(fresh[0]))
+	assert.True(t, u.Character.HasCondition(rendingAfterDeathConditionId),
 		"a buff queued after the respawn must still apply")
 }
 
 // Control: the same producer and listener, with no death in between, applies
 // and narrates. Without this the test above could pass because the fixture
 // never applies anything at all.
-func TestApplyBuffs_BuffQueuedOnALivingPlayerApplies(t *testing.T) {
-	u := setupBuffAfterDeath(t)
+func TestApplyConditions_ConditionQueuedOnALivingPlayerApplies(t *testing.T) {
+	u := setupConditionAfterDeath(t)
 
 	u.Character.ApplyHarm(characters.PoolHealth, 10, state.ActorRef{MobInstanceId: 100})
-	u.AddBuff(rendingAfterDeathBuffId, "mutation")
+	u.AddCondition(rendingAfterDeathConditionId, "mutation")
 
 	require.Empty(t, events.DrainQueuedCharacterDiedForTest(), "a survivable hit queues no death")
-	queuedBuffs := events.DrainQueuedBuffsForTest(1)
-	require.Len(t, queuedBuffs, 1)
+	queuedConditions := events.DrainQueuedConditionsForTest(1)
+	require.Len(t, queuedConditions, 1)
 
-	assert.Equal(t, events.Continue, ApplyBuffs(queuedBuffs[0]))
-	assert.True(t, u.Character.HasBuff(rendingAfterDeathBuffId))
+	assert.Equal(t, events.Continue, ApplyConditions(queuedConditions[0]))
+	assert.True(t, u.Character.HasCondition(rendingAfterDeathConditionId))
 	assert.Equal(t, 1, countContaining(drainPlain(1), "Your wounds tear open."))
 }
 
 // A queued death that a ReviveOnDeath buff turns into a revive never ends the
 // life, so a buff from the same blow still lands on the revived character.
 // This is why the refusal is not "a death was queued".
-func TestApplyBuffs_BuffQueuedBeforeAReviveStillApplies(t *testing.T) {
-	u := setupBuffAfterDeath(t)
-	require.NoError(t, u.Character.AddBuff(deathProtectionBuffId, true))
+func TestApplyConditions_ConditionQueuedBeforeAReviveStillApplies(t *testing.T) {
+	u := setupConditionAfterDeath(t)
+	require.NoError(t, u.Character.AddCondition(deathProtectionConditionId, true))
 
 	u.Character.ApplyHarm(characters.PoolHealth, u.Character.HealthMax.Value+100, state.ActorRef{MobInstanceId: 100})
-	u.AddBuff(rendingAfterDeathBuffId, "mutation")
+	u.AddCondition(rendingAfterDeathConditionId, "mutation")
 
 	died := events.DrainQueuedCharacterDiedForTest()
 	require.Len(t, died, 1)
-	queuedBuffs := events.DrainQueuedBuffsForTest(1)
-	require.Len(t, queuedBuffs, 1)
+	queuedConditions := events.DrainQueuedConditionsForTest(1)
+	require.Len(t, queuedConditions, 1)
 
 	RouteAttributedDeath(died[0])
-	require.False(t, u.Character.HasBuffFlag(conditions.ReviveOnDeath), "precondition: the revive fired")
+	require.False(t, u.Character.HasConditionFlag(conditions.ReviveOnDeath), "precondition: the revive fired")
 
-	assert.Equal(t, events.Continue, ApplyBuffs(queuedBuffs[0]))
-	assert.True(t, u.Character.HasBuff(rendingAfterDeathBuffId),
+	assert.Equal(t, events.Continue, ApplyConditions(queuedConditions[0]))
+	assert.True(t, u.Character.HasCondition(rendingAfterDeathConditionId),
 		"the revived character never died, so the blow's buff still lands")
 }

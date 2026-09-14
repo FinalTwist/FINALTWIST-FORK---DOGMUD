@@ -6,9 +6,9 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -70,7 +70,7 @@ func handleCombatRound(
 	// Defender's combat-cancel buffs always strip on combat engagement.
 	// CancelCombatBuffs also strips permabuff entries so Validate() won't
 	// re-apply them (notably: Hidden seeded via buffids on ambushers).
-	def.GetCharacter().CancelCombatBuffs()
+	def.GetCharacter().CancelCombatConditions()
 
 	// Chunk 1 follow-up (surfaced by chunk 4b smoke 2026-05-16):
 	// CancelCombatBuffs strips buff #9 but the Awareness FSM is the
@@ -151,7 +151,7 @@ func handleCombatRound(
 			defCh.DriftFromCombat("trickster", driftRound) // evaded a blow
 		}
 	}
-	if atkCh := atk.GetCharacter(); atkCh != nil && res.Hit && len(res.BuffTarget) > 0 {
+	if atkCh := atk.GetCharacter(); atkCh != nil && res.Hit && len(res.ConditionTarget) > 0 {
 		atkCh.DriftFromCombat("weaver", driftRound) // landed a debilitating effect on the foe
 	}
 
@@ -356,12 +356,12 @@ func applyCombatDamageBonuses(atk, def actions.Actor, res *combat.AttackResult) 
 	// struck defender. Route through the actor buff wrapper (not the raw
 	// Character.AddBuff) so the buff's start text fires and the GMCP
 	// conditions panel refreshes, for both player and mob defenders.
-	for _, buffId := range mutations.GetOnHitBuffs(atkChar.Mutations) {
-		def.AddBuff(buffId, "mutation")
+	for _, conditionId := range mutations.GetOnHitConditions(atkChar.Mutations) {
+		def.AddCondition(conditionId, "mutation")
 	}
 
 	// Conviction Surge: +15% damage on hit when DamageBonus buff flag set.
-	if atkChar.HasBuffFlag(conditions.DamageBonus) {
+	if atkChar.HasConditionFlag(conditions.DamageBonus) {
 		bonusDmg := int(math.Round(float64(res.DamageToTarget) * 0.15))
 		if bonusDmg < 1 {
 			bonusDmg = 1
@@ -403,8 +403,8 @@ func applyCombatDamageBonuses(atk, def actions.Actor, res *combat.AttackResult) 
 			// Reflect-Skin flavor riders: the backlash also afflicts the
 			// attacker (Molten burn DoT, Frostbite chill, Voltaic shock).
 			// Route through the actor wrapper so start text + GMCP fire.
-			for _, buffId := range mutations.GetReflectRiderBuffs(defChar.Mutations) {
-				atk.AddBuff(buffId, "mutation")
+			for _, conditionId := range mutations.GetReflectRiderConditions(defChar.Mutations) {
+				atk.AddCondition(conditionId, "mutation")
 			}
 		}
 	}
@@ -565,11 +565,11 @@ func dispatchCritAndMessaging(atk, def actions.Actor, res *combat.AttackResult) 
 	sendCritEffectTrio(atk, def, atkRoom, critResult)
 
 	// Buffs from the round (BuffSource → atk, BuffTarget → def).
-	for _, buffId := range res.BuffSource {
-		atk.AddBuff(buffId, `combat`)
+	for _, conditionId := range res.ConditionSource {
+		atk.AddCondition(conditionId, `combat`)
 	}
-	for _, buffId := range res.BuffTarget {
-		def.AddBuff(buffId, `combat`)
+	for _, conditionId := range res.ConditionTarget {
+		def.AddCondition(conditionId, `combat`)
 	}
 
 	// Direct messages — Divergence #1, now verbosity-gated (spec:
@@ -635,7 +635,7 @@ func applyCombatProgression(atk, def actions.Actor, res *combat.AttackResult) {
 	// damage this round (chunk 3.3). Fires before concentration-break so
 	// that a waking defender's buffs are cleaned up in the same phase.
 	if res.DamageToTarget > 0 {
-		cancelDamageBuffs(defChar)
+		cancelDamageConditions(defChar)
 	}
 
 	// Defender player concentration break (Divergence: player defender only).

@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -134,7 +134,7 @@ func TestCalcSwingCount_RecoveryForcesOne(t *testing.T) {
 	ch.StaminaMax.Base = 100
 	ch.Stamina = 100
 	setCombatPositionParallel(ch, position.Standing)
-	ch.Buffs.Validate(true)
+	ch.Conditions.Validate(true)
 	// Force ValueAdj/Value from Base BEFORE the record lands, so the baseline
 	// swing count below is driven by dexterity, not by an un-Validated fixture
 	// sitting at its zero value. Without this, deleting the AddBuffMagnitude
@@ -143,7 +143,7 @@ func TestCalcSwingCount_RecoveryForcesOne(t *testing.T) {
 	_ = ch.Validate()
 	require.Greater(t, calcSwingCount(ch, items.Item{}, 1.4, 0, false), 1, "fixture can swing more than once")
 
-	_ = ch.AddBuffMagnitude(conditions.BuffIdRecovering, 1, 0, "test")
+	_ = ch.AddConditionMagnitude(conditions.ConditionIdRecovering, 1, 0, "test")
 
 	got := calcSwingCount(ch, items.Item{}, 1.4, 0, false)
 	assert.Equal(t, 1, got, "recovery penalty should force swings to 1")
@@ -163,10 +163,10 @@ func TestRecoveringRecordExpiredByItsOwnTickCapsNothing(t *testing.T) {
 	ch.StaminaMax.Base = 100
 	ch.Stamina = 100
 	setCombatPositionParallel(ch, position.Standing)
-	ch.Buffs.Validate(true)
-	_ = ch.AddBuffMagnitude(conditions.BuffIdRecovering, 1, 0, "test")
+	ch.Conditions.Validate(true)
+	_ = ch.AddConditionMagnitude(conditions.ConditionIdRecovering, 1, 0, "test")
 	assert.Equal(t, 1, calcSwingCount(ch, items.Item{}, 1.4, 0, false), "held: the cap applies")
-	ch.Buffs.Trigger()
+	ch.Conditions.Trigger()
 	assert.Greater(t, calcSwingCount(ch, items.Item{}, 1.4, 0, false), 1, "expired by its own tick: no cap")
 }
 
@@ -175,10 +175,10 @@ func TestRecoveringRecordExpiredByItsOwnTickCapsNothing(t *testing.T) {
 func TestOffBalanceRecordIsTheDefenseMultiplier(t *testing.T) {
 	defer conditions.SeedConditionRecordsForTest()()
 	ch := &characters.Character{}
-	ch.Buffs.Validate(true)
-	require.InDelta(t, 1.0, ch.Buffs.Effect(conditions.EffectDefenseMult), 1e-9, "no record: identity multiplier")
-	_ = ch.AddBuffMagnitude(conditions.BuffIdOffBalance, 1, 0, "test")
-	require.InDelta(t, 0.85, ch.Buffs.Effect(conditions.EffectDefenseMult), 1e-9, "held: the record's literal 0.85")
+	ch.Conditions.Validate(true)
+	require.InDelta(t, 1.0, ch.Conditions.Effect(conditions.EffectDefenseMult), 1e-9, "no record: identity multiplier")
+	_ = ch.AddConditionMagnitude(conditions.ConditionIdOffBalance, 1, 0, "test")
+	require.InDelta(t, 0.85, ch.Conditions.Effect(conditions.EffectDefenseMult), 1e-9, "held: the record's literal 0.85")
 }
 
 func TestCalcSwingCount_ProneReduces(t *testing.T) {
@@ -431,10 +431,10 @@ func TestForceCrit_BypassesZScoreCheck(t *testing.T) {
 func TestCalcHitDamage_CritUsesRawDamage(t *testing.T) {
 	result := &AttackResult{}
 	sdp := swingDamageParams{
-		dmgMean:       10.0,
-		rawDmgForCrit: 50.0,
-		critDmgMult:   1.0, // 5.11g: neutral, so this stays a raw-vs-mitigated test
-		critBuffs:     []int{1},
+		dmgMean:        10.0,
+		rawDmgForCrit:  50.0,
+		critDmgMult:    1.0, // 5.11g: neutral, so this stays a raw-vs-mitigated test
+		critConditions: []int{1},
 	}
 
 	// Crit hit should use rawDmgForCrit
@@ -726,7 +726,7 @@ func TestDamageMultRecordScalesMeanAndCritRaw(t *testing.T) {
 
 	heldAttacker := newDamageMultCharacter(t)
 	heldTarget := newDamageMultCharacter(t)
-	require.NoError(t, heldAttacker.AddBuffMagnitude(conditions.BuffIdWarcry, 25, 1.25, "test"))
+	require.NoError(t, heldAttacker.AddConditionMagnitude(conditions.ConditionIdWarcry, 25, 1.25, "test"))
 	held := buildDamageParams(heldAttacker, heldTarget, weapon, 0, User)
 
 	require.InDelta(t, baseline.dmgMean*1.25, held.dmgMean, 1e-6,
@@ -741,7 +741,7 @@ func TestDamageMultRecordScalesMeanAndCritRaw(t *testing.T) {
 // defender first (through AddBuffMagnitude, which re-validates the
 // character -- see newDamageMultCharacter's comment on why the fixture below
 // only ever sets Base fields).
-func captureDefenseScore(t *testing.T, buffFn func(*characters.Character)) float64 {
+func captureDefenseScore(t *testing.T, conditionFn func(*characters.Character)) float64 {
 	t.Helper()
 	pinDefenceAdmissionConfig(t)
 	attacker, defender := defenceAdmissionCharacters()
@@ -750,8 +750,8 @@ func captureDefenseScore(t *testing.T, buffFn func(*characters.Character)) float
 	// and the ratios below would fold in any validation drift as if it were
 	// the record's doing.
 	require.NoError(t, defender.Validate())
-	if buffFn != nil {
-		buffFn(defender)
+	if conditionFn != nil {
+		conditionFn(defender)
 	}
 
 	result := &AttackResult{}
@@ -788,20 +788,20 @@ func TestDefenseMultRecordReachesDefenseScore(t *testing.T) {
 	require.Greater(t, baseline, 0.0, "fixture guard: baseline dodge score must be nonzero")
 
 	rallyScore := captureDefenseScore(t, func(c *characters.Character) {
-		require.NoError(t, c.AddBuffMagnitude(conditions.BuffIdRally, 25, 1.2, "test"))
+		require.NoError(t, c.AddConditionMagnitude(conditions.ConditionIdRally, 25, 1.2, "test"))
 	})
 	require.InDelta(t, baseline*1.2, rallyScore, 1e-6,
 		"a held rally record must scale defenseScore by its magnitude")
 
 	offBalanceScore := captureDefenseScore(t, func(c *characters.Character) {
-		require.NoError(t, c.AddBuffMagnitude(conditions.BuffIdOffBalance, 1, 0, "test"))
+		require.NoError(t, c.AddConditionMagnitude(conditions.ConditionIdOffBalance, 1, 0, "test"))
 	})
 	require.InDelta(t, baseline*0.85, offBalanceScore, 1e-6,
 		"a held off-balance record's literal 0.85 must reach defenseScore")
 
 	bothScore := captureDefenseScore(t, func(c *characters.Character) {
-		require.NoError(t, c.AddBuffMagnitude(conditions.BuffIdRally, 25, 1.2, "test"))
-		require.NoError(t, c.AddBuffMagnitude(conditions.BuffIdOffBalance, 1, 0, "test"))
+		require.NoError(t, c.AddConditionMagnitude(conditions.ConditionIdRally, 25, 1.2, "test"))
+		require.NoError(t, c.AddConditionMagnitude(conditions.ConditionIdOffBalance, 1, 0, "test"))
 	})
 	require.InDelta(t, baseline*1.02, bothScore, 1e-6,
 		"rally and off balance must compose multiplicatively (1.2 * 0.85 = 1.02)")

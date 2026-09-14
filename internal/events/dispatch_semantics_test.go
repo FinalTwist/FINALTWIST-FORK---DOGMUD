@@ -29,7 +29,7 @@ func TestDispatchRoutesOnlyMatchingTypes(t *testing.T) {
 	ClearListeners()
 	defer ClearListeners()
 
-	var wildcardSaw, buffListenerSaw []string
+	var wildcardSaw, conditionListenerSaw []string
 
 	// Registered exactly the way the commented-out debug hook does.
 	RegisterListener(nil, func(e Event) ListenerReturn {
@@ -37,8 +37,8 @@ func TestDispatchRoutesOnlyMatchingTypes(t *testing.T) {
 		return Continue
 	})
 
-	RegisterListener(Buff{}, func(e Event) ListenerReturn {
-		buffListenerSaw = append(buffListenerSaw, e.Type())
+	RegisterListener(Condition{}, func(e Event) ListenerReturn {
+		conditionListenerSaw = append(conditionListenerSaw, e.Type())
 		return Continue
 	})
 
@@ -47,12 +47,12 @@ func TestDispatchRoutesOnlyMatchingTypes(t *testing.T) {
 
 	assert.Equal(t, []string{"Quest"}, wildcardSaw,
 		"a wildcard listener must receive every event type")
-	assert.Empty(t, buffListenerSaw,
+	assert.Empty(t, conditionListenerSaw,
 		"a type-specific listener must NEVER receive a foreign event type — this is what "+
 			"makes the unchecked type assertions in internal/hooks safe")
 
 	// And it still receives its own type.
-	DoListeners(Buff{BuffId: 1})
-	require.Equal(t, []string{"Buff"}, buffListenerSaw,
+	DoListeners(Condition{ConditionId: 1})
+	require.Equal(t, []string{"Buff"}, conditionListenerSaw,
 		"a type-specific listener must still receive its own type")
 }

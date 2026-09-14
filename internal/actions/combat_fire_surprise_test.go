@@ -106,7 +106,7 @@ func newSurpriseShooter(hidden bool) *characters.Character {
 	char.Cooldowns = characters.Cooldowns{}
 	char.Equipment.Weapon = fireRangedWeapon(1, 1.0, true)
 	if hidden {
-		addHiddenBuff(char)
+		addHiddenCondition(char)
 	}
 	return char
 }

@@ -201,7 +201,7 @@ func TestResolveSubmissionOutcome_CritMercyAppliesStunnedStub(t *testing.T) {
 	assert.True(t, def.IsAlive(), "defender alive after crit+mercy release")
 }
 
-func TestResolveSubmissionOutcome_CrippleAppliesBrokenLimbBuff(t *testing.T) {
+func TestResolveSubmissionOutcome_CrippleAppliesBrokenLimbCondition(t *testing.T) {
 	// This test verifies that cripple policy applies the broken-limb buff
 	// for submission types that affect limbs (e.g., armbar, omoplata,
 	// kimura, americana). The actual buff spec (id 83) is loaded from YAML
@@ -264,7 +264,7 @@ func TestPB_307_MercyRelease_DefenderNeverTap(t *testing.T) {
 // PB-313: Crit sub roll, policy=subdue.
 // Recipient should NOT receive the Stunned buff (they enter the death cascade;
 // buff would be a no-op). The subdue death-cascade outcome still fires.
-func TestPB_313_CritSubdue_NoStunnedBuff(t *testing.T) {
+func TestPB_313_CritSubdue_NoStunnedCondition(t *testing.T) {
 	// Use mob defender so Die() stays Dead (players respawn synchronously).
 	atk, def := setupMountWithMobDefender(t)
 	atk.SubmissionPolicy = characters.PolicySubdue
@@ -280,7 +280,7 @@ func TestPB_313_CritSubdue_NoStunnedBuff(t *testing.T) {
 	// The defender entered the death cascade before any buff could matter;
 	// confirm HasBuff returns false (buff registry not seeded in unit tests,
 	// so HasBuff(84) will be false either way — but that's the correct state).
-	assert.False(t, def.HasBuff(84),
+	assert.False(t, def.HasCondition(84),
 		"PB-313: Stunned buff must not be applied on crit+subdue (death cascade fires)")
 }
 

@@ -582,7 +582,7 @@ func RollDice(dice int, sides int) int {
 // Gets the specifics of the item damage
 // Format:
 // 2@1d3+2#1,2,3
-func ParseDiceRoll(dRoll string) (attacks int, dCount int, dSides int, bonus int, buffOnCrit []int) {
+func ParseDiceRoll(dRoll string) (attacks int, dCount int, dSides int, bonus int, conditionOnCrit []int) {
 
 	attacks = 1
 
@@ -593,12 +593,12 @@ func ParseDiceRoll(dRoll string) (attacks int, dCount int, dSides int, bonus int
 		parts := strings.Split(dRoll, `#`)
 		dRoll = parts[0]
 
-		buffIds := strings.Split(parts[1], `,`)
-		for _, buffId := range buffIds {
-			buffId = strings.TrimSpace(buffId)
-			buffIdInt, _ := strconv.Atoi(buffId)
-			if buffIdInt != 0 {
-				buffOnCrit = append(buffOnCrit, buffIdInt)
+		conditionIds := strings.Split(parts[1], `,`)
+		for _, conditionId := range conditionIds {
+			conditionId = strings.TrimSpace(conditionId)
+			conditionIdInt, _ := strconv.Atoi(conditionId)
+			if conditionIdInt != 0 {
+				conditionOnCrit = append(conditionOnCrit, conditionIdInt)
 			}
 		}
 	}
@@ -651,10 +651,10 @@ func ParseDiceRoll(dRoll string) (attacks int, dCount int, dSides int, bonus int
 		dSides, _ = strconv.Atoi(dieParts[1])
 	}
 
-	return attacks, invertCount * dCount, dSides, bonus, buffOnCrit
+	return attacks, invertCount * dCount, dSides, bonus, conditionOnCrit
 }
 
-func FormatDiceRoll(attacks int, dCount int, dSides int, bonus int, buffOnCrit []int) string {
+func FormatDiceRoll(attacks int, dCount int, dSides int, bonus int, conditionOnCrit []int) string {
 
 	dRoll := ``
 
@@ -676,10 +676,10 @@ func FormatDiceRoll(attacks int, dCount int, dSides int, bonus int, buffOnCrit [
 	}
 
 	// #9,11,30
-	if len(buffOnCrit) > 0 {
+	if len(conditionOnCrit) > 0 {
 		dRoll += `#`
-		for _, buffId := range buffOnCrit {
-			dRoll = fmt.Sprintf(`%s%d,`, dRoll, buffId)
+		for _, conditionId := range conditionOnCrit {
+			dRoll = fmt.Sprintf(`%s%d,`, dRoll, conditionId)
 		}
 		dRoll = strings.TrimRight(dRoll, `,`)
 	}

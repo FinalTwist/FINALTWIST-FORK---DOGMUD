@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/factions"
@@ -67,7 +67,7 @@ func stagedAdmissionFixture(t *testing.T, speciesID int) (*users.UserRecord, *ro
 	target.Character.HealthMax.Value = 1_000_000
 	target.Character.Stamina = 1_000_000
 	target.Character.StaminaMax.Value = 1_000_000
-	target.Character.Buffs = conditions.New()
+	target.Character.Conditions = conditions.New()
 	setCombatPositionParallel(&target.Character, position.Standing)
 
 	events.DrainQueuedPlayerAttackedMobsForTest(0)
@@ -95,7 +95,7 @@ func TestStagedSpecialMoveStaleCooldownDoesNotCommitEngagement(t *testing.T) {
 			user, _, target, actor := stagedAdmissionFixture(t, tc.speciesID)
 			healthBefore := target.Character.Health
 			staminaBefore := target.Character.Stamina
-			buffsBefore := len(target.Character.Buffs.GetBuffs())
+			conditionsBefore := len(target.Character.Conditions.GetConditions())
 			actorPosition := user.Character.Position.State()
 			targetPosition := target.Character.Position.State()
 
@@ -113,7 +113,7 @@ func TestStagedSpecialMoveStaleCooldownDoesNotCommitEngagement(t *testing.T) {
 			assert.Empty(t, crimes.AllForFaction("thornwall_citizens", false))
 			require.Equal(t, healthBefore, target.Character.Health)
 			require.Equal(t, staminaBefore, target.Character.Stamina)
-			require.Len(t, target.Character.Buffs.GetBuffs(), buffsBefore)
+			require.Len(t, target.Character.Conditions.GetConditions(), conditionsBefore)
 			require.Equal(t, actorPosition, user.Character.Position.State())
 			require.Equal(t, targetPosition, target.Character.Position.State())
 		})

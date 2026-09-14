@@ -18,7 +18,7 @@ func TriggerCocoon(actor Actor, opts MutationOpts) MutationResult {
 		return MutationResult{BlockReason: pre.BlockReason}
 	}
 
-	actor.AddBuff(104, "cocoon")
+	actor.AddCondition(104, "cocoon")
 
 	// Drop aggro: mobs in the room fixed on this actor lose their target.
 	// Guarded to player actors — a mob actor has UserId 0, which would spuriously

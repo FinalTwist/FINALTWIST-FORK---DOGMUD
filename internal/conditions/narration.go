@@ -25,7 +25,7 @@ const (
 // once events.Buff carries a caster (owner ruling, 2026-09-12). Start and End
 // go through StartUserNotice / EndUserNotice, so the secret, hidden,
 // silent-start and generic-fallback rules stay in their one door.
-func (b *BuffSpec) Narration(p Phase) narration.Variants {
+func (b *ConditionSpec) Narration(p Phase) narration.Variants {
 	var holder, room string
 	switch p {
 	case PhaseStart:
@@ -39,7 +39,7 @@ func (b *BuffSpec) Narration(p Phase) narration.Variants {
 }
 
 // Narrate renders one phase for its audiences with the holder as {source}.
-func (b *BuffSpec) Narrate(p Phase, ctx textutil.TokenContext) narration.Roles {
+func (b *ConditionSpec) Narrate(p Phase, ctx textutil.TokenContext) narration.Roles {
 	return textutil.Narrate(b.Narration(p), ctx)
 }
 
@@ -50,7 +50,7 @@ func (b *BuffSpec) Narrate(p Phase, ctx textutil.TokenContext) narration.Roles {
 // (123) is not silent-start, but disenchant applies it through
 // AddBuffMagnitude, which is also synchronous and never travels events.Buff,
 // so it reads the same door for the same reason.
-func (b *BuffSpec) AuthoredStartLine(ctx textutil.TokenContext) string {
+func (b *ConditionSpec) AuthoredStartLine(ctx textutil.TokenContext) string {
 	return textutil.SubstituteTokens(b.StartUserText, ctx)
 }
 
@@ -60,7 +60,7 @@ func (b *BuffSpec) AuthoredStartLine(ctx textutil.TokenContext) string {
 // start line is checked too. The trigger phase has no notice wrapper, so for
 // it the raw fields and Narration agree; it is listed here so all three
 // phases are checked in one place.
-func (b *BuffSpec) validateNarration() error {
+func (b *ConditionSpec) validateNarration() error {
 	phases := []struct{ name, user, room string }{
 		{"start", b.StartUserText, b.StartRoomText},
 		{"trigger", b.TriggerUserText, b.TriggerRoomText},
@@ -75,7 +75,7 @@ func (b *BuffSpec) validateNarration() error {
 		// line or only a room line, so no fixed shape exists to declare. The
 		// blank-variant check is what this call is for.
 		if err := narration.ValidateVariants(v, 1); err != nil {
-			return fmt.Errorf("buffId %d (%s) %s text: %w", b.BuffId, b.Name, ph.name, err)
+			return fmt.Errorf("buffId %d (%s) %s text: %w", b.ConditionId, b.Name, ph.name, err)
 		}
 	}
 	return nil

@@ -40,8 +40,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -56,9 +56,9 @@ const (
 	// ±10% gate.
 	paritySwings = 200000
 
-	// parityMitBuffId seeds a test-only buff spec carrying the cell's
+	// parityMitConditionId seeds a test-only buff spec carrying the cell's
 	// physical_mitigation statmod.
-	parityMitBuffId = 9001
+	parityMitConditionId = 9001
 
 	parityStatValue = 100
 	paritySkillRank = 30
@@ -351,18 +351,18 @@ func TestMeleeParityDamagePerSwing(t *testing.T) {
 			defender := parityCombatant(t, "parity defender")
 
 			if cell.mitPct > 0 {
-				t.Cleanup(conditions.SeedBuffsForTest(map[int]*conditions.BuffSpec{
-					parityMitBuffId: {
-						BuffId:       parityMitBuffId,
+				t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+					parityMitConditionId: {
+						ConditionId:  parityMitConditionId,
 						Name:         "parity mitigation",
 						TriggerCount: 1,
 						StatMods:     statmods.StatMods{"physical_mitigation": cell.mitPct},
 					},
 				}))
-				defender.Buffs.List = append(defender.Buffs.List, &conditions.Buff{
-					BuffId: parityMitBuffId, TriggersLeft: 1000000000,
+				defender.Conditions.List = append(defender.Conditions.List, &conditions.Condition{
+					ConditionId: parityMitConditionId, TriggersLeft: 1000000000,
 				})
-				defender.Buffs.Validate(true)
+				defender.Conditions.Validate(true)
 			}
 
 			// ── Layer 1: deterministic pins ─────────────────────────────

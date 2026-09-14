@@ -18,10 +18,10 @@ func TestRecalculateStats_BodyPoleShrinksConviction(t *testing.T) {
 	defer cleanup()
 
 	base := &Character{
-		SpeciesId: 1,
-		Stats:     validStats(),
-		Mutations: map[string]int{},
-		Buffs:     newTestBuffs(),
+		SpeciesId:  1,
+		Stats:      validStats(),
+		Mutations:  map[string]int{},
+		Conditions: newTestConditions(),
 	}
 	// Seed a non-floored Conviction pool (config pool multipliers are unset in
 	// the unit-test env, so ConvictionMax would otherwise floor to 1). Base

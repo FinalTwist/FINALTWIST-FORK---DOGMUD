@@ -37,8 +37,8 @@ func Shout(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	// adjacent-room sound propagation is out of scope.
 	for _, otherUserId := range room.GetPlayers() {
 		if other := users.GetByUserId(otherUserId); other != nil {
-			if other.Character.HasBuffFlag(conditions.Sleeping) {
-				other.Character.CancelBuffsWithFlag(conditions.Sleeping)
+			if other.Character.HasConditionFlag(conditions.Sleeping) {
+				other.Character.CancelConditionsWithFlag(conditions.Sleeping)
 				mobs.OnSleeperWoken(other.Character)
 			}
 		}
@@ -48,8 +48,8 @@ func Shout(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			if m.InstanceId == mob.InstanceId {
 				continue
 			}
-			if m.Character.HasBuffFlag(conditions.Sleeping) {
-				m.Character.CancelBuffsWithFlag(conditions.Sleeping)
+			if m.Character.HasConditionFlag(conditions.Sleeping) {
+				m.Character.CancelConditionsWithFlag(conditions.Sleeping)
 				mobs.OnSleeperWoken(&m.Character)
 			}
 		}

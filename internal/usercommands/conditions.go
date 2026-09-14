@@ -1,8 +1,8 @@
 package usercommands
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -15,7 +15,7 @@ type conditionEntry struct {
 	Name        string
 	Description string
 	RoundsLeft  int
-	PermaBuff   bool
+	Permanent   bool
 }
 
 // Conditions lists everything currently affecting the player: one entry per
@@ -38,17 +38,17 @@ func Conditions(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 // record's live count.
 func conditionEntries(c *characters.Character) []conditionEntry {
 	entries := []conditionEntry{}
-	for _, buff := range c.GetBuffs() {
-		spec := conditions.GetBuffSpec(buff.BuffId)
+	for _, condition := range c.GetConditions() {
+		spec := conditions.GetConditionSpec(condition.ConditionId)
 		if spec == nil || !spec.Listed() {
 			continue
 		}
-		roundsLeft, _ := conditions.GetDurations(buff, spec)
+		roundsLeft, _ := conditions.GetDurations(condition, spec)
 		entries = append(entries, conditionEntry{
-			Name:        conditions.DisplayName(buff, spec),
+			Name:        conditions.DisplayName(condition, spec),
 			Description: spec.Description,
 			RoundsLeft:  roundsLeft,
-			PermaBuff:   buff.PermaBuff,
+			Permanent:   condition.Permanent,
 		})
 	}
 	return entries

@@ -392,7 +392,7 @@ func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHands
 		if !freePair.IsHalfPair() {
 			*freePair.Second.ItemPtr = items.Item{}
 		}
-		c.reapplyPermabuffs()
+		c.reapplyPermanentConditions()
 		return returnItems, true, ``
 	}
 
@@ -400,7 +400,7 @@ func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHands
 		slot := c.FindFirstEmptySlot(pairs, true)
 		if slot != nil {
 			*slot.ItemPtr = i
-			c.reapplyPermabuffs()
+			c.reapplyPermanentConditions()
 			return returnItems, true, ``
 		}
 		if pairs[0].First.Is2H(c) {
@@ -411,7 +411,7 @@ func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHands
 		}
 		returnItems = append(returnItems, *pairs[0].Second.ItemPtr)
 		*pairs[0].Second.ItemPtr = i
-		c.reapplyPermabuffs()
+		c.reapplyPermanentConditions()
 		return returnItems, true, ``
 	}
 
@@ -439,7 +439,7 @@ func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHands
 		}
 		if slot != nil {
 			*slot.ItemPtr = i
-			c.reapplyPermabuffs()
+			c.reapplyPermanentConditions()
 			return returnItems, true, ``
 		}
 	}
@@ -454,7 +454,7 @@ func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHands
 	}
 	returnItems = append(returnItems, c.Equipment.Weapon)
 	c.Equipment.Weapon = i
-	c.reapplyPermabuffs()
+	c.reapplyPermanentConditions()
 	return returnItems, true, ``
 }
 
@@ -631,7 +631,7 @@ func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bo
 
 	if pool, worse := beforeReserve.Worsened(c.ReservationOverages()); worse {
 		c.Equipment = savedEquipment
-		c.reapplyPermabuffs()
+		c.reapplyPermanentConditions()
 		// The item's own contribution is what "added" means here: the snapshot
 		// delta measures OVERAGE growth, which is smaller than the demand
 		// whenever the wearer was already over, and would misreport a
@@ -646,7 +646,7 @@ func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bo
 		// Preserved from the pre-U7b shape: permabuffs are reapplied on the
 		// armour path only (wearWeaponOrShield does its own), and only on
 		// success.
-		c.reapplyPermabuffs(returnItems...)
+		c.reapplyPermanentConditions(returnItems...)
 	}
 	return returnItems, newItemWorn, failureReason
 }
@@ -720,7 +720,7 @@ func (c *Character) RemoveFromBody(i items.Item) bool {
 		return false
 	}
 
-	c.reapplyPermabuffs(i)
+	c.reapplyPermanentConditions(i)
 
 	return true
 }

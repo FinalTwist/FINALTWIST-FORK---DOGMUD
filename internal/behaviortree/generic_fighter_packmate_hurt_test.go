@@ -3,8 +3,8 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
@@ -42,7 +42,7 @@ func TestGenericFighter_PackmateHurt_SetsAggroOnAttacker(t *testing.T) {
 	m.Character.Health = 100
 	m.Character.Stamina = 100
 	m.Character.Conviction = 100
-	m.Character.Buffs = conditions.New()
+	m.Character.Conditions = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{300 + 90101: m},
 		map[int]*mobs.Mob{90101: m},

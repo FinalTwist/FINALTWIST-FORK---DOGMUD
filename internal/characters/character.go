@@ -135,19 +135,19 @@ type Character struct {
 	// gives a sensible zero value — no init needed in New().
 	// For mobs, this is populated from Mob.NonCombatant during Mob.Validate().
 	// Consumed by Combat Phase's veto chain (chunk 0 Task 10).
-	NonCombatant    bool           `yaml:"non_combatant,omitempty"`  // True = exempt from combat
-	Charmed         *CharmInfo     `yaml:"-"`                        // If they are charmed, this is the info
-	EverCharmed     bool           `yaml:"-"`                        // True if this mob was ever a companion (survives dismiss)
-	CharmedMobs     []int          `yaml:"-"`                        // If they have charmed anyone, this is the list of mob instance ids
-	Items           []items.Item   `yaml:"items,omitempty"`          // The items the character is holding
-	ComponentItems  []items.Item   `yaml:"componentitems,omitempty"` // Contents of equipped component bag
-	PotionItems     []items.Item   `yaml:"potionitems,omitempty"`    // Contents of equipped potion bandolier
-	Buffs           conditions.Buffs    `yaml:"buffs,omitempty"`          // The buffs the character has active
-	Equipment       Worn           `yaml:"equipment,omitempty"`      // The equipment the character is wearing
-	HealthMax       stats.StatInfo `yaml:"-"`                        // The maximum health of the character. Don't write to yaml since is dynamically calculated.
-	StaminaMax      stats.StatInfo `yaml:"-"`                        // The maximum stamina of the character. Don't write to yaml since is dynamically calculated.
-	ConvictionMax   stats.StatInfo `yaml:"-"`                        // The maximum conviction of the character. Don't write to yaml since is dynamically calculated.
-	ActionPointsMax stats.StatInfo `yaml:"-"`                        // The maximum actions of character. Don't write to yaml since is dynamically calculated.
+	NonCombatant    bool                  `yaml:"non_combatant,omitempty"`  // True = exempt from combat
+	Charmed         *CharmInfo            `yaml:"-"`                        // If they are charmed, this is the info
+	EverCharmed     bool                  `yaml:"-"`                        // True if this mob was ever a companion (survives dismiss)
+	CharmedMobs     []int                 `yaml:"-"`                        // If they have charmed anyone, this is the list of mob instance ids
+	Items           []items.Item          `yaml:"items,omitempty"`          // The items the character is holding
+	ComponentItems  []items.Item          `yaml:"componentitems,omitempty"` // Contents of equipped component bag
+	PotionItems     []items.Item          `yaml:"potionitems,omitempty"`    // Contents of equipped potion bandolier
+	Conditions      conditions.Conditions `yaml:"buffs,omitempty"`          // The buffs the character has active
+	Equipment       Worn                  `yaml:"equipment,omitempty"`      // The equipment the character is wearing
+	HealthMax       stats.StatInfo        `yaml:"-"`                        // The maximum health of the character. Don't write to yaml since is dynamically calculated.
+	StaminaMax      stats.StatInfo        `yaml:"-"`                        // The maximum stamina of the character. Don't write to yaml since is dynamically calculated.
+	ConvictionMax   stats.StatInfo        `yaml:"-"`                        // The maximum conviction of the character. Don't write to yaml since is dynamically calculated.
+	ActionPointsMax stats.StatInfo        `yaml:"-"`                        // The maximum actions of character. Don't write to yaml since is dynamically calculated.
 	// Taunt-hold lock (transient, not serialized): a successful taunt pins
 	// this character's aggro onto the taunter until tauntHoldUntilRound, so
 	// reactive basic-attack re-aggro can't flip the target back. Set via
@@ -338,7 +338,7 @@ type Character struct {
 	LastTickCause           string                         `yaml:"-"` // runtime only — "poison" or "bleeding out", set by the round tick when a damaging health tick from a record carrying the poison or bleeding flag lands; read by the death announcement when no attacker is engaged.
 	LastTickCauseRound      uint64                         `yaml:"-"` // runtime only — the round LastTickCause was stamped; the death announcement only honours the fallback within one round of this, so a tick from an earlier fight cannot outlive it and name a later death.
 	LastAttackRejectedRound uint64                         `yaml:"-"` // runtime only — round of last player_attack_rejected event fire, for dedupe
-	permaBuffIds            []int                          // Buff Id's that are always present for this character
+	permanentConditionIds   []int                          // Buff Id's that are always present for this character
 	userId                  int                            // User ID of the character if any
 	combatPhaseWired        bool                           `yaml:"-"` // true after OnCharacterCreated callbacks have fired once
 	// Stage 3.4: spawn-time override for carry capacity. Set via
@@ -397,7 +397,7 @@ func New() *Character {
 		KnownRecipes:               crafting.GetStarterRecipes(), // All recipes with skill_minimum == 0
 		CharmedMobs:                []int{},
 		Items:                      []items.Item{},
-		Buffs:                      conditions.New(),
+		Conditions:                 conditions.New(),
 		Equipment:                  Worn{},
 		Cooldowns:                  make(Cooldowns), // Initialize cooldowns map
 		MiscData:                   make(map[string]any),
@@ -748,7 +748,7 @@ const (
 func (c *Character) StatMod(statName string) int {
 	gearStat := c.Equipment.StatMod(statName)
 	gearStat = int(float64(gearStat) * mutations.GearEffectivenessMultiplier(c.Mutations))
-	return gearStat + c.Buffs.StatMod(statName) + c.Pet.StatMod(statName)
+	return gearStat + c.Conditions.StatMod(statName) + c.Pet.StatMod(statName)
 }
 
 // ===================================================================

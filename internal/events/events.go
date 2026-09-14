@@ -510,7 +510,7 @@ func DrainQueuedSkillUsedForTest(userId int) []SkillUsed {
 	return found
 }
 
-// DrainQueuedBuffsForTest removes and returns the queued Buff events for a
+// DrainQueuedConditionsForTest removes and returns the queued Buff events for a
 // user. A userId of 0 drains every queued Buff event, mob ones included, since
 // a mob's buff event carries MobInstanceId and leaves UserId zero. Buff
 // application is the one door
@@ -519,13 +519,13 @@ func DrainQueuedSkillUsedForTest(userId int) []SkillUsed {
 //
 // FOR TEST USE ONLY. Mutates the queue. Call it once to discard leftovers from
 // an earlier test, then again to assert on what the code under test queued.
-func DrainQueuedBuffsForTest(userId int) []Buff {
+func DrainQueuedConditionsForTest(userId int) []Condition {
 	qLock.Lock()
 	defer qLock.Unlock()
-	var found []Buff
+	var found []Condition
 	remaining := make(priorityQueue, 0, len(globalQueue))
 	for _, pe := range globalQueue {
-		b, ok := pe.event.(Buff)
+		b, ok := pe.event.(Condition)
 		if !ok {
 			remaining = append(remaining, pe)
 			continue

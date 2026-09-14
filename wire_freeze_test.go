@@ -27,10 +27,10 @@ func TestWireFreeze_CharacterSaveKeys(t *testing.T) {
 	defer conditions.SeedConditionRecordsForTest()()
 
 	c := characters.Character{}
-	c.Buffs.Validate(true)
-	require.True(t, c.Buffs.AddBuffMagnitude(conditions.BuffIdBleeding, 3, -2))
-	require.True(t, c.Buffs.AddBuffMagnitude(conditions.BuffIdBleeding, 5, -3))
-	c.Buffs.List = append(c.Buffs.List, &conditions.Buff{BuffId: conditions.BuffIdWarcry, PermaBuff: true, TriggersLeft: 1})
+	c.Conditions.Validate(true)
+	require.True(t, c.Conditions.AddConditionMagnitude(conditions.ConditionIdBleeding, 3, -2))
+	require.True(t, c.Conditions.AddConditionMagnitude(conditions.ConditionIdBleeding, 5, -3))
+	c.Conditions.List = append(c.Conditions.List, &conditions.Condition{ConditionId: conditions.ConditionIdWarcry, Permanent: true, TriggersLeft: 1})
 
 	out, err := yaml.Marshal(&c)
 	require.NoError(t, err)
@@ -44,7 +44,7 @@ func TestWireFreeze_CharacterSaveKeys(t *testing.T) {
 	require.Len(t, list, 2)
 
 	bleed := list[0].(map[any]any)
-	assert.EqualValues(t, conditions.BuffIdBleeding, bleed["buffid"], "a record's id must stay under `buffid:`")
+	assert.EqualValues(t, conditions.ConditionIdBleeding, bleed["buffid"], "a record's id must stay under `buffid:`")
 	assert.Contains(t, bleed, "triggersleft")
 	assert.Contains(t, bleed, "stacks", "stacks must stay under `stacks:`")
 	stack := bleed["stacks"].([]any)[0].(map[any]any)
@@ -56,19 +56,19 @@ func TestWireFreeze_CharacterSaveKeys(t *testing.T) {
 
 	var back characters.Character
 	require.NoError(t, yaml.Unmarshal(out, &back))
-	require.Len(t, back.Buffs.List, 2)
-	assert.Equal(t, conditions.BuffIdBleeding, back.Buffs.List[0].BuffId)
-	assert.Len(t, back.Buffs.List[0].Stacks, 2)
-	assert.True(t, back.Buffs.List[1].PermaBuff)
+	require.Len(t, back.Conditions.List, 2)
+	assert.Equal(t, conditions.ConditionIdBleeding, back.Conditions.List[0].ConditionId)
+	assert.Len(t, back.Conditions.List[0].Stacks, 2)
+	assert.True(t, back.Conditions.List[1].Permanent)
 }
 
 func TestWireFreeze_ConditionFileKeys(t *testing.T) {
-	var s conditions.BuffSpec
+	var s conditions.ConditionSpec
 	doc := "buffid: 950\nname: Probe\ntriggerrate: 1 round\ntriggercount: 2\n" +
 		"start_remove_buffs: [3]\neffects:\n  damage_mult: magnitude\nflags:\n  - stacking\n" +
 		"tick_pool: health\ntick_from_magnitude: true\n"
 	require.NoError(t, yaml.Unmarshal([]byte(doc), &s))
-	assert.Equal(t, 950, s.BuffId, "`buffid:` must still name the record")
+	assert.Equal(t, 950, s.ConditionId, "`buffid:` must still name the record")
 	// yaml.v2 ignores unknown keys rather than erroring, so `name:`,
 	// `triggercount:`, `tick_pool:` and `tick_from_magnitude:` are otherwise
 	// unpinned by this test: a tag typo on any of them would silently drop
@@ -77,7 +77,7 @@ func TestWireFreeze_ConditionFileKeys(t *testing.T) {
 	assert.Equal(t, 2, s.TriggerCount, "`triggercount:` must still parse")
 	assert.Equal(t, "health", s.TickPool, "`tick_pool:` must still parse")
 	assert.True(t, s.TickFromMagnitude, "`tick_from_magnitude:` must still parse")
-	assert.Equal(t, []int{3}, s.StartRemoveBuffs, "`start_remove_buffs:` must still parse")
+	assert.Equal(t, []int{3}, s.StartRemoveConditions, "`start_remove_buffs:` must still parse")
 	assert.True(t, s.Effects[conditions.EffectDamageMult].UsesMagnitude)
 	assert.Equal(t, []conditions.Flag{conditions.Stacking}, s.Flags)
 }
@@ -97,10 +97,10 @@ func TestWireFreeze_ShippedConditionFilesLoadInBothWorlds(t *testing.T) {
 			cfg.FilePaths.DataFiles = configs.ConfigString(filepath.Join(filepath.Dir(here), "_datafiles", "world", world))
 			cfg.Network.LogoutRounds = 3
 			configs.SetConfigForTest(t, cfg)
-			restore := conditions.SeedBuffsForTest(nil)
+			restore := conditions.SeedConditionsForTest(nil)
 			defer restore()
 			conditions.LoadDataFiles()
-			assert.NotEmpty(t, conditions.GetAllBuffIds(), "the %s world's condition files must load under today's keys", world)
+			assert.NotEmpty(t, conditions.GetAllConditionIds(), "the %s world's condition files must load under today's keys", world)
 		})
 	}
 }
@@ -108,15 +108,15 @@ func TestWireFreeze_ShippedConditionFilesLoadInBothWorlds(t *testing.T) {
 func TestWireFreeze_SpeciesAndSpellValues(t *testing.T) {
 	var sp species.Species
 	require.NoError(t, yaml.Unmarshal([]byte("name: Probe\nbuffids: [7]\n"), &sp))
-	assert.Equal(t, []int{7}, sp.BuffIds, "species `buffids:` must still parse")
+	assert.Equal(t, []int{7}, sp.ConditionIds, "species `buffids:` must still parse")
 
 	var spell spells.SpellData
 	require.NoError(t, yaml.Unmarshal([]byte("spellid: probe\nname: Probe\neffect_type: buff\nbuff_ids: [3]\n"), &spell))
 	assert.Equal(t, "buff", spell.EffectType, "the `effect_type: buff` value is wire and stays")
-	assert.Equal(t, []int{3}, spell.BuffIds, "`buff_ids:` must still parse")
+	assert.Equal(t, []int{3}, spell.ConditionIds, "`buff_ids:` must still parse")
 }
 
 func TestWireFreeze_MessagingCategoryStrings(t *testing.T) {
-	assert.Equal(t, "buff-apply", messaging.CategoryBuffApply.String())
-	assert.Equal(t, "buff-expire", messaging.CategoryBuffExpire.String())
+	assert.Equal(t, "buff-apply", messaging.CategoryConditionApply.String())
+	assert.Equal(t, "buff-expire", messaging.CategoryConditionExpire.String())
 }
