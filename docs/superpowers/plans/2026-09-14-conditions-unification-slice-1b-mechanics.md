@@ -1143,6 +1143,11 @@ func TestBleedPerRound(t *testing.T) {
 		{30, 50, 1, 1},  // below the divisor: the floor
 		{100, 33, 1, 3},
 		{100, 50, 4, 4}, // a floor above the quotient wins
+		// The shipped knobs at Strength 100 (config_bleed_stacks_test.go's
+		// TestShippedBleedTuningMeetsTheSliceTargets mirrors this formula
+		// because configs cannot import actions): rake, drain, hamstring 2;
+		// maul 2; throttle 3.
+		{100, 35, 1, 2},
 	}
 	for _, c := range cases {
 		if got := bleedPerRound(c.strength, c.divisor, c.floor); got != c.want {
@@ -2180,10 +2185,17 @@ while mobs always did. See `internal/buffs/context.md`.
 
 - `modules/gmcp/context.md:292`: the `name` row becomes `| `name` | `Name` | `buffs.DisplayName`: the spec name, plus the live stack count above one ("Bleeding (3)") |`. Under "Things worth knowing" add a bullet: `- **Hidden and secret records are left out**, by `BuffSpec.Listed`, the same predicate the `conditions` command uses (owner ruling 2026-09-14). The map is built by `buildConditionsPayload(ch)`. The key is the plain spec name.`
 
+- `_datafiles/config.yaml` bleed block comment (Task 1 review nits; disk AND blob, skip-worktree procedure from Task 1 Step 5): rewrap the `<Move>BleedRounds rounds and takes the attacker's Strength / <Move>BleedStrengthDivisor` line to about 78 columns like its neighbours, and change "(misses and spells share that slot)" to "(a miss still spends it, and spells share it)". Add `_datafiles/config.yaml` is already staged by that procedure; confirm `S` after committing.
+- `internal/buffs/context.md` stacking section: add that `Buff.Source` is the LAST applier's source (each `Character.AddBuffMagnitude` overwrites it), so for a stacking record it is not per-stack; nothing reads a bleed's `Source` today (Task 4 review).
+- `_datafiles/world/dogmud/templates/help/throttle.template` ~23-24 says the wounds "bleed briefly"; a throttle stack now lasts 8 rounds and stacks. Load `dogmud-player-copy`, then grep every help template naming rake, maul, hamstring, drain, throttle or bleeding and correct any claim about bleed length or a single wound (no raw numbers). Add each touched template to the commit.
+- `internal/configs/context.md`: add the fifteen `<Move>Bleed*` knobs to the per-subsystem knob table for combat special moves (match how neighbouring rows such as `SpecialMoveCooldown` or `TauntHoldRounds` are listed).
+- `.claude/skills/dogmud-balance-config/SKILL.md`: the knob counts (lines 3, 101, 117 at plan time) are stale; recount with the skill's own grep commands (`grep -cE '^\s*[A-Za-z_]+\s+Config[A-Za-z]+\b' internal/configs/config.balance.go`) and update each figure with today's date.
 - `internal/actions/context.md`: find the bleed moves' description (grep `bleed` in the file). State that each landed hit adds a Bleeding stack sized by `bleedPerRound` from the `<Move>BleedRounds` / `<Move>BleedStrengthDivisor` / `<Move>BleedMin` knobs, and add `bleed.go` to the file table.
 
 - [ ] **Step 3: Stale comments in Go**
 
+- `internal/buffs/buffs.go` `AddBuffMagnitude` doc comment (~:331-333): drop the sentence that the three-round dot and bleed records need `buffs.TickTriggers`; say instead that every record through this door ticks once a round, so the trigger count is the rounds.
+- Then run standalone `grep -rn "TickTriggers" --include=*.go .` (bare identifier, not `TickTriggers(`) and expect only the two history clauses in `NewRound_UserRoundTick.go` if you kept them; rewrite those too so the identifier is gone entirely.
 - `internal/characters/buffs.go:153-155`: `own triggercount; the exact trigger count, not rounds — use buffs.TickTriggers for the three-round dot and bleed records.` becomes `own triggercount. Every record that uses this door today ticks once a round, so the trigger count is the rounds; a stacking record takes it as the new stack's rounds.`
 - `internal/users/userrecord.go:459-461`: `triggers is the exact trigger count, not a duration in rounds — use buffs.TickTriggers for the three-round dot and bleed records.` becomes `triggers is the exact trigger count, which for a one-round record is the rounds.`
 - `internal/events/eventtypes.go:31-33`: `(not a duration in rounds — buffs.TickTriggers converts a rounds-literal duration for the three-round dot and bleed records)` becomes `(for a one-round record, the rounds)`.
@@ -2204,7 +2216,7 @@ The plan's own row was added when the plan was committed. Add a row for each new
 - [ ] **Step 6: Commit**
 
 ```bash
-git add internal/buffs/context.md internal/characters/context.md internal/combat/context.md internal/hooks/context.md modules/gmcp/context.md internal/actions/context.md internal/characters/buffs.go internal/users/userrecord.go internal/events/eventtypes.go internal/hooks/tick_cause.go internal/hooks/Death_PlayerAnnouncement.go internal/hooks/NewRound_UserRoundTick.go docs/PATCH_NOTES.md docs/README.md
+git add internal/buffs/context.md internal/characters/context.md internal/combat/context.md internal/hooks/context.md modules/gmcp/context.md internal/actions/context.md internal/configs/context.md .claude/skills/dogmud-balance-config/SKILL.md docs/superpowers/plans/2026-09-14-conditions-unification-slice-1b-mechanics.md internal/characters/buffs.go internal/users/userrecord.go internal/events/eventtypes.go internal/hooks/tick_cause.go internal/hooks/Death_PlayerAnnouncement.go internal/hooks/NewRound_UserRoundTick.go docs/PATCH_NOTES.md docs/README.md
 git commit -F - <<'EOF'
 docs(conditions): slice 1b in context.md, comments and patch notes (stacking bleeds, dot every round, Recovering bites, secret records unlisted)
 
