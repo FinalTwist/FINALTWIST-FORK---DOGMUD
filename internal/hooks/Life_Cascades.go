@@ -92,6 +92,36 @@ func wireLifeCrossMachineCascades(c *characters.Character) {
 				// Player respawn cascade: resource reset + grace buff.
 				// (Mobs don't reach Respawning; their instances
 				// get cleaned up by the despawn observer.)
+
+				// 0. Remove the records the death strip expired, SILENTLY.
+				// The strip only expires them, so the next NewTurn prune used
+				// to remove them and narrate every end line to wherever the
+				// player now stood ("Your wounds stop bleeding." in the
+				// Mending Hut, playtest 7d0dad99c4709fc0). A record cancelled
+				// any other way, or run out on its own, still narrates there.
+				//
+				// Here and not beside the strip: the strip runs INSIDE the
+				// Alive -> Dead observers, and the death announcement's
+				// deathCauseFor reads the held Bleeding and Poisoned records
+				// by id. Pruning at the strip would hide them from any
+				// observer registered after this cascade. By the time Dead ->
+				// Respawning fires, every Dead observer has returned.
+				//
+				// Before the pool resets below, because Validate reconciles
+				// stats and clamps pools. BuffsTriggered is not narration: it
+				// is what refreshes the client's conditions panel, as the
+				// prune pass does.
+				if pruned := c.Buffs.Prune(); len(pruned) > 0 {
+					_ = c.Validate()
+					if uid := c.GetUserId(); uid != 0 {
+						prunedIds := make([]int, 0, len(pruned))
+						for _, b := range pruned {
+							prunedIds = append(prunedIds, b.BuffId)
+						}
+						events.AddToQueue(events.BuffsTriggered{UserId: uid, BuffIds: prunedIds})
+					}
+				}
+
 				c.Health = c.HealthMax.Value / 20         // 5%
 				c.Stamina = c.StaminaMax.Value / 20       // 5%
 				c.Conviction = c.ConvictionMax.Value / 20 // 5%

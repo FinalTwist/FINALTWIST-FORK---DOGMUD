@@ -1,0 +1,111 @@
+package hooks
+
+import (
+	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/life"
+	"github.com/GoMudEngine/GoMud/internal/worldevents"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// Records the death strip expired must not narrate their end lines after the
+// respawn.
+//
+// The playtest (run 7d0dad99c4709fc0): after "Darkness swallows you. When you
+// open your eyes, you are somewhere safe." the player read "Your wounds stop
+// bleeding." in the Mending Hut. The death strip only EXPIRES records; the
+// next NewTurn prune removed them and narrated each end line to wherever the
+// player then stood.
+//
+// The death cause is read by an Alive -> Dead observer registered AFTER the
+// cascade, on purpose. It calls deathCauseFor, exactly as the death
+// announcement does, at the same transition. That is the order in which a
+// strip that also pruned would blind deathCauseFor (it reads the held Bleeding
+// record by id), so the "bleeding out" assertion pins that the silent prune
+// waits until every Alive -> Dead observer has run, whatever order they were
+// registered in.
+//
+// The real announcement also runs: the first Validate (inside
+// AddBuffMagnitude below) fires the OnCharacterCreated wiring on this fixture
+// character. It emits the PvE death into the shared world event feed, so the
+// feed is emptied on cleanup or the gossip tests read "bleeding out".
+func TestDeathStrip_ExpiredRecordsDoNotNarrateAfterRespawn(t *testing.T) {
+	u := setupBuffAfterDeath(t)
+	t.Cleanup(buffs.SeedConditionRecordsForTest())
+	t.Cleanup(worldevents.ResetForTest)
+	cause := ""
+	u.Character.Life.Inner().AfterTransition("test_death_cause",
+		func(from, to life.State, _ state.TransitionReason) {
+			if from == life.Alive && to == life.Dead {
+				cause = deathCauseFor(u.Character)
+			}
+		})
+
+	// A one-trigger bleed that kills, and a narrated shield that would have
+	// lasted. Both end lines must stay silent.
+	require.NoError(t, u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -5, "claws"))
+	require.NoError(t, u.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, 10, 3, "spell"))
+	u.Character.Health = 1
+
+	UserRoundTick(events.NewRound{RoundNumber: 1})
+	require.LessOrEqual(t, u.Character.Health, 0, "the bleed tick must take the last point")
+	// Isolate the held-record read: the LastTickCause fallback is pinned by
+	// TestPin_BleedTickKillsAndNamesTheCause, and would mask a record pruned
+	// before the announcement ran.
+	u.Character.LastTickCause = ""
+
+	died := events.DrainQueuedCharacterDiedForTest()
+	require.Len(t, died, 1, "the bleed tick must queue the death")
+	RouteAttributedDeath(died[0])
+	require.True(t, u.Character.IsAlive(), "precondition: the player respawned")
+
+	assert.Equal(t, "bleeding out", cause,
+		"the death cause must still read the held Bleeding record")
+
+	assert.False(t, u.Character.HasBuff(buffs.BuffIdBleeding), "the stripped bleed is gone after the respawn")
+	assert.False(t, u.Character.HasBuff(buffs.BuffIdMinorShield), "the stripped shield is gone after the respawn")
+
+	holderLines := drainPlain(1)
+	roomLines := drainPlain(2)
+	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	holderLines = append(holderLines, drainPlain(1)...)
+	roomLines = append(roomLines, drainPlain(2)...)
+
+	assert.Equal(t, 0, countContaining(holderLines, "Your wounds stop bleeding."),
+		"the respawned player must not read the stripped bleed's end line")
+	assert.Equal(t, 0, countContaining(holderLines, "Minor Shield dissipates"),
+		"nor the stripped shield's")
+	assert.Equal(t, 0, countContaining(roomLines, "Minor Shield dissipates"),
+		"and the room must not see it either")
+}
+
+// Control: a record that runs out on its own still narrates its end.
+func TestDeathStrip_NaturalExpiryStillNarrates(t *testing.T) {
+	u := setupBuffAfterDeath(t)
+	t.Cleanup(buffs.SeedConditionRecordsForTest())
+
+	require.NoError(t, u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 4, -1, "claws"))
+	expire(t, u.Character.Buffs.List, buffs.BuffIdBleeding)
+	drainPlain(1)
+
+	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	assert.Equal(t, 1, countContaining(drainPlain(1), "Your wounds stop bleeding."))
+}
+
+// Control: a strip that is not a death (the same All cancel, on a living
+// player) still narrates at the prune. Only the death cascade is silent.
+func TestDeathStrip_ANonDeathCancelStillNarrates(t *testing.T) {
+	u := setupBuffAfterDeath(t)
+	t.Cleanup(buffs.SeedConditionRecordsForTest())
+
+	require.NoError(t, u.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, 10, 3, "spell"))
+	u.Character.CancelBuffsWithFlag(buffs.All)
+	drainPlain(1)
+
+	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	assert.Equal(t, 1, countContaining(drainPlain(1), "Your Minor Shield dissipates."))
+}

@@ -980,6 +980,17 @@ Cross-machine cleanup that fires on two Life transitions:
   the killing blow killed the respawned player a second time).
 
 **Dead → Respawning:**
+- First removes, silently, the records the death strip expired. The strip
+  only expires them; left for the next `NewTurn_PruneBuffs` pass, each one's
+  end line reached the respawned player and their new room ("Your wounds stop
+  bleeding." in the Mending Hut, playtest 7d0dad99c4709fc0). It waits for
+  this transition rather than pruning beside the strip because
+  `deathCauseFor` in the death announcement reads the held Bleeding and
+  Poisoned records by id, and an Alive → Dead observer registered after this
+  cascade would otherwise find them gone. It queues `BuffsTriggered` so the
+  client's conditions panel refreshes. Records cancelled any other way, or
+  run out, still narrate at the prune. Pinned by
+  `death_strip_end_lines_test.go`.
 - Refills all resource pools to 5% of max
 - Applies `NoAggroTarget` grace buff (#81)
 - Clears live `PlayerDamage` map (snapshot already in `DeadData`)
