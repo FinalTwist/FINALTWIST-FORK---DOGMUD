@@ -42,8 +42,41 @@ func TestUserRoundTick_RecoveringIsLiveWhenCombatRuns(t *testing.T) {
 
 	UserRoundTick(events.NewRound{RoundNumber: 3})
 	require.False(t, u.Character.IsProne(), "precondition: nobody holds the player down, so round 3 is a free stand")
+	// Reads the cap at the point DoCombat reads it: hook registration order in
+	// internal/hooks/hooks.go is UserRoundTick, then MobRoundTick, then DoCombat.
 	assert.Equal(t, 0.0, u.Character.Buffs.Effect(buffs.EffectAttacksCap),
 		"round 3: stood up, so no cap carries into this round's combat")
+}
 
-	u.Character.RemoveBuff(buffs.BuffIdRecovering)
+// A dying player must not stand up mid-death. A lethal bleed/poison tick in
+// the buff-trigger block above queues the death (ApplyHarm sets DeathQueued,
+// Health < 1) before the recovery block now runs, so without a guard the
+// moved block would send "You scramble to your feet!" and award progression
+// to a character whose death is already in flight. MobRoundTick already skips
+// a dying mob (NewRound_MobRoundTick.go, the Health <= 0 continue) before its
+// own recovery step; the player path needs the same guard.
+func TestUserRoundTick_DyingPlayerDoesNotScrambleToFeet(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	defer buffs.SeedConditionRecordsForTest()()
+
+	u := users.GetByUserId(1)
+	require.NotNil(t, u)
+	require.NoError(t, u.Character.Validate())
+	require.NoError(t, u.Character.Position.TransitionToProne(position.ProneData{MinRecoveryRounds: 0},
+		state.TransitionReason{Trigger: position.TriggerKnockdownFaceForward}))
+
+	require.NoError(t, u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -1000, "test"))
+	u.Character.Health = 5
+
+	drainPlain(u.UserId)
+
+	UserRoundTick(events.NewRound{RoundNumber: 1})
+
+	lines := drainPlain(u.UserId)
+	assert.Equal(t, 0, countContaining(lines, "scramble"),
+		"a dying player must not stand up mid-death")
+	assert.Equal(t, 0, countContaining(lines, "attempts to stand"),
+		"a dying player must not attempt to stand mid-death either")
+	require.True(t, u.Character.IsProne(), "still prone: the recovery attempt must be skipped, not merely silent")
 }

@@ -152,8 +152,9 @@ func TestCalcSwingCount_RecoveryForcesOne(t *testing.T) {
 // A Recovering record applied and then ticked contributes nothing to the swing
 // count: the cap lives exactly one tick. Both round ticks therefore add it
 // AFTER their buff tick (MobRoundTick always did; UserRoundTick since slice
-// 1b), so it is live when DoCombat runs. TestUserRoundTick_RecoveringIsLive
-// WhenCombatRuns in internal/hooks pins the player order.
+// 1b), so it is live when DoCombat runs.
+// TestUserRoundTick_RecoveringIsLiveWhenCombatRuns in internal/hooks pins the
+// player order.
 func TestRecoveringRecordExpiredByItsOwnTickCapsNothing(t *testing.T) {
 	defer buffs.SeedConditionRecordsForTest()()
 	ch := &characters.Character{}

@@ -382,19 +382,27 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 				// if someone is holding the character down, free otherwise).
 				// AFTER the buff tick, the order MobRoundTick uses: a failed or
 				// gated attempt adds the one-round Recovering record (118,
-				// attacks_cap 1), and running before the tick expired it before
-				// DoCombat could read it, so a player never felt the cap
-				// (slice 1b, owner ruling 2026-09-14).
-				if attemptMade, success := user.Character.AttemptRecovery(recoveryContest(user.Character)); attemptMade {
-					if success {
-						user.SendText(messaging.CategorySystem, "You scramble to your feet!")
-						if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
-							sendVisualRoomText(room, messaging.CategoryEmote, "<ansi fg=\"username\">"+user.Character.Name+"</ansi> clambers to their feet in a rushed panic.", user.UserId)
-						}
-					} else {
-						user.SendText(messaging.CategorySystem, "You attempt to stand, but slip back down in the chaos of battle!")
-						if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
-							sendVisualRoomText(room, messaging.CategoryEmote, "<ansi fg=\"username\">"+user.Character.Name+"</ansi> attempts to stand, but slips and falls in the chaos of battle.", user.UserId)
+				// attacks_cap 1), and when it ran before the tick, the tick
+				// expired the record before DoCombat could read it, so a player
+				// never felt the cap (slice 1b, owner ruling 2026-09-14).
+				//
+				// Guarded on Health/DeathQueued: a lethal bleed/poison tick just
+				// above can queue this character's death, and standing it back
+				// up (plus the progression award) mid-death is wrong. Matches
+				// NewRound_MobRoundTick.go, which skips a dying mob's own
+				// recovery the same way.
+				if user.Character.Health > 0 && !user.Character.DeathQueued {
+					if attemptMade, success := user.Character.AttemptRecovery(recoveryContest(user.Character)); attemptMade {
+						if success {
+							user.SendText(messaging.CategorySystem, "You scramble to your feet!")
+							if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
+								sendVisualRoomText(room, messaging.CategoryEmote, "<ansi fg=\"username\">"+user.Character.Name+"</ansi> clambers to their feet in a rushed panic.", user.UserId)
+							}
+						} else {
+							user.SendText(messaging.CategorySystem, "You attempt to stand, but slip back down in the chaos of battle!")
+							if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
+								sendVisualRoomText(room, messaging.CategoryEmote, "<ansi fg=\"username\">"+user.Character.Name+"</ansi> attempts to stand, but slips and falls in the chaos of battle.", user.UserId)
+							}
 						}
 					}
 				}
