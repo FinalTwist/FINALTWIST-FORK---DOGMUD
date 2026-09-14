@@ -25,8 +25,8 @@ procs:
     effect: apply_condition
     params:
       condition: 1
-      duration: 6
-      magnitude: 14
+      duration: 10
+      magnitude: 7
 weight: 11.0
 rarity_tier: 82
 value: 30000

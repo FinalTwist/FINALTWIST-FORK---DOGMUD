@@ -164,8 +164,12 @@ func TestThrottle_Executed_BleedAndBuff(t *testing.T) {
 	}
 
 	// BleedDmg should be at least the minimum.
-	assert.GreaterOrEqual(t, res.BleedDmg, 2,
-		"BleedDmg should be at least 2 (min floor)")
+	assert.GreaterOrEqual(t, res.BleedDmg, int(configs.GetBalanceConfig().ThrottleBleedMin),
+		"BleedDmg should be at least ThrottleBleedMin")
+	if assert.Len(t, held, 1) && assert.Len(t, held[0].Stacks, 1, "one landed throttle is one stack") {
+		assert.Equal(t, int(configs.GetBalanceConfig().ThrottleBleedRounds), held[0].Stacks[0].RoundsLeft,
+			"the stack lasts ThrottleBleedRounds")
+	}
 
 	// Throttled buff (id 89) should be applied.
 	assert.True(t, targetMob.Character.HasBuff(89),

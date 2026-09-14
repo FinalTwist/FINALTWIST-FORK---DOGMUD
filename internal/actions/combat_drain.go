@@ -53,8 +53,8 @@ type DrainResult struct {
 	// only when no damage was dealt (defensive crit or a fully-avoided move).
 	Healed int
 
-	// BleedDmg is the per-tick bleed damage applied to the target on a hit
-	// (Strength/12, min 2).
+	// BleedDmg is the per-round amount of the bleed stack added to the
+	// target on a hit.
 	BleedDmg int
 }
 
@@ -66,8 +66,8 @@ type DrainResult struct {
 //   - ExecuteSkillMove via combat package (UnarmedCombat skill, Strength
 //     attack stat, Dexterity defense stat, TripDamagePercent, Strength damage
 //     stat, no knockdown)
-//   - On hit: apply the Bleeding record (duration 4, magnitude = Strength/12
-//     min 2) sourced as "drain". Lifesteal heals the attacker for
+//   - On hit: add a Bleeding stack (DrainBleedRounds, DrainBleedStrengthDivisor,
+//     DrainBleedMin) sourced as "drain". Lifesteal heals the attacker for
 //     DrainHealRatio * damage actually dealt, including a defended attempt
 //     that still lands partial damage (bleed stays hit-only; lifesteal does
 //     not)
@@ -135,17 +135,12 @@ func ExecuteDrain(actor Actor) DrainResult {
 	counter := counterSkillMoveExit(actor, target.Char, result, combat.ChannelMelee, true)
 
 	// On hit: bleed the victim. Bleed is a status effect (binary), so it stays
-	// gated on a clean hit.
+	// gated on a clean hit. One stack: DrainBleedRounds rounds, Strength /
+	// DrainBleedStrengthDivisor per round, floor DrainBleedMin.
 	bleedDmg := 0
 	if result.Hit {
-		// Bleed condition (duration 4, magnitude = Strength/12, min 2) —
-		// lighter than maul's bleed but still meaningful.
-		mag := char.Stats.Strength.ValueAdj / 12
-		if mag < 2 {
-			mag = 2
-		}
-		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, buffs.TickTriggers(4), -float64(mag), "drain")
-		bleedDmg = mag
+		bleedDmg = bleedPerRound(char.Stats.Strength.ValueAdj, cfg.DrainBleedStrengthDivisor, cfg.DrainBleedMin)
+		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, int(cfg.DrainBleedRounds), -float64(bleedDmg), "drain")
 	}
 
 	// Lifesteal: heal the attacker for a fraction of damage dealt. Gated on
@@ -215,8 +210,8 @@ type DrainAreaPlayerResult struct {
 	// narration AFTER the move's own outcome via DispatchCounterMessages.
 	Counter combat.CounterResult
 
-	// BleedDmg is the per-tick bleed magnitude applied to this player on a
-	// hit (Strength/12, min 2). Zero on a miss.
+	// BleedDmg is the per-round amount of the bleed stack added to this
+	// player on a hit. Zero on a miss.
 	BleedDmg int
 }
 
@@ -310,12 +305,8 @@ func ExecuteDrainArea(actor Actor) DrainAreaResult {
 
 		// Bleed is a status effect (binary), so it stays gated on a clean hit.
 		if moveResult.Hit {
-			mag := char.Stats.Strength.ValueAdj / 12
-			if mag < 2 {
-				mag = 2
-			}
-			_ = target.Character.AddBuffMagnitude(buffs.BuffIdBleeding, buffs.TickTriggers(4), -float64(mag), "drain")
-			pr.BleedDmg = mag
+			pr.BleedDmg = bleedPerRound(char.Stats.Strength.ValueAdj, cfg.DrainBleedStrengthDivisor, cfg.DrainBleedMin)
+			_ = target.Character.AddBuffMagnitude(buffs.BuffIdBleeding, int(cfg.DrainBleedRounds), -float64(pr.BleedDmg), "drain")
 		}
 
 		// Lifesteal reads the damage actually applied, per U6's shared partial
