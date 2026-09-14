@@ -757,18 +757,19 @@ Balance:
   #   shared inverse-skill multiplier. Carried load never affects these actions.
   RhetoricActionBaseConvictionCost: 4
   #
-  # ── BLEED STACKS ──────────────────────────────────────────────────────────
+  # - Bleed stacks -
   # Rake, maul, hamstring, drain and throttle bleed on a landed hit. Each hit
   # adds a STACK to the target's bleeding with its own timer: it lasts
-  # <Move>BleedRounds rounds and takes Strength / <Move>BleedStrengthDivisor
+  # <Move>BleedRounds rounds and takes the attacker's Strength / <Move>BleedStrengthDivisor
   # health every round (never less than <Move>BleedMin). Stacks add up, and
   # bleeding keeps going after the fight ends.
   #
-  # A lone attacker lands one special move per SpecialMoveCooldown rounds, so
-  # the stacks it keeps alive settle near Rounds / cooldown: at the shipped
-  # cooldown of 4, 8 rounds holds 2, 10 holds 2 to 3, 12 holds 3. A group
-  # keeps more. TestShippedBleedTuningMeetsTheSliceTargets holds each stack to
-  # 2 to 3 cooldowns long, and its total at Strength 100 to 1.5 to 3 times the
+  # A lone attacker uses at most one special move per SpecialMoveCooldown
+  # rounds (misses and spells share that slot), so the stacks it keeps alive
+  # settle near Rounds / cooldown: at the shipped cooldown of 4, 8 rounds
+  # holds 2, 10 holds 2 to 3, 12 holds 3. A group keeps more.
+  # TestShippedBleedTuningMeetsTheSliceTargets holds each stack to 2 to 3
+  # cooldowns long, and its total at Strength 100 to 1.5 to 3 times the
   # single bleed hit it replaced (owner ruling, 2026-09-14).
   RakeBleedRounds: 10
   RakeBleedStrengthDivisor: 50
