@@ -166,11 +166,14 @@ the Layer 0 template goldens prove it.
 
 ### Layer 4. Player- and admin-facing text
 
-- The admin command becomes `condition`, with `buff` registered as an alias
-  to the same handler until slice 3. Its help template is renamed
-  `command.condition.template` (both worlds) and a `command.buff.template`
-  alias entry points at it, or the help system's alias mechanism is used;
-  the plan reads how aliases resolve help.
+- The admin command becomes `setcondition` (owner ruling 2026-09-14, during
+  planning: `condition` sat one letter from the player command `conditions`,
+  whose aliases are `c`, `cond`, `conds`, in `keywords.yaml`
+  `command-aliases`). `buff` stays registered as an alias to the same handler
+  until slice 3. Its help template is renamed
+  `command.setcondition.template` (both worlds), the admin help list in
+  `keywords.yaml` names `setcondition`, and `buff` resolves to the same help
+  through the help alias mechanism; the plan reads how aliases resolve help.
 - Help templates and in-game text (29 `dogmud` templates, the matching
   `default` ones, Go-side messages and admin/log strings): "buff" becomes
   "condition", or plain English where "condition" reads badly ("rally buffs
@@ -214,7 +217,7 @@ because behaviortree tests write temporary crate files under a gitignored
 - Boot check in a detached worktree (both worlds load; zero panics).
 - Smoke playtest, single agent, short: `conditions` with a held condition,
   a bleed from a steppe wolf on the `early` profile, an admin applying and
-  listing a condition with `condition` and with the `buff` alias (admin
+  listing a condition with `setcondition` and with the `buff` alias (admin
   profile), `help` for a spell that used to say "buff". No mechanics
   expectations beyond "unchanged".
 
