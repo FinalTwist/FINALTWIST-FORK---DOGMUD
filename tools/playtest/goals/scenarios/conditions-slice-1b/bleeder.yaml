@@ -3,8 +3,11 @@
 # your wounds VERBATIM. Companions may follow you; ignore them.
 # 3 commands per round on the AI port; the overflow is dropped.
 
+# Run 1 (da5bd63962ba656e) used the veteran profile, which killed every
+# steppe mob in one or two rounds and was never hamstrung. The early profile
+# (430 health, basic weapon) is weak enough for wolves to land their moves.
 ephemeral:
-  profile: veteran
+  profile: early
   start_room: 3015
   budgets:
     wall_clock: 35m
