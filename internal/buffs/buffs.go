@@ -327,10 +327,9 @@ func (bs *Buffs) addBuffScaled(buffId int, durationMult float64) bool {
 // snapshot overwritten, which is what the old condition add did. Returns false when
 // refused (poison immunity) or unknown.
 //
-// triggers is the exact trigger count, not a duration in rounds: for a
-// one-round-interval record the two coincide, but the three-round-interval
-// dot and bleed records need buffs.TickTriggers to convert a rounds-literal
-// duration into the trigger count this parameter expects. It is an int on
+// triggers is the exact trigger count, not a duration in rounds. Every record
+// that goes through this door today ticks once a round, so the trigger count
+// is the rounds. It is an int on
 // purpose: AddBuffScaled truncates float64(count) * mult, and 3.3 * 10 is
 // 32.999... in binary, so a multiplier would shorten some durations by a
 // round. The former conditions all computed an integer.

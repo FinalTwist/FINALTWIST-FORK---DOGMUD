@@ -85,7 +85,7 @@ than the code.
 | `sourceKind`  | `op` values                          | `values` element(s)             |
 |---------------|--------------------------------------|---------------------------------|
 | `pool`        | `below`, `above`, anything else means equals | `["40"]` (percent, 0 to 100); `sourceKey` is `hp`, `sp` or `cp` |
-| `status`      | `exclude`, anything else means include | `["poisoned"]`, matched case-insensitively against each `Char.Conditions` entry's `name` |
+| `status`      | `exclude`, anything else means include | `["poisoned"]`, matched case-insensitively against each `Char.Conditions` map KEY with any `#n` suffix stripped (not the entry's `name`, which can carry a stack count) |
 | `capture`     | `contains`, anything else means equals | `["some text"]`; `sourceKey` is `$1`, `$2`, ... |
 | `target`      | `notoneof`, anything else means oneof | `["troll","orc","goblin"]`, matched against the engaged enemy's name |
 | `cooldown`    | `notready`, anything else means ready | ignored; the check is the one shared `special-move` tag |
@@ -278,8 +278,8 @@ though raw HP (60%) is well above 30%.
 
 ## Char.Conditions: the one timed-state list (conditions unification, 2026-09-12)
 
-`Char.Conditions` (`gmcp.Char.go`) is a map keyed by each held record's
-visible name, one entry per record. There used to be TWO payloads that
+`Char.Conditions` (`gmcp.Char.go`) is a map keyed by each held record's plain
+spec name, one entry per listed record, built by `buildConditionsPayload(ch)`. There used to be TWO payloads that
 overlapped: `Char.Affects`, built from buffs, and an older `Char.Conditions`
 list built from the combat condition slice. Buff records ARE the conditions
 now, so there is one payload, carrying the whole `Char.Affects` shape plus the
@@ -289,7 +289,7 @@ qualitative `duration` word the old list contributed.
 
 | JSON key | Go field | What it carries |
 |---|---|---|
-| `name` | `Name` | `BuffSpec.VisibleNameDesc()`'s name |
+| `name` | `Name` | `buffs.DisplayName`: the spec name, plus the live stack count above one ("Bleeding (3)") |
 | `description` | `Description` | its description |
 | `duration_max` | `DurationMax` | total duration in SECONDS (`RoundsToSeconds`), or -1 for a permabuff |
 | `duration_cur` | `DurationLeft` | remaining duration in seconds, or -1 for a permabuff |
@@ -316,8 +316,16 @@ Things worth knowing before touching it:
   two records can present the same visible name. `nameIncrement` is ONE
   counter for the whole payload, not per name: the first collision anywhere
   takes `#1`, the next `#2`, whatever names they were.
-- **`hidden`-flagged records are skipped**, mirroring the `conditions`
-  command: being told you are hidden is a tell you should not get.
+- **Hidden and secret records are left out**, by `BuffSpec.Listed`, the same
+  predicate the `conditions` command uses (owner ruling 2026-09-14): being
+  told you are hidden is a tell you should not get, and a secret record is
+  bookkeeping the player is not meant to see. The map is built by
+  `buildConditionsPayload(ch)`. The key is the plain spec name.
+- **Client triggers match the KEY, not `name`.** A stacking record's `name`
+  carries its live count ("Bleeding (2)"), so `evalTriggerCondition` in
+  `webclient-pure.html` strips any `#n` suffix from each map key and compares
+  that, case-insensitively. `tools/webclient-tests/trigger-status-key-match.js`
+  pins it.
 - **Push triggers.** It ships with `Char.Vitals` on `CharacterVitalsChanged`
   (`vitalsChangedHandler`), so any pool move republishes it, and on its own
   from `buffTriggeredHandler` on `events.BuffsTriggered`.

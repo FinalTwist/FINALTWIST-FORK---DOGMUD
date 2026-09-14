@@ -270,17 +270,17 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						// now because every existing record used a trigger
 						// count far above 1: Warcry/Rally 25, MinorShield/
 						// Regenerating/Poisoned 10). A record created with
-						// exactly one trigger left — which buffs.TickTriggers
-						// produces for every ordinary Bleeding duration —
-						// never applied its one and only tick. tickMobBuffs
+						// exactly one trigger left, which slice 1's three-round
+						// Bleeding produced for every ordinary duration, never
+						// applied its one and only tick. tickMobBuffs
 						// never had this defect: it always applies TickAmount
 						// and always narrates the flavor text too.
 						//
 						// Whole-branch review (slice 1): the text was still
 						// gated on !Expired() even after the harm/restore fix
-						// above, so a one-trigger record (every combat bleed
-						// producer passes TickTriggers 3, 4 or 5, all of which
-						// return 1) applied its harm silently and only the
+						// above, so a one-trigger record (slice 1's bleed
+						// producers all made one-trigger records) applied its
+						// harm silently and only the
 						// prune pass's end line was ever seen. The harm AND
 						// the text now land on every trigger, including the
 						// expiring one; the prune pass's end line follows as

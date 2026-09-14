@@ -1,6 +1,6 @@
 ---
 name: dogmud-balance-config
-description: Use before hardcoding any balance number, or when retuning how something feels. Covers that 375 balance knobs are declared in internal/configs/config.balance.go and surfaced through _datafiles/config.yaml, that retuning is a config edit rather than a code change, that a Go default is never a live value because several shipped knobs differ sharply, that an absent key is meaningful because 0 is a legal shipped value, and that config.yaml carries skip-worktree so it desyncs in both directions.
+description: Use before hardcoding any balance number, or when retuning how something feels. Covers that 390 balance knobs are declared in internal/configs/config.balance.go and surfaced through _datafiles/config.yaml, that retuning is a config edit rather than a code change, that a Go default is never a live value because several shipped knobs differ sharply, that an absent key is meaningful because 0 is a legal shipped value, and that config.yaml carries skip-worktree so it desyncs in both directions.
 ---
 
 ## Look for the knob before editing a literal
@@ -97,8 +97,8 @@ field directly as `b.FieldName`.
 **Grep the YAML tag, not the Go field name, when searching INSIDE
 `config.yaml` itself.** Most fields share their PascalCase Go name with
 their yaml tag, but not all of them do, and a field-name grep against
-`config.yaml` finds nothing for the ones that differ. Verified 2026-09-08:
-of the 375 `Config*`-typed fields in `config.balance.go`, exactly **8**
+`config.yaml` finds nothing for the ones that differ. Verified 2026-09-08,
+count rechecked 2026-09-14: of the 390 `Config*`-typed fields in `config.balance.go`, exactly **8**
 carry a yaml tag that does not match the Go field name, all snake_case:
 `ReachStandingGrappleRadius` (`internal/configs/config.balance.go:191`)
 carries the tag `` yaml:"reach_standing_grapple_radius" ``, and
@@ -110,13 +110,13 @@ present and shipped. The other seven are `ReachGroundGrappleRadius`,
 `SubBadZThreshold`, `SubGoldLossFraction`, and `BrokenLimbBuffDuration`, all
 in the same grapple/submission/broken-limb cluster.
 
-**CLAUDE.md's counts are stale, verified against source 2026-09-08:**
+**CLAUDE.md's counts are stale, verified against source 2026-09-14:**
 
-| Claim | CLAUDE.md figure | Actual, verified 2026-09-08 |
+| Claim | CLAUDE.md figure | Actual, verified 2026-09-14 |
 |---|---|---|
-| Fields in `config.balance.go` | 352 | **375** `Config*`-typed fields (`grep -cE '^\s*[A-Za-z_]+\s+Config[A-Za-z]+\b' internal/configs/config.balance.go`) |
-| `Config*`-typed fields across the whole `internal/configs` package | 466 | **508** (515 raw matches of the same pattern across all non-test `.go` files in the package, minus 7 false positives in `config_types.go` where the pattern matches the `type ConfigInt int` style declarations, not struct fields) |
-| `_datafiles/config.yaml` line count | 1506 | **2296** lines in the committed blob (`git show HEAD:_datafiles/config.yaml \| wc -l`); the on-disk working copy reads 2300, a few lines longer from the local, uncommitted skip-worktree divergence described below |
+| Fields in `config.balance.go` | 352 | **390** `Config*`-typed fields (`grep -cE '^\s*[A-Za-z_]+\s+Config[A-Za-z]+\b' internal/configs/config.balance.go`) |
+| `Config*`-typed fields across the whole `internal/configs` package | 466 | **523** (530 raw matches of the same pattern across all non-test `.go` files in the package, minus 7 false positives in `config_types.go` where the pattern matches the `type ConfigInt int` style declarations, not struct fields) |
+| `_datafiles/config.yaml` line count | 1506 | **2327** lines in the committed blob (`git show HEAD:_datafiles/config.yaml \| wc -l`); the on-disk working copy reads 2331, a few lines longer from the local, uncommitted skip-worktree divergence described below |
 | Seven sibling `config.balance.*.go` files declare no fields | (same claim) | **Confirmed correct**, 0 fields in each of the seven, matching CLAUDE.md exactly |
 
 The 352/466/1506 figures were accurate when CLAUDE.md's balance section was

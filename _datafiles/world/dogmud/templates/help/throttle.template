@@ -20,8 +20,9 @@ are casting a spell.
 <ansi fg="yellow">Mechanics:</ansi>
 
   <ansi fg="stat">Damage:</ansi> Moderate. The choke bite deals direct harm.
-  <ansi fg="stat">Bleed:</ansi> A successful throttle opens shallow throat wounds
-    that bleed briefly.
+  <ansi fg="stat">Bleed:</ansi> A successful throttle opens a shallow throat wound
+    that keeps bleeding for a while. Every new throttle opens
+    another wound on top of the old ones.
   <ansi fg="stat">Stamina Drain:</ansi> The Throttled condition saps stamina over
     several rounds as the victim struggles for breath.
   <ansi fg="stat">Cast Interrupt:</ansi> When the victim is casting a spell, the

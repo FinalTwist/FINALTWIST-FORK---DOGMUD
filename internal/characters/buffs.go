@@ -151,8 +151,10 @@ func (c *Character) AddBuffScaled(buffId int, durationMult float64) error {
 // a ward, a bleed) and their appliers narrate the moment themselves, so the
 // record is silent-start or quiet and the event path's start notice is not
 // wanted. The prune pass still narrates the end. triggers 0 means the spec's
-// own triggercount; the exact trigger count, not rounds — use
-// buffs.TickTriggers for the three-round dot and bleed records.
+// own triggercount. Every record that uses this door today ticks once a
+// round, so the trigger count is the rounds; a stacking record takes it as the
+// new stack's rounds. source overwrites the held record's Source on every
+// call, so a stacking record carries its last applier's source.
 func (c *Character) AddBuffMagnitude(buffId int, triggers int, magnitude float64, source string) error {
 	buffId = int(math.Abs(float64(buffId)))
 	if !c.Buffs.AddBuffMagnitude(buffId, triggers, magnitude) {

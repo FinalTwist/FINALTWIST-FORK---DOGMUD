@@ -455,9 +455,8 @@ func (u *UserRecord) AddBuffScaled(buffId int, durationMult float64, source stri
 // per-instance magnitude through the event path, so the holder reads the
 // start notice. Former conditions apply synchronously through
 // Character.AddBuffMagnitude instead; this door is for a spell or item that
-// wants the notice too. triggers is the exact trigger count, not a duration
-// in rounds — use buffs.TickTriggers for the three-round dot and bleed
-// records.
+// wants the notice too. triggers is the exact trigger count, which for a
+// one-round record is the rounds.
 func (u *UserRecord) AddBuffMagnitude(buffId int, triggers int, magnitude float64, source string) {
 	events.AddToQueue(events.Buff{
 		UserId:    u.UserId,

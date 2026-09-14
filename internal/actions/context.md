@@ -193,12 +193,24 @@ gated), so armed undead still drain.
 
 | Action | Gate | Effects |
 |--------|------|---------|
-| `ExecuteRake` | clawed | Damage + short bleed |
-| `ExecuteMaul` | fanged | Heavier damage + stronger bleed |
+| `ExecuteRake` | clawed | Damage + bleed stack |
+| `ExecuteMaul` | fanged | Heavier damage + bleed stack |
 | `ExecutePounce` | quadruped predator, not grappling | Knockdown + damage (no bleed) |
 | `ExecuteGore` | horned | Damage + knockback |
 | `ExecuteDrain` | `LifeDrain` flag | Damage + heal attacker (`damage × DrainHealRatio`) via `Character.Heal` |
-| `ExecuteThrottle` | fanged | Damage + bleed + Throttled buff #89 (stamina DoT) + cast interrupt via `InterruptTargetCast` |
+| `ExecuteThrottle` | fanged | Damage + bleed stack + Throttled buff #89 (stamina DoT) + cast interrupt via `InterruptTargetCast` |
+
+**Bleeds stack (slice 1b, owner ruling 2026-09-14).** Rake, maul, hamstring,
+drain (`ExecuteDrain` and each landed target of `ExecuteDrainArea`) and throttle each add one
+stack to the target's 122 Bleeding record on a landed hit, through
+`AddBuffMagnitude(buffs.BuffIdBleeding, rounds, -amount, source)`. The stack's
+per-round amount is `bleedPerRound` (`bleed.go`): the attacker's Strength
+`ValueAdj` divided by the move's `<Move>BleedStrengthDivisor` knob, floored at
+`<Move>BleedMin`; its rounds are `<Move>BleedRounds`. All fifteen knobs live in
+the Bleed stacks block of `config.yaml`. Stacks from repeated hits add up and
+keep ticking after the fight; see "Stacking records" in
+`internal/buffs/context.md`. Each result's `BleedDmg` carries the per-round
+amount of the stack just added, and nothing outside this package reads it.
 
 **`InterruptTargetCast`** is a shared helper that reuses the engine's
 existing `activity.TriggerCastCancel` cast-cancel path (conviction
@@ -950,7 +962,7 @@ the rest are ordinary verbs.
 | Actor abstraction | `actor.go`, `actor_user.go`, `actor_mob.go` |
 | Readiness gates | `action_readiness.go`, `command_readiness.go` |
 | Targeting | `target_resolution.go`, `target_helpers.go`, `melee_target.go`, `sleeping_target.go` |
-| Shared helpers | `combat_helpers.go`, `skill_helpers.go`, `mutation_helpers.go`, `aggression.go` |
+| Shared helpers | `combat_helpers.go`, `skill_helpers.go`, `mutation_helpers.go`, `aggression.go`, `bleed.go` (`bleedPerRound`) |
 | Combat specials | `combat_attack.go`, `combat_bash.go`, `combat_counter.go`, `combat_drain.go`, `combat_fire.go`, `combat_gore.go`, `combat_grapple.go`, `combat_hamstring.go`, `combat_kick.go`, `combat_maul.go`, `combat_pounce.go`, `combat_rake.go`, `combat_rally.go`, `combat_reload.go`, `combat_taunt.go`, `combat_throttle.go`, `combat_trip.go`, `combat_warcry.go` |
 | Casting | `cast.go`, `cast_interrupt.go` |
 | Mutation actives | `mutation_cocoon.go`, `mutation_venom_coat.go` |
