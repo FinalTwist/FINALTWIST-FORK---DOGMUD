@@ -160,7 +160,7 @@ var (
 )
 
 type BuffSpec struct {
-	BuffId        int               // Unique identifier for this buff spec
+	BuffId        int               `yaml:"buffid"` // Unique identifier for this buff spec. The tag pins the file key through the slice 2 rename.
 	Name          string            // The name of the buff
 	Description   string            // A description of the buff
 	Secret        bool              // Whether or not the buff is secret (not displayed to the user)

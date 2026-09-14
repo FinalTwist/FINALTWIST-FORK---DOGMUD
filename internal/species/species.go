@@ -32,7 +32,7 @@ type Species struct {
 	SpeciesId   int `yaml:"speciesid"`
 	Name        string
 	Description string
-	BuffIds     []int // Permabuffs this species always has
+	BuffIds     []int `yaml:"buffids"` // Permabuffs this species always has. The tag pins the file key through the slice 2 rename.
 	Size        Size
 	UnarmedName string
 	// NaturalAttack is the combat-message subtype an unarmed member of this

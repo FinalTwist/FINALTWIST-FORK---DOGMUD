@@ -12,7 +12,7 @@ const (
 )
 
 type Buff struct {
-	BuffId         int    // Which buff template does it refer to?
+	BuffId         int    `yaml:"buffid"`                   // Which buff template does it refer to? The tag pins the save key through the slice 2 rename.
 	Source         string `yaml:"source,omitempty"`         // Optional source identifier for where this buff originated. Example: spell, item, area
 	OnStartWaiting bool   `yaml:"onstartwaiting,omitempty"` // Is the onstart event waiting to trigger?
 	PermaBuff      bool   `yaml:"permabuff,omitempty"`      // Is this buff from a worn item or race?
