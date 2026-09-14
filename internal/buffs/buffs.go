@@ -29,6 +29,10 @@ type Buff struct {
 	// tick would be unrecoverable; a magnitude of exactly zero snapshots as
 	// zero.
 	Magnitude float64 `yaml:"magnitude,omitempty"`
+
+	// Stacks holds a stacking record's applications, each with its own
+	// timer. Empty for every other record. See stacks.go.
+	Stacks []Stack `yaml:"stacks,omitempty"`
 }
 
 func (b *Buff) StatMod(statName string) int {
@@ -108,6 +112,7 @@ func (bs *Buff) Name() string {
 func (bs *Buffs) RemoveBuff(buffId int) bool {
 	if index, ok := bs.buffIds[buffId]; ok {
 		bs.List[index].TriggersLeft = TriggersLeftExpired
+		bs.List[index].Stacks = nil
 		return true
 	}
 	return false
@@ -303,7 +308,13 @@ func (bs *Buffs) AddBuffScaled(buffId int, durationMult float64) bool {
 // purpose: AddBuffScaled truncates float64(count) * mult, and 3.3 * 10 is
 // 32.999... in binary, so a multiplier would shorten some durations by a
 // round. The former conditions all computed an integer.
+//
+// A stacking record (see the Stacking flag) appends a stack instead of
+// overwriting; triggers is then that stack's rounds.
 func (bs *Buffs) AddBuffMagnitude(buffId int, triggers int, magnitude float64) bool {
+	if spec := GetBuffSpec(buffId); spec != nil && spec.IsStacking() {
+		return bs.addStack(spec, triggers, magnitude)
+	}
 	if !bs.AddBuffScaled(buffId, 1.0) {
 		return false
 	}
@@ -316,22 +327,8 @@ func (bs *Buffs) AddBuffMagnitude(buffId int, triggers int, magnitude float64) b
 	}
 	bs.List[idx].Magnitude = magnitude
 	if spec := GetBuffSpec(buffId); spec != nil && spec.TickFromMagnitude {
-		// The magnitude IS the signed per-round amount: negative harms.
-		// A non-zero magnitude that truncates to zero (e.g. -0.5) is floored
-		// to 1 in its sign instead: a zero snapshot is unrecoverable, since
-		// the round tick's fallback recomputes from TickPercent, which
-		// validateEffects forces to 0 on a tick_from_magnitude record, so
-		// ComputeTickAmount would return 0 and the record would tick for
-		// nothing forever. Mirrors the old poison/bleed hook's clamp.
-		amt := int(magnitude)
-		if amt == 0 && magnitude != 0 {
-			if magnitude < 0 {
-				amt = -1
-			} else {
-				amt = 1
-			}
-		}
-		bs.List[idx].TickAmount = amt
+		// The magnitude IS the signed per-round amount; see tickAmountFor.
+		bs.List[idx].TickAmount = tickAmountFor(magnitude)
 	}
 	return true
 }
@@ -444,13 +441,21 @@ func (bs *Buffs) Trigger(buffId ...int) (triggeredBuffs []*Buff) {
 			if b.TriggersLeft > 0 {
 				b.RoundCounter++
 				if b.RoundCounter%buffInfo.RoundInterval == 0 {
-					// It cannot be pruned unless it is triggered
-					triggeredBuffs = append(triggeredBuffs, b)
-					if b.TriggersLeft != TriggersLeftUnlimited {
-						b.TriggersLeft--
+					if buffInfo.IsStacking() {
+						// A stacking record ticks its stacks and derives
+						// TriggersLeft from them; see tickStacks.
+						if b.tickStacks() {
+							triggeredBuffs = append(triggeredBuffs, b)
+						}
 					} else {
-						// If unimited, reset the counter to prevent some future overflow
-						b.RoundCounter = 0
+						// It cannot be pruned unless it is triggered
+						triggeredBuffs = append(triggeredBuffs, b)
+						if b.TriggersLeft != TriggersLeftUnlimited {
+							b.TriggersLeft--
+						} else {
+							// If unimited, reset the counter to prevent some future overflow
+							b.RoundCounter = 0
+						}
 					}
 				}
 				bs.List[idx] = b

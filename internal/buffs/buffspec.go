@@ -97,6 +97,13 @@ const (
 	// grapple exposure) and any line would repeat each round.
 	Quiet Flag = `quiet`
 
+	// Stacking marks a tick record where every application is its own stack
+	// with its own timer, instead of refreshing the one instance. The record
+	// ticks the sum of its live stacks once a round and ends with its longest
+	// stack. It requires tick_from_magnitude and a one-round triggerrate. The
+	// bleed record carries it (slice 1b, 2026-09-14).
+	Stacking Flag = `stacking`
+
 	// Arbitrarily chosen round for calculating trigger round counts
 	validationRound = 1000000
 )
@@ -143,6 +150,7 @@ var AllFlags = []Flag{
 	SilentStart,
 	Bleeding,
 	Quiet,
+	Stacking,
 }
 
 var (
@@ -327,6 +335,19 @@ func (b *BuffSpec) Validate() error {
 		}
 		if b.RoundInterval < 1 {
 			return fmt.Errorf("buffId %d (%s) has a RoundInterval of < 1, must be at least 1. Is %s a valid time string?", b.BuffId, b.Name, b.TriggerRate)
+		}
+	}
+
+	// A stack's amount IS the applier's magnitude and a stack counts rounds,
+	// so a stacking record must be tick_from_magnitude and tick every round.
+	// Checked after RoundInterval is derived above; an empty triggerrate
+	// leaves it 0 and is refused too.
+	if b.IsStacking() {
+		if !b.TickFromMagnitude {
+			return fmt.Errorf("buffId %d (%s) is stacking without tick_from_magnitude; a stack's amount is the applier's magnitude", b.BuffId, b.Name)
+		}
+		if b.RoundInterval != 1 {
+			return fmt.Errorf("buffId %d (%s) is stacking with triggerrate %q; a stack counts rounds, so the record must tick every round", b.BuffId, b.Name, b.TriggerRate)
 		}
 	}
 
