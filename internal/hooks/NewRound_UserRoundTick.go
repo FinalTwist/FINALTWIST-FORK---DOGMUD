@@ -241,22 +241,6 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 				// Roundtick any cooldowns
 				user.Character.Cooldowns.RoundTick()
 
-				// Stage 7.5: Attempt automatic recovery from prone (contested
-				// if someone is holding the character down, free otherwise)
-				if attemptMade, success := user.Character.AttemptRecovery(recoveryContest(user.Character)); attemptMade {
-					if success {
-						user.SendText(messaging.CategorySystem, "You scramble to your feet!")
-						if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
-							sendVisualRoomText(room, messaging.CategoryEmote, "<ansi fg=\"username\">"+user.Character.Name+"</ansi> clambers to their feet in a rushed panic.", user.UserId)
-						}
-					} else {
-						user.SendText(messaging.CategorySystem, "You attempt to stand, but slip back down in the chaos of battle!")
-						if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
-							sendVisualRoomText(room, messaging.CategoryEmote, "<ansi fg=\"username\">"+user.Character.Name+"</ansi> attempts to stand, but slips and falls in the chaos of battle.", user.UserId)
-						}
-					}
-				}
-
 				if user.Character.Charmed != nil && user.Character.Charmed.RoundsRemaining > 0 {
 					user.Character.Charmed.RoundsRemaining--
 				}
@@ -286,17 +270,17 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						// now because every existing record used a trigger
 						// count far above 1: Warcry/Rally 25, MinorShield/
 						// Regenerating/Poisoned 10). A record created with
-						// exactly one trigger left — which buffs.TickTriggers
-						// produces for every ordinary Bleeding duration —
-						// never applied its one and only tick. tickMobBuffs
+						// exactly one trigger left, which slice 1's three-round
+						// Bleeding produced for every ordinary duration, never
+						// applied its one and only tick. tickMobBuffs
 						// never had this defect: it always applies TickAmount
 						// and always narrates the flavor text too.
 						//
 						// Whole-branch review (slice 1): the text was still
 						// gated on !Expired() even after the harm/restore fix
-						// above, so a one-trigger record (every combat bleed
-						// producer passes TickTriggers 3, 4 or 5, all of which
-						// return 1) applied its harm silently and only the
+						// above, so a one-trigger record (slice 1's bleed
+						// producers all made one-trigger records) applied its
+						// harm silently and only the
 						// prune pass's end line was ever seen. The harm AND
 						// the text now land on every trigger, including the
 						// expiring one; the prune pass's end line follows as
@@ -392,6 +376,35 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 					}
 
 					events.AddToQueue(events.BuffsTriggered{UserId: user.UserId, BuffIds: triggeredBuffIds})
+				}
+
+				// Stage 7.5: Attempt automatic recovery from prone (contested
+				// if someone is holding the character down, free otherwise).
+				// AFTER the buff tick, the order MobRoundTick uses: a failed or
+				// gated attempt adds the one-round Recovering record (118,
+				// attacks_cap 1), and when it ran before the tick, the tick
+				// expired the record before DoCombat could read it, so a player
+				// never felt the cap (slice 1b, owner ruling 2026-09-14).
+				//
+				// Guarded on Health/DeathQueued: a lethal bleed/poison tick just
+				// above can queue this character's death, and standing it back
+				// up (plus the progression award) mid-death is wrong. Matches
+				// NewRound_MobRoundTick.go, which skips a dying mob's own
+				// recovery the same way.
+				if user.Character.Health > 0 && !user.Character.DeathQueued {
+					if attemptMade, success := user.Character.AttemptRecovery(recoveryContest(user.Character)); attemptMade {
+						if success {
+							user.SendText(messaging.CategorySystem, "You scramble to your feet!")
+							if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
+								sendVisualRoomText(room, messaging.CategoryEmote, "<ansi fg=\"username\">"+user.Character.Name+"</ansi> clambers to their feet in a rushed panic.", user.UserId)
+							}
+						} else {
+							user.SendText(messaging.CategorySystem, "You attempt to stand, but slip back down in the chaos of battle!")
+							if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
+								sendVisualRoomText(room, messaging.CategoryEmote, "<ansi fg=\"username\">"+user.Character.Name+"</ansi> attempts to stand, but slips and falls in the chaos of battle.", user.UserId)
+							}
+						}
+					}
 				}
 
 				// Pinnacle item upkeep (procs are event-driven; this is the always-on layer).

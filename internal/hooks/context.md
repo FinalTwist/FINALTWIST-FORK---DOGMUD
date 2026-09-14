@@ -459,12 +459,27 @@ the old poison hook did and the buff tick path did NOT:
   the player path used to gate the whole body on `!buff.Expired()` and silently
   dropped the only tick of a one-trigger record.
 
+A stacking record (122 Bleeding) reaches this branch once per round with
+`TickAmount` already set to the sum of its live stacks, so every item above
+happens once however many stacks are live; see "Stacking records" in
+`internal/buffs/context.md`.
+
+**Prone recovery runs after the buff tick on both sides.** `tickMobBuffs` runs
+before `tickMobProneRecovery`, and since slice 1b (owner ruling 2026-09-14)
+`UserRoundTick` calls `AttemptRecovery` after `Buffs.Trigger` too. A failed or
+gated attempt adds the one-tick 118 Recovering record, which must still be live
+when `DoCombat` reads `attacks_cap`; before slice 1b the player's own tick
+expired it first. The player attempt is skipped when
+`Character.Health <= 0` or `Character.DeathQueued`, because a lethal bleed or
+poison tick just above may have queued the death, and a dying player must not
+scramble to their feet.
+
 `NewRound_AutoHeal.go` keeps only the REGEN half, and it reads the same
 vocabulary rather than an enum. **The whole hook is behind
 `if evt.RoundNumber%3 != 0 { return }`, so regen lands every THIRD round**, not
 every round, and that gate is also why the poison and bleed harm that used to
 live here landed every third round while the duration it counted down ran every
-round. Four branches read `regen_mult`, and the two kinds do NOT read it the
+round. Both records tick every round since slice 1b. Four branches read `regen_mult`, and the two kinds do NOT read it the
 same way:
 
 - **Out of combat** (player and mob) there is base regen regardless, and the
@@ -952,8 +967,32 @@ Cross-machine cleanup that fires on two Life transitions:
   separate `c.Conditions = nil` clear that sat beside it was deleted with the
   combat condition enum on 2026-09-12; the former conditions are ordinary
   records and the buff cancel covers them.)
+- Bumps `Character.LifeEpoch`, beside the buff cancel. That cancel only
+  reaches HELD buffs. A buff still queued on `events.Buff` is stamped with the
+  epoch it was aimed at, and `ApplyBuffs` refuses one whose epoch no longer
+  matches (or whose holder is not alive), with no add and no notice. The epoch
+  is the test rather than `IsAlive` or `DeathQueued` because of flush order:
+  the killing swing queues its `CharacterDied` before its on-hit buff, and
+  `RouteAttributedDeath` cascades a player back to Alive with `DeathQueued`
+  cleared before the buff flushes. A ReviveOnDeath save ends no life, so the
+  blow's buff still lands on the revived character. Pinned by
+  `buff_after_death_test.go` (playtest 7d0dad99c4709fc0: a Rending Bleed from
+  the killing blow killed the respawned player a second time).
 
 **Dead → Respawning:**
+- First removes, silently, every record still expired-but-held, which is
+  every record the death strip expired plus any that expired earlier that
+  turn and was not pruned yet. The strip only expires records; left for the next `NewTurn_PruneBuffs` pass, each one's
+  end line reached the respawned player and their new room ("Your wounds stop
+  bleeding." in the Mending Hut, playtest 7d0dad99c4709fc0). It waits for
+  this transition rather than pruning beside the strip because
+  `deathCauseFor` in the death announcement reads the held Bleeding and
+  Poisoned records by id, and an Alive → Dead observer registered after this
+  cascade would otherwise find them gone. It queues `BuffsTriggered` so the
+  client's conditions panel refreshes. A record that ran out or was
+  cancelled and pruned before the death still narrates; anything still
+  expired-but-held at respawn is removed silently. Pinned by
+  `death_strip_end_lines_test.go`.
 - Refills all resource pools to 5% of max
 - Applies `NoAggroTarget` grace buff (#81)
 - Clears live `PlayerDamage` map (snapshot already in `DeadData`)
@@ -1618,11 +1657,11 @@ heal = ÷2, DoT = ÷3") is accurate at every one of them, no discrepancy found:
   `AddBuffMagnitude(buffs.BuffIdRegenerating, durationRounds, regenMult, ...)`.
 - **DoT: `/3`, floored at 3.** `applyMobEffect_dot` and the inline DoT branch
   of `resolveMobSpellAgainstPlayer` both compute
-  `calcSpellDuration(...) / 3`, then clamp `dotDuration < 3` up to 3. Both then
-  convert that rounds figure with `buffs.TickTriggers(dotDuration)` before
-  passing it to `AddBuffMagnitude(buffs.BuffIdPoisoned, ...)`, because record
-  121 ticks every THIRD round; see `internal/buffs/context.md` under
-  "Cadence".
+  `calcSpellDuration(...) / 3`, then clamp `dotDuration < 3` up to 3. Both
+  pass that rounds figure straight to
+  `AddBuffMagnitude(buffs.BuffIdPoisoned, dotDuration, ...)`: record 121 ticks
+  every round (slice 1b; it was every third round before). See
+  `internal/buffs/context.md` under "Cadence".
 
 **Crit affects magnitude on some of these paths, never duration, on any of
 them.** `out.AttackerCrit` never touches the `calcSpellDuration` call or its

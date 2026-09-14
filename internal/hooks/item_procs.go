@@ -193,8 +193,9 @@ func procStealPool(owner, other *characters.Character, params map[string]float64
 
 // procApplyCondition applies the Bleeding record to the target. Params:
 // condition (1=bleeding — the switch is the extension point for future
-// condition ids; only bleeding is wired here, YAGNI), duration (rounds,
-// default 4 if unset/<1), magnitude (per-tick, default 2 if unset/<1).
+// condition ids; only bleeding is wired here, YAGNI), duration (the stack's
+// rounds, default 4 if unset/<1), magnitude (per-round health loss, default 2
+// if unset/<1). Each proc that fires adds one stack; see the Stacking flag.
 // Unknown condition ids do not execute (so the caller's cooldown isn't
 // marked — see dispatchItemProcs).
 func procApplyCondition(target *characters.Character, params map[string]float64) bool {
@@ -211,8 +212,7 @@ func procApplyCondition(target *characters.Character, params map[string]float64)
 	}
 	switch int(params["condition"]) {
 	case 1:
-		_ = target.AddBuffMagnitude(buffs.BuffIdBleeding, buffs.TickTriggers(dur), -mag, "itemproc")
-		return true
+		return target.AddBuffMagnitude(buffs.BuffIdBleeding, dur, -mag, "itemproc") == nil
 	}
 	return false
 }

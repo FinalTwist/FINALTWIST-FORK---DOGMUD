@@ -45,8 +45,7 @@ type RakeResult struct {
 	// to a non-clawed mob. Unreachable via the AI path (CanUseRake gates it).
 	NotClawed bool
 
-	// BleedDmg is the per-tick bleed damage applied on a hit
-	// (Strength/12, min 2).
+	// BleedDmg is the per-round amount of the bleed stack added on a hit.
 	BleedDmg int
 }
 
@@ -57,8 +56,8 @@ type RakeResult struct {
 //   - ExecuteSkillMove via combat package (UnarmedCombat skill, Dexterity
 //     attack stat, Dexterity defense stat, TripDamagePercent, Strength damage
 //     stat, no knockdown)
-//   - On hit: apply the Bleeding record (duration 4, magnitude = Strength/12
-//     min 2) sourced as "rake"
+//   - On hit: add a Bleeding stack (RakeBleedRounds, RakeBleedStrengthDivisor,
+//     RakeBleedMin) sourced as "rake"
 //   - combat.RecordSpecialMove for analytics + RoundsWaiting = 1
 //   - OnSkillUse(UnarmedCombat) on hit for progression
 //
@@ -121,15 +120,12 @@ func ExecuteRake(actor Actor) RakeResult {
 	// U6b Task 10: a crit-defended move earns the defender a counter-swing.
 	counter := counterSkillMoveExit(actor, target.Char, result, combat.ChannelMelee, true)
 
-	// On hit: apply bleed condition (duration 4, magnitude = Strength/12,
-	// min 2).
+	// On hit: add a bleed stack (RakeBleedRounds rounds, Strength /
+	// RakeBleedStrengthDivisor per round, floor RakeBleedMin).
 	bleedDmg := 0
 	if result.Hit {
-		bleedDmg = char.Stats.Strength.ValueAdj / 12
-		if bleedDmg < 2 {
-			bleedDmg = 2
-		}
-		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, buffs.TickTriggers(4), -float64(bleedDmg), "rake")
+		bleedDmg = bleedPerRound(char.Stats.Strength.ValueAdj, cfg.RakeBleedStrengthDivisor, cfg.RakeBleedMin)
+		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, int(cfg.RakeBleedRounds), -float64(bleedDmg), "rake")
 	}
 
 	// Determine source/target types for analytics.

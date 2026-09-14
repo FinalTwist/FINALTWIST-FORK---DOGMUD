@@ -39,6 +39,10 @@ rather than by type.
   narrow filter over a busy feed can legitimately return fewer than `n` results
   even though matching events exist further back.
 - **A nil filter means no filtering.**
+- **The buffer is shared across a test binary.** A test that drives a real
+  player death or milestone emits into it; call `ResetForTest`
+  (`test_helpers.go`) on cleanup, or a later test reading the feed (the hooks
+  gossip tests) sees the leaked event.
 
 ## Dependencies
 

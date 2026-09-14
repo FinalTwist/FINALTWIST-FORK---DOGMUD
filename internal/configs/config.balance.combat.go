@@ -141,6 +141,57 @@ func (b *Balance) validateCombat() {
 		b.RhetoricActionBaseConvictionCost = 4
 	}
 
+	// ── BLEED STACKS (slice 1b) ──
+	// Every guard is `< 1`. A zero stack length never ticks, a zero divisor
+	// divides by zero, and a zero floor lets a weak attacker's stack tick for
+	// nothing, so none of the three has a legal zero. An absent key reads 0
+	// and takes the default, and each default is the shipped value.
+	if b.RakeBleedRounds < 1 {
+		b.RakeBleedRounds = 10
+	}
+	if b.RakeBleedStrengthDivisor < 1 {
+		b.RakeBleedStrengthDivisor = 50
+	}
+	if b.RakeBleedMin < 1 {
+		b.RakeBleedMin = 1
+	}
+	if b.MaulBleedRounds < 1 {
+		b.MaulBleedRounds = 12
+	}
+	if b.MaulBleedStrengthDivisor < 1 {
+		b.MaulBleedStrengthDivisor = 35
+	}
+	if b.MaulBleedMin < 1 {
+		b.MaulBleedMin = 1
+	}
+	if b.HamstringBleedRounds < 1 {
+		b.HamstringBleedRounds = 12
+	}
+	if b.HamstringBleedStrengthDivisor < 1 {
+		b.HamstringBleedStrengthDivisor = 50
+	}
+	if b.HamstringBleedMin < 1 {
+		b.HamstringBleedMin = 1
+	}
+	if b.DrainBleedRounds < 1 {
+		b.DrainBleedRounds = 10
+	}
+	if b.DrainBleedStrengthDivisor < 1 {
+		b.DrainBleedStrengthDivisor = 50
+	}
+	if b.DrainBleedMin < 1 {
+		b.DrainBleedMin = 1
+	}
+	if b.ThrottleBleedRounds < 1 {
+		b.ThrottleBleedRounds = 8
+	}
+	if b.ThrottleBleedStrengthDivisor < 1 {
+		b.ThrottleBleedStrengthDivisor = 33
+	}
+	if b.ThrottleBleedMin < 1 {
+		b.ThrottleBleedMin = 1
+	}
+
 	// ── MUTATION: WINGED FLIGHT ──
 	if b.FlightOpposedEdge < 1 {
 		b.FlightOpposedEdge = 25

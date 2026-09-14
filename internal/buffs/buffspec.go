@@ -97,6 +97,13 @@ const (
 	// grapple exposure) and any line would repeat each round.
 	Quiet Flag = `quiet`
 
+	// Stacking marks a tick record where every application is its own stack
+	// with its own timer, instead of refreshing the one instance. The record
+	// ticks the sum of its live stacks once a round and ends with its longest
+	// stack. It requires tick_from_magnitude and a one-round triggerrate.
+	// Meant for the bleed record (122).
+	Stacking Flag = `stacking`
+
 	// Arbitrarily chosen round for calculating trigger round counts
 	validationRound = 1000000
 )
@@ -143,6 +150,7 @@ var AllFlags = []Flag{
 	SilentStart,
 	Bleeding,
 	Quiet,
+	Stacking,
 }
 
 var (
@@ -212,11 +220,14 @@ func (b *BuffSpec) GetValue() int {
 	return val
 }
 
-func (b *BuffSpec) VisibleNameDesc() (name, description string) {
-	if b.Secret {
-		return "Mysterious Affliction", "Unknown"
-	}
-	return b.Name, b.Description
+// Listed reports whether a held record appears in the player's condition
+// lists: the in-game `conditions` command and the Char.Conditions GMCP
+// payload. Both call this, so the two can never disagree. A hidden record is
+// left out because it would tell you that you are hidden; a secret record is
+// engine bookkeeping or a state the player is not meant to know about (owner
+// ruling 2026-09-14: shown in neither list, not as "Mysterious Affliction").
+func (b *BuffSpec) Listed() bool {
+	return !b.Secret && !slices.Contains(b.Flags, Hidden)
 }
 
 type BuffMessage struct {
@@ -327,6 +338,19 @@ func (b *BuffSpec) Validate() error {
 		}
 		if b.RoundInterval < 1 {
 			return fmt.Errorf("buffId %d (%s) has a RoundInterval of < 1, must be at least 1. Is %s a valid time string?", b.BuffId, b.Name, b.TriggerRate)
+		}
+	}
+
+	// A stack's amount IS the applier's magnitude and a stack counts rounds,
+	// so a stacking record must be tick_from_magnitude and tick every round.
+	// Checked after RoundInterval is derived above; an empty triggerrate
+	// leaves it 0 and is refused too.
+	if b.IsStacking() {
+		if !b.TickFromMagnitude {
+			return fmt.Errorf("buffId %d (%s) is stacking without tick_from_magnitude; a stack's amount is the applier's magnitude", b.BuffId, b.Name)
+		}
+		if b.RoundInterval != 1 {
+			return fmt.Errorf("buffId %d (%s) is stacking with triggerrate %q; a stack counts rounds, so the record must tick every round", b.BuffId, b.Name, b.TriggerRate)
 		}
 	}
 

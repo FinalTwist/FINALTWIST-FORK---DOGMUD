@@ -422,9 +422,10 @@ func (u *UserRecord) CommandFlagged(inputTxt string, flagData events.EventFlag, 
 func (u *UserRecord) AddBuff(buffId int, source string) {
 
 	events.AddToQueue(events.Buff{
-		UserId: u.UserId,
-		BuffId: buffId,
-		Source: source,
+		UserId:    u.UserId,
+		BuffId:    buffId,
+		Source:    source,
+		LifeEpoch: u.lifeEpoch(),
 	})
 
 }
@@ -447,6 +448,7 @@ func (u *UserRecord) AddBuffScaled(buffId int, durationMult float64, source stri
 		BuffId:       buffId,
 		Source:       source,
 		DurationMult: durationMult,
+		LifeEpoch:    u.lifeEpoch(),
 	})
 
 }
@@ -455,9 +457,8 @@ func (u *UserRecord) AddBuffScaled(buffId int, durationMult float64, source stri
 // per-instance magnitude through the event path, so the holder reads the
 // start notice. Former conditions apply synchronously through
 // Character.AddBuffMagnitude instead; this door is for a spell or item that
-// wants the notice too. triggers is the exact trigger count, not a duration
-// in rounds — use buffs.TickTriggers for the three-round dot and bleed
-// records.
+// wants the notice too. triggers is the exact trigger count, which for a
+// one-round record is the rounds.
 func (u *UserRecord) AddBuffMagnitude(buffId int, triggers int, magnitude float64, source string) {
 	events.AddToQueue(events.Buff{
 		UserId:    u.UserId,
@@ -465,7 +466,18 @@ func (u *UserRecord) AddBuffMagnitude(buffId int, triggers int, magnitude float6
 		Source:    source,
 		Triggers:  triggers,
 		Magnitude: magnitude,
+		LifeEpoch: u.lifeEpoch(),
 	})
+}
+
+// lifeEpoch is the epoch every queued buff is stamped with, so ApplyBuffs can
+// refuse one aimed at a life the holder has since ended. A record with no
+// character stamps zero, which matches a fresh character.
+func (u *UserRecord) lifeEpoch() uint64 {
+	if u.Character == nil {
+		return 0
+	}
+	return u.Character.LifeEpoch
 }
 
 // SendText delivers an audio-channel message to this user. See

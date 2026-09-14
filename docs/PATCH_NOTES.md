@@ -1,5 +1,17 @@
 # DOGMud Patch Notes
 
+## 2026-09-14: Wounds pile up, and poison never rests
+
+Wounds from beasts and draining creatures now keep bleeding for longer, and
+every new wound bleeds on its own, on top of the ones already open. A long
+fight against a pack wears you down, and the bleeding goes on after the fight
+until your wounds close. The conditions list and your client show how many
+wounds are open. Spell poison now burns every moment it lasts rather than now
+and then, so over its whole span it does somewhat more harm than before.
+While you are still struggling up off the ground, each weapon manages only a
+single attack, for you just as it always did for creatures. A few housekeeping
+effects no longer show in the conditions list or in your client at all.
+
 ## 2026-09-13: Shields hold as long as they should, and afflictions follow you
 
 A ward used to run out long before it should have while you were fighting, and

@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/species"
@@ -173,8 +174,12 @@ func TestDrain_HealAndBleed(t *testing.T) {
 	}
 
 	// BleedDmg should be at least the minimum.
-	assert.GreaterOrEqual(t, res.BleedDmg, 2,
-		"BleedDmg should be at least 2 (min floor)")
+	assert.GreaterOrEqual(t, res.BleedDmg, int(configs.GetBalanceConfig().DrainBleedMin),
+		"BleedDmg should be at least DrainBleedMin")
+	if assert.Len(t, held, 1) && assert.Len(t, held[0].Stacks, 1, "one landed drain is one stack") {
+		assert.Equal(t, int(configs.GetBalanceConfig().DrainBleedRounds), held[0].Stacks[0].RoundsLeft,
+			"the stack lasts DrainBleedRounds")
+	}
 }
 
 // TestDrain_PartialDamageHealsWithoutBleed pins the one real behavior change
@@ -386,7 +391,7 @@ func TestDrainArea_SinglePlayer(t *testing.T) {
 	pr := result.PlayerResults[0]
 	require.Equal(7001, pr.UserId)
 	require.Greater(pr.MoveResult.Damage, 0, "hit player should take drain damage")
-	require.GreaterOrEqual(pr.BleedDmg, 2, "bleed magnitude should be at least the floor of 2")
+	require.GreaterOrEqual(pr.BleedDmg, int(configs.GetBalanceConfig().DrainBleedMin), "bleed magnitude should be at least DrainBleedMin")
 	require.True(p1.Character.HasBuff(buffs.BuffIdBleeding), "drained player should carry the Bleeding record")
 
 	require.Greater(result.TotalDamage, 0, "aggregate damage should be positive")
@@ -459,7 +464,7 @@ func TestDrainArea_MultiPlayer(t *testing.T) {
 		require.True(expectedUserIds[pr.UserId], "unexpected user id in results: %d", pr.UserId)
 		require.True(pr.MoveResult.Hit, "expected every player to be hit in this iteration")
 		require.Greater(pr.MoveResult.Damage, 0, "each hit player should take drain damage")
-		require.GreaterOrEqual(pr.BleedDmg, 2, "bleed magnitude should be at least the floor of 2")
+		require.GreaterOrEqual(pr.BleedDmg, int(configs.GetBalanceConfig().DrainBleedMin), "bleed magnitude should be at least DrainBleedMin")
 		sumDamage += pr.MoveResult.Damage
 	}
 	for _, p := range players {

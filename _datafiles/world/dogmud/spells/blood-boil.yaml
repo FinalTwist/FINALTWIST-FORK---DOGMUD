@@ -12,7 +12,7 @@ primarystat: willpower
 base_folds: 6
 target_defense_type: physical
 effect_type: dot
-effect_magnitude: 80
+effect_magnitude: 40
 damage_multiplier: 0.80
 effect_duration: 3
 cast_user_text: "You focus on the target's blood, willing it to boil."

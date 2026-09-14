@@ -933,16 +933,17 @@ func (c *Character) AttemptRecovery(contestWin func() bool) (bool, bool) {
 }
 ```
 
-**The recovery penalty is a record, and it never bites a player.** Buff 118
-Recovering carries `attacks_cap: 1` as a LITERAL, so the `magnitude` argument
-above is unused and passed as 0; `calcSwingCount` reads it through
-`Buffs.Effect(buffs.EffectAttacksCap)`. On the player side it is inert:
-`UserRoundTick` calls `AttemptRecovery` and then ticks the buffs in the same
-hook, expiring the one-trigger record before `DoCombat` ever runs. That is
-exactly what the `ConditionRecoveryPenalty` enum did before the conditions
-unification, so the migration is faithful rather than newly broken; on the mob
-side the cap always bit and still does. Making it bite for players is a filed
-owner call. See `internal/buffs/context.md`.
+**The recovery penalty is a record, and it bites.** Buff 118 Recovering carries
+`attacks_cap: 1` as a LITERAL, so the `magnitude` argument above is unused and
+passed as 0; `calcSwingCount` reads it through
+`Buffs.Effect(buffs.EffectAttacksCap)`. The record lives exactly one tick, so
+both round ticks call `AttemptRecovery` AFTER their buff tick and the record
+is live when `DoCombat` runs. `UserRoundTick` called it before the tick until
+slice 1b (owner ruling 2026-09-14), which is why players never felt the cap
+while mobs always did. `UserRoundTick` also skips the attempt for a character
+at `Health <= 0` or with `DeathQueued` set: a lethal bleed or poison tick just
+above can queue the death, and a dying player must not scramble to their feet
+(the mob tick skips a dying mob the same way). See `internal/buffs/context.md`.
 
 **Contested vs. free — caller decides:**
 - `contestWin == nil` → automatic stand once `MinRecoveryRounds` is consumed.
@@ -1360,6 +1361,15 @@ exactly the population it exists to reap.
 `DeathQueued` also makes the killing blow fire exactly once. A second lethal blow
 the same round still lands and still counts toward the damage map, but it does
 not re-queue and does not re-attribute.
+
+**`LifeEpoch` is the queued-buff half of the death buff strip.** Runtime only
+(`yaml:"-"`). The Alive to Dead cascade in `hooks/Life_Cascades.go` bumps it
+beside `CancelBuffsWithFlag(buffs.All)`. Every `events.Buff` producer
+(`users.UserRecord.AddBuff` / `AddBuffScaled` / `AddBuffMagnitude`,
+`mobs.Mob.AddBuff`) stamps the holder's current epoch, and `hooks.ApplyBuffs`
+refuses an event from an ended life. Neither `DeathQueued` nor `IsAlive` can
+do this job: by the time a buff queued in the killing round flushes, the
+player has already respawned and the token is spent.
 
 **`ApplyHealthChange` takes a source and it is required.** It wraps `ApplyHarm`,
 and all eight of `combat.go`'s damage sites go through it, so a wrapper that

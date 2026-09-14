@@ -22,8 +22,9 @@ successful hit also leaves the target bleeding.
     lifesteal makes up the difference in sustained fights.
   <ansi fg="stat">Lifesteal:</ansi> On a hit, the attacker heals for a fraction of
     damage dealt.
-  <ansi fg="stat">Bleed:</ansi> The target gains a Bleeding condition on hit,
-    dealing ongoing damage each round.
+  <ansi fg="stat">Bleed:</ansi> Each hit opens a bleeding wound on the target,
+    dealing ongoing damage each round. Wounds from repeated hits
+    add up, and they keep bleeding after the fight ends.
   <ansi fg="stat">Cooldown:</ansi> Shared with other special moves.
   <ansi fg="stat">Skill:</ansi> Progresses Unarmed Combat
 

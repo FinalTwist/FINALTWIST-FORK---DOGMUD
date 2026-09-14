@@ -14,12 +14,11 @@ import (
 // Pin: a poisoned player at 1 health dies to the poison tick and the death
 // cause reads "poison" — this is the regression case the fix exists for.
 //
-// TestPin_PoisonTickKillsAndNamesTheCause: a ONE-trigger poison record
-// (buffs.TickTriggers(3)) has its only trigger land on the third
-// UserRoundTick call (buff 121's triggerrate is three rounds), and that
-// trigger is also the record's LAST: Buffs.Trigger() decrements
-// TriggersLeft before returning the buff, so the record already reads
-// Expired by the time deathCauseFor runs. deathCauseFor must still read
+// TestPin_PoisonTickKillsAndNamesTheCause: a ONE-trigger poison record has
+// its only trigger land on the first UserRoundTick call (buff 121 ticks
+// every round), and that trigger is also the record's LAST: Buffs.Trigger()
+// decrements TriggersLeft before returning the buff, so the record already
+// reads Expired by the time deathCauseFor runs. deathCauseFor must still read
 // "poison" immediately after (the expired-but-still-held record read by id),
 // AND after PruneBuffs removes the expired record outright (from
 // Character.LastTickCause, stamped by the tick that landed the harm) — the
@@ -30,13 +29,11 @@ func TestPin_PoisonTickKillsAndNamesTheCause(t *testing.T) {
 	defer buffs.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
-	_ = u.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, buffs.TickTriggers(3), -5, "pin")
+	_ = u.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, 1, -5, "pin")
 	u.Character.Health = 1
 
 	// No regen lands in the round tick: 1 - 5 <= 0.
 	UserRoundTick(events.NewRound{RoundNumber: 1})
-	UserRoundTick(events.NewRound{RoundNumber: 2})
-	UserRoundTick(events.NewRound{RoundNumber: 3})
 	require.LessOrEqual(t, u.Character.Health, 0, "the poison tick must take the last point")
 	stampedCause := u.Character.LastTickCause
 	u.Character.LastTickCause = "" // isolate: this assertion exercises the by-id read alone, not the LastTickCause fallback
@@ -56,13 +53,11 @@ func TestPin_BleedTickKillsAndNamesTheCause(t *testing.T) {
 	defer buffs.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
-	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, buffs.TickTriggers(3), -5, "pin")
+	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -5, "pin")
 	u.Character.Health = 1
 
 	// No regen lands in the round tick: 1 - 5 <= 0.
 	UserRoundTick(events.NewRound{RoundNumber: 1})
-	UserRoundTick(events.NewRound{RoundNumber: 2})
-	UserRoundTick(events.NewRound{RoundNumber: 3})
 	require.LessOrEqual(t, u.Character.Health, 0, "the bleed tick must take the last point")
 	stampedCause := u.Character.LastTickCause
 	u.Character.LastTickCause = "" // isolate: this assertion exercises the by-id read alone, not the LastTickCause fallback

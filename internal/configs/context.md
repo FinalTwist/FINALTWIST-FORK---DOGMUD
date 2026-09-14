@@ -670,6 +670,31 @@ special-move base instead. Physical rows add encumbrance, every row applies the
 inverse governing-skill term, and callers may supply a documented modifier.
 See the live config and validation code for tuning values.
 
+### Bleed stacks (conditions unification slice 1b)
+
+Fifteen `ConfigInt` knobs, three per bleed move, in the Bleed stacks block of
+`_datafiles/config.yaml` (after `RhetoricActionBaseConvictionCost`). Each
+landed rake, maul, hamstring, drain or throttle hit adds one stack to the
+target's 122 Bleeding record; `actions.bleedPerRound` turns the knobs into
+that stack's amount. Shipped values equal the Go defaults.
+
+| Knob | Default | Effect |
+|------|---------|--------|
+| `RakeBleedRounds` / `RakeBleedStrengthDivisor` / `RakeBleedMin` | 10 / 50 / 1 | Rake stack: rounds it lasts; per-round health loss is attacker Strength / divisor, never below min |
+| `MaulBleedRounds` / `MaulBleedStrengthDivisor` / `MaulBleedMin` | 12 / 35 / 1 | Maul stack, same shape |
+| `HamstringBleedRounds` / `HamstringBleedStrengthDivisor` / `HamstringBleedMin` | 12 / 50 / 1 | Hamstring stack, same shape |
+| `DrainBleedRounds` / `DrainBleedStrengthDivisor` / `DrainBleedMin` | 10 / 50 / 1 | Drain stack, single and area drain alike |
+| `ThrottleBleedRounds` / `ThrottleBleedStrengthDivisor` / `ThrottleBleedMin` | 8 / 33 / 1 | Throttle stack, same shape |
+
+`validateCombat` (`config.balance.combat.go`) replaces any value below 1 with
+its default, so an absent key (0) and a negative value both load the default
+and the divisor is never zero. `config_bleed_stacks_test.go` pins the
+defaults, the legal range, that the shipped file names every key, and
+(`TestShippedBleedTuningMeetsTheSliceTargets`) that each stack lasts 2 to 3
+`SpecialMoveCooldown`s and totals 1.5 to 3 times the single bleed hit it
+replaced at Strength 100; retuning `SpecialMoveCooldown` is expected to trip
+that test.
+
 ## Files
 
 Config is split one file per section, all assembled in `configs.go`.

@@ -62,6 +62,19 @@ func wireLifeCrossMachineCascades(c *characters.Character) {
 				//    only already-expired records, never PermaBuff).
 				c.CancelBuffsWithFlag(buffs.All)
 
+				// 5a. End this life's epoch. THIS MUST STAY BESIDE THE BUFF
+				// STRIP ABOVE. The strip clears every buff the character holds,
+				// but a buff still QUEUED on events.Buff is not held yet: the
+				// killing swing's on-hit buff is queued after its CharacterDied,
+				// the queue is FIFO, and Die cascades a player back to Alive
+				// with DeathQueued cleared before that buff flushes. Neither
+				// IsAlive nor DeathQueued can tell it apart from a live buff by
+				// then, so ApplyBuffs compares the epoch the event was stamped
+				// with instead. A Rending Bleed from the killing blow bled a
+				// respawned player to a second death in the Mending Hut
+				// (playtest 7d0dad99c4709fc0).
+				c.LifeEpoch++
+
 				// 5b. Toxicity → clear. THIS MUST STAY BESIDE THE BUFF STRIP
 				// ABOVE, because that strip is what justifies it: toxicity is
 				// the price of a potion's effect, and the line above has just
@@ -79,6 +92,39 @@ func wireLifeCrossMachineCascades(c *characters.Character) {
 				// Player respawn cascade: resource reset + grace buff.
 				// (Mobs don't reach Respawning; their instances
 				// get cleaned up by the despawn observer.)
+
+				// 0. Remove every expired-but-held record, SILENTLY. The death
+				// strip only expires records, so the next NewTurn prune used
+				// to remove them and narrate every end line to wherever the
+				// player now stood ("Your wounds stop bleeding." in the
+				// Mending Hut, playtest 7d0dad99c4709fc0). This is not limited
+				// to the strip's records: one that expired earlier the same
+				// turn (cancel-on-combat just before the killing blow) and was
+				// not yet pruned is removed silently too. A record that ran out
+				// or was cancelled and pruned before the death still narrated.
+				//
+				// Here and not beside the strip: the strip runs INSIDE the
+				// Alive -> Dead observers, and the death announcement's
+				// deathCauseFor reads the held Bleeding and Poisoned records
+				// by id. Pruning at the strip would hide them from any
+				// observer registered after this cascade. By the time Dead ->
+				// Respawning fires, every Dead observer has returned.
+				//
+				// Before the pool resets below, because Validate reconciles
+				// stats and clamps pools. BuffsTriggered is not narration: it
+				// is what refreshes the client's conditions panel, as the
+				// prune pass does.
+				if pruned := c.Buffs.Prune(); len(pruned) > 0 {
+					_ = c.Validate()
+					if uid := c.GetUserId(); uid != 0 {
+						prunedIds := make([]int, 0, len(pruned))
+						for _, b := range pruned {
+							prunedIds = append(prunedIds, b.BuffId)
+						}
+						events.AddToQueue(events.BuffsTriggered{UserId: uid, BuffIds: prunedIds})
+					}
+				}
+
 				c.Health = c.HealthMax.Value / 20         // 5%
 				c.Stamina = c.StaminaMax.Value / 20       // 5%
 				c.Conviction = c.ConvictionMax.Value / 20 // 5%

@@ -1,8 +1,8 @@
 buffid: 122
 name: Bleeding
 description: Wounds seeping blood, taking damage over time.
-triggerrate: 3 rounds
-triggercount: 1
+triggerrate: 1 round
+triggercount: 4
 tick_pool: health
 tick_from_magnitude: true
 trigger_user_text: '<ansi fg="red">Blood seeps from your wounds!</ansi>'
@@ -10,3 +10,4 @@ end_user_text: "Your wounds stop bleeding."
 flags:
   - bleeding
   - silent-start
+  - stacking

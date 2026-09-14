@@ -862,6 +862,7 @@ func (m *Mob) AddBuff(buffId int, source string) {
 		MobInstanceId: m.InstanceId,
 		BuffId:        buffId,
 		Source:        source,
+		LifeEpoch:     m.Character.LifeEpoch,
 	})
 
 }

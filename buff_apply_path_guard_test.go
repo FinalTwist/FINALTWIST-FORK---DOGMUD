@@ -89,12 +89,12 @@ var (
 // and carry no allowlist entry.
 var buffApplyPathAllowlist = map[string]string{
 	// ── The sanctioned consumer of the event ────────────────────────────────
-	"internal/hooks/Buff_ApplyBuffs.go|87": "this IS the hook the event feeds; it is where every routed buff is finally applied",
-	"internal/hooks/Buff_ApplyBuffs.go|89": "this IS the hook the event feeds; it is where every routed buff is finally applied",
-	"internal/hooks/Buff_ApplyBuffs.go|91": "this IS the hook the event feeds; it is where every routed buff is finally applied",
+	"internal/hooks/Buff_ApplyBuffs.go|104": "this IS the hook the event feeds; it is where every routed buff is finally applied",
+	"internal/hooks/Buff_ApplyBuffs.go|106": "this IS the hook the event feeds; it is where every routed buff is finally applied",
+	"internal/hooks/Buff_ApplyBuffs.go|108": "this IS the hook the event feeds; it is where every routed buff is finally applied",
 
 	// ── silent-start buffs whose applier narrates the moment itself ─────────
-	"internal/actions/combat_throttle.go|148": "buff 89 is silent-start; the throttle move narrates the choke as it lands and must apply it in the same tick",
+	"internal/actions/combat_throttle.go|144": "buff 89 is silent-start; the throttle move narrates the choke as it lands and must apply it in the same tick",
 	"internal/actions/sleep.go|61":            "buff 15 is silent-start; Sleep reads the Sleeping flag back for its own idempotence check, so it sends the start line itself",
 
 	// ── former combat conditions: warcry and rally are now one record each,
@@ -119,7 +119,7 @@ var buffApplyPathAllowlist = map[string]string{
 	"internal/hooks/manifester_companions.go|40": "the holder is a MOB (a summoned companion), not a player",
 
 	// ── secret buffs: silence is the authored intent ────────────────────────
-	"internal/hooks/Life_Cascades.go|85": "buff 81 Respawn Grace is secret:true, so StartUserNotice is empty by design and the event would narrate nothing anyway",
+	"internal/hooks/Life_Cascades.go|131": "buff 81 Respawn Grace is secret:true, so StartUserNotice is empty by design and the event would narrate nothing anyway",
 
 	// ── the event path cannot express what the call needs ───────────────────
 	"internal/hooks/Awareness_Cascades.go|57": "buff 9 must be applied PERMANENT so the awareness state machine owns its lifecycle; the event path has no permanent form, and the transition callback holds only a Character",
@@ -144,31 +144,34 @@ var buffApplyPathAllowlist = map[string]string{
 	// quiet one-round records (Task 5) ──────────────────────────────────────
 	"internal/combat/grapple_move.go|59": "former combat condition (one-round penalty): quiet record; must apply synchronously inside the round tick",
 
-	// ── former combat condition: Minor Shield is now one record (Task 6) ────
-	"internal/hooks/spell_resolution.go|1175": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
-	"internal/hooks/spell_resolution.go|1531": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	// ── former combat condition: Minor Shield is now one record (Task 6;
+	// re-keyed slice 1b when the dot producer comments in
+	// spell_resolution.go shrank and shifted every later line in that file) ──
+	"internal/hooks/spell_resolution.go|1173": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	"internal/hooks/spell_resolution.go|1529": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
-	// ── former combat condition: Regenerating is now one record (Task 7) ────
-	"internal/hooks/spell_resolution.go|852":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1072": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1492": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	// ── former combat condition: Regenerating is now one record (Task 7;
+	// re-keyed slice 1b, same shift as above) ────────────────────────────
+	"internal/hooks/spell_resolution.go|850":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1070": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1490": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|55":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 
 	// ── former combat condition: the spell dot is now one record (Task 8;
-	// re-keyed Task 8 review: TickTriggers keeps its every-third-round
-	// cadence, shifting both lines) ──────────────────────────────────────
-	"internal/hooks/spell_resolution.go|648":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
-	"internal/hooks/spell_resolution.go|1674": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	// re-keyed slice 1b when the dot moved to every round) ───────────────
+	"internal/hooks/spell_resolution.go|646":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	"internal/hooks/spell_resolution.go|1670": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 
-	// ── former combat condition: Bleeding is now one record (Task 9) ────────
-	"internal/actions/combat_drain.go|147":     "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
-	"internal/actions/combat_drain.go|317":     "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
-	"internal/actions/combat_hamstring.go|135": "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
-	"internal/actions/combat_maul.go|132":      "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
-	"internal/actions/combat_rake.go|132":      "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
-	"internal/actions/combat_throttle.go|144":  "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
-	"internal/hooks/item_procs.go|214":         "former combat condition (bleed): silent-start record, the proc's item narrates; must apply synchronously within the move's resolution",
+	// ── former combat condition: Bleeding is now one stacking record (Task 9;
+	// re-keyed slice 1b) ─────────────────────────────────────────────────
+	"internal/actions/combat_drain.go|143":     "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
+	"internal/actions/combat_drain.go|309":     "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
+	"internal/actions/combat_hamstring.go|134": "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
+	"internal/actions/combat_maul.go|128":      "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
+	"internal/actions/combat_rake.go|128":      "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
+	"internal/actions/combat_throttle.go|141":  "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
+	"internal/hooks/item_procs.go|215":         "former combat condition (bleed): silent-start record, the proc's item narrates; must apply synchronously within the move's resolution",
 }
 
 // primitivePackages define Character.AddBuff / Buffs.AddBuff themselves, so

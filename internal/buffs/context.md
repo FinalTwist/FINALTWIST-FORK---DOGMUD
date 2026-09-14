@@ -77,30 +77,36 @@ to plug into.
   exists for a record reapplied every round it persists (117 and 118), where a
   line would repeat every round. The notice guard exempts it at both ends; see
   "The player-side notice (slice C, `notice.go`)" below.
+- `stacking` (slice 1b): every application is its own `Stack` with its own
+  rounds, held inside the one record. `Trigger` lands the SUM of the live
+  stacks as the record's `TickAmount` once a round, drops spent stacks, and
+  sets `TriggersLeft` to the longest remaining one; the record ends with its
+  last stack. Requires `tick_from_magnitude` and a one-round `triggerrate`
+  (`Validate` refuses anything else). Only 122 Bleeding carries it. See
+  "Stacking records (`stacks.go`)" below.
 
 ### Cadence
 
-121 Poisoned and 122 Bleeding ship `triggerrate: 3 rounds`, not one round, and
-every producer converts its rounds-literal duration with
-`buffs.TickTriggers(rounds)`. That is not a design choice made here, it is
-fidelity: the AutoHeal hook these records replaced was gated on
-`RoundNumber%3`, so it landed harm only every third round while the duration it
-counted down ran every round. See "Converting a rounds duration into a trigger
-count (`ticks.go`)" below for the arithmetic and for why `AddBuffMagnitude`'s
-second argument is a trigger count rather than rounds. Whether the cadence
-SHOULD be every third round is a filed owner call for a balance pass; this
-slice only reproduces what shipped.
+121 Poisoned and 122 Bleeding tick every round (`triggerrate: 1 round`). Slice
+1 shipped them at `3 rounds` to reproduce the AutoHeal hook they replaced,
+which was gated on `RoundNumber%3`; the owner ruled on 2026-09-14 that both
+tick every round. A producer passes a duration in rounds, which for a
+one-round record IS the trigger count. Ticking three times as often would have
+tripled the spell dot's total, so the owner halved the two spell dot
+`effect_magnitude` values in the same slice (`blood-boil` 80 to 40,
+`neural-toxin` 60 to 30), which lands about 1.5 times the old total.
 
 ### Facts worth knowing
 
 - **These records persist.** `Character.Conditions` was tagged `yaml:"-"`, so
   every combat condition vanished on logout or restart. A record is saved with
   the rest of `Buffs`, so a poison or a ward now survives a short absence.
-- **The prone recovery cap never bites a player.** `UserRoundTick` applies 118
-  at the stand attempt and the same tick's `Trigger` expires it, all before
-  `DoCombat` runs, so the door skips it. That is faithful to the enum, which
-  had the identical shape; the mob side always bit and still does. Making it
-  bite for players is an owner call, filed.
+- **The prone recovery cap bites for players and mobs alike.** 118 Recovering
+  lives exactly one tick, so both round ticks add it AFTER their buff tick
+  (`MobRoundTick` always did; `UserRoundTick` since slice 1b), and it is live
+  when `DoCombat` reads `attacks_cap`. `UserRoundTick` skips the stand attempt
+  for a player at zero health or with a death queued, so a dying player does
+  not scramble to their feet.
 - **A killing tick still names its cause.** `Buffs.Trigger` decrements
   `TriggersLeft` before returning, so a record's LAST tick arrives already
   `Expired`, and `PruneBuffs` can remove it before the queued death event is
@@ -111,7 +117,8 @@ slice only reproduces what shipped.
   `UserRoundTick` gated the whole tick body on `!buff.Expired()`, so the one
   and only tick of a one-trigger record never landed. The mob tick never had
   the defect. Fixed in this slice, which means every player-held tick record
-  now lands one more tick than it did before.
+  now lands one more tick than it did before. The owner ruled this extra
+  final tick intended behaviour, not a side effect to correct (2026-09-14).
 
 ## Architecture
 
@@ -189,6 +196,9 @@ type Buff struct {
     PermaBuff      bool   // Permanent buff flag
     RoundCounter   int    // Elapsed rounds
     TriggersLeft   int    // Remaining triggers
+    TickAmount     int     // Signed per-trigger amount snapshot
+    Magnitude      float64 // Per-instance strength the applier set
+    Stacks         []Stack // A stacking record's applications; see stacks.go
 }
 ```
 
@@ -293,6 +303,11 @@ A refusal is a refusal all the way out: `Character.AddBuff` returns an error,
 `TrackBuffStarted` or `BuffsTriggered`, and `Character.AddBuffMagnitude`
 returns an `error` the two spell dot sites test before narrating. `HasFlag` guards a nil
 spec, since every add now asks it and a save can hold a dead buff id.
+
+`Buff_ApplyBuffs` also refuses, the same way and before any add, an event whose
+`LifeEpoch` no longer matches its holder's `Character.LifeEpoch`: the holder
+died after it was queued, so the buff was aimed at a life that has ended. See
+the Alive to Dead cascade in `internal/hooks/context.md`.
 
 ### Flag Usage Patterns
 
@@ -411,23 +426,56 @@ func (b *Buff) Expired() bool {
 }
 ```
 
-### Converting a rounds duration into a trigger count (`ticks.go`)
+### Stacking records (`stacks.go`)
 
-`TickTriggers(rounds int) int` converts a duration expressed in rounds into
-the `TriggersLeft` a three-round-interval record needs, floored with a
-minimum of one: `rounds / 3`, or `1` if `rounds < 3`. It exists for exactly
-two records, 121 Poisoned and 122 Bleeding, whose shipped `TriggerRate` is
-"3 rounds" — the old AutoHeal hook that these records replaced landed its
-DoT only on every third round while the duration it read counted every
-round, so a duration of `rounds` produced `rounds/3` actual ticks. A caller
-seeding one of these records with `Character.AddBuffMagnitude` or
-`Buffs.AddBuffMagnitude` must pass `TickTriggers(rounds)`, not `rounds`
-itself, or the record fires three times too often. Every producer of these
-two records (the spell dot, the bleed producer, `apply_condition` item
-procs) calls it; `internal/hooks` tests seed the same way so a 1-trigger
-record — the common case for a short duration — exercises the same
-last-trigger-is-expired hole a longer one would hide (see
-`internal/hooks/Death_PlayerAnnouncement.go`'s `deathCauseFor`).
+A spec with the `stacking` flag keeps `Buff.Stacks []Stack`, each
+`Stack{RoundsLeft, Amount}`. `Buffs.AddBuffMagnitude` routes such a spec to
+`addStack`: `triggers` becomes the new stack's rounds (0 means the spec's
+`triggercount`), the magnitude becomes its signed amount through
+`tickAmountFor` (a non-zero magnitude never snapshots to zero; a magnitude of
+exactly 0 is refused, since a zero stack would lengthen the record and print a
+bleed line for no harm), and `syncStacks` derives the record-level fields
+every other reader uses: `TriggersLeft` is the longest stack, `TickAmount` and
+`Magnitude` the sum. So `Expired`, `GetDurations`, the prune pass, poison
+immunity, `HasBuff`, the death cause and both condition lists work unchanged.
+
+**Only `AddBuffMagnitude` may add a stacking record.** `AddBuff`,
+`AddBuffScaled` and `RefreshBuff` all return `false` for a stacking spec,
+because none of them can carry a stack's rounds and amount: they would create
+a live record with no stacks, or top one up to the spec's single
+`TriggerCount`. `addStack` creates the record through the unexported
+`addBuffScaled`, which does not refuse. The admin `buff` command refuses a
+stacking buff id with a message for the same reason.
+
+`Buffs.Trigger` calls `tickStacks` for such a record: `TickAmount` becomes this
+round's landed sum, every stack loses a round, spent stacks drop, and
+`TriggersLeft` becomes the longest remaining stack. Both round-tick paths read
+`TickAmount` after `Trigger` returns, so one tick is one harm, one wake, one
+`cancel-on-damage` pass, one death-cause stamp and one flavour line however
+many stacks are live. A stacking record with no stacks is expired without
+being returned, so a zero amount never reaches the `tick_percent` fallback.
+Between ticks, read `Stacks` or `Magnitude` for the whole bleed, never
+`TickAmount` (it holds the last round's landed sum).
+
+**Every path that expires a held record goes through `Buff.expire()`**, which
+sets `TriggersLeft` to `TriggersLeftExpired` and clears `Stacks` in one step:
+`RemoveBuff`, the expire branch of `HasFlag`, and `tickStacks` when a record
+has no stacks. `addStack` revives an expired, unpruned record through
+`addBuffScaled`, so one that kept its stacks would come back with them live;
+`expire()` is the primary guard, and `addStack` clearing the stacks of an
+expired record before adding is the second, so a cancel followed by a new hit
+starts fresh.
+
+`Buff.Source` is the LAST applier's source: `Character.AddBuffMagnitude`
+overwrites it on every call, so for a stacking record it is not per stack.
+Nothing reads a bleed's `Source` today.
+
+Every bleed producer runs inside combat, after that round's tick, so a new
+stack first ticks on the next round. `buffs.DisplayName` names a held record
+for the condition lists and appends the live count above one stack
+("Bleeding (3)"). Bleed stack numbers are the fifteen `<Move>Bleed*` balance
+knobs; see `internal/actions/bleed.go` and the Bleed stacks block in
+`config.yaml`.
 
 ### Time String Processing
 ```go
@@ -597,11 +645,11 @@ func (bs *Buffs) AddBuff(buffId int, isPermanent bool) bool {
 `Buffs.AddBuffMagnitude(buffId int, triggers int, magnitude float64) bool`
 is the writer door for every record that used to be a hand-rolled combat
 condition (Minor Shield, Regenerating, Poisoned, Bleeding). It refreshes or
-adds the buff via `AddBuffScaled(buffId, 1.0)`, then, if `triggers > 0`,
-overwrites `TriggersLeft` with the exact count — **a trigger count, not a
-duration in rounds**: for a one-round-interval record the two coincide, but
-the three-round-interval dot and bleed records need `TickTriggers` (above)
-to convert a rounds-literal duration first. `triggers` of `0` leaves the
+adds the buff via `addBuffScaled(buffId, 1.0)`, then, if `triggers > 0`,
+overwrites `TriggersLeft` with the exact count, **a trigger count, not a
+duration in rounds**; every record that goes through this door today (79,
+80, 117 to 123) ticks once a round, so the two coincide. A `stacking` spec appends a stack instead of
+refreshing; see "Stacking records" above. `triggers` of `0` leaves the
 spec's own `TriggerCount` in place. It also stamps `Magnitude`, and for a
 spec with `TickFromMagnitude` set, snapshots `TickAmount` from the
 magnitude's sign (floored to ±1 rather than 0, since a zero tick would
@@ -762,13 +810,15 @@ func (bs *Buffs) GetBuffs(buffId ...int) []*Buff {
 
 ## Display and Visibility
 ```go
-// Get visible name and description (handles secret buffs)
-func (b *BuffSpec) VisibleNameDesc() (name, description string) {
-    if b.Secret {
-        return "Mysterious Affliction", "Unknown"
-    }
-    return b.Name, b.Description
+// Listed reports whether a held record appears in the player's condition
+// lists: the in-game `conditions` command and the Char.Conditions GMCP
+// payload. Both call this, so the two can never disagree.
+func (b *BuffSpec) Listed() bool {
+	return !b.Secret && !slices.Contains(b.Flags, Hidden)
 }
+
+// DisplayName: the spec name, plus the live stack count above one ("Bleeding (3)").
+func DisplayName(b *Buff, spec *BuffSpec) string
 
 // Get buff display name
 func (bs *Buff) Name() string {
@@ -1222,7 +1272,7 @@ they live downstream, in the damage pipeline.
 | `narration.go` | The narration door: `Phase`, `Narration`, `Narrate`, `AuthoredStartLine`, `validateNarration` |
 | `buffs.go` | Applied-buff instances, flags, stat mods, `AddBuffMagnitude` |
 | `tick.go` | Per-round buff processing and expiry |
-| `ticks.go` | `TickTriggers`: rounds-duration to trigger-count conversion for the three-round dot and bleed records |
+| `stacks.go` | `Stack`, the stacking tick (`addStack`, `syncStacks`, `tickStacks`), `tickAmountFor`, `DisplayName` |
 | `effects.go` | `EffectKind`, the closed effects vocabulary, `Buffs.Effect` / `Buffs.HasEffect` |
 | `ids.go` | The record ids the engine names in code: `BuffIdWarcry` (79) through `BuffIdEnchantWithdrawal` (123) |
 | `test_helpers.go` | Test fixtures: `SeedBuffsForTest` (replaces the registry) and `SeedConditionRecordsForTest` (adds 79, 80 and 117 to 123 on top of whatever is already seeded) |

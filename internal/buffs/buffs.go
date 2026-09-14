@@ -29,6 +29,10 @@ type Buff struct {
 	// tick would be unrecoverable; a magnitude of exactly zero snapshots as
 	// zero.
 	Magnitude float64 `yaml:"magnitude,omitempty"`
+
+	// Stacks holds a stacking record's applications, each with its own
+	// timer. Empty for every other record. See stacks.go.
+	Stacks []Stack `yaml:"stacks,omitempty"`
 }
 
 func (b *Buff) StatMod(statName string) int {
@@ -43,6 +47,17 @@ func (b *Buff) StatMod(statName string) int {
 
 func (b *Buff) Expired() bool {
 	return b.TriggersLeft <= TriggersLeftExpired
+}
+
+// expire marks a held record expired for the prune pass and clears its
+// stacks in the same step. Every internal path that expires a still-held
+// record (RemoveBuff, HasFlag's expire branch, tickStacks) must go through
+// this rather than setting TriggersLeft directly: AddBuff, AddBuffScaled and
+// RefreshBuff can all revive an expired, unpruned record, and one that kept
+// its old stacks would come back to life with them still live.
+func (b *Buff) expire() {
+	b.TriggersLeft = TriggersLeftExpired
+	b.Stacks = nil
 }
 
 // A list of applied buffs
@@ -107,7 +122,7 @@ func (bs *Buff) Name() string {
 
 func (bs *Buffs) RemoveBuff(buffId int) bool {
 	if index, ok := bs.buffIds[buffId]; ok {
-		bs.List[index].TriggersLeft = TriggersLeftExpired
+		bs.List[index].expire()
 		return true
 	}
 	return false
@@ -177,7 +192,7 @@ func (bs *Buffs) HasFlag(action Flag, expire bool) bool {
 		if b.BuffId == 0 {
 			bs.List = append(bs.List[:index], bs.List[index+1:]...)
 		} else {
-			b.TriggersLeft = TriggersLeftExpired
+			b.expire()
 			bs.List[index] = b
 		}
 	}
@@ -245,8 +260,24 @@ func (bs *Buffs) Started(buffId int) {
 	}
 }
 
-// AddBuffScaled adds a buff with its duration multiplied by durationMult.
+// AddBuffScaled adds a buff with its duration multiplied by durationMult. A
+// stacking record can only be added through AddBuffMagnitude, because a
+// stack needs its own rounds and amount that this call has no room to carry;
+// a stacking spec is refused rather than left to create a live record with
+// no stacks.
 func (bs *Buffs) AddBuffScaled(buffId int, durationMult float64) bool {
+	if spec := GetBuffSpec(buffId); spec != nil && spec.IsStacking() {
+		return false
+	}
+	return bs.addBuffScaled(buffId, durationMult)
+}
+
+// addBuffScaled is the writer AddBuffScaled and the non-stacking branch of
+// AddBuffMagnitude share. addStack also calls it, once per new stack, to
+// create or touch the record before it appends that stack, which is why this
+// unexported form does not itself refuse a stacking spec: AddBuffScaled's
+// exported wrapper is where that refusal belongs.
+func (bs *Buffs) addBuffScaled(buffId int, durationMult float64) bool {
 	if buffInfo := GetBuffSpec(buffId); buffInfo != nil {
 
 		// Poison immunity (Stone Stomach): a poison-flagged buff is refused
@@ -296,15 +327,20 @@ func (bs *Buffs) AddBuffScaled(buffId int, durationMult float64) bool {
 // snapshot overwritten, which is what the old condition add did. Returns false when
 // refused (poison immunity) or unknown.
 //
-// triggers is the exact trigger count, not a duration in rounds: for a
-// one-round-interval record the two coincide, but the three-round-interval
-// dot and bleed records need buffs.TickTriggers to convert a rounds-literal
-// duration into the trigger count this parameter expects. It is an int on
+// triggers is the exact trigger count, not a duration in rounds. Every record
+// that goes through this door today ticks once a round, so the trigger count
+// is the rounds. It is an int on
 // purpose: AddBuffScaled truncates float64(count) * mult, and 3.3 * 10 is
 // 32.999... in binary, so a multiplier would shorten some durations by a
 // round. The former conditions all computed an integer.
+//
+// A stacking record (see the Stacking flag) appends a stack instead of
+// overwriting; triggers is then that stack's rounds.
 func (bs *Buffs) AddBuffMagnitude(buffId int, triggers int, magnitude float64) bool {
-	if !bs.AddBuffScaled(buffId, 1.0) {
+	if spec := GetBuffSpec(buffId); spec != nil && spec.IsStacking() {
+		return bs.addStack(spec, triggers, magnitude)
+	}
+	if !bs.addBuffScaled(buffId, 1.0) {
 		return false
 	}
 	idx, ok := bs.buffIds[buffId]
@@ -316,22 +352,8 @@ func (bs *Buffs) AddBuffMagnitude(buffId int, triggers int, magnitude float64) b
 	}
 	bs.List[idx].Magnitude = magnitude
 	if spec := GetBuffSpec(buffId); spec != nil && spec.TickFromMagnitude {
-		// The magnitude IS the signed per-round amount: negative harms.
-		// A non-zero magnitude that truncates to zero (e.g. -0.5) is floored
-		// to 1 in its sign instead: a zero snapshot is unrecoverable, since
-		// the round tick's fallback recomputes from TickPercent, which
-		// validateEffects forces to 0 on a tick_from_magnitude record, so
-		// ComputeTickAmount would return 0 and the record would tick for
-		// nothing forever. Mirrors the old poison/bleed hook's clamp.
-		amt := int(magnitude)
-		if amt == 0 && magnitude != 0 {
-			if magnitude < 0 {
-				amt = -1
-			} else {
-				amt = 1
-			}
-		}
-		bs.List[idx].TickAmount = amt
+		// The magnitude IS the signed per-round amount; see tickAmountFor.
+		bs.List[idx].TickAmount = tickAmountFor(magnitude)
 	}
 	return true
 }
@@ -346,6 +368,12 @@ func (bs *Buffs) AddBuffMagnitude(buffId int, triggers int, magnitude float64) b
 // buffIds before checking whether GetBuffSpec finds anything, so "held"
 // does not imply a spec exists). Room mutators use this to keep a buff
 // alive for the whole visit without re-narrating it.
+//
+// A stacking record can only be added through AddBuffMagnitude, because a
+// stack needs its own rounds and amount that this call has no room to carry;
+// a stacking spec is refused rather than topped up to the spec's single
+// TriggerCount, which would misreport a live record's duration or, on an
+// expired-but-unpruned one with no stacks, revive it to tick for nothing.
 func (bs *Buffs) RefreshBuff(buffId int) bool {
 	idx, ok := bs.buffIds[buffId]
 	if !ok {
@@ -357,6 +385,10 @@ func (bs *Buffs) RefreshBuff(buffId int) bool {
 		return false
 	}
 
+	if buffInfo.IsStacking() {
+		return false
+	}
+
 	if bs.List[idx].PermaBuff {
 		return true
 	}
@@ -365,8 +397,17 @@ func (bs *Buffs) RefreshBuff(buffId int) bool {
 	return true
 }
 
+// AddBuff applies a record for the spec's own trigger count, or unlimited
+// when isPermanent. A stacking record can only be added through
+// AddBuffMagnitude, because a stack needs its own rounds and amount that this
+// call has no room to carry; a stacking spec is refused rather than left to
+// create a live record with no stacks.
 func (bs *Buffs) AddBuff(buffId int, isPermanent bool) bool {
 	if buffInfo := GetBuffSpec(buffId); buffInfo != nil {
+
+		if buffInfo.IsStacking() {
+			return false
+		}
 
 		// Poison immunity (Stone Stomach): a poison-flagged buff is refused
 		// while the holder is immune. Checked here so every application path,
@@ -444,13 +485,21 @@ func (bs *Buffs) Trigger(buffId ...int) (triggeredBuffs []*Buff) {
 			if b.TriggersLeft > 0 {
 				b.RoundCounter++
 				if b.RoundCounter%buffInfo.RoundInterval == 0 {
-					// It cannot be pruned unless it is triggered
-					triggeredBuffs = append(triggeredBuffs, b)
-					if b.TriggersLeft != TriggersLeftUnlimited {
-						b.TriggersLeft--
+					if buffInfo.IsStacking() {
+						// A stacking record ticks its stacks and derives
+						// TriggersLeft from them; see tickStacks.
+						if b.tickStacks() {
+							triggeredBuffs = append(triggeredBuffs, b)
+						}
 					} else {
-						// If unimited, reset the counter to prevent some future overflow
-						b.RoundCounter = 0
+						// It cannot be pruned unless it is triggered
+						triggeredBuffs = append(triggeredBuffs, b)
+						if b.TriggersLeft != TriggersLeftUnlimited {
+							b.TriggersLeft--
+						} else {
+							// If unimited, reset the counter to prevent some future overflow
+							b.RoundCounter = 0
+						}
 					}
 				}
 				bs.List[idx] = b

@@ -907,11 +907,10 @@ func TestAutoHeal_HealthCapsAtMax(t *testing.T) {
 	assert.LessOrEqual(t, u1.Character.Conviction, u1.Character.ConvictionMax.Value)
 }
 
-// TestRoundTick_PoisonDamage pins the Task 8 review fix: the spell dot record
-// keeps the old AutoHeal hook's every-third-round cadence instead of ticking
-// every round. buffs.TickTriggers converts a duration into that trigger
-// count; TickTriggers(3) is 1, matching the record's own three-round
-// triggerrate (buff 121).
+// TestRoundTick_PoisonDamage pins slice 1b's cadence: the spell dot record
+// (buff 121) ticks every round (owner ruling 2026-09-14; it used to keep the
+// old AutoHeal hook's every-third-round cadence). A one-round record lands its
+// harm and its line on the first round tick, which is also its last.
 func TestRoundTick_PoisonDamage(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
@@ -923,31 +922,21 @@ func TestRoundTick_PoisonDamage(t *testing.T) {
 	// Seeding Base keeps HealthMax comfortably above the 80 this test needs.
 	u1.Character.HealthMax.Base = 100
 	u1.Character.Health = 80
-	_ = u1.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, buffs.TickTriggers(3), -5, "test")
+	_ = u1.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, 1, -5, "test")
 	u1.Character.Health = 80
 	drainPlain(1)
 
 	UserRoundTick(events.NewRound{RoundNumber: 1})
-	assert.Equal(t, 80, u1.Character.Health, "the record's triggerrate is three rounds; no harm yet")
-	UserRoundTick(events.NewRound{RoundNumber: 2})
-	assert.Equal(t, 80, u1.Character.Health, "still short of the third round")
-	UserRoundTick(events.NewRound{RoundNumber: 3})
-	assert.Equal(t, 75, u1.Character.Health, "the third round lands the one tick this record carries")
-	// This 1-trigger record's only trigger also expires it: Buffs.Trigger
-	// decrements TriggersLeft to 0 before UserRoundTick reads
-	// buff.Expired(). Whole-branch review (slice 1): both the tick_pool
-	// harm and the flavour line land on this trigger; only PruneBuffs' end
-	// line is gated on expiry. TestRoundTick_PoisonDamage_
-	// TriggerLineOnNonFinalTick below pins the same line on a trigger that
-	// is not also the last one.
+	assert.Equal(t, 75, u1.Character.Health, "the record ticks every round: the first round tick lands the harm")
 	assert.Equal(t, 1, countContaining(drainPlain(1), "The poison burns through your veins!"),
-		"the final, expiring trigger applies harm and still sends the flavour line")
+		"the first, and here final, trigger sends the flavour line")
 
 	// Cross-hook pin: NewRound_AutoHeal.go's hand-rolled poison block was
-	// deleted in Task 8 (the record's own tick path in UserRoundTick now
-	// applies the harm). If it were revived in record-reading form, this
-	// same round's regen-gate call would double the damage already applied
-	// above instead of only adding a small regen.
+	// deleted in slice 1 (the record's own tick path in UserRoundTick applies
+	// the harm). If it were revived in record-reading form, this same round's
+	// regen-gate call would double the damage already applied above instead of
+	// only adding a small regen. Round 3 because AutoHeal acts only on a
+	// multiple of three (NewRound_AutoHeal.go), not because it follows round 2.
 	result := AutoHeal(events.NewRound{RoundNumber: 3})
 	require.Equal(t, events.Continue, result)
 	hpr := u1.Character.HealthPerRound()
@@ -955,16 +944,14 @@ func TestRoundTick_PoisonDamage(t *testing.T) {
 	assert.Less(t, u1.Character.Health, 80, "at most one small regen tick (HealthPerRound=%d)", hpr)
 
 	healthAfterAutoHeal := u1.Character.Health
-	UserRoundTick(events.NewRound{RoundNumber: 4})
-	assert.Equal(t, healthAfterAutoHeal, u1.Character.Health, "the record expired at round 3; a fourth tick is a no-op")
+	UserRoundTick(events.NewRound{RoundNumber: 2})
+	assert.Equal(t, healthAfterAutoHeal, u1.Character.Health, "the record expired at round 1; a second tick is a no-op")
 }
 
-// TestRoundTick_PoisonDamage_TriggerLineOnNonFinalTick pins the flavour line
-// half of the Task 9 fix, updated by the whole-branch review (slice 1): a
-// 2-trigger record's FIRST trigger (round 3) is not the one that expires it,
-// so the line sends; its second trigger (round 6) both lands the harm and
-// expires the record, and the line sends again on that trigger too, since
-// the text is no longer gated on expiry.
+// TestRoundTick_PoisonDamage_TriggerLineOnNonFinalTick: a 2-round record's
+// FIRST trigger (round 1) is not the one that expires it, so the line sends;
+// its second (round 2) lands the harm, expires the record, and sends the line
+// too. Consecutive rounds: the dot lands every round (slice 1b).
 func TestRoundTick_PoisonDamage_TriggerLineOnNonFinalTick(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
@@ -973,30 +960,25 @@ func TestRoundTick_PoisonDamage_TriggerLineOnNonFinalTick(t *testing.T) {
 	u1 := users.GetByUserId(1)
 	u1.Character.HealthMax.Base = 100
 	u1.Character.Health = 80
-	_ = u1.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, buffs.TickTriggers(6), -5, "test")
+	_ = u1.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, 2, -5, "test")
 	u1.Character.Health = 80
 	drainPlain(1)
 
-	for round := uint64(1); round <= 5; round++ {
-		UserRoundTick(events.NewRound{RoundNumber: round})
-	}
-	assert.Equal(t, 75, u1.Character.Health, "the first of two triggers lands on round 3")
+	UserRoundTick(events.NewRound{RoundNumber: 1})
+	assert.Equal(t, 75, u1.Character.Health, "the first of two triggers lands on round 1")
 	assert.Equal(t, 1, countContaining(drainPlain(1), "The poison burns through your veins!"),
 		"a trigger that is not also the last one sends its flavour line")
 
-	UserRoundTick(events.NewRound{RoundNumber: 6})
-	assert.Equal(t, 70, u1.Character.Health, "the second trigger lands the harm and expires the record")
+	UserRoundTick(events.NewRound{RoundNumber: 2})
+	assert.Equal(t, 70, u1.Character.Health, "the second trigger lands on the very next round and expires the record")
 	assert.Equal(t, 1, countContaining(drainPlain(1), "The poison burns through your veins!"),
 		"the final, expiring trigger still sends the flavour line")
 }
 
-// TestRoundTick_TriggerLineLandsOnExpiringTick is the ONE-trigger sibling
-// of TestRoundTick_PoisonDamage_TriggerLineOnNonFinalTick: a record whose
-// only trigger is also its last must land both the harm and the flavour
-// line on that same, already-expiring tick. Whole-branch review (slice 1):
-// this used to assert the line was skipped, which meant a mauled player
-// took a silent tick and read only the record's end line; the trigger text
-// and the harm now land together on every trigger.
+// TestRoundTick_TriggerLineLandsOnExpiringTick is the ONE-trigger sibling of
+// TestRoundTick_PoisonDamage_TriggerLineOnNonFinalTick: a record whose only
+// trigger is also its last must land both the harm and the flavour line on
+// that same, already-expiring tick.
 func TestRoundTick_TriggerLineLandsOnExpiringTick(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
@@ -1005,21 +987,19 @@ func TestRoundTick_TriggerLineLandsOnExpiringTick(t *testing.T) {
 	u1 := users.GetByUserId(1)
 	u1.Character.HealthMax.Base = 100
 	u1.Character.Health = 80
-	_ = u1.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, buffs.TickTriggers(3), -5, "test")
+	_ = u1.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, 1, -5, "test")
 	drainPlain(1)
 
-	for round := uint64(1); round <= 3; round++ {
-		UserRoundTick(events.NewRound{RoundNumber: round})
-	}
-	assert.Equal(t, 75, u1.Character.Health, "the record's one trigger lands the harm on round 3")
+	UserRoundTick(events.NewRound{RoundNumber: 1})
+	assert.Equal(t, 75, u1.Character.Health, "the record's one trigger lands the harm on round 1")
 	assert.Equal(t, 1, countContaining(drainPlain(1), "The poison burns through your veins!"),
 		"the expiring, one-and-only trigger still sends the flavour line")
 }
 
 // TestDotProducerRecordsNegativeHarm_MobTarget pins the sign of the mob-target
 // dot producer (spell_resolution.go's applyMobEffect_dot, a player's spell
-// landing on a mob) and that it converts dotDuration through
-// buffs.TickTriggers rather than passing it straight through as TriggersLeft.
+// landing on a mob) and that it passes dotDuration straight through as
+// TriggersLeft (the record ticks every round, slice 1b).
 func TestDotProducerRecordsNegativeHarm_MobTarget(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
@@ -1055,8 +1035,8 @@ func TestDotProducerRecordsNegativeHarm_MobTarget(t *testing.T) {
 	require.Len(t, recs, 1)
 	assert.Less(t, recs[0].Magnitude, 0.0, "the producer's harm sign must be negative")
 	assert.Less(t, recs[0].TickAmount, 0, "the snapshot tick amount must be negative")
-	assert.Equal(t, buffs.TickTriggers(wantDuration), recs[0].TriggersLeft,
-		"TriggersLeft must be TickTriggers(dotDuration), not dotDuration itself")
+	assert.Equal(t, wantDuration, recs[0].TriggersLeft,
+		"TriggersLeft must be dotDuration itself: the record ticks every round")
 }
 
 // TestDotProducerRecordsNegativeHarm_PlayerTarget is the same pin for the
@@ -1093,8 +1073,8 @@ func TestDotProducerRecordsNegativeHarm_PlayerTarget(t *testing.T) {
 	require.Len(t, recs, 1)
 	assert.Less(t, recs[0].Magnitude, 0.0, "the producer's harm sign must be negative")
 	assert.Less(t, recs[0].TickAmount, 0, "the snapshot tick amount must be negative")
-	assert.Equal(t, buffs.TickTriggers(wantDuration), recs[0].TriggersLeft,
-		"TriggersLeft must be TickTriggers(dotDuration), not dotDuration itself")
+	assert.Equal(t, wantDuration, recs[0].TriggersLeft,
+		"TriggersLeft must be dotDuration itself: the record ticks every round")
 }
 
 func TestAutoHeal_MobSkipsIfDead(t *testing.T) {

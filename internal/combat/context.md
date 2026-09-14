@@ -621,10 +621,10 @@ penalty profile via `IsProne() || IsSupine()` reads in
    `Position.TransitionToStanding(TriggerRecoveryRoll)`. Called every round
    via `NewRound_UserRoundTick` and `NewRound_MobRoundTick`. Failed/gated
    attempts add the 118 Recovering record (`attacks_cap: 1`, read by
-   `calcSwingCount` through `Buffs.Effect(buffs.EffectAttacksCap)`). On the
-   PLAYER side that cap is inert: the same round tick that applies the
-   one-trigger record also expires it, before `DoCombat` runs. Faithful to the
-   condition it replaced; an owner call, filed.
+   `calcSwingCount` through `Buffs.Effect(buffs.EffectAttacksCap)`). Both
+   round ticks attempt recovery after their buff tick, so the one-tick record
+   is live when `DoCombat` reads it, for players and mobs alike (players since
+   slice 1b).
 
 2. **Manual recovery** — `stand` command (`internal/usercommands/stand.go`)
    - Costs `StandStaminaCost` (config, 15% of max). Requires
@@ -1125,7 +1125,8 @@ had already decremented it once. Minor Shield is buff 119 now, decays once a
 round with every other record, and narrates its end wherever it ends rather
 than only in combat. The helper and its mob-side twin are deleted (conditions
 unification, 2026-09-12). A combat shield therefore lasts about twice as long
-as it did on prod.
+as it did on prod. The owner ruled that longer combat duration intended
+behaviour, not a regression to fix (2026-09-14).
 
 #### 2c. Fold Casting Check
 `handlePlayerFoldCasting(user, userId)` — If the player typed

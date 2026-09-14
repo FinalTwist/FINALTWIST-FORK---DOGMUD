@@ -45,8 +45,7 @@ type MaulResult struct {
 	// to a non-fanged mob. Unreachable via the AI path (CanUseMaul gates it).
 	NotFanged bool
 
-	// BleedDmg is the per-tick bleed damage applied on a hit
-	// (Strength/8, min 3).
+	// BleedDmg is the per-round amount of the bleed stack added on a hit.
 	BleedDmg int
 }
 
@@ -57,8 +56,8 @@ type MaulResult struct {
 //   - ExecuteSkillMove via combat package (UnarmedCombat skill, Dexterity
 //     attack stat, Dexterity defense stat, KickDamagePercent, Strength damage
 //     stat, no knockdown)
-//   - On hit: apply the Bleeding record (duration 5, magnitude = Strength/8
-//     min 3) sourced as "maul"
+//   - On hit: add a Bleeding stack (MaulBleedRounds, MaulBleedStrengthDivisor,
+//     MaulBleedMin) sourced as "maul"
 //   - combat.RecordSpecialMove for analytics + RoundsWaiting = 1
 //   - OnSkillUse(UnarmedCombat) on hit for progression
 //
@@ -121,16 +120,12 @@ func ExecuteMaul(actor Actor) MaulResult {
 	// U6b Task 10: a crit-defended move earns the defender a counter-swing.
 	counter := counterSkillMoveExit(actor, target.Char, result, combat.ChannelMelee, true)
 
-	// On hit: apply bleed condition (duration 5, magnitude = Strength/8,
-	// min 3) — stronger bleed than rake.
+	// On hit: add a bleed stack (MaulBleedRounds rounds, Strength /
+	// MaulBleedStrengthDivisor per round, floor MaulBleedMin).
 	bleedDmg := 0
 	if result.Hit {
-		mag := char.Stats.Strength.ValueAdj / 8
-		if mag < 3 {
-			mag = 3
-		}
-		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, buffs.TickTriggers(5), -float64(mag), "maul")
-		bleedDmg = mag
+		bleedDmg = bleedPerRound(char.Stats.Strength.ValueAdj, cfg.MaulBleedStrengthDivisor, cfg.MaulBleedMin)
+		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, int(cfg.MaulBleedRounds), -float64(bleedDmg), "maul")
 	}
 
 	// Determine source/target types for analytics.

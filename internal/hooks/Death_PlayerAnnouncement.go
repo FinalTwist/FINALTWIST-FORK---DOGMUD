@@ -163,9 +163,8 @@ func wirePlayerDeathAnnouncement(c *characters.Character) {
 // HasBuff only tests the id index and does not care whether the record
 // already reads Expired, while HasBuffFlag skips expired records outright.
 // Buffs.Trigger() decrements TriggersLeft before returning the triggered
-// buff, so a tick that is the record's LAST trigger — every ordinary bleed,
-// since buffs.TickTriggers commonly produces one trigger, and one poison
-// tick in ten — arrives already Expired; the old flag read then reported
+// buff, so a tick that is the record's LAST trigger (the last tick of every
+// bleed and every poison) arrives already Expired; the old flag read then reported
 // "their own foolishness" for an outright poison or bleed-out kill. Reading
 // by id survives that, but not a prune: PruneBuffs runs on every NewTurn and
 // can remove the expired record before this announcement listener runs

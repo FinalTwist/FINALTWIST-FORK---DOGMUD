@@ -248,8 +248,8 @@ func TestProcApplyCondition_Bleed(t *testing.T) {
 	if !target.HasBuff(buffs.BuffIdBleeding) {
 		t.Fatal("target should be bleeding")
 	}
-	if got := target.Buffs.TriggersLeft(buffs.BuffIdBleeding); got != 2 {
-		t.Fatalf("expected 2 triggers (duration 6 at a 3-round triggerrate), got %d", got)
+	if got := target.Buffs.TriggersLeft(buffs.BuffIdBleeding); got != 6 {
+		t.Fatalf("expected 6: duration is the stack's rounds and the record ticks every round, got %d", got)
 	}
 	held := target.GetBuffs(buffs.BuffIdBleeding)
 	if len(held) != 1 {
@@ -257,6 +257,30 @@ func TestProcApplyCondition_Bleed(t *testing.T) {
 	}
 	if got := held[0].Magnitude; got != -12 {
 		t.Fatalf("expected magnitude -12, got %v", got)
+	}
+	if len(held[0].Stacks) != 1 || held[0].Stacks[0].RoundsLeft != 6 || held[0].Stacks[0].Amount != -12 {
+		t.Fatalf("expected one stack of 6 rounds at -12, got %+v", held[0].Stacks)
+	}
+}
+
+// TestProcApplyCondition_BleedSpecMissing_ReturnsFalse pins the
+// AddBuffMagnitude error path: with the Bleeding spec absent from the
+// registry, the add fails, and procApplyCondition must report that failure
+// rather than claim success -- a false positive here has dispatchItemProcs
+// burn the proc's cooldown for a bleed that never landed.
+//
+// Null probe: reverting procApplyCondition's case 1 to ignore
+// AddBuffMagnitude's error (`return true` unconditionally) turns this red.
+func TestProcApplyCondition_BleedSpecMissing_ReturnsFalse(t *testing.T) {
+	defer buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{})()
+	target := characters.New()
+
+	if procApplyCondition(target, map[string]float64{
+		"condition": 1,
+		"duration":  6,
+		"magnitude": 12,
+	}) {
+		t.Fatal("procApplyCondition must return false when the Bleeding spec is missing and the add fails")
 	}
 }
 

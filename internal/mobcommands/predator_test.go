@@ -272,30 +272,6 @@ func TestHamstring_InCombat(t *testing.T) {
 	mob.Character.EndAggro()
 }
 
-func TestHamstring_BleedMagnitude(t *testing.T) {
-	// Verify bleed damage calculation: Strength/10, min 2
-	tests := []struct {
-		name     string
-		strength int
-		expected float64
-	}{
-		{"high_strength", 100, 10.0},
-		{"medium_strength", 50, 5.0},
-		{"low_strength_floor", 10, 2.0},
-		{"very_low_strength_floor", 5, 2.0},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			bleedDmg := tc.strength / 10
-			if bleedDmg < 2 {
-				bleedDmg = 2
-			}
-			assert.Equal(t, tc.expected, float64(bleedDmg))
-		})
-	}
-}
-
 // ─── Charge ─────────────────────────────────────────────────────────────────
 
 func TestCharge_NotInCombat(t *testing.T) {

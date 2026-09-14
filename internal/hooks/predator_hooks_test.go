@@ -32,18 +32,10 @@ func (h *helpCallerActor) GetName() string                     { return h.name }
 
 // ─── Bleeding record tick ──────────────────────────────────────────────────
 
-// The Bleeding record's shipped triggerrate is 3 rounds (matching the old
-// AutoHeal hook, which only ever applied its DoT on every third round while
-// the old condition enum decremented duration every round): buffs.TickTriggers
-// converts an old rounds-literal duration into the equivalent trigger count,
-// and RoundCounter must reach a multiple of 3 (rounds 1, 2, 3 of ticking)
-// before the record fires even once.
-//
-// The record is seeded with buffs.TickTriggers(20) (6 triggers), not
-// TickTriggers(3) (1 trigger): the cross-hook pin below needs the Bleeding
-// flag to still be held, not expired, when AutoHeal runs after round 4, or a
-// revived flag-gated AutoHeal bleed block would have nothing to gate on and
-// the pin would pass for the wrong reason.
+// The Bleeding record (122) ticks every round and STACKS (slice 1b, owner
+// ruling 2026-09-14): each AddBuffMagnitude is its own stack with its own
+// rounds, and one round tick lands the sum of the live stacks as ONE harm with
+// ONE flavour line.
 func TestRoundTick_BleedDamagesPlayer(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
@@ -56,35 +48,20 @@ func TestRoundTick_BleedDamagesPlayer(t *testing.T) {
 	// stats/balance config, clobbering a raw HealthMax.Value. Seeding Base
 	// keeps HealthMax comfortably above the 40 this test needs.
 	u.Character.HealthMax.Base = 100
-	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, buffs.TickTriggers(20), -5, "test")
+	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 20, -5, "test")
 	u.Character.Health = 40
+	_ = drainPlain(1)
 
-	// Rounds 1 and 2: RoundCounter isn't yet a multiple of 3, no trigger.
 	UserRoundTick(events.NewRound{RoundNumber: 1})
-	assert.Equal(t, 40, u.Character.Health, "no trigger yet on round 1")
-	UserRoundTick(events.NewRound{RoundNumber: 2})
-	assert.Equal(t, 40, u.Character.Health, "no trigger yet on round 2")
-
-	// Round 3: RoundCounter reaches 3, the first of six triggers lands.
-	UserRoundTick(events.NewRound{RoundNumber: 3})
-	assert.Equal(t, 35, u.Character.Health, "the first trigger should land on round 3")
-	// Whole-branch review (slice 1): the trigger text lands whenever the
-	// tick fires, including a record's final trigger; pin the bleed case
-	// alongside the poison one so the flavour line has coverage here too.
+	assert.Equal(t, 35, u.Character.Health, "the bleed ticks on the first round tick")
 	assert.Equal(t, 1, countContaining(drainPlain(1), "Blood seeps from your wounds!"),
-		"the third-round trigger sends the bleed flavour line")
-
-	// RoundCounter is 4, not a multiple of 3; a fourth round tick must not
-	// re-trigger it yet.
-	UserRoundTick(events.NewRound{RoundNumber: 4})
-	assert.Equal(t, 35, u.Character.Health, "the interval hasn't come back around; a further tick must not re-fire it")
+		"the tick sends the bleed flavour line")
 
 	// Cross-hook pin: AutoHeal's own bleed block is gone, so firing it after
 	// the tick must not apply a second, redundant bleed hit. Health may move
 	// by ordinary out-of-combat regen, but not by another 5-point bleed. The
-	// record still has five triggers left here (Bleeding flag still held),
-	// so a revived flag-gated block in AutoHeal is reachable and would be
-	// caught.
+	// record still has 19 rounds left here (Bleeding flag still held), so a
+	// revived flag-gated block in AutoHeal is reachable and would be caught.
 	AutoHeal(events.NewRound{RoundNumber: 3})
 	assert.GreaterOrEqual(t, u.Character.Health, 35, "AutoHeal must not re-apply the bleed")
 	assert.Less(t, u.Character.Health, 40, "AutoHeal's own regen should be small next to the 5-point bleed it must not repeat")
@@ -102,15 +79,12 @@ func TestRoundTick_BleedDamagesMob(t *testing.T) {
 	require.NotNil(t, mob)
 
 	mob.Character.HealthMax.Base = 100
-	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdBleeding, buffs.TickTriggers(3), -50, "test")
+	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -50, "test")
 	mob.Character.Health = 2
 
 	// tickMobBuffs runs in MobRoundTick's idle lane, before the active-zone
-	// check, so it fires for every mob regardless of zone activity. Three
-	// ticks are needed before the record's one trigger lands.
+	// check, so it fires for every mob regardless of zone activity.
 	MobRoundTick(events.NewRound{RoundNumber: 1})
-	MobRoundTick(events.NewRound{RoundNumber: 2})
-	MobRoundTick(events.NewRound{RoundNumber: 3})
 
 	assert.Less(t, mob.Character.Health, 0,
 		"a 50-magnitude bleed on a 2-health mob should store overkill, not clamp to 0; health=%d", mob.Character.Health)
@@ -130,13 +104,11 @@ func TestRoundTick_BleedMinDamageOne(t *testing.T) {
 	require.NotNil(t, mob)
 
 	mob.Character.HealthMax.Base = 100
-	// Magnitude -0.5 truncates to 0, so the snapshot is floored to -1 in sign.
-	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdBleeding, buffs.TickTriggers(3), -0.5, "test")
+	// Magnitude -0.5 truncates to 0, so the stack's amount is floored to -1.
+	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -0.5, "test")
 	mob.Character.Health = 50
 
 	MobRoundTick(events.NewRound{RoundNumber: 1})
-	MobRoundTick(events.NewRound{RoundNumber: 2})
-	MobRoundTick(events.NewRound{RoundNumber: 3})
 
 	assert.Equal(t, 49, mob.Character.Health)
 
@@ -144,12 +116,10 @@ func TestRoundTick_BleedMinDamageOne(t *testing.T) {
 	mob.Character.Health = 50
 }
 
-// The ordinary bleed is a ONE-TRIGGER record: buffs.TickTriggers(3) yields 1.
-// The player tick used to gate its whole body, harm and text alike, on
-// !buff.Expired(), so that single trigger -- which is also the record's final
-// one -- applied nothing and said nothing, and every ordinary bleed a player
-// took was silent and harmless. This pins the expiring trigger: the harm lands
-// AND the flavour line goes out, exactly once.
+// A one-round stack's only tick is also its last. The player tick used to gate
+// its whole body on !buff.Expired(), so that tick applied nothing and said
+// nothing. This pins the expiring tick: the harm lands AND the flavour line
+// goes out, exactly once.
 //
 // Null probe: restoring `!buff.Expired() &&` to the text gate in
 // NewRound_UserRoundTick.go turns the line assertion red.
@@ -162,30 +132,78 @@ func TestRoundTick_BleedLineLandsOnExpiringTick(t *testing.T) {
 	require.NotNil(t, u)
 
 	// Discard anything an earlier test left queued, so the count below is
-	// only what these three rounds produced.
+	// only what this round produced.
 	_ = drainPlain(1)
 
-	// Validate() recomputes HealthMax from stats and balance config, so seed
-	// Base rather than Value.
 	u.Character.HealthMax.Base = 100
-	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, buffs.TickTriggers(3), -5, "test")
+	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -5, "test")
 	require.Equal(t, 1, u.Character.Buffs.GetBuffs(buffs.BuffIdBleeding)[0].TriggersLeft,
-		"an ordinary bleed is a single-trigger record; the trigger under test is its last")
+		"a one-round stack: the tick under test is its last")
 	// Health is set AFTER the add, because the door validates on add.
 	u.Character.Health = 80
 
-	// triggerrate is 3 rounds, so RoundCounter must reach 3 before it fires.
 	UserRoundTick(events.NewRound{RoundNumber: 1})
-	UserRoundTick(events.NewRound{RoundNumber: 2})
-	UserRoundTick(events.NewRound{RoundNumber: 3})
 
 	assert.Equal(t, 75, u.Character.Health,
-		"the record's only trigger is also its last, and it must still apply its harm")
+		"the stack's only tick is also its last, and it must still apply its harm")
 	assert.Equal(t, 1, countContaining(drainPlain(1), "Blood seeps from your wounds!"),
-		"the expiring trigger must still send the bleed flavour line, exactly once")
+		"the expiring tick must still send the bleed flavour line, exactly once")
 
 	u.Character.RemoveBuff(buffs.BuffIdBleeding)
 	u.Character.Health = 50
+}
+
+// Two stacks sum into ONE harm and ONE line per round, and each stack ends on
+// its own: 3 rounds of -2 and 5 rounds of -3 land -5, -5, -5, -3, -3, then
+// nothing.
+func TestRoundTick_BleedStacksSumIntoOneHarmPerRound_Player(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	defer buffs.SeedConditionRecordsForTest()()
+
+	u := users.GetByUserId(1)
+	require.NotNil(t, u)
+	u.Character.HealthMax.Base = 100
+	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 3, -2, "test")
+	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 5, -3, "test")
+	require.Len(t, u.Character.Buffs.GetBuffs(buffs.BuffIdBleeding), 1, "two stacks, one record")
+	u.Character.Health = 80
+	_ = drainPlain(1)
+
+	for round, want := range []int{75, 70, 65, 62, 59, 59} {
+		UserRoundTick(events.NewRound{RoundNumber: uint64(round + 1)})
+		assert.Equal(t, want, u.Character.Health, "round %d", round+1)
+		lines := countContaining(drainPlain(1), "Blood seeps from your wounds!")
+		if round < 5 {
+			assert.Equal(t, 1, lines, "round %d: one line however many stacks are live", round+1)
+		} else {
+			assert.Equal(t, 0, lines, "round %d: the bleed has ended", round+1)
+		}
+	}
+
+	u.Character.RemoveBuff(buffs.BuffIdBleeding)
+	u.Character.Health = 50
+}
+
+func TestRoundTick_BleedStacksSumIntoOneHarmPerRound_Mob(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	defer buffs.SeedConditionRecordsForTest()()
+
+	mob := mobs.GetInstance(100)
+	require.NotNil(t, mob)
+	mob.Character.HealthMax.Base = 100
+	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 3, -2, "test")
+	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 5, -3, "test")
+	mob.Character.Health = 80
+
+	for round, want := range []int{75, 70, 65, 62, 59, 59} {
+		MobRoundTick(events.NewRound{RoundNumber: uint64(round + 1)})
+		assert.Equal(t, want, mob.Character.Health, "round %d", round+1)
+	}
+
+	mob.Character.RemoveBuff(buffs.BuffIdBleeding)
+	mob.Character.Health = 50
 }
 
 // ─── PackFlee ───────────────────────────────────────────────────────────────

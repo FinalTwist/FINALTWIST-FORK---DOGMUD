@@ -5,6 +5,13 @@ and debuffs.
 
 <ansi fg="yellow">━━━ Notable Conditions ━━━</ansi>
 
+  <ansi fg="stat">Bleeding:</ansi>
+    Open wounds from claws, fangs, bites and other tearing
+    attacks. Each new wound bleeds on its own timer, and wounds
+    add up, so the list shows how many are open, for example
+    "Bleeding (3)". Wounds keep bleeding after a fight until they
+    close.
+
   <ansi fg="stat">Broken Limb:</ansi>
     A limb broken during a cripple submission. Reduces your
     combat effectiveness for an extended period. Recovers

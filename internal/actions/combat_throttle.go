@@ -51,8 +51,7 @@ type ThrottleResult struct {
 	// the target's spellcast was successfully interrupted.
 	InterruptedCast bool
 
-	// BleedDmg is the per-tick bleed magnitude applied on a hit
-	// (Strength/10, min 2).
+	// BleedDmg is the per-round amount of the bleed stack added on a hit.
 	BleedDmg int
 }
 
@@ -63,8 +62,8 @@ type ThrottleResult struct {
 //   - ExecuteSkillMove via combat package (UnarmedCombat skill, Dexterity
 //     attack stat, Dexterity defense stat, KickDamagePercent, Strength damage
 //     stat, no knockdown)
-//   - On hit: apply the Bleeding record (duration 3, magnitude = Strength/10
-//     min 2) sourced as "throttle"
+//   - On hit: add a Bleeding stack (ThrottleBleedRounds,
+//     ThrottleBleedStrengthDivisor, ThrottleBleedMin) sourced as "throttle"
 //   - On hit: apply Throttled DoT buff (id 89) for stamina drain
 //   - On hit: an opposed contest through the concentration seam
 //     (combat.RunConcentrationContest) between the target's hold and the
@@ -135,14 +134,11 @@ func ExecuteThrottle(actor Actor) ThrottleResult {
 	interrupted := false
 
 	if result.Hit {
-		// Health-over-time: apply a light bleed (duration 3, magnitude = Strength/10,
-		// min 2) — weaker than maul; the choke's primary DoT is stamina drain.
-		mag := char.Stats.Strength.ValueAdj / 10
-		if mag < 2 {
-			mag = 2
-		}
-		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, buffs.TickTriggers(3), -float64(mag), "throttle")
-		bleedDmg = mag
+		// Health-over-time: add a bleed stack (ThrottleBleedRounds rounds,
+		// Strength / ThrottleBleedStrengthDivisor per round, floor
+		// ThrottleBleedMin); the choke's primary DoT is stamina drain.
+		bleedDmg = bleedPerRound(char.Stats.Strength.ValueAdj, cfg.ThrottleBleedStrengthDivisor, cfg.ThrottleBleedMin)
+		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, int(cfg.ThrottleBleedRounds), -float64(bleedDmg), "throttle")
 
 		// Stamina-over-time: apply the Throttled DoT buff (id 89).
 		_ = target.Char.AddBuff(89, false)
