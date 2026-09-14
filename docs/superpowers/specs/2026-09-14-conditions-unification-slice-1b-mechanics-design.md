@@ -31,7 +31,9 @@ renames them.
    dashboard); the one-round `attacks_cap: 1` record added while standing up
    does not reach combat for a player. Make it.
 6. **Secret records are left out of `Char.Conditions` entirely**, not shown as
-   "Mysterious Affliction".
+   "Mysterious Affliction". **The in-game `conditions` command matches the web
+   client** (spec review, 2026-09-14): hidden and secret records display in
+   neither.
 7. **Scope: this is slice 1b, before the rename** (approach A of three).
 8. **Bleed data model: stacks inside the one Bleeding record** (approach A of
    three; several records per id and a shared-timer counter were rejected).
@@ -183,13 +185,23 @@ round's `Trigger` expires it before a new attempt re-adds it. The stand and
 slip lines are unchanged; they now follow that round's tick lines rather than
 preceding them. No mob change.
 
-### 5. Secret records leave `Char.Conditions`
+### 5. Secret records leave both lists
 
-The `Char.Conditions` builder skips a record whose spec is `Secret`, next to
-the existing `hidden` skip, with a comment saying why. The in-game
-`conditions` command is unchanged and still shows "Mysterious Affliction":
-the ruling named the web client, and a curse's cover story in the text list
-may be deliberate. Flagged below as an open question, not decided here.
+Today three records ship `secret: true`: 81 Respawn Grace, 85 InfraredVision,
+99 Alt Character Mob. `VisibleNameDesc` has exactly two production callers,
+the `conditions` command and the `Char.Conditions` builder.
+
+- One predicate on the spec, `BuffSpec.Listed() bool`, is false for a
+  `hidden`-flagged or `Secret` record. Both lists call it in place of their
+  own `hidden` check, so the two can never disagree again.
+- Both lists then use `spec.Name` / `spec.Description` (through
+  `DisplayName` for the name). With no secret record reaching either list,
+  `VisibleNameDesc` and its "Mysterious Affliction" branch have no reader:
+  delete the method, its cases in `internal/buffs/buffspec_test.go`, and its
+  passage in `internal/buffs/context.md:768`, rather than leave dead code.
+- The comments at both skips say why: a hidden record would tell you that you
+  are hidden; a secret record is engine bookkeeping or a state the player is
+  not meant to know about.
 
 ### 6. Documentation
 
@@ -218,8 +230,8 @@ may be deliberate. Flagged below as an open question, not decided here.
    still prints once per round, not once per stack.
 3. A player standing up from prone or supine swings once that round, as mobs
    already do.
-4. Hidden records such as Respawn Grace no longer appear in the web client's
-   status panel.
+4. Secret records such as Respawn Grace no longer appear in the web client's
+   status panel or the `conditions` command.
 
 ## Testing
 
@@ -244,8 +256,11 @@ confirm red, restore).
   attempt, driven through `UserRoundTick` rather than by adding the record
   directly (the direct-add test already existed and passed while the real
   path was inert).
-- **GMCP:** a secret record is absent from `Char.Conditions`; a hidden one is
-  still absent; a stacked bleed's `name` carries the count.
+- **Both lists:** one table test drives a character holding a plain, a hidden,
+  a secret and a stacked record through the `conditions` command output and
+  the `Char.Conditions` payload, and asserts the same visible set in both
+  (plain and stacked only) and that the stacked `name` carries the count.
+  `Listed()` has its own four-case test.
 - **Config:** each of the fifteen knobs is present in the committed
   `config.yaml` blob, and its default guard does not overwrite a shipped value.
 - **Guard:** the apply-path guard allowlist is re-keyed to the producers' new
@@ -256,13 +271,9 @@ confirm red, restore).
   stack count rise and
   settle and the bleed end after the fight; one lane where a tester is knocked
   prone and the combat log shows a single swing in the recovery round; a caster
-  lane confirming the spell dot's per-round line; the web client status panel
-  checked for a secret record's absence after a death (Respawn Grace).
-
-## Open question for the owner (does not block the plan)
-
-Should the in-game `conditions` command also leave secret records out, or
-keep showing "Mysterious Affliction"? This slice leaves the command as it is.
+  lane confirming the spell dot's per-round line; after a death, both the web
+  client status panel and the `conditions` command checked for Respawn Grace's
+  absence.
 
 ## Out of scope
 
