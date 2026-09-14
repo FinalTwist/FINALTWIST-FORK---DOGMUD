@@ -454,10 +454,11 @@ Between ticks, read `Stacks` or `Magnitude` for the whole bleed, never
 **Every path that expires a held record goes through `Buff.expire()`**, which
 sets `TriggersLeft` to `TriggersLeftExpired` and clears `Stacks` in one step:
 `RemoveBuff`, the expire branch of `HasFlag`, and `tickStacks` when a record
-has no stacks. An expired, unpruned record can be revived by `AddBuff` or
-`AddBuffScaled`, and one that kept its stacks would come back with them live.
-`addStack` also clears the stacks of an expired record before adding, as a
-second guard, so a cancel followed by a new hit starts fresh.
+has no stacks. `addStack` revives an expired, unpruned record through
+`addBuffScaled`, so one that kept its stacks would come back with them live;
+`expire()` is the primary guard, and `addStack` clearing the stacks of an
+expired record before adding is the second, so a cancel followed by a new hit
+starts fresh.
 
 `Buff.Source` is the LAST applier's source: `Character.AddBuffMagnitude`
 overwrites it on every call, so for a stacking record it is not per stack.

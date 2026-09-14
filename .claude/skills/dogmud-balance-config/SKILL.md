@@ -45,14 +45,14 @@ engineering audience.
 The point above is easy to skim past, so state it plainly: a default in Go
 code is a fallback, applied only when `config.yaml` omits the key. It is
 never proof of what the shipped game does. Verified today (2026-09-08):
-`SpellDamageScale` ships at `3.12` in `_datafiles/config.yaml:947`, against a
+`SpellDamageScale` ships at `3.12` in `_datafiles/config.yaml:978`, against a
 Go default of `1.0` set in `internal/configs/config.balance.spells.go:31`.
 Quoting the default instead of the shipped value would be off by more than
 3x on a live combat number.
 
 **Absence is meaningful, and that rule has two halves.** The lifted block
 above illustrates only the first half with `StaminaPerStrength`: that key is
-present in `_datafiles/config.yaml:1142`, set to `0`, which shows that zero
+present in `_datafiles/config.yaml:1173`, set to `0`, which shows that zero
 is a legal shipped value. It does not demonstrate absence, because the key
 is right there in the file.
 
@@ -60,7 +60,7 @@ The other half, and the more dangerous one, is a key that is not in
 `config.yaml` at all. `CarryCapacityMultiplier` is genuinely absent, verified
 2026-09-08: grep for both `CarryCapacityMultiplier` and its snake_case form
 `carry_capacity_multiplier` returns zero hits in `_datafiles/config.yaml`.
-The field is declared at `internal/configs/config.balance.go:770`, and its
+The field is declared at `internal/configs/config.balance.go:785`, and its
 Go default silently applies at `0.65`, set in
 `internal/configs/config.balance.misc.go:157`. Nothing in `config.yaml`
 tells you this knob exists. Someone reading only the config file would
@@ -102,7 +102,7 @@ count rechecked 2026-09-14: of the 390 `Config*`-typed fields in `config.balance
 carry a yaml tag that does not match the Go field name, all snake_case:
 `ReachStandingGrappleRadius` (`internal/configs/config.balance.go:191`)
 carries the tag `` yaml:"reach_standing_grapple_radius" ``, and
-`config.yaml:1064` holds only the snake_case form
+`config.yaml:1095` holds only the snake_case form
 `reach_standing_grapple_radius: 0.5`. Grepping the PascalCase field name
 against `config.yaml` for that knob returns nothing, even though the knob is
 present and shipped. The other seven are `ReachGroundGrappleRadius`,

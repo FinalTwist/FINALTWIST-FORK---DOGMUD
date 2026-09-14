@@ -313,7 +313,7 @@ Things worth knowing before touching it:
   rounds (`max(totalRounds, roundsLeft)`) so that same 50-round withdrawal
   reports a total of 50 rather than 10.
 - **A repeated name gets a `#n` suffix**, because the map is keyed by name and
-  two records can present the same visible name. `nameIncrement` is ONE
+  two records can present the same spec name. `nameIncrement` is ONE
   counter for the whole payload, not per name: the first collision anywhere
   takes `#1`, the next `#2`, whatever names they were.
 - **Hidden and secret records are left out**, by `BuffSpec.Listed`, the same
