@@ -149,13 +149,11 @@ func TestCalcSwingCount_RecoveryForcesOne(t *testing.T) {
 	assert.Equal(t, 1, got, "recovery penalty should force swings to 1")
 }
 
-// Faithful to the enum (spec finding): a Recovering record applied and then
-// ticked in the same round contributes nothing to the swing count. That is
-// true of the PLAYER path only: UserRoundTick applies the penalty and expires
-// the record in the same tick before DoCombat runs. On the mob path,
-// MobRoundTick ticks buffs before DoCombat applies the recovery penalty, so
-// the cap survives into DoCombat and has always bitten there. Making the
-// player-path cap bite too is a filed owner call, not this slice.
+// A Recovering record applied and then ticked contributes nothing to the swing
+// count: the cap lives exactly one tick. Both round ticks therefore add it
+// AFTER their buff tick (MobRoundTick always did; UserRoundTick since slice
+// 1b), so it is live when DoCombat runs. TestUserRoundTick_RecoveringIsLive
+// WhenCombatRuns in internal/hooks pins the player order.
 func TestRecoveringRecordExpiredByItsOwnTickCapsNothing(t *testing.T) {
 	defer buffs.SeedConditionRecordsForTest()()
 	ch := &characters.Character{}

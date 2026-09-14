@@ -241,22 +241,6 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 				// Roundtick any cooldowns
 				user.Character.Cooldowns.RoundTick()
 
-				// Stage 7.5: Attempt automatic recovery from prone (contested
-				// if someone is holding the character down, free otherwise)
-				if attemptMade, success := user.Character.AttemptRecovery(recoveryContest(user.Character)); attemptMade {
-					if success {
-						user.SendText(messaging.CategorySystem, "You scramble to your feet!")
-						if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
-							sendVisualRoomText(room, messaging.CategoryEmote, "<ansi fg=\"username\">"+user.Character.Name+"</ansi> clambers to their feet in a rushed panic.", user.UserId)
-						}
-					} else {
-						user.SendText(messaging.CategorySystem, "You attempt to stand, but slip back down in the chaos of battle!")
-						if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
-							sendVisualRoomText(room, messaging.CategoryEmote, "<ansi fg=\"username\">"+user.Character.Name+"</ansi> attempts to stand, but slips and falls in the chaos of battle.", user.UserId)
-						}
-					}
-				}
-
 				if user.Character.Charmed != nil && user.Character.Charmed.RoundsRemaining > 0 {
 					user.Character.Charmed.RoundsRemaining--
 				}
@@ -392,6 +376,27 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 					}
 
 					events.AddToQueue(events.BuffsTriggered{UserId: user.UserId, BuffIds: triggeredBuffIds})
+				}
+
+				// Stage 7.5: Attempt automatic recovery from prone (contested
+				// if someone is holding the character down, free otherwise).
+				// AFTER the buff tick, the order MobRoundTick uses: a failed or
+				// gated attempt adds the one-round Recovering record (118,
+				// attacks_cap 1), and running before the tick expired it before
+				// DoCombat could read it, so a player never felt the cap
+				// (slice 1b, owner ruling 2026-09-14).
+				if attemptMade, success := user.Character.AttemptRecovery(recoveryContest(user.Character)); attemptMade {
+					if success {
+						user.SendText(messaging.CategorySystem, "You scramble to your feet!")
+						if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
+							sendVisualRoomText(room, messaging.CategoryEmote, "<ansi fg=\"username\">"+user.Character.Name+"</ansi> clambers to their feet in a rushed panic.", user.UserId)
+						}
+					} else {
+						user.SendText(messaging.CategorySystem, "You attempt to stand, but slip back down in the chaos of battle!")
+						if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
+							sendVisualRoomText(room, messaging.CategoryEmote, "<ansi fg=\"username\">"+user.Character.Name+"</ansi> attempts to stand, but slips and falls in the chaos of battle.", user.UserId)
+						}
+					}
 				}
 
 				// Pinnacle item upkeep (procs are event-driven; this is the always-on layer).
