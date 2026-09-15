@@ -171,7 +171,7 @@ flags). Everything else — `rooms`, `users`, `mobs`, `combat`,
 
 ## See Also
 
-- `docs/superpowers/specs/2026-05-19-messaging-framework-design.md` —
+- `docs/superpowers/specs/completed/2026-05-19-messaging-framework-design.md` —
   full design spec.
 - `internal/state/perception/context.md` — the FSM whose state the
   sight gate reads (shipped dormant in chunk 6; this chunk is the

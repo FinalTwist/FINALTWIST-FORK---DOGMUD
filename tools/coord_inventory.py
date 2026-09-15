@@ -6,7 +6,7 @@ PURPOSE
 -------
 The newbie-area rework (Pothole Coulee) mandates ZERO (x, y, z) coordinate
 collisions, ever — within the new zone AND against every existing room in the
-world (design spec tenet 8, docs/superpowers/specs/2026-05-27-newbie-area-rework-design.md).
+world (design spec tenet 8, docs/superpowers/specs/completed/2026-05-27-newbie-area-rework-design.md).
 
 The engine already has the `cartcheck` admin command and a boot-time
 `ValidateZoneConsistency` pass, BUT those only check coordinate consistency

@@ -238,7 +238,7 @@ var knownIgnoredDialogueKeys = map[string]bool{}
 // Quest YAML used to contribute 17 entries here — an artifact of being parsed
 // by two type systems (the legacy `quests` package and `questengine`), each
 // seeing the other's fields as unknown. The 5c-pre unification (2026-07-27,
-// docs/superpowers/specs/2026-07-27-quest-unification-5c-pre-design.md) gave
+// docs/superpowers/specs/completed/2026-07-27-quest-unification-5c-pre-design.md) gave
 // quest files ONE explicitly-tagged parse, and those entries are gone; a novel
 // quest key now means a real tag mistake or content typo, never re-baseline it.
 //
@@ -345,7 +345,7 @@ func TestSmoke_NoNewSilentlyIgnoredYAMLKeys(t *testing.T) {
 // Since a marker is now an expectation, a marker-less step must be a choice, not
 // an oversight. This gate makes that choice mandatory: a new quest step that is
 // neither markable-and-resolved nor explicitly -1 fails CI until someone eyeballs
-// it. See docs/superpowers/specs/2026-07-21-quest-minimap-marker-audit-design.md.
+// it. See docs/superpowers/specs/completed/2026-07-21-quest-minimap-marker-audit-design.md.
 func TestSmoke_EveryQuestStepHasMarkerDecision(t *testing.T) {
 	if os.Getenv(bootSmokeEnvVar) == `` {
 		t.Skipf("set %s=1 to run the quest-marker decision gate", bootSmokeEnvVar)

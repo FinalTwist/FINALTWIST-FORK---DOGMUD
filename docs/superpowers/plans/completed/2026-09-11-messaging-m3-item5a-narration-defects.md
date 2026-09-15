@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go 1.25, testify, `gopkg.in/yaml.v2`, the hooks test fixture `seedAllRegistries`, `events.DrainQueuedMessagesForTest`, the `playtestrun` harness.
 
-**Spec:** [`docs/superpowers/specs/2026-09-11-messaging-m3-item5a-narration-defects-design.md`](../specs/2026-09-11-messaging-m3-item5a-narration-defects-design.md)
+**Spec:** [`docs/superpowers/specs/completed/2026-09-11-messaging-m3-item5a-narration-defects-design.md`](../../specs/completed/2026-09-11-messaging-m3-item5a-narration-defects-design.md)
 
 ---
 
@@ -518,7 +518,7 @@ with:
 		// moment to the target and the room, through the event AddBuff queues
 		// above, so a buff with authored start text reaches each audience
 		// twice. The messaging arc's M6 merges them into one line per audience.
-		// See docs/superpowers/specs/2026-09-11-messaging-m3-item5a-narration-defects-design.md.
+		// See docs/superpowers/specs/completed/2026-09-11-messaging-m3-item5a-narration-defects-design.md.
 		if target.UserId != user.UserId {
 			user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
 				`Your %s takes effect on <ansi fg="username">%s</ansi>!%s`,

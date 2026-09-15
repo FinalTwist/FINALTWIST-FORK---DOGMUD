@@ -17,7 +17,7 @@ import (
 // via a `mutation_migrated` marker under character. The framework (migration.go
 // Run) backs up all datafiles before this runs and restores on error.
 //
-// Spec: docs/superpowers/specs/2026-07-11-mutation-migration-design.md.
+// Spec: docs/superpowers/specs/completed/2026-07-11-mutation-migration-design.md.
 
 // retiredMutations is the retired-41 set removed from every player's save
 // (mirrors the data-side nuke). Any id here is stripped on migration.

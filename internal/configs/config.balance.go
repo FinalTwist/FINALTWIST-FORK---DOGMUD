@@ -206,7 +206,7 @@ type Balance struct {
 	// ── CHUNK 4D: SUBMISSION TICK ────────────────────────────────────────────
 	// Per-round opportunistic submission attempts gated on the chunk-4b
 	// control-axis drift roll. See spec
-	// docs/superpowers/specs/2026-05-18-state-chunk-4d-submission-rework-design.md
+	// docs/superpowers/specs/completed/2026-05-18-state-chunk-4d-submission-rework-design.md
 	SubmissionAttemptAlpha ConfigFloat `yaml:"submission_attempt_alpha"`  // Min drift-margin (std devs) that opens a sub window (either side)
 	SubmissionAttemptCritZ ConfigFloat `yaml:"submission_attempt_crit_z"` // Defender-side shortcut: drift z >= this opens a bottom-sub window regardless of margin
 	SubBadZThreshold       ConfigFloat `yaml:"sub_bad_z_threshold"`       // Z-score below which the sub roll's bad-tier (attempter falls prone) fires
@@ -231,7 +231,7 @@ type Balance struct {
 
 	// ── GRAPPLE CONTROL AXIS (chunk 4b) ──────────────────────────────────────
 	// Per-round drift mechanics — see
-	// docs/superpowers/specs/2026-05-16-state-chunk-4b-position-control-axis-design.md
+	// docs/superpowers/specs/completed/2026-05-16-state-chunk-4b-position-control-axis-design.md
 	GrappleStaminaPenaltyMax        ConfigFloat `yaml:"GrappleStaminaPenaltyMax"`        // Max roll-mult reduction at 0% stamina (default 0.60)
 	GrappleStaminaPenaltyCurve      ConfigFloat `yaml:"GrappleStaminaPenaltyCurve"`      // Exponent shape of stamina penalty curve (default 1.5)
 	GrappleEncumbrancePenaltyMax    ConfigFloat `yaml:"GrappleEncumbrancePenaltyMax"`    // Max roll-mult reduction at max encumbrance (default 0.80)

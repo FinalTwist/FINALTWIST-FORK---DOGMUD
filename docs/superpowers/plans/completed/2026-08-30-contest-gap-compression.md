@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, `gopkg.in/yaml.v2`, `testify`, PowerShell/Bash on Windows, `gh` pinned to `--repo pruuk/DOGMud`.
 
-**Spec:** [`2026-08-30-contest-gap-compression-design.md`](../specs/2026-08-30-contest-gap-compression-design.md)
+**Spec:** [`2026-08-30-contest-gap-compression-design.md`](../../specs/completed/2026-08-30-contest-gap-compression-design.md)
 
 **Branch:** `feature/contest-gap-compression` (already exists: three spec commits plus the oasis tier fix).
 

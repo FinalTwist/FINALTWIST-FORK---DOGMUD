@@ -1073,7 +1073,7 @@ Balance:
   SubInterruptDamageThresholdPct: 0.10  # chunk 4e §7; 10% of max HP triggers sub interrupt. Set 0 to disable threshold path (crit-only).
 
   # ── Grapple Control Axis (chunk 4b — per-round drift mechanics) ──────────
-  # See docs/superpowers/specs/2026-05-16-state-chunk-4b-position-control-axis-design.md
+  # See docs/superpowers/specs/completed/2026-05-16-state-chunk-4b-position-control-axis-design.md
   # Penalty curves are deliberately steeper than the combat ResourcePenalty
   # knobs above — grappling cardio-stresses faster than stand-up fighting.
   GrappleStaminaPenaltyMax: 0.60        # Max roll-mult reduction at 0% stamina
@@ -1099,7 +1099,7 @@ Balance:
   # ── Chunk 4d: Submission tick ─────────────────────────────────────────────
   # Per-round opportunistic submission attempts gated on the chunk-4b
   # control-axis drift roll. See spec
-  # docs/superpowers/specs/2026-05-18-state-chunk-4d-submission-rework-design.md
+  # docs/superpowers/specs/completed/2026-05-18-state-chunk-4d-submission-rework-design.md
   submission_attempt_alpha: 1.0          # Drift margin (std devs) that opens a sub window for the winning side
   submission_attempt_crit_z: 2.0         # Defender-crit shortcut for bottom-sub windows
   sub_bad_z_threshold: -1.0              # Sub roll z < this → attempter falls prone, pair breaks

@@ -8,7 +8,7 @@
 // centralized messaging framework chunk will consume this primitive
 // (broadcast cutover, infrared rendering, look-cmd gating, color
 // coding, line wrapping). See
-// docs/superpowers/specs/2026-05-19-state-chunk-6-perception-design.md
+// docs/superpowers/specs/completed/2026-05-19-state-chunk-6-perception-design.md
 // for the full design and the messaging-framework memory for the
 // successor work.
 package perception

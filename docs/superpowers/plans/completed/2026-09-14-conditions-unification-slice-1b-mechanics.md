@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, `gopkg.in/yaml.v2`, testify, the DOGMud playtest harness.
 
-**Spec:** `docs/superpowers/specs/2026-09-14-conditions-unification-slice-1b-mechanics-design.md` (read its "Facts verified against source" table first).
+**Spec:** `docs/superpowers/specs/completed/2026-09-14-conditions-unification-slice-1b-mechanics-design.md` (read its "Facts verified against source" table first).
 
 **Branch:** `feature/conditions-unification-slice-1b-mechanics` (already created off master `04134f7e5`; the spec commits are on it).
 
@@ -2216,7 +2216,7 @@ The plan's own row was added when the plan was committed. Add a row for each new
 - [ ] **Step 6: Commit**
 
 ```bash
-git add internal/buffs/context.md internal/characters/context.md internal/combat/context.md internal/hooks/context.md modules/gmcp/context.md internal/actions/context.md internal/configs/context.md .claude/skills/dogmud-balance-config/SKILL.md docs/superpowers/plans/2026-09-14-conditions-unification-slice-1b-mechanics.md internal/characters/buffs.go internal/users/userrecord.go internal/events/eventtypes.go internal/hooks/tick_cause.go internal/hooks/Death_PlayerAnnouncement.go internal/hooks/NewRound_UserRoundTick.go docs/PATCH_NOTES.md docs/README.md
+git add internal/buffs/context.md internal/characters/context.md internal/combat/context.md internal/hooks/context.md modules/gmcp/context.md internal/actions/context.md internal/configs/context.md .claude/skills/dogmud-balance-config/SKILL.md docs/superpowers/plans/completed/2026-09-14-conditions-unification-slice-1b-mechanics.md internal/characters/buffs.go internal/users/userrecord.go internal/events/eventtypes.go internal/hooks/tick_cause.go internal/hooks/Death_PlayerAnnouncement.go internal/hooks/NewRound_UserRoundTick.go docs/PATCH_NOTES.md docs/README.md
 git commit -F - <<'EOF'
 docs(conditions): slice 1b in context.md, comments and patch notes (stacking bleeds, dot every round, Recovering bites, secret records unlisted)
 

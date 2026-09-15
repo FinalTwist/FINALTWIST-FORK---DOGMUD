@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go 1.2x, `go test`, the golden harness in `internal/narration/snapshot_test.go`, the root guards in the repo root package, the playtest harness (`go run ./cmd/playtestrun scenario`).
 
-Spec: `docs/superpowers/specs/2026-09-12-messaging-m3-item5b-kind-b-store-migration-design.md`. Read it first; every design decision and its reason is there. Branch: `feature/messaging-m3-item5b-kind-b-migration` (already exists, spec committed at `a43dca778`).
+Spec: `docs/superpowers/specs/completed/2026-09-12-messaging-m3-item5b-kind-b-store-migration-design.md`. Read it first; every design decision and its reason is there. Branch: `feature/messaging-m3-item5b-kind-b-migration` (already exists, spec committed at `a43dca778`).
 
 ## Rules for this plan
 
@@ -2238,7 +2238,7 @@ Run: `python tools/context_md_audit.py`
 Expected: no phantom symbols reported for narration, textutil, buffs, spells, quests, questengine.
 
 ```bash
-git add internal/narration/context.md internal/textutil/context.md internal/buffs/context.md internal/spells/context.md internal/quests/context.md internal/questengine/context.md docs/superpowers/specs/2026-09-12-messaging-m3-item5b-kind-b-store-migration-design.md
+git add internal/narration/context.md internal/textutil/context.md internal/buffs/context.md internal/spells/context.md internal/quests/context.md internal/questengine/context.md docs/superpowers/specs/completed/2026-09-12-messaging-m3-item5b-kind-b-store-migration-design.md
 git commit -m "docs: the Kind B narration doors, the textutil adapter and FirstPicker"
 ```
 
@@ -2291,7 +2291,7 @@ Byte-identical migration of the three Kind B stores onto `internal/narration`.
 - Three goldens recorded from pre-migration code; all ten goldens byte-identical after the migration. Two sabotage probes verified red. Two new root guards.
 - Playtest: 5a lane A rerun, every line verbatim.
 
-Spec: docs/superpowers/specs/2026-09-12-messaging-m3-item5b-kind-b-store-migration-design.md
+Spec: docs/superpowers/specs/completed/2026-09-12-messaging-m3-item5b-kind-b-store-migration-design.md
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF

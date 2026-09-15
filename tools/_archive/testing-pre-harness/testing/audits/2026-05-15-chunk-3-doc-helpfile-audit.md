@@ -60,9 +60,9 @@ No helpfiles directory found at `_datafiles/helpfiles/`. User help is embedded i
 
 - `PATCH_NOTES.md` — Line 326: "set `CastingState` and froze forever." This is a historical bug report (fold-recall in stage 1). Kept as historical record. Accurate context shows this was fixed by direct teleport; current Activity machine does not exhibit this bug by design.
 
-- `docs/superpowers/specs/2026-05-15-state-chunk-3-activity-design.md` — Chunk 3 design spec. References Activity machine as the solution being implemented. Accurate and intentional. Kept.
+- `docs/superpowers/specs/completed/2026-05-15-state-chunk-3-activity-design.md` — Chunk 3 design spec. References Activity machine as the solution being implemented. Accurate and intentional. Kept.
 
-- `docs/superpowers/plans/2026-05-15-state-chunk-3-activity.md` — Chunk 3 implementation plan. References CastingState/CraftingState as things being replaced by Activity machine. Accurate historical record of the work. Kept.
+- `docs/superpowers/plans/completed/2026-05-15-state-chunk-3-activity.md` — Chunk 3 implementation plan. References CastingState/CraftingState as things being replaced by Activity machine. Accurate historical record of the work. Kept.
 
 ---
 

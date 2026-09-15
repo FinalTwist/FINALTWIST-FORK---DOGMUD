@@ -514,7 +514,7 @@ beside it. Snapshots green throughout.
 >
 > M2 was designed out on 2026-09-08 and two sentences above did not survive
 > contact with the tree. Full design:
-> [`2026-09-08-messaging-m2-shared-narration-seam-design.md`](2026-09-08-messaging-m2-shared-narration-seam-design.md).
+> [`2026-09-08-messaging-m2-shared-narration-seam-design.md`](completed/2026-09-08-messaging-m2-shared-narration-seam-design.md).
 > Read that, not this, when planning M2 or anything downstream of it.
 >
 > **1. "Snapshots green throughout" is not available, and is replaced by a

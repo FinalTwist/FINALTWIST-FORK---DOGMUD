@@ -9,7 +9,7 @@
 // Register. main.go imports this package + wires events.AddListener
 // for each event type seeders care about.
 //
-// See docs/superpowers/specs/2026-05-27-mob-aliveness-4.5-reactive-goal-generation-design.md
+// See docs/superpowers/specs/completed/2026-05-27-mob-aliveness-4.5-reactive-goal-generation-design.md
 package seeders
 
 import (

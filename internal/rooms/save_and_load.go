@@ -175,7 +175,7 @@ func LoadRoomInstance(roomId int) *Room {
 	// restore every skip-tagged field so template-owned state
 	// (title/description/exits/nouns/zone/etc.) cannot be corrupted
 	// by stale data in pre-fix instance files. See
-	// docs/superpowers/specs/2026-04-21-room-instance-load-respects-skip-tag-design.md.
+	// docs/superpowers/specs/completed/2026-04-21-room-instance-load-respects-skip-tag-design.md.
 	if freshTemplate := LoadRoomTemplate(roomId); freshTemplate != nil {
 		restoreSkipTaggedFields(room, freshTemplate)
 	}

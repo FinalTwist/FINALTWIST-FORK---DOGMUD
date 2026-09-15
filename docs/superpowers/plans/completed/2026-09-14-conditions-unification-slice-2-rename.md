@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, `gopls` v0.21.1 (`~/go/bin/gopls`), `go/parser` and `go/scanner`, yaml.v2, testify.
 
-**Spec:** `docs/superpowers/specs/2026-09-14-conditions-unification-slice-2-rename-design.md` (read the rulings, the facts table and the name map first).
+**Spec:** `docs/superpowers/specs/completed/2026-09-14-conditions-unification-slice-2-rename-design.md` (read the rulings, the facts table and the name map first).
 
 **Branch:** `feature/conditions-unification-slice-2-rename` off master `6f6a64696`.
 
@@ -649,7 +649,7 @@ Full gate plus `node tools/webclient-tests/*.js`. One patch note entry (Task 5 w
 
 - [ ] **Step 1: Write the guard**
 
-Create `identifier_word_guard_test.go` (repo root). It walks every `.go` file under the repo (skipping `.git`, `_datafiles`, `node_modules`, dot directories), tokenizes with `go/scanner` (so comments and string literals, including struct tags, are never IDENT tokens), and fails on any `token.IDENT` containing `buff` in any case, except names matching `(?i)buffer` and the allowlist `AllowItemBuffRemoval`, `DeathsShadowBuffId`, `BrokenLimbBuffDuration` (config fields renamed with their keys in slice 3). A second test in the same file scans `_datafiles/world/*/templates/**` and `_datafiles/html/**` (`.template`, `.html`) for Go field or method references `\.[A-Za-z]*[Bb]uff[A-Za-z]*` and fails on any hit that is not a known wire name used in JS/GMCP (allowlist each by file and name, with a reason). A file that vanishes during the walk (`os.IsNotExist`) is skipped, because behaviortree tests write temp files under gitignored `internal/**/_datafiles/`. It must also fail if it scanned zero files. Failure message: `<file>:<line>: identifier <name> still says buff; slice 2 of the conditions unification renamed these (docs/superpowers/specs/2026-09-14-conditions-unification-slice-2-rename-design.md)`.
+Create `identifier_word_guard_test.go` (repo root). It walks every `.go` file under the repo (skipping `.git`, `_datafiles`, `node_modules`, dot directories), tokenizes with `go/scanner` (so comments and string literals, including struct tags, are never IDENT tokens), and fails on any `token.IDENT` containing `buff` in any case, except names matching `(?i)buffer` and the allowlist `AllowItemBuffRemoval`, `DeathsShadowBuffId`, `BrokenLimbBuffDuration` (config fields renamed with their keys in slice 3). A second test in the same file scans `_datafiles/world/*/templates/**` and `_datafiles/html/**` (`.template`, `.html`) for Go field or method references `\.[A-Za-z]*[Bb]uff[A-Za-z]*` and fails on any hit that is not a known wire name used in JS/GMCP (allowlist each by file and name, with a reason). A file that vanishes during the walk (`os.IsNotExist`) is skipped, because behaviortree tests write temp files under gitignored `internal/**/_datafiles/`. It must also fail if it scanned zero files. Failure message: `<file>:<line>: identifier <name> still says buff; slice 2 of the conditions unification renamed these (docs/superpowers/specs/completed/2026-09-14-conditions-unification-slice-2-rename-design.md)`.
 
 - [ ] **Step 2: Probe and commit**
 

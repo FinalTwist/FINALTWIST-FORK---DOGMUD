@@ -28,7 +28,7 @@ ranged decision and becomes one rule in one place.
 **Tech Stack:** Go 1.x, `gopkg.in/yaml.v2` data files, Go text/template help
 pages, the project's `actions`/`combat` seam packages.
 
-**Source spec:** `docs/superpowers/specs/2026-09-07-ranged-one-verb-design.md`
+**Source spec:** `docs/superpowers/specs/completed/2026-09-07-ranged-one-verb-design.md`
 
 ---
 

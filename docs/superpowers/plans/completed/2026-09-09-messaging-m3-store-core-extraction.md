@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go 1.25, `gopkg.in/yaml.v2`, the repo's `fileloader` + `narration.Picker` seams, golden-file snapshot tests under `internal/narration/testdata/stores/`.
 
-**Spec:** [`docs/superpowers/specs/2026-09-09-messaging-m3-store-core-extraction-design.md`](../specs/2026-09-09-messaging-m3-store-core-extraction-design.md)
+**Spec:** [`docs/superpowers/specs/completed/2026-09-09-messaging-m3-store-core-extraction-design.md`](../../specs/completed/2026-09-09-messaging-m3-store-core-extraction-design.md)
 
 ---
 

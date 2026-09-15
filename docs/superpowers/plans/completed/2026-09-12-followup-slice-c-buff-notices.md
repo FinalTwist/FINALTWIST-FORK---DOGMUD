@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, `internal/buffs`, `internal/hooks`, root-package guard tests, YAML world data, the playtest harness.
 
-Spec: `docs/superpowers/specs/2026-09-12-followup-slice-c-buff-notices-design.md`
+Spec: `docs/superpowers/specs/completed/2026-09-12-followup-slice-c-buff-notices-design.md`
 
 ---
 

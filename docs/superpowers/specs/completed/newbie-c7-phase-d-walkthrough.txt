@@ -1,7 +1,7 @@
 ================================================================================
 NEWBIE REWORK — CHUNK 7 (Spoke F, Lore & Folk Tradition) — PHASE D WALKTHROUGH
 Dialogue + quests (inline) + engine touches. Scripted-verified. 2026-06-15.
-Sub-spec: docs/superpowers/specs/2026-06-15-newbie-chunk7-spoke-f-lore-subspec.md
+Sub-spec: docs/superpowers/specs/completed/2026-06-15-newbie-chunk7-spoke-f-lore-subspec.md
 ================================================================================
 
 THE SOFT SPOKE — no boss. Quest progress comes from ask/help/taunt/search beats,

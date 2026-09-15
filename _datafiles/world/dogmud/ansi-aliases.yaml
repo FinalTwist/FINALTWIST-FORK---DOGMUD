@@ -184,7 +184,7 @@ colors:
   md-hr2: 4
 
 # === Messaging Framework Categories ===
-# Spec: docs/superpowers/specs/2026-05-19-messaging-framework-design.md
+# Spec: docs/superpowers/specs/completed/2026-05-19-messaging-framework-design.md
 # Test these in-game; values are first-pass approximations.
 
 # Combat — damage bands (each band uses a visually distinct code so

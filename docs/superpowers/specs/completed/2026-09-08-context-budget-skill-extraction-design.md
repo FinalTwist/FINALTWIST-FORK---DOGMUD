@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-08
 **Status:** design approved, not yet planned
-**Full path:** `docs/superpowers/specs/2026-09-08-context-budget-skill-extraction-design.md`
+**Full path:** `docs/superpowers/specs/completed/2026-09-08-context-budget-skill-extraction-design.md`
 
 ## Facts verified against source (2026-09-08)
 

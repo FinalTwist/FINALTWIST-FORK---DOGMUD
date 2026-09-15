@@ -194,7 +194,7 @@ func RecordCrimeWitnessed(observerMobId int, subject Subject, crimeId int) {
 // cascade to opinion (1.1) or reputation (1.2/1.3) state. Those systems
 // track faction-level trust derived from witnessed behaviour over time,
 // not individual memory. Amnesia spells are the natural future moment to
-// revisit cascade. See docs/superpowers/specs/2026-05-09-mob-aliveness-1.4-knowledge-model-design.md.
+// revisit cascade. See docs/superpowers/specs/completed/2026-05-09-mob-aliveness-1.4-knowledge-model-design.md.
 func Forget(observerMobId int, subject Subject) {
 	fc := loadOrLazyInit(observerMobId, observerNameFor(observerMobId))
 

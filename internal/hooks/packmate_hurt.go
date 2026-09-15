@@ -17,7 +17,7 @@ var dispatchEventFn = behaviortree.TryMobBehavior
 // Called from handleAggroAndAssist after the defender-side aggro has
 // been established. Replaces the former mobs.MakeHostile call.
 //
-// Spec: docs/superpowers/specs/2026-04-22-pack-tactics-revamp-design.md
+// Spec: docs/superpowers/specs/completed/2026-04-22-pack-tactics-revamp-design.md
 // (§ Event dispatch).
 func dispatchPackmateHurt(victim *mobs.Mob, attackerUserId int, attackerMobInstanceId int) {
 	if victim == nil {

@@ -130,7 +130,7 @@ mutations at character init via `Character.ApplyIntrinsicMutations`.
 Cap-aware: combined rank clamped to `MutationMaxRank = 4` (matches
 the chunk-2.2a convention).
 
-Design: `docs/superpowers/specs/2026-05-12-mob-aliveness-2.5-mutations-on-mobs-design.md`
+Design: `docs/superpowers/specs/completed/2026-05-12-mob-aliveness-2.5-mutations-on-mobs-design.md`
 
 ### Conflict System (Phase 24.1)
 

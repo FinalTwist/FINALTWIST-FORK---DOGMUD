@@ -12,5 +12,5 @@
 //	befriend, befriend-faction, mastery-skill, mastery-equip,
 //	visit-zone
 //
-// See docs/superpowers/specs/2026-05-27-mob-aliveness-4.3-goal-types-catalog-design.md.
+// See docs/superpowers/specs/completed/2026-05-27-mob-aliveness-4.3-goal-types-catalog-design.md.
 package catalog

@@ -9,7 +9,7 @@
 #
 # Migrated from inline tactics in chunk 2.6.
 #
-# Spec: docs/superpowers/specs/2026-05-12-mob-aliveness-2.6-sunset-tactics-engine-design.md
+# Spec: docs/superpowers/specs/completed/2026-05-12-mob-aliveness-2.6-sunset-tactics-engine-design.md
 
 tree:
   type: selector

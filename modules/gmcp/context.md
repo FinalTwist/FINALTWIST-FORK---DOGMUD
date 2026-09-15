@@ -166,7 +166,7 @@ After processing, either handler emits `events.AutomationChanged{UserId}`
 to re-push the full `Char.Automation` payload to the client. Unknown
 `kind` values are silently ignored.
 
-See `docs/superpowers/specs/2026-06-07-web-client-automation-panel-design.md`
+See `docs/superpowers/specs/completed/2026-06-07-web-client-automation-panel-design.md`
 for the full Phase 2–3 design.
 
 ## Char.Automation — Action Queue (Phase 4)

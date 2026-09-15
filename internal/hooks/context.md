@@ -1197,7 +1197,7 @@ fully pay that round keeps the Strength/Dexterity base plus the existing
 stamina-depletion and grapple-encumbrance effectiveness multipliers, but loses
 only the Unarmed Combat term. The other participant's skill term is independent.
 
-See `docs/superpowers/specs/2026-05-19-grapple-drift-formula-rework-design.md`
+See `docs/superpowers/specs/completed/2026-05-19-grapple-drift-formula-rework-design.md`
 for the design rationale and sample z-score table.
 
 For each pair inside `processGrapplePair`:

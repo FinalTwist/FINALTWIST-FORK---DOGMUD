@@ -176,29 +176,29 @@ sweep" — explicitly listed in `position/context.md` line 483.
 - `PATCH_NOTES.md` — Surveyed for CombatPosition/GrappleControllerId
   references; none found. KEEP.
 
-- `docs/superpowers/specs/2026-05-16-state-chunk-4b-position-control-axis-design.md`
+- `docs/superpowers/specs/completed/2026-05-16-state-chunk-4b-position-control-axis-design.md`
   — Chunk 4b's own design spec. Self-reference. KEEP.
 
-- `docs/superpowers/plans/2026-05-16-state-chunk-4b-position-control-axis.md`
+- `docs/superpowers/plans/completed/2026-05-16-state-chunk-4b-position-control-axis.md`
   — Chunk 4b's own plan. Self-reference. KEEP.
 
-- `docs/superpowers/specs/2026-05-16-state-chunk-4a-position-fsm-design.md`
-  + `docs/superpowers/plans/2026-05-16-state-chunk-4a-position-fsm.md`
+- `docs/superpowers/specs/completed/2026-05-16-state-chunk-4a-position-fsm-design.md`
+  + `docs/superpowers/plans/completed/2026-05-16-state-chunk-4a-position-fsm.md`
   — Chunk 4a's spec/plan. Historical record. KEEP.
 
-- `docs/superpowers/specs/2026-05-13-combat-state-machines-design.md`
+- `docs/superpowers/specs/completed/2026-05-13-combat-state-machines-design.md`
   — Master spec for the six-machine vision. Lines 7, 24, 326-328,
   411, 745-747 reference CombatPosition / PositionRoundsMin /
   GrappleControllerId / ConditionGrappleController as items being
   replaced by the Position machine. All references describe the
   intentional sunset path — accurate. KEEP.
 
-- `docs/superpowers/plans/2026-05-15-state-chunk-2-life.md` +
-  `docs/superpowers/specs/2026-05-15-state-chunk-2-life-design.md`
+- `docs/superpowers/plans/completed/2026-05-15-state-chunk-2-life.md` +
+  `docs/superpowers/specs/completed/2026-05-15-state-chunk-2-life-design.md`
   — Chunk-2 plan/spec referencing the Position pre-wire as an
   in-cascade reset. Historical record. KEEP.
 
-- `docs/superpowers/plans/2026-05-13-state-chunk-0-framework-and-combat-phase.md`
+- `docs/superpowers/plans/completed/2026-05-13-state-chunk-0-framework-and-combat-phase.md`
   — Chunk-0 plan referencing the original `RegisterPositionCheck`
   closure. Historical. KEEP.
 

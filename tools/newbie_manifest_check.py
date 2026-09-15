@@ -2,7 +2,7 @@
 """Newbie-area manifest conformance check.
 
 Asserts every authored Pothole Coulee room against a hardcoded copy of the
-chunk-1 hub sub-spec (docs/superpowers/specs/2026-06-12-newbie-chunk1-hub-subspec.md
+chunk-1 hub sub-spec (docs/superpowers/specs/completed/2026-06-12-newbie-chunk1-hub-subspec.md
 section 3): roomid/title/biome/coord/exits (exact set + targets), sanctuary
 mutator, noun-count floor (>=2 hub, >=1 stub), single-token noun keys, and that
 every noun key appears (case-insensitive) in the room's description body.

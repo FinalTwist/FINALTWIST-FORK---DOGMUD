@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, `internal/behaviortree`, `internal/mobcommands`, `internal/actions`, `internal/species`, `internal/buffs`, YAML world data.
 
-Spec: `docs/superpowers/specs/2026-09-11-followup-slice-f-mobs-perceive-darkness-design.md`
+Spec: `docs/superpowers/specs/completed/2026-09-11-followup-slice-f-mobs-perceive-darkness-design.md`
 
 ---
 

@@ -1,7 +1,7 @@
 ================================================================================
 NEWBIE REWORK — CHUNK 4 (Spoke C, Herbalism & Alchemy) — PHASE R WALKTHROUGH
 Rooms + nouns build record. 2026-06-14.
-Sub-spec: docs/superpowers/specs/2026-06-14-newbie-chunk4-spoke-c-alchemy-subspec.md
+Sub-spec: docs/superpowers/specs/completed/2026-06-14-newbie-chunk4-spoke-c-alchemy-subspec.md
 ================================================================================
 
 This is a STATIC build record (not a live AI-port walk). Authoritative automated

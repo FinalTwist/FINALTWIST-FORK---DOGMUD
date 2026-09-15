@@ -274,7 +274,7 @@ The chunk-4.4 `plan:<type>:<key>` namespace is strictly separate.
 
 ## Spec Reference
 
-`docs/superpowers/specs/2026-05-27-mob-aliveness-4.5-reactive-goal-generation-design.md`
+`docs/superpowers/specs/completed/2026-05-27-mob-aliveness-4.5-reactive-goal-generation-design.md`
 
 ## Files
 

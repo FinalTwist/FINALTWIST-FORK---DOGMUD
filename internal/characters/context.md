@@ -1095,7 +1095,7 @@ that also rolls `tail` rank 1 ends up with effective rank 2 in
 
 File: `internal/characters/intrinsic.go`
 
-Design: `docs/superpowers/specs/2026-05-12-mob-aliveness-2.5-mutations-on-mobs-design.md`
+Design: `docs/superpowers/specs/completed/2026-05-12-mob-aliveness-2.5-mutations-on-mobs-design.md`
 
 ## Key Features
 

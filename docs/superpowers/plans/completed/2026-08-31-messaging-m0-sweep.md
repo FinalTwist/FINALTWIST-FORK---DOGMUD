@@ -18,7 +18,7 @@ output, not from memory.
 **Tech Stack:** Python 3 (stdlib only, matching `tools/id_inventory.py` and
 `tools/context_md_audit.py`), Go 1.x `testing` + `go/ast` + `io/fs`.
 
-**Spec:** [`2026-08-31-messaging-unification-design.md`](../specs/2026-08-31-messaging-unification-design.md)
+**Spec:** [`2026-08-31-messaging-unification-design.md`](../../specs/2026-08-31-messaging-unification-design.md)
 
 **No production behavior changes in M0.** Nothing under `internal/` or `modules/`
 is modified. The only Go file added is a test.
@@ -1110,7 +1110,7 @@ plan or from the design spec:
 Add to the table in `docs/README.md`, next to the other audit rows:
 
 ```markdown
-| [`superpowers/audits/2026-08-31-messaging-surface-sweep.md`](superpowers/audits/2026-08-31-messaging-surface-sweep.md) | M0 of the messaging arc: a mechanically-derived inventory of every text-bearing key spelling and every pipeline bypass, locked by `messaging_surface_guard_test.go` |
+| [`superpowers/audits/2026-08-31-messaging-surface-sweep.md`](../../audits/2026-08-31-messaging-surface-sweep.md) | M0 of the messaging arc: a mechanically-derived inventory of every text-bearing key spelling and every pipeline bypass, locked by `messaging_surface_guard_test.go` |
 ```
 
 - [ ] **Step 4: Confirm the guard still passes and the build is clean**

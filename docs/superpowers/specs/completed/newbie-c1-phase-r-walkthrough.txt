@@ -3,7 +3,7 @@ POTHOLE COULEE  --  NEWBIE CHUNK 1, PHASE R  --  REVIEW WALKTHROUGH TRANSCRIPT
 ================================================================================
 
 Generated 2026-06-12 by the Phase-R audit task (Task 5).
-Sub-spec: docs/superpowers/specs/2026-06-12-newbie-chunk1-hub-subspec.md (section 3)
+Sub-spec: docs/superpowers/specs/completed/2026-06-12-newbie-chunk1-hub-subspec.md (section 3)
 
 This is the review artifact for the rooms + nouns phase of the hub town. It is a
 scripted AI-port session (smoketester, admin, ANSI-stripped) that visits all 26

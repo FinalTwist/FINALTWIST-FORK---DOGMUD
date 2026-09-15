@@ -15,10 +15,10 @@ import (
 
 // Slice 2 of the conditions unification renamed every Go identifier and every
 // player- or admin-facing template field reference that said buff to
-// condition (docs/superpowers/specs/2026-09-14-conditions-unification-slice-2-rename-design.md).
+// condition (docs/superpowers/specs/completed/2026-09-14-conditions-unification-slice-2-rename-design.md).
 // These two guards keep the word from coming back.
 
-const identifierGuardSpecPath = "docs/superpowers/specs/2026-09-14-conditions-unification-slice-2-rename-design.md"
+const identifierGuardSpecPath = "docs/superpowers/specs/completed/2026-09-14-conditions-unification-slice-2-rename-design.md"
 
 // identifierGuardWordPattern matches "buff" in any case.
 // identifierGuardBufferSubstring strips every case-sensitive "buffer",

@@ -1128,7 +1128,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 		// moment to the target and the room, through the event AddCondition queues
 		// above, so a condition with authored start text reaches each audience
 		// twice. The messaging arc's M6 merges them into one line per audience.
-		// See docs/superpowers/specs/2026-09-11-messaging-m3-item5a-narration-defects-design.md.
+		// See docs/superpowers/specs/completed/2026-09-11-messaging-m3-item5a-narration-defects-design.md.
 		if target.UserId != user.UserId {
 			messaging.SendTrio(messaging.Trio{
 				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
@@ -1381,7 +1381,7 @@ func resolveMobSpell(mob *mobs.Mob, cs activity.CastingData, spellData *spells.S
 
 // resolveMobDrainArea is the resolution handler for a mob-cast spell whose
 // EffectType is "drain_area" (the Core Guardian's "core recharge" ability
-// design — see docs/superpowers/plans/2026-07-06-crashsite-boss-mechanics.md
+// design — see docs/superpowers/plans/completed/2026-07-06-crashsite-boss-mechanics.md
 // Chunk D). It drains every living player in the room and heals the caster
 // by the aggregate lifesteal via actions.ExecuteDrainArea (which mirrors the
 // single-target vampire ExecuteDrain math exactly).

@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, `internal/combat`, `internal/characters`, `internal/configs`, `_datafiles/config.yaml`.
 
-**Spec:** `docs/superpowers/specs/2026-08-11-skill-and-crit-rebalance-design.md` — **read the Traps section before writing any code.**
+**Spec:** `docs/superpowers/specs/completed/2026-08-11-skill-and-crit-rebalance-design.md` — **read the Traps section before writing any code.**
 
 **Branch:** `feature/5.11-skill-and-crit-rebalance`, created before Task 1.
 

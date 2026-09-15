@@ -2246,8 +2246,8 @@ Note chunk 3.7's now-satisfied dependency: append to the 3.7 entry:
 - [ ] **Step 3: Move spec and plan to completed/**
 
 ```bash
-git mv docs/superpowers/specs/2026-05-25-mob-aliveness-3.4-waypoint-patrols-design.md docs/superpowers/specs/completed/
-git mv docs/superpowers/plans/2026-05-25-mob-aliveness-3.4-waypoint-patrols.md docs/superpowers/plans/completed/
+git mv docs/superpowers/specs/completed/2026-05-25-mob-aliveness-3.4-waypoint-patrols-design.md docs/superpowers/specs/completed/
+git mv docs/superpowers/plans/completed/2026-05-25-mob-aliveness-3.4-waypoint-patrols.md docs/superpowers/plans/completed/
 ```
 
 - [ ] **Step 4: Final verification**

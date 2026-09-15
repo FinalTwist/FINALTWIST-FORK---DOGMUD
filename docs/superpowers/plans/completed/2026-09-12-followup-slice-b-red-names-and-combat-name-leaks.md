@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, `internal/characters`, `internal/messaging`, `internal/hooks`, testify.
 
-Spec: `docs/superpowers/specs/2026-09-12-followup-slice-b-red-names-and-combat-name-leaks-design.md`
+Spec: `docs/superpowers/specs/completed/2026-09-12-followup-slice-b-red-names-and-combat-name-leaks-design.md`
 
 ---
 

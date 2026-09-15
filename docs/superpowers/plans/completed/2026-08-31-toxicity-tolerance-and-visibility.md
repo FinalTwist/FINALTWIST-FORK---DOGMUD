@@ -18,7 +18,7 @@ invisible Go defaults; and the help system learns the topic exists.
 **Tech Stack:** Go 1.x, `gopkg.in/yaml.v2` data files, Go text/template help pages,
 `testify` for assertions.
 
-**Source spec:** `docs/superpowers/specs/2026-08-31-toxicity-tolerance-and-visibility-design.md`
+**Source spec:** `docs/superpowers/specs/completed/2026-08-31-toxicity-tolerance-and-visibility-design.md`
 
 ---
 

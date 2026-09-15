@@ -16,7 +16,7 @@ because removing any section renumbers everything below it.
 **Tech Stack:** Markdown, Python 3 (filename-and-heading parsers, no YAML
 library, matching the house style of `tools/id_inventory.py`).
 
-**Source spec:** `docs/superpowers/specs/2026-09-08-context-budget-phase-2-design.md`
+**Source spec:** `docs/superpowers/specs/completed/2026-09-08-context-budget-phase-2-design.md`
 **Phase 1 audit:** `docs/superpowers/audits/2026-09-08-skill-coverage.md`
 
 ---

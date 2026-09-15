@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go 1.x, `testify` (`assert`, `require`), `go/ast` root guards, the playtest harness (`playtestrun`, `mudagent`).
 
-**Spec:** `docs/superpowers/specs/2026-09-11-followup-slice-a-names-in-dark-design.md` (owner rulings 1 to 10).
+**Spec:** `docs/superpowers/specs/completed/2026-09-11-followup-slice-a-names-in-dark-design.md` (owner rulings 1 to 10).
 
 ---
 

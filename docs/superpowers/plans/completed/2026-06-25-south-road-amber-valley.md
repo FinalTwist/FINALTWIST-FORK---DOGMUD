@@ -142,7 +142,7 @@ next quest id likely 72 (verify with `python tools/id_inventory.py --type quests
 **Files:**
 - Create: `rooms/south_road/zone-config.yaml`, `rooms/amber_valley/zone-config.yaml`
 - Modify: `rooms/marches_spur_road/4014.yaml` (add south exit)
-- Create (reference doc): `docs/superpowers/plans/south-amber-coordmap.md`
+- Create (reference doc): `docs/superpowers/plans/completed/south-amber-coordmap.md`
 
 - [ ] **Step 1: Branch + ID sanity**
 ```bash
@@ -160,7 +160,7 @@ sed -n '/^coord:/,/^[a-z]/p' "_datafiles/world/dogmud/rooms/marches_spur_road/40
 Confirms 4014 is at x=-8, y=-13, z=0. South = decreasing y.
 
 - [ ] **Step 3: Author the coordinate skeleton** — create
-`docs/superpowers/plans/south-amber-coordmap.md` assigning every roomid 6040–6089
+`docs/superpowers/plans/completed/south-amber-coordmap.md` assigning every roomid 6040–6089
 a unique `(x,y,z)` and its exits, per this geometry (the room-authoring tasks read
 this file and place rooms exactly here):
   - **South Road (6040–6054):** a southward road spine down x=-8 from y=-14. The
@@ -207,7 +207,7 @@ region: Windward Marches
 
 - [ ] **Step 6: Commit**
 ```bash
-git add docs/superpowers/plans/south-amber-coordmap.md \
+git add docs/superpowers/plans/completed/south-amber-coordmap.md \
         _datafiles/world/dogmud/rooms/south_road/zone-config.yaml \
         _datafiles/world/dogmud/rooms/amber_valley/zone-config.yaml \
         _datafiles/world/dogmud/rooms/marches_spur_road/4014.yaml
