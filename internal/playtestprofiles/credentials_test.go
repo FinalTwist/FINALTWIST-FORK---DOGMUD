@@ -33,6 +33,32 @@ func TestGenerateCredentialsShapeAndHash(t *testing.T) {
 	require.True(t, u.PasswordMatches(password))
 }
 
+// The shipped config.yaml bans "*admin*" (and "*moderator*") for player-chosen
+// names. The harness generates the admin profile's username itself, and login
+// of an existing account never re-checks BannedNames, so the generator must not
+// apply that policy or the admin profile can never start.
+func TestGenerateCredentialsAdminProfileSurvivesShippedBannedNames(t *testing.T) {
+	_ = configs.AddOverlayOverrides(map[string]any{
+		"Validation.NameSizeMin":     2,
+		"Validation.NameSizeMax":     32,
+		"Validation.NameRejectRegex": `^[a-zA-Z0-9_]+$`,
+		"Validation.BannedNames":     []string{"*admin*", "*moderator*"},
+	})
+	t.Cleanup(func() {
+		_ = configs.AddOverlayOverrides(map[string]any{"Validation.BannedNames": []string{}})
+	})
+	_, banned := configs.GetConfig().IsBannedName("pt_admin_abc123")
+	require.True(t, banned, "precondition: the banned list must be live or this test cannot fail")
+
+	u := &users.UserRecord{
+		Role:      users.RoleAdmin,
+		Character: &characters.Character{Name: "Tester"},
+	}
+	username, _, err := GenerateCredentials(u, "admin")
+	require.NoError(t, err)
+	require.True(t, strings.HasPrefix(username, "pt_admin_"), "got %q", username)
+}
+
 func TestSanitizeProfileToken(t *testing.T) {
 	require.Equal(t, "specialist_caster", sanitizeProfileToken("specialist-caster"))
 	require.Equal(t, "mid", sanitizeProfileToken("mid"))
