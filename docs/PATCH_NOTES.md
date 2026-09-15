@@ -1,5 +1,11 @@
 # DOGMud Patch Notes
 
+## 2026-09-15: Your progress shines
+
+When a skill or statistic improves, its announcement now appears in warm
+gold instead of plain text, so a moment of progress stands out from the rest
+of the scroll. The words have not changed. Crafting reads exactly as before.
+
 ## 2026-09-15: Recipes you cannot make yet keep their secrets
 
 When a recipe needs more skill than you have, the crafting message no longer
