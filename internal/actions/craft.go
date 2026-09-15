@@ -54,9 +54,9 @@ type CraftResult struct {
 	TimeRounds           int // recipe.TimeRounds — for duration-description messaging
 	StationNeeded        string
 	MissingTag           string
-	ForeignComponentName string // name of the offending component (ForeignComponent only)
-	OutputName           string // display name of the produced item (immediate-complete only)
-	SuccessMsg           string // recipe.SuccessMessage
+	ForeignComponentName string               // name of the offending component (ForeignComponent only)
+	OutputName           string               // display name of the produced item (immediate-complete only)
+	Recipe               *crafting.RecipeSpec // resolved recipe; render its text through Recipe.Narrate
 }
 
 // resolveCraftRecipe resolves a craft query with known-recipe preference:
@@ -158,7 +158,7 @@ func InitiateCraft(actor Actor, recipeName string) CraftResult {
 		SkillName:    recipe.Skill,
 		SkillMinimum: recipe.SkillMinimum,
 		TimeRounds:   recipe.TimeRounds,
-		SuccessMsg:   recipe.SuccessMessage,
+		Recipe:       recipe,
 	}
 
 	// ── Known-recipe gate ─────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/activity"
+	"github.com/GoMudEngine/GoMud/internal/textutil"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -127,7 +128,14 @@ func Craft(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		// left to carry and plain AwardResolved is correct.
 		user.Character.AwardResolved(user.UserId, true,
 			user.Character.CandidateFor(result.SkillName))
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, result.SuccessMsg))
+		roles := result.Recipe.Narrate(crafting.PhaseSuccess, textutil.TokenContext{
+			SourceName:      user.Character.GetCharacterName(true),
+			SourcePlainName: user.Character.GetCharacterName(false),
+		})
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, roles.Actor))
+		if roles.Observer != "" {
+			room.SendTextVisual(messaging.CategoryEmote, roles.Observer, user.UserId)
+		}
 		return true, nil
 
 	case result.Initiated:
@@ -303,7 +311,7 @@ func craftEnchanting(rest string, recipe *crafting.RecipeSpec, user *users.UserR
 
 	// Safety: complete immediately if time_rounds <= 0
 	if recipe.TimeRounds <= 0 {
-		completeCraft(user, recipe)
+		completeCraft(user, room, recipe)
 		return true, nil
 	}
 
@@ -624,11 +632,18 @@ func ingredientSummary(r *crafting.RecipeSpec) string {
 }
 
 // completeCraft resolves a craft instantly (used when time_rounds <= 0).
-func completeCraft(user *users.UserRecord, recipe *crafting.RecipeSpec) {
+func completeCraft(user *users.UserRecord, room *rooms.Room, recipe *crafting.RecipeSpec) {
 	user.Character.Items, user.Character.ComponentItems = crafting.ConsumeIngredients(user.Character.Items, user.Character.ComponentItems, recipe)
 	newItem := items.New(recipe.Output.ItemId)
 	user.Character.StoreItem(newItem)
-	user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, recipe.SuccessMessage))
+	roles := recipe.Narrate(crafting.PhaseSuccess, textutil.TokenContext{
+		SourceName:      user.Character.GetCharacterName(true),
+		SourcePlainName: user.Character.GetCharacterName(false),
+	})
+	user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, roles.Actor))
+	if roles.Observer != "" {
+		room.SendTextVisual(messaging.CategoryEmote, roles.Observer, user.UserId)
+	}
 }
 
 // titleCase capitalises the first letter of each space-separated word.
