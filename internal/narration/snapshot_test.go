@@ -92,6 +92,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/grapplemessaging"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/itemvoices"
@@ -155,6 +156,9 @@ func setupRealStores(t *testing.T) {
 	conditions.LoadDataFiles()
 	spells.LoadSpellFiles()
 	quests.LoadDataFiles()
+
+	// M3 item 6: recipes load from the same configured data path.
+	crafting.LoadRecipeFiles()
 }
 
 // ---------------------------------------------------------------------
@@ -733,6 +737,9 @@ func TestSnapshotStores(t *testing.T) {
 	t.Run("quests", func(t *testing.T) {
 		checkGolden(t, "quests.golden", buildQuestsGolden(t))
 	})
+	t.Run("crafting", func(t *testing.T) {
+		checkGolden(t, "crafting.golden", buildCraftingGolden(t))
+	})
 	t.Run("post_pipeline", func(t *testing.T) {
 		checkGolden(t, "post_pipeline.golden", buildPostPipelineGolden(t))
 	})
@@ -988,6 +995,39 @@ func buildQuestsGolden(t *testing.T) string {
 		for i, tr := range q.Triggers {
 			walk(fmt.Sprintf("quest|%d|trigger%d", q.QuestId, i), tr.Actions)
 		}
+	}
+	return b.String()
+}
+
+// Store 11: crafting (internal/crafting: success_message / failure_message)
+//
+// Built from PRE-migration code: the raw field, color-wrapped exactly as the
+// four player sites send it on CategorySystem. Task 5 of the M3 item 6 plan
+// switches this builder to RecipeSpec.Narrate; the rows, their order and the
+// header must not change, which is the byte-identity proof.
+func buildCraftingGolden(t *testing.T) string {
+	t.Helper()
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "# crafting store snapshot (internal/crafting)\n")
+	fmt.Fprintf(&b, "# Built 2026-09-15 from PRE-migration code: what the CRAFTER is sent, color wrap\n")
+	fmt.Fprintf(&b, "# included (success green, failure red, CategorySystem). Recipes had no room line\n")
+	fmt.Fprintf(&b, "# before M3 item 6; *_room_message rows appear only once one is authored.\n")
+	fmt.Fprintf(&b, "# dimensions: recipe id x authored key; source only, a craft has no target\n\n")
+
+	all := crafting.GetAll()
+	ids := make([]string, 0, len(all))
+	for id := range all {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	if len(ids) == 0 {
+		t.Fatal("no recipes loaded; setupRealStores must call crafting.LoadRecipeFiles()")
+	}
+	for _, id := range ids {
+		r := all[id]
+		fmt.Fprintf(&b, "recipe|%s|success_message => %s\n", id, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, r.SuccessMessage))
+		fmt.Fprintf(&b, "recipe|%s|failure_message => %s\n", id, fmt.Sprintf(`<ansi fg="red">%s</ansi>`, r.FailureMessage))
 	}
 	return b.String()
 }
