@@ -1,8 +1,10 @@
 package migration
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -11,7 +13,9 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditionrename"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/util"
 	"gopkg.in/yaml.v2"
+	yamlv3 "gopkg.in/yaml.v3"
 )
 
 // Description:
@@ -216,6 +220,9 @@ func renameConditionKeysInBytes(path string, raw []byte, dryRun bool) (bool, err
 		// file of a shape no store saves. Refuse rather than guess.
 		return false, fmt.Errorf("migration 0.17.0: %s: a list with non-mapping elements carries an old key", path)
 	}
+	if err := checkPreservableShape(raw); err != nil {
+		return false, fmt.Errorf("migration 0.17.0: %s: %w", path, err)
+	}
 	mudlog.Info("Migration 0.17.0", "file", path, "renamed", true)
 	if dryRun {
 		return true, nil
@@ -224,10 +231,89 @@ func renameConditionKeysInBytes(path string, raw []byte, dryRun bool) (bool, err
 	if err != nil {
 		return false, fmt.Errorf("migration 0.17.0: marshal %s: %w", path, err)
 	}
-	if err := os.WriteFile(path, out, 0644); err != nil {
+	// util.Save is safe by default (temp file, fsync, rename): a crash
+	// mid-write cannot truncate the file it is replacing, unlike os.WriteFile.
+	if err := util.Save(path, out); err != nil {
 		return false, fmt.Errorf("migration 0.17.0: write %s: %w", path, err)
 	}
 	return true, nil
+}
+
+// checkPreservableShape reports an error when raw is a YAML shape
+// decodeOrdered's yaml.v2 round trip cannot preserve: more than one
+// non-empty document (yaml.v2's Unmarshal silently keeps only the first),
+// or a merge key / alias (yaml.v2's MapSlice unmarshal silently drops the
+// merged fields). No save this migration handles produces either shape;
+// this is a refuse-rather-than-mangle guard for anything wilder that turns
+// up on disk. Only called for a file that already needs a key rename.
+func checkPreservableShape(raw []byte) error {
+	dec := yamlv3.NewDecoder(bytes.NewReader(raw))
+	docCount := 0
+	for {
+		var node yamlv3.Node
+		err := dec.Decode(&node)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			// decodeOrdered already parsed raw with yaml.v2 without error;
+			// a parse disagreement here is not this check's business.
+			return nil
+		}
+		if isEmptyYAMLDocument(&node) {
+			continue
+		}
+		docCount++
+		if err := findMergeKeyOrAlias(&node); err != nil {
+			return err
+		}
+	}
+	if docCount > 1 {
+		return fmt.Errorf("is a multi-document YAML file, which the migration cannot preserve; migrate by hand")
+	}
+	return nil
+}
+
+// isEmptyYAMLDocument reports whether a decoded yaml.v3 document node is the
+// empty document produced by a trailing `---` with nothing after it.
+func isEmptyYAMLDocument(doc *yamlv3.Node) bool {
+	if len(doc.Content) != 1 {
+		return false
+	}
+	root := doc.Content[0]
+	return root.Kind == yamlv3.ScalarNode && root.Tag == "!!null"
+}
+
+// findMergeKeyOrAlias walks a node tree for a mapping key node that is a YAML
+// merge key (`<<`), or any alias node, at any depth.
+func findMergeKeyOrAlias(n *yamlv3.Node) error {
+	if n == nil {
+		return nil
+	}
+	if n.Kind == yamlv3.AliasNode {
+		return fmt.Errorf("uses YAML merge keys or aliases, which the migration cannot preserve; migrate by hand")
+	}
+	if n.Kind == yamlv3.MappingNode {
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			key, val := n.Content[i], n.Content[i+1]
+			if key.Value == "<<" || key.Tag == "!!merge" {
+				return fmt.Errorf("uses YAML merge keys or aliases, which the migration cannot preserve; migrate by hand")
+			}
+			if err := findMergeKeyOrAlias(key); err != nil {
+				return err
+			}
+			if err := findMergeKeyOrAlias(val); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	for _, c := range n.Content {
+		if err := findMergeKeyOrAlias(c); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // decodeOrdered decodes a YAML document keeping key order. The root kind is

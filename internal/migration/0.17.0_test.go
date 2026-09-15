@@ -461,6 +461,53 @@ func TestConditionKeys_MixedListWithOldKeyIsAnError(t *testing.T) {
 	assert.Contains(t, err.Error(), "odd.yaml")
 }
 
+// TestConditionKeys_MultiDocumentWithOldKeyIsAnError proves the migration
+// refuses a multi-document file rather than silently keeping only its first
+// document, which is what decodeOrdered's yaml.v2 round trip does today.
+func TestConditionKeys_MultiDocumentWithOldKeyIsAnError(t *testing.T) {
+	dir := t.TempDir()
+	body := "character:\n  buffs:\n    list:\n    - buffid: 3\n---\nusername: x\n"
+	p := writeFixture(t, dir, "users/11.yaml", body)
+	before := mtime(t, p)
+	time.Sleep(20 * time.Millisecond)
+
+	err := migrateConditionKeysIn(dir, false)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "11.yaml")
+	assertUnchanged(t, p, body, before)
+}
+
+// TestConditionKeys_MergeKeyWithOldKeyIsAnError proves the migration refuses
+// a file using a YAML merge key rather than silently dropping the merged
+// fields, which is what decodeOrdered's yaml.v2 round trip does today.
+func TestConditionKeys_MergeKeyWithOldKeyIsAnError(t *testing.T) {
+	dir := t.TempDir()
+	body := "base: &b {gold: 1}\nstock:\n  <<: *b\n  item:\n    itemid: 5\n    overrides:\n      wornbuffids: [98]\n"
+	p := writeFixture(t, dir, "shops/z/1.yaml", body)
+	before := mtime(t, p)
+	time.Sleep(20 * time.Millisecond)
+
+	err := migrateConditionKeysIn(dir, false)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "1.yaml")
+	assertUnchanged(t, p, body, before)
+}
+
+// TestConditionKeys_MergeKeyWithoutOldKeyIsIgnored proves the merge-key check
+// only runs on a file the walker would otherwise rewrite: no old spelling
+// means no parse, so a merge key elsewhere in DataFiles is not this
+// migration's business.
+func TestConditionKeys_MergeKeyWithoutOldKeyIsIgnored(t *testing.T) {
+	dir := t.TempDir()
+	body := "base: &b {gold: 1}\nstock:\n  <<: *b\n  item:\n    itemid: 5\n"
+	p := writeFixture(t, dir, "shops/z/1.yaml", body)
+	before := mtime(t, p)
+	time.Sleep(20 * time.Millisecond)
+
+	require.NoError(t, migrateConditionKeysIn(dir, false))
+	assertUnchanged(t, p, body, before)
+}
+
 func TestConditionKeys_MissingFoldersAreNotErrors(t *testing.T) {
 	require.NoError(t, migrateConditionKeysIn(t.TempDir(), false))
 	require.NoError(t, migrateConditionKeysIn(filepath.Join(t.TempDir(), "absent"), false))

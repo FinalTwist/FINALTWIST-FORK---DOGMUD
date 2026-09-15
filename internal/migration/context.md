@@ -119,8 +119,18 @@ How it works (`renameConditionKeysUnder`):
   config keys) becomes `conditionrename.Apply(key)` wherever it sits. The
   generic `buffs` becomes `conditions` only when its value is a mapping with
   a `list` key, the conditions record shape. Values are never touched.
-- **Write.** Only when something was renamed, with `yaml.Marshal`. One log line
-  per rewritten file and a final scanned / parsed / rewritten count. A dry run
+- **Preservable-shape check.** Only for a file that needs a rename:
+  `checkPreservableShape` parses the raw bytes with `yaml.v3` (a `yaml.Node`
+  decoder loop) and errors before any write if the file is a multi-document
+  stream or contains a YAML merge key (`<<`) or alias, because `decodeOrdered`'s
+  yaml.v2 round trip silently mangles both (keeps only the first document;
+  drops the merged fields) rather than failing loudly. No save this migration
+  handles produces either shape, so this is a refuse-rather-than-mangle guard
+  for anything wilder found on disk.
+- **Write.** Only when something was renamed, with `yaml.Marshal` and
+  `util.Save` (temp file, fsync, rename), not a bare `os.WriteFile`, so a crash
+  mid-write cannot truncate the file it is replacing. One log line per
+  rewritten file and a final scanned / parsed / rewritten count. A dry run
   logs and writes nothing.
 - **Config overrides.** When `CONFIG_PATH` points outside DataFiles that file
   is migrated too. Whenever the overrides file is rewritten,
@@ -132,9 +142,11 @@ There is no migration marker. A file with no old key is left byte-for-byte
 unchanged, so a second run is a no-op and there is nothing to desync per-alt.
 These are hard errors, so `Run` restores the backup rather than shipping a
 broken save: a file with an old spelling that fails to parse; a mapping with
-both an old key and its new name (a collision); and a list root with
+both an old key and its new name (a collision); a list root with
 non-mapping elements that carries an old key (no store saves that shape, and
-it cannot be rewritten order-preserving).
+it cannot be rewritten order-preserving); and, from the preservable-shape
+check, a file needing a rename that is multi-document or carries a merge key
+or alias.
 
 ## Gotchas
 
@@ -157,8 +169,9 @@ it cannot be rewritten order-preserving).
 
 ## Dependencies
 
-`configs`, `version`, `factions` (0.13.0 only), `conditionrename` and `mudlog`
-(0.17.0 only), plus direct YAML and filesystem access. Deliberately minimal —
+`configs`, `version`, `factions` (0.13.0 only), `conditionrename`, `mudlog`,
+`util` and `yaml.v3` (0.17.0 only), plus direct YAML and filesystem access.
+Deliberately minimal —
 this code must work before the engine is up.
 
 ## Consumers
