@@ -7,7 +7,7 @@ package items
 // Subtypes not in this map return 0 — typically non-weapon subtypes
 // (BlobContent, etc.) where reach is meaningless.
 //
-// See docs/superpowers/specs/2026-05-16-state-chunk-4c-position-weapon-utility-design.md
+// See docs/superpowers/specs/completed/2026-05-16-state-chunk-4c-position-weapon-utility-design.md
 // for the full taxonomy table and reasoning.
 func DefaultReachForSubtype(s ItemSubType) float64 {
 	switch s {

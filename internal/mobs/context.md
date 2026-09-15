@@ -73,7 +73,7 @@ at `internal/mobs/combat_memory.go`. Mob struct still carries the
 `CombatMemory *CombatMemory` field and the SetCombatMemory /
 CombatMemoryExpired helpers.
 
-Design: `docs/superpowers/specs/2026-05-12-mob-aliveness-2.6-sunset-tactics-engine-design.md`
+Design: `docs/superpowers/specs/completed/2026-05-12-mob-aliveness-2.6-sunset-tactics-engine-design.md`
 
 ### 2c. **Mob Lifecycle — Presence Machine (chunk 5)**
 

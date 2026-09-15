@@ -2,7 +2,7 @@ package migration
 
 // classify.go — player mutation-migration classifier (0.14.0). Slots each
 // existing account into a cluster from its play history, per
-// docs/superpowers/specs/2026-07-11-mutation-migration-design.md §3, with
+// docs/superpowers/specs/completed/2026-07-11-mutation-migration-design.md §3, with
 // thresholds fit against the 34 real prod accounts (§4).
 
 // PlayerSignals are the classification inputs extracted from a player save.

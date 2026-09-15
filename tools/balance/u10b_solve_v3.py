@@ -32,7 +32,7 @@ OWNER RULINGS
   look/consider              UNHOOKED from perception (see plan Task 1).
   conjure                    gets its OWN cooldown key (see plan Task 3).
 
-STRUCTURAL FACTS (docs/superpowers/specs/2026-08-22-progression-faucet-census.md)
+STRUCTURAL FACTS (docs/superpowers/specs/completed/2026-08-22-progression-faucet-census.md)
   "special-move" is ONE shared 4-round key across 18 verbs, so at 10%
   engagement the whole special-move family shares 22.5 uses/hr.
   Difficulty bonus uses the MEAN, not the median: chance is LINEAR in it.

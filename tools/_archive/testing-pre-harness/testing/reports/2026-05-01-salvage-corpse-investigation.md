@@ -185,7 +185,7 @@ Stage 3.0e explicitly deferred the NPC-salvage question to Stage 3.1.
 
 ### Stage 3.1 spec (forager NPCs design)
 
-**`docs/superpowers/specs/2026-04-29-stage-3-1-foragers-design.md`**,
+**`docs/superpowers/specs/completed/2026-04-29-stage-3-1-foragers-design.md`**,
 lines 7–9:
 
 > "Add three forager NPCs — one per region — that gather raw materials in

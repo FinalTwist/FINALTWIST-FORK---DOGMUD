@@ -10,7 +10,7 @@
 
 **Branch:** `feature/archify-diagrams-tab` (already created; the design spec is committed there as `b9a23e3ba`).
 
-**Spec:** `docs/superpowers/specs/2026-08-04-archify-diagrams-tab-design.md`
+**Spec:** `docs/superpowers/specs/completed/2026-08-04-archify-diagrams-tab-design.md`
 
 ---
 

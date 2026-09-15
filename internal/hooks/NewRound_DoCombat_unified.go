@@ -28,7 +28,7 @@ import (
 // File: NewRound_DoCombat_unified.go
 //
 // Stage 2a of combat-quadrant unification (see spec
-// docs/superpowers/specs/2026-04-18-combat-quadrant-unification-design.md).
+// docs/superpowers/specs/completed/2026-04-18-combat-quadrant-unification-design.md).
 //
 // This file introduces handleCombatRound (the unified replacement for the
 // four handle{P,M}vs{P,M} functions) and its eight phase helpers. As of

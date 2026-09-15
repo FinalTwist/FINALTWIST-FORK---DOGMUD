@@ -52,7 +52,7 @@
 - **Folder naming:** zone display name `Pothole Coulee` → folder `pothole_coulee` (ConvertForFilename: lowercase, non-alnum → underscore). Room files are `{roomid}.yaml`.
 - **Biomes available** (all exist in `_datafiles/world/dogmud/biomes/`): water, shore, city, house (indoor), cliffs. `house` carries `indoor: true` (weather-sheltered).
 - **Sanctuary mutator** exists (`_datafiles/world/dogmud/mutators/sanctuary.yaml`) — no-combat + 5× regen.
-- **Scanner:** `python tools/coord_inventory.py` must report 0 global collisions; all new coords must land inside the reserve x[30..59], y[-15..14], z[-3..3] (`docs/superpowers/specs/newbie-area-coord-budget.md`).
+- **Scanner:** `python tools/coord_inventory.py` must report 0 global collisions; all new coords must land inside the reserve x[30..59], y[-15..14], z[-3..3] (`docs/superpowers/specs/completed/newbie-area-coord-budget.md`).
 - **Boot baseline:** `rooms.loadAllRoomZones() zoneCount=22 loadedCount=523`. After this phase: zoneCount=23, loadedCount=549 (+26).
 - **AI port for the walkthrough:** 55555, admin smoketester/smoke123test, pace ~3s (2 cmds/round), `teleport 5200` works for admins. RoomId teleports verified in prior smokes.
 

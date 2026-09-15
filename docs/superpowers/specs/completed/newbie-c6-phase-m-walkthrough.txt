@@ -1,7 +1,7 @@
 ================================================================================
 NEWBIE REWORK — CHUNK 6 (Spoke E, The Folding / magic) — PHASE M WALKTHROUGH
 Mobs + spawninfo build record (static — live combat deferred). 2026-06-15.
-Sub-spec: docs/superpowers/specs/2026-06-14-newbie-chunk6-spoke-e-folding-subspec.md
+Sub-spec: docs/superpowers/specs/completed/2026-06-14-newbie-chunk6-spoke-e-folding-subspec.md
 ================================================================================
 
 9 mobs 9144-9152, authored INLINE (no subagents -> no phantom-path risk; all 9

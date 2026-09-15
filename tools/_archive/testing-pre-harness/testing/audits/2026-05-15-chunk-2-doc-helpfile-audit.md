@@ -51,11 +51,11 @@ User-facing help (if any) is likely in character templates. Searched `_datafiles
 
 - `docs/superpowers/specs/completed/2026-04-15-phase4c-room-spell-buff-migration-design.md` — References permadeath/ExtraLives in historical context of work prior to chunk 2. Kept as historical record.
 
-- `docs/superpowers/specs/2026-05-13-combat-state-machines-design.md` — Early design doc, may reference legacy concepts. Not core to chunk-2 scope.
+- `docs/superpowers/specs/completed/2026-05-13-combat-state-machines-design.md` — Early design doc, may reference legacy concepts. Not core to chunk-2 scope.
 
-- `docs/superpowers/specs/2026-05-15-state-chunk-2-life-design.md` — Chunk 2 design spec. Discusses permadeath sunset as part of the design. Accurate and intentional.
+- `docs/superpowers/specs/completed/2026-05-15-state-chunk-2-life-design.md` — Chunk 2 design spec. Discusses permadeath sunset as part of the design. Accurate and intentional.
 
-- `docs/superpowers/plans/2026-05-15-state-chunk-2-life.md` — Chunk 2 implementation plan. Contains numerous references to permadeath/extra-lives removal as part of T11 (already completed). Accurate historical record of implementation steps. Kept.
+- `docs/superpowers/plans/completed/2026-05-15-state-chunk-2-life.md` — Chunk 2 implementation plan. Contains numerous references to permadeath/extra-lives removal as part of T11 (already completed). Accurate historical record of implementation steps. Kept.
 
 - `feature-screenshots/README.md` — Unknown content (not read). Assume historical; low priority.
 

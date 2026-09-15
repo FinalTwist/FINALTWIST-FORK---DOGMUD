@@ -9,7 +9,7 @@
 // Symmetric — first-party in the grapple and third-party intruders both
 // pick up the target-side bonus when hitting a grappled target.
 //
-// See docs/superpowers/specs/2026-05-19-state-chunk-4e-third-party-design.md
+// See docs/superpowers/specs/completed/2026-05-19-state-chunk-4e-third-party-design.md
 // §3 for the full tables + rationale + composition examples.
 package position
 

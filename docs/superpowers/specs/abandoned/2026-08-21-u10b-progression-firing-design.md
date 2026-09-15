@@ -2,7 +2,7 @@
 >
 > **Drafted 2026-08-21, abandoned the same day.** Kept as a record of an approach
 > that did not work out. The plan built from it
-> (`docs/superpowers/plans/completed/2026-08-21-u10b-progression-firing.md`) failed its
+> (`docs/superpowers/plans/abandoned/2026-08-21-u10b-progression-firing.md`) failed its
 > blind adversarial review with four blockers and was never executed.
 >
 > **The core premise died first.** This design assumed *use counters* drive

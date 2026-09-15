@@ -1,6 +1,6 @@
 // Package ferry implements the scheduled ferry vessels: clock-derived
 // vessel state, gangplank reconciliation, and agent-paid boarding.
-// Stage 1 of docs/superpowers/specs/2026-07-03-ferry-system-design.md.
+// Stage 1 of docs/superpowers/specs/completed/2026-07-03-ferry-system-design.md.
 package ferry
 
 import (

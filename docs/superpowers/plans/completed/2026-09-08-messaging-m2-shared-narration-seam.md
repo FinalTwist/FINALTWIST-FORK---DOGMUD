@@ -17,7 +17,7 @@ touched; they are M3's.
 
 **Tech Stack:** Go. `go/ast` for the guard. No new dependencies.
 
-**Spec:** [`../specs/2026-09-08-messaging-m2-shared-narration-seam-design.md`](../specs/2026-09-08-messaging-m2-shared-narration-seam-design.md).
+**Spec:** [`../specs/2026-09-08-messaging-m2-shared-narration-seam-design.md`](../../specs/completed/2026-09-08-messaging-m2-shared-narration-seam-design.md).
 Read section 3a before Task 2 and section 4 before Task 7.
 
 ---

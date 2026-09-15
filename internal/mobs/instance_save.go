@@ -78,7 +78,7 @@ func instancePath(mobId MobId, zone string, mobName string, homeRoomId int) stri
 // responsibility (CompanionInfo on the owner's user YAML). The file
 // layer would otherwise be a redundant, room-keyed second persistence
 // that leaks across player-summon cycles. See
-// docs/superpowers/specs/2026-04-21-summons-dont-persist-design.md.
+// docs/superpowers/specs/completed/2026-04-21-summons-dont-persist-design.md.
 func SaveMobInstance(mob *Mob) error {
 	// Companions live on CompanionInfo, not in mobs.instances/.
 	//

@@ -98,7 +98,7 @@ type Mob struct {
 	Groups           []string // What group do they identify with? Helps with teamwork
 	FoldAnchorRoom   int      `yaml:"fold_anchor_room,omitempty"`   // Spawn-time fold-recall anchor (room ID)
 	StorageChestRoom int      `yaml:"storage_chest_room,omitempty"` // Room ID of forager's personal lockbox (0 = none)
-	// Pack-combat routine (v2-ready — see docs/superpowers/specs/2026-04-22-pack-tactics-revamp-design.md).
+	// Pack-combat routine (v2-ready — see docs/superpowers/specs/completed/2026-04-22-pack-tactics-revamp-design.md).
 	// Freeform string compared with equality to other mobs' Routine for pack
 	// identification. Mobs without a routine don't participate in packs.
 	Routine string `yaml:"routine,omitempty"`
@@ -321,7 +321,7 @@ func MobIdByName(mobName string) MobId {
 // Companion-spawning callers (summon / raise / conjure / charm-respawn)
 // must use NewMobByIdFresh instead — their progression lives on
 // CompanionInfo, not on the file system. See
-// docs/superpowers/specs/2026-04-21-summons-dont-persist-design.md.
+// docs/superpowers/specs/completed/2026-04-21-summons-dont-persist-design.md.
 func NewMobById(mobId MobId, homeRoomId int, forceStatPool ...int) *Mob {
 	return newMobByIdInternal(mobId, homeRoomId, false, forceStatPool...)
 }

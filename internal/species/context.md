@@ -68,7 +68,7 @@ or unknown mutation ids in intrinsic_mutations.
 Helpers: `HasBodyPart(tag)`, `HasAllBodyParts(required)`,
 `IsCanonicalBodyPart(tag)`.
 
-Design: `docs/superpowers/specs/2026-05-12-mob-aliveness-2.5-mutations-on-mobs-design.md`
+Design: `docs/superpowers/specs/completed/2026-05-12-mob-aliveness-2.5-mutations-on-mobs-design.md`
 
 ---
 

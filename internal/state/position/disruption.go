@@ -9,7 +9,7 @@
 // has hands and movement suppressed. Guard inverts: bottom (Controlling) has
 // free hands and lower disruption than top (Controlled).
 //
-// See docs/superpowers/specs/2026-05-19-state-chunk-4f-balance-smoke-design.md
+// See docs/superpowers/specs/completed/2026-05-19-state-chunk-4f-balance-smoke-design.md
 // §3.1 for the table + rationale.
 package position
 

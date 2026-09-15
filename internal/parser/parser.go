@@ -2,7 +2,7 @@
 // declare which Kinds of target they want; the package tokenizes the input,
 // tries the longest multi-word span first, and dispatches each candidate span
 // to a per-Kind adapter that wraps an existing resolver. See
-// docs/superpowers/specs/2026-07-08-unified-parser-seam-design.md.
+// docs/superpowers/specs/completed/2026-07-08-unified-parser-seam-design.md.
 package parser
 
 import (

@@ -1031,7 +1031,7 @@ radius pay no penalty. A greatsword in mount swings awkwardly (the haft
 catches the attacker's own body); a dagger in mount stays fully dangerous.
 The attack-message vocabulary swaps to a bludgeoning set when the penalty
 fires (pommel/hilt strike narration). Full design spec and formula:
-`docs/superpowers/specs/2026-05-16-state-chunk-4c-position-weapon-utility-design.md`
+`docs/superpowers/specs/completed/2026-05-16-state-chunk-4c-position-weapon-utility-design.md`
 
 **Consumer side:** `internal/combat/reach.go` (T2) — `PositionReachRadius`,
 `ReachUtility`, `ShouldBludgeon`, `CalcReachAdjustedItemMult`.

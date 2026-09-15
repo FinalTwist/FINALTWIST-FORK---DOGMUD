@@ -88,4 +88,4 @@ name in the first slot and a player name in the second (`knowledge` and
 
 `internal/usercommands` — currently `get`, `knowledge`, and `opinion`. Full
 design and the divergences from it:
-`docs/superpowers/specs/2026-07-08-unified-parser-seam-design.md`.
+`docs/superpowers/specs/completed/2026-07-08-unified-parser-seam-design.md`.

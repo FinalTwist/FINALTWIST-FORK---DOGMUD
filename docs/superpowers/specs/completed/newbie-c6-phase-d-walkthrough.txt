@@ -1,7 +1,7 @@
 ================================================================================
 NEWBIE REWORK — CHUNK 6 (Spoke E, The Folding / magic) — PHASE D WALKTHROUGH
 Dialogue + quests (inline) + engine touch. Scripted end-to-end VERIFIED. 2026-06-15.
-Sub-spec: docs/superpowers/specs/2026-06-14-newbie-chunk6-spoke-e-folding-subspec.md
+Sub-spec: docs/superpowers/specs/completed/2026-06-14-newbie-chunk6-spoke-e-folding-subspec.md
 ================================================================================
 
 ENGINE (1 touch): internal/usercommands/skill.cast.go now calls

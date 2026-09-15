@@ -1,7 +1,7 @@
 ================================================================================
 NEWBIE REWORK — CHUNK 5 (Spoke D, Wilderness & Tracking) — PHASE R WALKTHROUGH
 Rooms + nouns build record. 2026-06-14.
-Sub-spec: docs/superpowers/specs/2026-06-14-newbie-chunk5-spoke-d-wilderness-subspec.md
+Sub-spec: docs/superpowers/specs/completed/2026-06-14-newbie-chunk5-spoke-d-wilderness-subspec.md
 ================================================================================
 
 20 rooms 5282-5301 running SOUTH from hub stub 5223 (Scrub Draw, (43,1,0)).

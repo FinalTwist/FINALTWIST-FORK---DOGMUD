@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go 1.25, `go test`, yaml.v2 for specs, the buff notice / flag / apply-path root guards, the narration goldens, the playtest harness.
 
-Spec: `docs/superpowers/specs/2026-09-12-conditions-unification-slice-1-model-design.md`. Read it first. Branch `feature/conditions-unification-slice-1-model` (exists; spec committed).
+Spec: `docs/superpowers/specs/completed/2026-09-12-conditions-unification-slice-1-model-design.md`. Read it first. Branch `feature/conditions-unification-slice-1-model` (exists; spec committed).
 
 ## Rules for this plan
 
@@ -1621,7 +1621,7 @@ short absence no longer wipes them away.
 `docs/README.md`: rows for the spec (already added) and this plan. The spec: add to "Findings recorded while planning" anything the execution corrected.
 
 ```bash
-git add internal/buffs/context.md internal/characters/context.md internal/hooks/context.md internal/combat/context.md modules/gmcp/context.md docs/PATCH_NOTES.md docs/README.md docs/superpowers/specs/2026-09-12-conditions-unification-slice-1-model-design.md
+git add internal/buffs/context.md internal/characters/context.md internal/hooks/context.md internal/combat/context.md modules/gmcp/context.md docs/PATCH_NOTES.md docs/README.md docs/superpowers/specs/completed/2026-09-12-conditions-unification-slice-1-model-design.md
 git commit -m "docs: conditions are buffs; the door, the vocabulary, the flags, the patch note"
 ```
 
@@ -1660,8 +1660,8 @@ Slice 1 of the conditions unification (owner ruling 2026-09-12: buffs absorb the
 - Net: pins for every number, recorded before the model moved and kept through it; `buffs.golden` re-recorded once for the new records, the other nine untouched; root guard against a second timed-state collection; the apply-path, notice and flag guards learn the new door and flags.
 - Gate: full suite, boot check, playtest scenario `conditions-slice-1` (run id in the last commit message).
 
-Spec: docs/superpowers/specs/2026-09-12-conditions-unification-slice-1-model-design.md
-Plan: docs/superpowers/plans/2026-09-12-conditions-unification-slice-1-model.md
+Spec: docs/superpowers/specs/completed/2026-09-12-conditions-unification-slice-1-model-design.md
+Plan: docs/superpowers/plans/completed/2026-09-12-conditions-unification-slice-1-model.md
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF

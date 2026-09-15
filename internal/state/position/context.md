@@ -174,7 +174,7 @@ by the combat hit-roll path in `internal/combat/combat.go`.
 
 Net hit modifier = AttackerSelfHitModifier × TargetSideHitModifier.
 
-See `docs/superpowers/specs/2026-05-19-state-chunk-4e-third-party-design.md`
+See `docs/superpowers/specs/completed/2026-05-19-state-chunk-4e-third-party-design.md`
 §3 for the full tables + sample compositions. Tables are code constants
 (not config) for v1; chunk 4f can promote them if smoke surfaces tuning
 needs.

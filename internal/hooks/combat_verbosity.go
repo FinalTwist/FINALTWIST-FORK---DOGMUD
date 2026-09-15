@@ -15,7 +15,7 @@ import (
 // File: combat_verbosity.go
 //
 // Light-verbosity round tally for combat narration (spec:
-// docs/superpowers/specs/2026-06-10-combat-verbosity-design.md).
+// docs/superpowers/specs/completed/2026-06-10-combat-verbosity-design.md).
 // When a viewer's effective verbosity is Light, the per-swing combat
 // lines are suppressed at the drain (dispatchCritAndMessaging) and the
 // AttackResult's swing data is recorded here instead. flushCombatTallies

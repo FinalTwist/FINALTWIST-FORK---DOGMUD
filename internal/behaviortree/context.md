@@ -955,7 +955,7 @@ Added in the legacy tactics-engine sunset migration:
 - **`boss_chrysalis_phantom`** — Tight panic-flee (HP<20) +
   target_casting → trip interrupt.
 
-Spec: `docs/superpowers/specs/2026-05-12-mob-aliveness-2.6-sunset-tactics-engine-design.md`
+Spec: `docs/superpowers/specs/completed/2026-05-12-mob-aliveness-2.6-sunset-tactics-engine-design.md`
 
 ## Files
 

@@ -68,7 +68,7 @@ func TestDiagramArtifactsHaveNoTemplateDelimiters(t *testing.T) {
 				"a generated archify artifact, not hand-authored: find its source spec "+
 				"under tools/archify/specs/, fix the offending label there, and "+
 				"regenerate the artifact with `archify deliver` (see "+
-				"docs/superpowers/plans/2026-08-04-archify-diagrams-tab.md for the exact "+
+				"docs/superpowers/plans/completed/2026-08-04-archify-diagrams-tab.md for the exact "+
 				"invocation) rather than editing the .html directly.",
 				entry.Name(), idx, context)
 		}

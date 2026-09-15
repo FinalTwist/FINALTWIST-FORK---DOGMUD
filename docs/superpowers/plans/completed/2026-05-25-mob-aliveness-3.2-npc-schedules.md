@@ -2578,8 +2578,8 @@ Per the pattern established by 3.1:
 
 ```bash
 mkdir -p docs/superpowers/specs/completed docs/superpowers/plans/completed
-git mv docs/superpowers/specs/2026-05-25-mob-aliveness-3.2-npc-schedules-design.md docs/superpowers/specs/completed/
-git mv docs/superpowers/plans/2026-05-25-mob-aliveness-3.2-npc-schedules.md docs/superpowers/plans/completed/
+git mv docs/superpowers/specs/completed/2026-05-25-mob-aliveness-3.2-npc-schedules-design.md docs/superpowers/specs/completed/
+git mv docs/superpowers/plans/completed/2026-05-25-mob-aliveness-3.2-npc-schedules.md docs/superpowers/plans/completed/
 ```
 
 Update the `Spec:` and `Plan:` paths in the roadmap entry from Step 4 to point to the `completed/` subdirectory.

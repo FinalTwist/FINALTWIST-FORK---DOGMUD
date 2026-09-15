@@ -7,7 +7,7 @@
 // normalization, sight-gates visual content using the Perception FSM,
 // and wraps to each recipient's LineWidth preference.
 //
-// See docs/superpowers/specs/2026-05-19-messaging-framework-design.md
+// See docs/superpowers/specs/completed/2026-05-19-messaging-framework-design.md
 // for the design and rationale.
 package messaging
 

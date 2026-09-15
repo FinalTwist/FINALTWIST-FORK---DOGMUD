@@ -1,7 +1,7 @@
 // Package warehouse implements the Stage 3 city warehouse buffer pools:
 // persistent, backend-only inventory that soaks up end-of-circuit carrier
 // surplus and a slow ambient accrual, to be spent by Stage 4 drawdown.
-// Spec: docs/superpowers/specs/2026-07-03-ferry-system-design.md.
+// Spec: docs/superpowers/specs/completed/2026-07-03-ferry-system-design.md.
 // Player access: NONE, forever. Only caravans/runners/factors touch this.
 package warehouse
 

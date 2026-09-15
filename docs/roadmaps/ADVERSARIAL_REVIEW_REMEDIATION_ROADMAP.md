@@ -1835,7 +1835,7 @@ already carries margin +-1 by the 5.9 convention, and flooring the margin would
 corrupt every effect that scales by it.
 
 **SPEC WRITTEN 2026-08-11:**
-`docs/superpowers/specs/2026-08-11-skill-and-crit-rebalance-design.md`.
+`docs/superpowers/specs/completed/2026-08-11-skill-and-crit-rebalance-design.md`.
 Re-decomposed into 5.11b-g above; the `SkillMultiplier`/`*25` work from the
 original sketch is now an explicit **non-goal**.
 

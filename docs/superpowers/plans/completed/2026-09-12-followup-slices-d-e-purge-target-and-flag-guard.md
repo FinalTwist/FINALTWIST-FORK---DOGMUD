@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, `internal/hooks`, `internal/buffs`, `internal/characters`, root guard tests, YAML world data, the playtest harness.
 
-Spec: `docs/superpowers/specs/2026-09-12-followup-slices-d-e-purge-target-and-flag-guard-design.md`
+Spec: `docs/superpowers/specs/completed/2026-09-12-followup-slices-d-e-purge-target-and-flag-guard-design.md`
 
 Tasks 1 and 2 are independent (disjoint files) and may run in parallel.
 

@@ -10,7 +10,7 @@
 # posted guards. Distinguished from `generic_fighter` by the
 # callforhelp-first behavior.
 #
-# Spec: docs/superpowers/specs/2026-04-22-pack-tactics-revamp-design.md
+# Spec: docs/superpowers/specs/completed/2026-04-22-pack-tactics-revamp-design.md
 
 tree:
   type: selector

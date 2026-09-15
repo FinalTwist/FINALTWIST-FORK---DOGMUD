@@ -55,7 +55,7 @@ arrangement with an AST-walking class guard modelled on U6b's
 `internal/progression` (pure event package), `internal/actions` (Actor parity),
 `internal/configs` (balance knobs), `go/ast` + `go/parser` for the guard test.
 
-**Spec:** `docs/superpowers/specs/completed/2026-08-21-u10b-progression-firing-design.md`
+**Spec:** `docs/superpowers/specs/abandoned/2026-08-21-u10b-progression-firing-design.md`
 (approved 2026-08-21). Read §2 (the rule), §3 (class assignment), §7 (owner
 decisions) and §8 (done-when) before starting.
 

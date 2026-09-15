@@ -12,7 +12,7 @@ package mobs
 //     the victim's Routine appears in the candidate's RoutineLinks, OR
 //     the candidate's Routine appears in the victim's RoutineLinks.
 //
-// See docs/superpowers/specs/2026-04-22-pack-tactics-revamp-design.md
+// See docs/superpowers/specs/completed/2026-04-22-pack-tactics-revamp-design.md
 // (§ Packmate identification).
 func FindPackmatesInRoom(victim *Mob) []*Mob {
 	if victim == nil {

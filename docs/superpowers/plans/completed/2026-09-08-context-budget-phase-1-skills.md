@@ -15,7 +15,7 @@ reversible: `rm -rf .claude/skills` restores the prior state exactly.
 **Tech Stack:** Markdown. Claude Code skill format: `.claude/skills/<name>/SKILL.md`
 with YAML frontmatter carrying `name` and `description`.
 
-**Source spec:** `docs/superpowers/specs/2026-09-08-context-budget-skill-extraction-design.md`
+**Source spec:** `docs/superpowers/specs/completed/2026-09-08-context-budget-skill-extraction-design.md`
 
 ---
 

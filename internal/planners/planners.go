@@ -12,7 +12,7 @@
 // automatically on goal switch via ClearPlanState (registered into
 // goals.Recompute via SetPlanStateClear at boot).
 //
-// See docs/superpowers/specs/2026-05-27-mob-aliveness-4.4-strategic-tactical-translation-design.md
+// See docs/superpowers/specs/completed/2026-05-27-mob-aliveness-4.4-strategic-tactical-translation-design.md
 package planners
 
 import (

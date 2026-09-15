@@ -283,8 +283,8 @@ it now sits behind two arcs as well.
 ## Independent Approved Work
 
 - **Architecture diagrams tab:** approved design, implementation not started.
-  Sources: [design](../superpowers/specs/2026-08-04-archify-diagrams-tab-design.md)
-  and [plan](../superpowers/plans/2026-08-04-archify-diagrams-tab.md).
+  Sources: [design](../superpowers/specs/completed/2026-08-04-archify-diagrams-tab-design.md)
+  and [plan](../superpowers/plans/completed/2026-08-04-archify-diagrams-tab.md).
 
 ## Deferred Follow-ons
 

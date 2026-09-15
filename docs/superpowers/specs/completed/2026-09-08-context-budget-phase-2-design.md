@@ -2,8 +2,8 @@
 
 **Date:** 2026-09-08
 **Status:** design approved, not yet planned
-**Full path:** `docs/superpowers/specs/2026-09-08-context-budget-phase-2-design.md`
-**Phase 1 spec:** `docs/superpowers/specs/2026-09-08-context-budget-skill-extraction-design.md`
+**Full path:** `docs/superpowers/specs/completed/2026-09-08-context-budget-phase-2-design.md`
+**Phase 1 spec:** `docs/superpowers/specs/completed/2026-09-08-context-budget-skill-extraction-design.md`
 **Phase 1 audit:** `docs/superpowers/audits/2026-09-08-skill-coverage.md`
 
 ## Facts verified against source (2026-09-08)

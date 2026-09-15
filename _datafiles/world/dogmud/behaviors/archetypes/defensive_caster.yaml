@@ -24,7 +24,7 @@
 # legacy `defensive_caster` and `caster_backline` tactic presets
 # (chunk 2.6 migration).
 #
-# Spec: docs/superpowers/specs/2026-05-12-mob-aliveness-2.6-sunset-tactics-engine-design.md
+# Spec: docs/superpowers/specs/completed/2026-05-12-mob-aliveness-2.6-sunset-tactics-engine-design.md
 
 tree:
   type: selector

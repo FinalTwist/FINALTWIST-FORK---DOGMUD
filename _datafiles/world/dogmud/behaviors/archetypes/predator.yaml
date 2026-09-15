@@ -18,7 +18,7 @@
 # young wolf. Distinguished from `generic_fighter` by the
 # leading mob_idle predation branch.
 #
-# Spec: docs/superpowers/specs/2026-05-12-mob-aliveness-2.4-mob-consider-design.md
+# Spec: docs/superpowers/specs/completed/2026-05-12-mob-aliveness-2.4-mob-consider-design.md
 
 tree:
   type: selector

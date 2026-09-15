@@ -27,7 +27,7 @@ import (
 // overlaps on a Euclidean plane are reported, not silently accepted.
 //
 // Idempotent: a room already carrying any nonzero coord/plane is left untouched.
-// Spec: docs/superpowers/specs/2026-07-22-authored-coordinate-model-design.md.
+// Spec: docs/superpowers/specs/completed/2026-07-22-authored-coordinate-model-design.md.
 
 type coordEdge struct {
 	to  int

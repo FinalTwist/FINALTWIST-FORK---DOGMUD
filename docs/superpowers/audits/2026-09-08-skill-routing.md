@@ -1,7 +1,7 @@
 # Skill routing audit, 2026-09-08
 
 Task 1 of the Phase 2 plan
-(`docs/superpowers/plans/2026-09-08-context-budget-phase-2.md`). Task 2 of
+(`docs/superpowers/plans/completed/2026-09-08-context-budget-phase-2.md`). Task 2 of
 that plan deletes 31 CLAUDE.md sections on the strength of this audit, so
 the finding here is load bearing for that deletion, not a nice-to-have.
 

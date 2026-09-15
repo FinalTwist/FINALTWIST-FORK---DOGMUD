@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """U6b modelling gate, group A: the spell and taunt hit-gate collapse.
 
-Models §7 items 1-2 of docs/superpowers/specs/2026-08-19-u6b-finish-the-flip-design.md.
+Models §7 items 1-2 of docs/superpowers/specs/completed/2026-08-19-u6b-finish-the-flip-design.md.
 
 Method: deterministic NUMERIC INTEGRATION (midpoint rule over the attacker's
 self-relative z, closed-form normal conditionals for the defender's roll),

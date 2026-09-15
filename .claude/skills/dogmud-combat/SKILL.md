@@ -325,9 +325,8 @@ trees, party-only assist) is gated with `atk.IsPlayer()` / `def.IsPlayer()`
 checks at the leaf site, plus a `// Divergence #N: <reason>` comment tied to
 the numbered list in
 `docs/superpowers/specs/completed/2026-04-18-combat-quadrant-unification-design.md`
-(the memory file cites this path without the `completed/` segment; the spec
-moved there and the numbered list, items 1 to 9 with item 10 struck out, is
-otherwise unchanged as of 2026-09-08).
+(the numbered list, items 1 to 9 with item 10 struck out, is unchanged as of
+2026-09-08).
 Tests for new combat behavior should drive through `handleCombatRound`
 end to end, not call a phase helper directly.
 

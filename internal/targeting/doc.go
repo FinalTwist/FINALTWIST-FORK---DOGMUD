@@ -11,7 +11,7 @@
 //   - Commit enters combat with a selected target. It is the only door
 //     external packages use.
 //
-// LAYERING (see docs/superpowers/plans/2026-08-29-u12a-targeting-seam.md):
+// LAYERING (see docs/superpowers/plans/completed/2026-08-29-u12a-targeting-seam.md):
 //
 //   - This package MUST NOT import internal/combat. internal/combat is
 //     itself a Commit call site, so importing it creates a cycle. The
