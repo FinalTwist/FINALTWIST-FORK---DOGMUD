@@ -316,7 +316,7 @@ Magic and mutations are manifestations of The Chrysalis infection—beliefs made
 | School | Description | Examples |
 |--------|-------------|----------|
 | **Elemental** | Physical manifestations of natural forces | Fire, ice, lightning, earth, wind attacks and manipulation |
-| **Enhancement** | Body modification and augmentation | Strength buffs, speed boosts, toughened skin, enhanced senses |
+| **Enhancement** | Body modification and augmentation | Strength boosts, speed boosts, toughened skin, enhanced senses |
 | **Mental** | Mind-affecting powers | Psionics, illusion, charm, fear, telepathy, influence |
 | **Vital** | Life and health manipulation | Healing, poison, disease, life drain, energy transfer |
 
@@ -330,7 +330,7 @@ Magic and mutations are manifestations of The Chrysalis infection—beliefs made
 
 **Spell Costs:** Vary by spell—may cost Health, Conviction, or induce temporary status effects. More powerful spells have higher costs.
 
-**Shared Beliefs:** Multiple players using the same powers together may strengthen them through shared belief (passive buffs as conditions).
+**Shared Beliefs:** Multiple players using the same powers together may strengthen them through shared belief (passive conditions).
 
 ### Mutations
 
@@ -579,7 +579,7 @@ Magic and mutations are manifestations of The Chrysalis infection—beliefs made
 **Modifiers:**
 - Resting: Faster regen
 - Moving/Crafting: Slower regen
-- Conditions (buffs, potions, magical locations): Faster regen
+- Conditions (potions, magical locations): Faster regen
 - Injuries/Exhaustion: Slower regen
 - Food/Drink: Faster regen (see Eating & Drinking)
 
@@ -718,7 +718,7 @@ Travel between major locations measured in "stamina bars" (1 bar ≈ 33-42 stami
 
 **Party Mechanics:**
 - Players can form parties (no shared XP since there is no XP)
-- **Confidence Buff:** Being in a party provides a slight buff to all skills/stats
+- **Confidence Boost:** Being in a party provides a slight boost to all skills/stats
 - **Observational Learning:** Chance to learn from party members' critical successes and failures
 - **Follow Command:** Auto-move with party leader
 - **Party Chat:** Private communication channel
@@ -792,7 +792,7 @@ Players can toggle which channels they listen to via flags.
 **Festival Mechanics:**
 - Mostly flavor: NPCs take the day off, shops closed, special decorations/dialogue
 - Bank holidays (can't access banking, auction house?)
-- Buffs are separate, tied to moon system (not festivals themselves)
+- Moon boosts are separate, tied to moon system (not festivals themselves)
 - Possible: Special quests, temporary NPCs, rare goods available
 
 ---
@@ -826,7 +826,7 @@ Players can toggle which channels they listen to via flags.
   - Visibly mutated teachers demonstrating different paths
 - **Training Grounds:** Combat dummies, practice areas
 - **Small Town:** Basic shops, NPCs for quests
-- **Observatory:** Teaches moon phase mechanics and buffs (run by a trainer)
+- **Observatory:** Teaches moon phase mechanics and boosts (run by a trainer)
 - **Gathering Areas:** Resource nodes for practicing gathering skills
 - **Cave System / Dungeon:** Low-level challenge area
 
@@ -896,7 +896,7 @@ Players can toggle which channels they listen to via flags.
 **6. Temple District**
 - Grand Temple of the Chrysalis
 - Respawn point
-- Healing services (regen buffs)
+- Healing services (regen boosts)
 - Religious quests and lore
 
 **Access from Tutorial Area:** 6 stamina bars (~200-250 stamina for average character). Accessible from the start but requires planning and possibly a mount or high stamina pool.
@@ -1146,7 +1146,7 @@ Players can toggle which channels they listen to via flags.
 
 **Phase 14: Calendar & Festivals**
 - Implement full calendar
-- Moon phase mechanics (stat buffs/debuffs)
+- Moon phase mechanics (stat boosts and penalties)
 - Seasonal effects
 - Festival events and schedules
 

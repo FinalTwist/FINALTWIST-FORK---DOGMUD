@@ -1,7 +1,7 @@
 speciesid: 2
 name: elf
 description: A magical being with pointy ears.
-buffids:
+conditionids:
   - 28 # Super hearing
   - 29 # Night Vision
 size: medium

@@ -122,13 +122,13 @@ func actCast(params map[string]any, ctx *EvalContext) Result {
 }
 
 // actAddCondition applies a condition to the acting mob.
-// params: buff_id (int)
+// params: condition_id (int)
 func actAddCondition(params map[string]any, ctx *EvalContext) Result {
 	mob := mobs.GetInstance(ctx.InstanceId)
 	if mob == nil {
 		return Failure
 	}
-	conditionId := getIntParam(params, "buff_id")
+	conditionId := getIntParam(params, "condition_id")
 	if conditionId == 0 {
 		return Failure
 	}
@@ -137,13 +137,13 @@ func actAddCondition(params map[string]any, ctx *EvalContext) Result {
 }
 
 // actRemoveCondition removes a condition from the triggering player by condition ID.
-// params: buff_id (int)
+// params: condition_id (int)
 func actRemoveCondition(params map[string]any, ctx *EvalContext) Result {
 	user := users.GetByUserId(ctx.Event.UserId)
 	if user == nil {
 		return Failure
 	}
-	conditionId := getIntParam(params, "buff_id")
+	conditionId := getIntParam(params, "condition_id")
 	user.Character.RemoveCondition(conditionId)
 	return Success
 }

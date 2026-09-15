@@ -6,7 +6,7 @@ import (
 )
 
 // TriggerVenomCoat fires the venom-coat mutation for any Actor (player or mob).
-// Self-condition: slicks the actor's weapons in venom (condition 103) for a burst of
+// Self-empower: slicks the actor's weapons in venom (condition 103) for a burst of
 // extra bite. Gates: owns "venom-coat" + shared special-move cooldown + 8
 // stamina. Combat is NOT required — this is a prep move.
 func TriggerVenomCoat(actor Actor, opts MutationOpts) MutationResult {

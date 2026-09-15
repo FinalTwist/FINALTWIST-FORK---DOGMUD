@@ -56,10 +56,10 @@ func TestCalcSpellDamage_DampenedSuppressed(t *testing.T) {
 	damp := newCaster()
 	damp.Conditions = conditions.New()
 	if err := damp.AddCondition(200, true); err != nil {
-		t.Fatalf("AddBuff(Dampened): %v", err)
+		t.Fatalf("AddCondition(Dampened): %v", err)
 	}
 	if !damp.HasConditionFlag(conditions.Dampened) {
-		t.Fatal("caster should carry the Dampened flag after AddBuff")
+		t.Fatal("caster should carry the Dampened flag after AddCondition")
 	}
 
 	var dampSum int

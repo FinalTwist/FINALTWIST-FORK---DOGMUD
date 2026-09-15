@@ -23,7 +23,7 @@ exits:
     lock:
       difficulty: 12
       relockinterval: 15 real minutes
-      trapbuffids: [39]
+      trapconditionids: [39]
 nouns:
   resin: >
     The chrysalis resin coats every surface of the shaft in overlapping

@@ -13,7 +13,7 @@ size: medium
 unarmedname: presence
 selectable: false
 tameable: false
-buffids:
+conditionids:
   - 53 # Veil Sight — see-hidden
 angrycommands:
   - emote fixes you with hollow eyes, and the air grows cold and still.

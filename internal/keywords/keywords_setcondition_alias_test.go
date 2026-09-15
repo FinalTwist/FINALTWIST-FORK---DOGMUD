@@ -9,23 +9,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestAliasResolvesToSetCondition loads each shipped world's real
-// keywords.yaml (not a synthetic fixture) and proves the admin command alias
-// kept for slice 2 of the conditions unification (owner ruling 2026-09-14:
-// `setcondition` is the real command, `buff` stays a working alias until
-// slice 3) actually resolves in both the command dispatcher and the help
-// system. `TryCommandAlias` is what usercommands.TryCommand consults before
-// indexing the command map, so this is the same resolution a typed `buff`
-// command goes through; `TryHelpAlias` is what `help buff` consults.
-func TestAliasResolvesToSetCondition(t *testing.T) {
+// TestOldAdminAliasIsGone loads each shipped world's real keywords.yaml and
+// proves conditions unification slice 3 removed the `buff` alias that slice 2
+// kept for `setcondition` (owner ruling 2026-09-14: alias until slice 3).
+// TryCommandAlias and TryHelpAlias return their input unchanged when no alias
+// matches.
+func TestOldAdminAliasIsGone(t *testing.T) {
 	_, here, _, ok := runtime.Caller(0)
 	require.True(t, ok)
 
-	// LoadAliases() below overwrites the package-level loadedKeywords var
-	// directly (see LoadAliases in keywords.go); configs.SetConfigForTest
-	// only restores the config, not this. Save and restore it the same way
-	// SeedKeywordsForTest does, so this test does not leave a later
-	// test's keyword state pointed at whichever world ran last.
 	origKeywords := loadedKeywords
 	defer func() { loadedKeywords = origKeywords }()
 
@@ -37,10 +29,11 @@ func TestAliasResolvesToSetCondition(t *testing.T) {
 
 			LoadAliases()
 
-			require.Equal(t, "setcondition", TryCommandAlias("buff"),
-				"the %s world's keywords.yaml must alias the `buff` command to `setcondition`", world)
-			require.Equal(t, "setcondition", TryHelpAlias("buff"),
-				"the %s world's keywords.yaml must alias `help buff` to `help setcondition`", world)
+			require.Equal(t, "buff", TryCommandAlias("buff"),
+				"the %s world's keywords.yaml must not alias `buff` to any command", world)
+			require.Equal(t, "buff", TryHelpAlias("buff"),
+				"the %s world's keywords.yaml must not alias `help buff`", world)
+			require.Equal(t, "setcondition", TryCommandAlias("setcondition"))
 		})
 	}
 }

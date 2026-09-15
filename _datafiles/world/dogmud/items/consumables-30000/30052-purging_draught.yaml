@@ -9,7 +9,7 @@ description: A violently acrid concoction of veilbloom
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 70
 value: 50
 rarity_tier: 40

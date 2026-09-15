@@ -8,7 +8,7 @@ description: A shifting, iridescent brew that never looks
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 73
 value: 80
 rarity_tier: 30

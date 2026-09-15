@@ -16,20 +16,20 @@ const supportCasterYAML = "../../_datafiles/world/dogmud/behaviors/archetypes/su
 
 // TestSupportCaster_PackmateHurt_ShieldsTankingPackmate verifies that when
 // a same-room packmate is tanking (has Aggro set), support_caster's
-// packmate_hurt handler casts a buff_friendly (shield) spell on the tanking
+// packmate_hurt handler casts a condition_friendly (shield) spell on the tanking
 // packmate, taking priority over healing wounded packmates.
 func TestSupportCaster_PackmateHurt_ShieldsTankingPackmate(t *testing.T) {
 	defer seedSupportCasterSpells(t)()
 	LoadArchetypeForTest(t, "support_caster", supportCasterYAML)
 
-	// The caster has both heal_friendly and buff_friendly available.
+	// The caster has both heal_friendly and condition_friendly available.
 	// If the archetype prioritizes correctly, the tanking packmate
-	// triggers the buff_friendly branch (shield the tank) — even if
+	// triggers the condition_friendly branch (shield the tank) — even if
 	// another packmate is wounded below 70%, the tank-shielding
 	// priority wins.
 	caster, cleanup := seedSupportCasterMob(t, 90601, map[string]int{
 		"mend-wounds":     4, // heal_friendly
-		"conviction-ward": 4, // buff_friendly
+		"conviction-ward": 4, // condition_friendly
 	})
 	caster.Routine = "bandit_camp_guard"
 	caster.Character.HealthMax.Value = 100
@@ -190,7 +190,7 @@ func TestSupportCaster_PackmateHurt_EngagesAttackerWhenNoSupportNeeded(t *testin
 }
 
 // seedSupportCasterSpells seeds the minimal spells for support_caster testing
-// (heal_friendly and buff_friendly categories).
+// (heal_friendly and condition_friendly categories).
 func seedSupportCasterSpells(t *testing.T) func() {
 	t.Helper()
 	return spells.SeedSpellsForTest(map[string]*spells.SpellData{
@@ -204,7 +204,7 @@ func seedSupportCasterSpells(t *testing.T) func() {
 			SpellId: "conviction-ward", Name: "Conviction Ward",
 			Type: spells.HelpSingle, Cost: 30, BaseFolds: 4,
 			EffectType: "shield", EffectMagnitude: 75,
-			Categories: []string{"buff_friendly"},
+			Categories: []string{"condition_friendly"},
 		},
 	})
 }

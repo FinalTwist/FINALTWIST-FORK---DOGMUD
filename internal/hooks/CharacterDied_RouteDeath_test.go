@@ -12,7 +12,7 @@ import (
 )
 
 // deathProtectionConditionId is the condition carrying the ReviveOnDeath flag,
-// _datafiles/world/default/buffs/35-death_protection.yaml.
+// _datafiles/world/default/conditions/35-death_protection.yaml.
 const deathProtectionConditionId = 35
 
 // newRouteDeathTestMob builds a mob and registers it in the instance registry
@@ -119,11 +119,11 @@ func TestRouteAttributedDeath_ReviveHealsAndClearsQueue(t *testing.T) {
 	seedReviveCondition(t)
 	mob := newRouteDeathTestMob(t, -20)
 	if err := mob.Character.AddCondition(deathProtectionConditionId, true); err != nil {
-		t.Fatalf("AddBuff: %v", err)
+		t.Fatalf("AddCondition: %v", err)
 	}
 
 	if !mob.Character.HasConditionFlag(conditions.ReviveOnDeath) {
-		t.Fatal("precondition: buff did not apply the ReviveOnDeath flag")
+		t.Fatal("precondition: condition did not apply the ReviveOnDeath flag")
 	}
 	mob.Character.DeathQueued = true
 
@@ -140,6 +140,6 @@ func TestRouteAttributedDeath_ReviveHealsAndClearsQueue(t *testing.T) {
 		t.Error("DeathQueued still set after a revive; the character can never be killed again")
 	}
 	if mob.Character.HasConditionFlag(conditions.ReviveOnDeath) {
-		t.Error("revive buff was not consumed")
+		t.Error("revive condition was not consumed")
 	}
 }

@@ -8,7 +8,7 @@ body_parts: [legs, eyes, mouth, skin]
 intrinsic_mutations:
   tremorsense: 1
   silk-glands: 1
-buffids:
+conditionids:
   - 29 # Night Vision
 size: small
 unarmedname: fangs
@@ -34,7 +34,7 @@ stats:
 damage:
   basedamage: 4
   variance: 2
-  critbuffids:
+  critconditionids:
     - 39 # Venom
 damage_multiplier: 0.50
 disabledslots: ['weapon', 'offhand', 'head', 'neck', 'belt', 'gloves', 'ring', 'legs', 'feet']

@@ -246,7 +246,7 @@ mind-spike, kinetic-shove, blood-boil, hemorrhagic-wave, synaptic-overload,
 veil-rend, mend-wounds, communion-of-flesh, chrysalis-cocoon, neural-toxin,
 conviction-barrage, cleansing-wave.
 
-### Buff/Debuff/Utility Spells (17)
+### Condition/Utility Spells (17)
 conviction-surge, iron-will, chrysalis-haste, mind-fog, nerve-disruption,
 empathic-shroud, vital-surge, chrysalis-regeneration, skill-attunement,
 mutation-catalyst, psychic-anchor, sensory-overload, conviction-armor,
@@ -339,5 +339,5 @@ go out on the audio channel; that is filed, not a property of the door.
 
 - **Phase 25.1** (complete) — Re-themed 14 spells, Go infrastructure (dot/knockdown/purge), spell discovery, HelpArea fix
 - **Phase 25.2** (complete) — 12 new damage/heal/DoT/shield spells
-- **Phase 25.3** (complete) — 13 new conditions, 17 new buff/debuff/utility spells, hook integration
+- **Phase 25.3** (complete) — 13 new conditions, 17 new condition/utility spells, hook integration
 - **Phase 25.4** (complete) — 2 summon spells with component items and permanent charm

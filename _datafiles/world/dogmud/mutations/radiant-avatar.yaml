@@ -16,7 +16,7 @@ prerequisites:
     min_level: 1
 visual: A steady, sourceless radiance haloes them, and the eye is dragged to them the way it is dragged to a fire in the dark.
 pros:
-  - type: aura_ally_buff
+  - type: aura_ally_condition
     value: 113
   - type: aggro_magnet
     target: aggro

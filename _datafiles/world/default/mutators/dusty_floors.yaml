@@ -14,6 +14,6 @@ alertmodifier:
 #decayintoid: another-alert-id
 respawnrate: 1 day # every game-time 24 hours comes back
 #decayrate: 1 hour # Never decay.
-#playerbuffids: []
-#mobbuffids: []
-#nativebuffids: []
+#playerconditionids: []
+#mobconditionids: []
+#nativeconditionids: []

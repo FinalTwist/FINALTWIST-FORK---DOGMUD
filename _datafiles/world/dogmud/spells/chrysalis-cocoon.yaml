@@ -12,7 +12,7 @@ primarystat: willpower
 base_folds: 8
 effect_type: shield
 effect_magnitude: 125
-buff_ids:
+condition_ids:
   - 52
 categories:
   - self_defense

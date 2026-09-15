@@ -173,7 +173,7 @@ func TestThrottle_Executed_BleedAndCondition(t *testing.T) {
 
 	// Throttled condition (id 89) should be applied.
 	assert.True(t, targetMob.Character.HasCondition(89),
-		"target should have Throttled buff (id 89) after a successful throttle")
+		"target should have Throttled condition (id 89) after a successful throttle")
 }
 
 // TestThrottle_CastInterrupt verifies that a throttle hit against a casting

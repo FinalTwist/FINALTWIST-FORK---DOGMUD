@@ -72,7 +72,7 @@ value: 1
 ```
 
 
-## Items with buffs on use
+## Items with conditions on use
 
 ```
 itemid: 30012
@@ -83,14 +83,14 @@ type: drink
 subtype: drinkable
 uses: 1
 value: 92
-buffids: 
+conditionids: 
 - 14
 - 16
 ```
 
-# Items with buffs on wear
+# Items with conditions on wear
 
-_Note: These buffs remain in play while worn, and should not expire on a timer_
+_Note: These conditions remain in play while worn, and should not expire on a timer_
 
 ```
 itemid: 10006
@@ -106,6 +106,6 @@ damage:
 statmods:
   speed: -10
 cursed: true
-wornbuffids:
+wornconditionids:
   - 1
 ```

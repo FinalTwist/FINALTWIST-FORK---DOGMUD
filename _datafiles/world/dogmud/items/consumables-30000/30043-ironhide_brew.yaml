@@ -9,7 +9,7 @@ description: A dark, gritty brew flecked with ironbark.
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 61
 value: 18
 rarity_tier: 40

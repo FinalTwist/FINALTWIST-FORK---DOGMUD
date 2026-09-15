@@ -50,7 +50,7 @@ func condMobHasCondition(params map[string]any, ctx *EvalContext) Result {
 	if mob == nil {
 		return Failure
 	}
-	conditionId := getIntParam(params, "buff_id")
+	conditionId := getIntParam(params, "condition_id")
 	if mob.Character.HasCondition(conditionId) {
 		return Success
 	}

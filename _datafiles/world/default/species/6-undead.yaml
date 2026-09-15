@@ -1,7 +1,7 @@
 speciesid: 6
 name: undead
 description: A dead creature animated by magical means.
-buffids:
+conditionids:
   - 29 # Night Vision
 size: medium
 unarmedname: claws

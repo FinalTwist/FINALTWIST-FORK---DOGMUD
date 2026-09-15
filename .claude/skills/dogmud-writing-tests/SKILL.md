@@ -124,9 +124,9 @@ error.
 
 [[feedback_validator_conditional_checks]]: a YAML validator that only checks
 field X when field Y is set leaves the "Y unset" branch free to pass a zero
-default that crashes downstream. The recorded incident: a buff validator
+default that crashes downstream. The recorded incident: a condition validator
 only enforced `RoundInterval >= 1` inside an `if TriggerRate != ""` block,
-so a flag-only buff with no `triggerrate:` passed validation at
+so a flag-only condition with no `triggerrate:` passed validation at
 `RoundInterval = 0` and divided by zero the first time it was actually
 ticked in combat. A test of the validator alone is not enough; also test
 (or add a defensive guard at) the consumer that divides, multiplies, or

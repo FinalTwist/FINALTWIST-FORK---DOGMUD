@@ -174,7 +174,7 @@ func tickHunger(c *characters.Character, user *users.UserRecord, now uint64) {
 	// Deliberate design decision: the drain is non-combat attrition applied
 	// directly to Health, bypassing the damage hooks entirely (no sleep-wake,
 	// no aggro, no mitigation) — the blade's toll, not an attack.
-	// Anonymous source: the toll comes from the item, and buffs/items carry no
+	// Anonymous source: the toll comes from the item, and conditions and items carry no
 	// applier the pool primitives can attribute to.
 	c.ApplyHarm(characters.PoolHealth, drain, state.ActorRef{})
 	// The drain repeats every overdue round, but the feeding LINE is paced by
@@ -266,7 +266,7 @@ func bandolierFingerprint(belt items.Item, potions []items.Item) string {
 
 // tickAmbientPotions keeps slotted potion conditions active at Peak potency while an
 // ambient_potions bandolier is worn and attuned. Conditions applied this way are
-// recorded (pinnacle_bandolier_buffs) so removal can revoke them.
+// recorded (pinnacle_bandolier_conditions) so removal can revoke them.
 func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	c := user.Character
 	belt := c.Equipment.Belt
@@ -276,14 +276,14 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 		// Flag-off common path: no fingerprint work at all. Revoke any
 		// lingering ambience from a previously-worn ambient bandolier and
 		// clear the stored fingerprint so re-equipping one re-attunes.
-		if applied := readMiscIntSlice(c.GetMiscData("pinnacle_bandolier_buffs")); len(applied) > 0 {
+		if applied := readMiscIntSlice(c.GetMiscData("pinnacle_bandolier_conditions")); len(applied) > 0 {
 			revokeAmbient(c, applied)
 			c.SetMiscData("pinnacle_bandolier_fingerprint", nil)
 		}
 		return
 	}
 
-	applied := readMiscIntSlice(c.GetMiscData("pinnacle_bandolier_buffs"))
+	applied := readMiscIntSlice(c.GetMiscData("pinnacle_bandolier_conditions"))
 	appliedSet := map[int]bool{}
 	for _, id := range applied {
 		appliedSet[id] = true
@@ -323,7 +323,7 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 				`<ansi fg="magenta">The %s stirs, drawing in the essence of what you have slotted; it will take a moment to attune.</ansi>`,
 				spec.Name))
 		}
-		c.SetMiscData("pinnacle_bandolier_buffs", kept)
+		c.SetMiscData("pinnacle_bandolier_conditions", kept)
 		return
 	}
 
@@ -362,7 +362,7 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	for id := range desired {
 		ids = append(ids, id)
 	}
-	c.SetMiscData("pinnacle_bandolier_buffs", ids)
+	c.SetMiscData("pinnacle_bandolier_conditions", ids)
 }
 
 // desiredAmbientConditions is the set of condition ids emitted by the potions currently
@@ -384,7 +384,7 @@ func revokeAmbient(c *characters.Character, applied []int) {
 		c.RemoveCondition(id)
 	}
 	if len(applied) > 0 {
-		c.SetMiscData("pinnacle_bandolier_buffs", []int{})
+		c.SetMiscData("pinnacle_bandolier_conditions", []int{})
 	}
 }
 

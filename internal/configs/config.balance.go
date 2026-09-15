@@ -211,7 +211,6 @@ type Balance struct {
 	SubmissionAttemptCritZ ConfigFloat `yaml:"submission_attempt_crit_z"` // Defender-side shortcut: drift z >= this opens a bottom-sub window regardless of margin
 	SubBadZThreshold       ConfigFloat `yaml:"sub_bad_z_threshold"`       // Z-score below which the sub roll's bad-tier (attempter falls prone) fires
 	SubGoldLossFraction    ConfigFloat `yaml:"sub_gold_loss_fraction"`    // Fraction of carried gold transferred to the aggressor on subdue/cripple
-	BrokenLimbBuffDuration ConfigInt   `yaml:"broken_limb_buff_duration"` // Duration in rounds for the broken-limb condition; expires naturally via standard condition tick
 
 	// ── CHUNK 4E: THIRD-PARTY INTERFERENCE ──────────────────────────────────
 	// See docs/superpowers/specs/ chunk-4e design.

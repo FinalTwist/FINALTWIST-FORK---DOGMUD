@@ -12,7 +12,7 @@
 # (internal/actions/cast.go "Mob HelpSingle: named target or self"),
 # and resolveMobSpellAgainstMob dispatches non-self mob targets through
 # applyMobEffect. Prior to this chunk, applyMobEffect's switch had no
-# "heal" case (only damage/dot/knockdown/buff), so a mob healing another
+# "heal" case (only damage/dot/knockdown/condition), so a mob healing another
 # mob silently no-op'd — added the missing case (+ bypassed the harmful
 # opposed-roll/backfire gate for heal-type effects, since a friendly heal
 # shouldn't be "resisted") in internal/hooks/spell_resolution.go as part

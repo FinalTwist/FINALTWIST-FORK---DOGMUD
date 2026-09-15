@@ -263,17 +263,17 @@
     insp.appendChild(dlgBtn);
 
     // Shared id-picker datalists: items from the login-time Build.Items
-    // prefetch, buffs from the server enums.
+    // prefetch, conditions from the server enums.
     var itemDl = ce("datalist", { id: "dl-mob-items" });
     ((window.Builder && window.Builder.itemRows) || []).forEach(function (r) {
       itemDl.appendChild(ce("option", { value: String(r.id), text: r.name || "" }));
     });
     insp.appendChild(itemDl);
-    var buffDl = ce("datalist", { id: "dl-mob-buffs" });
-    (enums.buffs || []).forEach(function (b) {
-      buffDl.appendChild(ce("option", { value: String(b.id), text: b.name || "" }));
+    var conditionDl = ce("datalist", { id: "dl-mob-conditions" });
+    (enums.conditions || []).forEach(function (b) {
+      conditionDl.appendChild(ce("option", { value: String(b.id), text: b.name || "" }));
     });
-    insp.appendChild(buffDl);
+    insp.appendChild(conditionDl);
 
     // ---- field builders bound to this render's F/markDirty closure ----
     function textField(label, key, val, hint) {
@@ -372,7 +372,7 @@
       return wrap;
     }
 
-    // Repeatable id rows (lootPool, carriedItems, buffIds,
+    // Repeatable id rows (lootPool, carriedItems, conditionIds,
     // crafterRestockMaterials) — id pickers backed by a datalist (dl), so
     // authors see names instead of typing bare numbers (epic followup #3).
     function idRowsField(label, key, vals, hint, dl) {
@@ -633,7 +633,7 @@
     var enums = detail.enums || {};
     var hasAdv = detail.scheduleId || detail.patrolId || (detail.shop && detail.shop.length) ||
       detail.crafter || (detail.relationships && detail.relationships.length) ||
-      (detail.buffIds && detail.buffIds.length) || detail.scriptTag || detail.llmProfileJson ||
+      (detail.conditionIds && detail.conditionIds.length) || detail.scriptTag || detail.llmProfileJson ||
       detail.carryCapacity || detail.healthMax || detail.staminaMax || detail.nonCombatant;
     // Recompute open state only when a different mob is selected; preserve the
     // author's toggle across same-mob re-renders (e.g. the post-save re-Get).
@@ -692,7 +692,7 @@
       gmcp("Build.Behavior.Get", { kind: "mob", mobId: detail.mobId });
     });
     body.appendChild(ce("div", { style: "margin:4px 0 8px;" }, [btArchBtn, btMobBtn]));
-    body.appendChild(H.idRowsField("Condition ids", "buffIds", detail.buffIds, "", "dl-mob-buffs"));
+    body.appendChild(H.idRowsField("Condition ids", "conditionIds", detail.conditionIds, "", "dl-mob-conditions"));
     body.appendChild(H.chipsField("Quest flags", "questFlags", detail.questFlags));
     body.appendChild(H.chipsField("Spawn mutations", "spawnMutations", detail.spawnMutations));
     body.appendChild(H.numField("Mutation chance %", "mutationChance", detail.mutationChance));
@@ -750,7 +750,7 @@
       relationships: g("relationships", []), knowsFacts: g("knowsFacts", []),
       defaultDisposition: g("defaultDisposition", 0), foldAnchorRoom: g("foldAnchorRoom", 0), storageChestRoom: g("storageChestRoom", 0),
       scriptTag: g("scriptTag", ""), behaviorArchetype: g("behaviorArchetype", ""),
-      buffIds: g("buffIds", []), questFlags: g("questFlags", []), spawnMutations: g("spawnMutations", []),
+      conditionIds: g("conditionIds", []), questFlags: g("questFlags", []), spawnMutations: g("spawnMutations", []),
       mutationChance: g("mutationChance", 0), llmProfileJson: g("llmProfileJson", ""),
       carryCapacity: g("carryCapacity", 0), healthMax: g("healthMax", 0), staminaMax: g("staminaMax", 0),
       corpseName: g("corpseName", ""), corpseDescription: g("corpseDescription", ""),

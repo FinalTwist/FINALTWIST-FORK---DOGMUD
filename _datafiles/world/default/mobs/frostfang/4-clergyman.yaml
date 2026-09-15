@@ -18,7 +18,7 @@ character:
   alignment: 100
   items: []
   shop:
-    - buffid: 14
+    - conditionid: 14
       price: 50
-    - buffid: 37
+    - conditionid: 37
       price: 100

@@ -753,7 +753,7 @@ func executePurchaseCondition(buyer Actor, shopMob *mobs.Mob, shopUser *users.Us
 	if shopMob != nil {
 		if buyer.IsPlayer() {
 			if u := users.GetByUserId(buyer.GetUserId()); u != nil {
-				u.EventLog.Add(`shop`, fmt.Sprintf(`Purchased a <ansi fg="buff">%s</ansi> enchantment from <ansi fg="mobname">%s</ansi> for %s`, conditionSpec.Name, shopMob.Character.Name, tradeInString))
+				u.EventLog.Add(`shop`, fmt.Sprintf(`Purchased a <ansi fg="condition">%s</ansi> enchantment from <ansi fg="mobname">%s</ansi> for %s`, conditionSpec.Name, shopMob.Character.Name, tradeInString))
 			}
 		}
 		buyer.SendText(messaging.CategoryLoot, fmt.Sprintf(`You pay %s to <ansi fg="mobname">%s</ansi>.`, tradeInString, shopMob.Character.Name))
@@ -764,7 +764,7 @@ func executePurchaseCondition(buyer Actor, shopMob *mobs.Mob, shopUser *users.Us
 	} else if shopUser != nil {
 		if buyer.IsPlayer() {
 			if u := users.GetByUserId(buyer.GetUserId()); u != nil {
-				u.EventLog.Add(`shop`, fmt.Sprintf(`Purchased a <ansi fg="buff">%s</ansi> enchantment from  <ansi fg="username">%s</ansi> for %s`, conditionSpec.Name, shopUser.Character.Name, tradeInString))
+				u.EventLog.Add(`shop`, fmt.Sprintf(`Purchased a <ansi fg="condition">%s</ansi> enchantment from  <ansi fg="username">%s</ansi> for %s`, conditionSpec.Name, shopUser.Character.Name, tradeInString))
 			}
 		}
 		buyer.SendText(messaging.CategoryLoot, fmt.Sprintf(`You pay %s to <ansi fg="username">%s</ansi>.`, tradeInString, shopUser.Character.Name))

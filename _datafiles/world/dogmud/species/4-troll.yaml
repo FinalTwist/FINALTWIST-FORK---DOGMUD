@@ -5,7 +5,7 @@ body_parts: [arms, hands, legs, eyes, mouth, skin]
 intrinsic_mutations:
   thick-hide: 1
   regrowth: 1
-buffids:
+conditionids:
   - 29 # Night Vision
   - 30 # Regeneration
 size: large

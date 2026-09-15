@@ -164,8 +164,7 @@ colors:
   mail-note: 10
   mail-note-read: 2
   mutator: 49
-  buff: 147
-  buff-text: 14
+  condition: 147
   script-text: 155
   broadcast-prefix: 135
   broadcast-body: 164
@@ -232,7 +231,7 @@ colors:
   spell-fold: 152          # pale steel-cyan — cast/fold preparation
   spell-disruption: 214    # warning amber — fizzle/backfire/deflect
   spell-elemental: 160     # red3 — fire/ice/lightning damage (distinct red, not the warm-orange shared with gold)
-  spell-enhancement: 179   # warm gold — buffs / shields / enchantments
+  spell-enhancement: 179   # warm gold — conditions / shields / enchantments
   spell-mental: 146        # lavender — psionics / charm / illusion
   spell-vital: 108         # sage mint — heal / cure / restore
   spell-manifestation: 169 # rose pink — summon / raise / bind
@@ -269,7 +268,7 @@ colors:
 # Other
   loot: 7
   equipment: 7
-  buff-apply: 109        # light steel blue — calmer than the old bright cyan so it doesn't dominate spell-school colors when both fire on a buff spell
-  buff-expire: 109
+  condition-apply: 109        # light steel blue — calmer than the old bright cyan so it doesn't dominate spell-school colors when both fire on a condition spell
+  condition-expire: 109
   mutation: 146
   toxin: 130

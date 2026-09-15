@@ -8,7 +8,7 @@ description: A sharp-smelling brew the color of dark honey. It makes the mind fe
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 7
 value: 8
 rarity_tier: 50

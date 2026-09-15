@@ -9,5 +9,5 @@ alertmodifier:
   text: '!!!                A wildfire is burning here!                !!!'
   colorpattern: flame
 decayrate: 10 minutes
-playerbuffids: [22]
-mobbuffids: [22]
+playerconditionids: [22]
+mobconditionids: [22]

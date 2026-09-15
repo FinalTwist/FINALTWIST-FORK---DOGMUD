@@ -262,7 +262,7 @@ anywhere in CLAUDE.md:
   `TickPercent < 0`, so wrapping it over `ApplyRestore` to "tidy" it
   silently deletes every health damage-over-time effect in the game.
 - **Reflect lives on the species record** (`return_damage` plus
-  `return_damage_channel`), not on buffs and not in the mob file. Equipment
+  `return_damage_channel`), not on conditions and not in the mob file. Equipment
   `return_damage` is a separate mechanism: physical and uncapped.
 - **False claims not to remake**: there is no prone/stand death spiral; an
   exhausted defender is not auto-hit; the melee attack score is not
@@ -339,7 +339,7 @@ guard-prisoner/`NoAggroTarget` logic and is stale), not at the top of
 when it picks a move and the per-mob loop `continue`s on that, so
 `handleCombatRound` never runs for that mob and the legacy hardcoded
 priority ladder in `preferredSpell` (shield, then heal, then harm-list)
-preempts any archetype self-buff every round. The fix pattern is to fire
+preempts any archetype self-empowering cast every round. The fix pattern is to fire
 the btree event and `continue` on a handled result immediately before the
 `handleMobAIDecision` check. Defender-side events (`mob_hurt` and similar)
 do not have this problem; they fire inside `handleCombatRound` against a

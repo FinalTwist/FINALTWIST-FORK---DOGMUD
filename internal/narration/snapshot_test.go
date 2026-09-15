@@ -724,8 +724,8 @@ func TestSnapshotStores(t *testing.T) {
 	t.Run("itemvoices", func(t *testing.T) {
 		checkGolden(t, "itemvoices.golden", buildItemVoicesGolden(t))
 	})
-	t.Run("buffs", func(t *testing.T) {
-		checkGolden(t, "buffs.golden", buildConditionsGolden(t))
+	t.Run("conditions", func(t *testing.T) {
+		checkGolden(t, "conditions.golden", buildConditionsGolden(t))
 	})
 	t.Run("spells", func(t *testing.T) {
 		checkGolden(t, "spells.golden", buildSpellsGolden(t))
@@ -824,25 +824,25 @@ func buildConditionsGolden(t *testing.T) string {
 	t.Helper()
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "# buffs store snapshot (internal/conditions)\n")
+	fmt.Fprintf(&b, "# conditions store snapshot (internal/conditions)\n")
 	fmt.Fprintf(&b, "# Built 2026-09-12 from PRE-migration code. The *_user_text rows record what the\n")
 	fmt.Fprintf(&b, "# HOLDER is sent: for start and end that is StartUserNotice / EndUserNotice (authored\n")
-	fmt.Fprintf(&b, "# line, else the generic fallback, else nothing for a secret buff). A row exists only\n")
+	fmt.Fprintf(&b, "# line, else the generic fallback, else nothing for a secret condition). A row exists only\n")
 	fmt.Fprintf(&b, "# when the sent line is non-empty. authored_start_line is the raw start_user_text of a\n")
-	fmt.Fprintf(&b, "# silent-start buff, recorded for every silent-start buff whether or not a site sends it\n")
+	fmt.Fprintf(&b, "# silent-start condition, recorded for every silent-start condition whether or not a site sends it\n")
 	fmt.Fprintf(&b, "# today: sleep (15), arrest (88), stun (84) and broken limb (83) have a sender; throttled\n")
 	fmt.Fprintf(&b, "# (89) does not, its move narrates the choke itself.\n")
-	fmt.Fprintf(&b, "# dimensions: buff id x authored key; source only, buffs never know a target\n\n")
+	fmt.Fprintf(&b, "# dimensions: condition id x authored key; source only, conditions never know a target\n\n")
 
 	ids := conditions.GetAllConditionIds()
 	sort.Ints(ids)
 	if len(ids) == 0 {
-		t.Fatal("no buffs loaded; setupRealStores must call buffs.LoadDataFiles()")
+		t.Fatal("no conditions loaded; setupRealStores must call conditions.LoadDataFiles()")
 	}
 	for _, id := range ids {
 		spec := conditions.GetConditionSpec(id)
 		if spec == nil {
-			t.Fatalf("buff %d has no spec", id)
+			t.Fatalf("condition %d has no spec", id)
 		}
 		phases := []struct {
 			p                conditions.Phase
@@ -855,15 +855,15 @@ func buildConditionsGolden(t *testing.T) string {
 		for _, ph := range phases {
 			roles := spec.Narrate(ph.p, kindBNoTarget)
 			if roles.Actee != "" {
-				fmt.Fprintf(&b, "buff|%d|%s => %s\n", id, ph.userKey, roles.Actee)
+				fmt.Fprintf(&b, "condition|%d|%s => %s\n", id, ph.userKey, roles.Actee)
 			}
 			if roles.Observer != "" {
-				fmt.Fprintf(&b, "buff|%d|%s => %s\n", id, ph.roomKey, roles.Observer)
+				fmt.Fprintf(&b, "condition|%d|%s => %s\n", id, ph.roomKey, roles.Observer)
 			}
 		}
 		if slices.Contains(spec.Flags, conditions.SilentStart) {
 			if line := spec.AuthoredStartLine(kindBNoTarget); line != "" {
-				fmt.Fprintf(&b, "buff|%d|authored_start_line => %s\n", id, line)
+				fmt.Fprintf(&b, "condition|%d|authored_start_line => %s\n", id, line)
 			}
 		}
 	}

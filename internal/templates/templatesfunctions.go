@@ -147,14 +147,14 @@ var (
 		"stringor":     stringOr,
 		"splitstring":  util.SplitStringNL,
 		"ansiparse":    TplAnsiParse,
-		"buffname": func(conditionId int) string {
+		"conditionname": func(conditionId int) string {
 			conditionSpec := conditions.GetConditionSpec(conditionId)
 			if conditionSpec == nil {
 				return "Unknown"
 			}
 			return conditionSpec.Name
 		},
-		"buffduration": func(conditionId int) string {
+		"conditionduration": func(conditionId int) string {
 			conditionSpec := conditions.GetConditionSpec(conditionId)
 			if conditionSpec == nil {
 				return "Unknown"

@@ -192,7 +192,7 @@ func TestFleeCost_RejectedCommandClearsOrphanedAdmission(t *testing.T) {
 	defer cleanup()
 	u.SetTempData(fleeIncludeSkillTempKey, fleeAdmission{includeSkill: false})
 	if !u.Character.Conditions.AddCondition(noFleeConditionID, false) {
-		t.Fatal("fixture could not apply the no-flee buff")
+		t.Fatal("fixture could not apply the no-flee condition")
 	}
 
 	if _, err := Flee("", u, room, 0); err != nil {

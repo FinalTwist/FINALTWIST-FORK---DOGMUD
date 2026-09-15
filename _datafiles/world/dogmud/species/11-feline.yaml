@@ -7,7 +7,7 @@ body_parts: [legs, eyes, mouth, skin, tail]
 intrinsic_mutations:
   tail: 1
   padded-soles: 1
-buffids:
+conditionids:
   - 29 # Night Vision
 size: medium
 unarmedname: claws and fangs

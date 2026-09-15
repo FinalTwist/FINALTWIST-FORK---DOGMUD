@@ -5,5 +5,5 @@ description: A small red potion... you COULD drink it...
 type: potion
 subtype: drinkable
 uses: 1
-buffids: 
+conditionids: 
 - 5

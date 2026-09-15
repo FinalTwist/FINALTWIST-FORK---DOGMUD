@@ -9,7 +9,7 @@ description: A viscous grey draught that coats your
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 64
 value: 15
 rarity_tier: 40

@@ -29,10 +29,10 @@ func refreshTestSetTriggersLeft(t *testing.T, list []*conditions.Condition, cond
 			return
 		}
 	}
-	t.Fatalf("buff %d not found on held list", conditionId)
+	t.Fatalf("condition %d not found on held list", conditionId)
 }
 
-// A room mutator's playerbuffids run every round. A player who already holds
+// A room mutator's playerconditionids run every round. A player who already holds
 // the condition must have it REFRESHED (TriggersLeft reset), not skipped until it
 // lapses and gets re-added a round later: the skip is what turned slice C's
 // authored notices into a start/end loop every few rounds. A player who does
@@ -63,14 +63,14 @@ func TestApplyConditionIdToPlayers_HeldConditionIsRefreshedNotRelapsed(t *testin
 
 	held := users.GetByUserId(7311)
 	if err := held.Character.AddCondition(refreshTestHeldConditionId, false); err != nil {
-		t.Fatalf("precondition: could not grant the held buff: %v", err)
+		t.Fatalf("precondition: could not grant the held condition: %v", err)
 	}
 	// Drive it down as if two of its three triggers had already fired.
 	refreshTestSetTriggersLeft(t, held.Character.Conditions.List, refreshTestHeldConditionId, 1)
 
 	newcomer := users.GetByUserId(7312)
 	if newcomer.Character.HasCondition(refreshTestGrantedConditionId) {
-		t.Fatal("precondition: the newcomer should not start with the granted buff")
+		t.Fatal("precondition: the newcomer should not start with the granted condition")
 	}
 
 	// Discard anything left over from AddCondition/SeedUsersForTest setup above,
@@ -82,13 +82,13 @@ func TestApplyConditionIdToPlayers_HeldConditionIsRefreshedNotRelapsed(t *testin
 	grantRoom.ApplyConditionIdToPlayers([]int{refreshTestGrantedConditionId}, "area")
 
 	if got := len(held.Character.Conditions.List); got != 1 {
-		t.Fatalf("held player's buff list has %d entries, want 1 (refreshed in place, not removed and re-added)", got)
+		t.Fatalf("held player's condition list has %d entries, want 1 (refreshed in place, not removed and re-added)", got)
 	}
 	if got := held.Character.Conditions.List[0].TriggersLeft; got != 3 {
 		t.Errorf("held player's TriggersLeft = %d, want 3 (refreshed synchronously)", got)
 	}
 	if got := events.DrainQueuedConditionsForTest(7311); len(got) != 0 {
-		t.Errorf("held player has %d queued Buff events, want 0: a refresh queues no event and so renders no start text", len(got))
+		t.Errorf("held player has %d queued Condition events, want 0: a refresh queues no event and so renders no start text", len(got))
 	}
 
 	// The player without the condition goes through the async grant path
@@ -97,14 +97,14 @@ func TestApplyConditionIdToPlayers_HeldConditionIsRefreshedNotRelapsed(t *testin
 	// distinguishes this call from the held player's synchronous refresh, and
 	// confirming exactly one Condition event landed proves the grant still happens.
 	if newcomer.Character.HasCondition(refreshTestGrantedConditionId) {
-		t.Error("newcomer already carries the granted buff synchronously; expected the async event path (grant not yet applied)")
+		t.Error("newcomer already carries the granted condition synchronously; expected the async event path (grant not yet applied)")
 	}
 	got := events.DrainQueuedConditionsForTest(7312)
 	if len(got) != 1 {
-		t.Fatalf("newcomer has %d queued Buff events, want 1", len(got))
+		t.Fatalf("newcomer has %d queued Condition events, want 1", len(got))
 	}
 	if got[0].ConditionId != refreshTestGrantedConditionId || got[0].Source != "area" {
-		t.Errorf("queued Buff event = %+v, want BuffId %d Source \"area\"", got[0], refreshTestGrantedConditionId)
+		t.Errorf("queued Condition event = %+v, want ConditionId %d Source \"area\"", got[0], refreshTestGrantedConditionId)
 	}
 }
 
@@ -127,7 +127,7 @@ func TestApplyConditionIdToMobs_HeldConditionIsRefreshedNotRelapsed(t *testing.T
 	r.AddMob(mobInstanceId)
 
 	if err := m.Character.AddCondition(refreshTestMobConditionId, false); err != nil {
-		t.Fatalf("precondition: could not grant the held buff: %v", err)
+		t.Fatalf("precondition: could not grant the held condition: %v", err)
 	}
 	// Drive it down as if two of its three triggers had already fired.
 	refreshTestSetTriggersLeft(t, m.Character.Conditions.List, refreshTestMobConditionId, 1)
@@ -135,7 +135,7 @@ func TestApplyConditionIdToMobs_HeldConditionIsRefreshedNotRelapsed(t *testing.T
 	r.ApplyConditionIdToMobs([]int{refreshTestMobConditionId}, "area")
 
 	if got := len(m.Character.Conditions.List); got != 1 {
-		t.Fatalf("mob's buff list has %d entries, want 1 (refreshed in place, not removed and re-added)", got)
+		t.Fatalf("mob's condition list has %d entries, want 1 (refreshed in place, not removed and re-added)", got)
 	}
 	if got := m.Character.Conditions.List[0].TriggersLeft; got != 3 {
 		t.Errorf("mob's TriggersLeft = %d, want 3 (refreshed synchronously)", got)

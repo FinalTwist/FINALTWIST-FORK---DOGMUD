@@ -1,7 +1,7 @@
 package conditions
 
 // Record ids the engine names in code. The YAML under
-// _datafiles/world/dogmud/buffs/ is the definition; these constants exist so
+// _datafiles/world/dogmud/conditions/ is the definition; these constants exist so
 // a producer or reader never spells a bare number. Slice 1 of the conditions
 // unification (2026-09-12) added 117 to 123 when the ten combat conditions
 // became records.

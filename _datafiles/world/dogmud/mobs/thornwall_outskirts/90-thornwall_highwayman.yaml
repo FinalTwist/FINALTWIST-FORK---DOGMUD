@@ -11,7 +11,7 @@ groups:
   - bandits
 idlecommands:
   # Hidden ambusher — visible idle emotes break the stealth illusion.
-  # Keep `sneak` (re-hides when the buff/FSM lapses) and empty
+  # Keep `sneak` (re-hides when the condition/FSM lapses) and empty
   # strings (skip-this-tick) so the mob stays unobtrusive between
   # ambush attempts.
   - 'sneak'

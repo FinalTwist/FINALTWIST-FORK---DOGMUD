@@ -68,7 +68,7 @@ type TrackResult struct {
 }
 
 // activeTrackingConditionId is the condition applied when active tracking starts.
-// See _datafiles/world/dogmud/buffs/86-active_tracking.yaml.
+// See _datafiles/world/dogmud/conditions/86-active_tracking.yaml.
 const activeTrackingConditionId = 86
 
 // Track runs the Perception+Search trail-read. With TargetNoun set (or

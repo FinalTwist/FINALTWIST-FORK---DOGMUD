@@ -7,7 +7,7 @@ body_parts: [legs, eyes, mouth, skin]
 intrinsic_mutations:
   keen-senses: 1
   raptor-legs: 1
-buffids:
+conditionids:
   - 29 # Night Vision
 size: small
 unarmedname: talons and beak

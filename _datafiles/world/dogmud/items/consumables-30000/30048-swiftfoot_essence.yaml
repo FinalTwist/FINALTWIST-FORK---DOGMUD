@@ -9,7 +9,7 @@ description: An almost weightless liquid that evaporates
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 66
 value: 28
 rarity_tier: 40

@@ -48,11 +48,11 @@ Using `$ARGUMENTS` as the creative brief:
 **For armor:**
 - Set `damagereduction` consistent with the slot and material tier (cloth < leather < metal)
 - Set `statmods` only if the armor has a meaningful enchantment or special property
-- Set `wornbuffids` for magical armor effects
+- Set `wornconditionids` for magical armor effects
 
 **For consumables:**
 - Set `uses` (usually 1)
-- Reference an existing buff ID for `buffids`, or note that a new buff will be needed
+- Reference an existing condition ID for `conditionids`, or note that a new condition will be needed
 
 **No hard numbers in descriptions.** Describe feel, not mechanics. "The blade feels unusually light" not "speedmultiplier: 1.2".
 
@@ -85,7 +85,7 @@ After writing:
 > - Add a `spawninfo` entry with `itemid` in a room YAML to place it in the world
 > - Restart the server to load the new item.
 >
-> If this item references a buff ID that doesn't exist yet, create the buff first using `docs/schemas/buff.md`.
+> If this item references a condition ID that doesn't exist yet, create the condition first using `docs/schemas/condition.md`.
 
 ---
 

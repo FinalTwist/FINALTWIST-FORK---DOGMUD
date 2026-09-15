@@ -17,7 +17,7 @@ failure, because these migrations edit files the game cannot regenerate.
 - **backup.go** — `datafilesBackup`, `copyDir`, `copyFile`.
 - **classify.go** — `PlayerSignals` and `ClassifyPlayer`.
 - **grant.go** — `SeedForCluster`.
-- **0.9.1.go … 0.15.0.go** — one file per version step, named for the version
+- **0.9.1.go … 0.17.0.go** — one file per version step, named for the version
   it upgrades *to*.
 
 ## Control flow
@@ -48,8 +48,11 @@ in sequence.
 | 0.13.0 | `migrate_SeedWarrenRepFromQuestToken` | seeds faction rep from a legacy quest token |
 | 0.14.0 | `migrate_ReclassifyPlayerMutations` | wipes retired mutation 41 and reclassifies every save onto the cluster graph |
 | 0.15.0 | `migrate_BackfillCoords` | crawls exit deltas to backfill authored x/y/z/plane on every non-instance room |
+| 0.16.0 | `migrate_FreezeExploitedVitality` | freezes fyttyn's vitality TOTAL at 280, the soft-cap-compressed value actually in play, rather than handing back the raw 411 |
+| 0.17.0 | `migrate_ConditionKeys` | renames buff-spelled keys to their condition spelling in every .yaml and .plugin.dat file under DataFiles, plus the config overrides file |
 
-The two newest take a `dryRun bool` so they can be exercised without writing.
+The newest four (0.14.0 to 0.17.0) take a `dryRun bool` so they can be
+exercised without writing.
 
 ## Mutation reclassification (0.14.0)
 
@@ -81,6 +84,70 @@ hand-authored files people read in diffs.
 `countCollisions` reports how many rooms landed on an occupied cell; a non-zero
 count means the world was not Cartesian-consistent at migration time.
 
+## Save key renames (0.17.0)
+
+Conditions unification slice 3 renamed every buff-spelled Go yaml tag to its
+condition spelling. Every loader ignores unknown keys, so an existing save
+that still carries the old key would load with its conditions, pet condition
+ids, trapped locks and item condition ids silently empty.
+`migrate_ConditionKeys` fixes that by renaming the old keys in place.
+
+**Why the whole DataFiles tree, not path lists.** An item saves its full spec
+copy under `overrides:` (`items.Item.Spec`) once it is enchanted, affixed or
+renamed, plus `enchantbaseline:`, and `GetSpec()` then never reads the
+template again. A missed `wornbuffids` empties that list for good. Items are
+saved in character `items`, `componentitems`, `potionitems`, `equipment.*`,
+`pet.items` and `companions[].items`; user `itemstorage`; room instance
+`items`, `stash` and container items; `mobs.instances` equipment; shop
+affixed stock; guild vaults; sealed crates; and auctions plugin data. The
+first version walked three path lists and missed most of these.
+
+How it works (`renameConditionKeysUnder`):
+
+- **Which files.** Every regular `*.yaml` or `*.plugin.dat` file under
+  DataFiles. A file with no old spelling (`conditionrename.ContainsOldSpelling`:
+  `buff` in any case, outside protected words like `buffer`) is skipped
+  without parsing, so content files, JSON plugin data (weather) and unrelated
+  corrupt files are never parsed, rewritten or reported.
+- **Parse.** `decodeOrdered` reads the root kind first, then decodes a mapping
+  root as `yaml.MapSlice` and a list of mappings (alts, both `<id>.alts.yaml`
+  and legacy `<name>-alts.yaml`) as `[]yaml.MapSlice`, so key order survives.
+  Reading the kind first matters: yaml.v2 will decode a list of mappings into
+  a `MapSlice` without error and lose the data.
+- **Rename.** `renameKeys` recurses into every mapping and list. Each key in
+  `renamedKeys` (the complete set of distinctive buff-spelled save, plugin and
+  config keys) becomes `conditionrename.Apply(key)` wherever it sits. The
+  generic `buffs` becomes `conditions` only when its value is a mapping with
+  a `list` key, the conditions record shape. Values are never touched.
+- **Preservable-shape check.** Only for a file that needs a rename:
+  `checkPreservableShape` parses the raw bytes with `yaml.v3` (a `yaml.Node`
+  decoder loop) and errors before any write if the file is a multi-document
+  stream or contains a YAML merge key (`<<`) or alias, because `decodeOrdered`'s
+  yaml.v2 round trip silently mangles both (keeps only the first document;
+  drops the merged fields) rather than failing loudly. No save this migration
+  handles produces either shape, so this is a refuse-rather-than-mangle guard
+  for anything wilder found on disk.
+- **Write.** Only when something was renamed, with `yaml.Marshal` and
+  `util.Save` (temp file, fsync, rename), not a bare `os.WriteFile`, so a crash
+  mid-write cannot truncate the file it is replacing. One log line per
+  rewritten file and a final scanned / parsed / rewritten count. A dry run
+  logs and writes nothing.
+- **Config overrides.** When `CONFIG_PATH` points outside DataFiles that file
+  is migrated too. Whenever the overrides file is rewritten,
+  `configs.ReloadConfig` runs: config was loaded before migrations, and `Run`'s
+  closing `SetVal` marshals the in-memory overrides map back to disk, which
+  would otherwise restore `BuffsEnabled`.
+
+There is no migration marker. A file with no old key is left byte-for-byte
+unchanged, so a second run is a no-op and there is nothing to desync per-alt.
+These are hard errors, so `Run` restores the backup rather than shipping a
+broken save: a file with an old spelling that fails to parse; a mapping with
+both an old key and its new name (a collision); a list root with
+non-mapping elements that carries an old key (no store saves that shape, and
+it cannot be rewritten order-preserving); and, from the preservable-shape
+check, a file needing a rename that is multi-document or carries a merge key
+or alias.
+
 ## Gotchas
 
 - **Migrations run before data loading.** Nothing is in memory yet — no rooms,
@@ -102,8 +169,10 @@ count means the world was not Cartesian-consistent at migration time.
 
 ## Dependencies
 
-`configs`, `version`, `factions` (0.13.0 only), plus direct YAML and filesystem
-access. Deliberately minimal — this code must work before the engine is up.
+`configs`, `version`, `factions` (0.13.0 only), `conditionrename`, `mudlog`,
+`util` and `yaml.v3` (0.17.0 only), plus direct YAML and filesystem access.
+Deliberately minimal —
+this code must work before the engine is up.
 
 ## Consumers
 

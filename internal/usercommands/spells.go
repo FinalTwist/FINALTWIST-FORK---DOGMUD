@@ -29,7 +29,7 @@ func spellCategory(sp *spells.SpellData) int {
 		return 0 // utility
 	case "heal":
 		return 1
-	case "buff", "shield", "purge":
+	case "condition", "shield", "purge":
 		return 2
 	case "damage", "dot", "knockdown":
 		return 3

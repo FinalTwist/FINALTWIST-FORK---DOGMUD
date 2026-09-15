@@ -11,7 +11,7 @@ description: A pale green tonic that smells sharply of lake-mint
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 82
 value: 18
 rarity_tier: 40

@@ -50,16 +50,16 @@ var (
 )
 
 type ItemTrade struct {
-	AcceptedItemIds   []int         `yaml:"accepteditemids,omitempty,flow"` // Must provide every item id in this list.
-	AcceptedGold      int           `yaml:"acceptedgold,omitempty,flow"`    // Must provide at least this much gold.
-	PrizeItemIds      []int         `yaml:"prizeitemids,omitempty,flow"`    // Will give these items in exchange.
-	PrizeConditionIds []int         `yaml:"prizebuffids,omitempty,flow"`    // Will give these conditions in exchange.
-	PrizeRoomId       int           `yaml:"prizeroomid,omitempty,flow"`     // Will move player to this room in exchange.
-	PrizeQuestIds     []string      `yaml:"prizequestids,omitempty,flow"`   // What quest id's will be awarded?
-	PrizeGold         int           `yaml:"prizegold,omitempty,flow"`       // How much gold are they given?
-	PrizeCommands     []string      `yaml:"prizecommands,omitempty,flow"`   // What commands will be executed?
-	GivenItems        map[int][]int `yaml:"-"`                              // key = userId, value = Items given. Should only contain items from AcceptedItemIds
-	GivenGold         map[int]int   `yaml:"-"`                              // key = userId, value = how much gold is given
+	AcceptedItemIds   []int         `yaml:"accepteditemids,omitempty,flow"`   // Must provide every item id in this list.
+	AcceptedGold      int           `yaml:"acceptedgold,omitempty,flow"`      // Must provide at least this much gold.
+	PrizeItemIds      []int         `yaml:"prizeitemids,omitempty,flow"`      // Will give these items in exchange.
+	PrizeConditionIds []int         `yaml:"prizeconditionids,omitempty,flow"` // Will give these conditions in exchange.
+	PrizeRoomId       int           `yaml:"prizeroomid,omitempty,flow"`       // Will move player to this room in exchange.
+	PrizeQuestIds     []string      `yaml:"prizequestids,omitempty,flow"`     // What quest id's will be awarded?
+	PrizeGold         int           `yaml:"prizegold,omitempty,flow"`         // How much gold are they given?
+	PrizeCommands     []string      `yaml:"prizecommands,omitempty,flow"`     // What commands will be executed?
+	GivenItems        map[int][]int `yaml:"-"`                                // key = userId, value = Items given. Should only contain items from AcceptedItemIds
+	GivenGold         map[int]int   `yaml:"-"`                                // key = userId, value = how much gold is given
 }
 
 type MobForHire struct {
@@ -120,7 +120,7 @@ type Mob struct {
 	WanderCount        int             `yaml:"-"`                             // How many times this mob has wandered
 	ScriptTag          string          `yaml:"scripttag"`                     // Script for this mob: mobs/frostfang/scripts/{mobId}-{mobname}-{ScriptTag}.js
 	QuestFlags         []string        `yaml:"questflags,omitempty,flow"`     // What quest flags are set on this mob?
-	ConditionIds       []int           `yaml:"buffids,omitempty"`             // Condition Id's this mob always has upon spawn
+	ConditionIds       []int           `yaml:"conditionids,omitempty"`        // Condition Id's this mob always has upon spawn
 	LLMProfile         *llm.LLMProfile `yaml:"llmprofile,omitempty"`          // Optional LLM-driven dialogue profile
 	Archetype          string          `yaml:"archetype,omitempty"`           // "fighting", "casting", or "" (default even distribution)
 	DefaultDisposition int             `yaml:"default_disposition,omitempty"` // Per-NPC starting disposition score on the [-100, +100] scale; 0 means neutral. Used by internal/opinions to seed first-time interactions and as the asymptote for decay.
@@ -156,7 +156,7 @@ type Mob struct {
 	IsPackAlpha             bool   `yaml:"-"` // Whether this mob is currently the pack alpha
 	ScatterRounds           int    `yaml:"-"` // Rounds remaining where mob skips wander (after alpha death)
 	crafterLastRestockRound uint64 // Last round materials were restocked (transient)
-	BehaviorArchetype       string `yaml:"behavior_archetype,omitempty"` // Archetype name (e.g., "melee_self_buff") — resolved to behaviors/archetypes/<name>.yaml if per-mob tree absent.
+	BehaviorArchetype       string `yaml:"behavior_archetype,omitempty"` // Archetype name (e.g., "melee_self_empower") — resolved to behaviors/archetypes/<name>.yaml if per-mob tree absent.
 	ScheduleId              string `yaml:"schedule_id,omitempty"`        // chunk 3.2: daily routine reference
 	PatrolId                string `yaml:"patrol_id,omitempty"`          // chunk 3.4: patrol route reference
 	SubmissionPolicy        string `yaml:"submission_policy,omitempty"`  // chunk 4d T12: override archetype default; "mercy"/"subdue"/"cripple"/"lethal"

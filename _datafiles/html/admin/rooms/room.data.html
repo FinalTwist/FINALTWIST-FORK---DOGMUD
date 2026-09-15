@@ -1,5 +1,5 @@
 {{ $room := .roomInfo }}
-{{ $buffSpecs := .conditionSpecs }}
+{{ $conditionSpecs := .conditionSpecs }}
 {{ $mutSpecs := .mutSpecs }}
 {{ $zoneConfig := .zoneConfig }}
 <form>
@@ -389,16 +389,16 @@
                                 <label for="name">Mob Conditions</label>
 
                                 <div class="form-group row form-check container-fluid">
-                                    {{ $buffIds := $spawnInfo.ConditionIds }}
-                                    {{range $i, $buffSpec := $buffSpecs}}
-                                        <label class="form-check-label col-md-2" for="spawninfo[{{$index}}].buffids-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
+                                    {{ $conditionIds := $spawnInfo.ConditionIds }}
+                                    {{range $i, $conditionSpec := $conditionSpecs}}
+                                        <label class="form-check-label col-md-2" for="spawninfo[{{$index}}].conditionids-{{$conditionSpec.ConditionId}}" title="{{ $conditionSpec.Description }}"><input
                                         class="form-check-input"
                                         type="checkbox"
-                                        name="spawninfo[{{$index}}].buffids[]"
-                                        id="spawninfo[{{$index}}].buffids-{{$buffSpec.ConditionId}}"
-                                        value="{{ $buffSpec.ConditionId }}"
-                                        {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
-                                        {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
+                                        name="spawninfo[{{$index}}].conditionids[]"
+                                        id="spawninfo[{{$index}}].conditionids-{{$conditionSpec.ConditionId}}"
+                                        value="{{ $conditionSpec.ConditionId }}"
+                                        {{range $j, $conditionId := $conditionIds}}{{if eq $conditionId $conditionSpec.ConditionId}}CHECKED{{end}}{{end}}>
+                                        {{ $conditionSpec.ConditionId }}. {{ $conditionSpec.Name }}</label>
                                     {{end}}
                                 </div>
                             </div>
@@ -503,16 +503,16 @@
                                     <h5>Trap Effect:</h5>
 
                                     <div class="form-group row form-check container-fluid">
-                                        {{ $buffIds := $exitInfo.Lock.TrapConditionIds }}
-                                        {{range $i, $buffSpec := $buffSpecs}}
-                                            <label class="form-check-label col-md-2" for="critbuffids-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
+                                        {{ $conditionIds := $exitInfo.Lock.TrapConditionIds }}
+                                        {{range $i, $conditionSpec := $conditionSpecs}}
+                                            <label class="form-check-label col-md-2" for="critconditionids-{{$conditionSpec.ConditionId}}" title="{{ $conditionSpec.Description }}"><input
                                             class="form-check-input"
                                             type="checkbox"
-                                            name="critbuffids[]"
-                                            id="critbuffids-{{$buffSpec.ConditionId}}"
-                                            value="{{ $buffSpec.ConditionId }}"
-                                            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
-                                            {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
+                                            name="critconditionids[]"
+                                            id="critconditionids-{{$conditionSpec.ConditionId}}"
+                                            value="{{ $conditionSpec.ConditionId }}"
+                                            {{range $j, $conditionId := $conditionIds}}{{if eq $conditionId $conditionSpec.ConditionId}}CHECKED{{end}}{{end}}>
+                                            {{ $conditionSpec.ConditionId }}. {{ $conditionSpec.Name }}</label>
                                         {{end}}
                                     </div>
                                 </div>

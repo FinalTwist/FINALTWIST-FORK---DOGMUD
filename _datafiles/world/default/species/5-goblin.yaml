@@ -1,7 +1,7 @@
 speciesid: 5
 name: goblin
 description: A small magical being with pointy ears.
-buffids:
+conditionids:
   - 29 # Night Vision
 size: small
 unarmedname: claws

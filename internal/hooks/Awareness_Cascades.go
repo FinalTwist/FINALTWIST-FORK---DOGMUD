@@ -41,7 +41,7 @@ func wireAwarenessFromCombatPhase(c *characters.Character) {
 		})
 
 	// 2. Awareness state → condition #9 mirror.
-	c.Awareness.Inner().AfterTransition("awareness_buff_mirror",
+	c.Awareness.Inner().AfterTransition("awareness_condition_mirror",
 		func(from, to awareness.State, r state.TransitionReason) {
 			switch {
 			case to == awareness.Hidden:

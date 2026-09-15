@@ -65,9 +65,9 @@ type Event struct {
 	// distinction is load-bearing. Downstream, mutation cluster drift scales
 	// by Multiplier while the SkillUsed quest event is gated on Lost -- two
 	// different mechanisms on purpose. A sub-1.0 multiplier does NOT imply a
-	// loss: a self-condition cast is a WINNING action that legitimately arrives at
+	// loss: a self-empowering cast is a WINNING action that legitimately arrives at
 	// SelfCastProgressionMultiplier (ships 0.5). "Simplifying" this field away
-	// into Multiplier < 1.0 silently stops every self-condition cast from ticking
+	// into Multiplier < 1.0 silently stops every self-empowering cast from ticking
 	// skill_use quests, with no error message anywhere -- the exact regression
 	// TestOnSkillUseScaled_WinningSubOneMultiplierStillEmitsSkillUsed exists
 	// to catch. Do not do it.

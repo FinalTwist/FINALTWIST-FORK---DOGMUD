@@ -23,7 +23,7 @@ exits:
     lock:
       difficulty: 15
       relockinterval: 15 real minutes
-      trapbuffids: [39]
+      trapconditionids: [39]
 nouns:
   grate: >
     A rusted iron grate set into the floor. The bars are thick but

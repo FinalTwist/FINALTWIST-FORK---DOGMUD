@@ -9,7 +9,7 @@ description: A pitch-black liquid that seems to drink the
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 69
 value: 35
 rarity_tier: 40

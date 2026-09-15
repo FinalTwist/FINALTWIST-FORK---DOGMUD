@@ -21,7 +21,7 @@ never exposed to players or mob AI.
 | ai-flag | Toggle AI debug flags on mobs |
 | ai-list | List mob AI state |
 | badcommands | Report unrecognised command attempts |
-| buff | Apply/remove buffs on targets |
+| setcondition | Apply/remove conditions on targets |
 | build | Zone builder tool |
 | command | Inspect/reload command handlers |
 | combatstats | Dump per-session combat statistics |
@@ -69,7 +69,7 @@ They have no game-world effect and make no sense for mob AI to execute.
 | bug | Submit a bug report |
 | cancel | Cancel a pending action |
 | character | Display character sheet |
-| conditions | List active conditions/debuffs |
+| conditions | List active conditions |
 | consider | Gauge relative difficulty of a target |
 | cooldowns | Show ability cooldown timers |
 | default | Reset settings to defaults |

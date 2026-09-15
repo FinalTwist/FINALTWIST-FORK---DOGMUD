@@ -54,11 +54,11 @@ func DescribeEffect(e MutationEffect) string {
 			return "Lightens your step -- you move faster and more quietly."
 		}
 		return "Weighs down your step, slowing how you move."
-	case "on_hit_buff":
+	case "on_hit_condition":
 		return "Your natural strikes leave a debilitating affliction in the wound."
-	case "aura_ally_buff":
+	case "aura_ally_condition":
 		return "Your presence steadies and emboldens allies who fight beside you."
-	case "aura_enemy_debuff":
+	case "aura_enemy_condition":
 		return "Your presence rattles nearby foes — their aim and focus falter."
 	case "conviction_cost_multiplier":
 		// Additive delta (cost * (1.0 + value)); <0 is cheaper, >0 dearer.
@@ -97,7 +97,7 @@ func DescribeEffect(e MutationEffect) string {
 		return "The bond you share with your companions makes them fight harder at your side."
 	case "reflect_damage":
 		return "A share of the harm done to you lashes back into whoever struck you."
-	case "on_reflect_buff":
+	case "on_reflect_condition":
 		return "Your backlash leaves a lingering affliction on whoever struck you."
 	case "shout_amp":
 		return "Your rallying shouts and war cries carry further and land with far greater force."

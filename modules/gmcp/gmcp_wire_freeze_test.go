@@ -8,9 +8,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Slice 2 of the conditions unification must not change any GMCP JSON field
-// name; the web client and Mudlet packages read them. See wire_freeze_test.go
-// at the repo root.
+// The web client and Mudlet packages read these GMCP JSON field names. Slice 3
+// of the conditions unification renamed the builder field names; this pins
+// them as renamed. Quest enums carry both the trigger-condition vocabulary
+// (`conditions`) and the condition id picker (`statusConditions`). See
+// wire_freeze_test.go at the repo root.
 func TestWireFreeze_GMCPJSONFieldNames(t *testing.T) {
 	keysOf := func(v any) map[string]any {
 		b, err := json.Marshal(v)
@@ -19,10 +21,11 @@ func TestWireFreeze_GMCPJSONFieldNames(t *testing.T) {
 		require.NoError(t, json.Unmarshal(b, &m))
 		return m
 	}
-	assert.Contains(t, keysOf(itemUpdateReq{}), "buffIds")
-	assert.Contains(t, keysOf(itemUpdateReq{}), "wornBuffIds")
-	assert.Contains(t, keysOf(mobUpdateReq{}), "buffIds")
-	assert.Contains(t, keysOf(mobEnums{}), "buffs")
-	assert.Contains(t, keysOf(questEnums{}), "buffs")
+	assert.Contains(t, keysOf(itemUpdateReq{}), "conditionIds")
+	assert.Contains(t, keysOf(itemUpdateReq{}), "wornConditionIds")
+	assert.Contains(t, keysOf(mobUpdateReq{}), "conditionIds")
+	assert.Contains(t, keysOf(mobEnums{}), "conditions")
+	assert.Contains(t, keysOf(questEnums{}), "conditions")
+	assert.Contains(t, keysOf(questEnums{}), "statusConditions")
 	assert.Contains(t, keysOf(GMCPCondition{}), "duration_cur")
 }

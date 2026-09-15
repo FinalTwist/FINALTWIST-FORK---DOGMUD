@@ -8,5 +8,5 @@ rarity: 6
 clusters: [weaver]
 visual: Thin, barbed tendrils writhe just beneath their skin, breaking free to lash out whenever they strike.
 pros:
-  - type: on_hit_buff
+  - type: on_hit_condition
     value: 111

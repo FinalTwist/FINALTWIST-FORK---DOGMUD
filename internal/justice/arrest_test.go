@@ -992,7 +992,7 @@ func TestExecuteArrest_PlayerReadsTheJailStartLineAndHoldsTheCondition(t *testin
 	// Synchronous: the no-go flag has to be in place before this returns, or a
 	// spamming player walks out of the cell before the condition lands.
 	if !u.Character.HasCondition(jailedConditionId) {
-		t.Errorf("the Jailed buff must be held the moment ExecuteArrest returns, not queued")
+		t.Errorf("the Jailed condition must be held the moment ExecuteArrest returns, not queued")
 	}
 
 	count := 0

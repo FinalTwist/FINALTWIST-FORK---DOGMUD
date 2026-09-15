@@ -74,7 +74,7 @@ func seedAllRegistries() func() {
 	cleanupConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		100: {
 			ConditionId:   100,
-			Name:          "Test Strength Buff",
+			Name:          "Test Strength Condition",
 			Description:   "Boosts strength for testing",
 			RoundInterval: 5,
 			TriggerCount:  3,
@@ -754,7 +754,7 @@ func TestLookForTrouble_SkipsGraceProtectedPlayer(t *testing.T) {
 	u1.Character.Health = 100
 	require.NoError(t, u1.Character.AddCondition(81, false))
 	require.True(t, u1.Character.HasConditionFlag(conditions.NoAggroTarget),
-		"grace buff must register NoAggroTarget flag")
+		"grace condition must register NoAggroTarget flag")
 
 	handled, err := LookForTrouble("", mob, room)
 	require.NoError(t, err)

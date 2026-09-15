@@ -225,7 +225,7 @@ func TestDefuse_Success(t *testing.T) {
 			// Verify trap was cleared from the container.
 			container := actor.room.Containers[defuseTestContainerName]
 			assert.Nil(t, container.Lock.TrapConditionIds,
-				"trap buff IDs should be nil after successful defuse")
+				"trap condition IDs should be nil after successful defuse")
 			// Kit should be gone from backpack.
 			_, stillHas := actor.char.FindInBackpack("disarm kit")
 			assert.False(t, stillHas,
@@ -280,13 +280,13 @@ func TestDefuse_FailureTriggers(t *testing.T) {
 		if !result.Succeeded {
 			failedTrials++
 			assert.NotEmpty(t, result.TriggeredTraps,
-				"TriggeredTraps should list the trap buff IDs on failure")
+				"TriggeredTraps should list the trap condition IDs on failure")
 			assert.Equal(t, []int{defuseTestTrapConditionId}, result.TriggeredTraps)
 			assert.True(t, result.KitConsumed,
 				"kit is consumed even on failure")
 			// The trackingActor overrides AddCondition; verify it was called.
 			assert.Contains(t, tracker.conditionIds, defuseTestTrapConditionId,
-				"trap buff should have been applied to the actor on failure")
+				"trap condition should have been applied to the actor on failure")
 		}
 	}
 
@@ -338,7 +338,7 @@ func TestDefuse_ExitTarget(t *testing.T) {
 		exitInfo, ok := actor.room.Exits[defuseTestExitName]
 		require.True(t, ok, "exit should still exist")
 		assert.Nil(t, exitInfo.Lock.TrapConditionIds,
-			"exit trap buff IDs should be nil after successful defuse")
+			"exit trap condition IDs should be nil after successful defuse")
 	} else {
 		// On failure, TriggeredTraps must be populated.
 		assert.NotEmpty(t, result.TriggeredTraps)

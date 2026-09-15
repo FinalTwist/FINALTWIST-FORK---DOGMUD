@@ -24,7 +24,7 @@ steps:
 #
 rewards:
   # LOADER GOTCHA (see internal/quests QuestReward): reward keys are
-  # NO-underscore. itemid/skillinfo/buffid/playermessage/roommessage/roomid/
+  # NO-underscore. itemid/skillinfo/conditionid/playermessage/roommessage/roomid/
   # spellid/questid load correctly; the snake_case forms (item_id, skill_info,
   # ...) silently do NOTHING. Copy these exact keys.
   playermessage: "Congratulations, here's some stuff!" # Message the player sees when they complete the quest
@@ -32,6 +32,6 @@ rewards:
   gold: 10                                             # Give them the gold back as a reward
   itemid: 10001                                        # Give them item 10001 as a reward
   skillinfo: "map:1"                                   # Give them the map skill at level 1 as a reward
-  buffid: 4                                            # Apply buff 4 to them (healing) as a reward
+  conditionid: 4                                            # Apply condition 4 to them (healing) as a reward
   # questid: "1234-start"                              # Give another quest as a reward?
   # roomid: 1                                          # Send them to another room as a reward?

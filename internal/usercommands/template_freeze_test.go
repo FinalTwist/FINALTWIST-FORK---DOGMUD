@@ -113,23 +113,23 @@ func TestTemplateFreeze_SpeciesHelpReadsConditionIds(t *testing.T) {
 
 	out, err := templates.Process("help/species", []species.Species{{Name: "Probe", ConditionIds: []int{942}}}, 0)
 	require.NoError(t, err)
-	assert.Contains(t, out, "Probe Hide", "species help reads $speciesInfo.BuffIds")
+	assert.Contains(t, out, "Probe Hide", "species help reads $speciesInfo.ConditionIds")
 }
 
 // TestWireFreeze_SpellCategoryStillGroupsConditionEffectType pins spells.go:32's
-// `case "buff", "shield", "purge":` inside spellCategory, the other string
-// literal reading effect_type: buff (see wire_freeze_test.go at the repo
-// root and internal/hooks/wire_freeze_test.go for the dispatch-side ones).
+// `case "condition", "shield", "purge":` inside spellCategory, the other
+// string literal reading effect_type: condition (see
+// internal/hooks/wire_freeze_test.go for the dispatch-side ones).
 // It decides which sort bucket the `spells` command lists a spell under.
 //
 // A Neutral-type spell is the probe that actually distinguishes this case
-// from its fallthrough: an effect_type: buff spell matches the case FIRST
+// from its fallthrough: an effect_type: condition spell matches the case FIRST
 // and returns 2 regardless of Type, but if that case literal ever stops
-// matching "buff", a Neutral-type spell falls through to the `sp.Type ==
+// matching "condition", a Neutral-type spell falls through to the `sp.Type ==
 // spells.Neutral` branch below and returns 0 instead — a real, visible
 // change to where the spell lists in the `spells` command.
 func TestWireFreeze_SpellCategoryStillGroupsConditionEffectType(t *testing.T) {
-	got := spellCategory(&spells.SpellData{EffectType: "buff", Type: spells.Neutral})
+	got := spellCategory(&spells.SpellData{EffectType: "condition", Type: spells.Neutral})
 	assert.Equal(t, 2, got,
-		"an effect_type: buff spell must still sort into the buff/shield/purge display category (usercommands/spells.go's spellCategory)")
+		"an effect_type: condition spell must still sort into the condition/shield/purge display category (usercommands/spells.go's spellCategory)")
 }

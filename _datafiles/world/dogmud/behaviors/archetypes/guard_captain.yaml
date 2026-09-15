@@ -14,7 +14,7 @@
 #   1. Interrupt — bash/trip a casting target
 #   2. Taunt — if I'm not already the target's aggro
 #   3. Bonus-damage kick — target prone (stomp) or clinched (knee)
-#   4. Rally — mitigation buff   5. Warcry — damage buff
+#   4. Rally — mitigation condition   5. Warcry — damage condition
 #   6-8. Knockdown cascade: bash -> grapple (single-enemy) -> trip
 #   fall through to legacy attack
 #

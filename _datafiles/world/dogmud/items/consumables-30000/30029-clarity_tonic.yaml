@@ -8,7 +8,7 @@ description: A pale, shimmering liquid that tingles on the tongue. It sharpens
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 48
 value: 10
 rarity_tier: 40

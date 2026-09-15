@@ -74,7 +74,7 @@ func (c *Character) CancelConditionsWithFlag(conditionFlag conditions.Flag) bool
 // (as attacker or defender) or dies.
 //
 // Without the permanent condition strip, mobs seeded with CancelIfCombat-tagged
-// conditions via `buffids:` (e.g. Hidden on ambushers) would see the condition
+// conditions via `conditionids:` (e.g. Hidden on ambushers) would see the condition
 // re-applied every Validate() call — the combat system would strip the
 // active instance but the next Validate would put it right back. This
 // surfaced as "(hidden)" tags persisting on ambushers mid-combat.

@@ -6,5 +6,5 @@ type: food
 subtype: edible
 uses: 1
 value: 20
-buffids: 
+conditionids: 
 - 18

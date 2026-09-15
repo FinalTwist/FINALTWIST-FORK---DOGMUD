@@ -11,7 +11,7 @@ description: |
 type: food
 subtype: edible
 uses: 1
-buffids:
+conditionids:
   - 43
 value: 5
 rarity_tier: 50

@@ -104,7 +104,7 @@ behavior tree action skips the swap. No hardcoded special path needed.
 
 - `Mob.BehaviorArchetype` (primary): `tank_taunter`,
   `pure_caster`, `support_caster`, `ambusher`, `lookout`,
-  `generic_fighter`, `melee_self_buff`, `leader`,
+  `generic_fighter`, `melee_self_empower`, `leader`,
   `combat_passive`, `prey`, `noncombat_*`.
 - `Mob.Archetype` (stat-pool, fallback): `fighting`, `casting`,
   `tank`, `""`.

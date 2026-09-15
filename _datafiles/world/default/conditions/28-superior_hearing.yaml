@@ -1,0 +1,8 @@
+conditionid: 28
+name: Superior Hearing
+description: You hear even quiet sounds.
+secret: false
+triggerrate: 2 real minutes
+triggercount: 1
+flags:
+  - superhearing

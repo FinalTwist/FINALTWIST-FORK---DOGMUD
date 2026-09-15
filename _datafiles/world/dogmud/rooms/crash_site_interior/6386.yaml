@@ -21,7 +21,7 @@ exits:
     roomid: 6387
     lock:
       difficulty: 12
-      trapbuffids: [97]
+      trapconditionids: [97]
 nouns:
   door: >
     A fitted way worked flush into the grey and shut deliberately —

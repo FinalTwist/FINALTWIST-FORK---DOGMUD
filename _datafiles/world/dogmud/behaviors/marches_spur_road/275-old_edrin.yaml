@@ -1,6 +1,6 @@
 # Old Edrin — Multi-Phase Caster Boss Behavior Tree
 #
-# Phase 0 (player_enter): Self-buff + summon 3 elemental companions.
+# Phase 0 (player_enter): Self-empower + summon 3 elemental companions.
 #   Wrapped in a cooldown so it fires once per ~100 rounds, not on
 #   every player entry.
 #
@@ -18,7 +18,7 @@ tree:
   type: selector
   children:
 
-    # ── PHASE 0: player_enter — self-buff and summon elementals ──
+    # ── PHASE 0: player_enter — self-empower and summon elementals ──
     - type: decorator
       mod: cooldown
       rounds: 100
@@ -26,7 +26,7 @@ tree:
         type: sequence
         event: player_enter
         children:
-          # Only pre-buff if not yet in active combat
+          # Only self-empower if not yet in active combat
           - type: decorator
             mod: invert
             child:

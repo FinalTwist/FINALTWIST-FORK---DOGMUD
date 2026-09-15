@@ -209,7 +209,7 @@ func spellHasCategory(sd *spells.SpellData, category string) bool {
 // grant is already on the character. Branches:
 //   - spell.ConditionIds non-empty: skip if any is active (HasCondition)
 //   - spell.EffectType == "shield": skip if the Minor Shield record (condition
-//     119, see _datafiles/world/dogmud/buffs/119-minor_shield.yaml) is
+//     119, see _datafiles/world/dogmud/conditions/119-minor_shield.yaml) is
 //     already granting mitigation. Spell resolution lands shield-type
 //     casts via AddConditionMagnitude(ConditionIdMinorShield, ...) — checked here via
 //     the Conditions.HasEffect(EffectMitigationFlat) door, NOT

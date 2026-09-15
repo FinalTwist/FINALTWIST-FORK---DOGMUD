@@ -147,7 +147,7 @@ change. The condition, spell and quest stores reach `Render` only through
 `narration_render_callers_guard_test.go` pins both facts.
 
 **The Kind B golden headers describe the recording, not today's builder.**
-`buffs.golden`, `spells.golden` and `quests.golden` were recorded from
+`conditions.golden`, `spells.golden` and `quests.golden` were recorded from
 pre-migration code (M3 item 5b, Task 0) and their header lines are frozen bytes;
 the builders now read through the store doors and must reproduce the files
 exactly. Re-recording them is a deliberate act for a content change, never a

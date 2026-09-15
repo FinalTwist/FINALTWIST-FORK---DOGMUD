@@ -8,7 +8,7 @@ description: A sharp-smelling tonic brewed from bitter
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 55
 value: 5
 rarity_tier: 50

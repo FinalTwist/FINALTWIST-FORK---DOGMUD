@@ -42,9 +42,9 @@ _datafiles/world/dogmud/spells/{spellid}.js   (optional — only if spell has lo
 | `base_folds` | int | no | Base fold complexity. 0 = defaults to 4. |
 | `target_defense_type` | string | no | `"physical"`, `"mental"`, or `""` (no defense roll). |
 | `component_tag` | string | no | Required item component (e.g. `"stone"` requires throw-stone component). |
-| `effect_type` | string | no | `"damage"`, `"heal"`, `"buff"`, `"tame"`, `"shield"`, `"charm"`. |
+| `effect_type` | string | no | `"damage"`, `"heal"`, `"condition"`, `"tame"`, `"shield"`, `"charm"`. |
 | `effect_magnitude` | int | no | Base damage or heal amount for simple effects. |
-| `buff_ids` | list | no | Buff IDs applied to target on success (for `effect_type: buff`). |
+| `condition_ids` | list | no | Condition IDs applied to target on success (for `effect_type: condition`). |
 | `summon_mob_id` | int | no | Mob ID to summon. Non-zero = this is a summon spell. |
 | `summon_pet_multiplier` | float | **yes for summons** | The pet's tier dial. Scales the caster's own power into the companion's stat pool, and scales `CompanionReserveDefault` into the ongoing Conviction the companion reserves. See "Summon pet multipliers" below. |
 | `summon_component_id` | int | no | Item ID consumed on cast. 0 = no component needed. |
@@ -81,8 +81,8 @@ schools:
   - enhancement
 cost: 35
 waitrounds: 1
-effect_type: buff
-buff_ids:
+effect_type: condition
+condition_ids:
   - 26
 cast_user_text: You channel conviction into empowering energy.
 cast_room_text: "{source} gathers conviction, a fierce glow building."
@@ -163,12 +163,12 @@ all. Do not copy them from an old file.
 
 | Value | Meaning |
 |-------|---------|
-| `harmsingle` | Damages or debuffs one target |
-| `helpsingle` | Heals or buffs one target |
+| `harmsingle` | Damages or weakens one target |
+| `helpsingle` | Heals or strengthens one target |
 | `harmarea` | Damages all enemies in room |
 | `harmmulti` | Damages multiple selected targets |
-| `helparea` | Heals/buffs all allies in room |
-| `helpmulti` | Heals/buffs multiple selected targets |
+| `helparea` | Heals or strengthens all allies in room |
+| `helpmulti` | Heals or strengthens multiple selected targets |
 | `neutral` | No direct harm/help (utility, movement, etc.) |
 
 ### Valid School Values
@@ -176,7 +176,7 @@ all. Do not copy them from an old file.
 | Value | Meaning |
 |-------|---------|
 | `elemental` | Fire, ice, lightning, earth spells |
-| `enhancement` | Buffs, shields, stat boosts |
+| `enhancement` | Empowering conditions, shields, stat boosts |
 | `mental` | Mind control, illusion, stunning |
 | `vital` | Healing, life force, death |
 
@@ -228,7 +228,6 @@ sourceActor.UserId()              // User ID (0 for mobs)
 sourceActor.GetCharacterName(true) // Display name
 targetActor.GetHealth()           // Current HP (negative = incapacitated)
 targetActor.AddHealth(amount)     // Heal/damage target
-targetActor.AddBuff(buffId)       // Apply a buff
 
 SendUserMessage(userId, text)     // Send to one player
 SendRoomMessage(roomId, text, ...excludeIds)  // Send to room, excluding IDs
@@ -286,7 +285,7 @@ function onMagic(sourceActor, targetActor) {
 ## 5. Gotchas
 
 **spellid IS the filename — no ConvertForFilename.**
-Unlike mobs/items/buffs, spell filenames use the `spellid` value directly.
+Unlike mobs/items/conditions, spell filenames use the `spellid` value directly.
 `spellid: fire-bolt` → `fire-bolt.yaml`. Do not apply underscore conversion.
 
 **JS is optional.** Flavor-only spells use YAML text fields. Only create

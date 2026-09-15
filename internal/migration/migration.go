@@ -93,6 +93,16 @@ func doAllMigrations(lastConfigVersion version.Version) error {
 		}
 	}
 
+	if lastConfigVersion.IsOlderThan(version.New(0, 17, 0)) {
+		// Rename the old condition key spellings (conditionrename) in every
+		// .yaml and .plugin.dat file under DataFiles (item overrides are saved
+		// almost everywhere). Datafiles are backed up by Run() before this and
+		// restored on error.
+		if err := migrate_ConditionKeys(false); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

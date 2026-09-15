@@ -337,7 +337,7 @@ func TestActTryShadow_FailureNoTarget(t *testing.T) {
 	room.AddMob(105)
 
 	if err := mob.Character.AddCondition(9, false); err != nil {
-		t.Fatalf("AddBuff(9) failed: %v", err)
+		t.Fatalf("AddCondition(9) failed: %v", err)
 	}
 
 	ctx := &EvalContext{InstanceId: 105, RoomId: 1}

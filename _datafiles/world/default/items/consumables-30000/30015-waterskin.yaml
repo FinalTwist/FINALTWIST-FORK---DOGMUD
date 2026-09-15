@@ -5,5 +5,5 @@ description: A waterskin that holds several glugs.
 type: drink
 subtype: drinkable
 uses: 5
-buffids: 
+conditionids: 
 - 34

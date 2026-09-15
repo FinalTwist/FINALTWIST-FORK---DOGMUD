@@ -4,7 +4,7 @@ DOGMud ID Inventory Tool
 
 Walks the world data directory, parses IDs from filenames, and reports
 per-zone ranges, gaps, and next-free IDs across rooms / mobs / items /
-spells / buffs / quests / dialogue / behaviors.
+spells / conditions / quests / dialogue / behaviors.
 
 Run before creating any new YAML to avoid ID collisions, and before
 dispatching parallel content-creation subagents to allocate
@@ -42,7 +42,7 @@ TYPES = {
     "mobs":      ("mobs",      True),
     "items":     ("items",     True),   # "zone" folder = category-NNNN
     "behaviors": ("behaviors", True),
-    "buffs":     ("buffs",     False),
+    "conditions": ("conditions", False),
     "quests":    ("quests",    False),
     "dialogue":  ("dialogue",  False),
 }

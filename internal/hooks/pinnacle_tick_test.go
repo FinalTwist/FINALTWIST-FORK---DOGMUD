@@ -212,14 +212,14 @@ func TestPinnacleAmbientPotions(t *testing.T) {
 	// cooldown and applies NOTHING yet.
 	tickAmbientPotions(u, 100)
 	if c.Conditions.HasCondition(54) {
-		t.Fatal("buff must not apply during the initial attunement window")
+		t.Fatal("condition must not apply during the initial attunement window")
 	}
 
 	// Simulate attunement having expired, then tick with unchanged contents.
 	c.SetMiscData("pinnacle_bandolier_attune_round", uint64(100))
 	tickAmbientPotions(u, 150)
 	if !c.Conditions.HasCondition(54) {
-		t.Fatal("ambient buff should apply once attuned")
+		t.Fatal("ambient condition should apply once attuned")
 	}
 
 	// Remove the potion → fingerprint changes → its condition is revoked (marked
@@ -229,7 +229,7 @@ func TestPinnacleAmbientPotions(t *testing.T) {
 	tickAmbientPotions(u, 151)
 	c.Conditions.Prune()
 	if c.Conditions.HasCondition(54) {
-		t.Fatal("removing the potion should revoke its ambient buff")
+		t.Fatal("removing the potion should revoke its ambient condition")
 	}
 
 	// Re-slot the potion → re-attunement → after it expires, the condition re-applies.
@@ -238,7 +238,7 @@ func TestPinnacleAmbientPotions(t *testing.T) {
 	c.SetMiscData("pinnacle_bandolier_attune_round", uint64(152))
 	tickAmbientPotions(u, 200)
 	if !c.Conditions.HasCondition(54) {
-		t.Fatal("ambient buff should re-apply after re-attunement expires")
+		t.Fatal("ambient condition should re-apply after re-attunement expires")
 	}
 }
 

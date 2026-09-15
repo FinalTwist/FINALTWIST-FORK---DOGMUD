@@ -65,11 +65,11 @@ func TestConditionNotice_SecretConditionIsSilentAtBothEnds(t *testing.T) {
 	drainPlain(1)
 
 	ApplyConditions(events.Condition{UserId: 1, ConditionId: hushedConditionId})
-	assert.Empty(t, drainPlain(1), "a secret buff's authored start text must not be sent")
+	assert.Empty(t, drainPlain(1), "a secret condition's authored start text must not be sent")
 
 	expire(t, holder.Character.Conditions.List, hushedConditionId)
 	PruneConditions(events.NewTurn{TurnNumber: 1})
-	assert.Empty(t, drainPlain(1), "a secret buff's authored end text must not be sent")
+	assert.Empty(t, drainPlain(1), "a secret condition's authored end text must not be sent")
 }
 
 // TestConditionNotice_ScaledEventStillNarratesTheStart pins the delivery path for a
@@ -101,7 +101,7 @@ func TestConditionNotice_ScaledEventStillNarratesTheStart(t *testing.T) {
 			triggersLeft, found = b.TriggersLeft, true
 		}
 	}
-	require.True(t, found, "the buff must actually be held after the event")
+	require.True(t, found, "the condition must actually be held after the event")
 	assert.Equal(t, 5, triggersLeft, "the multiplier must survive the trip through the event")
 }
 
@@ -132,7 +132,7 @@ const (
 )
 
 // A refused add must not narrate. An immune player taking a serpent or
-// arachnid crit (species critbuffids carry condition 39) read "You feel venom
+// arachnid crit (species critconditionids carry condition 39) read "You feel venom
 // seeping into your bloodstream!" and the room read that it took hold, for a
 // condition that never landed: the add's bool was discarded and the notice was
 // gated on wasAlreadyActive alone.
@@ -153,7 +153,7 @@ func TestConditionNotice_ARefusedPoisonConditionNarratesNothing(t *testing.T) {
 	drainPlain(2)
 
 	assert.Equal(t, events.Continue, ApplyConditions(events.Condition{UserId: 1, ConditionId: venomNoticeConditionId}))
-	assert.False(t, holder.Character.HasCondition(venomNoticeConditionId), "the poison buff never landed")
+	assert.False(t, holder.Character.HasCondition(venomNoticeConditionId), "the poison condition never landed")
 	assert.Equal(t, 0, countContaining(drainPlain(1), "venom"), "the immune holder reads nothing")
 	assert.Equal(t, 0, countContaining(drainPlain(2), "venom"), "and the room sees nothing take hold")
 

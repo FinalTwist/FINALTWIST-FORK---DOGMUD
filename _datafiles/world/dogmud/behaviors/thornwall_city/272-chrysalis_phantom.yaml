@@ -1,5 +1,5 @@
 # Chrysalis Phantom — Behavior Tree (Mob 272)
-# Hit-and-run assassin. Spawns hidden (buff 9). Surprise-strikes any
+# Hit-and-run assassin. Spawns hidden (condition 9). Surprise-strikes any
 # player in the room, then immediately flees. During recovery it
 # re-sneaks, re-hides, then waits for the player to return before
 # striking again.
@@ -10,7 +10,7 @@
 #
 # Recovery sequence (each mob_idle tick decrements by one):
 #   3 — just fled, waiting
-#   2 — sneak + re-apply hidden buff (buff 9), then decrement
+#   2 — sneak + re-apply hidden condition (condition 9), then decrement
 #   1 — waiting for cooldown to expire
 #   0 — done; resume normal hidden-attack loop
 
@@ -63,8 +63,8 @@ tree:
               do: command
               cmd: sneak
             - type: action
-              do: add_buff
-              buff_id: 9
+              do: add_condition
+              condition_id: 9
             - type: action
               do: decrement_state
               key: recovery
@@ -92,15 +92,15 @@ tree:
         - type: sequence
           children:
             - type: condition
-              check: mob_has_buff
-              buff_id: 9
+              check: mob_has_condition
+              condition_id: 9
             - type: condition
               check: players_in_room
             - type: action
               do: attack
 
         # -- Engaged but not hidden and not fighting: re-sneak + re-hide,
-        #    then attack on next idle tick when buff is active --
+        #    then attack on next idle tick when condition is active --
         - type: sequence
           children:
             - type: condition
@@ -116,13 +116,13 @@ tree:
               mod: invert
               child:
                 type: condition
-                check: mob_has_buff
-                buff_id: 9
+                check: mob_has_condition
+                condition_id: 9
             - type: condition
               check: players_in_room
             - type: action
               do: command
               cmd: sneak
             - type: action
-              do: add_buff
-              buff_id: 9
+              do: add_condition
+              condition_id: 9

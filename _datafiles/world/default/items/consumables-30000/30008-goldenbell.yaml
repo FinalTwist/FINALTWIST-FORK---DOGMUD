@@ -6,5 +6,5 @@ type: botanical
 subtype: edible
 uses: 1
 value: 72
-buffids: 
+conditionids: 
 - 1

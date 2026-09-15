@@ -9,7 +9,7 @@ description: A draught of concentrated moonpetal extract.
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 65
 value: 25
 rarity_tier: 40

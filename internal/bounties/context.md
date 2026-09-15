@@ -173,7 +173,7 @@ The `Registry` struct holds `NextId` (auto-increment counter) and `Bounties` (sl
 
 ## Reward Auto-Compute
 
-Gold and rep rewards are computed at declaration time from the target's statpool. Compute-at-declare (not compute-at-claim) means the issuer "knows" what they are paying when they post the contract, and the reward doesn't drift if the target is buffed or debuffed between declaration and claim.
+Gold and rep rewards are computed at declaration time from the target's statpool. Compute-at-declare (not compute-at-claim) means the issuer "knows" what they are paying when they post the contract, and the reward doesn't drift if the target is strengthened or weakened between declaration and claim.
 
 ### Gold Reward Calculation
 ```

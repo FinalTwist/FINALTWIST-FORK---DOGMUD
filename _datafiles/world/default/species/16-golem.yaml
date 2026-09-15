@@ -1,7 +1,7 @@
 speciesid: 16
 name: golem
 description: Animated material
-buffids:
+conditionids:
   - 29 # Night Vision
 size: large
 unarmedname: fists

@@ -1,0 +1,10 @@
+conditionid: 38
+name: Conviction Armor
+description: Solidified belief fortifies your body, greatly enhancing your resilience.
+triggerrate: 1 round
+triggercount: 20
+statmods:
+  vitality: 30
+start_user_text: Solidified conviction wraps around your body like armor.
+start_room_text: "{source} is encased in a shimmering layer of conviction."
+end_user_text: The conviction armor fades from your body.

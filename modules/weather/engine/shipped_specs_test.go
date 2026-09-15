@@ -62,7 +62,7 @@ func TestShippedWeatherMutatorSpecs(t *testing.T) {
 			t.Errorf("%s: outdooronly must be true", name)
 		}
 		if len(spec.PlayerConditionIds)+len(spec.MobConditionIds)+len(spec.NativeConditionIds) != 0 {
-			t.Errorf("%s: buff ids must be empty (presentation-only)", name)
+			t.Errorf("%s: condition ids must be empty (presentation-only)", name)
 		}
 	}
 }

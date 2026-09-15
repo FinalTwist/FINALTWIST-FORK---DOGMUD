@@ -15,7 +15,7 @@ prerequisites:
     min_level: 1
 visual: A shimmering haze of drifting silk-threads and heat-warp dissonance hangs about them, and things nearby move as though through syrup.
 pros:
-  - type: aura_enemy_debuff
+  - type: aura_enemy_condition
     value: 112
   - type: dodge_modifier
     value: 10

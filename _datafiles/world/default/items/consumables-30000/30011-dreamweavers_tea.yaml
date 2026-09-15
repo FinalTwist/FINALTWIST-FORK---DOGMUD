@@ -6,5 +6,5 @@ type: drink
 subtype: drinkable
 uses: 2
 value: 110
-buffids: 
+conditionids: 
 - 15

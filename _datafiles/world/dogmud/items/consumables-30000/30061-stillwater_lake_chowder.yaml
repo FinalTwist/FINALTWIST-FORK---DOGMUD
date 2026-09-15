@@ -12,7 +12,7 @@ description: A steaming wooden bowl of pale chowder, thick with
 type: food
 subtype: edible
 uses: 1
-buffids:
+conditionids:
   - 42
   - 43
 value: 12

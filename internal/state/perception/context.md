@@ -54,8 +54,8 @@ inline guards in `Character.AddCondition` / `RemoveCondition` handle this.
 
 | Source | File | Hook |
 |---|---|---|
-| Condition 3 (Blinded) | `_datafiles/world/dogmud/buffs/3-blinded.yaml` | `Character.AddCondition` / `RemoveCondition` |
-| Condition 77 (Flashbang Blindness) | `_datafiles/world/dogmud/buffs/77-flashbang_blindness.yaml` | `Character.AddCondition` / `RemoveCondition` |
+| Condition 3 (Blinded) | `_datafiles/world/dogmud/conditions/3-blinded.yaml` | `Character.AddCondition` / `RemoveCondition` |
+| Condition 77 (Flashbang Blindness) | `_datafiles/world/dogmud/conditions/77-flashbang_blindness.yaml` | `Character.AddCondition` / `RemoveCondition` |
 
 Two sources, both conditions. Detection is by condition ID (not by flag) because the
 existing condition YAMLs don't carry a blindness-specific flag, and adding one

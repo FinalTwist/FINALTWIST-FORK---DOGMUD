@@ -1,6 +1,6 @@
 mobid: 247
 zone: Thornwall City
-buffids: [9]
+conditionids: [9]
 archetype: fighting
 behavior_archetype: lookout
 routine: thornwall_tunnels

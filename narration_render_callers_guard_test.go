@@ -87,7 +87,7 @@ func TestNarrationRenderIsCalledOnlyByRegisteredStores(t *testing.T) {
 	sort.Strings(unregistered)
 	sort.Strings(stale)
 	if len(unregistered) > 0 {
-		t.Errorf("narration.Render is called from unregistered file(s):\n  %s\n\nA Kind B store (buffs, spells, quests) must render through textutil.Narrate, never Render directly. A new Kind A store registers here with a reason.", strings.Join(unregistered, "\n  "))
+		t.Errorf("narration.Render is called from unregistered file(s):\n  %s\n\nA Kind B store (conditions, spells, quests) must render through textutil.Narrate, never Render directly. A new Kind A store registers here with a reason.", strings.Join(unregistered, "\n  "))
 	}
 	if len(stale) > 0 {
 		t.Errorf("registered Render caller(s) no longer call it:\n  %s\n\nRemove the entry only after confirming the store did not lose its rendering.", strings.Join(stale, "\n  "))

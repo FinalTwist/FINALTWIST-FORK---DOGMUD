@@ -90,7 +90,7 @@ node.
 | `mob_in_combat` | none | Mob is currently in combat. |
 | `mob_health_below` | `percent` (int) | Mob health is below N% of max. |
 | `mob_at_home` | none | Mob is in its home room. |
-| `mob_has_buff` | `buff_id` (int) | Mob currently has the buff active. |
+| `mob_has_condition` | `condition_id` (int) | Mob currently has the condition active. |
 | `state_equals` | `key`, `value` (strings) | BehaviorState string equals. |
 | `state_greater_than` | `key` (string), `value` (int) | BehaviorState int > value. |
 
@@ -176,7 +176,7 @@ Also subject to reaction delays.
 
 | Action | Params | Description |
 |--------|--------|-------------|
-| `add_buff` | `buff_id` (int) | Applies a buff to the acting mob. |
+| `add_condition` | `condition_id` (int) | Applies a condition to the acting mob. |
 | `command_mob` | `mob_id` (int), `cmd` (string) | Issues a command string to the first mob in the room matching `mob_id`. |
 
 ### Spawning & Environment
@@ -249,7 +249,7 @@ delay = clamp(delay, MobReactionDelayMin, MobReactionDelayMax)
 | `MobReactionDelayMax` | 4.0 s | Maximum possible delay. |
 
 **Delayed actions:** `respond`, `say`, `emote`, `attack`, `flee`, `cast`,
-`move`, `add_buff`, `command_mob`.
+`move`, `add_condition`, `command_mob`.
 
 All other actions execute immediately (quest grants, item transfers, state
 writes, spawn actions, etc.).
@@ -472,7 +472,7 @@ NPC dialogue sequences.
 | `send_user_text` | `text` (string) | Sends raw text to the triggering player (no mob prefix). |
 | `send_room_text` | `text` (string) | Sends raw text to all players in the room. |
 | `grant_mutation` | none | Rolls and grants a random mutation to the triggering player. |
-| `remove_buff` | `buff_id` (int) | Removes a buff from the triggering player. |
+| `remove_condition` | `condition_id` (int) | Removes a condition from the triggering player. |
 | `move_player` | `room_id` (int) | Teleports the triggering player to a target room. |
 | `intercept` | none | Prevents the default command handler from running. `room_command` only. |
 
@@ -503,7 +503,7 @@ zones:
 | `flee` | Yes |
 | `cast` | Yes |
 | `move` | Yes |
-| `add_buff` | Yes |
+| `add_condition` | Yes |
 | `command_mob` | Yes |
 | `grant_quest` | No |
 | `grant_quest_to_user` | No |
@@ -530,7 +530,7 @@ zones:
 | `send_user_text` | No |
 | `send_room_text` | No |
 | `intercept` | No |
-| `remove_buff` | No |
+| `remove_condition` | No |
 | `move_player` | No |
 | `create_instance` | No |
 | `open_instance_portal` | No |

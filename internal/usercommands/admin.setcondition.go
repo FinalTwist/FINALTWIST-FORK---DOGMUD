@@ -65,6 +65,7 @@ func SetCondition(rest string, user *users.UserRecord, room *rooms.Room, flags e
 			searchResultsTable := templates.GetTable("Search Results", headers, rows)
 			tplTxt, _ := templates.Process("tables/generic", searchResultsTable, user.UserId, user.UserId)
 			user.SendText(messaging.CategorySystem, tplTxt)
+			return true, nil
 		} else {
 
 			targetUserId := 0

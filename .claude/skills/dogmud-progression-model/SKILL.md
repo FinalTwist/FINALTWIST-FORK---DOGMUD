@@ -77,7 +77,7 @@ with a colon (`:`), which is the only change from the original.
 >   `ProgressionChanceForSkill`. Production rolls them, the tests pin them, and the
 >   admin dashboard displays them. The dashboard used to hand-roll bare
 >   `CalculateProgressionChance`, which silently dropped `StatProgressionRate` and
->   every per-stat, per-skill, mutation and buff multiplier : that drift is why a
+>   every per-stat, per-skill, mutation and condition multiplier : that drift is why a
 >   truncation bug which sealed two of a live character's stats read as a tuning
 >   problem for months. `characters.ProgressionRollThreshold(chance)` is the
 >   matching seam for the integer roll threshold; the denominator behind it stays

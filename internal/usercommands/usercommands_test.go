@@ -96,7 +96,7 @@ func seedAllRegistries() func() {
 	cleanupConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		100: {
 			ConditionId:   100,
-			Name:          "Test Strength Buff",
+			Name:          "Test Strength Condition",
 			Description:   "Boosts strength for testing",
 			RoundInterval: 5,
 			TriggerCount:  3,
@@ -800,7 +800,7 @@ func TestStand_CancelsSleeping(t *testing.T) {
 	u.Character.Conditions.AddCondition(15, false)
 
 	require.True(t, u.Character.HasConditionFlag(conditions.Sleeping),
-		"test setup: Sleeping buff must be applied before calling Stand")
+		"test setup: Sleeping condition must be applied before calling Stand")
 	require.True(t, u.Character.IsStanding(),
 		"test setup: character must be standing (not prone/supine)")
 
@@ -808,7 +808,7 @@ func TestStand_CancelsSleeping(t *testing.T) {
 	assert.True(t, handled)
 	assert.NoError(t, err)
 	assert.False(t, u.Character.HasConditionFlag(conditions.Sleeping),
-		"Sleeping buff must be cancelled by stand")
+		"Sleeping condition must be cancelled by stand")
 }
 
 // ─── Consider ───────────────────────────────────────────────────────────────
@@ -1970,15 +1970,13 @@ func TestAdminCondition(t *testing.T) {
 }
 
 // TestAdminSetCondition_AliasDispatchAndAdminGate exercises real alias
-// resolution through TryCommand (not a direct SetCondition call): `buff` is
-// kept as a command-alias to `setcondition` in keywords.yaml until slice 3
-// (owner ruling, 2026-09-14 conditions unification slice 2). The alias is
-// resolved by keywords.TryCommandAlias before userCommands is ever indexed
-// (internal/usercommands/usercommands.go TryCommand), so the AdminOnly gate
-// on the `setcondition` entry applies identically no matter which spelling a
-// player types; a non-admin typing either must be refused exactly the same
-// way as any other admin-only command (see admin_command_as_non_admin in
-// TestTryCommand).
+// resolution through TryCommand (not a direct SetCondition call) with a
+// seeded alias `sc`. The alias is resolved by keywords.TryCommandAlias before
+// userCommands is ever indexed (internal/usercommands/usercommands.go
+// TryCommand), so the AdminOnly gate on the `setcondition` entry applies
+// identically no matter which spelling is typed; a non-admin typing either
+// must be refused exactly the same way as any other admin-only command (see
+// admin_command_as_non_admin in TestTryCommand).
 func TestAdminSetCondition_AliasDispatchAndAdminGate(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
@@ -1987,7 +1985,7 @@ func TestAdminSetCondition_AliasDispatchAndAdminGate(t *testing.T) {
 	// this test needs on top, restored (back to empty) before seedAllRegistries'
 	// own cleanup restores the true pre-test keywords.
 	cleanupKeywords := keywords.SeedKeywordsForTest(keywords.Aliases{
-		CommandAliases: map[string][]string{"setcondition": {"buff"}},
+		CommandAliases: map[string][]string{"setcondition": {"sc"}},
 	})
 	defer cleanupKeywords()
 
@@ -2002,9 +2000,9 @@ func TestAdminSetCondition_AliasDispatchAndAdminGate(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("admin reaches the handler via the buff alias", func(t *testing.T) {
+	t.Run("admin reaches the handler via an alias", func(t *testing.T) {
 		user.Role = users.RoleAdmin
-		handled, err := TryCommand("buff", "list", 1, events.CmdSkipScripts)
+		handled, err := TryCommand("sc", "list", 1, events.CmdSkipScripts)
 		assert.True(t, handled)
 		assert.NoError(t, err)
 	})
@@ -2016,9 +2014,9 @@ func TestAdminSetCondition_AliasDispatchAndAdminGate(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("non-admin is refused the buff alias", func(t *testing.T) {
+	t.Run("non-admin is refused the alias", func(t *testing.T) {
 		user.Role = users.RoleUser
-		handled, err := TryCommand("buff", "list", 1, events.CmdSkipScripts)
+		handled, err := TryCommand("sc", "list", 1, events.CmdSkipScripts)
 		assert.False(t, handled, "the alias must not let a non-admin reach an admin-only command")
 		assert.NoError(t, err)
 	})
@@ -3188,8 +3186,8 @@ func TestGetCmdSuggestions(t *testing.T) {
 // command-list half of GetCmdSuggestions already filtered on
 // info.AdminOnly; the alias half (keywords.GetAllCommandAliases) did not,
 // so a non-admin's tab completion suggested `cmd` (alias for the admin-only
-// `command`) and, since slice 2 of the conditions unification, `buff`
-// (alias for the admin-only `setcondition`) to every player. Uses the real
+// `command`) and `sc` (a seeded alias for the admin-only `setcondition`)
+// to every player. Uses the real
 // userCommands registry (setcondition/command are permanently admin-only)
 // against a seeded alias map so the test does not depend on which aliases
 // keywords.yaml happens to carry today.
@@ -3199,7 +3197,7 @@ func TestGetCmdSuggestions_FiltersAdminOnlyAliases(t *testing.T) {
 
 	cleanupKeywords := keywords.SeedKeywordsForTest(keywords.Aliases{
 		CommandAliases: map[string][]string{
-			"setcondition": {"buff"},
+			"setcondition": {"sc"},
 			"command":      {"cmd"},
 			"conditions":   {"cond"},
 		},
@@ -3208,14 +3206,14 @@ func TestGetCmdSuggestions_FiltersAdminOnlyAliases(t *testing.T) {
 
 	t.Run("non-admin never sees an admin-only alias", func(t *testing.T) {
 		results := GetCmdSuggestions("", false)
-		assert.NotContains(t, results, "buff", "buff aliases the admin-only setcondition")
+		assert.NotContains(t, results, "sc", "sc aliases the admin-only setcondition")
 		assert.NotContains(t, results, "cmd", "cmd aliases the admin-only command")
 		assert.Contains(t, results, "cond", "cond aliases the non-admin conditions command")
 	})
 
 	t.Run("admin sees every alias, admin-only included", func(t *testing.T) {
 		results := GetCmdSuggestions("", true)
-		assert.Contains(t, results, "buff")
+		assert.Contains(t, results, "sc")
 		assert.Contains(t, results, "cmd")
 		assert.Contains(t, results, "cond")
 	})
@@ -4411,32 +4409,6 @@ func TestGetHelpContents(t *testing.T) {
 	})
 }
 
-// TestGetHelpContents_AliasMatchesSetCondition proves `help buff` and
-// `help setcondition` resolve to the SAME rendered content (the admin
-// command kept `buff` as a working alias for slice 2 of the conditions
-// unification, owner ruling 2026-09-14): both requests must go through the
-// help-alias mechanism (keywords.TryHelpAlias) to the one real template,
-// admincommands is a different door (the command's own bare-invocation
-// usage message) that this does not touch.
-func TestGetHelpContents_AliasMatchesSetCondition(t *testing.T) {
-	cleanup := seedAllRegistries()
-	defer cleanup()
-	useDogmudTemplates(t)
-	cleanupKeywords := keywords.SeedKeywordsForTest(keywords.Aliases{
-		HelpAliases: map[string][]string{"setcondition": {"buff"}},
-	})
-	defer cleanupKeywords()
-
-	aliasOut, aliasErr := GetHelpContents("buff")
-	require.NoError(t, aliasErr)
-
-	setConditionOut, setConditionErr := GetHelpContents("setcondition")
-	require.NoError(t, setConditionErr)
-
-	assert.Equal(t, setConditionOut, aliasOut, "help buff must resolve through the help alias to the same content as help setcondition")
-	assert.Contains(t, aliasOut, "setcondition", "the rendered help must describe the real command name")
-}
-
 // ─── Admin Teleport deeper ──────────────────────────────────────────────────
 
 func TestAdminTeleportDeep(t *testing.T) {
@@ -4763,7 +4735,7 @@ func TestConditionsCommandWithHeldCondition(t *testing.T) {
 
 	user, room := getTestUserAndRoom(t)
 
-	t.Run("conditions_with_buff", func(t *testing.T) {
+	t.Run("conditions_with_condition", func(t *testing.T) {
 		user.Character.Conditions.AddCondition(100, false)
 		handled, err := Conditions("", user, room, 0)
 		assert.True(t, handled)
@@ -4823,7 +4795,7 @@ func TestAdminConditionDeep(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("give_buff", func(t *testing.T) {
+	t.Run("give_condition", func(t *testing.T) {
 		handled, err := SetCondition("100", user, room, 0)
 		assert.True(t, handled)
 		_ = err
@@ -6721,19 +6693,19 @@ func TestAdminConditionMoreBranches(t *testing.T) {
 	user, room := getAdminUserAndRoom(t)
 	defer func() { user.Role = users.RoleUser }()
 
-	t.Run("buff_add_to_user", func(t *testing.T) {
+	t.Run("condition_add_to_user", func(t *testing.T) {
 		handled, err := SetCondition("alice 1", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
 
-	t.Run("buff_remove_from_user", func(t *testing.T) {
+	t.Run("condition_remove_from_user", func(t *testing.T) {
 		handled, err := SetCondition("alice remove 1", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
 
-	t.Run("buff_invalid_id", func(t *testing.T) {
+	t.Run("condition_invalid_id", func(t *testing.T) {
 		handled, err := SetCondition("alice 99999", user, room, 0)
 		assert.True(t, handled)
 		_ = err
@@ -6956,7 +6928,7 @@ func TestBuildConditionRows(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
-	t.Run("valid_buff", func(t *testing.T) {
+	t.Run("valid_condition", func(t *testing.T) {
 		stock := characters.Shop{
 			{ConditionId: 100, Price: 50, Quantity: 1, QuantityMax: 5},
 		}
@@ -6965,7 +6937,7 @@ func TestBuildConditionRows(t *testing.T) {
 		_ = rows
 	})
 
-	t.Run("invalid_buff", func(t *testing.T) {
+	t.Run("invalid_condition", func(t *testing.T) {
 		stock := characters.Shop{
 			{ConditionId: 99999, Price: 25},
 		}
@@ -7443,13 +7415,13 @@ func TestAdminConditionAllBranches(t *testing.T) {
 	user, room := getAdminUserAndRoom(t)
 	defer func() { user.Role = users.RoleUser }()
 
-	t.Run("buff_list", func(t *testing.T) {
+	t.Run("condition_list", func(t *testing.T) {
 		handled, err := SetCondition("list", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
 
-	t.Run("buff_info", func(t *testing.T) {
+	t.Run("condition_info", func(t *testing.T) {
 		handled, err := SetCondition("info 100", user, room, 0)
 		assert.True(t, handled)
 		_ = err

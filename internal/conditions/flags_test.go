@@ -67,11 +67,11 @@ func TestValidateLoadedFlagsPanicsOnAnUnknownFlag(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r == nil {
-			t.Fatal("expected a panic for a buff carrying a flag the engine does not declare")
+			t.Fatal("expected a panic for a condition carrying a flag the engine does not declare")
 		}
 		msg := fmt.Sprint(r)
 		assert.Contains(t, msg, "night-vision", "the panic must name the flag")
-		assert.Contains(t, msg, "9421", "and the buff id")
+		assert.Contains(t, msg, "9421", "and the condition id")
 	}()
 	ValidateLoadedFlags()
 }

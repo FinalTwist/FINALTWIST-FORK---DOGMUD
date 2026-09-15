@@ -9,7 +9,7 @@ description: An amber liquid flecked with crystallized
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 72
 value: 100
 rarity_tier: 30

@@ -34,7 +34,7 @@ func TestApplyPurgeEffects(t *testing.T) {
 	events.DrainQueuedConditionsForTest(u.UserId) // start from a clean queue
 
 	if !c.HasCondition(61) {
-		t.Fatalf("setup: expected the potion buff to be present before the purge")
+		t.Fatalf("setup: expected the potion condition to be present before the purge")
 	}
 
 	applyPurgeEffects(u)
@@ -48,7 +48,7 @@ func TestApplyPurgeEffects(t *testing.T) {
 	c.Conditions.Prune()
 
 	if c.HasCondition(61) {
-		t.Errorf("potion buff 61 survived the purge; it must be stripped")
+		t.Errorf("potion condition 61 survived the purge; it must be stripped")
 	}
 	if c.Toxicity != 0 {
 		t.Errorf("Toxicity = %v after the purge, want 0", c.Toxicity)
@@ -66,10 +66,10 @@ func TestApplyPurgeEffects(t *testing.T) {
 		}
 	}
 	if weakness == nil {
-		t.Fatalf("purging weakness (buff 76) was not queued; the purge must cost something, and it must say so. queued: %+v", queued)
+		t.Fatalf("purging weakness (condition 76) was not queued; the purge must cost something, and it must say so. queued: %+v", queued)
 	}
 	if weakness.DurationMult != 1.0 {
-		t.Errorf("queued buff 76 DurationMult = %v, want 1.0 (the authored duration)", weakness.DurationMult)
+		t.Errorf("queued condition 76 DurationMult = %v, want 1.0 (the authored duration)", weakness.DurationMult)
 	}
 }
 

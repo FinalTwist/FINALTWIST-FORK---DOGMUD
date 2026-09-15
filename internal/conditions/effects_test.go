@@ -30,7 +30,7 @@ func withSpecs(t *testing.T, specs ...*ConditionSpec) {
 
 func TestEffectValueParsesANumberOrTheWordMagnitude(t *testing.T) {
 	var s ConditionSpec
-	err := yaml.Unmarshal([]byte("buffid: 900\nname: Probe\neffects:\n  damage_mult: magnitude\n  defense_mult: 0.85\n"), &s)
+	err := yaml.Unmarshal([]byte("conditionid: 900\nname: Probe\neffects:\n  damage_mult: magnitude\n  defense_mult: 0.85\n"), &s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestEffectValueParsesANumberOrTheWordMagnitude(t *testing.T) {
 
 func TestValidateRefusesAnUnknownEffectKey(t *testing.T) {
 	var s ConditionSpec
-	if err := yaml.Unmarshal([]byte("buffid: 901\nname: Probe\neffects:\n  damage_multt: 1\n"), &s); err != nil {
+	if err := yaml.Unmarshal([]byte("conditionid: 901\nname: Probe\neffects:\n  damage_multt: 1\n"), &s); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.Validate(); err == nil {
@@ -266,7 +266,7 @@ func TestSeedConditionRecordsForTestIsAdditiveAndReversible(t *testing.T) {
 	}
 	for _, id := range ids {
 		if GetConditionSpec(id) == nil {
-			t.Fatalf("buff id %d did not resolve after seeding", id)
+			t.Fatalf("condition id %d did not resolve after seeding", id)
 		}
 	}
 	if GetConditionSpec(ConditionIdWarcry).Name != "Warcry" {
@@ -280,7 +280,7 @@ func TestSeedConditionRecordsForTestIsAdditiveAndReversible(t *testing.T) {
 			continue
 		}
 		if GetConditionSpec(id) != nil {
-			t.Fatalf("cleanup must remove buff id %d, still present: %+v", id, GetConditionSpec(id))
+			t.Fatalf("cleanup must remove condition id %d, still present: %+v", id, GetConditionSpec(id))
 		}
 	}
 	if got := GetConditionSpec(ConditionIdWarcry); got != pre {

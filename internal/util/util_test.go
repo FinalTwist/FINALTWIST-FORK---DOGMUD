@@ -792,7 +792,7 @@ func TestParseDiceRoll(t *testing.T) {
 				tt.wantAttacks, tt.wantDCount, tt.wantDSides, tt.wantBonus, tt.wantConditionCrit)
 		}
 		if len(crit) != len(tt.wantConditionCrit) {
-			t.Errorf("ParseDiceRoll(%q) buffOnCrit got %v, want %v", tt.in, crit, tt.wantConditionCrit)
+			t.Errorf("ParseDiceRoll(%q) conditionOnCrit got %v, want %v", tt.in, crit, tt.wantConditionCrit)
 		}
 	}
 }
@@ -811,7 +811,7 @@ func TestFormatDiceRoll(t *testing.T) {
 		{"basic", 1, 1, 6, 0, []int{}, "1d6"},
 		{"multiple attacks", 2, 1, 3, 2, []int{}, "2@1d3+2"},
 		{"negative bonus", 1, 3, 10, -2, []int{}, "3d10-2"},
-		{"buff list", 2, 3, 8, 0, []int{1, 5}, "2@3d8#1,5"},
+		{"condition list", 2, 3, 8, 0, []int{1, 5}, "2@3d8#1,5"},
 	}
 
 	for _, tt := range tests {

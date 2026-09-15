@@ -231,7 +231,7 @@ Condition nodes use `type: condition` with `check: <name>`.
 | `mob_health_below` | `percent` (int) | Health < N% of max HP. |
 | `mob_at_home` | none | Mob is in its home room. |
 | `mob_at_target_room` | none | Success when mob is at its current schedule segment's target_room; Failure when no schedule, no current segment, or in transit. |
-| `mob_has_buff` | `buff_id` (int) | Mob currently has the condition. |
+| `mob_has_condition` | `condition_id` (int) | Mob currently has the condition. |
 | `state_equals` | `key`, `value` (strings) | BehaviorState string equals. |
 | `state_greater_than` | `key` (string), `value` (int) | BehaviorState int > value. |
 | `forager_state_is_foraging` | none | True when forager state machine is in Foraging state (chunk 2.9). |
@@ -445,7 +445,7 @@ without standing inert for a full round.
 
 | Action | Params | Description |
 |--------|--------|-------------|
-| `add_buff` | `buff_id` (int) | Applies condition to the acting mob. |
+| `add_condition` | `condition_id` (int) | Applies condition to the acting mob. |
 | `command_mob` | `mob_id` (int), `cmd` (string) | Issues a command to the first matching mob in room. |
 
 ### Spawning & Environment — instant
@@ -529,7 +529,7 @@ A mob with Perception 50 has:
 | `flee` | Yes |
 | `cast` | Yes |
 | `move` | Yes |
-| `add_buff` | Yes |
+| `add_condition` | Yes |
 | `command_mob` | Yes |
 | `grant_quest` | No |
 | `grant_quest_to_user` | No |
@@ -597,8 +597,8 @@ keys derived from the node's YAML path. You do not need to manage these.
       do: say
       text: "Enough! Now you face my true power!"
     - type: action
-      do: add_buff
-      buff_id: 5
+      do: add_condition
+      condition_id: 5
     - type: action
       do: set_state
       key: phase
@@ -806,7 +806,7 @@ These actions were added alongside the room behavior tree system:
 | `grant_mutation` | none | Rolls and grants a random mutation to the triggering player from the weighted acquisition pool. |
 | `send_user_text` | `text` (string) | Sends raw text to the triggering player (no mob prefix). |
 | `send_room_text` | `text` (string) | Sends raw text to all players in the room. |
-| `remove_buff` | `buff_id` (int) | Removes the specified condition from the triggering player. |
+| `remove_condition` | `condition_id` (int) | Removes the specified condition from the triggering player. |
 | `move_player` | `room_id` (int) | Teleports the triggering player to the target room. |
 
 ### Command Control
@@ -934,7 +934,7 @@ overrides the default.
 Added in the legacy tactics-engine sunset migration:
 
 - **`defensive_caster`** — Caster pattern with self-preservation:
-  panic-flee at HP<30, panic-buff (chrysalis-cocoon when
+  panic-flee at HP<30, panic-shield (chrysalis-cocoon when
   Chrysalis Shell condition 52 is missing), AoE on multiple targets
   (conviction-barrage), single-target spike (conviction-spike).
   Used by goblin_shaman (219), tunnel_shaman (74),

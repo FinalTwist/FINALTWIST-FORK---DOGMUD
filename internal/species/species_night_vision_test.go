@@ -55,13 +55,13 @@ func TestNightVisionSpeciesDeclareCondition29(t *testing.T) {
 // dogmud condition file. Condition 29 failed this for months and nothing noticed.
 func TestEverySpeciesConditionIdHasADogmudFile(t *testing.T) {
 	all := dogmudSpecies(t)
-	conditionDir := filepath.Join("..", "..", "_datafiles", "world", "dogmud", "buffs")
+	conditionDir := filepath.Join("..", "..", "_datafiles", "world", "dogmud", "conditions")
 	for id, sp := range all {
 		for _, bid := range sp.ConditionIds {
 			matches, err := filepath.Glob(filepath.Join(conditionDir, strconv.Itoa(bid)+"-*.yaml"))
 			require.NoError(t, err)
 			require.NotEmpty(t, matches,
-				"species %d (%s) references buff %d, which has no file in dogmud/buffs", id, sp.Name, bid)
+				"species %d (%s) references condition %d, which has no file in dogmud/conditions", id, sp.Name, bid)
 		}
 	}
 }

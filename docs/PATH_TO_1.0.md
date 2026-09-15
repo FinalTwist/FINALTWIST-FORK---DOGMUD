@@ -372,6 +372,6 @@ personality, background subagents):
 - **Rover** (veteran, wider world, ~90 min): surfaced the mutation-rate overshoot
   (§5a) and the `read`/reward-template bugs (§5b); praised combat text, loot, quest
   flow. Report: `tools/playtest/reports/2026-07-13-local-feel-tester-veteran-wider-world.md`.
-- Neither died (newbie zone is sanctuary-buffed; veteran never dropped below ~58%),
+- Neither died (newbie zone is sanctuary-protected; veteran never dropped below ~58%),
   so the death→respawn fix wasn't re-verified by these runs — it was verified
   separately (Punchy/Vera). A future tester should deliberately seek a lethal fight.

@@ -65,7 +65,7 @@ Mutations can grant active combat abilities via the `active_ability` field:
 - `command` — the combat command name (e.g., `"flashblind"`, `"toxicbite"`)
 - `description` — player-facing help text
 - `cooldown` — rounds before the ability can be used again
-- `effect` — what happens when activated (damage, debuff, heal, etc.)
+- `effect` — what happens when activated (damage, harmful condition, heal, etc.)
 
 Active ability mutations: Blinding Flash, Toxic Bite, Sonic Shout, Healing Gel, Blinding Spit.
 These share the special-move cooldown slot.

@@ -263,7 +263,7 @@ func TestRallyWarcryPaidConditionsChargeOnceBeforeEffects(t *testing.T) {
 				require.Greater(t, char.Cooldowns["special-move"], 0)
 				require.Equal(t, 1, char.RoundsWaiting())
 				require.True(t, char.HasCondition(result.selfConditionID))
-				require.Len(t, char.Conditions.List, 1, "a shout must apply exactly one buff record")
+				require.Len(t, char.Conditions.List, 1, "a shout must apply exactly one condition record")
 				require.InDelta(t, 1.0+result.bonus, char.Conditions.Effect(tc.effectKind), 1e-9)
 				require.Equal(t, []string{string(skills.Rhetoric)}, actor.skillsUsed)
 			})

@@ -29,6 +29,6 @@ rewards:
   gold: 10                                             # Give them the gold back as a reward
   item_id: 10001                                       # Give them the items back as a reward
   skillinfo: "map:1"                                   # Give them the map skill at level 1 as a reward
-  buffid: 4                                            # Apply buff 4 to them (healing) as a reward
+  conditionid: 4                                            # Apply condition 4 to them (healing) as a reward
   # questid: "1234-start"                              # Give another quest as a reward?
   # roomid: 1                                          # Send them to another room as a reward?

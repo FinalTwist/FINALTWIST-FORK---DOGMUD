@@ -3,4 +3,4 @@ descriptionmodifier:
   behavior: append
   text: The change in your blood goes quiet here, as though the place itself refused it. A cold, sourceless light holds steady in the grey, enough to see by.
 lightmod: 2
-playerbuffids: [95]
+playerconditionids: [95]

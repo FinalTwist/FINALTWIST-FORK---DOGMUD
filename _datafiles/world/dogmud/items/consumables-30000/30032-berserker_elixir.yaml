@@ -9,7 +9,7 @@ description: A dark, viscous liquid that reeks of iron and crushed insects. It
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 51
 value: 20
 rarity_tier: 40

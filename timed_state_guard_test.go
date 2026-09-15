@@ -22,9 +22,8 @@ import (
 //
 // The deleted collection's own method names (HasCondition, AddCondition,
 // RemoveCondition) used to sit in the forbidden-identifier list below too,
-// but slice 2 of the conditions unification renamed the ONE surviving
-// primitive's Buff-named API to those exact spellings (buffs.Buffs.HasBuff
-// became conditions.Conditions.HasCondition, and so on), so the plain
+// but the ONE surviving primitive's API now uses those exact spellings
+// (conditions.Conditions.HasCondition, and so on), so the plain
 // spelling can no longer tell the deleted collection apart from the real
 // one. The struct check above covers the same danger (a second
 // Duration+Magnitude collection), so only the deleted type's own leftover

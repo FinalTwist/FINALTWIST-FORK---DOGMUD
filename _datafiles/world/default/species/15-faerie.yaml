@@ -1,7 +1,7 @@
 speciesid: 15
 name: faerie
 description: A small magical being.
-buffids:
+conditionids:
   - 29 # Night Vision
 size: small
 unarmedname: sharp teeth

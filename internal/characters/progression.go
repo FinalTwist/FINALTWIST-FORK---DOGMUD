@@ -418,9 +418,9 @@ func (c *Character) OnSkillUseScaled(skillName string, userId int, bonusMultipli
 	// GATED ON THE LOSS, never on bonusMultiplier < 1.0. Awarding progression
 	// on losses would otherwise turn every "use this skill N times" quest into
 	// "fail at it N times". But a sub-1.0 multiplier does NOT mean a loss: a
-	// self-condition cast is a WINNING action arriving at
+	// self-empowering cast is a WINNING action arriving at
 	// SelfCastProgressionMultiplier (ships 0.5), and gating on the multiplier
-	// would silently stop self-condition casts from ticking skill_use quests, with
+	// would silently stop self-empowering casts from ticking skill_use quests, with
 	// no error message anywhere. That is why Lost is its own field rather than
 	// something inferred from Multiplier. See
 	// TestOnSkillUseScaled_WinningSubOneMultiplierStillEmitsSkillUsed.

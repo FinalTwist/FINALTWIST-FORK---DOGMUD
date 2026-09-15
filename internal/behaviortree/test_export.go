@@ -18,9 +18,9 @@ import "testing"
 //
 // path may be absolute or relative to the process working directory (which
 // for Go tests is the package directory). The canonical production path for
-// an archetype named "melee_self_buff" in the dogmud world is:
+// an archetype named "melee_self_empower" in the dogmud world is:
 //
-//	../../_datafiles/world/dogmud/behaviors/archetypes/melee_self_buff.yaml
+//	../../_datafiles/world/dogmud/behaviors/archetypes/melee_self_empower.yaml
 //
 // (relative from internal/behaviortree/).
 func LoadArchetypeForTest(t *testing.T, name string, path string) {

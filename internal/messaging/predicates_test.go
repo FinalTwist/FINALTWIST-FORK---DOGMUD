@@ -92,7 +92,7 @@ func setSleeping(t *testing.T, c *characters.Character) {
 	})
 	t.Cleanup(restore)
 	if err := c.AddCondition(sleepConditionId, true); err != nil {
-		t.Fatalf("applying the sleeping buff failed: %v", err)
+		t.Fatalf("applying the sleeping condition failed: %v", err)
 	}
 	if !c.HasConditionFlag(conditions.Sleeping) {
 		t.Fatal("precondition: the character should now carry the Sleeping flag")

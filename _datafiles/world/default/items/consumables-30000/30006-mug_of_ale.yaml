@@ -5,5 +5,5 @@ description: Some ale to wash down your meal.
 type: drink
 subtype: drinkable
 uses: 2
-buffids: 
+conditionids: 
 - 19 # drunk/warmed

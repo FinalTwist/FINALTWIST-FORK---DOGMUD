@@ -1780,7 +1780,7 @@ at 417-537, outside the tested range. Against actual content the ordering
 block, and `GetCombatSkillLevel()` floors at 1. So `SkillWeight` is symmetric in
 the formula but **asymmetric in effect**: raising it lifts the player on offence
 *and* defence (defence is also `stat + skill*SkillWeight`) while handing mobs +3
-points. It is a global player buff delivered through the skill channel.
+points. It is a global player boost delivered through the skill channel.
 
 **DECISION: raise `SkillWeight` 2.0 -> 5.0. Do NOT nerf mob stat pools.**
 Tested four tunings on a full player x enemy matrix (`tools/balance/matrix.py`):
@@ -1870,7 +1870,7 @@ channel-agnostic, and the identical defect existed in all three:
 
 The spell and taunt sites were byte-identical in shape, so both now call one
 tested `combat.CritOrMitigatedDamage`. Melee deliberately stays separate — it
-carries backstab consumption and crit-buff bookkeeping and floors at 0 rather
+carries backstab consumption and crit-bonus bookkeeping and floors at 0 rather
 than 1.
 
 **Measured, not assumed:** the pre-change spell tests recorded `crit/normal =
@@ -1983,7 +1983,7 @@ the existing physical/magical mitigation channels, and the commit claimed that
 is retracted here.
 
 `magical_mitigation` is the long-standing SPELL-damage channel. Those items and
-buffs were built and balanced against spells; 5.11f pointed reflect at a pool
+conditions were built and balanced against spells; 5.11f pointed reflect at a pool
 that already existed for another purpose. Measured against the Elemental King's
 25% reflect on a 200-damage hit:
 
@@ -1992,7 +1992,7 @@ that already existed for another purpose. Measured against the Elemental King's
 | bare | 0% | 50 |
 | typical gear | ~20% | 40 |
 | Mindshield Elixir (potion) | 15% | 42 |
-| **Cocoon (buff 104)** | **75%, at the cap** | **12** |
+| **Cocoon (condition 104)** | **75%, at the cap** | **12** |
 
 Cocoon declares `physical_mitigation: 75`, `magical_mitigation: 75` AND
 `conviction_mitigation: 75` — it caps every channel at once. So the counterplay
@@ -2013,7 +2013,7 @@ reuse.
    BASELINE; it just should not be the whole answer.
 
 **Not urgent.** The shipped state is strictly better than before (previously
-nothing at all reduced reflect) and Cocoon is a short 3-trigger buff, not a
+nothing at all reduced reflect) and Cocoon is a short 3-trigger condition, not a
 permanent. This is under-designed, not broken.
 
 **Finding:** New (design gap in shipped 5.11f, found in review 2026-08-11).

@@ -557,7 +557,7 @@ potion drinks into it.
   NOT mirror those thresholds; the two are intentionally desynced so a
   player gets early warning before any penalty bites.
 - Drinking a `PhaseSpoiled` potion (`drink.go`) applies `toxicity × 3.0` and
-  the nausea debuff (condition 75).
+  the nausea condition (condition 75).
 
 ### Craft Skill Scaling
 `durationMult = potencyMult(agingPhase) × (1.0 + Item.CraftSkill/100.0)`,

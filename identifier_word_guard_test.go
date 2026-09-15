@@ -5,20 +5,25 @@ import (
 	"go/token"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/conditionrename"
 )
 
 // Slice 2 of the conditions unification renamed every Go identifier and every
 // player- or admin-facing template field reference that said buff to
 // condition (docs/superpowers/specs/completed/2026-09-14-conditions-unification-slice-2-rename-design.md).
-// These two guards keep the word from coming back.
+// Slice 3 renamed every on-disk, wire and content spelling
+// (docs/superpowers/specs/2026-09-15-conditions-unification-slice-3-disk-wire-design.md).
+// These guards keep the word from coming back.
 
-const identifierGuardSpecPath = "docs/superpowers/specs/completed/2026-09-14-conditions-unification-slice-2-rename-design.md"
+const identifierGuardSpecPath = "docs/superpowers/specs/2026-09-15-conditions-unification-slice-3-disk-wire-design.md"
 
 // identifierGuardWordPattern matches "buff" in any case.
 // identifierGuardBufferSubstring strips every case-sensitive "buffer",
@@ -33,14 +38,10 @@ const identifierGuardSpecPath = "docs/superpowers/specs/completed/2026-09-14-con
 var (
 	identifierGuardWordPattern     = regexp.MustCompile(`(?i)buff`)
 	identifierGuardBufferSubstring = regexp.MustCompile(`[Bb]uffer|BUFFER`)
-	// The three config fields that keep their buff spelling until slice 3
-	// renames them together with their yaml keys (spec: "Config fields that
-	// keep their names until slice 3").
-	identifierGuardAllowedNames = map[string]bool{
-		"AllowItemBuffRemoval":   true,
-		"DeathsShadowBuffId":     true,
-		"BrokenLimbBuffDuration": true,
-	}
+	// Every buff-spelled Go identifier is gone (slice 3 deleted the last
+	// three, dead config knobs). Kept empty so a future exception is a
+	// reviewed one-line addition.
+	identifierGuardAllowedNames = map[string]bool{}
 )
 
 // identifierGuardSkipDir reports whether a directory should never be
@@ -159,7 +160,7 @@ func TestNoIdentifierSaysBuff(t *testing.T) {
 		return offenses[i].line < offenses[j].line
 	})
 	for _, o := range offenses {
-		t.Errorf("%s:%d: identifier %s still says buff; slice 2 of the conditions unification renamed these (%s)",
+		t.Errorf("%s:%d: identifier %s still says buff; the conditions unification renamed these (%s)",
 			o.file, o.line, o.name, identifierGuardSpecPath)
 	}
 }
@@ -171,10 +172,7 @@ func TestNoIdentifierSaysBuff(t *testing.T) {
 // A hit INSIDE a template action is always a live Go field or map-key
 // reference the template engine resolves at render time with no compile-time
 // check, so it is never allowlisted here; it is a real rename instead.
-var templateBuffFieldAllowlist = map[string]string{
-	"_datafiles/html/admin/rooms/room.data.html|.buffids": "form field id/name/for attribute text (`spawninfo[N].buffids[]`), sitting between two {{ }} actions rather than inside one; mirrors the on-disk yaml key `buffids` on rooms.SpawnInfo.ConditionIds (internal/rooms/spawninfo.go), frozen by wire_freeze_test.go/TestWireFreeze_ShippedConditionFilesLoadInBothWorlds and the disk/wire rule",
-	"_datafiles/html/public/build.html|.buffIds":          "inline JS (`s.buffIds`), not inside a {{ }} action; matches the GMCP wire field `buffIds` on itemUpdateReq/mobUpdateReq (modules/gmcp/gmcp.Item.go, gmcp.Mob.go), frozen by modules/gmcp/gmcp_wire_freeze_test.go/TestWireFreeze_GMCPJSONFieldNames",
-}
+var templateBuffFieldAllowlist = map[string]string{}
 
 // templateActionPattern matches a whole `{{ ... }}` template action,
 // including trim markers (`{{-`/`-}}`), non-greedily and across lines so a
@@ -333,7 +331,7 @@ func TestNoTemplateReadsABuffField(t *testing.T) {
 		return offenses[i].line < offenses[j].line
 	})
 	for _, o := range offenses {
-		t.Errorf("%s:%d: template field %s still says buff; slice 2 of the conditions unification renamed these (%s)",
+		t.Errorf("%s:%d: template field %s still says buff; the conditions unification renamed these (%s)",
 			o.file, o.line, o.name, identifierGuardSpecPath)
 	}
 
@@ -350,5 +348,112 @@ func TestNoTemplateReadsABuffField(t *testing.T) {
 	sort.Strings(stale)
 	for _, key := range stale {
 		t.Errorf("templateBuffFieldAllowlist entry %q matched nothing; find where it moved (or was fixed) and update or remove it", key)
+	}
+}
+
+// stringDataAllowlist pardons a buff spelling that is deliberate. Keyed
+// "relpath|exact line content (trimmed)"; each entry must still match.
+var stringDataAllowlist = map[string]string{
+	`_datafiles/world/dogmud/dialogue/newcomer_antechamber/9491.yaml|- keywords: ["condition", "conditions", "buff", "effect"]`: "player keyword: a new player who types 'buff' is still understood",
+}
+
+// stringGuardNamesOldSpellings are Go files whose job is to name the old
+// spellings: tests that assert they no longer bind or resolve, and the
+// migration that renames them in saves.
+var stringGuardNamesOldSpellings = map[string]bool{
+	"wire_freeze_test.go": true,
+	"internal/keywords/keywords_setcondition_alias_test.go": true,
+	"internal/migration/0.17.0.go":                          true,
+	"internal/migration/0.17.0_test.go":                     true,
+}
+
+var stringDataExts = map[string]bool{
+	".yaml": true, ".yml": true, ".template": true, ".html": true, ".js": true, ".css": true, ".md": true, ".golden": true,
+}
+
+// TestNoStringOrDataSaysBuff is the slice 3 half of this guard: Go string
+// literals and struct tags (go/scanner STRING tokens), and every tracked data,
+// template, web, golden and doc file under _datafiles/, docs/schemas/ and
+// internal/**/testdata, must not spell buff outside the protected words
+// conditionrename.ContainsOldSpelling ignores.
+func TestNoStringOrDataSaysBuff(t *testing.T) {
+	_, here, _, ok := runtime.Caller(0)
+	require := func(cond bool, format string, args ...any) {
+		t.Helper()
+		if !cond {
+			t.Fatalf(format, args...)
+		}
+	}
+	require(ok, "runtime.Caller(0) failed")
+	root := filepath.Dir(here)
+	guardFile := filepath.Base(here)
+
+	out, err := exec.Command("git", "-C", root, "ls-files", "-z").Output()
+	require(err == nil, "git ls-files: %v", err)
+
+	seen := map[string]bool{}
+	scannedGo, scannedData := 0, 0
+	for _, rel := range strings.Split(string(out), "\x00") {
+		if rel == "" {
+			continue
+		}
+		rel = filepath.ToSlash(rel)
+		if strings.HasPrefix(rel, "vendor/") || strings.HasPrefix(rel, "docs/superpowers/") ||
+			strings.HasPrefix(rel, "tools/playtest/") || strings.HasPrefix(rel, "tools/_archive/") ||
+			rel == "docs/PATCH_NOTES.md" || rel == guardFile || strings.HasPrefix(rel, "internal/conditionrename/") ||
+			stringGuardNamesOldSpellings[rel] {
+			continue
+		}
+		path := filepath.Join(root, filepath.FromSlash(rel))
+		src, rerr := os.ReadFile(path)
+		if rerr != nil {
+			if os.IsNotExist(rerr) {
+				continue
+			}
+			t.Fatalf("read %s: %v", rel, rerr)
+		}
+
+		if strings.HasSuffix(rel, ".go") {
+			scannedGo++
+			fset := token.NewFileSet()
+			tf := fset.AddFile(path, fset.Base(), len(src))
+			var sc scanner.Scanner
+			sc.Init(tf, src, nil, 0)
+			for {
+				pos, tok, lit := sc.Scan()
+				if tok == token.EOF {
+					break
+				}
+				if tok == token.STRING && conditionrename.ContainsOldSpelling(lit) {
+					t.Errorf("%s:%d: string literal %s still says buff (%s)", rel, fset.Position(pos).Line, lit, identifierGuardSpecPath)
+				}
+			}
+			continue
+		}
+
+		inScope := strings.HasPrefix(rel, "_datafiles/") || strings.HasPrefix(rel, "docs/schemas/") ||
+			(strings.HasPrefix(rel, "internal/") && strings.Contains(rel, "/testdata/"))
+		if !inScope || !stringDataExts[filepath.Ext(rel)] {
+			continue
+		}
+		scannedData++
+		for i, line := range strings.Split(string(src), "\n") {
+			if !conditionrename.ContainsOldSpelling(line) {
+				continue
+			}
+			key := rel + "|" + strings.TrimSpace(line)
+			if _, ok := stringDataAllowlist[key]; ok {
+				seen[key] = true
+				continue
+			}
+			t.Errorf("%s:%d: still says buff: %s (%s)", rel, i+1, strings.TrimSpace(line), identifierGuardSpecPath)
+		}
+	}
+	require(scannedGo > 500, "scanned only %d Go files", scannedGo)
+	require(scannedData > 3000, "scanned only %d data files", scannedData)
+	for key := range stringDataAllowlist {
+		if !seen[key] {
+			t.Errorf("stringDataAllowlist entry %q matched nothing; update or remove it", key)
+		}
 	}
 }

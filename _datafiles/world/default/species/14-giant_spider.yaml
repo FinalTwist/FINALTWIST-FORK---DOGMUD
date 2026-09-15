@@ -12,6 +12,6 @@ stats:
     base: 2
 damage:
   diceroll: 2d4
-  critbuffids:
+  critconditionids:
   - 13
 disabledslots: ['offhand', 'head', 'neck', 'belt', 'gloves', 'ring', 'legs', 'feet']

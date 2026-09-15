@@ -14,7 +14,7 @@ func TestValidateSpeciesConditionIdsPanicsOnMissingCondition(t *testing.T) {
 
 	defer func() {
 		if recover() == nil {
-			t.Fatal("expected a panic for a species referencing a buff that does not exist")
+			t.Fatal("expected a panic for a species referencing a condition that does not exist")
 		}
 	}()
 	ValidateSpeciesConditionIds(func(int) bool { return false })
@@ -29,7 +29,7 @@ func TestValidateSpeciesConditionIdsAcceptsKnownConditions(t *testing.T) {
 	ValidateSpeciesConditionIds(func(id int) bool { return id == 29 })
 }
 
-// A species with no buffids at all must not trip the guard.
+// A species with no conditionids at all must not trip the guard.
 func TestValidateSpeciesConditionIdsIgnoresSpeciesWithNoConditions(t *testing.T) {
 	orig := allSpecies
 	t.Cleanup(func() { allSpecies = orig })

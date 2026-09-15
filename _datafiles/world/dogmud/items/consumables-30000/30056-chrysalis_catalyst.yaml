@@ -8,7 +8,7 @@ description: A dense, luminous liquid saturated with
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 74
 value: 100
 rarity_tier: 30

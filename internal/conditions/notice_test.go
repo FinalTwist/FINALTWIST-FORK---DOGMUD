@@ -19,7 +19,7 @@ func TestConditionNotices(t *testing.T) {
 	assert.Equal(t, "Warrior's Brew has expired.", silent.EndUserNotice())
 
 	secret := &ConditionSpec{ConditionId: 3, Name: "Respawn Grace", Secret: true, StartUserText: "never shown"}
-	assert.Equal(t, "", secret.StartUserNotice(), "a secret buff says nothing even with authored text")
+	assert.Equal(t, "", secret.StartUserNotice(), "a secret condition says nothing even with authored text")
 	assert.Equal(t, "", secret.EndUserNotice())
 
 	nameless := &ConditionSpec{ConditionId: 4}
@@ -63,7 +63,7 @@ func TestSilentStartConditionNotListedForMissingStart(t *testing.T) {
 		20: {ConditionId: 20, Name: "Warcry", EndUserText: "fades", Flags: []Flag{SilentStart}},
 	})
 	defer restore()
-	assert.Equal(t, []string{}, SilentNoticeConditions(), "a silent-start buff with an authored end is not silent by accident")
+	assert.Equal(t, []string{}, SilentNoticeConditions(), "a silent-start condition with an authored end is not silent by accident")
 }
 
 // A hidden condition must never announce its end: if you can't know who spotted
@@ -83,7 +83,7 @@ func TestHiddenConditionNotListedForMissingEnd(t *testing.T) {
 		21: {ConditionId: 21, Name: "Hidden", StartUserText: "sneaky", Flags: []Flag{Hidden}},
 	})
 	defer restore()
-	assert.Equal(t, []string{}, SilentNoticeConditions(), "a hidden buff with no end text is silent by design, not by accident")
+	assert.Equal(t, []string{}, SilentNoticeConditions(), "a hidden condition with no end text is silent by design, not by accident")
 }
 
 // A quiet condition (prone recovery, the grapple exposure) is reapplied every
@@ -94,5 +94,5 @@ func TestQuietConditionNotListedForMissingNotices(t *testing.T) {
 		22: {ConditionId: 22, Name: "Off Balance", Flags: []Flag{Quiet}},
 	})
 	defer restore()
-	assert.Equal(t, []string{}, SilentNoticeConditions(), "a quiet buff with no authored text is silent by design, not by accident")
+	assert.Equal(t, []string{}, SilentNoticeConditions(), "a quiet condition with no authored text is silent by design, not by accident")
 }

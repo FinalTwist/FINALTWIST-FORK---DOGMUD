@@ -196,7 +196,7 @@ Every branching quest MUST have:
 
 ### Quest reward YAML keys
 
-Quest `rewards:` fields (`itemid`, `skillinfo`, `buffid`, `playermessage`,
+Quest `rewards:` fields (`itemid`, `skillinfo`, `conditionid`, `playermessage`,
 `roommessage`, `roomid`, `spellid`, `questid`) load via a tag-less struct
 that binds on the lowercased field name with no underscore handling, so
 `itemid` is correct and `item_id` silently fails to load with no panic and

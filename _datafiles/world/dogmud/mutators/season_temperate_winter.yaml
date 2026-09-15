@@ -1,6 +1,6 @@
 # Seasonal ambience layer: description-only by design — room titles already
 # carry weather tags (spec S-R2). outdooronly keeps the line out of sheltered
-# rooms (DOGMud indoor gating). Buffs/exits are builder seams.
+# rooms (DOGMud indoor gating). Conditions/exits are builder seams.
 mutatorid: season-temperate-winter
 outdooronly: true
 descriptionmodifier:

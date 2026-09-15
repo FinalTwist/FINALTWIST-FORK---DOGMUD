@@ -1,7 +1,7 @@
 package itemvalue
 
 // PhysicalBruiser fits stat=fighting or behavior in
-// {generic_fighter, melee_self_buff, leader}.
+// {generic_fighter, melee_self_empower, leader}.
 var PhysicalBruiser = WeightProfile{
 	Name:                       "PhysicalBruiser",
 	PhysicalDamageWeight:       1.0,
@@ -149,7 +149,7 @@ func ProfileFor(statArchetype, behaviorArchetype string) WeightProfile {
 		return MagicalSupport
 	case "ambusher", "lookout":
 		return Stealth
-	case "generic_fighter", "melee_self_buff", "leader":
+	case "generic_fighter", "melee_self_empower", "leader":
 		return PhysicalBruiser
 	case "combat_passive", "prey",
 		"noncombat_passive", "noncombat_questgiver",

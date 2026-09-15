@@ -43,7 +43,7 @@ SOP including the `behavior_archetype` priority order.
 | `zone` | string | **yes** | Display name of the zone (e.g. `"Sanctum Basin"`). |
 | `hostile` | bool | no | Whether this mob attacks players on sight. Default: false. |
 | `non_combatant` | bool | no | When true, mob cannot be attacked or stolen from — same gate that protects shopkeepers. Mob also won't aggro on player entry. Default: false. |
-| `player_attack_immune` | bool | no | When true, mob rebuffs player-originated attacks (attack/bash/grapple/kick/shoot/taunt/throw/trip and steal) with a "you can't attack" message — like `non_combatant` — but still participates in mob-vs-mob combat. Used by caravan crew, who fight bandits but cannot be attacked by players. Default: false. |
+| `player_attack_immune` | bool | no | When true, mob refuses player-originated attacks (attack/bash/grapple/kick/shoot/taunt/throw/trip and steal) with a "you can't attack" message — like `non_combatant` — but still participates in mob-vs-mob combat. Used by caravan crew, who fight bandits but cannot be attacked by players. Default: false. |
 | `charm_immune` | bool | no | Mob cannot be charmed (resists charm spells/effects). Default: false. |
 | `pack_flee_immune` | bool | no | Mob does not flee when a packmate dies (overrides species-based pack flee). Default: false. |
 | `maxwander` | int | no | Max rooms the mob will wander from its home room. 0 = stationary. |
@@ -54,7 +54,7 @@ SOP including the `behavior_archetype` priority order.
 | `groups` | list | no | Group membership (e.g. `[rats, animal]`). Used for teamwork and hates logic, and drives corpse salvage returns (see `internal/crafting/corpse_salvage.go`). |
 | `fold_anchor_room` | int | no | Room ID stamped into `MiscData["fold-anchor-room"]` at spawn. Lets the mob `cast fold-recall` to that room without first casting `fold-anchor`. Resolver: `internal/hooks/spell_foldrecall.go`. Used by hermit Old Edrin (Stage 3.0d), caravan crew (Stage 2), and the three Stage 3.1 foragers. |
 | `hates` | list | no | Group names or species this mob will attack on sight. |
-| `buffids` | list | no | Buff IDs always applied when mob spawns. |
+| `conditionids` | list | no | Condition IDs always applied when mob spawns. |
 | `questflags` | list | no | Quest flag strings set on this mob. |
 | `scripttag` | string | no | Tag appended to the script filename. Must match the `.js` file. |
 | `behavior_archetype` | string | no | Filename (without `.yaml`) of an archetype in `_datafiles/world/dogmud/behaviors/archetypes/`. Drives the mob's behavior tree. **Strongly preferred over legacy `aiprofile`/`combatcommands`/`tactic_preset` for new mobs.** See "Behavior Archetypes" below. |
@@ -197,8 +197,6 @@ A mob needs either `tactic_preset` or `tactics` (or both) for the reactive AI to
 - `ambusher` — flee after engagement, hide when out of combat, trip casters
 - `tank` — bash casters, kick prone targets, call for help when low
 
-**Available triggers:** `combat_start`, `health_below:N`, `target_casting`, `target_prone`, `target_grappled`, `multiple_targets`, `single_target`, `no_aggro`, `not_hidden`, `after_action:X`, `player_entered`, `has_buff:N`, `missing_buff:N`
-
 **Available actions:** `flee`, `hide`, `kick`, `bash`, `trip`, `call_for_help`, `retarget_strongest`, `cast <spell>`, `track_memory`, `recall`
 
 **Authored stats go in `base:`, never `training:`.**
@@ -245,11 +243,11 @@ needing to author per-mob `combatcommands`/`tactics`.
 | Archetype | Role |
 |-----------|------|
 | `generic_fighter` | Melee with bash/trip/grapple toolkit. Default for non-tank fighters. |
-| `tank_taunter` | Melee with signature taunt + self-buffs. For high-priority threats. |
-| `melee_self_buff` | Melee fighter who pre-buffs before engaging. |
+| `tank_taunter` | Melee with signature taunt + self-empowering spells. For high-priority threats. |
+| `melee_self_empower` | Melee fighter who empowers itself before engaging. |
 | `ambusher` | Hidden until engagement; high opening burst. |
 | `pure_caster` | Spell-focused; flees from melee, kites with damage. |
-| `support_caster` | Buffs/heals packmates; rarely the front-line target. |
+| `support_caster` | Strengthens and heals packmates; rarely the front-line target. |
 | `leader` | Commands packmates, calls for help, coordinates. |
 | `prey` | Flees on engagement; non-aggressive. |
 | `lookout` | Stationary observer; calls for help when triggered. |
@@ -278,5 +276,5 @@ naturally:
 
 - `pure_caster` / `support_caster` → `archetype: "casting"`
 - `generic_fighter` / `tank_taunter` / `ambusher` /
-  `melee_self_buff` → `archetype: "fighting"`
+  `melee_self_empower` → `archetype: "fighting"`
 - `prey` / `noncombat_*` → `archetype: ""` (uniform)

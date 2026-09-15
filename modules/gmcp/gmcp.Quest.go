@@ -119,7 +119,7 @@ type questEnums struct {
 	Events           []vocabEntry         `json:"events"`
 	Conditions       []vocabEntry         `json:"conditions"`
 	Actions          []vocabEntry         `json:"actions"`
-	StatusConditions []idName             `json:"buffs"`
+	StatusConditions []idName             `json:"statusConditions"`
 	Spells           []strIdName          `json:"spells"`
 	Recipes          []string             `json:"recipes"`
 	Factions         []strIdName          `json:"factions"`
@@ -177,7 +177,7 @@ var questActionVocab = []vocabEntry{
 	{"train_skill", "raise a skill to a level"},
 	{"train_stat", "raise a stat by an amount"},
 	{"learn_recipe", "grant a crafting recipe"},
-	{"apply_buff", "apply a condition to the player"},
+	{"apply_condition", "apply a condition to the player"},
 	{"teleport", "move the player to a room"},
 	{"give_mutation", "roll and grant a random mutation"},
 	{"set_flag", "record a quest flag (key+value must be declared)"},

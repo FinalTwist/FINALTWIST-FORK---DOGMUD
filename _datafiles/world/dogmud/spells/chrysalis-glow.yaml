@@ -10,8 +10,8 @@ cost: 35
 waitrounds: 3
 difficulty: 0
 primarystat: willpower
-effect_type: buff
-buff_ids:
+effect_type: condition
+condition_ids:
   - 1
 cast_user_text: "You coax the Chrysalis spores around you to luminesce."
 cast_room_text: "{source} concentrates as faint motes of light gather."

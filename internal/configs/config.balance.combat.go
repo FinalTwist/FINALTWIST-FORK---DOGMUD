@@ -288,9 +288,6 @@ func (b *Balance) validateCombat() {
 	if b.SubGoldLossFraction < 0 || b.SubGoldLossFraction > 1.0 {
 		b.SubGoldLossFraction = 0.20
 	}
-	if b.BrokenLimbBuffDuration <= 0 {
-		b.BrokenLimbBuffDuration = 900
-	}
 
 	// ── CHUNK 4E: THIRD-PARTY INTERFERENCE ──────────────────────────────────
 	// ControlDegradeOnOutsideHit is a ConfigBool — no zero-check needed.

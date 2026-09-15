@@ -5,9 +5,11 @@
 #   - extra-arms      -> unlocks the Arm 3 slot, so the arm-slot equip path
 #                        (which used to drop its room line) is reachable at all.
 #   - resonant-larynx -> shout-stacking, the ONLY way to reach the rally/warcry
-#                        fold loops that used to buff party members in silence.
-#   - conviction-surge -> an effect_type: buff spell, so the `case "buff"` room
-#                        line is exercised. A shield spell would NOT reach it.
+#                        fold loops that used to strengthen party members in
+#                        silence.
+#   - conviction-surge -> an effect_type: condition spell, so the
+#                        `case "condition"` room line is exercised. A shield
+#                        spell would NOT reach it.
 #   - salvage 20      -> butchering a corpse actually returns something.
 #   - rhetoric 20     -> rally and warcry land.
 #   - a SECOND weapon -> something to put in the extra arm.

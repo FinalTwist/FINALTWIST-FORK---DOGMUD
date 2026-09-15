@@ -29,19 +29,19 @@ func seedCategorySpells(t *testing.T) func() {
 	return spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		// category matches, affordable
 		"d1": {SpellId: "d1", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
-			Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{10}},
+			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{10}},
 		// category matches, affordable, higher score
 		"d2": {SpellId: "d2", Type: spells.HelpSingle, Cost: 50, BaseFolds: 6,
-			Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{11}},
+			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{11}},
 		// wrong category
 		"other": {SpellId: "other", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
-			Categories: []string{"self_offense"}, EffectType: "buff", ConditionIds: []int{12}},
+			Categories: []string{"self_offense"}, EffectType: "condition", ConditionIds: []int{12}},
 		// too expensive (cost 999 > cpHave 100)
 		"broke": {SpellId: "broke", Type: spells.HelpSingle, Cost: 999, BaseFolds: 6,
-			Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{13}},
+			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{13}},
 		// component required
 		"compreq": {SpellId: "compreq", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
-			Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{14},
+			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{14},
 			ComponentTag: "reagent"},
 		// summon mob
 		"summon": {SpellId: "summon", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
@@ -58,7 +58,7 @@ func seedCategorySpells(t *testing.T) func() {
 		// ranking: higher score than d2 (BaseFolds=8 × Cost=10 = 80 vs d2's 300)
 		// use d3 with BaseFolds=10 × Cost=50 = 500 for a top-scorer test
 		"d3": {SpellId: "d3", Type: spells.HelpSingle, Cost: 50, BaseFolds: 10,
-			Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{15}},
+			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{15}},
 	})
 }
 
@@ -128,8 +128,8 @@ func TestCollectCategoryCandidates_SkipsConditionAlreadyActive(t *testing.T) {
 	cleanup := seedCategorySpells(t)
 	defer cleanup()
 	cleanupConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
-		10: {ConditionId: 10, Name: "TestBuff10"},
-		11: {ConditionId: 11, Name: "TestBuff11"},
+		10: {ConditionId: 10, Name: "TestCondition10"},
+		11: {ConditionId: 11, Name: "TestCondition11"},
 	})
 	defer cleanupConditions()
 
@@ -179,9 +179,9 @@ func TestCollectCategoryCandidates_SkipsShieldAlreadyActive(t *testing.T) {
 func TestCollectCategoryCandidates_SkipsInsufficientCP(t *testing.T) {
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		"expensive": {SpellId: "expensive", Type: spells.HelpSingle, Cost: 999, BaseFolds: 4,
-			Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{20}},
+			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{20}},
 		"cheap": {SpellId: "cheap", Type: spells.HelpSingle, Cost: 5, BaseFolds: 2,
-			Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{21}},
+			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{21}},
 	})
 	defer cleanup()
 
@@ -256,7 +256,7 @@ func TestCollectCategoryCandidates_DeletedSpellIdDoesNotCrash(t *testing.T) {
 	// Spellbook references "ghost" which is not in the seed map.
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		"real": {SpellId: "real", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
-			Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{30}},
+			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{30}},
 	})
 	defer cleanup()
 
@@ -280,9 +280,9 @@ func TestCastBestInCategory_RankingSelectsHighestScore(t *testing.T) {
 	//   mid: 4 × 10 = 40
 	//   hi:  6 × 20 = 120  ← should win
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
-		"lo":  {SpellId: "lo", Type: spells.HelpSingle, Cost: 5, BaseFolds: 2, Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{40}},
-		"mid": {SpellId: "mid", Type: spells.HelpSingle, Cost: 10, BaseFolds: 4, Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{41}},
-		"hi":  {SpellId: "hi", Type: spells.HelpSingle, Cost: 20, BaseFolds: 6, Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{42}},
+		"lo":  {SpellId: "lo", Type: spells.HelpSingle, Cost: 5, BaseFolds: 2, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{40}},
+		"mid": {SpellId: "mid", Type: spells.HelpSingle, Cost: 10, BaseFolds: 4, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{41}},
+		"hi":  {SpellId: "hi", Type: spells.HelpSingle, Cost: 20, BaseFolds: 6, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{42}},
 	})
 	defer cleanup()
 
@@ -319,8 +319,8 @@ func TestCastBestInCategory_RankingSelectsHighestScore(t *testing.T) {
 func TestCastBestInCategory_TieBreaksBySpellIdAsc(t *testing.T) {
 	// Two spells with identical score — "aaa" < "zzz" alphabetically.
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
-		"aaa": {SpellId: "aaa", Type: spells.HelpSingle, Cost: 10, BaseFolds: 5, Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{50}},
-		"zzz": {SpellId: "zzz", Type: spells.HelpSingle, Cost: 10, BaseFolds: 5, Categories: []string{"self_defense"}, EffectType: "buff", ConditionIds: []int{51}},
+		"aaa": {SpellId: "aaa", Type: spells.HelpSingle, Cost: 10, BaseFolds: 5, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{50}},
+		"zzz": {SpellId: "zzz", Type: spells.HelpSingle, Cost: 10, BaseFolds: 5, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{51}},
 	})
 	defer cleanup()
 

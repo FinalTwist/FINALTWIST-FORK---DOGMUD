@@ -49,7 +49,7 @@ func init() {
 	actionRegistry["summon_companion"] = actSummonCompanion
 	actionRegistry["set_room_locked"] = actSetRoomLocked
 	actionRegistry["spawn_item_in_room"] = actSpawnItemInRoom
-	actionRegistry["add_buff"] = actAddCondition
+	actionRegistry["add_condition"] = actAddCondition
 	actionRegistry["command_mob"] = actCommandMob
 	actionRegistry["give_item_multiple"] = actGiveItemMultiple
 	actionRegistry["set_misc_data"] = actSetMiscData
@@ -65,7 +65,7 @@ func init() {
 	actionRegistry["grant_progression"] = actGrantProgression
 	actionRegistry["send_room_text"] = actSendRoomText
 	actionRegistry["intercept"] = actIntercept
-	actionRegistry["remove_buff"] = actRemoveCondition
+	actionRegistry["remove_condition"] = actRemoveCondition
 	actionRegistry["move_player"] = actMovePlayer
 	actionRegistry["create_instance"] = actCreateInstance
 	actionRegistry["open_instance_portal"] = actOpenInstancePortal
@@ -141,17 +141,17 @@ type ActionNode struct {
 // perception-scaled reaction delays. Internal bookkeeping actions
 // (state, quest, item) remain instant.
 var delayedActions = map[string]bool{
-	"respond":     true,
-	"say":         true,
-	"emote":       true,
-	"attack":      true,
-	"flee":        true,
-	"cast":        true,
-	"move":        true,
-	"add_buff":    true,
-	"command_mob": true,
-	"mob_say":     true,
-	"mob_emote":   true,
+	"respond":       true,
+	"say":           true,
+	"emote":         true,
+	"attack":        true,
+	"flee":          true,
+	"cast":          true,
+	"move":          true,
+	"add_condition": true,
+	"command_mob":   true,
+	"mob_say":       true,
+	"mob_emote":     true,
 }
 
 func (n *ActionNode) Evaluate(ctx *EvalContext) Result {

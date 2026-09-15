@@ -2525,7 +2525,7 @@ func TestStatMod_NoIncorporeal_Unchanged(t *testing.T) {
 	c := &Character{
 		Mutations: map[string]int{}, // empty
 	}
-	// Without any equipment/buffs/pets, the result is 0.
+	// Without any equipment/conditions/pets, the result is 0.
 	got := c.StatMod("strength")
 	if got != 0 {
 		t.Errorf("empty character StatMod = %d, want 0", got)

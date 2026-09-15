@@ -1023,7 +1023,7 @@ func TestUserRecord_AddConditionScaled(t *testing.T) {
 	u.AddConditionScaled(76, 0.5, "drink")
 
 	queued := events.DrainQueuedConditionsForTest(userId)
-	require.Len(t, queued, 1, "exactly one buff event must be queued")
+	require.Len(t, queued, 1, "exactly one condition event must be queued")
 	assert.Equal(t, userId, queued[0].UserId)
 	assert.Equal(t, 76, queued[0].ConditionId)
 	assert.Equal(t, "drink", queued[0].Source)

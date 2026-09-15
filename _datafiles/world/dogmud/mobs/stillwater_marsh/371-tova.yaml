@@ -15,7 +15,7 @@ activitylevel: 20
 charm_immune: true
 fold_anchor_room: 4198
 storage_chest_room: 4198
-buffids: []
+conditionids: []
 idlecommands:
   - 'emote checks the satchel at her hip, eyes scanning the reedline'
   - ''
