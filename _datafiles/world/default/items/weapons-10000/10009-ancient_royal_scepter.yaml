@@ -7,7 +7,7 @@ hands: 1
 subtype: bludgeoning
 damage:
   diceroll: 2d8+2
-  critbuffids: 
+  critconditionids: 
   - 10
 statmods:
   perception: 15

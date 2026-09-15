@@ -33,7 +33,7 @@ import (
 //   - quiet: listed but never announced, for a record reapplied every round
 //     it persists.
 func TestEveryDogmudConditionHasAuthoredNotices(t *testing.T) {
-	files, err := filepath.Glob(filepath.Join("_datafiles", "world", "dogmud", "buffs", "*.yaml"))
+	files, err := filepath.Glob(filepath.Join("_datafiles", "world", "dogmud", "conditions", "*.yaml"))
 	if err != nil || len(files) == 0 {
 		t.Fatalf("no condition files found: %v", err)
 	}

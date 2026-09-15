@@ -260,7 +260,7 @@
 
   // ---- action sub-forms -------------------------------------------------
 
-  // Field kinds: token/item/mob/room/buff = picker on the matching datalist
+  // Field kinds: token/item/mob/room/condition = picker on the matching datalist
   // (numeric except token); spell/recipe/faction/skill/stat/flagkey = string
   // picker; text/num/bool literal. "custom" types get dedicated builders.
   var ACTION_FORMS = {
@@ -282,17 +282,17 @@
     train_skill:   [{ k: "skill", kind: "skill", label: "Skill", nest: true }, { k: "level", kind: "num", label: "Level", nest: true }],
     train_stat:    [{ k: "stat", kind: "stat", label: "Stat", nest: true }, { k: "amount", kind: "num", label: "Amount", nest: true }],
     learn_recipe:  [{ k: "recipe", kind: "recipe", label: "Recipe", nest: true }],
-    apply_buff:    [{ k: "buff", kind: "buff", label: "Status condition", nest: true }, { k: "source", kind: "text", label: "Source (optional)", nest: true }],
+    apply_condition:    [{ k: "condition", kind: "condition", label: "Status condition", nest: true }, { k: "source", kind: "text", label: "Source (optional)", nest: true }],
     set_flag:      [{ k: "key", kind: "flagkey", label: "Flag key", nest: true }, { k: "value", kind: "text", label: "Value", nest: true }],
     bump_rep:      [{ k: "faction", kind: "faction", label: "Faction", nest: true }, { k: "delta", kind: "num", label: "Delta", nest: true }],
     sequence:      "custom",
     declare_bounty: "custom"
   };
 
-  var KIND_DL = { token: "q-token-dl", item: "q-item-dl", mob: "q-mob-dl", buff: "q-buff-dl",
+  var KIND_DL = { token: "q-token-dl", item: "q-item-dl", mob: "q-mob-dl", condition: "q-condition-dl",
     spell: "q-spell-dl", recipe: "q-recipe-dl", faction: "q-faction-dl", skill: "q-skill-dl",
     stat: "q-stat-dl", flagkey: "q-flagkey-dl" };
-  var NUMERIC_KINDS = { item: true, mob: true, room: true, buff: true, num: true };
+  var NUMERIC_KINDS = { item: true, mob: true, room: true, condition: true, num: true };
 
   function kindInput(kind, val) {
     if (kind === "bool") return boolInput(val);
@@ -663,7 +663,7 @@
       ["q-token-dl", (Panel.enums.questTokens || []).map(function (t) { return { v: t.token, t: t.questName }; })],
       ["q-item-dl", ((window.Builder && window.Builder.itemRows) || []).map(function (r) { return { v: String(r.id), t: r.name || "" }; })],
       ["q-mob-dl", (Panel.mobRows || []).map(function (r) { return { v: String(r.id), t: (r.name || "") + " (" + (r.zone || "no zone") + ")" }; })],
-      ["q-buff-dl", (Panel.enums.buffs || []).map(function (b) { return { v: String(b.id), t: b.name }; })],
+      ["q-condition-dl", (Panel.enums.statusConditions || []).map(function (b) { return { v: String(b.id), t: b.name }; })],
       ["q-spell-dl", (Panel.enums.spells || []).map(function (s) { return { v: s.id, t: s.name }; })],
       ["q-recipe-dl", (Panel.enums.recipes || []).map(function (r) { return { v: r, t: "" }; })],
       ["q-faction-dl", (Panel.enums.factions || []).map(function (f) { return { v: f.id, t: f.name }; })],
@@ -735,8 +735,8 @@
     insp.appendChild(field("Gold", rGold));
     var rItem = numInput(rw.itemid, "q-item-dl");
     insp.appendChild(field("Item", rItem));
-    var rBuff = numInput(rw.buffid, "q-buff-dl");
-    insp.appendChild(field("Status condition", rBuff));
+    var rCondition = numInput(rw.conditionid, "q-condition-dl");
+    insp.appendChild(field("Status condition", rCondition));
     var rSpell = strPick(rw.spellid, "q-spell-dl");
     insp.appendChild(field("Spell taught", rSpell));
     var rSkill = pairRows(rw.skillinfo, "q-skill-dl", "skill", "level");
@@ -825,7 +825,7 @@
         cooldown_rounds: toInt(cooldown.value),
         steps: steps, flags: flags, triggers: triggers,
         rewards: {
-          gold: toInt(rGold.value), itemid: toInt(rItem.value), buffid: toInt(rBuff.value),
+          gold: toInt(rGold.value), itemid: toInt(rItem.value), conditionid: toInt(rCondition.value),
           spellid: rSpell.value.trim(), skillinfo: rSkill.get(), stat_info: rStat.get(),
           recipe_info: rRecipe.get().join(","), item_info: rItems.get(),
           playermessage: rPmsg.value, roommessage: rRmsg.value,

@@ -8,7 +8,7 @@ description: A light, almost effervescent draught. The
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 59
 value: 15
 rarity_tier: 40

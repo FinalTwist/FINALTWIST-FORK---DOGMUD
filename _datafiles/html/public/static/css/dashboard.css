@@ -934,7 +934,7 @@
 }
 /* Type accents — mirror the Status & Conditions panel's two-tone chips so the
    automation tabs read with the same polish. Macros = warm brass (F-key action
-   keys); aliases = teal/copper, tying them to the status-panel buff chips. */
+   keys); aliases = teal/copper, tying them to the status-panel condition chips. */
 .auto-chip[data-auto-type="macro"] {
   border-color: var(--brass-border, #5e431a);
   color: var(--title-gold, #e8d2a0);

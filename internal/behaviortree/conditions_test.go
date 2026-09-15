@@ -325,7 +325,7 @@ func TestCondStateGreaterThan_Float64Param(t *testing.T) {
 
 func TestCondAllNewRegistered(t *testing.T) {
 	for _, name := range []string{
-		"mob_has_buff", "player_has_spell",
+		"mob_has_condition", "player_has_spell",
 		"player_has_misc_data", "state_greater_than",
 		"multiple_enemies",
 	} {

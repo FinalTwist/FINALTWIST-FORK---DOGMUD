@@ -9,7 +9,7 @@ description: A cloudy, bitter tonic. The aftertaste
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 63
 value: 20
 rarity_tier: 40

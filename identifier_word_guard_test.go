@@ -171,10 +171,7 @@ func TestNoIdentifierSaysBuff(t *testing.T) {
 // A hit INSIDE a template action is always a live Go field or map-key
 // reference the template engine resolves at render time with no compile-time
 // check, so it is never allowlisted here; it is a real rename instead.
-var templateBuffFieldAllowlist = map[string]string{
-	"_datafiles/html/admin/rooms/room.data.html|.buffids": "form field id/name/for attribute text (`spawninfo[N].buffids[]`), sitting between two {{ }} actions rather than inside one; mirrors the on-disk yaml key `buffids` on rooms.SpawnInfo.ConditionIds (internal/rooms/spawninfo.go), frozen by wire_freeze_test.go/TestWireFreeze_ShippedConditionFilesLoadInBothWorlds and the disk/wire rule",
-	"_datafiles/html/public/build.html|.buffIds":          "inline JS (`s.buffIds`), not inside a {{ }} action; matches the GMCP wire field `buffIds` on itemUpdateReq/mobUpdateReq (modules/gmcp/gmcp.Item.go, gmcp.Mob.go), frozen by modules/gmcp/gmcp_wire_freeze_test.go/TestWireFreeze_GMCPJSONFieldNames",
-}
+var templateBuffFieldAllowlist = map[string]string{}
 
 // templateActionPattern matches a whole `{{ ... }}` template action,
 // including trim markers (`{{-`/`-}}`), non-greedily and across lines so a

@@ -1,0 +1,17 @@
+#
+# condition zero (0) is a special condition that when naturally expires,
+# will remove the player from the game without zombie status.
+#
+conditionid: 0
+name: Meditating
+description: You are meditating before leaving the realm.
+triggerrate: 1 round
+triggercount: 5
+flags:
+- cancel-on-action
+- cancel-on-combat
+start_user_text: "You sit down and begin your meditation."
+start_room_text: "{source} sits down and begins to meditate."
+trigger_user_text: "You continue your meditation..."
+trigger_room_text: "{source} continues meditating."
+end_user_text: "Your meditation ends and you slip away from the realm."

@@ -1058,9 +1058,9 @@ func TestAddCondition(t *testing.T) {
 
 	events.ProcessEvents()
 
-	require.Len(t, got, 1, "AddBuff must queue exactly one Buff event")
-	assert.Equal(t, 42, got[0].MobInstanceId, "the buff must target this mob instance")
-	assert.Equal(t, 7, got[0].ConditionId, "the queued buff id must match")
+	require.Len(t, got, 1, "AddCondition must queue exactly one Condition event")
+	assert.Equal(t, 42, got[0].MobInstanceId, "the condition must target this mob instance")
+	assert.Equal(t, 7, got[0].ConditionId, "the queued condition id must match")
 	assert.Equal(t, "test-source", got[0].Source, "the queued source must match")
 }
 
@@ -1323,14 +1323,14 @@ func TestMob_BehaviorArchetypeYAMLRoundtrip(t *testing.T) {
 	data := []byte(`
 mobid: 999
 zone: Test
-behavior_archetype: melee_self_buff
+behavior_archetype: melee_self_empower
 `)
 	var m Mob
 	if err := yaml.Unmarshal(data, &m); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if m.BehaviorArchetype != "melee_self_buff" {
-		t.Fatalf("want melee_self_buff, got %q", m.BehaviorArchetype)
+	if m.BehaviorArchetype != "melee_self_empower" {
+		t.Fatalf("want melee_self_empower, got %q", m.BehaviorArchetype)
 	}
 }
 

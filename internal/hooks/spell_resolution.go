@@ -903,7 +903,7 @@ func applyMobEffect(user *users.UserRecord, casterChar *characters.Character, mo
 		return applyMobEffect_dot(user, casterChar, mob, room, spellData, magnitude, out, critTag, mName)
 	case "knockdown":
 		return applyMobEffect_knockdown(user, casterChar, mob, room, spellData, magnitude, out, critTag, mName)
-	case "buff":
+	case "condition":
 		return applyMobEffect_condition(user, casterChar, mob, room, spellData, out, critTag, mName)
 	case "heal":
 		return applyMobEffect_heal(casterChar, mob, room, spellData, magnitude, mName)
@@ -1090,7 +1090,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 				user.Character.Name), user.UserId)
 		}
 
-	case "buff":
+	case "condition":
 		for _, conditionId := range spellData.ConditionIds {
 			target.AddCondition(conditionId, "spell")
 			// Compute tick snapshot for config-driven conditions
@@ -1490,7 +1490,7 @@ func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spell
 		_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdRegenerating, durationRounds, regenMult, "heal spell")
 		sendVisualRoomText(room, messaging.CategorySpellVital, fmt.Sprintf(
 			`%s channels restorative magic.`, mobDisplayName(mob, room, 0)))
-	case "buff":
+	case "condition":
 		for _, conditionId := range spellData.ConditionIds {
 			mob.AddCondition(conditionId, "spell")
 			// Compute tick snapshot for config-driven conditions (matches
@@ -1737,7 +1737,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 		if !target.Character.IsInCombat() {
 			targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)
 		}
-	case "buff":
+	case "condition":
 		// Binary status: a defended cast narrates the triad and applies nothing.
 		if out.Defended {
 			sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,

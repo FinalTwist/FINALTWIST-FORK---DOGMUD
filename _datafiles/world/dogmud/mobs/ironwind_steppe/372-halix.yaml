@@ -19,7 +19,7 @@ activitylevel: 20
 charm_immune: true
 fold_anchor_room: 3040
 storage_chest_room: 3040
-buffids: []
+conditionids: []
 idlecommands:
   - 'emote shades his eyes against the wind and scans the long grass'
   - ''

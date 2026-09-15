@@ -272,13 +272,13 @@ FilePaths:
 #
 ################################################################################
 GamePlay:
-  # - AllowItemBuffRemoval -
-  #   Whether to allow the removal of buffs assigned by items using spells etc.
+  # - AllowItemConditionRemoval -
+  #   Whether to allow the removal of conditions assigned by items using spells etc.
   #   By default, once an item has buffed a player, the player cannot remove the
-  #   buff unless they removing the item. However, if set to true, players can
-  #   temporarily remove the buff with spells, items, etc. and the buff will not
+  #   condition unless they removing the item. However, if set to true, players can
+  #   temporarily remove the condition with spells, items, etc. and the condition will not
   #   return until the player re-equips the item, or logs out and back in.
-  AllowItemBuffRemoval: false
+  AllowItemConditionRemoval: false
   # Death settings
   Death:
     # - EquipmentDropChance -
@@ -300,9 +300,9 @@ GamePlay:
     # here and was removed 2026-08-14 — it compared against a LIFETIME use
     # count, so every skill a character actually used was protected forever and
     # the loss fell every time on the few they had barely touched.
-    StatDecayFloor: 100        # Never degrade a stat's PERMANENT part (racial roll + training) below this. Equipment and buff mods are excluded on purpose, so a permanent loss cannot hinge on what you were wearing.
+    StatDecayFloor: 100        # Never degrade a stat's PERMANENT part (racial roll + training) below this. Equipment and condition mods are excluded on purpose, so a permanent loss cannot hinge on what you were wearing.
     SkillRustFloor: 1          # Never rust a skill below this rank
-    DeathsShadowBuffId: 25     # Buff ID for Death's Shadow debuff
+    DeathsShadowConditionId: 25     # Condition ID for Death's Shadow harmful condition
     # - ProtectionSkillRanks -
     #   Players with total skill ranks at or below this value are protected
     #   from death penalties. Gives new players a grace period.
@@ -480,7 +480,7 @@ Balance:
   #   dodge score = (100 + 10) × 0.97 = 106.7 (vs attacker's ~110)
   DodgeEffectiveness: 0.95      # Nerfed: dodge is most common defense, needs counterplay
   ParryEffectiveness: 0.97      # Slight nerf: parry is middle ground
-  BlockEffectiveness: 1.05      # Buffed: requires shield investment, should reward it
+  BlockEffectiveness: 1.05      # Conditioned: requires shield investment, should reward it
   #
   # U6 added quell (mental spells, Willpower + spellcasting) and defy (taunts,
   #   Willpower + rhetoric) as real defence types, so all five defences now have
@@ -862,7 +862,7 @@ Balance:
 
   # ── SKULLDUGGERY: LIGHT-CONDITIONAL SNEAK MODIFIERS ──────────────────────
   # Four-way conditional applied in CalcSneakScore(effectiveLit).
-  # effectiveLit = room is lit OR observer has NightVision buff.
+  # effectiveLit = room is lit OR observer has NightVision condition.
   #   beacon in darkness: sneaker emits light, room dark  → 0.5x  (very hard to hide)
   #   blend in:           sneaker emits light, room lit   → 0.85x (lit, but so is room)
   #   alert observers:    sneaker dark, room lit          → 0.9x  (harder to hide)
@@ -899,7 +899,7 @@ Balance:
   GlobalDamageMultiplier: 0.5  # Halved for chunk-4b-fixup smoke — let grapples develop before TTK
   #
   # Legacy unarmed knobs — still used by GetDefaultDistributionDamage()
-  # for attack count and crit buff calculation. Actual unarmed damage is
+  # for attack count and crit condition calculation. Actual unarmed damage is
   # controlled by UnarmedDamageMultiplier below.
   UnarmedBaseDamage: 2.0         # Legacy: base damage for attack count calc
   UnarmedStrengthDivisor: 25.0   # Legacy: Str / this = damage bonus
@@ -1104,7 +1104,7 @@ Balance:
   submission_attempt_crit_z: 2.0         # Defender-crit shortcut for bottom-sub windows
   sub_bad_z_threshold: -1.0              # Sub roll z < this → attempter falls prone, pair breaks
   sub_gold_loss_fraction: 0.20           # Fraction of carried gold transferred on subdue/cripple
-  broken_limb_buff_duration: 900         # Rounds (~60 min of play at 4s rounds); expires naturally
+  broken_limb_condition_duration: 900         # Rounds (~60 min of play at 4s rounds); expires naturally
 
   # ── REGEN RATES (fraction of pool max per tick; 0.01 = 1%) ────────────────
   PlayerHealthRegenPct: 0.02     # Bumped from 1% to 2%; players needed faster recovery
@@ -1668,7 +1668,7 @@ Balance:
   # SpellDiscoverySkillPerDifficulty and DiscoveryDifficultyWeightScale above.
   # Practising a hard spell no longer trains faster than practising an easy one
   # -- earning access to it is the reward.
-  SelfCastProgressionMultiplier: 0.5      # self-only buffs get half progression
+  SelfCastProgressionMultiplier: 0.5      # self-only conditions get half progression
 
   # ── ENCHANTMENTS ────────────────────────────────────────────────────────────
   # Enchanted items grow stronger with use. Each tier requires more uses.
@@ -1680,7 +1680,7 @@ Balance:
   EnchantTierUpBaseChance: 0.02     # 2% chance per use to tier up (once threshold met)
   EnchantTierUsesBase: 25           # Uses needed for tier 0→1
   EnchantTierUsesScale: 2.5         # Multiplier per tier for uses threshold
-  EnchantRemovalPenaltyRounds: 50   # Rounds of withdrawal debuff after disenchant
+  EnchantRemovalPenaltyRounds: 50   # Rounds of withdrawal harmful condition after disenchant
   EnchantMaxTier: 4                 # Maximum tier (tiers 0–4 = 5 levels total)
 
   # ── POOL RESERVATION ────────────────────────────────────────────────────────
@@ -2320,7 +2320,7 @@ Modules:
     EmoteEveryRounds: 24
     EmoteMildChancePct: 30
     EmoteStrongChancePct: 100
-    BuffsEnabled: false
+    ConditionsEnabled: false
     Persist: true
     IncludeSecretExits: true
     RebuildGraphOnBoot: false

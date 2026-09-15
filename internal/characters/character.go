@@ -142,7 +142,7 @@ type Character struct {
 	Items           []items.Item          `yaml:"items,omitempty"`          // The items the character is holding
 	ComponentItems  []items.Item          `yaml:"componentitems,omitempty"` // Contents of equipped component bag
 	PotionItems     []items.Item          `yaml:"potionitems,omitempty"`    // Contents of equipped potion bandolier
-	Conditions      conditions.Conditions `yaml:"buffs,omitempty"`          // The conditions the character has active
+	Conditions      conditions.Conditions `yaml:"conditions,omitempty"`     // The conditions the character has active
 	Equipment       Worn                  `yaml:"equipment,omitempty"`      // The equipment the character is wearing
 	HealthMax       stats.StatInfo        `yaml:"-"`                        // The maximum health of the character. Don't write to yaml since is dynamically calculated.
 	StaminaMax      stats.StatInfo        `yaml:"-"`                        // The maximum stamina of the character. Don't write to yaml since is dynamically calculated.

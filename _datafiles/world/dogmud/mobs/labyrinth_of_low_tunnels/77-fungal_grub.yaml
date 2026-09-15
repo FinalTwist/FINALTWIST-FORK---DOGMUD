@@ -4,7 +4,7 @@ statpool: 1
 itemdropchance: 25
 hostile: false
 maxwander: 0
-buffids: [29]
+conditionids: [29]
 behavior_archetype: prey
 aiprofile: skirmisher
 groups:

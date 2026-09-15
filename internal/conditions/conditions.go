@@ -12,10 +12,10 @@ const (
 )
 
 type Condition struct {
-	ConditionId    int    `yaml:"buffid"`                   // Which condition template does it refer to? The tag pins the save key through the slice 2 rename.
+	ConditionId    int    `yaml:"conditionid"`              // Which condition template does it refer to? The tag pins the save key through the slice 2 rename.
 	Source         string `yaml:"source,omitempty"`         // Optional source identifier for where this condition originated. Example: spell, item, area
 	OnStartWaiting bool   `yaml:"onstartwaiting,omitempty"` // Is the onstart event waiting to trigger?
-	Permanent      bool   `yaml:"permabuff,omitempty"`      // Is this condition from a worn item or race?
+	Permanent      bool   `yaml:"permanent,omitempty"`      // Is this condition from a worn item or race?
 	// Need to instance track the following:
 	RoundCounter int `yaml:"roundcounter,omitempty"` // How many rounds have passed. Triggers on (RoundCounter%RoundInterval == 0)
 	TriggersLeft int `yaml:"triggersleft,omitempty"` // How many times it triggers

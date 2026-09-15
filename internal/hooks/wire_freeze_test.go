@@ -56,10 +56,10 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 		room := rooms.LoadRoom(1)
 
 		spell := &spells.SpellData{
-			SpellId:      "test-wire-freeze-buff-mob",
+			SpellId:      "test-wire-freeze-condition-mob",
 			Name:         "Test Ward",
 			Type:         spells.HelpSingle,
-			EffectType:   "buff",
+			EffectType:   "condition",
 			ConditionIds: []int{100},
 		}
 
@@ -67,7 +67,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 
 		queued := events.DrainQueuedConditionsForTest(0)
 		require.Len(t, queued, 1,
-			"a player's effect_type: buff spell landing on a mob must queue exactly one buff (spell_resolution.go's applyMobEffect case \"buff\")")
+			"a player's effect_type: condition spell landing on a mob must queue exactly one condition (spell_resolution.go's applyMobEffect case \"condition\")")
 		assert.Equal(t, 100, queued[0].ConditionId)
 		assert.Equal(t, mob.InstanceId, queued[0].MobInstanceId)
 	})
@@ -89,10 +89,10 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 		room := rooms.LoadRoom(1)
 
 		spell := &spells.SpellData{
-			SpellId:      "test-wire-freeze-buff-self",
+			SpellId:      "test-wire-freeze-condition-self",
 			Name:         "Test Fortify",
 			Type:         spells.HelpSingle,
-			EffectType:   "buff",
+			EffectType:   "condition",
 			ConditionIds: []int{100},
 		}
 
@@ -100,7 +100,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 
 		queued := events.DrainQueuedConditionsForTest(0)
 		require.Len(t, queued, 1,
-			"a player self-casting an effect_type: buff spell must queue exactly one buff (spell_resolution.go's applyPlayerEffect case \"buff\")")
+			"a player self-casting an effect_type: condition spell must queue exactly one condition (spell_resolution.go's applyPlayerEffect case \"condition\")")
 		assert.Equal(t, 100, queued[0].ConditionId)
 		assert.Equal(t, u.UserId, queued[0].UserId)
 	})
@@ -116,9 +116,9 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 		room := rooms.LoadRoom(1)
 
 		spell := &spells.SpellData{
-			SpellId:      "test-wire-freeze-buff-mobself",
+			SpellId:      "test-wire-freeze-condition-mobself",
 			Name:         "Test Rally Cry",
-			EffectType:   "buff",
+			EffectType:   "condition",
 			ConditionIds: []int{100},
 		}
 
@@ -126,7 +126,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 
 		queued := events.DrainQueuedConditionsForTest(0)
 		require.Len(t, queued, 1,
-			"a mob self-casting an effect_type: buff spell must queue exactly one buff (spell_resolution.go's applyMobSelfEffect case \"buff\")")
+			"a mob self-casting an effect_type: condition spell must queue exactly one condition (spell_resolution.go's applyMobSelfEffect case \"condition\")")
 		assert.Equal(t, 100, queued[0].ConditionId)
 		assert.Equal(t, mob.InstanceId, queued[0].MobInstanceId)
 	})
@@ -148,10 +148,10 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 		room := rooms.LoadRoom(1)
 
 		spell := &spells.SpellData{
-			SpellId:      "test-wire-freeze-buff-mobcast",
+			SpellId:      "test-wire-freeze-condition-mobcast",
 			Name:         "Test Hex Ward",
 			Type:         spells.HelpSingle,
-			EffectType:   "buff",
+			EffectType:   "condition",
 			ConditionIds: []int{100},
 		}
 
@@ -159,7 +159,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 
 		queued := events.DrainQueuedConditionsForTest(0)
 		require.Len(t, queued, 1,
-			"a mob's effect_type: buff spell landing on a player must queue exactly one buff (spell_resolution.go's resolveMobSpellAgainstPlayer case \"buff\")")
+			"a mob's effect_type: condition spell landing on a player must queue exactly one condition (spell_resolution.go's resolveMobSpellAgainstPlayer case \"condition\")")
 		assert.Equal(t, 100, queued[0].ConditionId)
 		assert.Equal(t, target.UserId, queued[0].UserId)
 	})

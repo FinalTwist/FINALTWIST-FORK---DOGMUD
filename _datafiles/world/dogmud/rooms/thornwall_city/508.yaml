@@ -26,7 +26,7 @@ exits:
     lock:
       difficulty: 30
       relockinterval: 15 real minutes
-      trapbuffids: [39, 40]
+      trapconditionids: [39, 40]
 spawninfo:
   - mobid: 272
     respawnrate: 30 real minutes

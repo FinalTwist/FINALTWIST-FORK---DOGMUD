@@ -33,7 +33,7 @@ type oldQuestReward struct {
 	QuestId       string // binds "questid"
 	Gold          int
 	ItemId        int // binds "itemid"
-	ConditionId   int `yaml:"buffid"` // slice 2 rename would otherwise silently rebind this tag-less field to "conditionid"; the tag pins the old "buffid" key so this frozen historical copy keeps parsing what it always parsed.
+	ConditionId   int `yaml:"conditionid"` // slice 2 rename would otherwise silently rebind this tag-less field to "conditionid"; the tag pins the old "buffid" key so this frozen historical copy keeps parsing what it always parsed.
 	SkillInfo     string
 	StatInfo      string `yaml:"stat_info,omitempty"`
 	RecipeInfo    string `yaml:"recipe_info,omitempty"`
@@ -94,7 +94,7 @@ type oldEngineStep struct {
 type oldEngineRewards struct {
 	Gold          int    `yaml:"gold,omitempty"`
 	ItemId        int    `yaml:"item_id,omitempty"`
-	ConditionId   int    `yaml:"buff_id,omitempty"`
+	ConditionId   int    `yaml:"condition_id,omitempty"`
 	SpellId       string `yaml:"spell_id,omitempty"`
 	SkillInfo     string `yaml:"skill_info,omitempty"`
 	StatInfo      string `yaml:"stat_info,omitempty"`
@@ -148,7 +148,7 @@ type oldActionDef struct {
 	TrainSkill     *oldSkillDef         `yaml:"train_skill,omitempty"`
 	TrainStat      *oldStatDef          `yaml:"train_stat,omitempty"`
 	LearnRecipe    *oldRecipeDef        `yaml:"learn_recipe,omitempty"`
-	ApplyCondition *oldConditionDef     `yaml:"apply_buff,omitempty"`
+	ApplyCondition *oldConditionDef     `yaml:"apply_condition,omitempty"`
 	Teleport       int                  `yaml:"teleport,omitempty"`
 	GiveMutation   bool                 `yaml:"give_mutation,omitempty"`
 	SetFlag        *oldQuestFlagAction  `yaml:"set_flag,omitempty"`
@@ -221,7 +221,7 @@ type oldRecipeDef struct {
 }
 
 type oldConditionDef struct {
-	Condition int    `yaml:"buff"`
+	Condition int    `yaml:"condition"`
 	Source    string `yaml:"source,omitempty"`
 }
 

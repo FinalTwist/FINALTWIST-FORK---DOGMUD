@@ -82,10 +82,10 @@ func TestApply_Idempotent(t *testing.T) {
 	assert.Equal(t, once, Apply(once))
 }
 
-func TestHasBuff(t *testing.T) {
-	assert.True(t, HasBuff("buffid: 3"))
-	assert.True(t, HasBuff("a Debuff"))
-	assert.False(t, HasBuff("bytes.Buffer and a buffet and Buffalo"))
-	assert.False(t, HasBuff(Apply("buffid: 3 permabuff melee_self_buff")))
-	assert.False(t, HasBuff("bufbufferf"), "a protected word must not splice its neighbours into a match")
+func TestContainsOldSpelling(t *testing.T) {
+	assert.True(t, ContainsOldSpelling("buffid: 3"))
+	assert.True(t, ContainsOldSpelling("a Debuff"))
+	assert.False(t, ContainsOldSpelling("bytes.Buffer and a buffet and Buffalo"))
+	assert.False(t, ContainsOldSpelling(Apply("buffid: 3 permabuff melee_self_buff")))
+	assert.False(t, ContainsOldSpelling("bufbufferf"), "a protected word must not splice its neighbours into a match")
 }

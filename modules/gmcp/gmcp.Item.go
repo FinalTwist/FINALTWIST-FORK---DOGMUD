@@ -81,7 +81,7 @@ type itemUpdateReq struct {
 	BlockRating          int     `json:"blockRating"`
 	EscapeModifier       float64 `json:"escapeModifier"`
 	// consumable
-	ConditionIds          []int   `json:"buffIds"`
+	ConditionIds          []int   `json:"conditionIds"`
 	Toxicity              int     `json:"toxicity"`
 	FermentRounds         int     `json:"fermentRounds"`
 	PeakRounds            int     `json:"peakRounds"`
@@ -110,7 +110,7 @@ type itemUpdateReq struct {
 	MutationTickInterval int       `json:"mutationTickInterval"`
 	MutationTickChance   int       `json:"mutationTickChance"`
 	MutationRarityFloor  int       `json:"mutationRarityFloor"`
-	WornConditionIds     []int     `json:"wornBuffIds"`
+	WornConditionIds     []int     `json:"wornConditionIds"`
 }
 
 // ---- server -> client detail (Build.Item) ----

@@ -222,9 +222,9 @@ func (c Category) String() string {
 	case CategoryEquipment:
 		return "equipment"
 	case CategoryConditionApply:
-		return "buff-apply"
+		return "condition-apply"
 	case CategoryConditionExpire:
-		return "buff-expire"
+		return "condition-expire"
 	case CategoryMutation:
 		return "mutation"
 	case CategoryToxin:

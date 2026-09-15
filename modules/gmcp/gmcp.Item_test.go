@@ -108,7 +108,7 @@ func TestBuildItemUpdate_RoundTripsAdvancedFields(t *testing.T) {
 		t.Errorf("advanced scalars not round-tripped: %+v", got)
 	}
 	if len(got.WornConditionIds) != 2 || got.WornConditionIds[0] != 7 {
-		t.Errorf("worn buffs not round-tripped: %+v", got.WornConditionIds)
+		t.Errorf("worn conditions not round-tripped: %+v", got.WornConditionIds)
 	}
 }
 

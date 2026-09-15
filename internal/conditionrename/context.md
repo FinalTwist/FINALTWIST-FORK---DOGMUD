@@ -9,8 +9,8 @@ The single spelling map for conditions unification slice 3
   `aura_enemy_condition`, `permabuff` → `permanent`, `debuff` → `harmful
   condition`) and protected words that are left alone (`buffer`, `buffet`,
   `buffed`, `rebuff`, `Buffalo`). Idempotent.
-- `HasBuff(s string) bool` reports a remaining buff spelling outside the
-  protected words. The root guard uses it.
+- `ContainsOldSpelling(s string) bool` reports a remaining old buff spelling
+  outside the protected words. The root guard uses it.
 
 Readers: `internal/migration/0.17.0.go` (new save key names), the root guard
 `identifier_word_guard_test.go`. Do not add a second list of old spellings

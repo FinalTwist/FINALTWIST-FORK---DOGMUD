@@ -627,7 +627,7 @@ func GetOnHitConditions(owned map[string]int) []int {
 			continue
 		}
 		for _, p := range spec.Pros {
-			if p.Type == "on_hit_buff" && p.Value > 0 {
+			if p.Type == "on_hit_condition" && p.Value > 0 {
 				out = append(out, int(p.Value))
 			}
 		}
@@ -648,7 +648,7 @@ func GetReflectRiderConditions(owned map[string]int) []int {
 			continue
 		}
 		for _, p := range spec.Pros {
-			if p.Type == "on_reflect_buff" && p.Value > 0 {
+			if p.Type == "on_reflect_condition" && p.Value > 0 {
 				out = append(out, int(p.Value))
 			}
 		}

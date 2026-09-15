@@ -10,7 +10,7 @@ stats:
     base: 4
 damage:
   diceroll: 1d4
-  critbuffids:
+  critconditionids:
   - 13
 disabledslots: ['weapon', 'offhand', 'belt', 'gloves', 'ring']
 

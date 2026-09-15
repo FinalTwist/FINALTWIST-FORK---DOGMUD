@@ -55,7 +55,7 @@ type ActionDef struct {
 	TrainSkill           *SkillDef           `yaml:"train_skill,omitempty" json:"train_skill,omitempty"`
 	TrainStat            *StatDef            `yaml:"train_stat,omitempty" json:"train_stat,omitempty"`
 	LearnRecipe          *RecipeDef          `yaml:"learn_recipe,omitempty" json:"learn_recipe,omitempty"`
-	ApplyStatusCondition *StatusConditionDef `yaml:"apply_buff,omitempty" json:"apply_buff,omitempty"`
+	ApplyStatusCondition *StatusConditionDef `yaml:"apply_condition,omitempty" json:"apply_condition,omitempty"`
 	Teleport             int                 `yaml:"teleport,omitempty" json:"teleport,omitempty"`
 	GiveMutation         bool                `yaml:"give_mutation,omitempty" json:"give_mutation,omitempty"` // roll and grant a random mutation
 	SetFlag              *QuestFlagAction    `yaml:"set_flag,omitempty" json:"set_flag,omitempty"`
@@ -136,7 +136,7 @@ type RecipeDef struct {
 }
 
 type StatusConditionDef struct {
-	Condition int    `yaml:"buff" json:"buff"`
+	Condition int    `yaml:"condition" json:"condition"`
 	Source    string `yaml:"source,omitempty" json:"source,omitempty"`
 }
 

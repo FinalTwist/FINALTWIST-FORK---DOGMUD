@@ -13,6 +13,6 @@ mutatorid: training-combat
 #decayintoid: another-alert-id
 #respawnrate: noon
 #decayrate: sunset
-playerbuffids: [32] # Extra Attentive
-#mobbuffids: []
-#nativebuffids: []
+playerconditionids: [32] # Extra Attentive
+#mobconditionids: []
+#nativeconditionids: []

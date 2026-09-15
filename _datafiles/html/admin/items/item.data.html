@@ -182,16 +182,16 @@
     <h3 data-applies-to-types="weapon">Conditions Applied on Crit</h3>
 
     <div class="form-group row form-check container-fluid" data-applies-to-types="weapon">
-        {{ $buffIds := .itemSpec.Damage.CritConditionIds }}
-        {{range $i, $buffSpec := .conditionSpecs}}
-            <label class="form-check-label col-md-2" for="critbuffids-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
+        {{ $conditionIds := .itemSpec.Damage.CritConditionIds }}
+        {{range $i, $conditionSpec := .conditionSpecs}}
+            <label class="form-check-label col-md-2" for="critconditionids-{{$conditionSpec.ConditionId}}" title="{{ $conditionSpec.Description }}"><input
             class="form-check-input"
             type="checkbox"
-            name="critbuffids[]"
-            id="critbuffids-{{$buffSpec.ConditionId}}"
-            value="{{ $buffSpec.ConditionId }}"
-            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
-            {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
+            name="critconditionids[]"
+            id="critconditionids-{{$conditionSpec.ConditionId}}"
+            value="{{ $conditionSpec.ConditionId }}"
+            {{range $j, $conditionId := $conditionIds}}{{if eq $conditionId $conditionSpec.ConditionId}}CHECKED{{end}}{{end}}>
+            {{ $conditionSpec.ConditionId }}. {{ $conditionSpec.Name }}</label>
         {{end}}
     </div>
 
@@ -199,16 +199,16 @@
     <h3 data-applies-to-types="edible drinkable usable">Conditions Applied on eat/drink/use</h3>
 
     <div class="form-group row form-check container-fluid" data-applies-to-types="edible drinkable usable">
-        {{ $buffIds := .itemSpec.ConditionIds }}
-        {{range $i, $buffSpec := .conditionSpecs}}
-            <label class="form-check-label col-md-2" for="buff-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
+        {{ $conditionIds := .itemSpec.ConditionIds }}
+        {{range $i, $conditionSpec := .conditionSpecs}}
+            <label class="form-check-label col-md-2" for="condition-{{$conditionSpec.ConditionId}}" title="{{ $conditionSpec.Description }}"><input
             class="form-check-input"
             type="checkbox"
-            name="buffids[]"
-            id="buff-{{$buffSpec.ConditionId}}"
-            value="{{ $buffSpec.ConditionId }}"
-            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
-            {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
+            name="conditionids[]"
+            id="condition-{{$conditionSpec.ConditionId}}"
+            value="{{ $conditionSpec.ConditionId }}"
+            {{range $j, $conditionId := $conditionIds}}{{if eq $conditionId $conditionSpec.ConditionId}}CHECKED{{end}}{{end}}>
+            {{ $conditionSpec.ConditionId }}. {{ $conditionSpec.Name }}</label>
         {{end}}
     </div>
 
@@ -216,16 +216,16 @@
     <h3 data-applies-to-types="weapon wearable">Conditions Applied While Worn</h3>
 
     <div class="form-group row form-check container-fluid" data-applies-to-types="weapon wearable">
-        {{ $buffIds := .itemSpec.WornConditionIds }}
-        {{range $i, $buffSpec := .conditionSpecs}}
-            <label class="form-check-label col-md-2" for="worn-buff-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
+        {{ $conditionIds := .itemSpec.WornConditionIds }}
+        {{range $i, $conditionSpec := .conditionSpecs}}
+            <label class="form-check-label col-md-2" for="worn-condition-{{$conditionSpec.ConditionId}}" title="{{ $conditionSpec.Description }}"><input
             class="form-check-input"
             type="checkbox"
-            name="wornbuffids[]"
-            id="worn-buff-{{$buffSpec.ConditionId}}"
-            value="{{ $buffSpec.ConditionId }}"
-            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
-            {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
+            name="wornconditionids[]"
+            id="worn-condition-{{$conditionSpec.ConditionId}}"
+            value="{{ $conditionSpec.ConditionId }}"
+            {{range $j, $conditionId := $conditionIds}}{{if eq $conditionId $conditionSpec.ConditionId}}CHECKED{{end}}{{end}}>
+            {{ $conditionSpec.ConditionId }}. {{ $conditionSpec.Name }}</label>
         {{end}}
     </div>
 

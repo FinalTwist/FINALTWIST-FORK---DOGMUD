@@ -105,7 +105,7 @@ func TestTrack_NoArgEmptyRoom(t *testing.T) {
 		t.Error("Visitors should be a non-nil slice, not nil")
 	}
 	if result.ConditionApplied {
-		t.Error("BuffApplied should be false on trail-scan mode")
+		t.Error("ConditionApplied should be false on trail-scan mode")
 	}
 }
 
@@ -118,7 +118,7 @@ func TestTrack_ActiveTrackMobNoMatchFails(t *testing.T) {
 	result := Track(actor, TrackOptions{TargetNoun: "nonexistent_target"})
 
 	if result.ConditionApplied {
-		t.Error("BuffApplied should be false when target unresolved")
+		t.Error("ConditionApplied should be false when target unresolved")
 	}
 	if result.ActiveTargetUserId != 0 || result.ActiveTargetMobInstId != 0 {
 		t.Error("ActiveTarget* should be 0 when target unresolved")
@@ -149,7 +149,7 @@ func TestTrack_CancelTracking(t *testing.T) {
 	result := Track(actor, TrackOptions{CancelTracking: true})
 
 	if result.ConditionApplied {
-		t.Error("BuffApplied should be false on cancel path")
+		t.Error("ConditionApplied should be false on cancel path")
 	}
 	// Player actor should receive the stop message.
 	found := false

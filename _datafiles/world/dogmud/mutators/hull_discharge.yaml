@@ -2,4 +2,4 @@ mutatorid: hull_discharge
 descriptionmodifier:
   behavior: append
   text: The air just above the buried surface crawls and stings, and something in the ground bites up through anyone who lingers here.
-playerbuffids: [94]
+playerconditionids: [94]

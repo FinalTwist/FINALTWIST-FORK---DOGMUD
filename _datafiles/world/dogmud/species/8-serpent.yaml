@@ -6,7 +6,7 @@ description: A legless predator that strikes with blinding speed. Serpents
 body_parts: [eyes, mouth, skin]
 intrinsic_mutations:
   venom-glands: 1
-buffids:
+conditionids:
   - 29 # Night Vision
 size: small
 unarmedname: fangs
@@ -32,7 +32,7 @@ stats:
 damage:
   basedamage: 4
   variance: 2
-  critbuffids:
+  critconditionids:
     - 39 # Venom
 damage_multiplier: 0.50
 disabledslots: ['weapon', 'offhand', 'head', 'neck', 'belt', 'gloves', 'ring', 'legs', 'feet']

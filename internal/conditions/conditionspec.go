@@ -160,7 +160,7 @@ var (
 )
 
 type ConditionSpec struct {
-	ConditionId   int               `yaml:"buffid"` // Unique identifier for this condition spec. The tag pins the file key through the slice 2 rename.
+	ConditionId   int               `yaml:"conditionid"` // Unique identifier for this condition spec. The tag pins the file key through the slice 2 rename.
 	Name          string            // The name of the condition
 	Description   string            // A description of the condition
 	Secret        bool              // Whether or not the condition is secret (not displayed to the user)
@@ -185,11 +185,11 @@ type ConditionSpec struct {
 	EndRoomText     string `yaml:"end_room_text,omitempty"`
 
 	// Config-driven tick fields — replaces JS onTrigger for heal/DoT conditions
-	TickPool              string  `yaml:"tick_pool,omitempty"`          // "health", "stamina", "conviction"
-	TickPercent           float64 `yaml:"tick_percent,omitempty"`       // Base % of max pool. Positive=heal, negative=damage
-	TickVariance          float64 `yaml:"tick_variance,omitempty"`      // Random variance added to percent
-	TickMin               int     `yaml:"tick_min,omitempty"`           // Minimum absolute tick amount (default 1)
-	StartRemoveConditions []int   `yaml:"start_remove_buffs,omitempty"` // Condition IDs to remove when this condition starts
+	TickPool              string  `yaml:"tick_pool,omitempty"`               // "health", "stamina", "conviction"
+	TickPercent           float64 `yaml:"tick_percent,omitempty"`            // Base % of max pool. Positive=heal, negative=damage
+	TickVariance          float64 `yaml:"tick_variance,omitempty"`           // Random variance added to percent
+	TickMin               int     `yaml:"tick_min,omitempty"`                // Minimum absolute tick amount (default 1)
+	StartRemoveConditions []int   `yaml:"start_remove_conditions,omitempty"` // Condition IDs to remove when this condition starts
 
 	// Effects is the closed mechanical vocabulary combat reads through
 	// Conditions.Effect. See effects.go. A value is a number or the word
@@ -400,7 +400,7 @@ func LoadDataFiles() {
 
 	start := time.Now()
 
-	dataPath := string(configs.GetFilePathsConfig().DataFiles) + `/buffs`
+	dataPath := string(configs.GetFilePathsConfig().DataFiles) + `/conditions`
 	tmpConditions, err := fileloader.LoadAllFlatFiles[int, *ConditionSpec](dataPath)
 	if err != nil {
 		panic(errors.Wrap(err, `filepath: `+dataPath))

@@ -10,7 +10,7 @@ func GetAllyAuraConditions(owned map[string]int) []int {
 			continue
 		}
 		for _, p := range spec.Pros {
-			if p.Type == "aura_ally_buff" && p.Value > 0 {
+			if p.Type == "aura_ally_condition" && p.Value > 0 {
 				out = append(out, int(p.Value))
 			}
 		}
@@ -28,7 +28,7 @@ func GetEnemyAuraConditions(owned map[string]int) []int {
 			continue
 		}
 		for _, p := range spec.Pros {
-			if p.Type == "aura_enemy_debuff" && p.Value > 0 {
+			if p.Type == "aura_enemy_condition" && p.Value > 0 {
 				out = append(out, int(p.Value))
 			}
 		}

@@ -20,7 +20,7 @@ maxwander: -1
 activitylevel: 15
 charm_immune: true
 fold_anchor_room: 465
-buffids: []
+conditionids: []
 idlecommands:
   - 'emote restrings his bow with quick, practiced motions'
   - ''

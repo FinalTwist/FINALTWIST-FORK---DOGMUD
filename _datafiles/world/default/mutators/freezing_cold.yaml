@@ -13,6 +13,6 @@ descriptionmodifier:
 #decayintoid: another-alert-id
 #respawnrate: midnight
 #decayrate: sunrise
-playerbuffids: [31] # Freezing
-#mobbuffids: []
-#nativebuffids: []
+playerconditionids: [31] # Freezing
+#mobconditionids: []
+#nativeconditionids: []

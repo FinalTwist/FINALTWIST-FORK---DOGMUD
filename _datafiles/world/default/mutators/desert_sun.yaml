@@ -13,6 +13,6 @@ descriptionmodifier:
 #decayintoid: another-alert-id
 respawnrate: noon
 decayrate: sunset
-playerbuffids: [33] # Thirsty
-#mobbuffids: []
-#nativebuffids: []
+playerconditionids: [33] # Thirsty
+#mobconditionids: []
+#nativeconditionids: []

@@ -8,5 +8,5 @@ rarity: 5
 clusters: [weaver]
 visual: A faint, teeth-itching hum surrounds them, felt more than heard.
 pros:
-  - type: aura_enemy_debuff
+  - type: aura_enemy_condition
     value: 102

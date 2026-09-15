@@ -11,7 +11,7 @@ description: |
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 44
 value: 4
 rarity_tier: 50

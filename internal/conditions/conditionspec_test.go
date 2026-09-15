@@ -108,8 +108,8 @@ func TestGetConditionSpec(t *testing.T) {
 
 	// Setup test conditions
 	conditions = map[int]*ConditionSpec{
-		1: {ConditionId: 1, Name: "Test Buff 1"},
-		2: {ConditionId: 2, Name: "Test Buff 2"},
+		1: {ConditionId: 1, Name: "Test Condition 1"},
+		2: {ConditionId: 2, Name: "Test Condition 2"},
 	}
 
 	tests := []struct {
@@ -119,25 +119,25 @@ func TestGetConditionSpec(t *testing.T) {
 		wantFound     bool
 	}{
 		{
-			name:          "Existing positive buffId",
+			name:          "Existing positive conditionId",
 			inputId:       1,
-			wantCondition: &ConditionSpec{ConditionId: 1, Name: "Test Buff 1"},
+			wantCondition: &ConditionSpec{ConditionId: 1, Name: "Test Condition 1"},
 			wantFound:     true,
 		},
 		{
-			name:          "Existing negative buffId (should convert to positive)",
+			name:          "Existing negative conditionId (should convert to positive)",
 			inputId:       -2,
-			wantCondition: &ConditionSpec{ConditionId: 2, Name: "Test Buff 2"},
+			wantCondition: &ConditionSpec{ConditionId: 2, Name: "Test Condition 2"},
 			wantFound:     true,
 		},
 		{
-			name:          "Non-existing buffId",
+			name:          "Non-existing conditionId",
 			inputId:       99,
 			wantCondition: nil,
 			wantFound:     false,
 		},
 		{
-			name:          "Non-existing negative buffId",
+			name:          "Non-existing negative conditionId",
 			inputId:       -99,
 			wantCondition: nil,
 			wantFound:     false,
@@ -167,32 +167,32 @@ func TestGetAllConditionIds(t *testing.T) {
 		wantIds         []int
 	}{
 		{
-			name:            "No buffs",
+			name:            "No conditions",
 			setupConditions: map[int]*ConditionSpec{},
 			wantIds:         []int{},
 		},
 		{
-			name: "Single buff",
+			name: "Single condition",
 			setupConditions: map[int]*ConditionSpec{
-				10: {ConditionId: 10, Name: "Solo Buff"},
+				10: {ConditionId: 10, Name: "Solo Condition"},
 			},
 			wantIds: []int{10},
 		},
 		{
-			name: "Multiple buffs",
+			name: "Multiple conditions",
 			setupConditions: map[int]*ConditionSpec{
-				1: {ConditionId: 1, Name: "Buff One"},
-				2: {ConditionId: 2, Name: "Buff Two"},
-				3: {ConditionId: 3, Name: "Buff Three"},
+				1: {ConditionId: 1, Name: "Condition One"},
+				2: {ConditionId: 2, Name: "Condition Two"},
+				3: {ConditionId: 3, Name: "Condition Three"},
 			},
 			wantIds: []int{1, 2, 3},
 		},
 		{
-			name: "Buffs with non-sequential IDs",
+			name: "Conditions with non-sequential IDs",
 			setupConditions: map[int]*ConditionSpec{
-				100: {ConditionId: 100, Name: "Buff 100"},
-				5:   {ConditionId: 5, Name: "Buff 5"},
-				42:  {ConditionId: 42, Name: "Buff 42"},
+				100: {ConditionId: 100, Name: "Condition 100"},
+				5:   {ConditionId: 5, Name: "Condition 5"},
+				42:  {ConditionId: 42, Name: "Condition 42"},
 			},
 			wantIds: []int{100, 5, 42},
 		},
@@ -239,12 +239,12 @@ func TestSearchConditions(t *testing.T) {
 			wantIds:    []int{2},
 		},
 		{
-			name:       "Match multiple buffs by description",
+			name:       "Match multiple conditions by description",
 			searchTerm: "see",
 			wantIds:    []int{3},
 		},
 		{
-			name:       "Match multiple buffs by name",
+			name:       "Match multiple conditions by name",
 			searchTerm: "hid",
 			wantIds:    []int{4},
 		},
@@ -259,7 +259,7 @@ func TestSearchConditions(t *testing.T) {
 			wantIds:    []int{3},
 		},
 		{
-			name:       "Empty search term returns all buffs",
+			name:       "Empty search term returns all conditions",
 			searchTerm: "",
 			wantIds:    []int{1, 2, 3, 4, 5},
 		},
@@ -279,17 +279,17 @@ func TestConditionSpec_Id(t *testing.T) {
 		wantId int
 	}{
 		{
-			name:   "Positive BuffId",
+			name:   "Positive ConditionId",
 			spec:   ConditionSpec{ConditionId: 42},
 			wantId: 42,
 		},
 		{
-			name:   "Zero BuffId",
+			name:   "Zero ConditionId",
 			spec:   ConditionSpec{ConditionId: 0},
 			wantId: 0,
 		},
 		{
-			name:   "Negative BuffId",
+			name:   "Negative ConditionId",
 			spec:   ConditionSpec{ConditionId: -7},
 			wantId: -7,
 		},
@@ -325,8 +325,8 @@ func TestConditionSpec_Filename(t *testing.T) {
 		},
 		{
 			name:     "Name with underscores and dashes",
-			spec:     ConditionSpec{ConditionId: 100, Name: "Hydrated_buff-test"},
-			expected: "100-hydrated_buff_test.yaml",
+			spec:     ConditionSpec{ConditionId: 100, Name: "Hydrated_condition-test"},
+			expected: "100-hydrated_condition_test.yaml",
 		},
 		{
 			name:     "Empty name",
@@ -335,13 +335,13 @@ func TestConditionSpec_Filename(t *testing.T) {
 		},
 		{
 			name:     "Name with leading/trailing spaces",
-			spec:     ConditionSpec{ConditionId: 8, Name: "  Hidden Buff  "},
-			expected: "8-__hidden_buff__.yaml",
+			spec:     ConditionSpec{ConditionId: 8, Name: "  Hidden Condition  "},
+			expected: "8-__hidden_condition__.yaml",
 		},
 		{
 			name:     "Name with multiple spaces",
-			spec:     ConditionSpec{ConditionId: 9, Name: "Buff    With   Spaces"},
-			expected: "9-buff____with___spaces.yaml",
+			spec:     ConditionSpec{ConditionId: 9, Name: "Condition    With   Spaces"},
+			expected: "9-condition____with___spaces.yaml",
 		},
 	}
 
@@ -375,8 +375,8 @@ func TestConditionSpec_Filepath(t *testing.T) {
 		},
 		{
 			name:     "Name with underscores and dashes",
-			spec:     ConditionSpec{ConditionId: 100, Name: "Hydrated_buff-test"},
-			expected: "100-hydrated_buff_test.yaml",
+			spec:     ConditionSpec{ConditionId: 100, Name: "Hydrated_condition-test"},
+			expected: "100-hydrated_condition_test.yaml",
 		},
 		{
 			name:     "Empty name",
@@ -385,13 +385,13 @@ func TestConditionSpec_Filepath(t *testing.T) {
 		},
 		{
 			name:     "Name with leading/trailing spaces",
-			spec:     ConditionSpec{ConditionId: 8, Name: "  Hidden Buff  "},
-			expected: "8-__hidden_buff__.yaml",
+			spec:     ConditionSpec{ConditionId: 8, Name: "  Hidden Condition  "},
+			expected: "8-__hidden_condition__.yaml",
 		},
 		{
 			name:     "Name with multiple spaces",
-			spec:     ConditionSpec{ConditionId: 9, Name: "Buff    With   Spaces"},
-			expected: "9-buff____with___spaces.yaml",
+			spec:     ConditionSpec{ConditionId: 9, Name: "Condition    With   Spaces"},
+			expected: "9-condition____with___spaces.yaml",
 		},
 	}
 

@@ -290,7 +290,7 @@ func ValidateQuestRefs(q Quest, v QuestValidators) (errs []string, warns []strin
 	c.checkToken("rewards questid", q.Rewards.QuestId)
 	c.checkItem("rewards itemid", q.Rewards.ItemId)
 	if q.Rewards.ConditionId > 0 && !c.v.ConditionExists(q.Rewards.ConditionId) {
-		c.errf("rewards buffid: condition %d does not exist", q.Rewards.ConditionId)
+		c.errf("rewards conditionid: condition %d does not exist", q.Rewards.ConditionId)
 	}
 	if q.Rewards.SpellId != "" && !c.v.SpellExists(q.Rewards.SpellId) {
 		c.errf("rewards spellid %q does not exist", q.Rewards.SpellId)

@@ -113,7 +113,7 @@ func TestTemplateFreeze_SpeciesHelpReadsConditionIds(t *testing.T) {
 
 	out, err := templates.Process("help/species", []species.Species{{Name: "Probe", ConditionIds: []int{942}}}, 0)
 	require.NoError(t, err)
-	assert.Contains(t, out, "Probe Hide", "species help reads $speciesInfo.BuffIds")
+	assert.Contains(t, out, "Probe Hide", "species help reads $speciesInfo.ConditionIds")
 }
 
 // TestWireFreeze_SpellCategoryStillGroupsConditionEffectType pins spells.go:32's
@@ -129,7 +129,7 @@ func TestTemplateFreeze_SpeciesHelpReadsConditionIds(t *testing.T) {
 // spells.Neutral` branch below and returns 0 instead — a real, visible
 // change to where the spell lists in the `spells` command.
 func TestWireFreeze_SpellCategoryStillGroupsConditionEffectType(t *testing.T) {
-	got := spellCategory(&spells.SpellData{EffectType: "buff", Type: spells.Neutral})
+	got := spellCategory(&spells.SpellData{EffectType: "condition", Type: spells.Neutral})
 	assert.Equal(t, 2, got,
-		"an effect_type: buff spell must still sort into the buff/shield/purge display category (usercommands/spells.go's spellCategory)")
+		"an effect_type: condition spell must still sort into the condition/shield/purge display category (usercommands/spells.go's spellCategory)")
 }

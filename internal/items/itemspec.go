@@ -220,14 +220,14 @@ const (
 )
 
 type Damage struct {
-	Attacks          int    `yaml:"attacks,omitempty"`     // How many attacks this weapon gets (usually 1)
-	DiceRoll         string `yaml:"diceroll,omitempty"`    // legacy: 1d6, etc.
-	CritConditionIds []int  `yaml:"critbuffids,omitempty"` // If this damage is a crit, what conditions does it apply?
-	DiceCount        int    `yaml:"dicecount,omitempty"`   // how many dice to roll for this weapons damage
-	SideCount        int    `yaml:"sidecount,omitempty"`   // how many sides per dice roll
-	BonusDamage      int    `yaml:"bonusdamage,omitempty"` // flat damage bonus, so for example 1d6+1
-	BaseDamage       int    `yaml:"basedamage,omitempty"`  // distribution mode: mean damage
-	Variance         int    `yaml:"variance,omitempty"`    // distribution mode: standard deviation
+	Attacks          int    `yaml:"attacks,omitempty"`          // How many attacks this weapon gets (usually 1)
+	DiceRoll         string `yaml:"diceroll,omitempty"`         // legacy: 1d6, etc.
+	CritConditionIds []int  `yaml:"critconditionids,omitempty"` // If this damage is a crit, what conditions does it apply?
+	DiceCount        int    `yaml:"dicecount,omitempty"`        // how many dice to roll for this weapons damage
+	SideCount        int    `yaml:"sidecount,omitempty"`        // how many sides per dice roll
+	BonusDamage      int    `yaml:"bonusdamage,omitempty"`      // flat damage bonus, so for example 1d6+1
+	BaseDamage       int    `yaml:"basedamage,omitempty"`       // distribution mode: mean damage
+	Variance         int    `yaml:"variance,omitempty"`         // distribution mode: standard deviation
 }
 
 type ItemMessage string
@@ -259,9 +259,9 @@ var validProcEffects = map[string]bool{
 type ItemSpec struct {
 	ItemId           int
 	Value            int
-	Uses             int   `yaml:"uses,omitempty"`        // How many uses it starts with
-	ConditionIds     []int `yaml:"buffids,omitempty"`     // What conditions it can apply (if used)
-	WornConditionIds []int `yaml:"wornbuffids,omitempty"` // ConditionId's that are applied while worn, and expired when removed.
+	Uses             int   `yaml:"uses,omitempty"`             // How many uses it starts with
+	ConditionIds     []int `yaml:"conditionids,omitempty"`     // What conditions it can apply (if used)
+	WornConditionIds []int `yaml:"wornconditionids,omitempty"` // ConditionId's that are applied while worn, and expired when removed.
 	// ── Pinnacle Stage 1: procs, reserves, bandolier, mutation drip, hunger, voice ──
 	Procs                 []ItemProc `yaml:"procs,omitempty"`                   // data-driven combat procs
 	ReserveHealthPct      float64    `yaml:"reserve_health_pct,omitempty"`      // 0-1 fraction of HealthMax reserved while equipped

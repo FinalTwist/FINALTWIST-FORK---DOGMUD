@@ -8,7 +8,7 @@ description: A rust-colored brew that smells of iron and
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 57
 value: 15
 rarity_tier: 40

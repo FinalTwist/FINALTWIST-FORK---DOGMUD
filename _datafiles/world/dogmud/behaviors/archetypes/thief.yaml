@@ -12,7 +12,7 @@
 #      The thief gains soft-target awareness of the hidden entity but
 #      takes no visible action — visibly fleeing or calling for help
 #      would betray the detection, contradicting the scout-only-
-#      awareness contract (the target's Hidden buff is preserved, and
+#      awareness contract (the target's Hidden condition is preserved, and
 #      no other observable behavior should leak the detection either).
 #      The thief's other branches govern normal behavior; future ticks
 #      may consume the soft-target via other mechanisms.

@@ -47,7 +47,7 @@ func TestSightedToBlindedOnConditionApplied(t *testing.T) {
 // PE-002 (both use TriggerConditionApplied).
 func TestSightedToBlindedOnFlashbang(t *testing.T) {
 	m := NewMachine()
-	if err := m.TransitionTo(Blinded, state.TransitionReason{Trigger: TriggerConditionApplied, Metadata: map[string]any{"buffId": ConditionIdFlashbangBlindness}}); err != nil {
+	if err := m.TransitionTo(Blinded, state.TransitionReason{Trigger: TriggerConditionApplied, Metadata: map[string]any{"conditionId": ConditionIdFlashbangBlindness}}); err != nil {
 		t.Fatalf("TransitionTo(Blinded): %v", err)
 	}
 	if m.State() != Blinded {
@@ -76,7 +76,7 @@ func TestBlindedToSightedOnConditionExpired(t *testing.T) {
 func TestBlindedToSightedOnFlashbangExpired(t *testing.T) {
 	m := NewMachine()
 	_ = m.TransitionTo(Blinded, state.TransitionReason{Trigger: TriggerConditionApplied})
-	if err := m.TransitionTo(Sighted, state.TransitionReason{Trigger: TriggerConditionExpired, Metadata: map[string]any{"buffId": ConditionIdFlashbangBlindness}}); err != nil {
+	if err := m.TransitionTo(Sighted, state.TransitionReason{Trigger: TriggerConditionExpired, Metadata: map[string]any{"conditionId": ConditionIdFlashbangBlindness}}); err != nil {
 		t.Fatalf("TransitionTo(Sighted): %v", err)
 	}
 	if m.State() != Sighted {

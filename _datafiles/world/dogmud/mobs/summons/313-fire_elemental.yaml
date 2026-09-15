@@ -1,7 +1,7 @@
 mobid: 313
 zone: Summons
 archetype: fighting
-behavior_archetype: melee_self_buff
+behavior_archetype: melee_self_empower
 statpool: 85
 itemdropchance: 0
 hostile: false

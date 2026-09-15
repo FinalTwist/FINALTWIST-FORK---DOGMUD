@@ -31,11 +31,11 @@ import (
 // All matchers confirmed case-insensitive before inclusion (see safety gate
 // in the file header).
 var targets = map[string][]string{
-	`_datafiles/world/dogmud/rooms`:  {"title"},
-	`_datafiles/world/dogmud/buffs`:  {"name"},
-	`_datafiles/world/dogmud/spells`: {"name"},
-	`_datafiles/world/dogmud/mobs`:   {"name"}, // only one name: per mob file (under character:)
-	`_datafiles/world/dogmud/items`:  {"name", "displayname"},
+	`_datafiles/world/dogmud/rooms`:      {"title"},
+	`_datafiles/world/dogmud/conditions`: {"name"},
+	`_datafiles/world/dogmud/spells`:     {"name"},
+	`_datafiles/world/dogmud/mobs`:       {"name"}, // only one name: per mob file (under character:)
+	`_datafiles/world/dogmud/items`:      {"name", "displayname"},
 }
 
 // keyLineRe builds a regex that matches a line with the given YAML key at any

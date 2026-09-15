@@ -11,5 +11,5 @@ damage:
 statmods:
   speed: -10
 cursed: true
-wornbuffids:
+wornconditionids:
   - 1

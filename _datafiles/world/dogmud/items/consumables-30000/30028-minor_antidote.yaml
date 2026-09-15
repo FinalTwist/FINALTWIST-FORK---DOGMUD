@@ -8,7 +8,7 @@ description: A murky draught that smells of bitter herbs and earth. It purges
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 47
 value: 6
 rarity_tier: 50

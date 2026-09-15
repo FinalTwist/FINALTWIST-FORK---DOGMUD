@@ -50,10 +50,10 @@ tree:
     - type: selector
       event: mob_combat_round
       children:
-        # Opening buff: conviction-ward when buff is missing.
+        # Opening condition: conviction-ward when condition is missing.
         # Note: conviction-ward is a shield spell (effect_type: shield)
-        # with no explicit buff_id in its definition. Using cast without
-        # buff check, as the spell manages its own shield tracking.
+        # with no explicit condition_id in its definition. Using cast without
+        # condition check, as the spell manages its own shield tracking.
         - type: action
           do: cast
           spell: conviction-ward

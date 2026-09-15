@@ -5,5 +5,5 @@ description: Imbibable essence of the abyss itself.
 type: potion
 subtype: drinkable
 uses: 3
-buffids: 
+conditionids: 
 - 20

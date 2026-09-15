@@ -77,10 +77,10 @@ func TestProcAoeStun_StunsHostilesSkipsProtected(t *testing.T) {
 	}
 
 	if !hostileA.Character.HasCondition(84) {
-		t.Error("hostile mob 100 should be stunned (buff 84)")
+		t.Error("hostile mob 100 should be stunned (condition 84)")
 	}
 	if !hostileB.Character.HasCondition(84) {
-		t.Error("hostile mob 201 should be stunned (buff 84)")
+		t.Error("hostile mob 201 should be stunned (condition 84)")
 	}
 	if nonCombatant.Character.HasCondition(84) {
 		t.Error("non-combatant mob 202 must NOT be stunned")

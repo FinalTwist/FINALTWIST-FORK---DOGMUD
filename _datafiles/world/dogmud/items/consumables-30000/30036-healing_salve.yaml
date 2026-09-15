@@ -9,7 +9,7 @@ description: A thick paste of healer's root sealed in a
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 54
 value: 5
 rarity_tier: 50

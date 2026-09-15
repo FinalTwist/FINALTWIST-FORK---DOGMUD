@@ -18,7 +18,7 @@ import (
 // was read by nothing at all. LoadDataFiles now panics on one; this fails
 // the merge before it can reach a boot.
 func TestEveryDogmudConditionFlagIsDeclared(t *testing.T) {
-	files, err := filepath.Glob(filepath.Join("_datafiles", "world", "dogmud", "buffs", "*.yaml"))
+	files, err := filepath.Glob(filepath.Join("_datafiles", "world", "dogmud", "conditions", "*.yaml"))
 	if err != nil || len(files) == 0 {
 		t.Fatalf("no condition files: %v", err)
 	}
@@ -30,7 +30,7 @@ func TestEveryDogmudConditionFlagIsDeclared(t *testing.T) {
 			t.Fatal(err)
 		}
 		var b struct {
-			ConditionId int      `yaml:"buffid"`
+			ConditionId int      `yaml:"conditionid"`
 			Name        string   `yaml:"name"`
 			Flags       []string `yaml:"flags"`
 		}

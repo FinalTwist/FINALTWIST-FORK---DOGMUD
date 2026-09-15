@@ -5,7 +5,7 @@ import "testing"
 func TestGetOnHitConditions(t *testing.T) {
 	cleanup := SeedMutationsForTest(map[string]*MutationSpec{
 		"venom-glands": {MutationId: "venom-glands", Name: "Venom Glands", Rarity: 7,
-			Pros: []MutationEffect{{Type: "on_hit_buff", Value: 39}}},
+			Pros: []MutationEffect{{Type: "on_hit_condition", Value: 39}}},
 		"plain": {MutationId: "plain", Name: "Plain", Rarity: 2,
 			Pros: []MutationEffect{{Type: "stat_flat", Target: "strength", Value: 5}}},
 	})
@@ -16,12 +16,12 @@ func TestGetOnHitConditions(t *testing.T) {
 		t.Fatalf("GetOnHitConditions = %v, want [39]", got)
 	}
 	if len(GetOnHitConditions(map[string]int{})) != 0 {
-		t.Fatal("no mutations → no on-hit buffs")
+		t.Fatal("no mutations → no on-hit conditions")
 	}
 }
 
 func TestDescribeEffect_OnHitCondition(t *testing.T) {
-	if DescribeEffect(MutationEffect{Type: "on_hit_buff", Value: 39}) == "" {
-		t.Fatal("on_hit_buff must have a non-empty description")
+	if DescribeEffect(MutationEffect{Type: "on_hit_condition", Value: 39}) == "" {
+		t.Fatal("on_hit_condition must have a non-empty description")
 	}
 }

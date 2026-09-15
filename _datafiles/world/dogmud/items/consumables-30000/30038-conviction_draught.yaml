@@ -8,7 +8,7 @@ description: A bittersweet blend of root and thistle. It
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 56
 value: 8
 rarity_tier: 50

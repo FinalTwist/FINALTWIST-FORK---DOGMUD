@@ -87,7 +87,7 @@ func TestApplyConditions_ConditionQueuedBeforeDeathDoesNotLandAfterRespawn(t *te
 	died := events.DrainQueuedCharacterDiedForTest()
 	require.Len(t, died, 1, "the lethal harm must queue the death")
 	queuedConditions := events.DrainQueuedConditionsForTest(1)
-	require.Len(t, queuedConditions, 1, "the on-hit buff must be queued")
+	require.Len(t, queuedConditions, 1, "the on-hit condition must be queued")
 
 	RouteAttributedDeath(died[0])
 
@@ -100,7 +100,7 @@ func TestApplyConditions_ConditionQueuedBeforeDeathDoesNotLandAfterRespawn(t *te
 
 	assert.Equal(t, events.Continue, ApplyConditions(queuedConditions[0]))
 	assert.False(t, u.Character.HasCondition(rendingAfterDeathConditionId),
-		"a buff aimed at the life that just ended must not land on the respawned player")
+		"a condition aimed at the life that just ended must not land on the respawned player")
 	assert.Equal(t, 0, countContaining(drainPlain(1), "Your wounds tear open."),
 		"and the respawned player must not be told it took hold")
 
@@ -112,7 +112,7 @@ func TestApplyConditions_ConditionQueuedBeforeDeathDoesNotLandAfterRespawn(t *te
 	require.Len(t, fresh, 1)
 	assert.Equal(t, events.Continue, ApplyConditions(fresh[0]))
 	assert.True(t, u.Character.HasCondition(rendingAfterDeathConditionId),
-		"a buff queued after the respawn must still apply")
+		"a condition queued after the respawn must still apply")
 }
 
 // Control: the same producer and listener, with no death in between, applies
@@ -153,5 +153,5 @@ func TestApplyConditions_ConditionQueuedBeforeAReviveStillApplies(t *testing.T) 
 
 	assert.Equal(t, events.Continue, ApplyConditions(queuedConditions[0]))
 	assert.True(t, u.Character.HasCondition(rendingAfterDeathConditionId),
-		"the revived character never died, so the blow's buff still lands")
+		"the revived character never died, so the blow's condition still lands")
 }

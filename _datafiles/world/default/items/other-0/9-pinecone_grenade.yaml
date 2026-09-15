@@ -5,5 +5,5 @@ description: Throw this to cause a stir!
 type: grenade
 subtype: throwable
 value: 500
-buffids: 
+conditionids: 
 - 21

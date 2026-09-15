@@ -28,7 +28,7 @@ func TestSliceAInfraredProfileCarriesALiveCondition85(t *testing.T) {
 		}
 		found = true
 		require.False(t, b.Expired(),
-			"buff 85 loaded but is already expired (triggersleft=%d): it would be hidden by GetBuffs and deleted by Prune", b.TriggersLeft)
+			"condition 85 loaded but is already expired (triggersleft=%d): it would be hidden by GetConditions and deleted by Prune", b.TriggersLeft)
 	}
-	require.True(t, found, "the profile carries no buff 85 at all")
+	require.True(t, found, "the profile carries no condition 85 at all")
 }

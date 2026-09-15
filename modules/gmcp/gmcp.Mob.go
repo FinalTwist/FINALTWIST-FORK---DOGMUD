@@ -130,7 +130,7 @@ type mobUpdateReq struct {
 	// hooks
 	ScriptTag         string   `json:"scriptTag"`
 	BehaviorArchetype string   `json:"behaviorArchetype"`
-	ConditionIds      []int    `json:"buffIds"`
+	ConditionIds      []int    `json:"conditionIds"`
 	QuestFlags        []string `json:"questFlags"`
 	SpawnMutations    []string `json:"spawnMutations"`
 	MutationChance    int      `json:"mutationChance"`
@@ -161,8 +161,8 @@ type mobEnums struct {
 	CrafterSkills      []string          `json:"crafterSkills"` // recipe disciplines; excludes "general"
 	SubmissionPolicies []string          `json:"submissionPolicies"`
 	WornSlots          []string          `json:"wornSlots"`
-	Groups             []string          `json:"groups"` // observed values across existing mobs, as suggestions
-	Conditions         []idName          `json:"buffs"`  // id pickers (epic followup: no more bare-numeric condition ids)
+	Groups             []string          `json:"groups"`     // observed values across existing mobs, as suggestions
+	Conditions         []idName          `json:"conditions"` // id pickers (epic followup: no more bare-numeric condition ids)
 }
 
 type mobDetail struct {

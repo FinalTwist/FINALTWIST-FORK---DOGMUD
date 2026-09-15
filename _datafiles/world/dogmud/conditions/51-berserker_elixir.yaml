@@ -1,0 +1,11 @@
+conditionid: 51
+name: Berserker Elixir
+description: Savage strength courses through you, but your movements feel clumsy.
+triggerrate: 1 round
+triggercount: 20
+statmods:
+  strength: 10
+  dexterity: -5
+start_user_text: "Raw power surges through your muscles as the elixir takes hold. Your hands tremble with barely contained fury."
+start_room_text: "{source}'s muscles bulge and veins stand out as a wild look enters their eyes."
+end_user_text: The berserker rage subsides, leaving you feeling drained but steady.

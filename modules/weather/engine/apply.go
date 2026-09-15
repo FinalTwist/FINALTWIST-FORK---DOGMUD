@@ -193,5 +193,5 @@ func warnUnknownOverride(id string) {
 		return
 	}
 	warnedOverrides[id] = true
-	mudlog.Warn("Weather: BuffOverrides entry matches no loaded mutator spec; ignored", "mutatorId", id)
+	mudlog.Warn("Weather: ConditionOverrides entry matches no loaded mutator spec; ignored", "mutatorId", id)
 }

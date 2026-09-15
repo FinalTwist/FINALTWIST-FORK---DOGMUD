@@ -60,20 +60,20 @@ character:
     uses: 1
   - itemid: 10012
   - itemid: 10001
-  buffs:
+  conditions:
     list:
-    - buffid: 28
-      permabuff: true
+    - conditionid: 28
+      permanent: true
       roundcounter: 3
       triggersleft: 1000000000
-    - buffid: 29
-      permabuff: true
+    - conditionid: 29
+      permanent: true
       roundcounter: 11
       triggersleft: 1000000000
-    - buffid: 39
-      permabuff: true
+    - conditionid: 39
+      permanent: true
       triggersleft: 1000000000
-    - buffid: 32
+    - conditionid: 32
       roundcounter: 79
       triggersleft: 1
   equipment:
@@ -141,7 +141,7 @@ character:
       sidecount: 4
     statmods:
       strength: 5
-    buffids:
+    conditionids:
     - 39
     capacity: 5
     items:

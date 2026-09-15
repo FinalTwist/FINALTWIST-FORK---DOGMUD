@@ -9,7 +9,7 @@ description: A deep green elixir that pulses with
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 71
 value: 60
 rarity_tier: 30

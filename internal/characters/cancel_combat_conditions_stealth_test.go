@@ -47,7 +47,7 @@ func TestCancelCombatConditions_DrivesAwarenessOutOfHidden(t *testing.T) {
 		t.Fatalf("expected Hidden, got %v", c.Awareness.State())
 	}
 	if err := c.AddCondition(9, true); err != nil {
-		t.Fatalf("applying buff 9 failed: %v", err)
+		t.Fatalf("applying condition 9 failed: %v", err)
 	}
 	if !c.IsHidden() {
 		t.Fatal("precondition: the character should be hidden")
@@ -57,9 +57,9 @@ func TestCancelCombatConditions_DrivesAwarenessOutOfHidden(t *testing.T) {
 
 	if c.IsHidden() {
 		t.Error("CancelCombatConditions must end stealth: IsHidden() reads the " +
-			"awareness FSM, so cancelling the mirror buff alone is not enough")
+			"awareness FSM, so cancelling the mirror condition alone is not enough")
 	}
 	if c.HasConditionFlag(conditions.Hidden) {
-		t.Error("the Hidden buff should also be gone")
+		t.Error("the Hidden condition should also be gone")
 	}
 }

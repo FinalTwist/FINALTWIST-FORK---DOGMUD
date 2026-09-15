@@ -14,6 +14,6 @@ descriptionmodifier:
 #decayintoid: another-alert-id
 respawnrate: midnight
 decayrate: sunrise
-#playerbuffids: []
-#mobbuffids: []
-#nativebuffids: []
+#playerconditionids: []
+#mobconditionids: []
+#nativeconditionids: []

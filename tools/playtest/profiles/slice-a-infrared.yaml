@@ -1,7 +1,7 @@
 # Follow-up slice A playtest: the INFRARED tester.
 #
-# Makes out heat shapes in the dark but no faces: buff 85 (InfraredVision) is
-# carried as a permanent active buff. Nothing in dogmud content grants infrared,
+# Makes out heat shapes in the dark but no faces: condition 85 (InfraredVision)
+# is carried as a permanent active condition. Nothing in dogmud content grants infrared,
 # so this profile is the only way to stand a shapes-only player in a room. Knows
 # Heal, so it can aim at a shape without needing PvP. No night vision, no
 # see-hidden.
@@ -37,15 +37,16 @@ character:
     search: 12
   spellbook:
     heal: 2
-  buffs:
+  conditions:
     list:
-      - buffid: 85
-        permabuff: true
-        # permabuff: true does NOT protect a buff from expiry. Buff.Expired()
-        # is TriggersLeft <= 0 and never looks at PermaBuff; GetBuffs hides an
-        # expired buff and Prune deletes it, so a buff written straight into a
-        # saved list with no triggersleft is born dead. Item and species
-        # permabuffs survive only because reapplyPermabuffs re-adds them.
+      - conditionid: 85
+        permanent: true
+        # permanent: true does NOT protect a condition from expiry.
+        # Condition.Expired() is TriggersLeft <= 0 and never looks at
+        # Permanent; GetConditions hides an expired condition and Prune
+        # deletes it, so a condition written straight into a saved list with
+        # no triggersleft is born dead. Item and species permanent conditions
+        # survive only because reapplyPermanentConditions re-adds them.
         triggersleft: 999999
   equipment:
     weapon:

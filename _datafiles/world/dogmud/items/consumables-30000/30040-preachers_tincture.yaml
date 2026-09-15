@@ -9,7 +9,7 @@ description: A pale golden liquid that seems to glow
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 58
 value: 15
 rarity_tier: 40

@@ -25,7 +25,7 @@ exits:
     lock:
       difficulty: 25
       relockinterval: 15 real minutes
-      trapbuffids: [39, 40]
+      trapconditionids: [39, 40]
   east:
     roomid: 507
   south:

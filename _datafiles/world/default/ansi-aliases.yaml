@@ -145,8 +145,7 @@ colors:
   mail-note: 10
   mail-note-read: 2
   mutator: 49
-  buff: 147
-  buff-text: 14
+  condition: 147
   script-text: 155
   broadcast-prefix: 135
   broadcast-body: 164

@@ -28,10 +28,10 @@ func sleeper(t *testing.T) *characters.Character {
 	t.Cleanup(seedSleepCondition(t))
 	c := newChar()
 	if err := c.AddCondition(sleepConditionId, true); err != nil {
-		t.Fatalf("could not apply the sleep buff (id %d): %v — has it been renumbered?", sleepConditionId, err)
+		t.Fatalf("could not apply the sleep condition (id %d): %v — has it been renumbered?", sleepConditionId, err)
 	}
 	if !c.HasConditionFlag(conditions.Sleeping) {
-		t.Fatalf("buff %d applied but does not carry the Sleeping flag", sleepConditionId)
+		t.Fatalf("condition %d applied but does not carry the Sleeping flag", sleepConditionId)
 	}
 	return c
 }
@@ -45,7 +45,7 @@ func TestTargetAsleep(t *testing.T) {
 		t.Error("a fresh character must not report asleep")
 	}
 	if !TargetAsleep(sleeper(t)) {
-		t.Error("a character with the Sleeping buff must report asleep")
+		t.Error("a character with the Sleeping condition must report asleep")
 	}
 }
 

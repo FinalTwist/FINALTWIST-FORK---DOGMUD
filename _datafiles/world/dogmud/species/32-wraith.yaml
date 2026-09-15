@@ -14,7 +14,7 @@ size: medium
 unarmedname: touch
 selectable: false
 tameable: false
-buffids:
+conditionids:
   - 53 # Veil Sight — see-hidden
 angrycommands:
   - emote wails with a sound that seems to come from inside your skull.

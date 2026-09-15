@@ -1,7 +1,7 @@
 speciesid: 18
 name: lagomorph
 description: Kinda like a rodent. But not.
-buffids:
+conditionids:
   - 3 # Cold Tolerant
 size: small
 unarmedname: teeth

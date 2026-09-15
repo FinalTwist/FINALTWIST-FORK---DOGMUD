@@ -5,7 +5,7 @@ import "testing"
 func TestGetAllyAuraConditions(t *testing.T) {
 	cleanup := SeedMutationsForTest(map[string]*MutationSpec{
 		"commanding-presence": {MutationId: "commanding-presence", Name: "Commanding Presence", Rarity: 4,
-			Pros: []MutationEffect{{Type: "aura_ally_buff", Value: 101}}},
+			Pros: []MutationEffect{{Type: "aura_ally_condition", Value: 101}}},
 		"plain": {MutationId: "plain", Name: "Plain", Rarity: 2,
 			Pros: []MutationEffect{{Type: "stat_flat", Target: "charisma", Value: 5}}},
 	})
@@ -21,7 +21,7 @@ func TestGetAllyAuraConditions(t *testing.T) {
 }
 
 func TestDescribeEffect_AuraAllyCondition(t *testing.T) {
-	if DescribeEffect(MutationEffect{Type: "aura_ally_buff", Value: 101}) == "" {
-		t.Fatal("aura_ally_buff must have a non-empty description")
+	if DescribeEffect(MutationEffect{Type: "aura_ally_condition", Value: 101}) == "" {
+		t.Fatal("aura_ally_condition must have a non-empty description")
 	}
 }

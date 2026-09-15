@@ -18,7 +18,7 @@ activitylevel: 20
 charm_immune: true
 fold_anchor_room: 4197
 storage_chest_room: 4197
-buffids: []
+conditionids: []
 idlecommands:
   - 'emote checks the satchel at her hip and adjusts the strap'
   - ''

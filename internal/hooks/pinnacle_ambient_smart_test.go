@@ -39,19 +39,19 @@ func TestAmbientSmartReset_KeepsExistingWhenAddingSecond(t *testing.T) {
 	// Attune the first potion.
 	tickAmbientPotions(u, 100) // fp change -> attuning, nothing applied
 	if c.Conditions.HasCondition(54) {
-		t.Fatal("buff 54 should still be attuning on the first tick")
+		t.Fatal("condition 54 should still be attuning on the first tick")
 	}
 	c.SetMiscData("pinnacle_bandolier_attune_round", uint64(100))
 	tickAmbientPotions(u, 150) // attuned -> 54 applied
 	if !c.Conditions.HasCondition(54) {
-		t.Fatal("buff 54 should be attuned and active")
+		t.Fatal("condition 54 should be attuned and active")
 	}
 
 	// Add a SECOND, distinct potion. The already-attuned condition 54 must NOT drop.
 	c.PotionItems = append(c.PotionItems, items.New(999956)) // condition 55
 	tickAmbientPotions(u, 151)                               // fp change: 55 new, 54 kept
 	if !c.Conditions.HasCondition(54) {
-		t.Fatal("adding a second potion must NOT revoke the already-attuned buff 54")
+		t.Fatal("adding a second potion must NOT revoke the already-attuned condition 54")
 	}
 	if c.Conditions.HasCondition(55) {
 		t.Fatal("the newly-added potion (55) should still be attuning, not applied yet")
@@ -61,7 +61,7 @@ func TestAmbientSmartReset_KeepsExistingWhenAddingSecond(t *testing.T) {
 	c.SetMiscData("pinnacle_bandolier_attune_round", uint64(151))
 	tickAmbientPotions(u, 200)
 	if !c.Conditions.HasCondition(54) || !c.Conditions.HasCondition(55) {
-		t.Fatalf("both buffs should be active after 55 attunes (54=%v 55=%v)",
+		t.Fatalf("both conditions should be active after 55 attunes (54=%v 55=%v)",
 			c.Conditions.HasCondition(54), c.Conditions.HasCondition(55))
 	}
 }
@@ -90,10 +90,10 @@ func TestAmbientSmartReset_RemoveRevokesOnlyThatCondition(t *testing.T) {
 	tickAmbientPotions(u, 151) // fp change: 54 gone
 	c.Conditions.Prune()       // RemoveCondition marks expired; the per-turn prune evicts it
 	if c.Conditions.HasCondition(54) {
-		t.Fatal("the removed potion's buff 54 should be revoked")
+		t.Fatal("the removed potion's condition 54 should be revoked")
 	}
 	if !c.Conditions.HasCondition(55) {
-		t.Fatal("the remaining potion's buff 55 must stay active (no full re-attune)")
+		t.Fatal("the remaining potion's condition 55 must stay active (no full re-attune)")
 	}
 }
 

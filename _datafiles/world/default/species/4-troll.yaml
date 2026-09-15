@@ -1,7 +1,7 @@
 speciesid: 4
 name: troll
 description: A massive creature.
-buffids:
+conditionids:
   - 29 # Night Vision
   - 30 # Regeneration
 size: large

@@ -1,5 +1,5 @@
 type: cat
 statmods:
   speed: 5
-buffids:
+conditionids:
   - 38 # shadow eyes

@@ -151,7 +151,7 @@ func seedTestRoom(t *testing.T, roomId int, zone string) func() {
 func grantHiddenCondition(t *testing.T, char *characters.Character) {
 	t.Helper()
 	if err := char.AddCondition(9, false); err != nil {
-		t.Fatalf("grantHiddenBuff: AddBuff(9) failed: %v", err)
+		t.Fatalf("grantHiddenCondition: AddCondition(9) failed: %v", err)
 	}
 	// Sync Awareness machine to Hidden state so char.IsHidden() returns true.
 	if char.Awareness == nil {

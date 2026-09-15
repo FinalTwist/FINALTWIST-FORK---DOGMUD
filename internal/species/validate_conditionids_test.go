@@ -14,7 +14,7 @@ func TestValidateSpeciesConditionIdsPanicsOnMissingCondition(t *testing.T) {
 
 	defer func() {
 		if recover() == nil {
-			t.Fatal("expected a panic for a species referencing a buff that does not exist")
+			t.Fatal("expected a panic for a species referencing a condition that does not exist")
 		}
 	}()
 	ValidateSpeciesConditionIds(func(int) bool { return false })

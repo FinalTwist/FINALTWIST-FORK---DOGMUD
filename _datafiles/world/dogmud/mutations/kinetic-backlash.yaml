@@ -11,5 +11,5 @@ visual: The air around them warps faintly, and dust lifts from the ground in a s
 pros:
   - type: reflect_damage
     value: 12
-  - type: on_reflect_buff
+  - type: on_reflect_condition
     value: 109

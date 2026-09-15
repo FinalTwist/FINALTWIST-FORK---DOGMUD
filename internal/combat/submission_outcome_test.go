@@ -281,7 +281,7 @@ func TestPB_313_CritSubdue_NoStunnedCondition(t *testing.T) {
 	// confirm HasCondition returns false (condition registry not seeded in unit tests,
 	// so HasCondition(84) will be false either way — but that's the correct state).
 	assert.False(t, def.HasCondition(84),
-		"PB-313: Stunned buff must not be applied on crit+subdue (death cascade fires)")
+		"PB-313: Stunned condition must not be applied on crit+subdue (death cascade fires)")
 }
 
 // PB-316: IsBottomSubEligible only opens when control.Controlled (i.e.,

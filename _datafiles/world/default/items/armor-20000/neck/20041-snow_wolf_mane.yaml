@@ -11,5 +11,5 @@ statmods:
   smarts: 2
   vitality: 2
   perception: 7
-wornbuffids:
+wornconditionids:
   - 3 # Cold Tolerant

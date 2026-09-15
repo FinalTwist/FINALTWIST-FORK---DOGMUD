@@ -5,5 +5,5 @@ description: Rumored to be from the gods themselves.
 type: potion
 subtype: drinkable
 uses: 1
-buffids: 
+conditionids: 
 - 6

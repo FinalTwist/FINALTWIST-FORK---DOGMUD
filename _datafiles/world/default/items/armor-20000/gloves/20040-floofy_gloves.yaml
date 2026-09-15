@@ -5,5 +5,5 @@ description: The skin of a dead snow floof. Floofskin is known to keep you warm 
 type: gloves
 subtype: wearable
 damagereduction: 2
-wornbuffids:
+wornconditionids:
   - 3 # Cold Tolerant

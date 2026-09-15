@@ -9,7 +9,7 @@ description: A blood-red elixir that burns going down.
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 67
 value: 30
 rarity_tier: 40

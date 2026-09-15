@@ -116,16 +116,16 @@
     <h3>Conditions This Mob Has</h3>
 
     <div class="form-group row form-check container-fluid">
-        {{ $buffIds := .mobInfo.ConditionIds }}
-        {{range $i, $buffSpec := .conditionSpecs}}
-            <label class="form-check-label col-md-2" for="mob-buff-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
+        {{ $conditionIds := .mobInfo.ConditionIds }}
+        {{range $i, $conditionSpec := .conditionSpecs}}
+            <label class="form-check-label col-md-2" for="mob-condition-{{$conditionSpec.ConditionId}}" title="{{ $conditionSpec.Description }}"><input
             class="form-check-input"
             type="checkbox"
-            name="buffids[]"
-            id="mob-buff-{{$buffSpec.ConditionId}}"
-            value="{{ $buffSpec.ConditionId }}"
-            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
-            {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
+            name="conditionids[]"
+            id="mob-condition-{{$conditionSpec.ConditionId}}"
+            value="{{ $conditionSpec.ConditionId }}"
+            {{range $j, $conditionId := $conditionIds}}{{if eq $conditionId $conditionSpec.ConditionId}}CHECKED{{end}}{{end}}>
+            {{ $conditionSpec.ConditionId }}. {{ $conditionSpec.Name }}</label>
         {{end}}
     </div>
 

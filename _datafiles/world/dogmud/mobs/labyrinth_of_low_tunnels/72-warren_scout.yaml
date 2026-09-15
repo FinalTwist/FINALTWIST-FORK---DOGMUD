@@ -5,7 +5,7 @@ statpool: 8
 itemdropchance: 10
 hostile: false # engagement owned by lookout btree (power-ratio gate)
 maxwander: 2
-buffids: [9, 29]
+conditionids: [9, 29]
 groups:
   - warren
   - humanoid

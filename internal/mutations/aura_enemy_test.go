@@ -5,7 +5,7 @@ import "testing"
 func TestGetEnemyAuraConditions(t *testing.T) {
 	cleanup := SeedMutationsForTest(map[string]*MutationSpec{
 		"dissonance-organ": {MutationId: "dissonance-organ", Name: "Dissonance Organ", Rarity: 5,
-			Pros: []MutationEffect{{Type: "aura_enemy_debuff", Value: 102}}},
+			Pros: []MutationEffect{{Type: "aura_enemy_condition", Value: 102}}},
 	})
 	defer cleanup()
 	got := GetEnemyAuraConditions(map[string]int{"dissonance-organ": 1})
@@ -18,7 +18,7 @@ func TestGetEnemyAuraConditions(t *testing.T) {
 }
 
 func TestDescribeEffect_AuraEnemyHarmfulCondition(t *testing.T) {
-	if DescribeEffect(MutationEffect{Type: "aura_enemy_debuff", Value: 102}) == "" {
-		t.Fatal("aura_enemy_debuff must have a non-empty description")
+	if DescribeEffect(MutationEffect{Type: "aura_enemy_condition", Value: 102}) == "" {
+		t.Fatal("aura_enemy_condition must have a non-empty description")
 	}
 }

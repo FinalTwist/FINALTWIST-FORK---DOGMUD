@@ -10,7 +10,7 @@ description: A thick, peat-dark tonic that smells of crushed mint and wet
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 60
 value: 22
 rarity_tier: 40

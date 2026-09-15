@@ -25,18 +25,18 @@ import (
 // this test invented.
 
 const (
-	brokenLimbConditionFile = "../../_datafiles/world/dogmud/buffs/83-broken_limb.yaml"
-	stunnedConditionFile    = "../../_datafiles/world/dogmud/buffs/84-stunned.yaml"
+	brokenLimbConditionFile = "../../_datafiles/world/dogmud/conditions/83-broken_limb.yaml"
+	stunnedConditionFile    = "../../_datafiles/world/dogmud/conditions/84-stunned.yaml"
 )
 
 // loadAuthoredConditionSpec reads one shipped condition file into a spec.
 func loadAuthoredConditionSpec(t *testing.T, path string, wantId int) *conditions.ConditionSpec {
 	t.Helper()
 	raw, err := os.ReadFile(path)
-	require.NoError(t, err, "the shipped buff file must be readable from internal/hooks")
+	require.NoError(t, err, "the shipped condition file must be readable from internal/hooks")
 	var spec conditions.ConditionSpec
 	require.NoError(t, yaml.Unmarshal(raw, &spec))
-	require.Equal(t, wantId, spec.ConditionId, "%s must be the buff this narration covers", path)
+	require.Equal(t, wantId, spec.ConditionId, "%s must be the condition this narration covers", path)
 	require.NotEmpty(t, spec.StartUserText, "%s must carry start_user_text", path)
 	require.Contains(t, spec.Flags, conditions.SilentStart,
 		"%s must be silent-start, or the event path would narrate it twice", path)
@@ -121,7 +121,7 @@ func TestSubmissionEffectsNarrateOnlyToTheVictim(t *testing.T) {
 
 	bystander := drainPlain(2)
 	assert.Equal(t, 0, countContaining(bystander, stunnedLine),
-		"a buff's start_user_text is the holder's line, not the room's")
+		"a condition's start_user_text is the holder's line, not the room's")
 	assert.Equal(t, 0, countContaining(bystander, brokenLine))
 }
 

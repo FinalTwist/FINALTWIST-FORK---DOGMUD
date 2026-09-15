@@ -2,7 +2,7 @@
 #
 # Packmate-focused caster. Priority order on packmate_hurt:
 #   1. If a same-room packmate is tanking (has Aggro), cast best
-#      buff_friendly spell on the tank (conviction-ward, etc.).
+#      condition_friendly spell on the tank (conviction-ward, etc.).
 #      Supports the front-liner holding aggro.
 #   2. Else if any same-room packmate is below 70% HP, cast best
 #      heal_friendly spell on the most-wounded packmate.
@@ -21,7 +21,7 @@ tree:
       event: packmate_hurt
       children:
         # 1. Shield the tank if one is tanking (uses cast_best_in_category
-        # which self-gates on already-active buffs — if the tank already
+        # which self-gates on already-active conditions — if the tank already
         # has a ward, the cast returns Failure and we fall through).
         - type: sequence
           children:
@@ -29,7 +29,7 @@ tree:
               check: packmate_is_tanking
             - type: action
               do: cast_best_in_category
-              category: buff_friendly
+              category: condition_friendly
               target: tanking_packmate
 
         # 2. Heal a wounded packmate (<70% HP).

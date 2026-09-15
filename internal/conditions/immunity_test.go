@@ -28,11 +28,11 @@ func TestPoisonImmunityRefusesPoisonConditions(t *testing.T) {
 
 	bs := New()
 	require.True(t, bs.AddCondition(immunityTestStoneStomachId, false))
-	assert.False(t, bs.AddCondition(immunityTestVenomId, false), "a poison buff is refused while immune")
+	assert.False(t, bs.AddCondition(immunityTestVenomId, false), "a poison condition is refused while immune")
 	assert.False(t, bs.HasCondition(immunityTestVenomId))
 	assert.False(t, bs.AddConditionScaled(immunityTestVenomId, 0.5), "the scaled primitive refuses too")
 	assert.False(t, bs.HasCondition(immunityTestVenomId))
-	assert.True(t, bs.AddCondition(immunityTestHarmlessId, false), "a non-poison buff still lands")
+	assert.True(t, bs.AddCondition(immunityTestHarmlessId, false), "a non-poison condition still lands")
 
 	unprotected := New()
 	assert.True(t, unprotected.AddCondition(immunityTestVenomId, false), "without immunity poison lands")

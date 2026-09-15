@@ -7,7 +7,7 @@ func TestGetReflectRiderConditions(t *testing.T) {
 		"reflect-skin-molten": {MutationId: "reflect-skin-molten", Name: "Molten Skin", Rarity: 5,
 			Pros: []MutationEffect{
 				{Type: "reflect_damage", Value: 18},
-				{Type: "on_reflect_buff", Value: 106},
+				{Type: "on_reflect_condition", Value: 106},
 			}},
 		"reflect-skin-barbed": {MutationId: "reflect-skin-barbed", Name: "Barbed Skin", Rarity: 5,
 			Pros: []MutationEffect{{Type: "reflect_damage", Value: 25}}},
@@ -29,7 +29,7 @@ func TestGetReflectRiderConditions(t *testing.T) {
 }
 
 func TestDescribeEffect_OnReflectCondition(t *testing.T) {
-	if DescribeEffect(MutationEffect{Type: "on_reflect_buff", Value: 106}) == "" {
-		t.Fatal("on_reflect_buff must have a non-empty description")
+	if DescribeEffect(MutationEffect{Type: "on_reflect_condition", Value: 106}) == "" {
+		t.Fatal("on_reflect_condition must have a non-empty description")
 	}
 }

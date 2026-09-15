@@ -7,7 +7,7 @@ hands: 1
 subtype: stabbing
 damage:
   diceroll: 1d4+1
-  critbuffids: 
+  critconditionids: 
   - 13
 statmods:
   speed: 6

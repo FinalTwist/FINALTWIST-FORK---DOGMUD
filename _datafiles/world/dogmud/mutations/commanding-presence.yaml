@@ -9,5 +9,5 @@ clusters: [zealot]
 pole: belief
 visual: They hold themselves with an unhurried certainty that makes a room orient toward them.
 pros:
-  - type: aura_ally_buff
+  - type: aura_ally_condition
     value: 101

@@ -119,7 +119,7 @@ func TestShadow_RequiresHidden(t *testing.T) {
 
 	result := Shadow(actor, ShadowOptions{TargetUserId: 7002})
 
-	assert.False(t, result.Succeeded, "actor without Hidden buff should not succeed")
+	assert.False(t, result.Succeeded, "actor without Hidden condition should not succeed")
 	assert.False(t, result.OnCooldown, "hidden gate should not set cooldown")
 	assert.Equal(t, "not hidden", result.Reason)
 	// Cooldown must not have been set.

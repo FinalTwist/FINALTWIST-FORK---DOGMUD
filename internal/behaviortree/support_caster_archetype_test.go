@@ -204,7 +204,7 @@ func seedSupportCasterSpells(t *testing.T) func() {
 			SpellId: "conviction-ward", Name: "Conviction Ward",
 			Type: spells.HelpSingle, Cost: 30, BaseFolds: 4,
 			EffectType: "shield", EffectMagnitude: 75,
-			Categories: []string{"buff_friendly"},
+			Categories: []string{"condition_friendly"},
 		},
 	})
 }

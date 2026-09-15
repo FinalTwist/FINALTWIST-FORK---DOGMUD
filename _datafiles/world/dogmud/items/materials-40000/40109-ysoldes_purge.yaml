@@ -11,7 +11,7 @@ subtype: drinkable
 uses: 1
 not_salable: true
 toxicity: 26
-buffids:
+conditionids:
   - 93
 weight: 0.2
 value: 0

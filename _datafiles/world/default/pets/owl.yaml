@@ -1,5 +1,5 @@
 type: owl
 statmods:
   smarts: 5
-buffids:
+conditionids:
   - 39

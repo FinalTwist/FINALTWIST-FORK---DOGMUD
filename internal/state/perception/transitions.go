@@ -19,8 +19,8 @@ var transitions = state.TransitionTable[State]{
 // (slice 1, 2026-09-12) deleted the enum it lived in; the constants went with
 // it. Blindness has exactly two sources, both conditions.
 const (
-	TriggerConditionApplied = "buff_applied"
-	TriggerConditionExpired = "buff_expired"
+	TriggerConditionApplied = "condition_applied"
+	TriggerConditionExpired = "condition_expired"
 )
 
 // Blind-source condition IDs. Detected by ID rather than by flag because

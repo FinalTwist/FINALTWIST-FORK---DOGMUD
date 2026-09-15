@@ -12,7 +12,7 @@ uses: 1
 value: 35
 rarity_tier: 40
 weight: 0.2
-buffids:
+conditionids:
   - 77
 aging:
   ferment_rounds: 2000

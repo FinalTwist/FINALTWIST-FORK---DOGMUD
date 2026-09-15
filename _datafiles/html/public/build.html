@@ -623,7 +623,7 @@
   // consume; loginSucceeded() prefetches both once so the datalists are ready
   // before the admin ever opens the Items/Mobs tab. Wiring a full searchable
   // picker component into the Rooms inspector was out of scope for this pass
-  // (see mobs.js's own carriedItems/buffIds "bare id input v1" note for the
+  // (see mobs.js's own carriedItems/conditionIds "bare id input v1" note for the
   // same tradeoff) — this is a plain id input backed by a name-search
   // datalist, not a dedicated picker widget.
   var spawnMobRows = [];
@@ -724,7 +724,7 @@
     // Spawns — mobs/items/gold this room spawns. rooms.SpawnInfo now carries
     // explicit json tags, so the wire keys are plain camelCase (mobId,
     // itemId, gold, container, respawnRate, message, name, forceHostile,
-    // maxWander, idleCommands, scriptTag, questFlags, buffIds, statPool,
+    // maxWander, idleCommands, scriptTag, questFlags, conditionIds, statPool,
     // statPoolMod) — the same convention as every other buildRoomDetail
     // field. instanceId/despawnedRound are runtime tracking the server
     // preserves on save; the client never sends them.
@@ -922,22 +922,22 @@
       var gatherIdle = textListField("Idle commands override", s.idleCommands);
       var gatherQuestFlags = textListField("Quest flags applied to mob", s.questFlags);
 
-      var buffBox = ce("div", {});
-      function buffRow(v) {
+      var conditionBox = ce("div", {});
+      function conditionRow(v) {
         var vv = ce("input", { type: "number", step: "1", placeholder: "condition id" });
         vv.value = (v || v === 0) ? v : "";
         vv.addEventListener("input", function () { setDirty(true); });
         var rm = ce("button", { "class": "mini rm", text: "✕", type: "button" });
         var r = ce("div", { "class": "kv" }, [vv, rm]);
-        rm.addEventListener("click", function () { buffBox.removeChild(r); setDirty(true); });
+        rm.addEventListener("click", function () { conditionBox.removeChild(r); setDirty(true); });
         r._v = vv;
-        buffBox.appendChild(r);
+        conditionBox.appendChild(r);
       }
-      (s.buffIds || []).forEach(buffRow);
-      advBody.appendChild(field("Condition ids always active", buffBox));
-      var addBuff = ce("button", { "class": "mini", text: "+ condition id", type: "button" });
-      addBuff.addEventListener("click", function () { buffRow(0); setDirty(true); });
-      advBody.appendChild(addBuff);
+      (s.conditionIds || []).forEach(conditionRow);
+      advBody.appendChild(field("Condition ids always active", conditionBox));
+      var addCondition = ce("button", { "class": "mini", text: "+ condition id", type: "button" });
+      addCondition.addEventListener("click", function () { conditionRow(0); setDirty(true); });
+      advBody.appendChild(addCondition);
 
       // ---- reorder / remove ----
       up.addEventListener("click", function () {
@@ -964,7 +964,7 @@
           statPoolMod: parseInt(statPoolModInput.value, 10) || 0,
           idleCommands: gatherIdle(),
           questFlags: gatherQuestFlags(),
-          buffIds: Array.prototype.map.call(buffBox.children, function (r) { return parseInt(r._v.value, 10) || 0; })
+          conditionIds: Array.prototype.map.call(conditionBox.children, function (r) { return parseInt(r._v.value, 10) || 0; })
             .filter(function (n) { return n > 0; })
         };
         if (k === "mob") out.mobId = parseSpawnTargetId(targetInput.value);

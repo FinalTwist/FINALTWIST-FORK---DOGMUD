@@ -122,7 +122,7 @@ func TestShop_Destock(t *testing.T) {
 			expectedResult: false,
 		},
 		{
-			name: "Destock with MobId and BuffId match",
+			name: "Destock with MobId and ConditionId match",
 			initialShop: Shop{
 				{ItemId: 7, MobId: 1, ConditionId: 2, Quantity: 2, QuantityMax: 5},
 			},
@@ -144,7 +144,7 @@ func TestShop_Destock(t *testing.T) {
 			expectedResult: false,
 		},
 		{
-			name: "Destock with BuffId mismatch returns false",
+			name: "Destock with ConditionId mismatch returns false",
 			initialShop: Shop{
 				{ItemId: 9, MobId: 1, ConditionId: 2, Quantity: 2, QuantityMax: 5},
 			},

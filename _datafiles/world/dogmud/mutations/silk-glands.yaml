@@ -9,7 +9,7 @@ max_rank: 1  # connective-tissue bridge: apex-class, binary (no deepen)
 clusters: [trickster, weaver]
 visual: Fine, glinting strands of silk drift and cling around them, webbing the ground at their feet.
 pros:
-  - type: aura_enemy_debuff
+  - type: aura_enemy_condition
     value: 110
   - type: dodge_modifier
     value: 6

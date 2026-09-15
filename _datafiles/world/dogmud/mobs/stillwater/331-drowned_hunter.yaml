@@ -2,7 +2,7 @@ mobid: 331
 zone: Stillwater
 behavior_archetype: ambusher
 aiprofile: serpent
-buffids: [9]
+conditionids: [9]
 statpool: 275
 itemdropchance: 100
 hostile: false # engagement owned by ambusher btree (hidden surprise strike)

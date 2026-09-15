@@ -144,7 +144,7 @@ func TestConditions_HasFlag(t *testing.T) {
 		assert.True(t, bs.HasFlag(Haste, false))
 	})
 
-	t.Run("multi-flag buff", func(t *testing.T) {
+	t.Run("multi-flag condition", func(t *testing.T) {
 		assert.True(t, bs.HasFlag(DamageBonus, false))
 		assert.True(t, bs.HasFlag(NoCombat, false))
 	})
@@ -157,7 +157,7 @@ func TestConditions_HasFlag(t *testing.T) {
 		assert.True(t, bs.HasFlag(All, false))
 	})
 
-	t.Run("expire mode removes buff", func(t *testing.T) {
+	t.Run("expire mode removes condition", func(t *testing.T) {
 		bs2 := New()
 		bs2.AddCondition(105, false) // Slow
 		assert.True(t, bs2.HasFlag(Slow, true))
@@ -182,15 +182,15 @@ func TestConditions_HasFlag_AllMatchesFlaglessCondition(t *testing.T) {
 
 	// The All wildcard must see a flagless condition.
 	assert.True(t, bs.HasFlag(All, false),
-		"All must match a buff that declares no flags")
+		"All must match a condition that declares no flags")
 
 	// Expire mode must mark the flagless condition expired.
 	assert.True(t, bs.HasFlag(All, true),
-		"All+expire must match the flagless buff")
+		"All+expire must match the flagless condition")
 	idx, ok := bs.conditionIds[108]
 	require.True(t, ok)
 	assert.Equal(t, TriggersLeftExpired, bs.List[idx].TriggersLeft,
-		"flagless buff must be expired by HasFlag(All, true)")
+		"flagless condition must be expired by HasFlag(All, true)")
 }
 
 // ─── Conditions.GetConditionIdsWithFlag ───────────────────────────────────────────────
@@ -245,7 +245,7 @@ func TestConditions_Trigger(t *testing.T) {
 		assert.Equal(t, 0, bs.List[0].RoundCounter) // reset for unlimited
 	})
 
-	t.Run("specific buffId targeting", func(t *testing.T) {
+	t.Run("specific conditionId targeting", func(t *testing.T) {
 		bs := New()
 		bs.AddCondition(100, false) // Haste, interval=2
 		bs.AddCondition(106, false) // NightVision, interval=1
@@ -308,14 +308,14 @@ func TestConditions_AddCondition_Stacking(t *testing.T) {
 
 	bs := New()
 
-	t.Run("add new buff", func(t *testing.T) {
+	t.Run("add new condition", func(t *testing.T) {
 		ok := bs.AddCondition(100, false)
 		assert.True(t, ok)
 		assert.Len(t, bs.List, 1)
 		assert.Equal(t, 10, bs.List[0].TriggersLeft)
 	})
 
-	t.Run("refresh existing buff", func(t *testing.T) {
+	t.Run("refresh existing condition", func(t *testing.T) {
 		// Drain some triggers
 		bs.List[0].TriggersLeft = 2
 		ok := bs.AddCondition(100, false)
@@ -324,7 +324,7 @@ func TestConditions_AddCondition_Stacking(t *testing.T) {
 		assert.Equal(t, 10, bs.List[0].TriggersLeft, "should refresh triggers")
 	})
 
-	t.Run("add second buff", func(t *testing.T) {
+	t.Run("add second condition", func(t *testing.T) {
 		ok := bs.AddCondition(101, false)
 		assert.True(t, ok)
 		assert.Len(t, bs.List, 2)
@@ -336,7 +336,7 @@ func TestConditions_AddCondition_Stacking(t *testing.T) {
 		assert.Len(t, bs.List, 2, "list unchanged")
 	})
 
-	t.Run("permanent buff", func(t *testing.T) {
+	t.Run("permanent condition", func(t *testing.T) {
 		ok := bs.AddCondition(106, true)
 		assert.True(t, ok)
 		idx := bs.conditionIds[106]
@@ -499,7 +499,7 @@ func TestConditions_HasCondition(t *testing.T) {
 		want   bool
 	}{
 		{
-			name: "Buff exists in buffIds",
+			name: "Condition exists in conditionIds",
 			fields: fields{
 				list: []*Condition{
 					{ConditionId: 1},
@@ -511,7 +511,7 @@ func TestConditions_HasCondition(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "Buff does not exist in buffIds",
+			name: "Condition does not exist in conditionIds",
 			fields: fields{
 				list: []*Condition{
 					{ConditionId: 1},
@@ -523,7 +523,7 @@ func TestConditions_HasCondition(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "Empty buffIds map",
+			name: "Empty conditionIds map",
 			fields: fields{
 				list:         []*Condition{},
 				conditionIds: map[int]int{},
@@ -532,7 +532,7 @@ func TestConditions_HasCondition(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "BuffIds map is nil",
+			name: "ConditionIds map is nil",
 			fields: fields{
 				list:         []*Condition{},
 				conditionIds: nil,
@@ -565,7 +565,7 @@ func TestConditions_Started(t *testing.T) {
 		shouldChange bool
 	}{
 		{
-			name: "Buff exists and OnStartWaiting is true",
+			name: "Condition exists and OnStartWaiting is true",
 			fields: fields{
 				list: []*Condition{
 					{ConditionId: 1, OnStartWaiting: true},
@@ -578,7 +578,7 @@ func TestConditions_Started(t *testing.T) {
 			shouldChange: true,
 		},
 		{
-			name: "Buff exists and OnStartWaiting is already false",
+			name: "Condition exists and OnStartWaiting is already false",
 			fields: fields{
 				list: []*Condition{
 					{ConditionId: 1, OnStartWaiting: false},
@@ -590,7 +590,7 @@ func TestConditions_Started(t *testing.T) {
 			shouldChange: false,
 		},
 		{
-			name: "Buff does not exist",
+			name: "Condition does not exist",
 			fields: fields{
 				list: []*Condition{
 					{ConditionId: 1, OnStartWaiting: true},
@@ -602,7 +602,7 @@ func TestConditions_Started(t *testing.T) {
 			shouldChange: false,
 		},
 		{
-			name: "Empty buffIds map",
+			name: "Empty conditionIds map",
 			fields: fields{
 				list:         []*Condition{},
 				conditionIds: map[int]int{},
@@ -612,7 +612,7 @@ func TestConditions_Started(t *testing.T) {
 			shouldChange: false,
 		},
 		{
-			name: "buffIds is nil",
+			name: "conditionIds is nil",
 			fields: fields{
 				list:         []*Condition{},
 				conditionIds: nil,
@@ -654,7 +654,7 @@ func TestConditions_TriggersLeft(t *testing.T) {
 		want   int
 	}{
 		{
-			name: "Buff exists and has positive TriggersLeft",
+			name: "Condition exists and has positive TriggersLeft",
 			fields: fields{
 				list: []*Condition{
 					{ConditionId: 1, TriggersLeft: 3},
@@ -666,7 +666,7 @@ func TestConditions_TriggersLeft(t *testing.T) {
 			want: 5,
 		},
 		{
-			name: "Buff exists and has zero TriggersLeft",
+			name: "Condition exists and has zero TriggersLeft",
 			fields: fields{
 				list: []*Condition{
 					{ConditionId: 1, TriggersLeft: 0},
@@ -677,7 +677,7 @@ func TestConditions_TriggersLeft(t *testing.T) {
 			want: 0,
 		},
 		{
-			name: "Buff exists and has negative TriggersLeft",
+			name: "Condition exists and has negative TriggersLeft",
 			fields: fields{
 				list: []*Condition{
 					{ConditionId: 1, TriggersLeft: -2},
@@ -688,7 +688,7 @@ func TestConditions_TriggersLeft(t *testing.T) {
 			want: -2,
 		},
 		{
-			name: "Buff does not exist in buffIds",
+			name: "Condition does not exist in conditionIds",
 			fields: fields{
 				list: []*Condition{
 					{ConditionId: 1, TriggersLeft: 3},
@@ -699,7 +699,7 @@ func TestConditions_TriggersLeft(t *testing.T) {
 			want: 0,
 		},
 		{
-			name: "buffIds is nil",
+			name: "conditionIds is nil",
 			fields: fields{
 				list:         []*Condition{{ConditionId: 1, TriggersLeft: 7}},
 				conditionIds: nil,
@@ -708,7 +708,7 @@ func TestConditions_TriggersLeft(t *testing.T) {
 			want: 0,
 		},
 		{
-			name: "buffIds is empty map",
+			name: "conditionIds is empty map",
 			fields: fields{
 				list:         []*Condition{{ConditionId: 1, TriggersLeft: 7}},
 				conditionIds: map[int]int{},
@@ -742,7 +742,7 @@ func TestConditions_RemoveCondition(t *testing.T) {
 		shouldModify bool
 	}{
 		{
-			name: "Buff exists and is removed",
+			name: "Condition exists and is removed",
 			fields: fields{
 				list: []*Condition{
 					{ConditionId: 1, TriggersLeft: 5},
@@ -756,7 +756,7 @@ func TestConditions_RemoveCondition(t *testing.T) {
 			shouldModify: true,
 		},
 		{
-			name: "Buff does not exist",
+			name: "Condition does not exist",
 			fields: fields{
 				list: []*Condition{
 					{ConditionId: 1, TriggersLeft: 5},
@@ -769,7 +769,7 @@ func TestConditions_RemoveCondition(t *testing.T) {
 			shouldModify: false,
 		},
 		{
-			name: "buffIds is nil",
+			name: "conditionIds is nil",
 			fields: fields{
 				list:         []*Condition{{ConditionId: 1, TriggersLeft: 7}},
 				conditionIds: nil,
@@ -780,7 +780,7 @@ func TestConditions_RemoveCondition(t *testing.T) {
 			shouldModify: false,
 		},
 		{
-			name: "buffIds is empty map",
+			name: "conditionIds is empty map",
 			fields: fields{
 				list:         []*Condition{{ConditionId: 1, TriggersLeft: 7}},
 				conditionIds: map[int]int{},
@@ -791,7 +791,7 @@ func TestConditions_RemoveCondition(t *testing.T) {
 			shouldModify: false,
 		},
 		{
-			name: "Multiple buffs, remove first",
+			name: "Multiple conditions, remove first",
 			fields: fields{
 				list: []*Condition{
 					{ConditionId: 10, TriggersLeft: 2},
@@ -885,13 +885,13 @@ func TestPB_330_BrokenLimbCondition_StatModApplied(t *testing.T) {
 	b := &Condition{ConditionId: 83, TriggersLeft: 900}
 
 	assert.Equal(t, -25, b.StatMod("strength"),
-		"PB-330: broken-limb buff must apply -25 strength")
+		"PB-330: broken-limb condition must apply -25 strength")
 	assert.Equal(t, -25, b.StatMod("dexterity"),
-		"PB-330: broken-limb buff must apply -25 dexterity")
+		"PB-330: broken-limb condition must apply -25 dexterity")
 	assert.Equal(t, -10, b.StatMod("vitality"),
-		"PB-330: broken-limb buff must apply -10 vitality")
+		"PB-330: broken-limb condition must apply -10 vitality")
 	assert.Equal(t, 0, b.StatMod("charisma"),
-		"PB-330: broken-limb buff must not affect charisma")
+		"PB-330: broken-limb condition must not affect charisma")
 }
 
 // PB-332: Broken-limb condition expires naturally via round-tick decrement.
@@ -915,7 +915,7 @@ func TestPB_332_BrokenLimbCondition_ExpiresNaturally(t *testing.T) {
 
 	// Confirm condition is present and not yet expired.
 	assert.False(t, bs.List[0].Expired(),
-		"PB-332: broken-limb buff must not be expired on application")
+		"PB-332: broken-limb condition must not be expired on application")
 
 	// Tick 3 rounds — each trigger should decrement TriggersLeft.
 	for i := 0; i < 3; i++ {
@@ -924,12 +924,12 @@ func TestPB_332_BrokenLimbCondition_ExpiresNaturally(t *testing.T) {
 
 	// After TriggerCount triggers, condition should be expired.
 	assert.True(t, bs.List[0].Expired(),
-		"PB-332: broken-limb buff must be expired after all trigger rounds elapsed")
+		"PB-332: broken-limb condition must be expired after all trigger rounds elapsed")
 
 	// Prune confirms it can be cleaned up.
 	pruned := bs.Prune()
-	assert.Len(t, pruned, 1, "PB-332: expired broken-limb buff should be pruned")
-	assert.Empty(t, bs.List, "PB-332: buff list should be empty after prune")
+	assert.Len(t, pruned, 1, "PB-332: expired broken-limb condition should be pruned")
+	assert.Empty(t, bs.List, "PB-332: condition list should be empty after prune")
 }
 
 // ─── Conditions.ProgressMult ─────────────────────────────────────────────────────
@@ -975,14 +975,14 @@ func TestConditions_ProgressMult(t *testing.T) {
 	cleanup := seedProgressMultRegistry()
 	defer cleanup()
 
-	t.Run("no flagged buff held is neutral", func(t *testing.T) {
+	t.Run("no flagged condition held is neutral", func(t *testing.T) {
 		bs := New()
 		require.True(t, bs.AddCondition(202, false)) // Warmed, not SkillProgress
 		assert.Equal(t, 1.0, bs.ProgressMult(SkillProgress),
 			"a caller multiplies unconditionally, so the empty case must be 1.0")
 	})
 
-	t.Run("a flagged buff with no progress_mult is the historic 2.0", func(t *testing.T) {
+	t.Run("a flagged condition with no progress_mult is the historic 2.0", func(t *testing.T) {
 		bs := New()
 		require.True(t, bs.AddCondition(200, false))
 		assert.Equal(t, 2.0, bs.ProgressMult(SkillProgress))
@@ -993,15 +993,15 @@ func TestConditions_ProgressMult(t *testing.T) {
 		require.True(t, bs.AddCondition(200, false)) // defaults to 2.0
 		require.True(t, bs.AddCondition(201, false)) // declares 3.0
 		assert.Equal(t, 3.0, bs.ProgressMult(SkillProgress),
-			"flagged buffs do not stack; the strongest one wins")
+			"flagged conditions do not stack; the strongest one wins")
 	})
 
-	t.Run("an expired flagged buff does not count", func(t *testing.T) {
+	t.Run("an expired flagged condition does not count", func(t *testing.T) {
 		bs := New()
 		require.True(t, bs.AddCondition(201, false))
 		require.True(t, bs.RemoveCondition(201))
 		assert.Equal(t, 1.0, bs.ProgressMult(SkillProgress),
-			"ProgressMult must skip expired buffs the way HasFlag does")
+			"ProgressMult must skip expired conditions the way HasFlag does")
 	})
 
 	t.Run("an unrelated flag is unaffected", func(t *testing.T) {

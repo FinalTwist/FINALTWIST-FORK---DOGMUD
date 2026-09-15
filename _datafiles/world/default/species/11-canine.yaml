@@ -1,7 +1,7 @@
 speciesid: 11
 name: canine
 description: A canine.
-buffids:
+conditionids:
   - 28 # Super hearing
 size: medium
 unarmedname: jaws

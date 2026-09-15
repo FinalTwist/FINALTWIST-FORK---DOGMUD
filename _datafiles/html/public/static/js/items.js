@@ -43,7 +43,7 @@
     blockRating: "flat block bonus — whole number",
     escapeModifier: "additive modifier (decimals ok)",
     // consumable
-    buffIds: "comma-separated condition ids applied on use",
+    conditionIds: "comma-separated condition ids applied on use",
     toxicity: "whole number",
     bottleAgingMultiplier: "multiplier",
     fermentRounds: "rounds — whole number",
@@ -63,7 +63,7 @@
     mutationTickInterval: "rounds between mutation rolls while worn (0 = never)",
     mutationTickChance: "percent chance per roll (0–100)",
     mutationRarityFloor: "min mutation rarity in the pool (0–10)",
-    wornBuffIds: "comma-separated condition ids applied while worn",
+    wornConditionIds: "comma-separated condition ids applied while worn",
   };
 
   function ce(tag, attrs, kids) {
@@ -380,10 +380,10 @@
     }
     if (isConsum) {
       host.appendChild(sectionTitle("Consumable"));
-      var bf = ce("input", { type: "text", placeholder: "comma condition ids" }); bf.value = (detail.buffIds || []).join(", ");
+      var bf = ce("input", { type: "text", placeholder: "comma condition ids" }); bf.value = (detail.conditionIds || []).join(", ");
       bf.addEventListener("input", markDirty);
-      F.buffIds = function () { return bf.value.split(",").map(function (s) { return parseInt(s.trim(), 10); }).filter(function (n) { return !isNaN(n); }); };
-      host.appendChild(field("Condition ids", bf, hintFor("buffIds", false)));
+      F.conditionIds = function () { return bf.value.split(",").map(function (s) { return parseInt(s.trim(), 10); }).filter(function (n) { return !isNaN(n); }); };
+      host.appendChild(field("Condition ids", bf, hintFor("conditionIds", false)));
       host.appendChild(ce("div", { "class": "row" }, [numField("Toxicity", "toxicity", detail.toxicity), numField("Bottle aging ×", "bottleAgingMultiplier", detail.bottleAgingMultiplier, "0.05")]));
       host.appendChild(sectionTitle("Aging (rounds)"));
       host.appendChild(ce("div", { "class": "row" }, [numField("Ferment", "fermentRounds", detail.fermentRounds), numField("Peak", "peakRounds", detail.peakRounds)]));
@@ -428,7 +428,7 @@
       detail.reserveHealthPct || detail.reserveStaminaPct || detail.reserveConvictionPct ||
       detail.hungerRounds || detail.hungerDrainPct || detail.tauntPull ||
       detail.mutationTickInterval || detail.mutationTickChance || detail.mutationRarityFloor ||
-      (detail.wornBuffIds && detail.wornBuffIds.length);
+      (detail.wornConditionIds && detail.wornConditionIds.length);
     // Recompute open state only when a different item is selected; preserve the
     // author's toggle across same-item re-renders (e.g. the post-save re-Get).
     if (detail.itemId !== this._advItemId) { this.advancedOpen = !!hasAdv; this._advItemId = detail.itemId; }
@@ -471,10 +471,10 @@
 
     body.appendChild(sectionTitle("Worn conditions"));
     var wb = ce("input", { type: "text", placeholder: "comma condition ids" });
-    wb.value = (detail.wornBuffIds || []).join(", ");
+    wb.value = (detail.wornConditionIds || []).join(", ");
     wb.addEventListener("input", markDirty);
-    F.wornBuffIds = function () { return wb.value.split(",").map(function (s) { return parseInt(s.trim(), 10); }).filter(function (n) { return !isNaN(n); }); };
-    body.appendChild(field("Worn condition ids", wb, hintFor("wornBuffIds", false)));
+    F.wornConditionIds = function () { return wb.value.split(",").map(function (s) { return parseInt(s.trim(), 10); }).filter(function (n) { return !isNaN(n); }); };
+    body.appendChild(field("Worn condition ids", wb, hintFor("wornConditionIds", false)));
   };
 
   Panel.buildProcEditor = function (body, detail, F, markDirty) {
@@ -553,7 +553,7 @@
       element: g("element", ""), ammoTag: g("ammoTag", ""),
       physicalMitigation: g("physicalMitigation", 0), magicalMitigation: g("magicalMitigation", 0),
       convictionMitigation: g("convictionMitigation", 0), blockRating: g("blockRating", 0), escapeModifier: g("escapeModifier", 0),
-      buffIds: g("buffIds", []), toxicity: g("toxicity", 0),
+      conditionIds: g("conditionIds", []), toxicity: g("toxicity", 0),
       fermentRounds: g("fermentRounds", 0), peakRounds: g("peakRounds", 0), decayRounds: g("decayRounds", 0), spoilRounds: g("spoilRounds", 0),
       bottleAgingMultiplier: g("bottleAgingMultiplier", 0), isBandolier: g("isBandolier", false), bandolierCapacity: g("bandolierCapacity", 0),
       isComponent: g("isComponent", false), componentTag: g("componentTag", ""), weightReduction: g("weightReduction", 0),
@@ -563,7 +563,7 @@
       voiceId: g("voiceId", ""), tauntPull: g("tauntPull", false),
       hungerRounds: g("hungerRounds", 0), hungerDrainPct: g("hungerDrainPct", 0),
       mutationTickInterval: g("mutationTickInterval", 0), mutationTickChance: g("mutationTickChance", 0), mutationRarityFloor: g("mutationRarityFloor", 0),
-      wornBuffIds: g("wornBuffIds", [])
+      wornConditionIds: g("wornConditionIds", [])
     };
   };
 

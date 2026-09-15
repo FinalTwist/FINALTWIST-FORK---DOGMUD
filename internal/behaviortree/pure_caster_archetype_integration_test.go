@@ -23,7 +23,7 @@ func seedCasterSpells(t *testing.T) func() {
 		"iron-will": {
 			SpellId: "iron-will", Name: "Iron Will",
 			Type: spells.HelpSingle, Cost: 45, BaseFolds: 6,
-			EffectType: "buff", ConditionIds: []int{27},
+			EffectType: "condition", ConditionIds: []int{27},
 			Categories: []string{"self_defense"},
 		},
 		"conviction-ward": {

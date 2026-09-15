@@ -276,14 +276,14 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 		// Flag-off common path: no fingerprint work at all. Revoke any
 		// lingering ambience from a previously-worn ambient bandolier and
 		// clear the stored fingerprint so re-equipping one re-attunes.
-		if applied := readMiscIntSlice(c.GetMiscData("pinnacle_bandolier_buffs")); len(applied) > 0 {
+		if applied := readMiscIntSlice(c.GetMiscData("pinnacle_bandolier_conditions")); len(applied) > 0 {
 			revokeAmbient(c, applied)
 			c.SetMiscData("pinnacle_bandolier_fingerprint", nil)
 		}
 		return
 	}
 
-	applied := readMiscIntSlice(c.GetMiscData("pinnacle_bandolier_buffs"))
+	applied := readMiscIntSlice(c.GetMiscData("pinnacle_bandolier_conditions"))
 	appliedSet := map[int]bool{}
 	for _, id := range applied {
 		appliedSet[id] = true
@@ -323,7 +323,7 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 				`<ansi fg="magenta">The %s stirs, drawing in the essence of what you have slotted; it will take a moment to attune.</ansi>`,
 				spec.Name))
 		}
-		c.SetMiscData("pinnacle_bandolier_buffs", kept)
+		c.SetMiscData("pinnacle_bandolier_conditions", kept)
 		return
 	}
 
@@ -362,7 +362,7 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	for id := range desired {
 		ids = append(ids, id)
 	}
-	c.SetMiscData("pinnacle_bandolier_buffs", ids)
+	c.SetMiscData("pinnacle_bandolier_conditions", ids)
 }
 
 // desiredAmbientConditions is the set of condition ids emitted by the potions currently
@@ -384,7 +384,7 @@ func revokeAmbient(c *characters.Character, applied []int) {
 		c.RemoveCondition(id)
 	}
 	if len(applied) > 0 {
-		c.SetMiscData("pinnacle_bandolier_buffs", []int{})
+		c.SetMiscData("pinnacle_bandolier_conditions", []int{})
 	}
 }
 

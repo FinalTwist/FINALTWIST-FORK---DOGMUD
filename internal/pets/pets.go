@@ -24,7 +24,7 @@ type Pet struct {
 	LastMealRound uint8             `yaml:"lastmealround,omitempty"` // When the pet was last fed
 	Damage        items.Damage      `yaml:"damage,omitempty"`        // When the pet was last fed
 	StatMods      statmods.StatMods `yaml:"statmods,omitempty"`      // stat mods the pet provides
-	ConditionIds  []int             `yaml:"buffids,omitempty"`       // Permanent conditions this pet affords the player
+	ConditionIds  []int             `yaml:"conditionids,omitempty"`  // Permanent conditions this pet affords the player
 	Capacity      int               `yaml:"capacity,omitempty"`      // How many items this mob can carry
 	Items         []items.Item      `yaml:"items,omitempty"`         // Items held by this pet
 }

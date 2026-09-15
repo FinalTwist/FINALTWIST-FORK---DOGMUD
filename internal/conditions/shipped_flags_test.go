@@ -15,7 +15,7 @@ import (
 // So the draught granted no night vision at all, while its item description
 // promised that "the darkness becomes transparent".
 func TestCatsEyeDraughtGrantsNightVision(t *testing.T) {
-	data, err := os.ReadFile("../../_datafiles/world/dogmud/buffs/65-cats_eye_draught.yaml")
+	data, err := os.ReadFile("../../_datafiles/world/dogmud/conditions/65-cats_eye_draught.yaml")
 	require.NoError(t, err)
 	var spec ConditionSpec
 	require.NoError(t, yaml.Unmarshal(data, &spec))

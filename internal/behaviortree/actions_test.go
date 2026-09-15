@@ -485,15 +485,15 @@ func TestActIntercept_SetsCtxIntercepted(t *testing.T) {
 // ─── remove_buff ──────────────────────────────────────────────────────────
 
 func TestActRemoveCondition_RemovesConditionFromUser(t *testing.T) {
-	fn := LookupAction("remove_buff")
+	fn := LookupAction("remove_condition")
 	if fn == nil {
-		t.Fatal("remove_buff not registered")
+		t.Fatal("remove_condition not registered")
 	}
 
 	// Seed a single condition spec for condition id 100. TriggerCount > 0 ensures
 	// the condition lives long enough for the act-then-assert cycle.
 	cleanConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
-		100: {ConditionId: 100, Name: "TestBuff", TriggerCount: 5, RoundInterval: 1},
+		100: {ConditionId: 100, Name: "TestCondition", TriggerCount: 5, RoundInterval: 1},
 	})
 	defer cleanConditions()
 
@@ -502,26 +502,26 @@ func TestActRemoveCondition_RemovesConditionFromUser(t *testing.T) {
 
 	user := requireUser(t, 1)
 	if err := user.Character.AddCondition(100, false); err != nil {
-		t.Fatalf("AddBuff(100) failed: %v", err)
+		t.Fatalf("AddCondition(100) failed: %v", err)
 	}
 	if !user.Character.HasCondition(100) {
-		t.Fatal("precondition: user should have buff 100 after AddBuff")
+		t.Fatal("precondition: user should have condition 100 after AddCondition")
 	}
 
 	ctx := &EvalContext{Event: EventContext{UserId: 1}}
-	if result := fn(map[string]any{"buff_id": 100}, ctx); result != Success {
+	if result := fn(map[string]any{"condition_id": 100}, ctx); result != Success {
 		t.Fatalf("expected Success, got %v", result)
 	}
 
 	// RemoveCondition sets TriggersLeft=0 (Expired). GetConditions filters expired
 	// out, so a zero-length result confirms the removal contract.
 	if got := user.Character.GetConditions(100); len(got) != 0 {
-		t.Errorf("expected 0 active buffs with id 100 after remove, got %d", len(got))
+		t.Errorf("expected 0 active conditions with id 100 after remove, got %d", len(got))
 	}
 
 	// Nil user → Failure.
 	missingCtx := &EvalContext{Event: EventContext{UserId: 99}}
-	if result := fn(map[string]any{"buff_id": 100}, missingCtx); result != Failure {
+	if result := fn(map[string]any{"condition_id": 100}, missingCtx); result != Failure {
 		t.Errorf("expected Failure for missing user, got %v", result)
 	}
 }

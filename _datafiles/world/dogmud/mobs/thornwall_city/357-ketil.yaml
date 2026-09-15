@@ -30,7 +30,7 @@ maxwander: -1                    # -1 = unlimited; caravan crosses zones
 activitylevel: 15                # ~15% chance/tick to fire an idlecommand
 charm_immune: true
 fold_anchor_room: 465
-buffids: []
+conditionids: []
 idlecommands:
   - 'emote checks the harness on the lead horse, frowning at a worn buckle'
   - ''

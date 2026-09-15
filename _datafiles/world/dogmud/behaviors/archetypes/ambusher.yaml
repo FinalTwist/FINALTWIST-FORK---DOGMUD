@@ -1,14 +1,14 @@
 # ambusher archetype
 #
 # Hit-and-fade predator. Cycle:
-#   1. Mob starts hidden (buff 9) via buffids in mob YAML.
+#   1. Mob starts hidden (condition 9) via conditionids in mob YAML.
 #   2. player_enter while Hidden → surprise strike.
 #   3. mob_idle + Hidden + player in room → surprise strike again
 #      (covers the case where the player returned or never left while
 #      the mob was idle).
-#   4. Combat cancels buff 9 via CancelIfCombat flag.
+#   4. Combat cancels condition 9 via CancelIfCombat flag.
 #   5. mob_hurt → flee to adjacent room.
-#   6. mob_idle + NOT hidden → re-apply buff 9 (gated so we don't spam
+#   6. mob_idle + NOT hidden → re-apply condition 9 (gated so we don't spam
 #      the start_room_text every round on a refresh).
 #
 # Spec: docs/superpowers/plans/completed/2026-04-24-ironwind-steppe-mob-audit.md
@@ -21,8 +21,8 @@ tree:
       event: player_enter
       children:
         - type: condition
-          check: mob_has_buff
-          buff_id: 9
+          check: mob_has_condition
+          condition_id: 9
         - type: action
           do: attack
 
@@ -32,8 +32,8 @@ tree:
       event: mob_idle
       children:
         - type: condition
-          check: mob_has_buff
-          buff_id: 9
+          check: mob_has_condition
+          condition_id: 9
         - type: condition
           check: players_in_room
         - type: action
@@ -56,7 +56,7 @@ tree:
           cmds: [trip]
 
     # 4. Re-apply Hidden when idle and NOT already hidden.
-    #    The inverted condition prevents spamming add_buff (and its
+    #    The inverted condition prevents spamming add_condition (and its
     #    "{source} disappears into the shadows" room text) every round.
     - type: sequence
       event: mob_idle
@@ -65,11 +65,11 @@ tree:
           mod: invert
           child:
             type: condition
-            check: mob_has_buff
-            buff_id: 9
+            check: mob_has_condition
+            condition_id: 9
         - type: action
-          do: add_buff
-          buff_id: 9
+          do: add_condition
+          condition_id: 9
 
     # chunk 4.4: strategic goal pursuit (after reflex/combat, before idle end)
     - type: action

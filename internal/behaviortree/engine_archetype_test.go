@@ -59,14 +59,14 @@ func TestEngine_LoadArchetypeClearsNegativeCache(t *testing.T) {
 }
 
 func TestGetArchetypePath(t *testing.T) {
-	path := GetArchetypePath("melee_self_buff")
+	path := GetArchetypePath("melee_self_empower")
 	if path == "" {
 		t.Fatalf("expected a path, got empty")
 	}
 	// Normalize to forward slashes so the test passes on Windows and Linux.
 	normalized := strings.ReplaceAll(path, `\`, `/`)
 	// Just verify it ends with the expected suffix (datafiles prefix is config-dependent).
-	wantSuffix := "/behaviors/archetypes/melee_self_buff.yaml"
+	wantSuffix := "/behaviors/archetypes/melee_self_empower.yaml"
 	if !strings.HasSuffix(normalized, wantSuffix) {
 		t.Fatalf("path %q does not end with %q", path, wantSuffix)
 	}

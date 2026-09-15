@@ -32,7 +32,7 @@ type Species struct {
 	SpeciesId    int `yaml:"speciesid"`
 	Name         string
 	Description  string
-	ConditionIds []int `yaml:"buffids"` // Permanent conditions this species always has. The tag pins the file key through the slice 2 rename.
+	ConditionIds []int `yaml:"conditionids"` // Permanent conditions this species always has. The tag pins the file key through the slice 2 rename.
 	Size         Size
 	UnarmedName  string
 	// NaturalAttack is the combat-message subtype an unarmed member of this
@@ -352,7 +352,7 @@ func ValidateSpeciesConditionIds(conditionIdExists func(id int) bool) {
 		for _, id := range sp.ConditionIds {
 			if !conditionIdExists(id) {
 				panic(fmt.Sprintf(
-					"species %q (id %d): unknown condition id in buffids: %d",
+					"species %q (id %d): unknown condition id in conditionids: %d",
 					sp.Name, sp.SpeciesId, id))
 			}
 		}

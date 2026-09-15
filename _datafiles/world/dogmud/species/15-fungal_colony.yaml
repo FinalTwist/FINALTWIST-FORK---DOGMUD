@@ -33,7 +33,7 @@ stats:
 damage:
   basedamage: 4
   variance: 2
-  critbuffids:
+  critconditionids:
     - 40 # Spore Toxin
 damage_multiplier: 0.50
 disabledslots: ['weapon', 'offhand', 'head', 'neck', 'belt', 'gloves', 'ring', 'legs', 'feet', 'body']

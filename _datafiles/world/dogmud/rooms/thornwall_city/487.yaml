@@ -23,7 +23,7 @@ exits:
     lock:
       difficulty: 15
       relockinterval: 15 real minutes
-      trapbuffids: [39]
+      trapconditionids: [39]
 nouns:
   rubble: Fallen stone blocks, cracked timber supports, and packed earth.
     The collapse is thorough -- there is no way through. But the floor

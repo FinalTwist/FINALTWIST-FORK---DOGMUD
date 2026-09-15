@@ -78,7 +78,7 @@ func TestOnSkillUseScaled_WinningSubOneMultiplierStillEmitsSkillUsed(t *testing.
 	c.OnSkillUseScaled("spellcasting", 9, 0.5, false)
 
 	if got := events.DrainQueuedSkillUsedForTest(9); len(got) != 1 {
-		t.Fatalf("a winning self-buff-style cast (multiplier 0.5) emitted %d SkillUsed events, want 1", len(got))
+		t.Fatalf("a winning self-condition-style cast (multiplier 0.5) emitted %d SkillUsed events, want 1", len(got))
 	}
 }
 

@@ -13,7 +13,7 @@ func TestProfileFor_BehaviorPrimary(t *testing.T) {
 		{"ambusher", "Stealth"},
 		{"lookout", "Stealth"},
 		{"generic_fighter", "PhysicalBruiser"},
-		{"melee_self_buff", "PhysicalBruiser"},
+		{"melee_self_empower", "PhysicalBruiser"},
 		{"leader", "PhysicalBruiser"},
 		{"combat_passive", "Neutral"},
 		{"prey", "Neutral"},

@@ -18,13 +18,13 @@ steps:
     description: Learn about picking up objects and using them.
     # "status" command
     # give item "20039"
-    # explain how perception is higher due to worn items and buffs in the parenthesis
+    # explain how perception is higher due to worn items and conditions in the parenthesis
   - id: stats #0-stats
     description: Learn about character stats.
-    # Give a special buff (Eye of the Tiger) that heals quickly
+    # Give a special condition (Eye of the Tiger) that heals quickly
     # Spawn a red slime in the room
     # "kill slime"
-    # Take away special buff
+    # Take away special condition
   - id: combat #0-combat
     description: Learn about combat.
     # "say" command

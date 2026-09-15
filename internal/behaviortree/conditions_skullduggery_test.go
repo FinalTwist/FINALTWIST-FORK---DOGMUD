@@ -35,7 +35,7 @@ func TestCondMobIsHidden_TrueWhenConditionPresent(t *testing.T) {
 
 	ctx := &EvalContext{InstanceId: 105}
 	if r := condMobIsHidden(map[string]any{}, ctx); r != Success {
-		t.Errorf("expected Success when mob has Hidden buff, got %v", r)
+		t.Errorf("expected Success when mob has Hidden condition, got %v", r)
 	}
 }
 
@@ -45,7 +45,7 @@ func TestCondMobIsHidden_FalseWhenNoCondition(t *testing.T) {
 
 	ctx := &EvalContext{InstanceId: 105}
 	if r := condMobIsHidden(map[string]any{}, ctx); r != Failure {
-		t.Errorf("expected Failure when mob has no Hidden buff, got %v", r)
+		t.Errorf("expected Failure when mob has no Hidden condition, got %v", r)
 	}
 }
 
@@ -75,7 +75,7 @@ func TestCondTargetIsHidden_TrueWhenTargetConditionPresent(t *testing.T) {
 		Event:      EventContext{UserId: 42},
 	}
 	if r := condTargetIsHidden(map[string]any{}, ctx); r != Success {
-		t.Errorf("expected Success when event user has Hidden buff, got %v", r)
+		t.Errorf("expected Success when event user has Hidden condition, got %v", r)
 	}
 }
 
@@ -99,7 +99,7 @@ func TestCondTargetIsHidden_TrueViaSoftTarget(t *testing.T) {
 		SoftTarget: state.ActorRef{UserId: 42},
 	}
 	if r := condTargetIsHidden(map[string]any{}, ctx); r != Success {
-		t.Errorf("expected Success via SoftTarget with Hidden buff, got %v", r)
+		t.Errorf("expected Success via SoftTarget with Hidden condition, got %v", r)
 	}
 }
 
@@ -124,7 +124,7 @@ func TestCondTargetIsHidden_FalseWhenTargetNotHidden(t *testing.T) {
 		Event:      EventContext{UserId: 42},
 	}
 	if r := condTargetIsHidden(map[string]any{}, ctx); r != Failure {
-		t.Errorf("expected Failure when event user has no Hidden buff, got %v", r)
+		t.Errorf("expected Failure when event user has no Hidden condition, got %v", r)
 	}
 }
 

@@ -24,7 +24,7 @@ containers:
     lock:
       difficulty: 20
       relockinterval: 30 real minutes
-      trapbuffids: [40]
+      trapconditionids: [40]
     long: "A battered iron chest half-buried in fungal growth, its surface
       etched with crude ward symbols. Chrysalis resin seals the hinges."
 spawninfo:

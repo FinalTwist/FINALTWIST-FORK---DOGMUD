@@ -53,7 +53,7 @@ func seedDefensiveCasterSpells(t *testing.T) func() {
 		"nerve-disruption": {
 			SpellId: "nerve-disruption", Name: "Nerve Disruption",
 			Type: spells.HarmSingle, Cost: 40, BaseFolds: 5,
-			EffectType: "buff", ConditionIds: []int{30},
+			EffectType: "condition", ConditionIds: []int{30},
 			Categories: []string{"harm_single"},
 		},
 		// harm_multi

@@ -7,5 +7,5 @@ subtype: edible
 questtoken: 4-return
 uses: 3
 value: 20
-buffids: 
+conditionids: 
 - 17

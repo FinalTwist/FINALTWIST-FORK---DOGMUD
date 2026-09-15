@@ -128,7 +128,7 @@ func actAddCondition(params map[string]any, ctx *EvalContext) Result {
 	if mob == nil {
 		return Failure
 	}
-	conditionId := getIntParam(params, "buff_id")
+	conditionId := getIntParam(params, "condition_id")
 	if conditionId == 0 {
 		return Failure
 	}
@@ -143,7 +143,7 @@ func actRemoveCondition(params map[string]any, ctx *EvalContext) Result {
 	if user == nil {
 		return Failure
 	}
-	conditionId := getIntParam(params, "buff_id")
+	conditionId := getIntParam(params, "condition_id")
 	user.Character.RemoveCondition(conditionId)
 	return Success
 }

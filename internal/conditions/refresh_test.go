@@ -26,7 +26,7 @@ func TestRefreshCondition_KeepsCadenceAcrossRepeatedRefreshes(t *testing.T) {
 
 	bs := New()
 	if !bs.AddCondition(refreshTestCadenceConditionId, false) {
-		t.Fatal("precondition: could not grant the cadence buff")
+		t.Fatal("precondition: could not grant the cadence condition")
 	}
 
 	triggerTotal := 0
@@ -38,7 +38,7 @@ func TestRefreshCondition_KeepsCadenceAcrossRepeatedRefreshes(t *testing.T) {
 		triggerTotal += len(triggered)
 
 		if !bs.RefreshCondition(refreshTestCadenceConditionId) {
-			t.Fatalf("round %d: RefreshCondition returned false for a held buff", round)
+			t.Fatalf("round %d: RefreshCondition returned false for a held condition", round)
 		}
 
 		idx := bs.conditionIds[refreshTestCadenceConditionId]
@@ -63,16 +63,16 @@ func TestRefreshCondition_LeavesAPermanentConditionPermanent(t *testing.T) {
 
 	bs := New()
 	if !bs.AddCondition(refreshTestPermanentConditionId, true) {
-		t.Fatal("precondition: could not grant the permanent buff")
+		t.Fatal("precondition: could not grant the permanent condition")
 	}
 
 	if !bs.RefreshCondition(refreshTestPermanentConditionId) {
-		t.Fatal("RefreshCondition returned false for a held permanent buff")
+		t.Fatal("RefreshCondition returned false for a held permanent condition")
 	}
 
 	idx := bs.conditionIds[refreshTestPermanentConditionId]
 	if !bs.List[idx].Permanent {
-		t.Error("RefreshCondition cleared PermaBuff on a permanent buff")
+		t.Error("RefreshCondition cleared Permanent on a permanent condition")
 	}
 	if got := bs.List[idx].TriggersLeft; got != TriggersLeftUnlimited {
 		t.Errorf("TriggersLeft = %d, want TriggersLeftUnlimited", got)
@@ -107,7 +107,7 @@ func TestRefreshCondition_HeldDeadIdReturnsFalse(t *testing.T) {
 		t.Fatal("precondition: Validate should have indexed the dead id anyway")
 	}
 	if bs.RefreshCondition(refreshTestDeadConditionId) {
-		t.Error("RefreshCondition returned true for a held buff with no live spec")
+		t.Error("RefreshCondition returned true for a held condition with no live spec")
 	}
 }
 

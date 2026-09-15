@@ -8,7 +8,7 @@ description: An opalescent oil with a faint floral scent.
 type: potion
 subtype: drinkable
 uses: 1
-buffids:
+conditionids:
   - 68
 value: 30
 rarity_tier: 40

@@ -96,7 +96,7 @@ func seedAllRegistries() func() {
 	cleanupConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		100: {
 			ConditionId:   100,
-			Name:          "Test Strength Buff",
+			Name:          "Test Strength Condition",
 			Description:   "Boosts strength for testing",
 			RoundInterval: 5,
 			TriggerCount:  3,
@@ -800,7 +800,7 @@ func TestStand_CancelsSleeping(t *testing.T) {
 	u.Character.Conditions.AddCondition(15, false)
 
 	require.True(t, u.Character.HasConditionFlag(conditions.Sleeping),
-		"test setup: Sleeping buff must be applied before calling Stand")
+		"test setup: Sleeping condition must be applied before calling Stand")
 	require.True(t, u.Character.IsStanding(),
 		"test setup: character must be standing (not prone/supine)")
 
@@ -808,7 +808,7 @@ func TestStand_CancelsSleeping(t *testing.T) {
 	assert.True(t, handled)
 	assert.NoError(t, err)
 	assert.False(t, u.Character.HasConditionFlag(conditions.Sleeping),
-		"Sleeping buff must be cancelled by stand")
+		"Sleeping condition must be cancelled by stand")
 }
 
 // ─── Consider ───────────────────────────────────────────────────────────────
@@ -4735,7 +4735,7 @@ func TestConditionsCommandWithHeldCondition(t *testing.T) {
 
 	user, room := getTestUserAndRoom(t)
 
-	t.Run("conditions_with_buff", func(t *testing.T) {
+	t.Run("conditions_with_condition", func(t *testing.T) {
 		user.Character.Conditions.AddCondition(100, false)
 		handled, err := Conditions("", user, room, 0)
 		assert.True(t, handled)
@@ -4795,7 +4795,7 @@ func TestAdminConditionDeep(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("give_buff", func(t *testing.T) {
+	t.Run("give_condition", func(t *testing.T) {
 		handled, err := SetCondition("100", user, room, 0)
 		assert.True(t, handled)
 		_ = err
@@ -6693,19 +6693,19 @@ func TestAdminConditionMoreBranches(t *testing.T) {
 	user, room := getAdminUserAndRoom(t)
 	defer func() { user.Role = users.RoleUser }()
 
-	t.Run("buff_add_to_user", func(t *testing.T) {
+	t.Run("condition_add_to_user", func(t *testing.T) {
 		handled, err := SetCondition("alice 1", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
 
-	t.Run("buff_remove_from_user", func(t *testing.T) {
+	t.Run("condition_remove_from_user", func(t *testing.T) {
 		handled, err := SetCondition("alice remove 1", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
 
-	t.Run("buff_invalid_id", func(t *testing.T) {
+	t.Run("condition_invalid_id", func(t *testing.T) {
 		handled, err := SetCondition("alice 99999", user, room, 0)
 		assert.True(t, handled)
 		_ = err
@@ -6928,7 +6928,7 @@ func TestBuildConditionRows(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
-	t.Run("valid_buff", func(t *testing.T) {
+	t.Run("valid_condition", func(t *testing.T) {
 		stock := characters.Shop{
 			{ConditionId: 100, Price: 50, Quantity: 1, QuantityMax: 5},
 		}
@@ -6937,7 +6937,7 @@ func TestBuildConditionRows(t *testing.T) {
 		_ = rows
 	})
 
-	t.Run("invalid_buff", func(t *testing.T) {
+	t.Run("invalid_condition", func(t *testing.T) {
 		stock := characters.Shop{
 			{ConditionId: 99999, Price: 25},
 		}
@@ -7415,13 +7415,13 @@ func TestAdminConditionAllBranches(t *testing.T) {
 	user, room := getAdminUserAndRoom(t)
 	defer func() { user.Role = users.RoleUser }()
 
-	t.Run("buff_list", func(t *testing.T) {
+	t.Run("condition_list", func(t *testing.T) {
 		handled, err := SetCondition("list", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
 
-	t.Run("buff_info", func(t *testing.T) {
+	t.Run("condition_info", func(t *testing.T) {
 		handled, err := SetCondition("info 100", user, room, 0)
 		assert.True(t, handled)
 		_ = err

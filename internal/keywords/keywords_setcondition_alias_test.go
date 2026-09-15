@@ -9,12 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBuffIsNoLongerAnAlias loads each shipped world's real keywords.yaml and
+// TestOldAdminAliasIsGone loads each shipped world's real keywords.yaml and
 // proves conditions unification slice 3 removed the `buff` alias that slice 2
 // kept for `setcondition` (owner ruling 2026-09-14: alias until slice 3).
 // TryCommandAlias and TryHelpAlias return their input unchanged when no alias
 // matches.
-func TestBuffIsNoLongerAnAlias(t *testing.T) {
+func TestOldAdminAliasIsGone(t *testing.T) {
 	_, here, _, ok := runtime.Caller(0)
 	require.True(t, ok)
 

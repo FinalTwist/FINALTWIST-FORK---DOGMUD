@@ -56,7 +56,7 @@ func TestPerceives(t *testing.T) {
 		}
 	})
 
-	t.Run("see-hidden from a buff, with no pet", func(t *testing.T) {
+	t.Run("see-hidden from a condition, with no pet", func(t *testing.T) {
 		t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 			perceivesVeilConditionId: {ConditionId: perceivesVeilConditionId, Name: "Test Veil", Flags: []conditions.Flag{conditions.SeeHidden}},
 		}))

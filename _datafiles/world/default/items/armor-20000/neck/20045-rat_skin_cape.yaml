@@ -6,5 +6,5 @@ description: A patchwork cape made up of many rat hides.
 type: neck
 subtype: wearable
 damagereduction: 5
-wornbuffids:
+wornconditionids:
   - 3 # Cold Tolerant

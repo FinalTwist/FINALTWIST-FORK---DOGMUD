@@ -29,7 +29,7 @@ func expire(t *testing.T, list []*conditions.Condition, conditionId int) {
 			return
 		}
 	}
-	t.Fatalf("buff %d not found to expire", conditionId)
+	t.Fatalf("condition %d not found to expire", conditionId)
 }
 
 // rawLineContaining returns the first raw (still tagged) line whose plain text
@@ -64,7 +64,7 @@ func TestConditionStartRoomText_UnsightedObserverInTheDarkGetsNothing(t *testing
 
 	ApplyConditions(events.Condition{UserId: 1, ConditionId: glowConditionId})
 	assert.Equal(t, 0, countContaining(drainPlain(2), "glows."),
-		"an observer who cannot see must not be told what a buff looks like")
+		"an observer who cannot see must not be told what a condition looks like")
 }
 
 func TestConditionStartRoomText_NightVisionSeesItInTheDark(t *testing.T) {
@@ -226,7 +226,7 @@ func TestConditionEndRoomText_LightConditionEndIsSeenByItsOwnLight_Player(t *tes
 	require.True(t, holder.Character.Conditions.AddCondition(lanternConditionId, false))
 	require.GreaterOrEqual(t, room.GetVisibility(), 1, "the lantern must light the cave, or this test proves nothing")
 	expire(t, holder.Character.Conditions.List, lanternConditionId)
-	require.Zero(t, room.GetVisibility(), "the light is already out once the buff expires, before any prune")
+	require.Zero(t, room.GetVisibility(), "the light is already out once the condition expires, before any prune")
 	drainPlain(2)
 
 	PruneConditions(events.NewTurn{TurnNumber: 1})

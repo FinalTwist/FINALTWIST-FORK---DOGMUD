@@ -54,7 +54,7 @@ func seedAllRegistries() func() {
 	cleanupConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		100: {
 			ConditionId:   100,
-			Name:          "Test Strength Buff",
+			Name:          "Test Strength Condition",
 			Description:   "Boosts strength for testing",
 			RoundInterval: 5,
 			TriggerCount:  3,
@@ -1219,7 +1219,7 @@ func TestApplyConditions_InvalidConditionId(t *testing.T) {
 
 	evt := events.Condition{UserId: 1, ConditionId: 99999} // nonexistent
 	result := ApplyConditions(evt)
-	assert.Equal(t, events.Continue, result, "nothing to do for an unknown buff ID, and no veto")
+	assert.Equal(t, events.Continue, result, "nothing to do for an unknown condition ID, and no veto")
 }
 
 func TestApplyConditions_InvalidUserId(t *testing.T) {
@@ -1249,7 +1249,7 @@ func TestApplyConditions_AppliesConditionToUser(t *testing.T) {
 	assert.Equal(t, events.Continue, result)
 
 	u := users.GetByUserId(1)
-	assert.True(t, u.Character.HasCondition(100), "user should have buff 100")
+	assert.True(t, u.Character.HasCondition(100), "user should have condition 100")
 }
 
 func TestApplyConditions_AppliesConditionToMob(t *testing.T) {
@@ -1261,7 +1261,7 @@ func TestApplyConditions_AppliesConditionToMob(t *testing.T) {
 	assert.Equal(t, events.Continue, result)
 
 	mob := mobs.GetInstance(100)
-	assert.True(t, mob.Character.HasCondition(100), "mob should have buff 100")
+	assert.True(t, mob.Character.HasCondition(100), "mob should have condition 100")
 }
 
 func TestApplyConditions_NegativeConditionRemoves(t *testing.T) {
@@ -2644,7 +2644,7 @@ func TestApplyMobEffect_Condition(t *testing.T) {
 		SpellId:      "weaken",
 		Name:         "Weaken",
 		Type:         spells.HarmSingle,
-		EffectType:   "buff",
+		EffectType:   "condition",
 		ConditionIds: []int{100},
 	}
 	dmg := applyMobEffect(u, u.Character, mob, room, conditionSpell, 0, spellContestAttackWin())
@@ -2743,7 +2743,7 @@ func TestApplyPlayerEffect_Condition(t *testing.T) {
 	conditionSpell := &spells.SpellData{
 		SpellId:      "bless",
 		Name:         "Bless",
-		EffectType:   "buff",
+		EffectType:   "condition",
 		ConditionIds: []int{100},
 	}
 	applyPlayerEffect(caster, target, room, conditionSpell, 0, spellContestAttackWin())
