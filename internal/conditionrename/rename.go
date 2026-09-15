@@ -60,11 +60,14 @@ func Apply(s string) string {
 }
 
 // HasBuff reports whether s still contains a buff spelling outside the
-// protected words.
+// protected words. It masks protected words the same way Apply does, so
+// removing one cannot splice its neighbours into a false match. Mixed-case
+// spellings such as "BuFf" are reported here but not renamed by Apply; none
+// exist in the repo (checked 2026-09-15), and the guard would surface one.
 func HasBuff(s string) bool {
 	masked := s
-	for _, word := range protected {
-		masked = strings.ReplaceAll(masked, word, "")
+	for i, word := range protected {
+		masked = strings.ReplaceAll(masked, word, maskOpen+strconv.Itoa(i)+maskClose)
 	}
 	return strings.Contains(strings.ToLower(masked), "buff")
 }
