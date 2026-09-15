@@ -388,16 +388,16 @@
                                 <label for="name">Mob Buffs</label>
 
                                 <div class="form-group row form-check container-fluid">
-                                    {{ $buffIds := $spawnInfo.BuffIds }}
+                                    {{ $buffIds := $spawnInfo.ConditionIds }}
                                     {{range $i, $buffSpec := $buffSpecs}}
-                                        <label class="form-check-label col-md-2" for="spawninfo[{{$index}}].buffids-{{$buffSpec.BuffId}}" title="{{ $buffSpec.Description }}"><input 
+                                        <label class="form-check-label col-md-2" for="spawninfo[{{$index}}].buffids-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
                                         class="form-check-input"
-                                        type="checkbox" 
-                                        name="spawninfo[{{$index}}].buffids[]" 
-                                        id="spawninfo[{{$index}}].buffids-{{$buffSpec.BuffId}}" 
-                                        value="{{ $buffSpec.BuffId }}" 
-                                        {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.BuffId}}CHECKED{{end}}{{end}}>
-                                        {{ $buffSpec.BuffId }}. {{ $buffSpec.Name }}</label> 
+                                        type="checkbox"
+                                        name="spawninfo[{{$index}}].buffids[]"
+                                        id="spawninfo[{{$index}}].buffids-{{$buffSpec.ConditionId}}"
+                                        value="{{ $buffSpec.ConditionId }}"
+                                        {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
+                                        {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
                                     {{end}}
                                 </div>
                             </div>
@@ -502,16 +502,16 @@
                                     <h5>Trap Effect:</h5>
 
                                     <div class="form-group row form-check container-fluid">
-                                        {{ $buffIds := $exitInfo.Lock.TrapBuffIds }}
+                                        {{ $buffIds := $exitInfo.Lock.TrapConditionIds }}
                                         {{range $i, $buffSpec := $buffSpecs}}
-                                            <label class="form-check-label col-md-2" for="critbuffids-{{$buffSpec.BuffId}}" title="{{ $buffSpec.Description }}"><input 
+                                            <label class="form-check-label col-md-2" for="critbuffids-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
                                             class="form-check-input"
-                                            type="checkbox" 
-                                            name="critbuffids[]" 
-                                            id="critbuffids-{{$buffSpec.BuffId}}" 
-                                            value="{{ $buffSpec.BuffId }}" 
-                                            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.BuffId}}CHECKED{{end}}{{end}}>
-                                            {{ $buffSpec.BuffId }}. {{ $buffSpec.Name }}</label> 
+                                            type="checkbox"
+                                            name="critbuffids[]"
+                                            id="critbuffids-{{$buffSpec.ConditionId}}"
+                                            value="{{ $buffSpec.ConditionId }}"
+                                            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
+                                            {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
                                         {{end}}
                                     </div>
                                 </div>

@@ -313,12 +313,12 @@ func (b *GameBridge) LearnRecipe(recipe string) {
 	}
 }
 
-// ApplyCondition adds the given condition to the player.
+// ApplyStatusCondition adds the given condition to the player.
 //
 // Through the user record, not the character: a quest reward condition applied with
 // Character.AddCondition queues nothing, so Condition_ApplyConditions never runs and the
 // player reads no line for the condition their quest just earned them.
-func (b *GameBridge) ApplyCondition(bf ConditionDef) {
+func (b *GameBridge) ApplyStatusCondition(bf StatusConditionDef) {
 	// The hook drops an unknown spec without a word, so an authoring typo in a
 	// quest reward would otherwise vanish. The old direct add surfaced it
 	// through the error it returned; this keeps that signal.

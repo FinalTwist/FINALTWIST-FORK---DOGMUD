@@ -92,7 +92,7 @@ func TestValidateRefs_IdExistence(t *testing.T) {
 	q.Triggers[0].Actions = append(q.Triggers[0].Actions,
 		ActionDef{NpcSay: &NpcSayDef{Mob: 999, Lines: []SayLineDef{{Text: "hi"}}}},
 		ActionDef{SpawnItem: &SpawnDef{Id: 888, Room: 777}},
-		ActionDef{ApplyCondition: &ConditionDef{Condition: 666}},
+		ActionDef{ApplyStatusCondition: &StatusConditionDef{Condition: 666}},
 	)
 	q.Steps[0].MapTarget = 777
 	q.Rewards.ItemId = 888

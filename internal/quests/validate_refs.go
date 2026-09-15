@@ -161,8 +161,8 @@ func (c *refsCtx) checkActions(where string, actions []ActionDef, depth int) {
 		if a.LearnRecipe != nil && !c.v.RecipeExists(a.LearnRecipe.Recipe) {
 			c.errf("%s: learn_recipe %q does not exist", aw, a.LearnRecipe.Recipe)
 		}
-		if a.ApplyCondition != nil && a.ApplyCondition.Condition > 0 && !c.v.ConditionExists(a.ApplyCondition.Condition) {
-			c.errf("%s: buff %d does not exist", aw, a.ApplyCondition.Condition)
+		if a.ApplyStatusCondition != nil && a.ApplyStatusCondition.Condition > 0 && !c.v.ConditionExists(a.ApplyStatusCondition.Condition) {
+			c.errf("%s: buff %d does not exist", aw, a.ApplyStatusCondition.Condition)
 		}
 		c.checkRoom(aw+" teleport", a.Teleport)
 		if a.SetFlag != nil {

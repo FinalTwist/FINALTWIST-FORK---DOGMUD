@@ -105,7 +105,7 @@ func TestSmoke_ServerBootsCleanWithRealData(t *testing.T) {
 		{"rooms", len(rooms.GetAllRoomIds())},
 		{"mob templates", len(mobs.AllMobTemplates())},
 		{"spells", len(spells.GetAllSpells())},
-		{"buffs", len(conditions.GetAllConditionIds())},
+		{"conditions", len(conditions.GetAllConditionIds())},
 		{"quests", len(quests.GetAllQuests())},
 		{"crafting recipes", len(crafting.GetAll())},
 	}
@@ -260,17 +260,17 @@ var knownIgnoredDialogueKeys = map[string]bool{}
 // To clear an entry: fix the content (or add the field to the struct), confirm
 // the count drops, and delete the line.
 var knownSilentlyIgnoredKeys = map[string]bool{
-	"coord|rooms.Room":             true,
-	"level|characters.Character":   true,
-	"zone|exit.RoomExit":           true,
-	"items|mobs.Mob":               true,
-	"tactics|characters.Character": true,
-	"long|rooms.Container":         true,
-	"scriptag|mobs.Mob":            true,
-	"allow_recall|rooms.Room":      true,
-	"visible|buffs.BuffSpec":       true,
-	"sequential|buffs.BuffSpec":    true,
-	"expireMessage|buffs.BuffSpec": true,
+	"coord|rooms.Room":                       true,
+	"level|characters.Character":             true,
+	"zone|exit.RoomExit":                     true,
+	"items|mobs.Mob":                         true,
+	"tactics|characters.Character":           true,
+	"long|rooms.Container":                   true,
+	"scriptag|mobs.Mob":                      true,
+	"allow_recall|rooms.Room":                true,
+	"visible|conditions.ConditionSpec":       true,
+	"sequential|conditions.ConditionSpec":    true,
+	"expireMessage|conditions.ConditionSpec": true,
 }
 
 var unknownKeyRe = regexp.MustCompile(`field ([A-Za-z_0-9]+) not found in type ([A-Za-z_.]+)`)

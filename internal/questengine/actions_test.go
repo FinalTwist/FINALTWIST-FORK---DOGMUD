@@ -31,7 +31,7 @@ type mockActionContext struct {
 	spawnedMobs       []SpawnDef
 	spawnedItems      []SpawnDef
 	taughtSpells      []string
-	appliedConditions []ConditionDef
+	appliedConditions []StatusConditionDef
 	teleported        int
 	lockedExits       []ExitLock
 	unlockedExits     []ExitLock
@@ -82,7 +82,7 @@ func (m *mockActionContext) IncreaseStat(stat string, amount int) {
 func (m *mockActionContext) LearnRecipe(recipe string) {
 	m.learnedRecipes = append(m.learnedRecipes, recipe)
 }
-func (m *mockActionContext) ApplyCondition(b ConditionDef) {
+func (m *mockActionContext) ApplyStatusCondition(b StatusConditionDef) {
 	m.appliedConditions = append(m.appliedConditions, b)
 }
 func (m *mockActionContext) Teleport(roomId int)            { m.teleported = roomId }
