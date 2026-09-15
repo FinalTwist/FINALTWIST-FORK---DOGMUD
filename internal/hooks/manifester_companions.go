@@ -37,7 +37,7 @@ func tickCompanionEmpowerment(user *users.UserRecord, room *rooms.Room) {
 		if mob == nil || mob.Character.RoomId != user.Character.RoomId {
 			continue
 		}
-		mob.Character.AddCondition(empoweredByBondCondition, false)
+		_ = mob.Character.AddCondition(empoweredByBondCondition, false)
 	}
 }
 

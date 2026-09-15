@@ -539,7 +539,7 @@ func (bs *Conditions) Prune() (prunedConditions []*Condition) {
 		return prunedConditions
 	}
 
-	var prune bool = false
+	var prune bool
 	var didPrune bool = false
 	for i := len(bs.List) - 1; i >= 0; i-- {
 

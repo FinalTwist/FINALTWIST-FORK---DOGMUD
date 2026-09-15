@@ -33,7 +33,7 @@ func (c *Character) HasFlagFromAnySource(conditionFlag conditions.Flag) bool {
 
 func (c *Character) CancelConditionsWithFlag(conditionFlag conditions.Flag) bool {
 	if c.Conditions.HasFlag(conditionFlag, true) {
-		c.Validate(true)
+		_ = c.Validate(true)
 		// Hidden flag is special: the Awareness FSM mirrors the condition
 		// via Awareness_Cascades.go. If a caller cancels the condition
 		// directly (eat/drink/give/get/equip/spotted-on-entry/etc.)
@@ -125,7 +125,7 @@ func (c *Character) AddCondition(conditionId int, isPermanent bool) error {
 		_ = c.Perception.TransitionTo(perception.Blinded,
 			state.TransitionReason{Trigger: perception.TriggerConditionApplied, Metadata: map[string]any{"conditionId": conditionId}})
 	}
-	c.Validate()
+	_ = c.Validate()
 	return nil
 }
 
@@ -141,7 +141,7 @@ func (c *Character) AddConditionScaled(conditionId int, durationMult float64) er
 		_ = c.Perception.TransitionTo(perception.Blinded,
 			state.TransitionReason{Trigger: perception.TriggerConditionApplied, Metadata: map[string]any{"conditionId": conditionId}})
 	}
-	c.Validate()
+	_ = c.Validate()
 	return nil
 }
 
@@ -185,7 +185,7 @@ func (c *Character) RemoveCondition(conditionId int) {
 		_ = c.Perception.TransitionTo(perception.Sighted,
 			state.TransitionReason{Trigger: perception.TriggerConditionExpired, Metadata: map[string]any{"conditionId": conditionId}})
 	}
-	c.Validate()
+	_ = c.Validate()
 }
 
 // Used with SpawnInfo to gift spawning mobs with permanent conditions
@@ -260,7 +260,7 @@ func (c *Character) reapplyPermanentConditions(removedItems ...items.Item) {
 		if ct < 1 {
 			c.RemoveCondition(conditionId)
 		} else {
-			c.AddCondition(conditionId, true)
+			_ = c.AddCondition(conditionId, true)
 		}
 	}
 }
