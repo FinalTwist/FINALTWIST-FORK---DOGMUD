@@ -77,7 +77,7 @@ func TestTemplateFreeze_StatusReadsTheBrokenLimbRecord(t *testing.T) {
 
 	out, err := templates.Process("character/status", user, user.UserId)
 	require.NoError(t, err)
-	assert.Contains(t, out, "Broken limb", "status reads .Character.Buffs.HasBuff and .TriggersLeft")
+	assert.Contains(t, out, "Broken limb", "status reads .Character.Conditions.HasCondition and .TriggersLeft")
 }
 
 func TestTemplateFreeze_IdentifyReadsConditionIds(t *testing.T) {
@@ -98,8 +98,8 @@ func TestTemplateFreeze_IdentifyReadsConditionIds(t *testing.T) {
 		ItemSpec *items.ItemSpec
 	}{&item, &spec}, 0)
 	require.NoError(t, err)
-	assert.Contains(t, out, "Probe Glow", "identify reads $spec.BuffIds")
-	assert.Contains(t, out, "Probe Rend", "identify reads $spec.Damage.CritBuffIds")
+	assert.Contains(t, out, "Probe Glow", "identify reads $spec.ConditionIds")
+	assert.Contains(t, out, "Probe Rend", "identify reads $spec.Damage.CritConditionIds")
 }
 
 func TestTemplateFreeze_SpeciesHelpReadsConditionIds(t *testing.T) {

@@ -107,7 +107,7 @@ func mobData(w http.ResponseWriter, r *http.Request) {
 
 	shopData := map[string]characters.Shop{
 		`Items`:       {},
-		`Buffs`:       {},
+		`Conditions`:  {},
 		`Mercenaries`: {},
 		`Pets`:        {},
 	}
@@ -120,7 +120,7 @@ func mobData(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if shopItm.ConditionId > 0 {
-			shopData[`Buffs`] = append(shopData[`Buffs`], shopItm)
+			shopData[`Conditions`] = append(shopData[`Conditions`], shopItm)
 			continue
 		}
 

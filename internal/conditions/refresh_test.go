@@ -38,7 +38,7 @@ func TestRefreshCondition_KeepsCadenceAcrossRepeatedRefreshes(t *testing.T) {
 		triggerTotal += len(triggered)
 
 		if !bs.RefreshCondition(refreshTestCadenceConditionId) {
-			t.Fatalf("round %d: RefreshBuff returned false for a held buff", round)
+			t.Fatalf("round %d: RefreshCondition returned false for a held buff", round)
 		}
 
 		idx := bs.conditionIds[refreshTestCadenceConditionId]
@@ -67,12 +67,12 @@ func TestRefreshCondition_LeavesAPermanentConditionPermanent(t *testing.T) {
 	}
 
 	if !bs.RefreshCondition(refreshTestPermanentConditionId) {
-		t.Fatal("RefreshBuff returned false for a held permanent buff")
+		t.Fatal("RefreshCondition returned false for a held permanent buff")
 	}
 
 	idx := bs.conditionIds[refreshTestPermanentConditionId]
 	if !bs.List[idx].Permanent {
-		t.Error("RefreshBuff cleared PermaBuff on a permanent buff")
+		t.Error("RefreshCondition cleared PermaBuff on a permanent buff")
 	}
 	if got := bs.List[idx].TriggersLeft; got != TriggersLeftUnlimited {
 		t.Errorf("TriggersLeft = %d, want TriggersLeftUnlimited", got)
@@ -88,7 +88,7 @@ func TestRefreshCondition_UnheldIdReturnsFalse(t *testing.T) {
 
 	bs := New()
 	if bs.RefreshCondition(refreshTestUnheldConditionId) {
-		t.Error("RefreshBuff returned true for an id never added")
+		t.Error("RefreshCondition returned true for an id never added")
 	}
 }
 
@@ -107,7 +107,7 @@ func TestRefreshCondition_HeldDeadIdReturnsFalse(t *testing.T) {
 		t.Fatal("precondition: Validate should have indexed the dead id anyway")
 	}
 	if bs.RefreshCondition(refreshTestDeadConditionId) {
-		t.Error("RefreshBuff returned true for a held buff with no live spec")
+		t.Error("RefreshCondition returned true for a held buff with no live spec")
 	}
 }
 
@@ -131,7 +131,7 @@ func TestRefreshCondition_RefusesAStackingSpec(t *testing.T) {
 	wantTriggersLeft := bs.List[0].TriggersLeft
 
 	if bs.RefreshCondition(spec.ConditionId) {
-		t.Fatal("RefreshBuff must refuse a stacking spec")
+		t.Fatal("RefreshCondition must refuse a stacking spec")
 	}
 	if got := bs.List[0].Stacks; !reflect.DeepEqual(got, wantStacks) {
 		t.Fatalf("Stacks = %+v, want unchanged %+v", got, wantStacks)

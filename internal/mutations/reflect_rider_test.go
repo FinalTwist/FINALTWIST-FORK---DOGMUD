@@ -17,11 +17,11 @@ func TestGetReflectRiderConditions(t *testing.T) {
 	// Flavored variant carries its rider condition id.
 	got := GetReflectRiderConditions(map[string]int{"reflect-skin-molten": 1})
 	if len(got) != 1 || got[0] != 106 {
-		t.Fatalf("GetReflectRiderBuffs(molten) = %v, want [106]", got)
+		t.Fatalf("GetReflectRiderConditions(molten) = %v, want [106]", got)
 	}
 	// Barbed reflects but carries no rider.
 	if got := GetReflectRiderConditions(map[string]int{"reflect-skin-barbed": 1}); len(got) != 0 {
-		t.Fatalf("GetReflectRiderBuffs(barbed) = %v, want []", got)
+		t.Fatalf("GetReflectRiderConditions(barbed) = %v, want []", got)
 	}
 	if len(GetReflectRiderConditions(map[string]int{})) != 0 {
 		t.Fatal("no mutations → no reflect riders")

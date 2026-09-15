@@ -156,7 +156,7 @@ func TestAdminMobTemplateExecutesWithConditionIds(t *testing.T) {
 
 	tplData := map[string]any{}
 	tplData[`mobInfo`] = mob
-	tplData[`mobShop`] = map[string]characters.Shop{`Items`: {}, `Buffs`: {}, `Mercenaries`: {}, `Pets`: {}}
+	tplData[`mobShop`] = map[string]characters.Shop{`Items`: {}, `Conditions`: {}, `Mercenaries`: {}, `Pets`: {}}
 	tplData[`characterInfo`] = &mob.Character
 	tplData[`allZoneNames`] = []string{}
 	tplData[`allSpecies`] = []species.Species{}

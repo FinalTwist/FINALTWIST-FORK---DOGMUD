@@ -20,13 +20,19 @@ import (
 
 const identifierGuardSpecPath = "docs/superpowers/specs/2026-09-14-conditions-unification-slice-2-rename-design.md"
 
-// identifierGuardWordPattern matches "buff" in any case. identifierGuardNotBuff
-// exempts identifiers about bytes.Buffer / ring buffers / io buffering, which
-// are not the condition concept and were never renamed (spec: "not buff at
-// all: identifiers containing Buffer/buffer").
+// identifierGuardWordPattern matches "buff" in any case.
+// identifierGuardBufferSubstring strips every case-sensitive "buffer",
+// "Buffer" or "BUFFER" run out of an identifier before it is tested for
+// "buff" again, so an identifier about bytes.Buffer / ring buffers / io
+// buffering reads as exempt (spec: "not buff at all: identifiers containing
+// Buffer/buffer") while one that merely CONTAINS the word "buffer" only
+// case-insensitively (e.g. "buffErr", which lowercases to "bufferr") still
+// reads as a real leftover "buff" identifier once that substring fails to
+// strip. A plain `(?i)buffer` exemption let "buffErr" through undetected;
+// this two-step check is the fix.
 var (
-	identifierGuardWordPattern = regexp.MustCompile(`(?i)buff`)
-	identifierGuardNotBuff     = regexp.MustCompile(`(?i)buffer`)
+	identifierGuardWordPattern     = regexp.MustCompile(`(?i)buff`)
+	identifierGuardBufferSubstring = regexp.MustCompile(`[Bb]uffer|BUFFER`)
 	// The three config fields that keep their buff spelling until slice 3
 	// renames them together with their yaml keys (spec: "Config fields that
 	// keep their names until slice 3").
@@ -131,7 +137,8 @@ func TestNoIdentifierSaysBuff(t *testing.T) {
 			if lit == "_" || !identifierGuardWordPattern.MatchString(lit) {
 				continue
 			}
-			if identifierGuardNotBuff.MatchString(lit) || identifierGuardAllowedNames[lit] {
+			remainder := identifierGuardBufferSubstring.ReplaceAllString(lit, "")
+			if identifierGuardAllowedNames[lit] || !identifierGuardWordPattern.MatchString(remainder) {
 				continue
 			}
 			offenses = append(offenses, offense{rel, fset.Position(pos).Line, lit})

@@ -142,7 +142,7 @@ func TestCollectCategoryCandidates_SkipsConditionAlreadyActive(t *testing.T) {
 
 	char := &characters.Character{Conviction: 100, Conditions: b}
 	if !char.HasCondition(10) {
-		t.Fatal("test setup: HasBuff(10) should be true after seeding List")
+		t.Fatal("test setup: HasCondition(10) should be true after seeding List")
 	}
 
 	sb := map[string]int{"d1": 1, "d2": 1}

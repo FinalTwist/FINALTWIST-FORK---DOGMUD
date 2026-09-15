@@ -75,7 +75,7 @@ func (b *ConditionSpec) validateNarration() error {
 		// line or only a room line, so no fixed shape exists to declare. The
 		// blank-variant check is what this call is for.
 		if err := narration.ValidateVariants(v, 1); err != nil {
-			return fmt.Errorf("buffId %d (%s) %s text: %w", b.ConditionId, b.Name, ph.name, err)
+			return fmt.Errorf("conditionId %d (%s) %s text: %w", b.ConditionId, b.Name, ph.name, err)
 		}
 	}
 	return nil

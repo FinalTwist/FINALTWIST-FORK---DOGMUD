@@ -13,7 +13,7 @@ func TestGetAllyAuraConditions(t *testing.T) {
 
 	got := GetAllyAuraConditions(map[string]int{"commanding-presence": 1, "plain": 1})
 	if len(got) != 1 || got[0] != 101 {
-		t.Fatalf("GetAllyAuraBuffs = %v, want [101]", got)
+		t.Fatalf("GetAllyAuraConditions = %v, want [101]", got)
 	}
 	if len(GetAllyAuraConditions(map[string]int{})) != 0 {
 		t.Fatal("no mutations → no auras")

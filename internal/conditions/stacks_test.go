@@ -122,7 +122,7 @@ func TestRemoveConditionClearsStacks(t *testing.T) {
 	bs.AddConditionMagnitude(930, 3, -2)
 	bs.RemoveCondition(930)
 	if len(bs.List[0].Stacks) != 0 {
-		t.Fatalf("RemoveBuff must clear the stacks, got %+v", bs.List[0].Stacks)
+		t.Fatalf("RemoveCondition must clear the stacks, got %+v", bs.List[0].Stacks)
 	}
 }
 
@@ -272,7 +272,7 @@ func TestAddConditionRefusesAStackingSpec(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
 	if bs.AddCondition(930, false) {
-		t.Fatal("AddBuff must refuse a stacking spec")
+		t.Fatal("AddCondition must refuse a stacking spec")
 	}
 	if bs.HasCondition(930) {
 		t.Fatal("a refused add must hold nothing")
@@ -283,7 +283,7 @@ func TestAddConditionScaledRefusesAStackingSpec(t *testing.T) {
 	withSpecs(t, stackingSpec())
 	bs := New()
 	if bs.AddConditionScaled(930, 1.0) {
-		t.Fatal("AddBuffScaled must refuse a stacking spec")
+		t.Fatal("AddConditionScaled must refuse a stacking spec")
 	}
 	if bs.HasCondition(930) {
 		t.Fatal("a refused add must hold nothing")

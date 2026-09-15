@@ -102,7 +102,7 @@ func seedConditionOnChar(t *testing.T, char *characters.Character, conditionId i
 	})
 	char.Conditions.Validate(true)
 	if !char.HasCondition(conditionId) {
-		t.Fatalf("seedBuffOnChar: HasBuff(%d) false after seeding — setup broken", conditionId)
+		t.Fatalf("seedConditionOnChar: HasCondition(%d) false after seeding — setup broken", conditionId)
 	}
 	return cleanupCondition
 }

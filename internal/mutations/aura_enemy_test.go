@@ -10,7 +10,7 @@ func TestGetEnemyAuraConditions(t *testing.T) {
 	defer cleanup()
 	got := GetEnemyAuraConditions(map[string]int{"dissonance-organ": 1})
 	if len(got) != 1 || got[0] != 102 {
-		t.Fatalf("GetEnemyAuraBuffs = %v, want [102]", got)
+		t.Fatalf("GetEnemyAuraConditions = %v, want [102]", got)
 	}
 	if len(GetEnemyAuraConditions(map[string]int{})) != 0 {
 		t.Fatal("no mutations → no enemy auras")

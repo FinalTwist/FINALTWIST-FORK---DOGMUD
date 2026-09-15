@@ -282,7 +282,7 @@
     train_skill:   [{ k: "skill", kind: "skill", label: "Skill", nest: true }, { k: "level", kind: "num", label: "Level", nest: true }],
     train_stat:    [{ k: "stat", kind: "stat", label: "Stat", nest: true }, { k: "amount", kind: "num", label: "Amount", nest: true }],
     learn_recipe:  [{ k: "recipe", kind: "recipe", label: "Recipe", nest: true }],
-    apply_buff:    [{ k: "buff", kind: "buff", label: "Condition", nest: true }, { k: "source", kind: "text", label: "Source (optional)", nest: true }],
+    apply_buff:    [{ k: "buff", kind: "buff", label: "Status condition", nest: true }, { k: "source", kind: "text", label: "Source (optional)", nest: true }],
     set_flag:      [{ k: "key", kind: "flagkey", label: "Flag key", nest: true }, { k: "value", kind: "text", label: "Value", nest: true }],
     bump_rep:      [{ k: "faction", kind: "faction", label: "Faction", nest: true }, { k: "delta", kind: "num", label: "Delta", nest: true }],
     sequence:      "custom",
@@ -736,7 +736,7 @@
     var rItem = numInput(rw.itemid, "q-item-dl");
     insp.appendChild(field("Item", rItem));
     var rBuff = numInput(rw.buffid, "q-buff-dl");
-    insp.appendChild(field("Condition", rBuff));
+    insp.appendChild(field("Status condition", rBuff));
     var rSpell = strPick(rw.spellid, "q-spell-dl");
     insp.appendChild(field("Spell taught", rSpell));
     var rSkill = pairRows(rw.skillinfo, "q-skill-dl", "skill", "level");

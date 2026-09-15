@@ -56,7 +56,7 @@ func TestCancelCombatConditions_DrivesAwarenessOutOfHidden(t *testing.T) {
 	c.CancelCombatConditions()
 
 	if c.IsHidden() {
-		t.Error("CancelCombatBuffs must end stealth: IsHidden() reads the " +
+		t.Error("CancelCombatConditions must end stealth: IsHidden() reads the " +
 			"awareness FSM, so cancelling the mirror buff alone is not enough")
 	}
 	if c.HasConditionFlag(conditions.Hidden) {

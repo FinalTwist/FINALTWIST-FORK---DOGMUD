@@ -28,7 +28,7 @@ func TestApplyPurgeEffects(t *testing.T) {
 	u := &users.UserRecord{UserId: 7104, Character: c}
 
 	if err := c.AddConditionScaled(61, 1.0); err != nil {
-		t.Fatalf("setup: AddBuffScaled(61) = %v", err)
+		t.Fatalf("setup: AddConditionScaled(61) = %v", err)
 	}
 	c.Toxicity = 40
 	events.DrainQueuedConditionsForTest(u.UserId) // start from a clean queue

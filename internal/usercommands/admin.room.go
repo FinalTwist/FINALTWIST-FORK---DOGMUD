@@ -369,7 +369,7 @@ func editLockAndTrap(cmdPrompt *prompt.Prompt, user *users.UserRecord, lock game
 		if question.Response == `yes` {
 
 			selectedConditionList := []int{}
-			if cb, ok := cmdPrompt.Recall(`trapBuffs`); ok {
+			if cb, ok := cmdPrompt.Recall(`trapConditions`); ok {
 				selectedConditionList = cb.([]int)
 			}
 
@@ -378,7 +378,7 @@ func editLockAndTrap(cmdPrompt *prompt.Prompt, user *users.UserRecord, lock game
 			}
 
 			// Keep track of the state
-			cmdPrompt.Store(`trapBuffs`, selectedConditionList)
+			cmdPrompt.Store(`trapConditions`, selectedConditionList)
 
 			selectedConditionLookup := map[int]bool{}
 			for _, bId := range selectedConditionList {
@@ -462,7 +462,7 @@ func editLockAndTrap(cmdPrompt *prompt.Prompt, user *users.UserRecord, lock game
 
 				}
 
-				cmdPrompt.Store(`trapBuffs`, selectedConditionList)
+				cmdPrompt.Store(`trapConditions`, selectedConditionList)
 
 				question.RejectResponse()
 
@@ -479,7 +479,7 @@ func editLockAndTrap(cmdPrompt *prompt.Prompt, user *users.UserRecord, lock game
 
 		}
 
-		if cb, ok := cmdPrompt.Recall(`trapBuffs`); ok {
+		if cb, ok := cmdPrompt.Recall(`trapConditions`); ok {
 			lock.TrapConditionIds = cb.([]int)
 		}
 

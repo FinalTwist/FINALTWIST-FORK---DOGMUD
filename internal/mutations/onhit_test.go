@@ -13,7 +13,7 @@ func TestGetOnHitConditions(t *testing.T) {
 
 	got := GetOnHitConditions(map[string]int{"venom-glands": 1, "plain": 1})
 	if len(got) != 1 || got[0] != 39 {
-		t.Fatalf("GetOnHitBuffs = %v, want [39]", got)
+		t.Fatalf("GetOnHitConditions = %v, want [39]", got)
 	}
 	if len(GetOnHitConditions(map[string]int{})) != 0 {
 		t.Fatal("no mutations → no on-hit buffs")

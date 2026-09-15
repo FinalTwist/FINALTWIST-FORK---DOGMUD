@@ -57,10 +57,10 @@ func TestIntegration_ConditionBlindedAppliesBlinded(t *testing.T) {
 		t.Fatalf("initial state = %v, want Sighted", c.Perception.State())
 	}
 	if err := c.AddCondition(perception.ConditionIdBlinded, false); err != nil {
-		t.Fatalf("AddBuff(3): %v", err)
+		t.Fatalf("AddCondition(3): %v", err)
 	}
 	if c.Perception.State() != perception.Blinded {
-		t.Errorf("after AddBuff(3), state = %v, want Blinded", c.Perception.State())
+		t.Errorf("after AddCondition(3), state = %v, want Blinded", c.Perception.State())
 	}
 }
 
@@ -74,14 +74,14 @@ func TestIntegration_OverlapKeepsBlinded(t *testing.T) {
 
 	c := characters.New()
 	if err := c.AddCondition(perception.ConditionIdBlinded, false); err != nil {
-		t.Fatalf("AddBuff(3): %v", err)
+		t.Fatalf("AddCondition(3): %v", err)
 	}
 	if err := c.AddCondition(perception.ConditionIdFlashbangBlindness, false); err != nil {
-		t.Fatalf("AddBuff(77): %v", err)
+		t.Fatalf("AddCondition(77): %v", err)
 	}
 	c.RemoveCondition(perception.ConditionIdBlinded)
 	if c.Perception.State() != perception.Blinded {
-		t.Errorf("after removing buff 3 but buff 77 still active, state = %v, want Blinded", c.Perception.State())
+		t.Errorf("after removing condition 3 but condition 77 still active, state = %v, want Blinded", c.Perception.State())
 	}
 }
 
@@ -106,16 +106,16 @@ func TestIntegration_ReapplyConditionNoOp(t *testing.T) {
 
 	c := characters.New()
 	if err := c.AddCondition(perception.ConditionIdBlinded, false); err != nil {
-		t.Fatalf("first AddBuff: %v", err)
+		t.Fatalf("first AddCondition: %v", err)
 	}
 	// Re-add the same condition (the condition system stacks duration, but the
 	// blind-source state is the same). The current-state guard in
 	// AddCondition prevents the transition from firing twice.
 	if err := c.AddCondition(perception.ConditionIdBlinded, false); err != nil {
-		t.Fatalf("second AddBuff: %v", err)
+		t.Fatalf("second AddCondition: %v", err)
 	}
 	if c.Perception.State() != perception.Blinded {
-		t.Errorf("after duplicate AddBuff, state = %v, want Blinded", c.Perception.State())
+		t.Errorf("after duplicate AddCondition, state = %v, want Blinded", c.Perception.State())
 	}
 }
 
@@ -125,14 +125,14 @@ func TestIntegration_FlashbangBlindness(t *testing.T) {
 
 	c := characters.New()
 	if err := c.AddCondition(perception.ConditionIdFlashbangBlindness, false); err != nil {
-		t.Fatalf("AddBuff(77): %v", err)
+		t.Fatalf("AddCondition(77): %v", err)
 	}
 	if c.Perception.State() != perception.Blinded {
-		t.Errorf("after AddBuff(77), state = %v, want Blinded", c.Perception.State())
+		t.Errorf("after AddCondition(77), state = %v, want Blinded", c.Perception.State())
 	}
 	c.RemoveCondition(perception.ConditionIdFlashbangBlindness)
 	if c.Perception.State() != perception.Sighted {
-		t.Errorf("after RemoveBuff(77), state = %v, want Sighted", c.Perception.State())
+		t.Errorf("after RemoveCondition(77), state = %v, want Sighted", c.Perception.State())
 	}
 }
 
@@ -143,25 +143,25 @@ func TestIntegration_MixedSourceOrder(t *testing.T) {
 
 	c := characters.New()
 	if err := c.AddCondition(perception.ConditionIdFlashbangBlindness, false); err != nil {
-		t.Fatalf("AddBuff(77): %v", err)
+		t.Fatalf("AddCondition(77): %v", err)
 	}
 	if c.Perception.State() != perception.Blinded {
-		t.Fatalf("after AddBuff(77), state = %v, want Blinded", c.Perception.State())
+		t.Fatalf("after AddCondition(77), state = %v, want Blinded", c.Perception.State())
 	}
 	if err := c.AddCondition(perception.ConditionIdBlinded, false); err != nil {
-		t.Fatalf("AddBuff(3): %v", err)
+		t.Fatalf("AddCondition(3): %v", err)
 	}
 	// Re-adding-while-already-Blinded path; state must remain Blinded.
 	if c.Perception.State() != perception.Blinded {
-		t.Errorf("after AddBuff(3) while already blinded, state = %v, want Blinded", c.Perception.State())
+		t.Errorf("after AddCondition(3) while already blinded, state = %v, want Blinded", c.Perception.State())
 	}
 	c.RemoveCondition(perception.ConditionIdFlashbangBlindness)
 	// Condition 3 still active → still Blinded.
 	if c.Perception.State() != perception.Blinded {
-		t.Errorf("after RemoveBuff(77) (buff 3 still active), state = %v, want Blinded", c.Perception.State())
+		t.Errorf("after RemoveCondition(77) (condition 3 still active), state = %v, want Blinded", c.Perception.State())
 	}
 	c.RemoveCondition(perception.ConditionIdBlinded)
 	if c.Perception.State() != perception.Sighted {
-		t.Errorf("after RemoveBuff (no sources left), state = %v, want Sighted", c.Perception.State())
+		t.Errorf("after RemoveCondition (no sources left), state = %v, want Sighted", c.Perception.State())
 	}
 }

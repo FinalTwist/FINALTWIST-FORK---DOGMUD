@@ -91,10 +91,10 @@ func (b *ConditionSpec) validateEffects() error {
 	}
 	if b.TickFromMagnitude {
 		if b.TickPool == "" {
-			return fmt.Errorf("buffId %d (%s) sets tick_from_magnitude without tick_pool", b.ConditionId, b.Name)
+			return fmt.Errorf("conditionId %d (%s) sets tick_from_magnitude without tick_pool", b.ConditionId, b.Name)
 		}
 		if b.TickPercent != 0 {
-			return fmt.Errorf("buffId %d (%s) sets both tick_from_magnitude and tick_percent; the applier's magnitude IS the per-round amount", b.ConditionId, b.Name)
+			return fmt.Errorf("conditionId %d (%s) sets both tick_from_magnitude and tick_percent; the applier's magnitude IS the per-round amount", b.ConditionId, b.Name)
 		}
 	}
 	return nil

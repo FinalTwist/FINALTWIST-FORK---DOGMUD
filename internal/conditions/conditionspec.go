@@ -334,10 +334,10 @@ func (b *ConditionSpec) Validate() error {
 		b.RoundInterval = int(validationCalculator.AddPeriod(b.TriggerRate) - validationRound)
 
 		if b.TriggerCount < 1 {
-			return fmt.Errorf("buffId %d (%s) has a TriggersCount of < 1, must be at least 1", b.ConditionId, b.Name)
+			return fmt.Errorf("conditionId %d (%s) has a TriggersCount of < 1, must be at least 1", b.ConditionId, b.Name)
 		}
 		if b.RoundInterval < 1 {
-			return fmt.Errorf("buffId %d (%s) has a RoundInterval of < 1, must be at least 1. Is %s a valid time string?", b.ConditionId, b.Name, b.TriggerRate)
+			return fmt.Errorf("conditionId %d (%s) has a RoundInterval of < 1, must be at least 1. Is %s a valid time string?", b.ConditionId, b.Name, b.TriggerRate)
 		}
 	}
 
@@ -347,10 +347,10 @@ func (b *ConditionSpec) Validate() error {
 	// leaves it 0 and is refused too.
 	if b.IsStacking() {
 		if !b.TickFromMagnitude {
-			return fmt.Errorf("buffId %d (%s) is stacking without tick_from_magnitude; a stack's amount is the applier's magnitude", b.ConditionId, b.Name)
+			return fmt.Errorf("conditionId %d (%s) is stacking without tick_from_magnitude; a stack's amount is the applier's magnitude", b.ConditionId, b.Name)
 		}
 		if b.RoundInterval != 1 {
-			return fmt.Errorf("buffId %d (%s) is stacking with triggerrate %q; a stack counts rounds, so the record must tick every round", b.ConditionId, b.Name, b.TriggerRate)
+			return fmt.Errorf("conditionId %d (%s) is stacking with triggerrate %q; a stack counts rounds, so the record must tick every round", b.ConditionId, b.Name, b.TriggerRate)
 		}
 	}
 
@@ -418,7 +418,7 @@ func LoadDataFiles() {
 	// do nothing, the way the Cat's Eye Draught did. Fail the boot instead.
 	ValidateLoadedFlags()
 
-	mudlog.Info("buffSpec.LoadDataFiles()", "loadedCount", len(conditions), "Time Taken", time.Since(start))
+	mudlog.Info("conditionSpec.LoadDataFiles()", "loadedCount", len(conditions), "Time Taken", time.Since(start))
 }
 
 // HasSpec reports whether a condition id is defined. Mirrors mutations.HasSpec so

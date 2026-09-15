@@ -102,10 +102,10 @@ func TestApplyConditionOverrides(t *testing.T) {
 		t.Fatalf("specs changed = %d, want 2", n)
 	}
 	if got := specs["weather-storm"].PlayerConditionIds; !reflect.DeepEqual(got, []int{7, 8}) {
-		t.Errorf("storm PlayerBuffIds = %v, want [7 8]", got)
+		t.Errorf("storm PlayerConditionIds = %v, want [7 8]", got)
 	}
 	if got := specs["weather-storm"].MobConditionIds; !reflect.DeepEqual(got, []int{4}) {
-		t.Errorf("storm MobBuffIds must be untouched: %v", got)
+		t.Errorf("storm MobConditionIds must be untouched: %v", got)
 	}
 	if got := specs["weather-blizzard"].PlayerConditionIds; len(got) != 0 {
 		t.Errorf("blizzard buffs not stripped: %v", got)
@@ -117,6 +117,6 @@ func TestApplyConditionOverrides(t *testing.T) {
 	// The spec must not alias the config map's backing array.
 	src["storm"][0] = 99
 	if specs["weather-storm"].PlayerConditionIds[0] != 7 {
-		t.Error("spec PlayerBuffIds aliases the override map")
+		t.Error("spec PlayerConditionIds aliases the override map")
 	}
 }

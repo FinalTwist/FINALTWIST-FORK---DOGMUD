@@ -437,7 +437,7 @@ func calculateCombat(sourceChar *characters.Character, targetChar *characters.Ch
 
 		swingCount := ws.swingCount
 
-		mudlog.Debug("DistDamage", "swings", swingCount, "baseDmg", ws.baseDmg, "variance", dice.StdDevFor(sdp.dmgMean), "dmgMean", sdp.dmgMean, "weaponMult", ws.weaponDmgMult, "critBuffs", ws.critConditions)
+		mudlog.Debug("DistDamage", "swings", swingCount, "baseDmg", ws.baseDmg, "variance", dice.StdDevFor(sdp.dmgMean), "dmgMean", sdp.dmgMean, "weaponMult", ws.weaponDmgMult, "critConditions", ws.critConditions)
 
 		critThreshold := calcCritThreshold(sourceChar, targetChar)
 

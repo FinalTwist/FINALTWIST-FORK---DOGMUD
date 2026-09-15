@@ -16,7 +16,7 @@ const (
 
 // Config is the resolved module configuration (keys live under
 // Modules.weather.* and default from files/data-overlays/config.yaml). Keys
-// are flat (ConditionsEnabled, not Conditions.Enabled) because plugin config lookup
+// are flat (BuffsEnabled, not Buffs.Enabled) because plugin config lookup
 // reads flattened scalar leaves.
 type Config struct {
 	Enabled            bool

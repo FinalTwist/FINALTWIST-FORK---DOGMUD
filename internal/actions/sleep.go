@@ -61,7 +61,7 @@ func Sleep(actor Actor, opts SleepOptions) SleepResult {
 	if err := c.AddCondition(15, false); err != nil {
 		// Never surface the raw internal error (it leaks the condition id). Log it
 		// for ops and give the player clean flavor.
-		mudlog.Error("Sleep", "msg", "AddBuff(15 Sleeping) failed", "actor", actor.GetName(), "error", err)
+		mudlog.Error("Sleep", "msg", "AddCondition(15 Sleeping) failed", "actor", actor.GetName(), "error", err)
 		if actor.IsPlayer() {
 			actor.SendText(messaging.CategorySystem,
 				"You can't seem to settle into sleep right now.")

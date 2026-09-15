@@ -155,7 +155,7 @@ func StripConditions() int {
 }
 
 // ApplyConditionOverrides rewires PlayerConditionIds on the registered OUTDOOR weather
-// specs per the ConditionOverrides.<type> config: each entry replaces that type's
+// specs per the BuffOverrides.<type> config: each entry replaces that type's
 // player condition list wholesale (an empty list strips it; Mob/Native lists are
 // untouched). Indoor variants are condition-free by rule and never touched (the
 // "weather-"+type id can't match a "-indoor" spec). Boot-time spec mutation

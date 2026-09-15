@@ -18,8 +18,9 @@ category strings, the `<ansi fg="buff">` colour tag and the template functions
 `buffname` / `buffduration` all keep their spelling. Slice 3 renames those and
 migrates saves. The untagged fields that used to take their key from the Go
 name (`Condition.ConditionId`, `ConditionSpec.ConditionId`) now carry an
-explicit `yaml:"buffid"` tag so the rename could not move the key; the root
-`wire_freeze_test.go` pins the bytes.
+explicit `yaml:"buffid"` tag so the rename could not move the key, and
+`species.Species.ConditionIds` carries `yaml:"buffids"` for the same reason;
+the root `wire_freeze_test.go` pins the bytes.
 
 ## Not these conditions
 
