@@ -4,9 +4,9 @@
 // internal/characters/ can import it without creating the
 // messaging→characters cycle.
 //
-// characters/progression.go (where the legacy `*** sharpening ***`
-// literals lived) calls Format() and queues the banner directly via
-// events.AddToQueue.
+// characters/progression.go calls Format() and hands the banner to
+// notifyProgression, which delivers it through the messaging pipeline on
+// CategorySkillProgress via a callback registered in main.go.
 //
 // This comment used to describe an internal/messaging/progression.go
 // re-exporting a SendProgression helper for callers that already hold

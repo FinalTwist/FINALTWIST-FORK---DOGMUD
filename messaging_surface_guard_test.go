@@ -80,11 +80,15 @@ var textSurfaceRegistry = map[string]surfaceEntry{
 	"end_user_text":     {narration, "internal/conditions/conditionspec.go ConditionSpec.EndUserText -- actor-side line narrated when a condition expires or is removed."},
 	"end_room_text":     {narration, "internal/conditions/conditionspec.go ConditionSpec.EndRoomText -- room-side line narrated when a condition expires or is removed, paired with end_user_text."},
 
-	// -- Crafting narration: internal/crafting/crafting.go Recipe, 126 recipe
-	// files. Crafting currently has NO audience split -- a single message,
-	// not actor/room pairs like spells and conditions. --
-	"success_message": {narration, "internal/crafting/crafting.go Recipe.SuccessMessage -- narrated crafting-outcome line on a successful craft, 126 recipe files; no user/room split exists for crafting."},
-	"failure_message": {narration, "internal/crafting/crafting.go Recipe.FailureMessage -- narrated crafting-outcome line on a failed craft, paired with success_message; same no-audience-split gap."},
+	// -- Crafting narration: internal/crafting/crafting.go RecipeSpec, 126
+	// recipe files. Since M3 item 6 the recipe is a store with a door
+	// (internal/crafting/narration.go): the *_message keys are the crafter's
+	// Actor line. The Observer slot keys, success_room_message and
+	// failure_room_message, are deliberately NOT registered: no shipped file
+	// sets them, so this guard would report them stale. Register them in the
+	// M6 commit that authors them. --
+	"success_message": {narration, "internal/crafting/crafting.go RecipeSpec.SuccessMessage -- the crafter's (Actor) line on a successful craft, 126 recipe files; rendered through RecipeSpec.Narrate."},
+	"failure_message": {narration, "internal/crafting/crafting.go RecipeSpec.FailureMessage -- the crafter's (Actor) line on a failed craft, paired with success_message; rendered through RecipeSpec.Narrate."},
 
 	// -- Enchanting narration: internal/enchantments/enchantments.go
 	// EnchantSpec. description_suffix below is the CONTENT half of this
@@ -1179,6 +1183,8 @@ var narrationViewpointRegistry = map[string]narrationEntry{
 	"hooks/NewRound_DoCombat_helpers.go|<ansi fg=\"red-bold\"><ansi fg=\"%s\">%s</ansi> blocks you from fleeing!</ansi>":    {verdictCorrect, true, true, false, "flee blocked by another combatant; uRoom.SendText broadcasts the block to the room, but uRoom is not the literal identifier room this walk's Observer recognizer matches (see the guard's header comment on that blind spot). A real room broadcast exists; this walk just cannot see it under this variable name."},
 	"hooks/NewRound_DoCombat_helpers.go|messaging.CategorySpellFold, roles.Actor":                                           {verdictCorrect, true, false, true, "authored wait text through the spell store's door: caster plus room on `r.SendText` (observer, misread as actee by the walk's receiver-name rule); a channelling round has no actee."},
 	"hooks/NewRound_DoCombat_helpers.go|You flee to the <ansi fg=\"exit\">%s</ansi> exit!":                                  {verdictCorrect, true, true, false, "flee succeeds; uRoom.SendText broadcasts the flee to the room two lines below, same uRoom-name blind spot as the block case above, a real room broadcast this walk cannot see under this identifier."},
+	"hooks/NewRound_UserRoundTick.go|<ansi fg=\"green\">%s</ansi>":                                                          {verdictCorrect, true, false, true, "M3 item 6: multi-round craft succeeds (enchanting included); crafter gets the recipe's success line, the room its Observer slot, empty until M6. No second party, so no actee. Read against source for this guard."},
+	"hooks/NewRound_UserRoundTick.go|<ansi fg=\"red\">%s</ansi>":                                                            {verdictCorrect, true, false, true, "M3 item 6: multi-round craft fails; crafter gets the recipe's failure line, the room its Observer slot, empty until M6. No second party, so no actee. Read against source for this guard."},
 	"hooks/NewRound_UserRoundTick.go|You attempt to stand, but slip back down in the chaos of battle!":                      {verdictCorrect, true, false, true, "automatic recovery from prone fails; same shape as the success case above, actor+observer via sendVisualRoomText, no actee."},
 	"hooks/NewRound_UserRoundTick.go|You scramble to your feet!":                                                            {verdictCorrect, true, false, true, "automatic recovery from prone succeeds; the room sees it via sendVisualRoomText, actor+observer, no actee since recovering from prone is self-only."},
 	"hooks/charm_spell.go|<ansi fg=\"cyan\">%s's eyes glaze as your will takes hold. It is yours.</ansi>":                   {verdictCorrect, true, false, true, "a charm spell binds a mob; sendVisualRoomText broadcasts it to the room two lines below, actee is a mob."},
@@ -1224,6 +1230,7 @@ var narrationViewpointRegistry = map[string]narrationEntry{
 	"usercommands/break.go|You break off combat.":                                                                           {verdictCorrect, true, false, true, "audit: player breaks off combat -- no single target; opponents are covered by the room line (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, usercommands/break.go:17)"},
 	"usercommands/character.go|<ansi fg=\"username\">":                                                                      {verdictCorrect, true, false, true, "audit: player hires an alt as a companion -- actee is a mob (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, usercommands/character.go:437)"},
 	"usercommands/character.go|You dematerialize as <ansi fg=\"username\">":                                                 {verdictCorrect, true, false, true, "audit: player swaps to an alt -- self-targeted (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, usercommands/character.go:292)"},
+	"usercommands/craft.go|<ansi fg=\"green\">%s</ansi>":                                                                    {verdictCorrect, true, false, true, "M3 item 6: instant craft completes, at two sites sharing this literal (Craft's ImmediateComplete case and completeCraft); the crafter gets the recipe's success line and the room its Observer slot, empty until M6 authors it. A craft has no second party, so no actee. Read against source for this guard."},
 	"usercommands/deletecharacter.go|<ansi fg=\"username\">%s</ansi>'s form dissolves into shimmering dust.":                {verdictCorrect, true, false, true, "a player deletes their own character; the room sees the dissolve via room.SendTextVisual just above, no actee since there is no separate target for a self-deletion."},
 	"usercommands/dismiss.go|You release <ansi fg=\"mobname\">%s</ansi>. It dissolves back into the energies th":            {verdictCorrect, true, false, true, "audit: companion dismissed peacefully -- actee is a mob (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, usercommands/dismiss.go:104)"},
 	"usercommands/dismiss.go|You sever the bond with <ansi fg=\"mobname\">%s</ansi>.":                                       {verdictCorrect, true, false, true, "releasing a charmed companion; actee is a mob (the companion), room sees the release."},

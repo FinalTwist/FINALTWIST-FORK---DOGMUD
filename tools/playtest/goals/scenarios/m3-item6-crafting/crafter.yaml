@@ -1,0 +1,43 @@
+# M3 item 6: the CRAFTER. You are Bench Tester, parked at the alchemy bench in
+# the Apothecary's Hut (room 6456) with Ordel Quist watching. You know
+# healing-salve (2 healers root + a bottle) and chain-links. Quote every line
+# you receive VERBATIM, including color tags if your client shows them.
+#
+# 3 commands per round on the AI port; the overflow is dropped.
+
+ephemeral:
+  profile: crafter
+  start_room: 6456
+  budgets:
+    wall_clock: 30m
+
+goals:
+  - >-
+    Confirm Ordel Quist is in the room with you before you start. Tell them
+    on the party channel when you are about to begin crafting.
+  - >-
+    Type `craft healing salve` (with a space: craft matches the recipe's display name, not its id). Wait for it to resolve (it takes a few
+    rounds) and quote EVERY line you receive, in order, including anything
+    that looks like a banner (a line of "━" characters, "SKILL ADVANCEMENT",
+    "STATISTIC INCREASED", or a name centered between two rules) and anything
+    with "grows stronger", "moment of brilliance", or "learn from your
+    mistake" in it. Note whether each banner arrived as one unbroken block or
+    was split across multiple separate messages.
+  - >-
+    Repeat `craft healing salve` (with a space: craft matches the recipe's display name, not its id) until you have crafted it AT LEAST 6 times
+    total (both successes and failures count). Keep quoting every line for
+    every attempt, and keep a running count of how many attempts succeeded
+    ("A healing salve!") versus failed ("The materials are wasted."). You
+    should see both outcomes across 6+ attempts.
+  - >-
+    Report the exact success line and the exact failure line you received,
+    character for character, so they can be checked against the expected
+    text. Flag anything that looks like a literal placeholder token (for
+    example text containing a brace like "{something}"), anything doubled or
+    repeated, or any line about YOUR craft that also seems to have gone to
+    someone else.
+  - >-
+    Ask Ordel on the party channel whether they read anything at all about
+    your crafting attempts (the outcome lines or any of your progression
+    banners). Quote their answer verbatim.
+  - Judge every crafting line and banner as writing. Quote anything awkward, machine-made, or odd.

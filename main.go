@@ -312,6 +312,11 @@ func main() {
 		return user.Character.HasConditionFlag(conditions.NoAggroTarget)
 	})
 
+	// Register progression delivery so skill and stat banners reach the
+	// messaging pipeline without characters importing messaging or users
+	// (messaging imports characters, so that would be a cycle).
+	characters.SetProgressionNotifier(hooks.ProgressionNotifyCallback)
+
 	// Register the prompt visibility check so the fight prompt can hide
 	// the combat target's identity/health/position from blind or
 	// dark-room players, matching combat-text darkness gating. Lives here

@@ -211,6 +211,28 @@ potion is a separate branch entirely: it skips the contest and calls
   `humanoid` for unmatchable fallbacks. The `rodent` entry sits before
   `animal` so small-game mobs with both groups match the narrow row.
 
+## Narration (M3 item 6)
+
+A recipe is a narration store. Read its text only through the door in
+`narration.go`; `store_text_fields_guard_test.go` fails on a read of
+`SuccessMessage`, `FailureMessage`, `SuccessRoomMessage` or
+`FailureRoomMessage` anywhere else.
+
+- `Phase`: `PhaseSuccess`, `PhaseFailure`.
+- `(*RecipeSpec).Narration(p) narration.Variants`: `success_message` /
+  `failure_message` are the Actor (the crafter); `success_room_message` /
+  `failure_room_message` are the Observer (the room). No Actee: a craft has no
+  second party. Enchanting another player's gear would add one.
+- `(*RecipeSpec).Narrate(p, textutil.TokenContext) narration.Roles`: renders
+  through `textutil.Narrate`, crafter as `{source}`.
+- `(*RecipeSpec).MobRoomLine(p, mobName, fallback) string`: a mob crafter's
+  room line, the authored Observer line or the fallback.
+- `Validate` refuses: an empty `success_message` or `failure_message`; a
+  whitespace-only line; a room message without `{source}`.
+
+Room messages are empty in all 126 shipped recipes until M6 authors them; a
+player craft with none sends nothing to the room.
+
 ## Global State
 
 - **`recipeRegistry map[string]*RecipeSpec`** — in-process map keyed

@@ -668,7 +668,14 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 										user.Character.StoreItem(newItem)
 										events.AddToQueue(events.ItemOwnership{UserId: user.UserId, Item: newItem, Gained: true})
 									}
-									user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, recipe.SuccessMessage))
+									successRoles := recipe.Narrate(crafting.PhaseSuccess, textutil.TokenContext{
+										SourceName:      user.Character.GetCharacterName(true),
+										SourcePlainName: user.Character.GetCharacterName(false),
+									})
+									user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, successRoles.Actor))
+									if successRoles.Observer != "" {
+										sendVisualRoomText(room, messaging.CategoryEmote, successRoles.Observer, user.UserId)
+									}
 
 									// Stage 31.1: Recipe discovery roll
 									bal := configs.GetBalanceConfig()
@@ -698,7 +705,14 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 									}
 								} else {
 									user.Character.Items, user.Character.ComponentItems = crafting.ConsumeIngredients(user.Character.Items, user.Character.ComponentItems, recipe)
-									user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">%s</ansi>`, recipe.FailureMessage))
+									failureRoles := recipe.Narrate(crafting.PhaseFailure, textutil.TokenContext{
+										SourceName:      user.Character.GetCharacterName(true),
+										SourcePlainName: user.Character.GetCharacterName(false),
+									})
+									user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">%s</ansi>`, failureRoles.Actor))
+									if failureRoles.Observer != "" {
+										sendVisualRoomText(room, messaging.CategoryEmote, failureRoles.Observer, user.UserId)
+									}
 								}
 							}
 						}

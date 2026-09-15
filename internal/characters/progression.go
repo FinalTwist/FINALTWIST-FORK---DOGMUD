@@ -203,12 +203,12 @@ func (c *Character) CheckSkillProgression(skillName string, userId int, bonusMul
 					}
 				}
 				msg := banner.Format(banner.Skill, actualSkill, tier)
-				events.AddToQueue(events.Message{UserId: userId, Text: msg + "\n"})
+				notifyProgression(userId, msg)
 			}
 		} else {
 			if userId > 0 {
 				msg := banner.Format(banner.Skill, skillName, nil)
-				events.AddToQueue(events.Message{UserId: userId, Text: msg + "\n"})
+				notifyProgression(userId, msg)
 			}
 		}
 		return true
@@ -298,7 +298,7 @@ func (c *Character) CheckStatProgression(statName string, userId int, bonusMulti
 		if c.IncreaseStat(statName, 1) {
 			if userId > 0 {
 				msg := banner.Format(banner.Stat, statName, nil)
-				events.AddToQueue(events.Message{UserId: userId, Text: msg + "\n"})
+				notifyProgression(userId, msg)
 			}
 			return true
 		}
@@ -607,7 +607,7 @@ func (c *Character) CheckRegenProgression(statName string, userId int, chance fl
 		if c.IncreaseStat(statName, 1) {
 			if userId > 0 {
 				msg := fmt.Sprintf(`<ansi fg="magenta">***</ansi> Your <ansi fg="yellow">%s</ansi> grows stronger! <ansi fg="magenta">***</ansi>`, statName)
-				events.AddToQueue(events.Message{UserId: userId, Text: msg + "\n"})
+				notifyProgression(userId, msg)
 			}
 		}
 	}
@@ -976,13 +976,13 @@ func (c *Character) applyBonusProgression(ev progression.Event, userId int) {
 	if ev.Skill != "" && c.CheckSkillProgression(ev.Skill, userId, ev.Multiplier) && userId > 0 {
 		switch ev.Class {
 		case progression.ClassCrit:
-			events.AddToQueue(events.Message{UserId: userId, Text: fmt.Sprintf(
+			notifyProgression(userId, fmt.Sprintf(
 				`<ansi fg="magenta">***</ansi> A moment of brilliance! Your <ansi fg="yellow">%s</ansi> technique improves! <ansi fg="magenta">***</ansi>`,
-				ev.Skill) + "\n"})
+				ev.Skill))
 		case progression.ClassFumble:
-			events.AddToQueue(events.Message{UserId: userId, Text: fmt.Sprintf(
+			notifyProgression(userId, fmt.Sprintf(
 				`<ansi fg="red">!!!</ansi> You learn from your mistake! Your <ansi fg="yellow">%s</ansi> understanding deepens. <ansi fg="red">!!!</ansi>`,
-				ev.Skill) + "\n"})
+				ev.Skill))
 			// ClassObserved is deliberately silent. Watching someone else's
 			// brilliance is not your moment of brilliance.
 		}

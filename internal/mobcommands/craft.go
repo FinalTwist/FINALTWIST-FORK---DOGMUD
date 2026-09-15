@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
+	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -46,9 +47,10 @@ func Craft(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		return true, nil
 
 	case result.ImmediateComplete:
-		room.SendTextVisual(messaging.CategoryMobIdle, fmt.Sprintf(
-			`<ansi fg="mobname">%s</ansi> works quickly and produces something.`,
-			mob.Character.Name))
+		room.SendTextVisual(messaging.CategoryMobIdle, result.Recipe.MobRoomLine(
+			crafting.PhaseSuccess, mob.Character.Name, fmt.Sprintf(
+				`<ansi fg="mobname">%s</ansi> works quickly and produces something.`,
+				mob.Character.Name)))
 		// U10b-1 Task 16. won is unconditionally TRUE: ImmediateComplete is a
 		// TimeRounds <= 0 recipe, which InitiateCraft finishes without rolling.
 		// See the identical note in internal/usercommands/craft.go.

@@ -594,9 +594,10 @@ func tickMobCrafting(mob *mobs.Mob) {
 		newItem := items.New(recipe.Output.ItemId)
 		mob.Character.StoreItem(newItem)
 		if room := rooms.LoadRoom(mob.Character.RoomId); room != nil {
-			sendVisualRoomText(room, messaging.CategoryMobIdle, fmt.Sprintf(
-				`<ansi fg="mobname">%s</ansi> finishes their work.`,
-				mob.Character.Name))
+			sendVisualRoomText(room, messaging.CategoryMobIdle, recipe.MobRoomLine(
+				crafting.PhaseSuccess, mob.Character.Name, fmt.Sprintf(
+					`<ansi fg="mobname">%s</ansi> finishes their work.`,
+					mob.Character.Name)))
 		}
 	} else {
 		mob.Character.Items, mob.Character.ComponentItems =
@@ -604,6 +605,12 @@ func tickMobCrafting(mob *mobs.Mob) {
 				mob.Character.Items,
 				mob.Character.ComponentItems,
 				recipe)
+		// A failed mob craft is silent unless the recipe authors a failure room line.
+		if line := recipe.MobRoomLine(crafting.PhaseFailure, mob.Character.Name, ""); line != "" {
+			if room := rooms.LoadRoom(mob.Character.RoomId); room != nil {
+				sendVisualRoomText(room, messaging.CategoryMobIdle, line)
+			}
+		}
 	}
 }
 
