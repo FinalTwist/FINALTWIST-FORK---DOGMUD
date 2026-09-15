@@ -246,9 +246,11 @@ in the task that records `crafting.golden`, and nowhere else.
   `SuccessMessage`, `FailureMessage`, `SuccessRoomMessage`,
   `FailureRoomMessage`, qualified so the patrol and schedule plan structs'
   `FailureMessage` does not match.
-- The YAML key registry gains `success_room_message` and
-  `failure_room_message`, and the reasons on the two existing keys stop saying
-  no audience split exists.
+- The reasons on the two existing YAML key registry entries stop saying no
+  audience split exists. The two new room keys are NOT registered yet:
+  `TestEveryTextSurfaceIsRegistered` reports an entry stale unless 2+ world
+  files set the key, and none does until M6. (Corrected 2026-09-15 while
+  planning; the first draft said they would be registered.)
 - The viewpoint registry gains an entry for each site the rewrite makes newly
   visible to `TestNarrationSitesMatchViewpointAudit`.
 
