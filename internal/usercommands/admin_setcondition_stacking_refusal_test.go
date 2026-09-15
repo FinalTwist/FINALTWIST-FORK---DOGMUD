@@ -150,3 +150,23 @@ func TestAdminSetCondition_RefusesAStackingSpecOnAMob(t *testing.T) {
 		t.Error("a refused add must hold nothing")
 	}
 }
+
+// `setcondition list` and `setcondition search <term>` send their results table
+// and are done. They used to fall through to the target branch's tail and also
+// send "target not found." plus the whole usage page after every successful
+// list (found by the conditions slice 3 admin smoke playtest, 2026-09-15).
+func TestAdminSetCondition_ListAndSearchDoNotFallThrough(t *testing.T) {
+	user, room, cleanup := seedAdminConditionStackingUser(t)
+	defer cleanup()
+
+	for _, rest := range []string{"list", "search gash"} {
+		handled, err := SetCondition(rest, user, room, 0)
+		if err != nil || !handled {
+			t.Fatalf("setcondition %s errored: handled=%v err=%v", rest, handled, err)
+		}
+		msgs := strings.Join(events.DrainQueuedMessagesForTest(user.UserId), "\n")
+		if strings.Contains(strings.ToLower(msgs), "target not found") {
+			t.Errorf("setcondition %s fell through to the target error; got:\n%s", rest, msgs)
+		}
+	}
+}
