@@ -185,7 +185,7 @@ test(narration): gossip.golden and tips.golden recorded from pre-migration data
 - Create: `internal/gossip/gossip.go`, `internal/gossip/test_helpers.go`, `internal/gossip/gossip_test.go`
 - Modify: `narration_render_callers_guard_test.go:19-26`
 
-- [ ] **Step 1: Failing tests** — `internal/gossip/gossip_test.go`:
+- [ ] **Step 1: Failing tests**: `internal/gossip/gossip_test.go`:
 
 ```go
 package gossip
@@ -320,7 +320,7 @@ func TestLoad_ReadsAndValidatesTheFile(t *testing.T) {
 
 Run: `go test ./internal/gossip/` -> build FAIL (undefined `Validate`, `renderWith`, ...).
 
-- [ ] **Step 2: The store** — `internal/gossip/gossip.go`:
+- [ ] **Step 2: The store**: `internal/gossip/gossip.go`:
 
 ```go
 // Package gossip is the gossip template store: pools of lines a gossiping
@@ -471,7 +471,7 @@ func RenderWithForTest(pool []string, token, value string, pick narration.Picker
 }
 ```
 
-- [ ] **Step 3: Register the caller** — in `narration_render_callers_guard_test.go`'s `narrationRenderCallers`, add (keep alphabetical):
+- [ ] **Step 3: Register the caller**: in `narration_render_callers_guard_test.go`'s `narrationRenderCallers`, add (keep alphabetical):
 
 ```go
 	"internal/gossip/gossip.go":            "Kind A: gossip template pools, single role (the gossiping NPC)",
@@ -481,7 +481,7 @@ func RenderWithForTest(pool []string, token, value string, pick narration.Picker
 
 Run: `go test ./internal/gossip/ && go test . -run TestNarrationRenderCallers`. If the root test name differs, run `go test .`. Expected: `ok`.
 
-- [ ] **Step 5: Probe** — temporarily change `Render` to pass `narration.FirstPicker`; `go test ./internal/gossip/ -run TestRender_UsesTheDefaultPicker` must FAIL; revert with Edit and re-read the line to confirm it passes `narration.DefaultPicker` again (the file is untracked, so `git diff` cannot show the revert); rerun, expect `ok`.
+- [ ] **Step 5: Probe**: temporarily change `Render` to pass `narration.FirstPicker`; `go test ./internal/gossip/ -run TestRender_UsesTheDefaultPicker` must FAIL; revert with Edit and re-read the line to confirm it passes `narration.DefaultPicker` again (the file is untracked, so `git diff` cannot show the revert); rerun, expect `ok`.
 
 - [ ] **Step 6: Commit** the three gossip files and the guard file:
 
@@ -543,7 +543,7 @@ Replace the template lookup block from `templates, found := gossipTemplates[base
 
 Read the original block before replacing and confirm the lookup order is identical (distance key, base key, then `Global`, `Regional`, `Local`).
 
-- [ ] **Step 3: `renderFactGossip`** — replace its body with:
+- [ ] **Step 3: `renderFactGossip`**: replace its body with:
 
 ```go
 	if tmpls := gossip.Pool("fact-" + kf.Fact.Id); len(tmpls) > 0 {
@@ -562,7 +562,7 @@ Read the original block before replacing and confirm the lookup order is identic
 
 Every `util.Rand` draw that remains in `buildGossipLine` (fact choice, the 70/30 roll, event choice) is untouched.
 
-- [ ] **Step 4: Hooks tests** — in each of the three `TestBuildGossipLine_*` tests, replace the three-line seeding pattern
+- [ ] **Step 4: Hooks tests**: in each of the three `TestBuildGossipLine_*` tests, replace the three-line seeding pattern
 
 ```go
 	gossipTemplatesOnce.Do(func() {})
@@ -575,7 +575,7 @@ with
 ```
 (keeping each test's map contents exactly; for `_EmptyTemplatesEmptyEvents` the map is `map[string][]string{}`). Add the `gossip` import to `hooks_test.go`.
 
-- [ ] **Step 5: Boot load** — in `main.go`'s `loadAllDataFiles`, after `itemvoices.LoadDataFiles()`:
+- [ ] **Step 5: Boot load**: in `main.go`'s `loadAllDataFiles`, after `itemvoices.LoadDataFiles()`:
 
 ```go
 	// Messaging M3 item 7: gossip template store (loaded here, not lazily by
@@ -585,7 +585,7 @@ with
 ```
 and add the import.
 
-- [ ] **Step 6: Golden reads the store** — in `snapshot_test.go`: add `gossip.Load()` to `setupRealStores` after `crafting.LoadRecipeFiles()` and import `internal/gossip`. Replace the body of `buildGossipGolden` between the header `Fprintf`s and `return` (the YAML read and the substitution switch) so it reads:
+- [ ] **Step 6: Golden reads the store**: in `snapshot_test.go`: add `gossip.Load()` to `setupRealStores` after `crafting.LoadRecipeFiles()` and import `internal/gossip`. Replace the body of `buildGossipGolden` between the header `Fprintf`s and `return` (the YAML read and the substitution switch) so it reads:
 
 ```go
 	keys := gossip.Keys()
@@ -617,7 +617,7 @@ Expected: all `ok`, all goldens unchanged.
 
 Run standalone: `grep -rn "gossipTemplates" --include=*.go internal` -> no output.
 
-- [ ] **Step 8: Probe 1** — temporarily change the event-key call in `buildGossipGolden`'s post-migration switch default to use `"{description}"`; `go test ./internal/narration/ -run TestSnapshotStores/gossip` must FAIL on an event-key row; revert with Edit; rerun `ok`.
+- [ ] **Step 8: Probe 1**: temporarily change the event-key call in `buildGossipGolden`'s post-migration switch default to use `"{description}"`; `go test ./internal/narration/ -run TestSnapshotStores/gossip` must FAIL on an event-key row; revert with Edit; rerun `ok`.
 
 - [ ] **Step 9: Commit** `MobIdle_HandleIdleMobs.go`, `hooks_test.go`, `main.go`, `snapshot_test.go`:
 
@@ -634,7 +634,7 @@ refactor(gossip): gossiping NPCs read the gossip store; loaded at boot
 - Rename: `_datafiles/world/dogmud/hints.yaml` -> `tips.yaml`; `internal/hooks/NewRound_BroadcastHints.go` -> `NewRound_BroadcastTips.go`; `internal/hooks/Looking_HandleLookHints.go` -> `Looking_HandleLookTips.go`
 - Modify: `internal/hooks/hooks.go:56,91`, `internal/hooks/hooks_test.go:2195-2219`, `main.go`, `internal/narration/snapshot_test.go`
 
-- [ ] **Step 1: Failing store tests** — `internal/tips/tips_test.go`:
+- [ ] **Step 1: Failing store tests**: `internal/tips/tips_test.go`:
 
 ```go
 package tips
@@ -716,7 +716,7 @@ func TestLoad_ReadsTheTipsKey(t *testing.T) {
 
 Run: `go test ./internal/tips/` -> build FAIL.
 
-- [ ] **Step 2: The store** — `internal/tips/tips.go`:
+- [ ] **Step 2: The store**: `internal/tips/tips.go`:
 
 ```go
 // Package tips is the periodic gameplay tip store: short pieces of advice
@@ -908,7 +908,7 @@ func BroadcastTips(e events.Event) events.ListenerReturn {
 
 In `Looking_HandleLookTips.go`, rename the function `HandleLookHints` to `HandleLookTips`; nothing else changes. In `hooks.go` change the two registrations to `BroadcastTips` and `HandleLookTips`. In `hooks_test.go`, rename the section comment and the four tests `TestHandleLookHints_*` to `TestHandleLookTips_*` and their calls to `HandleLookTips`.
 
-- [ ] **Step 5: Broadcast test** — `internal/hooks/broadcast_tips_test.go`:
+- [ ] **Step 5: Broadcast test**: `internal/hooks/broadcast_tips_test.go`:
 
 ```go
 package hooks
@@ -1038,7 +1038,7 @@ func TestSetTips_HintsIsAnAliasForTheSameSetting(t *testing.T) {
 
 Run: `go test ./internal/usercommands/ -run TestSetTips` -> FAIL (`set tips` unknown, `tips` stays nil).
 
-- [ ] **Step 2: Implement** — in `set.go` replace
+- [ ] **Step 2: Implement**: in `set.go` replace
 
 ```go
 	case `hints`:
@@ -1051,7 +1051,7 @@ with
 ```
 and `displayBoolSetting(user, `hints`, `hints`)` with `displayBoolSetting(user, `tips`, `tips`)`.
 
-- [ ] **Step 3: Help** — in BOTH `set.template` files, after the `set tinymap` entry's text line and its blank line, add:
+- [ ] **Step 3: Help**: in BOTH `set.template` files, after the `set tinymap` entry's text line and its blank line, add:
 
 ```
   <ansi fg="command">set tips</ansi>
@@ -1059,9 +1059,9 @@ and `displayBoolSetting(user, `hints`, `hints`)` with `displayBoolSetting(user, 
 
 ```
 
-- [ ] **Step 4: Verify** — `go test ./internal/usercommands/ -run TestSetTips && go test .` -> `ok`.
+- [ ] **Step 4: Verify**: `go test ./internal/usercommands/ -run TestSetTips && go test .` -> `ok`.
 
-- [ ] **Step 5: Probe 2** — delete `, `hints`` from the case; the test must FAIL; restore with Edit; `ok`.
+- [ ] **Step 5: Probe 2**: delete `, `hints`` from the case; the test must FAIL; restore with Edit; `ok`.
 
 - [ ] **Step 6: Commit** the four files:
 
@@ -1077,7 +1077,7 @@ feat(tips): `set tips` (with `set hints` as an alias) and its help entry
 - Create: `internal/migration/0.18.0.go`, `internal/migration/0.18.0_test.go`
 - Modify: `internal/migration/migration.go` (after the 0.17.0 block), `main.go:97`
 
-- [ ] **Step 1: Failing tests** — `internal/migration/0.18.0_test.go`:
+- [ ] **Step 1: Failing tests**: `internal/migration/0.18.0_test.go`:
 
 ```go
 package migration
@@ -1211,7 +1211,7 @@ func TestRenameTipsConfigOption_MissingUsersDirIsFine(t *testing.T) {
 
 Run: `go test ./internal/migration/ -run TestRenameTipsConfigOption` -> build FAIL.
 
-- [ ] **Step 2: Implement** — `internal/migration/0.18.0.go`:
+- [ ] **Step 2: Implement**: `internal/migration/0.18.0.go`:
 
 ```go
 package migration
@@ -1318,9 +1318,9 @@ func renameTipsConfigOptionInDir(usersDir string, dryRun bool) error {
 
 `main.go:97`: `const VERSION = "0.18.0"`.
 
-- [ ] **Step 3: Verify** — `go build ./... && go test ./internal/migration/ ./internal/playtestenv/ .` -> `ok`. Run standalone `grep -rn '0\.17\.0' --include=*.go . | grep -v internal/migration` and report any hit that is a version assertion rather than a history comment.
+- [ ] **Step 3: Verify**: `go build ./... && go test ./internal/migration/ ./internal/playtestenv/ .` -> `ok`. Run standalone `grep -rn '0\.17\.0' --include=*.go . | grep -v internal/migration` and report any hit that is a version assertion rather than a history comment.
 
-- [ ] **Step 4: Probes 3 and 4** — (3) delete the `hasTips` refusal: `TestRenameTipsConfigOption_RefusesBothKeys` must FAIL; restore. (4) move the `!hasHints` `continue` so every parsed save is marshalled and written: `TestRenameTipsConfigOption_LeavesOtherSavesByteIdentical` must FAIL; restore. `git diff internal/migration/0.18.0.go` prints nothing relative to your Step 2 content after each restore (the file is new: re-read it).
+- [ ] **Step 4: Probes 3 and 4**: (3) delete the `hasTips` refusal: `TestRenameTipsConfigOption_RefusesBothKeys` must FAIL; restore. (4) move the `!hasHints` `continue` so every parsed save is marshalled and written: `TestRenameTipsConfigOption_LeavesOtherSavesByteIdentical` must FAIL; restore. `git diff internal/migration/0.18.0.go` prints nothing relative to your Step 2 content after each restore (the file is new: re-read it).
 
 - [ ] **Step 5: Commit** the two new files, `migration.go`, `main.go`:
 
@@ -1416,9 +1416,9 @@ func TestStoreDataFilesAreNamedOnlyByTheirStore(t *testing.T) {
 
 Run: `go test . -run TestStoreDataFilesAreNamedOnlyByTheirStore` -> FAIL on `internal/hooks/spell_resolution.go:1849` (the `hints.yaml` comment). That red is expected and proves the `hints.yaml` branch can fire.
 
-- [ ] **Step 2: Fix the stray comment** — in `spell_resolution.go`, change `charm.yaml, charm.template and hints.yaml all went on` to `charm.yaml, charm.template and a gameplay tip all went on`. Rerun the guard: `ok`.
+- [ ] **Step 2: Fix the stray comment**: in `spell_resolution.go`, change `charm.yaml, charm.template and hints.yaml all went on` to `charm.yaml, charm.template and a gameplay tip all went on`. Rerun the guard: `ok`.
 
-- [ ] **Step 3: Registry reason** — replace the `hints` entry's reason in `messaging_surface_guard_test.go` with:
+- [ ] **Step 3: Registry reason**: replace the `hints` entry's reason in `messaging_surface_guard_test.go` with:
 
 ```go
 	"hints":               {content, "internal/dialogue/types.go's Hints field -- narrator-perspective text describing dialogue options (see CLAUDE.md Dialogue Voice & Trigger Discoverability), read on request when a player enters a dialogue node. The periodic broadcast that once shared this spelling was renamed to tips.yaml in messaging M3 item 7, so every remaining use is dialogue."},
@@ -1426,9 +1426,9 @@ Run: `go test . -run TestStoreDataFilesAreNamedOnlyByTheirStore` -> FAIL on `int
 
 Keep the column alignment gofmt produces.
 
-- [ ] **Step 4: Probe** — temporarily add a comment naming `gossip_templates.yaml` to `internal/hooks/MobIdle_HandleIdleMobs.go`; the guard must FAIL naming that file; remove it; `ok`.
+- [ ] **Step 4: Probe**: temporarily add a comment naming `gossip_templates.yaml` to `internal/hooks/MobIdle_HandleIdleMobs.go`; the guard must FAIL naming that file; remove it; `ok`.
 
-- [ ] **Step 5: Verify and commit** — `go test .` -> `ok`. Commit the three files:
+- [ ] **Step 5: Verify and commit**: `go test .` -> `ok`. Commit the three files:
 
 ```
 test(messaging): gossip and tips data files have one Go owner each
@@ -1442,15 +1442,15 @@ test(messaging): gossip and tips data files have one Go owner each
 
 Verify every symbol you name exists (`Select-String -Path internal\gossip\*.go -Pattern '^(func|type|const|var)\s'`).
 
-- [ ] **Step 1: `internal/gossip/context.md`** — Purpose (the store, key shapes, who picks the key), API (`Load`, `Validate`, `Pool`, `Keys`, `Render`; test helpers `SeedForTest`, `RenderWithForTest`), the rules (`Load` panics on a bad file, missing file is empty; `Render` draws exactly once through `DefaultPicker`, and why that matters; tokens `{desc}` and `{description}` at most once per line), consumers (`internal/hooks` `buildGossipLine`, `renderFactGossip`), and that `gossip.golden` freezes it.
+- [ ] **Step 1: `internal/gossip/context.md`**: Purpose (the store, key shapes, who picks the key), API (`Load`, `Validate`, `Pool`, `Keys`, `Render`; test helpers `SeedForTest`, `RenderWithForTest`), the rules (`Load` panics on a bad file, missing file is empty; `Render` draws exactly once through `DefaultPicker`, and why that matters; tokens `{desc}` and `{description}` at most once per line), consumers (`internal/hooks` `buildGossipLine`, `renderFactGossip`), and that `gossip.golden` freezes it.
 
-- [ ] **Step 2: `internal/tips/context.md`** — Purpose (formerly hints; why renamed), API (`Load`, `Validate`, `Next`, `Count`, `All`, `SeedForTest`), the no-length-rule decision and ledger row 22, consumer `hooks.BroadcastTips`, the player setting `configoptions.tips` via `set tips` (alias `set hints`) and migration 0.18.0.
+- [ ] **Step 2: `internal/tips/context.md`**: Purpose (formerly hints; why renamed), API (`Load`, `Validate`, `Next`, `Count`, `All`, `SeedForTest`), the no-length-rule decision and ledger row 22, consumer `hooks.BroadcastTips`, the player setting `configoptions.tips` via `set tips` (alias `set hints`) and migration 0.18.0.
 
-- [ ] **Step 3: Existing context files** — `internal/hooks/context.md`: every mention of `BroadcastHints`, `HandleLookHints`, `hints.yaml` or the gossip loader updated to the new names and stores (grep the file first). `internal/migration/context.md`: add 0.18.0 in the file's existing per-version format. `internal/narration/context.md`: add `internal/gossip/gossip.go` to the Kind A callers and `gossip.golden`, `tips.golden` to the goldens list.
+- [ ] **Step 3: Existing context files**: `internal/hooks/context.md`: every mention of `BroadcastHints`, `HandleLookHints`, `hints.yaml` or the gossip loader updated to the new names and stores (grep the file first). `internal/migration/context.md`: add 0.18.0 in the file's existing per-version format. `internal/narration/context.md`: add `internal/gossip/gossip.go` to the Kind A callers and `gossip.golden`, `tips.golden` to the goldens list.
 
-- [ ] **Step 4: Arc spec** — in `2026-08-31-messaging-unification-design.md`, append to M3 table row 7's "What it proves" cell: ` **Ruled 2026-09-15:** conversations are not migrated (speakers of a sequence through say, not audiences of one moment); gossip joins the core; hints becomes tips. See [the item 7 spec](2026-09-15-messaging-m3-item7-gossip-tips-design.md).`
+- [ ] **Step 4: Arc spec**: in `2026-08-31-messaging-unification-design.md`, append to M3 table row 7's "What it proves" cell: ` **Ruled 2026-09-15:** conversations are not migrated (speakers of a sequence through say, not audiences of one moment); gossip joins the core; hints becomes tips. See [the item 7 spec](2026-09-15-messaging-m3-item7-gossip-tips-design.md).`
 
-- [ ] **Step 5: Patch note** — at the top of `docs/PATCH_NOTES.md` under the title:
+- [ ] **Step 5: Patch note**: at the top of `docs/PATCH_NOTES.md` under the title:
 
 ```markdown
 ## 2026-09-15: Hints are now tips
@@ -1461,9 +1461,9 @@ If you had turned hints off, tips stay off for you. The old set hints still
 works.
 ```
 
-- [ ] **Step 6: README** — the spec and this plan are already indexed in `docs/README.md`; update either row only if a task changed what it describes.
+- [ ] **Step 6: README**: the spec and this plan are already indexed in `docs/README.md`; update either row only if a task changed what it describes.
 
-- [ ] **Step 7: Audit and commit** — `python tools/context_md_audit.py`; no phantom symbols in `gossip`, `tips`, `hooks`, `migration`, `narration`. Commit all the files above:
+- [ ] **Step 7: Audit and commit**: `python tools/context_md_audit.py`; no phantom symbols in `gossip`, `tips`, `hooks`, `migration`, `narration`. Commit all the files above:
 
 ```
 docs(messaging): M3 item 7 context.md, arc ruling, patch note
@@ -1485,4 +1485,4 @@ Load `dogmud-shipping` and `dogmud-playtesting` first.
   4. runs `set` and confirms the listing shows `tips:` and not `hints:`;
   5. quotes any gossip line the NPC says; it must match a row of that key family in `gossip.golden` with a real event or fact description in place of the stand-in (fallback lines match exactly).
   Extract findings to memory; tear down the container by ID.
-- [ ] **Step 5: PR** — push; `gh pr create --repo pruuk/DOGMud --base master --head feature/messaging-m3-item7-conversations-gossip-hints ...`; body lists the rulings, the evidence (goldens unchanged, probes red, suite, boot, playtest), the deploy note (0.18.0 rewrites player saves on first boot after deploy; check droplet disk for the DataFiles backup), and ends with the Claude Code attribution line. Merge with `--merge --delete-branch` on green, confirming every workflow ran. Do NOT deploy.
+- [ ] **Step 5: PR**: push; `gh pr create --repo pruuk/DOGMud --base master --head feature/messaging-m3-item7-conversations-gossip-hints ...`; body lists the rulings, the evidence (goldens unchanged, probes red, suite, boot, playtest), the deploy note (0.18.0 rewrites player saves on first boot after deploy; check droplet disk for the DataFiles backup), and ends with the Claude Code attribution line. Merge with `--merge --delete-branch` on green, confirming every workflow ran. Do NOT deploy.
