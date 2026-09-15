@@ -16,19 +16,19 @@ The `internal/characters` package is the core character system for DOGMud, handl
 ### Core Character Structure (`character.go`)
 - **Character struct**: The main character entity containing all character data
 - **Character creation and management**: Factory functions and lifecycle management
-- **Stat calculations**: Dynamic stat computation with buffs, equipment, and species modifiers
+- **Stat calculations**: Dynamic stat computation with conditions, equipment, and species modifiers
 - **Skill-based progression**: Skills and stats improve through use (`progression.go`)
 - **Persistence**: Character data serialization/deserialization
 
 ### Character Statistics System
 - **Six core stats**: Strength, Dexterity, Perception, Vitality, Willpower, Charisma
 - **Stat scaling**: Stats over 100 use `SQRT(overage)*2` formula for diminishing returns
-- **Dynamic modifiers**: Equipment, buffs, pets, and mutations affect final stats
+- **Dynamic modifiers**: Equipment, conditions, pets, and mutations affect final stats
 - **Use-based improvement**: Stats improve organically through gameplay
 
 **Gear-effectiveness integration (chunk 2.2a):** `Character.StatMod()` multiplies
 the Equipment portion of `Mods` by `mutations.GearEffectivenessMultiplier(c.Mutations)`
-before summing with Buffs and Pet contributions. This cascades through `RecalculateStats()`
+before summing with Conditions and Pet contributions. This cascades through `RecalculateStats()`
 into all downstream consumers (stat values, mitigation, recovery, skills, spells).
 
 ### Skill System (`progression.go`)
@@ -295,22 +295,22 @@ progression for contest paths now flows exclusively through
 - **Item management**: Worn item tracking and validation
 
 ### Character States and Modifiers
-- 🔑 **Timed state is `Character.Buffs` and nothing else.** Read
-  `internal/buffs/context.md` before adding, reading or displaying anything
+- 🔑 **Timed state is `Character.Conditions` and nothing else.** Read
+  `internal/conditions/context.md` before adding, reading or displaying anything
   that lasts a number of rounds. The parallel combat condition enum
   (`conditions.go`, `CombatCondition`, `HasCondition`, `AddCondition`,
   `TickConditions`) was deleted on 2026-09-12 by slice 1 of the conditions
   unification; its ten conditions became NINE records, 79, 80 and 117 to 123
   (blinded had no producer and was deleted rather than ported), combat reads
-  them through `Buffs.Effect`, and producers write them through
-  `Character.AddBuffMagnitude` (`buffs.go`). A root guard,
+  them through `Conditions.Effect`, and producers write them through
+  `Character.AddConditionMagnitude` (`conditions.go`). A root guard,
   `timed_state_guard_test.go`, fails `go test .` on a second collection or on
   any of those spellings coming back.
 - **Aggro system** (`aggro.go`): Combat targeting and threat management
-- **Buffs integration**: Status effects that modify character capabilities
+- **Conditions integration**: Status effects that modify character capabilities
 - **Perception of hidden creatures** (`character.go`): `Perceives(other)` is
   true for yourself, for anyone not hidden, or when you have see-hidden from any
-  source (buff or mutation). No pet is involved. The room listing and
+  source (condition or mutation). No pet is involved. The room listing and
   `rooms.Room.FindByNameSeenBy` both read it.
 - **Cooldowns** (`cooldowns.go`): Time-based ability restrictions.
   `CooldownReady` is the read-only admission query; `TryCooldown` consumes only
@@ -334,7 +334,7 @@ the hand-rolled clamp that used to sit beside each one. Direct writes to
 ```go
 // Pool identifies one of the three resource pools. Deliberately a string,
 // matching the vocabulary already used by GetPoolReservation and
-// BuffSpec.TickPool.
+// ConditionSpec.TickPool.
 type Pool string
 
 const (
@@ -548,7 +548,7 @@ and `applyVitalChange` (the single signed pipeline behind harm and restore).
   `MobConvictionRegenPct` 0.02).
 - **Sleeping multiplies the per-round result, not the percentage.** All three
   `*PerRound` methods apply `Balance.SleepRegenMultiplier` (ships at the Go
-  default, 5.0) to the already-floored base when `HasBuffFlag(buffs.Sleeping)`
+  default, 5.0) to the already-floored base when `HasConditionFlag(conditions.Sleeping)`
   is set, then truncate again. This is the same 5x named in the Sleep
   Mechanics section of the root `CLAUDE.md`; it is one mechanism, applied here.
 - **Mutation regen multipliers are NOT uniformly wired.** `stamina_regen_multiplier`
@@ -568,17 +568,17 @@ and `applyVitalChange` (the single signed pipeline behind harm and restore).
   spell's `effect_magnitude` YAML field becomes the regen multiplier
   (`spellData.EffectMagnitude`, e.g. 3 = 3x base regen, floored at 1.0; a
   crit doubles the portion above 1x). `internal/hooks/spell_resolution.go`'s
-  `"heal"` case calls `target.Character.AddBuffMagnitude(buffs.BuffIdRegenerating,
+  `"heal"` case calls `target.Character.AddConditionMagnitude(conditions.ConditionIdRegenerating,
   durationRounds, regenMult, "heal spell")` with `durationRounds =
   calcSpellDuration(...)/2`, floored at 6 rounds. Each round after that,
-  `NewRound_AutoHeal.go` reads `Buffs.HasEffect(buffs.EffectRegenMult)` and
-  `Buffs.Effect(buffs.EffectRegenMult)` and multiplies that round's
+  `NewRound_AutoHeal.go` reads `Conditions.HasEffect(conditions.EffectRegenMult)` and
+  `Conditions.Effect(conditions.EffectRegenMult)` and multiplies that round's
   `HealthPerRound()` result by it -- in combat this is the ONLY health regen a
   player gets; out of combat it stacks on top of the base regen described
   above.
-- **Buff-tick healing (`tick_pool`/`tick_percent` on a `BuffSpec`) is a
-  DIFFERENT primitive**, `buffs.ComputeTickAmount(maxPool, percent, variance,
-  minAmount, scalingMult)` in `internal/buffs/tick.go`, not the
+- **Condition-tick healing (`tick_pool`/`tick_percent` on a `ConditionSpec`) is a
+  DIFFERENT primitive**, `conditions.ComputeTickAmount(maxPool, percent, variance,
+  minAmount, scalingMult)` in `internal/conditions/tick.go`, not the
   `*PerRound`/Regenerating path above. It rounds (`math.Round`), not
   floors, and layers a random variance term and a caller-supplied scaling
   multiplier before rounding -- so "floor(poolMax * fraction)" describes the
@@ -596,14 +596,14 @@ and `applyVitalChange` (the single signed pipeline behind harm and restore).
   return value.
 - **`ApplyHarm`'s source is not universally available.** Direct combat, spell and
   maneuver sites have an actor; damage-over-time, toxicity and attrition sites do
-  not, because `buffs.Buff` has no applier field. Those pass the zero value.
-- **`Heal()` is a HARM path at two call sites.** `buffs.ComputeTickAmount`
+  not, because `conditions.Condition` has no applier field. Those pass the zero value.
+- **`Heal()` is a HARM path at two call sites.** `conditions.ComputeTickAmount`
   returns a negative value for `TickPercent < 0`. Do NOT make `Heal` a thin
   wrapper over `ApplyRestore` -- `ApplyRestore` no-ops on non-positive input, so
-  that would silently delete every health damage-over-time buff. U5b-1 split the
+  that would silently delete every health damage-over-time condition. U5b-1 split the
   two signed call sites; U5c retires `Heal`.
 - **`ApplyHealthChange` is a wrapper, not a legacy path.** It owns the
-  `CancelCombatBuffs` on crossing below zero, which reaches `Validate(true)` and
+  `CancelCombatConditions` on crossing below zero, which reaches `Validate(true)` and
   a full stat recalculation, and 8 melee call sites depend on it. `ApplyHarm`
   deliberately does not do this. Do not add new callers, and do not "simplify" it
   into `ApplyHarm`.
@@ -913,7 +913,7 @@ func (c *Character) AttemptRecovery(contestWin func() bool) (bool, bool) {
     // MinRecoveryRounds gate, read from ProneData/SupineData, unchanged.
     if minRounds > 0 {
         c.Position.ConsumeRecoveryRound()
-        _ = c.AddBuffMagnitude(buffs.BuffIdRecovering, 1, 0, "prone recovery")
+        _ = c.AddConditionMagnitude(conditions.ConditionIdRecovering, 1, 0, "prone recovery")
         return false, false
     }
 
@@ -926,24 +926,24 @@ func (c *Character) AttemptRecovery(contestWin func() bool) (bool, bool) {
     if success {
         c.Position.TransitionToStanding(state.TransitionReason{Trigger: position.TriggerRecoveryRoll})
     } else {
-        _ = c.AddBuffMagnitude(buffs.BuffIdRecovering, 1, 0, "prone recovery")
+        _ = c.AddConditionMagnitude(conditions.ConditionIdRecovering, 1, 0, "prone recovery")
     }
 
     return true, success
 }
 ```
 
-**The recovery penalty is a record, and it bites.** Buff 118 Recovering carries
+**The recovery penalty is a record, and it bites.** Condition 118 Recovering carries
 `attacks_cap: 1` as a LITERAL, so the `magnitude` argument above is unused and
 passed as 0; `calcSwingCount` reads it through
-`Buffs.Effect(buffs.EffectAttacksCap)`. The record lives exactly one tick, so
-both round ticks call `AttemptRecovery` AFTER their buff tick and the record
+`Conditions.Effect(conditions.EffectAttacksCap)`. The record lives exactly one tick, so
+both round ticks call `AttemptRecovery` AFTER their condition tick and the record
 is live when `DoCombat` runs. `UserRoundTick` called it before the tick until
 slice 1b (owner ruling 2026-09-14), which is why players never felt the cap
 while mobs always did. `UserRoundTick` also skips the attempt for a character
 at `Health <= 0` or with `DeathQueued` set: a lethal bleed or poison tick just
 above can queue the death, and a dying player must not scramble to their feet
-(the mob tick skips a dying mob the same way). See `internal/buffs/context.md`.
+(the mob tick skips a dying mob the same way). See `internal/conditions/context.md`.
 
 **Contested vs. free — caller decides:**
 - `contestWin == nil` → automatic stand once `MinRecoveryRounds` is consumed.
@@ -1062,7 +1062,7 @@ total damage reduction across all equipped items and modifications:
 **Gear-effectiveness integration (chunk 2.2a):** Each method separates
 gear-derived contributions (equipment slot mitigation) from non-gear
 contributions (natural armor from mutations, species baseline, shield spell
-magnitude, buff stat mods). The gear portion is multiplied by
+magnitude, condition stat mods). The gear portion is multiplied by
 `mutations.GearEffectivenessMultiplier(c.Mutations)` before summing.
 
 **Slot coverage:** All 25 equipment slots are included in the three
@@ -1108,7 +1108,7 @@ Design: `docs/superpowers/specs/2026-05-12-mob-aliveness-2.5-mutations-on-mobs-d
 ### Dynamic Stat System
 - Base stats from species definitions
 - Equipment stat modifications
-- Buff/debuff effects
+- Helpful and harmful conditions
 - Use-based stat improvement through gameplay
 - Calculated maximums for Health, Stamina, and Conviction
 
@@ -1292,23 +1292,23 @@ of Combat Phase but cascades through the same hook framework.
 ```go
 func (c *Character) IsHidden() bool
     // true when Awareness == Hidden
-    // replacement for the old HasBuffFlag(buffs.Hidden) pattern
+    // replacement for the old HasConditionFlag(conditions.Hidden) pattern
 ```
 
 The only canonical way to check if a character is hidden. It reads directly
-from the Awareness machine's state, not from buff #9 (which is now a
+from the Awareness machine's state, not from condition #9 (which is now a
 side-effect carrier only).
 
-### Cascade pattern: Awareness to Buff #9
+### Cascade pattern: Awareness to Condition #9
 
-The `Awareness_Cascades.go` hook ensures buff #9 ("Hidden" status effect)
+The `Awareness_Cascades.go` hook ensures condition #9 ("Hidden" status effect)
 stays synchronized with the Awareness machine:
 
-- When Awareness transitions to `Hidden` state, the hook applies buff #9
+- When Awareness transitions to `Hidden` state, the hook applies condition #9
   to the character (providing stat mods and room broadcast text).
-- When Awareness transitions away from `Hidden`, the hook removes buff #9.
+- When Awareness transitions away from `Hidden`, the hook removes condition #9.
 
-This maintains backward compatibility with systems that check for buff #9
+This maintains backward compatibility with systems that check for condition #9
 while keeping the Awareness machine as the canonical state source.
 
 ### Hidden movement stamina scaling
@@ -1362,13 +1362,13 @@ exactly the population it exists to reap.
 the same round still lands and still counts toward the damage map, but it does
 not re-queue and does not re-attribute.
 
-**`LifeEpoch` is the queued-buff half of the death buff strip.** Runtime only
+**`LifeEpoch` is the queued-condition half of the death condition strip.** Runtime only
 (`yaml:"-"`). The Alive to Dead cascade in `hooks/Life_Cascades.go` bumps it
-beside `CancelBuffsWithFlag(buffs.All)`. Every `events.Buff` producer
-(`users.UserRecord.AddBuff` / `AddBuffScaled` / `AddBuffMagnitude`,
-`mobs.Mob.AddBuff`) stamps the holder's current epoch, and `hooks.ApplyBuffs`
+beside `CancelConditionsWithFlag(conditions.All)`. Every `events.Condition` producer
+(`users.UserRecord.AddCondition` / `AddConditionScaled` / `AddConditionMagnitude`,
+`mobs.Mob.AddCondition`) stamps the holder's current epoch, and `hooks.ApplyConditions`
 refuses an event from an ended life. Neither `DeathQueued` nor `IsAlive` can
-do this job: by the time a buff queued in the killing round flushes, the
+do this job: by the time a condition queued in the killing round flushes, the
 player has already respawned and the token is spent.
 
 **`ApplyHealthChange` takes a source and it is required.** It wraps `ApplyHarm`,
@@ -1427,7 +1427,7 @@ to `Dead`; the instance-cleanup observer fires synchronously and
 despawns the mob.
 
 Callers MUST pre-check before calling `Die`:
-1. `ReviveOnDeath` buff (prevents death; callers bail early if set)
+1. `ReviveOnDeath` condition (prevents death; callers bail early if set)
 2. `LastSuicideRound` dedupe (if the call site can double-fire)
 3. Shadow Realm zone guard (player call sites only)
 
@@ -1679,8 +1679,8 @@ unification, 2026-09-12) are runtime only, `yaml:"-"`. Both round-tick paths
 stamp them ("poison" or "bleeding out", plus the round) at the moment a
 damaging health tick from a record carrying the `poison` or `bleeding` flag
 lands; see `tickCauseFor` in `internal/hooks/tick_cause.go`. They exist because
-`Buffs.Trigger` decrements `TriggersLeft` before returning, so a record's last
-tick arrives already expired, and `PruneBuffs` can remove it before the queued
+`Conditions.Trigger` decrements `TriggersLeft` before returning, so a record's last
+tick arrives already expired, and `PruneConditions` can remove it before the queued
 death event is handled. `deathCauseFor` reads the held record by id first and
 only falls back to the stamp, and only within one round of
 `LastTickCauseRound`, so a tick from an earlier fight cannot name a later
@@ -1792,14 +1792,14 @@ loaded from YAML without a direct `New()` path). Also unconditionally
 overwritten in `mobs.Mob.Validate()` after the shallow copy, and reset
 to nil in `Character.ResetForMobInstance()` so fresh mob instances get
 their own machine. Not persisted: perception state is transient and
-reconstructed from active buffs/conditions at runtime.
+reconstructed from active conditions at runtime.
 
 The Perception machine tracks whether a character can see: `Sighted`
-(default) or `Blinded` (either of two active sources, Buff 3 and Buff 77).
+(default) or `Blinded` (either of two active sources, Condition 3 and Condition 77).
 There was a third, a blinded combat condition, deleted in the conditions
 unification (2026-09-12) because nothing in the tree ever produced it.
 Chunk 6 ships DORMANT: transitions fire correctly
-via `AddBuff` and `RemoveBuff`, but no
+via `AddCondition` and `RemoveCondition`, but no
 consumer reads `Perception.State()` yet. The future messaging framework
 chunk wires this into broadcast gating (visual broadcasts suppressed
 while Blinded), infrared "red shapes" rendering, and look-command
@@ -1816,19 +1816,19 @@ framework chunk alongside the first real consumer.
 ### HasAnyBlindSource helper (sight.go)
 
 `Character.HasAnyBlindSource()` in `internal/characters/sight.go` checks
-both blind buff sources (`perception.BuffIdBlinded` and
-`perception.BuffIdFlashbangBlindness`) and returns true if either is
+both blind condition sources (`perception.ConditionIdBlinded` and
+`perception.ConditionIdFlashbangBlindness`) and returns true if either is
 currently active. Used
-by the expire-path in `RemoveBuff` to determine
+by the expire-path in `RemoveCondition` to determine
 whether to fire `Blinded` back to `Sighted` when one of two overlapping
-sources clears. Uses `Buffs.TriggersLeft(id) > 0` rather than
-`HasBuff(id)` — see `internal/state/perception/context.md` for the
+sources clears. Uses `Conditions.TriggersLeft(id) > 0` rather than
+`HasCondition(id)` — see `internal/state/perception/context.md` for the
 implementation-detail rationale.
 
 ## Dependencies
 - `internal/stats`: Core statistics definitions
 - `internal/items`: Item system integration
-- `internal/buffs`: Status effect system
+- `internal/conditions`: Status effect system
 - `internal/species`: Character species definitions
 - `internal/skills`: Skill system integration
 - `internal/progression`: Pure contest-progression event layer (U9);
@@ -1856,7 +1856,7 @@ name nothing that is not on disk. Grouped by what they own:
 |-------|-------|
 | Core | `character.go`, `validate.go`, `migrations.go`, `overrides.go`, `description.go`, `formattedname.go`, `actor_identity.go` |
 | Stats & progression | `progression.go`, `progression_award_resolved.go` (`AwardResolved`, the U10b-1 firing rule), `skills.go`, `effective_stats.go`, `mobmastery.go`, `kdstats.go` |
-| Resources & timed state | `pools.go`, `reservation.go`, `resources.go`, `cooldowns.go`, `buffs.go` (holds `Character.AddBuff`, `AddBuffScaled` and the `AddBuffMagnitude` writer door), `sight.go` |
+| Resources & timed state | `pools.go`, `reservation.go`, `resources.go`, `cooldowns.go`, `conditions.go` (holds `Character.AddCondition`, `AddConditionScaled` and the `AddConditionMagnitude` writer door), `sight.go` |
 | Inventory & gear | `inventory.go`, `inventory_handle.go`, `worn.go`, `hand_slots.go`, `anatomy.go`, `masterwork.go`, `migrate_enchantments.go`, `migrate_detuned_bows.go` |
 | Combat | `combat.go`, `combat_tokens.go`, `position_predicates.go`, `taunt_hold.go`, `submission_policy.go`, `die.go`, `respawn_home.go`, `engagement_storage.go` (was `combat_state_compat.go`; renamed by U12c-2 when the struct it kept compatible was deleted) |
 | Casting | `cast_helpers.go`, `spells.go` |

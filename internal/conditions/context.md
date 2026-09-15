@@ -1,21 +1,59 @@
-# GoMud Buffs System Context
+# GoMud Conditions System Context
 
 ## Overview
 
-The GoMud buffs system provides comprehensive temporary status effects for characters with support for stat modifications, behavioral flags, round-based triggers, and duration management. It features a dual-layer architecture with immutable buff specifications and mutable buff instances, supporting complex timing mechanics, permanent buffs, and sophisticated flag-based behavior modification.
+The conditions system provides timed status effects for characters with support for stat modifications, behavioral flags, round-based triggers, and duration management. It has a dual-layer architecture with immutable condition specifications and mutable condition instances, supporting complex timing mechanics, permanent conditions, and flag-based behavior modification.
 
-## Conditions are buffs (slice 1 of the conditions unification, 2026-09-12)
+## Names: Go says condition, disk and wire still say buff
 
-There is ONE collection of timed state on a character: `Buffs`. The former
-`characters.CombatCondition` enum (ten combat conditions with their own tick,
-magnitude and display) is gone; the ten became NINE records under
-`_datafiles/world/dogmud/buffs/` (79, 80, 117 to 123), because blinded had no
-producer and was deleted rather than ported. **Do not add a second
-collection, a `HasCondition`, or a Go enum of timed effects**; the root guard
-`timed_state_guard_test.go` fails the build on one. Slice 2 renames this
-package to `internal/conditions`.
+Slice 2 of the conditions unification (2026-09-14) renamed this package from
+`internal/buffs` to `internal/conditions` and every Go identifier with it
+(`Buff` became `Condition`, `BuffSpec` became `ConditionSpec`, `AddBuff`
+became `AddCondition`, `PermaBuff` became `Permanent`, and so on). Nothing on
+disk or on the wire changed: the YAML keys and values (`buffid:`,
+`permabuff:`, `start_remove_buffs:`, spell `effect_type: buff` and
+`buff_ids:`), the data folders `_datafiles/world/*/buffs/`, the save key
+`buffs:`, GMCP JSON field names, the `buff-apply` / `buff-expire` messaging
+category strings, the `<ansi fg="buff">` colour tag and the template functions
+`buffname` / `buffduration` all keep their spelling. Slice 3 renames those and
+migrates saves. The untagged fields that used to take their key from the Go
+name (`Condition.ConditionId`, `ConditionSpec.ConditionId`) now carry an
+explicit `yaml:"buffid"` tag so the rename could not move the key; the root
+`wire_freeze_test.go` pins the bytes.
 
-| Was a condition | Is now the record | Id |
+## Not these conditions
+
+The word is used by four unrelated things. None of them is this package:
+
+- **Behaviour tree condition nodes**: the predicate leaves of a mob's
+  behaviour tree, in `internal/behaviortree/conditions_*.go`
+  (`conditions_combat.go`, `conditions_mob.go`, `conditions_room.go`, ...).
+  The node `mob_has_buff` is one of them; it reads this package.
+- **Quest trigger conditions**: `quests.Conditions`
+  (`internal/quests/triggers.go`), the gate on when a trigger may fire. The
+  quest ACTION that applies one of these records is
+  `ApplyStatusCondition *StatusConditionDef` (YAML key `apply_buff:`), named
+  that way to stay apart from the trigger's `Conditions`.
+- **Web client trigger conditions**: the `condition` on a player-defined
+  client trigger, evaluated by `evalTriggerCondition` in
+  `_datafiles/html/public/webclient-pure.html`.
+- **Bounty conditions**: `bounties.Condition` (`internal/bounties/types.go`),
+  a string type naming what a contract asks for (`ConditionKill`).
+
+## One collection of timed state (slice 1 of the conditions unification, 2026-09-12)
+
+There is ONE collection of timed state on a character: `Character.Conditions`
+(saved under the `buffs:` key). The former `characters.CombatCondition` enum
+(ten combat conditions with their own tick, magnitude and display) is gone;
+the ten became NINE records under `_datafiles/world/dogmud/buffs/` (79, 80,
+117 to 123), because blinded had no producer and was deleted rather than
+ported. **Do not add a second collection or a Go enum of timed effects**; the
+root guard `timed_state_guard_test.go` fails the build on a struct outside
+this package that pairs a duration field with a `Magnitude`, on the deleted
+enum's own names, and on an unlisted wrapper method named like the primitive's
+verbs.
+
+| Was a combat condition | Is now the record | Id |
 |---|---|---|
 | Warcry | Warcry | 79 |
 | Rally | Rally | 80 |
@@ -26,12 +64,13 @@ package to `internal/conditions`.
 | Poisoned (the spell dot) | Poisoned | 121 |
 | Bleeding | Bleeding | 122 |
 | Enchant withdrawal | Enchant Withdrawal | 123 |
-| Blinded | nothing; it had no producer, and perception rides buffs 3 and 77 | |
+| Blinded | nothing; it had no producer, and perception rides records 3 and 77 | |
 
-`ids.go` holds those ids as constants so a producer or a reader never spells a
-bare number. Warcry and rally used to apply a condition AND a display-only
-mirror buff side by side; there is one record now, and the `condition-mirror`
-flag and both skip loops are deleted.
+`ids.go` holds those ids as constants (`ConditionIdWarcry` through
+`ConditionIdEnchantWithdrawal`) so a producer or a reader never spells a bare
+number. Warcry and rally used to apply a combat condition AND a display-only
+mirror record side by side; there is one record now, and the
+`condition-mirror` flag and both skip loops are deleted.
 
 ### The record's strength
 
@@ -41,8 +80,8 @@ declared by the spec, in the closed `effects:` map documented under "Effects
 Vocabulary (`effects.go`)" below: seven keys, each value either a literal
 number or the word `magnitude`, meaning "read the holding instance".
 
-Combat reads timed state through `Buffs.Effect(kind)` and `Buffs.HasEffect(kind)`
-and through nothing else. The live readers:
+Combat reads timed state through `Conditions.Effect(kind)` and
+`Conditions.HasEffect(kind)` and through nothing else. The live readers:
 
 | Kind | Read by |
 |---|---|
@@ -57,11 +96,13 @@ and through nothing else. The live readers:
 A spec that sets `tick_from_magnitude` snapshots the magnitude into the
 instance's `TickAmount`, so a dot deals exactly the signed integer its producer
 passed, floored to plus or minus one. The writer door is
-`AddBuffMagnitude`, documented under "Magnitude Records (`AddBuffMagnitude`)"
-below: `Buffs.AddBuffMagnitude(id, triggers, magnitude)`, wrapped by
-`Character.AddBuffMagnitude(id, triggers, magnitude, source)` (synchronous,
-sets `Source`, then `Validate`) and `UserRecord.AddBuffMagnitude(...)` (queues
-`events.Buff` with `Magnitude` and `Triggers`).
+`AddConditionMagnitude`, documented under "Magnitude Records
+(`AddConditionMagnitude`)" below:
+`Conditions.AddConditionMagnitude(id, triggers, magnitude)`, wrapped by
+`Character.AddConditionMagnitude(id, triggers, magnitude, source)`
+(synchronous, sets `Source`, then `Validate`) and
+`UserRecord.AddConditionMagnitude(...)` (queues `events.Condition` with
+`Magnitude` and `Triggers`).
 
 **Scaling stays in the appliers.** The record carries base values and a
 vocabulary; the formula that produces a magnitude and a duration still lives in
@@ -98,51 +139,52 @@ tripled the spell dot's total, so the owner halved the two spell dot
 
 ### Facts worth knowing
 
-- **These records persist.** `Character.Conditions` was tagged `yaml:"-"`, so
-  every combat condition vanished on logout or restart. A record is saved with
-  the rest of `Buffs`, so a poison or a ward now survives a short absence.
+- **These records persist.** The deleted combat condition slice was tagged
+  `yaml:"-"`, so every combat condition vanished on logout or restart. A
+  record is saved with the rest of `Character.Conditions`, so a poison or a
+  ward now survives a short absence.
 - **The prone recovery cap bites for players and mobs alike.** 118 Recovering
-  lives exactly one tick, so both round ticks add it AFTER their buff tick
-  (`MobRoundTick` always did; `UserRoundTick` since slice 1b), and it is live
-  when `DoCombat` reads `attacks_cap`. `UserRoundTick` skips the stand attempt
-  for a player at zero health or with a death queued, so a dying player does
-  not scramble to their feet.
-- **A killing tick still names its cause.** `Buffs.Trigger` decrements
+  lives exactly one tick, so both round ticks add it AFTER their condition
+  tick (`MobRoundTick` always did; `UserRoundTick` since slice 1b), and it is
+  live when `DoCombat` reads `attacks_cap`. `UserRoundTick` skips the stand
+  attempt for a player at zero health or with a death queued, so a dying
+  player does not scramble to their feet.
+- **A killing tick still names its cause.** `Conditions.Trigger` decrements
   `TriggersLeft` before returning, so a record's LAST tick arrives already
-  `Expired`, and `PruneBuffs` can remove it before the queued death event is
-  handled. Both round ticks therefore stamp `Character.LastTickCause` and
+  `Expired`, and `PruneConditions` can remove it before the queued death event
+  is handled. Both round ticks therefore stamp `Character.LastTickCause` and
   `LastTickCauseRound` where the harm lands, and `deathCauseFor` reads the held
   record by id first and falls back to the stamp within one round.
 - **A record's final trigger used to be dropped on the player side.**
-  `UserRoundTick` gated the whole tick body on `!buff.Expired()`, so the one
-  and only tick of a one-trigger record never landed. The mob tick never had
-  the defect. Fixed in this slice, which means every player-held tick record
+  `UserRoundTick` gated the whole tick body on `!buff.Expired()`, so the
+  one and only tick of a one-trigger record never landed. The mob tick never
+  had the defect. Fixed in slice 1, which means every player-held tick record
   now lands one more tick than it did before. The owner ruled this extra
   final tick intended behaviour, not a side effect to correct (2026-09-14).
 
 ## Architecture
 
-The buffs system is built around several key components:
+The conditions system is built around several key components:
 
 ### Core Components
 
-**Buff Specifications (BuffSpec):**
-- Immutable blueprint definitions for all buff types
+**Condition Specifications (ConditionSpec):**
+- Immutable blueprint definitions for all condition types
 - YAML-based storage with automatic loading and validation
 - Time-based trigger rate calculations with game time integration
 - Stat modification definitions and behavioral flags
 - Config-driven tick behaviors with stat scaling
 
-**Buff Instances (Buff):**
+**Condition Instances (Condition):**
 - Runtime instances with unique state tracking
 - Round-based trigger counters and expiration management
-- Source tracking for buff origin identification
-- Permanent buff support for equipment and racial effects
+- Source tracking for condition origin identification
+- Permanent condition support for equipment and racial effects
 - Start event queuing for delayed activation
 
-**Buffs Collection (Buffs):**
-- Efficient collection management with flag indexing
-- Fast lookup maps for buff IDs and flags
+**Conditions Collection (Conditions):**
+- Collection management with flag indexing
+- Fast lookup maps for condition IDs and flags
 - Automatic validation and rebuilding of internal indexes
 - Batch operations for triggering and pruning
 
@@ -164,17 +206,17 @@ The buffs system is built around several key components:
 
 ### 3. **Stat Modification Integration**
 - Dynamic stat bonuses and penalties
-- Cumulative effects from multiple buffs
+- Cumulative effects from multiple conditions
 - Integration with character stat system
 - Racial and equipment stat modifications
 - Combat effectiveness modifiers
 
-## Buff Structure
+## Condition Structure
 
-### Buff Specification Structure
+### Condition Specification Structure
 ```go
-type BuffSpec struct {
-    BuffId        int               // Unique identifier
+type ConditionSpec struct {
+    ConditionId   int               `yaml:"buffid"` // Unique identifier (key pinned until slice 3)
     Name          string            // Display name
     Description   string            // Description text
     Secret        bool              // Hidden from player view
@@ -187,27 +229,27 @@ type BuffSpec struct {
 }
 ```
 
-### Buff Instance Structure
+### Condition Instance Structure
 ```go
-type Buff struct {
-    BuffId         int    // Reference to BuffSpec
-    Source         string // Origin identifier (spell, item, area)
-    OnStartWaiting bool   // Pending start event
-    PermaBuff      bool   // Permanent buff flag
-    RoundCounter   int    // Elapsed rounds
-    TriggersLeft   int    // Remaining triggers
+type Condition struct {
+    ConditionId    int     `yaml:"buffid"`    // Reference to ConditionSpec
+    Source         string  // Origin identifier (spell, item, area)
+    OnStartWaiting bool    // Pending start event
+    Permanent      bool    `yaml:"permabuff,omitempty"` // Permanent condition flag
+    RoundCounter   int     // Elapsed rounds
+    TriggersLeft   int     // Remaining triggers
     TickAmount     int     // Signed per-trigger amount snapshot
     Magnitude      float64 // Per-instance strength the applier set
     Stacks         []Stack // A stacking record's applications; see stacks.go
 }
 ```
 
-### Buffs Collection Structure
+### Conditions Collection Structure
 ```go
-type Buffs struct {
-    List      []*Buff           // Active buff instances
-    buffFlags map[Flag][]int    // Flag to buff index mapping
-    buffIds   map[int]int       // BuffId to index mapping
+type Conditions struct {
+    List           []*Condition   // Active condition instances
+    conditionFlags map[Flag][]int // Flag to condition index mapping
+    conditionIds   map[int]int    // ConditionId to index mapping
 }
 ```
 
@@ -222,9 +264,9 @@ const (
     NoFlee         Flag = "no-flee"          // Prevents fleeing combat
     
     // Cancellation Conditions
-    CancelIfCombat Flag = "cancel-on-combat" // Removes buff when combat starts
-    CancelOnAction Flag = "cancel-on-action" // Removes buff on any action
-    CancelOnWater  Flag = "cancel-on-water"  // Removes buff in water
+    CancelIfCombat Flag = "cancel-on-combat" // Removes condition when combat starts
+    CancelOnAction Flag = "cancel-on-action" // Removes condition on any action
+    CancelOnWater  Flag = "cancel-on-water"  // Removes condition in water
     
     // Death and Revival
     ReviveOnDeath  Flag = "revive-on-death"  // Prevents death once
@@ -257,30 +299,31 @@ const (
 ### Progression Flags and `progress_mult`
 
 Two flags are more than booleans the engine merely tests. `skill-progress` and
-`mutation-rate` quicken skill progression and mutation progress while the buff
-is held, and how much they quicken it is authored per buff through the optional
-`progress_mult:` YAML key behind `BuffSpec.ProgressMult`. Read it with
-`Buffs.ProgressMult(flag)` rather than by testing the flag: it returns 1.0 when
-no held buff carries the flag, so a caller can multiply unconditionally, and a
-held flagged buff that declares no `progress_mult` is worth 2.0, the default the
-two consuming call sites (`internal/characters/progression.go` and
-`internal/hooks/NewRound_UserRoundTick.go`) used to hardcode. Held flagged buffs
-do not stack; the strongest value wins. So Savant's Infusion (buff 72) at 2.5
-beats Essence of Growth (buff 71) at the default, and Chrysalis Catalyst (buff
-74) at 3.0 beats Mutagen Brew (buff 73).
+`mutation-rate` quicken skill progression and mutation progress while the
+condition is held, and how much they quicken it is authored per condition
+through the optional `progress_mult:` YAML key behind
+`ConditionSpec.ProgressMult`. Read it with `Conditions.ProgressMult(flag)`
+rather than by testing the flag: it returns 1.0 when no held condition carries
+the flag, so a caller can multiply unconditionally, and a held flagged
+condition that declares no `progress_mult` is worth 2.0, the default the two
+consuming call sites (`internal/characters/progression.go` and
+`internal/hooks/NewRound_UserRoundTick.go`) used to hardcode. Held flagged
+conditions do not stack; the strongest value wins. So Savant's Infusion
+(condition 72) at 2.5 beats Essence of Growth (condition 71) at the default,
+and Chrysalis Catalyst (condition 74) at 3.0 beats Mutagen Brew (condition 73).
 
 ### Flags are validated at load (slice E, 2026-09-12)
 
-`AllFlags` lists every declared `Flag`. `BuffSpec.ValidateFlags()` reports the
-first flag a spec carries that is not in the list. `ValidateLoadedFlags()` walks
-the loaded registry in id order and panics on the first offender, naming the
-buff id, name and flag; `LoadDataFiles` calls it after the registry is live. It
-is a named function precisely so a test can call it: no test loads world YAML,
-so an inlined check had nothing red to prove it works. The root guard
-`buff_flag_guard_test.go` walks the dogmud buff files and fails the build on
-the same condition, and `TestAllFlagsNamesEveryDeclaredConstant` parses the
-constants out of this package so the list cannot fall behind. Flags are
-compared exactly, nothing is normalised: the Cat's Eye Draught shipped with
+`AllFlags` lists every declared `Flag`. `ConditionSpec.ValidateFlags()` reports
+the first flag a spec carries that is not in the list. `ValidateLoadedFlags()`
+walks the loaded registry in id order and panics on the first offender, naming
+the condition id, name and flag; `LoadDataFiles` calls it after the registry is
+live. It is a named function precisely so a test can call it: no test loads
+world YAML, so an inlined check had nothing red to prove it works. The root
+guard `condition_flag_guard_test.go` walks the dogmud condition files and fails
+the build on the same condition, and `TestAllFlagsNamesEveryDeclaredConstant`
+parses the constants out of this package so the list cannot fall behind. Flags
+are compared exactly, nothing is normalised: the Cat's Eye Draught shipped with
 `night-vision` for `nightvision` and did nothing for weeks.
 The call from `LoadDataFiles` itself is pinned by nothing (no test loads world
 YAML, and a clean boot cannot detect a missing negative check); the function is
@@ -288,38 +331,41 @@ pinned by a direct panic test, and the root guard is the gate that blocks a
 merge. The boot panic is defence in depth for a file edited by hand on prod.
 
 
-`poison-immunity` (`PoisonImmunity`, Stone Stomach): while held, `AddBuff`,
-`AddBuffScaled` and therefore `AddBuffMagnitude` refuse a spec carrying
-`poison`, which since the conditions unification includes the 121 Poisoned
-record. Refusal is silent. There used to be a SECOND immunity check in the
-combat condition path; it is deleted along with the enum, so there is one
-refusal in one place. The three toxins (39 Venom, 40
+`poison-immunity` (`PoisonImmunity`, Stone Stomach): while held,
+`AddCondition`, `AddConditionScaled` and therefore `AddConditionMagnitude`
+refuse a spec carrying `poison`, which since the conditions unification
+includes the 121 Poisoned record. Refusal is silent. There used to be a SECOND
+immunity check in the combat condition path; it is deleted along with the
+enum, so there is one refusal in one place. The three toxins (39 Venom, 40
 Spore Toxin, 78 Toxic Cloud) and 75 Nausea carry `poison` since the same slice;
-before it NO buff did, so `CancelBuffsWithFlag(Poison)` in Purge Affliction and
-Cleansing Wave cancelled nothing and the `poisoned` adjective never showed.
+before it NO record did, so `CancelConditionsWithFlag(Poison)` in Purge
+Affliction and Cleansing Wave cancelled nothing and the `poisoned` adjective
+never showed.
 
-A refusal is a refusal all the way out: `Character.AddBuff` returns an error,
-`Buff_ApplyBuffs` returns on it before the start notice, `start_remove_buffs`,
-`TrackBuffStarted` or `BuffsTriggered`, and `Character.AddBuffMagnitude`
-returns an `error` the two spell dot sites test before narrating. `HasFlag` guards a nil
-spec, since every add now asks it and a save can hold a dead buff id.
+A refusal is a refusal all the way out: `Character.AddCondition` returns an
+error, `ApplyConditions` (`internal/hooks/Condition_ApplyConditions.go`)
+returns on it before the start notice, `start_remove_buffs`,
+`TrackConditionStarted` or `ConditionsTriggered`, and
+`Character.AddConditionMagnitude` returns an `error` the two spell dot sites
+test before narrating. `HasFlag` guards a nil spec, since every add now asks it
+and a save can hold a dead condition id.
 
-`Buff_ApplyBuffs` also refuses, the same way and before any add, an event whose
+`ApplyConditions` also refuses, the same way and before any add, an event whose
 `LifeEpoch` no longer matches its holder's `Character.LifeEpoch`: the holder
-died after it was queued, so the buff was aimed at a life that has ended. See
-the Alive to Dead cascade in `internal/hooks/context.md`.
+died after it was queued, so the condition was aimed at a life that has ended.
+See the Alive to Dead cascade in `internal/hooks/context.md`.
 
 ### Flag Usage Patterns
 
 The sketch below is abridged and predates two fixes in the live body: `All`
-matches a flagless buff, and the spec lookup is nil-guarded before `.Flags`.
-Read `buffs.go` for the real thing.
+matches a flagless condition, and the spec lookup is nil-guarded before
+`.Flags`. Read `conditions.go` for the real thing.
 
 ```go
 // Check for specific behavioral flags
-func (bs *Buffs) HasFlag(action Flag, expire bool) bool {
+func (bs *Conditions) HasFlag(action Flag, expire bool) bool {
     if action != All {
-        if _, ok := bs.buffFlags[action]; !ok {
+        if _, ok := bs.conditionFlags[action]; !ok {
             return false
         }
     }
@@ -330,17 +376,17 @@ func (bs *Buffs) HasFlag(action Flag, expire bool) bool {
             continue
         }
         
-        bSpec := GetBuffSpec(b.BuffId)
+        bSpec := GetConditionSpec(b.ConditionId)
         for _, flag := range bSpec.Flags {
             if flag == action || action == All {
                 found = true
                 
-                // Optionally expire the buff when checked
+                // Optionally expire the condition when checked
                 if expire {
-                    if b.BuffId == 0 { // Special buff 0 handling
+                    if b.ConditionId == 0 { // Special condition 0 handling
                         bs.List = append(bs.List[:index], bs.List[index+1:]...)
                     } else {
-                        b.TriggersLeft = TriggersLeftExpired
+                        b.expire()
                         bs.List[index] = b
                     }
                     break
@@ -354,13 +400,13 @@ func (bs *Buffs) HasFlag(action Flag, expire bool) bool {
     return found
 }
 
-// Get all buff IDs with specific flag
-func (bs *Buffs) GetBuffIdsWithFlag(action Flag) []int {
-    buffIds := []int{}
-    for _, idx := range bs.buffFlags[action] {
-        buffIds = append(buffIds, bs.List[idx].BuffId)
+// Get all condition IDs with specific flag
+func (bs *Conditions) GetConditionIdsWithFlag(action Flag) []int {
+    conditionIds := []int{}
+    for _, idx := range bs.conditionFlags[action] {
+        conditionIds = append(conditionIds, bs.List[idx].ConditionId)
     }
-    return buffIds
+    return conditionIds
 }
 ```
 
@@ -368,14 +414,15 @@ func (bs *Buffs) GetBuffIdsWithFlag(action Flag) []int {
 
 ### Round-Based Triggers
 ```go
-// Trigger buffs based on round intervals
-func (bs *Buffs) Trigger(buffId ...int) (triggeredBuffs []*Buff) {
+// Trigger conditions based on round intervals (abridged; the live body also
+// ticks stacking records through tickStacks)
+func (bs *Conditions) Trigger(conditionId ...int) (triggeredConditions []*Condition) {
     for idx, b := range bs.List {
-        // Handle specific buff triggering if requested
-        if len(buffId) > 0 {
+        // Handle specific condition triggering if requested
+        if len(conditionId) > 0 {
             found := false
-            for _, id := range buffId {
-                if b.BuffId == id {
+            for _, id := range conditionId {
+                if b.ConditionId == id {
                     found = true
                     break
                 }
@@ -385,13 +432,13 @@ func (bs *Buffs) Trigger(buffId ...int) (triggeredBuffs []*Buff) {
             }
         }
         
-        if buffInfo := GetBuffSpec(b.BuffId); buffInfo != nil {
+        if conditionInfo := GetConditionSpec(b.ConditionId); conditionInfo != nil {
             if b.TriggersLeft > 0 {
                 b.RoundCounter++
                 
                 // Check if it's time to trigger
-                if b.RoundCounter%buffInfo.RoundInterval == 0 {
-                    triggeredBuffs = append(triggeredBuffs, b)
+                if b.RoundCounter%conditionInfo.RoundInterval == 0 {
+                    triggeredConditions = append(triggeredConditions, b)
                     
                     // Decrement triggers unless unlimited
                     if b.TriggersLeft != TriggersLeftUnlimited {
@@ -407,48 +454,52 @@ func (bs *Buffs) Trigger(buffId ...int) (triggeredBuffs []*Buff) {
         }
     }
     
-    return triggeredBuffs
+    return triggeredConditions
 }
 ```
 
 ### Duration Calculations
-```go
-// Calculate remaining and total duration
-func GetDurations(buff *Buff, spec *BuffSpec) (roundsLeft int, totalRounds int) {
-    totalRounds = spec.TriggerCount * spec.RoundInterval
-    roundsLeft = totalRounds - buff.RoundCounter
-    return roundsLeft, totalRounds
-}
 
-// Check if buff has expired
-func (b *Buff) Expired() bool {
+`GetDurations(condition *Condition, spec *ConditionSpec) (roundsLeft int,
+totalRounds int)` reads the INSTANCE for `roundsLeft` (its `TriggersLeft`
+times the spec's `RoundInterval`, less how far into the current interval it
+is), so a record added with an exact trigger count reports its own remaining
+rounds; `totalRounds` keeps the spec figure so a bar has a stable scale. A pure
+flag record (`RoundInterval < 1`) reports `0, 0`. Read the doc comment in
+`conditions.go` for the edge cases.
+
+```go
+// Check if condition has expired
+func (b *Condition) Expired() bool {
     return b.TriggersLeft <= TriggersLeftExpired
 }
 ```
 
 ### Stacking records (`stacks.go`)
 
-A spec with the `stacking` flag keeps `Buff.Stacks []Stack`, each
-`Stack{RoundsLeft, Amount}`. `Buffs.AddBuffMagnitude` routes such a spec to
-`addStack`: `triggers` becomes the new stack's rounds (0 means the spec's
-`triggercount`), the magnitude becomes its signed amount through
+A spec with the `stacking` flag keeps `Condition.Stacks []Stack`, each
+`Stack{RoundsLeft, Amount}`. `Conditions.AddConditionMagnitude` routes such a
+spec to `addStack`: `triggers` becomes the new stack's rounds (0 means the
+spec's `triggercount`), the magnitude becomes its signed amount through
 `tickAmountFor` (a non-zero magnitude never snapshots to zero; a magnitude of
 exactly 0 is refused, since a zero stack would lengthen the record and print a
 bleed line for no harm), and `syncStacks` derives the record-level fields
 every other reader uses: `TriggersLeft` is the longest stack, `TickAmount` and
 `Magnitude` the sum. So `Expired`, `GetDurations`, the prune pass, poison
-immunity, `HasBuff`, the death cause and both condition lists work unchanged.
+immunity, `HasCondition`, the death cause and both condition lists work
+unchanged.
 
-**Only `AddBuffMagnitude` may add a stacking record.** `AddBuff`,
-`AddBuffScaled` and `RefreshBuff` all return `false` for a stacking spec,
-because none of them can carry a stack's rounds and amount: they would create
-a live record with no stacks, or top one up to the spec's single
+**Only `AddConditionMagnitude` may add a stacking record.** `AddCondition`,
+`AddConditionScaled` and `RefreshCondition` all return `false` for a stacking
+spec, because none of them can carry a stack's rounds and amount: they would
+create a live record with no stacks, or top one up to the spec's single
 `TriggerCount`. `addStack` creates the record through the unexported
-`addBuffScaled`, which does not refuse. The admin `buff` command refuses a
-stacking buff id with a message for the same reason.
+`addConditionScaled`, which does not refuse. The admin `setcondition` command
+(alias `buff`) refuses a stacking condition id with a message for the same
+reason.
 
-`Buffs.Trigger` calls `tickStacks` for such a record: `TickAmount` becomes this
-round's landed sum, every stack loses a round, spent stacks drop, and
+`Conditions.Trigger` calls `tickStacks` for such a record: `TickAmount` becomes
+this round's landed sum, every stack loses a round, spent stacks drop, and
 `TriggersLeft` becomes the longest remaining stack. Both round-tick paths read
 `TickAmount` after `Trigger` returns, so one tick is one harm, one wake, one
 `cancel-on-damage` pass, one death-cause stamp and one flavour line however
@@ -457,85 +508,66 @@ being returned, so a zero amount never reaches the `tick_percent` fallback.
 Between ticks, read `Stacks` or `Magnitude` for the whole bleed, never
 `TickAmount` (it holds the last round's landed sum).
 
-**Every path that expires a held record goes through `Buff.expire()`**, which
-sets `TriggersLeft` to `TriggersLeftExpired` and clears `Stacks` in one step:
-`RemoveBuff`, the expire branch of `HasFlag`, and `tickStacks` when a record
-has no stacks. `addStack` revives an expired, unpruned record through
-`addBuffScaled`, so one that kept its stacks would come back with them live;
-`expire()` is the primary guard, and `addStack` clearing the stacks of an
-expired record before adding is the second, so a cancel followed by a new hit
-starts fresh.
+**Every path that expires a held record goes through `Condition.expire()`**,
+which sets `TriggersLeft` to `TriggersLeftExpired` and clears `Stacks` in one
+step: `RemoveCondition`, the expire branch of `HasFlag`, and `tickStacks` when
+a record has no stacks. `addStack` revives an expired, unpruned record through
+`addConditionScaled`, so one that kept its stacks would come back with them
+live; `expire()` is the primary guard, and `addStack` clearing the stacks of
+an expired record before adding is the second, so a cancel followed by a new
+hit starts fresh.
 
-`Buff.Source` is the LAST applier's source: `Character.AddBuffMagnitude`
-overwrites it on every call, so for a stacking record it is not per stack.
-Nothing reads a bleed's `Source` today.
+`Condition.Source` is the LAST applier's source:
+`Character.AddConditionMagnitude` overwrites it on every call, so for a
+stacking record it is not per stack. Nothing reads a bleed's `Source` today.
 
 Every bleed producer runs inside combat, after that round's tick, so a new
-stack first ticks on the next round. `buffs.DisplayName` names a held record
-for the condition lists and appends the live count above one stack
+stack first ticks on the next round. `conditions.DisplayName` names a held
+record for the condition lists and appends the live count above one stack
 ("Bleeding (3)"). Bleed stack numbers are the fifteen `<Move>Bleed*` balance
 knobs; see `internal/actions/bleed.go` and the Bleed stacks block in
 `config.yaml`.
 
 ### Time String Processing
-```go
-// Validate and convert time strings to round intervals
-func (b *BuffSpec) Validate() error {
-    // Special handling for logout/meditation buff
-    if b.BuffId == 0 {
-        b.TriggerCount = int(configs.GetNetworkConfig().LogoutRounds)
-    }
-    
-    // Convert time string to round interval using game time system
-    b.RoundInterval = int(validationCalculator.AddPeriod(b.TriggerRate) - validationRound)
-    
-    if b.TriggerCount < 1 {
-        return fmt.Errorf("buffId %d (%s) has TriggerCount < 1", b.BuffId, b.Name)
-    }
-    
-    if b.RoundInterval < 1 {
-        return fmt.Errorf("buffId %d (%s) has RoundInterval < 1. Is %s valid?", 
-                         b.BuffId, b.Name, b.TriggerRate)
-    }
-    
-    return nil
-}
-```
+
+`ConditionSpec.Validate()` warns on bad text tokens, converts `TriggerRate` to
+`RoundInterval` through the game time calculator, forces condition 0's
+`TriggerCount` to the configured logout rounds, validates effects and
+narration (flags are checked separately by `ValidateLoadedFlags`), and returns an error for a spec with no usable trigger count or
+interval. Read `conditionspec.go` for the body.
 
 ## Stat Modification System
 
-### Individual Buff Stat Modifications
+### Individual Condition Stat Modifications
 ```go
-// Get stat modification from single buff
-func (b *Buff) StatMod(statName string) int {
+// Get stat modification from single condition
+func (b *Condition) StatMod(statName string) int {
     if b.Expired() {
         return 0
     }
-    
-    if buffInfo := GetBuffSpec(b.BuffId); buffInfo != nil {
-        return buffInfo.StatMods.Get(statName)
+    if conditionInfo := GetConditionSpec(b.ConditionId); conditionInfo != nil {
+        return conditionInfo.StatMods.Get(statName)
     }
-    
     return 0
 }
 ```
 
 ### Cumulative Stat Modifications
 ```go
-// Calculate total stat modification from all active buffs
-func (bs *Buffs) StatMod(statName string) int {
-    buffAmt := 0
+// Calculate total stat modification from all active conditions
+func (bs *Conditions) StatMod(statName string) int {
+    conditionAmt := 0
     for _, b := range bs.List {
-        buffAmt += b.StatMod(statName)
+        conditionAmt += b.StatMod(statName)
     }
-    return buffAmt
+    return conditionAmt
 }
 ```
 
-### Buff Value Calculation
+### Condition Value Calculation
 ```go
-// Calculate relative power/value of a buff for balance
-func (b *BuffSpec) GetValue() int {
+// Calculate relative power/value of a condition for balance
+func (b *ConditionSpec) GetValue() int {
     val := 0
     
     // Sum absolute values of all stat modifications
@@ -561,12 +593,12 @@ func (b *BuffSpec) GetValue() int {
 
 ## Effects Vocabulary (`effects.go`)
 
-`EffectKind` is a closed set of mechanical effects a `BuffSpec` may declare
-under its `effects:` map, keyed by kind and pointing at an `EffectValue`
-(either a literal number or the YAML word `"magnitude"`, meaning "read the
-holding instance's own `Magnitude`"). The set is closed on purpose — a new
-kind is a code change with a reader, never a data change —
-`BuffSpec.validateEffects` refuses an unknown key, and refuses
+`EffectKind` is a closed set of mechanical effects a `ConditionSpec` may
+declare under its `effects:` map, keyed by kind and pointing at an
+`EffectValue` (either a literal number or the YAML word `"magnitude"`, meaning
+"read the holding instance's own `Magnitude`"). The set is closed on purpose:
+a new kind is a code change with a reader, never a data change.
+`ConditionSpec.validateEffects` refuses an unknown key, and refuses
 `TickFromMagnitude` set without a `TickPool`, or set alongside a non-zero
 `TickPercent`.
 
@@ -577,60 +609,62 @@ const (
     EffectDodgeMult      EffectKind = "dodge_mult"      // dodge score multiplier (no producer today; kept for parity with the reader)
     EffectRegenMult      EffectKind = "regen_mult"      // multiplier on base health regen (heal spells, corpse feeding)
     EffectMitigationFlat EffectKind = "mitigation_flat" // flat physical mitigation points (wards)
-    EffectPoolMaxPct     EffectKind = "pool_max_pct"    // fraction taken off a pool maximum; the pool rides on Buff.Source
+    EffectPoolMaxPct     EffectKind = "pool_max_pct"    // fraction taken off a pool maximum; the pool rides on Condition.Source
     EffectAttacksCap     EffectKind = "attacks_cap"     // upper bound on swings per round
 )
 ```
 
-`Buffs.Effect(kind EffectKind) float64` is the ONE door combat reads timed
+`Conditions.Effect(kind EffectKind) float64` is the ONE door combat reads timed
 state through. It folds every held, unexpired record's contribution for
 that kind: a multiplier kind (`damage_mult`, `defense_mult`, `dodge_mult`,
 `regen_mult`) multiplies across records with identity `1.0`; `attacks_cap`
 takes the minimum non-zero value (`0` meaning no cap); everything else
 (`mitigation_flat`, `pool_max_pct`) sums with identity `0`. It never calls
 `HasFlag` with `expire=true`, so reading it has no side effect.
-`Buffs.HasEffect(kind EffectKind) bool` reports whether any held, unexpired
-record declares the kind at all, without computing a value.
+`Conditions.HasEffect(kind EffectKind) bool` reports whether any held,
+unexpired record declares the kind at all, without computing a value.
 
-## Buff Management Operations
+## Condition Management Operations
 
-### Adding Buffs
+### Adding Conditions
 ```go
-// Add new buff or refresh existing buff
-func (bs *Buffs) AddBuff(buffId int, isPermanent bool) bool {
-    if buffInfo := GetBuffSpec(buffId); buffInfo != nil {
-        newBuff := Buff{
-            BuffId:       buffInfo.BuffId,
+// Add new condition or refresh existing condition (abridged)
+func (bs *Conditions) AddCondition(conditionId int, isPermanent bool) bool {
+    if conditionInfo := GetConditionSpec(conditionId); conditionInfo != nil {
+        if conditionInfo.IsStacking() {
+            return false // only AddConditionMagnitude adds a stacking record
+        }
+        if slices.Contains(conditionInfo.Flags, Poison) && bs.HasFlag(PoisonImmunity, false) {
+            return false // poison immunity, silent
+        }
+
+        newCondition := Condition{
+            ConditionId:  conditionInfo.ConditionId,
             RoundCounter: 0,
-            PermaBuff:    false,
-            TriggersLeft: buffInfo.TriggerCount,
+            Permanent:    false,
+            TriggersLeft: conditionInfo.TriggerCount,
         }
         
-        // Handle permanent buffs (from equipment/race)
+        // Handle permanent conditions (from equipment/race)
         if isPermanent {
-            newBuff.TriggersLeft = TriggersLeftUnlimited
-            newBuff.PermaBuff = true
+            newCondition.TriggersLeft = TriggersLeftUnlimited
+            newCondition.Permanent = true
         }
         
-        // Check if buff already exists
-        if idx, ok := bs.buffIds[buffId]; ok {
-            // Refresh existing buff
-            bs.List[idx].TriggersLeft = newBuff.TriggersLeft
-            bs.List[idx].PermaBuff = newBuff.PermaBuff
+        // Refresh an existing record
+        if idx, ok := bs.conditionIds[conditionId]; ok {
+            bs.List[idx].TriggersLeft = newCondition.TriggersLeft
+            bs.List[idx].RoundCounter = 0
+            bs.List[idx].Permanent = newCondition.Permanent
             return true
         }
         
-        // Add new buff
-        bs.List = append(bs.List, &newBuff)
+        // Add a new record and index its flags
+        bs.List = append(bs.List, &newCondition)
         listIndex := len(bs.List) - 1
-        bs.buffIds[buffId] = listIndex
-        
-        // Update flag indexes
-        for _, flag := range buffInfo.Flags {
-            if _, ok := bs.buffFlags[flag]; !ok {
-                bs.buffFlags[flag] = []int{}
-            }
-            bs.buffFlags[flag] = append(bs.buffFlags[flag], listIndex)
+        bs.conditionIds[conditionId] = listIndex
+        for _, flag := range conditionInfo.Flags {
+            bs.conditionFlags[flag] = append(bs.conditionFlags[flag], listIndex)
         }
         
         return true
@@ -640,63 +674,64 @@ func (bs *Buffs) AddBuff(buffId int, isPermanent bool) bool {
 }
 ```
 
-### Magnitude Records (`AddBuffMagnitude`)
+### Magnitude Records (`AddConditionMagnitude`)
 
-`Buffs.AddBuffMagnitude(buffId int, triggers int, magnitude float64) bool`
+`Conditions.AddConditionMagnitude(conditionId int, triggers int, magnitude float64) bool`
 is the writer door for every record that used to be a hand-rolled combat
 condition (Minor Shield, Regenerating, Poisoned, Bleeding). It refreshes or
-adds the buff via `addBuffScaled(buffId, 1.0)`, then, if `triggers > 0`,
-overwrites `TriggersLeft` with the exact count, **a trigger count, not a
-duration in rounds**; every record that goes through this door today (79,
-80, 117 to 123) ticks once a round, so the two coincide. A `stacking` spec appends a stack instead of
-refreshing; see "Stacking records" above. `triggers` of `0` leaves the
-spec's own `TriggerCount` in place. It also stamps `Magnitude`, and for a
-spec with `TickFromMagnitude` set, snapshots `TickAmount` from the
-magnitude's sign (floored to ±1 rather than 0, since a zero tick would
-never recover). Returns `false` on refusal (e.g. poison immunity via
-`AddBuffScaled`) or an unknown buff id, exactly like `AddBuffScaled`.
+adds the condition via `addConditionScaled(conditionId, 1.0)`, then, if
+`triggers > 0`, overwrites `TriggersLeft` with the exact count, **a trigger
+count, not a duration in rounds**; every record that goes through this door
+today (79, 80, 117 to 123) ticks once a round, so the two coincide. A
+`stacking` spec appends a stack instead of refreshing; see "Stacking records"
+above. `triggers` of `0` leaves the spec's own `TriggerCount` in place. It also
+stamps `Magnitude`, and for a spec with `TickFromMagnitude` set, snapshots
+`TickAmount` from the magnitude's sign (floored to plus or minus 1 rather than
+0, since a zero tick would never recover). Returns `false` on refusal (e.g.
+poison immunity via `AddConditionScaled`) or an unknown condition id, exactly
+like `AddConditionScaled`.
 
 Three doors wrap it, each documenting the same "triggers, not rounds"
 contract:
-- `Character.AddBuffMagnitude(buffId, triggers, magnitude, source)` applies
-  synchronously and sets `Source` on the held record, then revalidates. Every
-  producer of a former combat condition (the ward and heal and dot spells, the
-  shouts, the bleed actions, the grapple and stand paths, disenchant) calls
-  this one, because those effects must land within the same round tick and
-  narrate the moment themselves.
-- `UserRecord.AddBuffMagnitude(buffId, triggers, magnitude, source)` queues
-  an `events.Buff{Triggers: triggers, Magnitude: magnitude}` instead, for a
-  spell or item that wants the holder's start notice through the normal
-  `Buff_ApplyBuffs` door.
-- `events.Buff.Triggers` (with `.Magnitude`) is the field `UserRecord`
-  populates; `Buff_ApplyBuffs` routes to `Character.AddBuffMagnitude` when
-  either is non-zero, and to the `DurationMult` path otherwise.
+- `Character.AddConditionMagnitude(conditionId, triggers, magnitude, source)`
+  applies synchronously and sets `Source` on the held record, then
+  revalidates. Every producer of a former combat condition (the ward and heal
+  and dot spells, the shouts, the bleed actions, the grapple and stand paths,
+  disenchant) calls this one, because those effects must land within the same
+  round tick and narrate the moment themselves.
+- `UserRecord.AddConditionMagnitude(conditionId, triggers, magnitude, source)`
+  queues an `events.Condition{Triggers: triggers, Magnitude: magnitude}`
+  instead, for a spell or item that wants the holder's start notice through
+  the normal `ApplyConditions` door.
+- `events.Condition.Triggers` (with `.Magnitude`) is the field `UserRecord`
+  populates; `ApplyConditions` routes to `Character.AddConditionMagnitude`
+  when either is non-zero, and to the `DurationMult` path otherwise.
 
-### Removing Buffs
+### Removing Conditions
 ```go
-// Remove specific buff by ID
-func (bs *Buffs) RemoveBuff(buffId int) bool {
-    if index, ok := bs.buffIds[buffId]; ok {
-        bs.List[index].TriggersLeft = TriggersLeftExpired
+// Remove specific condition by ID
+func (bs *Conditions) RemoveCondition(conditionId int) bool {
+    if index, ok := bs.conditionIds[conditionId]; ok {
+        bs.List[index].expire()
         return true
     }
     return false
 }
 
-// Mark buff as started (no longer waiting for start event)
-func (bs *Buffs) Started(buffId int) {
-    if idx, ok := bs.buffIds[buffId]; ok {
+// Mark condition as started (no longer waiting for start event)
+func (bs *Conditions) Started(conditionId int) {
+    if idx, ok := bs.conditionIds[conditionId]; ok {
         bs.List[idx].OnStartWaiting = false
     }
 }
 ```
 
-### Pruning Expired Buffs
+### Pruning Expired Conditions
 ```go
-// Remove all expired buffs and rebuild indexes
-func (bs *Buffs) Prune() (prunedBuffs []*Buff) {
+// Remove all expired conditions and rebuild indexes (abridged)
+func (bs *Conditions) Prune() (prunedConditions []*Condition) {
     if len(bs.List) == 0 {
-        return prunedBuffs
+        return prunedConditions
     }
     
     didPrune := false
@@ -704,108 +739,43 @@ func (bs *Buffs) Prune() (prunedBuffs []*Buff) {
     // Iterate backwards to safely remove items
     for i := len(bs.List) - 1; i >= 0; i-- {
         b := bs.List[i]
-        prune := false
-        
-        buffInfo := GetBuffSpec(b.BuffId)
-        if buffInfo == nil || b.Expired() {
-            prune = true
-        }
-        
-        if prune {
-            prunedBuffs = append(prunedBuffs, b)
+        if GetConditionSpec(b.ConditionId) == nil || b.Expired() {
+            prunedConditions = append(prunedConditions, b)
             bs.List = append(bs.List[:i], bs.List[i+1:]...)
             didPrune = true
         }
     }
     
-    // Rebuild lookup indexes if any buffs were pruned
+    // Rebuild lookup indexes if any conditions were pruned
     if didPrune {
         bs.Validate(true)
     }
     
-    return prunedBuffs
+    return prunedConditions
 }
 ```
 
 ## Collection Validation and Indexing
 
 ### Index Management
-```go
-// Validate and rebuild internal indexes
-func (bs *Buffs) Validate(forceRebuild ...bool) {
-    if bs.buffFlags == nil {
-        bs.buffFlags = make(map[Flag][]int)
-    }
-    if bs.buffIds == nil {
-        bs.buffIds = make(map[int]int)
-    }
-    
-    // Rebuild if size mismatch or forced
-    if (len(bs.List) != len(bs.buffIds)) || (len(forceRebuild) > 0 && forceRebuild[0]) {
-        bs.buffIds = make(map[int]int)
-        bs.buffFlags = make(map[Flag][]int)
-        
-        // Rebuild all indexes
-        for idx, b := range bs.List {
-            bs.buffIds[b.BuffId] = idx
-            
-            bSpec := GetBuffSpec(b.BuffId)
-            if bSpec == nil {
-                mudlog.Warn("buffs.Validate()", "buffId", b.BuffId, "error", "invalid buffId")
-                continue
-            }
-            
-            // Index all flags for this buff
-            for _, flag := range bSpec.Flags {
-                if _, ok := bs.buffFlags[flag]; !ok {
-                    bs.buffFlags[flag] = []int{}
-                }
-                bs.buffFlags[flag] = append(bs.buffFlags[flag], idx)
-            }
-        }
-    }
-}
-```
+
+`Conditions.Validate(forceRebuild ...bool)` lazily creates the two private
+indexes (`conditionFlags map[Flag][]int`, `conditionIds map[int]int`) and
+rebuilds both when the list length disagrees with the id index or a rebuild is
+forced. A held record whose spec no longer exists is logged and skipped for
+flag indexing. Read `conditions.go` for the body.
 
 ### Query Operations
 ```go
-// Check if specific buff exists
-func (bs *Buffs) HasBuff(buffId int) bool {
-    if _, ok := bs.buffIds[buffId]; ok {
-        return true
-    }
-    return false
-}
+// Check if specific condition exists (map membership: true for an
+// expired-but-unpruned record too; use TriggersLeft(id) > 0 for "live")
+func (bs *Conditions) HasCondition(conditionId int) bool
 
-// Get remaining triggers for buff
-func (bs *Buffs) TriggersLeft(buffId int) int {
-    if idx, ok := bs.buffIds[buffId]; ok {
-        return bs.List[idx].TriggersLeft
-    }
-    return 0
-}
+// Get remaining triggers for condition
+func (bs *Conditions) TriggersLeft(conditionId int) int
 
-// Get all active buffs (optionally filtered by ID)
-func (bs *Buffs) GetBuffs(buffId ...int) []*Buff {
-    retBuffs := []*Buff{}
-    for _, b := range bs.List {
-        if !b.Expired() {
-            if len(buffId) > 0 {
-                // Filter by specific buff IDs
-                for _, id := range buffId {
-                    if b.BuffId == id {
-                        retBuffs = append(retBuffs, b)
-                        break
-                    }
-                }
-            } else {
-                // Return all active buffs
-                retBuffs = append(retBuffs, b)
-            }
-        }
-    }
-    return retBuffs
-}
+// Get all active conditions (optionally filtered by ID)
+func (bs *Conditions) GetConditions(conditionId ...int) []*Condition
 ```
 
 ## Display and Visibility
@@ -813,82 +783,81 @@ func (bs *Buffs) GetBuffs(buffId ...int) []*Buff {
 // Listed reports whether a held record appears in the player's condition
 // lists: the in-game `conditions` command and the Char.Conditions GMCP
 // payload. Both call this, so the two can never disagree.
-func (b *BuffSpec) Listed() bool {
+func (b *ConditionSpec) Listed() bool {
 	return !b.Secret && !slices.Contains(b.Flags, Hidden)
 }
 
 // DisplayName: the spec name, plus the live stack count above one ("Bleeding (3)").
-func DisplayName(b *Buff, spec *BuffSpec) string
+func DisplayName(b *Condition, spec *ConditionSpec) string
 
-// Get buff display name
-func (bs *Buff) Name() string {
-    if sp := GetBuffSpec(bs.BuffId); sp != nil {
-        return sp.Name
-    }
-    return ""
-}
+// Get condition display name
+func (bs *Condition) Name() string
 ```
 
 ### The player-side notice (slice C, `notice.go`)
 
 - `StartUserNotice() string` / `EndUserNotice() string`: the ONE door for the
-  line the holder reads when a buff lands or ends. Authored `start_user_text`
-  / `end_user_text` first; otherwise the generic "<Name> takes effect." /
-  "<Name> has expired."; an empty string for a `secret` buff or one with no
-  name. `Buff_ApplyBuffs` and the player prune pass in `NewTurn_PruneBuffs`
-  read these instead of the raw fields. Room text is untouched and stays
-  authored-only.
-- `SilentNoticeBuffs() []string`: every loaded non-secret buff relying on the
-  generic line, as `"<id> <name> (start, end)"`. `WarnSilentNotices()` logs
-  one warning per entry at boot (wired in `main.go` after the species guard).
+  line the holder reads when a condition lands or ends. Authored
+  `start_user_text` / `end_user_text` first; otherwise the generic
+  "<Name> takes effect." / "<Name> has expired."; an empty string for a
+  `secret` condition or one with no name. `ApplyConditions` and the player
+  prune pass in `NewTurn_PruneConditions.go` read these instead of the raw
+  fields. Room text is untouched and stays authored-only.
+- `SilentNoticeConditions() []string`: every loaded non-secret condition
+  relying on the generic line, as `"<id> <name> (start, end)"`.
+  `WarnSilentNotices()` logs one warning per entry at boot (wired in `main.go`
+  after the species guard).
 - Three flags declare a deliberate silence, and `StartUserNotice` /
   `EndUserNotice` are where each one returns the empty string:
   - `silent-start` silences the START only (the applying command narrates it;
     Warcry, Rally, Throttled, Sleeping and Bloom Detox are applied through
-    `Character.AddBuff`, which never queues the buff event). Such a buff still
-    owes the holder a line, just not from the hook: `actions.Sleep` sends buff
-    15's line through `AuthoredStartLine`, which is what the flag means by
-    "the applier narrates".
+    `Character.AddCondition`, which never queues the condition event). Such a
+    condition still owes the holder a line, just not from the hook:
+    `actions.Sleep` sends condition 15's line through `AuthoredStartLine`,
+    which is what the flag means by "the applier narrates".
   - `hidden` silences the END only (a hider must not learn when the cover
     lapsed; room text still goes out).
   - `quiet` silences BOTH, for a record reapplied every round it persists
     (117 and 118), where either line would repeat every round.
 
-  A `secret` buff is silent at both ends too, but that is a spec field rather
-  than a flag, and it also hides the record from the `conditions` list.
-- **A player buff must be applied through `users.UserRecord.AddBuff` or
-  `UserRecord.AddBuffScaled`, the event path, or it lands in silence:
-  `Character.AddBuff` / `Character.AddBuffScaled` apply in place and queue
-  nothing, so `Buff_ApplyBuffs` never runs and no notice reaches the holder.**
-  The multiplier rides on `events.Buff.DurationMult`, so a scaled application
-  takes the same door. The root guard `buff_apply_path_guard_test.go` walks
-  all of `internal/` and `modules/` except the primitive packages
-  (`internal/buffs`, `internal/characters`, which define the primitive being
-  called) and fails the build on any direct character-level add outside them
-  that is not in its allowlist with a reason; the three prone-recovery
-  `AddBuffMagnitude` producers inside `internal/characters/skills.go` are
+  A `secret` condition is silent at both ends too, but that is a spec field
+  rather than a flag, and it also hides the record from the `conditions` list.
+- **A player condition must be applied through
+  `users.UserRecord.AddCondition` or `UserRecord.AddConditionScaled`, the
+  event path, or it lands in silence: `Character.AddCondition` /
+  `Character.AddConditionScaled` apply in place and queue nothing, so
+  `ApplyConditions` never runs and no notice reaches the holder.** The
+  multiplier rides on `events.Condition.DurationMult`, so a scaled application
+  takes the same door. The root guard `condition_apply_path_guard_test.go`
+  walks all of `internal/` and `modules/` except the primitive packages
+  (`internal/conditions`, `internal/characters`, which define the primitive
+  being called) and fails the build on any direct character-level add outside
+  them that is not in its allowlist with a reason; the three prone-recovery
+  `AddConditionMagnitude` producers inside `internal/characters/skills.go` are
   exempted by that package-level carve-out, not individually allowlisted.
-- **Every non-secret buff in the dogmud world must carry authored
+- **Every non-secret condition in the dogmud world must carry authored
   `start_user_text` (unless `silent-start` or `quiet`) AND `end_user_text`
-  (unless `hidden` or `quiet`), and a secret buff must carry no player text.**
-  The root guard `buff_notice_guard_test.go` fails the build otherwise; the
-  generic line is a runtime net, never the shipped experience. `secret: true`
-  also hides the buff from `conditions`. `SilentNoticeBuffs` exempts the same
-  three flags, so the boot warning and the guard agree.
+  (unless `hidden` or `quiet`), and a secret condition must carry no player
+  text.** The root guard `condition_notice_guard_test.go` fails the build
+  otherwise; the generic line is a runtime net, never the shipped experience.
+  `secret: true` also hides the condition from `conditions`.
+  `SilentNoticeConditions` exempts the same three flags, so the boot warning
+  and the guard agree.
 
 ### The narration door (M3 item 5b, `narration.go`)
 
 - `Phase` (`PhaseStart`, `PhaseTrigger`, `PhaseEnd`) selects the moment.
 - `Narration(p Phase) narration.Variants`: the holder's line is the **Actee**
-  (the buff happens to them; owner ruling 2026-09-12) and the room's line the
-  Observer. Actor is empty and reserved for the caster, which M6 authors once
-  `events.Buff` carries one. Start and End go through `StartUserNotice` /
-  `EndUserNotice`, so the notice rules stay in their one door.
+  (the condition happens to them; owner ruling 2026-09-12) and the room's line
+  the Observer. Actor is empty and reserved for the caster, which M6 authors
+  once `events.Condition` carries one. Start and End go through
+  `StartUserNotice` / `EndUserNotice`, so the notice rules stay in their one
+  door.
 - `Narrate(p Phase, ctx textutil.TokenContext) narration.Roles` renders it. This
-  is what `Buff_ApplyBuffs`, both round ticks and `NewTurn_PruneBuffs` call;
-  they deliver each role themselves on today's category and channel.
+  is what `ApplyConditions`, both round ticks and `PruneConditions` call; they
+  deliver each role themselves on today's category and channel.
 - `AuthoredStartLine(ctx) string` renders `start_user_text` as written, ignoring
-  the notice rules: the door for a silent-start buff's applier (sleep 15,
+  the notice rules: the door for a silent-start condition's applier (sleep 15,
   arrest 88, stun 84, broken limb 83). Throttled (89) is silent-start too but
   has no sender: its move narrates the choke itself.
 - `Validate` runs `narration.ValidateVariants` over every authored phase, on the
@@ -899,57 +868,32 @@ func (bs *Buff) Name() string {
 
 ## Data Management and Search
 
-### Buff Discovery
-```go
-// Search buffs by name or description
-func SearchBuffs(searchTerm string) []int {
-    searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
-    results := make([]int, 0, 2)
-    
-    for _, buff := range buffs {
-        if strings.Contains(strings.ToLower(buff.Name), searchTerm) ||
-           strings.Contains(strings.ToLower(buff.Description), searchTerm) {
-            results = append(results, buff.BuffId)
-        }
-    }
-    
-    return results
-}
+### Condition Discovery
 
-// Get all available buff IDs
-func GetAllBuffIds() []int {
-    results := make([]int, 0, len(buffs))
-    for _, buff := range buffs {
-        results = append(results, buff.BuffId)
-    }
-    return results
-}
-```
+`SearchConditions(searchTerm string) []int` returns the ids of every loaded
+spec whose name or description contains the term (case-insensitive).
+`GetAllConditionIds() []int` returns every loaded id. `GetConditionSpec(id)`
+returns the spec or nil, and `HasSpec(id)` is its boolean form, injected into
+cross-package validators such as `species.ValidateSpeciesConditionIds`.
 
 ### File Management
 ```go
-// Generate filename for buff specification
-func (b *BuffSpec) Filename() string {
+// Generate filename for condition specification
+func (b *ConditionSpec) Filename() string {
     filename := util.ConvertForFilename(b.Name)
-    return fmt.Sprintf("%d-%s.yaml", b.BuffId, filename)
+    return fmt.Sprintf("%d-%s.yaml", b.ConditionId, filename)
 }
 
-// Load all buff specifications from files
+// Load all condition specifications from files (abridged). The data folder
+// is still `buffs/` until slice 3.
 func LoadDataFiles() {
-    start := time.Now()
-    
-    tmpBuffs, err := fileloader.LoadAllFlatFiles[int, *BuffSpec](
-        string(configs.GetFilePathsConfig().DataFiles) + "/buffs"
-    )
+    dataPath := string(configs.GetFilePathsConfig().DataFiles) + `/buffs`
+    tmpConditions, err := fileloader.LoadAllFlatFiles[int, *ConditionSpec](dataPath)
     if err != nil {
-        panic(err)
+        panic(errors.Wrap(err, `filepath: `+dataPath))
     }
-    
-    buffs = tmpBuffs
-    
-    mudlog.Info("buffSpec.LoadDataFiles()", 
-        "loadedCount", len(buffs), 
-        "Time Taken", time.Since(start))
+    conditions = tmpConditions
+    ValidateLoadedFlags()
 }
 ```
 
@@ -957,103 +901,84 @@ func LoadDataFiles() {
 
 ### Character System Integration
 ```go
-// Buffs integrate with character stats and behavior
-- character.Buffs.StatMod("strength")     // Stat modifications
-- character.Buffs.HasFlag(buffs.NoCombat) // Behavioral restrictions
-- character.Buffs.Trigger()               // Round-based processing
-- character.Buffs.Prune()                 // Cleanup expired buffs
+// Conditions integrate with character stats and behavior
+- character.Conditions.StatMod("strength")          // Stat modifications
+- character.Conditions.HasFlag(conditions.NoCombat, false) // Behavioral restrictions
+- character.Conditions.Trigger()                    // Round-based processing
+- character.Conditions.Prune()                      // Cleanup expired conditions
 ```
 
 ### Combat System Integration
 ```go
-// Combat checks buff flags for behavior modification
-if sourceChar.HasBuffFlag(buffs.Accuracy) {
+// Combat checks condition flags for behavior modification
+if sourceChar.HasConditionFlag(conditions.Accuracy) {
     critChance *= 2 // Double crit chance
 }
 
-if targetChar.HasBuffFlag(buffs.Blink) {
+if targetChar.HasConditionFlag(conditions.Blink) {
     critChance /= 2 // Half crit chance against blink
-}
-
-if !sourceChar.HasBuffFlag(buffs.Hidden) {
-    // Send visible combat messages
 }
 ```
 
 ### Event System Integration
 ```go
-// Buffs trigger events for start, effect, and end
-events.AddToQueue(events.Buff{
+// Conditions queue an event for start, effect, and end
+events.AddToQueue(events.Condition{
     MobInstanceId: mobInstanceId,
-    BuffId:        buffId,
+    ConditionId:   conditionId,
     Source:        source,
 })
 ```
 
 ## Usage Examples
 
-### Basic Buff Management
+### Basic Condition Management
 ```go
-// Create new buff collection
-buffs := buffs.New()
+// Create new condition collection
+held := conditions.New()
 
-// Add temporary buff
-buffs.AddBuff(poisonBuffId, false)
+// Add temporary condition
+held.AddCondition(poisonConditionId, false)
 
-// Add permanent buff (from equipment)
-buffs.AddBuff(strengthBuffId, true)
+// Add permanent condition (from equipment)
+held.AddCondition(strengthConditionId, true)
 
 // Check for specific behavior
-if buffs.HasFlag(buffs.NoCombat, false) {
+if held.HasFlag(conditions.NoCombat, false) {
     user.SendText("You cannot engage in combat right now.")
     return
 }
 
 // Process round-based triggers
-triggeredBuffs := buffs.Trigger()
-for _, buff := range triggeredBuffs {
-    // Handle buff effects
-    processBuff(buff)
+for _, c := range held.Trigger() {
+    processCondition(c)
 }
 
-// Clean up expired buffs
-prunedBuffs := buffs.Prune()
-for _, buff := range prunedBuffs {
-    // Send buff expiration messages
-    notifyBuffExpired(buff)
+// Clean up expired conditions
+for _, c := range held.Prune() {
+    notifyConditionExpired(c)
 }
 ```
 
 ### Stat Modification Usage
 ```go
-// Calculate total stat bonuses from all buffs
-strengthBonus := character.Buffs.StatMod("strength")
-dexBonus := character.Buffs.StatMod("dexterity")
-healthBonus := character.Buffs.StatMod("health")
-
-// Apply to character stats
-character.Stats.Strength.ValueAdj += strengthBonus
-character.Stats.Dexterity.ValueAdj += dexBonus
-character.HealthMax.Value += healthBonus
+// Calculate total stat bonuses from all conditions
+strengthBonus := character.Conditions.StatMod("strength")
+dexBonus := character.Conditions.StatMod("dexterity")
 ```
 
 ### Flag-Based Behavior Control
 ```go
 // Check movement restrictions
-if character.Buffs.HasFlag(buffs.NoMovement, false) {
+if character.Conditions.HasFlag(conditions.NoMovement, false) {
     user.SendText("You are unable to move.")
     return
 }
 
-// Check combat restrictions with expiration
-if character.Buffs.HasFlag(buffs.CancelOnAction, true) {
+// Check with expiration
+if character.Conditions.HasFlag(conditions.CancelOnAction, true) {
     user.SendText("Your concentration is broken!")
-    // Buff automatically expired by HasFlag call
-}
-
-// Environmental interactions
-if character.Buffs.HasFlag(buffs.EmitsLight, false) {
-    room.LightLevel += 1 // Provide illumination
+    // Condition automatically expired by HasFlag call
 }
 ```
 
@@ -1066,97 +991,96 @@ if character.Buffs.HasFlag(buffs.EmitsLight, false) {
 - `internal/util` - Utility functions for file operations and validation
 - `internal/mudlog` - Logging system for debugging and monitoring
 
-This comprehensive buffs system provides sophisticated temporary status
-effects with precise timing control, behavioral modification, stat
-integration, and config-driven effect behaviors.
-
 ---
 
-## DOGMud chunk-4d buffs
+## DOGMud chunk-4d conditions
 
-Two new buffs added in chunk 4d (T9 + T10). Neither is a regen potion or
-combat potion — they are combat consequence buffs applied by the submission
-outcome resolver (`internal/combat/submission_outcome.go`).
+Two conditions added in chunk 4d (T9 + T10). Neither is a regen potion or
+combat potion; they are combat consequence conditions applied by the
+submission outcome resolver (`internal/combat/submission_outcome.go`).
 
 | ID | Name | Duration | Source | Effect |
 |----|------|----------|--------|--------|
-| 83 | Broken Limb | ~3600 rounds (~1 hr play) | Cripple submission outcome via `applyBrokenLimbBuff` | Reduces combat effectiveness for the afflicted limb's weapon role; persists across respawn; cannot be dispelled early by normal means |
-| 84 | Submission Stunned | 1 round | Crit submission tier (mercy policy only) via `applyStunnedBuff` | Brief combat stagger; auto-clears at the end of the following round |
+| 83 | Broken Limb | ~3600 rounds (~1 hr play) | Cripple submission outcome via `applyBrokenLimbCondition` | Reduces combat effectiveness for the afflicted limb's weapon role; persists across respawn; cannot be dispelled early by normal means |
+| 84 | Submission Stunned | 1 round | Crit submission tier (mercy policy only) via `applyStunnedCondition` | Brief combat stagger; auto-clears at the end of the following round |
 
-**Buff 83 (Broken Limb)** is the first persistent, non-dispellable
-combat debuff players commonly encounter. Triggered by a cripple-policy
-submission where the sub type targets a joint (armbar, kimura). Choke-class
-subs (RNC, Triangle, Anaconda, Guillotine) do NOT trigger buff 83 because
-they have no body-part target — the policy degrades to subdue instead.
+**Condition 83 (Broken Limb)** is the first persistent, non-dispellable
+harmful combat condition players commonly encounter. Triggered by a
+cripple-policy submission where the sub type targets a joint (armbar, kimura).
+Choke-class subs (RNC, Triangle, Anaconda, Guillotine) do NOT trigger
+condition 83 because they have no body-part target; the policy degrades to
+subdue instead.
 
-**Buff 84 (Submission Stunned)** is a 1-round stagger applied to the
+**Condition 84 (Submission Stunned)** is a 1-round stagger applied to the
 recipient when a mercy-policy submission lands a crit roll
 (`SubTierCrit`). Only fires on mercy policy because subdue/cripple/lethal
-send the defender through the death cascade and the buff would be a no-op.
+send the defender through the death cascade and the condition would be a
+no-op.
 
 See `internal/combat/context.md` "Submission System" for the full
-context in which these buffs are applied.
+context in which these conditions are applied.
 
 ---
 
-## DOGMud chunk-3.3 buffs (Sleeping)
+## DOGMud chunk-3.3 conditions (Sleeping)
 
 ### New flags
 
 | Flag | String value | Purpose |
 |------|-------------|---------|
-| `Sleeping` | `"sleeping"` | Bearer is asleep — gates regen boost, first-hit-crit, room rendering. Chunk 3.3. |
-| `CancelOnDamage` | `"cancel-on-damage"` | Buff cancels when any damage is applied to bearer. Wired in damage pipeline. Chunk 3.3. |
+| `Sleeping` | `"sleeping"` | Bearer is asleep: gates regen boost, first-hit-crit, room rendering. Chunk 3.3. |
+| `CancelOnDamage` | `"cancel-on-damage"` | Condition cancels when any damage is applied to bearer. Wired in damage pipeline. Chunk 3.3. |
 
-### New buff
+### New condition
 
 | ID | Name | Duration | Source | Effect |
 |----|------|----------|--------|--------|
-| 15 | Sleeping | Unlimited (until woken) | `actions.Sleep`, sleep user command, sleep mob command, schedule executor | Applies `Sleeping` + `CancelOnDamage` + `NoCombat` + `NoMovement` flags; triggers `SleepRegenMultiplier` (5×) regen; forces first-hit-crit on all attackers for the round the buff is active. Cancelled by damage, failed steal, shout-in-room, light source entering room, `stand`, or schedule segment end. |
+| 15 | Sleeping | Unlimited (until woken) | `actions.Sleep`, sleep user command, sleep mob command, schedule executor | Applies `Sleeping` + `CancelOnDamage` + `NoCombat` + `NoMovement` flags; triggers `SleepRegenMultiplier` (5x) regen; forces first-hit-crit on all attackers for the round the condition is active. Cancelled by damage, failed steal, shout-in-room, light source entering room, `stand`, or schedule segment end. |
 
 ### Usage pattern
 
 ```go
 // Check if character is asleep
-if c.HasBuffFlag(buffs.Sleeping) { ... }
+if c.HasConditionFlag(conditions.Sleeping) { ... }
 
 // Wake a sleeper (central hook)
 mobs.OnSleeperWoken(c)
 
-// Cancel all sleeping buffs (schedule exit path)
-c.CancelBuffsWithFlag(buffs.Sleeping)
+// Cancel all sleeping conditions (schedule exit path)
+c.CancelConditionsWithFlag(conditions.Sleeping)
 ```
 
 ---
 
-## DOGMud chunk-5.1c buffs (Jailed)
+## DOGMud chunk-5.1c conditions (Jailed)
 
-### New buff
+### New condition
 
 | ID | Name | Duration | Source | Effect |
 |----|------|----------|--------|--------|
-| 88 | Jailed | Scaled to sentence rounds via `AddBuffScaled` | `internal/justice.ExecuteArrest` | Carries two flags: `no-go` (`NoMovement`) prevents all movement, and `no-aggro-target` makes the bearer invisible to mob aggro targeting. `TriggersLeft` is set to the sentence length in rounds so the buff expires naturally at sentence end. Removed explicitly by `internal/justice.ResolveDetention` on timer expiry or fine payment. |
+| 88 | Jailed | Scaled to sentence rounds via `AddConditionScaled` | `internal/justice.ExecuteArrest` | Carries two flags: `no-go` (`NoMovement`) prevents all movement, and `no-aggro-target` makes the bearer invisible to mob aggro targeting. `TriggersLeft` is set to the sentence length in rounds so the condition expires naturally at sentence end. Removed explicitly by `internal/justice.ResolveDetention` on timer expiry or fine payment. |
 
 **`NoMovement` flag** (`no-go`, `NoMovement Flag = "no-go"`) is checked by
 `go.go` (room-exit commands), `flee.go` (flee), and `spell_foldrecall.go`
 (recall) to keep a jailed player locked in by every egress path.
 
-**`NoAggroTarget` flag** (`no-aggro-target`) — the same flag respawn-grace
-uses — makes the jailed player un-targetable by all mob aggro paths
+**`NoAggroTarget` flag** (`no-aggro-target`), the same flag respawn-grace
+uses, makes the jailed player un-targetable by all mob aggro paths
 (LookForTrouble, retarget, etc.). The combat round
 (`hooks/NewRound_DoCombat.go`) additionally drops a mob's *stale* aggro on
 a `no-aggro-target` player, so a guard that was already fighting the player
 before arrest stops pursuing them into the cell.
 
-**`AddBuffScaled(buffId int, scale float64)`** is the mechanism: passing
-`float64(rounds)` as scale sets `TriggersLeft = buff.TriggerCount * scale`.
-For buff 88 (TriggerCount=1, TriggerRate="1 round"), this yields exactly
-`rounds` triggers remaining — one per round of the sentence.
+**`AddConditionScaled(conditionId int, durationMult float64)`** is the
+mechanism: passing `float64(rounds)` as the multiplier sets
+`TriggersLeft = TriggerCount * durationMult`. For condition 88
+(TriggerCount=1, TriggerRate="1 round"), this yields exactly `rounds` triggers
+remaining, one per round of the sentence.
 
-The buff's `start_user_text` and `end_user_text` fire automatically via
-the buff system at cell entry and at removal. Because `RemoveBuff` fires
-`end_user_text` ("The cell door swings open. You are free to go."), that is
-the single release line for BOTH the timer-expiry and pay-fine paths —
+The condition's `start_user_text` and `end_user_text` fire automatically via
+the condition system at cell entry and at removal. Because `RemoveCondition`
+fires `end_user_text` ("The cell door swings open. You are free to go."), that
+is the single release line for BOTH the timer-expiry and pay-fine paths;
 `ResolveDetention` deliberately sends no release flavor of its own (avoids
 the duplicate-message bug). `ExecuteArrest` sends an additional
 arrest-context line at cell entry; `payfine` sends a payment line that does
@@ -1181,7 +1105,7 @@ if magnitude > 0 {
 if out.AttackerCrit {
     shieldBonus = int(float64(shieldBonus) * 1.5)
 }
-_ = target.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, duration, float64(shieldBonus), "spell")
+_ = target.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, duration, float64(shieldBonus), "spell")
 ```
 
 `weightedSkill` is the caster's spellcasting skill level times `SkillWeight`
@@ -1199,12 +1123,12 @@ a synthetic `combat.ChannelDefenceResult{DamageMultiplier: 1}` instead of a
 real roll, so `AttackerCrit` is false by construction. `applyPlayerEffect`
 only carries an `out` parameter at all because it is shared with
 `resolveAgainstPlayer`, the contested-attack path used by unwilling-target
-spells (`TargetDefenseType != ""`); a self-buff never reaches that path. So
-`applyMobSelfEffect`'s missing crit check is a consequence of that function's
-narrower scope (mobs only ever self-buff, so nothing forced it to share the
-contested-attack signature), not evidence that mobs are treated differently
-from players; neither self-buff is contested. A future fix would need a real
-roll to crit against: the static-difficulty seam
+spells (`TargetDefenseType != ""`); a self-applied condition never reaches
+that path. So `applyMobSelfEffect`'s missing crit check is a consequence of
+that function's narrower scope (mobs only ever cast on themselves here, so
+nothing forced it to share the contested-attack signature), not evidence that
+mobs are treated differently from players; neither self-cast is contested. A
+future fix would need a real roll to crit against: the static-difficulty seam
 `contest.AgainstDifficulty(score, difficulty)` (`internal/contest/contest.go`)
 already exists and is used by search, track, and forage checks; no spell path
 calls it. Duration is computed
@@ -1217,18 +1141,18 @@ touch `magical_mitigation` or `conviction_mitigation` at all. Its declared
 effect is `mitigation_flat: magnitude`, and the only reader of that kind on a
 character is `Character.GetPhysicalMitigation()`
 (`internal/characters/combat.go`), which takes it through
-`c.Buffs.Effect(buffs.EffectMitigationFlat)` and sums it with gear
+`c.Conditions.Effect(conditions.EffectMitigationFlat)` and sums it with gear
 `physical_mitigation`, mutation natural armor, and species natural armor, then
 clamps the total at `PhysicalMitigationCap`. So both "magical" ward spells buy
 physical mitigation through the Minor Shield record, not magical or conviction
 mitigation.
 
-A shield spell can separately carry `buff_ids`, and those buffs use the
-ordinary statmod path described above instead: `chrysalis-cocoon` grants
-`buff_ids: [52]` (Chrysalis Shell, in
+A shield spell can separately carry `buff_ids` (YAML key, renamed in slice 3),
+and those conditions use the ordinary statmod path described above instead:
+`chrysalis-cocoon` grants `buff_ids: [52]` (Chrysalis Shell, in
 `_datafiles/world/dogmud/buffs/52-chrysalis_shell.yaml`), whose
 `statmods: {magical_mitigation: 15, conviction_mitigation: 15}` are summed by
-`Buffs.StatMod()` and read by `Character.GetMagicalMitigation()` /
+`Conditions.StatMod()` and read by `Character.GetMagicalMitigation()` /
 `GetConvictionMitigation()` through `c.StatMod("magical_mitigation")` /
 `c.StatMod("conviction_mitigation")`. `conviction-ward` sets no `buff_ids`, so
 it grants no magical or conviction mitigation at all despite its name.
@@ -1267,15 +1191,16 @@ they live downstream, in the damage pipeline.
 
 | File | Purpose |
 |------|---------|
-| `buffspec.go` | The authored `BuffSpec` and its loader |
-| `notice.go` | The player-side start/end notice resolver and the silent-buff listing |
+| `conditionspec.go` | The authored `ConditionSpec` and its loader |
+| `notice.go` | The player-side start/end notice resolver and `SilentNoticeConditions` |
 | `narration.go` | The narration door: `Phase`, `Narration`, `Narrate`, `AuthoredStartLine`, `validateNarration` |
-| `buffs.go` | Applied-buff instances, flags, stat mods, `AddBuffMagnitude` |
-| `tick.go` | Per-round buff processing and expiry |
+| `conditions.go` | Held condition instances (`Condition`, `Conditions`), flags, stat mods, `AddConditionMagnitude`, `GetDurations` |
+| `tick.go` | `ComputeTickAmount`, the tick-pool amount formula |
 | `stacks.go` | `Stack`, the stacking tick (`addStack`, `syncStacks`, `tickStacks`), `tickAmountFor`, `DisplayName` |
-| `effects.go` | `EffectKind`, the closed effects vocabulary, `Buffs.Effect` / `Buffs.HasEffect` |
-| `ids.go` | The record ids the engine names in code: `BuffIdWarcry` (79) through `BuffIdEnchantWithdrawal` (123) |
-| `test_helpers.go` | Test fixtures: `SeedBuffsForTest` (replaces the registry) and `SeedConditionRecordsForTest` (adds 79, 80 and 117 to 123 on top of whatever is already seeded) |
+| `effects.go` | `EffectKind`, the closed effects vocabulary, `Conditions.Effect` / `Conditions.HasEffect` |
+| `ids.go` | The record ids the engine names in code: `ConditionIdWarcry` (79) through `ConditionIdEnchantWithdrawal` (123) |
+| `test_helpers.go` | Test fixtures: `SeedConditionsForTest` (replaces the registry) and `SeedConditionRecordsForTest` (adds 79, 80 and 117 to 123 on top of whatever is already seeded) |
 
-Buff files are named `{buffid}-{ConvertForFilename(name)}.yaml` — `name:
+Condition files are named `{buffid}-{ConvertForFilename(name)}.yaml` (the
+`buffid` key and the `buffs/` folder keep their names until slice 3): `name:
 Stunned` must be `2-stunned.yaml`, or loading panics at startup.

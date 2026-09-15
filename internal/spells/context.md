@@ -123,7 +123,7 @@ const (
 ```go
 const (
     SchoolElemental   = "elemental"   // Fire, ice, lightning, earth — offensive elemental magic
-    SchoolEnhancement = "enhancement" // Buffs, shields, enchantments — augmentation magic
+    SchoolEnhancement = "enhancement" // Conditions, shields, enchantments — augmentation magic
     SchoolMental      = "mental"      // Illusions, charms, telepathy — mind-affecting magic
     SchoolVital       = "vital"       // Healing, curing, life/death manipulation
 )
@@ -140,8 +140,8 @@ const (
 | `shield` | Applies ConditionShield with magnitude = damage absorbed |
 | `dot` | Applies ConditionPoisoned; ticks for EffectDuration cycles (each cycle = 3 rounds in AutoHeal) |
 | `knockdown` | Deals damage + knocks the target Supine (face-up "slams to the ground") via `Position.TransitionToSupine(MinRecoveryRounds: 1, TriggerKnockdownSpell)`. The legacy `CombatPosition = PositionProne` parallel-write is removed (T21 sunset). Future work may add a direction config to distinguish blast (Supine default) from shockwave (Prone). |
-| `purge` | Removes poison buffs and ConditionPoisoned from target(s) |
-| `none` | No automatic effect — spell behavior handled in Go hooks (used by buff spells, summons, utility) |
+| `purge` | Removes poison conditions and ConditionPoisoned from target(s) |
+| `none` | No automatic effect — spell behavior handled in Go hooks (used by condition spells, summons, utility) |
 
 ---
 
@@ -175,9 +175,9 @@ discovered through casting practice.
 
 ---
 
-## Buff Integration (Phase 25.3)
+## Condition Integration (Phase 25.3)
 
-Several buff flags affect spell and combat systems:
+Several condition flags affect spell and combat systems:
 
 | Flag | Effect | Applied In |
 |------|--------|-----------|
@@ -318,10 +318,10 @@ go out on the audio channel; that is filed, not a property of the door.
 |-----------|-------------|
 | `internal/hooks/spell_resolution.go` | Effect dispatch (damage, heal, shield, dot, knockdown, purge), HelpArea targeting. U9: the player- and mob-caster magical-crit branches build a `progression.Outcome{ToughenStat: characters.ToughenStatFor("magical"), Exceptional: progression.ExcAttackCrit}`, take `progression.BonusEvents`, and apply only the defender side via `target.Character.ApplyProgression(...)` -- see `internal/progression/context.md` and `internal/characters/context.md`'s "Contest Progression Seam" section. |
 | `internal/hooks/NewRound_DoCombat_helpers.go` | Ordinary casting progression: `OnSkillUseScaled` on the casting skill (spellcasting or manifestation), then `OnStatUse(spellData.PrimaryStat, ...)` when it differs from that skill's default stat. |
-| `internal/hooks/NewRound_DoCombat.go` | Spell discovery after cast, DamageBonus buff check |
+| `internal/hooks/NewRound_DoCombat.go` | Spell discovery after cast, DamageBonus condition check |
 | `internal/hooks/NewRound_AutoHeal.go` | Mob poison DoT ticking |
-| `internal/hooks/NewRound_UserRoundTick.go` | MutationRate buff check |
-| `internal/characters/progression.go` | SkillProgress buff check (2x casting skill gain) |
+| `internal/hooks/NewRound_UserRoundTick.go` | MutationRate condition check |
+| `internal/characters/progression.go` | SkillProgress condition check (2x casting skill gain) |
 
 ---
 
@@ -339,5 +339,5 @@ go out on the audio channel; that is filed, not a property of the door.
 
 - **Phase 25.1** (complete) — Re-themed 14 spells, Go infrastructure (dot/knockdown/purge), spell discovery, HelpArea fix
 - **Phase 25.2** (complete) — 12 new damage/heal/DoT/shield spells
-- **Phase 25.3** (complete) — 13 new buffs, 17 new buff/debuff/utility spells, hook integration
+- **Phase 25.3** (complete) — 13 new conditions, 17 new buff/debuff/utility spells, hook integration
 - **Phase 25.4** (complete) — 2 summon spells with component items and permanent charm

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `internal/statmods` package provides a centralized system for managing character statistic modifications in the DOGMud game engine. It defines standardized stat names, modification structures, and provides utilities for applying temporary and permanent stat changes from various sources like items, buffs, species bonuses, and skills.
+The `internal/statmods` package provides a centralized system for managing character statistic modifications in the DOGMud game engine. It defines standardized stat names, modification structures, and provides utilities for applying temporary and permanent stat changes from various sources like items, conditions, species bonuses, and skills.
 
 **DOGMud note:** The internal stat key strings match the player-facing names: `"strength"`, `"dexterity"`, `"perception"`, `"vitality"`, `"willpower"`, `"charisma"`. Legacy keys (`"speed"`, `"smarts"`, `"mysticism"`) were migrated in 0.10.0 and should not be used. Mana-related keys are deprecated.
 
@@ -121,11 +121,11 @@ totalStrength := baseStrength + item.StatMods.Get("strength")
 - **Enchantments**: Magical enhancements adding stat bonuses
 - **Set Bonuses**: Multiple item combinations providing additional bonuses
 
-### Buff System
-- **Temporary Effects**: Buffs apply time-limited stat modifications
-- **Permanent Buffs**: Long-term or permanent stat changes
-- **Stacking Rules**: Multiple buff sources combining stat effects
-- **Dispel Effects**: Removal of buff-based stat modifications
+### Condition System
+- **Temporary Effects**: Conditions apply time-limited stat modifications
+- **Permanent Conditions**: Long-term or permanent stat changes
+- **Stacking Rules**: Multiple condition sources combining stat effects
+- **Dispel Effects**: Removal of condition-based stat modifications
 
 ### Race System
 - **Racial Bonuses**: Inherent stat modifications based on character race

@@ -3,7 +3,7 @@
 ## Purpose
 
 A **mutator** is a named, time-bounded modifier attached to a *room*. It can
-rewrite the room's name and description, inject an alert line, grant buffs to
+rewrite the room's name and description, inject an alert line, grant conditions to
 whoever is standing there, open extra exits, change the light level, scale
 regen, and override PvP rules — all while it is "live," and all of it reverts
 when it decays.
@@ -34,9 +34,9 @@ type MutatorSpec struct {
     DescriptionModifier *TextModifier
     AlertModifier       *TextModifier            // append-only in practice
     DecayIntoId         string                   // becomes this mutator on decay
-    PlayerBuffIds       []int                    // applied to players + their followers
-    MobBuffIds          []int                    // applied to mobs
-    NativeBuffIds       []int                    // applied only to mobs that spawned here
+    PlayerConditionIds       []int                    // applied to players + their followers
+    MobConditionIds          []int                    // applied to mobs
+    NativeConditionIds       []int                    // applied only to mobs that spawned here
     DecayRate           string                   // gametime period string
     RespawnRate         string                   // gametime period string
     LightMod            int                      // -2..2

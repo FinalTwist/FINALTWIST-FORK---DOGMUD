@@ -344,14 +344,14 @@ Find out if an ActorObject has a specific buff flag
 
 |  Argument | Explanation |
 | --- | --- |
-| buffFlag | The buff flag to check [see buffspec.go](../buffs/buffspec.go). |
+| buffFlag | The buff flag to check [see conditionspec.go](/internal/conditions/conditionspec.go). |
 
 ## [ActorObject.CancelBuffWithFlag(buffFlag string) bool](/internal/scripting/actor_func.go)
 Cancels any buffs that have the flag provided. Returns `true` if one or more were found.
 
 |  Argument | Explanation |
 | --- | --- |
-| buffFlag | The buff flag to check [see buffspec.go](../buffs/buffspec.go). |
+| buffFlag | The buff flag to check [see conditionspec.go](/internal/conditions/conditionspec.go). |
 
 ## [ActorObject.RemoveBuff(buffId int)](/internal/scripting/actor_func.go)
 Remove a buff without triggering onEnd

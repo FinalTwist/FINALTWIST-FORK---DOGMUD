@@ -25,13 +25,13 @@ The combat system is built around several key components:
 - Multi-attack system based on dexterity differentials
 - Weapon-based damage calculations with species bonuses
 - Defense reduction and damage mitigation
-- Critical hit system with buff effects
+- Critical hit system with condition effects
 
 **Attack Result System:**
 - Comprehensive result tracking for damage, hits, and effects
 - Multi-target messaging system for attacker, defender, and rooms
 - Support for cross-room combat with directional messaging
-- Buff application tracking for combat effects
+- Condition application tracking for combat effects
 
 **Combat Calculations (`calculations.go`):**
 - Hit chance calculations based on dexterity statistics
@@ -95,8 +95,8 @@ instead of punches.
 // Base crit chance modified by:
 // - Strength + Dexterity stats
 // - Combat skill rank differential
-// - Accuracy buff (doubles crit chance)
-// - Blink buff on target (halves crit chance)
+// - Accuracy condition (doubles crit chance)
+// - Blink condition on target (halves crit chance)
 // - Grapple position: `c.IsController()` + IsStandingGrapple -0.2, IsGroundGrapple -0.4 (chunk 4b R1)
 // - U10d surprise opening strike: crits on a clean contest win, ONE swing
 ```
@@ -621,8 +621,8 @@ penalty profile via `IsProne() || IsSupine()` reads in
    `Position.TransitionToStanding(TriggerRecoveryRoll)`. Called every round
    via `NewRound_UserRoundTick` and `NewRound_MobRoundTick`. Failed/gated
    attempts add the 118 Recovering record (`attacks_cap: 1`, read by
-   `calcSwingCount` through `Buffs.Effect(buffs.EffectAttacksCap)`). Both
-   round ticks attempt recovery after their buff tick, so the one-tick record
+   `calcSwingCount` through `Conditions.Effect(conditions.EffectAttacksCap)`). Both
+   round ticks attempt recovery after their condition tick, so the one-tick record
    is live when `DoCombat` reads it, for players and mobs alike (players since
    slice 1b).
 
@@ -781,7 +781,7 @@ same pattern as Phase 2: the AI `CanUse*` viability check in `ai.go`,
 | `pounce` | quadruped predator, not already grappling | Leap opener: knockdown + damage, no bleed (`pounce.yaml`) |
 | `gore` | horned (`horns` body part — load-validated) | Charge: damage + knockback (`gore.yaml`) |
 | `drain` | `LifeDrain` flag (vampire) | Lifesteal: bleed target, heal attacker = `damage × DrainHealRatio` (0.75) via `Character.Heal` (`drain.yaml`) |
-| `throttle` | fanged | Damage + the Bleeding record (buff 122) + Throttled buff #89 (stamina DoT) + a cast interrupt gated by an opposed concentration contest (U10): throttler's grip (`Dex + unarmed-combat×SkillWeight`) vs. the target's hold (`Wil + spellcasting×SkillWeight`) via `combat.RunConcentrationContest`, floored only by `ConcentrationFloor` (0.02) — not the old flat `ThrottleInterruptChance` coin flip, which is deleted. A lost contest calls the shared `actions.InterruptTargetCast` helper, which reuses the engine's existing `activity.TriggerCastCancel` cancel path (+ conviction refund); a held contest fires success-only spellcasting progression for the target instead. No new silence flag. (`throttle.yaml`) |
+| `throttle` | fanged | Damage + the Bleeding record (condition 122) + Throttled condition #89 (stamina DoT) + a cast interrupt gated by an opposed concentration contest (U10): throttler's grip (`Dex + unarmed-combat×SkillWeight`) vs. the target's hold (`Wil + spellcasting×SkillWeight`) via `combat.RunConcentrationContest`, floored only by `ConcentrationFloor` (0.02) — not the old flat `ThrottleInterruptChance` coin flip, which is deleted. A lost contest calls the shared `actions.InterruptTargetCast` helper, which reuses the engine's existing `activity.TriggerCastCancel` cancel path (+ conviction refund); a held contest fires success-only spellcasting progression for the target instead. No new silence flag. (`throttle.yaml`) |
 
 **New species field:** `LifeDrain bool` (yaml `lifedrain`). Vampire
 (species 34) carries `lifedrain: true`; the boar (species 6) received
@@ -800,7 +800,7 @@ weighted into the existing `default` and `aggressive` profiles.
 | `DrainHealRatio` | 0.75 | Fraction of drain damage returned as healing to the attacker |
 | ~~`ThrottleInterruptChance`~~ | ~~0.75~~ | **Deleted (U10).** The flat coin-flip is replaced by an opposed concentration contest — see the beast-moveset table above and `combat.RunConcentrationContest`. |
 
-**New buff:** `89-throttled.yaml` — stamina tick DoT, no special flags.
+**New condition:** `89-throttled.yaml` — stamina tick DoT, no special flags.
 
 ### Beast Moveset Refinements (Phase 4)
 
@@ -1038,7 +1038,7 @@ and `Deprecated:` markers; the deletion U6 owed is still outstanding.
 - `internal/items` - Weapon specifications and combat messaging
 - `internal/users` - Player character management and state
 - `internal/mobs` - NPC character management and AI integration
-- `internal/buffs` - Status effects that modify combat
+- `internal/conditions` - Status effects that modify combat
 - `internal/skills` - Skill system for combat skills and dual wielding
 - `internal/species` - Species bonuses and unarmed combat specifications
 - `internal/rooms` - Room management for cross-room combat
@@ -1114,14 +1114,14 @@ DoCombat(evt)
 `hooks/NewRound_DoCombat.go` — Loops every online user. For each player
 in combat:
 
-#### 2a. NoCombat Buff Check
-If the player has a `NoCombat` buff flag, skip the entire combat turn. This
+#### 2a. NoCombat Condition Check
+If the player has a `NoCombat` condition flag, skip the entire combat turn. This
 check happens before anything else.
 
 #### 2b. (deleted) Shield Decay
 There used to be a `handlePlayerShieldDecay(user)` step here, decrementing the
 shield condition a SECOND time on every combat round while the condition tick
-had already decremented it once. Minor Shield is buff 119 now, decays once a
+had already decremented it once. Minor Shield is condition 119 now, decays once a
 round with every other record, and narrates its end wherever it ends rather
 than only in combat. The helper and its mob-side twin are deleted (conditions
 unification, 2026-09-12). A combat shield therefore lasts about twice as long
@@ -1155,8 +1155,8 @@ If the player is NOT casting, flow continues to melee.
 #### 2d. Aggro Check
 If `user.Character.Aggro == nil`, skip (player not in combat).
 
-#### 2e. Cancel Combat-Incompatible Buffs
-`CancelBuffsWithFlag(buffs.CancelIfCombat)` — strips buffs like stealth.
+#### 2e. Cancel Combat-Incompatible Conditions
+`CancelConditionsWithFlag(conditions.CancelIfCombat)` — strips conditions like stealth.
 
 #### 2f. Flee Check
 `handlePlayerFlee(user, uRoom, userId)` — if the player typed `flee`,
@@ -1180,11 +1180,11 @@ attempts escape. On success, player leaves combat.
 5. **THE ATTACK** — `combat.AttackPlayerVsMob(user, defMob)` (see
    Section 3 below).
 6. **Post-attack bonuses:**
-   - Conviction Surge buff: +15% damage if active.
+   - Conviction Surge condition: +15% damage if active.
    - Adrenaline Surge mutation: bonus damage when low HP.
 7. **Crit effects** — `applyPvMCritEffects()`: parry crits attempt
    disarm, dodge crits create grapple opportunity.
-8. **Apply buffs** from attack result (crit buffs on target).
+8. **Apply conditions** from attack result (crit conditions on target).
 9. **Dispatch messages** to player, room, defender room.
 10. **Mob concentration break** — if the mob was casting and got hit,
     roll Willpower vs damage% to see if concentration holds.
@@ -1319,7 +1319,7 @@ ws.swingCount = calcSwingCount(sourceChar, ws.weapon, ws.weaponSpeed,
 // offhand: *= 0.5 + (dualSkill*SkillWeight/50)*0.5, dualSkill keyed on
 //   IsUnarmedStyle (the STANCE) and deliberately not per-weapon
 // then *= stamina, encumbrance, haste, position multipliers
-// Buffs.Effect(EffectAttacksCap) > 0: clamps swingCount to that cap (the 118
+// Conditions.Effect(EffectAttacksCap) > 0: clamps swingCount to that cap (the 118
 //   Recovering record ships attacks_cap: 1)
 // Hard cap: max 4 swings per weapon
 ```
@@ -1435,7 +1435,7 @@ does NOT select the crit branch either — only the crit verdict does.
   CRIT: mean = rawDmgForCrit * critDmgMult                   // PRE-mitigation!
         if openingStrike { mean *= openingStrikeMult }        // U10d ambush
         damage = dice.RollStat(mean)
-        Apply crit buffs to target.
+        Apply crit conditions to target.
 
 Normal hit:
   damage = dice.RollStat(dmgMean)  // POST-mitigation
@@ -1471,8 +1471,8 @@ adds up in `AttackResult.DamageToTarget`.
 `hooks/NewRound_DoCombat.go` — Loops every mob instance:
 
 #### 4a. Pre-checks
-Mob alive? Has aggro? Not in NoCombat buff? Load room. Cancel
-combat-incompatible buffs. (The inline shield-decay branch that used to sit
+Mob alive? Has aggro? Not in NoCombat condition? Load room. Cancel
+combat-incompatible conditions. (The inline shield-decay branch that used to sit
 here, symmetric with the player helper, is deleted; see 2b above.)
 
 #### 4b. Fold Casting Check
@@ -1535,7 +1535,7 @@ scripted combat command.
       See `characters/context.md` for details.
 12. **Minor Shield reduction**: NOT flat damage off the top. It contributes
     mitigation POINTS, read by `Character.GetPhysicalMitigation` through
-    `Buffs.Effect(buffs.EffectMitigationFlat)`, summed with gear, natural
+    `Conditions.Effect(conditions.EffectMitigationFlat)`, summed with gear, natural
     armor, species armor and the `physical_mitigation` statmods, and the whole
     sum is divided by 100 to become the mitigation FRACTION the damage
     pipeline applies. The 119 Minor Shield record declares
@@ -1545,7 +1545,7 @@ scripted combat command.
     - Parry crit: player attempts to disarm the mob.
     - Dodge crit: player gets a grapple opportunity.
 15. **Charmed mob assist** — charmed mobs in room help the player.
-16. **Apply buffs and messages** to player and room.
+16. **Apply conditions and messages** to player and room.
 17. **Concentration break** — if player was casting and got hit,
     Willpower vs damage% check to see if concentration holds.
 18. **Offhand break** — chance the player's shield gets damaged.
@@ -1743,7 +1743,7 @@ rolls a fresh opposed check and applies the outcome.
   `SubmissionAttemptResult` struct, `Role` enum (RoleTop / RoleBottom).
 - `internal/combat/submission_outcome.go` — `ResolveSubmissionOutcome`,
   policy dispatch helpers (`applyBadTier`, `applyMercyRelease`,
-  `applyDeathCascade`, `applyBrokenLimbBuff`, `applyStunnedBuff`).
+  `applyDeathCascade`, `applyBrokenLimbCondition`, `applyStunnedCondition`).
   Also houses `RegisterSubmissionMessaging` — the callback registration
   point for T11 narration hooks (avoids a combat → hooks import cycle).
 - `internal/hooks/Position_SubmissionTick.go` — per-round observer.
@@ -1793,22 +1793,22 @@ PURPOSE: a fumble is the attempter's own blunder.
 | `SubTierBad` | Attacker failed AND attackerZ < `SubBadZThreshold` | Attempter falls Prone; grapple breaks to Standing. |
 | `SubTierNeutral` | Attacker failed, z >= threshold | No effect; grapple continues. |
 | `SubTierSuccess` | Attacker succeeded, no stun-crit | Apply attempter's `SubmissionPolicy`. |
-| `SubTierCrit` | Attacker succeeded, stun-crit (margin >= `CritBarFor`) | Apply policy + apply Stunned buff (id 84) to recipient when policy is mercy. |
+| `SubTierCrit` | Attacker succeeded, stun-crit (margin >= `CritBarFor`) | Apply policy + apply Stunned condition (id 84) to recipient when policy is mercy. |
 
 ### Policy outcome ladder
 
 `ResolveSubmissionOutcome` dispatches to per-policy helpers based on
 `attempter.SubmissionPolicy`. It returns a `SubmissionOutcomeEffects`
 (`StunnedVictim`, `BrokenLimbVictim`, `BrokenBodyPart`) naming the
-silent-start buffs it actually applied, for the caller to narrate: this
+silent-start conditions it actually applied, for the caller to narrate: this
 package sends no player text, so `Position_SubmissionTick` reads the report
-and delivers each buff's authored start line to a player victim.
+and delivers each condition's authored start line to a player victim.
 
 | Policy | Outcome |
 |--------|---------|
-| `mercy` | Clean grapple break; both return to Standing. Crit: recipient gets 1-round Stunned buff (id 84). Honors `SurrenderPolicy` tap signal. |
+| `mercy` | Clean grapple break; both return to Standing. Crit: recipient gets 1-round Stunned condition (id 84). Honors `SurrenderPolicy` tap signal. |
 | `subdue` | Death cascade with `NoDeprogression = true`, `GoldLossFraction = SubGoldLossFraction`. Defender wakes at temple with no stat decay. |
-| `cripple` | Same as subdue + broken-limb buff (id 83) applied to the body part targeted by the submission type. Choke subs (RNC, Triangle, Anaconda) degrade to subdue because chokes don't break limbs. |
+| `cripple` | Same as subdue + broken-limb condition (id 83) applied to the body part targeted by the submission type. Choke subs (RNC, Triangle, Anaconda) degrade to subdue because chokes don't break limbs. |
 | `lethal` | Full death cascade; `NoDeprogression = false`. Standard stat decay applies. |
 
 **Note on SurrenderPolicy:** Only `mercy` policy consults the defender's
@@ -1821,7 +1821,7 @@ stop because you tap.
 When `SubmissionPolicy == PolicyCripple` and the sub type is a choke
 (`position.CrippleBodyPart(subType) == ""`), `effectivePolicy` degrades
 to `PolicySubdue`. This prevents choke-class subs from triggering the
-broken-limb buff that requires a physical joint target. The degradation
+broken-limb condition that requires a physical joint target. The degradation
 applies silently — the attempter intended cripple but the choke just
 subdues.
 
@@ -1834,7 +1834,7 @@ shortcut lets a dominated-but-lucky controlled fighter occasionally fire
 a reversal even when consistently losing drift rolls — by design sparser
 than top-subs.
 
-### New buffs
+### New conditions
 
 | ID | Name | Duration | Source | Effect |
 |----|------|----------|--------|--------|

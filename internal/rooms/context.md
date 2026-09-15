@@ -17,8 +17,8 @@ The `internal/rooms` package is the core world management system for GoMud, hand
   observers. `SendTextVisualWithAudio` gives the unsighted an audio variant.
   `SendTextVisualAsLit` judges sight as if the room were lit, and exists for one
   case: an event that is itself a light whose light is already gone when the
-  line is sent, such as a light buff's end text (the light stops counting when
-  the buff expires, a round before the prune sends the line). Blinded and
+  line is sent, such as a light condition's end text (the light stops counting when
+  the condition expires, a round before the prune sends the line). Blinded and
   sleeping observers still get nothing from it.
   `SendTextVisualHidingNames` is `SendTextVisual` for a line that names an
   event's parties: a shapes-only observer reads each name as "a figure". It is
@@ -57,7 +57,7 @@ The `internal/rooms` package is the core world management system for GoMud, hand
 - **Spawn configuration**: Mob templates, items, gold, and containers
 - **Respawn mechanics**: Time-based respawning with configurable rates
 - **Spawn customization**: Level modifications, hostility, scripting overrides
-- **Quest integration**: Quest flags and buff assignments for spawned entities
+- **Quest integration**: Quest flags and condition assignments for spawned entities
 
 ### Container System (`container.go`)
 - **Container**: In-room storage with locking mechanisms
@@ -296,7 +296,7 @@ only, not skip-tagged, so it round-trips through the instance save.
 This cannot reintroduce shadowing: every exit property — destination, lock
 difficulty, exit message, oneway/secret — is still sourced wholly from the
 template on each load. The instance file cannot add, remove or redirect an
-exit; its only power is to clear `Lock.TrapBuffIds` on an exit the template
+exit; its only power is to clear `Lock.TrapConditionIds` on an exit the template
 already defines, and a name that no longer matches an authored exit is a
 silent no-op. Do **not** "simplify" this by removing the `instance:"skip"` tag
 from `Exits`.
@@ -308,7 +308,7 @@ from `Exits`.
 - `internal/exit`: Room connection and movement system
 - `internal/gametime`: Time-based mechanics and scheduling
 - `internal/mutators`: Room effect modifiers
-- `internal/buffs`: Status effects in rooms
+- `internal/conditions`: Status effects in rooms
 - `internal/configs`: Configuration management
 - `internal/fileloader`: Data file loading system
 

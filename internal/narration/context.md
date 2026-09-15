@@ -75,7 +75,7 @@ band fires, which is a behaviour change and belongs to M4, not to this package.
 `internal/spells` (casting), `internal/combat` (taunt),
 `internal/grapplemessaging`. Any store that wants deterministic selection under
 snapshot, or coordinated multi-role rendering. `internal/textutil` (the door
-for the buff, spell and quest stores, which do not call `Render` themselves).
+for the condition, spell and quest stores, which do not call `Render` themselves).
 
 ## Gotchas
 
@@ -94,7 +94,7 @@ would consume one fewer random number and shift every subsequent draw in the
 process.
 
 **Pass `expected` to `ValidateVariants` if your store has more than one role.**
-Without it the function cannot tell a role that is deliberately absent (a buff
+Without it the function cannot tell a role that is deliberately absent (a condition
 has no actee) from one that went MISSING (a defence band that lost its toroom
 pool), because both look like an empty slice. A three-role store that omits it
 can boot happily while narrating a real event to two audiences and silence to
@@ -142,7 +142,7 @@ property.
 default picker consumes a global random draw and shifts every later combat
 roll. `Render` cannot special-case `n == 1` because itemvoices never validates
 its pool sizes and legitimately holds one-line pools whose draw count must not
-change. The buff, spell and quest stores reach `Render` only through
+change. The condition, spell and quest stores reach `Render` only through
 `textutil.Narrate`, which passes `FirstPicker`; the root guard
 `narration_render_callers_guard_test.go` pins both facts.
 
@@ -157,5 +157,5 @@ way to make a red run green.
 
 `internal/util` only, plus stdlib. Keeping it that way is what lets every store
 package import this one without risking a cycle, and it is why the core lives
-here rather than in `internal/items`: `items` imports `internal/buffs`, so the
-buffs store could never have reached a core hosted there.
+here rather than in `internal/items`: `items` imports `internal/conditions`, so the
+conditions store could never have reached a core hosted there.

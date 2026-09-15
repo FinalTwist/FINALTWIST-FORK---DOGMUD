@@ -38,7 +38,7 @@ Types and constants:
 
 - `Category` — enum of 59 text classes (combat hits, defense, grapple,
   submissions, specials, spells by school, social, system, environment,
-  loot/equipment/buff/mutation/toxin; plus `CategoryCombatSummary` for
+  loot/equipment/condition/mutation/toxin; plus `CategoryCombatSummary` for
   the per-round compact tally emitted by the light-verbosity path).
 - `Verbosity`, `ParseVerbosity`, `(Verbosity).Suppresses` — combat-text
   verbosity primitives in `verbosity.go`. The allowlists
@@ -135,16 +135,16 @@ light-verbosity player sees it at all.
 
 ## Import-direction discipline
 
-`messaging` imports `internal/characters`, `internal/buffs`,
+`messaging` imports `internal/characters`, `internal/conditions`,
 `internal/state/perception` directly (sight predicates need
-Perception FSM state and the NightVision / InfraredVision buff
+Perception FSM state and the NightVision / InfraredVision condition
 flags). Everything else — `rooms`, `users`, `mobs`, `combat`,
 `hooks` etc. — is consumed via narrow interfaces (`RoomVisibility`,
 `Recipient`, `Broadcaster`) so the dependency arrow stays one-way:
 
 - Many packages import `messaging` (combat, hooks, rooms, users,
   actions, behaviortree, questengine, modules, world.go, …).
-- `messaging` imports characters/buffs/state/perception ONLY.
+- `messaging` imports characters/conditions/state/perception ONLY.
 - Nothing in `characters` imports `messaging` (would close a cycle).
 
 > **Corrected 2026-09-08.** This file previously documented four

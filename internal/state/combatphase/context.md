@@ -198,7 +198,7 @@ returns false (block) for two terminal states:
 
 Idle, AFK, and Dormant targets are NOT blocked — a player who typed `afk`
 in a dangerous room still takes hits by design (see §2 of the chunk-5
-spec). The NoAggroTarget grace buff (#81) also blocks `Idle→Engaging` via
+spec). The NoAggroTarget grace condition (#81) also blocks `Idle→Engaging` via
 the same `RegisterTargetPresenceCheck` hook for newly-respawned players.
 This is orthogonal to Presence state: NoAggroTarget blocks regardless of
 Presence, and Presence's Disconnected/Despawning block regardless of

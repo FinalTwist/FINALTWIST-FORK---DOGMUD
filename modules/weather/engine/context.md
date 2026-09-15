@@ -36,7 +36,7 @@ module portable across GoMud and DOGMud.
   rebuild. `Reconcile` is the single path by which module state reaches engine
   mutators (tick, commands, exports, post-rebuild): because specs carry
   `decayrate`, a bare diff-apply would let engine-side decay drift persist.
-  `StripBuffs()` clears buff id lists on all loaded `weather-*` specs — boot-time
+  `StripConditions()` clears condition id lists on all loaded `weather-*` specs — boot-time
   only, no restore path. `warnedMutators` warn-once map (safe on single goroutine).
 - **clock.go**: `TickPeriod(hours int) string` — renders game-hour count as a
   `gametime.AddPeriod` period string; values < 1 clamp to 1. `NextTickRound`
@@ -58,7 +58,7 @@ module portable across GoMud and DOGMud.
 ## Consumers
 - The module root (`weather.go`) uses `NewWorldReader()`, `DecodeCache`/`CacheIdentifier`.
 - The module root (`weather_tick.go`) uses `EncodeState`/`DecodeState`,
-  `TickPeriod`/`NextTickRound`/`CurrentRound`, `EmitAmbient`, `StripBuffs`.
+  `TickPeriod`/`NextTickRound`/`CurrentRound`, `EmitAmbient`, `StripConditions`.
 - The module root (`weather_commands.go`, `weather_api.go`) calls
   `Reconcile`/`CurrentRound` after any state mutation.
 

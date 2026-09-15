@@ -89,11 +89,11 @@ The `internal/usercommands` package implements the complete command system for p
 #### **Input Parsing and Validation**
 - **Argument parsing**: Sophisticated parsing with quote respect for complex arguments
 - **Target resolution**: Finding players, mobs, and objects by name or partial match
-- **State validation**: Checking combat status, buffs, and other restrictions
+- **State validation**: Checking combat status, conditions, and other restrictions
 
 #### **Permission and Security**
 - **Role-based access**: Admin commands restricted by user permissions
-- **State restrictions**: Commands blocked when downed, in combat, or affected by buffs
+- **State restrictions**: Commands blocked when downed, in combat, or affected by conditions
 - **Cooldown management**: Time-based restrictions on command usage
 
 #### **Event Integration**
@@ -173,7 +173,7 @@ The `internal/usercommands` package implements the complete command system for p
 - `internal/items`: Item manipulation and inventory management
 - `internal/skills`: Skill system integration
 - `internal/spells`: Magic system integration
-- `internal/buffs`: Status effect checking and application
+- `internal/conditions`: Status effect checking and application
 - `internal/scripting`: JavaScript runtime integration
 - `internal/combat`: contest resolution. The four movement contests in `go.go`
   (a sneaking mover against each occupant, and the mover spotting hidden

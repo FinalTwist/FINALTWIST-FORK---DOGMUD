@@ -233,12 +233,12 @@ Fires on two transitions:
   removed in chunk 4b R4. The `position_life_dead` observer in
   `internal/hooks/Position_Cascades.go` owns the Position FSM death
   cascade; the legacy fields no longer exist.)
-- Cancels all non-permanent buffs
+- Cancels all non-permanent conditions
 - Clears active combat conditions
 
 **Dead → Respawning:**
 - Refills all resource pools to 5% of max
-- Applies `NoAggroTarget` grace buff (#81)
+- Applies `NoAggroTarget` grace condition (#81)
 - Clears `PlayerDamage` (live field; snapshot in `DeadData` is stable)
 - Queues `CharacterVitalsChanged` event
 
@@ -295,7 +295,7 @@ type:
   the instance-cleanup observer despawns it
 
 Pre-conditions callers must satisfy before calling `Die`:
-1. Check `ReviveOnDeath` buff and bail if present
+1. Check `ReviveOnDeath` condition and bail if present
 2. Dedupe against `LastSuicideRound` (if the call site can double-fire)
 3. Shadow Realm zone guard (player call sites only)
 
@@ -361,7 +361,7 @@ test exercises one cell of the state × trigger matrix.
 |-------|------|
 | LI-001 – LI-003 | Basic death transitions (health zero, suicide, admin kill) |
 | LI-004 – LI-006 | Respawning + Alive transitions |
-| LI-007 – LI-015 | Cross-machine cascade (combat phase idle, awareness visible, buffs, conditions) |
+| LI-007 – LI-015 | Cross-machine cascade (combat phase idle, awareness visible, conditions) |
 | LI-015 – LI-016 | Respawn observers (teleport, auto-look) |
 | LI-017 – LI-019 | ForceAlive from Dead and Respawning; idempotent Alive |
 | LI-020 – LI-022 | Mob death observers (loot, MobDeath event, instance cleanup) |

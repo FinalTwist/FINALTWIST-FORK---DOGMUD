@@ -17,14 +17,14 @@ type Lock struct {
     Difficulty     uint8  `yaml:"difficulty,omitempty"`
     UnlockedRound  uint64 `yaml:"-"`
     RelockInterval string `yaml:"relockinterval,omitempty"`
-    TrapBuffIds    []int  `yaml:"trapbuffids,omitempty,flow"`
+    TrapConditionIds    []int  `yaml:"trapbuffids,omitempty,flow"`
 }
 ```
 Represents a game lock with the following features:
 - **Difficulty**: Numeric difficulty level (0 = no lock, >0 = locked)
 - **UnlockedRound**: Game round when lock was opened (not persisted)
 - **RelockInterval**: Time specification for automatic relocking
-- **TrapBuffIds**: Buff IDs applied when lockpicking fails
+- **TrapConditionIds**: Condition IDs applied when lockpicking fails
 
 ### Constants
 - **DefaultRelockTime**: `"1 hour"` - Default relock interval when none specified
@@ -72,9 +72,9 @@ Represents a game lock with the following features:
 
 ### Trap System
 - **Failure Consequences**: Failed lockpicking attempts trigger traps
-- **Buff Application**: Traps apply negative effects via buff system
-- **Multiple Traps**: Supports multiple buff effects per trap
-- **Configurable Effects**: Trap effects defined through buff IDs
+- **Condition Application**: Traps apply negative effects via condition system
+- **Multiple Traps**: Supports multiple condition effects per trap
+- **Configurable Effects**: Trap effects defined through condition IDs
 
 ## Usage Patterns
 
@@ -89,7 +89,7 @@ simpleLock := gamelock.Lock{
 advancedLock := gamelock.Lock{
     Difficulty:     10,
     RelockInterval: "30 minutes",
-    TrapBuffIds:    []int{123, 456}, // Poison and paralysis buffs
+    TrapConditionIds:    []int{123, 456}, // Poison and paralysis conditions
 }
 ```
 
@@ -101,7 +101,7 @@ if lock.IsLocked() {
     if lockpickingSuccess {
         lock.SetUnlocked()
     } else {
-        // Apply trap effects from TrapBuffIds
+        // Apply trap effects from TrapConditionIds
     }
 }
 
@@ -127,10 +127,10 @@ if lock.IsLocked() {
 - **Period Calculations**: Leverages gametime.AddPeriod() for intervals
 - **Temporal Consistency**: Maintains consistency with game world time
 
-### Buff System
-- **Trap Integration**: TrapBuffIds reference buff system effects
-- **Failure Consequences**: Failed lockpicking applies negative buffs
-- **Effect Stacking**: Multiple trap buffs can be applied simultaneously
+### Condition System
+- **Trap Integration**: TrapConditionIds reference condition system effects
+- **Failure Consequences**: Failed lockpicking applies negative conditions
+- **Effect Stacking**: Multiple trap conditions can be applied simultaneously
 
 ### Skill System
 - **Lockpicking Skills**: Lock difficulty affects skill check success rates
@@ -145,7 +145,7 @@ if lock.IsLocked() {
 ## Data Persistence
 
 ### YAML Serialization
-- **Persistent Fields**: Difficulty, RelockInterval, and TrapBuffIds saved
+- **Persistent Fields**: Difficulty, RelockInterval, and TrapConditionIds saved
 - **Transient State**: UnlockedRound not persisted (resets on server restart)
 - **Configuration Integration**: Locks defined in room/container YAML files
 

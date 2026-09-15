@@ -48,7 +48,7 @@ The stats system is built around several key components:
 ### 3. **Flexible Modification System**
 - **Equipment Bonuses**: Gear provides temporary stat improvements
 - **Spell Effects**: Magic can enhance or reduce statistics
-- **Buff Integration**: Status effects modify character capabilities
+- **Condition Integration**: Status effects modify character capabilities
 - **Dynamic Recalculation**: Stats update automatically when modifiers change
 
 ## Stat Structure

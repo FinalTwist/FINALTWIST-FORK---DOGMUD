@@ -93,7 +93,7 @@ Config: `Balance.QuestChainDepthLimit` (max recursion) and
 the read side (`HasQuest`, `HasItem`, `GetQuestFlag`, `GetGold`, `GetRoomId`,
 `GetUserId`, `HasOwnMasterwork`) and the write side — grant/consume/give,
 gold, text, mob and item spawning, spell teaching, skill training, stat
-increases, recipe learning, buffs, teleport, exit locking, quest flags, faction
+increases, recipe learning, conditions, teleport, exit locking, quest flags, faction
 rep, mutation grants, NPC dialogue queueing, and timed sequences.
 
 This is the seam that keeps the evaluator testable: tests supply a fake

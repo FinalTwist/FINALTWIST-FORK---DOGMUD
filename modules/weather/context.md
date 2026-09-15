@@ -50,7 +50,7 @@ goroutine — no synchronization needed.
   `engine.Reconcile` + `persistState`.
 - **weather_config.go**: `Config` struct (Enabled, IncludeSecretExits,
   RebuildGraphOnBoot, Seed, TickEveryGameHours, MaxActiveFronts, SpawnRateScale,
-  EmoteMode, EmoteEveryRounds, BuffsEnabled, Persist). Keys are flat because
+  EmoteMode, EmoteEveryRounds, ConditionsEnabled (key `BuffsEnabled` until slice 3), Persist). Keys are flat because
   plugin config lookup reads flattened scalar leaves. `buildConfig(getter)`
   (testable, applies defaults and sanity clamps). `simConfig()` maps module
   config onto `sim.Config`. `loadConfig(*plugins.Plugin)`.

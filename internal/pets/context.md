@@ -22,7 +22,7 @@ type Pet struct {
     LastMealRound uint8             `yaml:"lastmealround,omitempty"`
     Damage        items.Damage      `yaml:"damage,omitempty"`
     StatMods      statmods.StatMods `yaml:"statmods,omitempty"`
-    BuffIds       []int             `yaml:"buffids,omitempty"`
+    ConditionIds       []int             `yaml:"buffids,omitempty"`
     Capacity      int               `yaml:"capacity,omitempty"`
     Items         []items.Item      `yaml:"items,omitempty"`
 }
@@ -33,7 +33,7 @@ Represents a player's pet with comprehensive features:
 - **Food/LastMealRound**: Feeding system with hunger tracking
 - **Damage**: Combat capabilities and attack patterns
 - **StatMods**: Stat bonuses provided to owner
-- **BuffIds**: Permanent buffs granted to owner
+- **ConditionIds**: Permanent conditions granted to owner
 - **Capacity/Items**: Pet inventory system for item carrying
 
 #### Food
@@ -73,10 +73,10 @@ Manages pet feeding mechanics and nutritional requirements.
   - Supports various stat types and modifications
 
 ### Combat Integration
-- **GetDiceRoll() (attacks, dCount, dSides, bonus int, buffOnCrit []int)**: Returns combat statistics
+- **GetDiceRoll() (attacks, dCount, dSides, bonus int, conditionOnCrit []int)**: Returns combat statistics
   - Provides pet's combat capabilities
   - Returns attack count, dice configuration, and damage bonus
-  - Includes critical hit buff effects
+  - Includes critical hit condition effects
   - Integrates with combat system for pet participation
 
 ### Inventory Management
@@ -95,11 +95,11 @@ Manages pet feeding mechanics and nutritional requirements.
   - Returns best match or close match if found
   - Integrates with item search system
 
-### Buff System
-- **GetBuffs() []int**: Returns copy of pet's buff IDs
-  - Provides permanent buffs granted to owner
+### Condition System
+- **GetConditions() []int**: Returns copy of pet's condition IDs
+  - Provides permanent conditions granted to owner
   - Returns defensive copy to prevent modification
-  - Integrates with character buff system
+  - Integrates with character condition system
 
 ## Pet Features
 
@@ -117,7 +117,7 @@ Manages pet feeding mechanics and nutritional requirements.
 
 ### Combat Participation
 - **Combat Stats**: Pets have attack capabilities and damage values
-- **Critical Effects**: Special buffs applied on critical hits
+- **Critical Effects**: Special conditions applied on critical hits
 - **Owner Support**: Pets provide combat assistance to owners
 - **Stat Bonuses**: Combat-related stat modifications for owners
 
@@ -196,7 +196,7 @@ if pet.Food.NeedsFeeding() {
 
 ### Character System
 - **Stat Bonuses**: Pets provide stat modifications to owners
-- **Buff Application**: Permanent buffs granted through pet ownership
+- **Condition Application**: Permanent conditions granted through pet ownership
 - **Combat Enhancement**: Pet-based combat improvements
 - **Inventory Extension**: Additional storage capacity through pets
 

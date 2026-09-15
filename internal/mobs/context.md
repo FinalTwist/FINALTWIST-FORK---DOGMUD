@@ -152,7 +152,7 @@ type Mob struct {
     
     // Economy
     ItemDropChance  int                      // Chance to drop items on death
-    BuffIds         []int                    // Permanent buffs on spawn
+    ConditionIds         []int                    // Permanent conditions on spawn
     
     // Scripting
     ScriptTag       string                   // Custom script identifier
@@ -191,8 +191,8 @@ func NewMobById(mobId MobId, homeRoomId int, forceStatPool int) *Mob {
         mob.Character.Stamina = mob.Character.StaminaMax.Value
         mob.Character.Conviction = mob.Character.ConvictionMax.Value
 
-        // Apply permanent buffs
-        mob.Character.SetPermaBuffs(mob.BuffIds)
+        // Apply permanent conditions
+        mob.Character.SetPermanentConditions(mob.ConditionIds)
 
         // Validate all equipment
         mob.validateEquipment()
@@ -721,7 +721,7 @@ Mobs accumulate `MutationProgress` during combat, using the same threshold syste
 as players but at a reduced rate (`MobMutationRate`, default 0.3 = 30% of player rate).
 
 ### How It Works
-- Processed in `NewRound_MobRoundTick.go` inside the per-mob loop (after buff
+- Processed in `NewRound_MobRoundTick.go` inside the per-mob loop (after condition
   triggers, before `Validate()`)
 - Guard: `MobMutationEnabled` config + mob must be in combat (`Aggro != nil`)
 - Progress: `+= MutationProgressGainPerRound * MobMutationRate`
@@ -985,11 +985,11 @@ func LoadDataFiles() {
 
 ### Event System Integration
 ```go
-// Buff application through events
-func (m *Mob) AddBuff(buffId int, source string) {
-    events.AddToQueue(events.Buff{
+// Condition application through events
+func (m *Mob) AddCondition(conditionId int, source string) {
+    events.AddToQueue(events.Condition{
         MobInstanceId: m.InstanceId,
-        BuffId:        buffId,
+        ConditionId:   conditionId,
         Source:        source,
     })
 }
@@ -1067,11 +1067,11 @@ func shouldAttack(attacker *Mob, target *Mob) bool {
 ## Dependencies
 
 - `internal/characters` - Character system integration for stats and equipment
-- `internal/events` - Event system for command scheduling and buff application
+- `internal/events` - Event system for command scheduling and condition application
 - `internal/conversations` - Multi-mob conversation system
 - `internal/items` - Item system for equipment and inventory management
 - `internal/species` - Species system for default behaviors and restrictions
-- `internal/buffs` - Status effect system for permanent and temporary effects
+- `internal/conditions` - Status effect system for permanent and temporary effects
 - `internal/configs` - Configuration management for file paths and timing
 - `internal/crafting` - Recipe lookup and ingredient management for crafter mobs
 - `internal/skills` - Skill tag types for crafter recipe filtering
@@ -1217,7 +1217,7 @@ Mobs with `schedule_id:` set follow daily routines authored in
   suppress re-sleep. No-op for players and unscheduled mobs.
 - Schedule executor (`internal/hooks/NewRound_IdleMobs_schedule.go`)
   recognizes `activity: sleeping` segments. On entry: `mob.Command("sleep")`
-  once at target. On exit: `CancelBuffsWithFlag(buffs.Sleeping)`.
+  once at target. On exit: `CancelConditionsWithFlag(conditions.Sleeping)`.
 - Grace cooldown: after a forced wake the executor reads
   `schedule_wake_round` from MiscData and suppresses re-sleep for
   `ScheduleWakeGraceRounds` rounds (config, default 50).
@@ -1262,7 +1262,7 @@ slice fields are shared with it. Deep-copy anything a mob instance must own.
 
 `newMobByIdInternal` currently copies: `Character.Skills`, `Character.SpellBook`,
 `Character.Mutations`, `Character.Shop`, `Mob.Groups`, `Character.Items` /
-`ComponentItems` / `PotionItems`, plus fresh `PlayerDamage` / `Buffs` / state
+`ComponentItems` / `PotionItems`, plus fresh `PlayerDamage` / `Conditions` / state
 machines. Everything else on the template is either read-only at runtime or
 lazily allocated only when nil (e.g. `MiscData`, `Cooldowns`, `Settings`,
 `SkillUseCount`, `StatUseCount`, `ClusterAffinity`, `VisitedZones`,

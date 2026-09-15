@@ -27,7 +27,7 @@ The quests system is built around several key components:
 - Support for single-step and multi-step quests
 
 **Reward System:**
-- Multiple reward types (gold, items, skills, stats, recipes, spells, buffs, faction reputation)
+- Multiple reward types (gold, items, skills, stats, recipes, spells, conditions, faction reputation)
 - Player and room messaging for quest completion
 - Teleportation rewards for quest outcomes
 - Chained quest support through quest rewards
@@ -60,7 +60,7 @@ package holds four copies of the action-tree walker (`roomtext.go`,
 - **Stat Rewards**: Additive, permanent stat increases, one or more stats at once
 - **Recipe Rewards**: Grants known crafting recipes
 - **Spell Rewards**: Teaches a spell
-- **Buff Rewards**: Temporary or permanent buff application
+- **Condition Rewards**: Temporary or permanent condition application
 - **Quest Rewards**: Chain to new quests for storylines
 - **Teleportation Rewards**: Move player to specific room
 - **Faction Reputation Rewards**: Adjust standing with a named faction
@@ -109,7 +109,7 @@ type QuestReward struct {
     QuestId       string // New quest to give (format: "{id}-{step}")
     Gold          int    // Gold amount to award
     ItemId        int    // Single item to give by ID
-    BuffId        int    // Buff to apply by ID
+    ConditionId        int    // Condition to apply by ID
     SkillInfo     string // Skill advancement, one or more: "skill:level[,skill:level]"
     StatInfo      string // Stat increase, one or more: "stat:amount[,stat:amount]"
     RecipeInfo    string // Recipe(s) to grant, comma-separated recipe IDs
@@ -409,7 +409,7 @@ quest := Quest{
         {Id: "complete", Description: "Achieve hidden objective"},
     },
     Rewards: QuestReward{
-        BuffId:        101, // Special achievement buff
+        ConditionId:        101, // Special achievement condition
         PlayerMessage: "You feel a sense of accomplishment!",
     },
 }
@@ -505,11 +505,11 @@ if reward.SkillInfo != "" {
 }
 ```
 
-### Buff System Integration
+### Condition System Integration
 ```go
-// Quest rewards can apply buffs
-if reward.BuffId > 0 {
-    character.AddBuff(reward.BuffId, false) // isPermanent=false
+// Quest rewards can apply conditions
+if reward.ConditionId > 0 {
+    character.AddCondition(reward.ConditionId, false) // isPermanent=false
 }
 ```
 
@@ -603,9 +603,9 @@ func distributeRewards(questUser *users.UserRecord, rewards QuestReward) {
         character.LearnSpell(rewards.SpellId)
     }
 
-    // Buff reward
-    if rewards.BuffId > 0 {
-        character.AddBuff(rewards.BuffId, false)
+    // Condition reward
+    if rewards.ConditionId > 0 {
+        character.AddCondition(rewards.ConditionId, false)
     }
 
     // Chained quest reward
@@ -747,7 +747,7 @@ tree:
 
 When `grantsQuest` fires, it calls `events.AddToQueue(events.Quest{...})`
 which is processed by `Quest_HandleQuestUpdate.go`. That handler distributes
-all rewards (gold, items, buffs) defined in the quest YAML. No separate
+all rewards (gold, items, conditions) defined in the quest YAML. No separate
 reward mechanism is needed in the dialogue system.
 
 ### LLM Quest Context

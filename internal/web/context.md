@@ -85,7 +85,7 @@ The web system is built around Go's standard `net/http` package with several key
 ### Item Administration (`/admin/items/`)
 - Item type and subtype filtering
 - Item property editing (stats, descriptions, values)
-- Buff and effect management
+- Condition and effect management
 - Item usage and restriction configuration
 - Bulk import/export capabilities
 
@@ -563,7 +563,7 @@ Since U10b-0 Phase E the page calls
 `bonusMultiplier = 1.0`, and derives the dead-stat alarm from
 `characters.ProgressionRollThreshold`. It previously hand-rolled bare
 `CalculateProgressionChance`, which omitted `StatProgressionRate` and every
-per-stat, per-skill, mutation and buff multiplier — that drift is why the page
+per-stat, per-skill, mutation and condition multiplier — that drift is why the page
 could not surface the two sealed stats Phase B fixed. **Do not reintroduce a
 local chance calculation here.**
 

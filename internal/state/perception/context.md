@@ -9,8 +9,8 @@ gates "does this character's eyes work?" semantics.
 
 **Status (shipped 2026-05-19, consumer landed 2026-05-20):**
 
-The machine transitions correctly via the buff lifecycle hooks for its two
-sources, Buff 3 Blinded and Buff 77 Flashbang Blindness. (A third source, a
+The machine transitions correctly via the condition lifecycle hooks for its two
+sources, Condition 3 Blinded and Condition 77 Flashbang Blindness. (A third source, a
 blinded combat condition, was listed here and never had a producer; the
 conditions unification deleted it on 2026-09-12.)
 Originally shipped DORMANT in chunk 6 (2026-05-19) with no consumer.
@@ -31,7 +31,7 @@ The dormant-then-consumed lifecycle follows the chunk-4a precedent
 | State | Semantics |
 |---|---|
 | Sighted | Default — eyes work |
-| Blinded | Either active blind source (Buff 3 or Buff 77) |
+| Blinded | Either active blind source (Condition 3 or Condition 77) |
 
 Two states. No transient states. No state-data structs.
 
@@ -46,7 +46,7 @@ Blinded → {Sighted}
 
 Re-entry (Sighted→Sighted, Blinded→Blinded) is NOT in the table.
 Callers must check current state before firing transitions — the
-inline guards in `Character.AddBuff` / `RemoveBuff` handle this.
+inline guards in `Character.AddCondition` / `RemoveCondition` handle this.
 
 ---
 
@@ -54,14 +54,14 @@ inline guards in `Character.AddBuff` / `RemoveBuff` handle this.
 
 | Source | File | Hook |
 |---|---|---|
-| Buff 3 (Blinded) | `_datafiles/world/dogmud/buffs/3-blinded.yaml` | `Character.AddBuff` / `RemoveBuff` |
-| Buff 77 (Flashbang Blindness) | `_datafiles/world/dogmud/buffs/77-flashbang_blindness.yaml` | `Character.AddBuff` / `RemoveBuff` |
+| Condition 3 (Blinded) | `_datafiles/world/dogmud/buffs/3-blinded.yaml` | `Character.AddCondition` / `RemoveCondition` |
+| Condition 77 (Flashbang Blindness) | `_datafiles/world/dogmud/buffs/77-flashbang_blindness.yaml` | `Character.AddCondition` / `RemoveCondition` |
 
-Two sources, both buffs. Detection is by buff ID (not by flag) because the
-existing buff YAMLs don't carry a blindness-specific flag, and adding one
-would require data file edits. Buff IDs `BuffIdBlinded = 3` and
-`BuffIdFlashbangBlindness = 77` are constants in `transitions.go`, alongside
-the two trigger reasons `TriggerBuffApplied` and `TriggerBuffExpired`. The
+Two sources, both conditions. Detection is by condition ID (not by flag) because the
+existing condition YAMLs don't carry a blindness-specific flag, and adding one
+would require data file edits. Condition IDs `ConditionIdBlinded = 3` and
+`ConditionIdFlashbangBlindness = 77` are constants in `transitions.go`, alongside
+the two trigger reasons `TriggerConditionApplied` and `TriggerConditionExpired`. The
 `TriggerConditionAdded` / `TriggerConditionRemoved` pair was deleted with the
 combat condition enum on 2026-09-12.
 
@@ -71,16 +71,16 @@ combat condition enum on 2026-09-12.
 
 `Character.HasAnyBlindSource()` (in `internal/characters/sight.go`)
 returns true if either source is currently active. Used
-by the `RemoveBuff` expire-path to decide whether to fire Blinded→Sighted
+by the `RemoveCondition` expire-path to decide whether to fire Blinded→Sighted
 when one of two overlapping sources clears.
 
-Important implementation detail: the buff checks use
-`Buffs.TriggersLeft(id) > 0` rather than `Buffs.HasBuff(id)`. The
-buff system marks a buff expired (TriggersLeft=0) on RemoveBuff but
-defers map-entry pruning to the next game-tick. HasBuff checks map
-membership only and returns true for expired-but-not-yet-pruned buffs,
+Important implementation detail: the condition checks use
+`Conditions.TriggersLeft(id) > 0` rather than `Conditions.HasCondition(id)`. The
+condition system marks a condition expired (TriggersLeft=0) on RemoveCondition but
+defers map-entry pruning to the next game-tick. HasCondition checks map
+membership only and returns true for expired-but-not-yet-pruned conditions,
 which would break the overlap guard. TriggersLeft > 0 returns false
-immediately after RemoveBuff — correct semantic.
+immediately after RemoveCondition — correct semantic.
 
 ---
 
@@ -114,9 +114,9 @@ Presence).
 - `perception_test.go`: Behavior Matrix unit tests, pure-FSM coverage:
   PE-001, PE-002, PE-003, PE-005, PE-006, PE-008, PE-009. PE-004 and PE-007
   were the two condition-trigger cases and were deleted on 2026-09-12; both
-  edges stay covered by their buff-trigger siblings.
-- `integration_test.go`: real-Character integration via `AddBuff` /
-  `RemoveBuff`: PE-INT-001 through PE-INT-005 and PE-INT-007 (overlap and
+  edges stay covered by their condition-trigger siblings.
+- `integration_test.go`: real-Character integration via `AddCondition` /
+  `RemoveCondition`: PE-INT-001 through PE-INT-005 and PE-INT-007 (overlap and
   single-source paths). PE-INT-006 was the condition-source case and was
   deleted with the enum.
 

@@ -160,7 +160,7 @@ conversation).
 Conversation silently aborts (no cooldown) when:
 
 1. **Partner moved room** — partner's `GetRoom()` != initiator's
-2. **Partner sleeps** — partner has Sleeping buff
+2. **Partner sleeps** — partner has Sleeping condition
 3. **Partner enters combat** — partner's `Character.Aggro != nil`
 4. **Partner starts player dialogue** — (future: hooks from dialogue engine)
 5. **Line out of range** — `conversation_line_idx >= len(lines)` (shouldn't happen; guard)
@@ -203,7 +203,7 @@ all mobs and edges exist without importing `mobs` or `relationships`.
 ## Dependencies
 
 - `internal/relationships` — relationship type constants, Edge lookup
-- `internal/characters` — Character interface (buff checks)
+- `internal/characters` — Character interface (condition checks)
 - `internal/util` — `GetRoundCount()`, logging
 - `internal/fileloader` — YAML parsing (via loader.go)
 - `sync` — read-write lock for registry

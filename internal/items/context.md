@@ -57,7 +57,7 @@ The items system is built around two main components:
 ### 4. **Combat Integration**
 - Weapon damage calculation with dice roll systems
 - Attack message generation based on weapon type and damage intensity
-- Critical hit mechanics with buff application
+- Critical hit mechanics with condition application
 - Backstab compatibility based on weapon subtype
 
 ## Item Types and Categories
@@ -201,8 +201,8 @@ type ItemSpec struct {
 
     // Usage Properties
     Uses            int           // Number of uses before consumption
-    BuffIds         []int         // Buffs applied when used
-    WornBuffIds     []int         // Buffs applied while worn
+    ConditionIds         []int         // Conditions applied when used
+    WornConditionIds     []int         // Conditions applied while worn
     QuestToken      string        // Quest progress granted when obtained
 
     // Combat Properties
@@ -239,7 +239,7 @@ type Damage struct {
     SideCount   int      // Sides per die
     BonusDamage int      // Flat damage bonus
     DiceRoll    string   // Formatted dice roll (e.g., "2d6+3")
-    CritBuffIds []int    // Buffs applied on critical hits
+    CritConditionIds []int    // Conditions applied on critical hits
 }
 ```
 
@@ -557,11 +557,11 @@ potion drinks into it.
   NOT mirror those thresholds; the two are intentionally desynced so a
   player gets early warning before any penalty bites.
 - Drinking a `PhaseSpoiled` potion (`drink.go`) applies `toxicity × 3.0` and
-  the nausea debuff (buff 75).
+  the nausea debuff (condition 75).
 
 ### Craft Skill Scaling
 `durationMult = potencyMult(agingPhase) × (1.0 + Item.CraftSkill/100.0)`,
-applied via `Character.AddBuffScaled(buffId, durationMult)` in `drink.go`.
+applied via `UserRecord.AddConditionScaled(conditionId, durationMult, source)` in `drink.go`.
 
 ### Potion Bandolier
 Belt-slot item (`is_bandolier: true`, `bandolier_capacity` int). Auto-routes
@@ -571,7 +571,7 @@ ascending). Unequipping the belt spills its contents back to the backpack
 (`internal/characters/worn.go`). The bandolier's `weight_reduction` applies
 to its contents, the same mechanic the Component Bag uses.
 
-### Buff IDs
+### Condition IDs
 54-60 pool-regen potions (healing salve through elixir of renewal), 61-70
 combat/utility potions (ironhide through purging draught), 71-74 progression
 potions (essence of growth through chrysalis catalyst), 75 spoiled-potion
@@ -836,7 +836,7 @@ func LoadDataFiles() {
 
 ## Dependencies
 
-- `internal/buffs` - Status effect integration for item usage and worn effects
+- `internal/conditions` - Status effect integration for item usage and worn effects
 - `internal/configs` - Configuration management for file paths and settings
 - `internal/statmods` - Stat modification system for equipment bonuses
 - `internal/uuid` - Unique identification system for item instances
@@ -887,7 +887,7 @@ if exact.ItemId > 0 {
 ### Combat Integration
 ```go
 // Get weapon damage
-attacks, dCount, dSides, bonus, critBuffs := weapon.GetDiceRoll()
+attacks, dCount, dSides, bonus, critConditions := weapon.GetDiceRoll()
 
 // Get attack messages
 messages := items.GetAttackMessage(items.Slashing, 85) // 85% damage = Heavy
@@ -1114,8 +1114,8 @@ consuming logic lives in `internal/hooks`:
 - `calcSpellDamageForCharacter` (`internal/hooks/combat_shared_helpers.go`) is
   the single unified caster/mob spell-damage function (Stage 38.1), called
   from every direct spell-damage site in `internal/hooks/spell_resolution.go`.
-- `applyMobEffect_buff` (`internal/hooks/spell_resolution.go`) applies the
-  same multiplier separately when scaling a buff's tick-pool damage, since
+- `applyMobEffect_condition` (`internal/hooks/spell_resolution.go`) applies the
+  same multiplier separately when scaling a condition's tick-pool damage, since
   that path doesn't route through `calcSpellDamageForCharacter`.
 
 A prior version of this documentation named `calcSpellDamage()` and

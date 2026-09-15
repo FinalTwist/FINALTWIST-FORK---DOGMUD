@@ -36,7 +36,7 @@ type Actor interface {
 	IsPlayer() bool
 	GetUserId() int                 // 0 for mobs
 	GetMobInstanceId() int          // 0 for players
-	AddBuff(buffId int, source string)
+	AddCondition(conditionId int, source string)
 	OnSkillUse(skill string) bool
 	OnStatUse(stat string) bool
 	AwardResolved(won bool, cands ...progression.Candidate)
@@ -198,18 +198,18 @@ gated), so armed undead still drain.
 | `ExecutePounce` | quadruped predator, not grappling | Knockdown + damage (no bleed) |
 | `ExecuteGore` | horned | Damage + knockback |
 | `ExecuteDrain` | `LifeDrain` flag | Damage + heal attacker (`damage × DrainHealRatio`) via `Character.Heal` |
-| `ExecuteThrottle` | fanged | Damage + bleed stack + Throttled buff #89 (stamina DoT) + cast interrupt via `InterruptTargetCast` |
+| `ExecuteThrottle` | fanged | Damage + bleed stack + Throttled condition #89 (stamina DoT) + cast interrupt via `InterruptTargetCast` |
 
 **Bleeds stack (slice 1b, owner ruling 2026-09-14).** Rake, maul, hamstring,
 drain (`ExecuteDrain` and each landed target of `ExecuteDrainArea`) and throttle each add one
 stack to the target's 122 Bleeding record on a landed hit, through
-`AddBuffMagnitude(buffs.BuffIdBleeding, rounds, -amount, source)`. The stack's
+`AddConditionMagnitude(conditions.ConditionIdBleeding, rounds, -amount, source)`. The stack's
 per-round amount is `bleedPerRound` (`bleed.go`): the attacker's Strength
 `ValueAdj` divided by the move's `<Move>BleedStrengthDivisor` knob, floored at
 `<Move>BleedMin`; its rounds are `<Move>BleedRounds`. All fifteen knobs live in
 the Bleed stacks block of `config.yaml`. Stacks from repeated hits add up and
 keep ticking after the fight; see "Stacking records" in
-`internal/buffs/context.md`. Each result's `BleedDmg` carries the per-round
+`internal/conditions/context.md`. Each result's `BleedDmg` carries the per-round
 amount of the stack just added, and nothing outside this package reads it.
 
 **`InterruptTargetCast`** is a shared helper that reuses the engine's
@@ -289,7 +289,7 @@ actor excludes themself and party members; a mob excludes itself.
   Each observer uses effective Perception plus the Search skill multiplier.
   Resolution flows through `combat.RunContest`.
 - **Success/failure:** Success resolves Concealing to Hidden, queues the Hidden
-  buff mirror, sets the `sneaking` misc key, and returns `Success`. The first
+  condition mirror, sets the `sneaking` misc key, and returns `Success`. The first
   observer who wins resolves the actor back to Visible and populates
   `SpottedByName`. `RollHappened` distinguishes a contested attempt from an
   empty-room success.
@@ -441,7 +441,7 @@ Sweeps adjacent rooms for visible entities (non-hidden mobs/players).
 - **Adjacent rooms:** Scans in all four cardinal directions; lists any
   non-hidden mobs and players in the returned room descriptions.
 - **Visibility:** Does not bypass hidden state — only visible entities are
-  reported. Mobs/players who are hidden (buff 9) are not seen.
+  reported. Mobs/players who are hidden (condition 9) are not seen.
 - **UserActor behavior:** Renders a "You sense:" list of adjacent-room
   entities with flavor text.
 - **MobActor behavior:** Silent (no feedback).
@@ -510,12 +510,12 @@ type SearchResult struct {
 
 **Function:** `Sleep(actor, opts) SleepResult`
 
-Applies buff 15 (Sleeping) to the actor. Combat-gated: fails if the
+Applies condition 15 (Sleeping) to the actor. Combat-gated: fails if the
 actor is currently in combat (`Aggro != nil`). Idempotent: if the
-actor already has the Sleeping buff, returns `SleepResult.AlreadyAsleep
-= true` with no additional buff applied.
+actor already has the Sleeping condition, returns `SleepResult.AlreadyAsleep
+= true` with no additional condition applied.
 
-- **Success:** Actor receives buff 15; returns `SleepResult.Success = true`.
+- **Success:** Actor receives condition 15; returns `SleepResult.Success = true`.
 - **Failure (combat):** Returns `Success = false` with messaging.
 - **Messaging:** UserActor receives a "You lie down and close your eyes."
   message; the room sees "<Actor> lies down to sleep." MobActor messaging
@@ -603,23 +603,23 @@ type SalvageResult struct {
 
 **Function:** `Shadow(actor, opts) ShadowResult`
 
-Follow a target while hidden. The actor must already be hidden (carries buff
+Follow a target while hidden. The actor must already be hidden (carries condition
 ID 9) for Shadow to succeed.
 
 **Mechanics:**
-- **Prerequisite:** `actor.HasBuff(9)` must be true. If not, returns
+- **Prerequisite:** `actor.HasCondition(9)` must be true. If not, returns
   `Success = false`.
 - **Target resolution:** `opts.TargetUserId` or `opts.TargetMobId` sets the
   follow target.
 - **Storage:** On success, stores the target ID in the actor's misc-data
   under key `"shadow-target-mob"` or `"shadow-target-user"` depending on
-  target type. Also applies buff 87 (Shadow status buff).
+  target type. Also applies condition 87 (Shadow status condition).
 - **Auto-follow:** When the target moves to a new room, the actor's
   auto-follow system (in `modules/follow/`) automatically moves the actor
-  with them if the actor carries buff 87 (`HasBuff(87)` gating in
+  with them if the actor carries condition 87 (`HasCondition(87)` gating in
   `usercommands/go.go`), maintaining the hidden state.
 - **Reveal on attack:** If the hidden actor attacks before Shadow completes,
-  the Hidden buff is cancelled and Shadow ends.
+  the Hidden condition is cancelled and Shadow ends.
 
 **Messaging:** On success, actor receives "You begin stalking [target]." On
 failure, "You are not hidden."
@@ -650,11 +650,11 @@ Trail-read (passive sniffing) or active tracking on a resolved target.
   if a trail exists; failure if none.
 - **Active track (target noun):** `opts.TargetNoun` or target from Event/Aggro;
   enters tracking mode on the target. On success (adjacent trail/recent
-  sighting), applies buff 86 (Track status) and misc-data pair
+  sighting), applies condition 86 (Track status) and misc-data pair
   (`tracking-<userId>` or `tracking-<mobId>` with arrival timestamp).
   Seeds `ctx.SoftTarget` for downstream scout actions.
 - **UserActor behavior:** Renders trail-sniff results or tracking status.
-- **MobActor behavior:** Silent; just applies buff/misc-data and seeds
+- **MobActor behavior:** Silent; just applies condition/misc-data and seeds
   SoftTarget.
 
 **Messaging:** UserActor receives trail feedback or tracking status. MobActor
@@ -914,7 +914,7 @@ tell you. `FireResult.Chambered` carries the auto-reload's outcome, and its
 
 ## Dependencies
 
-- `internal/characters` — Character stats, buffs, inventory, cooldowns
+- `internal/characters` — Character stats, conditions, inventory, cooldowns
 - `internal/combat`: power calculations (Consider), and contest resolution.
   The stealth, theft, trap and detection contests in `sneak.go`, `shadow.go`,
   `steal.go`, `plant.go` and `defuse.go` resolve through
@@ -945,7 +945,7 @@ tell you. `FireResult.Chambered` carries the auto-reload's outcome, and its
 - `internal/mobs` — NPC management
 - `internal/rooms` — Room context, containers, exits
 - `internal/items` — Item specs, damage calculations
-- `internal/buffs` — Buff system (Hidden buff for Sneak/Shadow)
+- `internal/conditions` — Condition system (Hidden condition for Sneak/Shadow)
 - `internal/skills` — Skill progression and names
 - `internal/modules/follow` — Auto-follow (used by Shadow)
 

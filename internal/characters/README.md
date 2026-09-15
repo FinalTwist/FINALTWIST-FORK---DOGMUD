@@ -6,7 +6,7 @@ TODO: Flesh out more.
 
 Players have statistics that naturally improve with experience levels based on their race.
 
-These stat points can be further augmented by `Buffs` and by worn `Equipment` that provides `stat mods`.
+These stat points can be further augmented by `Conditions` and by worn `Equipment` that provides `stat mods`.
 
 Players also receive a stat point that they can manually assign as they please with each level.
 

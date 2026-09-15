@@ -1,5 +1,9 @@
 # Buff Schema Reference
 
+> In Go these records are conditions (`internal/conditions`, `ConditionSpec`).
+> The YAML keys, the `buffs/` folder and this file keep the buff spelling
+> until conditions slice 3 renames them.
+
 ## 1. Filename & Location
 
 **Path formula:**

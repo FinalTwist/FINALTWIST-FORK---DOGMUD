@@ -784,7 +784,7 @@ restores a captured baseline before re-deriving the spec. Copy that. Note
 - `internal/state`, `internal/state/presence`, `internal/state/position` -
   Presence/position state machines (chunk 5, lives on Character but
   connection lifecycle wired here)
-- `internal/buffs`, `internal/state/awareness` - only pulled in by
+- `internal/conditions`, `internal/state/awareness` - only pulled in by
   `test_helpers.go` (`NewTestUser`), not by any production path
 - `golang.org/x/crypto/bcrypt` - Password hashing (current format)
 - `gopkg.in/yaml.v2` - YAML serialization for user data persistence
