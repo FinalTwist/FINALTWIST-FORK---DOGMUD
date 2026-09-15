@@ -35,6 +35,9 @@ From 2026-09-15:
    trigger on that line has a parser).
 5. **Approach A**: one PR, one shared rename table feeding both the content
    rewrite and the save migration.
+6. **Mutation effect types all end in `_condition`**, including
+   `aura_enemy_condition`; **`buff_friendly` becomes `condition_friendly` and
+   stays inert**, wiring deferred to the behaviour arc (2026-09-15, planning).
 
 ## Facts verified against source
 
@@ -85,7 +88,12 @@ under `_datafiles/world/dogmud/users/`.
 **Values**: `effect_type: buff` → `effect_type: condition`;
 `melee_self_buff` → `melee_self_empower`; behaviour tree `add_buff`,
 `remove_buff`, `mob_has_buff` → `add_condition`, `remove_condition`,
-`mob_has_condition`.
+`mob_has_condition`; mutation effect types `on_hit_buff`, `aura_ally_buff`,
+`on_reflect_buff`, `aura_enemy_debuff` → `on_hit_condition`,
+`aura_ally_condition`, `on_reflect_condition`, `aura_enemy_condition`;
+behaviour tree category `buff_friendly` → `condition_friendly` (matched by
+no spell today); MiscData key `pinnacle_bandolier_buffs` →
+`pinnacle_bandolier_conditions`.
 
 **Wire**: GMCP `buffIds` → `conditionIds`, `wornBuffIds` →
 `wornConditionIds`, `buffs` → `conditions`, quest `buffid` → `conditionid`;
@@ -112,11 +120,12 @@ scenario files).
 ### 1. The rename table and the content rewrite
 
 **Table.** New package `internal/conditionrename`, one Go file, importable by
-`migration` and tests. Two lists, both from the name map: **keys** and
-**values**. Each entry carries the context it applies in (the folders a key
-occurs in, the key a value belongs to), so the bare quest `buff` key and the
-save `buffs` key cannot be renamed anywhere else. The table is the single
-source of truth; nothing else lists old spellings.
+`migration` and tests. One case-preserving word map with explicit exceptions
+(`melee_self_buff`, `aura_enemy_debuff`, `permabuff`, `debuff`) and protected
+words that contain buff but are not the concept (`buffer`, `buffet`,
+`buffed`, `rebuff`, `Buffalo`); the migration takes its new key names from
+the same map. It is the single source of truth; nothing else lists old
+spellings.
 
 **Go changes, in the same commit as the data.** Every buff-spelled `yaml:` /
 `json:` tag; `case "buff"` (5 sites); behaviour tree registry keys and the
@@ -124,7 +133,8 @@ source of truth; nothing else lists old spellings.
 `/conditions`; template function registrations; the two category strings.
 
 **Content rewrite.** A throwaway authoring tool (not committed) applies the
-table as text edits anchored to each entry's context, so comments, quoting
+word map (`conditionrename.Apply`) to the text of every tracked data,
+template and web file and to every Go string literal, so comments, quoting
 and key order stay byte-identical apart from renamed tokens. `git mv` for
 the folders and renamed files, in both worlds. Also rewritten: templates,
 `ansi-aliases.yaml`, admin `.data.html` form names, builder JS, and the
@@ -155,10 +165,13 @@ with no error.
 
 | Target | Shape | Key paths |
 |---|---|---|
-| `users/<id>.yaml` (skip `users.idx`) | map | `character.buffs` → `conditions`; each entry `buffid`, `permabuff`; `character.pet.buffids` |
+| `users/<id>.yaml` (skip `users.idx`) | map | `character.buffs` → `conditions`; each `conditions.list[]` entry `buffid`, `permabuff`; `character.pet.buffids`; `character.shop[].buffid`; `character.miscdata.pinnacle_bandolier_buffs` |
 | `users/<id>.alts.yaml` | **list** of characters | same paths per element |
 | `rooms.instances/**/*.yaml` | map | `containers.*.lock.trapbuffids` |
-| `shops/**/*.yaml` | map | `buffid` in stock entries |
+
+Shop living-state files (`shops/**`) carry no buff key (planning, 2026-09-15:
+they save `inventory[].item_id` etc.; `ShopItem.buffid` lives on
+`Character.Shop`), so they are not a target.
 
 - **Path-anchored**: each target renames only its listed paths, taken from
   the table. Nothing else in a file is touched.
@@ -173,16 +186,16 @@ with no error.
 - **Dry run**: `migrate_ConditionKeys(true)` logs and writes nothing.
 
 **Tests** on fixture directories (a user map with conditions and a pet, an
-alts list, a room instance with a trapped container, a shop): before/after
+alts list, a room instance with a trapped container): before/after
 content; second run is a no-op (file bytes and mtime unchanged); collision
-errors; malformed file errors; a migrated user loads through `users.LoadUser`
-and its alts through `characters.LoadAlts` with conditions, `Permanent` and
-pet condition ids intact. Every assertion null-probed.
+errors; malformed file errors; a migrated user decodes into `users.UserRecord`
+and its alts into `[]characters.Character` (the plain `yaml.Unmarshal` both
+loaders use) with conditions, `Permanent` and pet condition ids intact. Every assertion null-probed.
 
 ### 3. Wire, config, text and deletions
 
-- **GMCP builder payloads** per the name map, with `items.js`, `mobs.js`,
-  `quests.js`, `build.html` updated in the same commit, internal JS names
+- **GMCP builder payloads** per the name map, renamed by the rewrite in the
+  same commit as `items.js`, `mobs.js`, `quests.js`, `build.html`, internal JS names
   (`buffBox`, `rBuff`, datalist ids) included. The quest action vocabulary
   entry in `gmcp.Quest.go` follows. `gmcp_wire_freeze_test.go` flips to the
   new names.
@@ -194,9 +207,9 @@ pet condition ids intact. Every assertion null-probed.
   worlds and the "buff still works" lines from both `setcondition` help
   templates; the alias tests flip to assert `buff` is not recognised.
 - **Colours**: `condition`, `condition-apply`, `condition-expire` aliases land
-  in the same commit as the Go strings; a test renders a condition start line
-  and asserts the colour code is present (a missing alias drops colour
-  silently).
+  in the same commit as the Go strings; a test asserts the category strings
+  and `condition` are real alias keys in both worlds (a missing alias drops
+  colour silently).
 - **Content prose**: comments in condition YAML that say buff or name old
   hooks (for example record 83's `Buff_ApplyBuffs`) are corrected.
 - **Docs**: `docs/schemas/buff.md` → `condition.md` (keys, folder, filename
@@ -220,14 +233,15 @@ and a planted tag.
 **Commit order**, one PR, each commit building and passing the suite:
 
 1. `internal/conditionrename` and its tests.
-2. The atomic data commit: tags, Go strings, cases, registry, loader path,
-   folder and file moves, content rewrite, templates, colour aliases,
-   fixture save, flipped `wire_freeze_test.go`, load test. Equivalence proof
-   run here.
-3. GMCP builder fields and JS, flipped GMCP freeze test.
+2. Admin alias removal (before the rewrite, which would otherwise turn it
+   into a `condition` alias).
+3. The atomic rewrite: data, Go strings and tags, GMCP fields and builder
+   JS, templates, colour aliases, folder and file moves, fixture save,
+   flipped `wire_freeze_test.go`, key-binding and colour tests. Equivalence
+   proof run here.
 4. Migration 0.17.0 and tests.
 5. Config deletions and weather key.
-6. Admin alias removal, docs and deletions.
+6. Go comments, docs and deletions.
 7. The guard.
 
 **Testing.**
@@ -238,8 +252,8 @@ and a planted tag.
   (CI lint goes red on a >300-file PR from the diff API 406).
 - **Migration rehearsal on real saves**: a detached worktree at the branch
   with this machine's gitignored dev saves copied in, booted at 0.17.0: the
-  log lists rewritten files, no buff key survives under `users/`,
-  `rooms.instances/`, `shops/`, a second boot rewrites nothing, and a
+  log lists rewritten files, no buff key survives under `users/` or
+  `rooms.instances/`, a second boot rewrites nothing, and a
   spot-checked user loads with conditions intact.
 - Boot check in a detached worktree, both worlds loading, zero panics.
 - **Smoke playtest**, single agent, short: log in holding a condition; cast
@@ -251,7 +265,7 @@ and a planted tag.
 - First boot on the droplet runs 0.17.0, which copies all datafiles to a temp
   dir first; check free disk on the droplet before deploying.
 - On error the server restores the backup and exits; the log names the file.
-- A manual snapshot of `users/`, `rooms.instances/` and `shops/` before the
+- A manual snapshot of `users/` and `rooms.instances/` before the
   deploy is cheap insurance.
 - A local skip-worktree `config.yaml` that still says `BuffsEnabled` turns
   weather conditions on (fallback true); update the local copy.
