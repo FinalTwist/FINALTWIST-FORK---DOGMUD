@@ -93,6 +93,15 @@ func doAllMigrations(lastConfigVersion version.Version) error {
 		}
 	}
 
+	if lastConfigVersion.IsOlderThan(version.New(0, 17, 0)) {
+		// Conditions unification slice 3: rename buff-spelled save keys in
+		// users, alts and room instances. Datafiles are backed up by Run()
+		// before this and restored on error.
+		if err := migrate_ConditionKeys(false); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
