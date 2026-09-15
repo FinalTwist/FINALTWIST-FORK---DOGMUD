@@ -93,6 +93,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
+	"github.com/GoMudEngine/GoMud/internal/gossip"
 	"github.com/GoMudEngine/GoMud/internal/grapplemessaging"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/itemvoices"
@@ -160,6 +161,9 @@ func setupRealStores(t *testing.T) {
 
 	// M3 item 6: recipes load from the same configured data path.
 	crafting.LoadRecipeFiles()
+
+	// M3 item 7: gossip templates load from the same configured data path.
+	gossip.Load()
 }
 
 // ---------------------------------------------------------------------
@@ -1054,21 +1058,13 @@ func buildCraftingGolden(t *testing.T) string {
 // Built from PRE-migration data and code: the YAML is parsed here and each
 // variant is substituted exactly as internal/hooks does it today. Today's code
 // picks with util.Rand, which no test can pin, so this golden freezes every
-// variant's substitution, not a pick. M3 item 7 Task 2 switches the builder to
-// the gossip store; the rows, their order and the header must not change.
+// variant's substitution, not a pick. Since M3 item 7 Task 2 it reads through
+// the gossip store; rows, order and header are unchanged from the
+// pre-migration recording, which is the byte-identity proof.
 const gossipStandIn = "<the stand-in event>"
 
 func buildGossipGolden(t *testing.T) string {
 	t.Helper()
-
-	raw, err := os.ReadFile(filepath.Join(dogmudDataDir(t), "gossip_templates.yaml"))
-	if err != nil {
-		t.Fatalf("read gossip_templates.yaml: %v", err)
-	}
-	templates := map[string][]string{}
-	if err := yaml.Unmarshal(raw, &templates); err != nil {
-		t.Fatalf("parse gossip_templates.yaml: %v", err)
-	}
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "# gossip store snapshot\n")
@@ -1078,25 +1074,22 @@ func buildGossipGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# %q. The pick itself (util.Rand) is not frozen; no test can pin it.\n", gossipStandIn)
 	fmt.Fprintf(&b, "# dimensions: key x variant index\n\n")
 
-	keys := make([]string, 0, len(templates))
-	for k := range templates {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
+	keys := gossip.Keys()
 	if len(keys) == 0 {
-		t.Fatal("no gossip keys parsed")
+		t.Fatal("no gossip keys loaded; setupRealStores must call gossip.Load()")
 	}
 	for _, key := range keys {
-		for i, line := range templates[key] {
-			var rendered string
-			switch {
-			case key == "fallback":
-				rendered = line
-			case strings.HasPrefix(key, "fact-"):
-				rendered = strings.ReplaceAll(line, "{description}", gossipStandIn)
-			default:
-				rendered = strings.Replace(line, "{desc}", gossipStandIn, 1)
-			}
+		token, value := "{desc}", gossipStandIn
+		switch {
+		case key == "fallback":
+			token, value = "", ""
+		case strings.HasPrefix(key, "fact-"):
+			token = "{description}"
+		}
+		pool := gossip.Pool(key)
+		for i := range pool {
+			index := i
+			rendered := gossip.RenderWithForTest(pool, token, value, func(int) int { return index })
 			fmt.Fprintf(&b, "gossip|%s|%d => %s\n", key, i, rendered)
 		}
 	}

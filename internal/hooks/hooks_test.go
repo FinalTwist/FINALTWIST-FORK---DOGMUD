@@ -12,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/facts"
+	"github.com/GoMudEngine/GoMud/internal/gossip"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -2966,12 +2967,9 @@ func TestMobHasGroup_EmptyGroups(t *testing.T) {
 }
 
 func TestBuildGossipLine_FallbackWhenNoEvents(t *testing.T) {
-	// Force sync.Once to complete, then override templates
-	gossipTemplatesOnce.Do(func() {})
-	gossipTemplates = map[string][]string{
+	defer gossip.SeedForTest(map[string][]string{
 		"fallback": {"Nothing to report.", "Quiet day."},
-	}
-	defer func() { gossipTemplates = nil }()
+	})()
 
 	mob := &mobs.Mob{
 		MobId: 114,
@@ -2985,9 +2983,7 @@ func TestBuildGossipLine_FallbackWhenNoEvents(t *testing.T) {
 }
 
 func TestBuildGossipLine_EmptyTemplatesEmptyEvents(t *testing.T) {
-	gossipTemplatesOnce.Do(func() {})
-	gossipTemplates = map[string][]string{}
-	defer func() { gossipTemplates = nil }()
+	defer gossip.SeedForTest(map[string][]string{})()
 
 	mob := &mobs.Mob{
 		MobId: 114,
@@ -3026,14 +3022,12 @@ func TestBuildGossipLine_KnownFactUsedWhenNoEvents(t *testing.T) {
 	// Use a mob template ID that won't collide with other tests.
 	const mobTemplateId = 9901
 
-	// Seed gossipTemplates with distinguishable fact-default vs fallback
+	// Seed the gossip store with distinguishable fact-default vs fallback
 	// entries: fact-default renders "{description}", fallback does not.
-	gossipTemplatesOnce.Do(func() {})
-	gossipTemplates = map[string][]string{
+	defer gossip.SeedForTest(map[string][]string{
 		"fact-default": {"I heard that {description}"},
 		"fallback":     {"Nothing unusual happening."},
-	}
-	defer func() { gossipTemplates = nil }()
+	})()
 
 	// Declare a fact and record it as known to our mob.
 	require.NoError(t, facts.Declare("test-gossip-fact-6.3", facts.DeclareOpts{
@@ -3085,11 +3079,9 @@ func TestHandleIdleMobs_GossiperMob(t *testing.T) {
 	defer cleanupGossiper()
 
 	// Pre-seed gossip templates so it doesn't try to load from disk
-	gossipTemplatesOnce.Do(func() {})
-	gossipTemplates = map[string][]string{
+	defer gossip.SeedForTest(map[string][]string{
 		"fallback": {"Quiet day."},
-	}
-	defer func() { gossipTemplates = nil }()
+	})()
 
 	result := HandleIdleMobs(events.MobIdle{MobInstanceId: 200})
 	assert.Equal(t, events.Continue, result)
