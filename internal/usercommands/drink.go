@@ -19,7 +19,7 @@ import (
 
 // bloomWaferItemId is the item ID for the Bloom Wafer (40108).
 // The wafer's effect (Communion condition, addiction tick, mutation roll) is
-// handled as a special case in Drink rather than through the generic buffids
+// handled as a special case in Drink rather than through the generic conditionids
 // path, because it also needs to stamp BloomLastDoseRound and call
 // BloomAdvanceMutation.
 const bloomWaferItemId = 40108
@@ -313,7 +313,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	}
 
 	// ── Bloom Wafer special-case ──────────────────────────────────────────────
-	// The wafer has no buffids in its YAML; all Bloom effects are wired here.
+	// The wafer has no conditionids in its YAML; all Bloom effects are wired here.
 	// Toxicity (20) was already applied by the normal path above — don't
 	// apply it again. The order relative to the condition loop above doesn't matter
 	// since the loop is empty for this item.

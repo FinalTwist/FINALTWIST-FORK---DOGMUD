@@ -28,6 +28,6 @@ const (
 // have stat mods. Adding flags to the YAML would touch data; detecting
 // by ID keeps chunk 6 dormant on the data side.
 const (
-	ConditionIdBlinded            = 3  // _datafiles/world/dogmud/buffs/3-blinded.yaml
-	ConditionIdFlashbangBlindness = 77 // _datafiles/world/dogmud/buffs/77-flashbang_blindness.yaml
+	ConditionIdBlinded            = 3  // _datafiles/world/dogmud/conditions/3-blinded.yaml
+	ConditionIdFlashbangBlindness = 77 // _datafiles/world/dogmud/conditions/77-flashbang_blindness.yaml
 )

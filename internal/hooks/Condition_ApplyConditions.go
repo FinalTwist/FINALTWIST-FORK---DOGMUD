@@ -82,7 +82,7 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 
 	// Snapshot whether the condition was already active BEFORE we add/refresh.
 	// Used below to suppress start text on a pure refresh — refreshing an
-	// already-active condition (e.g. ambusher's mob_idle → add_buff 9 tick)
+	// already-active condition (e.g. ambusher's mob_idle → add_condition 9 tick)
 	// shouldn't re-fire "{source} disappears into the shadows." every round.
 	wasAlreadyActive := targetChar.HasCondition(evt.ConditionId)
 
@@ -96,7 +96,7 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 	// a poison-flagged condition when the holder carries poison-immunity. Narrating a
 	// condition that never landed told an immune player venom was seeping into their
 	// bloodstream, so a refusal returns here and nothing below it runs: no start
-	// notice, no start_remove_buffs cure, no TrackConditionStarted, no ConditionsTriggered.
+	// notice, no start_remove_conditions cure, no TrackConditionStarted, no ConditionsTriggered.
 	// The same refusal applies on the magnitude path, for a former condition
 	// applied through this door instead of synchronously.
 	var addErr error
@@ -168,7 +168,7 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 		}
 	}
 
-	// Remove conditions listed in start_remove_buffs (cure effects)
+	// Remove conditions listed in start_remove_conditions (cure effects)
 	if conditionSpec := conditions.GetConditionSpec(evt.ConditionId); conditionSpec != nil && len(conditionSpec.StartRemoveConditions) > 0 {
 		for _, removeId := range conditionSpec.StartRemoveConditions {
 			targetChar.RemoveCondition(removeId)

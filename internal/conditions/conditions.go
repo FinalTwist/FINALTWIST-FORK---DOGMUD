@@ -12,7 +12,7 @@ const (
 )
 
 type Condition struct {
-	ConditionId    int    `yaml:"conditionid"`              // Which condition template does it refer to? The tag pins the save key through the slice 2 rename.
+	ConditionId    int    `yaml:"conditionid"`              // Which condition template does it refer to? The tag states the save key explicitly.
 	Source         string `yaml:"source,omitempty"`         // Optional source identifier for where this condition originated. Example: spell, item, area
 	OnStartWaiting bool   `yaml:"onstartwaiting,omitempty"` // Is the onstart event waiting to trigger?
 	Permanent      bool   `yaml:"permanent,omitempty"`      // Is this condition from a worn item or race?

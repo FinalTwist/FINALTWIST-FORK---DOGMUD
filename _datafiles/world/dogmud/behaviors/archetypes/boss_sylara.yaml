@@ -1,7 +1,7 @@
 # boss_sylara archetype
 #
 # Windwarden Sylara (mob 241) — quest-giving boss caster.
-# Defensive caster with heal on HP<30, panic-condition chrysalis-
+# Defensive caster with heal on HP<30, panic-shield chrysalis-
 # cocoon when missing, opening conviction-ward, and bash to
 # interrupt casters.
 #
@@ -25,7 +25,7 @@ tree:
     - type: selector
       event: mob_combat_round
       children:
-        # Panic-condition: chrysalis-cocoon when condition 52 is missing
+        # Panic-shield: chrysalis-cocoon when condition 52 is missing
         - type: sequence
           children:
             - type: decorator

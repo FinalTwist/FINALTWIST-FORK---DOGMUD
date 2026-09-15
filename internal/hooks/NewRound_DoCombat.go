@@ -364,7 +364,7 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 		// skip both the legacy AI and handleCombatRound for this mob.
 		//
 		// Legacy preferredSpell has a hardcoded priority (shield → heal →
-		// harm-list) that would otherwise preempt archetype self-conditions every
+		// harm-list) that would otherwise preempt archetype self-empowering casts every
 		// round. Firing here makes the archetype authoritative.
 		btCtx := behaviortree.EventContext{
 			EventType: "mob_combat_round",

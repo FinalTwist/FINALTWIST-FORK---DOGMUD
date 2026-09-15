@@ -40,7 +40,7 @@ _datafiles/                 # Game world data and configuration files
 ├── sample-scripts/        # Example JavaScript scripts for spells and mobs
 └── world/default/         # Default game world content
     ├── biomes/            # Environment definitions
-    ├── buffs/             # Status effects with JS logic
+    ├── conditions/             # Status effects with JS logic
     ├── conversations/     # NPC dialogue trees
     ├── items/             # Game items (weapons, armor, consumables)
     ├── mobs/              # Non-player characters with AI scripts
@@ -182,7 +182,7 @@ make client               # Connect telnet client to Docker instance
 - Turn-based processing with configurable timing (50ms turns, 4-second rounds by default)
 - Room-based world with dynamic loading/unloading for memory efficiency
 - Character persistence with automatic saving
-- Comprehensive buff/debuff system with JavaScript scripting
+- Comprehensive condition system with JavaScript scripting
 - Quest system with progress tracking
 - Combat system with customizable damage calculations
 
@@ -231,7 +231,7 @@ make client               # Connect telnet client to Docker instance
 - **Items System**: `internal/items/context.md` - Game item system with equipment, consumables, containers, and item interactions
 - **Scripting System**: `internal/scripting/context.md` - JavaScript runtime integration for spells, mobs, rooms, and dynamic game content
 - **Events System**: `internal/events/context.md` - Event-driven architecture with typed events, listeners, and game state management
-- **Buffs System**: `internal/buffs/context.md` - Status effects system with JavaScript scripting, duration management, and effect stacking
+- **Conditions System**: `internal/conditions/context.md` - Status effects system with JavaScript scripting, duration management, and effect stacking
 - **Spells System**: `internal/spells/context.md` - Magic system with spell casting, targeting, cooldowns, and JavaScript-based spell effects
 - **Skills System**: `internal/skills/context.md` - Player skill progression system with experience, ranks, and skill-based actions
 - **Quests System**: `internal/quests/context.md` - Quest management with progress tracking, completion validation, and reward distribution
@@ -264,7 +264,7 @@ make client               # Connect telnet client to Docker instance
 - **Party System**: `internal/parties/context.md` - Group management system with leadership, tactical positioning, combat coordination, and invitation management
 - **Pet System**: `internal/pets/context.md` - Comprehensive companion system with feeding mechanics, combat abilities, inventory management, and stat modifications
 - **Race System**: `internal/races/context.md` - Character race system with racial characteristics, abilities, stat bonuses, size classifications, and behavioral traits
-- **Stat Modifications**: `internal/statmods/context.md` - Centralized system for managing character statistic modifications from items, buffs, racial bonuses, and skills
+- **Stat Modifications**: `internal/statmods/context.md` - Centralized system for managing character statistic modifications from items, conditions, racial bonuses, and skills
 - **Suggestions System**: `internal/suggestions/context.md` - Simple suggestion cycling system for command completion, auto-suggestions, and help hints
 - **Template System**: `internal/templates/context.md` - Comprehensive template processing with ANSI color support, markdown processing, and multi-source file integration
 - **Conversations System**: `internal/conversations/context.md` - Dynamic NPC conversation system with scripted dialogues, participant matching, and turn-based execution

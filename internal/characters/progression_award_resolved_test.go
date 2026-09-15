@@ -322,7 +322,7 @@ func TestAwardResolved_DelegatesToScaledAtBonusOne(t *testing.T) {
 // A sub-1.0 bonus is a WINNING multiplier, not a loss.
 //
 // SelfCastProgressionMultiplier ships at 0.5 and rides in on the spell path's
-// spellBonus, so a self-condition cast arrives here with bonus 0.5 and won = true.
+// spellBonus, so a self-empowering cast arrives here with bonus 0.5 and won = true.
 // If that were read as a loss it would stop ticking skill_use quests, which is
 // the exact regression progression.Event.Lost exists to prevent.
 func TestAwardResolvedScaled_ASubOneBonusIsStillAWin(t *testing.T) {

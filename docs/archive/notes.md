@@ -5,13 +5,13 @@
 
 * Potion Mixing?
   * INPUT items
-  * OUTPUT a unique potion that provides a buff?
+  * OUTPUT a unique potion that provides a condition?
 
-* Mutable buff characteristics?
-  * Problematic since buffs are determined by ID currently.
+* Mutable condition characteristics?
+  * Problematic since conditions are determined by ID currently.
 
 * Shapechanging via race changes? Should work... just need to track reverting back.
-  * Could be a buff, would need mutable buffs to know what to turn back into, or track this data somehow.
+  * Could be a condition, would need mutable conditions to know what to turn back into, or track this data somehow.
 
 # Basic thoughts on weapons damage guidelines
 

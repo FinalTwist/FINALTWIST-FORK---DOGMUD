@@ -15,14 +15,13 @@ This guide explains how to use Claude Code's slash commands to generate new worl
 | A new quest (planning)  | `/sketch-quest` |
 | A new quest (execution) | `/new-quest <plan-file>` |
 
-For spells and buffs, use the schema docs as reference and write the YAML
+For spells and conditions, use the schema docs as reference and write the YAML
 manually for now. **Flavor text goes in YAML text fields** (`cast_user_text`,
 `cast_room_text`, etc. for spells; `start_user_text`, `end_user_text`, etc.
-for buffs) — see `spell.md` Section 2b and `buff.md` Section 4. Only create
-a `.js` file if the spell/buff needs custom logic.
+for conditions) — see `spell.md` Section 2b and `condition.md` Section 4.
 
 **Schema docs** live in `docs/schemas/`:
-- `room.md`, `mob.md`, `item.md`, `spell.md`, `buff.md`, `dialogue.md`
+- `room.md`, `mob.md`, `item.md`, `spell.md`, `condition.md`, `dialogue.md`
 
 ---
 
@@ -153,7 +152,7 @@ Before a file is finalized, verify:
 - [ ] Mob: `{id}-{ConvertForFilename(name)}.yaml` — e.g. `12-cave_troll.yaml`
 - [ ] Room: `{roomid}.yaml` — e.g. `201.yaml` (no name, just ID)
 - [ ] Item: `{id}-{ConvertForFilename(name)}.yaml` — e.g. `10010-obsidian_blade.yaml`
-- [ ] Buff: `{id}-{ConvertForFilename(name)}.yaml` — e.g. `8-stone_skin.yaml`
+- [ ] Condition: `{id}-{ConvertForFilename(name)}.yaml` — e.g. `8-stone_skin.yaml`
 - [ ] Spell: `{spellid}.yaml` — e.g. `fire-bolt.yaml` (no conversion for spells)
 - [ ] Zone folder: underscores only, matches `ConvertForFilename(zone display name)`
 
@@ -161,13 +160,13 @@ Before a file is finalized, verify:
 - [ ] No two mobs share a mobid
 - [ ] No two rooms share a roomid
 - [ ] No two items share an itemid within the same type range
-- [ ] No two buffs share a buffid
+- [ ] No two conditions share a conditionid
 
 **Required fields:**
 - [ ] Room: `roomid`, `zone`, `title`, `description`, `exits`
 - [ ] Mob: `mobid`, `zone`, `character.name`, `character.description`, `character.speciesid`
 - [ ] Item: `itemid`, `name`, `description`, `type`, `subtype`
-- [ ] Buff: `buffid`, `name`, `description`
+- [ ] Condition: `conditionid`, `name`, `description`
 - [ ] Spell: `spellid`, `name`, `description`, `type`, `schools`
 
 **World tone:**

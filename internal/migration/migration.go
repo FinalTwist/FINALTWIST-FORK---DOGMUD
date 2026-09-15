@@ -94,7 +94,7 @@ func doAllMigrations(lastConfigVersion version.Version) error {
 	}
 
 	if lastConfigVersion.IsOlderThan(version.New(0, 17, 0)) {
-		// Conditions unification slice 3: rename buff-spelled keys in every
+		// Rename the old condition key spellings (conditionrename) in every
 		// .yaml and .plugin.dat file under DataFiles (item overrides are saved
 		// almost everywhere). Datafiles are backed up by Run() before this and
 		// restored on error.

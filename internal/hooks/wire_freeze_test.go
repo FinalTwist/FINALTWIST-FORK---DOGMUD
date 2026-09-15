@@ -14,16 +14,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestWireFreeze_EffectTypeConditionStillApplies is a slice 2 (conditions
-// unification) freeze test. wire_freeze_test.go at the repo root pins that
-// `effect_type: buff` still PARSES to the Go string "buff" — but nothing
-// reads that string except four `case "buff":` literals in
-// spell_resolution.go (~906, 1093, 1493, 1740) and internal/usercommands/
-// spells.go:32. A later slice 2 task doing a text replace across the
-// codebase could turn one of those case literals into `case "condition":`
-// without the compiler noticing (a string literal, not an identifier) and
-// without the parse-only freeze test going red. Each of these four subtests
-// drives a REAL `effect_type: buff` spell through one of the four dispatch
+// TestWireFreeze_EffectTypeConditionStillApplies is a freeze test for the
+// spell effect type `effect_type: condition`. Nothing reads that string
+// except four `case "condition":` literals in spell_resolution.go (~906,
+// 1093, 1493, 1740) and internal/usercommands/spells.go:32. A text replace
+// across the codebase could change one of those case literals without the
+// compiler noticing (a string literal, not an identifier) and without a
+// parse-only freeze test going red. Each of these four subtests
+// drives a REAL `effect_type: condition` spell through one of the four dispatch
 // shapes and asserts the condition was actually queued for the target, so a
 // broken case literal shows up here even though it can't show up in a
 // yaml.Unmarshal-only test.
@@ -38,7 +36,7 @@ import (
 // contested paths follow TestDotProducerRecordsNegativeHarm_MobTarget and
 // TestDotProducerRecordsNegativeHarm_PlayerTarget (hooks_test.go), the
 // existing tests that already drive applyMobEffect and
-// resolveMobSpellAgainstPlayer this way. Condition id 100 ("Test Strength Buff")
+// resolveMobSpellAgainstPlayer this way. Condition id 100 ("Test Strength Condition")
 // comes from seedAllRegistries and carries no TickPool, so the tick-snapshot
 // branch inside each case is not exercised here — only that the dispatch
 // queued the right condition for the right holder.

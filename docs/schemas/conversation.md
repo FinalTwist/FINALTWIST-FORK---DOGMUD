@@ -162,7 +162,7 @@ resumes attempting new conversations immediately on the next idle tick).
 
 Conversations only fire when **both NPCs are fully idle**:
 - Not in combat (`Character.Aggro == nil`)
-- Not sleeping (no Sleeping buff)
+- Not sleeping (no Sleeping condition)
 - Not in an existing conversation
 - Not on cooldown (outside the cooldown window)
 - Both in the same room

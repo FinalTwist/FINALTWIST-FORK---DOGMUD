@@ -1,7 +1,7 @@
 package itemvalue
 
 // PhysicalBruiser fits stat=fighting or behavior in
-// {generic_fighter, melee_self_buff, leader}.
+// {generic_fighter, melee_self_empower, leader}.
 var PhysicalBruiser = WeightProfile{
 	Name:                       "PhysicalBruiser",
 	PhysicalDamageWeight:       1.0,

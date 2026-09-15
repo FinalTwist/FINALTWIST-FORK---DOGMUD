@@ -24,7 +24,7 @@ type RallyResult struct {
 	Duration      int     // condition duration in rounds
 }
 
-// ExecuteRally performs the cooldown check + self-condition application shared by
+// ExecuteRally performs the cooldown check + self-targeted condition application shared by
 // both the player "rally" command and the mob "rally" command. Callers handle
 // any fan-out (party members, companions, room broadcast) and player-facing
 // text.

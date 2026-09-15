@@ -132,7 +132,7 @@ const (
 )
 
 // A refused add must not narrate. An immune player taking a serpent or
-// arachnid crit (species critbuffids carry condition 39) read "You feel venom
+// arachnid crit (species critconditionids carry condition 39) read "You feel venom
 // seeping into your bloodstream!" and the room read that it took hold, for a
 // condition that never landed: the add's bool was discarded and the notice was
 // gated on wasAlreadyActive alone.

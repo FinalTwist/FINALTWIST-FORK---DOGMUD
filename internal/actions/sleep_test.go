@@ -125,7 +125,7 @@ func TestSleep_ConditionUnavailable_NoRawErrorLeak(t *testing.T) {
 		t.Fatal("expected a player-facing message on sleep failure")
 	}
 	joined := strings.Join(actor.sent, " ")
-	if strings.Contains(joined, "conditionId") || strings.Contains(joined, "conditionId") || strings.Contains(joined, "failed to add") {
+	if strings.Contains(joined, "conditionId") || strings.Contains(joined, "failed to add") {
 		t.Errorf("player message leaked the raw internal error: %q", joined)
 	}
 }

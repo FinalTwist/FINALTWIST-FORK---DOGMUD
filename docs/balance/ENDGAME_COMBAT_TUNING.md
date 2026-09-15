@@ -17,7 +17,7 @@ user 24; the harness test clones are quester4/5/6 = "Vael"/"Ryn"/"Doss"):
   plus master-tier crafts.
 - **Extra-arms L1** → triple drowned-claw (a mixed **physical + magical +
   conviction** attacker), **conviction-ward** shield, **rally / warcry /
-  conviction-surge** self-buffs, **skill-attunement / mutation-catalyst**, and a
+  conviction-surge** self-empowering spells, **skill-attunement / mutation-catalyst**, and a
   **summoned companion** (Steppe Spirit Wolf) that adds substantial DPS.
 - Masterwork elemental gear across every slot (mitigation + statmods).
 
@@ -138,11 +138,11 @@ Meirok count.
 - **Per run:** edit YAML → **nuke `mobs.instances/*`** (overworld stat edits are
   shadowed otherwise) → `go build -o gomud_smoke.exe .` (NOT `go build ./...` — it
   doesn't produce the exe) → boot → connect N bridges → `teleport 201` (the Test
-  Arena — no ambient spawns) → `party invite`/`party accept` → **buff, then
+  Arena — no ambient spawns) → `party invite`/`party accept` → **self-empower, then
   `mob spawn <id>`** to isolate a fresh 100% target → `attack` on all bridges →
   pace on the beacon, react competently (heal/taunt) as a real party would →
   judge vs §4.
-- Buffs are **cooldown-gated** (~1 special buff / few rounds) — you cannot instant-
+- Self-empowering spells are **cooldown-gated** (~1 special cast / few rounds) — you cannot instant-
   stack them, which is realistic; the char's auto-recast triggers maintain them
   once landed.
 

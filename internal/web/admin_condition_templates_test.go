@@ -37,8 +37,8 @@ func adminHtmlDir(t *testing.T) string {
 // TestAdminItemTemplateExecutesWithConditionIds pins item.data.html against the
 // slice 2 rename: itemSpec.ConditionIds / WornConditionIds /
 // Damage.CritConditionIds and conditionSpecs' ConditionId field are all read by
-// this template at runtime, with no compile-time check. A stale .BuffId /
-// .BuffIds reference renders nothing until an admin actually opens an item
+// this template at runtime, with no compile-time check. A stale field
+// reference (an old field name) renders nothing until an admin actually opens an item
 // that has a condition on it (see the review that caught 61 such refs across
 // the admin html pages). Executes the exact file and funcMap itemData uses.
 func TestAdminItemTemplateExecutesWithConditionIds(t *testing.T) {
@@ -81,7 +81,7 @@ func TestAdminItemTemplateExecutesWithConditionIds(t *testing.T) {
 // NativeConditionIds and conditionSpecs' ConditionId. The template also used to
 // read a nonexistent .raceInfo key for all three checkbox lists (a
 // pre-existing bug the rename's own field renames exposed as unreachable
-// dead code once .raceInfo.BuffIds started erroring); fixed to read the
+// dead code once its .raceInfo field reads started erroring); fixed to read the
 // bound $mutator instead.
 func TestAdminMutatorTemplateExecutesWithConditionIds(t *testing.T) {
 	cleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
@@ -120,7 +120,7 @@ func TestAdminMutatorTemplateExecutesWithConditionIds(t *testing.T) {
 // handler (mobData, roomData, speciesData, itemData, mutatorData) builds from
 // the live condition registry, so a test can hand a template the exact shape
 // it expects at ".conditionSpecs" (a template map key; the guard in
-// identifier_word_guard_test.go's TestNoTemplateReadsABuffField treats a
+// identifier_word_guard_test.go for templates treats a
 // dotted template reference as a Go-facing name like any other, so this one
 // was renamed alongside the compiled identifiers in slice 2).
 func buildConditionSpecsForTest() []conditions.ConditionSpec {
@@ -136,7 +136,7 @@ func buildConditionSpecsForTest() []conditions.ConditionSpec {
 // TestAdminMobTemplateExecutesWithConditionIds pins mob.data.html against the
 // slice 2 rename: mobInfo.ConditionIds and conditionSpecs' ConditionId field are
 // read by this template at runtime (review of Tasks 2 and 3 caught the same
-// class of stale .BuffId/.BuffIds reference here as in item.data.html and
+// class of stale field reference here as in item.data.html and
 // mutator.data.html; this test closes the one page that review left
 // unrendered).
 func TestAdminMobTemplateExecutesWithConditionIds(t *testing.T) {

@@ -188,7 +188,7 @@ plumbing = internal dispatch, not an independent gameplay trigger) ·
 | `internal/actions/combat_rake.go:146` | `OnSkillUse` | unarmed-combat | (chained) | `result.Hit` | Yes | |
 | `internal/actions/combat_throttle.go:172` | `OnSkillUse` | unarmed-combat | (chained) | `result.Hit` | Yes | |
 | `internal/actions/combat_trip.go:162` | `OnSkillUse` | unarmed-combat | (chained) | `result.Hit` | Yes | |
-| `internal/actions/mutation_venom_coat.go:34` | `OnSkillUse` | weapon-combat | (chained) | Always, on any successful venom-coat cast (self-buff, no roll, combat not required) | Yes | Not a contest at all - a prep move that always "succeeds" once gates pass. |
+| `internal/actions/mutation_venom_coat.go:34` | `OnSkillUse` | weapon-combat | (chained) | Always, on any successful venom-coat cast (self-empowering, no roll, combat not required) | Yes | Not a contest at all - a prep move that always "succeeds" once gates pass. |
 | `internal/actions/combat_taunt.go:183` | `OnSkillUse` | rhetoric | (chained) | Fumble branch (`res.AttackRoll.ZScore <= -2.0`) | Yes | One of three taunt outcomes, all award. |
 | `internal/actions/combat_taunt.go:267` | `OnCritReceived` | - | conviction stat per `OnCritReceived` mapping | `isCrit && target.UserId > 0`, success branch | Yes | Target-side crit-received progression. |
 | `internal/actions/combat_taunt.go:270` | `OnSkillUse` | rhetoric | (chained) | Success branch (`res.Success`) | Yes | |

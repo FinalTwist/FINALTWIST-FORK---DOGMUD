@@ -30,7 +30,7 @@ Every Tier-1 package improved, most of them dramatically. The Feb doc's headline
 | items | 0.0% | **65.9%** | +65.9 |
 | mobs | 0.0% | **59.1%** | +59.1 |
 | hooks | 0.0% | **45.1%** | +45.1 |
-| buffs | 25.7% | **67.5%** | +41.8 |
+| conditions | 25.7% | **67.5%** | +41.8 |
 | dialogue | 0.0% | **60.4%** | +60.4 |
 | skills | 0.0% | **54.2%** | +54.2 |
 | rooms | 5.2% | **43.7%** | +38.5 |
@@ -118,7 +118,7 @@ Excludes `cmd/generate`, `tools/*`, and the root package (build/CLI utilities, o
 `spells` 50.3 · `state/life` 51.9 · `itemvalue` 53.8 · `skills` 54.2 · `itemvoices` 54.5 ·
 `state/awareness` 55.7 · `behaviortree` 57.7 · `mobs` 59.1 · `caravan` 59.8 ·
 `forager` 59.9 · `dialogue` 60.4 · `prompt` 60.5 · `state/position` 62.2 ⚠️ (see §3.2) ·
-`justice` 63.4 · `items` 65.9 · `buffs` 67.5 · `state/presence` 68.2 · `crafting` 69.5 ·
+`justice` 63.4 · `items` 65.9 · `conditions` 67.5 · `state/presence` 68.2 · `crafting` 69.5 ·
 `opinions` 70.6 · `textutil` 70.6 · `configs` 71.1 · `uuid` 72.1 · `parser` 72.6 ·
 `warehouse` 72.8 · `util` 73.0 · `shops` 74.1
 
@@ -145,7 +145,7 @@ since then were never sorted into it.
 
 ### Tier 1 — Critical (core gameplay)
 Existing: `combat`, `dice`, `characters`, `mutations`, `crafting`, `spells`, `items`,
-`mobs`, `hooks`, `buffs`
+`mobs`, `hooks`, `conditions`
 
 **Newly classified Tier 1:**
 - **`internal/state`** (+ `position`, `control`, `activity`, `life`, `combatphase`,
@@ -270,8 +270,8 @@ func TestSleep(t *testing.T) {
 	mob.Sleep(1)
 }
 ```
-Passes if `Sleep` is a no-op or corrupts state. `TestAddBuff` is identical in shape — nothing
-verifies a buff event was queued.
+Passes if `Sleep` is a no-op or corrupts state. `TestAddCondition` is identical in shape — nothing
+verifies a condition event was queued.
 
 **Assertion unreachable behind `recover()`** — `internal/mobs/mobs_test.go:1057`:
 ```go
@@ -432,15 +432,15 @@ that builds every GMCP payload the web client consumes, and it fires on every ro
 ### Barrier 1: Global singleton registries — ✅ SOLVED
 The Feb recommendation (Option A, `seedRegistry`) didn't just get adopted, it became house
 style. `Seed<X>ForTest` helpers now exist in **12 packages**: mutations, crafting, spells,
-items, buffs, mobs, enchantments, rooms, species, keywords, mutators, users — exceeding the
-original ask (spells/items/mobs/buffs) by four.
+items, conditions, mobs, enchantments, rooms, species, keywords, mutators, users — exceeding the
+original ask (spells/items/mobs/conditions) by four.
 
 ### Barrier 2: Interleaved logic and side effects — ✅ MOSTLY SOLVED
 The "extract ~10 pure helpers" recommendation was followed almost literally.
 `internal/hooks/combat_shared_helpers.go` now has exactly 10 top-level helpers
 (`calcSpellDamageForCharacter`, `checkConcentrationBreak`, `tryWeaponBreak`,
 `applyCritEffects`, `simulateFoldRound`, `calcFoldConvictionCost`, `clearCastingActivity`,
-`cancelCraftOrSalvageOnDamage`, `cancelDamageBuffs`, `processFoldRound`), several individually
+`cancelCraftOrSalvageOnDamage`, `cancelDamageConditions`, `processFoldRound`), several individually
 tested. Caveat: `spell_resolution.go` has *grown* to 1,478 lines despite the extraction.
 
 ### Barrier 3: Embedded RNG — ⚠️ STILL TRUE
@@ -490,7 +490,7 @@ which is the entire point of the pattern. See the correction note in §4.2.
 | 7 | Stat progression over N uses | ✅ `TestIntegration_StatProgressionSimulated` |
 | 8 | Crafting loop | ✅ `TestIntegration_CraftingFullLoop` |
 | 9 | Mutation acquisition + stacking | ◐ Acquisition covered (`TestRollAcquisition`); stacking only via unit-tested `GetMutationLoad`/`HasConflict` |
-| 10 | Buff application + expiry | ✅ buffs/buffs_test.go:303,757,831 |
+| 10 | Condition application + expiry | ✅ conditions/conditions_test.go:303,757,831 |
 | 11 | Item comparison chain | ◐ `TestIsBetterThan` only — richer logic moved to `internal/itemvalue` |
 | 12 | Mob AI move selection | ◐ Dispatch covered; deeper logic migrated to `internal/behaviortree` |
 
@@ -545,7 +545,7 @@ each is in the tech-debt audit's Tier 0.
 | 10 | `enchantments.copyStatMods` (§4.2) | Boot-critical, 0%, known shallow-copy bug class | Mutating the copy does not mutate the source | S |
 | 11 | `statmods.Get` | 0%, pure logic, feeds the combat-math stack | Multi-stat sum; unknown name returns 0, not panic | S |
 | 12 | Fix `TestMitigationCap` (§3.2) | Existing test can't catch the bug it names | Each channel returns its *configured* cap, not merely 0<x≤1 | S |
-| 13 | Replace zero-assertion `TestSleep`/`TestAddBuff` (§3.2) | Currently pass if methods are no-ops | Sleep sets the buff flag; AddBuff queues the expected event | S |
+| 13 | Replace zero-assertion `TestSleep`/`TestAddCondition` (§3.2) | Currently pass if methods are no-ops | Sleep sets the condition flag; AddCondition queues the expected event | S |
 | 14 | `hooks.transferPartialGold` credit side (`Death_PlayerCorpse.go:70`) | Debit half is tested; **credit half never executes** — the only test passes a zero `ActorRef{}`, so conservation was never checked. Fires on every subdue/cripple death | Killer's gold increases by exactly `loss` for both the player-killer and mob-killer branches | M |
 | 15 | `connections` registry concurrency | Every player session; concurrency-heavy → real `-race` beneficiary. Note `Kick` never `delete()`s from the map while `Remove` does — no guard on that asymmetry | Add/Get/Remove round-trip; concurrent Add+Remove doesn't corrupt the registry | M |
 | 16 | Data-file boot test (tech-debt §6.2) | Automates the manual Pre-Push SOP; prerequisite for the yaml.v3 migration | `mobs`/`quests`/`rooms`/`dialogue` loaders return zero errors and `loadedCount > 0` against real `_datafiles` | M |

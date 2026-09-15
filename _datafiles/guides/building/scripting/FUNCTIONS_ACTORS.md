@@ -36,11 +36,6 @@ ActorObjects are the basic object that represents Users and NPCs
   - [ActorObject.UpdateItem(itemId ItemObject)](#actorobjectupdateitemitemid-itemobject)
   - [ActorObject.GiveItem(itemId ItemObject)](#actorobjectgiveitemitemid-itemobject)
   - [ActorObject.TakeItem(itemId ItemObject)](#actorobjecttakeitemitemid-itemobject)
-  - [ActorObject.HasBuff(buffId int) bool](#actorobjecthasbuffbuffid-int-bool)
-  - [ActorObject.GiveBuff(buffId int, source string)](#actorobjectgivebuffbuffid-int-source-string)
-  - [ActorObject.HasBuffFlag(buffFlag string) bool](#actorobjecthasbuffflagbuffflag-string-bool)
-  - [ActorObject.CancelBuffWithFlag(buffFlag string) bool](#actorobjectcancelbuffwithflagbuffflag-string-bool)
-  - [ActorObject.RemoveBuff(buffId int)](#actorobjectremovebuffbuffid-int)
   - [ActorObject.HasItemId(itemId int, \[excludeWorn bool\]) bool](#actorobjecthasitemiditemid-int-excludeworn-bool-bool)
   - [ActorObject.GetBackpackItems() \[\]ItemObject](#actorobjectgetbackpackitems-itemobject)
   - [ActorObject.HasSpell(spellId string)](#actorobjecthasspellspellid-string)
@@ -324,42 +319,6 @@ Takes an object from the users backpack.
 | ItemObject | The item object to take. |
 
 
-## [ActorObject.HasBuff(buffId int) bool](/internal/scripting/actor_func.go)
-Returns true if the Actor has the buffId supplied
-
-|  Argument | Explanation |
-| --- | --- |
-| buffId | The ID of the buff to look for. |
-
-## [ActorObject.GiveBuff(buffId int, source string)](/internal/scripting/actor_func.go)
-Grants an ActorObject a Buff
-
-|  Argument | Explanation |
-| --- | --- |
-| buffId | The ID of the buff to give them. |
-| source | The source of the buff, "item", "spell", "trap", "curse", etc. or empty. |
-
-## [ActorObject.HasBuffFlag(buffFlag string) bool](/internal/scripting/actor_func.go)
-Find out if an ActorObject has a specific buff flag
-
-|  Argument | Explanation |
-| --- | --- |
-| buffFlag | The buff flag to check [see conditionspec.go](/internal/conditions/conditionspec.go). |
-
-## [ActorObject.CancelBuffWithFlag(buffFlag string) bool](/internal/scripting/actor_func.go)
-Cancels any buffs that have the flag provided. Returns `true` if one or more were found.
-
-|  Argument | Explanation |
-| --- | --- |
-| buffFlag | The buff flag to check [see conditionspec.go](/internal/conditions/conditionspec.go). |
-
-## [ActorObject.RemoveBuff(buffId int)](/internal/scripting/actor_func.go)
-Remove a buff without triggering onEnd
-
-|  Argument | Explanation |
-| --- | --- |
-| buffId | The ID of the buff to remove |
-
 ## [ActorObject.HasItemId(itemId int, [excludeWorn bool]) bool](/internal/scripting/actor_func.go)
 Check whether an ActorObject has an item id in their backpack
 
@@ -504,7 +463,7 @@ Get the chance in 100 to tame a target
 | target | [ActorObject](FUNCTIONS_ACTORS.md) |
 
 ## [ActorObject.GetStatMod(statModName string) int](/internal/scripting/actor_func.go)
-returns the total specific statmod from worn items and buffs
+returns the total specific statmod from worn items and conditions
 
 |  Argument | Explanation |
 | --- | --- |

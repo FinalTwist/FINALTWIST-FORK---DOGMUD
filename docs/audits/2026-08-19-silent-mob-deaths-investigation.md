@@ -168,11 +168,11 @@ hidden-target messaging), so the corpse count "exceeded" its tally.
    The mob regen block (`internal/hooks/NewRound_AutoHeal.go:305-360`)
    uses `ApplyRestore` exclusively, with every amount floored to a minimum
    of +1, and `ApplyRestore` no-ops on non-positive input
-   (`internal/characters/pools.go`). The buff tick path
-   (`tickMobBuffs`, `internal/hooks/NewRound_MobRoundTick.go:204-238`)
+   (`internal/characters/pools.go`). The condition tick path
+   (`tickMobConditions`, `internal/hooks/NewRound_MobRoundTick.go:204-238`)
    explicitly sign-splits: positive TickAmount -> ApplyRestore, negative
    -> ApplyHarm. That negative branch is the intended DoT delivery path
-   (poison buffs), not a regen bug, and no DoT buff was on these mobs
+   (poison conditions), not a regen bug, and no DoT condition was on these mobs
    (DoT conditions require combat infliction; the poison/bleed condition
    ticks at `NewRound_AutoHeal.go:384/395` require
    `ConditionPoisoned`/`ConditionBleeding`, never set on them).

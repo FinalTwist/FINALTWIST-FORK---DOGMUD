@@ -1,7 +1,7 @@
 package mutations
 
 // GetAllyAuraConditions returns the condition ids that owned mutations project onto
-// nearby allies (effect type "aura_ally_buff", Value = condition id).
+// nearby allies (effect type "aura_ally_condition", Value = condition id).
 func GetAllyAuraConditions(owned map[string]int) []int {
 	var out []int
 	for id := range owned {
@@ -19,7 +19,7 @@ func GetAllyAuraConditions(owned map[string]int) []int {
 }
 
 // GetEnemyAuraConditions returns the harmful condition ids that owned mutations project onto
-// nearby enemies (effect type "aura_enemy_debuff", Value = condition id).
+// nearby enemies (effect type "aura_enemy_condition", Value = condition id).
 func GetEnemyAuraConditions(owned map[string]int) []int {
 	var out []int
 	for id := range owned {

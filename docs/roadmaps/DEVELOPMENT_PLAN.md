@@ -3680,7 +3680,7 @@ This is wired in via mob combat hooks or spawn scripts, not hardcoded per mob.
 - Updated `internal/usercommands/spells.go` — qualitative cost/wait/familiarity/reliability columns
 - Updated `internal/usercommands/status.go` — stat training feedback shows tier name not numbers
 - Updated `status.template` — stats show tier words, HP/ST/CV show qualitative state, armor shows tier word, mutations show minor/moderate/major
-- Updated `conditions.template` — buff duration shows qualitative phrase
+- Updated `conditions.template` — condition duration shows qualitative phrase
 
 **Deliberate numeric exemptions**: Gold and Bank on status screen; Lives counter (permadeath)
 
@@ -3987,7 +3987,7 @@ fallback:
    - `docs/schemas/mob.md` — mob YAML fields, species IDs, stat ranges, script hooks
    - `docs/schemas/item.md` — item YAML fields, slot names, damage types, rarity
    - `docs/schemas/spell.md` — spell YAML fields + matching `.js` stub contract
-   - `docs/schemas/buff.md` — buff YAML fields, filename convention (`{id}-{name}.yaml`)
+   - `docs/schemas/condition.md` — condition YAML fields, filename convention (`{id}-{name}.yaml`)
 2. **Prompt templates** — reusable system + user prompt pairs for each content type:
    - `docs/prompts/new_room.md` — generates a room YAML + any connecting exit edits needed
    - `docs/prompts/new_mob.md` — generates a mob YAML + optional script stub
@@ -4012,7 +4012,7 @@ fallback:
 2. `docs/schemas/mob.md`
 3. `docs/schemas/item.md`
 4. `docs/schemas/spell.md`
-5. `docs/schemas/buff.md`
+5. `docs/schemas/condition.md`
 6. `docs/prompts/new_room.md`
 7. `docs/prompts/new_mob.md`
 8. `docs/prompts/new_item.md`
@@ -4083,7 +4083,7 @@ tracking and foraging through a dialogue prompt or arrival message.
 
 **Goal**: Tune the existing death penalty system for DOGMud's level-free, use-based progression.
 No equipment drops, no gold drops, no XP penalties. Instead: permanent stat decay, recency-weighted
-skill rust, and a temporary Death's Shadow debuff in the Shadow Realm.
+skill rust, and a temporary Death's Shadow harmful condition in the Shadow Realm.
 
 **Design Decisions**:
 - No equipment or gold drops on death (explicitly rejected)
@@ -4095,26 +4095,26 @@ skill rust, and a temporary Death's Shadow debuff in the Shadow Realm.
    Descriptive message only, no numbers shown to player.
 2. **Skill rust on death** — up to 1 skill (configurable) loses 1 rank. Skills with use count
    >= `SkillRecencyThreshold` (default 50) are protected. Floor at rank 1.
-3. **Death's Shadow debuff** — buff 25, applied via `death_recovery` mutator when entering
+3. **Death's Shadow harmful condition** — condition 25, applied via `death_recovery` mutator when entering
    Shadow Realm (room 75). -15 to all six stats for 15 rounds (matches Death Recovery duration).
 4. **6 new config fields** in `GameplayDeath` struct: `StatDecayMin`, `StatDecayMax`,
-   `SkillRustCount`, `SkillRustAmount`, `SkillRecencyThreshold`, `DeathsShadowBuffId`.
+   `SkillRustCount`, `SkillRustAmount`, `SkillRecencyThreshold`, and the Death's Shadow id (a knob since deleted).
 
 **Files Modified** (6 files):
 1. `internal/configs/config.gameplay.go` — 6 new config fields + validation defaults
 2. `_datafiles/config.yaml` — `EquipmentDropChance: 0`, new death penalty fields
 3. `internal/usercommands/suicide.go` — removed old penalties, added `applyStatDecay()` + `applySkillRust()`
-4. `_datafiles/world/dogmud/buffs/25-deaths_shadow.yaml` — new buff file
-5. `_datafiles/world/dogmud/mutators/death_recovery.yaml` — added buff 25 to player buff list
+4. `_datafiles/world/dogmud/conditions/25-deaths_shadow.yaml` — new condition file
+5. `_datafiles/world/dogmud/mutators/death_recovery.yaml` — added condition 25 to player condition list
 6. `DEVELOPMENT_PLAN.md` — this update
 
 **Testing**:
 - [x] Server compiles cleanly
 - [ ] Die to a mob → verify stat decay message (descriptive, no numbers)
 - [ ] Die to a mob → verify skill rust message (if eligible skills exist)
-- [ ] Die to a mob → arrive in Shadow Realm with Death's Shadow buff active
-- [ ] Verify `status` shows reduced stat values while debuff active
-- [ ] Verify debuff expires after ~15 rounds
+- [ ] Die to a mob → arrive in Shadow Realm with Death's Shadow condition active
+- [ ] Verify `status` shows reduced stat values while harmful condition active
+- [ ] Verify harmful condition expires after ~15 rounds
 - [ ] Verify NO equipment or gold is dropped
 - [ ] Verify character below ProtectionLevels gets no penalties
 - [ ] Die with only recently-used skills → verify they're protected from rust
@@ -4223,7 +4223,7 @@ being driven underground.
 - **Quest A — "The Warren Compact"** (quest 2, from tunnel shaman): Bring healing poultices as
   proof of good intent. Rewards: skill training (skulduggery), gold. Completing locks Quest B.
 - **Quest B — "The Scholar's Collection"** (quest 3, from basin scholar): Retrieve a bone totem
-  and spore sac for academic study. Rewards: gold, Perception buff. Completing locks Quest A.
+  and spore sac for academic study. Rewards: gold, Perception boost. Completing locks Quest A.
 
 **Moral design**: The shaman's people are treated as specimens by the Sanctuary's scholars. The
 scholar genuinely believes the research could help the warren's mutation crisis. Neither is wrong.
@@ -4360,8 +4360,8 @@ river lurker, scrubland dog).
 ### Stage 24.4: Environmental/Conditional Mutations (7 new) ✅
 
 Added mutation flags system (`GetMutationFlags()`, `HasMutationFlag()`). Created
-`HasFlagFromAnySource()` on Character to check both buffs and mutations. Replaced
-`HasBuffFlag()` calls for NightVision, EmitsLight, Hidden, SeeHidden. Added conditional
+`HasFlagFromAnySource()` on Character to check both conditions and mutations. Replaced
+`HasConditionFlag()` calls for NightVision, EmitsLight, Hidden, SeeHidden. Added conditional
 health regen for lit rooms (photosynthetic skin). 7 new mutations: night-vision,
 infrared-vision, photosynthetic-skin, bioluminescence, camo-skin, tremorsense, sixth-sense.
 
@@ -4386,7 +4386,7 @@ mutations: extra-arms (rarity 9), extra-legs (rarity 8).
 ## Phase 25: Expanded Spells ✅ COMPLETED
 
 Re-themed all 14 existing spells to fit the Chrysalis/belief-powered world, added 31 new spells,
-13 new buff specs, use-based spell discovery system, and permanent summon mechanics. Total spell
+13 new condition specs, use-based spell discovery system, and permanent summon mechanics. Total spell
 count: 45 (14 re-themed + 31 new). New characters start with only Conviction Spike (mm); all
 other spells discovered through casting practice.
 
@@ -4398,7 +4398,7 @@ other spells discovered through casting practice.
 3. Added `dot`, `knockdown`, `purge` effect types in spell_resolution.go
 4. Fixed HelpArea target population (was only implemented for HarmArea)
 5. Added mob poison DoT processing in NewRound_AutoHeal.go
-6. Added 5 new buff flag constants: Haste, DamageBonus, Slow, SkillProgress, MutationRate
+6. Added 5 new condition flag constants: Haste, DamageBonus, Slow, SkillProgress, MutationRate
 7. Implemented spell discovery system: ~5% base chance per cast to learn random eligible spell,
    gated by casting skill level → fold threshold table (skill 1-4: folds ≤ 4 ... skill 80+: folds ≤ 32)
 8. Reduced starting spells from 7 to 1 (Conviction Spike only)
@@ -4409,9 +4409,9 @@ other spells discovered through casting practice.
 synaptic-overload, veil-rend, mend-wounds, communion-of-flesh, chrysalis-cocoon,
 neural-toxin, conviction-barrage, cleansing-wave.
 
-### Stage 25.3: Buff/Debuff/Utility Spells + New Buffs ✅ COMPLETED
+### Stage 25.3: Condition/Utility Spells + New Conditions ✅ COMPLETED
 
-13 new buff specs (IDs 26–38) + 17 new spells (~60 files). Buffs include damage bonuses,
+13 new condition specs (IDs 26–38) + 17 new spells (~60 files). Conditions include damage bonuses,
 stat modifiers, HoT, stealth, skill progression boost, mutation rate boost, anti-teleport.
 Hook integration: DamageBonus (+15% physical damage), SkillProgress (2x skill progression),
 MutationRate (2x mutation progress). Utility spells include fold-anchor teleport (set/recall toggle)
@@ -4446,34 +4446,34 @@ to populate the world with diverse wildlife. No new humanoid species — anythin
 ### Stage 26.2: Species Traits & Combat Integration ✅ COMPLETED (8b21d10)
 
 **Goal**: Make species matter mechanically — natural armor, venomous attacks, and
-perma-buff traits for NPC species.
+permanent condition traits for NPC species.
 
 **Changes**:
 1. **Natural armor** — added `NaturalArmor` field to Species struct, integrated into
    `GetDefense()`. 7 species have innate damage reduction (bear 8, boar 5, insectoid 10,
    carnivorous plant 6, fungal colony 4, slime 12, worm 7).
-2. **Venom/toxin on crit** — created Venom (buff 39) and Spore Toxin (buff 40) DOT buffs.
+2. **Venom/toxin on crit** — created Venom (condition 39) and Spore Toxin (condition 40) DOT conditions.
    Serpent, arachnid, carnivorous plant apply venom on crit; fungal colony applies spore toxin.
-3. **Night Vision perma-buff** — canine, feline, raptor, serpent, and arachnid species now
-   have Night Vision (buff 29) as a permanent species buff.
-4. **Buff ID fix** — renumbered Mind Fog from buff 29 → 41 to resolve collision with default
-   world's Night Vision buff. Troll and goblin Night Vision now works correctly.
+3. **Night Vision permanent condition** — canine, feline, raptor, serpent, and arachnid species now
+   have Night Vision (condition 29) as a permanent species condition.
+4. **Condition ID fix** — renumbered Mind Fog from condition 29 → 41 to resolve collision with default
+   world's Night Vision condition. Troll and goblin Night Vision now works correctly.
 
 **Files Modified**:
 - `internal/species/species.go` — added `NaturalArmor` field
 - `internal/characters/character.go` — species natural armor in `GetDefense()`
-- `_datafiles/world/dogmud/buffs/39-venom.yaml/.js` — new Venom DOT buff
-- `_datafiles/world/dogmud/buffs/40-spore_toxin.yaml/.js` — new Spore Toxin DOT buff
-- `_datafiles/world/dogmud/buffs/41-mind_fog.yaml/.js` — renumbered from 29
-- `_datafiles/world/dogmud/spells/mind-fog.yaml` — updated buff reference 29→41
-- 12 species YAML files updated with naturalarmor, buffids, and/or critbuffids
+- `_datafiles/world/dogmud/conditions/39-venom.yaml/.js` — new Venom DOT condition
+- `_datafiles/world/dogmud/conditions/40-spore_toxin.yaml/.js` — new Spore Toxin DOT condition
+- `_datafiles/world/dogmud/conditions/41-mind_fog.yaml/.js` — renumbered from 29
+- `_datafiles/world/dogmud/spells/mind-fog.yaml` — updated condition reference 29→41
+- 12 species YAML files updated with naturalarmor, conditionids, and/or critconditionids
 
 **Testing** (all of Phase 26):
 - [x] All new species load without errors
 - [x] Build compiles cleanly
 - [ ] Natural armor applies correctly in combat (manual test)
 - [ ] Venom/spore DOT triggers on crit (manual test)
-- [ ] Night Vision perma-buff active on canine/feline/etc. mobs (manual test)
+- [ ] Night Vision permanent condition active on canine/feline/etc. mobs (manual test)
 
 ---
 
@@ -4590,7 +4590,7 @@ the experience/leveling system.
    `ProtectionSkillRanks` (skill-rank-based gating)
 5. Remove level/XP from all templates, GMCP payloads, leaderboard
    displays, party UI, Discord status
-6. Remove `xpscale` statmod, `TNLScale` from species, dead buffs
+6. Remove `xpscale` statmod, `TNLScale` from species, dead conditions
 7. Delete `admin.grant` command, `status train` subcommand,
    `LevelUp` hook, levelup templates
 8. Update help files, scripting docs, config.yaml
@@ -4632,7 +4632,7 @@ mutations to use multipliers instead of flat amounts.
    (3x–5x); crit boosts the multiplier portion above 1x by 2x
 6. Mutation YAMLs converted from flat `health_regen` to
    `health_regen_multiplier` / `health_regen_if_lit_multiplier`
-7. Buff JS scripts (potion, heal spell) converted from flat dice to
+7. Condition JS scripts (potion, heal spell) converted from flat dice to
    %-of-max heals; raw numbers removed from messages
 
 **Testing**:
@@ -4641,7 +4641,7 @@ mutations to use multipliers instead of flat amounts.
 - NPCs regen health, stamina, and conviction for the first time
 - Heal spells apply ConditionRegen as a multiplier (3x for Mend Flesh)
 - Mutation carriers regen faster (multiplier verified)
-- Potion/buff heals scale with character HP
+- Potion/condition heals scale with character HP
 - No raw numbers in any regen/heal player messages
 
 **Estimated Changes**: ~200 lines changed, 15 files
@@ -4811,7 +4811,7 @@ to spell discovery in Phase 25.
 
 ### Stage 31.3: New Crafting Skill — Cooking ✅ COMPLETED (merge 6a73f4a)
 
-**Goal**: Add Cooking for consumable food with buff effects.
+**Goal**: Add Cooking for consumable food with condition effects.
 
 **Changes**:
 1. Registered Cooking skill (primary stat: Perception, multiplier 2.0,
@@ -4825,8 +4825,8 @@ to spell discovery in Phase 25.
    spiced wine (skill 15), energy bread (skill 20)
 4. Created 4 ingredient items: raw meat, wild vegetables, water flask,
    salt pouch (reused healers root for herbal tea)
-5. Created 7 food consumables with buff effects
-6. Created 5 food buffs: Hearty Meal (HP regen), Stamina Boost (SP
+5. Created 7 food consumables with condition effects
+6. Created 5 food conditions: Hearty Meal (HP regen), Stamina Boost (SP
    regen), Clear Mind (CP regen), Well Fed (vitality +10), Liquid
    Courage (charisma +10)
 
@@ -4853,7 +4853,7 @@ curve from beginner to expert.
      Elixir (38)
 3. Created 14 new items: 3 materials (steel ingot, chain link,
    coal dust), 2 weapons, 4 armor pieces, 5 consumables
-4. Created 5 new buffs (47–51) with YAML + JS pairs
+4. Created 5 new conditions (47–51) with YAML + JS pairs
 5. Added coal-dust to forage tables (cave, mountains, cliffs)
    and to blacksmith shops (Korvath, Kerra)
 
@@ -5137,7 +5137,7 @@ eliminate duplication between player and mob combat.
    (~805 lines, 11+ nesting levels)
    - Extract: spell fold accumulation, stamina deduction, condition
      management, combat position changes, grapple mechanics, aggro
-     management, buff application into separate helper functions
+     management, condition application into separate helper functions
    - Goal: main function becomes a dispatcher calling clearly named
      helpers, each under ~80 lines
 
@@ -5158,7 +5158,7 @@ eliminate duplication between player and mob combat.
 
 4. `List()` — `internal/usercommands/list.go:22` (~731 lines)
    - Has 4 nearly identical table-building blocks for items, mercs,
-     buffs, pets — classic DRY violation
+     conditions, pets — classic DRY violation
    - Extract a generic `buildShopTable()` helper parameterized by
      category, then call it 4 times
 
@@ -5193,7 +5193,7 @@ execution.
      becomes a simple dispatcher
 
 3. `tryPurchase()` — `buy.go:104` (~460 lines)
-   - 4 parallel purchase flows (items/mercs/buffs/pets) with subtle
+   - 4 parallel purchase flows (items/mercs/conditions/pets) with subtle
      differences
    - Extract a generic purchase helper, parameterize the differences
 
@@ -5306,7 +5306,7 @@ removal and simplify the level-system scaffolding in stats.
 | `MemoryUsage()` / `sizeOf()` | **Active** — called by items, mobs, rooms, users | KEPT |
 | `migrate_RaceToSpecies()` | **Active** — called from `migration.go:45` | KEPT |
 | `GetExperienceLevel()` | **Active** — used for skill proficiency titles | KEPT |
-| Buff YAML 25, 42–46 | **Not orphaned** — pure-YAML buffs don't need JS | KEPT |
+| Condition YAML 25, 42–46 | **Not orphaned** — pure-YAML conditions don't need JS | KEPT |
 | Alignment comment `keywords.go:34` | Just a doc comment showing map structure | KEPT |
 | `_datafiles/feedback/` directory | Does not exist | N/A |
 
@@ -5459,7 +5459,7 @@ assertions, and silent failures across the codebase.
 | `internal/usercommands/admin.zone.go` | 106, 150, 157 | Mutator assertions |
 
 **Silent Failures to Add Logging:**
-- Template processing errors in admin commands (admin.buff.go,
+- Template processing errors in admin commands (admin.setcondition.go,
   admin.server.go, and others) — log warning when template fails
 - Scripting event errors in `MobIdle_HandleIdleMobs.go:22` and
   `NewRound_IdleMobs.go:27–28` — log script failures
@@ -5470,7 +5470,7 @@ assertions, and silent failures across the codebase.
 **Startup Panics to Improve (14 files):**
 These are acceptable (server can't run with bad data), but should
 log the specific file path that failed before panicking:
-- `buffs/buffspec.go:242`, `items/itemspec.go:551,558,565`
+- `conditions/conditionspec.go:242`, `items/itemspec.go:551,558,565`
 - `audio/audio.go:37,44`, `colorpatterns/colorpatterns.go:259,268`
 - `crafting/crafting.go:85`, `enchantments/enchantments.go:75`
 - `keywords/keywords.go:239`, `mobs/mobs.go:813`
@@ -6011,7 +6011,7 @@ This phase applies the pattern systematically to every undertested package,
 starting with the easy wins and progressing to the harder multi-registry
 packages. **All substages are required for the phase to be complete.**
 
-### Stage 41.1: Easy Wins — items, buffs, rooms ✅ COMPLETED (eef337f)
+### Stage 41.1: Easy Wins — items, conditions, rooms ✅ COMPLETED (eef337f)
 
 **Goal**: Apply seedRegistry to the three packages where the pattern maps
 directly onto existing globals with minimal fixture complexity.
@@ -6021,15 +6021,15 @@ directly onto existing globals with minimal fixture complexity.
    `allItemSpecs` (or equivalent global). Write tests for: `HasAdjective`,
    `IsBetterThan`, `Equals`, `GetDiceRoll`, `GetDistributionDamage`,
    `GetDamage`, `GetSpec`, enchantment lookups. Target: **items 40%+**
-2. `internal/buffs/buffs_test.go` — Create `seedRegistry()` populating
-   buff specs. Write tests for: spec lookup, stacking logic, duration
-   calculation, buff validation. Target: **buffs 60%+**
+2. `internal/conditions/conditions_test.go` — Create `seedRegistry()` populating
+   condition specs. Write tests for: spec lookup, stacking logic, duration
+   calculation, condition validation. Target: **conditions 60%+**
 3. `internal/rooms/rooms_test.go` — Extend existing tests with
    `seedRoomRegistry()` populating the internal room cache. Write tests
    for: room property accessors, exit linking, container logic, spawn
    points. Target: **rooms 30%+**
 
-**Results**: items 64.7%, buffs 75.9%, rooms 30.1% — all targets exceeded.
+**Results**: items 64.7%, conditions 75.9%, rooms 30.1% — all targets exceeded.
 3,505 lines of test code added across 3 files. No production code changes.
 
 **Completion criteria**: All three packages have seedRegistry, all new tests
@@ -6070,14 +6070,14 @@ mob archetype distribution verified statistically.
 
 **Goal**: Build the shared test infrastructure for hooks and write tests for
 the most critical hook functions. This is the hardest substage because each
-hook function requires **users + mobs + rooms + buffs + items** registries
+hook function requires **users + mobs + rooms + conditions + items** registries
 seeded in concert.
 
 **Achieved**: 42.6% hooks coverage (target was 40%). Created exported
-`SeedForTest` helpers in 5 dependency packages (buffs, mobs, rooms, spells,
+`SeedForTest` helpers in 5 dependency packages (conditions, mobs, rooms, spells,
 users) plus `MarkRoomOccupancy` and `SeedBiomesForTest`. Wrote 100+ test
 functions in `hooks_test.go` (2900+ lines) covering spell resolution, combat
-helpers, buff application, message dispatch, lifecycle events, and round
+helpers, condition application, message dispatch, lifecycle events, and round
 tick processing.
 
 ---
@@ -6168,7 +6168,7 @@ Target: **templates package 40%+**
 | Package | Pre-41 | Post-41 Target | Stage |
 |---------|--------|----------------|-------|
 | items | 6.2% | 40%+ | 41.1 |
-| buffs | 25.7% | 60%+ | 41.1 |
+| conditions | 25.7% | 60%+ | 41.1 |
 | rooms | 7.8% | 30%+ | 41.1 |
 | mobs | 50.0% | 40%+ | 41.2 ✅ |
 | users | 45.6% | 30%+ | 41.2 ✅ |

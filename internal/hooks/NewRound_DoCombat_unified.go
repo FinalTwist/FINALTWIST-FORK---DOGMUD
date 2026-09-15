@@ -69,7 +69,7 @@ func handleCombatRound(
 
 	// Defender's combat-cancel conditions always strip on combat engagement.
 	// CancelCombatConditions also strips permanent condition entries so Validate() won't
-	// re-apply them (notably: Hidden seeded via buffids on ambushers).
+	// re-apply them (notably: Hidden seeded via conditionids on ambushers).
 	def.GetCharacter().CancelCombatConditions()
 
 	// Chunk 1 follow-up (surfaced by chunk 4b smoke 2026-05-16):
@@ -333,7 +333,7 @@ func rollCombatAttack(atk, def actions.Actor, moonMod float64, forceCrit bool) c
 // Phase 3: damage-layer bonuses
 // ────────────────────────────────────────────────────────────────────────
 
-// applyCombatDamageBonuses applies all damage-layer buffs/debuffs that
+// applyCombatDamageBonuses applies all damage-layer conditions that
 // fire after the attack roll: Conviction Surge (DamageBonus flag),
 // Adrenaline Surge (mutation), return damage (species + equipment),
 // and lifesteal.
@@ -352,7 +352,7 @@ func applyCombatDamageBonuses(atk, def actions.Actor, res *combat.AttackResult) 
 	atkChar := atk.GetCharacter()
 	defChar := def.GetCharacter()
 
-	// Mutation graph: on_hit_buff mutations (Venom Glands, …) afflict the
+	// Mutation graph: on_hit_condition mutations (Venom Glands, …) afflict the
 	// struck defender. Route through the actor condition wrapper (not the raw
 	// Character.AddCondition) so the condition's start text fires and the GMCP
 	// conditions panel refreshes, for both player and mob defenders.

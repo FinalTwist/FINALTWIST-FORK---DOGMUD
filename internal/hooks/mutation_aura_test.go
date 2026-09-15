@@ -8,6 +8,6 @@ func TestAuraRecipients(t *testing.T) {
 		t.Fatalf("auraRecipients = %v, want [1 3] (owner 2 excluded)", got)
 	}
 	if len(auraRecipients([]int{5}, 5)) != 0 {
-		t.Fatal("a lone owner conditions nobody")
+		t.Fatal("a lone owner strengthens nobody")
 	}
 }

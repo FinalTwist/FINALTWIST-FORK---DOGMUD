@@ -783,7 +783,7 @@ v3 is used in a scattered minority (`goals`, `facts`, `bounties`, `knowledge`, `
 >   no-underscore (`itemid`); snake_case silently no-ops" footgun.
 > - `scriptag` on `mobs.Mob` — almost certainly a typo for `scripttag`.
 > - `cooldown` on `rooms.SpawnInfo` (118 files) and `zone` on `exit.RoomExit` (136 files).
-> - `visible`, `sequential`, `expireMessage` on `buffs.BuffSpec`.
+> - `visible`, `sequential`, `expireMessage` on `conditions.ConditionSpec`.
 > - `allow_recall` on `rooms.Room`, `long` on `rooms.Container`, `tactics` on
 >   `characters.Character`, `items` on `mobs.Mob`.
 >
@@ -906,7 +906,7 @@ Three findings from that audit that bear directly on this document:
 Additional detail below:
 
 - **23 packages have zero test files.** Ranked by (size × centrality), the top targets:
-  1. `internal/statmods` — feeds the combat-math stack via `buffs`/`enchantments`/`characters`;
+  1. `internal/statmods` — feeds the combat-math stack via `conditions`/`enchantments`/`characters`;
      pure logic, trivially testable, currently 0%.
   2. `internal/enchantments` — boot-critical (`main.go:62`); `copyStatMods` is exactly the
      shallow-copy-shared-pointer bug class already documented as a past incident.

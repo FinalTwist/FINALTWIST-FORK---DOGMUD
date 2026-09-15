@@ -11,9 +11,6 @@ See [Mob Scripting](SCRIPTING_MOBS.md)
 # Item Scripting
 See [Item Scripting](SCRIPTING_ITEMS.md)
 
-# Buff Scripting
-See [Buff Scripting](SCRIPTING_BUFFS.md)
-
 # Spell Scripting
 See [Spell Scripting](SCRIPTING_SPELLS.md)
 

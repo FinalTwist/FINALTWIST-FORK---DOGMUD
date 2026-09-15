@@ -24,7 +24,7 @@ type WarcryResult struct {
 	Duration      int     // condition duration in rounds
 }
 
-// ExecuteWarcry performs the cooldown check + self-condition application shared by
+// ExecuteWarcry performs the cooldown check + self-targeted condition application shared by
 // both the player "warcry" command and the mob "warcry" command. Callers handle
 // any fan-out (party members, companions, room broadcast) and player-facing
 // text.

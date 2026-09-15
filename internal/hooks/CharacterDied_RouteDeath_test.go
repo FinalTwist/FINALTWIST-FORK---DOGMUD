@@ -12,7 +12,7 @@ import (
 )
 
 // deathProtectionConditionId is the condition carrying the ReviveOnDeath flag,
-// _datafiles/world/default/buffs/35-death_protection.yaml.
+// _datafiles/world/default/conditions/35-death_protection.yaml.
 const deathProtectionConditionId = 35
 
 // newRouteDeathTestMob builds a mob and registers it in the instance registry

@@ -182,7 +182,7 @@ func DefenceSkillAndStat(defenceType string) (skill, stat string) {
 // prevent, and invisible in production. One bool makes that unrepresentable, and
 // it matches the shape Character.AwardResolved already takes. The pair must not
 // be collapsed the other way either: a WINNING action can legitimately carry a
-// sub-1.0 multiplier (a self-condition cast ships SelfCastProgressionMultiplier 0.5),
+// sub-1.0 multiplier (a self-empowering cast ships SelfCastProgressionMultiplier 0.5),
 // so "multiplier < 1.0" is not a synonym for "lost".
 //
 // BOTH production callers pass true today, which makes Task 8 a provable no-op;

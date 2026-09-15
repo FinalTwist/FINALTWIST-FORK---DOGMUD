@@ -118,7 +118,7 @@ func TestRefreshCondition_HeldDeadIdReturnsFalse(t *testing.T) {
 // with no stacks (phantom end line on its next tick) or, on a live one,
 // misreport its duration as the spec default rather than its longest stack.
 // Room condition paths call this (rooms.go), so a stacking bleed authored into a
-// room's buffids would otherwise get exactly this treatment on every visit.
+// room's conditionids would otherwise get exactly this treatment on every visit.
 func TestRefreshCondition_RefusesAStackingSpec(t *testing.T) {
 	spec := stackingSpec()
 	restore := SeedConditionsForTest(map[int]*ConditionSpec{spec.ConditionId: spec})

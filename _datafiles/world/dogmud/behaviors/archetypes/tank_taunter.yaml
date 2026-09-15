@@ -1,6 +1,6 @@
 # tank_taunter archetype
 #
-# Sticky front-liner that holds aggro, cycles self-conditions, and prefers
+# Sticky front-liner that holds aggro, cycles self-empowering spells, and prefers
 # knockdown/interrupt control over grappling. All moves share the
 # special-move cooldown, so priorities determine what fires on any
 # given ready-round; cooldown rounds fall through to legacy attack.

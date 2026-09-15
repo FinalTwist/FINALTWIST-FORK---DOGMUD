@@ -13,8 +13,8 @@ import (
 // one of multiple overlapping sources clears.
 //
 // Sources checked:
-//   - Condition 3 (Blinded) — _datafiles/world/dogmud/buffs/3-blinded.yaml
-//   - Condition 77 (Flashbang Blindness) — _datafiles/world/dogmud/buffs/77-flashbang_blindness.yaml
+//   - Condition 3 (Blinded) — _datafiles/world/dogmud/conditions/3-blinded.yaml
+//   - Condition 77 (Flashbang Blindness) — _datafiles/world/dogmud/conditions/77-flashbang_blindness.yaml
 //
 // Note: uses TriggersLeft > 0 rather than HasCondition to correctly detect the
 // "just removed" state. RemoveCondition marks a condition expired (TriggersLeft=0) but

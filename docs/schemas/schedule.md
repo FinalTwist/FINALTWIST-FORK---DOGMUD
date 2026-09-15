@@ -52,7 +52,7 @@ temple twice with different `idlecommands`).
   See `internal/mobs/context.md` "Crafter Mob System".
 - `"sleeping"` — When the segment is active and the mob is at the
   segment's `target_room`, the schedule executor applies the
-  Sleeping buff. The buff cancels on segment exit and on any
+  Sleeping condition. The condition cancels on segment exit and on any
   wake trigger (damage, failed steal, shout in room, light source
   entering, the `stand` command). Sleeping characters receive 5×
   regen on all pools and any attacker's first round of attacks

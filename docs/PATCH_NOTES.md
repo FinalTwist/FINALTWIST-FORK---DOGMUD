@@ -14,8 +14,7 @@ that comes and goes a condition, the same word the conditions list already
 used. Before, some places said buff and others said condition for the same
 thing. Nothing about these effects plays differently: only the word changed.
 For admins, the command that puts one on a character is now setcondition. The
-old buff command still works for now, and help buff shows the setcondition
-page.
+old buff command is gone.
 
 ## 2026-09-14: Wounds pile up, and poison never rests
 

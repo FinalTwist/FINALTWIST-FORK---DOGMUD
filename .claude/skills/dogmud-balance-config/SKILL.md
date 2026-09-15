@@ -98,7 +98,7 @@ field directly as `b.FieldName`.
 `config.yaml` itself.** Most fields share their PascalCase Go name with
 their yaml tag, but not all of them do, and a field-name grep against
 `config.yaml` finds nothing for the ones that differ. Verified 2026-09-08,
-count rechecked 2026-09-15 (slice 3 deleted the dead `BrokenLimbBuffDuration`
+count rechecked 2026-09-15 (slice 3 deleted the dead broken-limb duration
 knob): of the 389 `Config*`-typed fields in `config.balance.go`, exactly **7**
 carry a yaml tag that does not match the Go field name, all snake_case:
 `ReachStandingGrappleRadius` (`internal/configs/config.balance.go:191`)
@@ -115,8 +115,8 @@ grapple/submission cluster.
 
 | Claim | CLAUDE.md figure | Actual, verified 2026-09-14 |
 |---|---|---|
-| Fields in `config.balance.go` | 352 | **389** `Config*`-typed fields, recounted 2026-09-15 after slice 3 deleted `BrokenLimbBuffDuration` (`grep -cE '^\s*[A-Za-z_]+\s+Config[A-Za-z]+\b' internal/configs/config.balance.go`) |
-| `Config*`-typed fields across the whole `internal/configs` package | 466 | **520**, recounted 2026-09-15 after slice 3 also deleted `AllowItemBuffRemoval` and `DeathsShadowBuffId` (527 raw matches of the same pattern across all non-test `.go` files in the package, minus 7 false positives in `config_types.go` where the pattern matches the `type ConfigInt int` style declarations, not struct fields) |
+| Fields in `config.balance.go` | 352 | **389** `Config*`-typed fields, recounted 2026-09-15 after slice 3 deleted the dead broken-limb duration knob (`grep -cE '^\s*[A-Za-z_]+\s+Config[A-Za-z]+\b' internal/configs/config.balance.go`) |
+| `Config*`-typed fields across the whole `internal/configs` package | 466 | **520**, recounted 2026-09-15 after slice 3 also deleted the dead item removal and Death's Shadow id knobs (527 raw matches of the same pattern across all non-test `.go` files in the package, minus 7 false positives in `config_types.go` where the pattern matches the `type ConfigInt int` style declarations, not struct fields) |
 | `_datafiles/config.yaml` line count | 1506 | **2327** lines in the committed blob (`git show HEAD:_datafiles/config.yaml \| wc -l`); the on-disk working copy reads 2331, a few lines longer from the local, uncommitted skip-worktree divergence described below |
 | Seven sibling `config.balance.*.go` files declare no fields | (same claim) | **Confirmed correct**, 0 fields in each of the seven, matching CLAUDE.md exactly |
 

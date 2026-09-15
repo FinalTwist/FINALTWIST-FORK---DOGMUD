@@ -304,7 +304,7 @@ func buildMercRows(stock characters.Shop, hasGold, hasTrade bool) ([]string, [][
 	return headers, rows
 }
 
-// buildConditionRows constructs table headers and rows for a buffs/enchantments shop section.
+// buildConditionRows constructs table headers and rows for a conditions/enchantments shop section.
 func buildConditionRows(stock characters.Shop, hasGold, hasTrade bool) ([]string, [][]string) {
 	headers := []string{"Qty", "Enchantment"}
 	if hasGold {

@@ -50,11 +50,11 @@ The 13 available archetypes (loaded in Step 1):
 | Archetype | Role |
 |-----------|------|
 | `generic_fighter` | Melee with bash/trip/grapple toolkit. Default for non-tank fighters. |
-| `tank_taunter` | Melee with signature taunt + self-buffs. For high-priority threats. |
-| `melee_self_buff` | Melee fighter who pre-buffs before engaging. |
+| `tank_taunter` | Melee with signature taunt + self-empowering spells. For high-priority threats. |
+| `melee_self_empower` | Melee fighter who empowers itself before engaging. |
 | `ambusher` | Hidden until engagement; high opening burst. |
 | `pure_caster` | Spell-focused; flees from melee, kites with damage. |
-| `support_caster` | Buffs/heals packmates; rarely the front-line target. |
+| `support_caster` | Strengthens and heals packmates; rarely the front-line target. |
 | `leader` | Commands packmates, calls for help, coordinates. |
 | `prey` | Flees on engagement; non-aggressive. |
 | `lookout` | Stationary observer; calls for help when triggered. |

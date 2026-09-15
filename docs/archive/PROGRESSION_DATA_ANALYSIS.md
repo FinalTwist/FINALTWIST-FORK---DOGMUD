@@ -58,7 +58,7 @@ type StatInfo struct {
     ValueAdj int `yaml:"-"`                  // Adjusted value (after softcap)
     Racial   int `yaml:"-"`                  // Racial benefits
     Base     int `yaml:"base,omitempty"`     // Base starting value
-    Mods     int `yaml:"-"`                  // Equipment/buff modifiers
+    Mods     int `yaml:"-"`                  // Equipment/condition modifiers
 }
 ```
 
@@ -144,7 +144,7 @@ func (c *Character) CheckSkillProgression(skillName string, userId int, bonusMul
     // 2. Calculate virtual rank: adjustedUseCount / UsesPerRank (config)
     // 3. Roll against chance using: CalculateProgressionChance(virtualRank, softCap)
     //    - Exponential decay: base(0.30) * exp(-decayBelow * ratio)
-    //    - Includes: mutation bonuses, buff multipliers
+    //    - Includes: mutation bonuses, condition multipliers
     // 4. On success: call c.IncreaseSkill(skillName)
     //    - Increments Skills[skillName] by 1
     //    - Checks if rank description changed
@@ -231,7 +231,7 @@ For each of 6 stats (strength, dexterity, perception, vitality, willpower, chari
 - **Virtual Rank**: `useCount / UsesPerRank` (config-driven)
 - **Progress to Next**: `useCount % UsesPerRank` (for progress bar)
 - **Base**: `c.Stats.<Stat>.Base`
-- **Mods**: `c.Stats.<Stat>.Mods` (from equipment/buffs)
+- **Mods**: `c.Stats.<Stat>.Mods` (from equipment/conditions)
 
 #### Skill Data
 For each skill in `c.Skills` map:

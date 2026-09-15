@@ -32,7 +32,7 @@ X ship?" from there, never from a tick or from memory.
 - **The Elemental Queen fight was never recorded as run.** It is the designated
   live-verification instrument for quell and for the arc's floor and ceiling at
   veteran power. No longer blocking anything; still worth doing.
-- **Buff applier attribution** — `buffs.Buff` has no applier actor, so DoT and
+- **Condition applier attribution** — `conditions.Condition` has no applier actor, so DoT and
   toxicity deaths name no killer. Verified 2026-08-29 to have no live
   consequence; latent until a bounty guard gets a poison attack. Recorded on the
   U5c row.
@@ -65,12 +65,12 @@ builder) comes after behavior and quest mechanisms.
    sites hand-rolling one job. Magnitude, effect strength and duration are
    computed independently inside every `case` arm of
    `internal/hooks/spell_resolution.go` (1719 lines, 22 arms, player and mob
-   paths duplicating each other). 🔴 **`effect_type: buff` gets no duration
-   scaling at all** — the arm calls plain `target.AddBuff(buffId, "spell")`
+   paths duplicating each other). 🔴 **`effect_type: condition` gets no duration
+   scaling at all** — the arm calls plain `target.AddCondition(conditionId, "spell")`
    (`:1048`, mob twin `:1619`), so `base_folds` is ignored and duration comes
-   only from the buff spec. That is the largest effect type, **17 of 56 spells**;
+   only from the condition spec. That is the largest effect type, **17 of 56 spells**;
    Skill Attunement sits at a flat 200 rounds no matter who casts it. Divisors
-   (dot `/3`, heal `/2`, shield full, buff none), minimum floors (3, 6, 10) and
+   (dot `/3`, heal `/2`, shield full, condition none), minimum floors (3, 6, 10) and
    crit handling are all per-arm magic numbers, and `magnitude` means something
    different in each arm. `calcSpellDuration` (`:34`) is the nearest existing
    seam, with 7 non-test callers. Do **not** "fix" `SpellData.CasterStatValue`
@@ -98,7 +98,7 @@ builder) comes after behavior and quest mechanisms.
    - ❌ *"Combat-state Perception shipped dormant and has no consumer."*
      **FALSE.** `messaging.CanSeeClearly` / `CanSeeShapes` read
      `Perception.State()` on every sight-gated broadcast, `combat_fire.go:250`
-     reads it, and `characters/buffs.go` drives it from the blind buffs.
+     reads it, and `characters/conditions.go` drives it from the blind conditions.
 
    **What is actually left, verified:**
 

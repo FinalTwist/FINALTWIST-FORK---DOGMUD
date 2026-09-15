@@ -1,6 +1,6 @@
 # leader archetype
 #
-# Pack leader. On packmate_hurt or mob_hurt, rally or warcry to condition
+# Pack leader. On packmate_hurt or mob_hurt, rally or warcry to strengthen
 # packmates (command_best_of fires the first ready one — CommandIsReady
 # skips if the condition is already active), then engage the attacker via
 # the existing attack action.

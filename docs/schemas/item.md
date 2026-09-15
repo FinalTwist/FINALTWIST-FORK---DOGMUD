@@ -83,7 +83,7 @@ damage:
 | `conviction_mitigation` | int | no | Conviction damage reduction % (willpower items: 3–8). |
 | `damagereduction` | int | no | Legacy field (prefer mitigation fields above). |
 | `blockrating` | int | no | Shield block bonus (offhand only). |
-| `wornbuffids` | list | no | Buff IDs applied while item is worn; removed when unequipped. |
+| `wornconditionids` | list | no | Condition IDs applied while item is worn; removed when unequipped. |
 | `statmods` | map | no | Stat modifiers while worn. See StatMods below. |
 
 ### Consumable Fields (type: potion/food/etc.)
@@ -91,7 +91,7 @@ damage:
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | `uses` | int | no | Number of uses before item is consumed. |
-| `buffids` | list | no | Buff IDs applied when item is used. |
+| `conditionids` | list | no | Condition IDs applied when item is used. |
 
 ### YAML-Driven Use Effects
 
@@ -198,8 +198,8 @@ description: A small red potion... you COULD drink it...
 type: potion
 subtype: drinkable
 uses: 1                        # Single use
-buffids:
-- 5                            # Applies buff ID 5 on use (e.g. healing buff)
+conditionids:
+- 5                            # Applies condition ID 5 on use (e.g. healing condition)
 ```
 
 ---
@@ -212,9 +212,9 @@ buffids:
 **Place items in the correct ID range subfolder.**
 Weapons go in `weapons-10000/` regardless of subtype. Armor goes in `armor-20000/{slot}/`. The loader derives the expected path — an item in the wrong folder will panic on load.
 
-**`wornbuffids` vs `buffids`:**
-- `buffids` — applied when the item is *used* (consumed, activated)
-- `wornbuffids` — applied while the item is *equipped*; automatically removed when unequipped
+**`wornconditionids` vs `conditionids`:**
+- `conditionids` — applied when the item is *used* (consumed, activated)
+- `wornconditionids` — applied while the item is *equipped*; automatically removed when unequipped
 
 **Damage raw numbers never reach players.**
 Use `combat.GetDamageDescription(amount, targetMaxHP)` in combat messages. Never display `basedamage` or `variance` values directly. See CLAUDE.md: "Player-Facing Messages — No Hard Numbers".

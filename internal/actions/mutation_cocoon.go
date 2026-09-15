@@ -6,7 +6,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/targeting"
 )
 
-// TriggerCocoon fires the cocoon mutation for any Actor. Self-condition: encases the
+// TriggerCocoon fires the cocoon mutation for any Actor. Self-empower: encases the
 // actor in a near-invulnerable chrysalis shell (condition 104) AND drops aggro —
 // every room mob currently fixed on the actor loses its target ("vanish from
 // threat"). No attack-lock: the cost is the spent move + the shared cooldown.

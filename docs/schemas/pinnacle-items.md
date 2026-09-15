@@ -66,15 +66,15 @@ Blackrazor-style hunger anchor (`pinnacle_last_kill_round`).
   pool max, capped by what the target actually has; drains the target
   and adds to the owner (clamped to the owner's max).
 - **`aoe_stun`** — `{}` (no params consumed; `stun_rounds` is
-  intentionally ignored — see below). Applies buff **84** (a fixed
+  intentionally ignored — see below). Applies condition **84** (a fixed
   1-round stagger/stun) to every hostile mob in the owner's room.
   Non-combatants, `PlayerAttackImmune` mobs, and **any** charmed mob
   (not just the owner's own charm) are always skipped — sparing
   bystanders' companions, matching the `HarmArea` precedent. Mob
   owners (no `GetUserId()`) are a no-op — no Stage-2 mob wields one of
-  these. `stun_rounds` is ignored by design: buff 84 is a fixed
+  these. `stun_rounds` is ignored by design: condition 84 is a fixed
   1-round stagger baked into its own YAML (`triggercount: 1`) and
-  cannot be duration-scaled from proc params without hacking buff
+  cannot be duration-scaled from proc params without hacking condition
   internals; tune an aoe_stun item's strength via `chance`/
   `cooldown_rounds` instead.
 - **`apply_condition`** — `{condition: 1, duration: <rounds>,
@@ -95,7 +95,7 @@ While the item is equipped, `Character.GetPoolReservation(pool,
 poolMax)` (`internal/characters/validate.go`) sums the reservation
 from **every** equipped item and clamps the character's **current**
 pool value down to `max - totalReservation` (the max itself is
-untouched — this is a squeeze, not a debuff to the ceiling). A
+untouched — this is a squeeze, not a penalty to the ceiling). A
 Chrysalis-enchanted item's own reservation and its `reserve_*_pct`
 field **stack** — both are summed, by design, even on the same item.
 Consumed in `validate.go`'s post-equip pass, `NewRound_AutoHeal.go`
@@ -108,7 +108,7 @@ command, and the player prompt.
 is_bandolier: true
 bandolier_capacity: 6
 preserves_contents: true     # contents never age while stored
-ambient_potions: true        # slotted potions' buffs stay always-on
+ambient_potions: true        # slotted potions' conditions stay always-on
 ```
 
 - **`preserves_contents`** freezes aging: each round,
@@ -124,7 +124,7 @@ ambient_potions: true        # slotted potions' buffs stay always-on
   fingerprint of `beltItemId + sorted potion itemIds`
   (`bandolierFingerprint`). Any change — a slotted potion drunk,
   added, removed, or the belt itself swapped — flips the fingerprint,
-  which immediately revokes all ambient buffs and stamps a cooldown
+  which immediately revokes all ambient conditions and stamps a cooldown
   running `Balance.BandolierAttuneRounds` (default 100) rounds into
   the future. Ambience only resumes once the fingerprint has been
   stable through that whole window. First-ever equip also counts as a
@@ -276,8 +276,8 @@ YAML (numeric values round-trip through YAML as `int`/`int64`/
 | `pinnacle_last_kill_round` | `MobDeathItemProcs` | Last round this player got damage-attribution credit on a kill (drives hunger reset). |
 | `pinnacle_hunger_anchor` | `tickHunger` | Round the current hunger weapon's clock is anchored to. |
 | `pinnacle_hunger_msg_next_round` | `tickHunger` | Cooldown gate for the repeated feeding message. |
-| `pinnacle_bandolier_attune_round` | `tickAmbientPotions` | Round at which ambient buffs may resume after a content change. |
-| `pinnacle_bandolier_buffs` | `tickAmbientPotions` | The set of buff ids currently applied as ambience (so removal/rotation can be revoked cleanly). |
+| `pinnacle_bandolier_attune_round` | `tickAmbientPotions` | Round at which ambient conditions may resume after a content change. |
+| `pinnacle_bandolier_conditions` | `tickAmbientPotions` | The set of condition ids currently applied as ambience (so removal/rotation can be revoked cleanly). |
 | `pinnacle_bandolier_fingerprint` | `tickAmbientPotions` | Last-seen `beltId:potionId,potionId,...` fingerprint, used to detect any content change. |
 | `pinnacle_voice_next_round` | `tickVoices` | Cooldown gate between sentient item lines. |
 
@@ -292,7 +292,7 @@ oversight.
 
 The nine legendary-BIS items that consume the Stage 1 primitives,
 shipped on branch `feature/pinnacle-stage2-items`. All boot-verified
-(`itemLoadedCount=386`, `itemvoices loadedCount=2`, buff 98 present,
+(`itemLoadedCount=386`, `itemvoices loadedCount=2`, condition 98 present,
 `ValidateZoneConsistency errors=0 mode=panic`, 0 panics). Numbers are
 starting values; combat/economy tuning is a later stage.
 
@@ -314,14 +314,14 @@ starting values; combat/economy tuning is a later stage.
 | 40185 | Aegis of Mockery | offhand (shield) | `40185-aegis_of_mockery.yaml` | `procs` (on_block aoe_stun), `taunt_pull`, `voice_id: aegis` |
 | 40186 | Thornwall Harness | body | `40186-thornwall_harness.yaml` | `procs` (on_grapple apply_condition bleed) |
 | 40187 | Seething Prism | neck | `40187-seething_prism.yaml` | `reserve_*_pct` (all three pools), `mutation_tick_interval`/`_chance`/`_rarity_floor` |
-| 40188 | Zephyr Treads | feet | `40188-zephyr_treads.yaml` | `wornbuffids: [98]`, `staminamax` statmod |
+| 40188 | Zephyr Treads | feet | `40188-zephyr_treads.yaml` | `wornconditionids: [98]`, `staminamax` statmod |
 | 40189 | Staff of the Hollow Choir | weapon (2H staff) | `40189-staff_of_the_hollow_choir.yaml` | `spell_damage_multiplier`, `procs` (on_spell_hit steal_pool), `casting`/`manifestation` statmods |
 
-**Buff (worn):**
+**Condition (worn):**
 
 | ID | Name | File | Consumed by |
 |----|------|------|-------------|
-| 98 | Zephyr's Alacrity | `buffs/98-zephyrs_alacrity.yaml` | Zephyr Treads `wornbuffids` (permanent-haste-while-worn) |
+| 98 | Zephyr's Alacrity | `conditions/98-zephyrs_alacrity.yaml` | Zephyr Treads `wornconditionids` (permanent-haste-while-worn) |
 
 **Sentient item voices** (`itemvoices/<voice_id>.yaml`):
 

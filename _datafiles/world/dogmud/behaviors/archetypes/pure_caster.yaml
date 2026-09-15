@@ -1,6 +1,6 @@
 # pure_caster archetype
 #
-# A spellcaster who maintains self-conditions, emergency-heals, and prefers
+# A spellcaster who keeps itself empowered, emergency-heals, and prefers
 # AoE when multiple enemies are present, else single-target harm.
 # Reused by wraith, spectre, air elemental, plus any future caster mobs
 # that opt in via behavior_archetype: pure_caster on their mob YAML.

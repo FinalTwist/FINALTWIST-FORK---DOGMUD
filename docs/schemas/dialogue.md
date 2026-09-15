@@ -239,7 +239,7 @@ from the player's backpack on activation. The item check and removal happen
 atomically with the dialogue response.
 
 **`grantsQuest` fires the quest event handler.**
-The quest event handler processes all rewards (gold, items, buffs) defined
+The quest event handler processes all rewards (gold, items, conditions) defined
 in the quest YAML. You do not need a separate reward mechanism — just point
 `grantsQuest` at the right quest token.
 

@@ -11,20 +11,15 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/spells"
 )
 
-// archetypeYAML is the path to the melee_self_buff archetype YAML.
+// archetypeYAML is the path to the melee_self_empower archetype YAML.
 // Go tests run with cwd = package directory (internal/behaviortree/).
 const archetypeYAML = "../../_datafiles/world/dogmud/behaviors/archetypes/melee_self_empower.yaml"
 
-// Integration tests for the melee_self_buff archetype.
-//
-// The TestMeleeSelfCondition_* names below say Condition (slice 2 of the
-// conditions unification renames every Go identifier); the archetype and its
-// YAML stay melee_self_buff, because the behaviour-category string is wire
-// and this slice does not touch it.
+// Integration tests for the melee_self_empower archetype.
 //
 // All three tests use the full end-to-end pipeline:
-//  1. LoadArchetypeForTest loads the real melee_self_buff.yaml
-//  2. A mob with BehaviorArchetype:"melee_self_buff" is seeded
+//  1. LoadArchetypeForTest loads the real melee_self_empower.yaml
+//  2. A mob with BehaviorArchetype:"melee_self_empower" is seeded
 //  3. TryMobBehavior fires mob_combat_round → selector evaluates children
 //  4. cast_best_in_category runs synchronously (not in delayedActions),
 //     so mob.Command fires inline → "cast X" is queued in events
@@ -35,7 +30,7 @@ const archetypeYAML = "../../_datafiles/world/dogmud/behaviors/archetypes/melee_
 //         falls through offense (Failure) → casts self_defense
 // Test 3: defense-only mob → offense always Failure → casts self_defense
 
-// seedArchetypeSpells installs the four real spells used by melee_self_buff.
+// seedArchetypeSpells installs the four real spells used by melee_self_empower.
 // Returns a cleanup function.
 func seedArchetypeSpells(t *testing.T) func() {
 	t.Helper()
@@ -67,7 +62,7 @@ func seedArchetypeSpells(t *testing.T) func() {
 	})
 }
 
-// seedArchetypeMob seeds a mob with BehaviorArchetype set to "melee_self_buff"
+// seedArchetypeMob seeds a mob with BehaviorArchetype set to "melee_self_empower"
 // and the provided spellbook. Returns the mob pointer and a cleanup function.
 func seedArchetypeMob(t *testing.T, instanceId int, spellbook map[string]int) (*mobs.Mob, func()) {
 	t.Helper()
@@ -170,7 +165,7 @@ func TestMeleeSelfCondition_WithSurgeActiveCastsIronWill(t *testing.T) {
 // TestMeleeSelfCondition_FireElementalCastsDefenseOnly verifies that a mob with
 // only self_defense spells correctly falls through the offense child (Failure)
 // and casts the highest-scoring defense spell (conviction-armor, 300 > ward, 120).
-// This covers the fire elemental archetype case (stays on melee_self_buff).
+// This covers the fire elemental archetype case (stays on melee_self_empower).
 func TestMeleeSelfCondition_FireElementalCastsDefenseOnly(t *testing.T) {
 	defer seedArchetypeSpells(t)()
 	LoadArchetypeForTest(t, "melee_self_empower", archetypeYAML)

@@ -33,7 +33,7 @@ type oldQuestReward struct {
 	QuestId       string // binds "questid"
 	Gold          int
 	ItemId        int // binds "itemid"
-	ConditionId   int `yaml:"conditionid"` // slice 2 rename would otherwise silently rebind this tag-less field to "conditionid"; the tag pins the old "buffid" key so this frozen historical copy keeps parsing what it always parsed.
+	ConditionId   int `yaml:"conditionid"` // the reward key on disk is conditionid, which is also what yaml.v2 would bind for this field tag-less; the tag just states it.
 	SkillInfo     string
 	StatInfo      string `yaml:"stat_info,omitempty"`
 	RecipeInfo    string `yaml:"recipe_info,omitempty"`

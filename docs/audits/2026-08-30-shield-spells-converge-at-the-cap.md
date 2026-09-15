@@ -3,7 +3,7 @@
 **Date:** 2026-08-30
 **Status:** filed for the **spell scaling unification arc** (owner decision)
 **Reported by:** owner, from live playtest — "all the shield type spells give the
-same condition/buff and it seems like the outcome is the same as well for all of
+same condition and it seems like the outcome is the same as well for all of
 them (ex. Chrysalis Cocoon and Conviction Ward seem to do the same amount of
 shielding)"
 
@@ -33,7 +33,7 @@ That magnitude scaling is correct and live. `magnitude` comes from
 `spellData.EffectMagnitude` (`resolveSpell`, `spell_resolution.go:85`), and both
 spells set it:
 
-| Spell | `effect_magnitude` | `buff_ids` |
+| Spell | `effect_magnitude` | `condition_ids` |
 |---|---|---|
 | `conviction-ward` | **75** | none |
 | `chrysalis-cocoon` | **125** | `[52]` |
@@ -76,9 +76,9 @@ Adding more shield tiers cannot help: a 200-magnitude spell would also land on
 
 ## The one real difference that survives
 
-`chrysalis-cocoon` declares `buff_ids: [52]` (**Chrysalis Shell**:
+`chrysalis-cocoon` declares `condition_ids: [52]` (**Chrysalis Shell**:
 `magical_mitigation: 15`, `conviction_mitigation: 15`). `conviction-ward` has no
-`buff_ids`.
+`condition_ids`.
 
 So the cocoon covers three channels while the ward is physical-only, and that
 difference is intact — it is simply invisible unless the caster is taking
@@ -110,5 +110,5 @@ this applies to any shield added later, not only these two. Only two exist
 today.
 
 Filed to the spell scaling unification arc per the owner, 2026-08-30. That arc
-already owns the related finding that `effect_type: buff` (17 of 56 spells) gets
+already owns the related finding that `effect_type: condition` (17 of 56 spells) gets
 no duration scaling at all.

@@ -11,7 +11,7 @@ import (
 )
 
 // Warcry is the mob-side shout that applies the warcry damage condition to
-// the casting mob. Mob warcry applies the self-condition only; ally fan-out
+// the casting mob. Mob warcry applies the condition to itself only; ally fan-out
 // is a player-command concern.
 func Warcry(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	result := actions.ExecuteWarcry(&actions.MobActor{Mob: mob, Room: room})

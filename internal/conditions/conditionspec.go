@@ -160,7 +160,7 @@ var (
 )
 
 type ConditionSpec struct {
-	ConditionId   int               `yaml:"conditionid"` // Unique identifier for this condition spec. The tag pins the file key through the slice 2 rename.
+	ConditionId   int               `yaml:"conditionid"` // Unique identifier for this condition spec. The tag states the file key explicitly.
 	Name          string            // The name of the condition
 	Description   string            // A description of the condition
 	Secret        bool              // Whether or not the condition is secret (not displayed to the user)

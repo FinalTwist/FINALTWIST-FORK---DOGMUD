@@ -40,13 +40,13 @@ This effort collapses that surface to one canonical framework:
 | 4a | Position — FSM | Done (2026-05-16) | 14 geometric states (Standing / Prone / Supine / Clinch / BackStanding / Mount / SideControl / KneeOnBelly / NorthSouth / Crucifix / BackGround / HalfGuard / Guard / Turtle). Prone/Supine split during brainstorm — submission paths, recovery difficulty, and back-take vulnerability diverge. Per-state data (StandingData / ProneData / SupineData / shared GrappleData), ~75-edge transition graph, 22 trigger constants, 19 Character predicates, 10 btree primitives, Life-Dead cascade observer. Ships DORMANT — zero behavior change; legacy CombatPosition enum + all command writers untouched. 4b cuts over writers + control rolls + sunsets legacy. |
 | 4b | Position — control axis | Done (2026-05-16) | Per-grappler 5-level control scale (InControl / LosingControl / Neutral / BecomingControlled / Controlled). Per-round opposed Strength + Unarmed-combat rolls with stamina + encumbrance curves; margin → delta with 2-consecutive-controlled threshold; gradient + transition + stamina-warning messages; 6 new btree control-axis primitives; 4 pair invariants enforced via TransitionPair + ValidateGrapplePair + periodic ConsistencyCheck. Legacy `CombatPosition` / `PositionRoundsMin` / `GrappleControllerId` / `ConditionGrappleController` / `combatposition.go` all sunset. |
 | 4c | Position — weapon utility | Done (2026-05-16) | `Reach float64` field (meters) on `ItemSpec` + default-by-subtype lookup (`internal/items/reach.go`); per-state grapple-radius curve (standing-grapple 0.5m, ground-grapple 0.3m, other unbounded); `ReachUtility = radius/reach` formula floored at 0.15; pipeline integration via `CalcReachAdjustedItemMult` at `combat/combat_helpers.go:buildWeaponSetup`; bladed weapons (Slashing/Cleaving/Stabbing/Shooting) in grapples narrate with Bludgeoning vocabulary at `buildAttackMessages`. 3 new balance knobs. New `help reach` top-level helpfile + per-weapon helpfile mentions. Phase-1 YAML migration zero (per-item override added for `lake_iron_hook_spear` since spear defaulted to dagger range). |
-| 4d | Position — submissions | Done (2026-05-18) | Symmetric opportunistic per-round submission system on top of chunk-4b's drift roll. Drift-margin > alpha or defender-crit opens a sub window on either side; separate sub roll resolves into 4 tiers (Bad/Neutral/Success/Crit). Position picks sub type via role-split mapping (top-attack vs bottom-attack subs); 7 SubmissionType enum values. Policy-driven outcomes (mercy/subdue/cripple/lethal) with no per-round prompts. Subdue + cripple reuse the Life cascade with new NoDeprogression + GoldLossFraction DeadData flags — defender wakes at temple, no stat decay, partial gold loss, optional broken-limb buff (cripple). Mob policies inherit from archetype defaults with per-mob YAML overrides (bosses → lethal). Legacy player-typed `submit` command + AttemptSubmission/ApplySubmissionSuccess/ApplySubmissionFailure helpers fully sunset. 2 new buffs (broken-limb #83, submission-stunned #84). 3 new btree primitives. Behavior Matrix PB-301..PB-341 mixed PASS/SKIP. |
+| 4d | Position — submissions | Done (2026-05-18) | Symmetric opportunistic per-round submission system on top of chunk-4b's drift roll. Drift-margin > alpha or defender-crit opens a sub window on either side; separate sub roll resolves into 4 tiers (Bad/Neutral/Success/Crit). Position picks sub type via role-split mapping (top-attack vs bottom-attack subs); 7 SubmissionType enum values. Policy-driven outcomes (mercy/subdue/cripple/lethal) with no per-round prompts. Subdue + cripple reuse the Life cascade with new NoDeprogression + GoldLossFraction DeadData flags — defender wakes at temple, no stat decay, partial gold loss, optional broken-limb condition (cripple). Mob policies inherit from archetype defaults with per-mob YAML overrides (bosses → lethal). Legacy player-typed `submit` command + AttemptSubmission/ApplySubmissionSuccess/ApplySubmissionFailure helpers fully sunset. 2 new conditions (broken-limb #83, submission-stunned #84). 3 new btree primitives. Behavior Matrix PB-301..PB-341 mixed PASS/SKIP. |
 | 4b-fixup | Position — outcome model | Done (2026-05-18) | Replaces chunk-4b's ControlLevel drift-needle with direct position-change outcomes (Hold / Advance / Degrade / Reversal / Escape) per round. Mount is the striking apex (1/2-step Hold, 3-step → BackGround); BackGround is the control apex. Crucifix terminal (sub-only). Reversal swaps roles with two realism exceptions (Mount→Guard, BackGround→Mount). ControlLevel + InitialControlForPair + gradient messages + sustained-pressure escape gate all sunset. ~280 flavor templates in grapple_outcomes.yaml across advancements / degradations / reversals / escapes / holds / striking_apex categories, validated by fresh-subagent realism pass. Chunk 4d submission gate composes via shared `|z| >= 1.5` threshold; sub fires from post-advance position. Species-gated grappling deferred (see project_species_gated_grappling.md memory). |
 | 4b-fixup-2 | Position — ControlLevel FSM | Done (2026-05-18) | Restores ControlLevel as a proper FSM in `internal/state/control/` (5 states: 3 stable + 2 transient mirroring Awareness Revealing) after chunk 4b-fixup's `IsControllerRole bool` collapsed Neutral to "both false" and broke per-round drift in symmetric Clinch grapples. `processGrappleTick` refactored to iterate pairs (deduped) instead of per-character with bool filter — fixes the iteration-layer bug independent of ControlLevel. Two parallel consumers of drift z: outcome resolver (chunk 4b-fixup, unchanged) for position changes, ControlLevel shift for state transitions + gradient messaging. ~36 new gradient templates across 4 boundary-direction keys. Sub eligibility tightens: top subs require Controlling state, bottom subs require Controlled. `IsAggressor` field on GrappleData as drift-roll tiebreaker for symmetric positions. |
 | 4e | Position — third-party + defense degradation | Done (2026-05-19) | Position-tiered hit modifiers (two-table system: attacker-self × target-side); Mount controller swinging at controlled = 1.32 net (fixes the bug-report symptom where mounted controllers didn't get hit-rate advantage — verified at +21pp jump in T12 smoke); third-party attacks on grappled targets get the same bonus; restrained values (0.50-1.25 range, no extremes). Eat/drink blocked during grapple (hands committed). Spell disruption audit found a real gap — `processFoldRound` had Prone/Supine break but no grapple break, so Mount-pinned casters could complete spells unimpeded; fixed with grapple-state catch-all. Outside-damage on a grapple controller shifts their ControlLevel one step toward Neutral per disrupted round; deduped via per-round marker. Mob AI tiebreaker prefers grappled-controlled targets within 10% of top priority (does NOT override clear primary preferences). Sub interrupt: crit OR > 10% max HP from third party during sub-firing round forces Bad tier outcome. Two new config knobs (ControlDegradeOnOutsideHit, SubInterruptDamageThresholdPct). |
 | 4f | Position — balance + smoke | Done (2026-05-19) | Replaced the three deterministic 100% spell-disruption gates in `processFoldRound` (Prone / Supine / Grapple) with a single chance-based check fed through the existing `CalcConcentrationChance(Wil, dmgPctEquiv)` curve. New `internal/state/position/disruption.go` lookup returns the damage%-equivalent per (position, role): Standing → 0 (skip), Prone/Supine 25-30, Clinch 40 (symmetric), Mount/BackGround/SideControl controllers 30-35 / controlled 55-65, Crucifix-controlled 70 (brutal), Guard inverted (bottom-controller 25 / top-controlled 40). Damage-path `checkConcentrationBreak` unchanged — both paths fire layered. Helpfile softened on `grapple.template` from "disrupted just as if knocked prone" to a Willpower-mediated framing. Two-pass AI smoke (feature-tester + feel-tester) verified end-to-end: position advancement, dominant-position striking, eat/drink restrictions, chance-based disruption gate firing correctly via GrappleBroke route, helpfile rendering, no panics. Context.md sweep across position/control/activity/hooks/combat/characters packages. Helpfile audit across the 14 chunk-4-relevant templates fixed numerical-leak SOP violations in 6 files (prone, stand, trip, bash, attack, flee) and logged 4 coverage-gap memories. Smoke surfaced 0 critical regressions; 4 polish-only followup memories generated (combatstats positional bucketing broader than known, flee-grappled silent message, flavor-template defects, reversal-escape pacing). **Chunk 4 (Position) closed.** Next: chunk 5 (Presence). |
 | 5 | Presence | Done (2026-05-19) | Single union-enum Presence machine on every Character with two transition tables (one per actor). Player states: Connecting / Active / Idle / AFK / Disconnected. Mob states: Spawning / Active / Dormant / Despawning. Active is shared. CombatPhase veto on `Idle→Engaging` blocks ONLY Disconnected + Despawning targets (AFK / Idle / Dormant remain attackable — "if you went AFK in a dangerous room, you deserve it"). Dormant mobs auto-wake via the attack-resolution path in `combat.go` (T7). Essential-mob veto on Active→Dormant/Despawning prevents shopkeepers, foragers, caravan crew, and charmed companions from ever leaving Active. Scheduled-transition cleanup observer wipes pending Activity/Position/etc. timers on Disconnected/Despawning entry via `Character.CancelAllScheduled()`. New `NewRound_PresenceTick` hook between DoCombat and AutoHeal drives timeout transitions; `RoomChange_PresencePlayerEntry` wakes Dormant mobs on player entry. Connection lifecycle: login→Connecting→Active in `HandleJoin`, TCP-close→Disconnected in `LogOutUserByConnectionId`, Idle/AFK→Active wake in `TryCommand` (the wake fires only for non-`afk` commands so the afk command can manage its own toggle). Sunsets: `ManualAFK` + `AFKMessage` (UserRecord), `BoredomCounter` + `PreventIdle` (Mob), `MaxMobBoredom` (config). 5 new config knobs gating thresholds (`PresenceIdleAfterRounds: 8`, `PresenceAFKAfterRounds: 75`, `PresenceDisconnectAfterRounds: 900`, `PresenceMobDormantAfterRounds: 30`, `PresenceMobDespawnAfterRounds: 60`). AI feature-tester smoke caught + fixed an AFK toggle double-message bug from the initial T9/T10 design (commit `e148b8ab`). **Chunk 5 closes** with only chunk 6 (Perception) remaining in the combat-state-machines arc. |
-| 6 | Perception | Done DORMANT (2026-05-19) | Two-state FSM (Sighted / Blinded) shipped DORMANT per the chunk-4a precedent. Transitions fire correctly via existing buff/condition lifecycle hooks (Buff 3 Blinded, Buff 77 Flashbang Blindness, ConditionBlinded — detected by buff ID, no YAML changes needed). HasAnyBlindSource() helper guards expire-paths against flicker when overlapping sources clear; uses Buffs.TriggersLeft > 0 instead of HasBuff() (HasBuff returns true for expired-but-not-yet-pruned buffs, breaking the overlap guard — caught by T6 integration tests). Behavior Matrix unit tests (PE-001 through PE-009) + integration tests (PE-INT-001 through PE-INT-007) exercise overlap, mixed-order, and re-entry-no-op semantics. NO CONSUMER reads the state yet — the future centralized messaging framework chunk (captured as the `messaging-framework-chunk` project memory) wires this primitive into broadcast gating, infrared anonymized rendering, look-command blocking, color coding by event category, line wrapping, and the headline companion-name-leak bug fix. Original chunk-6 scope was found too narrow during brainstorm — the broader messaging problem deserves its own chunk. **Combat-state-machines arc complete** (chunks 0-6 all shipped). Aliveness substrate work can resume. |
+| 6 | Perception | Done DORMANT (2026-05-19) | Two-state FSM (Sighted / Blinded) shipped DORMANT per the chunk-4a precedent. Transitions fire correctly via existing condition lifecycle hooks (Condition 3 Blinded, Condition 77 Flashbang Blindness, ConditionBlinded — detected by condition ID, no YAML changes needed). HasAnyBlindSource() helper guards expire-paths against flicker when overlapping sources clear; uses Conditions.TriggersLeft > 0 instead of HasCondition() (HasCondition returns true for expired-but-not-yet-pruned conditions, breaking the overlap guard — caught by T6 integration tests). Behavior Matrix unit tests (PE-001 through PE-009) + integration tests (PE-INT-001 through PE-INT-007) exercise overlap, mixed-order, and re-entry-no-op semantics. NO CONSUMER reads the state yet — the future centralized messaging framework chunk (captured as the `messaging-framework-chunk` project memory) wires this primitive into broadcast gating, infrared anonymized rendering, look-command blocking, color coding by event category, line wrapping, and the headline companion-name-leak bug fix. Original chunk-6 scope was found too narrow during brainstorm — the broader messaging problem deserves its own chunk. **Combat-state-machines arc complete** (chunks 0-6 all shipped). Aliveness substrate work can resume. |
 
 **Mob aliveness work resumes.** The combat-state-machines arc (chunks
 0-6) is complete. Aliveness substrate work (memory, disposition,
@@ -125,7 +125,7 @@ Next: chunk 1 — Awareness machine (`Visible` / `Concealing` /
 > caller of `OnCombatRoundEnd` was a test. Under U10d a stealth attacker
 > gets **one** contested opening strike and stealth breaks immediately, so
 > nothing needs a round-scoped flag. Everything else in this chunk (the
-> `Visible/Concealing/Hidden/Revealing` machine, buff #9 mirroring, the
+> `Visible/Concealing/Hidden/Revealing` machine, condition #9 mirroring, the
 > marquee mechanics below) is unchanged and still live. See
 > `docs/roadmaps/UNIFIED_RESOLUTION_ROADMAP.md`, row **U10d**, and
 > `docs/superpowers/specs/completed/2026-08-25-u10d-surprise-attack-redesign-design.md`
@@ -135,14 +135,14 @@ Built the `internal/state/awareness/` machine
 (`Visible/Concealing/Hidden/Revealing`) on the chunk-0 framework.
 Subscribed to Combat Phase's `OnEndOfRoundIfSurprise` callback to
 close the chunk-0 surprise handshake at end of first combat
-round. Replaces buff-#9-as-state-of-truth with Awareness state;
-buff #9 stays as the side-effect carrier with the cascade in
+round. Replaces condition-#9-as-state-of-truth with Awareness state;
+condition #9 stays as the side-effect carrier with the cascade in
 `internal/hooks/Awareness_Cascades.go` keeping it mirrored.
 
 **Marquee mechanic refresh** bundled with the FSM port:
 - **No duration** on Hidden — persists until explicitly broken
   (combat, detection roll, light state change, logout, noisy
-  action). Buff #9 YAML stripped of `triggerrate`/`triggercount`.
+  action). Condition #9 YAML stripped of `triggerrate`/`triggercount`.
 - **Stamina cost for hidden movement** — default 3.0× multiplier,
   stacks multiplicatively with encumbrance. Replaces a
   pre-existing hardcoded 1.5× in `GetMovementStaminaCost`.
@@ -165,25 +165,25 @@ buff #9 stays as the side-effect carrier with the cascade in
   the callback to the proper Activity machine.
 
 **Sunset:**
-- Buff #20 (`very_hidden`) deleted as dead content.
-- ~49 `HasBuffFlag(buffs.Hidden)` / `HasFlagFromAnySource(buffs.Hidden)`
+- Condition #20 (`very_hidden`) deleted as dead content.
+- ~49 `HasConditionFlag(conditions.Hidden)` / `HasFlagFromAnySource(conditions.Hidden)`
   readers migrated to `Character.IsHidden()` across 31 files.
-- 8 explicit `CancelBuffsWithFlag(buffs.Hidden)` writers migrated
+- 8 explicit `CancelConditionsWithFlag(conditions.Hidden)` writers migrated
   to `Awareness.TransitionToRevealing(...)`.
-- Sneak action's direct `AddBuff(9, ...)` replaced by Awareness
-  state transitions; the buff-mirror cascade handles the buff.
+- Sneak action's direct `AddCondition(9, ...)` replaced by Awareness
+  state transitions; the condition-mirror cascade handles the condition.
 - Zombie `aggro.go` / `aggro_helpers.go` files left behind from
   chunk-0 Task 18 finally cleaned up (the implementer who did
   Task 18 said `git rm` but files were still on disk).
-- `internal/buffs/buffspec.go` `Validate()` now allows no-trigger
-  buffs (needed for the no-duration Hidden buff).
+- `internal/conditions/conditionspec.go` `Validate()` now allows no-trigger
+  conditions (needed for the no-duration Hidden condition).
 
 **Behavior Matrix complete:** 33 intent-driven tests (AW-001
 through AW-033) authored in awareness_test.go. 29 pass directly;
 4 (AW-024-027, the CalcSneakScore truth-table rows) implemented
 in `internal/actions/skill_helpers_test.go` (or sneak_test.go)
 where the function lives — AW-024/025 implemented, AW-026/027
-skipped because EmitsLight=true requires buff/equipment setup
+skipped because EmitsLight=true requires condition/equipment setup
 beyond unit-test scope (covered by future in-game smoke).
 
 **Deferred from chunk 1 (followups):**
@@ -217,9 +217,9 @@ firing for both player and mob death paths.
 **Cascade + observer architecture:**
 - `Life_Cascades.go` — cross-machine cleanup on `Alive → Dead` (Combat
   Phase → Idle, Awareness → Visible, casting/crafting nil, position
-  Standing, grapple cleared, non-permanent buffs canceled, conditions
+  Standing, grapple cleared, non-permanent conditions canceled, conditions
   cleared); on `Dead → Respawning` (resource refill to 5% of max,
-  NoAggroTarget grace buff #81, clear PlayerDamage, CharacterVitalsChanged
+  NoAggroTarget grace condition #81, clear PlayerDamage, CharacterVitalsChanged
   event).
 - **Player death observers:** `Death_PlayerCleanup` (stat decay + skill
   rust + KD + party notify), `Death_PlayerAnnouncement` (room +
@@ -260,7 +260,7 @@ firing for both player and mob death paths.
 **Combat-driven death migration:** the four production sites that
 detect health-zero (`NewRound_DoCombat.go` sweep + handleAffected,
 `NewRound_AutoHeal.go` player catch-all, `NewRound_MobRoundTick.go`
-DoT/idle, `Buff_ApplyBuffs.go` buff-tick) now call `c.Die()` directly
+DoT/idle, `Condition_ApplyConditions.go` condition-tick) now call `c.Die()` directly
 instead of queueing `user.Command("suicide")` or `mob.Command("suicide")`.
 Observers fire same-tick.
 
@@ -272,7 +272,7 @@ Observers fire same-tick.
   field kept for upstream parity but always queued false. Scripting
   docs (`FUNCTIONS_ACTORS.md` `GiveExtraLife()`, `SCRIPTING_ITEMS.md`
   example) updated.
-- ReviveOnDeath buff preserved (separate one-shot mechanic). Stat
+- ReviveOnDeath condition preserved (separate one-shot mechanic). Stat
   decay + skill rust preserved as normal-death penalties.
 
 **Behavior Matrix complete:** 27 intent-driven tests (LI-001 through
@@ -787,7 +787,7 @@ Unarmed-combat-skill check (defender bonus Vitality). Result tiers:
 - **Neutral**: no consequence, pair stays
 - **Success**: sub locks, attempter's policy resolves
 - **Crit** (z >= `SubCritZThreshold`, default 2.0): sub locks AND
-  recipient gets the 1-round Stunned buff (only on mercy outcomes —
+  recipient gets the 1-round Stunned condition (only on mercy outcomes —
   other policies enter the death cascade where stun is moot)
 
 **Position drives sub type** — 7 named subs (Armbar / RNC / Triangle /
@@ -805,9 +805,9 @@ break limbs (CrippleBodyPart returns "").
 
 | Policy | Behavior on success/crit |
 |--------|--------------------------|
-| **mercy** | Clean release; brief recovery debuff. Crit additionally stuns the recipient for 1 round (Stunned buff #84). |
+| **mercy** | Clean release; brief recovery penalty. Crit additionally stuns the recipient for 1 round (Stunned condition #84). |
 | **subdue** (default) | No-deprogression death; partial gold transfer; defender wakes at temple woozy but uninjured. |
-| **cripple** | Same as subdue + broken-limb buff (#83, 900-round duration, persists across respawn). Chokes degrade to subdue. |
+| **cripple** | Same as subdue + broken-limb condition (#83, 900-round duration, persists across respawn). Chokes degrade to subdue. |
 | **lethal** | Full death cascade with deprogression + full corpse loot. Requires two-step confirmation the first time set. |
 
 **Defender's `SurrenderPolicy`** — `never` / `always` / `auto-tap-below
@@ -852,7 +852,7 @@ staleness detection).
 - `set submission <mercy|subdue|cripple|lethal>` — controller policy.
   Lethal requires two-step confirmation the first time.
 - `set surrender <never|always|auto-tap-below <N>>` — defender policy.
-- `status` shows both policies + broken-limb buff with remaining
+- `status` shows both policies + broken-limb condition with remaining
   rounds.
 - New helpfiles `help submission` + `help surrender`. Existing
   helpfiles updated (grapple, combat, attack, special, death,
@@ -867,7 +867,7 @@ the chunks-0-3 convention. Coverage split across
 `internal/hooks/Position_SubmissionTick_test.go`,
 `internal/mobs/mobs_test.go`,
 `internal/behaviortree/conditions_submission_test.go`,
-`internal/buffs/buffs_test.go`, and
+`internal/conditions/conditions_test.go`, and
 `internal/usercommands/usercommands_test.go`. Chunks 0-4c regression
 clean. Server boots cleanly past data-file loading.
 
@@ -878,7 +878,7 @@ updates. T21 (`93684b32`) fixed the live broken `help submit` link
 in `grapple.template` (was 404'ing at runtime after T18 sunset),
 removed `submit` from `special.template`, added a no-deprogression
 section to `death.template`, expanded `conditions.template` to
-include the broken-limb buff, and added cross-references across
+include the broken-limb condition, and added cross-references across
 8 other helpfiles. T22 (`f3578fb5`) updated 9 context.md files —
 the largest update was `internal/combat/context.md` getting a new
 "Submission System (chunk 4d)" section AND removing stale refs

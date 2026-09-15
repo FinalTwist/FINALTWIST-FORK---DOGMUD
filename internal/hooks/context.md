@@ -434,7 +434,7 @@ Rending Bleed, and 121 Poisoned / 122 Bleeding, whose sign rides on the
 magnitude their producer passes (`tick_from_magnitude`) rather than on an
 authored `tick_percent`. The same branch runs the seven healing tick records
 (5, 6, 7, 32, 33, 47, 50), so read it as "every tick record", not "every dot".
-List them with `grep -l tick_pool _datafiles/world/dogmud/buffs/*.yaml` rather
+List them with `grep -l tick_pool _datafiles/world/dogmud/conditions/*.yaml` rather
 than trusting this enumeration.
 
 That one place is the `tick_pool` branch of the condition trigger loop
@@ -458,7 +458,7 @@ the old poison hook did and the condition tick path did NOT:
   tick of a record survives both the already-expired instance and `PruneConditions`.
 - The per-trigger flavour line is skipped when the trigger also expires the
   record (`PruneConditions` narrates the end instead), but the harm itself is NOT:
-  the player path used to gate the whole body on `!buff.Expired()` and silently
+  the player path used to gate the whole body on `!condition.Expired()` and silently
   dropped the only tick of a one-trigger record.
 
 A stacking record (122 Bleeding) reaches this branch once per round with
@@ -1675,7 +1675,7 @@ those are the PLAYER-cast paths. `applyMobSelfEffect` (the mob-cast heal and
 shield paths) takes no `combat.ChannelDefenceResult`/`out` parameter at all,
 so there is no crit check to make: a mob's self-cast heal or shield can never
 get the crit boost a player's cast of the same spell gets. This mirrors the
-"Crits +50% strength" claim in the root `CLAUDE.md`'s Buff/Ward Spell System
+"Crits +50% strength" claim in the root `CLAUDE.md`'s Condition/Ward Spell System
 section, which is true on the player-cast shield path only.
 
 ## Counter tier wiring (U6b Task 10)

@@ -66,9 +66,9 @@ func TestOnSkillUseScaled_LossEmitsNoSkillUsedButAWinDoes(t *testing.T) {
 }
 
 // THE regression guard for this task. SelfCastProgressionMultiplier ships at
-// 0.5, so a self-condition cast is a WINNING action that arrives with a sub-1.0
+// 0.5, so a self-empowering cast is a WINNING action that arrives with a sub-1.0
 // multiplier. Gating the quest event on "bonusMultiplier < 1.0" instead of on
-// the loss silently stops every self-condition cast from ticking skill_use quests,
+// the loss silently stops every self-empowering cast from ticking skill_use quests,
 // with no error anywhere. This test is what goes red if anyone does that.
 func TestOnSkillUseScaled_WinningSubOneMultiplierStillEmitsSkillUsed(t *testing.T) {
 	pinConfigForTest(t)
@@ -78,7 +78,7 @@ func TestOnSkillUseScaled_WinningSubOneMultiplierStillEmitsSkillUsed(t *testing.
 	c.OnSkillUseScaled("spellcasting", 9, 0.5, false)
 
 	if got := events.DrainQueuedSkillUsedForTest(9); len(got) != 1 {
-		t.Fatalf("a winning self-condition-style cast (multiplier 0.5) emitted %d SkillUsed events, want 1", len(got))
+		t.Fatalf("a winning self-empowering cast (multiplier 0.5) emitted %d SkillUsed events, want 1", len(got))
 	}
 }
 

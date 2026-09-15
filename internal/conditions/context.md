@@ -4,23 +4,9 @@
 
 The conditions system provides timed status effects for characters with support for stat modifications, behavioral flags, round-based triggers, and duration management. It has a dual-layer architecture with immutable condition specifications and mutable condition instances, supporting complex timing mechanics, permanent conditions, and flag-based behavior modification.
 
-## Names: Go says condition, disk and wire still say buff
+## Names
 
-Slice 2 of the conditions unification (2026-09-14) renamed this package from
-`internal/buffs` to `internal/conditions` and every Go identifier with it
-(`Buff` became `Condition`, `BuffSpec` became `ConditionSpec`, `AddBuff`
-became `AddCondition`, `PermaBuff` became `Permanent`, and so on). Nothing on
-disk or on the wire changed: the YAML keys and values (`buffid:`,
-`permabuff:`, `start_remove_buffs:`, spell `effect_type: buff` and
-`buff_ids:`), the data folders `_datafiles/world/*/buffs/`, the save key
-`buffs:`, GMCP JSON field names, the `buff-apply` / `buff-expire` messaging
-category strings, the `<ansi fg="buff">` colour tag and the template functions
-`buffname` / `buffduration` all keep their spelling. Slice 3 renames those and
-migrates saves. The untagged fields that used to take their key from the Go
-name (`Condition.ConditionId`, `ConditionSpec.ConditionId`) now carry an
-explicit `yaml:"buffid"` tag so the rename could not move the key, and
-`species.Species.ConditionIds` carries `yaml:"buffids"` for the same reason;
-the root `wire_freeze_test.go` pins the bytes.
+Since conditions unification slice 3 (2026-09-15) every file, save key, GMCP field, category string, colour alias and template function also says condition; `internal/conditionrename` holds the spelling map and migration 0.17.0 converted old saves.
 
 ## Not these conditions
 
@@ -29,11 +15,11 @@ The word is used by four unrelated things. None of them is this package:
 - **Behaviour tree condition nodes**: the predicate leaves of a mob's
   behaviour tree, in `internal/behaviortree/conditions_*.go`
   (`conditions_combat.go`, `conditions_mob.go`, `conditions_room.go`, ...).
-  The node `mob_has_buff` is one of them; it reads this package.
+  The node `mob_has_condition` is one of them; it reads this package.
 - **Quest trigger conditions**: `quests.Conditions`
   (`internal/quests/triggers.go`), the gate on when a trigger may fire. The
   quest ACTION that applies one of these records is
-  `ApplyStatusCondition *StatusConditionDef` (YAML key `apply_buff:`), named
+  `ApplyStatusCondition *StatusConditionDef` (YAML key `apply_condition:`), named
   that way to stay apart from the trigger's `Conditions`.
 - **Web client trigger conditions**: the `condition` on a player-defined
   client trigger, evaluated by `evalTriggerCondition` in
@@ -44,9 +30,9 @@ The word is used by four unrelated things. None of them is this package:
 ## One collection of timed state (slice 1 of the conditions unification, 2026-09-12)
 
 There is ONE collection of timed state on a character: `Character.Conditions`
-(saved under the `buffs:` key). The former `characters.CombatCondition` enum
+(saved under the `conditions:` key). The former `characters.CombatCondition` enum
 (ten combat conditions with their own tick, magnitude and display) is gone;
-the ten became NINE records under `_datafiles/world/dogmud/buffs/` (79, 80,
+the ten became NINE records under `_datafiles/world/dogmud/conditions/` (79, 80,
 117 to 123), because blinded had no producer and was deleted rather than
 ported. **Do not add a second collection or a Go enum of timed effects**; the
 root guard `timed_state_guard_test.go` fails the build on a struct outside
@@ -157,7 +143,7 @@ tripled the spell dot's total, so the owner halved the two spell dot
   `LastTickCauseRound` where the harm lands, and `deathCauseFor` reads the held
   record by id first and falls back to the stamp within one round.
 - **A record's final trigger used to be dropped on the player side.**
-  `UserRoundTick` gated the whole tick body on `!buff.Expired()`, so the
+  `UserRoundTick` gated the whole tick body on `!condition.Expired()`, so the
   one and only tick of a one-trigger record never landed. The mob tick never
   had the defect. Fixed in slice 1, which means every player-held tick record
   now lands one more tick than it did before. The owner ruled this extra
@@ -217,7 +203,7 @@ The conditions system is built around several key components:
 ### Condition Specification Structure
 ```go
 type ConditionSpec struct {
-    ConditionId   int               `yaml:"buffid"` // Unique identifier (key pinned until slice 3)
+    ConditionId   int               `yaml:"conditionid"` // Unique identifier
     Name          string            // Display name
     Description   string            // Description text
     Secret        bool              // Hidden from player view
@@ -233,10 +219,10 @@ type ConditionSpec struct {
 ### Condition Instance Structure
 ```go
 type Condition struct {
-    ConditionId    int     `yaml:"buffid"`    // Reference to ConditionSpec
+    ConditionId    int     `yaml:"conditionid"` // Reference to ConditionSpec
     Source         string  // Origin identifier (spell, item, area)
     OnStartWaiting bool    // Pending start event
-    Permanent      bool    `yaml:"permabuff,omitempty"` // Permanent condition flag
+    Permanent      bool    `yaml:"permanent,omitempty"` // Permanent condition flag
     RoundCounter   int     // Elapsed rounds
     TriggersLeft   int     // Remaining triggers
     TickAmount     int     // Signed per-trigger amount snapshot
@@ -345,7 +331,7 @@ never showed.
 
 A refusal is a refusal all the way out: `Character.AddCondition` returns an
 error, `ApplyConditions` (`internal/hooks/Condition_ApplyConditions.go`)
-returns on it before the start notice, `start_remove_buffs`,
+returns on it before the start notice, `start_remove_conditions`,
 `TrackConditionStarted` or `ConditionsTriggered`, and
 `Character.AddConditionMagnitude` returns an `error` the two spell dot sites
 test before narrating. `HasFlag` guards a nil spec, since every add now asks it
@@ -496,7 +482,7 @@ spec, because none of them can carry a stack's rounds and amount: they would
 create a live record with no stacks, or top one up to the spec's single
 `TriggerCount`. `addStack` creates the record through the unexported
 `addConditionScaled`, which does not refuse. The admin `setcondition` command
-(alias `buff`) refuses a stacking condition id with a message for the same
+refuses a stacking condition id with a message for the same
 reason.
 
 `Conditions.Trigger` calls `tickStacks` for such a record: `TickAmount` becomes
@@ -886,9 +872,9 @@ func (b *ConditionSpec) Filename() string {
 }
 
 // Load all condition specifications from files (abridged). The data folder
-// is still `buffs/` until slice 3.
+// is `conditions/`.
 func LoadDataFiles() {
-    dataPath := string(configs.GetFilePathsConfig().DataFiles) + `/buffs`
+    dataPath := string(configs.GetFilePathsConfig().DataFiles) + `/conditions`
     tmpConditions, err := fileloader.LoadAllFlatFiles[int, *ConditionSpec](dataPath)
     if err != nil {
         panic(errors.Wrap(err, `filepath: `+dataPath))
@@ -1148,14 +1134,14 @@ clamps the total at `PhysicalMitigationCap`. So both "magical" ward spells buy
 physical mitigation through the Minor Shield record, not magical or conviction
 mitigation.
 
-A shield spell can separately carry `buff_ids` (YAML key, renamed in slice 3),
+A shield spell can separately carry `condition_ids`,
 and those conditions use the ordinary statmod path described above instead:
-`chrysalis-cocoon` grants `buff_ids: [52]` (Chrysalis Shell, in
-`_datafiles/world/dogmud/buffs/52-chrysalis_shell.yaml`), whose
+`chrysalis-cocoon` grants `condition_ids: [52]` (Chrysalis Shell, in
+`_datafiles/world/dogmud/conditions/52-chrysalis_shell.yaml`), whose
 `statmods: {magical_mitigation: 15, conviction_mitigation: 15}` are summed by
 `Conditions.StatMod()` and read by `Character.GetMagicalMitigation()` /
 `GetConvictionMitigation()` through `c.StatMod("magical_mitigation")` /
-`c.StatMod("conviction_mitigation")`. `conviction-ward` sets no `buff_ids`, so
+`c.StatMod("conviction_mitigation")`. `conviction-ward` sets no `condition_ids`, so
 it grants no magical or conviction mitigation at all despite its name.
 
 ### Mitigation caps
@@ -1183,7 +1169,7 @@ they live downstream, in the damage pipeline.
   `docs/audits/2026-08-30-shield-spells-converge-at-the-cap.md`; read that
   before re-deriving or retuning this.
 - The one durable difference between the two spells today is
-  `chrysalis-cocoon`'s `buff_ids: [52]` grant (adds magical and conviction
+  `chrysalis-cocoon`'s `condition_ids: [52]` grant (adds magical and conviction
   mitigation through the statmod path above, invisible unless the target is
   actually taking magical or conviction damage) and its longer `base_folds`
   (8 against 4), which changes duration but is never surfaced to the player.
@@ -1202,6 +1188,5 @@ they live downstream, in the damage pipeline.
 | `ids.go` | The record ids the engine names in code: `ConditionIdWarcry` (79) through `ConditionIdEnchantWithdrawal` (123) |
 | `test_helpers.go` | Test fixtures: `SeedConditionsForTest` (replaces the registry) and `SeedConditionRecordsForTest` (adds 79, 80 and 117 to 123 on top of whatever is already seeded) |
 
-Condition files are named `{buffid}-{ConvertForFilename(name)}.yaml` (the
-`buffid` key and the `buffs/` folder keep their names until slice 3): `name:
+Condition files are named `{conditionid}-{ConvertForFilename(name)}.yaml`: `name:
 Stunned` must be `2-stunned.yaml`, or loading panics at startup.

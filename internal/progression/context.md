@@ -73,7 +73,7 @@ type Event struct {
 	Multiplier float64
 
 	// Lost: the actor's action RESOLVED and LOST, so this is the consolation
-	// award. A SEPARATE field, NOT `Multiplier < 1.0` -- a winning self-buff
+	// award. A SEPARATE field, NOT `Multiplier < 1.0` -- a winning self-empowering
 	// cast legitimately arrives at SelfCastProgressionMultiplier (0.5).
 	Lost bool
 }

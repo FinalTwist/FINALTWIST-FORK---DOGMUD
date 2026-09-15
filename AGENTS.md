@@ -151,7 +151,7 @@ current harness.
   nearby examples before authoring. Restart/boot after any data-file change.
 - Derive filenames from the loader's `Filepath()` contract. Zone folders use
   underscores. `ConvertForFilename` lowercases, preserves a-z/0-9, drops
-  apostrophes, and maps other characters to underscores. Buff, item, and mob
+  apostrophes, and maps other characters to underscores. Condition, item, and mob
   filenames use converted names; spell filenames use `spellid`. A mismatch can
   panic at startup.
 - Keep multi-word player nouns and `component_tag`s space-separated unless the
@@ -261,7 +261,7 @@ re-sleep. Preserve the first-round vulnerability of sleeping targets.
   smooth multiplier curve. Defense rolls every available defense and keeps the
   best margin.
 - All regeneration is percentage-of-max. Mutations use regen multipliers; heal
-  spells store a multiplier; direct heal buffs compute a max-pool fraction.
+  spells store a multiplier; direct heal conditions compute a max-pool fraction.
   Never add flat regeneration/healing without an approved design change.
 - Costs cannot reduce a pool below zero. Harm may take health below zero for
   death processing but floors stamina/conviction. Route through the centralized
@@ -280,7 +280,7 @@ re-sleep. Preserve the first-round vulnerability of sleeping targets.
   full/half/third duration scaling. Caster weapons use
   `spell_damage_multiplier`, independent from melee `damage_multiplier`.
 - Shield strength uses `effect_magnitude`; magical and conviction mitigation
-  buffs must flow through their matching mitigation accessors. Hidden mob
+  conditions must flow through their matching mitigation accessors. Hidden mob
   detection is an opposed Perception/Search versus Dexterity/Skullduggery path.
 - Mob `archetype` controls physical/mental stat distribution (`fighting`,
   `casting`, or uniform default). Do not infer archetype from equipment alone.

@@ -174,7 +174,7 @@ func tickHunger(c *characters.Character, user *users.UserRecord, now uint64) {
 	// Deliberate design decision: the drain is non-combat attrition applied
 	// directly to Health, bypassing the damage hooks entirely (no sleep-wake,
 	// no aggro, no mitigation) — the blade's toll, not an attack.
-	// Anonymous source: the toll comes from the item, and buffs/items carry no
+	// Anonymous source: the toll comes from the item, and conditions and items carry no
 	// applier the pool primitives can attribute to.
 	c.ApplyHarm(characters.PoolHealth, drain, state.ActorRef{})
 	// The drain repeats every overdue round, but the feeding LINE is paced by
@@ -266,7 +266,7 @@ func bandolierFingerprint(belt items.Item, potions []items.Item) string {
 
 // tickAmbientPotions keeps slotted potion conditions active at Peak potency while an
 // ambient_potions bandolier is worn and attuned. Conditions applied this way are
-// recorded (pinnacle_bandolier_buffs) so removal can revoke them.
+// recorded (pinnacle_bandolier_conditions) so removal can revoke them.
 func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	c := user.Character
 	belt := c.Equipment.Belt

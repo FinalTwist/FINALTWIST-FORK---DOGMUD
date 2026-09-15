@@ -117,15 +117,15 @@ func TestTemplateFreeze_SpeciesHelpReadsConditionIds(t *testing.T) {
 }
 
 // TestWireFreeze_SpellCategoryStillGroupsConditionEffectType pins spells.go:32's
-// `case "buff", "shield", "purge":` inside spellCategory, the other string
-// literal reading effect_type: buff (see wire_freeze_test.go at the repo
-// root and internal/hooks/wire_freeze_test.go for the dispatch-side ones).
+// `case "condition", "shield", "purge":` inside spellCategory, the other
+// string literal reading effect_type: condition (see
+// internal/hooks/wire_freeze_test.go for the dispatch-side ones).
 // It decides which sort bucket the `spells` command lists a spell under.
 //
 // A Neutral-type spell is the probe that actually distinguishes this case
-// from its fallthrough: an effect_type: buff spell matches the case FIRST
+// from its fallthrough: an effect_type: condition spell matches the case FIRST
 // and returns 2 regardless of Type, but if that case literal ever stops
-// matching "buff", a Neutral-type spell falls through to the `sp.Type ==
+// matching "condition", a Neutral-type spell falls through to the `sp.Type ==
 // spells.Neutral` branch below and returns 0 instead — a real, visible
 // change to where the spell lists in the `spells` command.
 func TestWireFreeze_SpellCategoryStillGroupsConditionEffectType(t *testing.T) {

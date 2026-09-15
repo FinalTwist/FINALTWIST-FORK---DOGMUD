@@ -187,7 +187,7 @@ combat archetype).
       couple of rounds and focuses one target.
 - [ ] The caster telegraphs, weaves, lands mental spells, heals herself
       when hurt, and holds melee while casting.
-- [ ] Soren rallies with a warcry that visibly buffs packmates, and fights
+- [ ] Soren rallies with a warcry that visibly strengthens packmates, and fights
       like a leader rather than a fourth melee body.
 
 ## 7. Balance riders needing your explicit sign-off (shipped in PR #47)

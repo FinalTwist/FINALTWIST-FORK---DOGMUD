@@ -17,7 +17,7 @@ type Lock struct {
     Difficulty     uint8  `yaml:"difficulty,omitempty"`
     UnlockedRound  uint64 `yaml:"-"`
     RelockInterval string `yaml:"relockinterval,omitempty"`
-    TrapConditionIds    []int  `yaml:"trapbuffids,omitempty,flow"`
+    TrapConditionIds    []int  `yaml:"trapconditionids,omitempty,flow"`
 }
 ```
 Represents a game lock with the following features:

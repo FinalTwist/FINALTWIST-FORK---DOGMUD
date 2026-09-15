@@ -280,8 +280,8 @@ though raw HP (60%) is well above 30%.
 
 `Char.Conditions` (`gmcp.Char.go`) is a map keyed by each held record's plain
 spec name, one entry per listed record, built by `buildConditionsPayload(ch)`. There used to be TWO payloads that
-overlapped: `Char.Affects`, built from the buffs collection, and an older `Char.Conditions`
-list built from the combat condition slice. Those buff records ARE the conditions
+overlapped: `Char.Affects`, built from the conditions collection, and an older `Char.Conditions`
+list built from the combat condition slice. Those condition records ARE the conditions
 now, so there is one payload, carrying the whole `Char.Affects` shape plus the
 qualitative `duration` word the old list contributed.
 

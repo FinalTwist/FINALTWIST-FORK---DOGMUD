@@ -1,6 +1,6 @@
 # melee_self_empower archetype
 #
-# A melee specialist who maintains self-conditions first, attacks otherwise.
+# A melee specialist who keeps itself empowered first, attacks otherwise.
 # Reused by vampire (304) and fire elemental (313), plus any future
 # melee-specialist mobs that opt in via behavior_archetype: melee_self_empower
 # on their mob YAML. This list used to name the air elemental (312) as well,
@@ -8,7 +8,7 @@
 #
 # On packmate_hurt (a same-room routine-matched packmate was attacked):
 #   engage the attacker via the existing attack action (sets Aggro from
-#   ctx.Event.UserId). Self-conditions fire on the next mob_combat_round.
+#   ctx.Event.UserId). Self-empowering casts fire on the next mob_combat_round.
 #
 # Decision flow per mob_combat_round:
 #   1. Try to cast the best self_offense condition (highest base_folds × cost)

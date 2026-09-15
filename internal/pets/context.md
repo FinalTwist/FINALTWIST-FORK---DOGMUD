@@ -22,7 +22,7 @@ type Pet struct {
     LastMealRound uint8             `yaml:"lastmealround,omitempty"`
     Damage        items.Damage      `yaml:"damage,omitempty"`
     StatMods      statmods.StatMods `yaml:"statmods,omitempty"`
-    ConditionIds       []int             `yaml:"buffids,omitempty"`
+    ConditionIds       []int             `yaml:"conditionids,omitempty"`
     Capacity      int               `yaml:"capacity,omitempty"`
     Items         []items.Item      `yaml:"items,omitempty"`
 }
