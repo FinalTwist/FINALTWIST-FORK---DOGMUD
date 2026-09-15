@@ -102,6 +102,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/quests"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/textutil"
+	"gopkg.in/yaml.v2"
 )
 
 var update = flag.Bool("update", false, "update golden snapshot files under testdata/stores")
@@ -740,6 +741,12 @@ func TestSnapshotStores(t *testing.T) {
 	t.Run("crafting", func(t *testing.T) {
 		checkGolden(t, "crafting.golden", buildCraftingGolden(t))
 	})
+	t.Run("gossip", func(t *testing.T) {
+		checkGolden(t, "gossip.golden", buildGossipGolden(t))
+	})
+	t.Run("tips", func(t *testing.T) {
+		checkGolden(t, "tips.golden", buildTipsGolden(t))
+	})
 	t.Run("post_pipeline", func(t *testing.T) {
 		checkGolden(t, "post_pipeline.golden", buildPostPipelineGolden(t))
 	})
@@ -1038,6 +1045,92 @@ func buildCraftingGolden(t *testing.T) string {
 		if failure.Observer != "" {
 			fmt.Fprintf(&b, "recipe|%s|failure_room_message => %s\n", id, failure.Observer)
 		}
+	}
+	return b.String()
+}
+
+// Store 12: gossip templates (_datafiles/world/dogmud/gossip_templates.yaml)
+//
+// Built from PRE-migration data and code: the YAML is parsed here and each
+// variant is substituted exactly as internal/hooks does it today. Today's code
+// picks with util.Rand, which no test can pin, so this golden freezes every
+// variant's substitution, not a pick. M3 item 7 Task 2 switches the builder to
+// the gossip store; the rows, their order and the header must not change.
+const gossipStandIn = "<the stand-in event>"
+
+func buildGossipGolden(t *testing.T) string {
+	t.Helper()
+
+	raw, err := os.ReadFile(filepath.Join(dogmudDataDir(t), "gossip_templates.yaml"))
+	if err != nil {
+		t.Fatalf("read gossip_templates.yaml: %v", err)
+	}
+	templates := map[string][]string{}
+	if err := yaml.Unmarshal(raw, &templates); err != nil {
+		t.Fatalf("parse gossip_templates.yaml: %v", err)
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "# gossip store snapshot\n")
+	fmt.Fprintf(&b, "# Built 2026-09-15 from PRE-migration code. Every variant of every key, substituted\n")
+	fmt.Fprintf(&b, "# as the gossiper sends it: event keys replace {desc} once, fact- keys replace every\n")
+	fmt.Fprintf(&b, "# {description}, fallback lines are sent as written. The stand-in description is\n")
+	fmt.Fprintf(&b, "# %q. The pick itself (util.Rand) is not frozen; no test can pin it.\n", gossipStandIn)
+	fmt.Fprintf(&b, "# dimensions: key x variant index\n\n")
+
+	keys := make([]string, 0, len(templates))
+	for k := range templates {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	if len(keys) == 0 {
+		t.Fatal("no gossip keys parsed")
+	}
+	for _, key := range keys {
+		for i, line := range templates[key] {
+			var rendered string
+			switch {
+			case key == "fallback":
+				rendered = line
+			case strings.HasPrefix(key, "fact-"):
+				rendered = strings.ReplaceAll(line, "{description}", gossipStandIn)
+			default:
+				rendered = strings.Replace(line, "{desc}", gossipStandIn, 1)
+			}
+			fmt.Fprintf(&b, "gossip|%s|%d => %s\n", key, i, rendered)
+		}
+	}
+	return b.String()
+}
+
+// Store 13: tips (the periodic broadcast; hints.yaml before M3 item 7)
+//
+// Built from PRE-migration data: the `hints:` list of hints.yaml in file order,
+// which is the broadcast's rotation order. M3 item 7 Task 3 renames the file
+// and switches this builder to the tips store; rows and header must not change.
+func buildTipsGolden(t *testing.T) string {
+	t.Helper()
+
+	raw, err := os.ReadFile(filepath.Join(dogmudDataDir(t), "hints.yaml"))
+	if err != nil {
+		t.Fatalf("read hints.yaml: %v", err)
+	}
+	var file struct {
+		Hints []string `yaml:"hints"`
+	}
+	if err := yaml.Unmarshal(raw, &file); err != nil {
+		t.Fatalf("parse hints.yaml: %v", err)
+	}
+	if len(file.Hints) == 0 {
+		t.Fatal("no tips parsed")
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "# tips store snapshot\n")
+	fmt.Fprintf(&b, "# Built 2026-09-15 from PRE-migration data. Every tip in rotation order, as the text\n")
+	fmt.Fprintf(&b, "# after the [Tip] prefix. dimensions: rotation index\n\n")
+	for i, tip := range file.Hints {
+		fmt.Fprintf(&b, "tip|%d => %s\n", i, tip)
 	}
 	return b.String()
 }
