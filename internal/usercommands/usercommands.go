@@ -278,7 +278,11 @@ func GetCmdSuggestions(text string, includeAdmin bool) []string {
 		}
 	}
 
-	for alias, _ := range keywords.GetAllCommandAliases() {
+	for alias, targetCmd := range keywords.GetAllCommandAliases() {
+		if !includeAdmin && IsAdminCommand(targetCmd) {
+			continue
+		}
+
 		testCmd := strings.ToLower(alias)
 		if testCmd != text && strings.HasPrefix(testCmd, text) {
 			results = append(results, alias[len(text):])

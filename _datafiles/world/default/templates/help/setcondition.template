@@ -1,16 +1,17 @@
 <ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="command">setcondition</ansi> <ansi fg="red">[Admin]</ansi>
 
 The <ansi fg="command">setcondition</ansi> command applies a condition (a buff, a debuff, or
-a status effect such as bleeding or stoneskin) to yourself or to a player or
-mob in the room, by its id.
+a status effect such as Poisoned or Sleeping) to yourself or to a
+player or mob in the room, by its id or by name (a name applies the
+first search match).
 
 <ansi fg="yellow">Usage:</ansi>
 
   <ansi fg="command">setcondition [conditionId]</ansi>
-  Apply a condition to yourself.
+  Apply a condition to yourself, by id or name.
 
-  <ansi fg="command">setcondition [name] [conditionId]</ansi>
-  Apply a condition to a player or mob in the room.
+  <ansi fg="command">setcondition [target] [conditionId]</ansi>
+  Apply a condition to a player or mob in the room, by id or name.
 
   <ansi fg="command">setcondition search [text]</ansi>
   Search conditions by name.
@@ -18,8 +19,8 @@ mob in the room, by its id.
   <ansi fg="command">setcondition list</ansi>
   List every condition and its id.
 
-A condition whose spec stacks (multiple applications building up over time,
-such as bleeding) cannot be applied this way; it can only be granted by
-whatever move or effect actually produces it.
+A condition whose spec stacks (multiple applications building up over
+time) cannot be applied this way; it can only be granted by whatever
+move or effect actually produces it.
 
 <ansi fg="black-bold">.:</ansi> <ansi fg="magenta">"buff" still works as an alias for this command.</ansi>

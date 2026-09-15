@@ -1,10 +1,11 @@
 The <ansi fg="command">setcondition</ansi> command can be used in the following ways:
 
 <ansi fg="command">setcondition [conditionId]</ansi> - e.g. <ansi fg="command">setcondition 1</ansi>
-Apply a condition to yourself by id
+Apply a condition to yourself, by id or by name (a name applies the
+first search match)
 
-<ansi fg="command">setcondition [username] [conditionId]</ansi> - e.g. <ansi fg="command">setcondition sammy 1</ansi>
-Apply a condition to a player in the room by its id
+<ansi fg="command">setcondition [target] [conditionId]</ansi> - e.g. <ansi fg="command">setcondition sammy 1</ansi>
+Apply a condition to a player or mob in the room, by id or by name
 
 <ansi fg="command">setcondition search [searchstring]</ansi>
 e.g. <ansi fg="command">setcondition search Liar</ansi> or <ansi fg="command">setcondition search "Liar's Tongue"</ansi>

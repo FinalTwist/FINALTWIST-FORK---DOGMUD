@@ -3163,6 +3163,44 @@ func TestGetCmdSuggestions(t *testing.T) {
 	_ = results // May be empty with seeded keywords
 }
 
+// TestGetCmdSuggestions_FiltersAdminOnlyAliases proves tab completion never
+// hands a non-admin the NAME of an admin-only command through its alias. The
+// command-list half of GetCmdSuggestions already filtered on
+// info.AdminOnly; the alias half (keywords.GetAllCommandAliases) did not,
+// so a non-admin's tab completion suggested `cmd` (alias for the admin-only
+// `command`) and, since slice 2 of the conditions unification, `buff`
+// (alias for the admin-only `setcondition`) to every player. Uses the real
+// userCommands registry (setcondition/command are permanently admin-only)
+// against a seeded alias map so the test does not depend on which aliases
+// keywords.yaml happens to carry today.
+func TestGetCmdSuggestions_FiltersAdminOnlyAliases(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+
+	cleanupKeywords := keywords.SeedKeywordsForTest(keywords.Aliases{
+		CommandAliases: map[string][]string{
+			"setcondition": {"buff"},
+			"command":      {"cmd"},
+			"conditions":   {"cond"},
+		},
+	})
+	defer cleanupKeywords()
+
+	t.Run("non-admin never sees an admin-only alias", func(t *testing.T) {
+		results := GetCmdSuggestions("", false)
+		assert.NotContains(t, results, "buff", "buff aliases the admin-only setcondition")
+		assert.NotContains(t, results, "cmd", "cmd aliases the admin-only command")
+		assert.Contains(t, results, "cond", "cond aliases the non-admin conditions command")
+	})
+
+	t.Run("admin sees every alias, admin-only included", func(t *testing.T) {
+		results := GetCmdSuggestions("", true)
+		assert.Contains(t, results, "buff")
+		assert.Contains(t, results, "cmd")
+		assert.Contains(t, results, "cond")
+	})
+}
+
 func TestGetHelpSuggestions(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()

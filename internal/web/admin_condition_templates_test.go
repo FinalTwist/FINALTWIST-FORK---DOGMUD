@@ -2,6 +2,8 @@ package web
 
 import (
 	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -10,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/gamelock"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -171,11 +174,15 @@ func TestAdminMobTemplateExecutesWithConditionIds(t *testing.T) {
 // also exercises the room's zone-level gate, `.zoneConfig` (RoomId,
 // Mutators): rooms.Room carries no ZoneConfig field of its own, so the
 // template's old `$room.ZoneConfig...` reads always errored regardless of
-// any condition id, before ever reaching the condition checkboxes below them
-// (verified by probe: reverting roomData's `zoneConfig` wiring reproduces
-// "can't evaluate field ZoneConfig in type *rooms.Room" at template.Execute).
-// Fixed alongside this test since the room page could not otherwise be
-// rendered at all to prove the condition ids render clean.
+// any condition id, before ever reaching the condition checkboxes below them.
+// This test builds `.zoneConfig` itself (not through the real roomData
+// handler), so its probe is the TEMPLATE side: reverting the two
+// `$zoneConfig` references below back to `$room.ZoneConfig` reproduces
+// "can't evaluate field ZoneConfig in type *rooms.Room" at template.Execute.
+// TestAdminRoomData_ZoneConfigWiring (below) probes the Go-side wiring in
+// roomData/admin.rooms.go through the real handler. Fixed alongside this
+// test since the room page could not otherwise be rendered at all to prove
+// the condition ids render clean.
 func TestAdminRoomTemplateExecutesWithConditionIds(t *testing.T) {
 	cleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		953: {ConditionId: 953, Name: `Probe Spawn`, TriggerRate: `1 round`, RoundInterval: 1, TriggerCount: 5},
@@ -217,6 +224,37 @@ func TestAdminRoomTemplateExecutesWithConditionIds(t *testing.T) {
 	require.NoError(t, tmpl.Execute(&out, tplData), `room.data.html must render a room carrying condition ids without error`)
 	require.Contains(t, out.String(), `Probe Spawn`, `the mob-spawn condition checkbox list must render the seeded condition's name`)
 	require.Contains(t, out.String(), `Probe Trap`, `the exit-lock trap condition checkbox list must render the seeded condition's name`)
+}
+
+// TestAdminRoomData_ZoneConfigWiring calls the REAL roomData handler
+// (internal/web/admin.rooms.go), not a hand-built tplData, so it probes the
+// Go-side half of the ZoneConfig fix: that roomData actually looks up
+// rooms.GetZoneConfig(room.Zone) and hands it to the template as
+// `.zoneConfig`. A room whose zone's ZoneConfig.RoomId matches the room's
+// own RoomId is that zone's designated entry room, so room.data.html's very
+// first gate, `{{ if eq $zoneConfig.RoomId $room.RoomId }}` (line 9), opens
+// and renders the "(Root) Zone Config" heading (line 12); a mismatched (or,
+// before the fix, always-empty) zoneConfig keeps that heading out of the
+// page entirely.
+func TestAdminRoomData_ZoneConfigWiring(t *testing.T) {
+	cfg := configs.GetConfig()
+	cfg.FilePaths.AdminHtml = configs.ConfigString(adminHtmlDir(t))
+	configs.SetConfigForTest(t, cfg)
+
+	room := &rooms.Room{RoomId: 500, Zone: `ProbeZone`}
+	cleanupRooms := rooms.SeedRoomsForTest(
+		map[int]*rooms.Room{500: room},
+		map[string]*rooms.ZoneConfig{`ProbeZone`: {Name: `ProbeZone`, RoomId: 500}},
+	)
+	defer cleanupRooms()
+
+	req := httptest.NewRequest(http.MethodGet, `/admin/api/rooms/data?roomid=500`, nil)
+	rec := httptest.NewRecorder()
+	roomData(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), `(Root) Zone Config`,
+		`roomData must resolve the room's zone config and hand it to the template as .zoneConfig, opening the entry-room gate`)
 }
 
 // TestAdminSpeciesTemplateExecutesWithConditionIds pins species.data.html
