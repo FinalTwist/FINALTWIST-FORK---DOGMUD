@@ -106,7 +106,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 	})
 
 	// spell_resolution.go:1493 — applyMobSelfEffect's switch, a mob's
-	// special-move conditioning itself.
+	// special-move boosting itself.
 	t.Run("MobSelfCast", func(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()

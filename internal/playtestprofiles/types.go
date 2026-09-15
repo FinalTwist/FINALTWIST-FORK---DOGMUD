@@ -33,7 +33,7 @@ var KnownTemplateIDs = []string{
 	//
 	// m2-actor carries extra-arms (the arm slot whose equip path dropped its
 	// room line does not exist without it), resonant-larynx (the only route to
-	// the rally and warcry fold loops that used to condition party members in
+	// the rally and warcry fold loops that used to strengthen party members in
 	// silence), and an effect_type: buff spell (a shield spell does not reach
 	// the condition case at all).
 	//

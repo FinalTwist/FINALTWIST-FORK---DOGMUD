@@ -686,7 +686,7 @@ func (r *Room) AddTemporaryExit(exitName string, t exit.TemporaryRoomExit) bool 
 
 // applies conditions to any players in the room, refreshing one a player already
 // holds instead of letting it lapse and re-applying it. A room mutator's
-// playerconditionids run every round, so a condition that merely skipped an existing
+// playerbuffids run every round, so a condition that merely skipped an existing
 // holder would expire on its own schedule and get re-added the next round,
 // narrating its end and start in a loop for as long as the player stayed.
 // Character.AddCondition was tried here first, but it resets RoundCounter as well

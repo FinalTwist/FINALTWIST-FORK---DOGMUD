@@ -69,7 +69,7 @@ func (c *Character) CancelConditionsWithFlag(conditionFlag conditions.Flag) bool
 }
 
 // CancelCombatConditions cancels all active conditions with the CancelIfCombat flag
-// AND strips matching conditions from the permaConditionIds list so they don't
+// AND strips matching conditions from the permanentConditionIds list so they don't
 // re-apply during Validate(). Call this when a character enters combat
 // (as attacker or defender) or dies.
 //

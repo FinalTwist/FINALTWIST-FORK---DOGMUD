@@ -17,6 +17,11 @@ const archetypeYAML = "../../_datafiles/world/dogmud/behaviors/archetypes/melee_
 
 // Integration tests for the melee_self_buff archetype.
 //
+// The TestMeleeSelfCondition_* names below say Condition (slice 2 of the
+// conditions unification renames every Go identifier); the archetype and its
+// YAML stay melee_self_buff, because the behaviour-category string is wire
+// and this slice does not touch it.
+//
 // All three tests use the full end-to-end pipeline:
 //  1. LoadArchetypeForTest loads the real melee_self_buff.yaml
 //  2. A mob with BehaviorArchetype:"melee_self_buff" is seeded

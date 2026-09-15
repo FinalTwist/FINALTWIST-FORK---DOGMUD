@@ -32,7 +32,7 @@ func refreshTestSetTriggersLeft(t *testing.T, list []*conditions.Condition, cond
 	t.Fatalf("buff %d not found on held list", conditionId)
 }
 
-// A room mutator's playerconditionids run every round. A player who already holds
+// A room mutator's playerbuffids run every round. A player who already holds
 // the condition must have it REFRESHED (TriggersLeft reset), not skipped until it
 // lapses and gets re-added a round later: the skip is what turned slice C's
 // authored notices into a start/end loop every few rounds. A player who does

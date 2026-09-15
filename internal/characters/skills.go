@@ -180,7 +180,7 @@ func (c *Character) GetSkillLevel(skillName skills.SkillTag) int {
 		base = level
 	}
 
-	// Equipment / condition / pet StatMods can condition skill rolls.
+	// Equipment / condition / pet StatMods can boost skill rolls.
 	bonus := c.StatMod(string(skillName))
 
 	return base + bonus

@@ -266,7 +266,7 @@ func bandolierFingerprint(belt items.Item, potions []items.Item) string {
 
 // tickAmbientPotions keeps slotted potion conditions active at Peak potency while an
 // ambient_potions bandolier is worn and attuned. Conditions applied this way are
-// recorded (pinnacle_bandolier_conditions) so removal can revoke them.
+// recorded (pinnacle_bandolier_buffs) so removal can revoke them.
 func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	c := user.Character
 	belt := c.Equipment.Belt

@@ -352,7 +352,7 @@ func applyCombatDamageBonuses(atk, def actions.Actor, res *combat.AttackResult) 
 	atkChar := atk.GetCharacter()
 	defChar := def.GetCharacter()
 
-	// Mutation graph: on-hit-condition mutations (Venom Glands, …) afflict the
+	// Mutation graph: on_hit_buff mutations (Venom Glands, …) afflict the
 	// struck defender. Route through the actor condition wrapper (not the raw
 	// Character.AddCondition) so the condition's start text fires and the GMCP
 	// conditions panel refreshes, for both player and mob defenders.

@@ -362,7 +362,7 @@ func (c *Character) GetGearValue() int {
 
 // wearWeaponOrShield handles pair-based placement for weapons and offhands.
 // Returns the same tuple as Wear. Caller is responsible for calling
-// reapplyPermaconditions (this helper calls it for 2H and shield cases internally
+// reapplyPermanentConditions (this helper calls it for 2H and shield cases internally
 // to preserve pre-refactor semantics).
 func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHandsRequired int, canDualWield bool) (returnItems []items.Item, newItemWorn bool, failureReason string) {
 	pairs := c.GetHandPairs()
@@ -460,8 +460,8 @@ func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHands
 
 // wearArmorSlot handles placement for non-weapon equipment (armor, rings, wrists,
 // back, shoulders, component bag, tail). Returns the same tuple as Wear.
-// Does NOT call reapplyPermaconditions — the caller handles that (to preserve the
-// pre-refactor semantics where reapplyPermaconditions is called with returnItems).
+// Does NOT call reapplyPermanentConditions — the caller handles that (to preserve the
+// pre-refactor semantics where reapplyPermanentConditions is called with returnItems).
 func (c *Character) wearArmorSlot(i items.Item, spec items.ItemSpec) (returnItems []items.Item, newItemWorn bool, failureReason string) {
 	switch spec.Type {
 	case items.Head:
@@ -612,7 +612,7 @@ func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bo
 	// helpers write ONLY into c.Equipment (wearWeaponOrShield through pointers
 	// into it, wearArmorSlot by assigning slot fields), with two exceptions,
 	// both handled: SortComponentItems was moved out of wearArmorSlot and runs
-	// below, and wearWeaponOrShield's own reapplyPermaconditions is re-run against
+	// below, and wearWeaponOrShield's own reapplyPermanentConditions is re-run against
 	// the restored equipment on the refusal path.
 	beforeReserve := c.ReservationOverages()
 	savedEquipment := c.Equipment

@@ -20,7 +20,7 @@ func Pool(text string) []string {
 // picker would consume a global random draw per narrated phase (see
 // FirstPicker). The root guard narration_render_callers_guard_test.go pins
 // both facts. An empty pool renders nothing without building the token map;
-// the condition tick calls this every round for every conditioned character, and most
+// the condition tick calls this every round for every character holding a condition, and most
 // conditions have no trigger text.
 func Narrate(v narration.Variants, ctx TokenContext) narration.Roles {
 	if v.Len() == 0 {

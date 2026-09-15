@@ -79,8 +79,8 @@ func (c *Character) GetDefaultDistributionDamage() (attacks int, baseDamage floa
 //   - variance can be modified (e.g., "Precise Strikes" condition: variance *= 0.5)
 //   - Additional additive bonuses (e.g., "Enhanced Strength" condition: +5 damage)
 //
-// To add a condition/condition/mutation that affects unarmed damage:
-//  1. Check for the condition/condition after base calculation
+// To add a condition/mutation that affects unarmed damage:
+//  1. Check for the condition after base calculation
 //  2. Apply multipliers: baseDamage *= multiplier
 //  3. Apply additive bonuses: baseDamage += bonus
 //  4. Modify variance if needed: variance *= varianceMultiplier
@@ -103,7 +103,7 @@ func (c *Character) CalculateUnarmedDamage() (baseDamage float64, variance float
 	varianceReduction := float64(skillLevel) / 50.0 // 0 at skill 0, 2 at skill 100
 	variance = math.Max(1.0, baseVariance-varianceReduction)
 
-	// --- FUTURE EXTENSION POINT: Conditions/Conditions/Mutations ---
+	// --- FUTURE EXTENSION POINT: Conditions/Mutations ---
 	// Example implementations (commented out for now):
 	//
 	// if c.HasConditionFlag(conditions.StoneFists) {

@@ -230,7 +230,7 @@ type Character struct {
 	Presence *presence.Machine `yaml:"-"`
 	// Perception is the canonical state machine for "do this character's
 	// eyes work?" — Sighted / Blinded. Ships DORMANT in chunk 6: the
-	// machine transitions correctly via condition/condition observers but no
+	// machine transitions correctly via condition-add and state-change observers but no
 	// consumer reads the state yet. The future centralized messaging
 	// framework chunk will wire it into broadcast gating, infrared
 	// rendering, look-command blocking. See

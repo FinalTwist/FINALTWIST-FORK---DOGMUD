@@ -482,7 +482,7 @@ func TestActIntercept_SetsCtxIntercepted(t *testing.T) {
 	}
 }
 
-// ─── remove_condition ─────────────────────────────────────────────────────
+// ─── remove_buff ──────────────────────────────────────────────────────────
 
 func TestActRemoveCondition_RemovesConditionFromUser(t *testing.T) {
 	fn := LookupAction("remove_buff")

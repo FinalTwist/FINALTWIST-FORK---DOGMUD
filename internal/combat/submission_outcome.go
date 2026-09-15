@@ -222,7 +222,7 @@ func applyMercyRelease(attempter, recipient *characters.Character) {
 	}
 	// T9/4f stub: optional post-mercy stamina drag on the recipient.
 	// Placeholder — apply via recipient.AddCondition(<id>) once a
-	// recovery-decondition condition YAML is registered.
+	// recovery harmful-condition YAML is registered.
 }
 
 // applyDeathCascade routes the victim through the Life cascade with

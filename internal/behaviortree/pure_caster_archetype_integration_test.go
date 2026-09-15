@@ -89,8 +89,8 @@ func seedCasterMob(t *testing.T, instanceId int, spellbook map[string]int) (*mob
 	return m, cleanup
 }
 
-// TestPureCaster_FullHP_MaintainsDefenseFirst verifies that a full-HP,
-// unconditioned caster casts its top-scoring self_defense spell first — heal
+// TestPureCaster_FullHP_MaintainsDefenseFirst verifies that a full-HP
+// caster with no conditions casts its top-scoring self_defense spell first — heal
 // branch is gated by mob_health_below (HP not < 40%), so the selector
 // moves to self_defense.
 func TestPureCaster_FullHP_MaintainsDefenseFirst(t *testing.T) {

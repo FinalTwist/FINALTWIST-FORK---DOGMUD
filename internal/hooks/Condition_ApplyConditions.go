@@ -82,7 +82,7 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 
 	// Snapshot whether the condition was already active BEFORE we add/refresh.
 	// Used below to suppress start text on a pure refresh — refreshing an
-	// already-active condition (e.g. ambusher's mob_idle → add_condition 9 tick)
+	// already-active condition (e.g. ambusher's mob_idle → add_buff 9 tick)
 	// shouldn't re-fire "{source} disappears into the shadows." every round.
 	wasAlreadyActive := targetChar.HasCondition(evt.ConditionId)
 

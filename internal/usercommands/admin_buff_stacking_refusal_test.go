@@ -16,7 +16,7 @@ import (
 // A stacking spec (conditions.Stacking) can only be added through
 // AddConditionMagnitude, which supplies the rounds and amount a stack needs.
 // Conditions.AddCondition and Conditions.AddConditionScaled now refuse one outright (see
-// internal/conditions review fixes), and admin.condition.go's `condition <id>` queues its
+// internal/conditions review fixes), and admin.buff.go's `buff <id>` queues its
 // add through exactly that door (UserRecord.AddCondition / Mob.AddCondition, both
 // events.Condition with no magnitude or triggers). Before this fix the command
 // told the admin the condition was "applied" regardless, which was a lie: the
@@ -77,7 +77,7 @@ func TestAdminCondition_RefusesAStackingSpecOnAPlayer(t *testing.T) {
 }
 
 // seedAdminConditionStackingMob mirrors seedAdminConditionStackingUser for the MOB
-// branch of the same refusal (admin.condition.go's second `conditionSpec.IsStacking()`
+// branch of the same refusal (admin.buff.go's second `conditionSpec.IsStacking()`
 // guard, ~line 150). It needs its own room registered with the rooms
 // package, because the len(args)>=2 path in Condition() re-resolves the room via
 // rooms.LoadRoom(user.Character.RoomId) rather than using the room argument

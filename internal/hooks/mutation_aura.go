@@ -81,7 +81,7 @@ func applyRoomEnemyAuras(room *rooms.Room) {
 	}
 	for _, mid := range room.GetMobs() {
 		mob := mobs.GetInstance(mid)
-		// Skip charmed/summoned allied mobs — an enemy aura must never harmful condition
+		// Skip charmed/summoned allied mobs — an enemy aura must never afflict
 		// its own side's combat pets (they are in-combat mobs in the room too).
 		if mob == nil || !mob.Character.IsInCombat() || mob.Character.IsCharmed() {
 			continue

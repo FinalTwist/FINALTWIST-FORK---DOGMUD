@@ -4616,9 +4616,9 @@ func TestPvpToggle(t *testing.T) {
 	})
 }
 
-// ─── Deeper Coverage: Conditions with conditions ─────────────────────────────────
+// ─── Deeper Coverage: Conditions command with a held condition ──────────────
 
-func TestConditionsWithConditions(t *testing.T) {
+func TestConditionsCommandWithHeldCondition(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
