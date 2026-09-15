@@ -18,11 +18,11 @@ elementals in the planar oasis, **sometimes after the fight is already over**.
 
 | Layer | Where |
 |---|---|
-| The message | `start_user_text` on condition **109 "Reeling"**, `_datafiles/world/dogmud/conditions/109-reeling.yaml:8` |
+| The message | `start_user_text` on buff **109 "Reeling"**, `_datafiles/world/dogmud/buffs/109-reeling.yaml:8` |
 | What it does | Dexterity **-15**, `triggerrate: 1 round`, `triggercount: 2` |
-| What applies it | The **Kinetic Backlash** mutation (`_datafiles/world/dogmud/mutations/kinetic-backlash.yaml`), ethereal cluster, rarity 7, via `on_reflect_condition: 109` alongside `reflect_damage: 12` |
-| Wiring | `mutations.GetReflectRiderConditions` (`internal/mutations/mutations.go:643`), called from `internal/hooks/NewRound_DoCombat_unified.go:406` |
-| Origin | `42d4f366c` (2026-07-12), "content(ethereal): fill cluster". The commit says outright that true knock-flat or knockdown on reflect was deferred, with a staggering harmful condition as the approximation. |
+| What applies it | The **Kinetic Backlash** mutation (`_datafiles/world/dogmud/mutations/kinetic-backlash.yaml`), ethereal cluster, rarity 7, via `on_reflect_buff: 109` alongside `reflect_damage: 12` |
+| Wiring | `mutations.GetReflectRiderBuffs` (`internal/mutations/mutations.go:643`), called from `internal/hooks/NewRound_DoCombat_unified.go:406` |
+| Origin | `42d4f366c` (2026-07-12), "content(ethereal): fill cluster". The commit says outright: *"True knock-flat/knockdown-on-reflect deferred (staggering debuff approximates)."* |
 
 **No oasis mob authors this mutation.** The six elemental files (`318`-`322`,
 `377`) reference no mutations at all, so they are acquiring Kinetic Backlash at
@@ -39,8 +39,8 @@ feels sourceless.
 if returnDmg > 0 {
     atkChar.ApplyHarm(characters.PoolHealth, returnDmg, charActorRef(defChar))
     emitReturnDamageText(atk, def, returnDmg)
-    for _, conditionId := range mutations.GetReflectRiderConditions(defChar.Mutations) {
-        atk.AddCondition(conditionId, "mutation")
+    for _, buffId := range mutations.GetReflectRiderBuffs(defChar.Mutations) {
+        atk.AddBuff(buffId, "mutation")
     }
 }
 ```
@@ -48,7 +48,7 @@ if returnDmg > 0 {
 There is **no check that the defender is still alive**. Damage is applied
 upstream (the `res.DamageToTarget <= 0` gate at `:349`), and since U5c death is
 immediate at the harm site, a killing blow leaves the defender **already Dead**
-by the time this block runs. Reflect damage and the rider condition both land anyway.
+by the time this block runs. Reflect damage and the rider buff both land anyway.
 
 This is why it fires "after the fight is over", and it gets more visible the
 harder you hit: reflect is proportional to damage dealt, so a high-damage
@@ -71,8 +71,8 @@ already better, because an observer genuinely does not see the cause:
 
 > `{source_plain} staggers as though struck by something unseen.`
 
-Compounding it: the condition carries no attribution, so when it fires on a killing
-blow the player gets a harmful condition from nothing, attached to nothing, after combat
+Compounding it: the buff carries no attribution, so when it fires on a killing
+blow the player gets a debuff from nothing, attached to nothing, after combat
 has ended.
 
 **Owner, 2026-08-30:** *"It'd be better to have a source for it because it fires
@@ -94,7 +94,7 @@ reflect block at `NewRound_DoCombat_unified.go:393`.
 Predates it by seven weeks. Recorded here because the U11 gate is what surfaced
 the question.
 
-**Note the related family:** `GetReflectRiderConditions`'s own docstring names the
+**Note the related family:** `GetReflectRiderBuffs`'s own docstring names the
 Ironhide Reflect Skin flavours (Molten burn, Frostbite chill, Voltaic shock) as
 carrying the same effect type. Any fix should check whether those messages have
 the same sourceless problem, rather than fixing 109 alone.

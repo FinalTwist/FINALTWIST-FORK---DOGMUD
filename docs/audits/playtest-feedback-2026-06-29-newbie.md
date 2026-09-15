@@ -50,7 +50,7 @@ root cause of several later complaints.
 | # | Item | Zone |
 |---|---|---|
 | C1 | **Poll at character creation** → 3 tracks: total newbie (heavy basic-mechanics handholding) / MUD-vet-new-to-DOGMud (current coulee experience) / true vet (funnel to Thornwall) | meta |
-| C2 | **First tips should cover basics**: `look` to orient, `inv`, movement, how to see **gold**, that food gives a non-toxic boost | both |
+| C2 | **First tips should cover basics**: `look` to orient, `inv`, movement, how to see **gold**, that food gives a non-toxic buff | both |
 | C3 | **After mutation, force an inventory check** — player sees no armor/weapon → funnel to trainers | Coulee |
 | C4 | **Forging msg should teach next step** — "An Iron Dagger! Now type `wield dagger`… type `inv` to confirm" | Coulee |
 | C5 | **"Foraging skill works but isn't in the skills list at all"** | both |

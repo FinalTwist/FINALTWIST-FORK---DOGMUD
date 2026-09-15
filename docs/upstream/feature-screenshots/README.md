@@ -240,7 +240,7 @@ _PVP? Zombie disconnect? Multiple telnet ports? Turn time? Auction settings? All
 
 ## Data Files
 
-_Server configuration, room definitions, spells, conditions, items... it's all defined in datafiles._
+_Server configuration, room definitions, spells, buffs, items... it's all defined in datafiles._
 
 <a href="https://raw.githubusercontent.com/GoMudEngine/GoMud/refs/heads/master/feature-screenshots/data-files.png"><img src="https://raw.githubusercontent.com/GoMudEngine/GoMud/refs/heads/master/feature-screenshots/data-files.png" width="600" alt="accessibility text"></a>
 
