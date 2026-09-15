@@ -30,6 +30,9 @@ There are a handful of settings you can adjust with this command, including:
   <ansi fg="command">set tinymap</ansi>
   This toggles the automatic tinymap on or off. It shows when looking at rooms.
 
+  <ansi fg="command">set tips</ansi>
+  This toggles the periodic gameplay tips on or off.
+
   <ansi fg="command">set fprompt</ansi>
   Configure your fight prompt. Toggle elements on or off:
   <ansi fg="command">set fprompt bars</ansi>  <ansi fg="command">set fprompt target</ansi>  <ansi fg="command">set fprompt tank</ansi>
