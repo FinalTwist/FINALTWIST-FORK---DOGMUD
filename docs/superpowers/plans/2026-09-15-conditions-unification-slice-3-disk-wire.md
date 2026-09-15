@@ -40,7 +40,7 @@ The owner's main checkout (`C:/Users/Calabe Davis/workspace/DOGMud`) keeps `_dat
 
 | File | Responsibility |
 |---|---|
-| Create `internal/conditionrename/rename.go` | The word map: `Apply`, `HasBuff` |
+| Create `internal/conditionrename/rename.go` | The word map: `Apply`, `ContainsOldSpelling` |
 | Create `internal/conditionrename/rename_test.go` | Every mapping, protection and idempotency |
 | Create `internal/conditionrename/context.md` | Package doc (house rule) |
 | Create (throwaway, never committed) `tools/slice3rewrite/main.go` | Applies `Apply` to tracked data/web files and Go STRING tokens |
@@ -210,11 +210,11 @@ func TestApply_Idempotent(t *testing.T) {
 	assert.Equal(t, once, Apply(once))
 }
 
-func TestHasBuff(t *testing.T) {
-	assert.True(t, HasBuff("buffid: 3"))
-	assert.True(t, HasBuff("a Debuff"))
-	assert.False(t, HasBuff("bytes.Buffer and a buffet and Buffalo"))
-	assert.False(t, HasBuff(Apply("buffid: 3 permabuff melee_self_buff")))
+func TestContainsOldSpelling(t *testing.T) {
+	assert.True(t, ContainsOldSpelling("buffid: 3"))
+	assert.True(t, ContainsOldSpelling("a Debuff"))
+	assert.False(t, ContainsOldSpelling("bytes.Buffer and a buffet and Buffalo"))
+	assert.False(t, ContainsOldSpelling(Apply("buffid: 3 permabuff melee_self_buff")))
 }
 ```
 
@@ -289,9 +289,9 @@ func Apply(s string) string {
 	return masked
 }
 
-// HasBuff reports whether s still contains a buff spelling outside the
+// ContainsOldSpelling reports whether s still contains a buff spelling outside the
 // protected words.
-func HasBuff(s string) bool {
+func ContainsOldSpelling(s string) bool {
 	masked := s
 	for _, word := range protected {
 		masked = strings.ReplaceAll(masked, word, "")
@@ -325,7 +325,7 @@ The single spelling map for conditions unification slice 3
   `aura_enemy_condition`, `permabuff` → `permanent`, `debuff` → `harmful
   condition`) and protected words that are left alone (`buffer`, `buffet`,
   `buffed`, `rebuff`, `Buffalo`). Idempotent.
-- `HasBuff(s string) bool` reports a remaining buff spelling outside the
+- `ContainsOldSpelling(s string) bool` reports a remaining buff spelling outside the
   protected words. The root guard uses it.
 
 Readers: `internal/migration/0.17.0.go` (new save key names), the root guard
@@ -337,7 +337,7 @@ anywhere else; extend this one.
 
 ```bash
 git add internal/conditionrename/rename.go internal/conditionrename/rename_test.go internal/conditionrename/context.md
-git commit -m "feat(conditions): slice 3 word map package (conditionrename.Apply, HasBuff)"
+git commit -m "feat(conditions): slice 3 word map package (conditionrename.Apply, ContainsOldSpelling)"
 ```
 
 Add a row for `internal/conditionrename/context.md` to `docs/README.md` only if that file indexes package `context.md` files (check with `grep -n "context.md" docs/README.md`); if it does not, skip.
@@ -372,12 +372,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBuffIsNoLongerAnAlias loads each shipped world's real keywords.yaml and
+// TestOldAdminAliasIsGone loads each shipped world's real keywords.yaml and
 // proves conditions unification slice 3 removed the `buff` alias that slice 2
 // kept for `setcondition` (owner ruling 2026-09-14: alias until slice 3).
 // TryCommandAlias and TryHelpAlias return their input unchanged when no alias
 // matches.
-func TestBuffIsNoLongerAnAlias(t *testing.T) {
+func TestOldAdminAliasIsGone(t *testing.T) {
 	_, here, _, ok := runtime.Caller(0)
 	require.True(t, ok)
 
@@ -402,7 +402,7 @@ func TestBuffIsNoLongerAnAlias(t *testing.T) {
 }
 ```
 
-Run: `go test ./internal/keywords/ -run TestBuffIsNoLongerAnAlias -count=1`
+Run: `go test ./internal/keywords/ -run TestOldAdminAliasIsGone -count=1`
 Expected: FAIL (`expected "buff", actual "setcondition"`).
 
 - [ ] **Step 2: Remove the alias lines**
@@ -1760,7 +1760,7 @@ Expected: no output.
 git mv docs/schemas/buff.md docs/schemas/condition.md
 ```
 
-In `docs/schemas/condition.md`: delete the opening banner that says the YAML keys and folder keep the buff spelling until slice 3; retitle to "Condition YAML schema"; rename every key (`buffid` → `conditionid`, `start_remove_buffs` → `start_remove_conditions`), the folder (`_datafiles/world/*/buffs/` → `conditions/`) and the filename formula (`{buffid}-{name}.yaml` → `{conditionid}-{name}.yaml`); delete section 5's JavaScript scripting part (lines 245-258 at `a4c078116`: companion `.js` files and `GiveBuff`/`HasBuff` examples), because no scripting layer exists (no `internal/scripting`, zero `.js` under `_datafiles/world`).
+In `docs/schemas/condition.md`: delete the opening banner that says the YAML keys and folder keep the buff spelling until slice 3; retitle to "Condition YAML schema"; rename every key (`buffid` → `conditionid`, `start_remove_buffs` → `start_remove_conditions`), the folder (`_datafiles/world/*/buffs/` → `conditions/`) and the filename formula (`{buffid}-{name}.yaml` → `{conditionid}-{name}.yaml`); delete section 5's JavaScript scripting part (lines 245-258 at `a4c078116`: companion `.js` files and `GiveBuff`/`ContainsOldSpelling` examples), because no scripting layer exists (no `internal/scripting`, zero `.js` under `_datafiles/world`).
 
 `docs/schemas/item.md`, `mob.md`, `spell.md`, `room.md`, `behavior.md`, `pinnacle-items.md`, `schedule.md`: rename every key, value and node name per the name map (`buffids`, `wornbuffids`, `critbuffids`, `buff_ids`, `effect_type: buff`, `spawninfo.buffids`, `mob_has_buff`, `add_buff`, `remove_buff`, `melee_self_buff`, `pinnacle_bandolier_buffs`); prose "buff" becomes "condition". In `docs/schemas/mob.md`, delete the whole line 200 ("**Available triggers:** `combat_start`, ... `has_buff:N`, `missing_buff:N`"): no trigger on it has a parser (the only similar name is the behaviour tree's `mob_health_below`).
 
@@ -1772,7 +1772,7 @@ In `docs/schemas/condition.md`: delete the opening banner that says the YAML key
 git rm _datafiles/guides/building/scripting/SCRIPTING_BUFFS.md
 ```
 
-In `_datafiles/guides/building/scripting/README.md` delete the `# Buff Scripting` heading and its `See [Buff Scripting](SCRIPTING_BUFFS.md)` line (lines 14-15) and a now-doubled blank line. In `FUNCTIONS_ACTORS.md` delete the five table-of-contents lines 39-43 (`ActorObject.HasBuff` ... `ActorObject.RemoveBuff`) and the five sections from `## [ActorObject.HasBuff(buffId int) bool]` through the end of the `## [ActorObject.RemoveBuff(buffId int)]` section (lines 327-361 at `a4c078116`; delete by heading, not number).
+In `_datafiles/guides/building/scripting/README.md` delete the `# Buff Scripting` heading and its `See [Buff Scripting](SCRIPTING_BUFFS.md)` line (lines 14-15) and a now-doubled blank line. In `FUNCTIONS_ACTORS.md` delete the five table-of-contents lines 39-43 (`ActorObject.ContainsOldSpelling` ... `ActorObject.RemoveBuff`) and the five sections from `## [ActorObject.ContainsOldSpelling(buffId int) bool]` through the end of the `## [ActorObject.RemoveBuff(buffId int)]` section (lines 327-361 at `a4c078116`; delete by heading, not number).
 
 - [ ] **Step 5: context.md files and skills**
 
@@ -1834,7 +1834,7 @@ var stringDataExts = map[string]bool{
 // literals and struct tags (go/scanner STRING tokens), and every tracked data,
 // template, web, golden and doc file under _datafiles/, docs/schemas/ and
 // internal/**/testdata, must not spell buff outside the protected words
-// conditionrename.HasBuff ignores.
+// conditionrename.ContainsOldSpelling ignores.
 func TestNoStringOrDataSaysBuff(t *testing.T) {
 	_, here, _, ok := runtime.Caller(0)
 	require := func(cond bool, format string, args ...any) {
@@ -1883,7 +1883,7 @@ func TestNoStringOrDataSaysBuff(t *testing.T) {
 				if tok == token.EOF {
 					break
 				}
-				if tok == token.STRING && conditionrename.HasBuff(lit) {
+				if tok == token.STRING && conditionrename.ContainsOldSpelling(lit) {
 					t.Errorf("%s:%d: string literal %s still says buff (%s)", rel, fset.Position(pos).Line, lit, identifierGuardSpecPath)
 				}
 			}
@@ -1897,7 +1897,7 @@ func TestNoStringOrDataSaysBuff(t *testing.T) {
 		}
 		scannedData++
 		for i, line := range strings.Split(string(src), "\n") {
-			if !conditionrename.HasBuff(line) {
+			if !conditionrename.ContainsOldSpelling(line) {
 				continue
 			}
 			key := rel + "|" + strings.TrimSpace(line)
