@@ -1,5 +1,12 @@
 # DOGMud Patch Notes
 
+## 2026-09-15: Hints are now tips
+
+The gameplay advice that appears every few minutes is now called a tip, so it
+is no longer confused with a quest hint. Turn tips off or on with set tips.
+If you had turned hints off, tips stay off for you. The old set hints still
+works.
+
 ## 2026-09-15: Your progress shines
 
 When a skill or statistic improves, its announcement now appears in warm

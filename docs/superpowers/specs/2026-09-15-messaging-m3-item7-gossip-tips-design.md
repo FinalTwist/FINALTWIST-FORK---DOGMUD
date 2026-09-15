@@ -101,9 +101,11 @@ command name (`set tips`, with `set hints` still accepted) and its line in
 // panics, as a bad recipe or spell does.
 func Load()
 
-// Validate refuses a blank line, and a line that carries the same token
-// twice (world-event lines substitute {desc} once; refusing repeats makes
-// that difference from ReplaceAll unreachable).
+// Validate refuses an empty pool, a blank line, and a line that carries the
+// same token twice (world-event lines substitute {desc} once; refusing
+// repeats makes that difference from ReplaceAll unreachable). Refusing an
+// empty pool is stricter than the old code, which skipped an empty pool
+// silently.
 func Validate(templates map[string][]string) error
 
 // Pool returns the lines for key, nil if absent.
@@ -117,8 +119,10 @@ func Render(pool []string, token, value string) string
 // picker.
 func renderWith(pool []string, token, value string, pick narration.Picker) string
 
-// SeedForTest replaces the store for one test and restores it on cleanup.
-func SeedForTest(t testing.TB, templates map[string][]string)
+// SeedForTest replaces the store and returns a restore func to defer, rather
+// than taking testing.TB, so production packages that import gossip do not
+// pull in the testing package.
+func SeedForTest(templates map[string][]string) func()
 ```
 
 `Render` builds `narration.Variants{Actor: pool}` (the gossiping NPC speaks;
@@ -150,8 +154,10 @@ func Validate(tips []string) error
 // Next returns the next tip in rotation and advances, or "" when empty.
 func Next() string
 
-// SeedForTest replaces the store and resets the rotation for one test.
-func SeedForTest(t testing.TB, tips []string)
+// SeedForTest replaces the store, resets the rotation, and returns a restore
+// func to defer, rather than taking testing.TB, so production packages that
+// import tips do not pull in the testing package.
+func SeedForTest(tips []string) func()
 ```
 
 No 80-column rule: 56 shipped tips would fail it, and wrapping is M5's.
@@ -308,6 +314,9 @@ one-time migration.
 0.18.0 rewrites player saves on the droplet's first boot after deploy. `Run`
 backs up all of DataFiles first, so check droplet disk before deploying, as
 for 0.17.0.
+
+A gossip file with an empty pool or a repeated token now fails boot where it
+used to load silently.
 
 ## Documentation
 

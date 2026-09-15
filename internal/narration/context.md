@@ -73,10 +73,11 @@ band fires, which is a behaviour change and belongs to M4, not to this package.
 
 `internal/items` (defence and combat-message stores), `internal/itemvoices`,
 `internal/spells` (casting), `internal/combat` (taunt),
-`internal/grapplemessaging`. Any store that wants deterministic selection under
-snapshot, or coordinated multi-role rendering. `internal/textutil` (the door
-for the condition, spell, quest and crafting stores, which do not call
-`Render` themselves).
+`internal/grapplemessaging`, `internal/gossip` (gossip template pools, single
+role). Any store that wants deterministic selection under snapshot, or
+coordinated multi-role rendering. `internal/textutil` (the door for the
+condition, spell, quest and crafting stores, which do not call `Render`
+themselves).
 
 ## Gotchas
 
@@ -154,6 +155,16 @@ in M3 item 6, Task 0) and their header lines are frozen bytes; the builders
 now read through the store doors and must reproduce the files exactly.
 Re-recording them is a deliberate act for a content change, never a way to
 make a red run green.
+
+**`gossip.golden` and `tips.golden` (M3 item 7) freeze the two non-combat
+stores.** `gossip.golden` keys each row `gossip|<key>|<index> => <line>`,
+substituting the stand-in `"<the stand-in event>"` through
+`gossip.RenderWithForTest` with a fixed index picker, since the real pick
+(`util.Rand`) cannot be pinned; the header says so. `tips.golden` keys each
+row `tip|<index> => <text>` in file order, read through `tips.Load` and
+`tips.Next`. Unlike the Kind B goldens, both builders read through their
+store's real API end to end rather than re-implementing the pre-store logic,
+because the stores existed before either golden was recorded.
 
 ## Dependencies
 
