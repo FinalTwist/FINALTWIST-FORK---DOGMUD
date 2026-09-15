@@ -54,6 +54,12 @@ func directAggroWriters(t *testing.T) map[string][]string {
 
 	err := filepath.Walk(internalDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
+			if os.IsNotExist(err) {
+				// A test elsewhere can create and remove a temp file under
+				// the tree while packages test in parallel; a vanished
+				// entry has nothing to scan.
+				return nil
+			}
 			return err
 		}
 		if info.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
@@ -134,6 +140,12 @@ func TestSweepGuardIsNotVacuous(t *testing.T) {
 	scanned := 0
 	err := filepath.Walk(internalDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
+			if os.IsNotExist(err) {
+				// A test elsewhere can create and remove a temp file under
+				// the tree while packages test in parallel; a vanished
+				// entry has nothing to scan.
+				return nil
+			}
 			return err
 		}
 		if !info.IsDir() && strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, "_test.go") {

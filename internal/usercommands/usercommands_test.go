@@ -7,6 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/enchantments"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -69,7 +70,22 @@ func TestMain(m *testing.M) {
 		DefaultLanguage: lang.English,
 		Language:        lang.English,
 	})
-	os.Exit(m.Run())
+
+	// Point FilePaths.DataFiles at a per-process temp dir. The Go default
+	// is the relative `_datafiles/world/default`, so saves (knowledge,
+	// opinions) otherwise land in the source tree under
+	// internal/usercommands/, where root guard walks can race them.
+	dataDir, err := os.MkdirTemp("", "usercommands-test-datafiles-*")
+	if err != nil {
+		panic("usercommands test: mkdirtemp for datafiles: " + err.Error())
+	}
+	if err := configs.AddOverlayOverrides(map[string]any{"FilePaths.DataFiles": dataDir}); err != nil {
+		panic(err)
+	}
+
+	code := m.Run()
+	_ = os.RemoveAll(dataDir)
+	os.Exit(code)
 }
 
 // seedAllRegistries populates all dependency registries with sensible test
@@ -1436,7 +1452,10 @@ func TestShow(t *testing.T) {
 
 // ─── Bug / Suggest ──────────────────────────────────────────────────────────
 
+// Bug and Suggest append to the CWD-relative _datafiles/feedback/, so run them
+// from a temp dir or they write into the source tree.
 func TestBug(t *testing.T) {
+	t.Chdir(t.TempDir())
 	cleanup := seedAllRegistries()
 	defer cleanup()
 
@@ -1456,6 +1475,7 @@ func TestBug(t *testing.T) {
 }
 
 func TestSuggest(t *testing.T) {
+	t.Chdir(t.TempDir())
 	cleanup := seedAllRegistries()
 	defer cleanup()
 

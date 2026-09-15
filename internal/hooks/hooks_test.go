@@ -30,7 +30,22 @@ import (
 
 func TestMain(m *testing.M) {
 	mudlog.SetupLogger(nil, "", "", false)
-	os.Exit(m.Run())
+
+	// Point FilePaths.DataFiles at a per-process temp dir. The Go default
+	// is the relative `_datafiles/world/default`, so saves (goals,
+	// knowledge, facts, bounties) otherwise land in the source tree under
+	// internal/hooks/, where root guard walks can race them.
+	dataDir, err := os.MkdirTemp("", "hooks-test-datafiles-*")
+	if err != nil {
+		panic("hooks test: mkdirtemp for datafiles: " + err.Error())
+	}
+	if err := configs.AddOverlayOverrides(map[string]any{"FilePaths.DataFiles": dataDir}); err != nil {
+		panic(err)
+	}
+
+	code := m.Run()
+	_ = os.RemoveAll(dataDir)
+	os.Exit(code)
 }
 
 // seedAllRegistries populates all 5 dependency registries with sensible test
