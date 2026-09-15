@@ -2193,31 +2193,31 @@ func TestHandleJoin_Success(t *testing.T) {
 	assert.Equal(t, events.Continue, result)
 }
 
-// ─── HandleLookHints ──────────────────────────────────────────────────────────
+// ─── HandleLookTips ──────────────────────────────────────────────────────────
 
-func TestHandleLookHints_WrongEvent(t *testing.T) {
-	result := HandleLookHints(events.NewRound{RoundNumber: 1})
+func TestHandleLookTips_WrongEvent(t *testing.T) {
+	result := HandleLookTips(events.NewRound{RoundNumber: 1})
 	assert.Equal(t, events.Cancel, result)
 }
 
-func TestHandleLookHints_WithTarget(t *testing.T) {
+func TestHandleLookTips_WithTarget(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	result := HandleLookHints(events.Looking{UserId: 1, RoomId: 1, Target: "something"})
+	result := HandleLookTips(events.Looking{UserId: 1, RoomId: 1, Target: "something"})
 	assert.Equal(t, events.Continue, result)
 }
 
-func TestHandleLookHints_UserNotFound(t *testing.T) {
+func TestHandleLookTips_UserNotFound(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	result := HandleLookHints(events.Looking{UserId: 999, RoomId: 1})
+	result := HandleLookTips(events.Looking{UserId: 999, RoomId: 1})
 	assert.Equal(t, events.Cancel, result)
 }
 
-func TestHandleLookHints_NoTarget(t *testing.T) {
+func TestHandleLookTips_NoTarget(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	result := HandleLookHints(events.Looking{UserId: 1, RoomId: 1})
+	result := HandleLookTips(events.Looking{UserId: 1, RoomId: 1})
 	assert.Equal(t, events.Continue, result)
 }
 
@@ -3078,7 +3078,7 @@ func TestHandleIdleMobs_GossiperMob(t *testing.T) {
 	cleanupGossiper := mobs.SeedMobsForTest(nil, map[int]*mobs.Mob{200: gossiperMob})
 	defer cleanupGossiper()
 
-	// Pre-seed gossip templates so it doesn't try to load from disk
+	// Seed the gossip store so the test does not depend on shipped templates
 	defer gossip.SeedForTest(map[string][]string{
 		"fallback": {"Quiet day."},
 	})()

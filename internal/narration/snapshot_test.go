@@ -103,7 +103,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/quests"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/textutil"
-	"gopkg.in/yaml.v2"
+	"github.com/GoMudEngine/GoMud/internal/tips"
 )
 
 var update = flag.Bool("update", false, "update golden snapshot files under testdata/stores")
@@ -164,6 +164,7 @@ func setupRealStores(t *testing.T) {
 
 	// M3 item 7: gossip templates load from the same configured data path.
 	gossip.Load()
+	tips.Load()
 }
 
 // ---------------------------------------------------------------------
@@ -1099,31 +1100,25 @@ func buildGossipGolden(t *testing.T) string {
 // Store 13: tips (the periodic broadcast; hints.yaml before M3 item 7)
 //
 // Built from PRE-migration data: the `hints:` list of hints.yaml in file order,
-// which is the broadcast's rotation order. M3 item 7 Task 3 renames the file
-// and switches this builder to the tips store; rows and header must not change.
+// which is the broadcast's rotation order. Since M3 item 7 Task 3 this builder
+// reads through the tips store (internal/tips); rows and header are unchanged
+// from the pre-migration recording, which is the byte-identity proof.
 func buildTipsGolden(t *testing.T) string {
 	t.Helper()
-
-	raw, err := os.ReadFile(filepath.Join(dogmudDataDir(t), "hints.yaml"))
-	if err != nil {
-		t.Fatalf("read hints.yaml: %v", err)
-	}
-	var file struct {
-		Hints []string `yaml:"hints"`
-	}
-	if err := yaml.Unmarshal(raw, &file); err != nil {
-		t.Fatalf("parse hints.yaml: %v", err)
-	}
-	if len(file.Hints) == 0 {
-		t.Fatal("no tips parsed")
-	}
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "# tips store snapshot\n")
 	fmt.Fprintf(&b, "# Built 2026-09-15 from PRE-migration data. Every tip in rotation order, as the text\n")
 	fmt.Fprintf(&b, "# after the [Tip] prefix. dimensions: rotation index\n\n")
-	for i, tip := range file.Hints {
-		fmt.Fprintf(&b, "tip|%d => %s\n", i, tip)
+
+	defer tips.SeedForTest(tips.All())()
+	n := tips.Count()
+	if n == 0 {
+		t.Fatal("no tips loaded; setupRealStores must call tips.Load()")
 	}
+	for i := 0; i < n; i++ {
+		fmt.Fprintf(&b, "tip|%d => %s\n", i, tips.Next())
+	}
+
 	return b.String()
 }

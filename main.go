@@ -82,6 +82,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/suggestions"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
+	"github.com/GoMudEngine/GoMud/internal/tips"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/GoMudEngine/GoMud/internal/warehouse"
@@ -1647,6 +1648,7 @@ func loadAllDataFiles(isReload bool) {
 	// the first gossiping NPC, so a broken file fails boot instead of silencing
 	// gossip).
 	gossip.Load()
+	tips.Load() // Messaging M3 item 7: the periodic tip broadcast's store
 	species.LoadDataFiles()
 	// Chunk 3.2: inject world-aware schedule validation. Done here in main.go
 	// to break the rooms ← mobs import cycle (mobs cannot directly import

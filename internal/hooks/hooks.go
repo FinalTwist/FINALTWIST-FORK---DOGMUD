@@ -53,7 +53,7 @@ func RegisterListeners() {
 	events.RegisterListener(events.NewRound{}, PresenceTick)
 	events.RegisterListener(events.NewRound{}, AutoHeal)
 	events.RegisterListener(events.NewRound{}, BloomTick) // Bloom drug: Crash, Withdrawal, decay
-	events.RegisterListener(events.NewRound{}, BroadcastHints)
+	events.RegisterListener(events.NewRound{}, BroadcastTips)
 	events.RegisterListener(events.NewRound{}, IdleMobs)
 	events.RegisterListener(events.MobIdle{}, HandleIdleMobs)
 	events.RegisterListener(events.NewRound{}, FerryTick)     // Ferry vessels: schedule reconcile
@@ -88,7 +88,7 @@ func RegisterListeners() {
 	events.RegisterListener(events.MoonPhase{}, BroadcastMoonPhase)
 
 	// Looking
-	events.RegisterListener(events.Looking{}, HandleLookHints)
+	events.RegisterListener(events.Looking{}, HandleLookTips)
 
 	// Messages
 	events.RegisterListener(events.Message{}, Message_SendMessage)

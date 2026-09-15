@@ -1,9 +1,12 @@
-# Periodic hints broadcast to all players.
-# Each hint should fit within 80 characters (including ANSI tags).
+# Periodic gameplay tips, broadcast to every player who has not turned them
+# off with `set tips`, one every few minutes, in the order listed here.
+#
+# Each entry is a folded scalar (>-): its line breaks become spaces when the
+# file loads, so a tip is sent as ONE line and the player's client wraps it.
+# Keep tips short, but do not rely on the line breaks below for layout.
 # Use <ansi fg="command">command</ansi> to highlight commands.
-# Hints are rotated in order, one per interval.
 
-hints:
+tips:
   - >-
     Having trouble finding quests? Try
     <ansi fg="command">ask</ansi> <ansi fg="yellow">[npc-name]</ansi>
