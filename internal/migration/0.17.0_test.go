@@ -147,10 +147,18 @@ func TestConditionKeys_UntouchedFileNotRewritten(t *testing.T) {
 	dir := t.TempDir()
 	body := "userid: 8\nusername: clean\ncharacter:\n  name: Clean\n"
 	p := writeFixture(t, dir, "users/8.yaml", body)
+	info1, err := os.Stat(p)
+	require.NoError(t, err)
+
+	time.Sleep(20 * time.Millisecond)
 	require.NoError(t, migrateConditionKeysIn(dir, false))
+
 	raw, err := os.ReadFile(p)
 	require.NoError(t, err)
 	assert.Equal(t, body, string(raw), "a save with nothing to rename must keep its exact bytes")
+	info2, err := os.Stat(p)
+	require.NoError(t, err)
+	assert.Equal(t, info1.ModTime(), info2.ModTime(), "the mtime is what proves the file was not rewritten; byte equality alone can coincide with a rewrite")
 }
 
 func TestConditionKeys_DryRunWritesNothing(t *testing.T) {
