@@ -4,7 +4,7 @@
 
 **Goal:** Crafting text reaches every site through a store door with an empty Observer slot, and progression's six raw `events.Message` sends go through the messaging pipeline on `CategorySkillProgress`.
 
-**Architecture:** Spec: `docs/superpowers/specs/2026-09-15-messaging-m3-item6-crafting-progression-design.md` (owner-approved 2026-09-15; read its facts table and rulings before starting any task). Crafting copies the 5b Kind B door shape (`internal/spells/narration.go`). Progression gets a boot-registered notifier, the codebase's existing answer to the `messaging` imports `characters` cycle.
+**Architecture:** Spec: `docs/superpowers/specs/completed/2026-09-15-messaging-m3-item6-crafting-progression-design.md` (owner-approved 2026-09-15; read its facts table and rulings before starting any task). Crafting copies the 5b Kind B door shape (`internal/spells/narration.go`). Progression gets a boot-registered notifier, the codebase's existing answer to the `messaging` imports `characters` cycle.
 
 **Tech Stack:** Go, the repo's `internal/narration` core, `internal/textutil` adapter, root-package AST/text guard tests.
 
