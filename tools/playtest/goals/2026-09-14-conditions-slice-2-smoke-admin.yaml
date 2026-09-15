@@ -4,6 +4,7 @@
 # output VERBATIM. 3 commands per round on the AI port.
 ephemeral:
   profile: admin
+  start_room: 5000
   budgets:
     wall_clock: 15m
 
