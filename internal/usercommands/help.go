@@ -171,7 +171,9 @@ func GetHelpContents(input string) (string, error) {
 		helpVars = actions.EmoteAliases
 	}
 
-	if helpName == `races` {
+	// keywords.yaml aliases race and races to species, so the topic is always
+	// `species` by here.
+	if helpName == `species` {
 		helpVars = getSpeciesOptions(helpRest)
 	}
 
