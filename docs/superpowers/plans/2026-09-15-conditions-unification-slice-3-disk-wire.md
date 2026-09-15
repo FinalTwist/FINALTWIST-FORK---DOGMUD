@@ -1144,6 +1144,8 @@ The first line stages exactly the modified tracked paths by name (the `git mv` r
 
 ### Task 4: Migration 0.17.0
 
+> **As built differs (2026-09-15).** The code below was implemented as written (`f8913e7ef`, `ea4b1336a`), then reworked after review found item `overrides:` spec copies in nearly every save store: `e8f9f63af` renames old keys anywhere under DataFiles (and the outside `CONFIG_PATH` overrides file, with a config reload), and `dc6b29117` refuses multi-document and merge-key files and writes with `util.Save`. The spec's section 2 describes the final design; the code below is the superseded first version.
+
 **Files:**
 - Create: `internal/migration/0.17.0.go`
 - Create: `internal/migration/0.17.0_test.go`

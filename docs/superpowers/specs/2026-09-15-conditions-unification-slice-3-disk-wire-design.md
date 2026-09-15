@@ -68,7 +68,8 @@ under `_datafiles/world/dogmud/users/`.
 | Versioned migration framework: `migration.Run` (`internal/migration/migration.go:102`) backs up DataFiles to a temp dir (`backup.go:13`), runs `doAllMigrations` gated on `IsOlderThan`, restores on error, then sets `Server.CurrentVersion`. Called from `main.go:209`, skipped on copyover. `VERSION = "0.16.0"` at `main.go:97`; last step is 0.16.0 | read |
 | 🪤 **The 0.14.0 player sweep skips alts.** `reclassifyUsersInDir` globs `users/*.yaml`, which matches `<id>.alts.yaml`, unmarshals into a map, and on the list-shaped alts file warns and `continue`s | `internal/migration/0.14.0.go:54-80` |
 | Saves carrying buff keys: `users/<id>.yaml` (`character.buffs[].buffid`, `permabuff`, `character.pet.buffids`); `users/<id>.alts.yaml` (a YAML list of characters, same shape; `internal/characters/alts.go:25`); `rooms.instances/**` (containers are instance-saved, `rooms/rooms.go:95`, and `rooms/container.go:9` carries a `gamelock.Lock` with `trapbuffids`; exits are `instance:"skip"`, `:96`; `SpawnInfo` is `instance:"skip"`, `:105`); `shops/**` (`ShopItem.ConditionId` `buffid`, none in stock today) | read |
-| Mob instance saves carry nothing to migrate: `SaveMobInstance` marshals `MobInstanceData` (`internal/mobs/instance_save.go:22-56`), which has no condition field and a `behavior_archetype` that only holds shift targets | read |
+| Mob instance saves have no condition field of their own (`MobInstanceData`, `internal/mobs/instance_save.go:22-56`), and `behavior_archetype` only holds shift targets | read |
+| 🪤 **Correction found in execution (review, 2026-09-15): items carry buff keys in almost every save.** `items.Item.Spec *ItemSpec` saves as `overrides:` (`internal/items/items.go:53`), a full spec copy with `buffids`, `wornbuffids`, `damage.critbuffids`, set by enchanting, affix generation and admin rename; `EnchantBaseline` saves as `enchantbaseline:` (`:61`). Items are saved in users and alts (inventory, component and potion bags, equipment, pet, companions), user item storage, room instances (`items`, `stash`, containers), `mobs.instances` equipment, `shops` affixed stock, `guilds` vaults, `crates`, and `plugin-data/auctions-*/*.plugin.dat`. The rows above that say shops and mob instances carry nothing were wrong for items | review of `f8913e7ef` |
 | No JavaScript scripting layer exists: no `internal/scripting`, no goja/otto in `go.mod`, zero `.js` under `_datafiles/world` | `ls`, grep, `find` |
 | Stale docs: `_datafiles/guides/building/scripting/SCRIPTING_BUFFS.md`, linked from that folder's `README.md:14-15`; `FUNCTIONS_ACTORS.md:39-43,327-361` (ActorObject buff functions pointing at the missing `internal/scripting/actor_func.go`); `docs/schemas/mob.md:200` "Available triggers" line (`health_below:N` through `has_buff:N`, `missing_buff:N`): no parser for any of them; the only similar name is the behaviour tree's `mob_health_below` (`internal/behaviortree/conditions.go:19`) | read, grep |
 | Schema docs naming buff keys: `docs/schemas/buff.md` (280 lines), `item.md`, `mob.md`, `spell.md`, `room.md`, `behavior.md`, `pinnacle-items.md`; `docs/README.md:20` | grep |
@@ -160,37 +161,48 @@ with no error.
 `migrate_ConditionKeys(false)`. Backup, restore on error and
 `Server.CurrentVersion` come from the framework.
 
-**Targets**, under DataFiles, read and written with `gopkg.in/yaml.v2`
-(what their owners use):
+**As built (revised in execution, 2026-09-15).** The first version renamed
+fixed key paths in users, alts and room instances. Review found that items
+save a full spec copy under `overrides:` in nearly every store (facts table),
+so a path list could not be complete. The migration now:
 
-| Target | Shape | Key paths |
-|---|---|---|
-| `users/<id>.yaml` (skip `users.idx`) | map | `character.buffs` → `conditions`; each `conditions.list[]` entry `buffid`, `permabuff`; `character.pet.buffids`; `character.shop[].buffid`; `character.miscdata.pinnacle_bandolier_buffs` |
-| `users/<id>.alts.yaml` | **list** of characters | same paths per element |
-| `rooms.instances/**/*.yaml` | map | `containers.*.lock.trapbuffids` |
+- **Walks every `.yaml` and `.plugin.dat` file under DataFiles**, plus the
+  `CONFIG_PATH` overrides file when it lies outside DataFiles.
+- **Skips without parsing** any file where
+  `conditionrename.ContainsOldSpelling` is false, so unrelated, corrupt or
+  non-YAML files (the weather module's plugin data) are never read as YAML or
+  rewritten, and cannot block boot.
+- **Renames keys, never values**, at any depth: a fixed list of distinctive
+  old keys (`buffid`, `buffids`, `wornbuffids`, `critbuffids`, `trapbuffids`,
+  `prizebuffids`, `playerbuffids`, `mobbuffids`, `nativebuffids`,
+  `start_remove_buffs`, `buff_ids`, `buff_id`, `permabuff`,
+  `pinnacle_bandolier_buffs`, `BuffsEnabled`), new names from
+  `conditionrename.Apply`; the generic `buffs` key only where its value is a
+  `{list: ...}` conditions record.
+- **Decodes with key order preserved** (yaml.v2 `MapSlice`, or
+  `[]yaml.MapSlice` for list-shaped files such as alts, including legacy
+  `<name>-alts.yaml`).
+- **Errors, naming the file** (so `Run` restores the backup and the server
+  exits): a collision (old and new key in one map); a parse failure in a file
+  that contains an old spelling; an old key inside a list that mixes mappings
+  and plain values; a multi-document file or merge keys and aliases in a file
+  it would rewrite (it could not preserve them).
+- **Writes durably** with `util.Save` (temp file then rename), only files
+  that changed. Idempotent without a marker.
+- **Reloads config** after rewriting the overrides file, because `main.go`
+  loads config before migrations and `Run` ends with `configs.SetVal`, which
+  writes the in-memory overrides map back to disk and would restore the old
+  key.
 
-Shop living-state files (`shops/**`) carry no buff key (planning, 2026-09-15:
-they save `inventory[].item_id` etc.; `ShopItem.buffid` lives on
-`Character.Shop`), so they are not a target.
-
-- **Path-anchored**: each target renames only its listed paths, taken from
-  the table. Nothing else in a file is touched.
-- **Idempotent, no marker**: a file with no old key is not rewritten. A
-  second run changes nothing, so the per-alt marker trap cannot arise.
-- **Collision is an error**: an old key whose new key already exists in the
-  same map returns an error naming the file; `Run` restores the backup and
-  the server exits.
-- **Unparseable is an error**, unlike 0.14.0's warn-and-skip: a skipped save
-  would lose its conditions on next load, silently.
-- **Logging**: one line per rewritten file, a count per target.
-- **Dry run**: `migrate_ConditionKeys(true)` logs and writes nothing.
-
-**Tests** on fixture directories (a user map with conditions and a pet, an
-alts list, a room instance with a trapped container): before/after
-content; second run is a no-op (file bytes and mtime unchanged); collision
-errors; malformed file errors; a migrated user decodes into `users.UserRecord`
-and its alts into `[]characters.Character` (the plain `yaml.Unmarshal` both
-loaders use) with conditions, `Permanent` and pet condition ids intact. Every assertion null-probed.
+**Tests** cover each store with its real decode type (users with item
+overrides in inventory, equipment and storage; alts and legacy alts; room
+instances; mob instance equipment; shop affixed stock; guild vault; crate;
+auction plugin data; config overrides inside and outside DataFiles with the
+reload), values untouched, the `{list:}` guard, files never parsed without an
+old spelling, collision, parse, mixed-list, multi-document and merge-key
+errors, second-run no-op and untouched files by mtime, dry run. Null-probed.
+A rehearsal over copies of the dev saves and the 34 archived prod saves
+showed zero decoded differences apart from the renamed keys.
 
 ### 3. Wire, config, text and deletions
 
@@ -269,6 +281,15 @@ and a planted tag.
   deploy is cheap insurance.
 - A local skip-worktree `config.yaml` that still says `BuffsEnabled` turns
   weather conditions on (fallback true); update the local copy.
+- The migration rewrites the `CONFIG_PATH` overrides file if it carries an
+  old key (for example `BuffsEnabled`). The deployment guide mounts
+  `/mud-config` read-only; if production does, a write fails and the server
+  exits after restoring the backup, then crash-loops under
+  `restart: unless-stopped`. Before deploying, check
+  `grep -n mud-config compose.production.yml` and
+  `grep -in buff ~/mud-config/config-production.yaml` on the droplet; if the
+  mount is read-only and the file has an old key, rename the key by hand
+  first.
 
 ## Out of scope
 
