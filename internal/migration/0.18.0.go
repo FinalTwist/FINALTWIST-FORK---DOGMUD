@@ -7,6 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/util"
 	"gopkg.in/yaml.v2"
 )
 
@@ -78,7 +79,9 @@ func renameTipsConfigOptionInDir(usersDir string, dryRun bool) error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal %s: %w", path, err)
 		}
-		if err := os.WriteFile(path, out, 0644); err != nil {
+		// util.Save is safe by default (temp file, fsync, rename): a crash
+		// mid-write cannot truncate the file it is replacing, unlike os.WriteFile.
+		if err := util.Save(path, out); err != nil {
 			return fmt.Errorf("failed to write %s: %w", path, err)
 		}
 	}

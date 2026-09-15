@@ -1099,10 +1099,10 @@ func buildGossipGolden(t *testing.T) string {
 
 // Store 13: tips (the periodic broadcast; hints.yaml before M3 item 7)
 //
-// Built from PRE-migration data: the `hints:` list of hints.yaml in file order,
-// which is the broadcast's rotation order. Since M3 item 7 Task 3 this builder
-// reads through the tips store (internal/tips); rows and header are unchanged
-// from the pre-migration recording, which is the byte-identity proof.
+// Recorded pre-migration from the `hints:` list of hints.yaml, in file order,
+// which was the broadcast's rotation order. Since M3 item 7 Task 3 this
+// builder reads through the tips store (internal/tips); rows and header are
+// unchanged from the pre-migration recording, which is the byte-identity proof.
 func buildTipsGolden(t *testing.T) string {
 	t.Helper()
 
