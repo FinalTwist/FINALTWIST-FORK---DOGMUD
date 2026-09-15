@@ -14,6 +14,3 @@ their ids
 
 <ansi fg="command">setcondition list</ansi>
 Displays a list of all conditions
-
-<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">"buff" still works as an alias for this command;</ansi>
-<ansi fg="magenta">it will be removed in a later update.</ansi>

@@ -1,6 +1,6 @@
 <ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="command">setcondition</ansi> <ansi fg="red">[Admin]</ansi>
 
-The <ansi fg="command">setcondition</ansi> command applies a condition (a buff, a debuff, or
+The <ansi fg="command">setcondition</ansi> command applies a condition (helpful, harmful, or
 a status effect such as Poisoned or Sleeping) to yourself or to a
 player or mob in the room, by its id or by name (a name applies the
 first search match).
@@ -22,5 +22,3 @@ first search match).
 A condition whose spec stacks (multiple applications building up over
 time) cannot be applied this way; it can only be granted by whatever
 move or effect actually produces it.
-
-<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">"buff" still works as an alias for this command.</ansi>

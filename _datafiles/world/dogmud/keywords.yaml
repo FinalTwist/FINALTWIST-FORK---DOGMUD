@@ -296,7 +296,6 @@ help-aliases:
   instances:        [instance, rift, rifts, riftkeeper, portal, portals, instanced]
   arena:            [arena instance, pit, fighting pit, gauntlet]
   oasis:            [oasis instance, planar oasis, elemental oasis, cube, elemental cube]
-  setcondition:     [buff]
 
 # Default aliases for commands
 # For example: inv -> inventory
@@ -319,7 +318,6 @@ command-aliases:
   fire:               ['shoot']
   get:                ['g', 'take']
   command:            ['cmd']
-  setcondition:       ['buff'] # Admin only: alias until conditions slice 3
   macros:             ['=?', 'macro']
   sneak:              ['sn']
   spells:             ['spellbook']

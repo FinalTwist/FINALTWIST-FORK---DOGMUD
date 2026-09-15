@@ -159,7 +159,6 @@ help-aliases:
   about:            ['gomud']
   stat-train:       ['stat train', 'status train', 'stat points']
   title:            [jobs, job, profession, class, titles, archetypes, archetype]
-  setcondition:     [buff]
 # Default aliases for commands
 # For example: inv -> inventory
 # They can be command + argument aliases
@@ -181,7 +180,6 @@ command-aliases:
   attack:             ['a', 'k', 'kill', 'fight']
   get:                ['g', 'take']
   command:            ['cmd']
-  setcondition:       ['buff'] # Admin only: alias until conditions slice 3
   macros:             ['=?', 'macro']
   sneak:              ['sn']
   spells:             ['spellbook']
