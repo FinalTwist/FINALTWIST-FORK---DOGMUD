@@ -1,5 +1,12 @@
 # DOGMud Patch Notes
 
+## 2026-09-15: Recipes you cannot make yet keep their secrets
+
+When a recipe needs more skill than you have, the crafting message no longer
+shows the skill it asks for or the skill you have. It now tells you whether
+the recipe is just beyond your skill, and a little more practice should do
+it, or still well beyond it.
+
 ## 2026-09-14: One name for the effects that come and go
 
 The help files, the game's messages and the web client now call every effect

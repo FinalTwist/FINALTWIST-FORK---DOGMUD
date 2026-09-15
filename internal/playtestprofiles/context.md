@@ -73,6 +73,11 @@ Otherwise it fails closed (caller should exit before listeners).
 ## Gotchas
 
 - **Never** use `users.CreateUser` here — offline persist only.
+- `GenerateCredentials` validates with `users.ValidateActorName` and
+  `SkipBannedCheck: true`. The shipped `Validation.BannedNames` has `*admin*`,
+  so `users.ValidateName` refused every `pt_admin_<hex>` and the `admin`
+  profile could not start. Login of an existing account never re-checks
+  BannedNames; `ForbiddenIdentity` still keeps prod identities out.
 - Unknown YAML keys on the manifest/`overlays` object fail parse (KnownFields).
 - Duplicate profile IDs in one manifest are allowed (separate users/creds).
 - Creds artifact mode is `0600` where the OS supports it; Windows may map

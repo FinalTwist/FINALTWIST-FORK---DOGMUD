@@ -30,7 +30,12 @@ func GenerateCredentials(u *users.UserRecord, profileID string) (username, passw
 			return "", "", genErr
 		}
 		candidate := base + "_" + suffix
-		if err := users.ValidateName(candidate); err != nil {
+		// BannedNames is a policy on names a player chooses (shipped config
+		// bans "*admin*"), and login of an existing account never re-checks
+		// it. The harness picks this name itself, so skipping the banned
+		// check is what lets the admin profile start. ForbiddenIdentity
+		// below still keeps real prod identities out.
+		if err := users.ValidateActorName(candidate, users.ValidateActorOpts{SkipBannedCheck: true}); err != nil {
 			continue
 		}
 		if idx := users.NewUserIndex(); idx.Exists() {

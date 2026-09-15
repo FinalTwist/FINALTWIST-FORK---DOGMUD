@@ -89,9 +89,8 @@ func Craft(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		return true, nil
 
 	case result.SkillTooLow:
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(
-			`<ansi fg="red">Your %s skill is too low (requires %d, you have %d).</ansi>`,
-			result.SkillName, result.SkillMinimum, result.SkillLevel))
+		user.SendText(messaging.CategorySystem,
+			craftSkillTooLowText(result.SkillName, result.SkillMinimum, result.SkillLevel))
 		return true, nil
 
 	case result.WrongStation:
@@ -198,6 +197,24 @@ func ensureComponentsFromStorage(user *users.UserRecord, room *rooms.Room, recip
 	}
 }
 
+// craftSkillCloseFraction is the share of a recipe's skill minimum at which
+// the refusal reads "just beyond" rather than "well beyond". A ratio, not a
+// point gap, because recipe minimums run from single digits to 65.
+const craftSkillCloseFraction = 0.8
+
+// craftSkillTooLowText is the one skill-too-low refusal for craft. It never
+// prints the recipe minimum or the player's skill (owner ruling 2026-09-13).
+func craftSkillTooLowText(skillName string, minimum, level int) string {
+	if float64(level) >= float64(minimum)*craftSkillCloseFraction {
+		return fmt.Sprintf(
+			`<ansi fg="red">That recipe is just beyond your %s skill. A little more practice should do it.</ansi>`,
+			skillName)
+	}
+	return fmt.Sprintf(
+		`<ansi fg="red">That recipe is well beyond your %s skill for now.</ansi>`,
+		skillName)
+}
+
 // craftEnchanting handles the enchanting sub-path of craft, which requires
 // player-specific target disambiguation not available to mob actors.
 func craftEnchanting(rest string, recipe *crafting.RecipeSpec, user *users.UserRecord, room *rooms.Room) (bool, error) {
@@ -216,9 +233,8 @@ func craftEnchanting(rest string, recipe *crafting.RecipeSpec, user *users.UserR
 	// Skill gate
 	skillLevel := user.Character.GetSkillLevel(skills.SkillTag(recipe.Skill))
 	if skillLevel < recipe.SkillMinimum {
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(
-			`<ansi fg="red">Your %s skill is too low (requires %d, you have %d).</ansi>`,
-			recipe.Skill, recipe.SkillMinimum, skillLevel))
+		user.SendText(messaging.CategorySystem,
+			craftSkillTooLowText(recipe.Skill, recipe.SkillMinimum, skillLevel))
 		return true, nil
 	}
 

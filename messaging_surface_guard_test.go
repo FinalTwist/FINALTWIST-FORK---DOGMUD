@@ -337,6 +337,12 @@ func messagingSurfaceWalk(worldDir string) (map[string]map[string]bool, error) {
 	keyFiles := map[string]map[string]bool{}
 	err := filepath.WalkDir(worldDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
+			if os.IsNotExist(err) {
+				// A test elsewhere can create and remove a temp file under
+				// the tree while packages test in parallel; a vanished
+				// entry has nothing to scan.
+				return nil
+			}
 			return err
 		}
 		if d.IsDir() {
@@ -399,6 +405,12 @@ func messagingSurfaceGoYAMLTagKeys() (map[string]bool, error) {
 	for _, rootName := range messagingSurfaceGoRoots {
 		err := filepath.WalkDir(rootName, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
+				if os.IsNotExist(err) {
+					// A test elsewhere can create and remove a temp file under
+					// the tree while packages test in parallel; a vanished
+					// entry has nothing to scan.
+					return nil
+				}
 				return err
 			}
 			if d.IsDir() {
@@ -1045,6 +1057,12 @@ func narrationWalk() (map[string]narrationCandidateSite, error) {
 	for _, root := range narrationGoRoots {
 		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
+				if os.IsNotExist(err) {
+					// A test elsewhere can create and remove a temp file under
+					// the tree while packages test in parallel; a vanished
+					// entry has nothing to scan.
+					return nil
+				}
 				return err
 			}
 			if d.IsDir() {
@@ -1562,6 +1580,12 @@ func TestEveryTrioLiteralNamesAllThreeRoles(t *testing.T) {
 		fset := token.NewFileSet()
 		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
+				if os.IsNotExist(err) {
+					// A test elsewhere can create and remove a temp file under
+					// the tree while packages test in parallel; a vanished
+					// entry has nothing to scan.
+					return nil
+				}
 				return err
 			}
 			if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {

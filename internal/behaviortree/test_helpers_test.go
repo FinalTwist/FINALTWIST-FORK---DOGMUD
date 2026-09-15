@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -30,6 +31,19 @@ func TestMain(m *testing.M) {
 	}
 	os.Setenv("DOGMUD_GOALS_DIR_OVERRIDE", goalsDir)
 
+	// Same for FilePaths.DataFiles. The Go default is the relative
+	// `_datafiles/world/default`, so the forager's persistCrate wrote
+	// crates/4038-fernway_shipment.yaml (via a .new rename) into the source
+	// tree, and a root guard walking internal/ failed when the .new file
+	// vanished mid-walk (flake seen 2026-09-14).
+	dataDir, err := os.MkdirTemp("", "behaviortree-datafiles-test-*")
+	if err != nil {
+		panic("behaviortree test: mkdirtemp for datafiles: " + err.Error())
+	}
+	if err := configs.AddOverlayOverrides(map[string]any{"FilePaths.DataFiles": dataDir}); err != nil {
+		panic(err)
+	}
+
 	// Seed a default biome so GetVisibility() / GetBiome() don't return nil
 	// when rooms are created with no explicit Biome field. Without this,
 	// any code path that calls room.GetBiome().IsDark() panics.
@@ -46,6 +60,7 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 	os.RemoveAll(goalsDir)
+	os.RemoveAll(dataDir)
 	os.Exit(code)
 }
 
