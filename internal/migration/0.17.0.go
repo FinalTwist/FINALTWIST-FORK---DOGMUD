@@ -17,242 +17,344 @@ import (
 // Description:
 // Conditions unification slice 3 renamed every buff-spelled save key to its
 // condition spelling. Every loader ignores unknown keys, so an unmigrated
-// save would load with its conditions, pet condition ids and trapped locks
-// silently empty.
+// save would load with its conditions, pet condition ids, trapped locks and
+// item condition ids silently empty.
 //
-// Path-anchored: only the listed key paths are renamed, and the new name comes
-// from conditionrename.Apply, the one spelling map.
+// Whole-DataFiles, not path lists. An item saves its full spec copy under
+// `overrides:` once it is enchanted, affixed or renamed, and GetSpec() then
+// never reads the template again, so a missed `wornbuffids` empties that list
+// permanently. Items are saved in characters, bank storage, room instances,
+// mob instances, shops, guild vaults, sealed crates and auction plugin data,
+// and a path list missed most of them. So every .yaml and .plugin.dat file
+// under DataFiles is scanned, and the old keys are renamed wherever they sit.
+//
+// Cheap and safe to scan: a file with no old spelling is skipped without
+// parsing (conditionrename.ContainsOldSpelling: "buff" in any case, outside
+// protected words such as "buffer", none of which is part of an old key), so
+// content files, JSON plugin data and unrelated corrupt files are never
+// parsed or rewritten. Only KEYS are renamed, never values,
+// and the new name comes from conditionrename.Apply, the one spelling map.
 //
 // Idempotent without a marker: a file with no old key is not rewritten, so a
 // second run changes nothing. That also avoids the alts trap, where a
 // character-scoped marker re-runs per alt.
 //
-// Unlike 0.14.0, alts files (<id>.alts.yaml, a YAML LIST of characters) are
-// migrated, and an unparseable file or a collision (old and new key both
-// present) is an error, so Run restores the backup rather than leaving a save
-// that would lose its conditions on load.
+// A file with an old spelling that fails to parse, or a mapping with both an
+// old key and its new name, is an error, so Run restores the backup rather
+// than leaving a save that would lose its conditions on load.
+//
+// The config overrides file is also migrated when CONFIG_PATH points outside
+// DataFiles, and it is reloaded after a rewrite: config was loaded before
+// migrations run, and Run's closing SetVal writes the in-memory overrides map
+// back to disk, which would restore the old key.
 func migrate_ConditionKeys(dryRun bool) error {
-	return migrateConditionKeysIn(string(configs.GetConfig().FilePaths.DataFiles), dryRun)
-}
-
-// keyRename renames key `old` inside every mapping reached by `parent`.
-// Path segments: a key name, "*" for every value of a mapping, "[]" for every
-// element of a list.
-type keyRename struct {
-	parent []string
-	old    string
-}
-
-// characterRenames are relative to one character mapping. Order matters: the
-// later paths use the already-renamed `conditions`.
-var characterRenames = []keyRename{
-	{nil, "buffs"},
-	{[]string{"conditions", "list", "[]"}, "buffid"},
-	{[]string{"conditions", "list", "[]"}, "permabuff"},
-	{[]string{"pet"}, "buffids"},
-	{[]string{"shop", "[]"}, "buffid"},
-	{[]string{"miscdata"}, "pinnacle_bandolier_buffs"},
-}
-
-var roomInstanceRenames = []keyRename{
-	{[]string{"containers", "*", "lock"}, "trapbuffids"},
-}
-
-// applyRenames walks node along rename.parent and renames rename.old in each
-// mapping it reaches. It reports whether anything changed.
-func applyRenames(node any, renames []keyRename) (bool, error) {
-	changed := false
-	for _, r := range renames {
-		c, err := renameAt(node, r.parent, r.old, conditionrename.Apply(r.old))
-		if err != nil {
-			return changed, err
-		}
-		changed = changed || c
+	dataDir := string(configs.GetConfig().FilePaths.DataFiles)
+	// Mirrors configs.overridePath (unexported).
+	overridesPath := os.Getenv(`CONFIG_PATH`)
+	if overridesPath == `` {
+		overridesPath = filepath.Join(dataDir, `config-overrides.yaml`)
 	}
-	return changed, nil
+	return migrateConditionKeys(dataDir, overridesPath, dryRun, configs.ReloadConfig)
 }
 
-func renameAt(node any, path []string, oldKey, newKey string) (bool, error) {
-	if len(path) == 0 {
-		m, ok := node.(yaml.MapSlice)
-		if !ok {
-			return false, nil
-		}
-		oldIdx, hasNew := -1, false
-		for i, item := range m {
-			switch k, _ := item.Key.(string); k {
-			case oldKey:
-				oldIdx = i
-			case newKey:
-				hasNew = true
-			}
-		}
-		if oldIdx < 0 {
-			return false, nil
-		}
-		if hasNew {
-			return false, fmt.Errorf("both %q and %q present", oldKey, newKey)
-		}
-		// MapSlice shares its backing array with the parent, so this
-		// renames the key in the decoded document in place.
-		m[oldIdx].Key = newKey
-		return true, nil
-	}
-	seg, rest := path[0], path[1:]
-	changed := false
-	switch seg {
-	case "[]":
-		list, ok := node.([]any)
-		if !ok {
-			return false, nil
-		}
-		for _, el := range list {
-			c, err := renameAt(el, rest, oldKey, newKey)
-			if err != nil {
-				return changed, err
-			}
-			changed = changed || c
-		}
-	case "*":
-		m, ok := node.(yaml.MapSlice)
-		if !ok {
-			return false, nil
-		}
-		for _, item := range m {
-			c, err := renameAt(item.Value, rest, oldKey, newKey)
-			if err != nil {
-				return changed, err
-			}
-			changed = changed || c
-		}
-	default:
-		m, ok := node.(yaml.MapSlice)
-		if !ok {
-			return false, nil
-		}
-		for _, item := range m {
-			if k, _ := item.Key.(string); k == seg {
-				return renameAt(item.Value, rest, oldKey, newKey)
-			}
-		}
-	}
-	return changed, nil
+// renamedKeys is the complete set of distinctive buff-spelled YAML keys a
+// save, plugin data or config overrides file can carry (from the slice 3 yaml
+// tag inventory). Each is renamed to conditionrename.Apply(key) wherever it
+// appears. The generic key `buffs` is handled separately by isConditionsRecord.
+var renamedKeys = map[string]bool{
+	"buffid":                   true,
+	"buffids":                  true,
+	"wornbuffids":              true,
+	"critbuffids":              true,
+	"trapbuffids":              true,
+	"prizebuffids":             true,
+	"playerbuffids":            true,
+	"mobbuffids":               true,
+	"nativebuffids":            true,
+	"start_remove_buffs":       true,
+	"buff_ids":                 true,
+	"buff_id":                  true,
+	"permabuff":                true,
+	"pinnacle_bandolier_buffs": true,
+	"BuffsEnabled":             true,
+}
+
+// conditionKeysStats counts one migration pass.
+type conditionKeysStats struct {
+	scanned, parsed int
+	rewritten       []string
 }
 
 // migrateConditionKeysIn is the testable core: dataDir is a DataFiles root.
 func migrateConditionKeysIn(dataDir string, dryRun bool) error {
+	_, err := renameConditionKeysUnder(dataDir, dryRun)
+	return err
+}
+
+// migrateConditionKeys runs the DataFiles walk, then the overrides file when
+// it lives outside DataFiles, and calls reload when the overrides file was
+// rewritten.
+func migrateConditionKeys(dataDir, overridesPath string, dryRun bool, reload func() error) error {
+	stats, err := renameConditionKeysUnder(dataDir, dryRun)
+	if err != nil {
+		return err
+	}
+	overridesRewritten := false
+	for _, p := range stats.rewritten {
+		if samePath(p, overridesPath) {
+			overridesRewritten = true
+		}
+	}
+	if !isUnder(overridesPath, dataDir) {
+		changed, err := renameConditionKeysInFile(overridesPath, dryRun)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		overridesRewritten = overridesRewritten || changed
+	}
+	if overridesRewritten && !dryRun {
+		return reload()
+	}
+	return nil
+}
+
+func samePath(a, b string) bool {
+	absA, errA := filepath.Abs(a)
+	absB, errB := filepath.Abs(b)
+	return errA == nil && errB == nil && strings.EqualFold(filepath.Clean(absA), filepath.Clean(absB))
+}
+
+func isUnder(path, dir string) bool {
+	absP, errP := filepath.Abs(path)
+	absD, errD := filepath.Abs(dir)
+	if errP != nil || errD != nil {
+		return false
+	}
+	rel, err := filepath.Rel(absD, absP)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+func renameConditionKeysUnder(dataDir string, dryRun bool) (conditionKeysStats, error) {
 	mode := "APPLY"
 	if dryRun {
 		mode = "DRY-RUN"
 	}
-	mudlog.Info("Migration 0.17.0", "message", "Renaming buff save keys to condition keys", "mode", mode)
+	mudlog.Info("Migration 0.17.0", "message", "Renaming buff keys to condition keys under DataFiles", "mode", mode)
 
-	counts := map[string]int{}
-
-	usersDir := filepath.Join(dataDir, "users")
-	userFiles, err := filepath.Glob(filepath.Join(usersDir, "*.yaml"))
-	if err != nil {
-		return err
-	}
-	for _, path := range userFiles {
-		if strings.HasSuffix(path, ".alts.yaml") {
-			if err := migrateFile(path, dryRun, migrateAltsDoc); err != nil {
-				return err
-			}
-			counts["alts"]++
-			continue
-		}
-		if err := migrateFile(path, dryRun, migrateUserDoc); err != nil {
-			return err
-		}
-		counts["users"]++
-	}
-
-	roomsDir := filepath.Join(dataDir, "rooms.instances")
-	err = filepath.WalkDir(roomsDir, func(path string, d fs.DirEntry, werr error) error {
+	var stats conditionKeysStats
+	err := filepath.WalkDir(dataDir, func(path string, d fs.DirEntry, werr error) error {
 		if werr != nil {
 			if errors.Is(werr, fs.ErrNotExist) {
 				return nil
 			}
 			return werr
 		}
-		if d.IsDir() || !strings.HasSuffix(path, ".yaml") {
+		if !d.Type().IsRegular() {
 			return nil
 		}
-		counts["rooms.instances"]++
-		return migrateFile(path, dryRun, migrateRoomDoc)
+		name := d.Name()
+		if !strings.HasSuffix(name, ".yaml") && !strings.HasSuffix(name, ".plugin.dat") {
+			return nil
+		}
+		stats.scanned++
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("migration 0.17.0: read %s: %w", path, err)
+		}
+		if !conditionrename.ContainsOldSpelling(string(raw)) {
+			return nil
+		}
+		stats.parsed++
+		changed, err := renameConditionKeysInBytes(path, raw, dryRun)
+		if err != nil {
+			return err
+		}
+		if changed {
+			stats.rewritten = append(stats.rewritten, path)
+		}
+		return nil
 	})
 	if err != nil {
-		return err
+		return stats, err
 	}
 
-	mudlog.Info("Migration 0.17.0", "users", counts["users"], "alts", counts["alts"], "rooms.instances", counts["rooms.instances"], "mode", mode)
-	return nil
+	mudlog.Info("Migration 0.17.0", "scanned", stats.scanned, "parsed", stats.parsed, "rewritten", len(stats.rewritten), "mode", mode)
+	return stats, nil
 }
 
-type docMigrator func(raw []byte) (out any, changed bool, err error)
-
-func migrateFile(path string, dryRun bool, migrate docMigrator) error {
+// renameConditionKeysInFile migrates one file outside the walk.
+func renameConditionKeysInFile(path string, dryRun bool) (bool, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("migration 0.17.0: read %s: %w", path, err)
+		return false, err
 	}
-	doc, changed, err := migrate(raw)
+	if !conditionrename.ContainsOldSpelling(string(raw)) {
+		return false, nil
+	}
+	return renameConditionKeysInBytes(path, raw, dryRun)
+}
+
+// renameConditionKeysInBytes parses raw, renames old keys, and writes path
+// when something changed and this is not a dry run.
+func renameConditionKeysInBytes(path string, raw []byte, dryRun bool) (bool, error) {
+	doc, err := decodeOrdered(raw)
 	if err != nil {
-		return fmt.Errorf("migration 0.17.0: %s: %w", path, err)
+		return false, fmt.Errorf("migration 0.17.0: %s: %w", path, err)
+	}
+	if doc == nil {
+		return false, nil
+	}
+	changed, err := renameKeys(doc)
+	if err != nil {
+		return false, fmt.Errorf("migration 0.17.0: %s: %w", path, err)
 	}
 	if !changed {
-		return nil
+		return false, nil
+	}
+	if _, mixed := doc.([]interface{}); mixed {
+		// Its nested mappings decoded unordered; rewriting would reorder a
+		// file of a shape no store saves. Refuse rather than guess.
+		return false, fmt.Errorf("migration 0.17.0: %s: a list with non-mapping elements carries an old key", path)
 	}
 	mudlog.Info("Migration 0.17.0", "file", path, "renamed", true)
 	if dryRun {
-		return nil
+		return true, nil
 	}
 	out, err := yaml.Marshal(doc)
 	if err != nil {
-		return fmt.Errorf("migration 0.17.0: marshal %s: %w", path, err)
+		return false, fmt.Errorf("migration 0.17.0: marshal %s: %w", path, err)
 	}
 	if err := os.WriteFile(path, out, 0644); err != nil {
-		return fmt.Errorf("migration 0.17.0: write %s: %w", path, err)
+		return false, fmt.Errorf("migration 0.17.0: write %s: %w", path, err)
 	}
-	return nil
+	return true, nil
 }
 
-func migrateUserDoc(raw []byte) (any, bool, error) {
-	var doc yaml.MapSlice
-	if err := yaml.Unmarshal(raw, &doc); err != nil {
-		return nil, false, err
+// decodeOrdered decodes a YAML document keeping key order. The root kind is
+// read first because yaml.v2 will happily decode a sequence of mappings into
+// a MapSlice (it is a []MapItem) and silently lose the data. A mapping root
+// becomes yaml.MapSlice; a sequence root becomes []yaml.MapSlice when every
+// element is a mapping (the alts shape), else []any, which is walked only to
+// detect an old key (an error). A null, empty or scalar root returns nil.
+func decodeOrdered(raw []byte) (any, error) {
+	var probe any
+	if err := yaml.Unmarshal(raw, &probe); err != nil {
+		return nil, err
 	}
-	for _, item := range doc {
-		if k, _ := item.Key.(string); k == "character" {
-			changed, err := applyRenames(item.Value, characterRenames)
-			return doc, changed, err
+	switch p := probe.(type) {
+	case map[interface{}]interface{}:
+		var doc yaml.MapSlice
+		if err := yaml.Unmarshal(raw, &doc); err != nil {
+			return nil, err
 		}
+		return doc, nil
+	case []interface{}:
+		allMaps := true
+		for _, el := range p {
+			if _, ok := el.(map[interface{}]interface{}); !ok {
+				allMaps = false
+				break
+			}
+		}
+		if allMaps {
+			var doc []yaml.MapSlice
+			if err := yaml.Unmarshal(raw, &doc); err != nil {
+				return nil, err
+			}
+			return doc, nil
+		}
+		return p, nil
+	default:
+		return nil, nil
 	}
-	return doc, false, nil
 }
 
-func migrateAltsDoc(raw []byte) (any, bool, error) {
-	var doc []yaml.MapSlice
-	if err := yaml.Unmarshal(raw, &doc); err != nil {
-		return nil, false, err
-	}
+// renameKeys renames old keys in every mapping at any depth, in place.
+func renameKeys(node any) (bool, error) {
 	changed := false
-	for _, character := range doc {
-		c, err := applyRenames(character, characterRenames)
-		if err != nil {
-			return nil, false, err
+	switch n := node.(type) {
+	case yaml.MapSlice:
+		for i := range n {
+			c, err := renameKeys(n[i].Value)
+			if err != nil {
+				return changed, err
+			}
+			changed = changed || c
 		}
-		changed = changed || c
+		for i := range n {
+			oldKey, ok := n[i].Key.(string)
+			if !ok || !shouldRename(oldKey, n[i].Value) {
+				continue
+			}
+			newKey := conditionrename.Apply(oldKey)
+			for _, other := range n {
+				if k, _ := other.Key.(string); k == newKey {
+					return changed, fmt.Errorf("both %q and %q present", oldKey, newKey)
+				}
+			}
+			n[i].Key = newKey
+			changed = true
+		}
+	case []yaml.MapSlice:
+		for _, el := range n {
+			c, err := renameKeys(el)
+			if err != nil {
+				return changed, err
+			}
+			changed = changed || c
+		}
+	case []interface{}:
+		for _, el := range n {
+			c, err := renameKeys(el)
+			if err != nil {
+				return changed, err
+			}
+			changed = changed || c
+		}
+	case map[interface{}]interface{}:
+		for k, v := range n {
+			c, err := renameKeys(v)
+			if err != nil {
+				return changed, err
+			}
+			changed = changed || c
+			oldKey, ok := k.(string)
+			if !ok || !shouldRename(oldKey, v) {
+				continue
+			}
+			newKey := conditionrename.Apply(oldKey)
+			if _, exists := n[newKey]; exists {
+				return changed, fmt.Errorf("both %q and %q present", oldKey, newKey)
+			}
+			delete(n, oldKey)
+			n[newKey] = v
+			changed = true
+		}
 	}
-	return doc, changed, nil
+	return changed, nil
 }
 
-func migrateRoomDoc(raw []byte) (any, bool, error) {
-	var doc yaml.MapSlice
-	if err := yaml.Unmarshal(raw, &doc); err != nil {
-		return nil, false, err
+// shouldRename reports whether key, holding value, is an old buff spelling.
+func shouldRename(key string, value any) bool {
+	if renamedKeys[key] {
+		return true
 	}
-	changed, err := applyRenames(doc, roomInstanceRenames)
-	return doc, changed, err
+	return key == "buffs" && isConditionsRecord(value)
+}
+
+// isConditionsRecord reports whether value has the conditions record shape,
+// a mapping with a `list` key. Only then is a `buffs` key the old record.
+func isConditionsRecord(value any) bool {
+	switch v := value.(type) {
+	case yaml.MapSlice:
+		for _, item := range v {
+			if k, _ := item.Key.(string); k == "list" {
+				return true
+			}
+		}
+	case map[interface{}]interface{}:
+		_, ok := v["list"]
+		return ok
+	}
+	return false
 }

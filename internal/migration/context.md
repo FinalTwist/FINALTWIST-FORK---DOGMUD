@@ -48,10 +48,11 @@ in sequence.
 | 0.13.0 | `migrate_SeedWarrenRepFromQuestToken` | seeds faction rep from a legacy quest token |
 | 0.14.0 | `migrate_ReclassifyPlayerMutations` | wipes retired mutation 41 and reclassifies every save onto the cluster graph |
 | 0.15.0 | `migrate_BackfillCoords` | crawls exit deltas to backfill authored x/y/z/plane on every non-instance room |
-| 0.16.0 | `migrate_FreezeExploitedVitality` | freezes fyttyn's raw vitality at its exploited value instead of handing back the soft-cap-compressed points |
-| 0.17.0 | `migrate_ConditionKeys` | renames buff-spelled save keys to their condition spelling in users, alts and room instances |
+| 0.16.0 | `migrate_FreezeExploitedVitality` | freezes fyttyn's vitality TOTAL at 280, the soft-cap-compressed value actually in play, rather than handing back the raw 411 |
+| 0.17.0 | `migrate_ConditionKeys` | renames buff-spelled keys to their condition spelling in every .yaml and .plugin.dat file under DataFiles, plus the config overrides file |
 
-The newest three take a `dryRun bool` so they can be exercised without writing.
+The newest four (0.14.0 to 0.17.0) take a `dryRun bool` so they can be
+exercised without writing.
 
 ## Mutation reclassification (0.14.0)
 
@@ -88,30 +89,52 @@ count means the world was not Cartesian-consistent at migration time.
 Conditions unification slice 3 renamed every buff-spelled Go yaml tag to its
 condition spelling. Every loader ignores unknown keys, so an existing save
 that still carries the old key would load with its conditions, pet condition
-ids and trapped locks silently empty. `migrate_ConditionKeys` fixes that by
-renaming the old keys in place, in three targets:
+ids, trapped locks and item condition ids silently empty.
+`migrate_ConditionKeys` fixes that by renaming the old keys in place.
 
-- **user saves** (`users/*.yaml`, excluding `*.alts.yaml`) — the `character`
-  mapping's `buffs`, its `conditions.list[].buffid` and `permabuff`, its
-  `pet.buffids`, its `shop[].buffid`, and `miscdata.pinnacle_bandolier_buffs`.
-- **alts files** (`users/*.alts.yaml`, a YAML list of characters) — the same
-  set of renames applied to every character in the list. 0.14.0 skipped these
-  by accident; this one does not.
-- **room instances** (`rooms.instances/**/*.yaml`) — every
-  `containers.*.lock.trapbuffids`.
+**Why the whole DataFiles tree, not path lists.** An item saves its full spec
+copy under `overrides:` (`items.Item.Spec`) once it is enchanted, affixed or
+renamed, plus `enchantbaseline:`, and `GetSpec()` then never reads the
+template again. A missed `wornbuffids` empties that list for good. Items are
+saved in character `items`, `componentitems`, `potionitems`, `equipment.*`,
+`pet.items` and `companions[].items`; user `itemstorage`; room instance
+`items`, `stash` and container items; `mobs.instances` equipment; shop
+affixed stock; guild vaults; sealed crates; and auctions plugin data. The
+first version walked three path lists and missed most of these.
 
-Every rename is path-anchored (`keyRename.parent`, walked by `renameAt`); the
-new key name always comes from `conditionrename.Apply`, the one spelling map,
-so the old and new spellings live nowhere else. Renames run in a fixed order
-per character because later paths (`conditions.list[]...`) depend on the
-earlier `buffs` → `conditions` rename having already happened.
+How it works (`renameConditionKeysUnder`):
+
+- **Which files.** Every regular `*.yaml` or `*.plugin.dat` file under
+  DataFiles. A file with no old spelling (`conditionrename.ContainsOldSpelling`:
+  `buff` in any case, outside protected words like `buffer`) is skipped
+  without parsing, so content files, JSON plugin data (weather) and unrelated
+  corrupt files are never parsed, rewritten or reported.
+- **Parse.** `decodeOrdered` reads the root kind first, then decodes a mapping
+  root as `yaml.MapSlice` and a list of mappings (alts, both `<id>.alts.yaml`
+  and legacy `<name>-alts.yaml`) as `[]yaml.MapSlice`, so key order survives.
+  Reading the kind first matters: yaml.v2 will decode a list of mappings into
+  a `MapSlice` without error and lose the data.
+- **Rename.** `renameKeys` recurses into every mapping and list. Each key in
+  `renamedKeys` (the complete set of distinctive buff-spelled save, plugin and
+  config keys) becomes `conditionrename.Apply(key)` wherever it sits. The
+  generic `buffs` becomes `conditions` only when its value is a mapping with
+  a `list` key, the conditions record shape. Values are never touched.
+- **Write.** Only when something was renamed, with `yaml.Marshal`. One log line
+  per rewritten file and a final scanned / parsed / rewritten count. A dry run
+  logs and writes nothing.
+- **Config overrides.** When `CONFIG_PATH` points outside DataFiles that file
+  is migrated too. Whenever the overrides file is rewritten,
+  `configs.ReloadConfig` runs: config was loaded before migrations, and `Run`'s
+  closing `SetVal` marshals the in-memory overrides map back to disk, which
+  would otherwise restore `BuffsEnabled`.
 
 There is no migration marker. A file with no old key is left byte-for-byte
-unchanged (`migrateFile` skips the write when nothing was renamed), so a
-second run is a no-op and there is nothing to desync per-alt. Two situations
-are treated as hard errors, so `Run` restores the backup rather than shipping
-a broken save: a file with both the old and new key present (a collision), and
-a file that fails to parse as YAML.
+unchanged, so a second run is a no-op and there is nothing to desync per-alt.
+These are hard errors, so `Run` restores the backup rather than shipping a
+broken save: a file with an old spelling that fails to parse; a mapping with
+both an old key and its new name (a collision); and a list root with
+non-mapping elements that carries an old key (no store saves that shape, and
+it cannot be rewritten order-preserving).
 
 ## Gotchas
 
