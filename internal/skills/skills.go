@@ -62,7 +62,7 @@ var skillBlurbs = map[SkillTag]string{
 	Blacksmithing: "Forging metal weapons, armor, and tools.",
 	Alchemy:       "Brewing potions, salves, and medicines.",
 	Tailoring:     "Crafting cloth and leather goods.",
-	Cooking:       "Preparing food and the buffs good meals give.",
+	Cooking:       "Preparing food and the benefits good meals give.",
 	Jewelcrafting: "Rings, pendants, and gemwork.",
 	Enchanting:    "Imbuing items with magic.",
 	Salvage:       "Breaking items down into materials.",

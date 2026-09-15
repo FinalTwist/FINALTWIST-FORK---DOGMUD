@@ -145,6 +145,17 @@ func roomData(w http.ResponseWriter, r *http.Request) {
 	tplData := map[string]any{}
 	tplData[`roomInfo`] = roomInfo
 
+	// room.data.html reads a room's zone-level config (entry room id, zone
+	// mutators) as `.zoneConfig`; rooms.Room carries no such field itself, so
+	// it must be fetched separately and handed to the template explicitly.
+	zoneConfig := &rooms.ZoneConfig{}
+	if roomInfo != nil {
+		if zc := rooms.GetZoneConfig(roomInfo.Zone); zc != nil {
+			zoneConfig = zc
+		}
+	}
+	tplData[`zoneConfig`] = zoneConfig
+
 	conditionSpecs := []conditions.ConditionSpec{}
 	for _, conditionId := range conditions.GetAllConditionIds() {
 		if b := conditions.GetConditionSpec(conditionId); b != nil {

@@ -119,7 +119,7 @@ func ExecuteAction(a ActionDef, ctx ActionContext) error {
 		return nil
 	}
 	if a.ApplyStatusCondition != nil {
-		LogVerboseF(ctx.GetUserId(), "apply buff %d", a.ApplyStatusCondition.Condition)
+		LogVerboseF(ctx.GetUserId(), "apply condition %d", a.ApplyStatusCondition.Condition)
 		ctx.ApplyStatusCondition(*a.ApplyStatusCondition)
 		return nil
 	}

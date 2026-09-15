@@ -92,7 +92,7 @@ func (bs *Conditions) Validate(forceRebuild ...bool) {
 			bs.conditionIds[b.ConditionId] = idx
 			bSpec := GetConditionSpec(b.ConditionId)
 			if bSpec == nil {
-				mudlog.Warn("buffs.Validate()", "buffId", b.ConditionId, "error", "invalid character buffId")
+				mudlog.Warn("conditions.Validate()", "conditionId", b.ConditionId, "error", "invalid character conditionId")
 				continue
 			}
 			for _, flag := range bSpec.Flags {

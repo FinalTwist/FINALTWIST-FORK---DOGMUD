@@ -19,6 +19,6 @@ time. The caster draws on their own vitality to fuel this potent heal.
 
 <ansi fg="white-bold">Notes:</ansi>
   - Also costs a portion of the caster's own health to cast.
-  - Combines immediate healing with a lasting regeneration buff.
+  - Combines immediate healing with a lasting regeneration condition.
 
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help spells</ansi>, <ansi fg="command">help cast</ansi>

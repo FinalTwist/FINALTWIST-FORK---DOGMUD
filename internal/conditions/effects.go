@@ -86,7 +86,7 @@ func (b *ConditionSpec) validateEffects() error {
 			}
 		}
 		if !known {
-			return fmt.Errorf("buffId %d (%s) declares unknown effect %q; see buffs.AllEffectKinds", b.ConditionId, b.Name, k)
+			return fmt.Errorf("conditionId %d (%s) declares unknown effect %q; see conditions.AllEffectKinds", b.ConditionId, b.Name, k)
 		}
 	}
 	if b.TickFromMagnitude {

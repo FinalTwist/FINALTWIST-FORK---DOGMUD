@@ -112,7 +112,7 @@ an optional condition to decide what to do.
 
   Kick, trip, bash, grapple, taunt, rally, warcry,
   and every spell all share <ansi fg="command">one</ansi> ability cooldown. When
-  several buffs drop at the same moment, their re-cast
+  several conditions drop at the same moment, their re-cast
   triggers can all queue up and fire in sequence as
   the cooldown frees — instead of stomping each other.
 
@@ -153,7 +153,7 @@ an optional condition to decide what to do.
     If HP % is below <ansi fg="command">30</ansi>
     Then:     <ansi fg="command">cast heal self</ansi>
     Queue:    Queue at front
-    Jumps ahead of any pending re-buffs so the heal
+    Jumps ahead of any pending re-casts so the heal
     fires as soon as the cooldown opens.
 
   <ansi fg="command">Re-cast rally when it wears off (queue back)</ansi>

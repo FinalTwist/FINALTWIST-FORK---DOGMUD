@@ -145,7 +145,7 @@ func ValidateMobSpec(m *Mob) error {
 	}
 	for _, bid := range m.ConditionIds {
 		if conditions.GetConditionSpec(bid) == nil {
-			return fmt.Errorf("buff id %d does not exist", bid)
+			return fmt.Errorf("condition id %d does not exist", bid)
 		}
 	}
 	for _, iid := range m.LootPool {

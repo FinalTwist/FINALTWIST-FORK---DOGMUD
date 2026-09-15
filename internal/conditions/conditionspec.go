@@ -296,7 +296,7 @@ func (b *ConditionSpec) Validate() error {
 		b.EndUserText, b.EndRoomText,
 	} {
 		for _, w := range textutil.ValidateTokens(text) {
-			mudlog.Warn("Buff.Validate", "buffId", b.ConditionId, "warning", w)
+			mudlog.Warn("ConditionSpec.Validate", "conditionId", b.ConditionId, "warning", w)
 		}
 	}
 
@@ -315,11 +315,11 @@ func (b *ConditionSpec) Validate() error {
 		case "health", "stamina", "conviction":
 			// valid
 		default:
-			return fmt.Errorf("buffId %d (%s) has invalid tick_pool %q (must be health/stamina/conviction)", b.ConditionId, b.Name, b.TickPool)
+			return fmt.Errorf("conditionId %d (%s) has invalid tick_pool %q (must be health/stamina/conviction)", b.ConditionId, b.Name, b.TickPool)
 		}
 		if !b.TickFromMagnitude {
 			if b.TickPercent == 0 {
-				mudlog.Warn("Buff.Validate", "buffId", b.ConditionId, "warning", "tick_pool set but tick_percent is 0")
+				mudlog.Warn("ConditionSpec.Validate", "conditionId", b.ConditionId, "warning", "tick_pool set but tick_percent is 0")
 			}
 		}
 	}
@@ -380,7 +380,7 @@ func ValidateLoadedFlags() {
 func (b *ConditionSpec) ValidateFlags() error {
 	for _, f := range b.Flags {
 		if !slices.Contains(AllFlags, f) {
-			return fmt.Errorf("buffId %d (%s) carries unknown flag %q; see buffs.AllFlags", b.ConditionId, b.Name, f)
+			return fmt.Errorf("conditionId %d (%s) carries unknown flag %q; see conditions.AllFlags", b.ConditionId, b.Name, f)
 		}
 	}
 	return nil
@@ -408,7 +408,7 @@ func LoadDataFiles() {
 
 	for id, b := range tmpConditions {
 		if b.Name != "" {
-			casing.AssertCanonical(b.Name, "buff", fmt.Sprintf("%d", id))
+			casing.AssertCanonical(b.Name, "condition", fmt.Sprintf("%d", id))
 		}
 	}
 

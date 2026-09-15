@@ -1,11 +1,12 @@
 {{ $room := .roomInfo }}
 {{ $buffSpecs := .buffSpecs }}
 {{ $mutSpecs := .mutSpecs }}
+{{ $zoneConfig := .zoneConfig }}
 <form>
 
     <input type="hidden" name="roomid" value="{{ $room.RoomId }}">
 
-    {{ if eq $room.ZoneConfig.RoomId $room.RoomId }}
+    {{ if eq $zoneConfig.RoomId $room.RoomId }}
     
         <hr />
         <h3>(Root) Zone Config</h3>
@@ -30,7 +31,7 @@
                     <h5 class="card-title">Mutators:</h5>
                     <p class="card-text">
                         <!--  Start Card Content -->
-                        {{ $zoneMutators := $room.ZoneConfig.Mutators }}
+                        {{ $zoneMutators := $zoneConfig.Mutators }}
                         {{range $index, $mutInfo := $mutSpecs }}
                             <label class="form-check-label col-md-2" for="mutators[]" title="{{ $mutInfo.MutatorId }}"><input 
                             class="form-check-input"
@@ -385,7 +386,7 @@
                             </div>
 
                             <div class="row">
-                                <label for="name">Mob Buffs</label>
+                                <label for="name">Mob Conditions</label>
 
                                 <div class="form-group row form-check container-fluid">
                                     {{ $buffIds := $spawnInfo.ConditionIds }}

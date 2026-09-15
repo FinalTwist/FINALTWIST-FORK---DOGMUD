@@ -179,7 +179,7 @@
     </div>
 
     <hr data-applies-to-types="weapon" />
-    <h3 data-applies-to-types="weapon">Buffs Applied on Crit</h3>
+    <h3 data-applies-to-types="weapon">Conditions Applied on Crit</h3>
 
     <div class="form-group row form-check container-fluid" data-applies-to-types="weapon">
         {{ $buffIds := .itemSpec.Damage.CritConditionIds }}
@@ -196,7 +196,7 @@
     </div>
 
     <hr data-applies-to-types="edible drinkable usable" />
-    <h3 data-applies-to-types="edible drinkable usable">Buffs Applied on eat/drink/use</h3>
+    <h3 data-applies-to-types="edible drinkable usable">Conditions Applied on eat/drink/use</h3>
 
     <div class="form-group row form-check container-fluid" data-applies-to-types="edible drinkable usable">
         {{ $buffIds := .itemSpec.ConditionIds }}
@@ -213,7 +213,7 @@
     </div>
 
     <hr data-applies-to-types="weapon wearable" />
-    <h3 data-applies-to-types="weapon wearable">Buffs Applied While Worn</h3>
+    <h3 data-applies-to-types="weapon wearable">Conditions Applied While Worn</h3>
 
     <div class="form-group row form-check container-fluid" data-applies-to-types="weapon wearable">
         {{ $buffIds := .itemSpec.WornConditionIds }}

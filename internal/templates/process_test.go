@@ -67,7 +67,7 @@ func TestProcess_StaticTemplates(t *testing.T) {
 		"help/look",
 		"help/say",
 		// login prompts use language.T which requires translation setup — skip.
-		"admincommands/help/command.buff",
+		"admincommands/help/command.setcondition",
 		"admincommands/help/command.spawn",
 		"admincommands/shutdown-final",
 	}

@@ -53,6 +53,6 @@ func TestDispatchRoutesOnlyMatchingTypes(t *testing.T) {
 
 	// And it still receives its own type.
 	DoListeners(Condition{ConditionId: 1})
-	require.Equal(t, []string{"Buff"}, conditionListenerSaw,
+	require.Equal(t, []string{"Condition"}, conditionListenerSaw,
 		"a type-specific listener must still receive its own type")
 }

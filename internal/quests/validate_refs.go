@@ -162,7 +162,7 @@ func (c *refsCtx) checkActions(where string, actions []ActionDef, depth int) {
 			c.errf("%s: learn_recipe %q does not exist", aw, a.LearnRecipe.Recipe)
 		}
 		if a.ApplyStatusCondition != nil && a.ApplyStatusCondition.Condition > 0 && !c.v.ConditionExists(a.ApplyStatusCondition.Condition) {
-			c.errf("%s: buff %d does not exist", aw, a.ApplyStatusCondition.Condition)
+			c.errf("%s: condition %d does not exist", aw, a.ApplyStatusCondition.Condition)
 		}
 		c.checkRoom(aw+" teleport", a.Teleport)
 		if a.SetFlag != nil {
@@ -290,7 +290,7 @@ func ValidateQuestRefs(q Quest, v QuestValidators) (errs []string, warns []strin
 	c.checkToken("rewards questid", q.Rewards.QuestId)
 	c.checkItem("rewards itemid", q.Rewards.ItemId)
 	if q.Rewards.ConditionId > 0 && !c.v.ConditionExists(q.Rewards.ConditionId) {
-		c.errf("rewards buffid: buff %d does not exist", q.Rewards.ConditionId)
+		c.errf("rewards buffid: condition %d does not exist", q.Rewards.ConditionId)
 	}
 	if q.Rewards.SpellId != "" && !c.v.SpellExists(q.Rewards.SpellId) {
 		c.errf("rewards spellid %q does not exist", q.Rewards.SpellId)

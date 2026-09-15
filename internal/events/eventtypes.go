@@ -39,7 +39,7 @@ type Condition struct {
 	LifeEpoch uint64
 }
 
-func (b Condition) Type() string { return `Buff` }
+func (b Condition) Type() string { return `Condition` }
 
 type ConditionsTriggered struct {
 	UserId        int
@@ -47,7 +47,7 @@ type ConditionsTriggered struct {
 	ConditionIds  []int
 }
 
-func (b ConditionsTriggered) Type() string { return `BuffsTriggered` }
+func (b ConditionsTriggered) Type() string { return `ConditionsTriggered` }
 
 // AutomationChanged fires when a user's macros/aliases/ticks/triggers change,
 // so the Char.Automation GMCP payload can be re-pushed.

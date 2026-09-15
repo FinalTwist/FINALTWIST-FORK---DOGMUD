@@ -45,7 +45,7 @@
 
         <div class="form-group col-sm">
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="true" name="hostile" id="hostile" {{ if .mobInfo.Hostile }}checked{{end}}>
+                <input class="form-check-input" type="checkbox" value="true" name="hostile" id="hostile" {{ if .mobInfo.AutoAggro }}checked{{end}}>
                 <label class="form-check-label" for="hostile">
                     Naturally Hostile
                 </label>
@@ -113,7 +113,7 @@
 
 
     <hr />
-    <h3>Buffs This Mob Has</h3>
+    <h3>Conditions This Mob Has</h3>
 
     <div class="form-group row form-check container-fluid">
         {{ $buffIds := .mobInfo.ConditionIds }}

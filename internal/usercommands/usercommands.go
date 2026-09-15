@@ -76,8 +76,8 @@ var (
 		`character`:       {Character, true, true, false},
 		`bank`:            {Bank, false, true, false},
 		`break`:           {Break, false, true, false},
-		`build`:           {Build, false, true, true},     // Admin only
-		`buff`:            {Condition, false, true, true}, // Admin only
+		`build`:           {Build, false, true, true},        // Admin only
+		`setcondition`:    {SetCondition, false, true, true}, // Admin only; `buff` is an alias, see keywords.yaml command-aliases
 		`buy`:             {Buy, false, true, false},
 		`caravan`:         {Caravan, true, true, true}, // Admin only
 		`cancel`:          {Cancel, true, true, false},

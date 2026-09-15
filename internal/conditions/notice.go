@@ -109,6 +109,6 @@ func SilentNoticeConditions() []string {
 // line exists so play continues; the root guard is what blocks a merge.
 func WarnSilentNotices() {
 	for _, entry := range SilentNoticeConditions() {
-		mudlog.Warn("buffs.WarnSilentNotices", "buff", entry, "notice", "relies on the generic takes effect / has expired line; author start_user_text and end_user_text")
+		mudlog.Warn("conditions.WarnSilentNotices", "condition", entry, "notice", "relies on the generic takes effect / has expired line; author start_user_text and end_user_text")
 	}
 }

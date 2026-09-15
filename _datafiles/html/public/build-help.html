@@ -201,7 +201,7 @@ shops.</p>
 <li><b>Aliveness</b> — schedule (daily routine), patrol route,
     relationships, known facts.</li>
 <li><b>Advanced</b> — behavior archetype (with jumps into the
-    <a href="#behaviors">Behaviors tab</a>), buffs (e.g. spawn hidden),
+    <a href="#behaviors">Behaviors tab</a>), conditions (e.g. spawn hidden),
     quest flags, mutations, overrides, non-combatant and immunity flags.</li>
 </ul>
 
@@ -291,7 +291,7 @@ box (writes <code>-1</code>) deliberately draws nothing — for action steps
 (craft this, kill those) with no travel destination.</p>
 
 <h3>Rewards — paid on completion</h3>
-<p>Gold, an item, a buff, a spell, skill/stat raises, recipes, an item
+<p>Gold, an item, a condition, a spell, skill/stat raises, recipes, an item
 stockpile, messages, a teleport, faction rep, and a chain token that grants
 the next quest. All picker-backed.</p>
 
@@ -305,7 +305,7 @@ explains each event inline; the two easily-confused ones:
 
 <p>Actions cover the vocabulary: grant tokens, consume/give items, gold in
 both directions, scripted NPC lines with per-line delays, spawns, exit
-locks, teach/train/learn, buffs, teleports, flags, faction rep, bounties —
+locks, teach/train/learn, conditions, teleports, flags, faction rep, bounties —
 and <code>sequence</code>, a timed scene with its own on-complete actions
 and an optional movement lock.</p>
 
@@ -314,7 +314,7 @@ and an optional movement lock.</p>
 <li><span class="rule">Refused:</span> tokens that resolve to no quest
     step; undeclared flag keys/values (this used to PANIC the next boot —
     now it's a polite red message); ids that don't exist — mobs, items,
-    rooms, buffs, spells, skills, recipes, factions — each named with its
+    rooms, conditions, spells, skills, recipes, factions — each named with its
     exact location ("trigger 3 action 2 spawn_mob: mob 999 does not
     exist").</li>
 <li><span class="warn">Warned:</span> a step that no trigger, reward chain,
@@ -409,7 +409,7 @@ this is the map of them.</p>
     people), quest triggers own world events (giving, killing,
     arriving).</td></tr>
 <tr><td><b>Quests → everything</b></td><td>Trigger filters and actions name
-    mobs, items, rooms, buffs, spells, recipes, factions — all validated
+    mobs, items, rooms, conditions, spells, recipes, factions — all validated
     against the live registries at save.</td></tr>
 <tr><td><b>Mobs ↔ Behaviors</b></td><td>The mob form's Behavior archetype
     dropdown assigns a shared tree; the Behaviors tab edits the trees

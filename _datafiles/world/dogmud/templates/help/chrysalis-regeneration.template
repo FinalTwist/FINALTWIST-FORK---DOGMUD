@@ -14,6 +14,6 @@ target recovers from wounds at a remarkable rate for the duration.
   <ansi fg="yellow">School:      </ansi> Vital
   <ansi fg="yellow">Base Folds:  </ansi> 10
   <ansi fg="yellow">Conv. Cost:  </ansi> 80
-  <ansi fg="yellow">Effect:      </ansi> Powerful regeneration buff — rapidly restores health
+  <ansi fg="yellow">Effect:      </ansi> Powerful regeneration condition, rapidly restores health
 
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help spells</ansi>, <ansi fg="command">help cast</ansi>

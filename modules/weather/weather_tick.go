@@ -32,7 +32,7 @@ func (m *weatherModule) startSim(round uint64) {
 	m.loadSeasons()
 	if !m.cfg.ConditionsEnabled {
 		n := engine.StripConditions()
-		mudlog.Info("Weather: buffs disabled by config", "specsStripped", n)
+		mudlog.Info("Weather: conditions disabled by config", "specsStripped", n)
 	}
 	m.loadOrInitState(round)
 	engine.Reconcile(m.state.Weather)

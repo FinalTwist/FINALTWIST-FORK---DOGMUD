@@ -352,7 +352,7 @@ func ValidateSpeciesConditionIds(conditionIdExists func(id int) bool) {
 		for _, id := range sp.ConditionIds {
 			if !conditionIdExists(id) {
 				panic(fmt.Sprintf(
-					"species %q (id %d): unknown buff id in buffids: %d",
+					"species %q (id %d): unknown condition id in buffids: %d",
 					sp.Name, sp.SpeciesId, id))
 			}
 		}

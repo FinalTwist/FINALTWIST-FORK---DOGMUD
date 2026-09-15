@@ -1,0 +1,18 @@
+The <ansi fg="command">setcondition</ansi> command can be used in the following ways:
+
+<ansi fg="command">setcondition [conditionId]</ansi> - e.g. <ansi fg="command">setcondition 1</ansi>
+Apply a condition to yourself by id
+
+<ansi fg="command">setcondition [username] [conditionId]</ansi> - e.g. <ansi fg="command">setcondition sammy 1</ansi>
+Apply a condition to a player in the room by its id
+
+<ansi fg="command">setcondition search [searchstring]</ansi>
+e.g. <ansi fg="command">setcondition search Liar</ansi> or <ansi fg="command">setcondition search "Liar's Tongue"</ansi>
+Searches for any conditions that match and returns a list along with
+their ids
+
+<ansi fg="command">setcondition list</ansi>
+Displays a list of all conditions
+
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">"buff" still works as an alias for this command;</ansi>
+<ansi fg="magenta">it will be removed in a later update.</ansi>

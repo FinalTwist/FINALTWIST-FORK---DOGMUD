@@ -5,7 +5,7 @@ willpower and raising their resistance to magical and rhetoric attacks.
 Unlike shield spells that form an outer barrier, Iron Will works from
 within -- tempering the target's own mental resolve.
 
-The effect lasts for a long time, making it a strong pre-fight buff.
+The effect lasts for a long time, making it a strong pre-fight condition.
 It costs more than lighter enhancement spells, but the duration makes
 it worthwhile for extended fights or dangerous zones.
 
@@ -26,7 +26,7 @@ it worthwhile for extended fights or dangerous zones.
   - Boosts willpower, which improves spell damage and magical defenses.
   - Adds direct mitigation against magical and conviction damage channels.
   - Stacks with Chrysalis Cocoon for broad multi-channel protection.
-  - Casting again while Iron Will is active overwrites the existing buff.
+  - Casting again while Iron Will is active overwrites the existing condition.
 
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help cast</ansi>, <ansi fg="command">help spells</ansi>, <ansi fg="command">help chrysalis-cocoon</ansi>,
           <ansi fg="command">help conviction-ward</ansi>

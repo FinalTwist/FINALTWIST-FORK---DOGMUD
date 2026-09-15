@@ -1937,14 +1937,69 @@ func TestAdminCondition(t *testing.T) {
 	defer func() { user.Role = users.RoleUser }()
 
 	t.Run("no_args", func(t *testing.T) {
-		handled, err := Condition("", user, room, 0)
+		handled, err := SetCondition("", user, room, 0)
 		assert.True(t, handled)
 		assert.NoError(t, err)
 	})
 
 	t.Run("search", func(t *testing.T) {
-		handled, err := Condition("search test", user, room, 0)
+		handled, err := SetCondition("search test", user, room, 0)
 		assert.True(t, handled)
+		assert.NoError(t, err)
+	})
+}
+
+// TestAdminSetCondition_AliasDispatchAndAdminGate exercises real alias
+// resolution through TryCommand (not a direct SetCondition call): `buff` is
+// kept as a command-alias to `setcondition` in keywords.yaml until slice 3
+// (owner ruling, 2026-09-14 conditions unification slice 2). The alias is
+// resolved by keywords.TryCommandAlias before userCommands is ever indexed
+// (internal/usercommands/usercommands.go TryCommand), so the AdminOnly gate
+// on the `setcondition` entry applies identically no matter which spelling a
+// player types; a non-admin typing either must be refused exactly the same
+// way as any other admin-only command (see admin_command_as_non_admin in
+// TestTryCommand).
+func TestAdminSetCondition_AliasDispatchAndAdminGate(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+
+	// seedAllRegistries already seeded empty keywords; layer the one alias
+	// this test needs on top, restored (back to empty) before seedAllRegistries'
+	// own cleanup restores the true pre-test keywords.
+	cleanupKeywords := keywords.SeedKeywordsForTest(keywords.Aliases{
+		CommandAliases: map[string][]string{"setcondition": {"buff"}},
+	})
+	defer cleanupKeywords()
+
+	user := users.GetByUserId(1)
+	require.NotNil(t, user, "test user 1 must exist")
+	defer func() { user.Role = users.RoleUser }()
+
+	t.Run("admin reaches the handler via setcondition", func(t *testing.T) {
+		user.Role = users.RoleAdmin
+		handled, err := TryCommand("setcondition", "list", 1, events.CmdSkipScripts)
+		assert.True(t, handled)
+		assert.NoError(t, err)
+	})
+
+	t.Run("admin reaches the handler via the buff alias", func(t *testing.T) {
+		user.Role = users.RoleAdmin
+		handled, err := TryCommand("buff", "list", 1, events.CmdSkipScripts)
+		assert.True(t, handled)
+		assert.NoError(t, err)
+	})
+
+	t.Run("non-admin is refused setcondition", func(t *testing.T) {
+		user.Role = users.RoleUser
+		handled, err := TryCommand("setcondition", "list", 1, events.CmdSkipScripts)
+		assert.False(t, handled, "an admin-only command must not dispatch for a non-admin")
+		assert.NoError(t, err)
+	})
+
+	t.Run("non-admin is refused the buff alias", func(t *testing.T) {
+		user.Role = users.RoleUser
+		handled, err := TryCommand("buff", "list", 1, events.CmdSkipScripts)
+		assert.False(t, handled, "the alias must not let a non-admin reach an admin-only command")
 		assert.NoError(t, err)
 	})
 }
@@ -4298,6 +4353,32 @@ func TestGetHelpContents(t *testing.T) {
 	})
 }
 
+// TestGetHelpContents_BuffAliasMatchesSetCondition proves `help buff` and
+// `help setcondition` resolve to the SAME rendered content (the admin
+// command kept `buff` as a working alias for slice 2 of the conditions
+// unification, owner ruling 2026-09-14): both requests must go through the
+// help-alias mechanism (keywords.TryHelpAlias) to the one real template,
+// admincommands is a different door (the command's own bare-invocation
+// usage message) that this does not touch.
+func TestGetHelpContents_BuffAliasMatchesSetCondition(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	useDogmudTemplates(t)
+	cleanupKeywords := keywords.SeedKeywordsForTest(keywords.Aliases{
+		HelpAliases: map[string][]string{"setcondition": {"buff"}},
+	})
+	defer cleanupKeywords()
+
+	buffOut, buffErr := GetHelpContents("buff")
+	require.NoError(t, buffErr)
+
+	setConditionOut, setConditionErr := GetHelpContents("setcondition")
+	require.NoError(t, setConditionErr)
+
+	assert.Equal(t, setConditionOut, buffOut, "help buff must resolve through the help alias to the same content as help setcondition")
+	assert.Contains(t, buffOut, "setcondition", "the rendered help must describe the real command name")
+}
+
 // ─── Admin Teleport deeper ──────────────────────────────────────────────────
 
 func TestAdminTeleportDeep(t *testing.T) {
@@ -4679,13 +4760,13 @@ func TestAdminConditionDeep(t *testing.T) {
 	defer func() { user.Role = users.RoleUser }()
 
 	t.Run("search_nonexistent", func(t *testing.T) {
-		handled, err := Condition("search zzz_nothing", user, room, 0)
+		handled, err := SetCondition("search zzz_nothing", user, room, 0)
 		assert.True(t, handled)
 		assert.NoError(t, err)
 	})
 
 	t.Run("give_buff", func(t *testing.T) {
-		handled, err := Condition("100", user, room, 0)
+		handled, err := SetCondition("100", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
@@ -6583,19 +6664,19 @@ func TestAdminConditionMoreBranches(t *testing.T) {
 	defer func() { user.Role = users.RoleUser }()
 
 	t.Run("buff_add_to_user", func(t *testing.T) {
-		handled, err := Condition("alice 1", user, room, 0)
+		handled, err := SetCondition("alice 1", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
 
 	t.Run("buff_remove_from_user", func(t *testing.T) {
-		handled, err := Condition("alice remove 1", user, room, 0)
+		handled, err := SetCondition("alice remove 1", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
 
 	t.Run("buff_invalid_id", func(t *testing.T) {
-		handled, err := Condition("alice 99999", user, room, 0)
+		handled, err := SetCondition("alice 99999", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
@@ -7305,13 +7386,13 @@ func TestAdminConditionAllBranches(t *testing.T) {
 	defer func() { user.Role = users.RoleUser }()
 
 	t.Run("buff_list", func(t *testing.T) {
-		handled, err := Condition("list", user, room, 0)
+		handled, err := SetCondition("list", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})
 
 	t.Run("buff_info", func(t *testing.T) {
-		handled, err := Condition("info 100", user, room, 0)
+		handled, err := SetCondition("info 100", user, room, 0)
 		assert.True(t, handled)
 		_ = err
 	})

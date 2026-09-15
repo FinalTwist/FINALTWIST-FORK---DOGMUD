@@ -116,14 +116,14 @@ func (c *Character) RefreshCondition(conditionId int) bool {
 func (c *Character) AddCondition(conditionId int, isPermanent bool) error {
 	conditionId = int(math.Abs(float64(conditionId)))
 	if !c.Conditions.AddCondition(conditionId, isPermanent) {
-		return fmt.Errorf(`failed to add buff. target: "%s" buffId: %d`, c.Name, conditionId)
+		return fmt.Errorf(`failed to add condition. target: "%s" conditionId: %d`, c.Name, conditionId)
 	}
 	// Chunk 6 (Perception): blind-source conditions trigger Sighted → Blinded.
 	// Guard against re-entry: only fire if state is currently Sighted.
 	if (conditionId == perception.ConditionIdBlinded || conditionId == perception.ConditionIdFlashbangBlindness) &&
 		c.Perception != nil && c.Perception.State() == perception.Sighted {
 		_ = c.Perception.TransitionTo(perception.Blinded,
-			state.TransitionReason{Trigger: perception.TriggerConditionApplied, Metadata: map[string]any{"buffId": conditionId}})
+			state.TransitionReason{Trigger: perception.TriggerConditionApplied, Metadata: map[string]any{"conditionId": conditionId}})
 	}
 	c.Validate()
 	return nil
@@ -133,13 +133,13 @@ func (c *Character) AddCondition(conditionId int, isPermanent bool) error {
 func (c *Character) AddConditionScaled(conditionId int, durationMult float64) error {
 	conditionId = int(math.Abs(float64(conditionId)))
 	if !c.Conditions.AddConditionScaled(conditionId, durationMult) {
-		return fmt.Errorf(`failed to add buff. target: "%s" buffId: %d`, c.Name, conditionId)
+		return fmt.Errorf(`failed to add condition. target: "%s" conditionId: %d`, c.Name, conditionId)
 	}
 	// Chunk 6 (Perception): see AddCondition above.
 	if (conditionId == perception.ConditionIdBlinded || conditionId == perception.ConditionIdFlashbangBlindness) &&
 		c.Perception != nil && c.Perception.State() == perception.Sighted {
 		_ = c.Perception.TransitionTo(perception.Blinded,
-			state.TransitionReason{Trigger: perception.TriggerConditionApplied, Metadata: map[string]any{"buffId": conditionId}})
+			state.TransitionReason{Trigger: perception.TriggerConditionApplied, Metadata: map[string]any{"conditionId": conditionId}})
 	}
 	c.Validate()
 	return nil
@@ -158,7 +158,7 @@ func (c *Character) AddConditionScaled(conditionId int, durationMult float64) er
 func (c *Character) AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string) error {
 	conditionId = int(math.Abs(float64(conditionId)))
 	if !c.Conditions.AddConditionMagnitude(conditionId, triggers, magnitude) {
-		return fmt.Errorf(`failed to add buff. target: "%s" buffId: %d`, c.Name, conditionId)
+		return fmt.Errorf(`failed to add condition. target: "%s" conditionId: %d`, c.Name, conditionId)
 	}
 	for _, b := range c.Conditions.GetConditions(conditionId) {
 		b.Source = source
@@ -183,7 +183,7 @@ func (c *Character) RemoveCondition(conditionId int) {
 	if (conditionId == perception.ConditionIdBlinded || conditionId == perception.ConditionIdFlashbangBlindness) &&
 		c.Perception != nil && c.Perception.State() == perception.Blinded && !c.HasAnyBlindSource() {
 		_ = c.Perception.TransitionTo(perception.Sighted,
-			state.TransitionReason{Trigger: perception.TriggerConditionExpired, Metadata: map[string]any{"buffId": conditionId}})
+			state.TransitionReason{Trigger: perception.TriggerConditionExpired, Metadata: map[string]any{"conditionId": conditionId}})
 	}
 	c.Validate()
 }

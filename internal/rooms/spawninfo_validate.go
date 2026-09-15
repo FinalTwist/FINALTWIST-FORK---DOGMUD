@@ -67,7 +67,7 @@ func ValidateSpawnEntry(s SpawnInfo, v SpawnValidators) error {
 
 	for _, b := range s.ConditionIds {
 		if !v.ConditionExists(b) {
-			return fmt.Errorf("buff %d does not exist", b)
+			return fmt.Errorf("condition %d does not exist", b)
 		}
 	}
 

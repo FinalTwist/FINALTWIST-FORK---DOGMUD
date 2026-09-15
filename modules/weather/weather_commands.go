@@ -198,7 +198,7 @@ func (m *weatherModule) printStatus(user *users.UserRecord) {
 	}
 	sendLine(user, fmt.Sprintf("Simulation: %d active front(s); state round %d; next tick at round %d (every %d game hour(s)).",
 		len(m.state.Fronts), m.state.Round, m.nextTick, m.cfg.TickEveryGameHours))
-	sendLine(user, fmt.Sprintf("Emotes: mode=%s every ~%d rounds; buffs=%v; persist=%v.",
+	sendLine(user, fmt.Sprintf("Emotes: mode=%s every ~%d rounds; conditions=%v; persist=%v.",
 		m.cfg.EmoteMode, m.cfg.EmoteEveryRounds, m.cfg.ConditionsEnabled, m.cfg.Persist))
 	if m.seasonsOn {
 		sendLine(user, fmt.Sprintf("Seasons: ON — %d track(s), %d zone(s) seasonal.",

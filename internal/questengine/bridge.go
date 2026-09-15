@@ -323,7 +323,7 @@ func (b *GameBridge) ApplyStatusCondition(bf StatusConditionDef) {
 	// quest reward would otherwise vanish. The old direct add surfaced it
 	// through the error it returned; this keeps that signal.
 	if conditions.GetConditionSpec(bf.Condition) == nil {
-		mudlog.Error("GameBridge.ApplyBuff", "buff", bf.Condition, "error", "no such buff spec")
+		mudlog.Error("GameBridge.ApplyStatusCondition", "condition", bf.Condition, "error", "no such condition spec")
 		return
 	}
 	b.user.AddCondition(bf.Condition, "quest")

@@ -62,7 +62,7 @@ var (
 			ExampleInput: "quit",
 		},
 		"reload": SystemCommandHelp{
-			Description:  "Reload datafiles for various packages (items, mobs, buffs, etc.)",
+			Description:  "Reload datafiles for various packages (items, mobs, conditions, etc.)",
 			ExampleInput: "reload",
 		},
 		"shutdown": SystemCommandHelp{

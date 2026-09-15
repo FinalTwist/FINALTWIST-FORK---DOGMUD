@@ -16,9 +16,9 @@ import (
 // A stacking spec (conditions.Stacking) can only be added through
 // AddConditionMagnitude, which supplies the rounds and amount a stack needs.
 // Conditions.AddCondition and Conditions.AddConditionScaled now refuse one outright (see
-// internal/conditions review fixes), and admin.buff.go's `buff <id>` queues its
-// add through exactly that door (UserRecord.AddCondition / Mob.AddCondition, both
-// events.Condition with no magnitude or triggers). Before this fix the command
+// internal/conditions review fixes), and admin.setcondition.go's `setcondition <id>`
+// queues its add through exactly that door (UserRecord.AddCondition / Mob.AddCondition,
+// both events.Condition with no magnitude or triggers). Before this fix the command
 // told the admin the condition was "applied" regardless, which was a lie: the
 // queued add was silently refused downstream and nothing landed.
 const adminConditionStackingTestId = 9401
@@ -55,18 +55,18 @@ func seedAdminConditionStackingUser(t *testing.T) (*users.UserRecord, *rooms.Roo
 	}
 }
 
-func TestAdminCondition_RefusesAStackingSpecOnAPlayer(t *testing.T) {
+func TestAdminSetCondition_RefusesAStackingSpecOnAPlayer(t *testing.T) {
 	user, room, cleanup := seedAdminConditionStackingUser(t)
 	defer cleanup()
 
-	handled, err := Condition(strconv.Itoa(adminConditionStackingTestId), user, room, 0)
+	handled, err := SetCondition(strconv.Itoa(adminConditionStackingTestId), user, room, 0)
 	if err != nil || !handled {
 		t.Fatalf("command errored: handled=%v err=%v", handled, err)
 	}
 
 	msgs := strings.Join(events.DrainQueuedMessagesForTest(user.UserId), "\n")
 	if strings.Contains(msgs, "applied to") {
-		t.Errorf("must not claim the buff applied; got:\n%s", msgs)
+		t.Errorf("must not claim the condition applied; got:\n%s", msgs)
 	}
 	if !strings.Contains(msgs, "stack") {
 		t.Errorf("no stacking refusal sent; got:\n%s", msgs)
@@ -77,9 +77,9 @@ func TestAdminCondition_RefusesAStackingSpecOnAPlayer(t *testing.T) {
 }
 
 // seedAdminConditionStackingMob mirrors seedAdminConditionStackingUser for the MOB
-// branch of the same refusal (admin.buff.go's second `conditionSpec.IsStacking()`
+// branch of the same refusal (admin.setcondition.go's second `conditionSpec.IsStacking()`
 // guard, ~line 150). It needs its own room registered with the rooms
-// package, because the len(args)>=2 path in Condition() re-resolves the room via
+// package, because the len(args)>=2 path in SetCondition() re-resolves the room via
 // rooms.LoadRoom(user.Character.RoomId) rather than using the room argument
 // the command was called with. The mob instance is seeded and placed in that
 // room the same way internal/usercommands/attack_test.go builds a mob
@@ -130,18 +130,18 @@ func seedAdminConditionStackingMob(t *testing.T) (*users.UserRecord, *rooms.Room
 	}
 }
 
-func TestAdminCondition_RefusesAStackingSpecOnAMob(t *testing.T) {
+func TestAdminSetCondition_RefusesAStackingSpecOnAMob(t *testing.T) {
 	user, room, mob, cleanup := seedAdminConditionStackingMob(t)
 	defer cleanup()
 
-	handled, err := Condition("stackratling "+strconv.Itoa(adminConditionStackingTestId), user, room, 0)
+	handled, err := SetCondition("stackratling "+strconv.Itoa(adminConditionStackingTestId), user, room, 0)
 	if err != nil || !handled {
 		t.Fatalf("command errored: handled=%v err=%v", handled, err)
 	}
 
 	msgs := strings.Join(events.DrainQueuedMessagesForTest(user.UserId), "\n")
 	if strings.Contains(msgs, "applied to") {
-		t.Errorf("must not claim the buff applied; got:\n%s", msgs)
+		t.Errorf("must not claim the condition applied; got:\n%s", msgs)
 	}
 	if !strings.Contains(msgs, "stack") {
 		t.Errorf("no stacking refusal sent; got:\n%s", msgs)

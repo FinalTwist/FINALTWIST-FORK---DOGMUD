@@ -100,7 +100,7 @@ func TestValidateRefs_IdExistence(t *testing.T) {
 	errsContainingRefs(t, errs, "mob 999")
 	errsContainingRefs(t, errs, "item 888")
 	errsContainingRefs(t, errs, "room 777")
-	errsContainingRefs(t, errs, "buff 666")
+	errsContainingRefs(t, errs, "condition 666")
 	errsContainingRefs(t, errs, "map_target")
 }
 

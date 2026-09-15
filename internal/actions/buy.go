@@ -42,7 +42,7 @@ type BuyResult struct {
 	Success   bool   // at least one unit purchased
 	Purchased int    // actual units purchased (may be < Requested)
 	Requested int    // requested quantity (1 if unspecified)
-	SaleType  string // "item" | "buff" | "" on failure
+	SaleType  string // "item" | "condition" | "" on failure
 	Reason    string // populated on failure
 }
 
@@ -488,7 +488,7 @@ func tryPurchaseLegacy(buyer Actor, request string, shopMob *mobs.Mob, shopUser 
 	}
 	if ctx.matchedShopItem.ConditionId > 0 {
 		executePurchaseCondition(buyer, shopMob, shopUser, ctx.matchedShopItem, ctx.price, ctx.tradeInString)
-		return BuyResult{Success: true, Purchased: 1, SaleType: "buff"}
+		return BuyResult{Success: true, Purchased: 1, SaleType: "condition"}
 	}
 
 	// Merc/pet sale types are filtered out at catalog build time;

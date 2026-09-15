@@ -407,7 +407,7 @@ func editLockAndTrap(cmdPrompt *prompt.Prompt, user *users.UserRecord, lock game
 				return conditionOptions[i].Name < conditionOptions[j].Name
 			})
 
-			question := cmdPrompt.Ask(`Select a buff to add to the trap, or nothing to continue:`, []string{}, `0`)
+			question := cmdPrompt.Ask(`Select a condition to add to the trap, or nothing to continue:`, []string{}, `0`)
 			if !question.Done {
 				tplTxt, _ := templates.Process("tables/numbered-list-doubled", conditionOptions, user.UserId)
 				user.SendText(messaging.CategorySystem, tplTxt)

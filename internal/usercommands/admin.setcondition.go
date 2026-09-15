@@ -20,9 +20,9 @@ import (
 
 /*
 * Role Permissions:
-* condition 				(All)
+* setcondition 				(All)
  */
-func Condition(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+func SetCondition(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
 	// args should look like one of the following:
 	// target conditionId - put condition on target if in the room
@@ -110,7 +110,7 @@ func Condition(rest string, user *users.UserRecord, room *rooms.Room, flags even
 			}
 
 			if conditionId == 0 {
-				user.SendText(messaging.CategorySystem, "buffId must be an integer > 0.")
+				user.SendText(messaging.CategorySystem, "conditionId must be an integer > 0.")
 				return true, nil
 
 			}
@@ -127,14 +127,14 @@ func Condition(rest string, user *users.UserRecord, room *rooms.Room, flags even
 						// refuses it. Catch that here instead of telling the
 						// admin it applied when nothing landed.
 						if conditionSpec.IsStacking() {
-							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", conditionId, conditionSpec.Name))
+							user.SendText(messaging.CategorySystem, fmt.Sprintf("Condition %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", conditionId, conditionSpec.Name))
 						} else {
 							targetUser.AddCondition(conditionId, `admin`)
-							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) applied to %s.", conditionId, conditionSpec.Name, targetUser.Character.Name))
+							user.SendText(messaging.CategorySystem, fmt.Sprintf("Condition %d (%s) applied to %s.", conditionId, conditionSpec.Name, targetUser.Character.Name))
 						}
 
 					} else {
-						user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff Id %d not found.", conditionId))
+						user.SendText(messaging.CategorySystem, fmt.Sprintf("Condition %d not found.", conditionId))
 					}
 
 					return true, nil
@@ -148,14 +148,14 @@ func Condition(rest string, user *users.UserRecord, room *rooms.Room, flags even
 					if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil {
 						// See the matching comment in the player branch above.
 						if conditionSpec.IsStacking() {
-							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", conditionSpec.ConditionId, conditionSpec.Name))
+							user.SendText(messaging.CategorySystem, fmt.Sprintf("Condition %d (%s) stacks and can only be applied by whatever move or proc grants it, not this command.", conditionSpec.ConditionId, conditionSpec.Name))
 						} else {
 							targetMob.AddCondition(conditionId, `admin`)
-							user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff %d (%s) applied to %s.", conditionSpec.ConditionId, conditionSpec.Name, targetMob.Character.Name))
+							user.SendText(messaging.CategorySystem, fmt.Sprintf("Condition %d (%s) applied to %s.", conditionSpec.ConditionId, conditionSpec.Name, targetMob.Character.Name))
 						}
 
 					} else {
-						user.SendText(messaging.CategorySystem, fmt.Sprintf("Buff Id %d not found.", conditionId))
+						user.SendText(messaging.CategorySystem, fmt.Sprintf("Condition %d not found.", conditionId))
 					}
 
 					return true, nil
@@ -168,7 +168,7 @@ func Condition(rest string, user *users.UserRecord, room *rooms.Room, flags even
 	user.SendText(messaging.CategorySystem, "target not found.")
 
 	// send some sort of help info?
-	infoOutput, _ := templates.Process("admincommands/help/command.buff", nil, user.UserId, user.UserId)
+	infoOutput, _ := templates.Process("admincommands/help/command.setcondition", nil, user.UserId, user.UserId)
 	user.SendText(messaging.CategorySystem, infoOutput)
 
 	return true, nil
