@@ -1846,7 +1846,7 @@ func resolveIdentify(user *users.UserRecord, itemName string, room *rooms.Room) 
 // resolveCharmSpell and put nothing in their place. Nothing else covered for it:
 // combat.SituationalAttackMult returns a flat 1.0 for every channel except melee
 // and ranged, and the defy defence carries no combat term -- so charm quietly got
-// easier mid-fight while charm.yaml, charm.template and hints.yaml all went on
+// easier mid-fight while charm.yaml, charm.template and a gameplay tip all went on
 // telling players it had got harder.
 //
 // Literals rather than balance knobs by owner ruling 2026-08-24.
