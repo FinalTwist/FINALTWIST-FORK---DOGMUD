@@ -16,7 +16,7 @@ func TestCondPlayersInRoomNeedsSight(t *testing.T) {
 	ctx := &EvalContext{InstanceId: m.InstanceId, RoomId: room.RoomId}
 	require.Equal(t, Failure, condPlayersInRoom(nil, ctx), "a blind mob finds nobody")
 
-	require.NoError(t, m.Character.AddBuff(sightNightVisionBuffId, true))
+	require.NoError(t, m.Character.AddCondition(sightNightVisionConditionId, true))
 	require.Equal(t, Success, condPlayersInRoom(nil, ctx), "night vision finds them")
 }
 
@@ -29,7 +29,7 @@ func TestCondPlayersInRoomSeesWhenSomeoneCarriesLight(t *testing.T) {
 	u := users.NewTestUser(8111, "lume", "Lume", 98111)
 	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{8111: u}))
 	room.AddPlayer(8111)
-	require.NoError(t, u.Character.AddBuff(sightIlluminationBuffId, true))
+	require.NoError(t, u.Character.AddCondition(sightIlluminationConditionId, true))
 
 	ctx := &EvalContext{InstanceId: m.InstanceId, RoomId: room.RoomId}
 	require.Equal(t, Success, condPlayersInRoom(nil, ctx), "someone carrying light lets the mob see")
@@ -46,7 +46,7 @@ func TestCondMultipleEnemiesNeedsSight(t *testing.T) {
 	ctx := &EvalContext{InstanceId: m.InstanceId, RoomId: room.RoomId}
 	require.Equal(t, Failure, condMultipleEnemies(nil, ctx), "a blind mob counts no enemies")
 
-	require.NoError(t, m.Character.AddBuff(sightNightVisionBuffId, true))
+	require.NoError(t, m.Character.AddCondition(sightNightVisionConditionId, true))
 	require.Equal(t, Success, condMultipleEnemies(nil, ctx), "night vision counts both")
 }
 
@@ -77,7 +77,7 @@ func TestEngageHostilePlayerInRoomNeedsSight(t *testing.T) {
 		"a blind mob does not pick up aggro")
 	require.False(t, m.Character.IsInCombat(), "and starts no fight")
 
-	require.NoError(t, m.Character.AddBuff(sightNightVisionBuffId, true))
+	require.NoError(t, m.Character.AddCondition(sightNightVisionConditionId, true))
 	require.True(t, engageHostilePlayerInRoom(m.InstanceId, room.RoomId),
 		"night vision engages normally")
 }

@@ -2,8 +2,8 @@
 
 The <ansi fg="command">Chrysalis Glow</ansi> spell coaxes dormant Chrysalis spores to luminesce,
 suffusing the caster in a soft, otherworldly radiance. Beyond mere
-illumination, the glow carries a buff that enhances the caster's
-abilities for a time.
+illumination, the spell leaves the caster with a beneficial effect
+that enhances their abilities for a time.
 
 <ansi fg="yellow">Usage: </ansi>
 
@@ -15,6 +15,6 @@ abilities for a time.
   <ansi fg="yellow">School:      </ansi> Mental
   <ansi fg="yellow">Base Folds:  </ansi> N/A
   <ansi fg="yellow">Conv. Cost:  </ansi> 35
-  <ansi fg="yellow">Effect:      </ansi> Applies a beneficial glow buff
+  <ansi fg="yellow">Effect:      </ansi> Applies a beneficial glow condition
 
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help spells</ansi>, <ansi fg="command">help cast</ansi>

@@ -215,21 +215,21 @@ decay math; floors at zero.
 4. Collects unresolved crime IDs for the faction via
    `crimeIdsForFactionPlayer`.
 5. Stamps all jail MiscData keys (including `jail_instance_id`).
-6. Applies buff 88 (Jailed) via `player.AddBuffScaled(88, float64(rounds))`
-   — `TriggersLeft` is scaled to `rounds` so the buff expires naturally
+6. Applies condition 88 (Jailed) via `player.AddConditionScaled(88, float64(rounds))`
+   — `TriggersLeft` is scaled to `rounds` so the condition expires naturally
    at sentence end.
 7. `player.EndAggro()` — drops any fight the player was in (they are in
    custody now, not brawling).
 8. Moves the player to the cell via `rooms.MoveToRoom`.
 9. Sends arrest-flavor text to the player.
 
-The Jailed buff (id 88) carries two flags: `no-go` / `NoMovement` prevents
+The Jailed condition (id 88) carries two flags: `no-go` / `NoMovement` prevents
 walking, fleeing, and recalling out (see flee.go + spell_foldrecall.go);
 `no-aggro-target` makes the jailed player invisible to all mob aggro
 targeting, so guards do not pursue prisoners into the cell. The combat
 round (`hooks/NewRound_DoCombat.go`) also drops a mob's stale aggro on a
-`no-aggro-target` player. The buff's `end_user_text` ("The cell door swings
-open. You are free to go.") fires automatically when the buff is removed —
+`no-aggro-target` player. The condition's `end_user_text` ("The cell door swings
+open. You are free to go.") fires automatically when the condition is removed —
 this is the single release line for both the timer and pay-fine paths, so
 `ResolveDetention` does NOT send its own.
 
@@ -261,7 +261,7 @@ against the other that re-triggers arrest the instant the player is freed.
 3. Withdraws all open bounties issued by any faction in the set.
 4. Resets rep to `JusticeArrestRepReset` floor for each faction in the set,
    only where currently below it (default −10; never lowers good standing).
-5. Removes buff 88 via `player.RemoveBuff(88)` — this fires the buff's
+5. Removes condition 88 via `player.RemoveCondition(88)` — this fires the condition's
    release line; `ResolveDetention` sends no flavor of its own.
 6. When `InstanceId != 0`, tears down the ephemeral cell via
    `aTeardownCellFn` (registry Remove + `rooms.TryEphemeralCleanup`)
@@ -359,7 +359,7 @@ jail record has a non-zero `UntilRound`:
 - **Sentence already served** (offline time ≥ `UntilRound`): calls
   `ResolveDetention` immediately — the player is released on connect.
 - **Sentence still running**: creates a fresh ephemeral cell via
-  `aCreateCellFn`, refreshes buff 88 to the **remaining** rounds
+  `aCreateCellFn`, refreshes condition 88 to the **remaining** rounds
   (`UntilRound - nowRound`), applies `aSetCellDescFn`, and moves the
   player inside. This path handles both normal logout/login and server
   restarts (all ephemeral instances vanish on boot; `UntilRound` on the
@@ -389,7 +389,7 @@ guard mob's per-round tick
                                     ├─ aCreateCellFn → instanced cell
                                     │    (falls back to static HoldingCellRoom)
                                     ├─ aSetCellDescFn (patch cell description)
-                                    ├─ buff 88 (Jailed, no-go)
+                                    ├─ condition 88 (Jailed, no-go)
                                     ├─ jail MiscData record (incl. InstanceId)
                                     └─ MoveToRoom(ephemeral entry room)
 
@@ -398,7 +398,7 @@ per-round player tick (hooks/Jail_ExpiryRelease.go)
                                                ├─ crimes resolved
                                                ├─ bounty withdrawn
                                                ├─ rep floor restored
-                                               ├─ buff 88 removed
+                                               ├─ condition 88 removed
                                                ├─ aTeardownCellFn (if InstanceId≠0)
                                                └─ MoveToRoom(releaseRoomFn → 473/4110)
 
@@ -412,7 +412,7 @@ player login (hooks/PlayerSpawn_HandleJoin)
   └─ RestoreJailOnLogin
        ├─ sentence served offline? → ResolveDetention (release on connect)
        └─ still jailed? → aCreateCellFn (fresh cell)
-                          + buff 88 refreshed to remaining rounds
+                          + condition 88 refreshed to remaining rounds
                           + MoveToRoom(new ephemeral cell)
 
 player commands

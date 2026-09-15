@@ -83,7 +83,7 @@ func Picklock(rest string, user *users.UserRecord, room *rooms.Room, flags event
 
 		args = args[1:]
 		lockStrength = int(container.Lock.Difficulty)
-		lockTrap = container.Lock.TrapBuffIds
+		lockTrap = container.Lock.TrapConditionIds
 		lockRotation = container.Lock.RotationSeed
 		lockId = fmt.Sprintf(`%d-%s`, room.RoomId, containerName)
 
@@ -105,7 +105,7 @@ func Picklock(rest string, user *users.UserRecord, room *rooms.Room, flags event
 		}
 
 		lockStrength = int(exitInfo.Lock.Difficulty)
-		lockTrap = exitInfo.Lock.TrapBuffIds
+		lockTrap = exitInfo.Lock.TrapConditionIds
 		lockRotation = exitInfo.Lock.RotationSeed
 		lockId = fmt.Sprintf(`%d-%s`, room.RoomId, exitName)
 
@@ -122,7 +122,7 @@ func Picklock(rest string, user *users.UserRecord, room *rooms.Room, flags event
 
 	sequence := util.GetLockSequence(lockId, lockStrength, string(configs.GetServerConfig().Seed), lockRotation)
 
-	// Calculate any presolve from buffs, gear, pet perks, etc.
+	// Calculate any presolve from conditions, gear, pet perks, etc.
 	if len(keyring_sequence) == 0 {
 		if presolve := user.Character.StatMod(string(statmods.Picklock)); presolve > 0 {
 			// All locks bottom out at 3 pins
@@ -235,8 +235,8 @@ func Picklock(rest string, user *users.UserRecord, room *rooms.Room, flags event
 				user.SendText(messaging.CategorySystem, ``)
 				room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="alert-3"><ansi fg="username">%s</ansi> triggered a trap!</ansi>`, user.Character.Name), user.UserId)
 
-				for _, buffId := range lockTrap {
-					user.AddBuff(buffId, `trap`)
+				for _, conditionId := range lockTrap {
+					user.AddCondition(conditionId, `trap`)
 				}
 			}
 		}

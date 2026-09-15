@@ -3,8 +3,8 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 )
 
@@ -16,12 +16,12 @@ import (
 // with the default CrashSiteSuppressionFactor (0.35) the dampened total is a
 // large, reliable margin below the normal total.
 func TestCalcSpellDamage_DampenedSuppressed(t *testing.T) {
-	cleanup := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	cleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		200: {
-			BuffId:       200,
+			ConditionId:  200,
 			Name:         "Dampened",
 			TriggerCount: 1000000,
-			Flags:        []buffs.Flag{buffs.Dampened},
+			Flags:        []conditions.Flag{conditions.Dampened},
 		},
 	})
 	defer cleanup()
@@ -54,11 +54,11 @@ func TestCalcSpellDamage_DampenedSuppressed(t *testing.T) {
 	}
 
 	damp := newCaster()
-	damp.Buffs = buffs.New()
-	if err := damp.AddBuff(200, true); err != nil {
+	damp.Conditions = conditions.New()
+	if err := damp.AddCondition(200, true); err != nil {
 		t.Fatalf("AddBuff(Dampened): %v", err)
 	}
-	if !damp.HasBuffFlag(buffs.Dampened) {
+	if !damp.HasConditionFlag(conditions.Dampened) {
 		t.Fatal("caster should carry the Dampened flag after AddBuff")
 	}
 

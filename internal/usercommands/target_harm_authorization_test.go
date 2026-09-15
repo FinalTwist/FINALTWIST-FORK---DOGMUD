@@ -3,8 +3,8 @@ package usercommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/stretchr/testify/assert"
@@ -28,10 +28,10 @@ func seedTargetTestMob(t *testing.T, room *rooms.Room, instanceId int, name stri
 		InstanceId: instanceId,
 		HomeRoomId: room.RoomId,
 		Character: characters.Character{
-			Name:   name,
-			RoomId: room.RoomId,
-			Health: 100,
-			Buffs:  buffs.New(),
+			Name:       name,
+			RoomId:     room.RoomId,
+			Health:     100,
+			Conditions: conditions.New(),
 		},
 	}
 	m.Character.HealthMax.Value = 100

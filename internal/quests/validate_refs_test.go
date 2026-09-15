@@ -7,19 +7,19 @@ import (
 
 func permissiveQuestValidators() QuestValidators {
 	return QuestValidators{
-		StepExists:     func(string) bool { return true },
-		MobExists:      func(int) bool { return true },
-		ItemExists:     func(int) bool { return true },
-		RoomExists:     func(int) bool { return true },
-		BuffExists:     func(int) bool { return true },
-		SpellExists:    func(string) bool { return true },
-		SkillExists:    func(string) bool { return true },
-		StatExists:     func(string) bool { return true },
-		RecipeExists:   func(string) bool { return true },
-		FactionExists:  func(string) bool { return true },
-		FlagDeclared:   func(string, string) bool { return true },
-		DialogueGrants: func(string) bool { return true },
-		MobHasDialogue: func(int) bool { return true },
+		StepExists:      func(string) bool { return true },
+		MobExists:       func(int) bool { return true },
+		ItemExists:      func(int) bool { return true },
+		RoomExists:      func(int) bool { return true },
+		ConditionExists: func(int) bool { return true },
+		SpellExists:     func(string) bool { return true },
+		SkillExists:     func(string) bool { return true },
+		StatExists:      func(string) bool { return true },
+		RecipeExists:    func(string) bool { return true },
+		FactionExists:   func(string) bool { return true },
+		FlagDeclared:    func(string, string) bool { return true },
+		DialogueGrants:  func(string) bool { return true },
+		MobHasDialogue:  func(int) bool { return true },
 	}
 }
 
@@ -86,13 +86,13 @@ func TestValidateRefs_IdExistence(t *testing.T) {
 	v.MobExists = func(id int) bool { return id != 999 }
 	v.ItemExists = func(id int) bool { return id != 888 }
 	v.RoomExists = func(id int) bool { return id != 777 }
-	v.BuffExists = func(id int) bool { return id != 666 }
+	v.ConditionExists = func(id int) bool { return id != 666 }
 
 	q := refsBaseQuest()
 	q.Triggers[0].Actions = append(q.Triggers[0].Actions,
 		ActionDef{NpcSay: &NpcSayDef{Mob: 999, Lines: []SayLineDef{{Text: "hi"}}}},
 		ActionDef{SpawnItem: &SpawnDef{Id: 888, Room: 777}},
-		ActionDef{ApplyBuff: &BuffDef{Buff: 666}},
+		ActionDef{ApplyStatusCondition: &StatusConditionDef{Condition: 666}},
 	)
 	q.Steps[0].MapTarget = 777
 	q.Rewards.ItemId = 888
@@ -100,7 +100,7 @@ func TestValidateRefs_IdExistence(t *testing.T) {
 	errsContainingRefs(t, errs, "mob 999")
 	errsContainingRefs(t, errs, "item 888")
 	errsContainingRefs(t, errs, "room 777")
-	errsContainingRefs(t, errs, "buff 666")
+	errsContainingRefs(t, errs, "condition 666")
 	errsContainingRefs(t, errs, "map_target")
 }
 

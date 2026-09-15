@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const defuseTrapBuffId = 4242
+const defuseTrapConditionId = 4242
 
 // writeTrappedRoomTemplate writes a template for roomId with a trapped `north`
 // exit and an untrapped `south` exit, and registers its path.
@@ -28,8 +28,8 @@ func writeTrappedRoomTemplate(t *testing.T, tempDir string, roomId int, northTit
 			"north": {
 				RoomId: 200,
 				Lock: gamelock.Lock{
-					Difficulty:  30,
-					TrapBuffIds: []int{defuseTrapBuffId},
+					Difficulty:       30,
+					TrapConditionIds: []int{defuseTrapConditionId},
 				},
 			},
 			"south": {RoomId: 300},
@@ -75,11 +75,11 @@ func TestDefusedExit_SurvivesSaveAndReload(t *testing.T) {
 	// --- Session 1: load, defuse, save. ---
 	live := LoadRoomInstance(roomId)
 	require.NotNil(t, live)
-	require.Equal(t, []int{defuseTrapBuffId}, live.Exits["north"].Lock.TrapBuffIds,
+	require.Equal(t, []int{defuseTrapConditionId}, live.Exits["north"].Lock.TrapConditionIds,
 		"setup precondition: the north exit should start trapped")
 
 	live.MarkExitTrapDefused("north")
-	assert.Nil(t, live.Exits["north"].Lock.TrapBuffIds,
+	assert.Nil(t, live.Exits["north"].Lock.TrapConditionIds,
 		"defusing must clear the trap in the live room")
 	assert.Equal(t, []string{"north"}, live.DefusedExits)
 
@@ -94,7 +94,7 @@ func TestDefusedExit_SurvivesSaveAndReload(t *testing.T) {
 	// --- Session 2: a fresh load, as after a restart or copyover. ---
 	reloaded := LoadRoomInstance(roomId)
 	require.NotNil(t, reloaded)
-	assert.Nil(t, reloaded.Exits["north"].Lock.TrapBuffIds,
+	assert.Nil(t, reloaded.Exits["north"].Lock.TrapConditionIds,
 		"the disarmed trap must stay disarmed across a reload")
 
 	// Everything else about the exit is still template-owned.
@@ -115,8 +115,8 @@ func TestDefusedExit_SurvivesSaveAndReload(t *testing.T) {
 			"north": {
 				RoomId: 999,
 				Lock: gamelock.Lock{
-					Difficulty:  55,
-					TrapBuffIds: []int{defuseTrapBuffId},
+					Difficulty:       55,
+					TrapConditionIds: []int{defuseTrapConditionId},
 				},
 			},
 			"south": {RoomId: 300},
@@ -141,7 +141,7 @@ func TestDefusedExit_SurvivesSaveAndReload(t *testing.T) {
 		"an authored lock-difficulty edit must still take effect")
 
 	// The disarm is the ONE thing the instance file overrides, by design.
-	assert.Nil(t, afterEdit.Exits["north"].Lock.TrapBuffIds,
+	assert.Nil(t, afterEdit.Exits["north"].Lock.TrapConditionIds,
 		"the player's disarm still applies to the re-authored exit")
 }
 
@@ -151,7 +151,7 @@ func TestDefusedExit_SurvivesSaveAndReload(t *testing.T) {
 func TestApplyDefusedExits_StaleNameIsNoOp(t *testing.T) {
 	r := &Room{
 		Exits: map[string]exit.RoomExit{
-			"south": {RoomId: 300, Lock: gamelock.Lock{TrapBuffIds: []int{defuseTrapBuffId}}},
+			"south": {RoomId: 300, Lock: gamelock.Lock{TrapConditionIds: []int{defuseTrapConditionId}}},
 		},
 		DefusedExits: []string{"north"}, // no longer exists in the template
 	}
@@ -159,7 +159,7 @@ func TestApplyDefusedExits_StaleNameIsNoOp(t *testing.T) {
 	r.applyDefusedExits()
 
 	assert.Len(t, r.Exits, 1, "a stale name must not create an exit")
-	assert.Equal(t, []int{defuseTrapBuffId}, r.Exits["south"].Lock.TrapBuffIds,
+	assert.Equal(t, []int{defuseTrapConditionId}, r.Exits["south"].Lock.TrapConditionIds,
 		"a stale name must not clear an unrelated exit's trap")
 }
 
@@ -168,7 +168,7 @@ func TestApplyDefusedExits_StaleNameIsNoOp(t *testing.T) {
 func TestMarkExitTrapDefused_UnknownExitAndDedupe(t *testing.T) {
 	r := &Room{
 		Exits: map[string]exit.RoomExit{
-			"north": {RoomId: 200, Lock: gamelock.Lock{TrapBuffIds: []int{defuseTrapBuffId}}},
+			"north": {RoomId: 200, Lock: gamelock.Lock{TrapConditionIds: []int{defuseTrapConditionId}}},
 		},
 	}
 

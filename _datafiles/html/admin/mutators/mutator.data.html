@@ -123,53 +123,53 @@
     </div>
 
     <hr />
-    <h3>Player Buffs</h3>
+    <h3>Player Conditions</h3>
 
     <div class="form-group row form-check container-fluid">
-        {{ $buffIds := .raceInfo.BuffIds }}
-        {{range $i, $buffSpec := .buffSpecs}}
-            <label class="form-check-label col-md-2" for="playerbuffids-{{$buffSpec.BuffId}}" title="{{ $buffSpec.Description }}"><input 
+        {{ $buffIds := $mutator.PlayerConditionIds }}
+        {{range $i, $buffSpec := .conditionSpecs}}
+            <label class="form-check-label col-md-2" for="playerbuffids-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
             class="form-check-input"
-            type="checkbox" 
-            name="playerbuffids[]" 
-            id="playerbuffids-{{$buffSpec.BuffId}}" 
-            value="{{ $buffSpec.BuffId }}" 
-            {{range $j, $buffId := $mutator.PlayerBuffIds}}{{if eq $buffId $buffSpec.BuffId}}CHECKED{{end}}{{end}}>
-            {{ $buffSpec.BuffId }}. {{ $buffSpec.Name }}</label> 
+            type="checkbox"
+            name="playerbuffids[]"
+            id="playerbuffids-{{$buffSpec.ConditionId}}"
+            value="{{ $buffSpec.ConditionId }}"
+            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
+            {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
         {{end}}
     </div>
 
     <hr />
-    <h3>Mob Buffs</h3>
+    <h3>Mob Conditions</h3>
 
     <div class="form-group row form-check container-fluid">
-        {{ $buffIds := .raceInfo.BuffIds }}
-        {{range $i, $buffSpec := .buffSpecs}}
-            <label class="form-check-label col-md-2" for="worn-buff-{{$buffSpec.BuffId}}" title="{{ $buffSpec.Description }}"><input 
+        {{ $buffIds := $mutator.MobConditionIds }}
+        {{range $i, $buffSpec := .conditionSpecs}}
+            <label class="form-check-label col-md-2" for="worn-buff-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
             class="form-check-input"
-            type="checkbox" 
-            name="mobfuffids[]" 
-            id="race-buff-{{$buffSpec.BuffId}}" 
-            value="{{ $buffSpec.BuffId }}" 
-            {{range $j, $buffId := $mutator.MobBuffIds}}{{if eq $buffId $buffSpec.BuffId}}CHECKED{{end}}{{end}}>
-            {{ $buffSpec.BuffId }}. {{ $buffSpec.Name }}</label> 
+            type="checkbox"
+            name="mobfuffids[]"
+            id="race-buff-{{$buffSpec.ConditionId}}"
+            value="{{ $buffSpec.ConditionId }}"
+            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
+            {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
         {{end}}
     </div>
 
     <hr />
-    <h3>Native Mob Buffs</h3>
+    <h3>Native Mob Conditions</h3>
 
     <div class="form-group row form-check container-fluid">
-        {{ $buffIds := .raceInfo.BuffIds }}
-        {{range $i, $buffSpec := .buffSpecs}}
-            <label class="form-check-label col-md-2" for="worn-buff-{{$buffSpec.BuffId}}" title="{{ $buffSpec.Description }}"><input 
+        {{ $buffIds := $mutator.NativeConditionIds }}
+        {{range $i, $buffSpec := .conditionSpecs}}
+            <label class="form-check-label col-md-2" for="worn-buff-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
             class="form-check-input"
-            type="checkbox" 
-            name="nativebuffids[]" 
-            id="race-buff-{{$buffSpec.BuffId}}" 
-            value="{{ $buffSpec.BuffId }}" 
-            {{range $j, $buffId := $mutator.NativeBuffIds}}{{if eq $buffId $buffSpec.BuffId}}CHECKED{{end}}{{end}}>
-            {{ $buffSpec.BuffId }}. {{ $buffSpec.Name }}</label> 
+            type="checkbox"
+            name="nativebuffids[]"
+            id="race-buff-{{$buffSpec.ConditionId}}"
+            value="{{ $buffSpec.ConditionId }}"
+            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
+            {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
         {{end}}
     </div>
 

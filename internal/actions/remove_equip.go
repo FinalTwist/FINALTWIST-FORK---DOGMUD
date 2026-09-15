@@ -19,8 +19,8 @@ type EquipItemResult struct {
 // EquipItem takes a named item from the actor's backpack and equips it.
 // Displaced items (swapped-out gear) are stored back to the backpack, or
 // dropped to the floor if the backpack is full — no item loss allowed.
-// CancelBuffsWithFlag(Hidden), Validate(), and EquipmentChange are all
-// handled here. Messaging, arm-slot logic, buff onStart triggers, and
+// CancelConditionsWithFlag(Hidden), Validate(), and EquipmentChange are all
+// handled here. Messaging, arm-slot logic, condition onStart triggers, and
 // quest-engine notifications remain in the callers.
 func EquipItem(actor Actor, itemName string) EquipItemResult {
 	char := actor.GetCharacter()
@@ -93,7 +93,7 @@ type RemoveEquipResult struct {
 
 // RemoveEquipment removes a worn item from the actor's body and stores it in
 // their backpack (falling back to dropping it on the floor if the backpack is
-// full). It cancels hidden buffs, fires the EquipmentChange event, and calls
+// full). It cancels hidden conditions, fires the EquipmentChange event, and calls
 // Validate(). Cursed-item checks, messaging, and all-remove loops remain in
 // the callers.
 func RemoveEquipment(actor Actor, itemName string) RemoveEquipResult {

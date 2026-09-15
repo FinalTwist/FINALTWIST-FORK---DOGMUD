@@ -5,8 +5,8 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -81,11 +81,11 @@ func seedSecondMobInstance(t *testing.T) {
 		AutoAggro:  true,
 		Groups:     m1.Groups,
 		Character: characters.Character{
-			Name:      "Skeleton2",
-			RoomId:    m1.Character.RoomId,
-			Health:    m1.Character.Health,
-			Buffs:     buffs.New(),
-			Cooldowns: map[string]int{},
+			Name:       "Skeleton2",
+			RoomId:     m1.Character.RoomId,
+			Health:     m1.Character.Health,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	m2.Character.HealthMax.Value = m1.Character.HealthMax.Value

@@ -3,8 +3,8 @@ package mobcommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -32,12 +32,12 @@ func buildGroupHateRoom(t *testing.T) (bandit, caravanMob *mobs.Mob, room *rooms
 		AutoAggro:  false, // not globally hostile — goes through HatesMob path
 		Hates:      []string{"caravan"},
 		Character: characters.Character{
-			Name:      "Bandit Lookout",
-			RoomId:    9999,
-			Health:    100,
-			Buffs:     buffs.New(),
-			Cooldowns: map[string]int{},
-			SpeciesId: 1, // avoids nil from species.GetSpecies() in HatesSpecies branch
+			Name:       "Bandit Lookout",
+			RoomId:     9999,
+			Health:     100,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
+			SpeciesId:  1, // avoids nil from species.GetSpecies() in HatesSpecies branch
 		},
 	}
 	bandit.Character.HealthMax.Value = 100
@@ -49,12 +49,12 @@ func buildGroupHateRoom(t *testing.T) (bandit, caravanMob *mobs.Mob, room *rooms
 		AutoAggro:  false,
 		Groups:     []string{"caravan"},
 		Character: characters.Character{
-			Name:      "Caravan Guard Ketil",
-			RoomId:    9999,
-			Health:    100,
-			Buffs:     buffs.New(),
-			Cooldowns: map[string]int{},
-			SpeciesId: 1,
+			Name:       "Caravan Guard Ketil",
+			RoomId:     9999,
+			Health:     100,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
+			SpeciesId:  1,
 		},
 	}
 	caravanMob.Character.HealthMax.Value = 100
@@ -161,12 +161,12 @@ func TestLookForTrouble_NoAggroWhenGroupHateMissing(t *testing.T) {
 		AutoAggro:  false,
 		Hates:      nil, // no hates — should not aggro on caravan
 		Character: characters.Character{
-			Name:      "Neutral Guard",
-			RoomId:    9999,
-			Health:    100,
-			Buffs:     buffs.New(),
-			Cooldowns: map[string]int{},
-			SpeciesId: 1,
+			Name:       "Neutral Guard",
+			RoomId:     9999,
+			Health:     100,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
+			SpeciesId:  1,
 		},
 	}
 	neutralBandit.Character.HealthMax.Value = 100

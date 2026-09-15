@@ -3,8 +3,8 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
@@ -14,24 +14,24 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Package-level setup: seed buff 9 (Hidden) spec so AddBuff(9, …) works.
+// Package-level setup: seed condition 9 (Hidden) spec so AddCondition(9, …) works.
 // This piggybacks on the package-level init in defuse_test.go (biomes), and
 // mirrors the approach used throughout other action tests.
 // ---------------------------------------------------------------------------
 
 func init() {
-	// Seed buff 9 with the Hidden flag. TriggerCount > 0 so the buff is
+	// Seed condition 9 with the Hidden flag. TriggerCount > 0 so the condition is
 	// not considered expired immediately after application.
-	buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+	conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		9: {
-			BuffId:       9,
+			ConditionId:  9,
 			Name:         "Hidden",
-			Flags:        []buffs.Flag{buffs.Hidden},
+			Flags:        []conditions.Flag{conditions.Hidden},
 			TriggerCount: 1000000, // effectively permanent for tests
 		},
 	})
-	// Note: SeedBuffsForTest replaces the entire registry. No cleanup is
-	// called here because the hidden-buff spec is needed for the full test run
+	// Note: SeedConditionsForTest replaces the entire registry. No cleanup is
+	// called here because the hidden-condition spec is needed for the full test run
 	// and must survive across tests in this package.
 }
 
@@ -39,16 +39,16 @@ func init() {
 // Shadow test helpers
 // ---------------------------------------------------------------------------
 
-// addHiddenBuff grants buff 9 (Hidden) to a character AND advances the
+// addHiddenCondition grants condition 9 (Hidden) to a character AND advances the
 // Awareness state machine to Hidden so that c.IsHidden() returns true.
-// Requires that the buff spec for id 9 has been seeded via init() above.
-func addHiddenBuff(char *characters.Character) {
-	char.Buffs = buffs.New()
-	// AddBuff calls GetBuffSpec internally; works because of the seeded spec.
-	char.Buffs.AddBuff(9, true /* permanent for test purposes */)
+// Requires that the condition spec for id 9 has been seeded via init() above.
+func addHiddenCondition(char *characters.Character) {
+	char.Conditions = conditions.New()
+	// AddCondition calls GetConditionSpec internally; works because of the seeded spec.
+	char.Conditions.AddCondition(9, true /* permanent for test purposes */)
 	// Sync Awareness machine: reset to Visible, then advance to Hidden.
 	// Without this, Character.IsHidden() (which delegates to Awareness) returns
-	// false even though buff #9 is present.
+	// false even though condition #9 is present.
 	if char.Awareness == nil {
 		char.Awareness = awareness.NewMachine()
 	}
@@ -60,16 +60,16 @@ func addHiddenBuff(char *characters.Character) {
 
 // newShadowPlayerActor creates a player-backed stubActorWithId with the
 // given Dexterity and skullduggery skill rank.
-// When withHidden=true, buff 9 (Hidden) is applied.
+// When withHidden=true, condition 9 (Hidden) is applied.
 func newShadowPlayerActor(dex int, skillRank int, withHidden bool) *stubActorWithId {
 	char := characters.New()
 	char.Stats.Dexterity.ValueAdj = dex
 	if skillRank > 0 {
 		char.Skills[string(skills.Skullduggery)] = skillRank
 	}
-	char.Buffs = buffs.New()
+	char.Conditions = conditions.New()
 	if withHidden {
-		addHiddenBuff(char)
+		addHiddenCondition(char)
 	}
 	room := newStealTestRoom()
 	return &stubActorWithId{
@@ -81,16 +81,16 @@ func newShadowPlayerActor(dex int, skillRank int, withHidden bool) *stubActorWit
 
 // newShadowMobActor creates a mob-backed stubActorWithId with the given
 // Dexterity and skullduggery skill rank.
-// When withHidden=true, buff 9 (Hidden) is applied.
+// When withHidden=true, condition 9 (Hidden) is applied.
 func newShadowMobActor(dex int, skillRank int, withHidden bool) *stubActorWithId {
 	char := characters.New()
 	char.Stats.Dexterity.ValueAdj = dex
 	if skillRank > 0 {
 		char.Skills[string(skills.Skullduggery)] = skillRank
 	}
-	char.Buffs = buffs.New()
+	char.Conditions = conditions.New()
 	if withHidden {
-		addHiddenBuff(char)
+		addHiddenCondition(char)
 	}
 	room := newStealTestRoom()
 	return &stubActorWithId{
@@ -100,19 +100,19 @@ func newShadowMobActor(dex int, skillRank int, withHidden bool) *stubActorWithId
 	}
 }
 
-// resetHiddenBuff clears and re-adds buff 9 on the actor's character.
-// Use between trials when shadow might not remove the buff but the test
+// resetHiddenCondition clears and re-adds condition 9 on the actor's character.
+// Use between trials when shadow might not remove the condition but the test
 // wants a consistent starting state.
-func resetHiddenBuff(actor *stubActorWithId) {
-	actor.char.Buffs = buffs.New()
-	addHiddenBuff(actor.char)
+func resetHiddenCondition(actor *stubActorWithId) {
+	actor.char.Conditions = conditions.New()
+	addHiddenCondition(actor.char)
 }
 
 // ---------------------------------------------------------------------------
 // TestShadow_RequiresHidden
 // ---------------------------------------------------------------------------
 
-// TestShadow_RequiresHidden verifies that an actor without buff 9 (Hidden)
+// TestShadow_RequiresHidden verifies that an actor without condition 9 (Hidden)
 // is rejected before any roll or cooldown is set.
 func TestShadow_RequiresHidden(t *testing.T) {
 	actor := newShadowPlayerActor(100, 5, false /* not hidden */)
@@ -197,8 +197,8 @@ func TestShadow_Cooldown(t *testing.T) {
 	first := Shadow(actor, ShadowOptions{TargetUserId: 7003})
 	require.True(t, first.Succeeded, "first call should succeed")
 
-	// Re-add Hidden buff for the second call.
-	resetHiddenBuff(actor)
+	// Re-add Hidden condition for the second call.
+	resetHiddenCondition(actor)
 
 	second := Shadow(actor, ShadowOptions{TargetUserId: 7003})
 
@@ -281,9 +281,9 @@ func TestShadow_DetectionWin(t *testing.T) {
 	successCount := 0
 
 	for i := 0; i < trials; i++ {
-		// Reset cooldown and Hidden buff each trial.
+		// Reset cooldown and Hidden condition each trial.
 		delete(actor.char.Cooldowns, skills.Skullduggery.String("shadow"))
-		resetHiddenBuff(actor)
+		resetHiddenCondition(actor)
 
 		result := Shadow(actor, ShadowOptions{TargetUserId: 7005})
 		if result.Succeeded {

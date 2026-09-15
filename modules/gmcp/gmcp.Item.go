@@ -81,7 +81,7 @@ type itemUpdateReq struct {
 	BlockRating          int     `json:"blockRating"`
 	EscapeModifier       float64 `json:"escapeModifier"`
 	// consumable
-	BuffIds               []int   `json:"buffIds"`
+	ConditionIds          []int   `json:"buffIds"`
 	Toxicity              int     `json:"toxicity"`
 	FermentRounds         int     `json:"fermentRounds"`
 	PeakRounds            int     `json:"peakRounds"`
@@ -110,7 +110,7 @@ type itemUpdateReq struct {
 	MutationTickInterval int       `json:"mutationTickInterval"`
 	MutationTickChance   int       `json:"mutationTickChance"`
 	MutationRarityFloor  int       `json:"mutationRarityFloor"`
-	WornBuffIds          []int     `json:"wornBuffIds"`
+	WornConditionIds     []int     `json:"wornBuffIds"`
 }
 
 // ---- server -> client detail (Build.Item) ----
@@ -187,7 +187,7 @@ func specToReq(s *items.ItemSpec) itemUpdateReq {
 		Reach: s.Reach, GrappleModifier: s.GrappleModifier, Element: string(s.Element), AmmoTag: s.AmmoTag,
 		PhysicalMitigation: s.PhysicalMitigation, MagicalMitigation: s.MagicalMitigation,
 		ConvictionMitigation: s.ConvictionMitigation, BlockRating: s.BlockRating, EscapeModifier: s.EscapeModifier,
-		BuffIds: s.BuffIds, Toxicity: s.Toxicity,
+		ConditionIds: s.ConditionIds, Toxicity: s.Toxicity,
 		FermentRounds: s.Aging.FermentRounds, PeakRounds: s.Aging.PeakRounds,
 		DecayRounds: s.Aging.DecayRounds, SpoilRounds: s.Aging.SpoilRounds,
 		BottleAgingMultiplier: s.BottleAgingMultiplier, IsBandolier: s.IsBandolier, BandolierCapacity: s.BandolierCapacity,
@@ -201,7 +201,7 @@ func specToReq(s *items.ItemSpec) itemUpdateReq {
 	req.VoiceId, req.TauntPull = s.VoiceId, s.TauntPull
 	req.HungerRounds, req.HungerDrainPct = s.HungerRounds, s.HungerDrainPct
 	req.MutationTickInterval, req.MutationTickChance, req.MutationRarityFloor = s.MutationTickInterval, s.MutationTickChance, s.MutationRarityFloor
-	req.WornBuffIds = s.WornBuffIds
+	req.WornConditionIds = s.WornConditionIds
 	for _, p := range s.Procs {
 		req.Procs = append(req.Procs, procRow{Trigger: p.Trigger, Effect: p.Effect, Chance: p.Chance, CooldownRounds: p.CooldownRounds, Params: p.Params})
 	}
@@ -231,7 +231,7 @@ func procEffectIds() []string  { return items.ValidProcEffects() }
 func itemVoiceIds() []string   { return itemvoices.AllVoiceIds() }
 
 // reqToSpec starts from the loaded spec so fields the form does NOT cover
-// (procs, reserves, worn-buffs, mutation drip, etc.) survive a Save untouched.
+// (procs, reserves, worn-conditions, mutation drip, etc.) survive a Save untouched.
 func reqToSpec(base *items.ItemSpec, req itemUpdateReq) items.ItemSpec {
 	s := *base
 	s.Name, s.DisplayName, s.NameSimple, s.Description = req.Name, req.DisplayName, req.NameSimple, req.Description
@@ -245,7 +245,7 @@ func reqToSpec(base *items.ItemSpec, req itemUpdateReq) items.ItemSpec {
 	s.Element, s.AmmoTag = items.Element(req.Element), req.AmmoTag
 	s.PhysicalMitigation, s.MagicalMitigation, s.ConvictionMitigation = req.PhysicalMitigation, req.MagicalMitigation, req.ConvictionMitigation
 	s.BlockRating, s.EscapeModifier = req.BlockRating, req.EscapeModifier
-	s.BuffIds, s.Toxicity = req.BuffIds, req.Toxicity
+	s.ConditionIds, s.Toxicity = req.ConditionIds, req.Toxicity
 	s.Aging = items.AgingThresholds{FermentRounds: req.FermentRounds, PeakRounds: req.PeakRounds, DecayRounds: req.DecayRounds, SpoilRounds: req.SpoilRounds}
 	s.BottleAgingMultiplier, s.IsBandolier, s.BandolierCapacity = req.BottleAgingMultiplier, req.IsBandolier, req.BandolierCapacity
 	s.IsComponent, s.ComponentTag, s.WeightReduction, s.BagCapacity = req.IsComponent, req.ComponentTag, req.WeightReduction, req.BagCapacity
@@ -260,7 +260,7 @@ func reqToSpec(base *items.ItemSpec, req itemUpdateReq) items.ItemSpec {
 	s.VoiceId, s.TauntPull = req.VoiceId, req.TauntPull
 	s.HungerRounds, s.HungerDrainPct = req.HungerRounds, req.HungerDrainPct
 	s.MutationTickInterval, s.MutationTickChance, s.MutationRarityFloor = req.MutationTickInterval, req.MutationTickChance, req.MutationRarityFloor
-	s.WornBuffIds = req.WornBuffIds
+	s.WornConditionIds = req.WornConditionIds
 	s.Procs = nil
 	for _, p := range req.Procs {
 		if p.Trigger == "" && p.Effect == "" {

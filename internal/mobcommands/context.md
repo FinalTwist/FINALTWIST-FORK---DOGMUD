@@ -102,7 +102,7 @@ The `internal/mobcommands` package implements the AI command system for non-play
 
 #### **Behavioral Prioritization**
 - **Combat override**: Combat takes precedence over other activities
-- **State-based decisions**: Different behaviors based on health, buffs, and conditions
+- **State-based decisions**: Different behaviors based on health, conditions, and state
 - **Environmental factors**: Room conditions influence behavior choices
 - **Social awareness**: Presence of players and other mobs affects decisions
 
@@ -121,7 +121,7 @@ The `internal/mobcommands` package implements the AI command system for non-play
 ### Integration with Game Systems
 
 #### **Character System Integration**
-- **Buff awareness**: Behaviors modified by active status effects
+- **Condition awareness**: Behaviors modified by active status effects
 - **Skill utilization**: AI uses mob skills and abilities appropriately
 - **Health monitoring**: Behavior changes based on health status
 - **Charm handling**: Different behaviors for player-controlled mobs
@@ -157,7 +157,7 @@ The `internal/mobcommands` package implements the AI command system for non-play
 - `internal/rooms`: Room system for spatial awareness
 - `internal/characters`: Character system for mob properties
 - `internal/users`: Player interaction and targeting
-- `internal/buffs`: Status effect awareness
+- `internal/conditions`: Status effect awareness
 - `internal/conversations`: Dynamic dialogue system
 - `internal/mapper`: Pathfinding and navigation
 - `internal/parties`: Player group dynamics understanding

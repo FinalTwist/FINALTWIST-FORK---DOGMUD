@@ -50,7 +50,7 @@ func (c *Character) AwardResolved(userId int, won bool, candidates ...progressio
 // ⚠️ A `bonus` below 1.0 is NOT a loss. The self-cast reduction
 // (SelfCastProgressionMultiplier, shipped 0.5) is a winning multiplier, and
 // inferring a loss from a small multiplier is precisely the mistake
-// Event.Lost exists to prevent -- it would stop self-buff casts ticking
+// Event.Lost exists to prevent -- it would stop self-condition casts ticking
 // skill_use quests.
 func (c *Character) AwardResolvedScaled(userId int, won bool, bonus float64, candidates ...progression.Candidate) {
 	if c == nil {

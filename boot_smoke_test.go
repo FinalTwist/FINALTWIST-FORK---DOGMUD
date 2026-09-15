@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/dialogue"
@@ -105,7 +105,7 @@ func TestSmoke_ServerBootsCleanWithRealData(t *testing.T) {
 		{"rooms", len(rooms.GetAllRoomIds())},
 		{"mob templates", len(mobs.AllMobTemplates())},
 		{"spells", len(spells.GetAllSpells())},
-		{"buffs", len(buffs.GetAllBuffIds())},
+		{"conditions", len(conditions.GetAllConditionIds())},
 		{"quests", len(quests.GetAllQuests())},
 		{"crafting recipes", len(crafting.GetAll())},
 	}
@@ -244,7 +244,7 @@ var knownIgnoredDialogueKeys = map[string]bool{}
 // Several entries below are genuine content bugs worth fixing, listed in the
 // audit doc rather than silently accepted:
 //   - `scriptag` on mobs.Mob: almost certainly a typo for `scripttag`.
-//   - `visible` / `sequential` / `expireMessage` on buffs.BuffSpec.
+//   - `visible` / `sequential` / `expireMessage` on conditions.ConditionSpec.
 //   - `zone` on exit.RoomExit (136x): authored values doing nothing.
 //
 // `cooldown` on rooms.SpawnInfo was cleared 2026-07-25: 59 authored lines
@@ -260,17 +260,17 @@ var knownIgnoredDialogueKeys = map[string]bool{}
 // To clear an entry: fix the content (or add the field to the struct), confirm
 // the count drops, and delete the line.
 var knownSilentlyIgnoredKeys = map[string]bool{
-	"coord|rooms.Room":             true,
-	"level|characters.Character":   true,
-	"zone|exit.RoomExit":           true,
-	"items|mobs.Mob":               true,
-	"tactics|characters.Character": true,
-	"long|rooms.Container":         true,
-	"scriptag|mobs.Mob":            true,
-	"allow_recall|rooms.Room":      true,
-	"visible|buffs.BuffSpec":       true,
-	"sequential|buffs.BuffSpec":    true,
-	"expireMessage|buffs.BuffSpec": true,
+	"coord|rooms.Room":                       true,
+	"level|characters.Character":             true,
+	"zone|exit.RoomExit":                     true,
+	"items|mobs.Mob":                         true,
+	"tactics|characters.Character":           true,
+	"long|rooms.Container":                   true,
+	"scriptag|mobs.Mob":                      true,
+	"allow_recall|rooms.Room":                true,
+	"visible|conditions.ConditionSpec":       true,
+	"sequential|conditions.ConditionSpec":    true,
+	"expireMessage|conditions.ConditionSpec": true,
 }
 
 var unknownKeyRe = regexp.MustCompile(`field ([A-Za-z_0-9]+) not found in type ([A-Za-z_.]+)`)

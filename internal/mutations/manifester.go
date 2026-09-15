@@ -9,9 +9,9 @@ package mutations
 // GetCompanionEmpowerment returns the net companion-empowerment magnitude
 // (Symbiotic Bond + the Manifester companion bridges) — how much the owner's
 // companions are strengthened. It is a DEDICATED effect, applied to companions
-// as its own buff (see hooks.tickCompanionEmpowerment); it must never be built
-// by copying the owner's transient buffs, which would double-count the
-// rally/warcry buffs those shouts already fan out to companions.
+// as its own condition (see hooks.tickCompanionEmpowerment); it must never be built
+// by copying the owner's transient conditions, which would double-count the
+// rally/warcry conditions those shouts already fan out to companions.
 func GetCompanionEmpowerment(owned map[string]int) float64 {
 	return sumEffects(owned, "companion_empowerment", "")
 }

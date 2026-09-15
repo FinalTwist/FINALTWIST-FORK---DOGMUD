@@ -101,9 +101,9 @@ func actTryTrack(params map[string]any, ctx *EvalContext) Result {
 	actor := actions.NewMobActorInRoom(mob, room)
 	result := actions.Track(actor, actions.TrackOptions{TargetNoun: targetName})
 
-	// Buff applied → trail found in adjacent rooms → success.
+	// Condition applied → trail found in adjacent rooms → success.
 	// In-room hit also sets ActiveTarget* → success.
-	if result.BuffApplied || result.ActiveTargetUserId != 0 || result.ActiveTargetMobInstId != 0 {
+	if result.ConditionApplied || result.ActiveTargetUserId != 0 || result.ActiveTargetMobInstId != 0 {
 		// Seed SoftTarget for downstream consumers.
 		if result.ActiveTargetUserId != 0 {
 			ctx.SoftTarget = state.ActorRef{UserId: result.ActiveTargetUserId}
@@ -160,19 +160,19 @@ func actTrySearch(params map[string]any, ctx *EvalContext) Result {
 // actMoveTowardTracked reads the tracked target's misc data on the mob's
 // character, locates the freshest adjacent-room trail toward that target,
 // and dispatches a `go <direction>` command via mob.Command. Returns
-// Failure if no buff 86 / no resolvable direction / no movement possible.
+// Failure if no condition 86 / no resolvable direction / no movement possible.
 //
-// Cleanup contract: when buff 86 is absent, clears tracking-mob /
+// Cleanup contract: when condition 86 is absent, clears tracking-mob /
 // tracking-user / tracking-display-count misc data. Mirrors the
 // roomdetails.go fix from Task 3 — misc-data state cannot outlive
-// the buff.
+// the condition.
 func actMoveTowardTracked(params map[string]any, ctx *EvalContext) Result {
 	mob := mobs.GetInstance(ctx.InstanceId)
 	if mob == nil {
 		return Failure
 	}
-	if !mob.Character.HasBuff(86) {
-		// Buff expired or otherwise gone — clear stale misc data.
+	if !mob.Character.HasCondition(86) {
+		// Condition expired or otherwise gone — clear stale misc data.
 		mob.Character.SetMiscData("tracking-mob", nil)
 		mob.Character.SetMiscData("tracking-user", nil)
 		mob.Character.SetMiscData("tracking-display-count", nil)

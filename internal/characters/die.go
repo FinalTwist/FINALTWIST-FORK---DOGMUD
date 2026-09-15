@@ -20,8 +20,8 @@ import (
 // This comment used to tell callers to pre-check three things. Two of those
 // claims were false and are removed rather than carried forward:
 //
-//   - "ReviveOnDeath buff (already handled at each call site)" — it was not.
-//     Only the two suicide commands checked it, so the buff was inert on every
+//   - "ReviveOnDeath condition (already handled at each call site)" — it was not.
+//     Only the two suicide commands checked it, so the condition was inert on every
 //     combat and damage-over-time death until U5c centralised the check.
 //   - "Shadow Realm zone guard (player sites only)" — no such guard exists
 //     anywhere in this repository. The only occurrence was this line.

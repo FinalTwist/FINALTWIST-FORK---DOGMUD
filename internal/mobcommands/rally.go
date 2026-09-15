@@ -10,8 +10,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
 
-// Rally is the mob-side shout that applies the rally mitigation buff
-// to the casting mob. Mob rally applies the self-buff only; ally
+// Rally is the mob-side shout that applies the rally mitigation condition
+// to the casting mob. Mob rally applies the self-condition only; ally
 // fan-out is a player-command concern.
 func Rally(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	result := actions.ExecuteRally(&actions.MobActor{Mob: mob, Room: room})

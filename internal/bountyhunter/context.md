@@ -158,7 +158,7 @@ Two layers prevent a hunter from entering a jail cell:
    nil`, `huntDecision` returns an empty command (`StatusRunning`). The
    hunter loiters at its current room.
 
-2. **No-aggro-target net.** Buff 88 (Jailed) carries the `no-aggro-target`
+2. **No-aggro-target net.** Condition 88 (Jailed) carries the `no-aggro-target`
    flag. The `NewRound_DoCombat` round-tick drops any mob's stale aggro on
    a jailed player — so even if the hunter somehow entered the cell, it
    would not re-engage.

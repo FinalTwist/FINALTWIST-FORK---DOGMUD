@@ -59,14 +59,14 @@ func seedRegistry() func() {
 			StatMods:    statmods.StatMods{"strength": 5, "willpower": -3},
 		},
 		30001: {
-			ItemId:      30001,
-			Name:        "Healing Potion",
-			Description: "A vial of red liquid.",
-			Type:        Potion,
-			Subtype:     Usable,
-			Uses:        3,
-			Value:       25,
-			BuffIds:     []int{1},
+			ItemId:       30001,
+			Name:         "Healing Potion",
+			Description:  "A vial of red liquid.",
+			Type:         Potion,
+			Subtype:      Usable,
+			Uses:         3,
+			Value:        25,
+			ConditionIds: []int{1},
 		},
 		5001: {
 			ItemId:      5001,
@@ -597,15 +597,15 @@ func TestRedescribe(t *testing.T) {
 	assert.Equal(t, "A newly forged blade.", spec.Description)
 }
 
-// ─── AddWornBuff ────────────────────────────────────────────────────────────
+// ─── AddWornCondition ────────────────────────────────────────────────────────────
 
-func TestAddWornBuff(t *testing.T) {
+func TestAddWornCondition(t *testing.T) {
 	cleanup := seedRegistry()
 	defer cleanup()
 
 	item := Item{ItemId: 10001}
-	item.AddWornBuff(5)
-	assert.Contains(t, item.Spec.WornBuffIds, 5)
+	item.AddWornCondition(5)
+	assert.Contains(t, item.Spec.WornConditionIds, 5)
 }
 
 // ─── ItemTypes / ItemSubtypes ───────────────────────────────────────────────
@@ -1071,29 +1071,29 @@ func TestEquals(t *testing.T) {
 func TestGetDiceRoll(t *testing.T) {
 	// Zero ItemId → defaults (1, 1, 3, 0, [])
 	item := Item{ItemId: 0}
-	attacks, dCount, dSides, bonus, critBuffs := item.GetDiceRoll()
+	attacks, dCount, dSides, bonus, critConditions := item.GetDiceRoll()
 	assert.Equal(t, 1, attacks)
 	assert.Equal(t, 1, dCount)
 	assert.Equal(t, 3, dSides)
 	assert.Equal(t, 0, bonus)
-	assert.Empty(t, critBuffs)
+	assert.Empty(t, critConditions)
 
 	// Item with spec
 	item2 := Item{ItemId: 1, Spec: &ItemSpec{
 		Damage: Damage{
-			Attacks:     2,
-			DiceCount:   3,
-			SideCount:   6,
-			BonusDamage: 4,
-			CritBuffIds: []int{10, 20},
+			Attacks:          2,
+			DiceCount:        3,
+			SideCount:        6,
+			BonusDamage:      4,
+			CritConditionIds: []int{10, 20},
 		},
 	}}
-	attacks, dCount, dSides, bonus, critBuffs = item2.GetDiceRoll()
+	attacks, dCount, dSides, bonus, critConditions = item2.GetDiceRoll()
 	assert.Equal(t, 2, attacks)
 	assert.Equal(t, 3, dCount)
 	assert.Equal(t, 6, dSides)
 	assert.Equal(t, 4, bonus)
-	assert.Equal(t, []int{10, 20}, critBuffs)
+	assert.Equal(t, []int{10, 20}, critConditions)
 }
 
 // ─── GetDistributionDamage ──────────────────────────────────────────────────
@@ -1101,11 +1101,11 @@ func TestGetDiceRoll(t *testing.T) {
 func TestGetDistributionDamage(t *testing.T) {
 	// Zero ItemId → defaults (1, 2.0, 1.0, [])
 	item := Item{ItemId: 0}
-	attacks, baseDmg, variance, critBuffs := item.GetDistributionDamage()
+	attacks, baseDmg, variance, critConditions := item.GetDistributionDamage()
 	assert.Equal(t, 1, attacks)
 	assert.InDelta(t, 2.0, baseDmg, 0.01)
 	assert.InDelta(t, 1.0, variance, 0.01)
-	assert.Empty(t, critBuffs)
+	assert.Empty(t, critConditions)
 
 	// BaseDamage path (new-style)
 	item2 := Item{ItemId: 1, Spec: &ItemSpec{

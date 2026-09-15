@@ -3,8 +3,8 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -472,9 +472,9 @@ func seedMultipleEnemiesRoom(
 		specs[tid] = &mobs.Mob{
 			MobId: mobs.MobId(tid),
 			Character: characters.Character{
-				Name:   name,
-				RoomId: roomId,
-				Buffs:  buffs.New(),
+				Name:       name,
+				RoomId:     roomId,
+				Conditions: conditions.New(),
 			},
 		}
 		instances[iid] = &mobs.Mob{
@@ -482,10 +482,10 @@ func seedMultipleEnemiesRoom(
 			InstanceId: iid,
 			HomeRoomId: roomId,
 			Character: characters.Character{
-				Name:    name,
-				RoomId:  roomId,
-				Charmed: charm,
-				Buffs:   buffs.New(),
+				Name:       name,
+				RoomId:     roomId,
+				Charmed:    charm,
+				Conditions: conditions.New(),
 			},
 		}
 	}

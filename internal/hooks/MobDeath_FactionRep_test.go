@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -90,8 +90,8 @@ func makeCitizenMob(mobId, instId, roomId int, name string) (*mobs.Mob, *mobs.Mo
 		Groups: []string{"thornwall_citizens"},
 		Zone:   "Thornwall City",
 		Character: characters.Character{
-			Name:  name,
-			Buffs: buffs.New(),
+			Name:       name,
+			Conditions: conditions.New(),
 		},
 	}
 	inst := &mobs.Mob{
@@ -100,9 +100,9 @@ func makeCitizenMob(mobId, instId, roomId int, name string) (*mobs.Mob, *mobs.Mo
 		Groups:     []string{"thornwall_citizens"},
 		Zone:       "Thornwall City",
 		Character: characters.Character{
-			Name:   name,
-			RoomId: roomId,
-			Buffs:  buffs.New(),
+			Name:       name,
+			RoomId:     roomId,
+			Conditions: conditions.New(),
 		},
 	}
 	return spec, inst
@@ -276,7 +276,7 @@ func TestMobDeathFactionRep_NoFactionsNoChange(t *testing.T) {
 		MobId:      999,
 		InstanceId: 201,
 		Groups:     []string{"humanoid"}, // no defined faction
-		Character:  characters.Character{Name: "x", RoomId: 467, Buffs: buffs.New()},
+		Character:  characters.Character{Name: "x", RoomId: 467, Conditions: conditions.New()},
 	}
 	cleanup := mobs.SeedMobsForTest(map[int]*mobs.Mob{999: mob}, map[int]*mobs.Mob{201: mob})
 	defer cleanup()
@@ -306,7 +306,7 @@ func TestMobDeathFactionRep_NoPlayersNoChange(t *testing.T) {
 		MobId:      100,
 		InstanceId: 202,
 		Groups:     []string{"thornwall_citizens"},
-		Character:  characters.Character{Name: "x", RoomId: 467, Buffs: buffs.New()},
+		Character:  characters.Character{Name: "x", RoomId: 467, Conditions: conditions.New()},
 	}
 	cleanup := mobs.SeedMobsForTest(map[int]*mobs.Mob{100: mob}, map[int]*mobs.Mob{202: mob})
 	defer cleanup()

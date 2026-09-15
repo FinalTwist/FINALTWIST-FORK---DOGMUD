@@ -79,7 +79,7 @@ you commit again.
 Your maximum Stamina is governed by <ansi fg="stat">Vitality</ansi>, which, like every stat on
 Gaius, grows through use. The more you fight, endure, and exert, the deeper
 the pool becomes and the longer you last before it tells. Some equipment
-and buffs raise Vitality (and so stamina) as well.
+and conditions raise Vitality (and so stamina) as well.
 
 <ansi fg="yellow">See Also:</ansi>
 

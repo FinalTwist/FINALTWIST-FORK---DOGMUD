@@ -2,8 +2,8 @@ package mobcommands
 
 import (
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -45,7 +45,7 @@ func Aid(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	aidPlayerId := p.UserId
 
-	mob.Character.CancelBuffsWithFlag(buffs.Hidden)
+	mob.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 	// Set spell Aid
 	spellAggro := characters.SpellAggroInfo{
@@ -72,7 +72,7 @@ func Aid(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		}
 	}
 
-	mob.Character.CancelBuffsWithFlag(buffs.Hidden)
+	mob.Character.CancelConditionsWithFlag(conditions.Hidden)
 	if spellInfo != nil {
 		mob.Character.SetCast(spellInfo.WaitRounds, spellAggro)
 	}

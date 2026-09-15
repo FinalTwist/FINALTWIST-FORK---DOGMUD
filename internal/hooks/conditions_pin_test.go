@@ -3,8 +3,8 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -15,21 +15,21 @@ import (
 // cause reads "poison" — this is the regression case the fix exists for.
 //
 // TestPin_PoisonTickKillsAndNamesTheCause: a ONE-trigger poison record has
-// its only trigger land on the first UserRoundTick call (buff 121 ticks
-// every round), and that trigger is also the record's LAST: Buffs.Trigger()
-// decrements TriggersLeft before returning the buff, so the record already
+// its only trigger land on the first UserRoundTick call (condition 121 ticks
+// every round), and that trigger is also the record's LAST: Conditions.Trigger()
+// decrements TriggersLeft before returning the condition, so the record already
 // reads Expired by the time deathCauseFor runs. deathCauseFor must still read
 // "poison" immediately after (the expired-but-still-held record read by id),
-// AND after PruneBuffs removes the expired record outright (from
+// AND after PruneConditions removes the expired record outright (from
 // Character.LastTickCause, stamped by the tick that landed the harm) — the
 // prune race the fix also covers.
 func TestPin_PoisonTickKillsAndNamesTheCause(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
-	_ = u.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, 1, -5, "pin")
+	_ = u.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, 1, -5, "pin")
 	u.Character.Health = 1
 
 	// No regen lands in the round tick: 1 - 5 <= 0.
@@ -40,7 +40,7 @@ func TestPin_PoisonTickKillsAndNamesTheCause(t *testing.T) {
 	require.Equal(t, "poison", deathCauseFor(u.Character), "before prune: the expired-but-still-held record must still be read")
 	u.Character.LastTickCause = stampedCause // restore: the after-prune assertion below exercises the fallback
 
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	require.Equal(t, "poison", deathCauseFor(u.Character), "after prune: LastTickCause must carry the cause once the record is gone")
 }
 
@@ -50,10 +50,10 @@ func TestPin_PoisonTickKillsAndNamesTheCause(t *testing.T) {
 func TestPin_BleedTickKillsAndNamesTheCause(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	u := users.GetByUserId(1)
-	_ = u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -5, "pin")
+	_ = u.Character.AddConditionMagnitude(conditions.ConditionIdBleeding, 1, -5, "pin")
 	u.Character.Health = 1
 
 	// No regen lands in the round tick: 1 - 5 <= 0.
@@ -64,7 +64,7 @@ func TestPin_BleedTickKillsAndNamesTheCause(t *testing.T) {
 	require.Equal(t, "bleeding out", deathCauseFor(u.Character), "before prune: the expired-but-still-held record must still be read")
 	u.Character.LastTickCause = stampedCause // restore: the after-prune assertion below exercises the fallback
 
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	require.Equal(t, "bleeding out", deathCauseFor(u.Character), "after prune: LastTickCause must carry the cause once the record is gone")
 }
 
@@ -74,30 +74,30 @@ func TestPin_BleedTickKillsAndNamesTheCause(t *testing.T) {
 // capturing worldevents.EmitWorldEvent). Order matters: poisoned wins over
 // bleeding because the poison check runs first.
 func TestPin_DeathCauseOrder(t *testing.T) {
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	newChar := func() *characters.Character {
 		c := &characters.Character{}
-		c.Buffs.Validate(true)
+		c.Conditions.Validate(true)
 		return c
 	}
 
 	t.Run("poisoned", func(t *testing.T) {
 		c := newChar()
-		_ = c.AddBuffMagnitude(buffs.BuffIdPoisoned, 10, -5, "pin")
+		_ = c.AddConditionMagnitude(conditions.ConditionIdPoisoned, 10, -5, "pin")
 		require.Equal(t, "poison", deathCauseFor(c))
 	})
 
 	t.Run("bleeding", func(t *testing.T) {
 		c := newChar()
-		_ = c.AddBuffMagnitude(buffs.BuffIdBleeding, 10, -3, "pin")
+		_ = c.AddConditionMagnitude(conditions.ConditionIdBleeding, 10, -3, "pin")
 		require.Equal(t, "bleeding out", deathCauseFor(c))
 	})
 
 	t.Run("poisoned and bleeding, poison wins", func(t *testing.T) {
 		c := newChar()
-		_ = c.AddBuffMagnitude(buffs.BuffIdPoisoned, 10, -5, "pin")
-		_ = c.AddBuffMagnitude(buffs.BuffIdBleeding, 10, -3, "pin")
+		_ = c.AddConditionMagnitude(conditions.ConditionIdPoisoned, 10, -5, "pin")
+		_ = c.AddConditionMagnitude(conditions.ConditionIdBleeding, 10, -3, "pin")
 		require.Equal(t, "poison", deathCauseFor(c))
 	})
 }
@@ -109,7 +109,7 @@ func TestPin_DeathCauseOrder(t *testing.T) {
 // that stale cause read out. Without the round check a tick cause from an
 // earlier, unrelated fight could outlive it and misname a later death.
 func TestPin_AStaleTickCauseDoesNotNameTheDeath(t *testing.T) {
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 	defer util.ResetRoundCountForTest()
 	// Self-contained: pin the counter rather than inheriting whatever round an
 	// earlier test in this binary left behind. RoundCountMinimum is comfortably
@@ -117,7 +117,7 @@ func TestPin_AStaleTickCauseDoesNotNameTheDeath(t *testing.T) {
 	util.SetRoundCountForTest(util.RoundCountMinimum)
 
 	c := &characters.Character{}
-	c.Buffs.Validate(true)
+	c.Conditions.Validate(true)
 
 	current := util.GetRoundCount()
 	c.LastTickCause = "poison"

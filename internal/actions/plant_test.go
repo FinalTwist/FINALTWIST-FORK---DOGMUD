@@ -3,8 +3,8 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -26,7 +26,7 @@ func newPlantTestMob(instanceId int, perception int) *mobs.Mob {
 		InstanceId: instanceId,
 	}
 	m.Character.Name = "Guard"
-	m.Character.Buffs = buffs.New()
+	m.Character.Conditions = conditions.New()
 	m.Character.Stats.Perception.ValueAdj = perception
 	return m
 }

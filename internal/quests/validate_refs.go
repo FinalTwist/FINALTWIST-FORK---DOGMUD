@@ -14,19 +14,19 @@ import (
 
 // QuestValidators are the registry checks the pure validator cannot own.
 type QuestValidators struct {
-	StepExists     func(token string) bool // foreign "<qid>-<step>" resolves to a real quest step
-	MobExists      func(id int) bool
-	ItemExists     func(id int) bool
-	RoomExists     func(id int) bool
-	BuffExists     func(id int) bool
-	SpellExists    func(id string) bool
-	SkillExists    func(name string) bool
-	StatExists     func(name string) bool
-	RecipeExists   func(id string) bool
-	FactionExists  func(id string) bool
-	FlagDeclared   func(key, value string) bool // foreign quests' flag declarations
-	DialogueGrants func(token string) bool      // some dialogue file grants this token
-	MobHasDialogue func(mobId int) bool
+	StepExists      func(token string) bool // foreign "<qid>-<step>" resolves to a real quest step
+	MobExists       func(id int) bool
+	ItemExists      func(id int) bool
+	RoomExists      func(id int) bool
+	ConditionExists func(id int) bool
+	SpellExists     func(id string) bool
+	SkillExists     func(name string) bool
+	StatExists      func(name string) bool
+	RecipeExists    func(id string) bool
+	FactionExists   func(id string) bool
+	FlagDeclared    func(key, value string) bool // foreign quests' flag declarations
+	DialogueGrants  func(token string) bool      // some dialogue file grants this token
+	MobHasDialogue  func(mobId int) bool
 }
 
 // refsCtx accumulates findings and carries the incoming definition, since
@@ -161,8 +161,8 @@ func (c *refsCtx) checkActions(where string, actions []ActionDef, depth int) {
 		if a.LearnRecipe != nil && !c.v.RecipeExists(a.LearnRecipe.Recipe) {
 			c.errf("%s: learn_recipe %q does not exist", aw, a.LearnRecipe.Recipe)
 		}
-		if a.ApplyBuff != nil && a.ApplyBuff.Buff > 0 && !c.v.BuffExists(a.ApplyBuff.Buff) {
-			c.errf("%s: buff %d does not exist", aw, a.ApplyBuff.Buff)
+		if a.ApplyStatusCondition != nil && a.ApplyStatusCondition.Condition > 0 && !c.v.ConditionExists(a.ApplyStatusCondition.Condition) {
+			c.errf("%s: condition %d does not exist", aw, a.ApplyStatusCondition.Condition)
 		}
 		c.checkRoom(aw+" teleport", a.Teleport)
 		if a.SetFlag != nil {
@@ -289,8 +289,8 @@ func ValidateQuestRefs(q Quest, v QuestValidators) (errs []string, warns []strin
 	// Rewards.
 	c.checkToken("rewards questid", q.Rewards.QuestId)
 	c.checkItem("rewards itemid", q.Rewards.ItemId)
-	if q.Rewards.BuffId > 0 && !c.v.BuffExists(q.Rewards.BuffId) {
-		c.errf("rewards buffid: buff %d does not exist", q.Rewards.BuffId)
+	if q.Rewards.ConditionId > 0 && !c.v.ConditionExists(q.Rewards.ConditionId) {
+		c.errf("rewards buffid: condition %d does not exist", q.Rewards.ConditionId)
 	}
 	if q.Rewards.SpellId != "" && !c.v.SpellExists(q.Rewards.SpellId) {
 		c.errf("rewards spellid %q does not exist", q.Rewards.SpellId)

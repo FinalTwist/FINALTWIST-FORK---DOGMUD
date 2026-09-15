@@ -17,7 +17,7 @@ const (
 	SubTierBad     SubmissionTier = iota // Attempter overcommits; falls Prone, pair breaks to Standing
 	SubTierNeutral                       // Failed but no consequence; pair stays
 	SubTierSuccess                       // Sub locks; outcome resolves via attempter's SubmissionPolicy
-	SubTierCrit                          // Sub locks AND recipient is Stunned next round (T10 buff)
+	SubTierCrit                          // Sub locks AND recipient is Stunned next round (T10 condition)
 )
 
 func (t SubmissionTier) String() string {

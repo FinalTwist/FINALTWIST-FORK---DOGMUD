@@ -6,7 +6,7 @@ import (
 )
 
 // TriggerVenomCoat fires the venom-coat mutation for any Actor (player or mob).
-// Self-buff: slicks the actor's weapons in venom (buff 103) for a burst of
+// Self-condition: slicks the actor's weapons in venom (condition 103) for a burst of
 // extra bite. Gates: owns "venom-coat" + shared special-move cooldown + 8
 // stamina. Combat is NOT required — this is a prep move.
 func TriggerVenomCoat(actor Actor, opts MutationOpts) MutationResult {
@@ -15,9 +15,9 @@ func TriggerVenomCoat(actor Actor, opts MutationOpts) MutationResult {
 		return MutationResult{BlockReason: pre.BlockReason}
 	}
 
-	// Event-queue-safe buff application (per the Wave 2 gotcha — routes through
-	// ApplyBuffs so start-text + GMCP conditions refresh).
-	actor.AddBuff(103, "venom-coat")
+	// Event-queue-safe condition application (per the Wave 2 gotcha — routes through
+	// ApplyConditions so start-text + GMCP conditions refresh).
+	actor.AddCondition(103, "venom-coat")
 
 	if actor.IsPlayer() {
 		actor.SendText(messaging.CategoryMutation,

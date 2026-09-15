@@ -154,7 +154,7 @@ func getStatBaseValue(c *characters.Character, statName string) int {
 //
 // Character contains shared pointers, so this is safe ONLY because
 // ProgressionChanceForSkill reads just IsMob, Skills, Mutations and
-// HasBuffFlag, and the copy mutates nothing beyond its own Skills map.
+// HasConditionFlag, and the copy mutates nothing beyond its own Skills map.
 // Recalculate() is not needed: the curve reads the level, never Value.
 //
 // Called up to softCap times per skill per player, and each call copies the
@@ -399,7 +399,7 @@ func buildSkillHealth(playerList []*users.UserRecord) map[string]skillHealthJSON
 			// Stall detection: uses since last gain vs expected uses for next.
 			// chanceAtRank comes from the probe -- the full production
 			// expression including StatProgressionRate and every per-skill,
-			// mutation and buff multiplier -- rather than bare
+			// mutation and condition multiplier -- rather than bare
 			// CalculateProgressionChance, which understated it badly.
 			usesAtRank := usesToReach(probe, rank)
 			usesSinceGain := float64(useCount) - usesAtRank

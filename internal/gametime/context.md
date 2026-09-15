@@ -151,5 +151,5 @@ import almost anywhere.
 
 ## Consumers
 
-`mutators` (decay/respawn), `shops` (restock), `mobs` (schedules), `buffs`,
+`mutators` (decay/respawn), `shops` (restock), `mobs` (schedules), `conditions`,
 `rooms`, `usercommands`, `internal/hooks`, and `modules/weather`.

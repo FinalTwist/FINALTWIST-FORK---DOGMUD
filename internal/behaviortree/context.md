@@ -231,7 +231,7 @@ Condition nodes use `type: condition` with `check: <name>`.
 | `mob_health_below` | `percent` (int) | Health < N% of max HP. |
 | `mob_at_home` | none | Mob is in its home room. |
 | `mob_at_target_room` | none | Success when mob is at its current schedule segment's target_room; Failure when no schedule, no current segment, or in transit. |
-| `mob_has_buff` | `buff_id` (int) | Mob currently has the buff. |
+| `mob_has_buff` | `buff_id` (int) | Mob currently has the condition. |
 | `state_equals` | `key`, `value` (strings) | BehaviorState string equals. |
 | `state_greater_than` | `key` (string), `value` (int) | BehaviorState int > value. |
 | `forager_state_is_foraging` | none | True when forager state machine is in Foraging state (chunk 2.9). |
@@ -259,17 +259,17 @@ Condition nodes use `type: condition` with `check: <name>`.
 ### Stealth & Visibility (chunk 1)
 
 Post-chunk-1, hidden-state conditions read via the `Character.IsHidden()`
-predicate, which consults the Awareness machine instead of the buff #9 flag.
+predicate, which consults the Awareness machine instead of the condition #9 flag.
 Conditions now reflect the canonical awareness state, not the side-effect
-buff.
+condition.
 
 | Condition | Params | Description |
 |-----------|--------|-------------|
-| `mob_is_hidden` | none | True when self.Awareness.IsHidden() (previously checked buff #9). |
-| `mob_is_tracking` | none | True when self carries buff 86 (Track status). Used to gate track-related actions. |
+| `mob_is_hidden` | none | True when self.Awareness.IsHidden() (previously checked condition #9). |
+| `mob_is_tracking` | none | True when self carries condition 86 (Track status). Used to gate track-related actions. |
 | `room_has_hidden_entity` | none | True when room contains at least one hidden mob or hidden player. |
 | `target_has_gold` | `min` (int) | True when the resolved PLAYER target has at least N gold. Mob targets always return Failure. |
-| `target_is_hidden` | none | True when the resolved target.Awareness.IsHidden() (previously checked buff #9). |
+| `target_is_hidden` | none | True when the resolved target.Awareness.IsHidden() (previously checked condition #9). |
 
 ### Position & Grapple (chunks 4a + 4b)
 
@@ -402,10 +402,10 @@ are subject to perception-scaled reaction delays (see below).
 
 | Action | Params | Description |
 |--------|--------|-------------|
-| `move_toward_tracked` | none | Reads buff 86 + tracking misc data; dispatches `go <direction>` toward the tracked entity (delayed). Fails silently if buff/data missing. |
+| `move_toward_tracked` | none | Reads condition 86 + tracking misc data; dispatches `go <direction>` toward the tracked entity (delayed). Fails silently if condition/data missing. |
 | `try_scan` | none | Invoke `actions.Scan` (no delay). Sweeps adjacent rooms; on hostile sighting sets ctx.SoftTarget; returns Success on any sighting (Failure when HostileOnly and no hostile found). |
 | `try_search` | none | Invoke `actions.Search` (no delay). Three-tier discovery (exits/stashed/hidden nouns); promotes first hidden hostile to ctx.SoftTarget; ignores Tier-1/Tier-3 non-hostiles. |
-| `try_track` | `target_from` (optional string: "event" or "aggro") | Invoke `actions.Track` (no delay). Reads trail from target (trail-sniff); or activates tracking on resolved target. On adjacent-trail hit applies buff 86; seeds ctx.SoftTarget. |
+| `try_track` | `target_from` (optional string: "event" or "aggro") | Invoke `actions.Track` (no delay). Reads trail from target (trail-sniff); or activates tracking on resolved target. On adjacent-trail hit applies condition 86; seeds ctx.SoftTarget. |
 
 ### Foraging & Salvage — varied delays (chunk 2.9)
 
@@ -445,7 +445,7 @@ without standing inert for a full round.
 
 | Action | Params | Description |
 |--------|--------|-------------|
-| `add_buff` | `buff_id` (int) | Applies buff to the acting mob. |
+| `add_buff` | `buff_id` (int) | Applies condition to the acting mob. |
 | `command_mob` | `mob_id` (int), `cmd` (string) | Issues a command to the first matching mob in room. |
 
 ### Spawning & Environment — instant
@@ -806,7 +806,7 @@ These actions were added alongside the room behavior tree system:
 | `grant_mutation` | none | Rolls and grants a random mutation to the triggering player from the weighted acquisition pool. |
 | `send_user_text` | `text` (string) | Sends raw text to the triggering player (no mob prefix). |
 | `send_room_text` | `text` (string) | Sends raw text to all players in the room. |
-| `remove_buff` | `buff_id` (int) | Removes the specified buff from the triggering player. |
+| `remove_buff` | `buff_id` (int) | Removes the specified condition from the triggering player. |
 | `move_player` | `room_id` (int) | Teleports the triggering player to the target room. |
 
 ### Command Control
@@ -935,21 +935,21 @@ Added in the legacy tactics-engine sunset migration:
 
 - **`defensive_caster`** — Caster pattern with self-preservation:
   panic-flee at HP<30, panic-buff (chrysalis-cocoon when
-  Chrysalis Shell buff 52 is missing), AoE on multiple targets
+  Chrysalis Shell condition 52 is missing), AoE on multiple targets
   (conviction-barrage), single-target spike (conviction-spike).
   Used by goblin_shaman (219), tunnel_shaman (74),
   bandit_caster (285), elemental_queen (321). Absorbed the
   legacy `defensive_caster` and `caster_backline` tactic presets.
 - **`boss_edrin`** — Old Edrin's fragile-caster rotation with
   fold-recall at HP<30, panic-flee at HP<25, heal at HP<50,
-  opening conviction-ward (shield spell — no buff gate),
+  opening conviction-ward (shield spell — no condition gate),
   mind-spike on casters, hemorrhagic-burst on multi,
   pyretic-surge single-target.
 - **`boss_sylara`** — Windwarden Sylara's heal-at-30 + panic
-  chrysalis-cocoon (buff 52) + conviction-ward opener
-  (shield spell — no buff gate) + bash interrupt.
+  chrysalis-cocoon (condition 52) + conviction-ward opener
+  (shield spell — no condition gate) + bash interrupt.
 - **`boss_rhett`** — Geomancer Rhett's defense-only opener
-  (conviction-armor when buff 38 missing) + panic-flee.
+  (conviction-armor when condition 38 missing) + panic-flee.
 - **`boss_soren`** — Soren's leader-archetype combat plus a
   call_for_help at HP<30 branch.
 - **`boss_chrysalis_phantom`** — Tight panic-flee (HP<20) +

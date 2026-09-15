@@ -1,8 +1,8 @@
 package messaging
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
 )
 
@@ -16,7 +16,7 @@ type RoomVisibility interface {
 
 // CanSeeClearly returns true if the observer can read normal-text
 // visual broadcasts in this room. Composes Perception state, room
-// lighting, and the NightVision buff flag.
+// lighting, and the NightVision condition flag.
 //
 // Blinded observers (any source) return false unconditionally.
 // A nil observer defaults to true (defensive — pre-init characters
@@ -28,7 +28,7 @@ func CanSeeClearly(observer *characters.Character, room RoomVisibility) bool {
 	if observer.Perception != nil && observer.Perception.State() == perception.Blinded {
 		return false
 	}
-	// Sleep is a perception state, even though it is carried as a buff flag
+	// Sleep is a perception state, even though it is carried as a condition flag
 	// rather than by the Perception machine. This pipeline had no concept of it
 	// at all until 2026-08-31, so a sleeping player kept receiving every visual
 	// broadcast in the room: NPC dialogue, ambient flavour, arrivals.
@@ -36,13 +36,13 @@ func CanSeeClearly(observer *characters.Character, room RoomVisibility) bool {
 	// AUDIO IS DELIBERATELY UNAFFECTED. Room.SendText bypasses this gate, so a
 	// shout still reaches a sleeper and still wakes them (shout.go owns that
 	// wake trigger). Gating audio here would make sleep unwakeable by sound.
-	if observer.HasBuffFlag(buffs.Sleeping) {
+	if observer.HasConditionFlag(conditions.Sleeping) {
 		return false
 	}
 	if room == nil || roomIsLit(room) {
 		return true
 	}
-	return observer.HasFlagFromAnySource(buffs.NightVision)
+	return observer.HasFlagFromAnySource(conditions.NightVision)
 }
 
 // CanSeeSightImpairedOnly is CanSeeClearly WITHOUT the sleep gate: it reports
@@ -79,7 +79,7 @@ func CanSeeSightImpairedOnly(observer *characters.Character, room RoomVisibility
 	if room == nil || roomIsLit(room) {
 		return true
 	}
-	return observer.HasFlagFromAnySource(buffs.NightVision)
+	return observer.HasFlagFromAnySource(conditions.NightVision)
 }
 
 // CanSeeShapes returns true if the observer can detect SOMETHING is
@@ -102,10 +102,10 @@ func CanSeeShapes(observer *characters.Character, room RoomVisibility) bool {
 	// Must be repeated here, not inherited. CanSeeClearly returning false is
 	// the NORMAL path into this function (that is what "in the dark" means), so
 	// a sleeper reaching the infrared branch would see shapes while asleep.
-	if observer.HasBuffFlag(buffs.Sleeping) {
+	if observer.HasConditionFlag(conditions.Sleeping) {
 		return false
 	}
-	return observer.HasFlagFromAnySource(buffs.InfraredVision)
+	return observer.HasFlagFromAnySource(conditions.InfraredVision)
 }
 
 // roomIsLit returns true if the room is bright enough to read
@@ -143,7 +143,7 @@ func ParticipantSight(observer *characters.Character, room RoomVisibility) Sight
 	if observer.Perception != nil && observer.Perception.State() == perception.Blinded {
 		return SightNone
 	}
-	if observer.HasFlagFromAnySource(buffs.InfraredVision) {
+	if observer.HasFlagFromAnySource(conditions.InfraredVision) {
 		return SightShapes
 	}
 	return SightNone

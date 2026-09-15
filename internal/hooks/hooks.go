@@ -11,8 +11,8 @@ import (
 // Register hooks here...
 func RegisterListeners() {
 
-	// Buffs
-	events.RegisterListener(events.Buff{}, ApplyBuffs)
+	// Conditions
+	events.RegisterListener(events.Condition{}, ApplyConditions)
 
 	// U5c: attributed death, queued by ApplyHarm at the harm site and resolved
 	// here rather than inline, so no instance despawns mid-loop.
@@ -62,7 +62,7 @@ func RegisterListeners() {
 	// Turn Hooks
 	events.RegisterListener(events.NewTurn{}, CleanupZombies)
 	events.RegisterListener(events.NewTurn{}, AutoSave)
-	events.RegisterListener(events.NewTurn{}, PruneBuffs)
+	events.RegisterListener(events.NewTurn{}, PruneConditions)
 	events.RegisterListener(events.NewTurn{}, ActionPoints)
 	events.RegisterListener(events.NewTurn{}, SweepDialogueMemory)
 

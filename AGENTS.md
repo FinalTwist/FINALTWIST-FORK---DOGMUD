@@ -209,7 +209,7 @@ Mobs marked `non_combatant: true` cannot be attacked, stolen from, or targeted
 by harmful spells; preserve all three enforcement paths.
 
 Sleep is shared actor behavior. Use `actions.Sleep(actor, opts)` and query
-`HasBuffFlag(buffs.Sleeping)` instead of adding player/mob-specific paths.
+`HasConditionFlag(conditions.Sleeping)` instead of adding player/mob-specific paths.
 Damage, failed theft, room shouts, arriving light, standing, and scheduled
 segment changes can wake sleepers; scheduled wake grace prevents immediate
 re-sleep. Preserve the first-round vulnerability of sleeping targets.

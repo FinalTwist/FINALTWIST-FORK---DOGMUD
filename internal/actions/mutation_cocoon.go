@@ -6,8 +6,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/targeting"
 )
 
-// TriggerCocoon fires the cocoon mutation for any Actor. Self-buff: encases the
-// actor in a near-invulnerable chrysalis shell (buff 104) AND drops aggro —
+// TriggerCocoon fires the cocoon mutation for any Actor. Self-condition: encases the
+// actor in a near-invulnerable chrysalis shell (condition 104) AND drops aggro —
 // every room mob currently fixed on the actor loses its target ("vanish from
 // threat"). No attack-lock: the cost is the spent move + the shared cooldown.
 // Gates: owns "cocoon" + shared special-move cooldown + 10 stamina. Combat not
@@ -18,7 +18,7 @@ func TriggerCocoon(actor Actor, opts MutationOpts) MutationResult {
 		return MutationResult{BlockReason: pre.BlockReason}
 	}
 
-	actor.AddBuff(104, "cocoon")
+	actor.AddCondition(104, "cocoon")
 
 	// Drop aggro: mobs in the room fixed on this actor lose their target.
 	// Guarded to player actors — a mob actor has UserId 0, which would spuriously

@@ -30,7 +30,7 @@ type ShadowResult struct {
 }
 
 // Shadow attempts to track a target while hidden. Requires the actor to
-// already carry buff 9 (Hidden). On success, stores the target's id in
+// already carry condition 9 (Hidden). On success, stores the target's id in
 // the actor's misc-data so the engine's existing shadow-follow event
 // listener can auto-follow on the target's room-change events. An initial
 // detection roll is performed for player targets: if the target wins, they
@@ -89,14 +89,14 @@ func shadowMob(actor Actor, mobInstanceId int, cfg configs.Balance) ShadowResult
 	char := actor.GetCharacter()
 	char.SetMiscData("shadow-target-user", nil)
 	char.SetMiscData("shadow-target-mob", m.InstanceId)
-	actor.AddBuff(87, "skill")
+	actor.AddCondition(87, "skill")
 
 	actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 		`You begin shadowing <ansi fg="mobname">%s</ansi>, `+
 			`moving silently in their wake.`,
 		m.Character.Name))
 
-	// U10b-1 Task 18: the MOB-target shadow runs no contest at all -- the buff
+	// U10b-1 Task 18: the MOB-target shadow runs no contest at all -- the condition
 	// is applied and the shadow simply begins -- so there is nothing to lose
 	// and won is unconditionally true. Contrast shadowPlayer below, which does
 	// roll against the target and passes !detected.
@@ -136,7 +136,7 @@ func shadowPlayer(actor Actor, targetUserId int, cfg configs.Balance) ShadowResu
 	char := actor.GetCharacter()
 	char.SetMiscData("shadow-target-user", targetUser.UserId)
 	char.SetMiscData("shadow-target-mob", nil)
-	actor.AddBuff(87, "skill")
+	actor.AddCondition(87, "skill")
 
 	actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 		`You begin shadowing <ansi fg="username">%s</ansi>, `+

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const castSightInfraredBuffId = 7801
+const castSightInfraredConditionId = 7801
 
 // castSightActor is a PLAYER caster: stubActor with a user id, a name and a
 // record of what it was told.
@@ -50,8 +50,8 @@ func castSightScene(t *testing.T, biome string) (*castSightActor, *rooms.Room) {
 		"city":    {BiomeId: "city", LitArea: true},
 		"default": {BiomeId: "default", LitArea: true},
 	}))
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		castSightInfraredBuffId: {BuffId: castSightInfraredBuffId, Name: "Test Infrared", Flags: []buffs.Flag{buffs.InfraredVision}},
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		castSightInfraredConditionId: {ConditionId: castSightInfraredConditionId, Name: "Test Infrared", Flags: []conditions.Flag{conditions.InfraredVision}},
 	}))
 	t.Cleanup(spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		"sight-heal": {SpellId: "sight-heal", Name: "Sight Heal", Type: spells.HelpSingle, BaseFolds: 2, Cost: 5},
@@ -74,7 +74,7 @@ func castSightScene(t *testing.T, biome string) (*castSightActor, *rooms.Room) {
 
 func giveCasterInfrared(t *testing.T, a *castSightActor) {
 	t.Helper()
-	require.NoError(t, a.GetCharacter().AddBuff(castSightInfraredBuffId, true))
+	require.NoError(t, a.GetCharacter().AddCondition(castSightInfraredConditionId, true))
 }
 
 func requireRefused(t *testing.T, a *castSightActor, r CastResult, line string) {

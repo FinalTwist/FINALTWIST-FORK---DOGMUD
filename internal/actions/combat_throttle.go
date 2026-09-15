@@ -1,9 +1,9 @@
 package actions
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -64,7 +64,7 @@ type ThrottleResult struct {
 //     stat, no knockdown)
 //   - On hit: add a Bleeding stack (ThrottleBleedRounds,
 //     ThrottleBleedStrengthDivisor, ThrottleBleedMin) sourced as "throttle"
-//   - On hit: apply Throttled DoT buff (id 89) for stamina drain
+//   - On hit: apply Throttled DoT condition (id 89) for stamina drain
 //   - On hit: an opposed contest through the concentration seam
 //     (combat.RunConcentrationContest) between the target's hold and the
 //     throttler's grip; a lost hold interrupts via InterruptTargetCast
@@ -138,10 +138,10 @@ func ExecuteThrottle(actor Actor) ThrottleResult {
 		// Strength / ThrottleBleedStrengthDivisor per round, floor
 		// ThrottleBleedMin); the choke's primary DoT is stamina drain.
 		bleedDmg = bleedPerRound(char.Stats.Strength.ValueAdj, cfg.ThrottleBleedStrengthDivisor, cfg.ThrottleBleedMin)
-		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, int(cfg.ThrottleBleedRounds), -float64(bleedDmg), "throttle")
+		_ = target.Char.AddConditionMagnitude(conditions.ConditionIdBleeding, int(cfg.ThrottleBleedRounds), -float64(bleedDmg), "throttle")
 
-		// Stamina-over-time: apply the Throttled DoT buff (id 89).
-		_ = target.Char.AddBuff(89, false)
+		// Stamina-over-time: apply the Throttled DoT condition (id 89).
+		_ = target.Char.AddCondition(89, false)
 
 		// Cast interrupt (U10): an opposed contest through the
 		// concentration seam — the caster's hold (attack side, as in every

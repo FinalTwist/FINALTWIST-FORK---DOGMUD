@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -21,7 +21,7 @@ import (
 func Loot(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
 	// Can't loot if you can't see.
-	if room.GetVisibility() < 1 && !user.Character.HasFlagFromAnySource(buffs.NightVision) {
+	if room.GetVisibility() < 1 && !user.Character.HasFlagFromAnySource(conditions.NightVision) {
 		user.SendText(messaging.CategorySystem, "You can't see anything to loot!")
 		return true, nil
 	}
@@ -121,7 +121,7 @@ func lootCorpseAll(user *users.UserRecord, room *rooms.Room, corpseIdx int) {
 	}
 
 	if tookSomething {
-		user.Character.CancelBuffsWithFlag(buffs.Hidden) // No longer sneaking
+		user.Character.CancelConditionsWithFlag(conditions.Hidden) // No longer sneaking
 		room.SendTextVisual(messaging.CategoryLoot,
 			fmt.Sprintf(`<ansi fg="username">%s</ansi> loots the <ansi fg="mob-corpse">%s</ansi>.`, user.Character.Name, corpse.DisplayName()),
 			user.UserId,

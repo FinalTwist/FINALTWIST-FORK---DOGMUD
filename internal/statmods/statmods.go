@@ -1,7 +1,7 @@
 package statmods
 
 // This contains centralized structs and constants regarding statmods
-// Statmods are found in buffs, items, etc.
+// Statmods are found in conditions, items, etc.
 // They are used to augment in-game stats, calculations, etc.
 
 // Statmods are a simple map of "name" to "modifier"

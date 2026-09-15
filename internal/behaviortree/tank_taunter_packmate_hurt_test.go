@@ -3,8 +3,8 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -42,7 +42,7 @@ func TestTankTaunter_PackmateHurt_TauntsAndSetsAggro(t *testing.T) {
 	m.Character.Health = 100
 	m.Character.Stamina = 100
 	m.Character.Conviction = 100
-	m.Character.Buffs = buffs.New()
+	m.Character.Conditions = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{300 + 90201: m},
 		map[int]*mobs.Mob{90201: m},

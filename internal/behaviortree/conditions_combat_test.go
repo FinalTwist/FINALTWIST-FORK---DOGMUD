@@ -3,8 +3,8 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 )
 
@@ -108,14 +108,14 @@ func TestTargetPowerRatio_AggroMobFallback(t *testing.T) {
 
 	// Seed two mobs in one call — seedTestMob is single-mob and would clobber.
 	specs := map[int]*mobs.Mob{
-		5:  {MobId: mobs.MobId(5), Character: characters.Character{Name: "StrongMob", Buffs: buffs.New()}},
-		10: {MobId: mobs.MobId(10), Character: characters.Character{Name: "WeakTargetMob", Buffs: buffs.New()}},
+		5:  {MobId: mobs.MobId(5), Character: characters.Character{Name: "StrongMob", Conditions: conditions.New()}},
+		10: {MobId: mobs.MobId(10), Character: characters.Character{Name: "WeakTargetMob", Conditions: conditions.New()}},
 	}
 	instances := map[int]*mobs.Mob{
 		105: {MobId: mobs.MobId(5), InstanceId: 105, HomeRoomId: 1,
-			Character: characters.Character{Name: "StrongMob", Buffs: buffs.New()}},
+			Character: characters.Character{Name: "StrongMob", Conditions: conditions.New()}},
 		110: {MobId: mobs.MobId(10), InstanceId: 110, HomeRoomId: 1,
-			Character: characters.Character{Name: "WeakTargetMob", Buffs: buffs.New()}},
+			Character: characters.Character{Name: "WeakTargetMob", Conditions: conditions.New()}},
 	}
 	cleanMobs := mobs.SeedMobsForTest(specs, instances)
 	defer cleanMobs()

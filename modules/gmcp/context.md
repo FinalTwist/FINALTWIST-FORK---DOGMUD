@@ -174,7 +174,7 @@ for the full Phase 2–3 design.
 ### Purpose
 
 Phase 4 added a client-side FIFO action queue so that multiple triggers
-firing at once (e.g. several buffs expiring simultaneously) do not stomp
+firing at once (e.g. several conditions expiring simultaneously) do not stomp
 each other. Instead of sending all commands immediately, each trigger with
 a non-empty `queueMode` pushes its resolved command onto the queue, which
 drains one entry per shared ability cooldown.
@@ -280,8 +280,8 @@ though raw HP (60%) is well above 30%.
 
 `Char.Conditions` (`gmcp.Char.go`) is a map keyed by each held record's plain
 spec name, one entry per listed record, built by `buildConditionsPayload(ch)`. There used to be TWO payloads that
-overlapped: `Char.Affects`, built from buffs, and an older `Char.Conditions`
-list built from the combat condition slice. Buff records ARE the conditions
+overlapped: `Char.Affects`, built from the buffs collection, and an older `Char.Conditions`
+list built from the combat condition slice. Those buff records ARE the conditions
 now, so there is one payload, carrying the whole `Char.Affects` shape plus the
 qualitative `duration` word the old list contributed.
 
@@ -289,12 +289,12 @@ qualitative `duration` word the old list contributed.
 
 | JSON key | Go field | What it carries |
 |---|---|---|
-| `name` | `Name` | `buffs.DisplayName`: the spec name, plus the live stack count above one ("Bleeding (3)") |
+| `name` | `Name` | `conditions.DisplayName`: the spec name, plus the live stack count above one ("Bleeding (3)") |
 | `description` | `Description` | its description |
-| `duration_max` | `DurationMax` | total duration in SECONDS (`RoundsToSeconds`), or -1 for a permabuff |
-| `duration_cur` | `DurationLeft` | remaining duration in seconds, or -1 for a permabuff |
+| `duration_max` | `DurationMax` | total duration in SECONDS (`RoundsToSeconds`), or -1 for a permanent condition |
+| `duration_cur` | `DurationLeft` | remaining duration in seconds, or -1 for a permanent condition |
 | `duration` | `Duration` | the qualitative word: `sustained`, `briefly`, `for a while`, `extended` |
-| `type` | `Type` | the INSTANCE's `Buff.Source` (the applier's own string: "spell", "heal spell", "prone recovery", ...), falling back to `unknown` |
+| `type` | `Type` | the INSTANCE's `Condition.Source` (the applier's own string: "spell", "heal spell", "prone recovery", ...), falling back to `unknown` |
 | `affects` | `Mods` | the spec's `StatMods`, name to int |
 
 Things worth knowing before touching it:
@@ -305,7 +305,7 @@ Things worth knowing before touching it:
   `ConditionType.DisplayName()` there instead, so a client that switched on
   `type` to identify a condition must stop.
 - **`duration_cur` is read off the INSTANCE; `duration_max` is not.**
-  `buffs.GetDurations` derives the remaining rounds from the held record's
+  `conditions.GetDurations` derives the remaining rounds from the held record's
   `TriggersLeft`, not the spec's authored `triggercount`. Reading the spec
   default is what made a 50-round Enchant Withdrawal on a 10-trigger record
   report a negative duration. The total it returns alongside is still the
@@ -316,7 +316,7 @@ Things worth knowing before touching it:
   two records can present the same spec name. `nameIncrement` is ONE
   counter for the whole payload, not per name: the first collision anywhere
   takes `#1`, the next `#2`, whatever names they were.
-- **Hidden and secret records are left out**, by `BuffSpec.Listed`, the same
+- **Hidden and secret records are left out**, by `ConditionSpec.Listed`, the same
   predicate the `conditions` command uses (owner ruling 2026-09-14): being
   told you are hidden is a tell you should not get, and a secret record is
   bookkeeping the player is not meant to see. The map is built by
@@ -328,7 +328,7 @@ Things worth knowing before touching it:
   pins it.
 - **Push triggers.** It ships with `Char.Vitals` on `CharacterVitalsChanged`
   (`vitalsChangedHandler`), so any pool move republishes it, and on its own
-  from `buffTriggeredHandler` on `events.BuffsTriggered`.
+  from `conditionTriggeredHandler` on `events.ConditionsTriggered`.
 - **`Char.Affects` is retired.** There is no builder for it. A client that
   requests it falls through to the bottom of `GetCharNode`
   (`gmcp.Char.go`) and the server logs `Bad module requested`, exactly as for

@@ -30,11 +30,11 @@ physical damage.
 
 Warcry spends Conviction and requires full payment before any ally receives the
 effect. <ansi fg="skill">Rhetoric</ansi> lowers the price; carried load does not
-affect this act of will. If you cannot muster the resolve, no cooldown or buff
-is consumed.
+affect this act of will. If you cannot muster the resolve, no cooldown or
+condition is consumed.
 
 Warcry can be used before combat begins, making it useful
-for pre-buffing before engaging a tough enemy. Higher Rhetoric
+for strengthening allies before engaging a tough enemy. Higher Rhetoric
 skill and Charisma increase the potency of the effect.
 
 <ansi fg="yellow">See Also:</ansi>

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/audio"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
@@ -53,7 +53,7 @@ const (
 	FindHostile        FindFlag = 0b00000010000 // will auto-attack players
 	FindMerchant       FindFlag = 0b00000100000 // is a merchant
 	FindDowned         FindFlag = 0b00001000000 // hp < 1
-	FindBuffed         FindFlag = 0b00010000000 // has a buff
+	FindWithConditions FindFlag = 0b00010000000 // has a condition
 	FindHasLight       FindFlag = 0b00100000000 // has a light source
 	FindHasPet         FindFlag = 0b01000000000 // has a pet
 	FindNative         FindFlag = 0b10000000000 // spawns in this room
@@ -328,9 +328,9 @@ func (r *Room) ParticipantSight(userId int) messaging.SightDecision {
 
 // SendTextVisualAsLit delivers a sight-gated message judged as if the room
 // were lit. Use it ONLY for an event that is itself a light and whose light is
-// already gone when the line is sent: a light buff's end text ("The glow
-// surrounding X fades away"). Buffs.HasFlag stops counting a light the moment
-// its buff expires, on the round tick, but the end text goes out at the turn's
+// already gone when the line is sent: a light condition's end text ("The glow
+// surrounding X fades away"). Conditions.HasFlag stops counting a light the moment
+// its condition expires, on the round tick, but the end text goes out at the turn's
 // prune, so SendTextVisual judged a room that was already dark and silenced
 // the line for everyone who had been seeing by that light.
 //
@@ -684,21 +684,21 @@ func (r *Room) AddTemporaryExit(exitName string, t exit.TemporaryRoomExit) bool 
 	return true
 }
 
-// applies buffs to any players in the room, refreshing one a player already
+// applies conditions to any players in the room, refreshing one a player already
 // holds instead of letting it lapse and re-applying it. A room mutator's
-// playerbuffids run every round, so a buff that merely skipped an existing
+// playerbuffids run every round, so a condition that merely skipped an existing
 // holder would expire on its own schedule and get re-added the next round,
 // narrating its end and start in a loop for as long as the player stayed.
-// Character.AddBuff was tried here first, but it resets RoundCounter as well
-// as TriggersLeft, which would starve any buff whose RoundInterval is above
+// Character.AddCondition was tried here first, but it resets RoundCounter as well
+// as TriggersLeft, which would starve any condition whose RoundInterval is above
 // one (refreshed every round, it would never accumulate past round 1), and
 // it runs a full Validate for no reason since a refresh changes no statmod
-// or flag. RefreshBuff tops the triggers back up and nothing else, so the
-// buff stays active for the whole visit: one start line on entry, one end
+// or flag. RefreshCondition tops the triggers back up and nothing else, so the
+// condition stays active for the whole visit: one start line on entry, one end
 // line on leaving, none in between.
-func (r *Room) ApplyBuffIdToPlayers(buffIds []int, source string) {
+func (r *Room) ApplyConditionIdToPlayers(conditionIds []int, source string) {
 
-	if len(buffIds) == 0 {
+	if len(conditionIds) == 0 {
 		return
 	}
 
@@ -706,12 +706,12 @@ func (r *Room) ApplyBuffIdToPlayers(buffIds []int, source string) {
 
 		if u := users.GetByUserId(uid); u != nil {
 
-			for _, bId := range buffIds {
-				if u.Character.HasBuff(bId) {
-					u.Character.RefreshBuff(bId)
+			for _, bId := range conditionIds {
+				if u.Character.HasCondition(bId) {
+					u.Character.RefreshCondition(bId)
 					continue
 				}
-				u.AddBuff(bId, source)
+				u.AddCondition(bId, source)
 			}
 		}
 
@@ -719,13 +719,13 @@ func (r *Room) ApplyBuffIdToPlayers(buffIds []int, source string) {
 
 }
 
-// applies buffs to any mobs in the room, refreshing one a mob already holds
-// instead of letting it lapse and re-applying it. See ApplyBuffIdToPlayers:
-// the same lapse-and-reapply loop applied here, narrating the buff's end
+// applies conditions to any mobs in the room, refreshing one a mob already holds
+// instead of letting it lapse and re-applying it. See ApplyConditionIdToPlayers:
+// the same lapse-and-reapply loop applied here, narrating the condition's end
 // room text every few rounds for as long as the mob stayed.
-func (r *Room) ApplyBuffIdToMobs(buffIds []int, source string) {
+func (r *Room) ApplyConditionIdToMobs(conditionIds []int, source string) {
 
-	if len(buffIds) == 0 {
+	if len(conditionIds) == 0 {
 		return
 	}
 
@@ -733,12 +733,12 @@ func (r *Room) ApplyBuffIdToMobs(buffIds []int, source string) {
 
 		if m := mobs.GetInstance(miid); m != nil {
 
-			for _, bId := range buffIds {
-				if m.Character.HasBuff(bId) {
-					m.Character.RefreshBuff(bId)
+			for _, bId := range conditionIds {
+				if m.Character.HasCondition(bId) {
+					m.Character.RefreshCondition(bId)
 					continue
 				}
-				m.AddBuff(bId, source)
+				m.AddCondition(bId, source)
 			}
 		}
 
@@ -746,12 +746,12 @@ func (r *Room) ApplyBuffIdToMobs(buffIds []int, source string) {
 
 }
 
-// applies buffs to any native mobs in the room, refreshing one a mob already
+// applies conditions to any native mobs in the room, refreshing one a mob already
 // holds instead of letting it lapse and re-applying it. See
-// ApplyBuffIdToPlayers for why AddBuff is the wrong tool for a refresh.
-func (r *Room) ApplyBuffIdToNativeMobs(buffIds []int, source string) {
+// ApplyConditionIdToPlayers for why AddCondition is the wrong tool for a refresh.
+func (r *Room) ApplyConditionIdToNativeMobs(conditionIds []int, source string) {
 
-	if len(buffIds) == 0 {
+	if len(conditionIds) == 0 {
 		return
 	}
 
@@ -759,12 +759,12 @@ func (r *Room) ApplyBuffIdToNativeMobs(buffIds []int, source string) {
 
 		if m := mobs.GetInstance(miid); m != nil {
 
-			for _, bId := range buffIds {
-				if m.Character.HasBuff(bId) {
-					m.Character.RefreshBuff(bId)
+			for _, bId := range conditionIds {
+				if m.Character.HasCondition(bId) {
+					m.Character.RefreshCondition(bId)
 					continue
 				}
-				m.AddBuff(bId, source)
+				m.AddCondition(bId, source)
 			}
 		}
 
@@ -772,7 +772,7 @@ func (r *Room) ApplyBuffIdToNativeMobs(buffIds []int, source string) {
 
 }
 
-func (r *Room) SpawnTempContainer(name string, duration string, lockDifficulty int, trapBuffIds ...int) string {
+func (r *Room) SpawnTempContainer(name string, duration string, lockDifficulty int, trapConditionIds ...int) string {
 
 	c := Container{}
 
@@ -781,8 +781,8 @@ func (r *Room) SpawnTempContainer(name string, duration string, lockDifficulty i
 
 	c.Lock.Difficulty = uint8(lockDifficulty)
 
-	if len(trapBuffIds) > 0 {
-		c.Lock.TrapBuffIds = trapBuffIds
+	if len(trapConditionIds) > 0 {
+		c.Lock.TrapConditionIds = trapConditionIds
 	}
 
 	containerName := name
@@ -977,8 +977,8 @@ func (r *Room) Prepare(checkAdjacentRooms bool) {
 					mob.Character.Shop.Restock()
 				}
 
-				if len(spawnInfo.BuffIds) > 0 {
-					mob.Character.SetPermaBuffs(spawnInfo.BuffIds)
+				if len(spawnInfo.ConditionIds) > 0 {
+					mob.Character.SetPermanentConditions(spawnInfo.ConditionIds)
 				}
 
 				// If there are idle commands for this spawn, overwrite.
@@ -1279,7 +1279,7 @@ func (r *Room) SetExitLock(exitName string, locked bool) {
 // This cannot reintroduce shadowing. Every property of every exit — the
 // destination room, lock difficulty, exit message, oneway/secret flags — still
 // comes wholly from the template on each load. The instance file cannot add,
-// remove or redirect an exit; its only power is to clear TrapBuffIds on an exit
+// remove or redirect an exit; its only power is to clear TrapConditionIds on an exit
 // the template already defines. A recorded name that no longer matches an
 // authored exit is a silent no-op.
 //
@@ -1294,7 +1294,7 @@ func (r *Room) MarkExitTrapDefused(exitName string) {
 		return
 	}
 
-	exitInfo.Lock.TrapBuffIds = nil
+	exitInfo.Lock.TrapConditionIds = nil
 	r.Exits[exitName] = exitInfo
 
 	for _, existing := range r.DefusedExits {
@@ -1315,10 +1315,10 @@ func (r *Room) applyDefusedExits() {
 			// The authored exit was renamed or removed — nothing to clear.
 			continue
 		}
-		if exitInfo.Lock.TrapBuffIds == nil {
+		if exitInfo.Lock.TrapConditionIds == nil {
 			continue
 		}
-		exitInfo.Lock.TrapBuffIds = nil
+		exitInfo.Lock.TrapConditionIds = nil
 		r.Exits[exitName] = exitInfo
 	}
 }
@@ -1661,7 +1661,7 @@ func (r *Room) GetMobs(findTypes ...FindFlag) []int {
 			}
 		}
 
-		if typeFlag&FindHasLight == FindHasLight && mob.Character.HasFlagFromAnySource(buffs.EmitsLight) {
+		if typeFlag&FindHasLight == FindHasLight && mob.Character.HasFlagFromAnySource(conditions.EmitsLight) {
 			mobMatches = append(mobMatches, mobId)
 			continue
 		}
@@ -1697,7 +1697,7 @@ func (r *Room) GetMobs(findTypes ...FindFlag) []int {
 			continue
 		}
 
-		if typeFlag&FindBuffed == FindBuffed && len(mob.Character.Buffs.List) > 0 {
+		if typeFlag&FindWithConditions == FindWithConditions && len(mob.Character.Conditions.List) > 0 {
 			mobMatches = append(mobMatches, mobId)
 			continue
 		}
@@ -1757,7 +1757,7 @@ func (r *Room) GetPlayers(findTypes ...FindFlag) []int {
 			}
 		}
 
-		if typeFlag&FindHasLight == FindHasLight && user.Character.HasFlagFromAnySource(buffs.EmitsLight) {
+		if typeFlag&FindHasLight == FindHasLight && user.Character.HasFlagFromAnySource(conditions.EmitsLight) {
 			playerMatches = append(playerMatches, userId)
 			continue
 		}
@@ -1787,7 +1787,7 @@ func (r *Room) GetPlayers(findTypes ...FindFlag) []int {
 			continue
 		}
 
-		if typeFlag&FindBuffed == FindBuffed && len(user.Character.Buffs.List) > 0 {
+		if typeFlag&FindWithConditions == FindWithConditions && len(user.Character.Conditions.List) > 0 {
 			playerMatches = append(playerMatches, userId)
 			continue
 		}
@@ -2676,12 +2676,12 @@ func (r *Room) RoundTick() {
 
 	for mut := range r.ActiveMutators {
 		spec := mut.GetSpec()
-		r.ApplyBuffIdToPlayers(spec.PlayerBuffIds, `area`)
-		r.ApplyBuffIdToMobs(spec.MobBuffIds, `area`)
-		r.ApplyBuffIdToNativeMobs(spec.NativeBuffIds, `area`)
+		r.ApplyConditionIdToPlayers(spec.PlayerConditionIds, `area`)
+		r.ApplyConditionIdToMobs(spec.MobConditionIds, `area`)
+		r.ApplyConditionIdToNativeMobs(spec.NativeConditionIds, `area`)
 	}
 	//
-	// Done adding mutator buffs
+	// Done adding mutator conditions
 	//
 
 	for idx, spawnInfo := range r.SpawnInfo {

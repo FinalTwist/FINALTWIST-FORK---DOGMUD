@@ -14,7 +14,7 @@ import (
 // module depends on: no respawnrate (fights the reconciler), no decayintoid
 // (MutatorList.Remove instantly resurrects the decay target), decayrate
 // present (self-heal if the module is disabled mid-storm), outdooronly set
-// (indoor rooms must not render weather), no buff ids (presentation-only),
+// (indoor rooms must not render weather), no condition ids (presentation-only),
 // weather- namespace, and loader-compatible filenames.
 func TestShippedWeatherMutatorSpecs(t *testing.T) {
 	dir := filepath.Join("..", "..", "..", "_datafiles", "world", "dogmud", "mutators")
@@ -61,7 +61,7 @@ func TestShippedWeatherMutatorSpecs(t *testing.T) {
 		if !spec.OutdoorOnly {
 			t.Errorf("%s: outdooronly must be true", name)
 		}
-		if len(spec.PlayerBuffIds)+len(spec.MobBuffIds)+len(spec.NativeBuffIds) != 0 {
+		if len(spec.PlayerConditionIds)+len(spec.MobConditionIds)+len(spec.NativeConditionIds) != 0 {
 			t.Errorf("%s: buff ids must be empty (presentation-only)", name)
 		}
 	}

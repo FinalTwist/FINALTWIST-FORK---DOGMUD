@@ -1,7 +1,7 @@
 package behaviortree
 
 // actions_combat.go — combat actions:
-// actAttack, actFlee, actCast, actAddBuff, actRemoveBuff,
+// actAttack, actFlee, actCast, actAddCondition, actRemoveCondition,
 // actionCancelActivity
 
 import (
@@ -121,30 +121,30 @@ func actCast(params map[string]any, ctx *EvalContext) Result {
 	return Success
 }
 
-// actAddBuff applies a buff to the acting mob.
+// actAddCondition applies a condition to the acting mob.
 // params: buff_id (int)
-func actAddBuff(params map[string]any, ctx *EvalContext) Result {
+func actAddCondition(params map[string]any, ctx *EvalContext) Result {
 	mob := mobs.GetInstance(ctx.InstanceId)
 	if mob == nil {
 		return Failure
 	}
-	buffId := getIntParam(params, "buff_id")
-	if buffId == 0 {
+	conditionId := getIntParam(params, "buff_id")
+	if conditionId == 0 {
 		return Failure
 	}
-	mob.AddBuff(buffId, "behaviortree")
+	mob.AddCondition(conditionId, "behaviortree")
 	return Success
 }
 
-// actRemoveBuff removes a buff from the triggering player by buff ID.
+// actRemoveCondition removes a condition from the triggering player by condition ID.
 // params: buff_id (int)
-func actRemoveBuff(params map[string]any, ctx *EvalContext) Result {
+func actRemoveCondition(params map[string]any, ctx *EvalContext) Result {
 	user := users.GetByUserId(ctx.Event.UserId)
 	if user == nil {
 		return Failure
 	}
-	buffId := getIntParam(params, "buff_id")
-	user.Character.RemoveBuff(buffId)
+	conditionId := getIntParam(params, "buff_id")
+	user.Character.RemoveCondition(conditionId)
 	return Success
 }
 

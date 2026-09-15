@@ -68,8 +68,8 @@ func (a *MobActor) GetMobInstanceId() int {
 	return a.Mob.InstanceId
 }
 
-func (a *MobActor) AddBuff(buffId int, source string) {
-	a.Mob.AddBuff(buffId, source)
+func (a *MobActor) AddCondition(conditionId int, source string) {
+	a.Mob.AddCondition(conditionId, source)
 }
 
 func (a *MobActor) OnSkillUse(skillName string) bool {

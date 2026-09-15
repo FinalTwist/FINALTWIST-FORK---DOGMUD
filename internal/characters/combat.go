@@ -3,7 +3,7 @@ package characters
 import (
 	"math"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
@@ -11,7 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/species"
 )
 
-func (c *Character) GetDefaultDiceRoll() (attacks int, dCount int, dSides int, bonus int, buffOnCrit []int) {
+func (c *Character) GetDefaultDiceRoll() (attacks int, dCount int, dSides int, bonus int, conditionOnCrit []int) {
 	// default racial
 	speciesInfo := species.GetSpecies(c.SpeciesId)
 	if speciesInfo == nil {
@@ -25,7 +25,7 @@ func (c *Character) GetDefaultDiceRoll() (attacks int, dCount int, dSides int, b
 	dCount = speciesInfo.Damage.DiceCount
 	dSides = speciesInfo.Damage.SideCount
 	bonus = speciesInfo.Damage.BonusDamage
-	buffOnCrit = speciesInfo.Damage.CritBuffIds
+	conditionOnCrit = speciesInfo.Damage.CritConditionIds
 
 	dCount += int(math.Floor((float64(c.Stats.Dexterity.ValueAdj) / 50)))
 	dSides += int(math.Floor((float64(c.Stats.Strength.ValueAdj) / 12)))
@@ -38,13 +38,13 @@ func (c *Character) GetDefaultDiceRoll() (attacks int, dCount int, dSides int, b
 		dSides = speciesInfo.Damage.SideCount
 	}
 
-	return attacks, dCount, dSides, bonus, buffOnCrit
+	return attacks, dCount, dSides, bonus, conditionOnCrit
 }
 
 // GetDefaultDistributionDamage returns distribution damage parameters for unarmed combat.
 // Uses CalculateUnarmedDamage to scale with Strength and Unarmed Combat skill.
 // This provides meaningful progression for unarmed fighters.
-func (c *Character) GetDefaultDistributionDamage() (attacks int, baseDamage float64, variance float64, buffOnCrit []int) {
+func (c *Character) GetDefaultDistributionDamage() (attacks int, baseDamage float64, variance float64, conditionOnCrit []int) {
 	speciesInfo := species.GetSpecies(c.SpeciesId)
 	if speciesInfo == nil {
 		// See GetDefaultDiceRoll: nil for an unknown SpeciesId. The attacks
@@ -56,12 +56,12 @@ func (c *Character) GetDefaultDistributionDamage() (attacks int, baseDamage floa
 	if attacks < 1 {
 		attacks = 1
 	}
-	buffOnCrit = speciesInfo.Damage.CritBuffIds
+	conditionOnCrit = speciesInfo.Damage.CritConditionIds
 
 	// Use skill-based unarmed damage calculation (Stage 7.3)
 	baseDamage, variance = c.CalculateUnarmedDamage()
 
-	return attacks, baseDamage, variance, buffOnCrit
+	return attacks, baseDamage, variance, conditionOnCrit
 }
 
 // CalculateUnarmedDamage returns the base damage and variance for unarmed attacks.
@@ -77,10 +77,10 @@ func (c *Character) GetDefaultDistributionDamage() (attacks int, baseDamage floa
 // Extension points for future conditions/mutations:
 //   - baseDamage can be modified by multipliers (e.g., "Stone Fists" mutation: baseDamage *= 1.5)
 //   - variance can be modified (e.g., "Precise Strikes" condition: variance *= 0.5)
-//   - Additional additive bonuses (e.g., "Enhanced Strength" buff: +5 damage)
+//   - Additional additive bonuses (e.g., "Enhanced Strength" condition: +5 damage)
 //
-// To add a buff/condition/mutation that affects unarmed damage:
-//  1. Check for the buff/condition after base calculation
+// To add a condition/mutation that affects unarmed damage:
+//  1. Check for the condition after base calculation
 //  2. Apply multipliers: baseDamage *= multiplier
 //  3. Apply additive bonuses: baseDamage += bonus
 //  4. Modify variance if needed: variance *= varianceMultiplier
@@ -103,23 +103,23 @@ func (c *Character) CalculateUnarmedDamage() (baseDamage float64, variance float
 	varianceReduction := float64(skillLevel) / 50.0 // 0 at skill 0, 2 at skill 100
 	variance = math.Max(1.0, baseVariance-varianceReduction)
 
-	// --- FUTURE EXTENSION POINT: Buffs/Conditions/Mutations ---
+	// --- FUTURE EXTENSION POINT: Conditions/Mutations ---
 	// Example implementations (commented out for now):
 	//
-	// if c.HasBuffFlag(buffs.StoneFists) {
+	// if c.HasConditionFlag(conditions.StoneFists) {
 	//     baseDamage *= 1.5  // Stone Fists: +50% damage
 	//     variance *= 1.2    // But less precise (heavier strikes)
 	// }
 	//
-	// if c.HasBuffFlag(buffs.PreciseStrikes) {
+	// if c.HasConditionFlag(conditions.PreciseStrikes) {
 	//     variance *= 0.5    // Precise Strikes: Half variance (more consistent)
 	// }
 	//
-	// if c.HasBuffFlag(buffs.EnhancedStrength) {
+	// if c.HasConditionFlag(conditions.EnhancedStrength) {
 	//     baseDamage += 5.0  // Flat +5 damage bonus
 	// }
 	//
-	// if c.Buffs.HasFlag(someFlag, false) {
+	// if c.Conditions.HasFlag(someFlag, false) {
 	//     baseDamage *= 0.7  // a weakening flag: -30% damage
 	// }
 	//
@@ -146,7 +146,7 @@ func (c *Character) CalculateUnarmedDamage() (baseDamage float64, variance float
 
 // GetPhysicalMitigation returns total physical mitigation as a fraction (0.0–1.0).
 // Sources: equipment physical_mitigation, mutations, species natural armor,
-// shield spells, and physical_mitigation buff statmods.
+// shield spells, and physical_mitigation condition statmods.
 // Incorporeal mutation scales gear-derived mitigation.
 // (The legacy Character.GetDefense / ItemSpec.DamageReduction summation was
 // removed 2026-08-03; the two default-world status templates that dynamically
@@ -177,13 +177,13 @@ func (c *Character) GetPhysicalMitigation() float64 {
 	// Apply gear-effectiveness multiplier to the gear-derived portion.
 	gearMit = int(float64(gearMit) * mutations.GearEffectivenessMultiplier(c.Mutations))
 
-	// Non-gear additions (shield spell, mutations, species natural armor, buff
-	// statmods). The buff/statmod contribution via c.StatMod("physical_mitigation")
+	// Non-gear additions (shield spell, mutations, species natural armor, condition
+	// statmods). The condition/statmod contribution via c.StatMod("physical_mitigation")
 	// mirrors GetMagicalMitigation / GetConvictionMitigation, which have always
-	// folded their statmod sibling — physical was the odd one out, so buffs like
+	// folded their statmod sibling — physical was the odd one out, so conditions like
 	// Cocoon (104) and Ironhide Brew (61) that reserve physical_mitigation as a
 	// statmod silently did nothing until this line.
-	nonGearMit := int(c.Buffs.Effect(buffs.EffectMitigationFlat))
+	nonGearMit := int(c.Conditions.Effect(conditions.EffectMitigationFlat))
 	nonGearMit += mutations.GetNaturalArmor(c.Mutations)
 	nonGearMit += c.StatMod("physical_mitigation")
 	if speciesInfo := species.GetSpecies(c.SpeciesId); speciesInfo != nil {
@@ -194,7 +194,7 @@ func (c *Character) GetPhysicalMitigation() float64 {
 }
 
 // GetMagicalMitigation returns total magical mitigation as a fraction (0.0–1.0).
-// Sources: equipment magical_mitigation, mutation magical resistance, buff stat mods.
+// Sources: equipment magical_mitigation, mutation magical resistance, condition stat mods.
 // Incorporeal mutation scales gear-derived mitigation.
 func (c *Character) GetMagicalMitigation() float64 {
 	// Gear-derived: sum of equipment slot MagicalMitigation.
@@ -222,10 +222,10 @@ func (c *Character) GetMagicalMitigation() float64 {
 	// Apply gear-effectiveness multiplier to the gear-derived portion.
 	gearMit = int(float64(gearMit) * mutations.GearEffectivenessMultiplier(c.Mutations))
 
-	// Non-gear additions (mutation resistance + buff stat mods via c.StatMod).
+	// Non-gear additions (mutation resistance + condition stat mods via c.StatMod).
 	// Note: c.StatMod("magical_mitigation") returns a mixed value where the
 	// equipment-stat-mod portion is already scaled by Task 4's StatMod change;
-	// buff portion is unscaled (correct — buffs aren't gear).
+	// condition portion is unscaled (correct — conditions aren't gear).
 	nonGearMit := int(mutations.GetMagicalResistance(c.Mutations) * 100)
 	nonGearMit += c.StatMod("magical_mitigation")
 
@@ -233,7 +233,7 @@ func (c *Character) GetMagicalMitigation() float64 {
 }
 
 // GetConvictionMitigation returns total conviction mitigation as a fraction (0.0–1.0).
-// Sources: equipment conviction_mitigation, mutation conviction resistance, buff statmods.
+// Sources: equipment conviction_mitigation, mutation conviction resistance, condition statmods.
 // Incorporeal mutation scales gear-derived mitigation.
 func (c *Character) GetConvictionMitigation() float64 {
 	// Gear-derived: sum of equipment slot ConvictionMitigation.
@@ -261,7 +261,7 @@ func (c *Character) GetConvictionMitigation() float64 {
 	// Apply gear-effectiveness multiplier to the gear-derived portion.
 	gearMit = int(float64(gearMit) * mutations.GearEffectivenessMultiplier(c.Mutations))
 
-	// Non-gear additions (mutation resistance + buff stat mods via c.StatMod).
+	// Non-gear additions (mutation resistance + condition stat mods via c.StatMod).
 	nonGearMit := int(mutations.GetConvictionResistance(c.Mutations) * 100)
 	nonGearMit += c.StatMod("conviction_mitigation")
 
@@ -294,7 +294,7 @@ func (c *Character) GetDefenseScoreFor(defenseType string, includeSkill bool) fl
 		// blinded combat condition, which multiplied dodge by 0.5-0.7 but had
 		// no producer either — the enum is gone, the seam stays, and a future
 		// record that wants to blur dodge declares `dodge_mult` and is read.
-		score *= c.Buffs.Effect(buffs.EffectDodgeMult)
+		score *= c.Conditions.Effect(conditions.EffectDodgeMult)
 		return score
 
 	case DefenseParry:

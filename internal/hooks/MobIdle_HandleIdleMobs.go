@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -45,7 +45,7 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
 	// ticks, gossip, floor-loot grabs, goal pursuit, or behavior-tree idle
 	// emotes. The schedule executor and damage/wake events own the wake
 	// transition — not this idle handler.
-	if mob.Character.HasBuffFlag(buffs.Sleeping) {
+	if mob.Character.HasConditionFlag(conditions.Sleeping) {
 		return events.Continue
 	}
 
@@ -118,7 +118,7 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
 			if room.GetVisibility() < 1 {
 				for _, uid := range room.GetPlayers() {
 					u := users.GetByUserId(uid)
-					if u != nil && u.Character.HasFlagFromAnySource(buffs.NightVision) {
+					if u != nil && u.Character.HasFlagFromAnySource(conditions.NightVision) {
 						u.SendText(messaging.CategoryMobIdle, msg)
 					}
 				}

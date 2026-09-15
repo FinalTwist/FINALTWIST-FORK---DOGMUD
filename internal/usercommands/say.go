@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -20,7 +20,7 @@ func Say(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		return true, nil
 	}
 
-	if user.Character.HasBuffFlag(buffs.Drunk) {
+	if user.Character.HasConditionFlag(conditions.Drunk) {
 		rest = drunkify(rest)
 	}
 

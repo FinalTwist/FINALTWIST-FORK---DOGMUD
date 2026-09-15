@@ -4,8 +4,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -149,17 +149,17 @@ func publishEmptySnapshotAfter(t *testing.T) {
 // passes and must not need DoCombat's maps to honour the contract.
 func TestSleepingForceCrit_LiveFlag(t *testing.T) {
 	publishEmptySnapshotAfter(t)
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		15: {BuffId: 15, Name: "Sleeping", TriggerCount: 1000000000,
-			Flags: []buffs.Flag{buffs.Sleeping}},
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		15: {ConditionId: 15, Name: "Sleeping", TriggerCount: 1000000000,
+			Flags: []conditions.Flag{conditions.Sleeping}},
 	}))
 	def := characters.New()
 	if SleepingForceCrit(def) {
 		t.Fatal("an awake defender must not force a crit")
 	}
-	def.Buffs.List = append(def.Buffs.List, &buffs.Buff{BuffId: 15, TriggersLeft: 1000000000})
-	def.Buffs.Validate(true)
-	if !def.HasBuffFlag(buffs.Sleeping) {
+	def.Conditions.List = append(def.Conditions.List, &conditions.Condition{ConditionId: 15, TriggersLeft: 1000000000})
+	def.Conditions.Validate(true)
+	if !def.HasConditionFlag(conditions.Sleeping) {
 		t.Fatal("fixture is broken: the Sleeping flag did not apply")
 	}
 	if !SleepingForceCrit(def) {

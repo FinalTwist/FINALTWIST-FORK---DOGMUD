@@ -26,7 +26,7 @@ type DefuseResult struct {
 	KitConsumed bool   // disarm kit was consumed (always true when a kit was
 	//                       present and the attempt proceeded past the kit gate)
 	KitBonusUsed   int    // stat bonus contributed by the consumed kit
-	TriggeredTraps []int  // on failure, buff IDs of traps that fired
+	TriggeredTraps []int  // on failure, condition IDs of traps that fired
 	Reason         string // when Succeeded==false, why (empty on success)
 }
 
@@ -165,8 +165,8 @@ func Defuse(actor Actor, opts DefuseOptions) DefuseResult {
 		actor.GetUserId(),
 	)
 
-	for _, buffId := range tgt.lockTrap {
-		actor.AddBuff(buffId, `trap`)
+	for _, conditionId := range tgt.lockTrap {
+		actor.AddCondition(conditionId, `trap`)
 	}
 
 	return DefuseResult{
@@ -205,14 +205,14 @@ func resolveDefuseLockTarget(actor Actor, room *rooms.Room, noun string) defuseL
 			actor.SendText(messaging.CategorySystem, "There is no lock there.")
 			return defuseLockTarget{kind: lockTargetNone}
 		}
-		if len(container.Lock.TrapBuffIds) == 0 {
+		if len(container.Lock.TrapConditionIds) == 0 {
 			actor.SendText(messaging.CategorySystem, "You don't detect any traps on that.")
 			return defuseLockTarget{kind: lockTargetNone}
 		}
 		return defuseLockTarget{
 			kind:           lockTargetContainer,
 			containerName:  containerName,
-			lockTrap:       container.Lock.TrapBuffIds,
+			lockTrap:       container.Lock.TrapConditionIds,
 			lockDifficulty: int(container.Lock.Difficulty),
 		}
 	}
@@ -226,14 +226,14 @@ func resolveDefuseLockTarget(actor Actor, room *rooms.Room, noun string) defuseL
 				actor.SendText(messaging.CategorySystem, "There is no lock there.")
 				return defuseLockTarget{kind: lockTargetNone}
 			}
-			if len(exitInfo.Lock.TrapBuffIds) == 0 {
+			if len(exitInfo.Lock.TrapConditionIds) == 0 {
 				actor.SendText(messaging.CategorySystem, "You don't detect any traps on that.")
 				return defuseLockTarget{kind: lockTargetNone}
 			}
 			return defuseLockTarget{
 				kind:           lockTargetExit,
 				exitName:       exitName,
-				lockTrap:       exitInfo.Lock.TrapBuffIds,
+				lockTrap:       exitInfo.Lock.TrapConditionIds,
 				lockDifficulty: int(exitInfo.Lock.Difficulty),
 			}
 		}
@@ -243,13 +243,13 @@ func resolveDefuseLockTarget(actor Actor, room *rooms.Room, noun string) defuseL
 	return defuseLockTarget{kind: lockTargetNone}
 }
 
-// clearDefuseTrap removes the trap buff IDs from the target lock and notifies
+// clearDefuseTrap removes the trap condition IDs from the target lock and notifies
 // the room on success.
 func clearDefuseTrap(actor Actor, room *rooms.Room, tgt defuseLockTarget) {
 	switch tgt.kind {
 	case lockTargetContainer:
 		container := room.Containers[tgt.containerName]
-		container.Lock.TrapBuffIds = nil
+		container.Lock.TrapConditionIds = nil
 		room.Containers[tgt.containerName] = container
 		actor.SendText(messaging.CategorySystem, `<ansi fg="green">You carefully disarm the trap mechanism.</ansi>`)
 		room.SendTextVisual(messaging.CategoryMobEmote,

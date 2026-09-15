@@ -3,7 +3,7 @@ package usercommands
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -86,7 +86,7 @@ func Use(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 			return true, nil
 		}
 
-		user.Character.CancelBuffsWithFlag(buffs.Hidden)
+		user.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(`You use the <ansi fg="itemname">%s</ansi>.`, matchItem.DisplayName()))
 		room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="username">%s</ansi> uses their <ansi fg="itemname">%s</ansi>.`, user.Character.Name, matchItem.DisplayName()), user.UserId)
@@ -117,8 +117,8 @@ func Use(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 
 		}
 
-		for _, buffId := range itemSpec.BuffIds {
-			user.AddBuff(buffId, `item`)
+		for _, conditionId := range itemSpec.ConditionIds {
+			user.AddCondition(conditionId, `item`)
 		}
 	}
 

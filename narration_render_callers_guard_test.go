@@ -11,7 +11,7 @@ import (
 )
 
 // narrationRenderCallers is every production file allowed to call
-// narration.Render, with why. The Kind B stores (buffs, spells, quests) are
+// narration.Render, with why. The Kind B stores (conditions, spells, quests) are
 // deliberately ABSENT: they reach the core only through textutil.Narrate,
 // which always passes narration.FirstPicker. A store calling Render itself
 // could pass the default picker and consume a global random draw per
@@ -37,7 +37,7 @@ var narrationRenderCallRE = regexp.MustCompile(`narration\.Render\(`)
 // earlier one passes a different picker. The DefaultPicker substring ban below
 // is the load-bearing half. If the door ever grows a second call, switch this
 // to an AST check of each call's third argument, the way
-// buff_apply_path_guard_test.go inspects call arguments.
+// condition_apply_path_guard_test.go inspects call arguments.
 var textutilFirstPickerRE = regexp.MustCompile(`(?s)narration\.Render\([^;]*?narration\.FirstPicker\)`)
 
 func TestNarrationRenderIsCalledOnlyByRegisteredStores(t *testing.T) {

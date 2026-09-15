@@ -3,8 +3,8 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/forager"
 	"github.com/GoMudEngine/GoMud/internal/knowledge"
@@ -33,33 +33,33 @@ func TestMobRoomChange_KnowledgeObservers_ForagerTriggers(t *testing.T) {
 	foragerSpec := &mobs.Mob{
 		MobId: mobs.MobId(foragerTemplateId),
 		Character: characters.Character{
-			Name:  "Tova",
-			Buffs: buffs.New(),
+			Name:       "Tova",
+			Conditions: conditions.New(),
 		},
 	}
 	foragerInst := &mobs.Mob{
 		MobId:      mobs.MobId(foragerTemplateId),
 		InstanceId: 5001,
 		Character: characters.Character{
-			Name:   "Tova",
-			RoomId: roomId,
-			Buffs:  buffs.New(),
+			Name:       "Tova",
+			RoomId:     roomId,
+			Conditions: conditions.New(),
 		},
 	}
 	observerSpec := &mobs.Mob{
 		MobId: mobs.MobId(observerTemplateId),
 		Character: characters.Character{
-			Name:  "citizen",
-			Buffs: buffs.New(),
+			Name:       "citizen",
+			Conditions: conditions.New(),
 		},
 	}
 	observerInst := &mobs.Mob{
 		MobId:      mobs.MobId(observerTemplateId),
 		InstanceId: 5002,
 		Character: characters.Character{
-			Name:   "citizen",
-			RoomId: roomId,
-			Buffs:  buffs.New(),
+			Name:       "citizen",
+			RoomId:     roomId,
+			Conditions: conditions.New(),
 		},
 	}
 
@@ -108,33 +108,33 @@ func TestMobRoomChange_KnowledgeObservers_NonForagerSilent(t *testing.T) {
 	regularSpec := &mobs.Mob{
 		MobId: mobs.MobId(regularTemplateId),
 		Character: characters.Character{
-			Name:  "wanderer",
-			Buffs: buffs.New(),
+			Name:       "wanderer",
+			Conditions: conditions.New(),
 		},
 	}
 	regularInst := &mobs.Mob{
 		MobId:      mobs.MobId(regularTemplateId),
 		InstanceId: 5101,
 		Character: characters.Character{
-			Name:   "wanderer",
-			RoomId: roomId,
-			Buffs:  buffs.New(),
+			Name:       "wanderer",
+			RoomId:     roomId,
+			Conditions: conditions.New(),
 		},
 	}
 	observerSpec := &mobs.Mob{
 		MobId: mobs.MobId(observerTemplateId),
 		Character: characters.Character{
-			Name:  "bystander",
-			Buffs: buffs.New(),
+			Name:       "bystander",
+			Conditions: conditions.New(),
 		},
 	}
 	observerInst := &mobs.Mob{
 		MobId:      mobs.MobId(observerTemplateId),
 		InstanceId: 5102,
 		Character: characters.Character{
-			Name:   "bystander",
-			RoomId: roomId,
-			Buffs:  buffs.New(),
+			Name:       "bystander",
+			RoomId:     roomId,
+			Conditions: conditions.New(),
 		},
 	}
 

@@ -33,7 +33,7 @@ func TestBuildConfigDefaults(t *testing.T) {
 	if cfg.EmoteMode != "module" || cfg.EmoteEveryRounds != 24 {
 		t.Errorf("emote defaults wrong: %+v", cfg)
 	}
-	if !cfg.BuffsEnabled || !cfg.Persist || cfg.Seed != 0 {
+	if !cfg.ConditionsEnabled || !cfg.Persist || cfg.Seed != 0 {
 		t.Errorf("buff/persist/seed defaults wrong: %+v", cfg)
 	}
 	if !cfg.IncludeSecretExits {
@@ -60,7 +60,7 @@ func TestBuildConfigCoercionAndClamps(t *testing.T) {
 	if cfg.SpawnRateScale != 2.5 || cfg.EmoteMode != "tag-only" || cfg.EmoteEveryRounds != 5 {
 		t.Errorf("clamps wrong: %+v", cfg)
 	}
-	if cfg.BuffsEnabled || cfg.Persist {
+	if cfg.ConditionsEnabled || cfg.Persist {
 		t.Errorf("bool overrides ignored: %+v", cfg)
 	}
 }

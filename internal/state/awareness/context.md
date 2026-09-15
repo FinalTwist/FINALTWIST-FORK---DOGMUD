@@ -4,7 +4,7 @@
 
 The `internal/state/awareness` package is the second consumer of the
 `internal/state` framework. It defines the **Awareness state machine**,
-replacing the buff-#9 "Hidden flag" as the canonical source of truth for
+replacing the condition #9 "Hidden flag" as the canonical source of truth for
 "is this character hidden?" and handling state transitions for concealment,
 detection, and revealing.
 
@@ -21,7 +21,7 @@ The machine is mob/player symmetric: both player and mob `Character` instances
 carry a `*awareness.Machine` field. The btree event wiring does not fire for
 Awareness transitions (there is no btree transition event); instead, the
 framework uses internal state-change cascades and hook subscribers to
-integrate with the world (buff #9 mirroring, light-source re-rolls, movement
+integrate with the world (condition #9 mirroring, light-source re-rolls, movement
 stamina scaling).
 
 ---
@@ -296,7 +296,7 @@ package; the last is `TriggerLightChange`.
   detection-check callbacks at character-creation time via
   `OnCharacterCreated`.
 - **`internal/hooks/Awareness_Cascades.go`** — subscribes to `AfterTransition`
-  on both this machine and Combat Phase. Mirrors `Hidden` state to buff #9
+  on both this machine and Combat Phase. Mirrors `Hidden` state to condition #9
   (apply on Hidden entry, remove on Hidden exit), and reveals on Combat
   Phase `Idle → Engaging` — including surprise attacks, which get no
   stealth grace period.
@@ -308,9 +308,9 @@ package; the last is `TriggerLightChange`.
 
 ### Replaces
 
-No direct replacement, but removes the canonical use of the buff-#9 "Hidden" flag
-for detection logic. Buff #9 is now a **side-effect carrier only** — the Awareness
-machine is the source of truth; the Cascades hook ensures buff #9 stays in sync.
+No direct replacement, but removes the canonical use of the condition #9 "Hidden" flag
+for detection logic. Condition #9 is now a **side-effect carrier only** — the Awareness
+machine is the source of truth; the Cascades hook ensures condition #9 stays in sync.
 
 ---
 

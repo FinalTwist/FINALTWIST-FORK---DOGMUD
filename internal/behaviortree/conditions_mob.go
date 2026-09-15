@@ -45,13 +45,13 @@ func condMobAtHome(params map[string]any, ctx *EvalContext) Result {
 	return Failure
 }
 
-func condMobHasBuff(params map[string]any, ctx *EvalContext) Result {
+func condMobHasCondition(params map[string]any, ctx *EvalContext) Result {
 	mob := mobs.GetInstance(ctx.InstanceId)
 	if mob == nil {
 		return Failure
 	}
-	buffId := getIntParam(params, "buff_id")
-	if mob.Character.HasBuff(buffId) {
+	conditionId := getIntParam(params, "buff_id")
+	if mob.Character.HasCondition(conditionId) {
 		return Success
 	}
 	return Failure
@@ -154,7 +154,7 @@ func condPackmateBelowHpRatio(params map[string]any, ctx *EvalContext) Result {
 // condPackmateIsTanking returns Success if any same-room packmate has
 // an active Aggro (is engaged in combat). Used by the support_caster
 // archetype to gate "shield the tank" behavior — if a packmate is
-// actively tanking, prioritize casting defensive buffs on them.
+// actively tanking, prioritize casting defensive conditions on them.
 func condPackmateIsTanking(params map[string]any, ctx *EvalContext) Result {
 	self := mobs.GetInstance(ctx.InstanceId)
 	if self == nil {

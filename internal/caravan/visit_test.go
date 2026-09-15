@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -409,7 +409,7 @@ func setupCreateSlotTestFixtures(
 		Zone:       createSlotTestZone,
 	}
 	vendor.Character.Name = "TestCreateSlotVendor"
-	vendor.Character.Buffs = buffs.New()
+	vendor.Character.Conditions = conditions.New()
 	vendor.Character.Shop = characters.Shop{
 		{ItemId: 1, QuantityMax: 5, Quantity: 5},
 	}
@@ -448,7 +448,7 @@ func buildCreateSlotTestCarrier(t *testing.T) *mobs.Mob {
 		Zone:       createSlotTestZone,
 	}
 	carrier.Character.Name = "TestCreateSlotCarrier"
-	carrier.Character.Buffs = buffs.New()
+	carrier.Character.Conditions = conditions.New()
 	carrier.Character.RoomId = createSlotTestRoomId
 	characters.ApplyMobOverrides(&carrier.Character, 0, 0, 5000)
 	return carrier
@@ -485,7 +485,7 @@ func seedTestRoomWithMobs(t *testing.T, roomId int, zone string, mobIds []mobs.M
 		}
 		mob.Character.Name = "TestMob"
 		mob.Character.RoomId = roomId
-		mob.Character.Buffs = buffs.New()
+		mob.Character.Conditions = conditions.New()
 		mobs.SetInstanceForTest(instId, mob)
 		r.AddMob(instId)
 	}
@@ -518,9 +518,9 @@ func seedTestRoomWithExistingMobs(t *testing.T, roomId int, zone string, list []
 
 	for _, mob := range list {
 		mob.Character.RoomId = roomId
-		// Buffs is a struct value; only init if it has no entries yet.
-		if len(mob.Character.Buffs.List) == 0 {
-			mob.Character.Buffs = buffs.New()
+		// Conditions is a struct value; only init if it has no entries yet.
+		if len(mob.Character.Conditions.List) == 0 {
+			mob.Character.Conditions = conditions.New()
 		}
 		mobs.SetInstanceForTest(mob.InstanceId, mob)
 		r.AddMob(mob.InstanceId)
@@ -547,7 +547,7 @@ func buildShopBearingTestMob(t *testing.T, name string) *mobs.Mob {
 		Zone:       "TestZone",
 	}
 	mob.Character.Name = name
-	mob.Character.Buffs = buffs.New()
+	mob.Character.Conditions = conditions.New()
 	// Populate Shop with one item so HasShop() returns true.
 	mob.Character.Shop = characters.Shop{
 		{ItemId: 1, QuantityMax: 5, Quantity: 5},
@@ -608,7 +608,7 @@ func setupPickupTestFixtures(
 		Zone:       pickupTestZone,
 	}
 	vendor.Character.Name = "TestVendor"
-	vendor.Character.Buffs = buffs.New()
+	vendor.Character.Conditions = conditions.New()
 	vendor.Character.Shop = characters.Shop{
 		{ItemId: stock[0].ItemId, QuantityMax: 5, Quantity: 5},
 	}
@@ -656,7 +656,7 @@ func buildPickupTestWagon(t *testing.T) *mobs.Mob {
 		Zone:       pickupTestZone,
 	}
 	wagon.Character.Name = "TestWagon"
-	wagon.Character.Buffs = buffs.New()
+	wagon.Character.Conditions = conditions.New()
 	wagon.Character.RoomId = pickupTestRoomId
 	characters.ApplyMobOverrides(&wagon.Character, 0, 0, 5000)
 	return wagon

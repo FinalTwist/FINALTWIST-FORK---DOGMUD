@@ -62,7 +62,7 @@ func TestCalcSneakScore_WithSkill(t *testing.T) {
 // ---------------------------------------------------------------------------
 // AW-024 through AW-027: Light-conditional sneak score tests
 // (AW-024/025 implemented here; AW-026/027 skipped — require EmitsLight=true
-// which needs buff or equipment setup beyond unit-test scope.)
+// which needs condition or equipment setup beyond unit-test scope.)
 // ---------------------------------------------------------------------------
 
 // AW-024: Baseline — dark sneaker, dark room (effectiveLit=false). No modifier.
@@ -345,7 +345,7 @@ func TestSneak_InCombat(t *testing.T) {
 //
 // Two skip-only placeholders for these were deleted with the rest of the
 // permanently skipped tests (review finding 9). The blocker they described is
-// real and is kept here: EmitsLight=true needs buff/equipment setup beyond
+// real and is kept here: EmitsLight=true needs condition/equipment setup beyond
 // what these table tests construct. The behaviour is currently exercised only
 // by in-game smoke testing. The AW-024/025 cases above do cover the
 // surrounding conditional machinery.

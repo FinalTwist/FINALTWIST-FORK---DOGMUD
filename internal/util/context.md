@@ -26,7 +26,7 @@ func ResetRoundCountForTest()
 ```
 
 `GetRoundCount()` is the single time source for the whole game. Schedules,
-mutator decay, ferry position, buff expiry, and shop restock are all functions
+mutator decay, ferry position, condition expiry, and shop restock are all functions
 of it. **Rounds and turns are not the same thing** — a round is the gameplay
 tick; turns are finer-grained.
 
@@ -116,8 +116,8 @@ space-form query matches the underscore filename form.
 func Rand(maxInt int) int
 func LogRoll(name string, rollResult, targetNumber int)
 func RollDice(dice, sides int) int
-func ParseDiceRoll(dRoll string) (attacks, dCount, dSides, bonus int, buffOnCrit []int)
-func FormatDiceRoll(attacks, dCount, dSides, bonus int, buffOnCrit []int) string
+func ParseDiceRoll(dRoll string) (attacks, dCount, dSides, bonus int, conditionOnCrit []int)
+func FormatDiceRoll(attacks, dCount, dSides, bonus int, conditionOnCrit []int) string
 ```
 
 **`Rand` and `LogRoll` are NOT used for hit or attack checks.** A single

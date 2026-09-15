@@ -3,8 +3,8 @@ package hooks
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -25,7 +25,7 @@ import (
 //
 // Behavioral parity with the old polling path:
 //   - Same AutoAssist flag check (companion entry on owner's character)
-//   - Same grace-period check (NoAggroTarget buff on owner)
+//   - Same grace-period check (NoAggroTarget condition on owner)
 //   - Owner's own "attack owner's current target" path preserved via
 //     the existing NewRound_DoCombat_helpers.go#handleCompanionOwnerAssist
 //     for MvP attacks (which fires before the round loop, not here)
@@ -83,10 +83,10 @@ func wireCompanionAssist(c *characters.Character) {
 			return
 		}
 
-		// Grace-period: if the owner has the respawn-grace buff, no mob
+		// Grace-period: if the owner has the respawn-grace condition, no mob
 		// should be targeting them. Companions stand down to avoid pulling
 		// the mob into a fight before grace expires.
-		if owner.Character.HasBuffFlag(buffs.NoAggroTarget) {
+		if owner.Character.HasConditionFlag(conditions.NoAggroTarget) {
 			return
 		}
 

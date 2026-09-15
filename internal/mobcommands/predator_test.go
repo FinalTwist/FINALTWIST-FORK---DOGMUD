@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -75,13 +75,13 @@ func TestConsume_NoCorpses(t *testing.T) {
 	assert.NoError(t, err)
 
 	// No condition applied when nothing to eat
-	assert.False(t, mob.Character.HasBuff(buffs.BuffIdRegenerating))
+	assert.False(t, mob.Character.HasCondition(conditions.ConditionIdRegenerating))
 }
 
 func TestConsume_EatsCorpseAndAppliesRegen(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	mob, room := getTestMobAndRoom(t)
 
@@ -101,15 +101,15 @@ func TestConsume_EatsCorpseAndAppliesRegen(t *testing.T) {
 	assert.Empty(t, room.Corpses)
 
 	// Mob should have the Regenerating record
-	assert.True(t, mob.Character.HasBuff(buffs.BuffIdRegenerating))
-	assert.InDelta(t, 2.0, mob.Character.Buffs.Effect(buffs.EffectRegenMult), 1e-9)
-	assert.Equal(t, 6, mob.Character.Buffs.TriggersLeft(buffs.BuffIdRegenerating))
+	assert.True(t, mob.Character.HasCondition(conditions.ConditionIdRegenerating))
+	assert.InDelta(t, 2.0, mob.Character.Conditions.Effect(conditions.EffectRegenMult), 1e-9)
+	assert.Equal(t, 6, mob.Character.Conditions.TriggersLeft(conditions.ConditionIdRegenerating))
 }
 
 func TestConsume_SkipsPrunableCorpses(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	mob, room := getTestMobAndRoom(t)
 
@@ -134,7 +134,7 @@ func TestConsume_SkipsPrunableCorpses(t *testing.T) {
 	// Only the prunable one should remain
 	assert.Len(t, room.Corpses, 1)
 	assert.Equal(t, "Old Bones", room.Corpses[0].Character.Name)
-	assert.True(t, mob.Character.HasBuff(buffs.BuffIdRegenerating))
+	assert.True(t, mob.Character.HasCondition(conditions.ConditionIdRegenerating))
 }
 
 func TestConsume_AllPrunable(t *testing.T) {
@@ -156,7 +156,7 @@ func TestConsume_AllPrunable(t *testing.T) {
 
 	// Nothing consumed — all prunable
 	assert.Len(t, room.Corpses, 1)
-	assert.False(t, mob.Character.HasBuff(buffs.BuffIdRegenerating))
+	assert.False(t, mob.Character.HasCondition(conditions.ConditionIdRegenerating))
 }
 
 // ─── Flee ───────────────────────────────────────────────────────────────────
@@ -484,10 +484,10 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
 	})
 	defer restoreBiomes()
-	restoreBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		9001: {BuffId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []buffs.Flag{buffs.InfraredVision}},
+	restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		9001: {ConditionId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []conditions.Flag{conditions.InfraredVision}},
 	})
-	defer restoreBuffs()
+	defer restoreConditions()
 
 	mk := func(prefix string) items.DefenseOptions {
 		five := func(text string) items.MessageOptions {
@@ -520,7 +520,7 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 	darkRoom.AddMob(mob.InstanceId)
 	darkRoom.AddPlayer(target.UserId)
 	darkRoom.AddPlayer(observer.UserId)
-	require.True(t, observer.Character.Buffs.AddBuff(9001, true))
+	require.True(t, observer.Character.Conditions.AddCondition(9001, true))
 
 	for _, attack := range []string{"taunt", "howl"} {
 		t.Run(attack, func(t *testing.T) {
@@ -560,10 +560,10 @@ func TestMobTauntAndHowlRuntimeHideIndexedActorAndExcludeDefender(t *testing.T) 
 				"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
 			})
 			defer restoreBiomes()
-			restoreBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-				9001: {BuffId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []buffs.Flag{buffs.InfraredVision}},
+			restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+				9001: {ConditionId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []conditions.Flag{conditions.InfraredVision}},
 			})
-			defer restoreBuffs()
+			defer restoreConditions()
 
 			first := mobs.GetInstance(100)
 			actor := mobs.GetInstance(200)
@@ -594,7 +594,7 @@ func TestMobTauntAndHowlRuntimeHideIndexedActorAndExcludeDefender(t *testing.T) 
 			darkRoom.AddPlayer(target.UserId)
 			darkRoom.AddPlayer(observer.UserId)
 			require.Equal(t, 2, darkRoom.GetMobDuplicateIndex(actor.InstanceId))
-			require.True(t, observer.Character.Buffs.AddBuff(9001, true))
+			require.True(t, observer.Character.Conditions.AddCondition(9001, true))
 			events.DrainQueuedMessagesForTest(target.UserId)
 			events.DrainQueuedMessagesForTest(observer.UserId)
 

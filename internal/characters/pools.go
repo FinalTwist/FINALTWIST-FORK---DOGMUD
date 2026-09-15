@@ -12,7 +12,7 @@ import (
 // Pool identifies one of the three resource pools.
 //
 // Deliberately a STRING, matching the vocabulary already used by
-// GetPoolReservation(pool string, ...) and BuffSpec.TickPool. An int enum would
+// GetPoolReservation(pool string, ...) and ConditionSpec.TickPool. An int enum would
 // have made this the third pool vocabulary in the package and forced a
 // translation function the moment U7 makes costs reserve-aware.
 //
@@ -595,23 +595,23 @@ func (c *Character) applyVitalChange(pool Pool, delta int) int {
 // source is unused in U5a and is present ON PURPOSE, so U5b routes each call site
 // once and U5c can add attributed death without a second pass. Be realistic about
 // its reach: the direct combat, spell and maneuver sites have an actor in hand,
-// but damage-over-time, toxicity and attrition sites do NOT -- buffs.Buff has no
-// applier field, so those pass the zero value and stay anonymous until the buff
+// but damage-over-time, toxicity and attrition sites do NOT -- conditions.Condition has no
+// applier field, so those pass the zero value and stay anonymous until the condition
 // system carries one. That is not U5 work.
 //
-// Deliberately does not call Die, cancel buffs, validate, or emit. In particular
+// Deliberately does not call Die, cancel conditions, validate, or emit. In particular
 // this is NOT built on ApplyHealthChange, and the reason is worth stating because
 // the chain is not obvious:
 //
 //	ApplyHealthChange, on crossing below zero
-//	  -> CancelCombatBuffs
-//	  -> CancelBuffsWithFlag(CancelIfCombat)
-//	  -> Buffs.HasFlag(flag, true)   // the `true` EXPIRES the matching buffs;
+//	  -> CancelCombatConditions
+//	  -> CancelConditionsWithFlag(CancelIfCombat)
+//	  -> Conditions.HasFlag(flag, true)   // the `true` EXPIRES the matching conditions;
 //	                                 // despite its name this is a mutator
 //	  -> Validate(true)
 //
-// The recalculation is NOT a death behaviour. Buffs carry stat modifiers, so once
-// buffs are removed the character's stats are stale until something reconciles
+// The recalculation is NOT a death behaviour. Conditions carry stat modifiers, so once
+// conditions are removed the character's stats are stale until something reconciles
 // them, and Validate is what does that -- along with skill migrations, FSM
 // initialisation and the pool clamps, which this path does not need but gets
 // anyway.
@@ -619,7 +619,7 @@ func (c *Character) applyVitalChange(pool Pool, delta int) int {
 // So routing the other damage sites through ApplyHealthChange would run a full
 // character validation on every spell fumble and every damage-over-time tick,
 // and routing combat.go's 8 sites away from it would stop melee kills cancelling
-// combat buffs. Hence the split: those 8 keep the wrapper, everything else uses
+// combat conditions. Hence the split: those 8 keep the wrapper, everything else uses
 // this primitive.
 func (c *Character) ApplyHarm(pool Pool, amount int, source state.ActorRef) int {
 	if amount <= 0 {

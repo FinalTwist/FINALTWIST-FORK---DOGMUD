@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -34,8 +34,8 @@ type salvageFakeActor struct {
 func newSalvageFakeActor(t *testing.T, name string, room *rooms.Room, isPlayer bool, userId int) *salvageFakeActor {
 	t.Helper()
 	c := &characters.Character{
-		Name:  name,
-		Buffs: buffs.New(),
+		Name:       name,
+		Conditions: conditions.New(),
 	}
 	c.Stats.Perception.ValueAdj = 100
 	return &salvageFakeActor{
@@ -50,8 +50,8 @@ func newSalvageFakeActor(t *testing.T, name string, room *rooms.Room, isPlayer b
 func newSalvageMobActor(t *testing.T, mob *mobs.Mob, room *rooms.Room) *salvageFakeActor {
 	t.Helper()
 	c := &characters.Character{
-		Name:  mob.Character.Name,
-		Buffs: buffs.New(),
+		Name:       mob.Character.Name,
+		Conditions: conditions.New(),
 	}
 	return &salvageFakeActor{
 		char:      c,
@@ -68,7 +68,7 @@ func (a *salvageFakeActor) GetName() string                        { return a.na
 func (a *salvageFakeActor) IsPlayer() bool                         { return a.isPlayer }
 func (a *salvageFakeActor) GetUserId() int                         { return a.userId }
 func (a *salvageFakeActor) GetMobInstanceId() int                  { return a.mobInstId }
-func (a *salvageFakeActor) AddBuff(_ int, _ string)                {}
+func (a *salvageFakeActor) AddCondition(_ int, _ string)           {}
 func (a *salvageFakeActor) OnSkillUse(_ string) bool               { return false }
 func (a *salvageFakeActor) OnStatUse(_ string) bool                { return false }
 func (a *salvageFakeActor) SendRoomCommunication(_ string, _ bool) {}
@@ -89,7 +89,7 @@ func newSalvageTestMob(t *testing.T, instId int, name string, roomId int) *mobs.
 		InstanceId: instId,
 	}
 	m.Character.Name = name
-	m.Character.Buffs = buffs.New()
+	m.Character.Conditions = conditions.New()
 	m.Character.RoomId = roomId
 	return m
 }

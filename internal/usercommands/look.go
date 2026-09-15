@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
@@ -29,7 +29,7 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	visibility := room.GetVisibility()
 
 	if visibility < 1 {
-		if !user.Character.HasFlagFromAnySource(buffs.NightVision) {
+		if !user.Character.HasFlagFromAnySource(conditions.NightVision) {
 			user.SendText(messaging.CategorySystem, `You can't see anything!`)
 			return true, nil
 		}
@@ -257,7 +257,7 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 		if visibility < 2 {
 
-			if !user.Character.HasFlagFromAnySource(buffs.NightVision) {
+			if !user.Character.HasFlagFromAnySource(conditions.NightVision) {
 				biome := room.GetBiome()
 				if !biome.IsLit() {
 					user.SendText(messaging.CategorySystem, `It's too dark to see anything in that direction.`)
@@ -369,8 +369,8 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 			// Noun highlighting is universal (2026-06-12). It was formerly
 			// gated on the room.nouns role permission or a pet with the
-			// SeeNouns buff flag — but the default user role can never hold
-			// permissions and no dogmud-world buff carries see-nouns, so the
+			// SeeNouns condition flag — but the default user role can never hold
+			// permissions and no dogmud-world condition carries see-nouns, so the
 			// gate made the feature admin-only by accident. Discoverability
 			// for everyone beats a vestigial perk.
 			renderNouns := true

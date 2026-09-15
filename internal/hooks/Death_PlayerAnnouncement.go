@@ -3,8 +3,8 @@ package hooks
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -159,14 +159,14 @@ func wirePlayerDeathAnnouncement(c *characters.Character) {
 // generic fallback. Order matters — a poisoned AND bleeding character reads
 // "poison" because that check comes first.
 //
-// The held-record checks read by id (HasBuff), not by flag (HasBuffFlag):
-// HasBuff only tests the id index and does not care whether the record
-// already reads Expired, while HasBuffFlag skips expired records outright.
-// Buffs.Trigger() decrements TriggersLeft before returning the triggered
-// buff, so a tick that is the record's LAST trigger (the last tick of every
+// The held-record checks read by id (HasCondition), not by flag (HasConditionFlag):
+// HasCondition only tests the id index and does not care whether the record
+// already reads Expired, while HasConditionFlag skips expired records outright.
+// Conditions.Trigger() decrements TriggersLeft before returning the triggered
+// condition, so a tick that is the record's LAST trigger (the last tick of every
 // bleed and every poison) arrives already Expired; the old flag read then reported
 // "their own foolishness" for an outright poison or bleed-out kill. Reading
-// by id survives that, but not a prune: PruneBuffs runs on every NewTurn and
+// by id survives that, but not a prune: PruneConditions runs on every NewTurn and
 // can remove the expired record before this announcement listener runs
 // (death is a queued event — see Character.DeathQueued), which is what
 // LastTickCause is for: the round tick that landed the fatal harm stamps it
@@ -175,7 +175,7 @@ func wirePlayerDeathAnnouncement(c *characters.Character) {
 // Checking by id also narrows the held-record check to the two named
 // records, Poisoned and Bleeding — faithful to the enum this function
 // replaced, which only ever knew the spell dot and the bleed record. A
-// poison- or bleeding-FLAGGED buff that is not one of those two (Venom,
+// poison- or bleeding-FLAGGED condition that is not one of those two (Venom,
 // Spore Toxin, Toxic Cloud, Nausea) does not satisfy the held-record check,
 // but the LastTickCause fallback below still names it: tickCauseFor stamps
 // that field for any record carrying the Poison or Bleeding flag. The
@@ -195,9 +195,9 @@ func deathCauseFor(c *characters.Character) string {
 	}
 	// Check for lethal conditions.
 	if causeOfDeath == "" {
-		if c.HasBuff(buffs.BuffIdPoisoned) {
+		if c.HasCondition(conditions.ConditionIdPoisoned) {
 			causeOfDeath = "poison"
-		} else if c.HasBuff(buffs.BuffIdBleeding) {
+		} else if c.HasCondition(conditions.ConditionIdBleeding) {
 			causeOfDeath = "bleeding out"
 		} else if c.LastTickCause != "" && util.GetRoundCount()-c.LastTickCauseRound <= 1 {
 			causeOfDeath = c.LastTickCause

@@ -3,15 +3,15 @@ package hooks
 // NewRound_Bloom.go — per-round Bloom drug lifecycle for online players.
 //
 // Three duties per tick:
-//  1. Crash onset:    Communion (buff 90) just expired → apply Crash (buff 91).
+//  1. Crash onset:    Communion (condition 90) just expired → apply Crash (condition 91).
 //  2. Withdrawal:     addict has abstained past BloomWithdrawalOnsetRounds →
-//                     ensure Withdrawal (buff 92) is active; message on first apply.
+//                     ensure Withdrawal (condition 92) is active; message on first apply.
 //  3. Addiction decay: one addiction point removed per BloomAddictionDecayRounds
-//                     of abstinence; fully clean players have buff 92 cleared.
+//                     of abstinence; fully clean players have condition 92 cleared.
 //
 // The Communion→Crash transition uses the transient Character.BloomHadCommunion
-// bool (yaml:"-") so the detection survives logout-proof buff-expiry timing:
-// the flag is true while buff 90 is on, and cleared the round it goes away.
+// bool (yaml:"-") so the detection survives logout-proof condition-expiry timing:
+// the flag is true while condition 90 is on, and cleared the round it goes away.
 //
 // BloomLastDoseRound is yaml:"-" (not persisted), so withdrawal and decay timers
 // restart fresh after each login.  Addiction level (BloomAddiction) IS persisted.
@@ -41,21 +41,21 @@ func BloomTick(e events.Event) events.ListenerReturn {
 		// user.Character is *characters.Character — use directly.
 		c := user.Character
 
-		hasCommunion := c.HasBuff(90)
+		hasCommunion := c.HasCondition(90)
 
 		// ── 1. Crash on Communion end ─────────────────────────────────────────
-		// BloomHadCommunion was set to true last tick while buff 90 was active.
+		// BloomHadCommunion was set to true last tick while condition 90 was active.
 		// The moment it goes absent, apply the Crash and emit a grim message.
-		// Scale: buff 91 baseline triggercount (75) * BloomCrashRoundsMult (default 2.5)
+		// Scale: condition 91 baseline triggercount (75) * BloomCrashRoundsMult (default 2.5)
 		// = 187 rounds of crash at default config.  Adjust both knobs together to
-		// change the high:crash ratio without touching buff YAML.
-		// Through the user record: buff 91 carries its own authored start line
+		// change the high:crash ratio without touching condition YAML.
+		// Through the user record: condition 91 carries its own authored start line
 		// ("The communion ends...") and only the event reaches the notice, so
 		// applying it on the character left the crash unannounced. The
 		// hand-rolled warning that used to sit here said the same thing in
 		// different words, so it goes rather than double up on the authored one.
 		if c.BloomHadCommunion && !hasCommunion {
-			user.AddBuffScaled(91, float64(bal.BloomCrashRoundsMult), "bloom")
+			user.AddConditionScaled(91, float64(bal.BloomCrashRoundsMult), "bloom")
 		}
 		// Always mirror the current state for the next tick's detection.
 		c.BloomHadCommunion = hasCommunion
@@ -68,13 +68,13 @@ func BloomTick(e events.Event) events.ListenerReturn {
 		if c.BloomAddiction > 0 && c.BloomLastDoseRound > 0 && withdrawOnset > 0 {
 			sinceLastDose := currentRound - c.BloomLastDoseRound
 			if sinceLastDose >= withdrawOnset {
-				// Re-apply only when the buff has expired to avoid constant
+				// Re-apply only when the condition has expired to avoid constant
 				// timer resets that would make withdrawal permanent.
 				// Through the user record, for the same reason as the crash
-				// above: buff 92's authored start line is the one door, and the
+				// above: condition 92's authored start line is the one door, and the
 				// duplicate warning that used to follow this call is gone.
-				if !c.HasBuff(92) {
-					user.AddBuffScaled(92, 1.0, "bloom") // baseline 200 rounds
+				if !c.HasCondition(92) {
+					user.AddConditionScaled(92, 1.0, "bloom") // baseline 200 rounds
 				}
 			}
 		}
@@ -90,8 +90,8 @@ func BloomTick(e events.Event) events.ListenerReturn {
 				// Slide the reference point forward one period.
 				c.BloomLastDoseRound += decayRounds
 				if c.BloomAddiction == 0 {
-					// Fully clean: remove any lingering Withdrawal buff.
-					c.RemoveBuff(92)
+					// Fully clean: remove any lingering Withdrawal condition.
+					c.RemoveCondition(92)
 					user.SendText(messaging.CategoryWarning,
 						`The craving has finally loosened its grip. You feel `+
 							`clean — or as close to it as you're likely to get.`)

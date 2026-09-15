@@ -60,7 +60,7 @@ the drift-roll margin snapshot exceeds `SubmissionAttemptAlpha`. Four-tier
 resolution (bad / neutral / success / crit) consumes the attempter's
 `SubmissionPolicy` and may consult the defender's `SurrenderPolicy` (mercy
 policy only). Life cascade extended with `NoDeprogression` +
-`GoldLossFraction` DeadData flags. New buffs: broken-limb (id 83) for
+`GoldLossFraction` DeadData flags. New conditions: broken-limb (id 83) for
 cripple outcomes, submission-stunned (id 84) for crit-tier mercy. Role-split
 submission mapping lives in `internal/state/position/submissions.go`; the
 consumer side is documented in `internal/combat/context.md`.
@@ -589,7 +589,7 @@ by design). The split is defined in `TopSubmissionsForPosition` and
 
 `CrippleBodyPart(subType) string` returns the limb name for joint-lock
 subs and `""` for choke subs. The cripple → subdue degradation in
-`submission_outcome.go` uses this to avoid applying a broken-limb buff
+`submission_outcome.go` uses this to avoid applying a broken-limb condition
 for chokes.
 
 ### Eligibility predicates

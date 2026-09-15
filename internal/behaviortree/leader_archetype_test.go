@@ -3,7 +3,7 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 )
@@ -12,7 +12,7 @@ const leaderYAML = "../../_datafiles/world/dogmud/behaviors/archetypes/leader.ya
 
 // TestLeader_PackmateHurt_RallyOrWarcryThenEngage verifies the leader's
 // packmate_hurt handler: queues rally or warcry (command_best_of fires the
-// first ready one — CommandIsReady skips if the buff is already active),
+// first ready one — CommandIsReady skips if the condition is already active),
 // then engages the attacker via the existing attack action (sets Aggro).
 func TestLeader_PackmateHurt_RallyOrWarcryThenEngage(t *testing.T) {
 	LoadArchetypeForTest(t, "leader", leaderYAML)
@@ -89,7 +89,7 @@ func seedLeaderMob(t *testing.T, instanceId int) (*mobs.Mob, func()) {
 	}
 	m.Character.Name = "testmob"
 	m.Character.Conviction = 500
-	m.Character.Buffs = buffs.New()
+	m.Character.Conditions = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{300 + instanceId: m},
 		map[int]*mobs.Mob{instanceId: m},

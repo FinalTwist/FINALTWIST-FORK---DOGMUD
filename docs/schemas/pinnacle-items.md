@@ -115,8 +115,8 @@ ambient_potions: true        # slotted potions' buffs stay always-on
   `tickPreserveContents` advances every slotted potion's
   `CraftedRound` by 1 in lockstep with the round counter, so the
   aging-elapsed calculation (`now - CraftedRound`) never grows.
-- **`ambient_potions`** keeps every slotted potion's `BuffIds`
-  continuously applied at **Peak potency (1.30x)**, `AddBuffScaled`,
+- **`ambient_potions`** keeps every slotted potion's `ConditionIds`
+  continuously applied at **Peak potency (1.30x)**, `AddConditionScaled`,
   while the bandolier is worn and **attuned**. Drink-blocking of
   slotted potions is deferred to Stage 2 — Stage 1 does not stop you
   from drinking a slotted potion directly.

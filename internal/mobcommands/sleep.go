@@ -8,8 +8,8 @@ import (
 
 // Sleep is the mob-side sleep verb. Used by the chunk 3.3 schedule
 // executor via mob.Command("sleep") when entering an activity: sleeping
-// segment. Delegates to actions.Sleep which applies the Sleeping buff
-// (buff id 15).
+// segment. Delegates to actions.Sleep which applies the Sleeping condition
+// (condition id 15).
 func Sleep(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	actions.Sleep(&actions.MobActor{Mob: mob, Room: room}, actions.SleepOptions{})
 	return true, nil

@@ -6,14 +6,18 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 )
 
-const meleeSelfBuffYAML2 = "../../_datafiles/world/dogmud/behaviors/archetypes/melee_self_buff.yaml"
+const meleeSelfConditionYAML2 = "../../_datafiles/world/dogmud/behaviors/archetypes/melee_self_buff.yaml"
 
-// TestMeleeSelfBuff_PackmateHurt_SetsAggroOnAttacker verifies the
+// The TestMeleeSelfCondition_* name below says Condition (slice 2 of the
+// conditions unification renames every Go identifier); the archetype and its
+// YAML stay melee_self_buff, because the behaviour-category string is wire.
+//
+// TestMeleeSelfCondition_PackmateHurt_SetsAggroOnAttacker verifies the
 // packmate_hurt handler engages the attacker by setting Aggro. The
 // archetype's normal mob_combat_round cascade (including
-// self-buff behavior) fires on the next tick.
-func TestMeleeSelfBuff_PackmateHurt_SetsAggroOnAttacker(t *testing.T) {
-	LoadArchetypeForTest(t, "melee_self_buff", meleeSelfBuffYAML2)
+// self-condition behavior) fires on the next tick.
+func TestMeleeSelfCondition_PackmateHurt_SetsAggroOnAttacker(t *testing.T) {
+	LoadArchetypeForTest(t, "melee_self_buff", meleeSelfConditionYAML2)
 
 	mob, cleanup := seedArchetypeMob(t, 90301, map[string]int{})
 	defer cleanup()

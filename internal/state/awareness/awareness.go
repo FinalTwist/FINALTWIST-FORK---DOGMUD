@@ -1,7 +1,7 @@
 // Package awareness defines the Awareness state machine —
 // the second consumer of internal/state, after combatphase.
-// It replaces the buff-#9 "Hidden flag" as the canonical
-// source of "is this character hidden?" Buff #9 stays as the
+// It replaces the condition-#9 "Hidden flag" as the canonical
+// source of "is this character hidden?" Condition #9 stays as the
 // side-effect carrier (stat mods, room broadcast text); the
 // Awareness machine drives its addition and removal via
 // cascade handlers.

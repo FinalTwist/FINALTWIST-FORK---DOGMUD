@@ -3,8 +3,8 @@ package users
 import (
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
 	"github.com/GoMudEngine/GoMud/internal/state/combatphase"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
@@ -55,14 +55,14 @@ func SeedUsersForTest(testUsers map[int]*UserRecord) func() {
 // have basic defaults (name, health, stamina, conviction pools set).
 func NewTestUser(userId int, username string, charName string, connId uint64) *UserRecord {
 	ch := &characters.Character{
-		Name:      charName,
-		RoomId:    1,
-		Health:    100,
-		Stamina:   100,
-		Buffs:     buffs.New(),
-		Cooldowns: map[string]int{},
-		Awareness: awareness.NewMachine(),
-		Position:  position.NewMachine(),
+		Name:       charName,
+		RoomId:     1,
+		Health:     100,
+		Stamina:    100,
+		Conditions: conditions.New(),
+		Cooldowns:  map[string]int{},
+		Awareness:  awareness.NewMachine(),
+		Position:   position.NewMachine(),
 		// U12c-2: the combat phase machine is no longer optional for a
 		// fixture. It was already the source of truth for "am I fighting and
 		// who"; it now also holds the actor's round budget, which used to live

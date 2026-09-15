@@ -382,7 +382,7 @@ func revealSpotted(actor Actor, found SearchResult, room *rooms.Room) {
 
 // endHidingOnSpot drives the hider's Awareness machine out of Hidden, exactly
 // as go.go does for a spotted occupant; the Awareness cascade then cancels
-// buff 9. A player hider is told, by name only if they can see the searcher.
+// condition 9. A player hider is told, by name only if they can see the searcher.
 func endHidingOnSpot(searcher string, hider *characters.Character, hiderUser *users.UserRecord, room *rooms.Room) {
 	if hider.Awareness != nil {
 		_ = hider.Awareness.TransitionToRevealing(

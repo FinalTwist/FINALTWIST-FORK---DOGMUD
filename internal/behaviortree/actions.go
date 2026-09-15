@@ -49,7 +49,7 @@ func init() {
 	actionRegistry["summon_companion"] = actSummonCompanion
 	actionRegistry["set_room_locked"] = actSetRoomLocked
 	actionRegistry["spawn_item_in_room"] = actSpawnItemInRoom
-	actionRegistry["add_buff"] = actAddBuff
+	actionRegistry["add_buff"] = actAddCondition
 	actionRegistry["command_mob"] = actCommandMob
 	actionRegistry["give_item_multiple"] = actGiveItemMultiple
 	actionRegistry["set_misc_data"] = actSetMiscData
@@ -65,7 +65,7 @@ func init() {
 	actionRegistry["grant_progression"] = actGrantProgression
 	actionRegistry["send_room_text"] = actSendRoomText
 	actionRegistry["intercept"] = actIntercept
-	actionRegistry["remove_buff"] = actRemoveBuff
+	actionRegistry["remove_buff"] = actRemoveCondition
 	actionRegistry["move_player"] = actMovePlayer
 	actionRegistry["create_instance"] = actCreateInstance
 	actionRegistry["open_instance_portal"] = actOpenInstancePortal

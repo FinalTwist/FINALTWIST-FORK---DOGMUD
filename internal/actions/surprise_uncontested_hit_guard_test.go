@@ -48,7 +48,7 @@ func TestEngageAggroTypeLandsNoDamage(t *testing.T) {
 	room := newAggroTestRoom()
 
 	attacker := newAggroAttackerMob(9820)
-	addHiddenBuff(&attacker.Character)
+	addHiddenCondition(&attacker.Character)
 	// A burst would have swung with these; fists were its fallback, so it lands
 	// damage even with no weapon equipped.
 	attacker.Character.Stats.Strength.ValueAdj = 100

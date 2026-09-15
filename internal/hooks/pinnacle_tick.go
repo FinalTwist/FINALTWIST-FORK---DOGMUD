@@ -23,7 +23,7 @@ import (
 // pinnacle_tick.go — the always-on per-round layer for pinnacle items
 // (Stage 1, Task 11). Procs (item_procs.go) are event-driven off combat
 // chokepoints; THIS file is the passive upkeep that runs once per player per
-// round from UserRoundTick: hunger drain, ambient-potion buffs, aging freeze,
+// round from UserRoundTick: hunger drain, ambient-potion conditions, aging freeze,
 // mutation drip, and sentient chatter.
 //
 // Per-round cost discipline: the whole thing is gated by PinnacleItemsEnabled,
@@ -229,8 +229,8 @@ func tickMutationItems(user *users.UserRecord, worn []items.Item, now uint64) {
 // while an ambient_potions belt is worn (the flag-off path never builds it).
 //
 // SMARTER RESET (2026-07-14): a contents change no longer revokes everything and
-// re-attunes the whole bandolier. Instead we KEEP every already-attuned buff
-// active, revoke only the buff of a potion that actually left, and start the
+// re-attunes the whole bandolier. Instead we KEEP every already-attuned condition
+// active, revoke only the condition of a potion that actually left, and start the
 // attunement window ONLY for a genuinely new potion effect. So crafting a second
 // potion never drops the regen you already had, and rapid crafting doesn't
 // perpetually reset the clock for potions that are already attuned. The player
@@ -239,13 +239,13 @@ func tickMutationItems(user *users.UserRecord, worn []items.Item, now uint64) {
 //
 // Deferred (Stage 2): the item card's "slotted potions can't be drunk" rule is
 // item-level behavior for a later stage; the attunement cooldown is the Stage-1
-// mechanical cost. We do NOT touch the toxicity path — ambient buffs never
+// mechanical cost. We do NOT touch the toxicity path — ambient conditions never
 // apply toxicity by construction.
 //
-// "Always-on" semantics, precisely: the !HasBuff guard RE-ADDS a buff after it
+// "Always-on" semantics, precisely: the !HasCondition guard RE-ADDS a condition after it
 // expires (and is pruned); it does not refresh duration while active. Because
-// prune runs on the turn tick, an ambient buff can lapse for up to one round
-// between expiry and re-application. Accepted — matches WornBuffIds semantics;
+// prune runs on the turn tick, an ambient condition can lapse for up to one round
+// between expiry and re-application. Accepted — matches WornConditionIds semantics;
 // a per-tick unconditional refresh would cost a Validate() per player per round.
 
 // bandolierFingerprint is a stable string of belt itemId + sorted potion
@@ -264,8 +264,8 @@ func bandolierFingerprint(belt items.Item, potions []items.Item) string {
 	return b.String()
 }
 
-// tickAmbientPotions keeps slotted potion buffs active at Peak potency while an
-// ambient_potions bandolier is worn and attuned. Buffs applied this way are
+// tickAmbientPotions keeps slotted potion conditions active at Peak potency while an
+// ambient_potions bandolier is worn and attuned. Conditions applied this way are
 // recorded (pinnacle_bandolier_buffs) so removal can revoke them.
 func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	c := user.Character
@@ -288,7 +288,7 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	for _, id := range applied {
 		appliedSet[id] = true
 	}
-	desired := desiredAmbientBuffs(c.PotionItems)
+	desired := desiredAmbientConditions(c.PotionItems)
 
 	// Content-change detection (see mechanism note above).
 	fp := bandolierFingerprint(belt, c.PotionItems)
@@ -296,14 +296,14 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	if fp != prevFp {
 		c.SetMiscData("pinnacle_bandolier_fingerprint", fp)
 
-		// Revoke ONLY the buffs whose potion just left; keep already-attuned
-		// buffs active so adding/removing one potion never drops the others.
+		// Revoke ONLY the conditions whose potion just left; keep already-attuned
+		// conditions active so adding/removing one potion never drops the others.
 		kept := make([]int, 0, len(applied))
 		for _, id := range applied {
 			if desired[id] {
 				kept = append(kept, id)
 			} else {
-				c.RemoveBuff(id)
+				c.RemoveCondition(id)
 			}
 		}
 
@@ -328,25 +328,25 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	}
 
 	// Contents unchanged. While a new potion is still attuning, keep the
-	// already-active buffs refreshed but hold the pending one back.
+	// already-active conditions refreshed but hold the pending one back.
 	if attune, ok := readMiscRound(c.GetMiscData("pinnacle_bandolier_attune_round")); ok && now < attune {
 		for _, id := range applied {
-			if desired[id] && !c.Buffs.HasBuff(id) {
-				_ = c.AddBuffScaled(id, 1.30)
+			if desired[id] && !c.Conditions.HasCondition(id) {
+				_ = c.AddConditionScaled(id, 1.30)
 			}
 		}
 		return
 	}
 
-	// Attuned (or nothing pending): apply/refresh every slotted potion's buff at
+	// Attuned (or nothing pending): apply/refresh every slotted potion's condition at
 	// Peak potency (1.30). Announce completion once when a new effect just landed.
 	newlyApplied := false
 	for id := range desired {
 		if !appliedSet[id] {
 			newlyApplied = true
 		}
-		if !c.Buffs.HasBuff(id) {
-			_ = c.AddBuffScaled(id, 1.30)
+		if !c.Conditions.HasCondition(id) {
+			_ = c.AddConditionScaled(id, 1.30)
 		}
 	}
 	if _, ok := readMiscRound(c.GetMiscData("pinnacle_bandolier_attune_round")); ok {
@@ -365,23 +365,23 @@ func tickAmbientPotions(user *users.UserRecord, now uint64) {
 	c.SetMiscData("pinnacle_bandolier_buffs", ids)
 }
 
-// desiredAmbientBuffs is the set of buff ids emitted by the potions currently
+// desiredAmbientConditions is the set of condition ids emitted by the potions currently
 // slotted in the bandolier.
-func desiredAmbientBuffs(potions []items.Item) map[int]bool {
+func desiredAmbientConditions(potions []items.Item) map[int]bool {
 	out := map[int]bool{}
 	for _, p := range potions {
-		for _, buffId := range p.GetSpec().BuffIds {
-			out[buffId] = true
+		for _, conditionId := range p.GetSpec().ConditionIds {
+			out[conditionId] = true
 		}
 	}
 	return out
 }
 
-// revokeAmbient removes every previously-applied ambient buff and clears the
+// revokeAmbient removes every previously-applied ambient condition and clears the
 // tracking key.
 func revokeAmbient(c *characters.Character, applied []int) {
 	for _, id := range applied {
-		c.RemoveBuff(id)
+		c.RemoveCondition(id)
 	}
 	if len(applied) > 0 {
 		c.SetMiscData("pinnacle_bandolier_buffs", []int{})

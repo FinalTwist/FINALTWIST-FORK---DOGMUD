@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -42,7 +42,7 @@ type BuyResult struct {
 	Success   bool   // at least one unit purchased
 	Purchased int    // actual units purchased (may be < Requested)
 	Requested int    // requested quantity (1 if unspecified)
-	SaleType  string // "item" | "buff" | "" on failure
+	SaleType  string // "item" | "condition" | "" on failure
 	Reason    string // populated on failure
 }
 
@@ -58,23 +58,23 @@ const (
 	BuyReasonSelfTarget       = "self_target"
 )
 
-// legacyShopCatalog enumerates the in-stock items + buffs offered by a
+// legacyShopCatalog enumerates the in-stock items + conditions offered by a
 // legacy Character.Shop. Merc and pet sale types are intentionally NOT
 // surfaced (spec 2.1 drops them).
 type legacyShopCatalog struct {
-	nameToShopItem map[string]characters.ShopItem
-	itemNames      []string
-	itemNamesFancy []string
-	itemPrices     map[int]int
-	buffNames      []string
-	buffPrices     map[int]int
+	nameToShopItem  map[string]characters.ShopItem
+	itemNames       []string
+	itemNamesFancy  []string
+	itemPrices      map[int]int
+	conditionNames  []string
+	conditionPrices map[int]int
 }
 
 func buildLegacyCatalog(saleItems characters.Shop) legacyShopCatalog {
 	cat := legacyShopCatalog{
-		nameToShopItem: map[string]characters.ShopItem{},
-		itemPrices:     map[int]int{},
-		buffPrices:     map[int]int{},
+		nameToShopItem:  map[string]characters.ShopItem{},
+		itemPrices:      map[int]int{},
+		conditionPrices: map[int]int{},
 	}
 
 	for _, saleItem := range saleItems {
@@ -96,13 +96,13 @@ func buildLegacyCatalog(saleItems characters.Shop) legacyShopCatalog {
 			cat.itemPrices[saleItem.ItemId] = price
 			continue
 		}
-		if saleItem.BuffId > 0 {
-			buffInfo := buffs.GetBuffSpec(saleItem.BuffId)
-			if buffInfo == nil {
+		if saleItem.ConditionId > 0 {
+			conditionInfo := conditions.GetConditionSpec(saleItem.ConditionId)
+			if conditionInfo == nil {
 				continue
 			}
-			cat.buffNames = append(cat.buffNames, buffInfo.Name)
-			cat.nameToShopItem[buffInfo.Name] = saleItem
+			cat.conditionNames = append(cat.conditionNames, conditionInfo.Name)
+			cat.nameToShopItem[conditionInfo.Name] = saleItem
 
 			price := saleItem.Price
 			if price == 0 {
@@ -110,7 +110,7 @@ func buildLegacyCatalog(saleItems characters.Shop) legacyShopCatalog {
 			} else if price < 0 {
 				price = 0
 			}
-			cat.buffPrices[saleItem.BuffId] = price
+			cat.conditionPrices[saleItem.ConditionId] = price
 			continue
 		}
 		// Merc / pet entries on legacy shops are skipped — see spec 2.1.
@@ -118,12 +118,12 @@ func buildLegacyCatalog(saleItems characters.Shop) legacyShopCatalog {
 	return cat
 }
 
-// allNames returns the union of item + buff display names in the catalog
+// allNames returns the union of item + condition display names in the catalog
 // for fuzzy matching. Merc/pet names are intentionally excluded.
 func (c *legacyShopCatalog) allNames() []string {
-	all := make([]string, 0, len(c.itemNames)+len(c.buffNames))
+	all := make([]string, 0, len(c.itemNames)+len(c.conditionNames))
 	all = append(all, c.itemNames...)
-	all = append(all, c.buffNames...)
+	all = append(all, c.conditionNames...)
 	return all
 }
 
@@ -145,7 +145,7 @@ func validatePurchase(
 	shopUser *users.UserRecord,
 	matchedShopItem characters.ShopItem,
 	itemPrices map[int]int,
-	buffPrices map[int]int,
+	conditionPrices map[int]int,
 ) (purchaseContext, string, bool) {
 
 	char := buyer.GetCharacter()
@@ -176,8 +176,8 @@ func validatePurchase(
 	price := 0
 	if matchedShopItem.ItemId > 0 {
 		price = itemPrices[matchedShopItem.ItemId]
-	} else if matchedShopItem.BuffId > 0 {
-		price = buffPrices[matchedShopItem.BuffId]
+	} else if matchedShopItem.ConditionId > 0 {
+		price = conditionPrices[matchedShopItem.ConditionId]
 	}
 
 	// (4) Gold check.
@@ -468,16 +468,16 @@ func tryPurchaseLegacy(buyer Actor, request string, shopMob *mobs.Mob, shopUser 
 			if len(cat.itemNamesFancy) > 0 {
 				randSelection := util.Rand(len(cat.itemNamesFancy))
 				extraSay = fmt.Sprintf(` Any interest in this <ansi fg="itemname">%s</ansi>?`, cat.itemNamesFancy[randSelection])
-			} else if len(cat.buffNames) > 0 {
-				randSelection := util.Rand(len(cat.buffNames))
-				extraSay = fmt.Sprintf(` Maybe you would enjoy this %s enchantment?`, cat.buffNames[randSelection])
+			} else if len(cat.conditionNames) > 0 {
+				randSelection := util.Rand(len(cat.conditionNames))
+				extraSay = fmt.Sprintf(` Maybe you would enjoy this %s enchantment?`, cat.conditionNames[randSelection])
 			}
 			shopMob.Command(`say Sorry, I can't offer that right now.`+extraSay, 1)
 		}
 		return BuyResult{Reason: BuyReasonNoMatch}
 	}
 
-	ctx, reason, ok := validatePurchase(buyer, shopMob, shopUser, cat.nameToShopItem[match], cat.itemPrices, cat.buffPrices)
+	ctx, reason, ok := validatePurchase(buyer, shopMob, shopUser, cat.nameToShopItem[match], cat.itemPrices, cat.conditionPrices)
 	if !ok {
 		return BuyResult{Reason: reason}
 	}
@@ -486,9 +486,9 @@ func tryPurchaseLegacy(buyer Actor, request string, shopMob *mobs.Mob, shopUser 
 		executePurchaseItem(buyer, shopMob, shopUser, ctx.matchedShopItem, ctx.price, ctx.tradeInString)
 		return BuyResult{Success: true, Purchased: 1, SaleType: "item"}
 	}
-	if ctx.matchedShopItem.BuffId > 0 {
-		executePurchaseBuff(buyer, shopMob, shopUser, ctx.matchedShopItem, ctx.price, ctx.tradeInString)
-		return BuyResult{Success: true, Purchased: 1, SaleType: "buff"}
+	if ctx.matchedShopItem.ConditionId > 0 {
+		executePurchaseCondition(buyer, shopMob, shopUser, ctx.matchedShopItem, ctx.price, ctx.tradeInString)
+		return BuyResult{Success: true, Purchased: 1, SaleType: "condition"}
 	}
 
 	// Merc/pet sale types are filtered out at catalog build time;
@@ -497,7 +497,7 @@ func tryPurchaseLegacy(buyer Actor, request string, shopMob *mobs.Mob, shopUser 
 }
 
 // tryPurchaseFromInventory attempts a single purchase against a
-// ShopInventory-backed mob merchant. Buff/merc/pet purchases are
+// ShopInventory-backed mob merchant. Condition/merc/pet purchases are
 // NOT handled here — ShopInventory only carries items.
 func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, shopInv *shops.ShopInventory) BuyResult {
 	cfg := shops.PricingConfigFromBalance()
@@ -744,16 +744,16 @@ func executePurchaseItem(buyer Actor, shopMob *mobs.Mob, shopUser *users.UserRec
 	buyer.GetCharacter().StoreItem(newItm)
 }
 
-// executePurchaseBuff applies the bought buff to the buyer and
+// executePurchaseCondition applies the bought condition to the buyer and
 // emits the merchant emote follow-up.
-func executePurchaseBuff(buyer Actor, shopMob *mobs.Mob, shopUser *users.UserRecord, matchedShopItem characters.ShopItem, price int, tradeInString string) {
-	buffSpec := buffs.GetBuffSpec(matchedShopItem.BuffId)
+func executePurchaseCondition(buyer Actor, shopMob *mobs.Mob, shopUser *users.UserRecord, matchedShopItem characters.ShopItem, price int, tradeInString string) {
+	conditionSpec := conditions.GetConditionSpec(matchedShopItem.ConditionId)
 	buyerName := buyer.GetName()
 
 	if shopMob != nil {
 		if buyer.IsPlayer() {
 			if u := users.GetByUserId(buyer.GetUserId()); u != nil {
-				u.EventLog.Add(`shop`, fmt.Sprintf(`Purchased a <ansi fg="buff">%s</ansi> enchantment from <ansi fg="mobname">%s</ansi> for %s`, buffSpec.Name, shopMob.Character.Name, tradeInString))
+				u.EventLog.Add(`shop`, fmt.Sprintf(`Purchased a <ansi fg="buff">%s</ansi> enchantment from <ansi fg="mobname">%s</ansi> for %s`, conditionSpec.Name, shopMob.Character.Name, tradeInString))
 			}
 		}
 		buyer.SendText(messaging.CategoryLoot, fmt.Sprintf(`You pay %s to <ansi fg="mobname">%s</ansi>.`, tradeInString, shopMob.Character.Name))
@@ -764,7 +764,7 @@ func executePurchaseBuff(buyer Actor, shopMob *mobs.Mob, shopUser *users.UserRec
 	} else if shopUser != nil {
 		if buyer.IsPlayer() {
 			if u := users.GetByUserId(buyer.GetUserId()); u != nil {
-				u.EventLog.Add(`shop`, fmt.Sprintf(`Purchased a <ansi fg="buff">%s</ansi> enchantment from  <ansi fg="username">%s</ansi> for %s`, buffSpec.Name, shopUser.Character.Name, tradeInString))
+				u.EventLog.Add(`shop`, fmt.Sprintf(`Purchased a <ansi fg="buff">%s</ansi> enchantment from  <ansi fg="username">%s</ansi> for %s`, conditionSpec.Name, shopUser.Character.Name, tradeInString))
 			}
 		}
 		buyer.SendText(messaging.CategoryLoot, fmt.Sprintf(`You pay %s to <ansi fg="username">%s</ansi>.`, tradeInString, shopUser.Character.Name))
@@ -775,7 +775,7 @@ func executePurchaseBuff(buyer Actor, shopMob *mobs.Mob, shopUser *users.UserRec
 		// player-merchant doesn't emote (matches existing behavior).
 	}
 
-	buyer.AddBuff(matchedShopItem.BuffId, "shop")
+	buyer.AddCondition(matchedShopItem.ConditionId, "shop")
 
 	if shopMob != nil {
 		shopMob.Command(`say I've done what I can.`, 1)

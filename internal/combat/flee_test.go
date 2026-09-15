@@ -4,8 +4,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/state/combatphase"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -79,11 +79,11 @@ func newFleerMob(id int, name string, dex int, skullduggery int) *mobs.Mob {
 		InstanceId: id,
 		HomeRoomId: 1,
 		Character: characters.Character{
-			Name:      name,
-			RoomId:    1,
-			Buffs:     buffs.New(),
-			Cooldowns: map[string]int{},
-			Skills:    map[string]int{string(skills.Skullduggery): skullduggery},
+			Name:       name,
+			RoomId:     1,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
+			Skills:     map[string]int{string(skills.Skullduggery): skullduggery},
 		},
 	}
 	m.Character.MobInstanceId = id
@@ -103,7 +103,7 @@ func newBlockerMob(id int, name string, dex int, unarmed int, targetUid, targetM
 		Character: characters.Character{
 			Name:        name,
 			RoomId:      1,
-			Buffs:       buffs.New(),
+			Conditions:  conditions.New(),
 			Cooldowns:   map[string]int{},
 			Skills:      map[string]int{string(skills.UnarmedCombat): unarmed},
 			CombatPhase: combatphase.NewMachine(),

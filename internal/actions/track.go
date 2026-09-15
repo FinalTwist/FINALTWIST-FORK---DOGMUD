@@ -29,7 +29,7 @@ type TrackOptions struct {
 	// TargetNoun.
 	TargetFrom string
 
-	// CancelTracking: "stop" / "clear" semantics — remove buff 86 + clear
+	// CancelTracking: "stop" / "clear" semantics — remove condition 86 + clear
 	// tracking misc data without rolling. UserActor wrapper handles
 	// the keyword check.
 	CancelTracking bool
@@ -55,7 +55,7 @@ type TrackResult struct {
 	ActiveTargetMobInstId int    // 0 when not mob target
 	ActiveTargetName      string // for caller messaging
 	DirectionExit         string // best exit toward target
-	BuffApplied           bool   // true when buff 86 applied
+	ConditionApplied      bool   // true when condition 86 applied
 
 	// Common.
 	// Detail is the resolved read quality. It REPLACES the old RollValue float:
@@ -67,13 +67,13 @@ type TrackResult struct {
 	Reason     string // human-readable reason on failure
 }
 
-// activeTrackingBuffId is the buff applied when active tracking starts.
+// activeTrackingConditionId is the condition applied when active tracking starts.
 // See _datafiles/world/dogmud/buffs/86-active_tracking.yaml.
-const activeTrackingBuffId = 86
+const activeTrackingConditionId = 86
 
 // Track runs the Perception+Search trail-read. With TargetNoun set (or
 // resolved via TargetFrom), attempts active-tracking: locates the trail
-// across adjacent rooms, applies buff 86, and stores tracking-user or
+// across adjacent rooms, applies condition 86, and stores tracking-user or
 // tracking-mob misc data on the actor's Character. Without a target,
 // reports the visitor log of the current room (tiered by roll).
 func Track(actor Actor, opts TrackOptions) TrackResult {
@@ -91,7 +91,7 @@ func Track(actor Actor, opts TrackOptions) TrackResult {
 		char.SetMiscData("tracking-mob", nil)
 		char.SetMiscData("tracking-user", nil)
 		char.SetMiscData("tracking-display-count", nil)
-		char.RemoveBuff(activeTrackingBuffId)
+		char.RemoveCondition(activeTrackingConditionId)
 		if actor.IsPlayer() {
 			actor.SendText(messaging.CategorySystem, `You stop tracking.`)
 		}
@@ -256,7 +256,7 @@ func Track(actor Actor, opts TrackOptions) TrackResult {
 	}
 
 	// Search visitor log of current room for a trail matching targetNoun;
-	// if found, CONTEST against that target, and only then apply buff 86 +
+	// if found, CONTEST against that target, and only then apply condition 86 +
 	// store misc data + populate DirectionExit.
 	if applied, miscKey, miscVal, dirExit, targetUserId, targetMobId, targetName :=
 		lookupAdjacentTrail(room, targetNoun, actor.GetUserId()); applied {
@@ -292,8 +292,8 @@ func Track(actor Actor, opts TrackOptions) TrackResult {
 
 		char.SetMiscData(miscKey, miscVal)
 		char.SetMiscData("tracking-display-count", nil)
-		actor.AddBuff(activeTrackingBuffId, "skill")
-		result.BuffApplied = true
+		actor.AddCondition(activeTrackingConditionId, "skill")
+		result.ConditionApplied = true
 		result.ActiveTargetUserId = targetUserId
 		result.ActiveTargetMobInstId = targetMobId
 		result.ActiveTargetName = targetName

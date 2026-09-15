@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -120,7 +120,7 @@ type Character struct {
 	Toxicity            float64          `yaml:"toxicity,omitempty"`        // Current toxicity from potions
 	BloomAddiction      int              `yaml:"bloom_addiction,omitempty"` // Bloom-drug addiction level (0 = clean)
 	BloomLastDoseRound  uint64           `yaml:"-"`                         // runtime: round of last Bloom dose (abstinence clock)
-	BloomHadCommunion   bool             `yaml:"-"`                         // runtime: true while buff 90 was active last tick (Crash transition gate)
+	BloomHadCommunion   bool             `yaml:"-"`                         // runtime: true while condition 90 was active last tick (Crash transition gate)
 	ActionPoints        int              // The resevoir of action points the character has to spend on movement etc.
 	Gold                int              // The gold the character is holding
 	Bank                int              // The gold the character has in the bank
@@ -135,19 +135,19 @@ type Character struct {
 	// gives a sensible zero value — no init needed in New().
 	// For mobs, this is populated from Mob.NonCombatant during Mob.Validate().
 	// Consumed by Combat Phase's veto chain (chunk 0 Task 10).
-	NonCombatant    bool           `yaml:"non_combatant,omitempty"`  // True = exempt from combat
-	Charmed         *CharmInfo     `yaml:"-"`                        // If they are charmed, this is the info
-	EverCharmed     bool           `yaml:"-"`                        // True if this mob was ever a companion (survives dismiss)
-	CharmedMobs     []int          `yaml:"-"`                        // If they have charmed anyone, this is the list of mob instance ids
-	Items           []items.Item   `yaml:"items,omitempty"`          // The items the character is holding
-	ComponentItems  []items.Item   `yaml:"componentitems,omitempty"` // Contents of equipped component bag
-	PotionItems     []items.Item   `yaml:"potionitems,omitempty"`    // Contents of equipped potion bandolier
-	Buffs           buffs.Buffs    `yaml:"buffs,omitempty"`          // The buffs the character has active
-	Equipment       Worn           `yaml:"equipment,omitempty"`      // The equipment the character is wearing
-	HealthMax       stats.StatInfo `yaml:"-"`                        // The maximum health of the character. Don't write to yaml since is dynamically calculated.
-	StaminaMax      stats.StatInfo `yaml:"-"`                        // The maximum stamina of the character. Don't write to yaml since is dynamically calculated.
-	ConvictionMax   stats.StatInfo `yaml:"-"`                        // The maximum conviction of the character. Don't write to yaml since is dynamically calculated.
-	ActionPointsMax stats.StatInfo `yaml:"-"`                        // The maximum actions of character. Don't write to yaml since is dynamically calculated.
+	NonCombatant    bool                  `yaml:"non_combatant,omitempty"`  // True = exempt from combat
+	Charmed         *CharmInfo            `yaml:"-"`                        // If they are charmed, this is the info
+	EverCharmed     bool                  `yaml:"-"`                        // True if this mob was ever a companion (survives dismiss)
+	CharmedMobs     []int                 `yaml:"-"`                        // If they have charmed anyone, this is the list of mob instance ids
+	Items           []items.Item          `yaml:"items,omitempty"`          // The items the character is holding
+	ComponentItems  []items.Item          `yaml:"componentitems,omitempty"` // Contents of equipped component bag
+	PotionItems     []items.Item          `yaml:"potionitems,omitempty"`    // Contents of equipped potion bandolier
+	Conditions      conditions.Conditions `yaml:"buffs,omitempty"`          // The conditions the character has active
+	Equipment       Worn                  `yaml:"equipment,omitempty"`      // The equipment the character is wearing
+	HealthMax       stats.StatInfo        `yaml:"-"`                        // The maximum health of the character. Don't write to yaml since is dynamically calculated.
+	StaminaMax      stats.StatInfo        `yaml:"-"`                        // The maximum stamina of the character. Don't write to yaml since is dynamically calculated.
+	ConvictionMax   stats.StatInfo        `yaml:"-"`                        // The maximum conviction of the character. Don't write to yaml since is dynamically calculated.
+	ActionPointsMax stats.StatInfo        `yaml:"-"`                        // The maximum actions of character. Don't write to yaml since is dynamically calculated.
 	// Taunt-hold lock (transient, not serialized): a successful taunt pins
 	// this character's aggro onto the taunter until tauntHoldUntilRound, so
 	// reactive basic-attack re-aggro can't flip the target back. Set via
@@ -199,7 +199,7 @@ type Character struct {
 	// opportunity has opened without re-rolling (chunk 4d T5/T6).
 	LastDriftRoll DriftRollSnapshot `yaml:"-"` // chunk 4d: read by Position_SubmissionTick
 	// Awareness state machine (chunk 1). Source of truth for
-	// "is this character hidden?" Buff #9 still exists as effect
+	// "is this character hidden?" Condition #9 still exists as effect
 	// carrier; this machine drives its add/remove via cascade.
 	Awareness *awareness.Machine `yaml:"-"`
 	// Life state machine (chunk 2). Source of truth for "is this
@@ -230,7 +230,7 @@ type Character struct {
 	Presence *presence.Machine `yaml:"-"`
 	// Perception is the canonical state machine for "do this character's
 	// eyes work?" — Sighted / Blinded. Ships DORMANT in chunk 6: the
-	// machine transitions correctly via buff/condition observers but no
+	// machine transitions correctly via condition-add and state-change observers but no
 	// consumer reads the state yet. The future centralized messaging
 	// framework chunk will wire it into broadcast gating, infrared
 	// rendering, look-command blocking. See
@@ -334,11 +334,11 @@ type Character struct {
 	LastPlayerDamage        uint64                         `yaml:"-"` // last round a player damaged this character
 	LastSuicideRound        uint64                         `yaml:"-"` // runtime only — round of last Suicide execution, for double-fire dedupe
 	DeathQueued             bool                           `yaml:"-"` // runtime only — a CharacterDied event is in flight. NOT the same as "dying" (Health < 1 && IsAlive()); the backstop sweeps skip on THIS, never on health, or they skip the very population they exist to reap. See the U5c spec.
-	LifeEpoch               uint64                         `yaml:"-"` // runtime only. Counts the lives this character has ended this session; the death cascade bumps it beside the buff strip. A queued events.Buff carries the epoch it was aimed at, and ApplyBuffs refuses one from an ended life, so a buff queued in the killing round cannot land on the respawned player.
+	LifeEpoch               uint64                         `yaml:"-"` // runtime only. Counts the lives this character has ended this session; the death cascade bumps it beside the condition strip. A queued events.Condition carries the epoch it was aimed at, and ApplyConditions refuses one from an ended life, so a condition queued in the killing round cannot land on the respawned player.
 	LastTickCause           string                         `yaml:"-"` // runtime only — "poison" or "bleeding out", set by the round tick when a damaging health tick from a record carrying the poison or bleeding flag lands; read by the death announcement when no attacker is engaged.
 	LastTickCauseRound      uint64                         `yaml:"-"` // runtime only — the round LastTickCause was stamped; the death announcement only honours the fallback within one round of this, so a tick from an earlier fight cannot outlive it and name a later death.
 	LastAttackRejectedRound uint64                         `yaml:"-"` // runtime only — round of last player_attack_rejected event fire, for dedupe
-	permaBuffIds            []int                          // Buff Id's that are always present for this character
+	permanentConditionIds   []int                          // Condition Id's that are always present for this character
 	userId                  int                            // User ID of the character if any
 	combatPhaseWired        bool                           `yaml:"-"` // true after OnCharacterCreated callbacks have fired once
 	// Stage 3.4: spawn-time override for carry capacity. Set via
@@ -397,7 +397,7 @@ func New() *Character {
 		KnownRecipes:               crafting.GetStarterRecipes(), // All recipes with skill_minimum == 0
 		CharmedMobs:                []int{},
 		Items:                      []items.Item{},
-		Buffs:                      buffs.New(),
+		Conditions:                 conditions.New(),
 		Equipment:                  Worn{},
 		Cooldowns:                  make(Cooldowns), // Initialize cooldowns map
 		MiscData:                   make(map[string]any),
@@ -740,15 +740,15 @@ const (
 	DefenseDefy  string = "defy"
 )
 
-// StatMod aggregates stat-mod contributions from gear, buffs,
+// StatMod aggregates stat-mod contributions from gear, conditions,
 // and pets. Equipment contributions are scaled by the gear-
 // effectiveness multiplier from the character's mutations
-// (Incorporeal scales gear to zero at max rank). Buff and pet
+// (Incorporeal scales gear to zero at max rank). Condition and pet
 // contributions are unaffected — they're not gear-derived.
 func (c *Character) StatMod(statName string) int {
 	gearStat := c.Equipment.StatMod(statName)
 	gearStat = int(float64(gearStat) * mutations.GearEffectivenessMultiplier(c.Mutations))
-	return gearStat + c.Buffs.StatMod(statName) + c.Pet.StatMod(statName)
+	return gearStat + c.Conditions.StatMod(statName) + c.Pet.StatMod(statName)
 }
 
 // ===================================================================
@@ -873,9 +873,9 @@ func (c *Character) Attackers() []state.ActorRef {
 // ===================================================================
 
 // IsHidden returns true when the character's Awareness state is
-// Hidden. Replacement for the legacy HasBuffFlag(buffs.Hidden)
-// pattern. Buff #9 still exists as an effect carrier; the cascade
-// in internal/hooks/Awareness_Cascades.go keeps the buff and the
+// Hidden. Replacement for the legacy HasConditionFlag(conditions.Hidden)
+// pattern. Condition #9 still exists as an effect carrier; the cascade
+// in internal/hooks/Awareness_Cascades.go keeps the condition and the
 // Awareness state synchronized.
 func (c *Character) IsHidden() bool {
 	if c.Awareness == nil {
@@ -942,7 +942,7 @@ func (c *Character) GrantRandomMutationRare(minRarity int) string {
 }
 
 // Perceives reports whether c can make out other in the same room: other is c,
-// other is not hidden, or c has see-hidden from any source (a buff or a
+// other is not hidden, or c has see-hidden from any source (a condition or a
 // mutation). It is the one rule for the room listing (rooms/roomdetails.go)
 // and for naming a creature (rooms.Room.FindByNameSeenBy), so the two cannot
 // disagree.
@@ -958,5 +958,5 @@ func (c *Character) Perceives(other *Character) bool {
 	if c == other || !other.IsHidden() {
 		return true
 	}
-	return c.HasFlagFromAnySource(buffs.SeeHidden)
+	return c.HasFlagFromAnySource(conditions.SeeHidden)
 }

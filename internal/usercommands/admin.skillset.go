@@ -23,9 +23,9 @@ import (
 func Skillset(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
 	// args should look like one of the following:
-	// target buffId - put buff on target if in the room
-	// buffId - put buff on self
-	// search searchTerm - search for buff by name, display results
+	// target conditionId - put condition on target if in the room
+	// conditionId - put condition on self
+	// search searchTerm - search for condition by name, display results
 	args := util.SplitButRespectQuotes(rest)
 
 	if len(args) < 2 {

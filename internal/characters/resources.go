@@ -1,7 +1,7 @@
 package characters
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
@@ -321,12 +321,12 @@ func atLeastOneCost(cost int) int {
 // the primitives deliberately do not have.
 //
 // The eight melee call sites in internal/combat/combat.go depend on the
-// CancelCombatBuffs below, which reaches CancelBuffsWithFlag -> Validate(true)
+// CancelCombatConditions below, which reaches CancelConditionsWithFlag -> Validate(true)
 // -> a full stat recalculation. Routing them straight at ApplyHarm would drop
-// the on-death combat-buff cancel for every melee kill in the game.
+// the on-death combat-condition cancel for every melee kill in the game.
 //
 // Ordering note (verified, U5b-1): the pre-U5b implementation called
-// CancelCombatBuffs BEFORE writing c.Health, then overwrote c.Health
+// CancelCombatConditions BEFORE writing c.Health, then overwrote c.Health
 // unconditionally. Validate does read and write c.Health -- the reservation
 // clamp, the enchant-withdrawal shrink and validatePoolClamps all do -- but
 // every one of those writes is guarded by `c.Health > <positive>`, so none can
@@ -354,11 +354,11 @@ func (c *Character) ApplyHealthChange(healthChange int, source state.ActorRef) i
 		applied = c.ApplyRestore(PoolHealth, healthChange)
 	}
 
-	// Any drop below 0 means dead; cancel combat-scoped buffs. Death itself is
+	// Any drop below 0 means dead; cancel combat-scoped conditions. Death itself is
 	// processed by the per-round hooks (NewRound_DoCombat + NewRound_AutoHeal);
 	// this function only applies the raw change.
 	if c.Health < 0 {
-		c.CancelCombatBuffs()
+		c.CancelCombatConditions()
 	}
 
 	return applied
@@ -391,7 +391,7 @@ func (c *Character) HealthPerRound() int {
 		base = 1
 	}
 	// Chunk 3.3: 5× regen while sleeping.
-	if c.HasBuffFlag(buffs.Sleeping) {
+	if c.HasConditionFlag(conditions.Sleeping) {
 		if mult := float64(b.SleepRegenMultiplier); mult > 0 {
 			base = int(float64(base) * mult)
 		}
@@ -419,7 +419,7 @@ func (c *Character) StaminaPerRound() int {
 		}
 	}
 	// Chunk 3.3: 5× regen while sleeping (composes on top of mutation modifier).
-	if c.HasBuffFlag(buffs.Sleeping) {
+	if c.HasConditionFlag(conditions.Sleeping) {
 		if mult := float64(b.SleepRegenMultiplier); mult > 0 {
 			base = int(float64(base) * mult)
 		}
@@ -440,7 +440,7 @@ func (c *Character) ConvictionPerRound() int {
 		base = 1
 	}
 	// Chunk 3.3: 5× regen while sleeping.
-	if c.HasBuffFlag(buffs.Sleeping) {
+	if c.HasConditionFlag(conditions.Sleeping) {
 		if mult := float64(b.SleepRegenMultiplier); mult > 0 {
 			base = int(float64(base) * mult)
 		}

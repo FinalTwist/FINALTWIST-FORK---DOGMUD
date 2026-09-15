@@ -3,7 +3,7 @@ package usercommands
 import (
 	"errors"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -31,24 +31,24 @@ func Suicide(rest string, user *users.UserRecord, room *rooms.Room, flags events
 	}
 	user.Character.LastSuicideRound = currentRound
 
-	// Revive-on-death buff: heal + clear buff, no death.
+	// Revive-on-death condition: heal + clear condition, no death.
 	// This path must NEVER reach the Life machine — it keeps the
 	// character Alive.
-	if user.Character.HasBuffFlag(buffs.ReviveOnDeath) {
+	if user.Character.HasConditionFlag(conditions.ReviveOnDeath) {
 		// U5c: this resolves the character's life state without going through
 		// Die, so clear the queued-death token here too. Otherwise a
 		// CharacterDied still in flight from the blow that brought them here
-		// would flush afterwards, find them alive with the revive buff already
-		// consumed, and kill them anyway — defeating the buff outright.
+		// would flush afterwards, find them alive with the revive condition already
+		// consumed, and kill them anyway — defeating the condition outright.
 		user.Character.DeathQueued = false
 
 		user.Character.Health = user.Character.HealthMax.Value
-		user.SendText(messaging.CategoryBuffApply, `You are revived in a shower of magical sparks!`)
-		room.SendTextVisual(messaging.CategoryBuffApply,
+		user.SendText(messaging.CategoryConditionApply, `You are revived in a shower of magical sparks!`)
+		room.SendTextVisual(messaging.CategoryConditionApply,
 			`<ansi fg="username">`+user.Character.Name+`</ansi> is suddenly revived in a shower of sparks!`,
 			user.UserId,
 		)
-		user.Character.CancelBuffsWithFlag(buffs.ReviveOnDeath)
+		user.Character.CancelConditionsWithFlag(conditions.ReviveOnDeath)
 		return true, nil
 	}
 

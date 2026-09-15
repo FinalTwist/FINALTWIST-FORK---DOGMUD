@@ -45,7 +45,7 @@
 
         <div class="form-group col-sm">
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="true" name="hostile" id="hostile" {{ if .mobInfo.Hostile }}checked{{end}}>
+                <input class="form-check-input" type="checkbox" value="true" name="hostile" id="hostile" {{ if .mobInfo.AutoAggro }}checked{{end}}>
                 <label class="form-check-label" for="hostile">
                     Naturally Hostile
                 </label>
@@ -113,19 +113,19 @@
 
 
     <hr />
-    <h3>Buffs This Mob Has</h3>
+    <h3>Conditions This Mob Has</h3>
 
     <div class="form-group row form-check container-fluid">
-        {{ $buffIds := .mobInfo.BuffIds }}
-        {{range $i, $buffSpec := .buffSpecs}}
-            <label class="form-check-label col-md-2" for="mob-buff-{{$buffSpec.BuffId}}" title="{{ $buffSpec.Description }}"><input 
+        {{ $buffIds := .mobInfo.ConditionIds }}
+        {{range $i, $buffSpec := .conditionSpecs}}
+            <label class="form-check-label col-md-2" for="mob-buff-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
             class="form-check-input"
-            type="checkbox" 
-            name="buffids[]" 
-            id="mob-buff-{{$buffSpec.BuffId}}" 
-            value="{{ $buffSpec.BuffId }}" 
-            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.BuffId}}CHECKED{{end}}{{end}}>
-            {{ $buffSpec.BuffId }}. {{ $buffSpec.Name }}</label> 
+            type="checkbox"
+            name="buffids[]"
+            id="mob-buff-{{$buffSpec.ConditionId}}"
+            value="{{ $buffSpec.ConditionId }}"
+            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
+            {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
         {{end}}
     </div>
 
@@ -206,7 +206,7 @@
                             value="
                             {{- if ne $shopItem.MobId 0 }}{{ $shopItem.MobId }}{{end -}}
                             {{- if ne $shopItem.ItemId 0 }}{{ $shopItem.ItemId }}{{end -}}
-                            {{- if ne $shopItem.BuffId 0 }}{{ $shopItem.BuffId }}{{end -}}
+                            {{- if ne $shopItem.ConditionId 0 }}{{ $shopItem.ConditionId }}{{end -}}
                             {{- if ne $shopItem.PetType "" }}{{ $shopItem.PetType }}{{end -}}
                             ">
                         

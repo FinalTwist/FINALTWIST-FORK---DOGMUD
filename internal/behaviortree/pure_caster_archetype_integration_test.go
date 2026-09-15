@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -23,7 +23,7 @@ func seedCasterSpells(t *testing.T) func() {
 		"iron-will": {
 			SpellId: "iron-will", Name: "Iron Will",
 			Type: spells.HelpSingle, Cost: 45, BaseFolds: 6,
-			EffectType: "buff", BuffIds: []int{27},
+			EffectType: "buff", ConditionIds: []int{27},
 			Categories: []string{"self_defense"},
 		},
 		"conviction-ward": {
@@ -69,7 +69,7 @@ func seedCasterMob(t *testing.T, instanceId int, spellbook map[string]int) (*mob
 	m.Character.Name = "testcaster"
 	m.Character.Conviction = 500
 	// Base, not just Value: the two tests below that apply Minor Shield via
-	// AddBuffMagnitude trigger a full Character.Validate(), which recomputes
+	// AddConditionMagnitude trigger a full Character.Validate(), which recomputes
 	// ConvictionMax/HealthMax from Base + stats + balance config and clamps
 	// Conviction/Health down to the recomputed max (validate.go:347-348,
 	// ~150). Without a real Base here, that max floors near zero in a test
@@ -81,7 +81,7 @@ func seedCasterMob(t *testing.T, instanceId int, spellbook map[string]int) (*mob
 	m.Character.HealthMax.Base = 100
 	m.Character.HealthMax.Value = 100
 	m.Character.SpellBook = spellbook
-	m.Character.Buffs = buffs.New()
+	m.Character.Conditions = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{400 + instanceId: m},
 		map[int]*mobs.Mob{instanceId: m},
@@ -89,8 +89,8 @@ func seedCasterMob(t *testing.T, instanceId int, spellbook map[string]int) (*mob
 	return m, cleanup
 }
 
-// TestPureCaster_FullHP_MaintainsDefenseFirst verifies that a full-HP,
-// unbuffed caster casts its top-scoring self_defense spell first — heal
+// TestPureCaster_FullHP_MaintainsDefenseFirst verifies that a full-HP
+// caster with no conditions casts its top-scoring self_defense spell first — heal
 // branch is gated by mob_health_below (HP not < 40%), so the selector
 // moves to self_defense.
 func TestPureCaster_FullHP_MaintainsDefenseFirst(t *testing.T) {
@@ -150,7 +150,7 @@ func TestPureCaster_LowHP_EmergencyHeal(t *testing.T) {
 }
 
 // TestPureCaster_DefenseCovered_SingleEnemy_CastsHarmSingle verifies that
-// when defense buffs are active, HP is fine, and no "multiple enemies"
+// when defense conditions are active, HP is fine, and no "multiple enemies"
 // condition fires (1 actor = caster itself), the selector reaches the
 // harm_single branch.
 func TestPureCaster_DefenseCovered_SingleEnemy_CastsHarmSingle(t *testing.T) {
@@ -166,14 +166,14 @@ func TestPureCaster_DefenseCovered_SingleEnemy_CastsHarmSingle(t *testing.T) {
 	defer cleanup()
 	defer events.DrainQueuedInputsForTest(mob.InstanceId)
 
-	// Activate iron-will (buff 27) and conviction-ward (the Minor Shield
-	// record). seedBuffOnChar replaces the whole spec map with just {27}, so
+	// Activate iron-will (condition 27) and conviction-ward (the Minor Shield
+	// record). seedConditionOnChar replaces the whole spec map with just {27}, so
 	// SeedConditionRecordsForTest must run AFTER it to add Minor Shield's
-	// spec back in (additive) before AddBuffMagnitude needs it.
-	defer seedBuffOnChar(t, &mob.Character, 27)()
-	defer buffs.SeedConditionRecordsForTest()()
-	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, 20, 75, "test")
-	// AddBuffMagnitude validates the embedded Character directly, which
+	// spec back in (additive) before AddConditionMagnitude needs it.
+	defer seedConditionOnChar(t, &mob.Character, 27)()
+	defer conditions.SeedConditionRecordsForTest()()
+	_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, 20, 75, "test")
+	// AddConditionMagnitude validates the embedded Character directly, which
 	// installs a PLAYER Presence/Perception (Character.Validate()'s nil
 	// guard); mob.Validate() puts the mob ones back so TryMobBehavior sees a
 	// mob in its normal state, same as production (every producer applies
@@ -209,13 +209,13 @@ func TestPureCaster_NoCandidates_FallsThrough(t *testing.T) {
 	defer cleanup()
 	defer events.DrainQueuedInputsForTest(mob.InstanceId)
 
-	// seedBuffOnChar replaces the whole spec map with just {27}, so
+	// seedConditionOnChar replaces the whole spec map with just {27}, so
 	// SeedConditionRecordsForTest must run AFTER it to add Minor Shield's
-	// spec back in (additive) before AddBuffMagnitude needs it.
-	defer seedBuffOnChar(t, &mob.Character, 27)()
-	defer buffs.SeedConditionRecordsForTest()()
-	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, 20, 75, "test")
-	// AddBuffMagnitude validates the embedded Character directly, which
+	// spec back in (additive) before AddConditionMagnitude needs it.
+	defer seedConditionOnChar(t, &mob.Character, 27)()
+	defer conditions.SeedConditionRecordsForTest()()
+	_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, 20, 75, "test")
+	// AddConditionMagnitude validates the embedded Character directly, which
 	// installs a PLAYER Presence/Perception (Character.Validate()'s nil
 	// guard); mob.Validate() puts the mob ones back so TryMobBehavior sees a
 	// mob in its normal state, same as production (every producer applies

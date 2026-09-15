@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/conversationadapter"
 	"github.com/GoMudEngine/GoMud/internal/conversations"
@@ -227,7 +227,7 @@ func conversationsTriggerEligible(mob *mobs.Mob) bool {
 		return false
 	}
 	// Sleeping mob shouldn't start chatting.
-	if mob.Character.HasBuffFlag(buffs.Sleeping) {
+	if mob.Character.HasConditionFlag(conditions.Sleeping) {
 		return false
 	}
 	// Mid-walk on a path — let the mob arrive before striking up a chat.

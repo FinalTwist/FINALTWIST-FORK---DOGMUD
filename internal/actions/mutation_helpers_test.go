@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
@@ -13,11 +13,11 @@ import (
 // ---------------------------------------------------------------------------
 
 // newTestMobBare returns the minimal *mobs.Mob needed for MobActor tests.
-// Buffs is initialised so downstream code that reads Buffs doesn't panic.
+// Conditions is initialised so downstream code that reads Conditions doesn't panic.
 func newTestMobBare(t *testing.T) *mobs.Mob {
 	t.Helper()
 	m := &mobs.Mob{InstanceId: 9900}
-	m.Character.Buffs = buffs.New()
+	m.Character.Conditions = conditions.New()
 	m.Character.Cooldowns = make(map[string]int)
 	return m
 }

@@ -219,14 +219,14 @@ func newSpecialMoveAdmissionActor(t *testing.T, speciesID, stamina, skillRank in
 	return newStubActor(char, newTestRoom()), char, &targetMob.Character
 }
 
-func assertSpecialMoveUnchanged(t *testing.T, char, target *characters.Character, stamina, health, targetStamina, targetBuffs int, actorState, targetState position.State) {
+func assertSpecialMoveUnchanged(t *testing.T, char, target *characters.Character, stamina, health, targetStamina, targetConditions int, actorState, targetState position.State) {
 	t.Helper()
 	require.Equal(t, stamina, char.Stamina, "refusal must preserve stamina")
 	require.Empty(t, char.Cooldowns, "refusal must preserve cooldown state")
 	require.Equal(t, 0, char.RoundsWaiting(), "refusal must not consume the combat round")
 	require.Equal(t, health, target.Health, "refusal must not damage the target")
 	require.Equal(t, targetStamina, target.Stamina, "refusal must not drain target stamina")
-	require.Len(t, target.Buffs.GetBuffs(), targetBuffs, "refusal must not add an effect")
+	require.Len(t, target.Conditions.GetConditions(), targetConditions, "refusal must not add an effect")
 	require.Equal(t, actorState, char.Position.State(), "refusal must preserve actor position/grapple state")
 	require.Equal(t, targetState, target.Position.State(), "refusal must preserve target position/grapple state")
 }
@@ -246,20 +246,20 @@ func TestSpecialMoveFamilyAdmission(t *testing.T) {
 					tc.invalidate(char)
 				}
 				stamina, health, targetStamina := char.Stamina, target.Health, target.Stamina
-				targetBuffs := len(target.Buffs.GetBuffs())
+				targetConditions := len(target.Conditions.GetConditions())
 				actorState, targetState := char.Position.State(), target.Position.State()
 				got := tc.execute(actor)
 				require.False(t, got.executed)
 				require.Equal(t, characters.CostNoCharge, got.cost.Status)
 				require.Zero(t, got.cost.Charged)
-				assertSpecialMoveUnchanged(t, char, target, stamina, health, targetStamina, targetBuffs, actorState, targetState)
+				assertSpecialMoveUnchanged(t, char, target, stamina, health, targetStamina, targetConditions, actorState, targetState)
 			})
 
 			t.Run("active_cooldown_is_read_only", func(t *testing.T) {
 				actor, char, target := newSpecialMoveAdmissionActor(t, tc.speciesID, 50, 0, false)
 				char.Cooldowns["special-move"] = 3
 				stamina, health, targetStamina := char.Stamina, target.Health, target.Stamina
-				targetBuffs := len(target.Buffs.GetBuffs())
+				targetConditions := len(target.Conditions.GetConditions())
 				actorState, targetState := char.Position.State(), target.Position.State()
 				got := tc.execute(actor)
 				require.False(t, got.executed)
@@ -269,7 +269,7 @@ func TestSpecialMoveFamilyAdmission(t *testing.T) {
 				require.Equal(t, stamina, char.Stamina)
 				require.Equal(t, health, target.Health)
 				require.Equal(t, targetStamina, target.Stamina)
-				require.Len(t, target.Buffs.GetBuffs(), targetBuffs)
+				require.Len(t, target.Conditions.GetConditions(), targetConditions)
 				require.Equal(t, actorState, char.Position.State())
 				require.Equal(t, targetState, target.Position.State())
 				require.Equal(t, 0, char.RoundsWaiting())
@@ -278,14 +278,14 @@ func TestSpecialMoveFamilyAdmission(t *testing.T) {
 			t.Run("unaffordable_refusal_is_atomic", func(t *testing.T) {
 				actor, char, target := newSpecialMoveAdmissionActor(t, tc.speciesID, 0, 0, false)
 				health, targetStamina := target.Health, target.Stamina
-				targetBuffs := len(target.Buffs.GetBuffs())
+				targetConditions := len(target.Conditions.GetConditions())
 				actorState, targetState := char.Position.State(), target.Position.State()
 				got := tc.execute(actor)
 				require.False(t, got.executed)
 				require.Equal(t, characters.CostRefused, got.cost.Status)
 				require.Equal(t, characters.PoolStamina, got.cost.Pool)
 				require.Zero(t, got.cost.Charged)
-				assertSpecialMoveUnchanged(t, char, target, 0, health, targetStamina, targetBuffs, actorState, targetState)
+				assertSpecialMoveUnchanged(t, char, target, 0, health, targetStamina, targetConditions, actorState, targetState)
 				if tc.action == costs.ActionGrapple {
 					require.False(t, char.IsGrappling())
 					require.False(t, target.IsGrappling())
@@ -359,7 +359,7 @@ func TestSpecialMoveStaleCooldownAdmission(t *testing.T) {
 			baseActor, char, target := newSpecialMoveAdmissionActor(t, tc.speciesID, 50, 0, false)
 			actor := &staleCooldownActor{Actor: baseActor}
 			health, targetStamina := target.Health, target.Stamina
-			targetBuffs := len(target.Buffs.GetBuffs())
+			targetConditions := len(target.Conditions.GetConditions())
 			actorState, targetState := char.Position.State(), target.Position.State()
 
 			got := tc.execute(actor)
@@ -372,7 +372,7 @@ func TestSpecialMoveStaleCooldownAdmission(t *testing.T) {
 			require.Equal(t, 0, char.RoundsWaiting())
 			require.Equal(t, health, target.Health)
 			require.Equal(t, targetStamina, target.Stamina)
-			require.Len(t, target.Buffs.GetBuffs(), targetBuffs)
+			require.Len(t, target.Conditions.GetConditions(), targetConditions)
 			require.Equal(t, actorState, char.Position.State())
 			require.Equal(t, targetState, target.Position.State())
 		})
@@ -448,7 +448,7 @@ func TestSpecialMoveActingAdmission(t *testing.T) {
 			actor, char, target := newSpecialMoveAdmissionActor(t, tc.speciesID, 50, 0, false)
 			setCastingForTest(char, activity.CastingData{SpellId: "test-spell", FoldsNeeded: 2})
 			targetHealth, targetStamina := target.Health, target.Stamina
-			targetBuffs := len(target.Buffs.GetBuffs())
+			targetConditions := len(target.Conditions.GetConditions())
 			result := tc.execute(actor)
 			assertRawSpecialMoveRejected(t, result, "Crafting")
 			require.Equal(t, 50, char.Stamina)
@@ -456,7 +456,7 @@ func TestSpecialMoveActingAdmission(t *testing.T) {
 			require.Equal(t, 0, char.RoundsWaiting())
 			require.Equal(t, targetHealth, target.Health)
 			require.Equal(t, targetStamina, target.Stamina)
-			require.Len(t, target.Buffs.GetBuffs(), targetBuffs, "refusal must not add an effect")
+			require.Len(t, target.Conditions.GetConditions(), targetConditions, "refusal must not add an effect")
 			require.True(t, char.IsCasting())
 		})
 	}

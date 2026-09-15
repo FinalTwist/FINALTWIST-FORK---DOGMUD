@@ -33,14 +33,14 @@ The hooks system is built around several key categories:
 
 **Game Loop Hooks:**
 - **NewRound Events**: Combat, healing, mob AI, player ticks
-- **NewTurn Events**: Autosave, cleanup, buff management
+- **NewTurn Events**: Autosave, cleanup, condition management
 - **Player Lifecycle**: Spawn, despawn, character changes
 - **System Maintenance**: VM pruning, zombie cleanup, respawns
 
 **Gameplay Integration:**
 - **Combat System**: Full combat round processing with multi-target support
 - **Quest System**: Progress tracking and reward distribution
-- **Buff System**: Application, expiration, and effect processing
+- **Condition System**: Application, expiration, and effect processing
 - **Audio System**: MSP sound effects and location-based music
 
 ## Key Features
@@ -64,7 +64,7 @@ The hooks system is built around several key categories:
 - **Progression Distribution**: Skill progression rewards and notifications
 
 ### 4. **System Maintenance and Optimization**
-- **Automatic Cleanup**: Zombie connections, expired buffs, ephemeral rooms
+- **Automatic Cleanup**: Zombie connections, expired conditions, ephemeral rooms
 - **Resource Management**: VM pruning, memory optimization
 - **Data Persistence**: Automatic user saves and data integrity
 - **Performance Monitoring**: Event processing and system health
@@ -91,7 +91,7 @@ events.RegisterListener(events.NewRound{}, IdleMobs)              // Mob idle be
 // System maintenance every turn (multiple rounds)
 events.RegisterListener(events.NewTurn{}, CleanupZombies)         // Remove disconnected users
 events.RegisterListener(events.NewTurn{}, AutoSave)               // Automatic data saves
-events.RegisterListener(events.NewTurn{}, PruneBuffs)             // Remove expired buffs
+events.RegisterListener(events.NewTurn{}, PruneConditions)             // Remove expired conditions
 events.RegisterListener(events.NewTurn{}, ActionPoints)           // Regenerate action points
 ```
 
@@ -109,7 +109,7 @@ events.RegisterListener(events.CharacterChanged{}, BroadcastNewChar) // Characte
 ```go
 // Core gameplay systems
 events.RegisterListener(events.Quest{}, HandleQuestUpdate)        // Quest progression
-events.RegisterListener(events.Buff{}, ApplyBuffs)               // Buff application
+events.RegisterListener(events.Condition{}, ApplyConditions)               // Condition application
 events.RegisterListener(events.LevelUp{}, SendLevelNotifications) // Level-up messages
 events.RegisterListener(events.LevelUp{}, CheckGuide)             // Guide NPC spawning
 events.RegisterListener(events.ItemOwnership{}, CheckItemQuests)  // Item-based quests
@@ -300,26 +300,28 @@ func CleanupZombies(e events.Event) events.ListenerReturn {
     return events.Continue
 }
 
-// Buff expiration management. The holder's line comes from
-// buffs.BuffSpec.EndUserNotice (authored end_user_text, else the generic
-// "<Name> has expired.", nothing for a secret buff); Buff_ApplyBuffs reads
-// StartUserNotice the same way. Slice C, 2026-09-12.
-func PruneBuffs(e events.Event) events.ListenerReturn {
-    evt := e.(events.NewTurn)
-    
-    // Prune user buffs
-    for _, user := range users.GetAllActiveUsers() {
-        prunedBuffs := user.Character.Buffs.Prune()
-        for _, buff := range prunedBuffs {
-            notifyBuffExpiration(user, buff)
+// Condition expiration management (abridged; see NewTurn_PruneConditions.go).
+// The holder's line comes from the spec's end narration, which reads
+// ConditionSpec.EndUserNotice (authored end_user_text, else the generic
+// "<Name> has expired.", nothing for a secret condition); ApplyConditions
+// reads StartUserNotice the same way. Slice C, 2026-09-12.
+func PruneConditions(e events.Event) events.ListenerReturn {
+    // Prune player conditions, room by room
+    for _, roomId := range rooms.GetRoomsWithPlayers() {
+        room := rooms.LoadRoom(roomId)
+        for _, uId := range room.GetPlayers(rooms.FindWithConditions) {
+            user := users.GetByUserId(uId)
+            for _, conditionInfo := range user.Character.Conditions.Prune() {
+                // send the end narration to the holder and the room
+            }
         }
     }
     
-    // Prune mob buffs
+    // Prune mob conditions
     for _, mobInstanceId := range mobs.GetAllMobInstanceIds() {
         mob := mobs.GetInstance(mobInstanceId)
         if mob != nil {
-            mob.Character.Buffs.Prune()
+            mob.Character.Conditions.Prune()
         }
     }
     
@@ -388,7 +390,7 @@ func LocationMusicChange(e events.Event) events.ListenerReturn {
 ## Mob Round Tick (`NewRound_MobRoundTick.go`)
 
 The MobRoundTick handler runs every round and processes per-mob updates including
-buff triggers, stat/skill progression, pack scaling, and mutation acquisition.
+condition triggers, stat/skill progression, pack scaling, and mutation acquisition.
 
 ### Pack Scaling (before per-mob loop)
 ```go
@@ -404,7 +406,7 @@ if b.PackScalingEnabled {
 ```
 
 ### Mob Mutation Acquisition (inside per-mob loop)
-After buff triggers and before `Validate()`:
+After condition triggers and before `Validate()`:
 ```go
 // Guard: MobMutationEnabled && mob.Character.Aggro != nil
 // Progress: += MutationProgressGainPerRound * MobMutationRate
@@ -417,12 +419,12 @@ After buff triggers and before `Validate()`:
 ```
 
 ### Per-Mob Loop Order
-1. Buff trigger checks
+1. Condition trigger checks
 2. Stat/skill progression (`MobProgressionEnabled`)
 3. **Mutation acquisition** (`MobMutationEnabled`)
 4. `Character.Validate()`
 
-## The damaging buff tick (both round ticks, conditions unification 2026-09-12)
+## The damaging condition tick (both round ticks, conditions unification 2026-09-12)
 
 Since the ten combat conditions became records, every dot in the game ticks in
 ONE place. The eleven records that carry a `tick_pool` and a NEGATIVE tick are
@@ -435,17 +437,17 @@ authored `tick_percent`. The same branch runs the seven healing tick records
 List them with `grep -l tick_pool _datafiles/world/dogmud/buffs/*.yaml` rather
 than trusting this enumeration.
 
-That one place is the `tick_pool` branch of the buff trigger loop
-in `NewRound_UserRoundTick.go` and its mirror `tickMobBuffs` in
+That one place is the `tick_pool` branch of the condition trigger loop
+in `NewRound_UserRoundTick.go` and its mirror `tickMobConditions` in
 `NewRound_MobRoundTick.go`. There is no longer a separate condition tick
 (`TickConditions`, deleted) and no separate poison and bleed block in
 `NewRound_AutoHeal.go` (deleted). This moves poison and bleed harm EARLIER in
 the round: the round ticks run before `DoCombat`, AutoHeal ran after it.
 
 Three things the tick path does at the moment health harm lands, all of which
-the old poison hook did and the buff tick path did NOT:
+the old poison hook did and the condition tick path did NOT:
 
-- `cancelCraftOrSalvageOnDamage(char)` and `cancelDamageBuffs(char)`
+- `cancelCraftOrSalvageOnDamage(char)` and `cancelDamageConditions(char)`
   (`combat_shared_helpers.go`), so a damaging tick now wakes a sleeper and
   cancels a `cancel-on-damage` record.
 - `tickCauseFor(spec)` (`tick_cause.go`) returns "poison" for a `poison`-flagged
@@ -453,20 +455,20 @@ the old poison hook did and the buff tick path did NOT:
   it on `Character.LastTickCause` with `LastTickCauseRound`. `deathCauseFor`
   (`Death_PlayerAnnouncement.go`) reads the held 121 or 122 record by id first
   and falls back to the stamp within one round, which is how a kill by the last
-  tick of a record survives both the already-expired instance and `PruneBuffs`.
+  tick of a record survives both the already-expired instance and `PruneConditions`.
 - The per-trigger flavour line is skipped when the trigger also expires the
-  record (`PruneBuffs` narrates the end instead), but the harm itself is NOT:
+  record (`PruneConditions` narrates the end instead), but the harm itself is NOT:
   the player path used to gate the whole body on `!buff.Expired()` and silently
   dropped the only tick of a one-trigger record.
 
 A stacking record (122 Bleeding) reaches this branch once per round with
 `TickAmount` already set to the sum of its live stacks, so every item above
 happens once however many stacks are live; see "Stacking records" in
-`internal/buffs/context.md`.
+`internal/conditions/context.md`.
 
-**Prone recovery runs after the buff tick on both sides.** `tickMobBuffs` runs
+**Prone recovery runs after the condition tick on both sides.** `tickMobConditions` runs
 before `tickMobProneRecovery`, and since slice 1b (owner ruling 2026-09-14)
-`UserRoundTick` calls `AttemptRecovery` after `Buffs.Trigger` too. A failed or
+`UserRoundTick` calls `AttemptRecovery` after `Conditions.Trigger` too. A failed or
 gated attempt adds the one-tick 118 Recovering record, which must still be live
 when `DoCombat` reads `attacks_cap`; before slice 1b the player's own tick
 expired it first. The player attempt is skipped when
@@ -486,17 +488,17 @@ same way:
   record is a multiplier ON it: the branch computes `healthRegen` /`hpRegen`
   first, already scaled by toxicity, the mutation regen multipliers and the
   room mutator multiplier, then applies
-  `if regenMult := Buffs.Effect(buffs.EffectRegenMult); regenMult > 1.0`. The
+  `if regenMult := Conditions.Effect(conditions.EffectRegenMult); regenMult > 1.0`. The
   `> 1.0` test is what stands in for "is a record held", because `Effect` is a
   product with identity 1.0.
 - **In combat** (player and mob) there is no base regen at all, so the whole
-  branch is gated on `Buffs.HasEffect(buffs.EffectRegenMult)` and the heal is
+  branch is gated on `Conditions.HasEffect(conditions.EffectRegenMult)` and the heal is
   `HealthPerRound()` times the multiplier.
 
 The player's "Your wounds knit closed." line is gated on `HasEffect` in BOTH
 player branches, so an out-of-combat player regenerating without a record heals
 silently. Record 120 Regenerating is what a heal spell or a corpse feed
-applies, and its end is narrated by `PruneBuffs` like any other record's.
+applies, and its end is narrated by `PruneConditions` like any other record's.
 
 ---
 
@@ -702,7 +704,7 @@ once the Life machine ships in chunk 2).
 | `RegisterPositionCheck` | `c.IsStanding()` (Position FSM, chunk 4b R5) |
 | `RegisterTargetCombatantCheck` | target's `IsCombatant()` via users/mobs lookup |
 | `RegisterTargetLifeCheck` | target's `Health > 0` via users/mobs lookup |
-| `RegisterTargetPresenceCheck` | player grace buff (`NoAggroTarget`) check |
+| `RegisterTargetPresenceCheck` | player grace condition (`NoAggroTarget`) check |
 
 ### CombatPhase_BtreeEvents.go
 
@@ -861,7 +863,7 @@ Each veto reads the current character field for its concern.
 
 Registers an `AfterTransition` callback on the Awareness machine. When
 the machine transitions away from or into the `Hidden` state, the hook
-applies or removes buff #9 to keep the visible effect synchronized with
+applies or removes condition #9 to keep the visible effect synchronized with
 the invisible state.
 
 Also registers an `AfterTransition` callback on the Combat Phase machine
@@ -881,8 +883,8 @@ transition. That order matters for anything observing `Idle → Engaging`
 the opening strike, which reads `Aggro.Type` later in the round.
 
 Events and cascades (per state transition, not per round):
-- Awareness `Visible → Hidden`: apply buff #9 + room text "sneaks away"
-- Awareness `Hidden → Visible`: remove buff #9 + room text "emerges from hiding"
+- Awareness `Visible → Hidden`: apply condition #9 + room text "sneaks away"
+- Awareness `Hidden → Visible`: remove condition #9 + room text "emerges from hiding"
 - Combat Phase `Idle → Engaging`: trigger Awareness reveal cascade
 
 ### Awareness_LightChange.go
@@ -908,23 +910,23 @@ damaging call stack so no mob instance despawns mid-loop.
 
 It owns the prechecks `Die`'s doc used to delegate to callers:
 
-- **`ReviveOnDeath`** — heal above zero, cancel the buff, no death, clear
+- **`ReviveOnDeath`** — heal above zero, cancel the condition, no death, clear
   `DeathQueued`. Before U5c only the two suicide commands checked this, so the
-  buff was inert on every combat and DoT death.
+  condition was inert on every combat and DoT death.
 - **Already resolved** — clear `DeathQueued` and return, so a character is never
   left permanently unkillable.
 
 Note this file is a **listener**, not a Life-machine observer. The `Death_*.go`
 family wires through `characters.OnCharacterCreated` +
 `c.Life.Inner().AfterTransition(...)`; this one is an ordinary event listener and
-follows the `<Event>_<Action>.go` naming used by `Buff_ApplyBuffs.go`.
+follows the `<Event>_<Action>.go` naming used by `Condition_ApplyConditions.go`.
 
 ### The five backstops, and the rule they all follow
 
 Five inline death checks remain — `handleAffected` (players and mobs, the only
 check covering players hit in combat), the mob sweep at the top of
 `NewRound_DoCombat`, `NewRound_MobRoundTick`, `NewRound_AutoHeal`, and
-`Buff_ApplyBuffs`. All are **backstops** for paths that never call `ApplyHarm`,
+`Condition_ApplyConditions`. All are **backstops** for paths that never call `ApplyHarm`,
 and all gate on `shouldSweepReap`.
 
 **They skip on `DeathQueued`, never on health.** A character reaped by a backstop
@@ -961,40 +963,40 @@ Cross-machine cleanup that fires on two Life transitions:
   that previously lived here were deleted in chunk 4b R4. The
   `position_life_dead` observer in `Position_Cascades.go` owns the
   Position FSM death cascade.)
-- Cancels EVERY active buff, permanent ones included:
-  `CancelBuffsWithFlag(buffs.All)` reaches `Buffs.HasFlag(All, true)`, which
-  skips only records already `Expired()` and never consults `PermaBuff`. (The
+- Cancels EVERY active condition, permanent ones included:
+  `CancelConditionsWithFlag(conditions.All)` reaches `Conditions.HasFlag(All, true)`, which
+  skips only records already `Expired()` and never consults `Permanent`. (The
   separate `c.Conditions = nil` clear that sat beside it was deleted with the
   combat condition enum on 2026-09-12; the former conditions are ordinary
-  records and the buff cancel covers them.)
-- Bumps `Character.LifeEpoch`, beside the buff cancel. That cancel only
-  reaches HELD buffs. A buff still queued on `events.Buff` is stamped with the
-  epoch it was aimed at, and `ApplyBuffs` refuses one whose epoch no longer
+  records and the condition cancel covers them.)
+- Bumps `Character.LifeEpoch`, beside the condition cancel. That cancel only
+  reaches HELD conditions. A condition still queued on `events.Condition` is stamped with the
+  epoch it was aimed at, and `ApplyConditions` refuses one whose epoch no longer
   matches (or whose holder is not alive), with no add and no notice. The epoch
   is the test rather than `IsAlive` or `DeathQueued` because of flush order:
-  the killing swing queues its `CharacterDied` before its on-hit buff, and
+  the killing swing queues its `CharacterDied` before its on-hit condition, and
   `RouteAttributedDeath` cascades a player back to Alive with `DeathQueued`
-  cleared before the buff flushes. A ReviveOnDeath save ends no life, so the
-  blow's buff still lands on the revived character. Pinned by
-  `buff_after_death_test.go` (playtest 7d0dad99c4709fc0: a Rending Bleed from
+  cleared before the condition flushes. A ReviveOnDeath save ends no life, so the
+  blow's condition still lands on the revived character. Pinned by
+  `condition_after_death_test.go` (playtest 7d0dad99c4709fc0: a Rending Bleed from
   the killing blow killed the respawned player a second time).
 
 **Dead → Respawning:**
 - First removes, silently, every record still expired-but-held, which is
   every record the death strip expired plus any that expired earlier that
-  turn and was not pruned yet. The strip only expires records; left for the next `NewTurn_PruneBuffs` pass, each one's
+  turn and was not pruned yet. The strip only expires records; left for the next `NewTurn_PruneConditions` pass, each one's
   end line reached the respawned player and their new room ("Your wounds stop
   bleeding." in the Mending Hut, playtest 7d0dad99c4709fc0). It waits for
   this transition rather than pruning beside the strip because
   `deathCauseFor` in the death announcement reads the held Bleeding and
   Poisoned records by id, and an Alive → Dead observer registered after this
-  cascade would otherwise find them gone. It queues `BuffsTriggered` so the
+  cascade would otherwise find them gone. It queues `ConditionsTriggered` so the
   client's conditions panel refreshes. A record that ran out or was
   cancelled and pruned before the death still narrates; anything still
   expired-but-held at respawn is removed silently. Pinned by
   `death_strip_end_lines_test.go`.
 - Refills all resource pools to 5% of max
-- Applies `NoAggroTarget` grace buff (#81)
+- Applies `NoAggroTarget` grace condition (#81)
 - Clears live `PlayerDamage` map (snapshot already in `DeadData`)
 - Queues `CharacterVitalsChanged` event
 
@@ -1013,7 +1015,7 @@ Cross-machine cleanup that fires on two Life transitions:
 | `Death_MobBehaviorTree.go` | Fires `mob_die` btree event with primary killer's `UserId` |
 | `Death_MobKillCredit.go` | `EndAggro` on killers, `KD.AddMobKill`, `OnFirstMobKill`, party kill credit |
 | `Death_MobCharmCleanup.go` | `TrackRecentDeath`, `RemoveCharm`, reverse-track player `TrackCharmed` |
-| `Death_MobTracking_Cleanup.go` | Clears `tracking-mob` / `shadow-target-mob` misc-data + buff 86/87 from all characters pointing to the dying mob (chunk 2.8) |
+| `Death_MobTracking_Cleanup.go` | Clears `tracking-mob` / `shadow-target-mob` misc-data + condition 86/87 from all characters pointing to the dying mob (chunk 2.8) |
 
 ### Respawn observers
 
@@ -1021,7 +1023,7 @@ Cross-machine cleanup that fires on two Life transitions:
 |------|---------|
 | `Respawn_PlayerTeleport.go` | `rooms.MoveToRoom` to `c.ResolveRespawnRoom()` destination; belt-and-suspenders `EndAggro` |
 | `Respawn_PlayerAutoLook.go` | Fires `u.Command("look")` for room-render UX after respawn teleport |
-| `PlayerDespawn_TrackingCleanup.go` | Clears `tracking-user` / `shadow-target-user` misc-data + buff 86/87 from all characters pointing to the departing user (chunk 2.8) |
+| `PlayerDespawn_TrackingCleanup.go` | Clears `tracking-user` / `shadow-target-user` misc-data + condition 86/87 from all characters pointing to the departing user (chunk 2.8) |
 
 ### Wiring pattern
 
@@ -1371,8 +1373,8 @@ fresh when this observer reads it.
 6. Call `combat.ResolveSubmissionOutcome(attempter, recipient, result, role)`,
    then hand the `combat.SubmissionOutcomeEffects` it returns to
    `narrateSubmissionEffects` (in `Position_Messaging.go`): the hook narrates
-   Stunned (buff 84) and Broken Limb (buff 83) to a player victim right after
-   the outcome, because the combat package sends no player text and both buffs
+   Stunned (condition 84) and Broken Limb (condition 83) to a player victim right after
+   the outcome, because the combat package sends no player text and both conditions
    are applied synchronously and flagged `silent-start`.
 
 The `LastDriftRoll.Round` field is compared against the current round
@@ -1623,7 +1625,7 @@ they all belong to `messaging.CategorySkillProgress`.
 `enchantApplyWouldBreach` guards the enchanting **craft completion**.
 `usercommands/craft.go` refuses before the work starts, but the rounds in
 between are not free of change: a worn enchantment can tier up mid-craft and a
-lapsing buff can shrink the pool the ceiling is measured against. Refusing here
+lapsing condition can shrink the pool the ceiling is measured against. Refusing here
 still returns the materials. Subtracting what the target already reserves is
 what makes re-enchanting work, since the old enchantment is replaced rather
 than stacked.
@@ -1649,19 +1651,19 @@ heal = ÷2, DoT = ÷3") is accurate at every one of them, no discrepancy found:
 - **Shield: full duration, no divisor.** `applyPlayerEffect`'s `"shield"`
   case and `applyMobSelfEffect`'s `"shield"` case both call
   `calcSpellDuration(...)` unmodified and pass the result straight to
-  `AddBuffMagnitude(buffs.BuffIdMinorShield, duration, ...)` as the trigger
+  `AddConditionMagnitude(conditions.ConditionIdMinorShield, duration, ...)` as the trigger
   count (record 119 ticks once a round, so triggers and rounds coincide).
 - **Heal: `/2`, floored at 6.** `applyPlayerEffect`'s `"heal"` case,
   `applyMobEffect_heal`, and `applyMobSelfEffect`'s `"heal"` case all compute
   `calcSpellDuration(...) / 2`, then clamp `durationRounds < 6` up to 6, before
-  `AddBuffMagnitude(buffs.BuffIdRegenerating, durationRounds, regenMult, ...)`.
+  `AddConditionMagnitude(conditions.ConditionIdRegenerating, durationRounds, regenMult, ...)`.
 - **DoT: `/3`, floored at 3.** `applyMobEffect_dot` and the inline DoT branch
   of `resolveMobSpellAgainstPlayer` both compute
   `calcSpellDuration(...) / 3`, then clamp `dotDuration < 3` up to 3. Both
   pass that rounds figure straight to
-  `AddBuffMagnitude(buffs.BuffIdPoisoned, dotDuration, ...)`: record 121 ticks
+  `AddConditionMagnitude(conditions.ConditionIdPoisoned, dotDuration, ...)`: record 121 ticks
   every round (slice 1b; it was every third round before). See
-  `internal/buffs/context.md` under "Cadence".
+  `internal/conditions/context.md` under "Cadence".
 
 **Crit affects magnitude on some of these paths, never duration, on any of
 them.** `out.AttackerCrit` never touches the `calcSpellDuration` call or its
@@ -1762,7 +1764,7 @@ room targeting the shooter", a wider question than "who has engaged me".
 - `internal/combat` - Combat system for battle resolution
 - `internal/quests` - Quest system for progression tracking
 - `internal/rooms` - Room management for location-based events
-- `internal/buffs` - Status effects for buff management
+- `internal/conditions` - Status effects for condition management
 - `internal/configs` - Configuration management for system settings
 - `internal/mutations` - Mutation system for mob mutation acquisition
 - `internal/worldevents` - World event recording for emergent behavior milestones
@@ -1792,7 +1794,7 @@ The remaining 31 files are shared helpers rather than handlers and carry no
 prefix at all; they are the lowercase-named ones, for example
 `combat_shared_helpers.go`, `spell_resolution.go`, `item_procs.go`,
 `machine_resolver.go`, and `tick_cause.go` (the death-cause tag a damaging
-health tick stamps; see "The damaging buff tick" above). `hooks.go` is in that
+health tick stamps; see "The damaging condition tick" above). `hooks.go` is in that
 set and is the odd one out: it is not a helper but the registration table.
 
 Do not go looking for a registration in these files. **`hooks.go` holds

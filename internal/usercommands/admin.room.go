@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gamelock"
@@ -361,117 +361,117 @@ func editLockAndTrap(cmdPrompt *prompt.Prompt, user *users.UserRecord, lock game
 		//
 		// Lock Trap Options
 		//
-		question = cmdPrompt.Ask(`Will this lock have a trap?`, []string{`yes`, `no`}, util.BoolYN(len(lock.TrapBuffIds) > 0))
+		question = cmdPrompt.Ask(`Will this lock have a trap?`, []string{`yes`, `no`}, util.BoolYN(len(lock.TrapConditionIds) > 0))
 		if !question.Done {
 			return lock, true
 		}
 
 		if question.Response == `yes` {
 
-			selectedBuffList := []int{}
-			if cb, ok := cmdPrompt.Recall(`trapBuffs`); ok {
-				selectedBuffList = cb.([]int)
+			selectedConditionList := []int{}
+			if cb, ok := cmdPrompt.Recall(`trapConditions`); ok {
+				selectedConditionList = cb.([]int)
 			}
 
-			if len(selectedBuffList) == 0 {
-				selectedBuffList = append(selectedBuffList, lock.TrapBuffIds...)
+			if len(selectedConditionList) == 0 {
+				selectedConditionList = append(selectedConditionList, lock.TrapConditionIds...)
 			}
 
 			// Keep track of the state
-			cmdPrompt.Store(`trapBuffs`, selectedBuffList)
+			cmdPrompt.Store(`trapConditions`, selectedConditionList)
 
-			selectedBuffLookup := map[int]bool{}
-			for _, bId := range selectedBuffList {
-				selectedBuffLookup[bId] = true
+			selectedConditionLookup := map[int]bool{}
+			for _, bId := range selectedConditionList {
+				selectedConditionLookup[bId] = true
 			}
 
-			buffOptions := []templates.NameDescription{}
+			conditionOptions := []templates.NameDescription{}
 
-			for _, buffId := range buffs.GetAllBuffIds() {
-				if b := buffs.GetBuffSpec(buffId); b != nil {
+			for _, conditionId := range conditions.GetAllConditionIds() {
+				if b := conditions.GetConditionSpec(conditionId); b != nil {
 
 					if b.Name == `empty` {
 						continue
 					}
 
 					marked := false
-					if _, ok := selectedBuffLookup[buffId]; ok {
+					if _, ok := selectedConditionLookup[conditionId]; ok {
 						marked = true
 					}
 
-					buffOptions = append(buffOptions, templates.NameDescription{Id: buffId, Marked: marked, Name: b.Name})
+					conditionOptions = append(conditionOptions, templates.NameDescription{Id: conditionId, Marked: marked, Name: b.Name})
 				}
 			}
 
-			sort.SliceStable(buffOptions, func(i, j int) bool {
-				return buffOptions[i].Name < buffOptions[j].Name
+			sort.SliceStable(conditionOptions, func(i, j int) bool {
+				return conditionOptions[i].Name < conditionOptions[j].Name
 			})
 
-			question := cmdPrompt.Ask(`Select a buff to add to the trap, or nothing to continue:`, []string{}, `0`)
+			question := cmdPrompt.Ask(`Select a condition to add to the trap, or nothing to continue:`, []string{}, `0`)
 			if !question.Done {
-				tplTxt, _ := templates.Process("tables/numbered-list-doubled", buffOptions, user.UserId)
+				tplTxt, _ := templates.Process("tables/numbered-list-doubled", conditionOptions, user.UserId)
 				user.SendText(messaging.CategorySystem, tplTxt)
 				return lock, true
 			}
 
-			buffSelected := question.Response
+			conditionSelected := question.Response
 
-			if buffSelected != `0` {
+			if conditionSelected != `0` {
 
-				buffSelectedInt := 0
+				conditionSelectedInt := 0
 
-				if restNum, err := strconv.Atoi(buffSelected); err == nil {
-					if restNum > 0 && restNum <= len(buffOptions) {
-						buffSelectedInt = buffOptions[restNum-1].Id.(int)
+				if restNum, err := strconv.Atoi(conditionSelected); err == nil {
+					if restNum > 0 && restNum <= len(conditionOptions) {
+						conditionSelectedInt = conditionOptions[restNum-1].Id.(int)
 					}
 				}
 
-				if buffSelectedInt == 0 {
-					for _, b := range buffOptions {
-						if strings.EqualFold(b.Name, buffSelected) {
-							buffSelectedInt = b.Id.(int)
+				if conditionSelectedInt == 0 {
+					for _, b := range conditionOptions {
+						if strings.EqualFold(b.Name, conditionSelected) {
+							conditionSelectedInt = b.Id.(int)
 							break
 						}
 					}
 				}
 
-				if buffSelectedInt == 0 {
+				if conditionSelectedInt == 0 {
 
 					user.SendText(messaging.CategorySystem, "Invalid selection.")
 					question.RejectResponse()
 
-					tplTxt, _ := templates.Process("tables/numbered-list-doubled", buffOptions, user.UserId)
+					tplTxt, _ := templates.Process("tables/numbered-list-doubled", conditionOptions, user.UserId)
 					user.SendText(messaging.CategorySystem, tplTxt)
 					return lock, true
 				}
 
-				if _, ok := selectedBuffLookup[buffSelectedInt]; ok {
+				if _, ok := selectedConditionLookup[conditionSelectedInt]; ok {
 
-					delete(selectedBuffLookup, buffSelectedInt)
-					for idx, buffId := range selectedBuffList {
-						if buffId == buffSelectedInt {
-							selectedBuffList = append(selectedBuffList[0:idx], selectedBuffList[idx+1:]...)
+					delete(selectedConditionLookup, conditionSelectedInt)
+					for idx, conditionId := range selectedConditionList {
+						if conditionId == conditionSelectedInt {
+							selectedConditionList = append(selectedConditionList[0:idx], selectedConditionList[idx+1:]...)
 							break
 						}
 					}
 
 				} else {
 
-					selectedBuffList = append(selectedBuffList, buffSelectedInt)
-					selectedBuffLookup[buffSelectedInt] = true
+					selectedConditionList = append(selectedConditionList, conditionSelectedInt)
+					selectedConditionLookup[conditionSelectedInt] = true
 
 				}
 
-				cmdPrompt.Store(`trapBuffs`, selectedBuffList)
+				cmdPrompt.Store(`trapConditions`, selectedConditionList)
 
 				question.RejectResponse()
 
-				for idx, data := range buffOptions {
-					_, data.Marked = selectedBuffLookup[data.Id.(int)]
-					buffOptions[idx] = data
+				for idx, data := range conditionOptions {
+					_, data.Marked = selectedConditionLookup[data.Id.(int)]
+					conditionOptions[idx] = data
 				}
 
-				tplTxt, _ := templates.Process("tables/numbered-list-doubled", buffOptions, user.UserId)
+				tplTxt, _ := templates.Process("tables/numbered-list-doubled", conditionOptions, user.UserId)
 				user.SendText(messaging.CategorySystem, tplTxt)
 				return lock, true
 
@@ -479,8 +479,8 @@ func editLockAndTrap(cmdPrompt *prompt.Prompt, user *users.UserRecord, lock game
 
 		}
 
-		if cb, ok := cmdPrompt.Recall(`trapBuffs`); ok {
-			lock.TrapBuffIds = cb.([]int)
+		if cb, ok := cmdPrompt.Recall(`trapConditions`); ok {
+			lock.TrapConditionIds = cb.([]int)
 		}
 
 		if lock.RelockInterval == `` {

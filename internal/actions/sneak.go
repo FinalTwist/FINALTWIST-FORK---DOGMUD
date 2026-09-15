@@ -23,7 +23,7 @@ type SneakResult struct {
 	// SpottedByName is the name of the observer who detected the actor.
 	// Empty when Success is true.
 	SpottedByName string
-	// AlreadyHidden is true when the actor already has the hidden buff.
+	// AlreadyHidden is true when the actor already has the hidden condition.
 	AlreadyHidden bool
 	// InCombat is true when the actor could not attempt the action because
 	// they were engaged in combat.
@@ -40,9 +40,9 @@ type SneakResult struct {
 // members of a player actor are excluded from the observer checks. If any
 // observer wins the opposed roll the attempt fails and SpottedByName is set.
 //
-// On success the hidden buff (id 9) is applied via the event queue and the
+// On success the hidden condition (id 9) is applied via the event queue and the
 // "sneaking" misc-data key is set immediately so other systems can react
-// before the buff processes on the next tick.
+// before the condition processes on the next tick.
 //
 // Callers are responsible for:
 //   - Skill-gate checks (player side only)
@@ -154,7 +154,7 @@ func Sneak(actor Actor) SneakResult {
 	}
 
 	// All observers failed to spot the actor — transition to Hidden.
-	// The buff-#9 mirror cascade in Awareness_Cascades.go handles AddBuff automatically.
+	// The condition-#9 mirror cascade in Awareness_Cascades.go handles AddCondition automatically.
 	char.Awareness.ResolveConcealment(true, state.TransitionReason{
 		Trigger: awareness.TriggerSneakSuccess,
 	})

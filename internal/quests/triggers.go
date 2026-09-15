@@ -39,29 +39,29 @@ type Conditions struct {
 // ActionDef is a single action to execute when a trigger fires.
 // Only one field should be set per ActionDef.
 type ActionDef struct {
-	Grant         string            `yaml:"grant,omitempty" json:"grant,omitempty"`
-	ConsumeItem   int               `yaml:"consume_item,omitempty" json:"consume_item,omitempty"`
-	GiveItem      int               `yaml:"give_item,omitempty" json:"give_item,omitempty"`
-	GiveGold      int               `yaml:"give_gold,omitempty" json:"give_gold,omitempty"`
-	ChargeGold    int               `yaml:"charge_gold,omitempty" json:"charge_gold,omitempty"`
-	NpcSay        *NpcSayDef        `yaml:"npc_say,omitempty" json:"npc_say,omitempty"`
-	SendText      string            `yaml:"send_text,omitempty" json:"send_text,omitempty"`
-	RoomText      string            `yaml:"room_text,omitempty" json:"room_text,omitempty"`
-	SpawnMob      *SpawnDef         `yaml:"spawn_mob,omitempty" json:"spawn_mob,omitempty"`
-	SpawnItem     *SpawnDef         `yaml:"spawn_item,omitempty" json:"spawn_item,omitempty"`
-	LockExits     *ExitLock         `yaml:"lock_exits,omitempty" json:"lock_exits,omitempty"`
-	UnlockExits   *ExitLock         `yaml:"unlock_exits,omitempty" json:"unlock_exits,omitempty"`
-	TeachSpell    string            `yaml:"teach_spell,omitempty" json:"teach_spell,omitempty"`
-	TrainSkill    *SkillDef         `yaml:"train_skill,omitempty" json:"train_skill,omitempty"`
-	TrainStat     *StatDef          `yaml:"train_stat,omitempty" json:"train_stat,omitempty"`
-	LearnRecipe   *RecipeDef        `yaml:"learn_recipe,omitempty" json:"learn_recipe,omitempty"`
-	ApplyBuff     *BuffDef          `yaml:"apply_buff,omitempty" json:"apply_buff,omitempty"`
-	Teleport      int               `yaml:"teleport,omitempty" json:"teleport,omitempty"`
-	GiveMutation  bool              `yaml:"give_mutation,omitempty" json:"give_mutation,omitempty"` // roll and grant a random mutation
-	SetFlag       *QuestFlagAction  `yaml:"set_flag,omitempty" json:"set_flag,omitempty"`
-	Sequence      *SequenceDef      `yaml:"sequence,omitempty" json:"sequence,omitempty"`
-	BumpRep       *BumpRepDef       `yaml:"bump_rep,omitempty" json:"bump_rep,omitempty"`
-	DeclareBounty *DeclareBountyDef `yaml:"declare_bounty,omitempty" json:"declare_bounty,omitempty"`
+	Grant                string              `yaml:"grant,omitempty" json:"grant,omitempty"`
+	ConsumeItem          int                 `yaml:"consume_item,omitempty" json:"consume_item,omitempty"`
+	GiveItem             int                 `yaml:"give_item,omitempty" json:"give_item,omitempty"`
+	GiveGold             int                 `yaml:"give_gold,omitempty" json:"give_gold,omitempty"`
+	ChargeGold           int                 `yaml:"charge_gold,omitempty" json:"charge_gold,omitempty"`
+	NpcSay               *NpcSayDef          `yaml:"npc_say,omitempty" json:"npc_say,omitempty"`
+	SendText             string              `yaml:"send_text,omitempty" json:"send_text,omitempty"`
+	RoomText             string              `yaml:"room_text,omitempty" json:"room_text,omitempty"`
+	SpawnMob             *SpawnDef           `yaml:"spawn_mob,omitempty" json:"spawn_mob,omitempty"`
+	SpawnItem            *SpawnDef           `yaml:"spawn_item,omitempty" json:"spawn_item,omitempty"`
+	LockExits            *ExitLock           `yaml:"lock_exits,omitempty" json:"lock_exits,omitempty"`
+	UnlockExits          *ExitLock           `yaml:"unlock_exits,omitempty" json:"unlock_exits,omitempty"`
+	TeachSpell           string              `yaml:"teach_spell,omitempty" json:"teach_spell,omitempty"`
+	TrainSkill           *SkillDef           `yaml:"train_skill,omitempty" json:"train_skill,omitempty"`
+	TrainStat            *StatDef            `yaml:"train_stat,omitempty" json:"train_stat,omitempty"`
+	LearnRecipe          *RecipeDef          `yaml:"learn_recipe,omitempty" json:"learn_recipe,omitempty"`
+	ApplyStatusCondition *StatusConditionDef `yaml:"apply_buff,omitempty" json:"apply_buff,omitempty"`
+	Teleport             int                 `yaml:"teleport,omitempty" json:"teleport,omitempty"`
+	GiveMutation         bool                `yaml:"give_mutation,omitempty" json:"give_mutation,omitempty"` // roll and grant a random mutation
+	SetFlag              *QuestFlagAction    `yaml:"set_flag,omitempty" json:"set_flag,omitempty"`
+	Sequence             *SequenceDef        `yaml:"sequence,omitempty" json:"sequence,omitempty"`
+	BumpRep              *BumpRepDef         `yaml:"bump_rep,omitempty" json:"bump_rep,omitempty"`
+	DeclareBounty        *DeclareBountyDef   `yaml:"declare_bounty,omitempty" json:"declare_bounty,omitempty"`
 }
 
 // BumpRepDef parameters for the bump_rep action: which faction
@@ -135,9 +135,9 @@ type RecipeDef struct {
 	Recipe string `yaml:"recipe" json:"recipe"`
 }
 
-type BuffDef struct {
-	Buff   int    `yaml:"buff" json:"buff"`
-	Source string `yaml:"source,omitempty" json:"source,omitempty"`
+type StatusConditionDef struct {
+	Condition int    `yaml:"buff" json:"buff"`
+	Source    string `yaml:"source,omitempty" json:"source,omitempty"`
 }
 
 type SequenceDef struct {

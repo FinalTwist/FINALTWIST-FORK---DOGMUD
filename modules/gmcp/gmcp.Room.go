@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mapper"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -281,7 +281,7 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 				continue
 			}
 
-			if u.Character.HasBuffFlag(buffs.Hidden) {
+			if u.Character.HasConditionFlag(conditions.Hidden) {
 				continue
 			}
 
@@ -309,7 +309,7 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 				continue
 			}
 
-			if mob.Character.HasBuffFlag(buffs.Hidden) {
+			if mob.Character.HasConditionFlag(conditions.Hidden) {
 				continue
 			}
 

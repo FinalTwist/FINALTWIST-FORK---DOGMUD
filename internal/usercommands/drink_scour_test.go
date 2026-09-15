@@ -3,7 +3,7 @@ package usercommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +37,7 @@ func TestDrink_CatalystOfUnmakingScoursMutations(t *testing.T) {
 	defer itemCleanup()
 
 	user, room := getTestUserAndRoom(t)
-	user.Character.Buffs = buffs.New()
+	user.Character.Conditions = conditions.New()
 	user.Character.SpeciesId = 0 // Human — no intrinsic mutations seeded
 
 	// Give the player two non-intrinsic mutations and some progress.
@@ -97,7 +97,7 @@ func TestDrink_PhialOfSecondBirthScoursAndGrantsRareMutation(t *testing.T) {
 	defer itemCleanup()
 
 	user, room := getTestUserAndRoom(t)
-	user.Character.Buffs = buffs.New()
+	user.Character.Conditions = conditions.New()
 	user.Character.SpeciesId = 0 // Human — no intrinsic mutations seeded
 
 	// Give the player two non-intrinsic mutations and some progress.

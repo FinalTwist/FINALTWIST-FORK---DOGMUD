@@ -10,7 +10,7 @@ package characters
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/species"
 	"github.com/GoMudEngine/GoMud/internal/statmods"
@@ -22,10 +22,10 @@ import (
 // Test helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-// newTestBuffs returns a zero-value Buffs instance that is safe to embed in a
+// newTestConditions returns a zero-value Conditions instance that is safe to embed in a
 // manually-constructed Character.
-func newTestBuffs() buffs.Buffs {
-	return buffs.New()
+func newTestConditions() conditions.Conditions {
+	return conditions.New()
 }
 
 // validStats returns a deterministic stat block for Validate/RecalculateStats
@@ -85,8 +85,8 @@ func TestRecalculateStats_BaseStatHydrationFromSpecies(t *testing.T) {
 			Willpower:  stats.StatInfo{Base: 100},
 			Charisma:   stats.StatInfo{Base: 100},
 		},
-		Mutations: map[string]int{},
-		Buffs:     newTestBuffs(),
+		Mutations:  map[string]int{},
+		Conditions: newTestConditions(),
 	}
 	c.RecalculateStats()
 	assert.Equal(t, 123, c.Stats.Strength.Base, "rolled Strength.Base must not be overwritten by species hydration")
@@ -104,8 +104,8 @@ func TestRecalculateStats_BaseStatHydrationFromSpecies(t *testing.T) {
 			Willpower:  stats.StatInfo{Base: 0},
 			Charisma:   stats.StatInfo{Base: 0},
 		},
-		Mutations: map[string]int{},
-		Buffs:     newTestBuffs(),
+		Mutations:  map[string]int{},
+		Conditions: newTestConditions(),
 	}
 	c2.RecalculateStats()
 	assert.Equal(t, 80, c2.Stats.Strength.Base, "zero Strength.Base must be hydrated from species data")
@@ -126,10 +126,10 @@ func TestRecalculateStats_BaseStatHydrationFromSpecies(t *testing.T) {
 // hard floors after RecalculateStats.
 func TestRecalculateStats_PoolMaxDerivation(t *testing.T) {
 	c := &Character{
-		SpeciesId: 1,
-		Stats:     validStats(),
-		Mutations: map[string]int{},
-		Buffs:     newTestBuffs(),
+		SpeciesId:  1,
+		Stats:      validStats(),
+		Mutations:  map[string]int{},
+		Conditions: newTestConditions(),
 	}
 
 	c.RecalculateStats()
@@ -150,10 +150,10 @@ func TestRecalculateStats_PoolMaxDerivation(t *testing.T) {
 // each stat's .Mods field equals the corresponding StatMod() call value.
 func TestRecalculateStats_EquipmentStatMods(t *testing.T) {
 	c := &Character{
-		SpeciesId: 1,
-		Stats:     validStats(),
-		Mutations: map[string]int{},
-		Buffs:     newTestBuffs(),
+		SpeciesId:  1,
+		Stats:      validStats(),
+		Mutations:  map[string]int{},
+		Conditions: newTestConditions(),
 	}
 
 	c.RecalculateStats()
@@ -178,10 +178,10 @@ func TestRecalculateStats_EquipmentStatMods(t *testing.T) {
 // as the stability invariant here.
 func TestRecalculateStats_MutationFlatAndMultiplier(t *testing.T) {
 	c := &Character{
-		SpeciesId: 1,
-		Stats:     validStats(),
-		Mutations: map[string]int{},
-		Buffs:     newTestBuffs(),
+		SpeciesId:  1,
+		Stats:      validStats(),
+		Mutations:  map[string]int{},
+		Conditions: newTestConditions(),
 	}
 	c.RecalculateStats()
 	baseStr := c.Stats.Strength.ValueAdj
@@ -204,7 +204,7 @@ func TestRecalculateStats_PoolReservationClamping(t *testing.T) {
 		SpeciesId:  1,
 		Stats:      validStats(),
 		Mutations:  map[string]int{},
-		Buffs:      newTestBuffs(),
+		Conditions: newTestConditions(),
 		Health:     50,
 		Stamina:    50,
 		Conviction: 50,
@@ -237,11 +237,11 @@ func TestRecalculateStats_PoolReservationClamping(t *testing.T) {
 // inputs — not the event dispatch outcome.
 func TestRecalculateStats_IdempotencyAcrossRepeatedCalls(t *testing.T) {
 	c := &Character{
-		SpeciesId: 1,
-		userId:    42, // non-zero triggers event emission path
-		Stats:     validStats(),
-		Mutations: map[string]int{},
-		Buffs:     newTestBuffs(),
+		SpeciesId:  1,
+		userId:     42, // non-zero triggers event emission path
+		Stats:      validStats(),
+		Mutations:  map[string]int{},
+		Conditions: newTestConditions(),
 	}
 
 	// First call: populates ValueAdj from Base values.
@@ -291,8 +291,8 @@ func TestRecalculateStats_IdempotencyAcrossRepeatedCalls(t *testing.T) {
 // is corrected to safe defaults without returning an error.
 func TestValidate_EmptyCharacterCorrected(t *testing.T) {
 	c := &Character{
-		Stats: validStats(),
-		Buffs: newTestBuffs(),
+		Stats:      validStats(),
+		Conditions: newTestConditions(),
 		// SpeciesId intentionally left 0 → should default to 1
 		// Description intentionally empty → should default
 	}
@@ -311,9 +311,9 @@ func TestValidate_EmptyCharacterCorrected(t *testing.T) {
 // to rank 1 for all active skills, and that retired skills are stripped.
 func TestValidate_SkillMapEnsured(t *testing.T) {
 	c := &Character{
-		Stats:     validStats(),
-		Buffs:     newTestBuffs(),
-		SpeciesId: 1,
+		Stats:      validStats(),
+		Conditions: newTestConditions(),
+		SpeciesId:  1,
 		Skills: map[string]int{
 			"cast":      5, // retired
 			"first-aid": 2, // retired
@@ -340,9 +340,9 @@ func TestValidate_SkillMapEnsured(t *testing.T) {
 // 10th skill) is no longer stripped by Validate.
 func TestValidate_RangedCombatSurvives(t *testing.T) {
 	c := &Character{
-		Stats:     validStats(),
-		Buffs:     newTestBuffs(),
-		SpeciesId: 1,
+		Stats:      validStats(),
+		Conditions: newTestConditions(),
+		SpeciesId:  1,
 		Skills: map[string]int{
 			"ranged-combat": 5,
 		},
@@ -359,9 +359,9 @@ func TestValidate_RangedCombatSurvives(t *testing.T) {
 // is renamed to "skullduggery" while preserving its rank.
 func TestValidate_SkullduggeryMigration(t *testing.T) {
 	c := &Character{
-		Stats:     validStats(),
-		Buffs:     newTestBuffs(),
-		SpeciesId: 1,
+		Stats:      validStats(),
+		Conditions: newTestConditions(),
+		SpeciesId:  1,
 		Skills: map[string]int{
 			"stealth": 12,
 		},
@@ -379,9 +379,9 @@ func TestValidate_SkullduggeryMigration(t *testing.T) {
 // skills are merged into "search": rank = max(tracking, foraging), use-count = sum.
 func TestValidate_SearchSkillMigration(t *testing.T) {
 	c := &Character{
-		Stats:     validStats(),
-		Buffs:     newTestBuffs(),
-		SpeciesId: 1,
+		Stats:      validStats(),
+		Conditions: newTestConditions(),
+		SpeciesId:  1,
 		Skills: map[string]int{
 			"tracking": 5,
 			"foraging": 12,
@@ -419,10 +419,10 @@ func TestValidate_ExtraArmsDerivation(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Character{
-				Stats:     validStats(),
-				Buffs:     newTestBuffs(),
-				SpeciesId: 1,
-				Mutations: map[string]int{},
+				Stats:      validStats(),
+				Conditions: newTestConditions(),
+				SpeciesId:  1,
+				Mutations:  map[string]int{},
 			}
 			if tt.level > 0 {
 				c.Mutations["extra-arms"] = tt.level
@@ -443,7 +443,7 @@ func TestValidate_ExtraArmsDerivation(t *testing.T) {
 func TestValidate_HealthClamping(t *testing.T) {
 	c := &Character{
 		Stats:      validStats(),
-		Buffs:      newTestBuffs(),
+		Conditions: newTestConditions(),
 		SpeciesId:  1,
 		Health:     999999, // above max → clamp down
 		Stamina:    -50,    // below 0 → clamp up

@@ -3,8 +3,8 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -29,12 +29,12 @@ func seedDrainAreaRegistries(t *testing.T, playerIds []int) func() {
 		Zone:       "TestZone",
 		HomeRoomId: 1,
 		Character: characters.Character{
-			Name:      "The Core Guardian",
-			RoomId:    1,
-			Health:    2000,
-			Buffs:     buffs.New(),
-			Cooldowns: map[string]int{},
-			Position:  position.NewMachine(),
+			Name:       "The Core Guardian",
+			RoomId:     1,
+			Health:     2000,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
+			Position:   position.NewMachine(),
 		},
 	}
 	bossMob.Character.HealthMax.Value = 2000
@@ -105,7 +105,7 @@ func TestResolveMobSpell_DrainArea_DispatchesToDrainArea(t *testing.T) {
 	playerIds := []int{7101, 7102}
 	cleanup := seedDrainAreaRegistries(t, playerIds)
 	defer cleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	room := rooms.LoadRoom(1)
 	require.NotNil(t, room)
@@ -131,7 +131,7 @@ func TestResolveMobSpell_DrainArea_DispatchesToDrainArea(t *testing.T) {
 			u := users.GetByUserId(uid)
 			require.NotNil(t, u)
 			u.Character.Health = 500
-			u.Character.RemoveBuff(buffs.BuffIdBleeding)
+			u.Character.RemoveCondition(conditions.ConditionIdBleeding)
 		}
 
 		resolveMobSpell(boss, cs, spellData, room)
@@ -144,7 +144,7 @@ func TestResolveMobSpell_DrainArea_DispatchesToDrainArea(t *testing.T) {
 		hitCount := 0
 		for _, uid := range playerIds {
 			u := users.GetByUserId(uid)
-			if u.Character.HasBuff(buffs.BuffIdBleeding) {
+			if u.Character.HasCondition(conditions.ConditionIdBleeding) {
 				hitCount++
 			}
 		}
@@ -165,7 +165,7 @@ func TestResolveMobSpell_DrainArea_DispatchesToDrainArea(t *testing.T) {
 	for _, uid := range playerIds {
 		u := users.GetByUserId(uid)
 		assert.Less(t, u.Character.Health, 500, "player %d should have taken drain damage", uid)
-		assert.True(t, u.Character.HasBuff(buffs.BuffIdBleeding), "player %d should carry the Bleeding record after the drain", uid)
+		assert.True(t, u.Character.HasCondition(conditions.ConditionIdBleeding), "player %d should carry the Bleeding record after the drain", uid)
 	}
 
 	assert.Greater(t, bossHealthAfter, 500, "boss should be healed above its pre-drain health by the aggregate lifesteal")

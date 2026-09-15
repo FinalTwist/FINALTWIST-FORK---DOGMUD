@@ -9,7 +9,7 @@ import (
 )
 
 // Track is a thin wrapper over actions.Track. The action handles
-// rendering, cooldowns, and buff application; this wrapper handles
+// rendering, cooldowns, and condition application; this wrapper handles
 // "stop"/"clear" keyword normalization and the quest-engine
 // command notification.
 func Track(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {

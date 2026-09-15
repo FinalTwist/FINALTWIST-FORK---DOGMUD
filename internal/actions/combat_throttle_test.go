@@ -3,8 +3,8 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -95,15 +95,15 @@ func TestThrottle_NotFanged(t *testing.T) {
 	})
 }
 
-// TestThrottle_Executed_BleedAndBuff verifies that on a hit a fanged attacker
-// applies the Bleeding record and Throttled buff (id 89) to the target.
-func TestThrottle_Executed_BleedAndBuff(t *testing.T) {
-	// Seed buff 89 so AddBuff can find it.
-	buffCleanup := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		89: {BuffId: 89, Name: "Throttled", TriggerCount: 3, RoundInterval: 1},
+// TestThrottle_Executed_BleedAndCondition verifies that on a hit a fanged attacker
+// applies the Bleeding record and Throttled condition (id 89) to the target.
+func TestThrottle_Executed_BleedAndCondition(t *testing.T) {
+	// Seed condition 89 so AddCondition can find it.
+	conditionCleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		89: {ConditionId: 89, Name: "Throttled", TriggerCount: 3, RoundInterval: 1},
 	})
-	defer buffCleanup()
-	defer buffs.SeedConditionRecordsForTest()()
+	defer conditionCleanup()
+	defer conditions.SeedConditionRecordsForTest()()
 
 	// Seed a fanged species.
 	speciesCleanup := species.SeedSpeciesForTest(map[int]*species.Species{
@@ -119,7 +119,7 @@ func TestThrottle_Executed_BleedAndBuff(t *testing.T) {
 	targetMob.Character.Stamina = 500
 	targetMob.Character.StaminaMax.Value = 500
 	targetMob.Character.Stats.Dexterity.ValueAdj = 1
-	targetMob.Character.Buffs = buffs.New()
+	targetMob.Character.Conditions = conditions.New()
 	setCombatPositionParallel(&targetMob.Character, position.Standing)
 	mobs.SetInstanceForTest(targetMob.InstanceId, targetMob)
 	defer mobs.SetInstanceForTest(targetMob.InstanceId, nil)
@@ -152,12 +152,12 @@ func TestThrottle_Executed_BleedAndBuff(t *testing.T) {
 	}
 
 	// The Bleeding record should be applied.
-	assert.True(t, targetMob.Character.HasBuff(buffs.BuffIdBleeding),
+	assert.True(t, targetMob.Character.HasCondition(conditions.ConditionIdBleeding),
 		"target should have the Bleeding record after a successful throttle")
 
 	// The sign pin: throttle must apply a HARMING record (negative magnitude
 	// and tick snapshot), not a healing one.
-	held := targetMob.Character.GetBuffs(buffs.BuffIdBleeding)
+	held := targetMob.Character.GetConditions(conditions.ConditionIdBleeding)
 	if assert.Len(t, held, 1, "expected exactly one held Bleeding record") {
 		assert.Less(t, held[0].Magnitude, 0.0, "throttle's Bleeding record must carry a negative magnitude")
 		assert.Less(t, held[0].TickAmount, 0, "throttle's Bleeding record must carry a negative tick snapshot")
@@ -171,8 +171,8 @@ func TestThrottle_Executed_BleedAndBuff(t *testing.T) {
 			"the stack lasts ThrottleBleedRounds")
 	}
 
-	// Throttled buff (id 89) should be applied.
-	assert.True(t, targetMob.Character.HasBuff(89),
+	// Throttled condition (id 89) should be applied.
+	assert.True(t, targetMob.Character.HasCondition(89),
 		"target should have Throttled buff (id 89) after a successful throttle")
 }
 
@@ -208,11 +208,11 @@ func TestThrottle_CastInterrupt(t *testing.T) {
 		})
 	}()
 
-	// Seed buff 89.
-	buffCleanup := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		89: {BuffId: 89, Name: "Throttled", TriggerCount: 3, RoundInterval: 1},
+	// Seed condition 89.
+	conditionCleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		89: {ConditionId: 89, Name: "Throttled", TriggerCount: 3, RoundInterval: 1},
 	})
-	defer buffCleanup()
+	defer conditionCleanup()
 
 	// Seed a fanged species.
 	speciesCleanup := species.SeedSpeciesForTest(map[int]*species.Species{
@@ -233,7 +233,7 @@ func TestThrottle_CastInterrupt(t *testing.T) {
 	targetMob.Character.ConvictionMax.Value = 100
 	targetMob.Character.Stats.Dexterity.ValueAdj = 1
 	targetMob.Character.Stats.Willpower.ValueAdj = 1
-	targetMob.Character.Buffs = buffs.New()
+	targetMob.Character.Conditions = conditions.New()
 	setCombatPositionParallel(&targetMob.Character, position.Standing)
 	// Set the target into a casting state.
 	setCastingForTest(&targetMob.Character, activity.CastingData{
@@ -330,10 +330,10 @@ func TestThrottle_CastInterrupt_OverwhelmingCaster(t *testing.T) {
 	// Deliberately NOT overriding ConcentrationFloor — this test exercises
 	// the shipped 2% mercy floor, not the pinned-to-0 guaranteed case above.
 
-	buffCleanup := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		89: {BuffId: 89, Name: "Throttled", TriggerCount: 3, RoundInterval: 1},
+	conditionCleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		89: {ConditionId: 89, Name: "Throttled", TriggerCount: 3, RoundInterval: 1},
 	})
-	defer buffCleanup()
+	defer conditionCleanup()
 
 	speciesCleanup := species.SeedSpeciesForTest(map[int]*species.Species{
 		7005: {SpeciesId: 7005, Name: "fanged-overwhelmed-test", BodyParts: []string{"legs", "mouth"}, NaturalAttack: items.Bite},
@@ -357,7 +357,7 @@ func TestThrottle_CastInterrupt_OverwhelmingCaster(t *testing.T) {
 	// the move's own to-hit roll, independent of the concentration contest.
 	targetMob.Character.Stats.Dexterity.ValueAdj = 1
 	targetMob.Character.Skills = map[string]int{string(skills.Spellcasting): 100}
-	targetMob.Character.Buffs = buffs.New()
+	targetMob.Character.Conditions = conditions.New()
 	setCombatPositionParallel(&targetMob.Character, position.Standing)
 	mobs.SetInstanceForTest(targetMob.InstanceId, targetMob)
 	defer mobs.SetInstanceForTest(targetMob.InstanceId, nil)

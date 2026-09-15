@@ -10,7 +10,7 @@
  *
  * THE BUG (found in code review, 2026-09-14)
  * -------------------------------------------
- * Char.Conditions is a name-keyed map. Slice 1b's buffs.DisplayName gives a
+ * Char.Conditions is a name-keyed map. Slice 1b's conditions.DisplayName gives a
  * stacked bleed a live count in its DISPLAY label ("Bleeding (2)"), but the
  * map KEY stays the plain spec name ("Bleeding"; a repeat takes a "#n"
  * suffix, e.g. "Stoneskin#1"). evalTriggerCondition used to match a saved

@@ -3,8 +3,8 @@ package usercommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -17,11 +17,11 @@ const throwerUserId = 7
 // newTestThrower builds a bare player-side user for the engage helper.
 func newTestThrower() *users.UserRecord {
 	c := &characters.Character{
-		Name:      "Thrower",
-		RoomId:    1,
-		Health:    400,
-		Buffs:     buffs.New(),
-		Cooldowns: map[string]int{},
+		Name:       "Thrower",
+		RoomId:     1,
+		Health:     400,
+		Conditions: conditions.New(),
+		Cooldowns:  map[string]int{},
 	}
 	c.HealthMax.Value = 400
 	return &users.UserRecord{UserId: throwerUserId, Character: c}

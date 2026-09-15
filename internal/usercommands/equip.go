@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -208,7 +208,7 @@ func Equip(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			}
 
 			// Place the new item
-			user.Character.CancelBuffsWithFlag(buffs.Hidden)
+			user.Character.CancelConditionsWithFlag(conditions.Hidden)
 			user.Character.RemoveItem(matchItem)
 			*targetSlot.ItemPtr = matchItem
 
@@ -251,11 +251,11 @@ func Equip(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 				ItemsRemoved: displaced,
 			})
 
-			// Trigger any outstanding buff onStart events
-			if len(iSpec.WornBuffIds) > 0 {
-				for _, buff := range user.Character.Buffs.List {
-					if buff.OnStartWaiting {
-						user.Character.TrackBuffStarted(buff.BuffId)
+			// Trigger any outstanding condition onStart events
+			if len(iSpec.WornConditionIds) > 0 {
+				for _, condition := range user.Character.Conditions.List {
+					if condition.OnStartWaiting {
+						user.Character.TrackConditionStarted(condition.ConditionId)
 					}
 				}
 			}
@@ -309,11 +309,11 @@ func Equip(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 			sendReservationDisclosure(user, beforeReservation)
 
-			// Trigger any outstanding buff onStart events
-			if len(result.Item.GetSpec().WornBuffIds) > 0 {
-				for _, buff := range user.Character.Buffs.List {
-					if buff.OnStartWaiting {
-						user.Character.TrackBuffStarted(buff.BuffId)
+			// Trigger any outstanding condition onStart events
+			if len(result.Item.GetSpec().WornConditionIds) > 0 {
+				for _, condition := range user.Character.Conditions.List {
+					if condition.OnStartWaiting {
+						user.Character.TrackConditionStarted(condition.ConditionId)
 					}
 				}
 			}

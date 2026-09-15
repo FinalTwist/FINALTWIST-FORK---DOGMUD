@@ -120,7 +120,7 @@ func applyPlayerStatDecay(u *users.UserRecord, config configs.GamePlay) {
 	// negative.
 	//
 	// The floor measures the PERMANENT part of the stat, Racial + Training, and
-	// deliberately excludes Mods. Mods come from equipment and buffs, so
+	// deliberately excludes Mods. Mods come from equipment and conditions, so
 	// including them would let a permanent penalty hinge on what someone
 	// happened to be wearing when they died — take the ring off and the floor
 	// stops protecting you.

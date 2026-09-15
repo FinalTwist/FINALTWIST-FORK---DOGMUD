@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
@@ -28,8 +28,8 @@ type fakeActor struct {
 // constructs characters for combat math testing.
 func newFakeActor(name string, statAdj, healthMax int, isPlayer bool) *fakeActor {
 	c := &characters.Character{
-		Name:  name,
-		Buffs: buffs.New(),
+		Name:       name,
+		Conditions: conditions.New(),
 	}
 	c.Stats.Strength.ValueAdj = statAdj
 	c.Stats.Dexterity.ValueAdj = statAdj
@@ -48,15 +48,15 @@ func newFakeActor(name string, statAdj, healthMax int, isPlayer bool) *fakeActor
 	}
 }
 
-func (a *fakeActor) GetCharacter() *characters.Character       { return a.char }
-func (a *fakeActor) GetRoom() *rooms.Room                      { return nil }
-func (a *fakeActor) SendText(_ messaging.Category, msg string) { a.sent = append(a.sent, msg) }
-func (a *fakeActor) SendRoomCommunication(msg string, _ bool)  {}
-func (a *fakeActor) GetName() string                           { return a.name }
-func (a *fakeActor) IsPlayer() bool                            { return a.isPlayer }
-func (a *fakeActor) GetUserId() int                            { return 0 }
-func (a *fakeActor) GetMobInstanceId() int                     { return 0 }
-func (a *fakeActor) AddBuff(buffId int, source string)         {}
+func (a *fakeActor) GetCharacter() *characters.Character         { return a.char }
+func (a *fakeActor) GetRoom() *rooms.Room                        { return nil }
+func (a *fakeActor) SendText(_ messaging.Category, msg string)   { a.sent = append(a.sent, msg) }
+func (a *fakeActor) SendRoomCommunication(msg string, _ bool)    {}
+func (a *fakeActor) GetName() string                             { return a.name }
+func (a *fakeActor) IsPlayer() bool                              { return a.isPlayer }
+func (a *fakeActor) GetUserId() int                              { return 0 }
+func (a *fakeActor) GetMobInstanceId() int                       { return 0 }
+func (a *fakeActor) AddCondition(conditionId int, source string) {}
 func (a *fakeActor) OnSkillUse(skillName string) bool {
 	a.statUses[skillName]++
 	return false
@@ -107,7 +107,7 @@ func TestConsider_ZeroTargetPower(t *testing.T) {
 	// Construct a target with truly zero PowerScore: all ValueAdj=0,
 	// no health, no skills, no mutations.
 	target := &fakeActor{
-		char:     &characters.Character{Name: "Ghost", Buffs: buffs.New()},
+		char:     &characters.Character{Name: "Ghost", Conditions: conditions.New()},
 		name:     "Ghost",
 		isPlayer: false,
 		statUses: map[string]int{},

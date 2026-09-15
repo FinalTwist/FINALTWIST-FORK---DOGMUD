@@ -3,8 +3,8 @@ package mobcommands
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -43,12 +43,12 @@ func buildSalvageFixtures(t *testing.T) (*mobs.Mob, *rooms.Room, func()) {
 		InstanceId: 300,
 		HomeRoomId: 1,
 		Character: characters.Character{
-			Name:      "Tova",
-			RoomId:    1,
-			Health:    80,
-			Buffs:     buffs.New(),
-			Cooldowns: map[string]int{},
-			Skills:    map[string]int{string(skills.Salvage): 30},
+			Name:       "Tova",
+			RoomId:     1,
+			Health:     80,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
+			Skills:     map[string]int{string(skills.Salvage): 30},
 		},
 	}
 	foragerInstance.Character.HealthMax.Value = 100
@@ -132,12 +132,12 @@ func TestSalvage_CorpseNotEligible_SkippedSilently(t *testing.T) {
 		InstanceId: 300,
 		HomeRoomId: 1,
 		Character: characters.Character{
-			Name:      "Tova",
-			RoomId:    1,
-			Health:    80,
-			Buffs:     buffs.New(),
-			Cooldowns: map[string]int{},
-			Skills:    map[string]int{string(skills.Salvage): 30},
+			Name:       "Tova",
+			RoomId:     1,
+			Health:     80,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
+			Skills:     map[string]int{string(skills.Salvage): 30},
 		},
 	}
 	foragerInstance.Character.HealthMax.Value = 100

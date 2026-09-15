@@ -55,7 +55,7 @@ func (a *stubActor) GetName() string                         { return "TestActor
 func (a *stubActor) IsPlayer() bool                          { return false }
 func (a *stubActor) GetUserId() int                          { return 0 }
 func (a *stubActor) GetMobInstanceId() int                   { return 0 }
-func (a *stubActor) AddBuff(_ int, _ string)                 {}
+func (a *stubActor) AddCondition(_ int, _ string)            {}
 func (a *stubActor) OnSkillUse(_ string) bool                { return false }
 func (a *stubActor) OnStatUse(_ string) bool                 { return false }
 

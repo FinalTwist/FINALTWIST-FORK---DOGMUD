@@ -6,9 +6,9 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -67,20 +67,20 @@ func handleCombatRound(
 		return
 	}
 
-	// Defender's combat-cancel buffs always strip on combat engagement.
-	// CancelCombatBuffs also strips permabuff entries so Validate() won't
+	// Defender's combat-cancel conditions always strip on combat engagement.
+	// CancelCombatConditions also strips permanent condition entries so Validate() won't
 	// re-apply them (notably: Hidden seeded via buffids on ambushers).
-	def.GetCharacter().CancelCombatBuffs()
+	def.GetCharacter().CancelCombatConditions()
 
 	// Chunk 1 follow-up (surfaced by chunk 4b smoke 2026-05-16):
-	// CancelCombatBuffs strips buff #9 but the Awareness FSM is the
+	// CancelCombatConditions strips condition #9 but the Awareness FSM is the
 	// canonical source of truth for IsHidden post-chunk-1. The cascade
 	// in Awareness_Cascades.go fires only when the defender's OWN
 	// CombatPhase transitions Idle→Engaging — which doesn't happen
 	// when a defender is targeted but never SetAggro's the attacker
 	// (e.g. a hidden mob grappled while it has no aggro of its own).
-	// Force the FSM out of Hidden if the buff strip left it stale; the
-	// cascade re-strips the buff (no-op since already gone). Without
+	// Force the FSM out of Hidden if the condition strip left it stale; the
+	// cascade re-strips the condition (no-op since already gone). Without
 	// this, hidden ambushers stay stuck Hidden and the IsHidden check
 	// below fires "can't seem to find your target" on every round.
 	if defChar := def.GetCharacter(); defChar.Awareness != nil && defChar.IsHidden() {
@@ -151,7 +151,7 @@ func handleCombatRound(
 			defCh.DriftFromCombat("trickster", driftRound) // evaded a blow
 		}
 	}
-	if atkCh := atk.GetCharacter(); atkCh != nil && res.Hit && len(res.BuffTarget) > 0 {
+	if atkCh := atk.GetCharacter(); atkCh != nil && res.Hit && len(res.ConditionTarget) > 0 {
 		atkCh.DriftFromCombat("weaver", driftRound) // landed a debilitating effect on the foe
 	}
 
@@ -352,16 +352,16 @@ func applyCombatDamageBonuses(atk, def actions.Actor, res *combat.AttackResult) 
 	atkChar := atk.GetCharacter()
 	defChar := def.GetCharacter()
 
-	// Mutation graph: on-hit-buff mutations (Venom Glands, …) afflict the
-	// struck defender. Route through the actor buff wrapper (not the raw
-	// Character.AddBuff) so the buff's start text fires and the GMCP
+	// Mutation graph: on_hit_buff mutations (Venom Glands, …) afflict the
+	// struck defender. Route through the actor condition wrapper (not the raw
+	// Character.AddCondition) so the condition's start text fires and the GMCP
 	// conditions panel refreshes, for both player and mob defenders.
-	for _, buffId := range mutations.GetOnHitBuffs(atkChar.Mutations) {
-		def.AddBuff(buffId, "mutation")
+	for _, conditionId := range mutations.GetOnHitConditions(atkChar.Mutations) {
+		def.AddCondition(conditionId, "mutation")
 	}
 
-	// Conviction Surge: +15% damage on hit when DamageBonus buff flag set.
-	if atkChar.HasBuffFlag(buffs.DamageBonus) {
+	// Conviction Surge: +15% damage on hit when DamageBonus condition flag set.
+	if atkChar.HasConditionFlag(conditions.DamageBonus) {
 		bonusDmg := int(math.Round(float64(res.DamageToTarget) * 0.15))
 		if bonusDmg < 1 {
 			bonusDmg = 1
@@ -403,8 +403,8 @@ func applyCombatDamageBonuses(atk, def actions.Actor, res *combat.AttackResult) 
 			// Reflect-Skin flavor riders: the backlash also afflicts the
 			// attacker (Molten burn DoT, Frostbite chill, Voltaic shock).
 			// Route through the actor wrapper so start text + GMCP fire.
-			for _, buffId := range mutations.GetReflectRiderBuffs(defChar.Mutations) {
-				atk.AddBuff(buffId, "mutation")
+			for _, conditionId := range mutations.GetReflectRiderConditions(defChar.Mutations) {
+				atk.AddCondition(conditionId, "mutation")
 			}
 		}
 	}
@@ -544,7 +544,7 @@ func dispatchCritAndMessaging(atk, def actions.Actor, res *combat.AttackResult) 
 	// you hard in the dark!" in a fully lit room -- and it fired on the very
 	// swing that force-crits and wakes them, which is exactly the moment they
 	// most need to know what hit them. The Sleeping flag is still set here;
-	// cancelDamageBuffs clears it later in the round.
+	// cancelDamageConditions clears it later in the round.
 	srcCanSee := true
 	tgtCanSee := true
 	if atk.IsPlayer() {
@@ -564,12 +564,12 @@ func dispatchCritAndMessaging(atk, def actions.Actor, res *combat.AttackResult) 
 	// other combatant reads "something" and the room line is sight-gated.
 	sendCritEffectTrio(atk, def, atkRoom, critResult)
 
-	// Buffs from the round (BuffSource → atk, BuffTarget → def).
-	for _, buffId := range res.BuffSource {
-		atk.AddBuff(buffId, `combat`)
+	// Conditions from the round (ConditionSource → atk, ConditionTarget → def).
+	for _, conditionId := range res.ConditionSource {
+		atk.AddCondition(conditionId, `combat`)
 	}
-	for _, buffId := range res.BuffTarget {
-		def.AddBuff(buffId, `combat`)
+	for _, conditionId := range res.ConditionTarget {
+		def.AddCondition(conditionId, `combat`)
 	}
 
 	// Direct messages — Divergence #1, now verbosity-gated (spec:
@@ -631,11 +631,11 @@ func applyCombatProgression(atk, def actions.Actor, res *combat.AttackResult) {
 	atkUid := atk.GetUserId()
 	defUid := def.GetUserId()
 
-	// Cancel sleeping / cancel-on-damage buffs for any defender that took
+	// Cancel sleeping / cancel-on-damage conditions for any defender that took
 	// damage this round (chunk 3.3). Fires before concentration-break so
-	// that a waking defender's buffs are cleaned up in the same phase.
+	// that a waking defender's conditions are cleaned up in the same phase.
 	if res.DamageToTarget > 0 {
-		cancelDamageBuffs(defChar)
+		cancelDamageConditions(defChar)
 	}
 
 	// Defender player concentration break (Divergence: player defender only).

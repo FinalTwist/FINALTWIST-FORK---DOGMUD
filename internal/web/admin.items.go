@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -89,20 +89,20 @@ func itemData(w http.ResponseWriter, r *http.Request) {
 	tplData := map[string]any{}
 	tplData[`itemSpec`] = *itemSpec
 
-	buffSpecs := []buffs.BuffSpec{}
-	for _, buffId := range buffs.GetAllBuffIds() {
-		if b := buffs.GetBuffSpec(buffId); b != nil {
+	conditionSpecs := []conditions.ConditionSpec{}
+	for _, conditionId := range conditions.GetAllConditionIds() {
+		if b := conditions.GetConditionSpec(conditionId); b != nil {
 			if b.Name == `empty` {
 				continue
 			}
-			buffSpecs = append(buffSpecs, *b)
+			conditionSpecs = append(conditionSpecs, *b)
 		}
 	}
 
-	sort.SliceStable(buffSpecs, func(i, j int) bool {
-		return buffSpecs[i].BuffId < buffSpecs[j].BuffId
+	sort.SliceStable(conditionSpecs, func(i, j int) bool {
+		return conditionSpecs[i].ConditionId < conditionSpecs[j].ConditionId
 	})
-	tplData[`buffSpecs`] = buffSpecs
+	tplData[`conditionSpecs`] = conditionSpecs
 
 	tplData[`itemTypes`] = items.ItemTypes()
 	tplData[`itemSubtypes`] = items.ItemSubtypes()

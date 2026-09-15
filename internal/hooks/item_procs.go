@@ -3,8 +3,8 @@ package hooks
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -212,12 +212,12 @@ func procApplyCondition(target *characters.Character, params map[string]float64)
 	}
 	switch int(params["condition"]) {
 	case 1:
-		return target.AddBuffMagnitude(buffs.BuffIdBleeding, dur, -mag, "itemproc") == nil
+		return target.AddConditionMagnitude(conditions.ConditionIdBleeding, dur, -mag, "itemproc") == nil
 	}
 	return false
 }
 
-// procAoeStun applies the stagger-stun buff (84 — a 1-round Stunned) to every
+// procAoeStun applies the stagger-stun condition (84 — a 1-round Stunned) to every
 // hostile, stun-eligible mob in the owner's room. Non-combatants,
 // attack-immune, and charmed mobs are never targeted — stunning someone's
 // companion or a town NPC would be a prod incident. Returns true if
@@ -227,9 +227,9 @@ func procApplyCondition(target *characters.Character, params map[string]float64)
 // to a mob" has no clean definition here, so we return false (cooldown
 // unburned) rather than guess. owner.GetUserId() is 0 for mobs.
 //
-// The stun_rounds param is intentionally IGNORED: buff 84 is a fixed 1-round
+// The stun_rounds param is intentionally IGNORED: condition 84 is a fixed 1-round
 // stagger (triggercount:1 in its YAML) and cannot be duration-scaled from data
-// without hacking buff internals. The Stage-2 Aegis-of-Mockery shield tunes
+// without hacking condition internals. The Stage-2 Aegis-of-Mockery shield tunes
 // its strength via the proc's chance/cooldown fields instead.
 func procAoeStun(owner *characters.Character, room *rooms.Room, params map[string]float64) bool {
 	if owner == nil {
@@ -262,7 +262,7 @@ func procAoeStun(owner *characters.Character, room *rooms.Room, params map[strin
 		if mobs.CheckPlayerHarm(m).Blocked() {
 			continue
 		}
-		_ = m.Character.AddBuff(84, false)
+		_ = m.Character.AddCondition(84, false)
 		stunned++
 	}
 
@@ -271,7 +271,7 @@ func procAoeStun(owner *characters.Character, room *rooms.Room, params map[strin
 	}
 
 	// Room-wide narration, no raw numbers (project rule). CategorySubmission
-	// matches buff 84's own submission-stagger flavor.
+	// matches condition 84's own submission-stagger flavor.
 	room.SendTextVisual(messaging.CategorySubmission,
 		`<ansi fg="yellow">A jarring shockwave ripples outward, staggering the hostile creatures nearby!</ansi>`)
 	return true

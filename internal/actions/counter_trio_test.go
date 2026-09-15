@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const counterTrioInfraredBuffId = 7501
+const counterTrioInfraredConditionId = 7501
 
 var counterTrioTag = regexp.MustCompile(`<[^>]*>`)
 
@@ -36,8 +36,8 @@ func counterTrioRoom(t *testing.T, biome string) *rooms.Room {
 		"city":    {BiomeId: "city", LitArea: true},
 		"default": {BiomeId: "default", LitArea: true},
 	}))
-	t.Cleanup(buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		counterTrioInfraredBuffId: {BuffId: counterTrioInfraredBuffId, Name: "Test Heat Eyes", Flags: []buffs.Flag{buffs.InfraredVision}},
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		counterTrioInfraredConditionId: {ConditionId: counterTrioInfraredConditionId, Name: "Test Heat Eyes", Flags: []conditions.Flag{conditions.InfraredVision}},
 	}))
 	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{
 		7511: users.NewTestUser(7511, "aliceia", "Aliceia", 97511),
@@ -78,7 +78,7 @@ func TestSendCounterTrio_InTheDarkNobodyIsNamed(t *testing.T) {
 
 func TestSendCounterTrio_InfraredObserverReadsFigures(t *testing.T) {
 	room := counterTrioRoom(t, "cave")
-	require.True(t, users.GetByUserId(7513).Character.Buffs.AddBuff(counterTrioInfraredBuffId, true))
+	require.True(t, users.GetByUserId(7513).Character.Conditions.AddCondition(counterTrioInfraredConditionId, true))
 	SendCounterTrio(room, counterTrioResult(), users.GetByUserId(7512), 7512)
 
 	assert.Equal(t, []string{"A figure strikes back at a figure!"},

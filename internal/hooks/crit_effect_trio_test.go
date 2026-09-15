@@ -45,7 +45,7 @@ func TestSweep_AttackerInTheDarkIsNotToldTheDefendersName(t *testing.T) {
 func TestSweep_RoomLineIsVisual(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	darken(t, 1)
 	room := rooms.LoadRoom(1)
@@ -57,7 +57,7 @@ func TestSweep_RoomLineIsVisual(t *testing.T) {
 	assert.Equal(t, 0, countContaining(drainPlain(2), "SWEEP"),
 		"an observer who cannot see must not be told about the sweep at all")
 
-	require.True(t, users.GetByUserId(2).Character.Buffs.AddBuff(heatEyesBuffId, true))
+	require.True(t, users.GetByUserId(2).Character.Conditions.AddCondition(heatEyesConditionId, true))
 	sendCritEffectTrio(atk, def, room, sweepCrit("Aliceia", "Skeleton"))
 	observer := drainPlain(2)
 	assert.Equal(t, 1, countContaining(observer, "SWEEP! A figure dodges and sweeps a figure to the ground!"))

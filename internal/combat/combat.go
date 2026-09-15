@@ -428,7 +428,7 @@ func calculateCombat(sourceChar *characters.Character, targetChar *characters.Ch
 
 	for _, ws := range plan.weapons {
 		sdp := buildDamageParams(sourceChar, targetChar, ws, statModDBonus, sourceType)
-		sdp.critBuffs = ws.critBuffs
+		sdp.critConditions = ws.critConditions
 
 		// Track per-weapon hits for skill progression
 		weaponHit := WeaponHitInfo{
@@ -437,7 +437,7 @@ func calculateCombat(sourceChar *characters.Character, targetChar *characters.Ch
 
 		swingCount := ws.swingCount
 
-		mudlog.Debug("DistDamage", "swings", swingCount, "baseDmg", ws.baseDmg, "variance", dice.StdDevFor(sdp.dmgMean), "dmgMean", sdp.dmgMean, "weaponMult", ws.weaponDmgMult, "critBuffs", ws.critBuffs)
+		mudlog.Debug("DistDamage", "swings", swingCount, "baseDmg", ws.baseDmg, "variance", dice.StdDevFor(sdp.dmgMean), "dmgMean", sdp.dmgMean, "weaponMult", ws.weaponDmgMult, "critConditions", ws.critConditions)
 
 		critThreshold := calcCritThreshold(sourceChar, targetChar)
 

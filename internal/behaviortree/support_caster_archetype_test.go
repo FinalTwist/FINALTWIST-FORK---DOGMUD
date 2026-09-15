@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -223,7 +223,7 @@ func seedSupportCasterMob(t *testing.T, instanceId int, spellbook map[string]int
 	m.Character.Health = 100
 	m.Character.HealthMax.Value = 100
 	m.Character.SpellBook = spellbook
-	m.Character.Buffs = buffs.New()
+	m.Character.Conditions = conditions.New()
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{400 + instanceId: m},
 		map[int]*mobs.Mob{instanceId: m},

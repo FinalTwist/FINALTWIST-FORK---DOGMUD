@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -46,7 +46,7 @@ func Show(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		return true, nil
 	}
 
-	user.Character.CancelBuffsWithFlag(buffs.Hidden)
+	user.Character.CancelConditionsWithFlag(conditions.Hidden)
 
 	if showItem.ItemId == 0 {
 		user.SendText(messaging.CategorySystem, "Something went wrong.")

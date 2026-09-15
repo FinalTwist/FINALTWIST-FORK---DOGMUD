@@ -3,8 +3,8 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -21,7 +21,7 @@ func TestBuy_AffixedStockItem(t *testing.T) {
 	m := &mobs.Mob{}
 	m.Character.Name = "Buyer"
 	m.Character.Gold = 1000
-	m.Character.Buffs = buffs.New()
+	m.Character.Conditions = conditions.New()
 	m.Character.Stats.Strength.ValueAdj = 100 // carry capacity
 	buyer := &MobActor{Mob: m}
 
@@ -62,9 +62,9 @@ func TestBuy_EmptyRequest(t *testing.T) {
 
 func TestBuildLegacyCatalog_SkipsMercAndPet(t *testing.T) {
 	saleItems := characters.Shop{
-		// Items and buffs should appear; mercs/pets should be skipped.
+		// Items and conditions should appear; mercs/pets should be skipped.
 		{ItemId: 20000, Price: 50, Quantity: 1, QuantityMax: 1},
-		{BuffId: 1, Price: 100, Quantity: 1, QuantityMax: 1},
+		{ConditionId: 1, Price: 100, Quantity: 1, QuantityMax: 1},
 		{MobId: 100, Price: 250, Quantity: 1, QuantityMax: 1},
 		{PetType: "kitten", Price: 10000, Quantity: 1, QuantityMax: 1},
 	}

@@ -924,7 +924,7 @@
 
       var buffBox = ce("div", {});
       function buffRow(v) {
-        var vv = ce("input", { type: "number", step: "1", placeholder: "buff id" });
+        var vv = ce("input", { type: "number", step: "1", placeholder: "condition id" });
         vv.value = (v || v === 0) ? v : "";
         vv.addEventListener("input", function () { setDirty(true); });
         var rm = ce("button", { "class": "mini rm", text: "✕", type: "button" });
@@ -934,8 +934,8 @@
         buffBox.appendChild(r);
       }
       (s.buffIds || []).forEach(buffRow);
-      advBody.appendChild(field("Buff ids always active", buffBox));
-      var addBuff = ce("button", { "class": "mini", text: "+ buff id", type: "button" });
+      advBody.appendChild(field("Condition ids always active", buffBox));
+      var addBuff = ce("button", { "class": "mini", text: "+ condition id", type: "button" });
       addBuff.addEventListener("click", function () { buffRow(0); setDirty(true); });
       advBody.appendChild(addBuff);
 

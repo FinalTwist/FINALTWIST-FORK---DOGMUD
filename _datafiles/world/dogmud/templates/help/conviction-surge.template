@@ -2,7 +2,7 @@
 
 The <ansi fg="command">Conviction Surge</ansi> spell floods the target with a surge of pure
 conviction, bolstering their attack power and combat effectiveness.
-A quick, efficient buff for empowering an ally before battle.
+A quick, efficient spell for empowering an ally before battle.
 
 <ansi fg="yellow">Usage: </ansi>
 
@@ -14,6 +14,6 @@ A quick, efficient buff for empowering an ally before battle.
   <ansi fg="yellow">School:      </ansi> Enhancement
   <ansi fg="yellow">Base Folds:  </ansi> 4
   <ansi fg="yellow">Conv. Cost:  </ansi> 35
-  <ansi fg="yellow">Effect:      </ansi> Attack power buff — increases combat damage output
+  <ansi fg="yellow">Effect:      </ansi> Attack power condition, increases combat damage output
 
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help spells</ansi>, <ansi fg="command">help cast</ansi>

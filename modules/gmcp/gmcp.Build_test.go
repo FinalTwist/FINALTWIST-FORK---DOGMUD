@@ -80,9 +80,9 @@ func (w *fakeWorld) deps() buildDeps {
 		isNonEuclidean: func(plane int) bool { return w.nonEuclid[plane] },
 		// The registries are empty in unit tests; the fake says every
 		// reference exists so spawn tests exercise the POLICY, not data loading.
-		mobExists:  func(int) bool { return true },
-		itemExists: func(int) bool { return true },
-		buffExists: func(int) bool { return true },
+		mobExists:       func(int) bool { return true },
+		itemExists:      func(int) bool { return true },
+		conditionExists: func(int) bool { return true },
 	}
 }
 

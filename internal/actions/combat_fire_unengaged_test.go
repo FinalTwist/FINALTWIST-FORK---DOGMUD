@@ -5,9 +5,9 @@ import (
 	"math"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -106,7 +106,7 @@ func seedUnengagedFire(t *testing.T, defenderRoomId int, watchers ...unengagedWa
 	defChar.Name = "Skeleton"
 	defChar.RoomId = defenderRoomId
 	defChar.Health = surpriseMobHealth
-	defChar.Buffs = buffs.New()
+	defChar.Conditions = conditions.New()
 	defChar.Cooldowns = map[string]int{}
 	defChar.Stats.Dexterity.ValueAdj = 1
 
@@ -118,7 +118,7 @@ func seedUnengagedFire(t *testing.T, defenderRoomId int, watchers ...unengagedWa
 		wc.Name = "Watcher"
 		wc.RoomId = w.roomId
 		wc.Health = 1000
-		wc.Buffs = buffs.New()
+		wc.Conditions = conditions.New()
 		wc.Cooldowns = map[string]int{}
 		wc.MobInstanceId = w.instanceId
 		// Charmed set directly, and the aggro after it: Character.Charm()

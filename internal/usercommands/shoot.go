@@ -156,7 +156,7 @@ func Fire(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	dealt := hit || result.MoveResult.Damage > 0
 
 	// Issue 5 (cross-room hidden reveal): same-room shots reveal the shooter
-	// through the normal aggro→combat path (CancelCombatBuffs in the combat
+	// through the normal aggro→combat path (CancelCombatConditions in the combat
 	// round handler, set up by the pre-fire aggro above). A cross-room shooter
 	// never enters that loop, so a hidden sniper would stay hidden forever.
 	// Mirror melee's reveal-on-engage: a cross-room shot that deals ANY
@@ -165,7 +165,7 @@ func Fire(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	// free clean miss, not one free hit. (Same-room shooter aggro is set inside
 	// ExecuteFire, AFTER cost admission, so a refused shot never engages.)
 	if result.CrossRoom && dealt {
-		user.Character.CancelCombatBuffs()
+		user.Character.CancelCombatConditions()
 	}
 
 	// --- Retaliation + crime (mob targets only) ---

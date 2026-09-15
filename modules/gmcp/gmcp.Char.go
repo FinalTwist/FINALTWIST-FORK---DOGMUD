@@ -6,9 +6,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/casing"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -26,7 +26,7 @@ import (
 // their initial full Char push yet (e.g. a web client whose websocket GMCP frame
 // raced the login burst, so isGMCPEnabled was still false at PlayerSpawn time).
 // Without this, the Status & Conditions header + conditions only recover when a
-// later CharacterChanged fires (e.g. a buff add/refresh). The next NewRound
+// later CharacterChanged fires (e.g. a condition add/refresh). The next NewRound
 // re-pushes "Char" once for these users and clears them, guaranteeing delivery
 // after the connection is GMCP-ready. Mirrors the pattern in gmcp.Automation.go.
 // Steady-state cost is zero once drained.
@@ -61,7 +61,7 @@ func init() {
 	events.RegisterListener(GMCPCharUpdate{}, g.buildAndSendGMCPPayload)
 	events.RegisterListener(events.CharacterStatsChanged{}, g.statsChangeHandler)
 	events.RegisterListener(events.CharacterChanged{}, g.charChangeHandler)
-	events.RegisterListener(events.BuffsTriggered{}, g.buffTriggeredHandler)
+	events.RegisterListener(events.ConditionsTriggered{}, g.conditionTriggeredHandler)
 	// Char.Quests carries the quest marker's next_room / next_dir, and BOTH are
 	// computed from where the player is standing at send time. Without this the
 	// payload only ever refreshed when a quest changed, so the next-step arrow
@@ -139,9 +139,9 @@ func (g *GMCPCharModule) roomChangeHandler(e events.Event) events.ListenerReturn
 	return events.Continue
 }
 
-func (g *GMCPCharModule) buffTriggeredHandler(e events.Event) events.ListenerReturn {
+func (g *GMCPCharModule) conditionTriggeredHandler(e events.Event) events.ListenerReturn {
 
-	evt, typeOk := e.(events.BuffsTriggered)
+	evt, typeOk := e.(events.ConditionsTriggered)
 	if !typeOk {
 		return events.Continue // Return false to stop halt the event chain for this event
 	}
@@ -696,7 +696,7 @@ type GMCPCharModule_Payload struct {
 //
 // One entry per held record, keyed by its visible name (a repeated name takes
 // a `#n` suffix). This is the former Char.Affects shape plus Duration, the
-// qualitative word the retired Char.Conditions list carried; a permabuff
+// qualitative word the retired Char.Conditions list carried; a permanent condition
 // reports DurationMax/DurationLeft -1 and Duration "sustained".
 type GMCPCondition struct {
 	Name         string         `json:"name"`
@@ -724,31 +724,31 @@ func conditionDurationLabel(rounds int) string {
 }
 
 // buildConditionsPayload builds Char.Conditions for one character. One
-// payload, one source: buff records ARE the conditions, so this map is
+// payload, one source: condition records ARE the conditions, so this map is
 // everything the client used to get as Char.Affects plus the qualitative
-// duration word the old Char.Conditions list carried. BuffSpec.Listed decides
+// duration word the old Char.Conditions list carried. ConditionSpec.Listed decides
 // what appears, the same predicate the in-game `conditions` command uses, so
 // the web client and the text list show the same records. The map is keyed by
 // the plain spec name (a repeat takes a `#n` suffix); the entry's name is
-// buffs.DisplayName, which appends a stacking record's live count.
+// conditions.DisplayName, which appends a stacking record's live count.
 func buildConditionsPayload(ch *characters.Character) map[string]GMCPCondition {
 	c := configs.GetTimingConfig()
-	conditions := make(map[string]GMCPCondition)
+	held := make(map[string]GMCPCondition)
 
 	nameIncrement := 0
-	for _, buff := range ch.GetBuffs() {
+	for _, condition := range ch.GetConditions() {
 
-		buffSpec := buffs.GetBuffSpec(buff.BuffId)
-		if buffSpec == nil || !buffSpec.Listed() {
+		conditionSpec := conditions.GetConditionSpec(condition.ConditionId)
+		if conditionSpec == nil || !conditionSpec.Listed() {
 			continue
 		}
 
 		timeLeft, timeMax := -1, -1
 		roundsLeft := 0
 
-		if !buff.PermaBuff {
+		if !condition.Permanent {
 			var totalRounds int
-			roundsLeft, totalRounds = buffs.GetDurations(buff, buffSpec)
+			roundsLeft, totalRounds = conditions.GetDurations(condition, conditionSpec)
 			if roundsLeft < 0 {
 				roundsLeft = 0
 			}
@@ -756,37 +756,37 @@ func buildConditionsPayload(ch *characters.Character) map[string]GMCPCondition {
 			timeLeft = c.RoundsToSeconds(roundsLeft)
 		}
 
-		buffSource := buff.Source
-		if buffSource == `` {
-			buffSource = `unknown`
+		conditionSource := condition.Source
+		if conditionSource == `` {
+			conditionSource = `unknown`
 		}
 		cond := GMCPCondition{
-			Name:         buffs.DisplayName(buff, buffSpec),
-			Description:  buffSpec.Description,
+			Name:         conditions.DisplayName(condition, conditionSpec),
+			Description:  conditionSpec.Description,
 			DurationMax:  timeMax,
 			DurationLeft: timeLeft,
-			// A permabuff reports roundsLeft 0, which the label reads as
+			// A permanent condition reports roundsLeft 0, which the label reads as
 			// "sustained", the same word the old condition list used for a
 			// permanent entry.
 			Duration: conditionDurationLabel(roundsLeft),
-			Type:     buffSource,
+			Type:     conditionSource,
 		}
 
 		cond.Mods = make(map[string]int)
-		for name, value := range buffSpec.StatMods {
+		for name, value := range conditionSpec.StatMods {
 			cond.Mods[name] = value
 		}
 
-		key := buffSpec.Name
-		if _, ok := conditions[key]; ok {
+		key := conditionSpec.Name
+		if _, ok := held[key]; ok {
 			nameIncrement++
 			key += `#` + strconv.Itoa(nameIncrement)
 		}
 
-		conditions[key] = cond
+		held[key] = cond
 	}
 
-	return conditions
+	return held
 }
 
 // /////////////////

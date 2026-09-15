@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/casing"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -146,7 +146,7 @@ const (
 	Drinkable ItemSubType = "drinkable"
 	Edible    ItemSubType = "edible"
 	Usable    ItemSubType = "usable"
-	Throwable ItemSubType = "throwable" // If dropped/thrown, triggers buff effects on room and is lost
+	Throwable ItemSubType = "throwable" // If dropped/thrown, triggers condition effects on room and is lost
 	Mundane   ItemSubType = "mundane"
 
 	// Subtypes for weapons, chooses attack messages.
@@ -220,14 +220,14 @@ const (
 )
 
 type Damage struct {
-	Attacks     int    `yaml:"attacks,omitempty"`     // How many attacks this weapon gets (usually 1)
-	DiceRoll    string `yaml:"diceroll,omitempty"`    // legacy: 1d6, etc.
-	CritBuffIds []int  `yaml:"critbuffids,omitempty"` // If this damage is a crit, what buffs does it apply?
-	DiceCount   int    `yaml:"dicecount,omitempty"`   // how many dice to roll for this weapons damage
-	SideCount   int    `yaml:"sidecount,omitempty"`   // how many sides per dice roll
-	BonusDamage int    `yaml:"bonusdamage,omitempty"` // flat damage bonus, so for example 1d6+1
-	BaseDamage  int    `yaml:"basedamage,omitempty"`  // distribution mode: mean damage
-	Variance    int    `yaml:"variance,omitempty"`    // distribution mode: standard deviation
+	Attacks          int    `yaml:"attacks,omitempty"`     // How many attacks this weapon gets (usually 1)
+	DiceRoll         string `yaml:"diceroll,omitempty"`    // legacy: 1d6, etc.
+	CritConditionIds []int  `yaml:"critbuffids,omitempty"` // If this damage is a crit, what conditions does it apply?
+	DiceCount        int    `yaml:"dicecount,omitempty"`   // how many dice to roll for this weapons damage
+	SideCount        int    `yaml:"sidecount,omitempty"`   // how many sides per dice roll
+	BonusDamage      int    `yaml:"bonusdamage,omitempty"` // flat damage bonus, so for example 1d6+1
+	BaseDamage       int    `yaml:"basedamage,omitempty"`  // distribution mode: mean damage
+	Variance         int    `yaml:"variance,omitempty"`    // distribution mode: standard deviation
 }
 
 type ItemMessage string
@@ -257,18 +257,18 @@ var validProcEffects = map[string]bool{
 
 // The blueprint for an item
 type ItemSpec struct {
-	ItemId      int
-	Value       int
-	Uses        int   `yaml:"uses,omitempty"`        // How many uses it starts with
-	BuffIds     []int `yaml:"buffids,omitempty"`     // What buffs it can apply (if used)
-	WornBuffIds []int `yaml:"wornbuffids,omitempty"` // BuffId's that are applied while worn, and expired when removed.
+	ItemId           int
+	Value            int
+	Uses             int   `yaml:"uses,omitempty"`        // How many uses it starts with
+	ConditionIds     []int `yaml:"buffids,omitempty"`     // What conditions it can apply (if used)
+	WornConditionIds []int `yaml:"wornbuffids,omitempty"` // ConditionId's that are applied while worn, and expired when removed.
 	// ── Pinnacle Stage 1: procs, reserves, bandolier, mutation drip, hunger, voice ──
 	Procs                 []ItemProc `yaml:"procs,omitempty"`                   // data-driven combat procs
 	ReserveHealthPct      float64    `yaml:"reserve_health_pct,omitempty"`      // 0-1 fraction of HealthMax reserved while equipped
 	ReserveStaminaPct     float64    `yaml:"reserve_stamina_pct,omitempty"`     // 0-1 fraction of StaminaMax reserved while equipped
 	ReserveConvictionPct  float64    `yaml:"reserve_conviction_pct,omitempty"`  // 0-1 fraction of ConvictionMax reserved while equipped
 	PreservesContents     bool       `yaml:"preserves_contents,omitempty"`      // bandolier: contents never age
-	AmbientPotions        bool       `yaml:"ambient_potions,omitempty"`         // bandolier: slotted potion buffs always-on at Peak
+	AmbientPotions        bool       `yaml:"ambient_potions,omitempty"`         // bandolier: slotted potion conditions always-on at Peak
 	MutationTickInterval  int        `yaml:"mutation_tick_interval,omitempty"`  // rounds between mutation rolls while worn (0 = never)
 	MutationTickChance    int        `yaml:"mutation_tick_chance,omitempty"`    // percent chance per roll
 	MutationRarityFloor   int        `yaml:"mutation_rarity_floor,omitempty"`   // min mutation rarity in the pool (0 = no floor)
@@ -391,7 +391,7 @@ func (d *Damage) String() string {
 
 func (d *Damage) FormatDiceRoll() string {
 
-	d.DiceRoll = util.FormatDiceRoll(d.Attacks, d.DiceCount, d.SideCount, d.BonusDamage, d.CritBuffIds)
+	d.DiceRoll = util.FormatDiceRoll(d.Attacks, d.DiceCount, d.SideCount, d.BonusDamage, d.CritConditionIds)
 
 	return d.DiceRoll
 }
@@ -558,10 +558,10 @@ func (i *ItemSpec) AutoCalculateValue() {
 		i.MagicalMitigation*i.MagicalMitigation +
 		i.ConvictionMitigation*i.ConvictionMitigation) * 17
 
-	// Get the value of any buff it applies
-	for _, buffId := range i.BuffIds {
-		if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil {
-			val += buffSpec.GetValue()
+	// Get the value of any condition it applies
+	for _, conditionId := range i.ConditionIds {
+		if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil {
+			val += conditionSpec.GetValue()
 		}
 	}
 

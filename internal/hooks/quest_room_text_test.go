@@ -47,10 +47,10 @@ func TestQuestRoomText_UnsightedObserverInTheDarkGetsNothing(t *testing.T) {
 func TestQuestRoomText_InfraredObserverSeesAFigure(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	darken(t, 1)
-	require.True(t, users.GetByUserId(2).Character.Buffs.AddBuff(heatEyesBuffId, true))
+	require.True(t, users.GetByUserId(2).Character.Conditions.AddCondition(heatEyesConditionId, true))
 	drainPlain(2)
 
 	questengine.NewGameBridge(users.GetByUserId(1), 1).Narrate(quests.ActionDef{RoomText: "{source} unlocks the strongbox."}.Narration())

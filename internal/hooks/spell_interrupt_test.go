@@ -3,8 +3,8 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/activity"
@@ -31,11 +31,11 @@ func newSpellTestMob(instanceId int) *mobs.Mob {
 		InstanceId: instanceId,
 		HomeRoomId: 1,
 		Character: characters.Character{
-			Name:      "Core Guardian",
-			RoomId:    1,
-			Health:    500,
-			Buffs:     buffs.New(),
-			Cooldowns: map[string]int{},
+			Name:       "Core Guardian",
+			RoomId:     1,
+			Health:     500,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	m.Character.HealthMax.Value = 500

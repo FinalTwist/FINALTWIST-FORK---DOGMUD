@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -56,10 +56,10 @@ func seedTestMob(t *testing.T, templateId int, instanceId int, homeRoomId int, n
 	spec := &mobs.Mob{
 		MobId: mobs.MobId(templateId),
 		Character: characters.Character{
-			Name:      name,
-			RoomId:    homeRoomId,
-			Buffs:     buffs.New(),
-			Awareness: awareness.NewMachine(),
+			Name:       name,
+			RoomId:     homeRoomId,
+			Conditions: conditions.New(),
+			Awareness:  awareness.NewMachine(),
 		},
 	}
 	instance := &mobs.Mob{
@@ -67,10 +67,10 @@ func seedTestMob(t *testing.T, templateId int, instanceId int, homeRoomId int, n
 		InstanceId: instanceId,
 		HomeRoomId: homeRoomId,
 		Character: characters.Character{
-			Name:      name,
-			RoomId:    homeRoomId,
-			Buffs:     buffs.New(),
-			Awareness: awareness.NewMachine(),
+			Name:       name,
+			RoomId:     homeRoomId,
+			Conditions: conditions.New(),
+			Awareness:  awareness.NewMachine(),
 		},
 	}
 	return mobs.SeedMobsForTest(
@@ -89,17 +89,17 @@ func seedTwoMobs(t *testing.T, roomId int,
 	t.Helper()
 	specs := map[int]*mobs.Mob{
 		template1: {MobId: mobs.MobId(template1), Character: characters.Character{
-			Name: name1, RoomId: roomId, Buffs: buffs.New(), Awareness: awareness.NewMachine(),
+			Name: name1, RoomId: roomId, Conditions: conditions.New(), Awareness: awareness.NewMachine(),
 		}},
 		template2: {MobId: mobs.MobId(template2), Character: characters.Character{
-			Name: name2, RoomId: roomId, Buffs: buffs.New(), Awareness: awareness.NewMachine(),
+			Name: name2, RoomId: roomId, Conditions: conditions.New(), Awareness: awareness.NewMachine(),
 		}},
 	}
 	instances := map[int]*mobs.Mob{
 		instance1: {MobId: mobs.MobId(template1), InstanceId: instance1, HomeRoomId: roomId,
-			Character: characters.Character{Name: name1, RoomId: roomId, Buffs: buffs.New(), Awareness: awareness.NewMachine()}},
+			Character: characters.Character{Name: name1, RoomId: roomId, Conditions: conditions.New(), Awareness: awareness.NewMachine()}},
 		instance2: {MobId: mobs.MobId(template2), InstanceId: instance2, HomeRoomId: roomId,
-			Character: characters.Character{Name: name2, RoomId: roomId, Buffs: buffs.New(), Awareness: awareness.NewMachine()}},
+			Character: characters.Character{Name: name2, RoomId: roomId, Conditions: conditions.New(), Awareness: awareness.NewMachine()}},
 	}
 	return mobs.SeedMobsForTest(specs, instances)
 }
@@ -129,13 +129,13 @@ func seedTestRoom(t *testing.T, roomId int, zone string) func() {
 	)
 }
 
-// grantHiddenBuff adds buff 9 to the character AND advances the Awareness
+// grantHiddenCondition adds condition 9 to the character AND advances the Awareness
 // state machine to Hidden so that char.IsHidden() returns true.
-// Callers must have seeded hiddenBuffSpec (or equivalent) before calling.
-// Uses a fatal error if AddBuff fails so tests get a clear message.
-func grantHiddenBuff(t *testing.T, char *characters.Character) {
+// Callers must have seeded hiddenConditionSpec (or equivalent) before calling.
+// Uses a fatal error if AddCondition fails so tests get a clear message.
+func grantHiddenCondition(t *testing.T, char *characters.Character) {
 	t.Helper()
-	if err := char.AddBuff(9, false); err != nil {
+	if err := char.AddCondition(9, false); err != nil {
 		t.Fatalf("grantHiddenBuff: AddBuff(9) failed: %v", err)
 	}
 	// Sync Awareness machine to Hidden state so char.IsHidden() returns true.

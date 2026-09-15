@@ -89,8 +89,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/grapplemessaging"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -134,12 +134,12 @@ func setupRealStores(t *testing.T) {
 
 	cfg := configs.GetConfig()
 	cfg.FilePaths.DataFiles = configs.ConfigString(dogmudDataDir(t))
-	// Buff 0 (Meditating) derives its TriggerCount from this at Validate time
+	// Condition 0 (Meditating) derives its TriggerCount from this at Validate time
 	// and refuses 0; the shipped config.yaml says 3. Set it explicitly rather
 	// than load config.yaml: that file is skip-worktree and differs per
 	// machine, and a golden must not have a per-machine input. DataFiles and
 	// LogoutRounds are the only config keys the three loaders read (verified
-	// 2026-09-12); every other knob is a Go zero value here. The loaded buff,
+	// 2026-09-12); every other knob is a Go zero value here. The loaded condition,
 	// spell and quest maps stay populated after this test; nothing else in
 	// this package reads them.
 	cfg.Network.LogoutRounds = 3
@@ -152,7 +152,7 @@ func setupRealStores(t *testing.T) {
 
 	// Kind B stores (M3 item 5b). Their loaders read the same configured data
 	// path, so the golden sees exactly what a booted dogmud world sees.
-	buffs.LoadDataFiles()
+	conditions.LoadDataFiles()
 	spells.LoadSpellFiles()
 	quests.LoadDataFiles()
 }
@@ -725,7 +725,7 @@ func TestSnapshotStores(t *testing.T) {
 		checkGolden(t, "itemvoices.golden", buildItemVoicesGolden(t))
 	})
 	t.Run("buffs", func(t *testing.T) {
-		checkGolden(t, "buffs.golden", buildBuffsGolden(t))
+		checkGolden(t, "buffs.golden", buildConditionsGolden(t))
 	})
 	t.Run("spells", func(t *testing.T) {
 		checkGolden(t, "spells.golden", buildSpellsGolden(t))
@@ -791,7 +791,7 @@ func buildItemVoicesGolden(t *testing.T) string {
 }
 
 // ---------------------------------------------------------------------
-// Kind B stores (M3 item 5b): buffs, spells, quests. Single strings per
+// Kind B stores (M3 item 5b): conditions, spells, quests. Single strings per
 // lifecycle phase, no pool, so no picker is involved: the golden freezes the
 // substitution and the notice logic, keyed by the AUTHORED key name so a
 // swapped role shows up as a changed row.
@@ -807,24 +807,24 @@ var kindBSource = textutil.TokenContext{
 	TargetPlainName: "Targetticus",
 }
 
-// kindBNoTarget is the same source with no target, which is how every buff
+// kindBNoTarget is the same source with no target, which is how every condition
 // site and the quest bridge render: they never know a target.
 var kindBNoTarget = textutil.TokenContext{
 	SourceName:      kindBSource.SourceName,
 	SourcePlainName: kindBSource.SourcePlainName,
 }
 
-// Store 8: buffs (internal/buffs, six *_user_text / *_room_text fields)
+// Store 8: conditions (internal/conditions, six *_user_text / *_room_text fields)
 //
-// Since M3 item 5b this builder reads through BuffSpec.Narrate and
+// Since M3 item 5b this builder reads through ConditionSpec.Narrate and
 // AuthoredStartLine; the emitted rows, their order and the header are
 // unchanged from the pre-migration recording, which is the byte-identity
 // proof.
-func buildBuffsGolden(t *testing.T) string {
+func buildConditionsGolden(t *testing.T) string {
 	t.Helper()
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "# buffs store snapshot (internal/buffs)\n")
+	fmt.Fprintf(&b, "# buffs store snapshot (internal/conditions)\n")
 	fmt.Fprintf(&b, "# Built 2026-09-12 from PRE-migration code. The *_user_text rows record what the\n")
 	fmt.Fprintf(&b, "# HOLDER is sent: for start and end that is StartUserNotice / EndUserNotice (authored\n")
 	fmt.Fprintf(&b, "# line, else the generic fallback, else nothing for a secret buff). A row exists only\n")
@@ -834,23 +834,23 @@ func buildBuffsGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# (89) does not, its move narrates the choke itself.\n")
 	fmt.Fprintf(&b, "# dimensions: buff id x authored key; source only, buffs never know a target\n\n")
 
-	ids := buffs.GetAllBuffIds()
+	ids := conditions.GetAllConditionIds()
 	sort.Ints(ids)
 	if len(ids) == 0 {
 		t.Fatal("no buffs loaded; setupRealStores must call buffs.LoadDataFiles()")
 	}
 	for _, id := range ids {
-		spec := buffs.GetBuffSpec(id)
+		spec := conditions.GetConditionSpec(id)
 		if spec == nil {
 			t.Fatalf("buff %d has no spec", id)
 		}
 		phases := []struct {
-			p                buffs.Phase
+			p                conditions.Phase
 			userKey, roomKey string
 		}{
-			{buffs.PhaseStart, "start_user_text", "start_room_text"},
-			{buffs.PhaseTrigger, "trigger_user_text", "trigger_room_text"},
-			{buffs.PhaseEnd, "end_user_text", "end_room_text"},
+			{conditions.PhaseStart, "start_user_text", "start_room_text"},
+			{conditions.PhaseTrigger, "trigger_user_text", "trigger_room_text"},
+			{conditions.PhaseEnd, "end_user_text", "end_room_text"},
 		}
 		for _, ph := range phases {
 			roles := spec.Narrate(ph.p, kindBNoTarget)
@@ -861,7 +861,7 @@ func buildBuffsGolden(t *testing.T) string {
 				fmt.Fprintf(&b, "buff|%d|%s => %s\n", id, ph.roomKey, roles.Observer)
 			}
 		}
-		if slices.Contains(spec.Flags, buffs.SilentStart) {
+		if slices.Contains(spec.Flags, conditions.SilentStart) {
 			if line := spec.AuthoredStartLine(kindBNoTarget); line != "" {
 				fmt.Fprintf(&b, "buff|%d|authored_start_line => %s\n", id, line)
 			}

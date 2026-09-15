@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -14,7 +14,7 @@ import (
 
 func Remove(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
-	if mob.Character.HasBuffFlag(buffs.PermaGear) {
+	if mob.Character.HasConditionFlag(conditions.PermaGear) {
 		mob.Command(`emote struggles with their gear for a while, then gives up.`)
 		return true, nil
 	}

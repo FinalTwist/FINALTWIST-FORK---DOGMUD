@@ -1,7 +1,7 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -47,7 +47,7 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 	// chat — the Deafened moderation filter below is load-bearing) and
 	// direct events.Message{RoomId} constructions. The IsQuiet /
 	// SuperHearing filter currently has zero emitters in DOGMud (no dogmud
-	// buff grants superhearing) — dormant upstream-compat, kept for
+	// condition grants superhearing) — dormant upstream-compat, kept for
 	// cherry-pick parity. Audited 2026-07-10.
 	if message.RoomId > 0 {
 
@@ -86,7 +86,7 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 
 				// If this is a quiet message, make sure the player can hear it
 				if message.IsQuiet {
-					if !user.Character.HasBuffFlag(buffs.SuperHearing) {
+					if !user.Character.HasConditionFlag(conditions.SuperHearing) {
 						continue
 					}
 				}

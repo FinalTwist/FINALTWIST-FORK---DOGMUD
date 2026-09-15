@@ -3,7 +3,7 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -19,8 +19,8 @@ func hiddenMobRoom(t *testing.T, roomId, instId, sneakRank int) *rooms.Room {
 	m.Character.Skills = map[string]int{"skullduggery": sneakRank}
 	m.Character.Stats.Dexterity.Base = 100
 	m.Character.Stats.Dexterity.Recalculate()
-	m.Character.Buffs = buffs.New()
-	// IsHidden() reads the Awareness FSM, not a buff. Concealing then resolving
+	m.Character.Conditions = conditions.New()
+	// IsHidden() reads the Awareness FSM, not a condition. Concealing then resolving
 	// is the only route into awareness.Hidden.
 	m.Character.Awareness = awareness.NewMachine()
 	reason := state.TransitionReason{Trigger: "search_stealth_test"}

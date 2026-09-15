@@ -15,12 +15,12 @@ func BenchmarkDoListeners(b *testing.B) {
 			defer ClearListeners()
 
 			for range n {
-				RegisterListener(Buff{}, func(e Event) ListenerReturn {
+				RegisterListener(Condition{}, func(e Event) ListenerReturn {
 					return Continue
 				})
 			}
 
-			evt := Buff{BuffId: 1}
+			evt := Condition{ConditionId: 1}
 
 			b.ReportAllocs()
 			b.ResetTimer()

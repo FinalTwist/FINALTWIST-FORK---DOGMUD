@@ -3,8 +3,8 @@ package messaging
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
 )
@@ -63,7 +63,7 @@ func TestCanSeeShapesBlindedNoInfrared(t *testing.T) {
 	if CanSeeShapes(c, nil) {
 		t.Fatal("Blinded observer must NOT see shapes, even with nil/lit room")
 	}
-	_ = buffs.InfraredVision // ensure the flag constant exists
+	_ = conditions.InfraredVision // ensure the flag constant exists
 }
 
 func TestNilCharacterDefaultsToSeeing(t *testing.T) {
@@ -75,26 +75,26 @@ func TestNilCharacterDefaultsToSeeing(t *testing.T) {
 	}
 }
 
-// setSleeping gives the character the Sleeping buff flag.
+// setSleeping gives the character the Sleeping condition flag.
 //
-// Unlike blindness, sleep is not a Perception state -- it is a buff flag, so
+// Unlike blindness, sleep is not a Perception state -- it is a condition flag, so
 // this seeds a minimal spec into the global registry and applies it. The
 // registry is restored by the returned cleanup.
 func setSleeping(t *testing.T, c *characters.Character) {
 	t.Helper()
-	const sleepBuffId = 9001
-	restore := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		sleepBuffId: {
-			BuffId: sleepBuffId,
-			Name:   "Test Sleep",
-			Flags:  []buffs.Flag{buffs.Sleeping},
+	const sleepConditionId = 9001
+	restore := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		sleepConditionId: {
+			ConditionId: sleepConditionId,
+			Name:        "Test Sleep",
+			Flags:       []conditions.Flag{conditions.Sleeping},
 		},
 	})
 	t.Cleanup(restore)
-	if err := c.AddBuff(sleepBuffId, true); err != nil {
+	if err := c.AddCondition(sleepConditionId, true); err != nil {
 		t.Fatalf("applying the sleeping buff failed: %v", err)
 	}
-	if !c.HasBuffFlag(buffs.Sleeping) {
+	if !c.HasConditionFlag(conditions.Sleeping) {
 		t.Fatal("precondition: the character should now carry the Sleeping flag")
 	}
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/keywords"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -76,8 +76,8 @@ var (
 		`character`:       {Character, true, true, false},
 		`bank`:            {Bank, false, true, false},
 		`break`:           {Break, false, true, false},
-		`build`:           {Build, false, true, true}, // Admin only
-		`buff`:            {Buff, false, true, true},  // Admin only
+		`build`:           {Build, false, true, true},        // Admin only
+		`setcondition`:    {SetCondition, false, true, true}, // Admin only; `buff` is an alias, see keywords.yaml command-aliases
 		`buy`:             {Buy, false, true, false},
 		`caravan`:         {Caravan, true, true, true}, // Admin only
 		`cancel`:          {Cancel, true, true, false},
@@ -278,7 +278,11 @@ func GetCmdSuggestions(text string, includeAdmin bool) []string {
 		}
 	}
 
-	for alias, _ := range keywords.GetAllCommandAliases() {
+	for alias, targetCmd := range keywords.GetAllCommandAliases() {
+		if !includeAdmin && IsAdminCommand(targetCmd) {
+			continue
+		}
+
 		testCmd := strings.ToLower(alias)
 		if testCmd != text && strings.HasPrefix(testCmd, text) {
 			results = append(results, alias[len(text):])
@@ -413,8 +417,8 @@ func TryCommand(cmd string, rest string, userId int, flags events.EventFlag) (bo
 
 	}
 
-	// Cancel any buffs they have that get cancelled based on them doing anything at all
-	user.Character.CancelBuffsWithFlag(buffs.CancelOnAction)
+	// Cancel any conditions they have that get cancelled based on them doing anything at all
+	user.Character.CancelConditionsWithFlag(conditions.CancelOnAction)
 
 	// Fold-casting intercept: while holding folds, most action commands are blocked.
 	// Informational commands (AllowedWhenDowned=true) pass through.

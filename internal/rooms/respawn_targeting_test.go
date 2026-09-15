@@ -3,8 +3,8 @@ package rooms
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -47,11 +47,11 @@ func dyMobInstance(instId, mobId int, name string) *mobs.Mob {
 		InstanceId: instId,
 		HomeRoomId: dyRoomId,
 		Character: characters.Character{
-			Name:      name,
-			RoomId:    dyRoomId,
-			Health:    50,
-			Buffs:     buffs.New(),
-			Cooldowns: map[string]int{},
+			Name:       name,
+			RoomId:     dyRoomId,
+			Health:     50,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
 		},
 	}
 	m.Character.HealthMax.Value = 50

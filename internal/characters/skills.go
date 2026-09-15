@@ -3,7 +3,7 @@ package characters
 import (
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -73,7 +73,7 @@ func (c *Character) AttemptRecovery(contestWin func() bool) (bool, bool) {
 		// Still in minimum recovery period — reduce attacks to 1 this round.
 		// The record's literal attacks_cap is the effect; the magnitude
 		// argument here is unused.
-		_ = c.AddBuffMagnitude(buffs.BuffIdRecovering, 1, 0, "prone recovery")
+		_ = c.AddConditionMagnitude(conditions.ConditionIdRecovering, 1, 0, "prone recovery")
 		return false, false
 	}
 
@@ -96,11 +96,11 @@ func (c *Character) AttemptRecovery(contestWin func() bool) (bool, bool) {
 			// Should never happen — Prone→Standing and Supine→Standing are
 			// both valid edges. Log and report the attempt as a failure.
 			mudlog.Warn("AttemptRecovery: TransitionToStanding failed", "err", err)
-			_ = c.AddBuffMagnitude(buffs.BuffIdRecovering, 1, 0, "prone recovery")
+			_ = c.AddConditionMagnitude(conditions.ConditionIdRecovering, 1, 0, "prone recovery")
 			return true, false
 		}
 	} else {
-		_ = c.AddBuffMagnitude(buffs.BuffIdRecovering, 1, 0, "prone recovery")
+		_ = c.AddConditionMagnitude(conditions.ConditionIdRecovering, 1, 0, "prone recovery")
 	}
 
 	return true, success
@@ -161,7 +161,7 @@ func (c *Character) TrainSkill(skillName string, targetLevel ...int) int {
 
 // Gets the current value of the skillname provided.
 //
-// Returns the trained rank from c.Skills plus any equipment / buff / pet
+// Returns the trained rank from c.Skills plus any equipment / condition / pet
 // StatMod contributions matching the skill name. Equipment can carry skill
 // bonuses via the same StatMods map that holds stat bonuses (the affix
 // generator at items/affixgen.go writes skill names into StatMods directly,
@@ -180,7 +180,7 @@ func (c *Character) GetSkillLevel(skillName skills.SkillTag) int {
 		base = level
 	}
 
-	// Equipment / buff / pet StatMods can buff skill rolls.
+	// Equipment / condition / pet StatMods can boost skill rolls.
 	bonus := c.StatMod(string(skillName))
 
 	return base + bonus

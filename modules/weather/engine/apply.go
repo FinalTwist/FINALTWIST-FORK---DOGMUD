@@ -135,40 +135,40 @@ func Reconcile(weather map[sim.ZoneId]sim.WeatherType) {
 	}
 }
 
-// StripBuffs clears the buff id lists on every loaded weather-* and season-*
-// mutator spec — the BuffsEnabled=false path. GetMutatorSpec returns the
+// StripConditions clears the condition id lists on every loaded weather-* and season-*
+// mutator spec — the ConditionsEnabled=false path. GetMutatorSpec returns the
 // registry's live pointer, so this affects all future applications. Returns
 // the count stripped. Boot-time only: there is no restore path, so
-// re-enabling buffs requires a reload.
-func StripBuffs() int {
+// re-enabling conditions requires a reload.
+func StripConditions() int {
 	n := 0
 	for _, id := range mutators.GetAllMutatorIds() {
 		if !strings.HasPrefix(id, WeatherMutatorPrefix) && !strings.HasPrefix(id, SeasonMutatorPrefix) {
 			continue
 		}
 		if spec := mutators.GetMutatorSpec(id); spec != nil {
-			spec.PlayerBuffIds, spec.MobBuffIds, spec.NativeBuffIds = nil, nil, nil
+			spec.PlayerConditionIds, spec.MobConditionIds, spec.NativeConditionIds = nil, nil, nil
 			n++
 		}
 	}
 	return n
 }
 
-// ApplyBuffOverrides rewires PlayerBuffIds on the registered OUTDOOR weather
+// ApplyConditionOverrides rewires PlayerConditionIds on the registered OUTDOOR weather
 // specs per the BuffOverrides.<type> config: each entry replaces that type's
-// player buff list wholesale (an empty list strips it; Mob/Native lists are
-// untouched). Indoor variants are buff-free by rule and never touched (the
+// player condition list wholesale (an empty list strips it; Mob/Native lists are
+// untouched). Indoor variants are condition-free by rule and never touched (the
 // "weather-"+type id can't match a "-indoor" spec). Boot-time spec mutation
-// with the same mechanism and no-restore caveat as StripBuffs — and the module
-// always runs it BEFORE StripBuffs, so BuffsEnabled=false wins over any
+// with the same mechanism and no-restore caveat as StripConditions — and the module
+// always runs it BEFORE StripConditions, so ConditionsEnabled=false wins over any
 // override (spec §3). Returns the number of specs changed.
-func ApplyBuffOverrides(overrides map[string][]int) int {
-	return applyBuffOverrides(mutators.GetMutatorSpec, overrides)
+func ApplyConditionOverrides(overrides map[string][]int) int {
+	return applyConditionOverrides(mutators.GetMutatorSpec, overrides)
 }
 
-// applyBuffOverrides is the testable core; the registry lookup is the seam
+// applyConditionOverrides is the testable core; the registry lookup is the seam
 // (the live spec registry is empty under `go test`).
-func applyBuffOverrides(lookup func(string) *mutators.MutatorSpec, overrides map[string][]int) int {
+func applyConditionOverrides(lookup func(string) *mutators.MutatorSpec, overrides map[string][]int) int {
 	n := 0
 	for t, ids := range overrides {
 		id := WeatherMutatorPrefix + t
@@ -178,7 +178,7 @@ func applyBuffOverrides(lookup func(string) *mutators.MutatorSpec, overrides map
 			continue
 		}
 		// Copy so the spec never aliases the config map's backing arrays.
-		spec.PlayerBuffIds = append([]int(nil), ids...)
+		spec.PlayerConditionIds = append([]int(nil), ids...)
 		n++
 	}
 	return n

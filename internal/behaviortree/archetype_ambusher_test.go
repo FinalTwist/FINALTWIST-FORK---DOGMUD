@@ -27,7 +27,7 @@ func TestArchetype_Ambusher_HandlesMobIdle(t *testing.T) {
 		},
 	}
 	// Structural pass — expect no panic. Mob isn't in the test harness so
-	// actAddBuff will return Failure at the mobs.GetInstance lookup; that's
+	// actAddCondition will return Failure at the mobs.GetInstance lookup; that's
 	// fine, we're just asserting tree shape.
 	_ = arch.Evaluate(ctx)
 }

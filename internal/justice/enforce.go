@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/factions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -176,7 +176,7 @@ func RunGuardEnforcement(mob *mobs.Mob, room *rooms.Room, nowRound uint64) []Enf
 		if user == nil {
 			continue
 		}
-		if user.Character.HasBuffFlag(buffs.NoAggroTarget) ||
+		if user.Character.HasConditionFlag(conditions.NoAggroTarget) ||
 			user.Character.IsHidden() || user.Character.Health < 1 {
 			continue
 		}

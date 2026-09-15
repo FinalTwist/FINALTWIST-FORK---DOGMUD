@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/targeting"
@@ -30,9 +30,9 @@ func validateFoldRecall(actor actions.Actor) bool {
 		}
 	}
 
-	// A no-go root (Psychic Anchor, or a Jailed holding-cell buff — 5.1c) pins
+	// A no-go root (Psychic Anchor, or a Jailed holding-cell condition — 5.1c) pins
 	// the body in place; recall can't slip free of it either.
-	if char.HasBuffFlag(buffs.NoMovement) {
+	if char.HasConditionFlag(conditions.NoMovement) {
 		actor.SendText(messaging.CategorySpellFold, "You are held fast and cannot recall away.")
 		return false
 	}

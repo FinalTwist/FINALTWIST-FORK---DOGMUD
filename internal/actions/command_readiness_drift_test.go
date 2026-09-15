@@ -166,15 +166,15 @@ func TestSpecialMoveAdmissionOrdering(t *testing.T) {
 		{"combat_hamstring.go", "ExecuteHamstring", "HamstringResult", "costs.ActionHamstring", []specialMoveEarlyReturn{
 			{"char.IsActing()", "Crafting"}, {"!target.Found", "NoTarget"}, {"!char.HasBodyPart(\"legs\")", "NoLegs"},
 			{"sp == nil || (sp.NaturalAttack != items.Bite && sp.NaturalAttack != items.Claws) || char.HasBodyPart(\"hands\")", "NotBeast"},
-		}, []string{"combat.ExecuteSkillMove", "target.Char.AddBuffMagnitude", "combat.RecordSpecialMove", "actor.AwardResolved"}, true},
+		}, []string{"combat.ExecuteSkillMove", "target.Char.AddConditionMagnitude", "combat.RecordSpecialMove", "actor.AwardResolved"}, true},
 		{"combat_rake.go", "ExecuteRake", "RakeResult", "costs.ActionRake", []specialMoveEarlyReturn{
 			{"char.IsActing()", "Crafting"}, {"!target.Found", "NoTarget"},
 			{"char.HasBodyPart(\"hands\") || !combat.SpeciesIsClawed(char)", "NotClawed"},
-		}, []string{"combat.ExecuteSkillMove", "target.Char.AddBuffMagnitude", "combat.RecordSpecialMove", "actor.AwardResolved"}, true},
+		}, []string{"combat.ExecuteSkillMove", "target.Char.AddConditionMagnitude", "combat.RecordSpecialMove", "actor.AwardResolved"}, true},
 		{"combat_maul.go", "ExecuteMaul", "MaulResult", "costs.ActionMaul", []specialMoveEarlyReturn{
 			{"char.IsActing()", "Crafting"}, {"!target.Found", "NoTarget"},
 			{"char.HasBodyPart(\"hands\") || !combat.SpeciesIsFanged(char)", "NotFanged"},
-		}, []string{"combat.ExecuteSkillMove", "target.Char.AddBuffMagnitude", "combat.RecordSpecialMove", "actor.AwardResolved"}, true},
+		}, []string{"combat.ExecuteSkillMove", "target.Char.AddConditionMagnitude", "combat.RecordSpecialMove", "actor.AwardResolved"}, true},
 		{"combat_pounce.go", "ExecutePounce", "PounceResult", "costs.ActionPounce", []specialMoveEarlyReturn{
 			{"char.IsActing()", "Crafting"}, {"!target.Found", "NoTarget"}, {"char.IsGrappling()", "Grappling"},
 			{"!combat.SpeciesIsQuadrupedPredator(char)", "NotPredator"},
@@ -185,11 +185,11 @@ func TestSpecialMoveAdmissionOrdering(t *testing.T) {
 		}, []string{"combat.ExecuteSkillMove", "combat.RecordSpecialMove", "actor.AwardResolved"}, true},
 		{"combat_drain.go", "ExecuteDrain", "DrainResult", "costs.ActionDrain", []specialMoveEarlyReturn{
 			{"char.IsActing()", "Crafting"}, {"!target.Found", "NoTarget"}, {"!combat.SpeciesHasLifeDrain(char)", "NotLifeDrainer"},
-		}, []string{"combat.ExecuteSkillMove", "target.Char.AddBuffMagnitude", "char.Heal", "combat.RecordSpecialMove", "actor.AwardResolved"}, true},
+		}, []string{"combat.ExecuteSkillMove", "target.Char.AddConditionMagnitude", "char.Heal", "combat.RecordSpecialMove", "actor.AwardResolved"}, true},
 		{"combat_throttle.go", "ExecuteThrottle", "ThrottleResult", "costs.ActionThrottle", []specialMoveEarlyReturn{
 			{"char.IsActing()", "Crafting"}, {"!target.Found", "NoTarget"},
 			{"char.HasBodyPart(\"hands\") || !combat.SpeciesIsFanged(char)", "NotFanged"},
-		}, []string{"combat.ExecuteSkillMove", "target.Char.AddBuffMagnitude", "target.Char.AddBuff", "InterruptTargetCast", "combat.RecordSpecialMove", "actor.AwardResolved"}, true},
+		}, []string{"combat.ExecuteSkillMove", "target.Char.AddConditionMagnitude", "target.Char.AddCondition", "InterruptTargetCast", "combat.RecordSpecialMove", "actor.AwardResolved"}, true},
 	}
 
 	_, thisFile, _, ok := runtime.Caller(0)
@@ -342,12 +342,12 @@ func TestTauntRallyWarcryAdmissionOrdering(t *testing.T) {
 		},
 		{
 			file: "combat_rally.go", function: "ExecuteRally", resultType: "RallyResult", action: "costs.ActionRally",
-			guards: []specialMoveEarlyReturn{{"char.IsActing()", "Crafting"}, {"char.HasBuff(80)", "AlreadyActive"}},
+			guards: []specialMoveEarlyReturn{{"char.IsActing()", "Crafting"}, {"char.HasCondition(80)", "AlreadyActive"}},
 			effect: "ApplyRallyEffect",
 		},
 		{
 			file: "combat_warcry.go", function: "ExecuteWarcry", resultType: "WarcryResult", action: "costs.ActionWarcry",
-			guards: []specialMoveEarlyReturn{{"char.IsActing()", "Crafting"}, {"char.HasBuff(79)", "AlreadyActive"}},
+			guards: []specialMoveEarlyReturn{{"char.IsActing()", "Crafting"}, {"char.HasCondition(79)", "AlreadyActive"}},
 			effect: "ApplyWarcryEffect",
 		},
 	}
@@ -756,7 +756,7 @@ func runExecuteAndReadExecuted(cmd string, actor Actor) bool {
 // SYNC POINT: when adding a new gate to CommandIsReady or an
 // Execute*, add the corresponding drift row here.
 func TestCommandReadinessDrift(t *testing.T) {
-	cleanup := seedBuffsForTest()
+	cleanup := seedConditionsForTest()
 	defer cleanup()
 
 	// Seed a legged species for the trip_ready / kick_ready "happy path" rows.
@@ -811,7 +811,7 @@ func TestCommandReadinessDrift(t *testing.T) {
 			func(m *mobs.Mob) { m.Character.Cooldowns = characters.Cooldowns{"special-move": 3} },
 			false, "OnCooldown"},
 		{"rally_already_active", "rally",
-			func(m *mobs.Mob) { m.Character.AddBuff(80, false) },
+			func(m *mobs.Mob) { m.Character.AddCondition(80, false) },
 			false, "AlreadyActive"},
 
 		// ─── warcry ───────────────────────────────────────────────
@@ -823,7 +823,7 @@ func TestCommandReadinessDrift(t *testing.T) {
 			func(m *mobs.Mob) { m.Character.Cooldowns = characters.Cooldowns{"special-move": 3} },
 			false, "OnCooldown"},
 		{"warcry_already_active", "warcry",
-			func(m *mobs.Mob) { m.Character.AddBuff(79, false) },
+			func(m *mobs.Mob) { m.Character.AddCondition(79, false) },
 			false, "AlreadyActive"},
 
 		// ─── trip ─────────────────────────────────────────────────

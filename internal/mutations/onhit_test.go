@@ -2,7 +2,7 @@ package mutations
 
 import "testing"
 
-func TestGetOnHitBuffs(t *testing.T) {
+func TestGetOnHitConditions(t *testing.T) {
 	cleanup := SeedMutationsForTest(map[string]*MutationSpec{
 		"venom-glands": {MutationId: "venom-glands", Name: "Venom Glands", Rarity: 7,
 			Pros: []MutationEffect{{Type: "on_hit_buff", Value: 39}}},
@@ -11,16 +11,16 @@ func TestGetOnHitBuffs(t *testing.T) {
 	})
 	defer cleanup()
 
-	got := GetOnHitBuffs(map[string]int{"venom-glands": 1, "plain": 1})
+	got := GetOnHitConditions(map[string]int{"venom-glands": 1, "plain": 1})
 	if len(got) != 1 || got[0] != 39 {
-		t.Fatalf("GetOnHitBuffs = %v, want [39]", got)
+		t.Fatalf("GetOnHitConditions = %v, want [39]", got)
 	}
-	if len(GetOnHitBuffs(map[string]int{})) != 0 {
+	if len(GetOnHitConditions(map[string]int{})) != 0 {
 		t.Fatal("no mutations → no on-hit buffs")
 	}
 }
 
-func TestDescribeEffect_OnHitBuff(t *testing.T) {
+func TestDescribeEffect_OnHitCondition(t *testing.T) {
 	if DescribeEffect(MutationEffect{Type: "on_hit_buff", Value: 39}) == "" {
 		t.Fatal("on_hit_buff must have a non-empty description")
 	}

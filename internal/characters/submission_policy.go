@@ -14,7 +14,7 @@ type SubmissionPolicy int
 
 const (
 	PolicySubdue  SubmissionPolicy = iota // default — knock unconscious, take some gold, leave alive
-	PolicyMercy                           // release cleanly, brief recovery debuff
+	PolicyMercy                           // release cleanly, brief recovery harmful condition
 	PolicyCripple                         // break limb (per sub type), take gold, leave alive
 	PolicyLethal                          // finishing damage drain → full death path
 )

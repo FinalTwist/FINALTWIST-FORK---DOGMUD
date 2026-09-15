@@ -6,9 +6,9 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -541,7 +541,7 @@ func spellDefenceIdentity(char *characters.Character, user *users.UserRecord, ro
 // setMobSpellAggro sets reciprocal aggro between the caster and the
 // mob target immediately after a hostile spell lands.
 //
-// Note: applyMobEffect_buff does NOT call this helper — its aggro block
+// Note: applyMobEffect_condition does NOT call this helper — its aggro block
 // is gated on spell Type being Harm*. Kept inline there.
 func setMobSpellAggro(user *users.UserRecord, mob *mobs.Mob) {
 	if !mob.Character.IsInCombat() {
@@ -573,7 +573,7 @@ func applyMobEffect_damage(
 	dmg := calcSpellDamageForCharacter(spellData, casterChar, &mob.Character, magnitude, out.AttackerCrit)
 	dmg = scaleSpellDamageByDefence(dmg, out)
 	mob.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(casterChar))
-	cancelDamageBuffs(&mob.Character)
+	cancelDamageConditions(&mob.Character)
 	// on_spell_hit item procs (e.g. Staff of the Hollow Choir CP-steal) fire
 	// only on a landing harm hit that dealt damage. This applier is shared by
 	// the player-caster→mob and mob-caster→mob paths, so wiring it here covers
@@ -636,14 +636,14 @@ func applyMobEffect_dot(
 	// may be narrated. The cast still earns aggro: it was made.
 	//
 	// The record's negative snapshot is int(magnitude) harm, floored at
-	// one. Buff 121 ticks every round (slice 1b, owner ruling 2026-09-14;
+	// one. Condition 121 ticks every round (slice 1b, owner ruling 2026-09-14;
 	// it used to land every third round), so dotDuration is the trigger
 	// count as it stands.
 	dotAmount := magnitude
 	if dotAmount < 1 {
 		dotAmount = 1
 	}
-	afflicted := mob.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil
+	afflicted := mob.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil
 	setMobSpellAggro(user, mob)
 	if afflicted && user != nil {
 		user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
@@ -696,7 +696,7 @@ func applyMobKnockdownOutcome(
 	mName string,
 ) int {
 	mob.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(casterChar))
-	cancelDamageBuffs(&mob.Character)
+	cancelDamageConditions(&mob.Character)
 	if dmg > 0 {
 		dispatchItemProcs("on_spell_hit", casterChar, &mob.Character, nil, dmg)
 	}
@@ -741,7 +741,7 @@ func applyMobKnockdownOutcome(
 	return dmg
 }
 
-func applyMobEffect_buff(
+func applyMobEffect_condition(
 	user *users.UserRecord,
 	casterChar *characters.Character,
 	mob *mobs.Mob,
@@ -751,7 +751,7 @@ func applyMobEffect_buff(
 	critTag string,
 	mName string,
 ) int {
-	// U6b Task 4: a buff is a binary status — a defended cast narrates the
+	// U6b Task 4: a condition is a binary status — a defended cast narrates the
 	// channel defence triad and applies nothing. Hostile intent still aggros
 	// (the harm-type gate below is shared with the landed path).
 	if out.Defended {
@@ -762,11 +762,11 @@ func applyMobEffect_buff(
 		}
 		return 0
 	}
-	for _, buffId := range spellData.BuffIds {
-		mob.AddBuff(buffId, "spell")
-		// Compute tick snapshot for config-driven buffs
+	for _, conditionId := range spellData.ConditionIds {
+		mob.AddCondition(conditionId, "spell")
+		// Compute tick snapshot for config-driven conditions
 		if user != nil {
-			if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil && buffSpec.TickPool != "" {
+			if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil && conditionSpec.TickPool != "" {
 				skillLevel := user.Character.GetSkillLevel(skills.Spellcasting)
 				scalingMult := combat.SkillMultiplier(skillLevel)
 				// Apply weapon spell damage multiplier if equipped, scaled
@@ -777,7 +777,7 @@ func applyMobEffect_buff(
 					}
 				}
 				var maxPool int
-				switch buffSpec.TickPool {
+				switch conditionSpec.TickPool {
 				case "health":
 					maxPool = mob.Character.HealthMax.Value
 				case "stamina":
@@ -785,12 +785,12 @@ func applyMobEffect_buff(
 				case "conviction":
 					maxPool = mob.Character.ConvictionMax.Value
 				}
-				tickAmt := buffs.ComputeTickAmount(maxPool, buffSpec.TickPercent, buffSpec.TickVariance, buffSpec.TickMin, scalingMult)
-				mob.Character.Buffs.SetTickAmount(buffId, tickAmt)
+				tickAmt := conditions.ComputeTickAmount(maxPool, conditionSpec.TickPercent, conditionSpec.TickVariance, conditionSpec.TickMin, scalingMult)
+				mob.Character.Conditions.SetTickAmount(conditionId, tickAmt)
 			}
 		}
 	}
-	// Conditional aggro for harmful buff spells — kept inline because it is
+	// Conditional aggro for harmful condition spells — kept inline because it is
 	// gated on Harm* spell types; not consolidated in Task 7's setMobSpellAggro.
 	if spellData.Type == spells.HarmSingle || spellData.Type == spells.HarmArea || spellData.Type == spells.HarmMulti {
 		if !mob.Character.IsInCombat() {
@@ -817,7 +817,7 @@ func applyMobEffect_buff(
 // a caster (mob or player) casting a HelpSingle heal at ANOTHER mob (e.g. an
 // ally construct healing a boss, or a player healing a charmed companion).
 // Prior to Chunk B of the crash-site boss-mechanics work this case did not
-// exist: applyMobEffect's switch only handled damage/dot/knockdown/buff, so
+// exist: applyMobEffect's switch only handled damage/dot/knockdown/condition, so
 // a mob-to-mob (or player-to-companion) "heal" cast silently fell through to
 // applyMobEffect_default and did nothing. Mirrors applyMobSelfEffect's
 // "heal" case (percentage-of-max regen via the Regenerating record) but targets
@@ -847,7 +847,7 @@ func applyMobEffect_heal(
 	if durationRounds < 6 {
 		durationRounds = 6
 	}
-	_ = mob.Character.AddBuffMagnitude(buffs.BuffIdRegenerating, durationRounds, regenMult, "heal spell")
+	_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdRegenerating, durationRounds, regenMult, "heal spell")
 	sendVisualRoomText(room, messaging.CategorySpellVital, fmt.Sprintf(
 		`<ansi fg="cyan">%s</ansi>'s %s washes over %s, knitting wounds shut.`,
 		casterName, spellData.Name, mName))
@@ -904,7 +904,7 @@ func applyMobEffect(user *users.UserRecord, casterChar *characters.Character, mo
 	case "knockdown":
 		return applyMobEffect_knockdown(user, casterChar, mob, room, spellData, magnitude, out, critTag, mName)
 	case "buff":
-		return applyMobEffect_buff(user, casterChar, mob, room, spellData, out, critTag, mName)
+		return applyMobEffect_condition(user, casterChar, mob, room, spellData, out, critTag, mName)
 	case "heal":
 		return applyMobEffect_heal(casterChar, mob, room, spellData, magnitude, mName)
 	case "charm":
@@ -1000,7 +1000,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 			return
 		}
 		target.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(user.Character))
-		cancelDamageBuffs(target.Character)
+		cancelDamageConditions(target.Character)
 		if dmg > 0 {
 			dispatchItemProcs("on_spell_hit", user.Character, target.Character, nil, dmg)
 		}
@@ -1026,7 +1026,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 		}
 
 	case "purge":
-		target.Character.CancelBuffsWithFlag(buffs.Poison)
+		target.Character.CancelConditionsWithFlag(conditions.Poison)
 		if target.UserId != user.UserId {
 			messaging.SendTrio(messaging.Trio{
 				Actor: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
@@ -1067,7 +1067,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 		if durationRounds < 6 {
 			durationRounds = 6
 		}
-		_ = target.Character.AddBuffMagnitude(buffs.BuffIdRegenerating, durationRounds, regenMult, "heal spell")
+		_ = target.Character.AddConditionMagnitude(conditions.ConditionIdRegenerating, durationRounds, regenMult, "heal spell")
 		if target.UserId != user.UserId {
 			messaging.SendTrio(messaging.Trio{
 				Actor: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
@@ -1091,10 +1091,10 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 		}
 
 	case "buff":
-		for _, buffId := range spellData.BuffIds {
-			target.AddBuff(buffId, "spell")
-			// Compute tick snapshot for config-driven buffs
-			if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil && buffSpec.TickPool != "" {
+		for _, conditionId := range spellData.ConditionIds {
+			target.AddCondition(conditionId, "spell")
+			// Compute tick snapshot for config-driven conditions
+			if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil && conditionSpec.TickPool != "" {
 				skillLevel := user.Character.GetSkillLevel(skills.Spellcasting)
 				scalingMult := combat.SkillMultiplier(skillLevel)
 				// Apply weapon spell damage multiplier if equipped, scaled
@@ -1105,7 +1105,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 					}
 				}
 				var maxPool int
-				switch buffSpec.TickPool {
+				switch conditionSpec.TickPool {
 				case "health":
 					maxPool = target.Character.HealthMax.Value
 				case "stamina":
@@ -1113,20 +1113,20 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 				case "conviction":
 					maxPool = target.Character.ConvictionMax.Value
 				}
-				tickAmt := buffs.ComputeTickAmount(maxPool, buffSpec.TickPercent, buffSpec.TickVariance, buffSpec.TickMin, scalingMult)
-				target.Character.Buffs.SetTickAmount(buffId, tickAmt)
+				tickAmt := conditions.ComputeTickAmount(maxPool, conditionSpec.TickPercent, conditionSpec.TickVariance, conditionSpec.TickMin, scalingMult)
+				target.Character.Conditions.SetTickAmount(conditionId, tickAmt)
 			}
 		}
 		// M1 audit defect: this case told the caster and the target and left
 		// the room out, while its sibling `case "heal":` above broadcasts. A
 		// spell visibly taking hold on someone is not a private exchange.
 		// Shape and exclusions mirror the heal line; the category follows this
-		// case's own two lines rather than heal's, because a buff is not
+		// case's own two lines rather than heal's, because a condition is not
 		// necessarily vital magic.
 		//
-		// KNOWN AND DEFERRED: the buff's own start text ALSO narrates this
-		// moment to the target and the room, through the event AddBuff queues
-		// above, so a buff with authored start text reaches each audience
+		// KNOWN AND DEFERRED: the condition's own start text ALSO narrates this
+		// moment to the target and the room, through the event AddCondition queues
+		// above, so a condition with authored start text reaches each audience
 		// twice. The messaging arc's M6 merges them into one line per audience.
 		// See docs/superpowers/specs/2026-09-11-messaging-m3-item5a-narration-defects-design.md.
 		if target.UserId != user.UserId {
@@ -1143,7 +1143,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 			}, spellAudience(user, user.Character.Name, target, target.Character.Name, room))
 		} else {
 			// SELF-CAST: see case "purge". The caster line stays, reworded,
-			// rather than being dropped: a buff with no authored start text
+			// rather than being dropped: a condition with no authored start text
 			// would otherwise leave a self-caster reading nothing at all.
 			user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
 				`Your %s takes effect.%s`, spellData.Name, critTag))
@@ -1170,7 +1170,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 		if out.AttackerCrit {
 			shieldBonus = int(float64(shieldBonus) * 1.5)
 		}
-		_ = target.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, duration, float64(shieldBonus), "spell")
+		_ = target.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, duration, float64(shieldBonus), "spell")
 		if target.UserId != user.UserId {
 			messaging.SendTrio(messaging.Trio{
 				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
@@ -1487,19 +1487,19 @@ func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spell
 		if durationRounds < 6 {
 			durationRounds = 6
 		}
-		_ = mob.Character.AddBuffMagnitude(buffs.BuffIdRegenerating, durationRounds, regenMult, "heal spell")
+		_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdRegenerating, durationRounds, regenMult, "heal spell")
 		sendVisualRoomText(room, messaging.CategorySpellVital, fmt.Sprintf(
 			`%s channels restorative magic.`, mobDisplayName(mob, room, 0)))
 	case "buff":
-		for _, buffId := range spellData.BuffIds {
-			mob.AddBuff(buffId, "spell")
-			// Compute tick snapshot for config-driven buffs (matches
-			// applyMobEffect_buff for consistency across all caster paths).
-			if buffSpec := buffs.GetBuffSpec(buffId); buffSpec != nil && buffSpec.TickPool != "" {
+		for _, conditionId := range spellData.ConditionIds {
+			mob.AddCondition(conditionId, "spell")
+			// Compute tick snapshot for config-driven conditions (matches
+			// applyMobEffect_condition for consistency across all caster paths).
+			if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil && conditionSpec.TickPool != "" {
 				skillLevel := mob.Character.GetSkillLevel(skills.Spellcasting)
 				scalingMult := combat.SkillMultiplier(skillLevel)
 				var maxPool int
-				switch buffSpec.TickPool {
+				switch conditionSpec.TickPool {
 				case "health":
 					maxPool = mob.Character.HealthMax.Value
 				case "stamina":
@@ -1507,8 +1507,8 @@ func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spell
 				case "conviction":
 					maxPool = mob.Character.ConvictionMax.Value
 				}
-				tickAmt := buffs.ComputeTickAmount(maxPool, buffSpec.TickPercent, buffSpec.TickVariance, buffSpec.TickMin, scalingMult)
-				mob.Character.Buffs.SetTickAmount(buffId, tickAmt)
+				tickAmt := conditions.ComputeTickAmount(maxPool, conditionSpec.TickPercent, conditionSpec.TickVariance, conditionSpec.TickMin, scalingMult)
+				mob.Character.Conditions.SetTickAmount(conditionId, tickAmt)
 			}
 		}
 	case "shield":
@@ -1526,7 +1526,7 @@ func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spell
 			}
 		}
 		duration := calcSpellDuration(spellData.BaseFolds, skillLevel, spellData.CasterStatValue(mob.Character.Stats))
-		_ = mob.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, duration, float64(shieldBonus), "spell")
+		_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, duration, float64(shieldBonus), "spell")
 		sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
 			`A shimmering barrier forms around %s.`, mobDisplayName(mob, room, 0)))
 	}
@@ -1614,7 +1614,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 		}
 		mobSpellDmg = dmg
 		target.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(&caster.Character))
-		cancelDamageBuffs(target.Character)
+		cancelDamageConditions(target.Character)
 		if dmg > 0 {
 			dispatchItemProcs("on_spell_hit", &caster.Character, target.Character, nil, dmg)
 		}
@@ -1660,14 +1660,14 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 		// may be narrated. The targeting commit below still stands: the mob cast.
 		//
 		// The record's negative snapshot is int(magnitude) harm, floored at
-		// one. Buff 121 ticks every round (slice 1b, owner ruling 2026-09-14;
+		// one. Condition 121 ticks every round (slice 1b, owner ruling 2026-09-14;
 		// it used to land every third round), so dotDuration is the trigger
 		// count as it stands.
 		dotAmount := magnitude
 		if dotAmount < 1 {
 			dotAmount = 1
 		}
-		if target.Character.AddBuffMagnitude(buffs.BuffIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil {
+		if target.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil {
 			messaging.SendTrio(messaging.Trio{
 				Actor: messaging.NoLine,
 				Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
@@ -1750,10 +1750,10 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 			}
 			break
 		}
-		for _, buffId := range spellData.BuffIds {
-			target.AddBuff(buffId, "spell")
+		for _, conditionId := range spellData.ConditionIds {
+			target.AddCondition(conditionId, "spell")
 		}
-		// Set aggro for harmful buff spells
+		// Set aggro for harmful condition spells
 		if spellData.Type == spells.HarmSingle || spellData.Type == spells.HarmArea || spellData.Type == spells.HarmMulti {
 			if !target.Character.IsInCombat() {
 				targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)

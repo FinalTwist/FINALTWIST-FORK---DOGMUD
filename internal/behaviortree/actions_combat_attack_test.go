@@ -3,7 +3,7 @@ package behaviortree
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 )
 
@@ -30,7 +30,7 @@ func TestActAttack_MobAttacker_TargetsAttackerNotRandomPlayer(t *testing.T) {
 	defender.Character.Name = "ketil"
 	defender.Character.RoomId = 10001
 	defender.Character.Health = 100
-	defender.Character.Buffs = buffs.New()
+	defender.Character.Conditions = conditions.New()
 
 	cleanup := mobs.SeedMobsForTest(
 		map[int]*mobs.Mob{357: defender},

@@ -188,7 +188,7 @@ func (r Role) String() string {
 // text. M4 is where these unify, if they should.
 //
 // 🔑 PASS `expected` IF YOUR STORE HAS MORE THAN ONE ROLE. Without it this
-// function cannot tell a role that is deliberately absent (a buff has no actee)
+// function cannot tell a role that is deliberately absent (a condition has no actee)
 // from one that went missing (a defence band lost its toroom pool), because
 // both look like an empty slice. A three-role store that omits `expected` can
 // therefore boot happily while narrating a real event to two audiences and

@@ -335,7 +335,7 @@ func (c *Character) IsUnarmedStyle() bool {
 // GetAllWornItems returns every equipped item across ALL slots, in Worn-struct
 // (eq) order. (Previously this omitted the slots added later — Shoulders, Back,
 // Wrist1/2, ExtraWrist1-4, ExtraArm3/4, Ring2, Tail, ComponentBag — which meant
-// items in those slots never contributed their WornBuffIds via buffs.go and
+// items in those slots never contributed their WornConditionIds via conditions.go and
 // were missed by other callers. Now complete.)
 func (c *Character) GetAllWornItems() []items.Item {
 	wornItems := []items.Item{}
@@ -362,7 +362,7 @@ func (c *Character) GetGearValue() int {
 
 // wearWeaponOrShield handles pair-based placement for weapons and offhands.
 // Returns the same tuple as Wear. Caller is responsible for calling
-// reapplyPermabuffs (this helper calls it for 2H and shield cases internally
+// reapplyPermanentConditions (this helper calls it for 2H and shield cases internally
 // to preserve pre-refactor semantics).
 func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHandsRequired int, canDualWield bool) (returnItems []items.Item, newItemWorn bool, failureReason string) {
 	pairs := c.GetHandPairs()
@@ -392,7 +392,7 @@ func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHands
 		if !freePair.IsHalfPair() {
 			*freePair.Second.ItemPtr = items.Item{}
 		}
-		c.reapplyPermabuffs()
+		c.reapplyPermanentConditions()
 		return returnItems, true, ``
 	}
 
@@ -400,7 +400,7 @@ func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHands
 		slot := c.FindFirstEmptySlot(pairs, true)
 		if slot != nil {
 			*slot.ItemPtr = i
-			c.reapplyPermabuffs()
+			c.reapplyPermanentConditions()
 			return returnItems, true, ``
 		}
 		if pairs[0].First.Is2H(c) {
@@ -411,7 +411,7 @@ func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHands
 		}
 		returnItems = append(returnItems, *pairs[0].Second.ItemPtr)
 		*pairs[0].Second.ItemPtr = i
-		c.reapplyPermabuffs()
+		c.reapplyPermanentConditions()
 		return returnItems, true, ``
 	}
 
@@ -439,7 +439,7 @@ func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHands
 		}
 		if slot != nil {
 			*slot.ItemPtr = i
-			c.reapplyPermabuffs()
+			c.reapplyPermanentConditions()
 			return returnItems, true, ``
 		}
 	}
@@ -454,14 +454,14 @@ func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHands
 	}
 	returnItems = append(returnItems, c.Equipment.Weapon)
 	c.Equipment.Weapon = i
-	c.reapplyPermabuffs()
+	c.reapplyPermanentConditions()
 	return returnItems, true, ``
 }
 
 // wearArmorSlot handles placement for non-weapon equipment (armor, rings, wrists,
 // back, shoulders, component bag, tail). Returns the same tuple as Wear.
-// Does NOT call reapplyPermabuffs — the caller handles that (to preserve the
-// pre-refactor semantics where reapplyPermabuffs is called with returnItems).
+// Does NOT call reapplyPermanentConditions — the caller handles that (to preserve the
+// pre-refactor semantics where reapplyPermanentConditions is called with returnItems).
 func (c *Character) wearArmorSlot(i items.Item, spec items.ItemSpec) (returnItems []items.Item, newItemWorn bool, failureReason string) {
 	switch spec.Type {
 	case items.Head:
@@ -612,7 +612,7 @@ func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bo
 	// helpers write ONLY into c.Equipment (wearWeaponOrShield through pointers
 	// into it, wearArmorSlot by assigning slot fields), with two exceptions,
 	// both handled: SortComponentItems was moved out of wearArmorSlot and runs
-	// below, and wearWeaponOrShield's own reapplyPermabuffs is re-run against
+	// below, and wearWeaponOrShield's own reapplyPermanentConditions is re-run against
 	// the restored equipment on the refusal path.
 	beforeReserve := c.ReservationOverages()
 	savedEquipment := c.Equipment
@@ -631,7 +631,7 @@ func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bo
 
 	if pool, worse := beforeReserve.Worsened(c.ReservationOverages()); worse {
 		c.Equipment = savedEquipment
-		c.reapplyPermabuffs()
+		c.reapplyPermanentConditions()
 		// The item's own contribution is what "added" means here: the snapshot
 		// delta measures OVERAGE growth, which is smaller than the demand
 		// whenever the wearer was already over, and would misreport a
@@ -643,10 +643,10 @@ func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bo
 		c.SortComponentItems()
 	}
 	if spec.Type != items.Weapon && spec.Type != items.Offhand {
-		// Preserved from the pre-U7b shape: permabuffs are reapplied on the
+		// Preserved from the pre-U7b shape: permanent conditions are reapplied on the
 		// armour path only (wearWeaponOrShield does its own), and only on
 		// success.
-		c.reapplyPermabuffs(returnItems...)
+		c.reapplyPermanentConditions(returnItems...)
 	}
 	return returnItems, newItemWorn, failureReason
 }
@@ -720,7 +720,7 @@ func (c *Character) RemoveFromBody(i items.Item) bool {
 		return false
 	}
 
-	c.reapplyPermabuffs(i)
+	c.reapplyPermanentConditions(i)
 
 	return true
 }

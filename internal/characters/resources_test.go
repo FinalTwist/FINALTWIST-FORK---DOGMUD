@@ -3,45 +3,45 @@ package characters
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/stats"
 )
 
-// seedSleepingBuff registers a minimal Sleeping buff spec in the global
-// buffs registry for the duration of the test. Returns a cleanup func.
-func seedSleepingBuff() func() {
-	return buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
+// seedSleepingCondition registers a minimal Sleeping condition spec in the global
+// conditions registry for the duration of the test. Returns a cleanup func.
+func seedSleepingCondition() func() {
+	return conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		15: {
-			BuffId:       15,
+			ConditionId:  15,
 			Name:         "Sleeping",
 			TriggerCount: 1000000000, // unlimited
-			Flags:        []buffs.Flag{buffs.Sleeping},
+			Flags:        []conditions.Flag{conditions.Sleeping},
 		},
 	})
 }
 
-// applySleepingBuff directly injects the Sleeping flag into a character's
-// Buffs list without going through the full add-buff pipeline (which
-// requires data-file-loaded buff specs). We build a minimal Buff and call
+// applySleepingCondition directly injects the Sleeping flag into a character's
+// Conditions list without going through the full add-condition pipeline (which
+// requires data-file-loaded condition specs). We build a minimal Condition and call
 // Validate() so the flag index is rebuilt.
-func applySleepingBuff(c *Character) {
-	c.Buffs.List = append(c.Buffs.List, &buffs.Buff{
-		BuffId:       15,
+func applySleepingCondition(c *Character) {
+	c.Conditions.List = append(c.Conditions.List, &conditions.Condition{
+		ConditionId:  15,
 		TriggersLeft: 1000000000,
 	})
-	c.Buffs.Validate(true)
+	c.Conditions.Validate(true)
 }
 
 // TestHealthPerRound_SleepMultiplier verifies that HealthPerRound returns a
 // value multiplied by SleepRegenMultiplier (default 5.0) when the character
-// has the Sleeping buff flag.
+// has the Sleeping condition flag.
 func TestHealthPerRound_SleepMultiplier(t *testing.T) {
-	cleanup := seedSleepingBuff()
+	cleanup := seedSleepingCondition()
 	defer cleanup()
 
 	c := &Character{
-		HealthMax: stats.StatInfo{Value: 1000},
-		Buffs:     buffs.New(),
+		HealthMax:  stats.StatInfo{Value: 1000},
+		Conditions: conditions.New(),
 	}
 
 	base := c.HealthPerRound()
@@ -49,7 +49,7 @@ func TestHealthPerRound_SleepMultiplier(t *testing.T) {
 		t.Fatalf("base HealthPerRound should be positive, got %d", base)
 	}
 
-	applySleepingBuff(c)
+	applySleepingCondition(c)
 	boosted := c.HealthPerRound()
 
 	if boosted <= base {
@@ -132,12 +132,12 @@ func TestToxicitySicknessDamage(t *testing.T) {
 // TestStaminaPerRound_SleepMultiplier verifies the multiplier applies to
 // StaminaPerRound, composing on top of any mutation modifier.
 func TestStaminaPerRound_SleepMultiplier(t *testing.T) {
-	cleanup := seedSleepingBuff()
+	cleanup := seedSleepingCondition()
 	defer cleanup()
 
 	c := &Character{
 		StaminaMax: stats.StatInfo{Value: 1000},
-		Buffs:      buffs.New(),
+		Conditions: conditions.New(),
 	}
 
 	base := c.StaminaPerRound()
@@ -145,7 +145,7 @@ func TestStaminaPerRound_SleepMultiplier(t *testing.T) {
 		t.Fatalf("base StaminaPerRound should be positive, got %d", base)
 	}
 
-	applySleepingBuff(c)
+	applySleepingCondition(c)
 	boosted := c.StaminaPerRound()
 
 	if boosted <= base {
@@ -159,12 +159,12 @@ func TestStaminaPerRound_SleepMultiplier(t *testing.T) {
 // TestConvictionPerRound_SleepMultiplier verifies the multiplier applies to
 // ConvictionPerRound.
 func TestConvictionPerRound_SleepMultiplier(t *testing.T) {
-	cleanup := seedSleepingBuff()
+	cleanup := seedSleepingCondition()
 	defer cleanup()
 
 	c := &Character{
 		ConvictionMax: stats.StatInfo{Value: 1000},
-		Buffs:         buffs.New(),
+		Conditions:    conditions.New(),
 	}
 
 	base := c.ConvictionPerRound()
@@ -172,7 +172,7 @@ func TestConvictionPerRound_SleepMultiplier(t *testing.T) {
 		t.Fatalf("base ConvictionPerRound should be positive, got %d", base)
 	}
 
-	applySleepingBuff(c)
+	applySleepingCondition(c)
 	boosted := c.ConvictionPerRound()
 
 	if boosted <= base {
@@ -186,19 +186,19 @@ func TestConvictionPerRound_SleepMultiplier(t *testing.T) {
 // TestHealthPerRound_NoSleepNoBoost confirms the multiplier does NOT apply
 // when the character is not sleeping.
 func TestHealthPerRound_NoSleepNoBoost(t *testing.T) {
-	cleanup := seedSleepingBuff()
+	cleanup := seedSleepingCondition()
 	defer cleanup()
 
 	c1 := &Character{
-		HealthMax: stats.StatInfo{Value: 1000},
-		Buffs:     buffs.New(),
+		HealthMax:  stats.StatInfo{Value: 1000},
+		Conditions: conditions.New(),
 	}
 	c2 := &Character{
-		HealthMax: stats.StatInfo{Value: 1000},
-		Buffs:     buffs.New(),
+		HealthMax:  stats.StatInfo{Value: 1000},
+		Conditions: conditions.New(),
 	}
-	// Only c2 gets the sleeping buff.
-	applySleepingBuff(c2)
+	// Only c2 gets the sleeping condition.
+	applySleepingCondition(c2)
 
 	plain := c1.HealthPerRound()
 	boosted := c2.HealthPerRound()

@@ -6,7 +6,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/factions"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -313,20 +313,20 @@ func (b *GameBridge) LearnRecipe(recipe string) {
 	}
 }
 
-// ApplyBuff adds the given buff to the player.
+// ApplyStatusCondition adds the given condition to the player.
 //
-// Through the user record, not the character: a quest reward buff applied with
-// Character.AddBuff queues nothing, so Buff_ApplyBuffs never runs and the
-// player reads no line for the buff their quest just earned them.
-func (b *GameBridge) ApplyBuff(bf BuffDef) {
+// Through the user record, not the character: a quest reward condition applied with
+// Character.AddCondition queues nothing, so Condition_ApplyConditions never runs and the
+// player reads no line for the condition their quest just earned them.
+func (b *GameBridge) ApplyStatusCondition(bf StatusConditionDef) {
 	// The hook drops an unknown spec without a word, so an authoring typo in a
 	// quest reward would otherwise vanish. The old direct add surfaced it
 	// through the error it returned; this keeps that signal.
-	if buffs.GetBuffSpec(bf.Buff) == nil {
-		mudlog.Error("GameBridge.ApplyBuff", "buff", bf.Buff, "error", "no such buff spec")
+	if conditions.GetConditionSpec(bf.Condition) == nil {
+		mudlog.Error("GameBridge.ApplyStatusCondition", "condition", bf.Condition, "error", "no such condition spec")
 		return
 	}
-	b.user.AddBuff(bf.Buff, "quest")
+	b.user.AddCondition(bf.Condition, "quest")
 }
 
 // Teleport moves the player to the specified room.

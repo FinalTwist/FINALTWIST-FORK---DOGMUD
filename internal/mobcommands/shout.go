@@ -3,7 +3,7 @@ package mobcommands
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -37,8 +37,8 @@ func Shout(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	// adjacent-room sound propagation is out of scope.
 	for _, otherUserId := range room.GetPlayers() {
 		if other := users.GetByUserId(otherUserId); other != nil {
-			if other.Character.HasBuffFlag(buffs.Sleeping) {
-				other.Character.CancelBuffsWithFlag(buffs.Sleeping)
+			if other.Character.HasConditionFlag(conditions.Sleeping) {
+				other.Character.CancelConditionsWithFlag(conditions.Sleeping)
 				mobs.OnSleeperWoken(other.Character)
 			}
 		}
@@ -48,8 +48,8 @@ func Shout(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			if m.InstanceId == mob.InstanceId {
 				continue
 			}
-			if m.Character.HasBuffFlag(buffs.Sleeping) {
-				m.Character.CancelBuffsWithFlag(buffs.Sleeping)
+			if m.Character.HasConditionFlag(conditions.Sleeping) {
+				m.Character.CancelConditionsWithFlag(conditions.Sleeping)
 				mobs.OnSleeperWoken(&m.Character)
 			}
 		}

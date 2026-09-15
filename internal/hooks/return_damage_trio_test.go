@@ -50,7 +50,7 @@ func TestRecoil_DefenderInTheDarkIsNotToldTheAttackersName(t *testing.T) {
 func TestRecoil_RoomLineIsVisualAndHidesNames(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restore := seedNarrationBuffs()
+	restore := seedNarrationConditions()
 	defer restore()
 	darken(t, 1)
 	room := rooms.LoadRoom(1)
@@ -62,7 +62,7 @@ func TestRecoil_RoomLineIsVisualAndHidesNames(t *testing.T) {
 	assert.Equal(t, 0, countContaining(drainPlain(2), "recoils"),
 		"an observer who cannot see must not be told about the recoil at all")
 
-	require.True(t, users.GetByUserId(2).Character.Buffs.AddBuff(heatEyesBuffId, true))
+	require.True(t, users.GetByUserId(2).Character.Conditions.AddCondition(heatEyesConditionId, true))
 	emitReturnDamageText(atk, def, 5)
 	observer := drainPlain(2)
 	assert.Equal(t, 1, countContaining(observer, "A figure recoils from striking a figure!"))

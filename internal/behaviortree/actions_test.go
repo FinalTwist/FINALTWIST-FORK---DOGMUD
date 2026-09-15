@@ -15,8 +15,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -482,29 +482,29 @@ func TestActIntercept_SetsCtxIntercepted(t *testing.T) {
 	}
 }
 
-// ─── remove_buff ─────────────────────────────────────────────────────
+// ─── remove_buff ──────────────────────────────────────────────────────────
 
-func TestActRemoveBuff_RemovesBuffFromUser(t *testing.T) {
+func TestActRemoveCondition_RemovesConditionFromUser(t *testing.T) {
 	fn := LookupAction("remove_buff")
 	if fn == nil {
 		t.Fatal("remove_buff not registered")
 	}
 
-	// Seed a single buff spec for buff id 100. TriggerCount > 0 ensures
-	// the buff lives long enough for the act-then-assert cycle.
-	cleanBuffs := buffs.SeedBuffsForTest(map[int]*buffs.BuffSpec{
-		100: {BuffId: 100, Name: "TestBuff", TriggerCount: 5, RoundInterval: 1},
+	// Seed a single condition spec for condition id 100. TriggerCount > 0 ensures
+	// the condition lives long enough for the act-then-assert cycle.
+	cleanConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		100: {ConditionId: 100, Name: "TestBuff", TriggerCount: 5, RoundInterval: 1},
 	})
-	defer cleanBuffs()
+	defer cleanConditions()
 
 	cleanUser := seedTestUser(t, 1, "alice", "Aliceia", 1)
 	defer cleanUser()
 
 	user := requireUser(t, 1)
-	if err := user.Character.AddBuff(100, false); err != nil {
+	if err := user.Character.AddCondition(100, false); err != nil {
 		t.Fatalf("AddBuff(100) failed: %v", err)
 	}
-	if !user.Character.HasBuff(100) {
+	if !user.Character.HasCondition(100) {
 		t.Fatal("precondition: user should have buff 100 after AddBuff")
 	}
 
@@ -513,9 +513,9 @@ func TestActRemoveBuff_RemovesBuffFromUser(t *testing.T) {
 		t.Fatalf("expected Success, got %v", result)
 	}
 
-	// RemoveBuff sets TriggersLeft=0 (Expired). GetBuffs filters expired
+	// RemoveCondition sets TriggersLeft=0 (Expired). GetConditions filters expired
 	// out, so a zero-length result confirms the removal contract.
-	if got := user.Character.GetBuffs(100); len(got) != 0 {
+	if got := user.Character.GetConditions(100); len(got) != 0 {
 		t.Errorf("expected 0 active buffs with id 100 after remove, got %d", len(got))
 	}
 
@@ -584,9 +584,9 @@ func TestActSummonCompanion_HostileSetsAggroAndEngages(t *testing.T) {
 	callerSpec := &mobs.Mob{
 		MobId: mobs.MobId(1),
 		Character: characters.Character{
-			Name:   "TestCaller",
-			RoomId: 1,
-			Buffs:  buffs.New(),
+			Name:       "TestCaller",
+			RoomId:     1,
+			Conditions: conditions.New(),
 		},
 	}
 	callerInstance := &mobs.Mob{
@@ -594,17 +594,17 @@ func TestActSummonCompanion_HostileSetsAggroAndEngages(t *testing.T) {
 		InstanceId: 100,
 		HomeRoomId: 1,
 		Character: characters.Character{
-			Name:   "TestCaller",
-			RoomId: 1,
-			Buffs:  buffs.New(),
+			Name:       "TestCaller",
+			RoomId:     1,
+			Conditions: conditions.New(),
 		},
 	}
 	companionSpec := &mobs.Mob{
 		MobId: mobs.MobId(7),
 		Character: characters.Character{
-			Name:   "TestCompanion",
-			RoomId: 1,
-			Buffs:  buffs.New(),
+			Name:       "TestCompanion",
+			RoomId:     1,
+			Conditions: conditions.New(),
 		},
 	}
 	cleanMobs := mobs.SeedMobsForTest(
@@ -722,9 +722,9 @@ func TestActSummonCompanion_HostileFallsBackWithoutEventUserId(t *testing.T) {
 	callerSpec := &mobs.Mob{
 		MobId: mobs.MobId(1),
 		Character: characters.Character{
-			Name:   "TestCaller",
-			RoomId: 1,
-			Buffs:  buffs.New(),
+			Name:       "TestCaller",
+			RoomId:     1,
+			Conditions: conditions.New(),
 		},
 	}
 	callerInstance := &mobs.Mob{
@@ -732,17 +732,17 @@ func TestActSummonCompanion_HostileFallsBackWithoutEventUserId(t *testing.T) {
 		InstanceId: 100,
 		HomeRoomId: 1,
 		Character: characters.Character{
-			Name:   "TestCaller",
-			RoomId: 1,
-			Buffs:  buffs.New(),
+			Name:       "TestCaller",
+			RoomId:     1,
+			Conditions: conditions.New(),
 		},
 	}
 	companionSpec := &mobs.Mob{
 		MobId: mobs.MobId(7),
 		Character: characters.Character{
-			Name:   "TestCompanion",
-			RoomId: 1,
-			Buffs:  buffs.New(),
+			Name:       "TestCompanion",
+			RoomId:     1,
+			Conditions: conditions.New(),
 		},
 	}
 	cleanMobs := mobs.SeedMobsForTest(

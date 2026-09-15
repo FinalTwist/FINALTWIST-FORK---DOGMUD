@@ -70,9 +70,9 @@ func checkSpoiledGrenades(user *users.UserRecord, room *rooms.Room) {
 					item.DisplayName(),
 					combat.GetDamageDescription(dmg, user.Character.HealthMax.Value)))
 			} else {
-				// Debuff grenade: apply buffs to self
-				for _, buffId := range spec.BuffIds {
-					user.AddBuff(buffId, "grenade-accident")
+				// Harmful condition grenade: apply conditions to self
+				for _, conditionId := range spec.ConditionIds {
+					user.AddCondition(conditionId, "grenade-accident")
 				}
 				user.SendText(messaging.CategorySystem, fmt.Sprintf(
 					`<ansi fg="red-bold">A <ansi fg="itemname">%s</ansi> in your pack goes off!</ansi>`,

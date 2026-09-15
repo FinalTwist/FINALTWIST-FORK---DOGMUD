@@ -1,9 +1,9 @@
 package actions
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -125,7 +125,7 @@ func ExecuteRake(actor Actor) RakeResult {
 	bleedDmg := 0
 	if result.Hit {
 		bleedDmg = bleedPerRound(char.Stats.Strength.ValueAdj, cfg.RakeBleedStrengthDivisor, cfg.RakeBleedMin)
-		_ = target.Char.AddBuffMagnitude(buffs.BuffIdBleeding, int(cfg.RakeBleedRounds), -float64(bleedDmg), "rake")
+		_ = target.Char.AddConditionMagnitude(conditions.ConditionIdBleeding, int(cfg.RakeBleedRounds), -float64(bleedDmg), "rake")
 	}
 
 	// Determine source/target types for analytics.

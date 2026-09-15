@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/factions"
@@ -121,13 +121,13 @@ enemies: []
 func resetSpecialMoveWrapperFixture(t *testing.T, user *users.UserRecord, target *mobs.Mob, speciesID int, stamina int) {
 	t.Helper()
 	user.Character = &characters.Character{
-		Name:      "Aliceia",
-		RoomId:    1,
-		SpeciesId: speciesID,
-		Health:    100,
-		Stamina:   stamina,
-		Buffs:     buffs.New(),
-		Cooldowns: map[string]int{},
+		Name:       "Aliceia",
+		RoomId:     1,
+		SpeciesId:  speciesID,
+		Health:     100,
+		Stamina:    stamina,
+		Conditions: conditions.New(),
+		Cooldowns:  map[string]int{},
 	}
 	user.Character.HealthMax.Value = 100
 	user.Character.StaminaMax.Value = 100
@@ -406,9 +406,9 @@ func TestSpecialMoveWrappersStagedRacesHaveNoEngagementSideEffects(t *testing.T)
 
 				targetHealth := target.Character.Health
 				targetStamina := target.Character.Stamina
-				targetBuffs := len(target.Character.Buffs.GetBuffs())
+				targetConditions := len(target.Character.Conditions.GetConditions())
 				actorHealth := user.Character.Health
-				actorBuffs := len(user.Character.Buffs.GetBuffs())
+				actorConditions := len(user.Character.Conditions.GetConditions())
 				actorPosition := user.Character.Position.State()
 				targetPosition := target.Character.Position.State()
 
@@ -441,10 +441,10 @@ func TestSpecialMoveWrappersStagedRacesHaveNoEngagementSideEffects(t *testing.T)
 				assert.Equal(t, 0, opinions.Get(int(target.MobId), user.UserId))
 				assert.Empty(t, crimes.AllForFaction("thornwall_citizens", false))
 				require.Equal(t, actorHealth, user.Character.Health)
-				require.Len(t, user.Character.Buffs.GetBuffs(), actorBuffs)
+				require.Len(t, user.Character.Conditions.GetConditions(), actorConditions)
 				require.Equal(t, targetHealth, target.Character.Health)
 				require.Equal(t, targetStamina, target.Character.Stamina)
-				require.Len(t, target.Character.Buffs.GetBuffs(), targetBuffs)
+				require.Len(t, target.Character.Conditions.GetConditions(), targetConditions)
 				require.False(t, target.Character.IsInCombat())
 				require.Equal(t, actorPosition, user.Character.Position.State())
 				require.Equal(t, targetPosition, target.Character.Position.State())

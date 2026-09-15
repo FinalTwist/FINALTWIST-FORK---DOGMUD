@@ -103,7 +103,7 @@ func (g GMCPCommandsModule) newRoundHandler(e events.Event) events.ListenerRetur
 	// web client's action queue sees the shared special-move cooldown REGISTER and
 	// CLEAR promptly. Previously Commands.State only rode incidental
 	// CharacterVitalsChanged / CharacterChanged pushes, so out of combat (e.g. when
-	// queueing buff re-casts like rally/warcry) the cooldown never reached the
+	// queueing condition re-casts like rally/warcry) the cooldown never reached the
 	// client — the queue read a stale "ready" and drained immediately. Tiny payload;
 	// gated to GMCP-enabled connections so telnet users cost nothing.
 	for _, u := range users.GetAllActiveUsers() {

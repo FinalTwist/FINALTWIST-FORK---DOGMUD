@@ -3,8 +3,8 @@ package actions
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -52,10 +52,10 @@ func seedRoomMob(t *testing.T, room *rooms.Room, instanceId int, name string, mu
 		MobId:      1,
 		InstanceId: instanceId,
 		Character: characters.Character{
-			Name:   name,
-			RoomId: room.RoomId,
-			Health: 100,
-			Buffs:  buffs.New(),
+			Name:       name,
+			RoomId:     room.RoomId,
+			Health:     100,
+			Conditions: conditions.New(),
 		},
 	}
 	m.Character.HealthMax.Value = 100

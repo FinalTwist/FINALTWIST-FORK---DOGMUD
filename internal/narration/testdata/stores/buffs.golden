@@ -1,4 +1,4 @@
-# buffs store snapshot (internal/buffs)
+# buffs store snapshot (internal/conditions)
 # Built 2026-09-12 from PRE-migration code. The *_user_text rows record what the
 # HOLDER is sent: for start and end that is StartUserNotice / EndUserNotice (authored
 # line, else the generic fallback, else nothing for a secret buff). A row exists only

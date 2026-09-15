@@ -31,7 +31,7 @@ type Config struct {
 	EmoteEveryRounds     int     // ambient emote cadence in rounds (jittered ±25%, >= 5)
 	EmoteMildChancePct   int     // ambient emit chance (%) at felt intensity 0
 	EmoteStrongChancePct int     // ambient emit chance (%) at felt intensity 1
-	BuffsEnabled         bool    // false strips buff ids from weather mutator specs
+	ConditionsEnabled    bool    // false strips condition ids from weather mutator specs
 	Persist              bool    // save/restore fronts + RNG across reboots
 	SeasonsEnabled       bool    // false runs exactly as v1 weather (no season layer)
 }
@@ -108,7 +108,7 @@ func buildConfig(get getter) Config {
 		EmoteEveryRounds:     intOr(get("EmoteEveryRounds"), 24),
 		EmoteMildChancePct:   intOr(get("EmoteMildChancePct"), 30),
 		EmoteStrongChancePct: intOr(get("EmoteStrongChancePct"), 100),
-		BuffsEnabled:         boolOr(get("BuffsEnabled"), true),
+		ConditionsEnabled:    boolOr(get("BuffsEnabled"), true),
 		Persist:              boolOr(get("Persist"), true),
 		SeasonsEnabled:       boolOr(get("SeasonsEnabled"), true),
 	}

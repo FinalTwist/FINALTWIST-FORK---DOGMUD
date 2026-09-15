@@ -5,8 +5,8 @@ import (
 	"sort"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -207,24 +207,24 @@ func spellHasCategory(sd *spells.SpellData, category string) bool {
 
 // spellEffectAlreadyActive returns true when the effect this spell would
 // grant is already on the character. Branches:
-//   - spell.BuffIds non-empty: skip if any is active (HasBuff)
-//   - spell.EffectType == "shield": skip if the Minor Shield record (buff
+//   - spell.ConditionIds non-empty: skip if any is active (HasCondition)
+//   - spell.EffectType == "shield": skip if the Minor Shield record (condition
 //     119, see _datafiles/world/dogmud/buffs/119-minor_shield.yaml) is
 //     already granting mitigation. Spell resolution lands shield-type
-//     casts via AddBuffMagnitude(BuffIdMinorShield, ...) — checked here via
-//     the Buffs.HasEffect(EffectMitigationFlat) door, NOT
+//     casts via AddConditionMagnitude(ConditionIdMinorShield, ...) — checked here via
+//     the Conditions.HasEffect(EffectMitigationFlat) door, NOT
 //     Character.HasShield(), which checks for equipped shield items or
 //     species natural-bash, neither of which is what this spell grants.
 //
 // If neither mechanism matches, returns false (conservative — may recast but
 // won't silently stall the tree).
 func spellEffectAlreadyActive(char *characters.Character, sd *spells.SpellData) bool {
-	for _, bid := range sd.BuffIds {
-		if char.HasBuff(bid) {
+	for _, bid := range sd.ConditionIds {
+		if char.HasCondition(bid) {
 			return true
 		}
 	}
-	if sd.EffectType == "shield" && char.Buffs.HasEffect(buffs.EffectMitigationFlat) {
+	if sd.EffectType == "shield" && char.Conditions.HasEffect(conditions.EffectMitigationFlat) {
 		return true
 	}
 	return false

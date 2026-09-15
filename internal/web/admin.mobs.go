@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -88,17 +88,17 @@ func mobData(w http.ResponseWriter, r *http.Request) {
 		dropChances = append(dropChances, i)
 	}
 
-	buffSpecs := []buffs.BuffSpec{}
-	for _, buffId := range buffs.GetAllBuffIds() {
-		if b := buffs.GetBuffSpec(buffId); b != nil {
+	conditionSpecs := []conditions.ConditionSpec{}
+	for _, conditionId := range conditions.GetAllConditionIds() {
+		if b := conditions.GetConditionSpec(conditionId); b != nil {
 			if b.Name == `empty` {
 				continue
 			}
-			buffSpecs = append(buffSpecs, *b)
+			conditionSpecs = append(conditionSpecs, *b)
 		}
 	}
-	sort.SliceStable(buffSpecs, func(i, j int) bool {
-		return buffSpecs[i].BuffId < buffSpecs[j].BuffId
+	sort.SliceStable(conditionSpecs, func(i, j int) bool {
+		return conditionSpecs[i].ConditionId < conditionSpecs[j].ConditionId
 	})
 
 	tplData := map[string]any{}
@@ -107,7 +107,7 @@ func mobData(w http.ResponseWriter, r *http.Request) {
 
 	shopData := map[string]characters.Shop{
 		`Items`:       {},
-		`Buffs`:       {},
+		`Conditions`:  {},
 		`Mercenaries`: {},
 		`Pets`:        {},
 	}
@@ -119,8 +119,8 @@ func mobData(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		if shopItm.BuffId > 0 {
-			shopData[`Buffs`] = append(shopData[`Buffs`], shopItm)
+		if shopItm.ConditionId > 0 {
+			shopData[`Conditions`] = append(shopData[`Conditions`], shopItm)
 			continue
 		}
 
@@ -142,7 +142,7 @@ func mobData(w http.ResponseWriter, r *http.Request) {
 	tplData[`activityLevels`] = activityLevels
 	tplData[`dropChances`] = dropChances
 	tplData[`allMobGroups`] = allMobGroups
-	tplData[`buffSpecs`] = buffSpecs
+	tplData[`conditionSpecs`] = conditionSpecs
 
 	if err := tmpl.Execute(w, tplData); err != nil {
 		mudlog.Error("HTML Execute", "error", err)

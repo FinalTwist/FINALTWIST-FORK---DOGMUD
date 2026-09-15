@@ -692,7 +692,7 @@
       gmcp("Build.Behavior.Get", { kind: "mob", mobId: detail.mobId });
     });
     body.appendChild(ce("div", { style: "margin:4px 0 8px;" }, [btArchBtn, btMobBtn]));
-    body.appendChild(H.idRowsField("Buff ids", "buffIds", detail.buffIds, "", "dl-mob-buffs"));
+    body.appendChild(H.idRowsField("Condition ids", "buffIds", detail.buffIds, "", "dl-mob-buffs"));
     body.appendChild(H.chipsField("Quest flags", "questFlags", detail.questFlags));
     body.appendChild(H.chipsField("Spawn mutations", "spawnMutations", detail.spawnMutations));
     body.appendChild(H.numField("Mutation chance %", "mutationChance", detail.mutationChance));

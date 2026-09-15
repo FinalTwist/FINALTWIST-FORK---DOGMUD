@@ -15,6 +15,6 @@ is invaluable during extended engagements.
   <ansi fg="yellow">School:      </ansi> Vital
   <ansi fg="yellow">Base Folds:  </ansi> 5
   <ansi fg="yellow">Conv. Cost:  </ansi> 40
-  <ansi fg="yellow">Effect:      </ansi> Regeneration buff — restores health steadily over time
+  <ansi fg="yellow">Effect:      </ansi> Regeneration condition, restores health steadily over time
 
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help spells</ansi>, <ansi fg="command">help cast</ansi>

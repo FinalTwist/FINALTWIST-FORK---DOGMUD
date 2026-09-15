@@ -24,7 +24,7 @@ That is the whole public surface. `mobAdapter` implements every
 ConvInstanceId() int          ConvMobId() int
 ConvRoomId() int              ConvGetMiscData(key string) any
 ConvSetMiscData(key string, val any)
-ConvIsInCombat() bool         ConvHasBuffFlag(f buffs.Flag) bool
+ConvIsInCombat() bool         ConvHasConditionFlag(f conditions.Flag) bool
 ConvAggro() bool              ConvPathLen() int
 ConvPathCurrentNonNil() bool  ConvCommand(text string)
 ConvGetPartner(instanceId int) conversations.MobConversant
@@ -45,13 +45,13 @@ real method names.
 - **`ConvGetPartner` returns an adapted mob, not a raw one** — the interface is
   closed over itself so the conversation layer never sees a `*mobs.Mob`.
 - **Idle gating is checked through several of these at once** (combat, aggro,
-  path state, buff flags). A conversation only fires when a mob is fully idle,
+  path state, condition flags). A conversation only fires when a mob is fully idle,
   so a new "busy" state needs a corresponding predicate here or NPCs will chat
   through it.
 
 ## Dependencies
 
-`mobs`, `buffs`, `conversations`. By construction it is the only package
+`mobs`, `conditions`, `conversations`. By construction it is the only package
 importing both sides.
 
 ## Consumers

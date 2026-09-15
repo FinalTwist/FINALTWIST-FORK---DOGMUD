@@ -10,8 +10,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
 
-// Warcry is the mob-side shout that applies the warcry damage buff to
-// the casting mob. Mob warcry applies the self-buff only; ally fan-out
+// Warcry is the mob-side shout that applies the warcry damage condition to
+// the casting mob. Mob warcry applies the self-condition only; ally fan-out
 // is a player-command concern.
 func Warcry(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	result := actions.ExecuteWarcry(&actions.MobActor{Mob: mob, Room: room})

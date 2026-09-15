@@ -3,8 +3,8 @@ package combat
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/items"
 )
@@ -26,8 +26,8 @@ func AttemptCritDisarm(source *characters.Character, target *characters.Characte
 		Success: false,
 	}
 
-	// Check for PermaGear buff immunity
-	if target.HasBuffFlag(buffs.PermaGear) {
+	// Check for PermaGear condition immunity
+	if target.HasConditionFlag(conditions.PermaGear) {
 		return result
 	}
 

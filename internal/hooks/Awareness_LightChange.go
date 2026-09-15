@@ -1,8 +1,8 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -22,7 +22,7 @@ import (
 //   - events.RoomChange  — actor entered or left a room (may change room
 //     light balance when the actor emits light)
 //   - events.EquipmentChange — equipment slot changed (may toggle EmitsLight
-//     if the equipped/unequipped item has the lightsource buff flag)
+//     if the equipped/unequipped item has the lightsource condition flag)
 //
 // FUTURE expansion (not in chunk 1): light-spell cast/cancel, glow-mutation
 // gain/lose. Those events don't currently have hooks; add in followups.
@@ -66,7 +66,7 @@ func onRoomChangeForAwareness(e events.Event) events.ListenerReturn {
 
 	// Only act when the mover emits light — a non-emitting actor's movement
 	// doesn't change room visibility.
-	if c == nil || !c.HasFlagFromAnySource(buffs.EmitsLight) {
+	if c == nil || !c.HasFlagFromAnySource(conditions.EmitsLight) {
 		return events.Continue
 	}
 
@@ -112,7 +112,7 @@ func onEquipmentChangeForAwareness(e events.Event) events.ListenerReturn {
 	}
 
 	// FUTURE: check whether the equipment change toggled EmitsLight (compare
-	// HasFlagFromAnySource(buffs.EmitsLight) before and after via the
+	// HasFlagFromAnySource(conditions.EmitsLight) before and after via the
 	// ItemsWorn / ItemsRemoved slices on the event). If it changed, call
 	// rerollHiddenActorVsRoom to re-roll against all observers.
 	//

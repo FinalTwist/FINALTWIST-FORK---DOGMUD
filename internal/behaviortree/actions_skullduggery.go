@@ -87,7 +87,7 @@ func actTryPlant(params map[string]any, ctx *EvalContext) Result {
 
 // actTryShadow runs actions.Shadow against the resolved target.
 // The actions.Shadow implementation enforces the hidden-required precondition
-// and returns Reason:"not hidden" when the mob lacks buff 9. Returns Failure
+// and returns Reason:"not hidden" when the mob lacks condition 9. Returns Failure
 // in that case.
 func actTryShadow(params map[string]any, ctx *EvalContext) Result {
 	mob, opts := resolveShadowOptsFromContext(ctx)
@@ -126,7 +126,7 @@ func actTryDefuse(params map[string]any, ctx *EvalContext) Result {
 	// Find the first trapped container.
 	targetNoun := ""
 	for name, container := range room.Containers {
-		if container.HasLock() && len(container.Lock.TrapBuffIds) > 0 {
+		if container.HasLock() && len(container.Lock.TrapConditionIds) > 0 {
 			targetNoun = name
 			break
 		}
@@ -135,7 +135,7 @@ func actTryDefuse(params map[string]any, ctx *EvalContext) Result {
 	// If no trapped container, try exits.
 	if targetNoun == "" {
 		for exitName, exitInfo := range room.Exits {
-			if exitInfo.HasLock() && len(exitInfo.Lock.TrapBuffIds) > 0 {
+			if exitInfo.HasLock() && len(exitInfo.Lock.TrapConditionIds) > 0 {
 				targetNoun = exitName
 				break
 			}

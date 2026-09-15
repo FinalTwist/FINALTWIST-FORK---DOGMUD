@@ -3,7 +3,7 @@ package hooks
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/life"
@@ -29,8 +29,8 @@ import (
 // registered in. (The real announcement runs too, from the fixture's
 // production wiring, which registers it before the cascade.)
 func TestDeathStrip_ExpiredRecordsDoNotNarrateAfterRespawn(t *testing.T) {
-	u := setupBuffAfterDeath(t)
-	t.Cleanup(buffs.SeedConditionRecordsForTest())
+	u := setupConditionAfterDeath(t)
+	t.Cleanup(conditions.SeedConditionRecordsForTest())
 	cause := ""
 	u.Character.Life.Inner().AfterTransition("test_death_cause",
 		func(from, to life.State, _ state.TransitionReason) {
@@ -41,8 +41,8 @@ func TestDeathStrip_ExpiredRecordsDoNotNarrateAfterRespawn(t *testing.T) {
 
 	// A one-trigger bleed that kills, and a narrated shield that would have
 	// lasted. Both end lines must stay silent.
-	require.NoError(t, u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 1, -5, "claws"))
-	require.NoError(t, u.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, 10, 3, "spell"))
+	require.NoError(t, u.Character.AddConditionMagnitude(conditions.ConditionIdBleeding, 1, -5, "claws"))
+	require.NoError(t, u.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, 10, 3, "spell"))
 	u.Character.Health = 1
 
 	UserRoundTick(events.NewRound{RoundNumber: 1})
@@ -63,12 +63,12 @@ func TestDeathStrip_ExpiredRecordsDoNotNarrateAfterRespawn(t *testing.T) {
 	assert.Equal(t, "bleeding out", cause,
 		"the death cause must still read the held Bleeding record")
 
-	assert.False(t, u.Character.HasBuff(buffs.BuffIdBleeding), "the stripped bleed is gone after the respawn")
-	assert.False(t, u.Character.HasBuff(buffs.BuffIdMinorShield), "the stripped shield is gone after the respawn")
+	assert.False(t, u.Character.HasCondition(conditions.ConditionIdBleeding), "the stripped bleed is gone after the respawn")
+	assert.False(t, u.Character.HasCondition(conditions.ConditionIdMinorShield), "the stripped shield is gone after the respawn")
 
 	holderLines := drainPlain(1)
 	roomLines := drainPlain(2)
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	holderLines = append(holderLines, drainPlain(1)...)
 	roomLines = append(roomLines, drainPlain(2)...)
 
@@ -82,27 +82,27 @@ func TestDeathStrip_ExpiredRecordsDoNotNarrateAfterRespawn(t *testing.T) {
 
 // Control: a record that runs out on its own still narrates its end.
 func TestDeathStrip_NaturalExpiryStillNarrates(t *testing.T) {
-	u := setupBuffAfterDeath(t)
-	t.Cleanup(buffs.SeedConditionRecordsForTest())
+	u := setupConditionAfterDeath(t)
+	t.Cleanup(conditions.SeedConditionRecordsForTest())
 
-	require.NoError(t, u.Character.AddBuffMagnitude(buffs.BuffIdBleeding, 4, -1, "claws"))
-	expire(t, u.Character.Buffs.List, buffs.BuffIdBleeding)
+	require.NoError(t, u.Character.AddConditionMagnitude(conditions.ConditionIdBleeding, 4, -1, "claws"))
+	expire(t, u.Character.Conditions.List, conditions.ConditionIdBleeding)
 	drainPlain(1)
 
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	assert.Equal(t, 1, countContaining(drainPlain(1), "Your wounds stop bleeding."))
 }
 
 // Control: a strip that is not a death (the same All cancel, on a living
 // player) still narrates at the prune. Only the death cascade is silent.
 func TestDeathStrip_ANonDeathCancelStillNarrates(t *testing.T) {
-	u := setupBuffAfterDeath(t)
-	t.Cleanup(buffs.SeedConditionRecordsForTest())
+	u := setupConditionAfterDeath(t)
+	t.Cleanup(conditions.SeedConditionRecordsForTest())
 
-	require.NoError(t, u.Character.AddBuffMagnitude(buffs.BuffIdMinorShield, 10, 3, "spell"))
-	u.Character.CancelBuffsWithFlag(buffs.All)
+	require.NoError(t, u.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, 10, 3, "spell"))
+	u.Character.CancelConditionsWithFlag(conditions.All)
 	drainPlain(1)
 
-	PruneBuffs(events.NewTurn{TurnNumber: 1})
+	PruneConditions(events.NewTurn{TurnNumber: 1})
 	assert.Equal(t, 1, countContaining(drainPlain(1), "Your Minor Shield dissipates."))
 }

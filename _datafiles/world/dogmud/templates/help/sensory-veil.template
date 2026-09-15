@@ -16,6 +16,6 @@ their awareness of the battlefield significantly diminished.
   <ansi fg="yellow">Base Folds:  </ansi> 8
   <ansi fg="yellow">Conv. Cost:  </ansi> 50
   <ansi fg="yellow">Defense:     </ansi> Mental — perception and willpower resist the veil
-  <ansi fg="yellow">Effect:      </ansi> Debuff — clouds the target's perception
+  <ansi fg="yellow">Effect:      </ansi> Weakening effect — clouds the target's perception
 
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help spells</ansi>, <ansi fg="command">help cast</ansi>

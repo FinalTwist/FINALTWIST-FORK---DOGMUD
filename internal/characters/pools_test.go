@@ -186,10 +186,10 @@ func TestHarmAndRestoreIgnoreNonPositive(t *testing.T) {
 
 // TestSignedTickSplit_NegativeStillHarms guards the U5b-1 trap: a signed tick
 // amount routed only through ApplyRestore would silently delete every
-// damage-over-time buff, because ApplyRestore no-ops on non-positive input.
+// damage-over-time condition, because ApplyRestore no-ops on non-positive input.
 //
 // The body mirrors the sign split now live in NewRound_UserRoundTick.go and
-// NewRound_MobRoundTick.go. buffs.ComputeTickAmount returns -amount for
+// NewRound_MobRoundTick.go. conditions.ComputeTickAmount returns -amount for
 // TickPercent < 0, so both directions arrive at the same switch.
 func TestSignedTickSplit_NegativeStillHarms(t *testing.T) {
 	c := poolChar(10, 10, 10)

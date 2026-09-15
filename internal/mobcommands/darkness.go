@@ -1,7 +1,7 @@
 package mobcommands
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -32,7 +32,7 @@ func sendAudioRoomText(room *rooms.Room, mob *mobs.Mob, cat messaging.Category, 
 		if u == nil {
 			continue
 		}
-		if u.Character.HasFlagFromAnySource(buffs.NightVision) {
+		if u.Character.HasFlagFromAnySource(conditions.NightVision) {
 			u.SendText(cat, fullMsg)
 		} else {
 			u.SendText(cat, anonMsg)
@@ -42,5 +42,5 @@ func sendAudioRoomText(room *rooms.Room, mob *mobs.Mob, cat messaging.Category, 
 
 // canSeeInDark returns true if the user has nightvision or the room is lit.
 func canSeeInDark(u *users.UserRecord, room *rooms.Room) bool {
-	return room.GetVisibility() >= 1 || u.Character.HasFlagFromAnySource(buffs.NightVision)
+	return room.GetVisibility() >= 1 || u.Character.HasFlagFromAnySource(conditions.NightVision)
 }

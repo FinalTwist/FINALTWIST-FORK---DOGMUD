@@ -75,16 +75,16 @@
 
         <div class="input-group col">
             <div class="input-group-prepend w-50">
-                <span class="input-group-text w-100" id="stats-speed">Speed</span>
+                <span class="input-group-text w-100" id="stats-speed">Dexterity</span>
             </div>
-            <input type="text" name="stats[speed]" class="form-control" value="{{.speciesInfo.Stats.Speed.Base}}">
+            <input type="text" name="stats[speed]" class="form-control" value="{{.speciesInfo.Stats.Dexterity.Base}}">
         </div>
 
         <div class="input-group col">
             <div class="input-group-prepend w-50">
-                <span class="input-group-text w-100" id="stats-smarts">Smarts</span>
+                <span class="input-group-text w-100" id="stats-smarts">Charisma</span>
             </div>
-            <input type="text" name="stats[smarts]" class="form-control" value="{{.speciesInfo.Stats.Smarts.Base}}">
+            <input type="text" name="stats[smarts]" class="form-control" value="{{.speciesInfo.Stats.Charisma.Base}}">
         </div>
         <div class="input-group col">
             <div class="input-group-prepend w-50">
@@ -95,9 +95,9 @@
 
         <div class="input-group col">
             <div class="input-group-prepend w-50">
-                <span class="input-group-text w-100" id="stats-mysticism">Mysticism</span>
+                <span class="input-group-text w-100" id="stats-mysticism">Willpower</span>
             </div>
-            <input type="text" name="stats[mysticism]" class="form-control" value="{{.speciesInfo.Stats.Mysticism.Base}}">
+            <input type="text" name="stats[mysticism]" class="form-control" value="{{.speciesInfo.Stats.Willpower.Base}}">
         </div>
 
         <div class="input-group col">
@@ -134,19 +134,19 @@
 
 
     <hr />
-    <h3>Natural Buffs This Species Has</h3>
+    <h3>Natural Conditions This Species Has</h3>
 
     <div class="form-group row form-check container-fluid">
-        {{ $buffIds := .speciesInfo.BuffIds }}
-        {{range $i, $buffSpec := .buffSpecs}}
-            <label class="form-check-label col-md-2" for="worn-buff-{{$buffSpec.BuffId}}" title="{{ $buffSpec.Description }}"><input
+        {{ $buffIds := .speciesInfo.ConditionIds }}
+        {{range $i, $buffSpec := .conditionSpecs}}
+            <label class="form-check-label col-md-2" for="worn-buff-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
             class="form-check-input"
             type="checkbox"
             name="buffids[]"
-            id="species-buff-{{$buffSpec.BuffId}}"
-            value="{{ $buffSpec.BuffId }}"
-            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.BuffId}}CHECKED{{end}}{{end}}>
-            {{ $buffSpec.BuffId }}. {{ $buffSpec.Name }}</label>
+            id="species-buff-{{$buffSpec.ConditionId}}"
+            value="{{ $buffSpec.ConditionId }}"
+            {{range $j, $buffId := $buffIds}}{{if eq $buffId $buffSpec.ConditionId}}CHECKED{{end}}{{end}}>
+            {{ $buffSpec.ConditionId }}. {{ $buffSpec.Name }}</label>
         {{end}}
     </div>
 

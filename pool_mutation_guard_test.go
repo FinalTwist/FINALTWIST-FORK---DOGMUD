@@ -82,10 +82,10 @@ var poolWriteExemptions = map[string]string{
 	//     with ApplyCostPartial and deleted the function. That flips defence
 	//     from "cannot afford, so no defence" to "pay what you have", which is
 	//     a live combat change.
-	//   - Heal is a HARM path: buffs.ComputeTickAmount returns a negative value
+	//   - Heal is a HARM path: conditions.ComputeTickAmount returns a negative value
 	//     for TickPercent < 0, and ApplyRestore no-ops on non-positive input, so
 	//     wrapping Heal over it would silently delete every health
-	//     damage-over-time buff. U5b-1 removed its two signed callers; U5c
+	//     damage-over-time condition. U5b-1 removed its two signed callers; U5c
 	//     retires the function.
 	//
 	// This is a FILE exemption on the file where both follow-ups land. Delete it

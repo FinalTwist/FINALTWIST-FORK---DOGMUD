@@ -37,7 +37,7 @@ type QuestReward struct {
 	QuestId       string `yaml:"questid,omitempty" json:"questid,omitempty"`         // new questId to give ( {id}-{step} format )
 	Gold          int    `yaml:"gold,omitempty" json:"gold,omitempty"`               // zero or more gold to give
 	ItemId        int    `yaml:"itemid,omitempty" json:"itemid,omitempty"`           // itemId to give
-	BuffId        int    `yaml:"buffid,omitempty" json:"buffid,omitempty"`           // buffId to apply
+	ConditionId   int    `yaml:"buffid,omitempty" json:"buffid,omitempty"`           // conditionId to apply
 	SkillInfo     string `yaml:"skillinfo,omitempty" json:"skillinfo,omitempty"`     // skill(s) to give, "skill:level[,skill:level]"
 	StatInfo      string `yaml:"stat_info,omitempty" json:"stat_info,omitempty"`     // stat(s) to increase, "stat:amount[,...]"
 	RecipeInfo    string `yaml:"recipe_info,omitempty" json:"recipe_info,omitempty"` // recipe(s) to grant, comma-separated recipe IDs

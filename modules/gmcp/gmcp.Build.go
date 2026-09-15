@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/dialogue"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
@@ -197,9 +197,9 @@ type buildDeps struct {
 	// Existence checks for spawn entries. Injected rather than calling the
 	// registries directly so this package's tests, which run with no world
 	// loaded, do not see every mob and item as non-existent.
-	mobExists  func(id int) bool
-	itemExists func(id int) bool
-	buffExists func(id int) bool
+	mobExists       func(id int) bool
+	itemExists      func(id int) bool
+	conditionExists func(id int) bool
 }
 
 func realBuildDeps() buildDeps {
@@ -209,19 +209,19 @@ func realBuildDeps() buildDeps {
 		// origin rooms as (0,0,0), so a coord-only file always means position
 		// (0,0,0). Any inconsistency would fail the panic-mode cartcheck at
 		// boot, so a bootable world's template coords are always correct.
-		loadTemplate:   rooms.LoadRoomTemplate,
-		save:           rooms.SaveRoomTemplate,
-		deleteTemplate: rooms.DeleteRoomTemplate,
-		validatePlace:  rooms.ValidatePlacement,
-		newRoom:        rooms.NewRoom,
-		allRoomIds:     rooms.GetAllRoomIds,
-		reciprocal:     reciprocalCompass,
-		delta:          mapper.GetDelta,
-		isCompass:      mapper.IsCompassDirection,
-		isNonEuclidean: func(plane int) bool { return rooms.GetPlaneRegistry().IsNonEuclidean(plane) },
-		mobExists:      func(id int) bool { return mobs.GetMobSpec(mobs.MobId(id)) != nil },
-		itemExists:     func(id int) bool { return items.GetItemSpec(id) != nil },
-		buffExists:     func(id int) bool { return buffs.GetBuffSpec(id) != nil },
+		loadTemplate:    rooms.LoadRoomTemplate,
+		save:            rooms.SaveRoomTemplate,
+		deleteTemplate:  rooms.DeleteRoomTemplate,
+		validatePlace:   rooms.ValidatePlacement,
+		newRoom:         rooms.NewRoom,
+		allRoomIds:      rooms.GetAllRoomIds,
+		reciprocal:      reciprocalCompass,
+		delta:           mapper.GetDelta,
+		isCompass:       mapper.IsCompassDirection,
+		isNonEuclidean:  func(plane int) bool { return rooms.GetPlaneRegistry().IsNonEuclidean(plane) },
+		mobExists:       func(id int) bool { return mobs.GetMobSpec(mobs.MobId(id)) != nil },
+		itemExists:      func(id int) bool { return items.GetItemSpec(id) != nil },
+		conditionExists: func(id int) bool { return conditions.GetConditionSpec(id) != nil },
 	}
 }
 
@@ -1216,11 +1216,11 @@ func validateSpawnEntry(d buildDeps, s rooms.SpawnInfo, containers map[string]ro
 		set[name] = struct{}{}
 	}
 	return rooms.ValidateSpawnEntry(s, rooms.SpawnValidators{
-		MobExists:  d.mobExists,
-		ItemExists: d.itemExists,
-		BuffExists: d.buffExists,
-		PeriodOK:   rooms.RealPeriodOK,
-		Containers: set,
+		MobExists:       d.mobExists,
+		ItemExists:      d.itemExists,
+		ConditionExists: d.conditionExists,
+		PeriodOK:        rooms.RealPeriodOK,
+		Containers:      set,
 	})
 }
 

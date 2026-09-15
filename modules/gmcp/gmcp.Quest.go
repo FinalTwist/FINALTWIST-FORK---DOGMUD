@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/factions"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -64,16 +64,16 @@ func realQuestValidators() quests.QuestValidators {
 	}
 	dlgGrants := collectDialogueGrantTokens()
 	return quests.QuestValidators{
-		StepExists:    func(tok string) bool { return quests.GetQuest(tok) != nil },
-		MobExists:     func(id int) bool { return mobs.GetMobSpec(mobs.MobId(id)) != nil },
-		ItemExists:    func(id int) bool { return items.GetItemSpec(id) != nil },
-		RoomExists:    func(id int) bool { return rooms.LoadRoomTemplate(id) != nil },
-		BuffExists:    func(id int) bool { return buffs.GetBuffSpec(id) != nil },
-		SpellExists:   func(id string) bool { return spells.GetSpell(id) != nil },
-		SkillExists:   func(name string) bool { return skillNames[name] },
-		StatExists:    func(name string) bool { return statNames[name] },
-		RecipeExists:  func(id string) bool { return crafting.GetRecipe(id) != nil },
-		FactionExists: func(id string) bool { return factions.GetDefinition(id) != nil },
+		StepExists:      func(tok string) bool { return quests.GetQuest(tok) != nil },
+		MobExists:       func(id int) bool { return mobs.GetMobSpec(mobs.MobId(id)) != nil },
+		ItemExists:      func(id int) bool { return items.GetItemSpec(id) != nil },
+		RoomExists:      func(id int) bool { return rooms.LoadRoomTemplate(id) != nil },
+		ConditionExists: func(id int) bool { return conditions.GetConditionSpec(id) != nil },
+		SpellExists:     func(id string) bool { return spells.GetSpell(id) != nil },
+		SkillExists:     func(name string) bool { return skillNames[name] },
+		StatExists:      func(name string) bool { return statNames[name] },
+		RecipeExists:    func(id string) bool { return crafting.GetRecipe(id) != nil },
+		FactionExists:   func(id string) bool { return factions.GetDefinition(id) != nil },
 		FlagDeclared: func(key, value string) bool {
 			return quests.ValidateFlag(key, value) == nil
 		},
@@ -114,17 +114,17 @@ type strIdName struct {
 }
 
 type questEnums struct {
-	QuestTokens []dialogueQuestToken `json:"questTokens"`
-	FlagKeys    map[string][]string  `json:"flagKeys"` // full key -> allowed values
-	Events      []vocabEntry         `json:"events"`
-	Conditions  []vocabEntry         `json:"conditions"`
-	Actions     []vocabEntry         `json:"actions"`
-	Buffs       []idName             `json:"buffs"`
-	Spells      []strIdName          `json:"spells"`
-	Recipes     []string             `json:"recipes"`
-	Factions    []strIdName          `json:"factions"`
-	Skills      []string             `json:"skills"`
-	Stats       []string             `json:"stats"`
+	QuestTokens      []dialogueQuestToken `json:"questTokens"`
+	FlagKeys         map[string][]string  `json:"flagKeys"` // full key -> allowed values
+	Events           []vocabEntry         `json:"events"`
+	Conditions       []vocabEntry         `json:"conditions"`
+	Actions          []vocabEntry         `json:"actions"`
+	StatusConditions []idName             `json:"buffs"`
+	Spells           []strIdName          `json:"spells"`
+	Recipes          []string             `json:"recipes"`
+	Factions         []strIdName          `json:"factions"`
+	Skills           []string             `json:"skills"`
+	Stats            []string             `json:"stats"`
 }
 
 type questDetail struct {
@@ -177,7 +177,7 @@ var questActionVocab = []vocabEntry{
 	{"train_skill", "raise a skill to a level"},
 	{"train_stat", "raise a stat by an amount"},
 	{"learn_recipe", "grant a crafting recipe"},
-	{"apply_buff", "apply a buff to the player"},
+	{"apply_buff", "apply a condition to the player"},
 	{"teleport", "move the player to a room"},
 	{"give_mutation", "roll and grant a random mutation"},
 	{"set_flag", "record a quest flag (key+value must be declared)"},
@@ -278,12 +278,12 @@ func collectQuestEnums() questEnums {
 		}
 	}
 	sort.Slice(e.QuestTokens, func(i, j int) bool { return e.QuestTokens[i].Token < e.QuestTokens[j].Token })
-	for _, id := range buffs.GetAllBuffIds() {
-		if spec := buffs.GetBuffSpec(id); spec != nil {
-			e.Buffs = append(e.Buffs, idName{Id: id, Name: spec.Name})
+	for _, id := range conditions.GetAllConditionIds() {
+		if spec := conditions.GetConditionSpec(id); spec != nil {
+			e.StatusConditions = append(e.StatusConditions, idName{Id: id, Name: spec.Name})
 		}
 	}
-	sort.Slice(e.Buffs, func(i, j int) bool { return e.Buffs[i].Id < e.Buffs[j].Id })
+	sort.Slice(e.StatusConditions, func(i, j int) bool { return e.StatusConditions[i].Id < e.StatusConditions[j].Id })
 	for id, sd := range spells.GetAllSpells() {
 		e.Spells = append(e.Spells, strIdName{Id: id, Name: sd.Name})
 	}

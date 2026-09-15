@@ -90,7 +90,7 @@ func OpeningStrikeMultiplier(attacker *characters.Character, channelKnob float64
 // as an ordinary hit is an ordinary hit.
 //
 // The melee channel deliberately does NOT use this. calcHitDamage carries
-// backstab consumption and crit-buff bookkeeping, and floors at 0 rather than
+// backstab consumption and crit-condition bookkeeping, and floors at 0 rather than
 // 1, so folding it in here would either lose behaviour or bloat the signature.
 func CritOrMitigatedDamageScaled(rawDmg float64, skillRank int, isCrit bool, mitigPct, mitigCap, bonusCritMult float64) int {
 	mean := rawDmg

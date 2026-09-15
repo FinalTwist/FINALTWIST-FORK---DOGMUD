@@ -1,8 +1,8 @@
 package combat
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -52,7 +52,7 @@ func SituationalAttackMult(attacker *characters.Character, channel AttackChannel
 
 // sleepingSnapshot is the round-start sleeping-victim snapshot, published once
 // per round by hooks.DoCombat (which owns the walk over users and mob
-// instances). It exists because cancel-on-damage clears the Sleeping buff on
+// instances). It exists because cancel-on-damage clears the Sleeping condition on
 // the FIRST hit, so every later attack in the same round would miss the
 // forced-crit window if it read only the live flag. The maps are read-only
 // after publication and the game loop is single-threaded, so a bare package
@@ -85,7 +85,7 @@ func SleepingForceCrit(defender *characters.Character) bool {
 	if defender == nil {
 		return false
 	}
-	if defender.HasBuffFlag(buffs.Sleeping) {
+	if defender.HasConditionFlag(conditions.Sleeping) {
 		return true
 	}
 	if sleepingSnapshot.round != util.GetRoundCount() {

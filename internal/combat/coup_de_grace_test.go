@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"gopkg.in/yaml.v2"
 )
@@ -17,7 +17,7 @@ func newDyingTestChar(health int) *characters.Character {
 	c.HealthMax.Base = 100
 	c.HealthMax.Recalculate()
 	c.Health = health
-	c.Buffs = buffs.New()
+	c.Conditions = conditions.New()
 	return c
 }
 

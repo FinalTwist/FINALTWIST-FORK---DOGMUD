@@ -42,7 +42,7 @@ func MigrateDetunedRangedWeapons(ptrs []*Item) int {
 // persisted under the yaml key `overrides:`) whenever it is non-nil and never
 // consults the template, so editing the template does not reach a bow that
 // already exists. Anything that materialises a Spec -- an enchant, an affix
-// roll, a rename, a worn buff -- pins that bow's damage forever.
+// roll, a rename, a worn condition -- pins that bow's damage forever.
 //
 // RESCALE PROPORTIONALLY. NEVER ASSIGN THE TEMPLATE VALUE. SpecBaseline exists
 // precisely because the enchant path used to reset to the bare template, which

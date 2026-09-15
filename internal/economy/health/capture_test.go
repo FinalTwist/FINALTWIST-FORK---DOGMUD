@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/caravan"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/economy/health"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	foragerPkg "github.com/GoMudEngine/GoMud/internal/forager"
@@ -121,7 +121,7 @@ func TestCaptureSnapshot_Caravans(t *testing.T) {
 		Zone:       "TestZone",
 	}
 	wagon.Character.Name = "TestWagon"
-	wagon.Character.Buffs = buffs.New()
+	wagon.Character.Conditions = conditions.New()
 	wagon.Character.RoomId = roomId
 	// Override carry capacity to a known value so CargoCapacity in the
 	// snapshot is deterministic. Item specs aren't loaded in test, so
@@ -148,7 +148,7 @@ func TestCaptureSnapshot_Caravans(t *testing.T) {
 		Zone:       "TestZone",
 	}
 	leader.Character.Name = "TestLeader"
-	leader.Character.Buffs = buffs.New()
+	leader.Character.Conditions = conditions.New()
 	// RoomId 999 is not at any patrol waypoint → in-transit toward wp1
 	// (idx=1, <=10) → SynthesizeStateForLeader returns OutboundTransit.
 	leader.Character.RoomId = 999
@@ -213,7 +213,7 @@ func TestCaptureSnapshot_Foragers(t *testing.T) {
 		Zone:       "TestZone",
 	}
 	forager.Character.Name = "TestTova"
-	forager.Character.Buffs = buffs.New()
+	forager.Character.Conditions = conditions.New()
 	forager.Character.RoomId = roomId
 	characters.ApplyMobOverrides(&forager.Character, 0, 0, 60)                           // 60lb capacity
 	forager.Character.Items = append(forager.Character.Items, items.Item{ItemId: 40051}) // skitter-shrimp shell, "stillwater"
@@ -401,7 +401,7 @@ func TestCaptureSnapshot_Foragers_IncludesEquippedSubInventories(t *testing.T) {
 		Zone:       "TestZone",
 	}
 	f.Character.Name = "TestTova"
-	f.Character.Buffs = buffs.New()
+	f.Character.Conditions = conditions.New()
 	f.Character.RoomId = roomId
 	// Populate all three inventory lists with a known-bucket item.
 	f.Character.Items = append(f.Character.Items,
@@ -466,7 +466,7 @@ func TestCaptureForagers_DistinguishesDespawnedFromIdle(t *testing.T) {
 		Zone:       "TestZone",
 	}
 	tova.Character.Name = "Tova"
-	tova.Character.Buffs = buffs.New()
+	tova.Character.Conditions = conditions.New()
 	tova.Character.RoomId = roomId
 	// Empty BTreeState; this will trigger the "(idle, no state)" path.
 	tova.BTreeState = behaviortree.NewBehaviorState()
@@ -558,7 +558,7 @@ func TestCaptureForager_UsesTemplateZoneNotCharacterZone(t *testing.T) {
 		Zone:       templateZone, // template-stable — used when writing throughput
 	}
 	foragerMob.Character.Name = "Tova"
-	foragerMob.Character.Buffs = buffs.New()
+	foragerMob.Character.Conditions = conditions.New()
 	foragerMob.Character.RoomId = roomId
 	foragerMob.Character.Zone = "stillwater" // current room's zone — wrong key pre-fix
 
@@ -630,7 +630,7 @@ func TestCaptureCaravan_UsesWagonZoneNotLeaderCharacterZone(t *testing.T) {
 		Zone:       wagonTemplateZone,
 	}
 	wagon.Character.Name = "TestWagon"
-	wagon.Character.Buffs = buffs.New()
+	wagon.Character.Conditions = conditions.New()
 	wagon.Character.RoomId = roomId
 	characters.ApplyMobOverrides(&wagon.Character, 0, 0, 5000)
 	mobs.SetInstanceForTest(wagon.InstanceId, wagon)
@@ -651,7 +651,7 @@ func TestCaptureCaravan_UsesWagonZoneNotLeaderCharacterZone(t *testing.T) {
 		Zone:       wagonTemplateZone,
 	}
 	leader.Character.Name = "TestKetil"
-	leader.Character.Buffs = buffs.New()
+	leader.Character.Conditions = conditions.New()
 	leader.Character.RoomId = roomId
 	// Set Character.Zone to a different value to expose the bug:
 	// pre-fix capture.go used m.Character.Zone here.

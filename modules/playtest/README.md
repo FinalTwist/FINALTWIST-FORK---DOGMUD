@@ -82,7 +82,7 @@ startup warning — no crash.
   off the connection, not the `IsAI` flag, so it doesn't pre-flag accounts.
   Beacons and safe mode work regardless. Use `ai-flag <name>` if you want the
   account excluded from a leaderboard.
-- **NoCombat buff is deferred.** Combat damage is applied synchronously, so a
+- **NoCombat condition is deferred.** Combat damage is applied synchronously, so a
   module can't cancel an attack mid-flight. Safety is delivered by sandbox
   confinement + death protection. Without a `SandboxZoneTag`, the tester roams
   the live world as a death-protected character.

@@ -1038,29 +1038,29 @@ func TestGetSellPriceTooManyVarieties(t *testing.T) {
 	assert.Equal(t, 0, price)
 }
 
-// ─── AddBuff ──────────────────────────────────────────────────────────────
+// ─── AddCondition ──────────────────────────────────────────────────────────────
 
-// TestAddBuff asserts the buff event is actually queued with the right payload.
-// Previously this test had no assertion and passed even if AddBuff were a
+// TestAddCondition asserts the condition event is actually queued with the right payload.
+// Previously this test had no assertion and passed even if AddCondition were a
 // no-op. Draining the queue via ProcessEvents lets a listener observe it.
-func TestAddBuff(t *testing.T) {
-	var got []events.Buff
-	id := events.RegisterListener(events.Buff{}, func(e events.Event) events.ListenerReturn {
-		if b, ok := e.(events.Buff); ok {
+func TestAddCondition(t *testing.T) {
+	var got []events.Condition
+	id := events.RegisterListener(events.Condition{}, func(e events.Event) events.ListenerReturn {
+		if b, ok := e.(events.Condition); ok {
 			got = append(got, b)
 		}
 		return events.Continue
 	})
-	defer events.UnregisterListener(events.Buff{}, id)
+	defer events.UnregisterListener(events.Condition{}, id)
 
 	mob := &Mob{InstanceId: 42}
-	mob.AddBuff(7, "test-source")
+	mob.AddCondition(7, "test-source")
 
 	events.ProcessEvents()
 
 	require.Len(t, got, 1, "AddBuff must queue exactly one Buff event")
 	assert.Equal(t, 42, got[0].MobInstanceId, "the buff must target this mob instance")
-	assert.Equal(t, 7, got[0].BuffId, "the queued buff id must match")
+	assert.Equal(t, 7, got[0].ConditionId, "the queued buff id must match")
 	assert.Equal(t, "test-source", got[0].Source, "the queued source must match")
 }
 

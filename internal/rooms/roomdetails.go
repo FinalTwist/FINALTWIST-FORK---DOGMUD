@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
@@ -98,9 +98,9 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 	// End Room Alerts
 	//
 	// Noun highlighting is universal (2026-06-12). It was formerly gated
-	// on the room.nouns role permission or a pet with the SeeNouns buff
+	// on the room.nouns role permission or a pet with the SeeNouns condition
 	// flag — but the default user role can never hold permissions and no
-	// dogmud-world buff carries see-nouns, so the gate made the feature
+	// dogmud-world condition carries see-nouns, so the gate made the feature
 	// admin-only by accident. Discoverability for everyone beats a
 	// vestigial perk.
 	renderNouns := true
@@ -272,7 +272,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 					}
 				}
 				// Chunk 3.3: sleeping suffix
-				if player.Character != nil && player.Character.HasBuffFlag(buffs.Sleeping) {
+				if player.Character != nil && player.Character.HasConditionFlag(conditions.Sleeping) {
 					playerEntry += ` <ansi fg="8">(asleep)</ansi>`
 				}
 				details.VisiblePlayers = append(details.VisiblePlayers, playerEntry)
@@ -346,7 +346,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 			mobNameStr := mobName.String()
 
 			// Chunk 3.3: sleeping suffix
-			if mob.Character.HasBuffFlag(buffs.Sleeping) {
+			if mob.Character.HasConditionFlag(conditions.Sleeping) {
 				mobNameStr += ` <ansi fg="8">(asleep)</ansi>`
 			}
 
@@ -428,10 +428,10 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 
 	if searchMobName := user.Character.GetMiscData(`tracking-mob`); searchMobName != nil {
 
-		// Buff-absent cleanup: if tracking misc data was set but the
-		// active-tracking buff expired or was removed, drop the misc
+		// Condition-absent cleanup: if tracking misc data was set but the
+		// active-tracking condition expired or was removed, drop the misc
 		// data so the render doesn't fire forever.
-		if !user.Character.HasBuff(86) {
+		if !user.Character.HasCondition(86) {
 			user.Character.SetMiscData("tracking-mob", nil)
 			user.Character.SetMiscData("tracking-user", nil)
 			user.Character.SetMiscData("tracking-display-count", nil)
@@ -441,7 +441,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 
 				// Always show when target is found in the room
 				details.TrackingString = `Tracking <ansi fg="mobname">` + searchMobNameStr + `</ansi>... They are here!`
-				user.Character.RemoveBuff(86)
+				user.Character.RemoveCondition(86)
 				user.Character.SetMiscData("tracking-display-count", nil)
 				user.Character.SetMiscData("tracking-mob", nil)
 				user.Character.SetMiscData("tracking-user", nil)
@@ -461,7 +461,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 
 					// Always show when trail is lost
 					details.TrackingString = `You lost the trail of <ansi fg="mobname">` + searchMobNameStr + `</ansi>`
-					user.Character.RemoveBuff(86)
+					user.Character.RemoveCondition(86)
 					user.Character.SetMiscData("tracking-display-count", nil)
 					user.Character.SetMiscData("tracking-mob", nil)
 					user.Character.SetMiscData("tracking-user", nil)
@@ -473,7 +473,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 
 						// Always show when trail is lost
 						details.TrackingString = `You lost the trail of <ansi fg="username">` + searchMobNameStr + `</ansi>`
-						user.Character.RemoveBuff(86)
+						user.Character.RemoveCondition(86)
 						user.Character.SetMiscData("tracking-display-count", nil)
 						user.Character.SetMiscData("tracking-mob", nil)
 						user.Character.SetMiscData("tracking-user", nil)
@@ -502,10 +502,10 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 
 	if searchUserName := user.Character.GetMiscData(`tracking-user`); searchUserName != nil {
 
-		// Buff-absent cleanup: if tracking misc data was set but the
-		// active-tracking buff expired or was removed, drop the misc
+		// Condition-absent cleanup: if tracking misc data was set but the
+		// active-tracking condition expired or was removed, drop the misc
 		// data so the render doesn't fire forever.
-		if !user.Character.HasBuff(86) {
+		if !user.Character.HasCondition(86) {
 			user.Character.SetMiscData("tracking-mob", nil)
 			user.Character.SetMiscData("tracking-user", nil)
 			user.Character.SetMiscData("tracking-display-count", nil)
@@ -515,7 +515,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 
 				// Always show when target is found in the room
 				details.TrackingString = `Tracking <ansi fg="username">` + searchUserNameStr + `</ansi>... They are here!`
-				user.Character.RemoveBuff(86)
+				user.Character.RemoveCondition(86)
 				user.Character.SetMiscData("tracking-display-count", nil)
 				user.Character.SetMiscData("tracking-mob", nil)
 				user.Character.SetMiscData("tracking-user", nil)
@@ -535,7 +535,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 
 					// Always show when trail is lost
 					details.TrackingString = `You lost the trail of <ansi fg="username">` + searchUserNameStr + `</ansi>`
-					user.Character.RemoveBuff(86)
+					user.Character.RemoveCondition(86)
 					user.Character.SetMiscData("tracking-display-count", nil)
 					user.Character.SetMiscData("tracking-mob", nil)
 					user.Character.SetMiscData("tracking-user", nil)
@@ -547,7 +547,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 
 						// Always show when trail is lost
 						details.TrackingString = `You lost the trail of <ansi fg="username">` + searchUserNameStr + `</ansi>`
-						user.Character.RemoveBuff(86)
+						user.Character.RemoveCondition(86)
 						user.Character.SetMiscData("tracking-display-count", nil)
 						user.Character.SetMiscData("tracking-mob", nil)
 						user.Character.SetMiscData("tracking-user", nil)

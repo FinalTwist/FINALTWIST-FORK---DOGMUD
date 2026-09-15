@@ -24,7 +24,7 @@ type Pet struct {
 	LastMealRound uint8             `yaml:"lastmealround,omitempty"` // When the pet was last fed
 	Damage        items.Damage      `yaml:"damage,omitempty"`        // When the pet was last fed
 	StatMods      statmods.StatMods `yaml:"statmods,omitempty"`      // stat mods the pet provides
-	BuffIds       []int             `yaml:"buffids,omitempty"`       // Permabuffs this pet affords the player
+	ConditionIds  []int             `yaml:"buffids,omitempty"`       // Permanent conditions this pet affords the player
 	Capacity      int               `yaml:"capacity,omitempty"`      // How many items this mob can carry
 	Items         []items.Item      `yaml:"items,omitempty"`         // Items held by this pet
 }
@@ -84,8 +84,8 @@ func (p *Pet) RemoveItem(i items.Item) bool {
 	return false
 }
 
-func (p *Pet) GetBuffs() []int {
-	return append([]int{}, p.BuffIds...)
+func (p *Pet) GetConditions() []int {
+	return append([]int{}, p.ConditionIds...)
 }
 
 func (p *Pet) FindItem(itemName string) (items.Item, bool) {
@@ -107,8 +107,8 @@ func (p *Pet) FindItem(itemName string) (items.Item, bool) {
 	return items.Item{}, false
 }
 
-func (p *Pet) GetDiceRoll() (attacks int, dCount int, dSides int, bonus int, buffOnCrit []int) {
-	return p.Damage.Attacks, p.Damage.DiceCount, p.Damage.SideCount, p.Damage.BonusDamage, p.Damage.CritBuffIds
+func (p *Pet) GetDiceRoll() (attacks int, dCount int, dSides int, bonus int, conditionOnCrit []int) {
+	return p.Damage.Attacks, p.Damage.DiceCount, p.Damage.SideCount, p.Damage.BonusDamage, p.Damage.CritConditionIds
 }
 
 func GetPetCopy(petId string) Pet {
@@ -160,8 +160,8 @@ func (p *Pet) Id() string {
 
 func (p *Pet) Validate() error {
 
-	if p.BuffIds == nil {
-		p.BuffIds = []int{}
+	if p.ConditionIds == nil {
+		p.ConditionIds = []int{}
 	}
 
 	if p.Items == nil {
