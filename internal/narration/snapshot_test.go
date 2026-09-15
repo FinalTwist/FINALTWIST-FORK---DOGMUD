@@ -999,12 +999,14 @@ func buildQuestsGolden(t *testing.T) string {
 	return b.String()
 }
 
-// Store 11: crafting (internal/crafting: success_message / failure_message)
+// Store 11: crafting (internal/crafting: success_message / failure_message and
+// the optional *_room_message Observer slot)
 //
-// Built from PRE-migration code: the raw field, color-wrapped exactly as the
-// four player sites send it on CategorySystem. Task 5 of the M3 item 6 plan
-// switches this builder to RecipeSpec.Narrate; the rows, their order and the
-// header must not change, which is the byte-identity proof.
+// Recorded 2026-09-15 from PRE-migration code (the raw field, color-wrapped as
+// the four player sites sent it). Since M3 item 6 this builder reads through
+// RecipeSpec.Narrate; the rows, their order and the header are unchanged, which
+// is the byte-identity proof. Rows are keyed by the AUTHORED key, so a swapped
+// Actor and Observer shows as a changed row.
 func buildCraftingGolden(t *testing.T) string {
 	t.Helper()
 
@@ -1026,8 +1028,16 @@ func buildCraftingGolden(t *testing.T) string {
 	}
 	for _, id := range ids {
 		r := all[id]
-		fmt.Fprintf(&b, "recipe|%s|success_message => %s\n", id, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, r.SuccessMessage))
-		fmt.Fprintf(&b, "recipe|%s|failure_message => %s\n", id, fmt.Sprintf(`<ansi fg="red">%s</ansi>`, r.FailureMessage))
+		success := r.Narrate(crafting.PhaseSuccess, kindBNoTarget)
+		failure := r.Narrate(crafting.PhaseFailure, kindBNoTarget)
+		fmt.Fprintf(&b, "recipe|%s|success_message => %s\n", id, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, success.Actor))
+		if success.Observer != "" {
+			fmt.Fprintf(&b, "recipe|%s|success_room_message => %s\n", id, success.Observer)
+		}
+		fmt.Fprintf(&b, "recipe|%s|failure_message => %s\n", id, fmt.Sprintf(`<ansi fg="red">%s</ansi>`, failure.Actor))
+		if failure.Observer != "" {
+			fmt.Fprintf(&b, "recipe|%s|failure_room_message => %s\n", id, failure.Observer)
+		}
 	}
 	return b.String()
 }

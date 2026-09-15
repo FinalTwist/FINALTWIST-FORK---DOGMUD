@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// The Kind B stores own their text. Every condition, spell and quest-reward line is
+// The Kind B stores own their text. Every condition, spell, quest-reward and recipe line is
 // rendered through the store's Narrate door, so a site never reads a field
 // and never decides for itself which audience a line is for. This guard keeps
 // it that way: outside the owning package, no production file may name the
@@ -23,10 +23,18 @@ var storeTextFieldOwners = []struct {
 	owner   string
 	pattern *regexp.Regexp
 	what    string
+	// exempt maps a production file to why a match there is not a store read:
+	// the same field spelling on an unrelated struct. Every exempt file must
+	// still match, or the entry is stale.
+	exempt map[string]string
 }{
-	{"internal/conditions", regexp.MustCompile(`\.(StartUserText|StartRoomText|TriggerUserText|TriggerRoomText|EndUserText|EndRoomText)\b`), "condition text fields"},
-	{"internal/spells", regexp.MustCompile(`\.(CastUserText|CastRoomText|WaitUserText|WaitRoomText|MagicUserText|MagicRoomText)\b`), "spell text fields"},
-	{"internal/quests", regexp.MustCompile(`Rewards\.(PlayerMessage|RoomMessage)\b`), "quest reward messages"},
+	{"internal/conditions", regexp.MustCompile(`\.(StartUserText|StartRoomText|TriggerUserText|TriggerRoomText|EndUserText|EndRoomText)\b`), "condition text fields", nil},
+	{"internal/spells", regexp.MustCompile(`\.(CastUserText|CastRoomText|WaitUserText|WaitRoomText|MagicUserText|MagicRoomText)\b`), "spell text fields", nil},
+	{"internal/quests", regexp.MustCompile(`Rewards\.(PlayerMessage|RoomMessage)\b`), "quest reward messages", nil},
+	{"internal/crafting", regexp.MustCompile(`\.(SuccessMessage|FailureMessage|SuccessRoomMessage|FailureRoomMessage)\b`), "recipe message fields", map[string]string{
+		"internal/hooks/NewRound_IdleMobs_patrol.go":   "FailureMessage on the patrol plan struct, a log string unrelated to recipes",
+		"internal/hooks/NewRound_IdleMobs_schedule.go": "FailureMessage on the schedule plan struct, a log string unrelated to recipes",
+	}},
 }
 
 func TestStoreTextFieldsAreReadOnlyByTheirStore(t *testing.T) {
@@ -38,6 +46,7 @@ func TestStoreTextFieldsAreReadOnlyByTheirStore(t *testing.T) {
 	for _, owner := range storeTextFieldOwners {
 		var outside []hit
 		inside := 0
+		exemptSeen := map[string]bool{}
 		for _, root := range messagingSurfaceGoRoots {
 			err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
@@ -65,6 +74,10 @@ func TestStoreTextFieldsAreReadOnlyByTheirStore(t *testing.T) {
 					if !owner.pattern.MatchString(sc.Text()) {
 						continue
 					}
+					if _, ok := owner.exempt[rel]; ok {
+						exemptSeen[rel] = true
+						continue
+					}
 					if strings.HasPrefix(rel, owner.owner+"/") {
 						inside++
 					} else {
@@ -81,6 +94,11 @@ func TestStoreTextFieldsAreReadOnlyByTheirStore(t *testing.T) {
 		// "outside" list proves nothing.
 		if inside == 0 {
 			t.Errorf("%s: pattern matched nothing inside %s; the guard is blind, not the tree clean", owner.what, owner.owner)
+		}
+		for file, why := range owner.exempt {
+			if !exemptSeen[file] {
+				t.Errorf("%s: exemption for %s (%s) matched nothing; remove the stale entry", owner.what, file, why)
+			}
 		}
 		sort.Slice(outside, func(i, j int) bool {
 			if outside[i].file != outside[j].file {

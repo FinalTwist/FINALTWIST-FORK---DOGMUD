@@ -80,11 +80,15 @@ var textSurfaceRegistry = map[string]surfaceEntry{
 	"end_user_text":     {narration, "internal/conditions/conditionspec.go ConditionSpec.EndUserText -- actor-side line narrated when a condition expires or is removed."},
 	"end_room_text":     {narration, "internal/conditions/conditionspec.go ConditionSpec.EndRoomText -- room-side line narrated when a condition expires or is removed, paired with end_user_text."},
 
-	// -- Crafting narration: internal/crafting/crafting.go Recipe, 126 recipe
-	// files. Crafting currently has NO audience split -- a single message,
-	// not actor/room pairs like spells and conditions. --
-	"success_message": {narration, "internal/crafting/crafting.go Recipe.SuccessMessage -- narrated crafting-outcome line on a successful craft, 126 recipe files; no user/room split exists for crafting."},
-	"failure_message": {narration, "internal/crafting/crafting.go Recipe.FailureMessage -- narrated crafting-outcome line on a failed craft, paired with success_message; same no-audience-split gap."},
+	// -- Crafting narration: internal/crafting/crafting.go RecipeSpec, 126
+	// recipe files. Since M3 item 6 the recipe is a store with a door
+	// (internal/crafting/narration.go): the *_message keys are the crafter's
+	// Actor line. The Observer slot keys, success_room_message and
+	// failure_room_message, are deliberately NOT registered: no shipped file
+	// sets them, so this guard would report them stale. Register them in the
+	// M6 commit that authors them. --
+	"success_message": {narration, "internal/crafting/crafting.go RecipeSpec.SuccessMessage -- the crafter's (Actor) line on a successful craft, 126 recipe files; rendered through RecipeSpec.Narrate."},
+	"failure_message": {narration, "internal/crafting/crafting.go RecipeSpec.FailureMessage -- the crafter's (Actor) line on a failed craft, paired with success_message; rendered through RecipeSpec.Narrate."},
 
 	// -- Enchanting narration: internal/enchantments/enchantments.go
 	// EnchantSpec. description_suffix below is the CONTENT half of this
