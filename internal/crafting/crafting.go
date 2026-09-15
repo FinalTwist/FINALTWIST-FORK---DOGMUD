@@ -45,6 +45,10 @@ type RecipeSpec struct {
 	EnchantType          string             `yaml:"enchant_type,omitempty"` // enchantment ID to apply to target
 	SuccessMessage       string             `yaml:"success_message"`
 	FailureMessage       string             `yaml:"failure_message"`
+	// Observer slot for the room watching the crafter (M3 item 6). Empty in
+	// every shipped recipe until M6 authors them. Read through Narrate only.
+	SuccessRoomMessage string `yaml:"success_room_message,omitempty"`
+	FailureRoomMessage string `yaml:"failure_room_message,omitempty"`
 }
 
 // Id implements fileloader.Loadable.
@@ -71,7 +75,7 @@ func (r *RecipeSpec) Validate() error {
 	if r.Output.ItemId < 1 && r.EnchantType == "" {
 		return fmt.Errorf("recipe %q: output.item_id must be > 0 (or enchant_type must be set)", r.RecipeId)
 	}
-	return nil
+	return r.validateNarration()
 }
 
 // Package-level registry, populated by LoadRecipeFiles.
