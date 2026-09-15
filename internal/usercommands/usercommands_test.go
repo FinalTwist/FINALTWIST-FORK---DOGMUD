@@ -4391,14 +4391,14 @@ func TestGetHelpContents(t *testing.T) {
 	})
 }
 
-// TestGetHelpContents_BuffAliasMatchesSetCondition proves `help buff` and
+// TestGetHelpContents_AliasMatchesSetCondition proves `help buff` and
 // `help setcondition` resolve to the SAME rendered content (the admin
 // command kept `buff` as a working alias for slice 2 of the conditions
 // unification, owner ruling 2026-09-14): both requests must go through the
 // help-alias mechanism (keywords.TryHelpAlias) to the one real template,
 // admincommands is a different door (the command's own bare-invocation
 // usage message) that this does not touch.
-func TestGetHelpContents_BuffAliasMatchesSetCondition(t *testing.T) {
+func TestGetHelpContents_AliasMatchesSetCondition(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	useDogmudTemplates(t)
@@ -4407,14 +4407,14 @@ func TestGetHelpContents_BuffAliasMatchesSetCondition(t *testing.T) {
 	})
 	defer cleanupKeywords()
 
-	buffOut, buffErr := GetHelpContents("buff")
-	require.NoError(t, buffErr)
+	aliasOut, aliasErr := GetHelpContents("buff")
+	require.NoError(t, aliasErr)
 
 	setConditionOut, setConditionErr := GetHelpContents("setcondition")
 	require.NoError(t, setConditionErr)
 
-	assert.Equal(t, setConditionOut, buffOut, "help buff must resolve through the help alias to the same content as help setcondition")
-	assert.Contains(t, buffOut, "setcondition", "the rendered help must describe the real command name")
+	assert.Equal(t, setConditionOut, aliasOut, "help buff must resolve through the help alias to the same content as help setcondition")
+	assert.Contains(t, aliasOut, "setcondition", "the rendered help must describe the real command name")
 }
 
 // ─── Admin Teleport deeper ──────────────────────────────────────────────────

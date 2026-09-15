@@ -69,7 +69,7 @@ func mutatorData(w http.ResponseWriter, r *http.Request) {
 	sort.SliceStable(conditionSpecs, func(i, j int) bool {
 		return conditionSpecs[i].ConditionId < conditionSpecs[j].ConditionId
 	})
-	tplData[`buffSpecs`] = conditionSpecs
+	tplData[`conditionSpecs`] = conditionSpecs
 
 	colorPatterns := colorpatterns.GetColorPatternNames()
 	sort.SliceStable(colorPatterns, func(i, j int) bool {

@@ -168,7 +168,7 @@ func roomData(w http.ResponseWriter, r *http.Request) {
 	sort.SliceStable(conditionSpecs, func(i, j int) bool {
 		return conditionSpecs[i].ConditionId < conditionSpecs[j].ConditionId
 	})
-	tplData[`buffSpecs`] = conditionSpecs
+	tplData[`conditionSpecs`] = conditionSpecs
 
 	allBiomes := rooms.GetAllBiomes()
 	sort.SliceStable(allBiomes, func(i, j int) bool {

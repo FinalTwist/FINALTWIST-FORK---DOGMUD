@@ -117,7 +117,7 @@
 
     <div class="form-group row form-check container-fluid">
         {{ $buffIds := .mobInfo.ConditionIds }}
-        {{range $i, $buffSpec := .buffSpecs}}
+        {{range $i, $buffSpec := .conditionSpecs}}
             <label class="form-check-label col-md-2" for="mob-buff-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
             class="form-check-input"
             type="checkbox"

@@ -36,7 +36,7 @@ func adminHtmlDir(t *testing.T) string {
 
 // TestAdminItemTemplateExecutesWithConditionIds pins item.data.html against the
 // slice 2 rename: itemSpec.ConditionIds / WornConditionIds /
-// Damage.CritConditionIds and buffSpecs' ConditionId field are all read by
+// Damage.CritConditionIds and conditionSpecs' ConditionId field are all read by
 // this template at runtime, with no compile-time check. A stale .BuffId /
 // .BuffIds reference renders nothing until an admin actually opens an item
 // that has a condition on it (see the review that caught 61 such refs across
@@ -67,7 +67,7 @@ func TestAdminItemTemplateExecutesWithConditionIds(t *testing.T) {
 			conditionSpecs = append(conditionSpecs, *b)
 		}
 	}
-	tplData[`buffSpecs`] = conditionSpecs
+	tplData[`conditionSpecs`] = conditionSpecs
 	tplData[`itemTypes`] = items.ItemTypes()
 	tplData[`itemSubtypes`] = items.ItemSubtypes()
 
@@ -78,7 +78,7 @@ func TestAdminItemTemplateExecutesWithConditionIds(t *testing.T) {
 
 // TestAdminMutatorTemplateExecutesWithConditionIds pins mutator.data.html the
 // same way: mutatorSpec.PlayerConditionIds / MobConditionIds /
-// NativeConditionIds and buffSpecs' ConditionId. The template also used to
+// NativeConditionIds and conditionSpecs' ConditionId. The template also used to
 // read a nonexistent .raceInfo key for all three checkbox lists (a
 // pre-existing bug the rename's own field renames exposed as unreachable
 // dead code once .raceInfo.BuffIds started erroring); fixed to read the
@@ -108,7 +108,7 @@ func TestAdminMutatorTemplateExecutesWithConditionIds(t *testing.T) {
 			conditionSpecs = append(conditionSpecs, *b)
 		}
 	}
-	tplData[`buffSpecs`] = conditionSpecs
+	tplData[`conditionSpecs`] = conditionSpecs
 	tplData[`colorPatterns`] = colorpatterns.GetColorPatternNames()
 
 	var out bytes.Buffer
@@ -116,11 +116,13 @@ func TestAdminMutatorTemplateExecutesWithConditionIds(t *testing.T) {
 	require.Contains(t, out.String(), `Probe Aura`, `the player/mob/native condition checkbox lists must render the seeded condition's name`)
 }
 
-// buildConditionSpecsForTest mirrors the buffSpecs slice every admin data
+// buildConditionSpecsForTest mirrors the conditionSpecs slice every admin data
 // handler (mobData, roomData, speciesData, itemData, mutatorData) builds from
 // the live condition registry, so a test can hand a template the exact shape
-// it expects at ".buffSpecs" (a template map key, unaffected by the slice 2
-// rename per the disk/wire rule).
+// it expects at ".conditionSpecs" (a template map key; the guard in
+// identifier_word_guard_test.go's TestNoTemplateReadsABuffField treats a
+// dotted template reference as a Go-facing name like any other, so this one
+// was renamed alongside the compiled identifiers in slice 2).
 func buildConditionSpecsForTest() []conditions.ConditionSpec {
 	conditionSpecs := []conditions.ConditionSpec{}
 	for _, conditionId := range conditions.GetAllConditionIds() {
@@ -132,7 +134,7 @@ func buildConditionSpecsForTest() []conditions.ConditionSpec {
 }
 
 // TestAdminMobTemplateExecutesWithConditionIds pins mob.data.html against the
-// slice 2 rename: mobInfo.ConditionIds and buffSpecs' ConditionId field are
+// slice 2 rename: mobInfo.ConditionIds and conditionSpecs' ConditionId field are
 // read by this template at runtime (review of Tasks 2 and 3 caught the same
 // class of stale .BuffId/.BuffIds reference here as in item.data.html and
 // mutator.data.html; this test closes the one page that review left
@@ -161,7 +163,7 @@ func TestAdminMobTemplateExecutesWithConditionIds(t *testing.T) {
 	tplData[`activityLevels`] = []int{}
 	tplData[`dropChances`] = []int{}
 	tplData[`allMobGroups`] = []string{}
-	tplData[`buffSpecs`] = buildConditionSpecsForTest()
+	tplData[`conditionSpecs`] = buildConditionSpecsForTest()
 
 	var out bytes.Buffer
 	require.NoError(t, tmpl.Execute(&out, tplData), `mob.data.html must render a mob carrying condition ids without error`)
@@ -170,7 +172,7 @@ func TestAdminMobTemplateExecutesWithConditionIds(t *testing.T) {
 
 // TestAdminRoomTemplateExecutesWithConditionIds pins room.data.html against
 // the slice 2 rename: spawnInfo.ConditionIds, exitInfo.Lock.TrapConditionIds
-// and buffSpecs' ConditionId are all read by this template at runtime. It
+// and conditionSpecs' ConditionId are all read by this template at runtime. It
 // also exercises the room's zone-level gate, `.zoneConfig` (RoomId,
 // Mutators): rooms.Room carries no ZoneConfig field of its own, so the
 // template's old `$room.ZoneConfig...` reads always errored regardless of
@@ -218,7 +220,7 @@ func TestAdminRoomTemplateExecutesWithConditionIds(t *testing.T) {
 	tplData[`allSlotTypes`] = []string{}
 	tplData[`mapDirections`] = []string{}
 	tplData[`mutSpecs`] = []mutators.MutatorSpec{}
-	tplData[`buffSpecs`] = buildConditionSpecsForTest()
+	tplData[`conditionSpecs`] = buildConditionSpecsForTest()
 
 	var out bytes.Buffer
 	require.NoError(t, tmpl.Execute(&out, tplData), `room.data.html must render a room carrying condition ids without error`)
@@ -258,7 +260,7 @@ func TestAdminRoomData_ZoneConfigWiring(t *testing.T) {
 }
 
 // TestAdminSpeciesTemplateExecutesWithConditionIds pins species.data.html
-// against the slice 2 rename: speciesInfo.ConditionIds and buffSpecs'
+// against the slice 2 rename: speciesInfo.ConditionIds and conditionSpecs'
 // ConditionId are read by this template at runtime.
 func TestAdminSpeciesTemplateExecutesWithConditionIds(t *testing.T) {
 	cleanup := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
@@ -277,7 +279,7 @@ func TestAdminSpeciesTemplateExecutesWithConditionIds(t *testing.T) {
 
 	tplData := map[string]any{}
 	tplData[`speciesInfo`] = speciesInfo
-	tplData[`buffSpecs`] = buildConditionSpecsForTest()
+	tplData[`conditionSpecs`] = buildConditionSpecsForTest()
 	tplData[`allSlotTypes`] = []string{}
 
 	var out bytes.Buffer

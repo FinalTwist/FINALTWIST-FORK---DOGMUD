@@ -183,7 +183,7 @@
 
     <div class="form-group row form-check container-fluid" data-applies-to-types="weapon">
         {{ $buffIds := .itemSpec.Damage.CritConditionIds }}
-        {{range $i, $buffSpec := .buffSpecs}}
+        {{range $i, $buffSpec := .conditionSpecs}}
             <label class="form-check-label col-md-2" for="critbuffids-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
             class="form-check-input"
             type="checkbox"
@@ -200,7 +200,7 @@
 
     <div class="form-group row form-check container-fluid" data-applies-to-types="edible drinkable usable">
         {{ $buffIds := .itemSpec.ConditionIds }}
-        {{range $i, $buffSpec := .buffSpecs}}
+        {{range $i, $buffSpec := .conditionSpecs}}
             <label class="form-check-label col-md-2" for="buff-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
             class="form-check-input"
             type="checkbox"
@@ -217,7 +217,7 @@
 
     <div class="form-group row form-check container-fluid" data-applies-to-types="weapon wearable">
         {{ $buffIds := .itemSpec.WornConditionIds }}
-        {{range $i, $buffSpec := .buffSpecs}}
+        {{range $i, $buffSpec := .conditionSpecs}}
             <label class="form-check-label col-md-2" for="worn-buff-{{$buffSpec.ConditionId}}" title="{{ $buffSpec.Description }}"><input
             class="form-check-input"
             type="checkbox"

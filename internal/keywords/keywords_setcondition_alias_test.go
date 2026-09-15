@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBuffAliasResolvesToSetCondition loads each shipped world's real
+// TestAliasResolvesToSetCondition loads each shipped world's real
 // keywords.yaml (not a synthetic fixture) and proves the admin command alias
 // kept for slice 2 of the conditions unification (owner ruling 2026-09-14:
 // `setcondition` is the real command, `buff` stays a working alias until
@@ -17,7 +17,7 @@ import (
 // system. `TryCommandAlias` is what usercommands.TryCommand consults before
 // indexing the command map, so this is the same resolution a typed `buff`
 // command goes through; `TryHelpAlias` is what `help buff` consults.
-func TestBuffAliasResolvesToSetCondition(t *testing.T) {
+func TestAliasResolvesToSetCondition(t *testing.T) {
 	_, here, _, ok := runtime.Caller(0)
 	require.True(t, ok)
 

@@ -142,7 +142,7 @@ func mobData(w http.ResponseWriter, r *http.Request) {
 	tplData[`activityLevels`] = activityLevels
 	tplData[`dropChances`] = dropChances
 	tplData[`allMobGroups`] = allMobGroups
-	tplData[`buffSpecs`] = conditionSpecs
+	tplData[`conditionSpecs`] = conditionSpecs
 
 	if err := tmpl.Execute(w, tplData); err != nil {
 		mudlog.Error("HTML Execute", "error", err)
