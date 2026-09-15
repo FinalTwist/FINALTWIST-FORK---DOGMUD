@@ -16,8 +16,8 @@ const (
 
 // Config is the resolved module configuration (keys live under
 // Modules.weather.* and default from files/data-overlays/config.yaml). Keys
-// are flat (BuffsEnabled, not Buffs.Enabled) because plugin config lookup
-// reads flattened scalar leaves.
+// are flat (ConditionsEnabled, not Conditions.Enabled) because plugin config
+// lookup reads flattened scalar leaves.
 type Config struct {
 	Enabled            bool
 	IncludeSecretExits bool
@@ -108,7 +108,7 @@ func buildConfig(get getter) Config {
 		EmoteEveryRounds:     intOr(get("EmoteEveryRounds"), 24),
 		EmoteMildChancePct:   intOr(get("EmoteMildChancePct"), 30),
 		EmoteStrongChancePct: intOr(get("EmoteStrongChancePct"), 100),
-		ConditionsEnabled:    boolOr(get("BuffsEnabled"), true),
+		ConditionsEnabled:    boolOr(get("ConditionsEnabled"), true),
 		Persist:              boolOr(get("Persist"), true),
 		SeasonsEnabled:       boolOr(get("SeasonsEnabled"), true),
 	}

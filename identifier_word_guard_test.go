@@ -33,14 +33,10 @@ const identifierGuardSpecPath = "docs/superpowers/specs/completed/2026-09-14-con
 var (
 	identifierGuardWordPattern     = regexp.MustCompile(`(?i)buff`)
 	identifierGuardBufferSubstring = regexp.MustCompile(`[Bb]uffer|BUFFER`)
-	// The three config fields that keep their buff spelling until slice 3
-	// renames them together with their yaml keys (spec: "Config fields that
-	// keep their names until slice 3").
-	identifierGuardAllowedNames = map[string]bool{
-		"AllowItemBuffRemoval":   true,
-		"DeathsShadowBuffId":     true,
-		"BrokenLimbBuffDuration": true,
-	}
+	// Every buff-spelled Go identifier is gone (slice 3 deleted the last
+	// three, dead config knobs). Kept empty so a future exception is a
+	// reviewed one-line addition.
+	identifierGuardAllowedNames = map[string]bool{}
 )
 
 // identifierGuardSkipDir reports whether a directory should never be

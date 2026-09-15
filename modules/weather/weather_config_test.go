@@ -34,7 +34,7 @@ func TestBuildConfigDefaults(t *testing.T) {
 		t.Errorf("emote defaults wrong: %+v", cfg)
 	}
 	if !cfg.ConditionsEnabled || !cfg.Persist || cfg.Seed != 0 {
-		t.Errorf("buff/persist/seed defaults wrong: %+v", cfg)
+		t.Errorf("conditions/persist/seed defaults wrong: %+v", cfg)
 	}
 	if !cfg.IncludeSecretExits {
 		t.Error("IncludeSecretExits must default true")
@@ -50,7 +50,7 @@ func TestBuildConfigCoercionAndClamps(t *testing.T) {
 		"SpawnRateScale":     2.5,        // float
 		"EmoteMode":          "TAG-ONLY", // case-insensitive
 		"EmoteEveryRounds":   2,          // clamps to 5
-		"BuffsEnabled":       false,
+		"ConditionsEnabled":  false,
 		"Persist":            false,
 	}
 	cfg := buildConfig(func(k string) any { return vals[k] })

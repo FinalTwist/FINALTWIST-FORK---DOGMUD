@@ -1,7 +1,6 @@
 package configs
 
 type GamePlay struct {
-	AllowItemBuffRemoval ConfigBool `yaml:"AllowItemBuffRemoval"`
 	// Death related settings
 	Death GameplayDeath `yaml:"Death"`
 
@@ -50,14 +49,12 @@ type GameplayDeath struct {
 	SkillRustAmount     ConfigInt   `yaml:"SkillRustAmount"`     // Skill ranks lost per decayed skill (default 1)
 	StatDecayFloor      ConfigInt   `yaml:"StatDecayFloor"`      // Death may never degrade a stat's PERMANENT part (Racial + Training, excluding equipment/condition Mods) below this (default 100). At or below it, nothing happens at all — Racial is a gaussian roll, so an unlucky or new character can start below it and is simply left alone.
 	SkillRustFloor      ConfigInt   `yaml:"SkillRustFloor"`      // A skill's rank may never be rusted below this on death (default 1). At or below it, nothing happens at all.
-	DeathsShadowBuffId  ConfigInt   `yaml:"DeathsShadowBuffId"`  // Condition ID for Death's Shadow harmful condition (default 25)
 	RespawnPoolFraction ConfigFloat `yaml:"RespawnPoolFraction"` // Fraction of max pools (Health/Stamina/Conviction) restored on respawn (default 0.05). Keeps "death run" strategies honest — players respawn weakened and have to recover before their next attempt.
 	RespawnGraceRounds  ConfigInt   `yaml:"RespawnGraceRounds"`  // Rounds of no-aggro-target protection after respawn (default 3). Set to 0 to disable grace period.
 }
 
 func (g *GamePlay) Validate() {
 
-	// Ignore AllowItemBuffRemoval
 	// Ignore OnDeathAlwaysDropBackpack
 	// Ignore ConsistentAttackMessages
 	// Ignore CorpsesEnabled
@@ -117,10 +114,6 @@ func (g *GamePlay) Validate() {
 	if g.Death.SkillRustFloor < 1 {
 		g.Death.SkillRustFloor = 1
 	}
-	if g.Death.DeathsShadowBuffId < 1 {
-		g.Death.DeathsShadowBuffId = 25
-	}
-
 	if g.PVP != PVPEnabled && g.PVP != PVPDisabled && g.PVP != PVPLimited {
 		if g.PVP == PVPOff {
 			g.PVP = PVPDisabled

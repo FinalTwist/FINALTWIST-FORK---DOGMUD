@@ -100,7 +100,6 @@ Network:
 ### GamePlay Configuration
 ```yaml
 GamePlay:
-  AllowItemBuffRemoval: true
   Death:
     CorpseDecayRounds: 100
   ShopRestockRate: "1h"

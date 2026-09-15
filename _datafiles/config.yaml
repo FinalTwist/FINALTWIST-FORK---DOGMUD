@@ -272,13 +272,6 @@ FilePaths:
 #
 ################################################################################
 GamePlay:
-  # - AllowItemConditionRemoval -
-  #   Whether to allow the removal of conditions assigned by items using spells etc.
-  #   By default, once an item has buffed a player, the player cannot remove the
-  #   condition unless they removing the item. However, if set to true, players can
-  #   temporarily remove the condition with spells, items, etc. and the condition will not
-  #   return until the player re-equips the item, or logs out and back in.
-  AllowItemConditionRemoval: false
   # Death settings
   Death:
     # - EquipmentDropChance -
@@ -302,7 +295,6 @@ GamePlay:
     # the loss fell every time on the few they had barely touched.
     StatDecayFloor: 100        # Never degrade a stat's PERMANENT part (racial roll + training) below this. Equipment and condition mods are excluded on purpose, so a permanent loss cannot hinge on what you were wearing.
     SkillRustFloor: 1          # Never rust a skill below this rank
-    DeathsShadowConditionId: 25     # Condition ID for Death's Shadow harmful condition
     # - ProtectionSkillRanks -
     #   Players with total skill ranks at or below this value are protected
     #   from death penalties. Gives new players a grace period.
@@ -480,7 +472,7 @@ Balance:
   #   dodge score = (100 + 10) × 0.97 = 106.7 (vs attacker's ~110)
   DodgeEffectiveness: 0.95      # Nerfed: dodge is most common defense, needs counterplay
   ParryEffectiveness: 0.97      # Slight nerf: parry is middle ground
-  BlockEffectiveness: 1.05      # Conditioned: requires shield investment, should reward it
+  BlockEffectiveness: 1.05      # Strengthened: requires shield investment, should reward it
   #
   # U6 added quell (mental spells, Willpower + spellcasting) and defy (taunts,
   #   Willpower + rhetoric) as real defence types, so all five defences now have
@@ -1104,7 +1096,6 @@ Balance:
   submission_attempt_crit_z: 2.0         # Defender-crit shortcut for bottom-sub windows
   sub_bad_z_threshold: -1.0              # Sub roll z < this → attempter falls prone, pair breaks
   sub_gold_loss_fraction: 0.20           # Fraction of carried gold transferred on subdue/cripple
-  broken_limb_condition_duration: 900         # Rounds (~60 min of play at 4s rounds); expires naturally
 
   # ── REGEN RATES (fraction of pool max per tick; 0.01 = 1%) ────────────────
   PlayerHealthRegenPct: 0.02     # Bumped from 1% to 2%; players needed faster recovery
