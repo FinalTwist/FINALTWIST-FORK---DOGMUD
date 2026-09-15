@@ -75,7 +75,8 @@ band fires, which is a behaviour change and belongs to M4, not to this package.
 `internal/spells` (casting), `internal/combat` (taunt),
 `internal/grapplemessaging`. Any store that wants deterministic selection under
 snapshot, or coordinated multi-role rendering. `internal/textutil` (the door
-for the condition, spell and quest stores, which do not call `Render` themselves).
+for the condition, spell, quest and crafting stores, which do not call
+`Render` themselves).
 
 ## Gotchas
 
@@ -142,16 +143,17 @@ property.
 default picker consumes a global random draw and shifts every later combat
 roll. `Render` cannot special-case `n == 1` because itemvoices never validates
 its pool sizes and legitimately holds one-line pools whose draw count must not
-change. The condition, spell and quest stores reach `Render` only through
-`textutil.Narrate`, which passes `FirstPicker`; the root guard
+change. The condition, spell, quest and crafting stores reach `Render` only
+through `textutil.Narrate`, which passes `FirstPicker`; the root guard
 `narration_render_callers_guard_test.go` pins both facts.
 
 **The Kind B golden headers describe the recording, not today's builder.**
-`conditions.golden`, `spells.golden` and `quests.golden` were recorded from
-pre-migration code (M3 item 5b, Task 0) and their header lines are frozen bytes;
-the builders now read through the store doors and must reproduce the files
-exactly. Re-recording them is a deliberate act for a content change, never a
-way to make a red run green.
+`conditions.golden`, `spells.golden`, `quests.golden` and `crafting.golden`
+were recorded from pre-migration code (M3 item 5b, Task 0; `crafting.golden`
+in M3 item 6, Task 0) and their header lines are frozen bytes; the builders
+now read through the store doors and must reproduce the files exactly.
+Re-recording them is a deliberate act for a content change, never a way to
+make a red run green.
 
 ## Dependencies
 

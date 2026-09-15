@@ -289,6 +289,17 @@ progression for contest paths now flows exclusively through
   genuinely diverge: a spell's own `primarystat` override, and the
   crit-received toughening stat.
 
+### Progression text delivery
+
+Progression never builds an `events.Message`. Banners (`banner.Format`), the
+regen gain line and the crit and fumble lines go through `notifyProgression`,
+which calls the callback registered with `SetProgressionNotifier`. `main.go`
+registers `hooks.ProgressionNotifyCallback`, which sends on
+`messaging.CategorySkillProgress`. The callback exists because `messaging`
+imports `characters`. With no callback registered (unit tests) nothing is
+sent; `progression_notifier_guard_test.go` asserts the boot registration and
+`raw_events_message_guard_test.go` forbids a raw send here.
+
 ### Equipment System (`worn.go`)
 - **Equipment slots**: Weapon, Offhand, Head, Neck, Body, Belt, Gloves, Ring, Legs, Feet
 - **Stat modifications**: Equipment provides stat bonuses aggregated across all slots
