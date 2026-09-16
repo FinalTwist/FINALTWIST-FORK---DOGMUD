@@ -214,12 +214,17 @@ type SeasonalKey struct{ Track, Season string }
 // cover weathered moments). Loaded from weather/emotes/seasons/.
 type SeasonalTables map[SeasonalKey]TableSection
 
-// seasonalEmoteFile mirrors the on-disk schema.
+// seasonalEmoteFile mirrors the on-disk schema for seasons/*.yaml. It must
+// carry every class TableSection does: yaml.v2 silently drops unknown keys,
+// so a class missing here means prose authored under that key on disk is
+// parsed, discarded, and never reported — the same failure mode as an
+// authored biome key that matches no known biome.
 type seasonalEmoteFile struct {
-	Track   string                `yaml:"track"`
-	Season  string                `yaml:"season"`
-	Outdoor map[string][]string   `yaml:"outdoor"`
-	Indoor  map[string]IndoorPool `yaml:"indoor"`
+	Track       string                `yaml:"track"`
+	Season      string                `yaml:"season"`
+	Outdoor     map[string][]string   `yaml:"outdoor"`
+	Indoor      map[string]IndoorPool `yaml:"indoor"`
+	Underground map[string]IndoorPool `yaml:"underground"`
 }
 
 // LoadSeasonalEmotes loads every *.yaml under dir, keyed by (track, season).
@@ -247,7 +252,7 @@ func LoadSeasonalEmotes(fsys fs.FS, dir string) (SeasonalTables, error) {
 		if f.Track == "" || f.Season == "" {
 			return out, fmt.Errorf("%s: missing required 'track' or 'season' key", e.Name())
 		}
-		out[SeasonalKey{f.Track, f.Season}] = TableSection{Outdoor: f.Outdoor, Indoor: f.Indoor}
+		out[SeasonalKey{f.Track, f.Season}] = TableSection{Outdoor: f.Outdoor, Indoor: f.Indoor, Underground: f.Underground}
 	}
 	return out, nil
 }

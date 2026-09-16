@@ -205,6 +205,40 @@ indoor:
 	}
 }
 
+// A seasonal-ambience file can author an underground section the same way
+// the weather tables can. Before this test's fix, seasonalEmoteFile had no
+// Underground field, so yaml.v2 silently dropped an authored 'underground:'
+// key and the resulting TableSection carried no underground prose at all.
+func TestLoadSeasonalEmotesCarriesUndergroundSection(t *testing.T) {
+	src := []byte(`track: temperate
+season: winter
+outdoor:
+  default:
+    - "Frost rimes every edge."
+indoor:
+  default:
+    strong:
+      - "Wind moans in the chimney."
+underground:
+  default:
+    strong:
+      - "Cold seeps up through the stone."
+`)
+	fsys := fstest.MapFS{"seasons/temperate_winter.yaml": {Data: src}}
+	st, err := LoadSeasonalEmotes(fsys, "seasons")
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	sec, ok := st[SeasonalKey{"temperate", "winter"}]
+	if !ok {
+		t.Fatalf("expected (temperate, winter) table, got: %+v", st)
+	}
+	got := sec.Underground["default"].Strong
+	if len(got) != 1 || got[0] != "Cold seeps up through the stone." {
+		t.Fatalf("underground section did not survive loading: %#v", sec.Underground)
+	}
+}
+
 func TestLoadSeasonalEmotes_RejectsMissingKeys(t *testing.T) {
 	fsys := fstest.MapFS{"seasons/bad.yaml": {Data: []byte("outdoor:\n  default: [\"x\"]\n")}}
 	if _, err := LoadSeasonalEmotes(fsys, "seasons"); err == nil {

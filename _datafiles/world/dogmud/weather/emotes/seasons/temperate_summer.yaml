@@ -1,5 +1,9 @@
 track: temperate
 season: summer
+# No underground section by design: deep stone does not register a season, so
+# a cave gets no seasonal ambience rather than borrowing prose written for a
+# built interior. The section CAN now be authored here if that judgement ever
+# changes; before this it would have been silently dropped by the parser.
 outdoor:
   default:
     - "Insects drone in the heavy summer air."
