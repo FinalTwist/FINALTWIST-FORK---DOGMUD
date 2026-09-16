@@ -79,9 +79,11 @@ func TestPick_IndoorIntensityBands(t *testing.T) {
 	tables := Tables{
 		"rain": {
 			Weather: "rain",
-			Outdoor: map[string][]string{"default": {"out"}},
-			Indoor: map[string]IndoorPool{
-				"default": {Mild: nil, Strong: []string{"roof"}},
+			TableSection: TableSection{
+				Outdoor: map[string][]string{"default": {"out"}},
+				Indoor: map[string]IndoorPool{
+					"default": {Mild: nil, Strong: []string{"roof"}},
+				},
 			},
 		},
 	}
@@ -102,9 +104,11 @@ func TestPick_IndoorBiomeFallback(t *testing.T) {
 	tables := Tables{
 		"storm": {
 			Weather: "storm",
-			Indoor: map[string]IndoorPool{
-				"default": {Strong: []string{"generic"}},
-				"fort":    {Strong: []string{"stone walls"}},
+			TableSection: TableSection{
+				Indoor: map[string]IndoorPool{
+					"default": {Strong: []string{"generic"}},
+					"fort":    {Strong: []string{"stone walls"}},
+				},
 			},
 		},
 	}
@@ -124,8 +128,10 @@ func TestPick_SeasonalVariant(t *testing.T) {
 	tables := Tables{
 		"rain": {
 			Weather: "rain",
-			Outdoor: map[string][]string{"default": {"base outdoor"}, "forest": {"base forest"}},
-			Indoor:  map[string]IndoorPool{"default": {Strong: []string{"base indoor"}}},
+			TableSection: TableSection{
+				Outdoor: map[string][]string{"default": {"base outdoor"}, "forest": {"base forest"}},
+				Indoor:  map[string]IndoorPool{"default": {Strong: []string{"base indoor"}}},
+			},
 			Seasonal: map[string]TableSection{
 				"winter": {
 					Outdoor: map[string][]string{"forest": {"freezing rain"}},
@@ -221,8 +227,10 @@ func TestPickRendersThroughTheNarrationCore(t *testing.T) {
 	tables := Tables{
 		"rain": {
 			Weather: "rain",
-			Outdoor: map[string][]string{
-				"default": {"first line", "second line", "third line"},
+			TableSection: TableSection{
+				Outdoor: map[string][]string{
+					"default": {"first line", "second line", "third line"},
+				},
 			},
 		},
 	}
@@ -280,5 +288,53 @@ indoor:
 	}
 	if len(tbl.Indoor["default"].Strong) != 1 {
 		t.Errorf("expected 1 strong indoor line, got %+v", tbl.Indoor["default"])
+	}
+}
+
+// The three sections are peers on the same struct, and Table embeds
+// TableSection so a new section is declared once rather than twice (Table used
+// to carry its own copy of Outdoor and Indoor alongside Seasonal's
+// TableSection).
+func TestUndergroundSectionParses(t *testing.T) {
+	src := []byte(`
+weather: rain
+outdoor:
+  default: ["outdoor line"]
+indoor:
+  default:
+    mild: []
+    strong: ["indoor line"]
+underground:
+  default:
+    mild: []
+    strong: ["underground line"]
+seasonal:
+  winter:
+    underground:
+      default:
+        mild: []
+        strong: ["winter underground line"]
+`)
+	tbl, err := ParseEmoteTable(src)
+	if err != nil {
+		t.Fatalf("ParseEmoteTable: %v", err)
+	}
+	if got := tbl.Underground["default"].Strong; len(got) != 1 || got[0] != "underground line" {
+		t.Fatalf("base underground section did not parse: %#v", got)
+	}
+	// The seasonal variants inherit the new section through the embed. If
+	// Table had kept its own field pair this would still be empty.
+	if got := tbl.Seasonal["winter"].Underground["default"].Strong; len(got) != 1 {
+		t.Fatalf("seasonal underground section did not parse: %#v", got)
+	}
+	// The existing sections must be unaffected by the embed.
+	if got := tbl.Outdoor["default"]; len(got) != 1 || got[0] != "outdoor line" {
+		t.Fatalf("outdoor section regressed: %#v", got)
+	}
+	if got := tbl.Indoor["default"].Strong; len(got) != 1 {
+		t.Fatalf("indoor section regressed: %#v", got)
+	}
+	if tbl.Weather != "rain" {
+		t.Fatalf("weather key regressed: %q", tbl.Weather)
 	}
 }

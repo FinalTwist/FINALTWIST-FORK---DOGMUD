@@ -24,23 +24,32 @@ type IndoorPool struct {
 	Strong []string `yaml:"strong"`
 }
 
-// TableSection is one outdoor/indoor pair of biome-keyed lines. Indoor is
-// felt-banded (IndoorPool) to match the base section's schema. Used for
-// per-season weather variants and for seasonal-ambience tables.
+// TableSection is one outdoor/indoor/underground set of biome-keyed lines.
+// Indoor and Underground are felt-banded (IndoorPool) to match the base
+// section's schema; Outdoor is a flat list because weather outdoors is never
+// attenuated. Used for per-season weather variants and for seasonal-ambience
+// tables.
+//
+// The three are PROSE CLASSES, not room flags: a house and a cave are both
+// sheltered, but rain on a roof and water finding a seam in rock are
+// different sentences, and 124 of the game's 161 indoor rooms are
+// underground.
 type TableSection struct {
-	Outdoor map[string][]string   `yaml:"outdoor"`
-	Indoor  map[string]IndoorPool `yaml:"indoor"`
+	Outdoor     map[string][]string   `yaml:"outdoor"`
+	Indoor      map[string]IndoorPool `yaml:"indoor"`
+	Underground map[string]IndoorPool `yaml:"underground"`
 }
 
 // Table holds the ambient lines for one weather type, keyed by biome with a
-// "default" fallback, split outdoor/indoor (spec §9.4). Outdoor lines are
-// uniform random picks; indoor lines are intensity-banded (see IndoorPool).
+// "default" fallback, split by prose class (spec §9.4). Outdoor lines are
+// uniform random picks; indoor and underground lines are intensity-banded
+// (see IndoorPool). The base sections are embedded rather than repeated so
+// that adding a class adds it once and the per-season variants inherit it.
 // The spec's per-line weights are an unneeded refinement for shipped defaults;
 // builders wanting bias can repeat a line.
 type Table struct {
-	Weather string                `yaml:"weather"`
-	Outdoor map[string][]string   `yaml:"outdoor"`
-	Indoor  map[string]IndoorPool `yaml:"indoor"`
+	Weather      string `yaml:"weather"`
+	TableSection `yaml:",inline"`
 	// Seasonal holds optional per-season variants, keyed by season NAME
 	// (matching across tracks by design — "winter" is temperate's winter).
 	// Missing seasons/sections fall through to the base lines (spec §6).
