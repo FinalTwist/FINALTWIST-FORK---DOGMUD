@@ -11,3 +11,10 @@ indoor:
       - "The light through every crack and window is gray and listless."
       - "Even indoors the day feels dimmed, colors gone muddy and tired."
       - "No shadow moves across the floor; the flat gray light never shifts."
+# Underground is deliberately silent for this type: there is nothing to
+# perceive. An empty pool is the authored answer, not a gap. See the owner
+# ruling that silence is the default underground.
+underground:
+  default:
+    mild: []
+    strong: []

@@ -15,3 +15,10 @@ indoor:
       - "Mist curls in at the threshold and thins to nothing in the warmth."
       - "Damp creeps under the door and beads on the cold windowpanes."
       - "The world beyond the glass has simply dissolved into pale nothing."
+# Underground is deliberately silent for this type: fog does not enter
+# stone. An empty pool is the authored answer, not a gap. See the owner
+# ruling that silence is the default underground.
+underground:
+  default:
+    mild: []
+    strong: []
