@@ -307,8 +307,13 @@ what lets this golden see PR 2 at all:
 
 Run: `grep -c 'sheltered|cave' internal/narration/testdata/stores/weather_emotes.golden`
 
-Expected: 18 (9 weather types x 2 bands). A zero here means `union` is not
-wired in and the golden is blind to the change it exists to catch.
+Expected: **30**. The builder applies `union` in two independent places: the 9
+weather tables contribute 9 x 2 bands = 18, and the 6 seasonal-ambience tables
+contribute 6 x 2 = 12, because their rows carry the same `sheltered|cave`
+substring.
+
+What matters is that this is NON-ZERO. A zero means `union` is not wired in and
+the golden is blind to the change it exists to catch.
 
 Run: `grep -c '=> ""' internal/narration/testdata/stores/weather_emotes.golden`
 
@@ -317,8 +322,12 @@ Confirm no `outdoor` row is empty:
 
 Run: `grep 'outdoor' internal/narration/testdata/stores/weather_emotes.golden | grep '=> ""'`
 
-Expected: only the `bogus-weather` row. Any other empty outdoor row is a real
-content hole and must be reported, not silently frozen.
+Expected: exactly TWO rows, `bogus-weather|base|outdoor|default` and
+`bogus-track|bogus-season|outdoor|default`. Both are the deliberate EMPTY CASE
+rows, and both match because each carries `outdoor` in its key.
+
+Any THIRD empty outdoor row is a real content hole and must be reported, not
+silently frozen.
 
 Note: `grep -c` exits 1 when it finds zero matches, so run these checks
 standalone rather than in an `&&` chain.
