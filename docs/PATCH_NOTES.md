@@ -1,5 +1,15 @@
 # DOGMud Patch Notes
 
+## 2026-09-16: Everyone sees the same blow
+
+When a blow lands, the attacker, the defender and everyone watching are now
+told about the same moment. Before this, each of them drew their own line, so
+one sword stroke could be described three different ways at once, and nobody
+in the room quite agreed on what had happened.
+
+Ranged fighting gets the same treatment across two rooms, where the shooter's
+room and the target's room each see their own side of the shot.
+
 ## 2026-09-16: More ways to describe a blow
 
 Every weapon has gained new combat descriptions, so a long fight repeats
