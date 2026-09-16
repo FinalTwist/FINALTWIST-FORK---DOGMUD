@@ -144,6 +144,91 @@ func (stm SkillTieredMessages) GetForSkillLevelWith(pick narration.Picker, skill
 	return allMessages[pick(len(allMessages))]
 }
 
+// PoolFor returns the tier union for a skill level as the core's plain-string
+// form. The union is cumulative and matches what GetForSkillLevelWith built:
+// beginner always, plus expert at 34, plus master at 67.
+//
+// Assembly stays in the store. The core coordinates the index and substitutes
+// tokens; it knows nothing about tiers (internal/narration/context.md).
+//
+// Returns nil rather than an empty slice when nothing is authored, so a role
+// the core sees as absent is absent rather than present-and-empty.
+func (stm SkillTieredMessages) PoolFor(skillLevel int) []string {
+	out := make([]string, 0, len(stm.Beginner)+len(stm.Expert)+len(stm.Master))
+	for _, m := range stm.Beginner {
+		out = append(out, string(m))
+	}
+	if skillLevel >= 34 {
+		for _, m := range stm.Expert {
+			out = append(out, string(m))
+		}
+	}
+	if skillLevel >= 67 {
+		for _, m := range stm.Master {
+			out = append(out, string(m))
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// Render renders one coordinated attacker/defender/room triad for a blow whose
+// participants share a room.
+//
+// ALL ROLES COME FROM ONE VARIANT INDEX. The authored pools pair up by index,
+// so picking per role narrates three different events to three audiences. That
+// is the defect this migration removes, and it shipped twice before: melee
+// defence (PR #112) and taunt (PR #115).
+//
+// The role mapping is the one thing here worth reading slowly. An attacker
+// ACTS and a defender is ACTED UPON, so toattacker is the Actor and todefender
+// is the Actee. Swapping those two lines inverts every combat message in the
+// game, and three separately named pools becoming adjacent fields of one
+// struct literal is exactly how that mistake gets made.
+// combat_messages.golden keys its rows by the AUTHORED name, which is what
+// catches it.
+//
+// ActeeObserver is deliberately left empty: when the participants share a room
+// there is only one observer audience.
+//
+// A nil picker means production behaviour (narration.DefaultPicker).
+func (m TogetherMessages) Render(skillLevel int, tokenReplacements map[TokenName]string, pick narration.Picker) narration.Roles {
+	return narration.Render(
+		narration.Variants{
+			Actor:    m.ToAttacker.PoolFor(skillLevel),
+			Actee:    m.ToDefender.PoolFor(skillLevel),
+			Observer: m.ToRoom.PoolFor(skillLevel),
+		},
+		tokenStrings(tokenReplacements),
+		pick,
+	)
+}
+
+// Render renders one coordinated quartet for a ranged blow where attacker and
+// defender are in different rooms, so there are genuinely two observer
+// audiences. ActeeObserver is the observers where the DEFENDER is; this is the
+// case narration.Roles grew its fourth field for
+// (internal/narration/render.go:35-38).
+//
+// The two room roles are different audiences seeing different things and must
+// never be treated as interchangeable.
+//
+// A nil picker means production behaviour (narration.DefaultPicker).
+func (m SeparateMessages) Render(skillLevel int, tokenReplacements map[TokenName]string, pick narration.Picker) narration.Roles {
+	return narration.Render(
+		narration.Variants{
+			Actor:         m.ToAttacker.PoolFor(skillLevel),
+			Actee:         m.ToDefender.PoolFor(skillLevel),
+			Observer:      m.ToAttackerRoom.PoolFor(skillLevel),
+			ActeeObserver: m.ToDefenderRoom.PoolFor(skillLevel),
+		},
+		tokenStrings(tokenReplacements),
+		pick,
+	)
+}
+
 // Presumably to ensure the datafile hasn't messed something up.
 func (w *WeaponAttackMessageGroup) Id() ItemSubType {
 	return w.OptionId
