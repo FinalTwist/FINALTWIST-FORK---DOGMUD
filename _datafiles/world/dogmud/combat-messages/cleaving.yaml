@@ -33,9 +33,9 @@ options:
         - '{momentum}, you assess <ansi fg="{targettype}">{target}</ansi>''s guard while {position} with lethal intent.'
       todefender:
         beginner:
-        - '<ansi fg="{sourcetype}">{source}</ansi> raises their <ansi fg="item">{itemname}</ansi> menacingly at you.'
         - '<ansi fg="{sourcetype}">{source}</ansi> grips their <ansi fg="item">{itemname}</ansi> firmly, preparing to swing.'
         - '<ansi fg="{sourcetype}">{source}</ansi> hefts their blade awkwardly, preparing to attack.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> raises their <ansi fg="item">{itemname}</ansi> menacingly at you.'
         - '<ansi fg="{sourcetype}">{source}</ansi> shoulders their <ansi fg="item">{itemname}</ansi>, eyes fixed on you.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> glares at you, <ansi fg="item">{itemname}</ansi> at the ready in a threatening manner.'
@@ -44,22 +44,25 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> stands {position}, <ansi fg="item">{itemname}</ansi> held with practiced grip.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> settles into a masterful {stance} stance, {momentum}.'
-        - 'With flowing grace, <ansi fg="{sourcetype}">{source}</ansi> prepares their attack while {position}.'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> moves into perfect position, a clear threat.'
+        - 'With flowing grace, <ansi fg="{sourcetype}">{source}</ansi> prepares their attack while {position}.'
         - '<ansi fg="{sourcetype}">{source}</ansi> starts out {momentum}, their positioning flawless and controlled.'
       toroom:
         beginner:
-        - '<ansi fg="{sourcetype}">{source}</ansi> prepares to attack <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> grips their <ansi fg="item">{itemname}</ansi> tightly, facing off against <ansi fg="{targettype}">{target}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> hefts their <ansi fg="item">{itemname}</ansi>, preparing for combat.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> prepares to attack <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> squares off aggressively, <ansi fg="item">{itemname}</ansi> raised for a powerful swing.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> locks eyes with <ansi fg="{targettype}">{target}</ansi>, blade ready to cleave.'
         - '<ansi fg="{sourcetype}">{source}</ansi> takes a {stance} stance against <ansi fg="{targettype}">{target}</ansi>, {position}.'
         - '<ansi fg="{sourcetype}">{source}</ansi> circles <ansi fg="{targettype}">{target}</ansi> with calculated precision.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> circles <ansi fg="{targettype}">{target}</ansi> warily, weapon ready to cleave.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> adopts a masterful {stance} stance, {momentum}.'
-        - 'With practiced precision, <ansi fg="{sourcetype}">{source}</ansi> prepares to engage <ansi fg="{targettype}">{target}</ansi>, {position}.'
         - '<ansi fg="{sourcetype}">{source}</ansi> settles into position while {momentum}, blade poised perfectly.'
+        - 'With practiced precision, <ansi fg="{sourcetype}">{source}</ansi> prepares to engage <ansi fg="{targettype}">{target}</ansi>, {position}.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> starts out {momentum}, sizing up <ansi fg="{targettype}">{target}</ansi>''s guard with lethal intent.'
   wait:
     # messages for when they are in the same room
     together:
@@ -81,33 +84,36 @@ options:
         - 'Like a predator, you assess <ansi fg="{targettype}">{target}</ansi>''s every weakness, {position} and {momentum}.'
       todefender:
         beginner:
-        - '<ansi fg="{sourcetype}">{source}</ansi> circles dangerously.'
         - '<ansi fg="{sourcetype}">{source}</ansi> watches you intently, blade held high.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> circles dangerously.'
         - '<ansi fg="{sourcetype}">{source}</ansi> looks for an opening awkwardly.'
         - '<ansi fg="{sourcetype}">{source}</ansi> hefts their <ansi fg="item">{itemname}</ansi>, searching for a weakness.'
         expert:
-        - '<ansi fg="{sourcetype}">{source}</ansi> holds their <ansi fg="item">{itemname}</ansi> steady, eyes fixed on you.'
-        - '<ansi fg="{sourcetype}">{source}</ansi> probes your defenses carefully.'
         - '<ansi fg="{sourcetype}">{source}</ansi> circles you with tactical precision.'
         - '<ansi fg="{sourcetype}">{source}</ansi> studies your stance, {position}, seeking weakness.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> probes your defenses carefully.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> holds their <ansi fg="item">{itemname}</ansi> steady, eyes fixed on you.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads your every movement with unsettling precision, {stance} and {momentum}.'
-        - '<ansi fg="{sourcetype}">{source}</ansi>''s eyes track your every shift like a predator, {position}.'
         - '<ansi fg="{sourcetype}">{source}</ansi> analyzes your stance with masterful clarity while {momentum}.'
         - '<ansi fg="{sourcetype}">{source}</ansi> studies you {position}, reading every weakness in your defense.'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s eyes track your every shift like a predator, {position}.'
       toroom:
         beginner:
-        - '<ansi fg="{sourcetype}">{source}</ansi> circles <ansi fg="{targettype}">{target}</ansi> with cruel intentions.'
         - '<ansi fg="{sourcetype}">{source}</ansi> stalks around <ansi fg="{targettype}">{target}</ansi>, awaiting an opportunity.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> circles <ansi fg="{targettype}">{target}</ansi> with cruel intentions.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> hesitates, watching for the perfect moment to strike.'
         - '<ansi fg="{sourcetype}">{source}</ansi> hefts their <ansi fg="item">{itemname}</ansi>, studying <ansi fg="{targettype}">{target}</ansi>.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> eyes <ansi fg="{targettype}">{target}</ansi> warily, blade ready to cleave.'
-        - '<ansi fg="{sourcetype}">{source}</ansi> probes for weakness in <ansi fg="{targettype}">{target}</ansi>''s guard.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> stands {position}, {stance} and eyeing <ansi fg="{targettype}">{target}</ansi> for weakness.'
         - '<ansi fg="{sourcetype}">{source}</ansi> circles with {stance} precision, {position}.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> probes for weakness in <ansi fg="{targettype}">{target}</ansi>''s guard.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads <ansi fg="{targettype}">{target}</ansi> like an open book, {momentum} and {position}.'
-        - '<ansi fg="{sourcetype}">{source}</ansi> analyzes <ansi fg="{targettype}">{target}</ansi> with predatory precision while {stance}.'
         - '<ansi fg="{sourcetype}">{source}</ansi> studies <ansi fg="{targettype}">{target}</ansi>''s every move, {position}, {momentum}, and calculating.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> analyzes <ansi fg="{targettype}">{target}</ansi> with predatory precision while {stance}.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> assesses <ansi fg="{targettype}">{target}</ansi>''s every weakness like a predator, {position} and {momentum}.'
   miss:
     # messages for when they are in the same room
     together:
@@ -130,14 +136,14 @@ options:
       todefender:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> swings their <ansi fg="item">{itemname}</ansi> at you, but does nothing.'
-        - '<ansi fg="{sourcetype}">{source}</ansi> heaves their <ansi fg="item">{itemname}</ansi> wildly, missing you entirely.'
         - '<ansi fg="{sourcetype}">{source}</ansi> attempts to cleave you but misses!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> heaves their <ansi fg="item">{itemname}</ansi> wildly, missing you entirely.'
         - '<ansi fg="{sourcetype}">{source}</ansi> swings and nearly loses their balance!'
         expert:
         - 'You evade <ansi fg="{sourcetype}">{source}</ansi>''s calculated chop!'
         - 'You anticipate <ansi fg="{sourcetype}">{source}</ansi>''s feint and avoid their hack!'
-        - '<ansi fg="{sourcetype}">{source}</ansi>''s tactical approach fails as you counter expertly!'
         - 'You sidestep <ansi fg="{sourcetype}">{source}</ansi>''s attempt to cleave you.'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s tactical approach fails as you counter expertly!'
         master:
         - 'Your masterful defense forces <ansi fg="{sourcetype}">{source}</ansi>''s perfect cleave wide!'
         - 'You read <ansi fg="{sourcetype}">{source}</ansi>''s intent while {position} and evade with flowing grace!'
@@ -146,16 +152,19 @@ options:
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> swings their <ansi fg="item">{itemname}</ansi> at <ansi fg="{targettype}">{target}</ansi>, but does nothing.'
-        - '<ansi fg="{sourcetype}">{source}</ansi> heaves at <ansi fg="{targettype}">{target}</ansi> but misses completely.'
         - '<ansi fg="{sourcetype}">{source}</ansi> attempts to cleave <ansi fg="{targettype}">{target}</ansi> but fails to connect.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> heaves at <ansi fg="{targettype}">{target}</ansi> but misses completely.'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s swing goes completely wild, nearly losing their balance.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s calculated cleave is evaded by <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{targettype}">{target}</ansi> anticipates the feint and avoids the hack!'
+        - 'Despite <ansi fg="{sourcetype}">{source}</ansi>''s {stance} approach, the blade finds only air!'
         - '<ansi fg="{targettype}">{target}</ansi> counters <ansi fg="{sourcetype}">{source}</ansi>''s tactical approach!'
         master:
         - '<ansi fg="{targettype}">{target}</ansi>''s masterful defense forces the perfect cleave wide!'
         - '<ansi fg="{targettype}">{target}</ansi> reads the intent while {position} and evades with flowing grace!'
         - 'A masterful clash of blades results in no contact!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s flowing attack is barely parried away while {momentum}!'
   weak:
     # messages for when they are in the same room
     together:
@@ -188,6 +197,7 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> circles and scores a shallow chop on you.'
         - 'You feel a scratch as <ansi fg="{sourcetype}">{source}</ansi> sidesteps and hacks.'
         - '<ansi fg="{sourcetype}">{source}</ansi> feints and grazes you with a quick chop.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> tests your guard and delivers a probing chop.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> tests your defense with a probing chop while {stance}.'
         - '<ansi fg="{sourcetype}">{source}</ansi> draws your guard and lands a light chop while {momentum}.'
@@ -199,11 +209,13 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> hacks at <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> grazes <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> lands a minor chop on <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> swings weakly and nicks <ansi fg="{targettype}">{target}</ansi>.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps forward and nicks <ansi fg="{targettype}">{target}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> circles left and scores a shallow chop.'
         - '<ansi fg="{sourcetype}">{source}</ansi> sidesteps and hacks, barely scratching <ansi fg="{targettype}">{target}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> feints high and brings their blade down lightly.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> tests <ansi fg="{targettype}">{target}</ansi>''s guard and delivers a probing chop.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> tests <ansi fg="{targettype}">{target}</ansi>''s defense with a probing chop while {stance}.'
         - '<ansi fg="{sourcetype}">{source}</ansi> draws the guard and lands a light chop while {momentum}.'
@@ -251,33 +263,40 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> draws your defense and hacks low!'
         - '<ansi fg="{sourcetype}">{source}</ansi> chops into your {bodypart}!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads your stance and chops with precision while {momentum}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> presses their advantage with a sweeping hack, {position}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> dances around you and cleaves purposefully, staying {stance}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits an opening and chops decisively!'
         - '<ansi fg="{sourcetype}">{source}</ansi> follows through with a solid hack while {momentum}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> capitalizes on their {stance} positioning and hacks true!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> blade arcs as they maintain pressure, {position}!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> chops decisively at you while {position}!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads your stance and chops with precision while {momentum}!'
+        - '<ansi fg="{sourcetype}">{source}''s</ansi> <ansi fg="item">{itemname}</ansi> bites into your {bodypart}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> cleaves into your {bodypart} with a brutal swing!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> connects with their <ansi fg="item">{itemname}</ansi>, wounding <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> hacks <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> bites into <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> swings and hits <ansi fg="{targettype}">{target}</ansi> solidly!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> circles right and hacks decisively!'
         - '<ansi fg="{sourcetype}">{source}</ansi> steps forward and delivers a clean chop!'
         - '<ansi fg="{sourcetype}">{source}</ansi> pivots and cleaves through the guard!'
         - '<ansi fg="{sourcetype}">{source}</ansi> feints left and brings their blade down swiftly!'
         - '<ansi fg="{sourcetype}">{source}</ansi> draws the defense high and hacks low!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads the stance and chops with practiced precision!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads the stance and chops with precision while {momentum}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> presses forward with a sweeping hack, staying {stance}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> dances around <ansi fg="{targettype}">{target}</ansi> and cleaves purposefully, {position}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits an opening and chops decisively!'
         - '<ansi fg="{sourcetype}">{source}</ansi> follows through with a solid hack while {momentum}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> capitalizes on momentum and hacks true, staying {stance}!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> blade arcs as the pressure continues, {position}!'
+        - 'While {position}, <ansi fg="{sourcetype}">{source}</ansi> chops decisively at <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads the stance and chops with precision while {momentum}!'
+        - '<ansi fg="{sourcetype}">{source}''s</ansi> <ansi fg="item">{itemname}</ansi> bites into <ansi fg="{targettype}">{target}</ansi>''s {bodypart}!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> chops into <ansi fg="{targettype}">{target}</ansi>''s {bodypart} with a precise swing!'
   heavy:
     # messages for when they are in the same room
     together:
@@ -318,13 +337,19 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps in close and brutally cleaves you!'
         - '<ansi fg="{sourcetype}">{source}</ansi> pivots and hacks through your defenses!'
         - '<ansi fg="{sourcetype}">{source}</ansi> advances and chops with tremendous force!'
+        - 'From a {stance} stance, <ansi fg="{sourcetype}">{source}</ansi> steps in and cleaves you with devastating power!'
+        - '{momentum}, <ansi fg="{sourcetype}">{source}</ansi> presses forward and hacks deeply into you!'
         - '<ansi fg="{sourcetype}">{source}</ansi> feints retreat then surges with a devastating cleave!'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> draws your guard and delivers a punishing hack, {position}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> reads your weakness and chops with overwhelming force while {momentum}!'
+        - 'While {position} and {momentum}, <ansi fg="{sourcetype}">{source}</ansi> feints and strikes you with brutal precision!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s {stance} approach pays off as they deliver a crushing cleave!'
         - '<ansi fg="{sourcetype}">{source}</ansi> presses forward relentlessly, blade splitting through!'
         - '<ansi fg="{sourcetype}">{source}</ansi> seizes advantage and delivers a savage hack!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits your position and chops brutally while {stance}!'
+        - 'Even while {position}, {momentum}, <ansi fg="{sourcetype}">{source}</ansi> hacks you with overwhelming force!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s {stance} fighting style overwhelms you completely!'
         - '<ansi fg="{sourcetype}">{source}</ansi> spins and cleaves with great force while {momentum}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> surges forward on the offensive, blade hacking deep, {position}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> maintains their assault with a powerful hack!'
@@ -334,20 +359,28 @@ options:
         - 'In a sweeping motion, <ansi fg="{sourcetype}">{source}</ansi> cleaves <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a powerful blow to <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> hacks deeply into <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> swings with all their might and strikes hard!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps in close and brutally cleaves <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> pivots and hacks through <ansi fg="{targettype}">{target}</ansi>''s defenses!'
         - '<ansi fg="{sourcetype}">{source}</ansi> advances and chops with tremendous force!'
+        - 'From a {stance} stance, <ansi fg="{sourcetype}">{source}</ansi> steps in and cleaves with devastating power!'
+        - '{momentum}, <ansi fg="{sourcetype}">{source}</ansi> presses forward and hacks deeply into <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> feints retreat then surges with a devastating cleave!'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> draws the guard aside and delivers a punishing hack, staying {stance}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> reads the weakness and chops with overwhelming force while {momentum}!'
+        - 'While {position} and {momentum}, <ansi fg="{sourcetype}">{source}</ansi> feints and strikes with brutal precision!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s {stance} approach pays off as a crushing cleave lands!'
         - '<ansi fg="{sourcetype}">{source}</ansi> presses forward relentlessly, blade splitting through, {position}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> seizes advantage and delivers a savage hack!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits position and chops with brutal efficiency, staying {stance}!'
+        - 'Even while {position}, {momentum}, <ansi fg="{sourcetype}">{source}</ansi> hacks with overwhelming force!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s {stance} fighting style overwhelms <ansi fg="{targettype}">{target}</ansi> completely!'
         - '<ansi fg="{sourcetype}">{source}</ansi> spins and cleaves with great force while {momentum}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> surges forward on the offensive, blade hacking deep, {position}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> maintains the assault with a powerful cleaving blow!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> hacks deep into <ansi fg="{targettype}">{target}</ansi>''s {bodypart}!'
   critical:
     # messages for when they are in the same room
     together:
@@ -384,9 +417,11 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> lunges and delivers a <ansi fg="cyan-bold">PERFECT CLEAVE</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> flows with power and <ansi fg="cyan-bold">RENDS</ansi> you!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> masterful feint opens you completely - they <ansi fg="cyan-bold">BISECT</ansi> you!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads your every move and delivers a <ansi fg="cyan-bold">FLAWLESS CHOP</ansi> through you!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS CHOP</ansi> while {momentum}!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> tactical brilliance creates the perfect opening - you are <ansi fg="cyan-bold">EVISCERATED</ansi>, {position}!'
+        - '<ansi fg="{sourcetype}">{source}''s</ansi> {stance} approach culminates in a <ansi fg="cyan-bold">DEVASTATING CRITICAL</ansi> cleave against you, {position}!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS CHOP</ansi> while {momentum}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> executes a <ansi fg="cyan-bold">DEVASTATING CLEAVE</ansi> from the perfect angle, staying {stance}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits total advantage and <ansi fg="cyan-bold">HEWS</ansi> you with precision, {momentum}!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> positioning is flawless - you are <ansi fg="cyan-bold">OBLITERATED</ansi>, {position}!'
@@ -397,15 +432,18 @@ options:
         beginner:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY CLEAVES</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> <ansi fg="item">{itemname}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL CHOP</ansi> to <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">SPLITS WIDE</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="cyan-bold">DEVASTATES</ansi> <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> whirls and their blade <ansi fg="cyan-bold">SUNDERS</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> lunges forward with a <ansi fg="cyan-bold">PERFECT CLEAVE</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> flows with power and <ansi fg="cyan-bold">RENDS</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> masterful feint opens <ansi fg="{targettype}">{target}</ansi> completely - <ansi fg="cyan-bold">BISECTION</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS CHOP</ansi> through <ansi fg="{targettype}">{target}</ansi>!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS CHOP</ansi> while {momentum}!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> tactical brilliance creates the perfect opening - <ansi fg="cyan-bold">EVISCERATION</ansi>, staying {stance}!'
+        - '<ansi fg="{sourcetype}">{source}''s</ansi> {stance} approach culminates in a <ansi fg="cyan-bold">DEVASTATING CRITICAL</ansi> cleave, {position}!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS CHOP</ansi> while {momentum}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> executes a <ansi fg="cyan-bold">DEVASTATING CLEAVE</ansi> from the perfect angle, {position}!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits total advantage and <ansi fg="cyan-bold">HEWS</ansi> <ansi fg="{targettype}">{target}</ansi> with precision while {momentum}!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> positioning is flawless - <ansi fg="cyan-bold">OBLITERATION</ansi>!'
@@ -434,6 +472,7 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s blade <ansi fg="red-bold">FUMBLES</ansi> awkwardly against their own armor!'
         - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their <ansi fg="item">{itemname}</ansi> in a pathetic display of clumsy incompetence!'
         - '<ansi fg="{sourcetype}">{source}</ansi> loses control of their swing and <ansi fg="red-bold">FUMBLES</ansi> badly!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> stumbles badly and their <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLES</ansi> uselessly.'
         expert:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> tactical approach fails and they <ansi fg="red-bold">FUMBLE</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> misjudges and <ansi fg="red-bold">FUMBLES</ansi> their cleave!'
@@ -445,8 +484,9 @@ options:
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLES</ansi> wildly as their cleave goes nowhere!'
-        - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their swing at <ansi fg="{targettype}">{target}</ansi> in a ridiculous manner!'
         - '<ansi fg="{sourcetype}">{source}</ansi> loses their grip and their attack <ansi fg="red-bold">FUMBLES</ansi> pathetically!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their swing at <ansi fg="{targettype}">{target}</ansi> in a ridiculous manner!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> stumbles badly as their <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLES</ansi> uselessly.'
         expert:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> tactical approach fails - they <ansi fg="red-bold">FUMBLE</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> misjudges the distance and <ansi fg="red-bold">FUMBLES</ansi>!'

@@ -1,5 +1,15 @@
 # DOGMud Patch Notes
 
+## 2026-09-16: More ways to describe a blow
+
+Every weapon has gained new combat descriptions, so a long fight repeats
+itself less often. Bows, claws, staves, whips, fangs and the rest all read
+with a little more variety now, at every level of skill.
+
+The groundwork also went in for a larger change coming soon: the attacker,
+the defender and everyone watching will describe the same blow the same way,
+instead of each being told about a different moment.
+
 ## 2026-09-15: Hints are now tips
 
 The gameplay advice that appears every few minutes is now called a tip, so it

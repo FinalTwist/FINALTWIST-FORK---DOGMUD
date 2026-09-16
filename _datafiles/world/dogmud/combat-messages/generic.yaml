@@ -30,21 +30,29 @@ options:
       todefender:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> prepares to fight you with their <ansi fg="item">{itemname}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> grips their <ansi fg="item">{itemname}</ansi> tightly, readying against you.'
         - '<ansi fg="{sourcetype}">{source}</ansi> raises their <ansi fg="item">{itemname}</ansi> menacingly at you.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> glares at you, <ansi fg="item">{itemname}</ansi> at the ready.'
         - '<ansi fg="{sourcetype}">{source}</ansi> adopts a {stance} stance against you.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> readies their <ansi fg="item">{itemname}</ansi> in a {stance} posture against you.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> settles into a masterful {stance} stance.'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s weapon settles into perfect position, {momentum}, as they face you.'
         - 'With flowing grace, <ansi fg="{sourcetype}">{source}</ansi> prepares to attack.'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> prepares to attack <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> grips their <ansi fg="item">{itemname}</ansi> tightly, facing off against <ansi fg="{targettype}">{target}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> raises their <ansi fg="item">{itemname}</ansi>, facing <ansi fg="{targettype}">{target}</ansi> menacingly.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> locks eyes with <ansi fg="{targettype}">{target}</ansi>, weapon ready to strike.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> takes a {stance} stance, preparing to face <ansi fg="{targettype}">{target}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> readies their <ansi fg="item">{itemname}</ansi> in a {stance} posture.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> adopts a masterful combat stance.'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s weapon settles into perfect position, {momentum}.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> flows into a {stance} stance with fluid precision.'
     separate:
       toattacker:
         beginner:
@@ -90,8 +98,8 @@ options:
     together:
       toattacker:
         beginner:
-        - 'You aim carefully at <ansi fg="{targettype}">{target}</ansi>.'
         - 'You watch <ansi fg="{targettype}">{target}</ansi> closely, waiting for the perfect moment.'
+        - 'You aim carefully at <ansi fg="{targettype}">{target}</ansi>.'
         expert:
         - 'You circle around <ansi fg="{targettype}">{target}</ansi>, looking for an opening.'
         - 'From your {stance} stance, you stand {position}, eyeing <ansi fg="{targettype}">{target}</ansi>.'
@@ -103,16 +111,21 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> circles dangerously.'
         - '<ansi fg="{sourcetype}">{source}</ansi> watches you intently, waiting to strike.'
         expert:
+        - '<ansi fg="{sourcetype}">{source}</ansi> circles around you, looking for an opening.'
         - '<ansi fg="{sourcetype}">{source}</ansi> holds their <ansi fg="item">{itemname}</ansi> steady, eyes fixed on you.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads your every movement with unsettling precision.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> anticipates your next move with unsettling clarity.'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> circles <ansi fg="{targettype}">{target}</ansi> with cruel intentions.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> watches <ansi fg="{targettype}">{target}</ansi> intently, waiting to strike.'
         expert:
+        - '<ansi fg="{sourcetype}">{source}</ansi> circles <ansi fg="{targettype}">{target}</ansi>, looking for an opening.'
         - '<ansi fg="{sourcetype}">{source}</ansi> eyes <ansi fg="{targettype}">{target}</ansi> warily, ready to strike.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads <ansi fg="{targettype}">{target}</ansi> like an open book.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> anticipates <ansi fg="{targettype}">{target}</ansi>''s next move with clarity.'
     separate:
       toattacker:
         beginner:
@@ -172,15 +185,20 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> misses you completely!'
         expert:
         - 'You evade <ansi fg="{sourcetype}">{source}</ansi>''s calculated strike!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s {stance} approach finds only air against you!'
         master:
         - 'Your masterful defense forces <ansi fg="{sourcetype}">{source}</ansi>''s perfect strike wide!'
+        - '{momentum}, you barely parry away <ansi fg="{sourcetype}">{source}</ansi>''s flowing attack!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> swings at <ansi fg="{targettype}">{target}</ansi> but misses!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> misses <ansi fg="{targettype}">{target}</ansi> completely!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s calculated strike is evaded!'
+        - 'Despite a {stance} approach, <ansi fg="{sourcetype}">{source}</ansi>''s attack finds only air!'
         master:
         - '<ansi fg="{targettype}">{target}</ansi>''s masterful defense forces the strike wide!'
+        - '{momentum}, <ansi fg="{sourcetype}">{source}</ansi>''s flowing attack is barely parried away!'
     separate:
       toattacker:
         beginner:
@@ -240,14 +258,19 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> grazes you.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps in and strikes you.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> circles left and scores a shallow hit on you.'
         master:
+        - '<ansi fg="{sourcetype}">{source}</ansi> draws out your defense and lands a light strike.'
         - '<ansi fg="{sourcetype}">{source}</ansi> finds a small opening and strikes you.'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> hits <ansi fg="{targettype}">{target}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> grazes <ansi fg="{targettype}">{target}</ansi>.'
         expert:
+        - '<ansi fg="{sourcetype}">{source}</ansi> steps forward and strikes <ansi fg="{targettype}">{target}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> scores a shallow hit.'
         master:
+        - '<ansi fg="{sourcetype}">{source}</ansi> draws out the defense and lands a light strike.'
         - '<ansi fg="{sourcetype}">{source}</ansi> finds a small opening and strikes.'
     separate:
       toattacker:
@@ -317,7 +340,9 @@ options:
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads your stance and strikes with precision!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits an opening and hits decisively!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> is {momentum} as their weapon hits you!'
         - '<ansi fg="{sourcetype}">{source}</ansi> strikes you squarely in the {bodypart}!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> connects with your {bodypart}!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> connects, wounding <ansi fg="{targettype}">{target}</ansi>!'
@@ -325,9 +350,13 @@ options:
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> circles right and strikes decisively!'
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a clean hit!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> strikes <ansi fg="{targettype}">{target}</ansi> in the {bodypart}!'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads the stance and strikes with precision!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits an opening and hits decisively!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> is {momentum} as their weapon hits <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> strikes <ansi fg="{targettype}">{target}</ansi> squarely in the {bodypart}!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> connects with <ansi fg="{targettype}">{target}</ansi>''s {bodypart}!'
     separate:
       toattacker:
         beginner:
@@ -390,17 +419,26 @@ options:
         - 'You are hit hard as <ansi fg="{sourcetype}">{source}</ansi> strikes deeply!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps in close and brutally strikes you!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> strikes you with devastating power!'
+        - '{momentum}, <ansi fg="{sourcetype}">{source}</ansi> presses forward and hits you deeply!'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads your weakness and strikes with overwhelming force!'
+        - 'While {position} and {momentum}, <ansi fg="{sourcetype}">{source}</ansi> strikes you with brutal precision!'
         - '<ansi fg="{sourcetype}">{source}</ansi> presses forward relentlessly!'
+        - 'From <ansi fg="{sourcetype}">{source}</ansi>''s {stance} stance, {momentum}, they deliver a devastating strike while {position}!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a powerful blow!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> strikes deeply into <ansi fg="{targettype}">{target}</ansi>!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps in close and brutally strikes!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> strikes with devastating power!'
+        - '{momentum}, <ansi fg="{sourcetype}">{source}</ansi> presses forward and hits deeply!'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads the weakness and strikes with overwhelming force!'
+        - 'While {position} and {momentum}, <ansi fg="{sourcetype}">{source}</ansi> strikes with brutal precision!'
         - '<ansi fg="{sourcetype}">{source}</ansi> presses forward relentlessly!'
+        - 'From a {stance} stance, {momentum}, <ansi fg="{sourcetype}">{source}</ansi> delivers a devastating strike while {position}!'
     separate:
       toattacker:
         beginner:
@@ -468,9 +506,9 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> finds a <ansi fg="cyan-bold">CRITICAL OPENING</ansi> in your guard!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a <ansi fg="cyan-bold">PERFECT STRIKE</ansi>!'
+        - 'You are caught flat footed as <ansi fg="{sourcetype}">{source}</ansi> lands a <ansi fg="cyan-bold">CALCULATED CRITICAL</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> times the strike perfectly and lands a <ansi fg="cyan-bold">TELLING BLOW</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a <ansi fg="cyan-bold">DECISIVE STRIKE</ansi> against you!'
-        - 'You are caught flat footed as <ansi fg="{sourcetype}">{source}</ansi> lands a <ansi fg="cyan-bold">CALCULATED CRITICAL</ansi>!'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS HIT</ansi>!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> positioning is flawless - you are <ansi fg="cyan-bold">OBLITERATED</ansi>!'
@@ -479,10 +517,12 @@ options:
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY HITS</ansi> <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL STRIKE</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> gets lucky and lands a <ansi fg="cyan-bold">CRITICAL HIT</ansi> on <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> <ansi fg="item">{itemname}</ansi> finds a <ansi fg="cyan-bold">CRITICAL OPENING</ansi>!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a <ansi fg="cyan-bold">PERFECT STRIKE</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> calculates every move for a <ansi fg="cyan-bold">FLAWLESS HIT</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> times the attack perfectly for a <ansi fg="cyan-bold">TELLING BLOW</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> lands a <ansi fg="cyan-bold">DECISIVE STRIKE</ansi> on <ansi fg="{targettype}">{target}</ansi>!'
         master:
@@ -528,27 +568,33 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> attacks with a <ansi fg="cyan-bold">CRITICAL HIT</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL HIT</ansi> from afar!'
         - '<ansi fg="{sourcetype}">{source}</ansi> gets a lucky <ansi fg="cyan-bold">CRITICAL HIT</ansi> from afar!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s desperate shot finds a <ansi fg="cyan-bold">CRITICAL OPENING</ansi>!'
         expert:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> perfect aim <ansi fg="cyan-bold">ANNIHILATES</ansi>!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> perfect aim <ansi fg="cyan-bold">ANNIHILATES</ansi> from afar!'
         - '<ansi fg="{sourcetype}">{source}</ansi> times a shot perfectly for a <ansi fg="cyan-bold">TELLING BLOW</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> times a shot perfectly for a <ansi fg="cyan-bold">DECISIVE HIT</ansi>!'
         master:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> masterful strike <ansi fg="cyan-bold">OBLITERATES</ansi>!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> masterful strike <ansi fg="cyan-bold">OBLITERATES</ansi> from afar!'
         - '<ansi fg="{sourcetype}">{source}</ansi> reads the distance flawlessly for a <ansi fg="cyan-bold">PERFECT CRITICAL</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}''s</ansi> flawless aim <ansi fg="cyan-bold">DEVASTATES</ansi> from afar!'
       todefenderroom:
         beginner:
         - 'A <ansi fg="cyan-bold">CRITICAL HIT</ansi> from afar!'
         - 'A ranged <ansi fg="cyan-bold">CRITICAL HIT</ansi> from afar!'
         - 'A lucky <ansi fg="cyan-bold">CRITICAL HIT</ansi> lands from afar!'
+        - 'A desperate shot finds a <ansi fg="cyan-bold">CRITICAL OPENING</ansi> from afar!'
         expert:
         - 'A perfect strike <ansi fg="cyan-bold">ANNIHILATES</ansi>!'
         - 'A perfect ranged strike <ansi fg="cyan-bold">ANNIHILATES</ansi>!'
         - 'A perfectly timed shot lands a <ansi fg="cyan-bold">TELLING BLOW</ansi>!'
+        - 'A perfectly timed shot delivers a <ansi fg="cyan-bold">DECISIVE HIT</ansi>!'
         master:
         - 'A masterful strike <ansi fg="cyan-bold">OBLITERATES</ansi>!'
         - 'A masterful ranged strike <ansi fg="cyan-bold">OBLITERATES</ansi>!'
         - 'A flawlessly read shot lands a <ansi fg="cyan-bold">PERFECT CRITICAL</ansi>!'
+        - 'A flawless shot <ansi fg="cyan-bold">DEVASTATES</ansi> from afar!'
   fumble:
     together:
       toattacker:
@@ -575,24 +621,27 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> slips from their hand as they <ansi fg="red-bold">FUMBLE</ansi>!'
         expert:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> tactical approach fails - they <ansi fg="red-bold">FUMBLE</ansi>!'
+        - 'You sidestep just enough that <ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> the attack!'
         - '<ansi fg="{sourcetype}">{source}</ansi> overcommits to the strike and <ansi fg="red-bold">FUMBLES</ansi>!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> footwork betrays them and they <ansi fg="red-bold">FUMBLE</ansi>!'
-        - 'You sidestep just enough that <ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> the attack!'
         master:
         - 'Your defense forces <ansi fg="{sourcetype}">{source}</ansi> to <ansi fg="red-bold">FUMBLE</ansi>!'
+        - 'You read the telegraph perfectly, and <ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> against you!'
         - 'A hairline miscalculation forces <ansi fg="{sourcetype}">{source}</ansi> to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'For one unguarded moment, <ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> despite their flawless form!'
-        - 'You read the telegraph perfectly, and <ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> against you!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> attack <ansi fg="red-bold">FUMBLES</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> as their grip slips!'
         - '<ansi fg="{sourcetype}">{source}</ansi> trips over their own feet and <ansi fg="red-bold">FUMBLES</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> slips from their hand!'
         expert:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> tactical approach fails - they <ansi fg="red-bold">FUMBLE</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> misjudges the distance and <ansi fg="red-bold">FUMBLES</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> overcommits to the strike and <ansi fg="red-bold">FUMBLES</ansi>!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> footwork betrays them and they <ansi fg="red-bold">FUMBLE</ansi>!'
         master:
+        - '<ansi fg="{targettype}">{target}</ansi>''s unexpected counter forces <ansi fg="{sourcetype}">{source}</ansi> to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite masterful form, <ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi>!'
         - 'A hairline miscalculation forces <ansi fg="{sourcetype}">{source}</ansi> to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'For one unguarded moment, <ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> despite masterful form!'
@@ -622,38 +671,44 @@ options:
         expert:
         - 'A calculated strike <ansi fg="red-bold">FUMBLES</ansi>!'
         - 'A skilled attack from the distance <ansi fg="red-bold">FUMBLES</ansi>!'
-        - 'A carefully aimed shot falters and <ansi fg="red-bold">FUMBLES</ansi>!'
         - 'A misjudged shot from the distance <ansi fg="red-bold">FUMBLES</ansi>!'
+        - 'A carefully aimed shot falters and <ansi fg="red-bold">FUMBLES</ansi>!'
         master:
         - 'The perfect strike <ansi fg="red-bold">FUMBLES</ansi>!'
         - 'Even a masterful ranged strike <ansi fg="red-bold">FUMBLES</ansi> against you!'
-        - 'A near flawless shot still <ansi fg="red-bold">FUMBLES</ansi> against you!'
         - 'Even a masterfully aimed shot <ansi fg="red-bold">FUMBLES</ansi> wide of you!'
+        - 'A near flawless shot still <ansi fg="red-bold">FUMBLES</ansi> against you!'
       toattackerroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> attack <ansi fg="red-bold">FUMBLES</ansi>!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> ranged attack <ansi fg="red-bold">FUMBLES</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> loses their footing and the shot <ansi fg="red-bold">FUMBLES</ansi> wide!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s desperate shot goes wrong and <ansi fg="red-bold">FUMBLES</ansi>!'
         expert:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> calculated strike <ansi fg="red-bold">FUMBLES</ansi>!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> precise attack <ansi fg="red-bold">FUMBLES</ansi> badly!'
         - '<ansi fg="{sourcetype}">{source}</ansi> misjudges the wind and the shot <ansi fg="red-bold">FUMBLES</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s careful aim falters and the shot <ansi fg="red-bold">FUMBLES</ansi>!'
         master:
         - 'Despite perfect aim, <ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi>!'
         - 'Despite perfect form, <ansi fg="{sourcetype}">{source}''s</ansi> attack <ansi fg="red-bold">FUMBLES</ansi>!'
         - 'An unseen gust forces <ansi fg="{sourcetype}">{source}''s</ansi> perfect shot to <ansi fg="red-bold">FUMBLE</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s flawless technique cannot stop the shot from <ansi fg="red-bold">FUMBLING</ansi>!'
       todefenderroom:
         beginner:
         - 'An attack from afar <ansi fg="red-bold">FUMBLES</ansi>!'
-        - 'A distant attack <ansi fg="red-bold">FUMBLES</ansi> harmlessly!'
+        - 'A ranged attack from afar <ansi fg="red-bold">FUMBLES</ansi> completely!'
         - 'A clumsy attack from afar <ansi fg="red-bold">FUMBLES</ansi> wide!'
+        - 'A distant attack <ansi fg="red-bold">FUMBLES</ansi> harmlessly!'
         expert:
         - 'A calculated attack <ansi fg="red-bold">FUMBLES</ansi>!'
         - 'A calculated attack from afar <ansi fg="red-bold">FUMBLES</ansi>!'
+        - 'A misjudged shot from the distance <ansi fg="red-bold">FUMBLES</ansi> past its mark!'
         - 'A carefully aimed attack falters and <ansi fg="red-bold">FUMBLES</ansi>!'
         master:
         - 'A masterful strike <ansi fg="red-bold">FUMBLES</ansi>!'
         - 'A masterful ranged strike <ansi fg="red-bold">FUMBLES</ansi>!'
+        - 'An unseen gust forces a perfect shot to <ansi fg="red-bold">FUMBLE</ansi> wide!'
         - 'A near flawless ranged strike still <ansi fg="red-bold">FUMBLES</ansi>!'
   # U5c: sent when a hit lands on a target that is ALREADY DYING; it has taken
   # its lethal blow and the attributed death is queued but not yet resolved.
@@ -675,17 +730,23 @@ options:
       todefender:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> strikes you as you fall.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> drives their <ansi fg="item">{itemname}</ansi> down into you once more.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> strikes you again as you fall.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> hammers you down with their <ansi fg="item">{itemname}</ansi>.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> bears you down under a final flurry.'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> finds you again, and again after that.'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> keeps striking <ansi fg="{targettype}">{target}</ansi> as they fall.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> drives their <ansi fg="item">{itemname}</ansi> down into <ansi fg="{targettype}">{target}</ansi> once more.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> keeps striking <ansi fg="{targettype}">{target}</ansi> as they fall.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> hammers <ansi fg="{targettype}">{target}</ansi> down with their <ansi fg="item">{itemname}</ansi>.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> batters <ansi fg="{targettype}">{target}</ansi> to the ground.'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> finds <ansi fg="{targettype}">{target}</ansi> again, and again after that.'
     separate:
       toattacker:
         beginner:

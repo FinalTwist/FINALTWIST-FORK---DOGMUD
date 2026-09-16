@@ -31,22 +31,28 @@ options:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> raises their <ansi fg="item">{itemname}</ansi> toward you, its crystal pulsing.'
         - '<ansi fg="{sourcetype}">{source}</ansi> hefts their <ansi fg="item">{itemname}</ansi> menacingly in your direction.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> grips their <ansi fg="item">{itemname}</ansi> tightly, the crystal flickering to life.'
         expert:
+        - '<ansi fg="{sourcetype}">{source}</ansi> settles into a {stance} stance, their <ansi fg="item">{itemname}</ansi> glowing with channeled power.'
         - '<ansi fg="{sourcetype}">{source}</ansi> levels their glowing <ansi fg="item">{itemname}</ansi> at you with focused intent.'
         - '<ansi fg="{sourcetype}">{source}</ansi> balances their <ansi fg="item">{itemname}</ansi>, attuning to your energy.'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> blazes as they read your posture.'
         - 'Power surges through <ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> as they prepare.'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> blazes as they read your posture.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> aligns their <ansi fg="item">{itemname}</ansi> toward you with commanding authority.'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> raises their <ansi fg="item">{itemname}</ansi> toward <ansi fg="{targettype}">{target}</ansi>, crystal pulsing.'
         - '<ansi fg="{sourcetype}">{source}</ansi> hefts their <ansi fg="item">{itemname}</ansi> at <ansi fg="{targettype}">{target}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> grips their <ansi fg="item">{itemname}</ansi> tightly toward <ansi fg="{targettype}">{target}</ansi>, the crystal flickering to life.'
         expert:
+        - '<ansi fg="{sourcetype}">{source}</ansi> settles into a {stance} stance, their <ansi fg="item">{itemname}</ansi> glowing, facing <ansi fg="{targettype}">{target}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> levels their glowing <ansi fg="item">{itemname}</ansi> at <ansi fg="{targettype}">{target}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> balances their <ansi fg="item">{itemname}</ansi>, power surging within.'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> blazes with channeled power.'
         - 'With commanding authority, <ansi fg="{sourcetype}">{source}</ansi> brings their <ansi fg="item">{itemname}</ansi> to bear.'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> blazes with channeled power.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> aligns their <ansi fg="item">{itemname}</ansi> toward <ansi fg="{targettype}">{target}</ansi> with commanding authority.'
   wait:
     together:
       toattacker:
@@ -66,22 +72,28 @@ options:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> holds their <ansi fg="item">{itemname}</ansi> steady, watching you.'
         - '<ansi fg="{sourcetype}">{source}</ansi> circles you, crystal flickering on their weapon.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> studies you, hefting their <ansi fg="item">{itemname}</ansi> expectantly.'
         expert:
-        - '<ansi fg="{sourcetype}">{source}</ansi> probes your defenses with measured swings.'
         - '<ansi fg="{sourcetype}">{source}</ansi> studies you through the crystal''s glow.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> probes your defenses with measured swings.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> circles with purpose, their <ansi fg="item">{itemname}</ansi> tracing arcs of faint light toward you.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads your every shift with unsettling precision.'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> pulses as they track your movement.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> surveys you like a commander, assessing your every weakness.'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> holds their <ansi fg="item">{itemname}</ansi> steady, watching <ansi fg="{targettype}">{target}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> circles <ansi fg="{targettype}">{target}</ansi>, crystal flickering.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> studies <ansi fg="{targettype}">{target}</ansi>, hefting their <ansi fg="item">{itemname}</ansi> expectantly.'
         expert:
-        - '<ansi fg="{sourcetype}">{source}</ansi> probes <ansi fg="{targettype}">{target}</ansi>''s defenses with measured swings.'
         - '<ansi fg="{sourcetype}">{source}</ansi> studies <ansi fg="{targettype}">{target}</ansi> through the crystal''s glow.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> probes <ansi fg="{targettype}">{target}</ansi>''s defenses with measured swings.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> circles <ansi fg="{targettype}">{target}</ansi> with purpose, their <ansi fg="item">{itemname}</ansi> tracing arcs of faint light.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads <ansi fg="{targettype}">{target}</ansi>''s stance with commanding clarity.'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> pulses steadily as they observe.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> surveys <ansi fg="{targettype}">{target}</ansi> like a commander, assessing every weakness.'
   miss:
     together:
       toattacker:
@@ -101,21 +113,27 @@ options:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> swings their <ansi fg="item">{itemname}</ansi> at you, but misses!'
         - '<ansi fg="{sourcetype}">{source}</ansi> strikes at you but the blow goes wide!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> swings but fails to connect, their <ansi fg="item">{itemname}</ansi>''s crystal dimming briefly.'
         expert:
         - 'You evade <ansi fg="{sourcetype}">{source}</ansi>''s calculated swing!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s channeled strike finds only air!'
+        - 'You anticipate <ansi fg="{sourcetype}">{source}</ansi>''s feint and their swing meets nothing!'
         master:
         - 'Your defense forces <ansi fg="{sourcetype}">{source}</ansi>''s perfect strike wide!'
         - 'You read <ansi fg="{sourcetype}">{source}</ansi>''s intent and evade with smooth agility!'
+        - 'You barely deflect <ansi fg="{sourcetype}">{source}</ansi>''s overwhelming strike!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> swings their <ansi fg="item">{itemname}</ansi> at <ansi fg="{targettype}">{target}</ansi>, but misses!'
         - '<ansi fg="{sourcetype}">{source}</ansi> strikes at <ansi fg="{targettype}">{target}</ansi> but the blow goes wide!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> swings but fails to connect, their <ansi fg="item">{itemname}</ansi>''s crystal dimming briefly.'
         expert:
         - '<ansi fg="{targettype}">{target}</ansi> evades <ansi fg="{sourcetype}">{source}</ansi>''s calculated swing!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s channeled strike finds only air!'
+        - '<ansi fg="{targettype}">{target}</ansi> anticipates <ansi fg="{sourcetype}">{source}</ansi>''s feint and the swing meets nothing!'
         master:
         - '<ansi fg="{targettype}">{target}</ansi>''s defense forces the perfect strike wide!'
+        - '<ansi fg="{targettype}">{target}</ansi> reads <ansi fg="{sourcetype}">{source}</ansi>''s intent and evades with smooth agility!'
         - 'A clash of power results in no contact!'
   weak:
     together:
@@ -136,22 +154,28 @@ options:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> taps you with the head of their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> grazes you with a faint pulse.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> lands a glancing blow on you with their <ansi fg="item">{itemname}</ansi>.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps in and taps you lightly with their channeled focus.'
         - '<ansi fg="{sourcetype}">{source}</ansi> circles and strikes a glancing blow with the crystal head.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> feints high and swings low, landing a testing blow on you.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> probes your guard with a measured channeled tap.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> finds a small opening and delivers a precise but light swing at you.'
         - '<ansi fg="{sourcetype}">{source}</ansi> dances back while flicking their <ansi fg="item">{itemname}</ansi> across you.'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> taps <ansi fg="{targettype}">{target}</ansi> with the head of their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> grazes <ansi fg="{targettype}">{target}</ansi> with a faint pulse.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> lands a glancing blow on <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps forward and taps <ansi fg="{targettype}">{target}</ansi> lightly.'
         - '<ansi fg="{sourcetype}">{source}</ansi> circles and strikes a glancing blow with the crystal head.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> feints high and swings low, landing a testing blow on <ansi fg="{targettype}">{target}</ansi>.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> probes <ansi fg="{targettype}">{target}</ansi>''s guard with a measured strike.'
         - '<ansi fg="{sourcetype}">{source}</ansi> finds a small opening and delivers a precise but light blow.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> dances back, flicking their <ansi fg="item">{itemname}</ansi> across <ansi fg="{targettype}">{target}</ansi>.'
   normal:
     together:
       toattacker:
@@ -175,23 +199,36 @@ options:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> swings their <ansi fg="item">{itemname}</ansi> into you, crystal flaring!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> connects solidly!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> drives their <ansi fg="item">{itemname}</ansi> into you with a flash of power!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps in and delivers a clean channeled blow!'
         - '<ansi fg="{sourcetype}">{source}</ansi> brings their <ansi fg="item">{itemname}</ansi> down in a swift arc!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads your stance and swings with practiced precision!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> draws your defense and strikes cleanly with their <ansi fg="item">{itemname}</ansi>!'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> presses their advantage with a channeled swing!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> exploits an opening and swings decisively at you!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> flares as it strikes you!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s weapon crashes into you with unstoppable momentum!'
         - '<ansi fg="{sourcetype}">{source}</ansi> channels force and cracks their sceptre into your {bodypart}!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> flares bright as it strikes your {bodypart}!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> swings their <ansi fg="item">{itemname}</ansi> into <ansi fg="{targettype}">{target}</ansi>, crystal flaring!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> connects solidly with <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> drives their <ansi fg="item">{itemname}</ansi> into <ansi fg="{targettype}">{target}</ansi> with a flash of power!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps forward and delivers a clean channeled blow!'
         - '<ansi fg="{sourcetype}">{source}</ansi> brings their <ansi fg="item">{itemname}</ansi> down in a swift arc!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads <ansi fg="{targettype}">{target}</ansi>''s stance and swings with practiced precision!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> draws <ansi fg="{targettype}">{target}</ansi>''s defense and strikes cleanly with their <ansi fg="item">{itemname}</ansi>!'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> presses forward with a powerful channeled swing!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> exploits an opening and swings decisively at <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> flares as it strikes <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s weapon crashes into <ansi fg="{targettype}">{target}</ansi> with unstoppable force!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> channels arcane force and cracks their <ansi fg="item">{itemname}</ansi> into <ansi fg="{targettype}">{target}</ansi>''s {bodypart}!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> flares bright as it strikes <ansi fg="{targettype}">{target}</ansi> in the {bodypart}!'
   heavy:
     together:
       toattacker:
@@ -214,23 +251,34 @@ options:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> slams their <ansi fg="item">{itemname}</ansi> into you with a burst of power!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> crashes into you, crystal blazing!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> delivers a crushing blow with their <ansi fg="item">{itemname}</ansi>!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps in and delivers a devastating channeled smash!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> drives power through the crystal head into you!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> presses forward and crashes their <ansi fg="item">{itemname}</ansi> into you!'
         - '<ansi fg="{sourcetype}">{source}</ansi> surges forward with a heavy channeled swing!'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> draws your guard and unleashes a punishing blow!'
         - '<ansi fg="{sourcetype}">{source}</ansi> reads your weakness and channels devastating force!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s approach pays off with a commanding smash into you!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> seizes the advantage and slams their <ansi fg="item">{itemname}</ansi> into you with authority!'
         - '<ansi fg="{sourcetype}">{source}</ansi> channels power and smashes their sceptre into your {bodypart}!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> slams their <ansi fg="item">{itemname}</ansi> into <ansi fg="{targettype}">{target}</ansi> with a burst of power!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> crashes into <ansi fg="{targettype}">{target}</ansi>, crystal blazing!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> delivers a crushing blow with their <ansi fg="item">{itemname}</ansi> to <ansi fg="{targettype}">{target}</ansi>!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps in and delivers a devastating channeled smash!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> drives power through the crystal head into <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> presses forward and crashes their <ansi fg="item">{itemname}</ansi> into <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> surges forward with a heavy swing at <ansi fg="{targettype}">{target}</ansi>!'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> draws the guard and unleashes a punishing channeled blow!'
         - '<ansi fg="{sourcetype}">{source}</ansi> channels devastating force through the crystal head!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s approach pays off with a commanding smash on <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> seizes the advantage and slams their <ansi fg="item">{itemname}</ansi> into <ansi fg="{targettype}">{target}</ansi> with authority!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> channels a surge of power and smashes <ansi fg="{targettype}">{target}</ansi> square in the {bodypart}!'
   critical:
     together:
       toattacker:
@@ -253,29 +301,32 @@ options:
         beginner:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">BLAZES WITH BLINDING POWER</ansi> striking you!'
         - 'You are hit by a <ansi fg="cyan-bold">CRITICAL CHANNELED BLOW</ansi>!'
-        - 'You are struck by a lucky <ansi fg="cyan-bold">CRUSHING BLOW</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s clumsy swing somehow lands a <ansi fg="cyan-bold">CRITICAL CHANNELED BLOW</ansi>!'
+        - 'You are struck by a lucky <ansi fg="cyan-bold">CRUSHING BLOW</ansi>!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> channels devastating force and <ansi fg="cyan-bold">DEVASTATES</ansi> you!'
         - '<ansi fg="{sourcetype}">{source}</ansi> opens your guard and <ansi fg="cyan-bold">ANNIHILATES</ansi> you!'
-        - '<ansi fg="{sourcetype}">{source}</ansi> times the swing perfectly for a <ansi fg="cyan-bold">RESOUNDING CRITICAL</ansi>!'
         - 'The crystal head finds its mark and you suffer a <ansi fg="cyan-bold">FLAWLESS CHANNELED STRIKE</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> times the swing perfectly for a <ansi fg="cyan-bold">RESOUNDING CRITICAL</ansi>!'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s tactical brilliance - you are <ansi fg="cyan-bold">OBLITERATED</ansi>!'
+        - 'You reel under a <ansi fg="cyan-bold">BLOW OF MERCILESS FORCE</ansi> as <ansi fg="{sourcetype}">{source}</ansi> finds their mark!'
         - '<ansi fg="{sourcetype}">{source}</ansi> channels all momentum and <ansi fg="cyan-bold">SHATTERS THROUGH</ansi> you!'
         - '<ansi fg="{sourcetype}">{source}</ansi> places the full weight of the blow with <ansi fg="cyan-bold">SOVEREIGN EFFECT</ansi>!'
-        - 'You reel under a <ansi fg="cyan-bold">BLOW OF MERCILESS FORCE</ansi> as <ansi fg="{sourcetype}">{source}</ansi> finds their mark!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">BLAZES WITH BLINDING POWER</ansi> striking <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL CHANNELED BLOW</ansi> to <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">ERUPTS</ansi> on impact with <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s clumsy swing lands a lucky <ansi fg="cyan-bold">CRUSHING BLOW</ansi> on <ansi fg="{targettype}">{target}</ansi>!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> channels devastating force and <ansi fg="cyan-bold">DEVASTATES</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> opens the guard and <ansi fg="cyan-bold">ANNIHILATES</ansi> <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> finds its mark for a <ansi fg="cyan-bold">FLAWLESS CHANNELED STRIKE</ansi> on <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> times the swing perfectly for a <ansi fg="cyan-bold">RESOUNDING CRITICAL</ansi> against <ansi fg="{targettype}">{target}</ansi>!'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s tactical brilliance - <ansi fg="cyan-bold">OBLITERATION</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s relentless approach culminates in a <ansi fg="cyan-bold">DEVASTATING CRITICAL</ansi> on <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> channels all momentum and <ansi fg="cyan-bold">SHATTERS THROUGH</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> places the weight of the blow with <ansi fg="cyan-bold">SOVEREIGN EFFECT</ansi>, and <ansi fg="{targettype}">{target}</ansi> reels!'
   fumble:
@@ -299,9 +350,9 @@ options:
       todefender:
         beginner:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLES</ansi> as the crystal dims!'
-        - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their <ansi fg="item">{itemname}</ansi> clumsily!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s grip slips and they <ansi fg="red-bold">FUMBLE</ansi> the swing!'
         - '<ansi fg="{sourcetype}">{source}</ansi> stumbles and <ansi fg="red-bold">FUMBLES</ansi> the blow meant for you!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their <ansi fg="item">{itemname}</ansi> clumsily!'
         expert:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> tactical approach fails - they <ansi fg="red-bold">FUMBLE</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> misjudges and <ansi fg="red-bold">FUMBLES</ansi>!'
@@ -310,18 +361,21 @@ options:
         master:
         - 'Your defense forces <ansi fg="{sourcetype}">{source}</ansi> to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite their skill, <ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi>!'
-        - 'Your footwork wrongfoots <ansi fg="{sourcetype}">{source}</ansi> and they <ansi fg="red-bold">FUMBLE</ansi> the strike!'
         - '<ansi fg="{sourcetype}">{source}</ansi> loses their grip for a careless moment and <ansi fg="red-bold">FUMBLES</ansi>!'
+        - 'Your footwork wrongfoots <ansi fg="{sourcetype}">{source}</ansi> and they <ansi fg="red-bold">FUMBLE</ansi> the strike!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLES</ansi> as the crystal dims!'
-        - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their swing against <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}''s</ansi> grip slips and they <ansi fg="red-bold">FUMBLE</ansi> the swing at <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their swing against <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> slips from their grasp as they <ansi fg="red-bold">FUMBLE</ansi> the blow!'
         expert:
         - '<ansi fg="{sourcetype}">{source}''s</ansi> tactical approach fails - they <ansi fg="red-bold">FUMBLE</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> misjudges the distance and <ansi fg="red-bold">FUMBLES</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> mistimes the swing and <ansi fg="red-bold">FUMBLES</ansi> against <ansi fg="{targettype}">{target}</ansi>!'
         - 'The weight of the <ansi fg="item">{itemname}</ansi> betrays <ansi fg="{sourcetype}">{source}</ansi> and they <ansi fg="red-bold">FUMBLE</ansi>!'
         master:
         - '<ansi fg="{targettype}">{target}''s</ansi> defense forces <ansi fg="{sourcetype}">{source}</ansi> to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite masterful form, <ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> loses their grip for a careless moment and <ansi fg="red-bold">FUMBLES</ansi>!'
         - '<ansi fg="{targettype}">{target}''s</ansi> footwork wrongfoots <ansi fg="{sourcetype}">{source}</ansi> and they <ansi fg="red-bold">FUMBLE</ansi> the strike!'

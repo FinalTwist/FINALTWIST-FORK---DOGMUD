@@ -39,19 +39,24 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> senses your life-force and prepares to claim it.'
         - '<ansi fg="{sourcetype}">{source}</ansi> opens themselves to the drain, eyes fixed on you.'
         master:
+        - 'With cold precision, <ansi fg="{sourcetype}">{source}</ansi> adopts a {stance} stance, {momentum}, ready to leech from you.'
         - '<ansi fg="{sourcetype}">{source}</ansi> reads your posture and positions their <ansi fg="item">{itemname}</ansi> perfectly.'
-        - 'With unsettling calm, <ansi fg="{sourcetype}">{source}</ansi> reaches for your life-force.'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s eyes gleam as they settle into a predatory and lethal posture.'
+        - 'With unsettling calm, <ansi fg="{sourcetype}">{source}</ansi> reaches for your life-force.'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> extends their <ansi fg="item">{itemname}</ansi> toward <ansi fg="{targettype}">{target}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> eyes <ansi fg="{targettype}">{target}</ansi> with cold, consuming hunger.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reaches for <ansi fg="{targettype}">{target}</ansi>, fingers curled, ready to feed.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> takes a {stance} stance, <ansi fg="item">{itemname}</ansi> aimed at <ansi fg="{targettype}">{target}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> senses <ansi fg="{targettype}">{target}</ansi>''s life-force, ready to take it.'
         - '<ansi fg="{sourcetype}">{source}</ansi> circles <ansi fg="{targettype}">{target}</ansi> with predatory focus.'
         master:
+        - 'With cold precision, <ansi fg="{sourcetype}">{source}</ansi> adopts a {stance} stance, {momentum}, ready to leech from <ansi fg="{targettype}">{target}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> reads <ansi fg="{targettype}">{target}</ansi>''s position and reaches with chilling intent.'
         - 'With masterful calm, <ansi fg="{sourcetype}">{source}</ansi> prepares to drain <ansi fg="{targettype}">{target}</ansi>.'
+        - '{momentum}, <ansi fg="{sourcetype}">{source}</ansi> extends their <ansi fg="item">{itemname}</ansi> with the focus of a seasoned lifedrinker.'
   wait:
     # messages for when they are in the same room
     together:
@@ -79,20 +84,27 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> holds their <ansi fg="item">{itemname}</ansi> low, eyes fixed on you.'
         - '<ansi fg="{sourcetype}">{source}</ansi> feigns a reach, probing your defenses.'
         - '<ansi fg="{sourcetype}">{source}</ansi> paces with cold patience, studying your every movement.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> senses the ebb and flow of your life-force with hungry clarity.'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads your every movement with predatory patience.'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s eyes track your aura like a beast before it feeds.'
+        - 'While {position}, <ansi fg="{sourcetype}">{source}</ansi> anticipates your next breath with terrifying precision.'
         - '<ansi fg="{sourcetype}">{source}</ansi> senses the flow of your vitality with masterful, terrible clarity.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads your every movement with predatory patience.'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> circles <ansi fg="{targettype}">{target}</ansi> with hollow, hungry eyes.'
         - '<ansi fg="{sourcetype}">{source}</ansi> watches <ansi fg="{targettype}">{target}</ansi> with cold, patient hunger.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> bides their time, hunger coiling behind their eyes.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> eyes <ansi fg="{targettype}">{target}</ansi>, <ansi fg="item">{itemname}</ansi> poised and ready.'
         - '<ansi fg="{sourcetype}">{source}</ansi> feigns a reach, probing <ansi fg="{targettype}">{target}</ansi>''s guard.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> paces with cold patience, waiting for the perfect moment to feed.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> senses the ebb and flow of <ansi fg="{targettype}">{target}</ansi>''s life-force with hungry clarity.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads <ansi fg="{targettype}">{target}</ansi> like a predator sensing warmth.'
         - '<ansi fg="{sourcetype}">{source}</ansi> analyzes <ansi fg="{targettype}">{target}</ansi>''s aura with terrifying stillness.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> senses the flow of <ansi fg="{targettype}">{target}</ansi>''s vitality with masterful, terrible clarity.'
+        - 'Like a predator savoring the hunt, <ansi fg="{sourcetype}">{source}</ansi> assesses every opening in <ansi fg="{targettype}">{target}</ansi>''s guard.'
   miss:
     # messages for when they are in the same room
     together:
@@ -121,24 +133,29 @@ options:
         expert:
         - 'You sidestep <ansi fg="{sourcetype}">{source}</ansi>''s calculated drain attempt!'
         - 'You anticipate <ansi fg="{sourcetype}">{source}</ansi>''s lunge and slip aside!'
+        - 'Despite <ansi fg="{sourcetype}">{source}</ansi>''s {stance} approach, their <ansi fg="item">{itemname}</ansi> find nothing to grasp!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s draining strike is foiled as you evade!'
         master:
         - 'Your movement forces <ansi fg="{sourcetype}">{source}</ansi>''s perfect reach wide!'
         - 'You slip the drain with fluid, instinctive grace!'
         - 'Your superior technique turns <ansi fg="{sourcetype}">{source}</ansi>''s masterful grasp aside!'
+        - '{momentum}, <ansi fg="{sourcetype}">{source}</ansi>''s draining strike is barely turned aside!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> lunges at <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>, but misses.'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> cut through empty air!'
         - '<ansi fg="{sourcetype}">{source}</ansi> reaches for <ansi fg="{targettype}">{target}</ansi> but fails to connect!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> snatches at <ansi fg="{targettype}">{target}</ansi> and finds nothing!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s drain is evaded by <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{targettype}">{target}</ansi> anticipates the lunge and sidesteps neatly!'
+        - 'Despite <ansi fg="{sourcetype}">{source}</ansi>''s {stance} approach, their <ansi fg="item">{itemname}</ansi> find nothing to grasp on <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{targettype}">{target}</ansi> counters <ansi fg="{sourcetype}">{source}</ansi>''s reach with clean footwork!'
         master:
         - '<ansi fg="{targettype}">{target}</ansi>''s movement forces the perfect drain wide!'
         - '<ansi fg="{targettype}">{target}</ansi> slips the reach and flows aside!'
         - 'A masterful clash of predator and prey results in no contact!'
+        - '{momentum}, <ansi fg="{sourcetype}">{source}</ansi>''s draining strike is barely turned aside by <ansi fg="{targettype}">{target}</ansi>!'
   weak:
     # messages for when they are in the same room
     together:
@@ -183,11 +200,13 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> barely grazes <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> catches <ansi fg="{targettype}">{target}</ansi> with a glancing scrape.'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> barely nick <ansi fg="{targettype}">{target}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> lunges awkwardly, barely sapping <ansi fg="{targettype}">{target}</ansi>.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> darts in and catches <ansi fg="{targettype}">{target}</ansi> lightly.'
         - '<ansi fg="{sourcetype}">{source}</ansi> angles in and scores a shallow drain.'
         - '<ansi fg="{sourcetype}">{source}</ansi> feints and delivers a glancing leech low.'
         - '<ansi fg="{sourcetype}">{source}</ansi> tests <ansi fg="{targettype}">{target}</ansi>''s guard with a probing nick.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> flicks a glancing drain at <ansi fg="{targettype}">{target}</ansi>.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> draws the guard and lands a glancing drain.'
         - '<ansi fg="{sourcetype}">{source}</ansi> presses forward with a quick nick from their {stance} stance.'
@@ -231,33 +250,38 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> pivots and drains you decisively!'
         - '<ansi fg="{sourcetype}">{source}</ansi> feints and sweeps their <ansi fg="item">{itemname}</ansi> in sharply!'
         - '<ansi fg="{sourcetype}">{source}</ansi> draws your defense and strikes home!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads your stance and strikes with practiced, vampiric precision!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads your stance and strikes with vampiric precision!'
         - '<ansi fg="{sourcetype}">{source}</ansi> presses in with a sweeping drain!'
         - '<ansi fg="{sourcetype}">{source}</ansi> lunges into you and saps with predatory power!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits the opening and feeds decisively!'
         - '<ansi fg="{sourcetype}">{source}</ansi> catches your <ansi fg="item">{bodypart}</ansi> and drinks deep!'
         - '<ansi fg="{sourcetype}">{source}</ansi> capitalizes on their momentum with perfect, hungry timing!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> flash as they maintain their feeding!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads your stance and strikes with vampiric precision!'
+        - '{momentum}, <ansi fg="{sourcetype}">{source}</ansi> feeds with overwhelming vampiric power!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> sinks their <ansi fg="item">{itemname}</ansi> into <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> drains <ansi fg="{targettype}">{target}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> tear through <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> lunges and drives their <ansi fg="item">{itemname}</ansi> into <ansi fg="{targettype}">{target}</ansi>, drinking deep!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps in and latches on, draining <ansi fg="{targettype}">{target}</ansi> cleanly!'
         - '<ansi fg="{sourcetype}">{source}</ansi> drives their <ansi fg="item">{itemname}</ansi> through the guard!'
         - '<ansi fg="{sourcetype}">{source}</ansi> pivots and drains decisively!'
         - '<ansi fg="{sourcetype}">{source}</ansi> feints and sweeps their <ansi fg="item">{itemname}</ansi> in sharply!'
         - '<ansi fg="{sourcetype}">{source}</ansi> draws the defense high and drives the <ansi fg="item">{itemname}</ansi> home!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads the stance and strikes with practiced, vampiric precision!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads the stance and strikes with vampiric precision!'
         - '<ansi fg="{sourcetype}">{source}</ansi> presses forward with a sweeping drain!'
         - '<ansi fg="{sourcetype}">{source}</ansi> lunges into <ansi fg="{targettype}">{target}</ansi> and saps with predatory power!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits the opening and drains decisively!'
         - '<ansi fg="{sourcetype}">{source}</ansi> catches the <ansi fg="item">{bodypart}</ansi> and feeds!'
         - '<ansi fg="{sourcetype}">{source}</ansi> capitalizes on momentum with perfect, hungry timing!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> flash as the drain continues!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads the stance and strikes with vampiric precision!'
+        - '{momentum}, <ansi fg="{sourcetype}">{source}</ansi> feeds on <ansi fg="{targettype}">{target}</ansi> with overwhelming vampiric power!'
   heavy:
     # messages for when they are in the same room
     together:
@@ -301,29 +325,35 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> drives their <ansi fg="item">{itemname}</ansi> deep and drinks!'
         - '<ansi fg="{sourcetype}">{source}</ansi> seizes advantage and delivers a savage drain!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits your position and feeds with brutal efficiency!'
+        - 'Even while {position}, {momentum}, <ansi fg="{sourcetype}">{source}</ansi> drains you with overwhelming force!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> overwhelms you with devastating, vampiric hunger!'
         - '<ansi fg="{sourcetype}">{source}</ansi> catches your <ansi fg="item">{bodypart}</ansi> and drinks with great force!'
         - '<ansi fg="{sourcetype}">{source}</ansi> surges forward, their <ansi fg="item">{itemname}</ansi> drinking deep!'
         - '<ansi fg="{sourcetype}">{source}</ansi> maintains their assault with a powerful draining strike!'
-        - '<ansi fg="{sourcetype}">{source}</ansi> overwhelms you with devastating, vampiric hunger!'
+        - 'From their {stance} stance, {momentum}, <ansi fg="{sourcetype}">{source}</ansi> drains you savagely while {position}!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> plunge deep into <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a brutal drain to <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> sinks their <ansi fg="item">{itemname}</ansi> deep into <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> feeds on <ansi fg="{targettype}">{target}</ansi> with overwhelming, vampiric hunger!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> latches on hard and saps <ansi fg="{targettype}">{target}</ansi> brutally!'
         - '<ansi fg="{sourcetype}">{source}</ansi> pivots and drives their <ansi fg="item">{itemname}</ansi> into <ansi fg="{targettype}">{target}</ansi>''s flank!'
         - '<ansi fg="{sourcetype}">{source}</ansi> advances with terrible focus and drinks viciously!'
         - '<ansi fg="{sourcetype}">{source}</ansi> feints retreat then surges with a devastating drain!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> draws the guard and drives their <ansi fg="item">{itemname}</ansi> in with consuming force!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads the weakness and feeds on <ansi fg="{targettype}">{target}</ansi> with crushing hunger!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> draws the guard and drives their <ansi fg="item">{itemname}</ansi> deep!'
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads the weakness and feeds with crushing hunger!'
         - '<ansi fg="{sourcetype}">{source}</ansi> drives their <ansi fg="item">{itemname}</ansi> deep and drinks from <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> seizes advantage and delivers a savage drain!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> draws the guard and drives their <ansi fg="item">{itemname}</ansi> deep!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads the weakness and feeds with crushing hunger!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> overwhelms <ansi fg="{targettype}">{target}</ansi> with devastating vampiric hunger!'
         - '<ansi fg="{sourcetype}">{source}</ansi> catches the <ansi fg="item">{bodypart}</ansi> and feeds with brutal force!'
         - '<ansi fg="{sourcetype}">{source}</ansi> surges forward on the offensive, <ansi fg="item">{itemname}</ansi> drinking deep!'
         - '<ansi fg="{sourcetype}">{source}</ansi> maintains the assault with a powerful draining strike!'
-        - '<ansi fg="{sourcetype}">{source}</ansi> overwhelms <ansi fg="{targettype}">{target}</ansi> with devastating vampiric hunger!'
+        - 'From their {stance} stance, {momentum}, <ansi fg="{sourcetype}">{source}</ansi> drains <ansi fg="{targettype}">{target}</ansi> savagely while {position}!'
   critical:
     # messages for when they are in the same room
     together:
@@ -360,9 +390,11 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a <ansi fg="cyan-bold">PERFECT DRAIN</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> flows like a predator and <ansi fg="cyan-bold">LEECHES</ansi> you dry!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s masterful feint opens you completely - your vitality is <ansi fg="cyan-bold">ANNIHILATED</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads your every breath and delivers a <ansi fg="cyan-bold">FLAWLESS DRAIN</ansi>!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads your aura and delivers a <ansi fg="cyan-bold">FLAWLESS DRAIN</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s tactical strike creates the opening - you are <ansi fg="cyan-bold">DRAINED</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads your aura and delivers a <ansi fg="cyan-bold">FLAWLESS DRAIN</ansi>!'
+        - 'While {position}, {momentum}, <ansi fg="{sourcetype}">{source}</ansi> delivers a <ansi fg="cyan-bold">PERFECT FEEDING</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> executes a <ansi fg="cyan-bold">DEVASTATING DRAIN</ansi> from the perfect angle!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits total advantage and <ansi fg="cyan-bold">LEECHES</ansi> you with brutality!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s positioning is flawless - your vitality is <ansi fg="cyan-bold">OBLITERATED</ansi>!'
@@ -374,14 +406,17 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY DRAIN</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s hunger delivers a <ansi fg="cyan-bold">CRITICAL DRAIN</ansi> to <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="cyan-bold">DEVASTATES</ansi> <ansi fg="{targettype}">{target}</ansi>''s vitality with terrible feeding!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> lands a <ansi fg="cyan-bold">DEVASTATING SAP</ansi> on <ansi fg="{targettype}">{target}</ansi>!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> lunges and their <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">FEED</ansi> on <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a <ansi fg="cyan-bold">PERFECT DRAIN</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> flows like a predator and <ansi fg="cyan-bold">LEECHES</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s masterful feint opens <ansi fg="{targettype}">{target}</ansi> - <ansi fg="cyan-bold">ANNIHILATION</ansi> of vitality!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads every breath and delivers a <ansi fg="cyan-bold">FLAWLESS DRAIN</ansi> to <ansi fg="{targettype}">{target}</ansi>!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads the aura and delivers a <ansi fg="cyan-bold">FLAWLESS DRAIN</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s tactical strike creates the opening - <ansi fg="cyan-bold">EVISCERATION</ansi> of will!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads the aura and delivers a <ansi fg="cyan-bold">FLAWLESS DRAIN</ansi>!'
+        - 'While {position}, {momentum}, <ansi fg="{sourcetype}">{source}</ansi> delivers a <ansi fg="cyan-bold">PERFECT FEEDING</ansi> to <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> executes a <ansi fg="cyan-bold">DEVASTATING DRAIN</ansi> from the perfect angle!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits total advantage and <ansi fg="cyan-bold">LEECHES</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s positioning is flawless - <ansi fg="cyan-bold">OBLITERATION</ansi> of vitality!'
@@ -424,6 +459,7 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLE</ansi> wildly at <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their drain at <ansi fg="{targettype}">{target}</ansi> and stumbles past!'
         - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their lunge in a clumsy, lurching stumble!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> loses their footing and their drain <ansi fg="red-bold">FUMBLES</ansi> pathetically!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s tactical approach fails - they <ansi fg="red-bold">FUMBLE</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> misjudges the reach and <ansi fg="red-bold">FUMBLES</ansi>!'
