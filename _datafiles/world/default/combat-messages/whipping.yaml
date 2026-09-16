@@ -1,3 +1,18 @@
+# UPSTREAM GoMud HOLDOVER. NOT LOADED BY DOGMud.
+#
+# The live combat-message store is _datafiles/world/dogmud/combat-messages.
+# This tree is upstream content kept for merge tracking only: main.go passes
+# it to util.ValidateWorldFiles, which compares top-level DIRECTORY NAMES and
+# never opens a file.
+#
+# It could not load if it were pointed at. These files put a flat list under
+# each role, while the schema expects beginner/expert/master tiers, and none
+# of them defines the `fumble` intensity that Validate() requires. The wider
+# tree is missing 30+ subsystems the engine loads unconditionally, so a boot
+# against it would die long before it reached this directory.
+#
+# Do not edit these to match dogmud. See
+# docs/superpowers/specs/2026-09-16-messaging-m3-item8-combat-messages-design.md
 # Possible tokens: 
 # {itemname}    - name of weapon/object e.g. 'whip'
 # {source}      - name of mob or user e.g. 'goblin'
