@@ -260,23 +260,40 @@ Severe types first, because `shipped_emotes_test.go` already requires
 `storm`, `blizzard` and `dust` to have a non-empty indoor `strong` pool, and
 the same expectation will extend to underground in Task 6.
 
-Per-type guidance, so the nine do not read as one sentence rewritten:
+🔑 **OWNER RULING 2026-09-16: SILENCE IS THE DEFAULT UNDERGROUND.**
+*"Most weather would be imperceptible inside a cave unless it is a really
+strong storm."*
 
-| Type | What is actually felt underground |
-|---|---|
-| `storm` | thunder transmitted through rock as pressure, dust shaken loose |
-| `blizzard` | the draught reversing, cold pouring down the passage |
-| `dust` | grit sifting from the ceiling, the air drying out |
-| `snow` | the entrance muffling, sound deadening, meltwater later |
-| `frost` | stone aching cold, ice on the seep lines |
-| `fog` | damp standing in the air, visibility unchanged but breath thick |
-| `heatwave` | the cave staying cool, the contrast at the entrance |
-| `overcast` | almost nothing; this is the type where silence is honest |
+This inverts the authoring burden. Underground is not "indoor prose about
+stone"; it is mostly **nothing**, with a short list of exceptions. Do not
+author a pool to fill a slot. An empty pool is the correct, expected answer for
+most of these types, and the store is built to render silence cleanly.
 
-`overcast` underground may legitimately hold an EMPTY strong pool. Overcast is
-imperceptible in a cave, and the store's whole design says silence beats
-invented prose. If it is authored empty, say so in the commit message so it
-does not read as an oversight.
+Note that the felt banding already carries half of this rule: `mild` plays
+below `StrongFeltThreshold` and `strong` at or above it, so authoring
+`strong` only means a type is felt underground **only at high intensity**,
+which is exactly the ruling. `mild` stays empty underground for all nine, with
+no exceptions.
+
+| Type | Underground `strong` | What is actually felt |
+|---|---|---|
+| `storm` | **author, depth 6** | thunder transmitted through rock as pressure, dust shaken loose |
+| `blizzard` | **author, depth 6** | the draught reversing, cold pouring down the passage |
+| `dust` | **author, depth 6** | grit sifting from the ceiling, the air drying out |
+| `rain` | **author, depth 6** | heavy rain only: seepage finding a seam, stone sweating |
+| `frost` | author only if it reads true | stone aching cold along the seep lines |
+| `heatwave` | author only if it reads true | the cave staying cool, the contrast at the entrance |
+| `snow` | **leave empty** | snow is silent, and a cave cannot hear it |
+| `fog` | **leave empty** | fog does not enter stone |
+| `overcast` | **leave empty** | there is nothing to perceive |
+
+`rain.yaml` was authored in Task 1 before this ruling. Re-read its six lines
+against it: they describe seepage and sweating stone, which is the heavy-rain
+case, so they stand. If any line reads as gentle rain, replace it.
+
+Where a pool is left empty, say so explicitly in the commit message so it reads
+as a decision rather than an oversight. Guard 4 permits empty pools by design,
+so nothing will flag these for you.
 
 - [ ] **Step 2: Verify every file after each edit**
 
