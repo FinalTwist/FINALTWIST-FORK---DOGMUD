@@ -105,7 +105,6 @@ GamePlay:
   ShopRestockRate: "1h"
   ContainerSizeMax: 50
   MaxAltCharacters: 5
-  ConsistentAttackMessages: true
   PVP: "limited"                   # enabled, disabled, limited, off
   PVPMinimumLevel: 10
   XPScale: 100.0

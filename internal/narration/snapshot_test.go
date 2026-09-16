@@ -374,15 +374,25 @@ func buildCombatMessagesGolden(t *testing.T) string {
 		}
 	}
 
-	// Derived-selection sanity check: freeze that GetForSkillLevelWith's
-	// index-0 pick under a fresh picker is Beginner[0] regardless of skill
-	// level, on one representative subtype/intensity/role. This is the seam
-	// production actually calls for the core combat loop.
-	fmt.Fprintf(&b, "\n# derived-selection (GetForSkillLevelWith), bite/weak/toattacker, fresh picker per call\n")
+	// Derived-selection sanity check, on one representative
+	// subtype/intensity/role. This is the seam production actually calls for
+	// the core combat loop.
+	//
+	// It used to freeze GetForSkillLevelWith's index-0 pick. That method went
+	// with the ConsistentAttackMessages deletion in M3 item 8, and PoolFor is
+	// the equivalent seam: the store assembles the cumulative tier union and
+	// hands it to the core. Freezing the union's SIZE as well as its first
+	// entry says more than the old row did, because the size is what the
+	// coordinated index is taken modulo of.
+	fmt.Fprintf(&b, "\n# derived-selection (PoolFor), bite/weak/toattacker, cumulative tier union\n")
 	opts := items.GetPreAttackMessage(items.Bite, items.Weak)
 	for _, skillLevel := range []int{10, 50, 90} {
-		text := substituteTokens(string(opts.Together.ToAttacker.GetForSkillLevelWith(narration.SequencePicker(), skillLevel)))
-		fmt.Fprintf(&b, "derived|bite|weak|toattacker|skill=%d => %s\n", skillLevel, text)
+		pool := opts.Together.ToAttacker.PoolFor(skillLevel)
+		first := ""
+		if len(pool) > 0 {
+			first = substituteTokens(pool[0])
+		}
+		fmt.Fprintf(&b, "derived|bite|weak|toattacker|skill=%d|n=%d => %s\n", skillLevel, len(pool), first)
 	}
 
 	return b.String()

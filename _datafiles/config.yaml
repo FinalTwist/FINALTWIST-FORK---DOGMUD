@@ -845,13 +845,6 @@ Balance:
   SpellConvictionCostMultiplier: 1.0
   SpellHealthCostMultiplier: 1.0      # For life-force magic (health-cost spells)
 
-  # ── COMBAT: MESSAGES ──────────────────────────────────────────────────────
-  # If true, each weapon ID consistently uses the same attack message
-  #   (gives each weapon a unique feel). If false, messages are randomized
-  #   (more variety but weapons feel generic).
-  # See _datafiles/combat-messages/* for message definitions.
-  ConsistentAttackMessages: false
-
   # ── SKULLDUGGERY: LIGHT-CONDITIONAL SNEAK MODIFIERS ──────────────────────
   # Four-way conditional applied in CalcSneakScore(effectiveLit).
   # effectiveLit = room is lit OR observer has NightVision condition.

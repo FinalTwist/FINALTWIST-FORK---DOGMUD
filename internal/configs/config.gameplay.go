@@ -56,7 +56,6 @@ type GameplayDeath struct {
 func (g *GamePlay) Validate() {
 
 	// Ignore OnDeathAlwaysDropBackpack
-	// Ignore ConsistentAttackMessages
 	// Ignore CorpsesEnabled
 
 	if g.Death.EquipmentDropChance < 0.0 || g.Death.EquipmentDropChance > 1.0 {

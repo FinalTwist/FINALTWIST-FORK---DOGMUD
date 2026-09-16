@@ -6983,7 +6983,7 @@ whipping|fumble|together|toroom|master|0 => <ansi fg="Mob">Target's</ansi> defen
 whipping|fumble|together|toroom|master|1 => Despite masterful form, <ansi fg="User">Source's</ansi> whip <ansi fg="red-bold">FUMBLES</ansi>!
 whipping|fumble|together|toroom|master|2 => <ansi fg="User">Source's</ansi> perfect snap is disrupted - a <ansi fg="red-bold">FUMBLE</ansi>!
 
-# derived-selection (GetForSkillLevelWith), bite/weak/toattacker, fresh picker per call
-derived|bite|weak|toattacker|skill=10 => Your <ansi fg="item">Weapon</ansi> grazes <ansi fg="Mob">Target</ansi>.
-derived|bite|weak|toattacker|skill=50 => Your <ansi fg="item">Weapon</ansi> grazes <ansi fg="Mob">Target</ansi>.
-derived|bite|weak|toattacker|skill=90 => Your <ansi fg="item">Weapon</ansi> grazes <ansi fg="Mob">Target</ansi>.
+# derived-selection (PoolFor), bite/weak/toattacker, cumulative tier union
+derived|bite|weak|toattacker|skill=10|n=4 => Your <ansi fg="item">Weapon</ansi> grazes <ansi fg="Mob">Target</ansi>.
+derived|bite|weak|toattacker|skill=50|n=9 => Your <ansi fg="item">Weapon</ansi> grazes <ansi fg="Mob">Target</ansi>.
+derived|bite|weak|toattacker|skill=90|n=14 => Your <ansi fg="item">Weapon</ansi> grazes <ansi fg="Mob">Target</ansi>.

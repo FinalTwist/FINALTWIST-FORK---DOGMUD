@@ -14,6 +14,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
+	"github.com/GoMudEngine/GoMud/internal/narration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/species"
@@ -85,7 +86,6 @@ type swingDamageParams struct {
 	rawDmgForCrit  float64
 	critDmgMult    float64 // chunk 5.11g: skill-scaled crit worth, applied to rawDmgForCrit only
 	critConditions []int
-	msgSeed        int
 
 	// openingStrikeMult is the skullduggery stack for the ONE opening strike of
 	// a surprise attack. 1.0 otherwise. Applied to the crit MEAN before the roll
@@ -494,17 +494,10 @@ func buildDamageParams(sourceChar *characters.Character, targetChar *characters.
 		rawDmgForCrit *= warcryMult
 	}
 
-	// Message seed
-	msgSeed := 0
-	if configs.GetBalanceConfig().ConsistentAttackMessages {
-		msgSeed = ws.weapon.ItemId
-	}
-
 	return swingDamageParams{
 		dmgMean:       dmgMean,
 		rawDmgForCrit: rawDmgForCrit,
 		critDmgMult:   CritDamageMultiplier(combatSkillLevel),
-		msgSeed:       msgSeed,
 		openingStrikeMult: OpeningStrikeMultiplier(sourceChar,
 			float64(configs.GetBalanceConfig().SurpriseOpeningStrikeMultiplier)),
 	}
@@ -1625,6 +1618,10 @@ func buildAttackMessages(result *AttackResult, sourceChar *characters.Character,
 
 	var toAttackerMsg, toDefenderMsg, toAttackerRoomMsg, toDefenderRoomMsg items.ItemMessage
 
+	// Set once the message-pool branch has rendered, because Render
+	// substitutes tokens itself and the other branches still need the loop.
+	rendered := false
+
 	tokenReplacements := map[items.TokenName]string{
 		items.TokenItemName:     ws.weaponName,
 		items.TokenSource:       sourceChar.Name,
@@ -1675,43 +1672,62 @@ func buildAttackMessages(result *AttackResult, sourceChar *characters.Character,
 			tokenReplacements[items.TokenSource],
 			tokenReplacements[items.TokenTarget],
 			tokenReplacements[items.TokenDamage])
-	} else if sourceChar.RoomId == targetChar.RoomId {
-		toAttackerMsg = msgs.Together.ToAttacker.GetForSkillLevel(skillLevel, sdp.msgSeed)
-		toDefenderMsg = msgs.Together.ToDefender.GetForSkillLevel(skillLevel, sdp.msgSeed)
-		toAttackerRoomMsg = msgs.Together.ToRoom.GetForSkillLevel(skillLevel, sdp.msgSeed)
-		toDefenderRoomMsg = items.ItemMessage("")
 	} else {
-		toAttackerMsg = msgs.Separate.ToAttacker.GetForSkillLevel(skillLevel, sdp.msgSeed)
-		toDefenderMsg = msgs.Separate.ToDefender.GetForSkillLevel(skillLevel, sdp.msgSeed)
-		toAttackerRoomMsg = msgs.Separate.ToAttackerRoom.GetForSkillLevel(skillLevel, sdp.msgSeed)
-		toDefenderRoomMsg = msgs.Separate.ToDefenderRoom.GetForSkillLevel(skillLevel, sdp.msgSeed)
+		together := sourceChar.RoomId == targetChar.RoomId
 
-		// Find the exit that leads to the target from the source (if any)
-		if atkRoom := rooms.LoadRoom(sourceChar.RoomId); atkRoom != nil {
-			for exitName, exit := range atkRoom.Exits {
-				if exit.RoomId == targetChar.RoomId {
-					tokenReplacements[items.TokenExitName] = exitName
-					break
+		if !together {
+			// Find the exit that leads to the target from the source (if any)
+			if atkRoom := rooms.LoadRoom(sourceChar.RoomId); atkRoom != nil {
+				for exitName, exit := range atkRoom.Exits {
+					if exit.RoomId == targetChar.RoomId {
+						tokenReplacements[items.TokenExitName] = exitName
+						break
+					}
+				}
+			}
+			// find the exit that leads to the source from the target (if any)
+			if defRoom := rooms.LoadRoom(targetChar.RoomId); defRoom != nil {
+				for exitName, exit := range defRoom.Exits {
+					if exit.RoomId == sourceChar.RoomId {
+						tokenReplacements[items.TokenEntranceName] = exitName
+						break
+					}
 				}
 			}
 		}
-		// find the exit that leads to the source from the target (if any)
-		if defRoom := rooms.LoadRoom(targetChar.RoomId); defRoom != nil {
-			for exitName, exit := range defRoom.Exits {
-				if exit.RoomId == sourceChar.RoomId {
-					tokenReplacements[items.TokenEntranceName] = exitName
-					break
-				}
-			}
+
+		// ONE coordinated draw for every audience. Selection happens after the
+		// exit tokens are resolved, because Render substitutes as it renders.
+		// This used to be three or four independent GetForSkillLevel calls, so
+		// a single sword blow could be a laceration to the attacker, a
+		// devastating hit to the defender and a critical strike to the room.
+		var roles narration.Roles
+		if together {
+			roles = msgs.Together.Render(skillLevel, tokenReplacements, nil)
+		} else {
+			roles = msgs.Separate.Render(skillLevel, tokenReplacements, nil)
 		}
+
+		toAttackerMsg = items.ItemMessage(roles.Actor)
+		toDefenderMsg = items.ItemMessage(roles.Actee)
+		toAttackerRoomMsg = items.ItemMessage(roles.Observer)
+		toDefenderRoomMsg = items.ItemMessage(roles.ActeeObserver)
+
+		rendered = true
 	}
 
-	for tokenName, tokenValue := range tokenReplacements {
-		toAttackerMsg = toAttackerMsg.SetTokenValue(tokenName, tokenValue)
-		toDefenderMsg = toDefenderMsg.SetTokenValue(tokenName, tokenValue)
-		toAttackerRoomMsg = toAttackerRoomMsg.SetTokenValue(tokenName, tokenValue)
-		if len(string(toDefenderRoomMsg)) > 0 {
-			toDefenderRoomMsg = toDefenderRoomMsg.SetTokenValue(tokenName, tokenValue)
+	// The branches above that do NOT come from the message pools (opening
+	// strike, deflected swing) build their lines from a different source and
+	// still need the token pass. Render already substituted for the pool
+	// branch, so running the loop there would be wasted work.
+	if !rendered {
+		for tokenName, tokenValue := range tokenReplacements {
+			toAttackerMsg = toAttackerMsg.SetTokenValue(tokenName, tokenValue)
+			toDefenderMsg = toDefenderMsg.SetTokenValue(tokenName, tokenValue)
+			toAttackerRoomMsg = toAttackerRoomMsg.SetTokenValue(tokenName, tokenValue)
+			if len(string(toDefenderRoomMsg)) > 0 {
+				toDefenderRoomMsg = toDefenderRoomMsg.SetTokenValue(tokenName, tokenValue)
+			}
 		}
 	}
 

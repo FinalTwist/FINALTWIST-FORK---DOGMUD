@@ -59,90 +59,27 @@ func (am ItemMessage) SetTokenValue(tokenName TokenName, tokenValue string) Item
 
 // Get chooses a message using the default picker (narration.DefaultPicker,
 // which routes through util.Rand).
-func (mo MessageOptions) Get(seedNum ...int) ItemMessage {
-	return mo.GetWith(nil, seedNum...)
+func (mo MessageOptions) Get() ItemMessage {
+	return mo.GetWith(nil)
 }
 
 // GetWith is Get with an explicit picker, for the snapshot harness. A nil
 // picker means production behaviour: narration.DefaultPicker, i.e. util.Rand.
 //
-// The picker is consulted only in the no-seed branch, where a random pick
-// used to happen directly. seedNum's explicit-index-override behaviour is
-// untouched.
-func (mo MessageOptions) GetWith(pick narration.Picker, seedNum ...int) ItemMessage {
+// The seeded index override this used to carry went with
+// ConsistentAttackMessages in M3 item 8, along with an
+// `if seedNum[0] == 0 { return mo[0] }` branch that the guard above it had
+// made unreachable on every input.
+func (mo MessageOptions) GetWith(pick narration.Picker) ItemMessage {
 	if pick == nil {
 		pick = narration.DefaultPicker
 	}
 
 	if ct := len(mo); ct > 0 {
-
-		if len(seedNum) == 0 || seedNum[0] == 0 {
-			return mo[pick(ct)]
-		}
-
-		if seedNum[0] == 0 {
-			return mo[0]
-		}
-
-		return mo[seedNum[0]%len(mo)]
+		return mo[pick(ct)]
 	}
 
 	return ItemMessage("")
-}
-
-// GetForSkillLevel selects a message based on character's skill level, using
-// the default picker (narration.DefaultPicker, which routes through
-// util.Rand). Returns messages from available tiers based on skill:
-//   - Skill 1-33: beginner only
-//   - Skill 34-66: beginner + expert
-//   - Skill 67-100: beginner + expert + master
-func (stm SkillTieredMessages) GetForSkillLevel(skillLevel int, msgSeed ...int) ItemMessage {
-	return stm.GetForSkillLevelWith(nil, skillLevel, msgSeed...)
-}
-
-// GetForSkillLevelWith is GetForSkillLevel with an explicit picker, for the
-// snapshot harness. A nil picker means production behaviour:
-// narration.DefaultPicker, i.e. util.Rand.
-//
-// This is the store the core combat loop calls for all three viewpoints at
-// once (ToAttacker, ToDefender, ToRoom), so it is the store that most needed
-// a picker reachable without mutating shared state.
-//
-// The picker is consulted only in the no-seed branch, where a random pick
-// used to happen directly. msgSeed's explicit-index-override behaviour is
-// untouched.
-func (stm SkillTieredMessages) GetForSkillLevelWith(pick narration.Picker, skillLevel int, msgSeed ...int) ItemMessage {
-	if pick == nil {
-		pick = narration.DefaultPicker
-	}
-
-	// Collect available message pools
-	var allMessages []ItemMessage
-
-	// Always include beginner messages
-	allMessages = append(allMessages, stm.Beginner...)
-
-	// Add expert if skill >= 34
-	if skillLevel >= 34 {
-		allMessages = append(allMessages, stm.Expert...)
-	}
-
-	// Add master if skill >= 67
-	if skillLevel >= 67 {
-		allMessages = append(allMessages, stm.Master...)
-	}
-
-	// Select from combined pool
-	if len(allMessages) == 0 {
-		return ItemMessage("")
-	}
-
-	// Use seed if provided
-	if len(msgSeed) > 0 && msgSeed[0] != 0 {
-		return allMessages[msgSeed[0]%len(allMessages)]
-	}
-
-	return allMessages[pick(len(allMessages))]
 }
 
 // PoolFor returns the tier union for a skill level as the core's plain-string
