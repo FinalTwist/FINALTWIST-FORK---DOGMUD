@@ -40,6 +40,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/goals"
 	_ "github.com/GoMudEngine/GoMud/internal/goals/catalog" // chunk 4.3 — fire type registrations
+	"github.com/GoMudEngine/GoMud/internal/gossip"
 	"github.com/GoMudEngine/GoMud/internal/hooks"
 	"github.com/GoMudEngine/GoMud/internal/inputhandlers"
 	"github.com/GoMudEngine/GoMud/internal/integrations/discord"
@@ -81,6 +82,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/suggestions"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
+	"github.com/GoMudEngine/GoMud/internal/tips"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/GoMudEngine/GoMud/internal/warehouse"
@@ -94,7 +96,7 @@ import (
 // When updating this version:
 // 1. Expect to update the github release version
 // 2. Consider whether any migration code is needed for breaking changes, particularly in datafiles (see internal/migration)
-const VERSION = "0.17.0"
+const VERSION = "0.18.0"
 
 var (
 	sigChan            = make(chan os.Signal, 1)
@@ -1642,6 +1644,11 @@ func loadAllDataFiles(isReload bool) {
 	// Pinnacle Stage 1: sentient item voices. Must load AFTER items so the
 	// voice_id cross-validation can see every item's ItemSpec.
 	itemvoices.LoadDataFiles()
+	// Messaging M3 item 7: gossip template store (loaded here, not lazily by
+	// the first gossiping NPC, so a broken file fails boot instead of silencing
+	// gossip).
+	gossip.Load()
+	tips.Load() // Messaging M3 item 7: the periodic tip broadcast's store
 	species.LoadDataFiles()
 	// Chunk 3.2: inject world-aware schedule validation. Done here in main.go
 	// to break the rooms ← mobs import cycle (mobs cannot directly import

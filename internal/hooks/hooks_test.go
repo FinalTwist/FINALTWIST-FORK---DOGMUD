@@ -12,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/facts"
+	"github.com/GoMudEngine/GoMud/internal/gossip"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -2192,31 +2193,31 @@ func TestHandleJoin_Success(t *testing.T) {
 	assert.Equal(t, events.Continue, result)
 }
 
-// ─── HandleLookHints ──────────────────────────────────────────────────────────
+// ─── HandleLookTips ──────────────────────────────────────────────────────────
 
-func TestHandleLookHints_WrongEvent(t *testing.T) {
-	result := HandleLookHints(events.NewRound{RoundNumber: 1})
+func TestHandleLookTips_WrongEvent(t *testing.T) {
+	result := HandleLookTips(events.NewRound{RoundNumber: 1})
 	assert.Equal(t, events.Cancel, result)
 }
 
-func TestHandleLookHints_WithTarget(t *testing.T) {
+func TestHandleLookTips_WithTarget(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	result := HandleLookHints(events.Looking{UserId: 1, RoomId: 1, Target: "something"})
+	result := HandleLookTips(events.Looking{UserId: 1, RoomId: 1, Target: "something"})
 	assert.Equal(t, events.Continue, result)
 }
 
-func TestHandleLookHints_UserNotFound(t *testing.T) {
+func TestHandleLookTips_UserNotFound(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	result := HandleLookHints(events.Looking{UserId: 999, RoomId: 1})
+	result := HandleLookTips(events.Looking{UserId: 999, RoomId: 1})
 	assert.Equal(t, events.Cancel, result)
 }
 
-func TestHandleLookHints_NoTarget(t *testing.T) {
+func TestHandleLookTips_NoTarget(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	result := HandleLookHints(events.Looking{UserId: 1, RoomId: 1})
+	result := HandleLookTips(events.Looking{UserId: 1, RoomId: 1})
 	assert.Equal(t, events.Continue, result)
 }
 
@@ -2966,12 +2967,9 @@ func TestMobHasGroup_EmptyGroups(t *testing.T) {
 }
 
 func TestBuildGossipLine_FallbackWhenNoEvents(t *testing.T) {
-	// Force sync.Once to complete, then override templates
-	gossipTemplatesOnce.Do(func() {})
-	gossipTemplates = map[string][]string{
+	defer gossip.SeedForTest(map[string][]string{
 		"fallback": {"Nothing to report.", "Quiet day."},
-	}
-	defer func() { gossipTemplates = nil }()
+	})()
 
 	mob := &mobs.Mob{
 		MobId: 114,
@@ -2985,9 +2983,7 @@ func TestBuildGossipLine_FallbackWhenNoEvents(t *testing.T) {
 }
 
 func TestBuildGossipLine_EmptyTemplatesEmptyEvents(t *testing.T) {
-	gossipTemplatesOnce.Do(func() {})
-	gossipTemplates = map[string][]string{}
-	defer func() { gossipTemplates = nil }()
+	defer gossip.SeedForTest(map[string][]string{})()
 
 	mob := &mobs.Mob{
 		MobId: 114,
@@ -3026,14 +3022,12 @@ func TestBuildGossipLine_KnownFactUsedWhenNoEvents(t *testing.T) {
 	// Use a mob template ID that won't collide with other tests.
 	const mobTemplateId = 9901
 
-	// Seed gossipTemplates with distinguishable fact-default vs fallback
+	// Seed the gossip store with distinguishable fact-default vs fallback
 	// entries: fact-default renders "{description}", fallback does not.
-	gossipTemplatesOnce.Do(func() {})
-	gossipTemplates = map[string][]string{
+	defer gossip.SeedForTest(map[string][]string{
 		"fact-default": {"I heard that {description}"},
 		"fallback":     {"Nothing unusual happening."},
-	}
-	defer func() { gossipTemplates = nil }()
+	})()
 
 	// Declare a fact and record it as known to our mob.
 	require.NoError(t, facts.Declare("test-gossip-fact-6.3", facts.DeclareOpts{
@@ -3084,12 +3078,10 @@ func TestHandleIdleMobs_GossiperMob(t *testing.T) {
 	cleanupGossiper := mobs.SeedMobsForTest(nil, map[int]*mobs.Mob{200: gossiperMob})
 	defer cleanupGossiper()
 
-	// Pre-seed gossip templates so it doesn't try to load from disk
-	gossipTemplatesOnce.Do(func() {})
-	gossipTemplates = map[string][]string{
+	// Seed the gossip store so the test does not depend on shipped templates
+	defer gossip.SeedForTest(map[string][]string{
 		"fallback": {"Quiet day."},
-	}
-	defer func() { gossipTemplates = nil }()
+	})()
 
 	result := HandleIdleMobs(events.MobIdle{MobInstanceId: 200})
 	assert.Equal(t, events.Continue, result)

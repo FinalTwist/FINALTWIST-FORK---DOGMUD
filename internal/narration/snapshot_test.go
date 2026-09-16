@@ -93,6 +93,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
+	"github.com/GoMudEngine/GoMud/internal/gossip"
 	"github.com/GoMudEngine/GoMud/internal/grapplemessaging"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/itemvoices"
@@ -102,6 +103,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/quests"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/textutil"
+	"github.com/GoMudEngine/GoMud/internal/tips"
 )
 
 var update = flag.Bool("update", false, "update golden snapshot files under testdata/stores")
@@ -159,6 +161,10 @@ func setupRealStores(t *testing.T) {
 
 	// M3 item 6: recipes load from the same configured data path.
 	crafting.LoadRecipeFiles()
+
+	// M3 item 7: gossip templates load from the same configured data path.
+	gossip.Load()
+	tips.Load()
 }
 
 // ---------------------------------------------------------------------
@@ -740,6 +746,12 @@ func TestSnapshotStores(t *testing.T) {
 	t.Run("crafting", func(t *testing.T) {
 		checkGolden(t, "crafting.golden", buildCraftingGolden(t))
 	})
+	t.Run("gossip", func(t *testing.T) {
+		checkGolden(t, "gossip.golden", buildGossipGolden(t))
+	})
+	t.Run("tips", func(t *testing.T) {
+		checkGolden(t, "tips.golden", buildTipsGolden(t))
+	})
 	t.Run("post_pipeline", func(t *testing.T) {
 		checkGolden(t, "post_pipeline.golden", buildPostPipelineGolden(t))
 	})
@@ -1039,5 +1051,74 @@ func buildCraftingGolden(t *testing.T) string {
 			fmt.Fprintf(&b, "recipe|%s|failure_room_message => %s\n", id, failure.Observer)
 		}
 	}
+	return b.String()
+}
+
+// Store 12: gossip templates (_datafiles/world/dogmud/gossip_templates.yaml)
+//
+// Built from PRE-migration data and code: the YAML is parsed here and each
+// variant is substituted exactly as internal/hooks does it today. Today's code
+// picks with util.Rand, which no test can pin, so this golden freezes every
+// variant's substitution, not a pick. Since M3 item 7 Task 2 it reads through
+// the gossip store; rows, order and header are unchanged from the
+// pre-migration recording, which is the byte-identity proof.
+const gossipStandIn = "<the stand-in event>"
+
+func buildGossipGolden(t *testing.T) string {
+	t.Helper()
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "# gossip store snapshot\n")
+	fmt.Fprintf(&b, "# Built 2026-09-15 from PRE-migration code. Every variant of every key, substituted\n")
+	fmt.Fprintf(&b, "# as the gossiper sends it: event keys replace {desc} once, fact- keys replace every\n")
+	fmt.Fprintf(&b, "# {description}, fallback lines are sent as written. The stand-in description is\n")
+	fmt.Fprintf(&b, "# %q. The pick itself (util.Rand) is not frozen; no test can pin it.\n", gossipStandIn)
+	fmt.Fprintf(&b, "# dimensions: key x variant index\n\n")
+
+	keys := gossip.Keys()
+	if len(keys) == 0 {
+		t.Fatal("no gossip keys loaded; setupRealStores must call gossip.Load()")
+	}
+	for _, key := range keys {
+		token, value := "{desc}", gossipStandIn
+		switch {
+		case key == "fallback":
+			token, value = "", ""
+		case strings.HasPrefix(key, "fact-"):
+			token = "{description}"
+		}
+		pool := gossip.Pool(key)
+		for i := range pool {
+			index := i
+			rendered := gossip.RenderWithForTest(pool, token, value, func(int) int { return index })
+			fmt.Fprintf(&b, "gossip|%s|%d => %s\n", key, i, rendered)
+		}
+	}
+	return b.String()
+}
+
+// Store 13: tips (the periodic broadcast; hints.yaml before M3 item 7)
+//
+// Recorded pre-migration from the `hints:` list of hints.yaml, in file order,
+// which was the broadcast's rotation order. Since M3 item 7 Task 3 this
+// builder reads through the tips store (internal/tips); rows and header are
+// unchanged from the pre-migration recording, which is the byte-identity proof.
+func buildTipsGolden(t *testing.T) string {
+	t.Helper()
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "# tips store snapshot\n")
+	fmt.Fprintf(&b, "# Built 2026-09-15 from PRE-migration data. Every tip in rotation order, as the text\n")
+	fmt.Fprintf(&b, "# after the [Tip] prefix. dimensions: rotation index\n\n")
+
+	defer tips.SeedForTest(tips.All())()
+	n := tips.Count()
+	if n == 0 {
+		t.Fatal("no tips loaded; setupRealStores must call tips.Load()")
+	}
+	for i := 0; i < n; i++ {
+		fmt.Fprintf(&b, "tip|%d => %s\n", i, tips.Next())
+	}
+
 	return b.String()
 }

@@ -103,6 +103,14 @@ func doAllMigrations(lastConfigVersion version.Version) error {
 		}
 	}
 
+	if lastConfigVersion.IsOlderThan(version.New(0, 18, 0)) {
+		// Rename each player's configoptions.hints to configoptions.tips (the
+		// broadcast was renamed in messaging M3 item 7).
+		if err := migrate_TipsConfigOption(false); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

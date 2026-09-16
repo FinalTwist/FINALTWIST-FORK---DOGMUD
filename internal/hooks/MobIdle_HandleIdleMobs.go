@@ -2,9 +2,6 @@ package hooks
 
 import (
 	"fmt"
-	"os"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
@@ -15,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/facts"
 	"github.com/GoMudEngine/GoMud/internal/ferry"
 	"github.com/GoMudEngine/GoMud/internal/forager"
+	"github.com/GoMudEngine/GoMud/internal/gossip"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -24,7 +22,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/GoMudEngine/GoMud/internal/worldevents"
-	"gopkg.in/yaml.v2"
 )
 
 //
@@ -372,12 +369,7 @@ func mobGoalPlannerRanRound(mob *mobs.Mob) uint64 {
 
 // ── Gossiper helpers ─────────────────────────────────────────────────────────
 
-var (
-	gossipTemplates     map[string][]string
-	gossipTemplatesOnce sync.Once
-)
-
-// eventTypeKey maps WorldEventType to the string prefix used in gossip_templates.yaml.
+// eventTypeKey maps WorldEventType to the string prefix used in gossip store keys (internal/gossip).
 var eventTypeKey = map[worldevents.WorldEventType]string{
 	worldevents.MobStatMilestone:        "MobStatMilestone",
 	worldevents.MobMutationGained:       "MobMutationGained",
@@ -396,27 +388,6 @@ var significanceKey = map[worldevents.Significance]string{
 	worldevents.Global:   "Global",
 }
 
-func loadGossipTemplates() {
-	path := string(configs.GetFilePathsConfig().DataFiles) + `/gossip_templates.yaml`
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		mudlog.Error("loadGossipTemplates", "error", "failed to load gossip_templates.yaml", "path", path, "err", err)
-		gossipTemplates = map[string][]string{}
-		return
-	}
-
-	templates := map[string][]string{}
-	if err := yaml.Unmarshal(data, &templates); err != nil {
-		mudlog.Error("loadGossipTemplates", "error", "failed to parse gossip_templates.yaml", "err", err)
-		gossipTemplates = map[string][]string{}
-		return
-	}
-
-	gossipTemplates = templates
-	mudlog.Info("...loadGossipTemplates()", "loadedKeys", len(gossipTemplates))
-}
-
 func mobHasGroup(mob *mobs.Mob, groupName string) bool {
 	for _, g := range mob.Groups {
 		if g == groupName {
@@ -427,8 +398,6 @@ func mobHasGroup(mob *mobs.Mob, groupName string) bool {
 }
 
 func buildGossipLine(mob *mobs.Mob) string {
-	gossipTemplatesOnce.Do(loadGossipTemplates)
-
 	// Build a filter: show Local+ events for this mob's zone/region
 	zone := mob.Character.Zone
 	region := ""
@@ -453,8 +422,8 @@ func buildGossipLine(mob *mobs.Mob) string {
 			}
 		}
 		// Use fallback templates
-		if fallbacks, ok := gossipTemplates["fallback"]; ok && len(fallbacks) > 0 {
-			return fallbacks[util.Rand(len(fallbacks))]
+		if fallbacks := gossip.Pool("fallback"); len(fallbacks) > 0 {
+			return gossip.Render(fallbacks, "", "")
 		}
 		return ""
 	}
@@ -517,15 +486,15 @@ func buildGossipLine(mob *mobs.Mob) string {
 		distance = "Local"
 	}
 
-	templates, found := gossipTemplates[baseKey+"-"+distance]
-	if !found || len(templates) == 0 {
+	templates := gossip.Pool(baseKey + "-" + distance)
+	if len(templates) == 0 {
 		// Fall back to base key without distance suffix
-		templates, found = gossipTemplates[baseKey]
+		templates = gossip.Pool(baseKey)
 	}
-	if !found || len(templates) == 0 {
+	if len(templates) == 0 {
 		// Try without significance
 		for _, s := range []string{"Global", "Regional", "Local"} {
-			if templates, found = gossipTemplates[typeStr+"-"+s]; found && len(templates) > 0 {
+			if templates = gossip.Pool(typeStr + "-" + s); len(templates) > 0 {
 				break
 			}
 		}
@@ -536,8 +505,7 @@ func buildGossipLine(mob *mobs.Mob) string {
 		return fmt.Sprintf("I heard that %s", evt.Description)
 	}
 
-	tmpl := templates[util.Rand(len(templates))]
-	return strings.Replace(tmpl, "{desc}", evt.Description, 1)
+	return gossip.Render(templates, "{desc}", evt.Description)
 }
 
 // renderFactGossip picks a template for a known fact and returns the rendered
@@ -545,16 +513,16 @@ func buildGossipLine(mob *mobs.Mob) string {
 // Substitutes {description} placeholder with the fact's Description.
 // Returns "" if no matching template is found.
 func renderFactGossip(kf facts.KnownFact) string {
-	if tmpls, ok := gossipTemplates["fact-"+kf.Fact.Id]; ok && len(tmpls) > 0 {
-		return strings.ReplaceAll(tmpls[util.Rand(len(tmpls))], "{description}", kf.Fact.Description)
+	if tmpls := gossip.Pool("fact-" + kf.Fact.Id); len(tmpls) > 0 {
+		return gossip.Render(tmpls, "{description}", kf.Fact.Description)
 	}
 	for _, tag := range kf.Fact.Tags {
-		if tmpls, ok := gossipTemplates["fact-"+tag]; ok && len(tmpls) > 0 {
-			return strings.ReplaceAll(tmpls[util.Rand(len(tmpls))], "{description}", kf.Fact.Description)
+		if tmpls := gossip.Pool("fact-" + tag); len(tmpls) > 0 {
+			return gossip.Render(tmpls, "{description}", kf.Fact.Description)
 		}
 	}
-	if tmpls, ok := gossipTemplates["fact-default"]; ok && len(tmpls) > 0 {
-		return strings.ReplaceAll(tmpls[util.Rand(len(tmpls))], "{description}", kf.Fact.Description)
+	if tmpls := gossip.Pool("fact-default"); len(tmpls) > 0 {
+		return gossip.Render(tmpls, "{description}", kf.Fact.Description)
 	}
 	return ""
 }

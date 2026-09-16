@@ -37,8 +37,8 @@ func Set(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		return cmdSetToggle(user, `shortadjectives`, `Short Adjectives`, false)
 	case `tinymap`:
 		return cmdSetToggle(user, `tinymap`, `Tinymap`, true)
-	case `hints`:
-		return cmdSetToggle(user, `hints`, `Hints`, true)
+	case `tips`, `hints`: // `hints` kept as an alias: the setting was renamed in 0.18.0
+		return cmdSetToggle(user, `tips`, `Tips`, true)
 	case `screenreader`:
 		return cmdSetScreenReader(user)
 	case `charset`:
@@ -95,7 +95,7 @@ func displaySetStatus(user *users.UserRecord) {
 	displayBoolSetting(user, `auction`, `auction`)
 	displayBoolSetting(user, `shortadjectives`, `shortadjectives`)
 	displayBoolSetting(user, `tinymap`, `tinymap`)
-	displayBoolSetting(user, `hints`, `hints`)
+	displayBoolSetting(user, `tips`, `tips`)
 
 	currentPrompt := user.GetConfigOption(`prompt`)
 	if currentPrompt == nil {

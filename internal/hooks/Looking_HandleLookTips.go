@@ -8,7 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-func HandleLookHints(e events.Event) events.ListenerReturn {
+func HandleLookTips(e events.Event) events.ListenerReturn {
 
 	evt, typeOk := e.(events.Looking)
 	if !typeOk {

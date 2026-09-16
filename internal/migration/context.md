@@ -50,8 +50,9 @@ in sequence.
 | 0.15.0 | `migrate_BackfillCoords` | crawls exit deltas to backfill authored x/y/z/plane on every non-instance room |
 | 0.16.0 | `migrate_FreezeExploitedVitality` | freezes fyttyn's vitality TOTAL at 280, the soft-cap-compressed value actually in play, rather than handing back the raw 411 |
 | 0.17.0 | `migrate_ConditionKeys` | renames buff-spelled keys to their condition spelling in every .yaml and .plugin.dat file under DataFiles, plus the config overrides file |
+| 0.18.0 | `migrate_TipsConfigOption` | renames each player's saved `configoptions.hints` flag to `configoptions.tips`, following the periodic broadcast's rename from hints to tips |
 
-The newest four (0.14.0 to 0.17.0) take a `dryRun bool` so they can be
+The newest five (0.14.0 to 0.18.0) take a `dryRun bool` so they can be
 exercised without writing.
 
 ## Mutation reclassification (0.14.0)
