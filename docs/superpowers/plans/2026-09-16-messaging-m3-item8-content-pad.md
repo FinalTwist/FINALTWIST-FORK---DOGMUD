@@ -113,6 +113,11 @@ baseline ref, and an edit shows up as a `LOST` line, not as a move.
 - Player-facing text follows `dogmud-player-copy`: hard wrap at 80 characters,
   no raw numbers for damage or duration, ESL-clear phrasing.
 - No em dashes or en dashes anywhere.
+- **Never sabotage-probe a file whose changes are not yet committed.**
+  `git checkout -- <path>` restores from HEAD, so it silently discards
+  uncommitted work rather than undoing only the sabotage. This destroyed one
+  file's finished padding during the run. Commit each batch BEFORE probing
+  anything, and probe a file that is already committed.
 
 ### Token and markup vocabulary
 
@@ -600,9 +605,20 @@ files.
 
 This is one procedure applied per file, stated in full once because the steps
 are identical and the only thing that varies is the filename and the expected
-counts. Run it independently for each row of the table. Under
-subagent-driven-development, dispatch one subagent per row, each given this
-task's full text plus its row.
+counts.
+
+**Execution model, corrected during the run.** Dispatch subagents in batches of
+about five, and give each one ONLY its own YAML file. A subagent must not
+re-record the golden and must not run git. Nineteen agents re-recording one
+shared golden and committing would collide on both. The parent re-records the
+golden once per batch, runs the whole-store checks, and makes one commit per
+batch naming the files in it. Steps 5 and 6 below are the subagent's; steps 7
+to 9 are the parent's, once per batch rather than once per file.
+
+**Residuals.** Some groups cannot be made to pair without editing or deleting
+an authored line, because the counterpart sits in a different TIER and tiers
+are separate groups. `slashing` hit two. Do not force these: record each one
+and carry them to the M6 ledger in Task 5.
 
 **Files, per run:**
 - Modify: `_datafiles/world/dogmud/combat-messages/<FILE>.yaml`
