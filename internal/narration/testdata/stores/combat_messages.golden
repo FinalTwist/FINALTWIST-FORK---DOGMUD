@@ -3968,20 +3968,29 @@ slashing|prepare|together|toattacker|master|1 => Your blade settles into perfect
 slashing|prepare|together|toattacker|master|2 => You flow into your Balanced fighting stance with fluid precision.
 slashing|prepare|together|toattacker|master|3 => InControl, you read <ansi fg="Mob">Target</ansi>'s posture, blade poised perfectly.
 slashing|prepare|together|todefender|beginner|0 => <ansi fg="User">Source</ansi> prepares to fight you with their <ansi fg="item">Weapon</ansi>.
-slashing|prepare|together|todefender|beginner|1 => <ansi fg="User">Source</ansi> raises their <ansi fg="item">Weapon</ansi> menacingly at you.
-slashing|prepare|together|todefender|beginner|2 => <ansi fg="User">Source</ansi> grips their blade awkwardly, preparing to attack.
+slashing|prepare|together|todefender|beginner|1 => <ansi fg="User">Source</ansi> grips their blade awkwardly, preparing to attack.
+slashing|prepare|together|todefender|beginner|2 => <ansi fg="User">Source</ansi> raises their <ansi fg="item">Weapon</ansi> menacingly at you.
+slashing|prepare|together|todefender|beginner|3 => <ansi fg="User">Source</ansi> holds their <ansi fg="item">Weapon</ansi> uncertainly, preparing to fight.
 slashing|prepare|together|todefender|expert|0 => <ansi fg="User">Source</ansi> glares at you, <ansi fg="item">Weapon</ansi> at the ready.
 slashing|prepare|together|todefender|expert|1 => <ansi fg="User">Source</ansi> adopts a Balanced stance against you.
-slashing|prepare|together|todefender|expert|2 => <ansi fg="User">Source</ansi> circles you warily, blade ready.
+slashing|prepare|together|todefender|expert|2 => <ansi fg="User">Source</ansi> holds a Balanced posture while Standing, blade ready.
+slashing|prepare|together|todefender|expert|3 => <ansi fg="User">Source</ansi> circles you warily, blade ready.
 slashing|prepare|together|todefender|master|0 => <ansi fg="User">Source</ansi> settles into a masterful Balanced stance.
-slashing|prepare|together|todefender|master|1 => With flowing grace, <ansi fg="User">Source</ansi> prepares to attack.
-slashing|prepare|together|todefender|master|2 => <ansi fg="User">Source</ansi>'s blade moves into perfect position, a clear threat.
+slashing|prepare|together|todefender|master|1 => <ansi fg="User">Source</ansi>'s blade moves into perfect position, a clear threat.
+slashing|prepare|together|todefender|master|2 => With flowing grace, <ansi fg="User">Source</ansi> prepares to attack.
+slashing|prepare|together|todefender|master|3 => <ansi fg="User">Source</ansi> reads your posture, blade poised perfectly.
 slashing|prepare|together|toroom|beginner|0 => <ansi fg="User">Source</ansi> prepares to attack <ansi fg="Mob">Target</ansi> with their <ansi fg="item">Weapon</ansi>.
 slashing|prepare|together|toroom|beginner|1 => <ansi fg="User">Source</ansi> grips their <ansi fg="item">Weapon</ansi> tightly, facing off against <ansi fg="Mob">Target</ansi>.
+slashing|prepare|together|toroom|beginner|2 => <ansi fg="User">Source</ansi> raises their <ansi fg="item">Weapon</ansi>, facing <ansi fg="Mob">Target</ansi> nervously.
+slashing|prepare|together|toroom|beginner|3 => <ansi fg="User">Source</ansi> holds their <ansi fg="item">Weapon</ansi> uncertainly, facing <ansi fg="Mob">Target</ansi>.
 slashing|prepare|together|toroom|expert|0 => <ansi fg="User">Source</ansi> locks eyes with <ansi fg="Mob">Target</ansi>, weapon ready to strike.
 slashing|prepare|together|toroom|expert|1 => <ansi fg="User">Source</ansi> takes a Balanced stance against <ansi fg="Mob">Target</ansi>.
+slashing|prepare|together|toroom|expert|2 => <ansi fg="User">Source</ansi> holds a Balanced posture while Standing.
+slashing|prepare|together|toroom|expert|3 => <ansi fg="User">Source</ansi> circles <ansi fg="Mob">Target</ansi> warily, blade at the ready.
 slashing|prepare|together|toroom|master|0 => <ansi fg="User">Source</ansi> adopts a masterful combat stance.
-slashing|prepare|together|toroom|master|1 => With practiced precision, <ansi fg="User">Source</ansi> prepares to engage <ansi fg="Mob">Target</ansi>.
+slashing|prepare|together|toroom|master|1 => <ansi fg="User">Source</ansi>'s blade settles into perfect position, a clear threat.
+slashing|prepare|together|toroom|master|2 => With practiced precision, <ansi fg="User">Source</ansi> prepares to engage <ansi fg="Mob">Target</ansi>.
+slashing|prepare|together|toroom|master|3 => <ansi fg="User">Source</ansi> reads <ansi fg="Mob">Target</ansi>'s posture, blade poised perfectly.
 slashing|wait|together|toattacker|beginner|0 => You aim carefully at <ansi fg="Mob">Target</ansi>.
 slashing|wait|together|toattacker|beginner|1 => You watch <ansi fg="Mob">Target</ansi> closely, waiting for the perfect moment.
 slashing|wait|together|toattacker|beginner|2 => You hesitate, looking for an opening.
@@ -3994,21 +4003,30 @@ slashing|wait|together|toattacker|master|0 => InControl, you read every subtle s
 slashing|wait|together|toattacker|master|1 => While Standing, you anticipate <ansi fg="Mob">Target</ansi>'s next move with clarity.
 slashing|wait|together|toattacker|master|2 => Your Balanced training allows you to analyze <ansi fg="Mob">Target</ansi> effortlessly.
 slashing|wait|together|toattacker|master|3 => Like a predator, you assess <ansi fg="Mob">Target</ansi>'s every weakness.
-slashing|wait|together|todefender|beginner|0 => <ansi fg="User">Source</ansi> circles dangerously.
+slashing|wait|together|todefender|beginner|0 => <ansi fg="User">Source</ansi> takes careful aim at you.
 slashing|wait|together|todefender|beginner|1 => <ansi fg="User">Source</ansi> watches you intently, waiting to strike.
 slashing|wait|together|todefender|beginner|2 => <ansi fg="User">Source</ansi> looks for an opening awkwardly.
-slashing|wait|together|todefender|expert|0 => <ansi fg="User">Source</ansi> holds their <ansi fg="item">Weapon</ansi> steady, eyes fixed on you.
-slashing|wait|together|todefender|expert|1 => <ansi fg="User">Source</ansi> probes your defenses carefully.
-slashing|wait|together|todefender|expert|2 => <ansi fg="User">Source</ansi> circles you with tactical precision.
+slashing|wait|together|todefender|beginner|3 => <ansi fg="User">Source</ansi> circles dangerously.
+slashing|wait|together|todefender|expert|0 => <ansi fg="User">Source</ansi> circles you with tactical precision.
+slashing|wait|together|todefender|expert|1 => <ansi fg="User">Source</ansi> holds their <ansi fg="item">Weapon</ansi> steady, eyes fixed on you.
+slashing|wait|together|todefender|expert|2 => <ansi fg="User">Source</ansi> settles into a Balanced posture while Standing.
+slashing|wait|together|todefender|expert|3 => <ansi fg="User">Source</ansi> probes your defenses carefully.
 slashing|wait|together|todefender|master|0 => <ansi fg="User">Source</ansi> reads your every movement with unsettling precision.
-slashing|wait|together|todefender|master|1 => <ansi fg="User">Source</ansi>'s eyes track your every shift like a predator.
+slashing|wait|together|todefender|master|1 => <ansi fg="User">Source</ansi> anticipates your next move with unsettling clarity.
 slashing|wait|together|todefender|master|2 => <ansi fg="User">Source</ansi> analyzes your stance with masterful clarity.
-slashing|wait|together|toroom|beginner|0 => <ansi fg="User">Source</ansi> circles <ansi fg="Mob">Target</ansi> with cruel intentions.
+slashing|wait|together|todefender|master|3 => <ansi fg="User">Source</ansi>'s eyes track your every shift like a predator.
+slashing|wait|together|toroom|beginner|0 => <ansi fg="User">Source</ansi> takes careful aim at <ansi fg="Mob">Target</ansi>.
 slashing|wait|together|toroom|beginner|1 => <ansi fg="User">Source</ansi> stalks around <ansi fg="Mob">Target</ansi>, awaiting an opportunity.
-slashing|wait|together|toroom|expert|0 => <ansi fg="User">Source</ansi> eyes <ansi fg="Mob">Target</ansi> warily, ready to strike.
-slashing|wait|together|toroom|expert|1 => <ansi fg="User">Source</ansi> probes for weakness in <ansi fg="Mob">Target</ansi>'s guard.
+slashing|wait|together|toroom|beginner|2 => <ansi fg="User">Source</ansi> hesitates, searching for an opening.
+slashing|wait|together|toroom|beginner|3 => <ansi fg="User">Source</ansi> circles <ansi fg="Mob">Target</ansi> with cruel intentions.
+slashing|wait|together|toroom|expert|0 => <ansi fg="User">Source</ansi> circles <ansi fg="Mob">Target</ansi>, looking for an opening.
+slashing|wait|together|toroom|expert|1 => <ansi fg="User">Source</ansi> eyes <ansi fg="Mob">Target</ansi> warily, ready to strike.
+slashing|wait|together|toroom|expert|2 => <ansi fg="User">Source</ansi> holds a Balanced posture while Standing.
+slashing|wait|together|toroom|expert|3 => <ansi fg="User">Source</ansi> probes for weakness in <ansi fg="Mob">Target</ansi>'s guard.
 slashing|wait|together|toroom|master|0 => <ansi fg="User">Source</ansi> reads <ansi fg="Mob">Target</ansi> like an open book.
-slashing|wait|together|toroom|master|1 => <ansi fg="User">Source</ansi> analyzes <ansi fg="Mob">Target</ansi> with predatory precision.
+slashing|wait|together|toroom|master|1 => <ansi fg="User">Source</ansi> anticipates <ansi fg="Mob">Target</ansi>'s next move with clarity.
+slashing|wait|together|toroom|master|2 => <ansi fg="User">Source</ansi> analyzes <ansi fg="Mob">Target</ansi>'s stance effortlessly.
+slashing|wait|together|toroom|master|3 => <ansi fg="User">Source</ansi> analyzes <ansi fg="Mob">Target</ansi> with predatory precision.
 slashing|miss|together|toattacker|beginner|0 => You wave your <ansi fg="item">Weapon</ansi> at <ansi fg="Mob">Target</ansi>, to no avail!
 slashing|miss|together|toattacker|beginner|1 => Your swing at <ansi fg="Mob">Target</ansi> misses completely!
 slashing|miss|together|toattacker|beginner|2 => You slash at <ansi fg="Mob">Target</ansi> but fail to connect!
@@ -4024,21 +4042,27 @@ slashing|miss|together|toattacker|master|3 => InControl, your flowing attack is 
 slashing|miss|together|todefender|beginner|0 => <ansi fg="User">Source</ansi> waves their <ansi fg="item">Weapon</ansi> at you, but does nothing.
 slashing|miss|together|todefender|beginner|1 => <ansi fg="User">Source</ansi> swings their <ansi fg="item">Weapon</ansi> wildly, missing you entirely.
 slashing|miss|together|todefender|beginner|2 => <ansi fg="User">Source</ansi> attempts to slash you but misses!
+slashing|miss|together|todefender|beginner|3 => <ansi fg="User">Source</ansi> stumbles and misses you badly!
 slashing|miss|together|todefender|expert|0 => You evade <ansi fg="User">Source</ansi>'s calculated strike!
 slashing|miss|together|todefender|expert|1 => You anticipate <ansi fg="User">Source</ansi>'s feint and avoid their slash!
-slashing|miss|together|todefender|expert|2 => <ansi fg="User">Source</ansi>'s tactical approach fails as you counter expertly!
+slashing|miss|together|todefender|expert|2 => Despite their Balanced approach, <ansi fg="User">Source</ansi>'s blade finds only air!
+slashing|miss|together|todefender|expert|3 => <ansi fg="User">Source</ansi>'s tactical approach fails as you counter expertly!
 slashing|miss|together|todefender|master|0 => Your masterful defense forces <ansi fg="User">Source</ansi>'s perfect strike wide!
 slashing|miss|together|todefender|master|1 => You read <ansi fg="User">Source</ansi>'s intent and evade with flowing grace!
 slashing|miss|together|todefender|master|2 => Your superior technique deflects <ansi fg="User">Source</ansi>'s masterful slash!
+slashing|miss|together|todefender|master|3 => You barely parry away <ansi fg="User">Source</ansi>'s flowing attack!
 slashing|miss|together|toroom|beginner|0 => <ansi fg="User">Source</ansi> waves their <ansi fg="item">Weapon</ansi> at <ansi fg="Mob">Target</ansi>, but does nothing.
 slashing|miss|together|toroom|beginner|1 => <ansi fg="User">Source</ansi> swings at <ansi fg="Mob">Target</ansi> but misses completely.
 slashing|miss|together|toroom|beginner|2 => <ansi fg="User">Source</ansi> attempts to slash <ansi fg="Mob">Target</ansi> but fails to connect.
+slashing|miss|together|toroom|beginner|3 => <ansi fg="User">Source</ansi> stumbles and misses <ansi fg="Mob">Target</ansi> badly.
 slashing|miss|together|toroom|expert|0 => <ansi fg="User">Source</ansi>'s calculated strike is evaded by <ansi fg="Mob">Target</ansi>!
 slashing|miss|together|toroom|expert|1 => <ansi fg="Mob">Target</ansi> anticipates the feint and avoids the slash!
-slashing|miss|together|toroom|expert|2 => <ansi fg="Mob">Target</ansi> counters <ansi fg="User">Source</ansi>'s tactical approach!
+slashing|miss|together|toroom|expert|2 => Despite a Balanced approach, <ansi fg="User">Source</ansi>'s blade finds only air!
+slashing|miss|together|toroom|expert|3 => <ansi fg="Mob">Target</ansi> counters <ansi fg="User">Source</ansi>'s tactical approach!
 slashing|miss|together|toroom|master|0 => <ansi fg="Mob">Target</ansi>'s masterful defense forces the perfect strike wide!
 slashing|miss|together|toroom|master|1 => <ansi fg="Mob">Target</ansi> reads the intent and evades with flowing grace!
 slashing|miss|together|toroom|master|2 => A masterful clash of blades results in no contact!
+slashing|miss|together|toroom|master|3 => <ansi fg="Mob">Target</ansi> barely parries away <ansi fg="User">Source</ansi>'s flowing attack!
 slashing|weak|together|toattacker|beginner|0 => You slice at <ansi fg="Mob">Target</ansi> with your <ansi fg="item">Weapon</ansi>.
 slashing|weak|together|toattacker|beginner|1 => Your <ansi fg="item">Weapon</ansi> grazes <ansi fg="Mob">Target</ansi>.
 slashing|weak|together|toattacker|beginner|2 => You land a minor cut on <ansi fg="Mob">Target</ansi>.
@@ -4061,6 +4085,7 @@ slashing|weak|together|todefender|expert|0 => <ansi fg="User">Source</ansi> step
 slashing|weak|together|todefender|expert|1 => <ansi fg="User">Source</ansi> circles and scores a shallow cut on you.
 slashing|weak|together|todefender|expert|2 => You feel a scratch as <ansi fg="User">Source</ansi> sidesteps and slashes.
 slashing|weak|together|todefender|expert|3 => <ansi fg="User">Source</ansi> feints and grazes you with a quick slash.
+slashing|weak|together|todefender|expert|4 => <ansi fg="User">Source</ansi> probes your guard, testing it with a light cut.
 slashing|weak|together|todefender|master|0 => <ansi fg="User">Source</ansi> tests your defense with a probing cut.
 slashing|weak|together|todefender|master|1 => <ansi fg="User">Source</ansi> draws your guard and lands a light slash.
 slashing|weak|together|todefender|master|2 => <ansi fg="User">Source</ansi> presses forward and nicks you.
@@ -4069,10 +4094,12 @@ slashing|weak|together|todefender|master|4 => <ansi fg="User">Source</ansi> find
 slashing|weak|together|toroom|beginner|0 => <ansi fg="User">Source</ansi> slices at <ansi fg="Mob">Target</ansi> with their <ansi fg="item">Weapon</ansi>.
 slashing|weak|together|toroom|beginner|1 => <ansi fg="User">Source</ansi> grazes <ansi fg="Mob">Target</ansi> with their <ansi fg="item">Weapon</ansi>.
 slashing|weak|together|toroom|beginner|2 => <ansi fg="User">Source</ansi> lands a minor cut on <ansi fg="Mob">Target</ansi> with their <ansi fg="item">Weapon</ansi>.
+slashing|weak|together|toroom|beginner|3 => <ansi fg="User">Source</ansi> swings clumsily and nicks <ansi fg="Mob">Target</ansi>.
 slashing|weak|together|toroom|expert|0 => <ansi fg="User">Source</ansi> steps forward and nicks <ansi fg="Mob">Target</ansi>.
 slashing|weak|together|toroom|expert|1 => <ansi fg="User">Source</ansi> circles left and scores a shallow cut.
 slashing|weak|together|toroom|expert|2 => <ansi fg="User">Source</ansi> sidesteps and slashes, barely scratching <ansi fg="Mob">Target</ansi>.
 slashing|weak|together|toroom|expert|3 => <ansi fg="User">Source</ansi> feints high and slices low, grazing <ansi fg="Mob">Target</ansi>.
+slashing|weak|together|toroom|expert|4 => <ansi fg="User">Source</ansi> probes <ansi fg="Mob">Target</ansi>'s guard with a testing cut.
 slashing|weak|together|toroom|master|0 => <ansi fg="User">Source</ansi> tests <ansi fg="Mob">Target</ansi>'s defense with a probing cut.
 slashing|weak|together|toroom|master|1 => <ansi fg="User">Source</ansi> draws the guard and lands a light slash.
 slashing|weak|together|toroom|master|2 => <ansi fg="User">Source</ansi> presses forward with a quick slash.
@@ -4108,29 +4135,36 @@ slashing|normal|together|todefender|expert|2 => <ansi fg="User">Source</ansi> pi
 slashing|normal|together|todefender|expert|3 => <ansi fg="User">Source</ansi> feints and brings their blade down in a swift arc!
 slashing|normal|together|todefender|expert|4 => <ansi fg="User">Source</ansi> draws your defense and slashes low!
 slashing|normal|together|todefender|expert|5 => <ansi fg="User">Source</ansi> catches you across the Arm!
-slashing|normal|together|todefender|master|0 => <ansi fg="User">Source</ansi> reads your stance and strikes with precision!
-slashing|normal|together|todefender|master|1 => <ansi fg="User">Source</ansi> presses their advantage with a sweeping slash!
-slashing|normal|together|todefender|master|2 => <ansi fg="User">Source</ansi> dances around you and slices purposefully!
-slashing|normal|together|todefender|master|3 => <ansi fg="User">Source</ansi> exploits an opening and cuts decisively!
-slashing|normal|together|todefender|master|4 => <ansi fg="User">Source</ansi> follows through with a solid slash!
-slashing|normal|together|todefender|master|5 => <ansi fg="User">Source</ansi> capitalizes on their momentum and strikes true!
-slashing|normal|together|todefender|master|6 => <ansi fg="User">Source</ansi>'s blade flashes as they maintain pressure!
-slashing|normal|together|todefender|master|7 => <ansi fg="User">Source</ansi> slashes you across the Arm with a precise cut!
+slashing|normal|together|todefender|master|0 => <ansi fg="User">Source</ansi> presses their advantage with a sweeping slash!
+slashing|normal|together|todefender|master|1 => <ansi fg="User">Source</ansi> dances around you and slices purposefully!
+slashing|normal|together|todefender|master|2 => <ansi fg="User">Source</ansi> exploits an opening and cuts decisively!
+slashing|normal|together|todefender|master|3 => <ansi fg="User">Source</ansi> follows through with a solid slash!
+slashing|normal|together|todefender|master|4 => <ansi fg="User">Source</ansi> capitalizes on their momentum and strikes true!
+slashing|normal|together|todefender|master|5 => <ansi fg="User">Source</ansi>'s blade flashes as they maintain pressure!
+slashing|normal|together|todefender|master|6 => <ansi fg="User">Source</ansi> is InControl as their blade cuts into you!
+slashing|normal|together|todefender|master|7 => While InControl, <ansi fg="User">Source</ansi> slashes you decisively!
+slashing|normal|together|todefender|master|8 => <ansi fg="User">Source</ansi> slashes you across the Arm with a precise cut!
+slashing|normal|together|todefender|master|9 => <ansi fg="User">Source</ansi> reads your stance and strikes with precision!
 slashing|normal|together|toroom|beginner|0 => <ansi fg="User">Source</ansi> connects with their <ansi fg="item">Weapon</ansi>, wounding <ansi fg="Mob">Target</ansi>!
 slashing|normal|together|toroom|beginner|1 => <ansi fg="User">Source</ansi> slashes <ansi fg="Mob">Target</ansi> with their <ansi fg="item">Weapon</ansi>!
 slashing|normal|together|toroom|beginner|2 => <ansi fg="User">Source</ansi> cuts into <ansi fg="Mob">Target</ansi> with their <ansi fg="item">Weapon</ansi>!
+slashing|normal|together|toroom|beginner|3 => <ansi fg="User">Source</ansi> swings and hits <ansi fg="Mob">Target</ansi> solidly!
 slashing|normal|together|toroom|expert|0 => <ansi fg="User">Source</ansi> circles right and slashes decisively!
 slashing|normal|together|toroom|expert|1 => <ansi fg="User">Source</ansi> steps forward and delivers a clean cut!
 slashing|normal|together|toroom|expert|2 => <ansi fg="User">Source</ansi> pivots and slices through the guard!
 slashing|normal|together|toroom|expert|3 => <ansi fg="User">Source</ansi> feints left and brings their blade down swiftly!
 slashing|normal|together|toroom|expert|4 => <ansi fg="User">Source</ansi> draws the defense high and slashes low!
-slashing|normal|together|toroom|master|0 => <ansi fg="User">Source</ansi> reads the stance and strikes with precision!
-slashing|normal|together|toroom|master|1 => <ansi fg="User">Source</ansi> presses forward with a sweeping slash!
-slashing|normal|together|toroom|master|2 => <ansi fg="User">Source</ansi> dances around <ansi fg="Mob">Target</ansi> and slices purposefully!
-slashing|normal|together|toroom|master|3 => <ansi fg="User">Source</ansi> exploits an opening and cuts decisively!
-slashing|normal|together|toroom|master|4 => <ansi fg="User">Source</ansi> follows through with a solid slash!
-slashing|normal|together|toroom|master|5 => <ansi fg="User">Source</ansi> capitalizes on momentum and strikes true!
-slashing|normal|together|toroom|master|6 => <ansi fg="User">Source</ansi>'s blade flashes as the pressure continues!
+slashing|normal|together|toroom|expert|5 => <ansi fg="User">Source</ansi> reads the stance and strikes with practiced precision!
+slashing|normal|together|toroom|master|0 => <ansi fg="User">Source</ansi> presses forward with a sweeping slash!
+slashing|normal|together|toroom|master|1 => <ansi fg="User">Source</ansi> dances around <ansi fg="Mob">Target</ansi> and slices purposefully!
+slashing|normal|together|toroom|master|2 => <ansi fg="User">Source</ansi> exploits an opening and cuts decisively!
+slashing|normal|together|toroom|master|3 => <ansi fg="User">Source</ansi> follows through with a solid slash!
+slashing|normal|together|toroom|master|4 => <ansi fg="User">Source</ansi> capitalizes on momentum and strikes true!
+slashing|normal|together|toroom|master|5 => <ansi fg="User">Source</ansi>'s blade flashes as the pressure continues!
+slashing|normal|together|toroom|master|6 => <ansi fg="User">Source</ansi> is InControl as their blade cuts into <ansi fg="Mob">Target</ansi>!
+slashing|normal|together|toroom|master|7 => While InControl, <ansi fg="User">Source</ansi> slashes <ansi fg="Mob">Target</ansi> decisively!
+slashing|normal|together|toroom|master|8 => <ansi fg="User">Source</ansi>'s blade catches <ansi fg="Mob">Target</ansi> across the Arm!
+slashing|normal|together|toroom|master|9 => <ansi fg="User">Source</ansi> reads the stance and strikes with precision!
 slashing|heavy|together|toattacker|beginner|0 => In a sweeping motion, you slash <ansi fg="Mob">Target</ansi> with your <ansi fg="item">Weapon</ansi>!
 slashing|heavy|together|toattacker|beginner|1 => You deliver a powerful blow to <ansi fg="Mob">Target</ansi>!
 slashing|heavy|together|toattacker|beginner|2 => Your <ansi fg="item">Weapon</ansi> cuts deeply into <ansi fg="Mob">Target</ansi>!
@@ -4163,30 +4197,49 @@ slashing|heavy|together|todefender|beginner|3 => <ansi fg="User">Source</ansi> s
 slashing|heavy|together|todefender|expert|0 => <ansi fg="User">Source</ansi> steps in close and brutally slashes you!
 slashing|heavy|together|todefender|expert|1 => <ansi fg="User">Source</ansi> pivots and cuts deeply into your flank!
 slashing|heavy|together|todefender|expert|2 => <ansi fg="User">Source</ansi> advances and slashes with tremendous force!
-slashing|heavy|together|todefender|expert|3 => <ansi fg="User">Source</ansi> feints retreat then surges with a devastating slash!
+slashing|heavy|together|todefender|expert|3 => From a Balanced stance, <ansi fg="User">Source</ansi> steps in and slashes with devastating power!
+slashing|heavy|together|todefender|expert|4 => InControl, <ansi fg="User">Source</ansi> presses forward and cuts deeply into you!
+slashing|heavy|together|todefender|expert|5 => <ansi fg="User">Source</ansi> feints retreat then surges with a devastating slash!
 slashing|heavy|together|todefender|master|0 => <ansi fg="User">Source</ansi> draws your guard and delivers a punishing cut!
 slashing|heavy|together|todefender|master|1 => <ansi fg="User">Source</ansi> reads your weakness and strikes with overwhelming force!
-slashing|heavy|together|todefender|master|2 => <ansi fg="User">Source</ansi> presses forward relentlessly, blade biting deep!
-slashing|heavy|together|todefender|master|3 => <ansi fg="User">Source</ansi> seizes advantage and delivers a savage slash!
-slashing|heavy|together|todefender|master|4 => <ansi fg="User">Source</ansi> exploits your position and cuts brutally!
-slashing|heavy|together|todefender|master|5 => <ansi fg="User">Source</ansi> spins and slashes with great force!
-slashing|heavy|together|todefender|master|6 => <ansi fg="User">Source</ansi> surges forward on the offensive, blade cutting deep!
-slashing|heavy|together|todefender|master|7 => <ansi fg="User">Source</ansi> maintains their assault with a powerful cut!
+slashing|heavy|together|todefender|master|2 => While Standing and InControl, <ansi fg="User">Source</ansi> feints and strikes with brutal precision!
+slashing|heavy|together|todefender|master|3 => Their Balanced approach pays off as <ansi fg="User">Source</ansi> delivers a crushing blow!
+slashing|heavy|together|todefender|master|4 => <ansi fg="User">Source</ansi> presses forward relentlessly, blade biting deep!
+slashing|heavy|together|todefender|master|5 => <ansi fg="User">Source</ansi> seizes advantage and delivers a savage slash!
+slashing|heavy|together|todefender|master|6 => <ansi fg="User">Source</ansi> exploits your position and cuts brutally!
+slashing|heavy|together|todefender|master|7 => Even while Standing, InControl, <ansi fg="User">Source</ansi> slashes with overwhelming force!
+slashing|heavy|together|todefender|master|8 => Their Balanced fighting style overwhelms you completely!
+slashing|heavy|together|todefender|master|9 => <ansi fg="User">Source</ansi> spins and slashes with great force!
+slashing|heavy|together|todefender|master|10 => <ansi fg="User">Source</ansi> surges forward on the offensive, blade cutting deep!
+slashing|heavy|together|todefender|master|11 => <ansi fg="User">Source</ansi> maintains their assault with a powerful cut!
+slashing|heavy|together|todefender|master|12 => From a Balanced stance, InControl, <ansi fg="User">Source</ansi> slashes devastatingly while Standing!
+slashing|heavy|together|todefender|master|13 => <ansi fg="User">Source</ansi>'s blade bites deep into your Arm!
+slashing|heavy|together|todefender|master|14 => <ansi fg="User">Source</ansi> carves a vicious wound across your Arm!
 slashing|heavy|together|toroom|beginner|0 => In a sweeping motion, <ansi fg="User">Source</ansi> slashes <ansi fg="Mob">Target</ansi> with their <ansi fg="item">Weapon</ansi>!
 slashing|heavy|together|toroom|beginner|1 => <ansi fg="User">Source</ansi> delivers a powerful blow to <ansi fg="Mob">Target</ansi>!
 slashing|heavy|together|toroom|beginner|2 => <ansi fg="User">Source</ansi> cuts deeply into <ansi fg="Mob">Target</ansi> with their <ansi fg="item">Weapon</ansi>!
+slashing|heavy|together|toroom|beginner|3 => <ansi fg="User">Source</ansi> swings mightily and strikes <ansi fg="Mob">Target</ansi> hard!
 slashing|heavy|together|toroom|expert|0 => <ansi fg="User">Source</ansi> steps in close and brutally slashes <ansi fg="Mob">Target</ansi>!
 slashing|heavy|together|toroom|expert|1 => <ansi fg="User">Source</ansi> pivots and cuts deeply into <ansi fg="Mob">Target</ansi>'s flank!
 slashing|heavy|together|toroom|expert|2 => <ansi fg="User">Source</ansi> advances and slashes with tremendous force!
-slashing|heavy|together|toroom|expert|3 => <ansi fg="User">Source</ansi> feints retreat then surges with a devastating slash!
+slashing|heavy|together|toroom|expert|3 => From a Balanced stance, <ansi fg="User">Source</ansi> steps in and slashes with devastating power!
+slashing|heavy|together|toroom|expert|4 => InControl, <ansi fg="User">Source</ansi> presses forward and cuts deeply into <ansi fg="Mob">Target</ansi>!
+slashing|heavy|together|toroom|expert|5 => <ansi fg="User">Source</ansi> feints retreat then surges with a devastating slash!
 slashing|heavy|together|toroom|master|0 => <ansi fg="User">Source</ansi> draws the guard aside and delivers a punishing cut!
 slashing|heavy|together|toroom|master|1 => <ansi fg="User">Source</ansi> reads the weakness and strikes with overwhelming force!
-slashing|heavy|together|toroom|master|2 => <ansi fg="User">Source</ansi> presses forward relentlessly, blade biting deep!
-slashing|heavy|together|toroom|master|3 => <ansi fg="User">Source</ansi> seizes advantage and delivers a savage slash!
-slashing|heavy|together|toroom|master|4 => <ansi fg="User">Source</ansi> exploits position and cuts with brutal efficiency!
-slashing|heavy|together|toroom|master|5 => <ansi fg="User">Source</ansi> spins and slashes with great force!
-slashing|heavy|together|toroom|master|6 => <ansi fg="User">Source</ansi> surges forward on the offensive, blade cutting deep!
-slashing|heavy|together|toroom|master|7 => <ansi fg="User">Source</ansi> maintains the assault with a powerful sweeping cut!
+slashing|heavy|together|toroom|master|2 => While Standing and InControl, <ansi fg="User">Source</ansi> feints and strikes with brutal precision!
+slashing|heavy|together|toroom|master|3 => A Balanced approach pays off as <ansi fg="User">Source</ansi> delivers a crushing blow!
+slashing|heavy|together|toroom|master|4 => <ansi fg="User">Source</ansi> presses forward relentlessly, blade biting deep!
+slashing|heavy|together|toroom|master|5 => <ansi fg="User">Source</ansi> seizes advantage and delivers a savage slash!
+slashing|heavy|together|toroom|master|6 => <ansi fg="User">Source</ansi> exploits position and cuts with brutal efficiency!
+slashing|heavy|together|toroom|master|7 => Even while Standing, InControl, <ansi fg="User">Source</ansi> slashes with overwhelming force!
+slashing|heavy|together|toroom|master|8 => A Balanced fighting style overwhelms <ansi fg="Mob">Target</ansi> completely!
+slashing|heavy|together|toroom|master|9 => <ansi fg="User">Source</ansi> spins and slashes with great force!
+slashing|heavy|together|toroom|master|10 => <ansi fg="User">Source</ansi> surges forward on the offensive, blade cutting deep!
+slashing|heavy|together|toroom|master|11 => <ansi fg="User">Source</ansi> maintains the assault with a powerful sweeping cut!
+slashing|heavy|together|toroom|master|12 => From a Balanced stance, InControl, <ansi fg="User">Source</ansi> slashes devastatingly while Standing!
+slashing|heavy|together|toroom|master|13 => <ansi fg="User">Source</ansi>'s blade bites deep into <ansi fg="Mob">Target</ansi>'s Arm!
+slashing|heavy|together|toroom|master|14 => <ansi fg="User">Source</ansi> carves a vicious wound across <ansi fg="Mob">Target</ansi>'s Arm!
 slashing|critical|together|toattacker|beginner|0 => Your <ansi fg="item">Weapon</ansi> <ansi fg="cyan-bold">CRITICALLY LACERATES</ansi> <ansi fg="Mob">Target</ansi>!
 slashing|critical|together|toattacker|beginner|1 => You deliver a <ansi fg="cyan-bold">CRITICAL STRIKE</ansi> to <ansi fg="Mob">Target</ansi> with your <ansi fg="item">Weapon</ansi>!
 slashing|critical|together|toattacker|beginner|2 => Your <ansi fg="item">Weapon</ansi> <ansi fg="cyan-bold">TEARS THROUGH</ansi> <ansi fg="Mob">Target</ansi>!
@@ -4213,29 +4266,34 @@ slashing|critical|together|todefender|expert|0 => <ansi fg="User">Source</ansi> 
 slashing|critical|together|todefender|expert|1 => <ansi fg="User">Source</ansi> lunges and delivers a <ansi fg="cyan-bold">PERFECT STRIKE</ansi>!
 slashing|critical|together|todefender|expert|2 => <ansi fg="User">Source</ansi> flows like water and <ansi fg="cyan-bold">RENDS</ansi> you!
 slashing|critical|together|todefender|expert|3 => <ansi fg="User">Source's</ansi> masterful feint opens you completely - they <ansi fg="cyan-bold">ANNIHILATE</ansi> you!
-slashing|critical|together|todefender|master|0 => <ansi fg="User">Source</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS CUT</ansi>!
-slashing|critical|together|todefender|master|1 => <ansi fg="User">Source's</ansi> tactical brilliance creates the perfect opening - you are <ansi fg="cyan-bold">EVISCERATED</ansi>!
-slashing|critical|together|todefender|master|2 => <ansi fg="User">Source</ansi> executes a <ansi fg="cyan-bold">DEVASTATING STRIKE</ansi> from the perfect angle!
-slashing|critical|together|todefender|master|3 => <ansi fg="User">Source</ansi> exploits total advantage and <ansi fg="cyan-bold">SHREDS</ansi> you with precision!
-slashing|critical|together|todefender|master|4 => <ansi fg="User">Source's</ansi> positioning is flawless - you are <ansi fg="cyan-bold">OBLITERATED</ansi>!
-slashing|critical|together|todefender|master|5 => <ansi fg="User">Source's</ansi> unstoppable assault culminates in a <ansi fg="cyan-bold">CRITICAL LACERATION</ansi>!
-slashing|critical|together|todefender|master|6 => <ansi fg="User">Source</ansi> channels all momentum and <ansi fg="cyan-bold">CARVES THROUGH</ansi> you utterly!
-slashing|critical|together|todefender|master|7 => The tide favors <ansi fg="User">Source</ansi> - their blade <ansi fg="cyan-bold">DECIMATES</ansi> you!
+slashing|critical|together|todefender|expert|4 => <ansi fg="User">Source</ansi> anticipates your every move and cuts <ansi fg="cyan-bold">FLAWLESSLY</ansi>!
+slashing|critical|together|todefender|master|0 => <ansi fg="User">Source's</ansi> tactical brilliance creates the perfect opening - you are <ansi fg="cyan-bold">EVISCERATED</ansi>!
+slashing|critical|together|todefender|master|1 => <ansi fg="User">Source's</ansi> Balanced approach culminates in a <ansi fg="cyan-bold">DEVASTATING CRITICAL</ansi> strike!
+slashing|critical|together|todefender|master|2 => <ansi fg="User">Source</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS CUT</ansi>!
+slashing|critical|together|todefender|master|3 => <ansi fg="User">Source</ansi> executes a <ansi fg="cyan-bold">DEVASTATING STRIKE</ansi> from the perfect angle!
+slashing|critical|together|todefender|master|4 => <ansi fg="User">Source</ansi> exploits total advantage and <ansi fg="cyan-bold">SHREDS</ansi> you with precision!
+slashing|critical|together|todefender|master|5 => <ansi fg="User">Source's</ansi> positioning is flawless - you are <ansi fg="cyan-bold">OBLITERATED</ansi>!
+slashing|critical|together|todefender|master|6 => <ansi fg="User">Source's</ansi> unstoppable assault culminates in a <ansi fg="cyan-bold">CRITICAL LACERATION</ansi>!
+slashing|critical|together|todefender|master|7 => <ansi fg="User">Source</ansi> channels all momentum and <ansi fg="cyan-bold">CARVES THROUGH</ansi> you utterly!
+slashing|critical|together|todefender|master|8 => The tide favors <ansi fg="User">Source</ansi> - their blade <ansi fg="cyan-bold">DECIMATES</ansi> you!
 slashing|critical|together|toroom|beginner|0 => <ansi fg="User">Source's</ansi> <ansi fg="item">Weapon</ansi> <ansi fg="cyan-bold">CRITICALLY LACERATES</ansi> <ansi fg="Mob">Target</ansi>!
 slashing|critical|together|toroom|beginner|1 => <ansi fg="User">Source's</ansi> <ansi fg="item">Weapon</ansi> delivers a <ansi fg="cyan-bold">CRITICAL STRIKE</ansi> to <ansi fg="Mob">Target</ansi>!
-slashing|critical|together|toroom|beginner|2 => <ansi fg="User">Source</ansi> <ansi fg="cyan-bold">DEVASTATES</ansi> <ansi fg="Mob">Target</ansi> with their <ansi fg="item">Weapon</ansi>!
+slashing|critical|together|toroom|beginner|2 => <ansi fg="User">Source's</ansi> <ansi fg="item">Weapon</ansi> <ansi fg="cyan-bold">TEARS THROUGH</ansi> <ansi fg="Mob">Target</ansi>!
+slashing|critical|together|toroom|beginner|3 => <ansi fg="User">Source</ansi> <ansi fg="cyan-bold">DEVASTATES</ansi> <ansi fg="Mob">Target</ansi> with their <ansi fg="item">Weapon</ansi>!
 slashing|critical|together|toroom|expert|0 => <ansi fg="User">Source</ansi> whirls and their blade <ansi fg="cyan-bold">DEVASTATES</ansi> <ansi fg="Mob">Target</ansi>!
 slashing|critical|together|toroom|expert|1 => <ansi fg="User">Source</ansi> lunges forward with a <ansi fg="cyan-bold">PERFECT STRIKE</ansi>!
 slashing|critical|together|toroom|expert|2 => <ansi fg="User">Source</ansi> flows like water and <ansi fg="cyan-bold">RENDS</ansi> <ansi fg="Mob">Target</ansi>!
 slashing|critical|together|toroom|expert|3 => <ansi fg="User">Source's</ansi> masterful feint opens <ansi fg="Mob">Target</ansi> completely - <ansi fg="cyan-bold">ANNIHILATION</ansi>!
-slashing|critical|together|toroom|master|0 => <ansi fg="User">Source</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS CUT</ansi>!
-slashing|critical|together|toroom|master|1 => <ansi fg="User">Source's</ansi> tactical brilliance creates the perfect opening - <ansi fg="cyan-bold">EVISCERATION</ansi>!
-slashing|critical|together|toroom|master|2 => <ansi fg="User">Source</ansi> executes a <ansi fg="cyan-bold">DEVASTATING STRIKE</ansi> from the perfect angle!
-slashing|critical|together|toroom|master|3 => <ansi fg="User">Source</ansi> exploits total advantage and <ansi fg="cyan-bold">SHREDS</ansi> <ansi fg="Mob">Target</ansi> with precision!
-slashing|critical|together|toroom|master|4 => <ansi fg="User">Source's</ansi> positioning is flawless - <ansi fg="cyan-bold">OBLITERATION</ansi>!
-slashing|critical|together|toroom|master|5 => <ansi fg="User">Source's</ansi> unstoppable assault culminates in a <ansi fg="cyan-bold">CRITICAL LACERATION</ansi>!
-slashing|critical|together|toroom|master|6 => <ansi fg="User">Source</ansi> channels all momentum and <ansi fg="cyan-bold">CARVES THROUGH</ansi> <ansi fg="Mob">Target</ansi> utterly!
-slashing|critical|together|toroom|master|7 => The tide favors <ansi fg="User">Source</ansi> - their blade <ansi fg="cyan-bold">DECIMATES</ansi> <ansi fg="Mob">Target</ansi>!
+slashing|critical|together|toroom|expert|4 => <ansi fg="User">Source</ansi> anticipates every move and cuts <ansi fg="cyan-bold">FLAWLESSLY</ansi>!
+slashing|critical|together|toroom|master|0 => <ansi fg="User">Source's</ansi> tactical brilliance creates the perfect opening - <ansi fg="cyan-bold">EVISCERATION</ansi>!
+slashing|critical|together|toroom|master|1 => <ansi fg="User">Source's</ansi> Balanced approach culminates in a <ansi fg="cyan-bold">DEVASTATING CRITICAL</ansi> strike!
+slashing|critical|together|toroom|master|2 => <ansi fg="User">Source</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS CUT</ansi>!
+slashing|critical|together|toroom|master|3 => <ansi fg="User">Source</ansi> executes a <ansi fg="cyan-bold">DEVASTATING STRIKE</ansi> from the perfect angle!
+slashing|critical|together|toroom|master|4 => <ansi fg="User">Source</ansi> exploits total advantage and <ansi fg="cyan-bold">SHREDS</ansi> <ansi fg="Mob">Target</ansi> with precision!
+slashing|critical|together|toroom|master|5 => <ansi fg="User">Source's</ansi> positioning is flawless - <ansi fg="cyan-bold">OBLITERATION</ansi>!
+slashing|critical|together|toroom|master|6 => <ansi fg="User">Source's</ansi> unstoppable assault culminates in a <ansi fg="cyan-bold">CRITICAL LACERATION</ansi>!
+slashing|critical|together|toroom|master|7 => <ansi fg="User">Source</ansi> channels all momentum and <ansi fg="cyan-bold">CARVES THROUGH</ansi> <ansi fg="Mob">Target</ansi> utterly!
+slashing|critical|together|toroom|master|8 => The tide favors <ansi fg="User">Source</ansi> - their blade <ansi fg="cyan-bold">DECIMATES</ansi> <ansi fg="Mob">Target</ansi>!
 slashing|fumble|together|toattacker|beginner|0 => Your blade <ansi fg="red-bold">FUMBLES</ansi> awkwardly as your slash goes completely wild!
 slashing|fumble|together|toattacker|beginner|1 => You <ansi fg="red-bold">FUMBLE</ansi> and your grip slips dangerously on your <ansi fg="item">Weapon</ansi>!
 slashing|fumble|together|toattacker|beginner|2 => You overcommit to your slash and <ansi fg="red-bold">FUMBLE</ansi>, nearly losing your balance!
@@ -4247,8 +4305,9 @@ slashing|fumble|together|toattacker|master|0 => <ansi fg="Mob">Target</ansi>'s u
 slashing|fumble|together|toattacker|master|1 => Despite perfect form, a misstep causes you to <ansi fg="red-bold">FUMBLE</ansi>!
 slashing|fumble|together|toattacker|master|2 => Your masterful strike is disrupted - you <ansi fg="red-bold">FUMBLE</ansi> the execution!
 slashing|fumble|together|todefender|beginner|0 => <ansi fg="User">Source</ansi>'s blade <ansi fg="red-bold">FUMBLES</ansi> awkwardly against their own armor!
-slashing|fumble|together|todefender|beginner|1 => <ansi fg="User">Source</ansi> <ansi fg="red-bold">FUMBLES</ansi> their <ansi fg="item">Weapon</ansi> in a pathetic display of clumsy incompetence!
+slashing|fumble|together|todefender|beginner|1 => <ansi fg="User">Source</ansi>'s grip slips dangerously on their <ansi fg="item">Weapon</ansi>!
 slashing|fumble|together|todefender|beginner|2 => <ansi fg="User">Source</ansi> loses control of their swing and <ansi fg="red-bold">FUMBLES</ansi> badly!
+slashing|fumble|together|todefender|beginner|3 => <ansi fg="User">Source</ansi> <ansi fg="red-bold">FUMBLES</ansi> their <ansi fg="item">Weapon</ansi> in a pathetic display of clumsy incompetence!
 slashing|fumble|together|todefender|expert|0 => <ansi fg="User">Source's</ansi> tactical approach fails and they <ansi fg="red-bold">FUMBLE</ansi>!
 slashing|fumble|together|todefender|expert|1 => <ansi fg="User">Source</ansi> misjudges and <ansi fg="red-bold">FUMBLES</ansi> their slash!
 slashing|fumble|together|todefender|expert|2 => <ansi fg="User">Source's</ansi> feint backfires into a <ansi fg="red-bold">FUMBLE</ansi>!
@@ -4256,8 +4315,9 @@ slashing|fumble|together|todefender|master|0 => Your defense forces <ansi fg="Us
 slashing|fumble|together|todefender|master|1 => Despite their skill, <ansi fg="User">Source</ansi> <ansi fg="red-bold">FUMBLES</ansi>!
 slashing|fumble|together|todefender|master|2 => <ansi fg="User">Source's</ansi> masterful strike is disrupted - they <ansi fg="red-bold">FUMBLE</ansi>!
 slashing|fumble|together|toroom|beginner|0 => <ansi fg="User">Source</ansi>'s <ansi fg="item">Weapon</ansi> <ansi fg="red-bold">FUMBLES</ansi> wildly as their slash goes nowhere!
-slashing|fumble|together|toroom|beginner|1 => <ansi fg="User">Source</ansi> <ansi fg="red-bold">FUMBLES</ansi> their swing against <ansi fg="Mob">Target</ansi> in a ridiculous manner!
-slashing|fumble|together|toroom|beginner|2 => <ansi fg="User">Source</ansi> loses their grip and their attack <ansi fg="red-bold">FUMBLES</ansi> pathetically!
+slashing|fumble|together|toroom|beginner|1 => <ansi fg="User">Source</ansi> loses their grip and their attack <ansi fg="red-bold">FUMBLES</ansi> pathetically!
+slashing|fumble|together|toroom|beginner|2 => <ansi fg="User">Source</ansi> overcommits and <ansi fg="red-bold">FUMBLES</ansi>, nearly losing their balance!
+slashing|fumble|together|toroom|beginner|3 => <ansi fg="User">Source</ansi> <ansi fg="red-bold">FUMBLES</ansi> their swing against <ansi fg="Mob">Target</ansi> in a ridiculous manner!
 slashing|fumble|together|toroom|expert|0 => <ansi fg="User">Source's</ansi> tactical approach fails - they <ansi fg="red-bold">FUMBLE</ansi>!
 slashing|fumble|together|toroom|expert|1 => <ansi fg="User">Source</ansi> misjudges the distance and <ansi fg="red-bold">FUMBLES</ansi>!
 slashing|fumble|together|toroom|expert|2 => <ansi fg="User">Source's</ansi> feint backfires catastrophically!
