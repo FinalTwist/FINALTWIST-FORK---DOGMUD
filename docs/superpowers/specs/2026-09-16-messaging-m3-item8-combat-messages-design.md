@@ -21,6 +21,9 @@ the slice:
   and are filed for M4.
 - `world/default` "has nothing to do with us now, this is a holdover from
   GoMud. Comment it and move on."
+- **`ConsistentAttackMessages` is deleted, not repaired.** See the history
+  below: it is an upstream mechanism this project deliberately superseded, and
+  its only remaining effect is to reverse that decision.
 - Two PRs: content first, mechanism second.
 
 ## Facts verified against source
@@ -112,7 +115,7 @@ intent is already coordinated, and the pools have simply drifted apart.
 1. 984 authored lines bringing every dogmud role pool to per-tier equality.
 2. A coordinated renderer on the attack store, replacing the per-role draws.
 3. A real `Validate()`, the one the defence sibling has always had.
-4. `ConsistentAttackMessages` repaired, still shipping `false`.
+4. `ConsistentAttackMessages` and its whole seeded-pick apparatus deleted.
 5. A golden that freezes every authored line rather than every pool's first line.
 6. Comments marking the default tree as an unloadable GoMud holdover.
 
@@ -138,11 +141,17 @@ In `internal/items/attack_messages.go`, mirroring `DefenseOptions.RenderTriad`:
 func (stm SkillTieredMessages) PoolFor(skillLevel int) []string
 
 func (m TogetherMessages) Render(skillLevel int, tokens map[TokenName]string,
-        pick narration.Picker, indexOverride ...int) narration.Roles
+        pick narration.Picker) narration.Roles
 
 func (m SeparateMessages) Render(skillLevel int, tokens map[TokenName]string,
-        pick narration.Picker, indexOverride ...int) narration.Roles
+        pick narration.Picker) narration.Roles
 ```
+
+No `indexOverride`. The defence sibling takes one, but nothing here needs it
+once the knob is gone: production passes a nil picker for
+`narration.DefaultPicker`, and the golden builder walks every coordinated
+variant with a fresh `SequencePicker`, which yields 0, 1, 2 and so on across
+`n` calls.
 
 Role mapping, which is the mapping `render.go:35-38` was written for:
 
@@ -191,18 +200,58 @@ boot on 440 groups.
 `generic.yaml` and every other subtype reaches it through the existing Generic
 fallback, which is deliberate and works.
 
-### The knob
+### The knob, and why it is deleted rather than repaired
 
-`ConsistentAttackMessages` becomes real. When it is on, the call sites pass
-`weaponItemId % n` as `Render`'s `indexOverride`, where `n` is now the single
-coordinated length shared by every role. That gives per-weapon consistency and
-cross-audience coordination at once, which the old shared-seed approach could
-never do: the same seed hit `% len` against four different lengths and landed
-on four different indices.
+The mechanism is upstream GoMud's. `2a1c51087` (Volte6, 2024-11-21, PR #165)
+introduced the seeded pick `mo[seedNum[0]%len(mo)]`, the only commit that
+string has ever appeared in, and it has not been touched since.
 
-The shipped value stays `false`. Turning it on is a feel decision, not a
-refactor, and it belongs to the owner. `internal/configs/context.md:108` is
-corrected to say `false`.
+Its purpose was sound. Combat messages are authored per weapon **subtype**, so
+every slashing weapon shares one pool. Seeding the index with the item's
+`ItemId`, which is the spec key and not the instance
+(`internal/items/items.go:325`), makes a Blackrazor and an iron sword each land
+on a different but stable line. It buys per-weapon voice on top of shared
+per-subtype pools without authoring any per-weapon text, and no per-item
+message override exists anywhere in the codebase.
+
+Upstream's version worked, because upstream keeps its pools equal. The
+`default` tree is still 0 of 70 groups unequal today, which is the property the
+mechanism depends on: equal pools plus one shared seed means the same index for
+every role, so a single seed delivered a coordinated triad and per-weapon voice
+at once.
+
+This project moved away from it deliberately. `bcd08700b` (Stage 9.2,
+2026-02-14) expanded `slashing`/`critical` from 3 lines per role to 15 and
+turned the knob off in the same commit. That was correct: with a fixed index a
+player would have seen 1 of the 15, so the expansion would have been invisible.
+
+The side effect went unnoticed. Turning the knob off did not merely disable
+consistency, it switched selection from one shared index to one independent
+draw per role. **That commit is where the uncoordinated triad was born.**
+`39878e436` (Stage 9.5, 2026-02-15) added the skill tiers the next day, pools
+drifted unequal, and from then on flipping the knob back would not even have
+coordinated.
+
+So the knob is not broken, it is superseded, and its only remaining effect is
+to reverse a deliberate design decision that still stands. Item 8 deletes the
+config field (`internal/configs/config.balance.go:304`), its yaml key
+(`_datafiles/config.yaml:853`), the comment at
+`internal/configs/config.balance.combat.go:340`, the `config.gameplay.go:59`
+ignore line, both call-site branches (`internal/combat/combat.go:236-239`,
+`internal/combat/combat_helpers.go:498-507`), the `msgSeed` field and
+parameter, the seeded branches in both getters, and the unreachable
+`if seedNum[0] == 0 { return mo[0] }`.
+
+The blast radius is fully contained: `msgSeed` and `seedNum` have no consumers
+outside the three files item 8 already rewrites, and the knob has exactly two
+live call sites, both of which are being replaced. Deleting it also removes the
+`indexOverride` argument from the new `Render` calls, which then take a picker
+and nothing else.
+
+`config.yaml` carries the git skip-worktree bit, so that one-line removal is
+built from the `git show HEAD:` blob and never from disk. The key is removed
+from `internal/configs/context.md` rather than corrected, since the knob is
+gone.
 
 ### The content pad
 
@@ -215,8 +264,41 @@ the 18 `shooting` lines below.
 New lines are **appended** to the tier they belong to, never inserted, so every
 existing line keeps its index and the pairing at low indices survives. Where a
 pool is short, the new lines are written to pair with the lines already at
-those indices in the sibling roles. This is what makes the coordination
-meaningful rather than merely legal.
+those indices in the sibling roles.
+
+**This is the one part of the slice that nothing can check, and it is the part
+that matters.** The validator checks length. The golden records whatever is
+there. Neither can see meaning. So this passes every gate while defeating the
+entire purpose of the work:
+
+```
+attacker[5]  You take a {stance} stance, {position}, preparing to face {target}!
+defender[5]  {source} adopts a {stance} stance against you.
+room[5]      {source} adopts a masterful combat stance.
+```
+
+Six on-theme, well-written, correctly wrapped room lines appended in file order
+give `bite`/`prepare` equal pools, a green validator and a clean golden, and
+still tell the room about a different moment than the two fighters. The
+coordinated index makes that mismatch permanent rather than occasional, which
+is arguably worse than today.
+
+The rule that prevents it: **author each (verb, split, tier) group as a set
+across all roles at once**, with the sibling lines visibly in front of the
+writer, never as "fill role X's gap". One subagent per weapon file, each given
+the full role set for every group it touches. The reviewable unit is the group,
+not the line.
+
+A worked contrast, same slot:
+
+```
+attacker[5]  You take a {stance} stance, {position}, preparing to face {target}!
+defender[5]  {source} adopts a {stance} stance against you.
+room[5]      {source} takes a {stance} stance against {target}.
+```
+
+One weapon file is written and reviewed first, and the remaining 19 start only
+once its pairing has been accepted.
 
 `shooting.yaml` sets `todefenderroom: null` on `prepare` and `wait`. That is a
 gap, not a deliberate silence: `generic.yaml` authors that role for both verbs
@@ -275,9 +357,10 @@ Two `-update` runs, each deliberate, each reviewed for what it is.
 - **Validator.** Each of the three new checks fails a boot on a fixture that
   violates only it. Three sabotages, three separate reds. A validator that
   cannot fail is not a validator.
-- **Override.** With the knob on, the same weapon id yields the same
-  coordinated index across all roles, and a different weapon id generally does
-  not.
+- **Knob removal.** A repo guard asserts no `ConsistentAttackMessages`,
+  `msgSeed` or `seedNum` identifier survives anywhere. Probed by
+  reintroducing one, which must fail the guard. This is the anti-backslide
+  check the conditions slice-2 rename used.
 
 Per the repo rule, every sabotage is confirmed to compile and confirmed to turn
 the test red before the green run means anything. Where two branches are
@@ -312,8 +395,9 @@ a long fight.
 re-record in the existing shape. No Go changes. Reviewable as prose.
 
 **PR 2, mechanism.** `PoolFor` and the two `Render` methods, the validator, the
-two call sites, the knob, the deletions, the default-tree comments, the
-`configs/context.md` correction, the re-shaped golden and all four probes.
+two call sites, the full `ConsistentAttackMessages` and `msgSeed` deletion, the
+default-tree comments, the `configs/context.md` removal, the re-shaped golden
+and all four probes.
 
 The order is forced: the validator fails the boot on 440 groups until the
 padding lands.
@@ -330,8 +414,12 @@ padding lands.
 - **`world/default` is vestigial** across 30+ subsystems, and
   `ValidateWorldFiles` is nearly inert in the direction that matters. Filed
   against the M5 `world/default` template-shadowing item.
-- **Turning `ConsistentAttackMessages` on** is a feel call for the owner once
-  the mechanism is correct.
+- **Real per-weapon voice**, if it is ever wanted. The deleted knob faked it by
+  fixing an index into the shared subtype pool. The genuine versions are
+  authored per-item overrides for named weapons such as the Blackrazor, or an
+  `ItemId`-derived offset that shifts which slice of a pool a weapon type draws
+  from without collapsing it to one line. Both are features with content and
+  balance consequences, not a config flip, and neither belongs in item 8.
 - **M6 content ledger rows** are added in the same commit that defers them, per
   the ledger rule.
 
@@ -343,7 +431,8 @@ padding lands.
 - `internal/narration/context.md`: combat-messages joins the consumer list, and
   the `combat_messages.golden` entry is rewritten for the new shape and its
   authored-role keying.
-- `internal/configs/context.md:108`: `ConsistentAttackMessages` corrected to
-  `false`.
+- `internal/configs/context.md:108`: the `ConsistentAttackMessages` line is
+  removed, not corrected. It documented the knob as `true` while the shipped
+  value was `false`, so the drift dies with the knob.
 - `docs/README.md`: this spec and its plan.
 - The M6 content ledger gains item 8's deferred rows.
