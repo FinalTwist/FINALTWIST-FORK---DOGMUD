@@ -20,3 +20,17 @@ indoor:
       - "The sound of rain on the roof settles into a rhythmic, soothing patter."
       - "Water trickles past outside; somewhere a slow drip finds its rhythm."
       - "A gust flings a handful of rain against the panes, then relents."
+# Underground is felt through STONE, not through walls, so it carries no roofs,
+# panes, shutters, eaves or floorboards. The mild pool is deliberately empty:
+# light rain does not reach a cave at all. Only the strong band is authored,
+# which is what makes these lines heavy-rain-only.
+underground:
+  default:
+    mild: []
+    strong:
+      - "Water finds a seam in the rock and begins a slow, patient dripping."
+      - "The stone sweats. Every surface turns slick and cold to the touch."
+      - "Somewhere deeper in, water is running that was not running before."
+      - "A thin trickle threads down the wall and gathers in the hollows."
+      - "The air turns heavy and mineral, thick with the smell of wet rock."
+      - "Drips quicken overhead, counting out a rhythm with no pattern to it."
