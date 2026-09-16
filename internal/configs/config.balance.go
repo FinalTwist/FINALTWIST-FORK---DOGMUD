@@ -300,9 +300,6 @@ type Balance struct {
 	// ── COMBAT: DARKNESS ─────────────────────────────────────────────────────
 	DarknessCombatPenalty ConfigFloat `yaml:"DarknessCombatPenalty"` // Multiplier on attack AND defense scores when fighting blind (default 0.80)
 
-	// ── COMBAT: MESSAGES ─────────────────────────────────────────────────────
-	ConsistentAttackMessages ConfigBool `yaml:"ConsistentAttackMessages"` // Whether each weapon has consistent attack messages
-
 	// ── COMBAT: DAMAGE ───────────────────────────────────────────────────────
 	// Legacy unarmed knobs — still used by GetDefaultDistributionDamage() for
 	// attack count and crit condition calculation. Damage values are overridden by

@@ -58,7 +58,7 @@ A nil `Picker` means production behaviour: stores that accept one treat nil as
 coordinates the index and substitutes tokens.**
 
 The core deliberately knows nothing about bands, skill tiers or cooldowns.
-`items.SkillTieredMessages.GetForSkillLevelWith` UNIONS beginner, expert and
+`items.SkillTieredMessages.PoolFor` UNIONS beginner, expert and
 master by skill level, and `grapplemessaging.PickTemplate` FILTERS
 recently-used templates out; both hand `Render` an already-assembled
 `[]string`. Pulling either into the core would turn the messaging arc's M4
@@ -137,6 +137,27 @@ deliberate and load-bearing: it makes the golden able to catch a swap of which
 authored pool lands in which role, which is the mistake this core makes easiest
 to introduce. Re-recording it under the core's vocabulary would destroy that
 property.
+
+**`combat_messages.golden` records one COORDINATED VARIANT per row** (M3 item
+8), keyed `subtype|intensity|split|tier|index` with every authored role named
+inside the row. 2,280 rows covering all 6,975 dogmud lines, each exactly once.
+Reading across a row is how you check that the three audiences describe one
+moment, which no assertion can do for you.
+
+It is keyed per TIER, not per skill level: the union is cumulative, so a
+skill-level key would record every beginner line three times.
+
+Two earlier shapes are worth knowing about, because both were blind. Until PR
+1 of item 8 it took a fresh `SequencePicker` per tuple and so recorded only
+index 0 of each tier, which meant a 984-line content pad would have moved 6 of
+1,632 rows. And its intensity list had 8 entries, omitting `CoupDeGrace`
+entirely, so `generic`'s 25 coup-de-grace lines had never been covered by any
+golden. Both are fixed; `coupdegrace` is recorded for `generic` only, since
+every other subtype reaches it through `GetPreAttackMessage`'s Generic
+fallback and would otherwise duplicate those rows 19 times.
+
+A short pool renders as `<none>` in a row. There are none, which is an
+independent check that every group is equal.
 
 **A single-variant store renders with `FirstPicker`, never the default.**
 `Render` always calls `pick(n)`, `DefaultPicker` always calls `util.Rand`, and

@@ -336,9 +336,6 @@ func (b *Balance) validateCombat() {
 		b.DarknessCombatPenalty = 0.80
 	}
 
-	// ── MESSAGES ─────────────────────────────────────────────────────────────
-	// ConsistentAttackMessages is a ConfigBool — no zero-check needed
-
 	// ── DAMAGE ───────────────────────────────────────────────────────────────
 	if b.MeleeDamageScale <= 0 {
 		b.MeleeDamageScale = 0.30

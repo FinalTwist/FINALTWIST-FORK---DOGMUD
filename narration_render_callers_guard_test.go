@@ -21,6 +21,7 @@ var narrationRenderCallers = map[string]string{
 	"internal/gossip/gossip.go":            "Kind A: gossip template pools, single role (the gossiping NPC)",
 	"internal/grapplemessaging/render.go":  "Kind A: the grapple store's coordinated triad",
 	"internal/items/defensive_messages.go": "Kind A: the defence store's coordinated triad",
+	"internal/items/attack_messages.go":    "Kind A: the combat-message store's coordinated triad and ranged quartet (M3 item 8)",
 	"internal/itemvoices/itemvoices.go":    "Kind A: sentient item voices, single role",
 	"internal/spells/casting_messages.go":  "Kind A: the caster-only casting pools",
 	"internal/textutil/narrate.go":         "the ONE door for the Kind B stores; must pass narration.FirstPicker",

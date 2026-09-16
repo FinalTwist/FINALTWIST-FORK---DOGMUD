@@ -11,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/narration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/species"
@@ -232,12 +233,6 @@ func GetWaitMessages(stepType items.Intensity, sourceChar *characters.Character,
 
 	var toAttackerMsg, toDefenderMsg, toAttackerRoomMsg, toDefenderRoomMsg items.ItemMessage
 
-	// zero means randomly selected, otherwise use the ItemId to consistently choose a message
-	msgSeed := 0
-	if configs.GetBalanceConfig().ConsistentAttackMessages {
-		msgSeed = sourceChar.Equipment.Weapon.ItemId
-	}
-
 	// Stage 9.4: Track attack for stance calculation
 	sourceChar.IncrementAttackCount()
 
@@ -265,18 +260,9 @@ func GetWaitMessages(stepType items.Intensity, sourceChar *characters.Character,
 	// Get source character's weapon skill level for message selection
 	skillLevel := sourceChar.GetCombatSkillLevel()
 
-	if sourceChar.RoomId == targetChar.RoomId {
-		toAttackerMsg = msgs.Together.ToAttacker.GetForSkillLevel(skillLevel, msgSeed)
-		toDefenderMsg = msgs.Together.ToDefender.GetForSkillLevel(skillLevel, msgSeed)
-		toAttackerRoomMsg = msgs.Together.ToRoom.GetForSkillLevel(skillLevel, msgSeed)
-		toDefenderRoomMsg = items.ItemMessage("")
+	together := sourceChar.RoomId == targetChar.RoomId
 
-	} else {
-
-		toAttackerMsg = msgs.Separate.ToAttacker.GetForSkillLevel(skillLevel, msgSeed)
-		toDefenderMsg = msgs.Separate.ToDefender.GetForSkillLevel(skillLevel, msgSeed)
-		toAttackerRoomMsg = msgs.Separate.ToAttackerRoom.GetForSkillLevel(skillLevel, msgSeed)
-		toDefenderRoomMsg = msgs.Separate.ToDefenderRoom.GetForSkillLevel(skillLevel, msgSeed)
+	if !together {
 
 		// Find the exit that leads to the target from the source (if any)
 		if atkRoom := rooms.LoadRoom(sourceChar.RoomId); atkRoom != nil {
@@ -312,14 +298,21 @@ func GetWaitMessages(stepType items.Intensity, sourceChar *characters.Character,
 		tokenReplacements[items.TokenTarget] = targetChar.GetMobName(0).String()
 	}
 
-	for tokenName, tokenValue := range tokenReplacements {
-		toAttackerMsg = toAttackerMsg.SetTokenValue(tokenName, tokenValue)
-		toDefenderMsg = toDefenderMsg.SetTokenValue(tokenName, tokenValue)
-		toAttackerRoomMsg = toAttackerRoomMsg.SetTokenValue(tokenName, tokenValue)
-		if len(string(toDefenderRoomMsg)) > 0 {
-			toDefenderRoomMsg = toDefenderRoomMsg.SetTokenValue(tokenName, tokenValue)
-		}
+	// ONE coordinated draw for every audience. Selection happens here, after
+	// the token map is complete, because Render substitutes as it renders.
+	// This used to be three or four independent GetForSkillLevel calls, one
+	// per viewpoint, which narrated a different moment to each of them.
+	var roles narration.Roles
+	if together {
+		roles = msgs.Together.Render(skillLevel, tokenReplacements, nil)
+	} else {
+		roles = msgs.Separate.Render(skillLevel, tokenReplacements, nil)
 	}
+
+	toAttackerMsg = items.ItemMessage(roles.Actor)
+	toDefenderMsg = items.ItemMessage(roles.Actee)
+	toAttackerRoomMsg = items.ItemMessage(roles.Observer)
+	toDefenderRoomMsg = items.ItemMessage(roles.ActeeObserver)
 
 	// Wait-round messages: source's weapon category for hit-band
 	// color; falls back to CategoryHitMelee if no main weapon.
