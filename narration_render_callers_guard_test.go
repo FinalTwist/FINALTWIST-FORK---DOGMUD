@@ -25,6 +25,16 @@ var narrationRenderCallers = map[string]string{
 	"internal/itemvoices/itemvoices.go":    "Kind A: sentient item voices, single role",
 	"internal/spells/casting_messages.go":  "Kind A: the caster-only casting pools",
 	"internal/textutil/narrate.go":         "the ONE door for the Kind B stores; must pass narration.FirstPicker",
+
+	// The first and only entry outside internal/. Weather is a module, and
+	// modules/weather/content carries its own purity rule (arch_test.go) that
+	// forbids internal/* imports except for a one-package allowlist naming
+	// narration; see that file before adding a second module here.
+	//
+	// It is also the arc's ONLY ACTORLESS store: an ambient line has no Actor
+	// and no Actee, so renderAmbient populates Observer alone rather than
+	// inventing a subject for the weather.
+	"modules/weather/content/emotes.go": "Kind A: weather ambient emote pools, single role (the room is told)",
 }
 
 var narrationRenderCallRE = regexp.MustCompile(`narration\.Render\(`)

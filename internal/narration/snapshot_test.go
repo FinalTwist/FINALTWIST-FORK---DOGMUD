@@ -104,6 +104,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/textutil"
 	"github.com/GoMudEngine/GoMud/internal/tips"
+	"github.com/GoMudEngine/GoMud/modules/weather/content"
+	"github.com/GoMudEngine/GoMud/modules/weather/sim"
 )
 
 var update = flag.Bool("update", false, "update golden snapshot files under testdata/stores")
@@ -583,6 +585,24 @@ func sortedKeysStrSlice(m map[string][]string) []string {
 	return keys
 }
 
+func sortedKeysIndoorPool(m map[string]content.IndoorPool) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func sortedKeysTableSection(m map[string]content.TableSection) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
+}
+
 func sortedKeysGradient(m map[string]grapplemessaging.GradientTriad) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -820,6 +840,9 @@ func TestSnapshotStores(t *testing.T) {
 	})
 	t.Run("tips", func(t *testing.T) {
 		checkGolden(t, "tips.golden", buildTipsGolden(t))
+	})
+	t.Run("weather_emotes", func(t *testing.T) {
+		checkGolden(t, "weather_emotes.golden", buildWeatherEmotesGolden(t))
 	})
 	t.Run("post_pipeline", func(t *testing.T) {
 		checkGolden(t, "post_pipeline.golden", buildPostPipelineGolden(t))
@@ -1188,6 +1211,178 @@ func buildTipsGolden(t *testing.T) string {
 	for i := 0; i < n; i++ {
 		fmt.Fprintf(&b, "tip|%d => %s\n", i, tips.Next())
 	}
+
+	return b.String()
+}
+
+// ---------------------------------------------------------------------
+// Store 14: weather emotes (modules/weather/content)
+//
+// The ONLY actorless store in the arc: an ambient line has no Actor, so it is
+// rendered with narration.Variants{Observer: lines} and the other three roles
+// stay empty. Dimensions: weather type x section(outdoor/sheltered) x biome
+// (authored keys UNION a representative set, on BOTH sections) x season(base
+// + each authored variant), then the seasonal-ambience tables by (track,
+// season). The mild/strong BAND axis applies to sheltered rows only; outdoor
+// lines are never felt-banded, so it is not a dimension of the outdoor rows.
+//
+// The sheltered axis is named for the ROOM, not for the section it resolves
+// to, because item 9 PR 2 splits that one section into indoor and underground
+// and the row keys must survive it.
+//
+// Recorded 2026-09-16 from PRE-migration code. Weather already had a picker
+// seam (Pick takes `roll func(int) int`, and narration.Picker has that exact
+// underlying type, so SequencePicker is assignable with no production change),
+// which is why this baseline needed no `*With` variant the way itemvoices did.
+//
+// Indoor bands are forced by the felt value, not by naming a band: felt 0.0 is
+// below content.StrongFeltThreshold (0.5) and selects Mild; felt 1.0 is at or
+// above it and selects Strong. An empty Mild pool rendering "" is DELIBERATE
+// (light weather is inaudible through walls) and that emptiness is frozen here
+// too, so a pool silently disappearing shows as a row changing from text to "".
+func buildWeatherEmotesGolden(t *testing.T) string {
+	t.Helper()
+	root := os.DirFS(dogmudDataDir(t))
+
+	tables, err := content.LoadEmotes(root, "weather/emotes")
+	if err != nil {
+		t.Fatalf("LoadEmotes: %v", err)
+	}
+	if len(tables) == 0 {
+		t.Fatal("no weather emote tables loaded; the golden would be vacuous")
+	}
+	seasonal, err := content.LoadSeasonalEmotes(root, "weather/emotes/seasons")
+	if err != nil {
+		t.Fatalf("LoadSeasonalEmotes: %v", err)
+	}
+	if len(seasonal) == 0 {
+		t.Fatal("no seasonal ambience tables loaded; the golden would be vacuous")
+	}
+
+	bands := []struct {
+		name string
+		felt float64
+	}{{"mild", 0.0}, {"strong", 1.0}}
+
+	// Representative biomes, swept IN ADDITION to the authored keys.
+	//
+	// THIS IS WHAT MAKES THE GOLDEN ABLE TO SEE PR 2. The authored indoor
+	// keys are "default" only, so sweeping authored keys alone would never
+	// exercise a cave, and the three-way split would land with no diff to
+	// inspect. Today all of these resolve to indoor["default"]; after PR 2
+	// classifies them, cave and dungeon must move to the underground section
+	// and the others must not, which shows up here as a diff on exactly
+	// those rows.
+	repBiomes := []string{"cave", "dungeon", "house", "fort", "spiderweb", "forest"}
+
+	// union merges the authored keys with the representative set, de-duplicated
+	// and sorted, so every row is stable across runs.
+	union := func(authored []string) []string {
+		seen := map[string]bool{}
+		out := []string{}
+		for _, k := range append(append([]string{}, authored...), repBiomes...) {
+			if !seen[k] {
+				seen[k] = true
+				out = append(out, k)
+			}
+		}
+		sort.Strings(out)
+		return out
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "# weather emotes store snapshot\n")
+	fmt.Fprintf(&b, "# weather tables: %d   seasonal-ambience tables: %d\n", len(tables), len(seasonal))
+	fmt.Fprintf(&b, "# Recorded 2026-09-16 from PRE-migration code: a baseline of existing behaviour,\n")
+	fmt.Fprintf(&b, "# not a record of what a later migration produced.\n")
+	fmt.Fprintf(&b, "# dimensions: type x section(outdoor/sheltered) x biome x band x season, then\n")
+	fmt.Fprintf(&b, "# (track,season) ambience. Band applies to sheltered rows only; outdoor lines\n")
+	fmt.Fprintf(&b, "# are never felt-banded.\n")
+	fmt.Fprintf(&b, "# \"sheltered\" names the ROOM, not the section: item 9 PR 2 splits it into\n")
+	fmt.Fprintf(&b, "# indoor and underground, and these row keys must survive that split.\n")
+	fmt.Fprintf(&b, "# Biome is authored keys UNION a representative set (cave, dungeon, house,\n")
+	fmt.Fprintf(&b, "# fort, spiderweb, forest) on both axes: the only authored sheltered key is\n")
+	fmt.Fprintf(&b, "# \"default\", so without this set the golden would never see a cave and PR 2's\n")
+	fmt.Fprintf(&b, "# split would land with no diff; the same union on outdoor exercises its own\n")
+	fmt.Fprintf(&b, "# biome-to-default fallback.\n")
+	fmt.Fprintf(&b, "# Single role (the room is told), no tokens authored anywhere in this store.\n")
+	fmt.Fprintf(&b, "# A fresh SequencePicker per row pins index 0.\n")
+	fmt.Fprintf(&b, "# An empty row (\"\") in a mild band is deliberate silence, not a missing pool.\n\n")
+
+	types := make([]string, 0, len(tables))
+	for wt := range tables {
+		types = append(types, string(wt))
+	}
+	sort.Strings(types)
+
+	for _, wt := range types {
+		w := sim.WeatherType(wt)
+		tbl := tables[w]
+
+		// union() here too: the outdoor axis has its own biome-to-default
+		// fallback, and none of the representative biomes (cave, dungeon,
+		// house, fort, spiderweb) is ever authored outdoors -- the union
+		// exists to exercise that fallback, not because a cave is ever
+		// outdoors.
+		for _, biome := range union(sortedKeysStrSlice(tbl.Outdoor)) {
+			fmt.Fprintf(&b, "%s|base|outdoor|%s => %q\n", wt, biome,
+				tables.Pick(w, biome, false, 0, "", narration.SequencePicker()))
+		}
+		// "sheltered" rather than "indoor": after PR 2 this axis covers two
+		// prose classes, and the row key must not have to be renamed then.
+		for _, biome := range union(sortedKeysIndoorPool(tbl.Indoor)) {
+			for _, bd := range bands {
+				fmt.Fprintf(&b, "%s|base|sheltered|%s|%s => %q\n", wt, biome, bd.name,
+					tables.Pick(w, biome, true, bd.felt, "", narration.SequencePicker()))
+			}
+		}
+		for _, season := range sortedKeysTableSection(tbl.Seasonal) {
+			sec := tbl.Seasonal[season]
+			for _, biome := range union(sortedKeysStrSlice(sec.Outdoor)) {
+				fmt.Fprintf(&b, "%s|season:%s|outdoor|%s => %q\n", wt, season, biome,
+					tables.Pick(w, biome, false, 0, season, narration.SequencePicker()))
+			}
+			for _, biome := range union(sortedKeysIndoorPool(sec.Indoor)) {
+				for _, bd := range bands {
+					fmt.Fprintf(&b, "%s|season:%s|sheltered|%s|%s => %q\n", wt, season, biome, bd.name,
+						tables.Pick(w, biome, true, bd.felt, season, narration.SequencePicker()))
+				}
+			}
+		}
+	}
+
+	// Seasonal ambience: the persistent voice of a season in CALM weather.
+	fmt.Fprintf(&b, "\n# seasonal ambience tables, keyed (track, season)\n")
+	keys := make([]string, 0, len(seasonal))
+	index := map[string]content.SeasonalKey{}
+	for k := range seasonal {
+		flat := k.Track + "/" + k.Season
+		keys = append(keys, flat)
+		index[flat] = k
+	}
+	sort.Strings(keys)
+	for _, flat := range keys {
+		k := index[flat]
+		sec := seasonal[k]
+		for _, biome := range union(sortedKeysStrSlice(sec.Outdoor)) {
+			fmt.Fprintf(&b, "%s|%s|outdoor|%s => %q\n", k.Track, k.Season, biome,
+				seasonal.Pick(k.Track, k.Season, biome, false, 0, narration.SequencePicker()))
+		}
+		for _, biome := range union(sortedKeysIndoorPool(sec.Indoor)) {
+			for _, bd := range bands {
+				fmt.Fprintf(&b, "%s|%s|sheltered|%s|%s => %q\n", k.Track, k.Season, biome, bd.name,
+					seasonal.Pick(k.Track, k.Season, biome, true, bd.felt, narration.SequencePicker()))
+			}
+		}
+	}
+
+	// EMPTY CASES, frozen deliberately.
+	fmt.Fprintf(&b, "\n# EMPTY CASE: unknown weather type -> \"\"\n")
+	fmt.Fprintf(&b, "bogus-weather|base|outdoor|default => %q\n",
+		tables.Pick(sim.WeatherType("bogus-weather"), "default", false, 0, "", narration.SequencePicker()))
+	fmt.Fprintf(&b, "\n# EMPTY CASE: unknown (track,season) ambience -> \"\"\n")
+	fmt.Fprintf(&b, "bogus-track|bogus-season|outdoor|default => %q\n",
+		seasonal.Pick("bogus-track", "bogus-season", "default", false, 0, narration.SequencePicker()))
 
 	return b.String()
 }

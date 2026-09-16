@@ -3,6 +3,8 @@ package content
 import (
 	"testing"
 	"testing/fstest"
+
+	"github.com/GoMudEngine/GoMud/internal/narration"
 )
 
 const stormYAML = `weather: storm
@@ -70,16 +72,6 @@ func TestLoadEmotesMissingDir(t *testing.T) {
 	tables, err := LoadEmotes(fstest.MapFS{}, "emotes")
 	if err != nil || len(tables) != 0 {
 		t.Fatalf("missing dir should be empty tables, nil error: %v %v", tables, err)
-	}
-}
-
-func TestPickClampsOutOfRangeRoll(t *testing.T) {
-	tables := loadTestTables(t)
-	if got := tables.Pick("storm", "default", false, 0.7, "", func(n int) int { return n }); got != "Thunder cracks directly overhead." {
-		t.Errorf("out-of-range roll should clamp to first line: %q", got)
-	}
-	if got := tables.Pick("storm", "default", false, 0.7, "", func(n int) int { return -3 }); got != "Thunder cracks directly overhead." {
-		t.Errorf("negative roll should clamp to first line: %q", got)
 	}
 }
 
@@ -211,6 +203,63 @@ func TestLoadSeasonalEmotes_RejectsMissingKeys(t *testing.T) {
 	fsys := fstest.MapFS{"seasons/bad.yaml": {Data: []byte("outdoor:\n  default: [\"x\"]\n")}}
 	if _, err := LoadSeasonalEmotes(fsys, "seasons"); err == nil {
 		t.Fatal("seasonal emote file without track/season must be rejected")
+	}
+}
+
+// The store renders through the shared narration core, actorlessly: the
+// Observer role carries the line and the other three roles stay empty. This
+// test pins the seam, not the prose, so it must keep passing when a later PR
+// rewrites the content.
+//
+// It also stands in for the old bare-clamp Pick's out-of-range defense.
+// narration.Picker documents "an index in [0,n)" as a CONTRACT rather than
+// something Render polices, so the sequence-picker loop below proves the
+// FULL valid range reaches every line (including the last index, which a
+// lingering clamp-to-0 bug would silently mishandle), in place of proving
+// out-of-range inputs got clamped.
+func TestPickRendersThroughTheNarrationCore(t *testing.T) {
+	tables := Tables{
+		"rain": {
+			Weather: "rain",
+			Outdoor: map[string][]string{
+				"default": {"first line", "second line", "third line"},
+			},
+		},
+	}
+	want := []string{"first line", "second line", "third line"}
+
+	// FirstPicker always returns 0, so the first authored variant must come
+	// back. If the store still rolled its own index this would be flaky
+	// rather than exact.
+	if got := tables.Pick("rain", "default", false, 0, "", narration.FirstPicker); got != want[0] {
+		t.Fatalf("FirstPicker should select variant 0, got %q", got)
+	}
+
+	// A picker that walks the pool proves the index reaches the core rather
+	// than being discarded, across the full valid range.
+	seq := narration.SequencePicker()
+	for i, w := range want {
+		if got := tables.Pick("rain", "default", false, 0, "", seq); got != w {
+			t.Fatalf("call %d: want %q, got %q", i, w, got)
+		}
+	}
+
+	// A nil picker is the assertion that actually proves the core is in the
+	// call path. The pre-migration code called the picker directly, so a nil
+	// one panicked; narration.Render substitutes DefaultPicker instead. This
+	// is the one observable difference the migration makes, since weather
+	// authors no tokens and has only one role for Render to coordinate.
+	//
+	// DefaultPicker is random, so assert membership in the pool, not identity.
+	got := tables.Pick("rain", "default", false, 0, "", nil)
+	found := false
+	for _, w := range want {
+		if got == w {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("a nil picker must fall back to DefaultPicker and return an authored line, got %q", got)
 	}
 }
 
