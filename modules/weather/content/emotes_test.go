@@ -338,3 +338,67 @@ seasonal:
 		t.Fatalf("weather key regressed: %q", tbl.Weather)
 	}
 }
+
+func TestClassResolution(t *testing.T) {
+	tables := Tables{
+		"rain": {
+			Weather: "rain",
+			TableSection: TableSection{
+				Outdoor: map[string][]string{"default": {"OUT"}},
+				Indoor: map[string]IndoorPool{
+					"default": {Mild: []string{"IN-MILD"}, Strong: []string{"IN-STRONG"}},
+				},
+				Underground: map[string]IndoorPool{
+					"default": {Mild: nil, Strong: []string{"UNDER-STRONG"}},
+				},
+			},
+		},
+	}
+
+	cases := []struct {
+		name   string
+		biome  string
+		indoor bool
+		felt   float64
+		want   string
+	}{
+		{"outdoor ignores the biome", "forest", false, 1.0, "OUT"},
+		{"house is surface indoor", "house", true, 1.0, "IN-STRONG"},
+		{"fort is surface indoor", "fort", true, 1.0, "IN-STRONG"},
+		{"cave is underground", "cave", true, 1.0, "UNDER-STRONG"},
+		{"dungeon is underground", "dungeon", true, 1.0, "UNDER-STRONG"},
+		{"spiderweb is NOT underground", "spiderweb", true, 1.0, "IN-STRONG"},
+		{"indoor mild band below threshold", "house", true, 0.0, "IN-MILD"},
+		{"underground mild is empty, so silence", "cave", true, 0.0, ""},
+		{"unknown biome falls back to default", "nowhere", true, 1.0, "IN-STRONG"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := tables.Pick("rain", c.biome, c.indoor, c.felt, "", narration.FirstPicker)
+			if got != c.want {
+				t.Fatalf("want %q, got %q", c.want, got)
+			}
+		})
+	}
+}
+
+// Underground must never borrow indoor's or outdoor's prose. A cave with no
+// authored underground pool is SILENT, which is the store's standing rule:
+// silence beats wrong prose.
+func TestUndergroundNeverFallsBackToAnotherClass(t *testing.T) {
+	tables := Tables{
+		"rain": {
+			Weather: "rain",
+			TableSection: TableSection{
+				Outdoor: map[string][]string{"default": {"OUT"}},
+				Indoor: map[string]IndoorPool{
+					"default": {Strong: []string{"IN-STRONG"}},
+				},
+				// Underground deliberately absent.
+			},
+		},
+	}
+	if got := tables.Pick("rain", "cave", true, 1.0, "", narration.FirstPicker); got != "" {
+		t.Fatalf("underground with no pool must be silent, got %q", got)
+	}
+}

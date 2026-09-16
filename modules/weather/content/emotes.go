@@ -117,11 +117,11 @@ func (ts Tables) Pick(weather sim.WeatherType, biome string, indoor bool, felt f
 	var lines []string
 	if season != "" {
 		if v, ok := t.Seasonal[season]; ok {
-			lines = bandedSectionLines(v.Outdoor, v.Indoor, biome, indoor, felt)
+			lines = bandedSectionLines(v, biome, indoor, felt)
 		}
 	}
 	if len(lines) == 0 {
-		lines = bandedSectionLines(t.Outdoor, t.Indoor, biome, indoor, felt)
+		lines = bandedSectionLines(t.TableSection, biome, indoor, felt)
 	}
 
 	return renderAmbient(lines, pick)
@@ -144,25 +144,66 @@ func renderAmbient(lines []string, pick narration.Picker) string {
 	return narration.Render(narration.Variants{Observer: lines}, nil, pick).Observer
 }
 
-// bandedSectionLines resolves biome -> "default" within one outdoor/indoor
-// pair. Outdoor is a flat list; indoor is felt-banded (Mild below
-// StrongFeltThreshold, else Strong). Indoor never falls back to outdoor.
-func bandedSectionLines(outdoor map[string][]string, indoor map[string]IndoorPool, biome string, useIndoor bool, felt float64) []string {
-	if useIndoor {
-		pool, ok := indoor[biome]
-		if !ok || (len(pool.Mild) == 0 && len(pool.Strong) == 0) {
-			pool = indoor["default"]
+// undergroundBiomes names the biomes whose weather is felt through STONE
+// rather than through walls: seepage, draughts, transmitted sound, mineral
+// cold. 124 of the game's 161 indoor rooms are one of these, which is why the
+// class exists at all.
+//
+// 🔑 ADDING, RENAMING OR REMOVING A BIOME REQUIRES EDITING THIS MAP OR
+// surfaceIndoorBiomes. biome_coupling_test.go fails the build otherwise; it is
+// the only thing standing between a new indoor biome and silently inheriting
+// prose about roofs and windowpanes.
+var undergroundBiomes = map[string]bool{
+	"cave":    true,
+	"dungeon": true,
+}
+
+// surfaceIndoorBiomes names the sheltered-but-not-underground biomes: built
+// structures, where rain on a roof and wind in the eaves are the right images.
+//
+// This map exists so classification is TOTAL. Without it a newly added indoor
+// biome would fall through to this class silently, which is exactly the defect
+// the underground split was written to fix.
+//
+// spiderweb is here rather than in undergroundBiomes deliberately: it is dark
+// and sheltered, but its darkness is webbing, not stone, so stone prose would
+// be wrong. It currently has ZERO rooms, so no prose is authored for it; if it
+// is ever used it wants its own biome-keyed pool rather than either default.
+var surfaceIndoorBiomes = map[string]bool{
+	"house":     true,
+	"fort":      true,
+	"spiderweb": true,
+}
+
+// bandedSectionLines resolves one prose class and then biome -> "default"
+// within it. Outdoor is a flat list; Indoor and Underground are felt-banded
+// (Mild below StrongFeltThreshold, else Strong).
+//
+// A class NEVER falls back to another class. An unauthored underground pool
+// renders silence rather than borrowing house prose, which is the whole point
+// of the split.
+func bandedSectionLines(sec TableSection, biome string, useIndoor bool, felt float64) []string {
+	if !useIndoor {
+		lines := sec.Outdoor[biome]
+		if len(lines) == 0 {
+			lines = sec.Outdoor["default"]
 		}
-		if felt >= StrongFeltThreshold {
-			return pool.Strong
-		}
-		return pool.Mild
+		return lines
 	}
-	lines := outdoor[biome]
-	if len(lines) == 0 {
-		lines = outdoor["default"]
+
+	pools := sec.Indoor
+	if undergroundBiomes[biome] {
+		pools = sec.Underground
 	}
-	return lines
+
+	pool, ok := pools[biome]
+	if !ok || (len(pool.Mild) == 0 && len(pool.Strong) == 0) {
+		pool = pools["default"]
+	}
+	if felt >= StrongFeltThreshold {
+		return pool.Strong
+	}
+	return pool.Mild
 }
 
 // SeasonalKey identifies one (track, season) ambience table.
@@ -219,5 +260,5 @@ func (st SeasonalTables) Pick(track, season, biome string, indoor bool, felt flo
 	if !ok {
 		return ""
 	}
-	return renderAmbient(bandedSectionLines(sec.Outdoor, sec.Indoor, biome, indoor, felt), pick)
+	return renderAmbient(bandedSectionLines(sec, biome, indoor, felt), pick)
 }
