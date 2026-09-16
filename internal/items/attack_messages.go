@@ -2,6 +2,7 @@ package items
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/narration"
@@ -235,6 +236,22 @@ func (w *WeaponAttackMessageGroup) Id() ItemSubType {
 }
 
 // Presumably to ensure the datafile hasn't messed something up.
+// Validate checks that every required intensity is present and that every
+// authored group can be rendered from ONE coordinated index.
+//
+// Equality is checked PER TIER, not on the union totals. The runtime union is
+// cumulative (beginner, plus expert at 34, plus master at 67), so equal totals
+// with unequal tiers would still pair an expert line against a master one at
+// the same index. Per-tier equality is exactly equivalent to union equality at
+// all three skill levels.
+//
+// minVariants is 1, not the defence store's 5: the smallest authored group in
+// the shipped store is generic/coupdegrace/separate/beginner at one line, and
+// 414 of 534 groups hold fewer than five.
+//
+// The attack store had none of this until M3 item 8. It checked intensity
+// presence and nothing else, while the defence sibling next door
+// (defensive_messages.go) has always checked emptiness and equal lengths.
 func (w *WeaponAttackMessageGroup) Validate() error {
 
 	// Make sure all important options are present.
@@ -245,7 +262,64 @@ func (w *WeaponAttackMessageGroup) Validate() error {
 		}
 	}
 
+	tiers := []struct {
+		name string
+		get  func(SkillTieredMessages) MessageOptions
+	}{
+		{"beginner", func(s SkillTieredMessages) MessageOptions { return s.Beginner }},
+		{"expert", func(s SkillTieredMessages) MessageOptions { return s.Expert }},
+		{"master", func(s SkillTieredMessages) MessageOptions { return s.Master }},
+	}
+
+	// Sorted so a file with several faults always reports the same one first,
+	// rather than whichever the map happened to yield.
+	intensities := make([]string, 0, len(w.Options))
+	for intensity := range w.Options {
+		intensities = append(intensities, string(intensity))
+	}
+	sort.Strings(intensities)
+
+	for _, name := range intensities {
+		intensity := Intensity(name)
+		opts := w.Options[intensity]
+
+		for _, tier := range tiers {
+			together := narration.Variants{
+				Actor:    messageStrings(tier.get(opts.Together.ToAttacker)),
+				Actee:    messageStrings(tier.get(opts.Together.ToDefender)),
+				Observer: messageStrings(tier.get(opts.Together.ToRoom)),
+			}
+			if anyPool(together) {
+				if err := narration.ValidateVariants(together, 1,
+					narration.RoleActor, narration.RoleActee, narration.RoleObserver); err != nil {
+					return fmt.Errorf("%s option[`%s`].together.%s: %w", w.OptionId, intensity, tier.name, err)
+				}
+			}
+
+			separate := narration.Variants{
+				Actor:         messageStrings(tier.get(opts.Separate.ToAttacker)),
+				Actee:         messageStrings(tier.get(opts.Separate.ToDefender)),
+				Observer:      messageStrings(tier.get(opts.Separate.ToAttackerRoom)),
+				ActeeObserver: messageStrings(tier.get(opts.Separate.ToDefenderRoom)),
+			}
+			if anyPool(separate) {
+				if err := narration.ValidateVariants(separate, 1,
+					narration.RoleActor, narration.RoleActee,
+					narration.RoleObserver, narration.RoleActeeObserver); err != nil {
+					return fmt.Errorf("%s option[`%s`].separate.%s: %w", w.OptionId, intensity, tier.name, err)
+				}
+			}
+		}
+	}
+
 	return nil
+}
+
+// anyPool reports whether a group was authored at all, so a subtype with no
+// separate block is skipped rather than reported as four missing roles.
+func anyPool(v narration.Variants) bool {
+	return len(v.Actor) > 0 || len(v.Actee) > 0 ||
+		len(v.Observer) > 0 || len(v.ActeeObserver) > 0
 }
 
 func (w *WeaponAttackMessageGroup) Filepath() string {

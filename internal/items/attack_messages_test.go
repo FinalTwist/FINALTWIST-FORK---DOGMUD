@@ -158,3 +158,100 @@ func TestRenderUnequalPoolsRenderNothing(t *testing.T) {
 		t.Errorf("unequal pools must render nothing, got %+v", roles)
 	}
 }
+
+// balancedGroup builds a weapon group that satisfies every required intensity
+// with one balanced line per role, so a test can break exactly one thing.
+func balancedGroup() *WeaponAttackMessageGroup {
+	g := &WeaponAttackMessageGroup{OptionId: "testweapon", Options: AttackTypes{}}
+	for _, i := range []Intensity{Prepare, Wait, Miss, Weak, Normal, Heavy, Critical, Fumble} {
+		g.Options[i] = AttackOptions{Together: TogetherMessages{
+			ToAttacker: SkillTieredMessages{Beginner: MessageOptions{"a"}},
+			ToDefender: SkillTieredMessages{Beginner: MessageOptions{"d"}},
+			ToRoom:     SkillTieredMessages{Beginner: MessageOptions{"r"}},
+		}}
+	}
+	return g
+}
+
+func TestValidateAcceptsABalancedGroup(t *testing.T) {
+	if err := balancedGroup().Validate(); err != nil {
+		t.Fatalf("a balanced group must validate, got %v", err)
+	}
+}
+
+func TestValidateRejectsAMissingIntensity(t *testing.T) {
+	g := balancedGroup()
+	delete(g.Options, Fumble)
+	if err := g.Validate(); err == nil {
+		t.Fatal("Validate accepted a group with no fumble intensity")
+	}
+}
+
+// TestValidateRejectsUnequalRolePools is the check the attack store has never
+// had and the defence sibling always has. One role one line short is exactly
+// the shape the content pad fixed across 446 groups.
+func TestValidateRejectsUnequalRolePools(t *testing.T) {
+	g := balancedGroup()
+	short := g.Options[Critical]
+	short.Together.ToRoom = SkillTieredMessages{Beginner: MessageOptions{}}
+	g.Options[Critical] = short
+	if err := g.Validate(); err == nil {
+		t.Fatal("Validate accepted a group whose toroom pool went missing")
+	}
+}
+
+func TestValidateRejectsABlankVariant(t *testing.T) {
+	g := balancedGroup()
+	blank := g.Options[Weak]
+	blank.Together.ToDefender = SkillTieredMessages{Beginner: MessageOptions{"   "}}
+	g.Options[Weak] = blank
+	if err := g.Validate(); err == nil {
+		t.Fatal("Validate accepted a blank message variant")
+	}
+}
+
+// TestValidateChecksEachTierSeparately is why equality is per tier and not on
+// totals. Both roles hold two lines, so a totals check passes, but index 1
+// would pair an expert line against a beginner one.
+func TestValidateChecksEachTierSeparately(t *testing.T) {
+	g := balancedGroup()
+	skewed := g.Options[Normal]
+	skewed.Together.ToAttacker = SkillTieredMessages{
+		Beginner: MessageOptions{"a0", "a1"},
+	}
+	skewed.Together.ToDefender = SkillTieredMessages{
+		Beginner: MessageOptions{"d0"},
+		Expert:   MessageOptions{"d1"},
+	}
+	skewed.Together.ToRoom = SkillTieredMessages{
+		Beginner: MessageOptions{"r0", "r1"},
+	}
+	g.Options[Normal] = skewed
+	if err := g.Validate(); err == nil {
+		t.Fatal("Validate accepted equal TOTALS with unequal tiers; equality must be per tier")
+	}
+}
+
+// TestValidateAllowsAnAbsentSeparateBlock: most weapons have no separate
+// block at all, and that is not the same as one that lost its roles.
+func TestValidateAllowsAnAbsentSeparateBlock(t *testing.T) {
+	if err := balancedGroup().Validate(); err != nil {
+		t.Fatalf("a group with no separate block must validate, got %v", err)
+	}
+}
+
+func TestValidateRejectsAPartialSeparateBlock(t *testing.T) {
+	g := balancedGroup()
+	partial := g.Options[Miss]
+	partial.Separate = SeparateMessages{
+		ToAttacker:     SkillTieredMessages{Beginner: MessageOptions{"a"}},
+		ToDefender:     SkillTieredMessages{Beginner: MessageOptions{"d"}},
+		ToAttackerRoom: SkillTieredMessages{Beginner: MessageOptions{"ar"}},
+		// ToDefenderRoom deliberately missing: this is shooting.yaml's old
+		// `todefenderroom: null`, which the pad filled in.
+	}
+	g.Options[Miss] = partial
+	if err := g.Validate(); err == nil {
+		t.Fatal("Validate accepted a separate block missing todefenderroom")
+	}
+}
