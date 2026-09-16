@@ -317,24 +317,41 @@ deleted and nothing is restructured. The broader finding is filed, not fixed.
 
 ## The net
 
-### The golden, re-shaped
+### The golden, in two stages
 
-`combat_messages.golden` moves from "index 0 of each pool, per role" to "every
-coordinated variant, all roles on one row", keyed
-`subtype|intensity|split|tier|index`. After the pad that is **2,280 rows
+Today's golden is **blind to the content pad**, which is why the widening moves
+into PR 1 rather than riding along with the migration.
+
+`buildCombatMessagesGolden` takes a fresh `SequencePicker` per tuple and so
+records index 0 of each tier's pool (`snapshot_test.go:341`). The pad appends,
+so index 0 does not move. Measured: a 984-line addition would change **6 of
+roughly 1,560 rows**, and only because `shooting`'s six nulled
+`todefenderroom` tiers go from empty to a real first line. A content PR whose
+net moves 6 rows out of 1,560 is not a net.
+
+So:
+
+**PR 1 widens it.** Same per-role vocabulary as today, every index instead of
+just the first, keyed `subtype|intensity|split|role|tier|index`. The diff is
+then exactly the 984 new lines as additions plus those 6 shooting rows, and
+every pre-existing row is proven byte-identical. That is the real proof the pad
+changed nothing it should not have.
+
+**PR 2 re-keys it.** From per-role rows to coordinated rows, keyed
+`subtype|intensity|split|tier|index` with all roles on one row: **2,280 rows
 covering all 6,975 dogmud lines, each line appearing exactly once** (counted,
-not estimated).
+not estimated). The strings are the same; only the grouping changes, so the
+diff shows the coordination and nothing else.
 
-The key is per **tier**, not per skill level. Keying by skill level would
-re-record every beginner line three times, since the unions are cumulative.
+The key is per **tier**, not per skill level, in both stages. Keying by skill
+level would re-record every beginner line three times, since the unions are
+cumulative.
 
-The gap this closes is real and was load-bearing in the design: today's golden
-takes a fresh `SequencePicker` per tuple, so it only ever records index 0
-(`snapshot_test.go:341`). A migration that dropped, duplicated or reordered any
-non-zero-index line passes it green. With 984 lines being added by hand, that
-is precisely the mistake most available, so the net has to target it. This is
-the M2 lesson restated: a net must target what the refactor makes easier to get
-wrong.
+The gap both stages close is the same one: at index 0 only, a dropped,
+duplicated or reordered non-zero-index line passes green. With 984 lines
+arriving by hand and then being re-grouped by a refactor, that is the mistake
+most available in each PR, so each PR's net has to target it. This is the M2
+lesson restated: a net must target what the change makes easier to get wrong.
 
 Rows stay keyed by the **authored** role name (`toattacker`, `todefender`,
 `toroom`, `toattackerroom`, `todefenderroom`), not the core's vocabulary, for
@@ -344,9 +361,15 @@ pool lands in which role visible.
 
 ### Recording order
 
-PR 1 re-records the golden in its existing shape, so its diff is pure
-additions and every pre-existing row is proven unchanged. PR 2 re-shapes it.
-Two `-update` runs, each deliberate, each reviewed for what it is.
+Two `-update` runs, each deliberate and each reviewed for what it is. PR 1
+widens the builder to all indices and re-records, and that diff must be
+additions plus the 6 shooting rows and nothing else. PR 2 re-keys the builder
+to coordinated rows and re-records, and that diff must contain no string that
+did not already appear in PR 1's golden.
+
+The second property is worth checking mechanically rather than by eye, since
+the re-key moves every row: a sorted multiset of the message strings in the two
+goldens must be identical.
 
 ### Probes, each proven red before it is trusted
 
@@ -391,8 +414,10 @@ a long fight.
 
 ## Sequencing
 
-**PR 1, content.** The 984 lines, the `shooting` null fix, and a golden
-re-record in the existing shape. No Go changes. Reviewable as prose.
+**PR 1, content.** The 984 lines, the `shooting` null fix, a read-only pool
+audit tool, and the golden builder widened from index 0 to every index in its
+existing per-role vocabulary, then re-recorded. The only Go touched is the
+snapshot builder; no production code changes. Reviewable as prose.
 
 **PR 2, mechanism.** `PoolFor` and the two `Render` methods, the validator, the
 two call sites, the full `ConsistentAttackMessages` and `msgSeed` deletion, the
