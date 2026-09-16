@@ -8,7 +8,7 @@ events. Melee defence shipped this (PR #112), taunt shipped it (PR #115), and
 this store still ships it today.
 
 Unlike those two, it cannot be fixed by wiring alone. The core refuses to
-render when role pools disagree in length, and 440 of the store's 534 per-tier
+render when role pools disagree in length, and 446 of the store's 534 per-tier
 role groups disagree. So item 8 is a content slice and a plumbing slice in that
 order: square the pools up, then coordinate them.
 
@@ -49,7 +49,7 @@ Every row below was read from source on 2026-09-16, not recalled.
 | Attack store's narration use | imports `narration` for `Picker`/`DefaultPicker` only. Never calls `Render` or `ValidateVariants`. | `internal/items/attack_messages.go:7,71-74,113-116` |
 | Core refuses unequal pools | `Variants.Len()` returns 0, and every caller renders nothing | `internal/narration/render.go:51-70` |
 | The fourth role exists for this slice | "`ActeeObserver` ... exists for combat-messages' `separate` case" | `internal/narration/render.go:35-38` |
-| Per-tier role equality | 94 groups equal, **440 unequal** | counted from YAML |
+| Per-tier role equality | 88 groups equal, **446 unequal** | counted from YAML |
 | Attacker vs defender alone | 299 groups disagree; only 4 groups have all three roles equal | counted from YAML |
 | Lines to author for full equality | **984** (966 plus 18 for two nulled `shooting` roles) | counted from YAML |
 | Split selection | `sourceChar.RoomId == targetChar.RoomId` | `internal/combat/combat.go:268`, `internal/combat/combat_helpers.go:1678` |
@@ -194,7 +194,7 @@ gains, for every intensity, split and tier:
 This runs at load through `fileloader.LoadAllFlatFiles`, so a content mistake
 is a boot failure rather than silence in play. That is the whole reason the
 content pad has to land first: a validator added before the padding fails the
-boot on 440 groups.
+boot on 446 groups.
 
 `coupdegrace` stays out of the required-intensity list. It is authored only in
 `generic.yaml` and every other subtype reaches it through the existing Generic
@@ -424,7 +424,7 @@ two call sites, the full `ConsistentAttackMessages` and `msgSeed` deletion, the
 default-tree comments, the `configs/context.md` removal, the re-shaped golden
 and all four probes.
 
-The order is forced: the validator fails the boot on 440 groups until the
+The order is forced: the validator fails the boot on 446 groups until the
 padding lands.
 
 ## Out of scope, filed

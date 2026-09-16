@@ -24,7 +24,7 @@ Prior PR: `docs/superpowers/plans/2026-09-16-messaging-m3-item8-content-pad.md`
 ### Do not start until PR 1 has merged
 
 The validator in Task 3 fails the boot on any group whose role pools differ in
-length. Before PR 1 that is 440 of 534 groups. Confirm with
+length. Before PR 1 that is 446 of 534 groups. Confirm with
 `python tools/combat_message_pool_audit.py`, which must print
 `OK: every role pool is equal per tier (20 file(s))` and exit 0.
 

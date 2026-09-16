@@ -28,7 +28,7 @@ PR 2 renders one swing to all audiences from a **single coordinated index**, so
 variant N must describe the same moment to the attacker, the defender and the
 room. `narration.Variants.Len()` returns 0 when the non-empty role pools
 disagree in length, and every caller treats 0 as "render nothing"
-(`internal/narration/render.go:51-70`). Today 440 of 534 per-tier role groups
+(`internal/narration/render.go:51-70`). Today 446 of 534 per-tier role groups
 disagree, so without this PR the migration would silence most of combat.
 
 Equality is required **per tier**, not just on totals. The store unions tiers
@@ -232,7 +232,7 @@ Run: `python tools/combat_message_pool_audit.py`
 Expected: a per-file listing ending with exactly
 
 ```
-GAPS: 984 lines across 440 groups
+GAPS: 984 lines across 446 groups
 ```
 
 Exit code 1. If the total is not 984, stop and reconcile against the spec
@@ -278,7 +278,7 @@ git commit -m "tools(combat): read-only audit of combat-message role-pool equali
 
 Reports every (verb, split, tier) group whose role pools differ in length,
 which is what blocks the coordinated index in M3 item 8 PR 2. Baseline is
-984 lines across 440 groups. Read only: writing YAML from Python would
+984 lines across 446 groups. Read only: writing YAML from Python would
 destroy the token comment header and the quoting in every file.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
@@ -833,7 +833,7 @@ gh pr create --repo pruuk/DOGMud \
 `GoMudEngine/GoMud` and `gh` defaults to the parent; a bare `gh pr create` has
 already opened a PR on upstream once.
 
-The body must state: 984 lines across 440 groups, why equality is required per
+The body must state: 984 lines across 446 groups, why equality is required per
 tier, that the golden was widened first so every content commit is provably
 additions-only, and that PR 2 carries the migration and cannot start until this
 merges.
