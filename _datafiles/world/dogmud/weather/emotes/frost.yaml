@@ -21,3 +21,16 @@ indoor:
       - "Cold seeps through the walls; frost-ferns bloom on the inner glass."
       - "Your breath fogs indoors, and the very nails in the wood feel like ice."
       - "The quiet outside is glassy and total, the cold pressing at every seam."
+# Underground a hard frost is felt as an ache in the stone itself, and ice
+# along the seep lines. The mild pool stays empty: only a hard frost reaches
+# this deep.
+underground:
+  default:
+    mild: []
+    strong:
+      - "The stone itself seems to ache, cold sunk deep into its grain."
+      - "Ice creeps along every seep line, delicate and slow."
+      - "Your breath fogs even here, where the air never truly moves."
+      - "Damp patches stiffen to a hard, glassy skin overnight."
+      - "The cold has a weight to it, pressing in from every direction."
+      - "Any metal you touch bites back with a cold that lingers."

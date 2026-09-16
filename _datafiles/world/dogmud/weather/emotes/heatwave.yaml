@@ -13,3 +13,16 @@ indoor:
       - "The trapped air hangs hot and motionless, thick as wool."
       - "The walls themselves give off warmth, offering no relief at all."
       - "Time seems to thicken; every small motion costs more than it should."
+# Underground the heatwave is felt as a contrast: the cave stays cool, and
+# that contrast sharpens toward the entrance. The mild pool stays empty:
+# only a severe heatwave registers at all this deep.
+underground:
+  default:
+    mild: []
+    strong:
+      - "Deeper in, the stone holds its cool no matter the heat outside."
+      - "Near the entrance, warm air pushes in like an unwelcome guest."
+      - "The contrast is sharpest right at the mouth of the passage."
+      - "Stepping further back, the heat falls away all at once."
+      - "The air near the surface shimmers faintly, thick and heavy."
+      - "Deep stone remembers no season; the cool here never wavers."

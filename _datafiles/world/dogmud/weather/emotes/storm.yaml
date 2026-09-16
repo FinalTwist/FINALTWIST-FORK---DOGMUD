@@ -20,3 +20,15 @@ indoor:
       - "Thunder rolls through the walls, rattling anything not nailed down."
       - "The storm hammers at the roof, wind worrying every joint and seam."
       - "A flash from outside paints the room white for an instant."
+# Underground the storm arrives as pressure and grit, not sound or light.
+# The mild pool stays empty: only a heavy storm reaches this deep.
+underground:
+  default:
+    mild: []
+    strong:
+      - "Thunder arrives as pressure, not sound, pressing on your chest."
+      - "Grit sifts loose from the stone overhead with each distant boom."
+      - "The rock itself seems to shudder, felt more than heard."
+      - "Dust motes drift down, stirred by something far above."
+      - "A tremor runs through the stone, gone before you can name it."
+      - "Somewhere above the storm is enormous; here, only weight arrives."
