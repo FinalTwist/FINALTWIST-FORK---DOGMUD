@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/narration"
 	"github.com/GoMudEngine/GoMud/modules/weather/sim"
 	"gopkg.in/yaml.v2"
 )
@@ -94,10 +95,11 @@ func LoadEmotes(fsys fs.FS, dir string) (Tables, error) {
 // section, exact biome -> "default" biome. season "" skips the variant layer
 // (seasons off / unbound zone). Indoor never falls back to outdoor — silence
 // beats wrong prose — and is felt-banded: felt < StrongFeltThreshold picks
-// Mild (usually empty), otherwise Strong. roll(n) must return a value in
-// [0,n); pass util.Rand — NEVER the sim RNG. Out-of-range roll results clamp
-// to the first line.
-func (ts Tables) Pick(weather sim.WeatherType, biome string, indoor bool, felt float64, season string, roll func(int) int) string {
+// Mild (usually empty), otherwise Strong. pick is handed to the narration
+// core as-is: per narration.Picker's contract it must return a value in
+// [0,n), and the core trusts that rather than clamping, same as every other
+// migrated store. Pass util.Rand-backed pickers — NEVER the sim RNG.
+func (ts Tables) Pick(weather sim.WeatherType, biome string, indoor bool, felt float64, season string, pick narration.Picker) string {
 	t, ok := ts[weather]
 	if !ok {
 		return ""
@@ -113,14 +115,24 @@ func (ts Tables) Pick(weather sim.WeatherType, biome string, indoor bool, felt f
 		lines = bandedSectionLines(t.Outdoor, t.Indoor, biome, indoor, felt)
 	}
 
+	return renderAmbient(lines, pick)
+}
+
+// renderAmbient renders one ambient line through the shared narration core.
+//
+// Weather is the arc's only ACTORLESS store: an ambient line has no Actor and
+// no Actee, so only Observer is populated and Render's coordination across
+// roles is a no-op here. The core is still the right home, because it owns the
+// picker seam (which is what makes the golden possible) and token
+// substitution, which this store's content does not use today but can.
+//
+// An empty pool renders "" rather than a fallback. That is deliberate at every
+// layer of this store: silence beats wrong prose.
+func renderAmbient(lines []string, pick narration.Picker) string {
 	if len(lines) == 0 {
 		return ""
 	}
-	i := roll(len(lines))
-	if i < 0 || i >= len(lines) {
-		i = 0
-	}
-	return lines[i]
+	return narration.Render(narration.Variants{Observer: lines}, nil, pick).Observer
 }
 
 // bandedSectionLines resolves biome -> "default" within one outdoor/indoor
@@ -192,19 +204,11 @@ func LoadSeasonalEmotes(fsys fs.FS, dir string) (SeasonalTables, error) {
 
 // Pick selects one seasonal-ambience line for the zone's exact (track,
 // season); "" when no table or no matching lines. Same biome/indoor banding
-// and roll contract as the weather tables.
-func (st SeasonalTables) Pick(track, season, biome string, indoor bool, felt float64, roll func(int) int) string {
+// and picker contract as the weather tables.
+func (st SeasonalTables) Pick(track, season, biome string, indoor bool, felt float64, pick narration.Picker) string {
 	sec, ok := st[SeasonalKey{track, season}]
 	if !ok {
 		return ""
 	}
-	lines := bandedSectionLines(sec.Outdoor, sec.Indoor, biome, indoor, felt)
-	if len(lines) == 0 {
-		return ""
-	}
-	i := roll(len(lines))
-	if i < 0 || i >= len(lines) {
-		i = 0
-	}
-	return lines[i]
+	return renderAmbient(bandedSectionLines(sec.Outdoor, sec.Indoor, biome, indoor, felt), pick)
 }
