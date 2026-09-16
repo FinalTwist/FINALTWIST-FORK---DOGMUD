@@ -41,20 +41,28 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> takes a {stance} stance against you, coiling mass to strike.'
         - '<ansi fg="{sourcetype}">{source}</ansi> gauges the distance to you from a {stance} posture.'
         - '<ansi fg="{sourcetype}">{source}</ansi> sets their weight, preparing to crush you.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> channels their momentum toward you.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> adopts a masterful {stance} stance, mass loaded for impact.'
         - '<ansi fg="{sourcetype}">{source}</ansi> reads your footing with terrifying accuracy.'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s bulk coils like a spring aimed directly at you.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> assesses your balance before committing to the {itemname}.'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> rears up, preparing to slam <ansi fg="{targettype}">{target}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> plants their feet and fixes <ansi fg="{targettype}">{target}</ansi> with a crushing gaze.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> shifts their bulk toward <ansi fg="{targettype}">{target}</ansi>, ready to smash.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> lowers their head, preparing to barrel into <ansi fg="{targettype}">{target}</ansi>.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> takes a {stance} stance against <ansi fg="{targettype}">{target}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> gauges the distance to <ansi fg="{targettype}">{target}</ansi> from a {stance} posture.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> sets their weight, preparing to crush <ansi fg="{targettype}">{target}</ansi>.'
         - '<ansi fg="{sourcetype}">{source}</ansi> shifts their mass toward <ansi fg="{targettype}">{target}</ansi>, ready to smash.'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> settles into a masterful {stance} combat stance.'
         - '<ansi fg="{sourcetype}">{source}</ansi> loads their bulk, prepared to crash into <ansi fg="{targettype}">{target}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads <ansi fg="{targettype}">{target}</ansi>''s footing, preparing the perfect slam.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> settles into a masterful {stance} combat stance.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> assesses <ansi fg="{targettype}">{target}</ansi>''s balance before committing to the {itemname}.'
   wait:
     # messages for when they are in the same room
     together:
@@ -76,27 +84,36 @@ options:
         - 'Like a boulder before a landslide, you hold your mass in reserve.'
       todefender:
         beginner:
-        - '<ansi fg="{sourcetype}">{source}</ansi> circles you slowly, waiting for an opening.'
         - '<ansi fg="{sourcetype}">{source}</ansi> watches you intently, shifting their weight.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> shifts their weight back and forth, eyeing you.'
         - '<ansi fg="{sourcetype}">{source}</ansi> rumbles low, biding their time.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> circles you slowly, waiting for an opening.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> studies your footwork from a {stance} stance.'
         - '<ansi fg="{sourcetype}">{source}</ansi> times their breathing, waiting to unleash their full weight.'
         - '<ansi fg="{sourcetype}">{source}</ansi> tracks your every shift with predatory patience.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> probes your spacing, hunting for an opening.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> reads your weight with unsettling precision.'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s stillness is more terrifying than motion.'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s {stance} training lets them predict your movement before it begins.'
         - '<ansi fg="{sourcetype}">{source}</ansi> holds their mass in reserve like a coiled catastrophe.'
       toroom:
         beginner:
-        - '<ansi fg="{sourcetype}">{source}</ansi> circles <ansi fg="{targettype}">{target}</ansi> with heavy, deliberate steps.'
         - '<ansi fg="{sourcetype}">{source}</ansi> watches <ansi fg="{targettype}">{target}</ansi>, shifting their bulk.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> shifts their weight back and forth, eyeing <ansi fg="{targettype}">{target}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> rumbles low in their chest, biding their time.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> circles <ansi fg="{targettype}">{target}</ansi> with heavy, deliberate steps.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> studies <ansi fg="{targettype}">{target}</ansi>''s footwork with practiced patience.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> times their breathing, waiting to unleash their full weight.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> tracks <ansi fg="{targettype}">{target}</ansi>''s weight shifts with deliberate patience.'
         - '<ansi fg="{sourcetype}">{source}</ansi> tracks <ansi fg="{targettype}">{target}</ansi>''s movement, waiting for a gap.'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> holds their crushing mass in reserve, reading <ansi fg="{targettype}">{target}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads every subtle shift of <ansi fg="{targettype}">{target}</ansi>''s weight.'
         - '<ansi fg="{sourcetype}">{source}</ansi> anticipates <ansi fg="{targettype}">{target}</ansi>''s next step with terrifying clarity.'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s {stance} training lets them predict <ansi fg="{targettype}">{target}</ansi>''s movement before it begins.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> holds their crushing mass in reserve, reading <ansi fg="{targettype}">{target}</ansi>.'
   miss:
     # messages for when they are in the same room
     together:
@@ -126,23 +143,28 @@ options:
         - 'You read <ansi fg="{sourcetype}">{source}</ansi>''s trajectory and sidestep their charge!'
         - '<ansi fg="{sourcetype}">{source}</ansi> commits their mass and you slip just outside their reach!'
         - 'You counter <ansi fg="{sourcetype}">{source}</ansi>''s {stance} approach and evade their slam!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s powerful lunge is evaded by you, by a hair!'
         master:
         - 'Your footwork sends <ansi fg="{sourcetype}">{source}</ansi>''s perfect slam wide!'
         - 'You read <ansi fg="{sourcetype}">{source}</ansi>''s intent and step clear with flowing ease!'
         - 'Your masterful sidestep deflects <ansi fg="{sourcetype}">{source}</ansi>''s crushing charge!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s perfectly timed slam is answered by your equally perfect retreat!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> hurls their bulk at <ansi fg="{targettype}">{target}</ansi>, but misses!'
         - '<ansi fg="{sourcetype}">{source}</ansi> charges <ansi fg="{targettype}">{target}</ansi>, who sidesteps their mass!'
         - '<ansi fg="{sourcetype}">{source}</ansi> lunges and fails to connect with <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s body check finds nothing as <ansi fg="{targettype}">{target}</ansi> ducks away!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s {stance} charge is evaded by <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{targettype}">{target}</ansi> slips outside <ansi fg="{sourcetype}">{source}</ansi>''s reach as they commit!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s {stance} approach meets only air as <ansi fg="{targettype}">{target}</ansi> steps aside!'
         - '<ansi fg="{targettype}">{target}</ansi> reads the slam and steps clear at the last moment!'
         master:
         - '<ansi fg="{targettype}">{target}</ansi>''s masterful footwork sends the crushing charge wide!'
         - '<ansi fg="{targettype}">{target}</ansi> reads the intent and evades with perfect timing!'
         - 'A collision of skill: <ansi fg="{sourcetype}">{source}</ansi>''s slam meets only empty air!'
+        - 'A perfectly timed slam by <ansi fg="{sourcetype}">{source}</ansi> is answered by <ansi fg="{targettype}">{target}</ansi>''s equally perfect retreat!'
   weak:
     # messages for when they are in the same room
     together:
@@ -187,11 +209,13 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> glances off <ansi fg="{targettype}">{target}</ansi> with their {itemname}.'
         - '<ansi fg="{sourcetype}">{source}</ansi> brushes <ansi fg="{targettype}">{target}</ansi> with their bulk.'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s charge barely grazes <ansi fg="{targettype}">{target}</ansi>.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> makes awkward contact with <ansi fg="{targettype}">{target}</ansi>, achieving little.'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> darts in and clips <ansi fg="{targettype}">{target}</ansi> with a glancing shoulder.'
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a probing shove from a {stance} stance.'
-        - '<ansi fg="{sourcetype}">{source}</ansi> feints and grazes <ansi fg="{targettype}">{target}</ansi> with a test slam.'
         - '<ansi fg="{sourcetype}">{source}</ansi> rolls forward and nudges <ansi fg="{targettype}">{target}</ansi> lightly.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> feints and grazes <ansi fg="{targettype}">{target}</ansi> with a test slam.'
+        - '<ansi fg="{sourcetype}">{source}</ansi> tests <ansi fg="{targettype}">{target}</ansi>''s footing with a probing slam.'
         master:
         - '<ansi fg="{sourcetype}">{source}</ansi> draws the guard and clips with controlled precision.'
         - '<ansi fg="{sourcetype}">{source}</ansi> presses forward with a measured glancing blow.'
@@ -235,18 +259,21 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> pivots and hurls their bulk into you!'
         - '<ansi fg="{sourcetype}">{source}</ansi> feints and crashes their {itemname} home!'
         - '<ansi fg="{sourcetype}">{source}</ansi> draws your guard aside and smashes through!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads your stance and crushes through with purposeful weight!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads your stance and crashes through with purpose!'
         - '<ansi fg="{sourcetype}">{source}</ansi> presses their advantage with a sweeping body slam!'
         - '<ansi fg="{sourcetype}">{source}</ansi> rolls around you and smashes with crushing purpose!'
-        - '<ansi fg="{sourcetype}">{source}</ansi> exploits an opening and slams decisively!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads your stance and crashes through with purpose!'
         - '<ansi fg="{sourcetype}">{source}</ansi> follows through with a devastating driving crash!'
         - '<ansi fg="{sourcetype}">{source}</ansi> capitalizes on momentum with perfect timing!'
         - '<ansi fg="{sourcetype}">{source}''s {itemname} crashes home with masterful control!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> exploits an opening and slams decisively!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> smashes through with overwhelming brute skill!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi> smashes their {itemname} into <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> crashes into <ansi fg="{targettype}">{target}</ansi> with their bulk!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s body slam connects solidly with <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> barrels into <ansi fg="{targettype}">{target}</ansi> with crushing force!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps through and drives weight into <ansi fg="{targettype}">{target}</ansi>!'
@@ -254,14 +281,16 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> pivots and hurls their bulk home!'
         - '<ansi fg="{sourcetype}">{source}</ansi> feints and crashes their weight against <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> draws the guard aside and smashes through!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads the stance and crushes through with purposeful weight!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads the stance and crashes through with purpose!'
         - '<ansi fg="{sourcetype}">{source}</ansi> presses forward with a sweeping body slam!'
         - '<ansi fg="{sourcetype}">{source}</ansi> rolls around <ansi fg="{targettype}">{target}</ansi> and smashes with crushing force!'
-        - '<ansi fg="{sourcetype}">{source}</ansi> exploits an opening and slams decisively!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads the stance and crashes through with purpose!'
         - '<ansi fg="{sourcetype}">{source}</ansi> follows through with a solid driving crash!'
         - '<ansi fg="{sourcetype}">{source}</ansi> capitalizes on momentum with perfect timing!'
         - '<ansi fg="{sourcetype}">{source}''s {itemname} crashes home with unstoppable control!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> exploits an opening and slams decisively!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> smashes through with overwhelming brute skill!'
   heavy:
     # messages for when they are in the same room
     together:
@@ -305,29 +334,35 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> crashes forward relentlessly, bulk driving into you!'
         - '<ansi fg="{sourcetype}">{source}</ansi> seizes advantage and delivers a savage body slam!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits your position and smashes with brutal force!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> slams with overwhelming crushing power despite your defense!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> overwhelms you with devastating, bone-rattling brutality!'
         - '<ansi fg="{sourcetype}">{source}</ansi> spins and hurls their full weight into you!'
         - '<ansi fg="{sourcetype}">{source}</ansi> surges forward on the offensive, crashing through!'
         - '<ansi fg="{sourcetype}">{source}</ansi> maintains their assault with a powerful sweeping slam!'
-        - '<ansi fg="{sourcetype}">{source}</ansi> overwhelms you with devastating, bone-rattling brutality!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> crashes into you devastatingly with masterful {stance} timing!'
       toroom:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s {itemname} smashes violently into <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a brutal body slam to <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s full weight crashes into <ansi fg="{targettype}">{target}</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> hurls themselves into <ansi fg="{targettype}">{target}</ansi> with overwhelming rage!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> steps in close and brutally drives into <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> pivots and hurls full mass into <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> advances and body checks with tremendous crushing force!'
         - '<ansi fg="{sourcetype}">{source}</ansi> feints retreat then surges with a devastating slam!'
-        master:
         - '<ansi fg="{sourcetype}">{source}</ansi> draws the guard and delivers a punishing body slam!'
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads the weakness and strikes with overwhelming mass!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads the weakness and strikes with overwhelming body mass!'
+        master:
         - '<ansi fg="{sourcetype}">{source}</ansi> crashes forward relentlessly, bulk driving deep!'
         - '<ansi fg="{sourcetype}">{source}</ansi> seizes advantage and delivers a savage body slam!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits position and smashes with brutal efficiency!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> draws the guard and delivers a punishing body slam!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads the weakness and strikes with overwhelming mass!'
         - '<ansi fg="{sourcetype}">{source}</ansi> spins and hurls full weight with tremendous force!'
         - '<ansi fg="{sourcetype}">{source}</ansi> surges forward on the offensive, crashing through!'
         - '<ansi fg="{sourcetype}">{source}</ansi> maintains the assault with a powerful sweeping body slam!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> crashes into <ansi fg="{targettype}">{target}</ansi> devastatingly with masterful {stance} timing!'
   critical:
     # messages for when they are in the same room
     together:
@@ -364,9 +399,11 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi> charges and delivers a <ansi fg="cyan-bold">PERFECT SLAM</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> crashes like a living avalanche and <ansi fg="cyan-bold">PULVERIZES</ansi> you!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s masterful feint opens you completely and you are <ansi fg="cyan-bold">SHATTERED</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads your every move and delivers a <ansi fg="cyan-bold">FLAWLESS BODY SLAM</ansi>!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS SLAM</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s tactical brilliance creates the perfect angle and you are <ansi fg="cyan-bold">DEVASTATED</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s {stance} approach culminates in a <ansi fg="cyan-bold">DEVASTATING CRITICAL SLAM</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS SLAM</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> executes a <ansi fg="cyan-bold">BONE-SHATTERING STRIKE</ansi> from the perfect angle!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits total advantage and <ansi fg="cyan-bold">CRUSHES</ansi> you with precision!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s positioning is flawless and you are <ansi fg="cyan-bold">OBLITERATED</ansi>!'
@@ -378,14 +415,17 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s {itemname} <ansi fg="cyan-bold">CRITICALLY SMASHES</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL BODY SLAM</ansi> to <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="cyan-bold">DEVASTATES</ansi> <ansi fg="{targettype}">{target}</ansi> with crushing bulk!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> lands a <ansi fg="cyan-bold">CRUSHING IMPACT</ansi> on <ansi fg="{targettype}">{target}</ansi>!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi> surges and their bulk <ansi fg="cyan-bold">OBLITERATES</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> charges forward with a <ansi fg="cyan-bold">PERFECT SLAM</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> crashes like an avalanche and <ansi fg="cyan-bold">PULVERIZES</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s masterful feint opens <ansi fg="{targettype}">{target}</ansi>: <ansi fg="cyan-bold">ANNIHILATION</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS BODY SLAM</ansi> through <ansi fg="{targettype}">{target}</ansi>!'
         master:
-        - '<ansi fg="{sourcetype}">{source}</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS SLAM</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s tactical brilliance creates the perfect angle: <ansi fg="cyan-bold">DEVASTATION</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s {stance} approach culminates in a <ansi fg="cyan-bold">DEVASTATING CRITICAL SLAM</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> reads every move and delivers a <ansi fg="cyan-bold">FLAWLESS SLAM</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> executes a <ansi fg="cyan-bold">BONE-SHATTERING STRIKE</ansi> from the perfect angle!'
         - '<ansi fg="{sourcetype}">{source}</ansi> exploits total advantage and <ansi fg="cyan-bold">CRUSHES</ansi> <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi>''s positioning is flawless: <ansi fg="cyan-bold">OBLITERATION</ansi>!'
@@ -412,9 +452,9 @@ options:
       todefender:
         beginner:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s charge <ansi fg="red-bold">FUMBLES</ansi> pathetically as they stumble!'
-        - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their slam in an embarrassing display!'
-        - '<ansi fg="{sourcetype}">{source}</ansi>''s body check <ansi fg="red-bold">FUMBLES</ansi> as they lose their footing!'
         - '<ansi fg="{sourcetype}">{source}</ansi> trips over their own momentum and <ansi fg="red-bold">FUMBLES</ansi>!'
+        - '<ansi fg="{sourcetype}">{source}</ansi>''s body check <ansi fg="red-bold">FUMBLES</ansi> as they lose their footing!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their slam in an embarrassing display!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s tactical charge fails and they <ansi fg="red-bold">FUMBLE</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> misjudges the angle and <ansi fg="red-bold">FUMBLES</ansi> their slam!'
@@ -428,6 +468,7 @@ options:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s charge <ansi fg="red-bold">FUMBLES</ansi> wildly at <ansi fg="{targettype}">{target}</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their slam at <ansi fg="{targettype}">{target}</ansi> and stumbles!'
         - '<ansi fg="{sourcetype}">{source}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their body check in a clumsy crash!'
+        - '<ansi fg="{sourcetype}">{source}</ansi> loses their footing as the slam <ansi fg="red-bold">FUMBLES</ansi> pathetically!'
         expert:
         - '<ansi fg="{sourcetype}">{source}</ansi>''s tactical charge fails, and they <ansi fg="red-bold">FUMBLE</ansi>!'
         - '<ansi fg="{sourcetype}">{source}</ansi> misjudges the angle and <ansi fg="red-bold">FUMBLES</ansi>!'
