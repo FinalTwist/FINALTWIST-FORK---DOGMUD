@@ -333,6 +333,23 @@ func buildCombatMessagesGolden(t *testing.T) string {
 
 	hasSeparate := map[string]bool{"generic": true, "shooting": true}
 
+	// messageTexts renders one tier's pool with tokens substituted.
+	messageTexts := func(mo items.MessageOptions) []string {
+		out := make([]string, len(mo))
+		for i, m := range mo {
+			out[i] = substituteTokens(string(m))
+		}
+		return out
+	}
+	// poolAt is the empty string past the end of a short pool. After the M3
+	// item 8 pad no pool is short, so a "<none>" here would be a real find.
+	poolAt := func(pool []string, idx int) string {
+		if idx < len(pool) {
+			return pool[idx]
+		}
+		return "<none>"
+	}
+
 	for _, subtype := range subtypes {
 		// coupdegrace is authored only in generic.yaml. Looping it over every
 		// subtype would record generic's lines 19 extra times, because
@@ -345,29 +362,53 @@ func buildCombatMessagesGolden(t *testing.T) string {
 		for _, intensity := range intensityList {
 			opts := items.GetPreAttackMessage(items.ItemSubType(subtype), intensity)
 
-			for _, role := range togetherRoles {
-				stm := role.get(opts.Together)
-				for _, tier := range tiers {
-					mo := tier.get(stm)
-					// Enumerate the pool rather than sample it: this golden
-					// exists to freeze every authored line, and a picker would
-					// consume draws for no reason.
-					for idx := 0; idx < len(mo); idx++ {
-						text := substituteTokens(string(mo[idx]))
-						fmt.Fprintf(&b, "%s|%s|together|%s|%s|%d => %s\n", subtype, intensity, role.name, tier.name, idx, text)
+			// One row per COORDINATED VARIANT, with every role on it. The
+			// grouping is the thing under test now: production renders all
+			// audiences from a single index, so a row that reads coherently
+			// across its roles is the property, and a role swap or a lost
+			// coordination shows as a moved string rather than as nothing.
+			//
+			// Rows stay keyed by the AUTHORED role name inside the row, not
+			// the core's Actor/Actee vocabulary, for the same reason
+			// defense_messages.golden does (narration/context.md:134-139):
+			// it is what makes a swap of which authored pool lands in which
+			// role visible.
+			for _, tier := range tiers {
+				pools := map[string][]string{}
+				widest := 0
+				for _, role := range togetherRoles {
+					pool := messageTexts(tier.get(role.get(opts.Together)))
+					pools[role.name] = pool
+					if len(pool) > widest {
+						widest = len(pool)
 					}
+				}
+				for idx := 0; idx < widest; idx++ {
+					fmt.Fprintf(&b, "%s|%s|together|%s|%d =>", subtype, intensity, tier.name, idx)
+					for _, role := range togetherRoles {
+						fmt.Fprintf(&b, " %s=%s", role.name, poolAt(pools[role.name], idx))
+					}
+					fmt.Fprintf(&b, "\n")
 				}
 			}
 
 			if hasSeparate[subtype] {
-				for _, role := range separateRoles {
-					stm := role.get(opts.Separate)
-					for _, tier := range tiers {
-						mo := tier.get(stm)
-						for idx := 0; idx < len(mo); idx++ {
-							text := substituteTokens(string(mo[idx]))
-							fmt.Fprintf(&b, "%s|%s|separate|%s|%s|%d => %s\n", subtype, intensity, role.name, tier.name, idx, text)
+				for _, tier := range tiers {
+					pools := map[string][]string{}
+					widest := 0
+					for _, role := range separateRoles {
+						pool := messageTexts(tier.get(role.get(opts.Separate)))
+						pools[role.name] = pool
+						if len(pool) > widest {
+							widest = len(pool)
 						}
+					}
+					for idx := 0; idx < widest; idx++ {
+						fmt.Fprintf(&b, "%s|%s|separate|%s|%d =>", subtype, intensity, tier.name, idx)
+						for _, role := range separateRoles {
+							fmt.Fprintf(&b, " %s=%s", role.name, poolAt(pools[role.name], idx))
+						}
+						fmt.Fprintf(&b, "\n")
 					}
 				}
 			}
