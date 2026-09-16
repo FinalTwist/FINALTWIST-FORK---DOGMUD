@@ -172,7 +172,6 @@ func (w *WeaponAttackMessageGroup) Id() ItemSubType {
 	return w.OptionId
 }
 
-// Presumably to ensure the datafile hasn't messed something up.
 // Validate checks that every required intensity is present and that every
 // authored group can be rendered from ONE coordinated index.
 //
