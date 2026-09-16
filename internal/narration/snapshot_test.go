@@ -1216,14 +1216,15 @@ func buildTipsGolden(t *testing.T) string {
 }
 
 // ---------------------------------------------------------------------
-// Store 13: weather emotes (modules/weather/content)
+// Store 14: weather emotes (modules/weather/content)
 //
 // The ONLY actorless store in the arc: an ambient line has no Actor, so it is
 // rendered with narration.Variants{Observer: lines} and the other three roles
 // stay empty. Dimensions: weather type x section(outdoor/sheltered) x biome
-// (authored keys UNION a representative set) x band(mild/strong) x season(base
+// (authored keys UNION a representative set, on BOTH sections) x season(base
 // + each authored variant), then the seasonal-ambience tables by (track,
-// season).
+// season). The mild/strong BAND axis applies to sheltered rows only; outdoor
+// lines are never felt-banded, so it is not a dimension of the outdoor rows.
 //
 // The sheltered axis is named for the ROOM, not for the section it resolves
 // to, because item 9 PR 2 splits that one section into indoor and underground
@@ -1292,7 +1293,18 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# weather emotes store snapshot\n")
 	fmt.Fprintf(&b, "# weather tables: %d   seasonal-ambience tables: %d\n", len(tables), len(seasonal))
-	fmt.Fprintf(&b, "# dimensions: type x section x biome x band x season, then (track,season) ambience.\n")
+	fmt.Fprintf(&b, "# Recorded 2026-09-16 from PRE-migration code: a baseline of existing behaviour,\n")
+	fmt.Fprintf(&b, "# not a record of what a later migration produced.\n")
+	fmt.Fprintf(&b, "# dimensions: type x section(outdoor/sheltered) x biome x band x season, then\n")
+	fmt.Fprintf(&b, "# (track,season) ambience. Band applies to sheltered rows only; outdoor lines\n")
+	fmt.Fprintf(&b, "# are never felt-banded.\n")
+	fmt.Fprintf(&b, "# \"sheltered\" names the ROOM, not the section: item 9 PR 2 splits it into\n")
+	fmt.Fprintf(&b, "# indoor and underground, and these row keys must survive that split.\n")
+	fmt.Fprintf(&b, "# Biome is authored keys UNION a representative set (cave, dungeon, house,\n")
+	fmt.Fprintf(&b, "# fort, spiderweb, forest) on both axes: the only authored sheltered key is\n")
+	fmt.Fprintf(&b, "# \"default\", so without this set the golden would never see a cave and PR 2's\n")
+	fmt.Fprintf(&b, "# split would land with no diff; the same union on outdoor exercises its own\n")
+	fmt.Fprintf(&b, "# biome-to-default fallback.\n")
 	fmt.Fprintf(&b, "# Single role (the room is told), no tokens authored anywhere in this store.\n")
 	fmt.Fprintf(&b, "# A fresh SequencePicker per row pins index 0.\n")
 	fmt.Fprintf(&b, "# An empty row (\"\") in a mild band is deliberate silence, not a missing pool.\n\n")
@@ -1307,7 +1319,12 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 		w := sim.WeatherType(wt)
 		tbl := tables[w]
 
-		for _, biome := range sortedKeysStrSlice(tbl.Outdoor) {
+		// union() here too: the outdoor axis has its own biome-to-default
+		// fallback, and none of the representative biomes (cave, dungeon,
+		// house, fort, spiderweb) is ever authored outdoors -- the union
+		// exists to exercise that fallback, not because a cave is ever
+		// outdoors.
+		for _, biome := range union(sortedKeysStrSlice(tbl.Outdoor)) {
 			fmt.Fprintf(&b, "%s|base|outdoor|%s => %q\n", wt, biome,
 				tables.Pick(w, biome, false, 0, "", narration.SequencePicker()))
 		}
@@ -1321,7 +1338,7 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 		}
 		for _, season := range sortedKeysTableSection(tbl.Seasonal) {
 			sec := tbl.Seasonal[season]
-			for _, biome := range sortedKeysStrSlice(sec.Outdoor) {
+			for _, biome := range union(sortedKeysStrSlice(sec.Outdoor)) {
 				fmt.Fprintf(&b, "%s|season:%s|outdoor|%s => %q\n", wt, season, biome,
 					tables.Pick(w, biome, false, 0, season, narration.SequencePicker()))
 			}
@@ -1347,7 +1364,7 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 	for _, flat := range keys {
 		k := index[flat]
 		sec := seasonal[k]
-		for _, biome := range sortedKeysStrSlice(sec.Outdoor) {
+		for _, biome := range union(sortedKeysStrSlice(sec.Outdoor)) {
 			fmt.Fprintf(&b, "%s|%s|outdoor|%s => %q\n", k.Track, k.Season, biome,
 				seasonal.Pick(k.Track, k.Season, biome, false, 0, narration.SequencePicker()))
 		}
