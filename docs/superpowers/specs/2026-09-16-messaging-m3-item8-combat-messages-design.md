@@ -24,6 +24,10 @@ the slice:
 - **`ConsistentAttackMessages` is deleted, not repaired.** See the history
   below: it is an upstream mechanism this project deliberately superseded, and
   its only remaining effect is to reverse that decision.
+- **Existing lines are REORDERED as well as padded.** Found while writing the
+  first file and ruled on then: padding alone makes coordination structurally
+  possible but leaves roughly a quarter of indices pairing the wrong moments,
+  permanently. See "The drift under the gap" below.
 - Two PRs: content first, mechanism second.
 
 ## Facts verified against source
@@ -109,6 +113,50 @@ to the goblin!" to the room. Three events, one swing.
 
 This is why padding is the right answer rather than trimming: the authoring
 intent is already coordinated, and the pools have simply drifted apart.
+
+### The drift under the gap
+
+The `critical` example above is the flattering case. Reading a whole file
+showed the pools are not reliably index-paired even where they are the same
+length. `slashing` / `prepare` / `together` / `beginner`:
+
+```
+        attacker                      defender                     room
+[0]  prepare for mortal combat    prepares to fight you        prepares to attack {target}
+[1]  grip your blade tightly      raises blade menacingly      grips blade tightly
+[2]  raise your blade nervously   grips blade awkwardly        (missing)
+```
+
+Attacker and room agree at `[1]`. The defender's `[1]` and `[2]` are swapped
+relative to them. Today that mismatch only lands sometimes, because the picks
+are independent. **Under a coordinated index it lands every time.**
+
+Measured across the store with a lexical proxy, comparing each sibling line
+against the attacker line at the same index by content-word overlap:
+
+| | Count | Share |
+|---|---|---|
+| Best match is the same index | 1,882 | 50% |
+| Clearly belongs at a different index | **903** | **24%** |
+| No clear match either way | 917 | 24% |
+| Compared | 3,702 | |
+
+The proxy is crude and 24% is an estimate, not a count, but the `slashing` case
+is confirmed by reading and the direction is not in doubt.
+
+So the pad alone would buy the structure and not the payoff, and would convert
+occasional incoherence into permanent incoherence on about a quarter of
+indices. The owner ruled that PR 1 therefore **reorders existing lines within
+their own tier** as well as appending new ones, so that index N means the same
+moment in every role.
+
+Nothing is edited and nothing is deleted. That is what keeps the work provable,
+and it is a weaker claim than "additions only", so it needs its own check:
+`tools/combat_message_pad_check.py` compares each (file, verb, split, role,
+tier) group's multiset of lines against a baseline git ref and fails on any
+deletion or edit while allowing free reordering and additions. Both directions
+were probed before it was trusted: an edited word reports `LOST`, and a pure
+swap of two lines reports `OK ... 1 group(s) reordered`.
 
 ## What item 8 delivers
 
@@ -261,10 +309,10 @@ phrasing. Distribution by verb, heaviest first: heavy 206, wait 148, prepare
 147, normal 145, miss 109, critical 95, weak 70, fumble 40, coupdegrace 6, plus
 the 18 `shooting` lines below.
 
-New lines are **appended** to the tier they belong to, never inserted, so every
-existing line keeps its index and the pairing at low indices survives. Where a
-pool is short, the new lines are written to pair with the lines already at
-those indices in the sibling roles.
+Within a tier, lines may be freely reordered and new ones placed wherever the
+pairing requires. No line is edited and no line is deleted, and no line moves
+between groups. `tools/combat_message_pad_check.py` enforces exactly that
+against a baseline ref.
 
 **This is the one part of the slice that nothing can check, and it is the part
 that matters.** The validator checks length. The golden records whatever is
@@ -332,10 +380,14 @@ net moves 6 rows out of 1,560 is not a net.
 So:
 
 **PR 1 widens it.** Same per-role vocabulary as today, every index instead of
-just the first, keyed `subtype|intensity|split|role|tier|index`. The diff is
-then exactly the 984 new lines as additions plus those 6 shooting rows, and
-every pre-existing row is proven byte-identical. That is the real proof the pad
-changed nothing it should not have.
+just the first, keyed `subtype|intensity|split|role|tier|index`, recorded
+before any content moves.
+
+Because PR 1 reorders as well as appends, that golden's diff is **not**
+additions-only and cannot be read as the proof. It is still worth having: it
+shows every line the player can see, which is what makes the pairing
+reviewable. The proof that nothing was lost or silently rewritten is
+`tools/combat_message_pad_check.py` against the pre-content commit.
 
 **PR 2 re-keys it.** From per-role rows to coordinated rows, keyed
 `subtype|intensity|split|tier|index` with all roles on one row: **2,280 rows
@@ -361,14 +413,20 @@ pool lands in which role visible.
 
 ### Recording order
 
-Two `-update` runs, each deliberate and each reviewed for what it is. PR 1
-widens the builder to all indices and re-records, and that diff must be
-additions plus the 6 shooting rows and nothing else. PR 2 re-keys the builder
-to coordinated rows and re-records, and that diff must contain no string that
-did not already appear in PR 1's golden.
+Three `-update` runs, each deliberate and each reviewed for what it is.
 
-The second property is worth checking mechanically rather than by eye, since
-the re-key moves every row: a sorted multiset of the message strings in the two
+1. **PR 1, before any content.** Widen the builder to all indices and record.
+   This is the baseline the pad is measured against.
+2. **PR 1, per weapon file.** Re-record as each file is padded and reordered.
+   The diff is not additions-only, because lines move; it is the reviewable
+   picture of the pairing. The mechanical proof is
+   `tools/combat_message_pad_check.py` against the pre-content commit, which
+   fails on any deletion or edit and permits reordering.
+3. **PR 2.** Re-key to coordinated rows. That diff must contain no string that
+   did not already appear in PR 1's final golden.
+
+The third property is worth checking mechanically rather than by eye, since the
+re-key moves every row: a sorted multiset of the message strings in the two
 goldens must be identical.
 
 ### Probes, each proven red before it is trusted

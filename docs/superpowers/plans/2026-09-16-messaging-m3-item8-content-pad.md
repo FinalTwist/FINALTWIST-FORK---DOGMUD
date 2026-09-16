@@ -6,11 +6,17 @@
 per-tier equality by authoring 984 new lines, so PR 2 can render all audiences
 from one coordinated index.
 
-**Architecture:** No production Go changes. A read-only Python audit tool
-reports pool gaps and is the red/green signal. The snapshot golden is widened
-from index 0 to every index first, so it captures every existing line as a
-baseline; each weapon file is then padded and the golden re-recorded, making
-each commit's golden diff the reviewable artifact for that file.
+**Architecture:** No production Go changes. Two read-only Python tools: an
+audit that reports pool-length gaps, and a pad check that proves no line was
+deleted or edited against a baseline ref while permitting reordering. The
+snapshot golden is widened from index 0 to every index first, then re-recorded
+per weapon file so each commit's diff is the reviewable picture of that file's
+pairing.
+
+**Scope note:** each file is both **padded** and **reordered**. Padding alone
+makes coordination structurally possible but leaves roughly a quarter of
+indices pairing the wrong moments, permanently. See "The part no tool can
+check" below.
 
 **Tech Stack:** YAML content under `_datafiles/world/dogmud/combat-messages/`,
 Python 3 with PyYAML for the read-only audit, Go test goldens under
@@ -64,9 +70,35 @@ room[5]      {source} takes a {stance} stance against {target}.
 ```
 
 **The rule: author each (verb, split, tier) group as a set across all roles at
-once, with the sibling lines in front of you. Never "fill role X's gap".** New
-lines are always **appended** to their tier, never inserted, so existing
-indices do not move.
+once, with the sibling lines in front of you. Never "fill role X's gap".**
+
+### The existing lines are drifted too
+
+Padding alone is not enough, and this was found only by reading a whole file.
+`slashing` / `prepare` / `together` / `beginner`:
+
+```
+        attacker                      defender                     room
+[0]  prepare for mortal combat    prepares to fight you        prepares to attack {target}
+[1]  grip your blade tightly      raises blade menacingly      grips blade tightly
+[2]  raise your blade nervously   grips blade awkwardly        (missing)
+```
+
+Attacker and room agree at `[1]`. The defender's `[1]` and `[2]` are swapped
+relative to them. Today the mismatch lands only sometimes, because the picks
+are independent. Under a coordinated index it lands **every time**.
+
+Across the store, a lexical proxy puts only about 50% of sibling lines at the
+index that best matches the attacker's, with roughly 24% clearly belonging
+elsewhere.
+
+**So reorder as well as pad.** Within a tier, move existing lines freely and
+place new ones wherever the pairing requires, so index N means the same moment
+in every role.
+
+**Never edit a line's text. Never delete a line. Never move a line between
+groups.** `tools/combat_message_pad_check.py` enforces exactly that against a
+baseline ref, and an edit shows up as a `LOST` line, not as a move.
 
 ### Tripwires
 
@@ -118,6 +150,7 @@ Only `generic.yaml` and `shooting.yaml` have a `separate` block.
 
 **Create:**
 - `tools/combat_message_pool_audit.py`: read-only pool-gap reporter, exit 1 on any gap
+- `tools/combat_message_pad_check.py`: read-only proof that no line was deleted or edited against a baseline ref, reordering permitted
 
 **Modify (content, 20 files):**
 - `_datafiles/world/dogmud/combat-messages/*.yaml`
@@ -487,10 +520,12 @@ moment:
 
 Not a new idea about criticals. The same event, from the third seat.
 
-- [ ] **Step 3: Append the missing lines with the Edit tool**
+- [ ] **Step 3: Pad and reorder the group with the Edit tool**
 
-Append only. Never insert, never reorder, never touch an existing line. Use the
-Edit tool on the YAML directly; do not round-trip the file through Python.
+Within a tier, move existing lines and place new ones so index N is the same
+moment in every role. Never edit a line's text, never delete one, never move
+one between groups. Use the Edit tool on the YAML directly; do not round-trip
+the file through Python.
 
 Keep each line at or under 80 characters of rendered text, ignoring the ansi
 tags, which are markup rather than visible width.
@@ -507,28 +542,27 @@ Run: `go test ./internal/items/... -run TestLoad`
 
 Expected: PASS. A YAML syntax error or a mis-indented block fails here.
 
-- [ ] **Step 6: Re-record the golden and prove the diff is additions only**
+- [ ] **Step 6: Prove nothing was lost or edited, then re-record the golden**
+
+The proof is the pad check, not the golden diff, because reordering moves rows.
+
+Run: `python tools/combat_message_pad_check.py m3-item8-golden-baseline slashing`
+
+Expected: `OK against m3-item8-golden-baseline: nothing deleted or edited. 60
+line(s) added, N group(s) reordered.` Exit 0. Any `LOST` line means a line's
+text was changed or dropped: restore the exact text, then move it.
+
+Then re-record the golden:
 
 Run: `go test ./internal/narration/... -run TestSnapshotStores -update`
-
-Then, as a **standalone** command (not chained, because grep exits 1 on no
-match):
-
-```bash
-git diff -- internal/narration/testdata/stores/combat_messages.golden | grep '^-' | grep -v '^---'
-```
-
-Expected: **no output**. Any line here means an existing golden row changed,
-which means an existing message line was edited, reordered or deleted. Fix the
-YAML rather than re-recording over it.
-
-Then confirm the additions are the right size:
 
 ```bash
 git diff --numstat -- internal/narration/testdata/stores/combat_messages.golden
 ```
 
-Expected: `60	0	internal/narration/testdata/stores/combat_messages.golden`
+Expected: additions exceed deletions by exactly 60. Deletions are expected
+here and are reordered rows, not lost ones; the pad check above is what
+distinguishes the two.
 
 - [ ] **Step 7: Read the added lines back as a player would**
 
@@ -548,7 +582,7 @@ git commit -m "content(combat): pad slashing role pools to per-tier equality
 index the other roles already describe, so the coordinated index in PR 2
 narrates one moment to all three audiences.
 
-Golden diff is additions only: no existing line moved.
+Pad check green against the baseline: nothing deleted or edited.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ```
@@ -643,11 +677,12 @@ reacting, not the shooter acting.
 Append the remaining lines in the same shape, reading the `toattackerroom`
 block for the same verb and tier to find the moment each index describes.
 
-- [ ] **Step 4: Append the missing lines with the Edit tool**
+- [ ] **Step 4: Pad and reorder the groups with the Edit tool**
 
-Append only. Never insert, never reorder, never touch an existing line. Edit
-the YAML directly; do not round-trip it through Python, which would destroy the
-token comment header and the quoting.
+Within a tier, move existing lines and place new ones so index N is the same
+moment in every role. Never edit a line's text, never delete one, never move
+one between groups. Edit the YAML directly; do not round-trip it through
+Python, which would destroy the token comment header and the quoting.
 
 Keep each line at or under 80 characters of rendered text, ignoring ansi tags.
 Match the weapon's voice: `bite`, `claws`, `gore`, `maul`, `pounce`, `sting`
@@ -666,28 +701,26 @@ Run: `go test ./internal/items/... -run TestLoad`
 
 Expected: PASS.
 
-- [ ] **Step 7: Re-record the golden and prove the diff is additions only**
+- [ ] **Step 7: Prove nothing was lost or edited, then re-record the golden**
+
+Run: `python tools/combat_message_pad_check.py m3-item8-golden-baseline <FILE>`
+
+Expected: `OK against m3-item8-golden-baseline: nothing deleted or edited.
+<expected lines> line(s) added, N group(s) reordered.` Exit 0.
+
+Any `LOST` line means a line's text was changed or dropped rather than moved.
+Restore the exact text, then move it. Do not re-record over it.
+
+Then re-record the golden:
 
 Run: `go test ./internal/narration/... -run TestSnapshotStores -update`
-
-Then, as a **standalone** command:
-
-```bash
-git diff -- internal/narration/testdata/stores/combat_messages.golden | grep '^-' | grep -v '^---'
-```
-
-Expected: **no output**, with one exception. For `shooting` only, expect
-exactly 6 removed rows, the six previously-empty `todefenderroom` rows for
-`prepare` and `wait` across the three tiers, each replaced by a real line.
-
-Then:
 
 ```bash
 git diff --numstat -- internal/narration/testdata/stores/combat_messages.golden
 ```
 
-Expected: `<expected lines>	0` for every file except `shooting`, which is
-`79	6` (73 additions plus the 6 replaced rows).
+Expected: additions exceed deletions by exactly `<expected lines>`. Deletions
+are reordered rows; the pad check is what proves none was lost.
 
 - [ ] **Step 8: Read the added lines back as a player would**
 
@@ -705,7 +738,7 @@ git commit -m "content(combat): pad <FILE> role pools to per-tier equality
 <N> lines across <G> groups. Each added line is the missing seat at an
 index the other roles already describe.
 
-Golden diff is additions only: no existing line moved.
+Pad check green against the baseline: nothing deleted or edited.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ```
@@ -730,21 +763,20 @@ Expected: **`6978`**, which is the 5994 baseline from Task 1 Step 6 plus the
 984 padded lines. Independently: 6,975 store rows plus the 3
 derived-selection rows.
 
-- [ ] **Step 3: No existing line changed across the whole PR**
+- [ ] **Step 3: No line was deleted or edited across the whole PR**
 
-Run, standalone:
+Run: `python tools/combat_message_pad_check.py m3-item8-golden-baseline`
 
-```bash
-git diff m3-item8-golden-baseline -- internal/narration/testdata/stores/combat_messages.golden | grep '^-' | grep -v '^---'
-```
+Expected: `OK against m3-item8-golden-baseline: nothing deleted or edited. 984
+line(s) added, N group(s) reordered.` Exit 0.
 
-Expected: exactly 6 lines, all `shooting` `todefenderroom` rows for `prepare`
-and `wait`, which go from empty to a real first line. Anything else is an
-edited, reordered or deleted message line.
+This, not a golden diff, is the proof. PR 1 reorders as well as appends, so the
+golden's removed rows are moved lines rather than lost ones, and a diff cannot
+tell the two apart. The pad check compares each (file, verb, split, role, tier)
+group's multiset against the baseline and fails on any deletion or edit.
 
-The baseline must be the Task 1 tag, not the branch point. Task 1 re-keyed
-every row in the golden, so diffing against anything earlier shows the whole
-file as changed and proves nothing.
+The baseline must be the Task 1 tag. It is the last commit before any content
+moved.
 
 - [ ] **Step 4: Prove the audit tool would still fail if the store regressed**
 
