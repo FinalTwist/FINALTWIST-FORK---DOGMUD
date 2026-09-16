@@ -30,7 +30,8 @@ Every row below was read from the source on 2026-09-16, not recalled.
 | Emitter already passes | `biomeId, indoor` from `room.GetBiome()` | `engine/emotes.go:53-56` |
 | Narration core | `Variants`, `Roles`, `Render`, `ValidateVariants`, `Role` | `internal/narration/render.go:23,39,92,202,158` |
 | Picker seam | `Picker`, `DefaultPicker`, `SequencePicker`, `FirstPicker` | `internal/narration/picker.go:10,14,28,51` |
-| `internal/narration` imports | stdlib only (`fmt`, `sort`, `strings`) | `render.go` import block |
+| `internal/narration` imports | `render.go`: stdlib only. `picker.go`: `internal/util`. No game state. | both import blocks |
+| `modules/weather/content` arch rule | `TestContentPackageStaysPure` FORBIDS any `internal/*` import | `modules/weather/content/arch_test.go` |
 | Any `modules/` importing narration | **none today** | grep `internal/narration` over `modules/` |
 | Biome record | `BiomeInfo`, `Indoor bool` | `internal/rooms/biomes.go:14,25` |
 | Underground concept in code | **none anywhere** | grep `underground` over `internal/` and `modules/` |
@@ -186,9 +187,22 @@ What the join buys, given the content is tokenless today:
   machinery
 - a real load time validator
 
-`modules/weather/content` gains an import of `internal/narration`. That package
-imports stdlib only, so there is no cycle, and this is the first `modules/`
-package to import it.
+`modules/weather/content` gains an import of `internal/narration`, and is the
+first `modules/` package to do so. `narration` pulls in stdlib plus
+`internal/util` and no game state, so there is no cycle.
+
+⚠️ **There is also an ARCHITECTURE RULE, which this spec originally missed.**
+`modules/weather/content/arch_test.go` carries `TestContentPackageStaysPure`,
+forbidding the package from importing **any** `internal/*` package: content
+parses module data, and engine access belongs in `engine/`. Found during
+implementation, when the test failed the build.
+
+The import is still the right call, but it has to be a deliberate, narrow
+widening rather than a silent one: the test grows an
+`allowedInternalImports` allowlist containing `internal/narration` alone, with
+a comment recording why. Every other `internal/` package stays forbidden, so
+the boundary still fails loudly the next time someone reaches across it for
+rooms, mobs or players.
 
 ### 4. Validator: silence is a legal value
 

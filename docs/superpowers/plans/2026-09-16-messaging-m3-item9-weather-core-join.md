@@ -44,7 +44,8 @@ prose, and is the one PR where the golden legitimately changes.
 | `internal/narration/snapshot_test.go` | The M1 golden harness | Modify: add `buildWeatherEmotesGolden`, two sorted-key helpers, one `t.Run` |
 | `internal/narration/testdata/stores/weather_emotes.golden` | Frozen store output | **Create** (via `-update`) |
 | `modules/weather/content/emotes.go` | The store: schema, load, pick | Modify: two `Pick` bodies only |
-| `modules/weather/content/emotes_test.go` | Store unit tests | Modify: picker-type test |
+| `modules/weather/content/emotes_test.go` | Store unit tests | Modify: picker-type test, and replace `TestPickClampsOutOfRangeRoll` |
+| `modules/weather/content/arch_test.go` | Package purity rule | Modify: narrow `internal/narration` allowlist (found during implementation) |
 | `modules/weather/content/context.md` | Package doc | Modify: record the core join |
 
 ---
@@ -462,6 +463,17 @@ Run: `go test ./modules/weather/content/ -run TestPickRendersThroughTheNarration
 Expected: FAIL to compile, with `undefined: narration`. That is the correct
 failure: the package does not import the core yet.
 
+🪤 **CORRECTED DURING IMPLEMENTATION: this test PASSES before the refactor.**
+Once the test file imports `narration`, `FirstPicker` and `SequencePicker()`
+are already assignable to the old `roll func(int) int` parameter, so the test
+compiles and goes green against unmigrated code. It is therefore NOT a red-to-
+green probe for the core join, and its name overclaims.
+
+What it actually pins is that the picker's index is honoured rather than
+discarded, which is worth having and stays true after the migration. **The
+golden is what proves the core join**, and unlike this test it was proven
+capable of failing on both `Pick` methods.
+
 - [ ] **Step 3: Change both Pick signatures and bodies**
 
 In `modules/weather/content/emotes.go`, add the import:
@@ -527,8 +539,23 @@ func renderAmbient(lines []string, pick narration.Picker) string {
 }
 ```
 
-Delete the now-unreachable clamp that `Pick` used to carry (`i < 0 || i >= len(lines)`);
-`narration.Render` owns index safety.
+Delete the clamp that `Pick` used to carry (`i < 0 || i >= len(lines)`).
+
+🪤 **CORRECTED DURING IMPLEMENTATION: `narration.Render` does NOT clamp.** An
+earlier draft of this plan claimed it "owns index safety". It does not:
+`render.go:102` does `index := pick(n)` and then indexes the pool directly, so
+a picker that violates its documented `[0,n)` contract panics rather than being
+corrected.
+
+Removing the clamp is still right, because it matches how `internal/itemvoices`
+trusts its picker and because every production caller honours the contract, but
+it is a real change in failure mode and must be recorded as one rather than
+waved through.
+
+Consequence: the pre-existing `TestPickClampsOutOfRangeRoll` feeds a
+contract-violating picker and will PANIC once the clamp is gone. Replace it
+with a test that exercises the boundary indices `0` and `n-1`, and fix the
+`Tables.Pick` doc comment, which repeats the same false claim.
 
 - [ ] **Step 4: Update the two call sites' parameter names only**
 
