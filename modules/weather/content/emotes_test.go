@@ -75,23 +75,6 @@ func TestLoadEmotesMissingDir(t *testing.T) {
 	}
 }
 
-// The old bare-clamp Pick defended against a badly-behaved roll func by
-// forcing anything outside [0,len(lines)) back to index 0. narration.Picker
-// documents that contract instead of policing it — "Picker chooses an index
-// in [0,n)" — and Render trusts a picker to honor it, exactly like every
-// other store already on the core (e.g. itemvoices.VoiceSpec.LineWith). So
-// this test now proves the FULL valid range reaches every line, in place of
-// proving out-of-range inputs got clamped.
-func TestPickHonorsFullPickerRange(t *testing.T) {
-	tables := loadTestTables(t)
-	if got := tables.Pick("storm", "default", false, 0.7, "", func(n int) int { return 0 }); got != "Thunder cracks directly overhead." {
-		t.Errorf("index 0: %q", got)
-	}
-	if got := tables.Pick("storm", "default", false, 0.7, "", func(n int) int { return n - 1 }); got != "A blinding fork of lightning splits the sky." {
-		t.Errorf("index n-1: %q", got)
-	}
-}
-
 func TestPick_IndoorIntensityBands(t *testing.T) {
 	tables := Tables{
 		"rain": {
@@ -227,6 +210,13 @@ func TestLoadSeasonalEmotes_RejectsMissingKeys(t *testing.T) {
 // Observer role carries the line and the other three roles stay empty. This
 // test pins the seam, not the prose, so it must keep passing when a later PR
 // rewrites the content.
+//
+// It also stands in for the old bare-clamp Pick's out-of-range defense.
+// narration.Picker documents "an index in [0,n)" as a CONTRACT rather than
+// something Render polices, so the sequence-picker loop below proves the
+// FULL valid range reaches every line (including the last index, which a
+// lingering clamp-to-0 bug would silently mishandle), in place of proving
+// out-of-range inputs got clamped.
 func TestPickRendersThroughTheNarrationCore(t *testing.T) {
 	tables := Tables{
 		"rain": {
@@ -236,23 +226,40 @@ func TestPickRendersThroughTheNarrationCore(t *testing.T) {
 			},
 		},
 	}
+	want := []string{"first line", "second line", "third line"}
 
 	// FirstPicker always returns 0, so the first authored variant must come
 	// back. If the store still rolled its own index this would be flaky
 	// rather than exact.
-	got := tables.Pick("rain", "default", false, 0, "", narration.FirstPicker)
-	if got != "first line" {
+	if got := tables.Pick("rain", "default", false, 0, "", narration.FirstPicker); got != want[0] {
 		t.Fatalf("FirstPicker should select variant 0, got %q", got)
 	}
 
 	// A picker that walks the pool proves the index reaches the core rather
-	// than being discarded.
+	// than being discarded, across the full valid range.
 	seq := narration.SequencePicker()
-	want := []string{"first line", "second line", "third line"}
 	for i, w := range want {
 		if got := tables.Pick("rain", "default", false, 0, "", seq); got != w {
 			t.Fatalf("call %d: want %q, got %q", i, w, got)
 		}
+	}
+
+	// A nil picker is the assertion that actually proves the core is in the
+	// call path. The pre-migration code called the picker directly, so a nil
+	// one panicked; narration.Render substitutes DefaultPicker instead. This
+	// is the one observable difference the migration makes, since weather
+	// authors no tokens and has only one role for Render to coordinate.
+	//
+	// DefaultPicker is random, so assert membership in the pool, not identity.
+	got := tables.Pick("rain", "default", false, 0, "", nil)
+	found := false
+	for _, w := range want {
+		if got == w {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("a nil picker must fall back to DefaultPicker and return an authored line, got %q", got)
 	}
 }
 
