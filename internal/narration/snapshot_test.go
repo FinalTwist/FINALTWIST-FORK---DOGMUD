@@ -298,8 +298,11 @@ func buildCombatMessagesGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# combat-messages store snapshot\n")
 	fmt.Fprintf(&b, "# subtype files at time of writing: %d\n", len(subtypes))
 	fmt.Fprintf(&b, "# subtypes: %s\n", strings.Join(subtypes, ","))
-	fmt.Fprintf(&b, "# dimensions: subtype x intensity x section x role x tier, fresh SequencePicker per tuple (always index 0)\n")
-	fmt.Fprintf(&b, "# separate section present only for: generic, shooting (per source at time of writing)\n\n")
+	fmt.Fprintf(&b, "# dimensions: subtype x intensity x section x role x tier x index, every authored line exactly once\n")
+	fmt.Fprintf(&b, "# separate section present only for: generic, shooting (per source at time of writing)\n")
+	fmt.Fprintf(&b, "# coupdegrace recorded for generic only: it is authored nowhere else, and every\n")
+	fmt.Fprintf(&b, "# other subtype reaches it through GetPreAttackMessage's fallback to Generic\n")
+	fmt.Fprintf(&b, "# PR 1 of M3 item 8 widened this from index 0 only; PR 2 re-keys it to coordinated rows\n\n")
 
 	intensities := []items.Intensity{items.Prepare, items.Wait, items.Miss, items.Weak, items.Normal, items.Heavy, items.Critical, items.Fumble}
 	tiers := []struct {
@@ -331,15 +334,28 @@ func buildCombatMessagesGolden(t *testing.T) string {
 	hasSeparate := map[string]bool{"generic": true, "shooting": true}
 
 	for _, subtype := range subtypes {
-		for _, intensity := range intensities {
+		// coupdegrace is authored only in generic.yaml. Looping it over every
+		// subtype would record generic's lines 19 extra times, because
+		// GetPreAttackMessage falls back to Generic for a missing intensity.
+		intensityList := intensities
+		if subtype == "generic" {
+			intensityList = append(append([]items.Intensity{}, intensities...), items.CoupDeGrace)
+		}
+
+		for _, intensity := range intensityList {
 			opts := items.GetPreAttackMessage(items.ItemSubType(subtype), intensity)
 
 			for _, role := range togetherRoles {
 				stm := role.get(opts.Together)
 				for _, tier := range tiers {
 					mo := tier.get(stm)
-					text := substituteTokens(string(mo.GetWith(narration.SequencePicker())))
-					fmt.Fprintf(&b, "%s|%s|together|%s|%s => %s\n", subtype, intensity, role.name, tier.name, text)
+					// Enumerate the pool rather than sample it: this golden
+					// exists to freeze every authored line, and a picker would
+					// consume draws for no reason.
+					for idx := 0; idx < len(mo); idx++ {
+						text := substituteTokens(string(mo[idx]))
+						fmt.Fprintf(&b, "%s|%s|together|%s|%s|%d => %s\n", subtype, intensity, role.name, tier.name, idx, text)
+					}
 				}
 			}
 
@@ -348,8 +364,10 @@ func buildCombatMessagesGolden(t *testing.T) string {
 					stm := role.get(opts.Separate)
 					for _, tier := range tiers {
 						mo := tier.get(stm)
-						text := substituteTokens(string(mo.GetWith(narration.SequencePicker())))
-						fmt.Fprintf(&b, "%s|%s|separate|%s|%s => %s\n", subtype, intensity, role.name, tier.name, text)
+						for idx := 0; idx < len(mo); idx++ {
+							text := substituteTokens(string(mo[idx]))
+							fmt.Fprintf(&b, "%s|%s|separate|%s|%s|%d => %s\n", subtype, intensity, role.name, tier.name, idx, text)
+						}
 					}
 				}
 			}
