@@ -46,6 +46,7 @@ prose, and is the one PR where the golden legitimately changes.
 | `modules/weather/content/emotes.go` | The store: schema, load, pick | Modify: two `Pick` bodies only |
 | `modules/weather/content/emotes_test.go` | Store unit tests | Modify: picker-type test, and replace `TestPickClampsOutOfRangeRoll` |
 | `modules/weather/content/arch_test.go` | Package purity rule | Modify: narrow `internal/narration` allowlist (found during implementation) |
+| `narration_render_callers_guard_test.go` | Root registry of every `narration.Render` caller | Modify: register weather with a reason (found during implementation) |
 | `modules/weather/content/context.md` | Package doc | Modify: record the core join |
 
 ---
@@ -685,6 +686,28 @@ Expected: clean.
 Run: `go test ./...`
 
 Expected: PASS.
+
+🪤 **THIS STEP FOUND A GUARD THE PLAN MISSED, the second of two.**
+`TestNarrationRenderIsCalledOnlyByRegisteredStores` at the repo root keeps a
+registry of every production file allowed to call `narration.Render`, each with
+a stated reason, and fails the build on an unregistered caller. Weather must be
+added:
+
+```go
+	"modules/weather/content/emotes.go": "Kind A: weather ambient emote pools, single role (the room is told)",
+```
+
+It is the first entry outside `internal/`, which is worth a comment in the
+registry itself.
+
+🔑 **Both misses share one cause, and it is a rule this project already has:
+grep for how the codebase CONSTRAINS a thing before adding to it.** Two
+separate guards govern this one import, and neither was found at planning time
+because the search was for import CYCLES only. A cycle check answers "will it
+compile", not "is this allowed here". Ask both questions.
+
+Neither guard needed a capability probe: each was proven capable of failing by
+actually failing on this change.
 
 Two known false reds, neither caused by this change:
 - `internal/playtestrun` can go red under full-suite load while passing
