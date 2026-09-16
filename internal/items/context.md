@@ -1161,9 +1161,52 @@ and `TestPreDetuneBowTable_MatchesTheRealTemplates` both fail otherwise.
 | `detune_migration.go` | U10d ranged-weapon rescale (`MigrateDetunedBow`); idempotent by value threshold, no run-once marker |
 | `proc_accessors.go` | On-hit proc access |
 | `reach.go` | Weapon reach data |
-| `attack_messages.go` / `defensive_messages.go` | Combat message pools |
+| `attack_messages.go` / `defensive_messages.go` | Combat message pools. Both render a coordinated triad through `narration.Render`; see below |
 | `memory.go` | Memory reporting |
 | `test_helpers.go` / `test_helpers_combat.go` | Test fixtures |
 
 Item ids at 40000+ live under `items/materials-40000/` — `Filepath()` routes by
 id range, so a materials item filed elsewhere will not load.
+
+## The combat-message store renders one coordinated index
+
+`attack_messages.go` owns `combat-messages/`. Its surface:
+
+```go
+func (stm SkillTieredMessages) PoolFor(skillLevel int) []string
+func (m TogetherMessages) Render(skillLevel int, tokens map[TokenName]string, pick narration.Picker) narration.Roles
+func (m SeparateMessages) Render(skillLevel int, tokens map[TokenName]string, pick narration.Picker) narration.Roles
+```
+
+`PoolFor` assembles the cumulative tier union (beginner always, plus expert at
+skill 34, plus master at 67) and hands it to the core as plain strings.
+Assembly stays here; the core only coordinates the index and substitutes
+tokens.
+
+Role mapping, and getting it wrong inverts every combat message in the game:
+
+| Split | Actor | Actee | Observer | ActeeObserver |
+|---|---|---|---|---|
+| `together` | `ToAttacker` | `ToDefender` | `ToRoom` | *(absent, one observer audience)* |
+| `separate` | `ToAttacker` | `ToDefender` | `ToAttackerRoom` | `ToDefenderRoom` |
+
+**Every audience comes from ONE index.** Picking per role narrates a different
+moment to each of them, which shipped twice before (melee defence PR #112,
+taunt PR #115) and was live in this store until M3 item 8.
+
+**`Validate` enforces per-tier role equality, and that is not the same as
+equal totals.** The union is cumulative, so equal totals with unequal tiers
+still pair an expert line against a master one at the same index. Per-tier
+equality is exactly equivalent to union equality at all three skill levels.
+`minVariants` is 1, not the defence store's 5: 414 of 534 shipped groups hold
+fewer than five, and the smallest holds one.
+
+`tools/combat_message_pool_audit.py` reports any group whose pools are
+unequal; `tools/combat_message_pad_check.py` proves a content change deleted
+and edited nothing while permitting reordering.
+
+**`ConsistentAttackMessages` is gone and must not come back.** It seeded the
+index with the weapon's `ItemId`, which worked upstream where pools are equal
+but collapsed each pool to one line per intensity per skill tier here.
+`consistent_attack_messages_guard_test.go` fails the build if the name
+returns.
