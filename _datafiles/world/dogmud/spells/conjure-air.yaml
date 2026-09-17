@@ -14,13 +14,13 @@ base_folds: 8
 target_defense_type: none
 effect_type: none
 effect_magnitude: 0
-cast_user_text: >-
+cast_actor: >-
   You tear an opening in the veil and call to the shrieking
   currents beyond...
-cast_room_text: >-
+cast_observer: >-
   {actor}'s hair and clothing snap sideways as if caught in
   sudden wind.
-wait_user_text: >-
+wait_actor: >-
   A high, keening sound builds from nowhere. The air pressure
   drops sharply as something tears through...
 summon_mob_id: 312

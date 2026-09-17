@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 30049
   quantity: 1
-success_message: "The brew turns blood-red and seems to throb with fury. A berserker elixir!"
-failure_message: "The hive fragment rejects the venom and cracks apart. The materials are wasted."
+success_actor: "The brew turns blood-red and seems to throb with fury. A berserker elixir!"
+failure_actor: "The hive fragment rejects the venom and cracks apart. The materials are wasted."

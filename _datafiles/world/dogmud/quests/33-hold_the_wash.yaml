@@ -69,7 +69,7 @@ rewards:
   skillinfo: "weapon-combat:1"
   itemid: 20087
   gold: 25
-  playermessage: >-
+  actor: >-
     Garve presses a purse into your hand and holds your gaze a moment
     longer than is strictly necessary -- the look of someone revising
     their estimate upward. The leggings he slides from the pack beside
@@ -84,7 +84,7 @@ triggers:
       missing: ["33-scout"]
     actions:
       - grant: "33-scout"
-      - send_text: >-
+      - actor: >-
           The bandit scout goes down. His gear stays on the body until
           you take it -- type loot corpse (or get all corpse) to strip
           it, then wear any armor you pull. One threat in the wash is
@@ -98,7 +98,7 @@ triggers:
       missing: ["33-squatter"]
     actions:
       - grant: "33-squatter"
-      - send_text: >-
+      - actor: >-
           The bandit squatter drops -- and he was wearing something
           worth having. Loot the corpse before you go, then walk back
           and give Garve the word. The wash is clear down to the

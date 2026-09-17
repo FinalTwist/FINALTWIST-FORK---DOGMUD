@@ -16,5 +16,5 @@ condition_ids:
   - 30
 categories:
   - harm_single
-cast_user_text: "You reach into the target's nervous system with psionic energy."
-cast_room_text: "{actor} focuses with a sharp, clinical intensity."
+cast_actor: "You reach into the target's nervous system with psionic energy."
+cast_observer: "{actor} focuses with a sharp, clinical intensity."

@@ -14,7 +14,7 @@ statmods:
   vitality: -5
   willpower: -5
   charisma: -5
-start_user_text: "The need for Bloom rises like a tide -- your hands shake,
+start_actee: "The need for Bloom rises like a tide -- your hands shake,
   your mouth is dry, and your thoughts keep circling back to the wafer and
   its warmth."
-end_user_text: The craving subsides, for now.
+end_actee: The craving subsides, for now.

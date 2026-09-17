@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 30059
   quantity: 1
-success_message: "The venom dissolves into a sickly green cloud inside the sealed flask. A toxic flask!"
-failure_message: "The venom crystallizes uselessly. The materials are wasted."
+success_actor: "The venom dissolves into a sickly green cloud inside the sealed flask. A toxic flask!"
+failure_actor: "The venom crystallizes uselessly. The materials are wasted."

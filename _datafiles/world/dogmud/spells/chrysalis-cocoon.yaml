@@ -16,5 +16,5 @@ condition_ids:
   - 52
 categories:
   - self_defense
-cast_user_text: "You draw living Chrysalis around the target, weaving a protective cocoon."
-cast_room_text: "{actor} gestures as tendrils of living Chrysalis weave into a shell."
+cast_actor: "You draw living Chrysalis around the target, weaving a protective cocoon."
+cast_observer: "{actor} gestures as tendrils of living Chrysalis weave into a shell."

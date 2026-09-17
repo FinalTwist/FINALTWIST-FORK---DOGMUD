@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 40218
   quantity: 1
-success_message: "You bind the setting into overlapping rings and turn the hunger inward, patient and contained. A containment lattice!"
-failure_message: "The rings won't close true and the binding slips its cage. The materials are lost."
+success_actor: "You bind the setting into overlapping rings and turn the hunger inward, patient and contained. A containment lattice!"
+failure_actor: "The rings won't close true and the binding slips its cage. The materials are lost."

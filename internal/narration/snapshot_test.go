@@ -12,7 +12,8 @@ package narration_test
 //   - _datafiles/world/dogmud/combat-messages/     20 files (weapon subtypes)
 //   - _datafiles/world/dogmud/defense-messages/     9 files (defense types)
 //   - _datafiles/world/dogmud/taunt-messages/        1 file  (rhetoric.yaml)
-//   - _datafiles/world/dogmud/messaging/             1 file  (grapple_outcomes.yaml)
+//   - _datafiles/world/dogmud/messaging/             2 files (grapple_outcomes.yaml,
+//     position_control.yaml as of M4b-1)
 //   - _datafiles/world/dogmud/casting-messages.yaml  1 file  (bare file at tree root, 24 lines)
 //   - _datafiles/world/dogmud/itemvoices/            2 files (sentient item voices)
 // A shrinking file count against these numbers means a store was deleted or
@@ -39,8 +40,8 @@ package narration_test
 //     SkillTieredMessages.GetForSkillLevelWith directly (the seam production
 //     actually calls) at 3 representative skill levels, to freeze that its
 //     index-0 pick is (and stays) Beginner[0] regardless of skill level.
-//   - defense-messages: type x band(weak/normal/heavy) x role(todefender/
-//     toattacker/toroom, all 3 from one coordinated call). PLUS the EMPTY
+//   - defense-messages: type x band(weak/normal/heavy) x role(actee/
+//     actor/observer, all 3 from one coordinated call). PLUS the EMPTY
 //     case (unregistered defense type -> empty triad).
 //   - taunt-messages: intensity(4) x perspective(3). PLUS the EMPTY case
 //     (unrecognized perspective string -> "").
@@ -352,18 +353,18 @@ func buildCombatMessagesGolden(t *testing.T) string {
 		name string
 		get  func(items.TogetherMessages) items.SkillTieredMessages
 	}{
-		{"toattacker", func(m items.TogetherMessages) items.SkillTieredMessages { return m.ToAttacker }},
-		{"todefender", func(m items.TogetherMessages) items.SkillTieredMessages { return m.ToDefender }},
-		{"toroom", func(m items.TogetherMessages) items.SkillTieredMessages { return m.ToRoom }},
+		{"actor", func(m items.TogetherMessages) items.SkillTieredMessages { return m.ToAttacker }},
+		{"actee", func(m items.TogetherMessages) items.SkillTieredMessages { return m.ToDefender }},
+		{"observer", func(m items.TogetherMessages) items.SkillTieredMessages { return m.ToRoom }},
 	}
 	separateRoles := []struct {
 		name string
 		get  func(items.SeparateMessages) items.SkillTieredMessages
 	}{
-		{"toattacker", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToAttacker }},
-		{"todefender", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToDefender }},
-		{"toattackerroom", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToAttackerRoom }},
-		{"todefenderroom", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToDefenderRoom }},
+		{"actor", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToAttacker }},
+		{"actee", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToDefender }},
+		{"observer", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToAttackerRoom }},
+		{"remote_observer", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToDefenderRoom }},
 	}
 
 	hasSeparate := map[string]bool{"generic": true, "shooting": true}
@@ -460,7 +461,7 @@ func buildCombatMessagesGolden(t *testing.T) string {
 	// hands it to the core. Freezing the union's SIZE as well as its first
 	// entry says more than the old row did, because the size is what the
 	// coordinated index is taken modulo of.
-	fmt.Fprintf(&b, "\n# derived-selection (PoolFor), bite/weak/toattacker, cumulative tier union\n")
+	fmt.Fprintf(&b, "\n# derived-selection (PoolFor), bite/weak/actor, cumulative tier union\n")
 	opts := items.GetPreAttackMessage(items.Bite, items.Weak)
 	for _, skillLevel := range []int{10, 50, 90} {
 		pool := opts.Together.ToAttacker.PoolFor(skillLevel)
@@ -468,7 +469,7 @@ func buildCombatMessagesGolden(t *testing.T) string {
 		if len(pool) > 0 {
 			first = substituteTokens(pool[0])
 		}
-		fmt.Fprintf(&b, "derived|bite|weak|toattacker|skill=%d|n=%d => %s\n", skillLevel, len(pool), first)
+		fmt.Fprintf(&b, "derived|bite|weak|actor|skill=%d|n=%d => %s\n", skillLevel, len(pool), first)
 	}
 
 	return b.String()
@@ -487,7 +488,7 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# defense-messages store snapshot\n")
 	fmt.Fprintf(&b, "# defense-type files at time of writing: %d\n", len(types))
 	fmt.Fprintf(&b, "# defense-types: %s\n", strings.Join(types, ","))
-	fmt.Fprintf(&b, "# dimensions: defense-type x band(weak/normal/heavy) -- all 3 roles (todefender/toattacker/toroom)\n")
+	fmt.Fprintf(&b, "# dimensions: defense-type x band(weak/normal/heavy) -- all 3 roles (actee/actor/observer)\n")
 	fmt.Fprintf(&b, "# come from ONE coordinated RenderDefenseMessage call (same index across the triad).\n")
 	fmt.Fprintf(&b, "# RenderDefenseMessage has no picker param (util.Rand only) -- pinned via indexOverride=0,\n")
 	fmt.Fprintf(&b, "# the fresh-SequencePicker-first-pick equivalent for this seam.\n\n")
@@ -512,18 +513,18 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 	for _, dt := range types {
 		for _, band := range bands {
 			triad := items.RenderDefenseMessage(items.DefenseType(dt), band.crit, band.margin, defenseStandins, 0)
-			fmt.Fprintf(&b, "%s|%s|todefender => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
-			fmt.Fprintf(&b, "%s|%s|toattacker => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
-			fmt.Fprintf(&b, "%s|%s|toroom => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToRoom)))
+			fmt.Fprintf(&b, "%s|%s|actee => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
+			fmt.Fprintf(&b, "%s|%s|actor => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
+			fmt.Fprintf(&b, "%s|%s|observer => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToRoom)))
 		}
 	}
 
 	// EMPTY CASE: an unregistered defense type returns an all-empty triad.
 	fmt.Fprintf(&b, "\n# EMPTY CASE: unregistered defense type -> empty triad\n")
 	emptyTriad := items.RenderDefenseMessage(items.DefenseType("nonexistent-defense-type"), false, 0.6, defenseStandins, 0)
-	fmt.Fprintf(&b, "nonexistent-defense-type|normal|todefender => %q\n", string(emptyTriad.ToDefender))
-	fmt.Fprintf(&b, "nonexistent-defense-type|normal|toattacker => %q\n", string(emptyTriad.ToAttacker))
-	fmt.Fprintf(&b, "nonexistent-defense-type|normal|toroom => %q\n", string(emptyTriad.ToRoom))
+	fmt.Fprintf(&b, "nonexistent-defense-type|normal|actee => %q\n", string(emptyTriad.ToDefender))
+	fmt.Fprintf(&b, "nonexistent-defense-type|normal|actor => %q\n", string(emptyTriad.ToAttacker))
+	fmt.Fprintf(&b, "nonexistent-defense-type|normal|observer => %q\n", string(emptyTriad.ToRoom))
 
 	// MELEE SEAM: GetDefenseMessage's own zScore banding (>=2.0 heavy, >=0.5
 	// normal, else weak -- see internal/combat/combat_helpers.go), feeding the
@@ -543,18 +544,18 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 		for _, band := range meleeBands {
 			options := items.GetDefenseMessage(items.DefenseType(dt), band.zScore)
 			triad := options.RenderTriad(defenseStandins, narration.SequencePicker())
-			fmt.Fprintf(&b, "melee|%s|%s|todefender => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
-			fmt.Fprintf(&b, "melee|%s|%s|toattacker => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
-			fmt.Fprintf(&b, "melee|%s|%s|toroom => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToRoom)))
+			fmt.Fprintf(&b, "melee|%s|%s|actee => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
+			fmt.Fprintf(&b, "melee|%s|%s|actor => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
+			fmt.Fprintf(&b, "melee|%s|%s|observer => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToRoom)))
 		}
 	}
 
 	// EMPTY CASE (melee seam): an unregistered defense type.
 	fmt.Fprintf(&b, "\n# EMPTY CASE (melee seam): unregistered defense type -> empty triad\n")
 	emptyMeleeTriad := items.GetDefenseMessage(items.DefenseType("nonexistent-defense-type"), 0.6).RenderTriad(defenseStandins, narration.SequencePicker())
-	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|todefender => %q\n", string(emptyMeleeTriad.ToDefender))
-	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|toattacker => %q\n", string(emptyMeleeTriad.ToAttacker))
-	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|toroom => %q\n", string(emptyMeleeTriad.ToRoom))
+	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|actee => %q\n", string(emptyMeleeTriad.ToDefender))
+	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|actor => %q\n", string(emptyMeleeTriad.ToAttacker))
+	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|observer => %q\n", string(emptyMeleeTriad.ToRoom))
 
 	return b.String()
 }
@@ -571,7 +572,7 @@ func buildTauntMessagesGolden(t *testing.T) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# taunt-messages store snapshot\n")
 	fmt.Fprintf(&b, "# files at time of writing: %d (%s)\n", len(files), strings.Join(files, ","))
-	fmt.Fprintf(&b, "# dimensions: intensity(hit/miss/critical/fumble) x perspective(toattacker/todefender/toroom)\n")
+	fmt.Fprintf(&b, "# dimensions: intensity(hit/miss/critical/fumble) x perspective(actor/actee/observer)\n")
 	fmt.Fprintf(&b, "#\n")
 	fmt.Fprintf(&b, "# All three perspectives of one intensity come from ONE coordinated GetTauntTriad call\n")
 	fmt.Fprintf(&b, "# (same variant index across the triad). Until 2026-09-09 usercommands/taunt.go called a\n")
@@ -588,9 +589,9 @@ func buildTauntMessagesGolden(t *testing.T) string {
 
 	for _, intensity := range intensities {
 		triad := combat.GetTauntTriad(intensity, "Source", "Target", "User", "Mob", "ModerateWounds", narration.SequencePicker())
-		fmt.Fprintf(&b, "rhetoric|%s|toattacker => %s\n", intensity, triad.ToAttacker)
-		fmt.Fprintf(&b, "rhetoric|%s|todefender => %s\n", intensity, triad.ToDefender)
-		fmt.Fprintf(&b, "rhetoric|%s|toroom => %s\n", intensity, triad.ToRoom)
+		fmt.Fprintf(&b, "rhetoric|%s|actor => %s\n", intensity, triad.ToAttacker)
+		fmt.Fprintf(&b, "rhetoric|%s|actee => %s\n", intensity, triad.ToDefender)
+		fmt.Fprintf(&b, "rhetoric|%s|observer => %s\n", intensity, triad.ToRoom)
 	}
 
 	return b.String()
@@ -658,9 +659,10 @@ func buildGrappleMessagingGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# category counts at time of writing: advancements=%d degradations=%d reversals=%d escapes=%d holds=%d striking_apex=%d gradients=%d\n",
 		len(lib.Advancements), len(lib.Degradations), len(lib.Reversals), len(lib.Escapes), len(lib.Holds), len(lib.StrikingApex), len(lib.Gradients))
 	fmt.Fprintf(&b, "# dimensions: category x key x role. Triad categories (advancements/degradations/reversals/escapes/holds)\n")
-	fmt.Fprintf(&b, "# use role in {controller,controlled,observers}; striking_apex is single-speaker (no role); gradients use\n")
-	fmt.Fprintf(&b, "# role in {self,partner,observers}. Each tuple: fresh cooldowns map + fresh SequencePicker via PickTemplate,\n")
-	fmt.Fprintf(&b, "# then narration.Substitute with fixed stand-ins Controller/Controlled.\n\n")
+	fmt.Fprintf(&b, "# and gradients BOTH use role in {actor,actee,observer}: M4b-1 merged the two authored vocabularies\n")
+	fmt.Fprintf(&b, "# (controller/controlled/observers and self/partner/observers). striking_apex is single-speaker (no role).\n")
+	fmt.Fprintf(&b, "# Each tuple: fresh cooldowns map + fresh SequencePicker via PickTemplate, then narration.Substitute\n")
+	fmt.Fprintf(&b, "# with fixed stand-ins Controller/Controlled.\n\n")
 
 	renderPool := func(pool []string) string {
 		tmpl := grapplemessaging.PickTemplate(pool, map[string]bool{}, "snapshot", narration.SequencePicker())
@@ -683,9 +685,9 @@ func buildGrappleMessagingGolden(t *testing.T) string {
 	for _, cat := range triadCategories {
 		for _, key := range sortedKeysTriad(cat.m) {
 			triad := cat.m[key]
-			fmt.Fprintf(&b, "%s|%s|controller => %s\n", cat.name, key, renderPool(triad.Controller))
-			fmt.Fprintf(&b, "%s|%s|controlled => %s\n", cat.name, key, renderPool(triad.Controlled))
-			fmt.Fprintf(&b, "%s|%s|observers => %s\n", cat.name, key, renderPool(triad.Observers))
+			fmt.Fprintf(&b, "%s|%s|actor => %s\n", cat.name, key, renderPool(triad.Controller))
+			fmt.Fprintf(&b, "%s|%s|actee => %s\n", cat.name, key, renderPool(triad.Controlled))
+			fmt.Fprintf(&b, "%s|%s|observer => %s\n", cat.name, key, renderPool(triad.Observers))
 		}
 	}
 
@@ -695,9 +697,9 @@ func buildGrappleMessagingGolden(t *testing.T) string {
 
 	for _, key := range sortedKeysGradient(lib.Gradients) {
 		g := lib.Gradients[key]
-		fmt.Fprintf(&b, "gradients|%s|self => %s\n", key, renderPool(g.Self))
-		fmt.Fprintf(&b, "gradients|%s|partner => %s\n", key, renderPool(g.Partner))
-		fmt.Fprintf(&b, "gradients|%s|observers => %s\n", key, renderPool(g.Observers))
+		fmt.Fprintf(&b, "gradients|%s|actor => %s\n", key, renderPool(g.Self))
+		fmt.Fprintf(&b, "gradients|%s|actee => %s\n", key, renderPool(g.Partner))
+		fmt.Fprintf(&b, "gradients|%s|observer => %s\n", key, renderPool(g.Observers))
 	}
 
 	// EMPTY CASE: PickTemplate on an empty pool returns a benign fallback
@@ -964,21 +966,24 @@ var kindBNoTarget = textutil.TokenContext{
 	ActorPlainName: kindBSource.ActorPlainName,
 }
 
-// Store 8: conditions (internal/conditions, six *_user_text / *_room_text fields)
+// Store 8: conditions (internal/conditions, six <phase>_actee / <phase>_observer
+// fields)
 //
 // Since M3 item 5b this builder reads through ConditionSpec.Narrate and
 // AuthoredStartLine; the emitted rows, their order and the header are
 // unchanged from the pre-migration recording, which is the byte-identity
-// proof.
+// proof. M4b-1 renamed the authored keys these rows are labelled with
+// (start_user_text became start_actee, and so on), which moves the LABEL half
+// of every row and nothing else.
 func buildConditionsGolden(t *testing.T) string {
 	t.Helper()
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "# conditions store snapshot (internal/conditions)\n")
-	fmt.Fprintf(&b, "# Built 2026-09-12 from PRE-migration code. The *_user_text rows record what the\n")
+	fmt.Fprintf(&b, "# Built 2026-09-12 from PRE-migration code. The *_actee rows record what the\n")
 	fmt.Fprintf(&b, "# HOLDER is sent: for start and end that is StartUserNotice / EndUserNotice (authored\n")
 	fmt.Fprintf(&b, "# line, else the generic fallback, else nothing for a secret condition). A row exists only\n")
-	fmt.Fprintf(&b, "# when the sent line is non-empty. authored_start_line is the raw start_user_text of a\n")
+	fmt.Fprintf(&b, "# when the sent line is non-empty. authored_start_line is the raw start_actee of a\n")
 	fmt.Fprintf(&b, "# silent-start condition, recorded for every silent-start condition whether or not a site sends it\n")
 	fmt.Fprintf(&b, "# today: sleep (15), arrest (88), stun (84) and broken limb (83) have a sender; throttled\n")
 	fmt.Fprintf(&b, "# (89) does not, its move narrates the choke itself.\n")
@@ -998,9 +1003,9 @@ func buildConditionsGolden(t *testing.T) string {
 			p                conditions.Phase
 			userKey, roomKey string
 		}{
-			{conditions.PhaseStart, "start_user_text", "start_room_text"},
-			{conditions.PhaseTrigger, "trigger_user_text", "trigger_room_text"},
-			{conditions.PhaseEnd, "end_user_text", "end_room_text"},
+			{conditions.PhaseStart, "start_actee", "start_observer"},
+			{conditions.PhaseTrigger, "trigger_actee", "trigger_observer"},
+			{conditions.PhaseEnd, "end_actee", "end_observer"},
 		}
 		for _, ph := range phases {
 			// Conditions take the HOLDER, not a context: the store puts it in the
@@ -1023,11 +1028,13 @@ func buildConditionsGolden(t *testing.T) string {
 	return b.String()
 }
 
-// Store 9: spells (internal/spells, six cast/wait/magic x user/room fields)
+// Store 9: spells (internal/spells, six cast/wait/magic x actor/observer fields)
 //
 // Since M3 item 5b this builder reads through SpellData.Narrate; the emitted
 // rows, their order and the header are unchanged from the pre-migration
-// recording, which is the byte-identity proof. The two probe rows still go
+// recording, which is the byte-identity proof. M4b-1 renamed the authored keys
+// these rows are labelled with (cast_user_text became cast_actor, and so on),
+// which moves the LABEL half of every row and nothing else. The two probe rows still go
 // through textutil.SubstituteTokens directly, since they freeze the token
 // contract itself, not a store.
 func buildSpellsGolden(t *testing.T) string {
@@ -1063,9 +1070,9 @@ func buildSpellsGolden(t *testing.T) string {
 			p                spells.Phase
 			userKey, roomKey string
 		}{
-			{spells.PhaseCast, "cast_user_text", "cast_room_text"},
-			{spells.PhaseWait, "wait_user_text", "wait_room_text"},
-			{spells.PhaseMagic, "magic_user_text", "magic_room_text"},
+			{spells.PhaseCast, "cast_actor", "cast_observer"},
+			{spells.PhaseWait, "wait_actor", "wait_observer"},
+			{spells.PhaseMagic, "magic_actor", "magic_observer"},
 		}
 		for _, ph := range phases {
 			with := s.Narrate(ph.p, kindBSource)
@@ -1087,25 +1094,31 @@ func buildSpellsGolden(t *testing.T) string {
 	return b.String()
 }
 
-// Store 10: quests (internal/quests: reward playermessage/roommessage, and the
-// send_text / room_text actions, nested sequences included)
+// Store 10: quests (internal/quests: reward actor/observer, and the actor /
+// observer actions, nested sequences included)
 //
 // Since M3 item 5b this builder reads through ActionDef.Narrate and
 // QuestReward.Narrate; the emitted rows, their order and the header are
 // unchanged from the pre-migration recording, which is the byte-identity
-// proof. The header's "send_text RAW (no substitution)" describes the retired
+// proof. The header's "actor line RAW (no substitution)" describes the retired
 // recording, not production: since the same slice, questengine.ExecuteAction
-// renders send_text through GameBridge.Narrate, which substitutes. The bytes
-// did not change because no shipped send_text, playermessage or roommessage
-// carries a token.
+// renders the actor line through GameBridge.Narrate, which substitutes. The
+// bytes did not change because no shipped quest action or reward line carries
+// a token.
+//
+// M4b-1 renamed all four authored keys (rewards playermessage/roommessage and
+// actions send_text/room_text all became actor/observer), which moves the
+// LABEL half of every row and nothing else. The reward and action rows are
+// still told apart by the `rewards` / `trigger<i>|action<j>` field ahead of
+// the label, so collapsing four spellings into two loses no dimension.
 func buildQuestsGolden(t *testing.T) string {
 	t.Helper()
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "# quests store snapshot (internal/quests)\n")
 	fmt.Fprintf(&b, "# Built 2026-09-12 from PRE-migration code, sending what each site sends today:\n")
-	fmt.Fprintf(&b, "# rewards playermessage/roommessage and action send_text RAW (no substitution),\n")
-	fmt.Fprintf(&b, "# action room_text through textutil.SubstituteTokens with the player as {actor}.\n")
+	fmt.Fprintf(&b, "# reward actor/observer and action actor RAW (no substitution),\n")
+	fmt.Fprintf(&b, "# action observer through textutil.SubstituteTokens with the player as {actor}.\n")
 	fmt.Fprintf(&b, "# dimensions: quest id x rewards | trigger<i>|action<j>[|sequence|action<k>...] x key\n\n")
 
 	all := quests.GetAllQuests()
@@ -1120,10 +1133,10 @@ func buildQuestsGolden(t *testing.T) string {
 			aw := fmt.Sprintf("%s|action%d", where, j)
 			roles := a.Narrate(kindBNoTarget)
 			if roles.Actor != "" {
-				fmt.Fprintf(&b, "%s|send_text => %s\n", aw, roles.Actor)
+				fmt.Fprintf(&b, "%s|actor => %s\n", aw, roles.Actor)
 			}
 			if roles.Observer != "" {
-				fmt.Fprintf(&b, "%s|room_text => %s\n", aw, roles.Observer)
+				fmt.Fprintf(&b, "%s|observer => %s\n", aw, roles.Observer)
 			}
 			if a.Sequence != nil {
 				walk(aw+"|sequence", a.Sequence.OnComplete)
@@ -1133,10 +1146,10 @@ func buildQuestsGolden(t *testing.T) string {
 	for _, q := range all {
 		reward := q.Rewards.Narrate(kindBNoTarget)
 		if reward.Actor != "" {
-			fmt.Fprintf(&b, "quest|%d|rewards|playermessage => %s\n", q.QuestId, reward.Actor)
+			fmt.Fprintf(&b, "quest|%d|rewards|actor => %s\n", q.QuestId, reward.Actor)
 		}
 		if reward.Observer != "" {
-			fmt.Fprintf(&b, "quest|%d|rewards|roommessage => %s\n", q.QuestId, reward.Observer)
+			fmt.Fprintf(&b, "quest|%d|rewards|observer => %s\n", q.QuestId, reward.Observer)
 		}
 		for i, tr := range q.Triggers {
 			walk(fmt.Sprintf("quest|%d|trigger%d", q.QuestId, i), tr.Actions)
@@ -1145,14 +1158,17 @@ func buildQuestsGolden(t *testing.T) string {
 	return b.String()
 }
 
-// Store 11: crafting (internal/crafting: success_message / failure_message and
-// the optional *_room_message Observer slot)
+// Store 11: crafting (internal/crafting: success_actor / failure_actor and the
+// optional *_observer slot)
 //
 // Recorded 2026-09-15 from PRE-migration code (the raw field, color-wrapped as
 // the four player sites sent it). Since M3 item 6 this builder reads through
 // RecipeSpec.Narrate; the rows, their order and the header are unchanged, which
 // is the byte-identity proof. Rows are keyed by the AUTHORED key, so a swapped
-// Actor and Observer shows as a changed row.
+// Actor and Observer shows as a changed row. M4b-1 renamed those keys
+// (success_message became success_actor, success_room_message became
+// success_observer, and so on), which moves the LABEL half of every row and
+// nothing else.
 func buildCraftingGolden(t *testing.T) string {
 	t.Helper()
 
@@ -1160,7 +1176,7 @@ func buildCraftingGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# crafting store snapshot (internal/crafting)\n")
 	fmt.Fprintf(&b, "# Built 2026-09-15 from PRE-migration code: what the CRAFTER is sent, color wrap\n")
 	fmt.Fprintf(&b, "# included (success green, failure red, CategorySystem). Recipes had no room line\n")
-	fmt.Fprintf(&b, "# before M3 item 6; *_room_message rows appear only once one is authored.\n")
+	fmt.Fprintf(&b, "# before M3 item 6; *_observer rows appear only once one is authored.\n")
 	fmt.Fprintf(&b, "# dimensions: recipe id x authored key; source only, a craft has no target\n\n")
 
 	all := crafting.GetAll()
@@ -1176,13 +1192,13 @@ func buildCraftingGolden(t *testing.T) string {
 		r := all[id]
 		success := r.Narrate(crafting.PhaseSuccess, kindBNoTarget)
 		failure := r.Narrate(crafting.PhaseFailure, kindBNoTarget)
-		fmt.Fprintf(&b, "recipe|%s|success_message => %s\n", id, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, success.Actor))
+		fmt.Fprintf(&b, "recipe|%s|success_actor => %s\n", id, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, success.Actor))
 		if success.Observer != "" {
-			fmt.Fprintf(&b, "recipe|%s|success_room_message => %s\n", id, success.Observer)
+			fmt.Fprintf(&b, "recipe|%s|success_observer => %s\n", id, success.Observer)
 		}
-		fmt.Fprintf(&b, "recipe|%s|failure_message => %s\n", id, fmt.Sprintf(`<ansi fg="red">%s</ansi>`, failure.Actor))
+		fmt.Fprintf(&b, "recipe|%s|failure_actor => %s\n", id, fmt.Sprintf(`<ansi fg="red">%s</ansi>`, failure.Actor))
 		if failure.Observer != "" {
-			fmt.Fprintf(&b, "recipe|%s|failure_room_message => %s\n", id, failure.Observer)
+			fmt.Fprintf(&b, "recipe|%s|failure_observer => %s\n", id, failure.Observer)
 		}
 	}
 	return b.String()
@@ -1430,11 +1446,18 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 }
 
 // ---------------------------------------------------------------------
-// Store 15: position_control (_datafiles/messages/position_control.yaml)
+// Store 15: position_control
+// (_datafiles/world/dogmud/messaging/position_control.yaml)
 //
-// The TENTH message store, and the only one outside _datafiles/world/dogmud,
-// which is the only tree the M0 surface guard walks. That is why it reached
-// M4a with no golden and no guard at all.
+// The TENTH message store. It used to live at _datafiles/messages/, outside
+// _datafiles/world/dogmud, which is the only tree the M0 surface guard walks,
+// and that is why it reached M4a with no golden and no guard at all. M4b-1
+// moved it under the world tree beside grapple_outcomes.yaml.
+//
+// The golden's HEADER still names the old path, deliberately: golden header
+// lines are frozen bytes recorded once (see internal/narration/context.md), and
+// moving a file is not a content change. Re-recording to chase a path would
+// spend the one signal that says these rows have not drifted.
 //
 // Recorded from PRE-migration code (M4a task 6), when production rendered this
 // store through a third hand-rolled engine, the local substitute() in
@@ -1445,6 +1468,18 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 // that engine; this builder now reads through narration.Substitute, and the
 // rows, their order and the header are unchanged from the pre-migration
 // recording, which is the byte-identity proof.
+//
+// M4b-1 then did the same to the store's three authored ROLE KEY vocabularies:
+// attacker/target/room in the submission block, controller/controlled on the
+// gradient and transition sides, and self/room in the stamina warning, all now
+// actor/actee/observer. That rename moves the golden's row LABELS, so
+// byte-identity cannot prove it; the proof is tools/messaging_role_key_check.py,
+// which translates the pre-rename golden's labels and requires equality.
+//
+// The gradient and transition SIDE field is a role and moved with the rest.
+// The gradient STATE spelled `controlled` is authored data and did not: it is
+// why both the rewrite table and the check table carry a scope for that one
+// spelling.
 //
 // dimensions: block x key [x subtype] x role. Every authored line exactly
 // once, empty lines included: an authored "" is deliberate silence in this
@@ -1457,17 +1492,19 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 // prose comes from internal/grapplemessaging and messaging_grapple.yaml. Those
 // rows therefore guard the DATA, not a render path.
 
-// posSelfRoom is a self/room pair (gradient, transition, stamina blocks).
+// posSelfRoom is an actor/observer pair (gradient, transition, stamina
+// blocks). Its keys were self/room until M4b-1's role-key rename.
 type posSelfRoom struct {
-	Self string `yaml:"self"`
-	Room string `yaml:"room"`
+	Self string `yaml:"actor"`
+	Room string `yaml:"observer"`
 }
 
-// posTriple is an attacker/target/room triple (the submission block).
+// posTriple is an actor/actee/observer triple (the submission block). Its keys
+// were attacker/target/room until M4b-1's role-key rename.
 type posTriple struct {
-	Attacker string `yaml:"attacker"`
-	Target   string `yaml:"target"`
-	Room     string `yaml:"room"`
+	Attacker string `yaml:"actor"`
+	Target   string `yaml:"actee"`
+	Room     string `yaml:"observer"`
 }
 
 // positionControlFile mirrors the shipped file's shape with maps rather than
@@ -1482,7 +1519,7 @@ type positionControlFile struct {
 
 func loadPositionControlForSnapshot(t *testing.T) positionControlFile {
 	t.Helper()
-	path := filepath.Join(repoRoot(t), "_datafiles", "messages", "position_control.yaml")
+	path := filepath.Join(dogmudDataDir(t), "messaging", "position_control.yaml")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read %s: %v", path, err)
@@ -1528,7 +1565,12 @@ func buildPositionControlGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# internal/hooks/Position_Messaging.go, a {key} loop over the three authored name\n")
 	fmt.Fprintf(&b, "# vocabularies {attacker}/{target}, {Controller}/{Controlled} and {Character}.\n")
 	fmt.Fprintf(&b, "# Stand-ins: Actorius is the actor side, Acteeus the actee side.\n")
-	fmt.Fprintf(&b, "# dimensions: block x key [x subtype] x role. Empty rows are authored silence.\n")
+	fmt.Fprintf(&b, "# dimensions: block x key [x subtype] x role, role in {actor,actee,observer}:\n")
+	fmt.Fprintf(&b, "# M4b-1 collapsed this store's three authored KEY vocabularies (attacker/target/\n")
+	fmt.Fprintf(&b, "# room, controller/controlled and self/room) the way M4a collapsed its three\n")
+	fmt.Fprintf(&b, "# token ones. In the gradient and transition rows the SIDE field is a role too;\n")
+	fmt.Fprintf(&b, "# the gradient state spelled `controlled` is authored data and keeps its name.\n")
+	fmt.Fprintf(&b, "# Empty rows are authored silence.\n")
 	fmt.Fprintf(&b, "# gradient_messages and transition_messages have NO Go reader today; those rows\n")
 	fmt.Fprintf(&b, "# guard the data, not a render path.\n\n")
 
@@ -1536,13 +1578,13 @@ func buildPositionControlGolden(t *testing.T) string {
 		return narration.Substitute(s, positionControlStandins)
 	}
 	emitSelfRoom := func(key string, pair posSelfRoom) {
-		fmt.Fprintf(&b, "%s|self => %q\n", key, render(pair.Self))
-		fmt.Fprintf(&b, "%s|room => %q\n", key, render(pair.Room))
+		fmt.Fprintf(&b, "%s|actor => %q\n", key, render(pair.Self))
+		fmt.Fprintf(&b, "%s|observer => %q\n", key, render(pair.Room))
 	}
 	emitTriple := func(key string, tri posTriple) {
-		fmt.Fprintf(&b, "%s|attacker => %q\n", key, render(tri.Attacker))
-		fmt.Fprintf(&b, "%s|target => %q\n", key, render(tri.Target))
-		fmt.Fprintf(&b, "%s|room => %q\n", key, render(tri.Room))
+		fmt.Fprintf(&b, "%s|actor => %q\n", key, render(tri.Attacker))
+		fmt.Fprintf(&b, "%s|actee => %q\n", key, render(tri.Target))
+		fmt.Fprintf(&b, "%s|observer => %q\n", key, render(tri.Room))
 	}
 
 	if len(tpl.Gradient) == 0 {

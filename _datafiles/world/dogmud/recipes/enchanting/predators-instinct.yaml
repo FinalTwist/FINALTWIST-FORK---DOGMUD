@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 0
   quantity: 0
-success_message: "The catalysts merge within the setting, birthing a hunger that sings through your nerves. Your reflexes sharpen to predatory perfection."
-failure_message: "The catalyst rejects the binding. The materials crumble to dust, but the ring is unharmed."
+success_actor: "The catalysts merge within the setting, birthing a hunger that sings through your nerves. Your reflexes sharpen to predatory perfection."
+failure_actor: "The catalyst rejects the binding. The materials crumble to dust, but the ring is unharmed."

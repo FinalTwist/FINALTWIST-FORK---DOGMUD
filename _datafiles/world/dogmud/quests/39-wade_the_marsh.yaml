@@ -79,7 +79,7 @@ rewards:
   itemid: 20059
   recipe_info: "ironhide-brew,firebomb"
   gold: 25
-  playermessage: >-
+  actor: >-
     Falv works a leather bandolier off a peg by his fire and tosses it
     to you underhand, the loops already supple from years of use. The
     shed-proof skin of his hands pales over the knuckles as he grips.
@@ -101,7 +101,7 @@ triggers:
       missing: ["39-leech"]
     actions:
       - grant: "39-leech"
-      - send_text: >-
+      - actor: >-
           The marsh leech goes limp in the water. First blood in the
           marsh. Now the firebomb -- get into a fight and throw it.
 
@@ -116,7 +116,7 @@ triggers:
       missing: ["39-throw"]
     actions:
       - grant: "39-throw"
-      - send_text: >-
+      - actor: >-
           The firebomb bursts in a gout of flame right where you aimed it.
           Now you feel the cost -- no second trick for a few breaths.
           That cooldown is shared by spells and special moves too.
@@ -130,7 +130,7 @@ triggers:
       missing: ["39-forage"]
     actions:
       - grant: "39-forage"
-      - send_text: >-
+      - actor: >-
           You work cattail and herb free of the marsh. Good brewing
           stock. Report back to Falv at his camp.
   - event: command
@@ -141,6 +141,6 @@ triggers:
       missing: ["39-forage"]
     actions:
       - grant: "39-forage"
-      - send_text: >-
+      - actor: >-
           The black pool grows the best of it -- willow-bark and mint,
           thick at the waterline. Report back to Falv at his camp.

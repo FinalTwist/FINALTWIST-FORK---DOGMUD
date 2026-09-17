@@ -55,12 +55,12 @@ rewards:
   gold: 25
   rep_faction: np_commonfolk
   rep_amount: 10
-  playermessage: >-
+  actor: >-
     Teels is stable -- for now. Ysolde was clear -- the purge holds until
     the craving comes back, and the craving comes back while the source
     is still running. The wrapper is gone but the smell stays with you.
     The docks know where the Bloom comes from, or someone on them does.
-  roommessage: >-
+  observer: >-
     The traveller looks up from a quiet dockside exchange with the look
     of someone who has just learned something they cannot unlearn.
 

@@ -11,19 +11,19 @@ optionid: counter-quell
 options:
   weak:
     together:
-      todefender:
+      actee:
       - '<ansi fg="defense-good">You ground the working and lunge in, but {actor} wards your blow.</ansi>'
       - '<ansi fg="defense-good">You step through the fading spell, but {actor} pulls back in time.</ansi>'
       - '<ansi fg="defense-good">You press in as the working dies, but {actor} keeps their guard.</ansi>'
       - '<ansi fg="defense-good">You surge through the gap the spell left, but {actor} turns you aside.</ansi>'
       - '<ansi fg="defense-good">You rush {actor} while the working is spent, but they hold you off.</ansi>'
-      toattacker:
+      actor:
       - '<ansi fg="attack-bad">{actee} grounds your working and lunges in, but you ward the blow.</ansi>'
       - '<ansi fg="attack-bad">{actee} steps through your fading spell, but you pull back in time.</ansi>'
       - '<ansi fg="attack-bad">{actee} presses in as your working dies, but you keep your guard.</ansi>'
       - '<ansi fg="attack-bad">{actee} surges through the gap your spell left, but you turn them aside.</ansi>'
       - '<ansi fg="attack-bad">{actee} rushes you while your working is spent, but you hold them off.</ansi>'
-      toroom:
+      observer:
       - '<ansi fg="combat">{actee} grounds the working and lunges at {actor}, who wards the blow.</ansi>'
       - '<ansi fg="combat">{actee} steps through the fading spell, but {actor} pulls back in time.</ansi>'
       - '<ansi fg="combat">{actee} presses in as the working dies, but {actor} keeps their guard.</ansi>'
@@ -31,19 +31,19 @@ options:
       - '<ansi fg="combat">{actee} rushes {actor} while the working is spent, but is held off.</ansi>'
   normal:
     together:
-      todefender:
+      actee:
       - '<ansi fg="defense-good">You ground the last of the working and strike {actor} through the gap.</ansi>'
       - '<ansi fg="defense-good">You step in as the spell unravels and strike {actor}.</ansi>'
       - '<ansi fg="defense-good">With the working broken, you close in and strike {actor} cleanly.</ansi>'
       - '<ansi fg="defense-good">You slip through the failing magic and drive a blow into {actor}.</ansi>'
       - '<ansi fg="defense-good">You answer the spent spell with a swift blow to {actor}.</ansi>'
-      toattacker:
+      actor:
       - '<ansi fg="attack-bad">{actee} grounds the last of your working and strikes you through the gap.</ansi>'
       - '<ansi fg="attack-bad">{actee} steps in as your spell unravels and strikes you.</ansi>'
       - '<ansi fg="attack-bad">{actee} closes in past your broken working and strikes you cleanly.</ansi>'
       - '<ansi fg="attack-bad">{actee} slips through your failing magic and drives a blow into you.</ansi>'
       - '<ansi fg="attack-bad">{actee} answers your spent spell with a swift blow.</ansi>'
-      toroom:
+      observer:
       - '<ansi fg="combat">{actee} grounds the last of the working and strikes {actor}.</ansi>'
       - '<ansi fg="combat">{actee} steps in as the spell unravels and strikes {actor}.</ansi>'
       - '<ansi fg="combat">{actee} closes in past the broken working and strikes {actor}.</ansi>'
@@ -51,19 +51,19 @@ options:
       - '<ansi fg="combat">{actee} answers the spent spell with a swift blow to {actor}.</ansi>'
   heavy:
     together:
-      todefender:
+      actee:
       - '<ansi fg="defense-good">You put the working down and crash into {actor} at full force.</ansi>'
       - '<ansi fg="defense-good">You snuff the working and hammer {actor} before it can reform.</ansi>'
       - '<ansi fg="defense-good">You break the working apart and drive a brutal strike into {actor}.</ansi>'
       - '<ansi fg="defense-good">You stride through the dead spell and strike {actor} with all your weight.</ansi>'
       - '<ansi fg="defense-good">You smother the magic and punish {actor} at close quarters.</ansi>'
-      toattacker:
+      actor:
       - '<ansi fg="attack-bad">{actee} puts your working down and crashes into you at full force.</ansi>'
       - '<ansi fg="attack-bad">{actee} snuffs your working and hammers you before it can reform.</ansi>'
       - '<ansi fg="attack-bad">{actee} breaks your working apart and drives a brutal strike into you.</ansi>'
       - '<ansi fg="attack-bad">{actee} strides through your dead spell and strikes with all their weight.</ansi>'
       - '<ansi fg="attack-bad">{actee} smothers your magic and punishes you at close quarters.</ansi>'
-      toroom:
+      observer:
       - '<ansi fg="combat">{actee} puts the working down and crashes into {actor}.</ansi>'
       - '<ansi fg="combat">{actee} snuffs the working and hammers {actor}.</ansi>'
       - '<ansi fg="combat">{actee} breaks the working apart and strikes {actor} brutally.</ansi>'

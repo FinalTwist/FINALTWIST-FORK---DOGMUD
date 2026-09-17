@@ -64,7 +64,7 @@ func (m *mockActionContext) ChargeGold(amount int) {
 }
 
 // Narrate records the authored lines by role, so existing assertions on
-// sentTexts and roomTexts keep reading the send_text and room_text an action
+// sentTexts and roomTexts keep reading the actor and observer lines an action
 // carried.
 func (m *mockActionContext) Narrate(v narration.Variants) {
 	m.sentTexts = append(m.sentTexts, v.Actor...)

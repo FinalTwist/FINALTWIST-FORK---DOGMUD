@@ -43,11 +43,11 @@ steps:
 rewards:
   gold: 6
   skillinfo: "search:1"
-  playermessage: >-
+  actor: >-
     Delk takes a look at what you brought back and gives a short nod.
     "Good run. Clean kill, eyes open. The fringe teaches you different
     things each pass -- come back when you are ready to listen again."
-  roommessage: "Delk inspects your haul with a hunter's brief, approving eye."
+  observer: "Delk inspects your haul with a hunter's brief, approving eye."
 
 triggers:
   - event: mob_death
@@ -57,7 +57,7 @@ triggers:
       missing: ["56-hunt"]
     actions:
       - grant: "56-hunt"
-      - send_text: >-
+      - actor: >-
           The pronghorn goes down clean. Now forage the camp --
           the fringe always gives something to a patient hand.
 
@@ -69,7 +69,7 @@ triggers:
       missing: ["56-end"]
     actions:
       - grant: "56-end"
-      - send_text: >-
+      - actor: >-
           You pull what the fringe was holding -- root, bark, and
           something the morning left. That is what Delk meant.
           Head back to him.

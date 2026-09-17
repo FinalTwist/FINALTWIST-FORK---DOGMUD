@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 20060
   quantity: 1
-success_message: "You layer the leather panels, rivet iron clasps at each loop, and stitch the whole assembly tight. A reinforced bandolier!"
-failure_message: "The rivets split the leather and the clasps come loose. The materials are wasted."
+success_actor: "You layer the leather panels, rivet iron clasps at each loop, and stitch the whole assembly tight. A reinforced bandolier!"
+failure_actor: "The rivets split the leather and the clasps come loose. The materials are wasted."

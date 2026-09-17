@@ -15,5 +15,5 @@ condition_ids:
   - 38
 categories:
   - self_defense
-cast_user_text: "You solidify your conviction into a protective shell."
-cast_room_text: "{actor} concentrates as conviction hardens into visible armor."
+cast_actor: "You solidify your conviction into a protective shell."
+cast_observer: "{actor} concentrates as conviction hardens into visible armor."

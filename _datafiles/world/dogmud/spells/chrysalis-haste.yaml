@@ -13,5 +13,5 @@ base_folds: 8
 effect_type: condition
 condition_ids:
   - 28
-cast_user_text: "You channel Chrysalis energy into accelerating the target."
-cast_room_text: "{actor} weaves quickening energy through the air."
+cast_actor: "You channel Chrysalis energy into accelerating the target."
+cast_observer: "{actor} weaves quickening energy through the air."

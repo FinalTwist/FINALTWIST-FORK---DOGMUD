@@ -29,7 +29,7 @@ steps:
 rewards:
   skillinfo: "blacksmithing:1"
   gold: 15
-  playermessage: >-
+  actor: >-
     Rusk takes the dagger and turns it slowly, checking the edge
     with one thumbnail. The grey forearm catches the forge light.
     After a moment he sets it back on the anvil and looks at you
@@ -40,7 +40,7 @@ rewards:
     the finality of a door closing. "West path. Talus slope. Find
     Ovell. He pulled himself out of a cave-in and has been waiting
     for someone to notice. Do not make him wait longer."
-  roommessage: "Rusk examines the dagger briefly, nods once, and
+  observer: "Rusk examines the dagger briefly, nods once, and
     presses a few coins into your hand."
 
 triggers:
@@ -58,7 +58,7 @@ triggers:
       # (time_rounds: 3) to finish. The wield/inv teaching lives on the
       # recipe's success_message, which fires when the dagger actually
       # appears (recipes/blacksmithing/iron-dagger.yaml).
-      - send_text: "You set to work at the forge. Give it a few moments --
+      - actor: "You set to work at the forge. Give it a few moments --
           the iron has to take the heat and the shape both. When the
           finished blade is in your hands, bring it back to Rusk."
 
@@ -79,7 +79,7 @@ triggers:
       has: ["35-craft"]
       missing: ["35-end"]
     actions:
-      - send_text: "Rusk takes the blade, turns it once, checks the
+      - actor: "Rusk takes the blade, turns it once, checks the
           edge with a thumbnail, and presses it straight back into
           your hand. \"Yours. You made it.\""
       - consume_item: 10009

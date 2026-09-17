@@ -5,6 +5,6 @@ triggerrate: 1 round
 triggercount: 3
 statmods:
   perception: -40
-start_user_text: '<ansi fg="yellow">Your vision goes dark — you have been blinded!</ansi>'
-start_room_text: "{actee_plain} claws at their eyes, blinded!"
-end_user_text: '<ansi fg="green">Your vision slowly returns to normal.</ansi>'
+start_actee: '<ansi fg="yellow">Your vision goes dark — you have been blinded!</ansi>'
+start_observer: "{actee_plain} claws at their eyes, blinded!"
+end_actee: '<ansi fg="green">Your vision slowly returns to normal.</ansi>'

@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 10031
   quantity: 1
-success_message: "You smelt the lake-iron nodules in a hot fire and draw the metal out long and keen, then weld a back-curving hook to the socket. You wrap the haft in leather and lash it tight with sinew. The leaf-blade rings true on the anvil. A lake-iron hook-spear!"
-failure_message: "The lake-iron will not weld evenly to the socket. The hook tears free under the first hammer-blow and the work is wasted."
+success_actor: "You smelt the lake-iron nodules in a hot fire and draw the metal out long and keen, then weld a back-curving hook to the socket. You wrap the haft in leather and lash it tight with sinew. The leaf-blade rings true on the anvil. A lake-iron hook-spear!"
+failure_actor: "The lake-iron will not weld evenly to the socket. The hook tears free under the first hammer-blow and the work is wasted."

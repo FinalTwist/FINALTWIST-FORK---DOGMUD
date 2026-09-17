@@ -17,5 +17,5 @@ primarystat: willpower
 base_folds: 2
 effect_type: heal
 effect_magnitude: 8
-cast_user_text: "Arc-light gathers between your manipulators."
-cast_room_text: "{actor} crackles with hard blue-white arc-light, current arcing toward {actee}."
+cast_actor: "Arc-light gathers between your manipulators."
+cast_observer: "{actor} crackles with hard blue-white arc-light, current arcing toward {actee}."

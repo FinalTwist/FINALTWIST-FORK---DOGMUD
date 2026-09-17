@@ -15,5 +15,5 @@ effect_type: condition
 effect_magnitude: 10
 condition_ids:
   - 3
-cast_user_text: "You weave a Chrysalis shroud toward your target's senses."
-cast_room_text: "{actor} traces a shimmering veil in the air."
+cast_actor: "You weave a Chrysalis shroud toward your target's senses."
+cast_observer: "{actor} traces a shimmering veil in the air."

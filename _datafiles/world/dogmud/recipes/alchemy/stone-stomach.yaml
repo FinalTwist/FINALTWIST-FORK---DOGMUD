@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 30046
   quantity: 1
-success_message: "You carefully extract the venom and neutralize it with thistle. A stone stomach elixir!"
-failure_message: "The venom reacts violently with the thistle. The materials are wasted."
+success_actor: "You carefully extract the venom and neutralize it with thistle. A stone stomach elixir!"
+failure_actor: "The venom reacts violently with the thistle. The materials are wasted."

@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 30026
   quantity: 1
-success_message: "You grind, mix, and bake a dense loaf on a flat stone. Energy bread!"
-failure_message: "The dough refuses to rise and bakes into a hard brick. The materials are lost."
+success_actor: "You grind, mix, and bake a dense loaf on a flat stone. Energy bread!"
+failure_actor: "The dough refuses to rise and bakes into a hard brick. The materials are lost."

@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 20029
   quantity: 1
-success_message: "Through hours of patient shaping and tempering, you craft a magnificent helm. A masterwork plate helm!"
-failure_message: "A crack forms in the visor during final shaping. The materials are ruined."
+success_actor: "Through hours of patient shaping and tempering, you craft a magnificent helm. A masterwork plate helm!"
+failure_actor: "A crack forms in the visor during final shaping. The materials are ruined."

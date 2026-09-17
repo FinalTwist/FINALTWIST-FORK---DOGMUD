@@ -38,12 +38,12 @@ steps:
 rewards:
   gold: 6
   skillinfo: "alchemy:1"
-  playermessage: >-
+  actor: >-
     Falv flicks a look your way and holds out a hand for the empty
     vessel. "Still brewing. Good. The marsh does not care how long
     ago you learned -- only whether your salve is fresh. Come back
     when the stock runs thin."
-  roommessage: "Falv checks the empty vessel and pockets it without comment."
+  observer: "Falv checks the empty vessel and pockets it without comment."
 
 triggers:
   - event: command
@@ -54,7 +54,7 @@ triggers:
       missing: ["55-brew"]
     actions:
       - grant: "55-brew"
-      - send_text: >-
+      - actor: >-
           The brew takes shape on the bench -- clean steep, right color.
           Now drink it down.
 
@@ -65,6 +65,6 @@ triggers:
       missing: ["55-end"]
     actions:
       - grant: "55-end"
-      - send_text: >-
+      - actor: >-
           The brew does what it promised. That is what Falv wanted to
           know. Report back to him.

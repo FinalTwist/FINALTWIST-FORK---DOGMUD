@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 10014
   quantity: 1
-success_message: "You fold and hammer the iron into a broad, compact blade. An iron short sword!"
-failure_message: "The blade warps during quenching and snaps. The materials are ruined."
+success_actor: "You fold and hammer the iron into a broad, compact blade. An iron short sword!"
+failure_actor: "The blade warps during quenching and snaps. The materials are ruined."

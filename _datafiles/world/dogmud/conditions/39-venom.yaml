@@ -3,11 +3,11 @@ name: Venom
 description: Venom courses through your veins, burning from within.
 triggerrate: 1 round
 triggercount: 5
-start_user_text: You feel venom seeping into your bloodstream!
-start_room_text: "{actee} winces as venom takes hold."
-end_user_text: The venom finally subsides, leaving you weakened.
-trigger_user_text: Poison burns through your veins.
-trigger_room_text: "{actee} shudders as venom courses through them."
+start_actee: You feel venom seeping into your bloodstream!
+start_observer: "{actee} winces as venom takes hold."
+end_actee: The venom finally subsides, leaving you weakened.
+trigger_actee: Poison burns through your veins.
+trigger_observer: "{actee} shudders as venom courses through them."
 tick_pool: health
 tick_percent: -0.08
 tick_variance: 0.04

@@ -16,7 +16,7 @@ import (
 // Condition room lines describe what the room SEES ("A warm glow surrounds Alice"),
 // but went out on the audio channel, which is never sight-gated, so blind and
 // unsighted observers received them. M2 fixed the same defect for
-// cast_room_text; these three condition phases were never touched.
+// a spell's cast_observer line; these three condition phases were never touched.
 
 // expire sets a condition's remaining triggers to the pruning threshold, so the next
 // PruneConditions removes it and sends its end text. Deterministic, unlike counting
@@ -174,7 +174,7 @@ func TestConditionEndRoomText_MobHolderIsVisualAndUsesTheMobTag(t *testing.T) {
 }
 
 // TestMobConditionTriggerRoomText is the D4 guard. The player round tick has always
-// sent a triggered condition's trigger_room_text; tickMobConditions never did, so a mob
+// sent a triggered condition's trigger_observer; tickMobConditions never did, so a mob
 // holding a trigger-text condition showed nothing. No mob holder of the shipped
 // trigger-text conditions could be staged in a playtest, so this is its only check.
 func TestMobConditionTriggerRoomText(t *testing.T) {

@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 0
   quantity: 0
-success_message: "The setting fuses with the helm, its surface rippling with multifaceted awareness. Your perception sharpens in all directions."
-failure_message: "The catalyst rejects the binding. The materials crumble to dust, but the helm is unharmed."
+success_actor: "The setting fuses with the helm, its surface rippling with multifaceted awareness. Your perception sharpens in all directions."
+failure_actor: "The catalyst rejects the binding. The materials crumble to dust, but the helm is unharmed."

@@ -110,7 +110,7 @@ steps:
       finished is yours now."
 
 rewards:
-  playermessage: "Ulla unfolds the journal page slowly. She reads it
+  actor: "Ulla unfolds the journal page slowly. She reads it
     twice. The second time she sets it on her knee and puts both hands
     flat over it for a long moment, as if to keep it from blowing
     away. When she looks up, her eyes are wet but steady for the
@@ -121,7 +121,7 @@ rewards:
     hook-spear Brindle finished and never delivered. She places it
     in your hands without ceremony.\n\n'It was meant for someone who
     would understand. He'd want it to be you.'"
-  roommessage: "is given a long wrapped bundle by Ulla, who closes her
+  observer: "is given a long wrapped bundle by Ulla, who closes her
     hand over hers for a moment before letting go."
   gold: 100
   itemid: 10032
@@ -143,7 +143,7 @@ triggers:
       missing: ["20-workshop_carving"]
     actions:
       - grant: "20-workshop_carving"
-      - send_text: "A long tight spiral inside an outer ring, scratched
+      - actor: "A long tight spiral inside an outer ring, scratched
           into the iron with a patient hand. The cuts are dark with
           age -- old work, set where it would not be noticed by anyone
           who did not know to look. Not a Chrysalis sigil and not a
@@ -157,7 +157,7 @@ triggers:
       missing: ["20-workshop_carving"]
     actions:
       - grant: "20-workshop_carving"
-      - send_text: "A long tight spiral inside an outer ring, scratched
+      - actor: "A long tight spiral inside an outer ring, scratched
           into the iron with a patient hand. The cuts are dark with
           age -- old work, set where it would not be noticed by anyone
           who did not know to look. Not a Chrysalis sigil and not a
@@ -173,7 +173,7 @@ triggers:
       missing: ["20-temple_pillars"]
     actions:
       - grant: "20-temple_pillars"
-      - send_text: "The four pillars at the corners of the temple
+      - actor: "The four pillars at the corners of the temple
           carry the same spiral that Elgar scratched into his bench-
           vise -- worked into the stone with patience and skill, far
           older than the present temple. The temple garden behind
@@ -186,7 +186,7 @@ triggers:
       missing: ["20-temple_pillars"]
     actions:
       - grant: "20-temple_pillars"
-      - send_text: "The four pillars at the corners of the temple
+      - actor: "The four pillars at the corners of the temple
           carry the same spiral that Elgar scratched into his bench-
           vise -- worked into the stone with patience and skill, far
           older than the present temple. The temple garden behind
@@ -202,7 +202,7 @@ triggers:
       missing: ["20-garden_marker"]
     actions:
       - grant: "20-garden_marker"
-      - send_text: "The buried marker beneath the crab-apple carries
+      - actor: "The buried marker beneath the crab-apple carries
           the same spiral. Older than the garden it sits in. There
           are ruins to the west of town -- an old chapel and a
           standing-stone circle further on -- where the symbol may
@@ -215,7 +215,7 @@ triggers:
       missing: ["20-garden_marker"]
     actions:
       - grant: "20-garden_marker"
-      - send_text: "The buried marker beneath the crab-apple carries
+      - actor: "The buried marker beneath the crab-apple carries
           the same spiral. Older than the garden it sits in. There
           are ruins to the west of town -- an old chapel and a
           standing-stone circle further on -- where the symbol may
@@ -228,7 +228,7 @@ triggers:
       missing: ["20-garden_marker"]
     actions:
       - grant: "20-garden_marker"
-      - send_text: "The buried marker beneath the crab-apple carries
+      - actor: "The buried marker beneath the crab-apple carries
           the same spiral. Older than the garden it sits in. There
           are ruins to the west of town -- an old chapel and a
           standing-stone circle further on -- where the symbol may
@@ -244,7 +244,7 @@ triggers:
       missing: ["20-chapel_altar"]
     actions:
       - grant: "20-chapel_altar"
-      - send_text: "The chapel altar carries the same spiral -- the
+      - actor: "The chapel altar carries the same spiral -- the
           third site you have found. The wardstone circle to the east
           may be the fourth."
   - event: room_interact
@@ -255,7 +255,7 @@ triggers:
       missing: ["20-chapel_altar"]
     actions:
       - grant: "20-chapel_altar"
-      - send_text: "The chapel altar carries the same spiral -- the
+      - actor: "The chapel altar carries the same spiral -- the
           third site you have found. The wardstone circle to the east
           may be the fourth."
   - event: room_interact
@@ -266,7 +266,7 @@ triggers:
       missing: ["20-chapel_altar"]
     actions:
       - grant: "20-chapel_altar"
-      - send_text: "The chapel altar carries the same spiral -- the
+      - actor: "The chapel altar carries the same spiral -- the
           third site you have found. The wardstone circle to the east
           may be the fourth."
 
@@ -280,7 +280,7 @@ triggers:
       missing: ["20-wardstone_altar"]
     actions:
       - grant: "20-wardstone_altar"
-      - send_text: "The wardstone slab carries the spiral worn deep
+      - actor: "The wardstone slab carries the spiral worn deep
           enough to set a finger into. Standing at the circle's
           centre and looking eastward back along the route you
           walked, you can sight the alignment plainly: this slab,
@@ -296,7 +296,7 @@ triggers:
       missing: ["20-wardstone_altar"]
     actions:
       - grant: "20-wardstone_altar"
-      - send_text: "The wardstone slab carries the spiral worn deep
+      - actor: "The wardstone slab carries the spiral worn deep
           enough to set a finger into. Standing at the circle's
           centre and looking eastward back along the route you
           walked, you can sight the alignment plainly: this slab,
@@ -312,7 +312,7 @@ triggers:
       missing: ["20-wardstone_altar"]
     actions:
       - grant: "20-wardstone_altar"
-      - send_text: "The wardstone slab carries the spiral worn deep
+      - actor: "The wardstone slab carries the spiral worn deep
           enough to set a finger into. Standing at the circle's
           centre and looking eastward back along the route you
           walked, you can sight the alignment plainly: this slab,
@@ -330,7 +330,7 @@ triggers:
       missing: ["20-bone_shoals_cache"]
     actions:
       - grant: "20-bone_shoals_cache"
-      - send_text: "The oilskin pouch holds a folded note in Elgar's
+      - actor: "The oilskin pouch holds a folded note in Elgar's
           hand, addressed to Brindle the smith. The note explains the
           spiral -- alignment points connecting the chapel, the
           temple, the wardstone circle, and the deep sump beneath the
@@ -350,7 +350,7 @@ triggers:
     actions:
       - grant: "20-kingfisher_found"
       - give_item: 40060
-      - send_text: "Inside the buried wooden box: a single small
+      - actor: "Inside the buried wooden box: a single small
           carved kingfisher in dark wood -- unmistakably Elgar's work
           -- and a folded note in a different hand reading 'He was
           your brother. -- V.' The kingfisher is yours now. Bring it
@@ -364,7 +364,7 @@ triggers:
     actions:
       - grant: "20-kingfisher_found"
       - give_item: 40060
-      - send_text: "Inside the buried wooden box: a single small
+      - actor: "Inside the buried wooden box: a single small
           carved kingfisher in dark wood -- unmistakably Elgar's work
           -- and a folded note in a different hand reading 'He was
           your brother. -- V.' The kingfisher is yours now. Bring it
@@ -380,7 +380,7 @@ triggers:
       missing_item: 40060
     actions:
       - give_item: 40060
-      - send_text: "There was another small carving wrapped beneath
+      - actor: "There was another small carving wrapped beneath
           the first -- you can take this one to Vella in place of
           the one you lost."
 

@@ -207,9 +207,9 @@ func (b *GameBridge) ChargeGold(amount int) {
 // ("{actor} unlocks the strongbox"), so an observer who cannot see must not
 // receive it, and Room.SendText is never sight-gated. And the name must carry
 // its `username` tag, because messaging.Anonymize strips only tagged names.
-// quests.Quest.Validate keeps every room_text naming {actor}.
+// quests.Quest.Validate keeps every `observer` line naming {actor}.
 //
-// send_text is substituted too since M3 item 5b. No shipped send_text carries
+// The `actor` line is substituted too since M3 item 5b. No shipped one carries
 // a token, so nothing changed on the day; a future line naming {actor} now
 // renders the name instead of the literal, the defect quest 77 showed.
 func (b *GameBridge) Narrate(v narration.Variants) {

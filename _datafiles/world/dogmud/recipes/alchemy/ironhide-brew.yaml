@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 30043
   quantity: 1
-success_message: "The ironbark dissolves into a dark, gritty solution. An ironhide brew!"
-failure_message: "The ironbark refuses to dissolve. The materials are wasted."
+success_actor: "The ironbark dissolves into a dark, gritty solution. An ironhide brew!"
+failure_actor: "The ironbark refuses to dissolve. The materials are wasted."

@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 20028
   quantity: 1
-success_message: "You shape the steel into a gleaming buckler and set it on a wooden grip. A steel buckler!"
-failure_message: "The steel dishing is uneven and the buckler warps. The materials are ruined."
+success_actor: "You shape the steel into a gleaming buckler and set it on a wooden grip. A steel buckler!"
+failure_actor: "The steel dishing is uneven and the buckler warps. The materials are ruined."

@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 20055
   quantity: 1
-success_message: "You layer leather over canvas, bend bone stays into a frame, and stitch it all together with waxed thread. A masterwork travel pack!"
-failure_message: "The frame buckles and the layers separate. The materials are ruined."
+success_actor: "You layer leather over canvas, bend bone stays into a frame, and stitch it all together with waxed thread. A masterwork travel pack!"
+failure_actor: "The frame buckles and the layers separate. The materials are ruined."

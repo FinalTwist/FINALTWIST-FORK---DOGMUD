@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 30041
   quantity: 1
-success_message: "The brew effervesces as the last ingredient settles. A windrunner draught!"
-failure_message: "The mixture fizzes violently and evaporates. The materials are wasted."
+success_actor: "The brew effervesces as the last ingredient settles. A windrunner draught!"
+failure_actor: "The mixture fizzes violently and evaporates. The materials are wasted."

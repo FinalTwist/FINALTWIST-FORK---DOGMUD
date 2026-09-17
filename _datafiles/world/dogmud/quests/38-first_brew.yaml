@@ -58,7 +58,7 @@ rewards:
   recipe_info: "minor-antidote"
   item_info: "40006:2"
   gold: 15
-  playermessage: >-
+  actor: >-
     Birna takes the empty vial back and turns it to the light, checking
     the film the salve left behind. The green-gold veining in her hands
     catches the same light. "Clean steep. You did not scorch the root --
@@ -67,7 +67,7 @@ rewards:
     antidote formula. You will want it before the marsh teaches you why.
     Falv keeps a camp south in the reeds -- he is rough, but he knows the
     water. Set your home here first so you have somewhere to wake."
-  roommessage: "Birna inspects the empty vial, nods, and tucks a few
+  observer: "Birna inspects the empty vial, nods, and tucks a few
     things into the newcomer's pack."
 
 triggers:
@@ -80,7 +80,7 @@ triggers:
       missing: ["38-brew"]
     actions:
       - grant: "38-brew"
-      - send_text: >-
+      - actor: >-
           The root grinds to paste, the water draws it green, and the
           salve seals clean in the vial. Now drink it -- type drink
           healing salve.
@@ -92,7 +92,7 @@ triggers:
       missing: ["38-brew"]
     actions:
       - grant: "38-brew"
-      - send_text: >-
+      - actor: >-
           The root grinds to paste, the water draws it green, and the
           salve seals clean in the vial. Now drink it -- type drink
           healing salve.
@@ -105,6 +105,6 @@ triggers:
       missing: ["38-drink"]
     actions:
       - grant: "38-drink"
-      - send_text: >-
+      - actor: >-
           The salve spreads warm through you, a slow steady mending.
           That is what a brew is for. Tell Birna how it went.

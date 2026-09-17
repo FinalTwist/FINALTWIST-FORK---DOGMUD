@@ -1649,6 +1649,14 @@ func loadAllDataFiles(isReload bool) {
 	// gossip).
 	gossip.Load()
 	tips.Load() // Messaging M3 item 7: the periodic tip broadcast's store
+	// Messaging M4b-1: the two event-tier grapple stores. Both used to load
+	// lazily, on the first grapple tick, from a hardcoded path outside the
+	// configured world, which is why their failures never reached a boot log an
+	// operator would read. Loaded here they fail the boot instead, and the
+	// sync.Once each keeps is spent by these calls rather than consulted by
+	// them, so the check genuinely runs at boot.
+	hooks.LoadGrappleMessaging()
+	hooks.LoadPositionMessages()
 	species.LoadDataFiles()
 	// Chunk 3.2: inject world-aware schedule validation. Done here in main.go
 	// to break the rooms ← mobs import cycle (mobs cannot directly import

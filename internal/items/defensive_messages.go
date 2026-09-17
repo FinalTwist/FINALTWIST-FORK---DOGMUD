@@ -44,10 +44,15 @@ type DefenseOptions struct {
 	Together DefenseTogetherMessages `yaml:"together"`
 }
 
+// DefenseTogetherMessages is the authored shape of one defence band.
+//
+// The keys are the canonical role vocabulary (M4b-1). They were spelled
+// todefender/toattacker/toroom until then; the Go field names still carry the
+// old spelling, which is cosmetic and left for a later pass.
 type DefenseTogetherMessages struct {
-	ToDefender MessageOptions `yaml:"todefender"`
-	ToAttacker MessageOptions `yaml:"toattacker"`
-	ToRoom     MessageOptions `yaml:"toroom"`
+	ToDefender MessageOptions `yaml:"actee"`
+	ToAttacker MessageOptions `yaml:"actor"`
+	ToRoom     MessageOptions `yaml:"observer"`
 }
 
 // DefenseMessageTriad is one coordinated event rendered for its three
@@ -77,9 +82,12 @@ func (d *DefenseMessageGroup) Validate() error {
 			name     string
 			messages MessageOptions
 		}{
-			{"todefender", defenseOptions.Together.ToDefender},
-			{"toattacker", defenseOptions.Together.ToAttacker},
-			{"toroom", defenseOptions.Together.ToRoom},
+			// The names are the AUTHORED keys, so the error points an author
+			// straight at the line to fix. M4b-1 renamed them from
+			// todefender/toattacker/toroom.
+			{"actee", defenseOptions.Together.ToDefender},
+			{"actor", defenseOptions.Together.ToAttacker},
+			{"observer", defenseOptions.Together.ToRoom},
 		}
 		for _, audience := range audiences {
 			if len(audience.messages) < 5 {
@@ -132,14 +140,15 @@ func RenderDefenseMessage(defenseType DefenseType, defensiveCrit bool, normalize
 // A nil picker means production behaviour (narration.DefaultPicker).
 // The coordination itself now lives in narration.Render. What remains here is
 // the ADAPTER, and its role mapping is the one thing in this file worth
-// reading slowly: an attacker ACTS and a defender is ACTED UPON, so toattacker
-// is the Actor and todefender is the Actee. Swapping those two lines would
-// invert every defence message in the game, and it is exactly the mistake this
-// refactor makes easiest, because three separately named pools become adjacent
-// fields of one literal differing only by role.
+// reading slowly: an attacker ACTS and a defender is ACTED UPON, so ToAttacker
+// (authored `actor`) is the Actor and ToDefender (authored `actee`) is the
+// Actee. Swapping those two lines would invert every defence message in the
+// game, and it is exactly the mistake this refactor makes easiest, because
+// three separately named pools become adjacent fields of one literal differing
+// only by role.
 //
 // defense_messages.golden is what catches it: that file keys its rows by the
-// AUTHORED name, so a swap puts the attacker's sentence in a todefender row.
+// AUTHORED name, so a swap puts the attacker's sentence in an actee row.
 func (o DefenseOptions) RenderTriad(tokenReplacements map[TokenName]string, pick narration.Picker, indexOverride ...int) DefenseMessageTriad {
 	roles := narration.Render(
 		narration.Variants{

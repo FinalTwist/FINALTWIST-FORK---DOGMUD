@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 20038
   quantity: 1
-success_message: "You set the dark pearl in a silver bezel and weave the chain fine, finishing with the small clasp. The pearl seems to drink the lamplight as you work. A stillwater pearl pendant!"
-failure_message: "The bezel will not seat right against the pearl, and the wire fights every twist. The materials are ruined; the pearl is unharmed."
+success_actor: "You set the dark pearl in a silver bezel and weave the chain fine, finishing with the small clasp. The pearl seems to drink the lamplight as you work. A stillwater pearl pendant!"
+failure_actor: "The bezel will not seat right against the pearl, and the wire fights every twist. The materials are ruined; the pearl is unharmed."

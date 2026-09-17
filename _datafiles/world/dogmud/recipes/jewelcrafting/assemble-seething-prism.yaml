@@ -23,5 +23,5 @@ ingredients:
 output:
   item_id: 40187
   quantity: 1
-success_message: "You cage the living crystal in silver lattice, feed it drop by drop from the suspension, and set it against a chain of glowing geode. The prism settles into a slow, patient hunger. Veyra's masterwork is finished -- the Seething Prism is set."
-failure_message: "The crystal wakes too fast and the lattice cannot hold the hunger back. The materials are lost."
+success_actor: "You cage the living crystal in silver lattice, feed it drop by drop from the suspension, and set it against a chain of glowing geode. The prism settles into a slow, patient hunger. Veyra's masterwork is finished -- the Seething Prism is set."
+failure_actor: "The crystal wakes too fast and the lattice cannot hold the hunger back. The materials are lost."

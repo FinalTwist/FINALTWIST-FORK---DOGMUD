@@ -23,5 +23,5 @@ ingredients:
 output:
   item_id: 40181
   quantity: 1
-success_message: "You reduce the base down to its bitter, clarified last, then thread the unmaking distillate through the nectar into the sealed decanter drop by careful drop. The phial smells like rain falling on nothing. Veyra's masterwork is finished -- the Phial of Second Birth is bottled."
-failure_message: "The distillate curdles the nectar and the reduction turns to ash on the tongue. The materials are ruined."
+success_actor: "You reduce the base down to its bitter, clarified last, then thread the unmaking distillate through the nectar into the sealed decanter drop by careful drop. The phial smells like rain falling on nothing. Veyra's masterwork is finished -- the Phial of Second Birth is bottled."
+failure_actor: "The distillate curdles the nectar and the reduction turns to ash on the tongue. The materials are ruined."

@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 20088
   quantity: 1
-success_message: "You scrape the pelts down, cut the panels, and stitch the tough hide into a fitted jerkin. A scab-hide jerkin!"
-failure_message: "The hide is too green and the seams pull apart. The materials are wasted."
+success_actor: "You scrape the pelts down, cut the panels, and stitch the tough hide into a fitted jerkin. A scab-hide jerkin!"
+failure_actor: "The hide is too green and the seams pull apart. The materials are wasted."

@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 20033
   quantity: 1
-success_message: "You shape the silver into a gleaming band and fuse gem dust along the edge. A silver ring!"
-failure_message: "The silver warps under uneven pressure and the band buckles. The materials are ruined."
+success_actor: "You shape the silver into a gleaming band and fuse gem dust along the edge. A silver ring!"
+failure_actor: "The silver warps under uneven pressure and the band buckles. The materials are ruined."

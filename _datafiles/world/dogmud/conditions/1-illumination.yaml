@@ -6,7 +6,7 @@ triggerrate: 5 real minutes
 triggercount: 4
 flags:
   - lightsource
-start_user_text: "A warm glow surrounds you."
-start_room_text: "A warm glow surrounds {actee_plain}."
-end_user_text: "Your glow fades away."
-end_room_text: "The glow surrounding {actee_plain} fades away."
+start_actee: "A warm glow surrounds you."
+start_observer: "A warm glow surrounds {actee_plain}."
+end_actee: "Your glow fades away."
+end_observer: "The glow surrounding {actee_plain} fades away."

@@ -54,16 +54,54 @@ var (
 	grappleLibOnce     sync.Once
 )
 
+// LoadGrappleMessaging loads the grapple outcome store from the CONFIGURED
+// world and panics on a load or validation error.
+//
+// EVENT TIER (see internal/narration/context.md): a grapple whose prose is
+// missing narrates debug strings or nothing at all while a player is mid-fight,
+// so bad data here fails the boot rather than logging and continuing.
+//
+// It deliberately does NOT go through loadGrappleLib's sync.Once. A test in
+// this package that touched the store first would have spent that Once, and a
+// boot check that quietly turns into a no-op is not a boot check: the whole
+// point of M4b's policy is that the read and the validation RUN at boot, from
+// main.go. So this reads and validates unconditionally, assigns the result, and
+// only then spends the Once so a later lazy caller keeps the boot-loaded
+// library instead of re-reading it.
+func LoadGrappleMessaging() {
+	lib, err := grapplemessaging.LoadFromDataFiles()
+	if err != nil {
+		mudlog.Error("hooks.LoadGrappleMessaging: failed to load grapple_outcomes.yaml",
+			"path", grapplemessaging.DataFilesPath(), "err", err)
+		panic(fmt.Errorf("grapple_outcomes: %w", err))
+	}
+	if errs := grapplemessaging.ValidateCompleteness(lib); len(errs) > 0 {
+		for _, e := range errs {
+			mudlog.Error("hooks.LoadGrappleMessaging: grapple_outcomes.yaml incomplete",
+				"path", grapplemessaging.DataFilesPath(), "violation", e)
+		}
+		panic(fmt.Errorf("grapple_outcomes: %s: %d validation error(s), first: %w",
+			grapplemessaging.DataFilesPath(), len(errs), errs[0]))
+	}
+
+	grappleOutcomesLib = lib
+	grappleLibOnce.Do(func() {})
+}
+
 // loadGrappleLib ensures the library is loaded exactly once. Callers
 // that need the library should call this; after the first call the
 // sync.Once is a cheap no-op.
+//
+// This is the TEST-reachable path only, in production terms: boot calls
+// LoadGrappleMessaging first, which spends the Once. It keeps its log-and-
+// degrade behaviour on purpose, because it runs during test package init where
+// mudlog.SetupLogger may not have run and a panic would say nothing useful.
 func loadGrappleLib() *grapplemessaging.Library {
 	grappleLibOnce.Do(func() {
-		lib, err := grapplemessaging.Load(
-			"_datafiles/world/dogmud/messaging/grapple_outcomes.yaml")
+		lib, err := grapplemessaging.LoadFromDataFiles()
 		if err != nil {
 			mudlog.Error("Position_GrappleTick: failed to load grapple_outcomes.yaml",
-				"err", err)
+				"path", grapplemessaging.DataFilesPath(), "err", err)
 			// Use an empty library so render calls return debug strings.
 			lib = &grapplemessaging.Library{
 				Advancements: map[string]grapplemessaging.TemplateTriad{},

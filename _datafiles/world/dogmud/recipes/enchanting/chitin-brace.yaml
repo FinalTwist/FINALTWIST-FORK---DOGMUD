@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 0
   quantity: 0
-success_message: "The paste hardens into chitinous ridges along the bracer. You flex your wrist — it feels armored yet supple."
-failure_message: "The paste crumbles away without bonding. The materials are wasted, but the bracer is unharmed."
+success_actor: "The paste hardens into chitinous ridges along the bracer. You flex your wrist — it feels armored yet supple."
+failure_actor: "The paste crumbles away without bonding. The materials are wasted, but the bracer is unharmed."

@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 20059
   quantity: 1
-success_message: "You cut loops into the leather and stitch them into a belt fitted for carrying vials. A leather bandolier!"
-failure_message: "The loops tear free and the leather falls apart. The materials are lost."
+success_actor: "You cut loops into the leather and stitch them into a belt fitted for carrying vials. A leather bandolier!"
+failure_actor: "The loops tear free and the leather falls apart. The materials are lost."

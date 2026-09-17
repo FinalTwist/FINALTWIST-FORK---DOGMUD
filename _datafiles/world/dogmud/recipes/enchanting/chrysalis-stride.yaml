@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 0
   quantity: 0
-success_message: "Metamorphic energy kindles in the leg coverings, granting them the swift grace of Chrysalis emergence. Your stride quickens with predatory intent."
-failure_message: "The catalyst rejects the binding. The materials crumble to dust, but the legs are unharmed."
+success_actor: "Metamorphic energy kindles in the leg coverings, granting them the swift grace of Chrysalis emergence. Your stride quickens with predatory intent."
+failure_actor: "The catalyst rejects the binding. The materials crumble to dust, but the legs are unharmed."

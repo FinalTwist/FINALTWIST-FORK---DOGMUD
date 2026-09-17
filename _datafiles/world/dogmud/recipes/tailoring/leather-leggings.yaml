@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 20023
   quantity: 1
-success_message: "You shape and lace the hide into snug leggings. Leather leggings!"
-failure_message: "The lacing tears through the leather. The materials are ruined."
+success_actor: "You shape and lace the hide into snug leggings. Leather leggings!"
+failure_actor: "The lacing tears through the leather. The materials are ruined."

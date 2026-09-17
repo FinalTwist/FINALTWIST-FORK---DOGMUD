@@ -49,7 +49,7 @@ func (b *ConditionSpec) Narrate(p Phase, holderName, holderPlainName string) nar
 	})
 }
 
-// AuthoredStartLine renders start_user_text as written, ignoring the notice
+// AuthoredStartLine renders start_actee as written, ignoring the notice
 // rules. It is the door for the applier of a silent-start condition, which narrates
 // the start itself because the condition never travels the event that would:
 // sleep (15), arrest (88), stun (84) and broken limb (83). Enchant Withdrawal
@@ -60,7 +60,7 @@ func (b *ConditionSpec) Narrate(p Phase, holderName, holderPlainName string) nar
 // It takes the HOLDER for the same reason Narrate does: the start line is
 // authored against {actee} and {actee_plain}, so a call site free to pick a
 // slot could fill the actor and render the name as an empty string. No
-// silent-start condition's start_user_text carries a name token today, which
+// silent-start condition's start_actee carries a name token today, which
 // is exactly why that defect would stay invisible until one is authored.
 func (b *ConditionSpec) AuthoredStartLine(holderName, holderPlainName string) string {
 	return textutil.SubstituteTokens(b.StartUserText, textutil.TokenContext{

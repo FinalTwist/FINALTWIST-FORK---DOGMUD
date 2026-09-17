@@ -14,11 +14,11 @@ steps:
       only luck, and of the three lights still waiting overhead. You cannot
       give it back."
 rewards:
-  playermessage: >-
+  actor: >-
     You know now. It sits in you like a swallowed stone. The sky will
     never look the same, and neither will the blessed, and neither will
     you. Be careful who you tell.
-  roommessage: ""
+  observer: ""
   gold: 0
 triggers:
   - event: room_interact
@@ -29,7 +29,7 @@ triggers:
     actions:
       - grant: "77-end"
       - give_item: 40176
-      - send_text: |
+      - actor: |
           You stand among the stones and let the light find them, and one
           by one they wake — a slow inner glow, a drift of moving marks —
           and though you cannot read the tongue, the stones do not need you
@@ -76,7 +76,7 @@ triggers:
           The light drifts and settles, and the stones go quiet, having
           told you everything. You do not feel wiser. You feel like someone
           who has been handed a weight and told it is theirs now, forever.
-      - room_text: "{actor} stands motionless before the wall of moving light, and for a long moment does not seem to breathe."
+      - observer: "{actor} stands motionless before the wall of moving light, and for a long moment does not seem to breathe."
   # Re-read is on the `oracle-stones` noun only. A second `records` trigger
   # gated has:["77-end"] would double-fire on the FIRST examine (the grant
   # above sets the token mid-event, so a same-event has-trigger also matches
@@ -87,7 +87,7 @@ triggers:
     conditions:
       has: ["77-end"]
     actions:
-      - send_text: >-
+      - actor: >-
           They are only stones again now, dark until the light finds them —
           but you know what they hold, and you know it holds you. The
           crossing, the fever, the luck, the waiting lights. You have read

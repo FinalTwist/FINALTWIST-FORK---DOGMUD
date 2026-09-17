@@ -90,7 +90,7 @@ rewards:
   skillinfo: "blacksmithing:1"
   itemid: 30033
   gold: 25
-  playermessage: >-
+  actor: >-
     Ovell digs a worn leather pouch from his coat with the care of
     someone parting with something that has been useful. The quartz
     eye tracks you steadily while the other squints in the slope
@@ -110,7 +110,7 @@ triggers:
       missing: ["36-scavenger"]
     actions:
       - grant: "36-scavenger"
-      - send_text: >-
+      - actor: >-
           The scree scavenger goes still on the rock. One threat
           on the slope is done. Push higher for the lurker.
 
@@ -122,7 +122,7 @@ triggers:
       missing: ["36-lurker"]
     actions:
       - grant: "36-lurker"
-      - send_text: >-
+      - actor: >-
           The talus lurker drops back into the rock and does not
           rise. The ore pocket is yours. Now work the vein.
 
@@ -135,7 +135,7 @@ triggers:
       missing: ["36-ore"]
     actions:
       - grant: "36-ore"
-      - send_text: >-
+      - actor: >-
           You pry a chunk of basalt-iron from the exposed vein.
           The ore is dense and dark, shot through with a faint
           rust-red seam. Bring it back to Ovell.
@@ -149,7 +149,7 @@ triggers:
       missing: ["36-ore"]
     actions:
       - grant: "36-ore"
-      - send_text: >-
+      - actor: >-
           You work a chunk of basalt-iron free from the vein where
           it crosses the ore pocket. The rock resists, then gives.
           Bring it back to Ovell.

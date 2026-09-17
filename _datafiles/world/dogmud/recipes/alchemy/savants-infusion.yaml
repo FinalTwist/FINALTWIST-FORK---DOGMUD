@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 30054
   quantity: 1
-success_message: "Amber liquid flecked with crystallized knowledge. A savant's infusion!"
-failure_message: "The herbs lose potency during infusion. The materials are wasted."
+success_actor: "Amber liquid flecked with crystallized knowledge. A savant's infusion!"
+failure_actor: "The herbs lose potency during infusion. The materials are wasted."

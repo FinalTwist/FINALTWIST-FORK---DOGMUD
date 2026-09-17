@@ -19,5 +19,5 @@ ingredients:
 output:
   item_id: 30056
   quantity: 1
-success_message: "The dense liquid hums against the glass, saturated with chrysalis energy. A chrysalis catalyst!"
-failure_message: "The chrysalis energy overwhelms the vessel and dissipates. The materials are wasted."
+success_actor: "The dense liquid hums against the glass, saturated with chrysalis energy. A chrysalis catalyst!"
+failure_actor: "The chrysalis energy overwhelms the vessel and dissipates. The materials are wasted."

@@ -1,0 +1,191 @@
+# Position control-axis message templates (chunk 4b).
+# Substitution tokens (the canonical vocabulary, messaging arc M4a):
+#   {position}      display name of the current grapple position
+#   {old_position}  pre-transition position (transition_messages only)
+#   {new_position}  post-transition position (transition_messages only)
+#   {actor}         the controller side, except in stamina_warning, where the
+#                   line is about the character it fires for and the actor is
+#                   that character whichever side of the grapple they are on
+#   {actee}         the controlled side
+#
+# Role keys (the canonical vocabulary, messaging arc M4b-1): every audience in
+# this file is keyed `actor` (the line the character reads about themselves),
+# `actee` (the line the other side reads) or `observer` (the room broadcast).
+# The three authored vocabularies this replaced were attacker/target/room,
+# controller/controlled and self/room.
+#
+# In gradient_messages and transition_messages the OUTER key is the side the
+# block is written for and the INNER key is the audience, so `actor: actor:`
+# means the controller's own line and `actee: observer:` the room's line about
+# a transition the controlled side drove. The gradient STATE named `controlled`
+# is authored data, not a role, and keeps its spelling.
+#
+# Starter copy; polished in 4f balance pass.
+
+gradient_messages:
+  actor:
+    in_control:
+      actor: "You settle into a dominating {position}."
+      observer: "{actor} settles into a dominating {position}."
+    losing_control:
+      actor: "You feel your {position} slipping."
+      observer: "{actor} struggles to maintain {position}."
+    neutral:
+      actor: "The {position} is even — it's all up for grabs."
+      observer: "The {position} between {actor} and {actee} is even."
+    becoming_controlled:
+      actor: "You're about to lose the {position}."
+      observer: "{actor} is losing {position}."
+    controlled:
+      actor: "You've lost the {position}!"
+      observer: "{actor} has lost {position}."
+
+  actee:
+    losing_control:
+      actor: "You feel an opening — they're losing the position."
+      observer: ""
+    neutral:
+      actor: "The {position} is even — it's all up for grabs."
+      observer: ""
+    becoming_controlled:
+      actor: "You're starting to control the position!"
+      observer: ""
+    controlled:
+      actor: "You're about to escape!"
+      observer: ""
+
+transition_messages:
+  actor:
+    actor: "You lose the {old_position} as they recover to {new_position}."
+    observer: "{actor} loses the {old_position} to {actee}, who recovers to {new_position}."
+  actee:
+    actor: "You escape the {old_position} to {new_position}!"
+    observer: ""
+
+stamina_warning:
+  actor: "You're getting gassed — your {position} is hard to maintain."
+  observer: "{actor} looks exhausted in the {position}."
+
+# Submission attempt + resolution templates (chunk 4d T11).
+# Substitution tokens:
+#   {actor}  the character applying the submission
+#   {actee}  the character receiving the submission
+#
+# opening: per-sub-type actor/actee/observer texts that fire when
+#   the submission window opens (before the outcome resolves).
+# escape_bad: fires on SubTierBad — attempter overcommits.
+# neutral: fires on SubTierNeutral — attempt fails to lock.
+# outcome_*: fires on SubTierSuccess/Crit per policy path.
+# crit_flag: actor-only prefix prepended on crit outcomes; its actee and
+#   observer are authored empty on purpose, which the shipped-data guard
+#   exempts by name.
+
+submission:
+  opening:
+    armbar:
+      actor: "You isolate {actee}'s arm and crank — they
+        feel the joint go past its limit!"
+      actee: "{actor} isolates your arm and cranks — pain
+        shoots through the elbow!"
+      observer: "{actor} isolates {actee}'s arm in a brutal
+        armbar."
+    rnc:
+      actor: "You wrap an arm around {actee}'s neck and
+        squeeze."
+      actee: "{actor}'s arm tightens around your neck.
+        The world begins to dim."
+      observer: "{actor} sinks a rear-naked choke on {actee}."
+    triangle:
+      actor: "Your legs lock around {actee}'s neck and arm
+        — the squeeze is on."
+      actee: "{actor}'s legs trap your neck and one arm.
+        You can barely breathe."
+      observer: "{actor} locks a triangle choke around
+        {actee}'s neck."
+    kimura:
+      actor: "You twist {actee}'s shoulder into an
+        unnatural angle."
+      actee: "{actor} twists your shoulder. The joint
+        screams."
+      observer: "{actor} cranks a kimura on {actee}'s
+        shoulder."
+    americana:
+      actor: "You crank {actee}'s shoulder backwards with
+        savage pressure."
+      actee: "{actor} cranks your shoulder. The joint is
+        about to give."
+      observer: "{actor} cranks an americana on {actee}'s
+        shoulder."
+    omoplata:
+      actor: "You trap {actee}'s shoulder with your leg
+        — the angle is impossible."
+      actee: "{actor}'s leg traps your shoulder at an
+        impossible angle."
+      observer: "{actor} locks an omoplata on {actee}'s
+        shoulder."
+    anaconda:
+      actor: "You roll and snake your arms around
+        {actee}'s neck."
+      actee: "{actor} rolls and your neck disappears into
+        a vise."
+      observer: "{actor} sinks an anaconda choke on {actee}."
+
+  escape_bad:
+    actor: "Your submission attempt overcommits — {actee}
+      exploits the opening and breaks free!"
+    actee: "You feel {actor} overcommit on the submission.
+      You twist free and they hit the ground!"
+    observer: "{actor} overcommits on the submission — {actee}
+      escapes the grapple entirely."
+
+  neutral:
+    actor: "Your submission attempt fails to lock in.
+      {actee} survives the round."
+    actee: "You feel {actor} threaten a submission but
+      it doesn't fully lock."
+    observer: "{actor}'s submission attempt on {actee} fails
+      to fully lock in."
+
+  outcome_mercy:
+    actor: "You ease off and let {actee} up. They live
+      to fight another day."
+    actee: "{actor} eases off the submission and lets
+      you up. You owe them your life."
+    observer: "{actor} releases {actee} from the submission.
+      Mercy."
+
+  outcome_subdue:
+    actor: "You hold the choke until {actee}'s body goes
+      limp. They're done."
+    actee: "{actor} holds the choke until everything goes
+      black."
+    observer: "{actor} holds the submission until {actee}
+      loses consciousness."
+
+  outcome_cripple_arm:
+    actor: "You crank {actee}'s arm until you hear bone
+      crack. They scream and pass out."
+    actee: "You hear the bone in your arm crack. The pain
+      takes you under."
+    observer: "Bone cracks. {actee} screams and goes limp in
+      {actor}'s grip."
+
+  outcome_cripple_shoulder:
+    actor: "You crank {actee}'s shoulder until it pops
+      out of the socket."
+    actee: "Your shoulder pops out of the socket. The pain
+      takes you under."
+    observer: "{actee}'s shoulder pops sickeningly. They go
+      limp."
+
+  outcome_lethal:
+    actor: "You hold the lock until {actee} stops
+      twitching. They will not be getting up."
+    actee: "Everything fades to black. Cold."
+    observer: "{actor} holds the submission past survival.
+      {actee} is dead."
+
+  crit_flag:
+    actor: "With brutal precision — "
+    actee: ""
+    observer: ""

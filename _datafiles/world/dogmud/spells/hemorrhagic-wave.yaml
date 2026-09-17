@@ -16,5 +16,5 @@ effect_magnitude: 225
 damage_multiplier: 0.80
 categories:
   - harm_multi
-cast_user_text: "You channel a wave of rupturing force outward."
-cast_room_text: "{actor} clenches both fists as a sickening pressure builds."
+cast_actor: "You channel a wave of rupturing force outward."
+cast_observer: "{actor} clenches both fists as a sickening pressure builds."

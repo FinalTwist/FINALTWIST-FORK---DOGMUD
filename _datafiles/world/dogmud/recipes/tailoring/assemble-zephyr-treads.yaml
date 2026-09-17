@@ -23,5 +23,5 @@ ingredients:
 output:
   item_id: 40188
   quantity: 1
-success_message: "You inlay the quicksilver vein into the sole, lace the windlace cording ankle to heel, and work the storm-charged residue into the seam. The boots want to move before you have finished lacing them. Veyra's masterwork is finished -- the Zephyr Treads are ready."
-failure_message: "The quicksilver pools wrong and the windlace cording snaps taut before it sets. The materials are ruined."
+success_actor: "You inlay the quicksilver vein into the sole, lace the windlace cording ankle to heel, and work the storm-charged residue into the seam. The boots want to move before you have finished lacing them. Veyra's masterwork is finished -- the Zephyr Treads are ready."
+failure_actor: "The quicksilver pools wrong and the windlace cording snaps taut before it sets. The materials are ruined."

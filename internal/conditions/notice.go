@@ -14,13 +14,13 @@ func (b *ConditionSpec) hasFlag(f Flag) bool {
 }
 
 // StartUserNotice is the line the holder reads when this condition lands: the
-// authored start_user_text, or "<Name> takes effect." when none is authored.
+// authored start_actee, or "<Name> takes effect." when none is authored.
 // A secret condition says nothing. A silent-start condition also says nothing at start
 // because whatever applies it narrates the moment itself: warcry and rally go
 // through Character.AddCondition, which never queues the condition event, so no line
 // could reach the holder anyway; the bloom detox drink DOES reach
 // Condition_ApplyConditions on the unscaled drink path, and the flag is what keeps the
-// purge's own narration from being doubled. Authored start_user_text is not
+// purge's own narration from being doubled. Authored start_actee is not
 // consulted for a silent-start condition. A condition with no name keeps its authored line but
 // gets no generic one, rather than print " takes effect."; the root guard
 // fails the build on a nameless non-secret condition.
@@ -48,7 +48,7 @@ func (b *ConditionSpec) StartUserNotice() string {
 }
 
 // EndUserNotice is the line the holder reads when this condition ends: the
-// authored end_user_text, or "<Name> has expired." when none is authored.
+// authored end_actee, or "<Name> has expired." when none is authored.
 // A secret condition says nothing; a nameless one keeps its authored line only.
 // A hidden condition (Hidden, Empathic Shroud) also says nothing at end, even
 // over authored text: a hider must not learn when their cover lapsed, or
@@ -109,6 +109,6 @@ func SilentNoticeConditions() []string {
 // line exists so play continues; the root guard is what blocks a merge.
 func WarnSilentNotices() {
 	for _, entry := range SilentNoticeConditions() {
-		mudlog.Warn("conditions.WarnSilentNotices", "condition", entry, "notice", "relies on the generic takes effect / has expired line; author start_user_text and end_user_text")
+		mudlog.Warn("conditions.WarnSilentNotices", "condition", entry, "notice", "relies on the generic takes effect / has expired line; author start_actee and end_actee")
 	}
 }

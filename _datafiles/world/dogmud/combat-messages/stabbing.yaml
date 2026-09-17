@@ -15,7 +15,7 @@ options:
   prepare:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You prepare to enter into mortal combat with <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'You grip your <ansi fg="item">{itemname}</ansi> tightly, readying yourself against <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -31,7 +31,7 @@ options:
         - 'Your blade settles into perfect position, {momentum}, as you face <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'You flow into your {stance} fighting stance with fluid precision.'
         - '{momentum}, you read <ansi fg="{acteetype}">{actee}</ansi>''s posture, blade poised perfectly.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> prepares to fight you with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> grips their <ansi fg="item">{itemname}</ansi> tightly, readying against you.'
@@ -47,7 +47,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi>''s blade moves into perfect position, a clear threat.'
         - 'With flowing grace, <ansi fg="{actortype}">{actor}</ansi> prepares to attack.'
         - '{momentum}, <ansi fg="{actortype}">{actor}</ansi> reads your posture, blade poised perfectly.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> prepares to attack <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> grips their <ansi fg="item">{itemname}</ansi> tightly, facing off against <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -66,7 +66,7 @@ options:
   wait:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You aim carefully at <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'You watch <ansi fg="{acteetype}">{actee}</ansi> closely, waiting for the perfect moment to thrust.'
@@ -82,7 +82,7 @@ options:
         - 'While {position}, you anticipate <ansi fg="{acteetype}">{actee}</ansi>''s next move with clarity.'
         - 'Your {stance} training allows you to analyze <ansi fg="{acteetype}">{actee}</ansi> effortlessly.'
         - 'Like a predator, you assess <ansi fg="{acteetype}">{actee}</ansi>''s every vulnerability.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> aims carefully at you.'
         - '<ansi fg="{actortype}">{actor}</ansi> watches you intently, waiting to strike with their <ansi fg="item">{itemname}</ansi>.'
@@ -98,7 +98,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi>, while {position}, anticipates your next move with clarity.'
         - '<ansi fg="{actortype}">{actor}</ansi> analyzes your stance with masterful clarity.'
         - '<ansi fg="{actortype}">{actor}</ansi>''s eyes track your every shift like a predator.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> aims carefully at <ansi fg="{acteetype}">{actee}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> stalks around <ansi fg="{acteetype}">{actee}</ansi>, awaiting an opportunity.'
@@ -117,7 +117,7 @@ options:
   miss:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You poke your <ansi fg="item">{itemname}</ansi> at <ansi fg="{acteetype}">{actee}</ansi>, to no avail!'
         - 'Your thrust at <ansi fg="{acteetype}">{actee}</ansi> misses completely!'
@@ -133,7 +133,7 @@ options:
         - 'Despite flawless execution, <ansi fg="{acteetype}">{actee}</ansi> reads your intent and evades!'
         - 'Your masterful lunge meets an equally masterful defense!'
         - '{momentum}, your flowing thrust is barely parried away!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> pokes their <ansi fg="item">{itemname}</ansi> at you, but does nothing.'
         - '<ansi fg="{actortype}">{actor}</ansi> thrusts their <ansi fg="item">{itemname}</ansi> wildly, missing you entirely.'
@@ -149,7 +149,7 @@ options:
         - 'You read <ansi fg="{actortype}">{actor}</ansi>''s intent and evade with flowing grace!'
         - 'Your superior technique deflects <ansi fg="{actortype}">{actor}</ansi>''s masterful lunge!'
         - '{momentum}, you barely parry away <ansi fg="{actortype}">{actor}</ansi>''s flowing thrust!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> pokes their <ansi fg="item">{itemname}</ansi> at <ansi fg="{acteetype}">{actee}</ansi>, but does nothing.'
         - '<ansi fg="{actortype}">{actor}</ansi> thrusts at <ansi fg="{acteetype}">{actee}</ansi> but misses completely.'
@@ -168,7 +168,7 @@ options:
   weak:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You jab at <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi>.'
         - 'Your <ansi fg="item">{itemname}</ansi> pokes <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -186,7 +186,7 @@ options:
         - 'Dancing back, you flick your <ansi fg="item">{itemname}</ansi> at <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'You find a small opening and deliver a shallow puncture to <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'With precision, you score a calculated nick on <ansi fg="{acteetype}">{actee}</ansi>.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> jabs you with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> pokes you with their <ansi fg="item">{itemname}</ansi>.'
@@ -204,7 +204,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> presses forward and pricks you.'
         - '<ansi fg="{actortype}">{actor}</ansi> flicks their blade at you while retreating.'
         - '<ansi fg="{actortype}">{actor}</ansi> finds a small opening and punctures you shallowly.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> jabs at <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> pokes <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
@@ -225,7 +225,7 @@ options:
   normal:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You stab <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi>!'
         - 'You strike <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi>!'
@@ -249,7 +249,7 @@ options:
         - 'While {momentum}, you thrust decisively at <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'Your <ansi fg="item">{itemname}</ansi> sinks into <ansi fg="{acteetype}">{actee}</ansi>''s {bodypart}!'
         - 'You drive your blade into <ansi fg="{acteetype}">{actee}</ansi>''s {bodypart}!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> stabs you with their <ansi fg="item">{itemname}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> strikes you with their <ansi fg="item">{itemname}</ansi>!'
@@ -273,7 +273,7 @@ options:
         - 'While {momentum}, <ansi fg="{actortype}">{actor}</ansi> thrusts decisively into you!'
         - '<ansi fg="{actortype}">{actor}</ansi> reads your stance and strikes with precision!'
         - '<ansi fg="{actortype}">{actor}</ansi> drives their blade into your {bodypart}!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> stabs <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> strikes <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
@@ -300,7 +300,7 @@ options:
   heavy:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You drive your <ansi fg="item">{itemname}</ansi> forcefully into <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'Your powerful thrust pierces deeply into <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -327,7 +327,7 @@ options:
         - 'You surge forward on the offensive, your blade piercing deep!'
         - 'Maintaining your assault, you deliver a powerful driving thrust!'
         - 'From your {stance} stance, {momentum}, you deliver a devastating thrust while {position}!'
-      todefender:
+      actee:
         beginner:
         - 'You take a powerful thrust as <ansi fg="{actortype}">{actor}</ansi> drives their <ansi fg="item">{itemname}</ansi> into you!'
         - '<ansi fg="{actortype}">{actor}</ansi> thrusts powerfully and pierces deeply into you!'
@@ -354,7 +354,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> surges forward on the offensive, blade piercing deep!'
         - '<ansi fg="{actortype}">{actor}</ansi> maintains their assault with a powerful thrust!'
         - 'From their {stance} stance, {momentum}, <ansi fg="{actortype}">{actor}</ansi> delivers a devastating thrust while {position}!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> drives their <ansi fg="item">{itemname}</ansi> forcefully into <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> thrusts deeply into <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
@@ -384,7 +384,7 @@ options:
   critical:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY PIERCES</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'You deliver a <ansi fg="cyan-bold">CRITICAL STRIKE</ansi> to <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi>!'
@@ -406,7 +406,7 @@ options:
         - 'Your unstoppable assault culminates in a <ansi fg="cyan-bold">CRITICAL IMPALEMENT</ansi>!'
         - 'Channeling all momentum, you <ansi fg="cyan-bold">DRIVE THROUGH</ansi> <ansi fg="{acteetype}">{actee}</ansi> utterly!'
         - 'The tide of battle favors you - your blade <ansi fg="cyan-bold">DECIMATES</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY PIERCES</ansi> you!'
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL STRIKE</ansi>!'
@@ -428,7 +428,7 @@ options:
         - '<ansi fg="{actortype}">{actor}''s</ansi> unstoppable assault culminates in a <ansi fg="cyan-bold">CRITICAL IMPALEMENT</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> channels all momentum and <ansi fg="cyan-bold">DRIVES THROUGH</ansi> you utterly!'
         - 'The tide favors <ansi fg="{actortype}">{actor}</ansi> - their blade <ansi fg="cyan-bold">DECIMATES</ansi> you!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY PIERCES</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL STRIKE</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -453,7 +453,7 @@ options:
   fumble:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your thrust <ansi fg="red-bold">FUMBLES</ansi> awkwardly as your stab goes completely wild!'
         - 'You <ansi fg="red-bold">FUMBLE</ansi> and your grip slips dangerously on your <ansi fg="item">{itemname}</ansi>!'
@@ -467,7 +467,7 @@ options:
         - '<ansi fg="{acteetype}">{actee}</ansi>''s unexpected counter forces you to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite perfect form, a misstep causes you to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Your masterful strike is disrupted - you <ansi fg="red-bold">FUMBLE</ansi> the execution!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s thrust <ansi fg="red-bold">FUMBLES</ansi> awkwardly against their own armor!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their <ansi fg="item">{itemname}</ansi> in a pathetic display of clumsy incompetence!'
@@ -481,7 +481,7 @@ options:
         - 'Your defense forces <ansi fg="{actortype}">{actor}</ansi> to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite their skill, <ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi>!'
         - '<ansi fg="{actortype}">{actor}''s</ansi> masterful strike is disrupted - they <ansi fg="red-bold">FUMBLE</ansi>!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLES</ansi> wildly as their thrust goes nowhere!'
         - '<ansi fg="{actortype}">{actor}</ansi> loses their grip and their attack <ansi fg="red-bold">FUMBLES</ansi> pathetically!'

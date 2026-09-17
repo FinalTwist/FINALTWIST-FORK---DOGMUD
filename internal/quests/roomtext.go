@@ -8,10 +8,10 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/textutil"
 )
 
-// RoomTextProblems returns every way a quest room_text breaks the quest
+// RoomTextProblems returns every way a quest `observer` line breaks the quest
 // convention, or nil.
 //
-// Every quest room_text is something the room watches the triggering player
+// Every quest observer line is something the room watches the triggering player
 // do, so it must name them with {actor}. Until 2026-09-11 twenty-one lines
 // were written as subjectless fragments ("unlocks the strongbox") and one used
 // a name token that nothing filled in.
@@ -36,8 +36,8 @@ func RoomTextProblems(text string) []string {
 	return problems
 }
 
-// validateRoomText applies RoomTextProblems to every room_text in the quest,
-// including actions nested in a sequence's on_complete, which the engine
+// validateRoomText applies RoomTextProblems to every `observer` line in the
+// quest, including actions nested in a sequence's on_complete, which the engine
 // executes and narrates too.
 //
 // It lives in Validate on purpose. Validate runs on every quest file parse at
@@ -54,7 +54,7 @@ func (r *Quest) validateRoomText() error {
 			aw := fmt.Sprintf("%s action %d", where, j)
 			if a.RoomText != "" {
 				for _, p := range RoomTextProblems(a.RoomText) {
-					problems = append(problems, aw+" room_text: "+p)
+					problems = append(problems, aw+" observer: "+p)
 				}
 			}
 			// No depth limit. The engine runs a sequence's on_complete actions
@@ -71,7 +71,7 @@ func (r *Quest) validateRoomText() error {
 	}
 	if len(problems) > 0 {
 		// One problem per line, so an editor refusal reads clearly.
-		return fmt.Errorf("quest %d (%s) room_text problems:\n%s", r.QuestId, r.Name, strings.Join(problems, "\n"))
+		return fmt.Errorf("quest %d (%s) observer line problems:\n%s", r.QuestId, r.Name, strings.Join(problems, "\n"))
 	}
 	return nil
 }

@@ -1,5 +1,15 @@
 # DOGMud Patch Notes
 
+## 2026-09-17: Still nothing you can see
+
+Every line the game writes is labelled with who it is meant for: the one
+acting, the one it happens to, and everyone else in the room. Those labels
+had a different name in each part of the game and now share one set of names
+everywhere. Not a word of what you read has changed. What changes is that a
+line telling you what just happened can no longer go quietly missing. The
+game now refuses to start rather than run with a silent gap where one
+belongs.
+
 ## 2026-09-17: Nothing you can see
 
 The game's messages are built from templates with blanks where the names go,

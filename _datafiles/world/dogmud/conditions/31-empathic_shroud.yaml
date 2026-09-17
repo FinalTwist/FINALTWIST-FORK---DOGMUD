@@ -5,9 +5,9 @@ triggerrate: 1 round
 triggercount: 16
 flags:
   - hidden
-start_user_text: You wrap yourself in a psionic shroud, fading from perception.
-start_room_text: "{actee} seems to shimmer and fade from view."
+start_actee: You wrap yourself in a psionic shroud, fading from perception.
+start_observer: "{actee} seems to shimmer and fade from view."
 # No end_user_text — like the Hidden condition, you are NOT told when the shroud
 # lapses (you can't know who or what perceived you). Room observers still get
 # end_room_text since, from their POV, you visibly shimmer back into sight.
-end_room_text: "{actee} shimmers back into view."
+end_observer: "{actee} shimmers back into view."

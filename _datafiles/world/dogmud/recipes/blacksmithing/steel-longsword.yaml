@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 10015
   quantity: 1
-success_message: "You forge the steel into a long, keen blade and wrap the hilt in leather. A steel longsword!"
-failure_message: "The steel cracks along a hidden flaw. The materials are ruined."
+success_actor: "You forge the steel into a long, keen blade and wrap the hilt in leather. A steel longsword!"
+failure_actor: "The steel cracks along a hidden flaw. The materials are ruined."

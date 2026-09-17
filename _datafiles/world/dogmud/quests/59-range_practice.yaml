@@ -43,11 +43,11 @@ steps:
 rewards:
   gold: 6
   skillinfo: "ranged-combat:1"
-  playermessage: >-
+  actor: >-
     Bryn watches the range go quiet without moving from her position.
     "Good reach. Stood when it came. Come back when the eye starts to
     drift -- it always drifts."
-  roommessage: "Bryn's gaze moves back to the bluffs. The compliment was in the coins."
+  observer: "Bryn's gaze moves back to the bluffs. The compliment was in the coins."
 
 triggers:
   - event: command
@@ -58,7 +58,7 @@ triggers:
       missing: ["59-shoot"]
     actions:
       - grant: "59-shoot"
-      - send_text: >-
+      - actor: >-
           The shot crosses the slot and bites. Now it will come at you
           -- stand your ground and finish it.
 
@@ -69,6 +69,6 @@ triggers:
       missing: ["59-end"]
     actions:
       - grant: "59-end"
-      - send_text: >-
+      - actor: >-
           The target drops. Shot placed, fight finished -- that is the
           whole drill. Come back and tell Bryn.

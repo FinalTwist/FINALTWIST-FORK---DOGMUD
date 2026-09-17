@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 30044
   quantity: 1
-success_message: "Moonpetal and chrysalis fuse into a silvery elixir. A mindshield elixir!"
-failure_message: "The moonpetal wilts on contact with the chrysalis. The materials are wasted."
+success_actor: "Moonpetal and chrysalis fuse into a silvery elixir. A mindshield elixir!"
+failure_actor: "The moonpetal wilts on contact with the chrysalis. The materials are wasted."

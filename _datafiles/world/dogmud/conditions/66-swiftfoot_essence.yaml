@@ -1,8 +1,8 @@
 conditionid: 66
 name: Swiftfoot Essence
 description: The world slows around you as your reflexes sharpen.
-start_user_text: The world slows as your reflexes sharpen, but you tire.
-end_user_text: The world speeds up again and you feel ordinary.
+start_actee: The world slows as your reflexes sharpen, but you tire.
+end_actee: The world speeds up again and you feel ordinary.
 triggerrate: 1 round
 triggercount: 350
 statmods:

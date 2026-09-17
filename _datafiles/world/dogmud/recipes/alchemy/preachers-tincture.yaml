@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 30040
   quantity: 1
-success_message: "Chrysalis energy infuses the root extract, glowing faintly gold. A preacher's tincture!"
-failure_message: "The chrysalis energy dissipates before bonding. The materials are wasted."
+success_actor: "Chrysalis energy infuses the root extract, glowing faintly gold. A preacher's tincture!"
+failure_actor: "The chrysalis energy dissipates before bonding. The materials are wasted."

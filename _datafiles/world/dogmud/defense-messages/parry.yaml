@@ -9,7 +9,7 @@ options:
   weak:
     # Narrow parries - defender barely deflected the attack (z-score < 0.5)
     together:
-      todefender:
+      actee:
       - '<ansi fg="defense-good">You barely parry <ansi fg="user">{actor}</ansi>''s attack!</ansi>'
       - '<ansi fg="defense-good">You deflect the strike at the last moment!</ansi>'
       - '<ansi fg="defense-good">You desperately catch the blow on your weapon!</ansi>'
@@ -20,7 +20,7 @@ options:
       - '<ansi fg="defense-good">You frantically raise your defense, just catching the blow!</ansi>'
       - '<ansi fg="defense-good">You narrowly redirect the strike with your weapon!</ansi>'
       - '<ansi fg="defense-good">You twist your blade at the last second, deflecting awkwardly!</ansi>'
-      toattacker:
+      actor:
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> barely parries your attack!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> deflects your strike at the last moment!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> desperately catches your blow!</ansi>'
@@ -31,7 +31,7 @@ options:
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> frantically raises their defense, just catching the blow!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> narrowly redirects your strike!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> twists their blade at the last second, deflecting awkwardly!</ansi>'
-      toroom:
+      observer:
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> barely parries <ansi fg="user">{actor}</ansi>''s attack.</ansi>'
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> deflects the strike at the last moment.</ansi>'
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> desperately catches the blow.</ansi>'
@@ -46,7 +46,7 @@ options:
   normal:
     # Standard parries - defender successfully deflected the attack (z-score 0.5-2.0)
     together:
-      todefender:
+      actee:
       - '<ansi fg="defense-good">You parry <ansi fg="user">{actor}</ansi>''s attack!</ansi>'
       - '<ansi fg="defense-good">You deflect the strike with your weapon!</ansi>'
       - '<ansi fg="defense-good">You catch the blow on your guard!</ansi>'
@@ -61,7 +61,7 @@ options:
       - '<ansi fg="defense-good">You counter the strike with a firm parry!</ansi>'
       - '<ansi fg="defense-good">You bat away the attack with your weapon!</ansi>'
       - '<ansi fg="defense-good">You guide the blow aside with practiced skill!</ansi>'
-      toattacker:
+      actor:
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> parries your attack!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> deflects your strike!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> catches your blow on their guard!</ansi>'
@@ -76,7 +76,7 @@ options:
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> counters your strike with a firm parry!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> bats away your attack!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> guides your blow aside with skill!</ansi>'
-      toroom:
+      observer:
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> parries <ansi fg="user">{actor}</ansi>''s attack.</ansi>'
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> deflects the strike.</ansi>'
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> catches the blow on their guard.</ansi>'
@@ -95,7 +95,7 @@ options:
   heavy:
     # Easy/decisive parries - defender easily deflected a poor attack (z-score >= 2.0)
     together:
-      todefender:
+      actee:
       - '<ansi fg="defense-good">You effortlessly parry <ansi fg="user">{actor}</ansi>''s clumsy attack!</ansi>'
       - '<ansi fg="defense-good">You casually deflect the telegraphed strike!</ansi>'
       - '<ansi fg="defense-good">You brush aside the obvious attack with ease!</ansi>'
@@ -110,7 +110,7 @@ options:
       - '<ansi fg="defense-good">You contemptuously bat away the sloppy strike!</ansi>'
       - '<ansi fg="defense-good">You effortlessly guide the poor attack aside!</ansi>'
       - '<ansi fg="defense-good">You turn the clumsy blow with contemptuous ease!</ansi>'
-      toattacker:
+      actor:
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> effortlessly parries your clumsy attack!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> casually deflects your telegraphed strike!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> brushes aside your obvious attack with ease!</ansi>'
@@ -125,7 +125,7 @@ options:
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> contemptuously bats away your sloppy strike!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> effortlessly guides your poor attack aside!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> turns your clumsy blow with ease!</ansi>'
-      toroom:
+      observer:
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> effortlessly parries the clumsy attack.</ansi>'
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> casually deflects the telegraphed strike.</ansi>'
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> brushes aside the attack with ease.</ansi>'

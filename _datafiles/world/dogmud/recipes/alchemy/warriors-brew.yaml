@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 30039
   quantity: 1
-success_message: "The herbs fuse into a rust-colored brew that radiates warmth. A warrior's brew!"
-failure_message: "The mixture thickens and burns. The materials are wasted."
+success_actor: "The herbs fuse into a rust-colored brew that radiates warmth. A warrior's brew!"
+failure_actor: "The mixture thickens and burns. The materials are wasted."

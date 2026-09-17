@@ -9,11 +9,18 @@
 //     fireSubmissionResolutionMessage fire outcome-specific templates
 //     that are registered with the combat package at init time.
 //
-// Templates live at _datafiles/messages/position_control.yaml,
-// loaded once via sync.Once.
+// Templates live at <configured world>/messaging/position_control.yaml,
+// which is _datafiles/world/dogmud/messaging/position_control.yaml for the
+// shipped config.
+//
+// LOADER TIER: event narration. main.go calls LoadPositionMessages at boot and
+// it PANICS on bad data, because a submission that narrates nothing leaves a
+// player reading no account of an arm being snapped. See the two-tier policy in
+// internal/narration/context.md.
 package hooks
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -21,6 +28,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -31,13 +39,21 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// submissionMsgTriple holds attacker / target / room variants for
-// a single submission message key. Attacker and target are personal
-// messages; room goes to all other characters in the room.
+// submissionMsgTriple holds the three audience variants for a single
+// submission message key. The actor and actee lines are personal messages to
+// the two grapplers; the observer line goes to everyone else in the room.
+//
+// The authored keys were attacker/target/room until M4b-1 gave every narration
+// store one role vocabulary. The Go field names keep the submission-specific
+// spelling because they read better at the call sites below, where an
+// attempter really is attacking; only the wire names are canonical. The
+// mirror of this struct in the repo root's shipped_narration_data_guard_test.go
+// decodes STRICTLY and must be renamed in lockstep, or a tag changed here
+// alone fails that guard's decode rather than silently yielding empty text.
 type submissionMsgTriple struct {
-	Attacker string `yaml:"attacker"`
-	Target   string `yaml:"target"`
-	Room     string `yaml:"room"`
+	Attacker string `yaml:"actor"`
+	Target   string `yaml:"actee"`
+	Room     string `yaml:"observer"`
 }
 
 type submissionMessageBlock struct {
@@ -52,10 +68,18 @@ type submissionMessageBlock struct {
 	CritFlag               submissionMsgTriple            `yaml:"crit_flag"`
 }
 
+// positionMessageTemplates is the part of the store production reads:
+// stamina_warning and submission. gradient_messages and transition_messages
+// are authored in the same file and read by nobody (see the golden's note).
+//
+// The stamina warning's keys were self/room until M4b-1. It is the one
+// asymmetric pair in the store: `actor` is the character the warning fires
+// for, whichever side of the grapple they are on, which is what
+// staminaWarningSubstitutions exists to arrange.
 type positionMessageTemplates struct {
 	StaminaWarning struct {
-		Self string `yaml:"self"`
-		Room string `yaml:"room"`
+		Self string `yaml:"actor"`
+		Room string `yaml:"observer"`
 	} `yaml:"stamina_warning"`
 	Submission submissionMessageBlock `yaml:"submission"`
 }
@@ -65,11 +89,51 @@ var (
 	posMsgTemplates positionMessageTemplates
 )
 
+// positionMessagesPath returns the store's path under the CONFIGURED world.
+//
+// Until the two-tier loader policy landed this was the literal
+// `_datafiles/messages/position_control.yaml`, outside the world tree
+// entirely, which is why a server run from any other working directory read
+// nothing and narrated every submission as silence with one Warn line.
+func positionMessagesPath() string {
+	return filepath.Join(string(configs.GetFilePathsConfig().DataFiles), "messaging", "position_control.yaml")
+}
+
+// LoadPositionMessages loads the store from the configured world and panics on
+// a read or parse error.
+//
+// EVENT TIER. It deliberately does NOT go through posMsgOnce: a test in this
+// package that reached the store first would have spent that Once, and a boot
+// check that silently becomes a no-op is not a boot check. The read and parse
+// run unconditionally here; the Once is spent afterwards so a later lazy caller
+// keeps what boot loaded.
+func LoadPositionMessages() {
+	path := positionMessagesPath()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		mudlog.Error("hooks.LoadPositionMessages: read failed", "path", path, "err", err)
+		panic(fmt.Errorf("position_control: read %s: %w", path, err))
+	}
+	var loaded positionMessageTemplates
+	if err := yaml.Unmarshal(data, &loaded); err != nil {
+		mudlog.Error("hooks.LoadPositionMessages: yaml parse failed", "path", path, "err", err)
+		panic(fmt.Errorf("position_control: parse %s: %w", path, err))
+	}
+
+	posMsgTemplates = loaded
+	posMsgOnce.Do(func() {})
+}
+
 // loadPositionMessages reads + parses the YAML config once. Missing
 // file is a Warn, not a fatal — the hook degrades to silent.
+//
+// This is the TEST-reachable path only, in production terms: boot calls
+// LoadPositionMessages first and spends the Once. It keeps its log-and-degrade
+// behaviour because it can run during test package init, before a logger
+// exists.
 func loadPositionMessages() positionMessageTemplates {
 	posMsgOnce.Do(func() {
-		path := filepath.Join("_datafiles", "messages", "position_control.yaml")
+		path := positionMessagesPath()
 		data, err := os.ReadFile(path)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -368,7 +432,7 @@ func fireSubmissionResolutionMessage(
 //
 // Conditions 83 Broken Limb and 84 Stunned are applied synchronously on the
 // character inside internal/combat, which sends no player text anywhere in the
-// package, so their authored start_user_text never travelled the condition event
+// package, so their authored start_actee never travelled the condition event
 // that would have narrated it: a player whose arm was just snapped read the
 // submission's outcome line and nothing at all about the break. Both are
 // flagged silent-start, and this is the applier's side of that bargain.

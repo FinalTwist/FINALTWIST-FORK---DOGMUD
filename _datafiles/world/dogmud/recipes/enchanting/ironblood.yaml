@@ -16,5 +16,5 @@ ingredients:
 output:
   item_id: 0
   quantity: 0
-success_message: "Twin settings spiral with molten resolve, infusing your essence with Chrysalis fortitude. Your blood runs thick with mutation's promise."
-failure_message: "The catalyst rejects the binding. The materials crumble to dust, but the amulet is unharmed."
+success_actor: "Twin settings spiral with molten resolve, infusing your essence with Chrysalis fortitude. Your blood runs thick with mutation's promise."
+failure_actor: "The catalyst rejects the binding. The materials crumble to dust, but the amulet is unharmed."

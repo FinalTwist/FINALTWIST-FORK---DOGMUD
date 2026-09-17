@@ -41,11 +41,11 @@ func TestLoaderTriadParse(t *testing.T) {
 	path := writeTempYAML(t, `
 advancements:
   clinch_to_mount:
-    controller:
+    actor:
       - "You drive forward and ride them into mount."
-    controlled:
+    actee:
       - "{actor} drives forward and mounts you."
-    observers:
+    observer:
       - "{actor} drives forward and mounts {actee}."
 degradations: {}
 reversals: {}
@@ -176,13 +176,13 @@ func TestProductionLibraryAdvancementsComplete(t *testing.T) {
 			continue
 		}
 		if len(triad.Controller) < MinTemplatesPerSpeaker {
-			t.Errorf("%s.controller: %d < %d", key, len(triad.Controller), MinTemplatesPerSpeaker)
+			t.Errorf("%s.actor: %d < %d", key, len(triad.Controller), MinTemplatesPerSpeaker)
 		}
 		if len(triad.Controlled) < MinTemplatesPerSpeaker {
-			t.Errorf("%s.controlled: %d < %d", key, len(triad.Controlled), MinTemplatesPerSpeaker)
+			t.Errorf("%s.actee: %d < %d", key, len(triad.Controlled), MinTemplatesPerSpeaker)
 		}
 		if len(triad.Observers) < MinTemplatesPerSpeaker {
-			t.Errorf("%s.observers: %d < %d", key, len(triad.Observers), MinTemplatesPerSpeaker)
+			t.Errorf("%s.observer: %d < %d", key, len(triad.Observers), MinTemplatesPerSpeaker)
 		}
 	}
 }
@@ -199,13 +199,13 @@ func TestProductionLibraryDegradationsComplete(t *testing.T) {
 			continue
 		}
 		if len(triad.Controller) < MinTemplatesPerSpeaker {
-			t.Errorf("%s.controller: %d < %d", key, len(triad.Controller), MinTemplatesPerSpeaker)
+			t.Errorf("%s.actor: %d < %d", key, len(triad.Controller), MinTemplatesPerSpeaker)
 		}
 		if len(triad.Controlled) < MinTemplatesPerSpeaker {
-			t.Errorf("%s.controlled: %d < %d", key, len(triad.Controlled), MinTemplatesPerSpeaker)
+			t.Errorf("%s.actee: %d < %d", key, len(triad.Controlled), MinTemplatesPerSpeaker)
 		}
 		if len(triad.Observers) < MinTemplatesPerSpeaker {
-			t.Errorf("%s.observers: %d < %d", key, len(triad.Observers), MinTemplatesPerSpeaker)
+			t.Errorf("%s.observer: %d < %d", key, len(triad.Observers), MinTemplatesPerSpeaker)
 		}
 	}
 }
@@ -222,13 +222,13 @@ func TestProductionLibraryReversalsComplete(t *testing.T) {
 			continue
 		}
 		if len(triad.Controller) < MinTemplatesPerSpeaker {
-			t.Errorf("%s.controller: %d < %d", key, len(triad.Controller), MinTemplatesPerSpeaker)
+			t.Errorf("%s.actor: %d < %d", key, len(triad.Controller), MinTemplatesPerSpeaker)
 		}
 		if len(triad.Controlled) < MinTemplatesPerSpeaker {
-			t.Errorf("%s.controlled: %d < %d", key, len(triad.Controlled), MinTemplatesPerSpeaker)
+			t.Errorf("%s.actee: %d < %d", key, len(triad.Controlled), MinTemplatesPerSpeaker)
 		}
 		if len(triad.Observers) < MinTemplatesPerSpeaker {
-			t.Errorf("%s.observers: %d < %d", key, len(triad.Observers), MinTemplatesPerSpeaker)
+			t.Errorf("%s.observer: %d < %d", key, len(triad.Observers), MinTemplatesPerSpeaker)
 		}
 	}
 }
@@ -311,11 +311,11 @@ holds: {}
 striking_apex: {}
 gradients:
   upper_boundary_down:
-    self:
+    actor:
       - "Your grip slips."
-    partner:
+    actee:
       - "{actor}'s grip slips."
-    observers:
+    observer:
       - "{actor}'s grip on {actee} slips."
 `)
 	lib, err := Load(path)
@@ -367,13 +367,13 @@ func TestProductionLibraryGradientsComplete(t *testing.T) {
 			continue
 		}
 		if len(triad.Self) < MinTemplatesPerSpeaker {
-			t.Errorf("%s.self: %d < %d", key, len(triad.Self), MinTemplatesPerSpeaker)
+			t.Errorf("%s.actor: %d < %d", key, len(triad.Self), MinTemplatesPerSpeaker)
 		}
 		if len(triad.Partner) < MinTemplatesPerSpeaker {
-			t.Errorf("%s.partner: %d < %d", key, len(triad.Partner), MinTemplatesPerSpeaker)
+			t.Errorf("%s.actee: %d < %d", key, len(triad.Partner), MinTemplatesPerSpeaker)
 		}
 		if len(triad.Observers) < MinTemplatesPerSpeaker {
-			t.Errorf("%s.observers: %d < %d", key, len(triad.Observers), MinTemplatesPerSpeaker)
+			t.Errorf("%s.observer: %d < %d", key, len(triad.Observers), MinTemplatesPerSpeaker)
 		}
 	}
 }

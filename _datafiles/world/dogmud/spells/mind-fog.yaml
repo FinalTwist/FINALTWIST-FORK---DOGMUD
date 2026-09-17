@@ -16,5 +16,5 @@ condition_ids:
   - 41
 categories:
   - harm_single
-cast_user_text: "You project a dense psionic fog toward your target."
-cast_room_text: "{actor} stares at a target with unfocused eyes, projecting something unseen."
+cast_actor: "You project a dense psionic fog toward your target."
+cast_observer: "{actor} stares at a target with unfocused eyes, projecting something unseen."

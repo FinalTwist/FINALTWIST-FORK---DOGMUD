@@ -62,13 +62,18 @@ type SpellData struct {
 	SummonRequiresCorpse bool    `yaml:"summon_requires_corpse,omitempty"`
 	SummonMinCorpsePool  int     `yaml:"summon_min_corpse_pool,omitempty"`
 
-	// YAML text fields — flavor text sent by the engine (replaces JS messaging)
-	CastUserText  string `yaml:"cast_user_text,omitempty"`
-	CastRoomText  string `yaml:"cast_room_text,omitempty"`
-	WaitUserText  string `yaml:"wait_user_text,omitempty"`
-	WaitRoomText  string `yaml:"wait_room_text,omitempty"`
-	MagicUserText string `yaml:"magic_user_text,omitempty"`
-	MagicRoomText string `yaml:"magic_room_text,omitempty"`
+	// YAML text fields: flavor text sent by the engine (replaces JS messaging).
+	//
+	// The authored keys name the PHASE and then the AUDIENCE, in the canonical
+	// role vocabulary every narration store shares since M4b-1. A spell's
+	// caster is the `actor`, the opposite of the conditions store, where the
+	// holder a condition happens to is the `actee`.
+	CastUserText  string `yaml:"cast_actor,omitempty"`
+	CastRoomText  string `yaml:"cast_observer,omitempty"`
+	WaitUserText  string `yaml:"wait_actor,omitempty"`
+	WaitRoomText  string `yaml:"wait_observer,omitempty"`
+	MagicUserText string `yaml:"magic_actor,omitempty"`
+	MagicRoomText string `yaml:"magic_observer,omitempty"`
 }
 
 const (

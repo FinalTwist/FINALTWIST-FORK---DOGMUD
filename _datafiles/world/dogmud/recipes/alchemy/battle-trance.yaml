@@ -19,5 +19,5 @@ ingredients:
 output:
   item_id: 30051
   quantity: 1
-success_message: "The brew turns pitch-black and seems to absorb the light around it. A battle trance draught!"
-failure_message: "The ironbark and chrysalis resist each other. The brew fails. The materials are wasted."
+success_actor: "The brew turns pitch-black and seems to absorb the light around it. A battle trance draught!"
+failure_actor: "The ironbark and chrysalis resist each other. The brew fails. The materials are wasted."

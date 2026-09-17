@@ -19,5 +19,5 @@ ingredients:
 output:
   item_id: 30053
   quantity: 1
-success_message: "The green elixir pulses with the rhythm of a heartbeat. An essence of growth!"
-failure_message: "The essence dissipates before it can stabilize. The materials are wasted."
+success_actor: "The green elixir pulses with the rhythm of a heartbeat. An essence of growth!"
+failure_actor: "The essence dissipates before it can stabilize. The materials are wasted."

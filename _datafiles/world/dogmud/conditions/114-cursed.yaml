@@ -6,6 +6,6 @@ triggercount: 3
 statmods:
   dexterity: -12
   perception: -12
-start_user_text: A cold, watching malice settles over you — your aim wavers and your guard sags.
-start_room_text: "{actee_plain} falters under an unseen, baleful gaze."
-end_user_text: The watching malice lifts, and your focus returns.
+start_actee: A cold, watching malice settles over you — your aim wavers and your guard sags.
+start_observer: "{actee_plain} falters under an unseen, baleful gaze."
+end_actee: The watching malice lifts, and your focus returns.

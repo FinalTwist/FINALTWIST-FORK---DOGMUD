@@ -10,11 +10,11 @@ import (
 func TestActionNarrationSendTextIsActorAndRoomTextIsObserver(t *testing.T) {
 	v := ActionDef{SendText: "You pocket the disc."}.Narration()
 	if len(v.Actor) != 1 || v.Actor[0] != "You pocket the disc." || len(v.Observer) != 0 {
-		t.Fatalf("send_text: %+v", v)
+		t.Fatalf("actor: %+v", v)
 	}
 	v = ActionDef{RoomText: "{actor} pockets a disc."}.Narration()
 	if len(v.Observer) != 1 || v.Observer[0] != "{actor} pockets a disc." || len(v.Actor) != 0 {
-		t.Fatalf("room_text: %+v", v)
+		t.Fatalf("observer: %+v", v)
 	}
 	if v := (ActionDef{Grant: "1-end"}).Narration(); v.Len() != 0 {
 		t.Fatalf("a non-text action narrates nothing, got %+v", v)
@@ -47,15 +47,18 @@ func validQuest(a ActionDef) *Quest {
 
 func TestValidateRefusesAnActionThatSetsBothTexts(t *testing.T) {
 	err := validQuest(ActionDef{SendText: "You see it.", RoomText: "{actor} sees it."}).Validate()
-	if err == nil || !strings.Contains(err.Error(), "both send_text and room_text") {
+	if err == nil || !strings.Contains(err.Error(), "both actor and observer") {
 		t.Fatalf("expected the both-set refusal, got %v", err)
 	}
 }
 
 func TestValidateRefusesWhitespaceOnlyQuestText(t *testing.T) {
 	err := validQuest(ActionDef{SendText: "  "}).Validate()
-	if err == nil || !strings.Contains(err.Error(), "send_text") {
-		t.Fatalf("expected a send_text refusal, got %v", err)
+	// The full "action <j> actor:" prefix, not a bare "actor": the canonical
+	// key is a common word and several other refusals mention {actor}, so a
+	// substring that loose would pass on the wrong error.
+	if err == nil || !strings.Contains(err.Error(), "action 0 actor:") {
+		t.Fatalf("expected an actor-line refusal, got %v", err)
 	}
 	q := validQuest(ActionDef{SendText: "You see it."})
 	q.Rewards.RoomMessage = " "

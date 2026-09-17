@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 30065
   quantity: 1
-success_message: "You steep the willow-bark and mint together, fold in the root, and seal the peat-dark tonic in the bottle. A mire renewal draught!"
-failure_message: "The willow-bark turns the brew bitter and it clouds over. The materials are wasted."
+success_actor: "You steep the willow-bark and mint together, fold in the root, and seal the peat-dark tonic in the bottle. A mire renewal draught!"
+failure_actor: "The willow-bark turns the brew bitter and it clouds over. The materials are wasted."

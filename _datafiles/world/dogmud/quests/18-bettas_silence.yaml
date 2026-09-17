@@ -24,6 +24,6 @@ steps:
       resolved, one way or another."
 
 rewards:
-  playermessage: "What happened on the north road stays on the
+  actor: "What happened on the north road stays on the
     north road."
-  roommessage: ""
+  observer: ""

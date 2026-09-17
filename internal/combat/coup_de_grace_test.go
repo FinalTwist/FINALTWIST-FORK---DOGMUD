@@ -97,7 +97,7 @@ func TestGenericYamlDefinesCoupDeGrace(t *testing.T) {
 
 	// Mirror the keys the renderer actually reads, so a block that parses but
 	// is missing a branch still fails here rather than rendering nothing.
-	for _, key := range []string{"toattacker", "todefender", "toroom"} {
+	for _, key := range []string{"actor", "actee", "observer"} {
 		tiers, ok := cdg.Together[key]
 		if !ok {
 			t.Errorf("coupdegrace.together is missing %q", key)
@@ -108,7 +108,7 @@ func TestGenericYamlDefinesCoupDeGrace(t *testing.T) {
 		}
 	}
 
-	for _, key := range []string{"toattacker", "todefender"} {
+	for _, key := range []string{"actor", "actee"} {
 		tiers, ok := cdg.Separate[key]
 		if !ok {
 			t.Errorf("coupdegrace.separate is missing %q", key)

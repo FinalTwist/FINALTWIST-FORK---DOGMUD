@@ -35,11 +35,11 @@ steps:
 rewards:
   gold: 6
   skillinfo: "weapon-combat:1"
-  playermessage: >-
+  actor: >-
     Garve counts your tally with a grunt and flips you a few coins.
     "Good. They breed faster than I can swing. Come back when you have
     the stomach for more."
-  roommessage: "Garve gives you a short, approving nod."
+  observer: "Garve gives you a short, approving nod."
 
 triggers:
   - event: mob_death
@@ -49,7 +49,7 @@ triggers:
       missing: ["53-firstkill"]
     actions:
       - grant: "53-firstkill"
-      - send_text: >-
+      - actor: >-
           One down. One more should satisfy Garve.
 
   - event: mob_death
@@ -59,6 +59,6 @@ triggers:
       missing: ["53-end"]
     actions:
       - grant: "53-end"
-      - send_text: >-
+      - actor: >-
           The second squatter drops. The wash is clear for now.
           Garve will have more work when you are ready for it.

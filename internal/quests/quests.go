@@ -34,17 +34,21 @@ type QuestFlagDef struct {
 // 5c editor writer marshals exactly this. Keys are proven stable by the
 // equivalence harness in unification_equivalence_test.go.
 type QuestReward struct {
-	QuestId       string `yaml:"questid,omitempty" json:"questid,omitempty"`         // new questId to give ( {id}-{step} format )
-	Gold          int    `yaml:"gold,omitempty" json:"gold,omitempty"`               // zero or more gold to give
-	ItemId        int    `yaml:"itemid,omitempty" json:"itemid,omitempty"`           // itemId to give
-	ConditionId   int    `yaml:"conditionid,omitempty" json:"conditionid,omitempty"` // conditionId to apply
-	SkillInfo     string `yaml:"skillinfo,omitempty" json:"skillinfo,omitempty"`     // skill(s) to give, "skill:level[,skill:level]"
-	StatInfo      string `yaml:"stat_info,omitempty" json:"stat_info,omitempty"`     // stat(s) to increase, "stat:amount[,...]"
-	RecipeInfo    string `yaml:"recipe_info,omitempty" json:"recipe_info,omitempty"` // recipe(s) to grant, comma-separated recipe IDs
-	ItemInfo      string `yaml:"item_info,omitempty" json:"item_info,omitempty"`     // item stockpile to grant, "itemid[:qty][,itemid[:qty]]"
-	SpellId       string `yaml:"spellid,omitempty" json:"spellid,omitempty"`         // spell to teach on completion
-	PlayerMessage string `yaml:"playermessage,omitempty" json:"playermessage,omitempty"`
-	RoomMessage   string `yaml:"roommessage,omitempty" json:"roommessage,omitempty"`
+	QuestId     string `yaml:"questid,omitempty" json:"questid,omitempty"`         // new questId to give ( {id}-{step} format )
+	Gold        int    `yaml:"gold,omitempty" json:"gold,omitempty"`               // zero or more gold to give
+	ItemId      int    `yaml:"itemid,omitempty" json:"itemid,omitempty"`           // itemId to give
+	ConditionId int    `yaml:"conditionid,omitempty" json:"conditionid,omitempty"` // conditionId to apply
+	SkillInfo   string `yaml:"skillinfo,omitempty" json:"skillinfo,omitempty"`     // skill(s) to give, "skill:level[,skill:level]"
+	StatInfo    string `yaml:"stat_info,omitempty" json:"stat_info,omitempty"`     // stat(s) to increase, "stat:amount[,...]"
+	RecipeInfo  string `yaml:"recipe_info,omitempty" json:"recipe_info,omitempty"` // recipe(s) to grant, comma-separated recipe IDs
+	ItemInfo    string `yaml:"item_info,omitempty" json:"item_info,omitempty"`     // item stockpile to grant, "itemid[:qty][,itemid[:qty]]"
+	SpellId     string `yaml:"spellid,omitempty" json:"spellid,omitempty"`         // spell to teach on completion
+	// The reward's two narrated lines carry the canonical role keys since
+	// M4b-1: the completing player is the actor, the room watching them is the
+	// observer. The json tag moves with the yaml one on purpose, so the quest
+	// editor's wire, the file on disk and the engine all say the same word.
+	PlayerMessage string `yaml:"actor,omitempty" json:"actor,omitempty"`
+	RoomMessage   string `yaml:"observer,omitempty" json:"observer,omitempty"`
 	RoomId        int    `yaml:"roomid,omitempty" json:"roomid,omitempty"` // roomId to move player to
 	RepFaction    string `yaml:"rep_faction,omitempty" json:"rep_faction,omitempty"`
 	RepAmount     int    `yaml:"rep_amount,omitempty" json:"rep_amount,omitempty"`

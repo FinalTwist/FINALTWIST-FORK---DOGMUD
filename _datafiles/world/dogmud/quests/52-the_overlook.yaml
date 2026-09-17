@@ -46,7 +46,7 @@ rewards:
   itemid: 10041
   item_info: "30062:3,30063:2,30064:2"
   gold: 50
-  playermessage: >-
+  actor: >-
     Skell gives ground one step too many and your shot takes him at the lip
     of the overlook; he goes off the high stand without a sound, and the
     high ground is yours. You feel the long work of the terraces and the
@@ -56,7 +56,7 @@ rewards:
     to keep it fed. The overlook is quiet. Below, the whole coulee lies
     open, every spoke of it walked and won -- and past the rim, the wider
     scablands wait for whatever you have become.
-  roommessage: ""
+  observer: ""
 
 triggers:
   # ── BOSS KILL: defeat Bowmaster Skell -> complete + rewards ────────────
@@ -67,6 +67,6 @@ triggers:
       missing: ["52-end"]
     actions:
       - grant: "52-end"
-      - send_text: >-
+      - actor: >-
           Bowmaster Skell goes off the overlook and does not rise. The high
           ground is yours, and the canyon below falls quiet.

@@ -6,8 +6,8 @@
 # {acteetype} - 'user' or 'mob'
 # {damage}     - conviction damage description text
 #
-# THE THREE LISTS IN EACH BAND PAIR BY INDEX. Variant N of toattacker,
-# todefender and toroom describe the SAME moment, and combat.GetTauntTriad
+# THE THREE LISTS IN EACH BAND PAIR BY INDEX. Variant N of actor,
+# actee and observer describe the SAME moment, and combat.GetTauntTriad
 # renders all three from ONE index so the room never sees a different event
 # than the participants. combat.TauntMessageGroup.Validate enforces equal
 # lengths, so adding a line to one list means adding its partner to the other
@@ -16,7 +16,7 @@
 optionid: rhetoric
 options:
   hit:
-    toattacker:
+    actor:
     - 'You sneer at <ansi fg="{acteetype}">{actee}</ansi>, and your words cut deep! (<ansi fg="damage">{damage}</ansi>)'
     - 'You mock <ansi fg="{acteetype}">{actee}</ansi> with a biting remark! (<ansi fg="damage">{damage}</ansi>)'
     - 'You hurl a scathing insult at <ansi fg="{acteetype}">{actee}</ansi>! (<ansi fg="damage">{damage}</ansi>)'
@@ -25,7 +25,7 @@ options:
     - 'You taunt <ansi fg="{acteetype}">{actee}</ansi> with razor-sharp wit! (<ansi fg="damage">{damage}</ansi>)'
     - 'Your mocking words find their mark against <ansi fg="{acteetype}">{actee}</ansi>! (<ansi fg="damage">{damage}</ansi>)'
     - 'You ridicule <ansi fg="{acteetype}">{actee}</ansi> mercilessly! (<ansi fg="damage">{damage}</ansi>)'
-    todefender:
+    actee:
     - '<ansi fg="{actortype}">{actor}</ansi>''s taunt cuts deep, shaking your resolve! (<ansi fg="damage">{damage}</ansi>)'
     - '<ansi fg="{actortype}">{actor}</ansi> sneers at you with a biting remark! (<ansi fg="damage">{damage}</ansi>)'
     - '<ansi fg="{actortype}">{actor}</ansi> hurls a scathing insult your way! (<ansi fg="damage">{damage}</ansi>)'
@@ -34,7 +34,7 @@ options:
     - '<ansi fg="{actortype}">{actor}</ansi> taunts you with razor-sharp wit! (<ansi fg="damage">{damage}</ansi>)'
     - '<ansi fg="{actortype}">{actor}</ansi>''s mocking words sting your pride! (<ansi fg="damage">{damage}</ansi>)'
     - '<ansi fg="{actortype}">{actor}</ansi> ridicules you mercilessly! (<ansi fg="damage">{damage}</ansi>)'
-    toroom:
+    observer:
     - '<ansi fg="{actortype}">{actor}</ansi> sneers at <ansi fg="{acteetype}">{actee}</ansi> with contempt!'
     - '<ansi fg="{actortype}">{actor}</ansi> mocks <ansi fg="{acteetype}">{actee}</ansi> with a biting remark!'
     - '<ansi fg="{actortype}">{actor}</ansi> hurls a scathing insult at <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -44,7 +44,7 @@ options:
     - '<ansi fg="{actortype}">{actor}</ansi>''s mocking words strike home against <ansi fg="{acteetype}">{actee}</ansi>!'
     - '<ansi fg="{actortype}">{actor}</ansi> ridicules <ansi fg="{acteetype}">{actee}</ansi> mercilessly!'
   miss:
-    toattacker:
+    actor:
     - 'Your taunt falls flat against <ansi fg="{acteetype}">{actee}</ansi>.'
     - 'You try to mock <ansi fg="{acteetype}">{actee}</ansi>, but they seem unimpressed.'
     - '<ansi fg="{acteetype}">{actee}</ansi> shrugs off your insult without flinching.'
@@ -53,7 +53,7 @@ options:
     - '<ansi fg="{acteetype}">{actee}</ansi> barely acknowledges your verbal jab.'
     - 'Your mocking words fail to find purchase against <ansi fg="{acteetype}">{actee}</ansi>.'
     - 'You taunt <ansi fg="{acteetype}">{actee}</ansi>, but they remain stoic.'
-    todefender:
+    actee:
     - '<ansi fg="{actortype}">{actor}</ansi> tries to taunt you, but it has no effect.'
     - 'You ignore <ansi fg="{actortype}">{actor}</ansi>''s feeble attempt at mockery.'
     - '<ansi fg="{actortype}">{actor}</ansi> hurls an insult, but you shrug it off.'
@@ -62,7 +62,7 @@ options:
     - '<ansi fg="{actortype}">{actor}</ansi>''s taunt barely registers.'
     - '<ansi fg="{actortype}">{actor}</ansi> tries to rattle you, but you stand firm.'
     - '<ansi fg="{actortype}">{actor}</ansi>''s words are meaningless noise to you.'
-    toroom:
+    observer:
     - '<ansi fg="{actortype}">{actor}</ansi> tries to taunt <ansi fg="{acteetype}">{actee}</ansi>, but it falls flat.'
     - '<ansi fg="{actortype}">{actor}</ansi> hurls an insult at <ansi fg="{acteetype}">{actee}</ansi>, who seems unimpressed.'
     - '<ansi fg="{acteetype}">{actee}</ansi> shrugs off <ansi fg="{actortype}">{actor}</ansi>''s mocking words.'
@@ -72,21 +72,21 @@ options:
     - '<ansi fg="{actortype}">{actor}</ansi>''s mocking words find no purchase against <ansi fg="{acteetype}">{actee}</ansi>.'
     - '<ansi fg="{acteetype}">{actee}</ansi> stays stone-faced through <ansi fg="{actortype}">{actor}</ansi>''s taunt.'
   critical:
-    toattacker:
+    actor:
     - 'Your words strike like a blade — <ansi fg="{acteetype}">{actee}</ansi> recoils in shock! (<ansi fg="damage">{damage}</ansi>) <ansi fg="yellow">[CRIT!]</ansi>'
     - 'You unleash a devastating verbal onslaught on <ansi fg="{acteetype}">{actee}</ansi>! (<ansi fg="damage">{damage}</ansi>) <ansi fg="yellow">[CRIT!]</ansi>'
     - 'Your taunt hits <ansi fg="{acteetype}">{actee}</ansi> right where it hurts! (<ansi fg="damage">{damage}</ansi>) <ansi fg="yellow">[CRIT!]</ansi>'
     - 'You shatter <ansi fg="{acteetype}">{actee}</ansi>''s composure with a masterful insult! (<ansi fg="damage">{damage}</ansi>) <ansi fg="yellow">[CRIT!]</ansi>'
     - 'Your words are devastating — <ansi fg="{acteetype}">{actee}</ansi> visibly staggers! (<ansi fg="damage">{damage}</ansi>) <ansi fg="yellow">[CRIT!]</ansi>'
     - 'You deliver a soul-crushing taunt that leaves <ansi fg="{acteetype}">{actee}</ansi> reeling! (<ansi fg="damage">{damage}</ansi>) <ansi fg="yellow">[CRIT!]</ansi>'
-    todefender:
+    actee:
     - '<ansi fg="{actortype}">{actor}</ansi>''s words cut to the bone — you reel in shock! (<ansi fg="damage">{damage}</ansi>) <ansi fg="yellow">[CRIT!]</ansi>'
     - '<ansi fg="{actortype}">{actor}</ansi> unleashes a devastating verbal onslaught! (<ansi fg="damage">{damage}</ansi>) <ansi fg="yellow">[CRIT!]</ansi>'
     - '<ansi fg="{actortype}">{actor}</ansi>''s taunt hits you right where it hurts! (<ansi fg="damage">{damage}</ansi>) <ansi fg="yellow">[CRIT!]</ansi>'
     - '<ansi fg="{actortype}">{actor}</ansi> shatters your composure with a masterful insult! (<ansi fg="damage">{damage}</ansi>) <ansi fg="yellow">[CRIT!]</ansi>'
     - '<ansi fg="{actortype}">{actor}</ansi>''s words are devastating — you stagger! (<ansi fg="damage">{damage}</ansi>) <ansi fg="yellow">[CRIT!]</ansi>'
     - '<ansi fg="{actortype}">{actor}</ansi> delivers a soul-crushing taunt! (<ansi fg="damage">{damage}</ansi>) <ansi fg="yellow">[CRIT!]</ansi>'
-    toroom:
+    observer:
     - '<ansi fg="{actortype}">{actor}</ansi>''s words strike like a blade — <ansi fg="{acteetype}">{actee}</ansi> recoils!'
     - '<ansi fg="{actortype}">{actor}</ansi> unleashes a devastating verbal onslaught on <ansi fg="{acteetype}">{actee}</ansi>!'
     - '<ansi fg="{acteetype}">{actee}</ansi> reels as <ansi fg="{actortype}">{actor}</ansi> strikes a nerve!'
@@ -94,21 +94,21 @@ options:
     - '<ansi fg="{actortype}">{actor}</ansi>''s taunt visibly staggers <ansi fg="{acteetype}">{actee}</ansi>!'
     - '<ansi fg="{actortype}">{actor}</ansi> delivers a soul-crushing taunt to <ansi fg="{acteetype}">{actee}</ansi>!'
   fumble:
-    toattacker:
+    actor:
     - '<ansi fg="red">You stumble over your words trying to taunt <ansi fg="{acteetype}">{actee}</ansi> — how embarrassing!</ansi>'
     - '<ansi fg="red">Your taunt comes out garbled and nonsensical. <ansi fg="{acteetype}">{actee}</ansi> stares at you.</ansi>'
     - '<ansi fg="red">You accidentally insult yourself mid-taunt. That... did not go well.</ansi>'
     - '<ansi fg="red">Your voice cracks as you try to taunt <ansi fg="{acteetype}">{actee}</ansi>. Mortifying.</ansi>'
     - '<ansi fg="red">You open your mouth to taunt but only manage an awkward squeak.</ansi>'
     - '<ansi fg="red">You trip over your own tongue. <ansi fg="{acteetype}">{actee}</ansi> looks amused.</ansi>'
-    todefender:
+    actee:
     - '<ansi fg="green"><ansi fg="{actortype}">{actor}</ansi> tries to taunt you but fumbles their words!</ansi>'
     - '<ansi fg="green"><ansi fg="{actortype}">{actor}</ansi>''s taunt comes out as gibberish. Pathetic.</ansi>'
     - '<ansi fg="green"><ansi fg="{actortype}">{actor}</ansi> accidentally insults themselves mid-taunt!</ansi>'
     - '<ansi fg="green"><ansi fg="{actortype}">{actor}</ansi>''s voice cracks mid-insult. How embarrassing for them.</ansi>'
     - '<ansi fg="green"><ansi fg="{actortype}">{actor}</ansi> opens their mouth to taunt, but nothing comes out.</ansi>'
     - '<ansi fg="green"><ansi fg="{actortype}">{actor}</ansi> trips over their own words trying to mock you.</ansi>'
-    toroom:
+    observer:
     - '<ansi fg="{actortype}">{actor}</ansi> stumbles over their words trying to taunt <ansi fg="{acteetype}">{actee}</ansi>.'
     - '<ansi fg="{actortype}">{actor}</ansi>''s taunt comes out garbled. <ansi fg="{acteetype}">{actee}</ansi> stares blankly.'
     - '<ansi fg="{actortype}">{actor}</ansi> accidentally insults themselves trying to mock <ansi fg="{acteetype}">{actee}</ansi>.'

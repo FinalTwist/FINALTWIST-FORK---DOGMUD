@@ -16,5 +16,5 @@ ingredients:
 output:
   item_id: 0
   quantity: 0
-success_message: "Venom seeps from the settings into the glove leather, hardening into chitin across the knuckles. Your grip tightens with newfound strength."
-failure_message: "The catalyst rejects the binding. The materials crumble to dust, but the gloves are unharmed."
+success_actor: "Venom seeps from the settings into the glove leather, hardening into chitin across the knuckles. Your grip tightens with newfound strength."
+failure_actor: "The catalyst rejects the binding. The materials crumble to dust, but the gloves are unharmed."

@@ -269,8 +269,8 @@
     give_item:     [{ k: "give_item", kind: "item", label: "Item" }],
     give_gold:     [{ k: "give_gold", kind: "num", label: "Gold" }],
     charge_gold:   [{ k: "charge_gold", kind: "num", label: "Gold" }],
-    send_text:     [{ k: "send_text", kind: "text", label: "Text (player only)" }],
-    room_text:     [{ k: "room_text", kind: "text", label: "Text (whole room)" }],
+    actor:         [{ k: "actor", kind: "text", label: "Text (player only)" }],
+    observer:      [{ k: "observer", kind: "text", label: "Text (whole room)" }],
     teach_spell:   [{ k: "teach_spell", kind: "spell", label: "Spell" }],
     teleport:      [{ k: "teleport", kind: "room", label: "Room" }],
     give_mutation: [{ k: "give_mutation", kind: "bool", label: "Roll a random mutation" }],
@@ -464,7 +464,7 @@
     var box = ce("div", { style: "border-left:2px solid var(--tooled);padding-left:8px;" });
     function actionRow(a) {
       var type = a ? actionTypeOf(a) : "";
-      if (!type) type = "send_text";
+      if (!type) type = "actor";
       collapsible(box, function () { return "action: " + type; }, function (body) {
         var gather = buildActionBody(type, a, body, allowSequence);
         return { gather: gather };
@@ -747,9 +747,9 @@
     insp.appendChild(field("Recipes granted", rRecipe.el));
     var rItems = pairRows(rw.item_info, "q-item-dl", "item id", "qty");
     insp.appendChild(field("Item stockpile (item → qty)", rItems.el));
-    var rPmsg = textArea(rw.playermessage);
+    var rPmsg = textArea(rw.actor);
     insp.appendChild(field("Player message", rPmsg));
-    var rRmsg = textArea(rw.roommessage);
+    var rRmsg = textArea(rw.observer);
     insp.appendChild(field("Room message", rRmsg));
     var rRoom = numInput(rw.roomid);
     insp.appendChild(field("Move player to room (0 = none)", ce("span", {}, [rRoom, roomAssist(rRoom)])));
@@ -828,7 +828,7 @@
           gold: toInt(rGold.value), itemid: toInt(rItem.value), conditionid: toInt(rCondition.value),
           spellid: rSpell.value.trim(), skillinfo: rSkill.get(), stat_info: rStat.get(),
           recipe_info: rRecipe.get().join(","), item_info: rItems.get(),
-          playermessage: rPmsg.value, roommessage: rRmsg.value,
+          actor: rPmsg.value, observer: rRmsg.value,
           roomid: toInt(rRoom.value), questid: rChain.value.trim(),
           rep_faction: rFaction.value.trim(), rep_amount: toInt(rRep.value)
         }

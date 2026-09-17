@@ -49,7 +49,7 @@ rewards:
   item_info: "30036:3,30028:2,30058:2"
   recipe_info: "mire-renewal-draught"
   gold: 50
-  playermessage: >-
+  actor: >-
     The spirit comes apart all at once -- not blood, but a slow collapse,
     mud and black water and rot falling still and ordinary. Behind where
     it stood, a spring breaks clear through the rock, and the poison
@@ -59,7 +59,7 @@ rewards:
     renewal. Falv was right about the firepots -- and right that you would
     need them. You carry a brewer's stock out with you, and the recipe to
     make more.
-  roommessage: ""
+  observer: ""
 
 triggers:
   # ── BOSS KILL: defeat the Spirit of the Swamp -> complete + rewards ──
@@ -70,7 +70,7 @@ triggers:
       missing: ["40-end"]
     actions:
       - grant: "40-end"
-      - send_text: >-
+      - actor: >-
           The spirit of the swamp shudders, loses its shape, and sinks
           back into the mire it came from. The water goes still and, for
           the first time, clean.

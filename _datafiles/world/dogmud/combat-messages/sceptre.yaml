@@ -14,7 +14,7 @@ optionid: sceptre
 options:
   prepare:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You raise your <ansi fg="item">{itemname}</ansi>, its crystal pulsing with inner light.'
         - 'You heft your <ansi fg="item">{itemname}</ansi>, readying yourself against <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -27,7 +27,7 @@ options:
         - 'With measured confidence, you bring your <ansi fg="item">{itemname}</ansi> to bear, power surging within.'
         - 'Your <ansi fg="item">{itemname}</ansi>''s crystal blazes as you read <ansi fg="{acteetype}">{actee}</ansi>''s posture.'
         - '{momentum}, you align your <ansi fg="item">{itemname}</ansi> with commanding authority.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> raises their <ansi fg="item">{itemname}</ansi> toward you, its crystal pulsing.'
         - '<ansi fg="{actortype}">{actor}</ansi> hefts their <ansi fg="item">{itemname}</ansi> menacingly in your direction.'
@@ -40,7 +40,7 @@ options:
         - 'Power surges through <ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> as they prepare.'
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> blazes as they read your posture.'
         - '<ansi fg="{actortype}">{actor}</ansi> aligns their <ansi fg="item">{itemname}</ansi> toward you with commanding authority.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> raises their <ansi fg="item">{itemname}</ansi> toward <ansi fg="{acteetype}">{actee}</ansi>, crystal pulsing.'
         - '<ansi fg="{actortype}">{actor}</ansi> hefts their <ansi fg="item">{itemname}</ansi> at <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -55,7 +55,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> aligns their <ansi fg="item">{itemname}</ansi> toward <ansi fg="{acteetype}">{actee}</ansi> with commanding authority.'
   wait:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You hold your <ansi fg="item">{itemname}</ansi> steady, watching <ansi fg="{acteetype}">{actee}</ansi> carefully.'
         - 'You circle <ansi fg="{acteetype}">{actee}</ansi>, your <ansi fg="item">{itemname}</ansi>''s crystal flickering.'
@@ -68,7 +68,7 @@ options:
         - '{momentum}, you read every subtle shift in <ansi fg="{acteetype}">{actee}</ansi>''s stance.'
         - 'Your <ansi fg="item">{itemname}</ansi> pulses steadily as you anticipate their next move.'
         - 'Like a commander surveying the field, you assess <ansi fg="{acteetype}">{actee}</ansi>''s every weakness.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> holds their <ansi fg="item">{itemname}</ansi> steady, watching you.'
         - '<ansi fg="{actortype}">{actor}</ansi> circles you, crystal flickering on their weapon.'
@@ -81,7 +81,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> reads your every shift with unsettling precision.'
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> pulses as they track your movement.'
         - '<ansi fg="{actortype}">{actor}</ansi> surveys you like a commander, assessing your every weakness.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> holds their <ansi fg="item">{itemname}</ansi> steady, watching <ansi fg="{acteetype}">{actee}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> circles <ansi fg="{acteetype}">{actee}</ansi>, crystal flickering.'
@@ -96,7 +96,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> surveys <ansi fg="{acteetype}">{actee}</ansi> like a commander, assessing every weakness.'
   miss:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You swing your <ansi fg="item">{itemname}</ansi> at <ansi fg="{acteetype}">{actee}</ansi>, but the blow goes wide!'
         - 'Your strike at <ansi fg="{acteetype}">{actee}</ansi> misses completely!'
@@ -109,7 +109,7 @@ options:
         - '<ansi fg="{acteetype}">{actee}</ansi>''s unexpected skill forces your perfect strike wide!'
         - 'Despite flawless execution, <ansi fg="{acteetype}">{actee}</ansi> reads your intent and evades!'
         - '{momentum}, your overwhelming strike is barely deflected!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> swings their <ansi fg="item">{itemname}</ansi> at you, but misses!'
         - '<ansi fg="{actortype}">{actor}</ansi> strikes at you but the blow goes wide!'
@@ -122,7 +122,7 @@ options:
         - 'Your defense forces <ansi fg="{actortype}">{actor}</ansi>''s perfect strike wide!'
         - 'You read <ansi fg="{actortype}">{actor}</ansi>''s intent and evade with smooth agility!'
         - 'You barely deflect <ansi fg="{actortype}">{actor}</ansi>''s overwhelming strike!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> swings their <ansi fg="item">{itemname}</ansi> at <ansi fg="{acteetype}">{actee}</ansi>, but misses!'
         - '<ansi fg="{actortype}">{actor}</ansi> strikes at <ansi fg="{acteetype}">{actee}</ansi> but the blow goes wide!'
@@ -137,7 +137,7 @@ options:
         - 'A clash of power results in no contact!'
   weak:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You tap <ansi fg="{acteetype}">{actee}</ansi> with the head of your <ansi fg="item">{itemname}</ansi>.'
         - 'Your <ansi fg="item">{itemname}</ansi> grazes <ansi fg="{acteetype}">{actee}</ansi> with a faint pulse of light.'
@@ -150,7 +150,7 @@ options:
         - 'You probe <ansi fg="{acteetype}">{actee}</ansi>''s guard with a measured channeled tap.'
         - 'You find a small opening and deliver a precise but light swing.'
         - 'Dancing back, you flick your <ansi fg="item">{itemname}</ansi> across <ansi fg="{acteetype}">{actee}</ansi>.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> taps you with the head of their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> grazes you with a faint pulse.'
@@ -163,7 +163,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> probes your guard with a measured channeled tap.'
         - '<ansi fg="{actortype}">{actor}</ansi> finds a small opening and delivers a precise but light swing at you.'
         - '<ansi fg="{actortype}">{actor}</ansi> dances back while flicking their <ansi fg="item">{itemname}</ansi> across you.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> taps <ansi fg="{acteetype}">{actee}</ansi> with the head of their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> grazes <ansi fg="{acteetype}">{actee}</ansi> with a faint pulse.'
@@ -178,7 +178,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> dances back, flicking their <ansi fg="item">{itemname}</ansi> across <ansi fg="{acteetype}">{actee}</ansi>.'
   normal:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You swing your <ansi fg="item">{itemname}</ansi> into <ansi fg="{acteetype}">{actee}</ansi>, crystal flaring!'
         - 'Your <ansi fg="item">{itemname}</ansi> connects solidly with <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -195,7 +195,7 @@ options:
         - '{momentum}, your weapon crashes into <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'You channel arcane force and crack your <ansi fg="item">{itemname}</ansi> into <ansi fg="{acteetype}">{actee}</ansi>''s {bodypart}!'
         - 'Your <ansi fg="item">{itemname}</ansi> flares bright as it strikes <ansi fg="{acteetype}">{actee}</ansi> in the {bodypart}!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> swings their <ansi fg="item">{itemname}</ansi> into you, crystal flaring!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> connects solidly!'
@@ -212,7 +212,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi>''s weapon crashes into you with unstoppable momentum!'
         - '<ansi fg="{actortype}">{actor}</ansi> channels force and cracks their sceptre into your {bodypart}!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> flares bright as it strikes your {bodypart}!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> swings their <ansi fg="item">{itemname}</ansi> into <ansi fg="{acteetype}">{actee}</ansi>, crystal flaring!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> connects solidly with <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -231,7 +231,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> flares bright as it strikes <ansi fg="{acteetype}">{actee}</ansi> in the {bodypart}!'
   heavy:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You slam your <ansi fg="item">{itemname}</ansi> into <ansi fg="{acteetype}">{actee}</ansi> with a burst of power!'
         - 'Your <ansi fg="item">{itemname}</ansi> crashes into <ansi fg="{acteetype}">{actee}</ansi>, crystal blazing!'
@@ -247,7 +247,7 @@ options:
         - 'Your {stance} approach pays off as you deliver a commanding smash!'
         - 'Seizing the advantage, you slam your <ansi fg="item">{itemname}</ansi> into <ansi fg="{acteetype}">{actee}</ansi> with authority!'
         - 'You channel a surge of power and smash <ansi fg="{acteetype}">{actee}</ansi> square in the {bodypart}!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> slams their <ansi fg="item">{itemname}</ansi> into you with a burst of power!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> crashes into you, crystal blazing!'
@@ -263,7 +263,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi>''s approach pays off with a commanding smash into you!'
         - '<ansi fg="{actortype}">{actor}</ansi> seizes the advantage and slams their <ansi fg="item">{itemname}</ansi> into you with authority!'
         - '<ansi fg="{actortype}">{actor}</ansi> channels power and smashes their sceptre into your {bodypart}!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> slams their <ansi fg="item">{itemname}</ansi> into <ansi fg="{acteetype}">{actee}</ansi> with a burst of power!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> crashes into <ansi fg="{acteetype}">{actee}</ansi>, crystal blazing!'
@@ -281,7 +281,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> channels a surge of power and smashes <ansi fg="{acteetype}">{actee}</ansi> square in the {bodypart}!'
   critical:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">BLAZES WITH BLINDING POWER</ansi> as it strikes <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'You deliver a <ansi fg="cyan-bold">CRITICAL CHANNELED BLOW</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -297,7 +297,7 @@ options:
         - 'Your {stance} approach culminates in a <ansi fg="cyan-bold">DEVASTATING CRITICAL</ansi>!'
         - 'Channeling all momentum, you <ansi fg="cyan-bold">SHATTER THROUGH</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'With regal precision, you place the full weight of your <ansi fg="item">{itemname}</ansi> to <ansi fg="cyan-bold">SOVEREIGN EFFECT</ansi> on <ansi fg="{acteetype}">{actee}</ansi>!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">BLAZES WITH BLINDING POWER</ansi> striking you!'
         - 'You are hit by a <ansi fg="cyan-bold">CRITICAL CHANNELED BLOW</ansi>!'
@@ -313,7 +313,7 @@ options:
         - 'You reel under a <ansi fg="cyan-bold">BLOW OF MERCILESS FORCE</ansi> as <ansi fg="{actortype}">{actor}</ansi> finds their mark!'
         - '<ansi fg="{actortype}">{actor}</ansi> channels all momentum and <ansi fg="cyan-bold">SHATTERS THROUGH</ansi> you!'
         - '<ansi fg="{actortype}">{actor}</ansi> places the full weight of the blow with <ansi fg="cyan-bold">SOVEREIGN EFFECT</ansi>!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">BLAZES WITH BLINDING POWER</ansi> striking <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL CHANNELED BLOW</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -331,7 +331,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> places the weight of the blow with <ansi fg="cyan-bold">SOVEREIGN EFFECT</ansi>, and <ansi fg="{acteetype}">{actee}</ansi> reels!'
   fumble:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLES</ansi> as the crystal dims!'
         - 'You <ansi fg="red-bold">FUMBLE</ansi> and your grip slips on the iron rod!'
@@ -347,7 +347,7 @@ options:
         - 'Despite perfect form, a misstep causes you to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'For a single careless moment you lose your grip and <ansi fg="red-bold">FUMBLE</ansi>!'
         - '<ansi fg="{acteetype}">{actee}</ansi>''s footwork wrongfoots you and you <ansi fg="red-bold">FUMBLE</ansi> the strike!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLES</ansi> as the crystal dims!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s grip slips and they <ansi fg="red-bold">FUMBLE</ansi> the swing!'
@@ -363,7 +363,7 @@ options:
         - 'Despite their skill, <ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> loses their grip for a careless moment and <ansi fg="red-bold">FUMBLES</ansi>!'
         - 'Your footwork wrongfoots <ansi fg="{actortype}">{actor}</ansi> and they <ansi fg="red-bold">FUMBLE</ansi> the strike!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLES</ansi> as the crystal dims!'
         - '<ansi fg="{actortype}">{actor}''s</ansi> grip slips and they <ansi fg="red-bold">FUMBLE</ansi> the swing at <ansi fg="{acteetype}">{actee}</ansi>!'

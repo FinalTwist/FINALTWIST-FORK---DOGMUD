@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 20037
   quantity: 1
-success_message: "You cut both gems to perfection and mount them in an elaborate gold frame. A masterwork gem pendant!"
-failure_message: "A gem fractures along a hidden flaw, ruining the piece. The materials are wasted."
+success_actor: "You cut both gems to perfection and mount them in an elaborate gold frame. A masterwork gem pendant!"
+failure_actor: "A gem fractures along a hidden flaw, ruining the piece. The materials are wasted."

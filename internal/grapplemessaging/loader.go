@@ -1,41 +1,58 @@
 // Package grapplemessaging loads and renders flavor templates for
 // grapple outcomes (advance, degrade, reverse, escape, hold,
 // striking apex). Templates live in
-// _datafiles/world/dogmud/messaging/grapple_outcomes.yaml.
+// <configured world>/messaging/grapple_outcomes.yaml, which is
+// _datafiles/world/dogmud/messaging/grapple_outcomes.yaml for the shipped
+// config; DataFilesPath resolves it.
 //
 // Consumer is internal/hooks/Position_GrappleTick.go via the
 // RenderOutcome function (T9).
+//
+// LOADER TIER: event narration. main.go loads this store at boot through
+// hooks.LoadGrappleMessaging and PANICS on a load or validation error, because
+// a grapple that narrates nothing misleads a player mid-action. See the
+// two-tier policy in internal/narration/context.md.
 package grapplemessaging
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"gopkg.in/yaml.v3"
 )
 
 // TemplateTriad holds the three speaker-variant template lists for
-// a single outcome key. controller is shown to the controller side
-// (second-person "you"); controlled is shown to the controlled side
-// (second-person "you", from their POV); observers is broadcast to
+// a single outcome key. actor is shown to the controller side
+// (second-person "you"); actee is shown to the controlled side
+// (second-person "you", from their POV); observer is broadcast to
 // everyone else in the room (third-person).
+//
+// The authored keys were controller/controlled/observers until M4b-1
+// gave every narration store one role vocabulary. The Go field names
+// keep the grapple-specific spelling because they read better at the
+// call sites in render.go; only the wire names are canonical.
 type TemplateTriad struct {
-	Controller []string `yaml:"controller"`
-	Controlled []string `yaml:"controlled"`
-	Observers  []string `yaml:"observers"`
+	Controller []string `yaml:"actor"`
+	Controlled []string `yaml:"actee"`
+	Observers  []string `yaml:"observer"`
 }
 
 // GradientTriad holds the three speaker-variant template lists for
 // a gradient (ControlLevel boundary-crossing) event. Self is shown
-// to the character whose state changed; partner is shown to the
-// other side of the grapple; observers is broadcast to the room.
+// to the character whose state changed; Partner is shown to the
+// other side of the grapple; Observers is broadcast to the room.
 //
-// Different from TemplateTriad's controller/controlled/observers
-// semantics — gradients fire per-character (self), not per-role.
+// Its authored keys were self/partner/observers, a second vocabulary
+// for the same three audiences, because a gradient fires per-character
+// rather than per-role. M4b-1 collapsed both onto actor/actee/observer:
+// the tags here are deliberately identical to TemplateTriad's, and the
+// differing Go field names are all that survives of the split.
 type GradientTriad struct {
-	Self      []string `yaml:"self"`
-	Partner   []string `yaml:"partner"`
-	Observers []string `yaml:"observers"`
+	Self      []string `yaml:"actor"`
+	Partner   []string `yaml:"actee"`
+	Observers []string `yaml:"observer"`
 }
 
 // Library is the parsed in-memory template store. Keys for each map
@@ -97,6 +114,24 @@ func Load(path string) (*Library, error) {
 		lib.Gradients = map[string]GradientTriad{}
 	}
 	return lib, nil
+}
+
+// DataFilesPath returns the shipped store's path under the CONFIGURED world,
+// not a hardcoded one.
+//
+// Until the two-tier loader policy landed, the only caller read
+// `_datafiles/world/dogmud/messaging/grapple_outcomes.yaml` as a literal, so a
+// server pointed at any other world still read dogmud's grapple prose, and a
+// server whose working directory was anything but the repo root read nothing
+// at all and narrated debug strings for the life of the process.
+func DataFilesPath() string {
+	return filepath.Join(string(configs.GetFilePathsConfig().DataFiles), "messaging", "grapple_outcomes.yaml")
+}
+
+// LoadFromDataFiles reads the store from the configured world. It is the seam
+// the boot path uses; Load stays exported for tests that supply their own file.
+func LoadFromDataFiles() (*Library, error) {
+	return Load(DataFilesPath())
 }
 
 // Minimum templates per triad-speaker variant (spec §7.4).
@@ -215,15 +250,15 @@ func ValidateCompleteness(lib *Library) []error {
 				continue
 			}
 			if len(triad.Controller) < MinTemplatesPerSpeaker {
-				errs = append(errs, fmt.Errorf("%s.%s.controller: %d templates, need >= %d",
+				errs = append(errs, fmt.Errorf("%s.%s.actor: %d templates, need >= %d",
 					category, key, len(triad.Controller), MinTemplatesPerSpeaker))
 			}
 			if len(triad.Controlled) < MinTemplatesPerSpeaker {
-				errs = append(errs, fmt.Errorf("%s.%s.controlled: %d templates, need >= %d",
+				errs = append(errs, fmt.Errorf("%s.%s.actee: %d templates, need >= %d",
 					category, key, len(triad.Controlled), MinTemplatesPerSpeaker))
 			}
 			if len(triad.Observers) < MinTemplatesPerSpeaker {
-				errs = append(errs, fmt.Errorf("%s.%s.observers: %d templates, need >= %d",
+				errs = append(errs, fmt.Errorf("%s.%s.observer: %d templates, need >= %d",
 					category, key, len(triad.Observers), MinTemplatesPerSpeaker))
 			}
 			// THE THREE ROLES MUST AGREE IN LENGTH, not merely each clear the
@@ -236,7 +271,7 @@ func ValidateCompleteness(lib *Library) []error {
 			// failure is invisible: the key simply stops narrating, forever,
 			// with nothing logged.
 			if len(triad.Controller) != len(triad.Controlled) || len(triad.Controller) != len(triad.Observers) {
-				errs = append(errs, fmt.Errorf("%s.%s: roles must have EQUAL lengths (controller=%d controlled=%d observers=%d); variant N of each describes the same moment",
+				errs = append(errs, fmt.Errorf("%s.%s: roles must have EQUAL lengths (actor=%d actee=%d observer=%d); variant N of each describes the same moment",
 					category, key, len(triad.Controller), len(triad.Controlled), len(triad.Observers)))
 			}
 		}
@@ -267,21 +302,21 @@ func ValidateCompleteness(lib *Library) []error {
 			continue
 		}
 		if len(triad.Self) < MinTemplatesPerSpeaker {
-			errs = append(errs, fmt.Errorf("gradients.%s.self: %d templates, need >= %d",
+			errs = append(errs, fmt.Errorf("gradients.%s.actor: %d templates, need >= %d",
 				key, len(triad.Self), MinTemplatesPerSpeaker))
 		}
 		if len(triad.Partner) < MinTemplatesPerSpeaker {
-			errs = append(errs, fmt.Errorf("gradients.%s.partner: %d templates, need >= %d",
+			errs = append(errs, fmt.Errorf("gradients.%s.actee: %d templates, need >= %d",
 				key, len(triad.Partner), MinTemplatesPerSpeaker))
 		}
 		if len(triad.Observers) < MinTemplatesPerSpeaker {
-			errs = append(errs, fmt.Errorf("gradients.%s.observers: %d templates, need >= %d",
+			errs = append(errs, fmt.Errorf("gradients.%s.observer: %d templates, need >= %d",
 				key, len(triad.Observers), MinTemplatesPerSpeaker))
 		}
 		// Equal lengths, for the reason the triad check above states: the
 		// renderer picks ONE index for all three roles.
 		if len(triad.Self) != len(triad.Partner) || len(triad.Self) != len(triad.Observers) {
-			errs = append(errs, fmt.Errorf("gradients.%s: roles must have EQUAL lengths (self=%d partner=%d observers=%d); variant N of each describes the same moment",
+			errs = append(errs, fmt.Errorf("gradients.%s: roles must have EQUAL lengths (actor=%d actee=%d observer=%d); variant N of each describes the same moment",
 				key, len(triad.Self), len(triad.Partner), len(triad.Observers)))
 		}
 	}

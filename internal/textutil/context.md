@@ -57,9 +57,9 @@ moving the second.
   as written (quest 77 once showed a literal name token this way).
   `ValidateTokens` catches it at load, and since M4a the event stores FAIL on
   it: conditions, spells and crafting return it from `Validate`, which their
-  loaders turn into a boot panic, and quests fail on `room_text`
-  (`internal/quests/roomtext.go`, which also requires `{actor}`). Quest
-  `send_text` and the reward messages are still not token-checked.
+  loaders turn into a boot panic, and quests fail on an action's `observer`
+  line (`internal/quests/roomtext.go`, which also requires `{actor}`). A quest
+  action's `actor` line and the reward lines are still not token-checked.
   `internal/crafting` also requires `{actor}` in a room message. The ambient
   stores (weather, gossip, tips) still only warn, until M4b sets the two-tier
   loader policy.

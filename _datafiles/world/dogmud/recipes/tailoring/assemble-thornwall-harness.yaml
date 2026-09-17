@@ -23,5 +23,5 @@ ingredients:
 output:
   item_id: 40186
   quantity: 1
-success_message: "You rivet the barbed plates inward across the cured hide, quench every point against rust, and bind the thorn-heart deep beneath the chitin. The leather holds its threat. Veyra's masterwork is finished -- the Thornwall Harness is ready to wear."
-failure_message: "The barbs bite the wrong way through the hide and the quench sets crooked. The materials are wasted."
+success_actor: "You rivet the barbed plates inward across the cured hide, quench every point against rust, and bind the thorn-heart deep beneath the chitin. The leather holds its threat. Veyra's masterwork is finished -- the Thornwall Harness is ready to wear."
+failure_actor: "The barbs bite the wrong way through the hide and the quench sets crooked. The materials are wasted."

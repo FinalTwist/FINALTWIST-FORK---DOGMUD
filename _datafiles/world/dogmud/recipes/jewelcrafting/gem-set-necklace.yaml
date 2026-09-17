@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 20034
   quantity: 1
-success_message: "You twist silver wire into a delicate chain and seat the gem in a wire cradle. A gem-set necklace!"
-failure_message: "The gem slips from your grip and chips on the bench edge. The materials are ruined."
+success_actor: "You twist silver wire into a delicate chain and seat the gem in a wire cradle. A gem-set necklace!"
+failure_actor: "The gem slips from your grip and chips on the bench edge. The materials are ruined."

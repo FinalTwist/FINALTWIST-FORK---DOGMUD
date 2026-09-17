@@ -36,7 +36,7 @@ rewards:
   stat_info: "strength:3"
   recipe_info: "basalt-iron-blade"
   gold: 50
-  playermessage: >-
+  actor: >-
     The Den goes still. The beast's fused-stone hide cools under your hand, and
     the deep vein beyond it catches your light -- a seam of basalt-iron running
     on into rock no one has worked. You feel the labor of the spoke settle into
@@ -53,4 +53,4 @@ triggers:
       missing: ["37-end"]
     actions:
       - grant: "37-end"
-      - send_text: "The stone-blooded beast shudders, its fused hide cracking like cooling slag, and goes down for the last time. The deep mine is quiet."
+      - actor: "The stone-blooded beast shudders, its fused hide cracking like cooling slag, and goes down for the last time. The deep mine is quiet."

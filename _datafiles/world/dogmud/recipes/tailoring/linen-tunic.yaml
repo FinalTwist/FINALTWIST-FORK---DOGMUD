@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 20020
   quantity: 1
-success_message: "You cut the linen to shape and stitch the panels together. A linen tunic!"
-failure_message: "The stitching pulls apart and the cloth tears. The materials are ruined."
+success_actor: "You cut the linen to shape and stitch the panels together. A linen tunic!"
+failure_actor: "The stitching pulls apart and the cloth tears. The materials are ruined."

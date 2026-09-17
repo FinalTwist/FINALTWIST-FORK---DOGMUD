@@ -9,7 +9,7 @@ options:
   weak:
     # Narrow dodges - defender barely avoided the attack (z-score < 0.5)
     together:
-      todefender:
+      actee:
       - '<ansi fg="defense-good">You barely dodge <ansi fg="user">{actor}</ansi>''s attack!</ansi>'
       - '<ansi fg="defense-good">You twist aside at the last moment, narrowly avoiding <ansi fg="user">{actor}</ansi>!</ansi>'
       - '<ansi fg="defense-good">You duck under the blow just in time!</ansi>'
@@ -20,7 +20,7 @@ options:
       - '<ansi fg="defense-good">You pivot at the last second, feeling the rush of air as the attack passes!</ansi>'
       - '<ansi fg="defense-good">You throw yourself aside desperately, barely avoiding the blow!</ansi>'
       - '<ansi fg="defense-good">You lean back sharply as the <ansi fg="item">{attack}</ansi> rushes past!</ansi>'
-      toattacker:
+      actor:
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> barely dodges your attack!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> twists aside at the last moment!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> ducks under your blow just in time!</ansi>'
@@ -31,7 +31,7 @@ options:
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> pivots at the last second, your attack just missing!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> throws themselves aside desperately!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> leans back sharply as your <ansi fg="item">{attack}</ansi> rushes past!</ansi>'
-      toroom:
+      observer:
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> barely dodges <ansi fg="user">{actor}</ansi>''s attack.</ansi>'
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> twists aside at the last moment.</ansi>'
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> ducks under the blow just in time.</ansi>'
@@ -46,7 +46,7 @@ options:
   normal:
     # Standard dodges - defender successfully avoided the attack (z-score 0.5-2.0)
     together:
-      todefender:
+      actee:
       - '<ansi fg="defense-good">You dodge <ansi fg="user">{actor}</ansi>''s attack!</ansi>'
       - '<ansi fg="defense-good">You sidestep <ansi fg="user">{actor}</ansi>''s strike!</ansi>'
       - '<ansi fg="defense-good">You weave under the blow!</ansi>'
@@ -61,7 +61,7 @@ options:
       - '<ansi fg="defense-good">You skip back nimbly, evading the strike!</ansi>'
       - '<ansi fg="defense-good">You twist your body, slipping past the attack!</ansi>'
       - '<ansi fg="defense-good">You flow around the strike like water!</ansi>'
-      toattacker:
+      actor:
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> dodges your attack!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> sidesteps your strike!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> weaves under your blow!</ansi>'
@@ -76,7 +76,7 @@ options:
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> skips back nimbly!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> twists their body, slipping past!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> flows around your strike like water!</ansi>'
-      toroom:
+      observer:
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> dodges <ansi fg="user">{actor}</ansi>''s attack.</ansi>'
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> sidesteps the strike.</ansi>'
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> weaves under the blow.</ansi>'
@@ -95,7 +95,7 @@ options:
   heavy:
     # Easy/decisive dodges - defender easily avoided a poor attack (z-score >= 2.0)
     together:
-      todefender:
+      actee:
       - '<ansi fg="defense-good">You sidestep <ansi fg="user">{actor}</ansi>''s clumsy <ansi fg="item">{attack}</ansi> with ease!</ansi>'
       - '<ansi fg="defense-good">You effortlessly evade <ansi fg="user">{actor}</ansi>''s wild swing!</ansi>'
       - '<ansi fg="defense-good">You casually step aside, barely needing to move!</ansi>'
@@ -110,7 +110,7 @@ options:
       - '<ansi fg="defense-good">You lean slightly, easily avoiding the telegraphed strike!</ansi>'
       - '<ansi fg="defense-good">You sidestep gracefully, not even breaking stride!</ansi>'
       - '<ansi fg="defense-good">You slip away before the attack even reaches you!</ansi>'
-      toattacker:
+      actor:
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> sidesteps your clumsy <ansi fg="item">{attack}</ansi> with ease!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> effortlessly evades your wild swing!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> casually steps aside, barely moving!</ansi>'
@@ -125,7 +125,7 @@ options:
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> leans slightly, easily avoiding your strike!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> sidesteps gracefully, not breaking stride!</ansi>'
       - '<ansi fg="attack-bad"><ansi fg="mob">{actee}</ansi> slips away before your attack reaches them!</ansi>'
-      toroom:
+      observer:
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> sidesteps the clumsy <ansi fg="item">{attack}</ansi> with ease.</ansi>'
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> effortlessly evades the wild swing.</ansi>'
       - '<ansi fg="combat"><ansi fg="mob">{actee}</ansi> casually steps aside.</ansi>'

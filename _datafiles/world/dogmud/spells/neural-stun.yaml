@@ -15,5 +15,5 @@ effect_type: condition
 effect_magnitude: 10
 condition_ids:
   - 2
-cast_user_text: "You focus a psionic pulse at your target's nervous system."
-cast_room_text: "{actor} stares intently, brow furrowed with concentration."
+cast_actor: "You focus a psionic pulse at your target's nervous system."
+cast_observer: "{actor} stares intently, brow furrowed with concentration."

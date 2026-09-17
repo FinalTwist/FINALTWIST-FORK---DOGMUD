@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 30027
   quantity: 1
-success_message: "You boil the vegetables and root into a sharp medicinal broth. Antidote broth!"
-failure_message: "The mixture turns foul and you dump it out. The materials are lost."
+success_actor: "You boil the vegetables and root into a sharp medicinal broth. Antidote broth!"
+failure_actor: "The mixture turns foul and you dump it out. The materials are lost."

@@ -95,7 +95,7 @@ steps:
     description: "Dewey sent you through to the world. Gaius is waiting."
 
 rewards:
-  playermessage: >-
+  actor: >-
     Dewey's voice stays with you a moment after the grey lets go -- steady,
     warm, already a little proud. You are awake now, and the world is real.
 

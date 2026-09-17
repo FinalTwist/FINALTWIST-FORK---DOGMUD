@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 40216
   quantity: 1
-success_message: "You rivet the plates and hammer each spike angled inward toward the clinch, not the swing. Barbed spike-plates!"
-failure_message: "A spike shears off mid-hammer and the plate warps. The materials are ruined."
+success_actor: "You rivet the plates and hammer each spike angled inward toward the clinch, not the swing. Barbed spike-plates!"
+failure_actor: "A spike shears off mid-hammer and the plate warps. The materials are ruined."

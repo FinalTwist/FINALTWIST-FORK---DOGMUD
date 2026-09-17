@@ -47,7 +47,7 @@ func TestSilentNoticeConditionsListsOnlyNonSecretConditionsRelyingOnTheFallback(
 // drink does reach Condition_ApplyConditions on the unscaled path, and the flag keeps
 // the drink's own purge narration from being doubled. Either way the
 // resolver must say nothing at start
-// even when start_user_text is (wrongly) authored, and the listing must not
+// even when start_actee is (wrongly) authored, and the listing must not
 // flag the missing start as a problem.
 func TestSilentStartConditionHasNoStartNotice(t *testing.T) {
 	noText := &ConditionSpec{ConditionId: 79, Name: "Warcry", EndUserText: "fades", Flags: []Flag{SilentStart}}

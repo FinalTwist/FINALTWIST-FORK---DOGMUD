@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 20024
   quantity: 1
-success_message: "You layer the cloth and stitch a broad cloak with a bone toggle clasp. A wool cloak!"
-failure_message: "The heavy fabric bunches and the stitching fails. The materials are ruined."
+success_actor: "You layer the cloth and stitch a broad cloak with a bone toggle clasp. A wool cloak!"
+failure_actor: "The heavy fabric bunches and the stitching fails. The materials are ruined."

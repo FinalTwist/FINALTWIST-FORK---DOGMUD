@@ -16,5 +16,5 @@ ingredients:
 output:
   item_id: 0
   quantity: 0
-success_message: "Shadows pour from the settings into the cloak's fabric, weaving a darkness that drinks in light and magic alike."
-failure_message: "The catalyst rejects the binding. The materials crumble to dust, but the cloak is unharmed."
+success_actor: "Shadows pour from the settings into the cloak's fabric, weaving a darkness that drinks in light and magic alike."
+failure_actor: "The catalyst rejects the binding. The materials crumble to dust, but the cloak is unharmed."

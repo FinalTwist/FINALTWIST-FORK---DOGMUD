@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 40221
   quantity: 1
-success_message: "You bind bark and setting into cord too fine to trust with the eye, leaning it a half-beat ahead of the step. Windlace bindings!"
-failure_message: "The binding snaps taut and unravels before the enchantment can catch. The materials are wasted."
+success_actor: "You bind bark and setting into cord too fine to trust with the eye, leaning it a half-beat ahead of the step. Windlace bindings!"
+failure_actor: "The binding snaps taut and unravels before the enchantment can catch. The materials are wasted."

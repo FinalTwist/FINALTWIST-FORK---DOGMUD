@@ -10,6 +10,12 @@ package quests
 // everything either old parser saw. The locals are deliberately frozen: they
 // pin the historical yaml.v2 binding (tag-less = lowercased field name, no
 // underscore handling) forever, independent of the production structs.
+//
+// Frozen means frozen against DRIFT, not against a deliberate rename of the
+// data. When M4b-1 renamed four authored keys, the locals had to follow or the
+// harness would have compared an empty old field against a populated new one
+// and reported every quest as a mismatch. The four tags that moved are marked
+// in place below; everything else is still the historical binding.
 
 import (
 	"os"
@@ -30,17 +36,24 @@ type oldQuestFlagDef struct {
 }
 
 type oldQuestReward struct {
-	QuestId       string // binds "questid"
-	Gold          int
-	ItemId        int // binds "itemid"
-	ConditionId   int `yaml:"conditionid"` // the reward key on disk is conditionid, which is also what yaml.v2 would bind for this field tag-less; the tag just states it.
-	SkillInfo     string
-	StatInfo      string `yaml:"stat_info,omitempty"`
-	RecipeInfo    string `yaml:"recipe_info,omitempty"`
-	ItemInfo      string `yaml:"item_info,omitempty"`
-	SpellId       string
-	PlayerMessage string
-	RoomMessage   string
+	QuestId     string // binds "questid"
+	Gold        int
+	ItemId      int // binds "itemid"
+	ConditionId int `yaml:"conditionid"` // the reward key on disk is conditionid, which is also what yaml.v2 would bind for this field tag-less; the tag just states it.
+	SkillInfo   string
+	StatInfo    string `yaml:"stat_info,omitempty"`
+	RecipeInfo  string `yaml:"recipe_info,omitempty"`
+	ItemInfo    string `yaml:"item_info,omitempty"`
+	SpellId     string
+	// M4b-1 renamed these two reward keys on disk to actor and observer. The
+	// frozen shape pins the historical BINDING RULE, not a key that no longer
+	// exists: tag-less binding was enough only while the key was the
+	// lowercased field name, so the tag now states the key, exactly as
+	// ConditionId above does. Without this the harness would compare an empty
+	// old field against a populated new one on 66 quest files and report a
+	// mismatch the rename did not cause.
+	PlayerMessage string `yaml:"actor"`
+	RoomMessage   string `yaml:"observer"`
 	RoomId        int
 	RepFaction    string `yaml:"rep_faction"`
 	RepAmount     int    `yaml:"rep_amount"`
@@ -132,14 +145,17 @@ type oldConditions struct {
 }
 
 type oldActionDef struct {
-	Grant          string               `yaml:"grant,omitempty"`
-	ConsumeItem    int                  `yaml:"consume_item,omitempty"`
-	GiveItem       int                  `yaml:"give_item,omitempty"`
-	GiveGold       int                  `yaml:"give_gold,omitempty"`
-	ChargeGold     int                  `yaml:"charge_gold,omitempty"`
-	NpcSay         *oldNpcSayDef        `yaml:"npc_say,omitempty"`
-	SendText       string               `yaml:"send_text,omitempty"`
-	RoomText       string               `yaml:"room_text,omitempty"`
+	Grant       string        `yaml:"grant,omitempty"`
+	ConsumeItem int           `yaml:"consume_item,omitempty"`
+	GiveItem    int           `yaml:"give_item,omitempty"`
+	GiveGold    int           `yaml:"give_gold,omitempty"`
+	ChargeGold  int           `yaml:"charge_gold,omitempty"`
+	NpcSay      *oldNpcSayDef `yaml:"npc_say,omitempty"`
+	// Renamed by M4b-1, same reasoning as oldQuestReward's two lines above.
+	// triggersEqualOld compares by re-marshaling both shapes, so these tags
+	// must match the production ones or every action-bearing quest differs.
+	SendText       string               `yaml:"actor,omitempty"`
+	RoomText       string               `yaml:"observer,omitempty"`
 	SpawnMob       *oldSpawnDef         `yaml:"spawn_mob,omitempty"`
 	SpawnItem      *oldSpawnDef         `yaml:"spawn_item,omitempty"`
 	LockExits      *oldExitLock         `yaml:"lock_exits,omitempty"`

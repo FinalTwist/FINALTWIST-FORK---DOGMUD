@@ -63,7 +63,7 @@ rewards:
   skillinfo: "spellcasting:1"
   spellid: sparks
   gold: 25
-  playermessage: >-
+  actor: >-
     Orrin's late-arriving outline catches up to him as he goes still. "You
     were hit, and the fold held anyway. That is concentration -- not the
     absence of disturbance, but the holding-on through it." He turns a palm
@@ -73,7 +73,7 @@ rewards:
     it touches everything in front of you at once. You loosed it from the
     same conviction you woke with. Go up and east when you are ready. The
     scabland is where the grove's trouble comes from -- and where it ends."
-  roommessage: ""
+  observer: ""
 
 triggers:
   # ── KILL: defeat a veil-warped grove foe (either grants 45-kill) ───────
@@ -84,7 +84,7 @@ triggers:
       missing: ["45-kill"]
     actions:
       - grant: "45-kill"
-      - send_text: >-
+      - actor: >-
           The drift-wisp comes apart into the motes it was made of and does
           not gather again. Cast in the grove if you have not, then see Orrin.
   - event: mob_death
@@ -94,7 +94,7 @@ triggers:
       missing: ["45-kill"]
     actions:
       - grant: "45-kill"
-      - send_text: >-
+      - actor: >-
           The grove revenant folds down and is still. Cast in the grove if
           you have not, then see Orrin.
 
@@ -107,7 +107,7 @@ triggers:
       missing: ["45-cast"]
     actions:
       - grant: "45-cast"
-      - send_text: >-
+      - actor: >-
           You shape the fold with the fight pressing on you, and it holds.
           That is concentration. Put down a veil-warped creature if you have
           not, then report to Orrin.
@@ -119,7 +119,7 @@ triggers:
       missing: ["45-cast"]
     actions:
       - grant: "45-cast"
-      - send_text: >-
+      - actor: >-
           You shape the fold with the fight pressing on you, and it holds.
           That is concentration. Put down a veil-warped creature if you have
           not, then report to Orrin.
@@ -131,7 +131,7 @@ triggers:
       missing: ["45-cast"]
     actions:
       - grant: "45-cast"
-      - send_text: >-
+      - actor: >-
           You shape the fold with the fight pressing on you, and it holds.
           That is concentration. Put down a veil-warped creature if you have
           not, then report to Orrin.

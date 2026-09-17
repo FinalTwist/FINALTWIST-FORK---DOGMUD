@@ -34,12 +34,12 @@ steps:
 rewards:
   gold: 6
   skillinfo: "rhetoric:1"
-  playermessage: >-
+  actor: >-
     Sere listens in her unhurried way as you describe what the stones
     showed you this time. "It changes," she says. "That is the thing
     about very old places -- they keep speaking, and the words shift
     with the listener. Come again when you have patience for it."
-  roommessage: >-
+  observer: >-
     Sere folds her hands and listens with the patience of someone
     who has been listening a very long time.
 
@@ -52,7 +52,7 @@ triggers:
       missing: ["58-end"]
     actions:
       - grant: "58-end"
-      - send_text: >-
+      - actor: >-
           The stones give up a little more than they did before --
           not much, but something. The mark at the center of the
           disc catches your eye again, unchanged and patient.

@@ -1208,6 +1208,16 @@ Role mapping, and getting it wrong inverts every combat message in the game:
 | `together` | `ToAttacker` | `ToDefender` | `ToRoom` | *(absent, one observer audience)* |
 | `separate` | `ToAttacker` | `ToDefender` | `ToAttackerRoom` | `ToDefenderRoom` |
 
+Those are the GO FIELD names, and they lag the YAML. M4b-1 renamed the authored
+keys to the canonical role vocabulary, so a data file now says `actor`,
+`actee`, `observer` and, in the `separate` split only, `remote_observer`.
+`toattacker`/`todefender`/`toroom`/`toattackerroom`/`todefenderroom` are the
+old spellings and no longer load anything. `toattackerroom` became plain
+`observer` because it is the same audience as `together`'s room line: the
+observers standing with the actor. The same rename covers
+`defense-messages/` (`DefenseTogetherMessages`) and `taunt-messages/`
+(`combat.TauntMessages`).
+
 **Every audience comes from ONE index.** Picking per role narrates a different
 moment to each of them, which shipped twice before (melee defence PR #112,
 taunt PR #115) and was live in this store until M3 item 8.

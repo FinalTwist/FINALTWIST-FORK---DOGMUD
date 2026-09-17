@@ -50,12 +50,19 @@ _datafiles/world/dogmud/spells/{spellid}.js   (optional — only if spell has lo
 | `summon_component_id` | int | no | Item ID consumed on cast. 0 = no component needed. |
 | `summon_requires_corpse` | bool | no | If true, requires and consumes a room corpse. |
 | `summon_min_corpse_pool` | int | no | Minimum corpse stat pool required for raise spells. |
-| `cast_user_text` | string | no | Text sent to caster on cast. Supports `{source}`, `{target}` tokens. |
-| `cast_room_text` | string | no | Text sent to room on cast. Supports `{source}`, `{target}` tokens. |
-| `wait_user_text` | string | no | Text sent to caster each wait round. |
-| `wait_room_text` | string | no | Text sent to room each wait round. |
-| `magic_user_text` | string | no | Text sent to caster on resolution. |
-| `magic_room_text` | string | no | Text sent to room on resolution. |
+| `cast_actor` | string | no | Text sent to caster on cast. Supports `{actor}`, `{actee}` tokens. |
+| `cast_observer` | string | no | Text sent to room on cast. Supports `{actor}`, `{actee}` tokens. |
+| `wait_actor` | string | no | Text sent to caster each wait round. |
+| `wait_observer` | string | no | Text sent to room each wait round. |
+| `magic_actor` | string | no | Text sent to caster on resolution. |
+| `magic_observer` | string | no | Text sent to room on resolution. |
+
+The six narration keys name the PHASE and then the AUDIENCE. A spell's caster
+is the `actor`, the opposite of a condition, where the holder it happens to is
+the `actee`. Before the M4b-1 role-key rename these were `cast_user_text` /
+`cast_room_text` and their wait and magic siblings, and the tokens were
+`{source}` and `{target}`. An unknown token now fails the load with a boot
+panic, so an old spelling will not quietly render raw.
 
 ### YAML Text Fields (Section 2b)
 
@@ -67,10 +74,10 @@ both run (YAML text first, then JS).
 
 | Token | Resolves to |
 |-------|------------|
-| `{source}` | Caster's ANSI-tagged display name |
-| `{target}` | Target's ANSI-tagged display name |
-| `{source_plain}` | Caster's plain name (for possessives) |
-| `{target_plain}` | Target's plain name |
+| `{actor}` | Caster's ANSI-tagged display name |
+| `{actee}` | Target's ANSI-tagged display name |
+| `{actor_plain}` | Caster's plain name (for possessives) |
+| `{actee_plain}` | Target's plain name |
 
 **Example — flavor-only spell (no JS needed):**
 ```yaml
@@ -84,8 +91,8 @@ waitrounds: 1
 effect_type: condition
 condition_ids:
   - 26
-cast_user_text: You channel conviction into empowering energy.
-cast_room_text: "{source} gathers conviction, a fierce glow building."
+cast_actor: You channel conviction into empowering energy.
+cast_observer: "{actor} gathers conviction, a fierce glow building."
 ```
 
 **Example — spell with logic (JS handles onMagic only):**
@@ -94,8 +101,8 @@ spellid: raise-skeleton
 name: Raise Skeleton
 type: neutral
 # ... other fields ...
-cast_user_text: You reach toward the remains, dark energy gathering.
-cast_room_text: "{source} reaches toward the remains, tendrils of shadow curling from outstretched fingers."
+cast_actor: You reach toward the remains, dark energy gathering.
+cast_observer: "{actor} reaches toward the remains, tendrils of shadow curling from outstretched fingers."
 # JS file still exists for onMagic companion spawning logic
 ```
 
@@ -112,8 +119,8 @@ summon_mob_id: 300
 summon_pet_multiplier: 0.50
 summon_requires_corpse: true
 summon_min_corpse_pool: 30
-cast_user_text: "You reach toward the remains, dark energy gathering."
-cast_room_text: "{source} reaches toward the remains, tendrils of shadow curling."
+cast_actor: "You reach toward the remains, dark energy gathering."
+cast_observer: "{actor} reaches toward the remains, tendrils of shadow curling."
 ```
 
 **Example — Conjure Earth Elemental (no corpse, no component):**
@@ -127,8 +134,8 @@ cost: 45
 waitrounds: 3
 summon_mob_id: 311
 summon_pet_multiplier: 1.05
-cast_user_text: "You slam your fist into the ground, willing stone to rise."
-cast_room_text: "{source} slams a fist into the ground with a thunderous crack."
+cast_actor: "You slam your fist into the ground, willing stone to rise."
+cast_observer: "{actor} slams a fist into the ground with a thunderous crack."
 ```
 
 ### Summon pet multipliers

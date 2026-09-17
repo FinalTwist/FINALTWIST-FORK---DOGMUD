@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 30050
   quantity: 1
-success_message: "An opalescent oil forms on the surface, shimmering with persuasive energy. A silver tongue oil!"
-failure_message: "The oil separates and refuses to blend. The materials are wasted."
+success_actor: "An opalescent oil forms on the surface, shimmering with persuasive energy. A silver tongue oil!"
+failure_actor: "The oil separates and refuses to blend. The materials are wasted."

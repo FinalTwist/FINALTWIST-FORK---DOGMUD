@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 40219
   quantity: 1
-success_message: "You brew the root down with moss and petal until it clouds thick and faintly sweet, enough to keep a hunger quiescent. A nutrient suspension!"
-failure_message: "The brew curdles and separates in the flask. The materials are wasted."
+success_actor: "You brew the root down with moss and petal until it clouds thick and faintly sweet, enough to keep a hunger quiescent. A nutrient suspension!"
+failure_actor: "The brew curdles and separates in the flask. The materials are wasted."

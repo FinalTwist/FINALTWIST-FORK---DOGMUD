@@ -5,6 +5,6 @@ triggerrate: 1 round
 triggercount: 25
 effects:
   defense_mult: magnitude
-end_user_text: "The strength of the rally drains from you."
+end_actee: "The strength of the rally drains from you."
 flags:
   - silent-start

@@ -55,14 +55,14 @@ rewards:
   gold: 70
   rep_faction: temple_np
   rep_amount: 10
-  playermessage: >-
+  actor: >-
     Dross lays the rubbing and the reading side by side and goes very
     quiet, which for him is remarkable. "It holds," he says. "Every line of
     it holds." He has a proof now that no honest examiner could dismiss --
     and he is, you both understand, a man no one with power has ever been
     obliged to honestly examine. Still. It is known now, and you are one of
     the few who know it.
-  roommessage: >-
+  observer: >-
     The traveller has the look of someone who has read something that
     cannot be un-read.
 
@@ -76,14 +76,14 @@ triggers:
     actions:
       - grant: "69-rubbing"
       - give_item: 40115
-      - send_text: >-
+      - actor: >-
           You press paper to the processional relief and work charcoal
           across it. The figures come up under your hand -- and the longer
           you look, the less devotional they seem. Each hand is positioned
           too precisely to be art. Read along the row, they are a sequence:
           a number, set into stone by someone who wanted it kept where it
           could not be edited out.
-      - room_text: "{actor} takes a careful charcoal rubbing of the old processional reliefs."
+      - observer: "{actor} takes a careful charcoal rubbing of the old processional reliefs."
 
   - event: room_interact
     room: 5901
@@ -91,7 +91,7 @@ triggers:
     conditions:
       missing: ["69-start"]
     actions:
-      - send_text: >-
+      - actor: >-
           The processional figures are very old -- older, somehow, than the
           plaque that names them. Their hands are oddly placed. Without a
           reason to study them you move on.
@@ -111,7 +111,7 @@ triggers:
       has: ["69-rubbing"]
       missing: ["69-gallery"]
     actions:
-      - send_text: >-
+      - actor: >-
           Dross takes the rubbing and unrolls it across his knee,
           tracing the figures' hands. "Yes -- yes, this is the
           sequence." He rolls it carefully and hands it back. "Keep

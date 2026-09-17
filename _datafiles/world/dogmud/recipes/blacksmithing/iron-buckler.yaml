@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 20010
   quantity: 1
-success_message: "You beat the iron plates into a round shield and bolt the grip. An iron buckler!"
-failure_message: "The iron warps badly. The materials are wasted."
+success_actor: "You beat the iron plates into a round shield and bolt the grip. An iron buckler!"
+failure_actor: "The iron warps badly. The materials are wasted."

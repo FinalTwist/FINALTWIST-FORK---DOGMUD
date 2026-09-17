@@ -302,7 +302,7 @@ func CleanupZombies(e events.Event) events.ListenerReturn {
 
 // Condition expiration management (abridged; see NewTurn_PruneConditions.go).
 // The holder's line comes from the spec's end narration, which reads
-// ConditionSpec.EndUserNotice (authored end_user_text, else the generic
+// ConditionSpec.EndUserNotice (authored end_actee, else the generic
 // "<Name> has expired.", nothing for a secret condition); ApplyConditions
 // reads StartUserNotice the same way. Slice C, 2026-09-12.
 func PruneConditions(e events.Event) events.ListenerReturn {
@@ -1295,9 +1295,17 @@ boundary (LosingControl or BecomingControlled), the callback fires
   substitution and per-grapple cooldown (preventing repeated messages
   for the same gradient within one fight).
 
-**Grapple Messaging Library (`loadGrappleLib`):**
-Lazily loads `_datafiles/world/dogmud/messaging/grapple_outcomes.yaml`
-via `sync.Once` pattern. Organizes templates into six maps by outcome kind:
+**Grapple Messaging Library (`LoadGrappleMessaging`, `loadGrappleLib`):**
+`main.go` calls the exported `LoadGrappleMessaging` at boot. It reads
+`<configured world>/messaging/grapple_outcomes.yaml` through
+`grapplemessaging.LoadFromDataFiles`, runs `ValidateCompleteness`, and PANICS on
+either failing: grapple is event narration, and the two-tier loader policy in
+`internal/narration/context.md` puts event stores in the fail-the-boot tier.
+It does not consult `grappleLibOnce`, it spends it, so the check runs at boot
+even when a test in this package reached the store first. `loadGrappleLib` is
+the lazy `sync.Once` path that remains for exactly that case, and it keeps its
+log-and-degrade behaviour because it can run before a logger exists.
+Organizes templates into six maps by outcome kind:
 `Advancements`, `Degradations`, `Reversals`, `Escapes`, `Holds`, and
 `StrikingApex`. Per-grapple cooldown tracking via
 `Character.PerGrappleMessageCooldowns` (map of `bool` for per-outcome
@@ -1336,10 +1344,26 @@ resolved, fires supplementary messaging:
   `fireSubmissionResolutionMessage` are registered as hooks with the
   combat package to fire outcome-specific templates when submissions are
   attempted or resolved. Templates loaded from
-  `_datafiles/messages/position_control.yaml` via `loadPositionMessages`
-  (sync.Once pattern). Opening messages vary by submission type (armlock,
+  `<configured world>/messaging/position_control.yaml`, which M4b-1 moved under
+  the world tree from `_datafiles/messages/`. `main.go` calls the exported
+  `LoadPositionMessages` at boot, which reads and parses the file and PANICS on
+  either failing (event tier); `loadPositionMessages` is the lazy `sync.Once`
+  path kept for tests, and the boot loader spends that Once rather than
+  consulting it. Opening messages vary by submission type (armlock,
   choke, etc.); resolution messages vary by outcome (Mercy / Subdue /
   Cripple / Lethal).
+
+- **Role keys**: every audience in `position_control.yaml` is keyed `actor`,
+  `actee` or `observer` as of messaging M4b-1, which collapsed the store's
+  three authored key vocabularies: `attacker`/`target`/`room` on
+  `submissionMsgTriple`, `self`/`room` on `positionMessageTemplates`'s
+  `StaminaWarning`, and `controller`/`controlled` on the gradient and
+  transition side keys. The Go field names keep the old spellings; only the
+  yaml tags moved. Two things to know before editing the file: the mirror of
+  `submissionMsgTriple` in the repo root's `shipped_narration_data_guard_test.go`
+  decodes with `KnownFields(true)` and must be renamed in lockstep, and the
+  gradient state named `controlled` is authored data rather than a role, so it
+  kept its spelling while the side key beside it did not.
 
 - **Tokens** — `position_control.yaml` is on the canonical vocabulary as of
   messaging M4a: `{actor}` and `{actee}` for the two grapplers, plus the

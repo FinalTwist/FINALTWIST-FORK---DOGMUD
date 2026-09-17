@@ -43,12 +43,15 @@ type RecipeSpec struct {
 	Output               RecipeOutput       `yaml:"output"`
 	TargetType           string             `yaml:"target_type,omitempty"`  // equipment type consumed as enchanting input
 	EnchantType          string             `yaml:"enchant_type,omitempty"` // enchantment ID to apply to target
-	SuccessMessage       string             `yaml:"success_message"`
-	FailureMessage       string             `yaml:"failure_message"`
+	// The crafter's own line for each outcome. The authored keys name the
+	// OUTCOME and then the AUDIENCE, in the canonical role vocabulary every
+	// narration store shares since M4b-1; the crafter is the actor.
+	SuccessMessage string `yaml:"success_actor"`
+	FailureMessage string `yaml:"failure_actor"`
 	// Observer slot for the room watching the crafter (M3 item 6). Empty in
 	// every shipped recipe until M6 authors them. Read through Narrate only.
-	SuccessRoomMessage string `yaml:"success_room_message,omitempty"`
-	FailureRoomMessage string `yaml:"failure_room_message,omitempty"`
+	SuccessRoomMessage string `yaml:"success_observer,omitempty"`
+	FailureRoomMessage string `yaml:"failure_observer,omitempty"`
 }
 
 // Id implements fileloader.Loadable.

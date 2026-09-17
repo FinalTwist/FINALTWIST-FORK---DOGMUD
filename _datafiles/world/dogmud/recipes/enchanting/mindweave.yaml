@@ -16,5 +16,5 @@ ingredients:
 output:
   item_id: 0
   quantity: 0
-success_message: "All elements converge in a cascade of Chrysalis insight, weaving through the helm's crown. Your thoughts sharpen to crystalline clarity."
-failure_message: "The catalyst rejects the binding. The materials crumble to dust, but the helm is unharmed."
+success_actor: "All elements converge in a cascade of Chrysalis insight, weaving through the helm's crown. Your thoughts sharpen to crystalline clarity."
+failure_actor: "The catalyst rejects the binding. The materials crumble to dust, but the helm is unharmed."
