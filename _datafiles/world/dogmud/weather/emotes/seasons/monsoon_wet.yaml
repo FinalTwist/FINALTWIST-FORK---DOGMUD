@@ -8,9 +8,9 @@ outdoor:
   default:
     - "Everything drips; the air itself feels half water."
     - "Steam rises wherever the sun briefly finds wet ground."
-  jungle:
+  forest:
     - "The canopy drips on long after the rain has stopped, a slow second rainfall."
-    - "Mist coils up from the jungle floor wherever light leans through the leaves."
+    - "Mist coils up from the forest floor wherever light leans through the leaves."
 indoor:
   default:
     strong:
