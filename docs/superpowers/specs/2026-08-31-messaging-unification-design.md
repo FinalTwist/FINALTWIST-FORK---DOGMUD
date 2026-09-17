@@ -583,6 +583,26 @@ band model, one send path, one loader and layout, one `DefenseType`.
 flip changes *parameters*, not text. A snapshot diff that touches wording means
 something is wrong.
 
+> ### 🔴 SUPERSEDED, 2026-09-17
+>
+> M4 was designed out on 2026-09-17:
+> [`2026-09-17-messaging-m4-flip-design.md`](2026-09-17-messaging-m4-flip-design.md).
+> Read that, not this, when planning M4 or anything downstream.
+>
+> 1. **Not one commit.** Five slices, M4a to M4e, each its own PR (owner).
+> 2. **The "six band systems" are two.** `AgingPhase` is item potency, not
+>    narration; skill tiers are a pool union; taunt and item intensities are
+>    caller-named outcomes. What remains is one defence band model (margin
+>    plus defensive crit on every path) and weather's felt threshold.
+> 3. **"Loader accepts both old and new locations through M3" never
+>    happened.** Every loader reads one path. That risk row is void.
+> 4. **Group C had no owning stage.** M4e moves every audited Go narration
+>    site into YAML.
+> 5. **A tenth store exists:** `_datafiles/messages/position_control.yaml`,
+>    outside the world tree the M0 guard walks.
+> 6. **Aliases are not kept.** Shipped YAML is rewritten to canonical tokens
+>    and role keys, contradicting "no shipped file is rewritten" above.
+
 ### M5 — Quality pass
 
 On a single path: the `{source_plain}` anonymizer leak (held here by the owner
