@@ -211,6 +211,18 @@ When writing hidden noun descriptions:
 | `memory.go` | Memory reporting for the admin report |
 | `test_helpers.go` | Test fixtures |
 
+### An indoor biome must be classified for weather prose
+
+`BiomeInfo.Indoor` (`biomes.go`) is read by the weather module to pick a prose
+class, not just to gate outdoor-only mutators. A biome with `indoor: true`
+must appear in exactly one of the two classification maps in
+`modules/weather/content/emotes.go` (`undergroundBiomes` or
+`surfaceIndoorBiomes`), or it silently serves prose about roofs and
+windowpanes inside a cave. `modules/weather/content/biome_coupling_test.go`
+fails the build on a miss, but it lives in that package, so a rooms-only test
+run will not catch it. See `modules/weather/content/context.md` for the full
+three-class design.
+
 ### Prose folding on template save
 
 `SaveRoomTemplate` marshals through `marshalRoomTemplate` (`prose_wrap.go`), not

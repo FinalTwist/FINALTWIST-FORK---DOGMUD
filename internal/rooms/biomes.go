@@ -21,8 +21,23 @@ type BiomeInfo struct {
 	RequiredItemId int     `yaml:"requireditemid"`
 	UsesItem       bool    `yaml:"usesitem"`
 	Burns          bool    `yaml:"burns"`
-	MovementCost   float64 `yaml:"movementcost"`     // Terrain difficulty multiplier for stamina cost (1.0 = normal, 2.0 = rough)
-	Indoor         bool    `yaml:"indoor,omitempty"` // Sheltered from weather; outdoor-only mutators don't render here
+	MovementCost   float64 `yaml:"movementcost"` // Terrain difficulty multiplier for stamina cost (1.0 = normal, 2.0 = rough)
+
+	// Indoor marks a room as sheltered from weather; outdoor-only mutators
+	// don't render here.
+	//
+	// 🔑 ADDING, RENAMING OR REMOVING A BIOME? An indoor biome must also be
+	// classified as a weather PROSE CLASS, in one of the two maps in
+	// modules/weather/content/emotes.go: undergroundBiomes (felt through
+	// stone: seepage, draughts, mineral cold) or surfaceIndoorBiomes (a built
+	// structure: roofs, eaves, windows). Without that, a new indoor biome
+	// silently serves prose about roofs and windowpanes inside it, which is
+	// the exact defect the underground class was added to fix.
+	//
+	// modules/weather/content/biome_coupling_test.go fails the build if you
+	// forget, but it runs in THAT package, so `go test ./internal/rooms/...`
+	// alone will not tell you.
+	Indoor bool `yaml:"indoor,omitempty"`
 
 	// Private fields for runtime use
 	symbolRune rune
