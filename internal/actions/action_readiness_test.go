@@ -196,3 +196,140 @@ func TestCastReadinessDrift(t *testing.T) {
 		})
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Spell-name resolution parity with skill.cast.go (Step 2 regression suite)
+// ---------------------------------------------------------------------------
+//
+// The client action queue (Char.Action.Try over GMCP) keeps a command queued
+// only when ActionReadiness reports ActionDeferred; ActionRejected fires the
+// command immediately and drops it from the queue. castReadiness must
+// therefore resolve a spell name using the exact same rule as the live cast
+// path (internal/usercommands/skill.cast.go): a greedy longest-match over
+// spells.ResolveSpell, which also consults the alias index. Before this fix,
+// castReadiness resolved only the FIRST WORD of the argument via
+// spells.GetSpell / spells.FindSpellByName and never touched the alias index,
+// so an alias like "attune" could never resolve.
+//
+// seedMultiWordAliasedSpell registers a test spell shaped like Skill
+// Attunement (spellid with a hyphen, a two-word display name, and an alias)
+// so all four resolution forms can be exercised.
+func seedMultiWordAliasedSpell(t *testing.T) (*spells.SpellData, *stubActor, *characters.Character) {
+	t.Helper()
+	sd := &spells.SpellData{
+		SpellId:   "test-ar-multiword-attunement",
+		Name:      "Multiword Attunement",
+		Aliases:   []string{"attune-ar-test"},
+		Type:      spells.HelpSingle,
+		BaseFolds: 4,
+		Cost:      5,
+	}
+	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{sd.SpellId: sd})
+	t.Cleanup(cleanup)
+
+	actor, char, _ := newCastActor()
+	char.SpellBook[sd.SpellId] = 1 // knows the spell
+	char.Conviction = 1000         // ample CP (Cost is 5)
+	return sd, actor, char
+}
+
+// TestCastReadiness_MultiWordSpellName_Resolves verifies that the full
+// multi-word display name resolves to ActionReady rather than being
+// rejected. The pre-fix code split off only the first word ("multiword"),
+// which is not itself a spellid or a full display name, so GetSpell and
+// FindSpellByName's exact/prefix checks would need to accidentally match —
+// this spell's first word is deliberately not a natural language spell name
+// on its own so the case can't pass by coincidence.
+func TestCastReadiness_MultiWordSpellName_Resolves(t *testing.T) {
+	_, actor, _ := seedMultiWordAliasedSpell(t)
+
+	result := ActionReadiness(actor, "cast multiword attunement")
+	assert.Equal(t, ActionReady, result.Status, "reason: %s", result.Reason)
+}
+
+// TestCastReadiness_Alias_Resolves verifies that casting by alias ("cast
+// attune-ar-test") resolves. castReadiness never consulted the alias index
+// before this fix, so this must have failed with "unknown spell".
+func TestCastReadiness_Alias_Resolves(t *testing.T) {
+	_, actor, _ := seedMultiWordAliasedSpell(t)
+
+	result := ActionReadiness(actor, "cast attune-ar-test")
+	assert.Equal(t, ActionReady, result.Status, "reason: %s", result.Reason)
+}
+
+// TestCastReadiness_ExactSpellId_StillResolves pins the one form that
+// already worked before the fix (the exact hyphenated spellid), so the fix
+// is not a regression.
+func TestCastReadiness_ExactSpellId_StillResolves(t *testing.T) {
+	sd, actor, _ := seedMultiWordAliasedSpell(t)
+
+	result := ActionReadiness(actor, "cast "+sd.SpellId)
+	assert.Equal(t, ActionReady, result.Status, "reason: %s", result.Reason)
+}
+
+// TestCastReadiness_GenuinelyUnknownSpell_StillRejected verifies that a name
+// matching nothing (not a prefix, id, or alias of any known spell) is still
+// ActionRejected with "unknown spell" — the fix must not turn castReadiness
+// into a pass-everything gate.
+func TestCastReadiness_GenuinelyUnknownSpell_StillRejected(t *testing.T) {
+	_, actor, _ := seedMultiWordAliasedSpell(t)
+
+	result := ActionReadiness(actor, "cast blorptastic")
+	assert.Equal(t, ActionRejected, result.Status)
+	assert.Equal(t, "unknown spell", result.Reason)
+}
+
+// TestActionReadinessSpellNameResolutionDrift is the sibling of
+// TestActionReadinessDrift for the SPELL half of ActionReadiness.
+// TestActionReadinessDrift above only ever exercised the special-move verbs
+// (specialMoveVerbs vs. CommandIsReady); nothing pinned castReadiness's Gate
+// 1 spell-name lookup against spells.ResolveSpellGreedy, the resolver
+// skill.cast.go uses for a real cast. That is exactly where it drifted: the
+// comment on castReadiness claimed it mirrored skill.cast.go while its Gate
+// 1 used splitVerb (first word only) and never consulted the alias index.
+//
+// For every token, castReadiness must agree with ResolveSpellGreedy on
+// whether the spell resolves at all — never rejecting something the real
+// cast path would accept, and never accepting something it would not.
+func TestActionReadinessSpellNameResolutionDrift(t *testing.T) {
+	sd := &spells.SpellData{
+		SpellId:   "test-ar-drift-spellname",
+		Name:      "Drift Guard Ward",
+		Aliases:   []string{"driftward"},
+		Type:      spells.HelpSingle,
+		BaseFolds: 4,
+		Cost:      5,
+	}
+	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{sd.SpellId: sd})
+	defer cleanup()
+
+	tokens := []string{
+		sd.SpellId,         // exact canonical id
+		"driftward",        // alias
+		"drift guard ward", // full multi-word display name
+		"nonexistent-spell-xyzzy",
+	}
+
+	for _, token := range tokens {
+		t.Run(token, func(t *testing.T) {
+			actor, char, _ := newCastActor()
+			resolved, _ := spells.ResolveSpellGreedy(token)
+
+			if resolved != nil {
+				char.SpellBook[resolved.SpellId] = 1 // knows whatever it resolves to
+				char.Conviction = 1000               // ample CP
+			}
+
+			result := ActionReadiness(actor, "cast "+token)
+
+			if resolved == nil {
+				assert.Equal(t, ActionRejected, result.Status,
+					"castReadiness must reject exactly what ResolveSpellGreedy cannot resolve")
+				assert.Equal(t, "unknown spell", result.Reason)
+			} else {
+				assert.Equal(t, ActionReady, result.Status,
+					"castReadiness must accept exactly what ResolveSpellGreedy resolves (reason: %s)", result.Reason)
+			}
+		})
+	}
+}

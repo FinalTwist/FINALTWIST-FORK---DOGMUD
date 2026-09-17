@@ -81,11 +81,11 @@ func castReadiness(actor Actor, rest string) ReadinessResult {
 	char := actor.GetCharacter()
 
 	// Gate 1: Spell lookup (structural — wrong name never becomes valid).
-	spellName, _ := splitVerb(rest)
-	spellInfo := spells.GetSpell(spellName)
-	if spellInfo == nil {
-		spellInfo = spells.FindSpellByName(spellName)
-	}
+	// Shares spells.ResolveSpellGreedy with the real cast path
+	// (usercommands.Cast) so a multi-word name or an alias resolves here
+	// exactly as it would for a real cast — this probe must not reject a
+	// name the live path would accept.
+	spellInfo, _ := spells.ResolveSpellGreedy(rest)
 	if spellInfo == nil {
 		return ReadinessResult{ActionRejected, "unknown spell"}
 	}
