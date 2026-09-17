@@ -6,8 +6,8 @@
 # {acteetype} - 'user' or 'mob'
 # {damage}     - conviction damage description text
 #
-# THE THREE LISTS IN EACH BAND PAIR BY INDEX. Variant N of toattacker,
-# todefender and toroom describe the SAME moment, and combat.GetTauntTriad
+# THE THREE LISTS IN EACH BAND PAIR BY INDEX. Variant N of actor,
+# actee and observer describe the SAME moment, and combat.GetTauntTriad
 # renders all three from ONE index so the room never sees a different event
 # than the participants. combat.TauntMessageGroup.Validate enforces equal
 # lengths, so adding a line to one list means adding its partner to the other

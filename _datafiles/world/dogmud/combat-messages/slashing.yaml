@@ -11,7 +11,7 @@
 # {position}    - combat position: 'standing', 'prone', 'locked in close combat', 'grappling on the ground' (Stage 9.4)
 # {momentum}    - combat momentum: 'on the offensive', 'on the defensive', 'in control', 'pressured' (Stage 9.4)
 #
-# Role pools are INDEX PAIRED: entry N of toattacker, todefender and toroom
+# Role pools are INDEX PAIRED: entry N of actor, actee and observer
 # must describe the SAME moment, because combat renders all audiences from one
 # coordinated index (M3 item 8). Adding a line to one role means adding its
 # counterpart to the others.
