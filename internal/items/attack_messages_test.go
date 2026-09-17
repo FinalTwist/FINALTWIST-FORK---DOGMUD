@@ -95,13 +95,13 @@ func TestSeparateRenderMapsFourRoles(t *testing.T) {
 
 func TestRenderSubstitutesTokens(t *testing.T) {
 	m := TogetherMessages{
-		ToAttacker: SkillTieredMessages{Beginner: MessageOptions{"You hit {target}!"}},
-		ToDefender: SkillTieredMessages{Beginner: MessageOptions{"{source} hits you!"}},
-		ToRoom:     SkillTieredMessages{Beginner: MessageOptions{"{source} hits {target}!"}},
+		ToAttacker: SkillTieredMessages{Beginner: MessageOptions{"You hit {actee}!"}},
+		ToDefender: SkillTieredMessages{Beginner: MessageOptions{"{actor} hits you!"}},
+		ToRoom:     SkillTieredMessages{Beginner: MessageOptions{"{actor} hits {actee}!"}},
 	}
 	roles := m.Render(10, map[TokenName]string{
-		TokenSource: "Sable",
-		TokenTarget: "the goblin",
+		TokenActor: "Sable",
+		TokenActee: "the goblin",
 	}, firstPickerForTest)
 	if roles.Actor != "You hit the goblin!" {
 		t.Errorf("Actor = %q", roles.Actor)

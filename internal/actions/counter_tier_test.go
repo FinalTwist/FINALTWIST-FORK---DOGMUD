@@ -349,7 +349,7 @@ func counterRetortMessageFixture() *items.DefenseMessageGroup {
 			result := make(items.MessageOptions, 5)
 			for i := range result {
 				result[i] = items.ItemMessage("counterretort-" + audience + "-" + band +
-					" {defender} turns the jeer back on {attacker}")
+					" {actee} turns the jeer back on {actor}")
 			}
 			return result
 		}

@@ -3,7 +3,6 @@ package items
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/narration"
 )
@@ -52,10 +51,6 @@ type SkillTieredMessages struct {
 }
 
 type MessageOptions []ItemMessage
-
-func (am ItemMessage) SetTokenValue(tokenName TokenName, tokenValue string) ItemMessage {
-	return ItemMessage(strings.Replace(string(am), string(tokenName), tokenValue, -1))
-}
 
 // Get chooses a message using the default picker (narration.DefaultPicker,
 // which routes through util.Rand).
@@ -139,7 +134,7 @@ func (m TogetherMessages) Render(skillLevel int, tokenReplacements map[TokenName
 			Actee:    m.ToDefender.PoolFor(skillLevel),
 			Observer: m.ToRoom.PoolFor(skillLevel),
 		},
-		tokenStrings(tokenReplacements),
+		TokenStrings(tokenReplacements),
 		pick,
 	)
 }
@@ -162,7 +157,7 @@ func (m SeparateMessages) Render(skillLevel int, tokenReplacements map[TokenName
 			Observer:      m.ToAttackerRoom.PoolFor(skillLevel),
 			ActeeObserver: m.ToDefenderRoom.PoolFor(skillLevel),
 		},
-		tokenStrings(tokenReplacements),
+		TokenStrings(tokenReplacements),
 		pick,
 	)
 }

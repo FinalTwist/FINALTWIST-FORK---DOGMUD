@@ -31,7 +31,7 @@ func seedMobTauntRuntimeMessages(t *testing.T) func() {
 		messages := func(audience string) items.MessageOptions {
 			result := make(items.MessageOptions, 5)
 			for i := range result {
-				result[i] = items.ItemMessage(fmt.Sprintf("DEFY %s variant=%d %s: {attacker} tests {defender}; no conviction harm, attention may shift", audience, i, band))
+				result[i] = items.ItemMessage(fmt.Sprintf("DEFY %s variant=%d %s: {actor} tests {actee}; no conviction harm, attention may shift", audience, i, band))
 			}
 			return result
 		}
@@ -495,9 +495,9 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 			return items.MessageOptions{message, message, message, message, message}
 		}
 		return items.DefenseOptions{Together: items.DefenseTogetherMessages{
-			ToDefender: five(prefix + " defender sees {attacker} defied by {defender}"),
-			ToAttacker: five(prefix + " attacker sees {defender} defy {attacker}"),
-			ToRoom:     five(prefix + " room sees {defender} defy {attacker}"),
+			ToDefender: five(prefix + " defender sees {actor} defied by {actee}"),
+			ToAttacker: five(prefix + " attacker sees {actee} defy {actor}"),
+			ToRoom:     five(prefix + " room sees {actee} defy {actor}"),
 		}}
 	}
 	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefenseType]*items.DefenseMessageGroup{

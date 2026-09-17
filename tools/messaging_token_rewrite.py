@@ -16,6 +16,11 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 W = os.path.join(ROOT, "_datafiles", "world", "dogmud")
+# internal/configs/config.filepaths.go falls back to _datafiles/world/default
+# when the DataFiles config key is empty, so that tree is a SHIPPED world too
+# and its stores must flip with dogmud's. Its combat-messages is the only
+# directory under it holding any of these tokens (checked M4a task 4).
+DEFAULT_W = os.path.join(ROOT, "_datafiles", "world", "default")
 MSG = os.path.join(ROOT, "_datafiles", "messages")
 
 # Per (store, key), never global: the same spelling means different roles in
@@ -39,6 +44,10 @@ GROUPS = {
     ],
     "items": [
         (os.path.join(W, "combat-messages"), {
+            "{source}": "{actor}", "{target}": "{actee}",
+            "{sourcetype}": "{actortype}", "{targettype}": "{acteetype}",
+        }),
+        (os.path.join(DEFAULT_W, "combat-messages"), {
             "{source}": "{actor}", "{target}": "{actee}",
             "{sourcetype}": "{actortype}", "{targettype}": "{acteetype}",
         }),

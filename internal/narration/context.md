@@ -66,6 +66,12 @@ const (
 A nil `Picker` means production behaviour: stores that accept one treat nil as
 `DefaultPicker` rather than panicking.
 
+`internal/items` keeps a typed mirror of the two name tokens
+(`items.TokenActor`, `items.TokenActee`) for its `map[TokenName]string` token
+maps. They are DEFINED FROM the constants above rather than respelled, so the
+two vocabularies cannot drift; `items.TokenStrings` converts such a map to the
+plain-string form `Render` and `Substitute` take.
+
 ## The assembly rule
 
 **The store assembles the pools and computes the selector. The core only

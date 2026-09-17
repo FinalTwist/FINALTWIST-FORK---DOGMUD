@@ -1,7 +1,7 @@
 # Counter narration for the PHYSICAL channel (U6b Task 11): a dodge, parry,
 # or block crit against a melee special move earns the defender a free
-# counter-swing. {defender} is the COUNTERER (whose defence critted);
-# {attacker} is the countered party. Bands: weak = the counter is turned
+# counter-swing. {actee} is the COUNTERER (whose defence critted);
+# {actor} is the countered party. Bands: weak = the counter is turned
 # aside (no damage), normal = the counter lands, heavy = the counter crits.
 # The melee auto-attack riposte and auto-trip/auto-bash keep their own lines;
 # this pool narrates seam-routed counter-swings only.
@@ -10,60 +10,60 @@ options:
   weak:
     together:
       todefender:
-      - '<ansi fg="defense-good">You lash out at the opening, but {attacker} recovers in time.</ansi>'
-      - '<ansi fg="defense-good">You answer with a quick blow, but {attacker} turns it aside.</ansi>'
-      - '<ansi fg="defense-good">You strike at the gap in {attacker}''s guard, but it closes in time.</ansi>'
-      - '<ansi fg="defense-good">Your answering blow skips off {attacker}''s hasty guard.</ansi>'
-      - '<ansi fg="defense-good">You spin to strike back, but {attacker} is already covered.</ansi>'
+      - '<ansi fg="defense-good">You lash out at the opening, but {actor} recovers in time.</ansi>'
+      - '<ansi fg="defense-good">You answer with a quick blow, but {actor} turns it aside.</ansi>'
+      - '<ansi fg="defense-good">You strike at the gap in {actor}''s guard, but it closes in time.</ansi>'
+      - '<ansi fg="defense-good">Your answering blow skips off {actor}''s hasty guard.</ansi>'
+      - '<ansi fg="defense-good">You spin to strike back, but {actor} is already covered.</ansi>'
       toattacker:
-      - '<ansi fg="attack-bad">{defender} lashes out at your opening, but you recover in time.</ansi>'
-      - '<ansi fg="attack-bad">{defender} answers with a quick blow, but you turn it aside.</ansi>'
-      - '<ansi fg="attack-bad">{defender} strikes at the gap in your guard, but you close it in time.</ansi>'
-      - '<ansi fg="attack-bad">{defender}''s answering blow skips off your hasty guard.</ansi>'
-      - '<ansi fg="attack-bad">{defender} spins to strike back, but you are already covered.</ansi>'
+      - '<ansi fg="attack-bad">{actee} lashes out at your opening, but you recover in time.</ansi>'
+      - '<ansi fg="attack-bad">{actee} answers with a quick blow, but you turn it aside.</ansi>'
+      - '<ansi fg="attack-bad">{actee} strikes at the gap in your guard, but you close it in time.</ansi>'
+      - '<ansi fg="attack-bad">{actee}''s answering blow skips off your hasty guard.</ansi>'
+      - '<ansi fg="attack-bad">{actee} spins to strike back, but you are already covered.</ansi>'
       toroom:
-      - '<ansi fg="combat">{defender} lashes out at {attacker}, who recovers in time.</ansi>'
-      - '<ansi fg="combat">{defender} answers {attacker} with a quick blow, which is turned aside.</ansi>'
-      - '<ansi fg="combat">{defender} strikes at the gap in {attacker}''s guard, but it closes in time.</ansi>'
-      - '<ansi fg="combat">{defender}''s answering blow skips off {attacker}''s hasty guard.</ansi>'
-      - '<ansi fg="combat">{defender} spins to strike back, but {attacker} is already covered.</ansi>'
+      - '<ansi fg="combat">{actee} lashes out at {actor}, who recovers in time.</ansi>'
+      - '<ansi fg="combat">{actee} answers {actor} with a quick blow, which is turned aside.</ansi>'
+      - '<ansi fg="combat">{actee} strikes at the gap in {actor}''s guard, but it closes in time.</ansi>'
+      - '<ansi fg="combat">{actee}''s answering blow skips off {actor}''s hasty guard.</ansi>'
+      - '<ansi fg="combat">{actee} spins to strike back, but {actor} is already covered.</ansi>'
   normal:
     together:
       todefender:
-      - '<ansi fg="defense-good">You step into the opening and land a solid blow on {attacker}.</ansi>'
-      - '<ansi fg="defense-good">You punish the failed attack with a sharp strike to {attacker}.</ansi>'
-      - '<ansi fg="defense-good">You catch {attacker} off balance and drive your blow home.</ansi>'
-      - '<ansi fg="defense-good">Your answering strike snaps through {attacker}''s open guard.</ansi>'
-      - '<ansi fg="defense-good">You turn the exchange around and strike {attacker} cleanly.</ansi>'
+      - '<ansi fg="defense-good">You step into the opening and land a solid blow on {actor}.</ansi>'
+      - '<ansi fg="defense-good">You punish the failed attack with a sharp strike to {actor}.</ansi>'
+      - '<ansi fg="defense-good">You catch {actor} off balance and drive your blow home.</ansi>'
+      - '<ansi fg="defense-good">Your answering strike snaps through {actor}''s open guard.</ansi>'
+      - '<ansi fg="defense-good">You turn the exchange around and strike {actor} cleanly.</ansi>'
       toattacker:
-      - '<ansi fg="attack-bad">{defender} steps into the opening and lands a solid blow on you.</ansi>'
-      - '<ansi fg="attack-bad">{defender} punishes your failed attack with a sharp strike.</ansi>'
-      - '<ansi fg="attack-bad">{defender} catches you off balance and drives their blow home.</ansi>'
-      - '<ansi fg="attack-bad">{defender}''s answering strike snaps through your open guard.</ansi>'
-      - '<ansi fg="attack-bad">{defender} turns the exchange around and strikes you cleanly.</ansi>'
+      - '<ansi fg="attack-bad">{actee} steps into the opening and lands a solid blow on you.</ansi>'
+      - '<ansi fg="attack-bad">{actee} punishes your failed attack with a sharp strike.</ansi>'
+      - '<ansi fg="attack-bad">{actee} catches you off balance and drives their blow home.</ansi>'
+      - '<ansi fg="attack-bad">{actee}''s answering strike snaps through your open guard.</ansi>'
+      - '<ansi fg="attack-bad">{actee} turns the exchange around and strikes you cleanly.</ansi>'
       toroom:
-      - '<ansi fg="combat">{defender} steps into the opening and lands a solid blow on {attacker}.</ansi>'
-      - '<ansi fg="combat">{defender} punishes {attacker}''s failed attack with a sharp strike.</ansi>'
-      - '<ansi fg="combat">{defender} catches {attacker} off balance and drives a blow home.</ansi>'
-      - '<ansi fg="combat">{defender}''s answering strike snaps through {attacker}''s open guard.</ansi>'
-      - '<ansi fg="combat">{defender} turns the exchange around and strikes {attacker} cleanly.</ansi>'
+      - '<ansi fg="combat">{actee} steps into the opening and lands a solid blow on {actor}.</ansi>'
+      - '<ansi fg="combat">{actee} punishes {actor}''s failed attack with a sharp strike.</ansi>'
+      - '<ansi fg="combat">{actee} catches {actor} off balance and drives a blow home.</ansi>'
+      - '<ansi fg="combat">{actee}''s answering strike snaps through {actor}''s open guard.</ansi>'
+      - '<ansi fg="combat">{actee} turns the exchange around and strikes {actor} cleanly.</ansi>'
   heavy:
     together:
       todefender:
-      - '<ansi fg="defense-good">You slip inside {attacker}''s guard and strike with all your weight.</ansi>'
-      - '<ansi fg="defense-good">You read the opening perfectly and hammer {attacker} back a step.</ansi>'
-      - '<ansi fg="defense-good">The opening is wide, and your blow crashes into {attacker}.</ansi>'
-      - '<ansi fg="defense-good">You seize the moment and drive a brutal strike into {attacker}.</ansi>'
-      - '<ansi fg="defense-good">Your counter lands clean and hard, and {attacker} staggers.</ansi>'
+      - '<ansi fg="defense-good">You slip inside {actor}''s guard and strike with all your weight.</ansi>'
+      - '<ansi fg="defense-good">You read the opening perfectly and hammer {actor} back a step.</ansi>'
+      - '<ansi fg="defense-good">The opening is wide, and your blow crashes into {actor}.</ansi>'
+      - '<ansi fg="defense-good">You seize the moment and drive a brutal strike into {actor}.</ansi>'
+      - '<ansi fg="defense-good">Your counter lands clean and hard, and {actor} staggers.</ansi>'
       toattacker:
-      - '<ansi fg="attack-bad">{defender} slips inside your guard and strikes with all their weight.</ansi>'
-      - '<ansi fg="attack-bad">{defender} reads the opening perfectly and hammers you back a step.</ansi>'
-      - '<ansi fg="attack-bad">The opening is wide, and {defender}''s blow crashes into you.</ansi>'
-      - '<ansi fg="attack-bad">{defender} seizes the moment and drives a brutal strike into you.</ansi>'
-      - '<ansi fg="attack-bad">{defender}''s counter lands clean and hard, and you stagger.</ansi>'
+      - '<ansi fg="attack-bad">{actee} slips inside your guard and strikes with all their weight.</ansi>'
+      - '<ansi fg="attack-bad">{actee} reads the opening perfectly and hammers you back a step.</ansi>'
+      - '<ansi fg="attack-bad">The opening is wide, and {actee}''s blow crashes into you.</ansi>'
+      - '<ansi fg="attack-bad">{actee} seizes the moment and drives a brutal strike into you.</ansi>'
+      - '<ansi fg="attack-bad">{actee}''s counter lands clean and hard, and you stagger.</ansi>'
       toroom:
-      - '<ansi fg="combat">{defender} slips inside {attacker}''s guard and strikes with full weight.</ansi>'
-      - '<ansi fg="combat">{defender} reads the opening perfectly and hammers {attacker} back.</ansi>'
-      - '<ansi fg="combat">The opening is wide, and {defender}''s blow crashes into {attacker}.</ansi>'
-      - '<ansi fg="combat">{defender} seizes the moment and drives a brutal strike into {attacker}.</ansi>'
-      - '<ansi fg="combat">{defender}''s counter lands clean and hard, and {attacker} staggers.</ansi>'
+      - '<ansi fg="combat">{actee} slips inside {actor}''s guard and strikes with full weight.</ansi>'
+      - '<ansi fg="combat">{actee} reads the opening perfectly and hammers {actor} back.</ansi>'
+      - '<ansi fg="combat">The opening is wide, and {actee}''s blow crashes into {actor}.</ansi>'
+      - '<ansi fg="combat">{actee} seizes the moment and drives a brutal strike into {actor}.</ansi>'
+      - '<ansi fg="combat">{actee}''s counter lands clean and hard, and {actor} staggers.</ansi>'

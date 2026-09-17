@@ -27,7 +27,7 @@ package narration_test
 // (store, key, band, role[, tier]) combination — never util.Rand, so the
 // goldens are stable across repeated runs and process restarts.
 //
-// Tokens (e.g. {target}, {itemname}) are substituted with fixed stand-ins
+// Tokens (e.g. {actee}, {itemname}) are substituted with fixed stand-ins
 // (see substituteTokens) so a change to token *rendering* shows as a diff
 // distinct from a change to the underlying prose.
 //
@@ -239,18 +239,30 @@ func firstDiffLine(want, got string) string {
 // diff distinct from prose changes.
 // ---------------------------------------------------------------------
 
+// There are TWO stand-in maps because there is now ONE token vocabulary.
+//
+// Before M4a the combat and taunt stores spelled the two participants
+// {source}/{target} and the defence store spelled them {attacker}/{defender},
+// so a single map could give each store its own stand-in names, and the
+// goldens were written with "Source"/"Target" in one file and
+// "Attacker"/"Defender" in the other. M4a collapsed both spellings onto
+// {actor}/{actee}, which one map cannot serve twice.
+//
+// Splitting the map is what keeps the goldens byte-identical across the flip,
+// and it costs nothing: each store's golden is built by its own function, and
+// each passes its own map. Keeping the stand-in WORDS per store is also worth
+// something on its own -- a defence row reading "Attacker" still says which
+// participant it names without the reader consulting the role mapping.
 var tokenStandins = map[items.TokenName]string{
 	items.TokenItemName:     "Weapon",
-	items.TokenSource:       "Source",
-	items.TokenSourceType:   "User",
-	items.TokenTarget:       "Target",
-	items.TokenTargetType:   "Mob",
+	items.TokenActor:        "Source",
+	items.TokenActorType:    "User",
+	items.TokenActee:        "Target",
+	items.TokenActeeType:    "Mob",
 	items.TokenUsesLeft:     "3",
 	items.TokenDamage:       "ModerateWounds",
 	items.TokenEntranceName: "South",
 	items.TokenExitName:     "North",
-	items.TokenDefender:     "Defender",
-	items.TokenAttacker:     "Attacker",
 	items.TokenWeapon:       "Weapon",
 	items.TokenAttack:       "Strike",
 	items.TokenStance:       "Balanced",
@@ -259,11 +271,31 @@ var tokenStandins = map[items.TokenName]string{
 	items.TokenBodyPart:     "Arm",
 }
 
-func substituteTokens(s string) string {
-	for tok, val := range tokenStandins {
+// defenseStandins is the defence store's half of the same vocabulary. Same
+// two tokens, the store's own stand-in words.
+var defenseStandins = map[items.TokenName]string{
+	items.TokenActor:    "Attacker",
+	items.TokenActee:    "Defender",
+	items.TokenWeapon:   "Weapon",
+	items.TokenAttack:   "Strike",
+	items.TokenStance:   "Balanced",
+	items.TokenPosition: "Standing",
+	items.TokenMomentum: "InControl",
+}
+
+func substituteWith(standins map[items.TokenName]string, s string) string {
+	for tok, val := range standins {
 		s = strings.ReplaceAll(s, string(tok), val)
 	}
 	return s
+}
+
+func substituteTokens(s string) string {
+	return substituteWith(tokenStandins, s)
+}
+
+func substituteDefenseTokens(s string) string {
+	return substituteWith(defenseStandins, s)
 }
 
 // ---------------------------------------------------------------------
@@ -478,16 +510,16 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 
 	for _, dt := range types {
 		for _, band := range bands {
-			triad := items.RenderDefenseMessage(items.DefenseType(dt), band.crit, band.margin, tokenStandins, 0)
-			fmt.Fprintf(&b, "%s|%s|todefender => %s\n", dt, band.name, substituteTokens(string(triad.ToDefender)))
-			fmt.Fprintf(&b, "%s|%s|toattacker => %s\n", dt, band.name, substituteTokens(string(triad.ToAttacker)))
-			fmt.Fprintf(&b, "%s|%s|toroom => %s\n", dt, band.name, substituteTokens(string(triad.ToRoom)))
+			triad := items.RenderDefenseMessage(items.DefenseType(dt), band.crit, band.margin, defenseStandins, 0)
+			fmt.Fprintf(&b, "%s|%s|todefender => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
+			fmt.Fprintf(&b, "%s|%s|toattacker => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
+			fmt.Fprintf(&b, "%s|%s|toroom => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToRoom)))
 		}
 	}
 
 	// EMPTY CASE: an unregistered defense type returns an all-empty triad.
 	fmt.Fprintf(&b, "\n# EMPTY CASE: unregistered defense type -> empty triad\n")
-	emptyTriad := items.RenderDefenseMessage(items.DefenseType("nonexistent-defense-type"), false, 0.6, tokenStandins, 0)
+	emptyTriad := items.RenderDefenseMessage(items.DefenseType("nonexistent-defense-type"), false, 0.6, defenseStandins, 0)
 	fmt.Fprintf(&b, "nonexistent-defense-type|normal|todefender => %q\n", string(emptyTriad.ToDefender))
 	fmt.Fprintf(&b, "nonexistent-defense-type|normal|toattacker => %q\n", string(emptyTriad.ToAttacker))
 	fmt.Fprintf(&b, "nonexistent-defense-type|normal|toroom => %q\n", string(emptyTriad.ToRoom))
@@ -509,16 +541,16 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 	for _, dt := range types {
 		for _, band := range meleeBands {
 			options := items.GetDefenseMessage(items.DefenseType(dt), band.zScore)
-			triad := options.RenderTriad(tokenStandins, narration.SequencePicker())
-			fmt.Fprintf(&b, "melee|%s|%s|todefender => %s\n", dt, band.name, substituteTokens(string(triad.ToDefender)))
-			fmt.Fprintf(&b, "melee|%s|%s|toattacker => %s\n", dt, band.name, substituteTokens(string(triad.ToAttacker)))
-			fmt.Fprintf(&b, "melee|%s|%s|toroom => %s\n", dt, band.name, substituteTokens(string(triad.ToRoom)))
+			triad := options.RenderTriad(defenseStandins, narration.SequencePicker())
+			fmt.Fprintf(&b, "melee|%s|%s|todefender => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
+			fmt.Fprintf(&b, "melee|%s|%s|toattacker => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
+			fmt.Fprintf(&b, "melee|%s|%s|toroom => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToRoom)))
 		}
 	}
 
 	// EMPTY CASE (melee seam): an unregistered defense type.
 	fmt.Fprintf(&b, "\n# EMPTY CASE (melee seam): unregistered defense type -> empty triad\n")
-	emptyMeleeTriad := items.GetDefenseMessage(items.DefenseType("nonexistent-defense-type"), 0.6).RenderTriad(tokenStandins, narration.SequencePicker())
+	emptyMeleeTriad := items.GetDefenseMessage(items.DefenseType("nonexistent-defense-type"), 0.6).RenderTriad(defenseStandins, narration.SequencePicker())
 	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|todefender => %q\n", string(emptyMeleeTriad.ToDefender))
 	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|toattacker => %q\n", string(emptyMeleeTriad.ToAttacker))
 	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|toroom => %q\n", string(emptyMeleeTriad.ToRoom))

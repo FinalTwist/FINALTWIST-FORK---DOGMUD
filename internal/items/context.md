@@ -463,11 +463,16 @@ func GetAttackMessage(subType ItemSubType, pctDamage int) AttackOptions {
     return GetAttackMessage(Generic, pctDamage)
 }
 
-// Token replacement in messages
-func (am ItemMessage) SetTokenValue(tokenName TokenName, tokenValue string) ItemMessage {
-    return ItemMessage(strings.Replace(string(am), string(tokenName), tokenValue, -1))
-}
+// Token replacement is NOT done here. There is one engine, in the core:
+// narration.Substitute. Render/RenderTriad substitute as they render, and a
+// caller holding a raw line converts its typed token map with TokenStrings
+// and calls the core directly.
+func TokenStrings(tokens map[TokenName]string) map[string]string
 ```
+
+`ItemMessage.SetTokenValue` (a per-token `strings.Replace`) was the second of
+the messaging arc's three leftover token engines and was deleted in M4a.
+Nothing in the package substitutes tokens by hand any more.
 
 ## Durability and Usage System
 
@@ -892,11 +897,20 @@ attacks, dCount, dSides, bonus, critConditions := weapon.GetDiceRoll()
 // Get attack messages
 messages := items.GetAttackMessage(items.Slashing, 85) // 85% damage = Heavy
 
-// Apply token replacements
-message := messages.Together.ToAttacker.Get()
-message = message.SetTokenValue(items.TokenDamage, "15")
-message = message.SetTokenValue(items.TokenTarget, "orc")
+// Render one COORDINATED triad: every audience from a single variant index,
+// tokens substituted by the core as it renders.
+roles := messages.Together.Render(skillLevel, map[items.TokenName]string{
+    items.TokenDamage: "15",
+    items.TokenActee:  "orc",
+}, nil)
 ```
+
+The name tokens are the canonical four (M4a): `TokenActor`/`TokenActee` name
+the two participants in every store, and `TokenActorType`/`TokenActeeType`
+carry their ansi colour class. `TokenActor` and `TokenActee` are defined FROM
+`narration.TokenActor`/`narration.TokenActee`, so the two vocabularies cannot
+drift. The old `TokenSource`/`TokenTarget`/`TokenAttacker`/`TokenDefender`
+spellings are gone.
 
 This comprehensive item system provides the foundation for all equipment,
 consumables, and objects in GoMud, supporting complex interactions,

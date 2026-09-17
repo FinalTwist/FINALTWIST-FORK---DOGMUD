@@ -296,10 +296,10 @@ func RenderChannelDefenceMessages(out ChannelDefenceResult, identities ChannelDe
 		return items.DefenseMessageTriad{}
 	}
 	triad := items.RenderDefenseMessage(items.DefenseType(out.DefenceType), out.DefensiveCrit, out.NormalizedDefenceMargin, map[items.TokenName]string{
-		items.TokenAttacker: identities.Attacker,
-		items.TokenDefender: identities.Defender,
-		items.TokenAttack:   attack,
-		items.TokenWeapon:   attack,
+		items.TokenActor:  identities.Attacker,
+		items.TokenActee:  identities.Defender,
+		items.TokenAttack: attack,
+		items.TokenWeapon: attack,
 	}, indexOverride...)
 	if triad.ToRoom == "" {
 		logMissingDefencePool(out.DefenceType)

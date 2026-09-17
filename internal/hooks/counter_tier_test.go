@@ -352,7 +352,7 @@ func counterQuellNarrationFixture() *items.DefenseMessageGroup {
 			result := make(items.MessageOptions, 5)
 			for i := range result {
 				result[i] = items.ItemMessage("counterquell-" + audience + "-" + band +
-					" {defender} steps through the gap {attacker} left")
+					" {actee} steps through the gap {actor} left")
 			}
 			return result
 		}

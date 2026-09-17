@@ -19,9 +19,9 @@ func seedTauntStore(t *testing.T) {
 	t.Helper()
 	restore := combat.SeedTauntMessagesForTest(map[combat.TauntIntensity]*combat.TauntMessages{
 		combat.TauntHit: {
-			ToAttacker: []string{`You sneer at <ansi fg="{targettype}">{target}</ansi>!`},
-			ToDefender: []string{`<ansi fg="{sourcetype}">{source}</ansi> sneers at you!`},
-			ToRoom:     []string{`<ansi fg="{sourcetype}">{source}</ansi> sneers at <ansi fg="{targettype}">{target}</ansi>!`},
+			ToAttacker: []string{`You sneer at <ansi fg="{acteetype}">{actee}</ansi>!`},
+			ToDefender: []string{`<ansi fg="{actortype}">{actor}</ansi> sneers at you!`},
+			ToRoom:     []string{`<ansi fg="{actortype}">{actor}</ansi> sneers at <ansi fg="{acteetype}">{actee}</ansi>!`},
 		},
 	})
 	t.Cleanup(restore)
@@ -68,7 +68,7 @@ func TestMobTauntTriadUsesTheAuthoredStore(t *testing.T) {
 // inherit and must build by hand: sendAudioRoomText delivers on the AUDIO
 // channel, which messaging's pipeline never sight-gates and never anonymizes.
 //
-// This is also why {sourcetype} and {targettype} must resolve to real name
+// This is also why {actortype} and {acteetype} must resolve to real name
 // aliases. messaging.Anonymize matches on username|mobname|petname, so a tag
 // outside that set leaves the name in plain view.
 func TestMobTauntTriadAnonymizesInTheDark(t *testing.T) {

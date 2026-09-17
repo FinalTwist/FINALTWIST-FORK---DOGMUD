@@ -855,7 +855,7 @@ Players can switch combat targets mid-fight using `attack <new-target>`:
 
 ## Combat Messaging System
 - Dynamic message selection based on damage percentage
-- Token-based message customization ({source}, {target}, {weapon}, etc.)
+- Token-based message customization ({actor}, {actee}, {weapon}, etc.)
 - Separate messaging for same-room vs cross-room combat
 - Critical hit and backstab message highlighting
 
@@ -1454,7 +1454,7 @@ multiplier and make high-skill crits wildly swingier.
 **vii. Build Messages** — `buildAttackMessages()`
 ```
 Select message template by weapon subtype + damage percentage.
-Apply token replacements ({source}, {target}, {itemname},
+Apply token replacements ({actor}, {actee}, {itemname},
   {damage description}, {stance}, {position}, {momentum}).
 Wrap in *** *** for crits, !!! !!! for fumbles.
 Send to attacker, defender, room observers.

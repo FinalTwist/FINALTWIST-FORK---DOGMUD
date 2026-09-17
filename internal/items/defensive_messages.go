@@ -147,7 +147,7 @@ func (o DefenseOptions) RenderTriad(tokenReplacements map[TokenName]string, pick
 			Actee:    messageStrings(o.Together.ToDefender),
 			Observer: messageStrings(o.Together.ToRoom),
 		},
-		tokenStrings(tokenReplacements),
+		TokenStrings(tokenReplacements),
 		pick,
 		indexOverride...,
 	)
@@ -171,8 +171,12 @@ func messageStrings(pool MessageOptions) []string {
 	return out
 }
 
-// tokenStrings converts a token map to the core's plain-string form.
-func tokenStrings(tokens map[TokenName]string) map[string]string {
+// TokenStrings converts a token map to the core's plain-string form, which is
+// what narration.Substitute and narration.Render take. Exported in M4a so
+// internal/combat's non-pool paths (the opening-strike/deflected fallback and
+// the feint lines) substitute through the same door as everything else,
+// instead of through a per-token strings.Replace loop of their own.
+func TokenStrings(tokens map[TokenName]string) map[string]string {
 	if len(tokens) == 0 {
 		return nil
 	}

@@ -76,7 +76,7 @@ func TestNewlyDefendableAttackNamesRenderTriads(t *testing.T) {
 		{"heavy", Heavy, true, 0.0},
 	}
 
-	leftoverTokens := []string{"{attack}", "{attacker}", "{defender}", "{weapon}"}
+	leftoverTokens := []string{"{attack}", "{actor}", "{actee}", "{weapon}"}
 
 	for _, tc := range cases {
 		for _, defence := range tc.defences {
@@ -91,10 +91,10 @@ func TestNewlyDefendableAttackNamesRenderTriads(t *testing.T) {
 				}
 				for idx := 0; idx < variants; idx++ {
 					triad := RenderDefenseMessage(defence, band.crit, band.margin, map[TokenName]string{
-						TokenAttacker: "Rurik",
-						TokenDefender: "Selka",
-						TokenAttack:   tc.attack,
-						TokenWeapon:   tc.attack,
+						TokenActor:  "Rurik",
+						TokenActee:  "Selka",
+						TokenAttack: tc.attack,
+						TokenWeapon: tc.attack,
 					}, idx)
 					for audience, msg := range map[string]ItemMessage{
 						"defender": triad.ToDefender,
@@ -161,7 +161,7 @@ func TestCounterPoolsRenderTriads(t *testing.T) {
 		{"heavy", Heavy, true, 1.0},    // counter crits
 	}
 
-	leftoverTokens := []string{"{attack}", "{attacker}", "{defender}", "{weapon}"}
+	leftoverTokens := []string{"{attack}", "{actor}", "{actee}", "{weapon}"}
 
 	for _, pool := range counterPools {
 		group := defenseMessages[pool]
@@ -176,8 +176,8 @@ func TestCounterPoolsRenderTriads(t *testing.T) {
 			}
 			for idx := 0; idx < variants; idx++ {
 				triad := RenderDefenseMessage(pool, band.crit, band.margin, map[TokenName]string{
-					TokenAttacker: "Rurik",
-					TokenDefender: "Selka",
+					TokenActor: "Rurik",
+					TokenActee: "Selka",
 				}, idx)
 				for audience, msg := range map[string]ItemMessage{
 					"defender": triad.ToDefender,

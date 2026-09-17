@@ -10,7 +10,7 @@ import (
 )
 
 // TestTauntLinesAreAnonymizable guards the property that actually matters about
-// the {sourcetype} and {targettype} tokens: rhetoric.yaml drops them straight
+// the {actortype} and {acteetype} tokens: rhetoric.yaml drops them straight
 // into `<ansi fg="...">`, so they must be real ANSI aliases that
 // messaging.Anonymize recognises.
 //
@@ -74,9 +74,9 @@ func seedTauntStoreForAnonTest(t *testing.T) {
 	t.Helper()
 	restore := combat.SeedTauntMessagesForTest(map[combat.TauntIntensity]*combat.TauntMessages{
 		combat.TauntHit: {
-			ToAttacker: []string{`You sneer at <ansi fg="{targettype}">{target}</ansi>!`},
-			ToDefender: []string{`<ansi fg="{sourcetype}">{source}</ansi> sneers at you!`},
-			ToRoom:     []string{`<ansi fg="{sourcetype}">{source}</ansi> sneers at <ansi fg="{targettype}">{target}</ansi>!`},
+			ToAttacker: []string{`You sneer at <ansi fg="{acteetype}">{actee}</ansi>!`},
+			ToDefender: []string{`<ansi fg="{actortype}">{actor}</ansi> sneers at you!`},
+			ToRoom:     []string{`<ansi fg="{actortype}">{actor}</ansi> sneers at <ansi fg="{acteetype}">{actee}</ansi>!`},
 		},
 	})
 	t.Cleanup(restore)

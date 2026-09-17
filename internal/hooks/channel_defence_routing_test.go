@@ -107,7 +107,7 @@ func seedChannelRoutingMessages(t *testing.T) func() {
 				truth = " no damage taken; momentum remains"
 			}
 			for i := range result {
-				result[i] = items.ItemMessage(fmt.Sprintf("%s-%s-index=%d%s {attacker} resists-with {defender} via {attack}", band, audience, i, truth))
+				result[i] = items.ItemMessage(fmt.Sprintf("%s-%s-index=%d%s {actor} resists-with {actee} via {attack}", band, audience, i, truth))
 			}
 			return result
 		}
