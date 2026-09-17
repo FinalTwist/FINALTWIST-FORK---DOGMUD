@@ -1353,7 +1353,7 @@ resolved, fires supplementary messaging:
   choke, etc.); resolution messages vary by outcome (Mercy / Subdue /
   Cripple / Lethal).
 
-- **Role keys** — every audience in `position_control.yaml` is keyed `actor`,
+- **Role keys**: every audience in `position_control.yaml` is keyed `actor`,
   `actee` or `observer` as of messaging M4b-1, which collapsed the store's
   three authored key vocabularies: `attacker`/`target`/`room` on
   `submissionMsgTriple`, `self`/`room` on `positionMessageTemplates`'s
