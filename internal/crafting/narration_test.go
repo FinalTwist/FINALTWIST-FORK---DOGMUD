@@ -111,3 +111,24 @@ func TestMobRoomLine_AuthoredLineElseFallback(t *testing.T) {
 		t.Errorf("authored room line: got %q, want %q", r.MobRoomLine(PhaseSuccess, "Smith", fallback), want)
 	}
 }
+
+// The loader's Validate is where the unknown-token check has to bite: that is
+// the call fileloader makes, and crafting.LoadRecipeFiles panics on its error.
+func TestRecipeValidateFailsTheLoadOnAnUnknownToken(t *testing.T) {
+	r := &RecipeSpec{
+		RecipeId:       "test-recipe",
+		Name:           "Test Recipe",
+		Skill:          "blacksmithing",
+		Output:         RecipeOutput{ItemId: 1, Quantity: 1},
+		SuccessMessage: "You forge {sorce} a blade.",
+		FailureMessage: "You ruin the blade.",
+	}
+	err := r.Validate()
+	if err == nil || !strings.Contains(err.Error(), "{sorce}") {
+		t.Fatalf("expected Validate to refuse {sorce}, got %v", err)
+	}
+	r.SuccessMessage = "You forge a blade."
+	if err := r.Validate(); err != nil {
+		t.Fatalf("a recipe with ordinary text must validate, got %v", err)
+	}
+}

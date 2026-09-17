@@ -228,8 +228,12 @@ A recipe is a narration store. Read its text only through the door in
   `{actor_plain}`).
 - `(*RecipeSpec).MobRoomLine(p, mobName, fallback) string`: a mob crafter's
   room line, the authored Observer line or the fallback.
+- `(RecipeSpec).ValidateNarrationTokens() []string`: unknown `{token}`
+  spellings across all four narration fields, via `textutil.ValidateTokens`.
 - `Validate` refuses: an empty `success_message` or `failure_message`; a
-  whitespace-only line; a room message without `{actor}`.
+  whitespace-only line; a room message without `{actor}`; an unknown token
+  (M4a, matching conditions and spells). The loader panics on the error, so a
+  typo cannot ship and render raw to the player.
 
 Room messages are empty in all 126 shipped recipes until M6 authors them; a
 player craft with none sends nothing to the room.

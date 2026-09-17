@@ -517,7 +517,8 @@ knobs; see `internal/actions/bleed.go` and the Bleed stacks block in
 
 ### Time String Processing
 
-`ConditionSpec.Validate()` warns on bad text tokens, converts `TriggerRate` to
+`ConditionSpec.Validate()` returns an error for an unknown text token (M4a:
+the loader panics, so a typo cannot render raw to a player), converts `TriggerRate` to
 `RoundInterval` through the game time calculator, forces condition 0's
 `TriggerCount` to the configured logout rounds, validates effects and
 narration (flags are checked separately by `ValidateLoadedFlags`), and returns an error for a spec with no usable trigger count or

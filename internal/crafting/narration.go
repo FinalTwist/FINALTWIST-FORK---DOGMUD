@@ -38,6 +38,21 @@ func (r *RecipeSpec) Narrate(p Phase, ctx textutil.TokenContext) narration.Roles
 	return textutil.Narrate(r.Narration(p), ctx)
 }
 
+// ValidateNarrationTokens reports unknown tokens in this recipe's four
+// narration fields. Crafting was the only store with no token check at all
+// (messaging arc M4a), so a typo shipped silently and rendered raw to the
+// player.
+func (r RecipeSpec) ValidateNarrationTokens() []string {
+	var problems []string
+	for _, text := range []string{
+		r.SuccessMessage, r.SuccessRoomMessage,
+		r.FailureMessage, r.FailureRoomMessage,
+	} {
+		problems = append(problems, textutil.ValidateTokens(text)...)
+	}
+	return problems
+}
+
 // validateNarration is called from Validate, so a violation fails the load.
 //
 // Both crafter lines are required: every site sends the Actor line
@@ -70,6 +85,12 @@ func (r *RecipeSpec) validateNarration() error {
 		if ph.room != "" && !strings.Contains(ph.room, narration.TokenActor) {
 			return fmt.Errorf("recipe %q: %s_room_message must name the crafter with %s (the room is watching them work)", r.RecipeId, ph.name, narration.TokenActor)
 		}
+	}
+	// An unknown token fails the load rather than warning: the loader turns this
+	// error into a boot panic (crafting.LoadRecipeFiles), so a typo cannot reach
+	// a player as raw text.
+	if problems := r.ValidateNarrationTokens(); len(problems) > 0 {
+		return fmt.Errorf("recipe %q: %s", r.RecipeId, strings.Join(problems, "; "))
 	}
 	return nil
 }

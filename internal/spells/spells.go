@@ -319,14 +319,17 @@ func (s *SpellData) Validate() error {
 		s.Difficulty = 100
 	}
 
-	// Validate YAML text tokens
+	// Validate YAML text tokens. An unknown token fails the load rather than
+	// warning (messaging arc M4a): the loader turns this error into a boot
+	// panic, so a typo cannot reach a player as raw text. Ambient stores
+	// (weather, gossip, tips) keep warning until M4b sets the two-tier policy.
 	for _, text := range []string{
 		s.CastUserText, s.CastRoomText,
 		s.WaitUserText, s.WaitRoomText,
 		s.MagicUserText, s.MagicRoomText,
 	} {
-		for _, w := range textutil.ValidateTokens(text) {
-			mudlog.Warn("Spell.Validate", "spellId", s.SpellId, "warning", w)
+		if w := textutil.ValidateTokens(text); len(w) > 0 {
+			return fmt.Errorf("spell %q: %s", s.SpellId, strings.Join(w, "; "))
 		}
 	}
 

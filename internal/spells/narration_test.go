@@ -58,3 +58,14 @@ func TestValidateRefusesAWhitespaceOnlyLine(t *testing.T) {
 		t.Fatalf("ordinary text must validate, got %v", err)
 	}
 }
+
+// An unknown token is a boot failure, not a warning (messaging arc M4a).
+// Before the promotion this spell loaded and the player saw "{actae}" raw.
+func TestValidateRefusesAnUnknownToken(t *testing.T) {
+	s := boltSpec()
+	s.CastRoomText = "{actae} gathers a bolt."
+	err := s.Validate()
+	if err == nil || !strings.Contains(err.Error(), "{actae}") {
+		t.Fatalf("expected an unknown-token validation error naming {actae}, got %v", err)
+	}
+}

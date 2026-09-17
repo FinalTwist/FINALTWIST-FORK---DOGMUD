@@ -307,7 +307,9 @@ for defence, so a caster sees a repeat every third spell.
 `Narrate(p, ctx)` renders through `textutil.Narrate`. The cast command (player
 and mob), the two wait-text sites in `NewRound_DoCombat_helpers.go`, the magic
 text in `spell_resolution.go` and the mob `aid` command all render through it
-and deliver on their own channel. `Validate` refuses a whitespace-only line.
+and deliver on their own channel. `Validate` refuses a whitespace-only line,
+and since M4a an unknown `{token}` too: the loader panics, so a typo cannot
+render raw to a player.
 No file outside this package reads the six text fields (root guard
 `store_text_fields_guard_test.go`). The two shipped `wait_room_text` lines still
 go out on the audio channel; that is filed, not a property of the door.

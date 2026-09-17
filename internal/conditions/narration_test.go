@@ -96,3 +96,14 @@ func TestValidateReadsTheRawStartLineEvenWhenTheNoticeIsSilent(t *testing.T) {
 		t.Fatalf("a whitespace-only start line must be refused even when the notice hides it, got %v", err)
 	}
 }
+
+// An unknown token is a boot failure, not a warning (messaging arc M4a).
+// Before the promotion this spec loaded and the player saw "{actae}" raw.
+func TestValidateRefusesAnUnknownToken(t *testing.T) {
+	s := glowSpec()
+	s.StartRoomText = "A glow surrounds {actae}."
+	err := s.Validate()
+	if err == nil || !strings.Contains(err.Error(), "{actae}") {
+		t.Fatalf("expected an unknown-token validation error naming {actae}, got %v", err)
+	}
+}
