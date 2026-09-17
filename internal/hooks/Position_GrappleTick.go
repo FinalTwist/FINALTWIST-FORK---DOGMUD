@@ -36,6 +36,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/narration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -555,8 +556,11 @@ func emitStrikingApexFlavor(controller, controlled *characters.Character,
 	msg := grapplemessaging.PickTemplate(pool,
 		controller.PerGrappleMessageCooldowns, "apex:mount_strike")
 	if msg != "" {
-		sendToCharacter(controller,
-			grapplemessaging.RenderTemplate(msg, controllerName, controlledName))
+		line := narration.Substitute(msg, map[string]string{
+			narration.TokenActor: controllerName,
+			narration.TokenActee: controlledName,
+		})
+		sendToCharacter(controller, line)
 	}
 }
 

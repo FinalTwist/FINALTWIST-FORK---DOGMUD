@@ -3,7 +3,7 @@
 # dimensions: category x key x role. Triad categories (advancements/degradations/reversals/escapes/holds)
 # use role in {controller,controlled,observers}; striking_apex is single-speaker (no role); gradients use
 # role in {self,partner,observers}. Each tuple: fresh cooldowns map + fresh SequencePicker via PickTemplate,
-# then RenderTemplate with fixed stand-ins Controller/Controlled.
+# then narration.Substitute with fixed stand-ins Controller/Controlled.
 
 advancements|backstanding_to_background|controller => You haul down on the seatbelt, kick one heel behind their knee, and drag both of you to the mat. Hooks in.
 advancements|backstanding_to_background|controlled => Controller bites down on the seatbelt and sweeps your knee out. You land hard on your back with them coiled behind you.

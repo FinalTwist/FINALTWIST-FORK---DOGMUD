@@ -1,7 +1,7 @@
 # quests store snapshot (internal/quests)
 # Built 2026-09-12 from PRE-migration code, sending what each site sends today:
 # rewards playermessage/roommessage and action send_text RAW (no substitution),
-# action room_text through textutil.SubstituteTokens with the player as {source}.
+# action room_text through textutil.SubstituteTokens with the player as {actor}.
 # dimensions: quest id x rewards | trigger<i>|action<j>[|sequence|action<k>...] x key
 
 quest|2|rewards|playermessage => The chieftain inclines its heavy head -- the closest thing to a bow its mutated frame allows. You are not welcome here. But you are tolerated. That is more than any surface-dweller has been given in living memory.

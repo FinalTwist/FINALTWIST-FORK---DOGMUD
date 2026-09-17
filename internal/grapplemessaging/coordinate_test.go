@@ -91,9 +91,9 @@ func TestRenderTriadCoordinatesAllThreeRoles(t *testing.T) {
 // token pass.
 func TestRenderTriadSubstitutesNamesInEveryRole(t *testing.T) {
 	tri := TemplateTriad{
-		Controller: []string{"you take {controlledName}"},
-		Controlled: []string{"{controllerName} takes you"},
-		Observers:  []string{"{controllerName} takes {controlledName}"},
+		Controller: []string{"you take {actee}"},
+		Controlled: []string{"{actor} takes you"},
+		Observers:  []string{"{actor} takes {actee}"},
 	}
 
 	got := RenderTriad(tri, "Alice", "Bob", map[string]bool{}, "k", narration.SequencePicker())

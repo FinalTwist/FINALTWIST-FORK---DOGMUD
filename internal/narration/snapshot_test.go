@@ -659,11 +659,14 @@ func buildGrappleMessagingGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# dimensions: category x key x role. Triad categories (advancements/degradations/reversals/escapes/holds)\n")
 	fmt.Fprintf(&b, "# use role in {controller,controlled,observers}; striking_apex is single-speaker (no role); gradients use\n")
 	fmt.Fprintf(&b, "# role in {self,partner,observers}. Each tuple: fresh cooldowns map + fresh SequencePicker via PickTemplate,\n")
-	fmt.Fprintf(&b, "# then RenderTemplate with fixed stand-ins Controller/Controlled.\n\n")
+	fmt.Fprintf(&b, "# then narration.Substitute with fixed stand-ins Controller/Controlled.\n\n")
 
 	renderPool := func(pool []string) string {
 		tmpl := grapplemessaging.PickTemplate(pool, map[string]bool{}, "snapshot", narration.SequencePicker())
-		return grapplemessaging.RenderTemplate(tmpl, "Controller", "Controlled")
+		return narration.Substitute(tmpl, map[string]string{
+			narration.TokenActor: "Controller",
+			narration.TokenActee: "Controlled",
+		})
 	}
 
 	triadCategories := []struct {
@@ -1098,7 +1101,7 @@ func buildQuestsGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# quests store snapshot (internal/quests)\n")
 	fmt.Fprintf(&b, "# Built 2026-09-12 from PRE-migration code, sending what each site sends today:\n")
 	fmt.Fprintf(&b, "# rewards playermessage/roommessage and action send_text RAW (no substitution),\n")
-	fmt.Fprintf(&b, "# action room_text through textutil.SubstituteTokens with the player as {source}.\n")
+	fmt.Fprintf(&b, "# action room_text through textutil.SubstituteTokens with the player as {actor}.\n")
 	fmt.Fprintf(&b, "# dimensions: quest id x rewards | trigger<i>|action<j>[|sequence|action<k>...] x key\n\n")
 
 	all := quests.GetAllQuests()

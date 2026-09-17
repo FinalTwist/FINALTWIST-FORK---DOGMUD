@@ -2,19 +2,9 @@ package grapplemessaging
 
 import (
 	"strconv"
-	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/narration"
 )
-
-// RenderTemplate substitutes {controllerName} and {controlledName}
-// in a template string and returns the rendered result. Caller is
-// responsible for ANSI-wrapping or other formatting.
-func RenderTemplate(template, controllerName, controlledName string) string {
-	out := strings.ReplaceAll(template, "{controllerName}", controllerName)
-	out = strings.ReplaceAll(out, "{controlledName}", controlledName)
-	return out
-}
 
 // PickTemplate selects a template from the list, preferring ones
 // not yet used in this grapple's cooldown map. The cooldown key is
@@ -172,8 +162,8 @@ func RenderTriad(tri TemplateTriad, controllerName, controlledName string,
 			Observer: tri.Observers,
 		},
 		map[string]string{
-			"{controllerName}": controllerName,
-			"{controlledName}": controlledName,
+			narration.TokenActor: controllerName,
+			narration.TokenActee: controlledName,
 		},
 		func(int) int { return 0 },
 		idx,
@@ -225,8 +215,8 @@ func RenderGradient(tri GradientTriad, selfName, partnerName string,
 			Observer: tri.Observers,
 		},
 		map[string]string{
-			"{controllerName}": selfName,
-			"{controlledName}": partnerName,
+			narration.TokenActor: selfName,
+			narration.TokenActee: partnerName,
 		},
 		func(int) int { return 0 },
 		idx,
