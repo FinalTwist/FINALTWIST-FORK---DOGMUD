@@ -1341,6 +1341,16 @@ resolved, fires supplementary messaging:
   choke, etc.); resolution messages vary by outcome (Mercy / Subdue /
   Cripple / Lethal).
 
+- **Tokens** — `position_control.yaml` is on the canonical vocabulary as of
+  messaging M4a: `{actor}` and `{actee}` for the two grapplers, plus the
+  store's own `{position}`, `{old_position}` and `{new_position}`. Rendering
+  goes through `narration.Substitute`; the local `substitute` this file used
+  to carry is gone. `substitutionsForCharacter` puts the controller in the
+  actor slot; `staminaWarningSubstitutions` overrides that with the character
+  the warning fires for, because the stamina room line is about the reader
+  rather than about the controller. The store's golden is
+  `internal/narration/testdata/stores/position_control.golden`.
+
 Cooldowns reset when the grapple ends (any `TransitionToStanding` via
 escape, break, or death).
 

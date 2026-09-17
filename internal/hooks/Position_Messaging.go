@@ -16,7 +16,6 @@ package hooks
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
@@ -25,6 +24,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/narration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -106,11 +106,29 @@ func fireStaminaWarningIfLow(c *characters.Character) {
 	c.PerGrappleMessageCooldowns[cooldownKey] = true
 
 	templates := loadPositionMessages()
-	subs := substitutionsForCharacter(c)
+	subs := staminaWarningSubstitutions(c)
 	sendCharacterMsg(c,
-		substitute(templates.StaminaWarning.Self, subs),
-		substitute(templates.StaminaWarning.Room, subs),
+		narration.Substitute(templates.StaminaWarning.Self, subs),
+		narration.Substitute(templates.StaminaWarning.Room, subs),
 	)
+}
+
+// staminaWarningSubstitutions is substitutionsForCharacter with the actor slot
+// forced to c.
+//
+// The stamina warning is the one asymmetric line in this store: its room text
+// reads "{actor} looks exhausted in the {position}." and is about the
+// character the warning fires for, not about the controller. Without this
+// override a controlled character's warning would name the CONTROLLER.
+//
+// It is its own function so the override is reachable from a test:
+// fireStaminaWarningIfLow itself needs a live room and user to exercise, and
+// the store golden renders templates against fixed stand-ins, so neither can
+// see which name lands in the actor slot.
+func staminaWarningSubstitutions(c *characters.Character) map[string]string {
+	subs := substitutionsForCharacter(c)
+	subs[narration.TokenActor] = c.Name
+	return subs
 }
 
 // substitutionsForCharacter builds the standard token map for c's
@@ -118,35 +136,25 @@ func fireStaminaWarningIfLow(c *characters.Character) {
 // GrappleData.Partner so room broadcasts get real names instead of
 // "the other grappler" filler.
 func substitutionsForCharacter(c *characters.Character) map[string]string {
-	subs := map[string]string{
-		"position":  c.Position.State().String(),
-		"Character": c.Name,
-	}
 	partner := resolvePartner(c)
 	partnerName := ""
 	if partner != nil {
 		partnerName = partner.Name
 	}
-	if c.IsController() {
-		subs["Controller"] = c.Name
-		subs["Controlled"] = partnerName
-	} else {
-		subs["Controlled"] = c.Name
-		subs["Controller"] = partnerName
+	// The controller is the actor and the controlled is the actee, whichever
+	// of the two this character is: the templates name the sides of the
+	// grapple, not the reader. A line that is about the reader instead has to
+	// override the actor slot itself; fireStaminaWarningIfLow is the one such
+	// caller today.
+	actor, actee := c.Name, partnerName
+	if !c.IsController() {
+		actor, actee = partnerName, c.Name
 	}
-	return subs
-}
-
-// substitute does simple {key} replacement.
-func substitute(template string, subs map[string]string) string {
-	if template == "" {
-		return ""
+	return map[string]string{
+		"{position}":         c.Position.State().String(),
+		narration.TokenActor: actor,
+		narration.TokenActee: actee,
 	}
-	out := template
-	for k, v := range subs {
-		out = strings.ReplaceAll(out, "{"+k+"}", v)
-	}
-	return out
 }
 
 // sendCharacterMsg dispatches the self and room halves of a beat.
@@ -169,10 +177,10 @@ func sendCharacterMsg(c *characters.Character, selfMsg, roomMsg string) {
 		return
 	}
 	// COMPANION-NAME-LEAK SIBLING FIX (T11-followup): grapple prose names
-	// both grapplers via {Controller}/{Controlled}/{Character} substitutions
-	// — route through SendTextVisual so infrared observers see anonymized
-	// text and blind observers don't get a free identification. Same class
-	// as companion_follow.go:55.
+	// both grapplers via the canonical {actor} and {actee} substitutions, so
+	// route through SendTextVisual: infrared observers see anonymized text and
+	// blind observers do not get a free identification. Same class as
+	// companion_follow.go:55.
 	if excludeId > 0 {
 		r.SendTextVisual(messaging.CategoryGrappleFlow, roomMsg, excludeId)
 	} else {
@@ -223,9 +231,9 @@ func sendSubmissionTriple(
 	tmpl submissionMsgTriple,
 	subs map[string]string,
 ) {
-	atkMsg := substitute(tmpl.Attacker, subs)
-	tgtMsg := substitute(tmpl.Target, subs)
-	roomMsg := substitute(tmpl.Room, subs)
+	atkMsg := narration.Substitute(tmpl.Attacker, subs)
+	tgtMsg := narration.Substitute(tmpl.Target, subs)
+	roomMsg := narration.Substitute(tmpl.Room, subs)
 
 	var excludeIds []int
 	if ua := userForCharacter(attempter); ua != nil {
@@ -248,9 +256,9 @@ func sendSubmissionTriple(
 	if r == nil {
 		return
 	}
-	// Submission room broadcasts substitute {attacker}/{target} names,
-	// so they fall in the same name-leak class as the gradient room
-	// broadcasts above — route through SendTextVisual.
+	// Submission room broadcasts substitute {actor} and {actee} names, so they
+	// fall in the same name-leak class as the gradient room broadcasts above.
+	// Route through SendTextVisual.
 	switch len(excludeIds) {
 	case 0:
 		r.SendTextVisual(messaging.CategorySubmission, roomMsg)
@@ -283,8 +291,8 @@ func fireSubmissionOpeningMessage(
 		return
 	}
 	subs := map[string]string{
-		"attacker": attempter.Name,
-		"target":   recipient.Name,
+		narration.TokenActor: attempter.Name,
+		narration.TokenActee: recipient.Name,
 	}
 	sendSubmissionTriple(attempter, recipient, tmpl, subs)
 }
@@ -349,8 +357,8 @@ func fireSubmissionResolutionMessage(
 	}
 
 	subs := map[string]string{
-		"attacker": attempter.Name,
-		"target":   recipient.Name,
+		narration.TokenActor: attempter.Name,
+		narration.TokenActee: recipient.Name,
 	}
 	sendSubmissionTriple(attempter, recipient, tmpl, subs)
 }

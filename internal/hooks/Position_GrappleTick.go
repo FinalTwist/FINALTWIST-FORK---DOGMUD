@@ -925,11 +925,10 @@ func emitGradientMessage(self state.ActorRef, transient control.State, from cont
 	selfName := characterDisplayName(selfChar)
 	partnerName := characterDisplayName(partner)
 
-	// Gradient templates use {controllerName} for "self" (the character
-	// whose state changed) and {controlledName} for "partner" in
-	// observer templates. The substitution matches what the YAML
-	// authoring used (selfName fills {controllerName}; partnerName
-	// fills {controlledName}).
+	// Gradient templates name the two grapplers with the canonical tokens
+	// {actor} and {actee}: selfName (the character whose state changed) fills
+	// {actor}, partnerName fills {actee} in the partner and observer
+	// templates.
 	// One index, three audiences, same as the outcome and hold triads. The
 	// gradient pools spell their roles self/partner/observers rather than
 	// controller/controlled/observers; RenderGradient resolves that aliasing.

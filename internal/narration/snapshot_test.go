@@ -1436,18 +1436,15 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 // which is the only tree the M0 surface guard walks. That is why it reached
 // M4a with no golden and no guard at all.
 //
-// Recorded from PRE-migration code (M4a task 6), so the token flip has
-// something to be byte-identical against. Production renders it through a
-// third hand-rolled engine, the local substitute() in
-// internal/hooks/Position_Messaging.go, whose {key} loop is reproduced by
-// renderPositionControlPre below; the golden must record what production does
-// today, not what the core will do tomorrow.
-//
-// THREE name vocabularies are authored here: {attacker}/{target} in the
-// submission block, {Controller}/{Controlled} in the gradient and transition
-// blocks, and {Character} in the stamina warning. The stand-ins collapse all
-// three onto two people, Actorius and Acteeus, so the post-flip rendering with
-// {actor}/{actee} produces the same bytes.
+// Recorded from PRE-migration code (M4a task 6), when production rendered this
+// store through a third hand-rolled engine, the local substitute() in
+// internal/hooks/Position_Messaging.go. THREE name vocabularies were authored
+// here: {attacker}/{target} in the submission block, {Controller}/{Controlled}
+// in the gradient and transition blocks, and {Character} in the stamina
+// warning. M4a task 6 collapsed all three onto {actor}/{actee} and deleted
+// that engine; this builder now reads through narration.Substitute, and the
+// rows, their order and the header are unchanged from the pre-migration
+// recording, which is the byte-identity proof.
 //
 // dimensions: block x key [x subtype] x role. Every authored line exactly
 // once, empty lines included: an authored "" is deliberate silence in this
@@ -1497,32 +1494,19 @@ func loadPositionControlForSnapshot(t *testing.T) positionControlFile {
 	return out
 }
 
-// positionControlStandins is the fixed stand-in map. Keys are bare (no braces)
-// because renderPositionControlPre reproduces hooks.substitute, which wraps
-// them itself.
+// positionControlStandins is the fixed stand-in map, on the canonical
+// vocabulary since M4a.
+//
+// The pre-migration recording used the same two people under the store's three
+// old spellings ({Character} and {Controller} both Actorius, {Controlled} and
+// {target} both Acteeus, {attacker} Actorius), which is why the flip to
+// {actor}/{actee} leaves the golden byte-identical.
 var positionControlStandins = map[string]string{
-	"position":     "side control",
-	"old_position": "guard",
-	"new_position": "side control",
-	"Character":    "Actorius",
-	"Controller":   "Actorius",
-	"Controlled":   "Acteeus",
-	"attacker":     "Actorius",
-	"target":       "Acteeus",
-}
-
-// renderPositionControlPre is hooks.substitute, copied. Sequential ReplaceAll
-// over a {key} loop; no stand-in value contains a token spelling, so Go's
-// randomised map order cannot make the result vary.
-func renderPositionControlPre(template string, subs map[string]string) string {
-	if template == "" {
-		return ""
-	}
-	out := template
-	for k, v := range subs {
-		out = strings.ReplaceAll(out, "{"+k+"}", v)
-	}
-	return out
+	"{position}":         "side control",
+	"{old_position}":     "guard",
+	"{new_position}":     "side control",
+	narration.TokenActor: "Actorius",
+	narration.TokenActee: "Acteeus",
 }
 
 func sortedMapKeys[V any](m map[string]V) []string {
@@ -1549,7 +1533,7 @@ func buildPositionControlGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# guard the data, not a render path.\n\n")
 
 	render := func(s string) string {
-		return renderPositionControlPre(s, positionControlStandins)
+		return narration.Substitute(s, positionControlStandins)
 	}
 	emitSelfRoom := func(key string, pair posSelfRoom) {
 		fmt.Fprintf(&b, "%s|self => %q\n", key, render(pair.Self))

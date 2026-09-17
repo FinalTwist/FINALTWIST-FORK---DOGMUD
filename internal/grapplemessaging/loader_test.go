@@ -44,9 +44,9 @@ advancements:
     controller:
       - "You drive forward and ride them into mount."
     controlled:
-      - "{controllerName} drives forward and mounts you."
+      - "{actor} drives forward and mounts you."
     observers:
-      - "{controllerName} drives forward and mounts {controlledName}."
+      - "{actor} drives forward and mounts {actee}."
 degradations: {}
 reversals: {}
 escapes: {}
@@ -314,9 +314,9 @@ gradients:
     self:
       - "Your grip slips."
     partner:
-      - "{controllerName}'s grip slips."
+      - "{actor}'s grip slips."
     observers:
-      - "{controllerName}'s grip on {controlledName} slips."
+      - "{actor}'s grip on {actee} slips."
 `)
 	lib, err := Load(path)
 	if err != nil {
