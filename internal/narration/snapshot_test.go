@@ -659,9 +659,10 @@ func buildGrappleMessagingGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# category counts at time of writing: advancements=%d degradations=%d reversals=%d escapes=%d holds=%d striking_apex=%d gradients=%d\n",
 		len(lib.Advancements), len(lib.Degradations), len(lib.Reversals), len(lib.Escapes), len(lib.Holds), len(lib.StrikingApex), len(lib.Gradients))
 	fmt.Fprintf(&b, "# dimensions: category x key x role. Triad categories (advancements/degradations/reversals/escapes/holds)\n")
-	fmt.Fprintf(&b, "# use role in {controller,controlled,observers}; striking_apex is single-speaker (no role); gradients use\n")
-	fmt.Fprintf(&b, "# role in {self,partner,observers}. Each tuple: fresh cooldowns map + fresh SequencePicker via PickTemplate,\n")
-	fmt.Fprintf(&b, "# then narration.Substitute with fixed stand-ins Controller/Controlled.\n\n")
+	fmt.Fprintf(&b, "# and gradients BOTH use role in {actor,actee,observer}: M4b-1 merged the two authored vocabularies\n")
+	fmt.Fprintf(&b, "# (controller/controlled/observers and self/partner/observers). striking_apex is single-speaker (no role).\n")
+	fmt.Fprintf(&b, "# Each tuple: fresh cooldowns map + fresh SequencePicker via PickTemplate, then narration.Substitute\n")
+	fmt.Fprintf(&b, "# with fixed stand-ins Controller/Controlled.\n\n")
 
 	renderPool := func(pool []string) string {
 		tmpl := grapplemessaging.PickTemplate(pool, map[string]bool{}, "snapshot", narration.SequencePicker())
@@ -684,9 +685,9 @@ func buildGrappleMessagingGolden(t *testing.T) string {
 	for _, cat := range triadCategories {
 		for _, key := range sortedKeysTriad(cat.m) {
 			triad := cat.m[key]
-			fmt.Fprintf(&b, "%s|%s|controller => %s\n", cat.name, key, renderPool(triad.Controller))
-			fmt.Fprintf(&b, "%s|%s|controlled => %s\n", cat.name, key, renderPool(triad.Controlled))
-			fmt.Fprintf(&b, "%s|%s|observers => %s\n", cat.name, key, renderPool(triad.Observers))
+			fmt.Fprintf(&b, "%s|%s|actor => %s\n", cat.name, key, renderPool(triad.Controller))
+			fmt.Fprintf(&b, "%s|%s|actee => %s\n", cat.name, key, renderPool(triad.Controlled))
+			fmt.Fprintf(&b, "%s|%s|observer => %s\n", cat.name, key, renderPool(triad.Observers))
 		}
 	}
 
@@ -696,9 +697,9 @@ func buildGrappleMessagingGolden(t *testing.T) string {
 
 	for _, key := range sortedKeysGradient(lib.Gradients) {
 		g := lib.Gradients[key]
-		fmt.Fprintf(&b, "gradients|%s|self => %s\n", key, renderPool(g.Self))
-		fmt.Fprintf(&b, "gradients|%s|partner => %s\n", key, renderPool(g.Partner))
-		fmt.Fprintf(&b, "gradients|%s|observers => %s\n", key, renderPool(g.Observers))
+		fmt.Fprintf(&b, "gradients|%s|actor => %s\n", key, renderPool(g.Self))
+		fmt.Fprintf(&b, "gradients|%s|actee => %s\n", key, renderPool(g.Partner))
+		fmt.Fprintf(&b, "gradients|%s|observer => %s\n", key, renderPool(g.Observers))
 	}
 
 	// EMPTY CASE: PickTemplate on an empty pool returns a benign fallback

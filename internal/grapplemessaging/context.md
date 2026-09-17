@@ -29,6 +29,28 @@ A **triad** is the same event told three ways — to the controller, to the
 controlled, and to the room. Storing them together is what stops the three
 drifting apart when someone edits one.
 
+## The authored role vocabulary
+
+Both shapes read the SAME three YAML keys, the canonical role vocabulary M4b-1
+gave every narration store:
+
+| YAML key   | `TemplateTriad` field | `GradientTriad` field | audience                 |
+|------------|-----------------------|-----------------------|--------------------------|
+| `actor`    | `Controller`          | `Self`                | the side the event is about, second person |
+| `actee`    | `Controlled`          | `Partner`             | the other side, second person |
+| `observer` | `Observers`           | `Observers`           | everyone else in the room, third person |
+
+`grapple_outcomes.yaml` authored two vocabularies before that rename:
+`controller`/`controlled`/`observers` on outcome triads and
+`self`/`partner`/`observers` on gradients. They always meant the same three
+audiences; the split existed only because gradients fire per-character rather
+than per-role. M4b-1 collapsed both onto one set of tags.
+
+**The Go field names deliberately did not move.** `Controller`, `Controlled`,
+`Self` and `Partner` still read the way the render call sites think, so the
+struct tag is the only place the wire name appears. Grep the TAG, not the
+field, when you want to know what the file on disk says.
+
 ## API
 
 ```go
@@ -86,7 +108,8 @@ than `{controllerName}`/`{controlledName}`.
 
 ## Dependencies
 
-`configs`, `mudlog`, plus YAML.
+`configs`, `narration`, plus YAML. (`mudlog` was listed here until M4b-1 and
+this package has never imported it.)
 
 ## Consumers
 

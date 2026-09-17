@@ -97,6 +97,18 @@ GROUPS = {
 # nothing loads its combat-messages, since every test that loads these stores
 # points FilePaths.DataFiles at the dogmud world first.
 KEY_GROUPS = {
+    # grapple points at the FILE, not at W/messaging, and that is load-bearing.
+    # position_control.yaml sits in the same directory and authors `controller:`,
+    # `controlled:` and `self:` keys of its own, which belong to the POSITION
+    # group a later task renames. A directory target would rewrite them here,
+    # silently folding two stores into one task. files_under() accepts a file
+    # path, so naming the file costs nothing.
+    "grapple": [
+        (os.path.join(W, "messaging", "grapple_outcomes.yaml"), [
+            ("controller", "actor"), ("controlled", "actee"), ("observers", "observer"),
+            ("self", "actor"), ("partner", "actee"),
+        ]),
+    ],
     "combat": [
         (os.path.join(W, "defense-messages"), [
             ("toattacker", "actor"), ("todefender", "actee"), ("toroom", "observer"),

@@ -139,27 +139,32 @@ var textSurfaceRegistry = map[string]surfaceEntry{
 	// the narration shape (see messagingSurfaceAudienceKeys' own comment),
 	// spanning internal/combat/taunt_messages.go, internal/items/
 	// attack_messages.go and internal/items/defensive_messages.go. --
-	"actor":           {narration, "Attacker-side phrasing key shared by combat/taunt_messages.go TauntMessages.ToAttacker, items/attack_messages.go and items/defensive_messages.go -- combat/attack/defence/taunt message triad. SPELLING CHANGED IN M4b: this key was `toattacker` until the role-key rename."},
-	"actee":           {narration, "Defender-side phrasing key, same triad as actor (taunt_messages.go, attack_messages.go, defensive_messages.go). SPELLING CHANGED IN M4b: this key was `todefender` until the role-key rename."},
-	"observer":        {narration, "Room-observer phrasing key, same triad as actor; ToRoom on TauntMessages/AttackMessages/DefensiveMessages, and ToAttackerRoom on items/attack_messages.go SeparateMessages. SPELLING CHANGED IN M4b: this key was `toroom` in the together shape and `toattackerroom` in the separate shape until the role-key rename, which merged them because they are the same audience."},
+	"actor":           {narration, "Attacker-side phrasing key shared by combat/taunt_messages.go TauntMessages.ToAttacker, items/attack_messages.go and items/defensive_messages.go -- combat/attack/defence/taunt message triad. Also grapplemessaging/loader.go TemplateTriad.Controller and GradientTriad.Self (grapple_outcomes.yaml). SPELLING CHANGED IN M4b: this key was `toattacker` in the combat triad, `controller` in the grapple outcome triad and `self` in the grapple gradient triad, until the role-key rename."},
+	"actee":           {narration, "Defender-side phrasing key, same triad as actor (taunt_messages.go, attack_messages.go, defensive_messages.go), plus grapplemessaging/loader.go TemplateTriad.Controlled and GradientTriad.Partner. SPELLING CHANGED IN M4b: this key was `todefender` in the combat triad, `controlled` in the grapple outcome triad and `partner` in the grapple gradient triad, until the role-key rename."},
+	"observer":        {narration, "Room-observer phrasing key, same triad as actor; ToRoom on TauntMessages/AttackMessages/DefensiveMessages, ToAttackerRoom on items/attack_messages.go SeparateMessages, and grapplemessaging/loader.go TemplateTriad.Observers / GradientTriad.Observers. SPELLING CHANGED IN M4b: this key was `toroom` in the together shape, `toattackerroom` in the separate shape and `observers` in both grapple shapes, until the role-key rename, which merged them because they are the same audience."},
 	"remote_observer": {narration, "items/attack_messages.go SeparateMessages.ToDefenderRoom -- the observers in the DEFENDER's room when a ranged blow crosses rooms, which is the one case with two observer audiences (narration.Roles.ActeeObserver). SPELLING CHANGED IN M4b: this key was `todefenderroom` until the role-key rename."},
 	"together":        {narration, "items/attack_messages.go and items/defensive_messages.go Together field -- joint attacker+defender phrasing, paired with separate, in the same message triad."},
 	"separate":        {narration, "items/attack_messages.go and items/defensive_messages.go Separate field -- independent attacker/defender phrasing, paired with together."},
 	"optionid":        {narration, "combat/taunt_messages.go, items/attack_messages.go, items/defensive_messages.go OptionId field -- an identifier/selector (e.g. a DefenseType or ItemSubType), not prose itself, but it selects which tier of the message triad's Options map plays; part of the narration shape, not content."},
 	"options":         {narration, "The map of tiered/intensity message pools selected by optionid, same combat/attack/defence/taunt triad; the prose lives one level down inside this map."},
 
-	// -- Grapple outcome narration: internal/grapplemessaging/loader.go
-	// TemplateTriad (Controller/Controlled/Observers) and GradientTriad
-	// (Observers only), rendered by RenderOutcome, consumed by
-	// internal/hooks/Position_GrappleTick.go. All three live in the single
-	// data file _datafiles/world/dogmud/messaging/grapple_outcomes.yaml, so
-	// none clears the 2-file threshold on file COUNT alone -- each key
-	// recurs many times (30-40 occurrences) within that one file, across
-	// many outcome entries. Promoted to schema by Method E (Go yaml struct
-	// tag), same shape as on_use_user_text above. --
-	"controller": {narration, "internal/grapplemessaging/loader.go TemplateTriad.Controller -- second-person line shown to the grapple's controlling side; grapple_outcomes.yaml is the only data file, 37 occurrences within it, promoted to schema by Method E."},
-	"controlled": {narration, "internal/grapplemessaging/loader.go TemplateTriad.Controlled -- second-person line shown to the grapple's controlled side, paired with controller; same single-file/Method-E shape."},
-	"observers":  {narration, "internal/grapplemessaging/loader.go TemplateTriad.Observers and GradientTriad.Observers -- third-person line broadcast to the room during a grapple outcome/gradient event; same single-file/Method-E shape as controller/controlled."},
+	// -- Grapple outcome narration USED TO HAVE ITS OWN THREE ENTRIES here:
+	// `controller`, `controlled` and `observers`, promoted to schema by
+	// Method E (Go yaml struct tag) because grapple_outcomes.yaml is their
+	// only data file and none of them clears the 2-file threshold on file
+	// COUNT alone. M4b-1 renamed them to actor/actee/observer, so they now
+	// fold into the three combat-triad entries above rather than standing
+	// alone, and their provenance is recorded there.
+	//
+	// The three old spellings are deliberately NOT kept as entries. After
+	// the rename `observers` appears in no data file at all, and
+	// `controller`/`controlled` appear in exactly one (messaging/
+	// position_control.yaml, whose gradient_messages and transition_messages
+	// blocks are read by internal/grapplemessaging rather than by any Go
+	// struct tag). Single-file and untagged is content, not schema, so
+	// leaving them registered fails the staleness half of this guard, which
+	// is exactly what it should do. The position store's own rename lands in
+	// a later M4b-1 task and will not need entries here either. --
 
 	// -- Sentient item voice narration: internal/itemvoices/itemvoices.go
 	// VoiceSpec, one YAML per voice, consumed by the pinnacle per-round tick
