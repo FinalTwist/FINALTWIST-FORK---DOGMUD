@@ -1,10 +1,23 @@
 track: temperate
 season: summer
+# No underground section by design: deep stone does not register a season, so
+# a cave gets no seasonal ambience rather than borrowing prose written for a
+# built interior. The section CAN now be authored here if that judgement ever
+# changes; before this it would have been silently dropped by the parser.
 outdoor:
   default:
     - "Insects drone in the heavy summer air."
     - "Heat shimmer wobbles above every sunlit surface."
+    - "The sun sits high and merciless, leaving almost no shade."
+    - "Grass and leaves alike have gone dry and pale under the heat."
+    - "The air smells faintly of dust and sun-warmed earth."
+    - "Sweat gathers at the back of your neck without any effort at all."
 indoor:
   default:
     strong:
       - "The summer air inside is close and still."
+      - "The walls hold onto the day's heat, warm to the touch."
+      - "A fly's buzz circles lazily near a closed window."
+      - "Long light slants low through the shutters even now."
+      - "Sun-warmed wood gives off a faint, dry scent."
+      - "Dust drifts slow and visible in a bar of sunlight."

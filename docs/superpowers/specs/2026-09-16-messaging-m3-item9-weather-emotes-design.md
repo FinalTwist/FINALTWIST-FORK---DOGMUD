@@ -209,6 +209,17 @@ rooms, mobs or players.
 `mild: []` is deliberate. Light weather is meant to be inaudible indoors, and
 an empty pool is how an author says so. A flat minimum would reject it.
 
+⚠️ **CORRECTION, found during implementation: mild is NOT always empty.**
+`storm`, `blizzard` and `dust` each shipped ONE `indoor.mild` line, and the
+`IndoorPool` doc comment says "usually empty", not always. Those three are
+exactly the types `shipped_emotes_test.go` already treats as severe, which
+makes it a real pattern rather than an oversight: a mild storm genuinely is
+audible in a house, even when light rain is not.
+
+They are therefore padded to depth 6 rather than emptied. Deleting correct
+content to satisfy a depth rule would be backwards, and the rule already has
+the right shape for this: empty BY INTENT, or deep enough not to repeat.
+
 The rule is therefore **empty by intent, or at least 6**, applied per pool:
 
 ```go
@@ -250,7 +261,7 @@ Full pass to depth 6 across all three sections of all 9 weather types, plus the
 | `outdoor.default` | 3 to 4 per type | 6 per type |
 | `outdoor.<biome>` | 1 to 2 per pool | 6 per pool |
 | `indoor.strong` | 3 to 4, house prose | 6, rewritten for a built interior |
-| `indoor.mild` | empty | empty (deliberate) |
+| `indoor.mild` | empty for 6 types, **1 line for `storm`, `blizzard`, `dust`** | empty for 6, depth 6 for those three |
 | `underground.strong` | absent | 6, authored new |
 | `underground.mild` | absent | empty (deliberate) |
 | seasonal | 1 to 6 per file | 6 per non empty pool |

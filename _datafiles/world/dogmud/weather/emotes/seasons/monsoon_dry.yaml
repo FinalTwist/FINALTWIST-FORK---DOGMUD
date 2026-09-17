@@ -1,10 +1,23 @@
 track: monsoon
 season: dry
+# No underground section by design: deep stone does not register a season, so
+# a cave gets no seasonal ambience rather than borrowing prose written for a
+# built interior. The section CAN now be authored here if that judgement ever
+# changes; before this it would have been silently dropped by the parser.
 outdoor:
   default:
     - "Dust devils twist across the cracked hardpan."
     - "The dry wind rasps like something thirsty."
+    - "The ground has cracked into a maze of pale, sun-baked plates."
+    - "Not a single cloud breaks the hard, bleached expanse of sky."
+    - "Dust rises with every step, hanging long in the still air."
+    - "The heat presses down flat and heavy, without a breath of relief."
 indoor:
   default:
     strong:
       - "Fine dry dust films every surface, fresh as fast as it's wiped."
+      - "Timbers creak and pop as the dry heat works into the wood."
+      - "The air feels parched indoors, with no moisture to spare."
+      - "Sunlight through the shutters looks bleached and harsh."
+      - "Gaps have opened between shrinking floorboards."
+      - "A dry, dusty smell hangs in air that never seems to move."

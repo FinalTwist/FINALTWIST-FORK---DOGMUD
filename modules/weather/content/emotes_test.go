@@ -12,13 +12,27 @@ outdoor:
   default:
     - "Thunder cracks directly overhead."
     - "A blinding fork of lightning splits the sky."
+    - "Rain lashes sideways in the gusting wind."
+    - "A low rumble rolls away across the horizon."
+    - "The sky flickers pale for an instant, then dark again."
+    - "Sheets of rain sweep past in a sudden squall."
   forest:
     - "Wind tears at the branches; the whole canopy roars."
+    - "Leaves rip free and spin off into the dark."
+    - "A branch cracks somewhere close in the gloom."
+    - "The treeline bends and thrashes under the gusts."
+    - "Rain hammers the canopy in a rising roar."
+    - "Thunder rolls low beneath the groaning trees."
 indoor:
   default:
     mild: []
     strong:
       - "Rain hammers against the windows."
+      - "Thunder rattles the shutters."
+      - "Wind moans around the eaves."
+      - "A gust rattles the door in its frame."
+      - "Rain drums a steady beat on the roof."
+      - "Lightning flickers pale through the curtains."
 `
 
 func loadTestTables(t *testing.T) Tables {
@@ -53,7 +67,7 @@ func TestPickUsesRoll(t *testing.T) {
 	tables := loadTestTables(t)
 	rolled := -1
 	got := tables.Pick("storm", "default", false, 0.7, "", func(n int) int { rolled = n; return 1 })
-	if rolled != 2 {
+	if rolled != 6 {
 		t.Errorf("roll should receive the line count, got %d", rolled)
 	}
 	if got != "A blinding fork of lightning splits the sky." {
@@ -79,9 +93,11 @@ func TestPick_IndoorIntensityBands(t *testing.T) {
 	tables := Tables{
 		"rain": {
 			Weather: "rain",
-			Outdoor: map[string][]string{"default": {"out"}},
-			Indoor: map[string]IndoorPool{
-				"default": {Mild: nil, Strong: []string{"roof"}},
+			TableSection: TableSection{
+				Outdoor: map[string][]string{"default": {"out"}},
+				Indoor: map[string]IndoorPool{
+					"default": {Mild: nil, Strong: []string{"roof"}},
+				},
 			},
 		},
 	}
@@ -102,9 +118,11 @@ func TestPick_IndoorBiomeFallback(t *testing.T) {
 	tables := Tables{
 		"storm": {
 			Weather: "storm",
-			Indoor: map[string]IndoorPool{
-				"default": {Strong: []string{"generic"}},
-				"fort":    {Strong: []string{"stone walls"}},
+			TableSection: TableSection{
+				Indoor: map[string]IndoorPool{
+					"default": {Strong: []string{"generic"}},
+					"fort":    {Strong: []string{"stone walls"}},
+				},
 			},
 		},
 	}
@@ -124,8 +142,10 @@ func TestPick_SeasonalVariant(t *testing.T) {
 	tables := Tables{
 		"rain": {
 			Weather: "rain",
-			Outdoor: map[string][]string{"default": {"base outdoor"}, "forest": {"base forest"}},
-			Indoor:  map[string]IndoorPool{"default": {Strong: []string{"base indoor"}}},
+			TableSection: TableSection{
+				Outdoor: map[string][]string{"default": {"base outdoor"}, "forest": {"base forest"}},
+				Indoor:  map[string]IndoorPool{"default": {Strong: []string{"base indoor"}}},
+			},
 			Seasonal: map[string]TableSection{
 				"winter": {
 					Outdoor: map[string][]string{"forest": {"freezing rain"}},
@@ -183,10 +203,20 @@ season: winter
 outdoor:
   default:
     - "Frost rimes every edge."
+    - "Your breath plumes white in the still air."
+    - "The cold presses in steady and even."
+    - "Bare branches stand stark against a colorless sky."
+    - "The light sits low and pale."
+    - "A skin of ice creaks at the edges of still water."
 indoor:
   default:
     strong:
       - "Wind moans in the chimney."
+      - "Deep-winter cold seeps through the walls."
+      - "The hearth pops and settles against the draft."
+      - "A draft finds the gap beneath the door."
+      - "Frost feathers the inside of the windowpane."
+      - "The rafters tick as the cold deepens."
 `)
 	fsys := fstest.MapFS{"seasons/temperate_winter.yaml": {Data: src}}
 	st, err := LoadSeasonalEmotes(fsys, "seasons")
@@ -194,8 +224,57 @@ indoor:
 		t.Fatalf("load: %v", err)
 	}
 	sec, ok := st[SeasonalKey{"temperate", "winter"}]
-	if !ok || len(sec.Outdoor["default"]) != 1 || len(sec.Indoor["default"].Strong) != 1 {
+	if !ok || len(sec.Outdoor["default"]) != 6 || len(sec.Indoor["default"].Strong) != 6 {
 		t.Fatalf("unexpected seasonal table: %+v", st)
+	}
+}
+
+// A seasonal-ambience file can author an underground section the same way
+// the weather tables can. Before this test's fix, seasonalEmoteFile had no
+// Underground field, so yaml.v2 silently dropped an authored 'underground:'
+// key and the resulting TableSection carried no underground prose at all.
+func TestLoadSeasonalEmotesCarriesUndergroundSection(t *testing.T) {
+	src := []byte(`track: temperate
+season: winter
+outdoor:
+  default:
+    - "Frost rimes every edge."
+    - "Your breath plumes white in the still air."
+    - "The cold presses in steady and even."
+    - "Bare branches stand stark against a colorless sky."
+    - "The light sits low and pale."
+    - "A skin of ice creaks at the edges of still water."
+indoor:
+  default:
+    strong:
+      - "Wind moans in the chimney."
+      - "Deep-winter cold seeps through the walls."
+      - "The hearth pops and settles against the draft."
+      - "A draft finds the gap beneath the door."
+      - "Frost feathers the inside of the windowpane."
+      - "The rafters tick as the cold deepens."
+underground:
+  default:
+    strong:
+      - "Cold seeps up through the stone."
+      - "Damp air carries the smell of frozen earth."
+      - "Somewhere deep, water drips and stills to ice."
+      - "The chill here is older and slower than the wind above."
+      - "Frost furs the seams between the stones."
+      - "The dark holds its cold like a held breath."
+`)
+	fsys := fstest.MapFS{"seasons/temperate_winter.yaml": {Data: src}}
+	st, err := LoadSeasonalEmotes(fsys, "seasons")
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	sec, ok := st[SeasonalKey{"temperate", "winter"}]
+	if !ok {
+		t.Fatalf("expected (temperate, winter) table, got: %+v", st)
+	}
+	got := sec.Underground["default"].Strong
+	if len(got) != 6 || got[0] != "Cold seeps up through the stone." {
+		t.Fatalf("underground section did not survive loading: %#v", sec.Underground)
 	}
 }
 
@@ -221,8 +300,10 @@ func TestPickRendersThroughTheNarrationCore(t *testing.T) {
 	tables := Tables{
 		"rain": {
 			Weather: "rain",
-			Outdoor: map[string][]string{
-				"default": {"first line", "second line", "third line"},
+			TableSection: TableSection{
+				Outdoor: map[string][]string{
+					"default": {"first line", "second line", "third line"},
+				},
 			},
 		},
 	}
@@ -280,5 +361,160 @@ indoor:
 	}
 	if len(tbl.Indoor["default"].Strong) != 1 {
 		t.Errorf("expected 1 strong indoor line, got %+v", tbl.Indoor["default"])
+	}
+}
+
+// The three sections are peers on the same struct, and Table embeds
+// TableSection so a new section is declared once rather than twice (Table used
+// to carry its own copy of Outdoor and Indoor alongside Seasonal's
+// TableSection).
+func TestUndergroundSectionParses(t *testing.T) {
+	src := []byte(`
+weather: rain
+outdoor:
+  default: ["outdoor line"]
+indoor:
+  default:
+    mild: []
+    strong: ["indoor line"]
+underground:
+  default:
+    mild: []
+    strong: ["underground line"]
+seasonal:
+  winter:
+    underground:
+      default:
+        mild: []
+        strong: ["winter underground line"]
+`)
+	tbl, err := ParseEmoteTable(src)
+	if err != nil {
+		t.Fatalf("ParseEmoteTable: %v", err)
+	}
+	if got := tbl.Underground["default"].Strong; len(got) != 1 || got[0] != "underground line" {
+		t.Fatalf("base underground section did not parse: %#v", got)
+	}
+	// The seasonal variants inherit the new section through the embed. If
+	// Table had kept its own field pair this would still be empty.
+	if got := tbl.Seasonal["winter"].Underground["default"].Strong; len(got) != 1 {
+		t.Fatalf("seasonal underground section did not parse: %#v", got)
+	}
+	// The existing sections must be unaffected by the embed.
+	if got := tbl.Outdoor["default"]; len(got) != 1 || got[0] != "outdoor line" {
+		t.Fatalf("outdoor section regressed: %#v", got)
+	}
+	if got := tbl.Indoor["default"].Strong; len(got) != 1 {
+		t.Fatalf("indoor section regressed: %#v", got)
+	}
+	if tbl.Weather != "rain" {
+		t.Fatalf("weather key regressed: %q", tbl.Weather)
+	}
+}
+
+func TestClassResolution(t *testing.T) {
+	tables := Tables{
+		"rain": {
+			Weather: "rain",
+			TableSection: TableSection{
+				Outdoor: map[string][]string{"default": {"OUT"}},
+				Indoor: map[string]IndoorPool{
+					"default": {Mild: []string{"IN-MILD"}, Strong: []string{"IN-STRONG"}},
+				},
+				Underground: map[string]IndoorPool{
+					"default": {Mild: nil, Strong: []string{"UNDER-STRONG"}},
+				},
+			},
+		},
+	}
+
+	cases := []struct {
+		name   string
+		biome  string
+		indoor bool
+		felt   float64
+		want   string
+	}{
+		{"outdoor ignores the biome", "forest", false, 1.0, "OUT"},
+		{"house is surface indoor", "house", true, 1.0, "IN-STRONG"},
+		{"fort is surface indoor", "fort", true, 1.0, "IN-STRONG"},
+		{"cave is underground", "cave", true, 1.0, "UNDER-STRONG"},
+		{"dungeon is underground", "dungeon", true, 1.0, "UNDER-STRONG"},
+		{"spiderweb is NOT underground", "spiderweb", true, 1.0, "IN-STRONG"},
+		{"indoor mild band below threshold", "house", true, 0.0, "IN-MILD"},
+		{"underground mild is empty, so silence", "cave", true, 0.0, ""},
+		{"unknown biome falls back to default", "nowhere", true, 1.0, "IN-STRONG"},
+		// EmitAmbient passes BiomeInfo.BiomeId RAW, and that field is not
+		// canonicalised: the room model's own BiomeInfo.Id() lowercases it for
+		// exactly this reason. A mixed-case biomeid must still classify, or it
+		// silently gets the wrong prose class while the coupling guard, which
+		// lowercases its keys, stays green.
+		{"mixed-case cave still classifies", "Cave", true, 1.0, "UNDER-STRONG"},
+		{"upper-case dungeon still classifies", "DUNGEON", true, 1.0, "UNDER-STRONG"},
+		{"mixed-case house stays surface indoor", "House", true, 1.0, "IN-STRONG"},
+		{"mixed-case outdoor biome still resolves", "Forest", false, 1.0, "OUT"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := tables.Pick("rain", c.biome, c.indoor, c.felt, "", narration.FirstPicker)
+			if got != c.want {
+				t.Fatalf("want %q, got %q", c.want, got)
+			}
+		})
+	}
+}
+
+func TestValidatePool(t *testing.T) {
+	// Empty is LEGAL and means deliberate silence: light weather is inaudible
+	// through walls and imperceptible through stone. This is the case that
+	// stops a flat minimum being usable, and weather is the only store in the
+	// arc that has it.
+	if err := ValidatePool(nil); err != nil {
+		t.Fatalf("empty pool must be legal: %v", err)
+	}
+	if err := ValidatePool([]string{}); err != nil {
+		t.Fatalf("empty pool must be legal: %v", err)
+	}
+	for n := 1; n < minPoolDepth; n++ {
+		lines := make([]string, n)
+		for i := range lines {
+			lines[i] = "line"
+		}
+		if err := ValidatePool(lines); err == nil {
+			t.Errorf("a pool of %d must be rejected; the minimum is %d", n, minPoolDepth)
+		}
+	}
+	deep := make([]string, minPoolDepth)
+	for i := range deep {
+		deep[i] = "line"
+	}
+	if err := ValidatePool(deep); err != nil {
+		t.Fatalf("a pool of %d must be accepted: %v", minPoolDepth, err)
+	}
+	// A blank variant is rejected at any depth.
+	deep[2] = ""
+	if err := ValidatePool(deep); err == nil {
+		t.Error("a blank variant must be rejected")
+	}
+}
+
+// Underground must never borrow indoor's or outdoor's prose. A cave with no
+// authored underground pool is SILENT, which is the store's standing rule:
+// silence beats wrong prose.
+func TestUndergroundNeverFallsBackToAnotherClass(t *testing.T) {
+	tables := Tables{
+		"rain": {
+			Weather: "rain",
+			TableSection: TableSection{
+				Outdoor: map[string][]string{"default": {"OUT"}},
+				Indoor: map[string]IndoorPool{
+					"default": {Strong: []string{"IN-STRONG"}},
+				},
+				// Underground deliberately absent.
+			},
+		},
+	}
+	if got := tables.Pick("rain", "cave", true, 1.0, "", narration.FirstPicker); got != "" {
+		t.Fatalf("underground with no pool must be silent, got %q", got)
 	}
 }

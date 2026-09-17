@@ -1,13 +1,30 @@
 track: monsoon
 season: wet
+# No underground section by design: deep stone does not register a season, so
+# a cave gets no seasonal ambience rather than borrowing prose written for a
+# built interior. The section CAN now be authored here if that judgement ever
+# changes; before this it would have been silently dropped by the parser.
 outdoor:
   default:
     - "Everything drips; the air itself feels half water."
     - "Steam rises wherever the sun briefly finds wet ground."
-  jungle:
+    - "The ground has gone soft and dark, soaking up water it cannot hold."
+    - "Puddles stretch wide and merge into long, shallow sheets."
+    - "The air hangs thick and warm, heavy with the smell of wet earth."
+    - "Water drips steadily from every leaf and low-hanging branch."
+  forest:
     - "The canopy drips on long after the rain has stopped, a slow second rainfall."
-    - "Mist coils up from the jungle floor wherever light leans through the leaves."
+    - "Mist coils up from the forest floor wherever light leans through the leaves."
+    - "Fungus and fresh growth push up wherever the ground stays damp."
+    - "Insects hum thick in the humid air beneath the canopy."
+    - "The undergrowth glistens, each leaf holding its own bead of water."
+    - "Trunks run dark and wet, moisture beading low along the bark."
 indoor:
   default:
     strong:
       - "Mould-sweet damp has crept into every corner of the room."
+      - "The air feels warm and thick, impossible to dry out."
+      - "A green tinge blooms slowly along the grout and the sills."
+      - "Wood swells at every joint, and doors stick in their frames."
+      - "Light through the shutters looks grey and flat."
+      - "A moth bumps dully against the shuttered window."
