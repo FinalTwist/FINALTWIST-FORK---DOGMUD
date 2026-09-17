@@ -106,6 +106,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/tips"
 	"github.com/GoMudEngine/GoMud/modules/weather/content"
 	"github.com/GoMudEngine/GoMud/modules/weather/sim"
+	"gopkg.in/yaml.v3"
 )
 
 var update = flag.Bool("update", false, "update golden snapshot files under testdata/stores")
@@ -882,6 +883,9 @@ func TestSnapshotStores(t *testing.T) {
 	t.Run("post_pipeline", func(t *testing.T) {
 		checkGolden(t, "post_pipeline.golden", buildPostPipelineGolden(t))
 	})
+	t.Run("position_control", func(t *testing.T) {
+		checkGolden(t, "position_control.golden", buildPositionControlGolden(t))
+	})
 }
 
 // ---------------------------------------------------------------------
@@ -1421,6 +1425,184 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "\n# EMPTY CASE: unknown (track,season) ambience -> \"\"\n")
 	fmt.Fprintf(&b, "bogus-track|bogus-season|outdoor|default => %q\n",
 		seasonal.Pick("bogus-track", "bogus-season", "default", false, 0, narration.SequencePicker()))
+
+	return b.String()
+}
+
+// ---------------------------------------------------------------------
+// Store 15: position_control (_datafiles/messages/position_control.yaml)
+//
+// The TENTH message store, and the only one outside _datafiles/world/dogmud,
+// which is the only tree the M0 surface guard walks. That is why it reached
+// M4a with no golden and no guard at all.
+//
+// Recorded from PRE-migration code (M4a task 6), so the token flip has
+// something to be byte-identical against. Production renders it through a
+// third hand-rolled engine, the local substitute() in
+// internal/hooks/Position_Messaging.go, whose {key} loop is reproduced by
+// renderPositionControlPre below; the golden must record what production does
+// today, not what the core will do tomorrow.
+//
+// THREE name vocabularies are authored here: {attacker}/{target} in the
+// submission block, {Controller}/{Controlled} in the gradient and transition
+// blocks, and {Character} in the stamina warning. The stand-ins collapse all
+// three onto two people, Actorius and Acteeus, so the post-flip rendering with
+// {actor}/{actee} produces the same bytes.
+//
+// dimensions: block x key [x subtype] x role. Every authored line exactly
+// once, empty lines included: an authored "" is deliberate silence in this
+// store (the controlled side of a gradient has no room line) and freezing it
+// means a pool appearing or vanishing shows as a changed row.
+//
+// PARTIAL NET, stated plainly: gradient_messages and transition_messages are
+// recorded here but are NOT read by any Go code. hooks.positionMessageTemplates
+// parses only stamina_warning and submission; the live gradient and transition
+// prose comes from internal/grapplemessaging and messaging_grapple.yaml. Those
+// rows therefore guard the DATA, not a render path.
+
+// posSelfRoom is a self/room pair (gradient, transition, stamina blocks).
+type posSelfRoom struct {
+	Self string `yaml:"self"`
+	Room string `yaml:"room"`
+}
+
+// posTriple is an attacker/target/room triple (the submission block).
+type posTriple struct {
+	Attacker string `yaml:"attacker"`
+	Target   string `yaml:"target"`
+	Room     string `yaml:"room"`
+}
+
+// positionControlFile mirrors the shipped file's shape with maps rather than
+// named fields, so a key added to or removed from the YAML moves the golden
+// instead of being silently dropped by an unmarshal into a fixed struct.
+type positionControlFile struct {
+	Gradient   map[string]map[string]posSelfRoom `yaml:"gradient_messages"`
+	Transition map[string]posSelfRoom            `yaml:"transition_messages"`
+	Stamina    posSelfRoom                       `yaml:"stamina_warning"`
+	Submission map[string]yaml.Node              `yaml:"submission"`
+}
+
+func loadPositionControlForSnapshot(t *testing.T) positionControlFile {
+	t.Helper()
+	path := filepath.Join(repoRoot(t), "_datafiles", "messages", "position_control.yaml")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	var out positionControlFile
+	if err := yaml.Unmarshal(data, &out); err != nil {
+		t.Fatalf("parse %s: %v", path, err)
+	}
+	return out
+}
+
+// positionControlStandins is the fixed stand-in map. Keys are bare (no braces)
+// because renderPositionControlPre reproduces hooks.substitute, which wraps
+// them itself.
+var positionControlStandins = map[string]string{
+	"position":     "side control",
+	"old_position": "guard",
+	"new_position": "side control",
+	"Character":    "Actorius",
+	"Controller":   "Actorius",
+	"Controlled":   "Acteeus",
+	"attacker":     "Actorius",
+	"target":       "Acteeus",
+}
+
+// renderPositionControlPre is hooks.substitute, copied. Sequential ReplaceAll
+// over a {key} loop; no stand-in value contains a token spelling, so Go's
+// randomised map order cannot make the result vary.
+func renderPositionControlPre(template string, subs map[string]string) string {
+	if template == "" {
+		return ""
+	}
+	out := template
+	for k, v := range subs {
+		out = strings.ReplaceAll(out, "{"+k+"}", v)
+	}
+	return out
+}
+
+func sortedMapKeys[V any](m map[string]V) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func buildPositionControlGolden(t *testing.T) string {
+	t.Helper()
+	tpl := loadPositionControlForSnapshot(t)
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "# position_control store snapshot (_datafiles/messages/position_control.yaml)\n")
+	fmt.Fprintf(&b, "# Recorded 2026-09-17 from PRE-migration code: the local substitute() in\n")
+	fmt.Fprintf(&b, "# internal/hooks/Position_Messaging.go, a {key} loop over the three authored name\n")
+	fmt.Fprintf(&b, "# vocabularies {attacker}/{target}, {Controller}/{Controlled} and {Character}.\n")
+	fmt.Fprintf(&b, "# Stand-ins: Actorius is the actor side, Acteeus the actee side.\n")
+	fmt.Fprintf(&b, "# dimensions: block x key [x subtype] x role. Empty rows are authored silence.\n")
+	fmt.Fprintf(&b, "# gradient_messages and transition_messages have NO Go reader today; those rows\n")
+	fmt.Fprintf(&b, "# guard the data, not a render path.\n\n")
+
+	render := func(s string) string {
+		return renderPositionControlPre(s, positionControlStandins)
+	}
+	emitSelfRoom := func(key string, pair posSelfRoom) {
+		fmt.Fprintf(&b, "%s|self => %q\n", key, render(pair.Self))
+		fmt.Fprintf(&b, "%s|room => %q\n", key, render(pair.Room))
+	}
+	emitTriple := func(key string, tri posTriple) {
+		fmt.Fprintf(&b, "%s|attacker => %q\n", key, render(tri.Attacker))
+		fmt.Fprintf(&b, "%s|target => %q\n", key, render(tri.Target))
+		fmt.Fprintf(&b, "%s|room => %q\n", key, render(tri.Room))
+	}
+
+	if len(tpl.Gradient) == 0 {
+		t.Fatal("gradient_messages parsed empty; the golden would be vacuous")
+	}
+	for _, side := range sortedMapKeys(tpl.Gradient) {
+		for _, key := range sortedMapKeys(tpl.Gradient[side]) {
+			emitSelfRoom(fmt.Sprintf("gradient|%s|%s", side, key), tpl.Gradient[side][key])
+		}
+	}
+
+	if len(tpl.Transition) == 0 {
+		t.Fatal("transition_messages parsed empty; the golden would be vacuous")
+	}
+	for _, side := range sortedMapKeys(tpl.Transition) {
+		emitSelfRoom("transition|"+side, tpl.Transition[side])
+	}
+
+	if tpl.Stamina.Self == "" {
+		t.Fatal("stamina_warning.self parsed empty; the golden would be vacuous")
+	}
+	emitSelfRoom("stamina", tpl.Stamina)
+
+	if len(tpl.Submission) == 0 {
+		t.Fatal("submission parsed empty; the golden would be vacuous")
+	}
+	for _, key := range sortedMapKeys(tpl.Submission) {
+		node := tpl.Submission[key]
+		if key == "opening" {
+			var opening map[string]posTriple
+			if err := node.Decode(&opening); err != nil {
+				t.Fatalf("decode submission.opening: %v", err)
+			}
+			for _, sub := range sortedMapKeys(opening) {
+				emitTriple("submission|opening|"+sub, opening[sub])
+			}
+			continue
+		}
+		var tri posTriple
+		if err := node.Decode(&tri); err != nil {
+			t.Fatalf("decode submission.%s: %v", key, err)
+		}
+		emitTriple("submission|"+key, tri)
+	}
 
 	return b.String()
 }
