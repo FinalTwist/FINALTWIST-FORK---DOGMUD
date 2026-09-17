@@ -7,7 +7,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/textutil"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -43,10 +42,9 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 						// a secret condition is silent).
 						endConditionSpec := conditions.GetConditionSpec(conditionInfo.ConditionId)
 						if endConditionSpec != nil && endConditionSpec.Narration(conditions.PhaseEnd).Len() > 0 {
-							roles := endConditionSpec.Narrate(conditions.PhaseEnd, textutil.TokenContext{
-								SourceName:      user.Character.GetCharacterName(true),
-								SourcePlainName: user.Character.GetCharacterName(false),
-							})
+							roles := endConditionSpec.Narrate(conditions.PhaseEnd,
+								user.Character.GetCharacterName(true),
+								user.Character.GetCharacterName(false))
 							if roles.Actee != "" {
 								user.SendText(messaging.CategoryConditionExpire, roles.Actee)
 							}
@@ -102,14 +100,12 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 					// The mob tag, not the player one: see Condition_ApplyConditions.go.
 					// Visual, not audio, for the same reason as start text. The
 					// holder line is rendered and dropped: a mob has no client.
-					sourceName := mob.Character.GetCharacterName(true)
+					holderName := mob.Character.GetCharacterName(true)
 					if r := rooms.LoadRoom(mob.Character.RoomId); r != nil {
-						sourceName = mobDisplayName(mob, r, 0)
+						holderName = mobDisplayName(mob, r, 0)
 					}
-					roles := endConditionSpec.Narrate(conditions.PhaseEnd, textutil.TokenContext{
-						SourceName:      sourceName,
-						SourcePlainName: mob.Character.GetCharacterName(false),
-					})
+					roles := endConditionSpec.Narrate(conditions.PhaseEnd,
+						holderName, mob.Character.GetCharacterName(false))
 					if roles.Observer != "" {
 						if r := rooms.LoadRoom(mob.Character.RoomId); r != nil {
 							sendConditionEndRoomText(r, endConditionSpec, roles.Observer)

@@ -310,18 +310,18 @@ func Cast(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	if spellInfo.Narration(spells.PhaseCast).Len() > 0 {
 		castRoom := rooms.LoadRoom(user.Character.RoomId)
 		tCtx := textutil.TokenContext{
-			SourceName:      user.Character.GetCharacterName(true),
-			SourcePlainName: user.Character.GetCharacterName(false),
+			ActorName:      user.Character.GetCharacterName(true),
+			ActorPlainName: user.Character.GetCharacterName(false),
 		}
 		if len(result.TargetUserIds) > 0 {
 			if tUser := users.GetByUserId(result.TargetUserIds[0]); tUser != nil {
-				tCtx.TargetName = tUser.Character.GetCharacterName(true)
-				tCtx.TargetPlainName = tUser.Character.GetCharacterName(false)
+				tCtx.ActeeName = tUser.Character.GetCharacterName(true)
+				tCtx.ActeePlainName = tUser.Character.GetCharacterName(false)
 			}
 		} else if len(result.TargetMobInstanceIds) > 0 {
 			if tMob := mobs.GetInstance(result.TargetMobInstanceIds[0]); tMob != nil {
-				tCtx.TargetName = tMob.Character.GetCharacterName(true)
-				tCtx.TargetPlainName = tMob.Character.GetCharacterName(false)
+				tCtx.ActeeName = tMob.Character.GetCharacterName(true)
+				tCtx.ActeePlainName = tMob.Character.GetCharacterName(false)
 			}
 		}
 		roles := spellInfo.Narrate(spells.PhaseCast, tCtx)

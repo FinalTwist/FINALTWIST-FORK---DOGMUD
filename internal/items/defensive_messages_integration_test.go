@@ -69,7 +69,7 @@ func TestDefenseMessageRepositoryPoolsKeepPartialAndKnockdownWordingTruthful(t *
 							t.Errorf("%s %s %s[%d] overclaims partial defence with %q: %q", defenseType, band, audience, index, forbidden, message)
 						}
 					}
-					if strings.Contains(lower, `<ansi fg="user">{attacker}</ansi>`) || strings.Contains(lower, `<ansi fg="mob">{defender}</ansi>`) {
+					if strings.Contains(lower, `<ansi fg="user">{actor}</ansi>`) || strings.Contains(lower, `<ansi fg="mob">{actee}</ansi>`) {
 						t.Errorf("%s %s %s[%d] hardcodes actor orientation: %q", defenseType, band, audience, index, message)
 					}
 				}

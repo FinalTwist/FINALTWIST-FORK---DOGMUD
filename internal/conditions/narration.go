@@ -38,9 +38,15 @@ func (b *ConditionSpec) Narration(p Phase) narration.Variants {
 	return narration.Variants{Actee: textutil.Pool(holder), Observer: textutil.Pool(room)}
 }
 
-// Narrate renders one phase for its audiences with the holder as {source}.
-func (b *ConditionSpec) Narrate(p Phase, ctx textutil.TokenContext) narration.Roles {
-	return textutil.Narrate(b.Narration(p), ctx)
+// Narrate renders one phase for its audiences. It takes the HOLDER, not a
+// token context: the holder is always the actee (a condition happens to them),
+// and building the context here means no call site can put the name in the
+// wrong slot. Actor stays empty until events.Condition carries a caster (M6).
+func (b *ConditionSpec) Narrate(p Phase, holderName, holderPlainName string) narration.Roles {
+	return textutil.Narrate(b.Narration(p), textutil.TokenContext{
+		ActeeName:      holderName,
+		ActeePlainName: holderPlainName,
+	})
 }
 
 // AuthoredStartLine renders start_user_text as written, ignoring the notice
@@ -50,8 +56,17 @@ func (b *ConditionSpec) Narrate(p Phase, ctx textutil.TokenContext) narration.Ro
 // (123) is not silent-start, but disenchant applies it through
 // AddConditionMagnitude, which is also synchronous and never travels events.Condition,
 // so it reads the same door for the same reason.
-func (b *ConditionSpec) AuthoredStartLine(ctx textutil.TokenContext) string {
-	return textutil.SubstituteTokens(b.StartUserText, ctx)
+//
+// It takes the HOLDER for the same reason Narrate does: the start line is
+// authored against {actee} and {actee_plain}, so a call site free to pick a
+// slot could fill the actor and render the name as an empty string. No
+// silent-start condition's start_user_text carries a name token today, which
+// is exactly why that defect would stay invisible until one is authored.
+func (b *ConditionSpec) AuthoredStartLine(holderName, holderPlainName string) string {
+	return textutil.SubstituteTokens(b.StartUserText, textutil.TokenContext{
+		ActeeName:      holderName,
+		ActeePlainName: holderPlainName,
+	})
 }
 
 // validateNarration refuses a phase whose authored text cannot be rendered:

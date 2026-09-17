@@ -110,7 +110,7 @@ func Render(v Variants, tokens map[string]string, pick Picker, indexOverride ...
 		if len(pool) == 0 {
 			return ""
 		}
-		return substitute(pool[index], tokens)
+		return Substitute(pool[index], tokens)
 	}
 
 	return Roles{
@@ -121,7 +121,18 @@ func Render(v Variants, tokens map[string]string, pick Picker, indexOverride ...
 	}
 }
 
-// substitute replaces every token in one pass.
+// The canonical name-token vocabulary (messaging arc M4a). Every store's
+// shipped YAML spells names these four ways and no other. Event tokens
+// ({weapon}, {bodypart}, {itemname} and the rest) stay store-specific: they
+// name what happened, not who it happened to.
+const (
+	TokenActor      = "{actor}"
+	TokenActee      = "{actee}"
+	TokenActorPlain = "{actor_plain}"
+	TokenActeePlain = "{actee_plain}"
+)
+
+// Substitute replaces every token in one pass.
 //
 // One Replacer rather than sequential replacements, so a value that happens to
 // contain a token spelling cannot be substituted again by a later pass. Names
@@ -132,7 +143,7 @@ func Render(v Variants, tokens map[string]string, pick Picker, indexOverride ...
 // and none is a prefix of another, so ordering is not currently observable;
 // sorting means it stays that way if a future token breaks that property,
 // rather than producing output that differs between runs.
-func substitute(s string, tokens map[string]string) string {
+func Substitute(s string, tokens map[string]string) string {
 	if len(tokens) == 0 {
 		return s
 	}

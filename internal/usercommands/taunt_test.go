@@ -32,7 +32,7 @@ func seedTauntRuntimeMessages(t *testing.T) func() {
 		messages := func(audience string) items.MessageOptions {
 			result := make(items.MessageOptions, 5)
 			for i := range result {
-				result[i] = items.ItemMessage(fmt.Sprintf("DEFY %s variant=%d %s: {attacker} tests {defender}; no conviction harm, attention may shift", audience, i, band))
+				result[i] = items.ItemMessage(fmt.Sprintf("DEFY %s variant=%d %s: {actor} tests {actee}; no conviction harm, attention may shift", audience, i, band))
 			}
 			return result
 		}

@@ -19,7 +19,7 @@ cast_user_text: >-
   You hold the spirit fetish aloft. The steppe wind rises,
   carrying the scent of sage and old bones...
 cast_room_text: >-
-  {source} raises a small fetish overhead. The wind sharpens
+  {actor} raises a small fetish overhead. The wind sharpens
   and the air grows cold.
 wait_user_text: >-
   The fetish thrums in your hand. Ghostly howling builds from

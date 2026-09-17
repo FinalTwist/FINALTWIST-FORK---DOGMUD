@@ -57,7 +57,7 @@ func Taunt(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		})
 	}
 
-	// These feed {sourcetype} and {targettype}, which rhetoric.yaml drops
+	// These feed {actortype} and {acteetype}, which rhetoric.yaml drops
 	// straight into `<ansi fg="...">`, so they must be real ANSI ALIASES.
 	//
 	// They used to be "mob" and "user", which are not aliases at all

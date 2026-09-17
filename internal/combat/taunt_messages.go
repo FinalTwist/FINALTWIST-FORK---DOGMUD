@@ -144,16 +144,16 @@ func GetTauntTriad(intensity TauntIntensity, source, target, sourceType, targetT
 		pick = picker[0]
 	}
 
-	// The authored token vocabulary is ALIASED, not rewritten. rhetoric.yaml
-	// says {source} and {target} where the defence store says {attacker} and
-	// {defender}; both mean the same two people. Resolving that here rather
-	// than in the core is what lets the file stay as its author wrote it.
+	// One vocabulary, no aliasing. rhetoric.yaml said {source}/{target} where
+	// the defence store said {attacker}/{defender}, and this map reconciled
+	// the two spellings of the same two people. M4a rewrote the shipped YAML
+	// to the canonical names, so the alias layer is gone.
 	roles := narration.Render(msgs.variants(), map[string]string{
-		"{source}":     source,
-		"{target}":     target,
-		"{sourcetype}": sourceType,
-		"{targettype}": targetType,
-		"{damage}":     damageDesc,
+		narration.TokenActor: source,
+		narration.TokenActee: target,
+		`{actortype}`:        sourceType,
+		`{acteetype}`:        targetType,
+		`{damage}`:           damageDesc,
 	}, pick)
 
 	// ALL THREE OR NOTHING. The old hand-rolled renderer required every pool

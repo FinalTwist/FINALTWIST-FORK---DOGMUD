@@ -126,7 +126,7 @@ func Taunt(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 // ⚠️ DARKNESS IS HAND-ROLLED HERE, and has to be. sendAudioRoomText delivers on
 // the AUDIO channel, which messaging's pipeline never sight-gates and never
 // anonymizes, so the unseen variant is built explicitly with messaging.Anonymize
-// rather than inherited. That is also why the {sourcetype} and {targettype}
+// rather than inherited. That is also why the {actortype} and {acteetype}
 // tokens must resolve to real name aliases: Anonymize matches on
 // username|mobname|petname, and a tag outside that set leaks the name.
 func sendMobTauntTriad(intensity combat.TauntIntensity, dmgDesc string, cat messaging.Category,

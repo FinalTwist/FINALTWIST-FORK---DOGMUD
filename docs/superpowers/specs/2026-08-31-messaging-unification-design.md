@@ -410,6 +410,10 @@ lines* — counted three different kinds of text as one.
 | **C** | Hand-rolled viewpoint narration, 247 sites / 80 files | addresses 2+ viewpoints | **this arc** |
 | **A** | Refusals, admin output, status tables | one audience, no counterpart | **its own arc, after** |
 
+> **Updated 2026-09-17:** Group A is no longer "after". The owner scheduled it
+> as **M7**, the arc's last stage, so it stops being undated work. It is still
+> a separate stage for the reasons below, and it is still not designed.
+
 **Group A leaves this arc by owner decision (2026-09-07).** Roughly 2,000
 strings: *"Zone not found"*, *"Vault: empty"*, *"Usage: caravan reset"*. They
 have no band, no viewpoint split and no pool, so a narration core would add
@@ -583,6 +587,26 @@ band model, one send path, one loader and layout, one `DefenseType`.
 flip changes *parameters*, not text. A snapshot diff that touches wording means
 something is wrong.
 
+> ### 🔴 SUPERSEDED, 2026-09-17
+>
+> M4 was designed out on 2026-09-17:
+> [`2026-09-17-messaging-m4-flip-design.md`](2026-09-17-messaging-m4-flip-design.md).
+> Read that, not this, when planning M4 or anything downstream.
+>
+> 1. **Not one commit.** Five slices, M4a to M4e, each its own PR (owner).
+> 2. **The "six band systems" are two.** `AgingPhase` is item potency, not
+>    narration; skill tiers are a pool union; taunt and item intensities are
+>    caller-named outcomes. What remains is one defence band model (margin
+>    plus defensive crit on every path) and weather's felt threshold.
+> 3. **"Loader accepts both old and new locations through M3" never
+>    happened.** Every loader reads one path. That risk row is void.
+> 4. **Group C had no owning stage.** M4e moves every audited Go narration
+>    site into YAML.
+> 5. **A tenth store exists:** `_datafiles/messages/position_control.yaml`,
+>    outside the world tree the M0 guard walks.
+> 6. **Aliases are not kept.** Shipped YAML is rewritten to canonical tokens
+>    and role keys, contradicting "no shipped file is rewritten" above.
+
 ### M5 — Quality pass
 
 On a single path: the `{source_plain}` anonymizer leak (held here by the owner
@@ -617,6 +641,37 @@ carry.
 
 **Playtested on both sides** (owner, 2026-08-31): M5's adversarial playtest is
 the "before", and M6 ends with its own.
+
+### M7: Refusals and system output *(added 2026-09-17, owner)*
+
+Group A: roughly 2,000 one-audience strings that the scope table above sent to
+"its own arc, after". The owner scheduled it here rather than leaving it
+undated, so the arc ends with every player-facing string owned by something.
+
+**Scope:** refusals ("You don't see them here.", "You can't afford that."),
+admin command output, status and listing tables, usage lines. One audience, no
+counterpart, no band, no pool. They do not want the narration core, which is
+why they are their own stage and not folded into M4.
+
+**Its first task is fixing what things are TAGGED, not what they say.** After
+M4e there is no narration literal left in Go, so a Go string tagged
+`CategorySystem` is by construction either Group A or a bug. That makes the
+selection problem the M1 scope section warned about (`:417`) solvable
+mechanically here, where it was not solvable when the warning was written.
+
+**Not designed yet.** It gets its own brainstorm and spec when it is next, with
+these open questions recorded now:
+
+- Does a refusal become data, or stay in Go with a shared vocabulary? The owner
+  called them *"standardizable with a few extra keywords passed in"*
+  (2026-09-07), which points at the second answer and away from a store.
+- Is `localize/` part of this, given refusals are the strings most worth
+  translating? The arc has kept `localize/` out of scope throughout.
+- Does help output belong here or with the command help discoverability audit
+  already in the backlog?
+
+**Ordering:** after M6. It depends on M4e having emptied Go of narration, and
+on nothing else.
 
 ---
 

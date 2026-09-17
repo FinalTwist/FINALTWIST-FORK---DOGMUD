@@ -21,7 +21,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/targeting"
-	"github.com/GoMudEngine/GoMud/internal/textutil"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -407,10 +406,9 @@ func ExecuteArrest(player *characters.Character, userId int, faction string, isM
 	// the arrest-context line.
 	if u := users.GetByUserId(userId); u != nil {
 		if spec := conditions.GetConditionSpec(jailedConditionId); spec != nil {
-			line := spec.AuthoredStartLine(textutil.TokenContext{
-				SourceName:      u.Character.GetCharacterName(true),
-				SourcePlainName: u.Character.GetCharacterName(false),
-			})
+			line := spec.AuthoredStartLine(
+				u.Character.GetCharacterName(true),
+				u.Character.GetCharacterName(false))
 			if line != "" {
 				u.SendText(messaging.CategoryConditionApply, line)
 			}

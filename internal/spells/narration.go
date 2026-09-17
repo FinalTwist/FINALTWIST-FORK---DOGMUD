@@ -34,8 +34,8 @@ func (s *SpellData) Narration(p Phase) narration.Variants {
 	return narration.Variants{Actor: textutil.Pool(caster), Observer: textutil.Pool(room)}
 }
 
-// Narrate renders one phase with the caster as {source} and the first target,
-// if any, as {target}.
+// Narrate renders one phase with the caster as the actor and the first target,
+// if any, as the actee.
 func (s *SpellData) Narrate(p Phase, ctx textutil.TokenContext) narration.Roles {
 	return textutil.Narrate(s.Narration(p), ctx)
 }

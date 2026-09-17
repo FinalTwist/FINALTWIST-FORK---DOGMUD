@@ -21,7 +21,7 @@ cast_user_text: >-
   the remains. This will either work or unmake the corpse
   entirely...
 cast_room_text: >-
-  {source} begins a low, rhythmic incantation over the remains.
+  {actor} begins a low, rhythmic incantation over the remains.
   The shadows around them deepen and lean inward.
 wait_user_text: >-
   Blood-dark energy pulses through the corpse in rhythmic waves,

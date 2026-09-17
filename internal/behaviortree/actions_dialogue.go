@@ -26,10 +26,10 @@ func actRespond(params map[string]any, ctx *EvalContext) Result {
 	}
 
 	tokenCtx := textutil.TokenContext{
-		SourceName:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mob.Character.Name),
-		SourcePlainName: mob.Character.Name,
-		TargetName:      user.Character.Name,
-		TargetPlainName: user.Character.Name,
+		ActorName:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mob.Character.Name),
+		ActorPlainName: mob.Character.Name,
+		ActeeName:      user.Character.Name,
+		ActeePlainName: user.Character.Name,
 	}
 
 	userText := getStringParam(params, "user_text")

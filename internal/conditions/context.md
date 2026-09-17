@@ -517,7 +517,8 @@ knobs; see `internal/actions/bleed.go` and the Bleed stacks block in
 
 ### Time String Processing
 
-`ConditionSpec.Validate()` warns on bad text tokens, converts `TriggerRate` to
+`ConditionSpec.Validate()` returns an error for an unknown text token (M4a:
+the loader panics, so a typo cannot render raw to a player), converts `TriggerRate` to
 `RoundInterval` through the game time calculator, forces condition 0's
 `TriggerCount` to the configured logout rounds, validates effects and
 narration (flags are checked separately by `ValidateLoadedFlags`), and returns an error for a spec with no usable trigger count or
@@ -840,10 +841,14 @@ func (bs *Condition) Name() string
   once `events.Condition` carries one. Start and End go through
   `StartUserNotice` / `EndUserNotice`, so the notice rules stay in their one
   door.
-- `Narrate(p Phase, ctx textutil.TokenContext) narration.Roles` renders it. This
-  is what `ApplyConditions`, both round ticks and `PruneConditions` call; they
-  deliver each role themselves on today's category and channel.
-- `AuthoredStartLine(ctx) string` renders `start_user_text` as written, ignoring
+- `Narrate(p Phase, holderName, holderPlainName string) narration.Roles` renders
+  it. This is what `ApplyConditions`, both round ticks and `PruneConditions`
+  call; they deliver each role themselves on today's category and channel. It
+  takes the HOLDER, not a token context: the holder is always the actee, so the
+  store fills the slot and no call site can put the name in the wrong one
+  (messaging M4a). The holder's name renders `{actee}` and `{actee_plain}`.
+- `AuthoredStartLine(holderName, holderPlainName string) string` renders
+  `start_user_text` as written, taking the holder for the same reason, ignoring
   the notice rules: the door for a silent-start condition's applier (sleep 15,
   arrest 88, stun 84, broken limb 83). Throttled (89) is silent-start too but
   has no sender: its move narrates the choke itself.

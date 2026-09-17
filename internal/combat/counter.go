@@ -192,8 +192,8 @@ func fillCounterMessages(result *CounterResult, defender, attacker *characters.C
 	bandCrit, bandMargin := counterBand(result.Move.Crit, result.Damage)
 	triad := items.RenderDefenseMessage(counterPoolFor(result.Channel), bandCrit, bandMargin,
 		map[items.TokenName]string{
-			items.TokenAttacker: attacker.Name,
-			items.TokenDefender: defender.Name,
+			items.TokenActor: attacker.Name,
+			items.TokenActee: defender.Name,
 		})
 	if triad.ToRoom == "" {
 		fillGenericCounterMessages(result, defender, attacker)
@@ -251,8 +251,8 @@ func BuildCounterTauntMessages(countererName, taunterName string, crit bool, dam
 	bandCrit, bandMargin := counterBand(crit, damage)
 	triad := items.RenderDefenseMessage(items.DefenseCounterDefy, bandCrit, bandMargin,
 		map[items.TokenName]string{
-			items.TokenAttacker: taunterName,
-			items.TokenDefender: countererName,
+			items.TokenActor: taunterName,
+			items.TokenActee: countererName,
 		})
 	if triad.ToRoom == "" {
 		return buildGenericCounterTauntMessages(countererName, taunterName, damage, taunterMaxCP)

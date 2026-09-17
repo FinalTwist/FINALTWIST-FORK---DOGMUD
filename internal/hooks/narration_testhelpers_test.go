@@ -51,17 +51,17 @@ const (
 func seedNarrationConditions() func() {
 	return conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		glowConditionId: {ConditionId: glowConditionId, Name: "Test Glow", RoundInterval: 5, TriggerCount: 3,
-			StartRoomText: "{source} glows."},
+			StartRoomText: "{actee} glows."},
 		shiverConditionId: {ConditionId: shiverConditionId, Name: "Test Shiver", RoundInterval: 1, TriggerCount: 3,
-			TriggerRoomText: "{source} shivers."},
+			TriggerRoomText: "{actee} shivers."},
 		fadeConditionId: {ConditionId: fadeConditionId, Name: "Test Fade", RoundInterval: 5, TriggerCount: 3,
-			EndRoomText: "{source} fades."},
+			EndRoomText: "{actee} fades."},
 		nightEyesConditionId: {ConditionId: nightEyesConditionId, Name: "Test Night Eyes",
 			Flags: []conditions.Flag{conditions.NightVision}},
 		heatEyesConditionId: {ConditionId: heatEyesConditionId, Name: "Test Heat Eyes",
 			Flags: []conditions.Flag{conditions.InfraredVision}},
 		lanternConditionId: {ConditionId: lanternConditionId, Name: "Test Lantern", RoundInterval: 5, TriggerCount: 3,
-			Flags: []conditions.Flag{conditions.EmitsLight}, EndRoomText: "{source}'s light gutters out."},
+			Flags: []conditions.Flag{conditions.EmitsLight}, EndRoomText: "{actee}'s light gutters out."},
 		dozeConditionId: {ConditionId: dozeConditionId, Name: "Test Doze",
 			Flags: []conditions.Flag{conditions.Sleeping}},
 	})

@@ -15,8 +15,8 @@ func (a ActionDef) Narration() narration.Variants {
 	return narration.Variants{Actor: textutil.Pool(a.SendText), Observer: textutil.Pool(a.RoomText)}
 }
 
-// Narrate renders a text action with the triggering player as {source}.
-// A quest has no target, so {target} renders empty; RoomTextProblems refuses
+// Narrate renders a text action with the triggering player as the actor.
+// A quest has no actee, so {actee} renders empty; RoomTextProblems refuses
 // it in room_text for that reason.
 func (a ActionDef) Narrate(ctx textutil.TokenContext) narration.Roles {
 	return textutil.Narrate(a.Narration(), ctx)
@@ -28,7 +28,7 @@ func (r QuestReward) Narration() narration.Variants {
 	return narration.Variants{Actor: textutil.Pool(r.PlayerMessage), Observer: textutil.Pool(r.RoomMessage)}
 }
 
-// Narrate renders the reward lines with the completing player as {source}.
+// Narrate renders the reward lines with the completing player as the actor.
 func (r QuestReward) Narrate(ctx textutil.TokenContext) narration.Roles {
 	return textutil.Narrate(r.Narration(), ctx)
 }
@@ -50,7 +50,7 @@ func (r *Quest) validateNarration() error {
 				if err := narration.ValidateVariants(a.Narration(), 1); err != nil {
 					// The room_text branch is unreachable through Quest.Validate today:
 					// validateRoomText runs first and refuses any room_text without
-					// {source}, which a whitespace-only line cannot carry. Kept so
+					// {actor}, which a whitespace-only line cannot carry. Kept so
 					// validateNarration names the right key when called on its own.
 					key := "send_text"
 					if a.SendText == "" {

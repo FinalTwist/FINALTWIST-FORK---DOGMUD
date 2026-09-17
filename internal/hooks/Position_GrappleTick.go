@@ -36,6 +36,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/narration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -555,8 +556,11 @@ func emitStrikingApexFlavor(controller, controlled *characters.Character,
 	msg := grapplemessaging.PickTemplate(pool,
 		controller.PerGrappleMessageCooldowns, "apex:mount_strike")
 	if msg != "" {
-		sendToCharacter(controller,
-			grapplemessaging.RenderTemplate(msg, controllerName, controlledName))
+		line := narration.Substitute(msg, map[string]string{
+			narration.TokenActor: controllerName,
+			narration.TokenActee: controlledName,
+		})
+		sendToCharacter(controller, line)
 	}
 }
 
@@ -921,11 +925,10 @@ func emitGradientMessage(self state.ActorRef, transient control.State, from cont
 	selfName := characterDisplayName(selfChar)
 	partnerName := characterDisplayName(partner)
 
-	// Gradient templates use {controllerName} for "self" (the character
-	// whose state changed) and {controlledName} for "partner" in
-	// observer templates. The substitution matches what the YAML
-	// authoring used (selfName fills {controllerName}; partnerName
-	// fills {controlledName}).
+	// Gradient templates name the two grapplers with the canonical tokens
+	// {actor} and {actee}: selfName (the character whose state changed) fills
+	// {actor}, partnerName fills {actee} in the partner and observer
+	// templates.
 	// One index, three audiences, same as the outcome and hold triads. The
 	// gradient pools spell their roles self/partner/observers rather than
 	// controller/controlled/observers; RenderGradient resolves that aliasing.

@@ -289,6 +289,23 @@ func TestValidateVariantsExpectedRolesCatchesAnUnexpectedRole(t *testing.T) {
 
 // TestValidateVariantsExpectedRolesAcceptsTheDeclaredShape keeps the happy path
 // honest, including the single-role Kind B stores.
+// TestSubstituteIsExportedAndOnePass pins two things at once: Substitute is
+// the exported name every future caller (M4a's three migrated engines) will
+// use, and it is still ONE PASS. A substituted VALUE that happens to contain
+// a token spelling ("{actor}" as the actee's name) must not be substituted
+// again; a naive multi-pass implementation would turn it into "Alice" too.
+// Do not simplify this into a case that cannot tell one-pass from
+// naive-and-lucky.
+func TestSubstituteIsExportedAndOnePass(t *testing.T) {
+	got := Substitute("{actor} hits {actee}", map[string]string{
+		TokenActor: "Alice",
+		TokenActee: "{actor}",
+	})
+	if got != "Alice hits {actor}" {
+		t.Fatalf("Substitute() = %q, want %q", got, "Alice hits {actor}")
+	}
+}
+
 func TestValidateVariantsExpectedRolesAcceptsTheDeclaredShape(t *testing.T) {
 	triad := Variants{
 		Actor:    []string{"a", "b", "c", "d", "e"},

@@ -28,14 +28,14 @@ import (
 // `todefender`, with a weapon phrase folded in the way the real per-weapon
 // files (e.g. cleaving.yaml) do -- this is the exact defect example: "Something
 // holds their Rusted Cleaver steady, eyes fixed on you."
-const waitTodefenderLine = `<ansi fg="{sourcetype}">{source}</ansi> holds their <ansi fg="item">Rusted Cleaver</ansi> steady, eyes fixed on you.`
+const waitTodefenderLine = `<ansi fg="{actortype}">{actor}</ansi> holds their <ansi fg="item">Rusted Cleaver</ansi> steady, eyes fixed on you.`
 
 // waitToattackerLine is the authored shape from
 // _datafiles/world/dogmud/combat-messages/generic.yaml:94 under
 // `wait/together/toattacker`. Every one of the 20 weapon files has a wait
-// toattacker line naming {target} the same way, so this side of the drain
+// toattacker line naming {actee} the same way, so this side of the drain
 // (MessagesToSource) is just as load-bearing as the todefender side.
-const waitToattackerLine = `You watch <ansi fg="{targettype}">{target}</ansi> closely, waiting for the perfect moment.`
+const waitToattackerLine = `You watch <ansi fg="{acteetype}">{actee}</ansi> closely, waiting for the perfect moment.`
 
 // seedWaitMessageFixture installs a minimal attackMessages registry whose
 // Generic/Wait/Together.ToDefender and .ToAttacker entries are the observed
@@ -138,7 +138,7 @@ func TestWaitRound_LitRoomShowsAttackerName(t *testing.T) {
 // the drain: MessagesToSource, sent to the ATTACKER. Both tests above pass a
 // nil attackerUser (attacker is the mob), so neither one ever reaches the
 // attacker-side send. Here the player is the attacker waiting on a mob target, so
-// the toattacker line's {target} names the mob and must be hidden the same
+// the toattacker line's {actee} names the mob and must be hidden the same
 // way.
 func TestWaitRound_DarkRoomHidesTargetNameFromAttacker(t *testing.T) {
 	cleanup := seedAllRegistries()

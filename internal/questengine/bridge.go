@@ -202,20 +202,20 @@ func (b *GameBridge) ChargeGold(amount int) {
 // Narrate delivers a text action to its audiences.
 //
 // Both lines are rendered with the triggering player's TAGGED name as
-// {source}, and the room line goes out on the VISUAL channel; both matter.
+// {actor}, and the room line goes out on the VISUAL channel; both matter.
 // The room line describes something the room watches the player do
-// ("{source} unlocks the strongbox"), so an observer who cannot see must not
+// ("{actor} unlocks the strongbox"), so an observer who cannot see must not
 // receive it, and Room.SendText is never sight-gated. And the name must carry
 // its `username` tag, because messaging.Anonymize strips only tagged names.
-// quests.Quest.Validate keeps every room_text naming {source}.
+// quests.Quest.Validate keeps every room_text naming {actor}.
 //
 // send_text is substituted too since M3 item 5b. No shipped send_text carries
-// a token, so nothing changed on the day; a future line naming {source} now
+// a token, so nothing changed on the day; a future line naming {actor} now
 // renders the name instead of the literal, the defect quest 77 showed.
 func (b *GameBridge) Narrate(v narration.Variants) {
 	roles := textutil.Narrate(v, textutil.TokenContext{
-		SourceName:      b.user.Character.GetCharacterName(true),
-		SourcePlainName: b.user.Character.GetCharacterName(false),
+		ActorName:      b.user.Character.GetCharacterName(true),
+		ActorPlainName: b.user.Character.GetCharacterName(false),
 	})
 	if roles.Actor != "" {
 		b.user.SendText(messaging.CategoryNPCDialogue, roles.Actor)

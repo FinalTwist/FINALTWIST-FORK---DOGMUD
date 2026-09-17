@@ -306,3 +306,11 @@ func TestGetEligibleRecipes(t *testing.T) {
 		t.Errorf("all known: expected 0 eligible, got %d", len(eligible))
 	}
 }
+
+func TestRecipeValidateRejectsUnknownToken(t *testing.T) {
+	r := RecipeSpec{RecipeId: "test-recipe", SuccessMessage: "You forge {sorce} a blade."}
+	problems := r.ValidateNarrationTokens()
+	if len(problems) == 0 {
+		t.Fatal("expected {sorce} to be reported as an unknown token")
+	}
+}

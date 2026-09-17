@@ -17,12 +17,12 @@ package must never import (see Gotchas).
 
 | File | Holds |
 |---|---|
-| `picker.go` | `Picker`, `DefaultPicker`, `SequencePicker`. |
-| `render.go` | `Selector`, `Variants`, `Roles`, `Render`, `ValidateVariants`. The core. |
+| `picker.go` | `Picker`, `DefaultPicker`, `SequencePicker`, `FirstPicker`. |
+| `render.go` | `Selector`, `Variants`, `Roles`, `Render`, `ValidateVariants`, `Substitute`, `Role` and the four canonical token constants. The core. |
 | `picker_test.go` | Unit tests for the two pickers. |
 | `render_test.go` | Unit tests for the core, including the coordinated-index probe. |
 | `snapshot_test.go` | The M1 harness: golden snapshots of the message stores, raw and post-pipeline. |
-| `testdata/stores/` | Those goldens. |
+| `testdata/stores/` | Those goldens: 15 files, one per store plus the post-pipeline snapshot. |
 
 ## Public API
 
@@ -47,10 +47,30 @@ const (RoleActor Role = iota; RoleActee; RoleObserver; RoleActeeObserver)
 func (v Variants) Len() int
 func Render(v Variants, tokens map[string]string, pick Picker, indexOverride ...int) Roles
 func ValidateVariants(v Variants, minVariants int, expected ...Role) error
+
+// Substitute is the one token substitution engine (messaging arc M4a). It
+// replaces every token in one pass, so a substituted value that happens to
+// contain a token spelling is not substituted again.
+func Substitute(s string, tokens map[string]string) string
+
+// The canonical name-token vocabulary. Every store's shipped YAML spells
+// names these four ways and no other; event tokens stay store-specific.
+const (
+	TokenActor      = "{actor}"
+	TokenActee      = "{actee}"
+	TokenActorPlain = "{actor_plain}"
+	TokenActeePlain = "{actee_plain}"
+)
 ```
 
 A nil `Picker` means production behaviour: stores that accept one treat nil as
 `DefaultPicker` rather than panicking.
+
+`internal/items` keeps a typed mirror of the two name tokens
+(`items.TokenActor`, `items.TokenActee`) for its `map[TokenName]string` token
+maps. They are DEFINED FROM the constants above rather than respelled, so the
+two vocabularies cannot drift; `items.TokenStrings` converts such a map to the
+plain-string form `Render` and `Substitute` take.
 
 ## The assembly rule
 
@@ -186,6 +206,32 @@ row `tip|<index> => <text>` in file order, read through `tips.Load` and
 `tips.Next`. Unlike the Kind B goldens, both builders read through their
 store's real API end to end rather than re-implementing the pre-store logic,
 because the stores existed before either golden was recorded.
+
+**`position_control.golden` (M4a) is the fifteenth golden, and the store it
+covers had none at all before the token flip needed a net.**
+`_datafiles/messages/position_control.yaml` is numbered Store 15 in
+`snapshot_test.go` and was the last store in the arc to gain a snapshot. It was
+recorded from PRE-migration code, the local `substitute` in
+`internal/hooks/Position_Messaging.go`, looping over the three separate
+authored name vocabularies the file used to carry. Its `gradient_messages` and
+`transition_messages` blocks have NO Go reader today, so those rows guard the
+DATA rather than a render path: a row deleted there would be invisible to every
+other test in the repo.
+
+**`Substitute` is the only NARRATION token engine, and a root guard says so.**
+`token_engine_guard_test.go` (repo root) parses every non-test Go file under
+`internal/` and `modules/`, skips `internal/narration/`, and fails on any
+`strings.Replace`, `strings.ReplaceAll` or `strings.NewReplacer` call handed a
+string literal containing a brace. Its allow-list is empty and should stay that
+way. Three engines survived M0 through M3 because nothing checked
+(`items.SetTokenValue`, `grapplemessaging.RenderTemplate` and the `hooks` local
+`substitute`); all three rendered the same stores through different code, and
+all three are gone. One brace engine survives on purpose and is a different
+job: the status prompt in `internal/users/userrecord.prompt.go`, a regexp over
+its own HUD vocabulary (`{hp}`, `{target}`, `{tnl}`), which the matcher never
+reaches because it holds no `strings.Replace` call. The matcher is deliberately
+narrow and does not recognise a `regexp` or `bytes` based engine; its own
+comment says so rather than claiming coverage it does not have.
 
 ## Dependencies
 

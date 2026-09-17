@@ -1320,8 +1320,8 @@ func sendDefenseMessages(result *AttackResult, best bestDefenseResult, sourceCha
 	}
 
 	tokenReplacements := map[items.TokenName]string{
-		items.TokenDefender: targetChar.Name,
-		items.TokenAttacker: sourceChar.Name,
+		items.TokenActee:    targetChar.Name,
+		items.TokenActor:    sourceChar.Name,
 		items.TokenWeapon:   weaponName,
 		items.TokenAttack:   attackName,
 		items.TokenStance:   targetChar.CalculateStanceString(),
@@ -1624,10 +1624,10 @@ func buildAttackMessages(result *AttackResult, sourceChar *characters.Character,
 
 	tokenReplacements := map[items.TokenName]string{
 		items.TokenItemName:     ws.weaponName,
-		items.TokenSource:       sourceChar.Name,
-		items.TokenSourceType:   string(srcType) + `name`,
-		items.TokenTarget:       targetChar.Name,
-		items.TokenTargetType:   string(tgtType) + `name`,
+		items.TokenActor:        sourceChar.Name,
+		items.TokenActorType:    string(srcType) + `name`,
+		items.TokenActee:        targetChar.Name,
+		items.TokenActeeType:    string(tgtType) + `name`,
 		items.TokenUsesLeft:     `[Invalid]`,
 		items.TokenDamage:       GetDamageDescription(attackTargetDamage, targetChar.HealthMax.Value),
 		items.TokenEntranceName: `unknown`,
@@ -1642,11 +1642,11 @@ func buildAttackMessages(result *AttackResult, sourceChar *characters.Character,
 	skillLevel := sourceChar.GetCombatSkillLevel()
 
 	if srcType == Mob {
-		tokenReplacements[items.TokenSource] = sourceChar.GetMobName(0).String()
+		tokenReplacements[items.TokenActor] = sourceChar.GetMobName(0).String()
 	}
 
 	if tgtType == Mob {
-		tokenReplacements[items.TokenTarget] = targetChar.GetMobName(0).String()
+		tokenReplacements[items.TokenActee] = targetChar.GetMobName(0).String()
 	}
 
 	if openingStrikeDefended {
@@ -1659,8 +1659,8 @@ func buildAttackMessages(result *AttackResult, sourceChar *characters.Character,
 			openerDmg = tokenReplacements[items.TokenDamage]
 		}
 		toAttackerMsg, toDefenderMsg, toAttackerRoomMsg = openingStrikeDefendedLines(result.DefenseUsed,
-			tokenReplacements[items.TokenSource],
-			tokenReplacements[items.TokenTarget],
+			tokenReplacements[items.TokenActor],
+			tokenReplacements[items.TokenActee],
 			openerDmg)
 	} else if deflected {
 		// result.DefenseUsed was set by sendDefenseMessages during THIS
@@ -1669,8 +1669,8 @@ func buildAttackMessages(result *AttackResult, sourceChar *characters.Character,
 		// DefenseUsed) before it calls buildAttackMessages, so on a deflected
 		// swing the field always names the defence that just deflected it.
 		toAttackerMsg, toDefenderMsg = deflectedSwingLines(result.DefenseUsed,
-			tokenReplacements[items.TokenSource],
-			tokenReplacements[items.TokenTarget],
+			tokenReplacements[items.TokenActor],
+			tokenReplacements[items.TokenActee],
 			tokenReplacements[items.TokenDamage])
 	} else {
 		together := sourceChar.RoomId == targetChar.RoomId
@@ -1719,33 +1719,33 @@ func buildAttackMessages(result *AttackResult, sourceChar *characters.Character,
 	// The branches above that do NOT come from the message pools (opening
 	// strike, deflected swing) build their lines from a different source and
 	// still need the token pass. Render already substituted for the pool
-	// branch, so running the loop there would be wasted work.
+	// branch, so substituting there would be wasted work.
+	//
+	// M4a: one narration.Substitute per line, the same door every store's
+	// rendered text goes through, in place of the per-token strings.Replace
+	// loop that used to live here. One Replacer pass also means a name that
+	// happens to contain a token spelling is no longer re-substituted by a
+	// later iteration.
 	if !rendered {
-		for tokenName, tokenValue := range tokenReplacements {
-			toAttackerMsg = toAttackerMsg.SetTokenValue(tokenName, tokenValue)
-			toDefenderMsg = toDefenderMsg.SetTokenValue(tokenName, tokenValue)
-			toAttackerRoomMsg = toAttackerRoomMsg.SetTokenValue(tokenName, tokenValue)
-			if len(string(toDefenderRoomMsg)) > 0 {
-				toDefenderRoomMsg = toDefenderRoomMsg.SetTokenValue(tokenName, tokenValue)
-			}
+		tokens := items.TokenStrings(tokenReplacements)
+		toAttackerMsg = items.ItemMessage(narration.Substitute(string(toAttackerMsg), tokens))
+		toDefenderMsg = items.ItemMessage(narration.Substitute(string(toDefenderMsg), tokens))
+		toAttackerRoomMsg = items.ItemMessage(narration.Substitute(string(toAttackerRoomMsg), tokens))
+		if len(string(toDefenderRoomMsg)) > 0 {
+			toDefenderRoomMsg = items.ItemMessage(narration.Substitute(string(toDefenderRoomMsg), tokens))
 		}
 	}
 
-	// Feint: replace miss messages with feint-flavored text for skilled attackers
+	// Feint: replace miss messages with feint-flavored text for skilled
+	// attackers. The feint literals carry only the four name tokens, so the
+	// whole map goes in and each line is substituted once; per-line token
+	// subsets were an optimisation, not a contract.
 	if isFeint {
 		feintMsg := getFeintMessage()
-		toAttackerMsg = items.ItemMessage(feintMsg.toAttacker)
-		toDefenderMsg = items.ItemMessage(feintMsg.toDefender)
-		toAttackerRoomMsg = items.ItemMessage(feintMsg.toRoom)
-		// Apply name tokens to feint messages
-		toAttackerMsg = toAttackerMsg.SetTokenValue(items.TokenTarget, tokenReplacements[items.TokenTarget])
-		toAttackerMsg = toAttackerMsg.SetTokenValue(items.TokenTargetType, tokenReplacements[items.TokenTargetType])
-		toDefenderMsg = toDefenderMsg.SetTokenValue(items.TokenSource, tokenReplacements[items.TokenSource])
-		toDefenderMsg = toDefenderMsg.SetTokenValue(items.TokenSourceType, tokenReplacements[items.TokenSourceType])
-		toAttackerRoomMsg = toAttackerRoomMsg.SetTokenValue(items.TokenSource, tokenReplacements[items.TokenSource])
-		toAttackerRoomMsg = toAttackerRoomMsg.SetTokenValue(items.TokenSourceType, tokenReplacements[items.TokenSourceType])
-		toAttackerRoomMsg = toAttackerRoomMsg.SetTokenValue(items.TokenTarget, tokenReplacements[items.TokenTarget])
-		toAttackerRoomMsg = toAttackerRoomMsg.SetTokenValue(items.TokenTargetType, tokenReplacements[items.TokenTargetType])
+		tokens := items.TokenStrings(tokenReplacements)
+		toAttackerMsg = items.ItemMessage(narration.Substitute(feintMsg.toAttacker, tokens))
+		toDefenderMsg = items.ItemMessage(narration.Substitute(feintMsg.toDefender, tokens))
+		toAttackerRoomMsg = items.ItemMessage(narration.Substitute(feintMsg.toRoom, tokens))
 	}
 
 	if result.Crit {
@@ -1815,18 +1815,23 @@ func buildAttackMessages(result *AttackResult, sourceChar *characters.Character,
 	// deliberate: it is the only room line that case gets from here, and the
 	// sendDefenseMessages line it would otherwise rely on is suppressible at
 	// both medium and light verbosity, while CategorySurpriseAttack is not.
+	//
+	// Both room sends used to run a SECOND token pass here, re-substituting
+	// the actee name and type. It was dead on every path: tokenReplacements
+	// always carries both, and every branch above (pool render, the
+	// opening-strike/deflected fallback, and feint) substitutes the whole map
+	// before reaching this point, so nothing was left to replace. It was also
+	// wrong had it ever fired, passing the bare `user`/`mob` string as
+	// the actee type where the authored lines expect the `username`/`mobname`
+	// ansi class. Deleted with SetTokenValue in M4a rather than carried
+	// forward.
 	if !deflected {
-		result.SendToSourceRoom(hitCat,
-			string(toAttackerRoomMsg.SetTokenValue(items.TokenTarget, targetChar.Name).
-				SetTokenValue(items.TokenTargetType, string(tgtType))),
-		)
+		result.SendToSourceRoom(hitCat, string(toAttackerRoomMsg))
 	}
 
 	// Send to defender room if separate
 	if len(string(toDefenderRoomMsg)) > 0 {
-		result.SendToTargetRoom(hitCat,
-			string(toDefenderRoomMsg.SetTokenValue(items.TokenTarget, targetChar.Name).SetTokenValue(items.TokenTargetType, string(tgtType))),
-		)
+		result.SendToTargetRoom(hitCat, string(toDefenderRoomMsg))
 	}
 }
 
@@ -1909,47 +1914,49 @@ type feintMessage struct {
 }
 
 // feintMessages are weapon-agnostic feint flavor messages.
-// Tokens: {target}/{targettype} for attacker POV, {source}/{sourcetype} for defender POV.
+// Tokens: the canonical name vocabulary (M4a). {actee}/{acteetype} name the
+// defender for the attacker POV, {actor}/{actortype} name the attacker for the
+// defender POV, and the room line uses all four.
 var feintMessages = []feintMessage{
 	{
-		toAttacker: `You feint at <ansi fg="{targettype}">{target}</ansi>, testing their defenses.`,
-		toDefender: `<ansi fg="{sourcetype}">{source}</ansi> feints at you, probing for weakness.`,
-		toRoom:     `<ansi fg="{sourcetype}">{source}</ansi> feints toward <ansi fg="{targettype}">{target}</ansi>, testing for openings.`,
+		toAttacker: `You feint at <ansi fg="{acteetype}">{actee}</ansi>, testing their defenses.`,
+		toDefender: `<ansi fg="{actortype}">{actor}</ansi> feints at you, probing for weakness.`,
+		toRoom:     `<ansi fg="{actortype}">{actor}</ansi> feints toward <ansi fg="{acteetype}">{actee}</ansi>, testing for openings.`,
 	},
 	{
-		toAttacker: `You make a deliberate feint, drawing <ansi fg="{targettype}">{target}</ansi>'s guard wide.`,
-		toDefender: `<ansi fg="{sourcetype}">{source}</ansi> feints deliberately, drawing your guard.`,
-		toRoom:     `<ansi fg="{sourcetype}">{source}</ansi> makes a deliberate feint at <ansi fg="{targettype}">{target}</ansi>.`,
+		toAttacker: `You make a deliberate feint, drawing <ansi fg="{acteetype}">{actee}</ansi>'s guard wide.`,
+		toDefender: `<ansi fg="{actortype}">{actor}</ansi> feints deliberately, drawing your guard.`,
+		toRoom:     `<ansi fg="{actortype}">{actor}</ansi> makes a deliberate feint at <ansi fg="{acteetype}">{actee}</ansi>.`,
 	},
 	{
-		toAttacker: `You throw a calculated misdirection at <ansi fg="{targettype}">{target}</ansi>.`,
-		toDefender: `<ansi fg="{sourcetype}">{source}</ansi> throws a calculated misdirection your way.`,
-		toRoom:     `<ansi fg="{sourcetype}">{source}</ansi> throws a misdirection at <ansi fg="{targettype}">{target}</ansi>.`,
+		toAttacker: `You throw a calculated misdirection at <ansi fg="{acteetype}">{actee}</ansi>.`,
+		toDefender: `<ansi fg="{actortype}">{actor}</ansi> throws a calculated misdirection your way.`,
+		toRoom:     `<ansi fg="{actortype}">{actor}</ansi> throws a misdirection at <ansi fg="{acteetype}">{actee}</ansi>.`,
 	},
 	{
-		toAttacker: `You probe <ansi fg="{targettype}">{target}</ansi>'s defenses with a quick false strike.`,
-		toDefender: `<ansi fg="{sourcetype}">{source}</ansi> probes your defenses with a quick false strike.`,
-		toRoom:     `<ansi fg="{sourcetype}">{source}</ansi> probes <ansi fg="{targettype}">{target}</ansi>'s defenses with a quick feint.`,
+		toAttacker: `You probe <ansi fg="{acteetype}">{actee}</ansi>'s defenses with a quick false strike.`,
+		toDefender: `<ansi fg="{actortype}">{actor}</ansi> probes your defenses with a quick false strike.`,
+		toRoom:     `<ansi fg="{actortype}">{actor}</ansi> probes <ansi fg="{acteetype}">{actee}</ansi>'s defenses with a quick feint.`,
 	},
 	{
-		toAttacker: `You shift your weight and feint low, reading <ansi fg="{targettype}">{target}</ansi>'s reaction.`,
-		toDefender: `<ansi fg="{sourcetype}">{source}</ansi> feints low, reading your reaction intently.`,
-		toRoom:     `<ansi fg="{sourcetype}">{source}</ansi> feints low toward <ansi fg="{targettype}">{target}</ansi>, studying their stance.`,
+		toAttacker: `You shift your weight and feint low, reading <ansi fg="{acteetype}">{actee}</ansi>'s reaction.`,
+		toDefender: `<ansi fg="{actortype}">{actor}</ansi> feints low, reading your reaction intently.`,
+		toRoom:     `<ansi fg="{actortype}">{actor}</ansi> feints low toward <ansi fg="{acteetype}">{actee}</ansi>, studying their stance.`,
 	},
 	{
-		toAttacker: `You commit to a false opening, watching how <ansi fg="{targettype}">{target}</ansi> responds.`,
-		toDefender: `<ansi fg="{sourcetype}">{source}</ansi> opens up deliberately, watching your response.`,
-		toRoom:     `<ansi fg="{sourcetype}">{source}</ansi> makes a calculated false opening toward <ansi fg="{targettype}">{target}</ansi>.`,
+		toAttacker: `You commit to a false opening, watching how <ansi fg="{acteetype}">{actee}</ansi> responds.`,
+		toDefender: `<ansi fg="{actortype}">{actor}</ansi> opens up deliberately, watching your response.`,
+		toRoom:     `<ansi fg="{actortype}">{actor}</ansi> makes a calculated false opening toward <ansi fg="{acteetype}">{actee}</ansi>.`,
 	},
 	{
-		toAttacker: `You disguise a measuring strike as a real attack toward <ansi fg="{targettype}">{target}</ansi>.`,
-		toDefender: `<ansi fg="{sourcetype}">{source}</ansi> disguises a measuring strike as a real attack.`,
-		toRoom:     `<ansi fg="{sourcetype}">{source}</ansi> throws a measured feint toward <ansi fg="{targettype}">{target}</ansi>.`,
+		toAttacker: `You disguise a measuring strike as a real attack toward <ansi fg="{acteetype}">{actee}</ansi>.`,
+		toDefender: `<ansi fg="{actortype}">{actor}</ansi> disguises a measuring strike as a real attack.`,
+		toRoom:     `<ansi fg="{actortype}">{actor}</ansi> throws a measured feint toward <ansi fg="{acteetype}">{actee}</ansi>.`,
 	},
 	{
-		toAttacker: `You draw <ansi fg="{targettype}">{target}</ansi>'s attention high with a deceptive flourish.`,
-		toDefender: `<ansi fg="{sourcetype}">{source}</ansi> draws your attention with a deceptive flourish.`,
-		toRoom:     `<ansi fg="{sourcetype}">{source}</ansi> flourishes deceptively toward <ansi fg="{targettype}">{target}</ansi>.`,
+		toAttacker: `You draw <ansi fg="{acteetype}">{actee}</ansi>'s attention high with a deceptive flourish.`,
+		toDefender: `<ansi fg="{actortype}">{actor}</ansi> draws your attention with a deceptive flourish.`,
+		toRoom:     `<ansi fg="{actortype}">{actor}</ansi> flourishes deceptively toward <ansi fg="{acteetype}">{actee}</ansi>.`,
 	},
 }
 

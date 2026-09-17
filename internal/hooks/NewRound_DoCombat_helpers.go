@@ -589,8 +589,8 @@ func handlePlayerFoldCasting(user *users.UserRecord, userId int) bool {
 		// Send YAML wait text (if defined).
 		if spellData != nil && spellData.Narration(spells.PhaseWait).Len() > 0 {
 			roles := spellData.Narrate(spells.PhaseWait, textutil.TokenContext{
-				SourceName:      user.Character.GetCharacterName(true),
-				SourcePlainName: user.Character.GetCharacterName(false),
+				ActorName:      user.Character.GetCharacterName(true),
+				ActorPlainName: user.Character.GetCharacterName(false),
 			})
 			if roles.Actor != "" {
 				user.SendText(messaging.CategorySpellFold, roles.Actor)
@@ -732,8 +732,8 @@ func handlePlayerFoldCasting(user *users.UserRecord, userId int) bool {
 		waitSpellInfo := spells.GetSpell(cs.SpellId)
 		if waitSpellInfo != nil && waitSpellInfo.Narration(spells.PhaseWait).Len() > 0 {
 			roles := waitSpellInfo.Narrate(spells.PhaseWait, textutil.TokenContext{
-				SourceName:      user.Character.GetCharacterName(true),
-				SourcePlainName: user.Character.GetCharacterName(false),
+				ActorName:      user.Character.GetCharacterName(true),
+				ActorPlainName: user.Character.GetCharacterName(false),
 			})
 			if roles.Actor != "" {
 				user.SendText(messaging.CategorySpellFold, roles.Actor)

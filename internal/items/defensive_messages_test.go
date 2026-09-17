@@ -102,15 +102,15 @@ func TestDefenseMessageRenderCoordinatesAudienceIndexAndBands(t *testing.T) {
 func TestDefenseMessageRenderReplacesTokensAfterCoordinatedSelection(t *testing.T) {
 	group := validDefenseMessageGroup()
 	o := group.Options[Weak]
-	o.Together.ToDefender[2] = "{defender}|{attacker}|{attack}"
-	o.Together.ToAttacker[2] = "{attacker}|{defender}|{attack}"
-	o.Together.ToRoom[2] = "{attack}|{attacker}|{defender}"
+	o.Together.ToDefender[2] = "{actee}|{actor}|{attack}"
+	o.Together.ToAttacker[2] = "{actor}|{actee}|{attack}"
+	o.Together.ToRoom[2] = "{attack}|{actor}|{actee}"
 	group.Options[Weak] = o
 	restore := SeedDefenseMessagesForTest(map[DefenseType]*DefenseMessageGroup{DefenseQuell: group})
 	defer restore()
 
 	triad := RenderDefenseMessage(DefenseQuell, false, 0.1, map[TokenName]string{
-		TokenDefender: "Selka", TokenAttacker: "Rurik", TokenAttack: "Mind Fog",
+		TokenActee: "Selka", TokenActor: "Rurik", TokenAttack: "Mind Fog",
 	}, 2)
 	if triad.ToDefender != "Selka|Rurik|Mind Fog" || triad.ToAttacker != "Rurik|Selka|Mind Fog" || triad.ToRoom != "Mind Fog|Rurik|Selka" {
 		t.Fatalf("token replacement mismatch: %+v", triad)

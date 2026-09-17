@@ -10,7 +10,7 @@ import (
 func channelMessageFixture() *items.DefenseMessageGroup {
 	mk := func(prefix string) items.DefenseOptions {
 		message := func(audience, suffix string) items.ItemMessage {
-			return items.ItemMessage(prefix + "-" + audience + "-" + suffix + " {attacker} {defender}")
+			return items.ItemMessage(prefix + "-" + audience + "-" + suffix + " {actor} {actee}")
 		}
 		return items.DefenseOptions{Together: items.DefenseTogetherMessages{
 			ToDefender: items.MessageOptions{message("def", "0"), message("def", "1"), message("def", "2"), message("def", "3"), message("def", "4")},

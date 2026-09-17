@@ -10,7 +10,7 @@ import (
 
 func boltSpec() *SpellData {
 	// PrimaryStat is required by Validate (U9 made it load-bearing).
-	return &SpellData{SpellId: "bolt", Name: "Bolt", PrimaryStat: "willpower", CastUserText: "You gather a bolt.", CastRoomText: "{source} gathers a bolt at {target}.", WaitUserText: "You hold the bolt."}
+	return &SpellData{SpellId: "bolt", Name: "Bolt", PrimaryStat: "willpower", CastUserText: "You gather a bolt.", CastRoomText: "{actor} gathers a bolt at {actee}.", WaitUserText: "You hold the bolt."}
 }
 
 func TestNarrationCastPutsTheCasterInActor(t *testing.T) {
@@ -18,7 +18,7 @@ func TestNarrationCastPutsTheCasterInActor(t *testing.T) {
 	if len(v.Actor) != 1 || v.Actor[0] != "You gather a bolt." {
 		t.Fatalf("Actor: %v", v.Actor)
 	}
-	if len(v.Observer) != 1 || v.Observer[0] != "{source} gathers a bolt at {target}." {
+	if len(v.Observer) != 1 || v.Observer[0] != "{actor} gathers a bolt at {actee}." {
 		t.Fatalf("Observer: %v", v.Observer)
 	}
 	if len(v.Actee) != 0 {
@@ -37,7 +37,7 @@ func TestNarrationWaitAndMagic(t *testing.T) {
 }
 
 func TestNarrateSubstitutesSourceAndTarget(t *testing.T) {
-	roles := boltSpec().Narrate(PhaseCast, textutil.TokenContext{SourceName: "Kael", TargetName: "Goblin"})
+	roles := boltSpec().Narrate(PhaseCast, textutil.TokenContext{ActorName: "Kael", ActeeName: "Goblin"})
 	if roles.Actor != "You gather a bolt." || roles.Observer != "Kael gathers a bolt at Goblin." {
 		t.Fatalf("roles: %+v", roles)
 	}
@@ -56,5 +56,16 @@ func TestValidateRefusesAWhitespaceOnlyLine(t *testing.T) {
 	s.WaitRoomText = ""
 	if err := s.Validate(); err != nil {
 		t.Fatalf("ordinary text must validate, got %v", err)
+	}
+}
+
+// An unknown token is a boot failure, not a warning (messaging arc M4a).
+// Before the promotion this spell loaded and the player saw "{actae}" raw.
+func TestValidateRefusesAnUnknownToken(t *testing.T) {
+	s := boltSpec()
+	s.CastRoomText = "{actae} gathers a bolt."
+	err := s.Validate()
+	if err == nil || !strings.Contains(err.Error(), "{actae}") {
+		t.Fatalf("expected an unknown-token validation error naming {actae}, got %v", err)
 	}
 }

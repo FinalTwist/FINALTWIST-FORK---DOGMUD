@@ -12,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/narration"
 	"github.com/GoMudEngine/GoMud/internal/statmods"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/pkg/errors"
@@ -197,17 +198,26 @@ const (
 	CoupDeGrace Intensity = "coupdegrace"
 
 	// Tokens
-	TokenItemName     TokenName = "{itemname}"
-	TokenSource       TokenName = "{source}"
-	TokenSourceType   TokenName = "{sourcetype}" // will be 'user' or 'mob'
-	TokenTarget       TokenName = "{target}"
-	TokenTargetType   TokenName = "{targettype}" // will be 'user' or 'mob'
+	TokenItemName TokenName = "{itemname}"
+	// The four canonical NAME tokens (messaging arc M4a). One vocabulary for
+	// every store: the attacker is the Actor and the defender is the Actee,
+	// whether the line comes from combat-messages, defense-messages or
+	// taunt-messages. Before M4a the same two people were spelled
+	// {source}/{target} here and {attacker}/{defender} next door, and
+	// internal/combat carried an alias map to reconcile them.
+	//
+	// The two name tokens are DEFINED FROM the core's constants rather than
+	// respelled here, so the two vocabularies cannot drift apart again. The
+	// type tokens have no core counterpart: they carry an ansi colour class,
+	// not a name.
+	TokenActor        TokenName = narration.TokenActor
+	TokenActorType    TokenName = "{actortype}" // will be 'user' or 'mob'
+	TokenActee        TokenName = narration.TokenActee
+	TokenActeeType    TokenName = "{acteetype}" // will be 'user' or 'mob'
 	TokenUsesLeft     TokenName = "{usesleft}"
 	TokenDamage       TokenName = "{damage}"
 	TokenEntranceName TokenName = "{entrancename}"
 	TokenExitName     TokenName = "{exitname}"
-	TokenDefender     TokenName = "{defender}" // Stage 9.3: defensive action messages
-	TokenAttacker     TokenName = "{attacker}" // Stage 9.3: defensive action messages
 	TokenWeapon       TokenName = "{weapon}"   // Stage 9.3: defensive action messages
 	TokenAttack       TokenName = "{attack}"   // Generic "strike"/"blow" for unarmed, weapon name for armed
 	TokenStance       TokenName = "{stance}"   // Stage 9.4: combat stance (aggressive/defensive/balanced/reckless)

@@ -8,5 +8,5 @@ triggercount: 2
 statmods:
   willpower: -10
   perception: -10
-start_room_text: "{source} shudders as a grinding resonance sets their teeth on edge."
-end_room_text: "The dissonance around {source} fades."
+start_room_text: "{actee} shudders as a grinding resonance sets their teeth on edge."
+end_room_text: "The dissonance around {actee} fades."

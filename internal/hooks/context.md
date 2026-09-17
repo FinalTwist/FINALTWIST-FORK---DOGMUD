@@ -133,7 +133,7 @@ retarget in `mobcommands.clearRoomAggroOnDeparture`; it hides X by the
 reader's sight and is not suppressed in the dark, because each caller picks
 the new target from whoever is already attacking the reader. The wait-round
 participant lines (`handleCombatWaitRound` in `NewRound_DoCombat_resolution.go`,
-drained from `combat.GetWaitMessages`'s authored `{source}`/`{target}` text)
+drained from `combat.GetWaitMessages`'s authored `{actor}`/`{actee}` text)
 have no swing events for `replaceDarknessMessages` to act on, so they judge
 sight directly with the swing path's own predicate
 (`messaging.CanSeeSightImpairedOnly`) and, for a participant without clear
@@ -1340,6 +1340,18 @@ resolved, fires supplementary messaging:
   (sync.Once pattern). Opening messages vary by submission type (armlock,
   choke, etc.); resolution messages vary by outcome (Mercy / Subdue /
   Cripple / Lethal).
+
+- **Tokens** — `position_control.yaml` is on the canonical vocabulary as of
+  messaging M4a: `{actor}` and `{actee}` for the two grapplers, plus the
+  store's own `{position}`, `{old_position}` and `{new_position}`. Rendering
+  goes through `narration.Substitute`; the local `substitute` this file used
+  to carry is gone, and `token_engine_guard_test.go` at the repo root fails the
+  build if a replacement grows back. `substitutionsForCharacter` puts the
+  controller in the
+  actor slot; `staminaWarningSubstitutions` overrides that with the character
+  the warning fires for, because the stamina room line is about the reader
+  rather than about the controller. The store's golden is
+  `internal/narration/testdata/stores/position_control.golden`.
 
 Cooldowns reset when the grapple ends (any `TransitionToStanding` via
 escape, break, or death).

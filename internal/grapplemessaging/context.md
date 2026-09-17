@@ -15,7 +15,7 @@ stuck record.
 
 - **loader.go** — `Library`, `TemplateTriad`, `GradientTriad`, `Load`,
   `ValidateCompleteness`.
-- **render.go** — `RenderTemplate`, `PickTemplate`.
+- **render.go** — `PickTemplate`, `PickIndex`, `RenderTriad`, `RenderGradient`.
 
 ## Types
 
@@ -35,9 +35,21 @@ drifting apart when someone edits one.
 func Load(path string) (*Library, error)
 func ValidateCompleteness(lib *Library) []error
 
-func RenderTemplate(template, controllerName, controlledName string) string
-func PickTemplate(pool []string, cooldowns map[string]bool, keyPrefix string) string
+func PickTemplate(pool []string, cooldowns map[string]bool, keyPrefix string, picker ...narration.Picker) string
+func PickIndex(n int, cooldowns map[string]bool, keyPrefix string, picker ...narration.Picker) int
+func RenderTriad(tri TemplateTriad, controllerName, controlledName string, cooldowns map[string]bool, keyPrefix string, picker ...narration.Picker) RenderedTriad
+func RenderGradient(tri GradientTriad, selfName, partnerName string, cooldowns map[string]bool, keyPrefix string, picker ...narration.Picker) RenderedGradient
 ```
+
+`RenderTriad` and `RenderGradient` are the coordinated renderers: one `PickIndex`
+draw serves all three roles, and each substitutes names through
+`narration.Substitute` keyed on the core's canonical `narration.TokenActor` /
+`narration.TokenActee` (M4a). The store's own single-line renderer,
+`RenderTemplate`, was the second of the messaging arc's three leftover token
+engines and is gone; its one caller (`internal/hooks`, the mount-strike flavor
+line) now substitutes through `narration.Substitute` directly, and
+`grapple_outcomes.yaml` spells its two name tokens `{actor}`/`{actee}` rather
+than `{controllerName}`/`{controlledName}`.
 
 ## Gotchas
 
@@ -49,9 +61,9 @@ func PickTemplate(pool []string, cooldowns map[string]bool, keyPrefix string) st
   runs out of eligible lines.
 - **`keyPrefix` namespaces the cooldowns.** Two pools sharing a prefix will
   suppress each other's lines.
-- **Both names are substituted positionally** — `RenderTemplate` does not know
-  which is the player. Getting controller and controlled the wrong way round
-  produces text that is grammatical and completely wrong.
+- **Both names are substituted positionally** — `RenderTriad`/`RenderGradient`
+  do not know which is the player. Getting controller and controlled the wrong
+  way round produces text that is grammatical and completely wrong.
 - **Maintenance-shortage text is participant-private.** The grapple tick uses
   its existing `sendToCharacter` grapple-flow route once for each short player.
   It is not a template triad: partners and observers must not receive it, and

@@ -18,7 +18,7 @@ cast_user_text: >-
   You drag your will into the earth itself, feeling stone and soil
   begin to answer...
 cast_room_text: >-
-  {source} plants both feet and begins to pull. The ground
+  {actor} plants both feet and begins to pull. The ground
   trembles faintly.
 wait_user_text: >-
   The floor shudders. Something vast and patient stirs beneath it,

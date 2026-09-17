@@ -21,7 +21,7 @@ func counterDefyMessageFixture() *items.DefenseMessageGroup {
 			result := make(items.MessageOptions, 5)
 			for i := range result {
 				result[i] = items.ItemMessage("counterdefy-" + band + "-" + audience +
-					" {defender} turns the jeer back on {attacker}")
+					" {actee} turns the jeer back on {actor}")
 			}
 			return result
 		}
@@ -67,8 +67,8 @@ func TestBuildCounterTauntMessagesRendersFromCounterDefyPool(t *testing.T) {
 				require.Contains(t, line, "RETORT!", "%s line must carry the retort prefix", audience)
 				require.Contains(t, line, "counterdefy-"+tc.wantBand,
 					"%s line must render from the counter-defy pool's %s band", audience, tc.wantBand)
-				require.NotContains(t, line, "{attacker}", "%s line leaves a token unsubstituted", audience)
-				require.NotContains(t, line, "{defender}", "%s line leaves a token unsubstituted", audience)
+				require.NotContains(t, line, "{actor}", "%s line leaves a token unsubstituted", audience)
+				require.NotContains(t, line, "{actee}", "%s line leaves a token unsubstituted", audience)
 				require.Contains(t, line, "Selka", "%s line must name the counterer", audience)
 				require.Contains(t, line, "Rurik", "%s line must name the original taunter", audience)
 			}

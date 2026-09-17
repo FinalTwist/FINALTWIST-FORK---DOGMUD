@@ -4,12 +4,12 @@ import "testing"
 
 func TestSubstituteTokens_AllTokens(t *testing.T) {
 	ctx := TokenContext{
-		SourceName:      `<ansi fg="yellow">Kael</ansi>`,
-		SourcePlainName: `Kael`,
-		TargetName:      `<ansi fg="red">Goblin</ansi>`,
-		TargetPlainName: `Goblin`,
+		ActorName:      `<ansi fg="yellow">Kael</ansi>`,
+		ActorPlainName: `Kael`,
+		ActeeName:      `<ansi fg="red">Goblin</ansi>`,
+		ActeePlainName: `Goblin`,
 	}
-	input := `{source} hurls a bolt at {target}. {source_plain}'s eyes glow. {target_plain} staggers.`
+	input := `{actor} hurls a bolt at {actee}. {actor_plain}'s eyes glow. {actee_plain} staggers.`
 	expected := `<ansi fg="yellow">Kael</ansi> hurls a bolt at <ansi fg="red">Goblin</ansi>. Kael's eyes glow. Goblin staggers.`
 	result := SubstituteTokens(input, ctx)
 	if result != expected {
@@ -17,12 +17,12 @@ func TestSubstituteTokens_AllTokens(t *testing.T) {
 	}
 }
 
-func TestSubstituteTokens_EmptyTarget(t *testing.T) {
+func TestSubstituteTokens_EmptyActee(t *testing.T) {
 	ctx := TokenContext{
-		SourceName:      `Kael`,
-		SourcePlainName: `Kael`,
+		ActorName:      `Kael`,
+		ActorPlainName: `Kael`,
 	}
-	input := `{source} channels energy at {target}.`
+	input := `{actor} channels energy at {actee}.`
 	expected := `Kael channels energy at .`
 	result := SubstituteTokens(input, ctx)
 	if result != expected {
@@ -31,7 +31,7 @@ func TestSubstituteTokens_EmptyTarget(t *testing.T) {
 }
 
 func TestSubstituteTokens_NoTokens(t *testing.T) {
-	ctx := TokenContext{SourceName: `Kael`}
+	ctx := TokenContext{ActorName: `Kael`}
 	input := `Energy crackles in the air.`
 	result := SubstituteTokens(input, ctx)
 	if result != input {
@@ -48,18 +48,18 @@ func TestSubstituteTokens_EmptyString(t *testing.T) {
 }
 
 func TestValidateTokens_KnownTokens(t *testing.T) {
-	warnings := ValidateTokens(`{source} attacks {target}`)
+	warnings := ValidateTokens(`{actor} attacks {actee}`)
 	if len(warnings) != 0 {
 		t.Errorf("expected no warnings, got %v", warnings)
 	}
 }
 
 func TestValidateTokens_UnknownToken(t *testing.T) {
-	warnings := ValidateTokens(`{source} attacks {targat}`)
+	warnings := ValidateTokens(`{actor} attacks {actae}`)
 	if len(warnings) != 1 {
 		t.Fatalf("expected 1 warning, got %d: %v", len(warnings), warnings)
 	}
-	if warnings[0] != `unknown token: {targat}` {
+	if warnings[0] != `unknown token: {actae}` {
 		t.Errorf("got %q", warnings[0])
 	}
 }

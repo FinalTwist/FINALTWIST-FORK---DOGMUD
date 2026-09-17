@@ -7,8 +7,8 @@ import (
 )
 
 func TestTokensCarriesAllFourKeysEvenWhenEmpty(t *testing.T) {
-	m := TokenContext{SourceName: "S", SourcePlainName: "Sp"}.Tokens()
-	want := map[string]string{"{source}": "S", "{source_plain}": "Sp", "{target}": "", "{target_plain}": ""}
+	m := TokenContext{ActorName: "S", ActorPlainName: "Sp"}.Tokens()
+	want := map[string]string{"{actor}": "S", "{actor_plain}": "Sp", "{actee}": "", "{actee_plain}": ""}
 	if len(m) != len(want) {
 		t.Fatalf("got %d keys, want %d: %v", len(m), len(want), m)
 	}
@@ -33,11 +33,11 @@ func TestPoolIsNilForEmptyAndOneVariantOtherwise(t *testing.T) {
 }
 
 func TestNarrateSubstitutesEveryRoleFromTheOneVariant(t *testing.T) {
-	ctx := TokenContext{SourceName: `<ansi fg="username">Kael</ansi>`, SourcePlainName: "Kael", TargetName: "Goblin", TargetPlainName: "Goblin"}
+	ctx := TokenContext{ActorName: `<ansi fg="username">Kael</ansi>`, ActorPlainName: "Kael", ActeeName: "Goblin", ActeePlainName: "Goblin"}
 	roles := Narrate(narration.Variants{
-		Actor:    Pool("You hex {target}."),
-		Actee:    Pool("{source} hexes you."),
-		Observer: Pool("{source_plain}'s hex lands on {target_plain}."),
+		Actor:    Pool("You hex {actee}."),
+		Actee:    Pool("{actor} hexes you."),
+		Observer: Pool("{actor_plain}'s hex lands on {actee_plain}."),
 	}, ctx)
 	if roles.Actor != "You hex Goblin." {
 		t.Fatalf("actor: %q", roles.Actor)
@@ -60,11 +60,11 @@ func TestNarrateRendersNothingForNoVariants(t *testing.T) {
 }
 
 func TestSubstituteTokensAndNarrateAgree(t *testing.T) {
-	ctx := TokenContext{SourceName: "A", SourcePlainName: "a", TargetName: "B", TargetPlainName: "b"}
+	ctx := TokenContext{ActorName: "A", ActorPlainName: "a", ActeeName: "B", ActeePlainName: "b"}
 	for _, text := range []string{
-		"{source} at {target}; {source_plain}/{target_plain}; {unknown} stays",
+		"{actor} at {actee}; {actor_plain}/{actee_plain}; {unknown} stays",
 		"no tokens",
-		"{source}{source}",
+		"{actor}{actor}",
 	} {
 		if got, want := SubstituteTokens(text, ctx), Narrate(narration.Variants{Actor: Pool(text)}, ctx).Actor; got != want {
 			t.Fatalf("%q: SubstituteTokens %q != Narrate %q", text, got, want)

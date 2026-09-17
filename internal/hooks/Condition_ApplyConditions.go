@@ -10,7 +10,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/life"
-	"github.com/GoMudEngine/GoMud/internal/textutil"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -83,7 +82,7 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 	// Snapshot whether the condition was already active BEFORE we add/refresh.
 	// Used below to suppress start text on a pure refresh — refreshing an
 	// already-active condition (e.g. ambusher's mob_idle → add_condition 9 tick)
-	// shouldn't re-fire "{source} disappears into the shadows." every round.
+	// shouldn't re-fire "{actee} disappears into the shadows." every round.
 	wasAlreadyActive := targetChar.HasCondition(evt.ConditionId)
 
 	// Apply the condition. A DurationMult of 0 or 1 means the authored duration, and
@@ -147,10 +146,7 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 		}
 
 		if charName != "" {
-			roles := conditionInfo.Narrate(conditions.PhaseStart, textutil.TokenContext{
-				SourceName:      charName,
-				SourcePlainName: charPlainName,
-			})
+			roles := conditionInfo.Narrate(conditions.PhaseStart, charName, charPlainName)
 			// The holder is the ACTEE: the condition happens to them. A mob holder
 			// has no client, so its line is rendered and dropped.
 			if roles.Actee != "" && holder != nil {

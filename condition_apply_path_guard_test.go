@@ -94,13 +94,13 @@ var (
 // and carry no allowlist entry.
 var conditionApplyPathAllowlist = map[string]string{
 	// ── The sanctioned consumer of the event ────────────────────────────────
-	"internal/hooks/Condition_ApplyConditions.go|104": "this IS the hook the event feeds; it is where every routed condition is finally applied",
-	"internal/hooks/Condition_ApplyConditions.go|106": "this IS the hook the event feeds; it is where every routed condition is finally applied",
-	"internal/hooks/Condition_ApplyConditions.go|108": "this IS the hook the event feeds; it is where every routed condition is finally applied",
+	"internal/hooks/Condition_ApplyConditions.go|103": "this IS the hook the event feeds; it is where every routed condition is finally applied",
+	"internal/hooks/Condition_ApplyConditions.go|105": "this IS the hook the event feeds; it is where every routed condition is finally applied",
+	"internal/hooks/Condition_ApplyConditions.go|107": "this IS the hook the event feeds; it is where every routed condition is finally applied",
 
 	// ── silent-start conditions whose applier narrates the moment itself ────
 	"internal/actions/combat_throttle.go|144": "condition 89 is silent-start; the throttle move narrates the choke as it lands and must apply it in the same tick",
-	"internal/actions/sleep.go|61":            "condition 15 is silent-start; Sleep reads the Sleeping flag back for its own idempotence check, so it sends the start line itself",
+	"internal/actions/sleep.go|60":            "condition 15 is silent-start; Sleep reads the Sleeping flag back for its own idempotence check, so it sends the start line itself",
 
 	// ── former combat conditions: warcry and rally are now one record each,
 	// applied via AddConditionMagnitude (conditions.ConditionIdWarcry /
@@ -117,7 +117,7 @@ var conditionApplyPathAllowlist = map[string]string{
 	"internal/usercommands/rally.go|114":    "former combat condition (warcry/rally): silent-start record, the shout narrates; must apply synchronously so the fan-out and the same-round combat read it",
 
 	// ── former combat condition: enchant withdrawal ─────────────────────────
-	"internal/usercommands/skill.disenchant.go|72": "former combat condition (withdrawal): the disenchant command narrates; must apply synchronously so Validate clamps the pool now",
+	"internal/usercommands/skill.disenchant.go|71": "former combat condition (withdrawal): the disenchant command narrates; must apply synchronously so Validate clamps the pool now",
 
 	// ── mob holders: no client, so no line could reach anyone ───────────────
 	"internal/usercommands/character.go|413":     "the holder is a MOB (m.Character), and condition 99 is a perma-gear pin, not something a player reads",
@@ -133,10 +133,10 @@ var conditionApplyPathAllowlist = map[string]string{
 	// ── routing would narrate the wrong thing, or narrate it repeatedly ─────
 	"internal/hooks/pinnacle_tick.go|335": "the bandolier continuously re-applies any slotted potion condition that has lapsed, so routing would re-narrate each potion's start line on every lapse; the pinnacle announces attunement once itself",
 	"internal/hooks/pinnacle_tick.go|349": "the bandolier continuously re-applies any slotted potion condition that has lapsed, so routing would re-narrate each potion's start line on every lapse; the pinnacle announces attunement once itself",
-	"internal/justice/arrest.go|641":      "RestoreJailOnLogin re-applies an already-running sentence after the RemoveCondition above, so the hook would read it as a fresh application and clang the cell door shut on every login",
+	"internal/justice/arrest.go|639":      "RestoreJailOnLogin re-applies an already-running sentence after the RemoveCondition above, so the hook would read it as a fresh application and clang the cell door shut on every login",
 
 	// ── the condition must be in place before the function returns ─────────
-	"internal/justice/arrest.go|396": "silent-start, the arrest narrates; no-go and no-aggro-target are read in the same round dispatch",
+	"internal/justice/arrest.go|395": "silent-start, the arrest narrates; no-go and no-aggro-target are read in the same round dispatch",
 
 	// ── the applier's caller narrates, because internal/combat cannot ───────
 	// internal/combat holds only a *characters.Character and sends no player

@@ -1,7 +1,6 @@
 package grapplemessaging
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -9,9 +8,9 @@ func buildTestLib() *Library {
 	return &Library{
 		Advancements: map[string]TemplateTriad{
 			"clinch_to_mount": {
-				Controller: []string{"You mount {controlledName}.", "You ride them down."},
-				Controlled: []string{"{controllerName} mounts you.", "{controllerName} rides you down."},
-				Observers:  []string{"{controllerName} mounts {controlledName}.", "{controllerName} rides {controlledName} down."},
+				Controller: []string{"You mount {actee}.", "You ride them down."},
+				Controlled: []string{"{actor} mounts you.", "{actor} rides you down."},
+				Observers:  []string{"{actor} mounts {actee}.", "{actor} rides {actee} down."},
 			},
 		},
 		Degradations: map[string]TemplateTriad{},
@@ -19,17 +18,6 @@ func buildTestLib() *Library {
 		Escapes:      map[string]TemplateTriad{},
 		Holds:        map[string]TemplateTriad{},
 		StrikingApex: map[string][]string{},
-	}
-}
-
-func TestRenderAdvancementSubstitutesNames(t *testing.T) {
-	lib := buildTestLib()
-	out := RenderTemplate(lib.Advancements["clinch_to_mount"].Controller[0], "Athos", "Porthos")
-	if !strings.Contains(out, "Porthos") {
-		t.Errorf("expected substituted controlled name, got %q", out)
-	}
-	if strings.Contains(out, "{controlledName}") {
-		t.Errorf("unsubstituted placeholder remained: %q", out)
 	}
 }
 

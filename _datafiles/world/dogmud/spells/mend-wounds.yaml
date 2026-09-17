@@ -15,4 +15,4 @@ effect_magnitude: 5
 categories:
   - self_heal
 cast_user_text: "You press your will into the wounds, urging flesh to mend."
-cast_room_text: "{source} places their hands forward as warm light gathers."
+cast_room_text: "{actor} places their hands forward as warm light gathers."

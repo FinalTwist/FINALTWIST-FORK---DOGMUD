@@ -7,6 +7,6 @@ triggercount: 4
 flags:
   - lightsource
 start_user_text: "A warm glow surrounds you."
-start_room_text: "A warm glow surrounds {source_plain}."
+start_room_text: "A warm glow surrounds {actee_plain}."
 end_user_text: "Your glow fades away."
-end_room_text: "The glow surrounding {source_plain} fades away."
+end_room_text: "The glow surrounding {actee_plain} fades away."

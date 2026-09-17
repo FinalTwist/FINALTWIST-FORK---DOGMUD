@@ -17,4 +17,4 @@ damage_multiplier: 0.50
 categories:
   - harm_single
 cast_user_text: "You focus your conviction into a sharp point of force."
-cast_room_text: "{source} narrows their eyes, conviction crystallizing in the air."
+cast_room_text: "{actor} narrows their eyes, conviction crystallizing in the air."

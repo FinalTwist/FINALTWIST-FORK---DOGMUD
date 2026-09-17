@@ -81,9 +81,9 @@ func TestGetTauntTriadCoordinatesAtANonZeroIndex(t *testing.T) {
 func TestGetTauntTriadSubstitutesTokensInEveryRole(t *testing.T) {
 	opts := map[TauntIntensity]*TauntMessages{
 		TauntHit: {
-			ToAttacker: []string{"atk {target} {damage}"},
-			ToDefender: []string{"def {source} {damage}"},
-			ToRoom:     []string{"room {source} {target}"},
+			ToAttacker: []string{"atk {actee} {damage}"},
+			ToDefender: []string{"def {actor} {damage}"},
+			ToRoom:     []string{"room {actor} {actee}"},
 		},
 	}
 	seedTauntMessages(t, map[string]*TauntMessageGroup{"rhetoric": {OptionId: "rhetoric", Options: opts}})

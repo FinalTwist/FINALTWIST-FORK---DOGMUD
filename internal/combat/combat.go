@@ -244,10 +244,10 @@ func GetWaitMessages(stepType items.Intensity, sourceChar *characters.Character,
 
 	tokenReplacements := map[items.TokenName]string{
 		items.TokenItemName:     unarmedName,
-		items.TokenSource:       sourceChar.Name,
-		items.TokenSourceType:   string(sourceType) + `name`,
-		items.TokenTarget:       targetChar.Name,
-		items.TokenTargetType:   string(targetType) + `name`,
+		items.TokenActor:        sourceChar.Name,
+		items.TokenActorType:    string(sourceType) + `name`,
+		items.TokenActee:        targetChar.Name,
+		items.TokenActeeType:    string(targetType) + `name`,
 		items.TokenUsesLeft:     `[Invalid]`,
 		items.TokenDamage:       `[Invalid]`,
 		items.TokenEntranceName: `unknown`,
@@ -291,11 +291,11 @@ func GetWaitMessages(stepType items.Intensity, sourceChar *characters.Character,
 	}
 
 	if sourceType == Mob {
-		tokenReplacements[items.TokenSource] = sourceChar.GetMobName(0).String()
+		tokenReplacements[items.TokenActor] = sourceChar.GetMobName(0).String()
 	}
 
 	if targetType == Mob {
-		tokenReplacements[items.TokenTarget] = targetChar.GetMobName(0).String()
+		tokenReplacements[items.TokenActee] = targetChar.GetMobName(0).String()
 	}
 
 	// ONE coordinated draw for every audience. Selection happens here, after
