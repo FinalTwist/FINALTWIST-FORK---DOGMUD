@@ -12,6 +12,9 @@ indoor:
       - "The blizzard howls against the walls, packing snow into every crack."
       - "Something on the roof strains and thrums with each long gust."
       - "Frost creeps across the inside of the glass in feathered white ferns."
+      - "The rafters groan under snow piling heavier on the roof above."
+      - "Cold radiates off the windowpanes, a chill felt without touching them."
+      - "Draughts needle in at the doorsill, sharp as a blade."
 # Underground the blizzard is felt as a reversed, chilled draught, not a
 # howl. The mild pool stays empty: only a full blizzard reaches this deep.
 underground:

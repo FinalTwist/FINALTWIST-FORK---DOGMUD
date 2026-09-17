@@ -14,7 +14,10 @@ indoor:
     strong:
       - "Mist curls in at the threshold and thins to nothing in the warmth."
       - "Damp creeps under the door and beads on the cold windowpanes."
-      - "The world beyond the glass has simply dissolved into pale nothing."
+      - "Sound goes oddly dead indoors, swallowed before it can echo."
+      - "The lamp flames burn low and steady, untroubled by any draft."
+      - "Every wooden surface feels faintly clammy to the touch."
+      - "Light through the windows comes thin and gray, strained through wool."
 # Underground is deliberately silent for this type: fog does not enter
 # stone. An empty pool is the authored answer, not a gap. See the owner
 # ruling that silence is the default underground.

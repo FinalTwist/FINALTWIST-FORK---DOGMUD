@@ -19,7 +19,10 @@ indoor:
     strong:
       - "Thunder rolls through the walls, rattling anything not nailed down."
       - "The storm hammers at the roof, wind worrying every joint and seam."
-      - "A flash from outside paints the room white for an instant."
+      - "A flash of light turns the room white for an instant."
+      - "A cold draft slips under the door with each fresh gust."
+      - "The doorframe shudders with each gust that leans against it."
+      - "Loose shingles clatter and settle, then clatter again."
 # Underground the storm arrives as pressure and grit, not sound or light.
 # The mild pool stays empty: only a heavy storm reaches this deep.
 underground:

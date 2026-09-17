@@ -11,7 +11,10 @@ indoor:
     strong:
       - "Grit hisses against the walls; the air inside tastes of dry earth."
       - "A gritty film settles over everything no matter how tight the shutters."
-      - "Each breath carries the faint, mineral taste of the storm outside."
+      - "Each breath carries a faint, mineral grit that was not there before."
+      - "Dust sifts down from the rafters and hangs gold in shafts of light."
+      - "The shutters rattle faintly, though the wind never quite gets in."
+      - "The air feels gritty against the skin, even with every window shut."
 # Underground the dust storm is felt as sifting grit and dry air, not wind.
 # The mild pool stays empty: only a heavy dust storm reaches this deep.
 underground:

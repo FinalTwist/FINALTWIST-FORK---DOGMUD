@@ -10,9 +10,12 @@ indoor:
   default:
     mild: []
     strong:
-      - "Snow whispers against the windows, piling soft in the corners outside."
-      - "The hush outside presses against the walls, deep and close and complete."
+      - "Snow ticks softly against the windowpanes, a sound too soft to place."
+      - "A hush presses in against the walls, deep and close and complete."
       - "Cold seeps up through the floorboards; the fire seems to give less heat."
+      - "Snowlight seeps in pale and bright, lighting the room strangely well."
+      - "The draft in the chimney falls quiet, as if the snow has stopped it up."
+      - "A thin white line of snow creeps in along the windowsill."
 # Underground is deliberately silent for this type: snow falls without sound
 # and a cave has no way to register it. An empty pool is the authored answer,
 # not a gap. See the owner ruling that silence is the default underground.

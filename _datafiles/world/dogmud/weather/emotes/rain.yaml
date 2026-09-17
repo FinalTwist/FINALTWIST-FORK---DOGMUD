@@ -18,8 +18,11 @@ indoor:
     mild: []
     strong:
       - "The sound of rain on the roof settles into a rhythmic, soothing patter."
-      - "Water trickles past outside; somewhere a slow drip finds its rhythm."
       - "A gust flings a handful of rain against the panes, then relents."
+      - "The air turns damp and cool, carrying a faint smell of wet stone."
+      - "Water finds a gap in the eaves and starts a slow, steady drip."
+      - "Rain streaks the window, its reflected light rippling on the ceiling."
+      - "A drainpipe gurgles somewhere close, swallowing the rain in gulps."
 # Underground is felt through STONE, not through walls, so it carries no roofs,
 # panes, shutters, eaves or floorboards. The mild pool is deliberately empty:
 # light rain does not reach a cave at all. Only the strong band is authored,
