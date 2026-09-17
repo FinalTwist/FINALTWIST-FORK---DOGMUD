@@ -70,11 +70,39 @@ def golden_at(ref, name):
 
 
 def translate(text, pairs):
+    """Rewrite role labels in the two positions a golden puts them, and NOWHERE
+    else.
+
+    A bare word-boundary replace is wrong, and the grapple golden proves it:
+    line 120 ends "you're fully controlled." That is prose, and the real rename
+    does not touch it, so translating it would bake a permanent false failure
+    into the check. Labels only ever appear as
+
+      "|<label> =>"     the row key, every store
+      "<label>="        inside the value, combat_messages only
+
+    so both patterns are anchored to that shape instead.
+    """
     for old, new in pairs:
-        # Labels appear in the row key ("|todefender =>") and inside values
-        # ("todefender="). Both are word-bounded.
-        text = re.sub(r"\b%s\b" % re.escape(old), new, text)
+        text = re.sub(r"\|%s(?= =>)" % re.escape(old), "|" + new, text)
+        text = re.sub(r"(?<![\w-])%s=" % re.escape(old), new + "=", text)
     return text
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--base", required=True, help="git ref holding the pre-rename goldens")
+    ap.add_argument("--group", required=True, choices=sorted(GROUPS))
+    args = ap.parse_args()
+
+def rows(text):
+    """The data rows of a golden: every line that is not a generated comment.
+
+    Header comments are provenance written by snapshot_test.go, and the rename
+    updates their wording by hand. Holding them to label translation would fail
+    on a correct rename, so they are reported separately instead of compared.
+    """
+    return [ln for ln in text.splitlines() if not ln.startswith("#")]
 
 
 def main():
@@ -85,19 +113,22 @@ def main():
 
     failures = 0
     for name, pairs in GROUPS[args.group].items():
-        old = translate(golden_at(args.base, name), pairs)
+        old_text = translate(golden_at(args.base, name), pairs)
         with open("%s/%s" % (GOLDEN_DIR, name), "r", encoding="utf-8", newline="") as fh:
-            new = fh.read()
-        if old == new:
-            print("%s: identical after label translation" % name)
+            new_text = fh.read()
+        old_lines, new_lines = rows(old_text), rows(new_text)
+        header_moved = old_text.splitlines()[:len(old_text.splitlines()) - len(old_lines)] != \
+            new_text.splitlines()[:len(new_text.splitlines()) - len(new_lines)]
+        note = " (header comments differ, not compared)" if header_moved else ""
+        if old_lines == new_lines:
+            print("%s: %d rows identical after label translation%s" % (name, len(new_lines), note))
             continue
         failures += 1
-        old_lines, new_lines = old.splitlines(), new.splitlines()
         for i in range(max(len(old_lines), len(new_lines))):
             o = old_lines[i] if i < len(old_lines) else "<missing>"
             n = new_lines[i] if i < len(new_lines) else "<missing>"
             if o != n:
-                print("%s: first difference at line %d" % (name, i + 1))
+                print("%s: first differing row %d of %d%s" % (name, i + 1, len(new_lines), note))
                 print("  translated old: %s" % o)
                 print("  new:            %s" % n)
                 break

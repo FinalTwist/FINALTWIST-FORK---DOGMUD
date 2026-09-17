@@ -334,6 +334,42 @@ silently.
   `remote_observer` slots in YAML; authoring them is content work.
 - **Deploy:** no save migration.
 
+## Standing rule: leave `_datafiles/world/default` alone (owner, 2026-09-17)
+
+**Do not edit the default world unless a test actually reads that store from
+it, or `util.ValidateWorldFiles` requires the directory to exist.**
+
+Three reasons were offered for touching it during M4a and M4b-1. Only two are
+real, and neither applies to a narration store:
+
+1. It is the Go default for `DataFiles` when the config key is empty
+   (`internal/configs/config.filepaths.go:23`), so it is the world a TEST
+   binary gets. Some tests genuinely read it: `internal/templates/process_test.go`
+   reads its templates, and the hooks and usercommands tests write saves there.
+2. `main.go:278` runs `util.ValidateWorldFiles`, which requires every
+   DIRECTORY in the default world to exist in the real one
+   (`internal/util/util.go:913-942`; one direction, structure only). So adding
+   a directory there adds a boot requirement on `world/dogmud` for nothing.
+3. ~~Upstream parity~~. **Void** (owner, 2026-09-17): cherry-picks from
+   GoMud are inspirational, the trees are millions of lines apart, so nothing
+   is owed to the parent repo.
+
+That world does not boot in any case: it has no `defense-messages` directory
+and `internal/items/itemspec.go:805` panics on that at `main.go:1643`, long
+before any messaging loader runs. It also lacks `taunt-messages`,
+`itemvoices`, `recipes`, `gossip_templates.yaml` and `tips.yaml`.
+
+M4b-1 copied two messaging files there and then removed them again. M4a's
+token rewrite of its `combat-messages` stays, because the Go code is shared:
+if a test ever renders from that world, the canonical tokens are the ones that
+work.
+
+🅿️ **Filed, not scheduled: repoint the Go default at `world/dogmud` and delete
+`world/default` entirely.** With upstream parity void, the only things holding
+it up are the handful of tests above and the `ValidateWorldFiles` comparison,
+which would lose its second operand. That is a cleanup slice of its own, not
+messaging work.
+
 ## Out of scope, filed
 
 - `none`-type spells face zero mitigation in
