@@ -1,0 +1,30 @@
+OWNER PLAYTEST FEEDBACK, prod, since the 2026-09-07 deploy (59e1871fd).
+Living backlog. Items are struck through as they land; nothing is deleted,
+so a disproven item cannot be re-reported as new.
+
+NOTE ON FRAMING: this was played against prod, which is ~30 PRs behind
+master (#111 to #140 undeployed). Some items may already behave differently
+on master; each is verified against master before being worked.
+
+--------------------------------------------------------------------------
+
+Ammo seems hard to come by for ranged weapons outside the pothole coulee
+We don’t seem to have tutorials in the pothole coulee for skullduggery stuff
+The trigger queuing seems to work for warcry and rally, but fail for spells like skill attunement
+Some of the rarer crafting materials don’t seem to restock or if they do, very slowly (ex. Gold Wire)
+We need to turn mob melee damage back up
+Mobs should do more offensive spells as a default instead of shield and whatnot first  they are already being hit
+I’d like to add a new caster companion that heals and buffs - Ghost, near the Golem in power or slightly higher in power and cost
+Can companions use ranged weapons if given one + ammo?
+We should add recipes for arrows, bolts, slingshot to blacksmithing
+We should allow master and grandmaster crafters to scale their crafted items in power like the instance items do by adding in extra armor/damage/skills/stats via a enhance command that touches the appropriate crafting skill + some kind of crafted enchanter item
+Ranged combat progression rate is probably too fast. Rhetoric as well, to a lesser degree
+[RESOLVED, NOT A BUG 2026-09-16] Sealed phial doesn’t seem to get pulled from
+  storage for alchemy (unconfirmed) — owner retested and it pulls correctly.
+  Kept here so it is not re-reported.
+We really need some way to counter reflect damage (potion, spell, items)
+Crafting and spell discovery is still a bit slow
+Scan can see mobs in adjacent rooms in darkness even when look <direction> cannot
+The sentinel doesn’t seem to have ammo for their bow nor the ability to fire
+Helpfile for steel ingot says you need iron ingots and coal dust. Recipe also requires pine pitch(it probably shouldn’t)
+Some of the tips in the broadcast are outdated badly. We should update them at some point once we get all the arcs done
