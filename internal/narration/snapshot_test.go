@@ -1469,6 +1469,18 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 // rows, their order and the header are unchanged from the pre-migration
 // recording, which is the byte-identity proof.
 //
+// M4b-1 then did the same to the store's three authored ROLE KEY vocabularies:
+// attacker/target/room in the submission block, controller/controlled on the
+// gradient and transition sides, and self/room in the stamina warning, all now
+// actor/actee/observer. That rename moves the golden's row LABELS, so
+// byte-identity cannot prove it; the proof is tools/messaging_role_key_check.py,
+// which translates the pre-rename golden's labels and requires equality.
+//
+// The gradient and transition SIDE field is a role and moved with the rest.
+// The gradient STATE spelled `controlled` is authored data and did not: it is
+// why both the rewrite table and the check table carry a scope for that one
+// spelling.
+//
 // dimensions: block x key [x subtype] x role. Every authored line exactly
 // once, empty lines included: an authored "" is deliberate silence in this
 // store (the controlled side of a gradient has no room line) and freezing it
@@ -1480,17 +1492,19 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 // prose comes from internal/grapplemessaging and messaging_grapple.yaml. Those
 // rows therefore guard the DATA, not a render path.
 
-// posSelfRoom is a self/room pair (gradient, transition, stamina blocks).
+// posSelfRoom is an actor/observer pair (gradient, transition, stamina
+// blocks). Its keys were self/room until M4b-1's role-key rename.
 type posSelfRoom struct {
-	Self string `yaml:"self"`
-	Room string `yaml:"room"`
+	Self string `yaml:"actor"`
+	Room string `yaml:"observer"`
 }
 
-// posTriple is an attacker/target/room triple (the submission block).
+// posTriple is an actor/actee/observer triple (the submission block). Its keys
+// were attacker/target/room until M4b-1's role-key rename.
 type posTriple struct {
-	Attacker string `yaml:"attacker"`
-	Target   string `yaml:"target"`
-	Room     string `yaml:"room"`
+	Attacker string `yaml:"actor"`
+	Target   string `yaml:"actee"`
+	Room     string `yaml:"observer"`
 }
 
 // positionControlFile mirrors the shipped file's shape with maps rather than
@@ -1551,7 +1565,12 @@ func buildPositionControlGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# internal/hooks/Position_Messaging.go, a {key} loop over the three authored name\n")
 	fmt.Fprintf(&b, "# vocabularies {attacker}/{target}, {Controller}/{Controlled} and {Character}.\n")
 	fmt.Fprintf(&b, "# Stand-ins: Actorius is the actor side, Acteeus the actee side.\n")
-	fmt.Fprintf(&b, "# dimensions: block x key [x subtype] x role. Empty rows are authored silence.\n")
+	fmt.Fprintf(&b, "# dimensions: block x key [x subtype] x role, role in {actor,actee,observer}:\n")
+	fmt.Fprintf(&b, "# M4b-1 collapsed this store's three authored KEY vocabularies (attacker/target/\n")
+	fmt.Fprintf(&b, "# room, controller/controlled and self/room) the way M4a collapsed its three\n")
+	fmt.Fprintf(&b, "# token ones. In the gradient and transition rows the SIDE field is a role too;\n")
+	fmt.Fprintf(&b, "# the gradient state spelled `controlled` is authored data and keeps its name.\n")
+	fmt.Fprintf(&b, "# Empty rows are authored silence.\n")
 	fmt.Fprintf(&b, "# gradient_messages and transition_messages have NO Go reader today; those rows\n")
 	fmt.Fprintf(&b, "# guard the data, not a render path.\n\n")
 
@@ -1559,13 +1578,13 @@ func buildPositionControlGolden(t *testing.T) string {
 		return narration.Substitute(s, positionControlStandins)
 	}
 	emitSelfRoom := func(key string, pair posSelfRoom) {
-		fmt.Fprintf(&b, "%s|self => %q\n", key, render(pair.Self))
-		fmt.Fprintf(&b, "%s|room => %q\n", key, render(pair.Room))
+		fmt.Fprintf(&b, "%s|actor => %q\n", key, render(pair.Self))
+		fmt.Fprintf(&b, "%s|observer => %q\n", key, render(pair.Room))
 	}
 	emitTriple := func(key string, tri posTriple) {
-		fmt.Fprintf(&b, "%s|attacker => %q\n", key, render(tri.Attacker))
-		fmt.Fprintf(&b, "%s|target => %q\n", key, render(tri.Target))
-		fmt.Fprintf(&b, "%s|room => %q\n", key, render(tri.Room))
+		fmt.Fprintf(&b, "%s|actor => %q\n", key, render(tri.Attacker))
+		fmt.Fprintf(&b, "%s|actee => %q\n", key, render(tri.Target))
+		fmt.Fprintf(&b, "%s|observer => %q\n", key, render(tri.Room))
 	}
 
 	if len(tpl.Gradient) == 0 {

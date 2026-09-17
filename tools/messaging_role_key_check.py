@@ -56,8 +56,21 @@ GROUPS = {
             ("success_message", "success_actor"), ("failure_message", "failure_actor"),
         ],
     },
+    # position_control is the one golden whose table needs FIELD-SCOPED pairs
+    # (the optional third element). Its gradient rows key a SIDE at field 1 and
+    # a gradient STATE at field 2, and one of the four states is spelled
+    # `controlled`, the same word as the controlled side:
+    #
+    #   gradient|controller|controlled|self => "You've lost the side control!"
+    #
+    # The side is a role and the rename moves it; the state is data and the
+    # rename leaves it alone. The blind middle-field rule cannot tell them
+    # apart, so without the scope it would translate the state as well and
+    # report a false difference on a correct rename -- the same class of bake-in
+    # the prose example in translate()'s docstring guards against.
     "position": {
         "position_control.golden": [
+            ("controller", "actor", 1), ("controlled", "actee", 1),
             ("attacker", "actor"), ("target", "actee"), ("room", "observer"),
             ("self", "actor"),
         ],
@@ -78,6 +91,31 @@ def golden_at(ref, name):
     return out.stdout.decode("utf-8")
 
 
+def translate_field(text, old, new, index):
+    """Rewrite a label only where it occupies one exact field of the row key.
+
+    The blind rules below match a label anywhere in the pipe-delimited key,
+    which is right for every golden but position_control's: there, `controlled`
+    names both the controlled SIDE (field 1, a role the rename moves) and a
+    gradient STATE (field 2, data the rename leaves alone). A field index is
+    what separates them.
+
+    Non-row lines (the generated header comments, the blank separator) have no
+    " => " and are returned untouched.
+    """
+    out = []
+    for line in text.splitlines():
+        key, sep, rest = line.partition(" => ")
+        if sep:
+            fields = key.split("|")
+            if len(fields) > index and fields[index] == old:
+                fields[index] = new
+                line = "|".join(fields) + sep + rest
+        out.append(line)
+    tail = "\n" if text.endswith("\n") else ""
+    return "\n".join(out) + tail
+
+
 def translate(text, pairs):
     """Rewrite role labels in the two positions a golden puts them, and NOWHERE
     else.
@@ -96,8 +134,17 @@ def translate(text, pairs):
     "derived|bite|weak|actor|skill=10|n=4 =>" rows, where the label is neither
     last in the key nor followed by "=". It is as safe as the other two: a
     pipe-delimited field is never prose.
+
+    A pair may carry a third element, a 0-based field index, which narrows it to
+    that one field of the row key and skips the three blind patterns entirely.
+    See translate_field and the position group's table.
     """
-    for old, new in pairs:
+    for pair in pairs:
+        if len(pair) == 3:
+            old, new, field = pair
+            text = translate_field(text, old, new, field)
+            continue
+        old, new = pair
         text = re.sub(r"\|%s(?= =>)" % re.escape(old), "|" + new, text)
         text = re.sub(r"\|%s(?=\|)" % re.escape(old), "|" + new, text)
         text = re.sub(r"(?<![\w-])%s=" % re.escape(old), new + "=", text)

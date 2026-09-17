@@ -151,9 +151,9 @@ var textSurfaceRegistry = map[string]surfaceEntry{
 	// the narration shape (see messagingSurfaceAudienceKeys' own comment),
 	// spanning internal/combat/taunt_messages.go, internal/items/
 	// attack_messages.go and internal/items/defensive_messages.go. --
-	"actor":           {narration, "Attacker-side phrasing key shared by combat/taunt_messages.go TauntMessages.ToAttacker, items/attack_messages.go and items/defensive_messages.go -- combat/attack/defence/taunt message triad. Also grapplemessaging/loader.go TemplateTriad.Controller and GradientTriad.Self (grapple_outcomes.yaml). Also internal/quests/quests.go QuestReward.PlayerMessage (66 quest files) and internal/quests/triggers.go ActionDef.SendText (46 quest files, dash-prefixed). SPELLING CHANGED IN M4b: this key was `toattacker` in the combat triad, `controller` in the grapple outcome triad, `self` in the grapple gradient triad, `playermessage` on a quest reward and `send_text` on a quest action, until the role-key rename."},
-	"actee":           {narration, "Defender-side phrasing key, same triad as actor (taunt_messages.go, attack_messages.go, defensive_messages.go), plus grapplemessaging/loader.go TemplateTriad.Controlled and GradientTriad.Partner. SPELLING CHANGED IN M4b: this key was `todefender` in the combat triad, `controlled` in the grapple outcome triad and `partner` in the grapple gradient triad, until the role-key rename."},
-	"observer":        {narration, "Room-observer phrasing key, same triad as actor; ToRoom on TauntMessages/AttackMessages/DefensiveMessages, ToAttackerRoom on items/attack_messages.go SeparateMessages, and grapplemessaging/loader.go TemplateTriad.Observers / GradientTriad.Observers. Also internal/quests/quests.go QuestReward.RoomMessage (56 quest files) and internal/quests/triggers.go ActionDef.RoomText (13 quest files, dash-prefixed). SPELLING CHANGED IN M4b: this key was `toroom` in the together shape, `toattackerroom` in the separate shape, `observers` in both grapple shapes, `roommessage` on a quest reward and `room_text` on a quest action, until the role-key rename, which merged them because they are the same audience."},
+	"actor":           {narration, "Attacker-side phrasing key shared by combat/taunt_messages.go TauntMessages.ToAttacker, items/attack_messages.go and items/defensive_messages.go -- combat/attack/defence/taunt message triad. Also grapplemessaging/loader.go TemplateTriad.Controller and GradientTriad.Self (grapple_outcomes.yaml). Also internal/quests/quests.go QuestReward.PlayerMessage (66 quest files) and internal/quests/triggers.go ActionDef.SendText (46 quest files, dash-prefixed). SPELLING CHANGED IN M4b: this key was `toattacker` in the combat triad, `controller` in the grapple outcome triad, `self` in the grapple gradient triad, `playermessage` on a quest reward and `send_text` on a quest action, until the role-key rename. Also hooks/Position_Messaging.go submissionMsgTriple.Attacker and positionMessageTemplates.StaminaWarning.Self (messaging/position_control.yaml), plus that file's gradient_messages and transition_messages side keys, which no Go struct reads at all; those spellings were `attacker`, `self` and `controller`."},
+	"actee":           {narration, "Defender-side phrasing key, same triad as actor (taunt_messages.go, attack_messages.go, defensive_messages.go), plus grapplemessaging/loader.go TemplateTriad.Controlled and GradientTriad.Partner. SPELLING CHANGED IN M4b: this key was `todefender` in the combat triad, `controlled` in the grapple outcome triad and `partner` in the grapple gradient triad, until the role-key rename. Also hooks/Position_Messaging.go submissionMsgTriple.Target (messaging/position_control.yaml), where it was `target`, plus that file's controlled-side gradient_messages and transition_messages key, where it was `controlled` and no Go struct reads it."},
+	"observer":        {narration, "Room-observer phrasing key, same triad as actor; ToRoom on TauntMessages/AttackMessages/DefensiveMessages, ToAttackerRoom on items/attack_messages.go SeparateMessages, and grapplemessaging/loader.go TemplateTriad.Observers / GradientTriad.Observers. Also internal/quests/quests.go QuestReward.RoomMessage (56 quest files) and internal/quests/triggers.go ActionDef.RoomText (13 quest files, dash-prefixed). SPELLING CHANGED IN M4b: this key was `toroom` in the together shape, `toattackerroom` in the separate shape, `observers` in both grapple shapes, `roommessage` on a quest reward and `room_text` on a quest action, until the role-key rename, which merged them because they are the same audience. Also hooks/Position_Messaging.go submissionMsgTriple.Room and positionMessageTemplates.StaminaWarning.Room (messaging/position_control.yaml), plus that file's unread gradient_messages and transition_messages room lines; all of those were spelled `room`."},
 	"remote_observer": {narration, "items/attack_messages.go SeparateMessages.ToDefenderRoom -- the observers in the DEFENDER's room when a ranged blow crosses rooms, which is the one case with two observer audiences (narration.Roles.ActeeObserver). SPELLING CHANGED IN M4b: this key was `todefenderroom` until the role-key rename."},
 	"together":        {narration, "items/attack_messages.go and items/defensive_messages.go Together field -- joint attacker+defender phrasing, paired with separate, in the same message triad."},
 	"separate":        {narration, "items/attack_messages.go and items/defensive_messages.go Separate field -- independent attacker/defender phrasing, paired with together."},
@@ -169,14 +169,16 @@ var textSurfaceRegistry = map[string]surfaceEntry{
 	// alone, and their provenance is recorded there.
 	//
 	// The three old spellings are deliberately NOT kept as entries. After
-	// the rename `observers` appears in no data file at all, and
-	// `controller`/`controlled` appear in exactly one (messaging/
-	// position_control.yaml, whose gradient_messages and transition_messages
-	// blocks are read by internal/grapplemessaging rather than by any Go
-	// struct tag). Single-file and untagged is content, not schema, so
-	// leaving them registered fails the staleness half of this guard, which
-	// is exactly what it should do. The position store's own rename lands in
-	// a later M4b-1 task and will not need entries here either. --
+	// M4b-1's position_control rename finished the job, `observers` and
+	// `controller` appear in NO data file at all, and `controlled` appears in
+	// exactly one, as a gradient STATE name in messaging/position_control.yaml
+	// rather than as a role: that file's gradient_messages and
+	// transition_messages blocks are read by no Go code whatsoever, so nothing
+	// tags any of the three. Single-file and untagged is content, not schema,
+	// so leaving them registered fails the staleness half of this guard, which
+	// is exactly what it should do. The position store's own rename needed no
+	// entries here either, as predicted: its keys folded into actor, actee and
+	// observer above. --
 
 	// -- Sentient item voice narration: internal/itemvoices/itemvoices.go
 	// VoiceSpec, one YAML per voice, consumed by the pinnacle per-round tick
@@ -263,6 +265,12 @@ var messagingSurfaceAudienceKeys = map[string]bool{
 	// here: neither carries a stem, so neither was ever a candidate, and the
 	// separate shape's two room audiences went unregistered until the rename
 	// gave them names the walk can see.
+	// observers, controller and controlled are RETIRED role spellings, kept
+	// here on purpose. No shipped file authors any of them as a role after
+	// M4b-1, so listing them costs nothing; dropping them would mean a file
+	// that re-authored `controller:` tomorrow slipped past the walk unseen,
+	// because none of the three carries a stem either. Recognising a retired
+	// spelling is how the walk reports a regression instead of missing it.
 	"actor": true, "actee": true, "observer": true, "remote_observer": true,
 	"observers":  true,
 	"controller": true, "controlled": true, "together": true, "separate": true,

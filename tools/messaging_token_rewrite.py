@@ -31,7 +31,7 @@ W = os.path.join(ROOT, "_datafiles", "world", "dogmud")
 # and its stores must flip with dogmud's. Its combat-messages is the only
 # directory under it holding any of these tokens (checked M4a task 4).
 DEFAULT_W = os.path.join(ROOT, "_datafiles", "world", "default")
-MSG = os.path.join(ROOT, "_datafiles", "messages")
+POSITION_FILE = os.path.join(W, "messaging", "position_control.yaml")
 
 # Per (store, key), never global: the same spelling means different roles in
 # different stores. conditions' {source} is the HOLDER, which is the actee.
@@ -74,8 +74,12 @@ GROUPS = {
             "{controllerName}": "{actor}", "{controlledName}": "{actee}",
         }),
     ],
+    # M4b-1 task 2 moved position_control.yaml out of _datafiles/messages and
+    # under the world tree. This target followed it: files_under() returns []
+    # for a path that does not exist, so a stale target leaves --check scanning
+    # nothing and reporting a clean zero for a store it never opened.
     "position": [
-        (MSG, {
+        (POSITION_FILE, {
             "{attacker}": "{actor}", "{target}": "{actee}",
             "{Controller}": "{actor}", "{Controlled}": "{actee}",
             "{Character}": "{actor}",
@@ -98,11 +102,13 @@ GROUPS = {
 # points FilePaths.DataFiles at the dogmud world first.
 KEY_GROUPS = {
     # grapple points at the FILE, not at W/messaging, and that is load-bearing.
-    # position_control.yaml sits in the same directory and authors `controller:`,
+    # position_control.yaml sits in the same directory and authored `controller:`,
     # `controlled:` and `self:` keys of its own, which belong to the POSITION
-    # group a later task renames. A directory target would rewrite them here,
-    # silently folding two stores into one task. files_under() accepts a file
-    # path, so naming the file costs nothing.
+    # group below. A directory target would have rewritten them here, silently
+    # folding two stores into one task, and it would still be wrong: that file
+    # keeps a `controlled:` key today as a gradient STATE name, which no rename
+    # touches. files_under() accepts a file path, so naming the file costs
+    # nothing.
     "grapple": [
         (os.path.join(W, "messaging", "grapple_outcomes.yaml"), [
             ("controller", "actor"), ("controlled", "actee"), ("observers", "observer"),
@@ -138,6 +144,28 @@ KEY_GROUPS = {
         (os.path.join(W, "recipes"), [
             ("success_room_message", "success_observer"), ("success_message", "success_actor"),
             ("failure_room_message", "failure_observer"), ("failure_message", "failure_actor"),
+        ]),
+    ],
+    # position_control is the one file needing INDENT-SCOPED pairs (the
+    # optional third element). It authors three role vocabularies, and one of
+    # them collides with its own data:
+    #
+    #   gradient_messages:
+    #     controller:          <- the SIDE, a role, renamed to actor
+    #       controlled:        <- a gradient STATE, data, left alone
+    #         self: ...        <- a role, renamed to actor
+    #
+    # `controlled` is both. Anchoring on `<key>:` is what keeps the word out of
+    # prose, but it cannot tell a side from a state, and renaming the state
+    # would turn gradient_messages.actor.actee into nonsense. The sides sit at
+    # column 2 and the states at column 4, so the column is the discriminator;
+    # the other four pairs stay unscoped because their spellings appear at one
+    # nesting level only.
+    "position": [
+        (POSITION_FILE, [
+            ("controller", "actor", 2), ("controlled", "actee", 2),
+            ("attacker", "actor"), ("target", "actee"),
+            ("room", "observer"), ("self", "actor"),
         ]),
     ],
     "combat": [
@@ -194,6 +222,11 @@ def rewrite_keys(path, pairs, dry_run):
     The pairs are applied in the order given, longest first, so
     `toattackerroom` is consumed before `toattacker` is tried. The trailing
     colon in the pattern is a second line of defence for the same hazard.
+
+    A pair may carry a third element, an exact indent column, which narrows it
+    to key lines at that nesting level. Only position_control.yaml needs it,
+    where one spelling is a role at one level and authored data at another; see
+    that table.
     """
     with open(path, "r", encoding="utf-8", newline="") as fh:
         original = fh.read()
@@ -201,13 +234,18 @@ def rewrite_keys(path, pairs, dry_run):
     hits = 0
     out = []
     for line in original.splitlines(keepends=True):
-        for old, new in pairs:
+        for pair in pairs:
+            old, new = pair[0], pair[1]
+            indent = pair[2] if len(pair) == 3 else None
             pattern = r"^(\s*(?:-\s+)?)%s(?=:)" % re.escape(old)
-            replaced, n = re.subn(pattern, lambda m: m.group(1) + new, line)
-            if n:
-                line = replaced
-                hits += n
-                break
+            m = re.match(pattern, line)
+            if not m:
+                continue
+            if indent is not None and len(m.group(1)) != indent:
+                continue
+            line = line[:m.start()] + m.group(1) + new + line[m.end():]
+            hits += 1
+            break
         out.append(line)
 
     updated = "".join(out)

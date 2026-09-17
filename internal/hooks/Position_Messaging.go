@@ -39,13 +39,21 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// submissionMsgTriple holds attacker / target / room variants for
-// a single submission message key. Attacker and target are personal
-// messages; room goes to all other characters in the room.
+// submissionMsgTriple holds the three audience variants for a single
+// submission message key. The actor and actee lines are personal messages to
+// the two grapplers; the observer line goes to everyone else in the room.
+//
+// The authored keys were attacker/target/room until M4b-1 gave every narration
+// store one role vocabulary. The Go field names keep the submission-specific
+// spelling because they read better at the call sites below, where an
+// attempter really is attacking; only the wire names are canonical. The
+// mirror of this struct in the repo root's shipped_narration_data_guard_test.go
+// decodes STRICTLY and must be renamed in lockstep, or a tag changed here
+// alone fails that guard's decode rather than silently yielding empty text.
 type submissionMsgTriple struct {
-	Attacker string `yaml:"attacker"`
-	Target   string `yaml:"target"`
-	Room     string `yaml:"room"`
+	Attacker string `yaml:"actor"`
+	Target   string `yaml:"actee"`
+	Room     string `yaml:"observer"`
 }
 
 type submissionMessageBlock struct {
@@ -60,10 +68,18 @@ type submissionMessageBlock struct {
 	CritFlag               submissionMsgTriple            `yaml:"crit_flag"`
 }
 
+// positionMessageTemplates is the part of the store production reads:
+// stamina_warning and submission. gradient_messages and transition_messages
+// are authored in the same file and read by nobody (see the golden's note).
+//
+// The stamina warning's keys were self/room until M4b-1. It is the one
+// asymmetric pair in the store: `actor` is the character the warning fires
+// for, whichever side of the grapple they are on, which is what
+// staminaWarningSubstitutions exists to arrange.
 type positionMessageTemplates struct {
 	StaminaWarning struct {
-		Self string `yaml:"self"`
-		Room string `yaml:"room"`
+		Self string `yaml:"actor"`
+		Room string `yaml:"observer"`
 	} `yaml:"stamina_warning"`
 	Submission submissionMessageBlock `yaml:"submission"`
 }

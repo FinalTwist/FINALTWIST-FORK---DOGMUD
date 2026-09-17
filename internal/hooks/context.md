@@ -1353,6 +1353,18 @@ resolved, fires supplementary messaging:
   choke, etc.); resolution messages vary by outcome (Mercy / Subdue /
   Cripple / Lethal).
 
+- **Role keys** — every audience in `position_control.yaml` is keyed `actor`,
+  `actee` or `observer` as of messaging M4b-1, which collapsed the store's
+  three authored key vocabularies: `attacker`/`target`/`room` on
+  `submissionMsgTriple`, `self`/`room` on `positionMessageTemplates`'s
+  `StaminaWarning`, and `controller`/`controlled` on the gradient and
+  transition side keys. The Go field names keep the old spellings; only the
+  yaml tags moved. Two things to know before editing the file: the mirror of
+  `submissionMsgTriple` in the repo root's `shipped_narration_data_guard_test.go`
+  decodes with `KnownFields(true)` and must be renamed in lockstep, and the
+  gradient state named `controlled` is authored data rather than a role, so it
+  kept its spelling while the side key beside it did not.
+
 - **Tokens** — `position_control.yaml` is on the canonical vocabulary as of
   messaging M4a: `{actor}` and `{actee}` for the two grapplers, plus the
   store's own `{position}`, `{old_position}` and `{new_position}`. Rendering

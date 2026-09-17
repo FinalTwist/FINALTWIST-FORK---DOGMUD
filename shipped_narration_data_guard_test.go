@@ -273,9 +273,9 @@ func checkFlatStore[K comparable, T fileloader.Loadable[K]](t *testing.T, store,
 // than yielding a silently empty triple. That is the direction M4b renames
 // travel, and it is the failure this whole test exists to catch.
 type posGuardTriple struct {
-	Attacker string `yaml:"attacker"`
-	Target   string `yaml:"target"`
-	Room     string `yaml:"room"`
+	Attacker string `yaml:"actor"`
+	Target   string `yaml:"actee"`
+	Room     string `yaml:"observer"`
 }
 
 // posGuardFile mirrors the whole shipped file so it can be decoded strictly.
@@ -291,8 +291,8 @@ type posGuardFile struct {
 	Gradient   yamlv3.Node `yaml:"gradient_messages"`
 	Transition yamlv3.Node `yaml:"transition_messages"`
 	Stamina    struct {
-		Self string `yaml:"self"`
-		Room string `yaml:"room"`
+		Self string `yaml:"actor"`
+		Room string `yaml:"observer"`
 	} `yaml:"stamina_warning"`
 	Submission struct {
 		Opening                map[string]posGuardTriple `yaml:"opening"`
@@ -326,7 +326,7 @@ func checkPositionControl(t *testing.T) {
 	}
 
 	if f.Stamina.Self == "" || f.Stamina.Room == "" {
-		t.Errorf("position_control stamina_warning: self=%q room=%q, both must carry text", f.Stamina.Self, f.Stamina.Room)
+		t.Errorf("position_control stamina_warning: actor=%q observer=%q, both must carry text", f.Stamina.Self, f.Stamina.Room)
 	}
 	if len(f.Submission.Opening) == 0 {
 		t.Fatal("position_control submission.opening loaded zero keys: the store is shipped, so zero means the load failed silently")
@@ -352,17 +352,18 @@ func checkPositionControl(t *testing.T) {
 	}
 	for _, c := range full {
 		if c.tri.Attacker == "" || c.tri.Target == "" || c.tri.Room == "" {
-			t.Errorf("position_control submission.%s: every role must carry text (attacker=%q target=%q room=%q)",
+			t.Errorf("position_control submission.%s: every role must carry text (actor=%q actee=%q observer=%q)",
 				c.name, c.tri.Attacker, c.tri.Target, c.tri.Room)
 		}
 	}
 
 	// crit_flag is the one deliberate exception. It is a PREFIX fragment
-	// glued onto the attacker's line, so its target and room are authored
+	// glued onto the actor's line, so its actee and observer are authored
 	// empty on purpose. Requiring all three here would be a guard that fails
-	// on correct data.
+	// on correct data. The exemption is by KEY, not by tag, so M4b-1's rename
+	// left it working: crit_flag is still absent from the `full` list above.
 	if f.Submission.CritFlag.Attacker == "" {
-		t.Error("position_control submission.crit_flag: attacker must carry text")
+		t.Error("position_control submission.crit_flag: actor must carry text")
 	}
 }
 
