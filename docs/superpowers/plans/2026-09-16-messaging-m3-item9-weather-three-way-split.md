@@ -281,8 +281,8 @@ no exceptions.
 | `blizzard` | **author, depth 6** | the draught reversing, cold pouring down the passage |
 | `dust` | **author, depth 6** | grit sifting from the ceiling, the air drying out |
 | `rain` | **author, depth 6** | heavy rain only: seepage finding a seam, stone sweating |
-| `frost` | author only if it reads true | stone aching cold along the seep lines |
-| `heatwave` | author only if it reads true | the cave staying cool, the contrast at the entrance |
+| `frost` | **author, depth 6** | stone aching cold along the seep lines (owner ruled in 2026-09-16) |
+| `heatwave` | **author, depth 6** | the cave staying cool, the contrast at the entrance (owner ruled in) |
 | `snow` | **leave empty** | snow is silent, and a cave cannot hear it |
 | `fog` | **leave empty** | fog does not enter stone |
 | `overcast` | **leave empty** | there is nothing to perceive |
