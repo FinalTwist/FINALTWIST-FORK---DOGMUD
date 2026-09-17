@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/narration"
+	"github.com/pkg/errors"
 )
 
 // TauntIntensity represents the outcome type of a taunt attempt.
@@ -88,16 +89,24 @@ func (m *TauntMessages) variants() narration.Variants {
 var tauntMessages map[string]*TauntMessageGroup
 
 // LoadTauntMessageFiles reads taunt message YAMLs from the data directory.
+//
+// EVENT TIER (see internal/narration/context.md): it PANICS on a load or
+// validation error rather than logging and continuing. Until the two-tier
+// policy landed it swallowed the error and left tauntMessages an EMPTY map for
+// the life of the process, so every taunt in the game fell back to the literals
+// in usercommands/taunt.go with nothing but one log line to say why. That is
+// the same fail-loud shape items.LoadDataFiles already uses for its sibling
+// stores, combat-messages and defense-messages.
 func LoadTauntMessageFiles() {
 	start := time.Now()
 
-	tmpAll, err := fileloader.LoadAllFlatFiles[string, *TauntMessageGroup](
-		string(configs.GetFilePathsConfig().DataFiles) + `/taunt-messages`,
-	)
+	dir := string(configs.GetFilePathsConfig().DataFiles) + `/taunt-messages`
+	tmpAll, err := fileloader.LoadAllFlatFiles[string, *TauntMessageGroup](dir)
 	if err != nil {
-		mudlog.Error("combat.LoadTauntMessageFiles()", "error", err)
-		tauntMessages = make(map[string]*TauntMessageGroup)
-		return
+		// The log line stays so an operator sees the directory in the server
+		// log as well as in the panic.
+		mudlog.Error("combat.LoadTauntMessageFiles()", "path", dir, "error", err)
+		panic(errors.Wrap(err, `filepath: `+dir))
 	}
 
 	tauntMessages = tmpAll

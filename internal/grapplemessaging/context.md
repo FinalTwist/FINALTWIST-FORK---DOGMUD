@@ -14,7 +14,7 @@ stuck record.
 ## Files
 
 - **loader.go** — `Library`, `TemplateTriad`, `GradientTriad`, `Load`,
-  `ValidateCompleteness`.
+  `LoadFromDataFiles`, `DataFilesPath`, `ValidateCompleteness`.
 - **render.go** — `PickTemplate`, `PickIndex`, `RenderTriad`, `RenderGradient`.
 
 ## Types
@@ -33,6 +33,8 @@ drifting apart when someone edits one.
 
 ```go
 func Load(path string) (*Library, error)
+func LoadFromDataFiles() (*Library, error)
+func DataFilesPath() string
 func ValidateCompleteness(lib *Library) []error
 
 func PickTemplate(pool []string, cooldowns map[string]bool, keyPrefix string, picker ...narration.Picker) string
@@ -40,6 +42,14 @@ func PickIndex(n int, cooldowns map[string]bool, keyPrefix string, picker ...nar
 func RenderTriad(tri TemplateTriad, controllerName, controlledName string, cooldowns map[string]bool, keyPrefix string, picker ...narration.Picker) RenderedTriad
 func RenderGradient(tri GradientTriad, selfName, partnerName string, cooldowns map[string]bool, keyPrefix string, picker ...narration.Picker) RenderedGradient
 ```
+
+`LoadFromDataFiles` and `DataFilesPath` resolve the store under the CONFIGURED
+world (`FilePaths.DataFiles`), which M4b-1 introduced to replace a hardcoded
+`_datafiles/world/dogmud/...` literal in `internal/hooks`. `Load` stays exported
+for tests that supply their own file. This store is EVENT-tier narration:
+`main.go` calls `hooks.LoadGrappleMessaging` at boot, which loads, runs
+`ValidateCompleteness`, and panics on either failing. See the two-tier loader
+policy in `internal/narration/context.md`.
 
 `RenderTriad` and `RenderGradient` are the coordinated renderers: one `PickIndex`
 draw serves all three roles, and each substitutes names through

@@ -99,6 +99,46 @@ coordinated multi-role rendering. `internal/textutil` (the door for the
 condition, spell, quest and crafting stores, which do not call `Render`
 themselves).
 
+## The two-tier loader policy (messaging M4b-1)
+
+Every narration store sits in one of two tiers, and the rule that decides is
+**what silence costs the player**.
+
+**Event tier: bad data FAILS THE BOOT.** These stores narrate something that is
+happening to the player right now, so a store that loads empty does not read as
+"quiet", it reads as the game not telling them what just hit them. A silent
+fight, a silent grapple or a silent submission misleads a player mid-action,
+and the operator sees nothing but a log line nobody is watching. Members:
+combat messages, defence, taunt, grapple outcomes, spells, conditions, quests,
+crafting, casting, itemvoices, position_control. Each panics from its loader,
+and each loader is CALLED FROM `main.go` so that "fails at boot" means the boot,
+not the first cast: a check that runs inside a package `init()` or inside a
+`sync.Once` a test may already have spent is not a boot check. `hooks.LoadGrappleMessaging`
+and `hooks.LoadPositionMessages` both spend their store's `sync.Once` rather
+than consulting it, for exactly that reason.
+
+**Ambient tier: silence is tolerated.** Weather, tips and gossip. A missing
+ambient line costs nothing: the room is simply not described as rainy this tick,
+and no player is left without information they were acting on. The tolerance is
+not identical across the three, and the difference is worth knowing before
+changing any of them:
+
+- **Weather fails soft on BAD data.** `loadContent` logs a warning and runs with
+  whatever tables loaded before the bad file, which is silence for the rest.
+  Its loader carries an explicit "Do not 'fix' this into a panic or a hard fail"
+  comment (`modules/weather/content/emotes.go`) and it stays.
+- **Tips and gossip tolerate an ABSENT file only.** `tips.Load` and
+  `gossip.Load` return quietly when the world ships no `tips.yaml` or
+  `gossip_templates.yaml`, which is what lets a world without them boot, but a
+  file that IS present and fails to parse or validate still panics.
+
+Weather's only net is therefore a BUILD-time one:
+`shipped_narration_data_guard_test.go` at the repo root loads all fourteen
+stores from `_datafiles/world/dogmud` and fails the build on bad data. That
+guard covers the event tier too, where it is a nicety (it names the offending
+record instead of handing an operator a stack trace) rather than the only thing
+standing there.
+
 ## Gotchas
 
 **`Render` takes ONE index for ALL roles, and that is the whole point.**

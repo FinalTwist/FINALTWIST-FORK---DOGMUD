@@ -12,7 +12,8 @@ package narration_test
 //   - _datafiles/world/dogmud/combat-messages/     20 files (weapon subtypes)
 //   - _datafiles/world/dogmud/defense-messages/     9 files (defense types)
 //   - _datafiles/world/dogmud/taunt-messages/        1 file  (rhetoric.yaml)
-//   - _datafiles/world/dogmud/messaging/             1 file  (grapple_outcomes.yaml)
+//   - _datafiles/world/dogmud/messaging/             2 files (grapple_outcomes.yaml,
+//     position_control.yaml as of M4b-1)
 //   - _datafiles/world/dogmud/casting-messages.yaml  1 file  (bare file at tree root, 24 lines)
 //   - _datafiles/world/dogmud/itemvoices/            2 files (sentient item voices)
 // A shrinking file count against these numbers means a store was deleted or
@@ -1430,11 +1431,18 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 }
 
 // ---------------------------------------------------------------------
-// Store 15: position_control (_datafiles/messages/position_control.yaml)
+// Store 15: position_control
+// (_datafiles/world/dogmud/messaging/position_control.yaml)
 //
-// The TENTH message store, and the only one outside _datafiles/world/dogmud,
-// which is the only tree the M0 surface guard walks. That is why it reached
-// M4a with no golden and no guard at all.
+// The TENTH message store. It used to live at _datafiles/messages/, outside
+// _datafiles/world/dogmud, which is the only tree the M0 surface guard walks,
+// and that is why it reached M4a with no golden and no guard at all. M4b-1
+// moved it under the world tree beside grapple_outcomes.yaml.
+//
+// The golden's HEADER still names the old path, deliberately: golden header
+// lines are frozen bytes recorded once (see internal/narration/context.md), and
+// moving a file is not a content change. Re-recording to chase a path would
+// spend the one signal that says these rows have not drifted.
 //
 // Recorded from PRE-migration code (M4a task 6), when production rendered this
 // store through a third hand-rolled engine, the local substitute() in
@@ -1482,7 +1490,7 @@ type positionControlFile struct {
 
 func loadPositionControlForSnapshot(t *testing.T) positionControlFile {
 	t.Helper()
-	path := filepath.Join(repoRoot(t), "_datafiles", "messages", "position_control.yaml")
+	path := filepath.Join(dogmudDataDir(t), "messaging", "position_control.yaml")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read %s: %v", path, err)

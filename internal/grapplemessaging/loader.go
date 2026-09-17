@@ -1,16 +1,25 @@
 // Package grapplemessaging loads and renders flavor templates for
 // grapple outcomes (advance, degrade, reverse, escape, hold,
 // striking apex). Templates live in
-// _datafiles/world/dogmud/messaging/grapple_outcomes.yaml.
+// <configured world>/messaging/grapple_outcomes.yaml, which is
+// _datafiles/world/dogmud/messaging/grapple_outcomes.yaml for the shipped
+// config; DataFilesPath resolves it.
 //
 // Consumer is internal/hooks/Position_GrappleTick.go via the
 // RenderOutcome function (T9).
+//
+// LOADER TIER: event narration. main.go loads this store at boot through
+// hooks.LoadGrappleMessaging and PANICS on a load or validation error, because
+// a grapple that narrates nothing misleads a player mid-action. See the
+// two-tier policy in internal/narration/context.md.
 package grapplemessaging
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"gopkg.in/yaml.v3"
 )
 
@@ -97,6 +106,24 @@ func Load(path string) (*Library, error) {
 		lib.Gradients = map[string]GradientTriad{}
 	}
 	return lib, nil
+}
+
+// DataFilesPath returns the shipped store's path under the CONFIGURED world,
+// not a hardcoded one.
+//
+// Until the two-tier loader policy landed, the only caller read
+// `_datafiles/world/dogmud/messaging/grapple_outcomes.yaml` as a literal, so a
+// server pointed at any other world still read dogmud's grapple prose, and a
+// server whose working directory was anything but the repo root read nothing
+// at all and narrated debug strings for the life of the process.
+func DataFilesPath() string {
+	return filepath.Join(string(configs.GetFilePathsConfig().DataFiles), "messaging", "grapple_outcomes.yaml")
+}
+
+// LoadFromDataFiles reads the store from the configured world. It is the seam
+// the boot path uses; Load stays exported for tests that supply their own file.
+func LoadFromDataFiles() (*Library, error) {
+	return Load(DataFilesPath())
 }
 
 // Minimum templates per triad-speaker variant (spec §7.4).

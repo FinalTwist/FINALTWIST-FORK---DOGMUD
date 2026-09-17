@@ -37,23 +37,27 @@ import (
 // these paths.
 const shippedWorldRoot = "_datafiles/world/dogmud"
 
-// positionControlPath is the one narration store outside the world tree.
-// Production hardcodes this same relative path in
-// internal/hooks/Position_Messaging.go:72.
-const positionControlPath = "_datafiles/messages/position_control.yaml"
+// positionControlPath is the position_control store. M4b-1 moved it under the
+// world tree from `_datafiles/messages/`, so production now resolves it as
+// <configured world>/messaging/position_control.yaml via
+// hooks.positionMessagesPath rather than from a hardcoded literal.
+const positionControlPath = shippedWorldRoot + "/messaging/position_control.yaml"
 
-// grappleOutcomesPath matches the literal in
-// internal/hooks/Position_GrappleTick.go:61.
+// grappleOutcomesPath is what grapplemessaging.DataFilesPath resolves to under
+// the shipped config.
 const grappleOutcomesPath = shippedWorldRoot + "/messaging/grapple_outcomes.yaml"
 
 // TestShippedNarrationDataValidates loads every narration store from the
 // shipped data path and fails the BUILD when one does not validate.
 //
-// Why this exists: three stores log and continue rather than panicking
-// (taunt, grapple, position_control), so bad data in them reaches players as
-// silence with only a log line. A build-time check over shipped data is the
-// only thing that catches that today, and it is the pattern weather already
-// uses (modules/weather/content/biome_coupling_test.go).
+// Why this exists: three stores used to log and continue rather than panicking
+// (taunt, grapple, position_control), so bad data in them reached players as
+// silence with only a log line. M4b-1's two-tier policy moved all three into
+// the event tier, where they now fail the boot, but that only helps someone who
+// boots the server; this catches the same data at BUILD time, which is where
+// the mistake is actually made. It is the pattern weather already uses
+// (modules/weather/content/biome_coupling_test.go), and weather stays in the
+// ambient tier where this guard is the ONLY net.
 //
 // It loads from _datafiles/world/dogmud explicitly rather than through the
 // config, because a test binary does not read config.yaml: it would get the
@@ -69,14 +73,15 @@ const grappleOutcomesPath = shippedWorldRoot + "/messaging/grapple_outcomes.yaml
 // nothing at all in a green test run.
 func TestShippedNarrationDataValidates(t *testing.T) {
 	t.Run("taunt", func(t *testing.T) {
-		// combat.LoadTauntMessageFiles logs and continues on a load error,
-		// leaving tauntMessages an empty map for the life of the process.
+		// combat.LoadTauntMessageFiles panics at boot as of M4b-1; this names
+		// the offending record instead of handing an operator a stack trace.
 		checkFlatStore[string, *combat.TauntMessageGroup](t, "taunt-messages", shippedWorldRoot+"/taunt-messages")
 	})
 
 	t.Run("grapple_outcomes", func(t *testing.T) {
-		// hooks.loadGrappleLib logs the load error and substitutes an EMPTY
-		// library, so every grapple line degrades to a debug string.
+		// hooks.LoadGrappleMessaging panics at boot as of M4b-1. It used to log
+		// the load error and substitute an EMPTY library, so every grapple line
+		// degraded to a debug string with nothing but one log line to say why.
 		lib, err := grapplemessaging.Load(grappleOutcomesPath)
 		if err != nil {
 			t.Fatalf("grapple_outcomes: %v", err)
@@ -86,8 +91,9 @@ func TestShippedNarrationDataValidates(t *testing.T) {
 		if total == 0 {
 			t.Fatal("grapple_outcomes loaded zero keys: the store is shipped, so zero means the load failed silently")
 		}
-		// Production calls this too, but only mudlog.Warn's each violation.
-		// Here it fails the build.
+		// Production calls this too, at boot, and as of M4b-1 panics on it
+		// rather than mudlog.Warn'ing each violation. Here it fails the build,
+		// which is earlier and names every violation rather than the first.
 		for _, e := range grapplemessaging.ValidateCompleteness(lib) {
 			t.Errorf("grapple_outcomes: %v", e)
 		}
