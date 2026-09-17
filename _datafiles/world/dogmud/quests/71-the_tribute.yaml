@@ -58,7 +58,7 @@ rewards:
   rep_faction: np_dockfolk
   rep_amount: 10
   itemid: 40120
-  playermessage: >-
+  actor: >-
     Ostry reads the page once, folds it, and puts it somewhere you do not
     see. "I cannot fight them with this," she says, "and I am not fool
     enough to try. But I can let the right person know I have it, and
@@ -66,7 +66,7 @@ rewards:
     why. That is how it works down here." She presses a blade into your
     hands before you can decline it. "You will get more use from it than
     from my thanks."
-  roommessage: >-
+  observer: >-
     Dame Ostry clasps the traveller's forearm once, hard and brief, the
     nearest thing she has to ceremony.
 
@@ -81,14 +81,14 @@ triggers:
     actions:
       - grant: "71-ledger"
       - give_item: 40119
-      - send_text: >-
+      - actor: >-
           The torn scrap on the floor reads "before the permit clears" --
           and the page it tore from is still on the table among the
           cup-rings, slid half under a ledger-board. You take it: a column
           of quarterly sums against vendor names, every figure routed up to
           one unnamed account. It does not prove a crime. It proves exactly
           where the money goes, and who waits on whom.
-      - room_text: "{actor} palms a page from the table among the cup-rings."
+      - observer: "{actor} palms a page from the table among the cup-rings."
 
   # paper-scrap, before reaching Horst
   - event: room_interact
@@ -97,7 +97,7 @@ triggers:
     conditions:
       missing: ["71-horst"]
     actions:
-      - send_text: >-
+      - actor: >-
           A torn scrap on the floor carries four words -- "before the permit
           clears" -- in a careful hand. There is more to it somewhere, but
           lifting papers from this room uninvited, before you know whose they

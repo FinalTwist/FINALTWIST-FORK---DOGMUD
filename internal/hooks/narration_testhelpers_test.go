@@ -36,12 +36,12 @@ func drainPlain(userId int) []string {
 
 // Condition ids for narration tests. Chosen well clear of the fixture's 100 and 101.
 const (
-	glowConditionId      = 7001 // start_room_text
-	shiverConditionId    = 7002 // trigger_room_text, fires every round
-	fadeConditionId      = 7003 // end_room_text
+	glowConditionId      = 7001 // start_observer
+	shiverConditionId    = 7002 // trigger_observer, fires every round
+	fadeConditionId      = 7003 // end_observer
 	nightEyesConditionId = 7004 // grants NightVision; RoundInterval 0, so it never ticks
 	heatEyesConditionId  = 7005 // grants InfraredVision; RoundInterval 0, so it never ticks
-	lanternConditionId   = 7006 // a light source with end_room_text
+	lanternConditionId   = 7006 // a light source with end_observer
 	dozeConditionId      = 7007 // puts the bearer to sleep; RoundInterval 0, so it never ticks
 )
 

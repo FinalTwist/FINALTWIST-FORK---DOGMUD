@@ -39,7 +39,7 @@ rewards:
   gold: 70
   rep_faction: np_commonfolk
   rep_amount: 10
-  playermessage: >-
+  actor: >-
     Orin turns the rubbing toward the lamp and is quiet for a long moment.
     "So it is really down there," he says. "The painting copied this, and
     the cipher counts toward it, and now there is a rubbing of the thing
@@ -47,7 +47,7 @@ rewards:
     the people who can hold it." He files it away with a care that is its
     own kind of reverence. You are, without anything being said, part of
     the quiet now.
-  roommessage: >-
+  observer: >-
     The old bookseller gives the traveller a slow nod, the kind that
     settles something unspoken between them.
 
@@ -62,14 +62,14 @@ triggers:
     actions:
       - grant: "70-witness"
       - give_item: 40118
-      - send_text: >-
+      - actor: >-
           You press paper to the underside of the lintel and bring the
           symbol up in charcoal -- four concentric rings, eight points at
           equal intervals, cut by someone who drew it before they carved
           it. The colony arrived here, found this, and wrote itself into
           the founding record as first. The rubbing in your hands says
           otherwise, quietly, the way the stone does.
-      - room_text: "{actor} takes a careful rubbing of the symbol carved beneath the buried lintel."
+      - observer: "{actor} takes a careful rubbing of the symbol carved beneath the buried lintel."
 
   # lintel symbol, no quest
   - event: room_interact
@@ -78,7 +78,7 @@ triggers:
     conditions:
       missing: ["70-start"]
     actions:
-      - send_text: >-
+      - actor: >-
           The symbol on the lintel's underside is clean and deliberate --
           rings and eight points, cut to be read by someone passing
           beneath. Without a reason to record it, you only look.
@@ -90,7 +90,7 @@ triggers:
     conditions:
       has: ["70-start"]
     actions:
-      - send_text: >-
+      - actor: >-
           The seam of gray material runs along the flood line, wider here
           than in the galleries -- smooth where the black water works it,
           taking no mark, no wear. It does not belong to any stone the

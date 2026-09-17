@@ -15,7 +15,7 @@ import (
 // engine falls back to a generic "takes effect" / "has expired" line
 // (conditions.StartUserNotice / EndUserNotice), but that is a runtime net,
 // never the shipped experience, so every non-secret condition in the dogmud
-// world must carry authored start_user_text and end_user_text, and a secret
+// world must carry authored start_actee and end_actee, and a secret
 // condition must carry no player text at all. Forty-three conditions were
 // fully silent and six half-silent on 2026-09-12; this keeps the count at
 // zero and names the file that regresses it.
@@ -26,10 +26,10 @@ import (
 //     applied via Character.AddCondition, which never queues the condition
 //     event, so no start line could reach the holder; the bloom detox drink
 //     does reach Condition_ApplyConditions on the unscaled drink path and the
-//     flag stops the purge narration being doubled. Only start_user_text is
+//     flag stops the purge narration being doubled. Only start_actee is
 //     waived.
 //   - hidden: the holder must never learn when their cover lapsed, so no end
-//     notice is allowed to exist at all. Only end_user_text is waived.
+//     notice is allowed to exist at all. Only end_actee is waived.
 //   - quiet: listed but never announced, for a record reapplied every round
 //     it persists.
 func TestEveryDogmudConditionHasAuthoredNotices(t *testing.T) {
@@ -48,12 +48,12 @@ func TestEveryDogmudConditionHasAuthoredNotices(t *testing.T) {
 			Name            string   `yaml:"name"`
 			Secret          bool     `yaml:"secret"`
 			Flags           []string `yaml:"flags"`
-			StartUserText   string   `yaml:"start_user_text"`
-			StartRoomText   string   `yaml:"start_room_text"`
-			TriggerUserText string   `yaml:"trigger_user_text"`
-			TriggerRoomText string   `yaml:"trigger_room_text"`
-			EndUserText     string   `yaml:"end_user_text"`
-			EndRoomText     string   `yaml:"end_room_text"`
+			StartUserText   string   `yaml:"start_actee"`
+			StartRoomText   string   `yaml:"start_observer"`
+			TriggerUserText string   `yaml:"trigger_actee"`
+			TriggerRoomText string   `yaml:"trigger_observer"`
+			EndUserText     string   `yaml:"end_actee"`
+			EndRoomText     string   `yaml:"end_observer"`
 		}
 		if err := yaml.Unmarshal(raw, &b); err != nil {
 			t.Fatalf("%s: %v", f, err)
@@ -72,10 +72,10 @@ func TestEveryDogmudConditionHasAuthoredNotices(t *testing.T) {
 			problems = append(problems, base+": non-secret condition has no name (the generic notice would be blank)")
 		}
 		if strings.TrimSpace(b.StartUserText) == "" && !silentStart && !quiet {
-			problems = append(problems, base+": missing start_user_text (holder would read the generic line)")
+			problems = append(problems, base+": missing start_actee (holder would read the generic line)")
 		}
 		if strings.TrimSpace(b.EndUserText) == "" && !hidden && !quiet {
-			problems = append(problems, base+": missing end_user_text (holder would read the generic line)")
+			problems = append(problems, base+": missing end_actee (holder would read the generic line)")
 		}
 	}
 	if len(problems) > 0 {

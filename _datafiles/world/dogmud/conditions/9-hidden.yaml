@@ -5,11 +5,11 @@ secret: false
 flags:
   - hidden
   - cancel-on-combat
-start_user_text: "You feel sneaky."
-start_room_text: "{actee_plain} disappears into the shadows."
+start_actee: "You feel sneaky."
+start_observer: "{actee_plain} disappears into the shadows."
 # Intentionally no end_user_text — if you can't know who spotted you,
 # you can't know you've been spotted. The conditions command also hides
 # stealth conditions (the `hidden` flag), so you're never told you're hidden at
 # all. Room observers still get the end_room_text since from their POV the
 # sneaker just visibly emerged.
-end_room_text: "{actee_plain} emerges from the shadows."
+end_observer: "{actee_plain} emerges from the shadows."

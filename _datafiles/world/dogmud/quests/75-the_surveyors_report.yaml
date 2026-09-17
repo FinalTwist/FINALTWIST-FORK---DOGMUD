@@ -42,13 +42,13 @@ steps:
       the broken highland country, to the thing he would not name."
 
 rewards:
-  playermessage: >-
+  actor: >-
     You carry a retired surveyor's directions to a place he would not name.
     The road runs east into the highland country, older and stranger than
     the university's quiet maps. Whatever Reth saw out there and chose not
     to write down is still out there -- waiting in the broken hills. That
     climb is for another day.
-  roommessage: ""
+  observer: ""
   gold: 0
 
 triggers:
@@ -61,7 +61,7 @@ triggers:
       missing: ["75-survey"]
     actions:
       - grant: "75-survey"
-      - send_text: >-
+      - actor: >-
           You read the survey the way someone looking for what is not said
           would read it. The site is classified as a mineral deposit in
           three lines. A survey of that site -- elevations, material
@@ -70,7 +70,7 @@ triggers:
           stops exactly where the detail should get louder. Reth saw
           something out there, and he filed a paper that buries it.
           Time to take this back to Brennan.
-      - room_text: "{actor} reads the thin filed survey with sudden, careful attention."
+      - observer: "{actor} reads the thin filed survey with sudden, careful attention."
   # ── Ungated fallback: no 75-start ──
   - event: room_interact
     room: 6303
@@ -78,7 +78,7 @@ triggers:
     conditions:
       missing: ["75-start"]
     actions:
-      - send_text: >-
+      - actor: >-
           An old survey filed under the eastern country, dry and
           technical. Without a reason to read it closely, it is only
           a brief, dull entry.
@@ -95,7 +95,7 @@ triggers:
       - grant: "75-end"
       - give_item: 40160
       - bump_rep: {faction: margin, delta: 20}
-      - send_text: >-
+      - actor: >-
           You take the marked map from the table — Reth's hand, annotated
           in the close careful script of a man who does not waste ink.
           A route east into the highland country, a circled waymark,
@@ -104,7 +104,7 @@ triggers:
           out there he would not write down, and he has not written it
           down now — but the route is exact, and the final mark is
           deliberate, and it is enough. The thread runs east.
-      - room_text: "{actor} takes the surveyor's marked map from the table."
+      - observer: "{actor} takes the surveyor's marked map from the table."
   # ── Ungated fallback: no 75-intro ──
   - event: room_interact
     room: 6315
@@ -112,7 +112,7 @@ triggers:
     conditions:
       missing: ["75-intro"]
     actions:
-      - send_text: >-
+      - actor: >-
           A retired surveyor's old papers spread across the table —
           terrain charts and route sketches in a close, careful hand.
           Without his leave they are not yours to take, and they say

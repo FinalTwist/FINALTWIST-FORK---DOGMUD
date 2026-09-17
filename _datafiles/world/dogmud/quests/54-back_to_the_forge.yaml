@@ -32,11 +32,11 @@ steps:
 rewards:
   gold: 6
   skillinfo: "blacksmithing:1"
-  playermessage: >-
+  actor: >-
     Ovell nods from his slope, that quartz eye catching the forge-light
     through the distance. "Still sharp. The iron knows a practiced hand.
     Come back when you want to keep it that way."
-  roommessage: "Ovell raises a hand from the talus -- a slow, approving gesture."
+  observer: "Ovell raises a hand from the talus -- a slow, approving gesture."
 
 triggers:
   - event: command
@@ -47,6 +47,6 @@ triggers:
       missing: ["54-end"]
     actions:
       - grant: "54-end"
-      - send_text: >-
+      - actor: >-
           The work rings clean off the anvil. That is what Ovell wanted
           to know -- that the forge is still yours. Report back to him.

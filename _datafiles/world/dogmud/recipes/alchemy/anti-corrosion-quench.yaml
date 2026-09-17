@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 40217
   quantity: 1
-success_message: "You cut the bath mineral-sharp and cap it tight before its potency can thin. An anti-corrosion quench!"
-failure_message: "The bath clouds over and separates before it can cure. The materials are wasted."
+success_actor: "You cut the bath mineral-sharp and cap it tight before its potency can thin. An anti-corrosion quench!"
+failure_actor: "The bath clouds over and separates before it can cure. The materials are wasted."

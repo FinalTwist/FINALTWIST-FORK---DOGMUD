@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 10045
   quantity: 1
-success_message: "You fold the dark basalt-iron through the billet and draw out a keen, grey-sheened edge. A basalt-iron blade!"
-failure_message: "The basalt-iron fights the heat, the billet cracks along a cold seam, and the work is lost."
+success_actor: "You fold the dark basalt-iron through the billet and draw out a keen, grey-sheened edge. A basalt-iron blade!"
+failure_actor: "The basalt-iron fights the heat, the billet cracks along a cold seam, and the work is lost."

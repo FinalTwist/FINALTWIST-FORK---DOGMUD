@@ -16,5 +16,5 @@ ingredients:
 output:
   item_id: 30057
   quantity: 1
-success_message: "The mixture crystallizes into a volatile sphere that glows faintly. A flashbang!"
-failure_message: "The compounds fizzle and separate. The materials are wasted."
+success_actor: "The mixture crystallizes into a volatile sphere that glows faintly. A flashbang!"
+failure_actor: "The compounds fizzle and separate. The materials are wasted."

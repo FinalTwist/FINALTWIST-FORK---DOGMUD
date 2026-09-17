@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 30052
   quantity: 1
-success_message: "The concoction seethes and hisses before settling into an acrid, potent draught. A purging draught!"
-failure_message: "The veilbloom destabilizes and the mixture becomes inert. The materials are wasted."
+success_actor: "The concoction seethes and hisses before settling into an acrid, potent draught. A purging draught!"
+failure_actor: "The veilbloom destabilizes and the mixture becomes inert. The materials are wasted."

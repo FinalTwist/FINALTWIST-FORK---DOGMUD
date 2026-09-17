@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 40224
   quantity: 1
-success_message: "You cook the broth down slow over low heat, skimming every impurity twice over until it clarifies dark and bitter. A reduction base!"
-failure_message: "The reduction scorches on the bottom of the pot. The materials are lost."
+success_actor: "You cook the broth down slow over low heat, skimming every impurity twice over until it clarifies dark and bitter. A reduction base!"
+failure_actor: "The reduction scorches on the bottom of the pot. The materials are lost."

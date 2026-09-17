@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 20022
   quantity: 1
-success_message: "You punch holes along the leather panels and stitch them into a fitted vest. A leather vest!"
-failure_message: "The needle snaps and the leather splits. The materials are wasted."
+success_actor: "You punch holes along the leather panels and stitch them into a fitted vest. A leather vest!"
+failure_actor: "The needle snaps and the leather splits. The materials are wasted."

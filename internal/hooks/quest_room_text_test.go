@@ -11,10 +11,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Quest room_text went out RAW on the audio channel: no token substitution, so
+// A quest action's observer line (authored `room_text` until M4b-1 renamed it)
+// went out RAW on the audio channel: no token substitution, so
 // quest 77 showed players a literal {actor}; and no sight gate, so a blind
-// observer still read "unlocks the strongbox". The behaviour tree reads the same
-// key and already did both correctly (behaviortree/actions_dialogue.go).
+// observer still read "unlocks the strongbox". The behaviour tree's own
+// `room_text` action param, which is a different store, already did both
+// correctly (behaviortree/actions_dialogue.go).
 
 func TestQuestRoomText_NamesThePlayerToASightedObserver(t *testing.T) {
 	cleanup := seedAllRegistries()

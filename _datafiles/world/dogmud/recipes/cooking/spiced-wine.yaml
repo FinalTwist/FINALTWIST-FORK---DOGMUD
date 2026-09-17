@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 30025
   quantity: 1
-success_message: "You mull the herbs and salt into a dark, warming wine. Spiced wine!"
-failure_message: "The mixture ferments wrong and turns to vinegar. The materials are lost."
+success_actor: "You mull the herbs and salt into a dark, warming wine. Spiced wine!"
+failure_actor: "The mixture ferments wrong and turns to vinegar. The materials are lost."

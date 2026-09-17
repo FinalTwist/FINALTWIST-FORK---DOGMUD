@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 40210
   quantity: 1
-success_message: "You set the claw deep in bright metal and the hollow around it seems to darken on its own. A hungering guard!"
-failure_message: "The setting will not seat true and the claw slips loose. The materials are wasted."
+success_actor: "You set the claw deep in bright metal and the hollow around it seems to darken on its own. A hungering guard!"
+failure_actor: "The setting will not seat true and the claw slips loose. The materials are wasted."

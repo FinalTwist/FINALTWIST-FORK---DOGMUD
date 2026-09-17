@@ -44,7 +44,7 @@ rewards:
   gold: 40
   itemid: 30036
   skillinfo: "weapon-combat:1"
-  playermessage: >-
+  actor: >-
     Pemberton listens to the whole of it, then lets out a breath she
     seems to have been holding for a week. "Both of them. Then I can
     tell my lodgers the road north is walkable again and not be lying."
@@ -52,7 +52,7 @@ rewards:
     presses a salve into your hand on top of it. "For the next set of
     bruises. You will have them, doing work like this. Bed and board
     here are yours at a friend's rate from now on."
-  roommessage: >-
+  observer: >-
     Goodwife Pemberton settles a purse into the traveller's hand with
     the air of a woman whose trade just started breathing again.
 
@@ -65,7 +65,7 @@ triggers:
       missing: ["61-bandit"]
     actions:
       - grant: "61-bandit"
-      - send_text: >-
+      - actor: >-
           The hedgerow bandit folds into the ditch he ambushed from and
           does not get up. One of the road's two is done. The
           Reach-Touched still haunts the Empty Reach to the north.
@@ -78,7 +78,7 @@ triggers:
       missing: ["61-reach"]
     actions:
       - grant: "61-reach"
-      - send_text: >-
+      - actor: >-
           The Reach-Touched shudders, goes still, and is just a body on
           the stones. The road north is clear of both now. Carry the
           word back to Pemberton at the Lake & Ladle.

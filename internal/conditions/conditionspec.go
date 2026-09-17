@@ -86,7 +86,7 @@ const (
 
 	// SilentStart marks a condition whose start is narrated by whatever applies it
 	// (warcry, rally, the bloom detox drink), so it has no start notice of
-	// its own and the guard does not require start_user_text. The end notice
+	// its own and the guard does not require start_actee. The end notice
 	// is unaffected.
 	SilentStart Flag = `silent-start`
 
@@ -176,13 +176,19 @@ type ConditionSpec struct {
 	// (2.0, the historic literal). The strongest held value wins.
 	ProgressMult float64 `yaml:"progress_mult,omitempty"`
 
-	// YAML text fields — flavor text sent by the engine (replaces JS messaging)
-	StartUserText   string `yaml:"start_user_text,omitempty"`
-	StartRoomText   string `yaml:"start_room_text,omitempty"`
-	TriggerUserText string `yaml:"trigger_user_text,omitempty"`
-	TriggerRoomText string `yaml:"trigger_room_text,omitempty"`
-	EndUserText     string `yaml:"end_user_text,omitempty"`
-	EndRoomText     string `yaml:"end_room_text,omitempty"`
+	// YAML text fields — flavor text sent by the engine (replaces JS messaging).
+	//
+	// The authored keys name the PHASE and then the AUDIENCE, in the canonical
+	// role vocabulary every narration store shares since M4b-1. The holder's
+	// half is `actee`, not `actor`: a condition is something that happens TO
+	// the character holding it, which is why this store's {actee} token means
+	// the holder while a spell's means the spell's target.
+	StartUserText   string `yaml:"start_actee,omitempty"`
+	StartRoomText   string `yaml:"start_observer,omitempty"`
+	TriggerUserText string `yaml:"trigger_actee,omitempty"`
+	TriggerRoomText string `yaml:"trigger_observer,omitempty"`
+	EndUserText     string `yaml:"end_actee,omitempty"`
+	EndRoomText     string `yaml:"end_observer,omitempty"`
 
 	// Config-driven tick fields — replaces JS onTrigger for heal/DoT conditions
 	TickPool              string  `yaml:"tick_pool,omitempty"`               // "health", "stamina", "conviction"

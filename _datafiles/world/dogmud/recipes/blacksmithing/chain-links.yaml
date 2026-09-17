@@ -11,5 +11,5 @@ ingredients:
 output:
   item_id: 40019
   quantity: 3
-success_message: "You draw wire and bend it into interlocking rings. Three sets of chain links!"
-failure_message: "The wire snaps repeatedly. The iron is wasted."
+success_actor: "You draw wire and bend it into interlocking rings. Three sets of chain links!"
+failure_actor: "The wire snaps repeatedly. The iron is wasted."

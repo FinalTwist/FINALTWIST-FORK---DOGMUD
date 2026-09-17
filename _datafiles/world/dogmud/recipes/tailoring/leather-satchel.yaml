@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 20025
   quantity: 1
-success_message: "You fold the leather into a pouch, stitch the seam, and attach a strap. A leather satchel!"
-failure_message: "The stitching pulls free and the pouch falls apart. The materials are lost."
+success_actor: "You fold the leather into a pouch, stitch the seam, and attach a strap. A leather satchel!"
+failure_actor: "The stitching pulls free and the pouch falls apart. The materials are lost."

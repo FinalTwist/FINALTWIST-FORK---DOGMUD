@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 20077
   quantity: 1
-success_message: "You overlap the hunter-eel scales loose along thin leather backing and stitch each row with patient care. The slick scales lay perfectly flat. A hunter-eel scale vest!"
-failure_message: "The scales bunch and slide against each other no matter how you stitch them. The hide tears at the seams and the work is wasted."
+success_actor: "You overlap the hunter-eel scales loose along thin leather backing and stitch each row with patient care. The slick scales lay perfectly flat. A hunter-eel scale vest!"
+failure_actor: "The scales bunch and slide against each other no matter how you stitch them. The hide tears at the seams and the work is wasted."

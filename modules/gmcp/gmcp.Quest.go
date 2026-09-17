@@ -160,6 +160,10 @@ var questConditionVocab = []vocabEntry{
 	{"has_masterwork", "player carries an own-crafted item at this craft skill or higher"},
 }
 
+// The two narrating actions are named `actor` and `observer`, the canonical
+// role keys M4b-1 put on internal/quests/triggers.go ActionDef. They are the
+// key an author sees in the quest file, so they are the key this editor offers;
+// they were `send_text` and `room_text` before the rename.
 var questActionVocab = []vocabEntry{
 	{"grant", "give the player a quest token (advances the quest)"},
 	{"consume_item", "destroy the given item (item_give triggers: keeps the mob from pocketing it)"},
@@ -167,8 +171,8 @@ var questActionVocab = []vocabEntry{
 	{"give_gold", "hand the player gold"},
 	{"charge_gold", "take gold from the player"},
 	{"npc_say", "a mob speaks scripted lines (per-line delay/speaker/emote)"},
-	{"send_text", "message to the player only"},
-	{"room_text", "message to the whole room"},
+	{"actor", "message to the player only"},
+	{"observer", "message to the whole room"},
 	{"spawn_mob", "spawn a mob into a room"},
 	{"spawn_item", "spawn an item into a room"},
 	{"lock_exits", "lock a room's exits (optionally player-scoped)"},

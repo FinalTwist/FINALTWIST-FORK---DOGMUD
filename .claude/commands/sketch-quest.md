@@ -124,8 +124,8 @@ to the top of this list and only drop down for genuine reasons.
 **Concrete preferences for hidden_noun discovery:**
 - The cleanest pattern is `verb: search` + `room: <id>` + `missing: <token>`
   conditions on the trigger — fires when the player searches the room
-  successfully (no specific noun required). The send_text can describe
-  what they find in narrative prose.
+  successfully (no specific noun required). The action's `actor` line can
+  describe what they find in narrative prose.
 - If the trigger MUST be specific to a noun (e.g., the room has multiple
   hidden_nouns and only one advances the quest), make the hidden_noun key
   a single intuitive word (e.g., `carving`, `marker`, `disturbance` —
@@ -344,7 +344,7 @@ complete:
 - [ ] **Thousand-mudder test:** would 700+ out of 1000 random mudders
       advance past each step without help? If not, redesign — hard
       puzzles are fine, unguessable magic words are not.
-- [ ] **Narrator never overreaches:** quest engine `send_text`,
+- [ ] **Narrator never overreaches:** a quest action's `actor` line,
       room descriptions, and noun descriptions stick to what the
       player can directly observe — physical details, things the
       player just did, contents of notes/journals/dialogue the

@@ -27,8 +27,8 @@ rewards:
   # NO-underscore. itemid/skillinfo/conditionid/playermessage/roommessage/roomid/
   # spellid/questid load correctly; the snake_case forms (item_id, skill_info,
   # ...) silently do NOTHING. Copy these exact keys.
-  playermessage: "Congratulations, here's some stuff!" # Message the player sees when they complete the quest
-  roommessage: "A Generic Quest has been completed!"   # Message the room sees when the quest is completed
+  actor: "Congratulations, here's some stuff!" # Message the player sees when they complete the quest
+  observer: "A Generic Quest has been completed!"   # Message the room sees when the quest is completed
   gold: 10                                             # Give them the gold back as a reward
   itemid: 10001                                        # Give them item 10001 as a reward
   skillinfo: "map:1"                                   # Give them the map skill at level 1 as a reward

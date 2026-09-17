@@ -27,14 +27,14 @@ steps:
       however, has its own secrets."
 
 rewards:
-  playermessage: "Marek pours you a drink on the house -- the good stuff, from
+  actor: "Marek pours you a drink on the house -- the good stuff, from
     the bottle he keeps behind the keg. 'The guard cannot fix the taxes, but at
     least I will not have to pay two masters. That is something.' He glances
     toward the cellar stairs. 'While you were gone, I heard noises down there
     again. Something in the old drainage tunnels beneath the city. I have been
     meaning to look, but...' He trails off. 'Another time, perhaps. For now,
     drink.'"
-  roommessage: "Marek pours a drink with visible relief, some of the tension
+  observer: "Marek pours a drink with visible relief, some of the tension
     leaving his shoulders."
   gold: 10
   itemid: 28

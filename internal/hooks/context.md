@@ -302,7 +302,7 @@ func CleanupZombies(e events.Event) events.ListenerReturn {
 
 // Condition expiration management (abridged; see NewTurn_PruneConditions.go).
 // The holder's line comes from the spec's end narration, which reads
-// ConditionSpec.EndUserNotice (authored end_user_text, else the generic
+// ConditionSpec.EndUserNotice (authored end_actee, else the generic
 // "<Name> has expired.", nothing for a secret condition); ApplyConditions
 // reads StartUserNotice the same way. Slice C, 2026-09-12.
 func PruneConditions(e events.Event) events.ListenerReturn {

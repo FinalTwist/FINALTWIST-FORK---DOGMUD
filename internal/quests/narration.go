@@ -8,22 +8,22 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/textutil"
 )
 
-// Narration assembles a text action's variants: send_text is the Actor line
-// (the triggering player), room_text the Observer line. An action sets one or
-// the other; Validate refuses both.
+// Narration assembles a text action's variants: the authored `actor` key is
+// the Actor line (the triggering player), `observer` the Observer line. An
+// action sets one or the other; Validate refuses both.
 func (a ActionDef) Narration() narration.Variants {
 	return narration.Variants{Actor: textutil.Pool(a.SendText), Observer: textutil.Pool(a.RoomText)}
 }
 
 // Narrate renders a text action with the triggering player as the actor.
 // A quest has no actee, so {actee} renders empty; RoomTextProblems refuses
-// it in room_text for that reason.
+// it in the observer line for that reason.
 func (a ActionDef) Narrate(ctx textutil.TokenContext) narration.Roles {
 	return textutil.Narrate(a.Narration(), ctx)
 }
 
-// Narration assembles a reward's variants: playermessage is the Actor line,
-// roommessage the Observer line.
+// Narration assembles a reward's variants: the authored `actor` key is the
+// Actor line, `observer` the Observer line.
 func (r QuestReward) Narration() narration.Variants {
 	return narration.Variants{Actor: textutil.Pool(r.PlayerMessage), Observer: textutil.Pool(r.RoomMessage)}
 }
@@ -33,7 +33,7 @@ func (r QuestReward) Narrate(ctx textutil.TokenContext) narration.Roles {
 	return textutil.Narrate(r.Narration(), ctx)
 }
 
-// validateNarration refuses an action that sets both send_text and room_text
+// validateNarration refuses an action that sets both `actor` and `observer`
 // (one narration per action; ExecuteAction used to drop the room line of such
 // an action silently), and any text line that is whitespace only, in actions,
 // nested sequence actions, and the rewards.
@@ -44,17 +44,18 @@ func (r *Quest) validateNarration() error {
 		for j, a := range actions {
 			aw := fmt.Sprintf("%s action %d", where, j)
 			if a.SendText != "" && a.RoomText != "" {
-				problems = append(problems, aw+": sets both send_text and room_text; an action narrates one line")
+				problems = append(problems, aw+": sets both actor and observer; an action narrates one line")
 			}
 			if a.SendText != "" || a.RoomText != "" {
 				if err := narration.ValidateVariants(a.Narration(), 1); err != nil {
-					// The room_text branch is unreachable through Quest.Validate today:
-					// validateRoomText runs first and refuses any room_text without
-					// {actor}, which a whitespace-only line cannot carry. Kept so
-					// validateNarration names the right key when called on its own.
-					key := "send_text"
+					// The observer branch is unreachable through Quest.Validate today:
+					// validateRoomText runs first and refuses any observer line
+					// without {actor}, which a whitespace-only line cannot carry.
+					// Kept so validateNarration names the right key when called on
+					// its own.
+					key := "actor"
 					if a.SendText == "" {
-						key = "room_text"
+						key = "observer"
 					}
 					problems = append(problems, aw+" "+key+": "+err.Error())
 				}

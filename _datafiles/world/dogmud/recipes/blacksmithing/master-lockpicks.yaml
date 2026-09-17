@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 35
   quantity: 1
-success_message: "You draw the silver wire to hair-gauge, grind diamond-tipped points, and seat each pick in a fitted case. Master lockpicks!"
-failure_message: "The silver wire snaps during drawing -- the tolerances are too fine to recover. The materials are lost."
+success_actor: "You draw the silver wire to hair-gauge, grind diamond-tipped points, and seat each pick in a fitted case. Master lockpicks!"
+failure_actor: "The silver wire snaps during drawing -- the tolerances are too fine to recover. The materials are lost."

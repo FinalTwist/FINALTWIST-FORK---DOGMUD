@@ -10,8 +10,8 @@ statmods:
   dexterity: -25
   vitality: -10
   staminarecovery: -2
-start_user_text: '<ansi fg="red">You feel the wrench of a broken limb. Sharp pain will follow every motion until it heals.</ansi>'
-end_user_text: '<ansi fg="green">The ache in your limb finally fades. You can move at full strength again.</ansi>'
+start_actee: '<ansi fg="red">You feel the wrench of a broken limb. Sharp pain will follow every motion until it heals.</ansi>'
+end_actee: '<ansi fg="green">The ache in your limb finally fades. You can move at full strength again.</ansi>'
 flags:
   # The submission outcome in internal/combat applies this condition synchronously,
   # because the outcome path reads the victim's state back in the same round

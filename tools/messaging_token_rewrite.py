@@ -109,6 +109,37 @@ KEY_GROUPS = {
             ("self", "actor"), ("partner", "actee"),
         ]),
     ],
+    # The Kind B stores key by PHASE and role together, so the canonical form
+    # keeps the phase and canonicalises only the role half. Conditions take
+    # `actee`, not `actor`: a condition happens TO its holder, which is the
+    # same asymmetry M4a's token flip recorded above.
+    #
+    # Each target is the store's own directory and holds nothing else: all
+    # four are flat single-store trees (recipes has craft-skill subdirectories,
+    # all recipes). quests is the one to watch, because `room_text` and
+    # `send_text` are bare enough to belong to another store -- and one does,
+    # the behaviortree `room_text` action param under behaviors/, which is a
+    # different directory and a different arc's rename.
+    "kindb": [
+        (os.path.join(W, "conditions"), [
+            ("start_room_text", "start_observer"), ("start_user_text", "start_actee"),
+            ("trigger_room_text", "trigger_observer"), ("trigger_user_text", "trigger_actee"),
+            ("end_room_text", "end_observer"), ("end_user_text", "end_actee"),
+        ]),
+        (os.path.join(W, "spells"), [
+            ("cast_room_text", "cast_observer"), ("cast_user_text", "cast_actor"),
+            ("wait_room_text", "wait_observer"), ("wait_user_text", "wait_actor"),
+            ("magic_room_text", "magic_observer"), ("magic_user_text", "magic_actor"),
+        ]),
+        (os.path.join(W, "quests"), [
+            ("roommessage", "observer"), ("playermessage", "actor"),
+            ("room_text", "observer"), ("send_text", "actor"),
+        ]),
+        (os.path.join(W, "recipes"), [
+            ("success_room_message", "success_observer"), ("success_message", "success_actor"),
+            ("failure_room_message", "failure_observer"), ("failure_message", "failure_actor"),
+        ]),
+    ],
     "combat": [
         (os.path.join(W, "defense-messages"), [
             ("toattacker", "actor"), ("todefender", "actee"), ("toroom", "observer"),

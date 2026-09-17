@@ -1,8 +1,8 @@
 conditionid: 75
 name: Nausea
 description: Your stomach heaves and your vision swims. That potion was foul.
-start_user_text: Your stomach heaves and your vision swims.
-end_user_text: The nausea passes and your stomach settles.
+start_actee: Your stomach heaves and your vision swims.
+end_actee: The nausea passes and your stomach settles.
 triggerrate: 1 round
 triggercount: 30
 statmods:

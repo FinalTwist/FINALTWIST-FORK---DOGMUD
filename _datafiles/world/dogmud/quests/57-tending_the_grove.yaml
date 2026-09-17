@@ -33,12 +33,12 @@ steps:
 rewards:
   gold: 6
   skillinfo: "spellcasting:1"
-  playermessage: >-
+  actor: >-
     Orrin's edge arrives a half-step behind him, as always, when he
     turns to you. "The fold held clean. The grove is quieter when
     the work is done properly -- come back when it needs doing again.
     It always needs doing again."
-  roommessage: >-
+  observer: >-
     Orrin's outline catches up with him slowly, as if the grove
     approves of the stillness.
 
@@ -50,6 +50,6 @@ triggers:
       missing: ["57-end"]
     actions:
       - grant: "57-end"
-      - send_text: >-
+      - actor: >-
           The drift-wisp unravels and is gone. The grove is a little
           quieter. Go back and tell Orrin it is done.

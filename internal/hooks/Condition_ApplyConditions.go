@@ -155,7 +155,7 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 			// Visual, not audio. Start text describes what the room SEES
 			// ("A warm glow surrounds Alice"), and Room.SendText is never
 			// sight-gated, so it reached blind and unsighted observers. M2
-			// fixed the same defect for cast_room_text.
+			// fixed the same defect for a spell's cast_observer line.
 			if roles.Observer != "" {
 				if r := rooms.LoadRoom(roomId); r != nil {
 					r.SendTextVisual(messaging.CategoryConditionApply, roles.Observer, excludeId)

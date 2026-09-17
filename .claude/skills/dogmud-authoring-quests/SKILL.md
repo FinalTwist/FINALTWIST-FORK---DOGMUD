@@ -196,8 +196,8 @@ Every branching quest MUST have:
 
 ### Quest reward YAML keys
 
-Quest `rewards:` fields (`itemid`, `skillinfo`, `conditionid`, `playermessage`,
-`roommessage`, `roomid`, `spellid`, `questid`) load via a tag-less struct
+Quest `rewards:` fields (`itemid`, `skillinfo`, `conditionid`, `roomid`,
+`spellid`, `questid`) load via a tag-less struct
 that binds on the lowercased field name with no underscore handling, so
 `itemid` is correct and `item_id` silently fails to load with no panic and
 no warning. This is scoped to the rewards block only: trigger
@@ -206,6 +206,12 @@ document (`grantsQuest`, `setsQuestFlag`, `questExcluded`, `givesItem`) are
 properly snake_case-tagged structs and are correct as written throughout
 this skill; only the rewards block is the no-underscore exception.
 [[reference_quest_reward_yaml_key_gotcha]]
+
+The reward block's two narrated lines are NOT in that no-underscore set: they
+are `actor` (the completing player's line) and `observer` (the room's), both
+explicitly tagged. M4b-1 renamed them from `playermessage` and `roommessage`,
+and renamed the two narrating trigger actions from `send_text` and `room_text`
+to the same two words, so one vocabulary covers both blocks.
 
 ## Verify event names against the loader
 

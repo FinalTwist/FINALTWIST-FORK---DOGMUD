@@ -70,12 +70,12 @@ func TestRecipeValidate_Narration(t *testing.T) {
 			r.SuccessRoomMessage = "{actor} finishes a stew."
 			r.FailureRoomMessage = "{actor} burns a stew."
 		}, ""},
-		{"empty success refused", func(r *RecipeSpec) { r.SuccessMessage = "" }, "success_message cannot be empty"},
-		{"empty failure refused", func(r *RecipeSpec) { r.FailureMessage = "" }, "failure_message cannot be empty"},
+		{"empty success refused", func(r *RecipeSpec) { r.SuccessMessage = "" }, "success_actor cannot be empty"},
+		{"empty failure refused", func(r *RecipeSpec) { r.FailureMessage = "" }, "failure_actor cannot be empty"},
 		{"whitespace failure refused", func(r *RecipeSpec) { r.FailureMessage = "   " }, "is empty"},
 		{"whitespace room line refused", func(r *RecipeSpec) { r.SuccessRoomMessage = "  " }, "is empty"},
-		{"room line without source refused", func(r *RecipeSpec) { r.FailureRoomMessage = "A pot burns." }, "failure_room_message must name the crafter with {actor}"},
-		{"success room line without source refused", func(r *RecipeSpec) { r.SuccessRoomMessage = "A stew is finished." }, "success_room_message must name the crafter with {actor}"},
+		{"room line without source refused", func(r *RecipeSpec) { r.FailureRoomMessage = "A pot burns." }, "failure_observer must name the crafter with {actor}"},
+		{"success room line without source refused", func(r *RecipeSpec) { r.SuccessRoomMessage = "A stew is finished." }, "success_observer must name the crafter with {actor}"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

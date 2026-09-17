@@ -24,7 +24,7 @@ steps:
     description: "The spirits of the steppe answer your call. You
       have earned the Windwarden's trust."
 rewards:
-  playermessage: "Sylara's eyes shine with quiet pride. The steppe
+  actor: "Sylara's eyes shine with quiet pride. The steppe
     wind swirls around you like a greeting, and you feel a new
     connection to the land -- ancient, vast, and watchful. She
     presses a bundle of spirit fetishes into your hands."

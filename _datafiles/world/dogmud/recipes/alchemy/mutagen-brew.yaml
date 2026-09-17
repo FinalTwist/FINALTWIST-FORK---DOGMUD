@@ -19,5 +19,5 @@ ingredients:
 output:
   item_id: 30055
   quantity: 1
-success_message: "The brew shifts color constantly, never settling. A mutagen brew!"
-failure_message: "The mutation catalyst destabilizes violently. The materials are wasted."
+success_actor: "The brew shifts color constantly, never settling. A mutagen brew!"
+failure_actor: "The mutation catalyst destabilizes violently. The materials are wasted."

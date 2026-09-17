@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 40018
   quantity: 1
-success_message: "You fold the iron with coal dust, working it through many heats. A steel ingot!"
-failure_message: "The carbon mix is uneven and the metal becomes brittle. The materials are lost."
+success_actor: "You fold the iron with coal dust, working it through many heats. A steel ingot!"
+failure_actor: "The carbon mix is uneven and the metal becomes brittle. The materials are lost."

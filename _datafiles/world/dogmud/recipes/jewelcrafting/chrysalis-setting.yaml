@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 40030
   quantity: 1
-success_message: "You coax the chrysalis shard into the copper frame. It settles with a faint hum, alive and waiting."
-failure_message: "The shard resists the frame and splits apart. The materials are wasted."
+success_actor: "You coax the chrysalis shard into the copper frame. It settles with a faint hum, alive and waiting."
+failure_actor: "The shard resists the frame and splits apart. The materials are wasted."

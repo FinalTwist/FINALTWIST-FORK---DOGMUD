@@ -49,7 +49,7 @@ rewards:
   skillinfo: "spellcasting:1"
   itemid: 10018
   gold: 15
-  playermessage: >-
+  actor: >-
     Grieve watches the mote take your spell and reknit, and something in his
     mismatched eyes settles. "There. You did not reach for it -- you let it
     go. That is the whole of it." He takes a long staff of pale oak from the
@@ -60,7 +60,7 @@ rewards:
     Willpower is the stat that shapes a spell, and the more of it you carry,
     the cleaner the fold. North, to the grove. Orrin will teach you to hold
     a casting while the world tries to knock it loose."
-  roommessage: "Grieve presses a pale oak staff into the newcomer's hands."
+  observer: "Grieve presses a pale oak staff into the newcomer's hands."
 
 triggers:
   # ── CAST: loose a spell at the practice mote (Star Chamber, 5305) ──────
@@ -72,7 +72,7 @@ triggers:
       missing: ["44-cast"]
     actions:
       - grant: "44-cast"
-      - send_text: >-
+      - actor: >-
           Your spell leaves you and breaks against the mote in a flare of
           folded light; the mote draws inward and reknits, unharmed. That is
           casting -- will shaped to a purpose and let go. Return to Grieve in

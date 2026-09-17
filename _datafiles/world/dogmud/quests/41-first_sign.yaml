@@ -55,7 +55,7 @@ rewards:
   skillinfo: "search:1"
   itemid: 20024
   gold: 15
-  playermessage: >-
+  actor: >-
     Tarn watches you come back with the unhurried attention of someone
     measuring whether you wasted her time. The amber of her eyes catches
     a hare's bolt half a field off and dismisses it. "You followed the
@@ -63,7 +63,7 @@ rewards:
     works a rolled cloak off her pack and tosses it to you. "Steppe wind
     cuts after dark. South, then -- Delk hunts the fringe, and the fringe
     bites back. Tell him Tarn says you can read ground."
-  roommessage: "Tarn looks the newcomer over, nods once, and hands across
+  observer: "Tarn looks the newcomer over, nods once, and hands across
     a rolled traveling cloak."
 
 triggers:
@@ -76,7 +76,7 @@ triggers:
       missing: ["41-track"]
     actions:
       - grant: "41-track"
-      - send_text: >-
+      - actor: >-
           That is tracking -- reading what passed and where it went. The
           skill sharpens every time you use it, so keep at it. Forage the
           scrub if you have not yet, then see Tarn.
@@ -90,7 +90,7 @@ triggers:
       missing: ["41-forage"]
     actions:
       - grant: "41-forage"
-      - send_text: >-
+      - actor: >-
           You work the scrub and turn up usable plants. Good steppe
           forage. Track a hare if you have not, then report to Tarn.
   - event: command
@@ -101,6 +101,6 @@ triggers:
       missing: ["41-forage"]
     actions:
       - grant: "41-forage"
-      - send_text: >-
+      - actor: >-
           The sage flat gives up roots and herbs to a patient hand.
           Track a hare if you have not, then report to Tarn.

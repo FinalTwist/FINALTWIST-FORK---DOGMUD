@@ -16,8 +16,8 @@ This guide explains how to use Claude Code's slash commands to generate new worl
 | A new quest (execution) | `/new-quest <plan-file>` |
 
 For spells and conditions, use the schema docs as reference and write the YAML
-manually for now. **Flavor text goes in YAML text fields** (`cast_user_text`,
-`cast_room_text`, etc. for spells; `start_user_text`, `end_user_text`, etc.
+manually for now. **Flavor text goes in YAML text fields** (`cast_actor`,
+`cast_observer`, etc. for spells; `start_actee`, `end_actee`, etc.
 for conditions) — see `spell.md` Section 2b and `condition.md` Section 4.
 
 **Schema docs** live in `docs/schemas/`:

@@ -11,5 +11,5 @@ difficulty: 30
 primarystat: willpower
 base_folds: 10
 effect_type: purge
-cast_user_text: "You send a purifying wave of Chrysalis energy outward."
-cast_room_text: "{actor} spreads their arms as a clean, bright wave of energy pulses outward."
+cast_actor: "You send a purifying wave of Chrysalis energy outward."
+cast_observer: "{actor} spreads their arms as a clean, bright wave of energy pulses outward."

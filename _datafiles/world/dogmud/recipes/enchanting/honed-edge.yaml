@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 0
   quantity: 0
-success_message: "The paste bonds to the blade and hardens. When you test the edge, it cuts cleaner than before."
-failure_message: "The paste dries and flakes away without taking hold. The materials are wasted, but the weapon is unharmed."
+success_actor: "The paste bonds to the blade and hardens. When you test the edge, it cuts cleaner than before."
+failure_actor: "The paste dries and flakes away without taking hold. The materials are wasted, but the weapon is unharmed."

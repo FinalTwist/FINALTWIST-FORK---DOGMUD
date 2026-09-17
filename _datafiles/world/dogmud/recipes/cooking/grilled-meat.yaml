@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 30022
   quantity: 1
-success_message: "You rub the meat with salt and sear it over the flames. Grilled meat!"
-failure_message: "The meat catches fire and burns to ash. The materials are lost."
+success_actor: "You rub the meat with salt and sear it over the flames. Grilled meat!"
+failure_actor: "The meat catches fire and burns to ash. The materials are lost."

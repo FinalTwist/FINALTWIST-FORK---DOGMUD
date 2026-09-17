@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 40223
   quantity: 1
-success_message: "You facet each gem to match its neighbor by ear, until the ring holds a single chord. Choir-focus gems!"
-failure_message: "A facet catches wrong and the chord frays at the edges. The materials are wasted."
+success_actor: "You facet each gem to match its neighbor by ear, until the ring holds a single chord. Choir-focus gems!"
+failure_actor: "A facet catches wrong and the chord frays at the edges. The materials are wasted."

@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 40211
   quantity: 1
-success_message: "You work coal-black pitch until it glasses over but never quite sets. Obsidian edge-resin!"
-failure_message: "The resin sets too fast and cracks in the jar. The materials are ruined."
+success_actor: "You work coal-black pitch until it glasses over but never quite sets. Obsidian edge-resin!"
+failure_actor: "The resin sets too fast and cracks in the jar. The materials are ruined."

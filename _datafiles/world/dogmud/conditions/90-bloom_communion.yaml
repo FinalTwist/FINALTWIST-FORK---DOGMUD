@@ -14,8 +14,8 @@ statmods:
   vitality: 5
   willpower: 5
   charisma: 5
-start_user_text: "The world falls away. A slow warmth floods from your center
+start_actee: "The world falls away. A slow warmth floods from your center
   outward -- every ache dissolves, every edge softens. You feel capable of
   anything."
-end_user_text: The warmth recedes, leaving a hollow ache in its wake. The world
+end_actee: The warmth recedes, leaving a hollow ache in its wake. The world
   feels harder-edged than it did before.

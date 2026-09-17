@@ -49,12 +49,12 @@ steps:
       runs deeper than anyone knew."
 
 rewards:
-  playermessage: "Guard Captain Velk nods with grim satisfaction. 'This ledger
+  actor: "Guard Captain Velk nods with grim satisfaction. 'This ledger
     changes everything. Names, dates, amounts -- enough to end careers and
     start trials. You have done Thornwall a real service.' He hands you a
     folded parchment bearing the Watch seal. 'A commendation. It may not buy
     you a drink, but it buys you goodwill with the guard.'"
-  roommessage: "Velk hands over a sealed document with a look of grudging
+  observer: "Velk hands over a sealed document with a look of grudging
     respect."
   gold: 25
   itemid: 40037
@@ -68,7 +68,7 @@ triggers:
     conditions:
       missing: ["14-start"]
     actions:
-      - send_text: "The iron grate covers a dark opening that descends into
+      - actor: "The iron grate covers a dark opening that descends into
           the old drainage tunnels. You have no reason to go down there."
       - teleport: 485
 
@@ -80,7 +80,7 @@ triggers:
       missing: ["14-explore"]
     actions:
       - grant: "14-explore"
-      - send_text: "A tally stick -- notched marks recording regular
+      - actor: "A tally stick -- notched marks recording regular
           shipments. Someone is running goods through these tunnels on a
           schedule. The chalk arrows on the walls point south, deeper into
           the system."
@@ -93,7 +93,7 @@ triggers:
       missing: ["14-confront"]
     actions:
       - grant: "14-confront"
-      - send_text: "You step into a well-lit chamber that serves as the nerve
+      - actor: "You step into a well-lit chamber that serves as the nerve
           center of the smuggling operation. A man at the table looks up
           sharply -- this must be the one in charge. A heavy iron strongbox
           sits beneath his table, locked tight. Whatever proof you need is
@@ -111,11 +111,11 @@ triggers:
       - consume_item: 40034
       - give_item: 40036
       - grant: "14-evidence"
-      - send_text: "You fit the brass key into the padlock and turn. The lock
+      - actor: "You fit the brass key into the padlock and turn. The lock
           clicks open. Inside the strongbox you find a slim leather journal --
           a bribe ledger, filled with names, dates, and amounts paid to
           corrupt city officials. This is the evidence you need."
-      - room_text: "{actor} unlocks the strongbox and pulls out a leather journal."
+      - observer: "{actor} unlocks the strongbox and pulls out a leather journal."
 
   # ── STRONGBOX: locked (no key) ────────────────────────
   - event: room_interact
@@ -126,7 +126,7 @@ triggers:
       missing: ["14-evidence"]
       missing_item: 40034
     actions:
-      - send_text: "The strongbox is locked with a heavy brass padlock. You
+      - actor: "The strongbox is locked with a heavy brass padlock. You
           need a key."
 
   # ── STRONGBOX: already opened ─────────────────────────
@@ -136,7 +136,7 @@ triggers:
     conditions:
       has: ["14-evidence"]
     actions:
-      - send_text: "The strongbox is open and empty. You have already taken
+      - actor: "The strongbox is open and empty. You have already taken
           the ledger."
 
   # ── REPORT: bribe ledger to Velk ─────────────────────

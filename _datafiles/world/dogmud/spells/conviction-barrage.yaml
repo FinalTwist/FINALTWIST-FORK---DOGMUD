@@ -16,5 +16,5 @@ effect_magnitude: 700
 damage_multiplier: 1.60
 categories:
   - harm_multi
-cast_user_text: "You compress your conviction into hundreds of razor-sharp fragments!"
-cast_room_text: "{actor} raises their arms as the air fills with crackling shards of light!"
+cast_actor: "You compress your conviction into hundreds of razor-sharp fragments!"
+cast_observer: "{actor} raises their arms as the air fills with crackling shards of light!"

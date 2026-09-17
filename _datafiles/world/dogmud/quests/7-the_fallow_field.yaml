@@ -22,7 +22,7 @@ steps:
       under control for now."
 
 rewards:
-  playermessage: "Dorn examines the pest sample with a grim
+  actor: "Dorn examines the pest sample with a grim
     expression, then sets it down carefully. 'Bigger than they
     should be. The fallow field is feeding them -- all that
     untended root growth, it is a paradise for vermin.' He looks
@@ -30,7 +30,7 @@ rewards:
     took everything. And now the rest of us pay for it in
     different coin.' He reaches into a pouch. 'This is not much,
     but it is honest.'"
-  roommessage: "Dorn nods slowly, the weight of the situation
+  observer: "Dorn nods slowly, the weight of the situation
     evident in his weathered face."
   gold: 8
   itemid: 23

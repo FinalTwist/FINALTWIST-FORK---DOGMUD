@@ -62,7 +62,7 @@ rewards:
   itemid: 10039
   item_info: "30063:1"
   gold: 25
-  playermessage: >-
+  actor: >-
     Bryn's outline doubles for a moment as he turns to you, then settles.
     "You felt it, then. The shot lands, and the thing it lands on comes
     straight up the slot at you -- so the cross-room shot is never free. You
@@ -72,7 +72,7 @@ rewards:
     like it. Above us is the overlook, and on it a bowmaster named Skell, who
     has made this whole canyon a killing field from up there. When you have
     the nerve, the chimney at the canyon's head goes up to him."
-  roommessage: "Scout Bryn passes the newcomer a compact crossbow and a case of bolts."
+  observer: "Scout Bryn passes the newcomer a compact crossbow and a case of bolts."
 
 triggers:
   # ── CROSS-ROOM SHOT: fire on the scout in 5356 from the Narrows (5354) ─
@@ -84,7 +84,7 @@ triggers:
       missing: ["51-shoot"]
     actions:
       - grant: "51-shoot"
-      - send_text: >-
+      - actor: >-
           Your shot streaks north out of the Narrows and finds the scout on
           the open floor beyond. It is hit -- and it is coming. Hold the
           ground and finish it.
@@ -97,7 +97,7 @@ triggers:
       missing: ["51-kill"]
     actions:
       - grant: "51-kill"
-      - send_text: >-
+      - actor: >-
           The canyon scout drops at your feet, run up the slot by your own
           shot. That is the whole of it -- reach out, then stand your ground.
           See Bryn in the canyon mouth.

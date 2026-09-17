@@ -19,5 +19,5 @@ ingredients:
 output:
   item_id: 30042
   quantity: 1
-success_message: "The liquid shifts through every color before settling into a prismatic glow. An elixir of renewal!"
-failure_message: "The ingredients fight each other and the brew turns grey. The materials are wasted."
+success_actor: "The liquid shifts through every color before settling into a prismatic glow. An elixir of renewal!"
+failure_actor: "The ingredients fight each other and the brew turns grey. The materials are wasted."

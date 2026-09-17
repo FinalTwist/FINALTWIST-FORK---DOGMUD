@@ -31,12 +31,12 @@ steps:
       knows about foraging."
 
 rewards:
-  playermessage: "Delia nods slowly, the practical assessment
+  actor: "Delia nods slowly, the practical assessment
     of someone who has weighed a solution and found it sound.
     'You have a good eye for problems and their fixes. If
     you want to learn something about the plants out there,
     I can teach you. Come back any time.'"
-  roommessage: "Delia's expression shifts from concern to
+  observer: "Delia's expression shifts from concern to
     quiet satisfaction as the herb supply problem is resolved."
   gold: 12
 

@@ -71,7 +71,7 @@ steps:
 rewards:
   skillinfo: "ranged-combat:1"
   gold: 15
-  playermessage: >-
+  actor: >-
     Iden watches the stone bury itself in the straw and gives a single nod.
     "There. A sling readies itself while your eye is still on the mark, so the
     only thing you have to think about is the mark. And you have the other
@@ -82,7 +82,7 @@ rewards:
     slot below the raider bluffs. He will show you the next part -- how to put
     a shot into something a whole room away, before it ever knows you are
     there."
-  roommessage: "Marksman Iden nods as the newcomer's shot finds the straw."
+  observer: "Marksman Iden nods as the newcomer's shot finds the straw."
 
 triggers:
   # ── FIRST SHOT: loose at the practice butt down-range (5351) ───────────
@@ -94,7 +94,7 @@ triggers:
       missing: ["50-shoot"]
     actions:
       - grant: "50-shoot"
-      - send_text: >-
+      - actor: >-
           The stone leaves the sling and strikes the straw with a solid thud.
           Your hand has already found another and settled it in the cradle.
           Iden calls down the range: "Now do it again, but from where it
@@ -112,7 +112,7 @@ triggers:
       missing: ["50-ambush"]
     actions:
       - grant: "50-ambush"
-      - send_text: >-
+      - actor: >-
           You settle out of sight behind the butts. The sling is already
           loaded, because it loaded itself. Fire from here and see what a shot
           is worth when nothing is expecting it.

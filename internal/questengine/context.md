@@ -104,8 +104,11 @@ This is the seam that keeps the evaluator testable: tests supply a fake
 it with `a.Narration()`; `GameBridge.Narrate` renders with the triggering
 player's **tagged** name as `{actor}`, sends the Actor line to the player and
 the Observer line on the **visual** channel, the way the behaviour tree's own
-`room_text` does. The tag matters: `messaging.Anonymize` strips only tagged
-names. `send_text` is substituted too; no shipped line carries a token.
+`room_text` action does. The tag matters: `messaging.Anonymize` strips only
+tagged names. The quest `actor` line is substituted too; no shipped line
+carries a token. (The quest keys are `actor` and `observer` since M4b-1; they
+were `send_text` and `room_text`, which the behaviour tree still uses for its
+own, unrelated action param.)
 
 ## Gotchas
 
@@ -129,7 +132,7 @@ names. `send_text` is substituted too; no shipped line carries a token.
   a command is typed, the second only when it succeeded.
 - **Ephemeral (instance) rooms match their TEMPLATE room id** in `room:`
   triggers, not their runtime id.
-- **Every quest `room_text` must contain `{actor}`, and `quests.Quest.Validate`
+- **Every quest `observer` line must contain `{actor}`, and `quests.Quest.Validate`
   refuses a quest whose line does not**, including lines nested in a sequence's
   `on_complete`. `Validate` runs on every quest file parse at boot AND before an
   admin editor save, so a bad line is refused with a reply instead of being

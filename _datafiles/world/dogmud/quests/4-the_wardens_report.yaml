@@ -34,13 +34,13 @@ steps:
       \ wardens will act on this intelligence."
 
 rewards:
-  playermessage: "Tessara examines the letter with a grim expression, then folds\
+  actor: "Tessara examines the letter with a grim expression, then folds\
     \ it carefully into her report stack. 'This is exactly what I needed. Names,\
     \ routes, schedules -- the wardens at Watchers Crossing will want to see\
     \ this.' She reaches into a pouch and produces a clay token, pressing it\
     \ into your hand. 'You have earned this. Show it at any warden post and\
     \ you will be treated as a friend.'"
-  roommessage: "Tessara nods to herself as she reads through the confiscated\
+  observer: "Tessara nods to herself as she reads through the confiscated\
     \ documents, already composing her report."
   gold: 15
   itemid: 17

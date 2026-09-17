@@ -39,12 +39,19 @@ _datafiles/world/dogmud/conditions/{conditionid}-{ConvertForFilename(name)}.yaml
 | `tick_variance` | float | no | Random variance added to percentage (for DoTs). |
 | `tick_min` | int | no | Minimum absolute tick amount. Default 1. |
 | `start_remove_conditions` | list | no | Condition IDs removed when this condition starts (cure effects). |
-| `start_user_text` | string | no | Text sent to holder when the condition starts. Supports `{source}` token. |
-| `start_room_text` | string | no | Text sent to room when the condition starts. Supports `{source}` token. |
-| `trigger_user_text` | string | no | Text sent to holder each trigger tick. |
-| `trigger_room_text` | string | no | Text sent to room each trigger tick. |
-| `end_user_text` | string | no | Text sent to holder when the condition expires. |
-| `end_room_text` | string | no | Text sent to room when the condition expires. |
+| `start_actee` | string | no | Text sent to holder when the condition starts. Supports `{actee}` token. |
+| `start_observer` | string | no | Text sent to room when the condition starts. Supports `{actee}` token. |
+| `trigger_actee` | string | no | Text sent to holder each trigger tick. |
+| `trigger_observer` | string | no | Text sent to room each trigger tick. |
+| `end_actee` | string | no | Text sent to holder when the condition expires. |
+| `end_observer` | string | no | Text sent to room when the condition expires. |
+
+The six narration keys name the PHASE and then the AUDIENCE. The holder's half
+is `actee`, not `actor`, because a condition is something that happens TO
+whoever holds it. Before the M4b-1 role-key rename these were
+`start_user_text` / `start_room_text` and their trigger and end siblings, and
+the token was `{source}` rather than `{actee}`. An unknown token now fails the
+load with a boot panic, so an old spelling will not quietly render raw.
 
 ### triggerrate Formats
 
@@ -147,7 +154,7 @@ statmods:
 ## 4. YAML Text Fields
 
 Condition messaging lives in YAML. The engine sends the text automatically
-when the condition starts, triggers and ends. Use `{source}` for the
+when the condition starts, triggers and ends. Use `{actee}` for the
 condition holder's name.
 
 **Flavor-only condition:**
@@ -159,8 +166,8 @@ triggerrate: 1 round
 triggercount: 12
 statmods:
   willpower: 10
-start_user_text: "Your mind hardens like iron, walling off intrusion."
-end_user_text: "The iron resolve softens, leaving your thoughts exposed."
+start_actee: "Your mind hardens like iron, walling off intrusion."
+end_actee: "The iron resolve softens, leaving your thoughts exposed."
 ```
 
 **Healing condition using tick_pool:**
@@ -172,8 +179,8 @@ triggerrate: 2 rounds
 triggercount: 9
 tick_pool: health
 tick_percent: 0.05
-start_user_text: "Chrysalis energy suffuses your body with a warm, mending pulse."
-end_user_text: "The vital surge fades."
+start_actee: "Chrysalis energy suffuses your body with a warm, mending pulse."
+end_actee: "The vital surge fades."
 ```
 
 **Poison DoT using tick_pool with variance:**
@@ -190,9 +197,9 @@ tick_pool: health
 tick_percent: -0.08
 tick_variance: 0.04
 tick_min: 3
-start_user_text: "Venom seeps into your blood, burning from within."
-start_room_text: "{source} winces as venom takes hold."
-end_user_text: "The venom finally runs its course."
+start_actee: "Venom seeps into your blood, burning from within."
+start_observer: "{actee} winces as venom takes hold."
+end_actee: "The venom finally runs its course."
 ```
 
 **Cure condition (removes poison on start, then heals over time):**
@@ -206,8 +213,8 @@ tick_percent: 0.05
 start_remove_conditions:
   - 39
   - 40
-start_user_text: "The antidote burns through your veins, purging toxins."
-end_user_text: "The antidote fades from your system."
+start_actee: "The antidote burns through your veins, purging toxins."
+end_actee: "The antidote fades from your system."
 ```
 
 **Stat scaling note:** When a condition with `tick_pool` is applied by a spell,

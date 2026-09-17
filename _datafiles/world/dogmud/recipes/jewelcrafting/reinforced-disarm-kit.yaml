@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 37
   quantity: 1
-success_message: "You shape hardened steel components, bind them with reinforced leather, and pack the kit in a protective case. A reinforced disarm kit!"
-failure_message: "The steel shears at a stress point during shaping -- the work is ruined. The materials are lost."
+success_actor: "You shape hardened steel components, bind them with reinforced leather, and pack the kit in a protective case. A reinforced disarm kit!"
+failure_actor: "The steel shears at a stress point during shaping -- the work is ruined. The materials are lost."

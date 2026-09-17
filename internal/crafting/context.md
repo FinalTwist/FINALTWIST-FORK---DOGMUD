@@ -219,10 +219,13 @@ A recipe is a narration store. Read its text only through the door in
 `FailureRoomMessage` anywhere else.
 
 - `Phase`: `PhaseSuccess`, `PhaseFailure`.
-- `(*RecipeSpec).Narration(p) narration.Variants`: `success_message` /
-  `failure_message` are the Actor (the crafter); `success_room_message` /
-  `failure_room_message` are the Observer (the room). No Actee: a craft has no
-  second party. Enchanting another player's gear would add one.
+- `(*RecipeSpec).Narration(p) narration.Variants`: `success_actor` /
+  `failure_actor` are the Actor (the crafter); `success_observer` /
+  `failure_observer` are the Observer (the room). No Actee: a craft has no
+  second party. Enchanting another player's gear would add one. M4b-1 renamed
+  all four from `success_message` / `success_room_message` and their failure
+  siblings: the outcome half stays, the role half is now the canonical
+  vocabulary every narration store shares.
 - `(*RecipeSpec).Narrate(p, textutil.TokenContext) narration.Roles`: renders
   through `textutil.Narrate`, crafter as the actor (`{actor}`,
   `{actor_plain}`).
@@ -230,7 +233,7 @@ A recipe is a narration store. Read its text only through the door in
   room line, the authored Observer line or the fallback.
 - `(RecipeSpec).ValidateNarrationTokens() []string`: unknown `{token}`
   spellings across all four narration fields, via `textutil.ValidateTokens`.
-- `Validate` refuses: an empty `success_message` or `failure_message`; a
+- `Validate` refuses: an empty `success_actor` or `failure_actor`; a
   whitespace-only line; a room message without `{actor}`; an unknown token
   (M4a, matching conditions and spells). The loader panics on the error, so a
   typo cannot ship and render raw to the player.
@@ -267,8 +270,8 @@ ingredients:
 output:
   item_id: 40060
   quantity: 1
-success_message: "You grill the meat over the fire."
-failure_message: ""
+success_actor: "You grill the meat over the fire."
+failure_actor: ""
 ```
 
 Optional enchanting fields: `target_type`, `enchant_type`.

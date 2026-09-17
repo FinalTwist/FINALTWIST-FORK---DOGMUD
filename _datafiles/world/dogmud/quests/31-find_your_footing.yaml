@@ -41,7 +41,7 @@ steps:
 
 rewards:
   gold: 20
-  playermessage: >-
+  actor: >-
     Toke presses a small purse into your palm with his upper mouth still
     talking and the lower one already calling the next notice.
 
@@ -54,7 +54,7 @@ triggers:
       missing: [31-school]
     actions:
       - grant: 31-school
-      - send_text: >-
+      - actor: >-
           A tutor glances up from a slate as you enter. "Newly Opened.
           When the changes start and you want to know what is happening to
           you, this hall is where you come."
@@ -69,7 +69,7 @@ triggers:
       missing: [31-shop]
     actions:
       - grant: 31-shop
-      - send_text: >-
+      - actor: >-
           Trader Onna nods as the coin changes hands. "A shirt won't turn a
           blade, but it beats bare skin. Put it on -- gear does nothing folded
           in your pack."
@@ -83,7 +83,7 @@ triggers:
       has: [31-school]
       missing: [31-shop]
     actions:
-      - send_text: >-
+      - actor: >-
           Trader Onna watches you weigh her wares. "The cotton shirt keeps the
           chill off and the coulee's teeth out. Type buy cotton shirt -- you've
           coin enough."
@@ -96,7 +96,7 @@ triggers:
       missing: [31-equip]
     actions:
       - grant: 31-equip
-      - send_text: >-
+      - actor: >-
           You settle the shirt across your shoulders. That is the whole of it
           -- buy the gear, wear the gear, and the coulee bites a little less.
 
@@ -108,7 +108,7 @@ triggers:
       missing: [31-lantern]
     actions:
       - grant: 31-lantern
-      - send_text: >-
+      - actor: >-
           The keeper of the Drowned Lantern tips you a nod as you step in.
           "First one is on the house -- the coulee's welcome. Rest while it
           is still being gentle with you."

@@ -39,8 +39,9 @@ func TestRoomTextProblems(t *testing.T) {
 	}
 }
 
-// roomTextQuest builds the smallest quest Validate accepts, with a room_text
-// at the top level of its trigger, nested in a sequence's on_complete, or both.
+// roomTextQuest builds the smallest quest Validate accepts, with an observer
+// line at the top level of its trigger, nested in a sequence's on_complete, or
+// both.
 func roomTextQuest(top, nested string) *Quest {
 	q := &Quest{QuestId: 90001, Name: "Room Text Test", Steps: []QuestStep{{Id: "start"}},
 		Triggers: []TriggerDef{{Event: "room_interact"}}}
@@ -65,7 +66,7 @@ func TestValidate_RefusesSubjectlessRoomText(t *testing.T) {
 
 func TestValidate_RefusesSubjectlessRoomTextInASequence(t *testing.T) {
 	err := roomTextQuest("", "unlocks the strongbox.").Validate()
-	require.Error(t, err, "room_text under a sequence's on_complete still reaches the room")
+	require.Error(t, err, "an observer line under a sequence's on_complete still reaches the room")
 	assert.Contains(t, err.Error(), "on_complete")
 }
 
@@ -117,5 +118,5 @@ func TestShippedQuestRoomTextFollowsConvention(t *testing.T) {
 		}
 	}
 	assert.Equal(t, 22, checked,
-		"22 quest room_text lines ship; a different count means the inventory moved, so re-read this test")
+		"22 quest observer lines ship; a different count means the inventory moved, so re-read this test")
 }

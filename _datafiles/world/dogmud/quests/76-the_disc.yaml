@@ -30,12 +30,12 @@ steps:
     description: "You carry the woken disc — a key for the door in the east,
       and the last of a lost man's work, done at last."
 rewards:
-  playermessage: >-
+  actor: >-
     The disc is awake in your hand, warm along its lines, and it answers
     a shape you have not yet reached. A father's work, finished by a
     stranger, in the cottage he left to chase it. What it opens waits
     east, in the broken country, behind a door in the buried face.
-  roommessage: ""
+  observer: ""
   gold: 0
 triggers:
   - event: room_interact
@@ -45,20 +45,20 @@ triggers:
       missing_item: 40167
     actions:
       - give_item: 40167
-      - send_text: >-
+      - actor: >-
           You work your fingers into the crack and lift the disc free of
           the floor — cool, too smooth, heavier than its size. Fine raised
           lines thread across its face to a ring struck through with a
           line. You do not understand it. You are fairly certain no one
           here does. You put it away.
-      - room_text: "{actor} works something free of the cracked floor and pockets it."
+      - observer: "{actor} works something free of the cracked floor and pockets it."
   - event: room_interact
     room: 5343
     noun: disc
     conditions:
       has_item: 40167
     actions:
-      - send_text: "The crack in the floor is empty now. You already carry what lay beneath it."
+      - actor: "The crack in the floor is empty now. You already carry what lay beneath it."
   - event: room_interact
     room: 4023
     noun: journal
@@ -67,7 +67,7 @@ triggers:
       missing: ["76-journal"]
     actions:
       - grant: "76-journal"
-      - send_text: |
+      - actor: |
           You sit at the cold table and read the man's life backward.
           Years of it — a hand that starts careful and turns driven, the
           same questions put a hundred ways to one buried thing far to
@@ -82,14 +82,14 @@ triggers:
           all. It is a name, set down once and gently, as if to keep one
           soft thing safe. Maren. He went east to finish this. He did not
           come back to her.
-      - room_text: "{actor} reads a long while at the cottage table."
+      - observer: "{actor} reads a long while at the cottage table."
   - event: room_interact
     room: 4023
     noun: journal
     conditions:
       missing: ["76-start"]
     actions:
-      - send_text: >-
+      - actor: >-
           A field journal lies open on the table, its pages dense with a
           careful obsessive hand and sketches of a mark you have half-seen
           elsewhere. Without knowing what you are looking for, it is only
@@ -106,7 +106,7 @@ triggers:
       - grant: "76-end"
       - consume_item: 40167
       - give_item: 40168
-      - send_text: |
+      - actor: |
           You do as the journal says. You set the disc into the cut
           center of the hearthstone, where the marks draw inward to a
           single point, and you follow his method through — the order of
@@ -124,7 +124,7 @@ triggers:
           comes to you off the last page, unbidden. Maren. He kept her,
           all the way to the end of himself. You hope, wherever she is,
           she never learns how far he went.
-      - room_text: "{actor} does something careful at the marked hearth, and the air goes briefly strange."
+      - observer: "{actor} does something careful at the marked hearth, and the air goes briefly strange."
   - event: room_interact
     room: 4023
     noun: hearth-marks
@@ -133,11 +133,11 @@ triggers:
       missing: ["76-end"]
       missing_item: 40167
     actions:
-      - send_text: "The marks are cut for a thing you do not have in hand. Without the disc, they are only scratches in old stone. The disc lies in the old Reliquary at Pothole Coulee."
+      - actor: "The marks are cut for a thing you do not have in hand. Without the disc, they are only scratches in old stone. The disc lies in the old Reliquary at Pothole Coulee."
   - event: room_interact
     room: 4023
     noun: hearth-marks
     conditions:
       missing: ["76-journal"]
     actions:
-      - send_text: "Marks are cut into the hearthstone in a deliberate pattern — a method for something, though you cannot read it yet."
+      - actor: "Marks are cut into the hearthstone in a deliberate pattern — a method for something, though you cannot read it yet."

@@ -50,8 +50,8 @@ steps:
       The lake-folk owe you a quiet round at the inn."
 
 rewards:
-  playermessage: "The lake-caves bounty is closed. A purse changes hands."
-  roommessage: "is paid out the lake-caves bounty."
+  actor: "The lake-caves bounty is closed. A purse changes hands."
+  observer: "is paid out the lake-caves bounty."
   gold: 150
   rep_faction: stillwater_guards
   rep_amount: 15
@@ -65,7 +65,7 @@ triggers:
       missing: ["19-shrimp"]
     actions:
       - grant: "19-shrimp"
-      - send_text: "The skitter-shrimp swarm has been broken. The lake-folk's
+      - actor: "The skitter-shrimp swarm has been broken. The lake-folk's
           nets will hold longer for it."
 
   # ── HUNTER: kill a drowned hunter (mob 331) ──
@@ -76,7 +76,7 @@ triggers:
       missing: ["19-hunter"]
     actions:
       - grant: "19-hunter"
-      - send_text: "The drowned hunter is dead. The shallows are meaningfully
+      - actor: "The drowned hunter is dead. The shallows are meaningfully
           safer."
 
   # ── END (FULL): give leviathan tooth to Drunn ──

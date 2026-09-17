@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 0
   quantity: 0
-success_message: "Luminous spores bloom across the pauldrons, forming a living ward. Magic crackles and dies against the fungal barrier."
-failure_message: "The spores fail to take root. The materials crumble to dust, but the armor is unharmed."
+success_actor: "Luminous spores bloom across the pauldrons, forming a living ward. Magic crackles and dies against the fungal barrier."
+failure_actor: "The spores fail to take root. The materials crumble to dust, but the armor is unharmed."

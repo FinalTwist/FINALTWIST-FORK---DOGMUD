@@ -14,5 +14,5 @@ target_defense_type: mental
 effect_type: condition
 condition_ids:
   - 36
-cast_user_text: "You drive a psionic anchor into the target's mind."
-cast_room_text: "{actor} stares at a target with piercing focus."
+cast_actor: "You drive a psionic anchor into the target's mind."
+cast_observer: "{actor} stares at a target with piercing focus."

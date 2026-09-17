@@ -22,6 +22,6 @@ steps:
     description: "You have made your choice and completed the task.
       The consequences remain to be seen."
 rewards:
-  playermessage: "You have chosen your path. The steppe will
+  actor: "You have chosen your path. The steppe will
     remember."
   gold: 10

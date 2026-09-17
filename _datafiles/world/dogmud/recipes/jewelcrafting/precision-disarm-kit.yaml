@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 38
   quantity: 1
-success_message: "You draw silver wire to micro-gauge, grind gem-tipped probes, and assemble each component in a fitted jeweler's case. A precision disarm kit!"
-failure_message: "A wire breaks during fine drawing and the delicate assembly is compromised. The materials are lost."
+success_actor: "You draw silver wire to micro-gauge, grind gem-tipped probes, and assemble each component in a fitted jeweler's case. A precision disarm kit!"
+failure_actor: "A wire breaks during fine drawing and the delicate assembly is compromised. The materials are lost."

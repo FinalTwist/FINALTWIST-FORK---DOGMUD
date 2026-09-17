@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 40220
   quantity: 1
-success_message: "You render moonpetal and venom down over coals until the mixture pools bright and restless, never quite sitting still. Quicksilver soles!"
-failure_message: "The mixture boils over and spills across the bench before it can set. The materials are ruined."
+success_actor: "You render moonpetal and venom down over coals until the mixture pools bright and restless, never quite sitting still. Quicksilver soles!"
+failure_actor: "The mixture boils over and spills across the bench before it can set. The materials are ruined."

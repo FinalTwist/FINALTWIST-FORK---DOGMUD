@@ -328,7 +328,7 @@ func Cast(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		if roles.Actor != "" {
 			user.SendText(messaging.CategorySpellFold, roles.Actor)
 		}
-		// SendTextVisual, not SendText: a cast_room_text describes what the
+		// SendTextVisual, not SendText: a cast_observer line describes what the
 		// room SEES ("a fierce glow building"), and the audio channel is never
 		// sight-gated, so this reached blind observers with the caster name
 		// and the visual detail. Found by the 2026-09-08 darkness playtest. Its

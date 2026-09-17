@@ -40,13 +40,13 @@ rewards:
   gold: 35
   rep_faction: np_dockfolk
   rep_amount: 15
-  playermessage: >-
+  actor: >-
     The matter settles the way the docks settle things -- quietly, and for
     good. Hewd will answer for the difference between his two columns, and
     Teo goes back on the board in the morning. The dockfolk will hear who
     sorted it, and down here that is worth more than coin -- though there is
     coin in it too.
-  roommessage: >-
+  observer: >-
     Word moves along the wharves in the way it does, and more than one
     dockhand gives the traveller a short, respectful nod.
 
@@ -61,14 +61,14 @@ triggers:
     actions:
       - grant: "63-evidence"
       - give_item: 40100
-      - send_text: >-
+      - actor: >-
           The proud board lifts with a little persuasion. In the gap
           beneath, wrapped in oilcloth, lies a small tally-book -- and a
           glance inside is enough. Two columns of numbers for every
           shipment: the manifest count on the left, the real one on the
           right. Foreman Hewd has been skimming the difference for a long
           time, and the shortage he reported was Teo's only by his choosing.
-      - room_text: "{actor} works a loose floor-board free and pockets something wrapped in oilcloth."
+      - observer: "{actor} works a loose floor-board free and pockets something wrapped in oilcloth."
 
   # ── floor-board, no quest yet ──
   - event: room_interact
@@ -77,7 +77,7 @@ triggers:
     conditions:
       missing: ["63-start"]
     actions:
-      - send_text: >-
+      - actor: >-
           One floor-board sits a little proud of its neighbors. You could
           work it loose -- but prying up another man's floor without a
           reason is a fast way to find trouble you came here to avoid.

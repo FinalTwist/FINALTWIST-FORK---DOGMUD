@@ -14,5 +14,5 @@ target_defense_type: physical
 effect_type: knockdown
 effect_magnitude: 150
 damage_multiplier: 0.55
-cast_user_text: "You gather telekinetic force and thrust it forward."
-cast_room_text: "{actor} thrusts their palm forward, the air distorting."
+cast_actor: "You gather telekinetic force and thrust it forward."
+cast_observer: "{actor} thrusts their palm forward, the air distorting."

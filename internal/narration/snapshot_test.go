@@ -966,21 +966,24 @@ var kindBNoTarget = textutil.TokenContext{
 	ActorPlainName: kindBSource.ActorPlainName,
 }
 
-// Store 8: conditions (internal/conditions, six *_user_text / *_room_text fields)
+// Store 8: conditions (internal/conditions, six <phase>_actee / <phase>_observer
+// fields)
 //
 // Since M3 item 5b this builder reads through ConditionSpec.Narrate and
 // AuthoredStartLine; the emitted rows, their order and the header are
 // unchanged from the pre-migration recording, which is the byte-identity
-// proof.
+// proof. M4b-1 renamed the authored keys these rows are labelled with
+// (start_user_text became start_actee, and so on), which moves the LABEL half
+// of every row and nothing else.
 func buildConditionsGolden(t *testing.T) string {
 	t.Helper()
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "# conditions store snapshot (internal/conditions)\n")
-	fmt.Fprintf(&b, "# Built 2026-09-12 from PRE-migration code. The *_user_text rows record what the\n")
+	fmt.Fprintf(&b, "# Built 2026-09-12 from PRE-migration code. The *_actee rows record what the\n")
 	fmt.Fprintf(&b, "# HOLDER is sent: for start and end that is StartUserNotice / EndUserNotice (authored\n")
 	fmt.Fprintf(&b, "# line, else the generic fallback, else nothing for a secret condition). A row exists only\n")
-	fmt.Fprintf(&b, "# when the sent line is non-empty. authored_start_line is the raw start_user_text of a\n")
+	fmt.Fprintf(&b, "# when the sent line is non-empty. authored_start_line is the raw start_actee of a\n")
 	fmt.Fprintf(&b, "# silent-start condition, recorded for every silent-start condition whether or not a site sends it\n")
 	fmt.Fprintf(&b, "# today: sleep (15), arrest (88), stun (84) and broken limb (83) have a sender; throttled\n")
 	fmt.Fprintf(&b, "# (89) does not, its move narrates the choke itself.\n")
@@ -1000,9 +1003,9 @@ func buildConditionsGolden(t *testing.T) string {
 			p                conditions.Phase
 			userKey, roomKey string
 		}{
-			{conditions.PhaseStart, "start_user_text", "start_room_text"},
-			{conditions.PhaseTrigger, "trigger_user_text", "trigger_room_text"},
-			{conditions.PhaseEnd, "end_user_text", "end_room_text"},
+			{conditions.PhaseStart, "start_actee", "start_observer"},
+			{conditions.PhaseTrigger, "trigger_actee", "trigger_observer"},
+			{conditions.PhaseEnd, "end_actee", "end_observer"},
 		}
 		for _, ph := range phases {
 			// Conditions take the HOLDER, not a context: the store puts it in the
@@ -1025,11 +1028,13 @@ func buildConditionsGolden(t *testing.T) string {
 	return b.String()
 }
 
-// Store 9: spells (internal/spells, six cast/wait/magic x user/room fields)
+// Store 9: spells (internal/spells, six cast/wait/magic x actor/observer fields)
 //
 // Since M3 item 5b this builder reads through SpellData.Narrate; the emitted
 // rows, their order and the header are unchanged from the pre-migration
-// recording, which is the byte-identity proof. The two probe rows still go
+// recording, which is the byte-identity proof. M4b-1 renamed the authored keys
+// these rows are labelled with (cast_user_text became cast_actor, and so on),
+// which moves the LABEL half of every row and nothing else. The two probe rows still go
 // through textutil.SubstituteTokens directly, since they freeze the token
 // contract itself, not a store.
 func buildSpellsGolden(t *testing.T) string {
@@ -1065,9 +1070,9 @@ func buildSpellsGolden(t *testing.T) string {
 			p                spells.Phase
 			userKey, roomKey string
 		}{
-			{spells.PhaseCast, "cast_user_text", "cast_room_text"},
-			{spells.PhaseWait, "wait_user_text", "wait_room_text"},
-			{spells.PhaseMagic, "magic_user_text", "magic_room_text"},
+			{spells.PhaseCast, "cast_actor", "cast_observer"},
+			{spells.PhaseWait, "wait_actor", "wait_observer"},
+			{spells.PhaseMagic, "magic_actor", "magic_observer"},
 		}
 		for _, ph := range phases {
 			with := s.Narrate(ph.p, kindBSource)
@@ -1089,25 +1094,31 @@ func buildSpellsGolden(t *testing.T) string {
 	return b.String()
 }
 
-// Store 10: quests (internal/quests: reward playermessage/roommessage, and the
-// send_text / room_text actions, nested sequences included)
+// Store 10: quests (internal/quests: reward actor/observer, and the actor /
+// observer actions, nested sequences included)
 //
 // Since M3 item 5b this builder reads through ActionDef.Narrate and
 // QuestReward.Narrate; the emitted rows, their order and the header are
 // unchanged from the pre-migration recording, which is the byte-identity
-// proof. The header's "send_text RAW (no substitution)" describes the retired
+// proof. The header's "actor line RAW (no substitution)" describes the retired
 // recording, not production: since the same slice, questengine.ExecuteAction
-// renders send_text through GameBridge.Narrate, which substitutes. The bytes
-// did not change because no shipped send_text, playermessage or roommessage
-// carries a token.
+// renders the actor line through GameBridge.Narrate, which substitutes. The
+// bytes did not change because no shipped quest action or reward line carries
+// a token.
+//
+// M4b-1 renamed all four authored keys (rewards playermessage/roommessage and
+// actions send_text/room_text all became actor/observer), which moves the
+// LABEL half of every row and nothing else. The reward and action rows are
+// still told apart by the `rewards` / `trigger<i>|action<j>` field ahead of
+// the label, so collapsing four spellings into two loses no dimension.
 func buildQuestsGolden(t *testing.T) string {
 	t.Helper()
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "# quests store snapshot (internal/quests)\n")
 	fmt.Fprintf(&b, "# Built 2026-09-12 from PRE-migration code, sending what each site sends today:\n")
-	fmt.Fprintf(&b, "# rewards playermessage/roommessage and action send_text RAW (no substitution),\n")
-	fmt.Fprintf(&b, "# action room_text through textutil.SubstituteTokens with the player as {actor}.\n")
+	fmt.Fprintf(&b, "# reward actor/observer and action actor RAW (no substitution),\n")
+	fmt.Fprintf(&b, "# action observer through textutil.SubstituteTokens with the player as {actor}.\n")
 	fmt.Fprintf(&b, "# dimensions: quest id x rewards | trigger<i>|action<j>[|sequence|action<k>...] x key\n\n")
 
 	all := quests.GetAllQuests()
@@ -1122,10 +1133,10 @@ func buildQuestsGolden(t *testing.T) string {
 			aw := fmt.Sprintf("%s|action%d", where, j)
 			roles := a.Narrate(kindBNoTarget)
 			if roles.Actor != "" {
-				fmt.Fprintf(&b, "%s|send_text => %s\n", aw, roles.Actor)
+				fmt.Fprintf(&b, "%s|actor => %s\n", aw, roles.Actor)
 			}
 			if roles.Observer != "" {
-				fmt.Fprintf(&b, "%s|room_text => %s\n", aw, roles.Observer)
+				fmt.Fprintf(&b, "%s|observer => %s\n", aw, roles.Observer)
 			}
 			if a.Sequence != nil {
 				walk(aw+"|sequence", a.Sequence.OnComplete)
@@ -1135,10 +1146,10 @@ func buildQuestsGolden(t *testing.T) string {
 	for _, q := range all {
 		reward := q.Rewards.Narrate(kindBNoTarget)
 		if reward.Actor != "" {
-			fmt.Fprintf(&b, "quest|%d|rewards|playermessage => %s\n", q.QuestId, reward.Actor)
+			fmt.Fprintf(&b, "quest|%d|rewards|actor => %s\n", q.QuestId, reward.Actor)
 		}
 		if reward.Observer != "" {
-			fmt.Fprintf(&b, "quest|%d|rewards|roommessage => %s\n", q.QuestId, reward.Observer)
+			fmt.Fprintf(&b, "quest|%d|rewards|observer => %s\n", q.QuestId, reward.Observer)
 		}
 		for i, tr := range q.Triggers {
 			walk(fmt.Sprintf("quest|%d|trigger%d", q.QuestId, i), tr.Actions)
@@ -1147,14 +1158,17 @@ func buildQuestsGolden(t *testing.T) string {
 	return b.String()
 }
 
-// Store 11: crafting (internal/crafting: success_message / failure_message and
-// the optional *_room_message Observer slot)
+// Store 11: crafting (internal/crafting: success_actor / failure_actor and the
+// optional *_observer slot)
 //
 // Recorded 2026-09-15 from PRE-migration code (the raw field, color-wrapped as
 // the four player sites sent it). Since M3 item 6 this builder reads through
 // RecipeSpec.Narrate; the rows, their order and the header are unchanged, which
 // is the byte-identity proof. Rows are keyed by the AUTHORED key, so a swapped
-// Actor and Observer shows as a changed row.
+// Actor and Observer shows as a changed row. M4b-1 renamed those keys
+// (success_message became success_actor, success_room_message became
+// success_observer, and so on), which moves the LABEL half of every row and
+// nothing else.
 func buildCraftingGolden(t *testing.T) string {
 	t.Helper()
 
@@ -1162,7 +1176,7 @@ func buildCraftingGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# crafting store snapshot (internal/crafting)\n")
 	fmt.Fprintf(&b, "# Built 2026-09-15 from PRE-migration code: what the CRAFTER is sent, color wrap\n")
 	fmt.Fprintf(&b, "# included (success green, failure red, CategorySystem). Recipes had no room line\n")
-	fmt.Fprintf(&b, "# before M3 item 6; *_room_message rows appear only once one is authored.\n")
+	fmt.Fprintf(&b, "# before M3 item 6; *_observer rows appear only once one is authored.\n")
 	fmt.Fprintf(&b, "# dimensions: recipe id x authored key; source only, a craft has no target\n\n")
 
 	all := crafting.GetAll()
@@ -1178,13 +1192,13 @@ func buildCraftingGolden(t *testing.T) string {
 		r := all[id]
 		success := r.Narrate(crafting.PhaseSuccess, kindBNoTarget)
 		failure := r.Narrate(crafting.PhaseFailure, kindBNoTarget)
-		fmt.Fprintf(&b, "recipe|%s|success_message => %s\n", id, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, success.Actor))
+		fmt.Fprintf(&b, "recipe|%s|success_actor => %s\n", id, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, success.Actor))
 		if success.Observer != "" {
-			fmt.Fprintf(&b, "recipe|%s|success_room_message => %s\n", id, success.Observer)
+			fmt.Fprintf(&b, "recipe|%s|success_observer => %s\n", id, success.Observer)
 		}
-		fmt.Fprintf(&b, "recipe|%s|failure_message => %s\n", id, fmt.Sprintf(`<ansi fg="red">%s</ansi>`, failure.Actor))
+		fmt.Fprintf(&b, "recipe|%s|failure_actor => %s\n", id, fmt.Sprintf(`<ansi fg="red">%s</ansi>`, failure.Actor))
 		if failure.Observer != "" {
-			fmt.Fprintf(&b, "recipe|%s|failure_room_message => %s\n", id, failure.Observer)
+			fmt.Fprintf(&b, "recipe|%s|failure_observer => %s\n", id, failure.Observer)
 		}
 	}
 	return b.String()

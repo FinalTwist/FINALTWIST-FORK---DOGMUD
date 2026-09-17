@@ -16,5 +16,5 @@ ingredients:
 output:
   item_id: 0
   quantity: 0
-success_message: "Root-like tendrils burrow into the leather, anchoring it with living wood. You feel the earth's endurance flow through you."
-failure_message: "The roots wither before bonding. The materials are wasted, but the belt is unharmed."
+success_actor: "Root-like tendrils burrow into the leather, anchoring it with living wood. You feel the earth's endurance flow through you."
+failure_actor: "The roots wither before bonding. The materials are wasted, but the belt is unharmed."

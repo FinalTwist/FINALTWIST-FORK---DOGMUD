@@ -14,5 +14,5 @@ ingredients:
 output:
   item_id: 30058
   quantity: 1
-success_message: "The coal ignites briefly then stabilizes inside the flask. A firebomb!"
-failure_message: "The mixture sputters and goes inert. The materials are lost."
+success_actor: "The coal ignites briefly then stabilizes inside the flask. A firebomb!"
+failure_actor: "The mixture sputters and goes inert. The materials are lost."

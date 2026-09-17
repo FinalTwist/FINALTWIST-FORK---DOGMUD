@@ -45,7 +45,7 @@ rewards:
   itemid: 10044
   skillinfo: "weapon-combat:1,unarmed-combat:1"
   gold: 50
-  playermessage: >-
+  actor: >-
     The watch room goes quiet. Whatever the captain was holding this tower
     for, it is your question now, not theirs. The captain's own blade comes
     away clean in your hand -- well-kept, perfectly balanced, the only thing
@@ -65,7 +65,7 @@ triggers:
       - train_stat:
           stat: strength
           amount: 3
-      - send_text: "The fight leaves something behind in your arms and back -- a settled, permanent strength, earned the hard way at the top of a tower."
+      - actor: "The fight leaves something behind in your arms and back -- a settled, permanent strength, earned the hard way at the top of a tower."
 
   # ── BOSS KILL, finesse path: permanent Dexterity gain + complete ──
   - event: mob_death
@@ -79,4 +79,4 @@ triggers:
       - train_stat:
           stat: dexterity
           amount: 3
-      - send_text: "The fight leaves something behind in your hands and feet -- a settled, permanent quickness, earned the hard way at the top of a tower."
+      - actor: "The fight leaves something behind in your hands and feet -- a settled, permanent quickness, earned the hard way at the top of a tower."

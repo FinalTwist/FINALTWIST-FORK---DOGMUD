@@ -303,7 +303,7 @@ for defence, so a caster sees a repeat every third spell.
 ### The narration door (M3 item 5b, `narration.go`)
 
 `Phase` (`PhaseCast`, `PhaseWait`, `PhaseMagic`); `Narration(p)` puts
-`*_user_text` in Actor and `*_room_text` in Observer (Actee is authored in M6);
+`*_actor` in Actor and `*_observer` in Observer (Actee is authored in M6);
 `Narrate(p, ctx)` renders through `textutil.Narrate`. The cast command (player
 and mob), the two wait-text sites in `NewRound_DoCombat_helpers.go`, the magic
 text in `spell_resolution.go` and the mob `aid` command all render through it
@@ -311,8 +311,16 @@ and deliver on their own channel. `Validate` refuses a whitespace-only line,
 and since M4a an unknown `{token}` too: the loader panics, so a typo cannot
 render raw to a player.
 No file outside this package reads the six text fields (root guard
-`store_text_fields_guard_test.go`). The two shipped `wait_room_text` lines still
+`store_text_fields_guard_test.go`). The two shipped `wait_observer` lines still
 go out on the audio channel; that is filed, not a property of the door.
+
+The six authored keys are `cast_actor` / `cast_observer`, `wait_actor` /
+`wait_observer` and `magic_actor` / `magic_observer`. M4b-1 renamed them from
+`cast_user_text` / `cast_room_text` and their wait and magic siblings: the
+phase half stays, the role half is now the canonical vocabulary every
+narration store shares. A spell's caster is the `actor`, which is the opposite
+of `internal/conditions`, where the holder a condition happens to is the
+`actee`.
 
 ## Hook Integration Points
 

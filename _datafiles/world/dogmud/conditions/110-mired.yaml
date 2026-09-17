@@ -5,6 +5,6 @@ triggerrate: 1 round
 triggercount: 3
 statmods:
   dexterity: -12
-start_user_text: Clinging residue smears across you, dragging at every move.
-start_room_text: "{actee_plain} flounders, limbs fouled with clinging residue."
-end_user_text: The clinging residue finally flakes away.
+start_actee: Clinging residue smears across you, dragging at every move.
+start_observer: "{actee_plain} flounders, limbs fouled with clinging residue."
+end_actee: The clinging residue finally flakes away.

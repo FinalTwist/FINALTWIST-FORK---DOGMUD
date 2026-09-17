@@ -23,5 +23,5 @@ ingredients:
 output:
   item_id: 40184
   quantity: 1
-success_message: "You mount the frame to the salvaged chassis-loom and stitch the folded silk through with spatial thread until the seams stop resolving to a fixed size. Veyra's masterwork holds -- the Wayfarer's Bottomless Pack is finished."
-failure_message: "The fold collapses in on itself mid-stitch and the silk unravels to nothing. The materials are lost."
+success_actor: "You mount the frame to the salvaged chassis-loom and stitch the folded silk through with spatial thread until the seams stop resolving to a fixed size. Veyra's masterwork holds -- the Wayfarer's Bottomless Pack is finished."
+failure_actor: "The fold collapses in on itself mid-stitch and the silk unravels to nothing. The materials are lost."

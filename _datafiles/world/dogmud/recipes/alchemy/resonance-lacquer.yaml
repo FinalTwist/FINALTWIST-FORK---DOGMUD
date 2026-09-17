@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 40215
   quantity: 1
-success_message: "You cut the resin with wax and crushed moonpetal until it dries to a sheen that never quite goes still. Resonance lacquer!"
-failure_message: "The mixture dries brittle and flakes off the brush. The materials are ruined."
+success_actor: "You cut the resin with wax and crushed moonpetal until it dries to a sheen that never quite goes still. Resonance lacquer!"
+failure_actor: "The mixture dries brittle and flakes off the brush. The materials are ruined."

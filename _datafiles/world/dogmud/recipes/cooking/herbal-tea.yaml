@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 30024
   quantity: 1
-success_message: "You steep the root in hot water until the brew turns green. Herbal tea!"
-failure_message: "The root dissolves into bitter sludge. The materials are lost."
+success_actor: "You steep the root in hot water until the brew turns green. Herbal tea!"
+failure_actor: "The root dissolves into bitter sludge. The materials are lost."

@@ -786,7 +786,7 @@ func (bs *Condition) Name() string
 
 - `StartUserNotice() string` / `EndUserNotice() string`: the ONE door for the
   line the holder reads when a condition lands or ends. Authored
-  `start_user_text` / `end_user_text` first; otherwise the generic
+  `start_actee` / `end_actee` first; otherwise the generic
   "<Name> takes effect." / "<Name> has expired."; an empty string for a
   `secret` condition or one with no name. `ApplyConditions` and the player
   prune pass in `NewTurn_PruneConditions.go` read these instead of the raw
@@ -824,7 +824,7 @@ func (bs *Condition) Name() string
   `AddConditionMagnitude` producers inside `internal/characters/skills.go` are
   exempted by that package-level carve-out, not individually allowlisted.
 - **Every non-secret condition in the dogmud world must carry authored
-  `start_user_text` (unless `silent-start` or `quiet`) AND `end_user_text`
+  `start_actee` (unless `silent-start` or `quiet`) AND `end_actee`
   (unless `hidden` or `quiet`), and a secret condition must carry no player
   text.** The root guard `condition_notice_guard_test.go` fails the build
   otherwise; the generic line is a runtime net, never the shipped experience.
@@ -848,7 +848,7 @@ func (bs *Condition) Name() string
   store fills the slot and no call site can put the name in the wrong one
   (messaging M4a). The holder's name renders `{actee}` and `{actee_plain}`.
 - `AuthoredStartLine(holderName, holderPlainName string) string` renders
-  `start_user_text` as written, taking the holder for the same reason, ignoring
+  `start_actee` as written, taking the holder for the same reason, ignoring
   the notice rules: the door for a silent-start condition's applier (sleep 15,
   arrest 88, stun 84, broken limb 83). Throttled (89) is silent-start too but
   has no sender: its move narrates the choke itself.
@@ -857,6 +857,14 @@ func (bs *Condition) Name() string
   would hide it.
 - **No file outside this package reads the six text fields.** The root guard
   `store_text_fields_guard_test.go` fails the build on one.
+
+The six authored keys are `start_actee` / `start_observer`, `trigger_actee` /
+`trigger_observer` and `end_actee` / `end_observer`. M4b-1 renamed them from
+`start_user_text` / `start_room_text` and their trigger and end siblings: the
+phase half stays, the role half is now the canonical vocabulary every
+narration store shares. The holder's half is `actee`, NOT `actor`, because a
+condition is something that happens TO whoever holds it; that asymmetry is the
+same one M4a's token flip recorded, and it is deliberate.
 
 ## Data Management and Search
 
@@ -1069,9 +1077,9 @@ mechanism: passing `float64(rounds)` as the multiplier sets
 (TriggerCount=1, TriggerRate="1 round"), this yields exactly `rounds` triggers
 remaining, one per round of the sentence.
 
-The condition's `start_user_text` and `end_user_text` fire automatically via
+The condition's `start_actee` and `end_actee` fire automatically via
 the condition system at cell entry and at removal. Because `RemoveCondition`
-fires `end_user_text` ("The cell door swings open. You are free to go."), that
+fires `end_actee` ("The cell door swings open. You are free to go."), that
 is the single release line for BOTH the timer-expiry and pay-fine paths;
 `ResolveDetention` deliberately sends no release flavor of its own (avoids
 the duplicate-message bug). `ExecuteArrest` sends an additional

@@ -32,13 +32,13 @@ steps:
       northern toll to the gates of the capital."
 
 rewards:
-  playermessage: "The guard breaks the seal, scans the packet, and gives a
+  actor: "The guard breaks the seal, scans the packet, and gives a
     short nod. 'Came the whole road, did it. And you with it.' He presses a
     stamped brass token into your hand. 'Couriers' token. The post-houses
     from here to the toll will know it -- a bed and a meal on the road, and
     a name that travels ahead of you. The capital remembers who carries its
     word.'"
-  roommessage: "The East Gate guard takes the sealed packet, checks its seal
+  observer: "The East Gate guard takes the sealed packet, checks its seal
     against the gate ledger, and waves the courier through."
   gold: 150
 

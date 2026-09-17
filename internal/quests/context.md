@@ -34,14 +34,22 @@ The quests system is built around several key components:
 
 ### Narration (M3 item 5b, `narration.go`)
 
-`ActionDef.Narration()` (send_text = Actor, room_text = Observer) and
-`QuestReward.Narration()` (playermessage = Actor, roommessage = Observer), each
+Both the narrating trigger actions and the reward lines are authored under the
+canonical role keys `actor` and `observer`, which M4b-1 renamed from
+`send_text` / `room_text` on an action and `playermessage` / `roommessage` on a
+reward. The json tags moved with the yaml ones, so the quest editor's wire
+(`modules/gmcp/gmcp.Quest.go` `questActionVocab`,
+`_datafiles/html/public/static/js/quests.js`) says the same word the file on
+disk does.
+
+`ActionDef.Narration()` (`actor` = Actor, `observer` = Observer) and
+`QuestReward.Narration()` (the same two keys), each
 with a `Narrate(ctx)` that renders through `textutil.Narrate`. In production
 only the reward door is called directly (`hooks/Quest_HandleQuestUpdate.go`);
 a quest action's `Narration()` travels `questengine.ExecuteAction` to
 `GameBridge.Narrate`, which renders it there. `Validate`
 refuses an action that sets both texts (one narration per action) and any
-whitespace-only line, alongside the `room_text` rule in `roomtext.go`. The
+whitespace-only line, alongside the observer-line rule in `roomtext.go`. The
 package holds four copies of the action-tree walker (`roomtext.go`,
 `validate_refs.go` twice, `narration.go`); sharing one is filed.
 
@@ -302,20 +310,20 @@ func (r *Quest) Id() int {
 // duplicate step ids, every declared flag has a non-empty key and at
 // least one allowed value with no duplicate flag keys, every
 // same-quest grant token in a trigger action names a real step, and every
-// room_text (including actions nested in a sequence's on_complete) passes
+// observer line (including actions nested in a sequence's on_complete) passes
 // RoomTextProblems.
 func (r *Quest) Validate() error {
     // ...
 }
 
-// RoomTextProblems (roomtext.go) returns every way a quest room_text breaks
+// RoomTextProblems (roomtext.go) returns every way a quest observer line breaks
 // the convention: it must name the acting player with {actor}, and may not
 // use {actee}, {actee_plain} (a quest has no actee), {actor_plain} (an
 // untagged name cannot be anonymized in the dark) or an unknown token.
 func RoomTextProblems(text string) []string
 ```
 
-The room_text rule lives in `Validate` rather than in a questengine boot
+The observer-line rule lives in `Validate` rather than in a questengine boot
 check on purpose. `Validate` runs both at boot and before an admin editor save
 (`modules/gmcp` `buildQuestUpdate`), so a bad line is refused with a reply. A
 boot-only check let the editor save a bad line, panic the reindex inside a
@@ -1071,7 +1079,7 @@ maintainers know the quests are coupled.
 | `quests.go` | Every quest definition type: the single owner of the quest file parse |
 | `triggers.go` | Trigger and action definition shapes |
 | `save.go` | Quest file persistence |
-| `roomtext.go` | `RoomTextProblems` and the room_text rule `Validate` enforces (every quest room line names `{actor}`, walking nested sequences) |
+| `roomtext.go` | `RoomTextProblems` and the observer-line rule `Validate` enforces (every quest room line names `{actor}`, walking nested sequences) |
 | `narration.go` | `ActionDef.Narration`/`Narrate`, `QuestReward.Narration`/`Narrate`, `validateNarration` |
 | `validate_refs.go` | Cross-reference validation (flags, tokens, ids) |
 

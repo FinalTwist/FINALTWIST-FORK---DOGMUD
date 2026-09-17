@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 30029
   quantity: 1
-success_message: "The chrysalis core dissolves into a shimmering pale liquid. A clarity tonic!"
-failure_message: "The mixture refuses to blend and separates. The materials are lost."
+success_actor: "The chrysalis core dissolves into a shimmering pale liquid. A clarity tonic!"
+failure_actor: "The mixture refuses to blend and separates. The materials are lost."

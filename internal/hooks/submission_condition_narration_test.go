@@ -15,7 +15,7 @@ import (
 
 // Conditions 83 Broken Limb and 84 Stunned are applied by the submission outcome
 // inside internal/combat, which sends no player text at all, so their authored
-// start_user_text reached nobody: a player whose arm was just snapped read the
+// start_actee reached nobody: a player whose arm was just snapped read the
 // submission's outcome line and nothing about the break. Both conditions are now
 // flagged silent-start and this hook owes the victim the start line, right
 // after the outcome. These lanes are that debt.
@@ -37,7 +37,7 @@ func loadAuthoredConditionSpec(t *testing.T, path string, wantId int) *condition
 	var spec conditions.ConditionSpec
 	require.NoError(t, yaml.Unmarshal(raw, &spec))
 	require.Equal(t, wantId, spec.ConditionId, "%s must be the condition this narration covers", path)
-	require.NotEmpty(t, spec.StartUserText, "%s must carry start_user_text", path)
+	require.NotEmpty(t, spec.StartUserText, "%s must carry start_actee", path)
 	require.Contains(t, spec.Flags, conditions.SilentStart,
 		"%s must be silent-start, or the event path would narrate it twice", path)
 	return &spec
@@ -121,7 +121,7 @@ func TestSubmissionEffectsNarrateOnlyToTheVictim(t *testing.T) {
 
 	bystander := drainPlain(2)
 	assert.Equal(t, 0, countContaining(bystander, stunnedLine),
-		"a condition's start_user_text is the holder's line, not the room's")
+		"a condition's start_actee is the holder's line, not the room's")
 	assert.Equal(t, 0, countContaining(bystander, brokenLine))
 }
 

@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 30023
   quantity: 1
-success_message: "You simmer meat and vegetables into a rich stew. Hearty stew!"
-failure_message: "The stew boils over and turns to mush. The materials are lost."
+success_actor: "You simmer meat and vegetables into a rich stew. Hearty stew!"
+failure_actor: "The stew boils over and turns to mush. The materials are lost."

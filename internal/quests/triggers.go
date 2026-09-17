@@ -38,6 +38,11 @@ type Conditions struct {
 
 // ActionDef is a single action to execute when a trigger fires.
 // Only one field should be set per ActionDef.
+//
+// The two narrating actions carry the canonical role keys since M4b-1: `actor`
+// is the line the triggering player reads, `observer` the line the rest of the
+// room reads. Their json tags move with the yaml ones, so the quest editor's
+// action type, the key on disk and the engine field all say the same word.
 type ActionDef struct {
 	Grant                string              `yaml:"grant,omitempty" json:"grant,omitempty"`
 	ConsumeItem          int                 `yaml:"consume_item,omitempty" json:"consume_item,omitempty"`
@@ -45,8 +50,8 @@ type ActionDef struct {
 	GiveGold             int                 `yaml:"give_gold,omitempty" json:"give_gold,omitempty"`
 	ChargeGold           int                 `yaml:"charge_gold,omitempty" json:"charge_gold,omitempty"`
 	NpcSay               *NpcSayDef          `yaml:"npc_say,omitempty" json:"npc_say,omitempty"`
-	SendText             string              `yaml:"send_text,omitempty" json:"send_text,omitempty"`
-	RoomText             string              `yaml:"room_text,omitempty" json:"room_text,omitempty"`
+	SendText             string              `yaml:"actor,omitempty" json:"actor,omitempty"`
+	RoomText             string              `yaml:"observer,omitempty" json:"observer,omitempty"`
 	SpawnMob             *SpawnDef           `yaml:"spawn_mob,omitempty" json:"spawn_mob,omitempty"`
 	SpawnItem            *SpawnDef           `yaml:"spawn_item,omitempty" json:"spawn_item,omitempty"`
 	LockExits            *ExitLock           `yaml:"lock_exits,omitempty" json:"lock_exits,omitempty"`

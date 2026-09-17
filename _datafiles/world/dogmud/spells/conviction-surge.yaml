@@ -15,5 +15,5 @@ condition_ids:
   - 26
 categories:
   - self_offense
-cast_user_text: You channel conviction into empowering energy.
-cast_room_text: "{actor} gathers conviction, a fierce glow building."
+cast_actor: You channel conviction into empowering energy.
+cast_observer: "{actor} gathers conviction, a fierce glow building."

@@ -86,13 +86,13 @@ rewards:
   gold: 75
   rep_faction: np_dockfolk
   rep_amount: 20
-  playermessage: >-
+  actor: >-
     The trade is broken -- for now. The constable took the case-file
     and her jaw was set when she read it. Deren stays untouched; the
     bloodline office is a wall you cannot move with evidence. But the
     supply stops, and that buys Teels a chance. One life you could
     reach.
-  roommessage: >-
+  observer: >-
     A wharfside quiet settles over the traveller, the look of someone
     who has done what could be done.
 

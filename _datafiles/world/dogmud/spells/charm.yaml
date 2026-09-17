@@ -24,9 +24,9 @@ primarystat: charisma
 # private one of its own (U10c slice B).
 target_defense_type: social
 effect_type: charm
-cast_user_text: >-
+cast_actor: >-
   You fix your gaze on your target, pressing your will
   against its mind...
-cast_room_text: >-
+cast_observer: >-
   {actor} stares intently at {actee}, brow furrowed with
   fierce concentration.

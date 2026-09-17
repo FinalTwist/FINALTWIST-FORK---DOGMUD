@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 30035
   quantity: 1
-success_message: "You line the rigid case with silk, carve labeled dividers, and fit the interlocking seal. A master's component case!"
-failure_message: "The bone reinforcement cracks and the silk lining tears. The materials are ruined."
+success_actor: "You line the rigid case with silk, carve labeled dividers, and fit the interlocking seal. A master's component case!"
+failure_actor: "The bone reinforcement cracks and the silk lining tears. The materials are ruined."

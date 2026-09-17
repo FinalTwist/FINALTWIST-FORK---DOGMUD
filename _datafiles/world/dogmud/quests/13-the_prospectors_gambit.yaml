@@ -25,11 +25,11 @@ steps:
     hint: "The extraction is complete. Speak with Rhett at the Ridge
       Approach (east 7 from Thornwall's eastern gate) to finish."
 rewards:
-  playermessage: "Rhett grins broadly, cradling the extracted crystal
+  actor: "Rhett grins broadly, cradling the extracted crystal
     like a newborn. He disappears into his work for hours, and when
     he emerges, he holds a shield of pale blue crystal -- the
     Windstone Aegis, forged in gratitude."
-  roommessage: "Rhett emerges from his camp, grinning, and presents
+  observer: "Rhett emerges from his camp, grinning, and presents
     a shield of pale blue crystal to his companion."
   gold: 15
   itemid: 20053

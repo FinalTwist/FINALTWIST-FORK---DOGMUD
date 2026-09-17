@@ -42,7 +42,11 @@ GROUPS = {
             ("trigger_user_text", "trigger_actee"), ("trigger_room_text", "trigger_observer"),
             ("end_user_text", "end_actee"), ("end_room_text", "end_observer"),
         ],
-        "spells.golden": [],
+        "spells.golden": [
+            ("cast_user_text", "cast_actor"), ("cast_room_text", "cast_observer"),
+            ("wait_user_text", "wait_actor"), ("wait_room_text", "wait_observer"),
+            ("magic_user_text", "magic_actor"), ("magic_room_text", "magic_observer"),
+        ],
         "quests.golden": [
             ("playermessage", "actor"), ("roommessage", "observer"),
             ("send_text", "actor"), ("room_text", "observer"),

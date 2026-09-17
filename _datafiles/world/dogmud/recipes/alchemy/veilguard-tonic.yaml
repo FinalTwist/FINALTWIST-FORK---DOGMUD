@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 30045
   quantity: 1
-success_message: "The brew turns cloudy and bitter -- exactly right. A veilguard tonic!"
-failure_message: "The brew turns clear instead of cloudy. Something went wrong. The materials are wasted."
+success_actor: "The brew turns cloudy and bitter -- exactly right. A veilguard tonic!"
+failure_actor: "The brew turns clear instead of cloudy. Something went wrong. The materials are wasted."

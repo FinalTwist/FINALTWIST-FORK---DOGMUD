@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 20032
   quantity: 1
-success_message: "You set both stones in a copper frame and bind them tight. A polished stone amulet!"
-failure_message: "One of the stones splits while you tighten the frame. The materials are ruined."
+success_actor: "You set both stones in a copper frame and bind them tight. A polished stone amulet!"
+failure_actor: "One of the stones splits while you tighten the frame. The materials are ruined."

@@ -20,13 +20,13 @@ steps:
       it to him."
 
 rewards:
-  playermessage: "Malk examines the crate, running his elongated
+  actor: "Malk examines the crate, running his elongated
     fingers over the forced lock. 'This is the one. Everything
     accounted for, near enough.' He reaches into the cart and
     produces a small purse. 'Road rate from me, any time you
     need supplies. Better than road rate, in fact. I do not
     forget a good turn.'"
-  roommessage: "Malk examines the recovered freight crate with
+  observer: "Malk examines the recovered freight crate with
     evident relief, already tallying his inventory."
   gold: 15
 

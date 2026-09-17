@@ -416,7 +416,7 @@ func fireSubmissionResolutionMessage(
 //
 // Conditions 83 Broken Limb and 84 Stunned are applied synchronously on the
 // character inside internal/combat, which sends no player text anywhere in the
-// package, so their authored start_user_text never travelled the condition event
+// package, so their authored start_actee never travelled the condition event
 // that would have narrated it: a player whose arm was just snapped read the
 // submission's outcome line and nothing at all about the break. Both are
 // flagged silent-start, and this is the applier's side of that bargain.

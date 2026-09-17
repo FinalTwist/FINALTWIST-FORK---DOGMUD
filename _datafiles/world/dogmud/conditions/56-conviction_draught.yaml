@@ -1,8 +1,8 @@
 conditionid: 56
 name: Conviction Draught
 description: Renewed purpose sharpens your focus.
-start_user_text: Purpose sharpens your focus as the draught takes hold.
-end_user_text: The certainty of the draught fades from your mind.
+start_actee: Purpose sharpens your focus as the draught takes hold.
+end_actee: The certainty of the draught fades from your mind.
 triggerrate: 1 round
 triggercount: 150
 statmods:

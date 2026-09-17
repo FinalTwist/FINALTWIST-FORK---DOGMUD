@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 20054
   quantity: 1
-success_message: "You cut panels, stitch straps, and buckle the frame together. A sturdy leather backpack!"
-failure_message: "The straps tear free under testing. The materials are wasted."
+success_actor: "You cut panels, stitch straps, and buckle the frame together. A sturdy leather backpack!"
+failure_actor: "The straps tear free under testing. The materials are wasted."

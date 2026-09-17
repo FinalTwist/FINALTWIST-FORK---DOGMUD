@@ -47,7 +47,7 @@ rewards:
   item_info: "30021:3,30020:2,30058:1"
   recipe_info: "scab-hide-jerkin"
   gold: 50
-  playermessage: >-
+  actor: >-
     The alpha goes down hard and final, and with it the will that bound
     the pack -- the hounds that survive scatter and do not re-form. You
     feel the long work of the steppe settle into you as a hunter's
@@ -56,7 +56,7 @@ rewards:
     field; and in your head, the cut of the hide and how to sew more.
     Delk was right -- the pack had to be broken at its head, and you were
     the one who did it.
-  roommessage: ""
+  observer: ""
 
 triggers:
   # ── BOSS KILL: defeat the Alpha Pack-Leader -> complete + rewards ────
@@ -67,6 +67,6 @@ triggers:
       missing: ["43-end"]
     actions:
       - grant: "43-end"
-      - send_text: >-
+      - actor: >-
           The alpha pack-leader shudders and goes down, and the den falls
           silent. The pack that ran this country is broken.

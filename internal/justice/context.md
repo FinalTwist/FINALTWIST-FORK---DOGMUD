@@ -228,7 +228,7 @@ walking, fleeing, and recalling out (see flee.go + spell_foldrecall.go);
 `no-aggro-target` makes the jailed player invisible to all mob aggro
 targeting, so guards do not pursue prisoners into the cell. The combat
 round (`hooks/NewRound_DoCombat.go`) also drops a mob's stale aggro on a
-`no-aggro-target` player. The condition's `end_user_text` ("The cell door swings
+`no-aggro-target` player. The condition's `end_actee` ("The cell door swings
 open. You are free to go.") fires automatically when the condition is removed —
 this is the single release line for both the timer and pay-fine paths, so
 `ResolveDetention` does NOT send its own.

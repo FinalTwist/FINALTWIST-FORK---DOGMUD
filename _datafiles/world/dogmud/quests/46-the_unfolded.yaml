@@ -44,7 +44,7 @@ rewards:
   stat_info: "willpower:3"
   spellid: heal
   gold: 50
-  playermessage: >-
+  actor: >-
     The Unfolded comes apart the way it has always been coming apart, except
     that this time nothing rises to replace what is lost, and the standing
     fold sighs out of the world. The thinnest place loosens, the fraying
@@ -53,7 +53,7 @@ rewards:
     steadiness of will. And in the quiet, the shape of a new working comes
     clear -- how to fold not harm but mending, and turn it on your own
     wounds. You leave the scabland knowing how to heal.
-  roommessage: ""
+  observer: ""
 
 triggers:
   # ── BOSS KILL: defeat the Unfolded -> complete + rewards ───────────────
@@ -64,6 +64,6 @@ triggers:
       missing: ["46-end"]
     actions:
       - grant: "46-end"
-      - send_text: >-
+      - actor: >-
           The Unfolded unravels a final time and does not refold. The
           thinnest place falls quiet around you.

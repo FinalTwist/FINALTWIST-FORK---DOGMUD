@@ -63,32 +63,40 @@ type surfaceEntry struct {
 // a CI-enforced recurrence guard.
 var textSurfaceRegistry = map[string]surfaceEntry{
 	// -- Spell narration: internal/spells/spells.go SpellData, four actor/room
-	// x cast/wait fields (plus magic_user_text/magic_room_text, which don't
-	// clear the 2-file threshold on their own spelling yet). --
-	"cast_user_text": {narration, "internal/spells/spells.go SpellData.CastUserText -- actor-side line narrated the instant a spell is cast (e.g. spells/blood-boil.yaml)."},
-	"cast_room_text": {narration, "internal/spells/spells.go SpellData.CastRoomText -- room-side line narrated the instant a spell is cast, paired with cast_user_text."},
-	"wait_user_text": {narration, "internal/spells/spells.go SpellData.WaitUserText -- actor-side line narrated during a spell's cast-time channel/wait."},
-	"wait_room_text": {narration, "internal/spells/spells.go SpellData.WaitRoomText -- room-side line narrated during a spell's cast-time channel/wait, paired with wait_user_text."},
+	// x cast/wait fields (plus magic_actor/magic_observer, which no shipped
+	// file authors at all, so the walk finds them nowhere). SPELLINGS CHANGED
+	// IN M4b-1: these were cast_user_text, cast_room_text, wait_user_text and
+	// wait_room_text until the role-key rename kept the phase and canonicalised
+	// the role half. --
+	"cast_actor":    {narration, "internal/spells/spells.go SpellData.CastUserText -- actor-side line narrated the instant a spell is cast (e.g. spells/blood-boil.yaml). SPELLING CHANGED IN M4b-1: this key was `cast_user_text`."},
+	"cast_observer": {narration, "internal/spells/spells.go SpellData.CastRoomText -- room-side line narrated the instant a spell is cast, paired with cast_actor. SPELLING CHANGED IN M4b-1: this key was `cast_room_text`."},
+	"wait_actor":    {narration, "internal/spells/spells.go SpellData.WaitUserText -- actor-side line narrated during a spell's cast-time channel/wait. SPELLING CHANGED IN M4b-1: this key was `wait_user_text`."},
+	"wait_observer": {narration, "internal/spells/spells.go SpellData.WaitRoomText -- room-side line narrated during a spell's cast-time channel/wait, paired with wait_actor. SPELLING CHANGED IN M4b-1: this key was `wait_room_text`."},
 
 	// -- Condition narration: internal/conditions/conditionspec.go ConditionSpec,
 	// all six fields present on the 101 condition YAML files (start/trigger/end
-	// x user/room). --
-	"start_user_text":   {narration, "internal/conditions/conditionspec.go ConditionSpec.StartUserText -- actor-side line narrated when a condition is applied; one of six start/trigger/end x user/room fields across 101 condition files."},
-	"start_room_text":   {narration, "internal/conditions/conditionspec.go ConditionSpec.StartRoomText -- room-side line narrated when a condition is applied, paired with start_user_text."},
-	"trigger_user_text": {narration, "internal/conditions/conditionspec.go ConditionSpec.TriggerUserText -- actor-side line narrated each time a periodic condition tick fires (e.g. poison, regen)."},
-	"trigger_room_text": {narration, "internal/conditions/conditionspec.go ConditionSpec.TriggerRoomText -- room-side line narrated each time a periodic condition tick fires, paired with trigger_user_text."},
-	"end_user_text":     {narration, "internal/conditions/conditionspec.go ConditionSpec.EndUserText -- actor-side line narrated when a condition expires or is removed."},
-	"end_room_text":     {narration, "internal/conditions/conditionspec.go ConditionSpec.EndRoomText -- room-side line narrated when a condition expires or is removed, paired with end_user_text."},
+	// x actee/observer). The holder's half is `actee`, NOT `actor`: a condition
+	// is something that happens TO whoever holds it, which is the same
+	// asymmetry M4a's token flip recorded. SPELLINGS CHANGED IN M4b-1: these
+	// were start_user_text, start_room_text and their trigger/end siblings. --
+	"start_actee":      {narration, "internal/conditions/conditionspec.go ConditionSpec.StartUserText -- holder-side line narrated when a condition is applied; one of six start/trigger/end x actee/observer fields across 101 condition files. SPELLING CHANGED IN M4b-1: this key was `start_user_text`."},
+	"start_observer":   {narration, "internal/conditions/conditionspec.go ConditionSpec.StartRoomText -- room-side line narrated when a condition is applied, paired with start_actee. SPELLING CHANGED IN M4b-1: this key was `start_room_text`."},
+	"trigger_actee":    {narration, "internal/conditions/conditionspec.go ConditionSpec.TriggerUserText -- holder-side line narrated each time a periodic condition tick fires (e.g. poison, regen). SPELLING CHANGED IN M4b-1: this key was `trigger_user_text`."},
+	"trigger_observer": {narration, "internal/conditions/conditionspec.go ConditionSpec.TriggerRoomText -- room-side line narrated each time a periodic condition tick fires, paired with trigger_actee. SPELLING CHANGED IN M4b-1: this key was `trigger_room_text`."},
+	"end_actee":        {narration, "internal/conditions/conditionspec.go ConditionSpec.EndUserText -- holder-side line narrated when a condition expires or is removed. SPELLING CHANGED IN M4b-1: this key was `end_user_text`."},
+	"end_observer":     {narration, "internal/conditions/conditionspec.go ConditionSpec.EndRoomText -- room-side line narrated when a condition expires or is removed, paired with end_actee. SPELLING CHANGED IN M4b-1: this key was `end_room_text`."},
 
 	// -- Crafting narration: internal/crafting/crafting.go RecipeSpec, 126
 	// recipe files. Since M3 item 6 the recipe is a store with a door
-	// (internal/crafting/narration.go): the *_message keys are the crafter's
-	// Actor line. The Observer slot keys, success_room_message and
-	// failure_room_message, are deliberately NOT registered: no shipped file
+	// (internal/crafting/narration.go): the *_actor keys are the crafter's
+	// Actor line. The Observer slot keys, success_observer and
+	// failure_observer, are deliberately NOT registered: no shipped file
 	// sets them, so this guard would report them stale. Register them in the
-	// M6 commit that authors them. --
-	"success_message": {narration, "internal/crafting/crafting.go RecipeSpec.SuccessMessage -- the crafter's (Actor) line on a successful craft, 126 recipe files; rendered through RecipeSpec.Narrate."},
-	"failure_message": {narration, "internal/crafting/crafting.go RecipeSpec.FailureMessage -- the crafter's (Actor) line on a failed craft, paired with success_message; rendered through RecipeSpec.Narrate."},
+	// M6 commit that authors them. SPELLINGS CHANGED IN M4b-1: these were
+	// success_message / failure_message, and the Observer slot was
+	// success_room_message / failure_room_message. --
+	"success_actor": {narration, "internal/crafting/crafting.go RecipeSpec.SuccessMessage -- the crafter's (Actor) line on a successful craft, 126 recipe files; rendered through RecipeSpec.Narrate. SPELLING CHANGED IN M4b-1: this key was `success_message`."},
+	"failure_actor": {narration, "internal/crafting/crafting.go RecipeSpec.FailureMessage -- the crafter's (Actor) line on a failed craft, paired with success_actor; rendered through RecipeSpec.Narrate. SPELLING CHANGED IN M4b-1: this key was `failure_message`."},
 
 	// -- Enchanting narration: internal/enchantments/enchantments.go
 	// EnchantSpec. description_suffix below is the CONTENT half of this
@@ -105,24 +113,28 @@ var textSurfaceRegistry = map[string]surfaceEntry{
 	// walk to find, so it cannot be stale either. --
 	"on_use_user_text": {narration, "internal/items/itemspec.go ItemSpec.OnUseUserText -- narrated to the player via user.SendText(messaging.CategorySystem, ...) in internal/usercommands/use.go when they `use` the item; found in exactly ONE data file (materials-40000/40042-herbalism_recipe_page.yaml), promoted to schema by Method E (Go yaml struct tag) rather than the 2-file threshold."},
 
-	// -- Quest step narration: internal/quests/quests.go Quest.PlayerMessage /
-	// RoomMessage, fired when a quest step completes. --
-	"playermessage": {narration, "internal/quests/quests.go Quest.PlayerMessage -- actor-side line narrated when a quest step completes."},
-	"roommessage":   {narration, "internal/quests/quests.go Quest.RoomMessage -- room-side line narrated when a quest step completes, paired with playermessage."},
+	// -- Quest narration USED TO HAVE FOUR ENTRIES of its own here:
+	// `playermessage` and `roommessage` for the reward lines
+	// (internal/quests/quests.go QuestReward), and `send_text` / `room_text`
+	// for the two narrating trigger actions (internal/quests/triggers.go
+	// ActionDef). M4b-1 renamed all four to actor/observer, so they now fold
+	// into the two combat-triad entries above rather than becoming duplicate
+	// map keys, and their provenance is recorded there.
+	//
+	// The old spellings are deliberately NOT kept as entries. After the rename
+	// `playermessage`, `roommessage` and `send_text` appear in no data file at
+	// all, and `room_text` appears in exactly one (a behaviortree action param
+	// under behaviors/, read by internal/behaviortree/actions_dialogue.go via
+	// getStringParam rather than by any Go struct tag). Single-file and
+	// untagged is content, not schema, so keeping any of them registered fails
+	// the staleness half of this guard, which is exactly what it should do.
+	// The behaviortree store's own rename belongs to the behavior arc, and
+	// will not need an entry here either. --
 
-	// -- Quest trigger narration: internal/quests/triggers.go. Both are
-	// dash-prefixed list items ("- npc_say:", "- send_text: ..."), which an
-	// earlier version of this walk's key regex could not see. --
-	"npc_say":   {narration, "internal/quests/triggers.go QuestTrigger.NpcSay (*NpcSayDef) -- a quest trigger that makes a mob speak scripted lines with per-line delay/speaker/emote (see modules/gmcp/gmcp.Quest.go); 32 quest files, dash-prefixed."},
-	"send_text": {narration, "internal/quests/triggers.go QuestTrigger.SendText -- a quest trigger sending a message to the player only (modules/gmcp/gmcp.Quest.go: \"message to the player only\"); 46 quest files, dash-prefixed."},
-
-	// room_text is genuinely overloaded but every hit is narration: the
-	// bare (non-prefixed) spelling is QuestTrigger.RoomText -- "message to
-	// the whole room", pairing with send_text -- on 13 quest files, plus one
-	// behaviortree action param (internal/behaviortree/actions_dialogue.go,
-	// getStringParam(params, "room_text")) that drives a mob's scripted
-	// room-facing speech/emote when a behavior-tree event fires.
-	"room_text": {narration, "Two narrated surfaces share this bare spelling: internal/quests/triggers.go QuestTrigger.RoomText (room half of send_text, 13 quest files) and the room_text action param read by internal/behaviortree/actions_dialogue.go (mob speaks/emotes to the room on a behavior-tree event). Do not confuse with the *_room_text spellings above, which are separate distinct keys on spells/conditions."},
+	// -- Quest trigger narration: internal/quests/triggers.go. Dash-prefixed
+	// list items ("- npc_say:", "- actor: ..."), which an earlier version of
+	// this walk's key regex could not see. --
+	"npc_say": {narration, "internal/quests/triggers.go QuestTrigger.NpcSay (*NpcSayDef) -- a quest trigger that makes a mob speak scripted lines with per-line delay/speaker/emote (see modules/gmcp/gmcp.Quest.go); 32 quest files, dash-prefixed."},
 
 	// user_text is the behaviortree-only counterpart of room_text: an action
 	// param, not a struct field, read the same way by
@@ -139,9 +151,9 @@ var textSurfaceRegistry = map[string]surfaceEntry{
 	// the narration shape (see messagingSurfaceAudienceKeys' own comment),
 	// spanning internal/combat/taunt_messages.go, internal/items/
 	// attack_messages.go and internal/items/defensive_messages.go. --
-	"actor":           {narration, "Attacker-side phrasing key shared by combat/taunt_messages.go TauntMessages.ToAttacker, items/attack_messages.go and items/defensive_messages.go -- combat/attack/defence/taunt message triad. Also grapplemessaging/loader.go TemplateTriad.Controller and GradientTriad.Self (grapple_outcomes.yaml). SPELLING CHANGED IN M4b: this key was `toattacker` in the combat triad, `controller` in the grapple outcome triad and `self` in the grapple gradient triad, until the role-key rename."},
+	"actor":           {narration, "Attacker-side phrasing key shared by combat/taunt_messages.go TauntMessages.ToAttacker, items/attack_messages.go and items/defensive_messages.go -- combat/attack/defence/taunt message triad. Also grapplemessaging/loader.go TemplateTriad.Controller and GradientTriad.Self (grapple_outcomes.yaml). Also internal/quests/quests.go QuestReward.PlayerMessage (66 quest files) and internal/quests/triggers.go ActionDef.SendText (46 quest files, dash-prefixed). SPELLING CHANGED IN M4b: this key was `toattacker` in the combat triad, `controller` in the grapple outcome triad, `self` in the grapple gradient triad, `playermessage` on a quest reward and `send_text` on a quest action, until the role-key rename."},
 	"actee":           {narration, "Defender-side phrasing key, same triad as actor (taunt_messages.go, attack_messages.go, defensive_messages.go), plus grapplemessaging/loader.go TemplateTriad.Controlled and GradientTriad.Partner. SPELLING CHANGED IN M4b: this key was `todefender` in the combat triad, `controlled` in the grapple outcome triad and `partner` in the grapple gradient triad, until the role-key rename."},
-	"observer":        {narration, "Room-observer phrasing key, same triad as actor; ToRoom on TauntMessages/AttackMessages/DefensiveMessages, ToAttackerRoom on items/attack_messages.go SeparateMessages, and grapplemessaging/loader.go TemplateTriad.Observers / GradientTriad.Observers. SPELLING CHANGED IN M4b: this key was `toroom` in the together shape, `toattackerroom` in the separate shape and `observers` in both grapple shapes, until the role-key rename, which merged them because they are the same audience."},
+	"observer":        {narration, "Room-observer phrasing key, same triad as actor; ToRoom on TauntMessages/AttackMessages/DefensiveMessages, ToAttackerRoom on items/attack_messages.go SeparateMessages, and grapplemessaging/loader.go TemplateTriad.Observers / GradientTriad.Observers. Also internal/quests/quests.go QuestReward.RoomMessage (56 quest files) and internal/quests/triggers.go ActionDef.RoomText (13 quest files, dash-prefixed). SPELLING CHANGED IN M4b: this key was `toroom` in the together shape, `toattackerroom` in the separate shape, `observers` in both grapple shapes, `roommessage` on a quest reward and `room_text` on a quest action, until the role-key rename, which merged them because they are the same audience."},
 	"remote_observer": {narration, "items/attack_messages.go SeparateMessages.ToDefenderRoom -- the observers in the DEFENDER's room when a ranged blow crosses rooms, which is the one case with two observer audiences (narration.Roles.ActeeObserver). SPELLING CHANGED IN M4b: this key was `todefenderroom` until the role-key rename."},
 	"together":        {narration, "items/attack_messages.go and items/defensive_messages.go Together field -- joint attacker+defender phrasing, paired with separate, in the same message triad."},
 	"separate":        {narration, "items/attack_messages.go and items/defensive_messages.go Separate field -- independent attacker/defender phrasing, paired with together."},
@@ -255,6 +267,26 @@ var messagingSurfaceAudienceKeys = map[string]bool{
 	"observers":  true,
 	"controller": true, "controlled": true, "together": true, "separate": true,
 	"options": true, "optionid": true,
+
+	// The Kind B stores key by PHASE and role together, so M4b-1 gave them
+	// phase-prefixed role spellings rather than the bare four above. None of
+	// them carries a STEM (start_user_text did, via "text"; start_actee does
+	// not), so without this list the walk would stop seeing four whole stores
+	// the moment they were renamed -- the same trap the combat triad hit, one
+	// task earlier.
+	//
+	// magic_actor/magic_observer and success_observer/failure_observer are
+	// listed for completeness of the vocabulary; no shipped file authors them
+	// today, so the walk finds them nowhere and they are correctly absent from
+	// textSurfaceRegistry.
+	"start_actee": true, "start_observer": true,
+	"trigger_actee": true, "trigger_observer": true,
+	"end_actee": true, "end_observer": true,
+	"cast_actor": true, "cast_observer": true,
+	"wait_actor": true, "wait_observer": true,
+	"magic_actor": true, "magic_observer": true,
+	"success_actor": true, "success_observer": true,
+	"failure_actor": true, "failure_observer": true,
 }
 
 // messagingSurfaceKeyRE mirrors tools/messaging_surface_audit.py's KEY_RE.
@@ -1212,7 +1244,7 @@ var narrationViewpointRegistry = map[string]narrationEntry{
 	"hooks/spell_resolution.go|Your %s strikes %s! (<ansi fg=\"damage\">%s</ansi>)%s":                                       {verdictCorrect, true, false, true, "a damage spell strikes a mob; actee is a mob, sendVisualRoomText broadcasts to the room. Mob-target sibling of the audited spell_resolution.go:983 row (the player-target branch of the same switch), which the audit already ruled full trio via the wrapper."},
 	"hooks/spell_resolution.go|Your %s takes effect on %s!%s":                                                               {verdictCorrect, true, false, true, "a generic effect takes hold on a mob; actee is a mob, sendVisualRoomText broadcasts. Mob-target sibling of the audited spell_resolution.go:1034 heal-on-player row."},
 	"hooks/spell_resolution.go|Your spell erupts outward but finds no targets.":                                             {verdictCorrect, true, false, true, "a disruption spell that finds no targets; sendVisualRoomText broadcasts it, no actee since nothing was hit. Same sendVisualRoomText-wrapper visibility this walk has and tools/narration_viewpoint_scan.py's regex does not, per the guard's header comment."},
-	"hooks/spell_resolution.go|spellSchoolCategory(spellData), roles.Actor":                                                 {verdictCorrect, true, false, true, "authored magic_user_text/magic_room_text through the spell store's door (M3 item 5b): caster plus room; the room send is `r.SendText`, which this walk's observer recogniser cannot see (it only knows the receiver name `room`), so the booleans say actor+observer; the target is reached by the effect's own narration below."},
+	"hooks/spell_resolution.go|spellSchoolCategory(spellData), roles.Actor":                                                 {verdictCorrect, true, false, true, "authored magic_actor/magic_observer through the spell store's door (M3 item 5b): caster plus room; the room send is `r.SendText`, which this walk's observer recogniser cannot see (it only knows the receiver name `room`), so the booleans say actor+observer; the target is reached by the effect's own narration below."},
 
 	// M3 item 5a (2026-09-11): the self-cast branches of applyPlayerEffect's
 	// purge, heal and condition arms. One line to the caster and one room line naming

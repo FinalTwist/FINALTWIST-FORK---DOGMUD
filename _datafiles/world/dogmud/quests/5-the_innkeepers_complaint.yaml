@@ -42,7 +42,7 @@ triggers:
             - {delay: 3, text: "Just as I suspected. The toll rates do not match what Harn is collecting. Someone is skimming."}
 
 rewards:
-  playermessage: "Tolva pages through the ledger with practiced speed, her lips pressed thin. 'Just as I thought. No writ of authority, no commission from Thornwall, no charter. He set this toll up himself.' She closes the book firmly. 'I will send this to the magistrate with my next supply order. You have done this settlement a service.' She slides a wooden token across the counter."
-  roommessage: "Tolva examines the ledger with grim satisfaction, already composing a letter in her head."
+  actor: "Tolva pages through the ledger with practiced speed, her lips pressed thin. 'Just as I thought. No writ of authority, no commission from Thornwall, no charter. He set this toll up himself.' She closes the book firmly. 'I will send this to the magistrate with my next supply order. You have done this settlement a service.' She slides a wooden token across the counter."
+  observer: "Tolva examines the ledger with grim satisfaction, already composing a letter in her head."
   gold: 12
   itemid: 20

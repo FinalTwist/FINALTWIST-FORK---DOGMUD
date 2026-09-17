@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 40208
   quantity: 1
-success_message: "You layer cured leather over doubled webbing and sew every seam twice until nothing in it can flex. A reinforced harness!"
-failure_message: "A seam gives out under the needle and the whole harness sags loose. The materials are ruined."
+success_actor: "You layer cured leather over doubled webbing and sew every seam twice until nothing in it can flex. A reinforced harness!"
+failure_actor: "A seam gives out under the needle and the whole harness sags loose. The materials are ruined."

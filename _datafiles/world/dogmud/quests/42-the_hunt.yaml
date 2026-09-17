@@ -73,7 +73,7 @@ rewards:
   itemid: 20052
   recipe_info: "hearty-stew"
   gold: 25
-  playermessage: >-
+  actor: >-
     Delk turns the cooked meat once, judges it, and grunts -- which from
     him is praise. The shed-proof skin of his hands shows pale as he
     pulls the strips apart. "Killed clean, rested rough, ate what you
@@ -82,7 +82,7 @@ rewards:
     -- a hot meal does more than cold meat. Now the bad work. South, the
     pack. They run that country in numbers and the alpha runs them. Come
     back about the pack when your nerve is up."
-  roommessage: "Delk tastes the cooked meat, nods, and hands across a
+  observer: "Delk tastes the cooked meat, nods, and hands across a
     pair of field boots."
 
 triggers:
@@ -94,7 +94,7 @@ triggers:
       missing: ["42-hunt"]
     actions:
       - grant: "42-hunt"
-      - send_text: >-
+      - actor: >-
           The pronghorn drops. Take its meat from the carcass -- type
           get meat -- and you have what you need to cook.
 
@@ -106,7 +106,7 @@ triggers:
       missing: ["42-rest"]
     actions:
       - grant: "42-rest"
-      - send_text: >-
+      - actor: >-
           You bed down rough and the field does its slow work -- rest
           mends a body faster than walking does. Type stand when you
           mean to rise.
@@ -120,6 +120,6 @@ triggers:
       missing: ["42-cook"]
     actions:
       - grant: "42-cook"
-      - send_text: >-
+      - actor: >-
           The meat sears over the fire, salt and smoke and fat. A hot
           meal in the field is its own small victory. Report to Delk.

@@ -32,7 +32,7 @@ steps:
 rewards:
   gold: 30
   itemid: 30028
-  playermessage: >-
+  actor: >-
     Tamsin works the pole-callus on her palm with a thumb and looks south
     toward the reeds, where nothing is moving for once. "That thing put
     two of my passengers in the mud this season and near cost me a third.
@@ -40,7 +40,7 @@ rewards:
     small stoppered vial in on top. "Antivenom. Keep it -- the reeds breed
     more than one of those, and the next might find you before you find
     it."
-  roommessage: >-
+  observer: >-
     Tamsin Reed presses coin and a small vial into the traveller's hand,
     glancing south toward the quiet reeds.
 
@@ -53,7 +53,7 @@ triggers:
       missing: ["62-adder"]
     actions:
       - grant: "62-adder"
-      - send_text: >-
+      - actor: >-
           The marsh adder coils, strikes once at nothing, and goes limp
           in the reeds. The south approach is quiet. Carry the word back
           to Tamsin at the ford landing.

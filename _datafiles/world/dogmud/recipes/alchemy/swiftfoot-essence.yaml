@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 30048
   quantity: 1
-success_message: "The liquid becomes almost weightless in the bottle. A swiftfoot essence!"
-failure_message: "The herbs wilt before the essence can form. The materials are wasted."
+success_actor: "The liquid becomes almost weightless in the bottle. A swiftfoot essence!"
+failure_actor: "The herbs wilt before the essence can form. The materials are wasted."

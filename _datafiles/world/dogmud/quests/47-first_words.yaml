@@ -45,7 +45,7 @@ rewards:
   stat_info: "charisma:1"
   itemid: 20089
   gold: 15
-  playermessage: >-
+  actor: >-
     Wenna watches you a moment with those flat gold eyes, then nods as though
     settling something. "You ask straight and you listen straight. That is most
     of getting on with people, and all of getting on with us." She knots a small
@@ -55,7 +55,7 @@ rewards:
     back to the yard. "The stones are west and north of here. Hale keeps them.
     Ask him the old story -- he has been waiting a long time to tell it to
     someone who will sit still for it."
-  roommessage: "Wenna presses a small plaited charm into the newcomer's hand."
+  observer: "Wenna presses a small plaited charm into the newcomer's hand."
 
 triggers:
   # ── HELP: consult the in-game help reference ──────────────────────────
@@ -66,7 +66,7 @@ triggers:
       missing: ["47-help"]
     actions:
       - grant: "47-help"
-      - send_text: >-
+      - actor: >-
           That is the in-game help -- your long-term reference, more patient
           than any person and always to hand. The folk set their lore in stone
           for the same reason: so it outlasts the remembering. Return to Wenna

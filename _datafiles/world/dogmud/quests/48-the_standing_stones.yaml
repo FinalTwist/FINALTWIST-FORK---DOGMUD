@@ -48,7 +48,7 @@ rewards:
   skillinfo: "rhetoric:1"
   itemid: 30066
   gold: 25
-  playermessage: >-
+  actor: >-
     Hale's doubled voice settles to a single tone as he regards you. "I felt
     that from here -- the moment his nerve went. That is rhetoric: not the loud
     word, but the true one, landed where it weighs most. You have the beginnings
@@ -58,7 +58,7 @@ rewards:
     the part none of us can, any longer." He looks north, to where the ground
     rises past the ring. "There is a thing the bone only points at. Sere keeps
     it, at the old shrine. Go up and see."
-  roommessage: ""
+  observer: ""
 
 triggers:
   # ── TAUNT: face down the belligerent Garrow (Mustering Green, 5335) ────
@@ -70,7 +70,7 @@ triggers:
       missing: ["48-taunt"]
     actions:
       - grant: "48-taunt"
-      - send_text: >-
+      - actor: >-
           Your words find the gap in his bluster and go straight through it. The
           fight goes out of Garrow all at once -- he throws up his heavy hands,
           mutters a surrender, and quits the green. Old Ferd lets out a breath he

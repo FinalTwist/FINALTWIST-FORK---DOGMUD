@@ -61,10 +61,23 @@ KEY_STEMS = (
 # replaced toattacker/todefender/toroom (and the separate shape's
 # toattackerroom/todefenderroom, which were never listed here) with the
 # canonical vocabulary.
+#
+# The Kind B stores (conditions, spells, quests, crafting) key by PHASE and
+# role together, so M4b-1 gave them phase-prefixed role spellings. Those carry
+# no stem either -- start_user_text did, through "text"; start_actee does not --
+# so without them here the walk would stop seeing four whole stores.
 AUDIENCE_KEYS = {
     "actor", "actee", "observer", "remote_observer", "observers",
     "controller", "controlled", "together", "separate",
     "options", "optionid",
+    "start_actee", "start_observer",
+    "trigger_actee", "trigger_observer",
+    "end_actee", "end_observer",
+    "cast_actor", "cast_observer",
+    "wait_actor", "wait_observer",
+    "magic_actor", "magic_observer",
+    "success_actor", "success_observer",
+    "failure_actor", "failure_observer",
 }
 
 # Keys appear at line start, after a sequence dash, and inside flow mappings.

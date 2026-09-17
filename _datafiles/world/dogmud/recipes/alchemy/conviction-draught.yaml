@@ -15,5 +15,5 @@ ingredients:
 output:
   item_id: 30038
   quantity: 1
-success_message: "Root and thistle blend into a bittersweet draught. A conviction draught!"
-failure_message: "The ingredients refuse to combine properly. The materials are wasted."
+success_actor: "Root and thistle blend into a bittersweet draught. A conviction draught!"
+failure_actor: "The ingredients refuse to combine properly. The materials are wasted."

@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 20021
   quantity: 1
-success_message: "You measure, cut, and stitch the cloth into a pair of trousers. Cloth pants!"
-failure_message: "The seams split as you pull them tight. The materials are wasted."
+success_actor: "You measure, cut, and stitch the cloth into a pair of trousers. Cloth pants!"
+failure_actor: "The seams split as you pull them tight. The materials are wasted."

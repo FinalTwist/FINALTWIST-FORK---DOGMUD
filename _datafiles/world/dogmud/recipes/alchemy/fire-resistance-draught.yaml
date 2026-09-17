@@ -17,5 +17,5 @@ ingredients:
 output:
   item_id: 30030
   quantity: 1
-success_message: "The herbs dissolve into a thick reddish liquid that radiates faint warmth. A fire resistance draught!"
-failure_message: "The mixture boils over and evaporates. The materials are ruined."
+success_actor: "The herbs dissolve into a thick reddish liquid that radiates faint warmth. A fire resistance draught!"
+failure_actor: "The mixture boils over and evaporates. The materials are ruined."

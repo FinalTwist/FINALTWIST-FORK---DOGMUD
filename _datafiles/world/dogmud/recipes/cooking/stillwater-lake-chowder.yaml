@@ -19,5 +19,5 @@ ingredients:
 output:
   item_id: 30061
   quantity: 1
-success_message: "You shuck the clams over the pot, soften the root vegetables in the broth, and float the mint leaves in at the last moment. The chowder smells of the lake on a fair morning. Stillwater lake chowder!"
-failure_message: "The clams oversteep and the chowder turns grey and stringy. The pot is ruined."
+success_actor: "You shuck the clams over the pot, soften the root vegetables in the broth, and float the mint leaves in at the last moment. The chowder smells of the lake on a fair morning. Stillwater lake chowder!"
+failure_actor: "The clams oversteep and the chowder turns grey and stringy. The pot is ruined."

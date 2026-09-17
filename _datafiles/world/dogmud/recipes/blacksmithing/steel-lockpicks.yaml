@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 34
   quantity: 1
-success_message: "You draw the iron into fine blanks, grind precise tips, and bind them in a tight roll. Steel lockpicks!"
-failure_message: "The picks snap during tempering -- the tips are too brittle to salvage. The materials are lost."
+success_actor: "You draw the iron into fine blanks, grind precise tips, and bind them in a tight roll. Steel lockpicks!"
+failure_actor: "The picks snap during tempering -- the tips are too brittle to salvage. The materials are lost."

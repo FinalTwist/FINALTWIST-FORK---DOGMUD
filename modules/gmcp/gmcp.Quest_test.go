@@ -95,7 +95,7 @@ func TestBuildQuestUpdate_RefusesInvalidSavesNothing(t *testing.T) {
 }
 
 // TestBuildQuestUpdate_RefusesSubjectlessRoomText guards the editor path to a
-// boot failure. A room_text that names no one used to pass every save-time
+// boot failure. An observer line that names no one used to pass every save-time
 // check, get written to disk, and panic the reindex; the listener recovered,
 // the admin got no reply, and the next cold boot failed. It must be refused at
 // save, with nothing written.
@@ -107,7 +107,7 @@ func TestBuildQuestUpdate_RefusesSubjectlessRoomText(t *testing.T) {
 	q.Triggers[0].Actions = append(q.Triggers[0].Actions, quests.ActionDef{RoomText: "unlocks the strongbox."})
 	res := buildQuestUpdate(w.deps(), q)
 	if res.Ok {
-		t.Fatal("a room_text without {actor} must be refused at save")
+		t.Fatal("an observer line without {actor} must be refused at save")
 	}
 	if len(w.saved) != 0 || w.reindexed != 0 {
 		t.Fatalf("refused update must not save (%d) or reindex (%d)", len(w.saved), w.reindexed)

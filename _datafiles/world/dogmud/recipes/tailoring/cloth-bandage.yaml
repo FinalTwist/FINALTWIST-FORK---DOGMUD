@@ -13,5 +13,5 @@ ingredients:
 output:
   item_id: 30020
   quantity: 1
-success_message: "You fold and roll the cloth into a tight bandage. A cloth bandage!"
-failure_message: "The cloth frays apart as you try to fold it. The materials are lost."
+success_actor: "You fold and roll the cloth into a tight bandage. A cloth bandage!"
+failure_actor: "The cloth frays apart as you try to fold it. The materials are lost."
