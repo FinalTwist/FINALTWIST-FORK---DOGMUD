@@ -31,17 +31,31 @@ type AttackOptions struct {
 	Separate SeparateMessages `yaml:"separate"`
 }
 
+// TogetherMessages is the authored shape of a blow whose participants share a
+// room, so there is exactly one observer audience.
+//
+// The keys are the canonical role vocabulary (M4b-1), spelled
+// toattacker/todefender/toroom until then. The Go field names still carry the
+// old spelling, which is cosmetic and left for a later pass.
 type TogetherMessages struct {
-	ToAttacker SkillTieredMessages `yaml:"toattacker"`
-	ToDefender SkillTieredMessages `yaml:"todefender"`
-	ToRoom     SkillTieredMessages `yaml:"toroom"`
+	ToAttacker SkillTieredMessages `yaml:"actor"`
+	ToDefender SkillTieredMessages `yaml:"actee"`
+	ToRoom     SkillTieredMessages `yaml:"observer"`
 }
 
+// SeparateMessages is the authored shape of a ranged blow whose participants
+// are in different rooms, so there are two observer audiences: the one
+// standing with the actor, and the REMOTE one standing with the actee.
+//
+// That second audience is why `toattackerroom` became plain `observer` while
+// `todefenderroom` became `remote_observer`: the core has always called the
+// observers with the actor the observer, and the far-room audience is the one
+// that needs a name of its own (narration.Roles.ActeeObserver).
 type SeparateMessages struct {
-	ToAttacker     SkillTieredMessages `yaml:"toattacker"`
-	ToDefender     SkillTieredMessages `yaml:"todefender"`
-	ToAttackerRoom SkillTieredMessages `yaml:"toattackerroom"`
-	ToDefenderRoom SkillTieredMessages `yaml:"todefenderroom"`
+	ToAttacker     SkillTieredMessages `yaml:"actor"`
+	ToDefender     SkillTieredMessages `yaml:"actee"`
+	ToAttackerRoom SkillTieredMessages `yaml:"observer"`
+	ToDefenderRoom SkillTieredMessages `yaml:"remote_observer"`
 }
 
 type SkillTieredMessages struct {
@@ -116,10 +130,11 @@ func (stm SkillTieredMessages) PoolFor(skillLevel int) []string {
 // defence (PR #112) and taunt (PR #115).
 //
 // The role mapping is the one thing here worth reading slowly. An attacker
-// ACTS and a defender is ACTED UPON, so toattacker is the Actor and todefender
-// is the Actee. Swapping those two lines inverts every combat message in the
-// game, and three separately named pools becoming adjacent fields of one
-// struct literal is exactly how that mistake gets made.
+// ACTS and a defender is ACTED UPON, so ToAttacker (authored `actor`) is the
+// Actor and ToDefender (authored `actee`) is the Actee. Swapping those two
+// lines inverts every combat message in the game, and three separately named
+// pools becoming adjacent fields of one struct literal is exactly how that
+// mistake gets made.
 // combat_messages.golden keys its rows by the AUTHORED name, which is what
 // catches it.
 //

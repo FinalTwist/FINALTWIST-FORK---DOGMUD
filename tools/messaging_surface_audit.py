@@ -56,8 +56,13 @@ KEY_STEMS = (
 )
 
 # Audience/role keys carry no stem but ARE the narration shape.
+# Kept in step with messaging_surface_guard_test.go's
+# messagingSurfaceAudienceKeys, which mirrors this set. M4b's role-key rename
+# replaced toattacker/todefender/toroom (and the separate shape's
+# toattackerroom/todefenderroom, which were never listed here) with the
+# canonical vocabulary.
 AUDIENCE_KEYS = {
-    "toattacker", "todefender", "toroom", "observers",
+    "actor", "actee", "observer", "remote_observer", "observers",
     "controller", "controlled", "together", "separate",
     "options", "optionid",
 }

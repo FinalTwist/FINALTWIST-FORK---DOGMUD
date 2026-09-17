@@ -15,7 +15,7 @@ options:
   prepare:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> extend hungrily toward <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'You fix <ansi fg="{acteetype}">{actee}</ansi> with a cold, consuming stare.'
@@ -29,7 +29,7 @@ options:
         - 'You read <ansi fg="{acteetype}">{actee}</ansi>''s every shift, {momentum}, your <ansi fg="item">{itemname}</ansi> perfectly positioned.'
         - 'You flow into a masterful predatory stance while {position}, waiting for the moment.'
         - '{momentum}, you extend your <ansi fg="item">{itemname}</ansi> with the focus of a seasoned lifedrinker.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> extends their <ansi fg="item">{itemname}</ansi> toward you hungrily.'
         - '<ansi fg="{actortype}">{actor}</ansi> fixes you with a cold, consuming stare.'
@@ -43,7 +43,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> reads your posture and positions their <ansi fg="item">{itemname}</ansi> perfectly.'
         - '<ansi fg="{actortype}">{actor}</ansi>''s eyes gleam as they settle into a predatory and lethal posture.'
         - 'With unsettling calm, <ansi fg="{actortype}">{actor}</ansi> reaches for your life-force.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> extends their <ansi fg="item">{itemname}</ansi> toward <ansi fg="{acteetype}">{actee}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> eyes <ansi fg="{acteetype}">{actee}</ansi> with cold, consuming hunger.'
@@ -60,7 +60,7 @@ options:
   wait:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You circle <ansi fg="{acteetype}">{actee}</ansi>, <ansi fg="item">{itemname}</ansi> ready to latch on.'
         - 'You watch <ansi fg="{acteetype}">{actee}</ansi> closely, feeling their warmth, their vitality.'
@@ -75,7 +75,7 @@ options:
         - 'While {position}, you anticipate <ansi fg="{acteetype}">{actee}</ansi>''s next breath with terrifying precision.'
         - 'Your {stance} patience lets you feel every flicker of <ansi fg="{acteetype}">{actee}</ansi>''s vitality.'
         - 'Like a predator savoring the hunt, you assess every opening in <ansi fg="{acteetype}">{actee}</ansi>''s guard.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> circles you with hungry, hollow eyes.'
         - '<ansi fg="{actortype}">{actor}</ansi> watches you intently, <ansi fg="item">{itemname}</ansi> ready to latch on.'
@@ -90,7 +90,7 @@ options:
         - 'While {position}, <ansi fg="{actortype}">{actor}</ansi> anticipates your next breath with terrifying precision.'
         - '<ansi fg="{actortype}">{actor}</ansi> senses the flow of your vitality with masterful, terrible clarity.'
         - '<ansi fg="{actortype}">{actor}</ansi> reads your every movement with predatory patience.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> circles <ansi fg="{acteetype}">{actee}</ansi> with hollow, hungry eyes.'
         - '<ansi fg="{actortype}">{actor}</ansi> watches <ansi fg="{acteetype}">{actee}</ansi> with cold, patient hunger.'
@@ -108,7 +108,7 @@ options:
   miss:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You lunge at <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi>, but miss!'
         - 'Your <ansi fg="item">{itemname}</ansi> rake through empty air as <ansi fg="{acteetype}">{actee}</ansi> sidesteps!'
@@ -124,7 +124,7 @@ options:
         - 'Despite flawless timing, <ansi fg="{acteetype}">{actee}</ansi> slips the drain!'
         - 'Your masterful lunge finds an equally masterful dodge!'
         - '{momentum}, your draining strike is barely turned aside!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> lunges at you with their <ansi fg="item">{itemname}</ansi> but misses.'
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> rake through the air as you dodge!'
@@ -140,7 +140,7 @@ options:
         - 'You slip the drain with fluid, instinctive grace!'
         - 'Your superior technique turns <ansi fg="{actortype}">{actor}</ansi>''s masterful grasp aside!'
         - '{momentum}, <ansi fg="{actortype}">{actor}</ansi>''s draining strike is barely turned aside!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> lunges at <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>, but misses.'
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> cut through empty air!'
@@ -159,7 +159,7 @@ options:
   weak:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> barely graze <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'You catch <ansi fg="{acteetype}">{actee}</ansi> with a glancing scrape of your <ansi fg="item">{itemname}</ansi>.'
@@ -177,7 +177,7 @@ options:
         - 'Stepping aside, you flick a short drain at <ansi fg="{acteetype}">{actee}</ansi> with precision.'
         - 'You find a small opening and deliver a shallow sap to the <ansi fg="item">{bodypart}</ansi>.'
         - 'With patient precision, you score a calculated glancing drain.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> barely grazes you with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> catches you with a glancing scrape.'
@@ -195,7 +195,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> steps aside and delivers a short drain with precision.'
         - '<ansi fg="{actortype}">{actor}</ansi> finds a small opening and scores a shallow sap.'
         - '<ansi fg="{actortype}">{actor}</ansi> scores a calculated glancing drain with patient precision.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> barely grazes <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> catches <ansi fg="{acteetype}">{actee}</ansi> with a glancing scrape.'
@@ -216,7 +216,7 @@ options:
   normal:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> sink into <ansi fg="{acteetype}">{actee}</ansi>, sapping their vitality!'
         - 'You drain <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi>!'
@@ -238,7 +238,7 @@ options:
         - 'Your <ansi fg="item">{itemname}</ansi> flash as you maintain the drain with masterful control!'
         - '{position}, you drain decisively at <ansi fg="{acteetype}">{actee}</ansi>!'
         - '{momentum}, you feed with overwhelming vampiric power!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> sinks their <ansi fg="item">{itemname}</ansi> into you, sapping your vitality!'
         - '<ansi fg="{actortype}">{actor}</ansi> drains you with their <ansi fg="item">{itemname}</ansi>!'
@@ -260,7 +260,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> flash as they maintain their feeding!'
         - '<ansi fg="{actortype}">{actor}</ansi> reads your stance and strikes with vampiric precision!'
         - '{momentum}, <ansi fg="{actortype}">{actor}</ansi> feeds with overwhelming vampiric power!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> sinks their <ansi fg="item">{itemname}</ansi> into <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> drains <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
@@ -285,7 +285,7 @@ options:
   heavy:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> plunge deep into <ansi fg="{acteetype}">{actee}</ansi>, drinking greedily!'
         - 'You deliver a brutal drain to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -308,7 +308,7 @@ options:
         - 'You surge forward on the offensive, your <ansi fg="item">{itemname}</ansi> drinking deep!'
         - 'Maintaining your assault, you drive a powerful draining strike at <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'From your {stance} stance, {momentum}, you drain savagely while {position}!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> plunge deep into you, drinking greedily!'
         - 'You are struck hard as <ansi fg="{actortype}">{actor}</ansi> feeds with brutal hunger!'
@@ -331,7 +331,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> surges forward, their <ansi fg="item">{itemname}</ansi> drinking deep!'
         - '<ansi fg="{actortype}">{actor}</ansi> maintains their assault with a powerful draining strike!'
         - 'From their {stance} stance, {momentum}, <ansi fg="{actortype}">{actor}</ansi> drains you savagely while {position}!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> plunge deep into <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> delivers a brutal drain to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -357,7 +357,7 @@ options:
   critical:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY DRAIN</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'You deliver a <ansi fg="cyan-bold">CRITICAL DRAIN</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -379,7 +379,7 @@ options:
         - 'Your unstoppable hunger culminates in a <ansi fg="cyan-bold">CRITICAL DRAIN</ansi>!'
         - 'Channeling all focus, you <ansi fg="cyan-bold">DRINK DEEP</ansi> from <ansi fg="{acteetype}">{actee}</ansi> with devastating force!'
         - 'The tide of battle favors you - your <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">DECIMATE</ansi> <ansi fg="{acteetype}">{actee}</ansi>''s vitality!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY DRAIN</ansi> you!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s hunger delivers a <ansi fg="cyan-bold">CRITICAL DRAIN</ansi>!'
@@ -401,7 +401,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi>''s unstoppable hunger ends in a <ansi fg="cyan-bold">CRITICAL DRAIN</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> channels all focus and <ansi fg="cyan-bold">DRINKS DEEP</ansi> from you utterly!'
         - 'The tide favors <ansi fg="{actortype}">{actor}</ansi> - their <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">DECIMATE</ansi> your vitality!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY DRAIN</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s hunger delivers a <ansi fg="cyan-bold">CRITICAL DRAIN</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -426,7 +426,7 @@ options:
   fumble:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your lunge <ansi fg="red-bold">FUMBLES</ansi> as your <ansi fg="item">{itemname}</ansi> grasp nothing!'
         - 'You <ansi fg="red-bold">FUMBLE</ansi> and stumble past your target off-balance!'
@@ -440,7 +440,7 @@ options:
         - '<ansi fg="{acteetype}">{actee}</ansi>''s unexpected sidestep forces you to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite perfect form, a misstep causes you to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Your masterful drain is disrupted - you <ansi fg="red-bold">FUMBLE</ansi> the execution!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s lunge <ansi fg="red-bold">FUMBLES</ansi> as their <ansi fg="item">{itemname}</ansi> grasp nothing!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their drain in an embarrassing stumble!'
@@ -454,7 +454,7 @@ options:
         - 'Your sidestep forces <ansi fg="{actortype}">{actor}</ansi> to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite their skill, <ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> the drain!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s masterful drain is disrupted - they <ansi fg="red-bold">FUMBLE</ansi>!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLE</ansi> wildly at <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their drain at <ansi fg="{acteetype}">{actee}</ansi> and stumbles past!'

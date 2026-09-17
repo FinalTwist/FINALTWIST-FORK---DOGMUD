@@ -14,7 +14,7 @@ optionid: throttle
 options:
   prepare:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You eye <ansi fg="{acteetype}">{actee}</ansi>''s throat, your <ansi fg="item">{itemname}</ansi> parting in anticipation.'
         - 'You circle <ansi fg="{acteetype}">{actee}</ansi>, angling for a clear shot at their throat.'
@@ -27,7 +27,7 @@ options:
         - 'With cold precision, you read <ansi fg="{acteetype}">{actee}</ansi>''s throat exposure while {position}.'
         - 'Every movement of <ansi fg="{acteetype}">{actee}</ansi> gives you another angle while {momentum}.'
         - 'You hold your patience, {momentum}, <ansi fg="item">{itemname}</ansi> coiled and ready.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> part as it closes in.'
         - '<ansi fg="{actortype}">{actor}</ansi> circles you, watching your neck.'
@@ -40,7 +40,7 @@ options:
         - 'With cold calm, <ansi fg="{actortype}">{actor}</ansi> angles its <ansi fg="item">{itemname}</ansi> toward your windpipe.'
         - '<ansi fg="{actortype}">{actor}</ansi> reads every shift of your head with terrifying patience.'
         - '<ansi fg="{actortype}">{actor}</ansi> waits, {momentum}, for the precise moment to strike your throat.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> part as it closes in on <ansi fg="{acteetype}">{actee}</ansi>''s throat.'
         - '<ansi fg="{actortype}">{actor}</ansi> circles <ansi fg="{acteetype}">{actee}</ansi>, eyes fixed on their throat.'
@@ -55,7 +55,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> waits, {momentum}, for the precise moment to strike <ansi fg="{acteetype}">{actee}</ansi>''s throat.'
   wait:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You circle <ansi fg="{acteetype}">{actee}</ansi>, waiting for their throat to be exposed.'
         - 'You feint and watch for an opening at <ansi fg="{acteetype}">{actee}</ansi>''s neck.'
@@ -68,7 +68,7 @@ options:
         - 'Every feint <ansi fg="{acteetype}">{actee}</ansi> makes is catalogued and you wait for the perfect angle.'
         - '{momentum}, you hold your ground and track the throat with predatory stillness.'
         - 'Like a beast before a kill, you breathe and wait, {momentum}.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> circles you, waiting for your guard to drop.'
         - '<ansi fg="{actortype}">{actor}</ansi> feints and holds, eyes on your neck.'
@@ -81,7 +81,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> catalogues every one of your feints with predatory precision.'
         - '{momentum}, <ansi fg="{actortype}">{actor}</ansi> holds with terrible patience.'
         - 'Like a beast before a kill, <ansi fg="{actortype}">{actor}</ansi> breathes and watches you.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> circles <ansi fg="{acteetype}">{actee}</ansi>, waiting for an opening at the throat.'
         - '<ansi fg="{actortype}">{actor}</ansi> feints toward <ansi fg="{acteetype}">{actee}</ansi> and holds, eyes fixed on the neck.'
@@ -96,7 +96,7 @@ options:
         - 'Like a beast before a kill, <ansi fg="{actortype}">{actor}</ansi> breathes and watches <ansi fg="{acteetype}">{actee}</ansi>.'
   miss:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> snap at <ansi fg="{acteetype}">{actee}</ansi>''s throat but find nothing!'
         - 'You lunge for the throat but <ansi fg="{acteetype}">{actee}</ansi> pulls away!'
@@ -111,7 +111,7 @@ options:
         - '<ansi fg="{acteetype}">{actee}</ansi>''s unexpected movement forces your perfect choke wide!'
         - 'Despite flawless timing, <ansi fg="{acteetype}">{actee}</ansi> drops their chin and escapes the clamp!'
         - 'A masterful angle undone by a faster dodge, and your <ansi fg="item">{itemname}</ansi> miss!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> snaps at your throat but misses!'
         - 'You pull your throat back as <ansi fg="{actortype}">{actor}</ansi>''s jaws close on nothing!'
@@ -126,7 +126,7 @@ options:
         - 'Your footwork forces <ansi fg="{actortype}">{actor}</ansi>''s perfect throttle wide!'
         - 'You slip the angle with masterful timing and deny the choke!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s flawless lunge meets an equally flawless defense!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> snaps at <ansi fg="{acteetype}">{actee}</ansi>''s throat but misses!'
         - '<ansi fg="{actortype}">{actor}</ansi> lunges for <ansi fg="{acteetype}">{actee}</ansi>''s throat, but <ansi fg="{acteetype}">{actee}</ansi> pulls away!'
@@ -143,7 +143,7 @@ options:
         - 'Flawless attack, flawless defense: <ansi fg="{actortype}">{actor}</ansi> finds nothing!'
   weak:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> graze <ansi fg="{acteetype}">{actee}</ansi>''s throat.'
         - 'You catch <ansi fg="{acteetype}">{actee}</ansi> with a glancing bite at the neck.'
@@ -156,7 +156,7 @@ options:
         - 'You draw the guard and catch the throat with a light clamp, {momentum}.'
         - 'From your {stance} stance, you nick the windpipe and release.'
         - 'You find a narrow opening and score a shallow choke.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> grazes your throat with its <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> catches you with a glancing bite at the neck.'
@@ -169,7 +169,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> draws your guard and catches your throat lightly.'
         - '<ansi fg="{actortype}">{actor}</ansi> nicks your windpipe with cold precision and withdraws.'
         - '<ansi fg="{actortype}">{actor}</ansi> finds the narrow opening and scores a shallow choke.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> grazes <ansi fg="{acteetype}">{actee}</ansi>''s throat.'
         - '<ansi fg="{actortype}">{actor}</ansi> catches <ansi fg="{acteetype}">{actee}</ansi> with a glancing bite.'
@@ -184,7 +184,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> finds the narrow opening and scores a shallow choke.'
   normal:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> clamp around <ansi fg="{acteetype}">{actee}</ansi>''s throat!'
         - 'You seize <ansi fg="{acteetype}">{actee}</ansi> by the windpipe!'
@@ -200,7 +200,7 @@ options:
         - 'From a {stance} stance, you seize <ansi fg="{acteetype}">{actee}</ansi>''s throat with crushing precision!'
         - 'You exploit the gap and throttle decisively while {position}!'
         - '{momentum}, your <ansi fg="item">{itemname}</ansi> lock tight around the throat!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> clamp around your throat!'
         - '<ansi fg="{actortype}">{actor}</ansi> seizes your windpipe and you gasp for air!'
@@ -216,7 +216,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> seizes your throat with crushing precision!'
         - '<ansi fg="{actortype}">{actor}</ansi> exploits the gap and throttles you decisively!'
         - '{momentum}, <ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> lock tight around your throat!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> clamp around <ansi fg="{acteetype}">{actee}</ansi>''s throat!'
         - '<ansi fg="{actortype}">{actor}</ansi> seizes <ansi fg="{acteetype}">{actee}</ansi> by the windpipe!'
@@ -234,7 +234,7 @@ options:
         - '{momentum}, <ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> lock tight around <ansi fg="{acteetype}">{actee}</ansi>''s throat!'
   heavy:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> crush <ansi fg="{acteetype}">{actee}</ansi>''s throat with brutal force!'
         - 'You seize <ansi fg="{acteetype}">{actee}</ansi> by the windpipe and crush!'
@@ -250,7 +250,7 @@ options:
         - 'From a {stance} stance, you deliver a savage choke to <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'You exploit the position and crush the windpipe with beast-like efficiency!'
         - '{momentum}, you clamp with overwhelming, suffocating force!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> crush your throat with brutal force!'
         - '<ansi fg="{actortype}">{actor}</ansi> seizes your windpipe and crushes!'
@@ -266,7 +266,7 @@ options:
         - 'From a {stance} stance, <ansi fg="{actortype}">{actor}</ansi> delivers a savage choke to you!'
         - '<ansi fg="{actortype}">{actor}</ansi> exploits your position and crushes the windpipe!'
         - '<ansi fg="{actortype}">{actor}</ansi> clamps your throat with overwhelming, suffocating force!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> crush <ansi fg="{acteetype}">{actee}</ansi>''s throat!'
         - '<ansi fg="{actortype}">{actor}</ansi> seizes <ansi fg="{acteetype}">{actee}</ansi>''s windpipe and crushes!'
@@ -284,7 +284,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> clamps the throat with overwhelming, suffocating force!'
   critical:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRUSH</ansi> <ansi fg="{acteetype}">{actee}</ansi>''s windpipe!'
         - 'You deliver a <ansi fg="cyan-bold">CRITICAL CHOKE</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -300,7 +300,7 @@ options:
         - 'Your {stance} precision culminates in a <ansi fg="cyan-bold">DEVASTATING CRITICAL</ansi> choke!'
         - 'While {position}, {momentum}, you deliver a <ansi fg="cyan-bold">PERFECT EXECUTION</ansi>!'
         - 'Exploiting total advantage, you <ansi fg="cyan-bold">THROTTLE</ansi> <ansi fg="{acteetype}">{actee}</ansi> with brutal precision!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRUSH</ansi> your windpipe!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s choke delivers a <ansi fg="cyan-bold">CRITICAL THROTTLE</ansi>!'
@@ -316,7 +316,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> executes a <ansi fg="cyan-bold">DEVASTATING THROTTLE</ansi> from the perfect angle!'
         - '<ansi fg="{actortype}">{actor}</ansi> delivers a <ansi fg="cyan-bold">PERFECT EXECUTION</ansi> and you collapse beneath it!'
         - '<ansi fg="{actortype}">{actor}</ansi> exploits total advantage and <ansi fg="cyan-bold">CRUSHES</ansi> your windpipe!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRUSH</ansi> <ansi fg="{acteetype}">{actee}</ansi>''s windpipe!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s choke delivers a <ansi fg="cyan-bold">CRITICAL THROTTLE</ansi>!'
@@ -334,7 +334,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> exploits total advantage and <ansi fg="cyan-bold">CRUSHES</ansi> <ansi fg="{acteetype}">{actee}</ansi>''s throat!'
   fumble:
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your throttle lunge <ansi fg="red-bold">FUMBLES</ansi> as your <ansi fg="item">{itemname}</ansi> find nothing!'
         - 'You <ansi fg="red-bold">FUMBLE</ansi> and stumble past your target off-balance!'
@@ -348,7 +348,7 @@ options:
         - '<ansi fg="{acteetype}">{actee}</ansi>''s unexpected movement forces you to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite perfect timing, a misstep causes you to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Your masterful choke is disrupted and you <ansi fg="red-bold">FUMBLE</ansi> entirely!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s throttle <ansi fg="red-bold">FUMBLES</ansi> as its <ansi fg="item">{itemname}</ansi> find nothing!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> the throttle in an embarrassing stumble!'
@@ -362,7 +362,7 @@ options:
         - 'Your movement forces <ansi fg="{actortype}">{actor}</ansi> to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite their skill, <ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> the choke!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s masterful throttle is disrupted, and they <ansi fg="red-bold">FUMBLE</ansi>!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLE</ansi> at <ansi fg="{acteetype}">{actee}</ansi>''s throat!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> the throttle and stumbles past!'

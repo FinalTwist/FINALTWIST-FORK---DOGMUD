@@ -15,7 +15,7 @@ options:
   prepare:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You rear up, preparing to hurl your {itemname} at <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'You plant your feet and fix <ansi fg="{acteetype}">{actee}</ansi> with a crushing gaze.'
@@ -31,7 +31,7 @@ options:
         - '{momentum}, you read <ansi fg="{acteetype}">{actee}</ansi>''s footing and prepare the perfect slam.'
         - 'You settle your {stance} fighting form, mass loaded and ready to deliver ruin.'
         - '{momentum}, you assess <ansi fg="{acteetype}">{actee}</ansi>''s balance before committing your {itemname}.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> rears up, preparing to slam into you!'
         - '<ansi fg="{actortype}">{actor}</ansi> plants their feet and fixes you with a crushing stare.'
@@ -47,7 +47,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> reads your footing with terrifying accuracy.'
         - '<ansi fg="{actortype}">{actor}</ansi>''s bulk coils like a spring aimed directly at you.'
         - '<ansi fg="{actortype}">{actor}</ansi> assesses your balance before committing to the {itemname}.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> rears up, preparing to slam <ansi fg="{acteetype}">{actee}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> plants their feet and fixes <ansi fg="{acteetype}">{actee}</ansi> with a crushing gaze.'
@@ -66,7 +66,7 @@ options:
   wait:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You watch <ansi fg="{acteetype}">{actee}</ansi>, waiting for the right moment to charge.'
         - 'You shift your weight back and forth, eyeing <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -82,7 +82,7 @@ options:
         - 'While {position}, you anticipate <ansi fg="{acteetype}">{actee}</ansi>''s next step with crushing clarity.'
         - 'Your {stance} training lets you predict <ansi fg="{acteetype}">{actee}</ansi>''s movement before it begins.'
         - 'Like a boulder before a landslide, you hold your mass in reserve.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> watches you intently, shifting their weight.'
         - '<ansi fg="{actortype}">{actor}</ansi> shifts their weight back and forth, eyeing you.'
@@ -98,7 +98,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi>''s stillness is more terrifying than motion.'
         - '<ansi fg="{actortype}">{actor}</ansi>''s {stance} training lets them predict your movement before it begins.'
         - '<ansi fg="{actortype}">{actor}</ansi> holds their mass in reserve like a coiled catastrophe.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> watches <ansi fg="{acteetype}">{actee}</ansi>, shifting their bulk.'
         - '<ansi fg="{actortype}">{actor}</ansi> shifts their weight back and forth, eyeing <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -117,7 +117,7 @@ options:
   miss:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You hurl your {itemname} at <ansi fg="{acteetype}">{actee}</ansi>, but crash into empty air!'
         - 'Your charge at <ansi fg="{acteetype}">{actee}</ansi> misses as they sidestep your bulk!'
@@ -133,7 +133,7 @@ options:
         - 'Despite flawless form, <ansi fg="{acteetype}">{actee}</ansi> reads your intent and steps clear!'
         - '{momentum}, your crushing charge is deflected by a masterful sidestep!'
         - 'Your perfectly timed slam is answered by <ansi fg="{acteetype}">{actee}</ansi>''s equally perfect retreat!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> hurls their {itemname} at you but crashes into empty air!'
         - '<ansi fg="{actortype}">{actor}</ansi> charges but you sidestep their bulk in time!'
@@ -149,7 +149,7 @@ options:
         - 'You read <ansi fg="{actortype}">{actor}</ansi>''s intent and step clear with flowing ease!'
         - 'Your masterful sidestep deflects <ansi fg="{actortype}">{actor}</ansi>''s crushing charge!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s perfectly timed slam is answered by your equally perfect retreat!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> hurls their bulk at <ansi fg="{acteetype}">{actee}</ansi>, but misses!'
         - '<ansi fg="{actortype}">{actor}</ansi> charges <ansi fg="{acteetype}">{actee}</ansi>, who sidesteps their mass!'
@@ -168,7 +168,7 @@ options:
   weak:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your {itemname} glances off <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'You brush <ansi fg="{acteetype}">{actee}</ansi> with your bulk, barely connecting.'
@@ -186,7 +186,7 @@ options:
         - 'You flick your {itemname} at <ansi fg="{acteetype}">{actee}</ansi>''s {bodypart} with precise restraint.'
         - 'You find a small opening and deliver a controlled nudge to <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'With measured control, you score a calculated graze on <ansi fg="{acteetype}">{actee}</ansi>.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> glances off you with their {itemname}.'
         - '<ansi fg="{actortype}">{actor}</ansi> brushes you with their bulk, barely connecting.'
@@ -204,7 +204,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> flicks their bulk at you while {momentum}.'
         - '<ansi fg="{actortype}">{actor}</ansi> finds a small gap and nudges you precisely.'
         - '<ansi fg="{actortype}">{actor}</ansi> demonstrates measured control with a calculated graze.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> glances off <ansi fg="{acteetype}">{actee}</ansi> with their {itemname}.'
         - '<ansi fg="{actortype}">{actor}</ansi> brushes <ansi fg="{acteetype}">{actee}</ansi> with their bulk.'
@@ -225,7 +225,7 @@ options:
   normal:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your {itemname} smashes into <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'You crash into <ansi fg="{acteetype}">{actee}</ansi> with your bulk!'
@@ -247,7 +247,7 @@ options:
         - 'Your {itemname} crashes home as you maintain pressure with masterful control!'
         - '{position}, you slam decisively into <ansi fg="{acteetype}">{actee}</ansi>!'
         - '{momentum}, you smash through with overwhelming brute skill!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> smashes their {itemname} into you!'
         - '<ansi fg="{actortype}">{actor}</ansi> crashes into you with their bulk!'
@@ -269,7 +269,7 @@ options:
         - '<ansi fg="{actortype}">{actor}''s {itemname} crashes home with masterful control!'
         - '<ansi fg="{actortype}">{actor}</ansi> exploits an opening and slams decisively!'
         - '<ansi fg="{actortype}">{actor}</ansi> smashes through with overwhelming brute skill!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> smashes their {itemname} into <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> crashes into <ansi fg="{acteetype}">{actee}</ansi> with their bulk!'
@@ -294,7 +294,7 @@ options:
   heavy:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your {itemname} smashes violently into <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'You deliver a brutal body slam to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -317,7 +317,7 @@ options:
         - 'You surge forward on the offensive, crashing through with body-shattering impact!'
         - 'Maintaining your assault, you deliver a powerful sweeping body slam with fury!'
         - 'From your {stance} stance, {momentum}, you crash devastatingly while {position}!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s {itemname} smashes violently into you!'
         - 'You are hit hard as <ansi fg="{actortype}">{actor}</ansi> delivers a brutal body slam!'
@@ -340,7 +340,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> surges forward on the offensive, crashing through!'
         - '<ansi fg="{actortype}">{actor}</ansi> maintains their assault with a powerful sweeping slam!'
         - '<ansi fg="{actortype}">{actor}</ansi> crashes into you devastatingly with masterful {stance} timing!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s {itemname} smashes violently into <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> delivers a brutal body slam to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -366,7 +366,7 @@ options:
   critical:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your {itemname} <ansi fg="cyan-bold">CRITICALLY SMASHES</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'You deliver a <ansi fg="cyan-bold">CRITICAL BODY SLAM</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -388,7 +388,7 @@ options:
         - 'Your unstoppable charge culminates in a <ansi fg="cyan-bold">CRITICAL BODY SLAM</ansi>!'
         - 'Channeling all momentum, you <ansi fg="cyan-bold">CRASH THROUGH</ansi> <ansi fg="{acteetype}">{actee}</ansi> with devastating fury!'
         - 'The tide of battle favors you, and your bulk <ansi fg="cyan-bold">DEMOLISHES</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s {itemname} <ansi fg="cyan-bold">CRITICALLY SMASHES</ansi> into you!'
         - '<ansi fg="{actortype}">{actor}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL BODY SLAM</ansi>!'
@@ -410,7 +410,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi>''s unstoppable charge culminates in a <ansi fg="cyan-bold">CRITICAL SLAM</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> channels all momentum and <ansi fg="cyan-bold">CRASHES THROUGH</ansi> you utterly!'
         - 'The tide favors <ansi fg="{actortype}">{actor}</ansi>, and their bulk <ansi fg="cyan-bold">DEMOLISHES</ansi> you!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s {itemname} <ansi fg="cyan-bold">CRITICALLY SMASHES</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL BODY SLAM</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -435,7 +435,7 @@ options:
   fumble:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your charge <ansi fg="red-bold">FUMBLES</ansi> as your slam goes completely wild!'
         - 'You <ansi fg="red-bold">FUMBLE</ansi> and stumble off-balance under your own weight!'
@@ -449,7 +449,7 @@ options:
         - '<ansi fg="{acteetype}">{actee}</ansi>''s unexpected counter sends your perfect slam into a <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite perfect form, a misstep causes you to <ansi fg="red-bold">FUMBLE</ansi> your charge!'
         - 'Your masterful slam is disrupted and you <ansi fg="red-bold">FUMBLE</ansi> the execution!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s charge <ansi fg="red-bold">FUMBLES</ansi> pathetically as they stumble!'
         - '<ansi fg="{actortype}">{actor}</ansi> trips over their own momentum and <ansi fg="red-bold">FUMBLES</ansi>!'
@@ -463,7 +463,7 @@ options:
         - 'Your defense forces <ansi fg="{actortype}">{actor}</ansi> to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite their power, <ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> the slam!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s masterful charge is disrupted, and they <ansi fg="red-bold">FUMBLE</ansi>!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s charge <ansi fg="red-bold">FUMBLES</ansi> wildly at <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their slam at <ansi fg="{acteetype}">{actee}</ansi> and stumbles!'

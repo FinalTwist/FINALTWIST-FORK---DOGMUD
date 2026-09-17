@@ -62,11 +62,16 @@ GROUPS = {
 
 
 def golden_at(ref, name):
+    # BYTES, decoded as UTF-8 by hand. subprocess's text=True decodes with the
+    # locale codec, which on Windows is cp1252: taunt_messages.golden holds an
+    # em dash, and that round trip turned it into mojibake, so the check
+    # reported a difference in a row the rename never touched.
     out = subprocess.run(["git", "show", "%s:%s/%s" % (ref, GOLDEN_DIR, name)],
-                         capture_output=True, text=True)
+                         capture_output=True)
     if out.returncode != 0:
-        raise SystemExit("cannot read %s at %s: %s" % (name, ref, out.stderr.strip()))
-    return out.stdout
+        raise SystemExit("cannot read %s at %s: %s"
+                         % (name, ref, out.stderr.decode("utf-8", "replace").strip()))
+    return out.stdout.decode("utf-8")
 
 
 def translate(text, pairs):
@@ -78,22 +83,22 @@ def translate(text, pairs):
     does not touch it, so translating it would bake a permanent false failure
     into the check. Labels only ever appear as
 
-      "|<label> =>"     the row key, every store
+      "|<label> =>"     the row key's last field, every store
+      "|<label>|"       the row key's middle field, combat_messages' derived row
       "<label>="        inside the value, combat_messages only
 
-    so both patterns are anchored to that shape instead.
+    so all three patterns are anchored to that shape instead. The middle-field
+    one was added in M4b-1 task 4 for combat_messages.golden's
+    "derived|bite|weak|actor|skill=10|n=4 =>" rows, where the label is neither
+    last in the key nor followed by "=". It is as safe as the other two: a
+    pipe-delimited field is never prose.
     """
     for old, new in pairs:
         text = re.sub(r"\|%s(?= =>)" % re.escape(old), "|" + new, text)
+        text = re.sub(r"\|%s(?=\|)" % re.escape(old), "|" + new, text)
         text = re.sub(r"(?<![\w-])%s=" % re.escape(old), new + "=", text)
     return text
 
-
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--base", required=True, help="git ref holding the pre-rename goldens")
-    ap.add_argument("--group", required=True, choices=sorted(GROUPS))
-    args = ap.parse_args()
 
 def rows(text):
     """The data rows of a golden: every line that is not a generated comment.

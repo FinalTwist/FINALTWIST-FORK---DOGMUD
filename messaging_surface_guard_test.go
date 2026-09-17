@@ -139,13 +139,14 @@ var textSurfaceRegistry = map[string]surfaceEntry{
 	// the narration shape (see messagingSurfaceAudienceKeys' own comment),
 	// spanning internal/combat/taunt_messages.go, internal/items/
 	// attack_messages.go and internal/items/defensive_messages.go. --
-	"toattacker": {narration, "Attacker-side phrasing key shared by combat/taunt_messages.go TauntMessages.ToAttacker, items/attack_messages.go and items/defensive_messages.go -- combat/attack/defence/taunt message triad."},
-	"todefender": {narration, "Defender-side phrasing key, same triad as toattacker (taunt_messages.go, attack_messages.go, defensive_messages.go)."},
-	"toroom":     {narration, "Room-observer phrasing key, same triad as toattacker; ToRoom on TauntMessages/AttackMessages/DefensiveMessages."},
-	"together":   {narration, "items/attack_messages.go and items/defensive_messages.go Together field -- joint attacker+defender phrasing, paired with separate, in the same message triad."},
-	"separate":   {narration, "items/attack_messages.go and items/defensive_messages.go Separate field -- independent attacker/defender phrasing, paired with together."},
-	"optionid":   {narration, "combat/taunt_messages.go, items/attack_messages.go, items/defensive_messages.go OptionId field -- an identifier/selector (e.g. a DefenseType or ItemSubType), not prose itself, but it selects which tier of the message triad's Options map plays; part of the narration shape, not content."},
-	"options":    {narration, "The map of tiered/intensity message pools selected by optionid, same combat/attack/defence/taunt triad; the prose lives one level down inside this map."},
+	"actor":           {narration, "Attacker-side phrasing key shared by combat/taunt_messages.go TauntMessages.ToAttacker, items/attack_messages.go and items/defensive_messages.go -- combat/attack/defence/taunt message triad. SPELLING CHANGED IN M4b: this key was `toattacker` until the role-key rename."},
+	"actee":           {narration, "Defender-side phrasing key, same triad as actor (taunt_messages.go, attack_messages.go, defensive_messages.go). SPELLING CHANGED IN M4b: this key was `todefender` until the role-key rename."},
+	"observer":        {narration, "Room-observer phrasing key, same triad as actor; ToRoom on TauntMessages/AttackMessages/DefensiveMessages, and ToAttackerRoom on items/attack_messages.go SeparateMessages. SPELLING CHANGED IN M4b: this key was `toroom` in the together shape and `toattackerroom` in the separate shape until the role-key rename, which merged them because they are the same audience."},
+	"remote_observer": {narration, "items/attack_messages.go SeparateMessages.ToDefenderRoom -- the observers in the DEFENDER's room when a ranged blow crosses rooms, which is the one case with two observer audiences (narration.Roles.ActeeObserver). SPELLING CHANGED IN M4b: this key was `todefenderroom` until the role-key rename."},
+	"together":        {narration, "items/attack_messages.go and items/defensive_messages.go Together field -- joint attacker+defender phrasing, paired with separate, in the same message triad."},
+	"separate":        {narration, "items/attack_messages.go and items/defensive_messages.go Separate field -- independent attacker/defender phrasing, paired with together."},
+	"optionid":        {narration, "combat/taunt_messages.go, items/attack_messages.go, items/defensive_messages.go OptionId field -- an identifier/selector (e.g. a DefenseType or ItemSubType), not prose itself, but it selects which tier of the message triad's Options map plays; part of the narration shape, not content."},
+	"options":         {narration, "The map of tiered/intensity message pools selected by optionid, same combat/attack/defence/taunt triad; the prose lives one level down inside this map."},
 
 	// -- Grapple outcome narration: internal/grapplemessaging/loader.go
 	// TemplateTriad (Controller/Controlled/Observers) and GradientTriad
@@ -239,7 +240,14 @@ var messagingSurfaceKeyStems = []string{
 // messagingSurfaceAudienceKeys mirrors tools/messaging_surface_audit.py's
 // AUDIENCE_KEYS: audience/role keys carry no stem but ARE the narration shape.
 var messagingSurfaceAudienceKeys = map[string]bool{
-	"toattacker": true, "todefender": true, "toroom": true, "observers": true,
+	// actor/actee/observer/remote_observer replaced
+	// toattacker/todefender/toroom/toattackerroom/todefenderroom in M4b's
+	// role-key rename. `toattackerroom` and `todefenderroom` were never listed
+	// here: neither carries a stem, so neither was ever a candidate, and the
+	// separate shape's two room audiences went unregistered until the rename
+	// gave them names the walk can see.
+	"actor": true, "actee": true, "observer": true, "remote_observer": true,
+	"observers":  true,
 	"controller": true, "controlled": true, "together": true, "separate": true,
 	"options": true, "optionid": true,
 }

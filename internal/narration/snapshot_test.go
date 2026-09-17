@@ -40,8 +40,8 @@ package narration_test
 //     SkillTieredMessages.GetForSkillLevelWith directly (the seam production
 //     actually calls) at 3 representative skill levels, to freeze that its
 //     index-0 pick is (and stays) Beginner[0] regardless of skill level.
-//   - defense-messages: type x band(weak/normal/heavy) x role(todefender/
-//     toattacker/toroom, all 3 from one coordinated call). PLUS the EMPTY
+//   - defense-messages: type x band(weak/normal/heavy) x role(actee/
+//     actor/observer, all 3 from one coordinated call). PLUS the EMPTY
 //     case (unregistered defense type -> empty triad).
 //   - taunt-messages: intensity(4) x perspective(3). PLUS the EMPTY case
 //     (unrecognized perspective string -> "").
@@ -353,18 +353,18 @@ func buildCombatMessagesGolden(t *testing.T) string {
 		name string
 		get  func(items.TogetherMessages) items.SkillTieredMessages
 	}{
-		{"toattacker", func(m items.TogetherMessages) items.SkillTieredMessages { return m.ToAttacker }},
-		{"todefender", func(m items.TogetherMessages) items.SkillTieredMessages { return m.ToDefender }},
-		{"toroom", func(m items.TogetherMessages) items.SkillTieredMessages { return m.ToRoom }},
+		{"actor", func(m items.TogetherMessages) items.SkillTieredMessages { return m.ToAttacker }},
+		{"actee", func(m items.TogetherMessages) items.SkillTieredMessages { return m.ToDefender }},
+		{"observer", func(m items.TogetherMessages) items.SkillTieredMessages { return m.ToRoom }},
 	}
 	separateRoles := []struct {
 		name string
 		get  func(items.SeparateMessages) items.SkillTieredMessages
 	}{
-		{"toattacker", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToAttacker }},
-		{"todefender", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToDefender }},
-		{"toattackerroom", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToAttackerRoom }},
-		{"todefenderroom", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToDefenderRoom }},
+		{"actor", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToAttacker }},
+		{"actee", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToDefender }},
+		{"observer", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToAttackerRoom }},
+		{"remote_observer", func(m items.SeparateMessages) items.SkillTieredMessages { return m.ToDefenderRoom }},
 	}
 
 	hasSeparate := map[string]bool{"generic": true, "shooting": true}
@@ -461,7 +461,7 @@ func buildCombatMessagesGolden(t *testing.T) string {
 	// hands it to the core. Freezing the union's SIZE as well as its first
 	// entry says more than the old row did, because the size is what the
 	// coordinated index is taken modulo of.
-	fmt.Fprintf(&b, "\n# derived-selection (PoolFor), bite/weak/toattacker, cumulative tier union\n")
+	fmt.Fprintf(&b, "\n# derived-selection (PoolFor), bite/weak/actor, cumulative tier union\n")
 	opts := items.GetPreAttackMessage(items.Bite, items.Weak)
 	for _, skillLevel := range []int{10, 50, 90} {
 		pool := opts.Together.ToAttacker.PoolFor(skillLevel)
@@ -469,7 +469,7 @@ func buildCombatMessagesGolden(t *testing.T) string {
 		if len(pool) > 0 {
 			first = substituteTokens(pool[0])
 		}
-		fmt.Fprintf(&b, "derived|bite|weak|toattacker|skill=%d|n=%d => %s\n", skillLevel, len(pool), first)
+		fmt.Fprintf(&b, "derived|bite|weak|actor|skill=%d|n=%d => %s\n", skillLevel, len(pool), first)
 	}
 
 	return b.String()
@@ -488,7 +488,7 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# defense-messages store snapshot\n")
 	fmt.Fprintf(&b, "# defense-type files at time of writing: %d\n", len(types))
 	fmt.Fprintf(&b, "# defense-types: %s\n", strings.Join(types, ","))
-	fmt.Fprintf(&b, "# dimensions: defense-type x band(weak/normal/heavy) -- all 3 roles (todefender/toattacker/toroom)\n")
+	fmt.Fprintf(&b, "# dimensions: defense-type x band(weak/normal/heavy) -- all 3 roles (actee/actor/observer)\n")
 	fmt.Fprintf(&b, "# come from ONE coordinated RenderDefenseMessage call (same index across the triad).\n")
 	fmt.Fprintf(&b, "# RenderDefenseMessage has no picker param (util.Rand only) -- pinned via indexOverride=0,\n")
 	fmt.Fprintf(&b, "# the fresh-SequencePicker-first-pick equivalent for this seam.\n\n")
@@ -513,18 +513,18 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 	for _, dt := range types {
 		for _, band := range bands {
 			triad := items.RenderDefenseMessage(items.DefenseType(dt), band.crit, band.margin, defenseStandins, 0)
-			fmt.Fprintf(&b, "%s|%s|todefender => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
-			fmt.Fprintf(&b, "%s|%s|toattacker => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
-			fmt.Fprintf(&b, "%s|%s|toroom => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToRoom)))
+			fmt.Fprintf(&b, "%s|%s|actee => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
+			fmt.Fprintf(&b, "%s|%s|actor => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
+			fmt.Fprintf(&b, "%s|%s|observer => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToRoom)))
 		}
 	}
 
 	// EMPTY CASE: an unregistered defense type returns an all-empty triad.
 	fmt.Fprintf(&b, "\n# EMPTY CASE: unregistered defense type -> empty triad\n")
 	emptyTriad := items.RenderDefenseMessage(items.DefenseType("nonexistent-defense-type"), false, 0.6, defenseStandins, 0)
-	fmt.Fprintf(&b, "nonexistent-defense-type|normal|todefender => %q\n", string(emptyTriad.ToDefender))
-	fmt.Fprintf(&b, "nonexistent-defense-type|normal|toattacker => %q\n", string(emptyTriad.ToAttacker))
-	fmt.Fprintf(&b, "nonexistent-defense-type|normal|toroom => %q\n", string(emptyTriad.ToRoom))
+	fmt.Fprintf(&b, "nonexistent-defense-type|normal|actee => %q\n", string(emptyTriad.ToDefender))
+	fmt.Fprintf(&b, "nonexistent-defense-type|normal|actor => %q\n", string(emptyTriad.ToAttacker))
+	fmt.Fprintf(&b, "nonexistent-defense-type|normal|observer => %q\n", string(emptyTriad.ToRoom))
 
 	// MELEE SEAM: GetDefenseMessage's own zScore banding (>=2.0 heavy, >=0.5
 	// normal, else weak -- see internal/combat/combat_helpers.go), feeding the
@@ -544,18 +544,18 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 		for _, band := range meleeBands {
 			options := items.GetDefenseMessage(items.DefenseType(dt), band.zScore)
 			triad := options.RenderTriad(defenseStandins, narration.SequencePicker())
-			fmt.Fprintf(&b, "melee|%s|%s|todefender => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
-			fmt.Fprintf(&b, "melee|%s|%s|toattacker => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
-			fmt.Fprintf(&b, "melee|%s|%s|toroom => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToRoom)))
+			fmt.Fprintf(&b, "melee|%s|%s|actee => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
+			fmt.Fprintf(&b, "melee|%s|%s|actor => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
+			fmt.Fprintf(&b, "melee|%s|%s|observer => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToRoom)))
 		}
 	}
 
 	// EMPTY CASE (melee seam): an unregistered defense type.
 	fmt.Fprintf(&b, "\n# EMPTY CASE (melee seam): unregistered defense type -> empty triad\n")
 	emptyMeleeTriad := items.GetDefenseMessage(items.DefenseType("nonexistent-defense-type"), 0.6).RenderTriad(defenseStandins, narration.SequencePicker())
-	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|todefender => %q\n", string(emptyMeleeTriad.ToDefender))
-	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|toattacker => %q\n", string(emptyMeleeTriad.ToAttacker))
-	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|toroom => %q\n", string(emptyMeleeTriad.ToRoom))
+	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|actee => %q\n", string(emptyMeleeTriad.ToDefender))
+	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|actor => %q\n", string(emptyMeleeTriad.ToAttacker))
+	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|observer => %q\n", string(emptyMeleeTriad.ToRoom))
 
 	return b.String()
 }
@@ -572,7 +572,7 @@ func buildTauntMessagesGolden(t *testing.T) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# taunt-messages store snapshot\n")
 	fmt.Fprintf(&b, "# files at time of writing: %d (%s)\n", len(files), strings.Join(files, ","))
-	fmt.Fprintf(&b, "# dimensions: intensity(hit/miss/critical/fumble) x perspective(toattacker/todefender/toroom)\n")
+	fmt.Fprintf(&b, "# dimensions: intensity(hit/miss/critical/fumble) x perspective(actor/actee/observer)\n")
 	fmt.Fprintf(&b, "#\n")
 	fmt.Fprintf(&b, "# All three perspectives of one intensity come from ONE coordinated GetTauntTriad call\n")
 	fmt.Fprintf(&b, "# (same variant index across the triad). Until 2026-09-09 usercommands/taunt.go called a\n")
@@ -589,9 +589,9 @@ func buildTauntMessagesGolden(t *testing.T) string {
 
 	for _, intensity := range intensities {
 		triad := combat.GetTauntTriad(intensity, "Source", "Target", "User", "Mob", "ModerateWounds", narration.SequencePicker())
-		fmt.Fprintf(&b, "rhetoric|%s|toattacker => %s\n", intensity, triad.ToAttacker)
-		fmt.Fprintf(&b, "rhetoric|%s|todefender => %s\n", intensity, triad.ToDefender)
-		fmt.Fprintf(&b, "rhetoric|%s|toroom => %s\n", intensity, triad.ToRoom)
+		fmt.Fprintf(&b, "rhetoric|%s|actor => %s\n", intensity, triad.ToAttacker)
+		fmt.Fprintf(&b, "rhetoric|%s|actee => %s\n", intensity, triad.ToDefender)
+		fmt.Fprintf(&b, "rhetoric|%s|observer => %s\n", intensity, triad.ToRoom)
 	}
 
 	return b.String()

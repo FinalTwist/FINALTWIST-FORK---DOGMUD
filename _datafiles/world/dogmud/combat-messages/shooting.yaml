@@ -15,7 +15,7 @@ options:
   prepare:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You prepare to enter into ranged combat with <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'You grip your <ansi fg="item">{itemname}</ansi> tightly, readying yourself against <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -31,7 +31,7 @@ options:
         - 'Your aim settles into perfect position, {momentum}, as you face <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'You assume your flawless shooting stance with practiced perfection.'
         - '{momentum}, you read <ansi fg="{acteetype}">{actee}</ansi>''s movements before they happen, weapon poised perfectly.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> prepares to fire at you with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> grips their <ansi fg="item">{itemname}</ansi> tightly, readying against you.'
@@ -47,7 +47,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi>''s weapon moves into perfect position, a clear threat.'
         - 'With flowing grace, <ansi fg="{actortype}">{actor}</ansi> prepares to fire.'
         - '{momentum}, <ansi fg="{actortype}">{actor}</ansi> reads your every movement before you make it, weapon poised perfectly.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> prepares to attack <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> grips their <ansi fg="item">{itemname}</ansi> tightly, facing off against <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -65,7 +65,7 @@ options:
         - '{momentum}, <ansi fg="{actortype}">{actor}</ansi> reads <ansi fg="{acteetype}">{actee}</ansi>''s movements before they happen, weapon poised perfectly.'
     # messages for when they are in different rooms, such as with projectiles
     separate:
-      toattacker:
+      actor:
         beginner:
         - 'You prepare to attack <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi> direction.'
         - 'You ready your <ansi fg="item">{itemname}</ansi>, aiming poorly towards the <ansi fg="exit">{exitname}</ansi> direction at <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -78,7 +78,7 @@ options:
         - 'With perfect understanding of wind and distance, you ready your shot through the <ansi fg="exit">{exitname}</ansi>.'
         - '{momentum}, you instinctively lead the target through the <ansi fg="exit">{exitname}</ansi> direction.'
         - 'Your instinctive marksmanship takes perfect aim through the <ansi fg="exit">{exitname}</ansi>.'
-      todefender:
+      actee:
         beginner:
         - 'Someone... or something, is aiming at you from the <ansi fg="exit">{entrancename}</ansi> direction.'
         - 'You sense danger coming from the <ansi fg="exit">{entrancename}</ansi> direction.'
@@ -91,7 +91,7 @@ options:
         - 'You sense a legendary marksman preparing to fire from the <ansi fg="exit">{entrancename}</ansi> direction.'
         - 'An instinctive threat emanates from the <ansi fg="exit">{entrancename}</ansi> - someone with perfect aim.'
         - 'You feel an ominous premonition of flawless marksmanship from the <ansi fg="exit">{entrancename}</ansi>.'
-      toattackerroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> prepares to attack towards the <ansi fg="exit">{exitname}</ansi> direction.'
         - '<ansi fg="{actortype}">{actor}</ansi> readies their <ansi fg="item">{itemname}</ansi> aiming towards the <ansi fg="exit">{exitname}</ansi> direction.'
@@ -104,7 +104,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> prepares a perfect shot through the <ansi fg="exit">{exitname}</ansi> direction.'
         - '<ansi fg="{actortype}">{actor}</ansi> assumes flawless marksmanship posture towards the <ansi fg="exit">{exitname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> takes instinctive aim through the <ansi fg="exit">{exitname}</ansi>.'
-      todefenderroom:
+      remote_observer:
         beginner:
         - '<ansi fg="{acteetype}">{actee}</ansi> tenses, sensing something aiming from the <ansi fg="exit">{entrancename}</ansi> direction.'
         - '<ansi fg="{acteetype}">{actee}</ansi> senses danger coming from the <ansi fg="exit">{entrancename}</ansi> direction.'
@@ -120,7 +120,7 @@ options:
   wait:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You aim carefully at <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'You steady your <ansi fg="item">{itemname}</ansi>, focusing on <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -136,7 +136,7 @@ options:
         - 'While {position}, you predict <ansi fg="{acteetype}">{actee}</ansi>''s next action with perfect clarity.'
         - 'Your {stance} training allows you to analyze <ansi fg="{acteetype}">{actee}</ansi>''s vulnerabilities effortlessly.'
         - 'Like a predator, you instinctively assess <ansi fg="{acteetype}">{actee}</ansi>''s every weakness.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> circles dangerously, aiming at you.'
         - '<ansi fg="{actortype}">{actor}</ansi> watches you intently, finger poised on the trigger.'
@@ -152,7 +152,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> predicts your next action with perfect clarity.'
         - '<ansi fg="{actortype}">{actor}</ansi> analyzes your stance with masterful clarity.'
         - '<ansi fg="{actortype}">{actor}</ansi>''s eyes track your every shift like a predator.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> circles <ansi fg="{acteetype}">{actee}</ansi>, aiming with cruel intentions.'
         - '<ansi fg="{actortype}">{actor}</ansi> stalks around <ansi fg="{acteetype}">{actee}</ansi>, waiting for the right moment to fire.'
@@ -170,7 +170,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> analyzes <ansi fg="{acteetype}">{actee}</ansi> with predatory precision.'
     # messages for when they are in different rooms, such as with projectiles
     separate:
-      toattacker:
+      actor:
         beginner:
         - 'You aim carefully at <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi> direction.'
         - 'You steady your aim towards the <ansi fg="exit">{exitname}</ansi>, targeting <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -183,7 +183,7 @@ options:
         - 'With perfect understanding of all variables, you instinctively predict where <ansi fg="{acteetype}">{actee}</ansi> will be.'
         - '{momentum}, you read the wind and distance with absolute certainty through the <ansi fg="exit">{exitname}</ansi>.'
         - 'Your flawless marksmanship instinctively accounts for every factor through the <ansi fg="exit">{exitname}</ansi>.'
-      todefender:
+      actee:
         beginner:
         - 'The hair on the back of your neck stands up.'
         - 'A sudden chill runs down your spine.'
@@ -196,7 +196,7 @@ options:
         - 'You sense a legendary marksman reading your next move from the <ansi fg="exit">{entrancename}</ansi>.'
         - 'An ominous certainty settles over you - perfect aim awaits from the <ansi fg="exit">{entrancename}</ansi>.'
         - 'You feel a premonition of instinctive marksmanship from the <ansi fg="exit">{entrancename}</ansi> direction.'
-      toattackerroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> aims carefully towards the <ansi fg="exit">{exitname}</ansi> direction.'
         - '<ansi fg="{actortype}">{actor}</ansi> steadies their <ansi fg="item">{itemname}</ansi> towards the <ansi fg="exit">{exitname}</ansi>.'
@@ -209,7 +209,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> reads the wind and distance with perfect clarity towards the <ansi fg="exit">{exitname}</ansi> direction.'
         - '<ansi fg="{actortype}">{actor}</ansi> settles into flawless marksmanship towards the <ansi fg="exit">{exitname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> instinctively predicts the target''s next movement towards the <ansi fg="exit">{exitname}</ansi>.'
-      todefenderroom:
+      remote_observer:
         beginner:
         - 'The hair on <ansi fg="{acteetype}">{actee}</ansi>''s neck stands up, though nothing stirs nearby.'
         - 'A sudden chill runs down <ansi fg="{acteetype}">{actee}</ansi>''s spine.'
@@ -225,7 +225,7 @@ options:
   miss:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You fire your <ansi fg="item">{itemname}</ansi> at <ansi fg="{acteetype}">{actee}</ansi>, to no avail!'
         - 'Your shot at <ansi fg="{acteetype}">{actee}</ansi> misses completely!'
@@ -241,7 +241,7 @@ options:
         - 'Despite flawless form, <ansi fg="{acteetype}">{actee}</ansi> reads your intent and evades!'
         - 'Your masterful aim meets an equally masterful evasion!'
         - '{momentum}, your instinctive shot is barely avoided!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> fires a shot from their <ansi fg="item">{itemname}</ansi> at you, but misses by a mile.'
         - '<ansi fg="{actortype}">{actor}</ansi> shoots at you but fails to hit.'
@@ -257,7 +257,7 @@ options:
         - 'You read <ansi fg="{actortype}">{actor}</ansi>''s intent and evade with flowing grace!'
         - 'Your superior skill deflects <ansi fg="{actortype}">{actor}</ansi>''s masterful shot!'
         - '{momentum}, you barely avoid <ansi fg="{actortype}">{actor}</ansi>''s instinctive shot!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> fires a shot from their <ansi fg="item">{itemname}</ansi> at <ansi fg="{acteetype}">{actee}</ansi>, but misses by a mile.'
         - '<ansi fg="{actortype}">{actor}</ansi> shoots at <ansi fg="{acteetype}">{actee}</ansi> but misses completely.'
@@ -275,7 +275,7 @@ options:
         - '{momentum}, <ansi fg="{acteetype}">{actee}</ansi> barely avoids <ansi fg="{actortype}">{actor}</ansi>''s instinctive shot!'
     # messages for when they are in different rooms, such as with projectiles
     separate:
-      toattacker:
+      actor:
         beginner:
         - 'You fire your <ansi fg="item">{itemname}</ansi> through the <ansi fg="exit">{exitname}</ansi> direction, but miss <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'Your shot towards <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi> misses!'
@@ -288,7 +288,7 @@ options:
         - 'Your perfect reading of wind and distance still results in a miss through the <ansi fg="exit">{exitname}</ansi>!'
         - 'Even your instinctive marksmanship fails to connect through the <ansi fg="exit">{exitname}</ansi>!'
         - 'Your flawless technique cannot account for <ansi fg="{acteetype}">{actee}</ansi>''s evasion through the <ansi fg="exit">{exitname}</ansi>.'
-      todefender:
+      actee:
         beginner:
         - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi> direction, but misses you!'
         - 'A projectile whizzes past you from the <ansi fg="exit">{entrancename}</ansi> direction!'
@@ -301,7 +301,7 @@ options:
         - 'A legendary marksman''s shot barely misses from the <ansi fg="exit">{entrancename}</ansi> direction!'
         - 'You instinctively evade a perfect shot from the <ansi fg="exit">{entrancename}</ansi> direction!'
         - 'An impossibly accurate shot still misses from the <ansi fg="exit">{entrancename}</ansi> direction!'
-      toattackerroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi> towards the <ansi fg="exit">{exitname}</ansi> direction.'
         - '<ansi fg="{actortype}">{actor}</ansi> shoots through the <ansi fg="exit">{exitname}</ansi> but seems to miss.'
@@ -314,7 +314,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> fires a perfect shot through the <ansi fg="exit">{exitname}</ansi> direction.'
         - '<ansi fg="{actortype}">{actor}</ansi> instinctively takes a flawless shot through the <ansi fg="exit">{exitname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> fires with legendary accuracy through the <ansi fg="exit">{exitname}</ansi> but misses.'
-      todefenderroom:
+      remote_observer:
         beginner:
         - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi> direction, barely missing <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'A projectile flies in from the <ansi fg="exit">{entrancename}</ansi>, missing <ansi fg="{acteetype}">{actee}</ansi> by inches.'
@@ -330,7 +330,7 @@ options:
   weak:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You fire at <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi>.'
         - 'Your shot grazes <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -347,7 +347,7 @@ options:
         - 'You press forward with a quick shot, nicking <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'While {position}, you flick your shot at <ansi fg="{acteetype}">{actee}</ansi> with perfect precision.'
         - 'You find a small opening and deliver a shallow wound to <ansi fg="{acteetype}">{actee}</ansi>.'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> fires at you with their <ansi fg="item">{itemname}</ansi>.'
         - 'You feel a sting as <ansi fg="{actortype}">{actor}</ansi> grazes you with a shot.'
@@ -364,7 +364,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> presses forward and nicks you with perfect aim.'
         - '<ansi fg="{actortype}">{actor}</ansi> dances and flicks a shot at you with perfect precision.'
         - '<ansi fg="{actortype}">{actor}</ansi> finds a small opening and wounds you.'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> fires at <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> grazes <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
@@ -383,7 +383,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> finds a small opening and delivers a shallow wound.'
     # messages for when they are in different rooms, such as with projectiles
     separate:
-      toattacker:
+      actor:
         beginner:
         - 'You fire at <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi> direction.'
         - 'Your shot through the <ansi fg="exit">{exitname}</ansi> grazes <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -396,7 +396,7 @@ options:
         - 'While {position}, you read the wind and distance for a precise light shot through the <ansi fg="exit">{exitname}</ansi>.'
         - 'Your instinctive aim delivers a calculated wound through the <ansi fg="exit">{exitname}</ansi>.'
         - '{momentum}, you fire a perfectly placed light shot through the <ansi fg="exit">{exitname}</ansi>.'
-      todefender:
+      actee:
         beginner:
         - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi> direction, hitting you!'
         - 'You are grazed by a shot from the <ansi fg="exit">{entrancename}</ansi> direction!'
@@ -409,7 +409,7 @@ options:
         - 'A legendary marksman''s shot from the <ansi fg="exit">{entrancename}</ansi> direction grazes you.'
         - 'You are hit by a perfectly aimed shot from the <ansi fg="exit">{entrancename}</ansi> direction!'
         - 'A shot of incredible accuracy from the <ansi fg="exit">{entrancename}</ansi> direction wounds you.'
-      toattackerroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi> towards the <ansi fg="exit">{exitname}</ansi> direction.'
         - '<ansi fg="{actortype}">{actor}</ansi> shoots through the <ansi fg="exit">{exitname}</ansi>, attempting to hit <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -422,7 +422,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> reads the wind perfectly and fires through the <ansi fg="exit">{exitname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> fires with legendary accuracy through the <ansi fg="exit">{exitname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> instinctively leads and fires through the <ansi fg="exit">{exitname}</ansi>.'
-      todefenderroom:
+      remote_observer:
         beginner:
         - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi>, hitting <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'A projectile flies in from the <ansi fg="exit">{entrancename}</ansi>, grazing <ansi fg="{acteetype}">{actee}</ansi>.'
@@ -438,7 +438,7 @@ options:
   normal:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'You fire your <ansi fg="item">{itemname}</ansi>, wounding <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'Your shot hits <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -460,7 +460,7 @@ options:
         - 'You are {momentum} as your shot strikes into <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'While {momentum}, you fire decisively at <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'Your shot strikes <ansi fg="{acteetype}">{actee}</ansi> in the {bodypart}!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi>, wounding you!'
         - 'You are hit by <ansi fg="{actortype}">{actor}</ansi>''s shot!'
@@ -482,7 +482,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> is {momentum} as their shot strikes into you!'
         - '<ansi fg="{actortype}">{actor}</ansi> reads your position and fires with precision!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s shot catches you in the {bodypart}!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi>, wounding <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s shot hits <ansi fg="{acteetype}">{actee}</ansi>, dealing damage!'
@@ -506,7 +506,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi>''s shot strikes <ansi fg="{acteetype}">{actee}</ansi> in the {bodypart}!'
     # messages for when they are in different rooms, such as with projectiles
     separate:
-      toattacker:
+      actor:
         beginner:
         - 'You fire through the <ansi fg="exit">{exitname}</ansi> direction, wounding <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'Your shot through the <ansi fg="exit">{exitname}</ansi> hits <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -519,7 +519,7 @@ options:
         - 'While {position}, you read wind and distance perfectly, wounding <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi>.'
         - 'Your instinctive marksmanship delivers a perfect shot through the <ansi fg="exit">{exitname}</ansi>!'
         - '{momentum}, you fire with legendary accuracy through the <ansi fg="exit">{exitname}</ansi>, striking <ansi fg="{acteetype}">{actee}</ansi>!'
-      todefender:
+      actee:
         beginner:
         - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi> direction, wounding you!'
         - 'You are hit by a shot from the <ansi fg="exit">{entrancename}</ansi> direction!'
@@ -532,7 +532,7 @@ options:
         - 'A legendary marksman''s shot from the <ansi fg="exit">{entrancename}</ansi> direction wounds you!'
         - 'You are hit by a perfectly aimed shot from the <ansi fg="exit">{entrancename}</ansi> direction!'
         - 'A shot of incredible accuracy from the <ansi fg="exit">{entrancename}</ansi> direction strikes you!'
-      toattackerroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi> towards the <ansi fg="exit">{exitname}</ansi> direction.'
         - '<ansi fg="{actortype}">{actor}</ansi> shoots through the <ansi fg="exit">{exitname}</ansi>, hitting their target.'
@@ -545,7 +545,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> reads wind and distance perfectly, firing through the <ansi fg="exit">{exitname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> fires with legendary accuracy through the <ansi fg="exit">{exitname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> instinctively leads and fires through the <ansi fg="exit">{exitname}</ansi>.'
-      todefenderroom:
+      remote_observer:
         beginner:
         - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi>, wounding <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'A projectile from the <ansi fg="exit">{entrancename}</ansi> hits <ansi fg="{acteetype}">{actee}</ansi>, causing damage.'
@@ -561,7 +561,7 @@ options:
   heavy:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'In a sweeping motion, you fire at <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi>!'
         - 'You deliver a powerful shot to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -589,7 +589,7 @@ options:
         - 'Maintaining your assault, you deliver a powerful shot!'
         - 'From your {stance} stance, {momentum}, you deliver a devastating shot while {position}!'
         - 'Your shot punches into <ansi fg="{acteetype}">{actee}</ansi>''s {bodypart} with brutal force!'
-      todefender:
+      actee:
         beginner:
         - 'In a sweeping motion, <ansi fg="{actortype}">{actor}</ansi> fires at you with their <ansi fg="item">{itemname}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> delivers a powerful shot!'
@@ -617,7 +617,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> maintains their assault with a powerful shot!'
         - 'From a {stance} stance, {momentum}, <ansi fg="{actortype}">{actor}</ansi> delivers a devastating shot while {position}!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s shot punches into your {bodypart} with brutal force!'
-      toroom:
+      observer:
         beginner:
         - 'In a sweeping motion, <ansi fg="{actortype}">{actor}</ansi> fires at <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> delivers a powerful shot to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -647,7 +647,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi>''s shot punches into <ansi fg="{acteetype}">{actee}</ansi>''s {bodypart} with brutal force!'
     # messages for when they are in different rooms, such as with projectiles
     separate:
-      toattacker:
+      actor:
         beginner:
         - 'In a sweeping motion, you fire through the <ansi fg="exit">{exitname}</ansi> direction to <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'You land a powerful shot on <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi>!'
@@ -660,7 +660,7 @@ options:
         - 'While {position}, you read all variables and deliver a devastating shot through the <ansi fg="exit">{exitname}</ansi>.'
         - 'Your instinctive marksmanship delivers overwhelming force through the <ansi fg="exit">{exitname}</ansi>!'
         - '{momentum}, you fire with legendary power through the <ansi fg="exit">{exitname}</ansi>, striking <ansi fg="{acteetype}">{actee}</ansi> hard!'
-      todefender:
+      actee:
         beginner:
         - 'With incredible accuracy, a shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi> direction, hitting you!'
         - 'You are struck hard by a shot from the <ansi fg="exit">{entrancename}</ansi>!'
@@ -673,7 +673,7 @@ options:
         - 'With legendary precision, a devastating shot flies in from the <ansi fg="exit">{entrancename}</ansi> direction!'
         - 'You are struck hard by a perfect shot from the <ansi fg="exit">{entrancename}</ansi> direction!'
         - 'An impossibly powerful shot from the <ansi fg="exit">{entrancename}</ansi> direction hits you with force!'
-      toattackerroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi> towards the <ansi fg="exit">{exitname}</ansi> direction.'
         - '<ansi fg="{actortype}">{actor}</ansi> shoots through the <ansi fg="exit">{exitname}</ansi>, hitting their target powerfully.'
@@ -686,7 +686,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> reads wind and distance perfectly, firing powerfully through the <ansi fg="exit">{exitname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> fires with legendary strength through the <ansi fg="exit">{exitname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> instinctively leads and fires powerfully through the <ansi fg="exit">{exitname}</ansi>.'
-      todefenderroom:
+      remote_observer:
         beginner:
         - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi>, hitting <ansi fg="{acteetype}">{actee}</ansi> with incredible accuracy.'
         - 'A projectile from the <ansi fg="exit">{entrancename}</ansi> strikes <ansi fg="{acteetype}">{actee}</ansi> powerfully.'
@@ -702,7 +702,7 @@ options:
   critical:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY SNIPES</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'You deliver a <ansi fg="cyan-bold">CRITICAL HIT</ansi> to <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi>!'
@@ -724,7 +724,7 @@ options:
         - 'Your unstoppable assault culminates in a <ansi fg="cyan-bold">CRITICAL SHOT</ansi>!'
         - 'Channeling all momentum, you <ansi fg="cyan-bold">CARVE THROUGH</ansi> <ansi fg="{acteetype}">{actee}</ansi> utterly!'
         - 'The tide of battle favors you - your shot <ansi fg="cyan-bold">DECIMATES</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY SNIPES</ansi> you!'
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL HIT</ansi>!'
@@ -746,7 +746,7 @@ options:
         - '<ansi fg="{actortype}">{actor}''s</ansi> unstoppable assault culminates in a <ansi fg="cyan-bold">CRITICAL SHOT</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> channels all momentum and <ansi fg="cyan-bold">CARVES THROUGH</ansi> you utterly!'
         - 'The tide favors <ansi fg="{actortype}">{actor}</ansi> - their shot <ansi fg="cyan-bold">DECIMATES</ansi> you!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY SNIPES</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL HIT</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -770,7 +770,7 @@ options:
         - 'The tide favors <ansi fg="{actortype}">{actor}</ansi> - their shot <ansi fg="cyan-bold">DECIMATES</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
     # messages for when they are in different rooms, such as with projectiles
     separate:
-      toattacker:
+      actor:
         beginner:
         - 'Your <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY SNIPES</ansi> <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi> direction!'
         - 'You deliver a <ansi fg="cyan-bold">CRITICAL HIT</ansi> to <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi>!'
@@ -783,7 +783,7 @@ options:
         - 'While {position}, you read all variables perfectly and deliver a <ansi fg="cyan-bold">DEVASTATING CRITICAL</ansi> through the <ansi fg="exit">{exitname}</ansi>.'
         - 'Your instinctive marksmanship delivers a <ansi fg="cyan-bold">PERFECT EXECUTION</ansi> through the <ansi fg="exit">{exitname}</ansi>!'
         - '{momentum}, you fire with legendary precision through the <ansi fg="exit">{exitname}</ansi>, <ansi fg="cyan-bold">DECIMATING</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
-      todefender:
+      actee:
         beginner:
         - 'A <ansi fg="item">{itemname}</ansi> shot from the <ansi fg="exit">{entrancename}</ansi> direction <ansi fg="cyan-bold">CRITICALLY SNIPES</ansi> you!'
         - 'A shot from the <ansi fg="exit">{entrancename}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL HIT</ansi>!'
@@ -796,7 +796,7 @@ options:
         - 'A legendary marksman''s critical shot from the <ansi fg="exit">{entrancename}</ansi> direction <ansi fg="cyan-bold">DEVASTATES</ansi> you!'
         - 'A perfectly aimed critical shot from the <ansi fg="exit">{entrancename}</ansi> <ansi fg="cyan-bold">EVISCERA</ansi>ES you!'
         - 'An impossibly accurate critical shot from the <ansi fg="exit">{entrancename}</ansi> direction <ansi fg="cyan-bold">ANNIHILATES</ansi> you!'
-      toattackerroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi> towards the <ansi fg="exit">{exitname}</ansi> direction.'
         - '<ansi fg="{actortype}">{actor}</ansi> fires a critical shot through the <ansi fg="exit">{exitname}</ansi>.'
@@ -809,7 +809,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> reads all variables perfectly and fires critically through the <ansi fg="exit">{exitname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> fires with legendary precision through the <ansi fg="exit">{exitname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> instinctively delivers a devastating critical shot through the <ansi fg="exit">{exitname}</ansi>.'
-      todefenderroom:
+      remote_observer:
         beginner:
         - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi>, and <ansi fg="cyan-bold">CRITICALLY SNIPES</ansi> <ansi fg="{acteetype}">{actee}</ansi>.'
         - 'A shot from the <ansi fg="exit">{entrancename}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL HIT</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
@@ -825,7 +825,7 @@ options:
   fumble:
     # messages for when they are in the same room
     together:
-      toattacker:
+      actor:
         beginner:
         - 'Your arrow <ansi fg="red-bold">FUMBLES</ansi> wildly and flies off in a random direction!'
         - 'You <ansi fg="red-bold">FUMBLE</ansi> your shot at <ansi fg="{acteetype}">{actee}</ansi> completely!'
@@ -838,7 +838,7 @@ options:
         - '<ansi fg="{acteetype}">{actee}</ansi>''s unexpected counter forces you to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite perfect form, a misstep causes you to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Your masterful shot is disrupted - you <ansi fg="red-bold">FUMBLE</ansi> the execution!'
-      todefender:
+      actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi>''s shot <ansi fg="red-bold">FUMBLES</ansi> awkwardly into the air!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their <ansi fg="item">{itemname}</ansi> in a pathetic display of clumsy incompetence!'
@@ -851,7 +851,7 @@ options:
         - 'Your defense forces <ansi fg="{actortype}">{actor}</ansi> to <ansi fg="red-bold">FUMBLE</ansi>!'
         - 'Despite their skill, <ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi>!'
         - '<ansi fg="{actortype}">{actor}''s</ansi> masterful shot is disrupted - they <ansi fg="red-bold">FUMBLE</ansi>!'
-      toroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="red-bold">FUMBLES</ansi> wildly as their shot goes nowhere!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their shot at <ansi fg="{acteetype}">{actee}</ansi> in a ridiculous manner!'
@@ -866,7 +866,7 @@ options:
         - '<ansi fg="{actortype}">{actor}''s</ansi> perfect shot is disrupted - a <ansi fg="red-bold">FUMBLE</ansi>!'
     # messages for when they are in different rooms, such as with projectiles
     separate:
-      toattacker:
+      actor:
         beginner:
         - 'Your arrow <ansi fg="red-bold">FUMBLES</ansi> wildly as you lose control of your aim!'
         - 'You <ansi fg="red-bold">FUMBLE</ansi> your shot towards <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi>!'
@@ -879,7 +879,7 @@ options:
         - 'Despite perfect conditions, your {stance} approach <ansi fg="red-bold">FUMBLES</ansi> through the <ansi fg="exit">{exitname}</ansi>!'
         - 'Your instinctive marksmanship <ansi fg="red-bold">FUMBLES</ansi> unexpectedly through the <ansi fg="exit">{exitname}</ansi>!'
         - 'Even while {momentum}, your shot <ansi fg="red-bold">FUMBLES</ansi> through the <ansi fg="exit">{exitname}</ansi>!'
-      todefender:
+      actee:
         beginner:
         - 'A shot from the <ansi fg="exit">{entrancename}</ansi> <ansi fg="red-bold">FUMBLES</ansi> harmlessly past you!'
         - 'An arrow from afar <ansi fg="red-bold">FUMBLES</ansi> wildly and misses completely!'
@@ -892,7 +892,7 @@ options:
         - 'A legendary marksman''s shot from the <ansi fg="exit">{entrancename}</ansi> <ansi fg="red-bold">FUMBLES</ansi> wildly!'
         - 'A perfect shot from the <ansi fg="exit">{entrancename}</ansi> <ansi fg="red-bold">FUMBLES</ansi> unexpectedly!'
         - 'An instinctive shot from the <ansi fg="exit">{entrancename}</ansi> <ansi fg="red-bold">FUMBLES</ansi> away!'
-      toattackerroom:
+      observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their shot through the <ansi fg="exit">{exitname}</ansi> direction!'
         - '<ansi fg="{actortype}">{actor}</ansi>''s aim <ansi fg="red-bold">FUMBLES</ansi> as they lose control!'
@@ -905,7 +905,7 @@ options:
         - '<ansi fg="{actortype}">{actor}''s</ansi> flawless form <ansi fg="red-bold">FUMBLES</ansi> unexpectedly through the <ansi fg="exit">{exitname}</ansi>!'
         - '<ansi fg="{actortype}">{actor}''s</ansi> instinctive shot <ansi fg="red-bold">FUMBLES</ansi> through the <ansi fg="exit">{exitname}</ansi>!'
         - '<ansi fg="{actortype}">{actor}''s</ansi> {stance} approach <ansi fg="red-bold">FUMBLES</ansi> badly!'
-      todefenderroom:
+      remote_observer:
         beginner:
         - 'A shot from the <ansi fg="exit">{entrancename}</ansi> <ansi fg="red-bold">FUMBLES</ansi> past <ansi fg="{acteetype}">{actee}</ansi>!'
         - 'A projectile flies in from the <ansi fg="exit">{entrancename}</ansi> and <ansi fg="red-bold">FUMBLES</ansi> wildly!'

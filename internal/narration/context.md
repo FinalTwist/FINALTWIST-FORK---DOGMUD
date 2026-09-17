@@ -157,7 +157,7 @@ process.
 
 **Pass `expected` to `ValidateVariants` if your store has more than one role.**
 Without it the function cannot tell a role that is deliberately absent (a condition
-has no actee) from one that went MISSING (a defence band that lost its toroom
+has no actee) from one that went MISSING (a defence band that lost its observer
 pool), because both look like an empty slice. A three-role store that omits it
 can boot happily while narrating a real event to two audiences and silence to
 the third, which is the exact defect this package exists to prevent. A blind
@@ -192,11 +192,19 @@ guards at the repo root for that (`TestM2LiteralsAreFrozen` and
 the melee defence triad bug survived M1.
 
 **`defense_messages.golden` keys its rows by the AUTHORED role name**
-(`todefender`, `toattacker`, `toroom`), not by the core's role names. That is
-deliberate and load-bearing: it makes the golden able to catch a swap of which
-authored pool lands in which role, which is the mistake this core makes easiest
-to introduce. Re-recording it under the core's vocabulary would destroy that
-property.
+(`actee`, `actor`, `observer`, spelled `todefender`/`toattacker`/`toroom` until
+M4b-1). That is deliberate and load-bearing: it makes the golden able to catch
+a swap of which authored pool lands in which role, which is the mistake this
+core makes easiest to introduce.
+
+The rename made the authored spellings and the core's role names COINCIDE, and
+the property survives that only because of how the row is built: the builder
+pairs a hardcoded label with a GO FIELD (`triad.ToDefender`), and the field's
+`yaml:` tag is exactly what a swap would corrupt. Swapping the `actor` and
+`actee` tags on `DefenseTogetherMessages` was verified to turn this golden red
+(M4b-1 task 4). Re-recording the golden rather than translating its labels
+would still destroy the property, which is why `tools/messaging_role_key_check.py`
+exists and why the rename never ran the snapshot with `-update`.
 
 **`combat_messages.golden` records one COORDINATED VARIANT per row** (M3 item
 8), keyed `subtype|intensity|split|tier|index` with every authored role named

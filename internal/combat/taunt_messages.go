@@ -22,10 +22,14 @@ const (
 )
 
 // TauntMessages holds messages for a single intensity level.
+//
+// The keys are the canonical role vocabulary (M4b-1), spelled
+// toattacker/todefender/toroom until then. The Go field names still carry the
+// old spelling, which is cosmetic and left for a later pass.
 type TauntMessages struct {
-	ToAttacker []string `yaml:"toattacker"`
-	ToDefender []string `yaml:"todefender"`
-	ToRoom     []string `yaml:"toroom"`
+	ToAttacker []string `yaml:"actor"`
+	ToDefender []string `yaml:"actee"`
+	ToRoom     []string `yaml:"observer"`
 }
 
 // TauntMessageGroup is the top-level YAML structure for taunt messages.
@@ -41,13 +45,13 @@ func (t *TauntMessageGroup) Filepath() string { return fmt.Sprintf("%s.yaml", t.
 // each band to the shared primitive.
 //
 // The equal-length rule is the important one, and it is the rule this store
-// went without until 2026-09-09: variant N of toattacker, todefender and toroom
+// went without until 2026-09-09: variant N of actor, actee and observer
 // describe the SAME moment, so a short pool means some indices have no line for
 // that audience. The shipped data had exactly that, 8/8/6 in the hit and miss
 // bands, so a coordinated index of 6 or 7 left the room silent.
 //
 // The three roles are DECLARED rather than inferred. Without that,
-// ValidateVariants cannot tell a band that never had a toroom pool from one
+// ValidateVariants cannot tell a band that never had an observer pool from one
 // that lost it, since both are an empty slice, and this store would boot
 // happily while narrating a real taunt to two audiences and silence to the
 // third.
@@ -71,13 +75,15 @@ func (t *TauntMessageGroup) Validate() error {
 // author.
 const minTauntVariants = 5
 
-// variants maps the AUTHORED role names onto the core's vocabulary.
+// variants maps the Go fields onto the core's vocabulary.
 //
-// This is the one line in this file worth reading slowly, and it is the same
-// aliasing the defence store does: a taunter ACTS and a target is ACTED UPON,
-// so toattacker is the Actor and todefender is the Actee. Swapping them would
-// invert every taunt in the game, and taunt_messages.golden catches it because
-// that file keys its rows by the AUTHORED name.
+// Since M4b-1 the AUTHORED keys are already that vocabulary, so this is no
+// longer an alias layer. It is still the one line in this file worth reading
+// slowly, because the field names lag the keys: a taunter ACTS and a target is
+// ACTED UPON, so ToAttacker (authored `actor`) is the Actor and ToDefender
+// (authored `actee`) is the Actee. Swapping them would invert every taunt in
+// the game, and taunt_messages.golden catches it because that file keys its
+// rows by the AUTHORED name.
 func (m *TauntMessages) variants() narration.Variants {
 	return narration.Variants{
 		Actor:    m.ToAttacker,

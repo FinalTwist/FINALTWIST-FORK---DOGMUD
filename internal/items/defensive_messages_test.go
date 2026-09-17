@@ -45,13 +45,13 @@ func TestDefenseMessageValidRejectsInvalidAudienceShapes(t *testing.T) {
 			o := g.Options[Normal]
 			o.Together.ToDefender = nil
 			g.Options[Normal] = o
-		}, "todefender"},
+		}, "actee"},
 		{"empty_attacker", func(g *DefenseMessageGroup) {
 			o := g.Options[Normal]
 			o.Together.ToAttacker = nil
 			g.Options[Normal] = o
-		}, "toattacker"},
-		{"empty_room", func(g *DefenseMessageGroup) { o := g.Options[Normal]; o.Together.ToRoom = nil; g.Options[Normal] = o }, "toroom"},
+		}, "actor"},
+		{"empty_room", func(g *DefenseMessageGroup) { o := g.Options[Normal]; o.Together.ToRoom = nil; g.Options[Normal] = o }, "observer"},
 		{"unequal_lengths", func(g *DefenseMessageGroup) {
 			o := g.Options[Heavy]
 			o.Together.ToRoom = append(o.Together.ToRoom, "heavy-room-5")

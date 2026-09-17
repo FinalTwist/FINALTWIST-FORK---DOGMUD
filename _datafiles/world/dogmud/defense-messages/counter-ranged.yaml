@@ -9,19 +9,19 @@ optionid: counter-ranged
 options:
   weak:
     together:
-      todefender:
+      actee:
       - '<ansi fg="defense-good">You rush {actor} behind the wasted shot, but they hold you off.</ansi>'
       - '<ansi fg="defense-good">You dart inside {actor}''s aim, but your strike is turned away.</ansi>'
       - '<ansi fg="defense-good">You close in on {actor}, but they slip your blow.</ansi>'
       - '<ansi fg="defense-good">You knock the weapon wide and swing, but {actor} twists clear.</ansi>'
       - '<ansi fg="defense-good">You surge past the spent shot, but {actor} keeps you at bay.</ansi>'
-      toattacker:
+      actor:
       - '<ansi fg="attack-bad">{actee} rushes you behind your wasted shot, but you hold them off.</ansi>'
       - '<ansi fg="attack-bad">{actee} darts inside your aim, but you turn their strike away.</ansi>'
       - '<ansi fg="attack-bad">{actee} closes in on you, but you slip their blow.</ansi>'
       - '<ansi fg="attack-bad">{actee} knocks your weapon wide and swings, but you twist clear.</ansi>'
       - '<ansi fg="attack-bad">{actee} surges past your spent shot, but you keep them at bay.</ansi>'
-      toroom:
+      observer:
       - '<ansi fg="combat">{actee} rushes {actor} behind the wasted shot, but is held off.</ansi>'
       - '<ansi fg="combat">{actee} darts inside {actor}''s aim, but the strike is turned away.</ansi>'
       - '<ansi fg="combat">{actee} closes in on {actor}, who slips the blow.</ansi>'
@@ -29,19 +29,19 @@ options:
       - '<ansi fg="combat">{actee} surges past the spent shot, but {actor} keeps them at bay.</ansi>'
   normal:
     together:
-      todefender:
+      actee:
       - '<ansi fg="defense-good">You close the distance behind the wasted shot and strike {actor}.</ansi>'
       - '<ansi fg="defense-good">You dart inside {actor}''s aim and land a solid blow.</ansi>'
       - '<ansi fg="defense-good">Before {actor} can steady the weapon, your strike lands.</ansi>'
       - '<ansi fg="defense-good">You knock the weapon wide and hit {actor} squarely.</ansi>'
       - '<ansi fg="defense-good">You make {actor} pay for shooting at arm''s reach.</ansi>'
-      toattacker:
+      actor:
       - '<ansi fg="attack-bad">{actee} closes the distance behind your wasted shot and strikes you.</ansi>'
       - '<ansi fg="attack-bad">{actee} darts inside your aim and lands a solid blow.</ansi>'
       - '<ansi fg="attack-bad">Before you can steady the weapon, {actee}''s strike lands.</ansi>'
       - '<ansi fg="attack-bad">{actee} knocks your weapon wide and hits you squarely.</ansi>'
       - '<ansi fg="attack-bad">{actee} makes you pay for shooting at arm''s reach.</ansi>'
-      toroom:
+      observer:
       - '<ansi fg="combat">{actee} closes on {actor} behind the wasted shot and strikes.</ansi>'
       - '<ansi fg="combat">{actee} darts inside {actor}''s aim and lands a solid blow.</ansi>'
       - '<ansi fg="combat">Before {actor} can steady the weapon, {actee}''s strike lands.</ansi>'
@@ -49,19 +49,19 @@ options:
       - '<ansi fg="combat">{actee} makes {actor} pay for shooting at arm''s reach.</ansi>'
   heavy:
     together:
-      todefender:
+      actee:
       - '<ansi fg="defense-good">You are on {actor} before the shot''s echo fades, striking hard.</ansi>'
       - '<ansi fg="defense-good">You slip the shot and crash into {actor} at full force.</ansi>'
       - '<ansi fg="defense-good">You close in a heartbeat and hammer {actor} at close quarters.</ansi>'
       - '<ansi fg="defense-good">You catch {actor} flat footed behind the weapon and strike true.</ansi>'
       - '<ansi fg="defense-good">You turn the spent shot into your moment and slam into {actor}.</ansi>'
-      toattacker:
+      actor:
       - '<ansi fg="attack-bad">{actee} is on you before the shot''s echo fades, striking hard.</ansi>'
       - '<ansi fg="attack-bad">{actee} slips your shot and crashes into you at full force.</ansi>'
       - '<ansi fg="attack-bad">{actee} closes in a heartbeat and hammers you at close quarters.</ansi>'
       - '<ansi fg="attack-bad">{actee} catches you flat footed behind your weapon and strikes true.</ansi>'
       - '<ansi fg="attack-bad">{actee} turns your spent shot into their moment and slams into you.</ansi>'
-      toroom:
+      observer:
       - '<ansi fg="combat">{actee} is on {actor} before the shot''s echo fades.</ansi>'
       - '<ansi fg="combat">{actee} slips the shot and crashes into {actor} at full force.</ansi>'
       - '<ansi fg="combat">{actee} closes in a heartbeat and hammers {actor}.</ansi>'
