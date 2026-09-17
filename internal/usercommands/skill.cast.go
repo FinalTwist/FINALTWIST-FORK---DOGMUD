@@ -56,16 +56,11 @@ func Cast(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	// and single-word aliases ("cast ward") both resolve. Downstream plumbing
 	// (skill check, InitiateCast, cooldowns, quests) is keyed by the canonical
 	// spellid, so we assign spellInfo.SpellId to spellName below.
-	words := strings.Fields(rest)
-	var spellInfo *spells.SpellData
-	targetName := ``
-	for n := len(words); n >= 1; n-- {
-		if sd := spells.ResolveSpell(strings.Join(words[:n], ` `)); sd != nil {
-			spellInfo = sd
-			targetName = strings.TrimSpace(strings.Join(words[n:], ` `))
-			break
-		}
-	}
+	//
+	// spells.ResolveSpellGreedy is shared with actions.castReadiness (the
+	// read-only probe behind the client action queue) so the two cannot
+	// drift on which spell names resolve.
+	spellInfo, targetName := spells.ResolveSpellGreedy(rest)
 	if spellInfo == nil {
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="red">No spell found for "%s". Use the spell name or an alias `+

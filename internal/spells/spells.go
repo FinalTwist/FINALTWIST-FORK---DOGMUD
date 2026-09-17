@@ -223,6 +223,29 @@ func ResolveSpellId(token string) string {
 	return ""
 }
 
+// ResolveSpellGreedy performs the greedy longest-match resolution the cast
+// command uses to parse "<spell> [target]": try the whole string as a spell
+// (canonical id, alias, or full multi-word display name — see ResolveSpell),
+// then drop the last word and retry. The words dropped by a successful match
+// are returned as extra (typically a target name); a token that never
+// matches returns a nil spell and an empty extra.
+//
+// Both the live cast path (usercommands.Cast) and the read-only
+// cast-readiness probe reached from the client action queue (actions'
+// castReadiness) call this so the two cannot drift apart on which spell
+// names resolve — that drift once meant an alias or a multi-word name
+// resolved for a real cast but was rejected (and dropped from the retry
+// queue) by the readiness probe.
+func ResolveSpellGreedy(rest string) (spellInfo *SpellData, extra string) {
+	words := strings.Fields(rest)
+	for n := len(words); n >= 1; n-- {
+		if sd := ResolveSpell(strings.Join(words[:n], " ")); sd != nil {
+			return sd, strings.TrimSpace(strings.Join(words[n:], " "))
+		}
+	}
+	return nil, ""
+}
+
 func GetAllSpells() map[string]*SpellData {
 	retSpellBook := make(map[string]*SpellData)
 	for k, v := range allSpells {

@@ -55,6 +55,18 @@ func ActionReadiness(actor Actor, cmd string) ReadinessResult {
 
 	verb, rest := splitVerb(cmd)
 
+	// Expand aliases BEFORE dispatch: a trigger-queued command (GMCP
+	// Char.Action.Try) that reaches here through a user alias, e.g. "sa" for
+	// "cast skill-attunement", must be gated exactly like the expanded
+	// command, not evaluated on the raw alias verb. actor may be a
+	// *MobActor with no user and no user aliases; ExpandAliases handles a
+	// nil userAlias func by applying system aliases only.
+	var userAliasFn func(string) string
+	if ua, ok := actor.(*UserActor); ok && ua.User != nil {
+		userAliasFn = ua.User.TryCommandAlias
+	}
+	verb, rest = ExpandAliases(verb, rest, userAliasFn)
+
 	if verb == "cast" {
 		return castReadiness(actor, rest)
 	}
@@ -81,11 +93,11 @@ func castReadiness(actor Actor, rest string) ReadinessResult {
 	char := actor.GetCharacter()
 
 	// Gate 1: Spell lookup (structural — wrong name never becomes valid).
-	spellName, _ := splitVerb(rest)
-	spellInfo := spells.GetSpell(spellName)
-	if spellInfo == nil {
-		spellInfo = spells.FindSpellByName(spellName)
-	}
+	// Shares spells.ResolveSpellGreedy with the real cast path
+	// (usercommands.Cast) so a multi-word name or an alias resolves here
+	// exactly as it would for a real cast — this probe must not reject a
+	// name the live path would accept.
+	spellInfo, _ := spells.ResolveSpellGreedy(rest)
 	if spellInfo == nil {
 		return ReadinessResult{ActionRejected, "unknown spell"}
 	}
