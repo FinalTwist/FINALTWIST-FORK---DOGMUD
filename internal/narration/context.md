@@ -47,6 +47,20 @@ const (RoleActor Role = iota; RoleActee; RoleObserver; RoleActeeObserver)
 func (v Variants) Len() int
 func Render(v Variants, tokens map[string]string, pick Picker, indexOverride ...int) Roles
 func ValidateVariants(v Variants, minVariants int, expected ...Role) error
+
+// Substitute is the one token substitution engine (messaging arc M4a). It
+// replaces every token in one pass, so a substituted value that happens to
+// contain a token spelling is not substituted again.
+func Substitute(s string, tokens map[string]string) string
+
+// The canonical name-token vocabulary. Every store's shipped YAML spells
+// names these four ways and no other; event tokens stay store-specific.
+const (
+	TokenActor      = "{actor}"
+	TokenActee      = "{actee}"
+	TokenActorPlain = "{actor_plain}"
+	TokenActeePlain = "{actee_plain}"
+)
 ```
 
 A nil `Picker` means production behaviour: stores that accept one treat nil as
