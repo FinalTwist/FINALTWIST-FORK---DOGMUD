@@ -176,7 +176,7 @@ type ConditionSpec struct {
 	// (2.0, the historic literal). The strongest held value wins.
 	ProgressMult float64 `yaml:"progress_mult,omitempty"`
 
-	// YAML text fields — flavor text sent by the engine (replaces JS messaging).
+	// YAML text fields: flavor text sent by the engine (replaces JS messaging).
 	//
 	// The authored keys name the PHASE and then the AUDIENCE, in the canonical
 	// role vocabulary every narration store shares since M4b-1. The holder's

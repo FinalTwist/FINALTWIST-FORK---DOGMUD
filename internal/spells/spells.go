@@ -62,7 +62,7 @@ type SpellData struct {
 	SummonRequiresCorpse bool    `yaml:"summon_requires_corpse,omitempty"`
 	SummonMinCorpsePool  int     `yaml:"summon_min_corpse_pool,omitempty"`
 
-	// YAML text fields — flavor text sent by the engine (replaces JS messaging).
+	// YAML text fields: flavor text sent by the engine (replaces JS messaging).
 	//
 	// The authored keys name the PHASE and then the AUDIENCE, in the canonical
 	// role vocabulary every narration store shares since M4b-1. A spell's
