@@ -4,8 +4,16 @@ outdoor:
     - "Snow sifts down in fat, unhurried flakes."
     - "The world's sounds arrive muffled, wrapped in falling snow."
     - "Snow gathers in the creases of your clothes and melts to cold water."
+    - "A soft white layer settles over everything, smoothing every edge."
+    - "Footprints behind you fill in slowly, softened by the falling snow."
+    - "The cold has a gentle weight to it, quiet rather than biting."
   forest:
     - "Loaded boughs shed sudden sleeves of snow with a soft thump."
+    - "Snow gathers thick along every branch before letting go all at once."
+    - "The forest floor lies hushed under an even, unbroken white."
+    - "Trunks wear a thin stripe of snow on their windward side."
+    - "Undergrowth vanishes beneath the snow, leaving only soft white mounds."
+    - "Needles overhead sag under snow, then spring back bare and dark."
 indoor:
   default:
     mild: []

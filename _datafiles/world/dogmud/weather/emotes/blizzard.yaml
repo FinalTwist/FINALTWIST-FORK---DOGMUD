@@ -4,6 +4,9 @@ outdoor:
     - "The wind drives the snow level, scouring every exposed inch of skin."
     - "The world whites out; up and down are a rumor."
     - "Cold knifes through every seam in your clothing."
+    - "Snow packs into drifts that swallow footprints as fast as they form."
+    - "The wind screams past, hollow and unrelenting, carrying no warmth."
+    - "Ice crystals sting bare skin like a hundred tiny needles flung sideways."
 indoor:
   default:
     mild:

@@ -8,6 +8,10 @@ outdoor:
   default:
     - "Insects drone in the heavy summer air."
     - "Heat shimmer wobbles above every sunlit surface."
+    - "The sun sits high and merciless, leaving almost no shade."
+    - "Grass and leaves alike have gone dry and pale under the heat."
+    - "The air smells faintly of dust and sun-warmed earth."
+    - "Sweat gathers at the back of your neck without any effort at all."
 indoor:
   default:
     strong:

@@ -4,6 +4,9 @@ outdoor:
     - "Wind-borne grit rasps across everything, hissing like dry rain."
     - "You squint against the stinging haze; the horizon is a brown smear."
     - "Dust finds your teeth, your eyes, the inside of your collar."
+    - "The sun dims to a dull, coppery smear behind the blowing haze."
+    - "Grit ticks and hisses against every hard surface nearby."
+    - "Your throat turns dry and raw with each breath drawn in this air."
 indoor:
   default:
     mild:

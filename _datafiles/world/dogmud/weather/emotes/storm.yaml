@@ -5,13 +5,29 @@ outdoor:
     - "Wind-driven rain stings like flung gravel."
     - "Lightning whitewashes the world for a heartbeat, then the dark slams back."
     - "The wind leans on you like a shoulder, gusting and shoving."
+    - "Rain drives sideways, finding every gap in whatever you are wearing."
+    - "Thunder rolls on and on, one peal folding into the next."
   forest:
     - "The trees groan and thrash, shedding twigs and torn leaves."
+    - "Branches whip overhead, and loose leaves scatter in every direction."
+    - "A trunk creaks somewhere close, straining hard against the wind."
+    - "Rain hammers the canopy, and the drips below turn heavy and fast."
+    - "Torn leaves plaster themselves flat against trunks and undergrowth."
+    - "The wood roars with wind, drowning out every smaller sound."
   city:
     - "A loose shutter hammers somewhere down the street, slave to the wind."
     - "Rain sheets off the rooflines in ragged silver curtains."
+    - "Awnings snap and strain against ropes stretched taut by the wind."
+    - "Gutters overflow, sending sheets of water across the cobblestones."
+    - "Doorways stand empty, everyone gone in ahead of the worst of it."
+    - "Lightning throws every rooftop into stark, sudden silhouette."
   water:
     - "The water heaves into whitecaps, spray mixing with the rain."
+    - "Waves slap hard against anything standing in the water's way."
+    - "Spray flies off every crest, stinging where it lands."
+    - "The horizon has vanished, swallowed by rain and heaving water."
+    - "Whitecaps chase each other across a surface gone wild and dark."
+    - "The water churns and slaps, restless under the driving wind."
 indoor:
   default:
     mild:

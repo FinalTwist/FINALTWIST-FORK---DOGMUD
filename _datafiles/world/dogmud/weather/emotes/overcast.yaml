@@ -4,6 +4,9 @@ outdoor:
     - "The cloud ceiling hangs low and unbroken, gray from edge to edge."
     - "A dull, even light flattens every shadow."
     - "The air sits still and heavy, waiting on weather that hasn't decided."
+    - "Colors look muted and flat under the gray, uncertain light."
+    - "Not a breeze moves; the sky seems caught between one state and the next."
+    - "The light gives no sign of the time of day, gray and unchanging overhead."
 indoor:
   default:
     mild: []

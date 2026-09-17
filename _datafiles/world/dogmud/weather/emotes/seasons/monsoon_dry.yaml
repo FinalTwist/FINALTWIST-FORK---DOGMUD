@@ -8,6 +8,10 @@ outdoor:
   default:
     - "Dust devils twist across the cracked hardpan."
     - "The dry wind rasps like something thirsty."
+    - "The ground has cracked into a maze of pale, sun-baked plates."
+    - "Not a single cloud breaks the hard, bleached expanse of sky."
+    - "Dust rises with every step, hanging long in the still air."
+    - "The heat presses down flat and heavy, without a breath of relief."
 indoor:
   default:
     strong:

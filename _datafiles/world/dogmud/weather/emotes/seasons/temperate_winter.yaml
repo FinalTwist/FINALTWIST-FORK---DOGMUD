@@ -8,11 +8,24 @@ outdoor:
   default:
     - "A skin of ice creaks at the edges of still water."
     - "Your breath plumes white and hangs in the frozen air."
+    - "The cold presses in steady and even, without a hint of wind."
+    - "Frost furs every blade of grass still standing in the open."
+    - "The light sits low and pale, casting long, thin shadows."
+    - "Bare branches stand stark and black against a colorless sky."
   forest:
     - "Snow slides from a burdened bough with a soft thump."
+    - "Bare branches creak overhead, stripped of every leaf."
+    - "Frost clings to the undergrowth, stiffening every fallen leaf."
+    - "The trunks stand pale and cold, ringed with a crust of rime."
+    - "Snow lies deep between the roots, undisturbed and quiet."
+    - "The wood holds an unbroken hush, deadened by cold and snow."
   city:
     - "Icicles hang fanged from every eave along the street."
     - "Chimney smoke rises arrow-straight into the cold above the rooftops."
+    - "Frost silvers every cobblestone, and boots ring hard on the street."
+    - "Windows fog thick from warmth trapped just behind the glass."
+    - "Doorways stand shut tight, and the street feels emptied of people."
+    - "A thin crust of ice rims every puddle between the cobbles."
 indoor:
   default:
     strong:

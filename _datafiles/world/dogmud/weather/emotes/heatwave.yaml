@@ -4,8 +4,16 @@ outdoor:
     - "Heat shimmers up off the ground in wavering curtains."
     - "Sweat dries to salt almost before it forms."
     - "The air is an oven's breath; even the wind has given up."
+    - "The light glares white and merciless off every pale surface."
+    - "Your skin prickles with heat that has nowhere to escape to."
+    - "Even the shade offers little relief from the heavy, still air."
   city:
     - "The stones radiate stored heat like a banked forge."
+    - "Heat rises off the cobbles in waves that blur the street beyond."
+    - "Awnings hang limp, offering thin shade against the glare."
+    - "Doorways stand open, everyone inside seeking whatever shade there is."
+    - "Metal fixtures on every door are too hot to touch bare-handed."
+    - "The city smells of hot dust and baked stone, thick in every breath."
 indoor:
   default:
     mild: []

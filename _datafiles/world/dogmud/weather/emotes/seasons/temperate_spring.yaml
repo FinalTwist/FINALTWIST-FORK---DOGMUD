@@ -8,6 +8,10 @@ outdoor:
   default:
     - "Meltwater chuckles somewhere out of sight."
     - "New green pushes up through last year's mat of leaves."
+    - "The air still carries a faint chill, even where the sun reaches."
+    - "Buds swell tight on branches still mostly bare of leaves."
+    - "A scattering of early blossoms nods in the mild breeze."
+    - "The ground underfoot feels soft, no longer locked hard by frost."
 indoor:
   default:
     strong:
