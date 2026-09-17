@@ -17,4 +17,4 @@ damage_multiplier: 0.40
 categories:
   - harm_single
 cast_user_text: "You focus a needle of psionic force toward your target."
-cast_room_text: "{source} stares intently, a faint pressure building in the air."
+cast_room_text: "{actor} stares intently, a faint pressure building in the air."

@@ -26,7 +26,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/state/activity"
 	"github.com/GoMudEngine/GoMud/internal/state/life"
 	"github.com/GoMudEngine/GoMud/internal/targeting"
-	"github.com/GoMudEngine/GoMud/internal/textutil"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/GoMudEngine/GoMud/internal/worldevents"
@@ -278,10 +277,9 @@ func tickMobConditions(mob *mobs.Mob, mobInstanceId int) {
 			// PruneConditions, so the line gets the same condition colour.
 			if trigSpec := conditions.GetConditionSpec(condition.ConditionId); trigSpec != nil && len(trigSpec.Narration(conditions.PhaseTrigger).Observer) > 0 {
 				if room := rooms.LoadRoom(mob.Character.RoomId); room != nil {
-					roles := trigSpec.Narrate(conditions.PhaseTrigger, textutil.TokenContext{
-						SourceName:      mobDisplayName(mob, room, 0),
-						SourcePlainName: mob.Character.GetCharacterName(false),
-					})
+					roles := trigSpec.Narrate(conditions.PhaseTrigger,
+						mobDisplayName(mob, room, 0),
+						mob.Character.GetCharacterName(false))
 					if roles.Observer != "" {
 						room.SendTextVisual(messaging.CategoryConditionApply, roles.Observer)
 					}

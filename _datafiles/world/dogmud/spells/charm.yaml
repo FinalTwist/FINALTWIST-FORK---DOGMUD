@@ -28,5 +28,5 @@ cast_user_text: >-
   You fix your gaze on your target, pressing your will
   against its mind...
 cast_room_text: >-
-  {source} stares intently at {target}, brow furrowed with
+  {actor} stares intently at {actee}, brow furrowed with
   fierce concentration.

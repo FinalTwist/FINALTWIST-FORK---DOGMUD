@@ -9,5 +9,5 @@ statmods:
   dexterity: -15
   willpower: -12
   perception: -12
-start_room_text: "{source_plain} slows, snared and reeling in a smothering field of silk and dissonance."
-end_room_text: "The smothering field around {source} thins and lifts."
+start_room_text: "{actee_plain} slows, snared and reeling in a smothering field of silk and dissonance."
+end_room_text: "The smothering field around {actee} thins and lifts."

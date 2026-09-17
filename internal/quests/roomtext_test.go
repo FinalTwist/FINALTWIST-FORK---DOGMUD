@@ -18,12 +18,12 @@ func TestRoomTextProblems(t *testing.T) {
 		wantProblem bool
 		mentions    string
 	}{
-		{"names the player", "{source} unlocks the strongbox.", false, ""},
-		{"subjectless fragment", "unlocks the strongbox.", true, "{source}"},
-		{"uses target", "{source} glares at {target}.", true, "{target}"},
-		{"uses target_plain", "{source} glares at {target_plain}.", true, "{target_plain}"},
-		{"uses source_plain", "{source_plain} unlocks the strongbox.", true, "{source_plain}"},
-		{"unknown token", "{source} opens {thing}.", true, "{thing}"},
+		{"names the player", "{actor} unlocks the strongbox.", false, ""},
+		{"subjectless fragment", "unlocks the strongbox.", true, "{actor}"},
+		{"uses actee", "{actor} glares at {actee}.", true, "{actee}"},
+		{"uses actee_plain", "{actor} glares at {actee_plain}.", true, "{actee_plain}"},
+		{"uses actor_plain", "{actor_plain} unlocks the strongbox.", true, "{actor_plain}"},
+		{"unknown token", "{actor} opens {thing}.", true, "{thing}"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -60,7 +60,7 @@ func roomTextQuest(top, nested string) *Quest {
 func TestValidate_RefusesSubjectlessRoomText(t *testing.T) {
 	err := roomTextQuest("unlocks the strongbox.", "").Validate()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "{source}")
+	assert.Contains(t, err.Error(), "{actor}")
 }
 
 func TestValidate_RefusesSubjectlessRoomTextInASequence(t *testing.T) {
@@ -83,7 +83,7 @@ func TestValidate_RefusesSubjectlessRoomTextThreeSequencesDeep(t *testing.T) {
 }
 
 func TestValidate_AcceptsRoomTextNamingTheActor(t *testing.T) {
-	assert.NoError(t, roomTextQuest("{source} unlocks the strongbox.", "{source} nods.").Validate())
+	assert.NoError(t, roomTextQuest("{actor} unlocks the strongbox.", "{actor} nods.").Validate())
 }
 
 // TestShippedQuestRoomTextFollowsConvention reads the real quest files, walking

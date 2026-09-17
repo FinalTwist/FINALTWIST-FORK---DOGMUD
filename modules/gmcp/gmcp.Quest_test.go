@@ -107,7 +107,7 @@ func TestBuildQuestUpdate_RefusesSubjectlessRoomText(t *testing.T) {
 	q.Triggers[0].Actions = append(q.Triggers[0].Actions, quests.ActionDef{RoomText: "unlocks the strongbox."})
 	res := buildQuestUpdate(w.deps(), q)
 	if res.Ok {
-		t.Fatal("a room_text without {source} must be refused at save")
+		t.Fatal("a room_text without {actor} must be refused at save")
 	}
 	if len(w.saved) != 0 || w.reindexed != 0 {
 		t.Fatalf("refused update must not save (%d) or reindex (%d)", len(w.saved), w.reindexed)

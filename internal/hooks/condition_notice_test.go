@@ -144,7 +144,7 @@ func TestConditionNotice_ARefusedPoisonConditionNarratesNothing(t *testing.T) {
 			Flags: []conditions.Flag{conditions.PoisonImmunity}, StartUserText: "Nothing could turn your stomach now.", EndUserText: "Your stomach is ordinary again."},
 		venomNoticeConditionId: {ConditionId: venomNoticeConditionId, Name: "Test Venom", RoundInterval: 1, TriggerCount: 5,
 			Flags: []conditions.Flag{conditions.Poison}, StartUserText: "You feel venom seeping into your bloodstream!",
-			StartRoomText: "{source} winces as venom takes hold.", EndUserText: "The venom subsides."},
+			StartRoomText: "{actee} winces as venom takes hold.", EndUserText: "The venom subsides."},
 	})
 	defer restore()
 	holder := users.GetByUserId(1)

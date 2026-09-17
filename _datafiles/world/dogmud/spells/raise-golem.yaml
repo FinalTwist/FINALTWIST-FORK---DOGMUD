@@ -22,7 +22,7 @@ cast_user_text: >-
   construction, forcing flesh and sinew to knit according to
   your will...
 cast_room_text: >-
-  {source} gestures over the remains with sweeping, surgical
+  {actor} gestures over the remains with sweeping, surgical
   motions. The ground shudders faintly with each pass of their
   hands.
 wait_user_text: >-

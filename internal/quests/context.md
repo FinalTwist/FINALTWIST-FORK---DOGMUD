@@ -309,8 +309,8 @@ func (r *Quest) Validate() error {
 }
 
 // RoomTextProblems (roomtext.go) returns every way a quest room_text breaks
-// the convention: it must name the acting player with {source}, and may not
-// use {target}, {target_plain} (a quest has no target), {source_plain} (an
+// the convention: it must name the acting player with {actor}, and may not
+// use {actee}, {actee_plain} (a quest has no actee), {actor_plain} (an
 // untagged name cannot be anonymized in the dark) or an unknown token.
 func RoomTextProblems(text string) []string
 ```
@@ -1071,7 +1071,7 @@ maintainers know the quests are coupled.
 | `quests.go` | Every quest definition type: the single owner of the quest file parse |
 | `triggers.go` | Trigger and action definition shapes |
 | `save.go` | Quest file persistence |
-| `roomtext.go` | `RoomTextProblems` and the room_text rule `Validate` enforces (every quest room line names `{source}`, walking nested sequences) |
+| `roomtext.go` | `RoomTextProblems` and the room_text rule `Validate` enforces (every quest room line names `{actor}`, walking nested sequences) |
 | `narration.go` | `ActionDef.Narration`/`Narrate`, `QuestReward.Narration`/`Narrate`, `validateNarration` |
 | `validate_refs.go` | Cross-reference validation (flags, tokens, ids) |
 

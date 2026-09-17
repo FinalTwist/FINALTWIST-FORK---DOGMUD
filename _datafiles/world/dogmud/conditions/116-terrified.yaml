@@ -8,5 +8,5 @@ triggercount: 2
 statmods:
   willpower: -12
   charisma: -10
-start_room_text: "{source_plain} shrinks back, gripped by a sudden animal dread."
-end_room_text: "The dread gripping {source} loosens."
+start_room_text: "{actee_plain} shrinks back, gripped by a sudden animal dread."
+end_room_text: "The dread gripping {actee} loosens."

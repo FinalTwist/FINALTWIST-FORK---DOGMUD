@@ -12,7 +12,7 @@ import (
 )
 
 // Quest room_text went out RAW on the audio channel: no token substitution, so
-// quest 77 showed players a literal {source}; and no sight gate, so a blind
+// quest 77 showed players a literal {actor}; and no sight gate, so a blind
 // observer still read "unlocks the strongbox". The behaviour tree reads the same
 // key and already did both correctly (behaviortree/actions_dialogue.go).
 
@@ -22,11 +22,11 @@ func TestQuestRoomText_NamesThePlayerToASightedObserver(t *testing.T) {
 	drainPlain(1)
 	drainPlain(2)
 
-	questengine.NewGameBridge(users.GetByUserId(1), 1).Narrate(quests.ActionDef{RoomText: "{source} unlocks the strongbox."}.Narration())
+	questengine.NewGameBridge(users.GetByUserId(1), 1).Narrate(quests.ActionDef{RoomText: "{actor} unlocks the strongbox."}.Narration())
 
 	observer := drainPlain(2)
 	assert.Equal(t, 1, countContaining(observer, "Aliceia unlocks the strongbox."))
-	assert.Equal(t, 0, countContaining(observer, "{source}"), "a literal token reached a player")
+	assert.Equal(t, 0, countContaining(observer, "{actor}"), "a literal token reached a player")
 	assert.Equal(t, 0, countContaining(drainPlain(1), "unlocks the strongbox"),
 		"the acting player is excluded from their own room line")
 }
@@ -37,7 +37,7 @@ func TestQuestRoomText_UnsightedObserverInTheDarkGetsNothing(t *testing.T) {
 	darken(t, 1)
 	drainPlain(2)
 
-	questengine.NewGameBridge(users.GetByUserId(1), 1).Narrate(quests.ActionDef{RoomText: "{source} unlocks the strongbox."}.Narration())
+	questengine.NewGameBridge(users.GetByUserId(1), 1).Narrate(quests.ActionDef{RoomText: "{actor} unlocks the strongbox."}.Narration())
 	assert.Equal(t, 0, countContaining(drainPlain(2), "unlocks the strongbox"))
 }
 
@@ -53,7 +53,7 @@ func TestQuestRoomText_InfraredObserverSeesAFigure(t *testing.T) {
 	require.True(t, users.GetByUserId(2).Character.Conditions.AddCondition(heatEyesConditionId, true))
 	drainPlain(2)
 
-	questengine.NewGameBridge(users.GetByUserId(1), 1).Narrate(quests.ActionDef{RoomText: "{source} unlocks the strongbox."}.Narration())
+	questengine.NewGameBridge(users.GetByUserId(1), 1).Narrate(quests.ActionDef{RoomText: "{actor} unlocks the strongbox."}.Narration())
 
 	observer := drainPlain(2)
 	require.Equal(t, 1, countContaining(observer, "unlocks the strongbox"))

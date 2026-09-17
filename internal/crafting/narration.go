@@ -32,8 +32,8 @@ func (r *RecipeSpec) Narration(p Phase) narration.Variants {
 	return narration.Variants{Actor: textutil.Pool(crafter), Observer: textutil.Pool(room)}
 }
 
-// Narrate renders one outcome with the crafter as {source}. A craft has no
-// target, so {target} renders empty.
+// Narrate renders one outcome with the crafter as the actor. A craft has no
+// actee, so {actee} renders empty.
 func (r *RecipeSpec) Narrate(p Phase, ctx textutil.TokenContext) narration.Roles {
 	return textutil.Narrate(r.Narration(p), ctx)
 }
@@ -42,7 +42,7 @@ func (r *RecipeSpec) Narrate(p Phase, ctx textutil.TokenContext) narration.Roles
 //
 // Both crafter lines are required: every site sends the Actor line
 // unconditionally, as it did before the door existed, and all 126 shipped
-// recipes set both. A room line must name the crafter with {source}, the same
+// recipes set both. A room line must name the crafter with {actor}, the same
 // rule quests.RoomTextProblems applies to quest room_text: the room is watching
 // someone work, and a subjectless line cannot say who.
 func (r *RecipeSpec) validateNarration() error {
@@ -67,8 +67,8 @@ func (r *RecipeSpec) validateNarration() error {
 		if err := narration.ValidateVariants(r.Narration(ph.p), 1); err != nil {
 			return fmt.Errorf("recipe %q %s text: %w", r.RecipeId, ph.name, err)
 		}
-		if ph.room != "" && !strings.Contains(ph.room, "{source}") {
-			return fmt.Errorf("recipe %q: %s_room_message must name the crafter with {source} (the room is watching them work)", r.RecipeId, ph.name)
+		if ph.room != "" && !strings.Contains(ph.room, narration.TokenActor) {
+			return fmt.Errorf("recipe %q: %s_room_message must name the crafter with %s (the room is watching them work)", r.RecipeId, ph.name, narration.TokenActor)
 		}
 	}
 	return nil

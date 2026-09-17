@@ -76,7 +76,7 @@ triggers:
           The light drifts and settles, and the stones go quiet, having
           told you everything. You do not feel wiser. You feel like someone
           who has been handed a weight and told it is theirs now, forever.
-      - room_text: "{source} stands motionless before the wall of moving light, and for a long moment does not seem to breathe."
+      - room_text: "{actor} stands motionless before the wall of moving light, and for a long moment does not seem to breathe."
   # Re-read is on the `oracle-stones` noun only. A second `records` trigger
   # gated has:["77-end"] would double-fire on the FIRST examine (the grant
   # above sets the token mid-event, so a same-event has-trigger also matches

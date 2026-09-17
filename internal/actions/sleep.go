@@ -6,7 +6,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
-	"github.com/GoMudEngine/GoMud/internal/textutil"
 )
 
 // SleepOptions is reserved for future authoring knobs (bed-item
@@ -74,13 +73,12 @@ func Sleep(actor Actor, opts SleepOptions) SleepResult {
 	// silent-start condition. A mob holder has no client, so only a player gets it.
 	if actor.IsPlayer() {
 		if spec := conditions.GetConditionSpec(15); spec != nil {
-			// Tagged for {source}, plain for {source_plain}, the textutil
-			// contract every narration site follows. Condition 15's line carries no
-			// token today, so this is for the day one is authored.
-			line := spec.AuthoredStartLine(textutil.TokenContext{
-				SourceName:      c.GetCharacterName(true),
-				SourcePlainName: c.GetCharacterName(false),
-			})
+			// Tagged for {actee}, plain for {actee_plain}: the holder is the
+			// actee, and AuthoredStartLine puts it there. Condition 15's line
+			// carries no token today, so this is for the day one is authored.
+			line := spec.AuthoredStartLine(
+				c.GetCharacterName(true),
+				c.GetCharacterName(false))
 			if line != "" {
 				actor.SendText(messaging.CategoryConditionApply, line)
 			}

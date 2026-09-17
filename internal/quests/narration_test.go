@@ -12,8 +12,8 @@ func TestActionNarrationSendTextIsActorAndRoomTextIsObserver(t *testing.T) {
 	if len(v.Actor) != 1 || v.Actor[0] != "You pocket the disc." || len(v.Observer) != 0 {
 		t.Fatalf("send_text: %+v", v)
 	}
-	v = ActionDef{RoomText: "{source} pockets a disc."}.Narration()
-	if len(v.Observer) != 1 || v.Observer[0] != "{source} pockets a disc." || len(v.Actor) != 0 {
+	v = ActionDef{RoomText: "{actor} pockets a disc."}.Narration()
+	if len(v.Observer) != 1 || v.Observer[0] != "{actor} pockets a disc." || len(v.Actor) != 0 {
 		t.Fatalf("room_text: %+v", v)
 	}
 	if v := (ActionDef{Grant: "1-end"}).Narration(); v.Len() != 0 {
@@ -22,15 +22,15 @@ func TestActionNarrationSendTextIsActorAndRoomTextIsObserver(t *testing.T) {
 }
 
 func TestActionNarrateSubstitutesThePlayer(t *testing.T) {
-	roles := ActionDef{RoomText: "{source} pockets a disc."}.Narrate(textutil.TokenContext{SourceName: "Aliceia"})
+	roles := ActionDef{RoomText: "{actor} pockets a disc."}.Narrate(textutil.TokenContext{ActorName: "Aliceia"})
 	if roles.Observer != "Aliceia pockets a disc." || roles.Actor != "" {
 		t.Fatalf("roles: %+v", roles)
 	}
 }
 
 func TestRewardNarration(t *testing.T) {
-	r := QuestReward{PlayerMessage: "The clerk thanks you.", RoomMessage: "The clerk thanks {source}."}
-	roles := r.Narrate(textutil.TokenContext{SourceName: "Aliceia"})
+	r := QuestReward{PlayerMessage: "The clerk thanks you.", RoomMessage: "The clerk thanks {actor}."}
+	roles := r.Narrate(textutil.TokenContext{ActorName: "Aliceia"})
 	if roles.Actor != "The clerk thanks you." || roles.Observer != "The clerk thanks Aliceia." {
 		t.Fatalf("roles: %+v", roles)
 	}
@@ -46,7 +46,7 @@ func validQuest(a ActionDef) *Quest {
 }
 
 func TestValidateRefusesAnActionThatSetsBothTexts(t *testing.T) {
-	err := validQuest(ActionDef{SendText: "You see it.", RoomText: "{source} sees it."}).Validate()
+	err := validQuest(ActionDef{SendText: "You see it.", RoomText: "{actor} sees it."}).Validate()
 	if err == nil || !strings.Contains(err.Error(), "both send_text and room_text") {
 		t.Fatalf("expected the both-set refusal, got %v", err)
 	}

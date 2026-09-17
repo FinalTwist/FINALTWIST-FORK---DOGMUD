@@ -16,4 +16,4 @@ effect_magnitude: 5
 condition_ids:
   - 33
 cast_user_text: "You gather deep Chrysalis energy and begin radiating it outward."
-cast_room_text: "{source} raises both arms as waves of warm, green light pulse outward."
+cast_room_text: "{actor} raises both arms as waves of warm, green light pulse outward."

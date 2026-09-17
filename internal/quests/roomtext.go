@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/narration"
 	"github.com/GoMudEngine/GoMud/internal/textutil"
 )
 
@@ -11,25 +12,25 @@ import (
 // convention, or nil.
 //
 // Every quest room_text is something the room watches the triggering player
-// do, so it must name them with {source}. Until 2026-09-11 twenty-one lines
+// do, so it must name them with {actor}. Until 2026-09-11 twenty-one lines
 // were written as subjectless fragments ("unlocks the strongbox") and one used
-// {source} that nothing filled in.
+// a name token that nothing filled in.
 //
 // It is stricter than conditions and spells, which only WARN on an unknown token.
 // A new rule with no shipped violations can refuse at no cost; upgrading conditions
 // and spells would change what is allowed to boot, so that is filed.
 func RoomTextProblems(text string) []string {
 	var problems []string
-	if !strings.Contains(text, "{source}") {
-		problems = append(problems, "must name the acting player with {source} (the room is watching them act)")
+	if !strings.Contains(text, narration.TokenActor) {
+		problems = append(problems, "must name the acting player with "+narration.TokenActor+" (the room is watching them act)")
 	}
-	for _, token := range []string{"{target}", "{target_plain}"} {
+	for _, token := range []string{narration.TokenActee, narration.TokenActeePlain} {
 		if strings.Contains(text, token) {
-			problems = append(problems, token+" is not available: a quest has no target, so it would render empty")
+			problems = append(problems, token+" is not available: a quest has no actee, so it would render empty")
 		}
 	}
-	if strings.Contains(text, "{source_plain}") {
-		problems = append(problems, "{source_plain} is an untagged name that cannot be anonymized in the dark, so use {source}")
+	if strings.Contains(text, narration.TokenActorPlain) {
+		problems = append(problems, narration.TokenActorPlain+" is an untagged name that cannot be anonymized in the dark, so use "+narration.TokenActor)
 	}
 	problems = append(problems, textutil.ValidateTokens(text)...)
 	return problems

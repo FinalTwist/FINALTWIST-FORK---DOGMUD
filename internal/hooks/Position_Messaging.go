@@ -27,7 +27,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
-	"github.com/GoMudEngine/GoMud/internal/textutil"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"gopkg.in/yaml.v3"
 )
@@ -389,10 +388,9 @@ func sendSilentStartText(c *characters.Character, conditionId int) {
 	if spec == nil {
 		return
 	}
-	line := spec.AuthoredStartLine(textutil.TokenContext{
-		SourceName:      c.GetCharacterName(true),
-		SourcePlainName: c.GetCharacterName(false),
-	})
+	line := spec.AuthoredStartLine(
+		c.GetCharacterName(true),
+		c.GetCharacterName(false))
 	if line == "" {
 		return
 	}

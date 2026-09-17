@@ -287,10 +287,9 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						// the intended second line, not a replacement for the
 						// first.
 						if trigConditionSpec != nil && trigConditionSpec.Narration(conditions.PhaseTrigger).Len() > 0 {
-							roles := trigConditionSpec.Narrate(conditions.PhaseTrigger, textutil.TokenContext{
-								SourceName:      user.Character.GetCharacterName(true),
-								SourcePlainName: user.Character.GetCharacterName(false),
-							})
+							roles := trigConditionSpec.Narrate(conditions.PhaseTrigger,
+								user.Character.GetCharacterName(true),
+								user.Character.GetCharacterName(false))
 							if roles.Actee != "" {
 								user.SendText(messaging.CategoryConditionApply, roles.Actee)
 							}
@@ -669,8 +668,8 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 										events.AddToQueue(events.ItemOwnership{UserId: user.UserId, Item: newItem, Gained: true})
 									}
 									successRoles := recipe.Narrate(crafting.PhaseSuccess, textutil.TokenContext{
-										SourceName:      user.Character.GetCharacterName(true),
-										SourcePlainName: user.Character.GetCharacterName(false),
+										ActorName:      user.Character.GetCharacterName(true),
+										ActorPlainName: user.Character.GetCharacterName(false),
 									})
 									user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, successRoles.Actor))
 									if successRoles.Observer != "" {
@@ -706,8 +705,8 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 								} else {
 									user.Character.Items, user.Character.ComponentItems = crafting.ConsumeIngredients(user.Character.Items, user.Character.ComponentItems, recipe)
 									failureRoles := recipe.Narrate(crafting.PhaseFailure, textutil.TokenContext{
-										SourceName:      user.Character.GetCharacterName(true),
-										SourcePlainName: user.Character.GetCharacterName(false),
+										ActorName:      user.Character.GetCharacterName(true),
+										ActorPlainName: user.Character.GetCharacterName(false),
 									})
 									user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">%s</ansi>`, failureRoles.Actor))
 									if failureRoles.Observer != "" {

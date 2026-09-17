@@ -129,8 +129,8 @@ func Craft(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		user.Character.AwardResolved(user.UserId, true,
 			user.Character.CandidateFor(result.SkillName))
 		roles := result.Recipe.Narrate(crafting.PhaseSuccess, textutil.TokenContext{
-			SourceName:      user.Character.GetCharacterName(true),
-			SourcePlainName: user.Character.GetCharacterName(false),
+			ActorName:      user.Character.GetCharacterName(true),
+			ActorPlainName: user.Character.GetCharacterName(false),
 		})
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, roles.Actor))
 		if roles.Observer != "" {
@@ -637,8 +637,8 @@ func completeCraft(user *users.UserRecord, room *rooms.Room, recipe *crafting.Re
 	newItem := items.New(recipe.Output.ItemId)
 	user.Character.StoreItem(newItem)
 	roles := recipe.Narrate(crafting.PhaseSuccess, textutil.TokenContext{
-		SourceName:      user.Character.GetCharacterName(true),
-		SourcePlainName: user.Character.GetCharacterName(false),
+		ActorName:      user.Character.GetCharacterName(true),
+		ActorPlainName: user.Character.GetCharacterName(false),
 	})
 	user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, roles.Actor))
 	if roles.Observer != "" {

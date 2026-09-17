@@ -5,11 +5,10 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/narration"
-	"github.com/GoMudEngine/GoMud/internal/textutil"
 )
 
 func glowSpec() *ConditionSpec {
-	return &ConditionSpec{ConditionId: 500, Name: "Glow", StartRoomText: "A glow surrounds {source}.", EndUserText: "The glow fades.", TriggerUserText: "You shimmer."}
+	return &ConditionSpec{ConditionId: 500, Name: "Glow", StartRoomText: "A glow surrounds {actee}.", EndUserText: "The glow fades.", TriggerUserText: "You shimmer."}
 }
 
 func TestNarrationStartPutsTheHolderInActeeAndUsesTheNotice(t *testing.T) {
@@ -20,7 +19,7 @@ func TestNarrationStartPutsTheHolderInActeeAndUsesTheNotice(t *testing.T) {
 	if len(v.Actee) != 1 || v.Actee[0] != "Glow takes effect." {
 		t.Fatalf("Actee should be the generic notice, got %v", v.Actee)
 	}
-	if len(v.Observer) != 1 || v.Observer[0] != "A glow surrounds {source}." {
+	if len(v.Observer) != 1 || v.Observer[0] != "A glow surrounds {actee}." {
 		t.Fatalf("Observer should be the raw room line, got %v", v.Observer)
 	}
 }
@@ -42,13 +41,13 @@ func TestNarrationSecretConditionHasNoHolderLine(t *testing.T) {
 	if len(v.Actee) != 0 {
 		t.Fatalf("a secret condition must not narrate to its holder, got %v", v.Actee)
 	}
-	if len(v.Observer) != 1 || v.Observer[0] != "A glow surrounds {source}." {
+	if len(v.Observer) != 1 || v.Observer[0] != "A glow surrounds {actee}." {
 		t.Fatalf("secret only silences the holder; the room line must survive, got %v", v.Observer)
 	}
 }
 
 func TestNarrateSubstitutesTheHolderName(t *testing.T) {
-	roles := glowSpec().Narrate(PhaseStart, textutil.TokenContext{SourceName: "Aliceia", SourcePlainName: "Aliceia"})
+	roles := glowSpec().Narrate(PhaseStart, "Aliceia", "Aliceia")
 	if roles.Actee != "Glow takes effect." || roles.Observer != "A glow surrounds Aliceia." || roles.Actor != "" {
 		t.Fatalf("roles: %+v", roles)
 	}
@@ -59,17 +58,17 @@ func TestNarrateAPhaseWithNoTextRendersNothing(t *testing.T) {
 	if v := s.Narration(PhaseStart); v.Len() != 0 {
 		t.Fatalf("expected no variants, got %+v", v)
 	}
-	if roles := s.Narrate(PhaseStart, textutil.TokenContext{}); roles != (narration.Roles{}) {
+	if roles := s.Narrate(PhaseStart, "", ""); roles != (narration.Roles{}) {
 		t.Fatalf("expected zero roles, got %+v", roles)
 	}
 }
 
 func TestAuthoredStartLineIgnoresTheSilentStartRule(t *testing.T) {
-	s := &ConditionSpec{ConditionId: 502, Name: "Sleeping", Flags: []Flag{SilentStart}, StartUserText: "You lie down, {source_plain}."}
+	s := &ConditionSpec{ConditionId: 502, Name: "Sleeping", Flags: []Flag{SilentStart}, StartUserText: "You lie down, {actee_plain}."}
 	if got := s.StartUserNotice(); got != "" {
 		t.Fatalf("notice should be silent for silent-start, got %q", got)
 	}
-	if got := s.AuthoredStartLine(textutil.TokenContext{SourcePlainName: "Aliceia"}); got != "You lie down, Aliceia." {
+	if got := s.AuthoredStartLine("", "Aliceia"); got != "You lie down, Aliceia." {
 		t.Fatalf("AuthoredStartLine = %q", got)
 	}
 }

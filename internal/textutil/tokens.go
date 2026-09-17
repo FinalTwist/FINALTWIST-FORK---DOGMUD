@@ -6,23 +6,26 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/narration"
 )
 
-// TokenContext holds actor names for substitution in YAML text fields.
+// TokenContext holds the names for substitution in YAML text fields.
+//
+// Actor is the one acting; Actee is the one acted upon. The conditions store
+// passes the HOLDER as the actee, because a condition happens to its holder
+// (see internal/conditions/narration.go).
 type TokenContext struct {
-	SourceName      string // ANSI-tagged display name
-	SourcePlainName string // Plain name (for possessives)
-	TargetName      string // ANSI-tagged display name (empty if no target)
-	TargetPlainName string // Plain name (empty if no target)
+	ActorName      string // ANSI-tagged display name
+	ActorPlainName string // Plain name (for possessives)
+	ActeeName      string // ANSI-tagged display name (empty if none)
+	ActeePlainName string // Plain name (empty if none)
 }
 
 // Tokens is the vocabulary as the narration core takes it. All four keys are
-// always present, so an absent target substitutes to an empty string, which
-// is what SubstituteTokens has always done.
+// always present, so an absent actee substitutes to an empty string.
 func (ctx TokenContext) Tokens() map[string]string {
 	return map[string]string{
-		`{source}`:       ctx.SourceName,
-		`{target}`:       ctx.TargetName,
-		`{source_plain}`: ctx.SourcePlainName,
-		`{target_plain}`: ctx.TargetPlainName,
+		narration.TokenActor:      ctx.ActorName,
+		narration.TokenActee:      ctx.ActeeName,
+		narration.TokenActorPlain: ctx.ActorPlainName,
+		narration.TokenActeePlain: ctx.ActeePlainName,
 	}
 }
 
@@ -43,10 +46,10 @@ func SubstituteTokens(text string, ctx TokenContext) string {
 var tokenPattern = regexp.MustCompile(`\{[a-z_]+\}`)
 
 var knownTokens = map[string]bool{
-	`{source}`:       true,
-	`{target}`:       true,
-	`{source_plain}`: true,
-	`{target_plain}`: true,
+	narration.TokenActor:      true,
+	narration.TokenActee:      true,
+	narration.TokenActorPlain: true,
+	narration.TokenActeePlain: true,
 }
 
 // ValidateTokens scans text for {token} patterns and returns warnings

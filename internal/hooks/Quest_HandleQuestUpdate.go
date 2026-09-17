@@ -261,8 +261,8 @@ func HandleQuestUpdate(e events.Event) events.ListenerReturn {
 		// Reward messages, through the quest store's door. Shipped rewards
 		// carry no token, so substitution changes nothing today.
 		rewardLines := questInfo.Rewards.Narrate(textutil.TokenContext{
-			SourceName:      questUser.Character.GetCharacterName(true),
-			SourcePlainName: questUser.Character.GetCharacterName(false),
+			ActorName:      questUser.Character.GetCharacterName(true),
+			ActorPlainName: questUser.Character.GetCharacterName(false),
 		})
 		if rewardLines.Actor != "" {
 			questUser.SendText(messaging.CategorySystem, rewardLines.Actor)

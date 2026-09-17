@@ -19,8 +19,8 @@ func narrationTestRecipe() *RecipeSpec {
 }
 
 var narrationTestCrafter = textutil.TokenContext{
-	SourceName:      `<ansi fg="username">Aliceia</ansi>`,
-	SourcePlainName: "Aliceia",
+	ActorName:      `<ansi fg="username">Aliceia</ansi>`,
+	ActorPlainName: "Aliceia",
 }
 
 func TestRecipeNarration_ActorIsTheCrafterLine(t *testing.T) {
@@ -42,8 +42,8 @@ func TestRecipeNarration_ActorIsTheCrafterLine(t *testing.T) {
 
 func TestRecipeNarrate_ObserverNamesTheCrafter(t *testing.T) {
 	r := narrationTestRecipe()
-	r.SuccessRoomMessage = "{source} ladles out a steaming stew."
-	r.FailureRoomMessage = "Smoke pours from {source}'s pot."
+	r.SuccessRoomMessage = "{actor} ladles out a steaming stew."
+	r.FailureRoomMessage = "Smoke pours from {actor}'s pot."
 
 	s := r.Narrate(PhaseSuccess, narrationTestCrafter)
 	if s.Actor != r.SuccessMessage {
@@ -67,15 +67,15 @@ func TestRecipeValidate_Narration(t *testing.T) {
 	}{
 		{"shipped shape passes", func(r *RecipeSpec) {}, ""},
 		{"room lines naming the crafter pass", func(r *RecipeSpec) {
-			r.SuccessRoomMessage = "{source} finishes a stew."
-			r.FailureRoomMessage = "{source} burns a stew."
+			r.SuccessRoomMessage = "{actor} finishes a stew."
+			r.FailureRoomMessage = "{actor} burns a stew."
 		}, ""},
 		{"empty success refused", func(r *RecipeSpec) { r.SuccessMessage = "" }, "success_message cannot be empty"},
 		{"empty failure refused", func(r *RecipeSpec) { r.FailureMessage = "" }, "failure_message cannot be empty"},
 		{"whitespace failure refused", func(r *RecipeSpec) { r.FailureMessage = "   " }, "is empty"},
 		{"whitespace room line refused", func(r *RecipeSpec) { r.SuccessRoomMessage = "  " }, "is empty"},
-		{"room line without source refused", func(r *RecipeSpec) { r.FailureRoomMessage = "A pot burns." }, "failure_room_message must name the crafter with {source}"},
-		{"success room line without source refused", func(r *RecipeSpec) { r.SuccessRoomMessage = "A stew is finished." }, "success_room_message must name the crafter with {source}"},
+		{"room line without source refused", func(r *RecipeSpec) { r.FailureRoomMessage = "A pot burns." }, "failure_room_message must name the crafter with {actor}"},
+		{"success room line without source refused", func(r *RecipeSpec) { r.SuccessRoomMessage = "A stew is finished." }, "success_room_message must name the crafter with {actor}"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestMobRoomLine_AuthoredLineElseFallback(t *testing.T) {
 		t.Errorf("no authored failure line and no fallback: got %q, want empty", got)
 	}
 
-	r.SuccessRoomMessage = "{source} sets down a finished stew."
+	r.SuccessRoomMessage = "{actor} sets down a finished stew."
 	if want := `<ansi fg="mobname">Smith</ansi> sets down a finished stew.`; r.MobRoomLine(PhaseSuccess, "Smith", fallback) != want {
 		t.Errorf("authored room line: got %q, want %q", r.MobRoomLine(PhaseSuccess, "Smith", fallback), want)
 	}

@@ -10,7 +10,7 @@ import (
 
 func boltSpec() *SpellData {
 	// PrimaryStat is required by Validate (U9 made it load-bearing).
-	return &SpellData{SpellId: "bolt", Name: "Bolt", PrimaryStat: "willpower", CastUserText: "You gather a bolt.", CastRoomText: "{source} gathers a bolt at {target}.", WaitUserText: "You hold the bolt."}
+	return &SpellData{SpellId: "bolt", Name: "Bolt", PrimaryStat: "willpower", CastUserText: "You gather a bolt.", CastRoomText: "{actor} gathers a bolt at {actee}.", WaitUserText: "You hold the bolt."}
 }
 
 func TestNarrationCastPutsTheCasterInActor(t *testing.T) {
@@ -18,7 +18,7 @@ func TestNarrationCastPutsTheCasterInActor(t *testing.T) {
 	if len(v.Actor) != 1 || v.Actor[0] != "You gather a bolt." {
 		t.Fatalf("Actor: %v", v.Actor)
 	}
-	if len(v.Observer) != 1 || v.Observer[0] != "{source} gathers a bolt at {target}." {
+	if len(v.Observer) != 1 || v.Observer[0] != "{actor} gathers a bolt at {actee}." {
 		t.Fatalf("Observer: %v", v.Observer)
 	}
 	if len(v.Actee) != 0 {
@@ -37,7 +37,7 @@ func TestNarrationWaitAndMagic(t *testing.T) {
 }
 
 func TestNarrateSubstitutesSourceAndTarget(t *testing.T) {
-	roles := boltSpec().Narrate(PhaseCast, textutil.TokenContext{SourceName: "Kael", TargetName: "Goblin"})
+	roles := boltSpec().Narrate(PhaseCast, textutil.TokenContext{ActorName: "Kael", ActeeName: "Goblin"})
 	if roles.Actor != "You gather a bolt." || roles.Observer != "Kael gathers a bolt at Goblin." {
 		t.Fatalf("roles: %+v", roles)
 	}

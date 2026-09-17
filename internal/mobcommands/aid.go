@@ -61,10 +61,10 @@ func Aid(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	if spellInfo != nil && spellInfo.Narration(spells.PhaseCast).Len() > 0 {
 		castRoom := rooms.LoadRoom(mob.Character.RoomId)
 		roles := spellInfo.Narrate(spells.PhaseCast, textutil.TokenContext{
-			SourceName:      mob.Character.GetCharacterName(true),
-			SourcePlainName: mob.Character.GetCharacterName(false),
-			TargetName:      p.Character.GetCharacterName(true),
-			TargetPlainName: p.Character.GetCharacterName(false),
+			ActorName:      mob.Character.GetCharacterName(true),
+			ActorPlainName: mob.Character.GetCharacterName(false),
+			ActeeName:      p.Character.GetCharacterName(true),
+			ActeePlainName: p.Character.GetCharacterName(false),
 		})
 		// A mob caster has no client: its own line is rendered and dropped.
 		if roles.Observer != "" && castRoom != nil {

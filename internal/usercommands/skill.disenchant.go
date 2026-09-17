@@ -11,7 +11,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/textutil"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -89,10 +88,9 @@ func Disenchant(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 	// returns, but its line is the CONSEQUENCE of prying the Chrysalis free,
 	// so the player has to read the act first.
 	if withdrawalSpec := conditions.GetConditionSpec(conditions.ConditionIdEnchantWithdrawal); withdrawalSpec != nil {
-		line := withdrawalSpec.AuthoredStartLine(textutil.TokenContext{
-			SourceName:      user.Character.GetCharacterName(true),
-			SourcePlainName: user.Character.GetCharacterName(false),
-		})
+		line := withdrawalSpec.AuthoredStartLine(
+			user.Character.GetCharacterName(true),
+			user.Character.GetCharacterName(false))
 		if line != "" {
 			user.SendText(messaging.CategoryConditionApply, line)
 		}

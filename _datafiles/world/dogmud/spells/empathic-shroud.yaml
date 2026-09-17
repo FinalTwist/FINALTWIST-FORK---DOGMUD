@@ -14,4 +14,4 @@ effect_type: condition
 condition_ids:
   - 31
 cast_user_text: "You weave a psionic shroud of unnoticability."
-cast_room_text: "{source} traces patterns in the air that seem to blur reality."
+cast_room_text: "{actor} traces patterns in the air that seem to blur reality."

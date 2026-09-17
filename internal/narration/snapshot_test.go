@@ -909,20 +909,20 @@ func buildItemVoicesGolden(t *testing.T) string {
 // ---------------------------------------------------------------------
 
 // kindBSource is the stand-in name set. The source is a player and the target
-// a mob, so the two tags differ and a swap of {source} for {target} would
+// a mob, so the two tags differ and a swap of {actor} for {actee} would
 // change the golden.
 var kindBSource = textutil.TokenContext{
-	SourceName:      `<ansi fg="username">Aliceia</ansi>`,
-	SourcePlainName: "Aliceia",
-	TargetName:      `<ansi fg="mobname">Targetticus</ansi>`,
-	TargetPlainName: "Targetticus",
+	ActorName:      `<ansi fg="username">Aliceia</ansi>`,
+	ActorPlainName: "Aliceia",
+	ActeeName:      `<ansi fg="mobname">Targetticus</ansi>`,
+	ActeePlainName: "Targetticus",
 }
 
 // kindBNoTarget is the same source with no target, which is how every condition
 // site and the quest bridge render: they never know a target.
 var kindBNoTarget = textutil.TokenContext{
-	SourceName:      kindBSource.SourceName,
-	SourcePlainName: kindBSource.SourcePlainName,
+	ActorName:      kindBSource.ActorName,
+	ActorPlainName: kindBSource.ActorPlainName,
 }
 
 // Store 8: conditions (internal/conditions, six *_user_text / *_room_text fields)
@@ -964,7 +964,10 @@ func buildConditionsGolden(t *testing.T) string {
 			{conditions.PhaseEnd, "end_user_text", "end_room_text"},
 		}
 		for _, ph := range phases {
-			roles := spec.Narrate(ph.p, kindBNoTarget)
+			// Conditions take the HOLDER, not a context: the store puts it in the
+			// Actee slot itself. Same stand-in name as every other store, so the
+			// rendered rows stay comparable.
+			roles := spec.Narrate(ph.p, kindBNoTarget.ActorName, kindBNoTarget.ActorPlainName)
 			if roles.Actee != "" {
 				fmt.Fprintf(&b, "condition|%d|%s => %s\n", id, ph.userKey, roles.Actee)
 			}
@@ -973,7 +976,7 @@ func buildConditionsGolden(t *testing.T) string {
 			}
 		}
 		if slices.Contains(spec.Flags, conditions.SilentStart) {
-			if line := spec.AuthoredStartLine(kindBNoTarget); line != "" {
+			if line := spec.AuthoredStartLine(kindBNoTarget.ActorName, kindBNoTarget.ActorPlainName); line != "" {
 				fmt.Fprintf(&b, "condition|%d|authored_start_line => %s\n", id, line)
 			}
 		}
@@ -999,10 +1002,10 @@ func buildSpellsGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# probe rows freeze the token contract itself; they are not authored content\n")
 	fmt.Fprintf(&b, "# dimensions: spell id x authored key [x notarget]\n\n")
 
-	// Probe rows: no shipped line carries {target_plain} or an unknown token,
+	// Probe rows: no shipped line carries {actee_plain} or an unknown token,
 	// so this fixed string freezes the whole substitution contract, including
-	// passthrough of an unknown token and the empty target.
-	const probe = "{source} and {source_plain} at {target} and {target_plain}; {unknown} stays; {source} again"
+	// passthrough of an unknown token and the empty actee.
+	const probe = "{actor} and {actor_plain} at {actee} and {actee_plain}; {unknown} stays; {actor} again"
 	fmt.Fprintf(&b, "probe|all_tokens => %s\n", textutil.SubstituteTokens(probe, kindBSource))
 	fmt.Fprintf(&b, "probe|all_tokens|notarget => %s\n\n", textutil.SubstituteTokens(probe, kindBNoTarget))
 
