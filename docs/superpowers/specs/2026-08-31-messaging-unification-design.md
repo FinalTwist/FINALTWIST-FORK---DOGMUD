@@ -410,6 +410,10 @@ lines* — counted three different kinds of text as one.
 | **C** | Hand-rolled viewpoint narration, 247 sites / 80 files | addresses 2+ viewpoints | **this arc** |
 | **A** | Refusals, admin output, status tables | one audience, no counterpart | **its own arc, after** |
 
+> **Updated 2026-09-17:** Group A is no longer "after". The owner scheduled it
+> as **M7**, the arc's last stage, so it stops being undated work. It is still
+> a separate stage for the reasons below, and it is still not designed.
+
 **Group A leaves this arc by owner decision (2026-09-07).** Roughly 2,000
 strings: *"Zone not found"*, *"Vault: empty"*, *"Usage: caravan reset"*. They
 have no band, no viewpoint split and no pool, so a narration core would add
@@ -637,6 +641,37 @@ carry.
 
 **Playtested on both sides** (owner, 2026-08-31): M5's adversarial playtest is
 the "before", and M6 ends with its own.
+
+### M7: Refusals and system output *(added 2026-09-17, owner)*
+
+Group A: roughly 2,000 one-audience strings that the scope table above sent to
+"its own arc, after". The owner scheduled it here rather than leaving it
+undated, so the arc ends with every player-facing string owned by something.
+
+**Scope:** refusals ("You don't see them here.", "You can't afford that."),
+admin command output, status and listing tables, usage lines. One audience, no
+counterpart, no band, no pool. They do not want the narration core, which is
+why they are their own stage and not folded into M4.
+
+**Its first task is fixing what things are TAGGED, not what they say.** After
+M4e there is no narration literal left in Go, so a Go string tagged
+`CategorySystem` is by construction either Group A or a bug. That makes the
+selection problem the M1 scope section warned about (`:417`) solvable
+mechanically here, where it was not solvable when the warning was written.
+
+**Not designed yet.** It gets its own brainstorm and spec when it is next, with
+these open questions recorded now:
+
+- Does a refusal become data, or stay in Go with a shared vocabulary? The owner
+  called them *"standardizable with a few extra keywords passed in"*
+  (2026-09-07), which points at the second answer and away from a store.
+- Is `localize/` part of this, given refusals are the strings most worth
+  translating? The arc has kept `localize/` out of scope throughout.
+- Does help output belong here or with the command help discoverability audit
+  already in the backlog?
+
+**Ordering:** after M6. It depends on M4e having emptied Go of narration, and
+on nothing else.
 
 ---
 
