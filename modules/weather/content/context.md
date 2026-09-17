@@ -37,11 +37,11 @@ engine itself uses.
 - **arch_test.go**: purity guardrail — fails if any file imports a
   `GoMudEngine/GoMud/internal` path NOT in the `allowedInternalImports`
   allowlist, which today holds exactly one entry, `internal/narration`.
-- **biome_coupling_test.go**: four shipped-data guards that keep the biome
-  classification total and the depth contract real. See "Four guards" below.
+- **biome_coupling_test.go**: five shipped-data guards that keep the biome
+  classification total and the depth contract real. See "Five guards" below.
 - **shipped_emotes_test.go**: validates the SHIPPED YAML files under
   `_datafiles/world/dogmud/weather/emotes`. For emote tables: parseable,
-  8 tables (one per weather type), outdoor-default pools non-empty, severe
+  9 tables (one per weather type), outdoor-default pools non-empty, severe
   types have a non-empty strong indoor pool, lines ≤80 chars. Mutator spec
   validation lives in `engine/shipped_specs_test.go`. For mutator specs:
   parseable, `mutatorid` is `weather-` namespaced, filename matches
@@ -127,7 +127,7 @@ build-failing guard: the load-time path cannot be allowed to hard-fail, so
 the depth and classification contract has to be held somewhere that CAN fail
 loudly, which is the shipped-data test suite, not runtime.
 
-### Four guards (`biome_coupling_test.go`)
+### Five guards (`biome_coupling_test.go`)
 
 1. **`TestEveryIndoorBiomeIsClassified`**: every `indoor: true` biome in the
    shipped biome files is in exactly one of `undergroundBiomes` /
@@ -144,6 +144,22 @@ loudly, which is the shipped-data test suite, not runtime.
 4. **`TestShippedPoolsMeetMinimumDepth`**: every non-empty shipped pool (all
    three classes, base and seasonal) meets `minPoolDepth`. Found six pools
    the content pass had missed.
+5. **`TestClassificationAndContentKeysAreLowercase`**: every classification
+   map key, every shipped `biomeid`, and every authored content biome key is
+   already lowercase.
+
+🪤 **Guard 5 exists because guards 1 to 3 would otherwise stay GREEN while
+production was wrong.** `EmitAmbient` passes `BiomeInfo.BiomeId` RAW, and that
+field is not canonicalised (the room model's own `BiomeInfo.Id()` lowercases it
+for exactly that reason). Guards 1 to 3 key their maps with `strings.ToLower`,
+so a builder authoring `biomeid: Crypt` would satisfy every one of them while
+`bandedSectionLines` missed the classification and silently served prose
+written for a built interior.
+
+`bandedSectionLines` now lowercases the room's biome before every lookup, which
+closes one direction; guard 5 closes the other, because normalising one side of
+a comparison is only half a fix. A guard that passes while production is broken
+is worse than no guard.
 
 ### Key Types
 ```go
@@ -223,7 +239,7 @@ type SeasonalTables map[SeasonalKey]TableSection
   assignable parameter type.
 - `shipped_climate_test.go` / `shipped_emotes_test.go`: validate shipped YAML
   (see Key Components above).
-- `biome_coupling_test.go`: the four shipped-data guards; see "Four guards"
+- `biome_coupling_test.go`: the five shipped-data guards; see "Five guards"
   above.
 - `arch_test.go`: engine-import purity guardrail.
 

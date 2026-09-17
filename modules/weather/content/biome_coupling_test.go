@@ -213,3 +213,83 @@ func TestShippedPoolsMeetMinimumDepth(t *testing.T) {
 		checkSection(t, "ambience "+k.Track+"/"+k.Season, sec)
 	}
 }
+
+// GUARD 5. Every key this package matches on must already be lowercase.
+//
+// bandedSectionLines lowercases the ROOM's biome before looking it up, which
+// closes one direction. This guard closes the other: if a classification map
+// key or an authored content key were itself mixed case, the lookup would
+// still miss, because normalising one side of a comparison is only half a fix.
+//
+// The two together are what make the other guards trustworthy. Guards 1 to 3
+// key their maps with strings.ToLower, so without this one a mixed-case
+// biomeid could leave every guard green while production silently served the
+// wrong prose class.
+func TestClassificationAndContentKeysAreLowercase(t *testing.T) {
+	for _, m := range []struct {
+		name string
+		set  map[string]bool
+	}{
+		{"undergroundBiomes", undergroundBiomes},
+		{"surfaceIndoorBiomes", surfaceIndoorBiomes},
+	} {
+		for id := range m.set {
+			if id != strings.ToLower(id) {
+				t.Errorf("%s key %q is not lowercase; bandedSectionLines lowercases the room's biome before lookup, so this key can never match", m.name, id)
+			}
+		}
+	}
+
+	for id, rec := range loadShippedBiomes(t) {
+		if rec.BiomeId != strings.ToLower(rec.BiomeId) {
+			t.Errorf("biome %q authors biomeid %q, which is not lowercase. Every lookup in this package normalises to lowercase; author it lowercase so the two sides agree.", id, rec.BiomeId)
+		}
+	}
+
+	root := os.DirFS("../../../_datafiles/world/dogmud")
+
+	checkKeys := func(t *testing.T, where string, sec TableSection) {
+		t.Helper()
+		var keys []string
+		for k := range sec.Outdoor {
+			keys = append(keys, k)
+		}
+		for k := range sec.Indoor {
+			keys = append(keys, k)
+		}
+		for k := range sec.Underground {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			if k != strings.ToLower(k) {
+				t.Errorf("%s authors biome key %q, which is not lowercase; the lookup normalises and would never reach it", where, k)
+			}
+		}
+	}
+
+	tables, err := LoadEmotes(root, "weather/emotes")
+	if err != nil {
+		t.Fatalf("LoadEmotes: %v", err)
+	}
+	if len(tables) == 0 {
+		t.Fatal("no tables loaded; this guard would pass vacuously")
+	}
+	for wt, tbl := range tables {
+		checkKeys(t, string(wt), tbl.TableSection)
+		for season, sec := range tbl.Seasonal {
+			checkKeys(t, string(wt)+" season:"+season, sec)
+		}
+	}
+
+	seasonal, err := LoadSeasonalEmotes(root, "weather/emotes/seasons")
+	if err != nil {
+		t.Fatalf("LoadSeasonalEmotes: %v", err)
+	}
+	if len(seasonal) == 0 {
+		t.Fatal("no ambience tables loaded; this guard would pass vacuously")
+	}
+	for k, sec := range seasonal {
+		checkKeys(t, "ambience "+k.Track+"/"+k.Season, sec)
+	}
+}

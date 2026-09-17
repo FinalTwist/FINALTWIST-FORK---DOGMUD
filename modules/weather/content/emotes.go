@@ -245,7 +245,21 @@ var surfaceIndoorBiomes = map[string]bool{
 // A class NEVER falls back to another class. An unauthored underground pool
 // renders silence rather than borrowing house prose, which is the whole point
 // of the split.
+//
+// 🪤 THE BIOME KEY IS LOWERCASED BEFORE EVERY LOOKUP, and that is load-bearing.
+// EmitAmbient passes rooms.BiomeInfo.BiomeId RAW, which is the authored yaml
+// value and NOT canonicalised; the room model's own BiomeInfo.Id() lowercases
+// precisely because of that. Every shipped biomeid happens to be lowercase
+// today, so a raw lookup works by luck.
+//
+// Without this, a builder authoring `biomeid: Crypt` would get a classification
+// MISS here and silently receive prose written for a built interior, while
+// biome_coupling_test.go, which keys its map with strings.ToLower, would still
+// pass. A guard that stays green while production is wrong is worse than no
+// guard, which is why the normalisation lives here rather than in the caller.
 func bandedSectionLines(sec TableSection, biome string, useIndoor bool, felt float64) []string {
+	biome = strings.ToLower(biome)
+
 	if !useIndoor {
 		lines := sec.Outdoor[biome]
 		if len(lines) == 0 {

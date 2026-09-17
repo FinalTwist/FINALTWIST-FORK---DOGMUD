@@ -444,6 +444,15 @@ func TestClassResolution(t *testing.T) {
 		{"indoor mild band below threshold", "house", true, 0.0, "IN-MILD"},
 		{"underground mild is empty, so silence", "cave", true, 0.0, ""},
 		{"unknown biome falls back to default", "nowhere", true, 1.0, "IN-STRONG"},
+		// EmitAmbient passes BiomeInfo.BiomeId RAW, and that field is not
+		// canonicalised: the room model's own BiomeInfo.Id() lowercases it for
+		// exactly this reason. A mixed-case biomeid must still classify, or it
+		// silently gets the wrong prose class while the coupling guard, which
+		// lowercases its keys, stays green.
+		{"mixed-case cave still classifies", "Cave", true, 1.0, "UNDER-STRONG"},
+		{"upper-case dungeon still classifies", "DUNGEON", true, 1.0, "UNDER-STRONG"},
+		{"mixed-case house stays surface indoor", "House", true, 1.0, "IN-STRONG"},
+		{"mixed-case outdoor biome still resolves", "Forest", false, 1.0, "OUT"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
