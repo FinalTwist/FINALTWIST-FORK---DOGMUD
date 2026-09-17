@@ -470,9 +470,13 @@ func GetAttackMessage(subType ItemSubType, pctDamage int) AttackOptions {
 func TokenStrings(tokens map[TokenName]string) map[string]string
 ```
 
-`ItemMessage.SetTokenValue` (a per-token `strings.Replace`) was the second of
-the messaging arc's three leftover token engines and was deleted in M4a.
-Nothing in the package substitutes tokens by hand any more.
+`ItemMessage.SetTokenValue` (a per-token `strings.Replace`) was the first of
+the messaging arc's three leftover token engines and was deleted in M4a. The
+other two, `grapplemessaging.RenderTemplate` and the local `substitute` in
+`internal/hooks/Position_Messaging.go`, went the same way in the same slice.
+Nothing in the package substitutes tokens by hand any more, and
+`token_engine_guard_test.go` at the repo root fails the build if anything
+starts again.
 
 ## Durability and Usage System
 

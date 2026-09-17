@@ -1345,7 +1345,9 @@ resolved, fires supplementary messaging:
   messaging M4a: `{actor}` and `{actee}` for the two grapplers, plus the
   store's own `{position}`, `{old_position}` and `{new_position}`. Rendering
   goes through `narration.Substitute`; the local `substitute` this file used
-  to carry is gone. `substitutionsForCharacter` puts the controller in the
+  to carry is gone, and `token_engine_guard_test.go` at the repo root fails the
+  build if a replacement grows back. `substitutionsForCharacter` puts the
+  controller in the
   actor slot; `staminaWarningSubstitutions` overrides that with the character
   the warning fires for, because the stamina room line is about the reader
   rather than about the controller. The store's golden is

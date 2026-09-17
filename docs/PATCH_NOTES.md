@@ -1,5 +1,14 @@
 # DOGMud Patch Notes
 
+## 2026-09-17: Nothing you can see
+
+The game's messages are built from templates with blanks where the names go,
+and different parts of the game had been filling in those blanks in different
+ways. They all share one way now. Not a word of what you read has changed.
+The point is the next change rather than this one: a correction to a combat
+line, a spell description or a grapple message now happens in one place
+instead of several, so it reaches every message it should.
+
 ## 2026-09-16: Everyone sees the same blow
 
 When a blow lands, the attacker, the defender and everyone watching are now
