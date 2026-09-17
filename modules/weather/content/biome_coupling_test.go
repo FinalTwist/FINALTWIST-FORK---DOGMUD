@@ -161,3 +161,55 @@ func TestAuthoredBiomeKeysAreRealBiomes(t *testing.T) {
 		check(t, "ambience "+k.Track+"/"+k.Season, sectionKeys(sec))
 	}
 }
+
+// GUARD 4. Every non-empty shipped pool meets the depth floor.
+func TestShippedPoolsMeetMinimumDepth(t *testing.T) {
+	root := os.DirFS("../../../_datafiles/world/dogmud")
+
+	checkSection := func(t *testing.T, where string, sec TableSection) {
+		t.Helper()
+		for biome, lines := range sec.Outdoor {
+			if err := ValidatePool(lines); err != nil {
+				t.Errorf("%s outdoor/%s: %v", where, biome, err)
+			}
+		}
+		for _, pair := range []struct {
+			name  string
+			pools map[string]IndoorPool
+		}{{"indoor", sec.Indoor}, {"underground", sec.Underground}} {
+			for biome, pool := range pair.pools {
+				if err := ValidatePool(pool.Mild); err != nil {
+					t.Errorf("%s %s/%s/mild: %v", where, pair.name, biome, err)
+				}
+				if err := ValidatePool(pool.Strong); err != nil {
+					t.Errorf("%s %s/%s/strong: %v", where, pair.name, biome, err)
+				}
+			}
+		}
+	}
+
+	tables, err := LoadEmotes(root, "weather/emotes")
+	if err != nil {
+		t.Fatalf("LoadEmotes: %v", err)
+	}
+	if len(tables) == 0 {
+		t.Fatal("no tables loaded; this guard would pass vacuously")
+	}
+	for wt, tbl := range tables {
+		checkSection(t, string(wt), tbl.TableSection)
+		for season, sec := range tbl.Seasonal {
+			checkSection(t, string(wt)+" season:"+season, sec)
+		}
+	}
+
+	seasonal, err := LoadSeasonalEmotes(root, "weather/emotes/seasons")
+	if err != nil {
+		t.Fatalf("LoadSeasonalEmotes: %v", err)
+	}
+	if len(seasonal) == 0 {
+		t.Fatal("no ambience tables loaded; this guard would pass vacuously")
+	}
+	for k, sec := range seasonal {
+		checkSection(t, "ambience "+k.Track+"/"+k.Season, sec)
+	}
+}

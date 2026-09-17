@@ -71,6 +71,28 @@ func ParseEmoteTable(b []byte) (Table, error) {
 	return t, nil
 }
 
+// minPoolDepth is the floor for a NON-EMPTY ambient pool.
+//
+// Ambient emotes fire every few rounds for a whole session in one zone, so
+// repetition shows far faster here than in combat, where a given pool is drawn
+// from only during a fight. Six is where a session stops feeling looped.
+const minPoolDepth = 6
+
+// ValidatePool enforces the depth contract for ONE pool.
+//
+// 🔑 AN EMPTY POOL IS LEGAL AND MEANS DELIBERATE SILENCE: light weather is
+// inaudible through walls and imperceptible through stone, and `mild: []` is
+// how an author says so. Weather is the only store in the arc where silence is
+// an authored value, which is why this wraps narration.ValidateVariants rather
+// than calling it directly: everything except the empty case is delegated.
+func ValidatePool(lines []string) error {
+	if len(lines) == 0 {
+		return nil
+	}
+	return narration.ValidateVariants(
+		narration.Variants{Observer: lines}, minPoolDepth, narration.RoleObserver)
+}
+
 // LoadEmotes loads every *.yaml emote table under dir in fsys, keyed by the
 // table's weather type. A missing dir yields empty tables (silence). The first
 // malformed file aborts with an error; the caller decides whether to fail soft.
@@ -93,9 +115,50 @@ func LoadEmotes(fsys fs.FS, dir string) (Tables, error) {
 		if err != nil {
 			return tables, fmt.Errorf("%s: %w", e.Name(), err)
 		}
+		// Validate every pool in the base section and each seasonal variant
+		// before this table is trusted. The caller (weatherModule.loadContent)
+		// fails soft on the error this returns: it logs a warning and runs
+		// with whatever tables loaded before the bad file, which is silence
+		// for the rest. Weather is ambient, so a bad emote file must not stop
+		// the world booting — the shipped-data guard (biome_coupling_test.go)
+		// is what actually holds the depth contract, because it fails the
+		// BUILD rather than the running server. Do not "fix" this into a
+		// panic or a hard fail.
+		if err := validateTableSection(t.TableSection); err != nil {
+			return tables, fmt.Errorf("%s: %w", e.Name(), err)
+		}
+		for season, sec := range t.Seasonal {
+			if err := validateTableSection(sec); err != nil {
+				return tables, fmt.Errorf("%s: season %q: %w", e.Name(), season, err)
+			}
+		}
 		tables[sim.WeatherType(t.Weather)] = t
 	}
 	return tables, nil
+}
+
+// validateTableSection runs ValidatePool over every pool in one section,
+// naming the specific pool that failed.
+func validateTableSection(sec TableSection) error {
+	for biome, lines := range sec.Outdoor {
+		if err := ValidatePool(lines); err != nil {
+			return fmt.Errorf("outdoor/%s: %w", biome, err)
+		}
+	}
+	for _, pair := range []struct {
+		name  string
+		pools map[string]IndoorPool
+	}{{"indoor", sec.Indoor}, {"underground", sec.Underground}} {
+		for biome, pool := range pair.pools {
+			if err := ValidatePool(pool.Mild); err != nil {
+				return fmt.Errorf("%s/%s/mild: %w", pair.name, biome, err)
+			}
+			if err := ValidatePool(pool.Strong); err != nil {
+				return fmt.Errorf("%s/%s/strong: %w", pair.name, biome, err)
+			}
+		}
+	}
+	return nil
 }
 
 // Pick selects one ambient line for (weather, biome, indoor, felt, season),
@@ -252,7 +315,16 @@ func LoadSeasonalEmotes(fsys fs.FS, dir string) (SeasonalTables, error) {
 		if f.Track == "" || f.Season == "" {
 			return out, fmt.Errorf("%s: missing required 'track' or 'season' key", e.Name())
 		}
-		out[SeasonalKey{f.Track, f.Season}] = TableSection{Outdoor: f.Outdoor, Indoor: f.Indoor, Underground: f.Underground}
+		sec := TableSection{Outdoor: f.Outdoor, Indoor: f.Indoor, Underground: f.Underground}
+		// See the matching validation in LoadEmotes: the caller
+		// (weatherModule.loadContent) fails soft on this error, logging a
+		// warning and running with empty seasonal-ambience tables (silence)
+		// rather than stopping the world booting. The shipped-data guard is
+		// what holds the depth contract by failing the build.
+		if err := validateTableSection(sec); err != nil {
+			return out, fmt.Errorf("%s: %w", e.Name(), err)
+		}
+		out[SeasonalKey{f.Track, f.Season}] = sec
 	}
 	return out, nil
 }

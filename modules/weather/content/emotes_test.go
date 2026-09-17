@@ -12,13 +12,27 @@ outdoor:
   default:
     - "Thunder cracks directly overhead."
     - "A blinding fork of lightning splits the sky."
+    - "Rain lashes sideways in the gusting wind."
+    - "A low rumble rolls away across the horizon."
+    - "The sky flickers pale for an instant, then dark again."
+    - "Sheets of rain sweep past in a sudden squall."
   forest:
     - "Wind tears at the branches; the whole canopy roars."
+    - "Leaves rip free and spin off into the dark."
+    - "A branch cracks somewhere close in the gloom."
+    - "The treeline bends and thrashes under the gusts."
+    - "Rain hammers the canopy in a rising roar."
+    - "Thunder rolls low beneath the groaning trees."
 indoor:
   default:
     mild: []
     strong:
       - "Rain hammers against the windows."
+      - "Thunder rattles the shutters."
+      - "Wind moans around the eaves."
+      - "A gust rattles the door in its frame."
+      - "Rain drums a steady beat on the roof."
+      - "Lightning flickers pale through the curtains."
 `
 
 func loadTestTables(t *testing.T) Tables {
@@ -53,7 +67,7 @@ func TestPickUsesRoll(t *testing.T) {
 	tables := loadTestTables(t)
 	rolled := -1
 	got := tables.Pick("storm", "default", false, 0.7, "", func(n int) int { rolled = n; return 1 })
-	if rolled != 2 {
+	if rolled != 6 {
 		t.Errorf("roll should receive the line count, got %d", rolled)
 	}
 	if got != "A blinding fork of lightning splits the sky." {
@@ -189,10 +203,20 @@ season: winter
 outdoor:
   default:
     - "Frost rimes every edge."
+    - "Your breath plumes white in the still air."
+    - "The cold presses in steady and even."
+    - "Bare branches stand stark against a colorless sky."
+    - "The light sits low and pale."
+    - "A skin of ice creaks at the edges of still water."
 indoor:
   default:
     strong:
       - "Wind moans in the chimney."
+      - "Deep-winter cold seeps through the walls."
+      - "The hearth pops and settles against the draft."
+      - "A draft finds the gap beneath the door."
+      - "Frost feathers the inside of the windowpane."
+      - "The rafters tick as the cold deepens."
 `)
 	fsys := fstest.MapFS{"seasons/temperate_winter.yaml": {Data: src}}
 	st, err := LoadSeasonalEmotes(fsys, "seasons")
@@ -200,7 +224,7 @@ indoor:
 		t.Fatalf("load: %v", err)
 	}
 	sec, ok := st[SeasonalKey{"temperate", "winter"}]
-	if !ok || len(sec.Outdoor["default"]) != 1 || len(sec.Indoor["default"].Strong) != 1 {
+	if !ok || len(sec.Outdoor["default"]) != 6 || len(sec.Indoor["default"].Strong) != 6 {
 		t.Fatalf("unexpected seasonal table: %+v", st)
 	}
 }
@@ -215,14 +239,29 @@ season: winter
 outdoor:
   default:
     - "Frost rimes every edge."
+    - "Your breath plumes white in the still air."
+    - "The cold presses in steady and even."
+    - "Bare branches stand stark against a colorless sky."
+    - "The light sits low and pale."
+    - "A skin of ice creaks at the edges of still water."
 indoor:
   default:
     strong:
       - "Wind moans in the chimney."
+      - "Deep-winter cold seeps through the walls."
+      - "The hearth pops and settles against the draft."
+      - "A draft finds the gap beneath the door."
+      - "Frost feathers the inside of the windowpane."
+      - "The rafters tick as the cold deepens."
 underground:
   default:
     strong:
       - "Cold seeps up through the stone."
+      - "Damp air carries the smell of frozen earth."
+      - "Somewhere deep, water drips and stills to ice."
+      - "The chill here is older and slower than the wind above."
+      - "Frost furs the seams between the stones."
+      - "The dark holds its cold like a held breath."
 `)
 	fsys := fstest.MapFS{"seasons/temperate_winter.yaml": {Data: src}}
 	st, err := LoadSeasonalEmotes(fsys, "seasons")
@@ -234,7 +273,7 @@ underground:
 		t.Fatalf("expected (temperate, winter) table, got: %+v", st)
 	}
 	got := sec.Underground["default"].Strong
-	if len(got) != 1 || got[0] != "Cold seeps up through the stone." {
+	if len(got) != 6 || got[0] != "Cold seeps up through the stone." {
 		t.Fatalf("underground section did not survive loading: %#v", sec.Underground)
 	}
 }
@@ -413,6 +452,40 @@ func TestClassResolution(t *testing.T) {
 				t.Fatalf("want %q, got %q", c.want, got)
 			}
 		})
+	}
+}
+
+func TestValidatePool(t *testing.T) {
+	// Empty is LEGAL and means deliberate silence: light weather is inaudible
+	// through walls and imperceptible through stone. This is the case that
+	// stops a flat minimum being usable, and weather is the only store in the
+	// arc that has it.
+	if err := ValidatePool(nil); err != nil {
+		t.Fatalf("empty pool must be legal: %v", err)
+	}
+	if err := ValidatePool([]string{}); err != nil {
+		t.Fatalf("empty pool must be legal: %v", err)
+	}
+	for n := 1; n < minPoolDepth; n++ {
+		lines := make([]string, n)
+		for i := range lines {
+			lines[i] = "line"
+		}
+		if err := ValidatePool(lines); err == nil {
+			t.Errorf("a pool of %d must be rejected; the minimum is %d", n, minPoolDepth)
+		}
+	}
+	deep := make([]string, minPoolDepth)
+	for i := range deep {
+		deep[i] = "line"
+	}
+	if err := ValidatePool(deep); err != nil {
+		t.Fatalf("a pool of %d must be accepted: %v", minPoolDepth, err)
+	}
+	// A blank variant is rejected at any depth.
+	deep[2] = ""
+	if err := ValidatePool(deep); err == nil {
+		t.Error("a blank variant must be rejected")
 	}
 }
 
