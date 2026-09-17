@@ -7,7 +7,12 @@ outdoor:
 indoor:
   default:
     mild:
-      - "Fine dust sifts down from the rafters with each gust outside."
+      - "Fine dust sifts down from the rafters with each passing gust."
+      - "A faint grit settles on every surface, barely there at all."
+      - "The air tastes dry, and your lips crack a little."
+      - "Light through the window has gone slightly hazy."
+      - "Grit whispers along the sill and gathers in little drifts."
+      - "The room smells faintly of dry earth."
     strong:
       - "Grit hisses against the walls; the air inside tastes of dry earth."
       - "A gritty film settles over everything no matter how tight the shutters."

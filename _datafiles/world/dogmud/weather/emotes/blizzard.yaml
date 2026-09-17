@@ -8,6 +8,11 @@ indoor:
   default:
     mild:
       - "Wind keens around the corners of the building."
+      - "A thin cold works its way in at the doorsill."
+      - "Snow ticks against the glass, light and dry."
+      - "The fire leans and straightens as the wind shifts."
+      - "A beam creaks somewhere above, taking on weight."
+      - "The air near the walls has turned noticeably colder."
     strong:
       - "The blizzard howls against the walls, packing snow into every crack."
       - "Something on the roof strains and thrums with each long gust."

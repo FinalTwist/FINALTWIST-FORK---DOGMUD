@@ -16,6 +16,11 @@ indoor:
   default:
     mild:
       - "Wind moans low around the eaves."
+      - "A shutter taps somewhere, not quite latched."
+      - "The windowpanes tick as the gusts come and go."
+      - "Draughts wander the room, then settle again."
+      - "Rain comes and goes on the roof, never quite settling in."
+      - "The chimney draws unevenly, breathing with the wind."
     strong:
       - "Thunder rolls through the walls, rattling anything not nailed down."
       - "The storm hammers at the roof, wind worrying every joint and seam."
