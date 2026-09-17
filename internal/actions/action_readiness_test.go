@@ -6,6 +6,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/spells"
+	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -291,6 +292,99 @@ func TestCastReadiness_GenuinelyUnknownSpell_StillRejected(t *testing.T) {
 // For every token, castReadiness must agree with ResolveSpellGreedy on
 // whether the spell resolves at all — never rejecting something the real
 // cast path would accept, and never accepting something it would not.
+// ---------------------------------------------------------------------------
+// Alias expansion parity with usercommands.TryCommand (this bug's fix)
+// ---------------------------------------------------------------------------
+//
+// The client action queue (Char.Action.Try over GMCP) keeps a command queued
+// only when ActionReadiness reports ActionDeferred; ActionReady fires the
+// command immediately and drops it from the queue. ActionReadiness dispatched
+// on the raw verb without ever expanding user aliases, so a trigger sending a
+// custom alias like "sa" (-> "cast skill-attunement") matched neither "cast"
+// nor specialMoveVerbs and fell through to ActionReady even mid-cast. warcry
+// and rally only appeared to work because they are literal verbs.
+//
+// stubActor (used by newCastActor elsewhere in this file) has no backing
+// users.UserRecord, so it can never carry a user alias map. These tests build
+// a real *UserActor instead.
+
+// newAliasTestActor builds a *UserActor backed by a real users.UserRecord
+// carrying the given alias map, so ActionReadiness has something to expand.
+func newAliasTestActor(aliases map[string]string) (*UserActor, *characters.Character) {
+	char := newTestChar()
+	user := &users.UserRecord{
+		UserId:    99001,
+		Character: char,
+		Aliases:   aliases,
+	}
+	return &UserActor{User: user}, char
+}
+
+// TestActionReadiness_UserAlias_CastSpell_Defers verifies that a user alias
+// expanding to a cast ("sa" -> "cast skill-attunement") is evaluated exactly
+// like the un-aliased "cast skill-attunement" command — here, deferred for
+// insufficient conviction — rather than falling through to ActionReady.
+func TestActionReadiness_UserAlias_CastSpell_Defers(t *testing.T) {
+	sd, cleanup := seedTestSpell("skill-attunement", spells.HelpSingle, 4)
+	defer cleanup()
+
+	actor, char := newAliasTestActor(map[string]string{"sa": "cast skill-attunement"})
+	char.SpellBook[sd.SpellId] = 1
+	// char.Conviction is 0 (Go zero value) — below the spell's Cost of 5, so a
+	// real "cast skill-attunement" would defer, not fire immediately.
+
+	result := ActionReadiness(actor, "sa")
+	assert.Equal(t, ActionDeferred, result.Status,
+		"a user alias expanding to a cast must resolve to the same gate as the un-aliased command, not ActionReady (reason: %s)", result.Reason)
+	assert.Equal(t, "insufficient conviction", result.Reason)
+}
+
+// TestActionReadiness_UserAlias_SpecialMove_Defers verifies that a user alias
+// expanding to a special-move verb ("wc" -> "warcry") is evaluated exactly
+// like the literal verb — here, deferred on the shared special-move cooldown.
+func TestActionReadiness_UserAlias_SpecialMove_Defers(t *testing.T) {
+	actor, char := newAliasTestActor(map[string]string{"wc": "warcry"})
+	char.Cooldowns = characters.Cooldowns{"special-move": 3}
+
+	result := ActionReadiness(actor, "wc")
+	assert.Equal(t, ActionDeferred, result.Status,
+		"a user alias expanding to a special move must resolve to the same gate as the literal verb, not ActionReady (reason: %s)", result.Reason)
+	assert.Equal(t, "special-move busy", result.Reason)
+}
+
+// TestActionReadiness_UnknownVerb_NoAliasMatch_StillReady pins the documented
+// pass-through: a *UserActor with a non-empty alias map that simply does not
+// match the typed verb must not regress to anything other than ActionReady.
+func TestActionReadiness_UnknownVerb_NoAliasMatch_StillReady(t *testing.T) {
+	actor, _ := newAliasTestActor(map[string]string{"sa": "cast skill-attunement"})
+
+	result := ActionReadiness(actor, "say hello")
+	assert.Equal(t, ActionReady, result.Status)
+}
+
+// TestActionReadiness_UserAlias_MultiWord_MergesRestCorrectly verifies the
+// multi-word merge order: a user alias that itself expands to multiple words
+// ("sa" -> "cast skill-attunement") combined with a trailing rest typed after
+// the alias ("sa bob") must produce "cast skill-attunement bob", NOT
+// "cast bob skill-attunement". Conviction is left at 0 (below the spell's
+// Cost of 5) so a CORRECT merge resolves the spell and defers for
+// insufficient conviction. ResolveSpellGreedy drops trailing words from the
+// END, so a merge bug that put "bob" ahead of "skill-attunement" would fail
+// to resolve the spell at all — surfacing as ActionRejected("unknown spell")
+// instead, which this test would also catch.
+func TestActionReadiness_UserAlias_MultiWord_MergesRestCorrectly(t *testing.T) {
+	sd, cleanup := seedTestSpell("skill-attunement", spells.HelpSingle, 4)
+	defer cleanup()
+
+	actor, char := newAliasTestActor(map[string]string{"sa": "cast skill-attunement"})
+	char.SpellBook[sd.SpellId] = 1
+	// char.Conviction is 0 (Go zero value) — below the spell's Cost of 5.
+
+	result := ActionReadiness(actor, "sa bob")
+	assert.Equal(t, ActionDeferred, result.Status, "reason: %s", result.Reason)
+	assert.Equal(t, "insufficient conviction", result.Reason)
+}
+
 func TestActionReadinessSpellNameResolutionDrift(t *testing.T) {
 	sd := &spells.SpellData{
 		SpellId:   "test-ar-drift-spellname",
