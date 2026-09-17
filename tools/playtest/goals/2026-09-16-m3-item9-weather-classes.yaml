@@ -21,13 +21,14 @@
 # 100, so a front spawned at intensity 1.0 fires on EVERY pass. Be patient
 # between lines; this is not a fast-moving test.
 
+# Why the admin profile: this run must spawn a weather front on demand rather
+# than wait for the simulation, and `weather spawn` is admin-gated. It is not
+# testing the player path; it verifies which prose pool a room resolves to.
+# (There is no profile_rationale field. The ephemeral block accepts only
+# profile, start_room, overlays, creation_flow, creation_rationale, budgets,
+# and unknown keys fail the run closed.)
 ephemeral:
   profile: admin
-  profile_rationale: >
-    The admin profile is required: this run must spawn a weather front on
-    demand rather than wait for the simulation, and `weather spawn` is
-    admin-gated. It is not testing the player path, it is verifying which
-    prose pool a room resolves to.
   start_room: 5255
   budgets:
     wall_clock: 30m
