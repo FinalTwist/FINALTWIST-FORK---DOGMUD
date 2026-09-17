@@ -2,7 +2,11 @@ package main
 
 import (
 	"bytes"
+	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/combat"
@@ -233,6 +237,297 @@ func TestShippedNarrationDataValidates(t *testing.T) {
 	t.Run("weather_emotes", func(t *testing.T) {
 		checkWeatherEmotes(t)
 	})
+}
+
+// narrationStoreWalkRoots is exactly what TestNoLegacyRoleKeysInShippedData
+// walks: thirteen paths covering the fourteen shipped narration stores
+// (messaging/ holds two of them). It is a list of stores rather than a walk of
+// the world root, and both exclusions that buys are load-bearing.
+//
+// _datafiles/world/default is OUT OF BOUNDS. The owner ruled on 2026-09-17
+// that the vestigial default world is left alone, so it still carries the old
+// spellings on purpose: 39 conditions, 2 quests and 8 combat-messages files
+// were deliberately not rewritten by M4b-1. That world cannot boot anyway (it
+// has no defense-messages directory, so the item loader panics first) and no
+// test loads a narration store from it, because every loader call in a test
+// points FilePaths.DataFiles at the dogmud world or a temp dir first. A walk
+// that reached it would fail on data nobody serves.
+//
+// Everything under the dogmud world that is not a narration store is out of
+// scope too. Other stores own some of these spellings legitimately:
+// internal/behaviortree reads `room_text` and `user_text` action params out of
+// behaviors/ (internal/behaviortree/actions_dialogue.go:40), and
+// internal/items reads `on_use_room_text`. Those are different stores in a
+// different arc. Naming the narration stores keeps them out by construction,
+// which cannot rot the way a path exemption can.
+var narrationStoreWalkRoots = []string{
+	shippedWorldRoot + "/taunt-messages",
+	shippedWorldRoot + "/combat-messages",
+	shippedWorldRoot + "/defense-messages",
+	shippedWorldRoot + "/itemvoices",
+	shippedWorldRoot + "/conditions",
+	shippedWorldRoot + "/spells",
+	shippedWorldRoot + "/quests",
+	shippedWorldRoot + "/recipes",
+	shippedWorldRoot + "/messaging",
+	shippedWorldRoot + "/weather/emotes",
+	shippedWorldRoot + "/casting-messages.yaml",
+	shippedWorldRoot + "/gossip_templates.yaml",
+	shippedWorldRoot + "/tips.yaml",
+}
+
+// legacyRoleKeysAnyStore are retired spellings that no narration store may use
+// anywhere, mapped to what replaced them.
+//
+// The table mirrors tools/messaging_token_rewrite.py's KEY_GROUPS, which is
+// what actually performed the renames, so the guard bans exactly the
+// vocabulary the slice retired and nothing it invented. `controlled` is here
+// with one documented exemption; see legacyKeyIsExempt.
+var legacyRoleKeysAnyStore = map[string]string{
+	// combat, defence, taunt (commit e2e6795e4)
+	"toattacker":     "actor",
+	"todefender":     "actee",
+	"toroom":         "observer",
+	"toattackerroom": "observer",
+	"todefenderroom": "remote_observer",
+
+	// grapple and position_control sides (620188c7f, 93fbc3ccc)
+	"controller": "actor",
+	"controlled": "actee",
+	"observers":  "observer",
+	"partner":    "actee",
+
+	// conditions (acd556e82)
+	"start_user_text":   "start_actee",
+	"start_room_text":   "start_observer",
+	"trigger_user_text": "trigger_actee",
+	"trigger_room_text": "trigger_observer",
+	"end_user_text":     "end_actee",
+	"end_room_text":     "end_observer",
+
+	// spells (acd556e82)
+	"cast_user_text":  "cast_actor",
+	"cast_room_text":  "cast_observer",
+	"wait_user_text":  "wait_actor",
+	"wait_room_text":  "wait_observer",
+	"magic_user_text": "magic_actor",
+	"magic_room_text": "magic_observer",
+
+	// quests (acd556e82)
+	"playermessage": "actor",
+	"roommessage":   "observer",
+	"send_text":     "actor",
+	// `room_text` IS banned here, and the plan's warning that it might not be
+	// safe to ban was checked rather than assumed. It was a real quest trigger
+	// action key and acd556e82 renamed it to `observer`; no shipped quest in
+	// either world authors it any more (grep over dogmud/quests and
+	// default/quests: zero hits). Its one surviving reader,
+	// internal/behaviortree, reads it out of behaviors/, which this walk does
+	// not cover. So within these roots the spelling is retired, full stop.
+	"room_text": "observer",
+
+	// crafting recipes (acd556e82)
+	"success_message":      "success_actor",
+	"success_room_message": "success_observer",
+	"failure_message":      "failure_actor",
+	"failure_room_message": "failure_observer",
+}
+
+// legacyRoleKeysMessagingOnly are spellings that are retired inside
+// messaging/ but are ordinary, live keys elsewhere, so banning them worldwide
+// would be a guard that fails on correct data.
+//
+// `room` is the proof: internal/quests/triggers.go:13 declares TriggerDef.Room
+// with the yaml tag "room" as a trigger's room filter, and 102 shipped quest
+// lines author it. A blanket ban would redden every one of them.
+// `attacker`, `target` and `self` are the same shape of word: they were
+// position_control and grapple_outcomes role keys (the `position` and
+// `grapple` groups in the rewrite tool) and nothing else in these stores uses
+// them, but they are plausible future keys for a store that never had the old
+// vocabulary, so the ban stays where the rename happened.
+var legacyRoleKeysMessagingOnly = map[string]string{
+	"self":     "actor",
+	"attacker": "actor",
+	"target":   "actee",
+	"room":     "observer",
+}
+
+// legacyKeyIsExempt carves out the one place a banned spelling is correct
+// authored data.
+//
+// `controlled` is BOTH a retired role key and a live gradient STATE name. In
+// position_control.yaml the sides used to be spelled controller/controlled and
+// are now actor/actee, but the gradient states are in_control,
+// losing_control, neutral, becoming_controlled and controlled, and the state
+// keeps its spelling because renaming it would turn
+// gradient_messages.actor.actee into nonsense. So after Task 7,
+// `gradient_messages.actor.controlled.actor` is legal and correct, and a guard
+// that banned the word outright would fail on shipped data.
+//
+// The discriminator is the same one the rewrite tool used: nesting depth. The
+// sides are direct children of gradient_messages and the states are one level
+// below them. This scopes by ancestor PATH rather than by column, which is the
+// stricter form of the same rule: `controlled` is exempt only as a grandchild
+// of gradient_messages in that one file. A `controlled:` reintroduced as a
+// side, as an audience key inside a state, or anywhere in any other file, is
+// still caught.
+func legacyKeyIsExempt(path, key string, ancestors []string) bool {
+	return key == "controlled" &&
+		filepath.ToSlash(path) == positionControlPath &&
+		len(ancestors) == 2 &&
+		ancestors[0] == "gradient_messages"
+}
+
+// TestNoLegacyRoleKeysInShippedData fails the build when a narration YAML file
+// still spells a role the old way. The renames of M4b-1 are only durable if a
+// newly authored file cannot reintroduce the old vocabulary, and a store whose
+// struct no longer declares the tag would load that file SILENTLY EMPTY, which
+// is the exact failure this slice exists to make impossible.
+//
+// It walks narrationStoreWalkRoots, which is the shipped dogmud world's
+// narration stores only; the scoping and the reasons for it are documented on
+// that variable, on the two ban tables, and on legacyKeyIsExempt.
+//
+// It inspects MAPPING KEYS from a parsed yaml.v3 node tree, not lines of text.
+// Half these spellings are ordinary English words, so a line-oriented scan
+// would have to guess whether `room:` inside a block scalar is a key or prose.
+// The node tree does not guess, and it hands over a real ancestor path, which
+// is what the gradient-state exemption is keyed on.
+//
+// It logs how many files and how many keys it inspected, and refuses to pass
+// on a walk that found nothing. An absence guard whose walk silently scans
+// zero files passes in 0.00s and proves nothing; this repo has been bitten by
+// exactly that.
+func TestNoLegacyRoleKeysInShippedData(t *testing.T) {
+	filesInspected := 0
+	keysInspected := 0
+
+	for _, root := range narrationStoreWalkRoots {
+		files := yamlFilesUnder(t, root)
+		if len(files) == 0 {
+			t.Errorf("walk root %s yielded zero YAML files: the guard would scan nothing there", root)
+			continue
+		}
+		for _, path := range files {
+			filesInspected++
+			keysInspected += checkFileForLegacyRoleKeys(t, path)
+		}
+	}
+
+	if keysInspected == 0 {
+		t.Fatal("inspected zero mapping keys: the walk found nothing, so a green run proves nothing")
+	}
+	// A floor, not a pin. Content volume moves; a walk collapsing to a handful
+	// of files does not happen for a legitimate reason.
+	if filesInspected < 100 {
+		t.Errorf("inspected only %d files across %d walk roots: expected the whole narration tree", filesInspected, len(narrationStoreWalkRoots))
+	}
+	t.Logf("inspected %d YAML files and %d mapping keys across %d narration store roots",
+		filesInspected, keysInspected, len(narrationStoreWalkRoots))
+}
+
+// yamlFilesUnder returns every .yaml/.yml file at or under root. root may name
+// a single file, which three of the stores are.
+func yamlFilesUnder(t *testing.T, root string) []string {
+	t.Helper()
+
+	info, err := os.Stat(root)
+	if err != nil {
+		t.Errorf("walk root %s: %v", root, err)
+		return nil
+	}
+	if !info.IsDir() {
+		return []string{root}
+	}
+
+	var out []string
+	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if ext := filepath.Ext(path); ext == ".yaml" || ext == ".yml" {
+			out = append(out, path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Errorf("walk root %s: %v", root, err)
+	}
+	return out
+}
+
+// checkFileForLegacyRoleKeys reports every banned mapping key in one file and
+// returns how many keys it looked at, so the caller can prove the walk is not
+// silently inspecting nothing.
+func checkFileForLegacyRoleKeys(t *testing.T, path string) int {
+	t.Helper()
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Errorf("%s: %v", path, err)
+		return 0
+	}
+
+	// Multi-document files are not used by these stores today, but decoding in
+	// a loop costs nothing and means a second document could not hide a key.
+	keys := 0
+	dec := yamlv3.NewDecoder(bytes.NewReader(data))
+	for {
+		var doc yamlv3.Node
+		if err := dec.Decode(&doc); err != nil {
+			if err == io.EOF {
+				break
+			}
+			// A parse failure is TestShippedNarrationDataValidates' business,
+			// but reporting it here too beats scanning zero keys quietly.
+			t.Errorf("%s: parse: %v", path, err)
+			return keys
+		}
+		keys += walkNodeForLegacyRoleKeys(t, path, &doc, nil)
+	}
+	return keys
+}
+
+func walkNodeForLegacyRoleKeys(t *testing.T, path string, n *yamlv3.Node, ancestors []string) int {
+	t.Helper()
+
+	keys := 0
+	switch n.Kind {
+	case yamlv3.DocumentNode, yamlv3.SequenceNode:
+		for _, child := range n.Content {
+			keys += walkNodeForLegacyRoleKeys(t, path, child, ancestors)
+		}
+	case yamlv3.MappingNode:
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			k, v := n.Content[i], n.Content[i+1]
+			keys++
+			reportLegacyRoleKey(t, path, k, ancestors)
+			keys += walkNodeForLegacyRoleKeys(t, path, v, append(ancestors, k.Value))
+		}
+	}
+	return keys
+}
+
+func reportLegacyRoleKey(t *testing.T, path string, key *yamlv3.Node, ancestors []string) {
+	t.Helper()
+
+	replacement, banned := legacyRoleKeysAnyStore[key.Value]
+	if !banned && strings.HasPrefix(filepath.ToSlash(path), shippedWorldRoot+"/messaging/") {
+		replacement, banned = legacyRoleKeysMessagingOnly[key.Value]
+	}
+	if !banned || legacyKeyIsExempt(path, key.Value, ancestors) {
+		return
+	}
+
+	where := "(top level)"
+	if len(ancestors) > 0 {
+		where = strings.Join(ancestors, ".")
+	}
+	t.Errorf("%s:%d: legacy role key %q under %s: M4b-1 renamed it to %q, and the store's Go struct no longer declares the old tag, so this file would load SILENTLY EMPTY",
+		filepath.ToSlash(path), key.Line, key.Value, where, replacement)
 }
 
 // checkFlatStore loads one fileloader-backed store through the SAME generic
