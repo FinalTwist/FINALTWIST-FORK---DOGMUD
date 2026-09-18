@@ -417,3 +417,39 @@ func TestResolveAgainstMob_ReportsWhetherTheCastLanded(t *testing.T) {
 		})
 	}
 }
+
+// Counters spec ruling 2: an area cast earns no counter. The seven shipped
+// physical area spells used to hand every victim a free swing at the caster.
+// Pinned at the spell exit so the gate is proven reachable from a cast, not
+// only from the primitive.
+func TestSpellCounter_AnAreaCastEarnsNoCounter(t *testing.T) {
+	pinCounterTierKnobs(t, 0.5)
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restoreMessages := seedChannelRoutingMessages(t)
+	defer restoreMessages()
+
+	caster := users.GetByUserId(1)
+	mob := mobInstanceForCollapseTest(t)
+	room := roomForCollapseTest(t)
+	caster.Character.Health = 100000
+	caster.Character.HealthMax.Value = 100000
+	caster.Character.Stamina = 500
+	caster.Character.StaminaMax.Value = 500
+
+	calls := 0
+	restore := combat.SetChannelAttackContestRunnerForTest(sequencedContestRunner(t, &calls,
+		alwaysDefensiveCritContest(t), // the cast is crit-defended
+		attackWinContest(t),           // would be the counter-swing, must never run
+	))
+	t.Cleanup(restore)
+
+	spell := physicalHarmSpellForCollapseTest()
+	spell.Targeting = combatvocab.TargetArea
+	side := spellAttackSideFor(spell, caster.Character)
+	fumbled, _ := resolveAgainstMob(caster, mob, room, spell, side, spell.EffectMagnitude)
+	require.False(t, fumbled)
+
+	require.Equal(t, 1, calls, "an area cast runs its own contest and never a counter-swing")
+	require.Equal(t, 100000, caster.Character.Health, "no counter damage may reach an area caster")
+}

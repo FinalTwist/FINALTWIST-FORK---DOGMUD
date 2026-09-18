@@ -1,5 +1,13 @@
 # DOGMud Patch Notes
 
+## 2026-09-18: A room-wide working earns no answer
+
+When a working or a sweep reaches everyone in the room, turning it aside
+no longer hands each of you a free strike at the one who made it. A
+decisive defence still stops it cold. The answering blow is for an attack
+aimed at you alone: a swing, a shot from within reach, or a working sent
+at you and nobody else.
+
 ## 2026-09-18: Mending your companion no longer picks a fight
 
 Healing or shielding your own companion, and mending an ally beast under an

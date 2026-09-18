@@ -16,7 +16,8 @@ import (
 // counter-* pools in defense-messages/, chosen by the defence that won).
 type CounterResult struct {
 	// Countered reports whether the counter-swing actually fired. False when
-	// the reach gate refused (cross-room), the knob disabled the tier, or a
+	// the reach gate refused (cross-room), the attack was not single-target,
+	// no winning defence was recorded, the knob disabled the tier, or a
 	// participant was missing/dead.
 	Countered bool
 
@@ -68,6 +69,9 @@ type CounterResult struct {
 //
 //   - reach-gated: attacker and defender must share a room. The cross-room
 //     shot is the one uncounterable attack, as a property of the weapon.
+//   - single-target only: an area or multi attack earns no counter (owner
+//     ruling 2026-09-18). Targeting travels on the shape, so an exit cannot
+//     bypass the gate by omission.
 //   - defy crits COUNTER-TAUNT instead, replacing the swing. NOTE THE
 //     PLACEMENT: taunt resolution lives in internal/actions, which IMPORTS
 //     internal/combat — this package can never call it. The counter-taunt is
@@ -102,6 +106,15 @@ func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.
 	// pool; the cost of this refusal is the swing itself, not only its text.
 	if defence == combatvocab.DefenceNone {
 		mudlog.Warn("counter", "refused", "no winning defence recorded", "attack", shape.String())
+		return result
+	}
+	// A counter answers one deliberate attack at one target (owner ruling,
+	// counters spec 2). An area or multi attack earns none, however
+	// decisively one victim turned it aside. The gate lives HERE so no exit
+	// can bypass it: the spell exits pass the spell's authored targeting and
+	// the area spells fall out; throw never had an exit, and now this says
+	// why.
+	if shape.Targeting != combatvocab.TargetSingle {
 		return result
 	}
 	// Reach gate: the cross-room shot is the one uncounterable attack.
