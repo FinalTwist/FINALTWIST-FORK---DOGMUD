@@ -1720,16 +1720,19 @@ section, which is true on the player-cast shield path only.
 quadrants in `spell_resolution.go` (`resolveAgainstMob`,
 `resolveAgainstPlayer`, `resolveMobSpellAgainstMob`,
 `resolveMobSpellAgainstPlayer`): a defensive crit against a cast fires
-`combat.ExecuteCounter` — a free seam-routed counter-swing at the caster.
-Both directions are wired on purpose; covering only the player-attacker
-direction would hand mobs a counter immunity nobody decided. Spells are
-same-room by construction, so the reach gate always passes here. Narration
-(U6b Task 11) is the channel-correct counter-quell pool ("put the working
-down, step through the gap"), rendered inside `combat.ExecuteCounter`;
-dispatching from these exits is ordering-correct because the cast's own
-outcome has already been narrated when they fire. `resolveMobDrainArea`
-dispatches no counters: a room-wide drain is an area attack and earns none
-(counters slice, 2026-09-18).
+`combat.ExecuteCounter`, a free seam-routed counter-swing at the caster,
+narrated from the pool of the defence that won (`items.CounterPoolFor`),
+except a defy win (charm, the one social spell), which fires
+`actions.FireCounterTaunt` instead of a swing, narrated from the counter-defy
+pool. Both answers refuse a cast whose authored targeting is not single:
+`combat.ExecuteCounter` and `actions.FireCounterTaunt` each carry the gate,
+so an area cast earns no counter from either. Both directions are wired on
+purpose; covering only the player-attacker direction would hand mobs a
+counter immunity nobody decided. Spells are same-room by construction, so
+the reach gate always passes here. Dispatching from these exits is
+ordering-correct because the cast's own outcome has already been narrated
+when they fire. `resolveMobDrainArea` dispatches no counters: a room-wide
+drain is an area attack and earns none (counters slice, 2026-09-18).
 
 A non-harm cast at a mob (`AttackType == combatvocab.AttackNone`: a heal on a
 companion, an ally-mob buff) takes the uncontested shortcut at the top of

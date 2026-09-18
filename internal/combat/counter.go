@@ -111,10 +111,10 @@ func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.
 	}
 	// A counter answers one deliberate attack at one target (owner ruling,
 	// counters spec 2). An area or multi attack earns none, however
-	// decisively one victim turned it aside. The gate lives HERE so no exit
-	// can bypass it: the spell exits pass the spell's authored targeting and
-	// the area spells fall out; throw never had an exit, and now this says
-	// why.
+	// decisively one victim turned it aside. The gate lives HERE, and its
+	// twin in actions.FireCounterTaunt, so no exit can bypass it: the spell
+	// exits pass the spell's authored targeting and the area spells fall
+	// out; throw never had an exit, and now this says why.
 	if shape.Targeting != combatvocab.TargetSingle {
 		return result
 	}
@@ -246,21 +246,21 @@ const retortPrefix = `<ansi fg="cyan-bold">⚔ RETORT!</ansi> `
 
 // BuildCounterTauntMessages renders the defy counter-taunt triad (U6b Task 11)
 // from the counter-defy pool: the jeer turned back on the one who threw it.
-// countererName is the one whose defy critted; taunterName the original
-// taunter now being counter-taunted. Damage is conviction damage; the
+// countererName is the one whose defy critted; counteredName the one whose
+// words (taunt or charm) were defied. Damage is conviction damage; the
 // description is appended to the two personal lines only. Lives here (not in
 // internal/actions with the carve-out's wiring) so every counter narration
 // composes through the same pool idiom; falls back to the generic Task 10
 // retort lines when the pool is not loaded.
-func BuildCounterTauntMessages(countererName, taunterName string, crit bool, damage, taunterMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
+func BuildCounterTauntMessages(countererName, counteredName string, crit bool, damage, taunterMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
 	bandCrit, bandMargin := counterBand(crit, damage)
 	triad := items.RenderDefenseMessage(items.CounterPoolDefy, bandCrit, bandMargin,
 		map[items.TokenName]string{
-			items.TokenActor: taunterName,
+			items.TokenActor: counteredName,
 			items.TokenActee: countererName,
 		})
 	if triad.ToRoom == "" {
-		return buildGenericCounterTauntMessages(countererName, taunterName, damage, taunterMaxCP)
+		return buildGenericCounterTauntMessages(countererName, counteredName, damage, taunterMaxCP)
 	}
 	dmgTag := ""
 	if damage > 0 {
@@ -277,9 +277,9 @@ func BuildCounterTauntMessages(countererName, taunterName string, crit bool, dam
 func buildGenericCounterTauntMessages(countererName, taunterName string, damage, taunterMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
 	if damage > 0 {
 		dmgDesc := GetConvictionDamageDescription(damage, taunterMaxCP)
-		return fmt.Sprintf(retortPrefix+`You throw %s's taunt right back in their face! (<ansi fg="damage">%s</ansi>)`, taunterName, dmgDesc),
-			fmt.Sprintf(retortPrefix+`%s throws your taunt right back in your face! (<ansi fg="damage">%s</ansi>)`, countererName, dmgDesc),
-			fmt.Sprintf(retortPrefix+`%s throws %s's taunt right back!`, countererName, taunterName)
+		return fmt.Sprintf(retortPrefix+`You throw %s's words right back in their face! (<ansi fg="damage">%s</ansi>)`, taunterName, dmgDesc),
+			fmt.Sprintf(retortPrefix+`%s throws your words right back in your face! (<ansi fg="damage">%s</ansi>)`, countererName, dmgDesc),
+			fmt.Sprintf(retortPrefix+`%s throws %s's words right back!`, countererName, taunterName)
 	}
 	return fmt.Sprintf(retortPrefix+`You snap back at %s, but the words fail to bite!`, taunterName),
 		fmt.Sprintf(retortPrefix+`%s snaps back at you, but the words fail to bite!`, countererName),

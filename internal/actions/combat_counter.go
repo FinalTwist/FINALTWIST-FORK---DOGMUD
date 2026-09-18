@@ -2,7 +2,7 @@ package actions
 
 // U6b Task 10 — the counter tier's actions-side wiring.
 //
-// Two entry points live here:
+// Three entry points live here:
 //
 //   - counterSkillMoveExit: fires combat.ExecuteCounter at every
 //     single-target ExecuteSkillMove consumer's defensive-crit exit (the
@@ -10,10 +10,14 @@ package actions
 //     area attack earns no counter). It refuses results produced under
 //     IsCounter, so melee's auto-trip/auto-bash (which ride the seam AS
 //     counters) can never chain.
-//   - executeCounterTaunt: the defy carve-out. A defy crit COUNTER-TAUNTS
-//     instead of counter-swinging, and the wiring lives HERE (not in
-//     internal/combat) because taunt resolution needs this package and
-//     internal/combat can never import it.
+//   - FireCounterTaunt: exported. The one defy dispatch, shared by taunt's
+//     counterTauntExit below and the spell exit in internal/hooks, for a
+//     defied charm. A defy crit COUNTER-TAUNTS instead of counter-swinging,
+//     and the wiring lives HERE (not in internal/combat) because taunt
+//     resolution needs this package and internal/combat can never import
+//     it.
+//   - executeCounterTaunt (beneath FireCounterTaunt): the defy carve-out's
+//     cost-free contest and damage primitive, called by FireCounterTaunt.
 //
 // Narration is channel-correct (U6b Task 11), rendered by internal/combat
 // from the counter-* pools in defense-messages/. SEQUENCING (the Task 10 wart,
@@ -22,10 +26,11 @@ package actions
 // order and the wrappers narrate AFTER ExecuteX returns. Instead the
 // CounterResult rides up on the action's result struct, and the command
 // wrapper calls DispatchCounterMessages after its own outcome text — the same
-// flow the defence triads use. The defy counter-taunt keeps dispatching from
-// its exit (Task 10's review flagged only the skill-move ordering; the taunt
-// path was accepted as-is), but its narration now comes from the counter-defy
-// pool via combat.BuildCounterTauntMessages.
+// flow the defence triads use. The defy counter-taunt has always dispatched
+// straight from FireCounterTaunt (Task 10's review flagged only the
+// skill-move ordering; the taunt path was accepted as-is at the time), and
+// its narration comes from the counter-defy pool via
+// combat.BuildCounterTauntMessages.
 
 import (
 	"math"
@@ -226,23 +231,30 @@ func executeCounterTaunt(counterer, target *characters.Character) CounterTauntRe
 }
 
 // FireCounterTaunt is the defy answer, shared by taunt's exit here and the
-// spell exit in internal/hooks (a defied charm). counterer is the one whose
-// defy critted; countered the one whose words (taunt or charm) were defied.
-// A nil recipient is a mob and reads no private line. The narration is the
+// spell exit in internal/hooks (a defied charm). shape is the original
+// attack (taunt or charm); counterer is the one whose defy critted; countered
+// the one whose words were defied. A nil recipient reads no private line (a
+// mob, or a player the caller could not resolve). The narration is the
 // counter-defy pool via combat.BuildCounterTauntMessages; the room line goes
 // to everyone who can see, the two private lines to whichever party is a
 // player. The dispatch parameters are messaging.Recipient rather than a
 // concrete *users.UserRecord (the taunt exit's caller is an Actor, which can
-// wrap a UserRecord that never sits in the users registry (a test double,
-// or a not-yet-registered connection), so a registry lookup silently drops
-// the line; Actor already satisfies Recipient, the same seam
-// DispatchCounterMessages/SendCounterTrio use for this exact problem, and
-// SendText delivers correctly either way). Dispatch stays on
-// SendText/SendTextVisual as Task 10's review accepted it; moving the
-// retort onto the darkness seam is M4d's.
-func FireCounterTaunt(room *rooms.Room, counterer, countered *characters.Character,
-	countererId int, countererRecipient messaging.Recipient,
-	counteredId int, counteredRecipient messaging.Recipient) CounterTauntResult {
+// wrap a UserRecord that never sits in the users registry (a test double),
+// so a registry lookup silently drops the line; Actor already satisfies
+// Recipient, the same seam DispatchCounterMessages/SendCounterTrio use for
+// this exact problem, and SendText delivers correctly either way). Dispatch
+// stays on SendText/SendTextVisual as Task 10's review accepted it; moving
+// the retort onto the darkness seam is M4d's.
+func FireCounterTaunt(room *rooms.Room, shape combatvocab.Attack, counterer, countered *characters.Character,
+	countererRecipient messaging.Recipient, countererId int,
+	counteredRecipient messaging.Recipient, counteredId int) CounterTauntResult {
+
+	// A counter answers one deliberate attack at one target (owner ruling):
+	// the same gate the swing primitive carries, here because a defy win
+	// never reaches it.
+	if shape.Targeting != combatvocab.TargetSingle {
+		return CounterTauntResult{}
+	}
 
 	res := executeCounterTaunt(counterer, countered)
 	if !res.Fired {
@@ -290,8 +302,8 @@ func counterTauntExit(actor Actor, char *characters.Character, target AggroTarge
 	if actor.IsPlayer() {
 		counteredRecipient = actor
 	}
-	return FireCounterTaunt(rooms.LoadRoom(char.RoomId), target.Char, char,
-		target.UserId, countererRecipient, actor.GetUserId(), counteredRecipient)
+	return FireCounterTaunt(rooms.LoadRoom(char.RoomId), combatvocab.Rhetoric(combatvocab.TargetSingle),
+		target.Char, char, countererRecipient, target.UserId, counteredRecipient, actor.GetUserId())
 }
 
 // maxOfOne guards a max-pool denominator for damage descriptions.

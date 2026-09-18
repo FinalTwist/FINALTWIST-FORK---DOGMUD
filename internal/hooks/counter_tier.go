@@ -19,9 +19,9 @@ import (
 // fireSpellCounterTier fires the counter tier at one spell exit. Spell
 // targets always share the caster's room, so the reach gate passes true by
 // construction (the cross-room shot — internal/actions.ExecuteFire — is the
-// one uncounterable attack). The primitive also refuses any cast whose
-// authored targeting is not single, so an area cast earns no counter without
-// any branch here.
+// one uncounterable attack). Both answers refuse a cast whose authored
+// targeting is not single: the swing primitive and FireCounterTaunt each
+// carry the gate, so an area cast earns no counter from either.
 //
 // The channel-correct counter narration (U6b Task 11, rendered from the pool
 // of the defence that won the contest; a defy win goes to the counter-taunt
@@ -56,7 +56,7 @@ func fireSpellCounterTier(room *rooms.Room, out combat.ChannelDefenceResult,
 		if casterUser != nil {
 			casterRecipient, casterId = casterUser, casterUser.UserId
 		}
-		actions.FireCounterTaunt(room, defender, caster, defenderId, defenderRecipient, casterId, casterRecipient)
+		actions.FireCounterTaunt(room, shape, defender, caster, defenderRecipient, defenderId, casterRecipient, casterId)
 		return combat.CounterResult{}
 	}
 

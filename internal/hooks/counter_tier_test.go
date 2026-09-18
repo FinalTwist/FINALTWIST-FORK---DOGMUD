@@ -510,3 +510,59 @@ func TestSpellCounter_ADefiedCharmIsAnsweredWithACounterTaunt(t *testing.T) {
 	require.Equal(t, 1, retorts, "exactly one retort line for the countered caster; got %v", lines)
 	require.Zero(t, counters, "a defied charm must never print a swing")
 }
+
+// A defied AREA cast earns no counter-taunt either (owner ruling: a counter
+// answers one deliberate attack at one target). The defy branch fires before
+// combat.ExecuteCounter, so ExecuteCounter's own single-target gate never
+// sees it; FireCounterTaunt must carry the same gate itself.
+func TestSpellCounter_ADefiedAreaCastEarnsNoRetort(t *testing.T) {
+	pinCounterTierKnobs(t, 0.5)
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
+		items.CounterPoolFor(combatvocab.DefenceDefy): counterPoolNarrationFixture(combatvocab.DefenceDefy),
+	})
+	defer restoreMessages()
+
+	caster := users.GetByUserId(1)
+	mob := mobInstanceForCollapseTest(t)
+	room := roomForCollapseTest(t)
+	caster.Character.Health = 100000
+	caster.Character.HealthMax.Value = 100000
+	caster.Character.Conviction = 10000
+	caster.Character.ConvictionMax.Value = 10000
+	caster.Character.Stamina = 500
+	caster.Character.StaminaMax.Value = 500
+	mob.Character.Stats.Charisma.Base = 150
+	mob.Character.Stats.Charisma.Recalculate()
+
+	calls := 0
+	restore := combat.SetChannelAttackContestRunnerForTest(sequencedContestRunner(t, &calls,
+		alwaysDefensiveCritContest(t), // the charm is defy-critted
+		attackWinContest(t),           // would be the counter-taunt, must never run
+	))
+	t.Cleanup(restore)
+
+	spell := charmTestSpellData()
+	spell.Targeting = combatvocab.TargetArea
+	side := spellAttackSideFor(spell, caster.Character)
+	events.DrainQueuedMessagesForTest(caster.UserId)
+	resolveAgainstMob(caster, mob, room, spell, side, spell.EffectMagnitude)
+
+	require.Equal(t, 1, calls, "an area cast runs its own contest and never a counter-taunt")
+	require.Equal(t, 100000, caster.Character.Health, "no counter damage may reach an area caster")
+	require.Equal(t, 10000, caster.Character.Conviction, "a refused counter-taunt must never wound the caster's nerve")
+
+	lines := events.DrainQueuedMessagesForTest(caster.UserId)
+	retorts, counters := 0, 0
+	for _, line := range lines {
+		if strings.Contains(line, "RETORT!") {
+			retorts++
+		}
+		if strings.Contains(line, "COUNTER!") {
+			counters++
+		}
+	}
+	require.Zero(t, retorts, "an area cast earns no retort; got %v", lines)
+	require.Zero(t, counters, "an area cast earns no counter swing either; got %v", lines)
+}
