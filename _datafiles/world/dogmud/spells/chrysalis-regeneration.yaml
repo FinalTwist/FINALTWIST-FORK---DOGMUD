@@ -2,7 +2,6 @@ spellid: chrysalis-regeneration
 name: Chrysalis Regeneration
 aliases: [regen]
 description: Deep Chrysalis energy that rapidly regenerates the target.
-type: helpsingle
 attack_type: none
 damage_type: non_harm
 targeting: single

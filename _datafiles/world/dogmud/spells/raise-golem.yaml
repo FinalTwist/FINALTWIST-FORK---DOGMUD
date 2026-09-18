@@ -6,7 +6,6 @@ description: Weaves multiple corpses together through brutal necromantic
   driven by a single animating will. The flesh golem is the most
   durable servant a necromancer can field, but the raw material
   demands are immense. Only the most potent remains will suffice.
-type: neutral
 attack_type: none
 damage_type: non_harm
 targeting: self
@@ -17,7 +16,6 @@ waitrounds: 16
 difficulty: 50
 primarystat: charisma
 base_folds: 16
-target_defense_type: none
 effect_type: none
 effect_magnitude: 0
 cast_actor: >-

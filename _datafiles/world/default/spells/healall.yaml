@@ -2,7 +2,6 @@
 spellid: healall
 name: Minor Heal All
 description: Heals party for 2d3
-type: helpmulti
 attack_type: none
 damage_type: non_harm
 targeting: multi

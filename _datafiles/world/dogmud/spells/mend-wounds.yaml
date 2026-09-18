@@ -2,7 +2,6 @@ spellid: mend-wounds
 name: Mend Wounds
 aliases: [mend]
 description: Concentrated Chrysalis energy rapidly mends the target.
-type: helpsingle
 attack_type: none
 damage_type: non_harm
 targeting: single

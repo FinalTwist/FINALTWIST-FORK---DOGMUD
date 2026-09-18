@@ -2,7 +2,6 @@ spellid: conviction-surge
 name: Conviction Surge
 aliases: [surge]
 description: Surge of conviction that bolsters the target's attack power.
-type: helpsingle
 attack_type: none
 damage_type: non_harm
 targeting: single

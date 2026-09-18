@@ -151,23 +151,23 @@ var conditionApplyPathAllowlist = map[string]string{
 	"internal/combat/grapple_move.go|59": "former combat condition (one-round penalty): quiet record; must apply synchronously inside the round tick",
 
 	// ── former combat condition: Minor Shield is now one record (Task 6;
-	// re-keyed slice 1b when the dot producer comments in
-	// spell_resolution.go shrank and shifted every later line in that file) ──
-	"internal/hooks/spell_resolution.go|1174": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
-	"internal/hooks/spell_resolution.go|1543": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	// re-keyed messaging M4b-2 Task 7 when spellAttackShape's deletion
+	// shrank and shifted every later line in that file) ──
+	"internal/hooks/spell_resolution.go|1171": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	"internal/hooks/spell_resolution.go|1490": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
 	// ── former combat condition: Regenerating is now one record (Task 7;
 	// re-keyed slice 1b, same shift as above) ────────────────────────────
-	"internal/hooks/spell_resolution.go|851":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1071": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1504": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|848":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1068": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1451": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|55":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 
 	// ── former combat condition: the spell dot is now one record (Task 8;
 	// re-keyed slice 1b when the dot moved to every round) ───────────────
-	"internal/hooks/spell_resolution.go|647":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
-	"internal/hooks/spell_resolution.go|1684": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	"internal/hooks/spell_resolution.go|644":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	"internal/hooks/spell_resolution.go|1631": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 
 	// ── former combat condition: Bleeding is now one stacking record (Task 9;
 	// re-keyed slice 1b) ─────────────────────────────────────────────────

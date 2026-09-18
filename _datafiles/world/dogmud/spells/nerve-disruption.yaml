@@ -2,7 +2,6 @@ spellid: nerve-disruption
 name: Nerve Disruption
 aliases: [nerve]
 description: Disrupts nerve signals, weakening dexterity and strength.
-type: harmsingle
 attack_type: spell
 damage_type: mental
 targeting: single
@@ -13,7 +12,6 @@ waitrounds: 1
 difficulty: 20
 primarystat: willpower
 base_folds: 5
-target_defense_type: mental
 effect_type: condition
 condition_ids:
   - 30

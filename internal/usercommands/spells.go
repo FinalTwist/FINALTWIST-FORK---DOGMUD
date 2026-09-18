@@ -4,6 +4,7 @@ import (
 	"sort"
 
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -39,11 +40,11 @@ func spellCategory(sp *spells.SpellData) int {
 		return 4
 	}
 	// Remaining neutral spells (glow, fold-anchor, etc.) are utility
-	if sp.Type == spells.Neutral {
+	if !sp.IsHarm() && sp.Targeting == combatvocab.TargetSelf {
 		return 0
 	}
 	// Harmful conditions applied via harmful condition spells
-	if sp.Type == spells.HarmSingle || sp.Type == spells.HarmMulti || sp.Type == spells.HarmArea {
+	if sp.IsHarm() {
 		return 3
 	}
 	return 2
@@ -51,14 +52,14 @@ func spellCategory(sp *spells.SpellData) int {
 
 // targetRank returns a sort-order rank for target scope.
 func targetRank(sp *spells.SpellData) int {
-	switch sp.Type {
-	case spells.Neutral:
+	switch sp.Targeting {
+	case combatvocab.TargetSelf:
 		return 0
-	case spells.HelpSingle, spells.HarmSingle:
+	case combatvocab.TargetSingle:
 		return 1
-	case spells.HelpMulti, spells.HarmMulti:
+	case combatvocab.TargetMulti:
 		return 2
-	case spells.HelpArea, spells.HarmArea:
+	case combatvocab.TargetArea:
 		return 3
 	}
 	return 0
@@ -78,9 +79,9 @@ func Spells(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 		if sp := spells.GetSpell(spellId); sp != nil {
 
-			helpOrHarm := sp.Type.HelpOrHarmString()
+			helpOrHarm := sp.HelpOrHarmString()
 			targetColor := `spell-` + helpOrHarm
-			target := sp.Type.TargetTypeString(true)
+			target := sp.TargetTypeString(true)
 
 			formatRow := []string{
 				`<ansi fg="yellow-bold">%s</ansi>`,

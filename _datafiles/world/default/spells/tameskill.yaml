@@ -2,7 +2,6 @@
 spellid: tameskill
 name: Tame
 description: Attempts to tame a wild creature.
-type: harmsingle
 attack_type: spell
 damage_type: mental
 targeting: single

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"gopkg.in/yaml.v2"
 )
 
@@ -26,7 +27,10 @@ func TestSpellData_SummonPetMultiplierParses(t *testing.T) {
 // A summon spell with no multiplier is an authoring error the loader must warn
 // about, exactly as it used to warn about a missing base pool.
 func TestSpellData_ValidateWarnsOnMissingPetMultiplier(t *testing.T) {
-	sd := SpellData{SpellId: "test-summon", SummonMobId: 300, PrimaryStat: "charisma"}
+	sd := SpellData{
+		SpellId: "test-summon", SummonMobId: 300, PrimaryStat: "charisma",
+		AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSelf,
+	}
 	if err := sd.Validate(); err != nil {
 		t.Fatalf("Validate returned an error, want nil: %v", err)
 	}

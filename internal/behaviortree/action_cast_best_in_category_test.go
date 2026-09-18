@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -28,36 +29,36 @@ func seedCategorySpells(t *testing.T) func() {
 	t.Helper()
 	return spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		// category matches, affordable
-		"d1": {SpellId: "d1", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
+		"d1": {SpellId: "d1", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 2,
 			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{10}},
 		// category matches, affordable, higher score
-		"d2": {SpellId: "d2", Type: spells.HelpSingle, Cost: 50, BaseFolds: 6,
+		"d2": {SpellId: "d2", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 50, BaseFolds: 6,
 			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{11}},
 		// wrong category
-		"other": {SpellId: "other", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
+		"other": {SpellId: "other", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 2,
 			Categories: []string{"self_offense"}, EffectType: "condition", ConditionIds: []int{12}},
 		// too expensive (cost 999 > cpHave 100)
-		"broke": {SpellId: "broke", Type: spells.HelpSingle, Cost: 999, BaseFolds: 6,
+		"broke": {SpellId: "broke", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 999, BaseFolds: 6,
 			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{13}},
 		// component required
-		"compreq": {SpellId: "compreq", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
+		"compreq": {SpellId: "compreq", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 2,
 			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{14},
 			ComponentTag: "reagent"},
 		// summon mob
-		"summon": {SpellId: "summon", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
+		"summon": {SpellId: "summon", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 2,
 			Categories: []string{"self_defense"}, SummonMobId: 999},
 		// charm spell
-		"charm": {SpellId: "charm", Type: spells.HarmSingle, Cost: 10, BaseFolds: 2,
+		"charm": {SpellId: "charm", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 2,
 			Categories: []string{"self_defense"}, EffectType: "charm"},
 		// summon component required (SummonComponentId != 0)
-		"compsum": {SpellId: "compsum", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
+		"compsum": {SpellId: "compsum", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 2,
 			Categories: []string{"self_defense"}, SummonComponentId: 5},
 		// shield effect type
-		"shield1": {SpellId: "shield1", Type: spells.HelpSingle, Cost: 10, BaseFolds: 4,
+		"shield1": {SpellId: "shield1", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 4,
 			Categories: []string{"self_defense"}, EffectType: "shield"},
 		// ranking: higher score than d2 (BaseFolds=8 × Cost=10 = 80 vs d2's 300)
 		// use d3 with BaseFolds=10 × Cost=50 = 500 for a top-scorer test
-		"d3": {SpellId: "d3", Type: spells.HelpSingle, Cost: 50, BaseFolds: 10,
+		"d3": {SpellId: "d3", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 50, BaseFolds: 10,
 			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{15}},
 	})
 }
@@ -178,9 +179,9 @@ func TestCollectCategoryCandidates_SkipsShieldAlreadyActive(t *testing.T) {
 
 func TestCollectCategoryCandidates_SkipsInsufficientCP(t *testing.T) {
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
-		"expensive": {SpellId: "expensive", Type: spells.HelpSingle, Cost: 999, BaseFolds: 4,
+		"expensive": {SpellId: "expensive", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 999, BaseFolds: 4,
 			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{20}},
-		"cheap": {SpellId: "cheap", Type: spells.HelpSingle, Cost: 5, BaseFolds: 2,
+		"cheap": {SpellId: "cheap", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 5, BaseFolds: 2,
 			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{21}},
 	})
 	defer cleanup()
@@ -198,7 +199,7 @@ func TestCollectCategoryCandidates_SkipsInsufficientCP(t *testing.T) {
 
 func TestCollectCategoryCandidates_SkipsComponentTag(t *testing.T) {
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
-		"compreq": {SpellId: "compreq", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
+		"compreq": {SpellId: "compreq", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 2,
 			Categories: []string{"self_defense"}, ComponentTag: "reagent"},
 	})
 	defer cleanup()
@@ -212,7 +213,7 @@ func TestCollectCategoryCandidates_SkipsComponentTag(t *testing.T) {
 
 func TestCollectCategoryCandidates_SkipsSummonComponentId(t *testing.T) {
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
-		"compsum": {SpellId: "compsum", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
+		"compsum": {SpellId: "compsum", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 2,
 			Categories: []string{"self_defense"}, SummonComponentId: 5},
 	})
 	defer cleanup()
@@ -226,7 +227,7 @@ func TestCollectCategoryCandidates_SkipsSummonComponentId(t *testing.T) {
 
 func TestCollectCategoryCandidates_SkipsSummonMobId(t *testing.T) {
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
-		"summon": {SpellId: "summon", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
+		"summon": {SpellId: "summon", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 2,
 			Categories: []string{"self_defense"}, SummonMobId: 999},
 	})
 	defer cleanup()
@@ -240,7 +241,7 @@ func TestCollectCategoryCandidates_SkipsSummonMobId(t *testing.T) {
 
 func TestCollectCategoryCandidates_SkipsCharmEffectType(t *testing.T) {
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
-		"charm": {SpellId: "charm", Type: spells.HarmSingle, Cost: 10, BaseFolds: 2,
+		"charm": {SpellId: "charm", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 2,
 			Categories: []string{"self_defense"}, EffectType: "charm"},
 	})
 	defer cleanup()
@@ -255,7 +256,7 @@ func TestCollectCategoryCandidates_SkipsCharmEffectType(t *testing.T) {
 func TestCollectCategoryCandidates_DeletedSpellIdDoesNotCrash(t *testing.T) {
 	// Spellbook references "ghost" which is not in the seed map.
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
-		"real": {SpellId: "real", Type: spells.HelpSingle, Cost: 10, BaseFolds: 2,
+		"real": {SpellId: "real", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 2,
 			Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{30}},
 	})
 	defer cleanup()
@@ -280,9 +281,9 @@ func TestCastBestInCategory_RankingSelectsHighestScore(t *testing.T) {
 	//   mid: 4 × 10 = 40
 	//   hi:  6 × 20 = 120  ← should win
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
-		"lo":  {SpellId: "lo", Type: spells.HelpSingle, Cost: 5, BaseFolds: 2, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{40}},
-		"mid": {SpellId: "mid", Type: spells.HelpSingle, Cost: 10, BaseFolds: 4, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{41}},
-		"hi":  {SpellId: "hi", Type: spells.HelpSingle, Cost: 20, BaseFolds: 6, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{42}},
+		"lo":  {SpellId: "lo", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 5, BaseFolds: 2, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{40}},
+		"mid": {SpellId: "mid", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 4, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{41}},
+		"hi":  {SpellId: "hi", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 20, BaseFolds: 6, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{42}},
 	})
 	defer cleanup()
 
@@ -319,8 +320,8 @@ func TestCastBestInCategory_RankingSelectsHighestScore(t *testing.T) {
 func TestCastBestInCategory_TieBreaksBySpellIdAsc(t *testing.T) {
 	// Two spells with identical score — "aaa" < "zzz" alphabetically.
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
-		"aaa": {SpellId: "aaa", Type: spells.HelpSingle, Cost: 10, BaseFolds: 5, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{50}},
-		"zzz": {SpellId: "zzz", Type: spells.HelpSingle, Cost: 10, BaseFolds: 5, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{51}},
+		"aaa": {SpellId: "aaa", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 5, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{50}},
+		"zzz": {SpellId: "zzz", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 10, BaseFolds: 5, Categories: []string{"self_defense"}, EffectType: "condition", ConditionIds: []int{51}},
 	})
 	defer cleanup()
 

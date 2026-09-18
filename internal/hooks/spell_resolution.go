@@ -53,7 +53,7 @@ func calcSpellDuration(baseFolds int, spellcastingSkill int, willpower int) int 
 //     hits players in the room (mobs can cleave all occupants).
 //   - HelpArea is player-only (mobs never cast area healing in this engine).
 //   - Player targets go through resolveAgainstPlayer which has a help-spell
-//     shortcut (TargetDefenseType == "") absent in the mob path.
+//     shortcut (AttackType == combatvocab.AttackNone) absent in the mob path.
 //   - Post-resolution: player fires the onMagic script and consumes a
 //     component; mob does neither.
 //   - The per-target helpers (resolveAgainstMob vs resolveMobSpellAgainstMob,
@@ -72,9 +72,8 @@ func calcSpellDuration(baseFolds int, spellcastingSkill int, willpower int) int 
 // re-run the same authorization policy at resolution (review finding 3).
 //
 // Help spells are exempt — they legitimately target companions.
-func playerHarmTargetPermitted(spellType spells.SpellType, mob *mobs.Mob) bool {
-	switch spellType {
-	case spells.HarmSingle, spells.HarmMulti, spells.HarmArea:
+func playerHarmTargetPermitted(spellData *spells.SpellData, mob *mobs.Mob) bool {
+	if spellData.IsHarm() {
 		return !mobs.CheckPlayerHarm(mob).Blocked()
 	}
 	return true
@@ -93,12 +92,12 @@ func resolveSpell(user *users.UserRecord, cs activity.CastingData, spellData *sp
 	}
 
 	// --- Populate area targets for HarmArea ---
-	if spellData.Type == spells.HarmArea {
+	if spellData.IsHarm() && spellData.Targeting == combatvocab.TargetArea {
 		allMobs := room.GetMobs(rooms.FindAll)
 		filtered := make([]int, 0, len(allMobs))
 		for _, mId := range allMobs {
 			// Spare companions, non-combatants and attack-immune mobs.
-			if !playerHarmTargetPermitted(spellData.Type, mobs.GetInstance(mId)) {
+			if !playerHarmTargetPermitted(spellData, mobs.GetInstance(mId)) {
 				continue
 			}
 			filtered = append(filtered, mId)
@@ -107,7 +106,7 @@ func resolveSpell(user *users.UserRecord, cs activity.CastingData, spellData *sp
 	}
 
 	// --- Populate area targets for HelpArea ---
-	if spellData.Type == spells.HelpArea {
+	if !spellData.IsHarm() && spellData.Targeting == combatvocab.TargetArea {
 		cs.TargetUserIds = room.GetPlayers(rooms.FindAll)
 		// Apply to ally mobs only (charmed/companion). REPLACES any residual
 		// TargetMobInstanceIds from the cast's pre-resolution step —
@@ -142,7 +141,7 @@ func resolveSpell(user *users.UserRecord, cs activity.CastingData, spellData *sp
 		if mob.Character.RoomId != room.RoomId {
 			continue // target left the room before spell resolved
 		}
-		if !playerHarmTargetPermitted(spellData.Type, mob) {
+		if !playerHarmTargetPermitted(spellData, mob) {
 			continue // gained protection while the spell was folding
 		}
 		fumbled, landed := resolveAgainstMob(user, mob, room, spellData, side, magnitude)
@@ -162,13 +161,11 @@ func resolveSpell(user *users.UserRecord, cs activity.CastingData, spellData *sp
 			continue // target left the room before spell resolved
 		}
 		// Skip downed players for harm spells — they're already down.
-		if targetUser.Character.Health < 1 &&
-			(spellData.Type == spells.HarmSingle || spellData.Type == spells.HarmArea || spellData.Type == spells.HarmMulti) {
+		if targetUser.Character.Health < 1 && spellData.IsHarm() {
 			continue
 		}
-		if spellData.TargetDefenseType == "" {
-			// Help spell with no defense — always applies, as an uncontested
-			// attack win (full multiplier, no crit, no defence to narrate).
+		if spellData.AttackType == combatvocab.AttackNone {
+			// Non-harm cast: uncontested, an attack win by construction.
 			// Uncontested means it LANDED: there was no defence to beat.
 			applyPlayerEffect(user, targetUser, room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1})
 			anyLanded = true
@@ -352,7 +349,7 @@ func spellAttackSideFor(spellData *spells.SpellData, casterChar *characters.Char
 		// in the damage term (calcSpellDamageForCharacter), so it must not
 		// reach accuracy a second time here. ForceCrit is per-target and set
 		// by each resolveAgainst* call site.
-		Mult: combat.SituationalAttackMult(casterChar, spellAttackShape(spellData)),
+		Mult: combat.SituationalAttackMult(casterChar, spellData.Attack()),
 	}
 }
 
@@ -404,7 +401,7 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 		}
 		side.Mult *= charmInCombatMult(&mob.Character, user.UserId)
 	}
-	out := runSpellChannelAttack(spellAttackShape(spellData), side, user.Character, &mob.Character)
+	out := runSpellChannelAttack(spellData.Attack(), side, user.Character, &mob.Character)
 
 	round := util.GetRoundCount()
 
@@ -443,7 +440,7 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 	combat.RecordSpell(combat.User, combat.Mob, !out.Defended, out.AttackerCrit, false, out.Defended, dmgDealt, out.AttackRollZScore, user.Character, &mob.Character, round)
 
 	// U6b Task 10: the MOB defender's crit defence counters the player caster.
-	fireSpellCounterTier(room, out, spellAttackShape(spellData),
+	fireSpellCounterTier(room, out, spellData.Attack(),
 		&mob.Character, user.Character, nil, user)
 
 	return false, !out.Defended
@@ -758,7 +755,7 @@ func applyMobEffect_condition(
 	if out.Defended {
 		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
 			spellDefenceIdentity(casterChar, user, room), mName, spellData.Name, user, nil)
-		if spellData.Type == spells.HarmSingle || spellData.Type == spells.HarmArea || spellData.Type == spells.HarmMulti {
+		if spellData.IsHarm() {
 			setMobSpellAggro(user, mob)
 		}
 		return 0
@@ -793,7 +790,7 @@ func applyMobEffect_condition(
 	}
 	// Conditional aggro for harmful condition spells — kept inline because it is
 	// gated on Harm* spell types; not consolidated in Task 7's setMobSpellAggro.
-	if spellData.Type == spells.HarmSingle || spellData.Type == spells.HarmArea || spellData.Type == spells.HarmMulti {
+	if spellData.IsHarm() {
 		if !mob.Character.IsInCombat() {
 			if user != nil {
 				targeting.Commit(&mob.Character, state.ActorRef{UserId: user.UserId}, targeting.ReasonAttack)
@@ -933,7 +930,7 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(target.Character)
-	out := runSpellChannelAttack(spellAttackShape(spellData), side, user.Character, target.Character)
+	out := runSpellChannelAttack(spellData.Attack(), side, user.Character, target.Character)
 
 	// Backfire on fumble — resolved BEFORE success, per the seam's contract.
 	if out.AttackerFumble {
@@ -951,7 +948,7 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 	applyPlayerEffect(user, target, room, spellData, magnitude, out)
 
 	// Set reciprocal aggro for harm spells
-	if spellData.Type == spells.HarmSingle || spellData.Type == spells.HarmArea || spellData.Type == spells.HarmMulti {
+	if spellData.IsHarm() {
 		if !user.Character.IsInCombat() {
 			targeting.Commit(user.Character, state.ActorRef{UserId: target.UserId}, targeting.ReasonAttack)
 		}
@@ -961,7 +958,7 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 	}
 
 	// U6b Task 10: the defending player's crit defence counters the caster.
-	fireSpellCounterTier(room, out, spellAttackShape(spellData),
+	fireSpellCounterTier(room, out, spellData.Attack(),
 		target.Character, user.Character, target, user)
 
 	return false, !out.Defended
@@ -1226,56 +1223,6 @@ func spellNarratedByGoHook(spellId string) bool {
 	return false
 }
 
-// spellAttackShape builds the attack the seam resolves from the spell's
-// legacy fields. TRANSITIONAL: Task 7 of the M4b-2 plan replaces it with
-// SpellData.Attack() reading attack_type/damage_type/targeting.
-//
-// Since U6b Task 4 target_defense_type is the ONLY read that picks which
-// defence set answers the one contest (a "physical" spell is dodged/blocked,
-// everything else is quelled), and the defender's score comes from
-// GetDefenseScoreFor via the seam — the deleted defence-value helper's
-// raw-stat read is gone with the two-contest gate.
-//
-// Everything that is not explicitly "physical" or "social" -- including
-// "mental", "none" and the empty default -- answers as mental. That is the
-// conservative direction: quell is a single-defence set, so an unclassified
-// spell faces one defence rather than two.
-func spellAttackShape(spellData *spells.SpellData) combatvocab.Attack {
-	targeting := combatvocab.TargetSingle
-	if spellData != nil {
-		switch spellData.Type {
-		case spells.HarmArea, spells.HelpArea:
-			targeting = combatvocab.TargetArea
-		case spells.HarmMulti, spells.HelpMulti:
-			targeting = combatvocab.TargetMulti
-		case spells.Neutral:
-			targeting = combatvocab.TargetSelf
-		}
-	}
-	if spellData == nil {
-		return combatvocab.Spell(combatvocab.DamageMental, targeting)
-	}
-	switch spellData.TargetDefenseType {
-	case "physical":
-		return combatvocab.Spell(combatvocab.DamagePhysical, targeting)
-	case "social":
-		// Charm is an act of social domination whose attack side is already
-		// Charisma, so defy answers it rather than quell. Declaring the
-		// pairing in data is what lets charm stop hand-rolling a second
-		// contest of its own on top of this one.
-		//
-		// NOTE if you add another social spell: this pairing also reaches
-		// fireSpellCounterTier, and combat/counter.go documents the (spell,
-		// social) pairing as unreachable there for a different reason --
-		// true only because taunt short-circuits its defy-crit at the call
-		// site. See charm's handling.
-		return combatvocab.Spell(combatvocab.DamageSocial, targeting)
-	}
-	// An absent target_defense_type is the DEFAULT, not an escape from
-	// routing: every unclassified spell resolves as a mental attack.
-	return combatvocab.Spell(combatvocab.DamageMental, targeting)
-}
-
 // calcSpellDamage and calcMobSpellDamage have been unified into
 // calcSpellDamageForCharacter() in combat_shared_helpers.go (Stage 38.1).
 
@@ -1340,7 +1287,7 @@ func resolveMobSpell(mob *mobs.Mob, cs activity.CastingData, spellData *spells.S
 	side := spellAttackSideFor(spellData, &mob.Character)
 	magnitude := spellData.EffectMagnitude
 
-	if spellData.Type == spells.HarmArea {
+	if spellData.IsHarm() && spellData.Targeting == combatvocab.TargetArea {
 		allMobs := room.GetMobs(rooms.FindAll)
 		filtered := make([]int, 0, len(allMobs))
 		charmedByUserId := mob.Character.GetCharmedUserId()
@@ -1564,7 +1511,7 @@ func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.R
 	}
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(&target.Character)
-	out := runSpellChannelAttack(spellAttackShape(spellData), side, &caster.Character, &target.Character)
+	out := runSpellChannelAttack(spellData.Attack(), side, &caster.Character, &target.Character)
 	if out.AttackerFumble {
 		dmg := magnitude / 4
 		if dmg < 1 {
@@ -1577,7 +1524,7 @@ func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.R
 	applyMobEffect(nil, &caster.Character, target, room, spellData, magnitude, out)
 
 	// U6b Task 10: the defending mob's crit defence counters the mob caster.
-	fireSpellCounterTier(room, out, spellAttackShape(spellData),
+	fireSpellCounterTier(room, out, spellData.Attack(),
 		&target.Character, &caster.Character, nil, nil)
 
 	return !out.Defended
@@ -1595,7 +1542,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 	spellData *spells.SpellData, side combat.AttackSide, magnitude int) (landed bool) {
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(target.Character)
-	out := runSpellChannelAttack(spellAttackShape(spellData), side, &caster.Character, target.Character)
+	out := runSpellChannelAttack(spellData.Attack(), side, &caster.Character, target.Character)
 	round := util.GetRoundCount()
 	if out.AttackerFumble {
 		dmg := magnitude / 4
@@ -1757,7 +1704,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 			sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
 				spellDefenceIdentity(&caster.Character, nil, room),
 				spellDefenceIdentity(target.Character, target, room), spellData.Name, nil, target)
-			if spellData.Type == spells.HarmSingle || spellData.Type == spells.HarmArea || spellData.Type == spells.HarmMulti {
+			if spellData.IsHarm() {
 				if !target.Character.IsInCombat() {
 					targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)
 				}
@@ -1768,7 +1715,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 			target.AddCondition(conditionId, "spell")
 		}
 		// Set aggro for harmful condition spells
-		if spellData.Type == spells.HarmSingle || spellData.Type == spells.HarmArea || spellData.Type == spells.HarmMulti {
+		if spellData.IsHarm() {
 			if !target.Character.IsInCombat() {
 				targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)
 			}
@@ -1802,7 +1749,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 	combat.RecordSpell(combat.Mob, combat.User, !out.Defended, isCrit, false, out.Defended, mobSpellDmg, out.AttackRollZScore, &caster.Character, target.Character, round)
 
 	// U6b Task 10: the PLAYER defender's crit defence counters the mob caster.
-	fireSpellCounterTier(room, out, spellAttackShape(spellData),
+	fireSpellCounterTier(room, out, spellData.Attack(),
 		target.Character, &caster.Character, target, nil)
 
 	return !out.Defended

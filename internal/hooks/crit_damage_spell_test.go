@@ -49,8 +49,9 @@ func meanSpellDamage(t *testing.T, sd *spells.SpellData, caster, target *charact
 func TestCalcSpellDamage_CritScalesWithSpellcastingSkill(t *testing.T) {
 	const samples = 20000
 
-	// TargetDefenseType "" yields mitPct 0, so the normal branch is unmitigated
-	// and equals the crit branch's pre-multiplier mean.
+	// DamageType "" is not a row MitigationChannelFor knows, so mitigPct stays
+	// 0 and the normal branch is unmitigated, equal to the crit branch's
+	// pre-multiplier mean.
 	sd := &spells.SpellData{SpellId: "test-harm", DamageMultiplier: 1.0}
 	target := &characters.Character{}
 

@@ -32,7 +32,9 @@ _datafiles/world/dogmud/spells/{spellid}.js   (optional — only if spell has lo
 | `spellid` | string | **yes** | Must match filename exactly. |
 | `name` | string | **yes** | Display name shown to players. |
 | `description` | string | **yes** | Flavor text describing the spell. |
-| `type` | SpellType | **yes** | See valid SpellType values below. |
+| `attack_type` | string | **yes** | `"spell"` for a harmful cast, `"none"` for a cast that harms nobody. See the axes table below. |
+| `damage_type` | string | **yes** | `"physical"`, `"mental"`, `"social"`, or `"non_harm"`. See the axes table below. |
+| `targeting` | string | **yes** | `"self"`, `"single"`, `"multi"`, or `"area"`. See the axes table below. |
 | `schools` | list | **yes** | One or more school tags. See valid schools below. |
 | `cost` | int | no | Conviction (mana) cost. Default: 0. |
 | `healthcost` | int | no | HP cost on cast (for blood magic / life-force spells). |
@@ -40,7 +42,6 @@ _datafiles/world/dogmud/spells/{spellid}.js   (optional — only if spell has lo
 | `difficulty` | int | no | Adjusts final success chance by this percentage (negative = harder). |
 | `primarystat` | string | no | Stat used for spell rolls and progression. Usually `willpower` or `perception`. |
 | `base_folds` | int | no | Base fold complexity. 0 = defaults to 4. |
-| `target_defense_type` | string | no | `"physical"`, `"mental"`, or `""` (no defense roll). |
 | `component_tag` | string | no | Required item component (e.g. `"stone"` requires throw-stone component). |
 | `effect_type` | string | no | `"damage"`, `"heal"`, `"condition"`, `"tame"`, `"shield"`, `"charm"`. |
 | `effect_magnitude` | int | no | Base damage or heal amount for simple effects. |
@@ -83,7 +84,9 @@ both run (YAML text first, then JS).
 ```yaml
 spellid: conviction-surge
 name: Conviction Surge
-type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - enhancement
 cost: 35
@@ -99,7 +102,9 @@ cast_observer: "{actor} gathers conviction, a fierce glow building."
 ```yaml
 spellid: raise-skeleton
 name: Raise Skeleton
-type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 # ... other fields ...
 cast_actor: You reach toward the remains, dark energy gathering.
 cast_observer: "{actor} reaches toward the remains, tendrils of shadow curling from outstretched fingers."
@@ -110,7 +115,9 @@ cast_observer: "{actor} reaches toward the remains, tendrils of shadow curling f
 ```yaml
 spellid: raise-skeleton
 name: Raise Skeleton
-type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 30
@@ -127,7 +134,9 @@ cast_observer: "{actor} reaches toward the remains, tendrils of shadow curling."
 ```yaml
 spellid: conjure-earth
 name: Conjure Earth Elemental
-type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 45
@@ -166,17 +175,28 @@ belong.
 longer reads any of them, and leaving one in a spell file has no effect at
 all. Do not copy them from an old file.
 
-### Valid SpellType Values
+### The Three Axes (replaces `type` and `target_defense_type`)
 
-| Value | Meaning |
-|-------|---------|
-| `harmsingle` | Damages or weakens one target |
-| `helpsingle` | Heals or strengthens one target |
-| `harmarea` | Damages all enemies in room |
-| `harmmulti` | Damages multiple selected targets |
-| `helparea` | Heals or strengthens all allies in room |
-| `helpmulti` | Heals or strengthens multiple selected targets |
-| `neutral` | No direct harm/help (utility, movement, etc.) |
+Every spell authors `attack_type`, `damage_type` and `targeting` instead of
+the old single `type` field. `attack_type: none` pairs ONLY with
+`damage_type: non_harm` (an uncontested cast — a heal is not an attack);
+every other pairing is `attack_type: spell` with a real `damage_type`.
+`damage_type` also picks the defence set (`physical` -> dodge/block,
+`mental` -> quell, `social` -> defy) and the mitigation channel a harmful
+spell's damage is reduced through.
+
+The table below maps each retired `SpellType` value to its axes, for anyone
+updating an old spell file from memory:
+
+| Old `type` value | `attack_type` | `damage_type` | `targeting` |
+|-------------------|---------------|----------------|-------------|
+| `neutral` | `none` | `non_harm` | `self` |
+| `harmsingle` | `spell` | `physical`, `mental`, or `social` (was `target_defense_type`) | `single` |
+| `helpsingle` | `none` | `non_harm` | `single` |
+| `harmmulti` | `spell` | `physical`, `mental`, or `social` | `multi` |
+| `helpmulti` | `none` | `non_harm` | `multi` |
+| `harmarea` | `spell` | `physical`, `mental`, or `social` | `area` |
+| `helparea` | `none` | `non_harm` | `area` |
 
 ### Valid School Values
 
@@ -249,7 +269,9 @@ SendRoomMessage(roomId, text, ...excludeIds)  // Send to room, excluding IDs
 spellid: aidskill              # Filename: aidskill.yaml (no conversion)
 name: Aid
 description: Revives a fallen ally
-type: helpsingle               # Targets one ally
+attack_type: none              # A revive is not an attack
+damage_type: non_harm
+targeting: single              # Targets one ally
 schools:
   - vital                      # Healing school
 cost: 0                        # No conviction cost (tied to skill use)

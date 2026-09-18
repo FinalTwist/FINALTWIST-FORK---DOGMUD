@@ -189,7 +189,7 @@ func TestConditionNotice_ARefusedPoisonedRecordNarratesNothing(t *testing.T) {
 	drainPlain(1)
 	drainPlain(2)
 
-	spell := &spells.SpellData{SpellId: "test-blight", Name: "Blight", Type: spells.HarmSingle, EffectType: "dot"}
+	spell := &spells.SpellData{SpellId: "test-blight", Name: "Blight", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle, EffectType: "dot"}
 	resolveMobSpellAgainstPlayer(mobs.GetInstance(100), target, rooms.LoadRoom(1), spell, combat.AttackSide{}, 10)
 
 	assert.False(t, target.Character.HasCondition(conditions.ConditionIdPoisoned), "the record was refused")

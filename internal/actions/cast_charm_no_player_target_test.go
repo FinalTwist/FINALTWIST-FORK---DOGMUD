@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/stretchr/testify/require"
@@ -26,16 +27,15 @@ func TestInitiateCast_CharmRefusesAPlayerTarget(t *testing.T) {
 
 	restoreSpells := spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		"charm": {
-			SpellId:           "charm",
-			Name:              "Charm",
-			Type:              spells.HarmSingle,
-			EffectType:        "charm",
-			Cost:              120,
-			Difficulty:        60,
-			BaseFolds:         36,
-			PrimaryStat:       "charisma",
-			TargetDefenseType: "social",
-			Schools:           []string{"manifestation"},
+			SpellId:    "charm",
+			Name:       "Charm",
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageSocial, Targeting: combatvocab.TargetSingle,
+			EffectType:  "charm",
+			Cost:        120,
+			Difficulty:  60,
+			BaseFolds:   36,
+			PrimaryStat: "charisma",
+			Schools:     []string{"manifestation"},
 		},
 	})
 	defer restoreSpells()

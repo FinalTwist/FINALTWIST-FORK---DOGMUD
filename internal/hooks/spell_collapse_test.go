@@ -74,8 +74,8 @@ func deterministicContestRunner(t *testing.T, normMargin, atkZ, defZ float64) fu
 
 func mentalHarmSpellForCollapseTest() *spells.SpellData {
 	return &spells.SpellData{
-		SpellId: "mind-lance", Name: "Mind Lance", Type: spells.HarmSingle,
-		EffectType: "damage", TargetDefenseType: "mental",
+		SpellId: "mind-lance", Name: "Mind Lance", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
+		EffectType:       "damage",
 		DamageMultiplier: 1.0, EffectMagnitude: 30,
 		Schools: []string{spells.SchoolMental},
 	}
@@ -210,8 +210,8 @@ func TestSpellDefendedCast_DealsPartialDamage(t *testing.T) {
 // willpower: ScaleChannelFor(combatvocab.AttackSpell) maps to "magical").
 func physicalHarmSpellForCollapseTest() *spells.SpellData {
 	return &spells.SpellData{
-		SpellId: "stone-lash", Name: "Stone Lash", Type: spells.HarmSingle,
-		EffectType: "damage", TargetDefenseType: "physical",
+		SpellId: "stone-lash", Name: "Stone Lash", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamagePhysical, Targeting: combatvocab.TargetSingle,
+		EffectType:       "damage",
 		DamageMultiplier: 1.0, EffectMagnitude: 30,
 		Schools: []string{spells.SchoolElemental},
 	}

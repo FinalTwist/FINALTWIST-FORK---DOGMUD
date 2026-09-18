@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -75,7 +75,7 @@ func seedRoomMob(t *testing.T, room *rooms.Room, instanceId int, name string, mu
 // --- HarmSingle, named target ----------------------------------------------
 
 func TestInitiateCast_HarmSingle_RefusesAttackImmuneMob(t *testing.T) {
-	_, cleanupSpell := seedTestSpell("harm-immune-single", spells.HarmSingle, 4)
+	_, cleanupSpell := seedTestSpell("harm-immune-single", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), 4)
 	defer cleanupSpell()
 
 	actor, _, room := newPlayerActor()
@@ -92,7 +92,7 @@ func TestInitiateCast_HarmSingle_RefusesAttackImmuneMob(t *testing.T) {
 }
 
 func TestInitiateCast_HarmSingle_RefusesNonCombatant(t *testing.T) {
-	_, cleanupSpell := seedTestSpell("harm-noncombat-single", spells.HarmSingle, 4)
+	_, cleanupSpell := seedTestSpell("harm-noncombat-single", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), 4)
 	defer cleanupSpell()
 
 	actor, _, room := newPlayerActor()
@@ -107,7 +107,7 @@ func TestInitiateCast_HarmSingle_RefusesNonCombatant(t *testing.T) {
 }
 
 func TestInitiateCast_HarmSingle_AllowsOrdinaryMob(t *testing.T) {
-	_, cleanupSpell := seedTestSpell("harm-ok-single", spells.HarmSingle, 4)
+	_, cleanupSpell := seedTestSpell("harm-ok-single", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), 4)
 	defer cleanupSpell()
 
 	actor, _, room := newPlayerActor()
@@ -125,7 +125,7 @@ func TestInitiateCast_HarmSingle_AllowsOrdinaryMob(t *testing.T) {
 // player's aggro slot. The no-target fallback must not turn that into a
 // licence to nuke it.
 func TestInitiateCast_HarmSingle_RefusesAttackImmuneAggroFallback(t *testing.T) {
-	_, cleanupSpell := seedTestSpell("harm-immune-fallback", spells.HarmSingle, 4)
+	_, cleanupSpell := seedTestSpell("harm-immune-fallback", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), 4)
 	defer cleanupSpell()
 
 	actor, char, room := newPlayerActor()
@@ -144,7 +144,7 @@ func TestInitiateCast_HarmSingle_RefusesAttackImmuneAggroFallback(t *testing.T) 
 // --- HarmMulti --------------------------------------------------------------
 
 func TestInitiateCast_HarmMulti_RefusesAttackImmuneMob(t *testing.T) {
-	_, cleanupSpell := seedTestSpell("harm-immune-multi", spells.HarmMulti, 4)
+	_, cleanupSpell := seedTestSpell("harm-immune-multi", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetMulti), 4)
 	defer cleanupSpell()
 
 	actor, _, room := newPlayerActor()
@@ -159,7 +159,7 @@ func TestInitiateCast_HarmMulti_RefusesAttackImmuneMob(t *testing.T) {
 }
 
 func TestInitiateCast_HarmMulti_RefusesNonCombatant(t *testing.T) {
-	_, cleanupSpell := seedTestSpell("harm-noncombat-multi", spells.HarmMulti, 4)
+	_, cleanupSpell := seedTestSpell("harm-noncombat-multi", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetMulti), 4)
 	defer cleanupSpell()
 
 	actor, _, room := newPlayerActor()
@@ -174,7 +174,7 @@ func TestInitiateCast_HarmMulti_RefusesNonCombatant(t *testing.T) {
 }
 
 func TestInitiateCast_HarmMulti_RefusesCompanion(t *testing.T) {
-	_, cleanupSpell := seedTestSpell("harm-companion-multi", spells.HarmMulti, 4)
+	_, cleanupSpell := seedTestSpell("harm-companion-multi", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetMulti), 4)
 	defer cleanupSpell()
 
 	actor, _, room := newPlayerActor()
@@ -189,7 +189,7 @@ func TestInitiateCast_HarmMulti_RefusesCompanion(t *testing.T) {
 }
 
 func TestInitiateCast_HarmMulti_AllowsOrdinaryMob(t *testing.T) {
-	_, cleanupSpell := seedTestSpell("harm-ok-multi", spells.HarmMulti, 4)
+	_, cleanupSpell := seedTestSpell("harm-ok-multi", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetMulti), 4)
 	defer cleanupSpell()
 
 	actor, _, room := newPlayerActor()
@@ -204,7 +204,7 @@ func TestInitiateCast_HarmMulti_AllowsOrdinaryMob(t *testing.T) {
 // --- HarmArea ---------------------------------------------------------------
 
 func TestInitiateCast_HarmArea_ExcludesProtectedMobs(t *testing.T) {
-	_, cleanupSpell := seedTestSpell("harm-area-policy", spells.HarmArea, 4)
+	_, cleanupSpell := seedTestSpell("harm-area-policy", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetArea), 4)
 	defer cleanupSpell()
 
 	actor, _, room := newPlayerActor()
@@ -233,7 +233,7 @@ func TestInitiateCast_HarmArea_ExcludesProtectedMobs(t *testing.T) {
 // worth pinning -- the message suppression itself lives in
 // usercommands/skill.cast.go.
 func TestInitiateCast_ProtectedTargetRefusalIsAlreadyExplained(t *testing.T) {
-	_, cleanupSpell := seedTestSpell("harm-explained-single", spells.HarmSingle, 4)
+	_, cleanupSpell := seedTestSpell("harm-explained-single", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), 4)
 	defer cleanupSpell()
 
 	actor, _, room := newPlayerActor()

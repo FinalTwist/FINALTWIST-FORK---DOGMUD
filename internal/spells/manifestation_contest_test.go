@@ -3,6 +3,7 @@ package spells
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/stats"
 )
 
@@ -22,15 +23,15 @@ import (
 // AttackSide is built from — not to the old hardcoded Willpower.
 func TestContestingManifestationSpellResolvesWithItsDeclaredStat(t *testing.T) {
 	sd := &SpellData{
-		SpellId:           "test-charisma-lash",
-		Name:              "Charisma Lash",
-		Type:              HarmSingle,
-		EffectType:        "damage",
-		TargetDefenseType: "mental", // contested — the retired guard forbade this
-		PrimaryStat:       "charisma",
-		Schools:           []string{SchoolManifestation},
-		BaseFolds:         2,
-		EffectMagnitude:   10,
+		SpellId:    "test-charisma-lash",
+		Name:       "Charisma Lash",
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
+		EffectType: "damage",
+		// contested — the retired guard forbade this
+		PrimaryStat:     "charisma",
+		Schools:         []string{SchoolManifestation},
+		BaseFolds:       2,
+		EffectMagnitude: 10,
 	}
 
 	if err := sd.Validate(); err != nil {

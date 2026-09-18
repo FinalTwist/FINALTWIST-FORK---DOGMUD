@@ -1,7 +1,6 @@
 spellid: sparks
 name: Conviction Sparks
 description: Scatters shards of crystallized belief that lash all nearby foes.
-type: harmarea
 attack_type: spell
 damage_type: physical
 targeting: area
@@ -12,7 +11,6 @@ waitrounds: 1
 difficulty: 25
 primarystat: willpower
 base_folds: 4
-target_defense_type: physical
 effect_type: damage
 effect_magnitude: 120
 damage_multiplier: 0.36

@@ -2,7 +2,6 @@ spellid: skill-attunement
 name: Skill Attunement
 aliases: [attune]
 description: Opens the mind to accelerated learning and skill growth.
-type: helpsingle
 attack_type: none
 damage_type: non_harm
 targeting: single

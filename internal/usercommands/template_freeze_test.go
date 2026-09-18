@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -126,10 +127,10 @@ func TestTemplateFreeze_SpeciesHelpReadsConditionIds(t *testing.T) {
 // from its fallthrough: an effect_type: condition spell matches the case FIRST
 // and returns 2 regardless of Type, but if that case literal ever stops
 // matching "condition", a Neutral-type spell falls through to the `sp.Type ==
-// spells.Neutral` branch below and returns 0 instead — a real, visible
+// combatvocab.NonHarm(combatvocab.TargetSelf)` branch below and returns 0 instead — a real, visible
 // change to where the spell lists in the `spells` command.
 func TestWireFreeze_SpellCategoryStillGroupsConditionEffectType(t *testing.T) {
-	got := spellCategory(&spells.SpellData{EffectType: "condition", Type: spells.Neutral})
+	got := spellCategory(&spells.SpellData{EffectType: "condition", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSelf})
 	assert.Equal(t, 2, got,
 		"an effect_type: condition spell must still sort into the condition/shield/purge display category (usercommands/spells.go's spellCategory)")
 }

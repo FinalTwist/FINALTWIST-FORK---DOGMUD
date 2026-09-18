@@ -83,17 +83,22 @@ func calcSpellDamageForCharacter(spellData *spells.SpellData, caster *characters
 		rawDmg *= combat.ResourceMultiplier(caster.Conviction,
 			caster.EffectivePoolMax(characters.PoolConviction), cpPenalty)
 
-		// Apply mitigation based on defense type
+		// Mitigation is keyed by the DAMAGE type (combat.MitigationChannelFor):
+		// physical harm meets physical mitigation, mental meets magical,
+		// social meets conviction. A non-harm cast never reaches this helper.
 		var mitigPct, cap float64
-		switch spellData.TargetDefenseType {
-		case "physical":
-			mitigPct = target.GetPhysicalMitigation()
-			cap = combat.MitigationCap(combat.ChannelPhysical)
-		case "mental":
-			mitigPct = target.GetMagicalMitigation()
-			cap = combat.MitigationCap(combat.ChannelMagical)
-		default:
-			mitigPct = 0
+		if ch, ok := combat.MitigationChannelFor(spellData.DamageType); ok {
+			switch ch {
+			case combat.ChannelPhysical:
+				mitigPct = target.GetPhysicalMitigation()
+			case combat.ChannelMagical:
+				mitigPct = target.GetMagicalMitigation()
+			case combat.ChannelConviction:
+				mitigPct = target.GetConvictionMitigation()
+			}
+			cap = combat.MitigationCap(ch)
+		} else {
+			mudlog.Error("calcSpellDamageForCharacter", "spell", spellData.SpellId, "error", "non-harm spell reached the damage pipeline")
 			cap = 0.75
 		}
 
@@ -652,8 +657,7 @@ func processFoldRound(char *characters.Character) FoldRoundResult {
 				break
 			}
 			// For harm spells, downed players count as gone.
-			if u.Character.Health < 1 && spellData != nil &&
-				(spellData.Type == spells.HarmSingle || spellData.Type == spells.HarmArea || spellData.Type == spells.HarmMulti) {
+			if u.Character.Health < 1 && spellData != nil && spellData.IsHarm() {
 				targetGone = true
 				break
 			}

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -113,7 +114,7 @@ func TestResolveMobSpell_DrainArea_DispatchesToDrainArea(t *testing.T) {
 	spellData := &spells.SpellData{
 		SpellId:    "test-core-drain",
 		Name:       "Test Core Drain",
-		Type:       spells.HarmArea,
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetArea,
 		EffectType: "drain_area",
 		BaseFolds:  2,
 	}
@@ -187,7 +188,7 @@ func TestResolveMobSpell_DrainArea_NoPlayers(t *testing.T) {
 	spellData := &spells.SpellData{
 		SpellId:    "test-core-drain",
 		Name:       "Test Core Drain",
-		Type:       spells.HarmArea,
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetArea,
 		EffectType: "drain_area",
 		BaseFolds:  2,
 	}

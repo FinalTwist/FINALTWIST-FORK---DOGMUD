@@ -76,8 +76,7 @@ func (s *SpellData) DefenceNames() string {
 	return strings.Join(names, " or ")
 }
 
-// validateAxes is called from Validate (wired by Task 7 of the M4b-2 plan,
-// once every shipped file carries the keys). The three keys are required,
+// validateAxes is called from Validate. The three keys are required,
 // the pair must be in the table (which also binds none to non_harm), and
 // the targeting must be one of the four.
 func (s *SpellData) validateAxes() error {

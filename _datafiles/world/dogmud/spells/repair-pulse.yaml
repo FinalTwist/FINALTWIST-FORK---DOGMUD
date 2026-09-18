@@ -6,7 +6,6 @@ description: >
   forcing damaged construct systems to knit themselves whole again.
   Mob-castable only. This is a construct maintenance routine, not a
   spell any living caster could learn.
-type: helpsingle
 attack_type: none
 damage_type: non_harm
 targeting: single

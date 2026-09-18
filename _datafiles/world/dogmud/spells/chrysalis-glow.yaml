@@ -3,7 +3,6 @@ spellid: chrysalis-glow
 name: Chrysalis Glow
 aliases: [glow]
 description: Coaxes Chrysalis spores to luminesce, casting a soft glow.
-type: helpsingle
 attack_type: none
 damage_type: non_harm
 targeting: single

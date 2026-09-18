@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -26,40 +27,40 @@ func seedDefensiveCasterSpells(t *testing.T) func() {
 		// self_defense
 		"chrysalis-cocoon": {
 			SpellId: "chrysalis-cocoon", Name: "Chrysalis Cocoon",
-			Type: spells.HelpSingle, Cost: 60, BaseFolds: 8,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 60, BaseFolds: 8,
 			EffectType: "shield", EffectMagnitude: 125, ConditionIds: []int{52},
 			Categories: []string{"self_defense"},
 		},
 		// self_heal
 		"mend-wounds": {
 			SpellId: "mend-wounds", Name: "Mend Wounds",
-			Type: spells.HelpSingle, Cost: 40, BaseFolds: 4,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 40, BaseFolds: 4,
 			EffectType: "heal", EffectMagnitude: 5,
 			Categories: []string{"self_heal"},
 		},
 		// harm_single
 		"conviction-spike": {
 			SpellId: "conviction-spike", Name: "Conviction Spike",
-			Type: spells.HarmSingle, Cost: 50, BaseFolds: 4,
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle, Cost: 50, BaseFolds: 4,
 			EffectType: "damage", EffectMagnitude: 180, DamageMultiplier: 0.50,
 			Categories: []string{"harm_single"},
 		},
 		"mind-spike": {
 			SpellId: "mind-spike", Name: "Mind Spike",
-			Type: spells.HarmSingle, Cost: 20, BaseFolds: 2,
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle, Cost: 20, BaseFolds: 2,
 			EffectType: "damage", EffectMagnitude: 100, DamageMultiplier: 0.40,
 			Categories: []string{"harm_single"},
 		},
 		"nerve-disruption": {
 			SpellId: "nerve-disruption", Name: "Nerve Disruption",
-			Type: spells.HarmSingle, Cost: 40, BaseFolds: 5,
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle, Cost: 40, BaseFolds: 5,
 			EffectType: "condition", ConditionIds: []int{30},
 			Categories: []string{"harm_single"},
 		},
 		// harm_multi
 		"conviction-barrage": {
 			SpellId: "conviction-barrage", Name: "Conviction Barrage",
-			Type: spells.HarmArea, Cost: 160, BaseFolds: 24,
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetArea, Cost: 160, BaseFolds: 24,
 			EffectType: "damage", EffectMagnitude: 700, DamageMultiplier: 1.60,
 			Categories: []string{"harm_multi"},
 		},

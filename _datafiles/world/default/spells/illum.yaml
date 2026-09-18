@@ -2,7 +2,6 @@
 spellid: illum
 name: Illuminate
 description: Grants a light aura
-type: helpsingle
 attack_type: none
 damage_type: non_harm
 targeting: single

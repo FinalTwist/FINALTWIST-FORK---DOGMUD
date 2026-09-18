@@ -13,7 +13,6 @@ description: |
   When it ends, if you are standing beside it, it attacks you.
 cost: 120
 base_folds: 36
-type: harmsingle
 attack_type: spell
 damage_type: social
 targeting: single
@@ -25,7 +24,6 @@ primarystat: charisma
 # attack side is already Charisma. Declaring the channel here is what lets charm
 # resolve off the contest its cast already runs, instead of running a second
 # private one of its own (U10c slice B).
-target_defense_type: social
 effect_type: charm
 cast_actor: >-
   You fix your gaze on your target, pressing your will

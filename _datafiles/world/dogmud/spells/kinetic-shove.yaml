@@ -2,7 +2,6 @@ spellid: kinetic-shove
 name: Kinetic Shove
 aliases: [shove]
 description: Telekinetic force slams the target to the ground.
-type: harmsingle
 attack_type: spell
 damage_type: physical
 targeting: single
@@ -13,7 +12,6 @@ waitrounds: 1
 difficulty: 15
 primarystat: willpower
 base_folds: 3
-target_defense_type: physical
 effect_type: knockdown
 effect_magnitude: 150
 damage_multiplier: 0.55

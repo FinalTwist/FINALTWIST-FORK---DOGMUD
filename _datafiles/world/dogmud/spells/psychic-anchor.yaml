@@ -2,7 +2,6 @@ spellid: psychic-anchor
 name: Psychic Anchor
 aliases: [psychic]
 description: Anchors the target's mind, preventing movement or teleport.
-type: harmsingle
 attack_type: spell
 damage_type: mental
 targeting: single
@@ -13,7 +12,6 @@ waitrounds: 1
 difficulty: 35
 primarystat: willpower
 base_folds: 8
-target_defense_type: mental
 effect_type: condition
 condition_ids:
   - 36

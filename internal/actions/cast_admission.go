@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -27,7 +28,7 @@ type castAim struct {
 }
 
 // admitCastAim applies follow-up slice A's sight rules to a player's targeted
-// cast (harmsingle, harmmulti, helpsingle). It returns refused=true after
+// cast (single-target harm or help, or multi-target harm). It returns refused=true after
 // telling the caster why; nothing has been spent at that point.
 //
 //	clear sight:  names, your foe then your party leader's foe, shapes
@@ -38,8 +39,9 @@ type castAim struct {
 // sight. Mob casters, area, help-multi and neutral casts are not affected.
 func admitCastAim(actor Actor, spellInfo *spells.SpellData, targetName string) (castAim, bool) {
 	aim := castAim{targetName: targetName}
-	switch spellInfo.Type {
-	case spells.HarmSingle, spells.HarmMulti, spells.HelpSingle:
+	switch {
+	case spellInfo.Targeting == combatvocab.TargetSingle:
+	case spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetMulti:
 	default:
 		return aim, false
 	}
@@ -47,7 +49,7 @@ func admitCastAim(actor Actor, spellInfo *spells.SpellData, targetName string) (
 	if room == nil {
 		return aim, false
 	}
-	if spellInfo.Type == spells.HelpSingle && castsAtSelf(actor, targetName) {
+	if !spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetSingle && castsAtSelf(actor, targetName) {
 		return aim, false
 	}
 

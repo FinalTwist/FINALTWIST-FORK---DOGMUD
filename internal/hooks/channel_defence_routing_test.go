@@ -344,8 +344,8 @@ func TestMobAreaSpellEmitsOnePrivateShortagePerActualPlayerTarget(t *testing.T) 
 	}
 	t.Cleanup(func() { runSpellChannelAttack = original })
 	spell := &spells.SpellData{
-		SpellId: "mind-storm", Name: "Mind Storm", Type: spells.HarmArea,
-		EffectType: "damage", TargetDefenseType: "mental", EffectMagnitude: 10,
+		SpellId: "mind-storm", Name: "Mind Storm", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetArea,
+		EffectType: "damage", EffectMagnitude: 10,
 		Schools: []string{spells.SchoolMental},
 	}
 	drainChannelRoutingQueues(1, 2)
@@ -401,8 +401,8 @@ func TestSpellChannelDefencePreservesComputedDuplicateMobIdentity(t *testing.T) 
 // knockdown, exactly ExecuteSkillMove's Hit/StatusApplied split — and the
 // heavy-band defence triad is the only narration.
 func TestResolveSpellDispatchDefensiveCritStopsKnockdownSpell(t *testing.T) {
-	for _, spellType := range []spells.SpellType{spells.HarmSingle, spells.HarmArea} {
-		t.Run(string(spellType), func(t *testing.T) {
+	for _, shape := range []combatvocab.Attack{combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetArea)} {
+		t.Run(shape.String(), func(t *testing.T) {
 			cleanup := seedAllRegistries()
 			defer cleanup()
 			restoreMessages := seedChannelRoutingMessages(t)
@@ -423,14 +423,15 @@ func TestResolveSpellDispatchDefensiveCritStopsKnockdownSpell(t *testing.T) {
 			target.Character.MobInstanceId = target.InstanceId
 			target.Character.Health = 100
 			spell := &spells.SpellData{
-				SpellId: "force-wave", Name: "Force Wave", Type: spellType,
-				EffectType: "knockdown", TargetDefenseType: "mental", EffectMagnitude: 20,
+				SpellId: "force-wave", Name: "Force Wave",
+				AttackType: shape.Type, DamageType: shape.Damage, Targeting: shape.Targeting,
+				EffectType: "knockdown", EffectMagnitude: 20,
 			}
 			require.True(t, target.Character.IsStanding(), "fixture must begin standing")
 			drainChannelRoutingQueues(attacker.UserId, observer.UserId)
 
 			casting := activity.CastingData{SpellId: spell.SpellId}
-			if spellType == spells.HarmSingle {
+			if shape.Targeting == combatvocab.TargetSingle {
 				casting.TargetMobInstanceIds = []int{target.InstanceId}
 			}
 			resolveSpell(attacker, casting, spell, room)
@@ -475,8 +476,8 @@ func TestResolveSpellDispatchDefendedKnockdownDealsPartialDamageWithoutKnockdown
 	target.Character.Health = 1000
 	target.Character.HealthMax.Value = 1000
 	spell := &spells.SpellData{
-		SpellId: "force-wave", Name: "Force Wave", Type: spells.HarmSingle,
-		EffectType: "knockdown", TargetDefenseType: "mental", EffectMagnitude: 20,
+		SpellId: "force-wave", Name: "Force Wave", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
+		EffectType: "knockdown", EffectMagnitude: 20,
 		DamageMultiplier: 1.0,
 	}
 	require.True(t, target.Character.IsStanding(), "fixture must begin standing")

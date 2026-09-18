@@ -3,6 +3,7 @@ package hooks
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -138,7 +139,7 @@ func TestAreaHeal_CasterIsTheirOwnTarget(t *testing.T) {
 	drainPlain(1)
 	drainPlain(2)
 
-	spell := &spells.SpellData{SpellId: "mass-mend", Name: "Mass Mend", Type: spells.HelpArea,
+	spell := &spells.SpellData{SpellId: "mass-mend", Name: "Mass Mend", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetArea,
 		EffectType: "heal", EffectMagnitude: 3}
 	resolveSpell(u, activity.CastingData{SpellId: "mass-mend"}, spell, room)
 
@@ -160,7 +161,7 @@ func TestAreaPurge_CasterIsTheirOwnTarget(t *testing.T) {
 	drainPlain(1)
 	drainPlain(2)
 
-	spell := &spells.SpellData{SpellId: "cleansing-wave", Name: "Cleansing Wave", Type: spells.HelpArea,
+	spell := &spells.SpellData{SpellId: "cleansing-wave", Name: "Cleansing Wave", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetArea,
 		EffectType: "purge"}
 	resolveSpell(u, activity.CastingData{SpellId: "cleansing-wave"}, spell, room)
 
@@ -220,7 +221,7 @@ func TestSelfCastPurgeAffliction_OneLineToCaster(t *testing.T) {
 	room := rooms.LoadRoom(1)
 	drainPlain(1)
 
-	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", Type: spells.HelpSingle}
+	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle}
 	resolveSpell(u, activity.CastingData{SpellId: "purge-affliction", TargetUserIds: []int{1}}, spell, room)
 
 	caster := drainPlain(1)

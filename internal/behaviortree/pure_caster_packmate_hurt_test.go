@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -131,7 +132,7 @@ func seedCasterSpellsForPackmateTest(t *testing.T) func() {
 	return spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		"heal": {
 			SpellId: "heal", Name: "Mend Flesh",
-			Type: spells.HelpSingle, Cost: 25, BaseFolds: 4,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 25, BaseFolds: 4,
 			EffectType: "heal", EffectMagnitude: 3,
 			Categories: []string{"heal_friendly"},
 		},

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -108,9 +109,9 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 	targetMobInstanceIds := []int{}
 	spellRest := ``
 
-	switch spellInfo.Type {
+	switch {
 
-	case spells.HarmSingle:
+	case spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetSingle:
 		if targetName != `` {
 			pId, mId := room.FindByNameSeenBy(castViewer(actor), targetName)
 			if mId > 0 {
@@ -126,7 +127,8 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 				// player is told before spending a 36-fold channel and 120
 				// conviction on it.
 				//
-				// Until U10c this was a silent no-op: charm declared no
+				// Until U10c this was a silent no-op: charm declares
+				// damage_type social now, but back then it declared no
 				// target_defense_type, so a player target took resolveSpell's
 				// uncontested shortcut into applyPlayerEffect, which has no
 				// charm arm. Now that charm routes to the (spell, social)
@@ -187,7 +189,7 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 			// Mobs do not return NoTarget for HarmSingle — the guard below handles it.
 		}
 
-	case spells.HarmMulti:
+	case spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetMulti:
 		// HarmMulti enforced no target policy at all before finding 3, so a
 		// chain-lightning style spell could open on a protected NPC that melee
 		// and HarmSingle both refused.
@@ -216,7 +218,7 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 			targetUserIds, targetMobInstanceIds = resolveMobHarmMultiTargets(actor, room)
 		}
 
-	case spells.HelpSingle:
+	case !spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetSingle:
 		if actor.IsPlayer() {
 			if targetName != `` && targetName != actor.GetName() {
 				pId, mId := room.FindByNameSeenBy(actor.GetCharacter(), targetName)
@@ -249,7 +251,7 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 			}
 		}
 
-	case spells.HelpMulti:
+	case !spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetMulti:
 		if actor.IsPlayer() {
 			// Player: seed with self; spell script expands to party at resolution.
 			targetUserIds = append(targetUserIds, actor.GetUserId())
@@ -258,7 +260,7 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 			targetMobInstanceIds, targetUserIds = resolveMobHelpMultiTargets(actor, room)
 		}
 
-	case spells.HarmArea:
+	case spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetArea:
 		// Exclude self from harm area — don't damage yourself
 		for _, pId := range room.GetPlayers() {
 			if pId != actor.GetUserId() {
@@ -287,11 +289,11 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 			}
 		}
 
-	case spells.HelpArea:
+	case !spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetArea:
 		targetUserIds = room.GetPlayers()
 		targetMobInstanceIds = room.GetMobs()
 
-	case spells.Neutral:
+	case spellInfo.Targeting == combatvocab.TargetSelf:
 		spellRest = targetName
 	}
 
@@ -304,8 +306,7 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 	// resolution. Targets that leave mid-cast (or dodge at resolution) still
 	// legitimately consume the cast — only the found-zero-at-initiation case
 	// is a refusal.
-	if spellInfo.Type == spells.HarmSingle || spellInfo.Type == spells.HarmMulti ||
-		spellInfo.Type == spells.HarmArea {
+	if spellInfo.IsHarm() {
 		if len(targetUserIds) == 0 && len(targetMobInstanceIds) == 0 {
 			return CastResult{SpellInfo: spellInfo, NoTarget: true}
 		}

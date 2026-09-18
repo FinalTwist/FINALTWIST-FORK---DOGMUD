@@ -6,7 +6,6 @@ description: >
   room itself, drawing the vitality from everything living in it to feed
   its own cold fire. Mob-castable only -- this is the Guardian's
   signature recharge, not a spell any living caster could learn.
-type: harmarea
 attack_type: spell
 damage_type: physical
 targeting: area

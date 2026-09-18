@@ -2,7 +2,6 @@
 spellid: heal
 name: Minor Heal
 description: Heals for 2d3
-type: helpsingle
 attack_type: none
 damage_type: non_harm
 targeting: single

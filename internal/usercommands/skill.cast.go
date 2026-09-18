@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
@@ -243,9 +244,9 @@ func Cast(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		}
 		// HarmSingle / HarmArea / HelpSingle can set this; supply a
 		// context-aware message.
-		if spellInfo.Type == spells.HelpSingle {
+		if !spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetSingle {
 			user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">You don't see "%s" here.</ansi>`, targetName))
-		} else if spellInfo.Type == spells.HarmArea {
+		} else if spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetArea {
 			// Refused before any resources were spent (U7b admission rule).
 			user.SendText(messaging.CategorySystem, `<ansi fg="red">There is nothing here for that spell to strike.</ansi>`)
 		} else {

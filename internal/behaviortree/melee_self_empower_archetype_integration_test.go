@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -37,25 +38,25 @@ func seedArchetypeSpells(t *testing.T) func() {
 	return spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		"conviction-surge": {
 			SpellId: "conviction-surge", Name: "Conviction Surge",
-			Type: spells.HelpSingle, Cost: 35, BaseFolds: 4,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 35, BaseFolds: 4,
 			EffectType: "condition", ConditionIds: []int{26},
 			Categories: []string{"self_offense"},
 		},
 		"iron-will": {
 			SpellId: "iron-will", Name: "Iron Will",
-			Type: spells.HelpSingle, Cost: 45, BaseFolds: 6,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 45, BaseFolds: 6,
 			EffectType: "condition", ConditionIds: []int{27},
 			Categories: []string{"self_defense"},
 		},
 		"conviction-ward": {
 			SpellId: "conviction-ward", Name: "Conviction Ward",
-			Type: spells.HelpSingle, Cost: 30, BaseFolds: 4,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 30, BaseFolds: 4,
 			EffectType: "shield",
 			Categories: []string{"self_defense"},
 		},
 		"conviction-armor": {
 			SpellId: "conviction-armor", Name: "Conviction Armor",
-			Type: spells.HelpSingle, Cost: 50, BaseFolds: 6,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 50, BaseFolds: 6,
 			EffectType: "condition", ConditionIds: []int{38},
 			Categories: []string{"self_defense"},
 		},

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/stretchr/testify/assert"
@@ -19,32 +20,39 @@ import (
 // not only when it is aimed.
 // ---------------------------------------------------------------------------
 
-func TestPlayerHarmTargetPermitted_HarmfulSpellsRespectPolicy(t *testing.T) {
-	harmful := []spells.SpellType{spells.HarmSingle, spells.HarmMulti, spells.HarmArea}
+// spellFor builds the minimal *spells.SpellData playerHarmTargetPermitted
+// needs from an attack shape.
+func spellFor(shape combatvocab.Attack) *spells.SpellData {
+	return &spells.SpellData{AttackType: shape.Type, DamageType: shape.Damage, Targeting: shape.Targeting}
+}
 
-	for _, st := range harmful {
+func TestPlayerHarmTargetPermitted_HarmfulSpellsRespectPolicy(t *testing.T) {
+	harmful := []combatvocab.Attack{combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetMulti), combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetArea)}
+
+	for _, shape := range harmful {
+		st := spellFor(shape)
 		ordinary := &mobs.Mob{Character: characters.Character{Name: "Bandit"}}
 		assert.True(t, playerHarmTargetPermitted(st, ordinary),
-			"%s must still land on an ordinary mob", st)
+			"%s must still land on an ordinary mob", shape)
 
 		immune := &mobs.Mob{
 			PlayerAttackImmune: true,
 			Character:          characters.Character{Name: "Caravan Guard"},
 		}
 		assert.False(t, playerHarmTargetPermitted(st, immune),
-			"%s must not land on an attack-immune mob", st)
+			"%s must not land on an attack-immune mob", shape)
 
 		nonCombatant := &mobs.Mob{
 			NonCombatant: true,
 			Character:    characters.Character{Name: "Barkeep"},
 		}
 		assert.False(t, playerHarmTargetPermitted(st, nonCombatant),
-			"%s must not land on a non-combatant", st)
+			"%s must not land on a non-combatant", shape)
 
 		companion := &mobs.Mob{Character: characters.Character{Name: "Wolf"}}
 		companion.Character.Charm(7, 100, "")
 		assert.False(t, playerHarmTargetPermitted(st, companion),
-			"%s must not land on a companion", st)
+			"%s must not land on a companion", shape)
 	}
 }
 
@@ -54,9 +62,9 @@ func TestPlayerHarmTargetPermitted_HelpSpellsAreUnaffected(t *testing.T) {
 	companion := &mobs.Mob{Character: characters.Character{Name: "Wolf"}}
 	companion.Character.Charm(7, 100, "")
 
-	for _, st := range []spells.SpellType{spells.HelpSingle, spells.HelpMulti, spells.HelpArea, spells.Neutral} {
-		assert.True(t, playerHarmTargetPermitted(st, companion),
-			"%s must still reach a companion", st)
+	for _, shape := range []combatvocab.Attack{combatvocab.NonHarm(combatvocab.TargetSingle), combatvocab.NonHarm(combatvocab.TargetMulti), combatvocab.NonHarm(combatvocab.TargetArea), combatvocab.NonHarm(combatvocab.TargetSelf)} {
+		assert.True(t, playerHarmTargetPermitted(spellFor(shape), companion),
+			"%s must still reach a companion", shape)
 	}
 }
 
@@ -64,13 +72,14 @@ func TestPlayerHarmTargetPermitted_HelpSpellsAreUnaffected(t *testing.T) {
 // resolution even though it passed the check at cast time.
 func TestPlayerHarmTargetPermitted_ProtectionGainedMidCast(t *testing.T) {
 	m := &mobs.Mob{Character: characters.Character{Name: "Stray Dog"}}
+	st := spellFor(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle))
 
-	assert.True(t, playerHarmTargetPermitted(spells.HarmSingle, m),
+	assert.True(t, playerHarmTargetPermitted(st, m),
 		"target was legal when the cast started")
 
 	// The player charms it with a second spell before the first one lands.
 	m.Character.Charm(7, 100, "")
 
-	assert.False(t, playerHarmTargetPermitted(spells.HarmSingle, m),
+	assert.False(t, playerHarmTargetPermitted(st, m),
 		"target became a companion mid-cast and must be spared")
 }

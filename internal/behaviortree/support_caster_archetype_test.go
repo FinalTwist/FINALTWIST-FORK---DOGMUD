@@ -1,6 +1,7 @@
 package behaviortree
 
 import (
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/state/combatphase"
 	"strings"
 	"testing"
@@ -196,13 +197,13 @@ func seedSupportCasterSpells(t *testing.T) func() {
 	return spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		"mend-wounds": {
 			SpellId: "mend-wounds", Name: "Mend Wounds",
-			Type: spells.HelpSingle, Cost: 40, BaseFolds: 4,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 40, BaseFolds: 4,
 			EffectType: "heal", EffectMagnitude: 5,
 			Categories: []string{"heal_friendly"},
 		},
 		"conviction-ward": {
 			SpellId: "conviction-ward", Name: "Conviction Ward",
-			Type: spells.HelpSingle, Cost: 30, BaseFolds: 4,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 30, BaseFolds: 4,
 			EffectType: "shield", EffectMagnitude: 75,
 			Categories: []string{"condition_friendly"},
 		},

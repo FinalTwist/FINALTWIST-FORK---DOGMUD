@@ -628,15 +628,15 @@ func handlePlayerFoldCasting(user *users.UserRecord, userId int) bool {
 		if spellData != nil {
 			bal := configs.GetBalanceConfig()
 
-			// Self-cast penalty: HelpSingle targeting only self gets reduced progression
-			if spellData.Type == spells.HelpSingle &&
+			// Self-cast penalty: a single-target help spell targeting only self gets reduced progression
+			if !spellData.IsHarm() && spellData.Targeting == combatvocab.TargetSingle &&
 				len(cs.TargetMobInstanceIds) == 0 &&
 				len(cs.TargetUserIds) == 1 && cs.TargetUserIds[0] == userId {
 				spellBonus *= float64(bal.SelfCastProgressionMultiplier)
 			}
 
-			// AoE guard: HarmArea/HarmMulti with no targets hit skips progression
-			if (spellData.Type == spells.HarmArea || spellData.Type == spells.HarmMulti) &&
+			// AoE guard: an area or multi harm spell with no targets hit skips progression
+			if spellData.IsHarm() && (spellData.Targeting == combatvocab.TargetArea || spellData.Targeting == combatvocab.TargetMulti) &&
 				len(cs.TargetUserIds) == 0 && len(cs.TargetMobInstanceIds) == 0 {
 				spellBonus = 0
 			}

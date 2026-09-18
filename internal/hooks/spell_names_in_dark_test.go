@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -99,7 +100,7 @@ func TestMobCastOnPlayer_TargetInTheDarkReadsSomething(t *testing.T) {
 	drainPlain(2)
 	pinSpellContest(t)
 
-	spell := &spells.SpellData{SpellId: "test-hex", Name: "Hex", Type: spells.HarmSingle}
+	spell := &spells.SpellData{SpellId: "test-hex", Name: "Hex", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle}
 	resolveMobSpellAgainstPlayer(mobs.GetInstance(100), users.GetByUserId(2), rooms.LoadRoom(1), spell, combat.AttackSide{}, 10)
 
 	target := drainPlain(2)

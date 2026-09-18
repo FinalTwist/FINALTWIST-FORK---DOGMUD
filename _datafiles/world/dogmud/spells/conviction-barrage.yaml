@@ -2,7 +2,6 @@ spellid: conviction-barrage
 name: Conviction Barrage
 aliases: [barrage]
 description: Devastating barrage of crystallized belief shards hits all foes.
-type: harmarea
 attack_type: spell
 damage_type: physical
 targeting: area
@@ -13,7 +12,6 @@ waitrounds: 3
 difficulty: 60
 primarystat: willpower
 base_folds: 24
-target_defense_type: physical
 effect_type: damage
 effect_magnitude: 700
 damage_multiplier: 1.60
