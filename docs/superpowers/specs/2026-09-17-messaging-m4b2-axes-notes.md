@@ -1,8 +1,15 @@
 # M4b-2 design notes: the four axes, and the counters slice
 
 Date: 2026-09-17
-Status: **working notes, not a spec.** Written at the end of the session so the
-next one starts here. The spec and the plan are the next session's first job.
+Status: **SUPERSEDED 2026-09-18 by
+[the M4b-2 spec](2026-09-18-messaging-m4b2-axes-design.md).** Kept as the
+record of the conversation. Two claims below did not survive verification:
+`DamageChannel` is not the damage type (it is a derived pool, and it stays),
+and the mob-loop uncontested shortcut is a behaviour change, because a help
+spell cast at a mob is contested today. Open questions 1 to 4 are ruled in the
+spec.
+Originally: working notes, not a spec, written at the end of the session so the
+next one starts here.
 Arc: [messaging unification](2026-08-31-messaging-unification-design.md), M4b-2
 Supersedes, within M4: the M4 spec's "one `DefenseType`" wording.
 
