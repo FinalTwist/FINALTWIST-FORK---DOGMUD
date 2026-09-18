@@ -3,6 +3,7 @@ package combat
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 )
 
@@ -28,16 +29,23 @@ func TestScaleChannelForMatchesTheOldSwitches(t *testing.T) {
 	}
 }
 
-func TestToughenNameMatchesCharactersToughenStatForInputs(t *testing.T) {
+// ToughenName crosses into characters.ToughenStatFor (progression.go:511),
+// which characters cannot spell from this side because it cannot import
+// combat. The round trip is the contract: each pool must name the stat it
+// toughens, and an unknown pool must name none.
+func TestToughenNameRoundTripsThroughCharactersToughenStatFor(t *testing.T) {
 	cases := map[DamageChannel]string{
-		ChannelPhysical:   "physical",
-		ChannelMagical:    "magical",
-		ChannelConviction: "conviction",
+		ChannelPhysical:   "vitality",
+		ChannelMagical:    "willpower",
+		ChannelConviction: "charisma",
 	}
-	for ch, want := range cases {
-		if got := ch.ToughenName(); got != want {
-			t.Errorf("%v.ToughenName() = %q, want %q", ch, got, want)
+	for ch, wantStat := range cases {
+		if got := characters.ToughenStatFor(ch.ToughenName()); got != wantStat {
+			t.Errorf("ToughenStatFor(%v.ToughenName()=%q) = %q, want %q", ch, ch.ToughenName(), got, wantStat)
 		}
+	}
+	if got := characters.ToughenStatFor(DamageChannel(99).ToughenName()); got != "" {
+		t.Errorf("an unknown pool must toughen nothing, got %q", got)
 	}
 }
 
