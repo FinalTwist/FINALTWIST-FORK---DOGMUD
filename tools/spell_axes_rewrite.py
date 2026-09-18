@@ -13,9 +13,15 @@ Modes:
   --strip      delete the `type:` and `target_defense_type:` lines.
   --check      non-zero if any spell file lacks one of the three keys or still
                carries a legacy key.
-  --go-tests   rewrite Go test files: `Type: spells.X,` struct fields (and a
-               following `TargetDefenseType: "...",` line) become the three
-               axis fields; bare `spells.X` arguments become constructor calls.
+  --go-tests   rewrite Go test files: a `Type: spells.X,` struct field (start
+               of line or mid-line, alongside other fields) becomes the three
+               axis fields, pulling its damage from a same-line or lookahead
+               `TargetDefenseType: "...",`; bare `spells.X` arguments become
+               constructor calls; package spells files see the same shapes
+               without the `spells.` prefix. Prints a LEFTOVER line and exits
+               non-zero for every _test.go line the pass could not rewrite
+               (a variable Type field, a lone TargetDefenseType, a SpellType
+               slice/map type, ...).
   --dry-run    with any of the above: print what would change, write nothing.
 
 The mapping is the spec's table (docs/superpowers/specs/2026-09-18-messaging-m4b2-axes-design.md,
@@ -168,11 +174,35 @@ FIELDS = {
     "HarmMulti": ("AttackSpell", "Damage{D}", "TargetMulti"),
     "HarmArea": ("AttackSpell", "Damage{D}", "TargetArea"),
 }
-TYPE_FIELD_RE = re.compile(r"^(?P<indent>\s*)Type:(?P<sp>\s*)spells\.(?P<t>\w+),(?P<rest>.*)$")
-INLINE_TYPE_RE = re.compile(r"\bType:\s*spells\.(?P<t>\w+),")
-DEF_FIELD_RE = re.compile(r'^\s*TargetDefenseType:\s*"(?P<d>\w*)",\s*$')
+# The seven legacy SpellType names, shared by every regex and lookup table
+# below so the set can never drift between them.
+TYPENAMES = "(?:" + "|".join(FIELDS.keys()) + ")"
+
+# Qualified (`spells.HarmSingle`) is required outside package spells; inside
+# package spells the same identifiers appear bare (`HarmSingle`), so the
+# `spells.` prefix is optional there. Either way the match spans the whole
+# `Type: ...,` field (wherever it sits on the line), so a mid-line field next
+# to other fields (SpellId, Name, ...) is found exactly like one that opens
+# the line.
+TYPE_ANY_QUALIFIED_RE = re.compile(rf"\bType:\s*spells\.(?P<t>{TYPENAMES}),")
+TYPE_ANY_UNQUALIFIED_RE = re.compile(rf"\bType:\s*(?:spells\.)?(?P<t>{TYPENAMES}),")
+# Matches a TargetDefenseType field wherever it sits on a line, consuming its
+# own leading whitespace and trailing comma so removing the match leaves the
+# rest of the line (other fields, or a trailing comment) intact.
 INLINE_DEF_RE = re.compile(r'\s*TargetDefenseType:\s*"(?P<d>\w*)",')
 BARE_RE = re.compile(r"\bspells\.(Neutral|HelpSingle|HelpMulti|HelpArea|HarmSingle|HarmMulti|HarmArea)\b")
+
+# Leftover detector (item 3): after a --go-tests pass, any of these appearing
+# in a _test.go file is a shape the pass could not rewrite (a variable Type
+# field, a TargetDefenseType with no accompanying Type field, a SpellType
+# slice/map type, etc). Printed and reported non-zero so a partial sweep
+# cannot pass as complete; Task 7 fixes these by hand.
+LEFTOVER_COMMON_RE = re.compile(rf"TargetDefenseType|spells\.SpellType|SpellType\{{|spells\.{TYPENAMES}\b")
+# Package-spells files also spell these names bare; a bare Type: field that
+# --go-tests did not consume is a leftover there too. (Other bare uses of
+# these names, not preceded by `Type:`, are left for the compiler per the
+# fix's own rule -- BARE_RE never fires without the `spells.` prefix.)
+LEFTOVER_PKG_SPELLS_RE = re.compile(rf"\bType:\s*{TYPENAMES}\b")
 
 
 def damage_word(d):
@@ -185,40 +215,63 @@ def fields_for(t, d):
     return f"AttackType: combatvocab.{a}, DamageType: combatvocab.{dm}, Targeting: combatvocab.{tg},"
 
 
+def first_code_line(lines):
+    """The first non-blank, non-comment line, stripped -- used to tell a
+    package spells file (bare enum names) from every other package
+    (qualified spells.X names)."""
+    for line in lines:
+        s = line.strip()
+        if s == "" or s.startswith("//"):
+            continue
+        return s
+    return ""
+
+
 def rewrite_go(path, dry):
     with open(path, encoding="utf-8", newline="") as f:
         lines = f.readlines()
+    type_re = TYPE_ANY_UNQUALIFIED_RE if first_code_line(lines) == "package spells" else TYPE_ANY_QUALIFIED_RE
     out = []
     i = 0
     changed = False
     while i < len(lines):
         line = lines[i]
-        m = TYPE_FIELD_RE.match(line.rstrip("\r\n"))
+        m = type_re.search(line)
         if m:
             nl = "\r\n" if line.endswith("\r\n") else "\n"
-            # Look ahead (same literal, within 12 lines) for a TargetDefenseType line.
-            d = ""
-            for j in range(i + 1, min(i + 13, len(lines))):
-                dm = DEF_FIELD_RE.match(lines[j])
-                if dm:
-                    d = dm.group("d")
-                    del lines[j]
-                    break
-                if lines[j].strip() in ("}", "})", "},"):
-                    break
-            out.append(f"{m.group('indent')}{fields_for(m.group('t'), d)}{m.group('rest')}{nl}")
+            bare = line.rstrip("\r\n")
+            # Same-line TargetDefenseType first; only if absent, look ahead
+            # (same literal, within 12 lines, stopping at its closing brace)
+            # for one -- which may share its line with other fields (the
+            # bug this fix closes: it used to only check the SAME line as
+            # Type, silently defaulting a mid-line Type's damage to mental).
+            dm = INLINE_DEF_RE.search(bare)
+            if dm:
+                d = dm.group("d")
+                bare = bare[:dm.start()] + bare[dm.end():]
+                m = type_re.search(bare)  # the removal may have shifted it
+            else:
+                d = None
+                for j in range(i + 1, min(i + 13, len(lines))):
+                    ddm = INLINE_DEF_RE.search(lines[j])
+                    if ddm:
+                        d = ddm.group("d")
+                        rest = lines[j][:ddm.start()] + lines[j][ddm.end():]
+                        if rest.strip() == "":
+                            del lines[j]
+                        else:
+                            lines[j] = rest
+                        break
+                    if lines[j].strip().startswith("}"):
+                        break
+                if d is None:
+                    d = ""
+            prefix = bare[:m.start()]
+            suffix = bare[m.end():]
+            out.append(f"{prefix}{fields_for(m.group('t'), d)}{suffix}{nl}")
             changed = True
             i += 1
             continue
-        im = INLINE_TYPE_RE.search(line)
-        if im:
-            d = ""
-            dm = INLINE_DEF_RE.search(line)
-            if dm:
-                d = dm.group("d")
-                line = line[:dm.start()] + line[dm.end():]
-            line = INLINE_TYPE_RE.sub(lambda mm: fields_for(mm.group("t"), d), line, count=1)
-            changed = True
         if BARE_RE.search(line):
             line = BARE_RE.sub(lambda mm: CTOR[mm.group(1)].replace("{D}", "Mental"), line)
             changed = True
@@ -231,14 +284,43 @@ def rewrite_go(path, dry):
     return changed
 
 
-def do_go_tests(dry):
-    n = 0
+def go_test_files():
     for base in ("internal", "modules"):
         for dirpath, _, names in os.walk(os.path.join(ROOT, base)):
             for name in names:
                 if name.endswith("_test.go"):
-                    n += rewrite_go(os.path.join(dirpath, name), dry)
+                    yield os.path.join(dirpath, name)
+
+
+def scan_leftovers():
+    """Print a LEFTOVER line for every _test.go line a --go-tests pass could
+    not (or, on --dry-run, will not) rewrite. Scans the files as they stand
+    when called -- after the real rewrite for a live run, or untouched for a
+    dry run, per the item-3 ruling that a dry-run simulation is not required."""
+    bad = []
+    for path in go_test_files():
+        with open(path, encoding="utf-8", newline="") as f:
+            lines = f.readlines()
+        pkg_spells = first_code_line(lines) == "package spells"
+        for lineno, line in enumerate(lines, start=1):
+            hit = LEFTOVER_COMMON_RE.search(line)
+            if not hit and pkg_spells:
+                hit = LEFTOVER_PKG_SPELLS_RE.search(line)
+            if hit:
+                rel = os.path.relpath(path, ROOT)
+                print(f"LEFTOVER {rel}:{lineno}: {line.rstrip(chr(13) + chr(10))}")
+                bad.append((rel, lineno))
+    return bad
+
+
+def do_go_tests(dry):
+    n = 0
+    for path in go_test_files():
+        n += rewrite_go(path, dry)
     print(f"{n} test files")
+    bad = scan_leftovers()
+    print(f"{len(bad)} leftover lines")
+    return 1 if bad else 0
 
 
 def main():
@@ -254,7 +336,7 @@ def main():
     elif args.strip:
         do_strip(args.dry_run)
     elif args.go_tests:
-        do_go_tests(args.dry_run)
+        sys.exit(do_go_tests(args.dry_run))
     elif args.check:
         sys.exit(do_check())
     else:

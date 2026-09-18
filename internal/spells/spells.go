@@ -25,12 +25,13 @@ type SpellData struct {
 	Aliases     []string `yaml:"aliases,omitempty"` // short single-word invocation forms (primary first)
 	Description string   `yaml:"description,omitempty"`
 
-	// The three authored axes (messaging M4b-2). All required; validated
-	// against the combatvocab eligibility table at load, so a pair the table
-	// does not know fails the boot. attack_type none pairs with damage_type
-	// non_harm and is the uncontested cast (a heal is not an attack).
-	// targeting self means NO target is resolved and the argument passes
-	// through (summons, identify); single defaults to the caster.
+	// The three authored axes (messaging M4b-2). All required; will be
+	// validated against the combatvocab eligibility table at load (Task 7 of
+	// the M4b-2 plan wires validateAxes), so a pair the table does not know
+	// will fail the boot. attack_type none pairs with damage_type non_harm
+	// and is the uncontested cast (a heal is not an attack). targeting self
+	// means NO target is resolved and the argument passes through (summons,
+	// identify); single defaults to the caster.
 	AttackType combatvocab.AttackType `yaml:"attack_type,omitempty"`
 	DamageType combatvocab.DamageType `yaml:"damage_type,omitempty"`
 	Targeting  combatvocab.Targeting  `yaml:"targeting,omitempty"`
