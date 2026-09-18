@@ -239,9 +239,9 @@ Dodge is REUSED for physical spells; there is no separate physical-spell
 defence. An unknown channel returns nil, not the melee set.
 
 **quell and defy are NEW player-facing verbs** (chosen 2026-08-13; both were
-previously called "resist", which collided). `characters.DefenseQuell` scores
+previously called "resist", which collided). `combatvocab.DefenceQuell` scores
 `Willpower + spellcasting × SkillWeight` and answers a mental spell;
-`characters.DefenseDefy` scores `Willpower + rhetoric × SkillWeight` and answers
+`combatvocab.DefenceDefy` scores `Willpower + rhetoric × SkillWeight` and answers
 a social attack. **Both cost CONVICTION, not stamina** — grepping for a stamina
 cost finds nothing and proves nothing.
 
@@ -392,8 +392,11 @@ compile error**. Audited 2026-08-15; Task 12 status against each, worst first.
 7. **The message enum now recognizes all five defences.** `items.DefencePool`
    (renamed from `items.DefenseType` in M4b-2; it is a store key, not a defence
    type) includes quell and defy so channel outcomes can select their data
-   pools. `combat.DefenseType` remains the three-valued melee `AttackResult`
-   enum; channel resolution returns `ChannelDefenceResult` instead.
+   pools. `combat.DefenseType`, the old three-valued melee `AttackResult` enum,
+   is DELETED (M4b-2): every defence name, melee's `AttackResult.DefenseUsed`
+   included, is `combatvocab.Defence`, declared once in `internal/combatvocab`.
+   Channel resolution returns `ChannelDefenceResult`, whose defence field is
+   named `Defence` (not `DefenceType`), also `combatvocab.Defence`.
 8. **`PowerScore` averages three defences.** **DEFERRED.** `calculations.go`
    computes `(dodge + parry + block) / 3.0`, under-weighting a character built on
    mental or social defence (feeds `modules/leaderboards`).
@@ -402,9 +405,9 @@ compile error**. Audited 2026-08-15; Task 12 status against each, worst first.
    and `ansi-aliases.yaml` has no colour keys for them. Unreachable today for the
    same reason as 4 and 6.
 10. **`DriftFromCombat("trickster", ...)`** (`NewRound_DoCombat_unified.go`)
-    tests `DefenseUsed == DefenseDodge || == DefenseParry` by literal, so quell
-    and defy never signal "evaded a blow". **DEFERRED**; flavour only, and
-    unreachable today.
+    tests `DefenseUsed == combatvocab.DefenceDodge || == combatvocab.DefenceParry`
+    by literal, so quell and defy never signal "evaded a blow". **DEFERRED**;
+    flavour only, and unreachable today.
 
 U8 closed the non-physical content gap with `quell.yaml` and `defy.yaml` under
 `_datafiles/world/dogmud/defense-messages/`. `RenderChannelDefenceMessages`
@@ -445,7 +448,7 @@ drift apart.
 
 `ResolveChannelAttack` runs ONE opposed contest and returns the canonical
 structured outcome. Damage consumers read `DamageMultiplier`; narration reads
-`Defended`, `DefensiveCrit`, `NormalizedDefenceMargin`, and `DefenceType` from
+`Defended`, `DefensiveCrit`, `NormalizedDefenceMargin`, and `Defence` from
 that same result. It does not reroll or infer a second outcome. The multiplier
 is `1.0` when the attack wins, `0.0` on a defensive crit, and between `0.0` and
 `0.5` on an ordinary defensive win, off the same `DefenceMitigation` curve
@@ -1527,7 +1530,7 @@ scripted combat command.
     Same `calculateCombat()` pipeline but with Mob as source, User as
     target. `MobDamageMultiplier` config scales mob damage. Player's
     defense sequence: dodge (DEX), parry (weapon), block (shield) —
-    the shield is critical here, it provides `DefenseBlock` with a
+    the shield is critical here, it provides `combatvocab.DefenceBlock` with a
     high effectiveness.
     - **Defender progression:** Player gets `OnStatUse("dexterity")`
       for reacting to attacks.

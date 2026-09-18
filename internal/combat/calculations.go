@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -98,9 +99,9 @@ func PowerScore(char characters.Character) float64 {
 
 	// ── DEFENSE ──────────────────────────────────────────────────────────
 	avgMit := (char.GetPhysicalMitigation() + char.GetMagicalMitigation() + char.GetConvictionMitigation()) / 3.0
-	dodgeScore := char.GetDefenseScore(characters.DefenseDodge)
-	parryScore := char.GetDefenseScore(characters.DefenseParry)
-	blockScore := char.GetDefenseScore(characters.DefenseBlock)
+	dodgeScore := char.GetDefenseScore(combatvocab.DefenceDodge)
+	parryScore := char.GetDefenseScore(combatvocab.DefenceParry)
+	blockScore := char.GetDefenseScore(combatvocab.DefenceBlock)
 	defenseAvoidance := (dodgeScore + parryScore + blockScore) / 3.0
 	naturalArmor := mutations.GetNaturalArmor(char.Mutations)
 	defenseScore := (avgMit * 300) + (defenseAvoidance * 2) + float64(naturalArmor)

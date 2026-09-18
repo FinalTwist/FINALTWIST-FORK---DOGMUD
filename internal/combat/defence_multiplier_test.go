@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 )
 
@@ -97,7 +97,7 @@ func TestDefenceMitigation_MidpointIsLinear(t *testing.T) {
 func defenceWinBest(rawMargin, defStdDev float64) bestDefenseResult {
 	return bestDefenseResult{
 		margin:      rawMargin,
-		defenseType: characters.DefenseDodge,
+		defenseType: combatvocab.DefenceDodge,
 		hitRoll:     dice.RollResult{Value: 100, ZScore: 0},
 		defRoll:     dice.RollResult{Value: 100 + rawMargin, ZScore: 0, StdDev: defStdDev},
 	}
@@ -282,13 +282,13 @@ func TestResolveDefenseOutcome_DamageMultOnEveryPath(t *testing.T) {
 // attacker and defender lines along with it. The mechanics still resolved, so
 // from the player's seat a spell simply stopped happening.
 //
-// The pool lookup is a raw string cast, items.DefencePool(out.DefenceType),
+// The pool lookup is a raw string cast, items.DefencePool(out.Defence),
 // which compiles for any string and yields nil for one with no authored pool.
 // So a single rename is enough to silence a whole channel.
 func TestRenderChannelDefenceMessages_UnknownPoolFallsBackToGenericText(t *testing.T) {
 	out := ChannelDefenceResult{
 		Defended:                true,
-		DefenceType:             "no-such-defence-pool",
+		Defence:                 "no-such-defence-pool",
 		NormalizedDefenceMargin: 0.6,
 	}
 	triad := RenderChannelDefenceMessages(out,

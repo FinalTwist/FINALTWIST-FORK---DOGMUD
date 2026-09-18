@@ -3,7 +3,7 @@ package combat
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,32 +15,32 @@ func TestDefenceSetFor(t *testing.T) {
 	tests := []struct {
 		name     string
 		channel  AttackChannel
-		expected []string
+		expected []combatvocab.Defence
 	}{
 		{
 			name:     "melee gets all three physical defences",
 			channel:  ChannelMelee,
-			expected: []string{characters.DefenseDodge, characters.DefenseParry, characters.DefenseBlock},
+			expected: []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock},
 		},
 		{
 			name:     "ranged drops parry -- you cannot parry an arrow",
 			channel:  ChannelRanged,
-			expected: []string{characters.DefenseDodge, characters.DefenseBlock},
+			expected: []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock},
 		},
 		{
 			name:     "physical spells reuse dodge and block, no parry",
 			channel:  ChannelSpellPhysical,
-			expected: []string{characters.DefenseDodge, characters.DefenseBlock},
+			expected: []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock},
 		},
 		{
 			name:     "mental spells are answered by quell alone",
 			channel:  ChannelSpellMental,
-			expected: []string{characters.DefenseQuell},
+			expected: []combatvocab.Defence{combatvocab.DefenceQuell},
 		},
 		{
 			name:     "social attacks are answered by defy alone",
 			channel:  ChannelSocial,
-			expected: []string{characters.DefenseDefy},
+			expected: []combatvocab.Defence{combatvocab.DefenceDefy},
 		},
 	}
 
@@ -68,12 +68,12 @@ func TestDefenceSetForUnknownChannel(t *testing.T) {
 // loses. GetDefenseScore's default arm returns 0, so a typo'd constant would
 // never fail to compile -- only this assertion catches it.
 func TestDefenceSetForReturnsKnownDefenceNames(t *testing.T) {
-	known := map[string]bool{
-		characters.DefenseDodge: true,
-		characters.DefenseParry: true,
-		characters.DefenseBlock: true,
-		characters.DefenseQuell: true,
-		characters.DefenseDefy:  true,
+	known := map[combatvocab.Defence]bool{
+		combatvocab.DefenceDodge: true,
+		combatvocab.DefenceParry: true,
+		combatvocab.DefenceBlock: true,
+		combatvocab.DefenceQuell: true,
+		combatvocab.DefenceDefy:  true,
 	}
 
 	for _, channel := range []AttackChannel{
@@ -85,7 +85,7 @@ func TestDefenceSetForReturnsKnownDefenceNames(t *testing.T) {
 		for _, def := range set {
 			assert.True(t, known[def],
 				"channel %q emits unknown defence %q", channel, def)
-			assert.NotEqual(t, characters.DefenseNone, def,
+			assert.NotEqual(t, combatvocab.DefenceNone, def,
 				"channel %q emits the empty sentinel", channel)
 		}
 	}

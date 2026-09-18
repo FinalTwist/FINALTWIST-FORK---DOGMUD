@@ -26,6 +26,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -295,14 +296,14 @@ func TestEveryChannelUsesUniformDefenceSkillWeight(t *testing.T) {
 	}
 
 	defences := []struct {
-		defence string
+		defence combatvocab.Defence
 		skill   skills.SkillTag
 	}{
-		{characters.DefenseDodge, skills.UnarmedCombat},
-		{characters.DefenseParry, skills.WeaponCombat},
-		{characters.DefenseBlock, skills.WeaponCombat},
-		{characters.DefenseQuell, skills.Spellcasting},
-		{characters.DefenseDefy, skills.Rhetoric},
+		{combatvocab.DefenceDodge, skills.UnarmedCombat},
+		{combatvocab.DefenceParry, skills.WeaponCombat},
+		{combatvocab.DefenceBlock, skills.WeaponCombat},
+		{combatvocab.DefenceQuell, skills.Spellcasting},
+		{combatvocab.DefenceDefy, skills.Rhetoric},
 	}
 	for _, tc := range defences {
 		zero := build(tc.skill, 0).GetDefenseScoreFor(tc.defence, true)

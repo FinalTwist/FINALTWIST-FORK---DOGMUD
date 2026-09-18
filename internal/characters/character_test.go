@@ -7,6 +7,7 @@ import (
 
 	"maps"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/stretchr/testify/assert"
@@ -2321,7 +2322,7 @@ func TestGetDefenseScore(t *testing.T) {
 		c := New()
 		c.Stats.Dexterity.ValueAdj = 100
 		c.Skills[string(skills.UnarmedCombat)] = 20
-		score := c.GetDefenseScore(DefenseDodge)
+		score := c.GetDefenseScore(combatvocab.DefenceDodge)
 		assert.InDelta(t, 140.0, score, 1.0) // 100 + 20*2 (SkillWeight=2.0)
 	})
 
@@ -2332,7 +2333,7 @@ func TestGetDefenseScore(t *testing.T) {
 		c.Equipment.Weapon = items.Item{ItemId: 1, Spec: &items.ItemSpec{
 			ParryRating: 10,
 		}}
-		score := c.GetDefenseScore(DefenseParry)
+		score := c.GetDefenseScore(combatvocab.DefenceParry)
 		assert.InDelta(t, 120.0, score, 1.0) // 80 + 15*2 + 10 (SkillWeight=2.0)
 	})
 
@@ -2346,7 +2347,7 @@ func TestGetDefenseScore(t *testing.T) {
 			PhysicalMitigation: 5,
 			BlockRating:        15,
 		}}
-		score := c.GetDefenseScore(DefenseBlock)
+		score := c.GetDefenseScore(combatvocab.DefenceBlock)
 		assert.InDelta(t, 135.0, score, 1.0) // (120+80)/2 + 10*2 + 15 (SkillWeight=2.0)
 	})
 
@@ -2357,7 +2358,7 @@ func TestGetDefenseScore(t *testing.T) {
 		c.Stats.Willpower.ValueAdj = 100
 		c.Stats.Dexterity.ValueAdj = 999 // must not contribute
 		c.Skills[string(skills.Spellcasting)] = 20
-		score := c.GetDefenseScore(DefenseQuell)
+		score := c.GetDefenseScore(combatvocab.DefenceQuell)
 		assert.InDelta(t, 140.0, score, 1.0) // 100 + 20*2 (SkillWeight=2.0)
 	})
 
@@ -2366,7 +2367,7 @@ func TestGetDefenseScore(t *testing.T) {
 		c.Stats.Willpower.ValueAdj = 90
 		c.Stats.Dexterity.ValueAdj = 999 // must not contribute
 		c.Skills[string(skills.Rhetoric)] = 10
-		score := c.GetDefenseScore(DefenseDefy)
+		score := c.GetDefenseScore(combatvocab.DefenceDefy)
 		assert.InDelta(t, 110.0, score, 1.0) // 90 + 10*2 (SkillWeight=2.0)
 	})
 
@@ -2376,7 +2377,7 @@ func TestGetDefenseScore(t *testing.T) {
 		c := New()
 		c.Stats.Willpower.ValueAdj = 100
 		c.Skills[string(skills.Spellcasting)] = 40
-		assert.Greater(t, c.GetDefenseScore(DefenseQuell), c.GetDefenseScore(DefenseDefy))
+		assert.Greater(t, c.GetDefenseScore(combatvocab.DefenceQuell), c.GetDefenseScore(combatvocab.DefenceDefy))
 	})
 
 	t.Run("unknown defense type → 0", func(t *testing.T) {
@@ -2402,7 +2403,7 @@ func TestGetDefenseScore(t *testing.T) {
 func TestDefensePoolAndCost(t *testing.T) {
 	tests := []struct {
 		name     string
-		def      string
+		def      combatvocab.Defence
 		wantPool Pool
 		wantCost int
 	}{
@@ -2412,15 +2413,15 @@ func TestDefensePoolAndCost(t *testing.T) {
 		// GetDefenseCostFloat exists and the reason the melee charge site was
 		// moved onto ApplyCostFloat: the ordering these rows can no longer see is
 		// pinned in defence_cost_test.go.
-		{"dodge is stamina", DefenseDodge, PoolStamina, 1},
-		{"parry is stamina", DefenseParry, PoolStamina, 1},
-		{"block is stamina", DefenseBlock, PoolStamina, 1},
+		{"dodge is stamina", combatvocab.DefenceDodge, PoolStamina, 1},
+		{"parry is stamina", combatvocab.DefenceParry, PoolStamina, 1},
+		{"block is stamina", combatvocab.DefenceBlock, PoolStamina, 1},
 
 		// Validation defaults: a test binary never loads config.yaml, so these
 		// prove the defaults exist and are non-zero rather than pinning a
 		// shipped value.
-		{"quell is conviction", DefenseQuell, PoolConviction, 2},
-		{"defy is conviction", DefenseDefy, PoolConviction, 2},
+		{"quell is conviction", combatvocab.DefenceQuell, PoolConviction, 2},
+		{"defy is conviction", combatvocab.DefenceDefy, PoolConviction, 2},
 
 		// An unrecognised name must charge NOTHING. It falls to PoolStamina
 		// because something has to be returned, and the zero cost is what makes
@@ -2443,7 +2444,7 @@ func TestDefensePoolAndCost(t *testing.T) {
 // silent: no compile error, no panic, just a free save.
 func TestGetDefenseCost_ConvictionDefencesAreNeverFree(t *testing.T) {
 	c := New()
-	for _, def := range []string{DefenseQuell, DefenseDefy} {
+	for _, def := range []combatvocab.Defence{combatvocab.DefenceQuell, combatvocab.DefenceDefy} {
 		assert.Positive(t, c.GetDefenseCost(def),
 			"%s must cost something; a zero here means the defence is free", def)
 		assert.Equal(t, PoolConviction, DefensePool(def),

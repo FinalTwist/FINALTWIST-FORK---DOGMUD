@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -45,12 +46,12 @@ func newDualWieldDefenceTestCharacter(t *testing.T) *characters.Character {
 	return c
 }
 
-func assertSameSet(t *testing.T, got, want []string) {
+func assertSameSet(t *testing.T, got, want []combatvocab.Defence) {
 	t.Helper()
-	g := append([]string{}, got...)
-	w := append([]string{}, want...)
-	sort.Strings(g)
-	sort.Strings(w)
+	g := append([]combatvocab.Defence{}, got...)
+	w := append([]combatvocab.Defence{}, want...)
+	sort.Slice(g, func(i, j int) bool { return g[i] < g[j] })
+	sort.Slice(w, func(i, j int) bool { return w[i] < w[j] })
 	if len(g) != len(w) {
 		t.Fatalf("defence set = %v, want %v", got, want)
 	}
@@ -61,7 +62,7 @@ func assertSameSet(t *testing.T, got, want []string) {
 	}
 }
 
-func countOf(set []string, name string) int {
+func countOf(set []combatvocab.Defence, name combatvocab.Defence) int {
 	n := 0
 	for _, s := range set {
 		if s == name {
@@ -80,20 +81,20 @@ func TestDefenceEntriesFor_EquipmentGate(t *testing.T) {
 		name    string
 		channel AttackChannel
 		def     *characters.Character
-		want    []string
+		want    []combatvocab.Defence
 	}{
-		{"bare vs melee: dodge only", ChannelMelee, bare, []string{characters.DefenseDodge}},
-		{"armed vs melee: dodge+parry", ChannelMelee, armed, []string{characters.DefenseDodge, characters.DefenseParry}},
-		{"shielded vs melee: dodge+parry+block", ChannelMelee, shielded, []string{characters.DefenseDodge, characters.DefenseParry, characters.DefenseBlock}},
-		{"shielded vs ranged: dodge+block", ChannelRanged, shielded, []string{characters.DefenseDodge, characters.DefenseBlock}},
+		{"bare vs melee: dodge only", ChannelMelee, bare, []combatvocab.Defence{combatvocab.DefenceDodge}},
+		{"armed vs melee: dodge+parry", ChannelMelee, armed, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}},
+		{"shielded vs melee: dodge+parry+block", ChannelMelee, shielded, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock}},
+		{"shielded vs ranged: dodge+block", ChannelRanged, shielded, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock}},
 		// THE new gate: no shield means no block, on ANY channel. Today the
 		// channel path hands this defender a block roll against a bolt.
-		{"bare vs ranged: dodge only", ChannelRanged, bare, []string{characters.DefenseDodge}},
-		{"armed vs ranged: dodge only (parry not in channel table)", ChannelRanged, armed, []string{characters.DefenseDodge}},
-		{"bare vs spell-physical: dodge only", ChannelSpellPhysical, bare, []string{characters.DefenseDodge}},
-		{"shielded vs spell-physical: dodge+block", ChannelSpellPhysical, shielded, []string{characters.DefenseDodge, characters.DefenseBlock}},
-		{"mental: quell regardless of equipment", ChannelSpellMental, bare, []string{characters.DefenseQuell}},
-		{"social: defy regardless of equipment", ChannelSocial, bare, []string{characters.DefenseDefy}},
+		{"bare vs ranged: dodge only", ChannelRanged, bare, []combatvocab.Defence{combatvocab.DefenceDodge}},
+		{"armed vs ranged: dodge only (parry not in channel table)", ChannelRanged, armed, []combatvocab.Defence{combatvocab.DefenceDodge}},
+		{"bare vs spell-physical: dodge only", ChannelSpellPhysical, bare, []combatvocab.Defence{combatvocab.DefenceDodge}},
+		{"shielded vs spell-physical: dodge+block", ChannelSpellPhysical, shielded, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock}},
+		{"mental: quell regardless of equipment", ChannelSpellMental, bare, []combatvocab.Defence{combatvocab.DefenceQuell}},
+		{"social: defy regardless of equipment", ChannelSocial, bare, []combatvocab.Defence{combatvocab.DefenceDefy}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -119,11 +120,11 @@ func TestDefenceEntriesFor_ShieldWithoutWeaponBlocks(t *testing.T) {
 		PhysicalMitigation: 5,
 	}}
 	got := DefenceEntriesFor(ChannelMelee, c, DefenceEntryOpts{})
-	assertSameSet(t, got, []string{characters.DefenseDodge, characters.DefenseBlock})
+	assertSameSet(t, got, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock})
 
 	// Ranged keeps its own channel table; a shield still blocks arrows.
 	got = DefenceEntriesFor(ChannelRanged, c, DefenceEntryOpts{})
-	assertSameSet(t, got, []string{characters.DefenseDodge, characters.DefenseBlock})
+	assertSameSet(t, got, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock})
 }
 
 // Review subtlety 2: HasShield() includes species NaturalBash — an armed
@@ -137,10 +138,10 @@ func TestDefenceEntriesFor_NaturalBashSpeciesBlocksWithoutShieldItem(t *testing.
 
 	c := newArmedDefenceTestCharacter(t) // weapon, empty offhand, no shield item
 	got := DefenceEntriesFor(ChannelMelee, c, DefenceEntryOpts{})
-	assertSameSet(t, got, []string{characters.DefenseDodge, characters.DefenseParry, characters.DefenseBlock})
+	assertSameSet(t, got, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock})
 
 	got = DefenceEntriesFor(ChannelRanged, c, DefenceEntryOpts{})
-	assertSameSet(t, got, []string{characters.DefenseDodge, characters.DefenseBlock})
+	assertSameSet(t, got, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock})
 }
 
 // A wielded Fist/Claws weapon is "armed" by ItemType but fights unarmed-style
@@ -162,8 +163,8 @@ func TestDefenceEntriesFor_UnarmedStyleWeaponNeverParriesButStillBlocks(t *testi
 		PhysicalMitigation: 5,
 	}}
 	got := DefenceEntriesFor(ChannelMelee, c, DefenceEntryOpts{})
-	assertSameSet(t, got, []string{characters.DefenseDodge, characters.DefenseBlock})
-	if countOf(got, characters.DefenseParry) != 0 {
+	assertSameSet(t, got, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock})
+	if countOf(got, combatvocab.DefenceParry) != 0 {
 		t.Errorf("unarmed-style must never parry, got %v", got)
 	}
 }
@@ -172,8 +173,8 @@ func TestDefenceEntriesFor_UnarmedStyleWeaponNeverParriesButStillBlocks(t *testi
 func TestDefenceEntriesFor_DualWieldDoubleParry(t *testing.T) {
 	dw := newDualWieldDefenceTestCharacter(t)
 	got := DefenceEntriesFor(ChannelMelee, dw, DefenceEntryOpts{})
-	if countOf(got, characters.DefenseParry) != 2 {
-		t.Errorf("dual-wield parry entries = %d, want 2 (set: %v)", countOf(got, characters.DefenseParry), got)
+	if countOf(got, combatvocab.DefenceParry) != 2 {
+		t.Errorf("dual-wield parry entries = %d, want 2 (set: %v)", countOf(got, combatvocab.DefenceParry), got)
 	}
 	// And no block — but note WHY, because the reason changed on 2026-08-30.
 	// It is no longer "the dual-wield branch returns before the shield check";
@@ -181,8 +182,8 @@ func TestDefenceEntriesFor_DualWieldDoubleParry(t *testing.T) {
 	// per-slot gate finds nothing to block with. Give the same character a
 	// shield on a third arm and it WOULD block, which is the whole point of the
 	// change.
-	if countOf(got, characters.DefenseBlock) != 0 {
-		t.Errorf("dual-wield block entries = %d, want 0 (set: %v)", countOf(got, characters.DefenseBlock), got)
+	if countOf(got, combatvocab.DefenceBlock) != 0 {
+		t.Errorf("dual-wield block entries = %d, want 0 (set: %v)", countOf(got, combatvocab.DefenceBlock), got)
 	}
 }
 
@@ -191,7 +192,7 @@ func TestDefenceEntriesFor_DualWieldDoubleParry(t *testing.T) {
 func TestDefenceEntriesFor_ThirdPartyGrappleFilter(t *testing.T) {
 	shielded := newShieldedDefenceTestCharacter(t)
 	got := DefenceEntriesFor(ChannelMelee, shielded, DefenceEntryOpts{ThirdPartyVsGrappler: true})
-	assertSameSet(t, got, []string{characters.DefenseBlock})
+	assertSameSet(t, got, []combatvocab.Defence{combatvocab.DefenceBlock})
 
 	bare := newDefenceTestCharacter(t)
 	got = DefenceEntriesFor(ChannelMelee, bare, DefenceEntryOpts{ThirdPartyVsGrappler: true})
@@ -217,7 +218,7 @@ func TestChannelDefence_ProneAppliesDefencePenalties(t *testing.T) {
 			for _, e := range entries {
 				*scores = append(*scores, e.Score)
 			}
-			return deterministicDefenceResult(t, atkScore, entries, entries[0].Name, atkScore, atkScore+10)
+			return deterministicDefenceResult(t, atkScore, entries, combatvocab.Defence(entries[0].Name), atkScore, atkScore+10)
 		}
 	}
 

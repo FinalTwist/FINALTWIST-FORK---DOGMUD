@@ -722,23 +722,11 @@ func (c *Character) GetSetting(settingName string) string {
 // ===================================================================
 // Stage 7.1: Segmented Defense Helper Methods
 // ===================================================================
-
-const (
-	DefenseNone  string = ""
-	DefenseDodge string = "dodge"
-	DefenseParry string = "parry"
-	DefenseBlock string = "block"
-
-	// U6: the two non-physical defences. Both were called "resist" in earlier
-	// drafts, which collided; quell answers a mental spell (you put the working
-	// down), defy answers a social attack (you refuse to rise to it).
-	//
-	// Both cost CONVICTION, not stamina. Charge them through the
-	// DefensePool / GetDefenseCostFloat pair, which reads the pool and the
-	// amount off the same defence name and so cannot charge the wrong one.
-	DefenseQuell string = "quell"
-	DefenseDefy  string = "defy"
-)
+//
+// The five defence names used to be declared here as untyped string
+// constants (DefenseNone/Dodge/Parry/Block/Quell/Defy). M4b-2 deleted them:
+// combatvocab.Defence is now the one declaration, and every function below
+// takes combatvocab.Defence instead of string.
 
 // StatMod aggregates stat-mod contributions from gear, conditions,
 // and pets. Equipment contributions are scaled by the gear-

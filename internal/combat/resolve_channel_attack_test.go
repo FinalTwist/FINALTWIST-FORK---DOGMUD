@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -151,7 +152,7 @@ func TestResolveChannelAttack_ProgressionNamesTheCallersSkill(t *testing.T) {
 			}
 			// 72 / (24*sqrt(2)) = 2.1213: a defensive crit, which pays the
 			// defender and has the ATTACKER observe it.
-			return deterministicDefenceResult(t, atkScore, entries, characters.DefenseDefy, 160, 232)
+			return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceDefy, 160, 232)
 		})
 
 	if !out.Defended || !out.DefensiveCrit {

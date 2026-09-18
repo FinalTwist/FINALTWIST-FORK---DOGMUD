@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -37,19 +38,19 @@ func TestGetDefenseScoreFor_OmitsOnlyTheGoverningSkillAddend(t *testing.T) {
 	}}
 
 	tests := []struct {
-		defence string
+		defence combatvocab.Defence
 		without float64
 		with    float64
 	}{
-		{DefenseDodge, 120, 137.5},
-		{DefenseParry, 129, 156.5},
-		{DefenseBlock, 117, 144.5},
-		{DefenseQuell, 150, 182.5},
-		{DefenseDefy, 150, 192.5},
+		{combatvocab.DefenceDodge, 120, 137.5},
+		{combatvocab.DefenceParry, 129, 156.5},
+		{combatvocab.DefenceBlock, 117, 144.5},
+		{combatvocab.DefenceQuell, 150, 182.5},
+		{combatvocab.DefenceDefy, 150, 192.5},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.defence, func(t *testing.T) {
+		t.Run(string(tc.defence), func(t *testing.T) {
 			if got := c.GetDefenseScoreFor(tc.defence, false); math.Abs(got-tc.without) > 1e-9 {
 				t.Fatalf("GetDefenseScoreFor(%q, false) = %.4f, want %.4f", tc.defence, got, tc.without)
 			}

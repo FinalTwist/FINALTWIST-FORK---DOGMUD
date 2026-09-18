@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/items"
 )
 
@@ -45,7 +46,7 @@ func TestRunBestOfAllDefense_ExhaustedDefenderStillEntersTheContest(t *testing.T
 	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
 
 	best := runBestOfAllDefense(result, attacker, defender,
-		[]string{characters.DefenseDodge}, 100.0, false, ctx)
+		[]combatvocab.Defence{combatvocab.DefenceDodge}, 100.0, false, ctx)
 
 	if best.defenseType == "" {
 		t.Fatal("an exhausted defender was dropped from the candidate set; " +
@@ -83,7 +84,7 @@ func TestRunBestOfAllDefense_PartiallyChargesAnExhaustedWinner(t *testing.T) {
 	characters.ApplyMobOverrides(defender, 0, 0, 40.0)
 	defender.Items = append(defender.Items, items.Item{ItemId: heavyItemId})
 
-	cost := defender.GetDefenseCostFloat(characters.DefenseBlock)
+	cost := defender.GetDefenseCostFloat(combatvocab.DefenceBlock)
 	if cost <= 1 {
 		t.Fatalf("block costs %.3f; this test needs a cost above the 1 stamina on hand", cost)
 	}
@@ -92,7 +93,7 @@ func TestRunBestOfAllDefense_PartiallyChargesAnExhaustedWinner(t *testing.T) {
 	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
 
 	best := runBestOfAllDefense(result, attacker, defender,
-		[]string{characters.DefenseBlock}, 100.0, false, ctx)
+		[]combatvocab.Defence{combatvocab.DefenceBlock}, 100.0, false, ctx)
 
 	if best.defenseType == "" {
 		t.Fatal("exhausted defender was dropped from the candidate set")

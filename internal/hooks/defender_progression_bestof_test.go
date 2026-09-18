@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 )
@@ -64,8 +65,8 @@ func requireCertainDefenderAward(t *testing.T, c *characters.Character) {
 
 // swingDefence is a one-line constructor so the fixtures below read as the
 // round they describe.
-func swingDefence(defence string, roll float64, won bool) combat.SwingDefence {
-	return combat.SwingDefence{Defence: combat.DefenseType(defence), Roll: roll, Won: won}
+func swingDefence(defence combatvocab.Defence, roll float64, won bool) combat.SwingDefence {
+	return combat.SwingDefence{Defence: defence, Roll: roll, Won: won}
 }
 
 // A round in which NO defence landed still trains the defence that rolled best.
@@ -85,8 +86,8 @@ func TestProcessDefenderProgression_ALostRoundStillFiresTheBestDefenceAtTheFract
 	result := combat.AttackResult{
 		SwingEvents: []combat.SwingEvent{{Hit: true}, {Hit: true}},
 		SwingDefences: []combat.SwingDefence{
-			swingDefence(characters.DefenseParry, 118, false),
-			swingDefence(characters.DefenseParry, 94, false),
+			swingDefence(combatvocab.DefenceParry, 118, false),
+			swingDefence(combatvocab.DefenceParry, 94, false),
 		},
 	}
 
@@ -118,7 +119,7 @@ func TestProcessDefenderProgression_ALostRoundReadsTheKnob_FullFractionAdvances(
 	requireCertainDefenderAward(t, c)
 
 	result := combat.AttackResult{
-		SwingDefences: []combat.SwingDefence{swingDefence(characters.DefenseParry, 118, false)},
+		SwingDefences: []combat.SwingDefence{swingDefence(combatvocab.DefenceParry, 118, false)},
 	}
 
 	before := c.Skills[defenderAwardSkill]
@@ -147,14 +148,14 @@ func TestProcessDefenderProgression_ThreeDefenceTypesAwardOnce(t *testing.T) {
 
 	result := combat.AttackResult{
 		SwingEvents: []combat.SwingEvent{
-			{Hit: true, DefenseUsed: combat.DefenseDodge},
-			{Hit: true, DefenseUsed: combat.DefenseParry},
-			{Hit: true, DefenseUsed: combat.DefenseBlock},
+			{Hit: true, DefenseUsed: combatvocab.DefenceDodge},
+			{Hit: true, DefenseUsed: combatvocab.DefenceParry},
+			{Hit: true, DefenseUsed: combatvocab.DefenceBlock},
 		},
 		SwingDefences: []combat.SwingDefence{
-			swingDefence(characters.DefenseDodge, 90, true),
-			swingDefence(characters.DefenseParry, 121, true),
-			swingDefence(characters.DefenseBlock, 60, true),
+			swingDefence(combatvocab.DefenceDodge, 90, true),
+			swingDefence(combatvocab.DefenceParry, 121, true),
+			swingDefence(combatvocab.DefenceBlock, 60, true),
 		},
 	}
 
@@ -188,11 +189,11 @@ func TestProcessDefenderProgression_TheHighestRollWinsTheRoundEvenWhenItLost(t *
 	result := combat.AttackResult{
 		SwingEvents: []combat.SwingEvent{
 			{Hit: true},
-			{Hit: true, DefenseUsed: combat.DefenseParry},
+			{Hit: true, DefenseUsed: combatvocab.DefenceParry},
 		},
 		SwingDefences: []combat.SwingDefence{
-			swingDefence(characters.DefenseDodge, 200, false),
-			swingDefence(characters.DefenseParry, 50, true),
+			swingDefence(combatvocab.DefenceDodge, 200, false),
+			swingDefence(combatvocab.DefenceParry, 50, true),
 		},
 	}
 
@@ -223,9 +224,9 @@ func TestProcessDefenderProgression_AWonDefenceStillAwardsFullWeight(t *testing.
 	requireCertainDefenderAward(t, c)
 
 	result := combat.AttackResult{
-		SwingEvents: []combat.SwingEvent{{Hit: true, DefenseUsed: combat.DefenseParry}},
+		SwingEvents: []combat.SwingEvent{{Hit: true, DefenseUsed: combatvocab.DefenceParry}},
 		SwingDefences: []combat.SwingDefence{
-			swingDefence(characters.DefenseParry, 118, true),
+			swingDefence(combatvocab.DefenceParry, 118, true),
 		},
 	}
 

@@ -143,7 +143,7 @@ func TestPlayerTauntRuntimeRoutesCanonicalDefyAcrossRealWrappers(t *testing.T) {
 			return actions.TauntResult{
 				Executed: true, Hit: true,
 				Target:  actions.AggroTarget{Char: defender.Character, Name: defender.Character.Name, UserId: defender.UserId, Found: true},
-				Defence: combat.ChannelDefenceResult{DefenceType: characters.DefenseDefy, Defended: true, DefensiveCrit: true, DamageMultiplier: 0},
+				Defence: combat.ChannelDefenceResult{Defence: combatvocab.DefenceDefy, Defended: true, DefensiveCrit: true, DamageMultiplier: 0},
 			}
 		}
 		t.Cleanup(func() { executeTauntAction = originalAction })
@@ -191,7 +191,7 @@ func TestPlayerTauntRuntimeRoutesCanonicalDefyAcrossRealWrappers(t *testing.T) {
 			return actions.TauntResult{
 				Executed: true, Hit: true,
 				Target:  actions.AggroTarget{Char: &target.Character, Name: target.Character.Name, MobInstanceId: target.InstanceId, Found: true},
-				Defence: combat.ChannelDefenceResult{DefenceType: characters.DefenseDefy, Defended: true, DefensiveCrit: true, DamageMultiplier: 0},
+				Defence: combat.ChannelDefenceResult{Defence: combatvocab.DefenceDefy, Defended: true, DefensiveCrit: true, DamageMultiplier: 0},
 			}
 		}
 		t.Cleanup(func() { executeTauntAction = originalAction })
@@ -258,7 +258,7 @@ func TestPlayerTauntShortDefyIsPrivateAndExactlyOnce(t *testing.T) {
 			Target: actions.AggroTarget{Char: defender.Character, Name: defender.Character.Name,
 				UserId: defender.UserId, Found: true},
 			Defence: combat.ChannelDefenceResult{
-				DefenceType: characters.DefenseDefy, Defended: true, DamageMultiplier: 0.3,
+				Defence: combatvocab.DefenceDefy, Defended: true, DamageMultiplier: 0.3,
 				Cost: characters.CostCommitResult{Status: characters.CostPartiallyPaid, Pool: characters.PoolConviction},
 			},
 		}
@@ -282,11 +282,11 @@ func TestPlayerTauntDefenceShortageSilenceCases(t *testing.T) {
 		out  combat.ChannelDefenceResult
 	}{
 		{name: "attack_win", out: combat.ChannelDefenceResult{
-			DefenceType: characters.DefenseDefy, DamageMultiplier: 1,
+			Defence: combatvocab.DefenceDefy, DamageMultiplier: 1,
 			Cost: characters.CostCommitResult{Status: characters.CostPartiallyPaid, Pool: characters.PoolConviction},
 		}},
 		{name: "affordable_defence", out: combat.ChannelDefenceResult{
-			DefenceType: characters.DefenseDefy, Defended: true, DamageMultiplier: 0.3,
+			Defence: combatvocab.DefenceDefy, Defended: true, DamageMultiplier: 0.3,
 			Cost: characters.CostCommitResult{Status: characters.CostPaid, Pool: characters.PoolConviction},
 		}},
 	} {

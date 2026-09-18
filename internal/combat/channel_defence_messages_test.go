@@ -33,10 +33,10 @@ func TestChannelDefenceMessagesUsesCanonicalOutcomeWithoutRerolling(t *testing.T
 		out  ChannelDefenceResult
 		want string
 	}{
-		{"attack_win_has_no_false_success", ChannelDefenceResult{DefenceType: "quell", Defended: false, NormalizedDefenceMargin: 4, DefensiveCrit: true, DamageMultiplier: 1}, ""},
-		{"partial_narrow_is_weak", ChannelDefenceResult{DefenceType: "quell", Defended: true, NormalizedDefenceMargin: 0.49, DamageMultiplier: 0.4}, "weak"},
-		{"partial_large_margin_is_normal_not_heavy", ChannelDefenceResult{DefenceType: "quell", Defended: true, NormalizedDefenceMargin: 9, DamageMultiplier: 0.1}, "normal"},
-		{"defensive_crit_is_heavy", ChannelDefenceResult{DefenceType: "quell", Defended: true, NormalizedDefenceMargin: 0.01, DefensiveCrit: true, DamageMultiplier: 0}, "heavy"},
+		{"attack_win_has_no_false_success", ChannelDefenceResult{Defence: "quell", Defended: false, NormalizedDefenceMargin: 4, DefensiveCrit: true, DamageMultiplier: 1}, ""},
+		{"partial_narrow_is_weak", ChannelDefenceResult{Defence: "quell", Defended: true, NormalizedDefenceMargin: 0.49, DamageMultiplier: 0.4}, "weak"},
+		{"partial_large_margin_is_normal_not_heavy", ChannelDefenceResult{Defence: "quell", Defended: true, NormalizedDefenceMargin: 9, DamageMultiplier: 0.1}, "normal"},
+		{"defensive_crit_is_heavy", ChannelDefenceResult{Defence: "quell", Defended: true, NormalizedDefenceMargin: 0.01, DefensiveCrit: true, DamageMultiplier: 0}, "heavy"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

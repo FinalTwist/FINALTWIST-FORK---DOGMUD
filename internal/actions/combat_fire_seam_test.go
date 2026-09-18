@@ -25,6 +25,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -133,14 +134,14 @@ func TestFireSeam_ShieldedDefenderGetsBlockEntry(t *testing.T) {
 		"ranged attack score must be (Perception + ranged rank x SkillWeight) x situational, with no defender term")
 
 	require.Len(t, entries, 2, "shielded defender vs a shot: dodge + block, no parry")
-	require.Equal(t, characters.DefenseDodge, entries[0].Name)
-	require.Equal(t, characters.DefenseBlock, entries[1].Name)
+	require.Equal(t, string(combatvocab.DefenceDodge), entries[0].Name)
+	require.Equal(t, string(combatvocab.DefenceBlock), entries[1].Name)
 
 	// Scores come from the canonical per-defence formulas, exactly. The block
 	// entry equalling GetDefenseScoreFor(block) IS the no-flat-15 proof for
 	// this path: any surviving addend would break the equality.
-	wantDodge := defChar.GetDefenseScoreFor(characters.DefenseDodge, true)
-	wantBlock := defChar.GetDefenseScoreFor(characters.DefenseBlock, true)
+	wantDodge := defChar.GetDefenseScoreFor(combatvocab.DefenceDodge, true)
+	wantBlock := defChar.GetDefenseScoreFor(combatvocab.DefenceBlock, true)
 	require.InDelta(t, wantDodge, entries[0].Score, 1e-9)
 	require.InDelta(t, wantBlock, entries[1].Score, 1e-9,
 		"block must be scored by GetDefenseScoreFor — (Str+Dex)/2 + skill + BlockRating — not by an addend")
@@ -167,8 +168,8 @@ func TestFireSeam_ShieldlessDefenderDodgeOnly(t *testing.T) {
 	_, _, _, entries := fireSeamContest(t, tauntDeterministicRunner(t, 0.5, 0.5, -0.5))
 
 	require.Len(t, entries, 1, "shieldless defender vs a shot: dodge alone")
-	require.Equal(t, characters.DefenseDodge, entries[0].Name)
-	require.InDelta(t, defChar.GetDefenseScoreFor(characters.DefenseDodge, true),
+	require.Equal(t, string(combatvocab.DefenceDodge), entries[0].Name)
+	require.InDelta(t, defChar.GetDefenseScoreFor(combatvocab.DefenceDodge, true),
 		entries[0].Score, 1e-9,
 		"dodge must be scored identically shielded or not — the shield adds an ENTRY, not an addend")
 }
@@ -207,7 +208,7 @@ func TestFireSeam_DefendedShotUsesContestNotAddend(t *testing.T) {
 
 	require.False(t, res.MoveResult.Hit)
 	require.True(t, res.MoveResult.Defence.Defended)
-	require.Equal(t, characters.DefenseDodge, res.MoveResult.Defence.DefenceType,
+	require.Equal(t, combatvocab.DefenceDodge, res.MoveResult.Defence.Defence,
 		"the defended outcome names the WINNING defence from the contest")
 	require.Greater(t, res.MoveResult.Defence.DamageMultiplier, 0.0)
 	require.Less(t, res.MoveResult.Defence.DamageMultiplier, 1.0,

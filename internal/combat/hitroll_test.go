@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
@@ -215,7 +216,7 @@ func TestCalcSwingCount_MinimumOne(t *testing.T) {
 // ─── resolveDefenseOutcome — hitroll priority ───────────────────────────────
 
 // mockBestDefense creates a bestDefenseResult with controlled z-scores.
-func mockBestDefense(atkZScore, defZScore, atkValue, defValue float64, defType string) bestDefenseResult {
+func mockBestDefense(atkZScore, defZScore, atkValue, defValue float64, defType combatvocab.Defence) bestDefenseResult {
 	return bestDefenseResult{
 		margin:      defValue - atkValue,
 		defenseType: defType,
@@ -230,7 +231,7 @@ func TestResolveDefenseOutcome_AttackFumbleAlwaysMiss(t *testing.T) {
 	tgt := &characters.Character{Name: "Defender"}
 
 	// Attack fumble (z <= -2.0), normal defense
-	best := mockBestDefense(-2.5, 0.5, 50, 60, characters.DefenseDodge)
+	best := mockBestDefense(-2.5, 0.5, 50, 60, combatvocab.DefenceDodge)
 	res := resolveDefenseOutcome(result, best, src, tgt, 2.0, false, false, false)
 
 	assert.False(t, res.hit, "attack fumble should always miss")
@@ -245,7 +246,7 @@ func TestResolveDefenseOutcome_DefenseFumbleAlwaysHit(t *testing.T) {
 
 	// Normal attack, defense fumble (z <= -2.0)
 	// Defense margin > 0 (defense roll value higher) but defense fumbled
-	best := mockBestDefense(0.5, -2.5, 50, 80, characters.DefenseDodge)
+	best := mockBestDefense(0.5, -2.5, 50, 80, combatvocab.DefenceDodge)
 	res := resolveDefenseOutcome(result, best, src, tgt, 2.0, false, false, false)
 
 	assert.True(t, res.hit, "defense fumble should always hit")
@@ -260,7 +261,7 @@ func TestResolveDefenseOutcome_DoubleFumble(t *testing.T) {
 	setCombatPositionParallel(tgt, position.Standing)
 
 	// Both fumble
-	best := mockBestDefense(-2.5, -2.5, 50, 50, characters.DefenseDodge)
+	best := mockBestDefense(-2.5, -2.5, 50, 50, combatvocab.DefenceDodge)
 	res := resolveDefenseOutcome(result, best, src, tgt, 2.0, false, false, false)
 
 	assert.False(t, res.hit, "double fumble should be a miss")
@@ -285,7 +286,7 @@ func TestResolveDefenseOutcome_AttackCritAlwaysHits(t *testing.T) {
 	// and falling back to the legacy self-relative z-score. Crit is now gated on
 	// the winning side, so the values are flipped to 90 vs 80 and the test says
 	// what it always meant: an attack crit beats an ordinary defence.
-	best := mockBestDefense(2.5, 1.0, 90, 80, characters.DefenseParry)
+	best := mockBestDefense(2.5, 1.0, 90, 80, combatvocab.DefenceParry)
 	res := resolveDefenseOutcome(result, best, src, tgt, 2.0, false, false, false)
 
 	assert.True(t, res.hit, "attack crit should always hit vs normal defense")
@@ -303,7 +304,7 @@ func TestResolveDefenseOutcome_DefenseCritAlwaysAvoids(t *testing.T) {
 	// margin (100 vs 80) and the DEFENCE the crit, which defenseCrit's derivation
 	// from the margin makes impossible in production. Flipped to 80 vs 100 so the
 	// critting side is the side that won.
-	best := mockBestDefense(1.0, 2.5, 80, 100, characters.DefenseParry)
+	best := mockBestDefense(1.0, 2.5, 80, 100, combatvocab.DefenceParry)
 	res := resolveDefenseOutcome(result, best, src, tgt, 2.0, false, false, false)
 
 	assert.False(t, res.hit, "defense crit should always avoid vs normal attack")
@@ -323,14 +324,14 @@ func TestResolveDefenseOutcome_CritVsCrit_HigherValueWins(t *testing.T) {
 	tgt := &characters.Character{Name: "Defender"}
 
 	// Both crit, attack has higher raw value
-	best := mockBestDefense(2.5, 2.5, 120, 100, characters.DefenseDodge)
+	best := mockBestDefense(2.5, 2.5, 120, 100, combatvocab.DefenceDodge)
 	res := resolveDefenseOutcome(result, best, src, tgt, 2.0, false, false, false)
 	assert.True(t, res.hit, "crit vs crit: higher value (attack) should win")
 	assert.True(t, res.crit, "should be a crit hit")
 
 	// Both crit, defense has higher raw value
 	result2 := &AttackResult{}
-	best2 := mockBestDefense(2.5, 2.5, 100, 120, characters.DefenseDodge)
+	best2 := mockBestDefense(2.5, 2.5, 100, 120, combatvocab.DefenceDodge)
 	res2 := resolveDefenseOutcome(result2, best2, src, tgt, 2.0, false, false, false)
 	assert.False(t, res2.hit, "crit vs crit: higher value (defense) should win")
 	assert.True(t, res2.defenseCrit, "should be a defense crit")
@@ -342,7 +343,7 @@ func TestResolveDefenseOutcome_NormalResolution(t *testing.T) {
 	tgt := &characters.Character{Name: "Defender"}
 
 	// Normal attack wins (margin < 0 means attack > defense)
-	best := mockBestDefense(1.0, 0.5, 100, 80, characters.DefenseDodge)
+	best := mockBestDefense(1.0, 0.5, 100, 80, combatvocab.DefenceDodge)
 	res := resolveDefenseOutcome(result, best, src, tgt, 2.0, false, false, false)
 
 	assert.True(t, res.hit, "normal attack winning on margin should hit")
@@ -356,7 +357,7 @@ func TestResolveDefenseOutcome_DefenseFumbleDoesNotAutoCrit(t *testing.T) {
 	tgt := &characters.Character{Name: "Defender"}
 
 	// Defense fumble, attack roll is normal (not a crit)
-	best := mockBestDefense(0.5, -2.5, 60, 80, characters.DefenseDodge)
+	best := mockBestDefense(0.5, -2.5, 60, 80, combatvocab.DefenceDodge)
 	res := resolveDefenseOutcome(result, best, src, tgt, 2.0, false, false, false)
 
 	assert.True(t, res.hit, "defense fumble should guarantee hit")
@@ -369,7 +370,7 @@ func TestResolveDefenseOutcome_DefenseFumbleWithAttackCrit(t *testing.T) {
 	tgt := &characters.Character{Name: "Defender"}
 
 	// Defense fumble AND attack crit
-	best := mockBestDefense(2.5, -2.5, 60, 80, characters.DefenseDodge)
+	best := mockBestDefense(2.5, -2.5, 60, 80, combatvocab.DefenceDodge)
 	res := resolveDefenseOutcome(result, best, src, tgt, 2.0, false, false, false)
 
 	assert.True(t, res.hit, "should hit")
@@ -392,7 +393,7 @@ func TestForceCrit_BypassesZScoreCheck(t *testing.T) {
 
 	// Without forceCrit: normal roll, should NOT be a crit.
 	result1 := &AttackResult{}
-	best1 := mockBestDefense(subThresholdZ, -3.0, 80, 50, characters.DefenseDodge)
+	best1 := mockBestDefense(subThresholdZ, -3.0, 80, 50, combatvocab.DefenceDodge)
 	res1 := resolveDefenseOutcome(result1, best1, src, tgt, critThreshold, false, false, false)
 
 	assert.True(t, res1.hit, "defense fumble should guarantee a hit")
@@ -400,7 +401,7 @@ func TestForceCrit_BypassesZScoreCheck(t *testing.T) {
 
 	// With forceCrit: same sub-threshold roll, should be a crit.
 	result2 := &AttackResult{}
-	best2 := mockBestDefense(subThresholdZ, -3.0, 80, 50, characters.DefenseDodge)
+	best2 := mockBestDefense(subThresholdZ, -3.0, 80, 50, combatvocab.DefenceDodge)
 	res2 := resolveDefenseOutcome(result2, best2, src, tgt, critThreshold, false, true, false)
 
 	assert.True(t, res2.hit, "forceCrit should still hit")
@@ -420,7 +421,7 @@ func TestForceCrit_BypassesZScoreCheck(t *testing.T) {
 	// forceCrit must also suppress the fumble branch: it runs first and returns,
 	// so without this a forced crit on a terrible roll would resolve as a fumble.
 	result3 := &AttackResult{}
-	best3 := mockBestDefense(-3.0, 0.5, 80, 50, characters.DefenseDodge)
+	best3 := mockBestDefense(-3.0, 0.5, 80, 50, combatvocab.DefenceDodge)
 	res3 := resolveDefenseOutcome(result3, best3, src, tgt, critThreshold, false, true, false)
 	assert.True(t, res3.crit, "forceCrit must win over a fumble-range attack roll")
 	assert.False(t, res3.fumble, "forceCrit must suppress the fumble branch")
@@ -759,15 +760,15 @@ func captureDefenseScore(t *testing.T, conditionFn func(*characters.Character)) 
 	found := false
 	runner := func(atkScore float64, entries []contest.Entry) contest.Result {
 		for _, e := range entries {
-			if e.Name == characters.DefenseDodge {
+			if e.Name == string(combatvocab.DefenceDodge) {
 				captured = e.Score
 				found = true
 			}
 		}
-		return deterministicDefenceResult(t, atkScore, entries, characters.DefenseDodge, 0, entries[0].Score)
+		return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceDodge, 0, entries[0].Score)
 	}
 	runBestOfAllDefenseWithRunner(result, attacker, defender,
-		[]string{characters.DefenseDodge}, 100, false,
+		[]combatvocab.Defence{combatvocab.DefenceDodge}, 100, false,
 		combatContext{sourceCanSee: true, targetCanSee: true}, runner)
 	require.True(t, found, "fixture guard: the runner never saw a dodge entry")
 	return captured

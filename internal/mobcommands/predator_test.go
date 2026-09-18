@@ -528,7 +528,7 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 			events.DrainQueuedMessagesForTest(target.UserId)
 			events.DrainQueuedMessagesForTest(observer.UserId)
 			sendChannelDefenceMessages(combat.ChannelDefenceResult{
-				DefenceType: string(items.DefencePoolFor(combatvocab.DefenceDefy)), Defended: true, NormalizedDefenceMargin: 0.1, DamageMultiplier: 0.4,
+				Defence: combatvocab.DefenceDefy, Defended: true, NormalizedDefenceMargin: 0.1, DamageMultiplier: 0.4,
 			}, mob, target, darkRoom, target.Character.Name, attack)
 
 			targetLines := events.DrainQueuedMessagesForTest(target.UserId)
@@ -584,7 +584,7 @@ func TestMobTauntAndHowlRuntimeHideIndexedActorAndExcludeDefender(t *testing.T) 
 				return actions.TauntResult{
 					Executed: true, Hit: true,
 					Target:  actions.AggroTarget{Char: target.Character, Name: target.Character.Name, UserId: target.UserId, Found: true},
-					Defence: combat.ChannelDefenceResult{DefenceType: characters.DefenseDefy, Defended: true, DefensiveCrit: true, DamageMultiplier: 0},
+					Defence: combat.ChannelDefenceResult{Defence: combatvocab.DefenceDefy, Defended: true, DefensiveCrit: true, DamageMultiplier: 0},
 				}
 			}
 			t.Cleanup(func() { executeTauntAction = originalAction })
@@ -634,7 +634,7 @@ func TestMobTauntShortDefyNotifiesOnlyPlayerDefenderOnce(t *testing.T) {
 			Target: actions.AggroTarget{Char: defender.Character, Name: defender.Character.Name,
 				UserId: defender.UserId, Found: true},
 			Defence: combat.ChannelDefenceResult{
-				DefenceType: characters.DefenseDefy, Defended: true, DamageMultiplier: 0.3,
+				Defence: combatvocab.DefenceDefy, Defended: true, DamageMultiplier: 0.3,
 				Cost: characters.CostCommitResult{Status: characters.CostPartiallyPaid, Pool: characters.PoolConviction},
 			},
 		}
@@ -672,7 +672,7 @@ func TestMobTauntRuntimeRoutesMobToMobDefyAndPreservesAggroPull(t *testing.T) {
 		return actions.TauntResult{
 			Executed: true, Hit: true, AggroPulled: true,
 			Target:  actions.AggroTarget{Char: &target.Character, Name: target.Character.Name, MobInstanceId: target.InstanceId, Found: true},
-			Defence: combat.ChannelDefenceResult{DefenceType: characters.DefenseDefy, Defended: true, DefensiveCrit: true, DamageMultiplier: 0},
+			Defence: combat.ChannelDefenceResult{Defence: combatvocab.DefenceDefy, Defended: true, DefensiveCrit: true, DamageMultiplier: 0},
 		}
 	}
 	t.Cleanup(func() { executeTauntAction = originalAction })

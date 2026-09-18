@@ -41,6 +41,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -372,7 +373,7 @@ func TestMeleeParityDamagePerSwing(t *testing.T) {
 				t.Fatalf("defender mitigation = %.4f, want %.2f", got, float64(cell.mitPct)/100.0)
 			}
 			entries := DefenceEntriesFor(ChannelMelee, defender, DefenceEntryOpts{})
-			if len(entries) != 1 || entries[0] != characters.DefenseDodge {
+			if len(entries) != 1 || entries[0] != combatvocab.DefenceDodge {
 				t.Fatalf("bare-handed melee defence set = %v, want [dodge] — the Task 2 equipment gate moved", entries)
 			}
 			atkScore := calcAttackScore(attacker, defender, items.Item{}, 0, ctx)
@@ -380,8 +381,8 @@ func TestMeleeParityDamagePerSwing(t *testing.T) {
 				t.Fatalf("attack score = %.4f, want %.4f (stat %d + rank %d × SkillWeight %.1f)",
 					atkScore, wantScore, parityStatValue, paritySkillRank, skillWeight)
 			}
-			defScore := defender.GetDefenseScoreFor(characters.DefenseDodge, true) *
-				defenceEffectiveness(characters.DefenseDodge)
+			defScore := defender.GetDefenseScoreFor(combatvocab.DefenceDodge, true) *
+				defenceEffectiveness(combatvocab.DefenceDodge)
 			if math.Abs(defScore-wantScore) > 1e-9 {
 				t.Fatalf("dodge score = %.4f, want %.4f", defScore, wantScore)
 			}

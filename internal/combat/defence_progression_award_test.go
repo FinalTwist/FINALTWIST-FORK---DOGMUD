@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 )
@@ -86,7 +87,7 @@ func TestAwardDefenceProgression_AWonParryAwardsSkillAndBothStatsAtFullWeight(t 
 	requireCertainDefenceAward(t, c)
 
 	beforeSkill := c.Skills[defenceAwardSkill]
-	AwardDefenceProgression(c, userId, characters.DefenseParry, true)
+	AwardDefenceProgression(c, userId, combatvocab.DefenceParry, true)
 
 	if got := c.Skills[defenceAwardSkill] - beforeSkill; got != 1 {
 		t.Errorf("%s advanced by %d on a WON parry, want 1; the chance is pinned to certainty", defenceAwardSkill, got)
@@ -136,7 +137,7 @@ func TestAwardDefenceProgression_ALostDefenceScalesByTheFailureFraction_ZeroAwar
 	requireCertainDefenceAward(t, c)
 
 	beforeSkill := c.Skills[defenceAwardSkill]
-	AwardDefenceProgression(c, userId, characters.DefenseParry, false)
+	AwardDefenceProgression(c, userId, combatvocab.DefenceParry, false)
 
 	if got := c.Skills[defenceAwardSkill] - beforeSkill; got != 0 {
 		t.Errorf("%s advanced by %d on a LOST parry at failure fraction 0, want 0; the outcome is not scaling the skill roll", defenceAwardSkill, got)
@@ -176,7 +177,7 @@ func TestAwardDefenceProgression_ALostDefenceReadsTheKnob_FullFractionAdvances(t
 	requireCertainDefenceAward(t, c)
 
 	beforeSkill := c.Skills[defenceAwardSkill]
-	AwardDefenceProgression(c, 0, characters.DefenseParry, false)
+	AwardDefenceProgression(c, 0, combatvocab.DefenceParry, false)
 
 	if got := c.Skills[defenceAwardSkill] - beforeSkill; got != 1 {
 		t.Errorf("%s advanced by %d on a LOST parry at failure fraction 1.0, want 1; the multiplier is hardcoded rather than read from the knob", defenceAwardSkill, got)
@@ -204,7 +205,7 @@ func TestAwardDefenceProgression_ALostDefenceEmitsNoSkillUsed(t *testing.T) {
 	const userId = 93
 	c := characters.New()
 
-	AwardDefenceProgression(c, userId, characters.DefenseParry, false)
+	AwardDefenceProgression(c, userId, combatvocab.DefenceParry, false)
 
 	if got := c.GetSkillUseCount(defenceAwardSkill); got != 1 {
 		t.Fatalf("%s use count = %d, want 1; the award did not fire at all, so the event assertion below would pass vacuously", defenceAwardSkill, got)
@@ -220,7 +221,7 @@ func TestAwardDefenceProgression_OnlyParryAwardsASecondStat(t *testing.T) {
 	pinCertainDefenceProgressionForTest(t, 0.35)
 
 	c := characters.New()
-	AwardDefenceProgression(c, 0, characters.DefenseDodge, true)
+	AwardDefenceProgression(c, 0, combatvocab.DefenceDodge, true)
 
 	if got := c.GetSkillUseCount("unarmed-combat"); got != 1 {
 		t.Errorf("unarmed-combat use count = %d, want 1", got)
@@ -261,6 +262,6 @@ func TestAwardDefenceProgression_UnrecognisedDefenceAwardsNothing(t *testing.T) 
 // with a defender that has already been torn down.
 func TestAwardDefenceProgression_NilCharacterDoesNotPanic(t *testing.T) {
 	pinCertainDefenceProgressionForTest(t, 0.35)
-	AwardDefenceProgression(nil, 5, characters.DefenseParry, true)
-	AwardDefenceProgression(nil, 5, characters.DefenseParry, false)
+	AwardDefenceProgression(nil, 5, combatvocab.DefenceParry, true)
+	AwardDefenceProgression(nil, 5, combatvocab.DefenceParry, false)
 }

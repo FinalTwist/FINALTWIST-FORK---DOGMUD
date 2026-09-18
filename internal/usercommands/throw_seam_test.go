@@ -21,6 +21,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -237,9 +238,9 @@ func TestThrowSeam_AttackSideAndDefenceSets(t *testing.T) {
 	bare, shielded := 0, 0
 	for _, names := range entrySets {
 		switch {
-		case len(names) == 1 && names[0] == characters.DefenseDodge:
+		case len(names) == 1 && names[0] == string(combatvocab.DefenceDodge):
 			bare++
-		case len(names) == 2 && names[0] == characters.DefenseDodge && names[1] == characters.DefenseBlock:
+		case len(names) == 2 && names[0] == string(combatvocab.DefenceDodge) && names[1] == string(combatvocab.DefenceBlock):
 			shielded++
 		default:
 			t.Fatalf("unexpected ranged defence set %v", names)

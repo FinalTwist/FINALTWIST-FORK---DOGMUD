@@ -230,7 +230,7 @@ func runAvoidanceContest(t *testing.T, n int, channel AttackChannel, attacker, d
 		// progression calls inside look up nothing and must not panic.
 		result := ResolveChannelAttack(channel, side, attacker, defender)
 		mult := result.DamageMultiplier
-		if result.DefenceType == "" {
+		if result.Defence == "" {
 			t.Errorf("iteration %d returned no selected defence for a contested channel", i)
 		}
 		if mult < 1.0 && !result.Defended {

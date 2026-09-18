@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -107,8 +108,8 @@ func TestResolveChannelAttack_ALostDefenceAwardsAtTheFractionExactlyOnce(t *test
 	beforeStat := defender.GetStatTraining(channelDefenceStat)
 
 	out := ResolveChannelAttack(ChannelSocial, AttackSide{Stat: 100}, attacker, defender)
-	if out.DefenceType != characters.DefenseDefy {
-		t.Fatalf("precondition: the contest resolved on %q, want %q", out.DefenceType, characters.DefenseDefy)
+	if out.Defence != combatvocab.DefenceDefy {
+		t.Fatalf("precondition: the contest resolved on %q, want %q", out.Defence, combatvocab.DefenceDefy)
 	}
 
 	if got := defender.GetSkillLevel(skills.SkillTag(channelDefenceSkill)) - beforeSkill; got != 0 {

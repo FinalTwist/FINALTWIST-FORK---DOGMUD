@@ -81,7 +81,7 @@ func TestSpellDefence_DefenderInTheDarkIsToldWithTheAttackerHidden(t *testing.T)
 	drainPlain(1)
 	drainPlain(2)
 
-	out := combat.ChannelDefenceResult{Defended: true, DefenceType: "dodge"}
+	out := combat.ChannelDefenceResult{Defended: true, Defence: "dodge"}
 	sendSpellChannelDefenceMessages(rooms.LoadRoom(1), messaging.CategorySpellVital, out,
 		"Aliceia", "Bobrick", "Hex", users.GetByUserId(1), users.GetByUserId(2))
 

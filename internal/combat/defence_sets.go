@@ -1,6 +1,9 @@
 package combat
 
-import "github.com/GoMudEngine/GoMud/internal/characters"
+import (
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
+)
 
 // AttackChannel names an attack type. The applicable defence set is a property
 // of the channel, which is the whole reason this is data rather than a filter
@@ -48,16 +51,16 @@ const (
 // candidates in the same slice included. Not a compile error, not a panic, and
 // invisible in combat text. Unreachable today only because every shipped row
 // here has a mapping.
-func DefenceSetFor(channel AttackChannel) []string {
+func DefenceSetFor(channel AttackChannel) []combatvocab.Defence {
 	switch channel {
 	case ChannelMelee:
-		return []string{characters.DefenseDodge, characters.DefenseParry, characters.DefenseBlock}
+		return []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock}
 	case ChannelRanged, ChannelSpellPhysical:
-		return []string{characters.DefenseDodge, characters.DefenseBlock}
+		return []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock}
 	case ChannelSpellMental:
-		return []string{characters.DefenseQuell}
+		return []combatvocab.Defence{combatvocab.DefenceQuell}
 	case ChannelSocial:
-		return []string{characters.DefenseDefy}
+		return []combatvocab.Defence{combatvocab.DefenceDefy}
 	default:
 		return nil
 	}
@@ -103,15 +106,15 @@ type DefenceEntryOpts struct {
 // blocks, where the ladder gave them dodge alone. Two EMPTY hands are unchanged
 // (no weapon, no shield, so dodge only), which is the build
 // internal/skills/skills.go solves WeaponCombat 1.34 against.
-func equipmentGatedMeleeDefences(c *characters.Character) []string {
-	defenses := []string{characters.DefenseDodge}
+func equipmentGatedMeleeDefences(c *characters.Character) []combatvocab.Defence {
+	defenses := []combatvocab.Defence{combatvocab.DefenceDodge}
 
 	for i := 0; i < c.ParryCapableArmCount(); i++ {
-		defenses = append(defenses, characters.DefenseParry)
+		defenses = append(defenses, combatvocab.DefenceParry)
 	}
 
 	if c.HasShield() {
-		defenses = append(defenses, characters.DefenseBlock)
+		defenses = append(defenses, combatvocab.DefenceBlock)
 	}
 
 	return defenses
@@ -121,10 +124,10 @@ func equipmentGatedMeleeDefences(c *characters.Character) []string {
 // grapple rule: an entangled defender attacked by a bystander keeps only
 // block. filterDefensesForThirdParty (melee) layers the vulnerability
 // messaging on top of this same rule.
-func thirdPartyGrappleDefences(defSeq []string) []string {
-	filtered := []string{}
+func thirdPartyGrappleDefences(defSeq []combatvocab.Defence) []combatvocab.Defence {
+	filtered := []combatvocab.Defence{}
 	for _, def := range defSeq {
-		if def == characters.DefenseBlock {
+		if def == combatvocab.DefenceBlock {
 			filtered = append(filtered, def)
 		}
 	}
@@ -148,17 +151,17 @@ func thirdPartyGrappleDefences(defSeq []string) []string {
 // keeps GetDefenseScoreFor x defenceEffectiveness, and gains the prone
 // penalties there (before U6b a prone defender dodged a bolt at full score
 // while dodging a sword at penalty).
-func DefenceEntriesFor(channel AttackChannel, defender *characters.Character, opts DefenceEntryOpts) []string {
+func DefenceEntriesFor(channel AttackChannel, defender *characters.Character, opts DefenceEntryOpts) []combatvocab.Defence {
 	if defender == nil {
 		return nil
 	}
 
 	gated := equipmentGatedMeleeDefences(defender)
 
-	entries := []string{}
+	entries := []combatvocab.Defence{}
 	for _, name := range DefenceSetFor(channel) {
 		switch name {
-		case characters.DefenseDodge, characters.DefenseParry, characters.DefenseBlock:
+		case combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock:
 			// Physical defences: keep the gated multiplicity (dual-wield
 			// contributes two parry entries).
 			for i := 0; i < countDefenceName(gated, name); i++ {
@@ -177,7 +180,7 @@ func DefenceEntriesFor(channel AttackChannel, defender *characters.Character, op
 	return entries
 }
 
-func countDefenceName(set []string, name string) int {
+func countDefenceName(set []combatvocab.Defence, name combatvocab.Defence) int {
 	n := 0
 	for _, s := range set {
 		if s == name {

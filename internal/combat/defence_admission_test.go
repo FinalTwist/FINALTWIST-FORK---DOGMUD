@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -75,12 +76,12 @@ func defenceAdmissionCharacters() (*characters.Character, *characters.Character)
 	return attacker, defender
 }
 
-func deterministicDefenceResult(t *testing.T, atkScore float64, entries []contest.Entry, winner string, attackValue, defenseValue float64) contest.Result {
+func deterministicDefenceResult(t *testing.T, atkScore float64, entries []contest.Entry, winner combatvocab.Defence, attackValue, defenseValue float64) contest.Result {
 	t.Helper()
 	winningScore := 0.0
 	winnerCount := 0
 	for _, entry := range entries {
-		if entry.Name == winner {
+		if entry.Name == string(winner) {
 			winningScore = entry.Score
 			winnerCount++
 		}
@@ -105,13 +106,13 @@ func deterministicDefenceResult(t *testing.T, atkScore float64, entries []contes
 			ZScore: (defenseValue - winningScore) / stdDev,
 		},
 		Margin:    margin,
-		Winner:    winner,
+		Winner:    string(winner),
 		Contested: true,
 		Success:   margin > 0,
 	}
 }
 
-func deterministicFlooredDefenceSave(t *testing.T, atkScore float64, entries []contest.Entry, winner string, attackValue, defenseValue float64) contest.Result {
+func deterministicFlooredDefenceSave(t *testing.T, atkScore float64, entries []contest.Entry, winner combatvocab.Defence, attackValue, defenseValue float64) contest.Result {
 	t.Helper()
 	result := deterministicDefenceResult(t, atkScore, entries, winner, attackValue, defenseValue)
 	if !result.Success {
@@ -124,8 +125,8 @@ func deterministicFlooredDefenceSave(t *testing.T, atkScore float64, entries []c
 }
 
 func TestDeterministicDefenceResult_MatchesWinningEntryRollInvariants(t *testing.T) {
-	entries := []contest.Entry{{Name: characters.DefenseParry, Score: 130}}
-	result := deterministicDefenceResult(t, 100, entries, characters.DefenseParry, 100, 110)
+	entries := []contest.Entry{{Name: string(combatvocab.DefenceParry), Score: 130}}
+	result := deterministicDefenceResult(t, 100, entries, combatvocab.DefenceParry, 100, 110)
 
 	if result.AttackRoll.Mean != 100 || result.AttackRoll.Value != 100 || result.AttackRoll.StdDev != 15 || result.AttackRoll.ZScore != 0 {
 		t.Fatalf("attack roll = %+v, want mean/value 100, stddev 15, z 0", result.AttackRoll)
@@ -140,8 +141,8 @@ func TestDeterministicDefenceResult_MatchesWinningEntryRollInvariants(t *testing
 }
 
 func TestDeterministicDefenceResult_FlooredSaveStartsFromAttackWinningRolls(t *testing.T) {
-	entries := []contest.Entry{{Name: characters.DefenseQuell, Score: 140}}
-	result := deterministicFlooredDefenceSave(t, 140, entries, characters.DefenseQuell, 150, 145)
+	entries := []contest.Entry{{Name: string(combatvocab.DefenceQuell), Score: 140}}
+	result := deterministicFlooredDefenceSave(t, 140, entries, combatvocab.DefenceQuell, 150, 145)
 
 	if result.AttackRoll.Value <= result.DefenseRoll.Value {
 		t.Fatalf("underlying rolls attack %.2f defense %.2f already favor defender", result.AttackRoll.Value, result.DefenseRoll.Value)
@@ -187,23 +188,23 @@ func TestRunBestOfAllDefense_MixedAffordabilityPairsWinnerWithItsOwnQuote(t *tes
 		if len(entries) != 2 {
 			t.Fatalf("eligible entries = %d, want 2", len(entries))
 		}
-		if entries[0].Name != characters.DefenseDodge || entries[0].Score != 100 {
+		if entries[0].Name != string(combatvocab.DefenceDodge) || entries[0].Score != 100 {
 			t.Fatalf("short dodge entry = %+v, want name=dodge score=100 without skill", entries[0])
 		}
-		if entries[1].Name != characters.DefenseParry || entries[1].Score != 160 {
+		if entries[1].Name != string(combatvocab.DefenceParry) || entries[1].Score != 160 {
 			t.Fatalf("affordable parry entry = %+v, want name=parry score=160 with skill", entries[1])
 		}
-		return deterministicDefenceResult(t, atkScore, entries, characters.DefenseParry, 145, entries[1].Score)
+		return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceParry, 145, entries[1].Score)
 	}
 
 	best := runBestOfAllDefenseWithRunner(result, attacker, defender,
-		[]string{characters.DefenseDodge, characters.DefenseParry}, 100, false,
+		[]combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}, 100, false,
 		combatContext{sourceCanSee: true, targetCanSee: true}, runner)
 
 	if runnerCalls != 1 {
 		t.Fatalf("runner calls = %d, want 1", runnerCalls)
 	}
-	if best.defenseType != characters.DefenseParry {
+	if best.defenseType != combatvocab.DefenceParry {
 		t.Fatalf("winner = %q, want parry", best.defenseType)
 	}
 	if best.cost.Status != characters.CostPaid || best.cost.Charged != 11 || best.cost.Short() {
@@ -252,11 +253,11 @@ func TestRunBestOfAllDefense_ShortWinnerChargesAndMessagesOnce(t *testing.T) {
 		if len(entries) != 2 || entries[0].Score != 100 || entries[1].Score != 100 {
 			t.Fatalf("short candidates = %+v, want dodge/parry both at stat-only score 100", entries)
 		}
-		return deterministicDefenceResult(t, atkScore, entries, characters.DefenseDodge, atkScore, atkScore+10)
+		return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceDodge, atkScore, atkScore+10)
 	}
 
 	best := runBestOfAllDefenseWithRunner(result, attacker, defender,
-		[]string{characters.DefenseDodge, characters.DefenseParry}, 100, false,
+		[]combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}, 100, false,
 		combatContext{sourceCanSee: true, targetCanSee: true}, runner)
 	if best.cost.Status != characters.CostPartiallyPaid || best.cost.Charged != 5 || !best.cost.Short() {
 		t.Fatalf("short winner cost = %+v, want partially paid 5", best.cost)
@@ -268,7 +269,7 @@ func TestRunBestOfAllDefense_ShortWinnerChargesAndMessagesOnce(t *testing.T) {
 	// A later swing in the same AttackResult may also select a short winner, but
 	// the private player explanation belongs to the round and appears once.
 	second := runBestOfAllDefenseWithRunner(result, attacker, defender,
-		[]string{characters.DefenseDodge, characters.DefenseParry}, 100, false,
+		[]combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}, 100, false,
 		combatContext{sourceCanSee: true, targetCanSee: true}, runner)
 	if second.cost.Status != characters.CostPartiallyPaid || second.cost.Charged != 0 {
 		t.Fatalf("second short winner cost = %+v, want partial zero from empty pool", second.cost)
@@ -296,10 +297,10 @@ func TestRunBestOfAllDefense_SelectedWinnerPaysWhenAttackWins(t *testing.T) {
 	result := &AttackResult{}
 
 	best := runBestOfAllDefenseWithRunner(result, attacker, defender,
-		[]string{characters.DefenseParry}, 100, false,
+		[]combatvocab.Defence{combatvocab.DefenceParry}, 100, false,
 		combatContext{sourceCanSee: true, targetCanSee: true},
 		func(atkScore float64, entries []contest.Entry) contest.Result {
-			return deterministicDefenceResult(t, atkScore, entries, characters.DefenseParry, 165, entries[0].Score)
+			return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceParry, 165, entries[0].Score)
 		})
 
 	if best.cost.Status != characters.CostPaid || best.cost.Charged != 11 || defender.Stamina != 0 {
@@ -323,7 +324,7 @@ func TestRunBestOfAllDefense_ShortScoreRetainsNonSkillMultipliers(t *testing.T) 
 	result := &AttackResult{}
 
 	runBestOfAllDefenseWithRunner(result, attacker, defender,
-		[]string{characters.DefenseDodge}, 100, false,
+		[]combatvocab.Defence{combatvocab.DefenceDodge}, 100, false,
 		combatContext{sourceCanSee: true, targetCanSee: false},
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			// Base Dexterity 100 remains. Only Unarmed Combat is omitted, then
@@ -331,7 +332,7 @@ func TestRunBestOfAllDefense_ShortScoreRetainsNonSkillMultipliers(t *testing.T) 
 			if len(entries) != 1 || entries[0].Score != 25 {
 				t.Fatalf("short modified dodge = %+v, want stat-only score 25 after both multipliers", entries)
 			}
-			return deterministicDefenceResult(t, atkScore, entries, characters.DefenseDodge, atkScore, atkScore-5)
+			return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceDodge, atkScore, atkScore-5)
 		})
 }
 
@@ -342,10 +343,10 @@ func TestRunBestOfAllDefense_ShortNPCWinnerGetsNoPrivateMessage(t *testing.T) {
 	result := &AttackResult{}
 
 	best := runBestOfAllDefenseWithRunner(result, attacker, defender,
-		[]string{characters.DefenseDodge}, 100, false,
+		[]combatvocab.Defence{combatvocab.DefenceDodge}, 100, false,
 		combatContext{sourceCanSee: true, targetCanSee: true},
 		func(atkScore float64, entries []contest.Entry) contest.Result {
-			return deterministicDefenceResult(t, atkScore, entries, characters.DefenseDodge, atkScore, atkScore-5)
+			return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceDodge, atkScore, atkScore-5)
 		})
 
 	if !best.cost.Short() {
@@ -377,17 +378,17 @@ func TestResolveChannelAttack_MixedAffordabilityCommitsAndProgressesOnlyWinner(t
 			if len(entries) != 2 {
 				t.Fatalf("eligible entries = %d, want 2", len(entries))
 			}
-			if entries[0].Name != characters.DefenseDodge || entries[0].Score != 100 {
+			if entries[0].Name != string(combatvocab.DefenceDodge) || entries[0].Score != 100 {
 				t.Fatalf("short dodge entry = %+v, want stat-only 100", entries[0])
 			}
-			if entries[1].Name != characters.DefenseBlock || entries[1].Score != 160 {
+			if entries[1].Name != string(combatvocab.DefenceBlock) || entries[1].Score != 160 {
 				t.Fatalf("affordable block entry = %+v, want full 160", entries[1])
 			}
-			return deterministicDefenceResult(t, atkScore, entries, characters.DefenseBlock, 165, 160)
+			return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceBlock, 165, 160)
 		})
 
-	if out.DefenceType != characters.DefenseBlock || out.Cost.Status != characters.CostPaid || out.Cost.Charged != 11 {
-		t.Fatalf("channel winner/cost = type %q cost %+v, want block paid 11", out.DefenceType, out.Cost)
+	if out.Defence != combatvocab.DefenceBlock || out.Cost.Status != characters.CostPaid || out.Cost.Charged != 11 {
+		t.Fatalf("channel winner/cost = type %q cost %+v, want block paid 11", out.Defence, out.Cost)
 	}
 	if out.DamageMultiplier != 1 || out.Defended || out.DefensiveCrit || out.NormalizedDefenceMargin != 0 {
 		t.Fatalf("attack-win outcome = %+v, want full damage and zero defensive outcome", out)
@@ -410,10 +411,10 @@ func TestResolveChannelAttack_ShortWinnerUsesConvictionAndOmitsOnlySkill(t *test
 
 	out := resolveChannelAttackWithRunner(ChannelSocial, channelSideForSignTest(ChannelSocial, attacker), attacker, defender,
 		func(atkScore float64, entries []contest.Entry) contest.Result {
-			if len(entries) != 1 || entries[0].Name != characters.DefenseDefy || entries[0].Score != 100 {
+			if len(entries) != 1 || entries[0].Name != string(combatvocab.DefenceDefy) || entries[0].Score != 100 {
 				t.Fatalf("short defy entry = %+v, want Willpower-only score 100", entries)
 			}
-			return deterministicDefenceResult(t, atkScore, entries, characters.DefenseDefy, atkScore, atkScore+10)
+			return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceDefy, atkScore, atkScore+10)
 		})
 
 	if out.Cost.Status != characters.CostPartiallyPaid || out.Cost.Pool != characters.PoolConviction ||
@@ -439,13 +440,13 @@ func TestResolveChannelAttack_ReportsOpposedMarginDistinctFromRollZScore(t *test
 			if atkScore != 140 {
 				t.Fatalf("spell attack score = %.2f, want 140", atkScore)
 			}
-			if len(entries) != 1 || entries[0].Name != characters.DefenseQuell || entries[0].Score != 140 {
+			if len(entries) != 1 || entries[0].Name != string(combatvocab.DefenceQuell) || entries[0].Score != 140 {
 				t.Fatalf("quell entries = %+v, want one affordable full-score quell at 140", entries)
 			}
 			// Equal 140 means use a 140 attack roll and a one-standard-deviation
 			// 161 defence roll. The opposed margin is 21/(21*sqrt(2)), while
 			// the defender's self-relative roll z-score is independently 1.
-			return deterministicDefenceResult(t, atkScore, entries, characters.DefenseQuell, 140, 161)
+			return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceQuell, 140, 161)
 		})
 
 	wantMargin := 1 / math.Sqrt2
@@ -459,7 +460,7 @@ func TestResolveChannelAttack_ReportsOpposedMarginDistinctFromRollZScore(t *test
 	if math.Abs(out.DamageMultiplier-wantMultiplier) > 1e-12 {
 		t.Fatalf("damage multiplier = %.12f, want %.12f from opposed margin", out.DamageMultiplier, wantMultiplier)
 	}
-	if out.DefenceType != characters.DefenseQuell || !out.Defended || out.DefensiveCrit {
+	if out.Defence != combatvocab.DefenceQuell || !out.Defended || out.DefensiveCrit {
 		t.Fatalf("structured outcome = %+v, want noncritical defended quell", out)
 	}
 	if out.Cost.Status != characters.CostPaid || out.Cost.Pool != characters.PoolConviction || out.Cost.Charged != 20 {
@@ -480,7 +481,7 @@ func TestResolveChannelAttack_FlooredSaveUsesBareWinSentinels(t *testing.T) {
 			}
 			// The 150 attack roll beats the 145 defence roll before the floor
 			// flips the outcome and stamps the settled -1 margin sentinel.
-			return deterministicFlooredDefenceSave(t, atkScore, entries, characters.DefenseQuell, 150, 145)
+			return deterministicFlooredDefenceSave(t, atkScore, entries, combatvocab.DefenceQuell, 150, 145)
 		})
 
 	if out.DamageMultiplier != 0.5 || !out.Defended || out.DefensiveCrit {
@@ -489,8 +490,8 @@ func TestResolveChannelAttack_FlooredSaveUsesBareWinSentinels(t *testing.T) {
 	if out.DefenseRollZScore != 0 || out.NormalizedDefenceMargin != 0 {
 		t.Fatalf("floored save sentinels = z %.4f margin %.4f, want both zero", out.DefenseRollZScore, out.NormalizedDefenceMargin)
 	}
-	if out.DefenceType != characters.DefenseQuell || out.Cost.Status != characters.CostPaid {
-		t.Fatalf("floored winner/cost = type %q cost %+v, want paid quell", out.DefenceType, out.Cost)
+	if out.Defence != combatvocab.DefenceQuell || out.Cost.Status != characters.CostPaid {
+		t.Fatalf("floored winner/cost = type %q cost %+v, want paid quell", out.Defence, out.Cost)
 	}
 }
 
@@ -507,7 +508,7 @@ func TestResolveChannelAttack_DefensiveCritReportsFullNegation(t *testing.T) {
 			}
 			// 72 / (24*sqrt(2)) = 2.1213, independently above the 2.0
 			// defensive-crit threshold.
-			return deterministicDefenceResult(t, atkScore, entries, characters.DefenseDefy, 160, 232)
+			return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceDefy, 160, 232)
 		})
 
 	if out.DamageMultiplier != 0 || !out.Defended || !out.DefensiveCrit {
@@ -518,8 +519,8 @@ func TestResolveChannelAttack_DefensiveCritReportsFullNegation(t *testing.T) {
 		t.Fatalf("crit statistics = margin %.12f z %.4f, want %.12f and 3",
 			out.NormalizedDefenceMargin, out.DefenseRollZScore, wantMargin)
 	}
-	if out.DefenceType != characters.DefenseDefy || out.Cost.Pool != characters.PoolConviction || out.Cost.Charged != 30 {
-		t.Fatalf("defy identity/cost = type %q cost %+v, want defy charged from conviction", out.DefenceType, out.Cost)
+	if out.Defence != combatvocab.DefenceDefy || out.Cost.Pool != characters.PoolConviction || out.Cost.Charged != 30 {
+		t.Fatalf("defy identity/cost = type %q cost %+v, want defy charged from conviction", out.Defence, out.Cost)
 	}
 }
 
@@ -530,7 +531,7 @@ func TestResolveChannelAttack_NonpositiveStdDevHasZeroNormalizedMargin(t *testin
 
 	out := resolveChannelAttackWithRunner(ChannelSpellMental, channelSideForSignTest(ChannelSpellMental, attacker), attacker, defender,
 		func(atkScore float64, entries []contest.Entry) contest.Result {
-			if len(entries) != 1 || entries[0].Name != characters.DefenseQuell || entries[0].Score != 140 {
+			if len(entries) != 1 || entries[0].Name != string(combatvocab.DefenceQuell) || entries[0].Score != 140 {
 				t.Fatalf("zero-spread entries = %+v, want full-score quell at 140", entries)
 			}
 			// This deliberately degenerate injected result cannot be emitted by
@@ -540,7 +541,7 @@ func TestResolveChannelAttack_NonpositiveStdDevHasZeroNormalizedMargin(t *testin
 				AttackRoll:  dice.RollResult{Value: atkScore, Mean: atkScore},
 				DefenseRoll: dice.RollResult{Value: 140, Mean: 140},
 				Margin:      atkScore - 140,
-				Winner:      characters.DefenseQuell,
+				Winner:      string(combatvocab.DefenceQuell),
 				Contested:   true,
 				Success:     false,
 			}
@@ -562,7 +563,7 @@ func TestResolveChannelAttack_UncontestedUsesZeroSentinels(t *testing.T) {
 	if called {
 		t.Fatal("runner called for channel with no eligible defences")
 	}
-	if out.DamageMultiplier != 1 || out.DefenceType != "" || out.DefenseRollZScore != 0 ||
+	if out.DamageMultiplier != 1 || out.Defence != "" || out.DefenseRollZScore != 0 ||
 		out.NormalizedDefenceMargin != 0 || out.Defended || out.DefensiveCrit || out.Cost.Charged != 0 {
 		t.Fatalf("uncontested outcome = %+v, want full damage with zero sentinels", out)
 	}
@@ -587,7 +588,7 @@ func TestResolveChannelAttack_InjectedUncontestedResultUsesFullDamage(t *testing
 			}
 		})
 
-	if out.DamageMultiplier != 1 || out.DefenceType != "" || out.Defended || out.DefensiveCrit ||
+	if out.DamageMultiplier != 1 || out.Defence != "" || out.Defended || out.DefensiveCrit ||
 		out.DefenseRollZScore != 0 || out.NormalizedDefenceMargin != 0 || out.Cost.Charged != 0 {
 		t.Fatalf("injected uncontested outcome = %+v, want full damage and zero sentinels", out)
 	}

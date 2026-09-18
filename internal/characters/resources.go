@@ -1,6 +1,7 @@
 package characters
 
 import (
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
@@ -137,32 +138,32 @@ func (c *Character) GetMovementStaminaCost(terrainMultiplier float64) float64 {
 // defenseCostRequest is the single raw mapping for every mounted defence. It
 // deliberately returns an uncomposed request: QuoteActionCost and the legacy
 // float compatibility path each compose these inputs exactly once.
-func defenseCostRequest(defenseType string) (ActionCostRequest, bool) {
+func defenseCostRequest(defenseType combatvocab.Defence) (ActionCostRequest, bool) {
 	bal := configs.GetBalanceConfig()
 	req := ActionCostRequest{Units: 1}
 
 	switch defenseType {
-	case DefenseDodge:
+	case combatvocab.DefenceDodge:
 		req.Action = costs.ActionDodge
 		req.Pool = PoolStamina
 		req.Base = float64(bal.DefenceBaseStaminaCost)
 		req.Modifier = float64(bal.DodgeCostModifier)
-	case DefenseParry:
+	case combatvocab.DefenceParry:
 		req.Action = costs.ActionParry
 		req.Pool = PoolStamina
 		req.Base = float64(bal.DefenceBaseStaminaCost)
 		req.Modifier = float64(bal.ParryCostModifier)
-	case DefenseBlock:
+	case combatvocab.DefenceBlock:
 		req.Action = costs.ActionBlock
 		req.Pool = PoolStamina
 		req.Base = float64(bal.DefenceBaseStaminaCost)
 		req.Modifier = float64(bal.BlockCostModifier)
-	case DefenseQuell:
+	case combatvocab.DefenceQuell:
 		req.Action = costs.ActionQuell
 		req.Pool = PoolConviction
 		req.Base = float64(bal.QuellBaseConvictionCost)
 		req.Modifier = 1.0
-	case DefenseDefy:
+	case combatvocab.DefenceDefy:
 		req.Action = costs.ActionDefy
 		req.Pool = PoolConviction
 		req.Base = float64(bal.DefyBaseConvictionCost)
@@ -175,7 +176,7 @@ func defenseCostRequest(defenseType string) (ActionCostRequest, bool) {
 }
 
 // QuoteDefenseCost returns an immutable quote for one recognized defence.
-func (c *Character) QuoteDefenseCost(defenseType string) (CostQuote, bool) {
+func (c *Character) QuoteDefenseCost(defenseType combatvocab.Defence) (CostQuote, bool) {
 	req, ok := defenseCostRequest(defenseType)
 	if !ok {
 		return CostQuote{}, false
@@ -198,7 +199,7 @@ func (c *Character) QuoteDefenseCost(defenseType string) (CostQuote, bool) {
 // An unrecognised defence name maps to PoolStamina, where GetDefenseCostFloat
 // also returns 0, so the pair charges nothing rather than draining an arbitrary
 // pool.
-func DefensePool(defenseType string) Pool {
+func DefensePool(defenseType combatvocab.Defence) Pool {
 	if req, ok := defenseCostRequest(defenseType); ok {
 		return req.Pool
 	}
@@ -243,7 +244,7 @@ func DefensePool(defenseType string) Pool {
 // An unrecognised defence costs 0 rather than being priced as something else,
 // which pairs with DefensePool mapping it to PoolStamina: together they charge
 // nothing instead of draining an arbitrary pool.
-func (c *Character) GetDefenseCostFloat(defenseType string) float64 {
+func (c *Character) GetDefenseCostFloat(defenseType combatvocab.Defence) float64 {
 	req, ok := defenseCostRequest(defenseType)
 	if !ok {
 		return 0
@@ -294,7 +295,7 @@ func (c *Character) GetDefenseCostFloat(defenseType string) float64 {
 // Floored, not rounded, with a floor of 1: a defence that costs nothing is not
 // a defence, and rounding up would overcharge every defence in the game by up
 // to a whole point.
-func (c *Character) GetDefenseCost(defenseType string) int {
+func (c *Character) GetDefenseCost(defenseType combatvocab.Defence) int {
 	cost := c.GetDefenseCostFloat(defenseType)
 	if cost <= 0 {
 		return 0

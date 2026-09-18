@@ -18,8 +18,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -118,7 +118,7 @@ func TestSpellResolution_OneContest_QuellAlwaysConsulted(t *testing.T) {
 		side := spellAttackSideFor(spell, caster.Character)
 		resolveAgainstPlayer(caster, target, room, spell, side, spell.EffectMagnitude)
 		require.Len(t, capturedEntries, 1, "a mental spell must face exactly one defence: quell")
-		require.Equal(t, characters.DefenseQuell, capturedEntries[0].Name)
+		require.Equal(t, string(combatvocab.DefenceQuell), capturedEntries[0].Name)
 		return capturedEntries[0].Score
 	}
 

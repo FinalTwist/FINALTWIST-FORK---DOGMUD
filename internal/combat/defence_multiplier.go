@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -103,18 +104,18 @@ func (s AttackSide) score() float64 {
 // mapping. An unrecognised defence gets 1.0 and not 0, so a defence added to
 // DefenceSetFor without a knob enters the contest at face value instead of
 // silently losing every roll.
-func defenceEffectiveness(defenceType string) float64 {
+func defenceEffectiveness(defenceType combatvocab.Defence) float64 {
 	bal := configs.GetBalanceConfig()
 	switch defenceType {
-	case characters.DefenseDodge:
+	case combatvocab.DefenceDodge:
 		return float64(bal.DodgeEffectiveness)
-	case characters.DefenseParry:
+	case combatvocab.DefenceParry:
 		return float64(bal.ParryEffectiveness)
-	case characters.DefenseBlock:
+	case combatvocab.DefenceBlock:
 		return float64(bal.BlockEffectiveness)
-	case characters.DefenseQuell:
+	case combatvocab.DefenceQuell:
 		return float64(bal.QuellEffectiveness)
-	case characters.DefenseDefy:
+	case combatvocab.DefenceDefy:
 		return float64(bal.DefyEffectiveness)
 	}
 	return 1.0
@@ -132,17 +133,17 @@ func defenceEffectiveness(defenceType string) float64 {
 // An unrecognised defence returns two empty strings rather than guessing.
 // Passing an empty skill on is not inert: CheckSkillProgression("") takes the
 // roll and a success banners no skill at all.
-func DefenceSkillAndStat(defenceType string) (skill, stat string) {
+func DefenceSkillAndStat(defenceType combatvocab.Defence) (skill, stat string) {
 	switch defenceType {
-	case characters.DefenseDodge:
+	case combatvocab.DefenceDodge:
 		return string(skills.UnarmedCombat), "dexterity"
-	case characters.DefenseParry:
+	case combatvocab.DefenceParry:
 		return string(skills.WeaponCombat), "dexterity"
-	case characters.DefenseBlock:
+	case combatvocab.DefenceBlock:
 		return string(skills.WeaponCombat), "strength"
-	case characters.DefenseQuell:
+	case combatvocab.DefenceQuell:
 		return string(skills.Spellcasting), "willpower"
-	case characters.DefenseDefy:
+	case combatvocab.DefenceDefy:
 		return string(skills.Rhetoric), "willpower"
 	}
 	return "", ""
@@ -187,7 +188,7 @@ func DefenceSkillAndStat(defenceType string) (skill, stat string) {
 //
 // BOTH production callers pass true today, which makes Task 8 a provable no-op;
 // Task 9 replaces those literals with the real contest outcome.
-func AwardDefenceProgression(c *characters.Character, userId int, defenceType string, won bool) {
+func AwardDefenceProgression(c *characters.Character, userId int, defenceType combatvocab.Defence, won bool) {
 	if c == nil {
 		return
 	}
@@ -205,7 +206,7 @@ func AwardDefenceProgression(c *characters.Character, userId int, defenceType st
 	// force to turn a blade. Preserved from pre-U9 behaviour verbatim -- and it
 	// scales with the outcome exactly like the other two rolls, so a lost parry
 	// cannot quietly keep paying full weight on strength.
-	if defenceType == characters.DefenseParry {
+	if defenceType == combatvocab.DefenceParry {
 		c.OnStatUseScaled("strength", userId, mult)
 	}
 }
@@ -222,7 +223,7 @@ const (
 
 type ChannelDefenceResult struct {
 	DamageMultiplier        float64
-	DefenceType             string
+	Defence                 combatvocab.Defence
 	DefenseRollZScore       float64
 	NormalizedDefenceMargin float64
 
@@ -295,14 +296,14 @@ func RenderChannelDefenceMessages(out ChannelDefenceResult, identities ChannelDe
 	if !out.Defended {
 		return items.DefenseMessageTriad{}
 	}
-	triad := items.RenderDefenseMessage(items.DefencePool(out.DefenceType), out.DefensiveCrit, out.NormalizedDefenceMargin, map[items.TokenName]string{
+	triad := items.RenderDefenseMessage(items.DefencePoolFor(out.Defence), out.DefensiveCrit, out.NormalizedDefenceMargin, map[items.TokenName]string{
 		items.TokenActor:  identities.Attacker,
 		items.TokenActee:  identities.Defender,
 		items.TokenAttack: attack,
 		items.TokenWeapon: attack,
 	}, indexOverride...)
 	if triad.ToRoom == "" {
-		logMissingDefencePool(out.DefenceType)
+		logMissingDefencePool(string(out.Defence))
 		return genericDefenceTriad(identities, attack)
 	}
 	return triad
@@ -315,7 +316,7 @@ func RenderChannelDefenceMessages(out ChannelDefenceResult, identities ChannelDe
 const missingDefencePoolReportInterval = 10 * time.Minute
 
 // missingDefencePoolsLastSeen records when each defence type was last reported.
-// Bounded by construction: out.DefenceType is always res.Winner, which comes
+// Bounded by construction: out.Defence is always res.Winner, which comes
 // from DefenceSetFor's hardcoded switch over the five defence names, so this map
 // can never hold more than five keys and is not player- or data-influenced.
 // Mutex-guarded because combat rounds run alongside other work; it is a leaf
@@ -330,7 +331,7 @@ var (
 //
 // WHY THIS EXISTS. The failure is otherwise invisible to DEVELOPERS as well as
 // to players. The pool lookup is a raw string cast,
-// items.DefencePool(out.DefenceType), so a renamed or unauthored defence type
+// items.DefencePoolFor(out.Defence), so a renamed or unauthored defence type
 // resolves to nil at runtime with no compile error, no panic and no boot
 // warning. Before the generic fallback above, the only symptom was a player
 // noticing that a spell had gone quiet.
@@ -366,7 +367,7 @@ func logMissingDefencePool(defenceType string) {
 // empty room line discarded the attacker's and defender's lines along with it.
 // The mechanics still resolved, which meant a player watched a spell simply stop
 // happening -- reported from play on 2026-08-31. The pool lookup is a raw string
-// cast, items.DefencePool(out.DefenceType), so one rename silences a channel.
+// cast, items.DefencePoolFor(out.Defence), so one rename silences a channel.
 //
 // Deliberately plain: it names who, whom and what, and nothing else. A data gap
 // should cost flavour, never silence. This mirrors what counter.go already does
@@ -473,17 +474,17 @@ func resolveChannelAttackWithRunner(channel AttackChannel, side AttackSide, atta
 		// (matching melee's disclosed gap in combat_helpers.go).
 		if proneDefender {
 			switch d {
-			case characters.DefenseDodge:
+			case combatvocab.DefenceDodge:
 				score *= float64(bal.ProneDodgePenalty)
-			case characters.DefenseParry:
+			case combatvocab.DefenceParry:
 				score *= float64(bal.ProneParryPenalty)
-			case characters.DefenseBlock:
+			case combatvocab.DefenceBlock:
 				score *= float64(bal.ProneBlockPenalty)
 			}
 		}
 
 		entry := contest.Entry{
-			Name:  d,
+			Name:  string(d),
 			Score: score,
 		}
 		entries = append(entries, entry)
@@ -510,7 +511,7 @@ func resolveChannelAttackWithRunner(channel AttackChannel, side AttackSide, atta
 	// the +-1 sentinel margin and cannot be a crit (the same rule
 	// applyCritFloors declares in melee). Fumble is self-relative and callers
 	// resolve it BEFORE success — a fumbled attack aborts even a winning roll.
-	bar := CritBarFor(side.SkillRank, defenderRankOf(defender, res.Winner))
+	bar := CritBarFor(side.SkillRank, defenderRankOf(defender, combatvocab.Defence(res.Winner)))
 	out.AttackerCrit = !res.Floored && AttackContestCritAt(res.Margin, res.AttackRoll, bar)
 	if out.AttackerCrit {
 		out.CritSource = CritSourceRolled
@@ -547,7 +548,7 @@ func resolveChannelAttackWithRunner(channel AttackChannel, side AttackSide, atta
 		}
 	}
 
-	out.DefenceType = res.Winner
+	out.Defence = combatvocab.Defence(res.Winner)
 	out.Cost = commitDefenceWinner(defender, candidates, res)
 	// U9: the ordinary defence award is unchanged in WHEN it fires -- whenever
 	// the contest ran, win or lose, which is what this path has always done.
@@ -572,7 +573,7 @@ func resolveChannelAttackWithRunner(channel AttackChannel, side AttackSide, atta
 	defenceWon := !res.Success && !side.ForceCrit
 	for _, candidate := range candidates {
 		if candidate.entry.Name == res.Winner {
-			AwardDefenceProgression(defender, defender.GetUserId(), res.Winner, defenceWon)
+			AwardDefenceProgression(defender, defender.GetUserId(), combatvocab.Defence(res.Winner), defenceWon)
 			break
 		}
 	}
@@ -673,7 +674,7 @@ func defenceDamageMultiplier(res contest.Result) float64 {
 // defenderRankOf resolves the WINNING defence's governing skill rank — the
 // defender half of CritBarFor's pair. Uncontested/static outcomes (an empty or
 // unrecognised winner) use rank 0 rather than guessing a skill.
-func defenderRankOf(defender *characters.Character, winner string) int {
+func defenderRankOf(defender *characters.Character, winner combatvocab.Defence) int {
 	skillName, _ := DefenceSkillAndStat(winner)
 	if skillName == "" || defender == nil {
 		return 0
@@ -723,7 +724,7 @@ func awardChannelDefenceBonus(channel AttackChannel, side AttackSide, attacker, 
 	}
 
 	atkSkill, atkStat := string(side.Skill), side.StatName
-	defSkill, defStat := DefenceSkillAndStat(res.Winner)
+	defSkill, defStat := DefenceSkillAndStat(combatvocab.Defence(res.Winner))
 
 	out := progression.Outcome{
 		AttackerSkill: atkSkill,

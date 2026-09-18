@@ -45,7 +45,7 @@ type SkillMoveResult struct {
 	KnockedDown   bool
 	TargetMaxHP   int
 
-	// Defence exposes the seam's full outcome — DefenceType, DefensiveCrit,
+	// Defence exposes the seam's full outcome — Defence, DefensiveCrit,
 	// normalized margin, and the committed cost — for narration and the
 	// Task 10 counter tier.
 	Defence ChannelDefenceResult

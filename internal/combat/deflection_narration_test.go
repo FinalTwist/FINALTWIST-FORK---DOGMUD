@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/items"
 )
 
@@ -50,8 +51,8 @@ func TestSendDefenseMessages_PartialSendsRoomLinesOnly(t *testing.T) {
 	if !res.defended {
 		t.Fatal("fixture did not produce a deflection")
 	}
-	if result.DefenseUsed != DefenseDodge {
-		t.Errorf("DefenseUsed = %q, want %q — the partial path must keep this side effect", result.DefenseUsed, DefenseDodge)
+	if result.DefenseUsed != combatvocab.DefenceDodge {
+		t.Errorf("DefenseUsed = %q, want %q — the partial path must keep this side effect", result.DefenseUsed, combatvocab.DefenceDodge)
 	}
 	if len(result.MessagesToSource) != 0 {
 		t.Errorf("partial defence sent %d personal lines to the attacker, want 0: %v",
@@ -159,14 +160,14 @@ func TestBuildAttackMessages_DeflectedSwingOneCoherentLinePerViewer(t *testing.T
 // "turn aside" phrasing rather than an empty verb.
 func TestDeflectedSwingLines_VerbsAndFallback(t *testing.T) {
 	cases := []struct {
-		defense     DefenseType
+		defense     combatvocab.Defence
 		wantAtkVerb string
 		wantDefVerb string
 	}{
-		{DefenseDodge, "dodges your swing", "You dodge"},
-		{DefenseParry, "parries your swing", "You parry"},
-		{DefenseBlock, "blocks your swing", "You block"},
-		{DefenseNone, "turns your swing aside", "You turn"},
+		{combatvocab.DefenceDodge, "dodges your swing", "You dodge"},
+		{combatvocab.DefenceParry, "parries your swing", "You parry"},
+		{combatvocab.DefenceBlock, "blocks your swing", "You block"},
+		{combatvocab.DefenceNone, "turns your swing aside", "You turn"},
 	}
 
 	for _, tc := range cases {

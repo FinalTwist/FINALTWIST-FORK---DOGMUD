@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 )
 
 // U6 Task 8 — the contest floor must gate the WINNER, before any crit is
@@ -72,7 +73,7 @@ func TestResolveDefenseOutcome_FloorReachesACrittingDefender(t *testing.T) {
 	for i := 0; i < iterations; i++ {
 		result := &AttackResult{}
 		best := runBestOfAllDefense(result, attacker, defender,
-			[]string{characters.DefenseDodge}, hopelessAttackScore, false, ctx)
+			[]combatvocab.Defence{combatvocab.DefenceDodge}, hopelessAttackScore, false, ctx)
 		res := resolveDefenseOutcome(result, best, attacker, defender,
 			critThreshold, false, false, false)
 		if res.hit && res.damageMult == 1.0 {
@@ -112,7 +113,7 @@ func TestResolveDefenseOutcome_FlooredOutcomesNeverCrit(t *testing.T) {
 	for i := 0; i < iterations; i++ {
 		result := &AttackResult{}
 		best := runBestOfAllDefense(result, attacker, defender,
-			[]string{characters.DefenseDodge}, hopelessAttackScore, false, ctx)
+			[]combatvocab.Defence{combatvocab.DefenceDodge}, hopelessAttackScore, false, ctx)
 		res := resolveDefenseOutcomeCore(result, best, attacker, defender,
 			critThreshold, false, false, false)
 

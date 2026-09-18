@@ -60,7 +60,7 @@ func TestSendDefenseMessagesMeleePathCoordinatesAllThreeRoles(t *testing.T) {
 	targetChar.Name = "Defender"
 
 	best := bestDefenseResult{
-		defenseType: characters.DefenseBlock,
+		defenseType: combatvocab.DefenceBlock,
 		defRoll:     dice.RollResult{ZScore: 0.0}, // < 0.5 => Weak band
 	}
 

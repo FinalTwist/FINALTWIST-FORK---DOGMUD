@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -35,7 +36,7 @@ func TestQuoteDefenseCost_UsesRawRequestMappingExactlyOnce(t *testing.T) {
 	c.Conviction = 100
 
 	tests := []struct {
-		defence  string
+		defence  combatvocab.Defence
 		action   costs.Action
 		pool     Pool
 		base     float64
@@ -44,15 +45,15 @@ func TestQuoteDefenseCost_UsesRawRequestMappingExactlyOnce(t *testing.T) {
 		carry    float64
 		price    float64
 	}{
-		{DefenseDodge, costs.ActionDodge, PoolStamina, 10, 1.25, 12, 0.5, 12.5},
-		{DefenseParry, costs.ActionParry, PoolStamina, 10, 1.10, 11, 0, 11},
-		{DefenseBlock, costs.ActionBlock, PoolStamina, 10, 1.15, 11, 0.5, 11.5},
-		{DefenseQuell, costs.ActionQuell, PoolConviction, 20, 1.0, 20, 0, 20},
-		{DefenseDefy, costs.ActionDefy, PoolConviction, 30, 1.0, 30, 0, 30},
+		{combatvocab.DefenceDodge, costs.ActionDodge, PoolStamina, 10, 1.25, 12, 0.5, 12.5},
+		{combatvocab.DefenceParry, costs.ActionParry, PoolStamina, 10, 1.10, 11, 0, 11},
+		{combatvocab.DefenceBlock, costs.ActionBlock, PoolStamina, 10, 1.15, 11, 0.5, 11.5},
+		{combatvocab.DefenceQuell, costs.ActionQuell, PoolConviction, 20, 1.0, 20, 0, 20},
+		{combatvocab.DefenceDefy, costs.ActionDefy, PoolConviction, 30, 1.0, 30, 0, 30},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.defence, func(t *testing.T) {
+		t.Run(string(tc.defence), func(t *testing.T) {
 			req, ok := defenseCostRequest(tc.defence)
 			if !ok {
 				t.Fatal("raw request mapping reported unknown defence")
@@ -100,9 +101,9 @@ func TestDefenceCostOrderingDodgeIsDearest(t *testing.T) {
 	c.Stats.Strength.Recalculate()
 	c.Validate()
 
-	dodge := c.GetDefenseCostFloat(DefenseDodge)
-	parry := c.GetDefenseCostFloat(DefenseParry)
-	block := c.GetDefenseCostFloat(DefenseBlock)
+	dodge := c.GetDefenseCostFloat(combatvocab.DefenceDodge)
+	parry := c.GetDefenseCostFloat(combatvocab.DefenceParry)
+	block := c.GetDefenseCostFloat(combatvocab.DefenceBlock)
 
 	if !(parry < block && block < dodge) {
 		t.Fatalf("want parry < block < dodge, got parry=%.3f block=%.3f dodge=%.3f",
@@ -128,9 +129,9 @@ func TestDefenceCostOrderingSurvivesARealisticLoad(t *testing.T) {
 	c.Validate()
 	loadToFraction(t, c, 99814, 0.40)
 
-	dodge := c.GetDefenseCostFloat(DefenseDodge)
-	parry := c.GetDefenseCostFloat(DefenseParry)
-	block := c.GetDefenseCostFloat(DefenseBlock)
+	dodge := c.GetDefenseCostFloat(combatvocab.DefenceDodge)
+	parry := c.GetDefenseCostFloat(combatvocab.DefenceParry)
+	block := c.GetDefenseCostFloat(combatvocab.DefenceBlock)
 
 	if !(parry < block && block < dodge) {
 		t.Errorf("at 40%% of capacity want parry < block < dodge, got "+
@@ -159,8 +160,8 @@ func TestQuellAndDefyAreFlatAndUnencumbered(t *testing.T) {
 	c.Stats.Strength.Recalculate()
 	c.Validate()
 
-	q := c.GetDefenseCostFloat(DefenseQuell)
-	d := c.GetDefenseCostFloat(DefenseDefy)
+	q := c.GetDefenseCostFloat(combatvocab.DefenceQuell)
+	d := c.GetDefenseCostFloat(combatvocab.DefenceDefy)
 
 	if q <= 0 || d <= 0 {
 		t.Fatalf("quell and defy must cost something, got %.3f and %.3f", q, d)
@@ -175,11 +176,11 @@ func TestQuellAndDefyAreFlatAndUnencumbered(t *testing.T) {
 	// NOT have noticed the flip -- the early return made the rows decorative.
 	loadToCapacity(t, c, 99811)
 
-	if got := c.GetDefenseCostFloat(DefenseQuell); got != q {
+	if got := c.GetDefenseCostFloat(combatvocab.DefenceQuell); got != q {
 		t.Errorf("quell cost moved under load: %.3f -> %.3f; quell is mental and "+
 			"must not take the encumbrance multiplier", q, got)
 	}
-	if got := c.GetDefenseCostFloat(DefenseDefy); got != d {
+	if got := c.GetDefenseCostFloat(combatvocab.DefenceDefy); got != d {
 		t.Errorf("defy cost moved under load: %.3f -> %.3f; defy is social and "+
 			"must not take the encumbrance multiplier", d, got)
 	}
@@ -205,7 +206,7 @@ func TestLadenDefenderPaysMoreToDefend(t *testing.T) {
 	laden.Validate()
 	loadToCapacity(t, laden, 99812)
 
-	for _, def := range []string{DefenseDodge, DefenseParry, DefenseBlock} {
+	for _, def := range []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock} {
 		light := unladen.GetDefenseCostFloat(def)
 		heavy := laden.GetDefenseCostFloat(def)
 		if heavy <= light {
@@ -235,12 +236,12 @@ func TestQuellAndDefyPriceThroughTheirRegistryRows(t *testing.T) {
 	bal := configs.GetBalanceConfig()
 
 	cases := []struct {
-		def   string
+		def   combatvocab.Defence
 		base  float64
 		skill skills.SkillTag
 	}{
-		{DefenseQuell, float64(bal.QuellBaseConvictionCost), skills.Spellcasting},
-		{DefenseDefy, float64(bal.DefyBaseConvictionCost), skills.Rhetoric},
+		{combatvocab.DefenceQuell, float64(bal.QuellBaseConvictionCost), skills.Spellcasting},
+		{combatvocab.DefenceDefy, float64(bal.DefyBaseConvictionCost), skills.Rhetoric},
 	}
 
 	for _, tc := range cases {
@@ -264,11 +265,11 @@ func TestSkilledDefenderPaysLessToQuellAndDefy(t *testing.T) {
 	capRank := int(bal.CostSkillCapRank)
 
 	for _, tc := range []struct {
-		def   string
+		def   combatvocab.Defence
 		skill skills.SkillTag
 	}{
-		{DefenseQuell, skills.Spellcasting},
-		{DefenseDefy, skills.Rhetoric},
+		{combatvocab.DefenceQuell, skills.Spellcasting},
+		{combatvocab.DefenceDefy, skills.Rhetoric},
 	} {
 		novice := New()
 		novice.Validate()

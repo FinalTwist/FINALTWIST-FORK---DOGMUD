@@ -3,7 +3,7 @@ package combat
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 )
 
 // U10b-1 Task 9: hitResolution.defenceWon is the melee half of the defender
@@ -93,7 +93,7 @@ func TestDefenceWon_SurvivesTheFloorPromotionThatClearsDefended(t *testing.T) {
 // Guard the mapping this file's fixtures depend on: dodgeBestWon names a real
 // defence, which is what applyCritFloors keys its defence branch on.
 func TestDefenceWon_FloorFixtureNamesARealDefence(t *testing.T) {
-	if dodgeBestWon(defenceWinMargin).defenseType != characters.DefenseDodge {
+	if dodgeBestWon(defenceWinMargin).defenseType != combatvocab.DefenceDodge {
 		t.Fatal("the floor fixture stopped naming a real defence; applyCritFloors would return before promoting")
 	}
 }

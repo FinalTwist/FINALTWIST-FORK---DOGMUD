@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -147,7 +148,7 @@ func handleCombatRound(
 		if res.Hit && res.DamageToTargetReduction > 0 && res.DefenseUsed == "" {
 			defCh.DriftFromCombat("ironhide", driftRound) // tanked/mitigated a blow
 		}
-		if res.DefenseUsed == combat.DefenseDodge || res.DefenseUsed == combat.DefenseParry {
+		if res.DefenseUsed == combatvocab.DefenceDodge || res.DefenseUsed == combatvocab.DefenceParry {
 			defCh.DriftFromCombat("trickster", driftRound) // evaded a blow
 		}
 	}
@@ -167,7 +168,7 @@ func handleCombatRound(
 
 	// Pinnacle item procs: defender's shield on_block. A "successful block" in
 	// this engine is any swing whose widest-margin winning defense was block
-	// (res.DefenseUsed == combat.DefenseBlock). U6 Task 8 made
+	// (res.DefenseUsed == combatvocab.DefenceBlock). U6 Task 8 made
 	// sendDefenseMessages the only thing that sets DefenseUsed, and Task 10
 	// made a defended swing deal partial damage with res.Hit == true — so a
 	// partial block deflection has Hit true, a block crit has Hit false, and a
@@ -175,7 +176,7 @@ func handleCombatRound(
 	// therefore exact; the old `!res.Hit &&` clause had narrowed it to block
 	// CRITS only. rollCombatAttack has already resolved defense into res by
 	// this point, so DefenseUsed is populated.
-	if res.DefenseUsed == combat.DefenseBlock {
+	if res.DefenseUsed == combatvocab.DefenceBlock {
 		dispatchItemProcs("on_block", def.GetCharacter(), atk.GetCharacter(), atk.GetRoom(), onBlockProcDamage(res))
 	}
 

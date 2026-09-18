@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -97,11 +98,11 @@ func TestExecuteSkillMove_RoutesThroughSeam(t *testing.T) {
 
 	// (c) Equipment-gated set: a shieldless, bare-handed defender rolls dodge
 	// ONLY — block (and parry) must never enter the contest.
-	if len(seen) != 1 || seen[0].Name != characters.DefenseDodge {
+	if len(seen) != 1 || seen[0].Name != string(combatvocab.DefenceDodge) {
 		t.Fatalf("defence set = %v, want exactly [dodge] for a bare defender", seen)
 	}
-	if res.Defence.DefenceType != characters.DefenseDodge {
-		t.Errorf("Defence.DefenceType = %q, want dodge", res.Defence.DefenceType)
+	if res.Defence.Defence != combatvocab.DefenceDodge {
+		t.Errorf("Defence.Defence = %q, want dodge", res.Defence.Defence)
 	}
 
 	// (a) The winning defence was CHARGED (defender economy: defending a bash

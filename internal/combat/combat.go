@@ -563,7 +563,7 @@ func calculateCombat(sourceChar *characters.Character, targetChar *characters.Ch
 			// Best-of could only displace a real candidate from another swing.
 			if best.defenseType != "" {
 				attackResult.SwingDefences = append(attackResult.SwingDefences, SwingDefence{
-					Defence: DefenseType(best.defenseType),
+					Defence: best.defenseType,
 					Roll:    best.defRoll.Value,
 					Won:     res.defenceWon(),
 				})

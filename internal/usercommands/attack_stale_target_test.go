@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -130,7 +130,7 @@ func TestTaunt_DefendedWithNoDefenceMessage_StillMessagesAttacker(t *testing.T) 
 		return actions.TauntResult{
 			Executed: true, Hit: true,
 			Target:  actions.AggroTarget{Char: target.Character, Name: target.Character.Name, UserId: target.UserId, Found: true},
-			Defence: combat.ChannelDefenceResult{DefenceType: characters.DefenseDefy, Defended: true, DamageMultiplier: 0},
+			Defence: combat.ChannelDefenceResult{Defence: combatvocab.DefenceDefy, Defended: true, DamageMultiplier: 0},
 		}
 	}
 	t.Cleanup(func() { executeTauntAction = originalAction })

@@ -242,7 +242,7 @@ func TestResolveChannelAttack_ForceCritOverridesEverything(t *testing.T) {
 	if out.DamageMultiplier != 1.0 {
 		t.Errorf("forced crit damage multiplier = %v, want 1.0", out.DamageMultiplier)
 	}
-	if out.DefenceType == "" {
+	if out.Defence == "" {
 		t.Error("the defence was still mounted; its identity must survive for narration/cost")
 	}
 }

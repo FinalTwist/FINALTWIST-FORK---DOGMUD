@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 )
 
 // U6 Task 14 — downstream gates that assumed a defence deals zero.
@@ -19,7 +20,7 @@ import (
 func TestOnBlockProcs_ReceiveTheDamageActuallyDealt(t *testing.T) {
 	res := combat.AttackResult{
 		Hit:            true,
-		DefenseUsed:    combat.DefenseBlock,
+		DefenseUsed:    combatvocab.DefenceBlock,
 		DamageToTarget: 7,
 	}
 	if got := onBlockProcDamage(res); got != 7 {
@@ -29,7 +30,7 @@ func TestOnBlockProcs_ReceiveTheDamageActuallyDealt(t *testing.T) {
 	// A block CRIT fully negates; the proc scales against zero, as before.
 	crit := combat.AttackResult{
 		Hit:            false,
-		DefenseUsed:    combat.DefenseBlock,
+		DefenseUsed:    combatvocab.DefenceBlock,
 		DamageToTarget: 0,
 	}
 	if got := onBlockProcDamage(crit); got != 0 {
