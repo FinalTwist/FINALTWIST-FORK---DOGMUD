@@ -111,7 +111,7 @@ func TestExecuteCounter_ReachGate(t *testing.T) {
 	t.Cleanup(restore)
 
 	// Cross-room: no counter, no contest, no damage.
-	res := ExecuteCounter(counterer, countered, combatvocab.Ranged(combatvocab.TargetSingle), false)
+	res := ExecuteCounter(counterer, countered, combatvocab.Ranged(combatvocab.TargetSingle), combatvocab.DefenceDodge, false)
 	if res.Countered {
 		t.Error("a cross-room shot was countered; it is the one uncounterable attack")
 	}
@@ -124,7 +124,7 @@ func TestExecuteCounter_ReachGate(t *testing.T) {
 
 	// Same room: the counter fires, contested through the seam, and the
 	// winning swing lands damage on the original attacker.
-	res = ExecuteCounter(counterer, countered, combatvocab.Ranged(combatvocab.TargetSingle), true)
+	res = ExecuteCounter(counterer, countered, combatvocab.Ranged(combatvocab.TargetSingle), combatvocab.DefenceDodge, true)
 	if !res.Countered {
 		t.Fatal("same-room defensive crit did not counter")
 	}
@@ -151,7 +151,7 @@ func TestExecuteCounter_NoRecursion(t *testing.T) {
 	restore := SetChannelAttackContestRunnerForTest(counterDefensiveCritRunner(&calls))
 	t.Cleanup(restore)
 
-	res := ExecuteCounter(counterer, countered, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), true)
+	res := ExecuteCounter(counterer, countered, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), combatvocab.DefenceQuell, true)
 	if !res.Countered {
 		t.Fatal("counter did not fire")
 	}
@@ -187,7 +187,7 @@ func TestExecuteCounter_CounteredPartyEconomy(t *testing.T) {
 	staminaBefore := countered.Stamina
 	usesBefore := countered.GetSkillUseCount("unarmed-combat")
 
-	res := ExecuteCounter(counterer, countered, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), true)
+	res := ExecuteCounter(counterer, countered, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), combatvocab.DefenceQuell, true)
 	if !res.Countered {
 		t.Fatal("counter did not fire")
 	}
@@ -230,7 +230,7 @@ func TestExecuteCounter_KnobPricesTheSwingAndZeroDisables(t *testing.T) {
 		for i := 0; i < samples; i++ {
 			countered.Health = 100000
 			countered.Stamina = 200
-			res := ExecuteCounter(counterer, countered, combatvocab.Ranged(combatvocab.TargetSingle), true)
+			res := ExecuteCounter(counterer, countered, combatvocab.Ranged(combatvocab.TargetSingle), combatvocab.DefenceDodge, true)
 			if !res.Countered || res.Damage <= 0 {
 				t.Fatalf("fixture error: winning counter did not land (countered=%v dmg=%d)",
 					res.Countered, res.Damage)
@@ -252,7 +252,7 @@ func TestExecuteCounter_KnobPricesTheSwingAndZeroDisables(t *testing.T) {
 	pinCounterConfig(t, 0)
 	callsBefore := calls
 	countererC, counteredC := counterTestPair()
-	res := ExecuteCounter(countererC, counteredC, combatvocab.Ranged(combatvocab.TargetSingle), true)
+	res := ExecuteCounter(countererC, counteredC, combatvocab.Ranged(combatvocab.TargetSingle), combatvocab.DefenceDodge, true)
 	if res.Countered || calls != callsBefore || counteredC.Health != 100000 {
 		t.Errorf("CounterDamagePercent 0 did not disable the tier: countered=%v contests=%d",
 			res.Countered, calls-callsBefore)

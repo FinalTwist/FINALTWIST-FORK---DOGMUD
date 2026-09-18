@@ -15,6 +15,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
@@ -296,14 +297,15 @@ func TestSpellCounter_PlayerVsPlayerAndMobVsMob(t *testing.T) {
 // U6b playtest closeout (2026-08-19): the quell lane's counter narration was
 // never observed live (the caster mob never cast). The dispatch is pinned
 // here: on a decisive defensive crit against a cast, the countered CASTER
-// must receive the counter line, rendered from the counter-quell pool (both
-// spell channels share it), never silently dropped.
-func TestSpellCounter_NarrationReachesCasterFromCounterQuellPool(t *testing.T) {
+// must receive the counter line, rendered from the pool of the defence that
+// won (counters slice, spec ruling 1). The stub runner names entries[0] the
+// winner, and a physical spell's first eligible defence is dodge.
+func TestSpellCounter_NarrationReachesCasterFromTheWinningDefencePool(t *testing.T) {
 	pinCounterTierKnobs(t, 0.5)
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
-		items.CounterPoolQuell: counterQuellNarrationFixture(),
+		items.CounterPoolFor(combatvocab.DefenceDodge): counterPoolNarrationFixture(combatvocab.DefenceDodge),
 	})
 	defer restoreMessages()
 
@@ -338,20 +340,22 @@ func TestSpellCounter_NarrationReachesCasterFromCounterQuellPool(t *testing.T) {
 	}
 	require.Len(t, counterLines, 1,
 		"the countered caster must receive exactly one counter line; got %v", lines)
-	require.Contains(t, strings.ToLower(counterLines[0]), "counterquell-attacker",
-		"the caster's line must be the counter-quell pool's attacker-audience render")
+	require.Contains(t, strings.ToLower(counterLines[0]), "counterdodge-attacker",
+		"the caster's line must be the winning defence's pool's attacker-audience render")
 	require.Contains(t, counterLines[0], mob.Character.Name,
 		"the counter line must name the countering defender")
 }
 
-// counterQuellNarrationFixture seeds a marked counter-quell pool for the
-// dispatch pin above.
-func counterQuellNarrationFixture() *items.DefenseMessageGroup {
+// counterPoolNarrationFixture seeds a marked counter pool for one defence,
+// so a render can be traced to the pool that produced it.
+func counterPoolNarrationFixture(d combatvocab.Defence) *items.DefenseMessageGroup {
+	pool := items.CounterPoolFor(d)
+	marker := "counter" + string(d) + "-"
 	mk := func(band string) items.DefenseOptions {
 		messages := func(audience string) items.MessageOptions {
 			result := make(items.MessageOptions, 5)
 			for i := range result {
-				result[i] = items.ItemMessage("counterquell-" + audience + "-" + band +
+				result[i] = items.ItemMessage(marker + audience + "-" + band +
 					" {actee} steps through the gap {actor} left")
 			}
 			return result
@@ -362,7 +366,7 @@ func counterQuellNarrationFixture() *items.DefenseMessageGroup {
 			ToRoom:     messages("room"),
 		}}
 	}
-	return &items.DefenseMessageGroup{OptionId: items.CounterPoolQuell, Options: items.DefenseIntensity{
+	return &items.DefenseMessageGroup{OptionId: pool, Options: items.DefenseIntensity{
 		items.Weak: mk("weak"), items.Normal: mk("normal"), items.Heavy: mk("heavy"),
 	}}
 }

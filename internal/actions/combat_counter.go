@@ -59,7 +59,7 @@ func counterSkillMoveExit(actor Actor, defender *characters.Character,
 	if !move.Defence.DefensiveCrit || move.IsCounter {
 		return combat.CounterResult{}
 	}
-	return combat.ExecuteCounter(defender, actor.GetCharacter(), shape, sameRoom)
+	return combat.ExecuteCounter(defender, actor.GetCharacter(), shape, move.Defence.Defence, sameRoom)
 }
 
 // DispatchCounterMessages routes the channel-correct counter narration:

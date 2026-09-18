@@ -12,17 +12,21 @@ import (
 // CounterResult holds the outcome of one counter tier firing: whether the
 // tier fired at all, the seam-resolved counter-swing, and channel-correct
 // narration for the three audiences (U6b Task 11: rendered from the
-// counter-* pools in defense-messages/, chosen by the ORIGINAL attack's
-// type).
+// counter-* pools in defense-messages/, chosen by the defence that won).
 type CounterResult struct {
 	// Countered reports whether the counter-swing actually fired. False when
 	// the reach gate refused (cross-room), the knob disabled the tier, or a
 	// participant was missing/dead.
 	Countered bool
 
-	// Shape is the ORIGINAL attack that was crit-defended, kept for pool
-	// selection (Task 11's channel-correct counter narration).
+	// Shape is the ORIGINAL attack that was crit-defended. The counters slice
+	// reads its Targeting for the area gate; pool selection no longer uses it.
 	Shape combatvocab.Attack
+
+	// Defence is the defence that WON the original contest and earned this
+	// counter. It chooses the narration pool (counters slice, spec ruling 1):
+	// a parry crit reads the parry pool, a block crit the block pool.
+	Defence combatvocab.Defence
 
 	// Move is the counter-swing's full seam outcome. It always carries
 	// IsCounter: the countered party defends this swing (and is charged and
@@ -57,8 +61,9 @@ type CounterResult struct {
 }
 
 // ExecuteCounter fires the counter tier for a defensive crit on a
-// seam-resolved channel: one free counter-swing at CounterDamagePercent of
-// weapon damage (riposte's mechanism — melee's parry-crit riposte in
+// seam-resolved channel, narrated from the pool of the defence that won it:
+// one free counter-swing at CounterDamagePercent of weapon damage (riposte's
+// mechanism — melee's parry-crit riposte in
 // internal/hooks/combat_shared_helpers.go reads the same knob, but stays on
 // its historical uncontested maths so melee behaviour is unchanged).
 //
@@ -87,10 +92,17 @@ type CounterResult struct {
 // must never be forwarded into the damage pipeline: CalcRawDamage treats
 // itemMult <= 0 as "unset" and substitutes 0.30, which would turn the
 // off-switch into a 30%-damage counter.
-func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.Attack, sameRoom bool) CounterResult {
-	result := CounterResult{Shape: shape}
+func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.Attack, defence combatvocab.Defence, sameRoom bool) CounterResult {
+	result := CounterResult{Shape: shape, Defence: defence}
 
 	if defender == nil || attacker == nil {
+		return result
+	}
+	// A counter is narrated by the defence that won it. No winner, no pool:
+	// cannot happen today (DefensiveCrit is set only after the winner is
+	// recorded, pinned by TestResolveChannelAttack_ADefensiveCritNamesItsDefence)
+	// but the primitive refuses rather than rendering an empty pool.
+	if defence == combatvocab.DefenceNone {
 		return result
 	}
 	// Reach gate: the cross-room shot is the one uncounterable attack.
@@ -142,39 +154,6 @@ func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.
 // busy round; the narration itself comes from the channel's counter pool.
 const counterPrefix = `<ansi fg="cyan-bold">⚔ COUNTER!</ansi> `
 
-// counterPoolFor maps the ORIGINAL attack's type to its counter-narration
-// pool. Keyed by attack type until the counters slice re-keys the pools to
-// the defence that won (spec ruling 5). Thrown shares ranged's pool; both
-// spell damage types share the put-the-working-down pool as before.
-//
-// The (spell, social) pairing (charm) used to be unreachable here, because
-// taunt is the only social attack and it short-circuits its defy-crit into a
-// counter-TAUNT at the call site rather than swinging. U10c broke that
-// assumption: charm is now a social SPELL, and fireSpellCounterTier has no
-// such carve-out, so a defy-crit against a charm does arrive.
-//
-// It gets counter-defy rather than falling through to the physical pool. That
-// pool already exists and was unused on this path. Note the counter itself is
-// still a physical swing -- ExecuteCounter builds strength + combat skill for
-// every attack, and the type selects narration only -- so this makes the
-// prose honest, not the mechanics social. Giving social attacks a genuinely
-// social counter is a larger change than U10c's plumbing slice.
-func counterPoolFor(shape combatvocab.Attack) items.DefencePool {
-	switch {
-	case shape.Type == combatvocab.AttackRanged, shape.Type == combatvocab.AttackThrown:
-		return items.CounterPoolRanged
-	case shape.Type == combatvocab.AttackSpell && shape.Damage == combatvocab.DamageSocial:
-		// Charm: a social spell, same pool as taunt's Rhetoric.
-		return items.CounterPoolDefy
-	case shape.Type == combatvocab.AttackSpell:
-		return items.CounterPoolQuell
-	case shape.Type == combatvocab.AttackRhetoric:
-		return items.CounterPoolDefy
-	default:
-		return items.CounterPoolMelee
-	}
-}
-
 // counterBand converts a counter outcome to the pool's band inputs: heavy
 // (crit=true) when the counter-swing itself critted and landed, normal
 // (margin 1.0) when it landed, weak otherwise (turned aside or fumbled).
@@ -186,15 +165,16 @@ func counterBand(crit bool, damage int) (bandCrit bool, bandMargin float64) {
 }
 
 // fillCounterMessages renders the channel-correct counter triad (U6b Task 11)
-// from the counter-* pools, appending the damage description to the two
-// personal lines the same way the special-move wrappers do (room lines never
-// carry damage). The framing is deliberate: the defence already decided the
-// attack; the counter is what the defender does with the opening it left.
-// When the pool is not loaded (unit tests without data files), the generic
-// Task 10 narration stands in so the tier never goes silent.
+// from the winning defence's counter-* pool (items.CounterPoolFor), appending
+// the damage description to the two personal lines the same way the
+// special-move wrappers do (room lines never carry damage). The framing is
+// deliberate: the defence already decided the attack; the counter is what
+// the defender does with the opening it left. When the pool is not loaded
+// (unit tests without data files), the generic Task 10 narration stands in
+// so the tier never goes silent.
 func fillCounterMessages(result *CounterResult, defender, attacker *characters.Character) {
 	bandCrit, bandMargin := counterBand(result.Move.Crit, result.Damage)
-	triad := items.RenderDefenseMessage(counterPoolFor(result.Shape), bandCrit, bandMargin,
+	triad := items.RenderDefenseMessage(items.CounterPoolFor(result.Defence), bandCrit, bandMargin,
 		map[items.TokenName]string{
 			items.TokenActor: attacker.Name,
 			items.TokenActee: defender.Name,

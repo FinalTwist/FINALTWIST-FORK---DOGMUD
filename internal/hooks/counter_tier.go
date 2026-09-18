@@ -39,7 +39,7 @@ func fireSpellCounterTier(room *rooms.Room, out combat.ChannelDefenceResult,
 	if !out.DefensiveCrit {
 		return combat.CounterResult{}
 	}
-	res := combat.ExecuteCounter(defender, caster, shape, true)
+	res := combat.ExecuteCounter(defender, caster, shape, out.Defence, true)
 	if !res.Countered {
 		return res
 	}

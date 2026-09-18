@@ -30,7 +30,7 @@ func TestSpellCounterTier_InTheDarkNamesNobody(t *testing.T) {
 	defender := users.GetByUserId(1)
 	caster := mobs.GetInstance(100)
 	res := fireSpellCounterTier(rooms.LoadRoom(1),
-		combat.ChannelDefenceResult{Defended: true, DefensiveCrit: true},
+		combat.ChannelDefenceResult{Defence: combatvocab.DefenceQuell, Defended: true, DefensiveCrit: true},
 		combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), defender.Character, &caster.Character, defender, nil)
 	require.True(t, res.Countered, "precondition: the counter must fire")
 
