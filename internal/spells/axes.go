@@ -95,5 +95,8 @@ func (s *SpellData) validateAxes() error {
 	if !s.Attack().Valid() {
 		return fmt.Errorf("spell %q: attack_type %s with damage_type %s is not a pairing the eligibility table knows (none pairs only with non_harm)", s.SpellId, s.AttackType, s.DamageType)
 	}
+	if s.IsHarm() && s.Targeting == combatvocab.TargetSelf {
+		return fmt.Errorf("spell %q: a harmful cast cannot use targeting self; self resolves no target (use single, multi or area)", s.SpellId)
+	}
 	return nil
 }

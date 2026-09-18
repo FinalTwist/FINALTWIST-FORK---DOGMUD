@@ -81,6 +81,7 @@ func TestValidateAxesRefusesBadData(t *testing.T) {
 		{SpellId: "none-harm", PrimaryStat: "willpower", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamagePhysical, Targeting: combatvocab.TargetSingle},
 		{SpellId: "harm-nonharm", PrimaryStat: "willpower", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle},
 		{SpellId: "targeting", PrimaryStat: "willpower", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: "group"},
+		{SpellId: "harm-self", PrimaryStat: "willpower", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamagePhysical, Targeting: combatvocab.TargetSelf},
 	}
 	for i := range bad {
 		if err := bad[i].validateAxes(); err == nil {

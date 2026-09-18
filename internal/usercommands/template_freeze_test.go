@@ -126,9 +126,10 @@ func TestTemplateFreeze_SpeciesHelpReadsConditionIds(t *testing.T) {
 // A Neutral-type spell is the probe that actually distinguishes this case
 // from its fallthrough: an effect_type: condition spell matches the case FIRST
 // and returns 2 regardless of Type, but if that case literal ever stops
-// matching "condition", a Neutral-type spell falls through to the `sp.Type ==
-// combatvocab.NonHarm(combatvocab.TargetSelf)` branch below and returns 0 instead — a real, visible
-// change to where the spell lists in the `spells` command.
+// matching "condition", a Neutral-type spell falls through to the
+// `!sp.IsHarm() && sp.Targeting == combatvocab.TargetSelf` branch below and
+// returns 0 instead — a real, visible change to where the spell lists in the
+// `spells` command.
 func TestWireFreeze_SpellCategoryStillGroupsConditionEffectType(t *testing.T) {
 	got := spellCategory(&spells.SpellData{EffectType: "condition", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSelf})
 	assert.Equal(t, 2, got,

@@ -109,6 +109,9 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 	targetMobInstanceIds := []int{}
 	spellRest := ``
 
+	// The last arm below (Targeting == TargetSelf) is the catch-all: no other
+	// case matches a self cast. validateAxes guarantees a self cast is
+	// non-harm, so that arm never needs a harm/help split of its own.
 	switch {
 
 	case spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetSingle:

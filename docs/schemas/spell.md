@@ -183,7 +183,11 @@ the old single `type` field. `attack_type: none` pairs ONLY with
 every other pairing is `attack_type: spell` with a real `damage_type`.
 `damage_type` also picks the defence set (`physical` -> dodge/block,
 `mental` -> quell, `social` -> defy) and the mitigation channel a harmful
-spell's damage is reduced through.
+spell's damage is reduced through. `self` means NO target is resolved and
+the argument text passes through (summons, identify); a non-harm cast that
+should default to the caster is `single`. A harmful cast cannot be `self`
+(the loader refuses it: `self` resolves no target, so a harmful `self` cast
+could never be cast).
 
 The table below maps each retired `SpellType` value to its axes, for anyone
 updating an old spell file from memory:
