@@ -174,7 +174,7 @@ var conditionApplyPathAllowlist = map[string]string{
 	// ── former combat condition: Bleeding is now one stacking record (Task 9;
 	// re-keyed slice 1b) ─────────────────────────────────────────────────
 	"internal/actions/combat_drain.go|144":     "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
-	"internal/actions/combat_drain.go|310":     "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
+	"internal/actions/combat_drain.go|317":     "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
 	"internal/actions/combat_hamstring.go|135": "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
 	"internal/actions/combat_maul.go|129":      "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
 	"internal/actions/combat_rake.go|129":      "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
