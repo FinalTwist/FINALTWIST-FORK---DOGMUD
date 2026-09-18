@@ -17,8 +17,8 @@ import (
 type CounterResult struct {
 	// Countered reports whether the counter-swing actually fired. False when
 	// the reach gate refused (cross-room), the attack was not single-target,
-	// no winning defence was recorded, the knob disabled the tier, or a
-	// participant was missing/dead.
+	// the winning defence was defy (the counter-taunt answers instead) or
+	// none, the knob disabled the tier, or a participant was missing/dead.
 	Countered bool
 
 	// Defence is the defence that WON the original contest and earned this
@@ -72,11 +72,12 @@ type CounterResult struct {
 //   - single-target only: an area or multi attack earns no counter (owner
 //     ruling 2026-09-18). Targeting travels on the shape, so an exit cannot
 //     bypass the gate by omission.
-//   - defy crits COUNTER-TAUNT instead, replacing the swing. NOTE THE
-//     PLACEMENT: taunt resolution lives in internal/actions, which IMPORTS
-//     internal/combat — this package can never call it. The counter-taunt is
-//     wired AT THE TAUNT CALL SITE in internal/actions (the defy-crit exit)
-//     via a dedicated cost-free entry point that never calls this function.
+//   - defy crits COUNTER-TAUNT instead, replacing the swing, whatever the
+//     attack was (taunt or charm). NOTE THE PLACEMENT: taunt resolution
+//     lives in internal/actions, which IMPORTS internal/combat; this package
+//     can never call it. Every exit that can see a defy win branches to
+//     internal/actions.FireCounterTaunt first, and this function refuses a
+//     defy defence outright.
 //   - a counter never earns a counter: the swing goes through the seam with
 //     IsCounter, and no exit fires the tier from a result produced under
 //     IsCounter. ExecuteCounter itself never re-enters the tier.
@@ -115,6 +116,14 @@ func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.
 	// the area spells fall out; throw never had an exit, and now this says
 	// why.
 	if shape.Targeting != combatvocab.TargetSingle {
+		return result
+	}
+	// Words answer words: a defy crit counter-taunts, for charm as well as
+	// for taunt (owner ruling 2026-09-18). That answer lives in
+	// internal/actions.FireCounterTaunt, which this package cannot call, so
+	// the primitive refuses the defence rather than swinging steel at a
+	// jeer. Callers branch on the defence BEFORE reaching here.
+	if defence == combatvocab.DefenceDefy {
 		return result
 	}
 	// Reach gate: the cross-room shot is the one uncounterable attack.

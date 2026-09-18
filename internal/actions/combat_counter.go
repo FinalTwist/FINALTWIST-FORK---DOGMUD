@@ -225,42 +225,73 @@ func executeCounterTaunt(counterer, target *characters.Character) CounterTauntRe
 	return result
 }
 
+// FireCounterTaunt is the defy answer, shared by taunt's exit here and the
+// spell exit in internal/hooks (a defied charm). counterer is the one whose
+// defy critted; countered the one whose words (taunt or charm) were defied.
+// A nil recipient is a mob and reads no private line. The narration is the
+// counter-defy pool via combat.BuildCounterTauntMessages; the room line goes
+// to everyone who can see, the two private lines to whichever party is a
+// player. The dispatch parameters are messaging.Recipient rather than a
+// concrete *users.UserRecord (the taunt exit's caller is an Actor, which can
+// wrap a UserRecord that never sits in the users registry — a test double,
+// or a not-yet-registered connection — so a registry lookup silently drops
+// the line; Actor already satisfies Recipient, the same seam
+// DispatchCounterMessages/SendCounterTrio use for this exact problem, and
+// SendText delivers correctly either way). Dispatch stays on
+// SendText/SendTextVisual as Task 10's review accepted it; moving the
+// retort onto the darkness seam is M4d's.
+func FireCounterTaunt(room *rooms.Room, counterer, countered *characters.Character,
+	countererId int, countererRecipient messaging.Recipient,
+	counteredId int, counteredRecipient messaging.Recipient) CounterTauntResult {
+
+	res := executeCounterTaunt(counterer, countered)
+	if !res.Fired {
+		return res
+	}
+
+	countererMsg, counteredMsg, roomMsg := combat.BuildCounterTauntMessages(
+		counterer.Name, countered.Name,
+		res.Defence.AttackerCrit, res.Damage, maxOfOne(countered.ConvictionMax.Value))
+
+	exclude := []int{}
+	if countererRecipient != nil {
+		countererRecipient.SendText(messaging.CategoryTauntSuccess, countererMsg)
+		exclude = append(exclude, countererId)
+	}
+	if counteredRecipient != nil {
+		counteredRecipient.SendText(messaging.CategoryTauntSuccess, counteredMsg)
+		exclude = append(exclude, counteredId)
+	}
+	if room != nil {
+		room.SendTextVisual(messaging.CategoryTauntSuccess, roomMsg, exclude...)
+	}
+	return res
+}
+
 // counterTauntExit wires the defy carve-out at ExecuteTaunt's defensive-crit
-// exit and dispatches the generic narration. actor is the ORIGINAL taunter
-// (now being counter-taunted); target identifies the counterer.
+// exit. actor is the ORIGINAL taunter (now being counter-taunted); target
+// identifies the counterer. The counterer's recipient resolves through the
+// users registry (the only way to reach it from an AggroTarget); the
+// countered party dispatches through actor itself (see FireCounterTaunt),
+// exactly as DispatchCounterMessages does for the swing-counter tier.
 func counterTauntExit(actor Actor, char *characters.Character, target AggroTarget,
 	out combat.ChannelDefenceResult) CounterTauntResult {
 
 	if !out.DefensiveCrit || target.Char == nil {
 		return CounterTauntResult{}
 	}
-	res := executeCounterTaunt(target.Char, char)
-	if !res.Fired {
-		return res
-	}
-
-	// Narration (U6b Task 11): the counter-defy pool — the jeer turned back.
-	// No numbers, no interrupt framing — the taunt already resolved; the
-	// counter is what the counterer does with the opening.
-	countererMsg, taunterMsg, roomMsg := combat.BuildCounterTauntMessages(
-		target.Char.Name, char.Name,
-		res.Defence.AttackerCrit, res.Damage, maxOfOne(char.ConvictionMax.Value))
-
-	exclude := []int{}
+	var countererRecipient messaging.Recipient
 	if target.UserId > 0 {
 		if u := users.GetByUserId(target.UserId); u != nil {
-			u.SendText(messaging.CategoryTauntSuccess, countererMsg)
-			exclude = append(exclude, target.UserId)
+			countererRecipient = u
 		}
 	}
-	actor.SendText(messaging.CategoryTauntSuccess, taunterMsg)
-	if actor.GetUserId() > 0 {
-		exclude = append(exclude, actor.GetUserId())
+	var counteredRecipient messaging.Recipient
+	if actor.IsPlayer() {
+		counteredRecipient = actor
 	}
-	if room := rooms.LoadRoom(char.RoomId); room != nil {
-		room.SendTextVisual(messaging.CategoryTauntSuccess, roomMsg, exclude...)
-	}
-	return res
+	return FireCounterTaunt(rooms.LoadRoom(char.RoomId), target.Char, char,
+		target.UserId, countererRecipient, actor.GetUserId(), counteredRecipient)
 }
 
 // maxOfOne guards a max-pool denominator for damage descriptions.

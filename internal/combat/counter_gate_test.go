@@ -39,3 +39,26 @@ func TestExecuteCounter_OnlyASingleTargetAttackEarnsACounter(t *testing.T) {
 		})
 	}
 }
+
+// Words answer words (owner ruling 2026-09-18): a defy crit counter-taunts,
+// for charm as well as for taunt, and the counter-taunt lives in
+// internal/actions. The primitive therefore refuses a defy defence so nobody
+// can route a retort into a sword-swing.
+func TestExecuteCounter_RefusesADefyDefence(t *testing.T) {
+	pinCounterConfig(t, 0.5)
+	for _, shape := range []combatvocab.Attack{
+		combatvocab.Rhetoric(combatvocab.TargetSingle),
+		combatvocab.Spell(combatvocab.DamageSocial, combatvocab.TargetSingle),
+	} {
+		t.Run(shape.String(), func(t *testing.T) {
+			counterer, countered := counterTestPair()
+			calls := 0
+			t.Cleanup(SetChannelAttackContestRunnerForTest(counterWinRunner(&calls)))
+			res := ExecuteCounter(counterer, countered, shape, combatvocab.DefenceDefy, true)
+			if res.Countered || calls != 0 || countered.Health != 100000 {
+				t.Errorf("a defy defence must never swing (countered=%v calls=%d health=%d)",
+					res.Countered, calls, countered.Health)
+			}
+		})
+	}
+}

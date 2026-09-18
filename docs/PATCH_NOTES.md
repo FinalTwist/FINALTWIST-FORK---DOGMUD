@@ -1,5 +1,11 @@
 # DOGMud Patch Notes
 
+## 2026-09-18: Words are answered with words
+
+Shrug off a charm decisively and you now mock the attempt instead of
+swinging at it, the same way a taunt thrown back stings the one who threw
+it. The retort wounds their nerve, not their body.
+
 ## 2026-09-18: A room-wide working earns no answer
 
 When a working or a sweep reaches everyone in the room, turning it aside

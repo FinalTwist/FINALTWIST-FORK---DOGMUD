@@ -24,12 +24,12 @@ import (
 // any branch here.
 //
 // The channel-correct counter narration (U6b Task 11, rendered from the pool
-// of the defence that won the contest) is dispatched with the same
-// audience routing the melee crit-effects use (CategoryHitMelee: the
-// counter-swing IS a melee answer). Dispatching here is ordering-correct for
-// spells: the cast's own outcome narration has already been sent by the time
-// these exits fire. Nil user records represent mob participants, which
-// receive no private text.
+// of the defence that won the contest; a defy win goes to the counter-taunt
+// instead) is dispatched with the same audience routing the melee crit-effects
+// use (CategoryHitMelee: the counter-swing IS a melee answer). Dispatching
+// here is ordering-correct for spells: the cast's own outcome narration has
+// already been sent by the time these exits fire. Nil user records represent
+// mob participants, which receive no private text.
 //
 // Recursion is impossible here by construction: casts are never made under
 // IsCounter (the counter-swing is a melee-shaped ExecuteSkillMove, never a
@@ -41,6 +41,25 @@ func fireSpellCounterTier(room *rooms.Room, out combat.ChannelDefenceResult,
 	if !out.DefensiveCrit {
 		return combat.CounterResult{}
 	}
+
+	// Words answer words: a defy crit (charm is the one social spell) fires
+	// the counter-taunt, the same dispatch taunt's own exit uses. The swing
+	// primitive refuses a defy defence, so this branch is the only way a
+	// defied cast is answered. The counter-taunt has its own result type;
+	// the four call sites use this function as a statement.
+	if out.Defence == combatvocab.DefenceDefy {
+		var defenderRecipient, casterRecipient messaging.Recipient
+		defenderId, casterId := 0, 0
+		if defenderUser != nil {
+			defenderRecipient, defenderId = defenderUser, defenderUser.UserId
+		}
+		if casterUser != nil {
+			casterRecipient, casterId = casterUser, casterUser.UserId
+		}
+		actions.FireCounterTaunt(room, defender, caster, defenderId, defenderRecipient, casterId, casterRecipient)
+		return combat.CounterResult{}
+	}
+
 	res := combat.ExecuteCounter(defender, caster, shape, out.Defence, true)
 	if !res.Countered {
 		return res
