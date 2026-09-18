@@ -242,6 +242,11 @@ the target instead of an interrupt.
 - **`SendCounterTrio(room, res, countered, counteredUserId)`**: the one counter
   dispatch, used by `DispatchCounterMessages` and `hooks.fireSpellCounterTier`.
   It goes through `messaging.SendTrio`, so a counter in the dark names nobody.
+- **`FireCounterTaunt(room, counterer, countered, countererId, countererRecipient,
+  counteredId, counteredRecipient)`**: the defy answer's shared dispatch, used by
+  taunt's `counterTauntExit` and `hooks.fireSpellCounterTier` (a defied charm).
+  Dispatches directly via `SendText`/`SendTextVisual`, not `messaging.SendTrio`;
+  moving the retort onto the darkness seam is M4d's.
 - **`RetargetNotice(room, userId, target)`** (`retarget_notice.go`): builds
   "You turn your attention to X!" with X hidden by the reader's
   `ParticipantSight`; ok=false when target no longer resolves. Shared by
@@ -761,8 +766,10 @@ the free supply-handoff paths — these are NOT routed through `actions.Sell`.
   the cross-room shot is the ONE uncounterable attack). It refuses results
   carrying `SkillMoveResult.IsCounter`, so a counter never earns a counter.
 - `executeCounterTaunt(counterer, target)` is the defy carve-out: a defy CRIT
-  counter-TAUNTS instead of counter-swinging, wired at `ExecuteTaunt`'s exit
-  (`counterTauntExit`) because `internal/combat` cannot import this package.
+  counter-TAUNTS instead of counter-swinging. Its dispatch is the exported
+  `FireCounterTaunt`, shared by taunt's exit here (`counterTauntExit`) and the
+  spell exit in `internal/hooks` (a defied charm), because `internal/combat`
+  cannot import this package.
   It bypasses the special-move cooldown, U8 admission cost, and all aggro
   mutation (owner decisions 2026-08-19), reuses only the contest + damage
   shape of taunt resolution, and never inspects its own contest's
@@ -781,8 +788,10 @@ NOT dispatch — messages render in call order and the wrappers narrate after
 struct (`Counter` field on Bash/Drain/Fire/Gore/Hamstring/Kick/Maul/Pounce/
 Rake/Throttle/Trip results) and the command
 wrapper calls the exported `DispatchCounterMessages(actor, res)` AFTER its
-own outcome text. The defy counter-taunt still dispatches from
-`counterTauntExit` (Task 10's review accepted the taunt path's ordering).
+own outcome text. The defy counter-taunt still dispatches immediately, from
+the exported `FireCounterTaunt` (shared by `counterTauntExit` and the
+`internal/hooks` spell exit for a defied charm; Task 10's review accepted the
+taunt path's ordering).
 
 ## Available Actions Summary
 

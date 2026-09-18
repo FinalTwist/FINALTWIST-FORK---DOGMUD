@@ -233,8 +233,8 @@ func executeCounterTaunt(counterer, target *characters.Character) CounterTauntRe
 // to everyone who can see, the two private lines to whichever party is a
 // player. The dispatch parameters are messaging.Recipient rather than a
 // concrete *users.UserRecord (the taunt exit's caller is an Actor, which can
-// wrap a UserRecord that never sits in the users registry — a test double,
-// or a not-yet-registered connection — so a registry lookup silently drops
+// wrap a UserRecord that never sits in the users registry (a test double,
+// or a not-yet-registered connection), so a registry lookup silently drops
 // the line; Actor already satisfies Recipient, the same seam
 // DispatchCounterMessages/SendCounterTrio use for this exact problem, and
 // SendText delivers correctly either way). Dispatch stays on
