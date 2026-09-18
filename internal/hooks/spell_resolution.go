@@ -52,8 +52,8 @@ func calcSpellDuration(baseFolds int, spellcastingSkill int, willpower int) int 
 //   - HarmArea populates only mob targets for players; resolveMobSpell also
 //     hits players in the room (mobs can cleave all occupants).
 //   - HelpArea is player-only (mobs never cast area healing in this engine).
-//   - Player targets go through resolveAgainstPlayer which has a help-spell
-//     shortcut (AttackType == combatvocab.AttackNone) absent in the mob path.
+//   - Both target paths take the non-harm shortcut (AttackType ==
+//     combatvocab.AttackNone); the mob path gained it in M4b-2.
 //   - Post-resolution: player fires the onMagic script and consumes a
 //     component; mob does neither.
 //   - The per-target helpers (resolveAgainstMob vs resolveMobSpellAgainstMob,
@@ -394,8 +394,12 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 	// shortcut makes the rule visible and independent of that detail.
 	// BEHAVIOUR CHANGE from master, own commit.
 	if spellData.AttackType == combatvocab.AttackNone {
-		applyMobEffect(user, user.Character, mob, room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1})
-		combat.RecordSpell(combat.User, combat.Mob, true, false, false, false, 0, 0, user.Character, &mob.Character, util.GetRoundCount())
+		// Every reachable non-harm arm (heal, condition, default) returns 0
+		// today, so threading it through is not a behaviour change; it just
+		// stops the record silently pinning itself to 0 if a future arm
+		// starts reporting a real amount (an area mend's total, say).
+		dmgDealt := applyMobEffect(user, user.Character, mob, room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1})
+		combat.RecordSpell(combat.User, combat.Mob, true, false, false, false, dmgDealt, 0, user.Character, &mob.Character, util.GetRoundCount())
 		return false, true
 	}
 

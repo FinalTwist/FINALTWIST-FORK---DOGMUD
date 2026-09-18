@@ -47,9 +47,6 @@ func TestNonHarmCastAtAMobRunsNoContest(t *testing.T) {
 		AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle,
 		EffectType: "heal", EffectMagnitude: 10,
 	}
-	before := mob.Character.Health
-	mob.Character.Health = before / 2
-
 	fumbled, landed := resolveAgainstMob(user, mob, room, heal, spellAttackSideFor(heal, user.Character), heal.EffectMagnitude)
 
 	if contests != 0 {

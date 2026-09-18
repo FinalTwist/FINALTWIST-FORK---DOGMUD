@@ -153,23 +153,25 @@ var conditionApplyPathAllowlist = map[string]string{
 	// ── former combat condition: Minor Shield is now one record (Task 6;
 	// re-keyed messaging M4b-2 Task 7 when spellAttackShape's deletion
 	// shrank and shifted every later line in that file; re-keyed again
-	// Task 10 when the non-harm-at-a-mob shortcut shifted every later line) ──
-	"internal/hooks/spell_resolution.go|1185": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
-	"internal/hooks/spell_resolution.go|1504": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	// Task 10 when the non-harm-at-a-mob shortcut shifted every later line;
+	// re-keyed again Task 10's follow-up when the shortcut's comment grew) ──
+	"internal/hooks/spell_resolution.go|1189": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	"internal/hooks/spell_resolution.go|1508": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
 	// ── former combat condition: Regenerating is now one record (Task 7;
-	// re-keyed slice 1b, same shift as above; re-keyed again Task 10) ─────
-	"internal/hooks/spell_resolution.go|862":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1082": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1465": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	// re-keyed slice 1b, same shift as above; re-keyed again Task 10 and
+	// Task 10's follow-up) ────────────────────────────────────────────────
+	"internal/hooks/spell_resolution.go|866":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1086": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1469": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|55":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 
 	// ── former combat condition: the spell dot is now one record (Task 8;
 	// re-keyed slice 1b when the dot moved to every round; re-keyed again
-	// Task 10) ────────────────────────────────────────────────────────────
-	"internal/hooks/spell_resolution.go|658":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
-	"internal/hooks/spell_resolution.go|1647": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	// Task 10 and Task 10's follow-up) ────────────────────────────────────
+	"internal/hooks/spell_resolution.go|662":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	"internal/hooks/spell_resolution.go|1651": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 
 	// ── former combat condition: Bleeding is now one stacking record (Task 9;
 	// re-keyed slice 1b) ─────────────────────────────────────────────────
