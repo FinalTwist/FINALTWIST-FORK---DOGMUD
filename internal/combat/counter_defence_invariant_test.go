@@ -8,8 +8,9 @@ import (
 
 // The counter tier reads ChannelDefenceResult.Defence to choose its pool, so
 // a defensive crit MUST name the defence that won it. Today it does, because
-// DefensiveCrit is set only after the winner is recorded; this pins that
-// order so a future edit cannot make the pool lookup silently empty.
+// DefensiveCrit is set only after the winner is recorded; this pins that a
+// crit and a named winner arrive together on the result, so a future edit
+// cannot make the pool lookup silently empty.
 func TestResolveChannelAttack_ADefensiveCritNamesItsDefence(t *testing.T) {
 	pinCounterConfig(t, 0.5)
 	attacker, defender := counterTestPair()

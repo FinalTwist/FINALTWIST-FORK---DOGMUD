@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 )
 
 // CounterResult holds the outcome of one counter tier firing: whether the
@@ -18,10 +19,6 @@ type CounterResult struct {
 	// the reach gate refused (cross-room), the knob disabled the tier, or a
 	// participant was missing/dead.
 	Countered bool
-
-	// Shape is the ORIGINAL attack that was crit-defended. The counters slice
-	// reads its Targeting for the area gate; pool selection no longer uses it.
-	Shape combatvocab.Attack
 
 	// Defence is the defence that WON the original contest and earned this
 	// counter. It chooses the narration pool (counters slice, spec ruling 1):
@@ -93,7 +90,7 @@ type CounterResult struct {
 // itemMult <= 0 as "unset" and substitutes 0.30, which would turn the
 // off-switch into a 30%-damage counter.
 func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.Attack, defence combatvocab.Defence, sameRoom bool) CounterResult {
-	result := CounterResult{Shape: shape, Defence: defence}
+	result := CounterResult{Defence: defence}
 
 	if defender == nil || attacker == nil {
 		return result
@@ -101,8 +98,10 @@ func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.
 	// A counter is narrated by the defence that won it. No winner, no pool:
 	// cannot happen today (DefensiveCrit is set only after the winner is
 	// recorded, pinned by TestResolveChannelAttack_ADefensiveCritNamesItsDefence)
-	// but the primitive refuses rather than rendering an empty pool.
+	// but the primitive refuses, and logs, rather than rendering an empty
+	// pool; the cost of this refusal is the swing itself, not only its text.
 	if defence == combatvocab.DefenceNone {
+		mudlog.Warn("counter", "refused", "no winning defence recorded", "attack", shape.String())
 		return result
 	}
 	// Reach gate: the cross-room shot is the one uncounterable attack.

@@ -21,8 +21,8 @@ import (
 // construction (the cross-room shot — internal/actions.ExecuteFire — is the
 // one uncounterable attack).
 //
-// The channel-correct counter narration (U6b Task 11, the counter-quell pool:
-// the working put down, the gap stepped through) is dispatched with the same
+// The channel-correct counter narration (U6b Task 11, rendered from the pool
+// of the defence that won the contest) is dispatched with the same
 // audience routing the melee crit-effects use (CategoryHitMelee: the
 // counter-swing IS a melee answer). Dispatching here is ordering-correct for
 // spells: the cast's own outcome narration has already been sent by the time
