@@ -1,6 +1,6 @@
 # defense-messages store snapshot
-# defense-type files at time of writing: 9
-# defense-types: block,counter-defy,counter-melee,counter-quell,counter-ranged,defy,dodge,parry,quell
+# defense-type files at time of writing: 10
+# defense-types: block,counter-block,counter-defy,counter-dodge,counter-parry,counter-quell,defy,dodge,parry,quell
 # dimensions: defense-type x band(weak/normal/heavy) -- all 3 roles (actee/actor/observer)
 # come from ONE coordinated RenderDefenseMessage call (same index across the triad).
 # RenderDefenseMessage has no picker param (util.Rand only) -- pinned via indexOverride=0,
@@ -23,24 +23,42 @@ block|normal|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> blocks
 block|heavy|actee => <ansi fg="defense-good">You effortlessly block <ansi fg="user">Attacker</ansi>'s feeble attack!</ansi>
 block|heavy|actor => <ansi fg="attack-bad"><ansi fg="mob">Defender</ansi> effortlessly blocks your feeble attack!</ansi>
 block|heavy|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> effortlessly blocks the feeble attack.</ansi>
-counter-defy|weak|actee => <ansi fg="defense-good">You twist Attacker's jeer around, but it fails to bite.</ansi>
-counter-defy|weak|actor => <ansi fg="attack-bad">Defender twists your jeer around, but it fails to bite.</ansi>
-counter-defy|weak|observer => <ansi fg="combat">Defender twists Attacker's jeer back around, but it fails to bite.</ansi>
-counter-defy|normal|actee => <ansi fg="defense-good">You twist the jeer around and send it home, and Attacker flinches.</ansi>
-counter-defy|normal|actor => <ansi fg="attack-bad">Defender twists your jeer around and sends it home, and you flinch.</ansi>
-counter-defy|normal|observer => <ansi fg="combat">Defender twists the jeer around and sends it home, and Attacker flinches.</ansi>
-counter-defy|heavy|actee => <ansi fg="defense-good">You turn the taunt inside out, and Attacker is left speechless.</ansi>
-counter-defy|heavy|actor => <ansi fg="attack-bad">Defender turns your taunt inside out, and you are left speechless.</ansi>
-counter-defy|heavy|observer => <ansi fg="combat">Defender turns the taunt inside out, and Attacker is left speechless.</ansi>
-counter-melee|weak|actee => <ansi fg="defense-good">You lash out at the opening, but Attacker recovers in time.</ansi>
-counter-melee|weak|actor => <ansi fg="attack-bad">Defender lashes out at your opening, but you recover in time.</ansi>
-counter-melee|weak|observer => <ansi fg="combat">Defender lashes out at Attacker, who recovers in time.</ansi>
-counter-melee|normal|actee => <ansi fg="defense-good">You step into the opening and land a solid blow on Attacker.</ansi>
-counter-melee|normal|actor => <ansi fg="attack-bad">Defender steps into the opening and lands a solid blow on you.</ansi>
-counter-melee|normal|observer => <ansi fg="combat">Defender steps into the opening and lands a solid blow on Attacker.</ansi>
-counter-melee|heavy|actee => <ansi fg="defense-good">You slip inside Attacker's guard and strike with all your weight.</ansi>
-counter-melee|heavy|actor => <ansi fg="attack-bad">Defender slips inside your guard and strikes with all their weight.</ansi>
-counter-melee|heavy|observer => <ansi fg="combat">Defender slips inside Attacker's guard and strikes with full weight.</ansi>
+counter-block|weak|actee => <ansi fg="defense-good">You take it on your guard and shove in, but Attacker gives ground in time.</ansi>
+counter-block|weak|actor => <ansi fg="attack-bad">Defender takes it on their guard and shoves in, but you give ground in time.</ansi>
+counter-block|weak|observer => <ansi fg="combat">Defender takes it on the guard and shoves in, but Attacker gives ground.</ansi>
+counter-block|normal|actee => <ansi fg="defense-good">You take it on your guard, shove in, and strike Attacker from behind it.</ansi>
+counter-block|normal|actor => <ansi fg="attack-bad">Defender takes it on their guard, shoves in, and strikes you from behind it.</ansi>
+counter-block|normal|observer => <ansi fg="combat">Defender takes it on the guard, shoves in, and strikes Attacker behind it.</ansi>
+counter-block|heavy|actee => <ansi fg="defense-good">You take it on your guard and drive in hard, and Attacker reels.</ansi>
+counter-block|heavy|actor => <ansi fg="attack-bad">Defender takes it on their guard and drives in hard, and you reel.</ansi>
+counter-block|heavy|observer => <ansi fg="combat">Defender takes it on the guard and drives in hard, and Attacker reels.</ansi>
+counter-defy|weak|actee => <ansi fg="defense-good">You mock Attacker's attempt, but the mockery fails to bite.</ansi>
+counter-defy|weak|actor => <ansi fg="attack-bad">Defender mocks your attempt, but the mockery fails to bite.</ansi>
+counter-defy|weak|observer => <ansi fg="combat">Defender mocks Attacker's attempt, but the mockery fails to bite.</ansi>
+counter-defy|normal|actee => <ansi fg="defense-good">You mock Attacker for the attempt, and they flinch.</ansi>
+counter-defy|normal|actor => <ansi fg="attack-bad">Defender mocks you for the attempt, and you flinch.</ansi>
+counter-defy|normal|observer => <ansi fg="combat">Defender mocks Attacker for the attempt, and Attacker flinches.</ansi>
+counter-defy|heavy|actee => <ansi fg="defense-good">You tear Attacker's attempt apart word by word, and they fall silent.</ansi>
+counter-defy|heavy|actor => <ansi fg="attack-bad">Defender tears your attempt apart word by word, and you fall silent.</ansi>
+counter-defy|heavy|observer => <ansi fg="combat">Defender tears Attacker's attempt apart word by word, leaving them silent.</ansi>
+counter-dodge|weak|actee => <ansi fg="defense-good">You lash out at the opening, but Attacker recovers in time.</ansi>
+counter-dodge|weak|actor => <ansi fg="attack-bad">Defender lashes out at your opening, but you recover in time.</ansi>
+counter-dodge|weak|observer => <ansi fg="combat">Defender lashes out at Attacker, who recovers in time.</ansi>
+counter-dodge|normal|actee => <ansi fg="defense-good">You step into the opening and land a solid blow on Attacker.</ansi>
+counter-dodge|normal|actor => <ansi fg="attack-bad">Defender steps into the opening and lands a solid blow on you.</ansi>
+counter-dodge|normal|observer => <ansi fg="combat">Defender steps into the opening and lands a solid blow on Attacker.</ansi>
+counter-dodge|heavy|actee => <ansi fg="defense-good">You slip inside Attacker's guard and strike with all your weight.</ansi>
+counter-dodge|heavy|actor => <ansi fg="attack-bad">Defender slips inside your guard and strikes with all their weight.</ansi>
+counter-dodge|heavy|observer => <ansi fg="combat">Defender slips inside Attacker's guard and strikes with full weight.</ansi>
+counter-parry|weak|actee => <ansi fg="defense-good">You turn the weapon and cut back along it, but Attacker recovers in time.</ansi>
+counter-parry|weak|actor => <ansi fg="attack-bad">Defender turns your weapon and cuts back along it, but you recover in time.</ansi>
+counter-parry|weak|observer => <ansi fg="combat">Defender turns Attacker's weapon and cuts back along it, but Attacker recovers.</ansi>
+counter-parry|normal|actee => <ansi fg="defense-good">You turn the weapon and cut back along it, opening Attacker's arm.</ansi>
+counter-parry|normal|actor => <ansi fg="attack-bad">Defender turns your weapon and cuts back along it, opening your arm.</ansi>
+counter-parry|normal|observer => <ansi fg="combat">Defender turns Attacker's weapon and cuts back along it, opening an arm.</ansi>
+counter-parry|heavy|actee => <ansi fg="defense-good">You turn the weapon and cut back with everything, and Attacker reels.</ansi>
+counter-parry|heavy|actor => <ansi fg="attack-bad">Defender turns your weapon and cuts back with everything, and you reel.</ansi>
+counter-parry|heavy|observer => <ansi fg="combat">Defender turns Attacker's weapon and cuts back hard, and Attacker reels.</ansi>
 counter-quell|weak|actee => <ansi fg="defense-good">You ground the working and lunge in, but Attacker wards your blow.</ansi>
 counter-quell|weak|actor => <ansi fg="attack-bad">Defender grounds your working and lunges in, but you ward the blow.</ansi>
 counter-quell|weak|observer => <ansi fg="combat">Defender grounds the working and lunges at Attacker, who wards the blow.</ansi>
@@ -50,15 +68,6 @@ counter-quell|normal|observer => <ansi fg="combat">Defender grounds the last of 
 counter-quell|heavy|actee => <ansi fg="defense-good">You put the working down and crash into Attacker at full force.</ansi>
 counter-quell|heavy|actor => <ansi fg="attack-bad">Defender puts your working down and crashes into you at full force.</ansi>
 counter-quell|heavy|observer => <ansi fg="combat">Defender puts the working down and crashes into Attacker.</ansi>
-counter-ranged|weak|actee => <ansi fg="defense-good">You rush Attacker behind the wasted shot, but they hold you off.</ansi>
-counter-ranged|weak|actor => <ansi fg="attack-bad">Defender rushes you behind your wasted shot, but you hold them off.</ansi>
-counter-ranged|weak|observer => <ansi fg="combat">Defender rushes Attacker behind the wasted shot, but is held off.</ansi>
-counter-ranged|normal|actee => <ansi fg="defense-good">You close the distance behind the wasted shot and strike Attacker.</ansi>
-counter-ranged|normal|actor => <ansi fg="attack-bad">Defender closes the distance behind your wasted shot and strikes you.</ansi>
-counter-ranged|normal|observer => <ansi fg="combat">Defender closes on Attacker behind the wasted shot and strikes.</ansi>
-counter-ranged|heavy|actee => <ansi fg="defense-good">You are on Attacker before the shot's echo fades, striking hard.</ansi>
-counter-ranged|heavy|actor => <ansi fg="attack-bad">Defender is on you before the shot's echo fades, striking hard.</ansi>
-counter-ranged|heavy|observer => <ansi fg="combat">Defender is on Attacker before the shot's echo fades.</ansi>
 defy|weak|actee => <ansi fg="defense-good">You defy Attacker's Strike, taking some of its sting.</ansi>
 defy|weak|actor => <ansi fg="attack-bad">Defender defies your Strike, taking some of its sting.</ansi>
 defy|weak|observer => <ansi fg="combat">Defender defies Attacker's Strike, taking some of its sting.</ansi>
@@ -111,24 +120,42 @@ melee|block|normal|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> 
 melee|block|heavy|actee => <ansi fg="defense-good">You effortlessly block <ansi fg="user">Attacker</ansi>'s feeble attack!</ansi>
 melee|block|heavy|actor => <ansi fg="attack-bad"><ansi fg="mob">Defender</ansi> effortlessly blocks your feeble attack!</ansi>
 melee|block|heavy|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> effortlessly blocks the feeble attack.</ansi>
-melee|counter-defy|weak|actee => <ansi fg="defense-good">You twist Attacker's jeer around, but it fails to bite.</ansi>
-melee|counter-defy|weak|actor => <ansi fg="attack-bad">Defender twists your jeer around, but it fails to bite.</ansi>
-melee|counter-defy|weak|observer => <ansi fg="combat">Defender twists Attacker's jeer back around, but it fails to bite.</ansi>
-melee|counter-defy|normal|actee => <ansi fg="defense-good">You twist the jeer around and send it home, and Attacker flinches.</ansi>
-melee|counter-defy|normal|actor => <ansi fg="attack-bad">Defender twists your jeer around and sends it home, and you flinch.</ansi>
-melee|counter-defy|normal|observer => <ansi fg="combat">Defender twists the jeer around and sends it home, and Attacker flinches.</ansi>
-melee|counter-defy|heavy|actee => <ansi fg="defense-good">You turn the taunt inside out, and Attacker is left speechless.</ansi>
-melee|counter-defy|heavy|actor => <ansi fg="attack-bad">Defender turns your taunt inside out, and you are left speechless.</ansi>
-melee|counter-defy|heavy|observer => <ansi fg="combat">Defender turns the taunt inside out, and Attacker is left speechless.</ansi>
-melee|counter-melee|weak|actee => <ansi fg="defense-good">You lash out at the opening, but Attacker recovers in time.</ansi>
-melee|counter-melee|weak|actor => <ansi fg="attack-bad">Defender lashes out at your opening, but you recover in time.</ansi>
-melee|counter-melee|weak|observer => <ansi fg="combat">Defender lashes out at Attacker, who recovers in time.</ansi>
-melee|counter-melee|normal|actee => <ansi fg="defense-good">You step into the opening and land a solid blow on Attacker.</ansi>
-melee|counter-melee|normal|actor => <ansi fg="attack-bad">Defender steps into the opening and lands a solid blow on you.</ansi>
-melee|counter-melee|normal|observer => <ansi fg="combat">Defender steps into the opening and lands a solid blow on Attacker.</ansi>
-melee|counter-melee|heavy|actee => <ansi fg="defense-good">You slip inside Attacker's guard and strike with all your weight.</ansi>
-melee|counter-melee|heavy|actor => <ansi fg="attack-bad">Defender slips inside your guard and strikes with all their weight.</ansi>
-melee|counter-melee|heavy|observer => <ansi fg="combat">Defender slips inside Attacker's guard and strikes with full weight.</ansi>
+melee|counter-block|weak|actee => <ansi fg="defense-good">You take it on your guard and shove in, but Attacker gives ground in time.</ansi>
+melee|counter-block|weak|actor => <ansi fg="attack-bad">Defender takes it on their guard and shoves in, but you give ground in time.</ansi>
+melee|counter-block|weak|observer => <ansi fg="combat">Defender takes it on the guard and shoves in, but Attacker gives ground.</ansi>
+melee|counter-block|normal|actee => <ansi fg="defense-good">You take it on your guard, shove in, and strike Attacker from behind it.</ansi>
+melee|counter-block|normal|actor => <ansi fg="attack-bad">Defender takes it on their guard, shoves in, and strikes you from behind it.</ansi>
+melee|counter-block|normal|observer => <ansi fg="combat">Defender takes it on the guard, shoves in, and strikes Attacker behind it.</ansi>
+melee|counter-block|heavy|actee => <ansi fg="defense-good">You take it on your guard and drive in hard, and Attacker reels.</ansi>
+melee|counter-block|heavy|actor => <ansi fg="attack-bad">Defender takes it on their guard and drives in hard, and you reel.</ansi>
+melee|counter-block|heavy|observer => <ansi fg="combat">Defender takes it on the guard and drives in hard, and Attacker reels.</ansi>
+melee|counter-defy|weak|actee => <ansi fg="defense-good">You mock Attacker's attempt, but the mockery fails to bite.</ansi>
+melee|counter-defy|weak|actor => <ansi fg="attack-bad">Defender mocks your attempt, but the mockery fails to bite.</ansi>
+melee|counter-defy|weak|observer => <ansi fg="combat">Defender mocks Attacker's attempt, but the mockery fails to bite.</ansi>
+melee|counter-defy|normal|actee => <ansi fg="defense-good">You mock Attacker for the attempt, and they flinch.</ansi>
+melee|counter-defy|normal|actor => <ansi fg="attack-bad">Defender mocks you for the attempt, and you flinch.</ansi>
+melee|counter-defy|normal|observer => <ansi fg="combat">Defender mocks Attacker for the attempt, and Attacker flinches.</ansi>
+melee|counter-defy|heavy|actee => <ansi fg="defense-good">You tear Attacker's attempt apart word by word, and they fall silent.</ansi>
+melee|counter-defy|heavy|actor => <ansi fg="attack-bad">Defender tears your attempt apart word by word, and you fall silent.</ansi>
+melee|counter-defy|heavy|observer => <ansi fg="combat">Defender tears Attacker's attempt apart word by word, leaving them silent.</ansi>
+melee|counter-dodge|weak|actee => <ansi fg="defense-good">You lash out at the opening, but Attacker recovers in time.</ansi>
+melee|counter-dodge|weak|actor => <ansi fg="attack-bad">Defender lashes out at your opening, but you recover in time.</ansi>
+melee|counter-dodge|weak|observer => <ansi fg="combat">Defender lashes out at Attacker, who recovers in time.</ansi>
+melee|counter-dodge|normal|actee => <ansi fg="defense-good">You step into the opening and land a solid blow on Attacker.</ansi>
+melee|counter-dodge|normal|actor => <ansi fg="attack-bad">Defender steps into the opening and lands a solid blow on you.</ansi>
+melee|counter-dodge|normal|observer => <ansi fg="combat">Defender steps into the opening and lands a solid blow on Attacker.</ansi>
+melee|counter-dodge|heavy|actee => <ansi fg="defense-good">You slip inside Attacker's guard and strike with all your weight.</ansi>
+melee|counter-dodge|heavy|actor => <ansi fg="attack-bad">Defender slips inside your guard and strikes with all their weight.</ansi>
+melee|counter-dodge|heavy|observer => <ansi fg="combat">Defender slips inside Attacker's guard and strikes with full weight.</ansi>
+melee|counter-parry|weak|actee => <ansi fg="defense-good">You turn the weapon and cut back along it, but Attacker recovers in time.</ansi>
+melee|counter-parry|weak|actor => <ansi fg="attack-bad">Defender turns your weapon and cuts back along it, but you recover in time.</ansi>
+melee|counter-parry|weak|observer => <ansi fg="combat">Defender turns Attacker's weapon and cuts back along it, but Attacker recovers.</ansi>
+melee|counter-parry|normal|actee => <ansi fg="defense-good">You turn the weapon and cut back along it, opening Attacker's arm.</ansi>
+melee|counter-parry|normal|actor => <ansi fg="attack-bad">Defender turns your weapon and cuts back along it, opening your arm.</ansi>
+melee|counter-parry|normal|observer => <ansi fg="combat">Defender turns Attacker's weapon and cuts back along it, opening an arm.</ansi>
+melee|counter-parry|heavy|actee => <ansi fg="defense-good">You turn the weapon and cut back with everything, and Attacker reels.</ansi>
+melee|counter-parry|heavy|actor => <ansi fg="attack-bad">Defender turns your weapon and cuts back with everything, and you reel.</ansi>
+melee|counter-parry|heavy|observer => <ansi fg="combat">Defender turns Attacker's weapon and cuts back hard, and Attacker reels.</ansi>
 melee|counter-quell|weak|actee => <ansi fg="defense-good">You ground the working and lunge in, but Attacker wards your blow.</ansi>
 melee|counter-quell|weak|actor => <ansi fg="attack-bad">Defender grounds your working and lunges in, but you ward the blow.</ansi>
 melee|counter-quell|weak|observer => <ansi fg="combat">Defender grounds the working and lunges at Attacker, who wards the blow.</ansi>
@@ -138,15 +165,6 @@ melee|counter-quell|normal|observer => <ansi fg="combat">Defender grounds the la
 melee|counter-quell|heavy|actee => <ansi fg="defense-good">You put the working down and crash into Attacker at full force.</ansi>
 melee|counter-quell|heavy|actor => <ansi fg="attack-bad">Defender puts your working down and crashes into you at full force.</ansi>
 melee|counter-quell|heavy|observer => <ansi fg="combat">Defender puts the working down and crashes into Attacker.</ansi>
-melee|counter-ranged|weak|actee => <ansi fg="defense-good">You rush Attacker behind the wasted shot, but they hold you off.</ansi>
-melee|counter-ranged|weak|actor => <ansi fg="attack-bad">Defender rushes you behind your wasted shot, but you hold them off.</ansi>
-melee|counter-ranged|weak|observer => <ansi fg="combat">Defender rushes Attacker behind the wasted shot, but is held off.</ansi>
-melee|counter-ranged|normal|actee => <ansi fg="defense-good">You close the distance behind the wasted shot and strike Attacker.</ansi>
-melee|counter-ranged|normal|actor => <ansi fg="attack-bad">Defender closes the distance behind your wasted shot and strikes you.</ansi>
-melee|counter-ranged|normal|observer => <ansi fg="combat">Defender closes on Attacker behind the wasted shot and strikes.</ansi>
-melee|counter-ranged|heavy|actee => <ansi fg="defense-good">You are on Attacker before the shot's echo fades, striking hard.</ansi>
-melee|counter-ranged|heavy|actor => <ansi fg="attack-bad">Defender is on you before the shot's echo fades, striking hard.</ansi>
-melee|counter-ranged|heavy|observer => <ansi fg="combat">Defender is on Attacker before the shot's echo fades.</ansi>
 melee|defy|weak|actee => <ansi fg="defense-good">You defy Attacker's Strike, taking some of its sting.</ansi>
 melee|defy|weak|actor => <ansi fg="attack-bad">Defender defies your Strike, taking some of its sting.</ansi>
 melee|defy|weak|observer => <ansi fg="combat">Defender defies Attacker's Strike, taking some of its sting.</ansi>

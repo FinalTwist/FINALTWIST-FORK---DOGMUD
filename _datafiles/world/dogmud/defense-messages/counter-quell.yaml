@@ -1,8 +1,7 @@
-# Counter narration for the SPELL channels (U6b Task 11): a defensive crit
-# against a cast (a quell crit on a mental working, or a dodge or block crit
-# on a physical one) earns the defender a free counter-swing, read as putting
-# the working down and stepping in through the gap it leaves. Never a generic
-# riposte line pasted under a spell (the owner's hard requirement).
+# Counter narration for a QUELL crit (counters slice): the defender put a
+# mental working down and steps in through the gap it leaves. Quell answers
+# workings only, so every line here is about the spell failing. Never a
+# generic riposte line pasted under a spell (the owner's hard requirement).
 # {actee} is the COUNTERER; {actor} is the countered caster. Bands:
 # weak = the counter is turned aside (no damage), normal = the counter
 # lands, heavy = the counter crits. No 'fizzle' here: that word belongs to

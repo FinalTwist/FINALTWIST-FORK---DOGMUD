@@ -14,7 +14,7 @@ var (
 
 // DefencePool is the KEY of the defense-messages/ store: the five defence
 // pools, named from combatvocab.Defence so the files do not move, plus the
-// four counter pools. It is not a defence type; that vocabulary lives in
+// five counter pools. It is not a defence type; that vocabulary lives in
 // internal/combatvocab and this package only converts INTO its key.
 type DefencePool string
 
@@ -38,18 +38,19 @@ func CounterPoolFor(d combatvocab.Defence) DefencePool {
 }
 
 const (
-	// Counter-narration pools (U6b Task 11). Not defences: each is the
-	// narration for the counter EARNED by a defensive crit. They ride the same
-	// loader, shape, and validator as the defence pools. Band semantics
-	// differ: weak = the counter is turned aside (no damage), normal = the
-	// counter lands, heavy = the counter crits.
-	//
-	// Keyed by the ORIGINAL attack's type until the counters slice re-keys
-	// them to the defence that won.
-	CounterPoolMelee  DefencePool = "counter-melee"
-	CounterPoolRanged DefencePool = "counter-ranged"
-	CounterPoolQuell  DefencePool = "counter-quell"
-	CounterPoolDefy   DefencePool = "counter-defy"
+	// Counter-narration pools (U6b Task 11, re-keyed by the counters slice).
+	// Not defences: each is the narration for the counter EARNED by a
+	// defensive crit, named after the defence that won it, which is what
+	// CounterPoolFor computes. They ride the same loader, shape and
+	// validator as the defence pools. Band semantics differ: weak = the
+	// counter is turned aside (no damage), normal = the counter lands,
+	// heavy = the counter crits (or, for defy, the retort fails, lands,
+	// crits).
+	CounterPoolDodge DefencePool = "counter-dodge"
+	CounterPoolParry DefencePool = "counter-parry"
+	CounterPoolBlock DefencePool = "counter-block"
+	CounterPoolQuell DefencePool = "counter-quell"
+	CounterPoolDefy  DefencePool = "counter-defy"
 )
 
 type DefenseMessageGroup struct {

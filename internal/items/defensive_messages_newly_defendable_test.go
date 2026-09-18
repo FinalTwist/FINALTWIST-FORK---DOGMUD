@@ -148,7 +148,7 @@ func TestCounterPoolsRenderTriads(t *testing.T) {
 	LoadDataFiles()
 
 	counterPools := []DefencePool{
-		CounterPoolMelee, CounterPoolRanged, CounterPoolQuell, CounterPoolDefy,
+		CounterPoolDodge, CounterPoolParry, CounterPoolBlock, CounterPoolQuell, CounterPoolDefy,
 	}
 
 	bands := []struct {
@@ -235,7 +235,7 @@ func TestQuellFizzleFlavorLivesOnlyInTheHeavyBand(t *testing.T) {
 	LoadDataFiles()
 
 	allDefences := []DefencePool{DefencePoolFor(combatvocab.DefenceDodge), DefencePoolFor(combatvocab.DefenceParry), DefencePoolFor(combatvocab.DefenceBlock), DefencePoolFor(combatvocab.DefenceQuell), DefencePoolFor(combatvocab.DefenceDefy),
-		CounterPoolMelee, CounterPoolRanged, CounterPoolQuell, CounterPoolDefy}
+		CounterPoolDodge, CounterPoolParry, CounterPoolBlock, CounterPoolQuell, CounterPoolDefy}
 	fizzleFound := false
 	for _, defence := range allDefences {
 		group := defenseMessages[defence]

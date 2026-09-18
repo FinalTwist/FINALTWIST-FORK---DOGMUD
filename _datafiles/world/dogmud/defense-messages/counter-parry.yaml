@@ -1,0 +1,68 @@
+# Counter narration for a PARRY crit (counters slice): the defender turned
+# the weapon and answers back along it. Parry may answer melee only, so
+# every line here is steel on steel. {actee} is the COUNTERER (whose parry
+# critted); {actor} is the countered attacker. Bands: weak = the counter is
+# turned aside (no damage), normal = the counter lands, heavy = the counter
+# crits.
+optionid: counter-parry
+options:
+  weak:
+    together:
+      actee:
+      - '<ansi fg="defense-good">You turn the weapon and cut back along it, but {actor} recovers in time.</ansi>'
+      - '<ansi fg="defense-good">You slide your weapon down {actor}''s and thrust, but they twist clear.</ansi>'
+      - '<ansi fg="defense-good">You beat {actor}''s weapon aside and lunge, but the lunge finds nothing.</ansi>'
+      - '<ansi fg="defense-good">You bind {actor}''s blade and strike over it, but they duck the answer.</ansi>'
+      - '<ansi fg="defense-good">Your answering cut follows the parry, but {actor} pulls their guard back.</ansi>'
+      actor:
+      - '<ansi fg="attack-bad">{actee} turns your weapon and cuts back along it, but you recover in time.</ansi>'
+      - '<ansi fg="attack-bad">{actee} slides a weapon down yours and thrusts, but you twist clear.</ansi>'
+      - '<ansi fg="attack-bad">{actee} beats your weapon aside and lunges, but the lunge finds nothing.</ansi>'
+      - '<ansi fg="attack-bad">{actee} binds your blade and strikes over it, but you duck the answer.</ansi>'
+      - '<ansi fg="attack-bad">{actee}''s answering cut follows the parry, but you pull your guard back.</ansi>'
+      observer:
+      - '<ansi fg="combat">{actee} turns {actor}''s weapon and cuts back along it, but {actor} recovers.</ansi>'
+      - '<ansi fg="combat">{actee} slides a weapon down {actor}''s and thrusts, but {actor} twists away.</ansi>'
+      - '<ansi fg="combat">{actee} beats {actor}''s weapon aside and lunges, but the lunge finds air.</ansi>'
+      - '<ansi fg="combat">{actee} binds {actor}''s blade and strikes over it, but {actor} ducks.</ansi>'
+      - '<ansi fg="combat">{actee}''s answering cut follows the parry, but {actor} pulls back in time.</ansi>'
+  normal:
+    together:
+      actee:
+      - '<ansi fg="defense-good">You turn the weapon and cut back along it, opening {actor}''s arm.</ansi>'
+      - '<ansi fg="defense-good">You slide your weapon down {actor}''s and drive the point home.</ansi>'
+      - '<ansi fg="defense-good">You beat {actor}''s weapon aside and land a clean cut.</ansi>'
+      - '<ansi fg="defense-good">You bind {actor}''s blade, step in, and strike over the lock.</ansi>'
+      - '<ansi fg="defense-good">Your answering cut follows the parry and finds {actor}.</ansi>'
+      actor:
+      - '<ansi fg="attack-bad">{actee} turns your weapon and cuts back along it, opening your arm.</ansi>'
+      - '<ansi fg="attack-bad">{actee} slides a weapon down yours and drives the point home.</ansi>'
+      - '<ansi fg="attack-bad">{actee} beats your weapon aside and lands a clean cut.</ansi>'
+      - '<ansi fg="attack-bad">{actee} binds your blade, steps in, and strikes over the lock.</ansi>'
+      - '<ansi fg="attack-bad">{actee}''s answering cut follows the parry and finds you.</ansi>'
+      observer:
+      - '<ansi fg="combat">{actee} turns {actor}''s weapon and cuts back along it, opening an arm.</ansi>'
+      - '<ansi fg="combat">{actee} slides a weapon down {actor}''s and drives the point home.</ansi>'
+      - '<ansi fg="combat">{actee} beats {actor}''s weapon aside and lands a clean cut.</ansi>'
+      - '<ansi fg="combat">{actee} binds {actor}''s blade, steps in, and strikes over the lock.</ansi>'
+      - '<ansi fg="combat">{actee}''s answering cut follows the parry and finds {actor}.</ansi>'
+  heavy:
+    together:
+      actee:
+      - '<ansi fg="defense-good">You turn the weapon and cut back with everything, and {actor} reels.</ansi>'
+      - '<ansi fg="defense-good">You throw {actor}''s weapon wide and drive yours deep into the gap.</ansi>'
+      - '<ansi fg="defense-good">You catch the blade, roll it aside, and strike {actor} full on.</ansi>'
+      - '<ansi fg="defense-good">Your parry becomes a strike in one motion, and {actor} staggers.</ansi>'
+      - '<ansi fg="defense-good">You read the swing early and answer it hard, and {actor} buckles.</ansi>'
+      actor:
+      - '<ansi fg="attack-bad">{actee} turns your weapon and cuts back with everything, and you reel.</ansi>'
+      - '<ansi fg="attack-bad">{actee} throws your weapon wide and drives theirs deep into the gap.</ansi>'
+      - '<ansi fg="attack-bad">{actee} catches your blade, rolls it aside, and strikes you full on.</ansi>'
+      - '<ansi fg="attack-bad">{actee}''s parry becomes a strike in one motion, and you stagger.</ansi>'
+      - '<ansi fg="attack-bad">{actee} reads your swing early and answers it hard, and you buckle.</ansi>'
+      observer:
+      - '<ansi fg="combat">{actee} turns {actor}''s weapon and cuts back hard, and {actor} reels.</ansi>'
+      - '<ansi fg="combat">{actee} throws {actor}''s weapon wide and drives a blade deep into the gap.</ansi>'
+      - '<ansi fg="combat">{actee} catches {actor}''s blade, rolls it aside, and strikes full on.</ansi>'
+      - '<ansi fg="combat">{actee}''s parry becomes a strike in one motion, and {actor} staggers.</ansi>'
+      - '<ansi fg="combat">{actee} reads the swing early and answers hard, and {actor} buckles.</ansi>'

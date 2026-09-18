@@ -1,5 +1,13 @@
 # DOGMud Patch Notes
 
+## 2026-09-18: Your counter reads like your defence
+
+When a decisive parry, block or sidestep earns you a free answer, the
+answer now describes what you did. A parry turns the weapon and cuts back
+along it. A block drives in from behind the guard. A sidestep steps into
+the opening. Before, all three read the same. Shrugging off a working or
+mocking a failed charm or taunt keep their own voices.
+
 ## 2026-09-18: Words are answered with words
 
 Shrug off a charm decisively and you now mock the attempt instead of
