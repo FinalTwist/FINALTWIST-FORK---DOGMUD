@@ -24,6 +24,19 @@ func DefencePoolFor(d combatvocab.Defence) DefencePool {
 	return DefencePool(d)
 }
 
+// CounterPoolFor names the pool that narrates the counter EARNED by a
+// defensive crit on d: the defence's own name under a counter- prefix, so a
+// parry crit reads as a parry answered, a block crit as a block answered.
+// DefenceNone maps to the empty pool, which RenderDefenseMessage answers
+// with an empty triad; internal/combat then falls back to its generic
+// counter lines, so the tier never goes silent.
+func CounterPoolFor(d combatvocab.Defence) DefencePool {
+	if d == combatvocab.DefenceNone {
+		return ""
+	}
+	return DefencePool("counter-" + string(d))
+}
+
 const (
 	// Counter-narration pools (U6b Task 11). Not defences: each is the
 	// narration for the counter EARNED by a defensive crit. They ride the same
