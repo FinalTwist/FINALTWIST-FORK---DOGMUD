@@ -108,10 +108,10 @@ func TestShippedNarrationDataValidates(t *testing.T) {
 	})
 
 	t.Run("defence", func(t *testing.T) {
-		// Keyed by items.DefenseType, exactly as items.LoadDataFiles keys it.
+		// Keyed by items.DefencePool, exactly as items.LoadDataFiles keys it.
 		// Instantiating the same generic with the same key type is what keeps
 		// the guard from reading a normalised variant of production's index.
-		checkFlatStore[items.DefenseType, *items.DefenseMessageGroup](t, "defense-messages", shippedWorldRoot+"/defense-messages")
+		checkFlatStore[items.DefencePool, *items.DefenseMessageGroup](t, "defense-messages", shippedWorldRoot+"/defense-messages")
 	})
 
 	t.Run("combat_messages", func(t *testing.T) {

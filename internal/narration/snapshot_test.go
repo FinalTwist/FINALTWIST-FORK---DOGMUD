@@ -512,7 +512,7 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 
 	for _, dt := range types {
 		for _, band := range bands {
-			triad := items.RenderDefenseMessage(items.DefenseType(dt), band.crit, band.margin, defenseStandins, 0)
+			triad := items.RenderDefenseMessage(items.DefencePool(dt), band.crit, band.margin, defenseStandins, 0)
 			fmt.Fprintf(&b, "%s|%s|actee => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
 			fmt.Fprintf(&b, "%s|%s|actor => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
 			fmt.Fprintf(&b, "%s|%s|observer => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToRoom)))
@@ -521,7 +521,7 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 
 	// EMPTY CASE: an unregistered defense type returns an all-empty triad.
 	fmt.Fprintf(&b, "\n# EMPTY CASE: unregistered defense type -> empty triad\n")
-	emptyTriad := items.RenderDefenseMessage(items.DefenseType("nonexistent-defense-type"), false, 0.6, defenseStandins, 0)
+	emptyTriad := items.RenderDefenseMessage(items.DefencePool("nonexistent-defense-type"), false, 0.6, defenseStandins, 0)
 	fmt.Fprintf(&b, "nonexistent-defense-type|normal|actee => %q\n", string(emptyTriad.ToDefender))
 	fmt.Fprintf(&b, "nonexistent-defense-type|normal|actor => %q\n", string(emptyTriad.ToAttacker))
 	fmt.Fprintf(&b, "nonexistent-defense-type|normal|observer => %q\n", string(emptyTriad.ToRoom))
@@ -542,7 +542,7 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 	}
 	for _, dt := range types {
 		for _, band := range meleeBands {
-			options := items.GetDefenseMessage(items.DefenseType(dt), band.zScore)
+			options := items.GetDefenseMessage(items.DefencePool(dt), band.zScore)
 			triad := options.RenderTriad(defenseStandins, narration.SequencePicker())
 			fmt.Fprintf(&b, "melee|%s|%s|actee => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
 			fmt.Fprintf(&b, "melee|%s|%s|actor => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
@@ -552,7 +552,7 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 
 	// EMPTY CASE (melee seam): an unregistered defense type.
 	fmt.Fprintf(&b, "\n# EMPTY CASE (melee seam): unregistered defense type -> empty triad\n")
-	emptyMeleeTriad := items.GetDefenseMessage(items.DefenseType("nonexistent-defense-type"), 0.6).RenderTriad(defenseStandins, narration.SequencePicker())
+	emptyMeleeTriad := items.GetDefenseMessage(items.DefencePool("nonexistent-defense-type"), 0.6).RenderTriad(defenseStandins, narration.SequencePicker())
 	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|actee => %q\n", string(emptyMeleeTriad.ToDefender))
 	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|actor => %q\n", string(emptyMeleeTriad.ToAttacker))
 	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|observer => %q\n", string(emptyMeleeTriad.ToRoom))

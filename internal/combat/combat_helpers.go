@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
@@ -1273,17 +1274,17 @@ func sendDefenseMessages(result *AttackResult, best bestDefenseResult, sourceCha
 	result.DefenseUsed = DefenseType(best.defenseType)
 
 	var defenseVerb string
-	var itemsDefenseType items.DefenseType
+	var itemsDefencePool items.DefencePool
 	switch best.defenseType {
 	case characters.DefenseDodge:
 		defenseVerb = "dodge"
-		itemsDefenseType = items.DefenseDodge
+		itemsDefencePool = items.DefencePoolFor(combatvocab.DefenceDodge)
 	case characters.DefenseParry:
 		defenseVerb = "parry"
-		itemsDefenseType = items.DefenseParry
+		itemsDefencePool = items.DefencePoolFor(combatvocab.DefenceParry)
 	case characters.DefenseBlock:
 		defenseVerb = "block"
-		itemsDefenseType = items.DefenseBlock
+		itemsDefencePool = items.DefencePoolFor(combatvocab.DefenceBlock)
 	}
 
 	// The generic fallback text below formats as "%s %ss your attack!", so an
@@ -1306,7 +1307,7 @@ func sendDefenseMessages(result *AttackResult, best bestDefenseResult, sourceCha
 	// function and should not carry a progression side effect at all.
 
 	// Get narrative defense messages based on defense z-score
-	defenseMsgs := items.GetDefenseMessage(itemsDefenseType, best.defRoll.ZScore)
+	defenseMsgs := items.GetDefenseMessage(itemsDefencePool, best.defRoll.ZScore)
 
 	// Prepare token replacements
 	weaponName := "fists"

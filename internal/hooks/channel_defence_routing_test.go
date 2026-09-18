@@ -12,6 +12,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -117,9 +118,9 @@ func seedChannelRoutingMessages(t *testing.T) func() {
 			ToRoom:     messages("room"),
 		}}
 	}
-	groups := make(map[items.DefenseType]*items.DefenseMessageGroup)
-	for _, defenceType := range []items.DefenseType{
-		items.DefenseQuell, items.DefenseDodge, items.DefenseBlock,
+	groups := make(map[items.DefencePool]*items.DefenseMessageGroup)
+	for _, defenceType := range []items.DefencePool{
+		items.DefencePoolFor(combatvocab.DefenceQuell), items.DefencePoolFor(combatvocab.DefenceDodge), items.DefencePoolFor(combatvocab.DefenceBlock),
 	} {
 		groups[defenceType] = &items.DefenseMessageGroup{
 			OptionId: defenceType,

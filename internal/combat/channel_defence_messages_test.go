@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/items"
 )
 
@@ -18,13 +19,13 @@ func channelMessageFixture() *items.DefenseMessageGroup {
 			ToRoom:     items.MessageOptions{message("room", "0"), message("room", "1"), message("room", "2"), message("room", "3"), message("room", "4")},
 		}}
 	}
-	return &items.DefenseMessageGroup{OptionId: items.DefenseQuell, Options: items.DefenseIntensity{
+	return &items.DefenseMessageGroup{OptionId: items.DefencePoolFor(combatvocab.DefenceQuell), Options: items.DefenseIntensity{
 		items.Weak: mk("weak"), items.Normal: mk("normal"), items.Heavy: mk("heavy"),
 	}}
 }
 
 func TestChannelDefenceMessagesUsesCanonicalOutcomeWithoutRerolling(t *testing.T) {
-	restore := items.SeedDefenseMessagesForTest(map[items.DefenseType]*items.DefenseMessageGroup{items.DefenseQuell: channelMessageFixture()})
+	restore := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{items.DefencePoolFor(combatvocab.DefenceQuell): channelMessageFixture()})
 	defer restore()
 
 	tests := []struct {

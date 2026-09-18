@@ -299,8 +299,8 @@ func TestCounterTaunt_RetortNarratesToThePlayerTaunter(t *testing.T) {
 	pinTauntCollapseKnobs(t)
 	pinActionsCounterKnob(t, 0.5)
 
-	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefenseType]*items.DefenseMessageGroup{
-		items.DefenseCounterDefy: counterRetortMessageFixture(),
+	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
+		items.CounterPoolDefy: counterRetortMessageFixture(),
 	})
 	defer restoreMessages()
 
@@ -359,7 +359,7 @@ func counterRetortMessageFixture() *items.DefenseMessageGroup {
 			ToRoom:     messages("room"),
 		}}
 	}
-	return &items.DefenseMessageGroup{OptionId: items.DefenseCounterDefy, Options: items.DefenseIntensity{
+	return &items.DefenseMessageGroup{OptionId: items.CounterPoolDefy, Options: items.DefenseIntensity{
 		items.Weak: mk("weak"), items.Normal: mk("normal"), items.Heavy: mk("heavy"),
 	}}
 }

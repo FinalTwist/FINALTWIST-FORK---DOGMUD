@@ -4,37 +4,43 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/narration"
 )
 
 var (
-	defenseMessages map[DefenseType]*DefenseMessageGroup = map[DefenseType]*DefenseMessageGroup{}
+	defenseMessages map[DefencePool]*DefenseMessageGroup = map[DefencePool]*DefenseMessageGroup{}
 )
 
-// DefenseType identifies the type of defensive action
-type DefenseType string
+// DefencePool is the KEY of the defense-messages/ store: the five defence
+// pools, named from combatvocab.Defence so the files do not move, plus the
+// four counter pools. It is not a defence type; that vocabulary lives in
+// internal/combatvocab and this package only converts INTO its key.
+type DefencePool string
+
+// DefencePoolFor names the pool that narrates a defence. DefenceNone maps to
+// the empty pool, which RenderDefenseMessage answers with an empty triad.
+func DefencePoolFor(d combatvocab.Defence) DefencePool {
+	return DefencePool(d)
+}
 
 const (
-	DefenseDodge DefenseType = "dodge"
-	DefenseParry DefenseType = "parry"
-	DefenseBlock DefenseType = "block"
-	DefenseQuell DefenseType = "quell"
-	DefenseDefy  DefenseType = "defy"
-
-	// Counter-narration pools (U6b Task 11). Not defences themselves: each is
-	// the channel-correct narration for the counter EARNED by a defensive
-	// crit on that channel. They ride the same loader, shape, and validator
-	// as the defence pools. Band semantics differ from the defence pools:
-	// weak = the counter is turned aside (no damage), normal = the counter
-	// lands, heavy = the counter crits.
-	DefenseCounterMelee  DefenseType = "counter-melee"
-	DefenseCounterRanged DefenseType = "counter-ranged"
-	DefenseCounterQuell  DefenseType = "counter-quell"
-	DefenseCounterDefy   DefenseType = "counter-defy"
+	// Counter-narration pools (U6b Task 11). Not defences: each is the
+	// narration for the counter EARNED by a defensive crit. They ride the same
+	// loader, shape, and validator as the defence pools. Band semantics
+	// differ: weak = the counter is turned aside (no damage), normal = the
+	// counter lands, heavy = the counter crits.
+	//
+	// Keyed by the ORIGINAL attack's type until the counters slice re-keys
+	// them to the defence that won.
+	CounterPoolMelee  DefencePool = "counter-melee"
+	CounterPoolRanged DefencePool = "counter-ranged"
+	CounterPoolQuell  DefencePool = "counter-quell"
+	CounterPoolDefy   DefencePool = "counter-defy"
 )
 
 type DefenseMessageGroup struct {
-	OptionId DefenseType      `yaml:"optionid"`
+	OptionId DefencePool      `yaml:"optionid"`
 	Options  DefenseIntensity `yaml:"options"`
 }
 
@@ -64,7 +70,7 @@ type DefenseMessageTriad struct {
 }
 
 // Presumably to ensure the datafile hasn't messed something up.
-func (d *DefenseMessageGroup) Id() DefenseType {
+func (d *DefenseMessageGroup) Id() DefencePool {
 	return d.OptionId
 }
 
@@ -112,7 +118,7 @@ func (d *DefenseMessageGroup) Validate() error {
 // coordinated defender/attacker/room triad. Defensive crits alone use Heavy;
 // ordinary defensive wins cap at Normal because they still let an effect
 // through. An optional index is accepted for deterministic tests.
-func RenderDefenseMessage(defenseType DefenseType, defensiveCrit bool, normalizedDefenceMargin float64, tokenReplacements map[TokenName]string, indexOverride ...int) DefenseMessageTriad {
+func RenderDefenseMessage(defenseType DefencePool, defensiveCrit bool, normalizedDefenceMargin float64, tokenReplacements map[TokenName]string, indexOverride ...int) DefenseMessageTriad {
 	intensity := Weak
 	if defensiveCrit {
 		intensity = Heavy
@@ -201,7 +207,7 @@ func (d *DefenseMessageGroup) Filepath() string {
 }
 
 // GetDefenseMessage returns the appropriate defense message based on defense type and intensity
-func GetDefenseMessage(defenseType DefenseType, zScore float64) DefenseOptions {
+func GetDefenseMessage(defenseType DefencePool, zScore float64) DefenseOptions {
 
 	var intensity Intensity
 	// Map z-score to intensity:

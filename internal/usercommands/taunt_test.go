@@ -14,6 +14,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -40,9 +41,9 @@ func seedTauntRuntimeMessages(t *testing.T) func() {
 			ToDefender: messages("defender"), ToAttacker: messages("attacker"), ToRoom: messages("room"),
 		}}
 	}
-	return items.SeedDefenseMessagesForTest(map[items.DefenseType]*items.DefenseMessageGroup{
-		items.DefenseDefy: {
-			OptionId: items.DefenseDefy,
+	return items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
+		items.DefencePoolFor(combatvocab.DefenceDefy): {
+			OptionId: items.DefencePoolFor(combatvocab.DefenceDefy),
 			Options: items.DefenseIntensity{
 				items.Weak: mk("weak"), items.Normal: mk("normal"), items.Heavy: mk("heavy"),
 			},

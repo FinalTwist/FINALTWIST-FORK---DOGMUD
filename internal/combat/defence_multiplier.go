@@ -295,7 +295,7 @@ func RenderChannelDefenceMessages(out ChannelDefenceResult, identities ChannelDe
 	if !out.Defended {
 		return items.DefenseMessageTriad{}
 	}
-	triad := items.RenderDefenseMessage(items.DefenseType(out.DefenceType), out.DefensiveCrit, out.NormalizedDefenceMargin, map[items.TokenName]string{
+	triad := items.RenderDefenseMessage(items.DefencePool(out.DefenceType), out.DefensiveCrit, out.NormalizedDefenceMargin, map[items.TokenName]string{
 		items.TokenActor:  identities.Attacker,
 		items.TokenActee:  identities.Defender,
 		items.TokenAttack: attack,
@@ -330,7 +330,7 @@ var (
 //
 // WHY THIS EXISTS. The failure is otherwise invisible to DEVELOPERS as well as
 // to players. The pool lookup is a raw string cast,
-// items.DefenseType(out.DefenceType), so a renamed or unauthored defence type
+// items.DefencePool(out.DefenceType), so a renamed or unauthored defence type
 // resolves to nil at runtime with no compile error, no panic and no boot
 // warning. Before the generic fallback above, the only symptom was a player
 // noticing that a spell had gone quiet.
@@ -366,7 +366,7 @@ func logMissingDefencePool(defenceType string) {
 // empty room line discarded the attacker's and defender's lines along with it.
 // The mechanics still resolved, which meant a player watched a spell simply stop
 // happening -- reported from play on 2026-08-31. The pool lookup is a raw string
-// cast, items.DefenseType(out.DefenceType), so one rename silences a channel.
+// cast, items.DefencePool(out.DefenceType), so one rename silences a channel.
 //
 // Deliberately plain: it names who, whom and what, and nothing else. A data gap
 // should cost flavour, never silence. This mirrors what counter.go already does

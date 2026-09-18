@@ -282,7 +282,7 @@ func TestResolveDefenseOutcome_DamageMultOnEveryPath(t *testing.T) {
 // attacker and defender lines along with it. The mechanics still resolved, so
 // from the player's seat a spell simply stopped happening.
 //
-// The pool lookup is a raw string cast, items.DefenseType(out.DefenceType),
+// The pool lookup is a raw string cast, items.DefencePool(out.DefenceType),
 // which compiles for any string and yields nil for one with no authored pool.
 // So a single rename is enough to silence a whole channel.
 func TestRenderChannelDefenceMessages_UnknownPoolFallsBackToGenericText(t *testing.T) {

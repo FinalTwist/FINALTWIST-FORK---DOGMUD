@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 )
@@ -30,7 +31,7 @@ func TestDefenseMessageValidRepositoryPoolsLoadThroughRealLoader(t *testing.T) {
 	configs.SetConfigForTest(t, cfg)
 
 	LoadDataFiles()
-	for _, defenseType := range []DefenseType{DefenseQuell, DefenseDefy} {
+	for _, defenseType := range []DefencePool{DefencePoolFor(combatvocab.DefenceQuell), DefencePoolFor(combatvocab.DefenceDefy)} {
 		group := defenseMessages[defenseType]
 		if group == nil {
 			t.Fatalf("real loader did not load %q", defenseType)
@@ -55,7 +56,7 @@ func TestDefenseMessageRepositoryPoolsKeepPartialAndKnockdownWordingTruthful(t *
 	t.Cleanup(func() { items, attackMessages, defenseMessages = originalItems, originalAttack, originalDefense })
 	LoadDataFiles()
 
-	for _, defenseType := range []DefenseType{DefenseQuell, DefenseDefy} {
+	for _, defenseType := range []DefencePool{DefencePoolFor(combatvocab.DefenceQuell), DefencePoolFor(combatvocab.DefenceDefy)} {
 		group := defenseMessages[defenseType]
 		for _, band := range []Intensity{Weak, Normal} {
 			options := group.Options[band].Together
@@ -77,11 +78,11 @@ func TestDefenseMessageRepositoryPoolsKeepPartialAndKnockdownWordingTruthful(t *
 		}
 	}
 
-	quellHeavy := defenseMessages[DefenseQuell].Options[Heavy].Together
-	defyHeavy := defenseMessages[DefenseDefy].Options[Heavy].Together
-	for defenseType, together := range map[DefenseType]DefenseTogetherMessages{
-		DefenseQuell: quellHeavy,
-		DefenseDefy:  defyHeavy,
+	quellHeavy := defenseMessages[DefencePoolFor(combatvocab.DefenceQuell)].Options[Heavy].Together
+	defyHeavy := defenseMessages[DefencePoolFor(combatvocab.DefenceDefy)].Options[Heavy].Together
+	for defenseType, together := range map[DefencePool]DefenseTogetherMessages{
+		DefencePoolFor(combatvocab.DefenceQuell): quellHeavy,
+		DefencePoolFor(combatvocab.DefenceDefy):  defyHeavy,
 	} {
 		for audience, messages := range map[string]MessageOptions{
 			"defender": together.ToDefender, "attacker": together.ToAttacker, "room": together.ToRoom,

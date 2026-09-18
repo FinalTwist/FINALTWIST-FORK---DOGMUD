@@ -14,18 +14,18 @@ import (
 // Without a case it would fall through to the physical melee pool and a mob
 // would answer a charm with a sword-swing narration.
 func TestCounterPoolFor_SocialUsesTheDefyPool(t *testing.T) {
-	if got := counterPoolFor(ChannelSocial); got != items.DefenseCounterDefy {
+	if got := counterPoolFor(ChannelSocial); got != items.CounterPoolDefy {
 		t.Errorf("counterPoolFor(ChannelSocial) = %v, want %v (not the physical fallthrough)",
-			got, items.DefenseCounterDefy)
+			got, items.CounterPoolDefy)
 	}
 }
 
 func TestCounterPoolFor_OtherChannelsUnchanged(t *testing.T) {
-	cases := map[AttackChannel]items.DefenseType{
-		ChannelRanged:        items.DefenseCounterRanged,
-		ChannelSpellPhysical: items.DefenseCounterQuell,
-		ChannelSpellMental:   items.DefenseCounterQuell,
-		ChannelMelee:         items.DefenseCounterMelee,
+	cases := map[AttackChannel]items.DefencePool{
+		ChannelRanged:        items.CounterPoolRanged,
+		ChannelSpellPhysical: items.CounterPoolQuell,
+		ChannelSpellMental:   items.CounterPoolQuell,
+		ChannelMelee:         items.CounterPoolMelee,
 	}
 	for channel, want := range cases {
 		if got := counterPoolFor(channel); got != want {

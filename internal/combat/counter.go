@@ -158,16 +158,16 @@ const counterPrefix = `<ansi fg="cyan-bold">⚔ COUNTER!</ansi> `
 // every channel, and the channel selects narration only -- so this makes the
 // prose honest, not the mechanics social. Giving social attacks a genuinely
 // social counter is a larger change than U10c's plumbing slice.
-func counterPoolFor(channel AttackChannel) items.DefenseType {
+func counterPoolFor(channel AttackChannel) items.DefencePool {
 	switch channel {
 	case ChannelRanged:
-		return items.DefenseCounterRanged
+		return items.CounterPoolRanged
 	case ChannelSpellPhysical, ChannelSpellMental:
-		return items.DefenseCounterQuell
+		return items.CounterPoolQuell
 	case ChannelSocial:
-		return items.DefenseCounterDefy
+		return items.CounterPoolDefy
 	default:
-		return items.DefenseCounterMelee
+		return items.CounterPoolMelee
 	}
 }
 
@@ -249,7 +249,7 @@ const retortPrefix = `<ansi fg="cyan-bold">⚔ RETORT!</ansi> `
 // retort lines when the pool is not loaded.
 func BuildCounterTauntMessages(countererName, taunterName string, crit bool, damage, taunterMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
 	bandCrit, bandMargin := counterBand(crit, damage)
-	triad := items.RenderDefenseMessage(items.DefenseCounterDefy, bandCrit, bandMargin,
+	triad := items.RenderDefenseMessage(items.CounterPoolDefy, bandCrit, bandMargin,
 		map[items.TokenName]string{
 			items.TokenActor: taunterName,
 			items.TokenActee: countererName,

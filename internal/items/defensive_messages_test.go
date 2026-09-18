@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/narration"
 )
 
@@ -18,7 +19,7 @@ func validDefenseMessageGroup() *DefenseMessageGroup {
 			ToRoom:     MessageOptions{ItemMessage(prefix + "-room-0"), ItemMessage(prefix + "-room-1"), ItemMessage(prefix + "-room-2"), ItemMessage(prefix + "-room-3"), ItemMessage(prefix + "-room-4")},
 		}}
 	}
-	return &DefenseMessageGroup{OptionId: DefenseQuell, Options: options}
+	return &DefenseMessageGroup{OptionId: DefencePoolFor(combatvocab.DefenceQuell), Options: options}
 }
 
 func TestDefenseMessageValidAcceptsFiveCoordinatedVariantsPerBand(t *testing.T) {
@@ -71,7 +72,7 @@ func TestDefenseMessageValidRejectsInvalidAudienceShapes(t *testing.T) {
 }
 
 func TestDefenseMessageRenderCoordinatesAudienceIndexAndBands(t *testing.T) {
-	restore := SeedDefenseMessagesForTest(map[DefenseType]*DefenseMessageGroup{DefenseQuell: validDefenseMessageGroup()})
+	restore := SeedDefenseMessagesForTest(map[DefencePool]*DefenseMessageGroup{DefencePoolFor(combatvocab.DefenceQuell): validDefenseMessageGroup()})
 	defer restore()
 
 	tests := []struct {
@@ -87,7 +88,7 @@ func TestDefenseMessageRenderCoordinatesAudienceIndexAndBands(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			triad := RenderDefenseMessage(DefenseQuell, tc.crit, tc.margin, map[TokenName]string{}, 3)
+			triad := RenderDefenseMessage(DefencePoolFor(combatvocab.DefenceQuell), tc.crit, tc.margin, map[TokenName]string{}, 3)
 			want := tc.wantIntensity + "-def-3"
 			if string(triad.ToDefender) != want {
 				t.Fatalf("defender = %q, want %q", triad.ToDefender, want)
@@ -106,10 +107,10 @@ func TestDefenseMessageRenderReplacesTokensAfterCoordinatedSelection(t *testing.
 	o.Together.ToAttacker[2] = "{actor}|{actee}|{attack}"
 	o.Together.ToRoom[2] = "{attack}|{actor}|{actee}"
 	group.Options[Weak] = o
-	restore := SeedDefenseMessagesForTest(map[DefenseType]*DefenseMessageGroup{DefenseQuell: group})
+	restore := SeedDefenseMessagesForTest(map[DefencePool]*DefenseMessageGroup{DefencePoolFor(combatvocab.DefenceQuell): group})
 	defer restore()
 
-	triad := RenderDefenseMessage(DefenseQuell, false, 0.1, map[TokenName]string{
+	triad := RenderDefenseMessage(DefencePoolFor(combatvocab.DefenceQuell), false, 0.1, map[TokenName]string{
 		TokenActee: "Selka", TokenActor: "Rurik", TokenAttack: "Mind Fog",
 	}, 2)
 	if triad.ToDefender != "Selka|Rurik|Mind Fog" || triad.ToAttacker != "Rurik|Selka|Mind Fog" || triad.ToRoom != "Mind Fog|Rurik|Selka" {

@@ -355,7 +355,7 @@ compile error**. Audited 2026-08-15; Task 12 status against each, worst first.
    empty for an unmatched defence, but both are now guarded: the progression
    call is skipped rather than rolling `TrackSkillUse("")` and banner-ing a
    nameless levelup, and the verb falls back to `"counter"` rather than
-   formatting `"Grimwald s your attack!"`. `itemsDefenseType` deliberately still
+   formatting `"Grimwald s your attack!"`. `itemsDefencePool` deliberately still
    falls through to the zero value, which `items.GetDefenseMessage` already
    handles by returning an empty set.
 3. **The cost path is stamina-only.** **FIXED.**
@@ -389,10 +389,11 @@ compile error**. Audited 2026-08-15; Task 12 status against each, worst first.
    `ExecuteCounter` (or the defy counter-taunt in `internal/actions`), so
    every channel's decisive defence earns its answering move. See
    `counter.go` in the file table.
-7. **The message enum now recognizes all five defences.** `items.DefenseType`
-   includes quell and defy so channel outcomes can select their data pools.
-   `combat.DefenseType` remains the three-valued melee `AttackResult` enum;
-   channel resolution returns `ChannelDefenceResult` instead.
+7. **The message enum now recognizes all five defences.** `items.DefencePool`
+   (renamed from `items.DefenseType` in M4b-2; it is a store key, not a defence
+   type) includes quell and defy so channel outcomes can select their data
+   pools. `combat.DefenseType` remains the three-valued melee `AttackResult`
+   enum; channel resolution returns `ChannelDefenceResult` instead.
 8. **`PowerScore` averages three defences.** **DEFERRED.** `calculations.go`
    computes `(dodge + parry + block) / 3.0`, under-weighting a character built on
    mental or social defence (feeds `modules/leaderboards`).

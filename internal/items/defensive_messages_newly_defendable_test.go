@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 )
@@ -35,12 +36,12 @@ func TestNewlyDefendableAttackNamesRenderTriads(t *testing.T) {
 	// grenades; physical spells reach dodge/block; mental spells reach
 	// quell; taunts reach defy. Attack names are the exact strings the
 	// converted call sites pass to RenderChannelDefenceMessages.
-	meleeDefences := []DefenseType{DefenseDodge, DefenseParry, DefenseBlock}
-	rangedDefences := []DefenseType{DefenseDodge, DefenseBlock}
+	meleeDefences := []DefencePool{DefencePoolFor(combatvocab.DefenceDodge), DefencePoolFor(combatvocab.DefenceParry), DefencePoolFor(combatvocab.DefenceBlock)}
+	rangedDefences := []DefencePool{DefencePoolFor(combatvocab.DefenceDodge), DefencePoolFor(combatvocab.DefenceBlock)}
 
 	cases := []struct {
 		attack   string
-		defences []DefenseType
+		defences []DefencePool
 	}{
 		{"shield bash", meleeDefences},
 		{"crushing slam", meleeDefences},
@@ -61,8 +62,8 @@ func TestNewlyDefendableAttackNamesRenderTriads(t *testing.T) {
 		{"firebomb", rangedDefences},
 		// Spell/taunt exemplars: a spell name must read naturally through
 		// the mental and physical-spell defence pools, a taunt through defy.
-		{"Mind Fog", []DefenseType{DefenseQuell, DefenseDodge, DefenseBlock}},
-		{"taunt", []DefenseType{DefenseDefy}},
+		{"Mind Fog", []DefencePool{DefencePoolFor(combatvocab.DefenceQuell), DefencePoolFor(combatvocab.DefenceDodge), DefencePoolFor(combatvocab.DefenceBlock)}},
+		{"taunt", []DefencePool{DefencePoolFor(combatvocab.DefenceDefy)}},
 	}
 
 	bands := []struct {
@@ -146,8 +147,8 @@ func TestCounterPoolsRenderTriads(t *testing.T) {
 	configs.SetConfigForTest(t, cfg)
 	LoadDataFiles()
 
-	counterPools := []DefenseType{
-		DefenseCounterMelee, DefenseCounterRanged, DefenseCounterQuell, DefenseCounterDefy,
+	counterPools := []DefencePool{
+		CounterPoolMelee, CounterPoolRanged, CounterPoolQuell, CounterPoolDefy,
 	}
 
 	bands := []struct {
@@ -233,8 +234,8 @@ func TestQuellFizzleFlavorLivesOnlyInTheHeavyBand(t *testing.T) {
 	configs.SetConfigForTest(t, cfg)
 	LoadDataFiles()
 
-	allDefences := []DefenseType{DefenseDodge, DefenseParry, DefenseBlock, DefenseQuell, DefenseDefy,
-		DefenseCounterMelee, DefenseCounterRanged, DefenseCounterQuell, DefenseCounterDefy}
+	allDefences := []DefencePool{DefencePoolFor(combatvocab.DefenceDodge), DefencePoolFor(combatvocab.DefenceParry), DefencePoolFor(combatvocab.DefenceBlock), DefencePoolFor(combatvocab.DefenceQuell), DefencePoolFor(combatvocab.DefenceDefy),
+		CounterPoolMelee, CounterPoolRanged, CounterPoolQuell, CounterPoolDefy}
 	fizzleFound := false
 	for _, defence := range allDefences {
 		group := defenseMessages[defence]
@@ -251,7 +252,7 @@ func TestQuellFizzleFlavorLivesOnlyInTheHeavyBand(t *testing.T) {
 					if !strings.Contains(strings.ToLower(string(msg)), "fizzle") {
 						continue
 					}
-					if defence != DefenseQuell || band != Heavy {
+					if defence != DefencePoolFor(combatvocab.DefenceQuell) || band != Heavy {
 						t.Errorf("%s %s %s[%d] uses 'fizzle' outside quell's heavy band: %q",
 							defence, band, audience, idx, msg)
 						continue

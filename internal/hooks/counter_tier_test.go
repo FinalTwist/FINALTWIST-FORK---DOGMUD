@@ -302,8 +302,8 @@ func TestSpellCounter_NarrationReachesCasterFromCounterQuellPool(t *testing.T) {
 	pinCounterTierKnobs(t, 0.5)
 	cleanup := seedAllRegistries()
 	defer cleanup()
-	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefenseType]*items.DefenseMessageGroup{
-		items.DefenseCounterQuell: counterQuellNarrationFixture(),
+	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
+		items.CounterPoolQuell: counterQuellNarrationFixture(),
 	})
 	defer restoreMessages()
 
@@ -362,7 +362,7 @@ func counterQuellNarrationFixture() *items.DefenseMessageGroup {
 			ToRoom:     messages("room"),
 		}}
 	}
-	return &items.DefenseMessageGroup{OptionId: items.DefenseCounterQuell, Options: items.DefenseIntensity{
+	return &items.DefenseMessageGroup{OptionId: items.CounterPoolQuell, Options: items.DefenseIntensity{
 		items.Weak: mk("weak"), items.Normal: mk("normal"), items.Heavy: mk("heavy"),
 	}}
 }
