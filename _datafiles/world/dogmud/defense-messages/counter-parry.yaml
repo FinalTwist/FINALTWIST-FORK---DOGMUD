@@ -41,7 +41,7 @@ options:
       - '<ansi fg="attack-bad">{actee} binds your blade, steps in, and strikes over the lock.</ansi>'
       - '<ansi fg="attack-bad">{actee}''s answering cut follows the parry and finds you.</ansi>'
       observer:
-      - '<ansi fg="combat">{actee} turns {actor}''s weapon and cuts back along it, opening an arm.</ansi>'
+      - '<ansi fg="combat">{actee} turns the weapon aside and cuts back, opening {actor}''s arm.</ansi>'
       - '<ansi fg="combat">{actee} slides a weapon down {actor}''s and drives the point home.</ansi>'
       - '<ansi fg="combat">{actee} beats {actor}''s weapon aside and lands a clean cut.</ansi>'
       - '<ansi fg="combat">{actee} binds {actor}''s blade, steps in, and strikes over the lock.</ansi>'

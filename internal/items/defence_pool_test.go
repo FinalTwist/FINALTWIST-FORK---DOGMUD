@@ -60,4 +60,9 @@ func TestCounterPoolConstantsAreTheShippedFilesAndTheConversion(t *testing.T) {
 			t.Errorf("shipped file %q has no constant", pool)
 		}
 	}
+	for _, d := range combatvocab.Defences() {
+		if !shipped[CounterPoolFor(d)] {
+			t.Errorf("defence %s has no shipped counter pool", d)
+		}
+	}
 }

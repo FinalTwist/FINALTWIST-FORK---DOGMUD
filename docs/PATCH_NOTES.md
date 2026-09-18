@@ -2,11 +2,11 @@
 
 ## 2026-09-18: Your counter reads like your defence
 
-When a decisive parry, block or sidestep earns you a free answer, the
+When a decisive parry, block or dodge earns you a free answer, the
 answer now describes what you did. A parry turns the weapon and cuts back
-along it. A block drives in from behind the guard. A sidestep steps into
+along it. A block drives in from behind the guard. A dodge steps into
 the opening. Before, all three read the same. Shrugging off a working or
-mocking a failed charm or taunt keep their own voices.
+mocking a failed charm or taunt keeps its own voice.
 
 ## 2026-09-18: Words are answered with words
 

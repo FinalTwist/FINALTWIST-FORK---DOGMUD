@@ -28,7 +28,7 @@ counter-block|weak|actor => <ansi fg="attack-bad">Defender takes it on their gua
 counter-block|weak|observer => <ansi fg="combat">Defender takes it on the guard and shoves in, but Attacker gives ground.</ansi>
 counter-block|normal|actee => <ansi fg="defense-good">You take it on your guard, shove in, and strike Attacker from behind it.</ansi>
 counter-block|normal|actor => <ansi fg="attack-bad">Defender takes it on their guard, shoves in, and strikes you from behind it.</ansi>
-counter-block|normal|observer => <ansi fg="combat">Defender takes it on the guard, shoves in, and strikes Attacker behind it.</ansi>
+counter-block|normal|observer => <ansi fg="combat">Defender takes the hit on the guard and strikes Attacker from behind it.</ansi>
 counter-block|heavy|actee => <ansi fg="defense-good">You take it on your guard and drive in hard, and Attacker reels.</ansi>
 counter-block|heavy|actor => <ansi fg="attack-bad">Defender takes it on their guard and drives in hard, and you reel.</ansi>
 counter-block|heavy|observer => <ansi fg="combat">Defender takes it on the guard and drives in hard, and Attacker reels.</ansi>
@@ -55,7 +55,7 @@ counter-parry|weak|actor => <ansi fg="attack-bad">Defender turns your weapon and
 counter-parry|weak|observer => <ansi fg="combat">Defender turns Attacker's weapon and cuts back along it, but Attacker recovers.</ansi>
 counter-parry|normal|actee => <ansi fg="defense-good">You turn the weapon and cut back along it, opening Attacker's arm.</ansi>
 counter-parry|normal|actor => <ansi fg="attack-bad">Defender turns your weapon and cuts back along it, opening your arm.</ansi>
-counter-parry|normal|observer => <ansi fg="combat">Defender turns Attacker's weapon and cuts back along it, opening an arm.</ansi>
+counter-parry|normal|observer => <ansi fg="combat">Defender turns the weapon aside and cuts back, opening Attacker's arm.</ansi>
 counter-parry|heavy|actee => <ansi fg="defense-good">You turn the weapon and cut back with everything, and Attacker reels.</ansi>
 counter-parry|heavy|actor => <ansi fg="attack-bad">Defender turns your weapon and cuts back with everything, and you reel.</ansi>
 counter-parry|heavy|observer => <ansi fg="combat">Defender turns Attacker's weapon and cuts back hard, and Attacker reels.</ansi>
@@ -125,7 +125,7 @@ melee|counter-block|weak|actor => <ansi fg="attack-bad">Defender takes it on the
 melee|counter-block|weak|observer => <ansi fg="combat">Defender takes it on the guard and shoves in, but Attacker gives ground.</ansi>
 melee|counter-block|normal|actee => <ansi fg="defense-good">You take it on your guard, shove in, and strike Attacker from behind it.</ansi>
 melee|counter-block|normal|actor => <ansi fg="attack-bad">Defender takes it on their guard, shoves in, and strikes you from behind it.</ansi>
-melee|counter-block|normal|observer => <ansi fg="combat">Defender takes it on the guard, shoves in, and strikes Attacker behind it.</ansi>
+melee|counter-block|normal|observer => <ansi fg="combat">Defender takes the hit on the guard and strikes Attacker from behind it.</ansi>
 melee|counter-block|heavy|actee => <ansi fg="defense-good">You take it on your guard and drive in hard, and Attacker reels.</ansi>
 melee|counter-block|heavy|actor => <ansi fg="attack-bad">Defender takes it on their guard and drives in hard, and you reel.</ansi>
 melee|counter-block|heavy|observer => <ansi fg="combat">Defender takes it on the guard and drives in hard, and Attacker reels.</ansi>
@@ -152,7 +152,7 @@ melee|counter-parry|weak|actor => <ansi fg="attack-bad">Defender turns your weap
 melee|counter-parry|weak|observer => <ansi fg="combat">Defender turns Attacker's weapon and cuts back along it, but Attacker recovers.</ansi>
 melee|counter-parry|normal|actee => <ansi fg="defense-good">You turn the weapon and cut back along it, opening Attacker's arm.</ansi>
 melee|counter-parry|normal|actor => <ansi fg="attack-bad">Defender turns your weapon and cuts back along it, opening your arm.</ansi>
-melee|counter-parry|normal|observer => <ansi fg="combat">Defender turns Attacker's weapon and cuts back along it, opening an arm.</ansi>
+melee|counter-parry|normal|observer => <ansi fg="combat">Defender turns the weapon aside and cuts back, opening Attacker's arm.</ansi>
 melee|counter-parry|heavy|actee => <ansi fg="defense-good">You turn the weapon and cut back with everything, and Attacker reels.</ansi>
 melee|counter-parry|heavy|actor => <ansi fg="attack-bad">Defender turns your weapon and cuts back with everything, and you reel.</ansi>
 melee|counter-parry|heavy|observer => <ansi fg="combat">Defender turns Attacker's weapon and cuts back hard, and Attacker reels.</ansi>

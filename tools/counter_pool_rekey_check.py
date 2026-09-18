@@ -11,7 +11,7 @@ Expected differences, and ONLY these:
   - counter-defy rows may change (re-toned);
   - every other row (dodge, parry, block, quell, defy, counter-quell) is
     byte-identical.
-Header comment lines are reported, not compared.
+Header comment lines are ignored.
 
 Usage:
   python tools/counter_pool_rekey_check.py --base master
@@ -86,6 +86,20 @@ def main():
     for key in new:
         counts[pool_of(key)] = counts.get(pool_of(key), 0) + 1
     print("rows per pool after regeneration:", dict(sorted(counts.items())))
+
+    expected = {p: 18 for p in ("block", "counter-block", "counter-defy", "counter-dodge",
+                                "counter-parry", "counter-quell", "defy", "dodge",
+                                "parry", "quell")}
+    expected["nonexistent-defense-type"] = 6
+    if counts != expected:
+        problems.append(f"row census is not the shipped shape: {dict(sorted(counts.items()))}")
+    # The real master baseline parses to 168 rows (81 direct pool rows across
+    # 9 pools, 84 melee| rows, 3 nonexistent-defense-type rows), so 100 is a
+    # floor with headroom, not the real count: it exists only to catch rows()
+    # parsing nothing (an empty file, a moved golden, or a changed row format)
+    # rather than to pin the shipped size.
+    if len(base) < 100:
+        problems.append(f"base parsed only {len(base)} rows: the row format changed or the base ref is wrong")
     if problems:
         print("\n".join(problems))
         print(f"\nFAIL: {len(problems)} problem(s)")

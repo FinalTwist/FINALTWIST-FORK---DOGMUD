@@ -43,7 +43,7 @@ options:
       - '<ansi fg="attack-bad">{actee} turns your attack off their guard and lands a solid strike on you.</ansi>'
       - '<ansi fg="attack-bad">{actee} rams their guard into you and follows it with a hard blow.</ansi>'
       observer:
-      - '<ansi fg="combat">{actee} takes it on the guard, shoves in, and strikes {actor} behind it.</ansi>'
+      - '<ansi fg="combat">{actee} takes the hit on the guard and strikes {actor} from behind it.</ansi>'
       - '<ansi fg="combat">{actee} catches the attack square and hammers {actor} over the top of it.</ansi>'
       - '<ansi fg="combat">{actee} braces and drives a shoulder in, and {actor} takes the hit.</ansi>'
       - '<ansi fg="combat">{actee} turns the attack off the guard and lands a solid strike on {actor}.</ansi>'
