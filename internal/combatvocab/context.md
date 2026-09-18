@@ -10,8 +10,10 @@ declarations of the five defence names, the flattened `combat.AttackChannel`,
 It imports nothing but the standard library, so `characters`, `items`,
 `combat`, `spells`, `templates` and `hooks` can all import it. It does not
 know what a Character is, does not score, cost or narrate anything, and does
-not own the damage pipeline's pool (`combat.DamageChannel`), which is DERIVED
-from these axes by `combat.ScaleChannelFor` and `combat.MitigationChannelFor`.
+not own the damage pipeline's pool (`combat.DamageChannel`), which will be
+DERIVED from these axes by `combat.ScaleChannelFor` and
+`combat.MitigationChannelFor` (`internal/combat/pools.go`, added later in the
+same plan).
 
 ## Files
 
@@ -19,7 +21,7 @@ from these axes by `combat.ScaleChannelFor` and `combat.MitigationChannelFor`.
 |------|---------|
 | `vocab.go` | `AttackType`, `DamageType`, `Targeting`, `Defence`; their constants; `Valid`, `Parse*`, the `*s()` listers, `DamageType.IsHarm`. |
 | `attack.go` | `Attack{Type, Damage, Targeting}`, the constructors, `EligibleDefences`, `Pairs`, `Attack.Valid`. |
-| `one_declaration_guard_test.go` | Fails the build if a defence name is declared as a Go string literal anywhere but here and `internal/actionspec`. |
+| `one_declaration_guard_test.go` (added by a later task in the M4b-2 plan) | Fails the build if a defence name is declared as a Go string literal anywhere but here and `internal/actionspec`. |
 
 ## The axes
 
@@ -54,7 +56,7 @@ constructors cannot build it, and `spells.SpellData.Validate` refuses it.
 ## Adding a value
 
 A new `AttackType` or `DamageType` is one constant, one entry in its lister,
-and one or more rows in `eligibility`. The derived pools in
-`internal/combat/pools.go` must also learn it, and their parity tests will say
-so. A new `Defence` additionally needs the three things
-`combat.DefenceEntriesFor`'s comment lists.
+and one or more rows in `eligibility`. The derived pools that will land in
+`internal/combat/pools.go` (added later in the same plan) must also learn it,
+and their parity tests will say so. A new `Defence` additionally needs the
+three things `combat.DefenceEntriesFor`'s comment lists.

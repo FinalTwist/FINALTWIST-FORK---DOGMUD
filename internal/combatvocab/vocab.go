@@ -9,7 +9,10 @@
 // three damage types were spelt differently in three places.
 package combatvocab
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // AttackType is HOW the attack is delivered. Parry is gated on it: you cannot
 // parry a bolt, a flask or a working.
@@ -87,43 +90,15 @@ func Targetings() []Targeting { return append([]Targeting(nil), targetings...) }
 // Defences returns the five real defences; DefenceNone is not one.
 func Defences() []Defence { return append([]Defence(nil), defences...) }
 
-func (a AttackType) Valid() bool {
-	for _, v := range attackTypes {
-		if a == v {
-			return true
-		}
-	}
-	return false
-}
+func (a AttackType) Valid() bool { return slices.Contains(attackTypes, a) }
 
-func (d DamageType) Valid() bool {
-	for _, v := range damageTypes {
-		if d == v {
-			return true
-		}
-	}
-	return false
-}
+func (d DamageType) Valid() bool { return slices.Contains(damageTypes, d) }
 
-func (t Targeting) Valid() bool {
-	for _, v := range targetings {
-		if t == v {
-			return true
-		}
-	}
-	return false
-}
+func (t Targeting) Valid() bool { return slices.Contains(targetings, t) }
 
 // Valid reports a real defence. DefenceNone is not valid: it is the absence
 // of one.
-func (d Defence) Valid() bool {
-	for _, v := range defences {
-		if d == v {
-			return true
-		}
-	}
-	return false
-}
+func (d Defence) Valid() bool { return slices.Contains(defences, d) }
 
 // IsHarm is the harm-versus-help question in one place.
 func (d DamageType) IsHarm() bool { return d.Valid() && d != DamageNonHarm }
