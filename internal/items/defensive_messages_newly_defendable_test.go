@@ -125,10 +125,10 @@ func TestNewlyDefendableAttackNamesRenderTriads(t *testing.T) {
 }
 
 // TestCounterPoolsRenderTriads is the U6b Task 11 loader gate: every
-// channel's counter-narration pool (counter-melee, counter-ranged,
-// counter-quell, counter-defy) must render a non-empty defender/attacker/room
-// triad at each band, for every variant, with all tokens substituted and no
-// em/en dashes. Counter bands mean: weak = the counter is turned aside (no
+// winning defence's counter-narration pool (counter-dodge, counter-parry,
+// counter-block, counter-quell, counter-defy) must render a non-empty
+// defender/attacker/room triad at each band, for every variant, with all
+// tokens substituted and no em/en dashes. Counter bands mean: weak = the counter is turned aside (no
 // damage), normal = the counter lands, heavy = the counter crits — mapped to
 // the renderer's (crit, margin) inputs the same way combat.fillCounterMessages
 // maps them.
