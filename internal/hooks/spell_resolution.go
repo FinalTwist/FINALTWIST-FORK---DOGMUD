@@ -385,6 +385,20 @@ func scaleSpellDamageByDefence(dmg int, out combat.ChannelDefenceResult) int {
 // fumble is not landed either: it aborts before success.
 func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, spellData *spells.SpellData, side combat.AttackSide, magnitude int) (fumbled bool, landed bool) {
 
+	// Non-harm cast at a mob (a heal on your companion, an area mend over
+	// allies): uncontested, exactly as the player-target loop has always
+	// treated it. On master this ran a quell contest, so a companion could
+	// "defend" its own heal, a fumble backfired on the caster, and a
+	// defensive crit earned the companion a counter-swing at its owner.
+	// The empty eligible set would already skip the contest; the explicit
+	// shortcut makes the rule visible and independent of that detail.
+	// BEHAVIOUR CHANGE from master, own commit.
+	if spellData.AttackType == combatvocab.AttackNone {
+		applyMobEffect(user, user.Character, mob, room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1})
+		combat.RecordSpell(combat.User, combat.Mob, true, false, false, false, 0, 0, user.Character, &mob.Character, util.GetRoundCount())
+		return false, true
+	}
+
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(&mob.Character)
 
@@ -1497,14 +1511,16 @@ func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spell
 // outright. See resolveAgainstMob.
 func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.Room,
 	spellData *spells.SpellData, side combat.AttackSide, magnitude int) (landed bool) {
-	// Help-type effects (e.g. a construct add healing an ally boss) are a
-	// cooperative cast, not an attack — the target should not roll defense
-	// against a friendly heal, and a "fumble" backfire makes no sense for
+	// Non-harm effects (a heal, or a condition buff cast on an ally mob) are
+	// a cooperative cast, not an attack — the target should not roll defense
+	// against a friendly effect, and a "fumble" backfire makes no sense for
 	// it either. Bypass the contest/backfire gate entirely and apply
 	// directly, as an uncontested attack win. (Crash-site boss-mechanics
 	// Chunk B: the Repair Frame add heals Warden-Prime / the Core Guardian
-	// this way.)
-	if spellData.EffectType == "heal" {
+	// this way.) Widened from EffectType == "heal": a mob buffing an ally
+	// with a condition spell is just as cooperative and was contesting
+	// before this change.
+	if spellData.AttackType == combatvocab.AttackNone {
 		applyMobEffect(nil, &caster.Character, target, room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1})
 		// Uncontested cooperative cast: no defence to beat, so it landed.
 		return true
