@@ -242,11 +242,13 @@ the target instead of an interrupt.
 - **`SendCounterTrio(room, res, countered, counteredUserId)`**: the one counter
   dispatch, used by `DispatchCounterMessages` and `hooks.fireSpellCounterTier`.
   It goes through `messaging.SendTrio`, so a counter in the dark names nobody.
-- **`FireCounterTaunt(room, counterer, countered, countererId, countererRecipient,
-  counteredId, counteredRecipient)`**: the defy answer's shared dispatch, used by
-  taunt's `counterTauntExit` and `hooks.fireSpellCounterTier` (a defied charm).
-  Dispatches directly via `SendText`/`SendTextVisual`, not `messaging.SendTrio`;
-  moving the retort onto the darkness seam is M4d's.
+- **`FireCounterTaunt(room, shape, counterer, countered, countererRecipient,
+  countererId, counteredRecipient, counteredId)`**: the defy answer's shared
+  dispatch, used by taunt's `counterTauntExit` and `hooks.fireSpellCounterTier`
+  (a defied charm). Refuses a `shape` whose targeting is not single, the same
+  gate the swing primitive carries. Dispatches directly via
+  `SendText`/`SendTextVisual`, not `messaging.SendTrio`; moving the retort onto
+  the darkness seam is M4d's.
 - **`RetargetNotice(room, userId, target)`** (`retarget_notice.go`): builds
   "You turn your attention to X!" with X hidden by the reader's
   `ParticipantSight`; ok=false when target no longer resolves. Shared by

@@ -16,7 +16,7 @@ package actions
 //     and the wiring lives HERE (not in internal/combat) because taunt
 //     resolution needs this package and internal/combat can never import
 //     it.
-//   - executeCounterTaunt (beneath FireCounterTaunt): the defy carve-out's
+//   - executeCounterTaunt (above FireCounterTaunt): the defy carve-out's
 //     cost-free contest and damage primitive, called by FireCounterTaunt.
 //
 // Narration is channel-correct (U6b Task 11), rendered by internal/combat
@@ -26,10 +26,10 @@ package actions
 // order and the wrappers narrate AFTER ExecuteX returns. Instead the
 // CounterResult rides up on the action's result struct, and the command
 // wrapper calls DispatchCounterMessages after its own outcome text — the same
-// flow the defence triads use. The defy counter-taunt has always dispatched
-// straight from FireCounterTaunt (Task 10's review flagged only the
-// skill-move ordering; the taunt path was accepted as-is at the time), and
-// its narration comes from the counter-defy pool via
+// flow the defence triads use. The defy counter-taunt dispatches straight
+// from FireCounterTaunt (Task 10's review flagged only the skill-move
+// ordering; the taunt path was accepted as-is at the time), and its
+// narration comes from the counter-defy pool via
 // combat.BuildCounterTauntMessages.
 
 import (

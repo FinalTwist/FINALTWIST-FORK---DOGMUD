@@ -252,7 +252,7 @@ const retortPrefix = `<ansi fg="cyan-bold">⚔ RETORT!</ansi> `
 // internal/actions with the carve-out's wiring) so every counter narration
 // composes through the same pool idiom; falls back to the generic Task 10
 // retort lines when the pool is not loaded.
-func BuildCounterTauntMessages(countererName, counteredName string, crit bool, damage, taunterMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
+func BuildCounterTauntMessages(countererName, counteredName string, crit bool, damage, counteredMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
 	bandCrit, bandMargin := counterBand(crit, damage)
 	triad := items.RenderDefenseMessage(items.CounterPoolDefy, bandCrit, bandMargin,
 		map[items.TokenName]string{
@@ -260,12 +260,12 @@ func BuildCounterTauntMessages(countererName, counteredName string, crit bool, d
 			items.TokenActee: countererName,
 		})
 	if triad.ToRoom == "" {
-		return buildGenericCounterTauntMessages(countererName, counteredName, damage, taunterMaxCP)
+		return buildGenericCounterTauntMessages(countererName, counteredName, damage, counteredMaxCP)
 	}
 	dmgTag := ""
 	if damage > 0 {
 		dmgTag = fmt.Sprintf(` (<ansi fg="damage">%s</ansi>)`,
-			GetConvictionDamageDescription(damage, taunterMaxCP))
+			GetConvictionDamageDescription(damage, counteredMaxCP))
 	}
 	return retortPrefix + string(triad.ToDefender) + dmgTag,
 		retortPrefix + string(triad.ToAttacker) + dmgTag,
@@ -274,14 +274,14 @@ func BuildCounterTauntMessages(countererName, counteredName string, crit bool, d
 
 // buildGenericCounterTauntMessages is the Task 10 retort narration, kept only
 // as the fallback for environments where the counter-defy pool is not loaded.
-func buildGenericCounterTauntMessages(countererName, taunterName string, damage, taunterMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
+func buildGenericCounterTauntMessages(countererName, counteredName string, damage, counteredMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
 	if damage > 0 {
-		dmgDesc := GetConvictionDamageDescription(damage, taunterMaxCP)
-		return fmt.Sprintf(retortPrefix+`You throw %s's words right back in their face! (<ansi fg="damage">%s</ansi>)`, taunterName, dmgDesc),
+		dmgDesc := GetConvictionDamageDescription(damage, counteredMaxCP)
+		return fmt.Sprintf(retortPrefix+`You throw %s's words right back in their face! (<ansi fg="damage">%s</ansi>)`, counteredName, dmgDesc),
 			fmt.Sprintf(retortPrefix+`%s throws your words right back in your face! (<ansi fg="damage">%s</ansi>)`, countererName, dmgDesc),
-			fmt.Sprintf(retortPrefix+`%s throws %s's words right back!`, countererName, taunterName)
+			fmt.Sprintf(retortPrefix+`%s throws %s's words right back!`, countererName, counteredName)
 	}
-	return fmt.Sprintf(retortPrefix+`You snap back at %s, but the words fail to bite!`, taunterName),
+	return fmt.Sprintf(retortPrefix+`You snap back at %s, but the words fail to bite!`, counteredName),
 		fmt.Sprintf(retortPrefix+`%s snaps back at you, but the words fail to bite!`, countererName),
-		fmt.Sprintf(retortPrefix+`%s snaps back at %s!`, countererName, taunterName)
+		fmt.Sprintf(retortPrefix+`%s snaps back at %s!`, countererName, counteredName)
 }
