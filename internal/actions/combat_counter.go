@@ -5,9 +5,11 @@ package actions
 // Two entry points live here:
 //
 //   - counterSkillMoveExit: fires combat.ExecuteCounter at every
-//     ExecuteSkillMove consumer's defensive-crit exit (the special moves and
-//     ExecuteFire). It refuses results produced under IsCounter, so melee's
-//     auto-trip/auto-bash (which ride the seam AS counters) can never chain.
+//     single-target ExecuteSkillMove consumer's defensive-crit exit (the
+//     special moves and ExecuteFire; the area drain has none, because an
+//     area attack earns no counter). It refuses results produced under
+//     IsCounter, so melee's auto-trip/auto-bash (which ride the seam AS
+//     counters) can never chain.
 //   - executeCounterTaunt: the defy carve-out. A defy crit COUNTER-TAUNTS
 //     instead of counter-swinging, and the wiring lives HERE (not in
 //     internal/combat) because taunt resolution needs this package and

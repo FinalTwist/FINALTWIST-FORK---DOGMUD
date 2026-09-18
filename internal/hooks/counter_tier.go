@@ -19,7 +19,9 @@ import (
 // fireSpellCounterTier fires the counter tier at one spell exit. Spell
 // targets always share the caster's room, so the reach gate passes true by
 // construction (the cross-room shot — internal/actions.ExecuteFire — is the
-// one uncounterable attack).
+// one uncounterable attack). The primitive also refuses any cast whose
+// authored targeting is not single, so an area cast earns no counter without
+// any branch here.
 //
 // The channel-correct counter narration (U6b Task 11, rendered from the pool
 // of the defence that won the contest) is dispatched with the same

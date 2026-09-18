@@ -1728,8 +1728,8 @@ same-room by construction, so the reach gate always passes here. Narration
 down, step through the gap"), rendered inside `combat.ExecuteCounter`;
 dispatching from these exits is ordering-correct because the cast's own
 outcome has already been narrated when they fire. `resolveMobDrainArea`
-dispatches its per-player counters via `actions.DispatchCounterMessages`
-AFTER its own drain narration.
+dispatches no counters: a room-wide drain is an area attack and earns none
+(counters slice, 2026-09-18).
 
 A non-harm cast at a mob (`AttackType == combatvocab.AttackNone`: a heal on a
 companion, an ally-mob buff) takes the uncontested shortcut at the top of

@@ -757,7 +757,7 @@ the free supply-handoff paths — these are NOT routed through `actions.Sell`.
 - `counterSkillMoveExit(actor, defender, move, shape combatvocab.Attack, sameRoom)` fires
   `combat.ExecuteCounter` at every `ExecuteSkillMove` consumer's
   defensive-crit exit (bash/gore/hamstring/kick/maul/pounce/rake/throttle/
-  trip/drain/drain-area, plus `ExecuteFire` with `sameRoom = !crossRoom` —
+  trip/drain, plus `ExecuteFire` with `sameRoom = !crossRoom` —
   the cross-room shot is the ONE uncounterable attack). It refuses results
   carrying `SkillMoveResult.IsCounter`, so a counter never earns a counter.
 - `executeCounterTaunt(counterer, target)` is the defy carve-out: a defy CRIT
@@ -779,7 +779,7 @@ original attack's `combatvocab.Attack` shape; the counter-taunt from
 NOT dispatch — messages render in call order and the wrappers narrate after
 `ExecuteX` returns, so the `CounterResult` rides up on each action's result
 struct (`Counter` field on Bash/Drain/Fire/Gore/Hamstring/Kick/Maul/Pounce/
-Rake/Throttle/Trip results and `DrainAreaPlayerResult`) and the command
+Rake/Throttle/Trip results) and the command
 wrapper calls the exported `DispatchCounterMessages(actor, res)` AFTER its
 own outcome text. The defy counter-taunt still dispatches from
 `counterTauntExit` (Task 10's review accepted the taunt path's ordering).

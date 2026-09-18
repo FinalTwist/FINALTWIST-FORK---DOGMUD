@@ -21,19 +21,21 @@ func TestExecuteCounter_OnlyASingleTargetAttackEarnsACounter(t *testing.T) {
 		{"multi spell", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetMulti), false},
 		{"thrown area", combatvocab.Thrown(combatvocab.TargetArea), false},
 	} {
-		counterer, countered := counterTestPair()
-		calls := 0
-		restore := SetChannelAttackContestRunnerForTest(counterWinRunner(&calls))
-		res := ExecuteCounter(counterer, countered, tc.shape, combatvocab.DefenceDodge, true)
-		restore()
-		if res.Countered != tc.want {
-			t.Errorf("%s: Countered = %v, want %v", tc.name, res.Countered, tc.want)
-		}
-		if !tc.want && calls != 0 {
-			t.Errorf("%s: a refused counter must run no contest, ran %d", tc.name, calls)
-		}
-		if !tc.want && countered.Health != 100000 {
-			t.Errorf("%s: a refused counter must deal no damage", tc.name)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			counterer, countered := counterTestPair()
+			calls := 0
+			restore := SetChannelAttackContestRunnerForTest(counterWinRunner(&calls))
+			t.Cleanup(restore)
+			res := ExecuteCounter(counterer, countered, tc.shape, combatvocab.DefenceDodge, true)
+			if res.Countered != tc.want {
+				t.Errorf("Countered = %v, want %v", res.Countered, tc.want)
+			}
+			if !tc.want && calls != 0 {
+				t.Errorf("a refused counter must run no contest, ran %d", calls)
+			}
+			if !tc.want && countered.Health != 100000 {
+				t.Errorf("a refused counter must deal no damage")
+			}
+		})
 	}
 }
