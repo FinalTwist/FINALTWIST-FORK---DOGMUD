@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
 	"github.com/stretchr/testify/assert"
@@ -57,7 +58,7 @@ func TestExecuteSkillMove_NilDefenderPosition(t *testing.T) {
 			ExecuteSkillMove(SkillMoveParams{
 				Attacker: atk,
 				Defender: def,
-				Channel:  ChannelMelee,
+				Shape:    combatvocab.Melee(combatvocab.TargetSingle),
 				Attack: AttackSide{ // overwhelming attacker → near-certain hit
 					Stat: 500, StatName: "strength",
 					Skill: skills.WeaponCombat, SkillRank: 50,

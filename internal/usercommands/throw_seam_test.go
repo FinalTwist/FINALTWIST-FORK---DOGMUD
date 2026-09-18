@@ -3,7 +3,7 @@ package usercommands
 // U6b Task 15 — throw resolves per-target through the channel seam.
 //
 // Each hostile in the room contests the ONE grenade independently through
-// combat.ResolveChannelAttack(ChannelRanged, ...): its own equipment-gated
+// combat.ResolveChannelAttack(combatvocab.Ranged(combatvocab.TargetSingle), ...): its own equipment-gated
 // defence set (dodge for everyone, block only behind a shield), its own
 // margin, its own crit-or-not. Damage gains the shared defence multiplier
 // curve and the crit tier; the old resolution was a hand-rolled RunContest

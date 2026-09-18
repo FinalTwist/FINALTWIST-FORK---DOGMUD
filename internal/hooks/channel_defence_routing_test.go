@@ -336,7 +336,7 @@ func TestMobAreaSpellEmitsOnePrivateShortagePerActualPlayerTarget(t *testing.T) 
 		target.Character.HealthMax.Value = 100
 	}
 	original := runSpellChannelAttack
-	runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+	runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 		return combat.ChannelDefenceResult{
 			Defence: combatvocab.DefenceQuell, Defended: true, DamageMultiplier: 0.3,
 			Cost: characters.CostCommitResult{Status: characters.CostPartiallyPaid, Pool: characters.PoolConviction},
@@ -408,7 +408,7 @@ func TestResolveSpellDispatchDefensiveCritStopsKnockdownSpell(t *testing.T) {
 			restoreMessages := seedChannelRoutingMessages(t)
 			defer restoreMessages()
 			original := runSpellChannelAttack
-			runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+			runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 				return combat.ChannelDefenceResult{
 					Defence: combatvocab.DefenceQuell, Defended: true,
 					DefensiveCrit: true, DamageMultiplier: 0,
@@ -460,7 +460,7 @@ func TestResolveSpellDispatchDefendedKnockdownDealsPartialDamageWithoutKnockdown
 	restoreMessages := seedChannelRoutingMessages(t)
 	defer restoreMessages()
 	original := runSpellChannelAttack
-	runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+	runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 		return combat.ChannelDefenceResult{
 			Defence: combatvocab.DefenceQuell, Defended: true,
 			NormalizedDefenceMargin: 0.1, DamageMultiplier: 0.4,

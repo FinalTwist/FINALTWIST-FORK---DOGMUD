@@ -102,8 +102,8 @@ func (s AttackSide) score() float64 {
 //
 // Both melee and channel defence candidate builders use this centralized
 // mapping. An unrecognised defence gets 1.0 and not 0, so a defence added to
-// DefenceSetFor without a knob enters the contest at face value instead of
-// silently losing every roll.
+// combatvocab's eligibility table without a knob enters the contest at face
+// value instead of silently losing every roll.
 func defenceEffectiveness(defenceType combatvocab.Defence) float64 {
 	bal := configs.GetBalanceConfig()
 	switch defenceType {
@@ -316,9 +316,9 @@ func RenderChannelDefenceMessages(out ChannelDefenceResult, identities ChannelDe
 const missingDefencePoolReportInterval = 10 * time.Minute
 
 // missingDefencePoolsLastSeen records when each defence type was last reported.
-// Bounded by construction: out.Defence is always res.Winner, which comes
-// from DefenceSetFor's hardcoded switch over the five defence names, so this map
-// can never hold more than five keys and is not player- or data-influenced.
+// Bounded by construction: out.Defence is always res.Winner, which comes from
+// combatvocab's fixed table of the five defence names, so this map can never
+// hold more than five keys and is not player- or data-influenced.
 // Mutex-guarded because combat rounds run alongside other work; it is a leaf
 // lock, taken nowhere else, so it cannot participate in a lock-ordering cycle.
 var (
@@ -407,14 +407,13 @@ func genericDefenceTriad(identities ChannelDefenceIdentities, attack string) ite
 //
 // THE PHYSICAL DEFENCES DO ARRIVE HERE, so the FLOAT entry point is mandatory.
 // DefenceEntriesFor sends dodge (and, for shielded defenders, block) to this
-// function for ChannelRanged and ChannelSpellPhysical, and eleven shipped
-// spells declare
-// target_defense_type: physical. QuoteDefenseCost retains fractional carry and
-// the distinct physical modifiers, so this path must not fall back to the lossy
-// integer compatibility price. An earlier comment here asserted the physical
-// three never reached this site; that was never true.
-func ResolveChannelAttack(channel AttackChannel, side AttackSide, attacker, defender *characters.Character) ChannelDefenceResult {
-	return resolveChannelAttackWithRunner(channel, side, attacker, defender, channelAttackContestRunner)
+// function for Ranged and the (spell, physical) pairing, and eleven shipped
+// spells declare target_defense_type: physical. QuoteDefenseCost retains
+// fractional carry and the distinct physical modifiers, so this path must not
+// fall back to the lossy integer compatibility price. An earlier comment here
+// asserted the physical three never reached this site; that was never true.
+func ResolveChannelAttack(shape combatvocab.Attack, side AttackSide, attacker, defender *characters.Character) ChannelDefenceResult {
+	return resolveChannelAttackWithRunner(shape, side, attacker, defender, channelAttackContestRunner)
 }
 
 // channelAttackContestRunner is the contest core behind ResolveChannelAttack.
@@ -432,7 +431,7 @@ func SetChannelAttackContestRunnerForTest(runner func(float64, []contest.Entry) 
 	return func() { channelAttackContestRunner = prev }
 }
 
-func resolveChannelAttackWithRunner(channel AttackChannel, side AttackSide, attacker, defender *characters.Character, runner defenceContestRunner) ChannelDefenceResult {
+func resolveChannelAttackWithRunner(shape combatvocab.Attack, side AttackSide, attacker, defender *characters.Character, runner defenceContestRunner) ChannelDefenceResult {
 	out := ChannelDefenceResult{
 		DamageMultiplier: 1.0,
 		Cost:             characters.CostCommitResult{Status: characters.CostNoCharge},
@@ -444,7 +443,7 @@ func resolveChannelAttackWithRunner(channel AttackChannel, side AttackSide, atta
 	// U6b Task 2: the set comes from the equipment-gated name builder, not the
 	// bare channel table — a shieldless bare-handed defender no longer rolls
 	// block against a bolt or a physical spell.
-	defences := DefenceEntriesFor(channel, defender, DefenceEntryOpts{})
+	defences := DefenceEntriesFor(shape, defender, DefenceEntryOpts{})
 	if len(defences) == 0 {
 		// No defence answers this channel. Uncontested is an attack win, which
 		// is what a full multiplier says. A forced crit (sleeping victim) is
@@ -579,7 +578,7 @@ func resolveChannelAttackWithRunner(channel AttackChannel, side AttackSide, atta
 		}
 	}
 
-	awardChannelDefenceBonus(channel, side, attacker, defender, res, winner, out.AttackerCrit, out.AttackerFumble)
+	awardChannelDefenceBonus(shape, side, attacker, defender, res, winner, out.AttackerCrit, out.AttackerFumble)
 
 	// A floor changes the outcome without changing the underlying rolls. Keep
 	// the winner and cost, but expose zero statistical sentinels so later prose
@@ -696,7 +695,7 @@ func defenderRankOf(defender *characters.Character, winner combatvocab.Defence) 
 // while the progression bonus still demanded 2.0 — two verdicts for one
 // contest. The attacker's skill and stat likewise come FROM the AttackSide the
 // caller passed, not a per-channel hardcode.
-func awardChannelDefenceBonus(channel AttackChannel, side AttackSide, attacker, defender *characters.Character, res contest.Result, winner combatvocab.Defence, attackCrit, attackFumble bool) {
+func awardChannelDefenceBonus(shape combatvocab.Attack, side AttackSide, attacker, defender *characters.Character, res contest.Result, winner combatvocab.Defence, attackCrit, attackFumble bool) {
 	if !res.Contested || res.Floored {
 		return
 	}
@@ -732,7 +731,7 @@ func awardChannelDefenceBonus(channel AttackChannel, side AttackSide, attacker, 
 		AttackerStat:  atkStat,
 		DefenderSkill: defSkill,
 		DefenderStat:  defStat,
-		ToughenStat:   characters.ToughenStatFor(channelDamageChannel(channel)),
+		ToughenStat:   characters.ToughenStatFor(ScaleChannelFor(shape.Type).ToughenName()),
 		Exceptional:   exceptional,
 	}
 
@@ -750,33 +749,4 @@ func awardChannelDefenceBonus(channel AttackChannel, side AttackSide, attacker, 
 	round := util.GetRoundCount()
 	attacker.ApplyProgression(evs, progression.SideAttacker, attacker.GetUserId(), round)
 	defender.ApplyProgression(evs, progression.SideDefender, defender.GetUserId(), round)
-}
-
-// channelDamageChannel maps an AttackChannel onto the "physical"/"magical"/
-// "conviction" damage-channel string ToughenStatFor expects.
-//
-// Both spell channels answer "magical" here, NOT "physical" for
-// ChannelSpellPhysical. TargetDefenseType: physical only changes which
-// defence answers the spell (dodge/block instead of quell); the damage
-// itself is still cast off willpower and always goes through
-// combat.ChannelMagical in calcSpellDamageForCharacter
-// (internal/hooks/combat_shared_helpers.go). Mapping ChannelSpellPhysical to
-// "physical" here would toughen the wrong stat (vitality instead of
-// willpower) on a defensive crit.
-//
-// ChannelMelee and ChannelRanged both answer "physical": U6b routes the
-// special-attack and ranged resolutions through this seam, and a "" fallthrough
-// would make ToughenStatFor("") silently toughen the wrong stat on a bash or
-// bolt crit.
-func channelDamageChannel(channel AttackChannel) string {
-	switch channel {
-	case ChannelMelee, ChannelRanged:
-		return "physical"
-	case ChannelSpellPhysical, ChannelSpellMental:
-		return "magical"
-	case ChannelSocial:
-		return "conviction"
-	default:
-		return ""
-	}
 }

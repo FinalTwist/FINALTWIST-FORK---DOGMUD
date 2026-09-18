@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -78,7 +79,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 		defer cleanup()
 		events.DrainQueuedConditionsForTest(0)
 		original := runSpellChannelAttack
-		runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+		runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 			return spellContestAttackWin()
 		}
 		t.Cleanup(func() { runSpellChannelAttack = original })
@@ -136,7 +137,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 		defer cleanup()
 		events.DrainQueuedConditionsForTest(0)
 		original := runSpellChannelAttack
-		runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+		runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 			return spellContestAttackWin()
 		}
 		t.Cleanup(func() { runSpellChannelAttack = original })

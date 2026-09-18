@@ -91,7 +91,7 @@ var contestSiteOwners = map[string]string{
 	// Deliberately unconverted, with the plan's pre-assigned owners.
 	"internal/actions/defuse.go:Defuse": "deliberate: trap-difficulty contest, converted U4",
 	// Charm has no unconverted contest site left. Slice B moved the cast onto
-	// the ChannelSocial contest it was already running and discarding, and
+	// the combatvocab.Rhetoric(combatvocab.TargetSingle) contest it was already running and discarding, and
 	// slice C deleted the per-tick resist ladder in tickMobCharmState outright
 	// -- duration is now decided once, by the margin that won.
 	//

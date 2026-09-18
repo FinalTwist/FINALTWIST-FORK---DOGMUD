@@ -3,10 +3,10 @@ package combatvocab
 import "fmt"
 
 // Attack is the value that travels with every attack through the contest
-// seam: the three authored axes together. It replaced combat.AttackChannel,
-// which flattened the first two into one enum (which is why melee-physical
-// allowed parry and ranged-physical did not: parry is gated by Type, quell and
-// defy by Damage).
+// seam: the three authored axes together. It replaced combat's old flattened
+// attack-channel enum, which folded the first two into one string (which is
+// why melee-physical allowed parry and ranged-physical did not: parry is
+// gated by Type, quell and defy by Damage).
 //
 // Build one with a constructor. A struct literal compiles, but only the
 // constructors and the spell validator are guaranteed to produce a pair the
@@ -54,7 +54,7 @@ var eligibility = []struct {
 //
 // ok == false is a programming error or bad data, never a legitimate
 // outcome. The seam logs it and resolves uncontested, which is what the old
-// DefenceSetFor default arm did silently.
+// flattened-channel table's default arm did silently.
 func EligibleDefences(a Attack) ([]Defence, bool) {
 	for _, row := range eligibility {
 		if row.pair.Type == a.Type && row.pair.Damage == a.Damage {

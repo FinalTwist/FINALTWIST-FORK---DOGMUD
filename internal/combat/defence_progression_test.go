@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 )
 
@@ -36,7 +37,7 @@ func TestChannelDefence_FlooredAwardsNoBonus(t *testing.T) {
 	}
 
 	before := defender.GetSkillUseCount("unarmed-combat")
-	resolveChannelAttackWithRunner(ChannelMelee, channelSideForSignTest(ChannelMelee, attacker), attacker, defender, runner)
+	resolveChannelAttackWithRunner(combatvocab.Melee(combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Melee(combatvocab.TargetSingle), attacker), attacker, defender, runner)
 
 	if got := defender.GetSkillUseCount("unarmed-combat") - before; got != 1 {
 		t.Errorf("floored defence awarded %d ordinary events, want 1", got)

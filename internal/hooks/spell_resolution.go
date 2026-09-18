@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -351,7 +352,7 @@ func spellAttackSideFor(spellData *spells.SpellData, casterChar *characters.Char
 		// in the damage term (calcSpellDamageForCharacter), so it must not
 		// reach accuracy a second time here. ForceCrit is per-target and set
 		// by each resolveAgainst* call site.
-		Mult: combat.SituationalAttackMult(casterChar, spellAttackChannel(spellData)),
+		Mult: combat.SituationalAttackMult(casterChar, spellAttackShape(spellData)),
 	}
 }
 
@@ -403,7 +404,7 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 		}
 		side.Mult *= charmInCombatMult(&mob.Character, user.UserId)
 	}
-	out := runSpellChannelAttack(spellAttackChannel(spellData), side, user.Character, &mob.Character)
+	out := runSpellChannelAttack(spellAttackShape(spellData), side, user.Character, &mob.Character)
 
 	round := util.GetRoundCount()
 
@@ -442,7 +443,7 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 	combat.RecordSpell(combat.User, combat.Mob, !out.Defended, out.AttackerCrit, false, out.Defended, dmgDealt, out.AttackRollZScore, user.Character, &mob.Character, round)
 
 	// U6b Task 10: the MOB defender's crit defence counters the player caster.
-	fireSpellCounterTier(room, out, spellAttackChannel(spellData),
+	fireSpellCounterTier(room, out, spellAttackShape(spellData),
 		&mob.Character, user.Character, nil, user)
 
 	return false, !out.Defended
@@ -932,7 +933,7 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(target.Character)
-	out := runSpellChannelAttack(spellAttackChannel(spellData), side, user.Character, target.Character)
+	out := runSpellChannelAttack(spellAttackShape(spellData), side, user.Character, target.Character)
 
 	// Backfire on fumble — resolved BEFORE success, per the seam's contract.
 	if out.AttackerFumble {
@@ -960,7 +961,7 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 	}
 
 	// U6b Task 10: the defending player's crit defence counters the caster.
-	fireSpellCounterTier(room, out, spellAttackChannel(spellData),
+	fireSpellCounterTier(room, out, spellAttackShape(spellData),
 		target.Character, user.Character, target, user)
 
 	return false, !out.Defended
@@ -1225,41 +1226,54 @@ func spellNarratedByGoHook(spellId string) bool {
 	return false
 }
 
-// spellAttackChannel maps a spell's target_defense_type onto the U6 attack
-// channel whose defence set answers it.
+// spellAttackShape builds the attack the seam resolves from the spell's
+// legacy fields. TRANSITIONAL: Task 7 of the M4b-2 plan replaces it with
+// SpellData.Attack() reading attack_type/damage_type/targeting.
 //
-// Since U6b Task 4 this is the ONLY read of target_defense_type in spell
-// resolution: the field picks which defence set answers the one contest
-// (a "physical" spell is dodged/blocked, everything else is quelled), and the
-// defender's score comes from GetDefenseScoreFor via the seam — the deleted
-// defence-value helper's raw-stat read is gone with the two-contest gate.
+// Since U6b Task 4 target_defense_type is the ONLY read that picks which
+// defence set answers the one contest (a "physical" spell is dodged/blocked,
+// everything else is quelled), and the defender's score comes from
+// GetDefenseScoreFor via the seam — the deleted defence-value helper's
+// raw-stat read is gone with the two-contest gate.
 //
-// Everything that is not explicitly "physical" -- including "mental", "none" and
-// the empty default -- answers as mental. That is the conservative direction:
-// quell is a single-defence set, so an unclassified spell faces one defence
-// rather than two.
-func spellAttackChannel(spellData *spells.SpellData) combat.AttackChannel {
+// Everything that is not explicitly "physical" or "social" -- including
+// "mental", "none" and the empty default -- answers as mental. That is the
+// conservative direction: quell is a single-defence set, so an unclassified
+// spell faces one defence rather than two.
+func spellAttackShape(spellData *spells.SpellData) combatvocab.Attack {
+	targeting := combatvocab.TargetSingle
+	if spellData != nil {
+		switch spellData.Type {
+		case spells.HarmArea, spells.HelpArea:
+			targeting = combatvocab.TargetArea
+		case spells.HarmMulti, spells.HelpMulti:
+			targeting = combatvocab.TargetMulti
+		case spells.Neutral:
+			targeting = combatvocab.TargetSelf
+		}
+	}
 	if spellData == nil {
-		return combat.ChannelSpellMental
+		return combatvocab.Spell(combatvocab.DamageMental, targeting)
 	}
 	switch spellData.TargetDefenseType {
 	case "physical":
-		return combat.ChannelSpellPhysical
+		return combatvocab.Spell(combatvocab.DamagePhysical, targeting)
 	case "social":
 		// Charm is an act of social domination whose attack side is already
-		// Charisma, so defy answers it rather than quell. Declaring the channel
-		// in data is what lets charm stop hand-rolling a second contest of its
-		// own on top of this one.
+		// Charisma, so defy answers it rather than quell. Declaring the
+		// pairing in data is what lets charm stop hand-rolling a second
+		// contest of its own on top of this one.
 		//
-		// NOTE if you add another social spell: this channel also reaches
-		// fireSpellCounterTier, and combat/counter.go documents ChannelSocial
-		// as never arriving at ExecuteCounter -- true only because taunt
-		// short-circuits its defy-crit at the call site. See charm's handling.
-		return combat.ChannelSocial
+		// NOTE if you add another social spell: this pairing also reaches
+		// fireSpellCounterTier, and combat/counter.go documents the (spell,
+		// social) pairing as unreachable there for a different reason --
+		// true only because taunt short-circuits its defy-crit at the call
+		// site. See charm's handling.
+		return combatvocab.Spell(combatvocab.DamageSocial, targeting)
 	}
-	// An absent target_defense_type is the DEFAULT, not an escape from routing.
-	// Every unclassified spell resolves as a mental attack answered by quell.
-	return combat.ChannelSpellMental
+	// An absent target_defense_type is the DEFAULT, not an escape from
+	// routing: every unclassified spell resolves as a mental attack.
+	return combatvocab.Spell(combatvocab.DamageMental, targeting)
 }
 
 // calcSpellDamage and calcMobSpellDamage have been unified into
@@ -1550,7 +1564,7 @@ func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.R
 	}
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(&target.Character)
-	out := runSpellChannelAttack(spellAttackChannel(spellData), side, &caster.Character, &target.Character)
+	out := runSpellChannelAttack(spellAttackShape(spellData), side, &caster.Character, &target.Character)
 	if out.AttackerFumble {
 		dmg := magnitude / 4
 		if dmg < 1 {
@@ -1563,7 +1577,7 @@ func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.R
 	applyMobEffect(nil, &caster.Character, target, room, spellData, magnitude, out)
 
 	// U6b Task 10: the defending mob's crit defence counters the mob caster.
-	fireSpellCounterTier(room, out, spellAttackChannel(spellData),
+	fireSpellCounterTier(room, out, spellAttackShape(spellData),
 		&target.Character, &caster.Character, nil, nil)
 
 	return !out.Defended
@@ -1581,7 +1595,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 	spellData *spells.SpellData, side combat.AttackSide, magnitude int) (landed bool) {
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(target.Character)
-	out := runSpellChannelAttack(spellAttackChannel(spellData), side, &caster.Character, target.Character)
+	out := runSpellChannelAttack(spellAttackShape(spellData), side, &caster.Character, target.Character)
 	round := util.GetRoundCount()
 	if out.AttackerFumble {
 		dmg := magnitude / 4
@@ -1788,7 +1802,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 	combat.RecordSpell(combat.Mob, combat.User, !out.Defended, isCrit, false, out.Defended, mobSpellDmg, out.AttackRollZScore, &caster.Character, target.Character, round)
 
 	// U6b Task 10: the PLAYER defender's crit defence counters the mob caster.
-	fireSpellCounterTier(room, out, spellAttackChannel(spellData),
+	fireSpellCounterTier(room, out, spellAttackShape(spellData),
 		target.Character, &caster.Character, target, nil)
 
 	return !out.Defended

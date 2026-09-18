@@ -1278,9 +1278,9 @@ func sendDefenseMessages(result *AttackResult, best bestDefenseResult, sourceCha
 
 	// The generic fallback text below formats as "%s %ss your attack!", so an
 	// empty verb reads "Grimwald s your attack!". Unreachable today: melee's
-	// defence set is dodge, parry and block only (DefenceSetFor), so the verb
-	// is never empty. Kept so an empty name cannot print "Grimwald s your
-	// attack!".
+	// defence set is dodge, parry and block only (combatvocab.EligibleDefences),
+	// so the verb is never empty. Kept so an empty name cannot print
+	// "Grimwald s your attack!".
 	if defenseVerb == "" {
 		defenseVerb = "counter"
 	}

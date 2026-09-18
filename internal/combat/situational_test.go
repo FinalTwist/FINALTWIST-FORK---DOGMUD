@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
@@ -51,7 +52,7 @@ func forceProne(t *testing.T, c *characters.Character) {
 func TestSituationalAttackMult_HealthyStandingIsUnity(t *testing.T) {
 	pinSituationalKnobs(t)
 	atk := newSituationalAttacker(t)
-	for _, ch := range []AttackChannel{ChannelMelee, ChannelRanged, ChannelSpellPhysical, ChannelSpellMental, ChannelSocial} {
+	for _, ch := range []combatvocab.Attack{combatvocab.Melee(combatvocab.TargetSingle), combatvocab.Ranged(combatvocab.TargetSingle), combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), combatvocab.Rhetoric(combatvocab.TargetSingle)} {
 		if got := SituationalAttackMult(atk, ch); got != 1.0 {
 			t.Errorf("channel %s: healthy standing attacker mult = %v, want 1.0", ch, got)
 		}
@@ -67,14 +68,14 @@ func TestSituationalAttackMult_ProneAttackerTable(t *testing.T) {
 	forceProne(t, atk)
 
 	for _, tc := range []struct {
-		channel AttackChannel
+		channel combatvocab.Attack
 		want    float64
 	}{
-		{ChannelMelee, 0.80},
-		{ChannelRanged, 0.80},
-		{ChannelSpellPhysical, 1.0},
-		{ChannelSpellMental, 1.0},
-		{ChannelSocial, 1.0},
+		{combatvocab.Melee(combatvocab.TargetSingle), 0.80},
+		{combatvocab.Ranged(combatvocab.TargetSingle), 0.80},
+		{combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), 1.0},
+		{combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), 1.0},
+		{combatvocab.Rhetoric(combatvocab.TargetSingle), 1.0},
 	} {
 		if got := SituationalAttackMult(atk, tc.channel); math.Abs(got-tc.want) > 1e-9 {
 			t.Errorf("channel %s: prone attacker mult = %v, want %v", tc.channel, got, tc.want)
@@ -97,14 +98,14 @@ func TestSituationalAttackMult_StaminaDepletionTable(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		channel AttackChannel
+		channel combatvocab.Attack
 		want    float64
 	}{
-		{ChannelMelee, want},
-		{ChannelRanged, want},
-		{ChannelSpellPhysical, 1.0},
-		{ChannelSpellMental, 1.0},
-		{ChannelSocial, 1.0},
+		{combatvocab.Melee(combatvocab.TargetSingle), want},
+		{combatvocab.Ranged(combatvocab.TargetSingle), want},
+		{combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), 1.0},
+		{combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), 1.0},
+		{combatvocab.Rhetoric(combatvocab.TargetSingle), 1.0},
 	} {
 		if got := SituationalAttackMult(atk, tc.channel); math.Abs(got-tc.want) > 1e-9 {
 			t.Errorf("channel %s: depleted-stamina mult = %v, want %v", tc.channel, got, tc.want)
@@ -123,13 +124,13 @@ func TestSituationalAttackMult_ProneAndDepletionCompound(t *testing.T) {
 	depletion := ResourceMultiplier(atk.Stamina, atk.EffectivePoolMax(characters.PoolStamina),
 		float64(configs.GetBalanceConfig().StaminaPenaltyMax))
 	want := 0.80 * depletion
-	if got := SituationalAttackMult(atk, ChannelMelee); math.Abs(got-want) > 1e-9 {
+	if got := SituationalAttackMult(atk, combatvocab.Melee(combatvocab.TargetSingle)); math.Abs(got-want) > 1e-9 {
 		t.Errorf("melee prone+depleted mult = %v, want %v", got, want)
 	}
 }
 
 func TestSituationalAttackMult_NilAttackerIsUnity(t *testing.T) {
-	if got := SituationalAttackMult(nil, ChannelMelee); got != 1.0 {
+	if got := SituationalAttackMult(nil, combatvocab.Melee(combatvocab.TargetSingle)); got != 1.0 {
 		t.Errorf("nil attacker mult = %v, want 1.0", got)
 	}
 }
@@ -225,7 +226,7 @@ func TestResolveChannelAttack_ForceCritOverridesEverything(t *testing.T) {
 
 	s := side(148, 52)
 	s.ForceCrit = true
-	out := resolveChannelAttackWithRunner(ChannelSpellMental, s, atk, def, decisiveDefenceWinRunner)
+	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), s, atk, def, decisiveDefenceWinRunner)
 
 	if !out.AttackerCrit {
 		t.Error("ForceCrit did not set AttackerCrit")
@@ -253,7 +254,7 @@ func TestResolveChannelAttack_SameContestWithoutForceCritIsDefended(t *testing.T
 	pinDefenceAdmissionConfig(t)
 	atk, def := newDefenceTestCharacter(t), newDefenceTestCharacter(t)
 
-	out := resolveChannelAttackWithRunner(ChannelSpellMental, side(148, 52), atk, def, decisiveDefenceWinRunner)
+	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), side(148, 52), atk, def, decisiveDefenceWinRunner)
 	if !out.Defended {
 		t.Fatal("fixture is broken: the decisive defence win did not defend")
 	}
@@ -275,7 +276,7 @@ func TestResolveChannelAttack_ForceCritUncontested(t *testing.T) {
 	runner := func(_ float64, _ []contest.Entry) contest.Result {
 		return contest.Result{Contested: false}
 	}
-	out := resolveChannelAttackWithRunner(ChannelSpellMental, s, atk, def, runner)
+	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), s, atk, def, runner)
 	if !out.AttackerCrit {
 		t.Error("ForceCrit must survive an uncontested outcome")
 	}

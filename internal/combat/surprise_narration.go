@@ -44,7 +44,7 @@ const surpriseAttackBanner = `<ansi fg="magenta-bold">*[SURPRISE ATTACK]*</ansi>
 // names the defence -- so the "answered ambush" outcome is spoken there too,
 // just by the older seam.
 //
-// Only dodge, parry and block are worded. DefenceSetFor(ChannelMelee) returns
+// Only dodge, parry and block are worded. Melee's eligibility row returns
 // exactly those three, so a quell or defy arm here would be unreachable.
 // DefenseNone keeps a neutral fallback so an empty DefenseUsed cannot print an
 // empty verb; "deflect" rather than deflectedSwingLines' "turn aside" because

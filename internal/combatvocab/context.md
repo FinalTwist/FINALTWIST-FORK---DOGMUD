@@ -4,8 +4,9 @@
 
 The one declaration of the four combat axes and the defence eligibility
 table. Introduced by messaging M4b-2 (2026-09-18) to replace three
-declarations of the five defence names, the flattened `combat.AttackChannel`,
-`spells.SpellType` and `SpellData.TargetDefenseType`.
+declarations of the five defence names, `combat`'s old flattened
+attack-channel enum (deleted by Task 5), `spells.SpellType` and
+`SpellData.TargetDefenseType`.
 
 It imports nothing but the standard library, so `characters`, `items`,
 `combat`, `spells`, `templates` and `hooks` can all import it. It does not

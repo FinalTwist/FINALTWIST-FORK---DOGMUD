@@ -6,10 +6,10 @@ import (
 )
 
 // The eligibility table, pinned as literals. The first five rows ARE the old
-// combat.DefenceSetFor table (defence_sets.go:51-65 on master 612b85d54); the
-// thrown and spell/social rows are the spec's two additions, and the last row
-// is the uncontested pair. If this test and attack.go disagree, the code is
-// wrong, not the test.
+// combat channel-to-defence table (defence_sets.go:51-65 on master
+// 612b85d54, since deleted); the thrown and spell/social rows are the spec's
+// two additions, and the last row is the uncontested pair. If this test and
+// attack.go disagree, the code is wrong, not the test.
 func TestEligibilityTableIsTheSpecsTable(t *testing.T) {
 	cases := []struct {
 		name string

@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -324,7 +325,7 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		// ONE contest per target through the seam: the defender's set is
 		// quoted, charged, and progressed inside; the attacker's crit and
 		// fumble verdicts come from this same contest.
-		out := combat.ResolveChannelAttack(combat.ChannelRanged, side,
+		out := combat.ResolveChannelAttack(combatvocab.Thrown(combatvocab.TargetArea), side,
 			user.Character, &mob.Character)
 
 		// Fumble check (self-relative, resolved BEFORE success — a fumbled

@@ -237,7 +237,7 @@ func attackerCandidates(c *characters.Character, result combat.AttackResult) ([]
 //
 // Quell and defy still cannot reach this function -- neither is in melee's
 // defence set -- but AwardDefenceProgression covers both, so wiring either into
-// melee stays a row in DefenceSetFor and nothing else.
+// melee stays a row in combatvocab's eligibility table and nothing else.
 func processDefenderProgression(c *characters.Character, userId int, result combat.AttackResult) {
 	best, ok := bestSwingDefence(c, result.SwingDefences)
 	if !ok {

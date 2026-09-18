@@ -753,7 +753,7 @@ the free supply-handoff paths — these are NOT routed through `actions.Sell`.
 
 `combat_counter.go` wires the counter tier on this package's exits:
 
-- `counterSkillMoveExit(actor, defender, move, channel, sameRoom)` fires
+- `counterSkillMoveExit(actor, defender, move, shape combatvocab.Attack, sameRoom)` fires
   `combat.ExecuteCounter` at every `ExecuteSkillMove` consumer's
   defensive-crit exit (bash/gore/hamstring/kick/maul/pounce/rake/throttle/
   trip/drain/drain-area, plus `ExecuteFire` with `sameRoom = !crossRoom` —
@@ -772,8 +772,9 @@ and is charged + progressed for it (the countered-party economy).
 
 Narration (U6b Task 11) is channel-correct, rendered by `internal/combat`
 from the `counter-*` pools in `defense-messages/` (melee/ranged/quell by the
-original attack's channel; the counter-taunt from `counter-defy` via
-`combat.BuildCounterTauntMessages`). SEQUENCING: `counterSkillMoveExit` does
+original attack's `combatvocab.Attack` shape; the counter-taunt from
+`counter-defy` via `combat.BuildCounterTauntMessages`). SEQUENCING:
+`counterSkillMoveExit` does
 NOT dispatch — messages render in call order and the wrappers narrate after
 `ExecuteX` returns, so the `CounterResult` rides up on each action's result
 struct (`Counter` field on Bash/Drain/Fire/Gore/Hamstring/Kick/Maul/Pounce/

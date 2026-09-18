@@ -79,22 +79,22 @@ func TestDefenceEntriesFor_EquipmentGate(t *testing.T) {
 
 	cases := []struct {
 		name    string
-		channel AttackChannel
+		channel combatvocab.Attack
 		def     *characters.Character
 		want    []combatvocab.Defence
 	}{
-		{"bare vs melee: dodge only", ChannelMelee, bare, []combatvocab.Defence{combatvocab.DefenceDodge}},
-		{"armed vs melee: dodge+parry", ChannelMelee, armed, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}},
-		{"shielded vs melee: dodge+parry+block", ChannelMelee, shielded, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock}},
-		{"shielded vs ranged: dodge+block", ChannelRanged, shielded, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock}},
+		{"bare vs melee: dodge only", combatvocab.Melee(combatvocab.TargetSingle), bare, []combatvocab.Defence{combatvocab.DefenceDodge}},
+		{"armed vs melee: dodge+parry", combatvocab.Melee(combatvocab.TargetSingle), armed, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}},
+		{"shielded vs melee: dodge+parry+block", combatvocab.Melee(combatvocab.TargetSingle), shielded, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock}},
+		{"shielded vs ranged: dodge+block", combatvocab.Ranged(combatvocab.TargetSingle), shielded, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock}},
 		// THE new gate: no shield means no block, on ANY channel. Today the
 		// channel path hands this defender a block roll against a bolt.
-		{"bare vs ranged: dodge only", ChannelRanged, bare, []combatvocab.Defence{combatvocab.DefenceDodge}},
-		{"armed vs ranged: dodge only (parry not in channel table)", ChannelRanged, armed, []combatvocab.Defence{combatvocab.DefenceDodge}},
-		{"bare vs spell-physical: dodge only", ChannelSpellPhysical, bare, []combatvocab.Defence{combatvocab.DefenceDodge}},
-		{"shielded vs spell-physical: dodge+block", ChannelSpellPhysical, shielded, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock}},
-		{"mental: quell regardless of equipment", ChannelSpellMental, bare, []combatvocab.Defence{combatvocab.DefenceQuell}},
-		{"social: defy regardless of equipment", ChannelSocial, bare, []combatvocab.Defence{combatvocab.DefenceDefy}},
+		{"bare vs ranged: dodge only", combatvocab.Ranged(combatvocab.TargetSingle), bare, []combatvocab.Defence{combatvocab.DefenceDodge}},
+		{"armed vs ranged: dodge only (parry not in channel table)", combatvocab.Ranged(combatvocab.TargetSingle), armed, []combatvocab.Defence{combatvocab.DefenceDodge}},
+		{"bare vs spell-physical: dodge only", combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), bare, []combatvocab.Defence{combatvocab.DefenceDodge}},
+		{"shielded vs spell-physical: dodge+block", combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), shielded, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock}},
+		{"mental: quell regardless of equipment", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), bare, []combatvocab.Defence{combatvocab.DefenceQuell}},
+		{"social: defy regardless of equipment", combatvocab.Rhetoric(combatvocab.TargetSingle), bare, []combatvocab.Defence{combatvocab.DefenceDefy}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -119,11 +119,11 @@ func TestDefenceEntriesFor_ShieldWithoutWeaponBlocks(t *testing.T) {
 		Type:               items.Offhand,
 		PhysicalMitigation: 5,
 	}}
-	got := DefenceEntriesFor(ChannelMelee, c, DefenceEntryOpts{})
+	got := DefenceEntriesFor(combatvocab.Melee(combatvocab.TargetSingle), c, DefenceEntryOpts{})
 	assertSameSet(t, got, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock})
 
 	// Ranged keeps its own channel table; a shield still blocks arrows.
-	got = DefenceEntriesFor(ChannelRanged, c, DefenceEntryOpts{})
+	got = DefenceEntriesFor(combatvocab.Ranged(combatvocab.TargetSingle), c, DefenceEntryOpts{})
 	assertSameSet(t, got, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock})
 }
 
@@ -137,10 +137,10 @@ func TestDefenceEntriesFor_NaturalBashSpeciesBlocksWithoutShieldItem(t *testing.
 	defer cleanup()
 
 	c := newArmedDefenceTestCharacter(t) // weapon, empty offhand, no shield item
-	got := DefenceEntriesFor(ChannelMelee, c, DefenceEntryOpts{})
+	got := DefenceEntriesFor(combatvocab.Melee(combatvocab.TargetSingle), c, DefenceEntryOpts{})
 	assertSameSet(t, got, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock})
 
-	got = DefenceEntriesFor(ChannelRanged, c, DefenceEntryOpts{})
+	got = DefenceEntriesFor(combatvocab.Ranged(combatvocab.TargetSingle), c, DefenceEntryOpts{})
 	assertSameSet(t, got, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock})
 }
 
@@ -162,7 +162,7 @@ func TestDefenceEntriesFor_UnarmedStyleWeaponNeverParriesButStillBlocks(t *testi
 		Type:               items.Offhand,
 		PhysicalMitigation: 5,
 	}}
-	got := DefenceEntriesFor(ChannelMelee, c, DefenceEntryOpts{})
+	got := DefenceEntriesFor(combatvocab.Melee(combatvocab.TargetSingle), c, DefenceEntryOpts{})
 	assertSameSet(t, got, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceBlock})
 	if countOf(got, combatvocab.DefenceParry) != 0 {
 		t.Errorf("unarmed-style must never parry, got %v", got)
@@ -172,7 +172,7 @@ func TestDefenceEntriesFor_UnarmedStyleWeaponNeverParriesButStillBlocks(t *testi
 // Dual-wield double parry survives the migration: two parry entries.
 func TestDefenceEntriesFor_DualWieldDoubleParry(t *testing.T) {
 	dw := newDualWieldDefenceTestCharacter(t)
-	got := DefenceEntriesFor(ChannelMelee, dw, DefenceEntryOpts{})
+	got := DefenceEntriesFor(combatvocab.Melee(combatvocab.TargetSingle), dw, DefenceEntryOpts{})
 	if countOf(got, combatvocab.DefenceParry) != 2 {
 		t.Errorf("dual-wield parry entries = %d, want 2 (set: %v)", countOf(got, combatvocab.DefenceParry), got)
 	}
@@ -191,11 +191,11 @@ func TestDefenceEntriesFor_DualWieldDoubleParry(t *testing.T) {
 // contract: only block remains for a grappled defender attacked by a bystander.
 func TestDefenceEntriesFor_ThirdPartyGrappleFilter(t *testing.T) {
 	shielded := newShieldedDefenceTestCharacter(t)
-	got := DefenceEntriesFor(ChannelMelee, shielded, DefenceEntryOpts{ThirdPartyVsGrappler: true})
+	got := DefenceEntriesFor(combatvocab.Melee(combatvocab.TargetSingle), shielded, DefenceEntryOpts{ThirdPartyVsGrappler: true})
 	assertSameSet(t, got, []combatvocab.Defence{combatvocab.DefenceBlock})
 
 	bare := newDefenceTestCharacter(t)
-	got = DefenceEntriesFor(ChannelMelee, bare, DefenceEntryOpts{ThirdPartyVsGrappler: true})
+	got = DefenceEntriesFor(combatvocab.Melee(combatvocab.TargetSingle), bare, DefenceEntryOpts{ThirdPartyVsGrappler: true})
 	if len(got) != 0 {
 		t.Errorf("bare third-party set = %v, want empty (auto-hit)", got)
 	}
@@ -223,12 +223,12 @@ func TestChannelDefence_ProneAppliesDefencePenalties(t *testing.T) {
 	}
 
 	var standingScores []float64
-	resolveChannelAttackWithRunner(ChannelSpellPhysical, channelSideForSignTest(ChannelSpellPhysical, attacker), attacker, defender, capture(&standingScores))
+	resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), attacker), attacker, defender, capture(&standingScores))
 
 	setCombatPositionParallel(defender, position.Prone)
 	defender.Stamina = 100
 	var proneScores []float64
-	resolveChannelAttackWithRunner(ChannelSpellPhysical, channelSideForSignTest(ChannelSpellPhysical, attacker), attacker, defender, capture(&proneScores))
+	resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), attacker), attacker, defender, capture(&proneScores))
 
 	if len(standingScores) != 1 || len(proneScores) != 1 {
 		t.Fatalf("entry counts standing=%d prone=%d, want 1 each (bare defender: dodge only)",

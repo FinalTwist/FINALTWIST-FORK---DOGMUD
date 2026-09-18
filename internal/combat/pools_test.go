@@ -11,9 +11,9 @@ import (
 // ALSO the toughen channel. Pinned against master 612b85d54:
 //   - calcSpellDamageForCharacter always passes ChannelMagical
 //     (hooks/combat_shared_helpers.go:52), physical spells included;
-//   - channelDamageChannel (defence_multiplier.go:769) answered "physical"
-//     for melee and ranged, "magical" for BOTH spell channels, "conviction"
-//     for social.
+//   - the old flattened-channel mapping (deleted, defence_multiplier.go:769)
+//     answered "physical" for melee and ranged, "magical" for BOTH spell
+//     damage types, "conviction" for social.
 func TestScaleChannelForMatchesTheOldSwitches(t *testing.T) {
 	cases := map[combatvocab.AttackType]DamageChannel{
 		combatvocab.AttackMelee:    ChannelPhysical,

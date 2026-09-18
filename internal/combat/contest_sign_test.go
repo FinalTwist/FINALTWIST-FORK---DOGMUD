@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/stats"
@@ -194,9 +195,9 @@ func (o avoidanceOutcomes) total() int {
 // for these channels (spellAttackSideFor in hooks; ExecuteTaunt in actions),
 // so these guards keep contesting the exact scores the deleted legacy wrapper
 // and its default-side builder used to derive.
-func channelSideForSignTest(channel AttackChannel, attacker *characters.Character) AttackSide {
+func channelSideForSignTest(channel combatvocab.Attack, attacker *characters.Character) AttackSide {
 	switch channel {
-	case ChannelSpellMental, ChannelSpellPhysical:
+	case combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle):
 		return AttackSide{
 			Stat:      attacker.Stats.Willpower.ValueAdj,
 			StatName:  "willpower",
@@ -204,7 +205,7 @@ func channelSideForSignTest(channel AttackChannel, attacker *characters.Characte
 			SkillRank: attacker.GetSkillLevel(skills.Spellcasting),
 			Mult:      1.0,
 		}
-	case ChannelSocial:
+	case combatvocab.Rhetoric(combatvocab.TargetSingle):
 		return AttackSide{
 			Stat:      attacker.Stats.Charisma.ValueAdj,
 			StatName:  "charisma",
@@ -220,7 +221,7 @@ func channelSideForSignTest(channel AttackChannel, attacker *characters.Characte
 // returns. Counting happens inside the loop and every assertion in the callers
 // runs unconditionally after it, so no caller can report PASS having checked
 // nothing.
-func runAvoidanceContest(t *testing.T, n int, channel AttackChannel, attacker, defender *characters.Character) avoidanceOutcomes {
+func runAvoidanceContest(t *testing.T, n int, channel combatvocab.Attack, attacker, defender *characters.Character) avoidanceOutcomes {
 	t.Helper()
 
 	side := channelSideForSignTest(channel, attacker)
@@ -284,7 +285,7 @@ func TestResolveChannelAttack_SpellMentalFullNegationStillReachable(t *testing.T
 	defender := characters.New()
 	setStatBase(t, &defender.Stats.Willpower, avoidanceDefenseStat)
 
-	out := runAvoidanceContest(t, avoidanceIterations, ChannelSpellMental, attacker, defender)
+	out := runAvoidanceContest(t, avoidanceIterations, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), attacker, defender)
 
 	// Unconditional. Nothing below is inside a branch that a roll could skip.
 	if got := out.total(); got != avoidanceIterations {
@@ -292,7 +293,7 @@ func TestResolveChannelAttack_SpellMentalFullNegationStillReachable(t *testing.T
 			got, avoidanceIterations)
 	}
 	if out.fullNegations == 0 {
-		t.Errorf("ResolveChannelAttack(ChannelSpellMental) never returned 0.0 across %d "+
+		t.Errorf("ResolveChannelAttack(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle)) never returned 0.0 across %d "+
 			"iterations (full negations=%d bare=%d curved=%d attack wins=%d); expected "+
 			"~99.7%% of iterations to fully negate at attack score %d vs defence score %d. "+
 			"The defensive crit derives from the contest margin, so this is what a zeroed "+
@@ -320,14 +321,14 @@ func TestResolveChannelAttack_SocialFullNegationStillReachable(t *testing.T) {
 	defender := characters.New()
 	setStatBase(t, &defender.Stats.Willpower, avoidanceDefenseStat)
 
-	out := runAvoidanceContest(t, avoidanceIterations, ChannelSocial, attacker, defender)
+	out := runAvoidanceContest(t, avoidanceIterations, combatvocab.Rhetoric(combatvocab.TargetSingle), attacker, defender)
 
 	if got := out.total(); got != avoidanceIterations {
 		t.Fatalf("counted %d outcomes, want %d -- the loop did not run to completion",
 			got, avoidanceIterations)
 	}
 	if out.fullNegations == 0 {
-		t.Errorf("ResolveChannelAttack(ChannelSocial) never returned 0.0 across %d "+
+		t.Errorf("ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle)) never returned 0.0 across %d "+
 			"iterations (full negations=%d bare=%d curved=%d attack wins=%d); expected "+
 			"~99.7%% of iterations to fully negate at attack score %d vs defence score %d. "+
 			"The defensive crit derives from the contest margin, so this is what a zeroed "+
@@ -357,7 +358,7 @@ func TestResolveChannelAttack_OverwhelmingAttackerIsNeverNegated(t *testing.T) {
 	defender := characters.New()
 	setStatBase(t, &defender.Stats.Willpower, avoidanceAttackStat)
 
-	out := runAvoidanceContest(t, avoidanceIterations, ChannelSpellMental, attacker, defender)
+	out := runAvoidanceContest(t, avoidanceIterations, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), attacker, defender)
 
 	if got := out.total(); got != avoidanceIterations {
 		t.Fatalf("counted %d outcomes, want %d -- the loop did not run to completion",
@@ -404,7 +405,7 @@ func TestResolveChannelAttack_PartialIsACurveNotAStep(t *testing.T) {
 	defender := characters.New()
 	setStatBase(t, &defender.Stats.Willpower, avoidanceAttackStat)
 
-	out := runAvoidanceContest(t, parityIterations, ChannelSpellMental, attacker, defender)
+	out := runAvoidanceContest(t, parityIterations, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), attacker, defender)
 
 	if got := out.total(); got != parityIterations {
 		t.Fatalf("counted %d outcomes, want %d -- the loop did not run to completion",

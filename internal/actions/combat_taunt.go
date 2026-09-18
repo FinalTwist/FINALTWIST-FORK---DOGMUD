@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -170,10 +171,10 @@ func ExecuteTaunt(actor Actor) TauntResult {
 		// on the social channel by the declared table (prone: N; the resource
 		// depletion cell is the convMult already applied here plus the damage
 		// term below — the shared layer must not tax it a second time).
-		Mult:      convMult * combat.SituationalAttackMult(char, combat.ChannelSocial),
+		Mult:      convMult * combat.SituationalAttackMult(char, combatvocab.Rhetoric(combatvocab.TargetSingle)),
 		ForceCrit: combat.SleepingForceCrit(target.Char),
 	}
-	out := combat.ResolveChannelAttack(combat.ChannelSocial, side, char, target.Char)
+	out := combat.ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), side, char, target.Char)
 
 	// Determine source/target types for analytics.
 	sourceType := combat.User

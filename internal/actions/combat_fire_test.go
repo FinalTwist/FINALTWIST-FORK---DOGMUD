@@ -13,6 +13,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
@@ -271,7 +272,7 @@ func TestFire_SameRoomMob_PerceptionGoverns(t *testing.T) {
 	cfg := configs.GetBalanceConfig()
 	wantAtk := (float64(char.GetEffectivePerception()) +
 		float64(char.GetSkillLevel(skills.RangedCombat))*float64(cfg.SkillWeight)) *
-		combat.SituationalAttackMult(char, combat.ChannelRanged)
+		combat.SituationalAttackMult(char, combatvocab.Ranged(combatvocab.TargetSingle))
 	require.InDelta(t, wantAtk, gotAtkScore, 1e-9,
 		"the contested attack score must be governed by Perception")
 

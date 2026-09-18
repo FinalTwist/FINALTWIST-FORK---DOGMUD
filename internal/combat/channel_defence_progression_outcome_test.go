@@ -16,7 +16,7 @@ import (
 // lose" -- but it passed a literal true for the OUTCOME, so a defence that lost
 // was paid as though it had won. This file pins the real outcome.
 //
-// DEFY is the fixture defence: ChannelSocial's defence set is defy alone, so
+// DEFY is the fixture defence: combatvocab.Rhetoric(combatvocab.TargetSingle)'s defence set is defy alone, so
 // exactly one candidate enters the contest and the assertions cannot be
 // confounded by a sibling defence. Its skill is rhetoric, whose hardcoded
 // progression multiplier is 4.98, so the chance clamps to CERTAINTY under the
@@ -107,7 +107,7 @@ func TestResolveChannelAttack_ALostDefenceAwardsAtTheFractionExactlyOnce(t *test
 	beforeSkill := defender.GetSkillLevel(skills.SkillTag(channelDefenceSkill))
 	beforeStat := defender.GetStatTraining(channelDefenceStat)
 
-	out := ResolveChannelAttack(ChannelSocial, AttackSide{Stat: 100}, attacker, defender)
+	out := ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100}, attacker, defender)
 	if out.Defence != combatvocab.DefenceDefy {
 		t.Fatalf("precondition: the contest resolved on %q, want %q", out.Defence, combatvocab.DefenceDefy)
 	}
@@ -146,7 +146,7 @@ func TestResolveChannelAttack_AWonDefenceStillAwardsFullWeight(t *testing.T) {
 	beforeSkill := defender.GetSkillLevel(skills.SkillTag(channelDefenceSkill))
 	beforeStat := defender.GetStatTraining(channelDefenceStat)
 
-	ResolveChannelAttack(ChannelSocial, AttackSide{Stat: 100}, attacker, defender)
+	ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100}, attacker, defender)
 
 	if got := defender.GetSkillLevel(skills.SkillTag(channelDefenceSkill)) - beforeSkill; got != 1 {
 		t.Errorf("%s advanced by %d on a WON defence, want 1", channelDefenceSkill, got)
@@ -184,7 +184,7 @@ func TestResolveChannelAttack_ForcedCritIsALostDefenceEvenThoughTheContestSaysOt
 	beforeSkill := defender.GetSkillLevel(skills.SkillTag(channelDefenceSkill))
 	beforeStat := defender.GetStatTraining(channelDefenceStat)
 
-	out := ResolveChannelAttack(ChannelSocial, AttackSide{Stat: 100, ForceCrit: true}, attacker, defender)
+	out := ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100, ForceCrit: true}, attacker, defender)
 
 	if !out.AttackerCrit {
 		t.Fatalf("precondition: ForceCrit did not produce an attacker crit; the fixture is not exercising the forced-win path")

@@ -1230,7 +1230,7 @@ For each pair inside `processGrapplePair`:
    drift, the spell sites, and riposte-trip and auto-bash via
    `combat.ExecuteSkillMove`. Charm no longer appears in that list:
    U10c deleted its per-tick re-roll ladder outright and moved the
-   cast onto the `ChannelSocial` contest the seam already ran. It imports
+   cast onto the (spell, social) contest the seam already ran. It imports
    `internal/contest` for the `Entry` type only and must never call that
    package's `Run`, `AgainstDifficulty` or `RunWithFloors`. The private
    floor accessors this package used to keep, `maneuverHitFloor` /

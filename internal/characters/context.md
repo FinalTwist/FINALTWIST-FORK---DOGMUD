@@ -714,8 +714,9 @@ and `applyVitalChange` (the single signed pipeline behind harm and restore).
   marks the site in `combat.go`). Its equipment gate — dodge always; parry and
   block by weapon, dual-wield and shield — lives on as the only remaining copy
   inside `combat.DefenceEntriesFor` (`internal/combat/defence_sets.go`), which
-  now builds the defence-name set for every channel, melee included. The
-  per-channel defence table itself is `combat.DefenceSetFor`.
+  now builds the defence-name set for every attack, melee included. The
+  eligibility table itself (which defences answer which `(AttackType,
+  DamageType)` pair) lives in `internal/combatvocab.EligibleDefences`.
 
 ### Combat and Interaction Systems
 - **Kill/Death statistics** (`kdstats.go`): PvP and PvE combat tracking

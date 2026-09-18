@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -462,7 +463,7 @@ func calculateCombat(sourceChar *characters.Character, targetChar *characters.Ch
 			// internal/state/position/modifiers.go.
 			attackScore *= applyPositionHitModifiers(sourceChar, targetChar)
 
-			defenseSequence := DefenceEntriesFor(ChannelMelee, targetChar, DefenceEntryOpts{})
+			defenseSequence := DefenceEntriesFor(combatvocab.Melee(combatvocab.TargetSingle), targetChar, DefenceEntryOpts{})
 
 			// Third-party grapple vulnerability
 			defenseSequence, isThirdParty := filterDefensesForThirdParty(&attackResult, sourceChar, targetChar, defenseSequence)

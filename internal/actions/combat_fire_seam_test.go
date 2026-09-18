@@ -1,7 +1,7 @@
 package actions
 
 // U6b Task 8 — ranged onto the seam. ExecuteFire routes through
-// combat.ExecuteSkillMove with Channel: ChannelRanged + an AttackSide
+// combat.ExecuteSkillMove with Shape: combatvocab.Ranged(combatvocab.TargetSingle) + an AttackSide
 // (Perception + ranged-combat rank), so the defender's answer is a defence SET
 // from DefenceEntriesFor, not the deleted folded defence scalar:
 //
@@ -129,7 +129,7 @@ func TestFireSeam_ShieldedDefenderGetsBlockEntry(t *testing.T) {
 	cfg := configs.GetBalanceConfig()
 	wantAtk := (float64(atkChar.GetEffectivePerception()) +
 		float64(atkChar.GetSkillLevel(skills.RangedCombat))*float64(cfg.SkillWeight)) *
-		combat.SituationalAttackMult(atkChar, combat.ChannelRanged)
+		combat.SituationalAttackMult(atkChar, combatvocab.Ranged(combatvocab.TargetSingle))
 	require.InDelta(t, wantAtk, atkScore, 1e-9,
 		"ranged attack score must be (Perception + ranged rank x SkillWeight) x situational, with no defender term")
 

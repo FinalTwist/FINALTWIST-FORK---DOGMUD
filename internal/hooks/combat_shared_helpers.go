@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -332,14 +333,14 @@ func applyCritEffects(attacker, defender *characters.Character, roundResult comb
 		tripResult := combat.ExecuteSkillMove(combat.SkillMoveParams{
 			Attacker: defender,
 			Defender: attacker,
-			Channel:  combat.ChannelMelee,
+			Shape:    combatvocab.Melee(combatvocab.TargetSingle),
 			Attack: combat.AttackSide{
 				Stat: defender.GetEffectiveDexterity(), StatName: "dexterity",
 				Skill: skills.UnarmedCombat, SkillRank: defender.GetSkillLevel(skills.UnarmedCombat),
 				// Task 17: the countering character pays their own prone /
 				// stamina-depletion accuracy terms. No ForceCrit: the counter
 				// target just swung, so they cannot be sleeping.
-				Mult: combat.SituationalAttackMult(defender, combat.ChannelMelee),
+				Mult: combat.SituationalAttackMult(defender, combatvocab.Melee(combatvocab.TargetSingle)),
 			},
 			IsCounter:       true,
 			DamagePercent:   float64(cfg.TripDamagePercent),
@@ -391,14 +392,14 @@ func applyCritEffects(attacker, defender *characters.Character, roundResult comb
 		bashResult := combat.ExecuteSkillMove(combat.SkillMoveParams{
 			Attacker: defender,
 			Defender: attacker,
-			Channel:  combat.ChannelMelee,
+			Shape:    combatvocab.Melee(combatvocab.TargetSingle),
 			Attack: combat.AttackSide{
 				Stat: defender.Stats.Strength.ValueAdj, StatName: "strength",
 				Skill: skills.WeaponCombat, SkillRank: defender.GetSkillLevel(skills.WeaponCombat),
 				// Task 17: the countering character pays their own prone /
 				// stamina-depletion accuracy terms. No ForceCrit: the counter
 				// target just swung, so they cannot be sleeping.
-				Mult: combat.SituationalAttackMult(defender, combat.ChannelMelee),
+				Mult: combat.SituationalAttackMult(defender, combatvocab.Melee(combatvocab.TargetSingle)),
 			},
 			IsCounter:         true,
 			DamagePercent:     float64(cfg.BashDamagePercent),

@@ -10,6 +10,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -32,13 +33,13 @@ import (
 // IsCounter (the counter-swing is a melee-shaped ExecuteSkillMove, never a
 // cast), and ExecuteCounter marks its own swing IsCounter.
 func fireSpellCounterTier(room *rooms.Room, out combat.ChannelDefenceResult,
-	channel combat.AttackChannel, defender, caster *characters.Character,
+	shape combatvocab.Attack, defender, caster *characters.Character,
 	defenderUser, casterUser *users.UserRecord) combat.CounterResult {
 
 	if !out.DefensiveCrit {
 		return combat.CounterResult{}
 	}
-	res := combat.ExecuteCounter(defender, caster, channel, true)
+	res := combat.ExecuteCounter(defender, caster, shape, true)
 	if !res.Countered {
 		return res
 	}

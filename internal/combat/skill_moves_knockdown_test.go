@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -90,7 +91,7 @@ func TestExecuteSkillMove_KnockdownResistProgression(t *testing.T) {
 
 		p := SkillMoveParams{
 			Attacker: atk, Defender: def,
-			Channel: ChannelMelee,
+			Shape: combatvocab.Melee(combatvocab.TargetSingle),
 			Attack: AttackSide{
 				Stat: 100, StatName: "strength",
 				Skill: skills.WeaponCombat, SkillRank: 0,

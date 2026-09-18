@@ -372,7 +372,7 @@ func TestMeleeParityDamagePerSwing(t *testing.T) {
 			if got := defender.GetPhysicalMitigation(); math.Abs(got-float64(cell.mitPct)/100.0) > 1e-9 {
 				t.Fatalf("defender mitigation = %.4f, want %.2f", got, float64(cell.mitPct)/100.0)
 			}
-			entries := DefenceEntriesFor(ChannelMelee, defender, DefenceEntryOpts{})
+			entries := DefenceEntriesFor(combatvocab.Melee(combatvocab.TargetSingle), defender, DefenceEntryOpts{})
 			if len(entries) != 1 || entries[0] != combatvocab.DefenceDodge {
 				t.Fatalf("bare-handed melee defence set = %v, want [dodge] — the Task 2 equipment gate moved", entries)
 			}

@@ -3,6 +3,7 @@ package actions
 import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
@@ -105,11 +106,11 @@ func ExecuteRake(actor Actor) RakeResult {
 	result := combat.ExecuteSkillMove(combat.SkillMoveParams{
 		Attacker: char,
 		Defender: target.Char,
-		Channel:  combat.ChannelMelee,
+		Shape:    combatvocab.Melee(combatvocab.TargetSingle),
 		Attack: combat.AttackSide{
 			Stat: char.GetEffectiveDexterity(), StatName: "dexterity",
 			Skill: skills.UnarmedCombat, SkillRank: char.GetSkillLevel(skills.UnarmedCombat),
-			Mult:      combat.SituationalAttackMult(char, combat.ChannelMelee),
+			Mult:      combat.SituationalAttackMult(char, combatvocab.Melee(combatvocab.TargetSingle)),
 			ForceCrit: combat.SleepingForceCrit(target.Char),
 		},
 		DamagePercent:   float64(cfg.TripDamagePercent),
@@ -118,7 +119,7 @@ func ExecuteRake(actor Actor) RakeResult {
 	})
 
 	// U6b Task 10: a crit-defended move earns the defender a counter-swing.
-	counter := counterSkillMoveExit(actor, target.Char, result, combat.ChannelMelee, true)
+	counter := counterSkillMoveExit(actor, target.Char, result, combatvocab.Melee(combatvocab.TargetSingle), true)
 
 	// On hit: add a bleed stack (RakeBleedRounds rounds, Strength /
 	// RakeBleedStrengthDivisor per round, floor RakeBleedMin).

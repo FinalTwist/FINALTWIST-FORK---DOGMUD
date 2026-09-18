@@ -34,6 +34,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 )
 
@@ -217,7 +218,7 @@ func TestCritOnWin_MeleeAndChannelAgree(t *testing.T) {
 
 			// ── channel ──────────────────────────────────────────────────
 			attacker, defender := defenceAdmissionCharacters()
-			channelOut := resolveChannelAttackWithRunner(ChannelRanged,
+			channelOut := resolveChannelAttackWithRunner(combatvocab.Ranged(combatvocab.TargetSingle),
 				channelSurpriseSide(tc.critOnWin), attacker, defender, channelRunnerFor(tc.variant))
 			assertChannelPrecondition(t, tc.variant, channelOut)
 

@@ -29,8 +29,8 @@ func scaleChannelFor(at combatvocab.AttackType) (DamageChannel, bool) {
 // DamageScale) and the pool whose stat TOUGHENS on a defensive crit against
 // it. Both are properties of how the attack is delivered, not of what it
 // does: a physical spell is dodged but is still cast off willpower, so it
-// scales magically and toughens willpower. (The old channelDamageChannel's
-// comment warned that mapping spell-physical to "physical" would toughen the
+// scales magically and toughens willpower. (The old flattened-channel
+// mapping warned that mapping spell-physical to "physical" would toughen the
 // wrong stat; this keeps that mapping.)
 //
 // AttackNone never reaches the pipeline. It answers Physical here only so a

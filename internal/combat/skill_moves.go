@@ -2,6 +2,7 @@ package combat
 
 import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -61,10 +62,12 @@ type SkillMoveParams struct {
 	Attacker *characters.Character
 	Defender *characters.Character
 
-	// Channel selects the defence set (ChannelMelee for the physical moves,
-	// ChannelRanged for fire). Required — the legacy scalar-defence path was
-	// deleted in U6b Task 7; every caller sets Channel + Attack.
-	Channel AttackChannel
+	// Shape selects the defence set through combatvocab.EligibleDefences
+	// (Melee(TargetSingle) for the physical moves, Ranged for fire) and
+	// carries the targeting the counters slice reads. Required: every caller
+	// sets Shape + Attack. It is not named Attack because that field is the
+	// attacker's AttackSide.
+	Shape combatvocab.Attack
 
 	// Attack is the attacker's half of the contest. Callers pass the RAW
 	// skill rank; the seam applies SkillWeight (the x1 -> x5 flip lives in
@@ -186,7 +189,7 @@ func executeSkillMoveWithRunner(p SkillMoveParams, runner defenceContestRunner) 
 	// already has. The crit/fumble bonus tier fires once INSIDE the seam;
 	// nothing here derives a second verdict. (Task 7 deleted the legacy
 	// scalar-defence branch; the seam is now the only path.)
-	out := resolveChannelAttackWithRunner(p.Channel, p.Attack, p.Attacker, p.Defender, runner)
+	out := resolveChannelAttackWithRunner(p.Shape, p.Attack, p.Attacker, p.Defender, runner)
 	result.Defence = out
 	result.Crit = out.AttackerCrit
 	result.CritSource = out.CritSource

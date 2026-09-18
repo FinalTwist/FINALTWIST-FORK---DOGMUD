@@ -53,7 +53,7 @@ func TestResolveChannelAttack_FlooredNeverCrits(t *testing.T) {
 			Floored: true, Success: true, Margin: 1, // floor-promoted "win"
 		}
 	}
-	out := resolveChannelAttackWithRunner(ChannelSpellMental, side(148, 52), atk, def, runner)
+	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), side(148, 52), atk, def, runner)
 	if out.AttackerCrit {
 		t.Error("a floor-promoted win was promoted again to a crit")
 	}
@@ -83,7 +83,7 @@ func TestResolveChannelAttack_FumblePreemptsSuccess(t *testing.T) {
 			},
 		}
 	}
-	out := resolveChannelAttackWithRunner(ChannelSpellMental, side(148, 52), atk, def, runner)
+	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), side(148, 52), atk, def, runner)
 	if !out.AttackerFumble {
 		t.Error("AttackRoll.ZScore -2.5 did not surface as AttackerFumble")
 	}
@@ -124,7 +124,7 @@ func TestResolveChannelAttack_CritUsesThePairBar(t *testing.T) {
 			},
 		}
 	}
-	out := resolveChannelAttackWithRunner(ChannelSpellMental, side(148, 52), atk, def, runner)
+	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), side(148, 52), atk, def, runner)
 	if !out.AttackerCrit {
 		t.Error("normalized margin 1.8 vs pair bar 1.5 (rank 52 vs 0) must crit; the const 2.0 bar leaked back in")
 	}
@@ -145,7 +145,7 @@ func TestResolveChannelAttack_ProgressionNamesTheCallersSkill(t *testing.T) {
 		Stat: 100, StatName: "charisma",
 		Skill: skills.Manifestation, SkillRank: 30, Mult: 1.0,
 	}
-	out := resolveChannelAttackWithRunner(ChannelSocial, manifestSide, attacker, defender,
+	out := resolveChannelAttackWithRunner(combatvocab.Rhetoric(combatvocab.TargetSingle), manifestSide, attacker, defender,
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			if atkScore != 160 {
 				t.Fatalf("attack score = %.2f, want 160 from the caller's side (100 + 30x2)", atkScore)
@@ -166,16 +166,17 @@ func TestResolveChannelAttack_ProgressionNamesTheCallersSkill(t *testing.T) {
 	}
 }
 
-// channelDamageChannel's default-"" premise is dead: melee and ranged crits
-// resolved through the seam must toughen VITALITY, and ToughenStatFor("")
-// would silently toughen dexterity's wrong-stat neighbour instead.
+// ScaleChannelFor(shape.Type).ToughenName()'s default-"" premise is dead:
+// melee and ranged crits resolved through the seam must toughen VITALITY,
+// and ToughenStatFor("") would silently toughen dexterity's wrong-stat
+// neighbour instead.
 func TestChannelDamageChannel_PhysicalRows(t *testing.T) {
-	for _, ch := range []AttackChannel{ChannelMelee, ChannelRanged} {
-		if got := channelDamageChannel(ch); got != "physical" {
-			t.Errorf("channelDamageChannel(%s) = %q, want physical", ch, got)
+	for _, ch := range []combatvocab.Attack{combatvocab.Melee(combatvocab.TargetSingle), combatvocab.Ranged(combatvocab.TargetSingle)} {
+		if got := ScaleChannelFor(ch.Type).ToughenName(); got != "physical" {
+			t.Errorf("ScaleChannelFor(%s).ToughenName() = %q, want physical", ch, got)
 		}
 	}
-	if got := characters.ToughenStatFor(channelDamageChannel(ChannelMelee)); got != "vitality" {
+	if got := characters.ToughenStatFor(ScaleChannelFor(combatvocab.Melee(combatvocab.TargetSingle).Type).ToughenName()); got != "vitality" {
 		t.Errorf("melee crit toughen stat = %q, want vitality", got)
 	}
 }

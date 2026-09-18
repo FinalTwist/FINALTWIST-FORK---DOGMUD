@@ -3,6 +3,7 @@ package actions
 import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -100,11 +101,11 @@ func ExecuteGore(actor Actor) GoreResult {
 	result := combat.ExecuteSkillMove(combat.SkillMoveParams{
 		Attacker: char,
 		Defender: target.Char,
-		Channel:  combat.ChannelMelee,
+		Shape:    combatvocab.Melee(combatvocab.TargetSingle),
 		Attack: combat.AttackSide{
 			Stat: char.Stats.Strength.ValueAdj, StatName: "strength",
 			Skill: skills.UnarmedCombat, SkillRank: char.GetSkillLevel(skills.UnarmedCombat),
-			Mult:      combat.SituationalAttackMult(char, combat.ChannelMelee),
+			Mult:      combat.SituationalAttackMult(char, combatvocab.Melee(combatvocab.TargetSingle)),
 			ForceCrit: combat.SleepingForceCrit(target.Char),
 		},
 		DamagePercent:     float64(cfg.KickDamagePercent),
@@ -114,7 +115,7 @@ func ExecuteGore(actor Actor) GoreResult {
 	})
 
 	// U6b Task 10: a crit-defended move earns the defender a counter-swing.
-	counter := counterSkillMoveExit(actor, target.Char, result, combat.ChannelMelee, true)
+	counter := counterSkillMoveExit(actor, target.Char, result, combatvocab.Melee(combatvocab.TargetSingle), true)
 
 	// Determine source/target types for analytics.
 	sourceType := combat.User

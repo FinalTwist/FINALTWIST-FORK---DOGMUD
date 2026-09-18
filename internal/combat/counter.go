@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 )
@@ -12,16 +13,16 @@ import (
 // tier fired at all, the seam-resolved counter-swing, and channel-correct
 // narration for the three audiences (U6b Task 11: rendered from the
 // counter-* pools in defense-messages/, chosen by the ORIGINAL attack's
-// channel).
+// type).
 type CounterResult struct {
 	// Countered reports whether the counter-swing actually fired. False when
 	// the reach gate refused (cross-room), the knob disabled the tier, or a
 	// participant was missing/dead.
 	Countered bool
 
-	// Channel is the channel of the ORIGINAL attack that was crit-defended,
-	// kept for Task 11's channel-correct counter narration.
-	Channel AttackChannel
+	// Shape is the ORIGINAL attack that was crit-defended, kept for pool
+	// selection (Task 11's channel-correct counter narration).
+	Shape combatvocab.Attack
 
 	// Move is the counter-swing's full seam outcome. It always carries
 	// IsCounter: the countered party defends this swing (and is charged and
@@ -86,8 +87,8 @@ type CounterResult struct {
 // must never be forwarded into the damage pipeline: CalcRawDamage treats
 // itemMult <= 0 as "unset" and substitutes 0.30, which would turn the
 // off-switch into a 30%-damage counter.
-func ExecuteCounter(defender, attacker *characters.Character, channel AttackChannel, sameRoom bool) CounterResult {
-	result := CounterResult{Channel: channel}
+func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.Attack, sameRoom bool) CounterResult {
+	result := CounterResult{Shape: shape}
 
 	if defender == nil || attacker == nil {
 		return result
@@ -113,7 +114,7 @@ func ExecuteCounter(defender, attacker *characters.Character, channel AttackChan
 	move := ExecuteSkillMove(SkillMoveParams{
 		Attacker: defender,
 		Defender: attacker,
-		Channel:  ChannelMelee,
+		Shape:    combatvocab.Melee(combatvocab.TargetSingle),
 		Attack: AttackSide{
 			Stat: defender.Stats.Strength.ValueAdj, StatName: "strength",
 			Skill:     defender.GetCombatSkillTag(),
@@ -141,30 +142,33 @@ func ExecuteCounter(defender, attacker *characters.Character, channel AttackChan
 // busy round; the narration itself comes from the channel's counter pool.
 const counterPrefix = `<ansi fg="cyan-bold">⚔ COUNTER!</ansi> `
 
-// counterPoolFor maps the ORIGINAL attack's channel to its counter-narration
-// pool (U6b Task 11): a counter must read channel-correct, never a generic
-// riposte string pasted under a spell. Both spell channels share the
-// put-the-working-down pool.
+// counterPoolFor maps the ORIGINAL attack's type to its counter-narration
+// pool. Keyed by attack type until the counters slice re-keys the pools to
+// the defence that won (spec ruling 5). Thrown shares ranged's pool; both
+// spell damage types share the put-the-working-down pool as before.
 //
-// ChannelSocial used to be unreachable here, because taunt is the only social
-// attack and it short-circuits its defy-crit into a counter-TAUNT at the call
-// site rather than swinging. U10c broke that assumption: charm is now a social
-// SPELL, and fireSpellCounterTier has no such carve-out, so a defy-crit against
-// a charm does arrive.
+// The (spell, social) pairing (charm) used to be unreachable here, because
+// taunt is the only social attack and it short-circuits its defy-crit into a
+// counter-TAUNT at the call site rather than swinging. U10c broke that
+// assumption: charm is now a social SPELL, and fireSpellCounterTier has no
+// such carve-out, so a defy-crit against a charm does arrive.
 //
 // It gets counter-defy rather than falling through to the physical pool. That
 // pool already exists and was unused on this path. Note the counter itself is
 // still a physical swing -- ExecuteCounter builds strength + combat skill for
-// every channel, and the channel selects narration only -- so this makes the
+// every attack, and the type selects narration only -- so this makes the
 // prose honest, not the mechanics social. Giving social attacks a genuinely
 // social counter is a larger change than U10c's plumbing slice.
-func counterPoolFor(channel AttackChannel) items.DefencePool {
-	switch channel {
-	case ChannelRanged:
+func counterPoolFor(shape combatvocab.Attack) items.DefencePool {
+	switch {
+	case shape.Type == combatvocab.AttackRanged, shape.Type == combatvocab.AttackThrown:
 		return items.CounterPoolRanged
-	case ChannelSpellPhysical, ChannelSpellMental:
+	case shape.Type == combatvocab.AttackSpell && shape.Damage == combatvocab.DamageSocial:
+		// Charm: a social spell, same pool as taunt's Rhetoric.
+		return items.CounterPoolDefy
+	case shape.Type == combatvocab.AttackSpell:
 		return items.CounterPoolQuell
-	case ChannelSocial:
+	case shape.Type == combatvocab.AttackRhetoric:
 		return items.CounterPoolDefy
 	default:
 		return items.CounterPoolMelee
@@ -190,7 +194,7 @@ func counterBand(crit bool, damage int) (bandCrit bool, bandMargin float64) {
 // Task 10 narration stands in so the tier never goes silent.
 func fillCounterMessages(result *CounterResult, defender, attacker *characters.Character) {
 	bandCrit, bandMargin := counterBand(result.Move.Crit, result.Damage)
-	triad := items.RenderDefenseMessage(counterPoolFor(result.Channel), bandCrit, bandMargin,
+	triad := items.RenderDefenseMessage(counterPoolFor(result.Shape), bandCrit, bandMargin,
 		map[items.TokenName]string{
 			items.TokenActor: attacker.Name,
 			items.TokenActee: defender.Name,

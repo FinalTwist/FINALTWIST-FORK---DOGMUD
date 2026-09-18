@@ -129,11 +129,12 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 				// Until U10c this was a silent no-op: charm declared no
 				// target_defense_type, so a player target took resolveSpell's
 				// uncontested shortcut into applyPlayerEffect, which has no
-				// charm arm. Now that charm routes to ChannelSocial, leaving it
-				// unguarded would be worse -- a real contest charging the
-				// victim conviction for a defy and training their rhetoric,
-				// still for no effect. Mind control of another character is a
-				// PvP feature with its own design questions; see spec 14.
+				// charm arm. Now that charm routes to the (spell, social)
+				// pairing, leaving it unguarded would be worse -- a real
+				// contest charging the victim conviction for a defy and
+				// training their rhetoric, still for no effect. Mind control
+				// of another character is a PvP feature with its own design
+				// questions; see spec 14.
 				if spellInfo.EffectType == "charm" {
 					actor.SendText(messaging.CategorySystem,
 						`You cannot bend another person's mind to your will.`)

@@ -206,8 +206,8 @@ func TestSpellDefendedCast_DealsPartialDamage(t *testing.T) {
 // physicalHarmSpellForCollapseTest declares target_defense_type physical, so
 // the contest is answered by dodge — whose ordinary defence award trains
 // dexterity/unarmed-combat, keeping willpower's use count clean for the
-// crit-received assertions below (both spell channels toughen willpower:
-// channelDamageChannel maps them to "magical").
+// crit-received assertions below (every spell damage type toughens
+// willpower: ScaleChannelFor(combatvocab.AttackSpell) maps to "magical").
 func physicalHarmSpellForCollapseTest() *spells.SpellData {
 	return &spells.SpellData{
 		SpellId: "stone-lash", Name: "Stone Lash", Type: spells.HarmSingle,

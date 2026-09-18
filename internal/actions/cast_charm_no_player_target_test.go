@@ -16,8 +16,8 @@ import (
 // so a player-targeted cast took the uncontested shortcut in resolveSpell into
 // applyPlayerEffect, which has no charm arm. The caster lost 120 conviction and
 // nothing happened. Declaring target_defense_type: social would have been worse
-// -- it routes to a real ChannelSocial contest that charges the victim
-// conviction for a defy and trains their rhetoric, still for no effect.
+// -- it routes to a real combatvocab.Spell(combatvocab.DamageSocial, ...) contest that charges the
+// victim conviction for a defy and trains their rhetoric, still for no effect.
 //
 // Making charm work on players is a PvP feature with its own design and consent
 // questions. It is not U10c's to invent by side effect. See spec section 14.

@@ -28,7 +28,7 @@ import (
 func bashSeamParams(atk, def *characters.Character) SkillMoveParams {
 	return SkillMoveParams{
 		Attacker: atk, Defender: def,
-		Channel: ChannelMelee,
+		Shape: combatvocab.Melee(combatvocab.TargetSingle),
 		Attack: AttackSide{
 			Stat: 100, StatName: "strength",
 			Skill: skills.WeaponCombat, SkillRank: 40,

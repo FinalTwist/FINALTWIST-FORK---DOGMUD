@@ -104,8 +104,9 @@ var (
 			case "mental":
 				return "quell"
 			case "physical":
-				// ChannelSpellPhysical is answered by dodge or block, and which
-				// one wins is decided per swing, so name both.
+				// The (spell, physical) pairing is answered by dodge or
+				// block, and which one wins is decided per swing, so name
+				// both.
 				return "dodge or block"
 			}
 			return ""

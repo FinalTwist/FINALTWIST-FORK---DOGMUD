@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -29,7 +30,7 @@ func makeGrappleTestParams(defender *characters.Character) SkillMoveParams {
 	atk := characters.New()
 	return SkillMoveParams{
 		Attacker: atk, Defender: defender,
-		Channel: ChannelMelee,
+		Shape: combatvocab.Melee(combatvocab.TargetSingle),
 		Attack: AttackSide{
 			Stat: 1000, StatName: "strength",
 			Skill: skills.WeaponCombat, SkillRank: 50,
