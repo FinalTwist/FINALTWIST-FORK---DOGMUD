@@ -276,7 +276,9 @@ func ExecuteDrainArea(actor Actor) DrainAreaResult {
 	// M4b-2 (owner ruling, M4 spec 9): core-drain is a PHYSICAL SPELL. Its
 	// victims dodge or block; nobody parries a room. This also drops the
 	// melee prone/stamina accuracy penalty, because a cast pays neither.
-	// A balance change, in its own commit.
+	// A balance change, in its own commit. A crit-defended drain now counters
+	// through the quell pool (counter-quell.yaml names the physical-spell
+	// dodge/block crit as its case), not the melee riposte text.
 
 	result := DrainAreaResult{}
 	totalHeal := 0
