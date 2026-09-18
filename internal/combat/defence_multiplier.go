@@ -502,6 +502,7 @@ func resolveChannelAttackWithRunner(channel AttackChannel, side AttackSide, atta
 		out.AttackerCrit = side.ForceCrit || side.CritOnWin
 		return out
 	}
+	winner := combatvocab.Defence(res.Winner)
 	out.AttackRollZScore = res.AttackRoll.ZScore
 	out.DamageMultiplier = defenceDamageMultiplier(res)
 
@@ -511,7 +512,7 @@ func resolveChannelAttackWithRunner(channel AttackChannel, side AttackSide, atta
 	// the +-1 sentinel margin and cannot be a crit (the same rule
 	// applyCritFloors declares in melee). Fumble is self-relative and callers
 	// resolve it BEFORE success — a fumbled attack aborts even a winning roll.
-	bar := CritBarFor(side.SkillRank, defenderRankOf(defender, combatvocab.Defence(res.Winner)))
+	bar := CritBarFor(side.SkillRank, defenderRankOf(defender, winner))
 	out.AttackerCrit = !res.Floored && AttackContestCritAt(res.Margin, res.AttackRoll, bar)
 	if out.AttackerCrit {
 		out.CritSource = CritSourceRolled
@@ -548,7 +549,7 @@ func resolveChannelAttackWithRunner(channel AttackChannel, side AttackSide, atta
 		}
 	}
 
-	out.Defence = combatvocab.Defence(res.Winner)
+	out.Defence = winner
 	out.Cost = commitDefenceWinner(defender, candidates, res)
 	// U9: the ordinary defence award is unchanged in WHEN it fires -- whenever
 	// the contest ran, win or lose, which is what this path has always done.
@@ -573,12 +574,12 @@ func resolveChannelAttackWithRunner(channel AttackChannel, side AttackSide, atta
 	defenceWon := !res.Success && !side.ForceCrit
 	for _, candidate := range candidates {
 		if candidate.entry.Name == res.Winner {
-			AwardDefenceProgression(defender, defender.GetUserId(), combatvocab.Defence(res.Winner), defenceWon)
+			AwardDefenceProgression(defender, defender.GetUserId(), winner, defenceWon)
 			break
 		}
 	}
 
-	awardChannelDefenceBonus(channel, side, attacker, defender, res, out.AttackerCrit, out.AttackerFumble)
+	awardChannelDefenceBonus(channel, side, attacker, defender, res, winner, out.AttackerCrit, out.AttackerFumble)
 
 	// A floor changes the outcome without changing the underlying rolls. Keep
 	// the winner and cost, but expose zero statistical sentinels so later prose
@@ -695,7 +696,7 @@ func defenderRankOf(defender *characters.Character, winner combatvocab.Defence) 
 // while the progression bonus still demanded 2.0 — two verdicts for one
 // contest. The attacker's skill and stat likewise come FROM the AttackSide the
 // caller passed, not a per-channel hardcode.
-func awardChannelDefenceBonus(channel AttackChannel, side AttackSide, attacker, defender *characters.Character, res contest.Result, attackCrit, attackFumble bool) {
+func awardChannelDefenceBonus(channel AttackChannel, side AttackSide, attacker, defender *characters.Character, res contest.Result, winner combatvocab.Defence, attackCrit, attackFumble bool) {
 	if !res.Contested || res.Floored {
 		return
 	}
@@ -724,7 +725,7 @@ func awardChannelDefenceBonus(channel AttackChannel, side AttackSide, attacker, 
 	}
 
 	atkSkill, atkStat := string(side.Skill), side.StatName
-	defSkill, defStat := DefenceSkillAndStat(combatvocab.Defence(res.Winner))
+	defSkill, defStat := DefenceSkillAndStat(winner)
 
 	out := progression.Outcome{
 		AttackerSkill: atkSkill,

@@ -6,8 +6,9 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 )
 
-// combat.DefenseType (Stage 7.1) is deleted. M4b-2: every defence name is
-// combatvocab.Defence, declared once in internal/combatvocab.
+// The former three-valued melee defence enum (Stage 7.1) is deleted. M4b-2:
+// every defence name is combatvocab.Defence, declared once in
+// internal/combatvocab.
 
 // WeaponHitInfo tracks how a specific weapon fared across a combat round:
 // whether it landed, and how well it rolled.
