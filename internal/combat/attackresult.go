@@ -249,11 +249,11 @@ func CategoryForWeaponSubtype(sub items.ItemSubType) messaging.Category {
 // flavor.
 func CategoryForDefenseVerb(verb string) messaging.Category {
 	switch verb {
-	case "dodge":
+	case string(combatvocab.DefenceDodge):
 		return messaging.CategoryDodge
-	case "parry":
+	case string(combatvocab.DefenceParry):
 		return messaging.CategoryParry
-	case "block":
+	case string(combatvocab.DefenceBlock):
 		return messaging.CategoryBlock
 	}
 	return messaging.CategoryDodge
