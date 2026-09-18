@@ -22,7 +22,7 @@ same plan).
 |------|---------|
 | `vocab.go` | `AttackType`, `DamageType`, `Targeting`, `Defence`; their constants; `Valid`, `Parse*`, the `*s()` listers, `DamageType.IsHarm`. |
 | `attack.go` | `Attack{Type, Damage, Targeting}`, the constructors, `EligibleDefences`, `Pairs`, `Attack.Valid`. |
-| `one_declaration_guard_test.go` (added by a later task in the M4b-2 plan) | Fails the build if a defence name is declared as a Go string literal anywhere but here and `internal/actionspec`. |
+| `one_declaration_guard_test.go` | Fails the build if a defence name is declared as a Go string literal anywhere but here and `internal/actionspec`. |
 
 ## The axes
 
