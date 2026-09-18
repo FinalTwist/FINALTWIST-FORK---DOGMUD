@@ -2,7 +2,9 @@ spellid: hemorrhagic-wave
 name: Hemorrhagic Wave
 aliases: [hemorrhage]
 description: Rupturing wave that bursts blood vessels in all nearby foes.
-type: harmarea
+attack_type: spell
+damage_type: physical
+targeting: area
 schools:
   - vital
 cost: 80
@@ -10,7 +12,6 @@ waitrounds: 2
 difficulty: 45
 primarystat: willpower
 base_folds: 20
-target_defense_type: physical
 effect_type: damage
 effect_magnitude: 225
 damage_multiplier: 0.80

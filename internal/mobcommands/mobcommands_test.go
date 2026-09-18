@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -240,7 +241,7 @@ func seedAllRegistries() func() {
 		"sparks": {
 			SpellId:    "sparks",
 			Name:       "Sparks",
-			Type:       spells.HarmSingle,
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
 			Cost:       3,
 			Difficulty: 10,
 		},

@@ -233,11 +233,12 @@ the target instead of an interrupt.
   root registers every lookup as viewer or plain, with the reason.
 - **`FindAttackTarget(rest, room, userId, mobId, viewer)`**: the named branch
   and the `*`, `*mob`, `*user` pools skip what `viewer` does not perceive.
-- **`InitiateCast`** runs `admitCastAim` (`cast_sight.go`) for a player's
-  harmsingle, harmmulti and helpsingle casts: clear sight allows names, foes and
-  shapes; shapes only allows the caster's own foe and `shape` / `N.shape` /
-  `shape#N` (figures are perceived players then mobs, in room order); no sight
-  refuses. Refusals are narrated, set `RefusalExplained`, and spend nothing.
+- **`InitiateCast`** runs `admitCastAim` (`cast_admission.go`) for a player's
+  single-target casts of either kind and harmful multi casts: clear sight
+  allows names, foes and shapes; shapes only allows the caster's own foe and
+  `shape` / `N.shape` / `shape#N` (figures are perceived players then mobs, in
+  room order); no sight refuses. Refusals are narrated, set
+  `RefusalExplained`, and spend nothing.
 - **`SendCounterTrio(room, res, countered, counteredUserId)`**: the one counter
   dispatch, used by `DispatchCounterMessages` and `hooks.fireSpellCounterTier`.
   It goes through `messaging.SendTrio`, so a counter in the dark names nobody.
@@ -753,7 +754,7 @@ the free supply-handoff paths — these are NOT routed through `actions.Sell`.
 
 `combat_counter.go` wires the counter tier on this package's exits:
 
-- `counterSkillMoveExit(actor, defender, move, channel, sameRoom)` fires
+- `counterSkillMoveExit(actor, defender, move, shape combatvocab.Attack, sameRoom)` fires
   `combat.ExecuteCounter` at every `ExecuteSkillMove` consumer's
   defensive-crit exit (bash/gore/hamstring/kick/maul/pounce/rake/throttle/
   trip/drain/drain-area, plus `ExecuteFire` with `sameRoom = !crossRoom` —
@@ -772,8 +773,9 @@ and is charged + progressed for it (the countered-party economy).
 
 Narration (U6b Task 11) is channel-correct, rendered by `internal/combat`
 from the `counter-*` pools in `defense-messages/` (melee/ranged/quell by the
-original attack's channel; the counter-taunt from `counter-defy` via
-`combat.BuildCounterTauntMessages`). SEQUENCING: `counterSkillMoveExit` does
+original attack's `combatvocab.Attack` shape; the counter-taunt from
+`counter-defy` via `combat.BuildCounterTauntMessages`). SEQUENCING:
+`counterSkillMoveExit` does
 NOT dispatch — messages render in call order and the wrappers narrate after
 `ExecuteX` returns, so the `CounterResult` rides up on each action's result
 struct (`Counter` field on Bash/Drain/Fire/Gore/Hamstring/Kick/Maul/Pounce/

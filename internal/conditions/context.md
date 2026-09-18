@@ -1115,15 +1115,15 @@ _ = target.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, du
 1.25x. There is an `if out.AttackerCrit { shieldBonus *= 1.5 }` bump on the
 player cast path, but it is unreachable for both shipped shield spells, not
 just the mob one. `conviction-ward` and `chrysalis-cocoon` are both
-`type: helpsingle` with no `target_defense_type`, so shielding yourself never
+`attack_type: none` (single targeting), so shielding yourself never
 runs an opposed contest for either caster type: `resolveSpell`
 (`internal/hooks/spell_resolution.go` near line 172) takes the
-`spellData.TargetDefenseType == ""` branch and calls `applyPlayerEffect` with
+`spellData.AttackType == combatvocab.AttackNone` branch and calls `applyPlayerEffect` with
 a synthetic `combat.ChannelDefenceResult{DamageMultiplier: 1}` instead of a
 real roll, so `AttackerCrit` is false by construction. `applyPlayerEffect`
 only carries an `out` parameter at all because it is shared with
 `resolveAgainstPlayer`, the contested-attack path used by unwilling-target
-spells (`TargetDefenseType != ""`); a self-applied condition never reaches
+spells (`AttackType != combatvocab.AttackNone`); a self-applied condition never reaches
 that path. So `applyMobSelfEffect`'s missing crit check is a consequence of
 that function's narrower scope (mobs only ever cast on themselves here, so
 nothing forced it to share the contested-attack signature), not evidence that

@@ -31,7 +31,7 @@ func counterDefyMessageFixture() *items.DefenseMessageGroup {
 			ToRoom:     messages("room"),
 		}}
 	}
-	return &items.DefenseMessageGroup{OptionId: items.DefenseCounterDefy, Options: items.DefenseIntensity{
+	return &items.DefenseMessageGroup{OptionId: items.CounterPoolDefy, Options: items.DefenseIntensity{
 		items.Weak: mk("weak"), items.Normal: mk("normal"), items.Heavy: mk("heavy"),
 	}}
 }
@@ -41,8 +41,8 @@ func counterDefyMessageFixture() *items.DefenseMessageGroup {
 // damage description on the two personal lines only (room lines never carry
 // damage).
 func TestBuildCounterTauntMessagesRendersFromCounterDefyPool(t *testing.T) {
-	restore := items.SeedDefenseMessagesForTest(map[items.DefenseType]*items.DefenseMessageGroup{
-		items.DefenseCounterDefy: counterDefyMessageFixture(),
+	restore := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
+		items.CounterPoolDefy: counterDefyMessageFixture(),
 	})
 	defer restore()
 

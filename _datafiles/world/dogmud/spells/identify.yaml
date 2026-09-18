@@ -4,7 +4,9 @@ aliases: [id]
 description: >
   Reach out with your mind to sense the hidden properties
   of an item you are carrying or wearing.
-type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - mental
 cost: 20

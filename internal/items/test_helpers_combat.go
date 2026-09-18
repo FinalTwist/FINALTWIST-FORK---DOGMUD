@@ -1,5 +1,7 @@
 package items
 
+import "github.com/GoMudEngine/GoMud/internal/combatvocab"
+
 // File: test_helpers_combat.go
 //
 // Test-only helper to seed the attackMessages / defenseMessages maps.
@@ -27,10 +29,10 @@ func SeedAttackMessagesForTest(msgs map[ItemSubType]*WeaponAttackMessageGroup) f
 
 // SeedDefenseMessagesForTest replaces the package-level defenseMessages
 // map and returns a restore cleanup. See SeedAttackMessagesForTest.
-func SeedDefenseMessagesForTest(msgs map[DefenseType]*DefenseMessageGroup) func() {
+func SeedDefenseMessagesForTest(msgs map[DefencePool]*DefenseMessageGroup) func() {
 	orig := defenseMessages
 	if msgs == nil {
-		defenseMessages = map[DefenseType]*DefenseMessageGroup{}
+		defenseMessages = map[DefencePool]*DefenseMessageGroup{}
 	} else {
 		defenseMessages = msgs
 	}
@@ -40,7 +42,7 @@ func SeedDefenseMessagesForTest(msgs map[DefenseType]*DefenseMessageGroup) func(
 }
 
 // MinimalDefenseMessageFixture returns a defenseMessages map covering every
-// DefenseType across all three intensity bands RenderDefenseMessage can select
+// DefencePool across all three intensity bands RenderDefenseMessage can select
 // (Weak, Normal, Heavy), each with a single placeholder variant.
 //
 // Use it in any test binary whose code path can reach a DEFENDED outcome.
@@ -50,12 +52,14 @@ func SeedDefenseMessagesForTest(msgs map[DefenseType]*DefenseMessageGroup) func(
 // code silently skip its own messaging. That is what made
 // TestTaunt_StalePlayerIdInRoom_StillMessages flaky: it passed whenever the
 // target failed to defend and failed whenever it succeeded.
-func MinimalDefenseMessageFixture() map[DefenseType]*DefenseMessageGroup {
-	all := []DefenseType{
-		DefenseDodge, DefenseParry, DefenseBlock, DefenseQuell, DefenseDefy,
-		DefenseCounterMelee, DefenseCounterRanged, DefenseCounterQuell, DefenseCounterDefy,
+func MinimalDefenseMessageFixture() map[DefencePool]*DefenseMessageGroup {
+	all := []DefencePool{
+		DefencePoolFor(combatvocab.DefenceDodge), DefencePoolFor(combatvocab.DefenceParry),
+		DefencePoolFor(combatvocab.DefenceBlock), DefencePoolFor(combatvocab.DefenceQuell),
+		DefencePoolFor(combatvocab.DefenceDefy),
+		CounterPoolMelee, CounterPoolRanged, CounterPoolQuell, CounterPoolDefy,
 	}
-	out := make(map[DefenseType]*DefenseMessageGroup, len(all))
+	out := make(map[DefencePool]*DefenseMessageGroup, len(all))
 	for _, dt := range all {
 		opts := DefenseOptions{
 			Together: DefenseTogetherMessages{

@@ -1230,7 +1230,7 @@ For each pair inside `processGrapplePair`:
    drift, the spell sites, and riposte-trip and auto-bash via
    `combat.ExecuteSkillMove`. Charm no longer appears in that list:
    U10c deleted its per-tick re-roll ladder outright and moved the
-   cast onto the `ChannelSocial` contest the seam already ran. It imports
+   cast onto the (spell, social) contest the seam already ran. It imports
    `internal/contest` for the `Entry` type only and must never call that
    package's `Run`, `AgainstDifficulty` or `RunWithFloors`. The private
    floor accessors this package used to keep, `maneuverHitFloor` /
@@ -1730,6 +1730,12 @@ dispatching from these exits is ordering-correct because the cast's own
 outcome has already been narrated when they fire. `resolveMobDrainArea`
 dispatches its per-player counters via `actions.DispatchCounterMessages`
 AFTER its own drain narration.
+
+A non-harm cast at a mob (`AttackType == combatvocab.AttackNone`: a heal on a
+companion, an ally-mob buff) takes the uncontested shortcut at the top of
+`resolveAgainstMob`/`resolveMobSpellAgainstMob` and returns before the seam
+ever runs, so it can never reach the counter tier — a companion cannot
+counter-swing the ally who just healed it (M4b-2).
 
 Related, in `combat_shared_helpers.go`: melee riposte's damage fraction reads
 `CounterDamagePercent` (shipped 0.5 — the old literal, behaviour unchanged),

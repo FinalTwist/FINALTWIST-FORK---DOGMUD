@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/stretchr/testify/assert"
 )
@@ -97,7 +98,7 @@ func TestRegression_DefenseFloorAlwaysApplies(t *testing.T) {
 	attacker.Stats.Strength.ValueAdj = 150
 
 	result := &AttackResult{}
-	defSeq := []string{characters.DefenseDodge, characters.DefenseParry}
+	defSeq := []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}
 
 	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
 	best := runBestOfAllDefense(result, attacker, defender, defSeq, 150.0, false, ctx)
@@ -112,7 +113,7 @@ func TestRegression_DefenseFloorAlwaysApplies(t *testing.T) {
 		"a 0-stamina defender must now enter the contest, not fall through to the floor")
 	assert.NotEmpty(t, best.defenseType,
 		"a defence must be selected even at 0 stamina")
-	assert.Contains(t, []string{characters.DefenseDodge, characters.DefenseParry}, best.defenseType,
+	assert.Contains(t, []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}, best.defenseType,
 		"the selected defence must come from the requested sequence")
 }
 
@@ -201,7 +202,7 @@ func TestRunBestOfAllDefense_IncorporealDefenseBonus(t *testing.T) {
 	attacker.Stats.Strength.ValueAdj = 150
 
 	result := &AttackResult{}
-	defSeq := []string{characters.DefenseDodge, characters.DefenseParry}
+	defSeq := []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}
 
 	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
 	best := runBestOfAllDefense(result, attacker, defender, defSeq, 150.0, false, ctx)

@@ -19,8 +19,8 @@ import (
 // the channel contest the cast had already run and then discarded in
 // applyMobEffect_default. One cast therefore resolved twice, and the player
 // saw both narrations -- a resist line and a success line for the same spell.
-// The contest now happens once, in the seam, on ChannelSocial, and this reads
-// its result.
+// The contest now happens once, in the seam, on the (spell, social) pairing,
+// and this reads its result.
 //
 // Returns 0: charm deals no damage.
 func applyMobEffect_charm(

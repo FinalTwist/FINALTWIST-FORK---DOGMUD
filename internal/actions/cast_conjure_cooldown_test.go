@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 )
 
@@ -27,9 +28,9 @@ import (
 
 func seedSummonSpell(spellId string, mobId int, requiresCorpse bool) (*spells.SpellData, func()) {
 	sd := &spells.SpellData{
-		SpellId:              spellId,
-		Name:                 "Test " + spellId,
-		Type:                 spells.Neutral,
+		SpellId:    spellId,
+		Name:       "Test " + spellId,
+		AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSelf,
 		BaseFolds:            4,
 		Cost:                 5,
 		Schools:              []string{spells.SchoolManifestation},
@@ -71,9 +72,9 @@ func TestInitiateCast_CorpseBoundRaise_StaysOnSpecialMove(t *testing.T) {
 func TestInitiateCast_NonSummonManifestation_StaysOnSpecialMove(t *testing.T) {
 	// charm: manifestation school, needs no corpse, but has NO SummonMobId.
 	sd := &spells.SpellData{
-		SpellId:   "test-charm",
-		Name:      "Test charm",
-		Type:      spells.HarmSingle,
+		SpellId:    "test-charm",
+		Name:       "Test charm",
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
 		BaseFolds: 4,
 		Cost:      5,
 		Schools:   []string{spells.SchoolManifestation},

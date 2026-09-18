@@ -2,7 +2,9 @@ spellid: veil-rend
 name: Veil Rend
 aliases: [rend]
 description: Tears open the Veil, unleashing raw energy on all nearby.
-type: harmarea
+attack_type: spell
+damage_type: physical
+targeting: area
 schools:
   - elemental
 cost: 200
@@ -10,7 +12,6 @@ waitrounds: 3
 difficulty: 75
 primarystat: willpower
 base_folds: 28
-target_defense_type: physical
 effect_type: damage
 effect_magnitude: 900
 damage_multiplier: 2.00

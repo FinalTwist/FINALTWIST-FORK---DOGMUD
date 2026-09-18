@@ -7,6 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -194,16 +195,15 @@ func seedAllRegistries() func() {
 
 	cleanupSpells := spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		"sparks": {
-			SpellId:           "sparks",
-			Name:              "Sparks",
-			Type:              spells.HarmSingle,
-			Cost:              3,
-			Difficulty:        10,
-			DamageMultiplier:  0.8,
-			BaseFolds:         4,
-			EffectType:        "damage",
-			TargetDefenseType: "mental",
-			Schools:           []string{spells.SchoolElemental},
+			SpellId:    "sparks",
+			Name:       "Sparks",
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
+			Cost:             3,
+			Difficulty:       10,
+			DamageMultiplier: 0.8,
+			BaseFolds:        4,
+			EffectType:       "damage",
+			Schools:          []string{spells.SchoolElemental},
 		},
 	})
 
@@ -624,9 +624,11 @@ func TestCalcSpellDamageForCharacter_PipelinePath(t *testing.T) {
 	defer cleanup()
 
 	spellData := &spells.SpellData{
-		SpellId:           "sparks",
-		DamageMultiplier:  0.8,
-		TargetDefenseType: "mental",
+		SpellId:          "sparks",
+		DamageMultiplier: 0.8,
+		AttackType:       combatvocab.AttackSpell,
+		DamageType:       combatvocab.DamageMental,
+		Targeting:        combatvocab.TargetSingle,
 	}
 	caster := &characters.Character{}
 	caster.Stats.Willpower.ValueAdj = 100
@@ -646,9 +648,11 @@ func TestCalcSpellDamageForCharacter_PipelineCrit(t *testing.T) {
 	defer cleanup()
 
 	spellData := &spells.SpellData{
-		SpellId:           "sparks",
-		DamageMultiplier:  0.8,
-		TargetDefenseType: "mental",
+		SpellId:          "sparks",
+		DamageMultiplier: 0.8,
+		AttackType:       combatvocab.AttackSpell,
+		DamageType:       combatvocab.DamageMental,
+		Targeting:        combatvocab.TargetSingle,
 	}
 	caster := &characters.Character{}
 	caster.Stats.Willpower.ValueAdj = 100
@@ -1026,12 +1030,11 @@ func TestDotProducerRecordsNegativeHarm_MobTarget(t *testing.T) {
 	room := rooms.LoadRoom(1)
 
 	dotSpell := &spells.SpellData{
-		SpellId:           "test-dot-mob-sign",
-		Name:              "Blight",
-		Type:              spells.HarmSingle,
-		EffectType:        "dot",
-		TargetDefenseType: "mental",
-		EffectMagnitude:   10,
+		SpellId:    "test-dot-mob-sign",
+		Name:       "Blight",
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
+		EffectType:      "dot",
+		EffectMagnitude: 10,
 	}
 
 	// The fixture's caster skill and willpower are deterministic (u1's seed
@@ -1063,7 +1066,7 @@ func TestDotProducerRecordsNegativeHarm_PlayerTarget(t *testing.T) {
 	defer cleanup()
 	defer conditions.SeedConditionRecordsForTest()()
 	original := runSpellChannelAttack
-	runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+	runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 		return spellContestAttackWin()
 	}
 	t.Cleanup(func() { runSpellChannelAttack = original })
@@ -1073,7 +1076,7 @@ func TestDotProducerRecordsNegativeHarm_PlayerTarget(t *testing.T) {
 	drainPlain(2)
 
 	caster := mobs.GetInstance(100)
-	spell := &spells.SpellData{SpellId: "test-blight-sign", Name: "Blight", Type: spells.HarmSingle, EffectType: "dot"}
+	spell := &spells.SpellData{SpellId: "test-blight-sign", Name: "Blight", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle, EffectType: "dot"}
 	resolveMobSpellAgainstPlayer(caster, target, rooms.LoadRoom(1), spell, combat.AttackSide{}, 10)
 
 	castSkill := skills.Spellcasting
@@ -2466,13 +2469,12 @@ func TestResolveSpell_HarmArea(t *testing.T) {
 	room := rooms.LoadRoom(1)
 
 	areaSpell := &spells.SpellData{
-		SpellId:           "fireball",
-		Name:              "Fireball",
-		Type:              spells.HarmArea,
-		EffectType:        "damage",
-		TargetDefenseType: "mental",
-		DamageMultiplier:  1.0,
-		EffectMagnitude:   30,
+		SpellId:    "fireball",
+		Name:       "Fireball",
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetArea,
+		EffectType:       "damage",
+		DamageMultiplier: 1.0,
+		EffectMagnitude:  30,
 	}
 	cleanupSpells := spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		"sparks":   spells.GetSpell("sparks"),
@@ -2495,12 +2497,11 @@ func TestResolveSpell_HelpArea(t *testing.T) {
 	room := rooms.LoadRoom(1)
 
 	helpSpell := &spells.SpellData{
-		SpellId:           "massHeal",
-		Name:              "Mass Heal",
-		Type:              spells.HelpArea,
-		EffectType:        "heal",
-		TargetDefenseType: "",
-		EffectMagnitude:   20,
+		SpellId:    "massHeal",
+		Name:       "Mass Heal",
+		AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetArea,
+		EffectType:      "heal",
+		EffectMagnitude: 20,
 	}
 
 	cs := activity.CastingData{
@@ -2580,13 +2581,12 @@ func TestApplyMobEffect_DotEffect(t *testing.T) {
 	room := rooms.LoadRoom(1)
 
 	dotSpell := &spells.SpellData{
-		SpellId:           "poison",
-		Name:              "Poison",
-		Type:              spells.HarmSingle,
-		EffectType:        "dot",
-		TargetDefenseType: "mental",
-		EffectDuration:    3,
-		EffectMagnitude:   10,
+		SpellId:    "poison",
+		Name:       "Poison",
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
+		EffectType:      "dot",
+		EffectDuration:  3,
+		EffectMagnitude: 10,
 	}
 
 	dmg := applyMobEffect(u, u.Character, mob, room, dotSpell, 10, spellContestAttackWin())
@@ -2621,13 +2621,12 @@ func TestApplyMobEffect_Knockdown(t *testing.T) {
 	mob.Character.Health = 100
 
 	kdSpell := &spells.SpellData{
-		SpellId:           "knockback",
-		Name:              "Knockback",
-		Type:              spells.HarmSingle,
-		EffectType:        "knockdown",
-		TargetDefenseType: "physical",
-		DamageMultiplier:  0.5,
-		EffectMagnitude:   20,
+		SpellId:    "knockback",
+		Name:       "Knockback",
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamagePhysical, Targeting: combatvocab.TargetSingle,
+		EffectType:       "knockdown",
+		DamageMultiplier: 0.5,
+		EffectMagnitude:  20,
 	}
 	dmg := applyMobEffect(u, u.Character, mob, room, kdSpell, 20, spellContestAttackWin())
 	assert.GreaterOrEqual(t, dmg, 0)
@@ -2642,9 +2641,9 @@ func TestApplyMobEffect_Condition(t *testing.T) {
 	room := rooms.LoadRoom(1)
 
 	conditionSpell := &spells.SpellData{
-		SpellId:      "weaken",
-		Name:         "Weaken",
-		Type:         spells.HarmSingle,
+		SpellId:    "weaken",
+		Name:       "Weaken",
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
 		EffectType:   "condition",
 		ConditionIds: []int{100},
 	}
@@ -2662,7 +2661,7 @@ func TestApplyMobEffect_DefaultEffect(t *testing.T) {
 	unknownSpell := &spells.SpellData{
 		SpellId:    "mystery",
 		Name:       "Mystery",
-		Type:       spells.HarmSingle,
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
 		EffectType: "unknown-effect",
 	}
 	dmg := applyMobEffect(u, u.Character, mob, room, unknownSpell, 10, spellContestAttackWin())
@@ -2818,9 +2817,9 @@ func TestResolveMobSpell_SelfCast(t *testing.T) {
 	room := rooms.LoadRoom(1)
 
 	healSpell := &spells.SpellData{
-		SpellId:         "mobheal",
-		Name:            "Heal",
-		Type:            spells.HelpSingle,
+		SpellId:    "mobheal",
+		Name:       "Heal",
+		AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle,
 		EffectType:      "heal",
 		EffectMagnitude: 3,
 	}

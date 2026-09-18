@@ -2,7 +2,9 @@ spellid: synaptic-overload
 name: Synaptic Overload
 aliases: [synaptic]
 description: Floods the target's nervous system with overwhelming force.
-type: harmsingle
+attack_type: spell
+damage_type: mental
+targeting: single
 schools:
   - mental
 cost: 120
@@ -10,7 +12,6 @@ waitrounds: 2
 difficulty: 50
 primarystat: willpower
 base_folds: 16
-target_defense_type: mental
 effect_type: damage
 effect_magnitude: 600
 damage_multiplier: 1.80

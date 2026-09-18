@@ -13,6 +13,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
@@ -39,9 +40,9 @@ func seedMobTauntRuntimeMessages(t *testing.T) func() {
 			ToDefender: messages("defender"), ToAttacker: messages("attacker"), ToRoom: messages("room"),
 		}}
 	}
-	return items.SeedDefenseMessagesForTest(map[items.DefenseType]*items.DefenseMessageGroup{
-		items.DefenseDefy: {
-			OptionId: items.DefenseDefy,
+	return items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
+		items.DefencePoolFor(combatvocab.DefenceDefy): {
+			OptionId: items.DefencePoolFor(combatvocab.DefenceDefy),
 			Options: items.DefenseIntensity{
 				items.Weak: mk("weak"), items.Normal: mk("normal"), items.Heavy: mk("heavy"),
 			},
@@ -500,8 +501,8 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 			ToRoom:     five(prefix + " room sees {actee} defy {actor}"),
 		}}
 	}
-	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefenseType]*items.DefenseMessageGroup{
-		items.DefenseDefy: {OptionId: items.DefenseDefy, Options: items.DefenseIntensity{
+	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
+		items.DefencePoolFor(combatvocab.DefenceDefy): {OptionId: items.DefencePoolFor(combatvocab.DefenceDefy), Options: items.DefenseIntensity{
 			items.Weak: mk("weak"), items.Normal: mk("normal"), items.Heavy: mk("heavy"),
 		}},
 	})
@@ -527,7 +528,7 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 			events.DrainQueuedMessagesForTest(target.UserId)
 			events.DrainQueuedMessagesForTest(observer.UserId)
 			sendChannelDefenceMessages(combat.ChannelDefenceResult{
-				DefenceType: string(items.DefenseDefy), Defended: true, NormalizedDefenceMargin: 0.1, DamageMultiplier: 0.4,
+				Defence: combatvocab.DefenceDefy, Defended: true, NormalizedDefenceMargin: 0.1, DamageMultiplier: 0.4,
 			}, mob, target, darkRoom, target.Character.Name, attack)
 
 			targetLines := events.DrainQueuedMessagesForTest(target.UserId)
@@ -583,7 +584,7 @@ func TestMobTauntAndHowlRuntimeHideIndexedActorAndExcludeDefender(t *testing.T) 
 				return actions.TauntResult{
 					Executed: true, Hit: true,
 					Target:  actions.AggroTarget{Char: target.Character, Name: target.Character.Name, UserId: target.UserId, Found: true},
-					Defence: combat.ChannelDefenceResult{DefenceType: characters.DefenseDefy, Defended: true, DefensiveCrit: true, DamageMultiplier: 0},
+					Defence: combat.ChannelDefenceResult{Defence: combatvocab.DefenceDefy, Defended: true, DefensiveCrit: true, DamageMultiplier: 0},
 				}
 			}
 			t.Cleanup(func() { executeTauntAction = originalAction })
@@ -633,7 +634,7 @@ func TestMobTauntShortDefyNotifiesOnlyPlayerDefenderOnce(t *testing.T) {
 			Target: actions.AggroTarget{Char: defender.Character, Name: defender.Character.Name,
 				UserId: defender.UserId, Found: true},
 			Defence: combat.ChannelDefenceResult{
-				DefenceType: characters.DefenseDefy, Defended: true, DamageMultiplier: 0.3,
+				Defence: combatvocab.DefenceDefy, Defended: true, DamageMultiplier: 0.3,
 				Cost: characters.CostCommitResult{Status: characters.CostPartiallyPaid, Pool: characters.PoolConviction},
 			},
 		}
@@ -671,7 +672,7 @@ func TestMobTauntRuntimeRoutesMobToMobDefyAndPreservesAggroPull(t *testing.T) {
 		return actions.TauntResult{
 			Executed: true, Hit: true, AggroPulled: true,
 			Target:  actions.AggroTarget{Char: &target.Character, Name: target.Character.Name, MobInstanceId: target.InstanceId, Found: true},
-			Defence: combat.ChannelDefenceResult{DefenceType: characters.DefenseDefy, Defended: true, DefensiveCrit: true, DamageMultiplier: 0},
+			Defence: combat.ChannelDefenceResult{Defence: combatvocab.DefenceDefy, Defended: true, DefensiveCrit: true, DamageMultiplier: 0},
 		}
 	}
 	t.Cleanup(func() { executeTauntAction = originalAction })

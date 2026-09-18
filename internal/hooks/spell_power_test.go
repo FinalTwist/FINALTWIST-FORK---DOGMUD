@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 )
@@ -15,7 +16,10 @@ func TestCalcSpellDamage_SpellPowerAmplifies(t *testing.T) {
 	})
 	defer cleanup()
 
-	spell := &spells.SpellData{Name: "Test Bolt", DamageMultiplier: 1.0, TargetDefenseType: "magical"}
+	spell := &spells.SpellData{
+		Name: "Test Bolt", DamageMultiplier: 1.0,
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
+	}
 	caster := &characters.Character{}
 	caster.Stats.Willpower.ValueAdj = 100
 	caster.Conviction, caster.ConvictionMax.Value = 100, 100

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
 )
@@ -126,7 +127,7 @@ func TestSwingDefences_EmptyWhenTheDefenderHasNoDefence(t *testing.T) {
 	if !IsThirdPartyAttack(atk, def) {
 		t.Fatal("precondition: the attack is not third-party, so the defence set is not being emptied")
 	}
-	if got := thirdPartyGrappleDefences(DefenceEntriesFor(ChannelMelee, def, DefenceEntryOpts{})); len(got) != 0 {
+	if got := thirdPartyGrappleDefences(DefenceEntriesFor(combatvocab.Melee(combatvocab.TargetSingle), def, DefenceEntryOpts{})); len(got) != 0 {
 		t.Fatalf("precondition: the filtered defence set is %v, want empty; a bare-handed defender should have no block to keep", got)
 	}
 

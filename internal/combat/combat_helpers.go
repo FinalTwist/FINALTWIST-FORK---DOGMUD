@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
@@ -97,7 +98,7 @@ type swingDamageParams struct {
 // bestDefenseResult holds the outcome of best-of-all defense resolution.
 type bestDefenseResult struct {
 	margin      float64
-	defenseType string
+	defenseType combatvocab.Defence
 	hitRoll     dice.RollResult
 	defRoll     dice.RollResult
 	cost        characters.CostCommitResult
@@ -598,7 +599,7 @@ func calcCritThreshold(sourceChar *characters.Character, targetChar *characters.
 
 // filterDefensesForThirdParty removes active defenses when the target is in a grapple
 // and being attacked by a third party.
-func filterDefensesForThirdParty(result *AttackResult, sourceChar *characters.Character, targetChar *characters.Character, defSeq []string) ([]string, bool) {
+func filterDefensesForThirdParty(result *AttackResult, sourceChar *characters.Character, targetChar *characters.Character, defSeq []combatvocab.Defence) ([]combatvocab.Defence, bool) {
 	isThirdParty := IsThirdPartyAttack(sourceChar, targetChar)
 	if !isThirdParty {
 		return defSeq, false
@@ -641,11 +642,11 @@ func filterDefensesForThirdParty(result *AttackResult, sourceChar *characters.Ch
 // Every defence in defSeq now enters the contest regardless of the defender's
 // stamina, and only the winner is charged, partially. See the comment at the
 // top of the entry loop for why.
-func runBestOfAllDefense(result *AttackResult, sourceChar *characters.Character, targetChar *characters.Character, defSeq []string, atkScore float64, isThirdParty bool, ctx combatContext) bestDefenseResult {
+func runBestOfAllDefense(result *AttackResult, sourceChar *characters.Character, targetChar *characters.Character, defSeq []combatvocab.Defence, atkScore float64, isThirdParty bool, ctx combatContext) bestDefenseResult {
 	return runBestOfAllDefenseWithRunner(result, sourceChar, targetChar, defSeq, atkScore, isThirdParty, ctx, RunContest)
 }
 
-func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.Character, targetChar *characters.Character, defSeq []string, atkScore float64, isThirdParty bool, ctx combatContext, runner defenceContestRunner) bestDefenseResult {
+func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.Character, targetChar *characters.Character, defSeq []combatvocab.Defence, atkScore float64, isThirdParty bool, ctx combatContext, runner defenceContestRunner) bestDefenseResult {
 	bal := configs.GetBalanceConfig()
 
 	entries := make([]contest.Entry, 0, len(defSeq))
@@ -653,7 +654,7 @@ func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.
 
 	for _, defenseType := range defSeq {
 		// Track defense attempt
-		result.DefenseAttempts = append(result.DefenseAttempts, DefenseType(defenseType))
+		result.DefenseAttempts = append(result.DefenseAttempts, defenseType)
 
 		// Stage 9.4: Track defense for stance calculation
 		targetChar.IncrementDefenseCount()
@@ -693,7 +694,7 @@ func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.
 		// "clinched" bucket, IsGroundGrapple matches the legacy
 		// "grounded" bucket.
 		// U6 Task 12 replaced the bare "dodge"/"parry"/"block" string literals
-		// these three switches used to carry with the characters.Defense*
+		// these three switches used to carry with the combatvocab.Defence*
 		// constants they were meant to match. The literals were the same values,
 		// so this is not a behaviour change -- it removes the drift risk, since a
 		// literal that stops matching its constant silently drops the penalty
@@ -707,29 +708,29 @@ func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.
 		switch {
 		case targetChar.IsProne() || targetChar.IsSupine():
 			switch defenseType {
-			case characters.DefenseDodge:
+			case combatvocab.DefenceDodge:
 				defenseScore *= float64(bal.ProneDodgePenalty)
-			case characters.DefenseParry:
+			case combatvocab.DefenceParry:
 				defenseScore *= float64(bal.ProneParryPenalty)
-			case characters.DefenseBlock:
+			case combatvocab.DefenceBlock:
 				defenseScore *= float64(bal.ProneBlockPenalty)
 			}
 		case targetChar.IsStandingGrapple():
 			switch defenseType {
-			case characters.DefenseDodge:
+			case combatvocab.DefenceDodge:
 				defenseScore *= float64(bal.ClinchDodgePenalty)
-			case characters.DefenseParry:
+			case combatvocab.DefenceParry:
 				defenseScore *= float64(bal.ClinchParryPenalty)
-			case characters.DefenseBlock:
+			case combatvocab.DefenceBlock:
 				defenseScore *= float64(bal.ClinchBlockPenalty)
 			}
 		case targetChar.IsGroundGrapple():
 			switch defenseType {
-			case characters.DefenseDodge:
+			case combatvocab.DefenceDodge:
 				defenseScore *= float64(bal.GroundedDodgePenalty)
-			case characters.DefenseParry:
+			case combatvocab.DefenceParry:
 				defenseScore *= float64(bal.GroundedParryPenalty)
-			case characters.DefenseBlock:
+			case combatvocab.DefenceBlock:
 				defenseScore *= float64(bal.GroundedBlockPenalty)
 			}
 		}
@@ -754,7 +755,7 @@ func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.
 		// swings — spells use a different resolution path).
 		defenseScore += mutations.GetPhysicalDefenseBonus(targetChar.Mutations)
 
-		entry := contest.Entry{Name: defenseType, Score: defenseScore}
+		entry := contest.Entry{Name: string(defenseType), Score: defenseScore}
 		entries = append(entries, entry)
 		candidates = append(candidates, quotedDefenceCandidate{
 			entry:  entry,
@@ -769,7 +770,7 @@ func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.
 		hitRoll: res.AttackRoll,
 	}
 	if res.Contested {
-		best.defenseType = res.Winner
+		best.defenseType = combatvocab.Defence(res.Winner)
 		best.defRoll = res.DefenseRoll
 		best.floored = res.Floored
 		// SIGN CONVERSION, and the only one in melee. contest.Result.Margin is
@@ -1247,11 +1248,11 @@ func resolveDefenseOutcomeInner(result *AttackResult, best bestDefenseResult, so
 // setDefenseCritFlags marks parry/dodge/block crit flags on the result.
 func setDefenseCritFlags(result *AttackResult, best bestDefenseResult) {
 	switch best.defenseType {
-	case characters.DefenseParry:
+	case combatvocab.DefenceParry:
 		result.ParryCritDetected = true
-	case characters.DefenseDodge:
+	case combatvocab.DefenceDodge:
 		result.DodgeCritDetected = true
-	case characters.DefenseBlock:
+	case combatvocab.DefenceBlock:
 		result.BlockCritDetected = true
 	}
 }
@@ -1270,26 +1271,16 @@ func setDefenseCritFlags(result *AttackResult, best bestDefenseResult) {
 // participant sees instead. A defensive crit (partial == false) fully
 // negates the swing and keeps its personal lines unchanged.
 func sendDefenseMessages(result *AttackResult, best bestDefenseResult, sourceChar *characters.Character, targetChar *characters.Character, isThirdParty bool, partial bool) {
-	result.DefenseUsed = DefenseType(best.defenseType)
+	result.DefenseUsed = best.defenseType
 
-	var defenseVerb string
-	var itemsDefenseType items.DefenseType
-	switch best.defenseType {
-	case characters.DefenseDodge:
-		defenseVerb = "dodge"
-		itemsDefenseType = items.DefenseDodge
-	case characters.DefenseParry:
-		defenseVerb = "parry"
-		itemsDefenseType = items.DefenseParry
-	case characters.DefenseBlock:
-		defenseVerb = "block"
-		itemsDefenseType = items.DefenseBlock
-	}
+	itemsDefencePool := items.DefencePoolFor(best.defenseType)
+	defenseVerb := string(best.defenseType)
 
 	// The generic fallback text below formats as "%s %ss your attack!", so an
-	// empty verb reads "Grimwald s your attack!". Unreachable today (melee
-	// always resolves to one of the three cases above), but made unreachable
-	// by construction rather than by argument.
+	// empty verb reads "Grimwald s your attack!". Unreachable today: melee's
+	// defence set is dodge, parry and block only (combatvocab.EligibleDefences),
+	// so the verb is never empty. Kept so an empty name cannot print
+	// "Grimwald s your attack!".
 	if defenseVerb == "" {
 		defenseVerb = "counter"
 	}
@@ -1306,7 +1297,7 @@ func sendDefenseMessages(result *AttackResult, best bestDefenseResult, sourceCha
 	// function and should not carry a progression side effect at all.
 
 	// Get narrative defense messages based on defense z-score
-	defenseMsgs := items.GetDefenseMessage(itemsDefenseType, best.defRoll.ZScore)
+	defenseMsgs := items.GetDefenseMessage(itemsDefencePool, best.defRoll.ZScore)
 
 	// Prepare token replacements
 	weaponName := "fists"
@@ -1469,16 +1460,16 @@ func meleeDisplaySubtype(weaponSubType items.ItemSubType, weaponReach, posRadius
 // same swing. If it is somehow empty (no path produces that today), the
 // neutral "turn aside" phrasing keeps the line coherent rather than printing
 // an empty verb.
-func deflectedSwingLines(defense DefenseType, sourceName, targetName, dmgDesc string) (toAttacker, toDefender items.ItemMessage) {
+func deflectedSwingLines(defense combatvocab.Defence, sourceName, targetName, dmgDesc string) (toAttacker, toDefender items.ItemMessage) {
 	dmg := `(<ansi fg="damage">` + dmgDesc + `</ansi>)`
 
 	var verbYou, verbThey string
 	switch defense {
-	case DefenseDodge:
+	case combatvocab.DefenceDodge:
 		verbYou, verbThey = "dodge", "dodges"
-	case DefenseParry:
+	case combatvocab.DefenceParry:
 		verbYou, verbThey = "parry", "parries"
-	case DefenseBlock:
+	case combatvocab.DefenceBlock:
 		verbYou, verbThey = "block", "blocks"
 	default:
 		toAttacker = items.ItemMessage(fmt.Sprintf(

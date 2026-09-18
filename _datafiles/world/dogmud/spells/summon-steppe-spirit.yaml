@@ -3,7 +3,9 @@ name: Summon Steppe Spirit
 aliases: [spirit]
 description: Calls forth a spirit wolf from the steppe's spiritual
   plane to fight alongside you.
-type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - manifestation
 quest_required: "12-end"
@@ -12,7 +14,6 @@ waitrounds: 3
 difficulty: 15
 primarystat: charisma
 base_folds: 6
-target_defense_type: none
 effect_type: none
 effect_magnitude: 0
 cast_actor: >-

@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -13,13 +14,12 @@ import (
 
 func charmTestSpellData() *spells.SpellData {
 	return &spells.SpellData{
-		SpellId:           "charm",
-		Name:              "Charm",
-		Type:              spells.HarmSingle,
-		EffectType:        "charm",
-		PrimaryStat:       "charisma",
-		TargetDefenseType: "social",
-		Schools:           []string{"manifestation"},
+		SpellId:    "charm",
+		Name:       "Charm",
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageSocial, Targeting: combatvocab.TargetSingle,
+		EffectType:  "charm",
+		PrimaryStat: "charisma",
+		Schools:     []string{"manifestation"},
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -32,7 +33,7 @@ func seedPurgeTestPoison() func() {
 func pinSpellContest(t *testing.T) {
 	t.Helper()
 	original := runSpellChannelAttack
-	runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+	runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 		return spellContestAttackWin()
 	}
 	t.Cleanup(func() { runSpellChannelAttack = original })
@@ -58,7 +59,7 @@ func TestPurgeAffliction_NamedMobTargetIsPurgedNotTheCaster(t *testing.T) {
 	drainPlain(1)
 	drainPlain(2)
 
-	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", Type: spells.HelpSingle}
+	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle}
 	resolveSpell(caster, activity.CastingData{SpellId: "purge-affliction", TargetMobInstanceIds: []int{100}}, spell, room)
 
 	// HasCondition is NOT the probe: a purge marks the condition expired
@@ -94,7 +95,7 @@ func TestPurgeAffliction_NamedMobTargetInTheDarkIsHiddenFromTheRoom(t *testing.T
 	drainPlain(1)
 	drainPlain(2)
 
-	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", Type: spells.HelpSingle}
+	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle}
 	resolveSpell(caster, activity.CastingData{SpellId: "purge-affliction", TargetMobInstanceIds: []int{100}}, spell, room)
 
 	casterLines := drainPlain(1)
@@ -112,7 +113,7 @@ func TestPurgeAffliction_NamedMobTargetInTheDarkIsHiddenFromTheRoom(t *testing.T
 // returns the caster's and the bystander's lines.
 func castPurgeAtMob(t *testing.T, room *rooms.Room) (casterLines, bystanderLines []string) {
 	t.Helper()
-	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", Type: spells.HelpSingle}
+	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle}
 	resolveSpell(users.GetByUserId(1), activity.CastingData{SpellId: "purge-affliction", TargetMobInstanceIds: []int{100}}, spell, room)
 	return drainPlain(1), drainPlain(2)
 }
@@ -179,7 +180,7 @@ func TestPurgeAffliction_PlayerTargetThatLeftTheRoomIsNeitherPurgedNorNarrated(t
 	drainPlain(1)
 	drainPlain(2)
 
-	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", Type: spells.HelpSingle}
+	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle}
 	resolveSpell(caster, activity.CastingData{SpellId: "purge-affliction", TargetUserIds: []int{2}}, spell, room)
 
 	assert.True(t, target.Character.Conditions.HasFlag(conditions.Poison, false), "an absent player is not purged")
@@ -207,7 +208,7 @@ func TestPurgeAffliction_DownedPlayerTargetStillPresentIsPurged(t *testing.T) {
 	drainPlain(1)
 	drainPlain(2)
 
-	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", Type: spells.HelpSingle}
+	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle}
 	resolveSpell(caster, activity.CastingData{SpellId: "purge-affliction", TargetUserIds: []int{2}}, spell, room)
 
 	assert.False(t, target.Character.Conditions.HasFlag(conditions.Poison, false), "a downed ally in the room is still purged")

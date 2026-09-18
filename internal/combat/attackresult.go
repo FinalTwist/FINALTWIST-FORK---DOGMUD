@@ -1,19 +1,14 @@
 package combat
 
 import (
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 )
 
-// DefenseType represents the type of defense used (Stage 7.1)
-type DefenseType string
-
-const (
-	DefenseNone  DefenseType = ""
-	DefenseDodge DefenseType = "dodge"
-	DefenseParry DefenseType = "parry"
-	DefenseBlock DefenseType = "block"
-)
+// The former three-valued melee defence enum (Stage 7.1) is deleted. M4b-2:
+// every defence name is combatvocab.Defence, declared once in
+// internal/combatvocab.
 
 // WeaponHitInfo tracks how a specific weapon fared across a combat round:
 // whether it landed, and how well it rolled.
@@ -85,7 +80,7 @@ type SwingEvent struct {
 	DefenseCrit   bool
 	Damage        int
 	DamageReduced int
-	DefenseUsed   DefenseType
+	DefenseUsed   combatvocab.Defence
 	AttackZScore  float64
 	DefenseZScore float64
 	AttackType    string // "weapon", "unarmed", "ranged" — per-swing weapon type for analytics
@@ -115,7 +110,7 @@ type SwingDefence struct {
 	// Defence is contest.Result.Winner for that swing: the entry that defended
 	// best, whether or not it beat the attack roll. Never empty -- an
 	// uncontested swing appends no SwingDefence at all.
-	Defence DefenseType
+	Defence combatvocab.Defence
 	// Roll is that entry's rolled value, the roll that ALREADY happened.
 	// Nothing re-rolls to compare swings against each other.
 	Roll float64
@@ -166,27 +161,27 @@ type AttackResult struct {
 	// SwingsThrown x per-swing cost, so a reset here would make a multi-weapon
 	// round cost the same as its last weapon's swings and quietly restore the
 	// free-offence bug this field exists to fix.
-	SwingsThrown            int             // defaults 0
-	Crit                    bool            // defaults false
-	CritSource              string          // "rolled"|"sleeping"|"crit_on_win"; diagnostic only, see SwingEvent.CritSource
-	Fumble                  bool            // defaults false
-	DoubleFumble            bool            // defaults false
-	ConditionSource         []int           // defaults 0
-	ConditionTarget         []int           // defaults 0
-	DamageToTarget          int             // defaults 0
-	DamageToTargetReduction int             // defaults 0
-	DamageToSource          int             // defaults 0
-	DamageToSourceReduction int             // defaults 0
-	DefenseUsed             DefenseType     // Which defense avoided the hit (Stage 7.1)
-	DefenseAttempts         []DefenseType   // Sequence of defenses attempted (Stage 7.1)
-	DefenseZScore           float64         // Defense roll z-score (Stage 8.4)
-	AttackZScore            float64         // Attack roll z-score (Stage 8.4)
-	ParryCritDetected       bool            // Flag for parry crit → riposte
-	DodgeCritDetected       bool            // Flag for dodge crit → auto-trip
-	BlockCritDetected       bool            // Flag for block crit → auto-bash
-	SwingEvents             []SwingEvent    // Per-swing analytics (Stage 30.2)
-	WeaponHits              []WeaponHitInfo // Per-weapon hit tracking for skill progression
-	DefenderWasAttacked     bool            // True if any swing was attempted against defender
+	SwingsThrown            int                   // defaults 0
+	Crit                    bool                  // defaults false
+	CritSource              string                // "rolled"|"sleeping"|"crit_on_win"; diagnostic only, see SwingEvent.CritSource
+	Fumble                  bool                  // defaults false
+	DoubleFumble            bool                  // defaults false
+	ConditionSource         []int                 // defaults 0
+	ConditionTarget         []int                 // defaults 0
+	DamageToTarget          int                   // defaults 0
+	DamageToTargetReduction int                   // defaults 0
+	DamageToSource          int                   // defaults 0
+	DamageToSourceReduction int                   // defaults 0
+	DefenseUsed             combatvocab.Defence   // Which defense avoided the hit (Stage 7.1)
+	DefenseAttempts         []combatvocab.Defence // Sequence of defenses attempted (Stage 7.1)
+	DefenseZScore           float64               // Defense roll z-score (Stage 8.4)
+	AttackZScore            float64               // Attack roll z-score (Stage 8.4)
+	ParryCritDetected       bool                  // Flag for parry crit → riposte
+	DodgeCritDetected       bool                  // Flag for dodge crit → auto-trip
+	BlockCritDetected       bool                  // Flag for block crit → auto-bash
+	SwingEvents             []SwingEvent          // Per-swing analytics (Stage 30.2)
+	WeaponHits              []WeaponHitInfo       // Per-weapon hit tracking for skill progression
+	DefenderWasAttacked     bool                  // True if any swing was attempted against defender
 	MessagesToSource        []TaggedMessage
 	MessagesToTarget        []TaggedMessage
 	MessagesToSourceRoom    []TaggedMessage
@@ -254,11 +249,11 @@ func CategoryForWeaponSubtype(sub items.ItemSubType) messaging.Category {
 // flavor.
 func CategoryForDefenseVerb(verb string) messaging.Category {
 	switch verb {
-	case "dodge":
+	case string(combatvocab.DefenceDodge):
 		return messaging.CategoryDodge
-	case "parry":
+	case string(combatvocab.DefenceParry):
 		return messaging.CategoryParry
-	case "block":
+	case string(combatvocab.DefenceBlock):
 		return messaging.CategoryBlock
 	}
 	return messaging.CategoryDodge

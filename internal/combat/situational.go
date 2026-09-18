@@ -2,6 +2,7 @@ package combat
 
 import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -15,11 +16,11 @@ import (
 //	resource depletion    Y      Y        Y        Y*     Y*    (*already applied in damage; here it reaches ACCURACY on physical channels only — see spec 2.3)
 //	encumbrance           N (cost-side only, U7's domain — not an accuracy term)
 //
-// "Specials" ride the channel they declare: the physical maneuvers
-// (bash/kick/trip/gore/...) pass ChannelMelee and fire passes ChannelRanged,
-// so the two physical columns cover all sixteen of them. Both spell channels
-// answer the spell column — target_defense_type: physical only changes which
-// defence answers the cast, not whether the caster is casting.
+// "Specials" ride the attack type they declare: the physical maneuvers
+// (bash/kick/trip/gore/...) pass Melee and fire passes Ranged, so the
+// physical columns cover all sixteen of them. Both spell damage types answer
+// the spell column — Damage: physical only changes which defence answers the
+// cast, not whether the caster is casting.
 //
 // The implementation reads the EXISTING knobs (ProneAttackMultiplier; the
 // stamina resource-penalty family via ResourceMultiplier, EffectivePoolMax
@@ -29,16 +30,16 @@ import (
 // of the target, stays melee-only, and this function takes no defender.
 //
 // Sleeping defenders: the auto-crit snapshot (forceCrit) now reaches EVERY
-// channel via ChannelDefenceResult — CLAUDE.md always promised "the entire
+// attack via ChannelDefenceResult — CLAUDE.md always promised "the entire
 // first round of attacks against them auto-crits" and only melee delivered.
 // See AttackSide.ForceCrit and SleepingForceCrit below.
-func SituationalAttackMult(attacker *characters.Character, channel AttackChannel) float64 {
+func SituationalAttackMult(attacker *characters.Character, shape combatvocab.Attack) float64 {
 	if attacker == nil {
 		return 1.0
 	}
 	mult := 1.0
-	switch channel {
-	case ChannelMelee, ChannelRanged:
+	switch shape.Type {
+	case combatvocab.AttackMelee, combatvocab.AttackRanged, combatvocab.AttackThrown:
 		bal := configs.GetBalanceConfig()
 		if attacker.IsProne() || attacker.IsSupine() {
 			mult *= float64(bal.ProneAttackMultiplier)

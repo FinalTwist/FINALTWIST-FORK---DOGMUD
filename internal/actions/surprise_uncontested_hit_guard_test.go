@@ -98,15 +98,15 @@ func TestEngageAggroTypeLandsNoDamage(t *testing.T) {
 // on another actor. "TODO" is not an owner. To add a contested attack, route it
 // through combat.ResolveChannelAttack (the channel seam) and say so in the row.
 var rawDamageSiteOwners = map[string]string{
-	// Behind combat.ResolveChannelAttack (ChannelSocial), which runs the
+	// Behind combat.ResolveChannelAttack (combatvocab.Rhetoric(combatvocab.TargetSingle)), which runs the
 	// defender's quell/defy set before the damage below.
-	"internal/actions/combat_taunt.go:ExecuteTaunt":          "contested: ResolveChannelAttack(ChannelSocial) at combat_taunt.go",
-	"internal/actions/combat_counter.go:executeCounterTaunt": "contested: ResolveChannelAttack(ChannelSocial) at combat_counter.go",
+	"internal/actions/combat_taunt.go:ExecuteTaunt":          "contested: ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle)) at combat_taunt.go",
+	"internal/actions/combat_counter.go:executeCounterTaunt": "contested: ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle)) at combat_counter.go",
 
-	// Behind combat.ResolveChannelAttack (ChannelRanged). Both sites in Throw
+	// Behind combat.ResolveChannelAttack (combatvocab.Ranged(combatvocab.TargetSingle)). Both sites in Throw
 	// are downstream of the same per-target contest: the second is the ordinary
 	// damage branch, the first is the FUMBLE branch, which harms the thrower.
-	"internal/usercommands/throw.go:Throw": "contested: ResolveChannelAttack(ChannelRanged) per target (two sites: the fumble self-harm and the hit)",
+	"internal/usercommands/throw.go:Throw": "contested: ResolveChannelAttack(combatvocab.Ranged(combatvocab.TargetSingle)) per target (two sites: the fumble self-harm and the hit)",
 
 	// Melee's best-of-all defence contest (runBestOfAllDefense) has already
 	// settled by the time these build the swing's damage.

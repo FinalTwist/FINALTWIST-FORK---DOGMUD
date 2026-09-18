@@ -2,7 +2,9 @@ spellid: conviction-armor
 name: Conviction Armor
 aliases: [armor]
 description: Encases the target in solidified belief for protection.
-type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - enhancement
 cost: 50

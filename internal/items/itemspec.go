@@ -800,7 +800,7 @@ func LoadDataFiles() {
 
 	attackMessages = tmpAttackMessages
 
-	tmpDefenseMessages, err := fileloader.LoadAllFlatFiles[DefenseType, *DefenseMessageGroup](dataPath + `/defense-messages`)
+	tmpDefenseMessages, err := fileloader.LoadAllFlatFiles[DefencePool, *DefenseMessageGroup](dataPath + `/defense-messages`)
 	if err != nil {
 		panic(errors.Wrap(err, `filepath: `+dataPath+`/defense-messages`))
 	}

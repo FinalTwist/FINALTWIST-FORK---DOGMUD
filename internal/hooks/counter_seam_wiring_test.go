@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -30,7 +31,7 @@ func TestSpellCounterTier_InTheDarkNamesNobody(t *testing.T) {
 	caster := mobs.GetInstance(100)
 	res := fireSpellCounterTier(rooms.LoadRoom(1),
 		combat.ChannelDefenceResult{Defended: true, DefensiveCrit: true},
-		combat.ChannelSpellMental, defender.Character, &caster.Character, defender, nil)
+		combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), defender.Character, &caster.Character, defender, nil)
 	require.True(t, res.Countered, "precondition: the counter must fire")
 
 	counterer := drainPlain(1)

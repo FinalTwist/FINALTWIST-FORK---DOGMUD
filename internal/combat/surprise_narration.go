@@ -3,6 +3,7 @@ package combat
 import (
 	"fmt"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/items"
 )
 
@@ -43,7 +44,7 @@ const surpriseAttackBanner = `<ansi fg="magenta-bold">*[SURPRISE ATTACK]*</ansi>
 // names the defence -- so the "answered ambush" outcome is spoken there too,
 // just by the older seam.
 //
-// Only dodge, parry and block are worded. DefenceSetFor(ChannelMelee) returns
+// Only dodge, parry and block are worded. Melee's eligibility row returns
 // exactly those three, so a quell or defy arm here would be unreachable.
 // DefenseNone keeps a neutral fallback so an empty DefenseUsed cannot print an
 // empty verb; "deflect" rather than deflectedSwingLines' "turn aside" because
@@ -52,15 +53,15 @@ const surpriseAttackBanner = `<ansi fg="magenta-bold">*[SURPRISE ATTACK]*</ansi>
 // dmgDesc is the GetDamageDescription band for the damage that got through, or
 // "" when the deflection let nothing through at all. No raw numbers reach any
 // line on either path.
-func openingStrikeDefendedLines(defense DefenseType, sourceName, targetName, dmgDesc string) (toAttacker, toDefender, toRoom items.ItemMessage) {
+func openingStrikeDefendedLines(defense combatvocab.Defence, sourceName, targetName, dmgDesc string) (toAttacker, toDefender, toRoom items.ItemMessage) {
 
 	verbYou, verbThey := "deflect", "deflects"
 	switch defense {
-	case DefenseDodge:
+	case combatvocab.DefenceDodge:
 		verbYou, verbThey = "dodge", "dodges"
-	case DefenseParry:
+	case combatvocab.DefenceParry:
 		verbYou, verbThey = "parry", "parries"
-	case DefenseBlock:
+	case combatvocab.DefenceBlock:
 		verbYou, verbThey = "block", "blocks"
 	}
 

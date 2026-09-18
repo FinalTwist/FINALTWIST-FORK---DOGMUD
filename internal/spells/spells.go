@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/casing"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -16,33 +17,41 @@ import (
 	"github.com/pkg/errors"
 )
 
-type SpellType string
-
 type SpellData struct {
-	SpellId            string    `yaml:"spellid,omitempty"`
-	Name               string    `yaml:"name,omitempty"`
-	Aliases            []string  `yaml:"aliases,omitempty"` // short single-word invocation forms (primary first)
-	Description        string    `yaml:"description,omitempty"`
-	Type               SpellType `yaml:"type,omitempty"`
-	Schools            []string  `yaml:"schools,omitempty"`    // Can have multiple school tags
-	Categories         []string  `yaml:"categories,omitempty"` // AI categorization: self_defense, self_offense, etc. Free-form strings.
-	Cost               int       `yaml:"cost,omitempty"`       // Conviction cost
-	HealthCost         int       `yaml:"healthcost,omitempty"` // Optional Health cost for life-force magic
-	WaitRounds         int       `yaml:"waitrounds,omitempty"`
-	Difficulty         int       `yaml:"difficulty,omitempty"`           // Augments final success chance by this %
-	PrimaryStat        string    `yaml:"primarystat,omitempty"`          // Stat used for spell rolls and progression
-	BaseFolds          int       `yaml:"base_folds,omitempty"`           // 0 = default to 4
-	TargetDefenseType  string    `yaml:"target_defense_type,omitempty"`  // "physical", "mental", "" = none
-	ComponentTag       string    `yaml:"component_tag,omitempty"`        // Required item component tag (e.g. "stone")
-	EffectType         string    `yaml:"effect_type,omitempty"`          // "damage"|"heal"|"condition"|"shield"|"dot"|"knockdown"|"charm"|"drain_area" (mob-cast only: area life-drain + self-heal, see resolveMobDrainArea)
-	EffectMagnitude    int       `yaml:"effect_magnitude,omitempty"`     // Legacy: base damage/heal amount
-	DamageMultiplier   float64   `yaml:"damage_multiplier,omitempty"`    // Spell damage multiplier for new pipeline (Stage 34)
-	EffectDuration     int       `yaml:"effect_duration,omitempty"`      // DoT tick count (default 0 = use 3)
-	ConditionIds       []int     `yaml:"condition_ids,omitempty"`        // Condition IDs to apply (for "condition" effect type)
-	QuestRequired      string    `yaml:"quest_required,omitempty"`       // Quest token required before spell can be discovered
-	MobOnly            bool      `yaml:"mob_only,omitempty"`             // Boss/NPC signature ability: players may never DISCOVER it. See GetEligibleSpells.
-	NoDamageInterrupt  bool      `yaml:"no_damage_interrupt,omitempty"`  // Telegraphed casts: skip damage/position concentration-break (still interrupted by the disruptor system)
-	IgnoreMoveCooldown bool      `yaml:"ignore_move_cooldown,omitempty"` // Scripted boss abilities: bypass the shared special-move cast cooldown (btree controls cadence)
+	SpellId     string   `yaml:"spellid,omitempty"`
+	Name        string   `yaml:"name,omitempty"`
+	Aliases     []string `yaml:"aliases,omitempty"` // short single-word invocation forms (primary first)
+	Description string   `yaml:"description,omitempty"`
+
+	// The three authored axes (messaging M4b-2). All required; validated
+	// against the combatvocab eligibility table at load (validateAxes), so a
+	// pair the table does not know fails the boot. attack_type none pairs
+	// with damage_type non_harm
+	// and is the uncontested cast (a heal is not an attack). targeting self
+	// means NO target is resolved and the argument passes through (summons,
+	// identify); single defaults to the caster.
+	AttackType combatvocab.AttackType `yaml:"attack_type,omitempty"`
+	DamageType combatvocab.DamageType `yaml:"damage_type,omitempty"`
+	Targeting  combatvocab.Targeting  `yaml:"targeting,omitempty"`
+
+	Schools            []string `yaml:"schools,omitempty"`    // Can have multiple school tags
+	Categories         []string `yaml:"categories,omitempty"` // AI categorization: self_defense, self_offense, etc. Free-form strings.
+	Cost               int      `yaml:"cost,omitempty"`       // Conviction cost
+	HealthCost         int      `yaml:"healthcost,omitempty"` // Optional Health cost for life-force magic
+	WaitRounds         int      `yaml:"waitrounds,omitempty"`
+	Difficulty         int      `yaml:"difficulty,omitempty"`           // Augments final success chance by this %
+	PrimaryStat        string   `yaml:"primarystat,omitempty"`          // Stat used for spell rolls and progression
+	BaseFolds          int      `yaml:"base_folds,omitempty"`           // 0 = default to 4
+	ComponentTag       string   `yaml:"component_tag,omitempty"`        // Required item component tag (e.g. "stone")
+	EffectType         string   `yaml:"effect_type,omitempty"`          // "damage"|"heal"|"condition"|"shield"|"dot"|"knockdown"|"charm"|"drain_area" (mob-cast only: area life-drain + self-heal, see resolveMobDrainArea)
+	EffectMagnitude    int      `yaml:"effect_magnitude,omitempty"`     // Legacy: base damage/heal amount
+	DamageMultiplier   float64  `yaml:"damage_multiplier,omitempty"`    // Spell damage multiplier for new pipeline (Stage 34)
+	EffectDuration     int      `yaml:"effect_duration,omitempty"`      // DoT tick count (default 0 = use 3)
+	ConditionIds       []int    `yaml:"condition_ids,omitempty"`        // Condition IDs to apply (for "condition" effect type)
+	QuestRequired      string   `yaml:"quest_required,omitempty"`       // Quest token required before spell can be discovered
+	MobOnly            bool     `yaml:"mob_only,omitempty"`             // Boss/NPC signature ability: players may never DISCOVER it. See GetEligibleSpells.
+	NoDamageInterrupt  bool     `yaml:"no_damage_interrupt,omitempty"`  // Telegraphed casts: skip damage/position concentration-break (still interrupted by the disruptor system)
+	IgnoreMoveCooldown bool     `yaml:"ignore_move_cooldown,omitempty"` // Scripted boss abilities: bypass the shared special-move cast cooldown (btree controls cadence)
 
 	// Companion summoning fields: replaces JS onMagic for summon spells
 	SummonMobId int `yaml:"summon_mob_id,omitempty"`
@@ -79,14 +88,6 @@ type SpellData struct {
 const (
 	WaitRoundsDefault = 3
 
-	Neutral    SpellType = "neutral"    // Neutral, no expected actor target, use on
-	HarmSingle SpellType = "harmsingle" // Harmful, defaults to current aggro - magic missile etc
-	HarmMulti  SpellType = "harmmulti"  // Harmful, defaults to all aggro mobs - chain lightning etc
-	HelpSingle SpellType = "helpsingle" // Helpful, defaults on self - heal etc
-	HelpMulti  SpellType = "helpmulti"  // Helpful, defaults on party - mass heal etc
-	HarmArea   SpellType = "harmarea"   // Hits everyone in the room, even if hidden or friendly
-	HelpArea   SpellType = "helparea"   // Hits everyone in the room, even if hidden
-
 	// DOG Spell Schools
 	SchoolElemental     = "elemental"     // Fire, ice, lightning, earth, wind - offensive elemental magic
 	SchoolEnhancement   = "enhancement"   // Conditions, shields, enchantments - augmentation magic
@@ -99,51 +100,6 @@ var (
 	allSpells     = map[string]*SpellData{}
 	spellsByAlias = map[string]*SpellData{}
 )
-
-func (s SpellType) HelpOrHarmString() string {
-	switch s {
-	case Neutral:
-		return `Neutral`
-	case HelpSingle, HelpMulti, HelpArea:
-		return `Helpful`
-	case HarmSingle, HarmMulti, HarmArea:
-		return `Harmful`
-	}
-	return `Unknown`
-}
-
-func (s SpellType) TargetTypeString(short ...bool) string {
-	// Return a short version
-	if len(short) > 0 && short[0] {
-		switch s {
-		case Neutral:
-			return `Self`
-		case HelpSingle, HarmSingle:
-			return `Single`
-		case HelpMulti, HarmMulti:
-			return `Group`
-		case HelpArea, HarmArea:
-			return `Area`
-		}
-		return `Unknown`
-	}
-	// Regular handling
-	switch s {
-	case Neutral:
-		return `Self`
-	case HelpSingle:
-		return `Single Target`
-	case HarmSingle:
-		return `Single Target`
-	case HelpMulti:
-		return `Group Target`
-	case HarmMulti:
-		return `Group Target`
-	case HelpArea, HarmArea:
-		return `Area Target`
-	}
-	return `Unknown`
-}
 
 // Finds a match for a spell by name or id
 func FindSpell(spellName string) string {
@@ -315,6 +271,10 @@ func (s *SpellData) CasterStatValue(stats stats.Statistics) int {
 func (s *SpellData) Validate() error {
 
 	if err := s.validatePrimaryStat(); err != nil {
+		return err
+	}
+
+	if err := s.validateAxes(); err != nil {
 		return err
 	}
 

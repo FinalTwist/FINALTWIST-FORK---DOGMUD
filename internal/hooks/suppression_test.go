@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 )
@@ -27,9 +28,11 @@ func TestCalcSpellDamage_DampenedSuppressed(t *testing.T) {
 	defer cleanup()
 
 	spellData := &spells.SpellData{
-		SpellId:           "sparks",
-		DamageMultiplier:  0.8,
-		TargetDefenseType: "mental",
+		SpellId:          "sparks",
+		DamageMultiplier: 0.8,
+		AttackType:       combatvocab.AttackSpell,
+		DamageType:       combatvocab.DamageMental,
+		Targeting:        combatvocab.TargetSingle,
 	}
 
 	newCaster := func() *characters.Character {

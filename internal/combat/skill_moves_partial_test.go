@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +29,7 @@ import (
 func makePartialTestParams(attacker, defender *characters.Character) SkillMoveParams {
 	return SkillMoveParams{
 		Attacker: attacker, Defender: defender,
-		Channel: ChannelMelee,
+		Shape: combatvocab.Melee(combatvocab.TargetSingle),
 		Attack: AttackSide{
 			Stat: 100, StatName: "strength",
 			Skill: skills.WeaponCombat, SkillRank: 0,

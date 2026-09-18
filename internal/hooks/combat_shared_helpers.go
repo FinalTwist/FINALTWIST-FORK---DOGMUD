@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -82,17 +83,22 @@ func calcSpellDamageForCharacter(spellData *spells.SpellData, caster *characters
 		rawDmg *= combat.ResourceMultiplier(caster.Conviction,
 			caster.EffectivePoolMax(characters.PoolConviction), cpPenalty)
 
-		// Apply mitigation based on defense type
+		// Mitigation is keyed by the DAMAGE type (combat.MitigationChannelFor):
+		// physical harm meets physical mitigation, mental meets magical,
+		// social meets conviction. A non-harm cast never reaches this helper.
 		var mitigPct, cap float64
-		switch spellData.TargetDefenseType {
-		case "physical":
-			mitigPct = target.GetPhysicalMitigation()
-			cap = combat.MitigationCap(combat.ChannelPhysical)
-		case "mental":
-			mitigPct = target.GetMagicalMitigation()
-			cap = combat.MitigationCap(combat.ChannelMagical)
-		default:
-			mitigPct = 0
+		if ch, ok := combat.MitigationChannelFor(spellData.DamageType); ok {
+			switch ch {
+			case combat.ChannelPhysical:
+				mitigPct = target.GetPhysicalMitigation()
+			case combat.ChannelMagical:
+				mitigPct = target.GetMagicalMitigation()
+			case combat.ChannelConviction:
+				mitigPct = target.GetConvictionMitigation()
+			}
+			cap = combat.MitigationCap(ch)
+		} else {
+			mudlog.Error("calcSpellDamageForCharacter", "spell", spellData.SpellId, "error", "non-harm spell reached the damage pipeline")
 			cap = 0.75
 		}
 
@@ -332,14 +338,14 @@ func applyCritEffects(attacker, defender *characters.Character, roundResult comb
 		tripResult := combat.ExecuteSkillMove(combat.SkillMoveParams{
 			Attacker: defender,
 			Defender: attacker,
-			Channel:  combat.ChannelMelee,
+			Shape:    combatvocab.Melee(combatvocab.TargetSingle),
 			Attack: combat.AttackSide{
 				Stat: defender.GetEffectiveDexterity(), StatName: "dexterity",
 				Skill: skills.UnarmedCombat, SkillRank: defender.GetSkillLevel(skills.UnarmedCombat),
 				// Task 17: the countering character pays their own prone /
 				// stamina-depletion accuracy terms. No ForceCrit: the counter
 				// target just swung, so they cannot be sleeping.
-				Mult: combat.SituationalAttackMult(defender, combat.ChannelMelee),
+				Mult: combat.SituationalAttackMult(defender, combatvocab.Melee(combatvocab.TargetSingle)),
 			},
 			IsCounter:       true,
 			DamagePercent:   float64(cfg.TripDamagePercent),
@@ -391,14 +397,14 @@ func applyCritEffects(attacker, defender *characters.Character, roundResult comb
 		bashResult := combat.ExecuteSkillMove(combat.SkillMoveParams{
 			Attacker: defender,
 			Defender: attacker,
-			Channel:  combat.ChannelMelee,
+			Shape:    combatvocab.Melee(combatvocab.TargetSingle),
 			Attack: combat.AttackSide{
 				Stat: defender.Stats.Strength.ValueAdj, StatName: "strength",
 				Skill: skills.WeaponCombat, SkillRank: defender.GetSkillLevel(skills.WeaponCombat),
 				// Task 17: the countering character pays their own prone /
 				// stamina-depletion accuracy terms. No ForceCrit: the counter
 				// target just swung, so they cannot be sleeping.
-				Mult: combat.SituationalAttackMult(defender, combat.ChannelMelee),
+				Mult: combat.SituationalAttackMult(defender, combatvocab.Melee(combatvocab.TargetSingle)),
 			},
 			IsCounter:         true,
 			DamagePercent:     float64(cfg.BashDamagePercent),
@@ -651,8 +657,7 @@ func processFoldRound(char *characters.Character) FoldRoundResult {
 				break
 			}
 			// For harm spells, downed players count as gone.
-			if u.Character.Health < 1 && spellData != nil &&
-				(spellData.Type == spells.HarmSingle || spellData.Type == spells.HarmArea || spellData.Type == spells.HarmMulti) {
+			if u.Character.Health < 1 && spellData != nil && spellData.IsHarm() {
 				targetGone = true
 				break
 			}

@@ -2,7 +2,9 @@ spellid: mutation-catalyst
 name: Mutation Catalyst
 aliases: [mutate]
 description: Accelerates the target's mutagenic processes.
-type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - vital
 cost: 270

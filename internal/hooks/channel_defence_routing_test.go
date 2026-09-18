@@ -12,6 +12,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -117,9 +118,9 @@ func seedChannelRoutingMessages(t *testing.T) func() {
 			ToRoom:     messages("room"),
 		}}
 	}
-	groups := make(map[items.DefenseType]*items.DefenseMessageGroup)
-	for _, defenceType := range []items.DefenseType{
-		items.DefenseQuell, items.DefenseDodge, items.DefenseBlock,
+	groups := make(map[items.DefencePool]*items.DefenseMessageGroup)
+	for _, defenceType := range []items.DefencePool{
+		items.DefencePoolFor(combatvocab.DefenceQuell), items.DefencePoolFor(combatvocab.DefenceDodge), items.DefencePoolFor(combatvocab.DefenceBlock),
 	} {
 		groups[defenceType] = &items.DefenseMessageGroup{
 			OptionId: defenceType,
@@ -187,7 +188,7 @@ func TestSpellChannelDefenceRuntimeQueuesCoverActorOrientations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			drainChannelRoutingQueues(1, 2, 3)
 			sendSpellChannelDefenceMessages(room, messaging.CategorySpellMental,
-				combat.ChannelDefenceResult{DefenceType: "quell", Defended: true, NormalizedDefenceMargin: 0.75, DamageMultiplier: 0.2},
+				combat.ChannelDefenceResult{Defence: "quell", Defended: true, NormalizedDefenceMargin: 0.75, DamageMultiplier: 0.2},
 				tc.identities.Attacker, tc.identities.Defender, "Mind Fog", tc.attacker, tc.defender, 3)
 			queues := drainChannelRoutingQueues(1, 2, 3)
 
@@ -235,8 +236,8 @@ func TestSpellChannelDefenceRuntimeQueuesUseOutcomeAndStaySilentOnAttackWin(t *t
 		out  combat.ChannelDefenceResult
 		want string
 	}{
-		{"partial", combat.ChannelDefenceResult{DefenceType: "quell", Defended: true, NormalizedDefenceMargin: 0.1, DamageMultiplier: 0.4}, "weak-"},
-		{"defensive_crit", combat.ChannelDefenceResult{DefenceType: "quell", Defended: true, DefensiveCrit: true, DamageMultiplier: 0}, "heavy-"},
+		{"partial", combat.ChannelDefenceResult{Defence: "quell", Defended: true, NormalizedDefenceMargin: 0.1, DamageMultiplier: 0.4}, "weak-"},
+		{"defensive_crit", combat.ChannelDefenceResult{Defence: "quell", Defended: true, DefensiveCrit: true, DamageMultiplier: 0}, "heavy-"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			drainChannelRoutingQueues(1, 2)
@@ -252,7 +253,7 @@ func TestSpellChannelDefenceRuntimeQueuesUseOutcomeAndStaySilentOnAttackWin(t *t
 
 	drainChannelRoutingQueues(1, 2)
 	sendSpellChannelDefenceMessages(room, messaging.CategorySpellMental,
-		combat.ChannelDefenceResult{DefenceType: "quell", Defended: false, DefensiveCrit: true, DamageMultiplier: 1},
+		combat.ChannelDefenceResult{Defence: "quell", Defended: false, DefensiveCrit: true, DamageMultiplier: 1},
 		identities.Attacker, identities.Defender, "Mind Fog", attacker, defender, 2)
 	for userID, lines := range drainChannelRoutingQueues(1, 2) {
 		if len(lines) != 0 {
@@ -274,11 +275,11 @@ func TestSpellChannelDefenceShortageIsPrivateForMentalAndPhysicalWinners(t *test
 	defer restoreUsers()
 	room.AddPlayer(observer.UserId)
 
-	for _, defenceType := range []string{characters.DefenseQuell, characters.DefenseDodge, characters.DefenseBlock} {
-		t.Run(defenceType, func(t *testing.T) {
+	for _, defenceType := range []combatvocab.Defence{combatvocab.DefenceQuell, combatvocab.DefenceDodge, combatvocab.DefenceBlock} {
+		t.Run(string(defenceType), func(t *testing.T) {
 			drainChannelRoutingQueues(1, 2, 3)
 			out := combat.ChannelDefenceResult{
-				DefenceType: defenceType, Defended: true, DamageMultiplier: 0.3,
+				Defence: defenceType, Defended: true, DamageMultiplier: 0.3,
 				Cost: characters.CostCommitResult{Status: characters.CostPartiallyPaid, Pool: characters.PoolConviction},
 			}
 			sendSpellChannelDefenceMessages(room, messaging.CategorySpellMental, out,
@@ -306,9 +307,9 @@ func TestSpellChannelDefenceShortageSilenceCases(t *testing.T) {
 		out          combat.ChannelDefenceResult
 		defenderUser *users.UserRecord
 	}{
-		{"attack_win", combat.ChannelDefenceResult{DefenceType: characters.DefenseQuell, Cost: short, DamageMultiplier: 1}, defender},
-		{"affordable", combat.ChannelDefenceResult{DefenceType: characters.DefenseQuell, Defended: true, Cost: paid, DamageMultiplier: 0.3}, defender},
-		{"npc_defender", combat.ChannelDefenceResult{DefenceType: characters.DefenseQuell, Defended: true, Cost: short, DamageMultiplier: 0.3}, nil},
+		{"attack_win", combat.ChannelDefenceResult{Defence: combatvocab.DefenceQuell, Cost: short, DamageMultiplier: 1}, defender},
+		{"affordable", combat.ChannelDefenceResult{Defence: combatvocab.DefenceQuell, Defended: true, Cost: paid, DamageMultiplier: 0.3}, defender},
+		{"npc_defender", combat.ChannelDefenceResult{Defence: combatvocab.DefenceQuell, Defended: true, Cost: short, DamageMultiplier: 0.3}, nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			drainChannelRoutingQueues(1, 2)
@@ -335,16 +336,16 @@ func TestMobAreaSpellEmitsOnePrivateShortagePerActualPlayerTarget(t *testing.T) 
 		target.Character.HealthMax.Value = 100
 	}
 	original := runSpellChannelAttack
-	runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+	runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 		return combat.ChannelDefenceResult{
-			DefenceType: characters.DefenseQuell, Defended: true, DamageMultiplier: 0.3,
+			Defence: combatvocab.DefenceQuell, Defended: true, DamageMultiplier: 0.3,
 			Cost: characters.CostCommitResult{Status: characters.CostPartiallyPaid, Pool: characters.PoolConviction},
 		}
 	}
 	t.Cleanup(func() { runSpellChannelAttack = original })
 	spell := &spells.SpellData{
-		SpellId: "mind-storm", Name: "Mind Storm", Type: spells.HarmArea,
-		EffectType: "damage", TargetDefenseType: "mental", EffectMagnitude: 10,
+		SpellId: "mind-storm", Name: "Mind Storm", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetArea,
+		EffectType: "damage", EffectMagnitude: 10,
 		Schools: []string{spells.SchoolMental},
 	}
 	drainChannelRoutingQueues(1, 2)
@@ -382,7 +383,7 @@ func TestSpellChannelDefencePreservesComputedDuplicateMobIdentity(t *testing.T) 
 	require.Contains(t, defenderIdentity, "Skeleton #2")
 	drainChannelRoutingQueues(1, 2)
 	sendSpellChannelDefenceMessages(room, messaging.CategorySpellMental,
-		combat.ChannelDefenceResult{DefenceType: "quell", Defended: true, NormalizedDefenceMargin: 0.1, DamageMultiplier: 0.4},
+		combat.ChannelDefenceResult{Defence: "quell", Defended: true, NormalizedDefenceMargin: 0.1, DamageMultiplier: 0.4},
 		spellDefenceIdentity(attacker.Character, attacker, room), defenderIdentity, "Mind Fog", attacker, nil, 0)
 
 	for userID, lines := range drainChannelRoutingQueues(1, 2) {
@@ -400,16 +401,16 @@ func TestSpellChannelDefencePreservesComputedDuplicateMobIdentity(t *testing.T) 
 // knockdown, exactly ExecuteSkillMove's Hit/StatusApplied split — and the
 // heavy-band defence triad is the only narration.
 func TestResolveSpellDispatchDefensiveCritStopsKnockdownSpell(t *testing.T) {
-	for _, spellType := range []spells.SpellType{spells.HarmSingle, spells.HarmArea} {
-		t.Run(string(spellType), func(t *testing.T) {
+	for _, shape := range []combatvocab.Attack{combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetArea)} {
+		t.Run(shape.String(), func(t *testing.T) {
 			cleanup := seedAllRegistries()
 			defer cleanup()
 			restoreMessages := seedChannelRoutingMessages(t)
 			defer restoreMessages()
 			original := runSpellChannelAttack
-			runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+			runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 				return combat.ChannelDefenceResult{
-					DefenceType: characters.DefenseQuell, Defended: true,
+					Defence: combatvocab.DefenceQuell, Defended: true,
 					DefensiveCrit: true, DamageMultiplier: 0,
 				}
 			}
@@ -422,14 +423,15 @@ func TestResolveSpellDispatchDefensiveCritStopsKnockdownSpell(t *testing.T) {
 			target.Character.MobInstanceId = target.InstanceId
 			target.Character.Health = 100
 			spell := &spells.SpellData{
-				SpellId: "force-wave", Name: "Force Wave", Type: spellType,
-				EffectType: "knockdown", TargetDefenseType: "mental", EffectMagnitude: 20,
+				SpellId: "force-wave", Name: "Force Wave",
+				AttackType: shape.Type, DamageType: shape.Damage, Targeting: shape.Targeting,
+				EffectType: "knockdown", EffectMagnitude: 20,
 			}
 			require.True(t, target.Character.IsStanding(), "fixture must begin standing")
 			drainChannelRoutingQueues(attacker.UserId, observer.UserId)
 
 			casting := activity.CastingData{SpellId: spell.SpellId}
-			if spellType == spells.HarmSingle {
+			if shape.Targeting == combatvocab.TargetSingle {
 				casting.TargetMobInstanceIds = []int{target.InstanceId}
 			}
 			resolveSpell(attacker, casting, spell, room)
@@ -459,9 +461,9 @@ func TestResolveSpellDispatchDefendedKnockdownDealsPartialDamageWithoutKnockdown
 	restoreMessages := seedChannelRoutingMessages(t)
 	defer restoreMessages()
 	original := runSpellChannelAttack
-	runSpellChannelAttack = func(combat.AttackChannel, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+	runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 		return combat.ChannelDefenceResult{
-			DefenceType: characters.DefenseQuell, Defended: true,
+			Defence: combatvocab.DefenceQuell, Defended: true,
 			NormalizedDefenceMargin: 0.1, DamageMultiplier: 0.4,
 		}
 	}
@@ -474,8 +476,8 @@ func TestResolveSpellDispatchDefendedKnockdownDealsPartialDamageWithoutKnockdown
 	target.Character.Health = 1000
 	target.Character.HealthMax.Value = 1000
 	spell := &spells.SpellData{
-		SpellId: "force-wave", Name: "Force Wave", Type: spells.HarmSingle,
-		EffectType: "knockdown", TargetDefenseType: "mental", EffectMagnitude: 20,
+		SpellId: "force-wave", Name: "Force Wave", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
+		EffectType: "knockdown", EffectMagnitude: 20,
 		DamageMultiplier: 1.0,
 	}
 	require.True(t, target.Character.IsStanding(), "fixture must begin standing")

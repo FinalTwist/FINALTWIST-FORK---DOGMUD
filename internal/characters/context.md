@@ -684,15 +684,20 @@ and `applyVitalChange` (the single signed pipeline behind harm and restore).
   division safe). Now that weight prices every physical action, this word is a
   balance readout, so it is under the no-hard-numbers rule.
 - **Map a defence through `DefensePool` and its registered action.**
-  There are FIVE defence constants. `DefenseDodge` / `DefenseParry` /
-  `DefenseBlock` cost stamina; U6 added `DefenseQuell` (mental-spell defence,
-  `Willpower + spellcasting × SkillWeight`) and `DefenseDefy` (social defence,
-  `Willpower + rhetoric × SkillWeight`), and both cost **conviction**. Grepping
-  for a stamina cost on either finds nothing and proves nothing.
+  There are FIVE defences, and M4b-2 collapsed them to ONE declaration:
+  `combatvocab.Defence`, in `internal/combatvocab`. `characters.DefenseDodge` /
+  `DefenseParry` / `DefenseBlock` / `DefenseQuell` / `DefenseDefy` are deleted;
+  every characters function that used to take one of those untyped strings now
+  takes `combatvocab.Defence` (`combatvocab.DefenceDodge`, `DefenceParry`,
+  `DefenceBlock`, `DefenceQuell`, `DefenceDefy`). Dodge/parry/block cost
+  stamina; quell (mental-spell defence, `Willpower + spellcasting × SkillWeight`)
+  and defy (social defence, `Willpower + rhetoric × SkillWeight`) cost
+  **conviction**. Grepping for a stamina cost on either finds nothing and proves
+  nothing.
 
   ```go
-  func DefensePool(defenseType string) Pool                      // legacy compatibility
-  func (c *Character) QuoteDefenseCost(defenseType string) (CostQuote, bool)
+  func DefensePool(defenseType combatvocab.Defence) Pool                      // legacy compatibility
+  func (c *Character) QuoteDefenseCost(defenseType combatvocab.Defence) (CostQuote, bool)
   func (c *Character) QuoteActionCost(req ActionCostRequest) CostQuote
   func (c *Character) CommitCost(q CostQuote, policy CostPolicy) CostCommitResult
   ```
@@ -709,8 +714,9 @@ and `applyVitalChange` (the single signed pipeline behind harm and restore).
   marks the site in `combat.go`). Its equipment gate — dodge always; parry and
   block by weapon, dual-wield and shield — lives on as the only remaining copy
   inside `combat.DefenceEntriesFor` (`internal/combat/defence_sets.go`), which
-  now builds the defence-name set for every channel, melee included. The
-  per-channel defence table itself is `combat.DefenceSetFor`.
+  now builds the defence-name set for every attack, melee included. The
+  eligibility table itself (which defences answer which `(AttackType,
+  DamageType)` pair) lives in `internal/combatvocab.EligibleDefences`.
 
 ### Combat and Interaction Systems
 - **Kill/Death statistics** (`kdstats.go`): PvP and PvE combat tracking

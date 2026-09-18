@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -22,34 +23,34 @@ func seedCasterSpells(t *testing.T) func() {
 		// self_defense (reused from Phase 4)
 		"iron-will": {
 			SpellId: "iron-will", Name: "Iron Will",
-			Type: spells.HelpSingle, Cost: 45, BaseFolds: 6,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 45, BaseFolds: 6,
 			EffectType: "condition", ConditionIds: []int{27},
 			Categories: []string{"self_defense"},
 		},
 		"conviction-ward": {
 			SpellId: "conviction-ward", Name: "Conviction Ward",
-			Type: spells.HelpSingle, Cost: 30, BaseFolds: 4,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 30, BaseFolds: 4,
 			EffectType: "shield", EffectMagnitude: 75,
 			Categories: []string{"self_defense"},
 		},
 		// self_heal
 		"heal": {
 			SpellId: "heal", Name: "Heal",
-			Type: spells.HelpSingle, Cost: 40, BaseFolds: 5,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 40, BaseFolds: 5,
 			EffectType: "heal", EffectMagnitude: 3,
 			Categories: []string{"self_heal"},
 		},
 		// harm_single
 		"mind-spike": {
 			SpellId: "mind-spike", Name: "Mind Spike",
-			Type: spells.HarmSingle, Cost: 35, BaseFolds: 4,
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle, Cost: 35, BaseFolds: 4,
 			EffectType: "damage",
 			Categories: []string{"harm_single"},
 		},
 		// harm_multi
 		"sparks": {
 			SpellId: "sparks", Name: "Sparks",
-			Type: spells.HarmArea, Cost: 75, BaseFolds: 4,
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetArea, Cost: 75, BaseFolds: 4,
 			EffectType: "damage",
 			Categories: []string{"harm_multi"},
 		},

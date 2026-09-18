@@ -30,6 +30,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -53,12 +54,12 @@ import (
 // tier never fires FROM a counter. ExecuteCounter marks its own swing
 // IsCounter, closing the loop.
 func counterSkillMoveExit(actor Actor, defender *characters.Character,
-	move combat.SkillMoveResult, channel combat.AttackChannel, sameRoom bool) combat.CounterResult {
+	move combat.SkillMoveResult, shape combatvocab.Attack, sameRoom bool) combat.CounterResult {
 
 	if !move.Defence.DefensiveCrit || move.IsCounter {
 		return combat.CounterResult{}
 	}
-	return combat.ExecuteCounter(defender, actor.GetCharacter(), channel, sameRoom)
+	return combat.ExecuteCounter(defender, actor.GetCharacter(), shape, sameRoom)
 }
 
 // DispatchCounterMessages routes the channel-correct counter narration:
@@ -180,7 +181,7 @@ func executeCounterTaunt(counterer, target *characters.Character) CounterTauntRe
 	// ONE contest through the seam: the original taunter defies the
 	// counter-taunt, and that defence is charged and progressed exactly like
 	// any other (the countered-party economy).
-	out := combat.ResolveChannelAttack(combat.ChannelSocial, side, counterer, target)
+	out := combat.ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), side, counterer, target)
 	result.Fired = true
 	result.Defence = out
 

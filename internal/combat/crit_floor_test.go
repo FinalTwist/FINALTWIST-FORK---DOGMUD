@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 )
 
 // Chunk 5.11e — crit floors, 1% of CONTEST WINS, both directions.
@@ -90,7 +90,7 @@ const (
 )
 
 func dodgeBestWon(margin float64) bestDefenseResult {
-	return bestDefenseResult{defenseType: characters.DefenseDodge, margin: margin}
+	return bestDefenseResult{defenseType: combatvocab.DefenceDodge, margin: margin}
 }
 
 // TestApplyCritFloors_NeverPromotesAContestLoss is the whole reason the floor

@@ -1,67 +1,10 @@
 package combat
 
-import "github.com/GoMudEngine/GoMud/internal/characters"
-
-// AttackChannel names an attack type. The applicable defence set is a property
-// of the channel, which is the whole reason this is data rather than a filter
-// function scattered across the resolvers.
-type AttackChannel string
-
-const (
-	ChannelMelee         AttackChannel = "melee"
-	ChannelRanged        AttackChannel = "ranged"
-	ChannelSpellPhysical AttackChannel = "spell-physical"
-	ChannelSpellMental   AttackChannel = "spell-mental"
-	ChannelSocial        AttackChannel = "social"
+import (
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 )
-
-// DefenceSetFor returns the defences that apply to a channel.
-//
-// Adding a defence to a channel is one row here and nothing else, which is the
-// point of the design. Parry is deliberately excluded from ranged and physical
-// spells -- you cannot parry a bolt. Dodge is REUSED for physical spells; there
-// is no separate physical-spell defence.
-//
-// quell (Wil + spellcasting x SkillWeight) answers mental spells; defy
-// (Wil + rhetoric x SkillWeight) answers social attacks. A set of size one is
-// still a contest, not a different mechanism -- that unification is what let
-// avoidance.go be deleted in Task 12.
-//
-// WIRED EVERYWHERE, through DefenceEntriesFor. Since U6b Task 2 this table is
-// consumed only via DefenceEntriesFor, which intersects it with the defender's
-// equipment gate: melee's runBestOfAllDefense set and ResolveChannelAttack's
-// channel sets both come from that one builder. Adding a defence to a row here
-// reaches every consumer of that channel, subject to the equipment gate below
-// (dodge, quell and defy are ungated; parry and block are equipment-gated).
-//
-// THREE things a new row must carry with it. It needs an arm in
-// characters.GetDefenseScore, or it enters every contest at 0 and always loses
-// (TestDefenceSetForReturnsKnownDefenceNames is the guard). It needs a row
-// in characters.DefensePool if it is not paid in stamina, or the pair charges
-// the wrong pool.
-//
-// And it needs a row in DefenceSkillAndStat, which is the one whose absence
-// fails SILENTLY and WIDELY. Without it that defence maps to ("", ""), so
-// hooks.bestSwingDefence builds an award-nothing Candidate for it -- and if
-// that candidate happens to roll highest, progression.BestOf reports false and
-// the defender's ENTIRE ROUND trains nothing, the real dodge and parry
-// candidates in the same slice included. Not a compile error, not a panic, and
-// invisible in combat text. Unreachable today only because every shipped row
-// here has a mapping.
-func DefenceSetFor(channel AttackChannel) []string {
-	switch channel {
-	case ChannelMelee:
-		return []string{characters.DefenseDodge, characters.DefenseParry, characters.DefenseBlock}
-	case ChannelRanged, ChannelSpellPhysical:
-		return []string{characters.DefenseDodge, characters.DefenseBlock}
-	case ChannelSpellMental:
-		return []string{characters.DefenseQuell}
-	case ChannelSocial:
-		return []string{characters.DefenseDefy}
-	default:
-		return nil
-	}
-}
 
 // DefenceEntryOpts carries the situational filters the entry builder applies.
 type DefenceEntryOpts struct {
@@ -103,15 +46,15 @@ type DefenceEntryOpts struct {
 // blocks, where the ladder gave them dodge alone. Two EMPTY hands are unchanged
 // (no weapon, no shield, so dodge only), which is the build
 // internal/skills/skills.go solves WeaponCombat 1.34 against.
-func equipmentGatedMeleeDefences(c *characters.Character) []string {
-	defenses := []string{characters.DefenseDodge}
+func equipmentGatedMeleeDefences(c *characters.Character) []combatvocab.Defence {
+	defenses := []combatvocab.Defence{combatvocab.DefenceDodge}
 
 	for i := 0; i < c.ParryCapableArmCount(); i++ {
-		defenses = append(defenses, characters.DefenseParry)
+		defenses = append(defenses, combatvocab.DefenceParry)
 	}
 
 	if c.HasShield() {
-		defenses = append(defenses, characters.DefenseBlock)
+		defenses = append(defenses, combatvocab.DefenceBlock)
 	}
 
 	return defenses
@@ -121,44 +64,68 @@ func equipmentGatedMeleeDefences(c *characters.Character) []string {
 // grapple rule: an entangled defender attacked by a bystander keeps only
 // block. filterDefensesForThirdParty (melee) layers the vulnerability
 // messaging on top of this same rule.
-func thirdPartyGrappleDefences(defSeq []string) []string {
-	filtered := []string{}
+func thirdPartyGrappleDefences(defSeq []combatvocab.Defence) []combatvocab.Defence {
+	filtered := []combatvocab.Defence{}
 	for _, def := range defSeq {
-		if def == characters.DefenseBlock {
+		if def == combatvocab.DefenceBlock {
 			filtered = append(filtered, def)
 		}
 	}
 	return filtered
 }
 
-// DefenceEntriesFor is THE defence-set NAME builder for every channel, melee
-// included. It intersects DefenceSetFor's channel table with the equipment
-// gate copied verbatim from characters.GetDefenseSequence (which U6b Task 2
-// deleted):
+// DefenceEntriesFor is THE defence-set NAME builder for every attack, melee
+// included. It intersects combatvocab.EligibleDefences's table with the
+// equipment gate copied verbatim from characters.GetDefenseSequence (which
+// U6b Task 2 deleted):
 //
 //   - parry: wielded weapon AND !IsUnarmedStyle() — knuckle/claw fighters
 //     never parry; appears TWICE when dual-wielding (two blades, two chances)
 //   - block: wielded weapon AND HasShield() — which includes species
 //     NaturalBash, so an earth elemental blocks with no shield item; do NOT
 //     gate on BestBlockRating()
-//   - dodge, quell and defy: always available on their channels
+//   - dodge, quell and defy: always available on their pairings
 //
 // It returns NAMES ONLY. Scoring stays with the consumer: melee's candidate
-// loop keeps its situational penalties/quoting/bookkeeping; the channel seam
-// keeps GetDefenseScoreFor x defenceEffectiveness, and gains the prone
-// penalties there (before U6b a prone defender dodged a bolt at full score
-// while dodging a sword at penalty).
-func DefenceEntriesFor(channel AttackChannel, defender *characters.Character, opts DefenceEntryOpts) []string {
+// loop keeps its situational penalties/quoting/bookkeeping; the seam keeps
+// GetDefenseScoreFor x defenceEffectiveness, and gains the prone penalties
+// there (before U6b a prone defender dodged a bolt at full score while
+// dodging a sword at penalty).
+//
+// THREE things a new defence must carry with it. It needs an arm in
+// characters.GetDefenseScore, or it enters every contest at 0 and always
+// loses. It needs a row in characters.DefensePool if it is not paid in
+// stamina, or the pair charges the wrong pool.
+//
+// And it needs a row in DefenceSkillAndStat, which is the one whose absence
+// fails SILENTLY and WIDELY. Without it that defence maps to ("", ""), so
+// hooks.bestSwingDefence builds an award-nothing Candidate for it -- and if
+// that candidate happens to roll highest, progression.BestOf reports false and
+// the defender's ENTIRE ROUND trains nothing, the real dodge and parry
+// candidates in the same slice included. Not a compile error, not a panic, and
+// invisible in combat text. Unreachable today only because every row in
+// combatvocab's eligibility table has a mapping.
+func DefenceEntriesFor(shape combatvocab.Attack, defender *characters.Character, opts DefenceEntryOpts) []combatvocab.Defence {
 	if defender == nil {
 		return nil
 	}
 
+	set, ok := combatvocab.EligibleDefences(shape)
+	if !ok {
+		// A pair the table does not know. The constructors cannot build one
+		// and the spell validator refuses one, so this is a struct literal
+		// somewhere. Uncontested is what the old default arm did; the log is
+		// what it did not.
+		mudlog.Error("DefenceEntriesFor", "shape", shape.String(), "error", "attack pair is not in the eligibility table; resolving uncontested")
+		return []combatvocab.Defence{}
+	}
+
 	gated := equipmentGatedMeleeDefences(defender)
 
-	entries := []string{}
-	for _, name := range DefenceSetFor(channel) {
+	entries := []combatvocab.Defence{}
+	for _, name := range set {
 		switch name {
-		case characters.DefenseDodge, characters.DefenseParry, characters.DefenseBlock:
+		case combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock:
 			// Physical defences: keep the gated multiplicity (dual-wield
 			// contributes two parry entries).
 			for i := 0; i < countDefenceName(gated, name); i++ {
@@ -177,7 +144,7 @@ func DefenceEntriesFor(channel AttackChannel, defender *characters.Character, op
 	return entries
 }
 
-func countDefenceName(set []string, name string) int {
+func countDefenceName(set []combatvocab.Defence, name combatvocab.Defence) int {
 	n := 0
 	for _, s := range set {
 		if s == name {

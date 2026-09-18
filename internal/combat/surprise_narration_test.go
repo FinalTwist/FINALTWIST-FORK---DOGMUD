@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
@@ -72,7 +73,7 @@ func assertCopyRules(t *testing.T, what, line string) {
 // of assertSurpriseCopy checked digits and dashes and never measured, so copy
 // running 95 to 103 columns passed it.
 func TestOpeningStrikeDefendedLines_FitEightyColumns(t *testing.T) {
-	for _, def := range []DefenseType{DefenseDodge, DefenseParry, DefenseBlock, DefenseNone} {
+	for _, def := range []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock, combatvocab.DefenceNone} {
 		for _, band := range []string{"", widestBand} {
 			atk, dfn, room := openingStrikeDefendedLines(def, wideName, wideName, band)
 			label := string(def)
@@ -95,17 +96,17 @@ func TestOpeningStrikeDefendedLines_FitEightyColumns(t *testing.T) {
 
 func TestOpeningStrikeDefendedLines_NameTheDefenceThatWon(t *testing.T) {
 	cases := []struct {
-		defense  DefenseType
+		defense  combatvocab.Defence
 		verbYou  string // second person, for the defender's own line
 		verbThey string // third person, for the attacker and room lines
 	}{
-		{DefenseDodge, "dodge", "dodges"},
-		{DefenseParry, "parry", "parries"},
-		{DefenseBlock, "block", "blocks"},
-		// DefenseNone is unreachable by construction on the melee path; if one
+		{combatvocab.DefenceDodge, "dodge", "dodges"},
+		{combatvocab.DefenceParry, "parry", "parries"},
+		{combatvocab.DefenceBlock, "block", "blocks"},
+		// combatvocab.DefenceNone is unreachable by construction on the melee path; if one
 		// ever produced it the line must still read as English rather than
 		// printing an empty verb.
-		{DefenseNone, "deflect", "deflects"},
+		{combatvocab.DefenceNone, "deflect", "deflects"},
 	}
 
 	for _, tc := range cases {

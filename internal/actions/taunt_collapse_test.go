@@ -20,6 +20,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -178,7 +179,7 @@ func TestTauntOneContest_ScoreWiringAndSingleDefyContest(t *testing.T) {
 			"the old gate's exact score, conviction depletion included")
 
 	require.Len(t, gotEntries, 1, "the social channel answers with defy alone")
-	require.Equal(t, characters.DefenseDefy, gotEntries[0].Name)
+	require.Equal(t, string(combatvocab.DefenceDefy), gotEntries[0].Name)
 	wantDef := float64(defWil) + float64(defRhetoric)*float64(cfg.SkillWeight)
 	require.InDelta(t, wantDef, gotEntries[0].Score, 1e-9,
 		"the defy entry must carry Willpower + rhetoric x SkillWeight — the old "+

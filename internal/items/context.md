@@ -412,17 +412,21 @@ type TogetherMessages struct {
 ### Defence Message Structure
 
 Defence pools use the same data-loader architecture under
-`defense-messages/`. `DefenseDodge`, `DefenseParry`, `DefenseBlock`,
-`DefenseQuell`, and `DefenseDefy` identify the five defence files. Four
-counter-narration pools ride the same loader, shape, and validator (U6b
-Task 11): `DefenseCounterMelee`, `DefenseCounterRanged`,
-`DefenseCounterQuell`, and `DefenseCounterDefy` — not defences themselves but
-the channel-correct narration for the counter earned by a defensive crit,
-with reinterpreted bands (weak = the counter is turned aside, normal = it
-lands, heavy = it crits; `internal/combat` maps outcomes to `(crit, margin)`
-inputs accordingly). Every file must provide `weak`, `normal`, and `heavy`;
-each band must have equal defender, attacker, and room lists containing at
-least five non-empty variants.
+`defense-messages/`, keyed by `DefencePool` (M4b-2). `DefencePool` is a store
+key only, not a defence type: that vocabulary now lives in
+`internal/combatvocab`, and `DefencePoolFor(combatvocab.Defence)` converts a
+defence into the pool that narrates it, one per defence, named after it —
+`DefencePoolFor(combatvocab.DefenceDodge)` is the `dodge` pool, and so on for
+`DefenceParry`, `DefenceBlock`, `DefenceQuell`, and `DefenceDefy` — so the five
+defence files do not move. Four counter-narration pools ride the same loader,
+shape, and validator (U6b Task 11) and keep their own constants because they
+are not defences: `CounterPoolMelee`, `CounterPoolRanged`, `CounterPoolQuell`,
+and `CounterPoolDefy` — the channel-correct narration for the counter earned
+by a defensive crit, with reinterpreted bands (weak = the counter is turned
+aside, normal = it lands, heavy = it crits; `internal/combat` maps outcomes to
+`(crit, margin)` inputs accordingly). Every file must provide `weak`,
+`normal`, and `heavy`; each band must have equal defender, attacker, and room
+lists containing at least five non-empty variants.
 
 `RenderDefenseMessage` chooses one index and applies it to all three audiences
 before token replacement. Ordinary defended channel outcomes use Weak below a

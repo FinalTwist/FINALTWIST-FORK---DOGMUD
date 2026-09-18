@@ -2,7 +2,9 @@
 spellid: heal
 name: Mend Flesh
 description: Directs Chrysalis energy to accelerate tissue repair in the target.
-type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - vital
 cost: 25

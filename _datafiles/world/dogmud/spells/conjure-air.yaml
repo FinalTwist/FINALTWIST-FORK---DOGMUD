@@ -3,7 +3,9 @@ name: Conjure Air Elemental
 aliases: [air]
 description: Tears an air elemental from the elemental plane and binds it
   to your command. Blindingly fast but fragile; best for harassment.
-type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 40
@@ -11,7 +13,6 @@ waitrounds: 3
 difficulty: 30
 primarystat: charisma
 base_folds: 8
-target_defense_type: none
 effect_type: none
 effect_magnitude: 0
 cast_actor: >-

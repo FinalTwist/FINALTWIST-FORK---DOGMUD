@@ -2,7 +2,9 @@ spellid: vital-surge
 name: Vital Surge
 aliases: [vital]
 description: Sustained pulse of Chrysalis healing energy over time.
-type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - vital
 cost: 40

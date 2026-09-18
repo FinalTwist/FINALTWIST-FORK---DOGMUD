@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -81,7 +82,7 @@ func TestSpellDefence_DefenderInTheDarkIsToldWithTheAttackerHidden(t *testing.T)
 	drainPlain(1)
 	drainPlain(2)
 
-	out := combat.ChannelDefenceResult{Defended: true, DefenceType: "dodge"}
+	out := combat.ChannelDefenceResult{Defended: true, Defence: "dodge"}
 	sendSpellChannelDefenceMessages(rooms.LoadRoom(1), messaging.CategorySpellVital, out,
 		"Aliceia", "Bobrick", "Hex", users.GetByUserId(1), users.GetByUserId(2))
 
@@ -99,7 +100,7 @@ func TestMobCastOnPlayer_TargetInTheDarkReadsSomething(t *testing.T) {
 	drainPlain(2)
 	pinSpellContest(t)
 
-	spell := &spells.SpellData{SpellId: "test-hex", Name: "Hex", Type: spells.HarmSingle}
+	spell := &spells.SpellData{SpellId: "test-hex", Name: "Hex", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle}
 	resolveMobSpellAgainstPlayer(mobs.GetInstance(100), users.GetByUserId(2), rooms.LoadRoom(1), spell, combat.AttackSide{}, 10)
 
 	target := drainPlain(2)

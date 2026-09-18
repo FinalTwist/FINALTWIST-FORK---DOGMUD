@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -99,7 +100,7 @@ func TestCastReadiness_UnknownSpell_Rejected(t *testing.T) {
 // but has zero Conviction gets ActionDeferred ("insufficient conviction").
 // Conviction = 0 by default from characters.New(); seedTestSpell sets Cost=5.
 func TestCastReadiness_NoCP_Deferred(t *testing.T) {
-	sd, cleanup := seedTestSpell("test-ar-nocp", spells.HelpSingle, 4)
+	sd, cleanup := seedTestSpell("test-ar-nocp", combatvocab.NonHarm(combatvocab.TargetSingle), 4)
 	defer cleanup()
 
 	actor, char, _ := newCastActor()
@@ -117,7 +118,7 @@ func TestCastReadiness_NoCP_Deferred(t *testing.T) {
 // spell, has ample Conviction, is not casting/busy, and has no cooldowns
 // gets ActionReady.
 func TestCastReadiness_Affordable_Ready(t *testing.T) {
-	sd, cleanup := seedTestSpell("test-ar-affordable", spells.HelpSingle, 4)
+	sd, cleanup := seedTestSpell("test-ar-affordable", combatvocab.NonHarm(combatvocab.TargetSingle), 4)
 	defer cleanup()
 
 	actor, char, _ := newCastActor()
@@ -139,7 +140,7 @@ func TestCastReadiness_Affordable_Ready(t *testing.T) {
 // A leftover cast-init cooldown on an existing save must therefore be inert
 // rather than blocking, which is what this asserts.
 func TestCastInitGateIsGone(t *testing.T) {
-	sd, cleanup := seedTestSpell("test-ar-noinit", spells.HelpSingle, 4)
+	sd, cleanup := seedTestSpell("test-ar-noinit", combatvocab.NonHarm(combatvocab.TargetSingle), 4)
 	defer cleanup()
 
 	actor, char, _ := newCastActor()
@@ -183,7 +184,7 @@ func TestCastReadinessDrift(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			sd, cleanup := seedTestSpell("test-ar-drift", spells.HelpSingle, 4)
+			sd, cleanup := seedTestSpell("test-ar-drift", combatvocab.NonHarm(combatvocab.TargetSingle), 4)
 			defer cleanup()
 
 			actor, char, _ := newCastActor()
@@ -218,10 +219,10 @@ func TestCastReadinessDrift(t *testing.T) {
 func seedMultiWordAliasedSpell(t *testing.T) (*spells.SpellData, *stubActor, *characters.Character) {
 	t.Helper()
 	sd := &spells.SpellData{
-		SpellId:   "test-ar-multiword-attunement",
-		Name:      "Multiword Attunement",
-		Aliases:   []string{"attune-ar-test"},
-		Type:      spells.HelpSingle,
+		SpellId:    "test-ar-multiword-attunement",
+		Name:       "Multiword Attunement",
+		Aliases:    []string{"attune-ar-test"},
+		AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle,
 		BaseFolds: 4,
 		Cost:      5,
 	}
@@ -325,7 +326,7 @@ func newAliasTestActor(aliases map[string]string) (*UserActor, *characters.Chara
 // like the un-aliased "cast skill-attunement" command — here, deferred for
 // insufficient conviction — rather than falling through to ActionReady.
 func TestActionReadiness_UserAlias_CastSpell_Defers(t *testing.T) {
-	sd, cleanup := seedTestSpell("skill-attunement", spells.HelpSingle, 4)
+	sd, cleanup := seedTestSpell("skill-attunement", combatvocab.NonHarm(combatvocab.TargetSingle), 4)
 	defer cleanup()
 
 	actor, char := newAliasTestActor(map[string]string{"sa": "cast skill-attunement"})
@@ -373,7 +374,7 @@ func TestActionReadiness_UnknownVerb_NoAliasMatch_StillReady(t *testing.T) {
 // to resolve the spell at all — surfacing as ActionRejected("unknown spell")
 // instead, which this test would also catch.
 func TestActionReadiness_UserAlias_MultiWord_MergesRestCorrectly(t *testing.T) {
-	sd, cleanup := seedTestSpell("skill-attunement", spells.HelpSingle, 4)
+	sd, cleanup := seedTestSpell("skill-attunement", combatvocab.NonHarm(combatvocab.TargetSingle), 4)
 	defer cleanup()
 
 	actor, char := newAliasTestActor(map[string]string{"sa": "cast skill-attunement"})
@@ -387,10 +388,10 @@ func TestActionReadiness_UserAlias_MultiWord_MergesRestCorrectly(t *testing.T) {
 
 func TestActionReadinessSpellNameResolutionDrift(t *testing.T) {
 	sd := &spells.SpellData{
-		SpellId:   "test-ar-drift-spellname",
-		Name:      "Drift Guard Ward",
-		Aliases:   []string{"driftward"},
-		Type:      spells.HelpSingle,
+		SpellId:    "test-ar-drift-spellname",
+		Name:       "Drift Guard Ward",
+		Aliases:    []string{"driftward"},
+		AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle,
 		BaseFolds: 4,
 		Cost:      5,
 	}

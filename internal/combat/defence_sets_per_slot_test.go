@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/species"
 	"github.com/stretchr/testify/assert"
@@ -53,19 +54,19 @@ func hands(extraArms int, weapon, offhand, extra1 int) *characters.Character {
 // extra-arms mutation.
 func TestEquipmentGatedMeleeDefences_TwoHandedParity(t *testing.T) {
 	seedDefenceGearForTest(t)
-	D, P, B := characters.DefenseDodge, characters.DefenseParry, characters.DefenseBlock
+	D, P, B := combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock
 
 	for _, tc := range []struct {
 		name            string
 		weapon, offhand int
-		want            []string
+		want            []combatvocab.Defence
 	}{
-		{"empty hands", 0, 0, []string{D}},
-		{"claws only", tClaws, 0, []string{D}},
-		{"fists only", tFist, 0, []string{D}},
-		{"sword only", tSword, 0, []string{D, P}},
-		{"dual wield", tSword, tSword, []string{D, P, P}},
-		{"sword + shield", tSword, tShield, []string{D, P, B}},
+		{"empty hands", 0, 0, []combatvocab.Defence{D}},
+		{"claws only", tClaws, 0, []combatvocab.Defence{D}},
+		{"fists only", tFist, 0, []combatvocab.Defence{D}},
+		{"sword only", tSword, 0, []combatvocab.Defence{D, P}},
+		{"dual wield", tSword, tSword, []combatvocab.Defence{D, P, P}},
+		{"sword + shield", tSword, tShield, []combatvocab.Defence{D, P, B}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got := equipmentGatedMeleeDefences(hands(0, tc.weapon, tc.offhand, 0))
@@ -77,36 +78,36 @@ func TestEquipmentGatedMeleeDefences_TwoHandedParity(t *testing.T) {
 // The reported bug: a tower shield on the third arm behind claws.
 func TestEquipmentGatedMeleeDefences_ExtraArmContributes(t *testing.T) {
 	seedDefenceGearForTest(t)
-	D, P, B := characters.DefenseDodge, characters.DefenseParry, characters.DefenseBlock
+	D, P, B := combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock
 
 	t.Run("claws + claws + shield in 3rd hand (the live prod loadout)", func(t *testing.T) {
 		got := equipmentGatedMeleeDefences(hands(1, tClaws, tClaws, tShield))
-		assert.Equal(t, []string{D, B}, got,
+		assert.Equal(t, []combatvocab.Defence{D, B}, got,
 			"a shield on the third arm must block; the old ladder returned dodge alone")
 	})
 
 	t.Run("two swords + shield in 3rd hand", func(t *testing.T) {
 		got := equipmentGatedMeleeDefences(hands(1, tSword, tSword, tShield))
-		assert.Equal(t, []string{D, P, P, B}, got,
+		assert.Equal(t, []combatvocab.Defence{D, P, P, B}, got,
 			"IsDualWielding used to return before the shield check, hiding arm three")
 	})
 
 	t.Run("sword in the 3rd hand adds a parry", func(t *testing.T) {
 		got := equipmentGatedMeleeDefences(hands(1, tSword, 0, tSword))
-		assert.Equal(t, []string{D, P, P}, got,
+		assert.Equal(t, []combatvocab.Defence{D, P, P}, got,
 			"the parry count was hardcoded at two and could never see arm three")
 	})
 
 	t.Run("claws in front, sword in the 3rd hand still parries", func(t *testing.T) {
 		got := equipmentGatedMeleeDefences(hands(1, tClaws, 0, tSword))
-		assert.Equal(t, []string{D, P}, got,
+		assert.Equal(t, []combatvocab.Defence{D, P}, got,
 			"the main hand must not veto an armed extra arm")
 	})
 
 	// ⚠️ The slot is only real when the mutation has unlocked it.
 	t.Run("locked slot contributes nothing", func(t *testing.T) {
 		got := equipmentGatedMeleeDefences(hands(0, tSword, 0, tShield))
-		assert.Equal(t, []string{D, P}, got,
+		assert.Equal(t, []combatvocab.Defence{D, P}, got,
 			"ExtraArms=0 means the arm does not exist yet")
 	})
 }
@@ -115,15 +116,15 @@ func TestEquipmentGatedMeleeDefences_ExtraArmContributes(t *testing.T) {
 // the record rather than a side effect somebody trips over later.
 func TestEquipmentGatedMeleeDefences_UnarmedWithShieldNowBlocks(t *testing.T) {
 	seedDefenceGearForTest(t)
-	D, B := characters.DefenseDodge, characters.DefenseBlock
+	D, B := combatvocab.DefenceDodge, combatvocab.DefenceBlock
 
-	assert.Equal(t, []string{D, B}, equipmentGatedMeleeDefences(hands(0, tClaws, tShield, 0)),
+	assert.Equal(t, []combatvocab.Defence{D, B}, equipmentGatedMeleeDefences(hands(0, tClaws, tShield, 0)),
 		"claws + shield now blocks (ladder gave dodge alone)")
-	assert.Equal(t, []string{D, B}, equipmentGatedMeleeDefences(hands(0, 0, tShield, 0)),
+	assert.Equal(t, []combatvocab.Defence{D, B}, equipmentGatedMeleeDefences(hands(0, 0, tShield, 0)),
 		"shield with no weapon now blocks (ladder gave dodge alone)")
 
 	// The build skills.go solves WeaponCombat 1.34 against must NOT move.
-	assert.Equal(t, []string{D}, equipmentGatedMeleeDefences(hands(0, 0, 0, 0)),
+	assert.Equal(t, []combatvocab.Defence{D}, equipmentGatedMeleeDefences(hands(0, 0, 0, 0)),
 		"TWO EMPTY HANDS must stay dodge-only; the unarmed progression solve depends on it")
 }
 
@@ -133,8 +134,8 @@ func TestEquipmentGatedMeleeDefences_NaturalBash(t *testing.T) {
 	t.Cleanup(species.SeedSpeciesForTest(map[int]*species.Species{
 		1: {SpeciesId: 1, Name: "elemental", BodyParts: []string{"arms"}, NaturalBash: true},
 	}))
-	D, P, B := characters.DefenseDodge, characters.DefenseParry, characters.DefenseBlock
+	D, P, B := combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock
 
-	assert.Equal(t, []string{D, P, B}, equipmentGatedMeleeDefences(hands(0, tSword, 0, 0)),
+	assert.Equal(t, []combatvocab.Defence{D, P, B}, equipmentGatedMeleeDefences(hands(0, tSword, 0, 0)),
 		"an armed natural-bash species blocks with no shield item")
 }

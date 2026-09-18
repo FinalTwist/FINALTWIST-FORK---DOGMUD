@@ -18,8 +18,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
@@ -74,8 +74,8 @@ func deterministicContestRunner(t *testing.T, normMargin, atkZ, defZ float64) fu
 
 func mentalHarmSpellForCollapseTest() *spells.SpellData {
 	return &spells.SpellData{
-		SpellId: "mind-lance", Name: "Mind Lance", Type: spells.HarmSingle,
-		EffectType: "damage", TargetDefenseType: "mental",
+		SpellId: "mind-lance", Name: "Mind Lance", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
+		EffectType:       "damage",
 		DamageMultiplier: 1.0, EffectMagnitude: 30,
 		Schools: []string{spells.SchoolMental},
 	}
@@ -118,7 +118,7 @@ func TestSpellResolution_OneContest_QuellAlwaysConsulted(t *testing.T) {
 		side := spellAttackSideFor(spell, caster.Character)
 		resolveAgainstPlayer(caster, target, room, spell, side, spell.EffectMagnitude)
 		require.Len(t, capturedEntries, 1, "a mental spell must face exactly one defence: quell")
-		require.Equal(t, characters.DefenseQuell, capturedEntries[0].Name)
+		require.Equal(t, string(combatvocab.DefenceQuell), capturedEntries[0].Name)
 		return capturedEntries[0].Score
 	}
 
@@ -206,12 +206,12 @@ func TestSpellDefendedCast_DealsPartialDamage(t *testing.T) {
 // physicalHarmSpellForCollapseTest declares target_defense_type physical, so
 // the contest is answered by dodge — whose ordinary defence award trains
 // dexterity/unarmed-combat, keeping willpower's use count clean for the
-// crit-received assertions below (both spell channels toughen willpower:
-// channelDamageChannel maps them to "magical").
+// crit-received assertions below (every spell damage type toughens
+// willpower: ScaleChannelFor(combatvocab.AttackSpell) maps to "magical").
 func physicalHarmSpellForCollapseTest() *spells.SpellData {
 	return &spells.SpellData{
-		SpellId: "stone-lash", Name: "Stone Lash", Type: spells.HarmSingle,
-		EffectType: "damage", TargetDefenseType: "physical",
+		SpellId: "stone-lash", Name: "Stone Lash", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamagePhysical, Targeting: combatvocab.TargetSingle,
+		EffectType:       "damage",
 		DamageMultiplier: 1.0, EffectMagnitude: 30,
 		Schools: []string{spells.SchoolElemental},
 	}

@@ -3,7 +3,9 @@ name: Conjure Water Elemental
 aliases: [water]
 description: Tears a water elemental from the elemental plane and binds it
   to your will. A dependable tank with regenerative endurance.
-type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 30
@@ -11,7 +13,6 @@ waitrounds: 2
 difficulty: 15
 primarystat: charisma
 base_folds: 4
-target_defense_type: none
 effect_type: none
 effect_magnitude: 0
 cast_actor: >-

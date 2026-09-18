@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
@@ -549,11 +550,11 @@ func computeSummary(events []CombatEvent) AnalyticsSummary {
 
 		// Defense breakdown
 		switch e.DefenseUsed {
-		case "dodge":
+		case string(combatvocab.DefenceDodge):
 			s.DodgeSuccesses++
-		case "parry":
+		case string(combatvocab.DefenceParry):
 			s.ParrySuccesses++
-		case "block":
+		case string(combatvocab.DefenceBlock):
 			s.BlockSuccesses++
 		}
 

@@ -2,7 +2,9 @@ spellid: chrysalis-haste
 name: Chrysalis Haste
 aliases: [haste]
 description: Accelerates the target's movements and reflexes.
-type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - enhancement
 cost: 70

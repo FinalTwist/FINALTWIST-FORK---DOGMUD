@@ -4,12 +4,12 @@
 
 <ansi fg="yellow">SpellID:     </ansi> <ansi fg="white-bold">{{ .SpellId }}</ansi>
 <ansi fg="yellow">Name:        </ansi> <ansi fg="white-bold">{{ .Name }}</ansi>
-<ansi fg="yellow">Type:        </ansi> <ansi fg="spell-{{ lowercase .Type.HelpOrHarmString }}">{{ .Type.HelpOrHarmString }}</ansi>
-<ansi fg="yellow">Target:      </ansi> <ansi fg="white-bold">{{ .Type.TargetTypeString }}</ansi>
+<ansi fg="yellow">Type:        </ansi> <ansi fg="spell-{{ lowercase .HelpOrHarmString }}">{{ .HelpOrHarmString }}</ansi>
+<ansi fg="yellow">Target:      </ansi> <ansi fg="white-bold">{{ .TargetTypeString }}</ansi>
 <ansi fg="yellow">Cast Time:   </ansi> <ansi fg="white-bold">{{ castlength .BaseFolds }}</ansi>
 <ansi fg="yellow">Conv. Cost:  </ansi> <ansi fg="white-bold">{{ convictioncost .Cost }}</ansi>
 <ansi fg="yellow">Recovery:    </ansi> <ansi fg="white-bold">{{ waittime .WaitRounds }}</ansi>
-{{ with defensename .TargetDefenseType -}}
+{{ with .DefenceNames -}}
 <ansi fg="yellow">Resisted by: </ansi> <ansi fg="white-bold">{{ . }}</ansi>
 {{ end -}}
 {{ if .ComponentTag -}}

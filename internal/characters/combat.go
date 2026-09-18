@@ -3,6 +3,7 @@ package characters
 import (
 	"math"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -276,12 +277,12 @@ func (c *Character) GetConvictionMitigation() float64 {
 // GetDefenseScoreFor calculates a defence score, optionally omitting only its
 // governing skill addend. Short-funded defences still retain every stat,
 // equipment, condition, and mutation term.
-func (c *Character) GetDefenseScoreFor(defenseType string, includeSkill bool) float64 {
+func (c *Character) GetDefenseScoreFor(defenseType combatvocab.Defence, includeSkill bool) float64 {
 	dex := float64(c.GetEffectiveDexterity())
 	skillWeight := float64(configs.GetBalanceConfig().SkillWeight)
 
 	switch defenseType {
-	case DefenseDodge:
+	case combatvocab.DefenceDodge:
 		// Dodge: Dexterity + UnarmedCombat skill + mutation dodge modifier
 		unarmedSkill := 0.0
 		if includeSkill {
@@ -297,7 +298,7 @@ func (c *Character) GetDefenseScoreFor(defenseType string, includeSkill bool) fl
 		score *= c.Conditions.Effect(conditions.EffectDodgeMult)
 		return score
 
-	case DefenseParry:
+	case combatvocab.DefenceParry:
 		// Parry: Dexterity + WeaponCombat skill + best weapon ParryRating
 		weaponSkill := 0.0
 		if includeSkill {
@@ -306,7 +307,7 @@ func (c *Character) GetDefenseScoreFor(defenseType string, includeSkill bool) fl
 		parryRating := c.BestParryRating()
 		return dex + weaponSkill + float64(parryRating)
 
-	case DefenseBlock:
+	case combatvocab.DefenceBlock:
 		// Block: (Strength + Dexterity)/2 + WeaponCombat skill + best shield BlockRating
 		str := float64(c.Stats.Strength.ValueAdj)
 		weaponSkill := 0.0
@@ -316,7 +317,7 @@ func (c *Character) GetDefenseScoreFor(defenseType string, includeSkill bool) fl
 		blockRating := c.BestBlockRating()
 		return (str+dex)/2 + weaponSkill + float64(blockRating)
 
-	case DefenseQuell:
+	case combatvocab.DefenceQuell:
 		// Mental-spell defence. Costs CONVICTION, not stamina.
 		spellcasting := 0.0
 		if includeSkill {
@@ -324,7 +325,7 @@ func (c *Character) GetDefenseScoreFor(defenseType string, includeSkill bool) fl
 		}
 		return float64(c.Stats.Willpower.ValueAdj) + spellcasting
 
-	case DefenseDefy:
+	case combatvocab.DefenceDefy:
 		// Social defence. Costs CONVICTION, not stamina.
 		rhetoric := 0.0
 		if includeSkill {
@@ -338,6 +339,6 @@ func (c *Character) GetDefenseScoreFor(defenseType string, includeSkill bool) fl
 }
 
 // GetDefenseScore retains the full legacy defence score.
-func (c *Character) GetDefenseScore(defenseType string) float64 {
+func (c *Character) GetDefenseScore(defenseType combatvocab.Defence) float64 {
 	return c.GetDefenseScoreFor(defenseType, true)
 }

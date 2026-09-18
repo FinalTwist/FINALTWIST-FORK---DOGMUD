@@ -40,6 +40,12 @@ Types and constants:
   submissions, specials, spells by school, social, system, environment,
   loot/equipment/condition/mutation/toxin; plus `CategoryCombatSummary` for
   the per-round compact tally emitted by the light-verbosity path).
+  `Category.String()` no longer spells the three defence names as local
+  literals: `CategoryDodge` / `CategoryParry` / `CategoryBlock` return
+  `string(combatvocab.DefenceDodge)` / `DefenceParry` / `DefenceBlock`, the
+  same one-declaration constants messaging M4b-2 gave `internal/combat`,
+  `internal/characters` and `internal/items` (see
+  `internal/combatvocab/context.md`).
 - `Verbosity`, `ParseVerbosity`, `(Verbosity).Suppresses` — combat-text
   verbosity primitives in `verbosity.go`. The allowlists
   (`suppressibleAtMedium`, `suppressibleAtLight`) declare which
@@ -144,7 +150,10 @@ flags). Everything else — `rooms`, `users`, `mobs`, `combat`,
 
 - Many packages import `messaging` (combat, hooks, rooms, users,
   actions, behaviortree, questengine, modules, world.go, …).
-- `messaging` imports characters/conditions/state/perception ONLY.
+- `messaging` imports characters/conditions/state/perception, plus
+  `internal/combatvocab` (added M4b-2, `d4e5ab20d`) for the three
+  defence-name constants `Category.String()` returns. `combatvocab`
+  imports nothing but the standard library, so this adds no cycle risk.
 - Nothing in `characters` imports `messaging` (would close a cycle).
 
 > **Corrected 2026-09-08.** This file previously documented four

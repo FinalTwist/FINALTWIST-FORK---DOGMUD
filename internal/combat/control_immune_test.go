@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 )
@@ -29,7 +30,7 @@ func TestExecuteSkillMove_ControlImmuneNeverKnockedDown(t *testing.T) {
 	params := func(def *characters.Character) SkillMoveParams {
 		return SkillMoveParams{
 			Attacker: atk, Defender: def,
-			Channel: ChannelMelee,
+			Shape: combatvocab.Melee(combatvocab.TargetSingle),
 			Attack: AttackSide{ // overwhelming, so attacks land
 				Stat: 300, StatName: "strength",
 				Skill: skills.WeaponCombat, SkillRank: 50,

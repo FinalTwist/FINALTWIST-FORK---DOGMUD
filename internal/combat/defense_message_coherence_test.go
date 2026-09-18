@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/items"
 )
@@ -38,7 +39,7 @@ func TestSendDefenseMessagesMeleePathCoordinatesAllThreeRoles(t *testing.T) {
 	}
 
 	group := &items.DefenseMessageGroup{
-		OptionId: items.DefenseBlock,
+		OptionId: items.DefencePoolFor(combatvocab.DefenceBlock),
 		Options: items.DefenseIntensity{
 			items.Weak: items.DefenseOptions{Together: items.DefenseTogetherMessages{
 				ToDefender: toDefender, ToAttacker: toAttacker, ToRoom: toRoom,
@@ -48,8 +49,8 @@ func TestSendDefenseMessagesMeleePathCoordinatesAllThreeRoles(t *testing.T) {
 			// them absent is fine here.
 		},
 	}
-	restore := items.SeedDefenseMessagesForTest(map[items.DefenseType]*items.DefenseMessageGroup{
-		items.DefenseBlock: group,
+	restore := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
+		items.DefencePoolFor(combatvocab.DefenceBlock): group,
 	})
 	defer restore()
 
@@ -59,7 +60,7 @@ func TestSendDefenseMessagesMeleePathCoordinatesAllThreeRoles(t *testing.T) {
 	targetChar.Name = "Defender"
 
 	best := bestDefenseResult{
-		defenseType: characters.DefenseBlock,
+		defenseType: combatvocab.DefenceBlock,
 		defRoll:     dice.RollResult{ZScore: 0.0}, // < 0.5 => Weak band
 	}
 

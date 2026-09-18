@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -236,13 +237,13 @@ func attackerCandidates(c *characters.Character, result combat.AttackResult) ([]
 //
 // Quell and defy still cannot reach this function -- neither is in melee's
 // defence set -- but AwardDefenceProgression covers both, so wiring either into
-// melee stays a row in DefenceSetFor and nothing else.
+// melee stays a row in combatvocab's eligibility table and nothing else.
 func processDefenderProgression(c *characters.Character, userId int, result combat.AttackResult) {
 	best, ok := bestSwingDefence(c, result.SwingDefences)
 	if !ok {
 		return
 	}
-	combat.AwardDefenceProgression(c, userId, string(best.Defence), best.Won)
+	combat.AwardDefenceProgression(c, userId, best.Defence, best.Won)
 }
 
 // bestSwingDefence picks the ONE swing defence that earns the round's defender
@@ -295,7 +296,7 @@ func bestSwingDefence(c *characters.Character, quoted []combat.SwingDefence) (co
 
 	cands := make([]progression.Candidate, 0, len(quoted))
 	for _, q := range quoted {
-		skill, stat := combat.DefenceSkillAndStat(string(q.Defence))
+		skill, stat := combat.DefenceSkillAndStat(q.Defence)
 		cands = append(cands, progression.Candidate{
 			Skill: skill,
 			Stat:  stat,
@@ -319,15 +320,15 @@ func bestSwingDefence(c *characters.Character, quoted []combat.SwingDefence) (co
 // defenceTypesUsed returns the set of defences that registered this round, in
 // the same fixed order processDefenderProgression uses. Extracted so the seam
 // and the ordinary award read one definition of "which defences happened".
-func defenceTypesUsed(result combat.AttackResult) []combat.DefenseType {
-	used := make(map[combat.DefenseType]bool, 3)
+func defenceTypesUsed(result combat.AttackResult) []combatvocab.Defence {
+	used := make(map[combatvocab.Defence]bool, 3)
 	for _, se := range result.SwingEvents {
-		if se.DefenseUsed != combat.DefenseNone {
+		if se.DefenseUsed != combatvocab.DefenceNone {
 			used[se.DefenseUsed] = true
 		}
 	}
-	out := make([]combat.DefenseType, 0, 3)
-	for _, d := range []combat.DefenseType{combat.DefenseDodge, combat.DefenseParry, combat.DefenseBlock} {
+	out := make([]combatvocab.Defence, 0, 3)
+	for _, d := range []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry, combatvocab.DefenceBlock} {
 		if used[d] {
 			out = append(out, d)
 		}
@@ -344,20 +345,20 @@ func defenceTypesUsed(result combat.AttackResult) []combat.DefenseType {
 // A second copy of the five-defence mapping is exactly the drift this arc
 // exists to remove, and it would go stale the first time a defence changed what
 // it trains.
-func defenceSkillFor(used []combat.DefenseType) string {
+func defenceSkillFor(used []combatvocab.Defence) string {
 	if len(used) == 0 {
 		return ""
 	}
-	skill, _ := combat.DefenceSkillAndStat(string(used[0]))
+	skill, _ := combat.DefenceSkillAndStat(used[0])
 	return skill
 }
 
 // defenceStatFor is defenceSkillFor's stat counterpart, from the same mapping.
-func defenceStatFor(used []combat.DefenseType) string {
+func defenceStatFor(used []combatvocab.Defence) string {
 	if len(used) == 0 {
 		return ""
 	}
-	_, stat := combat.DefenceSkillAndStat(string(used[0]))
+	_, stat := combat.DefenceSkillAndStat(used[0])
 	return stat
 }
 
@@ -627,15 +628,15 @@ func handlePlayerFoldCasting(user *users.UserRecord, userId int) bool {
 		if spellData != nil {
 			bal := configs.GetBalanceConfig()
 
-			// Self-cast penalty: HelpSingle targeting only self gets reduced progression
-			if spellData.Type == spells.HelpSingle &&
+			// Self-cast penalty: a single-target help spell targeting only self gets reduced progression
+			if !spellData.IsHarm() && spellData.Targeting == combatvocab.TargetSingle &&
 				len(cs.TargetMobInstanceIds) == 0 &&
 				len(cs.TargetUserIds) == 1 && cs.TargetUserIds[0] == userId {
 				spellBonus *= float64(bal.SelfCastProgressionMultiplier)
 			}
 
-			// AoE guard: HarmArea/HarmMulti with no targets hit skips progression
-			if (spellData.Type == spells.HarmArea || spellData.Type == spells.HarmMulti) &&
+			// AoE guard: an area or multi harm spell with no targets hit skips progression
+			if spellData.IsHarm() && (spellData.Targeting == combatvocab.TargetArea || spellData.Targeting == combatvocab.TargetMulti) &&
 				len(cs.TargetUserIds) == 0 && len(cs.TargetMobInstanceIds) == 0 {
 				spellBonus = 0
 			}

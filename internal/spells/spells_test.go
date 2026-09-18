@@ -3,6 +3,7 @@ package spells
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
 )
@@ -11,9 +12,9 @@ import (
 func seedRegistry() {
 	allSpells = map[string]*SpellData{
 		"sparks": {
-			SpellId:          "sparks",
-			Name:             "Sparks",
-			Type:             HarmSingle,
+			SpellId:    "sparks",
+			Name:       "Sparks",
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
 			Cost:             3,
 			HealthCost:       0,
 			Difficulty:       10,
@@ -22,9 +23,9 @@ func seedRegistry() {
 			Schools:          []string{SchoolElemental},
 		},
 		"heal": {
-			SpellId:         "heal",
-			Name:            "Heal",
-			Type:            HelpSingle,
+			SpellId:    "heal",
+			Name:       "Heal",
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle,
 			Cost:            5,
 			HealthCost:      0,
 			Difficulty:      15,
@@ -33,9 +34,9 @@ func seedRegistry() {
 			Schools:         []string{SchoolVital},
 		},
 		"pyretic-surge": {
-			SpellId:          "pyretic-surge",
-			Name:             "Pyretic Surge",
-			Type:             HarmSingle,
+			SpellId:    "pyretic-surge",
+			Name:       "Pyretic Surge",
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
 			Cost:             8,
 			HealthCost:       2,
 			Difficulty:       25,
@@ -46,7 +47,7 @@ func seedRegistry() {
 		"conviction-ward": {
 			SpellId:    "conviction-ward",
 			Name:       "Conviction Ward",
-			Type:       HelpSingle,
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle,
 			Cost:       4,
 			HealthCost: 0,
 			Difficulty: 20,
@@ -304,7 +305,7 @@ func TestGetEligibleSpells_DifficultyGatesNotFolds(t *testing.T) {
 		"core-discharge": {
 			SpellId:    "core-discharge",
 			Name:       "Core Discharge",
-			Type:       HarmArea,
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetArea,
 			Difficulty: 45,
 			BaseFolds:  2, // <= MaxFoldsForSkill(0), which was 4: the old gate ADMITTED this
 			Schools:    []string{SchoolElemental},
@@ -312,7 +313,7 @@ func TestGetEligibleSpells_DifficultyGatesNotFolds(t *testing.T) {
 		"long-but-easy": {
 			SpellId:    "long-but-easy",
 			Name:       "Long But Easy",
-			Type:       HarmSingle,
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
 			Difficulty: 5,
 			BaseFolds:  24, // > MaxFoldsForSkill(20), which was 10: the old gate REFUSED this
 			Schools:    []string{SchoolElemental},
@@ -338,17 +339,17 @@ func TestGetEligibleSpells_QuestGatedExcluded(t *testing.T) {
 	// quest-gated one is the QuestRequired field.
 	allSpells = map[string]*SpellData{
 		"sparks": {
-			SpellId:   "sparks",
-			Name:      "Sparks",
-			Type:      HarmSingle,
+			SpellId:    "sparks",
+			Name:       "Sparks",
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
 			BaseFolds: 4,
 			Schools:   []string{SchoolElemental},
 			// No QuestRequired → discoverable
 		},
 		"summon-steppe-spirit": {
-			SpellId:       "summon-steppe-spirit",
-			Name:          "Summon Steppe Spirit",
-			Type:          HelpSingle,
+			SpellId:    "summon-steppe-spirit",
+			Name:       "Summon Steppe Spirit",
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle,
 			BaseFolds:     6,
 			Schools:       []string{SchoolManifestation},
 			QuestRequired: "12-end",

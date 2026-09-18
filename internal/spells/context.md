@@ -41,25 +41,26 @@ flexible targeting. Spells use Conviction (not mana) as their resource.
 
 ```go
 type SpellData struct {
-    SpellId           string    // Unique spell identifier (also filename base)
-    Name              string    // Display name
-    Description       string    // Spell description
-    Type              SpellType // Targeting and effect type
-    Schools           []string  // Magic school classification (can have multiple)
-    Cost              int       // Conviction cost
-    HealthCost        int       // Optional Health cost for vital school
-    WaitRounds        int       // Casting delay in rounds
-    Difficulty        int       // Success modifier (0-100%)
-    PrimaryStat       string    // REQUIRED (U9). Caster-side stat. See below.
-    BaseFolds         int       // Number of folds required to cast
-    TargetDefenseType string    // "physical", "mental", or "none"
-    EffectType        string    // "damage", "heal", "shield", "dot", "knockdown", "purge", "none"
-    EffectMagnitude   int       // Base power of the effect
-    EffectDuration    int       // For DoT: number of tick cycles
+    SpellId         string                 // Unique spell identifier (also filename base)
+    Name            string                 // Display name
+    Description     string                 // Spell description
+    AttackType      combatvocab.AttackType // yaml: attack_type. HOW the attack is delivered ("spell", "none")
+    DamageType      combatvocab.DamageType // yaml: damage_type. WHAT it does ("physical", "mental", "social", "non_harm")
+    Targeting       combatvocab.Targeting  // yaml: targeting. HOW MANY it reaches ("self", "single", "multi", "area")
+    Schools         []string               // Magic school classification (can have multiple)
+    Cost            int                    // Conviction cost
+    HealthCost      int                    // Optional Health cost for vital school
+    WaitRounds      int                    // Casting delay in rounds
+    Difficulty      int                    // Success modifier (0-100%)
+    PrimaryStat     string                 // REQUIRED (U9). Caster-side stat. See below.
+    BaseFolds       int                    // Number of folds required to cast
+    EffectType      string                 // "damage", "heal", "shield", "dot", "knockdown", "purge", "none"
+    EffectMagnitude int                    // Base power of the effect
+    EffectDuration  int                    // For DoT: number of tick cycles
 }
 
 func (s *SpellData) CasterStatValue(stats stats.Statistics) int
-func (s *SpellData) Validate() error // calls the unexported validatePrimaryStat
+func (s *SpellData) Validate() error // calls the unexported validatePrimaryStat, then validateAxes
 ```
 
 **`PrimaryStat` is REQUIRED and validated at load (U9).** `Validate()` calls
@@ -103,20 +104,39 @@ progression via difficulty-scaled bonus multiplier (applied in spell resolution)
 Values: 0 (utility), 1–15 (weak combat), 15–30 (moderate), 30–50 (strong),
 50–75 (apex combat spells).
 
-**TargetTypeString:** `Neutral` spells now return "Self" instead of "Unknown"
-for display purposes.
+**TargetTypeString:** a `targeting: self` spell prints "Self".
 
-### Spell Types
+### The Three Axes (messaging M4b-2, `axes.go`)
+
+The legacy `SpellType` enum (`neutral`/`harmsingle`/`harmmulti`/`helpsingle`/
+`helpmulti`/`harmarea`/`helparea`) and `TargetDefenseType` are gone. Every
+spell instead authors three fields, shared with the rest of combat through
+`internal/combatvocab` (see that package's doc comment for the full axis
+definitions):
+
+- `attack_type` (`combatvocab.AttackType`) — `spell` for every harmful cast,
+  `none` for a cast that harms nobody (a heal is not an attack). `none` pairs
+  ONLY with `damage_type: non_harm` (`combatvocab.Attack.Valid`).
+- `damage_type` (`combatvocab.DamageType`) — `physical`, `mental`, `social`,
+  or `non_harm`. Answers "what is this?" for defence-set lookup
+  (`combatvocab.EligibleDefences`) and mitigation-channel lookup
+  (`combat.MitigationChannelFor`).
+- `targeting` (`combatvocab.Targeting`) — `self` (no target resolved, the
+  argument passes through: summons, identify), `single`, `multi`, or `area`.
+
+`(*SpellData).Validate` calls the unexported `validateAxes`, which requires
+all three keys and rejects a pairing `combatvocab`'s eligibility table does
+not know — an authoring typo fails the boot rather than silently loading.
+
+Display and routing methods derived from the axes (all on `*SpellData`,
+`axes.go`):
+
 ```go
-const (
-    Neutral    SpellType = "neutral"    // No expected target
-    HarmSingle SpellType = "harmsingle" // Single harmful target
-    HarmMulti  SpellType = "harmmulti"  // Multiple harmful targets
-    HelpSingle SpellType = "helpsingle" // Single beneficial target
-    HelpMulti  SpellType = "helpmulti"  // Multiple beneficial targets
-    HarmArea   SpellType = "harmarea"   // Area harmful effect
-    HelpArea   SpellType = "helparea"   // Area beneficial effect
-)
+func (s *SpellData) Attack() combatvocab.Attack        // the value the contest seam resolves
+func (s *SpellData) IsHarm() bool                      // DamageType.IsHarm(): harm vs. help in one place
+func (s *SpellData) HelpOrHarmString() string           // "Harmful" / "Helpful" / "Neutral" (spells listing, help template)
+func (s *SpellData) TargetTypeString(short ...bool) string // "Single Target" / "Group" / "Area" / "Self" (short form for the listing)
+func (s *SpellData) DefenceNames() string               // "quell" / "defy" / "dodge or block" / "" — the help template's "Resisted by" line
 ```
 
 ### Magic Schools
@@ -340,7 +360,9 @@ of `internal/conditions`, where the holder a condition happens to is the
 | File | Purpose |
 |------|---------|
 | `spells.go` | SpellData struct, registry, loader, GetEligibleSpells(), MaxFoldsForSkill() |
+| `axes.go` | The three axes' display/routing methods and `validateAxes` (messaging M4b-2) |
 | `narration.go` | The narration door: `Phase`, `Narration`, `Narrate`, `validateNarration` |
+| `shipped_axes_test.go` | Boot guard: every shipped spell YAML carries the three axis keys and no legacy key |
 | `context.md` | This file — package overview for Claude Code |
 
 ---

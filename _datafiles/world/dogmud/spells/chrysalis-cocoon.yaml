@@ -2,7 +2,9 @@ spellid: chrysalis-cocoon
 name: Chrysalis Cocoon
 aliases: [cocoon]
 description: Encases the target in a protective Chrysalis shell.
-type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - enhancement
 cost: 60

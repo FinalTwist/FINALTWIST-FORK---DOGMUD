@@ -175,8 +175,7 @@ func Cast(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	// Initiate combat aggro immediately when targeting a player with an offensive spell.
 	// This ensures the mob enters the combat loop so the player is flagged as in combat.
 	// The casting block in the combat tick safely handles CastingState and skips melee.
-	switch spellInfo.Type {
-	case spells.HarmSingle, spells.HarmMulti, spells.HarmArea:
+	if spellInfo.IsHarm() {
 		if !mob.Character.IsInCombat() && len(result.TargetUserIds) > 0 {
 			targeting.Commit(&mob.Character,
 				state.ActorRef{UserId: result.TargetUserIds[0]}, targeting.ReasonAttack)

@@ -2,7 +2,9 @@ spellid: sensory-overload
 name: Sensory Overload
 aliases: [overload]
 description: Overwhelms the target's senses, blinding and slowing them.
-type: harmsingle
+attack_type: spell
+damage_type: mental
+targeting: single
 schools:
   - mental
 cost: 80
@@ -10,7 +12,6 @@ waitrounds: 2
 difficulty: 40
 primarystat: willpower
 base_folds: 10
-target_defense_type: mental
 effect_type: condition
 condition_ids:
   - 37

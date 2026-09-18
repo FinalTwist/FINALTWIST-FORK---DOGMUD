@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -29,13 +30,15 @@ func newCastActor() (*stubActor, *characters.Character, *rooms.Room) {
 // seedTestSpell registers a minimal spell in the global spell registry and
 // returns a cleanup function that restores the original registry.
 // spellId must be unique within the test binary.
-func seedTestSpell(spellId string, spellType spells.SpellType, baseFolds int) (*spells.SpellData, func()) {
+func seedTestSpell(spellId string, shape combatvocab.Attack, baseFolds int) (*spells.SpellData, func()) {
 	sd := &spells.SpellData{
-		SpellId:   spellId,
-		Name:      "Test " + spellId,
-		Type:      spellType,
-		BaseFolds: baseFolds,
-		Cost:      5,
+		SpellId:    spellId,
+		Name:       "Test " + spellId,
+		AttackType: shape.Type,
+		DamageType: shape.Damage,
+		Targeting:  shape.Targeting,
+		BaseFolds:  baseFolds,
+		Cost:       5,
 	}
 	cleanup := spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		spellId: sd,
@@ -70,7 +73,7 @@ func TestInitiateCast_InvalidSpell(t *testing.T) {
 // an active cast (Activity machine in Casting state) the function returns
 // AlreadyCasting=true.
 func TestInitiateCast_AlreadyCasting(t *testing.T) {
-	sd, cleanup := seedTestSpell("test-already", spells.HelpSingle, 4)
+	sd, cleanup := seedTestSpell("test-already", combatvocab.NonHarm(combatvocab.TargetSingle), 4)
 	defer cleanup()
 
 	actor, char, _ := newCastActor()
@@ -95,7 +98,7 @@ func TestInitiateCast_AlreadyCasting(t *testing.T) {
 // TestInitiateCast_OnCooldown verifies that if the special-move cooldown is
 // already active the function returns OnCooldown=true.
 func TestInitiateCast_OnCooldown(t *testing.T) {
-	sd, cleanup := seedTestSpell("test-cooldown", spells.HelpSingle, 4)
+	sd, cleanup := seedTestSpell("test-cooldown", combatvocab.NonHarm(combatvocab.TargetSingle), 4)
 	defer cleanup()
 
 	actor, char, _ := newCastActor()
@@ -119,7 +122,7 @@ func TestInitiateCast_OnCooldown(t *testing.T) {
 // of CalcFoldsPerRound for the character's stats.
 func TestInitiateCast_FoldsCalculation(t *testing.T) {
 	const baseFolds = 6
-	sd, cleanup := seedTestSpell("test-folds", spells.Neutral, baseFolds)
+	sd, cleanup := seedTestSpell("test-folds", combatvocab.NonHarm(combatvocab.TargetSelf), baseFolds)
 	defer cleanup()
 
 	actor, char, _ := newCastActor()
@@ -144,7 +147,7 @@ func TestInitiateCast_FoldsCalculation(t *testing.T) {
 // with BaseFolds=0 (the zero value) defaults to 4 before the NextPowerOfTwo
 // call, so FoldsNeeded == 4.
 func TestInitiateCast_FoldsCalculation_DefaultBaseFolds(t *testing.T) {
-	sd, cleanup := seedTestSpell("test-folds-default", spells.Neutral, 0)
+	sd, cleanup := seedTestSpell("test-folds-default", combatvocab.NonHarm(combatvocab.TargetSelf), 0)
 	defer cleanup()
 
 	actor, _, _ := newCastActor()
@@ -166,7 +169,7 @@ func TestInitiateCast_FoldsCalculation_DefaultBaseFolds(t *testing.T) {
 // fields to commit the cast to the Activity machine.
 func TestInitiateCast_ResultFields(t *testing.T) {
 	const baseFolds = 4
-	sd, cleanup := seedTestSpell("test-built", spells.Neutral, baseFolds)
+	sd, cleanup := seedTestSpell("test-built", combatvocab.NonHarm(combatvocab.TargetSelf), baseFolds)
 	defer cleanup()
 
 	actor, char, _ := newCastActor()
@@ -195,7 +198,7 @@ func TestInitiateCast_ResultFields(t *testing.T) {
 // TestInitiateCast_CostPropagation verifies that TotalCost on the result
 // equals the spell's Cost field (no multiplier is applied inside InitiateCast).
 func TestInitiateCast_CostPropagation(t *testing.T) {
-	sd, cleanup := seedTestSpell("test-cost", spells.Neutral, 4)
+	sd, cleanup := seedTestSpell("test-cost", combatvocab.NonHarm(combatvocab.TargetSelf), 4)
 	defer cleanup()
 	sd.Cost = 42
 
@@ -217,7 +220,7 @@ func TestInitiateCast_CostPropagation(t *testing.T) {
 // consumed. (Targets that leave mid-cast, or that all dodge at resolution,
 // still legitimately consume the cast — only the found-zero case refuses.)
 func TestInitiateCast_HarmAreaNoTargets_RefusedBeforePayment(t *testing.T) {
-	sd, cleanup := seedTestSpell("test-aoe-empty", spells.HarmArea, 4)
+	sd, cleanup := seedTestSpell("test-aoe-empty", combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetArea), 4)
 	defer cleanup()
 
 	actor, char, _ := newCastActor()

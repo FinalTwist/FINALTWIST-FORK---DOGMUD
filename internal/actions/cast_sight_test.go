@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -54,9 +55,9 @@ func castSightScene(t *testing.T, biome string) (*castSightActor, *rooms.Room) {
 		castSightInfraredConditionId: {ConditionId: castSightInfraredConditionId, Name: "Test Infrared", Flags: []conditions.Flag{conditions.InfraredVision}},
 	}))
 	t.Cleanup(spells.SeedSpellsForTest(map[string]*spells.SpellData{
-		"sight-heal": {SpellId: "sight-heal", Name: "Sight Heal", Type: spells.HelpSingle, BaseFolds: 2, Cost: 5},
-		"sight-bolt": {SpellId: "sight-bolt", Name: "Sight Bolt", Type: spells.HarmSingle, BaseFolds: 2, Cost: 5},
-		"sight-nova": {SpellId: "sight-nova", Name: "Sight Nova", Type: spells.HarmArea, BaseFolds: 2, Cost: 5},
+		"sight-heal": {SpellId: "sight-heal", Name: "Sight Heal", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, BaseFolds: 2, Cost: 5},
+		"sight-bolt": {SpellId: "sight-bolt", Name: "Sight Bolt", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle, BaseFolds: 2, Cost: 5},
+		"sight-nova": {SpellId: "sight-nova", Name: "Sight Nova", AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetArea, BaseFolds: 2, Cost: 5},
 	}))
 	caster := users.NewTestUser(7811, "caster", "Caster", 97811)
 	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{

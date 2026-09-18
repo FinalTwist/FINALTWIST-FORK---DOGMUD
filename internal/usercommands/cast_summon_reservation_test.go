@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -40,9 +41,9 @@ func seedSummonCaster(t *testing.T, convictionMax int) (*users.UserRecord, *room
 
 	cleanSpells := spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		"testsummon-ceiling": {
-			SpellId:             "testsummon-ceiling",
-			Name:                "Test Summon Ceiling",
-			Type:                spells.Neutral,
+			SpellId:    "testsummon-ceiling",
+			Name:       "Test Summon Ceiling",
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSelf,
 			Schools:             []string{spells.SchoolManifestation},
 			BaseFolds:           4,
 			Cost:                5,

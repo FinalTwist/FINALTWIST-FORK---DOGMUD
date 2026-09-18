@@ -11,6 +11,8 @@
 // for the design and rationale.
 package messaging
 
+import "github.com/GoMudEngine/GoMud/internal/combatvocab"
+
 // Category enumerates every recognized text class. Used by the
 // pipeline to look up a color alias and to drive per-Category
 // normalization-skip behavior. Adding a new Category is a 2-line
@@ -124,11 +126,11 @@ func (c Category) String() string {
 	case CategoryHitUnarmed:
 		return "hit-unarmed"
 	case CategoryDodge:
-		return "dodge"
+		return string(combatvocab.DefenceDodge)
 	case CategoryParry:
-		return "parry"
+		return string(combatvocab.DefenceParry)
 	case CategoryBlock:
-		return "block"
+		return string(combatvocab.DefenceBlock)
 	case CategoryGrappleFlow:
 		return "grapple-flow"
 	case CategoryGrappleHigh:

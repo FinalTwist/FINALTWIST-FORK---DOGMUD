@@ -5,7 +5,9 @@ description: Animates the bones of a nearby corpse, stripping flesh and
   sinew away to leave a rattling skeleton servant under your command.
   The weakest of the raised undead, but requiring little essence to
   conjure. Almost any corpse will do.
-type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 30
@@ -13,7 +15,6 @@ waitrounds: 4
 difficulty: 10
 primarystat: charisma
 base_folds: 4
-target_defense_type: none
 effect_type: none
 effect_magnitude: 0
 cast_actor: >-

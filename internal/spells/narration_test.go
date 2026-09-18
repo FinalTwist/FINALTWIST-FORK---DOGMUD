@@ -4,13 +4,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/narration"
 	"github.com/GoMudEngine/GoMud/internal/textutil"
 )
 
 func boltSpec() *SpellData {
-	// PrimaryStat is required by Validate (U9 made it load-bearing).
-	return &SpellData{SpellId: "bolt", Name: "Bolt", PrimaryStat: "willpower", CastUserText: "You gather a bolt.", CastRoomText: "{actor} gathers a bolt at {actee}.", WaitUserText: "You hold the bolt."}
+	// PrimaryStat is required by Validate (U9 made it load-bearing), as are
+	// the three axes (validateAxes).
+	return &SpellData{
+		SpellId: "bolt", Name: "Bolt", PrimaryStat: "willpower",
+		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
+		CastUserText: "You gather a bolt.", CastRoomText: "{actor} gathers a bolt at {actee}.", WaitUserText: "You hold the bolt.",
+	}
 }
 
 func TestNarrationCastPutsTheCasterInActor(t *testing.T) {

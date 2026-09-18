@@ -3,7 +3,9 @@ name: Conjure Earth Elemental
 aliases: [earth]
 description: Drags a hulking earth elemental into the world and binds it
   as a companion. Brutally slow but nearly impossible to topple.
-type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 45
@@ -11,7 +13,6 @@ waitrounds: 3
 difficulty: 25
 primarystat: charisma
 base_folds: 6
-target_defense_type: none
 effect_type: none
 effect_magnitude: 0
 cast_actor: >-

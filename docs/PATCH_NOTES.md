@@ -1,5 +1,35 @@
 # DOGMud Patch Notes
 
+## 2026-09-18: Mending your companion no longer picks a fight
+
+Healing or shielding your own companion, and mending an ally beast under an
+area cast, used to be resolved as if you were attacking it. The companion
+could shrug the mending off, a badly cast one could rebound on you, and a
+lucky companion could even answer your kindness with a swing. A cast that
+harms nobody is now simply received. Two summoning workings were also being
+resolved as if the summoner were attacking themselves; they are received the
+same way now. Nothing else about spells has changed.
+
+## 2026-09-18: The Core Guardian's drain is a working, not a swing
+
+The Core Guardian's room-wide drain was being treated as a sweep of its
+arms, so a raised blade could turn it aside. It is a working of its cold
+fire and is now answered the way a bolt of force is: you get out of its way
+or you take it on a shield. Nothing else about the fight has changed.
+
+## 2026-09-18: Nothing you can see, again
+
+Every attack in the game now says, in one place, how it is delivered, what
+kind of harm it does, and how many it reaches, and every spell now
+describes itself the same three ways. The defences that may answer an
+attack are read from one table instead of being spelled out in several
+places. Not a word of what you read has changed. What changes is that a new
+kind of attack, such as a working that shames a whole room, is one line of
+data rather than a change in several places. Not a word of what
+you read has changed. What changes is that a new kind of attack, such as a
+working that shames a whole room, is one line of data rather than a change
+in several places.
+
 ## 2026-09-17: Still nothing you can see
 
 Every line the game writes is labelled with who it is meant for: the one

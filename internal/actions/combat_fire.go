@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -383,7 +384,7 @@ func ExecuteFire(actor Actor, rest string) FireResult {
 	shotMult := weapon.GetSpec().DamageMultiplier * float64(cfg.RangedShotScale) * unengagedMult
 	rangedRank := char.GetSkillLevel(skills.RangedCombat)
 
-	// U6b Tasks 7+8: fire routes through the channel seam. ChannelRanged
+	// U6b Tasks 7+8: fire routes through the channel seam. combatvocab.Ranged
 	// decides the defence set — dodge for everyone, block only for shielded
 	// defenders (a real contest entry, replacing the deleted flat
 	// shield-bonus knob and the folded defence scalar) — and a
@@ -393,11 +394,11 @@ func ExecuteFire(actor Actor, rest string) FireResult {
 	result.MoveResult = combat.ExecuteSkillMove(combat.SkillMoveParams{
 		Attacker: char,
 		Defender: defChar,
-		Channel:  combat.ChannelRanged,
+		Shape:    combatvocab.Ranged(combatvocab.TargetSingle),
 		Attack: combat.AttackSide{
 			Stat: char.GetEffectivePerception(), StatName: "perception",
 			Skill: skills.RangedCombat, SkillRank: rangedRank,
-			Mult:      combat.SituationalAttackMult(char, combat.ChannelRanged),
+			Mult:      combat.SituationalAttackMult(char, combatvocab.Ranged(combatvocab.TargetSingle)),
 			ForceCrit: combat.SleepingForceCrit(defChar),
 			CritOnWin: surpriseShot,
 		},
@@ -414,7 +415,7 @@ func ExecuteFire(actor Actor, rest string) FireResult {
 	// shot is the ONE uncounterable attack (owner decision: a property of
 	// the weapon, not a wiring hole). The wrapper speaks the counter AFTER
 	// the shot's own outcome via DispatchCounterMessages (Task 11).
-	result.Counter = counterSkillMoveExit(actor, defChar, result.MoveResult, combat.ChannelRanged, !crossRoom)
+	result.Counter = counterSkillMoveExit(actor, defChar, result.MoveResult, combatvocab.Ranged(combatvocab.TargetSingle), !crossRoom)
 
 	// Analytics + round consumption (same pattern as kick). Every shot burns
 	// the combat round; only the U10d surprise opener claims the shared

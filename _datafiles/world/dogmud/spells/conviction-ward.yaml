@@ -2,7 +2,9 @@ spellid: conviction-ward
 name: Conviction Ward
 aliases: [ward]
 description: Solidifies belief into a barrier that absorbs damage.
-type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - enhancement
 cost: 30
