@@ -176,15 +176,16 @@ damage-formula lift; the memory file's caution to check for a live
 `DamageReduction` read is accordingly moot too.
 
 The current seam: defence scores for a to-hit roll come from
-`Character.GetDefenseScoreFor(defenseType string, includeSkill bool)
-float64` (`internal/characters/combat.go:278`). The comment on
-`spellAttackChannel` (`internal/hooks/spell_resolution.go`) states this
-directly: "the defender's score comes from `GetDefenseScoreFor` via the
-seam, the deleted defence-value helper's raw-stat read is gone with the
-two-contest gate." `GetDefenseScoreFor` is stat-and-skill based (dodge,
-parry, block, quell, defy), not mitigation-based, so the design rule
-still holds through the current code, it just holds through a different
-symbol than the memory file names. Use `GetEffectiveDexterity()`, not
+`Character.GetDefenseScoreFor(defenseType combatvocab.Defence, includeSkill
+bool) float64` (`internal/characters/combat.go:280`). `SpellData.Attack()`
+(`internal/spells/axes.go`) builds the attack from the three authored axes
+(`attack_type`, `damage_type`, `targeting`) and the seam resolves it against
+`combatvocab.EligibleDefences`; the defender's score comes from
+`GetDefenseScoreFor` inside the seam. `GetDefenseScoreFor` is
+stat-and-skill based (dodge, parry, block, quell, defy), not
+mitigation-based, so the design rule still holds through the current code,
+it just holds through a different symbol than the memory file names. Use
+`GetEffectiveDexterity()`, not
 `Stats.Dexterity.ValueAdj`, in any live roll:
 `internal/characters/effective_stats.go` documents that raw `ValueAdj` is
 for training/progression/display only. If you add or touch a to-hit roll,
