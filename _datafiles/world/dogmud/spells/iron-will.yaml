@@ -3,6 +3,9 @@ name: Iron Will
 aliases: [ironwill]
 description: Fortifies the target's willpower, strengthening their mental defenses.
 type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - enhancement
 cost: 45

@@ -3,6 +3,9 @@ name: Summon Hive Swarm
 aliases: [swarm]
 description: Shatters a Hive Fragment into a permanent swarm servant.
 type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - manifestation
 cost: 30

@@ -7,6 +7,9 @@ description: Weaves multiple corpses together through brutal necromantic
   durable servant a necromancer can field, but the raw material
   demands are immense. Only the most potent remains will suffice.
 type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 50

@@ -3,6 +3,9 @@ name: Pyretic Surge
 aliases: [pyretic]
 description: Superheats the target's blood to the point of combustion.
 type: harmsingle
+attack_type: spell
+damage_type: physical
+targeting: single
 schools:
   - elemental
 cost: 40

@@ -3,6 +3,9 @@ spellid: curepoison
 name: Cure Poison
 description: Cures basic poison status
 type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 school: restoration
 cost: 10
 waitrounds: 2

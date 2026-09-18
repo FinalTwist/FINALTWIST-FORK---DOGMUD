@@ -7,6 +7,9 @@ description: >
   scours everything standing in the open. Mob-castable only; the
   buildup would kill any living caster before release.
 type: harmarea
+attack_type: spell
+damage_type: physical
+targeting: area
 schools:
   - elemental
 cost: 20

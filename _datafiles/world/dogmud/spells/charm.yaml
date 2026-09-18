@@ -14,6 +14,9 @@ description: |
 cost: 120
 base_folds: 36
 type: harmsingle
+attack_type: spell
+damage_type: social
+targeting: single
 schools:
   - manifestation
 difficulty: 60

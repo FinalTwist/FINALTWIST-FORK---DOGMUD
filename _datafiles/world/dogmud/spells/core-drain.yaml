@@ -7,6 +7,9 @@ description: >
   its own cold fire. Mob-castable only -- this is the Guardian's
   signature recharge, not a spell any living caster could learn.
 type: harmarea
+attack_type: spell
+damage_type: physical
+targeting: area
 schools:
   - vital
 cost: 20

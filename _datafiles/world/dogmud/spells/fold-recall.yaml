@@ -3,6 +3,9 @@ name: Fold Recall
 aliases: [recall]
 description: Folds the Veil and teleports you to your Chrysalis anchor.
 type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - enhancement
 cost: 50

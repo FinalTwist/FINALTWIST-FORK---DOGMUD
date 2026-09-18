@@ -3,6 +3,9 @@ name: Psychic Anchor
 aliases: [psychic]
 description: Anchors the target's mind, preventing movement or teleport.
 type: harmsingle
+attack_type: spell
+damage_type: mental
+targeting: single
 schools:
   - mental
 cost: 60

@@ -3,6 +3,9 @@ name: Mind Spike
 aliases: [mindspike]
 description: Drives a psionic spike into the target's consciousness.
 type: harmsingle
+attack_type: spell
+damage_type: mental
+targeting: single
 schools:
   - mental
 cost: 20

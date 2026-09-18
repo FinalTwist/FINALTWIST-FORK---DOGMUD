@@ -2,6 +2,9 @@ spellid: sparks
 name: Conviction Sparks
 description: Scatters shards of crystallized belief that lash all nearby foes.
 type: harmarea
+attack_type: spell
+damage_type: physical
+targeting: area
 schools:
   - elemental
 cost: 75

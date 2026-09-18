@@ -6,6 +6,9 @@ description: Animates the bones of a nearby corpse, stripping flesh and
   The weakest of the raised undead, but requiring little essence to
   conjure. Almost any corpse will do.
 type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 30

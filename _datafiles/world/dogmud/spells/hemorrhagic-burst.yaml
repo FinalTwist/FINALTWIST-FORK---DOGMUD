@@ -3,6 +3,9 @@ name: Hemorrhagic Burst
 aliases: [burst]
 description: Ruptures blood vessels outward in a devastating explosion.
 type: harmarea
+attack_type: spell
+damage_type: physical
+targeting: area
 schools:
   - elemental
 cost: 80

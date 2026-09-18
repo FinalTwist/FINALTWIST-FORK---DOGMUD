@@ -3,6 +3,9 @@ name: Mind Fog
 aliases: [fog]
 description: Psionic fog dulls the target's perception and willpower.
 type: harmsingle
+attack_type: spell
+damage_type: mental
+targeting: single
 schools:
   - mental
 cost: 50

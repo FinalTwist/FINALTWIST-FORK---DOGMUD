@@ -4,6 +4,9 @@ aliases: [spirit]
 description: Calls forth a spirit wolf from the steppe's spiritual
   plane to fight alongside you.
 type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - manifestation
 quest_required: "12-end"

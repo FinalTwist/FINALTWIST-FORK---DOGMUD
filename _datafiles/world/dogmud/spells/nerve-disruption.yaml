@@ -3,6 +3,9 @@ name: Nerve Disruption
 aliases: [nerve]
 description: Disrupts nerve signals, weakening dexterity and strength.
 type: harmsingle
+attack_type: spell
+damage_type: mental
+targeting: single
 schools:
   - mental
 cost: 40

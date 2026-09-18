@@ -3,6 +3,9 @@ name: Veil Rend
 aliases: [rend]
 description: Tears open the Veil, unleashing raw energy on all nearby.
 type: harmarea
+attack_type: spell
+damage_type: physical
+targeting: area
 schools:
   - elemental
 cost: 200

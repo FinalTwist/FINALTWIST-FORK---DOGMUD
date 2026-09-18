@@ -7,6 +7,9 @@ description: Infuses a corpse with foul necrotic energy, reanimating it
   flesh. Requires a more substantial corpse to sustain the animating
   force.
 type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 35

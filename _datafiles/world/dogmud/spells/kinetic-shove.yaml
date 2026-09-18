@@ -3,6 +3,9 @@ name: Kinetic Shove
 aliases: [shove]
 description: Telekinetic force slams the target to the ground.
 type: harmsingle
+attack_type: spell
+damage_type: physical
+targeting: single
 schools:
   - elemental
 cost: 30

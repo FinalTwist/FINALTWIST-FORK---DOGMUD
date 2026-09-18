@@ -6,6 +6,9 @@ description: Tears the lingering spirit from a corpse and binds it into
   strike and sap the will of those they wound. Only a creature of
   considerable essence can sustain this transformation.
 type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 35

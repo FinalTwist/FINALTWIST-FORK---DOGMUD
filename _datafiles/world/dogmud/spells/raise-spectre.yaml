@@ -6,6 +6,9 @@ description: Draws the deepest shadow of a powerful soul from its
   malice. Spectres strike at the mind as much as the body, and require
   a corpse of great potency to anchor the transformation.
 type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 40

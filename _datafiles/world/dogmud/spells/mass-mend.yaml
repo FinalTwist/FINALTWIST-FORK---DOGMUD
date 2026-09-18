@@ -3,6 +3,9 @@ name: Mass Mend
 aliases: [massmend]
 description: Heals all nearby allies and grants sustained regeneration.
 type: helparea
+attack_type: none
+damage_type: non_harm
+targeting: area
 schools:
   - vital
 cost: 120

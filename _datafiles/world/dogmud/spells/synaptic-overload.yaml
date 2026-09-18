@@ -3,6 +3,9 @@ name: Synaptic Overload
 aliases: [synaptic]
 description: Floods the target's nervous system with overwhelming force.
 type: harmsingle
+attack_type: spell
+damage_type: mental
+targeting: single
 schools:
   - mental
 cost: 120

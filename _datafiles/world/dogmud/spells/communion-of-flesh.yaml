@@ -3,6 +3,9 @@ name: Communion of Flesh
 aliases: [communion]
 description: Deep Chrysalis energy mends the wounds of all nearby allies.
 type: helparea
+attack_type: none
+damage_type: non_harm
+targeting: area
 schools:
   - vital
 cost: 100

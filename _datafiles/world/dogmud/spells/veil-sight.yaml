@@ -3,6 +3,9 @@ name: Veil Sight
 aliases: [sight]
 description: Opens the target's perception to see hidden creatures.
 type: helpsingle
+attack_type: none
+damage_type: non_harm
+targeting: single
 schools:
   - mental
 cost: 35

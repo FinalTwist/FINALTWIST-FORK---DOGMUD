@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/casing"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -19,10 +20,21 @@ import (
 type SpellType string
 
 type SpellData struct {
-	SpellId            string    `yaml:"spellid,omitempty"`
-	Name               string    `yaml:"name,omitempty"`
-	Aliases            []string  `yaml:"aliases,omitempty"` // short single-word invocation forms (primary first)
-	Description        string    `yaml:"description,omitempty"`
+	SpellId     string   `yaml:"spellid,omitempty"`
+	Name        string   `yaml:"name,omitempty"`
+	Aliases     []string `yaml:"aliases,omitempty"` // short single-word invocation forms (primary first)
+	Description string   `yaml:"description,omitempty"`
+
+	// The three authored axes (messaging M4b-2). All required; validated
+	// against the combatvocab eligibility table at load, so a pair the table
+	// does not know fails the boot. attack_type none pairs with damage_type
+	// non_harm and is the uncontested cast (a heal is not an attack).
+	// targeting self means NO target is resolved and the argument passes
+	// through (summons, identify); single defaults to the caster.
+	AttackType combatvocab.AttackType `yaml:"attack_type,omitempty"`
+	DamageType combatvocab.DamageType `yaml:"damage_type,omitempty"`
+	Targeting  combatvocab.Targeting  `yaml:"targeting,omitempty"`
+
 	Type               SpellType `yaml:"type,omitempty"`
 	Schools            []string  `yaml:"schools,omitempty"`    // Can have multiple school tags
 	Categories         []string  `yaml:"categories,omitempty"` // AI categorization: self_defense, self_offense, etc. Free-form strings.

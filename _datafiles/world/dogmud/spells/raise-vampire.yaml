@@ -6,6 +6,9 @@ description: Performs the forbidden rite that transforms a worthy
   vampire retains cunning and can act with terrifying independence.
   Only the most formidable remains can survive the dark gift's demands.
 type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 45

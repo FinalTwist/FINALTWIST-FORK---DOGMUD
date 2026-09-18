@@ -4,6 +4,9 @@ aliases: [water]
 description: Tears a water elemental from the elemental plane and binds it
   to your will. A dependable tank with regenerative endurance.
 type: neutral
+attack_type: none
+damage_type: non_harm
+targeting: self
 schools:
   - manifestation
 cost: 30

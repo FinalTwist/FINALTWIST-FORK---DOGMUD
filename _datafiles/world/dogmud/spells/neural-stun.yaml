@@ -3,6 +3,9 @@ name: Neural Stun
 aliases: [stun]
 description: Overloads the target's nervous system, stunning them.
 type: harmsingle
+attack_type: spell
+damage_type: mental
+targeting: single
 schools:
   - mental
 cost: 50
