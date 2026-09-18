@@ -503,7 +503,7 @@ Things that bite:
   `AttackSide.Skill` / `AttackSide.StatName` since U6b Task 4, which deleted
   the hardcoded mapping helper; defender skill/stat from `DefenceSkillAndStat`,
   `ToughenStat` from
-  `characters.ToughenStatFor(ScaleChannelFor(shape.Type).ToughenName())`),
+  `characters.ToughenStatFor(ToughenChannelFor(shape).ToughenName())`),
   and calls `progression.BonusEvents` -- NOT `EventsForContest` -- because the
   ordinary events are already awarded by `AwardDefenceProgression` above and
   by the attacker's own call site; asking for both here would double-award.
@@ -512,7 +512,11 @@ Things that bite:
   maps every spell attack type to `"magical"` (never `"physical"` for a
   physical-flavoured spell -- the damage is still cast off willpower even when
   `target_defense_type: physical` changes which defence answers it) and
-  rhetoric to `"conviction"`.
+  rhetoric to `"conviction"`. `ToughenChannelFor` (`pools.go`) is the scale
+  pool EXCEPT for a social attack, which toughens conviction regardless of
+  attack type -- matching master's `channelDamageChannel`, whose social
+  channel covered taunt (rhetoric) AND charm (a spell), so charm toughens the
+  defender's charisma even though it scales magically.
 
 ### A defensive win is a PARTIAL DEFLECTION, not a clean miss (U6 Task 10)
 

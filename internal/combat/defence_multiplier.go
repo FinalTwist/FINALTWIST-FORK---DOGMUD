@@ -731,7 +731,7 @@ func awardChannelDefenceBonus(shape combatvocab.Attack, side AttackSide, attacke
 		AttackerStat:  atkStat,
 		DefenderSkill: defSkill,
 		DefenderStat:  defStat,
-		ToughenStat:   characters.ToughenStatFor(ScaleChannelFor(shape.Type).ToughenName()),
+		ToughenStat:   characters.ToughenStatFor(ToughenChannelFor(shape).ToughenName()),
 		Exceptional:   exceptional,
 	}
 

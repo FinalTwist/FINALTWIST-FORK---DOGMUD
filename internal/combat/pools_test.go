@@ -88,3 +88,26 @@ func TestEveryHarmAttackTypeHasAScalePool(t *testing.T) {
 		}
 	}
 }
+
+// Master's channelDamageChannel, restated through the shapes each channel
+// became. ChannelSocial covered taunt AND charm, so both shapes must toughen
+// conviction; the scale pool alone would send charm to magical.
+func TestToughenChannelForMatchesMasterChannelDamageChannel(t *testing.T) {
+	cases := []struct {
+		shape combatvocab.Attack
+		want  DamageChannel
+	}{
+		{combatvocab.Melee(combatvocab.TargetSingle), ChannelPhysical},
+		{combatvocab.Ranged(combatvocab.TargetSingle), ChannelPhysical},
+		{combatvocab.Thrown(combatvocab.TargetArea), ChannelPhysical},
+		{combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), ChannelMagical},
+		{combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), ChannelMagical},
+		{combatvocab.Spell(combatvocab.DamageSocial, combatvocab.TargetSingle), ChannelConviction},
+		{combatvocab.Rhetoric(combatvocab.TargetSingle), ChannelConviction},
+	}
+	for _, tc := range cases {
+		if got := ToughenChannelFor(tc.shape); got != tc.want {
+			t.Errorf("ToughenChannelFor(%v) = %v, want %v", tc.shape, got, tc.want)
+		}
+	}
+}

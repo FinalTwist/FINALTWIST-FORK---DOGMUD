@@ -7,9 +7,9 @@ import (
 
 // DamageChannel is NOT one of the four authored axes. It is the damage
 // pipeline's pool: which scale knob, which mitigation cap, which stat
-// toughens on a defensive crit. Nothing declares it in data; these two
-// functions derive it from combatvocab (owner ruling 2026-09-18), replacing
-// three switches that used to encode the same facts by hand.
+// toughens on a defensive crit. Nothing declares it in data; these functions
+// derive it from combatvocab (owner ruling 2026-09-18), replacing three
+// switches that used to encode the same facts by hand.
 
 // scaleChannelFor is the table behind ScaleChannelFor, with the ok the guard
 // test wants.
@@ -58,6 +58,19 @@ func MitigationChannelFor(dt combatvocab.DamageType) (DamageChannel, bool) {
 		return ChannelConviction, true
 	}
 	return ChannelPhysical, false
+}
+
+// ToughenChannelFor returns the pool whose stat toughens on a DEFENSIVE crit
+// against this attack. It is the scale pool, except that a social attack
+// toughens the defender's conviction whoever delivers it: on master the
+// social channel (taunt AND charm) toughened charisma, and this keeps that.
+// Distinct from ScaleChannelFor because charm scales magically (it is a
+// spell) but is defied socially.
+func ToughenChannelFor(shape combatvocab.Attack) DamageChannel {
+	if shape.Damage == combatvocab.DamageSocial {
+		return ChannelConviction
+	}
+	return ScaleChannelFor(shape.Type)
 }
 
 // ToughenName is the string characters.ToughenStatFor expects. characters
