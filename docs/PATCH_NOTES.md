@@ -20,8 +20,8 @@ or you take it on a shield. Nothing else about the fight has changed.
 ## 2026-09-18: Nothing you can see, again
 
 Every attack in the game now says, in one place, how it is delivered, what
-kind of harm it does, and how many it reaches, and every spell file says the
-same three things. The defences that may answer an attack are read from one
+kind of harm it does, and how many it reaches, and every spell now
+describes itself the same three ways. The defences that may answer an attack are read from one
 table instead of being spelled out in several places. Not a word of what
 you read has changed. What changes is that a new kind of attack, such as a
 working that shames a whole room, is one line of data rather than a change
