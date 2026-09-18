@@ -11,10 +11,9 @@ attack-channel enum (deleted by Task 5), `spells.SpellType` and
 It imports nothing but the standard library, so `characters`, `items`,
 `combat`, `spells`, `templates` and `hooks` can all import it. It does not
 know what a Character is, does not score, cost or narrate anything, and does
-not own the damage pipeline's pool (`combat.DamageChannel`), which will be
-DERIVED from these axes by `combat.ScaleChannelFor` and
-`combat.MitigationChannelFor` (`internal/combat/pools.go`, added later in the
-same plan).
+not own the damage pipeline's pool (`combat.DamageChannel`), which is DERIVED
+from these axes by `combat.ScaleChannelFor`, `combat.MitigationChannelFor`
+and `combat.ToughenChannelFor` (`internal/combat/pools.go`).
 
 ## Files
 
@@ -57,7 +56,7 @@ constructors cannot build it, and `spells.SpellData.Validate` refuses it.
 ## Adding a value
 
 A new `AttackType` or `DamageType` is one constant, one entry in its lister,
-and one or more rows in `eligibility`. The derived pools that will land in
-`internal/combat/pools.go` (added later in the same plan) must also learn it,
-and their parity tests will say so. A new `Defence` additionally needs the
-three things `combat.DefenceEntriesFor`'s comment lists.
+and one or more rows in `eligibility`. The derived pools in
+`internal/combat/pools.go` must also learn it, and their parity tests will
+say so. A new `Defence` additionally needs the three things
+`combat.DefenceEntriesFor`'s comment lists.

@@ -233,11 +233,12 @@ the target instead of an interrupt.
   root registers every lookup as viewer or plain, with the reason.
 - **`FindAttackTarget(rest, room, userId, mobId, viewer)`**: the named branch
   and the `*`, `*mob`, `*user` pools skip what `viewer` does not perceive.
-- **`InitiateCast`** runs `admitCastAim` (`cast_sight.go`) for a player's
-  harmsingle, harmmulti and helpsingle casts: clear sight allows names, foes and
-  shapes; shapes only allows the caster's own foe and `shape` / `N.shape` /
-  `shape#N` (figures are perceived players then mobs, in room order); no sight
-  refuses. Refusals are narrated, set `RefusalExplained`, and spend nothing.
+- **`InitiateCast`** runs `admitCastAim` (`cast_admission.go`) for a player's
+  single-target casts of either kind and harmful multi casts: clear sight
+  allows names, foes and shapes; shapes only allows the caster's own foe and
+  `shape` / `N.shape` / `shape#N` (figures are perceived players then mobs, in
+  room order); no sight refuses. Refusals are narrated, set
+  `RefusalExplained`, and spend nothing.
 - **`SendCounterTrio(room, res, countered, counteredUserId)`**: the one counter
   dispatch, used by `DispatchCounterMessages` and `hooks.fireSpellCounterTier`.
   It goes through `messaging.SendTrio`, so a counter in the dark names nobody.

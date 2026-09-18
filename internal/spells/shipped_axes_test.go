@@ -50,6 +50,14 @@ func TestShippedSpellsCarryTheAxesAndNoLegacyKeys(t *testing.T) {
 					t.Errorf("%s/%s lacks %s", world, e.Name(), re.String())
 				}
 			}
+			var sd SpellData
+			if err := yaml.Unmarshal(raw, &sd); err != nil {
+				t.Errorf("%s/%s: unmarshal: %v", world, e.Name(), err)
+				continue
+			}
+			if err := sd.validateAxes(); err != nil {
+				t.Errorf("%s/%s: validateAxes: %v", world, e.Name(), err)
+			}
 		}
 	}
 	if seen < 60 {
