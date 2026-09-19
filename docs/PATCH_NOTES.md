@@ -14,7 +14,8 @@ charm or a taunt have been rewritten so they fit either.
 
 Shrug off a charm decisively and you now mock the attempt instead of
 swinging at it, the same way a taunt thrown back stings the one who threw
-it. The retort wounds their nerve, not their body.
+it. The retort wounds their nerve, not their body. And like every other
+counter, a retort thrown in the dark names nobody you cannot see.
 
 ## 2026-09-18: A room-wide working earns no answer
 
