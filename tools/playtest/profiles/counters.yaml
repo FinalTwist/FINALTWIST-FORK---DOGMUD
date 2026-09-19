@@ -1,0 +1,48 @@
+role: user
+username: template-counters
+character:
+  name: Counter Bait
+  description: >
+    Synthetic profile for the counters-slice playtest. A weak attacker with
+    one of every attack type (a special move, a sling, a single physical
+    working, a mental working, an area working, a taunt and a charm) and
+    deep pools, seeded in the Rift Chamber so Sable can start an arena
+    fight at high gold. The opponent's defences should crit often against
+    these stats; that is the point.
+  roomid: 5000
+  zone: Thornwall City
+  speciesid: 1
+  stats:
+    strength:
+      base: 30
+    dexterity:
+      base: 30
+    perception:
+      base: 30
+    vitality:
+      base: 150
+    willpower:
+      base: 30
+    charisma:
+      base: 30
+  health: 6000
+  stamina: 3000
+  conviction: 3000
+  gold: 30000
+  skills:
+    weapon-combat: 3
+    unarmed-combat: 3
+    ranged-combat: 3
+    spellcasting: 3
+    rhetoric: 3
+  spellbook:
+    kinetic-hurl: 1
+    mind-spike: 1
+    sparks: 1
+    charm: 1
+  items:
+  - itemid: 30064
+  - itemid: 30064
+  equipment:
+    weapon:
+      itemid: 10038

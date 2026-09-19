@@ -1,0 +1,86 @@
+# Counters slice gate: every counter now reads like the defence that earned
+# it, area workings earn no counter, and a defied charm is mocked, not hit.
+#
+# You are the ATTACKER and you are weak on purpose. Your opponent will turn
+# most of your attacks aside, and when a defence is decisive it earns them a
+# free answer, printed right after the defence line with a "COUNTER!" or
+# "RETORT!" prefix. The whole test is whether those two lines AGREE: a line
+# that says your blow was parried must be followed by a counter about
+# turning the blow and cutting back, never about stepping into an opening or
+# driving in from behind a guard.
+#
+# Not every attack will be decisively defended. Repeat each attack until you
+# have seen at least two counters for it, or ten attempts, whichever comes
+# first, and say which.
+ephemeral:
+  profile: counters
+  start_room: 5000
+  budgets:
+    wall_clock: 45m
+
+goals:
+  - >-
+    Establish the fixture. You start in the Rift Chamber with Sable. Run
+    `ask sable arena 5000` to start an arena fight against a strong
+    opponent. If the fight does not start, try `ask sable arena 2000` and
+    report what Sable said. Once an opponent is present, `look` and note
+    its name. Do not flee; your health is very deep.
+  - >-
+    Special move. Use `kick <opponent>` repeatedly. Each time your kick is
+    turned aside, record the defence line VERBATIM (it will say you were
+    dodged, parried or blocked). Whenever a "COUNTER!" line follows, record
+    it verbatim directly under the defence line it followed. Stop after two
+    counters or ten kicks.
+  - >-
+    Judge the melee counters. For each pair you recorded: a PARRY defence
+    line must be followed by a counter about the blow being turned on the
+    defender's weapon and answered, a BLOCK defence line by a counter about
+    a guard, a shoulder or driving in, and a DODGE defence line by a counter
+    about stepping into an opening or striking at a gap. Any pair where the
+    counter's action does not match the defence is the single most
+    important thing to report. Quote both lines. Also flag any parry
+    counter that names YOUR weapon or blade: you kicked, so it must not.
+  - >-
+    Point-blank shot. Use `shoot <opponent>` repeatedly (you carry a sling
+    and shot; if the game says the weapon is not loaded, `load` it and say
+    so). Record every defence line and every "COUNTER!" line that follows
+    it, verbatim, as pairs. A shot can only be dodged or blocked, so the
+    counter must read as a dodge or block answer, never as a parry. Stop
+    after two counters or ten shots.
+  - >-
+    Single-target physical working. Use `cast kinetic-hurl <opponent>`
+    repeatedly. Record the defence line and any "COUNTER!" line as pairs.
+    The counter must read as a dodge or block answer. Stop after two
+    counters or ten casts.
+  - >-
+    Mental working. Use `cast mind-spike <opponent>` repeatedly. Record the
+    pairs. The defence line will say your working was quelled or shrugged
+    off, and the counter must be about the working being put down or the
+    spell unravelling, never about a weapon, a guard or an opening. Stop
+    after two counters or ten casts.
+  - >-
+    Area working. Use `cast sparks` (no target) at least ten times. Record
+    every defence line. NO "COUNTER!" line may EVER follow an area working,
+    however decisively it was turned aside. If one does, quote it: that is
+    a bug this change exists to fix.
+  - >-
+    Taunt. Use `taunt <opponent>` repeatedly. When your taunt is thrown
+    back, the line carries a "RETORT!" prefix and your conviction (not your
+    health) should fall. Record two retorts verbatim and check your
+    `status` before and after one to confirm which pool dropped. Stop after
+    two retorts or ten taunts.
+  - >-
+    Charm. Use `cast charm <opponent>` repeatedly. When the charm is
+    decisively defied, a "RETORT!" line must follow, NEVER a "COUNTER!"
+    line, and the retort must read as mockery of your attempt, in words that
+    make sense for a charm (it must not call your charm a taunt or a jeer).
+    Check `status` before and after: conviction falls, health does not.
+    Record two retorts verbatim. Stop after two retorts or ten casts.
+  - >-
+    Report. List every defence/counter pair you recorded, grouped by attack.
+    Then answer, with quotes: did any counter contradict its defence line;
+    did any area working earn a counter; did any defied charm earn a swing
+    instead of a retort; did any retort call a charm a taunt; did any line
+    show a raw number; did any line read as broken English or contain a
+    token like {actor}. Also report anything else that looked wrong while
+    fighting, but keep it separate from the pairs.
