@@ -20,14 +20,14 @@ character:
     perception:
       base: 30
     vitality:
-      base: 150
+      base: 400
     willpower:
-      base: 30
+      base: 720
     charisma:
       base: 30
-  health: 6000
-  stamina: 3000
-  conviction: 3000
+  health: 1235
+  stamina: 1925
+  conviction: 815
   gold: 30000
   skills:
     weapon-combat: 3

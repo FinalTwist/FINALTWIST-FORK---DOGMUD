@@ -21,10 +21,10 @@ ephemeral:
 goals:
   - >-
     Establish the fixture. You start in the Rift Chamber with Sable. Run
-    `ask sable arena 5000` to start an arena fight against a strong
-    opponent. If the fight does not start, try `ask sable arena 2000` and
+    `ask sable arena 2000` to start an arena fight against a strong
+    opponent. If the fight does not start, try `ask sable arena 1000` and
     report what Sable said. Once an opponent is present, `look` and note
-    its name. Do not flee; your health is very deep.
+    its name. Do not flee; your health is deep enough to last.
   - >-
     Special move. Use `kick <opponent>` repeatedly. Each time your kick is
     turned aside, record the defence line VERBATIM (it will say you were
@@ -42,8 +42,8 @@ goals:
     counter that names YOUR weapon or blade: you kicked, so it must not.
   - >-
     Point-blank shot. Use `shoot <opponent>` repeatedly (you carry a sling
-    and shot; if the game says the weapon is not loaded, `load` it and say
-    so). Record every defence line and every "COUNTER!" line that follows
+    and shot; there is no load command, firing readies the next round).
+    Record every defence line and every "COUNTER!" line that follows
     it, verbatim, as pairs. A shot can only be dodged or blocked, so the
     counter must read as a dodge or block answer, never as a parry. Stop
     after two counters or ten shots.
