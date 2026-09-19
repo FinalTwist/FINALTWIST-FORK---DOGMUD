@@ -295,7 +295,7 @@ func ExecuteFire(actor Actor, rest string) FireResult {
 	// cascades Hidden -> Revealing. result.IsSneaking was captured before that.
 	//
 	// Cross-room is excluded deliberately: it never SetAggro's, is reach-gated
-	// out of counterattacks (the one uncounterable attack), and narrates
+	// out of counterattacks (the one single-target attack that cannot be countered), and narrates
 	// anonymously. A stacked crit on top of all three would be a boss killed
 	// from the next room at no risk and with no way to learn who did it.
 	// ONE claim per shot, sneaking or not. Before the fold, an ordinary shot

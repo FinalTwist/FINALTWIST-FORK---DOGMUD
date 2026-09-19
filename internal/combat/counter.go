@@ -49,7 +49,7 @@ type CounterResult struct {
 	CountererName string
 	CounteredName string
 
-	// Channel-correct counter narration (U6b Task 11), rendered from the
+	// Defence-correct counter narration (U6b Task 11), rendered from the
 	// counter-* pools in _datafiles/world/dogmud/defense-messages/.
 	// DefenderMsg addresses the COUNTERER (the one who earned the counter),
 	// AttackerMsg the countered original attacker.
