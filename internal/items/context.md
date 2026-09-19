@@ -430,9 +430,10 @@ heavy = it crits; `internal/combat` maps outcomes to `(crit, margin)` inputs
 accordingly). Every file must provide `weak`, `normal`, and `heavy`; each band
 must have equal defender, attacker, and room lists containing at least five
 non-empty variants. The dodge and block pools are written attack-agnostic
-because either may answer a melee move, a same-room shot or a physical
-spell; parry answers steel only and quell answers workings only; defy
-reads for a charm as well as a taunt, so no line in it names the attempt.
+because either may answer a melee move, a same-room shot or a physical spell;
+parry answers melee only, whatever swung, so its lines name the defender's
+weapon and never the attacker's; quell answers workings only; defy reads for
+a charm as well as a taunt, so no line in it names the attempt.
 
 `RenderDefenseMessage` chooses one index and applies it to all three audiences
 before token replacement. Ordinary defended channel outcomes use Weak below a

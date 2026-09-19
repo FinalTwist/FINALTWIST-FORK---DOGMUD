@@ -412,9 +412,10 @@ func ExecuteFire(actor Actor, rest string) FireResult {
 
 	// U6b Task 10: a crit-defended shot earns the defender a counter-swing,
 	// REACH-GATED — only when the shooter shares the room. The cross-room
-	// shot is the ONE uncounterable attack (owner decision: a property of
-	// the weapon, not a wiring hole). The wrapper speaks the counter AFTER
-	// the shot's own outcome via DispatchCounterMessages (Task 11).
+	// shot is the one single-target attack that cannot be countered (owner
+	// decision: a property of the weapon, not a wiring hole). The wrapper
+	// speaks the counter AFTER the shot's own outcome via
+	// DispatchCounterMessages (Task 11).
 	result.Counter = counterSkillMoveExit(actor, defChar, result.MoveResult, combatvocab.Ranged(combatvocab.TargetSingle), !crossRoom)
 
 	// Analytics + round consumption (same pattern as kick). Every shot burns

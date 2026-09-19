@@ -123,8 +123,10 @@ Two things worth knowing:
 
   - Every attack channel can be answered, not just weapons. A quelled
     spell or a defied taunt earns the same opening.
-  - Reach decides it. Someone shooting you from another room is the one
-    attack you cannot answer, because you cannot reach them.
+  - Reach and aim decide it. Someone shooting you from another room
+    cannot be answered, because you cannot reach them. A working or a
+    sweep that reaches everyone in the room earns no answer either: the
+    free strike is for an attack aimed at you alone.
 
 <ansi fg="yellow">━━━ Defense Skills ━━━</ansi>
 

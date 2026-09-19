@@ -19,7 +19,7 @@ package actions
 //   - executeCounterTaunt (above FireCounterTaunt): the defy carve-out's
 //     cost-free contest and damage primitive, called by FireCounterTaunt.
 //
-// Narration is channel-correct (U6b Task 11), rendered by internal/combat
+// Narration is defence-correct (U6b Task 11), rendered by internal/combat
 // from the counter-* pools in defense-messages/. SEQUENCING (the Task 10 wart,
 // fixed by Task 11): counterSkillMoveExit does NOT dispatch — the counter
 // would print before the move's own outcome, because messages render in call
@@ -49,7 +49,7 @@ import (
 // counterSkillMoveExit fires the counter tier at one skill-move exit: the
 // DEFENDER of the move earned a defensive crit and answers the ACTOR who
 // attempted it. sameRoom carries the reach gate (false only for the
-// cross-room shot, the one uncounterable attack).
+// cross-room shot, the one single-target attack that cannot be countered).
 //
 // It resolves the counter-swing (damage lands HERE) but dispatches nothing:
 // the result rides up on the action's result struct so the command wrapper
@@ -69,7 +69,7 @@ func counterSkillMoveExit(actor Actor, defender *characters.Character,
 	return combat.ExecuteCounter(defender, actor.GetCharacter(), shape, move.Defence.Defence, sameRoom)
 }
 
-// DispatchCounterMessages routes the channel-correct counter narration:
+// DispatchCounterMessages routes the defence-correct counter narration:
 // private lines to whichever participants are players, one visual line to the
 // room. Command wrappers call it AFTER rendering the move's own outcome so
 // the counter reads as the answer it is (the Task 11 ordering fix). actor is

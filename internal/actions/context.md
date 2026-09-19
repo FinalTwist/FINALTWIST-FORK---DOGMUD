@@ -765,7 +765,8 @@ the free supply-handoff paths — these are NOT routed through `actions.Sell`.
   `combat.ExecuteCounter` at every `ExecuteSkillMove` consumer's
   defensive-crit exit (bash/gore/hamstring/kick/maul/pounce/rake/throttle/
   trip/drain, plus `ExecuteFire` with `sameRoom = !crossRoom` —
-  the cross-room shot is the ONE uncounterable attack). It refuses results
+  the cross-room shot is the one single-target attack that cannot be
+  countered). It refuses results
   carrying `SkillMoveResult.IsCounter`, so a counter never earns a counter.
 - `executeCounterTaunt(counterer, target)` is the defy carve-out: a defy CRIT
   counter-TAUNTS instead of counter-swinging. Its dispatch is the exported
@@ -780,10 +781,9 @@ the free supply-handoff paths — these are NOT routed through `actions.Sell`.
 Counter-swings route through the seam, so the ORIGINAL attacker defends them
 and is charged + progressed for it (the countered-party economy).
 
-Narration (U6b Task 11) is channel-correct, rendered by `internal/combat`
-from the `counter-*` pools in `defense-messages/` (melee/ranged/quell by the
-original attack's `combatvocab.Attack` shape; the counter-taunt from
-`counter-defy` via `combat.BuildCounterTauntMessages`). SEQUENCING:
+Narration is rendered by `internal/combat` from the pool of the defence that
+won (`items.CounterPoolFor`; the defy answer from `counter-defy` via
+`combat.BuildCounterTauntMessages`). SEQUENCING:
 `counterSkillMoveExit` does
 NOT dispatch — messages render in call order and the wrappers narrate after
 `ExecuteX` returns, so the `CounterResult` rides up on each action's result

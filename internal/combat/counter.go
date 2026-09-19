@@ -11,7 +11,7 @@ import (
 )
 
 // CounterResult holds the outcome of one counter tier firing: whether the
-// tier fired at all, the seam-resolved counter-swing, and channel-correct
+// tier fired at all, the seam-resolved counter-swing, and defence-correct
 // narration for the three audiences (U6b Task 11: rendered from the
 // counter-* pools in defense-messages/, chosen by the defence that won).
 type CounterResult struct {
@@ -65,10 +65,11 @@ type CounterResult struct {
 // internal/hooks/combat_shared_helpers.go reads the same knob, but stays on
 // its historical uncontested maths so melee behaviour is unchanged).
 //
-// Rules, all owner decisions 2026-08-19:
+// Rules, all owner decisions 2026-08-19 unless dated otherwise:
 //
 //   - reach-gated: attacker and defender must share a room. The cross-room
-//     shot is the one uncounterable attack, as a property of the weapon.
+//     shot is the one single-target attack that cannot be countered, as a
+//     property of the weapon.
 //   - single-target only: an area or multi attack earns no counter (owner
 //     ruling 2026-09-18). Targeting travels on the shape, so an exit cannot
 //     bypass the gate by omission.
@@ -126,7 +127,8 @@ func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.
 	if defence == combatvocab.DefenceDefy {
 		return result
 	}
-	// Reach gate: the cross-room shot is the one uncounterable attack.
+	// Reach gate: the cross-room shot is the one single-target attack that
+	// cannot be countered.
 	if !sameRoom {
 		return result
 	}
@@ -185,7 +187,7 @@ func counterBand(crit bool, damage int) (bandCrit bool, bandMargin float64) {
 	return crit, 1.0
 }
 
-// fillCounterMessages renders the channel-correct counter triad (U6b Task 11)
+// fillCounterMessages renders the defence-correct counter triad (U6b Task 11)
 // from the winning defence's counter-* pool (items.CounterPoolFor), appending
 // the damage description to the two personal lines the same way the
 // special-move wrappers do (room lines never carry damage). The framing is
