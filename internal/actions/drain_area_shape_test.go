@@ -55,7 +55,7 @@ func TestExecuteDrainAreaIsAPhysicalAreaSpell(t *testing.T) {
 		return true
 	})
 	require.Zero(t, melee, "ExecuteDrainArea still builds a melee shape; core-drain must not be parryable")
-	require.GreaterOrEqual(t, spellPhysicalArea, 1, "ExecuteDrainArea must carry Spell(DamagePhysical, TargetArea) at least once; the zero-Melee assertion above is the real invariant")
+	require.Equal(t, 2, spellPhysicalArea, "the skill move's Shape and its SituationalAttackMult must both carry Spell(DamagePhysical, TargetArea); the counter exit is gone (area attacks earn no counter)")
 }
 
 func isSel(e ast.Expr, name string) bool {

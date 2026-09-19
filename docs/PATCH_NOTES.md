@@ -1,5 +1,30 @@
 # DOGMud Patch Notes
 
+## 2026-09-18: Your counter reads like your defence
+
+When a decisive parry, block or dodge earns you a free answer, the
+answer now describes what you did. A parry turns the weapon and cuts back
+along it. A block drives in from behind the guard. A dodge steps into
+the opening. Before, all three read the same. A working you turn aside
+with your mind still reads that way. One you dodge or take on a shield
+now reads like the dodge or the block. The words you throw back at a
+charm or a taunt have been rewritten so they fit either.
+
+## 2026-09-18: Words are answered with words
+
+Shrug off a charm decisively and you now mock the attempt instead of
+swinging at it, the same way a taunt thrown back stings the one who threw
+it. The retort wounds their nerve, not their body. And like every other
+counter, a retort thrown in the dark names nobody you cannot see.
+
+## 2026-09-18: A room-wide working earns no answer
+
+When a working or a sweep reaches everyone in the room, turning it aside
+no longer hands each of you a free strike at the one who made it. A
+decisive defence still stops it cold. The answering blow is for an attack
+aimed at you alone: a swing, a shot from within reach, or a working sent
+at you and nobody else.
+
 ## 2026-09-18: Mending your companion no longer picks a fight
 
 Healing or shielding your own companion, and mending an ally beast under an

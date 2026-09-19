@@ -17,6 +17,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -287,6 +288,76 @@ func TestSkillMoveExit_DefensiveCritCounters(t *testing.T) {
 		"a crit-defended skill move must run two contests: the move and the counter-swing")
 	require.Less(t, mover.Character.Health, 100000,
 		"the counter-swing must damage the one who attempted the move")
+	require.Equal(t, res.MoveResult.Defence.Defence, res.Counter.Defence,
+		"the exit must forward the defence that WON the move, not a fixed one")
+	require.NotEqual(t, combatvocab.DefenceNone, res.Counter.Defence)
+}
+
+// The exit must forward the defence that WON, not the first eligible one.
+// The other exit tests' stub runner always names dodge the winner, so a
+// hardcoded dodge would pass them; this one hands the exit a PARRY win.
+func TestSkillMoveExit_ForwardsAParryWinToTheParryPool(t *testing.T) {
+	pinActionsCounterKnob(t, 0.5)
+	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
+		items.CounterPoolFor(combatvocab.DefenceParry): markedCounterPool(combatvocab.DefenceParry),
+		items.CounterPoolFor(combatvocab.DefenceDodge): markedCounterPool(combatvocab.DefenceDodge),
+	})
+	defer restoreMessages()
+	t.Cleanup(func() { mobs.SetInstanceForTest(counterTauntWiringTargetId, nil) })
+
+	// mover = the countered attacker whose skill move was crit-defended;
+	// counterer = the defender whose parry critted and now earns the
+	// counter-swing.
+	mover, counterer := newTauntCollapsePair(t, counterTauntWiringTargetId, 200, 10, 120, 7)
+	mover.Character.Health = 100000
+	mover.Character.HealthMax.Value = 100000
+	mover.Character.Stats.Strength.Base = 100
+	mover.Character.Stats.Strength.Recalculate()
+	counterer.Character.Health = 100000
+	counterer.Character.HealthMax.Value = 100000
+	counterer.Character.Stats.Strength.Base = 100
+	counterer.Character.Stats.Strength.Recalculate()
+
+	moverActor := &MobActor{Mob: mover}
+
+	calls := 0
+	restore := combat.SetChannelAttackContestRunnerForTest(counterSequencedRunner(t, &calls,
+		tauntDeterministicRunner(t, 0.5, 0.5, -0.5), // the counter-swing lands
+	))
+	t.Cleanup(restore)
+
+	move := combat.SkillMoveResult{Defence: combat.ChannelDefenceResult{
+		Defended: true, DefensiveCrit: true, Defence: combatvocab.DefenceParry,
+	}}
+	res := counterSkillMoveExit(moverActor, &counterer.Character, move, combatvocab.Melee(combatvocab.TargetSingle), true)
+	require.True(t, res.Countered)
+	require.Equal(t, combatvocab.DefenceParry, res.Defence)
+	require.Contains(t, res.DefenderMsg, "pool=counter-parry")
+	require.NotContains(t, res.DefenderMsg, "pool=counter-dodge")
+}
+
+// markedCounterPool builds a DefenseMessageGroup for defence d whose every
+// line, in every band and every role, carries a "pool=counter-<defence>"
+// marker so a test can tell which counter pool actually rendered regardless
+// of which band (weak/normal/heavy) the roll lands in.
+func markedCounterPool(d combatvocab.Defence) *items.DefenseMessageGroup {
+	pool := items.CounterPoolFor(d)
+	line := items.ItemMessage("pool=" + string(pool) + " {actee} answers {actor}")
+	messages := func() items.MessageOptions {
+		result := make(items.MessageOptions, 5)
+		for i := range result {
+			result[i] = line
+		}
+		return result
+	}
+	band := items.DefenseOptions{Together: items.DefenseTogetherMessages{
+		ToDefender: messages(),
+		ToAttacker: messages(),
+		ToRoom:     messages(),
+	}}
+	return &items.DefenseMessageGroup{OptionId: pool, Options: items.DefenseIntensity{
+		items.Weak: band, items.Normal: band, items.Heavy: band,
+	}}
 }
 
 // U6b playtest closeout (2026-08-19): the defy counter-taunt exchange was

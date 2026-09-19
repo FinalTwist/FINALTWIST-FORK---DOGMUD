@@ -57,7 +57,7 @@ func MinimalDefenseMessageFixture() map[DefencePool]*DefenseMessageGroup {
 		DefencePoolFor(combatvocab.DefenceDodge), DefencePoolFor(combatvocab.DefenceParry),
 		DefencePoolFor(combatvocab.DefenceBlock), DefencePoolFor(combatvocab.DefenceQuell),
 		DefencePoolFor(combatvocab.DefenceDefy),
-		CounterPoolMelee, CounterPoolRanged, CounterPoolQuell, CounterPoolDefy,
+		CounterPoolDodge, CounterPoolParry, CounterPoolBlock, CounterPoolQuell, CounterPoolDefy,
 	}
 	out := make(map[DefencePool]*DefenseMessageGroup, len(all))
 	for _, dt := range all {

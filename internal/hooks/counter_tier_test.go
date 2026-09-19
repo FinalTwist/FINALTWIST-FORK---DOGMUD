@@ -15,6 +15,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
@@ -296,14 +297,15 @@ func TestSpellCounter_PlayerVsPlayerAndMobVsMob(t *testing.T) {
 // U6b playtest closeout (2026-08-19): the quell lane's counter narration was
 // never observed live (the caster mob never cast). The dispatch is pinned
 // here: on a decisive defensive crit against a cast, the countered CASTER
-// must receive the counter line, rendered from the counter-quell pool (both
-// spell channels share it), never silently dropped.
-func TestSpellCounter_NarrationReachesCasterFromCounterQuellPool(t *testing.T) {
+// must receive the counter line, rendered from the pool of the defence that
+// won (counters slice, spec ruling 1). The stub runner names entries[0] the
+// winner, and a physical spell's first eligible defence is dodge.
+func TestSpellCounter_NarrationReachesCasterFromTheWinningDefencePool(t *testing.T) {
 	pinCounterTierKnobs(t, 0.5)
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
-		items.CounterPoolQuell: counterQuellNarrationFixture(),
+		items.CounterPoolFor(combatvocab.DefenceDodge): counterPoolNarrationFixture(combatvocab.DefenceDodge),
 	})
 	defer restoreMessages()
 
@@ -338,20 +340,22 @@ func TestSpellCounter_NarrationReachesCasterFromCounterQuellPool(t *testing.T) {
 	}
 	require.Len(t, counterLines, 1,
 		"the countered caster must receive exactly one counter line; got %v", lines)
-	require.Contains(t, strings.ToLower(counterLines[0]), "counterquell-attacker",
-		"the caster's line must be the counter-quell pool's attacker-audience render")
+	require.Contains(t, strings.ToLower(counterLines[0]), "counterdodge-attacker",
+		"the caster's line must be the winning defence's pool's attacker-audience render")
 	require.Contains(t, counterLines[0], mob.Character.Name,
 		"the counter line must name the countering defender")
 }
 
-// counterQuellNarrationFixture seeds a marked counter-quell pool for the
-// dispatch pin above.
-func counterQuellNarrationFixture() *items.DefenseMessageGroup {
+// counterPoolNarrationFixture seeds a marked counter pool for one defence,
+// so a render can be traced to the pool that produced it.
+func counterPoolNarrationFixture(d combatvocab.Defence) *items.DefenseMessageGroup {
+	pool := items.CounterPoolFor(d)
+	marker := "counter" + string(d) + "-"
 	mk := func(band string) items.DefenseOptions {
 		messages := func(audience string) items.MessageOptions {
 			result := make(items.MessageOptions, 5)
 			for i := range result {
-				result[i] = items.ItemMessage("counterquell-" + audience + "-" + band +
+				result[i] = items.ItemMessage(marker + audience + "-" + band +
 					" {actee} steps through the gap {actor} left")
 			}
 			return result
@@ -362,7 +366,7 @@ func counterQuellNarrationFixture() *items.DefenseMessageGroup {
 			ToRoom:     messages("room"),
 		}}
 	}
-	return &items.DefenseMessageGroup{OptionId: items.CounterPoolQuell, Options: items.DefenseIntensity{
+	return &items.DefenseMessageGroup{OptionId: pool, Options: items.DefenseIntensity{
 		items.Weak: mk("weak"), items.Normal: mk("normal"), items.Heavy: mk("heavy"),
 	}}
 }
@@ -412,4 +416,153 @@ func TestResolveAgainstMob_ReportsWhetherTheCastLanded(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Counters spec ruling 2: an area cast earns no counter. The seven shipped
+// physical area spells used to hand every victim a free swing at the caster.
+// Pinned at the spell exit so the gate is proven reachable from a cast, not
+// only from the primitive.
+func TestSpellCounter_AnAreaCastEarnsNoCounter(t *testing.T) {
+	pinCounterTierKnobs(t, 0.5)
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restoreMessages := seedChannelRoutingMessages(t)
+	defer restoreMessages()
+
+	caster := users.GetByUserId(1)
+	mob := mobInstanceForCollapseTest(t)
+	room := roomForCollapseTest(t)
+	caster.Character.Health = 100000
+	caster.Character.HealthMax.Value = 100000
+	caster.Character.Stamina = 500
+	caster.Character.StaminaMax.Value = 500
+
+	calls := 0
+	restore := combat.SetChannelAttackContestRunnerForTest(sequencedContestRunner(t, &calls,
+		alwaysDefensiveCritContest(t), // the cast is crit-defended
+		attackWinContest(t),           // would be the counter-swing, must never run
+	))
+	t.Cleanup(restore)
+
+	spell := physicalHarmSpellForCollapseTest()
+	spell.Targeting = combatvocab.TargetArea
+	side := spellAttackSideFor(spell, caster.Character)
+	fumbled, _ := resolveAgainstMob(caster, mob, room, spell, side, spell.EffectMagnitude)
+	require.False(t, fumbled)
+
+	require.Equal(t, 1, calls, "an area cast runs its own contest and never a counter-swing")
+	require.Equal(t, 100000, caster.Character.Health, "no counter damage may reach an area caster")
+}
+
+// A defied charm is answered with words (owner ruling 2026-09-18). The spell
+// exit routes a defy crit to the counter-taunt: conviction falls, health does
+// not, and the caster reads a RETORT line from the counter-defy pool, never a
+// COUNTER line.
+func TestSpellCounter_ADefiedCharmIsAnsweredWithACounterTaunt(t *testing.T) {
+	pinCounterTierKnobs(t, 0.5)
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
+		items.CounterPoolFor(combatvocab.DefenceDefy): counterPoolNarrationFixture(combatvocab.DefenceDefy),
+	})
+	defer restoreMessages()
+
+	caster := users.GetByUserId(1)
+	mob := mobInstanceForCollapseTest(t)
+	room := roomForCollapseTest(t)
+	caster.Character.Health = 100000
+	caster.Character.HealthMax.Value = 100000
+	caster.Character.Conviction = 10000
+	caster.Character.ConvictionMax.Value = 10000
+	caster.Character.Stamina = 500
+	caster.Character.StaminaMax.Value = 500
+	mob.Character.Stats.Charisma.Base = 150
+	mob.Character.Stats.Charisma.Recalculate()
+
+	calls := 0
+	restore := combat.SetChannelAttackContestRunnerForTest(sequencedContestRunner(t, &calls,
+		alwaysDefensiveCritContest(t), // the charm is defy-critted
+		attackWinContest(t),           // the counter-taunt lands
+	))
+	t.Cleanup(restore)
+
+	spell := charmTestSpellData()
+	side := spellAttackSideFor(spell, caster.Character)
+	events.DrainQueuedMessagesForTest(caster.UserId)
+	resolveAgainstMob(caster, mob, room, spell, side, spell.EffectMagnitude)
+
+	require.Equal(t, 2, calls, "the charm and the counter-taunt: two contests, never a third")
+	require.Equal(t, 100000, caster.Character.Health, "a retort never wounds the body")
+	require.Less(t, caster.Character.Conviction, 10000, "the retort must wound the caster's nerve")
+
+	lines := events.DrainQueuedMessagesForTest(caster.UserId)
+	retorts, counters := 0, 0
+	for _, line := range lines {
+		if strings.Contains(line, "RETORT!") {
+			retorts++
+			require.Contains(t, strings.ToLower(line), "counterdefy-attacker",
+				"the caster's line must be the counter-defy pool's attacker-audience render")
+		}
+		if strings.Contains(line, "COUNTER!") {
+			counters++
+		}
+	}
+	require.Equal(t, 1, retorts, "exactly one retort line for the countered caster; got %v", lines)
+	require.Zero(t, counters, "a defied charm must never print a swing")
+}
+
+// A defied AREA cast earns no counter-taunt either (owner ruling: a counter
+// answers one deliberate attack at one target). The defy branch fires before
+// combat.ExecuteCounter, so ExecuteCounter's own single-target gate never
+// sees it; FireCounterTaunt must carry the same gate itself.
+func TestSpellCounter_ADefiedAreaCastEarnsNoRetort(t *testing.T) {
+	pinCounterTierKnobs(t, 0.5)
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
+		items.CounterPoolFor(combatvocab.DefenceDefy): counterPoolNarrationFixture(combatvocab.DefenceDefy),
+	})
+	defer restoreMessages()
+
+	caster := users.GetByUserId(1)
+	mob := mobInstanceForCollapseTest(t)
+	room := roomForCollapseTest(t)
+	caster.Character.Health = 100000
+	caster.Character.HealthMax.Value = 100000
+	caster.Character.Conviction = 10000
+	caster.Character.ConvictionMax.Value = 10000
+	caster.Character.Stamina = 500
+	caster.Character.StaminaMax.Value = 500
+	mob.Character.Stats.Charisma.Base = 150
+	mob.Character.Stats.Charisma.Recalculate()
+
+	calls := 0
+	restore := combat.SetChannelAttackContestRunnerForTest(sequencedContestRunner(t, &calls,
+		alwaysDefensiveCritContest(t), // the charm is defy-critted
+		attackWinContest(t),           // would be the counter-taunt, must never run
+	))
+	t.Cleanup(restore)
+
+	spell := charmTestSpellData()
+	spell.Targeting = combatvocab.TargetArea
+	side := spellAttackSideFor(spell, caster.Character)
+	events.DrainQueuedMessagesForTest(caster.UserId)
+	resolveAgainstMob(caster, mob, room, spell, side, spell.EffectMagnitude)
+
+	require.Equal(t, 1, calls, "an area cast runs its own contest and never a counter-taunt")
+	require.Equal(t, 100000, caster.Character.Health, "no counter damage may reach an area caster")
+	require.Equal(t, 10000, caster.Character.Conviction, "a refused counter-taunt must never wound the caster's nerve")
+
+	lines := events.DrainQueuedMessagesForTest(caster.UserId)
+	retorts, counters := 0, 0
+	for _, line := range lines {
+		if strings.Contains(line, "RETORT!") {
+			retorts++
+		}
+		if strings.Contains(line, "COUNTER!") {
+			counters++
+		}
+	}
+	require.Zero(t, retorts, "an area cast earns no retort; got %v", lines)
+	require.Zero(t, counters, "an area cast earns no counter swing either; got %v", lines)
 }

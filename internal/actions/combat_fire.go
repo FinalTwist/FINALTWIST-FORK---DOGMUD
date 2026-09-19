@@ -295,7 +295,7 @@ func ExecuteFire(actor Actor, rest string) FireResult {
 	// cascades Hidden -> Revealing. result.IsSneaking was captured before that.
 	//
 	// Cross-room is excluded deliberately: it never SetAggro's, is reach-gated
-	// out of counterattacks (the one uncounterable attack), and narrates
+	// out of counterattacks (the one single-target attack that cannot be countered), and narrates
 	// anonymously. A stacked crit on top of all three would be a boss killed
 	// from the next room at no risk and with no way to learn who did it.
 	// ONE claim per shot, sneaking or not. Before the fold, an ordinary shot
@@ -412,9 +412,10 @@ func ExecuteFire(actor Actor, rest string) FireResult {
 
 	// U6b Task 10: a crit-defended shot earns the defender a counter-swing,
 	// REACH-GATED — only when the shooter shares the room. The cross-room
-	// shot is the ONE uncounterable attack (owner decision: a property of
-	// the weapon, not a wiring hole). The wrapper speaks the counter AFTER
-	// the shot's own outcome via DispatchCounterMessages (Task 11).
+	// shot is the one single-target attack that cannot be countered (owner
+	// decision: a property of the weapon, not a wiring hole). The wrapper
+	// speaks the counter AFTER the shot's own outcome via
+	// DispatchCounterMessages (Task 11).
 	result.Counter = counterSkillMoveExit(actor, defChar, result.MoveResult, combatvocab.Ranged(combatvocab.TargetSingle), !crossRoom)
 
 	// Analytics + round consumption (same pattern as kick). Every shot burns

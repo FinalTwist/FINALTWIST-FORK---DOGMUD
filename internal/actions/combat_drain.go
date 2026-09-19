@@ -206,11 +206,6 @@ type DrainAreaPlayerResult struct {
 	// MoveResult is the outcome from ExecuteSkillMove against this player.
 	MoveResult combat.SkillMoveResult
 
-	// Counter is the counter tier outcome (U6b Tasks 10-11): non-zero when the
-	// defender crit-defended and answered. The command wrapper speaks its
-	// narration AFTER the move's own outcome via DispatchCounterMessages.
-	Counter combat.CounterResult
-
 	// BleedDmg is the per-round amount of the bleed stack added to this
 	// player on a hit. Zero on a miss.
 	BleedDmg int
@@ -276,9 +271,8 @@ func ExecuteDrainArea(actor Actor) DrainAreaResult {
 	// M4b-2 (owner ruling, M4 spec 9): core-drain is a PHYSICAL SPELL. Its
 	// victims dodge or block; nobody parries a room. This also drops the
 	// melee prone/stamina accuracy penalty, because a cast pays neither.
-	// A balance change, in its own commit. A crit-defended drain now counters
-	// through the quell pool (counter-quell.yaml names the physical-spell
-	// dodge/block crit as its case), not the melee riposte text.
+	// A balance change, in its own commit. A crit-defended drain earns no
+	// counter: the drain is an area attack (counters slice).
 
 	result := DrainAreaResult{}
 	totalHeal := 0
@@ -305,11 +299,10 @@ func ExecuteDrainArea(actor Actor) DrainAreaResult {
 			DamageStat:    char.Stats.Strength.ValueAdj,
 		})
 
-		// U6b Task 10: each player's own crit defence earns their own counter.
-		// The caller speaks it after its own drain narration (Task 11).
-		counter := counterSkillMoveExit(actor, target.Character, moveResult, combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetArea), true)
-
-		pr := DrainAreaPlayerResult{UserId: uid, MoveResult: moveResult, Counter: counter}
+		// Counters slice: a room-wide drain is an AREA attack and earns no
+		// counter, and the primitive would refuse one. The exit is not
+		// called rather than called into a gate that always refuses.
+		pr := DrainAreaPlayerResult{UserId: uid, MoveResult: moveResult}
 
 		// Bleed is a status effect (binary), so it stays gated on a clean hit.
 		if moveResult.Hit {

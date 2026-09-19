@@ -2,28 +2,35 @@ package actions
 
 // U6b Task 10 — the counter tier's actions-side wiring.
 //
-// Two entry points live here:
+// Three entry points live here:
 //
 //   - counterSkillMoveExit: fires combat.ExecuteCounter at every
-//     ExecuteSkillMove consumer's defensive-crit exit (the special moves and
-//     ExecuteFire). It refuses results produced under IsCounter, so melee's
-//     auto-trip/auto-bash (which ride the seam AS counters) can never chain.
-//   - executeCounterTaunt: the defy carve-out. A defy crit COUNTER-TAUNTS
-//     instead of counter-swinging, and the wiring lives HERE (not in
-//     internal/combat) because taunt resolution needs this package and
-//     internal/combat can never import it.
+//     single-target ExecuteSkillMove consumer's defensive-crit exit (the
+//     special moves and ExecuteFire; the area drain has none, because an
+//     area attack earns no counter). It refuses results produced under
+//     IsCounter, so melee's auto-trip/auto-bash (which ride the seam AS
+//     counters) can never chain.
+//   - FireCounterTaunt: exported. The one defy dispatch, shared by taunt's
+//     counterTauntExit below and the spell exit in internal/hooks, for a
+//     defied charm. A defy crit COUNTER-TAUNTS instead of counter-swinging,
+//     and the wiring lives HERE (not in internal/combat) because taunt
+//     resolution needs this package and internal/combat can never import
+//     it.
+//   - executeCounterTaunt (above FireCounterTaunt): the defy carve-out's
+//     cost-free contest and damage primitive, called by FireCounterTaunt.
 //
-// Narration is channel-correct (U6b Task 11), rendered by internal/combat
+// Narration is defence-correct (U6b Task 11), rendered by internal/combat
 // from the counter-* pools in defense-messages/. SEQUENCING (the Task 10 wart,
 // fixed by Task 11): counterSkillMoveExit does NOT dispatch — the counter
 // would print before the move's own outcome, because messages render in call
 // order and the wrappers narrate AFTER ExecuteX returns. Instead the
 // CounterResult rides up on the action's result struct, and the command
 // wrapper calls DispatchCounterMessages after its own outcome text — the same
-// flow the defence triads use. The defy counter-taunt keeps dispatching from
-// its exit (Task 10's review flagged only the skill-move ordering; the taunt
-// path was accepted as-is), but its narration now comes from the counter-defy
-// pool via combat.BuildCounterTauntMessages.
+// flow the defence triads use. The defy counter-taunt dispatches straight
+// from FireCounterTaunt (Task 10's review flagged only the skill-move
+// ordering; the taunt path was accepted as-is at the time), and its
+// narration comes from the counter-defy pool via
+// combat.BuildCounterTauntMessages.
 
 import (
 	"math"
@@ -42,7 +49,7 @@ import (
 // counterSkillMoveExit fires the counter tier at one skill-move exit: the
 // DEFENDER of the move earned a defensive crit and answers the ACTOR who
 // attempted it. sameRoom carries the reach gate (false only for the
-// cross-room shot, the one uncounterable attack).
+// cross-room shot, the one single-target attack that cannot be countered).
 //
 // It resolves the counter-swing (damage lands HERE) but dispatches nothing:
 // the result rides up on the action's result struct so the command wrapper
@@ -59,10 +66,10 @@ func counterSkillMoveExit(actor Actor, defender *characters.Character,
 	if !move.Defence.DefensiveCrit || move.IsCounter {
 		return combat.CounterResult{}
 	}
-	return combat.ExecuteCounter(defender, actor.GetCharacter(), shape, sameRoom)
+	return combat.ExecuteCounter(defender, actor.GetCharacter(), shape, move.Defence.Defence, sameRoom)
 }
 
-// DispatchCounterMessages routes the channel-correct counter narration:
+// DispatchCounterMessages routes the defence-correct counter narration:
 // private lines to whichever participants are players, one visual line to the
 // room. Command wrappers call it AFTER rendering the move's own outcome so
 // the counter reads as the answer it is (the Task 11 ordering fix). actor is
@@ -223,42 +230,85 @@ func executeCounterTaunt(counterer, target *characters.Character) CounterTauntRe
 	return result
 }
 
+// FireCounterTaunt is the defy answer, shared by taunt's exit here and the
+// spell exit in internal/hooks (a defied charm). shape is the original
+// attack (taunt or charm); counterer is the one whose defy critted; countered
+// the one whose words were defied. A nil recipient reads no private line (a
+// mob, or a player the caller could not resolve). The narration is the
+// counter-defy pool via combat.BuildCounterTauntMessages; the room line goes
+// to everyone who can see, the two private lines to whichever party is a
+// player. The dispatch parameters are messaging.Recipient rather than a
+// concrete *users.UserRecord (the taunt exit's caller is an Actor, which can
+// wrap a UserRecord that never sits in the users registry (a test double),
+// so a registry lookup silently drops the line; Actor already satisfies
+// Recipient, the same seam DispatchCounterMessages/SendCounterTrio use for
+// this exact problem, and SendText delivers correctly either way). Dispatch
+// goes through messaging.SendTrio, the same seam SendCounterTrio uses, so a
+// reader who cannot see the other party reads no name and the room line
+// reaches only observers who can see.
+func FireCounterTaunt(room *rooms.Room, shape combatvocab.Attack, counterer, countered *characters.Character,
+	countererRecipient messaging.Recipient, countererId int,
+	counteredRecipient messaging.Recipient, counteredId int) CounterTauntResult {
+
+	// A counter answers one deliberate attack at one target (owner ruling):
+	// the same gate the swing primitive carries, here because a defy win
+	// never reaches it.
+	if shape.Targeting != combatvocab.TargetSingle {
+		return CounterTauntResult{}
+	}
+
+	res := executeCounterTaunt(counterer, countered)
+	if !res.Fired {
+		return res
+	}
+
+	countererMsg, counteredMsg, roomMsg := combat.BuildCounterTauntMessages(
+		counterer.Name, countered.Name,
+		res.Defence.AttackerCrit, res.Damage, maxOfOne(countered.ConvictionMax.Value))
+
+	aud := messaging.Audience{
+		Actor:     countererRecipient,
+		ActorId:   countererId,
+		ActorName: counterer.Name,
+		Actee:     counteredRecipient,
+		ActeeId:   counteredId,
+		ActeeName: countered.Name,
+	}
+	if room != nil {
+		aud.Room = room
+	}
+	messaging.SendTrio(messaging.Trio{
+		Actor:    messaging.Say(messaging.CategoryTauntSuccess, countererMsg),
+		Actee:    messaging.Say(messaging.CategoryTauntSuccess, counteredMsg),
+		Observer: messaging.Say(messaging.CategoryTauntSuccess, roomMsg),
+	}, aud)
+	return res
+}
+
 // counterTauntExit wires the defy carve-out at ExecuteTaunt's defensive-crit
-// exit and dispatches the generic narration. actor is the ORIGINAL taunter
-// (now being counter-taunted); target identifies the counterer.
+// exit. actor is the ORIGINAL taunter (now being counter-taunted); target
+// identifies the counterer. The counterer's recipient resolves through the
+// users registry (the only way to reach it from an AggroTarget); the
+// countered party dispatches through actor itself (see FireCounterTaunt),
+// exactly as DispatchCounterMessages does for the swing-counter tier.
 func counterTauntExit(actor Actor, char *characters.Character, target AggroTarget,
 	out combat.ChannelDefenceResult) CounterTauntResult {
 
 	if !out.DefensiveCrit || target.Char == nil {
 		return CounterTauntResult{}
 	}
-	res := executeCounterTaunt(target.Char, char)
-	if !res.Fired {
-		return res
-	}
-
-	// Narration (U6b Task 11): the counter-defy pool — the jeer turned back.
-	// No numbers, no interrupt framing — the taunt already resolved; the
-	// counter is what the counterer does with the opening.
-	countererMsg, taunterMsg, roomMsg := combat.BuildCounterTauntMessages(
-		target.Char.Name, char.Name,
-		res.Defence.AttackerCrit, res.Damage, maxOfOne(char.ConvictionMax.Value))
-
-	exclude := []int{}
+	var countererRecipient messaging.Recipient
 	if target.UserId > 0 {
 		if u := users.GetByUserId(target.UserId); u != nil {
-			u.SendText(messaging.CategoryTauntSuccess, countererMsg)
-			exclude = append(exclude, target.UserId)
+			countererRecipient = u
 		}
 	}
-	actor.SendText(messaging.CategoryTauntSuccess, taunterMsg)
-	if actor.GetUserId() > 0 {
-		exclude = append(exclude, actor.GetUserId())
+	var counteredRecipient messaging.Recipient
+	if actor.IsPlayer() {
+		counteredRecipient = actor
 	}
-	if room := rooms.LoadRoom(char.RoomId); room != nil {
-		room.SendTextVisual(messaging.CategoryTauntSuccess, roomMsg, exclude...)
-	}
-	return res
+	return FireCounterTaunt(rooms.LoadRoom(char.RoomId), combatvocab.Rhetoric(combatvocab.TargetSingle),
+		target.Char, char, countererRecipient, target.UserId, counteredRecipient, actor.GetUserId())
 }
 
 // maxOfOne guards a max-pool denominator for damage descriptions.

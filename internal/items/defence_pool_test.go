@@ -1,6 +1,10 @@
 package items
 
 import (
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
@@ -19,11 +23,46 @@ func TestDefencePoolForIsTheDefenceName(t *testing.T) {
 	}
 }
 
-func TestCounterPoolNamesAreTheShippedFileNames(t *testing.T) {
-	want := map[DefencePool]bool{"counter-melee": true, "counter-ranged": true, "counter-quell": true, "counter-defy": true}
-	for _, p := range []DefencePool{CounterPoolMelee, CounterPoolRanged, CounterPoolQuell, CounterPoolDefy} {
-		if !want[p] {
-			t.Errorf("counter pool %q is not a shipped file name", p)
+// The five counter constants are exactly the counter-* files that ship, and
+// each is what CounterPoolFor names for its defence. Read from disk so a
+// renamed or missing file turns this red.
+func TestCounterPoolConstantsAreTheShippedFilesAndTheConversion(t *testing.T) {
+	_, here, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
+	dir := filepath.Join(filepath.Dir(here), "..", "..", "_datafiles", "world", "dogmud", "defense-messages")
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	shipped := map[DefencePool]bool{}
+	for _, e := range entries {
+		if name := e.Name(); strings.HasPrefix(name, "counter-") && strings.HasSuffix(name, ".yaml") {
+			shipped[DefencePool(strings.TrimSuffix(name, ".yaml"))] = true
+		}
+	}
+	constants := map[DefencePool]combatvocab.Defence{
+		CounterPoolDodge: combatvocab.DefenceDodge, CounterPoolParry: combatvocab.DefenceParry,
+		CounterPoolBlock: combatvocab.DefenceBlock, CounterPoolQuell: combatvocab.DefenceQuell,
+		CounterPoolDefy: combatvocab.DefenceDefy,
+	}
+	for pool, d := range constants {
+		if !shipped[pool] {
+			t.Errorf("constant %q has no shipped file", pool)
+		}
+		if got := CounterPoolFor(d); got != pool {
+			t.Errorf("CounterPoolFor(%s) = %q, want the constant %q", d, got, pool)
+		}
+	}
+	for pool := range shipped {
+		if _, ok := constants[pool]; !ok {
+			t.Errorf("shipped file %q has no constant", pool)
+		}
+	}
+	for _, d := range combatvocab.Defences() {
+		if !shipped[CounterPoolFor(d)] {
+			t.Errorf("defence %s has no shipped counter pool", d)
 		}
 	}
 }

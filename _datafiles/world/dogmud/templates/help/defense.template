@@ -112,8 +112,14 @@ excellent protection when your other defenses fail.
 <ansi fg="yellow">━━━ Counterattacks ━━━</ansi>
 
 A defense does not only spare you damage. Defend decisively enough and
-your opponent leaves an opening, and you take it: a free answering swing
-they must then defend in turn, at reduced damage.
+your opponent leaves an opening:
+
+  - A decisive dodge, parry or block earns a free answering swing the
+    attacker must defend in turn, at reduced damage. A decisive quell
+    earns the same.
+  - A decisive defy answers with words instead: a retort that wounds
+    the other side's nerve, whether they taunted you or tried to charm
+    you.
 
 You do not choose this and it costs you no action. It falls out of
 defending well, which is another reason to carry defenses you can
@@ -121,10 +127,11 @@ actually use.
 
 Two things worth knowing:
 
-  - Every attack channel can be answered, not just weapons. A quelled
-    spell or a defied taunt earns the same opening.
-  - Reach decides it. Someone shooting you from another room is the one
-    attack you cannot answer, because you cannot reach them.
+  - Every attack channel can be answered, not just weapons.
+  - Reach and aim decide it. Someone shooting you from another room
+    cannot be answered, because you cannot reach them. A working or a
+    sweep that reaches everyone in the room earns no answer either: the
+    free strike is for an attack aimed at you alone.
 
 <ansi fg="yellow">━━━ Defense Skills ━━━</ansi>
 

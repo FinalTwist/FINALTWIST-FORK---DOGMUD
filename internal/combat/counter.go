@@ -7,22 +7,24 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 )
 
 // CounterResult holds the outcome of one counter tier firing: whether the
-// tier fired at all, the seam-resolved counter-swing, and channel-correct
+// tier fired at all, the seam-resolved counter-swing, and defence-correct
 // narration for the three audiences (U6b Task 11: rendered from the
-// counter-* pools in defense-messages/, chosen by the ORIGINAL attack's
-// type).
+// counter-* pools in defense-messages/, chosen by the defence that won).
 type CounterResult struct {
 	// Countered reports whether the counter-swing actually fired. False when
-	// the reach gate refused (cross-room), the knob disabled the tier, or a
-	// participant was missing/dead.
+	// the reach gate refused (cross-room), the attack was not single-target,
+	// the winning defence was defy (the counter-taunt answers instead) or
+	// none, the knob disabled the tier, or a participant was missing/dead.
 	Countered bool
 
-	// Shape is the ORIGINAL attack that was crit-defended, kept for pool
-	// selection (Task 11's channel-correct counter narration).
-	Shape combatvocab.Attack
+	// Defence is the defence that WON the original contest and earned this
+	// counter. It chooses the narration pool (counters slice, spec ruling 1):
+	// a parry crit reads the parry pool, a block crit the block pool.
+	Defence combatvocab.Defence
 
 	// Move is the counter-swing's full seam outcome. It always carries
 	// IsCounter: the countered party defends this swing (and is charged and
@@ -47,7 +49,7 @@ type CounterResult struct {
 	CountererName string
 	CounteredName string
 
-	// Channel-correct counter narration (U6b Task 11), rendered from the
+	// Defence-correct counter narration (U6b Task 11), rendered from the
 	// counter-* pools in _datafiles/world/dogmud/defense-messages/.
 	// DefenderMsg addresses the COUNTERER (the one who earned the counter),
 	// AttackerMsg the countered original attacker.
@@ -57,20 +59,26 @@ type CounterResult struct {
 }
 
 // ExecuteCounter fires the counter tier for a defensive crit on a
-// seam-resolved channel: one free counter-swing at CounterDamagePercent of
-// weapon damage (riposte's mechanism — melee's parry-crit riposte in
+// seam-resolved channel, narrated from the pool of the defence that won it:
+// one free counter-swing at CounterDamagePercent of weapon damage (riposte's
+// mechanism — melee's parry-crit riposte in
 // internal/hooks/combat_shared_helpers.go reads the same knob, but stays on
 // its historical uncontested maths so melee behaviour is unchanged).
 //
-// Rules, all owner decisions 2026-08-19:
+// Rules, all owner decisions 2026-08-19 unless dated otherwise:
 //
 //   - reach-gated: attacker and defender must share a room. The cross-room
-//     shot is the one uncounterable attack, as a property of the weapon.
-//   - defy crits COUNTER-TAUNT instead, replacing the swing. NOTE THE
-//     PLACEMENT: taunt resolution lives in internal/actions, which IMPORTS
-//     internal/combat — this package can never call it. The counter-taunt is
-//     wired AT THE TAUNT CALL SITE in internal/actions (the defy-crit exit)
-//     via a dedicated cost-free entry point that never calls this function.
+//     shot is the one single-target attack that cannot be countered, as a
+//     property of the weapon.
+//   - single-target only: an area or multi attack earns no counter (owner
+//     ruling 2026-09-18). Targeting travels on the shape, so an exit cannot
+//     bypass the gate by omission.
+//   - defy crits COUNTER-TAUNT instead, replacing the swing, whatever the
+//     attack was (taunt or charm). NOTE THE PLACEMENT: taunt resolution
+//     lives in internal/actions, which IMPORTS internal/combat; this package
+//     can never call it. Every exit that can see a defy win branches to
+//     internal/actions.FireCounterTaunt first, and this function refuses a
+//     defy defence outright.
 //   - a counter never earns a counter: the swing goes through the seam with
 //     IsCounter, and no exit fires the tier from a result produced under
 //     IsCounter. ExecuteCounter itself never re-enters the tier.
@@ -87,13 +95,40 @@ type CounterResult struct {
 // must never be forwarded into the damage pipeline: CalcRawDamage treats
 // itemMult <= 0 as "unset" and substitutes 0.30, which would turn the
 // off-switch into a 30%-damage counter.
-func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.Attack, sameRoom bool) CounterResult {
-	result := CounterResult{Shape: shape}
+func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.Attack, defence combatvocab.Defence, sameRoom bool) CounterResult {
+	result := CounterResult{Defence: defence}
 
 	if defender == nil || attacker == nil {
 		return result
 	}
-	// Reach gate: the cross-room shot is the one uncounterable attack.
+	// A counter is narrated by the defence that won it. No winner, no pool:
+	// cannot happen today (DefensiveCrit is set only after the winner is
+	// recorded, pinned by TestResolveChannelAttack_ADefensiveCritNamesItsDefence)
+	// but the primitive refuses, and logs, rather than rendering an empty
+	// pool; the cost of this refusal is the swing itself, not only its text.
+	if defence == combatvocab.DefenceNone {
+		mudlog.Warn("counter", "refused", "no winning defence recorded", "attack", shape.String())
+		return result
+	}
+	// A counter answers one deliberate attack at one target (owner ruling,
+	// counters spec 2). An area or multi attack earns none, however
+	// decisively one victim turned it aside. The gate lives HERE, and its
+	// twin in actions.FireCounterTaunt, so no exit can bypass it: the spell
+	// exits pass the spell's authored targeting and the area spells fall
+	// out; throw never had an exit, and now this says why.
+	if shape.Targeting != combatvocab.TargetSingle {
+		return result
+	}
+	// Words answer words: a defy crit counter-taunts, for charm as well as
+	// for taunt (owner ruling 2026-09-18). That answer lives in
+	// internal/actions.FireCounterTaunt, which this package cannot call, so
+	// the primitive refuses the defence rather than swinging steel at a
+	// jeer. Callers branch on the defence BEFORE reaching here.
+	if defence == combatvocab.DefenceDefy {
+		return result
+	}
+	// Reach gate: the cross-room shot is the one single-target attack that
+	// cannot be countered.
 	if !sameRoom {
 		return result
 	}
@@ -139,41 +174,9 @@ func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.
 }
 
 // counterPrefix marks every counter line so the tier stays scannable in a
-// busy round; the narration itself comes from the channel's counter pool.
+// busy round; the narration itself comes from the winning defence's counter
+// pool.
 const counterPrefix = `<ansi fg="cyan-bold">⚔ COUNTER!</ansi> `
-
-// counterPoolFor maps the ORIGINAL attack's type to its counter-narration
-// pool. Keyed by attack type until the counters slice re-keys the pools to
-// the defence that won (spec ruling 5). Thrown shares ranged's pool; both
-// spell damage types share the put-the-working-down pool as before.
-//
-// The (spell, social) pairing (charm) used to be unreachable here, because
-// taunt is the only social attack and it short-circuits its defy-crit into a
-// counter-TAUNT at the call site rather than swinging. U10c broke that
-// assumption: charm is now a social SPELL, and fireSpellCounterTier has no
-// such carve-out, so a defy-crit against a charm does arrive.
-//
-// It gets counter-defy rather than falling through to the physical pool. That
-// pool already exists and was unused on this path. Note the counter itself is
-// still a physical swing -- ExecuteCounter builds strength + combat skill for
-// every attack, and the type selects narration only -- so this makes the
-// prose honest, not the mechanics social. Giving social attacks a genuinely
-// social counter is a larger change than U10c's plumbing slice.
-func counterPoolFor(shape combatvocab.Attack) items.DefencePool {
-	switch {
-	case shape.Type == combatvocab.AttackRanged, shape.Type == combatvocab.AttackThrown:
-		return items.CounterPoolRanged
-	case shape.Type == combatvocab.AttackSpell && shape.Damage == combatvocab.DamageSocial:
-		// Charm: a social spell, same pool as taunt's Rhetoric.
-		return items.CounterPoolDefy
-	case shape.Type == combatvocab.AttackSpell:
-		return items.CounterPoolQuell
-	case shape.Type == combatvocab.AttackRhetoric:
-		return items.CounterPoolDefy
-	default:
-		return items.CounterPoolMelee
-	}
-}
 
 // counterBand converts a counter outcome to the pool's band inputs: heavy
 // (crit=true) when the counter-swing itself critted and landed, normal
@@ -185,16 +188,17 @@ func counterBand(crit bool, damage int) (bandCrit bool, bandMargin float64) {
 	return crit, 1.0
 }
 
-// fillCounterMessages renders the channel-correct counter triad (U6b Task 11)
-// from the counter-* pools, appending the damage description to the two
-// personal lines the same way the special-move wrappers do (room lines never
-// carry damage). The framing is deliberate: the defence already decided the
-// attack; the counter is what the defender does with the opening it left.
-// When the pool is not loaded (unit tests without data files), the generic
-// Task 10 narration stands in so the tier never goes silent.
+// fillCounterMessages renders the defence-correct counter triad (U6b Task 11)
+// from the winning defence's counter-* pool (items.CounterPoolFor), appending
+// the damage description to the two personal lines the same way the
+// special-move wrappers do (room lines never carry damage). The framing is
+// deliberate: the defence already decided the attack; the counter is what
+// the defender does with the opening it left. When the pool is not loaded
+// (unit tests without data files), the generic Task 10 narration stands in
+// so the tier never goes silent.
 func fillCounterMessages(result *CounterResult, defender, attacker *characters.Character) {
 	bandCrit, bandMargin := counterBand(result.Move.Crit, result.Damage)
-	triad := items.RenderDefenseMessage(counterPoolFor(result.Shape), bandCrit, bandMargin,
+	triad := items.RenderDefenseMessage(items.CounterPoolFor(result.Defence), bandCrit, bandMargin,
 		map[items.TokenName]string{
 			items.TokenActor: attacker.Name,
 			items.TokenActee: defender.Name,
@@ -245,26 +249,26 @@ const retortPrefix = `<ansi fg="cyan-bold">⚔ RETORT!</ansi> `
 
 // BuildCounterTauntMessages renders the defy counter-taunt triad (U6b Task 11)
 // from the counter-defy pool: the jeer turned back on the one who threw it.
-// countererName is the one whose defy critted; taunterName the original
-// taunter now being counter-taunted. Damage is conviction damage; the
+// countererName is the one whose defy critted; counteredName the one whose
+// words (taunt or charm) were defied. Damage is conviction damage; the
 // description is appended to the two personal lines only. Lives here (not in
 // internal/actions with the carve-out's wiring) so every counter narration
 // composes through the same pool idiom; falls back to the generic Task 10
 // retort lines when the pool is not loaded.
-func BuildCounterTauntMessages(countererName, taunterName string, crit bool, damage, taunterMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
+func BuildCounterTauntMessages(countererName, counteredName string, crit bool, damage, counteredMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
 	bandCrit, bandMargin := counterBand(crit, damage)
 	triad := items.RenderDefenseMessage(items.CounterPoolDefy, bandCrit, bandMargin,
 		map[items.TokenName]string{
-			items.TokenActor: taunterName,
+			items.TokenActor: counteredName,
 			items.TokenActee: countererName,
 		})
 	if triad.ToRoom == "" {
-		return buildGenericCounterTauntMessages(countererName, taunterName, damage, taunterMaxCP)
+		return buildGenericCounterTauntMessages(countererName, counteredName, damage, counteredMaxCP)
 	}
 	dmgTag := ""
 	if damage > 0 {
 		dmgTag = fmt.Sprintf(` (<ansi fg="damage">%s</ansi>)`,
-			GetConvictionDamageDescription(damage, taunterMaxCP))
+			GetConvictionDamageDescription(damage, counteredMaxCP))
 	}
 	return retortPrefix + string(triad.ToDefender) + dmgTag,
 		retortPrefix + string(triad.ToAttacker) + dmgTag,
@@ -273,14 +277,14 @@ func BuildCounterTauntMessages(countererName, taunterName string, crit bool, dam
 
 // buildGenericCounterTauntMessages is the Task 10 retort narration, kept only
 // as the fallback for environments where the counter-defy pool is not loaded.
-func buildGenericCounterTauntMessages(countererName, taunterName string, damage, taunterMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
+func buildGenericCounterTauntMessages(countererName, counteredName string, damage, counteredMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
 	if damage > 0 {
-		dmgDesc := GetConvictionDamageDescription(damage, taunterMaxCP)
-		return fmt.Sprintf(retortPrefix+`You throw %s's taunt right back in their face! (<ansi fg="damage">%s</ansi>)`, taunterName, dmgDesc),
-			fmt.Sprintf(retortPrefix+`%s throws your taunt right back in your face! (<ansi fg="damage">%s</ansi>)`, countererName, dmgDesc),
-			fmt.Sprintf(retortPrefix+`%s throws %s's taunt right back!`, countererName, taunterName)
+		dmgDesc := GetConvictionDamageDescription(damage, counteredMaxCP)
+		return fmt.Sprintf(retortPrefix+`You throw %s's words right back in their face! (<ansi fg="damage">%s</ansi>)`, counteredName, dmgDesc),
+			fmt.Sprintf(retortPrefix+`%s throws your words right back in your face! (<ansi fg="damage">%s</ansi>)`, countererName, dmgDesc),
+			fmt.Sprintf(retortPrefix+`%s throws %s's words right back!`, countererName, counteredName)
 	}
-	return fmt.Sprintf(retortPrefix+`You snap back at %s, but the words fail to bite!`, taunterName),
+	return fmt.Sprintf(retortPrefix+`You snap back at %s, but the words fail to bite!`, counteredName),
 		fmt.Sprintf(retortPrefix+`%s snaps back at you, but the words fail to bite!`, countererName),
-		fmt.Sprintf(retortPrefix+`%s snaps back at %s!`, countererName, taunterName)
+		fmt.Sprintf(retortPrefix+`%s snaps back at %s!`, countererName, counteredName)
 }

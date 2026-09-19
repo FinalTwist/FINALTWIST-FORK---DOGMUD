@@ -1,11 +1,11 @@
-# Counter narration for the PHYSICAL channel (U6b Task 11): a dodge, parry,
-# or block crit against a melee special move earns the defender a free
-# counter-swing. {actee} is the COUNTERER (whose defence critted);
-# {actor} is the countered party. Bands: weak = the counter is turned
-# aside (no damage), normal = the counter lands, heavy = the counter crits.
-# The melee auto-attack riposte and auto-trip/auto-bash keep their own lines;
-# this pool narrates seam-routed counter-swings only.
-optionid: counter-melee
+# Counter narration for a DODGE crit (counters slice): the attacker's swing,
+# point-blank shot or hurled working found nothing, and the defender steps
+# into the opening it left. Attack-agnostic on purpose: dodge may answer a
+# melee move, a same-room shot or a physical spell, and the pool is chosen
+# by the DEFENCE that won, not the attack. {actee} is the COUNTERER;
+# {actor} is the countered party. Bands: weak = the counter is turned aside
+# (no damage), normal = the counter lands, heavy = the counter crits.
+optionid: counter-dodge
 options:
   weak:
     together:

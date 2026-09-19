@@ -1,0 +1,53 @@
+# Counters slice gate, WORDS half: every counter now reads like the defence
+# that earned it, area workings earn no counter, and a defied charm is
+# mocked, not hit.
+#
+# You are the ATTACKER and you are weak on purpose. Your opponent will turn
+# most of your attacks aside, and when a defence is decisive it earns them a
+# free answer, printed right after the defence line with a "COUNTER!" or
+# "RETORT!" prefix. The whole test is whether those two lines AGREE: a line
+# that says your blow was parried must be followed by a counter about
+# turning the blow and cutting back, never about stepping into an opening or
+# driving in from behind a guard.
+#
+# Not every attack will be decisively defended. Repeat each attack until you
+# have seen at least two counters for it, or ten attempts, whichever comes
+# first, and say which.
+ephemeral:
+  profile: counters-words
+  start_room: 5000
+  budgets:
+    wall_clock: 30m
+
+goals:
+  - >-
+    Establish the fixture. You start in the Rift Chamber with Sable. Run
+    `ask sable arena 1000` to start an arena fight against a strong
+    opponent. If the fight does not start, try `ask sable arena 2000` and
+    report what Sable said. Once an opponent is present, `look` and note
+    its name. Do not flee; your health is deep enough to last. If you are
+    killed and expelled to another zone, do not try to return to room
+    5000; fight the nearest hostile mob you can find, note its name, and
+    say so.
+  - >-
+    Taunt. Use `taunt <opponent>` repeatedly. When your taunt is thrown
+    back, the line carries a "RETORT!" prefix and your conviction (not your
+    health) should fall. Record two retorts verbatim and check your
+    `status` before and after one to confirm which pool dropped. Stop after
+    two retorts or ten taunts.
+  - >-
+    Charm. Use `cast charm <opponent>` repeatedly. When the charm is
+    decisively defied, a "RETORT!" line must follow, NEVER a "COUNTER!"
+    line, and the retort must read as mockery of your attempt, in words that
+    make sense for a charm (it must not call your charm a taunt or a jeer).
+    Check `status` before and after: conviction falls, health does not.
+    Record two retorts verbatim. Stop after two retorts or ten casts. You
+    have enough conviction for several casts from full; if a cast is
+    refused for conviction, wait for it to recover and retry.
+  - >-
+    Report. List every defence/retort pair you recorded, grouped by attack.
+    Then answer, with quotes: did any RETORT fail to follow a decisive
+    defy; did any defied charm print a "COUNTER!" line or wound your
+    health; did any retort call your charm a taunt or a jeer; did any line
+    show a raw number or a token like {actor}. Report anything else that
+    looked wrong while fighting too, kept separate from the pairs.
