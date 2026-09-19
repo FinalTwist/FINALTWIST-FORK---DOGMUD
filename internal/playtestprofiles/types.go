@@ -34,6 +34,9 @@ var KnownTemplateIDs = []string{
 	// attacks must be decisively defended so it can read each defence line
 	// beside the counter line that answers it (2026-09-18).
 	"counters",
+	// The words half of the counters-slice fixture: taunt and charm only,
+	// charisma weak so both crit, willpower deep only to fund the pool.
+	"counters-words",
 	// The M2 narration-seam pair, added for the same reason as crafter and
 	// ranged-range: the goals are unreachable without the loadout.
 	//

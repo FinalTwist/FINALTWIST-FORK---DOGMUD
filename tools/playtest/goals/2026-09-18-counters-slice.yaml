@@ -21,10 +21,13 @@ ephemeral:
 goals:
   - >-
     Establish the fixture. You start in the Rift Chamber with Sable. Run
-    `ask sable arena 2000` to start an arena fight against a strong
-    opponent. If the fight does not start, try `ask sable arena 1000` and
+    `ask sable arena 1000` to start an arena fight against a strong
+    opponent. If the fight does not start, try `ask sable arena 2000` and
     report what Sable said. Once an opponent is present, `look` and note
-    its name. Do not flee; your health is deep enough to last.
+    its name. Do not flee; your health is deep enough to last. If you are
+    killed and expelled to another zone, do not try to return to room
+    5000; fight the nearest hostile mob you can find, note its name, and
+    say so.
   - >-
     Special move. Use `kick <opponent>` repeatedly. Each time your kick is
     turned aside, record the defence line VERBATIM (it will say you were
@@ -62,25 +65,13 @@ goals:
     Area working. Use `cast sparks` (no target) at least ten times. Record
     every defence line. NO "COUNTER!" line may EVER follow an area working,
     however decisively it was turned aside. If one does, quote it: that is
-    a bug this change exists to fix.
-  - >-
-    Taunt. Use `taunt <opponent>` repeatedly. When your taunt is thrown
-    back, the line carries a "RETORT!" prefix and your conviction (not your
-    health) should fall. Record two retorts verbatim and check your
-    `status` before and after one to confirm which pool dropped. Stop after
-    two retorts or ten taunts.
-  - >-
-    Charm. Use `cast charm <opponent>` repeatedly. When the charm is
-    decisively defied, a "RETORT!" line must follow, NEVER a "COUNTER!"
-    line, and the retort must read as mockery of your attempt, in words that
-    make sense for a charm (it must not call your charm a taunt or a jeer).
-    Check `status` before and after: conviction falls, health does not.
-    Record two retorts verbatim. Stop after two retorts or ten casts.
+    a bug this change exists to fix. You have enough conviction for ten
+    casts from full; if the cast is refused for conviction, wait and retry
+    rather than skipping.
   - >-
     Report. List every defence/counter pair you recorded, grouped by attack.
     Then answer, with quotes: did any counter contradict its defence line;
-    did any area working earn a counter; did any defied charm earn a swing
-    instead of a retort; did any retort call a charm a taunt; did any line
-    show a raw number; did any line read as broken English or contain a
-    token like {actor}. Also report anything else that looked wrong while
-    fighting, but keep it separate from the pairs.
+    did any area working earn a counter; did any line show a raw number;
+    did any line read as broken English or contain a token like {actor}.
+    Also report anything else that looked wrong while fighting, but keep
+    it separate from the pairs.
