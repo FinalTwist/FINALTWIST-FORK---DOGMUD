@@ -243,8 +243,9 @@ func executeCounterTaunt(counterer, target *characters.Character) CounterTauntRe
 // so a registry lookup silently drops the line; Actor already satisfies
 // Recipient, the same seam DispatchCounterMessages/SendCounterTrio use for
 // this exact problem, and SendText delivers correctly either way). Dispatch
-// stays on SendText/SendTextVisual as Task 10's review accepted it; moving
-// the retort onto the darkness seam is M4d's.
+// goes through messaging.SendTrio, the same seam SendCounterTrio uses, so a
+// reader who cannot see the other party reads no name and the room line
+// reaches only observers who can see.
 func FireCounterTaunt(room *rooms.Room, shape combatvocab.Attack, counterer, countered *characters.Character,
 	countererRecipient messaging.Recipient, countererId int,
 	counteredRecipient messaging.Recipient, counteredId int) CounterTauntResult {
@@ -265,18 +266,22 @@ func FireCounterTaunt(room *rooms.Room, shape combatvocab.Attack, counterer, cou
 		counterer.Name, countered.Name,
 		res.Defence.AttackerCrit, res.Damage, maxOfOne(countered.ConvictionMax.Value))
 
-	exclude := []int{}
-	if countererRecipient != nil {
-		countererRecipient.SendText(messaging.CategoryTauntSuccess, countererMsg)
-		exclude = append(exclude, countererId)
-	}
-	if counteredRecipient != nil {
-		counteredRecipient.SendText(messaging.CategoryTauntSuccess, counteredMsg)
-		exclude = append(exclude, counteredId)
+	aud := messaging.Audience{
+		Actor:     countererRecipient,
+		ActorId:   countererId,
+		ActorName: counterer.Name,
+		Actee:     counteredRecipient,
+		ActeeId:   counteredId,
+		ActeeName: countered.Name,
 	}
 	if room != nil {
-		room.SendTextVisual(messaging.CategoryTauntSuccess, roomMsg, exclude...)
+		aud.Room = room
 	}
+	messaging.SendTrio(messaging.Trio{
+		Actor:    messaging.Say(messaging.CategoryTauntSuccess, countererMsg),
+		Actee:    messaging.Say(messaging.CategoryTauntSuccess, counteredMsg),
+		Observer: messaging.Say(messaging.CategoryTauntSuccess, roomMsg),
+	}, aud)
 	return res
 }
 

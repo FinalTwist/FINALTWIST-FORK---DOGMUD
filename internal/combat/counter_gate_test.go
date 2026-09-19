@@ -62,3 +62,17 @@ func TestExecuteCounter_RefusesADefyDefence(t *testing.T) {
 		})
 	}
 }
+
+// The primitive refuses a missing winner rather than rendering an empty
+// pool. Unreachable in production (a defensive crit always names its
+// defence), so pinned here directly.
+func TestExecuteCounter_RefusesNoWinner(t *testing.T) {
+	pinCounterConfig(t, 0.5)
+	counterer, countered := counterTestPair()
+	calls := 0
+	t.Cleanup(SetChannelAttackContestRunnerForTest(counterWinRunner(&calls)))
+	res := ExecuteCounter(counterer, countered, combatvocab.Melee(combatvocab.TargetSingle), combatvocab.DefenceNone, true)
+	if res.Countered || calls != 0 || countered.Health != 100000 {
+		t.Errorf("no winner must mean no counter (countered=%v calls=%d health=%d)", res.Countered, calls, countered.Health)
+	}
+}

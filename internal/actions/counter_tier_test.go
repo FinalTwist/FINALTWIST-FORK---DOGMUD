@@ -17,6 +17,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -287,6 +288,9 @@ func TestSkillMoveExit_DefensiveCritCounters(t *testing.T) {
 		"a crit-defended skill move must run two contests: the move and the counter-swing")
 	require.Less(t, mover.Character.Health, 100000,
 		"the counter-swing must damage the one who attempted the move")
+	require.Equal(t, res.MoveResult.Defence.Defence, res.Counter.Defence,
+		"the exit must forward the defence that WON the move, not a fixed one")
+	require.NotEqual(t, combatvocab.DefenceNone, res.Counter.Defence)
 }
 
 // U6b playtest closeout (2026-08-19): the defy counter-taunt exchange was

@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
+	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -40,4 +41,39 @@ func TestSpellCounterTier_InTheDarkNamesNobody(t *testing.T) {
 		"the counterer cannot see who they struck back at")
 	assert.Equal(t, 0, countContaining(drainPlain(2), "COUNTER"),
 		"an observer who cannot see gets no counter line")
+}
+
+// A defied charm's retort must hide the charmer's name from a defier who
+// cannot see them, same as the swing counter above. FireCounterTaunt
+// dispatches through messaging.SendTrio, the darkness seam SendCounterTrio
+// already uses, so this is the Defy-branch twin of
+// TestSpellCounterTier_InTheDarkNamesNobody.
+func TestSpellCounterTier_ADefiedCharmInTheDarkNamesNobody(t *testing.T) {
+	pinCounterTierKnobs(t, 0.5)
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restoreMessages := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
+		items.CounterPoolFor(combatvocab.DefenceDefy): counterPoolNarrationFixture(combatvocab.DefenceDefy),
+	})
+	defer restoreMessages()
+	darken(t, 1)
+	calls := 0
+	restore := combat.SetChannelAttackContestRunnerForTest(
+		sequencedContestRunner(t, &calls, attackWinContest(t)))
+	t.Cleanup(restore)
+	drainPlain(1)
+	drainPlain(2)
+
+	defender := users.GetByUserId(1)
+	caster := mobs.GetInstance(100)
+	fireSpellCounterTier(rooms.LoadRoom(1),
+		combat.ChannelDefenceResult{Defence: combatvocab.DefenceDefy, Defended: true, DefensiveCrit: true},
+		combatvocab.Spell(combatvocab.DamageSocial, combatvocab.TargetSingle), defender.Character, &caster.Character, defender, nil)
+
+	counterer := drainPlain(1)
+	assert.GreaterOrEqual(t, countContaining(counterer, "RETORT"), 1)
+	assert.Equal(t, 0, countContaining(counterer, "Skeleton"),
+		"the counterer cannot see who they struck back at")
+	assert.Equal(t, 0, countContaining(drainPlain(2), "RETORT"),
+		"an observer who cannot see gets no retort line")
 }

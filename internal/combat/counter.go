@@ -174,7 +174,8 @@ func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.
 }
 
 // counterPrefix marks every counter line so the tier stays scannable in a
-// busy round; the narration itself comes from the channel's counter pool.
+// busy round; the narration itself comes from the winning defence's counter
+// pool.
 const counterPrefix = `<ansi fg="cyan-bold">⚔ COUNTER!</ansi> `
 
 // counterBand converts a counter outcome to the pool's band inputs: heavy

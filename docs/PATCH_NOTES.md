@@ -5,8 +5,10 @@
 When a decisive parry, block or dodge earns you a free answer, the
 answer now describes what you did. A parry turns the weapon and cuts back
 along it. A block drives in from behind the guard. A dodge steps into
-the opening. Before, all three read the same. Shrugging off a working or
-mocking a failed charm or taunt keeps its own voice.
+the opening. Before, all three read the same. A working you turn aside
+with your mind still reads that way. One you dodge or take on a shield
+now reads like the dodge or the block. The words you throw back at a
+charm or a taunt have been rewritten so they fit either.
 
 ## 2026-09-18: Words are answered with words
 
