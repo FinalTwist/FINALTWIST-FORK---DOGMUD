@@ -28,6 +28,12 @@ var KnownTemplateIDs = []string{
 	// and the merchants who sell the kit sleep on their schedules -- which is
 	// precisely how a 2026-09-07 run lost its goals before this existed.
 	"ranged-range",
+	// The counters-slice tester: a WEAK attacker (stats 30, deep pools) with
+	// one of every attack type, parked in the Rift Chamber so Sable can start
+	// an arena fight at high gold. Inverted on purpose: the tester's own
+	// attacks must be decisively defended so it can read each defence line
+	// beside the counter line that answers it (2026-09-18).
+	"counters",
 	// The M2 narration-seam pair, added for the same reason as crafter and
 	// ranged-range: the goals are unreachable without the loadout.
 	//
