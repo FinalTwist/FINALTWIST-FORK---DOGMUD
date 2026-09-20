@@ -336,6 +336,51 @@ Things worth knowing before touching it:
   `updateStatusPanel` renders the chips, and `evalTriggerCondition` reads the
   same map to gate a `status`-kind trigger by condition name.
 
+## Char.Enemies: sight-gated (M4d PR 2, 2026-09-20)
+
+`Char.Enemies` (`gmcp.Char.go`) lists every mob fighting in the viewer's
+room (`roomInfo.GetMobs(rooms.FindFighting)`), one `GMCPCharModule_Enemy`
+per mob:
+
+| JSON key | Go field | What it carries |
+|---|---|---|
+| `id` | `Id` | `mob.ShorthandId()` |
+| `name` | `Name` | the mob's name, or `an unseen foe` (see below) |
+| `hp` | `Hp` | current HP, or `0` when unseen |
+| `hp_max` | `MaxHp` | max HP, or `0` when unseen |
+| `engaged` | `Engaged` | true for the viewer's current combat target |
+
+**Owner ruling 4 (2026-09-20): this payload rides the same sight gate as
+the fight prompt's `{target}` token** —
+`messaging.CanSeeClearly(user.Character, roomInfo)`, the same predicate
+`userrecord.prompt.go`'s `canSeeTargetForPrompt` reads. Before this ruling,
+GMCP undid the whole darkness effort: room text read "Something slashes
+you!" while a modern client's enemy panel showed the mob by exact name with
+a live HP bar. `canSee` is computed ONCE per call (it depends only on the
+viewer and room, not on which mob), not once per mob in the loop.
+
+When `canSee` is false, the ROW STAYS (a scripted client still needs to
+know the fight is ongoing) but identity and current numbers are stripped,
+matching what the prompt withholds:
+
+- `Name` becomes the literal `an unseen foe`.
+- `Hp` and `MaxHp` are both set to **`0`**, not omitted.
+
+**Zeroed, not omitted, is deliberate.** `TestCharVitals_ZeroPoolsAreSentAsZero`
+(`gmcp.Vitals_test.go`) documents the real incident this pattern exists to
+avoid: a client that merges each payload over the last one kept rendering a
+stale prior HP reading when a field simply dropped out of the JSON.
+Omitting `Hp`/`MaxHp` here would reopen that same hole from the enemy
+panel — a caching client would keep showing the last SIGHTED reading
+straight through a blind stretch, which is a worse leak than a uniform
+`0`.
+
+**This is a binary gate, not a three-verdict one.** Unlike combat's own
+`DarknessScoreMultiplier` (`internal/combat/context.md`), which treats
+`SightShapes` as its own tier, `Char.Enemies` has no "a figure" middle
+ground — it matches the prompt's existing binary behaviour
+(`CanSeeClearly`), not combat's three-verdict `SightDecision`.
+
 ## Module index
 
 Every `gmcp.<Name>.go` file follows the same shape: register in `init()`, emit

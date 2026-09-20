@@ -1,5 +1,25 @@
 # DOGMud Patch Notes
 
+## 2026-09-20: What you can't see still happens
+
+Fighting somewhere too dark to see, or too dark for anything but heat, now
+reads like the fight it is, not only like the dark. You still read
+whether a blow lands, misses, or gets turned aside, in the words you
+would read in full light. The only thing missing is a name: whoever you
+are fighting, and their pet if one joins the swing, is called something
+you cannot place instead of being named outright.
+
+Sensing heat is not the same as seeing nothing. A character who can make
+out shapes by warmth alone now fights noticeably better in the dark than
+one with no sight at all, though still worse than one who can see
+clearly. Blindness overrides both: a blinded fighter gets no benefit from
+sensing heat, because blindness shuts out sight altogether.
+
+A few combat lines, mainly the ones naming a block, a parry, a dodge, or
+an answering counter, now show the fighters' names in colour all the
+time, not only when the fight happens in the dark. Nothing else about
+those lines has changed.
+
 ## 2026-09-20: A narrow escape reads like one
 
 When you dodge, parry or block a blow in melee, the words you read now

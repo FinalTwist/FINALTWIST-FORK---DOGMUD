@@ -131,10 +131,17 @@ The retarget notice ("You turn your attention to X!") is built once, by
 `DoCombat`'s validate-aggro pass, `emitRetargetMessage`, and the mob-departure
 retarget in `mobcommands.clearRoomAggroOnDeparture`; it hides X by the
 reader's sight and is not suppressed in the dark, because each caller picks
-the new target from whoever is already attacking the reader. The wait-round
+the new target from whoever is already attacking the reader. The ordinary
+melee swing lines used to be rewritten here too, by `replaceDarknessMessages`
+(`NewRound_DoCombat_helpers.go`); **M4d PR 2 deleted that function.** Identity
+hiding for a swing's personal lines now happens upstream, inside
+`internal/combat`, before this package ever sees the `AttackResult` — see
+`hideIdentitiesInPersonalLines` in `internal/combat/context.md`. This
+package's own job is unchanged for everything ELSE it renders (the trio
+lines above, the wait-round lines below). The wait-round
 participant lines (`handleCombatWaitRound` in `NewRound_DoCombat_resolution.go`,
 drained from `combat.GetWaitMessages`'s authored `{actor}`/`{actee}` text)
-have no swing events for `replaceDarknessMessages` to act on, so they judge
+have no swing events for identity hiding to act on, so they judge
 sight directly with the swing path's own predicate
 (`messaging.CanSeeSightImpairedOnly`) and, for a participant without clear
 sight, send one fixed dark line instead of the authored one, the swing
