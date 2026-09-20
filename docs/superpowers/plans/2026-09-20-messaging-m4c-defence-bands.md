@@ -1053,11 +1053,18 @@ this plan's prediction. Commit the audit update.
 go build ./...
 go test . ./...
 golangci-lint run --new-from-rev=master
+gofmt -l $(git diff --name-only master..HEAD | grep '\.go$')
 ```
 
-Expected: build clean, tests PASS, **0 new lint issues**. 🪤 CI's
-`validate / lint` reddens on any PR over 300 files (diff API 406); this PR is
-far under that, so a red lint here is real.
+Expected: build clean, tests PASS, **0 new lint issues**, and the `gofmt -l`
+line prints **nothing**. 🪤 CI's `validate / lint` reddens on any PR over 300
+files (diff API 406); this PR is far under that, so a red lint here is real.
+🪤 CI's `validate / test` job ALSO runs a gofmt gate, separate from
+golangci-lint, which fails the whole job in about 30 seconds before a single
+test runs. A green `golangci-lint` says nothing about it. This bit the attack
+band slice (PR #146): a comment misaligned by two spaces in that plan's own
+code block. Run `gofmt -l` standalone, since it exits 0 whether or not it names
+files, so chaining it hides the result.
 
 - [ ] **Step 3: Boot check**
 
