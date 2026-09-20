@@ -263,7 +263,7 @@ func FireCounterTaunt(room *rooms.Room, shape combatvocab.Attack, counterer, cou
 	}
 
 	countererMsg, counteredMsg, roomMsg := combat.BuildCounterTauntMessages(
-		counterer.Name, countered.Name,
+		counterer, countered,
 		res.Defence.AttackerCrit, res.Damage, maxOfOne(countered.ConvictionMax.Value))
 
 	aud := messaging.Audience{

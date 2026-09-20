@@ -249,21 +249,27 @@ const retortPrefix = `<ansi fg="cyan-bold">⚔ RETORT!</ansi> `
 
 // BuildCounterTauntMessages renders the defy counter-taunt triad (U6b Task 11)
 // from the counter-defy pool: the jeer turned back on the one who threw it.
-// countererName is the one whose defy critted; counteredName the one whose
-// words (taunt or charm) were defied. Damage is conviction damage; the
-// description is appended to the two personal lines only. Lives here (not in
+// counterer is the one whose defy critted; countered the one whose words
+// (taunt or charm) were defied. Damage is conviction damage; the description
+// is appended to the two personal lines only. Lives here (not in
 // internal/actions with the carve-out's wiring) so every counter narration
 // composes through the same pool idiom; falls back to the generic Task 10
 // retort lines when the pool is not loaded.
-func BuildCounterTauntMessages(countererName, counteredName string, crit bool, damage, counteredMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
+//
+// Task 4c: took *characters.Character rather than bare names, the same
+// change fillCounterMessages got, so this counter-defy path stops being the
+// one counter renderer that still substitutes a raw name into an observer
+// line. It was the sibling this file's own guard test caught: identical bug,
+// same file, left unfixed while its two neighbours were tagged.
+func BuildCounterTauntMessages(counterer, countered *characters.Character, crit bool, damage, counteredMaxCP int) (countererMsg, taunterMsg, roomMsg string) {
 	bandCrit, bandMargin := counterBand(crit, damage)
 	triad := items.RenderDefenseMessage(items.CounterPoolDefy, bandCrit, bandMargin,
 		map[items.TokenName]string{
-			items.TokenActor: counteredName,
-			items.TokenActee: countererName,
+			items.TokenActor: meleeIdentityTag(countered),
+			items.TokenActee: meleeIdentityTag(counterer),
 		})
 	if triad.ToRoom == "" {
-		return buildGenericCounterTauntMessages(countererName, counteredName, damage, counteredMaxCP)
+		return buildGenericCounterTauntMessages(counterer.Name, countered.Name, damage, counteredMaxCP)
 	}
 	dmgTag := ""
 	if damage > 0 {

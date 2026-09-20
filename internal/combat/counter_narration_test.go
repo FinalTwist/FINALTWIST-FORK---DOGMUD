@@ -11,9 +11,24 @@ package combat
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/stretchr/testify/require"
 )
+
+// counterTauntFixtureChars builds the two mob participants BuildCounterTauntMessages
+// takes as of Task 4c (it used to take bare names). Both default to
+// characters.New()'s zero UserId, so meleeIdentityTag tags them mobname, not
+// username; that distinction is not what these tests pin (see
+// darkness_identity_hiding_test.go for the tag-form proof), so a plain mob
+// fixture keeps the name-substring assertions unchanged.
+func counterTauntFixtureChars(countererName, counteredName string) (counterer, countered *characters.Character) {
+	counterer = characters.New()
+	counterer.Name = countererName
+	countered = characters.New()
+	countered.Name = counteredName
+	return counterer, countered
+}
 
 func counterDefyMessageFixture() *items.DefenseMessageGroup {
 	mk := func(band string) items.DefenseOptions {
@@ -58,8 +73,9 @@ func TestBuildCounterTauntMessagesRendersFromCounterDefyPool(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			counterer, countered := counterTauntFixtureChars("Selka", "Rurik")
 			countererMsg, taunterMsg, roomMsg := BuildCounterTauntMessages(
-				"Selka", "Rurik", tc.crit, tc.damage, 200)
+				counterer, countered, tc.crit, tc.damage, 200)
 			for audience, line := range map[string]string{
 				"counterer": countererMsg, "taunter": taunterMsg, "room": roomMsg,
 			} {
@@ -89,8 +105,9 @@ func TestBuildCounterTauntMessagesFallbackNeverSilent(t *testing.T) {
 	defer restore()
 
 	for _, damage := range []int{0, 25} {
+		counterer, countered := counterTauntFixtureChars("Selka", "Rurik")
 		countererMsg, taunterMsg, roomMsg := BuildCounterTauntMessages(
-			"Selka", "Rurik", false, damage, 200)
+			counterer, countered, false, damage, 200)
 		for audience, line := range map[string]string{
 			"counterer": countererMsg, "taunter": taunterMsg, "room": roomMsg,
 		} {
