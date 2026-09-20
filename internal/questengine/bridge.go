@@ -202,12 +202,17 @@ func (b *GameBridge) ChargeGold(amount int) {
 // Narrate delivers a text action to its audiences.
 //
 // Both lines are rendered with the triggering player's TAGGED name as
-// {actor}, and the room line goes out on the VISUAL channel; both matter.
-// The room line describes something the room watches the player do
-// ("{actor} unlocks the strongbox"), so an observer who cannot see must not
-// receive it, and Room.SendText is never sight-gated. And the name must carry
-// its `username` tag, because messaging.Anonymize strips only tagged names.
-// quests.Quest.Validate keeps every `observer` line naming {actor}.
+// {actor}; the room line goes out through messaging.SendTrio, which
+// sight-gates AND hides names for a shapes-only reader (messaging.HideNames),
+// unlike the raw Room.SendTextVisual this used to call, which only ever
+// applies tag-based messaging.Anonymize and never touches a bare (untagged)
+// name. quests.Quest.Validate keeps every `observer` line naming {actor}, but
+// nothing enforces that convention -- or its tag-wrapping -- on this Go API
+// itself, so the seam carries the plain ActorName through to SendTrio rather
+// than relying on the authored text happening to be tagged.
+//
+// There is no actee: a quest trigger has one party, the triggering player.
+// ActeeName is messaging.NoName so SendTrio hides nothing spurious.
 //
 // The `actor` line is substituted too since M3 item 5b. No shipped one carries
 // a token, so nothing changed on the day; a future line naming {actor} now
@@ -217,17 +222,27 @@ func (b *GameBridge) Narrate(v narration.Variants) {
 		ActorName:      b.user.Character.GetCharacterName(true),
 		ActorPlainName: b.user.Character.GetCharacterName(false),
 	})
-	if roles.Actor != "" {
-		b.user.SendText(messaging.CategoryNPCDialogue, roles.Actor)
-	}
+
+	var room messaging.Broadcaster
 	if roles.Observer != "" {
-		room := rooms.LoadRoom(b.roomId)
-		if room == nil {
+		if r := rooms.LoadRoom(b.roomId); r != nil {
+			room = r
+		} else {
 			mudlog.Error("GameBridge.Narrate", "error", fmt.Sprintf("room %d not found", b.roomId))
-			return
 		}
-		room.SendTextVisual(messaging.CategoryNPCDialogue, roles.Observer, b.user.UserId)
 	}
+
+	messaging.SendTrio(messaging.Trio{
+		Actor:    messaging.Say(messaging.CategoryNPCDialogue, roles.Actor),
+		Actee:    messaging.NoLine,
+		Observer: messaging.Say(messaging.CategoryNPCDialogue, roles.Observer),
+	}, messaging.Audience{
+		Actor:     b.user,
+		ActorId:   b.user.UserId,
+		ActorName: b.user.Character.GetCharacterName(false),
+		ActeeName: messaging.NoName,
+		Room:      room,
+	})
 }
 
 // SpawnMob creates a new mob instance and places it in the target room.
