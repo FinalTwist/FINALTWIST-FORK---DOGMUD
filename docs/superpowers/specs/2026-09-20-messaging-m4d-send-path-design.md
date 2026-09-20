@@ -184,6 +184,37 @@ compares data rows.
 
 ---
 
+## What PR 1 changed about PR 2 (added 2026-09-20 after #148 merged)
+
+PR 1 landed as #148. Five things it found or decided move PR 2's ground:
+
+1. 🔑 **`combatContext` already carries the verdict.** `sourceSight` and
+   `targetSight` are `messaging.SightDecision`, per side. PR 2 therefore hides
+   names **at composition, inside `internal/combat`**, where both the verdict
+   and both names are already in hand, rather than at the drain, which knows
+   neither. The drain stays dumb.
+2. 🪤 **`SendToTargetRoom` sight-gates but never runs `HideNames`.** It relies
+   on tag-based `Anonymize`, which by its own docstring leaks bare untagged
+   names. Today's `remote_observer` text is all tag-wrapped so nothing leaks
+   yet. PR 1 seated `RemoteObserver` on `Trio` but left the ranged path on the
+   old sender, because moving it moves behaviour. **PR 2 owns that move.**
+3. **Four non-combat paths were deferred to PR 2 with evidence**, each because
+   its lines name a party the reader may not see: quest trigger actions, four
+   of five `applyPlayerEffect` self-cast branches, `position_control` entirely
+   (its submission triples name the other grappler in the PERSONAL lines, not
+   just the observer line), and crafting's instant-craft narration.
+4. **The one-path guard is narrow by design.** Only 3 of 60 categories
+   (`Kick`, `Trip`, `Bash`) are fully on `SendTrio`; 41 still have a live
+   raw-send bypass. Its allowlist is empty. **Each path PR 2 migrates should
+   widen the guarded category set**, which is how the guard earns its keep.
+5. **Owner ruling 7: `Trio`'s fourth role is optional**, guarded by pairing
+   rather than required on all 150 literals.
+
+Line references that moved in PR 1: the two scoring sites are now
+`combat_helpers.go:566` and `:761`.
+
+---
+
 ## PR 2: combat on the path
 
 Player-visible. Playtested.
@@ -215,6 +246,11 @@ reads `something` or `a figure`.
 
 One short line per round, per participant who cannot see. Not per swing: a round
 can carry several swings and the notice must not scale with them.
+
+**The seam already exists.** `flushCombatTallies` (`combat_verbosity.go:398`)
+runs once at the end of `DoCombat` each round and already iterates viewers. The
+notice belongs there or immediately beside it, so "once per round" is a property
+of where it is called from rather than a counter someone has to maintain.
 
 It carries its own category so verbosity can suppress it, and it is **not**
 floor-protected, because unlike damage it repeats every round and a player who
@@ -248,7 +284,14 @@ vision at all, and still measurably less often than one in a lit room.
 
 Name becomes `an unseen foe`, HP fields are suppressed. This mirrors
 `userrecord.prompt.go:530-556` exactly rather than inventing a second
-convention. Without it the whole change is cosmetic for any GMCP client, and the
+convention.
+
+**The rule to mirror, verified:** the prompt asks `canSeeInRoomFn`, wired at
+`main.go:327` to `messaging.CanSeeClearly(c, room)`. That includes the sleep
+test, so a sleeping player's prompt already reads "an unseen foe". GMCP uses the
+same predicate and stays binary like the prompt. Showing `a figure` at
+`SightShapes` is a deliberate non-goal here: two surfaces disagreeing about how
+many tiers exist is worse than both being coarse. Without it the whole change is cosmetic for any GMCP client, and the
 playtest could not honestly report that darkness works.
 
 ### Proof
