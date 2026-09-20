@@ -13,6 +13,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mapper"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/plugins"
@@ -436,6 +437,15 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 
 		if roomInfo := rooms.LoadRoom(user.Character.RoomId); roomInfo != nil {
 
+			// Owner ruling 4 (2026-09-20): Char.Enemies rides the same sight
+			// gate as the fight prompt's {target} token
+			// (userrecord.prompt.go canSeeTargetForPrompt / messaging.CanSeeClearly).
+			// Without this, GMCP undid the darkness work: room text read
+			// "Something slashes you!" while a modern client's enemy panel
+			// showed the mob by name with a live HP bar. Computed once per
+			// call, not per mob -- it depends only on the viewer and room.
+			canSee := messaging.CanSeeClearly(user.Character, roomInfo)
+
 			for _, mobInstanceId := range roomInfo.GetMobs(rooms.FindFighting) {
 				mob := mobs.GetInstance(mobInstanceId)
 				if mob == nil {
@@ -448,6 +458,27 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 					Hp:      mob.Character.DisplayHealth(),
 					MaxHp:   mob.Character.HealthMax.Value,
 					Engaged: mob.InstanceId == aggroMobInstanceId,
+				}
+
+				if !canSee {
+					// Keep the row (a scripted client must still see the
+					// fight is ongoing) but strip identity and health, the
+					// same two things the prompt withholds. Stay binary
+					// like the prompt -- no "a figure" tier here.
+					//
+					// Zeroed, not omitted. TestCharVitals_ZeroPoolsAreSentAsZero
+					// (gmcp.Vitals_test.go) documents a real incident: a
+					// client that merges each payload over the last one kept
+					// rendering a stale prior HP reading when a field
+					// dropped out of the JSON. Omitting Hp/MaxHp here would
+					// reopen exactly that hole -- a caching client would
+					// keep showing the last SIGHTED reading straight through
+					// a blind stretch, which is a worse leak than a
+					// misleading 0. A 0 is at least uniformly wrong, not a
+					// stale truth.
+					e.Name = `an unseen foe`
+					e.Hp = 0
+					e.MaxHp = 0
 				}
 
 				payload.Enemies = append(payload.Enemies, e)
