@@ -1,6 +1,10 @@
 package items
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/configs"
+)
 
 // bandLabelAttackFixture gives Weak, Normal, Heavy, Critical and Miss one
 // variant each, naming itself, so a test can assert WHICH POOL GetAttackMessage
@@ -56,6 +60,35 @@ func TestGetAttackMessageBandBoundaries(t *testing.T) {
 		}
 		if band := string(got.Together.ToAttacker.Beginner[0]); band != tc.want {
 			t.Errorf("pct %d selected %s, want %s", tc.pct, band, tc.want)
+		}
+	}
+}
+
+// TestGetAttackMessageBandHonoursConfig proves the cutoffs are READ, not merely
+// declared. A knob nothing reads is the exact defect this repo has hit before:
+// a check that cannot fail, shipped green.
+func TestGetAttackMessageBandHonoursConfig(t *testing.T) {
+	restore := SeedAttackMessagesForTest(bandLabelAttackFixture())
+	defer restore()
+
+	c := configs.GetConfig()
+	c.Balance.AttackBandNormalThresholdPct = 50
+	c.Balance.AttackBandHeavyThresholdPct = 90
+	configs.SetConfigForTest(t, c)
+
+	cases := []struct {
+		pct  int
+		want string
+	}{
+		{49, "WEAK"},   // default 30 would have said NORMAL
+		{50, "NORMAL"},
+		{89, "NORMAL"}, // default 75 would have said HEAVY
+		{90, "HEAVY"},
+	}
+	for _, tc := range cases {
+		got := GetAttackMessage(Generic, tc.pct)
+		if band := string(got.Together.ToAttacker.Beginner[0]); band != tc.want {
+			t.Errorf("pct %d with cutoffs 50/90 selected %s, want %s", tc.pct, band, tc.want)
 		}
 	}
 }

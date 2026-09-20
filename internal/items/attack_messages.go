@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/narration"
 )
 
@@ -296,12 +297,17 @@ func GetPreAttackMessage(subType ItemSubType, messageType Intensity) AttackOptio
 
 func GetAttackMessage(subType ItemSubType, pctDamage int) AttackOptions {
 
+	// 101 and the zero floor are STRUCTURAL and stay here: combat.attackMessagePct
+	// forces a crit to 101 and caps a non-crit at 100, which is what pairs the
+	// crit-worded pool with the *** banner, and 0 means nothing landed. Only the
+	// two middle cutoffs are authorable.
+	balance := configs.GetBalanceConfig()
 	var intensity Intensity
 	if pctDamage >= 101 {
 		intensity = Critical
-	} else if pctDamage >= 75 {
+	} else if pctDamage >= int(balance.AttackBandHeavyThresholdPct) {
 		intensity = Heavy
-	} else if pctDamage >= 30 {
+	} else if pctDamage >= int(balance.AttackBandNormalThresholdPct) {
 		intensity = Normal
 	} else if pctDamage >= 1 {
 		intensity = Weak
