@@ -375,6 +375,13 @@ type Balance struct {
 	// Weak band repo-wide. Same reasoning as ContestFloor.
 	DefenceBandNormalThreshold ConfigFloat `yaml:"DefenceBandNormalThreshold"` // Normalized margin for the Normal defence band (default 0.5); 0 is rejected
 
+	// WeatherStrongFeltThreshold is the felt intensity at or above which indoor
+	// and underground weather emotes draw from the Strong pool instead of Mild.
+	// Felt is weather's own 0..1 scale and is unrelated to contest margins.
+	// Zero is rejected for the same reason every other narration cutoff rejects
+	// it: test binaries never load config.yaml.
+	WeatherStrongFeltThreshold ConfigFloat `yaml:"WeatherStrongFeltThreshold"` // Felt intensity for Strong weather emotes (default 0.5); 0 is rejected
+
 	// ── REGEN RATES ──────────────────────────────────────────────────────────
 	PlayerHealthRegenPct     ConfigFloat `yaml:"PlayerHealthRegenPct"`     // Fraction of HealthMax regen'd per tick — players (default 0.01)
 	PlayerStaminaRegenPct    ConfigFloat `yaml:"PlayerStaminaRegenPct"`    // Fraction of StaminaMax regen'd per tick — players (default 0.01)

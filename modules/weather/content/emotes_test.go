@@ -49,16 +49,16 @@ func TestPickSelectsByBiomeAndIndoor(t *testing.T) {
 	tables := loadTestTables(t)
 	first := func(n int) int { return 0 }
 
-	if got := tables.Pick("storm", "forest", false, 0.7, "", first); got != "Wind tears at the branches; the whole canopy roars." {
+	if got := tables.Pick("storm", "forest", false, 0.7, 0.5, "", first); got != "Wind tears at the branches; the whole canopy roars." {
 		t.Errorf("forest outdoor: %q", got)
 	}
-	if got := tables.Pick("storm", "desert", false, 0.7, "", first); got != "Thunder cracks directly overhead." {
+	if got := tables.Pick("storm", "desert", false, 0.7, 0.5, "", first); got != "Thunder cracks directly overhead." {
 		t.Errorf("unknown biome should fall back to default: %q", got)
 	}
-	if got := tables.Pick("storm", "forest", true, 0.7, "", first); got != "Rain hammers against the windows." {
+	if got := tables.Pick("storm", "forest", true, 0.7, 0.5, "", first); got != "Rain hammers against the windows." {
 		t.Errorf("indoor falls back to indoor default (never outdoor): %q", got)
 	}
-	if got := tables.Pick("fog", "forest", false, 0.7, "", first); got != "" {
+	if got := tables.Pick("fog", "forest", false, 0.7, 0.5, "", first); got != "" {
 		t.Errorf("missing table must yield silence: %q", got)
 	}
 }
@@ -66,7 +66,7 @@ func TestPickSelectsByBiomeAndIndoor(t *testing.T) {
 func TestPickUsesRoll(t *testing.T) {
 	tables := loadTestTables(t)
 	rolled := -1
-	got := tables.Pick("storm", "default", false, 0.7, "", func(n int) int { rolled = n; return 1 })
+	got := tables.Pick("storm", "default", false, 0.7, 0.5, "", func(n int) int { rolled = n; return 1 })
 	if rolled != 6 {
 		t.Errorf("roll should receive the line count, got %d", rolled)
 	}
@@ -103,13 +103,13 @@ func TestPick_IndoorIntensityBands(t *testing.T) {
 	}
 	first := func(n int) int { return 0 }
 
-	if got := tables.Pick("rain", "city", false, 0.1, "", first); got != "out" {
+	if got := tables.Pick("rain", "city", false, 0.1, 0.5, "", first); got != "out" {
 		t.Errorf("outdoor mild: got %q want %q", got, "out")
 	}
-	if got := tables.Pick("rain", "house", true, 0.2, "", first); got != "" {
+	if got := tables.Pick("rain", "house", true, 0.2, 0.5, "", first); got != "" {
 		t.Errorf("indoor mild: got %q want silence", got)
 	}
-	if got := tables.Pick("rain", "house", true, 0.7, "", first); got != "roof" {
+	if got := tables.Pick("rain", "house", true, 0.7, 0.5, "", first); got != "roof" {
 		t.Errorf("indoor strong: got %q want %q", got, "roof")
 	}
 }
@@ -127,13 +127,13 @@ func TestPick_IndoorBiomeFallback(t *testing.T) {
 		},
 	}
 	first := func(n int) int { return 0 }
-	if got := tables.Pick("storm", "fort", true, 0.9, "", first); got != "stone walls" {
+	if got := tables.Pick("storm", "fort", true, 0.9, 0.5, "", first); got != "stone walls" {
 		t.Errorf("biome-specific: got %q", got)
 	}
-	if got := tables.Pick("storm", "house", true, 0.9, "", first); got != "generic" {
+	if got := tables.Pick("storm", "house", true, 0.9, 0.5, "", first); got != "generic" {
 		t.Errorf("default fallback: got %q", got)
 	}
-	if got := tables.Pick("storm", "fort", true, 0.1, "", first); got != "" {
+	if got := tables.Pick("storm", "fort", true, 0.1, 0.5, "", first); got != "" {
 		t.Errorf("mild with empty mild pool: got %q want silence", got)
 	}
 }
@@ -157,22 +157,22 @@ func TestPick_SeasonalVariant(t *testing.T) {
 	first := func(n int) int { return 0 }
 
 	// season set + variant present -> variant wins
-	if got := tables.Pick("rain", "forest", false, 0.7, "winter", first); got != "freezing rain" {
+	if got := tables.Pick("rain", "forest", false, 0.7, 0.5, "winter", first); got != "freezing rain" {
 		t.Errorf("winter outdoor variant: got %q", got)
 	}
-	if got := tables.Pick("rain", "forest", true, 0.7, "winter", first); got != "sleet on glass" {
+	if got := tables.Pick("rain", "forest", true, 0.7, 0.5, "winter", first); got != "sleet on glass" {
 		t.Errorf("winter indoor variant (strong band): got %q", got)
 	}
 	// season set but biome missing in variant outdoor -> fall through to BASE
-	if got := tables.Pick("rain", "city", false, 0.7, "winter", first); got != "base outdoor" {
+	if got := tables.Pick("rain", "city", false, 0.7, 0.5, "winter", first); got != "base outdoor" {
 		t.Errorf("variant miss should fall through to base: got %q", got)
 	}
 	// no season -> base only, never variant
-	if got := tables.Pick("rain", "forest", false, 0.7, "", first); got != "base forest" {
+	if got := tables.Pick("rain", "forest", false, 0.7, 0.5, "", first); got != "base forest" {
 		t.Errorf("empty season must use base: got %q", got)
 	}
 	// season with no variant section -> base
-	if got := tables.Pick("rain", "forest", false, 0.7, "summer", first); got != "base forest" {
+	if got := tables.Pick("rain", "forest", false, 0.7, 0.5, "summer", first); got != "base forest" {
 		t.Errorf("unknown season must use base: got %q", got)
 	}
 }
@@ -186,13 +186,13 @@ func TestSeasonalTables_Pick(t *testing.T) {
 	}
 	first := func(n int) int { return 0 }
 
-	if got := st.Pick("temperate", "winter", "forest", false, 0.7, first); got != "snow ambience" {
+	if got := st.Pick("temperate", "winter", "forest", false, 0.7, 0.5, first); got != "snow ambience" {
 		t.Errorf("seasonal ambience outdoor: got %q", got)
 	}
-	if got := st.Pick("temperate", "winter", "house", true, 0.9, first); got != "hearth crackles" {
+	if got := st.Pick("temperate", "winter", "house", true, 0.9, 0.5, first); got != "hearth crackles" {
 		t.Errorf("seasonal ambience indoor strong: got %q", got)
 	}
-	if got := st.Pick("temperate", "summer", "forest", false, 0.7, first); got != "" {
+	if got := st.Pick("temperate", "summer", "forest", false, 0.7, 0.5, first); got != "" {
 		t.Errorf("missing (track,season) must yield silence: got %q", got)
 	}
 }
@@ -312,7 +312,7 @@ func TestPickRendersThroughTheNarrationCore(t *testing.T) {
 	// FirstPicker always returns 0, so the first authored variant must come
 	// back. If the store still rolled its own index this would be flaky
 	// rather than exact.
-	if got := tables.Pick("rain", "default", false, 0, "", narration.FirstPicker); got != want[0] {
+	if got := tables.Pick("rain", "default", false, 0, 0.5, "", narration.FirstPicker); got != want[0] {
 		t.Fatalf("FirstPicker should select variant 0, got %q", got)
 	}
 
@@ -320,7 +320,7 @@ func TestPickRendersThroughTheNarrationCore(t *testing.T) {
 	// than being discarded, across the full valid range.
 	seq := narration.SequencePicker()
 	for i, w := range want {
-		if got := tables.Pick("rain", "default", false, 0, "", seq); got != w {
+		if got := tables.Pick("rain", "default", false, 0, 0.5, "", seq); got != w {
 			t.Fatalf("call %d: want %q, got %q", i, w, got)
 		}
 	}
@@ -332,7 +332,7 @@ func TestPickRendersThroughTheNarrationCore(t *testing.T) {
 	// authors no tokens and has only one role for Render to coordinate.
 	//
 	// DefaultPicker is random, so assert membership in the pool, not identity.
-	got := tables.Pick("rain", "default", false, 0, "", nil)
+	got := tables.Pick("rain", "default", false, 0, 0.5, "", nil)
 	found := false
 	for _, w := range want {
 		if got == w {
@@ -456,7 +456,7 @@ func TestClassResolution(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := tables.Pick("rain", c.biome, c.indoor, c.felt, "", narration.FirstPicker)
+			got := tables.Pick("rain", c.biome, c.indoor, c.felt, 0.5, "", narration.FirstPicker)
 			if got != c.want {
 				t.Fatalf("want %q, got %q", c.want, got)
 			}
@@ -514,7 +514,35 @@ func TestUndergroundNeverFallsBackToAnotherClass(t *testing.T) {
 			},
 		},
 	}
-	if got := tables.Pick("rain", "cave", true, 1.0, "", narration.FirstPicker); got != "" {
+	if got := tables.Pick("rain", "cave", true, 1.0, 0.5, "", narration.FirstPicker); got != "" {
 		t.Fatalf("underground with no pool must be silent, got %q", got)
+	}
+}
+
+// TestPick_StrongFeltThresholdIsCallerControlled proves strongFeltThreshold
+// is actually READ rather than a value the package ignores. With the cutoff
+// raised to 0.9, a felt of 0.6 -- which would have selected Strong under the
+// old 0.5 const -- must now select Mild, and only a felt at or above 0.9
+// selects Strong. content has no configs import (arch_test.go forbids it),
+// so this is the only place the wiring can be proven from inside the
+// package; modules/weather/engine is where the live config value is read.
+func TestPick_StrongFeltThresholdIsCallerControlled(t *testing.T) {
+	tables := Tables{
+		"rain": {
+			Weather: "rain",
+			TableSection: TableSection{
+				Indoor: map[string]IndoorPool{
+					"default": {Mild: []string{"MILD"}, Strong: []string{"STRONG"}},
+				},
+			},
+		},
+	}
+	first := func(n int) int { return 0 }
+
+	if got := tables.Pick("rain", "house", true, 0.6, 0.9, "", first); got != "MILD" {
+		t.Fatalf("felt 0.6 under threshold 0.9 must select Mild, got %q", got)
+	}
+	if got := tables.Pick("rain", "house", true, 0.95, 0.9, "", first); got != "STRONG" {
+		t.Fatalf("felt 0.95 at or above threshold 0.9 must select Strong, got %q", got)
 	}
 }

@@ -1260,7 +1260,8 @@ func buildTipsGolden(t *testing.T) string {
 // which is why this baseline needed no `*With` variant the way itemvoices did.
 //
 // Indoor bands are forced by the felt value, not by naming a band: felt 0.0 is
-// below content.StrongFeltThreshold (0.5) and selects Mild; felt 1.0 is at or
+// below the 0.5 strongFeltThreshold this golden passes to every Pick call and
+// selects Mild; felt 1.0 is at or
 // above it and selects Strong. An empty Mild pool rendering "" is DELIBERATE
 // (light weather is inaudible through walls) and that emptiness is frozen here
 // too, so a pool silently disappearing shows as a row changing from text to "".
@@ -1350,26 +1351,26 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 		// outdoors.
 		for _, biome := range union(sortedKeysStrSlice(tbl.Outdoor)) {
 			fmt.Fprintf(&b, "%s|base|outdoor|%s => %q\n", wt, biome,
-				tables.Pick(w, biome, false, 0, "", narration.SequencePicker()))
+				tables.Pick(w, biome, false, 0, 0.5, "", narration.SequencePicker()))
 		}
 		// "sheltered" rather than "indoor": after PR 2 this axis covers two
 		// prose classes, and the row key must not have to be renamed then.
 		for _, biome := range union(sortedKeysIndoorPool(tbl.Indoor)) {
 			for _, bd := range bands {
 				fmt.Fprintf(&b, "%s|base|sheltered|%s|%s => %q\n", wt, biome, bd.name,
-					tables.Pick(w, biome, true, bd.felt, "", narration.SequencePicker()))
+					tables.Pick(w, biome, true, bd.felt, 0.5, "", narration.SequencePicker()))
 			}
 		}
 		for _, season := range sortedKeysTableSection(tbl.Seasonal) {
 			sec := tbl.Seasonal[season]
 			for _, biome := range union(sortedKeysStrSlice(sec.Outdoor)) {
 				fmt.Fprintf(&b, "%s|season:%s|outdoor|%s => %q\n", wt, season, biome,
-					tables.Pick(w, biome, false, 0, season, narration.SequencePicker()))
+					tables.Pick(w, biome, false, 0, 0.5, season, narration.SequencePicker()))
 			}
 			for _, biome := range union(sortedKeysIndoorPool(sec.Indoor)) {
 				for _, bd := range bands {
 					fmt.Fprintf(&b, "%s|season:%s|sheltered|%s|%s => %q\n", wt, season, biome, bd.name,
-						tables.Pick(w, biome, true, bd.felt, season, narration.SequencePicker()))
+						tables.Pick(w, biome, true, bd.felt, 0.5, season, narration.SequencePicker()))
 				}
 			}
 		}
@@ -1390,12 +1391,12 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 		sec := seasonal[k]
 		for _, biome := range union(sortedKeysStrSlice(sec.Outdoor)) {
 			fmt.Fprintf(&b, "%s|%s|outdoor|%s => %q\n", k.Track, k.Season, biome,
-				seasonal.Pick(k.Track, k.Season, biome, false, 0, narration.SequencePicker()))
+				seasonal.Pick(k.Track, k.Season, biome, false, 0, 0.5, narration.SequencePicker()))
 		}
 		for _, biome := range union(sortedKeysIndoorPool(sec.Indoor)) {
 			for _, bd := range bands {
 				fmt.Fprintf(&b, "%s|%s|sheltered|%s|%s => %q\n", k.Track, k.Season, biome, bd.name,
-					seasonal.Pick(k.Track, k.Season, biome, true, bd.felt, narration.SequencePicker()))
+					seasonal.Pick(k.Track, k.Season, biome, true, bd.felt, 0.5, narration.SequencePicker()))
 			}
 		}
 	}
@@ -1403,10 +1404,10 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 	// EMPTY CASES, frozen deliberately.
 	fmt.Fprintf(&b, "\n# EMPTY CASE: unknown weather type -> \"\"\n")
 	fmt.Fprintf(&b, "bogus-weather|base|outdoor|default => %q\n",
-		tables.Pick(sim.WeatherType("bogus-weather"), "default", false, 0, "", narration.SequencePicker()))
+		tables.Pick(sim.WeatherType("bogus-weather"), "default", false, 0, 0.5, "", narration.SequencePicker()))
 	fmt.Fprintf(&b, "\n# EMPTY CASE: unknown (track,season) ambience -> \"\"\n")
 	fmt.Fprintf(&b, "bogus-track|bogus-season|outdoor|default => %q\n",
-		seasonal.Pick("bogus-track", "bogus-season", "default", false, 0, narration.SequencePicker()))
+		seasonal.Pick("bogus-track", "bogus-season", "default", false, 0, 0.5, narration.SequencePicker()))
 
 	return b.String()
 }
