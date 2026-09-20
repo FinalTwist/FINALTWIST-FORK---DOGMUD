@@ -1545,7 +1545,7 @@ Send to attacker, defender, room observers.
 joins in with bonus damage. Its `toDefenderMsg` names the pet via
 `sourceChar.Pet.DisplayName()`; `hideIdentitiesInPersonalLines`
 (`combat.go`) hides that name from a blind defender the same way it hides
-the owner's, by `sourceChar.Pet.PlainName()` (M4d PR 2 followup 2) — but
+the owner's, by `sourceChar.Pet.PlainName()` (M4d PR 2 followup 2), but
 never from the owner's own line.
 
 **Step 4: Accumulate** — all damage from all passes, swings, and weapons
