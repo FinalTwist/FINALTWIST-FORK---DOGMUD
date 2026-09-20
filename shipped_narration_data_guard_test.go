@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -701,4 +702,283 @@ func checkWeatherEmotes(t *testing.T) {
 	if len(seasonal) == 0 {
 		t.Fatal("weather seasonal emotes loaded zero tables: the store is shipped, so zero means the load failed silently")
 	}
+}
+
+// observerIdentityGuardRoots is what TestObserverIdentityTagsAreAnonymizable
+// walks: the two content trees Task 4c's bug lives in (see that task's design
+// note and internal/combat/context.md). combat-messages relies ENTIRELY on
+// its own `<ansi fg="{actortype}">{actor}</ansi>` markup to give
+// messaging.Anonymize something to strip: buildAttackMessages
+// (internal/combat/combat_helpers.go) substitutes a bare player name into
+// {actor} with no code-level tagging of its own (only a Mob actor gets
+// GetMobName(0) override), so a malformed or missing tag in the CONTENT is
+// the only thing standing between a dark room and a leaked name. That is
+// exactly the bug Item 2 fixed (12 unclosed <ansi fg="{actortype}"> tags in
+// bite/claws/slam.yaml) and this guard is what stops a thirteenth from
+// shipping unnoticed. defense-messages is walked too: a NEW pool authored
+// without Item 1's Go-layer self-tagging (or a hand-edit that strips it) can
+// only be caught here -- see observerIdentityGuardContentSafeViaCode for why
+// its TEN existing files do not fail this guard despite most of them still
+// authoring the unregistered "mob"/"user" alias or no tag at all.
+var observerIdentityGuardRoots = []string{
+	shippedWorldRoot + "/combat-messages",
+	shippedWorldRoot + "/defense-messages",
+}
+
+// observerIdentityGuardContentSafeViaCode names the defense-messages files
+// whose {actor}/{actee} placeholders this guard would otherwise flag, but
+// does not fail on, because every one of them is proven to render through a
+// Go function that already substitutes a fully self-tagged identity string
+// (`<ansi fg="mobname">Name</ansi>` or `<ansi fg="username">Name</ansi>`,
+// built by meleeIdentityTag or the pre-existing taunt/spell defence path).
+// messaging.nameTagPattern matches that SUBSTITUTED span wherever it lands in
+// the final text, regardless of what -- an unregistered "mob"/"user" alias,
+// or nothing at all -- wraps the placeholder in the authored YAML (confirmed
+// against internal/combat's darkness identity tests and a standalone regex
+// check; see Task 4c's Item 1 commit). A purely static, content-only guard
+// cannot see that runtime guarantee, so recognising "mob"/"user" as
+// anonymizableAliases was rejected (it would blind this guard to a genuinely
+// bad alias in combat-messages, which has no such runtime fallback); naming
+// the files here instead keeps the alias check strict everywhere it still
+// matters.
+//
+// This is not a blanket defense-messages exemption. It is exactly the ten
+// files this directory holds today, each with the renderer that makes it
+// safe, and a file NOT in this map is enforced like any other -- a new
+// eleventh file earns a place here only with the same proof:
+//
+//	dodge.yaml, parry.yaml, block.yaml    -> combat.sendDefenseMessages (Item 1)
+//	counter-dodge/parry/block/quell.yaml  -> combat.fillCounterMessages (Item 1)
+//	counter-defy.yaml                     -> combat.BuildCounterTauntMessages
+//	                                          (fixed alongside Item 1: this
+//	                                          guard caught it substituting a
+//	                                          raw name exactly like its two
+//	                                          fixed siblings in counter.go)
+//	quell.yaml, defy.yaml                 -> combat.RenderChannelDefenceMessages,
+//	                                          called from
+//	                                          internal/hooks/spell_resolution.go
+//	                                          and mobcommands/usercommands
+//	                                          taunt.go -- already safe before
+//	                                          Task 4c, per its own bug report
+var observerIdentityGuardContentSafeViaCode = map[string]bool{
+	"dodge.yaml":         true,
+	"parry.yaml":         true,
+	"block.yaml":         true,
+	"quell.yaml":         true,
+	"defy.yaml":          true,
+	"counter-dodge.yaml": true,
+	"counter-parry.yaml": true,
+	"counter-block.yaml": true,
+	"counter-quell.yaml": true,
+	"counter-defy.yaml":  true,
+}
+
+// anonymizableAliases are the ansi aliases messaging.Anonymize's
+// nameTagPattern recognises (internal/messaging/anonymize.go: username,
+// mobname, petname, each with an optional -suffix this guard does not need to
+// reproduce since content never authors the suffixed forms), plus the two
+// content placeholders internal/combat resolves to them BEFORE Anonymize ever
+// sees the rendered text: {actortype} becomes "username" or "mobname"
+// (TokenActorType, set from SourceTarget in combat.go/combat_helpers.go), and
+// {acteetype} the same for the other side.
+var anonymizableAliases = map[string]bool{
+	"username":    true,
+	"mobname":     true,
+	"petname":     true,
+	"{actortype}": true,
+	"{acteetype}": true,
+}
+
+// identityPlaceholderPattern finds a bare {actor} or {actee} token in an
+// authored line. It does not match inside {actortype}/{acteetype}: neither
+// ends in a `}` immediately after "actor"/"actee", so the exact-token anchor
+// is enough without a word boundary.
+var identityPlaceholderPattern = regexp.MustCompile(`\{actor\}|\{actee\}`)
+
+// identityTagSpanPattern finds one whole `<ansi fg="ALIAS">content</ansi>`
+// span and captures both the alias and the content, mirroring
+// messaging.nameTagPattern's shape but keeping the alias general so this
+// guard can judge it against anonymizableAliases itself, rather than only
+// ever matching the three aliases Anonymize already accepts -- the whole
+// point is to also catch a span whose alias is something else (e.g. "mob"
+// or "user", the unregistered aliases Task 4c's bug report names).
+var identityTagSpanPattern = regexp.MustCompile(`<ansi fg="([^"]+)">([^<]*)</ansi>`)
+
+// TestObserverIdentityTagsAreAnonymizable fails the build when an observer or
+// remote_observer line in combat-messages/ or defense-messages/ names {actor}
+// or {actee} outside a CLOSED ansi tag whose alias messaging.Anonymize
+// recognises (counting {actortype}/{acteetype}, which internal/combat
+// resolves to a recognised alias before Anonymize runs). An infrared-only
+// (SightShapes) observer in a dark room reads whatever text these two stores
+// produce; a placeholder that Anonymize cannot find a tag for reaches that
+// observer as a real name, exactly as Task 4c's bug report measured (231 of
+// 2553 observer lines, before Items 1 and 2 fixed the two failure modes: an
+// unregistered content alias substituted with a bare name, and a tag that
+// opens but never closes).
+//
+// It inspects the RENDERED TEXT of each observer/remote_observer scalar, not
+// its role key -- unlike TestNoLegacyRoleKeysInShippedData, which checks
+// mapping keys, this walks to the scalar leaves and regex-matches the
+// authored string itself, because the defect here is inside the string, not
+// in what it is filed under.
+//
+// It logs how many files and how many {actor}/{actee} placeholders it
+// inspected, and refuses to pass on a walk that found nothing, for the same
+// reason TestNoLegacyRoleKeysInShippedData does: a walk that silently scans
+// zero files or zero placeholders would pass in 0.00s and prove nothing.
+func TestObserverIdentityTagsAreAnonymizable(t *testing.T) {
+	filesInspected := 0
+	placeholdersInspected := 0
+	exemptFindings := 0
+
+	for _, root := range observerIdentityGuardRoots {
+		files := yamlFilesUnder(t, root)
+		if len(files) == 0 {
+			t.Errorf("walk root %s yielded zero YAML files: the guard would scan nothing there", root)
+			continue
+		}
+		for _, path := range files {
+			filesInspected++
+			placeholders, exempt := checkFileForUnanonymizableIdentities(t, path)
+			placeholdersInspected += placeholders
+			exemptFindings += exempt
+		}
+	}
+
+	if placeholdersInspected == 0 {
+		t.Fatal("inspected zero {actor}/{actee} placeholders: the walk found nothing, so a green run proves nothing")
+	}
+	// A floor, not a pin. Content volume moves; a walk collapsing to a
+	// handful of files does not happen for a legitimate reason.
+	if filesInspected < 10 {
+		t.Errorf("inspected only %d files across %d walk roots: expected the whole combat/defense message tree", filesInspected, len(observerIdentityGuardRoots))
+	}
+	t.Logf("inspected %d YAML files and %d {actor}/{actee} placeholders across %d walk roots (%d placeholders logged, not failed, under observerIdentityGuardContentSafeViaCode)",
+		filesInspected, placeholdersInspected, len(observerIdentityGuardRoots), exemptFindings)
+}
+
+// checkFileForUnanonymizableIdentities reports every unanonymizable
+// {actor}/{actee} placeholder in one file's observer/remote_observer lines
+// (t.Errorf, or t.Logf for a file named in
+// observerIdentityGuardContentSafeViaCode) and returns how many placeholders
+// it looked at and how many of those were logged rather than failed, so the
+// caller can prove the walk is not silently inspecting nothing and can report
+// the exemption's size honestly.
+func checkFileForUnanonymizableIdentities(t *testing.T, path string) (placeholders, exempt int) {
+	t.Helper()
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Errorf("%s: %v", path, err)
+		return 0, 0
+	}
+
+	contentSafeViaCode := observerIdentityGuardContentSafeViaCode[filepath.Base(path)]
+
+	dec := yamlv3.NewDecoder(bytes.NewReader(data))
+	for {
+		var doc yamlv3.Node
+		if err := dec.Decode(&doc); err != nil {
+			if err == io.EOF {
+				break
+			}
+			t.Errorf("%s: parse: %v", path, err)
+			return placeholders, exempt
+		}
+		p, e := walkNodeForObserverIdentities(t, path, &doc, nil, contentSafeViaCode)
+		placeholders += p
+		exempt += e
+	}
+	return placeholders, exempt
+}
+
+func walkNodeForObserverIdentities(t *testing.T, path string, n *yamlv3.Node, ancestors []string, contentSafeViaCode bool) (placeholders, exempt int) {
+	t.Helper()
+
+	switch n.Kind {
+	case yamlv3.DocumentNode, yamlv3.SequenceNode:
+		for _, child := range n.Content {
+			p, e := walkNodeForObserverIdentities(t, path, child, ancestors, contentSafeViaCode)
+			placeholders += p
+			exempt += e
+		}
+	case yamlv3.MappingNode:
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			k, v := n.Content[i], n.Content[i+1]
+			p, e := walkNodeForObserverIdentities(t, path, v, append(ancestors, k.Value), contentSafeViaCode)
+			placeholders += p
+			exempt += e
+		}
+	case yamlv3.ScalarNode:
+		if n.Tag == "!!str" && inObserverRole(ancestors) {
+			p, e := checkLineForUnanonymizableIdentities(t, path, n, contentSafeViaCode)
+			placeholders += p
+			exempt += e
+		}
+	}
+	return placeholders, exempt
+}
+
+// inObserverRole reports whether "observer" or "remote_observer" appears
+// anywhere in the ancestor key path, not only as the immediate parent --
+// combat-messages nests an intensity band (beginner/expert/master) between
+// the role key and the scalar list, defense-messages does not, and this
+// check must hold for both without caring which.
+func inObserverRole(ancestors []string) bool {
+	for _, a := range ancestors {
+		if a == "observer" || a == "remote_observer" {
+			return true
+		}
+	}
+	return false
+}
+
+// checkLineForUnanonymizableIdentities finds every {actor}/{actee}
+// placeholder in one scalar's text and reports the ones that do not sit
+// inside a closed identity tag: it maps every
+// `<ansi fg="ALIAS">content</ansi>` span in the text first, then checks each
+// placeholder's byte range falls fully inside one whose alias
+// anonymizableAliases recognises. A placeholder inside a span whose alias is
+// something else (the "mob"/"user" bug) or inside no span at all (a bare
+// token, or one behind a tag that opened but never closed) is a violation --
+// t.Errorf normally, t.Logf (and counted as exempt) when contentSafeViaCode
+// is true, i.e. this file is named in observerIdentityGuardContentSafeViaCode
+// because its renderer already substitutes a self-tagged identity
+// regardless of the content's own markup.
+func checkLineForUnanonymizableIdentities(t *testing.T, path string, n *yamlv3.Node, contentSafeViaCode bool) (placeholders, exempt int) {
+	t.Helper()
+
+	text := n.Value
+
+	type safeSpan struct{ start, end int }
+	var safeSpans []safeSpan
+	for _, m := range identityTagSpanPattern.FindAllStringSubmatchIndex(text, -1) {
+		alias := text[m[2]:m[3]]
+		if anonymizableAliases[alias] {
+			safeSpans = append(safeSpans, safeSpan{start: m[4], end: m[5]})
+		}
+	}
+
+	for _, ph := range identityPlaceholderPattern.FindAllStringIndex(text, -1) {
+		placeholders++
+		safe := false
+		for _, sp := range safeSpans {
+			if ph[0] >= sp.start && ph[1] <= sp.end {
+				safe = true
+				break
+			}
+		}
+		if safe {
+			continue
+		}
+		if contentSafeViaCode {
+			exempt++
+			t.Logf("%s:%d: [content-safe-via-code, not enforced] %s is not anonymizable by content alone: %q",
+				filepath.ToSlash(path), n.Line, text[ph[0]:ph[1]], text)
+			continue
+		}
+		t.Errorf("%s:%d: %s is not anonymizable: it does not sit inside a closed ansi tag whose alias messaging.Anonymize recognises\n\tline: %s",
+			filepath.ToSlash(path), n.Line, text[ph[0]:ph[1]], text)
+	}
+	return placeholders, exempt
 }
