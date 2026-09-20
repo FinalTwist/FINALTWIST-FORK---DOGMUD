@@ -536,6 +536,15 @@ Balance:
   #   zero here would retire the Weak band in every test in the repo.
   DefenceBandNormalThreshold: 0.5
   #
+  # WeatherStrongFeltThreshold: the felt intensity at or above which indoor and
+  #   underground weather emotes draw from the Strong pool instead of Mild.
+  #   Felt is weather's own 0..1 scale; it is NOT a contest margin.
+  #   The weather engine reads this and passes it down to the content tables,
+  #   which never read config themselves, so a test can band weather without
+  #   any engine state at all.
+  #   Range: above 0.0 and at most 1.0. Zero is not legal (reverts to 0.5).
+  WeatherStrongFeltThreshold: 0.5
+  #
   # ContestFloor: the single last-resort probability for EVERY opposed contest
   #   in the game. A symmetric floor F bounds the outcome to [F, 1-F], so 0.125
   #   means a hopelessly outclassed actor still succeeds one attempt in eight,
