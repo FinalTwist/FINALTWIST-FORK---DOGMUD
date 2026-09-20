@@ -136,14 +136,14 @@ options:
       actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> snaps at you with their <ansi fg="item">{itemname}</ansi> but misses.'
-        - '<ansi fg="{actortype}">{actor}''s <ansi fg="item">{itemname}</ansi> clack shut on air as you dodge!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> clack shut on air as you dodge!'
         - '<ansi fg="{actortype}">{actor}</ansi> lunges at you, but fails to close their jaws!'
         - '<ansi fg="{actortype}">{actor}</ansi> snaps wildly in frenzied rage, missing you entirely!'
         expert:
         - 'You evade <ansi fg="{actortype}">{actor}</ansi>''s calculated lunge!'
         - 'You anticipate <ansi fg="{actortype}">{actor}</ansi>''s feint and avoid their bite!'
         - 'Despite <ansi fg="{actortype}">{actor}</ansi>''s {stance} approach, their <ansi fg="item">{itemname}</ansi> find only air!'
-        - '<ansi fg="{actortype}">{actor}''s tactical approach fails as you counter expertly!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s tactical approach fails as you counter expertly!'
         master:
         - 'Your masterful defense forces <ansi fg="{actortype}">{actor}</ansi>''s perfect bite wide!'
         - 'You read <ansi fg="{actortype}">{actor}</ansi>''s intent and evade with fluid grace!'
@@ -190,7 +190,7 @@ options:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> grazes you with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> nicks you lightly with their <ansi fg="item">{itemname}</ansi>.'
-        - 'You feel a sting as <ansi fg="{actortype}">{actor}''s <ansi fg="item">{itemname}</ansi> barely scrape you.'
+        - 'You feel a sting as <ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> barely scrape you.'
         - '<ansi fg="{actortype}">{actor}</ansi> snaps awkwardly, barely catching you.'
         expert:
         - '<ansi fg="{actortype}">{actor}</ansi> darts in and grazes you with their <ansi fg="item">{itemname}</ansi>.'
@@ -251,7 +251,7 @@ options:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> sinks their <ansi fg="item">{itemname}</ansi> into you!'
         - '<ansi fg="{actortype}">{actor}</ansi> snaps at you with their <ansi fg="item">{itemname}</ansi>!'
-        - 'You feel crushing pain as <ansi fg="{actortype}">{actor}''s jaws clamp down on you!'
+        - 'You feel crushing pain as <ansi fg="{actortype}">{actor}</ansi>''s jaws clamp down on you!'
         - '<ansi fg="{actortype}">{actor}</ansi> attacks with wild, animalistic fury!'
         expert:
         - '<ansi fg="{actortype}">{actor}</ansi> darts and bites you decisively!'
@@ -266,7 +266,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> exploits an opening and bites your {bodypart} decisively!'
         - '<ansi fg="{actortype}">{actor}</ansi> follows through with a solid bite!'
         - '<ansi fg="{actortype}">{actor}</ansi> capitalizes on their momentum with perfect timing!'
-        - '<ansi fg="{actortype}">{actor}''s <ansi fg="item">{itemname}</ansi> flash shut as they maintain pressure!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> flash shut as they maintain pressure!'
         - '<ansi fg="{actortype}">{actor}</ansi> reads your stance and bites with predator precision!'
         - '{momentum}, <ansi fg="{actortype}">{actor}</ansi> clamps down on you with overwhelming apex predator skill!'
       observer:
@@ -321,7 +321,7 @@ options:
         beginner:
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> tear into you!'
         - 'You are hit hard as <ansi fg="{actortype}">{actor}</ansi> delivers a crushing bite!'
-        - '<ansi fg="{actortype}">{actor}''s jaws clamp down savagely on you!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s jaws clamp down savagely on you!'
         - '<ansi fg="{actortype}">{actor}</ansi> attacks with overwhelming, bestial rage!'
         expert:
         - '<ansi fg="{actortype}">{actor}</ansi> lunges and bites brutally into your {bodypart}!'
@@ -452,8 +452,8 @@ options:
       actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their snap in an embarrassing display!'
-        - '<ansi fg="{actortype}">{actor}''s attack <ansi fg="red-bold">FUMBLES</ansi> badly as they lose their footing!'
-        - '<ansi fg="{actortype}">{actor}''s jaws <ansi fg="red-bold">FUMBLE</ansi> pathetically as they overextend!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s attack <ansi fg="red-bold">FUMBLES</ansi> badly as they lose their footing!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s jaws <ansi fg="red-bold">FUMBLE</ansi> pathetically as they overextend!'
         - '<ansi fg="{actortype}">{actor}</ansi> misjudges the distance and their attack <ansi fg="red-bold">FUMBLES</ansi> hopelessly!'
         expert:
         - '<ansi fg="{actortype}">{actor}''s</ansi> tactical approach fails and they <ansi fg="red-bold">FUMBLE</ansi>!'

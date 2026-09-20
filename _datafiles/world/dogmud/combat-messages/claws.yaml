@@ -136,14 +136,14 @@ options:
       actee:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> swipes at you with their <ansi fg="item">{itemname}</ansi> but misses.'
-        - '<ansi fg="{actortype}">{actor}''s claws slash through the air as you dodge their attack!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s claws slash through the air as you dodge their attack!'
         - '<ansi fg="{actortype}">{actor}</ansi> lunges at you, but fails to make contact!'
         - '<ansi fg="{actortype}">{actor}</ansi> rakes wildly in uncontrolled rage, missing you entirely!'
         expert:
         - 'You evade <ansi fg="{actortype}">{actor}</ansi>''s calculated strike!'
         - 'You anticipate <ansi fg="{actortype}">{actor}</ansi>''s feint and avoid their rake!'
         - 'Despite <ansi fg="{actortype}">{actor}</ansi>''s {stance} approach, their claws find only air!'
-        - '<ansi fg="{actortype}">{actor}''s tactical approach fails as you counter expertly!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s tactical approach fails as you counter expertly!'
         master:
         - 'Your masterful defense forces <ansi fg="{actortype}">{actor}</ansi>''s perfect strike wide!'
         - 'You read <ansi fg="{actortype}">{actor}</ansi>''s intent and evade with flowing grace!'
@@ -190,7 +190,7 @@ options:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> grazes you with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> scratches you lightly with their <ansi fg="item">{itemname}</ansi>.'
-        - 'You feel a slight scratch as <ansi fg="{actortype}">{actor}''s claws barely nick you.'
+        - 'You feel a slight scratch as <ansi fg="{actortype}">{actor}</ansi>''s claws barely nick you.'
         - '<ansi fg="{actortype}">{actor}</ansi> swipes awkwardly, barely scratching you.'
         expert:
         - '<ansi fg="{actortype}">{actor}</ansi> darts in and rakes you lightly.'
@@ -253,7 +253,7 @@ options:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> rends you with their <ansi fg="item">{itemname}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> slashes you with their <ansi fg="item">{itemname}</ansi>!'
-        - 'You feel sharp pain as <ansi fg="{actortype}">{actor}''s claws tear into you!'
+        - 'You feel sharp pain as <ansi fg="{actortype}">{actor}</ansi>''s claws tear into you!'
         - '<ansi fg="{actortype}">{actor}</ansi> attacks with wild, animalistic fury!'
         expert:
         - '<ansi fg="{actortype}">{actor}</ansi> circles and rakes you decisively!'
@@ -268,7 +268,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> exploits an opening and gouges decisively!'
         - '<ansi fg="{actortype}">{actor}</ansi> follows through with a solid rake!'
         - '<ansi fg="{actortype}">{actor}</ansi> capitalizes on their momentum with perfect timing!'
-        - '<ansi fg="{actortype}">{actor}''s claws flash as they maintain pressure with control!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s claws flash as they maintain pressure with control!'
         - '<ansi fg="{actortype}">{actor}</ansi> rakes decisively at you while {position}!'
         - '{momentum}, <ansi fg="{actortype}">{actor}</ansi> lacerates you with overwhelming apex predator skill!'
         - '<ansi fg="{actortype}">{actor}</ansi> rakes their claws across your {bodypart}!'
@@ -328,7 +328,7 @@ options:
         beginner:
         - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> bites into you!'
         - 'You are hit hard as <ansi fg="{actortype}">{actor}</ansi> delivers a powerful slash!'
-        - '<ansi fg="{actortype}">{actor}''s claws sink deeply into you!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s claws sink deeply into you!'
         - '<ansi fg="{actortype}">{actor}</ansi> attacks with overwhelming, bestial rage!'
         expert:
         - '<ansi fg="{actortype}">{actor}</ansi> steps in close and brutally tears you!'
@@ -460,9 +460,9 @@ options:
         - 'Your masterful strike is disrupted - you <ansi fg="red-bold">FUMBLE</ansi> the execution!'
       actee:
         beginner:
-        - '<ansi fg="{actortype}">{actor}''s claws <ansi fg="red-bold">FUMBLE</ansi> pathetically as they stumble!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s claws <ansi fg="red-bold">FUMBLE</ansi> pathetically as they stumble!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their swipe in an embarrassing display!'
-        - '<ansi fg="{actortype}">{actor}''s attack <ansi fg="red-bold">FUMBLES</ansi> badly as they lose their footing!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s attack <ansi fg="red-bold">FUMBLES</ansi> badly as they lose their footing!'
         - '<ansi fg="{actortype}">{actor}</ansi> loses their grip and their attack <ansi fg="red-bold">FUMBLES</ansi> hopelessly!'
         expert:
         - '<ansi fg="{actortype}">{actor}''s</ansi> tactical approach fails and they <ansi fg="red-bold">FUMBLE</ansi>!'
