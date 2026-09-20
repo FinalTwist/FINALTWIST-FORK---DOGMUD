@@ -1201,7 +1201,7 @@ func resolveDefenseOutcomeInner(result *AttackResult, best bestDefenseResult, so
 			res.defenseCrit = true
 			res.damageMult = 0.0
 			setDefenseCritFlags(result, best)
-			sendDefenseMessages(result, best, sourceChar, targetChar, isThirdParty, false)
+			sendDefenseMessages(result, best, sourceChar, targetChar, isThirdParty, false, defenceBand{crit: true})
 			mudlog.Debug("DefenseCrit", "defZ", fmt.Sprintf("%.2f", best.defRoll.ZScore),
 				"source", sourceChar.Name, "target", targetChar.Name)
 			return res
@@ -1222,26 +1222,15 @@ func resolveDefenseOutcomeInner(result *AttackResult, best bestDefenseResult, so
 	// down with it -- reflect, lifesteal and on-hit procs all read the damage
 	// actually dealt, not a flat rate.
 	//
-	// A FLOORED save takes the bare 50% and never the curve. Sentinel margins
-	// are +-1 in raw score units, not standard deviations, so normalising one
-	// yields 1/(stdDev*sqrt2) -- about 0.05 z at typical scores (mitigation
-	// 0.512), but 0.71 z when StdDevFor clamps at its 1.0 floor for a very weak
-	// defender (mitigation 0.677). That is a margin-derived value read off a
-	// number that was never a margin, and it rewards the WEAKER defender more.
-	// This mirrors the floored-crit gate above, which excludes the sentinel for
-	// exactly the same reason.
-	defMargin := 0.0
-	if !best.floored {
-		if z, ok := normalizedDefenseMargin(best); ok {
-			defMargin = z
-		}
-	}
+	// A FLOORED save takes the bare 50% and never the curve; see
+	// meleeDefenceMargin for why.
+	defMargin := meleeDefenceMargin(best)
 	res.hit = true
 	res.defended = true
 	res.damageMult = 1.0 - DefenceMitigation(defMargin)
 	// partial == true: the swing deals partial damage, so buildAttackMessages
 	// owns the two personal lines; only the room narration is sent here.
-	sendDefenseMessages(result, best, sourceChar, targetChar, isThirdParty, true)
+	sendDefenseMessages(result, best, sourceChar, targetChar, isThirdParty, true, defenceBand{margin: defMargin})
 	return res
 }
 
@@ -1257,6 +1246,36 @@ func setDefenseCritFlags(result *AttackResult, best bestDefenseResult) {
 	}
 }
 
+// defenceBand carries the two inputs every defence in the game now bands on.
+// It is a struct rather than two more bare parameters because sendDefenseMessages
+// already takes two bools, and a third would be positional-argument roulette.
+//
+// crit is NOT derived from the existing `partial` flag. They happen to be
+// opposites at both call sites today, and relying on that would band a future
+// non-crit caller as Heavy the moment someone adds one.
+type defenceBand struct {
+	crit   bool
+	margin float64 // normalized, defence-positive; 0 when floored
+}
+
+// meleeDefenceMargin is the ONE derivation of a melee defence's normalized,
+// defence-positive margin. It is the number both the mitigation curve and the
+// narration band read, so they can never disagree about how decisive a defence
+// was.
+//
+// A FLOORED save reads 0. Sentinel margins are +-1 in raw score units, not
+// standard deviations, so normalising one yields a value read off a number that
+// was never a margin, and it rewards the WEAKER defender more.
+func meleeDefenceMargin(best bestDefenseResult) float64 {
+	if best.floored {
+		return 0
+	}
+	if z, ok := normalizedDefenseMargin(best); ok {
+		return z
+	}
+	return 0
+}
+
 // sendDefenseMessages sends narrative messages for a successful defense.
 //
 // partial (U6 Task 16b) marks the non-crit defensive win, where the swing
@@ -1270,7 +1289,7 @@ func setDefenseCritFlags(result *AttackResult, best bestDefenseResult) {
 // personal lines; buildAttackMessages sends the single composite line each
 // participant sees instead. A defensive crit (partial == false) fully
 // negates the swing and keeps its personal lines unchanged.
-func sendDefenseMessages(result *AttackResult, best bestDefenseResult, sourceChar *characters.Character, targetChar *characters.Character, isThirdParty bool, partial bool) {
+func sendDefenseMessages(result *AttackResult, best bestDefenseResult, sourceChar *characters.Character, targetChar *characters.Character, isThirdParty bool, partial bool, band defenceBand) {
 	result.DefenseUsed = best.defenseType
 
 	itemsDefencePool := items.DefencePoolFor(best.defenseType)
@@ -1296,9 +1315,6 @@ func sendDefenseMessages(result *AttackResult, best bestDefenseResult, sourceCha
 	// this guard used to document -- sendDefenseMessages is a messaging
 	// function and should not carry a progression side effect at all.
 
-	// Get narrative defense messages based on defense z-score
-	defenseMsgs := items.GetDefenseMessage(itemsDefencePool, best.defRoll.ZScore)
-
 	// Prepare token replacements
 	weaponName := "fists"
 	attackName := "strike" // Generic term for unarmed attacks
@@ -1320,12 +1336,13 @@ func sendDefenseMessages(result *AttackResult, best bestDefenseResult, sourceCha
 		items.TokenMomentum: targetChar.CalculateMomentumString(),
 	}
 
-	// If we have custom defense messages, use them. RenderTriad picks ONE
-	// variant index and uses it for all three roles -- the authored pools
-	// pair up BY INDEX (variant N of todefender/toattacker/toroom describe
-	// the SAME event), so three independent picks (the old .Get() x3) could
-	// narrate three different events to the three audiences.
-	triad := defenseMsgs.RenderTriad(tokenReplacements, nil)
+	// M4c: melee bands through the same function as spells, ranged, special
+	// moves, taunt and counters -- defensive crit, then the normalized contest
+	// margin. It used to band on best.defRoll.ZScore, the defender's own roll
+	// against their own mean, which is decisive about nothing: a defender who
+	// rolled well for themselves and still barely scraped the swing narrated
+	// as though they had dismissed it.
+	triad := items.RenderDefenseMessage(itemsDefencePool, band.crit, band.margin, tokenReplacements)
 	if len(triad.ToDefender) > 0 {
 		toDefenderMsg := triad.ToDefender
 		toAttackerMsg := triad.ToAttacker

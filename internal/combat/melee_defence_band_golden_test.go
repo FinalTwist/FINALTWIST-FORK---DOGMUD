@@ -72,7 +72,9 @@ func TestMeleeDefenceBandGolden(t *testing.T) {
 	fmt.Fprintf(&b, "# fixture, so a row names the BAND selected, not authored prose.\n")
 	fmt.Fprintf(&b, "# columns: defence | defender z-score | normalized margin | partial | role => band\n")
 	fmt.Fprintf(&b, "# partial=false is the defensive-CRIT call site (combat_helpers.go:1204);\n")
-	fmt.Fprintf(&b, "# partial=true is the mitigated defensive win (:1244), which sends the room line only.\n\n")
+	fmt.Fprintf(&b, "# partial=true is the mitigated defensive win (:1244), which sends the room line only.\n")
+	fmt.Fprintf(&b, "# M4c: the band comes from meleeDefenceMargin(best) plus the crit flag, the same\n")
+	fmt.Fprintf(&b, "# derivation production uses -- not a copy of it.\n\n")
 
 	for _, d := range defences {
 		for _, z := range zScores {
@@ -88,7 +90,11 @@ func TestMeleeDefenceBandGolden(t *testing.T) {
 					tgt := characters.New()
 					tgt.Name = "Defender"
 					result := &AttackResult{}
-					sendDefenseMessages(result, best, src, tgt, false, partial)
+					band := defenceBand{crit: !partial}
+					if partial {
+						band.margin = meleeDefenceMargin(best)
+					}
+					sendDefenseMessages(result, best, src, tgt, false, partial, band)
 
 					key := fmt.Sprintf("%s|z=%.2f|m=%.2f|partial=%t", d, z, m, partial)
 					fmt.Fprintf(&b, "%s|actee => %s\n", key, firstText(result.MessagesToTarget))
@@ -113,7 +119,7 @@ func TestMeleeDefenceBandGolden(t *testing.T) {
 		tgt := characters.New()
 		tgt.Name = "Defender"
 		result := &AttackResult{}
-		sendDefenseMessages(result, best, src, tgt, false, true)
+		sendDefenseMessages(result, best, src, tgt, false, true, defenceBand{margin: meleeDefenceMargin(best)})
 		fmt.Fprintf(&b, "%s|FLOORED|observer => %s\n", d, firstText(result.MessagesToSourceRoom))
 	}
 

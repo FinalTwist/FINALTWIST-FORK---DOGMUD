@@ -19,7 +19,7 @@ import (
 // action.
 //
 // sendDefenseMessages has no picker override (it goes through
-// items.GetDefenseMessage -> items.RenderTriad with production randomness),
+// items.RenderDefenseMessage -> items.RenderTriad with production randomness),
 // so this cannot be pinned to a single deterministic index the way the
 // items-package RenderTriad test can. Instead it runs many trials and checks
 // EVERY one is internally coordinated: before the fix, three independent
@@ -44,9 +44,9 @@ func TestSendDefenseMessagesMeleePathCoordinatesAllThreeRoles(t *testing.T) {
 			items.Weak: items.DefenseOptions{Together: items.DefenseTogetherMessages{
 				ToDefender: toDefender, ToAttacker: toAttacker, ToRoom: toRoom,
 			}},
-			// Normal/Heavy are unused by this test (zScore pins Weak) but
-			// GetDefenseMessage only looks up the band it needs, so leaving
-			// them absent is fine here.
+			// Normal/Heavy are unused by this test (the empty band pins Weak)
+			// but RenderDefenseMessage only looks up the band it needs, so
+			// leaving them absent is fine here.
 		},
 	}
 	restore := items.SeedDefenseMessagesForTest(map[items.DefencePool]*items.DefenseMessageGroup{
@@ -61,7 +61,8 @@ func TestSendDefenseMessagesMeleePathCoordinatesAllThreeRoles(t *testing.T) {
 
 	best := bestDefenseResult{
 		defenseType: combatvocab.DefenceBlock,
-		defRoll:     dice.RollResult{ZScore: 0.0}, // < 0.5 => Weak band
+		margin:      0, // normalized margin 0, no crit => Weak band
+		defRoll:     dice.RollResult{StdDev: 10},
 	}
 
 	const trials = 40
@@ -69,7 +70,7 @@ func TestSendDefenseMessagesMeleePathCoordinatesAllThreeRoles(t *testing.T) {
 		result := &AttackResult{}
 		// partial=false so the defender/attacker personal lines are sent
 		// alongside the room line (mirrors the defenseCrit call site).
-		sendDefenseMessages(result, best, sourceChar, targetChar, false, false)
+		sendDefenseMessages(result, best, sourceChar, targetChar, false, false, defenceBand{})
 
 		if len(result.MessagesToTarget) != 1 || len(result.MessagesToSource) != 1 || len(result.MessagesToSourceRoom) != 1 {
 			t.Fatalf("trial %d: expected exactly one message per channel, got target=%d source=%d sourceRoom=%d",
