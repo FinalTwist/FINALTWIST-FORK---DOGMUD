@@ -333,6 +333,30 @@ red.
 
 ---
 
+## PR 3, scoped 2026-09-20 after PR 2 merged as #149
+
+PR 3 is the remainder of M4d, and it is the ORIGINAL deferred scope only:
+
+1. **The ranged second room.** Seat the defender-room line on `RemoteObserver`
+   so it is hidden like every other audience. `SendToTargetRoom` sight-gates but
+   never runs `HideNames`, relying on tag-based `Anonymize` which its own
+   docstring says leaks bare untagged names.
+2. **The four non-combat paths PR 1 deferred**, each of which names a party the
+   reader may not be able to see: quest trigger actions
+   (`internal/questengine/bridge.go`), four of five `applyPlayerEffect` self-cast
+   branches, `position_control` entirely (its submission triples name the other
+   grappler in the PERSONAL lines, not just the observer line), and crafting's
+   instant-craft narration.
+3. **Widen the one-path guard.** It covers 3 of 60 categories today with an
+   empty allowlist. Every path migrated should add its categories, which is how
+   the guard earns its keep rather than ossifying.
+
+**NOT in PR 3, by owner ruling 2026-09-20:** the `canSeeInDark` migration. It
+rides with M4e's first PR, which opens the same twenty files. See the M4e
+section of the flip spec.
+
+---
+
 ## Out of scope
 
 - `Room.Info` and the GMCP contents roster: the filed GMCP slice.
