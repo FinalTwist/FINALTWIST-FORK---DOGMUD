@@ -1051,6 +1051,51 @@ and `Deprecated:` markers; the deletion U6 owed is still outstanding.
   `combatvocab.Ranged(TargetSingle)`, a shield is a real block contest entry,
   and a shot can crit against `CritBarFor`'s pair bar.
 
+## Sight and the darkness penalty (M4d)
+
+`combatContext` (`combat_helpers.go`) carries `sourceSight` and
+`targetSight`, both `messaging.SightDecision` (`SightFull` / `SightShapes`
+/ `SightNone`), set once per round in `combat.go` from
+`messaging.ParticipantSight(character, room)` — one call per side, at each
+of the four `calculateCombat` call sites (player-vs-mob, player-vs-player,
+mob-vs-player, mob-vs-mob).
+
+They drive exactly one thing: `Balance.DarknessCombatPenalty`, applied as a
+flat multiplier —
+
+```go
+// combat_helpers.go
+if ctx.sourceSight != messaging.SightFull {
+    attackScore *= float64(bal.DarknessCombatPenalty)   // ~line 565
+}
+...
+if ctx.targetSight != messaging.SightFull {
+    defenseScore *= float64(bal.DarknessCombatPenalty)  // ~line 760
+}
+```
+
+Nothing else reads `sourceSight`/`targetSight`. They are not a narration
+gate — combat's OWN room lines are sight-gated separately, through
+`messaging.SendTrio`/`Room.SendTextVisual*`, not through this context.
+
+**Today both non-`SightFull` verdicts (`SightShapes` and `SightNone`) take
+the SAME full penalty** — the `!=  SightFull` comparison cannot yet tell
+them apart. This is deliberate and byte-identical to the pre-M4d boolean:
+**PR 2 gives `SightShapes` its own, reduced, darkness penalty** (an
+infrared attacker or defender should be worse off than one with no sight
+at all, but better off than one with full sight), which a bare bool could
+never express and is the whole reason this field carries `SightDecision`
+rather than `bool`.
+
+Before M4d (`b7acfc018`), this context carried `sourceCanSee`/`targetCanSee`
+`bool`, filled from `messaging.CanSeeSightImpairedOnly` — combat reading a
+messaging PREDICATE BY NAME, one of three that all differed only in their
+attention (sleep) handling; see `internal/messaging/context.md`'s
+`ParticipantSight` entry for why that split existed and why combat
+specifically needed the sleep-blind one. Combat no longer calls a
+messaging predicate at all: `ParticipantSight` is the shared primitive, and
+combat reads its own copy of the verdict, stored typed on `combatContext`.
+
 ## Dependencies
 
 - `internal/characters` - Character stats, equipment, and abilities
@@ -1975,8 +2020,8 @@ own identical terms (converging that is not Task 17's mandate).
 
 | File | Purpose |
 |------|---------|
-| `combat.go` | Round resolution entry points. `resolveCombatRound` builds and admits one aggregate attack plan before resolution, then passes the committed short state into hit scoring. **`calculateCombat` takes both combatants as POINTERS (U7 Task 1). See the gotcha under "Contest core"; value parameters silently switched the whole melee defence cost model off.** |
-| `combat_helpers.go` | Extracted helpers, including the immutable-ish `attackPlan` snapshot consumed by `calculateCombat`. **`runBestOfAllDefense` no longer rolls — it builds defence scores and delegates to `internal/contest` (U1). It performs the one sign conversion between the core's attack-positive margin and `bestDefenseResult`'s defence-positive one.** |
+| `combat.go` | Round resolution entry points. `resolveCombatRound` builds and admits one aggregate attack plan before resolution, then passes the committed short state into hit scoring. **`calculateCombat` takes both combatants as POINTERS (U7 Task 1). See the gotcha under "Contest core"; value parameters silently switched the whole melee defence cost model off.** Fills `combatContext.sourceSight`/`targetSight` from `messaging.ParticipantSight`, once per side, at each of the four call sites — see "Sight and the darkness penalty". |
+| `combat_helpers.go` | Extracted helpers, including the immutable-ish `attackPlan` snapshot consumed by `calculateCombat`. **`runBestOfAllDefense` no longer rolls — it builds defence scores and delegates to `internal/contest` (U1). It performs the one sign conversion between the core's attack-positive margin and `bestDefenseResult`'s defence-positive one.** `combatContext` itself, and the two `sourceSight`/`targetSight` reads that apply `Balance.DarknessCombatPenalty`, live here — see "Sight and the darkness penalty". |
 | `damage_pipeline.go` | The unified three-channel damage + mitigation pipeline |
 | `margin_crit.go` | Normalized opposed-roll margin, the source of the crit flag. `normalizedAttackMargin`/`normalizedDefenseMargin` serve melee (5.11d); `ContestCrit` serves spell + conviction (5.11g). **The two take opposite margin sign conventions — read the doc comments before touching either.** |
 | `crit_floor.go` | Crit floors, 1% both directions (5.11e). **U6 Task 9 changed the DENOMINATORS: the attack floor applies to swings that WON THE CONTEST and the defence floor to swings the DEFENCE won, keyed on `best.margin` (defence-positive, so `<= 0` is an attack win), not on `res.hit`.** The old hit/miss split stops being answerable once a defensive win deals partial damage, because a deflected swing then has `res.hit == true` while the defence won. A floored outcome and an uncontested swing (`defenseType == ""`) are promoted by neither floor. **`applyCritFloors` must stay the LAST thing `resolveDefenseOutcome` does** — an attack crit forces a hit, so flooring earlier becomes an undeclared second hit floor stacked on `ContestFloor`. **U6 Task 10:** a promotion to a defence crit now also clears `res.hit` and `res.damageMult`, because an ordinary defensive win arrives here already landing partial damage. |
