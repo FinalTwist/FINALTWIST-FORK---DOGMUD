@@ -349,7 +349,7 @@ func TestGetAttackMessageBandHonoursConfig(t *testing.T) {
 		pct  int
 		want string
 	}{
-		{49, "WEAK"},   // default 30 would have said NORMAL
+		{49, "WEAK"}, // default 30 would have said NORMAL
 		{50, "NORMAL"},
 		{89, "NORMAL"}, // default 75 would have said HEAVY
 		{90, "HEAVY"},
@@ -583,9 +583,15 @@ Every claim that the attack bands are hardcoded is now half false. Fix each.
 go build ./...
 go test . ./...
 golangci-lint run --new-from-rev=master
+gofmt -l $(git diff --name-only master..HEAD | grep '\.go$')
 ```
 
-Expected: build clean, tests PASS, **0 new lint issues**.
+Expected: build clean, tests PASS, **0 new lint issues**, and the `gofmt -l`
+line prints **nothing**. 🪤 CI's `validate / test` job runs a gofmt gate that is
+SEPARATE from golangci-lint and fails the whole job in about 30 seconds, before
+a single test runs. `golangci-lint` passing says nothing about it. Run the
+`gofmt -l` standalone: it exits 0 whether or not it names files, so chaining it
+hides the result.
 
 - [ ] **Step 6: Commit and open the PR**
 
