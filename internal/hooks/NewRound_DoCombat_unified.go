@@ -536,16 +536,29 @@ func dispatchCritAndMessaging(atk, def actions.Actor, res *combat.AttackResult) 
 	atkRoom := atk.GetRoom()
 	defRoom := def.GetRoom()
 
-	// Darkness replacement — applies for whichever side is a player viewer.
+	// Sight verdicts — applies for whichever side is a player viewer.
 	//
-	// CanSeeSightImpairedOnly, NOT CanSeeClearly: this decides whether to
-	// substitute DARKNESS text, so it must ask about darkness and blindness and
-	// not about sleep. When the sleep gate was added to CanSeeClearly on
-	// 2026-08-31, this site started telling a sleeping player "Something hits
-	// you hard in the dark!" in a fully lit room -- and it fired on the very
-	// swing that force-crits and wakes them, which is exactly the moment they
-	// most need to know what hit them. The Sleeping flag is still set here;
-	// cancelDamageConditions clears it later in the round.
+	// M4d PR 2 deleted replaceDarknessMessages: identities are now hidden at
+	// composition, inside internal/combat, against the SAME per-side verdict
+	// (combatContext.sourceSight / targetSight) this package cannot see
+	// directly -- res.MessagesToSource/MessagesToTarget arrive already
+	// hidden. srcCanSee/tgtCanSee survive here for a second, still-live job:
+	// the tally-summary gate below. recordTallyFor builds its own summary
+	// line straight from the character names, not from res.MessagesTo*, so a
+	// blind participant's per-swing prose being hidden upstream says nothing
+	// about whether their ROUND SUMMARY is safe to send -- that gate has to
+	// keep asking the same sight question independently. See the gate's own
+	// comment a few lines down for why deleting these locals would silently
+	// reintroduce the leak this PR exists to close.
+	//
+	// CanSeeSightImpairedOnly, NOT CanSeeClearly: this asks about darkness and
+	// blindness and not about sleep. When the sleep gate was added to
+	// CanSeeClearly on 2026-08-31, this site started telling a sleeping
+	// player "Something hits you hard in the dark!" in a fully lit room --
+	// and it fired on the very swing that force-crits and wakes them, which
+	// is exactly the moment they most need to know what hit them. The
+	// Sleeping flag is still set here; cancelDamageConditions clears it later
+	// in the round.
 	srcCanSee := true
 	tgtCanSee := true
 	if atk.IsPlayer() {
@@ -554,9 +567,15 @@ func dispatchCritAndMessaging(atk, def actions.Actor, res *combat.AttackResult) 
 	if def.IsPlayer() {
 		tgtCanSee = messaging.CanSeeSightImpairedOnly(defChar, defRoom)
 	}
-	if !srcCanSee || !tgtCanSee {
-		replaceDarknessMessages(res, srcCanSee, tgtCanSee)
-	}
+
+	// Task 4 (M4d PR 2): record the per-round "you can't see" notice for
+	// whichever side is a blind-or-shapes-only player. Reuses the same
+	// srcCanSee/tgtCanSee this function already computed above -- see
+	// markBlindCombatant's doc comment for why that predicate (not
+	// CanSeeClearly) is the right one here. This only records; nothing is
+	// sent until flushBlindCombatNotices runs at end of round.
+	markBlindCombatant(atk, srcCanSee)
+	markBlindCombatant(def, tgtCanSee)
 
 	// Crit effects (riposte / sweep / bash) compute side-specific text.
 	critResult := applyCritEffects(atkChar, defChar, *res, atkRoom)
@@ -583,9 +602,10 @@ func dispatchCritAndMessaging(atk, def actions.Actor, res *combat.AttackResult) 
 		u := asUser(atk)
 		lvl := u.GetCombatVerbosity()
 		drainParticipantLines(u, res.MessagesToSource, lvl, false)
-		// Gate on srcCanSee: a blind attacker's prose was already
-		// darkness-substituted; the tally summary must not re-introduce
-		// the named information they couldn't read per-swing.
+		// Gate on srcCanSee: a blind attacker's per-swing prose already had
+		// the defender's name hidden at composition (internal/combat); the
+		// tally summary builds its own line straight from the character
+		// names and must not re-introduce what that prose just hid.
 		if lvl == messaging.VerbosityLight && srcCanSee {
 			recordTallyFor(u.UserId, atk, def, res)
 		}
@@ -594,8 +614,9 @@ func dispatchCritAndMessaging(atk, def actions.Actor, res *combat.AttackResult) 
 		u := asUser(def)
 		lvl := u.GetCombatVerbosity()
 		drainParticipantLines(u, res.MessagesToTarget, lvl, true)
-		// Same rationale: a blind defender's incoming text was already
-		// darkness-substituted; only record the tally when they can see.
+		// Same rationale: a blind defender's incoming text already had the
+		// attacker's name hidden at composition; only record the tally
+		// (built straight from character names) when they can see.
 		if lvl == messaging.VerbosityLight && tgtCanSee {
 			recordTallyFor(u.UserId, atk, def, res)
 		}

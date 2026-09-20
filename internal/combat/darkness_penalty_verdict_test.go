@@ -11,10 +11,12 @@ package combat
 // conditional would only ever agree with itself, never catch a drift in the
 // real one.
 //
-// The row that matters most is "dark, infrared only": CanSeeSightImpairedOnly
-// is FALSE there today (full penalty applies), and this test proves the
-// verdict-carrying field still says the same thing. PR 2 is what gives
-// SightShapes its own reduced value; this task must not deliver that early.
+// M4d PR 2 (owner ruling 6, 2026-09-20) changes the row that matters most:
+// "dark, infrared only" now takes DarknessShapesCombatPenalty, a REDUCED
+// penalty, not the full DarknessCombatPenalty every other impaired row
+// still takes. TestDarknessShapesPenaltyIsBetweenBlindAndClean below is the
+// test that pins the ruling itself; this test's job is only to keep pinning
+// which verdict each observer/room state produces.
 
 import (
 	"math"
@@ -122,6 +124,11 @@ func TestDarknessPenaltyVerdictMatchesOldBoolean(t *testing.T) {
 			}
 
 			verdict := messaging.ParticipantSight(observer, room)
+			// wantPenalized only tracks whether ANY penalty applies; it is
+			// derived from the old boolean and stays correct for that narrow
+			// question even for SightShapes, since PR 2 only changes WHICH
+			// multiplier a shapes verdict takes, not whether one applies at
+			// all.
 			wantPenalized := !tc.wantOldImpairedOnly
 
 			clean := calcAttackScore(observer, target, items.Item{}, 0, combatContext{sourceSight: messaging.SightFull})
@@ -133,10 +140,18 @@ func TestDarknessPenaltyVerdictMatchesOldBoolean(t *testing.T) {
 					gotPenalized, wantPenalized, verdict, clean, ctxScore)
 			}
 			if wantPenalized {
-				wantScore := clean * float64(cfg.Balance.DarknessCombatPenalty)
+				// M4d PR 2: the multiplier depends on the VERDICT, not just on
+				// whether a penalty applies. SightShapes takes the reduced
+				// shapes penalty; SightNone (and blind, which forces
+				// SightNone) still takes the full blind penalty.
+				wantMult := float64(cfg.Balance.DarknessCombatPenalty)
+				if verdict == messaging.SightShapes {
+					wantMult = float64(cfg.Balance.DarknessShapesCombatPenalty)
+				}
+				wantScore := clean * wantMult
 				if math.Abs(ctxScore-wantScore) > 1e-9 {
-					t.Fatalf("penalized score = %v, want %v (clean %v x DarknessCombatPenalty %v)",
-						ctxScore, wantScore, clean, cfg.Balance.DarknessCombatPenalty)
+					t.Fatalf("penalized score = %v, want %v (clean %v x multiplier %v, verdict %v)",
+						ctxScore, wantScore, clean, wantMult, verdict)
 				}
 			}
 
@@ -145,9 +160,44 @@ func TestDarknessPenaltyVerdictMatchesOldBoolean(t *testing.T) {
 					t.Fatalf("infrared in the dark must resolve to SightShapes, got %v", verdict)
 				}
 				if !gotPenalized {
-					t.Fatal("infrared in the dark: PR 1 must still apply the full darkness penalty; PR 2 is what changes this")
+					t.Fatal("infrared in the dark: PR 2 still applies a reduced darkness penalty, never zero (owner ruling 6, 2026-09-20)")
 				}
 			}
 		})
+	}
+}
+
+// TestDarknessShapesPenaltyIsBetweenBlindAndClean is the ruling test for
+// M4d PR 2 (owner ruling 6, 2026-09-20): "darkness combat penalty should be
+// less for infra characters, but not zero." An infrared combatant who only
+// makes out SHAPES must land and defend more often than one who is fully
+// blind, and still worse than one who can see clearly.
+//
+// This drives calcAttackScore directly with each SightDecision rather than
+// building room/vision fixtures: TestDarknessPenaltyVerdictMatchesOldBoolean
+// above already pins which verdict each observer/room state produces, so
+// this test only needs to pin what each verdict is WORTH.
+func TestDarknessShapesPenaltyIsBetweenBlindAndClean(t *testing.T) {
+	cfg := configs.GetConfig()
+	cfg.Balance.DarknessCombatPenalty = 0.50
+	cfg.Balance.DarknessShapesCombatPenalty = 0.75
+	configs.SetConfigForTest(t, cfg)
+
+	observer := characters.New()
+	target := characters.New()
+
+	clearScore := calcAttackScore(observer, target, items.Item{}, 0, combatContext{sourceSight: messaging.SightFull})
+	shapesScore := calcAttackScore(observer, target, items.Item{}, 0, combatContext{sourceSight: messaging.SightShapes})
+	blindScore := calcAttackScore(observer, target, items.Item{}, 0, combatContext{sourceSight: messaging.SightNone})
+
+	if !(blindScore < shapesScore && shapesScore < clearScore) {
+		t.Fatalf("want blindScore < shapesScore < clearScore, got blind=%v shapes=%v clear=%v",
+			blindScore, shapesScore, clearScore)
+	}
+
+	wantShapesScore := clearScore * float64(cfg.Balance.DarknessShapesCombatPenalty)
+	if math.Abs(shapesScore-wantShapesScore) > 1e-9 {
+		t.Fatalf("shapesScore = %v, want %v (clear %v x DarknessShapesCombatPenalty %v)",
+			shapesScore, wantShapesScore, clearScore, cfg.Balance.DarknessShapesCombatPenalty)
 	}
 }

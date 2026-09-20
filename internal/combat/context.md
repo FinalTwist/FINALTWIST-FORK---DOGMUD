@@ -1060,32 +1060,43 @@ and `Deprecated:` markers; the deletion U6 owed is still outstanding.
 of the four `calculateCombat` call sites (player-vs-mob, player-vs-player,
 mob-vs-player, mob-vs-mob).
 
-They drive exactly one thing: `Balance.DarknessCombatPenalty`, applied as a
-flat multiplier —
+They drive `DarknessScoreMultiplier(sight messaging.SightDecision, bal
+configs.Balance) float64` (`combat_helpers.go`), applied to both sides'
+scores —
 
 ```go
 // combat_helpers.go
-if ctx.sourceSight != messaging.SightFull {
-    attackScore *= float64(bal.DarknessCombatPenalty)   // ~line 565
-}
+attackScore *= DarknessScoreMultiplier(ctx.sourceSight, bal)   // ~line 580
 ...
-if ctx.targetSight != messaging.SightFull {
-    defenseScore *= float64(bal.DarknessCombatPenalty)  // ~line 760
-}
+defenseScore *= DarknessScoreMultiplier(ctx.targetSight, bal)  // ~line 772
 ```
 
-Nothing else reads `sourceSight`/`targetSight`. They are not a narration
-gate — combat's OWN room lines are sight-gated separately, through
-`messaging.SendTrio`/`Room.SendTextVisual*`, not through this context.
+**M4d PR 2 (`25bf2e479`) gave the three verdicts three different
+multipliers**, replacing the boolean `!= SightFull` test the function used
+to be:
 
-**Today both non-`SightFull` verdicts (`SightShapes` and `SightNone`) take
-the SAME full penalty** — the `!=  SightFull` comparison cannot yet tell
-them apart. This is deliberate and byte-identical to the pre-M4d boolean:
-**PR 2 gives `SightShapes` its own, reduced, darkness penalty** (an
-infrared attacker or defender should be worse off than one with no sight
-at all, but better off than one with full sight), which a bare bool could
-never express and is the whole reason this field carries `SightDecision`
-rather than `bool`.
+| Verdict | Multiplier | Config knob (shipped) |
+|---|---|---|
+| `SightFull` | 1.0 (no penalty) | — |
+| `SightShapes` | `Balance.DarknessShapesCombatPenalty` | 0.90 |
+| `SightNone` | `Balance.DarknessCombatPenalty` | 0.80 |
+
+An infrared-only combatant (`SightShapes`) is now worse off than one with
+full sight but better off than one with no sight at all — the whole reason
+`combatContext` carries `SightDecision` rather than a bare `bool`. A
+**BLINDED** character still takes the full `SightNone` penalty even with
+InfraredVision equipped: `messaging.ParticipantSight` (see
+`internal/messaging/context.md`) checks the Blinded Perception state FIRST
+and returns `SightNone` unconditionally, before it ever reaches the
+InfraredVision branch — blindness overrides vision in the verdict.
+`DarknessShapesCombatPenalty` is a starting point (owner ruling,
+2026-09-20), not a tuned value; see `_datafiles/config.yaml`.
+
+Nothing else reads `sourceSight`/`targetSight` for SCORING. They are not a
+narration gate — combat's OWN room lines are sight-gated separately,
+through `messaging.SendTrio`/`Room.SendTextVisual*`, not through this
+context. (Personal-line IDENTITY hiding, below, reads the same two fields
+for a different purpose — narration, not score.)
 
 Before M4d (`b7acfc018`), this context carried `sourceCanSee`/`targetCanSee`
 `bool`, filled from `messaging.CanSeeSightImpairedOnly` — combat reading a
@@ -1095,6 +1106,40 @@ attention (sleep) handling; see `internal/messaging/context.md`'s
 specifically needed the sleep-blind one. Combat no longer calls a
 messaging predicate at all: `ParticipantSight` is the shared primitive, and
 combat reads its own copy of the verdict, stored typed on `combatContext`.
+
+### Personal-line identity hiding (M4d PR 2)
+
+`hideIdentitiesInPersonalLines(result *AttackResult, sourceChar, targetChar
+*characters.Character, ctx combatContext)` (`combat.go`) is the M4d PR 2
+replacement for the deleted `hooks.replaceDarknessMessages`. Where the old
+function discarded the composed line entirely and substituted one of twelve
+hardcoded Go sentences, this one keeps the composed line — weapon flavour,
+the winning defence, and M4c's damage band all survive — and hides only the
+OTHER party's name inside it, per READER, by that reader's own
+`SightDecision`:
+
+- `result.MessagesToSource` (the attacker's own lines): the DEFENDER's name
+  is hidden by `ctx.sourceSight`.
+- `result.MessagesToTarget` (the defender's own lines): the ATTACKER's
+  name, and — if the attacker's pet joined the swing — the pet's
+  `PlainName()` (never `DisplayName()`'s decorated form; see
+  `internal/pets/context.md`), are both hidden by `ctx.targetSight`. The
+  pet is added to the DEFENDER's hide list only; the owner's own line never
+  hides their own pet's name (owner ruling, M4d PR 2 followup 2).
+
+Both go through `messaging.HideNames(text, names, sight)`, which renders
+`SightNone` as "something" and `SightShapes` as "a figure", and leaves the
+text untouched at `SightFull`. Room/observer lines are unaffected here —
+they are sight-gated separately through `messaging.SendTrio`. Called once
+per round, at the end of `calculateCombat`, after every swing's
+`buildAttackMessages` and `applyPetDamage` have already composed their
+lines.
+
+Melee's defence lines (`sendDefenseMessages`, `fillCounterMessages`,
+`BuildCounterTauntMessages`) do NOT go through this function — they
+substitute pre-tagged identities via `meleeIdentityTag` instead (Task 4c,
+above), because those lines are built and dispatched from a different call
+path than `AttackResult.MessagesTo*`.
 
 ## Dependencies
 
@@ -1504,6 +1549,25 @@ the defender's own roll against their own mean, decisive about nothing: a
 defender who rolled well for themselves and still barely scraped the swing
 narrated as though they had dismissed it.
 
+**Task 4c: `meleeIdentityTag(c *characters.Character) string`** is what
+`sendDefenseMessages` and `fillCounterMessages` (`counter.go`) substitute for
+`items.TokenActor`/`items.TokenActee` now, instead of a bare `c.Name`. It
+dispatches on `c.GetUserId() > 0` to `c.GetPlayerName(0).String()` or
+`c.GetMobName(0).String()`, the same FormattedName primitives
+`RenderChannelDefenceMessages`' own callers (mobcommands/usercommands'
+skill_move_defence.go, taunt.go, throw.go, shoot.go) already use to build
+`ChannelDefenceIdentities` -- not a second way to tag an identity. Melee's
+`defense-messages/` content still wraps `{actor}`/`{actee}` in the
+unregistered `fg="mob"`/`fg="user"` aliases (accepted cost of the owner's
+"fix the substitution, not the call sites" ruling: it changes colour for
+every player, all the time, not only in the dark), but the SUBSTITUTED value
+is now a self-contained `<ansi fg="mobname">Name</ansi>` span regardless, so
+`messaging.Anonymize`'s `nameTagPattern` matches it wherever it lands --
+nested inside that wrapper, or bare. The content-level guard this enables,
+`TestObserverIdentityTagsAreAnonymizable`, lives in the repo root's
+`shipped_narration_data_guard_test.go` alongside `TestNoLegacyRoleKeysInShippedData`,
+which it is modeled on.
+
 **v. Momentum** — `sourceChar.UpdateMomentum(hit)` — consecutive
 hits/misses affect stance display text.
 
@@ -1542,7 +1606,11 @@ Send to attacker, defender, room observers.
 ```
 
 **viii. Pet Damage** — `applyPetDamage()` — 20% chance the player's pet
-joins in with bonus damage.
+joins in with bonus damage. Its `toDefenderMsg` names the pet via
+`sourceChar.Pet.DisplayName()`; `hideIdentitiesInPersonalLines`
+(`combat.go`) hides that name from a blind defender the same way it hides
+the owner's, by `sourceChar.Pet.PlainName()` (M4d PR 2 followup 2), but
+never from the owner's own line.
 
 **Step 4: Accumulate** — all damage from all passes, swings, and weapons
 adds up in `AttackResult.DamageToTarget`.
@@ -1707,13 +1775,13 @@ values directly.
 | `combat/grapple.go` | `AttemptGrapple`, `ApplyGrappleResult`, `CheckClinchProgression`, `CheckGroundedEscape`, `ApplyPositionProgression`, `IsThirdPartyAttack` |
 | `combat/grapple_move.go` | `ExecuteGrappleMove`, `GrappleMoveResult`, `GrappleMoveDisarmWeapon` |
 | `combat/skill_moves.go` | `ExecuteSkillMove`, `SkillMoveResult`, `SkillMoveParams`. U6b Task 10: `SkillMoveResult.IsCounter` echoes `SkillMoveParams.IsCounter` so counter-tier wiring that only sees the result can refuse to fire off a move that IS a counter |
-| `combat/counter.go` | U6b Task 10 counter tier, re-keyed by the counters slice: `ExecuteCounter(defender, attacker, shape, defence, sameRoom) CounterResult` is one free counter-swing for a defensive crit, priced by `CounterDamagePercent` (0 = off-switch, handled here because `CalcRawDamage` treats `itemMult <= 0` as "unset" 0.30), routed through `ExecuteSkillMove` with `IsCounter` so the countered party defends it (charged + progressed: the countered-party economy) and no counter can chain. Four narration-relevant refusals in the primitive (nil or dead participants and the knob off-switch also return early): not `sameRoom` (the cross-room shot), `shape.Targeting != TargetSingle` (area and multi attacks earn no counter, owner ruling 2026-09-18), `defence == DefenceNone` (logged; cannot happen today), and `defence == DefenceDefy` (words answer words: every defy crit counter-taunts via `internal/actions.FireCounterTaunt`, which this package cannot call, so every exit that can see a defy win branches on it first and that function carries the same single-target gate). Narration is rendered from the WINNING DEFENCE's pool, `items.CounterPoolFor(defence)` (counter-dodge, counter-parry, counter-block, counter-quell, counter-defy; bands: weak = turned aside, normal = lands, heavy = crits), damage description appended to the two personal lines only, generic fallback when pools are not loaded. `BuildCounterTauntMessages(countererName, counteredName, crit, damage, counteredMaxCP)` renders the defy retort triad from counter-defy. `CounterResult.CountererUserId` lets wrappers dispatch AFTER the move outcome (`actions.DispatchCounterMessages`) |
+| `combat/counter.go` | U6b Task 10 counter tier, re-keyed by the counters slice: `ExecuteCounter(defender, attacker, shape, defence, sameRoom) CounterResult` is one free counter-swing for a defensive crit, priced by `CounterDamagePercent` (0 = off-switch, handled here because `CalcRawDamage` treats `itemMult <= 0` as "unset" 0.30), routed through `ExecuteSkillMove` with `IsCounter` so the countered party defends it (charged + progressed: the countered-party economy) and no counter can chain. Four narration-relevant refusals in the primitive (nil or dead participants and the knob off-switch also return early): not `sameRoom` (the cross-room shot), `shape.Targeting != TargetSingle` (area and multi attacks earn no counter, owner ruling 2026-09-18), `defence == DefenceNone` (logged; cannot happen today), and `defence == DefenceDefy` (words answer words: every defy crit counter-taunts via `internal/actions.FireCounterTaunt`, which this package cannot call, so every exit that can see a defy win branches on it first and that function carries the same single-target gate). Narration is rendered from the WINNING DEFENCE's pool, `items.CounterPoolFor(defence)` (counter-dodge, counter-parry, counter-block, counter-quell, counter-defy; bands: weak = turned aside, normal = lands, heavy = crits), damage description appended to the two personal lines only, generic fallback when pools are not loaded. `BuildCounterTauntMessages(counterer, countered *characters.Character, crit, damage, counteredMaxCP)` renders the defy retort triad from counter-defy, tagging both identities with `meleeIdentityTag` (Task 4c) so an infrared-only observer in a dark room can no longer read the raw names off a counter-defy line. `CounterResult.CountererUserId` lets wrappers dispatch AFTER the move outcome (`actions.DispatchCounterMessages`) |
 | `combat/calculations.go` | Hit chance, crit probability, power ranking, alignment calculations |
 | `combat/descriptions.go` | `GetDamageDescription`, `GetHealDescription`, `GetDifficultyDescription` helpers |
 | `combat/taunt_messages.go` | Taunt/conviction combat messages |
 | `combat/analytics.go` | Ring buffer, `CombatEvent`, `AnalyticsSummary`, recording + query functions |
 | `hooks/NewRound_DoCombat.go` | `DoCombat`, `handlePlayerCombat`, `handleMobCombat`, `archerReengageable`, `handleAffected`, `applyMoonMods`, `snapshotSleepingVictims` |
-| `hooks/NewRound_DoCombat_helpers.go` | The extracted helpers. Rebuild this list with `grep -n "^func " internal/hooks/NewRound_DoCombat_helpers.go` rather than trusting it; as of the conditions unification it defines, in file order: `processAttackerProgression`, `attackerCandidates`, `processDefenderProgression`, `bestSwingDefence`, `defenceTypesUsed`, `defenceSkillFor`, `defenceStatFor`, `attackerBonusSkillAndStat`, `mobDisplayName`, `sendVisualRoomText`, `isExcludedUser`, `sendDarkRoomCombatFallback`, `replaceDarknessMessages`, `castingTargetChar`, `recordConcentrationFailure`, `handlePlayerFoldCasting`, `handleMobFoldCasting`, `handlePlayerFlee`, `handleCompanionOwnerAssist`, `handleCharmedMobAssist`, `handleOffhandBreakUserDef`, `handleOffhandBreakMobDef`, `handlePlayerConcentrationBreak`, `ordinaryMeleeEngagement`, `handleMobAIDecision`, `handleMobTargetSwitch`, `handleMobWeaponPickup`, `handlePartyAutoAttack`, `surpriseCandidate` |
+| `hooks/NewRound_DoCombat_helpers.go` | The extracted helpers. Rebuild this list with `grep -n "^func " internal/hooks/NewRound_DoCombat_helpers.go` rather than trusting it; as of M4d PR 2 (which deleted `replaceDarknessMessages` — identity hiding moved into `internal/combat.hideIdentitiesInPersonalLines`, above) it defines, in file order: `processAttackerProgression`, `attackerCandidates`, `processDefenderProgression`, `bestSwingDefence`, `defenceTypesUsed`, `defenceSkillFor`, `defenceStatFor`, `attackerBonusSkillAndStat`, `mobDisplayName`, `sendVisualRoomText`, `isExcludedUser`, `sendDarkRoomCombatFallback`, `castingTargetChar`, `recordConcentrationFailure`, `handlePlayerFoldCasting`, `handleMobFoldCasting`, `handlePlayerFlee`, `handleCompanionOwnerAssist`, `handleCharmedMobAssist`, `handleOffhandBreakUserDef`, `handleOffhandBreakMobDef`, `handlePlayerConcentrationBreak`, `ordinaryMeleeEngagement`, `handleMobAIDecision`, `handleMobTargetSwitch`, `handleMobWeaponPickup`, `handlePartyAutoAttack`, `surpriseCandidate` |
 | `hooks/combat_shared_helpers.go` | `simulateFoldRound`, `calcFoldConvictionCost`, `checkConcentrationBreak`, `concentrationScore`, `tryWeaponBreak`, `applyCritEffects`, `CritEffectResult`, `calcSpellDamageForCharacter` |
 | `hooks/spell_resolution.go` | `resolveSpell`, `resolveAgainstMob`, `resolveAgainstPlayer`, `applyPlayerEffect` |
 

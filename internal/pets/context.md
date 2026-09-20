@@ -62,6 +62,10 @@ Manages pet feeding mechanics and nutritional requirements.
 
 ### Pet Properties
 - **Exists() bool**: Checks if pet is valid (has type)
+- **PlainName() string**: The bare name DisplayName styles -- p.Name if set,
+  else p.Type, no ansi. `internal/combat`'s hideIdentitiesInPersonalLines
+  hides an attacker's pet from a blind defender by this string, not by
+  DisplayName's decorated output (M4d PR 2 followup 2).
 - **DisplayName() string**: Returns formatted pet name with color styling
   - Uses custom name if set, otherwise uses type name
   - Applies color patterns from NameStyle field

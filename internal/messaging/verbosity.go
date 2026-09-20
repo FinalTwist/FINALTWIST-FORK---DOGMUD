@@ -58,16 +58,32 @@ var suppressibleAtMedium = map[Category]bool{
 }
 
 var suppressibleAtLight = map[Category]bool{
-	CategoryDodge:           true,
-	CategoryParry:           true,
-	CategoryBlock:           true,
-	CategoryHitMelee:        true,
-	CategoryHitBlunt:        true,
-	CategoryHitNaturalSharp: true,
-	CategoryHitRanged:       true,
-	CategoryHitCaster:       true,
-	CategoryHitUnarmed:      true,
+	CategoryDodge:              true,
+	CategoryParry:              true,
+	CategoryBlock:              true,
+	CategoryHitMelee:           true,
+	CategoryHitBlunt:           true,
+	CategoryHitNaturalSharp:    true,
+	CategoryHitRanged:          true,
+	CategoryHitCaster:          true,
+	CategoryHitUnarmed:         true,
+	CategoryCombatBlindWarning: true,
 }
+
+// CategoryCombatBlindWarning is suppressible at Light ONLY (owner ruling,
+// M4d PR 2 followup): NOT in suppressibleAtMedium, IS in
+// suppressibleAtLight.
+//
+// At Medium the player still reads per-swing combat prose (defense
+// categories aside), so the notice explains text they are actually
+// seeing this round -- it stays unsuppressed there. At Light they have
+// asked for near-silence, and a per-round line they cannot turn off
+// would override a preference they deliberately set; a blind Light
+// combatant already gets no per-swing prose (suppressed) and no
+// CategoryCombatSummary tally (gated on sight at the record site,
+// internal/hooks/NewRound_DoCombat_unified.go), so suppressing the
+// notice too leaves them in the silence they asked for, not stranded
+// without ANY explanation -- they chose that tradeoff at Light.
 
 // Suppresses reports whether this verbosity level drops lines of the
 // given category. Floor rules (damage-to-viewer always shows) are the
