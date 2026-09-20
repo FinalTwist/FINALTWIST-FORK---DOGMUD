@@ -364,6 +364,17 @@ type Balance struct {
 	AttackBandNormalThresholdPct ConfigInt `yaml:"AttackBandNormalThresholdPct"` // Percent of expected damage at which a hit reads Normal (default 30)
 	AttackBandHeavyThresholdPct  ConfigInt `yaml:"AttackBandHeavyThresholdPct"`  // Percent of expected damage at which a hit reads Heavy (default 75)
 
+	// DefenceBandNormalThreshold is the normalized contest margin at or above
+	// which a NON-CRIT defensive win narrates from the Normal pool instead of
+	// the Weak one. Margins are in standard deviations of the contest spread,
+	// the same scale ContestCritThreshold (2.0) uses, so raising this to 2.0
+	// would collapse Normal entirely and lowering it to 0 would delete Weak.
+	// A defensive CRIT always narrates Heavy regardless of this knob.
+	// Zero is NOT legal: a Go test binary never loads config.yaml, so a
+	// permissive check would leave every test at zero and silently retire the
+	// Weak band repo-wide. Same reasoning as ContestFloor.
+	DefenceBandNormalThreshold ConfigFloat `yaml:"DefenceBandNormalThreshold"` // Normalized margin for the Normal defence band (default 0.5); 0 is rejected
+
 	// ── REGEN RATES ──────────────────────────────────────────────────────────
 	PlayerHealthRegenPct     ConfigFloat `yaml:"PlayerHealthRegenPct"`     // Fraction of HealthMax regen'd per tick — players (default 0.01)
 	PlayerStaminaRegenPct    ConfigFloat `yaml:"PlayerStaminaRegenPct"`    // Fraction of StaminaMax regen'd per tick — players (default 0.01)

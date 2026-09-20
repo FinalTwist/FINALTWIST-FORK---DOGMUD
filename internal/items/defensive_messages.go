@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/narration"
 )
 
@@ -136,7 +137,7 @@ func RenderDefenseMessage(defenseType DefencePool, defensiveCrit bool, normalize
 	intensity := Weak
 	if defensiveCrit {
 		intensity = Heavy
-	} else if normalizedDefenceMargin >= 0.5 {
+	} else if normalizedDefenceMargin >= float64(configs.GetBalanceConfig().DefenceBandNormalThreshold) {
 		intensity = Normal
 	}
 
