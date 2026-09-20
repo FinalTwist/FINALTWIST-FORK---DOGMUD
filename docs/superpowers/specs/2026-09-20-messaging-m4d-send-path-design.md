@@ -26,6 +26,9 @@ Every row was read from the file named, today.
 | Sight predicates | `CanSeeClearly` (12 sites), `CanSeeSightImpairedOnly` (15), `CanSeeShapes` (4) | `predicates.go:24,72,92`; grep |
 | Sleep inside the predicates | `CanSeeClearly` and `CanSeeShapes` test `HasConditionFlag(conditions.Sleeping)`; `CanSeeSightImpairedOnly` deliberately does NOT | `predicates.go:39,105` |
 | `SightDecision` | `SightFull / SightShapes / SightNone` | `internal/messaging/pipeline.go:32` |
+| 🔑 Verdict producer ALREADY EXISTS | `messaging.ParticipantSight(observer, room) SightDecision`, and `rooms.Room.ParticipantSight(userId)` wraps it | `predicates.go:139`; `internal/rooms/rooms.go:321` |
+| Its dependency direction | **inverted**: it is built ON `CanSeeSightImpairedOnly`, so a boolean is the primitive | `predicates.go:140` |
+| `CanSeeSightImpairedOnly` and infrared | returns NightVision only; an infrared-only observer in the dark is FALSE for it | `predicates.go:74-84` |
 | Combat participant delivery | bare `u.SendText`, no sight gate, verbosity only | `internal/hooks/combat_verbosity.go:304-315` |
 | Combat spectator delivery | `room.SendTextVisualToUser` | `combat_verbosity.go:349` |
 | Combat named tally gate | `CanSeeClearly`, which also excludes sleepers | `combat_verbosity.go:386` |
@@ -79,13 +82,27 @@ Byte-identical. No player reads anything different.
 
 ### One producer, several named questions
 
-`messaging.Sight(observer, room) SightDecision` becomes the only place optics
-are evaluated: blindness, room light, NightVision, InfraredVision.
+🔑 **CORRECTION, 2026-09-20, found while planning: the producer already exists.**
+`messaging.ParticipantSight(observer, room) SightDecision` (`predicates.go:139`)
+already evaluates blindness, room light, NightVision and InfraredVision into one
+verdict, and already leaves sleep out. This spec's first draft said it had to be
+created, because a grep for `func Sight` found nothing. That grep could only
+ever have matched a function with that exact name, which is the negative-result
+trap: absence of a name is not absence of a mechanism.
 
-The three boolean predicates **stay as named policies defined over it**. They
-are not deleted. The defect is three independent implementations of the same
-optics, not three names; deleting the names would push the rule out to 31 call
-sites and lose the reason each site chose what it chose.
+So M4d does not build a producer. **It inverts a dependency.** Today
+`ParticipantSight` is defined in terms of `CanSeeSightImpairedOnly`, so a
+boolean predicate is the primitive and the richer verdict is derived from it.
+That is backwards, and it is why the optics are written out three times.
+
+After M4d, the verdict is the primitive: it computes optics directly, and the
+three booleans are one-line policies over it. Fix the primitive, not the call
+sites.
+
+The three predicates **stay as named policies**. They are not deleted. The
+defect is three independent implementations of the same optics, not three
+names; deleting the names would push the rule out to 31 call sites and lose the
+reason each site chose what it chose.
 
 ### Sleep leaves the sight verdict
 
@@ -97,13 +114,22 @@ documents it a third time.
 Sleep is an attention property, not an optical one. A sleeping character's eyes
 work; they are simply not reading. So:
 
-- `Sight()` answers optics only and never consults `Sleeping`.
+- `ParticipantSight()` answers optics only and never consults `Sleeping`, which
+  is already true of it today.
 - The **predicates** compose attention over it, inside themselves, so no call
   site changes and PR 1 stays byte-identical:
-  - `CanSeeClearly(obs, room)` = `awake(obs) && Sight(obs, room) == SightFull`
-  - `CanSeeShapes(obs, room)` = `awake(obs) && Sight(obs, room) >= SightShapes`
-  - `CanSeeSightImpairedOnly(obs, room)` = `Sight(obs, room) >= SightShapes`,
+  - `CanSeeClearly(obs, room)` = `awake(obs) && ParticipantSight(...) == SightFull`
+  - `CanSeeShapes(obs, room)` = `awake(obs) && ParticipantSight(...) >= SightShapes`
+  - `CanSeeSightImpairedOnly(obs, room)` = `ParticipantSight(...) == SightFull`,
     with no attention test, which is what it means today and why it exists.
+
+⚠️ **That last line is `== SightFull`, not `>= SightShapes`.** An earlier draft
+of this spec wrote the loose comparison from the function's NAME. Its body
+returns `HasFlagFromAnySource(NightVision)` in a dark room and never consults
+`InfraredVision`, so an infrared-only observer fails it today. Widening it to
+`>= SightShapes` would hand every infrared character a silent removal of the
+`DarknessCombatPenalty`, which is a balance change wearing a refactor's clothes.
+The plan pins this with a test before the inversion.
 
 One producer then serves all three questions without a boolean parameter, each
 predicate states its own attention policy in one line, and the comment
