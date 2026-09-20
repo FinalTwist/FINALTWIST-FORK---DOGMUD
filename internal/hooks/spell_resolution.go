@@ -1215,8 +1215,25 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 			break
 		}
 		if target.UserId == user.UserId {
-			user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
-				`Your %s takes effect.`, spellData.Name))
+			// SELF-CAST: a single line to the caster, no room broadcast at all,
+			// unlike the purge/heal/condition/shield self-cast branches above.
+			// Those each pair a safe caster line with a room line that names the
+			// caster (target.Character.Name, since target == user here) and
+			// stay on sendVisualRoomText on purpose (messaging M4d Task 6):
+			// moving that room line to SendTrio would add name-hiding in the
+			// dark that does not happen today. This line has no such pairing,
+			// so no second party, and Actee/ActeeName are unset.
+			messaging.SendTrio(messaging.Trio{
+				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
+					`Your %s takes effect.`, spellData.Name)),
+				Actee:    messaging.NoLine,
+				Observer: messaging.NoLine,
+			}, messaging.Audience{
+				Actor:     user,
+				ActorId:   user.UserId,
+				ActorName: user.Character.Name,
+				ActeeName: messaging.NoName,
+			})
 		} else {
 			messaging.SendTrio(messaging.Trio{
 				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
