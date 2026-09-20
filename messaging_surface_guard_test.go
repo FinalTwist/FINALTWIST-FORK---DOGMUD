@@ -1192,14 +1192,16 @@ func narrationViewpointsLabel(s narrationCandidateSite) string {
 
 // narrationViewpointRegistry is the locked set of narration events this
 // guard's own walk (narrationWalk, via narrationCandidateEvent) finds
-// candidates today: 141 entries. 106 trace to a row in
+// candidates today: 140 entries (messaging M4d PR 3 Task 3 removed 3 that
+// moved off the sendVisualRoomText shape this walk keys on; see the removal
+// note below). 106 trace to a row in
 // docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, quoted
 // verbatim in Reason so the two documents describe the same fact rather than
 // two independently-typed ones that can drift apart; a handful land on a
 // different line than the audit's own "Site" column because the audit's
 // scanner anchors on whichever line ITS regex matched, not necessarily the
 // event's first call (see the header comment's SCOPE, MEASURED section).
-// The remaining 35 are events this walk finds that the audit's scanner never
+// The remaining 34 are events this walk finds that the audit's scanner never
 // surfaced -- most often the sendVisualRoomText wrapper, or a room/actor
 // value under a name other than "room"/"user"/"actor" -- each read against
 // source and marked as such in its own Reason.
@@ -1254,12 +1256,17 @@ var narrationViewpointRegistry = map[string]narrationEntry{
 	"hooks/spell_resolution.go|Your spell erupts outward but finds no targets.":                                             {verdictCorrect, true, false, true, "a disruption spell that finds no targets; sendVisualRoomText broadcasts it, no actee since nothing was hit. Same sendVisualRoomText-wrapper visibility this walk has and tools/narration_viewpoint_scan.py's regex does not, per the guard's header comment."},
 	"hooks/spell_resolution.go|spellSchoolCategory(spellData), roles.Actor":                                                 {verdictCorrect, true, false, true, "authored magic_actor/magic_observer through the spell store's door (M3 item 5b): caster plus room; the room send is `r.SendText`, which this walk's observer recogniser cannot see (it only knows the receiver name `room`), so the booleans say actor+observer; the target is reached by the effect's own narration below."},
 
-	// M3 item 5a (2026-09-11): the self-cast branches of applyPlayerEffect's
-	// purge, heal and condition arms. One line to the caster and one room line naming
-	// them; no actee, because the caster and the target are the same person.
-	"hooks/spell_resolution.go|<ansi fg=\"green\">You purge the afflictions from your body.%s</ansi>":              {verdictCorrect, true, false, true, "self-cast purge: the caster is the target, so there is no separate actee; sendVisualRoomText names the caster to the room. Sibling of the spell_purgeaffliction.go self-cast row."},
-	"hooks/spell_resolution.go|<ansi fg=\"green\">A warm glow of healing magic envelops you. Your wounds begin to": {verdictCorrect, true, false, true, "self-cast heal: the caster is the target, so there is no separate actee; sendVisualRoomText tells the room the caster channels restorative magic, the wording applyMobSelfEffect already uses."},
-	"hooks/spell_resolution.go|Your %s takes effect.%s":                                                            {verdictCorrect, true, false, true, "self-cast condition: the caster is the target, so there is no separate actee; sendVisualRoomText tells the room the spell settles over the caster."},
+	// M3 item 5a (2026-09-11) added the self-cast branches of applyPlayerEffect's
+	// purge, heal and condition arms here (one line to the caster and one room
+	// line naming them, no actee since the caster and the target are the same
+	// person); messaging M4d PR 3 Task 3 (2026-09-20) moved all three off
+	// sendVisualRoomText onto messaging.SendTrio, so this walk -- which finds
+	// most of its not-audit-surfaced bucket (the "remaining 34" above) BY the
+	// sendVisualRoomText wrapper -- no longer surfaces them as candidates at
+	// all. Removed rather than re-keyed: the call was rewritten onto the
+	// canonical SendTrio shape this walk does not separately track, not moved
+	// or reworded. No gap was fixed (all three were already verdictCorrect)
+	// and nothing needs updating in the audit doc.
 
 	"usercommands/admin.item.go|You wave your hands around and <ansi fg=\"item\">%s</ansi> appears from thin air a":         {verdictCorrect, true, false, true, "audit: admin conjures an item -- no player target (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, usercommands/admin.item.go:127)"},
 	"usercommands/admin.locate.go|<ansi fg=\"username\">%s</ansi> is in room #<ansi fg=\"yellow-bold\">%d</ansi> - <an":     {verdictCorrect, true, true, false, "an admin locate command; the located player is privately told someone is looking for them (actee), but there is deliberately no room broadcast for an admin tool."},
