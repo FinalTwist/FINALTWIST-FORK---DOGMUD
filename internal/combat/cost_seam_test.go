@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 )
 
 // calculateCombat must not copy its combatants. A copy silently discards every
@@ -43,7 +44,7 @@ func TestCalculateCombatDoesNotDiscardDefenderCharges(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		plan := buildAttackPlan(atk, def)
 		_ = calculateCombat(atk, def, User, Mob, plan, combatContext{
-			sourceCanSee: true, targetCanSee: true,
+			sourceSight: messaging.SightFull, targetSight: messaging.SightFull,
 		})
 	}
 

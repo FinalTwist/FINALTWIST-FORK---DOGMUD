@@ -260,18 +260,34 @@ func HandleQuestUpdate(e events.Event) events.ListenerReturn {
 
 		// Reward messages, through the quest store's door. Shipped rewards
 		// carry no token, so substitution changes nothing today.
+		//
+		// Delivered through SendTrio (M4d Task 6): text-identical, because no
+		// shipped reward's actor or observer line carries {actor}, {actee},
+		// {actor_plain} or {actee_plain} (verified against all 79 quest files'
+		// rewards blocks) -- the observer line instead narrates the questgiver
+		// NPC by their own literal name, which is not the Actor or Actee this
+		// Audience names, so SendTrio's HideNames has nothing of the reader's
+		// to match. The actor line has no actee to hide from it either: a
+		// quest has no second party.
 		rewardLines := questInfo.Rewards.Narrate(textutil.TokenContext{
 			ActorName:      questUser.Character.GetCharacterName(true),
 			ActorPlainName: questUser.Character.GetCharacterName(false),
 		})
-		if rewardLines.Actor != "" {
-			questUser.SendText(messaging.CategorySystem, rewardLines.Actor)
+		var rewardRoom messaging.Broadcaster
+		if room := rooms.LoadRoom(questUser.Character.RoomId); room != nil {
+			rewardRoom = room
 		}
-		if rewardLines.Observer != "" {
-			if room := rooms.LoadRoom(questUser.Character.RoomId); room != nil {
-				sendVisualRoomText(room, messaging.CategoryEmote, rewardLines.Observer, questUser.UserId)
-			}
-		}
+		messaging.SendTrio(messaging.Trio{
+			Actor:    messaging.Say(messaging.CategorySystem, rewardLines.Actor),
+			Actee:    messaging.NoLine,
+			Observer: messaging.Say(messaging.CategoryEmote, rewardLines.Observer),
+		}, messaging.Audience{
+			Actor:     questUser,
+			ActorId:   questUser.UserId,
+			ActorName: questUser.Character.GetCharacterName(true),
+			ActeeName: messaging.NoName,
+			Room:      rewardRoom,
+		})
 		// New quest to start?
 		if len(questInfo.Rewards.QuestId) > 0 {
 

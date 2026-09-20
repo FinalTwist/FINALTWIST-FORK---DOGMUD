@@ -1709,3 +1709,119 @@ func TestEveryTrioLiteralNamesAllThreeRoles(t *testing.T) {
 			len(bad), strings.Join(bad, "\n  "))
 	}
 }
+
+// TestRemoteRoomIsPairedWithRemoteObserver is the fourth Trio role's guard,
+// and it is deliberately NOT TestEveryTrioLiteralNamesAllThreeRoles extended
+// to four. A census on 2026-09-20 found 150 messaging.Trio composite literals
+// across 31 non-test files; requiring RemoteObserver on all of them would
+// leave 149 carrying an always-empty fourth field forever, and a field that
+// is always empty teaches an author to paste it unread rather than reason
+// about it. Effort should be proportional to the defect prevented.
+//
+// The defect that actually matters is narrower: messaging.Audience.RemoteRoom
+// is the second room for a ranged event (the defender's room), and
+// messaging.SendTrio only delivers to it when the paired Trio ALSO names
+// RemoteObserver text -- see SendTrio's RemoteRoom branch in
+// internal/messaging/trio.go. A caller who sets RemoteRoom and forgets
+// RemoteObserver on the Trio ships an event where the defender's room
+// receives nothing, silently, which is exactly the M1 viewpoint-audit defect
+// class (a duplicated or extended code path that wires the mechanical half of
+// a feature and drops the narration beside it).
+//
+// The invariant: within a single function (a *ast.FuncDecl body, which also
+// covers any closure literal defined inside it -- Go has no nested
+// FuncDecls, so this is the natural AST boundary for "the code that appears
+// together"), if ANY composite literal sets the key RemoteRoom, some
+// composite literal in that same function must set the key RemoteObserver.
+// The walk does not care which struct type carries either key, matching how
+// TestEveryTrioLiteralNamesAllThreeRoles's neighbours reason about keys, not
+// declared types.
+//
+// This guard was proved capable of failing: a probe function temporarily
+// added to internal/combat/combat.go, setting RemoteRoom on an Audience
+// literal with no paired RemoteObserver, was named by this test with the
+// exact function and line before being removed. See the M4d Task 5 report
+// for the failure text.
+func TestRemoteRoomIsPairedWithRemoteObserver(t *testing.T) {
+	var bad []string
+
+	for _, root := range messagingSurfaceGoRoots {
+		fset := token.NewFileSet()
+		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				if os.IsNotExist(err) {
+					// A test elsewhere can create and remove a temp file under
+					// the tree while packages test in parallel; a vanished
+					// entry has nothing to scan.
+					return nil
+				}
+				return err
+			}
+			if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+				return nil
+			}
+			file, perr := parser.ParseFile(fset, path, nil, 0)
+			if perr != nil {
+				// A syntax error is the compiler's problem to report, not
+				// this test's.
+				return nil
+			}
+			ast.Inspect(file, func(n ast.Node) bool {
+				fn, ok := n.(*ast.FuncDecl)
+				if !ok || fn.Body == nil {
+					return true
+				}
+
+				setsRemoteRoom := false
+				setsRemoteObserver := false
+				ast.Inspect(fn.Body, func(inner ast.Node) bool {
+					cl, ok := inner.(*ast.CompositeLit)
+					if !ok {
+						return true
+					}
+					for _, elt := range cl.Elts {
+						kv, ok := elt.(*ast.KeyValueExpr)
+						if !ok {
+							continue
+						}
+						key, ok := kv.Key.(*ast.Ident)
+						if !ok {
+							continue
+						}
+						switch key.Name {
+						case "RemoteRoom":
+							setsRemoteRoom = true
+						case "RemoteObserver":
+							setsRemoteObserver = true
+						}
+					}
+					return true
+				})
+
+				if setsRemoteRoom && !setsRemoteObserver {
+					bad = append(bad, filepath.ToSlash(path)+":"+
+						strconv.Itoa(fset.Position(fn.Pos()).Line)+
+						"  func "+fn.Name.Name+" sets RemoteRoom but no Trio in "+
+						"this function names RemoteObserver: the defender's room "+
+						"would receive nothing")
+				}
+				return false
+			})
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("walk %s: %v", root, err)
+		}
+	}
+
+	sort.Strings(bad)
+	if len(bad) > 0 {
+		t.Errorf("%d function(s) set Audience.RemoteRoom without pairing it "+
+			"with a Trio naming RemoteObserver:\n  %s\n\n"+
+			"SendTrio only delivers the remote-room line when both are set; "+
+			"otherwise the branch is a silent no-op. Add RemoteObserver: ... to "+
+			"the Trio literal in this function, or drop RemoteRoom if this event "+
+			"genuinely has no second room.",
+			len(bad), strings.Join(bad, "\n  "))
+	}
+}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
 )
@@ -74,7 +75,7 @@ func TestSwingDefences_OneEntryPerContestedSwing(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		plan := buildAttackPlan(atk, def)
 		res := calculateCombat(atk, def, User, Mob, plan, combatContext{
-			sourceCanSee: true, targetCanSee: true,
+			sourceSight: messaging.SightFull, targetSight: messaging.SightFull,
 		})
 
 		if res.SwingsThrown == 0 {
@@ -133,7 +134,7 @@ func TestSwingDefences_EmptyWhenTheDefenderHasNoDefence(t *testing.T) {
 
 	plan := buildAttackPlan(atk, def)
 	res := calculateCombat(atk, def, User, Mob, plan, combatContext{
-		sourceCanSee: true, targetCanSee: true,
+		sourceSight: messaging.SightFull, targetSight: messaging.SightFull,
 	})
 
 	if res.SwingsThrown == 0 {
@@ -169,7 +170,7 @@ func TestWeaponHits_BestRollIsPopulated(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		plan := buildAttackPlan(atk, def)
 		res := calculateCombat(atk, def, User, Mob, plan, combatContext{
-			sourceCanSee: true, targetCanSee: true,
+			sourceSight: messaging.SightFull, targetSight: messaging.SightFull,
 		})
 		if res.SwingsThrown == 0 {
 			continue

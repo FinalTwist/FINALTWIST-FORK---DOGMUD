@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/dice"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -100,7 +101,7 @@ func TestRegression_DefenseFloorAlwaysApplies(t *testing.T) {
 	result := &AttackResult{}
 	defSeq := []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}
 
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 	best := runBestOfAllDefense(result, attacker, defender, defSeq, 150.0, false, ctx)
 
 	// U5b-2: a 0-stamina defender is no longer dropped from the candidate set.
@@ -204,7 +205,7 @@ func TestRunBestOfAllDefense_IncorporealDefenseBonus(t *testing.T) {
 	result := &AttackResult{}
 	defSeq := []combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}
 
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 	best := runBestOfAllDefense(result, attacker, defender, defSeq, 150.0, false, ctx)
 
 	// With no mutations, bonus is 0, so behavior is identical to pre-2.2a

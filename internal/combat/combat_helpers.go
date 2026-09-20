@@ -33,8 +33,13 @@ const unloadedMeleeDamageCap = 0.30
 
 // combatContext carries per-round environmental info into the combat engine.
 type combatContext struct {
-	sourceCanSee bool // source has nightvision OR room visibility >= 1
-	targetCanSee bool // target has nightvision OR room visibility >= 1
+	// sourceSight and targetSight are the OPTICS VERDICT, not a narration gate.
+	// They drive Balance.DarknessCombatPenalty on attack and defence scores and
+	// nothing else. They carry the full SightDecision rather than a bool
+	// because seeing shapes is not the same as seeing nothing: M4d PR 2 gives
+	// the shapes case its own reduced penalty, and a bool cannot say that.
+	sourceSight messaging.SightDecision
+	targetSight messaging.SightDecision
 	// omitAttackSkill is set only when the round's aggregate attack quote was
 	// partially paid. It affects the opposed hit score and nothing else: swing
 	// planning and damage keep using the equipped combat skill.
@@ -554,7 +559,10 @@ func calcAttackScore(sourceChar *characters.Character, targetChar *characters.Ch
 	}
 
 	// Darkness penalty: attacker can't see
-	if !ctx.sourceCanSee {
+	// PR 1 keeps today's rule exactly: any verdict short of SightFull takes the
+	// full penalty, infrared included. PR 2 replaces this test with
+	// DarknessScoreMultiplier, which gives SightShapes its own reduced value.
+	if ctx.sourceSight != messaging.SightFull {
 		attackScore *= float64(bal.DarknessCombatPenalty)
 	}
 
@@ -746,7 +754,10 @@ func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.
 		}
 
 		// Darkness penalty: defender can't see
-		if !ctx.targetCanSee {
+		// PR 1 keeps today's rule exactly: any verdict short of SightFull takes the
+		// full penalty, infrared included. PR 2 replaces this test with
+		// DarknessScoreMultiplier, which gives SightShapes its own reduced value.
+		if ctx.targetSight != messaging.SightFull {
 			defenseScore *= float64(bal.DarknessCombatPenalty)
 		}
 

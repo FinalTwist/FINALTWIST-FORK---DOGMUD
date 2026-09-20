@@ -12,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -769,7 +770,7 @@ func captureDefenseScore(t *testing.T, conditionFn func(*characters.Character)) 
 	}
 	runBestOfAllDefenseWithRunner(result, attacker, defender,
 		[]combatvocab.Defence{combatvocab.DefenceDodge}, 100, false,
-		combatContext{sourceCanSee: true, targetCanSee: true}, runner)
+		combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}, runner)
 	require.True(t, found, "fixture guard: the runner never saw a dodge entry")
 	return captured
 }

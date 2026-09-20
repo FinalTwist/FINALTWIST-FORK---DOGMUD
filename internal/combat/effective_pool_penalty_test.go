@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
 )
@@ -189,7 +190,7 @@ func TestSwingCountUsesTheReachableStaminaPool(t *testing.T) {
 func TestAttackScoreUsesTheReachableStaminaPool(t *testing.T) {
 	reserved, depleted := reservedAndDepleted(t, characters.PoolStamina, 0.90)
 
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 	target := characters.New()
 	target.Validate()
 	setCombatPositionParallel(target, position.Standing)

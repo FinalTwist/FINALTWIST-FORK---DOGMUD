@@ -14,6 +14,65 @@ type RoomVisibility interface {
 	GetVisibility() int
 }
 
+// roomIsLit returns true if the room is bright enough to read
+// (visibility >= 1). Helper so callers don't need to know the
+// threshold value.
+func roomIsLit(room RoomVisibility) bool {
+	if room == nil {
+		return true
+	}
+	// Reflection-free nil-interface guard: a typed-nil *rooms.Room
+	// would panic on GetVisibility; callers must pass nil interface,
+	// not a typed-nil. The room/Room.SendText path always has a real
+	// receiver, so this is safe in practice.
+	return room.GetVisibility() >= 1
+}
+
+// ParticipantSight is THE optics primitive. It answers what an observer can
+// make out, and nothing else: blindness, room light, NightVision,
+// InfraredVision.
+//
+// It does NOT consult sleep. Sleep is an attention property, not an optical
+// one -- a sleeping character's eyes work, they are simply not reading -- and
+// the policies below compose it where it belongs. Conflating the two is what
+// left three predicates each carrying a comment explaining the split.
+//
+// WHO READS IT DIRECTLY, and why sleep's absence is load-bearing for them:
+// messaging.SendTrio hides a name from its reader by this verdict, and
+// actions.InitiateCast refuses a cast at something the caster cannot see. Both
+// judge a PARTY to an event, and a sleeper struck in a lit room must still be
+// told what hit them. Observers who are not a party go through CanSeeClearly
+// and CanSeeShapes instead, which do compose attention, so a sleeper still
+// receives no room lines.
+//
+// Full when light or NightVision allow clear sight; shapes for an unblinded
+// observer with infrared; none otherwise. A nil observer sees fully, matching
+// the policies below.
+func ParticipantSight(observer *characters.Character, room RoomVisibility) SightDecision {
+	if observer == nil {
+		return SightFull
+	}
+	if observer.Perception != nil && observer.Perception.State() == perception.Blinded {
+		return SightNone
+	}
+	if room == nil || roomIsLit(room) {
+		return SightFull
+	}
+	if observer.HasFlagFromAnySource(conditions.NightVision) {
+		return SightFull
+	}
+	if observer.HasFlagFromAnySource(conditions.InfraredVision) {
+		return SightShapes
+	}
+	return SightNone
+}
+
+// awake reports attention. Kept separate from optics on purpose; see
+// ParticipantSight.
+func awake(observer *characters.Character) bool {
+	return observer == nil || !observer.HasConditionFlag(conditions.Sleeping)
+}
+
 // CanSeeClearly returns true if the observer can read normal-text
 // visual broadcasts in this room. Composes Perception state, room
 // lighting, and the NightVision condition flag.
@@ -21,28 +80,17 @@ type RoomVisibility interface {
 // Blinded observers (any source) return false unconditionally.
 // A nil observer defaults to true (defensive — pre-init characters
 // during boot must not be silently dropped).
+//
+// Sleep is a perception state, even though it is carried as a condition flag
+// rather than by the Perception machine. This pipeline had no concept of it
+// at all until 2026-08-31, so a sleeping player kept receiving every visual
+// broadcast in the room: NPC dialogue, ambient flavour, arrivals.
+//
+// AUDIO IS DELIBERATELY UNAFFECTED. Room.SendText bypasses this gate, so a
+// shout still reaches a sleeper and still wakes them (shout.go owns that
+// wake trigger). Gating audio here would make sleep unwakeable by sound.
 func CanSeeClearly(observer *characters.Character, room RoomVisibility) bool {
-	if observer == nil {
-		return true
-	}
-	if observer.Perception != nil && observer.Perception.State() == perception.Blinded {
-		return false
-	}
-	// Sleep is a perception state, even though it is carried as a condition flag
-	// rather than by the Perception machine. This pipeline had no concept of it
-	// at all until 2026-08-31, so a sleeping player kept receiving every visual
-	// broadcast in the room: NPC dialogue, ambient flavour, arrivals.
-	//
-	// AUDIO IS DELIBERATELY UNAFFECTED. Room.SendText bypasses this gate, so a
-	// shout still reaches a sleeper and still wakes them (shout.go owns that
-	// wake trigger). Gating audio here would make sleep unwakeable by sound.
-	if observer.HasConditionFlag(conditions.Sleeping) {
-		return false
-	}
-	if room == nil || roomIsLit(room) {
-		return true
-	}
-	return observer.HasFlagFromAnySource(conditions.NightVision)
+	return awake(observer) && ParticipantSight(observer, room) == SightFull
 }
 
 // CanSeeSightImpairedOnly is CanSeeClearly WITHOUT the sleep gate: it reports
@@ -64,22 +112,16 @@ func CanSeeClearly(observer *characters.Character, room RoomVisibility) bool {
 //
 // So combat keeps the pre-sleep semantics and messaging gets the sleep gate.
 //
-// ⚠️ THIS IS A TEMPORARY SEAM. The messaging arc's M2/M4 stages consolidate
-// darkness, blindness and sleep into ONE perception verdict that both narration
-// and crime witnessing read. When that lands, this function and CanSeeClearly
-// should collapse back into one, with combat naming the specific disadvantage
-// it means rather than borrowing a sight predicate.
+// It feeds Balance.DarknessCombatPenalty, so widening it would hand every
+// infrared character a silent balance change; it is the optics question with
+// NO attention test, and it is SightFull specifically -- infrared does not
+// satisfy it.
+//
+// M4d closed the seam this comment used to describe: ParticipantSight is now
+// the shared optics primitive both this function and CanSeeClearly are built
+// on.
 func CanSeeSightImpairedOnly(observer *characters.Character, room RoomVisibility) bool {
-	if observer == nil {
-		return true
-	}
-	if observer.Perception != nil && observer.Perception.State() == perception.Blinded {
-		return false
-	}
-	if room == nil || roomIsLit(room) {
-		return true
-	}
-	return observer.HasFlagFromAnySource(conditions.NightVision)
+	return ParticipantSight(observer, room) == SightFull
 }
 
 // CanSeeShapes returns true if the observer can detect SOMETHING is
@@ -89,62 +131,15 @@ func CanSeeSightImpairedOnly(observer *characters.Character, room RoomVisibility
 //
 // A nil observer defaults to true (matches CanSeeClearly's defensive
 // behavior).
+//
+// "Full sight OR shapes", written as two equalities on purpose: the
+// SightDecision constants run BEST-TO-WORST (SightFull = 0, SightShapes = 1,
+// SightNone = 2), so an ordered comparison such as `<= SightShapes` would
+// read backwards and a `>=` would also match SightNone.
 func CanSeeShapes(observer *characters.Character, room RoomVisibility) bool {
-	if CanSeeClearly(observer, room) {
-		return true
-	}
-	if observer == nil {
-		return true
-	}
-	if observer.Perception != nil && observer.Perception.State() == perception.Blinded {
+	if !awake(observer) {
 		return false
 	}
-	// Must be repeated here, not inherited. CanSeeClearly returning false is
-	// the NORMAL path into this function (that is what "in the dark" means), so
-	// a sleeper reaching the infrared branch would see shapes while asleep.
-	if observer.HasConditionFlag(conditions.Sleeping) {
-		return false
-	}
-	return observer.HasFlagFromAnySource(conditions.InfraredVision)
-}
-
-// roomIsLit returns true if the room is bright enough to read
-// (visibility >= 1). Helper so callers don't need to know the
-// threshold value.
-func roomIsLit(room RoomVisibility) bool {
-	if room == nil {
-		return true
-	}
-	// Reflection-free nil-interface guard: a typed-nil *rooms.Room
-	// would panic on GetVisibility; callers must pass nil interface,
-	// not a typed-nil. The room/Room.SendText path always has a real
-	// receiver, so this is safe in practice.
-	return room.GetVisibility() >= 1
-}
-
-// ParticipantSight is what a party to an event makes out of the other party:
-// the one acting on them, or the one they act on. messaging.SendTrio uses it to
-// hide a name from its reader, and actions.InitiateCast uses it to refuse a
-// cast at something the caster cannot see.
-//
-// It differs from CanSeeClearly in one deliberate way: SLEEP IS NOT A FACTOR.
-// A sleeper struck in a lit room must be told what hit them, the reason
-// CanSeeSightImpairedOnly exists and the melee darkness rewrite uses it
-// (hooks/NewRound_DoCombat_unified.go). Observers who are not a party keep
-// CanSeeClearly and CanSeeShapes, so a sleeper still receives no room lines.
-//
-// Full when darkness and blindness allow clear sight; shapes when the observer
-// is not blinded and has infrared; none otherwise. A nil observer sees fully,
-// matching the other predicates.
-func ParticipantSight(observer *characters.Character, room RoomVisibility) SightDecision {
-	if CanSeeSightImpairedOnly(observer, room) {
-		return SightFull
-	}
-	if observer.Perception != nil && observer.Perception.State() == perception.Blinded {
-		return SightNone
-	}
-	if observer.HasFlagFromAnySource(conditions.InfraredVision) {
-		return SightShapes
-	}
-	return SightNone
+	d := ParticipantSight(observer, room)
+	return d == SightFull || d == SightShapes
 }

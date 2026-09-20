@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/control"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
@@ -81,7 +82,7 @@ func mount(t *testing.T, a, b *characters.Character) {
 }
 
 func TestGrapple_GroundControllerGainsAttackScore(t *testing.T) {
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 
 	plainA, plainB := newGrappleChar(1), newGrappleChar(2)
 	base := calcAttackScore(plainA, plainB, items.Item{}, 0, ctx)
@@ -95,7 +96,7 @@ func TestGrapple_GroundControllerGainsAttackScore(t *testing.T) {
 }
 
 func TestGrapple_StandingControllerGainsAttackScore(t *testing.T) {
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 
 	plainA, plainB := newGrappleChar(1), newGrappleChar(2)
 	base := calcAttackScore(plainA, plainB, items.Item{}, 0, ctx)
@@ -113,7 +114,7 @@ func TestGrapple_StandingControllerGainsAttackScore(t *testing.T) {
 // crit-threshold implementation ground netted ZERO while standing netted -0.2,
 // i.e. ground was strictly WORSE than standing.
 func TestGrapple_GroundBeatsStanding_NoSelfCancellation(t *testing.T) {
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 
 	sa, sb := newGrappleChar(1), newGrappleChar(2)
 	clinch(t, sa, sb)

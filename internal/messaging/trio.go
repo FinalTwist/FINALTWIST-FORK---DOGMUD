@@ -33,11 +33,13 @@ func Say(cat Category, text string) Line { return Line{Text: text, Cat: cat} }
 // this value exists to answer.
 var NoLine = Line{}
 
-// Trio is one narrated event as its three audiences see it.
+// Trio is the four audiences of one narrated event.
 //
 // Actor is the one acting. Actee is the one acted upon. Observer is everyone
-// else in the room.
-type Trio struct{ Actor, Actee, Observer Line }
+// else in the room. RemoteObserver is the SECOND room: ranged combat narrates
+// to the attacker's room and the defender's room, and until M4d that second
+// audience had no seat here at all, so it travelled outside the pipeline.
+type Trio struct{ Actor, Actee, Observer, RemoteObserver Line }
 
 // Recipient is anything that can be sent a categorized line. Satisfied by
 // *users.UserRecord and by actions.Actor without either changing.
@@ -81,6 +83,10 @@ type Audience struct {
 	ActeeId   int
 	ActeeName string
 	Room      Broadcaster
+	// RemoteRoom is the second room for a ranged event: the defender's room,
+	// when attacker and defender are not in the same one. A nil RemoteRoom
+	// sends nothing, which is every event except ranged combat.
+	RemoteRoom Broadcaster
 }
 
 // SendTrio delivers one narrated event to everyone entitled to it.
@@ -93,9 +99,12 @@ type Audience struct {
 // Each role is rendered for its own reader. The actor's line hides ActeeName
 // and the actee's line hides ActorName, judged by that reader's
 // ParticipantSight; the observer line hides both, judged per observer by the
-// room. It chooses, bands and tokenises nothing: callers still pass finished
-// strings, which is also what lets a caller hand it text the caller has
-// already anonymized itself -- see mobcommands/skill_move_defence.go.
+// room. The remote-observer line (RemoteRoom) hides both the same way, judged
+// by that second room, for the one event shape (ranged combat) that has a
+// second room at all. It chooses, bands and tokenises nothing: callers still
+// pass finished strings, which is also what lets a caller hand it text the
+// caller has already anonymized itself -- see
+// mobcommands/skill_move_defence.go.
 func SendTrio(t Trio, aud Audience) {
 	if aud.Actor != nil && t.Actor.Text != "" {
 		aud.Actor.SendText(t.Actor.Cat, hideForReader(aud, aud.ActorId, t.Actor.Text, aud.ActeeName))
@@ -105,6 +114,10 @@ func SendTrio(t Trio, aud Audience) {
 	}
 	if aud.Room != nil && t.Observer.Text != "" {
 		aud.Room.SendTextVisualHidingNames(t.Observer.Cat, t.Observer.Text,
+			[]string{aud.ActorName, aud.ActeeName}, trioExclusions(aud)...)
+	}
+	if aud.RemoteRoom != nil && t.RemoteObserver.Text != "" {
+		aud.RemoteRoom.SendTextVisualHidingNames(t.RemoteObserver.Cat, t.RemoteObserver.Text,
 			[]string{aud.ActorName, aud.ActeeName}, trioExclusions(aud)...)
 	}
 }

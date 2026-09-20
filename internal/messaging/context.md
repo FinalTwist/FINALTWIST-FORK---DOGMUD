@@ -36,7 +36,7 @@ full per-recipient pipeline.
 
 Types and constants:
 
-- `Category` — enum of 59 text classes (combat hits, defense, grapple,
+- `Category` — enum of 60 text classes (combat hits, defense, grapple,
   submissions, specials, spells by school, social, system, environment,
   loot/equipment/condition/mutation/toxin; plus `CategoryCombatSummary` for
   the per-round compact tally emitted by the light-verbosity path).
@@ -63,30 +63,81 @@ Types and constants:
 - `NoLine` — the zero `Line`. A viewpoint that deliberately has
   nothing to say. Spelled out so a considered silence is legible as
   one; the root guard requires it rather than an omitted field.
-- `Trio` — `{Actor, Actee, Observer Line}`, one narrated event as its
-  three audiences see it.
+- `Trio` — `{Actor, Actee, Observer, RemoteObserver Line}`, one narrated
+  event as its FOUR audiences see it. `RemoteObserver` is the second
+  room's line: ranged combat narrates to both the attacker's room and
+  the defender's room, and until M4d that second audience had no seat
+  here at all — it travelled outside the pipeline. The root guard
+  `TestEveryTrioLiteralNamesAllThreeRoles` (repo root,
+  `messaging_surface_guard_test.go`) still requires only the original
+  three (`Actor`/`Actee`/`Observer`) on every `messaging.Trio{}`
+  literal; `RemoteObserver` is deliberately NOT added to it. A census
+  on 2026-09-20 found 150 `Trio` literals across 31 non-test files —
+  requiring the fourth field on all of them would leave 149 carrying
+  an always-empty field forever, which teaches an author to paste it
+  unread rather than reason about it. The narrower, PAIRED guard that
+  replaces it is `TestRemoteRoomIsPairedWithRemoteObserver` (same
+  file): within one function, setting `RemoteRoom` on an `Audience`
+  literal without also setting `RemoteObserver` on a `Trio` literal in
+  that function fails, because `SendTrio` silently delivers nothing to
+  a `RemoteRoom` whose `Trio` never named `RemoteObserver` — the exact
+  "wired the mechanism, dropped the narration" defect class the M1
+  viewpoint audit found repeatedly. Proved capable of failing with a
+  probe in `internal/combat/combat.go`; see the M4d Task 5 report.
 - `Recipient` — minimal interface (`SendText(cat, text)`) satisfied by
   `*users.UserRecord` and by `actions.Actor`.
 - `Broadcaster`: interface satisfied by `*rooms.Room`:
   `SendTextVisualHidingNames(cat, txt, names, excludeUserIds ...int)` and
   `ParticipantSight(userId int) SightDecision`.
 - `Audience`: who is present for one event: `Actor`/`ActorId`/`ActorName`,
-  `Actee`/`ActeeId`/`ActeeName`, `Room`. Ids are passed rather than derived
-  because `users.UserRecord.UserId` is a FIELD while `actions.Actor` exposes
-  `GetUserId()`. The names are exactly as the lines print them; the root guard
-  requires both on every literal.
+  `Actee`/`ActeeId`/`ActeeName`, `Room`, and `RemoteRoom`. Ids are passed
+  rather than derived because `users.UserRecord.UserId` is a FIELD while
+  `actions.Actor` exposes `GetUserId()`. The names are exactly as the lines
+  print them; the root guard requires both on every `Trio` literal.
+  `RemoteRoom` is the second room for a ranged event (the defender's room);
+  nil sends nothing, which is every event except ranged combat. A nil
+  recipient/broadcaster must be assigned as the interface, never as a
+  typed-nil pointer — a `(*users.UserRecord)(nil)` stored here is a
+  non-nil interface value and `SendTrio` would call through it and panic.
 - `NoName`: the empty string, for a side of an Audience with nobody on it.
 
 Functions:
 
 - `RenderForRecipient(in RenderInput) string` — entry point; runs the
   full pipeline for one recipient. Empty return = "don't deliver".
-- `CanSeeClearly(observer *characters.Character, room RoomVisibility) bool`
-- `CanSeeShapes(observer *characters.Character, room RoomVisibility) bool`
 - `ParticipantSight(observer *characters.Character, room RoomVisibility) SightDecision`
-  is what a party to an event makes out of the other party. Darkness and
-  blindness decide it; sleep does not (a sleeper struck in a lit room is told
-  what hit them). Infrared gives `SightShapes`.
+  is THE optics primitive, added M4d (`01bbee127`). It answers what an
+  observer can make out and nothing else — blindness, room light,
+  NightVision, InfraredVision — and deliberately does NOT consult sleep,
+  because sleep is an attention property, not an optical one: a sleeping
+  character's eyes work, they are simply not reading. `SightFull` when
+  light or NightVision allow clear sight; `SightShapes` for an unblinded
+  observer with InfraredVision in the dark; `SightNone` otherwise. A nil
+  observer sees fully.
+- `CanSeeClearly`, `CanSeeShapes`, `CanSeeSightImpairedOnly` — each is now a
+  ONE-LINE POLICY over `ParticipantSight` that composes its own attention
+  rule, not three independently-implemented predicates:
+  - `CanSeeClearly(observer, room) bool` = awake AND `ParticipantSight ==
+    SightFull`. Read by the room-broadcast sight gate (visual channel).
+    Sleep-gated: a sleeping player stops receiving visual room lines.
+  - `CanSeeShapes(observer, room) bool` = awake AND (`ParticipantSight ==
+    SightFull` OR `== SightShapes`). Also sleep-gated: closed eyes see no
+    shapes either.
+  - `CanSeeSightImpairedOnly(observer, room) bool` = `ParticipantSight ==
+    SightFull`, WITHOUT the sleep gate. This is the one `internal/combat`
+    used to read (as `CanSeeClearly`, before M4d) to drive
+    `Balance.DarknessCombatPenalty`; adding the sleep gate to
+    `CanSeeClearly` on 2026-08-31 would otherwise have applied a phantom
+    darkness penalty to a sleeping defender standing in a LIT room, and
+    corrupted `combat-analytics.jsonl`'s contest telemetry with a term
+    nobody asked for. M4d closed that gap for good: combat no longer reads
+    a messaging predicate by name at all (see `internal/combat/context.md`,
+    "Sight and the darkness penalty").
+  - `sleep_policy_test.go` pins the contract by absence: a sleeper reads
+    NOTHING from `CanSeeClearly`/`CanSeeShapes` (both false regardless of
+    light), and `CanSeeSightImpairedOnly` ignores sleep entirely.
+    `optics_pin_test.go` pins all three against an eight-row truth table
+    (light x blind x infrared x asleep).
 - `HideNames(text string, names []string, d SightDecision) string`: replaces
   each name with "a figure" (shapes) or "something" (none), longest name first,
   capitalized at a sentence start. In bare prose the match is exact and
@@ -109,18 +160,22 @@ Functions:
 - `WrapAnsi(text string, maxWidth int) string`
 - `Say(cat Category, text string) Line`
 - `SendTrio(t Trio, aud Audience)`: delivers one narrated event to
-  everyone entitled to it. A line goes out only if it has BOTH text
-  and a recipient. The room broadcast ALWAYS excludes the actor and the
-  actee. Each role is rendered for its reader: the actor's line hides
-  `ActeeName` and the actee's hides `ActorName` by that reader's
-  `ParticipantSight`; the observer line hides both for shapes-only observers.
+  everyone entitled to it — FOUR roles since M4d (`44cc90ceb`): Actor,
+  Actee, Observer, and RemoteObserver. A line goes out only if it has BOTH
+  text and a recipient. The room broadcast (`Observer`) and the remote-room
+  broadcast (`RemoteObserver`, delivered to `aud.RemoteRoom` when set) ALWAYS
+  exclude the actor and the actee. Each role is rendered for its reader: the
+  actor's line hides `ActeeName` and the actee's hides `ActorName` by that
+  reader's `ParticipantSight`; the observer and remote-observer lines hide
+  both, judged per-observer by their own room's `ParticipantSight`.
 
 ## Two jobs, not one
 
 This package now does two things, and the second is not the first.
 
 1. **The seven-stage pipeline, per recipient.** `RenderForRecipient`.
-2. **Fan-out of one event to three audiences.** `SendTrio`.
+2. **Fan-out of one event to its audiences (three, or four for a ranged
+   event with a remote room).** `SendTrio`.
 
 The fan-out lives here because the import graph rules out both
 alternatives. `internal/narration` cannot import `messaging` (`items`
@@ -189,17 +244,20 @@ flags). Everything else — `rooms`, `users`, `mobs`, `combat`,
 
 ## Files
 
-The package is the pipeline, one stage per file:
+The package is the pipeline, one stage per file, plus the fan-out (`trio.go`):
 
 | File | Stage |
 |------|-------|
 | `messaging.go` | Entry points and the `Category` vocabulary |
 | `pipeline.go` | Stage ordering — compose → normalize → anonymize → color → wrap → deliver |
 | `normalize.go` | Grammar and article normalisation |
-| `anonymize.go` | Replacing names the observer should not see |
+| `anonymize.go` | Replacing names the observer should not see (infrared fallback, whole-line) |
+| `hidenames.go` | `HideNames` — replacing specific names in bare prose, longest-first, whole-word |
+| `hidenames_tagged.go` | Identity-tag-aware name replacement `HideNames` and `Anonymize` share, including the trailing adjective span |
 | `wrap.go` | 80-column wrapping (uses visible width, not byte length) |
-| `predicates.go` | Who should receive a message |
+| `predicates.go` | `ParticipantSight` (the optics primitive) plus `CanSeeClearly`/`CanSeeShapes`/`CanSeeSightImpairedOnly`, the one-line attention policies built on it |
 | `verbosity.go` | Per-player verbosity filtering |
+| `trio.go` | `Line`/`Trio`/`Audience`/`SendTrio` — fan-out of one narrated event to its four audiences |
 
 Adding a transformation means adding a stage here, not special-casing at a call
 site — that centralisation is the point of the package.
