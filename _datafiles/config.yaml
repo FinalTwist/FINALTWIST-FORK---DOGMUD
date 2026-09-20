@@ -914,6 +914,18 @@ Balance:
   # Multiplier on attack AND defense scores when fighting in a dark room
   # without nightvision. 0.80 = 20% penalty to hit and defend while blind.
   DarknessCombatPenalty: 0.80
+  # DarknessShapesCombatPenalty: the same multiplier for a combatant who makes
+  #   out SHAPES but not detail, which today means infrared vision in an unlit
+  #   room. Seeing shapes is worth something in a fight and is not worth
+  #   everything, so it sits between the blind penalty above and no penalty.
+  #   A BLINDED character stays on the full penalty even with infrared, because
+  #   blindness overrides vision when the sight verdict is computed.
+  #   Validated as a PAIR with DarknessCombatPenalty: at or above the blind
+  #   penalty, at or below 1.0. An inverted or out-of-range pair reverts BOTH,
+  #   so a typo cannot ship a world where seeing shapes is worse than seeing
+  #   nothing. Zero is not legal (Go test binaries never load this file).
+  #   0.90 is a STARTING POINT from M4d PR 2, not a tuned value.
+  DarknessShapesCombatPenalty: 0.90
 
   # ── COMBAT: DAMAGE ────────────────────────────────────────────────────────
   # Global panic buttons. 1.0 = no change. GlobalDamageMultiplier is
