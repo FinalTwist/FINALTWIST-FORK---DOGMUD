@@ -410,6 +410,15 @@ func (b *Balance) validateCombat() {
 		b.CritBarCeiling = 3.0
 	}
 
+	// Both cutoffs are validated as a PAIR: an inverted or out-of-range pair
+	// reverts both, so a typo cannot half-apply and ship a band layout nobody
+	// authored.
+	if b.AttackBandNormalThresholdPct <= 0 || b.AttackBandHeavyThresholdPct > 100 ||
+		b.AttackBandNormalThresholdPct >= b.AttackBandHeavyThresholdPct {
+		b.AttackBandNormalThresholdPct = 30
+		b.AttackBandHeavyThresholdPct = 75
+	}
+
 	// `< 0`, not `<= 0`: CounterDamagePercent 0 is the documented off-switch
 	// (counters connect but deal nothing); the <= idiom would silently restore
 	// the default and make disabling counter damage impossible.

@@ -345,6 +345,25 @@ type Balance struct {
 	StaminaPenaltyMax    ConfigFloat `yaml:"StaminaPenaltyMax"`    // Max attack count + hit rate penalty at 0% SP (default 0.28)
 	ConvictionPenaltyMax ConfigFloat `yaml:"ConvictionPenaltyMax"` // Max taunt/spell penalty at 0% CP (default 0.28)
 
+	// AttackBandNormalThresholdPct and AttackBandHeavyThresholdPct are the two
+	// authorable cutoffs deciding how hard a landed swing READS. The number
+	// compared against them is the swing's damage as a percentage of the
+	// EXPECTED damage of that swing against that target (post-mitigation,
+	// post-modifier), not a share of the target's health.
+	//
+	// Narration only: no damage, hit chance or crit rate depends on either.
+	//
+	// The other three boundaries are structural and stay in Go. 101 means "this
+	// swing crit" -- combat.attackMessagePct forces a crit to 101 and caps a
+	// non-crit at 100, which is what keeps the crit-worded pool paired with the
+	// *** banner -- and 0 means nothing landed.
+	//
+	// Zero is NOT legal on either: Go test binaries never load config.yaml, so a
+	// permissive check would leave both at zero repo-wide and retire the Weak
+	// band. An inverted or out-of-range pair reverts BOTH, never one.
+	AttackBandNormalThresholdPct ConfigInt `yaml:"AttackBandNormalThresholdPct"` // Percent of expected damage at which a hit reads Normal (default 30)
+	AttackBandHeavyThresholdPct  ConfigInt `yaml:"AttackBandHeavyThresholdPct"`  // Percent of expected damage at which a hit reads Heavy (default 75)
+
 	// ── REGEN RATES ──────────────────────────────────────────────────────────
 	PlayerHealthRegenPct     ConfigFloat `yaml:"PlayerHealthRegenPct"`     // Fraction of HealthMax regen'd per tick — players (default 0.01)
 	PlayerStaminaRegenPct    ConfigFloat `yaml:"PlayerStaminaRegenPct"`    // Fraction of StaminaMax regen'd per tick — players (default 0.01)
