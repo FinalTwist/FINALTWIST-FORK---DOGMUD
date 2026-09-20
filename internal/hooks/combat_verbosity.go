@@ -409,3 +409,86 @@ func flushCombatTallies() {
 		}
 	}
 }
+
+// ── The per-round blind notice (M4d PR 2, Task 4) ──────────────────────
+
+// blindCombatNoticeText is the once-per-round reminder sent to a player
+// who fought this round while unable to see clearly. It names the
+// condition (why the fight looks strange) and the mechanical cost
+// (Balance.DarknessCombatPenalty weakens both attack and defense scores
+// for anyone whose sight verdict is not SightFull -- see
+// internal/messaging/predicates.go and internal/combat/combat_helpers.go)
+// without ever printing a number.
+const blindCombatNoticeText = "You cannot see clearly, so your attacks and defense are weaker."
+
+// roundBlindCombatants is the per-round set of player userIds who took
+// part in combat (as attacker or defender) this round while their sight
+// verdict was not SightFull. Membership itself answers "fought this
+// round": a player is only ever added here from inside
+// dispatchCritAndMessaging, which runs once per AttackResult against a
+// real atk/def pair, so a player merely standing in a dark room who
+// never swung or was swung at never appears. A bool set (not a counter)
+// is deliberate -- a player hit by two different attackers, or a
+// multi-swing attacker, still gets exactly one notice per round.
+// Game-loop goroutine only, mirroring roundTallies.
+var roundBlindCombatants = map[int]bool{}
+
+// markBlindCombatant records a player-controlled combatant whose sight
+// verdict was not SightFull this round. canSeeClearly is the caller's
+// already-computed messaging.CanSeeSightImpairedOnly(...) result (true
+// only for SightFull); passing its negation in is cheaper than asking
+// ParticipantSight a second time and keeps this seam asking the exact
+// same optics question the darkness penalty itself reads.
+//
+// No sleep gate: CanSeeSightImpairedOnly does not consult sleep, so a
+// sleeping combatant is recorded the same as an awake one. A sleeper is
+// mid-round an auto-crit victim about to wake up (see the sleep-gate
+// comment at the srcCanSee/tgtCanSee computation site), so telling them
+// they can't see is not wasted -- they are about to be reading combat
+// text again very shortly. CanSeeClearly (which DOES sleep-gate) is the
+// wrong predicate here for the same reason it is wrong at that site.
+//
+// Shapes-only viewers (SightShapes) are included, not excluded:
+// Balance.DarknessCombatPenalty applies to anyone who is not SightFull,
+// shapes included, so the mechanical cost the notice describes is real
+// for them too. The copy says "cannot see clearly" rather than "cannot
+// see" specifically so it stays true for a shapes viewer who is, in the
+// very same round, reading "a figure lunges at you."
+func markBlindCombatant(actor actions.Actor, canSeeClearly bool) {
+	if !actor.IsPlayer() || canSeeClearly {
+		return
+	}
+	roundBlindCombatants[actor.GetUserId()] = true
+}
+
+// flushBlindCombatNotices sends the once-per-round blind notice to every
+// player who fought this round while unable to see clearly, then clears
+// the set. Called once at the end of DoCombat each round, beside
+// flushCombatTallies.
+//
+// NOT floor-protected: CategoryCombatBlindWarning goes through the
+// viewer's ordinary Verbosity.Suppresses gate like any other category,
+// not the isHitCategory bypass drainParticipantLines uses for damage-to-
+// you lines. It is deliberately absent from both suppressibleAtMedium
+// and suppressibleAtLight, so today it is never suppressed at any
+// verbosity level. That default is load-bearing, not an oversight: a
+// Light-verbosity participant's tally line is ITSELF gated on
+// srcCanSee/tgtCanSee (see dispatchCritAndMessaging), so a blind
+// Light-verbosity combatant already receives no per-swing prose AND no
+// tally -- this notice is the only combat text they get. Suppressing it
+// at Light would leave that player watching total silence while
+// fighting blind.
+func flushBlindCombatNotices() {
+	for userId := range roundBlindCombatants {
+		delete(roundBlindCombatants, userId)
+		u := users.GetByUserId(userId)
+		if u == nil {
+			// Logged off mid-round; nothing to deliver.
+			continue
+		}
+		if u.GetCombatVerbosity().Suppresses(messaging.CategoryCombatBlindWarning) {
+			continue
+		}
+		u.SendText(messaging.CategoryCombatBlindWarning, blindCombatNoticeText)
+	}
+}

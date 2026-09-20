@@ -69,6 +69,14 @@ var suppressibleAtLight = map[Category]bool{
 	CategoryHitUnarmed:      true,
 }
 
+// CategoryCombatBlindWarning is deliberately absent from both tables
+// above. A blind Light-verbosity combatant already gets no per-swing
+// prose (suppressed) and no CategoryCombatSummary tally (gated on sight
+// at the record site, internal/hooks/NewRound_DoCombat_unified.go) --
+// the blind notice is the only combat text such a player receives, so it
+// stays unsuppressed at every verbosity level rather than joining a
+// table by default.
+
 // Suppresses reports whether this verbosity level drops lines of the
 // given category. Floor rules (damage-to-viewer always shows) are the
 // caller's responsibility — this is a pure category table.

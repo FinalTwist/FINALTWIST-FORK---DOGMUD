@@ -206,6 +206,7 @@ colors:
   submission: 169
   death: 8
   combat-summary: 248   # neutral gray — per-round compact tally (light verbosity)
+  combat-blind-warning: 214 # warning amber, per-round "can't see clearly" notice (M4d PR 2)
 
 # Combat — special moves
   surprise: 201       # magenta family, matching the *[SURPRISE ATTACK]* banner.

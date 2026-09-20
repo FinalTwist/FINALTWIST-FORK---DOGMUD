@@ -36,10 +36,15 @@ full per-recipient pipeline.
 
 Types and constants:
 
-- `Category` — enum of 60 text classes (combat hits, defense, grapple,
+- `Category` — enum of 61 text classes (combat hits, defense, grapple,
   submissions, specials, spells by school, social, system, environment,
   loot/equipment/condition/mutation/toxin; plus `CategoryCombatSummary` for
-  the per-round compact tally emitted by the light-verbosity path).
+  the per-round compact tally emitted by the light-verbosity path, and
+  `CategoryCombatBlindWarning` for the per-round "you can't see clearly"
+  notice, M4d PR 2 Task 4, sent by `internal/hooks`'
+  `flushBlindCombatNotices`). `CategoryCombatBlindWarning` is deliberately
+  absent from both `verbosity.go` suppression tables, so it passes at
+  every verbosity level today.
   `Category.String()` no longer spells the three defence names as local
   literals: `CategoryDodge` / `CategoryParry` / `CategoryBlock` return
   `string(combatvocab.DefenceDodge)` / `DefenceParry` / `DefenceBlock`, the

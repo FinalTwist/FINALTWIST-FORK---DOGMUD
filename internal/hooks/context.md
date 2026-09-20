@@ -788,8 +788,9 @@ The round driver reads Combat Phase state instead of legacy `Aggro`:
 ### Verbosity gating (combat_verbosity.go)
 
 Implements the player-configurable combat-text verbosity system (full /
-medium / light). Three touch-points (gate in
-`NewRound_DoCombat_unified.go`, flush in `NewRound_DoCombat.go`):
+medium / light). Touch-points live in `dispatchCritAndMessaging`
+(`NewRound_DoCombat_unified.go`) and two round-end flushes called from
+`NewRound_DoCombat.go`:
 
 - **`dispatchCritAndMessaging`** — drains participant lines via
   `drainParticipantLines` (viewer's own level) and room lines via
@@ -797,8 +798,14 @@ medium / light). Three touch-points (gate in
   `user.GetCombatVerbosity().OneStepLower()`). Medium suppresses
   dodge/parry/block lines; Light suppresses all individual hit lines.
   The floor rule (incoming hit-category lines always pass to the
-  defender regardless of setting) is enforced here. Tally recording is
-  sight-gated (`CanSeeClearly`) for both participants and spectators.
+  defender regardless of setting) is enforced here. Sight-gating is NOT
+  uniform: participant tally recording (below) gates on
+  `messaging.CanSeeSightImpairedOnly` (no sleep gate, the same
+  predicate that drives `Balance.DarknessCombatPenalty`), while
+  `recordSpectatorTallies` gates on `messaging.CanSeeClearly` (sleep-
+  gated). Read the source at the call site before assuming either one;
+  they answer different questions on purpose (see that function's
+  comments).
 - **`recordTallyFor` / `recordSpectatorTallies`** — when a viewer's
   effective verbosity is Light, the AttackResult's swing data is
   recorded into a per-viewer `combatTally` accumulator instead of
@@ -806,6 +813,28 @@ medium / light). Three touch-points (gate in
 - **`flushCombatTallies`** — called once at the end of `DoCombat` after
   all AttackResults for the round are processed. Renders and emits one
   compact summary line per fight pair per viewer.
+- **`markBlindCombatant` / `flushBlindCombatNotices`** (M4d PR 2, Task
+  4): a second, independent per-round accumulator
+  (`roundBlindCombatants`, a `map[int]bool`) tracking players who
+  fought this round (as attacker or defender, via
+  `dispatchCritAndMessaging`) while their sight verdict was not
+  `SightFull`, using the same `CanSeeSightImpairedOnly`-derived
+  booleans (`srcCanSee`/`tgtCanSee`) that section already computes.
+  Shapes-only viewers are included, not just fully blind ones, because
+  `DarknessCombatPenalty` applies to both. Membership in this set is
+  the "fought this round" signal; `roundTallies` cannot serve that role
+  because it only contains Light-verbosity viewers who could ALSO see
+  clearly (recording is skipped for a blind participant precisely to
+  avoid leaking a named summary, see the `srcCanSee`/`tgtCanSee` gate
+  comments). `flushBlindCombatNotices`, called once at the end of
+  `DoCombat` beside `flushCombatTallies`, sends
+  `messaging.CategoryCombatBlindWarning` once per blind combatant and
+  clears the set. Not floor-protected: it goes through the viewer's
+  ordinary `Verbosity.Suppresses` gate, but the category is
+  deliberately absent from both suppression tables (see
+  `internal/messaging/verbosity.go`), so it currently passes at every
+  verbosity level; it is the only combat text a blind Light-verbosity
+  combatant receives at all.
 
 ### Attacker progression firing (U10b-1 Task 10)
 

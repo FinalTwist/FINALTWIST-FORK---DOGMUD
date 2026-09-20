@@ -88,6 +88,10 @@ func DoCombat(e events.Event) events.ListenerReturn {
 	// Light-verbosity round tallies (spec: combat-verbosity design).
 	flushCombatTallies()
 
+	// Per-round "you can't see" notice for blind/shapes-only combatants
+	// (M4d PR 2, Task 4).
+	flushBlindCombatNotices()
+
 	return events.Continue
 }
 

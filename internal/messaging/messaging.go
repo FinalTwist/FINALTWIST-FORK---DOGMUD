@@ -42,7 +42,8 @@ const (
 	// Combat — submissions / death.
 	CategorySubmission
 	CategoryDeath
-	CategoryCombatSummary // per-round compact tally (light verbosity)
+	CategoryCombatSummary      // per-round compact tally (light verbosity)
+	CategoryCombatBlindWarning // per-round "you can't see" notice (M4d PR 2, Task 4)
 
 	// Combat — special moves.
 	CategorySurpriseAttack
@@ -141,6 +142,8 @@ func (c Category) String() string {
 		return "death"
 	case CategoryCombatSummary:
 		return "combat-summary"
+	case CategoryCombatBlindWarning:
+		return "combat-blind-warning"
 	case CategorySurpriseAttack:
 		return "surprise"
 	case CategoryKick:

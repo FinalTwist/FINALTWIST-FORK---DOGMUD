@@ -568,6 +568,15 @@ func dispatchCritAndMessaging(atk, def actions.Actor, res *combat.AttackResult) 
 		tgtCanSee = messaging.CanSeeSightImpairedOnly(defChar, defRoom)
 	}
 
+	// Task 4 (M4d PR 2): record the per-round "you can't see" notice for
+	// whichever side is a blind-or-shapes-only player. Reuses the same
+	// srcCanSee/tgtCanSee this function already computed above -- see
+	// markBlindCombatant's doc comment for why that predicate (not
+	// CanSeeClearly) is the right one here. This only records; nothing is
+	// sent until flushBlindCombatNotices runs at end of round.
+	markBlindCombatant(atk, srcCanSee)
+	markBlindCombatant(def, tgtCanSee)
+
 	// Crit effects (riposte / sweep / bash) compute side-specific text.
 	critResult := applyCritEffects(atkChar, defChar, *res, atkRoom)
 
