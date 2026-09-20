@@ -80,7 +80,7 @@ func TestGetAttackMessageBandHonoursConfig(t *testing.T) {
 		pct  int
 		want string
 	}{
-		{49, "WEAK"},   // default 30 would have said NORMAL
+		{49, "WEAK"}, // default 30 would have said NORMAL
 		{50, "NORMAL"},
 		{89, "NORMAL"}, // default 75 would have said HEAVY
 		{90, "HEAVY"},
