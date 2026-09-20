@@ -15,6 +15,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
 )
@@ -149,7 +150,7 @@ func runOpeningStrikeRounds(t *testing.T, n int, surprise bool) [][]int {
 	t.Helper()
 	attacker := openingStrikeCombatant(t, "Ambusher")
 	defender := openingStrikeCombatant(t, "Mark")
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 
 	rounds := make([][]int, 0, n)
 	for i := 0; i < n; i++ {

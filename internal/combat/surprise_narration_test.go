@@ -347,7 +347,7 @@ func TestSurpriseRound_ExactlyOneSwingIsMarkedAsTheOpener(t *testing.T) {
 
 	attacker := openingStrikeCombatant(t, "Ambusher")
 	defender := openingStrikeCombatant(t, "Mark")
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 
 	plan := buildAttackPlan(attacker, defender)
 	if plan.totalSwings < 3 {
@@ -416,7 +416,7 @@ func TestPlainRound_NoSwingIsMarkedAsTheOpener(t *testing.T) {
 
 	attacker := openingStrikeCombatant(t, "Brawler")
 	defender := openingStrikeCombatant(t, "Mark")
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 
 	for i := 0; i < 20; i++ {
 		attacker.Stamina = attacker.StaminaMax.Value

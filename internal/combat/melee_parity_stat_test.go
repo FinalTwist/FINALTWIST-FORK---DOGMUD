@@ -46,6 +46,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
 	"github.com/GoMudEngine/GoMud/internal/statmods"
@@ -367,7 +368,7 @@ func TestMeleeParityDamagePerSwing(t *testing.T) {
 			}
 
 			// ── Layer 1: deterministic pins ─────────────────────────────
-			ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+			ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 
 			if got := defender.GetPhysicalMitigation(); math.Abs(got-float64(cell.mitPct)/100.0) > 1e-9 {
 				t.Fatalf("defender mitigation = %.4f, want %.2f", got, float64(cell.mitPct)/100.0)

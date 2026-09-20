@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 )
 
 // U6 Task 8 — the contest floor must gate the WINNER, before any crit is
@@ -66,7 +67,7 @@ func TestResolveDefenseOutcome_FloorReachesACrittingDefender(t *testing.T) {
 	)
 
 	attacker, defender := hopelessMatchup()
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 	critThreshold := calcCritThreshold(attacker, defender)
 
 	hits := 0
@@ -106,7 +107,7 @@ func TestResolveDefenseOutcome_FlooredOutcomesNeverCrit(t *testing.T) {
 	const iterations = 20000
 
 	attacker, defender := hopelessMatchup()
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 	critThreshold := calcCritThreshold(attacker, defender)
 
 	floored := 0

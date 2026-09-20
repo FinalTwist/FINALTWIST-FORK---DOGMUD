@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 )
 
 // defenceFixture builds an attacker and a defender with known stats and a
@@ -43,7 +44,7 @@ func TestRunBestOfAllDefense_ExhaustedDefenderStillEntersTheContest(t *testing.T
 	attacker, defender := defenceFixture(0)
 
 	result := &AttackResult{}
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 
 	best := runBestOfAllDefense(result, attacker, defender,
 		[]combatvocab.Defence{combatvocab.DefenceDodge}, 100.0, false, ctx)
@@ -90,7 +91,7 @@ func TestRunBestOfAllDefense_PartiallyChargesAnExhaustedWinner(t *testing.T) {
 	}
 
 	result := &AttackResult{}
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 
 	best := runBestOfAllDefense(result, attacker, defender,
 		[]combatvocab.Defence{combatvocab.DefenceBlock}, 100.0, false, ctx)

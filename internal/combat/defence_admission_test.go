@@ -199,7 +199,7 @@ func TestRunBestOfAllDefense_MixedAffordabilityPairsWinnerWithItsOwnQuote(t *tes
 
 	best := runBestOfAllDefenseWithRunner(result, attacker, defender,
 		[]combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}, 100, false,
-		combatContext{sourceCanSee: true, targetCanSee: true}, runner)
+		combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}, runner)
 
 	if runnerCalls != 1 {
 		t.Fatalf("runner calls = %d, want 1", runnerCalls)
@@ -258,7 +258,7 @@ func TestRunBestOfAllDefense_ShortWinnerChargesAndMessagesOnce(t *testing.T) {
 
 	best := runBestOfAllDefenseWithRunner(result, attacker, defender,
 		[]combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}, 100, false,
-		combatContext{sourceCanSee: true, targetCanSee: true}, runner)
+		combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}, runner)
 	if best.cost.Status != characters.CostPartiallyPaid || best.cost.Charged != 5 || !best.cost.Short() {
 		t.Fatalf("short winner cost = %+v, want partially paid 5", best.cost)
 	}
@@ -270,7 +270,7 @@ func TestRunBestOfAllDefense_ShortWinnerChargesAndMessagesOnce(t *testing.T) {
 	// the private player explanation belongs to the round and appears once.
 	second := runBestOfAllDefenseWithRunner(result, attacker, defender,
 		[]combatvocab.Defence{combatvocab.DefenceDodge, combatvocab.DefenceParry}, 100, false,
-		combatContext{sourceCanSee: true, targetCanSee: true}, runner)
+		combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}, runner)
 	if second.cost.Status != characters.CostPartiallyPaid || second.cost.Charged != 0 {
 		t.Fatalf("second short winner cost = %+v, want partial zero from empty pool", second.cost)
 	}
@@ -298,7 +298,7 @@ func TestRunBestOfAllDefense_SelectedWinnerPaysWhenAttackWins(t *testing.T) {
 
 	best := runBestOfAllDefenseWithRunner(result, attacker, defender,
 		[]combatvocab.Defence{combatvocab.DefenceParry}, 100, false,
-		combatContext{sourceCanSee: true, targetCanSee: true},
+		combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull},
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceParry, 165, entries[0].Score)
 		})
@@ -325,7 +325,7 @@ func TestRunBestOfAllDefense_ShortScoreRetainsNonSkillMultipliers(t *testing.T) 
 
 	runBestOfAllDefenseWithRunner(result, attacker, defender,
 		[]combatvocab.Defence{combatvocab.DefenceDodge}, 100, false,
-		combatContext{sourceCanSee: true, targetCanSee: false},
+		combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightNone},
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			// Base Dexterity 100 remains. Only Unarmed Combat is omitted, then
 			// effectiveness 0.5 and darkness 0.5 both still apply: 100/4 = 25.
@@ -344,7 +344,7 @@ func TestRunBestOfAllDefense_ShortNPCWinnerGetsNoPrivateMessage(t *testing.T) {
 
 	best := runBestOfAllDefenseWithRunner(result, attacker, defender,
 		[]combatvocab.Defence{combatvocab.DefenceDodge}, 100, false,
-		combatContext{sourceCanSee: true, targetCanSee: true},
+		combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull},
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceDodge, atkScore, atkScore-5)
 		})

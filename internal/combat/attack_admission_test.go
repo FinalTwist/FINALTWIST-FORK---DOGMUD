@@ -137,7 +137,7 @@ func TestAutoattackShortCostPlansBeforePaymentAndAttemptsEverySwing(t *testing.T
 
 	attacker := autoattackAdmissionCharacter(t, "short attacker", 3)
 	target := autoattackAdmissionTarget(t)
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true, forceCrit: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull, forceCrit: true}
 
 	plan := buildAttackPlan(attacker, target)
 	if plan.totalSwings != 4 || len(plan.weapons) != 2 {
@@ -200,7 +200,7 @@ func TestAutoattackAffordableCostPreservesSkillSwingCountAndDamage(t *testing.T)
 
 	attacker := autoattackAdmissionCharacter(t, "funded attacker", 4)
 	target := autoattackAdmissionTarget(t)
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true, forceCrit: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull, forceCrit: true}
 	plan := buildAttackPlan(attacker, target)
 	if plan.totalSwings != 4 {
 		t.Fatalf("affordable plan = %d swings, want 4", plan.totalSwings)
@@ -275,7 +275,7 @@ func TestAutoattackShortCostPreservesProgressionAndMessagesOnlyPlayers(t *testin
 	mobAttacker := autoattackAdmissionCharacter(t, "mob attacker", 3)
 	mobTarget := autoattackAdmissionTarget(t)
 	mobResult, mobCost := resolveCombatRound(mobAttacker, mobTarget, Mob, Mob, combatContext{
-		sourceCanSee: true, targetCanSee: true, forceCrit: true,
+		sourceSight: messaging.SightFull, targetSight: messaging.SightFull, forceCrit: true,
 	})
 	if !mobCost.Short() || mobAttacker.Stamina != 0 || mobResult.SwingsThrown != 4 {
 		t.Fatalf("mob short mechanics cost=%+v stamina=%d swings=%d, want player parity",

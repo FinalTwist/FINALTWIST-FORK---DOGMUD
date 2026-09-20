@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 )
 
@@ -35,7 +36,7 @@ func TestCalcAttackScore_OffhandFistUsesUnarmedNotTheMainHandWeaponSkill(t *test
 		DamageMultiplier: 1.0,
 		SpeedMultiplier:  1.0,
 	}}
-	ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+	ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 
 	swordScore := calcAttackScore(attacker, defender, sword, 0, ctx)
 	fistScore := calcAttackScore(attacker, defender, items.Item{}, 0, ctx)

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 )
 
 // runBestOfAllDefense discarded the contest.Result, so the floored flag never
@@ -21,7 +22,7 @@ func TestRunBestOfAllDefense_CarriesFlooredFlag(t *testing.T) {
 	sawFloored := false
 	for i := 0; i < 5000; i++ {
 		result := &AttackResult{}
-		ctx := combatContext{sourceCanSee: true, targetCanSee: true}
+		ctx := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
 
 		best := runBestOfAllDefense(result, attacker, defender,
 			[]combatvocab.Defence{combatvocab.DefenceDodge}, 100.0, false, ctx)
