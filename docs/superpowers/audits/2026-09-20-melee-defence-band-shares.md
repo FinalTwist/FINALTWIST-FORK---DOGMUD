@@ -82,3 +82,16 @@ inputs; it confirms the tool is sensitive to the input source rather than
 silently printing the same numbers twice. The change was reverted before
 committing; `gofmt -l tools/melee_band_census/main.go` prints nothing on
 the reverted file.
+
+## What this tool does and does not prove
+
+The tool implements BOTH rules itself, reading real `combat.RunContest`
+outcomes but doing its own banding. It therefore models the new rule; it does
+not call the production band function. Re-running it after the flip returns the
+same numbers, so there is no "after" table to add: the measurement was always
+of two rules, not of two commits.
+
+The proof that production actually implements the new rule is a different
+artifact: `internal/combat/testdata/melee_defence_bands.golden`, a 165-row
+matrix driven through the real `sendDefenseMessages`, recorded before the flip
+and regenerated once after it. Its diff is in the pull request.

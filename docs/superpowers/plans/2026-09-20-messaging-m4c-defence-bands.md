@@ -100,7 +100,7 @@ Two findings the spec did not have:
 - `modules/weather/content/emotes.go`: const becomes a config read.
 - `internal/items/context.md`, `internal/combat/context.md`, `modules/weather/context.md`.
 - `docs/superpowers/specs/2026-09-17-messaging-m4-flip-design.md`: M4c marked done.
-- `_datafiles/world/dogmud/patchnotes/`: one note.
+- `docs/PATCH_NOTES.md`: one entry at the top.
 - `docs/README.md`: the two new docs.
 
 ---
@@ -960,7 +960,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>" -- _datafile
 **Files:**
 - Modify: `internal/items/context.md`, `internal/combat/context.md`, `modules/weather/context.md`
 - Modify: `docs/superpowers/specs/2026-09-17-messaging-m4-flip-design.md`
-- Create: `_datafiles/world/dogmud/patchnotes/<next>.yaml` (list the directory first and match its convention)
+- Modify: `docs/PATCH_NOTES.md` (a single running file, newest entry first; there is NO patchnotes directory, and this plan wrongly named one)
 - Modify: `docs/README.md`
 
 - [ ] **Step 1: Sweep by MEANING, not by name**
@@ -1007,7 +1007,7 @@ remaining and recorded as an open question.
 - [ ] **Step 4: Write the patch note**
 
 ```bash
-ls _datafiles/world/dogmud/patchnotes/ | tail -5
+head -30 docs/PATCH_NOTES.md
 ```
 
 Follow the newest file's schema exactly. Content, hard wrapped at 80 columns, no
@@ -1027,7 +1027,7 @@ Add to `docs/README.md`, each with its full path and a one-line description:
 - [ ] **Step 6: Commit**
 
 ```bash
-git add internal/items/context.md internal/combat/context.md modules/weather/context.md docs/superpowers/specs/2026-09-17-messaging-m4-flip-design.md docs/README.md _datafiles/world/dogmud/patchnotes/
+git add internal/items/context.md internal/combat/context.md modules/weather/context.md docs/superpowers/specs/2026-09-17-messaging-m4-flip-design.md docs/README.md docs/PATCH_NOTES.md
 git commit -m "docs(m4c): one defence band model, in context.md, the spec and a patch note
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
