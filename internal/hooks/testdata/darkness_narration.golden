@@ -1,0 +1,173 @@
+# dark-versus-lit combat narration matrix -- internal/hooks dispatchCritAndMessaging
+# Each cell drives the REAL production seam (dispatchCritAndMessaging, including
+# replaceDarknessMessages and the verbosity drain) with a one-variant-per-outcome
+# label fixture, so the golden records WHICH LINE won, not authored prose.
+# columns: atk sight | def sight | outcome | reader => text
+# PRE-FLIP (today): any cell where a participant's OWN sight isn't 'full' shows one
+# of the twelve hardcoded dark sentences on THAT participant's line, replacing the
+# AUTHORED pool line. The spectator line is never substituted -- replaceDarknessMessages
+# only touches MessagesToSource/MessagesToTarget, never MessagesToSourceRoom -- so the
+# spectator column stays AUTHORED in every cell regardless of atk/def sight.
+
+atk=full|def=full|hit|attacker => AUTHORED|hit|actor.
+atk=full|def=full|hit|defender => AUTHORED|hit|actee.
+atk=full|def=full|hit|spectator => AUTHORED|hit|observer.
+atk=full|def=full|crit|attacker => AUTHORED|crit|actor.
+atk=full|def=full|crit|defender => AUTHORED|crit|actee.
+atk=full|def=full|crit|spectator => AUTHORED|crit|observer.
+atk=full|def=full|deflected|attacker => AUTHORED|deflected|actor.
+atk=full|def=full|deflected|defender => AUTHORED|deflected|actee.
+atk=full|def=full|deflected|spectator => AUTHORED|deflected|observer.
+atk=full|def=full|defense_crit|attacker => AUTHORED|defense_crit|actor.
+atk=full|def=full|defense_crit|defender => AUTHORED|defense_crit|actee.
+atk=full|def=full|defense_crit|spectator => AUTHORED|defense_crit|observer.
+atk=full|def=full|miss|attacker => AUTHORED|miss|actor.
+atk=full|def=full|miss|defender => AUTHORED|miss|actee.
+atk=full|def=full|miss|spectator => AUTHORED|miss|observer.
+atk=full|def=full|fumble|attacker => AUTHORED|fumble|actor.
+atk=full|def=full|fumble|defender => AUTHORED|fumble|actee.
+atk=full|def=full|fumble|spectator => AUTHORED|fumble|observer.
+atk=full|def=shapes|hit|attacker => AUTHORED|hit|actor.
+atk=full|def=shapes|hit|defender => Something strikes you in the dark!
+atk=full|def=shapes|hit|spectator => AUTHORED|hit|observer.
+atk=full|def=shapes|crit|attacker => AUTHORED|crit|actor.
+atk=full|def=shapes|crit|defender => *** Something hits you hard in the dark! ***
+atk=full|def=shapes|crit|spectator => AUTHORED|crit|observer.
+atk=full|def=shapes|deflected|attacker => AUTHORED|deflected|actor.
+atk=full|def=shapes|deflected|defender => You fend off something in the dark, but it still catches you!
+atk=full|def=shapes|deflected|spectator => AUTHORED|deflected|observer.
+atk=full|def=shapes|defense_crit|attacker => AUTHORED|defense_crit|actor.
+atk=full|def=shapes|defense_crit|defender => You fend off something in the dark!
+atk=full|def=shapes|defense_crit|spectator => AUTHORED|defense_crit|observer.
+atk=full|def=shapes|miss|attacker => AUTHORED|miss|actor.
+atk=full|def=shapes|miss|defender => You hear something whoosh past!
+atk=full|def=shapes|miss|spectator => AUTHORED|miss|observer.
+atk=full|def=shapes|fumble|attacker => AUTHORED|fumble|actor.
+atk=full|def=shapes|fumble|defender => You hear your attacker stumble!
+atk=full|def=shapes|fumble|spectator => AUTHORED|fumble|observer.
+atk=full|def=none|hit|attacker => AUTHORED|hit|actor.
+atk=full|def=none|hit|defender => Something strikes you in the dark!
+atk=full|def=none|hit|spectator => AUTHORED|hit|observer.
+atk=full|def=none|crit|attacker => AUTHORED|crit|actor.
+atk=full|def=none|crit|defender => *** Something hits you hard in the dark! ***
+atk=full|def=none|crit|spectator => AUTHORED|crit|observer.
+atk=full|def=none|deflected|attacker => AUTHORED|deflected|actor.
+atk=full|def=none|deflected|defender => You fend off something in the dark, but it still catches you!
+atk=full|def=none|deflected|spectator => AUTHORED|deflected|observer.
+atk=full|def=none|defense_crit|attacker => AUTHORED|defense_crit|actor.
+atk=full|def=none|defense_crit|defender => You fend off something in the dark!
+atk=full|def=none|defense_crit|spectator => AUTHORED|defense_crit|observer.
+atk=full|def=none|miss|attacker => AUTHORED|miss|actor.
+atk=full|def=none|miss|defender => You hear something whoosh past!
+atk=full|def=none|miss|spectator => AUTHORED|miss|observer.
+atk=full|def=none|fumble|attacker => AUTHORED|fumble|actor.
+atk=full|def=none|fumble|defender => You hear your attacker stumble!
+atk=full|def=none|fumble|spectator => AUTHORED|fumble|observer.
+atk=shapes|def=full|hit|attacker => You strike blindly and connect!
+atk=shapes|def=full|hit|defender => AUTHORED|hit|actee.
+atk=shapes|def=full|hit|spectator => AUTHORED|hit|observer.
+atk=shapes|def=full|crit|attacker => *** You land a devastating blow in the dark! ***
+atk=shapes|def=full|crit|defender => AUTHORED|crit|actee.
+atk=shapes|def=full|crit|spectator => AUTHORED|crit|observer.
+atk=shapes|def=full|deflected|attacker => Something turns your blow aside, but you feel it land!
+atk=shapes|def=full|deflected|defender => AUTHORED|deflected|actee.
+atk=shapes|def=full|deflected|spectator => AUTHORED|deflected|observer.
+atk=shapes|def=full|defense_crit|attacker => Your attack is turned aside by something!
+atk=shapes|def=full|defense_crit|defender => AUTHORED|defense_crit|actee.
+atk=shapes|def=full|defense_crit|spectator => AUTHORED|defense_crit|observer.
+atk=shapes|def=full|miss|attacker => You swing wildly in the darkness!
+atk=shapes|def=full|miss|defender => AUTHORED|miss|actee.
+atk=shapes|def=full|miss|spectator => AUTHORED|miss|observer.
+atk=shapes|def=full|fumble|attacker => !!! You stumble badly in the darkness! !!!
+atk=shapes|def=full|fumble|defender => AUTHORED|fumble|actee.
+atk=shapes|def=full|fumble|spectator => AUTHORED|fumble|observer.
+atk=shapes|def=shapes|hit|attacker => You strike blindly and connect!
+atk=shapes|def=shapes|hit|defender => Something strikes you in the dark!
+atk=shapes|def=shapes|hit|spectator => AUTHORED|hit|observer.
+atk=shapes|def=shapes|crit|attacker => *** You land a devastating blow in the dark! ***
+atk=shapes|def=shapes|crit|defender => *** Something hits you hard in the dark! ***
+atk=shapes|def=shapes|crit|spectator => AUTHORED|crit|observer.
+atk=shapes|def=shapes|deflected|attacker => Something turns your blow aside, but you feel it land!
+atk=shapes|def=shapes|deflected|defender => You fend off something in the dark, but it still catches you!
+atk=shapes|def=shapes|deflected|spectator => AUTHORED|deflected|observer.
+atk=shapes|def=shapes|defense_crit|attacker => Your attack is turned aside by something!
+atk=shapes|def=shapes|defense_crit|defender => You fend off something in the dark!
+atk=shapes|def=shapes|defense_crit|spectator => AUTHORED|defense_crit|observer.
+atk=shapes|def=shapes|miss|attacker => You swing wildly in the darkness!
+atk=shapes|def=shapes|miss|defender => You hear something whoosh past!
+atk=shapes|def=shapes|miss|spectator => AUTHORED|miss|observer.
+atk=shapes|def=shapes|fumble|attacker => !!! You stumble badly in the darkness! !!!
+atk=shapes|def=shapes|fumble|defender => You hear your attacker stumble!
+atk=shapes|def=shapes|fumble|spectator => AUTHORED|fumble|observer.
+atk=shapes|def=none|hit|attacker => You strike blindly and connect!
+atk=shapes|def=none|hit|defender => Something strikes you in the dark!
+atk=shapes|def=none|hit|spectator => AUTHORED|hit|observer.
+atk=shapes|def=none|crit|attacker => *** You land a devastating blow in the dark! ***
+atk=shapes|def=none|crit|defender => *** Something hits you hard in the dark! ***
+atk=shapes|def=none|crit|spectator => AUTHORED|crit|observer.
+atk=shapes|def=none|deflected|attacker => Something turns your blow aside, but you feel it land!
+atk=shapes|def=none|deflected|defender => You fend off something in the dark, but it still catches you!
+atk=shapes|def=none|deflected|spectator => AUTHORED|deflected|observer.
+atk=shapes|def=none|defense_crit|attacker => Your attack is turned aside by something!
+atk=shapes|def=none|defense_crit|defender => You fend off something in the dark!
+atk=shapes|def=none|defense_crit|spectator => AUTHORED|defense_crit|observer.
+atk=shapes|def=none|miss|attacker => You swing wildly in the darkness!
+atk=shapes|def=none|miss|defender => You hear something whoosh past!
+atk=shapes|def=none|miss|spectator => AUTHORED|miss|observer.
+atk=shapes|def=none|fumble|attacker => !!! You stumble badly in the darkness! !!!
+atk=shapes|def=none|fumble|defender => You hear your attacker stumble!
+atk=shapes|def=none|fumble|spectator => AUTHORED|fumble|observer.
+atk=none|def=full|hit|attacker => You strike blindly and connect!
+atk=none|def=full|hit|defender => AUTHORED|hit|actee.
+atk=none|def=full|hit|spectator => AUTHORED|hit|observer.
+atk=none|def=full|crit|attacker => *** You land a devastating blow in the dark! ***
+atk=none|def=full|crit|defender => AUTHORED|crit|actee.
+atk=none|def=full|crit|spectator => AUTHORED|crit|observer.
+atk=none|def=full|deflected|attacker => Something turns your blow aside, but you feel it land!
+atk=none|def=full|deflected|defender => AUTHORED|deflected|actee.
+atk=none|def=full|deflected|spectator => AUTHORED|deflected|observer.
+atk=none|def=full|defense_crit|attacker => Your attack is turned aside by something!
+atk=none|def=full|defense_crit|defender => AUTHORED|defense_crit|actee.
+atk=none|def=full|defense_crit|spectator => AUTHORED|defense_crit|observer.
+atk=none|def=full|miss|attacker => You swing wildly in the darkness!
+atk=none|def=full|miss|defender => AUTHORED|miss|actee.
+atk=none|def=full|miss|spectator => AUTHORED|miss|observer.
+atk=none|def=full|fumble|attacker => !!! You stumble badly in the darkness! !!!
+atk=none|def=full|fumble|defender => AUTHORED|fumble|actee.
+atk=none|def=full|fumble|spectator => AUTHORED|fumble|observer.
+atk=none|def=shapes|hit|attacker => You strike blindly and connect!
+atk=none|def=shapes|hit|defender => Something strikes you in the dark!
+atk=none|def=shapes|hit|spectator => AUTHORED|hit|observer.
+atk=none|def=shapes|crit|attacker => *** You land a devastating blow in the dark! ***
+atk=none|def=shapes|crit|defender => *** Something hits you hard in the dark! ***
+atk=none|def=shapes|crit|spectator => AUTHORED|crit|observer.
+atk=none|def=shapes|deflected|attacker => Something turns your blow aside, but you feel it land!
+atk=none|def=shapes|deflected|defender => You fend off something in the dark, but it still catches you!
+atk=none|def=shapes|deflected|spectator => AUTHORED|deflected|observer.
+atk=none|def=shapes|defense_crit|attacker => Your attack is turned aside by something!
+atk=none|def=shapes|defense_crit|defender => You fend off something in the dark!
+atk=none|def=shapes|defense_crit|spectator => AUTHORED|defense_crit|observer.
+atk=none|def=shapes|miss|attacker => You swing wildly in the darkness!
+atk=none|def=shapes|miss|defender => You hear something whoosh past!
+atk=none|def=shapes|miss|spectator => AUTHORED|miss|observer.
+atk=none|def=shapes|fumble|attacker => !!! You stumble badly in the darkness! !!!
+atk=none|def=shapes|fumble|defender => You hear your attacker stumble!
+atk=none|def=shapes|fumble|spectator => AUTHORED|fumble|observer.
+atk=none|def=none|hit|attacker => You strike blindly and connect!
+atk=none|def=none|hit|defender => Something strikes you in the dark!
+atk=none|def=none|hit|spectator => AUTHORED|hit|observer.
+atk=none|def=none|crit|attacker => *** You land a devastating blow in the dark! ***
+atk=none|def=none|crit|defender => *** Something hits you hard in the dark! ***
+atk=none|def=none|crit|spectator => AUTHORED|crit|observer.
+atk=none|def=none|deflected|attacker => Something turns your blow aside, but you feel it land!
+atk=none|def=none|deflected|defender => You fend off something in the dark, but it still catches you!
+atk=none|def=none|deflected|spectator => AUTHORED|deflected|observer.
+atk=none|def=none|defense_crit|attacker => Your attack is turned aside by something!
+atk=none|def=none|defense_crit|defender => You fend off something in the dark!
+atk=none|def=none|defense_crit|spectator => AUTHORED|defense_crit|observer.
+atk=none|def=none|miss|attacker => You swing wildly in the darkness!
+atk=none|def=none|miss|defender => You hear something whoosh past!
+atk=none|def=none|miss|spectator => AUTHORED|miss|observer.
+atk=none|def=none|fumble|attacker => !!! You stumble badly in the darkness! !!!
+atk=none|def=none|fumble|defender => You hear your attacker stumble!
+atk=none|def=none|fumble|spectator => AUTHORED|fumble|observer.
