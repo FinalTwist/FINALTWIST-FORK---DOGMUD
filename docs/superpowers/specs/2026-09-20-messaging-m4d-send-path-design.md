@@ -119,7 +119,7 @@ work; they are simply not reading. So:
 - The **predicates** compose attention over it, inside themselves, so no call
   site changes and PR 1 stays byte-identical:
   - `CanSeeClearly(obs, room)` = `awake(obs) && ParticipantSight(...) == SightFull`
-  - `CanSeeShapes(obs, room)` = `awake(obs) && ParticipantSight(...) >= SightShapes`
+  - `CanSeeShapes(obs, room)` = `awake(obs)` and the verdict is `SightFull` or `SightShapes` (equality, not a comparison: the constants run best to worst)
   - `CanSeeSightImpairedOnly(obs, room)` = `ParticipantSight(...) == SightFull`,
     with no attention test, which is what it means today and why it exists.
 
