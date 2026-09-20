@@ -6,14 +6,10 @@
 # RenderDefenseMessage has no picker param (util.Rand only) -- pinned via indexOverride=0,
 # the fresh-SequencePicker-first-pick equivalent for this seam.
 
-# ALSO covers the MELEE seam (internal/combat sendDefenseMessages), which does its own
-# zScore banding via items.GetDefenseMessage and used to pick each of the 3 roles with an
-# INDEPENDENT MessageOptions.Get() call -- three unrelated random indices describing three
-# different events. That bug shipped invisibly because this snapshot only ever exercised
-# RenderDefenseMessage, never GetDefenseMessage. The melee| rows below freeze
-# GetDefenseMessage(...).RenderTriad(...) (a fresh SequencePicker per tuple, so index 0 every
-# time) so a regression back to three independent picks shows up here again.
-
+# The melee path no longer has a banding rule of its own (M4c): internal/combat
+# calls RenderDefenseMessage like every other defence. Its production-path matrix
+# is frozen by internal/combat/testdata/melee_defence_bands.golden; the rows that
+# used to sit here were byte-identical duplicates of the store rows above.
 block|weak|actee => <ansi fg="defense-good">You barely block <ansi fg="user">Attacker</ansi>'s attack!</ansi>
 block|weak|actor => <ansi fg="attack-bad"><ansi fg="mob">Defender</ansi> barely blocks your attack!</ansi>
 block|weak|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> barely blocks <ansi fg="user">Attacker</ansi>'s attack.</ansi>
@@ -109,100 +105,3 @@ quell|heavy|observer => <ansi fg="combat">Defender takes no damage from Attacker
 nonexistent-defense-type|normal|actee => ""
 nonexistent-defense-type|normal|actor => ""
 nonexistent-defense-type|normal|observer => ""
-
-# MELEE SEAM: items.GetDefenseMessage(type, zScore).RenderTriad(...), fresh SequencePicker per tuple
-melee|block|weak|actee => <ansi fg="defense-good">You barely block <ansi fg="user">Attacker</ansi>'s attack!</ansi>
-melee|block|weak|actor => <ansi fg="attack-bad"><ansi fg="mob">Defender</ansi> barely blocks your attack!</ansi>
-melee|block|weak|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> barely blocks <ansi fg="user">Attacker</ansi>'s attack.</ansi>
-melee|block|normal|actee => <ansi fg="defense-good">You block <ansi fg="user">Attacker</ansi>'s attack!</ansi>
-melee|block|normal|actor => <ansi fg="attack-bad"><ansi fg="mob">Defender</ansi> blocks your attack!</ansi>
-melee|block|normal|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> blocks <ansi fg="user">Attacker</ansi>'s attack.</ansi>
-melee|block|heavy|actee => <ansi fg="defense-good">You effortlessly block <ansi fg="user">Attacker</ansi>'s feeble attack!</ansi>
-melee|block|heavy|actor => <ansi fg="attack-bad"><ansi fg="mob">Defender</ansi> effortlessly blocks your feeble attack!</ansi>
-melee|block|heavy|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> effortlessly blocks the feeble attack.</ansi>
-melee|counter-block|weak|actee => <ansi fg="defense-good">You take it on your guard and shove in, but Attacker gives ground in time.</ansi>
-melee|counter-block|weak|actor => <ansi fg="attack-bad">Defender takes it on their guard and shoves in, but you give ground in time.</ansi>
-melee|counter-block|weak|observer => <ansi fg="combat">Defender takes it on the guard and shoves in, but Attacker gives ground.</ansi>
-melee|counter-block|normal|actee => <ansi fg="defense-good">You take it on your guard, shove in, and strike Attacker from behind it.</ansi>
-melee|counter-block|normal|actor => <ansi fg="attack-bad">Defender takes it on their guard, shoves in, and strikes you from behind it.</ansi>
-melee|counter-block|normal|observer => <ansi fg="combat">Defender takes the hit on the guard and strikes Attacker from behind it.</ansi>
-melee|counter-block|heavy|actee => <ansi fg="defense-good">You take it on your guard and drive in hard, and Attacker reels.</ansi>
-melee|counter-block|heavy|actor => <ansi fg="attack-bad">Defender takes it on their guard and drives in hard, and you reel.</ansi>
-melee|counter-block|heavy|observer => <ansi fg="combat">Defender takes it on the guard and drives in hard, and Attacker reels.</ansi>
-melee|counter-defy|weak|actee => <ansi fg="defense-good">You mock Attacker's attempt, but the mockery fails to bite.</ansi>
-melee|counter-defy|weak|actor => <ansi fg="attack-bad">Defender mocks your attempt, but the mockery fails to bite.</ansi>
-melee|counter-defy|weak|observer => <ansi fg="combat">Defender mocks Attacker's attempt, but the mockery fails to bite.</ansi>
-melee|counter-defy|normal|actee => <ansi fg="defense-good">You mock Attacker for the attempt, and they flinch.</ansi>
-melee|counter-defy|normal|actor => <ansi fg="attack-bad">Defender mocks you for the attempt, and you flinch.</ansi>
-melee|counter-defy|normal|observer => <ansi fg="combat">Defender mocks Attacker for the attempt, and Attacker flinches.</ansi>
-melee|counter-defy|heavy|actee => <ansi fg="defense-good">You tear Attacker's attempt apart word by word, and they fall silent.</ansi>
-melee|counter-defy|heavy|actor => <ansi fg="attack-bad">Defender tears your attempt apart word by word, and you fall silent.</ansi>
-melee|counter-defy|heavy|observer => <ansi fg="combat">Defender tears Attacker's attempt apart word by word, leaving them silent.</ansi>
-melee|counter-dodge|weak|actee => <ansi fg="defense-good">You lash out at the opening, but Attacker recovers in time.</ansi>
-melee|counter-dodge|weak|actor => <ansi fg="attack-bad">Defender lashes out at your opening, but you recover in time.</ansi>
-melee|counter-dodge|weak|observer => <ansi fg="combat">Defender lashes out at Attacker, who recovers in time.</ansi>
-melee|counter-dodge|normal|actee => <ansi fg="defense-good">You step into the opening and land a solid blow on Attacker.</ansi>
-melee|counter-dodge|normal|actor => <ansi fg="attack-bad">Defender steps into the opening and lands a solid blow on you.</ansi>
-melee|counter-dodge|normal|observer => <ansi fg="combat">Defender steps into the opening and lands a solid blow on Attacker.</ansi>
-melee|counter-dodge|heavy|actee => <ansi fg="defense-good">You slip inside Attacker's guard and strike with all your weight.</ansi>
-melee|counter-dodge|heavy|actor => <ansi fg="attack-bad">Defender slips inside your guard and strikes with all their weight.</ansi>
-melee|counter-dodge|heavy|observer => <ansi fg="combat">Defender slips inside Attacker's guard and strikes with full weight.</ansi>
-melee|counter-parry|weak|actee => <ansi fg="defense-good">You turn the blow aside and cut back, but Attacker recovers in time.</ansi>
-melee|counter-parry|weak|actor => <ansi fg="attack-bad">Defender turns your blow aside and cuts back, but you recover in time.</ansi>
-melee|counter-parry|weak|observer => <ansi fg="combat">Defender turns Attacker's blow aside and cuts back, but Attacker recovers.</ansi>
-melee|counter-parry|normal|actee => <ansi fg="defense-good">You turn the blow aside and cut back, opening Attacker's arm.</ansi>
-melee|counter-parry|normal|actor => <ansi fg="attack-bad">Defender turns your blow aside and cuts back, opening your arm.</ansi>
-melee|counter-parry|normal|observer => <ansi fg="combat">Defender turns Attacker's blow aside and cuts back, opening Attacker's arm.</ansi>
-melee|counter-parry|heavy|actee => <ansi fg="defense-good">You turn the blow aside and cut back with everything, and Attacker reels.</ansi>
-melee|counter-parry|heavy|actor => <ansi fg="attack-bad">Defender turns your blow aside and cuts back with everything, and you reel.</ansi>
-melee|counter-parry|heavy|observer => <ansi fg="combat">Defender turns Attacker's blow aside and cuts back hard, and Attacker reels.</ansi>
-melee|counter-quell|weak|actee => <ansi fg="defense-good">You ground the working and lunge in, but Attacker wards your blow.</ansi>
-melee|counter-quell|weak|actor => <ansi fg="attack-bad">Defender grounds your working and lunges in, but you ward the blow.</ansi>
-melee|counter-quell|weak|observer => <ansi fg="combat">Defender grounds the working and lunges at Attacker, who wards the blow.</ansi>
-melee|counter-quell|normal|actee => <ansi fg="defense-good">You ground the last of the working and strike Attacker through the gap.</ansi>
-melee|counter-quell|normal|actor => <ansi fg="attack-bad">Defender grounds the last of your working and strikes you through the gap.</ansi>
-melee|counter-quell|normal|observer => <ansi fg="combat">Defender grounds the last of the working and strikes Attacker.</ansi>
-melee|counter-quell|heavy|actee => <ansi fg="defense-good">You put the working down and crash into Attacker at full force.</ansi>
-melee|counter-quell|heavy|actor => <ansi fg="attack-bad">Defender puts your working down and crashes into you at full force.</ansi>
-melee|counter-quell|heavy|observer => <ansi fg="combat">Defender puts the working down and crashes into Attacker.</ansi>
-melee|defy|weak|actee => <ansi fg="defense-good">You defy Attacker's Strike, taking some of its sting.</ansi>
-melee|defy|weak|actor => <ansi fg="attack-bad">Defender defies your Strike, taking some of its sting.</ansi>
-melee|defy|weak|observer => <ansi fg="combat">Defender defies Attacker's Strike, taking some of its sting.</ansi>
-melee|defy|normal|actee => <ansi fg="defense-good">You defy Attacker's Strike, stripping away most of its force.</ansi>
-melee|defy|normal|actor => <ansi fg="attack-bad">Defender defies your Strike, stripping away most of its force.</ansi>
-melee|defy|normal|observer => <ansi fg="combat">Defender defies Attacker's Strike, stripping away most of its force.</ansi>
-melee|defy|heavy|actee => <ansi fg="defense-good">You take no conviction harm from Attacker's Strike, though it still draws your attention.</ansi>
-melee|defy|heavy|actor => <ansi fg="attack-bad">Defender takes no conviction harm from your Strike, though it still draws their attention.</ansi>
-melee|defy|heavy|observer => <ansi fg="combat">Defender takes no conviction harm from Attacker's Strike, though it still draws their attention.</ansi>
-melee|dodge|weak|actee => <ansi fg="defense-good">You barely dodge <ansi fg="user">Attacker</ansi>'s attack!</ansi>
-melee|dodge|weak|actor => <ansi fg="attack-bad"><ansi fg="mob">Defender</ansi> barely dodges your attack!</ansi>
-melee|dodge|weak|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> barely dodges <ansi fg="user">Attacker</ansi>'s attack.</ansi>
-melee|dodge|normal|actee => <ansi fg="defense-good">You dodge <ansi fg="user">Attacker</ansi>'s attack!</ansi>
-melee|dodge|normal|actor => <ansi fg="attack-bad"><ansi fg="mob">Defender</ansi> dodges your attack!</ansi>
-melee|dodge|normal|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> dodges <ansi fg="user">Attacker</ansi>'s attack.</ansi>
-melee|dodge|heavy|actee => <ansi fg="defense-good">You sidestep <ansi fg="user">Attacker</ansi>'s clumsy <ansi fg="item">Strike</ansi> with ease!</ansi>
-melee|dodge|heavy|actor => <ansi fg="attack-bad"><ansi fg="mob">Defender</ansi> sidesteps your clumsy <ansi fg="item">Strike</ansi> with ease!</ansi>
-melee|dodge|heavy|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> sidesteps the clumsy <ansi fg="item">Strike</ansi> with ease.</ansi>
-melee|parry|weak|actee => <ansi fg="defense-good">You barely parry <ansi fg="user">Attacker</ansi>'s attack!</ansi>
-melee|parry|weak|actor => <ansi fg="attack-bad"><ansi fg="mob">Defender</ansi> barely parries your attack!</ansi>
-melee|parry|weak|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> barely parries <ansi fg="user">Attacker</ansi>'s attack.</ansi>
-melee|parry|normal|actee => <ansi fg="defense-good">You parry <ansi fg="user">Attacker</ansi>'s attack!</ansi>
-melee|parry|normal|actor => <ansi fg="attack-bad"><ansi fg="mob">Defender</ansi> parries your attack!</ansi>
-melee|parry|normal|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> parries <ansi fg="user">Attacker</ansi>'s attack.</ansi>
-melee|parry|heavy|actee => <ansi fg="defense-good">You effortlessly parry <ansi fg="user">Attacker</ansi>'s clumsy attack!</ansi>
-melee|parry|heavy|actor => <ansi fg="attack-bad"><ansi fg="mob">Defender</ansi> effortlessly parries your clumsy attack!</ansi>
-melee|parry|heavy|observer => <ansi fg="combat"><ansi fg="mob">Defender</ansi> effortlessly parries the clumsy attack.</ansi>
-melee|quell|weak|actee => <ansi fg="defense-good">You catch the edge of Attacker's Strike, dulling its force.</ansi>
-melee|quell|weak|actor => <ansi fg="attack-bad">Defender catches the edge of your Strike, dulling its force.</ansi>
-melee|quell|weak|observer => <ansi fg="combat">Defender catches the edge of Attacker's Strike.</ansi>
-melee|quell|normal|actee => <ansi fg="defense-good">You quell the heart of Attacker's Strike, though a fading echo reaches you.</ansi>
-melee|quell|normal|actor => <ansi fg="attack-bad">Defender quells the heart of your Strike, though an echo still lands.</ansi>
-melee|quell|normal|observer => <ansi fg="combat">Defender quells the heart of Attacker's Strike, though an echo still lands.</ansi>
-melee|quell|heavy|actee => <ansi fg="defense-good">You take no damage from Attacker's Strike, though its momentum still reaches you.</ansi>
-melee|quell|heavy|actor => <ansi fg="attack-bad">Defender takes no damage from your Strike, though its momentum still reaches them.</ansi>
-melee|quell|heavy|observer => <ansi fg="combat">Defender takes no damage from Attacker's Strike, though its momentum still reaches them.</ansi>
-
-# EMPTY CASE (melee seam): unregistered defense type -> empty triad
-melee|nonexistent-defense-type|normal|actee => ""
-melee|nonexistent-defense-type|normal|actor => ""
-melee|nonexistent-defense-type|normal|observer => ""

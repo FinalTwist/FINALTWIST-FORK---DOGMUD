@@ -11,14 +11,18 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// StrongFeltThreshold is the felt-intensity at which weather becomes
-// perceptible indoors (drumming on roofs, wind in the eaves). Below it,
-// indoor rooms get the mild pool — usually empty, i.e. silence.
-const StrongFeltThreshold = 0.5
+// The felt-intensity cutoff at which weather becomes perceptible indoors
+// (drumming on roofs, wind in the eaves) is not a package const here: content
+// stays pure of the engine's config package (arch_test.go enforces this), so
+// every Pick call takes it as an explicit strongFeltThreshold parameter
+// instead. The engine reads the live value from
+// Balance.WeatherStrongFeltThreshold and supplies it -- see
+// modules/weather/engine/emotes.go. Below the threshold, indoor rooms get
+// the mild pool — usually empty, i.e. silence.
 
 // IndoorPool holds intensity-banded indoor lines for one biome key.
-// Mild plays below StrongFeltThreshold (usually empty: light weather
-// doesn't register through walls); Strong plays at/above it.
+// Mild plays below the caller-supplied strongFeltThreshold (usually empty:
+// light weather doesn't register through walls); Strong plays at/above it.
 type IndoorPool struct {
 	Mild   []string `yaml:"mild"`
 	Strong []string `yaml:"strong"`
@@ -166,12 +170,16 @@ func validateTableSection(sec TableSection) error {
 // (when season != "" and a variant exists) -> the base section; within a
 // section, exact biome -> "default" biome. season "" skips the variant layer
 // (seasons off / unbound zone). Indoor never falls back to outdoor — silence
-// beats wrong prose — and is felt-banded: felt < StrongFeltThreshold picks
-// Mild (usually empty), otherwise Strong. pick is handed to the narration
-// core as-is: per narration.Picker's contract it must return a value in
-// [0,n), and the core trusts that rather than clamping, same as every other
-// migrated store. Pass util.Rand-backed pickers — NEVER the sim RNG.
-func (ts Tables) Pick(weather sim.WeatherType, biome string, indoor bool, felt float64, season string, pick narration.Picker) string {
+// beats wrong prose — and is felt-banded: felt below strongFeltThreshold
+// picks Mild (usually empty), otherwise Strong. strongFeltThreshold is
+// supplied by the caller rather than read here: content stays pure of the
+// engine's config package (see arch_test.go), and the engine tier reads the
+// live value from Balance.WeatherStrongFeltThreshold and passes it down. pick
+// is handed to the narration core as-is: per narration.Picker's contract it
+// must return a value in [0,n), and the core trusts that rather than
+// clamping, same as every other migrated store. Pass util.Rand-backed
+// pickers — NEVER the sim RNG.
+func (ts Tables) Pick(weather sim.WeatherType, biome string, indoor bool, felt float64, strongFeltThreshold float64, season string, pick narration.Picker) string {
 	t, ok := ts[weather]
 	if !ok {
 		return ""
@@ -180,11 +188,11 @@ func (ts Tables) Pick(weather sim.WeatherType, biome string, indoor bool, felt f
 	var lines []string
 	if season != "" {
 		if v, ok := t.Seasonal[season]; ok {
-			lines = bandedSectionLines(v, biome, indoor, felt)
+			lines = bandedSectionLines(v, biome, indoor, felt, strongFeltThreshold)
 		}
 	}
 	if len(lines) == 0 {
-		lines = bandedSectionLines(t.TableSection, biome, indoor, felt)
+		lines = bandedSectionLines(t.TableSection, biome, indoor, felt, strongFeltThreshold)
 	}
 
 	return renderAmbient(lines, pick)
@@ -240,7 +248,9 @@ var surfaceIndoorBiomes = map[string]bool{
 
 // bandedSectionLines resolves one prose class and then biome -> "default"
 // within it. Outdoor is a flat list; Indoor and Underground are felt-banded
-// (Mild below StrongFeltThreshold, else Strong).
+// (Mild below strongFeltThreshold, else Strong). strongFeltThreshold is the
+// caller-supplied value of Balance.WeatherStrongFeltThreshold; see Pick's
+// doc comment for why it is a parameter rather than a package const.
 //
 // A class NEVER falls back to another class. An unauthored underground pool
 // renders silence rather than borrowing house prose, which is the whole point
@@ -257,7 +267,7 @@ var surfaceIndoorBiomes = map[string]bool{
 // biome_coupling_test.go, which keys its map with strings.ToLower, would still
 // pass. A guard that stays green while production is wrong is worse than no
 // guard, which is why the normalisation lives here rather than in the caller.
-func bandedSectionLines(sec TableSection, biome string, useIndoor bool, felt float64) []string {
+func bandedSectionLines(sec TableSection, biome string, useIndoor bool, felt float64, strongFeltThreshold float64) []string {
 	biome = strings.ToLower(biome)
 
 	if !useIndoor {
@@ -277,7 +287,7 @@ func bandedSectionLines(sec TableSection, biome string, useIndoor bool, felt flo
 	if !ok || (len(pool.Mild) == 0 && len(pool.Strong) == 0) {
 		pool = pools["default"]
 	}
-	if felt >= StrongFeltThreshold {
+	if felt >= strongFeltThreshold {
 		return pool.Strong
 	}
 	return pool.Mild
@@ -345,11 +355,12 @@ func LoadSeasonalEmotes(fsys fs.FS, dir string) (SeasonalTables, error) {
 
 // Pick selects one seasonal-ambience line for the zone's exact (track,
 // season); "" when no table or no matching lines. Same biome/indoor banding
-// and picker contract as the weather tables.
-func (st SeasonalTables) Pick(track, season, biome string, indoor bool, felt float64, pick narration.Picker) string {
+// and picker contract as the weather tables, including strongFeltThreshold
+// being caller-supplied rather than a package const (see Tables.Pick).
+func (st SeasonalTables) Pick(track, season, biome string, indoor bool, felt float64, strongFeltThreshold float64, pick narration.Picker) string {
 	sec, ok := st[SeasonalKey{track, season}]
 	if !ok {
 		return ""
 	}
-	return renderAmbient(bandedSectionLines(sec, biome, indoor, felt), pick)
+	return renderAmbient(bandedSectionLines(sec, biome, indoor, felt, strongFeltThreshold), pick)
 }

@@ -419,6 +419,22 @@ func (b *Balance) validateCombat() {
 		b.AttackBandHeavyThresholdPct = 75
 	}
 
+	// DefenceBandNormalThreshold: 0 is not legal for the same reason
+	// AttackBandNormalThresholdPct rejects it above -- a Go test binary never
+	// loads config.yaml, so a permissive check would leave every test at zero
+	// and retire the Weak defence band repo-wide.
+	if b.DefenceBandNormalThreshold <= 0 || b.DefenceBandNormalThreshold > 5.0 {
+		b.DefenceBandNormalThreshold = 0.5
+	}
+
+	// WeatherStrongFeltThreshold: 0 is not legal for the same reason
+	// DefenceBandNormalThreshold rejects it above -- a Go test binary never
+	// loads config.yaml, so a permissive check would leave every test at zero
+	// and make every indoor/underground weather emote read Strong repo-wide.
+	if b.WeatherStrongFeltThreshold <= 0 || b.WeatherStrongFeltThreshold > 1.0 {
+		b.WeatherStrongFeltThreshold = 0.5
+	}
+
 	// `< 0`, not `<= 0`: CounterDamagePercent 0 is the documented off-switch
 	// (counters connect but deal nothing); the <= idiom would silently restore
 	// the default and make disabling counter damage impossible.

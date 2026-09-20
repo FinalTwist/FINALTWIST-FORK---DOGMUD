@@ -45,8 +45,11 @@ module portable across GoMud and DOGMud.
 - **emotes.go**: `EmitAmbient(graph, fronts, simCfg, weather, tables, roll)` —
   sends one ambient line into each occupied room whose zone has non-calm
   weather. Room biome drives table variant; `isOutdoorBiome` (reading biome
-  YAML `indoor: true`) gates indoor lines by felt intensity via
-  `content.StrongFeltThreshold`. Lines are sent with
+  YAML `indoor: true`) gates indoor lines by felt intensity via the live
+  `Balance.WeatherStrongFeltThreshold` (M4c), read once per call and passed
+  down as an explicit parameter to both `content.Tables.Pick` and
+  `content.SeasonalTables.Pick`; the deleted `content.StrongFeltThreshold`
+  const is gone. Lines are sent with
   `messaging.CategoryWeather`. `roll` is the presentation RNG (pass
   `util.Rand`) — NEVER the sim RNG. Returns lines sent.
 

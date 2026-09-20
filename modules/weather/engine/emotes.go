@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/modules/weather/content"
@@ -43,6 +44,9 @@ func EmitAmbient(g *sim.Graph, fronts []sim.Front, simCfg sim.Config,
 
 	sent := 0
 	felt := map[sim.ZoneId]float64{}
+	// Read once: GetBalanceConfig returns a copy of the whole Balance struct,
+	// and both Pick call sites below sit in this same loop.
+	strongFeltThreshold := float64(configs.GetBalanceConfig().WeatherStrongFeltThreshold)
 
 	for _, roomId := range rooms.GetRoomsWithPlayers() {
 		room := rooms.LoadRoom(roomId)
@@ -76,7 +80,7 @@ func EmitAmbient(g *sim.Graph, fronts []sim.Front, simCfg sim.Config,
 			if hasSeason {
 				season = zs.Season
 			}
-			if line := tables.Pick(w, biomeId, indoor, f, season, roll); line != "" {
+			if line := tables.Pick(w, biomeId, indoor, f, strongFeltThreshold, season, roll); line != "" {
 				room.SendText(messaging.CategoryWeather, line)
 				sent++
 			}
@@ -87,7 +91,7 @@ func EmitAmbient(g *sim.Graph, fronts []sim.Front, simCfg sim.Config,
 		// "felt" (it is the season's persistent voice, not weather through
 		// walls), so indoor ambience uses the Strong band.
 		if hasSeason && seasonal != nil && roll(seasonalEmoteOneIn) == 0 {
-			if line := seasonal.Pick(zs.Track, zs.Season, biomeId, indoor, 1.0, roll); line != "" {
+			if line := seasonal.Pick(zs.Track, zs.Season, biomeId, indoor, 1.0, strongFeltThreshold, roll); line != "" {
 				room.SendText(messaging.CategoryWeather, line)
 				sent++
 			}

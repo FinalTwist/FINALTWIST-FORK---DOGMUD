@@ -119,10 +119,11 @@ func TestDefenseMessageRenderReplacesTokensAfterCoordinatedSelection(t *testing.
 }
 
 // ---------------------------------------------------------------------
-// RenderTriad: the coordinated-render step extracted so both defence paths
-// (RenderDefenseMessage's band-selecting wrapper AND the melee path in
-// internal/combat, which does its own zScore banding via GetDefenseMessage)
-// share ONE place that turns an already-selected band into a coherent triad.
+// RenderTriad: the coordinated-render step extracted so every defence path
+// (RenderDefenseMessage's band-selecting wrapper, called directly by melee's
+// sendDefenseMessages in internal/combat since M4c, and by every other
+// channel through RenderChannelDefenceMessages) shares ONE place that turns
+// an already-selected band into a coherent triad.
 // ---------------------------------------------------------------------
 
 // TestRenderTriadUsesSameIndexAcrossAllThreeRoles is the regression test for

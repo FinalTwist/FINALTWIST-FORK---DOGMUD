@@ -364,8 +364,9 @@ compile error**. Audited 2026-08-15; Task 12 status against each, worst first.
    call is skipped rather than rolling `TrackSkillUse("")` and banner-ing a
    nameless levelup, and the verb falls back to `"counter"` rather than
    formatting `"Grimwald s your attack!"`. `itemsDefencePool` deliberately still
-   falls through to the zero value, which `items.GetDefenseMessage` already
-   handles by returning an empty set.
+   falls through to the zero value, which `items.RenderDefenseMessage` (M4c;
+   the melee path's sole banding call since the deletion of
+   `items.GetDefenseMessage`) already handles by returning an empty set.
 3. **The cost path is stamina-only.** **FIXED.**
    `Character.QuoteDefenseCost` maps every recognized defence to its registry
    action, pool, base, and modifier in one raw request. Both melee and channel
@@ -1444,6 +1445,19 @@ otherwise -> defence succeeded. Send the defence message, progress the defence
              contest picked one -- the deleted last-resort path always claimed
              a dodge.
 ```
+
+**M4c: `sendDefenseMessages` owns no banding rule of its own.** It takes a
+`defenceBand{crit, margin}` struct and hands both fields straight to
+`items.RenderDefenseMessage` -- the same function every other channel
+narrates through. `margin` comes from `meleeDefenceMargin(best
+bestDefenseResult) float64`, the ONE derivation of a melee defence's
+normalized, defence-positive margin (0 when floored); `DefenceMitigation`
+(the damage curve above) and the narration band both read it, so the two can
+never disagree about how decisive a defence was. Before M4c, melee banded on
+`best.defRoll.ZScore` through the now-deleted `items.GetDefenseMessage` --
+the defender's own roll against their own mean, decisive about nothing: a
+defender who rolled well for themselves and still barely scraped the swing
+narrated as though they had dismissed it.
 
 **v. Momentum** — `sourceChar.UpdateMomentum(hit)` — consecutive
 hits/misses affect stance display text.

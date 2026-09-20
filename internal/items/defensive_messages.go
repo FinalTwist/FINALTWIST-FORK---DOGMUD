@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/narration"
 )
 
@@ -136,7 +137,7 @@ func RenderDefenseMessage(defenseType DefencePool, defensiveCrit bool, normalize
 	intensity := Weak
 	if defensiveCrit {
 		intensity = Heavy
-	} else if normalizedDefenceMargin >= 0.5 {
+	} else if normalizedDefenceMargin >= float64(configs.GetBalanceConfig().DefenceBandNormalThreshold) {
 		intensity = Normal
 	}
 
@@ -218,30 +219,4 @@ func TokenStrings(tokens map[TokenName]string) map[string]string {
 
 func (d *DefenseMessageGroup) Filepath() string {
 	return fmt.Sprintf("%s.yaml", d.OptionId)
-}
-
-// GetDefenseMessage returns the appropriate defense message based on defense type and intensity
-func GetDefenseMessage(defenseType DefencePool, zScore float64) DefenseOptions {
-
-	var intensity Intensity
-	// Map z-score to intensity:
-	// High z-score = easy defense (opponent barely came close)
-	// Low z-score = narrow defense (opponent almost hit)
-	if zScore >= 2.0 {
-		intensity = Heavy // Easy/decisive defense
-	} else if zScore >= 0.5 {
-		intensity = Normal // Standard defense
-	} else {
-		intensity = Weak // Narrow/close defense
-	}
-
-	// Check whether this defense type has any messages
-	if defenseMsgOptions, ok := defenseMessages[defenseType]; ok {
-		if defenseMsgOptions, ok := defenseMsgOptions.Options[intensity]; ok {
-			return defenseMsgOptions
-		}
-	}
-
-	// Return empty if not found (caller should fallback to generic messages)
-	return DefenseOptions{}
 }

@@ -525,6 +525,26 @@ Balance:
   AttackBandNormalThresholdPct: 30
   AttackBandHeavyThresholdPct: 75
   #
+  # DefenceBandNormalThreshold: the normalized contest margin at or above which
+  #   a NON-CRIT defensive win is narrated from the Normal pool rather than the
+  #   Weak one. Margins are measured in standard deviations of the contest
+  #   spread, the same scale as the 2.0 crit threshold, so 0.5 means "the
+  #   defence won by half a standard deviation or better".
+  #   A defensive CRIT always narrates from the Heavy pool and ignores this.
+  #   Range: above 0.0 and at most 5.0. Zero is NOT legal: it fails validation
+  #   and reverts to 0.5, because Go test binaries never load this file and a
+  #   zero here would retire the Weak band in every test in the repo.
+  DefenceBandNormalThreshold: 0.5
+  #
+  # WeatherStrongFeltThreshold: the felt intensity at or above which indoor and
+  #   underground weather emotes draw from the Strong pool instead of Mild.
+  #   Felt is weather's own 0..1 scale; it is NOT a contest margin.
+  #   The weather engine reads this and passes it down to the content tables,
+  #   which never read config themselves, so a test can band weather without
+  #   any engine state at all.
+  #   Range: above 0.0 and at most 1.0. Zero is not legal (reverts to 0.5).
+  WeatherStrongFeltThreshold: 0.5
+  #
   # ContestFloor: the single last-resort probability for EVERY opposed contest
   #   in the game. A symmetric floor F bounds the outcome to [F, 1-F], so 0.125
   #   means a hopelessly outclassed actor still succeeds one attempt in eight,

@@ -492,13 +492,10 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "# come from ONE coordinated RenderDefenseMessage call (same index across the triad).\n")
 	fmt.Fprintf(&b, "# RenderDefenseMessage has no picker param (util.Rand only) -- pinned via indexOverride=0,\n")
 	fmt.Fprintf(&b, "# the fresh-SequencePicker-first-pick equivalent for this seam.\n\n")
-	fmt.Fprintf(&b, "# ALSO covers the MELEE seam (internal/combat sendDefenseMessages), which does its own\n")
-	fmt.Fprintf(&b, "# zScore banding via items.GetDefenseMessage and used to pick each of the 3 roles with an\n")
-	fmt.Fprintf(&b, "# INDEPENDENT MessageOptions.Get() call -- three unrelated random indices describing three\n")
-	fmt.Fprintf(&b, "# different events. That bug shipped invisibly because this snapshot only ever exercised\n")
-	fmt.Fprintf(&b, "# RenderDefenseMessage, never GetDefenseMessage. The melee| rows below freeze\n")
-	fmt.Fprintf(&b, "# GetDefenseMessage(...).RenderTriad(...) (a fresh SequencePicker per tuple, so index 0 every\n")
-	fmt.Fprintf(&b, "# time) so a regression back to three independent picks shows up here again.\n\n")
+	fmt.Fprintf(&b, "# The melee path no longer has a banding rule of its own (M4c): internal/combat\n")
+	fmt.Fprintf(&b, "# calls RenderDefenseMessage like every other defence. Its production-path matrix\n")
+	fmt.Fprintf(&b, "# is frozen by internal/combat/testdata/melee_defence_bands.golden; the rows that\n")
+	fmt.Fprintf(&b, "# used to sit here were byte-identical duplicates of the store rows above.\n")
 
 	bands := []struct {
 		name   string
@@ -525,37 +522,6 @@ func buildDefenseMessagesGolden(t *testing.T) string {
 	fmt.Fprintf(&b, "nonexistent-defense-type|normal|actee => %q\n", string(emptyTriad.ToDefender))
 	fmt.Fprintf(&b, "nonexistent-defense-type|normal|actor => %q\n", string(emptyTriad.ToAttacker))
 	fmt.Fprintf(&b, "nonexistent-defense-type|normal|observer => %q\n", string(emptyTriad.ToRoom))
-
-	// MELEE SEAM: GetDefenseMessage's own zScore banding (>=2.0 heavy, >=0.5
-	// normal, else weak -- see internal/combat/combat_helpers.go), feeding the
-	// same RenderTriad coordination step. A fresh SequencePicker per tuple
-	// always yields index 0 on its first call, same convention as the rest of
-	// this file.
-	fmt.Fprintf(&b, "\n# MELEE SEAM: items.GetDefenseMessage(type, zScore).RenderTriad(...), fresh SequencePicker per tuple\n")
-	meleeBands := []struct {
-		name   string
-		zScore float64
-	}{
-		{"weak", 0.0},
-		{"normal", 0.6},
-		{"heavy", 2.5},
-	}
-	for _, dt := range types {
-		for _, band := range meleeBands {
-			options := items.GetDefenseMessage(items.DefencePool(dt), band.zScore)
-			triad := options.RenderTriad(defenseStandins, narration.SequencePicker())
-			fmt.Fprintf(&b, "melee|%s|%s|actee => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToDefender)))
-			fmt.Fprintf(&b, "melee|%s|%s|actor => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToAttacker)))
-			fmt.Fprintf(&b, "melee|%s|%s|observer => %s\n", dt, band.name, substituteDefenseTokens(string(triad.ToRoom)))
-		}
-	}
-
-	// EMPTY CASE (melee seam): an unregistered defense type.
-	fmt.Fprintf(&b, "\n# EMPTY CASE (melee seam): unregistered defense type -> empty triad\n")
-	emptyMeleeTriad := items.GetDefenseMessage(items.DefencePool("nonexistent-defense-type"), 0.6).RenderTriad(defenseStandins, narration.SequencePicker())
-	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|actee => %q\n", string(emptyMeleeTriad.ToDefender))
-	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|actor => %q\n", string(emptyMeleeTriad.ToAttacker))
-	fmt.Fprintf(&b, "melee|nonexistent-defense-type|normal|observer => %q\n", string(emptyMeleeTriad.ToRoom))
 
 	return b.String()
 }
@@ -1294,7 +1260,8 @@ func buildTipsGolden(t *testing.T) string {
 // which is why this baseline needed no `*With` variant the way itemvoices did.
 //
 // Indoor bands are forced by the felt value, not by naming a band: felt 0.0 is
-// below content.StrongFeltThreshold (0.5) and selects Mild; felt 1.0 is at or
+// below the 0.5 strongFeltThreshold this golden passes to every Pick call and
+// selects Mild; felt 1.0 is at or
 // above it and selects Strong. An empty Mild pool rendering "" is DELIBERATE
 // (light weather is inaudible through walls) and that emptiness is frozen here
 // too, so a pool silently disappearing shows as a row changing from text to "".
@@ -1384,26 +1351,26 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 		// outdoors.
 		for _, biome := range union(sortedKeysStrSlice(tbl.Outdoor)) {
 			fmt.Fprintf(&b, "%s|base|outdoor|%s => %q\n", wt, biome,
-				tables.Pick(w, biome, false, 0, "", narration.SequencePicker()))
+				tables.Pick(w, biome, false, 0, 0.5, "", narration.SequencePicker()))
 		}
 		// "sheltered" rather than "indoor": after PR 2 this axis covers two
 		// prose classes, and the row key must not have to be renamed then.
 		for _, biome := range union(sortedKeysIndoorPool(tbl.Indoor)) {
 			for _, bd := range bands {
 				fmt.Fprintf(&b, "%s|base|sheltered|%s|%s => %q\n", wt, biome, bd.name,
-					tables.Pick(w, biome, true, bd.felt, "", narration.SequencePicker()))
+					tables.Pick(w, biome, true, bd.felt, 0.5, "", narration.SequencePicker()))
 			}
 		}
 		for _, season := range sortedKeysTableSection(tbl.Seasonal) {
 			sec := tbl.Seasonal[season]
 			for _, biome := range union(sortedKeysStrSlice(sec.Outdoor)) {
 				fmt.Fprintf(&b, "%s|season:%s|outdoor|%s => %q\n", wt, season, biome,
-					tables.Pick(w, biome, false, 0, season, narration.SequencePicker()))
+					tables.Pick(w, biome, false, 0, 0.5, season, narration.SequencePicker()))
 			}
 			for _, biome := range union(sortedKeysIndoorPool(sec.Indoor)) {
 				for _, bd := range bands {
 					fmt.Fprintf(&b, "%s|season:%s|sheltered|%s|%s => %q\n", wt, season, biome, bd.name,
-						tables.Pick(w, biome, true, bd.felt, season, narration.SequencePicker()))
+						tables.Pick(w, biome, true, bd.felt, 0.5, season, narration.SequencePicker()))
 				}
 			}
 		}
@@ -1424,12 +1391,12 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 		sec := seasonal[k]
 		for _, biome := range union(sortedKeysStrSlice(sec.Outdoor)) {
 			fmt.Fprintf(&b, "%s|%s|outdoor|%s => %q\n", k.Track, k.Season, biome,
-				seasonal.Pick(k.Track, k.Season, biome, false, 0, narration.SequencePicker()))
+				seasonal.Pick(k.Track, k.Season, biome, false, 0, 0.5, narration.SequencePicker()))
 		}
 		for _, biome := range union(sortedKeysIndoorPool(sec.Indoor)) {
 			for _, bd := range bands {
 				fmt.Fprintf(&b, "%s|%s|sheltered|%s|%s => %q\n", k.Track, k.Season, biome, bd.name,
-					seasonal.Pick(k.Track, k.Season, biome, true, bd.felt, narration.SequencePicker()))
+					seasonal.Pick(k.Track, k.Season, biome, true, bd.felt, 0.5, narration.SequencePicker()))
 			}
 		}
 	}
@@ -1437,10 +1404,10 @@ func buildWeatherEmotesGolden(t *testing.T) string {
 	// EMPTY CASES, frozen deliberately.
 	fmt.Fprintf(&b, "\n# EMPTY CASE: unknown weather type -> \"\"\n")
 	fmt.Fprintf(&b, "bogus-weather|base|outdoor|default => %q\n",
-		tables.Pick(sim.WeatherType("bogus-weather"), "default", false, 0, "", narration.SequencePicker()))
+		tables.Pick(sim.WeatherType("bogus-weather"), "default", false, 0, 0.5, "", narration.SequencePicker()))
 	fmt.Fprintf(&b, "\n# EMPTY CASE: unknown (track,season) ambience -> \"\"\n")
 	fmt.Fprintf(&b, "bogus-track|bogus-season|outdoor|default => %q\n",
-		seasonal.Pick("bogus-track", "bogus-season", "default", false, 0, narration.SequencePicker()))
+		seasonal.Pick("bogus-track", "bogus-season", "default", false, 0, 0.5, narration.SequencePicker()))
 
 	return b.String()
 }
