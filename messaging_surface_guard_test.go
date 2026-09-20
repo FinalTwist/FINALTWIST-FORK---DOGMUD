@@ -1194,7 +1194,7 @@ func narrationViewpointsLabel(s narrationCandidateSite) string {
 // guard's own walk (narrationWalk, via narrationCandidateEvent) finds
 // candidates today: 140 entries (messaging M4d PR 3 Task 3 removed 3 that
 // moved off the sendVisualRoomText shape this walk keys on; see the removal
-// note below). 106 trace to a row in
+// note below). 103 trace to a row in
 // docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, quoted
 // verbatim in Reason so the two documents describe the same fact rather than
 // two independently-typed ones that can drift apart; a handful land on a
@@ -1206,12 +1206,16 @@ func narrationViewpointsLabel(s narrationCandidateSite) string {
 // value under a name other than "room"/"user"/"actor" -- each read against
 // source and marked as such in its own Reason.
 //
-// Four entries carry verdictGap: hooks/spell_resolution.go's condition case
-// (missing the room broadcast its sibling heal case has),
-// usercommands/rally.go and usercommands/warcry.go's Resonant Larynx fold
-// (silently reapplying the paired condition with no SendText), and
-// usercommands/admin.zap.go's engaged-target path (drops the victim to 1 HP
-// with no message). These stay registered, not fixed, on purpose: the
+// ONE entry carries verdictGap today: usercommands/warcry.go's Resonant
+// Larynx fold, which silently reapplies the paired condition with no SendText.
+//
+// This paragraph used to name four. That count went stale exactly as the note
+// below predicts, because a verdictGap going away is the system working:
+// rally.go and admin.zap.go were fixed by M2 and carry a "Was verdictGap ...
+// FIXED" note in their own Reason, and hooks/spell_resolution.go's condition
+// case left this walk entirely in messaging M4d PR 3 Task 3 when it moved off
+// the sendVisualRoomText shape. Counted from source 2026-09-20 rather than
+// carried forward. These stay registered, not fixed, on purpose: the
 // contract is set equality with what the walk finds today, and fixing one
 // makes its event complete, which drops it out of the walk and turns this
 // entry stale -- exactly the signal that tells whoever ships the fix to also
