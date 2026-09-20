@@ -662,12 +662,35 @@ func calculateCombat(sourceChar *characters.Character, targetChar *characters.Ch
 // (spectator) lines are sight-judged per viewer downstream, in
 // internal/hooks (sendVisualRoomText / drainSpectatorLines), the same as
 // before this change -- replaceDarknessMessages never touched them either.
+//
+// The defender's side also hides sourceChar's PET, when sourceChar has one
+// (owner ruling, M4d PR 2 followup 2: "It shouldn't be able to see the
+// name."). applyPetDamage's toDefenderMsg names the pet via
+// sourceChar.Pet.DisplayName() -- the pet fights on the attacker's side, so
+// it is judged by ctx.targetSight exactly like sourceChar itself. It is
+// hidden by Pet.PlainName(), the bare name DisplayName wraps in either an
+// ansi identity tag (the common case, `<ansi fg="petname">Name</ansi>`,
+// which HideNames' tag-aware match strips cleanly) or a per-character color
+// pattern (only when the pet has a NameStyle set, which splinters the name
+// across individual color tags HideNames cannot reassemble -- a known,
+// narrower gap than the one this function already closes for player and
+// mob names, not a new one). It is NEVER hidden from MessagesToSource: the
+// owner's own line about their own pet is untouched, because
+// hideIdentitiesInPersonalLines only ever adds names to the OTHER side's
+// hide list. Guarded on Pet.Exists() -- Character.Pet is a pets.Pet VALUE,
+// embedded not pointed to, so there is no pointer to nil-check; Exists()
+// (Type != "") is that guard's value-type equivalent, true only once a
+// player has actually bonded a pet.
 func hideIdentitiesInPersonalLines(result *AttackResult, sourceChar, targetChar *characters.Character, ctx combatContext) {
 	for i := range result.MessagesToSource {
 		result.MessagesToSource[i].Text = messaging.HideNames(result.MessagesToSource[i].Text, []string{targetChar.Name}, ctx.sourceSight)
 	}
+	targetHides := []string{sourceChar.Name}
+	if sourceChar.Pet.Exists() {
+		targetHides = append(targetHides, sourceChar.Pet.PlainName())
+	}
 	for i := range result.MessagesToTarget {
-		result.MessagesToTarget[i].Text = messaging.HideNames(result.MessagesToTarget[i].Text, []string{sourceChar.Name}, ctx.targetSight)
+		result.MessagesToTarget[i].Text = messaging.HideNames(result.MessagesToTarget[i].Text, targetHides, ctx.targetSight)
 	}
 }
 

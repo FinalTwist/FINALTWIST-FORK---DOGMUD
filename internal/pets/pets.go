@@ -41,12 +41,23 @@ func (p *Pet) Exists() bool {
 	return p.Type != ``
 }
 
-func (p *Pet) DisplayName() string {
-
+// PlainName is the pet's display name with no styling applied: p.Name if
+// set, else p.Type. It's what DisplayName wraps in either an ansi identity
+// tag or a per-character color pattern, and it's the bare substring
+// messaging.HideNames needs to search for -- see combat's
+// hideIdentitiesInPersonalLines, which hides a blind defender's attacker's
+// pet by this string, not by DisplayName's decorated output.
+func (p *Pet) PlainName() string {
 	name := p.Name
 	if name == `` {
 		name = p.Type
 	}
+	return name
+}
+
+func (p *Pet) DisplayName() string {
+
+	name := p.PlainName()
 
 	if len(p.NameStyle) > 0 {
 		patternName := p.NameStyle

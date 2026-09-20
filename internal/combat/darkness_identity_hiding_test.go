@@ -1,6 +1,7 @@
 package combat
 
 import (
+	"fmt"
 	"math"
 	"strings"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/pets"
 )
 
 // File: darkness_identity_hiding_test.go
@@ -120,6 +122,114 @@ func TestHideIdentitiesInPersonalLines_UnitSeam(t *testing.T) {
 		}
 		if !strings.Contains(defLine, "something") {
 			t.Fatalf("defender (SightNone) did not get 'something', want the none wording not the shapes wording: %q", defLine)
+		}
+	})
+}
+
+// TestHideIdentitiesInPersonalLines_HidesAttackersPetFromBlindDefender pins
+// M4d PR 2 followup 2 (owner: "It shouldn't be able to see the name."):
+// applyPetDamage's toDefenderMsg names the attacker's pet via
+// sourceChar.Pet.DisplayName(), and a blind defender must not learn which
+// animal is attacking them any more than they learn the owner's name. Text
+// is hand-built with the real DisplayName() output -- `<ansi
+// fg="petname">wolf</ansi>` -- exactly the shape applyPetDamage produces, so
+// this exercises the tag-aware match HideNames uses for a real identity tag,
+// not a bare-string stand-in.
+func TestHideIdentitiesInPersonalLines_HidesAttackersPetFromBlindDefender(t *testing.T) {
+	atk := characters.New()
+	atk.Name = "Grimwald"
+	atk.Pet = pets.Pet{Type: "wolf"}
+	def := characters.New()
+	def.Name = "Shade"
+
+	buildResult := func() *AttackResult {
+		return &AttackResult{
+			MessagesToSource: []TaggedMessage{
+				{Category: messaging.CategoryHitNaturalSharp, Text: fmt.Sprintf(
+					`%s jumps into the fray and deals <ansi fg="damage">3</ansi> to <ansi fg="username">Shade</ansi>!`, atk.Pet.DisplayName())},
+			},
+			MessagesToTarget: []TaggedMessage{
+				{Category: messaging.CategoryHitNaturalSharp, Text: fmt.Sprintf(
+					`%s jumps into the fray and deals <ansi fg="damage">3</ansi> to you!`, atk.Pet.DisplayName())},
+			},
+		}
+	}
+
+	t.Run("blind defender: pet name hidden alongside owner's name", func(t *testing.T) {
+		res := buildResult()
+		hideIdentitiesInPersonalLines(res, atk, def, combatContext{
+			sourceSight: messaging.SightFull, targetSight: messaging.SightNone,
+		})
+		defLine := res.MessagesToTarget[0].Text
+		if strings.Contains(defLine, "wolf") {
+			t.Fatalf("blind defender (targetSight=SightNone) still reads the attacker's pet name: %q", defLine)
+		}
+		if strings.Contains(defLine, "Grimwald") {
+			t.Fatalf("blind defender still reads the attacker's own name: %q", defLine)
+		}
+		// The pet line's %s is the first word of the sentence, so HideNames
+		// capitalizes the substitute word (atSentenceStart) -- "Something",
+		// not "something", the same capitalization rule TestHideIdentitiesInPersonalLines_UnitSeam
+		// pins via a mid-sentence substitution that stays lowercase.
+		if !strings.Contains(defLine, "Something") {
+			t.Fatalf("defender line does not carry the SightNone substitute word: %q", defLine)
+		}
+	})
+
+	t.Run("shapes-only defender: pet name hidden with the shapes wording", func(t *testing.T) {
+		res := buildResult()
+		hideIdentitiesInPersonalLines(res, atk, def, combatContext{
+			sourceSight: messaging.SightFull, targetSight: messaging.SightShapes,
+		})
+		defLine := res.MessagesToTarget[0].Text
+		if strings.Contains(defLine, "wolf") {
+			t.Fatalf("shapes-only defender still reads the attacker's pet name: %q", defLine)
+		}
+		if !strings.Contains(defLine, "A figure") {
+			t.Fatalf("shapes-only defender did not get the sentence-start 'A figure' for the pet: %q", defLine)
+		}
+	})
+
+	t.Run("owner: pet name survives on the owner's own line even when the owner is blind", func(t *testing.T) {
+		res := buildResult()
+		// sourceSight is deliberately SightNone here: the owner's own sight
+		// must never hide their OWN pet or their OWN name from their OWN
+		// line. hideIdentitiesInPersonalLines only ever adds a name to the
+		// OTHER side's hide list, so nothing in MessagesToSource is ever
+		// looked up against sourceSight for removal.
+		hideIdentitiesInPersonalLines(res, atk, def, combatContext{
+			sourceSight: messaging.SightNone, targetSight: messaging.SightFull,
+		})
+		atkLine := res.MessagesToSource[0].Text
+		if !strings.Contains(atkLine, "wolf") {
+			t.Fatalf("owner's own pet name was hidden from the owner's own line: %q", atkLine)
+		}
+	})
+
+	t.Run("sighted defender: nothing changes", func(t *testing.T) {
+		res := buildResult()
+		before := res.MessagesToTarget[0].Text
+		hideIdentitiesInPersonalLines(res, atk, def, combatContext{
+			sourceSight: messaging.SightFull, targetSight: messaging.SightFull,
+		})
+		if got := res.MessagesToTarget[0].Text; got != before || !strings.Contains(got, "wolf") {
+			t.Fatalf("SightFull must leave the pet line unchanged and it must have named the pet to begin with: %q", got)
+		}
+	})
+
+	t.Run("no pet: unaffected, no panic", func(t *testing.T) {
+		noPetAtk := characters.New()
+		noPetAtk.Name = "Grimwald"
+		res := &AttackResult{
+			MessagesToTarget: []TaggedMessage{
+				{Category: messaging.CategoryHitMelee, Text: "Grimwald strikes you!"},
+			},
+		}
+		hideIdentitiesInPersonalLines(res, noPetAtk, def, combatContext{
+			sourceSight: messaging.SightFull, targetSight: messaging.SightNone,
+		})
+		if got := res.MessagesToTarget[0].Text; strings.Contains(got, "Grimwald") {
+			t.Fatalf("attacker's name should still be hidden with no pet present: %q", got)
 		}
 	})
 }
