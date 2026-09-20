@@ -87,6 +87,7 @@ never happened. Every loader reads one path.
 |---|---|---|---|
 | Melee defence | `best.defRoll.ZScore`, the defender's own roll | Heavy >= 2.0, Normal >= 0.5, hardcoded | `internal/items/defensive_messages.go:191-214`; `internal/combat/combat_helpers.go:1309` |
 | Channel defence and counters | defensive crit, then normalized margin `-Margin/(StdDev*sqrt2)` | Heavy on crit, Normal >= 0.5, hardcoded | `defensive_messages.go:107-125`; `defence_multiplier.go:615` |
+| Attack narration | `pctDamage` = damage / expected damage, clamped by `attackMessagePct` | Critical >= 101 and Miss at 0 structural; Normal and Heavy configurable (shipped 30 / 75) | `internal/items/attack_messages.go:297`; `internal/combat/combat_helpers.go:1496` |
 | Callers of the channel band | spells, shoot (user and mob), special-move defence (user and mob), taunt, counters | `RenderChannelDefenceMessages` call sites |
 | Melee has the margin inputs | `bestDefenseResult.margin`, `.defRoll` from the same contest | `combat_helpers.go:768-785` |
 | Weather felt | `StrongFeltThreshold = 0.5`, hardcoded const | `modules/weather/content/emotes.go:14-17` |
@@ -244,7 +245,12 @@ silently.
   stay a pool union under the M3 assembly rule. `TauntIntensity` and
   `items.Intensity` are caller-named outcomes, not thresholds.
 - **End state:** one defence band function and one weather threshold, both
-  configurable, no hardcoded narration cutoff.
+  configurable. This is not the whole narration surface: attack narration
+  (`items.GetAttackMessage`, added to the Bands table above) keeps two
+  boundaries in Go on purpose, Critical at 101 and Miss at 0, because
+  `combat.attackMessagePct` pins them to the crit flag and the `***` banner;
+  only its Normal and Heavy cutoffs are configurable. The arc does not claim a
+  narration cutoff with zero hardcoded boundaries anywhere.
 - **Proof:** a new golden renders melee defence at a fixed grid of margins and
   crit flags, recorded before the change. Its diff is the review: only band
   labels and the pool they draw from may move. A wording change is a defect.

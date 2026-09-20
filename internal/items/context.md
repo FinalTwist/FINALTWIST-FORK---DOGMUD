@@ -447,33 +447,55 @@ identities; they do not add a competing hardcoded outcome line. Private
 shortage text is separate and never sent to observers or NPC actors.
 
 ### Message Selection and Token Replacement
+
+`GetAttackMessage` bands `pctDamage`, damage dealt as a percentage of that
+swing's expected damage against that target (not a share of the target's
+health), into one of five authored intensities:
+
 ```go
 // Get attack message based on damage percentage
 func GetAttackMessage(subType ItemSubType, pctDamage int) AttackOptions {
+    balance := configs.GetBalanceConfig()
     var intensity Intensity
     if pctDamage >= 101 {
         intensity = Critical
-    } else if pctDamage >= 75 {
+    } else if pctDamage >= int(balance.AttackBandHeavyThresholdPct) {
         intensity = Heavy
-    } else if pctDamage >= 30 {
+    } else if pctDamage >= int(balance.AttackBandNormalThresholdPct) {
         intensity = Normal
     } else if pctDamage >= 1 {
         intensity = Weak
     } else {
         intensity = Miss
     }
-    
+
     // Get messages for weapon subtype and intensity
     if attackMsgOptions, ok := attackMessages[subType]; ok {
         if messages, ok := attackMsgOptions.Options[intensity]; ok {
             return messages
         }
     }
-    
-    // Fallback to generic messages
+
+    // Fall back to generic, but never recurse into itself once already on
+    // Generic; the zero value degrades to no message instead of overflowing
+    // the stack.
+    if subType == Generic {
+        return AttackOptions{}
+    }
     return GetAttackMessage(Generic, pctDamage)
 }
+```
 
+The Normal and Heavy cutoffs (shipped at 30 and 75) are `Balance.AttackBandNormalThresholdPct`
+and `Balance.AttackBandHeavyThresholdPct`, balance knobs validated as a pair in
+`internal/configs`: an inverted or out-of-range pair reverts both to 30 and 75,
+and zero is rejected on either. The Critical (101) and Miss (0) boundaries stay
+hardcoded in Go on purpose, not as an oversight: `combat.attackMessagePct`
+forces a crit to 101 and caps a non-crit at 100, which is what pairs the
+crit-worded pool with the `***` banner, so moving either would decouple the
+banner from the pool it announces.
+
+```go
 // Token replacement is NOT done here. There is one engine, in the core:
 // narration.Substitute. Render/RenderTriad substitute as they render, and a
 // caller holding a raw line converts its typed token map with TokenStrings
