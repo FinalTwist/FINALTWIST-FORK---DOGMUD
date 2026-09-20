@@ -508,6 +508,23 @@ Balance:
   MinAttackCritChance: 0.01
   MinDefenseCritChance: 0.01
   #
+  # AttackBandNormalThresholdPct / AttackBandHeavyThresholdPct: how hard a
+  #   landed swing READS. The number compared against them is the swing's
+  #   damage as a percentage of the EXPECTED damage of that swing against that
+  #   target, after mitigation and every modifier, not a share of the target's
+  #   health. At the defaults, a swing landing under a third of its expected
+  #   damage reads weak, a third to three quarters reads normal, and above
+  #   three quarters reads heavy.
+  #   Narration only: no damage, hit chance or crit rate depends on either.
+  #   The other boundaries are NOT authorable. A critical swing is pinned to
+  #   the crit-worded pool in code so the wording always matches the banner,
+  #   and a swing that lands nothing reads as a miss.
+  #   Range: 1..100, and Normal must be BELOW Heavy. An inverted or
+  #   out-of-range pair reverts BOTH to 30 and 75, because a half applied typo
+  #   would ship a band layout nobody authored. Zero is not legal.
+  AttackBandNormalThresholdPct: 30
+  AttackBandHeavyThresholdPct: 75
+  #
   # ContestFloor: the single last-resort probability for EVERY opposed contest
   #   in the game. A symmetric floor F bounds the outcome to [F, 1-F], so 0.125
   #   means a hopelessly outclassed actor still succeeds one attempt in eight,
