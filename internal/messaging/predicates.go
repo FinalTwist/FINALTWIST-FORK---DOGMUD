@@ -36,6 +36,18 @@ func roomIsLit(room RoomVisibility) bool {
 // one -- a sleeping character's eyes work, they are simply not reading -- and
 // the policies below compose it where it belongs. Conflating the two is what
 // left three predicates each carrying a comment explaining the split.
+//
+// WHO READS IT DIRECTLY, and why sleep's absence is load-bearing for them:
+// messaging.SendTrio hides a name from its reader by this verdict, and
+// actions.InitiateCast refuses a cast at something the caster cannot see. Both
+// judge a PARTY to an event, and a sleeper struck in a lit room must still be
+// told what hit them. Observers who are not a party go through CanSeeClearly
+// and CanSeeShapes instead, which do compose attention, so a sleeper still
+// receives no room lines.
+//
+// Full when light or NightVision allow clear sight; shapes for an unblinded
+// observer with infrared; none otherwise. A nil observer sees fully, matching
+// the policies below.
 func ParticipantSight(observer *characters.Character, room RoomVisibility) SightDecision {
 	if observer == nil {
 		return SightFull
