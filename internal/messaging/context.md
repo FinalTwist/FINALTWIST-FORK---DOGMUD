@@ -42,9 +42,11 @@ Types and constants:
   the per-round compact tally emitted by the light-verbosity path, and
   `CategoryCombatBlindWarning` for the per-round "you can't see clearly"
   notice, M4d PR 2 Task 4, sent by `internal/hooks`'
-  `flushBlindCombatNotices`). `CategoryCombatBlindWarning` is deliberately
-  absent from both `verbosity.go` suppression tables, so it passes at
-  every verbosity level today.
+  `flushBlindCombatNotices`). `CategoryCombatBlindWarning` is in
+  `verbosity.go`'s `suppressibleAtLight` only (owner ruling, M4d PR 2
+  followup): suppressible at Light, not at Medium, since at Medium the
+  player still reads the swing prose the notice explains, while Light is
+  a deliberate near-silence preference the notice should not override.
   `Category.String()` no longer spells the three defence names as local
   literals: `CategoryDodge` / `CategoryParry` / `CategoryBlock` return
   `string(combatvocab.DefenceDodge)` / `DefenceParry` / `DefenceBlock`, the

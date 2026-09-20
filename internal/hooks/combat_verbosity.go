@@ -469,15 +469,16 @@ func markBlindCombatant(actor actions.Actor, canSeeClearly bool) {
 // NOT floor-protected: CategoryCombatBlindWarning goes through the
 // viewer's ordinary Verbosity.Suppresses gate like any other category,
 // not the isHitCategory bypass drainParticipantLines uses for damage-to-
-// you lines. It is deliberately absent from both suppressibleAtMedium
-// and suppressibleAtLight, so today it is never suppressed at any
-// verbosity level. That default is load-bearing, not an oversight: a
-// Light-verbosity participant's tally line is ITSELF gated on
-// srcCanSee/tgtCanSee (see dispatchCritAndMessaging), so a blind
-// Light-verbosity combatant already receives no per-swing prose AND no
-// tally -- this notice is the only combat text they get. Suppressing it
-// at Light would leave that player watching total silence while
-// fighting blind.
+// you lines. Owner ruling (M4d PR 2 followup): suppressible at Light,
+// NOT at Medium (messaging/verbosity.go's suppressibleAtLight). At
+// Medium the player still reads per-swing combat prose, so the notice
+// explains text they are actually seeing; it stays unsuppressed there.
+// At Light they have asked for near-silence, and a per-round line they
+// cannot turn off would override a preference they deliberately set --
+// even though a blind Light-verbosity combatant's tally line is ITSELF
+// gated on srcCanSee/tgtCanSee (see dispatchCritAndMessaging), so this
+// notice is the only combat text such a player would otherwise get.
+// Light means they chose that silence.
 func flushBlindCombatNotices() {
 	for userId := range roundBlindCombatants {
 		delete(roundBlindCombatants, userId)

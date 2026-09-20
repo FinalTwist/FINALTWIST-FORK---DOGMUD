@@ -83,3 +83,19 @@ func TestCategoryCombatSummaryString(t *testing.T) {
 		t.Errorf("got %q", CategoryCombatSummary.String())
 	}
 }
+
+// TestCategoryCombatBlindWarningSuppression pins the owner's option-C
+// ruling (M4d PR 2 followup): the per-round "you can't see clearly"
+// notice is delivered at Medium (the player still reads swing prose the
+// notice explains) and suppressed at Light (a deliberate near-silence
+// preference a per-round line should not override). Full never suppresses
+// anything, so it is covered by TestVerbositySuppresses' general table
+// shape and not repeated here.
+func TestCategoryCombatBlindWarningSuppression(t *testing.T) {
+	if VerbosityMedium.Suppresses(CategoryCombatBlindWarning) {
+		t.Error("Medium must deliver the blind notice, not suppress it")
+	}
+	if !VerbosityLight.Suppresses(CategoryCombatBlindWarning) {
+		t.Error("Light must suppress the blind notice")
+	}
+}
