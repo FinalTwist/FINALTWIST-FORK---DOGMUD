@@ -288,7 +288,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> reads the stance and crashes through with purpose!'
         - '<ansi fg="{actortype}">{actor}</ansi> follows through with a solid driving crash!'
         - '<ansi fg="{actortype}">{actor}</ansi> capitalizes on momentum with perfect timing!'
-        - '<ansi fg="{actortype}">{actor}''s {itemname} crashes home with unstoppable control!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s {itemname} crashes home with unstoppable control!'
         - '<ansi fg="{actortype}">{actor}</ansi> exploits an opening and slams decisively!'
         - '<ansi fg="{actortype}">{actor}</ansi> smashes through with overwhelming brute skill!'
   heavy:

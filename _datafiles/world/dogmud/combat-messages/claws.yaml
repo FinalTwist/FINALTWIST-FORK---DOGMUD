@@ -152,7 +152,7 @@ options:
       observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> swipes at <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>, but misses.'
-        - '<ansi fg="{actortype}">{actor}''s claws slash through the air as <ansi fg="{acteetype}">{actee}</ansi> dodges the attack!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s claws slash through the air as <ansi fg="{acteetype}">{actee}</ansi> dodges the attack!'
         - '<ansi fg="{actortype}">{actor}</ansi> lunges at <ansi fg="{acteetype}">{actee}</ansi>, but fails to make contact!'
         - '<ansi fg="{actortype}">{actor}</ansi> rakes wildly at <ansi fg="{acteetype}">{actee}</ansi> in uncontrolled rage, failing to connect!'
         expert:
@@ -208,7 +208,7 @@ options:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> grazes <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> scratches <ansi fg="{acteetype}">{actee}</ansi> lightly with their <ansi fg="item">{itemname}</ansi>.'
-        - '<ansi fg="{actortype}">{actor}''s claws barely nick <ansi fg="{acteetype}">{actee}</ansi>.'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s claws barely nick <ansi fg="{acteetype}">{actee}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> swipes awkwardly, barely scratching <ansi fg="{acteetype}">{actee}</ansi>.'
         expert:
         - '<ansi fg="{actortype}">{actor}</ansi> darts in and rakes <ansi fg="{acteetype}">{actee}</ansi> lightly.'
@@ -277,7 +277,7 @@ options:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> rends <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> slashes <ansi fg="{acteetype}">{actee}</ansi> with their claws!'
-        - '<ansi fg="{actortype}">{actor}''s claws tear into <ansi fg="{acteetype}">{actee}</ansi>!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s claws tear into <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> attacks <ansi fg="{acteetype}">{actee}</ansi> with wild, animalistic fury!'
         expert:
         - '<ansi fg="{actortype}">{actor}</ansi> circles right and rakes decisively!'
@@ -292,10 +292,10 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> exploits an opening and gouges decisively!'
         - '<ansi fg="{actortype}">{actor}</ansi> follows through with a solid rake!'
         - '<ansi fg="{actortype}">{actor}</ansi> capitalizes on momentum with perfect timing!'
-        - '<ansi fg="{actortype}">{actor}''s claws flash as the pressure continues with predator control!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s claws flash as the pressure continues with predator control!'
         - '<ansi fg="{actortype}">{actor}</ansi> rakes decisively at <ansi fg="{acteetype}">{actee}</ansi> while {position}!'
         - '{momentum}, <ansi fg="{actortype}">{actor}</ansi> lacerates <ansi fg="{acteetype}">{actee}</ansi> with overwhelming apex predator skill!'
-        - '<ansi fg="{actortype}">{actor}''s claws rake across <ansi fg="{acteetype}">{actee}</ansi>''s {bodypart}!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s claws rake across <ansi fg="{acteetype}">{actee}</ansi>''s {bodypart}!'
         - '<ansi fg="{actortype}">{actor}</ansi> reads the stance and strikes with predator precision!'
   heavy:
     # messages for when they are in the same room
@@ -474,7 +474,7 @@ options:
         - '<ansi fg="{actortype}">{actor}''s</ansi> masterful strike is disrupted - they <ansi fg="red-bold">FUMBLE</ansi>!'
       observer:
         beginner:
-        - '<ansi fg="{actortype}">{actor}''s claws <ansi fg="red-bold">FUMBLE</ansi> wildly at <ansi fg="{acteetype}">{actee}</ansi>!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s claws <ansi fg="red-bold">FUMBLE</ansi> wildly at <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their attack at <ansi fg="{acteetype}">{actee}</ansi> and stumbles!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their swipe in a clumsy manner!'
         - '<ansi fg="{actortype}">{actor}</ansi> loses their grip and <ansi fg="red-bold">FUMBLES</ansi> their attack pathetically at <ansi fg="{acteetype}">{actee}</ansi>!'

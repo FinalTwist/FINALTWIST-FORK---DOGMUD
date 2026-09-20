@@ -152,7 +152,7 @@ options:
       observer:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> snaps at <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>, but misses.'
-        - '<ansi fg="{actortype}">{actor}''s <ansi fg="item">{itemname}</ansi> clack shut on air as <ansi fg="{acteetype}">{actee}</ansi> dodges!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> clack shut on air as <ansi fg="{acteetype}">{actee}</ansi> dodges!'
         - '<ansi fg="{actortype}">{actor}</ansi> lunges at <ansi fg="{acteetype}">{actee}</ansi>, but fails to connect!'
         - '<ansi fg="{actortype}">{actor}</ansi> snaps wildly at <ansi fg="{acteetype}">{actee}</ansi> in frenzied rage, failing to connect!'
         expert:
@@ -208,7 +208,7 @@ options:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> grazes <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> nicks <ansi fg="{acteetype}">{actee}</ansi> lightly with their <ansi fg="item">{itemname}</ansi>.'
-        - '<ansi fg="{actortype}">{actor}''s <ansi fg="item">{itemname}</ansi> barely scrape <ansi fg="{acteetype}">{actee}</ansi>.'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s <ansi fg="item">{itemname}</ansi> barely scrape <ansi fg="{acteetype}">{actee}</ansi>.'
         - '<ansi fg="{actortype}">{actor}</ansi> snaps awkwardly, barely catching <ansi fg="{acteetype}">{actee}</ansi>.'
         expert:
         - '<ansi fg="{actortype}">{actor}</ansi> darts in and grazes <ansi fg="{acteetype}">{actee}</ansi> lightly.'
@@ -273,7 +273,7 @@ options:
         beginner:
         - '<ansi fg="{actortype}">{actor}</ansi> sinks their <ansi fg="item">{itemname}</ansi> into <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> snaps at <ansi fg="{acteetype}">{actee}</ansi> with their jaws!'
-        - '<ansi fg="{actortype}">{actor}''s jaws clamp down on <ansi fg="{acteetype}">{actee}</ansi>!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s jaws clamp down on <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> attacks <ansi fg="{acteetype}">{actee}</ansi> with wild, animalistic fury!'
         expert:
         - '<ansi fg="{actortype}">{actor}</ansi> darts right and bites decisively!'
@@ -288,7 +288,7 @@ options:
         - '<ansi fg="{actortype}">{actor}</ansi> exploits an opening and bites the {bodypart} decisively!'
         - '<ansi fg="{actortype}">{actor}</ansi> follows through with a solid bite!'
         - '<ansi fg="{actortype}">{actor}</ansi> capitalizes on momentum with perfect predator timing!'
-        - '<ansi fg="{actortype}">{actor}''s jaws flash shut as the pressure continues!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s jaws flash shut as the pressure continues!'
         - '<ansi fg="{actortype}">{actor}</ansi> reads the stance and bites with predator precision!'
         - '{momentum}, <ansi fg="{actortype}">{actor}</ansi> clamps down on <ansi fg="{acteetype}">{actee}</ansi> with overwhelming apex predator skill!'
   heavy:
@@ -465,7 +465,7 @@ options:
         - '<ansi fg="{actortype}">{actor}''s</ansi> masterful bite is disrupted - they <ansi fg="red-bold">FUMBLE</ansi>!'
       observer:
         beginner:
-        - '<ansi fg="{actortype}">{actor}''s jaws <ansi fg="red-bold">FUMBLE</ansi> wildly at <ansi fg="{acteetype}">{actee}</ansi>!'
+        - '<ansi fg="{actortype}">{actor}</ansi>''s jaws <ansi fg="red-bold">FUMBLE</ansi> wildly at <ansi fg="{acteetype}">{actee}</ansi>!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their bite at <ansi fg="{acteetype}">{actee}</ansi> and stumbles!'
         - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="red-bold">FUMBLES</ansi> their snap in a clumsy overextension!'
         - '<ansi fg="{actortype}">{actor}</ansi> misjudges the distance and their attack <ansi fg="red-bold">FUMBLES</ansi> hopelessly at <ansi fg="{acteetype}">{actee}</ansi>!'
