@@ -1504,6 +1504,25 @@ the defender's own roll against their own mean, decisive about nothing: a
 defender who rolled well for themselves and still barely scraped the swing
 narrated as though they had dismissed it.
 
+**Task 4c: `meleeIdentityTag(c *characters.Character) string`** is what
+`sendDefenseMessages` and `fillCounterMessages` (`counter.go`) substitute for
+`items.TokenActor`/`items.TokenActee` now, instead of a bare `c.Name`. It
+dispatches on `c.GetUserId() > 0` to `c.GetPlayerName(0).String()` or
+`c.GetMobName(0).String()`, the same FormattedName primitives
+`RenderChannelDefenceMessages`' own callers (mobcommands/usercommands'
+skill_move_defence.go, taunt.go, throw.go, shoot.go) already use to build
+`ChannelDefenceIdentities` -- not a second way to tag an identity. Melee's
+`defense-messages/` content still wraps `{actor}`/`{actee}` in the
+unregistered `fg="mob"`/`fg="user"` aliases (accepted cost of the owner's
+"fix the substitution, not the call sites" ruling: it changes colour for
+every player, all the time, not only in the dark), but the SUBSTITUTED value
+is now a self-contained `<ansi fg="mobname">Name</ansi>` span regardless, so
+`messaging.Anonymize`'s `nameTagPattern` matches it wherever it lands --
+nested inside that wrapper, or bare. The content-level guard this enables,
+`TestObserverIdentityTagsAreAnonymizable`, lives in the repo root's
+`shipped_narration_data_guard_test.go` alongside `TestNoLegacyRoleKeysInShippedData`,
+which it is modeled on.
+
 **v. Momentum** — `sourceChar.UpdateMomentum(hit)` — consecutive
 hits/misses affect stance display text.
 
@@ -1711,7 +1730,7 @@ values directly.
 | `combat/grapple.go` | `AttemptGrapple`, `ApplyGrappleResult`, `CheckClinchProgression`, `CheckGroundedEscape`, `ApplyPositionProgression`, `IsThirdPartyAttack` |
 | `combat/grapple_move.go` | `ExecuteGrappleMove`, `GrappleMoveResult`, `GrappleMoveDisarmWeapon` |
 | `combat/skill_moves.go` | `ExecuteSkillMove`, `SkillMoveResult`, `SkillMoveParams`. U6b Task 10: `SkillMoveResult.IsCounter` echoes `SkillMoveParams.IsCounter` so counter-tier wiring that only sees the result can refuse to fire off a move that IS a counter |
-| `combat/counter.go` | U6b Task 10 counter tier, re-keyed by the counters slice: `ExecuteCounter(defender, attacker, shape, defence, sameRoom) CounterResult` is one free counter-swing for a defensive crit, priced by `CounterDamagePercent` (0 = off-switch, handled here because `CalcRawDamage` treats `itemMult <= 0` as "unset" 0.30), routed through `ExecuteSkillMove` with `IsCounter` so the countered party defends it (charged + progressed: the countered-party economy) and no counter can chain. Four narration-relevant refusals in the primitive (nil or dead participants and the knob off-switch also return early): not `sameRoom` (the cross-room shot), `shape.Targeting != TargetSingle` (area and multi attacks earn no counter, owner ruling 2026-09-18), `defence == DefenceNone` (logged; cannot happen today), and `defence == DefenceDefy` (words answer words: every defy crit counter-taunts via `internal/actions.FireCounterTaunt`, which this package cannot call, so every exit that can see a defy win branches on it first and that function carries the same single-target gate). Narration is rendered from the WINNING DEFENCE's pool, `items.CounterPoolFor(defence)` (counter-dodge, counter-parry, counter-block, counter-quell, counter-defy; bands: weak = turned aside, normal = lands, heavy = crits), damage description appended to the two personal lines only, generic fallback when pools are not loaded. `BuildCounterTauntMessages(countererName, counteredName, crit, damage, counteredMaxCP)` renders the defy retort triad from counter-defy. `CounterResult.CountererUserId` lets wrappers dispatch AFTER the move outcome (`actions.DispatchCounterMessages`) |
+| `combat/counter.go` | U6b Task 10 counter tier, re-keyed by the counters slice: `ExecuteCounter(defender, attacker, shape, defence, sameRoom) CounterResult` is one free counter-swing for a defensive crit, priced by `CounterDamagePercent` (0 = off-switch, handled here because `CalcRawDamage` treats `itemMult <= 0` as "unset" 0.30), routed through `ExecuteSkillMove` with `IsCounter` so the countered party defends it (charged + progressed: the countered-party economy) and no counter can chain. Four narration-relevant refusals in the primitive (nil or dead participants and the knob off-switch also return early): not `sameRoom` (the cross-room shot), `shape.Targeting != TargetSingle` (area and multi attacks earn no counter, owner ruling 2026-09-18), `defence == DefenceNone` (logged; cannot happen today), and `defence == DefenceDefy` (words answer words: every defy crit counter-taunts via `internal/actions.FireCounterTaunt`, which this package cannot call, so every exit that can see a defy win branches on it first and that function carries the same single-target gate). Narration is rendered from the WINNING DEFENCE's pool, `items.CounterPoolFor(defence)` (counter-dodge, counter-parry, counter-block, counter-quell, counter-defy; bands: weak = turned aside, normal = lands, heavy = crits), damage description appended to the two personal lines only, generic fallback when pools are not loaded. `BuildCounterTauntMessages(counterer, countered *characters.Character, crit, damage, counteredMaxCP)` renders the defy retort triad from counter-defy, tagging both identities with `meleeIdentityTag` (Task 4c) so an infrared-only observer in a dark room can no longer read the raw names off a counter-defy line. `CounterResult.CountererUserId` lets wrappers dispatch AFTER the move outcome (`actions.DispatchCounterMessages`) |
 | `combat/calculations.go` | Hit chance, crit probability, power ranking, alignment calculations |
 | `combat/descriptions.go` | `GetDamageDescription`, `GetHealDescription`, `GetDifficultyDescription` helpers |
 | `combat/taunt_messages.go` | Taunt/conviction combat messages |
