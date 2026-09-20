@@ -300,6 +300,18 @@ type Balance struct {
 	// ── COMBAT: DARKNESS ─────────────────────────────────────────────────────
 	DarknessCombatPenalty ConfigFloat `yaml:"DarknessCombatPenalty"` // Multiplier on attack AND defense scores when fighting blind (default 0.80)
 
+	// DarknessShapesCombatPenalty is the multiplier for a combatant who makes
+	// out SHAPES but not detail: infrared in an unlit room. Seeing shapes is
+	// worth something in a fight and is not worth everything, so it sits
+	// between DarknessCombatPenalty and no penalty at all.
+	//
+	// Validated as a PAIR with DarknessCombatPenalty: it must be at or above
+	// the blind penalty and at or below 1.0. An inverted or out-of-range pair
+	// reverts BOTH, so a typo cannot ship a world where seeing shapes is worse
+	// than seeing nothing. Zero is rejected: test binaries never load
+	// config.yaml.
+	DarknessShapesCombatPenalty ConfigFloat `yaml:"DarknessShapesCombatPenalty"` // Multiplier when the combatant sees shapes only (default 0.90)
+
 	// ── COMBAT: DAMAGE ───────────────────────────────────────────────────────
 	// Legacy unarmed knobs — still used by GetDefaultDistributionDamage() for
 	// attack count and crit condition calculation. Damage values are overridden by

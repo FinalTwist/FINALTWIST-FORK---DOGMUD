@@ -509,6 +509,22 @@ func buildDamageParams(sourceChar *characters.Character, targetChar *characters.
 	}
 }
 
+// DarknessScoreMultiplier is the sight-based multiplier on an attack or
+// defence score. It is the ONE place the three SightDecision verdicts turn
+// into a number. SightDecision runs best-to-worst (SightFull = 0,
+// SightShapes = 1, SightNone = 2), so this switches on equality rather than
+// ordering it.
+func DarknessScoreMultiplier(sight messaging.SightDecision, bal configs.Balance) float64 {
+	switch sight {
+	case messaging.SightFull:
+		return 1.0
+	case messaging.SightShapes:
+		return float64(bal.DarknessShapesCombatPenalty)
+	default:
+		return float64(bal.DarknessCombatPenalty)
+	}
+}
+
 // calcAttackScore computes the attack roll score with all modifiers.
 // weapon is the weapon ACTUALLY BEING SWUNG, not whatever is in the main hand.
 // A zero Item means bare hands. Passing it is what stops an offhand fist being
@@ -558,13 +574,10 @@ func calcAttackScore(sourceChar *characters.Character, targetChar *characters.Ch
 		attackScore *= float64(bal.GrappleGroundedVulnerabilityMultiplier)
 	}
 
-	// Darkness penalty: attacker can't see
-	// PR 1 keeps today's rule exactly: any verdict short of SightFull takes the
-	// full penalty, infrared included. PR 2 replaces this test with
-	// DarknessScoreMultiplier, which gives SightShapes its own reduced value.
-	if ctx.sourceSight != messaging.SightFull {
-		attackScore *= float64(bal.DarknessCombatPenalty)
-	}
+	// Darkness penalty: attacker can't see. DarknessScoreMultiplier gives an
+	// infrared attacker (SightShapes) its own reduced penalty, owner ruling 6
+	// (2026-09-20): less than the blind penalty, not zero.
+	attackScore *= DarknessScoreMultiplier(ctx.sourceSight, bal)
 
 	// Winged Flight: a flyer beats the earthbound on the melee opposed roll —
 	// striking from a superior angle (attacker flying) or staying out of an
@@ -753,13 +766,10 @@ func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.
 			defenseScore *= float64(bal.ThirdPartyGrapplePenalty)
 		}
 
-		// Darkness penalty: defender can't see
-		// PR 1 keeps today's rule exactly: any verdict short of SightFull takes the
-		// full penalty, infrared included. PR 2 replaces this test with
-		// DarknessScoreMultiplier, which gives SightShapes its own reduced value.
-		if ctx.targetSight != messaging.SightFull {
-			defenseScore *= float64(bal.DarknessCombatPenalty)
-		}
+		// Darkness penalty: defender can't see. DarknessScoreMultiplier gives an
+		// infrared defender (SightShapes) its own reduced penalty, owner ruling 6
+		// (2026-09-20): less than the blind penalty, not zero.
+		defenseScore *= DarknessScoreMultiplier(ctx.targetSight, bal)
 
 		// Incorporeal mutation: physical defense bonus (channel-scoped
 		// to physical attacks; this function only handles physical
