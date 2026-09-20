@@ -1,5 +1,16 @@
 # DOGMud Patch Notes
 
+## 2026-09-20: A narrow escape reads like one
+
+When you dodge, parry or block a blow in melee, the words you read now
+match how close the attack actually came. Turn a blow aside by a hair
+and it reads like the narrow escape it was. Shut an attack down
+completely and it reads as decisive as it should. Before, the same
+words could describe two very different outcomes, because they judged
+only how well you personally rolled, never how close the attack came
+to landing. Every other kind of defence, such as turning aside a
+spell or a taunt, already worked this way. Melee now matches it.
+
 ## 2026-09-18: Your counter reads like your defence
 
 When a decisive parry, block or dodge earns you a free answer, the

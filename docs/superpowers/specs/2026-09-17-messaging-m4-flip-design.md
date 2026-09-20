@@ -85,12 +85,12 @@ never happened. Every loader reads one path.
 
 | System | Input | Cutoffs | Source |
 |---|---|---|---|
-| Melee defence | `best.defRoll.ZScore`, the defender's own roll | Heavy >= 2.0, Normal >= 0.5, hardcoded | `internal/items/defensive_messages.go:191-214`; `internal/combat/combat_helpers.go:1309` |
-| Channel defence and counters | defensive crit, then normalized margin `-Margin/(StdDev*sqrt2)` | Heavy on crit, Normal >= 0.5, hardcoded | `defensive_messages.go:107-125`; `defence_multiplier.go:615` |
+| Melee defence (POST-M4c) | defensive crit, then `meleeDefenceMargin(best)` -- the same normalized, defence-positive margin `DefenceMitigation` mitigates off (0 when floored) | Heavy on crit, Normal >= `Balance.DefenceBandNormalThreshold` (shipped 0.5), else Weak -- the SAME function and knob as every other channel | `internal/combat/combat_helpers.go:1256` (`defenceBand`), `:1269` (`meleeDefenceMargin`), `:1292` (`sendDefenseMessages`); `internal/items/defensive_messages.go:136` (`RenderDefenseMessage`) |
+| Channel defence and counters | defensive crit, then normalized margin `-Margin/(StdDev*sqrt2)` | Heavy on crit, Normal >= `Balance.DefenceBandNormalThreshold` (shipped 0.5), configurable | `internal/items/defensive_messages.go:136-151`; `internal/combat/defence_multiplier.go:616` |
 | Attack narration | `pctDamage` = damage / expected damage, clamped by `attackMessagePct` | Critical >= 101 and Miss at 0 structural; Normal and Heavy configurable (shipped 30 / 75) | `internal/items/attack_messages.go:297`; `internal/combat/combat_helpers.go:1496` |
 | Callers of the channel band | spells, shoot (user and mob), special-move defence (user and mob), taunt, counters | `RenderChannelDefenceMessages` call sites |
 | Melee has the margin inputs | `bestDefenseResult.margin`, `.defRoll` from the same contest | `combat_helpers.go:768-785` |
-| Weather felt | `StrongFeltThreshold = 0.5`, hardcoded const | `modules/weather/content/emotes.go:14-17` |
+| Weather felt (POST-M4c) | `Balance.WeatherStrongFeltThreshold` (shipped 0.5), read by the engine and threaded down as an explicit parameter -- the deleted `content.StrongFeltThreshold` const is gone | Strong >= threshold, else Mild; configurable | `internal/configs/config.balance.go:383`; `modules/weather/engine/emotes.go:49`; `modules/weather/content/emotes.go:182,360` |
 | `AgingPhase` | item potency for drink, eat, shops, autoheal; NOT narration | `internal/usercommands/drink.go:156`, `internal/shops/buyrules.go:141` |
 | Skill tiers | cumulative pool UNION at 34/67, not a band | `internal/items/attack_messages.go:99-104` |
 
@@ -232,15 +232,22 @@ silently.
 - **Own commit, flagged in the PR:** core-drain moves from `ChannelMelee` to
   the physical spell channel, with a test pinning its defence set.
 
-### M4c: one defence band model
+### M4c: one defence band model -- DONE (PR pending)
 
 - `GetDefenseMessage` and its z-score banding are deleted. Melee auto-attacks
-  band through `RenderDefenseMessage` with `bestDefenseResult`'s margin and
-  defensive crit.
-- The margin cutoff moves to a balance knob in `config.balance.go` and
-  `config.yaml`, shipping at today's 0.5.
-- `StrongFeltThreshold` stays weather's own scale and moves to config the same
-  way.
+  band through `RenderDefenseMessage`, via a `defenceBand{crit, margin}`
+  struct that `sendDefenseMessages` hands it unchanged; `margin` comes from
+  the new `meleeDefenceMargin(best)`, the one derivation the mitigation curve
+  and the narration band both read, so they cannot disagree.
+- The margin cutoff moves to a balance knob, `Balance.DefenceBandNormalThreshold`
+  in `config.balance.go` and `config.yaml`, shipping at today's 0.5.
+- `StrongFeltThreshold` moves to `Balance.WeatherStrongFeltThreshold` in
+  config, shipping at 0.5. It could not become a plain config read inside
+  `modules/weather/content` the way the melee cutoff did:
+  `TestContentPackageStaysPure` forbids that package from importing
+  `internal/configs`, so the engine reads the live value and threads it down
+  as an explicit `strongFeltThreshold` parameter to `content.Tables.Pick`,
+  `content.SeasonalTables.Pick`, and `bandedSectionLines`.
 - `AgingPhase` leaves the arc: it is item potency, not narration. Skill tiers
   stay a pool union under the M3 assembly rule. `TauntIntensity` and
   `items.Intensity` are caller-named outcomes, not thresholds.
@@ -255,6 +262,15 @@ silently.
   crit flags, recorded before the change. Its diff is the review: only band
   labels and the pool they draw from may move. A wording change is a defect.
   Spell, ranged and counter rows are in the golden and must not move.
+- **Found during implementation, not anticipated by this spec:** the 93
+  melee-seam rows in `internal/narration/testdata/stores/defense_messages.golden`
+  turned out to be byte-identical duplicates of that same file's own store
+  rows above them, so they could never fail on a band change and were
+  deleted rather than updated; melee's production-path coverage is
+  `internal/combat/testdata/melee_defence_bands.golden` instead. And the
+  weather cutoff could not simply move into config the way the melee one
+  did, because of the content-package purity guard above; it is threaded
+  from the engine as a parameter instead.
 
 ### M4d: one send path, one sight verdict
 

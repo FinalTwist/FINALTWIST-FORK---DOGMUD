@@ -84,10 +84,13 @@ recently-used templates out; both hand `Render` an already-assembled
 `[]string`. Pulling either into the core would turn the messaging arc's M4
 parameter flip into a core rewrite.
 
-The same rule is why banding stays in the stores: `items.GetDefenseMessage`
-bands on a z-score while `items.RenderDefenseMessage` bands on crit plus
-margin, and those two disagree deliberately. Reconciling them changes which
-band fires, which is a behaviour change and belongs to M4, not to this package.
+The same rule is why banding stays in the stores, not the core: it is
+`items.RenderDefenseMessage` that owns the band decision (crit plus
+normalized margin), for melee and every other channel alike. It did not
+always: melee used to band separately, on `items.GetDefenseMessage`'s
+self-relative z-score, and the two disagreed deliberately until M4c
+reconciled them onto one function and one config knob, which was a
+behaviour change and belonged to M4, not to this package.
 
 ## Consumers
 

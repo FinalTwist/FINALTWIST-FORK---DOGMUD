@@ -435,11 +435,17 @@ parry answers melee only, whatever swung, so its lines name the defender's
 weapon and never the attacker's; quell answers workings only; defy reads for
 a charm as well as a taunt, so no line in it names the attempt.
 
-`RenderDefenseMessage` chooses one index and applies it to all three audiences
-before token replacement. Ordinary defended channel outcomes use Weak below a
-normalized margin of 0.5 and Normal at or above it. They never use Heavy,
-because ordinary defence still allows a partial effect through. Defensive
-crits alone use Heavy and may truthfully describe full negation.
+`RenderDefenseMessage` is the single defence band function for every attack
+channel, melee included since M4c: `internal/combat`'s `sendDefenseMessages`
+now calls it too, in place of the deleted `items.GetDefenseMessage`, which
+banded melee on the defender's own self-relative roll z-score rather than on
+how decisive the contest actually was. `RenderDefenseMessage` chooses one
+index and applies it to all three audiences before token replacement.
+Ordinary defended channel outcomes use Weak below a normalized margin of
+`Balance.DefenceBandNormalThreshold` (shipped 0.5) and Normal at or above it.
+They never use Heavy, because ordinary defence still allows a partial effect
+through. Defensive crits alone use Heavy and may truthfully describe full
+negation.
 
 These coordinated pools are authoritative for the actual quell or defy
 outcome. Callers pass the resolved defence result and display-ready, actor-aware

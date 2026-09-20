@@ -55,6 +55,23 @@ goroutine — no synchronization needed.
   (testable, applies defaults and sanity clamps). `simConfig()` maps module
   config onto `sim.Config`. `loadConfig(*plugins.Plugin)`.
 
+## Felt threshold (M4c)
+The felt-intensity cutoff at which indoor/underground weather crosses from
+Mild to Strong is `Balance.WeatherStrongFeltThreshold` (shipped 0.5), not a
+package const. `modules/weather/content` cannot read it directly:
+`TestContentPackageStaysPure` (`content/arch_test.go`) forbids that package
+from importing anything under `internal/` except `internal/narration`, and
+`internal/configs` is not on the allow list. So the ENGINE tier reads the live
+value (`modules/weather/engine/emotes.go`, `EmitAmbient`) and threads it down
+as an explicit `strongFeltThreshold float64` parameter to
+`content.Tables.Pick(weather, biome, indoor, felt, strongFeltThreshold,
+season, pick)`, `content.SeasonalTables.Pick(track, season, biome, indoor,
+felt, strongFeltThreshold, pick)`, and the unexported `bandedSectionLines`
+they both call. A zero-value default was rejected: `strongFeltThreshold` is a
+plain parameter with no struct field to default from, so a test that forgot to
+pass it would silently band every indoor moment Strong; `Balance.Validate()`
+enforces the non-zero rule once, centrally, instead.
+
 ## Dependencies
 - `internal/plugins, events, users, mudlog, util, rooms` (engine, plugin infra).
 - `modules/weather/{sim,crawler,engine,content}`.
