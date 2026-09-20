@@ -1287,6 +1287,29 @@ func meleeDefenceMargin(best bestDefenseResult) float64 {
 	return 0
 }
 
+// meleeIdentityTag returns a participant's display-ready, ansi-tagged
+// identity, dispatching on player versus mob exactly the way
+// RenderChannelDefenceMessages' own callers build ChannelDefenceIdentities
+// (mobcommands/usercommands' skill_move_defence.go, taunt.go, throw.go,
+// shoot.go): GetPlayerName for a player, GetMobName for a mob. That pair is
+// the one place identity tags get built in this codebase; this is not a
+// second way to build one, it is the same FormattedName machinery reused
+// from inside internal/combat, which cannot reach a Room to resolve a
+// duplicate-mob index the way those callers do -- combat.go:295 and this
+// file's buildAttackMessages already make that same simplification
+// (GetMobName(0), no index) for the identical problem, tagging a mob name
+// for a Go-composed line rather than an authored `{actortype}` pool line.
+//
+// GetUserId() > 0 is the documented player/mob discriminator (see its
+// docstring: "non-zero for mobs, zero for players" on GetMobInstanceId, the
+// mirror check).
+func meleeIdentityTag(c *characters.Character) string {
+	if c.GetUserId() > 0 {
+		return c.GetPlayerName(0).String()
+	}
+	return c.GetMobName(0).String()
+}
+
 // sendDefenseMessages sends narrative messages for a successful defense.
 //
 // partial (U6 Task 16b) marks the non-crit defensive win, where the swing
@@ -1338,8 +1361,8 @@ func sendDefenseMessages(result *AttackResult, best bestDefenseResult, sourceCha
 	}
 
 	tokenReplacements := map[items.TokenName]string{
-		items.TokenActee:    targetChar.Name,
-		items.TokenActor:    sourceChar.Name,
+		items.TokenActee:    meleeIdentityTag(targetChar),
+		items.TokenActor:    meleeIdentityTag(sourceChar),
 		items.TokenWeapon:   weaponName,
 		items.TokenAttack:   attackName,
 		items.TokenStance:   targetChar.CalculateStanceString(),

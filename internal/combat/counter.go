@@ -200,8 +200,8 @@ func fillCounterMessages(result *CounterResult, defender, attacker *characters.C
 	bandCrit, bandMargin := counterBand(result.Move.Crit, result.Damage)
 	triad := items.RenderDefenseMessage(items.CounterPoolFor(result.Defence), bandCrit, bandMargin,
 		map[items.TokenName]string{
-			items.TokenActor: attacker.Name,
-			items.TokenActee: defender.Name,
+			items.TokenActor: meleeIdentityTag(attacker),
+			items.TokenActee: meleeIdentityTag(defender),
 		})
 	if triad.ToRoom == "" {
 		fillGenericCounterMessages(result, defender, attacker)
