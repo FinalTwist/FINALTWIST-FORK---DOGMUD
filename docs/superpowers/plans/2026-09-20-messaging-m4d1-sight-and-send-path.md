@@ -11,8 +11,9 @@ but it is defined ON TOP of `CanSeeSightImpairedOnly`, so a boolean is the
 primitive and the richer verdict is derived from it. This plan inverts that: the
 verdict computes optics directly, and the three booleans become one-line
 policies that compose attention (sleep) over it. Combat stops borrowing a
-messaging predicate for its damage-scoring rule and gets its own name. `Trio`
-gains `RemoteObserver`, seating ranged combat's defender-room audience. The four
+messaging predicate for its damage-scoring rule and carries the verdict itself,
+which is what lets PR 2 give seeing shapes its own reduced penalty. `Trio` gains
+`RemoteObserver`, seating ranged combat's defender-room audience. The four
 remaining non-`SendTrio` paths move onto it, each one first proven to change no
 text.
 
@@ -58,13 +59,13 @@ rather than shipped here.
 **Created**
 - `internal/messaging/optics_pin_test.go`: the truth table that pins today's answers.
 - `internal/messaging/sleep_policy_test.go`: the sleeping-observer guard.
-- `internal/combat/darkness_penalty_predicate_test.go`: pins combat's scoring gate.
+- `internal/combat/darkness_penalty_verdict_test.go`: pins that the verdict drives the penalty exactly as the old boolean did, infrared still penalised.
 
 **Modified**
-- `internal/messaging/predicates.go`: dependency inverted; three one-line policies; `CanFightUnimpaired` added.
+- `internal/messaging/predicates.go`: dependency inverted; three one-line policies.
 - `internal/messaging/trio.go`: `RemoteObserver` seat.
 - `messaging_surface_guard_test.go`: guard moves to four roles.
-- `internal/combat/combat.go`, `internal/combat/combat_helpers.go`: combat's predicate and the ranged seat.
+- `internal/combat/combat.go`, `internal/combat/combat_helpers.go`: the context carries `SightDecision`; the ranged seat.
 - Whichever of `internal/usercommands/craft.go`, the quest sender, the caster-only spell effect path and `internal/hooks/Position_Messaging.go` pass Task 6's text-identity check.
 - `internal/messaging/context.md`, `internal/combat/context.md`.
 
@@ -377,68 +378,98 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Task 4: Combat names its own disadvantage
+## Task 4: Combat carries the verdict instead of a boolean
+
+**Owner ruling 6 (2026-09-20) sets this task's shape.** Infrared characters are
+to take a REDUCED darkness combat penalty rather than the full one they take
+today. A boolean cannot express three states, so combat does not get a renamed
+boolean: it carries the `SightDecision`.
+
+**This task is still byte-identical.** The mapping stays "full penalty unless
+`SightFull`", which is exactly today's behaviour, infrared included. PR 2
+changes the mapping. Getting the plumbing in now is what makes that a table
+lookup rather than a new predicate.
 
 **Files:**
-- Modify: `internal/messaging/predicates.go`
-- Modify: `internal/combat/combat.go` (8 call sites)
-- Create: `internal/combat/darkness_penalty_predicate_test.go`
+- Modify: `internal/combat/combat.go` (8 sites), `internal/combat/combat_helpers.go` (struct plus 2 sites)
+- Create: `internal/combat/darkness_penalty_verdict_test.go`
 
-- [ ] **Step 1: Add the name**
+- [ ] **Step 1: Carry the verdict on the context**
 
-In `internal/messaging/predicates.go`:
-
-```go
-// CanFightUnimpaired reports whether a combatant suffers no sight-based
-// penalty. It is the SAME question as CanSeeSightImpairedOnly and deliberately
-// a different NAME: this one feeds Balance.DarknessCombatPenalty on attack and
-// defence scores, and is not a narration gate at all. A reader who finds a
-// sight predicate in a scoring expression should be able to tell which of the
-// two they are looking at.
-func CanFightUnimpaired(observer *characters.Character, room RoomVisibility) bool {
-	return ParticipantSight(observer, room) == SightFull
-}
-```
-
-- [ ] **Step 2: Write the test that pins the equivalence**
+In `internal/combat/combat_helpers.go`, replace the two `combatContext` fields:
 
 ```go
-package combat
-
-import "testing"
-
-// TestDarknessPenaltyGateMatchesTheSightVerdict pins that combat's scoring gate
-// is the optics verdict with no attention test, and that infrared does NOT
-// satisfy it. An infrared character who stopped taking DarknessCombatPenalty
-// would be a balance change delivered by a refactor.
-func TestDarknessPenaltyGateMatchesTheSightVerdict(t *testing.T) {
-	// Build the same eight observer/room states as
-	// internal/messaging/optics_pin_test.go and assert
-	// messaging.CanFightUnimpaired equals the expectation for
-	// CanSeeSightImpairedOnly in every one.
-}
+	// sourceSight and targetSight are the OPTICS VERDICT, not a narration gate.
+	// They drive Balance.DarknessCombatPenalty on attack and defence scores and
+	// nothing else. They carry the full SightDecision rather than a bool
+	// because seeing shapes is not the same as seeing nothing: M4d PR 2 gives
+	// the shapes case its own reduced penalty, and a bool cannot say that.
+	sourceSight messaging.SightDecision
+	targetSight messaging.SightDecision
 ```
 
-⚠️ Write this test for real against the package's existing fixtures; the body
-above states what it must assert, not a stub to commit. If `internal/combat`
-cannot construct those states without heavy fixtures, put the test in
-`internal/messaging` beside the truth table instead and say so in your report.
+At the 8 sites in `internal/combat/combat.go` (`:55,56,106,107,150,151,199,200`),
+set them from `messaging.ParticipantSight(char, room)` instead of
+`messaging.CanSeeSightImpairedOnly(char, room)`.
 
-- [ ] **Step 3: Switch combat's call sites**
+⚠️ `ParticipantSight` has no attention test, which is what these sites need and
+is why they used `CanSeeSightImpairedOnly` rather than `CanSeeClearly`. The long
+comment in `predicates.go` explains the incident behind that (a sleep gate
+silently applying a darkness penalty to a sleeping defender in a lit room, and
+corrupting combat analytics). Do not reintroduce a sleep test here.
 
-Replace `messaging.CanSeeSightImpairedOnly` with `messaging.CanFightUnimpaired`
-at all 8 sites in `internal/combat/combat.go` (`:55,56,106,107,150,151,199,200`).
-Rename the struct fields `sourceCanSee` / `targetCanSee` to
-`sourceFightsUnimpaired` / `targetFightsUnimpaired` and update the two use sites
-(`combat_helpers.go:557,749`) and every test that constructs a `combatContext`.
+- [ ] **Step 2: Read them at the two scoring sites, identically to today**
 
-Confirm the sweep with `go build ./...` and `go test ./internal/combat/`, then:
+`combat_helpers.go:557` and `:749` currently test `!ctx.sourceCanSee` and
+`!ctx.targetCanSee`. They become:
+
+```go
+	// PR 1 keeps today's rule exactly: any verdict short of SightFull takes the
+	// full penalty, infrared included. PR 2 replaces this test with
+	// DarknessScoreMultiplier, which gives SightShapes its own reduced value.
+	if ctx.sourceSight != messaging.SightFull {
+		attackScore *= float64(bal.DarknessCombatPenalty)
+	}
+```
+
+Update every test that constructs a `combatContext` (there are several; the
+compiler will name them all) to set the verdict instead of the bool.
+`sourceCanSee: true` becomes `sourceSight: messaging.SightFull`.
+
+- [ ] **Step 3: Write the test that pins the equivalence**
+
+Create `internal/combat/darkness_penalty_verdict_test.go` with a test asserting
+that the new field produces the same penalty decision as the old boolean for
+every one of the eight observer/room states in
+`internal/messaging/optics_pin_test.go`. The row that matters most is **infrared
+in the dark: penalty STILL APPLIES in PR 1.** That row is what proves this task
+did not quietly deliver ruling 6 early.
+
+Write it against the package's real fixtures. If `internal/combat` cannot build
+those states without heavy fixtures, assert the mapping at the level of
+`messaging.ParticipantSight(...) != SightFull` in `internal/messaging` instead,
+and say so in your report.
+
+- [ ] **Step 4: Confirm the sweep**
 
 ```bash
-grep -rn "CanSeeSightImpairedOnly" --include=*.go internal/combat/
+go build ./...
+go test ./internal/combat/
+grep -rn "CanSeeSightImpairedOnly\|sourceCanSee\|targetCanSee" --include=*.go internal/combat/
 ```
 
-Expected: nothing. Run it standalone (`grep -c` exits 1 on zero matches).
+Expected: build clean, tests pass, and the grep prints nothing. Run the grep
+standalone (`grep -c` exits 1 on zero matches).
+
+- [ ] **Step 5: Verify the remaining callers elsewhere are genuinely narration**
+
+```bash
+grep -rn "CanSeeSightImpairedOnly" --include=*.go internal/ modules/ | grep -v _test
+```
+
+Every remaining site should be a narration or perception decision, not a scoring
+one. List them in your report with a word each on which it is. A scoring site
+found here wanted the verdict too, and this task missed it.
 
 - [ ] **Step 4: Verify the remaining callers are genuinely narration**
 
@@ -448,18 +479,21 @@ grep -rn "CanSeeSightImpairedOnly" --include=*.go internal/ modules/ | grep -v _
 
 Every remaining site should be a narration or perception decision, not a scoring
 one. List them in your report with a word each on which it is. If one is a
-scoring site, it wanted `CanFightUnimpaired` and this task missed it.
+scoring site, it wanted the verdict too, and this task missed it.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add internal/messaging/predicates.go internal/combat/ 
-git commit -m "refactor(combat): the darkness penalty gate has its own name
+git add internal/combat/combat.go internal/combat/combat_helpers.go internal/combat/darkness_penalty_verdict_test.go
+git commit -m "refactor(combat): the combat context carries the sight verdict
 
 combat borrowed a messaging sight predicate for a scoring rule, which is why
-sourceCanSee and targetCanSee looked like narration flags and were not. Same
-value, same call sites, a name that says what it is. predicates.go asked for
-this in its own comment.
+sourceCanSee and targetCanSee looked like narration flags and were not. They
+now carry the SightDecision itself, because owner ruling 6 gives seeing shapes
+its own reduced penalty in PR 2 and a bool cannot say that.
+
+Byte-identical: the scoring sites still apply the full penalty for any verdict
+short of SightFull, infrared included. Only the mapping moves in PR 2.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ```
@@ -632,7 +666,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 - [ ] **Step 1: context.md**
 
 `internal/messaging/context.md`: the verdict is the primitive; the three
-predicates are policies over it; `CanFightUnimpaired` is combat's scoring gate
+predicates are policies over it; the combat context carries the verdict as its scoring input
 and not a narration gate; `Trio` has four roles.
 `internal/combat/context.md`: the renamed context fields and what they drive.
 
@@ -708,7 +742,7 @@ compiles against nothing. It is marked, with a fallback location.
 
 **Type consistency.** `ParticipantSight` keeps its existing name and signature
 throughout. `awake` is defined in Task 3 Step 2 and used only there.
-`CanFightUnimpaired` is defined in Task 4 Step 1 and used in Step 3.
+`sourceSight` and `targetSight` are defined in Task 4 Step 1 and read in Step 2.
 `opticsCase`, `newOpticsObserver` and `newOpticsRoom` are defined in Task 1 and
 reused by name in Task 2.
 

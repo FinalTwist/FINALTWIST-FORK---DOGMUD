@@ -73,6 +73,11 @@ fights never render from the store.
    contents roster stay with the separately filed GMCP slice.
 5. Owner correction to a standing note: PR notification spam comes from **CI
    failures**, not from PR count. Slice by risk, not by inbox.
+6. **Infrared characters take a REDUCED darkness combat penalty, not zero and
+   not the full one.** Today `DarknessCombatPenalty` (0.80, a flat 20% to hit
+   and defend) is binary and an infrared character takes it in full, because
+   `CanSeeSightImpairedOnly` consults NightVision only. Seeing shapes should be
+   worth something and should not be worth everything.
 
 ---
 
@@ -135,17 +140,27 @@ One producer then serves all three questions without a boolean parameter, each
 predicate states its own attention policy in one line, and the comment
 explaining the split stops needing to exist in three files.
 
-### Combat gets its own named predicate
+### Combat carries the verdict, not a boolean
 
 Combat currently borrows `CanSeeSightImpairedOnly` for something that is not a
 narration question at all: the `DarknessCombatPenalty` applied to attack and
 defence scores. That is a combat rule wearing a messaging name, and it is why
 `sourceCanSee` / `targetCanSee` look like narration flags and are not.
 
-It gets a name that says what it is, `CanFightUnimpaired` or similar, defined
-over `Sight()` in the same file as the others. Same value, same call sites, no
-behaviour change; the point is that a later reader cannot mistake a scoring
-input for a narration gate.
+Ruling 6 settles the shape. A boolean cannot express three states, so combat
+does not get a renamed boolean; it carries the `SightDecision` itself.
+`combatContext` gains `sourceSight` and `targetSight`, and the two scoring sites
+read them.
+
+**In PR 1 this is byte-identical**: the sites apply the full penalty whenever
+the verdict is not `SightFull`, which is exactly today's behaviour including for
+infrared characters. **PR 2 changes the mapping**, not the plumbing, to a named
+`DarknessScoreMultiplier(SightDecision) float64` returning no penalty at
+`SightFull`, a reduced one at `SightShapes`, and the full one at `SightNone`.
+
+That split is the point of doing the inversion first: once the verdict is the
+primitive, a three-state balance rule is a table lookup rather than a new
+predicate.
 
 ### Fourth audience
 
@@ -207,6 +222,27 @@ has understood it should be able to turn it down.
 
 Copy is subject to the player-copy rules: 80 column hard wrap, ESL-clear, no raw
 numbers. Drafting is a task in the plan, not a decision made here.
+
+### Infrared takes a reduced darkness penalty
+
+A flagged balance commit of its own, disclosed in the PR body, not folded into
+the narration diff.
+
+`DarknessScoreMultiplier(SightDecision)` replaces the boolean test at
+`combat_helpers.go:557,749`. A new balance knob carries the shapes case,
+validated as a PAIR with `DarknessCombatPenalty`: it must sit at or above the
+blind penalty and at or below 1.0, and zero is rejected, since a Go test binary
+never loads `config.yaml`. An inverted pair reverts both, so a typo cannot ship
+a world where seeing shapes is worse than seeing nothing.
+
+The shipped value is the owner's to set. The plan proposes the midpoint of the
+blind penalty and no penalty as a starting point and says plainly that it is a
+starting point: it is a config knob, so retuning it later costs nothing.
+
+This is the one change in M4d that alters a roll rather than a line, so it needs
+its own before-and-after in the playtest: an infrared character fighting in the
+dark should land and defend measurably more often than a character with no
+vision at all, and still measurably less often than one in a lit room.
 
 ### `Char.Enemies` sight gate
 
