@@ -21,6 +21,27 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
+// craftDeliver sends a self-only crafting response through SendTrio. Every
+// line the craft command's own delivery switch sends is addressed to the
+// crafter alone -- a recipe refusal, a station or skill gate, a "you begin"
+// notice -- with no second party and no room broadcast, so Actee and Observer
+// are always NoLine and Room is left unset. That absence is what makes the
+// move text-identical: SendTrio only hides a name when it has a room to judge
+// sight by (see messaging.hideForReader), so a self-only line with no Room
+// passes through unchanged regardless of what it contains.
+func craftDeliver(user *users.UserRecord, cat messaging.Category, text string) {
+	messaging.SendTrio(messaging.Trio{
+		Actor:    messaging.Say(cat, text),
+		Actee:    messaging.NoLine,
+		Observer: messaging.NoLine,
+	}, messaging.Audience{
+		Actor:     user,
+		ActorId:   user.UserId,
+		ActorName: user.Character.Name,
+		ActeeName: messaging.NoName,
+	})
+}
+
 // Craft handles the `craft` and `craft list` commands (Stage 13.1).
 func Craft(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
@@ -70,42 +91,42 @@ func Craft(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		for _, n := range result.AmbiguousRecipes {
 			list = append(list, fmt.Sprintf(`<ansi fg="cyan-bold">%s</ansi>`, n))
 		}
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(
 			`You know more than one recipe like that: %s. Type more of the name to pick one.`,
 			strings.Join(list, `, `)))
 		return true, nil
 
 	case result.RecipeNotFound:
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="red">No recipe found for "%s". Type <ansi fg="cyan-bold">craft list</ansi> to see available recipes.</ansi>`,
 			rest))
 		return true, nil
 
 	case result.RecipeNotKnown:
-		user.SendText(messaging.CategorySystem, `<ansi fg="red">You don't know that recipe yet. Keep crafting to discover new ones!</ansi>`)
+		craftDeliver(user, messaging.CategorySystem, `<ansi fg="red">You don't know that recipe yet. Keep crafting to discover new ones!</ansi>`)
 		return true, nil
 
 	case result.AlreadyCrafting:
-		user.SendText(messaging.CategorySystem, `<ansi fg="red">You are already working on something. Finish or be interrupted first.</ansi>`)
+		craftDeliver(user, messaging.CategorySystem, `<ansi fg="red">You are already working on something. Finish or be interrupted first.</ansi>`)
 		return true, nil
 
 	case result.SkillTooLow:
-		user.SendText(messaging.CategorySystem,
+		craftDeliver(user, messaging.CategorySystem,
 			craftSkillTooLowText(result.SkillName, result.SkillMinimum, result.SkillLevel))
 		return true, nil
 
 	case result.WrongStation:
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="red">You need to be at a %s to craft that.</ansi>`,
 			result.StationNeeded))
 		return true, nil
 
 	case result.MissingIngredients:
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">You are missing: %s.</ansi>`, result.MissingTag))
+		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">You are missing: %s.</ansi>`, result.MissingTag))
 		return true, nil
 
 	case result.ForeignComponent:
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="red">The %s must be your own work — it bears another maker's mark.</ansi>`,
 			result.ForeignComponentName))
 		return true, nil
@@ -139,7 +160,7 @@ func Craft(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		return true, nil
 
 	case result.Initiated:
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="yellow">You begin crafting %s... (%s)</ansi>`,
 			result.RecipeName, craftTimeDesc(result.TimeRounds)))
 
@@ -197,9 +218,9 @@ func ensureComponentsFromStorage(user *users.UserRecord, room *rooms.Room, recip
 		// removes it from storage if that succeeds — so an over-encumbered player
 		// cannot destroy banked components.
 		if storageRemoveQuiet(user, itm) {
-			user.SendText(messaging.CategoryLoot, fmt.Sprintf(`You draw <ansi fg="item">%s</ansi> from storage.`, itm.DisplayName()))
+			craftDeliver(user, messaging.CategoryLoot, fmt.Sprintf(`You draw <ansi fg="item">%s</ansi> from storage.`, itm.DisplayName()))
 		} else {
-			user.SendText(messaging.CategorySystem, `You're too encumbered to draw any more from storage.`)
+			craftDeliver(user, messaging.CategorySystem, `You're too encumbered to draw any more from storage.`)
 			return
 		}
 	}
@@ -228,27 +249,27 @@ func craftSkillTooLowText(skillName string, minimum, level int) string {
 func craftEnchanting(rest string, recipe *crafting.RecipeSpec, user *users.UserRecord, room *rooms.Room) (bool, error) {
 	// Known-recipe gate
 	if !user.Character.HasRecipe(recipe.RecipeId) {
-		user.SendText(messaging.CategorySystem, `<ansi fg="red">You don't know that recipe yet. Keep crafting to discover new ones!</ansi>`)
+		craftDeliver(user, messaging.CategorySystem, `<ansi fg="red">You don't know that recipe yet. Keep crafting to discover new ones!</ansi>`)
 		return true, nil
 	}
 
 	// Already crafting?
 	if user.Character.IsCrafting() {
-		user.SendText(messaging.CategorySystem, `<ansi fg="red">You are already working on something. Finish or be interrupted first.</ansi>`)
+		craftDeliver(user, messaging.CategorySystem, `<ansi fg="red">You are already working on something. Finish or be interrupted first.</ansi>`)
 		return true, nil
 	}
 
 	// Skill gate
 	skillLevel := user.Character.GetSkillLevel(skills.SkillTag(recipe.Skill))
 	if skillLevel < recipe.SkillMinimum {
-		user.SendText(messaging.CategorySystem,
+		craftDeliver(user, messaging.CategorySystem,
 			craftSkillTooLowText(recipe.Skill, recipe.SkillMinimum, skillLevel))
 		return true, nil
 	}
 
 	// Station check
 	if !actions.StationSatisfied(user.Character, recipe.Station, room.Station) {
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="red">You need to be at a %s to craft that.</ansi>`,
 			strings.ReplaceAll(recipe.Station, "_", " ")))
 		return true, nil
@@ -257,13 +278,13 @@ func craftEnchanting(rest string, recipe *crafting.RecipeSpec, user *users.UserR
 	// Ingredient check
 	ok, missing := crafting.HasIngredients(user.Character.Items, user.Character.ComponentItems, recipe)
 	if !ok {
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">You are missing: %s.</ansi>`, missing))
+		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">You are missing: %s.</ansi>`, missing))
 		return true, nil
 	}
 
 	// Self-crafted-component check (require_own_components)
 	if ownOk, offendingName := crafting.CheckOwnComponents(recipe, user.Character.Items, user.Character.ComponentItems, user.Character.Name); !ownOk {
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="red">The %s must be your own work — it bears another maker's mark.</ansi>`,
 			offendingName))
 		return true, nil
@@ -282,12 +303,12 @@ func craftEnchanting(rest string, recipe *crafting.RecipeSpec, user *users.UserR
 
 	slotLabel, targetItem, errMsg := resolveEnchantSlot(&user.Character.Equipment, recipe.TargetType, specifier)
 	if errMsg != "" {
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">%s</ansi>`, errMsg))
+		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">%s</ansi>`, errMsg))
 		return true, nil
 	}
 
 	if targetItem == nil {
-		user.SendText(messaging.CategorySystem, `<ansi fg="red">Could not find a valid item in that slot.</ansi>`)
+		craftDeliver(user, messaging.CategorySystem, `<ansi fg="red">Could not find a valid item in that slot.</ansi>`)
 		return true, nil
 	}
 
@@ -303,7 +324,7 @@ func craftEnchanting(rest string, recipe *crafting.RecipeSpec, user *users.UserR
 		added := user.Character.EnchantReserveAt(recipe.EnchantType, 0, targetItem.GetSpec().Hands, pool) -
 			user.Character.ItemReserveOnPool(*targetItem, pool)
 		if user.Character.WouldBreachReservationCap(pool, added) {
-			user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">%s</ansi>`,
+			craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">%s</ansi>`,
 				user.Character.ReservationRefusal(pool, added)))
 			return true, nil
 		}
@@ -328,10 +349,10 @@ func craftEnchanting(rest string, recipe *crafting.RecipeSpec, user *users.UserR
 			Actor:   state.ActorRef{UserId: user.UserId},
 		},
 	); err != nil {
-		user.SendText(messaging.CategorySystem, `<ansi fg="red">You are already working on something. Finish or be interrupted first.</ansi>`)
+		craftDeliver(user, messaging.CategorySystem, `<ansi fg="red">You are already working on something. Finish or be interrupted first.</ansi>`)
 		return true, nil
 	}
-	user.SendText(messaging.CategorySystem, fmt.Sprintf(
+	craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(
 		`<ansi fg="yellow">You begin enchanting <ansi fg="itemname">%s</ansi>... (%s)</ansi>`,
 		targetItem.DisplayName(), craftTimeDesc(recipe.TimeRounds)))
 
