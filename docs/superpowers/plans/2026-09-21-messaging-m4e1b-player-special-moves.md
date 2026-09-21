@@ -71,6 +71,44 @@ Read from source; the earlier figures were incomplete.
 
 ---
 
+## 🔴 CORRECTED 2026-09-21, after a first attempt got both of these wrong
+
+### 1. The twins keep SEPARATE event keys (owner ruling, option B)
+
+The original plan assumed the player side just fills in the empty `actor` role
+on the existing events. **It cannot.** The twins shipped DIFFERENT prose for
+the same event, and each twin's byte-identity net pins its own wording to
+specific pool indices, so they collide. Measured, `drain/hit` actee role:
+
+```
+mob    (in the store):  "{actor} plunges into you, sapping your vitality and
+                         leeching your life-force!"
+player (still in Go):   4 unrelated lines, "latches onto you and drinks deep",
+                         "tears into you and feeds", ...
+```
+
+**Player events take `player_` prefixed keys** (`player_hit`,
+`player_standard_miss`, `player_knee_miss`). Mob events are left EXACTLY as
+PR #152 shipped them. The M4e spec's "the twins share one event file" is still
+satisfied: one file per verb, two sets of keys.
+
+Merging the two prose sets into one pool is **option A, filed as M6 ledger
+row 56**. It is the bigger content win and costs roughly 24 more authored
+lines, because a mob event has no actor line to pair with its actee and
+observer entries. It does not belong inside a slice whose proof is that
+nothing changed.
+
+### 2. Authoring and migration land in ONE commit per file
+
+`TestMoveEventKeysAgree` fails on any authored event no Go call site names, so
+a `player_*` event **cannot** ship before the code that references it. The
+original Task 2 / Task 3 / Task 4 split is therefore impossible, and the first
+attempt hit exactly this wall on `drain`'s lifesteal events.
+
+**Tasks 2, 3 and 4 below are superseded by Task 4b**: per file, one commit that
+authors that verb's squared `player_*` events AND migrates its call site, with
+the net dropping by that file's row count each time.
+
 ## The shape of the work
 
 🔑 **41 of the 59 lines are not invention.** In a PARALLEL event, index N of
@@ -229,7 +267,34 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Task 4: Migrate the twelve files, grouped by shape
+## Task 4b: Per file, author AND migrate in one commit (SUPERSEDES Tasks 2-4)
+
+For each verb, in one commit:
+
+1. **Author its `player_*` events**, squared. Copy every existing line from the
+   Go pool BYTE FOR BYTE, replacing each `%s` with the token its argument
+   supplied and letting the token replace the whole ansi-tagged span. Fill the
+   parallel gaps from the sibling at the same index (see "the shape of the
+   work" above); take the six divergent `miss` events' new lines verbatim from
+   Task 3, which is still the approved wording.
+2. **Migrate the call site** onto a `sendMoveEvent` equivalent in
+   `internal/usercommands`, naming those keys as LITERALS so the key-agreement
+   guard can see them.
+3. **Gate**: the net's skip/fail counts for that verb go to zero, plus
+   `go test .` at the ROOT and the package tests.
+
+Order, easiest shape first:
+
+- [ ] **Step 1: the five unpooled files** (bash, trip, grapple, shoot, throw).
+      One line per role per branch; no squaring at all.
+- [ ] **Step 2: drain, maul, rake, throttle.** One hit pool each. `drain` also
+      gets its actor-only `player_hit_lifesteal` / `player_partial_lifesteal`
+      events, whose actee and observer are absent BY DESIGN.
+- [ ] **Step 3: gore, pounce.** Two hit pools each, knockdown and not.
+- [ ] **Step 4: kick.** Three sub-movesets, the `questengine` notification, and
+      the one deliberately reworded line (Task 3, Step 2).
+
+## Task 4 (SUPERSEDED, see Task 4b): Migrate the twelve files, grouped by shape
 
 Follow `internal/mobcommands/kick.go` and `move_narration.go` from PR #152 as
 the template. The player side needs its own `sendMoveEvent` equivalent in
