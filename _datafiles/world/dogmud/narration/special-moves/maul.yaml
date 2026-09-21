@@ -1,11 +1,15 @@
 moveid: maul
 events:
   hit:
+    actor:
+      - 'Your fangs savage {actee}, tearing wounds that weep blood! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} savages you with vicious fangs, tearing bleeding wounds! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} savages {actee} with vicious fangs!'
   partial:
+    actor:
+      - 'Your fangs mostly miss {actee}, but still tear a shallow gash! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} snaps at you and you dodge most of it, but the fangs still tear you! (<ansi fg="damage">{damage}</ansi>)'
     observer:

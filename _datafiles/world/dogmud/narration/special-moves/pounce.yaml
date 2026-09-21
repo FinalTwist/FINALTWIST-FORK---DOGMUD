@@ -1,16 +1,22 @@
 moveid: pounce
 events:
   knockdown:
+    actor:
+      - 'You leap at {actee} and slam them to the ground! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} leaps at you and slams you to the ground! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} leaps at {actee} and slams them to the ground!'
   hit:
+    actor:
+      - 'You lunge forward and crash into {actee}! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} springs at you and crashes into your body! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} springs at {actee} and crashes into them!'
   partial:
+    actor:
+      - 'Your leap at {actee} mostly misses, but you still clip them on the way past! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} leaps at you and you sidestep most of it, but it still clips you! (<ansi fg="damage">{damage}</ansi>)'
     observer:

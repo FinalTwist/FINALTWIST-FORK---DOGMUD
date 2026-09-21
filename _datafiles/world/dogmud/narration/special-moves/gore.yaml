@@ -1,16 +1,22 @@
 moveid: gore
 events:
   knockdown:
+    actor:
+      - 'You lower your head and charge {actee}, driving your horns in and sending them flying! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} lowers its head and charges into you, driving you to the ground! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} charges into {actee} and hurls them to the ground!'
   hit:
+    actor:
+      - 'You ram your horns into {actee} with a powerful charge! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} drives its horns into you with a powerful charge! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} drives its horns into {actee}!'
   partial:
+    actor:
+      - '{actee} dodges the worst of your charge, but your horns still catch them! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} charges you and you sidestep most of it, but the horns still catch you! (<ansi fg="damage">{damage}</ansi>)'
     observer:

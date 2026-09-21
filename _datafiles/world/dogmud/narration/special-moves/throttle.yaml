@@ -1,19 +1,29 @@
 moveid: throttle
 events:
   hit:
+    actor:
+      - 'Your fangs clamp around {actee}''s throat, cutting off their air! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} clamps crushing fangs around your throat, cutting off your air! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} clamps crushing fangs around {actee}''s throat!'
   cast_interrupt:
+    actor:
+      - '{actee}''s spell collapses as they fight for air!'
     actee:
       - '{actor}''s choke shatters your concentration — your spell collapses!'
+    observer:
+      - '{actor}''s grip chokes the spell out of {actee}!'
   partial:
+    actor:
+      - '{actee} pulls mostly free of your grip, but your fangs still catch their throat! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} lunges for your throat and you pull mostly free, but the fangs still catch you! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} lunges for {actee}''s throat, who pulls mostly free but still gets grazed!'
   miss:
+    actor:
+      - 'Your throttle lunge misses {actee}''s throat!'
     actee:
       - '{actor} lunges for your throat but misses!'
     observer:

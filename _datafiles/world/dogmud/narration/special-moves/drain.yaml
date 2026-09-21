@@ -1,11 +1,15 @@
 moveid: drain
 events:
   hit:
+    actor:
+      - 'Your claws plunge into {actee}, sapping their vitality as warmth floods into you! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} plunges into you, sapping your vitality and leeching your life-force! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} plunges into {actee} and leeches their vitality!'
   partial:
+    actor:
+      - 'Your reach for {actee} mostly fails, but your claws still catch a sliver of vitality! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} reaches for you and you slip most of its grip, but it still catches a sliver of you! (<ansi fg="damage">{damage}</ansi>)'
     observer:
