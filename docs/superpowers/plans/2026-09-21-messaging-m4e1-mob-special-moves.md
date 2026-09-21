@@ -1478,6 +1478,25 @@ from golangci-lint, and it fails the whole job in about 30 seconds before a
 single test runs. A green `golangci-lint run --new-from-rev=master` says nothing
 about it.
 
+🪤 **On Windows this check can FALSE-POSITIVE.** `gofmt -l` reads the WORKING
+COPY, and `core.autocrlf` can leave a file CRLF on disk while the committed
+blob is LF. gofmt then reports the whole file as unformatted and a `gofmt -d`
+shows every line removed and re-added, which looks alarming and is nothing.
+
+Hit on 2026-09-21 with `messaging_surface_guard_test.go`. How to tell in ten
+seconds, before chasing it:
+
+```bash
+head -c 16 <file> | od -c                 # working copy: shows \r \n
+git show HEAD:<file> | head -c 16 | od -c # committed blob: shows \n alone
+gofmt -w <file> && git diff --quiet <file> && echo "content identical"
+```
+
+If the committed blob is LF and `git diff --quiet` passes after `gofmt -w`,
+CI is fine: it checks out fresh with its own line endings. A `git status`
+showing the file as modified afterwards is the stat cache, not a content
+change.
+
 ```bash
 golangci-lint run --new-from-rev=master
 go test ./...
