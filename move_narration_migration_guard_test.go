@@ -172,9 +172,15 @@ type moveEventPair struct {
 // internal/combat/grapple_narration.go's own comment on why renderGrappleEvent
 // is not just a call into mobcommands.renderMoveEvent -- mobcommands already
 // imports combat, so the reverse import would cycle).
+//
+// internal/usercommands joined M4e-1b: the player-side special-move files
+// carry their own sendMoveEvent/renderMoveEvent pair
+// (internal/usercommands/move_narration.go), naming player_* prefixed event
+// keys in the SAME store files this scan already covers.
 var moveEventScanDirs = []string{
 	"internal/mobcommands",
 	"internal/combat",
+	"internal/usercommands",
 }
 
 // collectStringAssignments returns every string literal ever assigned to each
@@ -438,6 +444,31 @@ var intentionallySilentRoles = map[string]string{
 	"shoot/arrival_known_miss":      "remote_observer only: see shoot/arrival_unknown_hit.",
 
 	"throttle/cast_interrupt": "actee only: throttle.go's own comment says it plainly -- \"the YAML authors only an actee role for this event... matching today's behaviour of never broadcasting this to the room\" -- the interrupt is a private mechanical note riding on the hit event.",
+
+	// M4e-1b: the player-side special-move files (internal/usercommands),
+	// naming player_* prefixed keys in the same store files. These mirror
+	// the asymmetric role shapes their pre-migration call sites already had.
+	"grapple/player_prone_penalty":   "actor only: private knowledge about the actor's own roll against an already-prone target (grapple.go's own comment) -- a room line here would invent an observation nobody in the room made, about a grapple the success event already narrated to them.",
+	"grapple/player_defense_exposed": "actor only: private knowledge, same ruling as player_prone_penalty -- the actor alone learns their failed grapple left them exposed.",
+
+	"shoot/player_hit":     "actee only: the room's line for a same-room shot always comes from player_fire_announce's observer role, sent unconditionally before the outcome is known; hit/partial/miss carry only the target's own line (shoot.go's sendShootMessages, same-room branch).",
+	"shoot/player_partial": "actee only: same as shoot/player_hit -- the room line is player_fire_announce's, not this event's.",
+	"shoot/player_miss":    "actee only: same as shoot/player_hit -- the room line is player_fire_announce's, not this event's.",
+
+	"shoot/player_fire_announce": "observer only: this is the room's line for a same-room shot, sent once regardless of outcome; the outcome itself is authored separately on player_hit/player_partial/player_miss's actee role (shoot.go's same-room branch). No actor role either -- the shooter's own line for this shot is the hit/partial/miss actor role, not a duplicate announce.",
+	"shoot/player_fire_depart":   "observer only: the SHOOTER's own room sees the shot leave; the outcome is narrated to the TARGET's room by the player_arrival_* events instead, and the target already got their own player_hit/player_partial/player_miss line (shoot.go's cross-room branch).",
+
+	"shoot/player_arrival_unknown_hit":     "remote_observer only: these six arrival_* events exist solely for the defender's-room audience on a cross-room shot. The shooter's room already got player_fire_depart and the target already got player_hit/player_partial/player_miss (shoot.go's cross-room arrival send).",
+	"shoot/player_arrival_unknown_partial": "remote_observer only: see shoot/player_arrival_unknown_hit.",
+	"shoot/player_arrival_unknown_miss":    "remote_observer only: see shoot/player_arrival_unknown_hit.",
+	"shoot/player_arrival_known_hit":       "remote_observer only: see shoot/player_arrival_unknown_hit.",
+	"shoot/player_arrival_known_partial":   "remote_observer only: see shoot/player_arrival_unknown_hit.",
+	"shoot/player_arrival_known_miss":      "remote_observer only: see shoot/player_arrival_unknown_hit.",
+
+	"throw/player_hurl":           "no actee: throw is an untargeted room AoE against every hostile present, so it has no single actee at all (throw.go's own comment: \"17 actor sends and zero actee sends... the one genuinely actee-less member of the special-move family\").",
+	"throw/player_fumble":         "no actee: same as throw/player_hurl -- a fumble hits the thrower, not a chosen target.",
+	"throw/player_cast_interrupt": "no actee: the interrupted party is a mob with no client; its name rides the actor and observer text as plain prose instead.",
+	"throw/player_partial_hit":    "actor only: the room's line for a defended throw always comes from the channel defence triad (combat.RenderChannelDefenceMessages, sourced outside this store), and there is no actee -- see throw/player_hurl.",
 }
 
 // TestMoveEventRoleSetsAgree asserts every authored event carries both an

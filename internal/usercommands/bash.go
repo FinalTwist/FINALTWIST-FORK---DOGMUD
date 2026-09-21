@@ -8,9 +8,19 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
+
+// bashCategories: the player's own actor/actee feedback is CategorySystem;
+// the room's line carries CategoryBash (colour + light-verbosity gate).
+//
+// Kept on ONE line (rather than the more usual one-field-per-line struct
+// literal): send_trio_only_guard_test.go scans line by line for a guarded
+// category (Kick/Trip/Bash) paired with a recognised producer shape on that
+// SAME line, and moveCategories{...} is one of those shapes.
+var bashCategories = moveCategories{Actor: messaging.CategorySystem, Actee: messaging.CategorySystem, Observer: messaging.CategoryBash}
 
 var stageSpecialMoveTarget = actions.StageMeleeTarget
 
@@ -74,42 +84,34 @@ func Bash(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		Room:      room,
 	}
 
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, user.Character.Name),
+		ActorPlain: user.Character.Name,
+		Actee:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, target.Name),
+		ActeePlain: target.Name,
+	}
+	damageTokens := map[string]string{movenarration.TokenDamage: dmgDesc}
+
 	if result.Hit {
 		if result.KnockedDown {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(messaging.CategorySystem,
-					fmt.Sprintf(`Your <ansi fg="yellow-bold">shield bash</ansi> knocks <ansi fg="mobname">%s</ansi> to the ground! (<ansi fg="damage">%s</ansi>)`, target.Name, dmgDesc)),
-				Actee: messaging.Say(messaging.CategorySystem,
-					fmt.Sprintf(`<ansi fg="username">%s</ansi>'s <ansi fg="yellow-bold">shield bash</ansi> knocks you to the ground! (<ansi fg="damage">%s</ansi>)`, user.Character.Name, dmgDesc)),
-				Observer: messaging.Say(messaging.CategoryBash,
-					fmt.Sprintf(`<ansi fg="username">%s</ansi>'s <ansi fg="yellow-bold">shield bash</ansi> knocks <ansi fg="mobname">%s</ansi> to the ground!`, user.Character.Name, target.Name)),
-			}, aud)
+			sendMoveEvent("bash", "player_knockdown", ids, aud, bashCategories, damageTokens)
 		} else {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(messaging.CategorySystem,
-					fmt.Sprintf(`Your <ansi fg="yellow-bold">shield bash</ansi> strikes <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`, target.Name, dmgDesc)),
-				Actee: messaging.Say(messaging.CategorySystem,
-					fmt.Sprintf(`<ansi fg="username">%s</ansi>'s <ansi fg="yellow-bold">shield bash</ansi> strikes you! (<ansi fg="damage">%s</ansi>)`, user.Character.Name, dmgDesc)),
-				Observer: messaging.Say(messaging.CategoryBash,
-					fmt.Sprintf(`<ansi fg="username">%s</ansi> bashes <ansi fg="mobname">%s</ansi> with their shield!`, user.Character.Name, target.Name)),
-			}, aud)
+			sendMoveEvent("bash", "player_hit", ids, aud, bashCategories, damageTokens)
 		}
 	} else if result.Damage > 0 {
 		// Defended-partial: the personal lines carry the damage, and the room
 		// line names the defence that blunted the bash (U6b Task 9), falling
 		// back to plain stagger text when there was no defence to name.
+		roles, _ := renderMoveEvent("bash", "player_partial", ids, damageTokens)
 		defence, defended := moveDefenceLines(user, room, target, result.Defence, "shield bash")
-		observer := messaging.Say(messaging.CategoryBash,
-			fmt.Sprintf(`<ansi fg="username">%s</ansi> bashes <ansi fg="mobname">%s</ansi> with their shield, who staggers but stays up!`, user.Character.Name, target.Name))
+		observer := lineOrNone(messaging.CategoryBash, roles.Observer)
 		if defended {
 			observer = messaging.Say(messaging.CategoryBash, defence.ToRoom)
 			sendMoveDefenceShortage(targetUser, defence)
 		}
 		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.Say(messaging.CategorySystem,
-				fmt.Sprintf(`Your <ansi fg="yellow-bold">shield bash</ansi> fails to floor <ansi fg="mobname">%s</ansi>, but still slams into them! (<ansi fg="damage">%s</ansi>)`, target.Name, dmgDesc)),
-			Actee: messaging.Say(messaging.CategorySystem,
-				fmt.Sprintf(`<ansi fg="username">%s</ansi>'s <ansi fg="yellow-bold">shield bash</ansi> fails to floor you, but still slams into you! (<ansi fg="damage">%s</ansi>)`, user.Character.Name, dmgDesc)),
+			Actor:    lineOrNone(messaging.CategorySystem, roles.Actor),
+			Actee:    lineOrNone(messaging.CategorySystem, roles.Actee),
 			Observer: observer,
 		}, aud)
 	} else if defence, defended := moveDefenceLines(user, room, target, result.Defence, "shield bash"); defended {
@@ -122,14 +124,7 @@ func Bash(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		}, aud)
 	} else {
 		// No defence to narrate (e.g. a fumbled swing): plain miss text.
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.Say(messaging.CategorySystem,
-				fmt.Sprintf(`Your <ansi fg="yellow-bold">shield bash</ansi> misses <ansi fg="mobname">%s</ansi>!`, target.Name)),
-			Actee: messaging.Say(messaging.CategorySystem,
-				fmt.Sprintf(`<ansi fg="username">%s</ansi> attempts to bash you with their shield, but misses!`, user.Character.Name)),
-			Observer: messaging.Say(messaging.CategoryBash,
-				fmt.Sprintf(`<ansi fg="username">%s</ansi> attempts to bash <ansi fg="mobname">%s</ansi>, but misses!`, user.Character.Name, target.Name)),
-		}, aud)
+		sendMoveEvent("bash", "player_miss", ids, aud, bashCategories, nil)
 	}
 
 	// U6b Task 11: the counter renders AFTER the move's own outcome.

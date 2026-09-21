@@ -68,18 +68,20 @@ const m2RoutingGoldenPath = "testdata/m2-routing.golden"
 // with the same actee-send plus room-broadcast shape, and both call the defence
 // helper M2 rewrites, so M2's accepted room-line delivery change reaches them.
 var m2RoutingFiles = []string{
-	"internal/usercommands/bash.go",
 	"internal/usercommands/drain.go",
 	"internal/usercommands/gore.go",
-	"internal/usercommands/grapple.go",
 	"internal/usercommands/kick.go",
 	"internal/usercommands/maul.go",
 	"internal/usercommands/pounce.go",
 	"internal/usercommands/rake.go",
-	"internal/usercommands/shoot.go",
 	"internal/usercommands/throttle.go",
-	"internal/usercommands/throw.go",
-	"internal/usercommands/trip.go",
+	// internal/usercommands/{bash,trip,grapple,shoot,throw}.go are gone from
+	// this list, in step with their removal from m2FrozenFiles: M4e-1b Task
+	// 4b Step 1 migrated them onto the movenarration store, so their sends
+	// route through sendMoveEvent in internal/usercommands/move_narration.go
+	// rather than an inline messaging.Trio{...Say(...)} literal this scanner
+	// can see.
+	//
 	// internal/mobcommands/{kick,bash,gore,maul,rake,drain,throttle,hamstring,
 	// pounce,charge,trip,grapple,shoot}.go are gone from this list, in step
 	// with their removal from m2FrozenFiles: M4e-1 Tasks 7, 8 and the steps

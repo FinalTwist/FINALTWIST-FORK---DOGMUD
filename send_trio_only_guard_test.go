@@ -114,8 +114,11 @@ var sendTrioOnlyCategoryRE = regexp.MustCompile(
 // skill-move defence helper that itself only calls Say, or the special-move
 // store's call-site helpers (sendMoveEvent, lineOrNone) added in M4e-1 Task 7
 // -- both of which, like acteeDefenceLine, only ever produce a line through
-// Say or the zero-value NoLine.
-var sendTrioOnlyProducerRE = regexp.MustCompile(`messaging\.Say\(|acteeDefenceLine\(|sendMoveEvent\(|lineOrNone\(`)
+// Say or the zero-value NoLine. moveCategories{...} (M4e-1b,
+// internal/usercommands/move_narration.go) is the player-side helper's
+// per-role category literal, consumed only by sendMoveEvent/lineOrNone the
+// same way; it never sends a category anywhere else.
+var sendTrioOnlyProducerRE = regexp.MustCompile(`messaging\.Say\(|acteeDefenceLine\(|sendMoveEvent\(|lineOrNone\(|moveCategories\{`)
 
 func TestNarrationTrioOnlyCategoriesLeaveOnlyThroughSendTrio(t *testing.T) {
 	seen := map[string]bool{}

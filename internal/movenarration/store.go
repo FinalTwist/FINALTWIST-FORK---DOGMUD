@@ -29,6 +29,7 @@ const (
 	TokenWeapon   = "{weapon}"   // the ranged weapon being fired
 	TokenExitName = "{exitname}" // an exit, for ranged shots across rooms
 	TokenPosition = "{position}" // grapple's position description
+	TokenItem     = "{item}"     // throw's thrown item name, already prose
 )
 
 // tokenPattern and allowedTokens exist because textutil.ValidateTokens knows
@@ -54,6 +55,7 @@ var allowedTokens = map[string]bool{
 	TokenWeapon:               true,
 	TokenExitName:             true,
 	TokenPosition:             true,
+	TokenItem:                 true,
 }
 
 // EventKey names one outcome branch of one verb, such as "standard_hit".

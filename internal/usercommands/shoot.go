@@ -12,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/opinions"
 	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/questengine"
@@ -389,19 +390,53 @@ func sendShootMessages(user *users.UserRecord, room *rooms.Room, result actions.
 	// defended-partial ambush and never tell the shooter what stopped it. The
 	// melee side names the defence on exactly this outcome; folding the damage
 	// band onto the triad line mirrors that composite.
+	//
+	// The store event both switches below draw from: hit/partial/miss carry
+	// the outcome for the shooter's own actor line AND the target's actee
+	// line, since a player's shot narrates both from one event, unlike the
+	// mob twin (which has no actor client at all).
+	var moveEvent movenarration.EventKey
+	switch {
+	case hit:
+		moveEvent = "player_hit"
+	case partial:
+		moveEvent = "player_partial"
+	default:
+		moveEvent = "player_miss"
+	}
+
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, user.Character.Name),
+		ActorPlain: user.Character.Name,
+		Actee:      targetColored,
+		ActeePlain: result.TargetName,
+	}
+	damageTokens := map[string]string{movenarration.TokenDamage: tier}
+
+	// Stealth is not darkness. The pipeline hides the shooter's name by the
+	// reader's sight; a sneaking shooter is hidden from everyone regardless,
+	// so the name never enters the text in the first place. This only
+	// affects the ACTEE's own line (below): the shooter's own line never
+	// names the shooter at all.
+	targetIds := ids
+	if result.IsSneaking {
+		targetIds.Actor = `Someone`
+	}
+	roles, _ := renderMoveEvent("shoot", moveEvent, targetIds, damageTokens)
+
 	var shooterLine messaging.Line
 	switch {
 	case result.Revealed:
 		shooterLine = messaging.Say(messaging.CategorySurpriseAttack,
 			surpriseShotShooterLine(hit, triadAtk, targetColored, tier, result.MoveResult.Damage > 0))
 	case hit:
-		shooterLine = messaging.Say(messaging.CategoryHitRanged, fmt.Sprintf(`Your shot takes %s (<ansi fg="damage">%s</ansi>)!`, targetColored, tier))
+		shooterLine = lineOrNone(messaging.CategoryHitRanged, roles.Actor)
 	case partial:
-		shooterLine = messaging.Say(messaging.CategoryHitRanged, fmt.Sprintf(`Your shot goes wide of %s, but the edge of it still clips them! (<ansi fg="damage">%s</ansi>)`, targetColored, tier))
+		shooterLine = lineOrNone(messaging.CategoryHitRanged, roles.Actor)
 	case triadAtk != "":
 		shooterLine = messaging.Say(messaging.CategoryDodge, triadAtk)
 	default:
-		shooterLine = messaging.Say(messaging.CategoryDodge, fmt.Sprintf(`Your shot goes wide of %s!`, targetColored))
+		shooterLine = lineOrNone(messaging.CategoryDodge, roles.Actor)
 	}
 
 	// The actee's line, built here so the shot reaches all three audiences in
@@ -414,15 +449,11 @@ func sendShootMessages(user *users.UserRecord, room *rooms.Room, result actions.
 	}
 	targetLine := messaging.NoLine
 	if targetPlayer != nil {
-		shooter := fmt.Sprintf(`<ansi fg="username">%s</ansi>`, user.Character.Name)
-		if result.IsSneaking {
-			shooter = `Someone`
-		}
 		switch {
 		case hit:
-			targetLine = messaging.Say(messaging.CategoryHitRanged, fmt.Sprintf(`%s's shot strikes you (<ansi fg="damage">%s</ansi>)!`, shooter, tier))
+			targetLine = lineOrNone(messaging.CategoryHitRanged, roles.Actee)
 		case partial:
-			targetLine = messaging.Say(messaging.CategoryHitRanged, fmt.Sprintf(`%s's shot goes wide, but the edge of it still clips you! (<ansi fg="damage">%s</ansi>)`, shooter, tier))
+			targetLine = lineOrNone(messaging.CategoryHitRanged, roles.Actee)
 		case triadDef != "":
 			personal := triadDef
 			if result.IsSneaking {
@@ -430,7 +461,7 @@ func sendShootMessages(user *users.UserRecord, room *rooms.Room, result actions.
 			}
 			targetLine = messaging.Say(messaging.CategoryHitRanged, personal)
 		default:
-			targetLine = messaging.Say(messaging.CategoryHitRanged, fmt.Sprintf(`%s's shot narrowly misses you!`, shooter))
+			targetLine = lineOrNone(messaging.CategoryHitRanged, roles.Actee)
 		}
 	}
 
@@ -483,7 +514,6 @@ func sendShootMessages(user *users.UserRecord, room *rooms.Room, result actions.
 	}
 
 	weapon := fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, result.WeaponName)
-	shooterName := fmt.Sprintf(`<ansi fg="username">%s</ansi>`, user.Character.Name)
 
 	if !result.CrossRoom {
 		// Same-room broadcast (exclude shooter + player target, which the
@@ -494,8 +524,8 @@ func sendShootMessages(user *users.UserRecord, room *rooms.Room, result actions.
 			if triadRoom != "" {
 				sameRoomLine = messaging.Say(messaging.CategoryHitRanged, triadRoom)
 			} else {
-				sameRoomLine = messaging.Say(messaging.CategoryHitRanged,
-					fmt.Sprintf(`%s fires their %s at %s!`, shooterName, weapon, targetColored))
+				announceRoles, _ := renderMoveEvent("shoot", "player_fire_announce", ids, map[string]string{movenarration.TokenWeapon: weapon})
+				sameRoomLine = lineOrNone(messaging.CategoryHitRanged, announceRoles.Observer)
 			}
 		}
 		messaging.SendTrio(messaging.Trio{
@@ -511,8 +541,11 @@ func sendShootMessages(user *users.UserRecord, room *rooms.Room, result actions.
 	// target's room sees it arrive.
 	departLine := messaging.NoLine
 	if !result.IsSneaking {
-		departLine = messaging.Say(messaging.CategoryHitRanged,
-			fmt.Sprintf(`%s fires their %s %sward.`, shooterName, weapon, result.ExitName))
+		departRoles, _ := renderMoveEvent("shoot", "player_fire_depart", ids, map[string]string{
+			movenarration.TokenWeapon:   weapon,
+			movenarration.TokenExitName: result.ExitName,
+		})
+		departLine = lineOrNone(messaging.CategoryHitRanged, departRoles.Observer)
 	}
 	messaging.SendTrio(messaging.Trio{
 		Actor:    shooterLine,
@@ -525,26 +558,39 @@ func sendShootMessages(user *users.UserRecord, room *rooms.Room, result actions.
 	// ActeeId is set here while Actee is not.
 	if tr := rooms.LoadRoom(result.TargetRoomId); tr != nil {
 		fromDir := tr.FindExitTo(room.RoomId)
-		origin := `from somewhere nearby`
-		if fromDir != "" {
-			origin = fmt.Sprintf(`from beyond the <ansi fg="exit">%s</ansi>`, fromDir)
-		}
-		var arrivalLine messaging.Line
+		known := fromDir != ""
+
+		// The six arms are spelled out rather than built by concatenating an
+		// origin and an outcome, mirroring the mob twin
+		// (internal/mobcommands/shoot.go): a composed key would be shorter
+		// here and INVISIBLE to the root key-agreement guard, which finds
+		// referenced events by matching literal sendMoveEvent/
+		// renderMoveEvent call sites.
+		var arrivalEvent movenarration.EventKey
 		switch {
+		case known && hit:
+			arrivalEvent = "player_arrival_known_hit"
+		case known && partial:
+			arrivalEvent = "player_arrival_known_partial"
+		case known:
+			arrivalEvent = "player_arrival_known_miss"
 		case hit:
-			arrivalLine = messaging.Say(messaging.CategoryHitRanged,
-				fmt.Sprintf(`A shot streaks in %s and strikes %s!`, origin, targetColored))
+			arrivalEvent = "player_arrival_unknown_hit"
 		case partial:
-			arrivalLine = messaging.Say(messaging.CategoryHitRanged,
-				fmt.Sprintf(`A shot streaks in %s and clips %s!`, origin, targetColored))
+			arrivalEvent = "player_arrival_unknown_partial"
 		default:
-			arrivalLine = messaging.Say(messaging.CategoryHitRanged,
-				fmt.Sprintf(`A shot streaks in %s and narrowly misses %s!`, origin, targetColored))
+			arrivalEvent = "player_arrival_unknown_miss"
 		}
+
+		arrivalTokens := map[string]string{}
+		if known {
+			arrivalTokens[movenarration.TokenExitName] = fromDir
+		}
+		arrivalRoles, _ := renderMoveEvent("shoot", arrivalEvent, ids, arrivalTokens)
 		messaging.SendTrio(messaging.Trio{
 			Actor:    messaging.NoLine,
 			Actee:    messaging.NoLine,
-			Observer: arrivalLine,
+			Observer: lineOrNone(messaging.CategoryHitRanged, arrivalRoles.ActeeObserver),
 		}, messaging.Audience{ActorName: user.Character.Name, ActeeId: result.TargetUserId, ActeeName: result.TargetName, Room: tr})
 	}
 }

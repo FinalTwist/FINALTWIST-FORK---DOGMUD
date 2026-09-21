@@ -8,10 +8,20 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/questengine"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
+
+// tripCategories: the player's own actor/actee feedback is CategorySystem;
+// the room's line carries CategoryTrip (colour + light-verbosity gate).
+//
+// Kept on ONE line (rather than the more usual one-field-per-line struct
+// literal): send_trio_only_guard_test.go scans line by line for a guarded
+// category (Kick/Trip/Bash) paired with a recognised producer shape on that
+// SAME line, and moveCategories{...} is one of those shapes.
+var tripCategories = moveCategories{Actor: messaging.CategorySystem, Actee: messaging.CategorySystem, Observer: messaging.CategoryTrip}
 
 func Trip(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 	actor, handled := stageSpecialMoveTarget(user, room, rest, actions.MeleeTargetOpts{
@@ -81,75 +91,55 @@ func Trip(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		Room:      room,
 	}
 
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, user.Character.Name),
+		ActorPlain: user.Character.Name,
+		Actee:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, targetName),
+		ActeePlain: targetName,
+	}
+	damageTokens := map[string]string{movenarration.TokenDamage: combat.GetDamageDescription(result.Damage, result.TargetMaxHP)}
+
 	// Send messages
 	if result.Hit {
 		if hasTail {
 			if result.KnockedDown {
-				messaging.SendTrio(messaging.Trio{
-					Actor: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="yellow-bold">tailsweep</ansi> sends <ansi fg="mobname">%s</ansi> crashing to the ground! (<ansi fg="damage">%s</ansi>)`, targetName, combat.GetDamageDescription(result.Damage, result.TargetMaxHP))),
-					Actee: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> hammers you with their tail, sending you crashing to the ground! (<ansi fg="damage">%s</ansi>)`, user.Character.Name, combat.GetDamageDescription(result.Damage, result.TargetMaxHP))),
-					Observer: messaging.Say(messaging.CategoryTrip,
-						fmt.Sprintf(`<ansi fg="username">%s</ansi> tailsweeps <ansi fg="mobname">%s</ansi>, sending them crashing to the ground!`, user.Character.Name, targetName)),
-				}, aud)
+				sendMoveEvent("trip", "player_tailsweep_knockdown", ids, aud, tripCategories, damageTokens)
 			} else {
-				messaging.SendTrio(messaging.Trio{
-					Actor: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="yellow-bold">tailsweep</ansi> strikes <ansi fg="mobname">%s</ansi>, but they keep their footing! (<ansi fg="damage">%s</ansi>)`, targetName, combat.GetDamageDescription(result.Damage, result.TargetMaxHP))),
-					Actee: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> sweeps at you with their tail, but you manage to stay upright! (<ansi fg="damage">%s</ansi>)`, user.Character.Name, combat.GetDamageDescription(result.Damage, result.TargetMaxHP))),
-					Observer: messaging.Say(messaging.CategoryTrip,
-						fmt.Sprintf(`<ansi fg="username">%s</ansi> tailsweeps <ansi fg="mobname">%s</ansi>, but they keep their footing!`, user.Character.Name, targetName)),
-				}, aud)
+				sendMoveEvent("trip", "player_tailsweep_hit", ids, aud, tripCategories, damageTokens)
 			}
 		} else {
 			if result.KnockedDown {
-				messaging.SendTrio(messaging.Trio{
-					Actor: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="yellow-bold">trip</ansi> sends <ansi fg="mobname">%s</ansi> crashing to the ground! (<ansi fg="damage">%s</ansi>)`, targetName, combat.GetDamageDescription(result.Damage, result.TargetMaxHP))),
-					Actee: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> sweeps your legs, sending you crashing to the ground! (<ansi fg="damage">%s</ansi>)`, user.Character.Name, combat.GetDamageDescription(result.Damage, result.TargetMaxHP))),
-					Observer: messaging.Say(messaging.CategoryTrip,
-						fmt.Sprintf(`<ansi fg="username">%s</ansi> trips <ansi fg="mobname">%s</ansi>, sending them crashing to the ground!`, user.Character.Name, targetName)),
-				}, aud)
+				sendMoveEvent("trip", "player_trip_knockdown", ids, aud, tripCategories, damageTokens)
 			} else {
-				messaging.SendTrio(messaging.Trio{
-					Actor: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="yellow-bold">trip</ansi> strikes <ansi fg="mobname">%s</ansi>, but they stay on their feet! (<ansi fg="damage">%s</ansi>)`, targetName, combat.GetDamageDescription(result.Damage, result.TargetMaxHP))),
-					Actee: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> attempts to trip you, but you keep your footing! (<ansi fg="damage">%s</ansi>)`, user.Character.Name, combat.GetDamageDescription(result.Damage, result.TargetMaxHP))),
-					Observer: messaging.Say(messaging.CategoryTrip,
-						fmt.Sprintf(`<ansi fg="username">%s</ansi> attempts to trip <ansi fg="mobname">%s</ansi>, but they keep their footing!`, user.Character.Name, targetName)),
-				}, aud)
+				sendMoveEvent("trip", "player_trip_hit", ids, aud, tripCategories, damageTokens)
 			}
 		}
 	} else if result.Damage > 0 {
 		// Defended-partial: personal lines carry the damage; the room line
 		// names the defence that blunted the move (U6b Task 9).
-		tripAttack := "trip"
+		var tripAttack string
+		var partialEvent movenarration.EventKey
 		if hasTail {
 			tripAttack = "tailsweep"
+			partialEvent = "player_tailsweep_partial"
+		} else {
+			tripAttack = "trip"
+			partialEvent = "player_trip_partial"
 		}
+		roles, _ := renderMoveEvent("trip", partialEvent, ids, damageTokens)
 		defence, defended := moveDefenceLines(user, room, target, result.Defence, tripAttack)
 		if defended {
 			sendMoveDefenceShortage(targetChar, defence)
 		}
-		if hasTail {
-			tailObserver := messaging.Say(messaging.CategoryTrip,
-				fmt.Sprintf(`<ansi fg="username">%s</ansi> tailsweeps <ansi fg="mobname">%s</ansi>, who staggers but keeps their feet!`, user.Character.Name, targetName))
-			if defended {
-				tailObserver = messaging.Say(messaging.CategoryTrip, defence.ToRoom)
-			}
-			messaging.SendTrio(messaging.Trio{
-				Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="yellow-bold">tailsweep</ansi> fails to trip <ansi fg="mobname">%s</ansi>, but still cracks into them! (<ansi fg="damage">%s</ansi>)`, targetName, combat.GetDamageDescription(result.Damage, result.TargetMaxHP))),
-				Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> swings their tail and you keep your feet, but it still cracks into you! (<ansi fg="damage">%s</ansi>)`, user.Character.Name, combat.GetDamageDescription(result.Damage, result.TargetMaxHP))),
-				Observer: tailObserver,
-			}, aud)
-		} else {
-			observer := messaging.Say(messaging.CategoryTrip,
-				fmt.Sprintf(`<ansi fg="username">%s</ansi> tries to trip <ansi fg="mobname">%s</ansi>, who staggers but keeps their feet!`, user.Character.Name, targetName))
-			if defended {
-				observer = messaging.Say(messaging.CategoryTrip, defence.ToRoom)
-			}
-			messaging.SendTrio(messaging.Trio{
-				Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="yellow-bold">trip</ansi> fails to take <ansi fg="mobname">%s</ansi> down, but still catches them hard! (<ansi fg="damage">%s</ansi>)`, targetName, combat.GetDamageDescription(result.Damage, result.TargetMaxHP))),
-				Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> tries to trip you and you keep your feet, but the sweep still catches you! (<ansi fg="damage">%s</ansi>)`, user.Character.Name, combat.GetDamageDescription(result.Damage, result.TargetMaxHP))),
-				Observer: observer,
-			}, aud)
+		observer := lineOrNone(messaging.CategoryTrip, roles.Observer)
+		if defended {
+			observer = messaging.Say(messaging.CategoryTrip, defence.ToRoom)
 		}
+		messaging.SendTrio(messaging.Trio{
+			Actor:    lineOrNone(messaging.CategorySystem, roles.Actor),
+			Actee:    lineOrNone(messaging.CategorySystem, roles.Actee),
+			Observer: observer,
+		}, aud)
 	} else {
 		// Fully stopped: speak the triad naming the winning defence; fall
 		// back to plain miss text when there is no defence to narrate (a
@@ -167,19 +157,9 @@ func Trip(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				Observer: messaging.Say(messaging.CategoryTrip, defence.ToRoom),
 			}, aud)
 		} else if hasTail {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="yellow-bold">tailsweep</ansi> misses <ansi fg="mobname">%s</ansi>!`, targetName)),
-				Actee: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> swings their tail at you, but you avoid it!`, user.Character.Name)),
-				Observer: messaging.Say(messaging.CategoryTrip,
-					fmt.Sprintf(`<ansi fg="username">%s</ansi> attempts a tailsweep on <ansi fg="mobname">%s</ansi>, but misses!`, user.Character.Name, targetName)),
-			}, aud)
+			sendMoveEvent("trip", "player_tailsweep_miss", ids, aud, tripCategories, nil)
 		} else {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="yellow-bold">trip</ansi> attempt misses <ansi fg="mobname">%s</ansi>!`, targetName)),
-				Actee: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> attempts to trip you, but you avoid it!`, user.Character.Name)),
-				Observer: messaging.Say(messaging.CategoryTrip,
-					fmt.Sprintf(`<ansi fg="username">%s</ansi> attempts to trip <ansi fg="mobname">%s</ansi>, but misses!`, user.Character.Name, targetName)),
-			}, aud)
+			sendMoveEvent("trip", "player_trip_miss", ids, aud, tripCategories, nil)
 		}
 	}
 

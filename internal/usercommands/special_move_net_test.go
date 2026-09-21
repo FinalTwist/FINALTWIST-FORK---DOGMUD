@@ -40,15 +40,26 @@ import (
 // reads them only through the frozen fixture, never the .go files directly.
 //
 // UNLIKE THE MOBCOMMANDS NET, MOST ROWS HERE SKIP RATHER THAN COMPARE, AND
-// THAT IS EXPECTED. The store's `actor` role -- the player's own personal
-// line, which a mob never had a client to receive -- is empty on every
-// event the twelve player files touch, and the pools that ARE populated
-// (actee/observer/remote_observer) are not yet squared to the player's
-// pool lengths. A row whose event has not been authored yet is not a
+// THAT IS EXPECTED. A row whose event has not been authored yet is not a
 // mismatch to report; it is a to-do item to skip cleanly, count, and leave
-// for the migration to burn down. See skipReason below for exactly what
-// gates a skip, and TestMigratedWordingIsByteIdentical's own t.Logf for the
-// running count.
+// for the migration to burn down.
+//
+// 🔴 CORRECTED 2026-09-21: the player events take player_ PREFIXED keys, not
+// the bare outcome keys the fixture's "event" field spells. The mob and
+// player twins shipped different prose for the same event, so they do not
+// share a pool (owner ruling, option B) -- "bash/knockdown" in the fixture
+// corresponds to the shipped store's "player_knockdown", not "knockdown"
+// (which stays the MOB event, untouched, forever actor-less). This test
+// therefore looks up "player_" + row.Event, never row.Event bare.
+//
+// The gate on whether an event has been "squared for the player side" checks
+// THIS ROW'S OWN ROLE's pool, not the actor role as a stand-in proxy: some
+// fully-authored player events legitimately carry no actor line at all
+// (shoot's player_fire_announce/player_fire_depart/player_arrival_* are
+// observer/remote_observer only, mirroring the mob twin's role shape), so
+// gating on actor presence would skip them forever even once done. See
+// rolePool below for exactly what gates a skip, and
+// TestMigratedWordingIsByteIdentical's own t.Logf for the running count.
 func TestMigratedWordingIsByteIdentical(t *testing.T) {
 	rows := loadPreMigrationLiterals(t)
 	if len(rows) == 0 {
@@ -71,27 +82,25 @@ func TestMigratedWordingIsByteIdentical(t *testing.T) {
 				t.Skipf("store has no %s.yaml yet", row.Verb)
 			}
 
-			v, ok := g.Variants(movenarration.EventKey(row.Event))
+			playerEvent := "player_" + row.Event
+			v, ok := g.Variants(movenarration.EventKey(playerEvent))
 			if !ok {
 				skipped++
-				t.Skipf("store has no event %q for verb %q yet", row.Event, row.Verb)
+				t.Skipf("store has no event %q for verb %q yet", playerEvent, row.Verb)
 			}
 
-			// The actor role is the player's own personal line, which the
-			// mob-only migration (PR 1a) never authored for any event: a mob
-			// has no client to receive it. Its presence is this net's proxy
-			// for "this event's pools have been squared for the player
-			// side" -- until the actor line lands, the actee/observer/
-			// remote_observer pools are not yet at the player's pool
-			// lengths either, so a real comparison at THIS row's index would
-			// either compare against the wrong entry (a short pool wrapping
-			// via modulo) or fail on a squaring gap that is a to-do item,
-			// not a wording regression. Gating on it, rather than on the
-			// row's own role, means an actee/observer/remote_observer row
-			// skips too, exactly when it should.
-			if len(v.Actor) == 0 {
+			// Gate on THIS ROW'S OWN ROLE, not on actor presence: a fully
+			// authored event can legitimately carry no actor line at all
+			// (shoot's player_fire_announce/player_fire_depart/
+			// player_arrival_* are observer/remote_observer only), so an
+			// actor-presence proxy would skip those forever even once done.
+			// Until this row's role lands, a real comparison at THIS row's
+			// index would either compare against the wrong entry (a short
+			// pool wrapping via modulo) or fail on a squaring gap that is a
+			// to-do item, not a wording regression.
+			if len(rolePool(v, row.Role)) == 0 {
 				skipped++
-				t.Skipf("actor line(s) not yet authored for %s/%s; pools not yet squared", row.Verb, row.Event)
+				t.Skipf("%s role not yet authored for %s/%s; pool not yet squared", row.Role, row.Verb, playerEvent)
 			}
 
 			checked++
@@ -200,6 +209,26 @@ func roleText(r narration.Roles, role string) string {
 	return ""
 }
 
+// rolePool picks one role's raw variant pool out of a narration.Variants by
+// the fixture's role string, mirroring roleText's switch. Used to gate a
+// skip on whether THIS ROW'S OWN ROLE has been authored yet, rather than on
+// the actor role as a stand-in proxy (see TestMigratedWordingIsByteIdentical's
+// own comment on why: some fully-authored events carry no actor line at
+// all).
+func rolePool(v narration.Variants, role string) []string {
+	switch role {
+	case "actor":
+		return v.Actor
+	case "actee":
+		return v.Actee
+	case "observer":
+		return v.Observer
+	case "remote_observer":
+		return v.ActeeObserver
+	}
+	return nil
+}
+
 // Stand-in values for the store's token vocabulary. Each is distinctive
 // enough that a swapped token (e.g. {actor} landing where {actee} belongs)
 // changes the rendered string rather than accidentally matching.
@@ -248,6 +277,7 @@ func standInTokens() map[string]string {
 		movenarration.TokenWeapon:   standInWeapon,
 		movenarration.TokenExitName: standInExitName,
 		movenarration.TokenPosition: standInPosition,
+		movenarration.TokenItem:     standInItem,
 	}
 }
 
