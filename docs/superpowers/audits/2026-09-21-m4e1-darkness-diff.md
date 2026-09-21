@@ -191,6 +191,53 @@ an admin character in an unlit cave room such as 3101:
 2. Capture the raw bytes and confirm the stand-in word carries
    `<ansi fg="combat-anon">`.
 
+## Two leaks the owner found in play, and the census they prompted
+
+The owner's manual telnet run (2026-09-21) caught two lines naming a mob
+outright in a pitch-dark room, while every combat line in the same round
+called that same mob "something":
+
+```
+You shift your focus to Cave Crawler!
+Cave Crawler moves with increasing swiftness.
+```
+
+**Both fixed in this PR.** Neither was in the thirteen migrated files.
+
+- **The focus notice** (`hooks/NewRound_DoCombat.go`, `usercommands/target.go`
+  at two sites) rode `CategorySystem` on a raw `SendText`, which bypasses the
+  sight gate entirely. Each personal line now hides its subject by the
+  READER's own sight. A third personal line was found in the same block and
+  fixed with them: `p.SendText(... "X shifts focus to you!")` told a target
+  who was aiming at them even when that target could not see.
+- **The mob stat-gain emote** (`hooks/NewRound_DoCombat_unified.go`, via
+  `characters.MobStatGainMessages`) used `Room.SendText`. It is a PURELY
+  VISUAL line, so it now uses `SendTextVisualHidingNames`: a reader who cannot
+  see receives nothing at all, and a shapes-only reader reads "a figure".
+- The two room lines in `target.go` were already sight-gated but passed NO
+  names, so they leaned on tag-based `Anonymize` and collapsed the shapes and
+  blind tiers into one word. They now pass both names.
+
+### 📌 FILED, not fixed: eight more room broadcasts bypass the sight gate
+
+Measured 2026-09-21 by sweeping for raw `SendText` room broadcasts carrying an
+identity tag. **79 raw identity-tagged sends exist overall**, most of them
+legitimately transactional (shop and purchase lines). Eight are room
+broadcasts that skip the gate:
+
+| Site | Line | The question it needs answered |
+|---|---|---|
+| `NewRound_DoCombat_helpers.go` | "X is blocked from fleeing by Y!" | visual only, or audible? |
+| `NewRound_DoCombat_helpers.go` | "X flees to the Y exit!" | would a blind character HEAR someone flee? |
+| `NewRound_DoCombat_helpers.go` (x2) | "The ITEM X was carrying breaks!" | a break is loud; audible, surely? |
+| `mobcommands/sayto.go` (x4) | "X says to Y, ..." | speech is audio, so it arrives, but should it NAME? |
+
+**These are not mechanical fixes.** Each needs a ruling on whether the event
+is visual-only (suppress for a blind reader) or audible (arrives, name
+hidden), and the speech four belong with the `sendAudioRoomText` follow-up
+already filed for the four speech commands. Guessing per line is how the two
+tiers got collapsed in the first place.
+
 ## What the playtest can and cannot show
 
 - 🪤 **The shapes tier will not exercise itself.** M4d PR 2's run failed to

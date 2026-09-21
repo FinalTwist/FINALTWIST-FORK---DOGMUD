@@ -878,7 +878,20 @@ func narrationRecognizeCall(call *ast.CallExpr) (narrationCallViewpoint, bool) {
 			default:
 				return viewpointActee, true
 			}
-		case "SendTextVisual", "SendTextToUser":
+		// Every sight-gated ROOM broadcast is an observer viewpoint, not just
+		// the plain one.
+		//
+		// 🪤 This switch matches EXACT method names, so it silently under-counted
+		// for years: a site that used SendTextVisualHidingNames (the project's
+		// preferred sight-aware sender, and the observer half of
+		// messaging.SendTrio) was read as having NO observer viewpoint, and the
+		// guard then demanded a registry entry claiming a gap that did not
+		// exist. Found 2026-09-21 when target.go's room lines moved onto it.
+		// Measured at that moment: 5 production uses of
+		// SendTextVisualHidingNames, 5 of SendTextVisualWithAudio and 1 of
+		// SendTextVisualAsLit were all invisible here.
+		case "SendTextVisual", "SendTextToUser",
+			"SendTextVisualHidingNames", "SendTextVisualAsLit", "SendTextVisualWithAudio":
 			if recv.Name == "room" {
 				return viewpointObserver, true
 			}

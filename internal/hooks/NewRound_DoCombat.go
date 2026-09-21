@@ -81,7 +81,20 @@ func DoCombat(e events.Event) events.ListenerReturn {
 					targetName = u.Character.Name
 				}
 			}
-			user.SendText(messaging.CategorySystem, fmt.Sprintf("You shift your focus to <ansi fg=\"mobname\">%s</ansi>!", targetName))
+			// You cannot identify what you have just turned to face if you
+			// cannot see it. This line rides CategorySystem on a raw SendText,
+			// which bypasses the sight gate, so the hiding is done here by the
+			// reader's own sight. Found in play 2026-09-21: a player in a
+			// pitch-dark cave read "You shift your focus to Cave Crawler!"
+			// while every combat line in the same round called that same mob
+			// "something".
+			// The literal stays INLINE: the root viewpoint guard fingerprints
+			// these sites by their literal, so hoisting it into a local makes
+			// the site invisible to it.
+			user.SendText(messaging.CategorySystem, messaging.HideNames(
+				fmt.Sprintf("You shift your focus to <ansi fg=\"mobname\">%s</ansi>!", targetName),
+				[]string{targetName},
+				messaging.ParticipantSight(user.Character, uRoom)))
 		}
 	}
 
