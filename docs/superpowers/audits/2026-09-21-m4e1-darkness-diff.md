@@ -118,6 +118,79 @@ predicate restored, the blind subtest goes red reading "a figure".
 - `internal/mobcommands/darkness_tiers_test.go`
 - `internal/usercommands/darkness_tiers_test.go`
 
+## Playtest result, 2026-09-21, run `4b7aba52aa33ad4f`
+
+Commit `59a8d7f52`, clean tree, room 3101 (Cave Mouth, `biome: cave`),
+profile `slice-a-infrared`, feature-tester. **Outcome: PARTIAL.**
+
+### Verified: the blind tier renders correctly
+
+Captured live, verbatim:
+
+```
+⚡ SWEEP! Something dodges and lashes at your legs. You stay up, but it still
+catches you! (negligible damage)
+Something sidesteps your clumsy Iron Longsword with ease!
+Something hangs back in the dark, biding its time.
+You hear something collapse to the ground.
+You cannot see clearly, so your attacks and defense are weaker.
+```
+
+Four things this proves:
+
+1. **The word is "Something", the `SightNone` word.** Capitalised at sentence
+   start after the `⚡ SWEEP!` banner, which is `HideNames`' `atSentenceStart`
+   looking back through tags, exactly the case its docstring gives as its
+   example.
+2. **The move is still identifiable.** The sweep reads as a sweep, with the
+   defence, the knockdown result and the damage band intact. Only the identity
+   is gone. That is the entire point of the slice: the deleted hardcoded twin
+   could only ever say one fixed sentence.
+3. **Zero raw tokens.** Scanned every output line for `{...}`: **0 found**.
+   A literal `{actor}` or `{damage}` reaching a player was the most serious
+   thing this run could have found.
+4. **`look` returns "You can't see anything!"**, confirming the room is
+   genuinely unlit and the reader is `SightNone`, so the lane is valid.
+
+### NOT verified: the shapes tier, for the THIRD time
+
+🔴 **`conditions` returned `None`.** The `slice-a-infrared` profile declares
+condition 85 (InfraredVision) with `triggersleft: 999999`, and the character
+still reached the world without it.
+
+This is the **third** recurrence: 2026-09-11, 2026-09-20 (M4d PR 2) and now
+2026-09-21. Each time the run silently tested the blind tier while the profile
+name said otherwise. The profile's own comment already documents the
+born-dead-condition trap and is not the cause, because the condition is not
+expired, it is **absent**.
+
+**So the `SightShapes` tier has never been exercised live, and it is the tier
+this PR changes.** Reported as unverified rather than implied to pass.
+
+The guard that exists covers template loading only, not materialize-to-login.
+Filed as its own follow-up: something between the profile's saved condition
+list and the character reaching the world drops it, and until that is found,
+no playtest can verify an infrared behaviour at all.
+
+### Also not covered
+
+- **Only one distinct special move was captured.** The room's mobs died and did
+  not respawn inside the window, so kick, bash, gore and the rest were not
+  observed live. They share one code path with the sweep and are covered by the
+  118-row net, but that is source-level proof, not play.
+- **Colour is unverifiable by harness**: the AI port strips ANSI, so the
+  `combat-anon` tag cannot be seen this way. Needs telnet on 33333.
+
+### Manual check that would close both gaps
+
+For the two things the harness structurally cannot do, over telnet 33333 with
+an admin character in an unlit cave room such as 3101:
+
+1. Grant infrared, then have a mob use a special move on you. The line must
+   read **"a figure"**, not "something".
+2. Capture the raw bytes and confirm the stand-in word carries
+   `<ansi fg="combat-anon">`.
+
 ## What the playtest can and cannot show
 
 - 🪤 **The shapes tier will not exercise itself.** M4d PR 2's run failed to
