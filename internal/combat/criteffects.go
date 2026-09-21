@@ -1,12 +1,11 @@
 package combat
 
 import (
-	"fmt"
-
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 )
 
 // DisarmResult represents the outcome of a disarm attempt
@@ -46,11 +45,17 @@ func AttemptCritDisarm(source *characters.Character, target *characters.Characte
 	result.Success = true
 	result.Weapon = target.Equipment.Weapon
 
-	// Generate messages
+	// Generate messages from the shipped store. Names are bare (no identity
+	// ansi tag), matching the original Sprintf calls.
 	weaponName := result.Weapon.NameSimple()
-	result.Message = fmt.Sprintf(`<ansi fg="yellow-bold">You disarm %s, loosening their grip on their %s!</ansi>`, target.Name, weaponName)
-	result.TargetMsg = fmt.Sprintf(`<ansi fg="red-bold">%s disarms you! Your %s slips from your grasp!</ansi>`, source.Name, weaponName)
-	result.RoomMessage = fmt.Sprintf(`<ansi fg="combat">%s disarms %s, knocking their %s loose!</ansi>`, source.Name, target.Name, weaponName)
+	ids := grappleMoveIdentities{ActorPlain: source.Name, ActeePlain: target.Name}
+	if roles, ok := renderGrappleEvent(movenarration.EventKey("disarm"), ids, map[string]string{
+		movenarration.TokenWeapon: weaponName,
+	}); ok {
+		result.Message = roles.Actor
+		result.TargetMsg = roles.Actee
+		result.RoomMessage = roles.Observer
+	}
 
 	// Remove weapon from equipped and put in inventory
 	target.RemoveFromBody(result.Weapon)

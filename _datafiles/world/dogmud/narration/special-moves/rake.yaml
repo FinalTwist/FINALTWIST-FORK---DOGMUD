@@ -1,0 +1,17 @@
+moveid: rake
+events:
+  hit:
+    actee:
+      - '{actor} rakes its claws across you, opening bleeding wounds! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} rakes its claws across {actee}!'
+  partial:
+    actee:
+      - '{actor} swipes its claws and you dodge most of it, but they still scratch you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} swipes its claws at {actee}, who mostly dodges but still gets scratched!'
+  miss:
+    actee:
+      - '{actor} swipes its claws at you, but misses!'
+    observer:
+      - '{actor} swipes its claws at {actee}, but misses!'

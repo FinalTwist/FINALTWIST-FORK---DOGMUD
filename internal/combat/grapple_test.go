@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
 	"github.com/stretchr/testify/assert"
@@ -169,6 +170,14 @@ func TestAttemptGrapple_PositionTransition(t *testing.T) {
 // grapple crit-failure previously dereferenced a nil *position.Machine and
 // crashed (a flaky panic in TestAttackInCombat/grapple_in_combat on CI).
 func TestHandleGrappleCritFailure_NilAttackerPosition(t *testing.T) {
+	// A test binary never reads config.yaml, so the store would otherwise
+	// resolve to _datafiles/world/default, which does not carry this data.
+	// Load the shipped dogmud store explicitly rather than relying on test
+	// order to have loaded it as a side effect of another test.
+	if err := movenarration.LoadFrom("../../_datafiles/world/dogmud/narration/special-moves"); err != nil {
+		t.Fatalf("loading the shipped store: %v", err)
+	}
+
 	attacker := &characters.Character{} // Position is nil (zero-value pointer)
 	defender := &characters.Character{}
 	assert.NotPanics(t, func() {

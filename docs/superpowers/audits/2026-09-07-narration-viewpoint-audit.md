@@ -573,3 +573,32 @@ in text M2 had already disturbed. The rest are recorded in
 | Retired entry | Why |
 |---|---|
 | `usercommands/go.go` `%s follows you.` (verdictCorrect, actor+actee) | The room-entry line beside it changed from `destRoom.SendText` to `destRoom.SendTextVisualWithAudio`, so the walk now groups the pet-follow notice with a room broadcast and the event reads complete. No new unregistered candidate appeared, confirming the grouping rather than a lost send. The original verdict still holds on its own terms: the follow notice IS private to the owner, and the pet's room-entry narration is handled separately. |
+
+### Retirement from the M4e-1 darkness fixes, 2026-09-21
+
+Both sites moved off a raw `uRoom.SendText` onto
+`uRoom.SendTextVisualHidingNames`, because the owner ruled each event VISUAL:
+a reader who cannot see should not witness it, and a shapes-only reader should
+read neither name.
+
+The room broadcast still exists at both sites and still carries both names. It
+is simply invisible to this walk, whose Observer recognizer matches the literal
+identifier `room` and not `uRoom`, exactly the blind spot the registry entries
+themselves described. With the room send no longer landing in the broad
+"any other identifier" ACTEE bucket, each site falls below the walk's candidate
+threshold and can no longer be matched by a registry key at all.
+
+🔑 **The blind spot is worth removing, and removing it is its own slice.**
+Dropping the `recv.Name == "room"` test for the `SendTextVisual*` family is
+correct, since every method in that family is declared only on `*rooms.Room`.
+Tried on 2026-09-21, it unmasks FIVE pre-existing sites this walk has never
+seen, each needing a verdict read from source: `ferry/board.go:81`,
+`hooks/NewRound_UserRoundTick.go:294`, `usercommands/go.go:437`,
+`usercommands/go.go:694`, `usercommands/skill.cast.go:330`, all reading
+"actor+observer, missing actee". That is a backlog to rule on, not a side
+effect to absorb into a darkness fix.
+
+| Retired entry | Why |
+|---|---|
+| `hooks/NewRound_DoCombat_helpers.go` `<ansi fg="red-bold"><ansi fg="%s">%s</ansi> blocks you from fleeing!</ansi>` (verdictCorrect, actor+actee) | The room line beside it moved to `uRoom.SendTextVisualHidingNames`, so it no longer registers as a phantom actee and the site drops out of the walk's candidate set. The verdict still holds on its own terms: the actor is told, the room is told, and the BLOCKER gets no line of their own. Whether the blocker should be told they blocked someone is a real question, unchanged by this slice and left where it was. |
+| `hooks/NewRound_DoCombat_helpers.go` `You flee to the <ansi fg="exit">%s</ansi> exit!` (verdictCorrect, actor+actee) | Same move, same reason. The flee is now visual: a reader who cannot see does not learn that someone broke away or which way they went, per the owner's ruling. |

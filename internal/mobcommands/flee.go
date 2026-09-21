@@ -60,8 +60,15 @@ func Flee(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			mob.Character.CandidateFor(string(skills.Skullduggery)))
 	}
 	if blocker != nil {
-		room.SendTextVisual(messaging.CategoryRoomExit,
-			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> tries to flee but is blocked!`, mob.Character.Name))
+		// The mob twin of handlePlayerFlee's blocked-flee line, and visual by
+		// the same owner ruling (2026-09-21). Passing the NAME matters:
+		// SendTextVisual alone falls back to tag-based Anonymize, which knows
+		// only the one word "a figure" and does not capitalise it at a
+		// sentence start, so this line read "a figure tries to flee but is
+		// blocked!" mid-fight while every line around it said "A figure".
+		room.SendTextVisualHidingNames(messaging.CategoryRoomExit,
+			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> tries to flee but is blocked!`, mob.Character.Name),
+			[]string{mob.Character.Name})
 		return true, nil
 	}
 

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,6 +22,13 @@ import (
 // The nil-Position guard itself is covered by
 // TestHandleGrappleCritFailure_NilAttackerPosition in grapple_test.go.
 func TestHandleGrappleCritFailure_Outcome(t *testing.T) {
+	// A test binary never reads config.yaml, so the store would otherwise
+	// resolve to _datafiles/world/default, which does not carry this data.
+	// Load the shipped dogmud store explicitly.
+	if err := movenarration.LoadFrom("../../_datafiles/world/dogmud/narration/special-moves"); err != nil {
+		t.Fatalf("loading the shipped store: %v", err)
+	}
+
 	attacker := &characters.Character{Name: "Attacker", Position: position.NewMachine()}
 	defender := &characters.Character{Name: "Defender", Position: position.NewMachine()}
 	require.True(t, attacker.IsStanding(), "precondition: attacker starts standing")

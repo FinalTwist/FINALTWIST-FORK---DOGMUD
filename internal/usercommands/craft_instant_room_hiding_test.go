@@ -44,6 +44,16 @@ import (
 
 const craftHidingInfraredConditionId = 9101
 
+// craftHidingNightVisionConditionId grants the CRAFTER clear sight in the
+// unlit fixture room.
+//
+// Crafting refuses a maker who cannot see clearly (owner ruling 2026-09-21,
+// craft.go), so the scenario these tests pin is no longer "everyone is in the
+// dark". It is the sharper one: the crafter CAN see, the bystander can make
+// out warmth only, and the bystander must still read "a figure" rather than a
+// name. Without this the craft is refused and nothing is narrated at all.
+const craftHidingNightVisionConditionId = 9102
+
 // seedCraftHidingCondition installs a test condition that grants
 // InfraredVision, additive on top of seedAllRegistries' condition registry.
 // Call it AFTER `defer cleanup := seedAllRegistries()` and defer its own
@@ -55,6 +65,11 @@ func seedCraftHidingCondition() func() {
 			ConditionId: craftHidingInfraredConditionId,
 			Name:        "Test Heat Eyes",
 			Flags:       []conditions.Flag{conditions.InfraredVision},
+		},
+		craftHidingNightVisionConditionId: {
+			ConditionId: craftHidingNightVisionConditionId,
+			Name:        "Test Dark Eyes",
+			Flags:       []conditions.Flag{conditions.NightVision},
 		},
 	})
 }
@@ -184,7 +199,7 @@ func TestCompleteCraft_RealBranch_ShapesOnlyThirdPartyReadsAFigure(t *testing.T)
 
 	crafterLines, watcherLines := craftPlainLines(1), craftPlainLines(3)
 	require.Equal(t, 1, craftCountContaining(crafterLines, "You finish your work."))
-	require.Equal(t, 1, craftCountContaining(watcherLines, "a figure finishes a piece of work."))
+	require.Equal(t, 1, craftCountContaining(watcherLines, "A figure finishes a piece of work."))
 	require.Equal(t, 0, craftCountContaining(watcherLines, "Aliceia"))
 }
 
@@ -209,6 +224,8 @@ func TestCraftImmediateComplete_RealBranch_ShapesOnlyThirdPartyReadsAFigure(t *t
 	room := rooms.LoadRoom(1)
 	room.AddPlayer(3)
 	require.True(t, watcher.Character.Conditions.AddCondition(craftHidingInfraredConditionId, true))
+	// The crafter must see clearly: Craft() refuses a maker who cannot.
+	require.True(t, crafter.Character.Conditions.AddCondition(craftHidingNightVisionConditionId, true))
 
 	recipe := craftInstantHidingRecipe("test-immediate-complete-hiding")
 	crafting.RegisterRecipeForTest(recipe)
@@ -224,6 +241,71 @@ func TestCraftImmediateComplete_RealBranch_ShapesOnlyThirdPartyReadsAFigure(t *t
 
 	crafterLines, watcherLines := craftPlainLines(1), craftPlainLines(3)
 	require.Equal(t, 1, craftCountContaining(crafterLines, "You finish your work."))
-	require.Equal(t, 1, craftCountContaining(watcherLines, "a figure finishes a piece of work."))
+	require.Equal(t, 1, craftCountContaining(watcherLines, "A figure finishes a piece of work."))
 	require.Equal(t, 0, craftCountContaining(watcherLines, "Aliceia"))
+}
+
+// TestCraft_RefusedWhenTheMakerCannotSee pins owner ruling 2026-09-21: an
+// ATTEMPT to make something is refused when the maker cannot see clearly.
+//
+// Two tiers are refused, not one. Total darkness is the obvious case. Infrared
+// is the interesting one: it is enough to tell that a shape is moving, which
+// is why a bystander with it still reads "a figure" in the tests above, and it
+// is NOT enough to do fine work. That is why the gate reads CanSeeClearly
+// rather than CanSeeShapes.
+//
+// Listing recipes stays allowed, because knowing what you can make is memory
+// rather than sight.
+func TestCraft_RefusedWhenTheMakerCannotSee(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restoreCond := seedCraftHidingCondition()
+	defer restoreCond()
+	darkenCraftRoom(t, 1)
+
+	crafter := users.GetByUserId(1)
+	restoreUsers := users.SeedUsersForTest(map[int]*users.UserRecord{1: crafter, 2: users.GetByUserId(2)})
+	defer restoreUsers()
+	room := rooms.LoadRoom(1)
+
+	recipe := craftInstantHidingRecipe("test-refused-when-blind")
+	crafting.RegisterRecipeForTest(recipe)
+	defer crafting.UnregisterRecipeForTest(recipe.RecipeId)
+	crafter.Character.KnownRecipes = map[string]int{recipe.RecipeId: 1}
+
+	t.Run("no sight at all is refused", func(t *testing.T) {
+		craftPlainLines(1)
+		handled, err := Craft(recipe.Name, crafter, room, 0)
+		require.NoError(t, err)
+		require.True(t, handled)
+
+		lines := craftPlainLines(1)
+		require.Equal(t, 1, craftCountContaining(lines, "You can't see well enough to work on anything here."),
+			"a maker in the dark must be refused, got: %v", lines)
+		require.Equal(t, 0, craftCountContaining(lines, "You finish your work."),
+			"the craft must not have happened")
+	})
+
+	t.Run("shapes only is refused too", func(t *testing.T) {
+		require.True(t, crafter.Character.Conditions.AddCondition(craftHidingInfraredConditionId, true))
+		craftPlainLines(1)
+		handled, err := Craft(recipe.Name, crafter, room, 0)
+		require.NoError(t, err)
+		require.True(t, handled)
+
+		lines := craftPlainLines(1)
+		require.Equal(t, 1, craftCountContaining(lines, "You can't see well enough to work on anything here."),
+			"making out warm shapes is not enough for fine work, got: %v", lines)
+	})
+
+	t.Run("listing what you know is still allowed", func(t *testing.T) {
+		craftPlainLines(1)
+		handled, err := Craft("list", crafter, room, 0)
+		require.NoError(t, err)
+		require.True(t, handled)
+
+		lines := craftPlainLines(1)
+		require.Equal(t, 0, craftCountContaining(lines, "You can't see well enough to work on anything here."),
+			"listing recipes is memory, not sight, got: %v", lines)
+	})
 }

@@ -890,7 +890,10 @@ func handlePlayerFlee(user *users.UserRecord, uRoom *rooms.Room, userId int) boo
 		if blocker.IsPlayer() {
 			excludes = append(excludes, blocker.UserId)
 		}
-		uRoom.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> is blocked from fleeing by <ansi fg="%s">%s</ansi>!`, user.Character.Name, targetTag, blocker.Name), excludes...)
+		// Visual (owner ruling 2026-09-21): a reader who cannot see does not
+		// witness a blocked escape at all, and one who makes out shapes reads
+		// neither name.
+		uRoom.SendTextVisualHidingNames(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> is blocked from fleeing by <ansi fg="%s">%s</ansi>!`, user.Character.Name, targetTag, blocker.Name), []string{user.Character.Name, blocker.Name}, excludes...)
 		// Task 15: flee failure — restore Engaged state in CombatPhase.
 		if user.Character.CombatPhase != nil {
 			user.Character.CombatPhase.ResolveFlee(false)
@@ -911,7 +914,9 @@ func handlePlayerFlee(user *users.UserRecord, uRoom *rooms.Room, userId int) boo
 	}
 
 	user.SendText(messaging.CategoryRoomExit, fmt.Sprintf(`You flee to the <ansi fg="exit">%s</ansi> exit!`, exitName))
-	uRoom.SendText(messaging.CategoryRoomExit, fmt.Sprintf(`<ansi fg="username">%s</ansi> flees to the <ansi fg="exit">%s</ansi> exit!`, user.Character.Name, exitName), user.UserId)
+	// Visual (owner ruling 2026-09-21): seeing someone break away and which
+	// way they went is sight, so a reader who cannot see learns nothing.
+	uRoom.SendTextVisualHidingNames(messaging.CategoryRoomExit, fmt.Sprintf(`<ansi fg="username">%s</ansi> flees to the <ansi fg="exit">%s</ansi> exit!`, user.Character.Name, exitName), []string{user.Character.Name}, user.UserId)
 
 	// Task 15: flee success — EndAggro clears legacy Aggro; ResolveFlee
 	// transitions CombatPhase Disengaging → Idle.
@@ -1016,7 +1021,8 @@ func handleOffhandBreakUserDef(roundResult combat.AttackResult, defUser *users.U
 	defUser.SendText(messaging.CategoryEquipment, fmt.Sprintf(`<ansi fg="214"><ansi fg="202">***</ansi> Your <ansi fg="item">%s</ansi> breaks! <ansi fg="202">***</ansi></ansi>`, br.BrokenItemName))
 	defUser.SendText(messaging.CategoryEquipment, `<ansi fg="202">***</ansi>`)
 
-	defRoom.SendText(messaging.CategoryEquipment, fmt.Sprintf(`<ansi fg="214"><ansi fg="202">***</ansi> The <ansi fg="item">%s</ansi> <ansi fg="username">%s</ansi> was carrying breaks! <ansi fg="202">***</ansi></ansi>`, br.BrokenItemName, defUser.Character.Name), defUser.UserId)
+	// Visual (owner ruling 2026-09-21).
+	defRoom.SendTextVisualHidingNames(messaging.CategoryEquipment, fmt.Sprintf(`<ansi fg="214"><ansi fg="202">***</ansi> The <ansi fg="item">%s</ansi> <ansi fg="username">%s</ansi> was carrying breaks! <ansi fg="202">***</ansi></ansi>`, br.BrokenItemName, defUser.Character.Name), []string{defUser.Character.Name}, defUser.UserId)
 
 	events.AddToQueue(events.ItemOwnership{
 		UserId: defUser.UserId,
@@ -1040,7 +1046,8 @@ func handleOffhandBreakMobDef(roundResult combat.AttackResult, defMob *mobs.Mob)
 	}
 
 	if defRoom != nil {
-		defRoom.SendText(messaging.CategoryEquipment, fmt.Sprintf(`<ansi fg="214"><ansi fg="202">***</ansi> The <ansi fg="item">%s</ansi> <ansi fg="mobname">%s</ansi> was carrying breaks! <ansi fg="202">***</ansi></ansi>`, br.BrokenItemName, defMob.Character.Name))
+		// Visual (owner ruling 2026-09-21).
+		defRoom.SendTextVisualHidingNames(messaging.CategoryEquipment, fmt.Sprintf(`<ansi fg="214"><ansi fg="202">***</ansi> The <ansi fg="item">%s</ansi> <ansi fg="mobname">%s</ansi> was carrying breaks! <ansi fg="202">***</ansi></ansi>`, br.BrokenItemName, defMob.Character.Name), []string{defMob.Character.Name})
 	}
 
 	events.AddToQueue(events.ItemOwnership{

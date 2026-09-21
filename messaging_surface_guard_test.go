@@ -878,7 +878,40 @@ func narrationRecognizeCall(call *ast.CallExpr) (narrationCallViewpoint, bool) {
 			default:
 				return viewpointActee, true
 			}
-		case "SendTextVisual", "SendTextToUser":
+		// Every sight-gated ROOM broadcast is an observer viewpoint, not just
+		// the plain one.
+		//
+		// 🪤 This switch matches EXACT method names, so it silently under-counted
+		// for years: a site that used SendTextVisualHidingNames (the project's
+		// preferred sight-aware sender, and the observer half of
+		// messaging.SendTrio) was read as having NO observer viewpoint, and the
+		// guard then demanded a registry entry claiming a gap that did not
+		// exist. Found 2026-09-21 when target.go's room lines moved onto it.
+		// Measured at that moment: 5 production uses of
+		// SendTextVisualHidingNames, 5 of SendTextVisualWithAudio and 1 of
+		// SendTextVisualAsLit were all invisible here.
+		case "SendTextToUser":
+			if recv.Name == "room" {
+				return viewpointObserver, true
+			}
+		case "SendTextVisual", "SendTextVisualHidingNames",
+			"SendTextVisualAsLit", "SendTextVisualWithAudio":
+			// 📌 FILED, deliberately NOT fixed here: this family is declared
+			// ONLY on *rooms.Room, so the receiver IS a room whatever the
+			// local is called, and the `recv.Name == "room"` test below is
+			// the documented blind spot in this walk's header comment.
+			//
+			// Dropping the test is correct and was tried on 2026-09-21. It
+			// unmasks FIVE pre-existing sites this walk has never seen, each
+			// needing its own viewpoint verdict read from source:
+			// ferry/board.go:81, hooks/NewRound_UserRoundTick.go:294,
+			// usercommands/go.go:437, usercommands/go.go:694 and
+			// usercommands/skill.cast.go:330, all reading
+			// "actor+observer, missing actee".
+			//
+			// That is a backlog to rule on, not a side effect to absorb into
+			// a darkness fix, so the blind spot stays and the widening waits
+			// for a slice that can give those five the reading they deserve.
 			if recv.Name == "room" {
 				return viewpointObserver, true
 			}
@@ -1240,9 +1273,7 @@ var narrationViewpointRegistry = map[string]narrationEntry{
 	"follow/follow.go|You start following <ansi fg=\"username\">%s</ansi>.":                                                 {verdictCorrect, true, true, false, "starting to follow someone notifies the two parties only, same as the stop case above; no room broadcast for a private relationship state change. Not part of the audit; read against source for this guard."},
 	"hooks/NewRound_DoCombat_helpers.go|<ansi fg=\"red\">You lose your concentration as you hit the ground!</ansi>":         {verdictCorrect, true, false, true, "a spell interrupted by falling prone; the room sees the concentration break via sendVisualRoomText two lines below, actor+observer, no actee since concentration breaking is self-only. Not part of the audit; read against source for this guard."},
 	"hooks/NewRound_DoCombat_helpers.go|<ansi fg=\"red\">Your concentration shatters — you cannot hold the fold while grap": {verdictCorrect, true, false, true, "a spell interrupted by a grapple breaking concentration, the GrappleBroke sibling of the ProneBroke case at line 570; same shape, sendVisualRoomText broadcasts, no actee."},
-	"hooks/NewRound_DoCombat_helpers.go|<ansi fg=\"red-bold\"><ansi fg=\"%s\">%s</ansi> blocks you from fleeing!</ansi>":    {verdictCorrect, true, true, false, "flee blocked by another combatant; uRoom.SendText broadcasts the block to the room, but uRoom is not the literal identifier room this walk's Observer recognizer matches (see the guard's header comment on that blind spot). A real room broadcast exists; this walk just cannot see it under this variable name."},
 	"hooks/NewRound_DoCombat_helpers.go|messaging.CategorySpellFold, roles.Actor":                                           {verdictCorrect, true, false, true, "authored wait text through the spell store's door: caster plus room on `r.SendText` (observer, misread as actee by the walk's receiver-name rule); a channelling round has no actee."},
-	"hooks/NewRound_DoCombat_helpers.go|You flee to the <ansi fg=\"exit\">%s</ansi> exit!":                                  {verdictCorrect, true, true, false, "flee succeeds; uRoom.SendText broadcasts the flee to the room two lines below, same uRoom-name blind spot as the block case above, a real room broadcast this walk cannot see under this identifier."},
 	"hooks/NewRound_UserRoundTick.go|<ansi fg=\"green\">%s</ansi>":                                                          {verdictCorrect, true, false, true, "M3 item 6: multi-round craft succeeds (enchanting included); crafter gets the recipe's success line, the room its Observer slot, empty until M6. No second party, so no actee. Read against source for this guard."},
 	"hooks/NewRound_UserRoundTick.go|<ansi fg=\"red\">%s</ansi>":                                                            {verdictCorrect, true, false, true, "M3 item 6: multi-round craft fails; crafter gets the recipe's failure line, the room its Observer slot, empty until M6. No second party, so no actee. Read against source for this guard."},
 	"hooks/NewRound_UserRoundTick.go|You attempt to stand, but slip back down in the chaos of battle!":                      {verdictCorrect, true, false, true, "automatic recovery from prone fails; same shape as the success case above, actor+observer via sendVisualRoomText, no actee."},
@@ -1518,19 +1549,18 @@ var m2FrozenFiles = map[string]string{
 	"internal/usercommands/grapple.go":  "8e64bb48750d09f9581c6b7a0a3c0ec9eadcd4befbe94d9553b25d8c2c452a85",
 	"internal/usercommands/shoot.go":    "d63942e7087292a898ce1730bcdf5b90f7c9dcaa08891a1a3af7ce4687d90376",
 	"internal/usercommands/throw.go":    "44fc7829103b0dea6a1ccdba8787ceafa42519f78dccb4659e3e38b74ca98851",
-	"internal/mobcommands/bash.go":      "fa5082a09245e01e30d5b967f687e443e0cedec587511234d5b0b41404146503",
-	"internal/mobcommands/charge.go":    "f95af1258f05d1c8bb49ee10c6f0fa2b71c8953a727e3a0aa6e126c43e90e3d7",
-	"internal/mobcommands/hamstring.go": "87ecd26e30f0324b9e552446bcc6797b074e1aafd0087043634a805cd090501b",
-	"internal/mobcommands/drain.go":     "e28eb92ae670bb746ae9009c14f4056984f8ca68230e9531c63d30348faff8eb",
-	"internal/mobcommands/gore.go":      "c9f3a5c218732ebdc1bdcd141736443c98d9fa8c0b08e6f4d6a4e1f687f4a270",
-	"internal/mobcommands/kick.go":      "622a3209b47a6ed5941a60900b57171083fd2116d6d7351e85a953dde45f073d",
-	"internal/mobcommands/maul.go":      "8cdcc16a2fa36a5f9cf05ed52d9ef7a385809bc06f418b25caad92166ed2cc6e",
-	"internal/mobcommands/pounce.go":    "4de98c9a45b40fb2a2dabd4dfb6033ebebe3573f3280e79bf46f7a1a9df7c866",
-	"internal/mobcommands/rake.go":      "94973b45a77e548bf5a085a7005ce3ab83916c9a5b9f0cb18906d3045a64e2d2",
-	"internal/mobcommands/throttle.go":  "caa10903bd759b2a0461a502a83fb0f59c2ebe80fe1eaeacfbba07f602886d0b",
-	"internal/mobcommands/trip.go":      "42f5206e6a08bccd4673067e31882b7a5147524c971dd0f31f0403a5086808bd",
-	"internal/mobcommands/grapple.go":   "7183a365181000f6ccec5b3500657ef0a758ed663aa8140e9487a2ffc9372df8",
-	"internal/mobcommands/shoot.go":     "7ec3cee39749e1a422778894adf9b43b1be66efaedffd4f1f7b09f0171fd53e1",
+	// internal/mobcommands/{kick,bash,gore,maul,rake,drain,throttle,hamstring,
+	// pounce,charge,trip,grapple,shoot}.go are gone from this list: M4e-1
+	// Tasks 7, 8 and the steps migrating charge/trip and grapple/shoot
+	// migrated them onto the movenarration store, so their player-facing text
+	// now lives in _datafiles/world/dogmud/narration/special-moves/{kick,
+	// bash,gore,maul,rake,drain,throttle,hamstring,pounce,charge,trip,
+	// grapple,shoot}.yaml and is guarded by TestMigratedWordingIsByteIdentical
+	// (special_move_net_test.go), the same way the two skill_move_defence.go
+	// files are guarded by the defence store's golden instead of this literal
+	// freeze (see TestM2FrozenFilesAllCarryText above). This closes out the
+	// mob-side list: every mob special-move file in m2RoutingFiles now reads
+	// its wording from the store.
 }
 
 // m2LiteralFingerprint returns a stable hash of every string literal in the

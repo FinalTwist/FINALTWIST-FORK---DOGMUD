@@ -838,7 +838,18 @@ func emitMobStatGains(atk actions.Actor, before map[string]int) {
 		}
 		if tmpl, ok := characters.MobStatGainMessages[statName]; ok {
 			// Mob-side stat-gain flavor text: a visible mob emote.
-			atkRoom.SendText(messaging.CategoryMobEmote, fmt.Sprintf(tmpl, mobDisplayName(mob, atkRoom, 0)))
+			//
+			// SendTextVisualHidingNames, not SendText. This line is PURELY
+			// VISUAL ("moves with increasing swiftness"), so a reader who
+			// cannot see should not receive it at all, and one who makes out
+			// only shapes must not read the mob's name. A plain SendText
+			// bypasses the sight gate entirely, which is how a player fighting
+			// in a pitch-dark cave read "Cave Crawler moves with increasing
+			// swiftness" while every combat line in the same round called the
+			// same mob "something" (found in play, 2026-09-21).
+			name := mobDisplayName(mob, atkRoom, 0)
+			atkRoom.SendTextVisualHidingNames(messaging.CategoryMobEmote,
+				fmt.Sprintf(tmpl, name), []string{mob.Character.Name})
 		}
 	}
 }

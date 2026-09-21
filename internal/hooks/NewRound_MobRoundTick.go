@@ -281,7 +281,12 @@ func tickMobConditions(mob *mobs.Mob, mobInstanceId int) {
 						mobDisplayName(mob, room, 0),
 						mob.Character.GetCharacterName(false))
 					if roles.Observer != "" {
-						room.SendTextVisual(messaging.CategoryConditionApply, roles.Observer)
+						// HidingNames: see the user-side twin and
+						// Condition_ApplyConditions.go. A bare {actee_plain} is
+						// invisible to tag-based Anonymize.
+						room.SendTextVisualHidingNames(messaging.CategoryConditionApply,
+							roles.Observer,
+							[]string{mob.Character.GetCharacterName(false)})
 					}
 				}
 			}

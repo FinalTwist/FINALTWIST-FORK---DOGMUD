@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
@@ -33,15 +34,22 @@ func Hamstring(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	mobName := mob.Character.Name
 
-	// Resolve the target user record for direct messaging (player targets).
+	// Look up target player record: needed for the actee recipient and for the
+	// defence-triad call sites below. SendTrio hides names by sight itself, so
+	// there is no darkness branch here.
 	var targetUser *users.UserRecord
 	if target.UserId > 0 {
 		targetUser = users.GetByUserId(target.UserId)
 	}
 
-	canSee := targetUser == nil || canSeeInDark(targetUser, room)
-
 	dmgDesc := combat.GetDamageDescription(result.Damage, result.TargetMaxHP)
+
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mobName),
+		ActorPlain: mobName,
+		Actee:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, target.Name),
+		ActeePlain: target.Name,
+	}
 
 	// Declared as the interface and left unset when the target is not a player.
 	// Assigning a typed-nil *users.UserRecord would make it a non-nil interface
@@ -58,40 +66,25 @@ func Hamstring(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		Room:      room,
 	}
 
+	damageTokens := map[string]string{movenarration.TokenDamage: dmgDesc}
+
 	if result.Hit {
-		hitActee := messaging.NoLine
-		if targetUser != nil {
-			if canSee {
-				hitActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> rakes its fangs across your legs, opening deep wounds! (<ansi fg="damage">%s</ansi>)`, mobName, dmgDesc))
-			} else {
-				hitActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`Something rakes its fangs across your legs, opening deep wounds! (<ansi fg="damage">%s</ansi>)`, dmgDesc))
-			}
-		}
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.NoLine,
-			Actee: hitActee,
-			Observer: messaging.Say(messaging.CategoryHitNaturalSharp,
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> lunges low and rakes its fangs across <ansi fg="username">%s</ansi>'s legs!`, mobName, target.Name)),
-		}, aud)
+		sendMoveEvent("hamstring", "hit", ids, aud, messaging.CategoryHitNaturalSharp, damageTokens)
 	} else if result.Damage > 0 {
-		partialActee := messaging.NoLine
-		if targetUser != nil {
-			if canSee {
-				partialActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> lunges at your legs and you dodge most of it, but the fangs still catch you! (<ansi fg="damage">%s</ansi>)`, mobName, dmgDesc))
-			} else {
-				partialActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`Something lunges at your legs and you dodge most of it, but it still catches you! (<ansi fg="damage">%s</ansi>)`, dmgDesc))
-			}
-		}
+		// Defended-partial: the actee line still carries the damage from the
+		// store; the room line names the defence that blunted the hamstring,
+		// so it is swapped for the defence triad's ToRoom text when a defence
+		// actually fired.
+		roles, _ := renderMoveEvent("hamstring", "partial", ids, damageTokens)
 		defence, defended := moveDefenceLines(mob, room, target, result.Defence, "hamstring slash")
-		partialObserver := messaging.Say(messaging.CategoryHitNaturalSharp,
-			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> lunges at <ansi fg="username">%s</ansi>'s legs, who mostly dodges but still gets caught!`, mobName, target.Name))
+		partialObserver := lineOrNone(messaging.CategoryHitNaturalSharp, roles.Observer)
 		if defended {
 			partialObserver = messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom)
 			sendMoveDefenceShortage(targetUser, defence)
 		}
 		messaging.SendTrio(messaging.Trio{
 			Actor:    messaging.NoLine,
-			Actee:    partialActee,
+			Actee:    lineOrNone(messaging.CategoryHitNaturalSharp, roles.Actee),
 			Observer: partialObserver,
 		}, aud)
 	} else if defence, defended := moveDefenceLines(mob, room, target, result.Defence, "hamstring slash"); defended {
@@ -100,24 +93,11 @@ func Hamstring(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		sendMoveDefenceShortage(targetUser, defence)
 		messaging.SendTrio(messaging.Trio{
 			Actor:    messaging.NoLine,
-			Actee:    acteeDefenceLine(targetUser, room, messaging.CategoryHitNaturalSharp, defence.ToDefender),
+			Actee:    acteeDefenceLine(targetUser, room, messaging.CategoryHitNaturalSharp, defence.ToDefender, mobName),
 			Observer: messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom),
 		}, aud)
 	} else {
-		missActee := messaging.NoLine
-		if targetUser != nil {
-			if canSee {
-				missActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> lunges at your legs, but you sidestep the attack!`, mobName))
-			} else {
-				missActee = messaging.Say(messaging.CategoryHitNaturalSharp, `Something lunges at your legs, but you sidestep the attack!`)
-			}
-		}
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.NoLine,
-			Actee: missActee,
-			Observer: messaging.Say(messaging.CategoryHitNaturalSharp,
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> lunges at <ansi fg="username">%s</ansi>'s legs, but misses!`, mobName, target.Name)),
-		}, aud)
+		sendMoveEvent("hamstring", "miss", ids, aud, messaging.CategoryHitNaturalSharp, nil)
 	}
 
 	// U6b Task 11: the counter renders AFTER the move's own outcome.

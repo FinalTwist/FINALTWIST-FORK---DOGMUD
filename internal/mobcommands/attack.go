@@ -91,11 +91,13 @@ func Attack(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 			if engaged && !isSneaking && !alreadyFighting {
 
-				if canSeeInDark(u, room) {
-					u.SendText(messaging.CategoryHitMelee, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> prepares to fight you!`, mob.Character.Name))
-				} else {
-					u.SendText(messaging.CategoryHitMelee, `Something prepares to fight you!`)
-				}
+				// attack.go makes zero messaging.SendTrio calls, so there is
+				// no pipeline to hide the mob's identity automatically: the
+				// substitution has to happen here, by the reader's own
+				// three-tier sight verdict.
+				personalText := fmt.Sprintf(`<ansi fg="mobname">%s</ansi> prepares to fight you!`, mob.Character.Name)
+				sight := messaging.ParticipantSight(u.Character, room)
+				u.SendText(messaging.CategoryHitMelee, messaging.HideNames(personalText, []string{mob.Character.Name}, sight))
 
 				room.SendTextVisual(messaging.CategoryHitMelee,
 					fmt.Sprintf(`<ansi fg="mobname">%s</ansi> prepares to fight <ansi fg="username">%s</ansi>`, mob.Character.Name, u.Character.Name),

@@ -1,0 +1,52 @@
+moveid: kick
+events:
+  standard_knockdown:
+    actee:
+      - '{actor}''s powerful <ansi fg="yellow-bold">kick</ansi> knocks you to the ground! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} kicks {actee}, knocking them to the ground!'
+  standard_hit:
+    actee:
+      - '{actor} kicks you hard! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} kicks {actee}!'
+  standard_partial:
+    actee:
+      - '{actor} attempts to kick you, and you slip most of it, but the boot still clips you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} swings a kick at {actee}, who mostly dodges but still gets clipped!'
+  standard_miss:
+    actee:
+      - '{actor} attempts to kick you, but misses!'
+    observer:
+      - '{actor} attempts to kick {actee}, but misses!'
+  stomp_hit:
+    actee:
+      - '{actor} stomps on you while you''re down! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} stomps on the downed {actee}!'
+  stomp_partial:
+    actee:
+      - '{actor} tries to stomp you, and you roll aside, but the heel still catches you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tries to stomp {actee}, who rolls mostly clear but still gets caught!'
+  stomp_miss:
+    actee:
+      - '{actor} tries to stomp you, but you roll aside!'
+    observer:
+      - '{actor} tries to stomp {actee}, but misses!'
+  knee_hit:
+    actee:
+      - '{actor} drives a knee into you in the grapple! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} drives a knee into {actee}!'
+  knee_partial:
+    actee:
+      - '{actor} tries to knee you, and you block most of it, but it still lands! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tries to knee {actee} in the grapple, who blocks most of it but still takes the hit!'
+  knee_miss:
+    actee:
+      - '{actor} tries to knee you, but you block it!'
+    observer:
+      - '{actor} tries to knee {actee}, but misses!'

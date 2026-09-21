@@ -33,6 +33,30 @@ func Anonymize(text string) string {
 	if text == "" {
 		return text
 	}
-	return nameTagPattern.ReplaceAllString(text,
-		`<ansi fg="combat-anon">a figure</ansi>`)
+	// Capitalise at a sentence start, the same rule HideNames applies.
+	//
+	// 🪤 This used to substitute a flat lowercase "a figure" everywhere, and
+	// the difference shows in play because Anonymize runs BEFORE HideNames in
+	// the room pipeline (see rooms.sendTextVisualJudgedBy, where the ordering
+	// is deliberate so whole name tags are matched first). By the time
+	// HideNames runs the name is already gone, so its capitalisation never
+	// got a chance. Read in play on 2026-09-21, among correctly capitalised
+	// siblings: "a figure moves with increasing swiftness.", "a figure
+	// clambers to their feet in a rushed panic." and, after a banner,
+	// "*** a figure lands a DEVASTATING SNAP on you! ***".
+	out := make([]byte, 0, len(text))
+	last := 0
+	for _, loc := range nameTagPattern.FindAllStringIndex(text, -1) {
+		out = append(out, text[last:loc[0]]...)
+		word := "a figure"
+		if atSentenceStart(text, loc[0]) {
+			word = "A figure"
+		}
+		out = append(out, `<ansi fg="combat-anon">`+word+`</ansi>`...)
+		last = loc[1]
+	}
+	if last == 0 {
+		return text
+	}
+	return string(append(out, text[last:]...))
 }

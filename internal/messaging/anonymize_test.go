@@ -2,9 +2,18 @@ package messaging
 
 import "testing"
 
+// NOTE (2026-09-21): every input in this file puts the name at the START of
+// the line, so the expected word is "A figure", capitalised. Anonymize used to
+// substitute a flat lowercase "a figure" regardless of position, and these
+// tests pinned that. It reads wrong in play next to every other line, and the
+// room pipeline runs Anonymize BEFORE HideNames, so HideNames' capitalisation
+// never got a chance on a tagged name. See
+// anonymize_capitalisation_test.go, which pins both paths agreeing, including
+// the mid-sentence case that must stay lowercase.
+
 func TestAnonymizeReplacesUsernameTag(t *testing.T) {
 	in := `<ansi fg="username">Calabe</ansi> attacks`
-	want := `<ansi fg="combat-anon">a figure</ansi> attacks`
+	want := `<ansi fg="combat-anon">A figure</ansi> attacks`
 	if got := Anonymize(in); got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
@@ -12,7 +21,7 @@ func TestAnonymizeReplacesUsernameTag(t *testing.T) {
 
 func TestAnonymizeReplacesMobnameTag(t *testing.T) {
 	in := `<ansi fg="mobname">Thornwall Thug</ansi> snarls`
-	want := `<ansi fg="combat-anon">a figure</ansi> snarls`
+	want := `<ansi fg="combat-anon">A figure</ansi> snarls`
 	if got := Anonymize(in); got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
@@ -29,7 +38,7 @@ func TestAnonymizeReplacesIndexedAndSuffixedMobnameTags(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			want := `<ansi fg="combat-anon">a figure</ansi> snarls`
+			want := `<ansi fg="combat-anon">A figure</ansi> snarls`
 			if got := Anonymize(tc.in); got != want {
 				t.Fatalf("indexed/suffixed mob identity leaked: got %q want %q", got, want)
 			}
@@ -39,7 +48,7 @@ func TestAnonymizeReplacesIndexedAndSuffixedMobnameTags(t *testing.T) {
 
 func TestAnonymizeReplacesPetnameTag(t *testing.T) {
 	in := `<ansi fg="petname">Rex</ansi> follows`
-	want := `<ansi fg="combat-anon">a figure</ansi> follows`
+	want := `<ansi fg="combat-anon">A figure</ansi> follows`
 	if got := Anonymize(in); got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
@@ -48,7 +57,9 @@ func TestAnonymizeReplacesPetnameTag(t *testing.T) {
 func TestAnonymizeReplacesMultipleNamesInOneLine(t *testing.T) {
 	in := `<ansi fg="mobname">Thug</ansi> strikes ` +
 		`<ansi fg="username">Calabe</ansi> with a longsword`
-	want := `<ansi fg="combat-anon">a figure</ansi> strikes ` +
+	// The first name opens the line and capitalises; the second is mid
+	// sentence and must not.
+	want := `<ansi fg="combat-anon">A figure</ansi> strikes ` +
 		`<ansi fg="combat-anon">a figure</ansi> with a longsword`
 	if got := Anonymize(in); got != want {
 		t.Fatalf("got %q want %q", got, want)
@@ -86,7 +97,7 @@ func TestAnonymizeReplacesSuffixedUsernameTags(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			want := `<ansi fg="combat-anon">a figure</ansi> glows`
+			want := `<ansi fg="combat-anon">A figure</ansi> glows`
 			if got := Anonymize(tc.in); got != want {
 				t.Fatalf("suffixed player identity leaked: got %q want %q", got, want)
 			}
@@ -108,11 +119,15 @@ func TestAnonymizeLeavesLookalikeTagsAlone(t *testing.T) {
 // it hides names, so the span has to go here or an infrared observer reads
 // "a figure (dead)".
 func TestAnonymizeTakesTheAdjectiveSpanWithTheTag(t *testing.T) {
-	const anon = `<ansi fg="combat-anon">a figure</ansi>`
+	// Sentence-initial and mid-sentence forms. Every `in` below opens with a
+	// name, so the first substitution capitalises; the one that also names a
+	// second party mid-sentence does not.
+	const anon = `<ansi fg="combat-anon">A figure</ansi>`
+	const anonMid = `<ansi fg="combat-anon">a figure</ansi>`
 	cases := []struct{ name, in, want string }{
 		{"plain adjective", `<ansi fg="mobname">Skeleton</ansi> <ansi fg="black-bold">(dead)</ansi> recoils.`, anon + ` recoils.`},
 		{"colour-patterned adjective", `<ansi fg="mobname-dead">Skeleton</ansi> <ansi fg="black-bold">(<ansi fg="52">☠</ansi><ansi fg="88">d</ansi><ansi fg="124">e</ansi><ansi fg="160">a</ansi><ansi fg="196">d</ansi>)</ansi> recoils.`, anon + ` recoils.`},
-		{"two names, one adjectived", `<ansi fg="username">Kesh</ansi> <ansi fg="black-bold">(hidden)</ansi> hits <ansi fg="mobname-dup2">Rat #2</ansi>.`, anon + ` hits ` + anon + `.`},
+		{"two names, one adjectived", `<ansi fg="username">Kesh</ansi> <ansi fg="black-bold">(hidden)</ansi> hits <ansi fg="mobname-dup2">Rat #2</ansi>.`, anon + ` hits ` + anonMid + `.`},
 		{"a black-bold span that is not adjectives stays", `<ansi fg="mobname">Skeleton</ansi> <ansi fg="black-bold">hisses</ansi>.`, anon + ` <ansi fg="black-bold">hisses</ansi>.`},
 	}
 	for _, tc := range cases {

@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/species"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -37,12 +38,13 @@ func Bash(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	mobName := mob.Character.Name
 	dmgDesc := combat.GetDamageDescription(result.Damage, result.TargetMaxHP)
 
-	// Look up the target player record for darkness-aware personal messaging.
+	// Look up target player record: needed for the actee recipient and for the
+	// defence-triad call sites below. SendTrio hides names by sight itself, so
+	// there is no darkness branch here.
 	var targetUser *users.UserRecord
 	if target.UserId > 0 {
 		targetUser = users.GetByUserId(target.UserId)
 	}
-	canSee := targetUser == nil || canSeeInDark(targetUser, room)
 
 	// Natural bashers (elementals, golems) slam instead of shield-bashing.
 	bashLabel := "shield bash"
@@ -52,6 +54,13 @@ func Bash(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		bashLabel = "crushing slam"
 		bashVerb = "slams into"
 		bashWith = "with tremendous force"
+	}
+
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mobName),
+		ActorPlain: mobName,
+		Actee:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, target.Name),
+		ActeePlain: target.Name,
 	}
 
 	// Declared as the interface and left unset when the target is not a player.
@@ -69,57 +78,34 @@ func Bash(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		Room:      room,
 	}
 
+	tokens := map[string]string{
+		movenarration.TokenDamage: dmgDesc,
+		movenarration.TokenLabel:  bashLabel,
+		movenarration.TokenVerb:   bashVerb,
+		movenarration.TokenWith:   bashWith,
+	}
+
 	if result.Hit {
 		if result.KnockedDown {
-			downActee := messaging.NoLine
-			if targetUser != nil {
-				if canSee {
-					downActee = messaging.Say(messaging.CategoryBash, fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s <ansi fg="yellow-bold">%s</ansi> knocks you to the ground! (<ansi fg="damage">%s</ansi>)`, mobName, bashLabel, dmgDesc))
-				} else {
-					downActee = messaging.Say(messaging.CategoryBash, fmt.Sprintf(`Something's <ansi fg="yellow-bold">%s</ansi> knocks you to the ground! (<ansi fg="damage">%s</ansi>)`, bashLabel, dmgDesc))
-				}
-			}
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.NoLine,
-				Actee: downActee,
-				Observer: messaging.Say(messaging.CategoryBash,
-					fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s <ansi fg="yellow-bold">%s</ansi> knocks <ansi fg="username">%s</ansi> to the ground!`, mobName, bashLabel, target.Name)),
-			}, aud)
+			sendMoveEvent("bash", "knockdown", ids, aud, messaging.CategoryBash, tokens)
 		} else {
-			hitActee := messaging.NoLine
-			if targetUser != nil {
-				if canSee {
-					hitActee = messaging.Say(messaging.CategoryBash, fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s <ansi fg="yellow-bold">%s</ansi> strikes you! (<ansi fg="damage">%s</ansi>)`, mobName, bashLabel, dmgDesc))
-				} else {
-					hitActee = messaging.Say(messaging.CategoryBash, fmt.Sprintf(`Something's <ansi fg="yellow-bold">%s</ansi> strikes you! (<ansi fg="damage">%s</ansi>)`, bashLabel, dmgDesc))
-				}
-			}
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.NoLine,
-				Actee: hitActee,
-				Observer: messaging.Say(messaging.CategoryBash,
-					fmt.Sprintf(`<ansi fg="mobname">%s</ansi> %s <ansi fg="username">%s</ansi> %s!`, mobName, bashVerb, target.Name, bashWith)),
-			}, aud)
+			sendMoveEvent("bash", "hit", ids, aud, messaging.CategoryBash, tokens)
 		}
 	} else if result.Damage > 0 {
-		partialActee := messaging.NoLine
-		if targetUser != nil {
-			if canSee {
-				partialActee = messaging.Say(messaging.CategoryBash, fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s <ansi fg="yellow-bold">%s</ansi> fails to floor you, but still crashes into you! (<ansi fg="damage">%s</ansi>)`, mobName, bashLabel, dmgDesc))
-			} else {
-				partialActee = messaging.Say(messaging.CategoryBash, fmt.Sprintf(`Something's <ansi fg="yellow-bold">%s</ansi> fails to floor you, but still crashes into you! (<ansi fg="damage">%s</ansi>)`, bashLabel, dmgDesc))
-			}
-		}
+		// Defended-partial: the actee line still carries the damage from the
+		// store; the room line names the defence that blunted the bash, so it
+		// is swapped for the defence triad's ToRoom text when a defence
+		// actually fired.
+		roles, _ := renderMoveEvent("bash", "partial", ids, tokens)
 		defence, defended := moveDefenceLines(mob, room, target, result.Defence, bashLabel)
-		partialObserver := messaging.Say(messaging.CategoryBash,
-			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> %s <ansi fg="username">%s</ansi> %s, who staggers but stays up!`, mobName, bashVerb, target.Name, bashWith))
+		partialObserver := lineOrNone(messaging.CategoryBash, roles.Observer)
 		if defended {
 			partialObserver = messaging.Say(messaging.CategoryBash, defence.ToRoom)
 			sendMoveDefenceShortage(targetUser, defence)
 		}
 		messaging.SendTrio(messaging.Trio{
 			Actor:    messaging.NoLine,
-			Actee:    partialActee,
+			Actee:    lineOrNone(messaging.CategoryBash, roles.Actee),
 			Observer: partialObserver,
 		}, aud)
 	} else if defence, defended := moveDefenceLines(mob, room, target, result.Defence, bashLabel); defended {
@@ -128,24 +114,11 @@ func Bash(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		sendMoveDefenceShortage(targetUser, defence)
 		messaging.SendTrio(messaging.Trio{
 			Actor:    messaging.NoLine,
-			Actee:    acteeDefenceLine(targetUser, room, messaging.CategoryBash, defence.ToDefender),
+			Actee:    acteeDefenceLine(targetUser, room, messaging.CategoryBash, defence.ToDefender, mobName),
 			Observer: messaging.Say(messaging.CategoryBash, defence.ToRoom),
 		}, aud)
 	} else {
-		missActee := messaging.NoLine
-		if targetUser != nil {
-			if canSee {
-				missActee = messaging.Say(messaging.CategoryBash, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> attempts a %s, but misses!`, mobName, bashLabel))
-			} else {
-				missActee = messaging.Say(messaging.CategoryBash, fmt.Sprintf(`Something attempts a %s, but misses!`, bashLabel))
-			}
-		}
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.NoLine,
-			Actee: missActee,
-			Observer: messaging.Say(messaging.CategoryBash,
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> attempts to bash <ansi fg="username">%s</ansi>, but misses!`, mobName, target.Name)),
-		}, aud)
+		sendMoveEvent("bash", "miss", ids, aud, messaging.CategoryBash, tokens)
 	}
 
 	// U6b Task 11: the counter renders AFTER the move's own outcome.

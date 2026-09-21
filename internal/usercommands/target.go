@@ -187,19 +187,47 @@ func Target(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 			state.ActorRef{UserId: newTargetPlayerId, MobInstanceId: newTargetMobInstanceId},
 			targeting.ReasonAttack, 1)
 
+		// Identity in these lines is hidden by the READER's own sight.
+		//
+		// The two personal lines ride CategorySystem on a raw SendText, which
+		// bypasses the sight gate entirely, so each hides its subject here.
+		// The room lines were already sight-gated but passed no names, which
+		// left them leaning on tag-based Anonymize and collapsing the shapes
+		// and blind tiers into one word; passing the names lets each observer
+		// read the tier they have actually earned.
+		// 🪤 The literal stays INLINE in the SendText call. Hoisting it into a
+		// local made the site unfingerprintable to
+		// TestNarrationSitesMatchViewpointAudit, which keys on the literal:
+		// the registry entry went stale and an unregistered site appeared in
+		// its place. Wrap the Sprintf, do not lift it out.
 		if newTargetMobInstanceId > 0 {
 			m := mobs.GetInstance(newTargetMobInstanceId)
-			user.SendText(messaging.CategorySystem, fmt.Sprintf("You shift your focus to <ansi fg=\"mobname\">%s</ansi>!", m.Character.Name))
-			room.SendTextVisual(messaging.CategoryMobEmote,
+			user.SendText(messaging.CategorySystem, messaging.HideNames(
+				fmt.Sprintf("You shift your focus to <ansi fg=\"mobname\">%s</ansi>!", m.Character.Name),
+				[]string{m.Character.Name},
+				messaging.ParticipantSight(user.Character, room)))
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 				fmt.Sprintf("<ansi fg=\"username\">%s</ansi> shifts focus to <ansi fg=\"mobname\">%s</ansi>!", user.Character.Name, m.Character.Name),
+				[]string{user.Character.Name, m.Character.Name},
 				user.UserId,
 			)
 		} else if newTargetPlayerId > 0 {
 			p := users.GetByUserId(newTargetPlayerId)
-			user.SendText(messaging.CategorySystem, fmt.Sprintf("You shift your focus to <ansi fg=\"username\">%s</ansi>!", p.Character.Name))
-			p.SendText(messaging.CategorySystem, fmt.Sprintf("<ansi fg=\"username\">%s</ansi> shifts focus to you!", user.Character.Name))
-			room.SendTextVisual(messaging.CategoryMobEmote,
+			user.SendText(messaging.CategorySystem, messaging.HideNames(
+				fmt.Sprintf("You shift your focus to <ansi fg=\"username\">%s</ansi>!", p.Character.Name),
+				[]string{p.Character.Name},
+				messaging.ParticipantSight(user.Character, room)))
+
+			// The person being targeted does not learn WHO is aiming at them
+			// if they cannot see; judged by THEIR sight, not the actor's.
+			p.SendText(messaging.CategorySystem, messaging.HideNames(
+				fmt.Sprintf("<ansi fg=\"username\">%s</ansi> shifts focus to you!", user.Character.Name),
+				[]string{user.Character.Name},
+				messaging.ParticipantSight(p.Character, room)))
+
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote,
 				fmt.Sprintf("<ansi fg=\"username\">%s</ansi> shifts focus to <ansi fg=\"username\">%s</ansi>!", user.Character.Name, p.Character.Name),
+				[]string{user.Character.Name, p.Character.Name},
 				user.UserId, newTargetPlayerId,
 			)
 		}

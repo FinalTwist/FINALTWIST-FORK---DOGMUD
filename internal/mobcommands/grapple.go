@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
@@ -30,7 +31,6 @@ func Grapple(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	target := res.Target
 	result := res.MoveResult
 	mobName := mob.Character.Name
-	targetName := target.Name
 
 	// Resolve the target user record for direct messaging (player targets).
 	var targetChar *users.UserRecord
@@ -38,7 +38,12 @@ func Grapple(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		targetChar = users.GetByUserId(target.UserId)
 	}
 
-	canSee := targetChar == nil || canSeeInDark(targetChar, room)
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mobName),
+		ActorPlain: mobName,
+		Actee:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, target.Name),
+		ActeePlain: target.Name,
+	}
 
 	// Declared as the interface and left unset when the target is not a player.
 	// Assigning a typed-nil *users.UserRecord would make it a non-nil interface
@@ -55,24 +60,16 @@ func Grapple(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		Room:      room,
 	}
 
+	positionTokens := map[string]string{movenarration.TokenPosition: result.PositionDesc}
+
 	// Send messages based on result
 	if result.Success {
-		successActee := messaging.NoLine
-		if targetChar != nil {
-			if canSee {
-				successActee = messaging.Say(messaging.CategoryGrappleFlow, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> <ansi fg="yellow-bold">grapples</ansi> you, transitioning to <ansi fg="cyan">%s</ansi> position!`, mobName, result.PositionDesc))
-			} else {
-				successActee = messaging.Say(messaging.CategoryGrappleFlow, fmt.Sprintf(`Something <ansi fg="yellow-bold">grapples</ansi> you, transitioning to <ansi fg="cyan">%s</ansi> position!`, result.PositionDesc))
-			}
-		}
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.NoLine,
-			Actee: successActee,
-			Observer: messaging.Say(messaging.CategoryGrappleFlow,
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> <ansi fg="yellow-bold">grapples</ansi> <ansi fg="username">%s</ansi> into <ansi fg="cyan">%s</ansi> position!`, mobName, targetName, result.PositionDesc)),
-		}, aud)
+		sendMoveEvent("grapple", "success", ids, aud, messaging.CategoryGrappleFlow, positionTokens)
 
-		// Disarm messaging: a WORLD EVENT, so it carries the full trio.
+		// Disarm messaging: a WORLD EVENT, so it carries the full trio. Not
+		// migrated in this task: DisarmResult's literals live in
+		// internal/combat/criteffects.go and get their own store plus pinning
+		// test in a later commit.
 		if result.DisarmResult != nil {
 			disarmActee := messaging.NoLine
 			if targetChar != nil {
@@ -85,22 +82,12 @@ func Grapple(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			}, aud)
 		}
 	} else {
-		failActee := messaging.NoLine
-		if targetChar != nil {
-			if canSee {
-				failActee = messaging.Say(messaging.CategoryGrappleFlow, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> tries to grapple you, but you slip away!`, mobName))
-			} else {
-				failActee = messaging.Say(messaging.CategoryGrappleFlow, `Something tries to grapple you, but you slip away!`)
-			}
-		}
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.NoLine,
-			Actee: failActee,
-			Observer: messaging.Say(messaging.CategoryGrappleFlow,
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> tries to grapple <ansi fg="username">%s</ansi>, but fails!`, mobName, targetName)),
-		}, aud)
+		sendMoveEvent("grapple", "fail", ids, aud, messaging.CategoryGrappleFlow, nil)
 
-		// Critical failure messaging: a world event, full trio.
+		// Critical failure messaging: a world event, full trio. Not migrated
+		// in this task: CritFailure's literals live in
+		// internal/combat/grapple.go and get their own store plus pinning
+		// test in a later commit.
 		if result.CritFailure != nil {
 			critActee := messaging.NoLine
 			if targetChar != nil {

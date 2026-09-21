@@ -117,9 +117,15 @@ func TestMobTauntTriadAnonymizesInTheDark(t *testing.T) {
 	for _, line := range append(targetLines, observerLines...) {
 		require.NotContains(t, line, mob.Character.Name,
 			"an unsighted player was told the taunter's name")
-		// Case-insensitive: the delivery pipeline capitalises a sentence-initial
-		// placeholder, so the anonymized line can read "A figure ...".
-		require.Contains(t, strings.ToLower(line), "a figure")
+	}
+	// Neither target nor observer carries infrared here, and the room is
+	// unlit: both are SightNone, so both must read "something", not the
+	// SightShapes word "a figure". Before M4e-1 Task 9 canSeeInDark collapsed
+	// both tiers into the same branch and both read "a figure" -- the actual
+	// defect this task fixes.
+	for _, line := range append(targetLines, observerLines...) {
+		require.Contains(t, strings.ToLower(line), "something")
+		require.NotContains(t, strings.ToLower(line), "a figure")
 	}
 	require.NotContains(t, observerLines[0], target.Character.Name,
 		"an unsighted observer was told the target's name")

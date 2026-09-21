@@ -80,19 +80,14 @@ var m2RoutingFiles = []string{
 	"internal/usercommands/throttle.go",
 	"internal/usercommands/throw.go",
 	"internal/usercommands/trip.go",
-	"internal/mobcommands/bash.go",
-	"internal/mobcommands/charge.go",
-	"internal/mobcommands/drain.go",
-	"internal/mobcommands/gore.go",
-	"internal/mobcommands/grapple.go",
-	"internal/mobcommands/hamstring.go",
-	"internal/mobcommands/kick.go",
-	"internal/mobcommands/maul.go",
-	"internal/mobcommands/pounce.go",
-	"internal/mobcommands/rake.go",
-	"internal/mobcommands/shoot.go",
-	"internal/mobcommands/throttle.go",
-	"internal/mobcommands/trip.go",
+	// internal/mobcommands/{kick,bash,gore,maul,rake,drain,throttle,hamstring,
+	// pounce,charge,trip,grapple,shoot}.go are gone from this list, in step
+	// with their removal from m2FrozenFiles: M4e-1 Tasks 7, 8 and the steps
+	// migrating charge/trip and grapple/shoot migrated them onto the
+	// movenarration store, so their sends route through sendMoveEvent in
+	// move_narration.go rather than an inline messaging.Trio{...Say(...)}
+	// literal this scanner can see. TestM2FreezeListsAgree requires the two
+	// lists stay 1:1. This closes out the mob-side list.
 }
 
 // m2SendRole maps a send's receiver identifier to the viewpoint it addresses.

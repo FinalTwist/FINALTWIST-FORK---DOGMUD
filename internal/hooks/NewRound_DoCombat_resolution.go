@@ -1,6 +1,8 @@
 package hooks
 
 import (
+	"fmt"
+
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -24,9 +26,23 @@ import (
 // waitRoundDarkDefenderLine is sent to the defender in place of the
 // authored MessagesToTarget line when the defender cannot see clearly.
 // Package-level so the tests can reference them directly.
+// Both are FORMAT strings taking the other party's plain name, which is then
+// hidden by the reader's own sight through messaging.HideNames.
+//
+// 🔑 They used to be fixed sentences with the word "something" baked in, which
+// made them BINARY: a reader who could make out warm shapes and a reader who
+// was fully blind got the identical line. In play on 2026-09-21 that produced
+// "Something hangs back in the dark, biding its time." sitting among a dozen
+// lines that all correctly said "A figure", because everything else had moved
+// onto the three-tier verdict and this had not.
+//
+// The name is deliberately UNTAGGED. This branch only runs for a reader who is
+// not fully sighted, so HideNames always replaces it and an identity colour
+// would never render; leaving the tag off also avoids guessing between
+// mobname and username for an attacker who may be either.
 const (
-	waitRoundDarkAttackerLine = `<ansi fg="yellow">You bide your time, straining to place something in the dark.</ansi>`
-	waitRoundDarkDefenderLine = `<ansi fg="attack-bad">Something hangs back in the dark, biding its time.</ansi>`
+	waitRoundDarkAttackerLine = `<ansi fg="yellow">You bide your time, straining to place %s in the dark.</ansi>`
+	waitRoundDarkDefenderLine = `<ansi fg="attack-bad">%s hangs back in the dark, biding its time.</ansi>`
 )
 
 // handleCombatWaitRound handles the RoundsWaiting > 0 short-circuit
@@ -84,7 +100,11 @@ func handleCombatWaitRound(
 				attackerUser.SendText(msg.Category, msg.Text)
 			}
 		} else if len(roundResult.MessagesToSource) > 0 {
-			attackerUser.SendText(roundResult.MessagesToSource[0].Category, waitRoundDarkAttackerLine)
+			attackerUser.SendText(roundResult.MessagesToSource[0].Category,
+				messaging.HideNames(
+					fmt.Sprintf(waitRoundDarkAttackerLine, defenderChar.Name),
+					[]string{defenderChar.Name},
+					messaging.ParticipantSight(attackerChar, attackerRoom)))
 		}
 	}
 	if defenderUser != nil {
@@ -93,7 +113,11 @@ func handleCombatWaitRound(
 				defenderUser.SendText(msg.Category, msg.Text)
 			}
 		} else if len(roundResult.MessagesToTarget) > 0 {
-			defenderUser.SendText(roundResult.MessagesToTarget[0].Category, waitRoundDarkDefenderLine)
+			defenderUser.SendText(roundResult.MessagesToTarget[0].Category,
+				messaging.HideNames(
+					fmt.Sprintf(waitRoundDarkDefenderLine, attackerChar.Name),
+					[]string{attackerChar.Name},
+					messaging.ParticipantSight(defenderChar, defenderRoom)))
 		}
 	}
 

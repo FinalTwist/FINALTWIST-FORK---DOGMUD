@@ -68,18 +68,16 @@ func Taunt(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			if !sendMobTauntTriad(intensity, result.DmgDesc, messaging.CategoryTauntSuccess,
 				mob, targetName, targetPlayer, room) {
 				if targetPlayer != nil {
-					if canSeeInDark(targetPlayer, room) {
-						targetPlayer.SendText(messaging.CategoryTauntSuccess, fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s thunderous challenge rattles your nerve! (<ansi fg="damage">%s</ansi>)`, mob.Character.Name, result.DmgDesc))
-					} else {
-						targetPlayer.SendText(messaging.CategoryTauntSuccess, fmt.Sprintf(`A thunderous challenge rattles your nerve! (<ansi fg="damage">%s</ansi>)`, result.DmgDesc))
-					}
+					personalText := fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s thunderous challenge rattles your nerve! (<ansi fg="damage">%s</ansi>)`, mob.Character.Name, result.DmgDesc)
+					sight := messaging.ParticipantSight(targetPlayer.Character, room)
+					targetPlayer.SendText(messaging.CategoryTauntSuccess, messaging.HideNames(personalText, []string{mob.Character.Name}, sight))
 				}
 				sendAudioRoomText(room, mob, messaging.CategoryTauntSuccess,
 					messaging.Anonymize(fmt.Sprintf(`Something bellows a thunderous challenge at <ansi fg="username">%s</ansi>!`, targetName)),
 					fmt.Sprintf(`<ansi fg="mobname">%s</ansi> bellows a thunderous challenge at <ansi fg="username">%s</ansi>!`, mob.Character.Name, targetName))
 			}
 		}
-		sendChannelDefenceMessages(result.Defence, mob, targetPlayer, room, targetIdentity, "taunt")
+		sendChannelDefenceMessages(result.Defence, mob, targetPlayer, room, targetIdentity, targetName, "taunt")
 
 		// Aggro-pull confirmation: the taunt yanked the target off its prior
 		// foe and pinned it (taunt-hold). AggroPulled is only ever set when the
@@ -94,11 +92,9 @@ func Taunt(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		if !sendMobTauntTriad(combat.TauntMiss, "", messaging.CategoryTauntResist,
 			mob, targetName, targetPlayer, room) {
 			if targetPlayer != nil {
-				if canSeeInDark(targetPlayer, room) {
-					targetPlayer.SendText(messaging.CategoryTauntResist, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> bellows a challenge, but you brush it off.`, mob.Character.Name))
-				} else {
-					targetPlayer.SendText(messaging.CategoryTauntResist, `Something bellows a challenge, but you brush it off.`)
-				}
+				personalText := fmt.Sprintf(`<ansi fg="mobname">%s</ansi> bellows a challenge, but you brush it off.`, mob.Character.Name)
+				sight := messaging.ParticipantSight(targetPlayer.Character, room)
+				targetPlayer.SendText(messaging.CategoryTauntResist, messaging.HideNames(personalText, []string{mob.Character.Name}, sight))
 			}
 			sendAudioRoomText(room, mob, messaging.CategoryTauntResist,
 				messaging.Anonymize(fmt.Sprintf(`Something bellows a challenge at <ansi fg="username">%s</ansi>, but they shrug it off.`, targetName)),
@@ -123,11 +119,12 @@ func Taunt(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 // the legacy literals. That path is live in any context that never loaded world
 // data, which includes unit tests.
 //
-// ⚠️ DARKNESS IS HAND-ROLLED HERE, and has to be. sendAudioRoomText delivers on
-// the AUDIO channel, which messaging's pipeline never sight-gates and never
-// anonymizes, so the unseen variant is built explicitly with messaging.Anonymize
-// rather than inherited. That is also why the {actortype} and {acteetype}
-// tokens must resolve to real name aliases: Anonymize matches on
+// ⚠️ DARKNESS IS HAND-ROLLED HERE, and has to be. The AUDIO channel never runs
+// through messaging's pipeline sight gate, so both the personal line (via
+// messaging.ParticipantSight + messaging.HideNames) and the room line (via
+// sendAudioRoomTextHidingNames) hide names explicitly rather than inheriting
+// it. That is also why the {actortype} and {acteetype} tokens must resolve to
+// real name aliases: HideNames' tag-consuming match looks for
 // username|mobname|petname, and a tag outside that set leaks the name.
 func sendMobTauntTriad(intensity combat.TauntIntensity, dmgDesc string, cat messaging.Category,
 	mob *mobs.Mob, targetName string, targetPlayer *users.UserRecord, room *rooms.Room) bool {
@@ -147,20 +144,23 @@ func sendMobTauntTriad(intensity combat.TauntIntensity, dmgDesc string, cat mess
 	// ToAttacker is deliberately dropped: the actor is a mob and has no client.
 	excluded := make([]int, 0, 1)
 	if targetPlayer != nil && triad.ToDefender != "" {
-		personal := triad.ToDefender
-		if !canSeeInDark(targetPlayer, room) {
-			personal = messaging.Anonymize(personal)
-		}
+		sight := messaging.ParticipantSight(targetPlayer.Character, room)
+		personal := messaging.HideNames(triad.ToDefender, []string{mob.Character.Name}, sight)
 		targetPlayer.SendText(cat, personal)
 		excluded = append(excluded, targetPlayer.UserId)
 	}
 
-	sendAudioRoomText(room, mob, cat, messaging.Anonymize(triad.ToRoom), triad.ToRoom, excluded...)
+	sendAudioRoomTextHidingNames(room, cat, triad.ToRoom, []string{mob.Character.Name, targetName}, excluded...)
 	return true
 }
 
+// defenderPlainName is the defender's BARE name (no ansi tag, no duplicate
+// suffix) -- callers already compute one alongside the rendered identity
+// they pass as defenderName (howl.go/taunt.go's targetName), needed here
+// because messaging.HideNames matches on the bare name, not on the fully
+// rendered identity string this function builds the triad's text from.
 func sendChannelDefenceMessages(out combat.ChannelDefenceResult, mob *mobs.Mob,
-	defender *users.UserRecord, room *rooms.Room, defenderName, attack string) {
+	defender *users.UserRecord, room *rooms.Room, defenderName, defenderPlainName, attack string) {
 	if defender != nil {
 		if text := combat.ChannelDefenceShortageText(out, defender.Character); text != "" {
 			defender.SendText(messaging.CategorySystem, text)
@@ -180,14 +180,12 @@ func sendChannelDefenceMessages(out combat.ChannelDefenceResult, mob *mobs.Mob,
 	}
 	excluded := make([]int, 0, 1)
 	if defender != nil {
-		personal := string(triad.ToDefender)
-		if !canSeeInDark(defender, room) {
-			personal = messaging.Anonymize(personal)
-		}
+		sight := messaging.ParticipantSight(defender.Character, room)
+		personal := messaging.HideNames(string(triad.ToDefender), []string{mob.Character.Name}, sight)
 		defender.SendText(messaging.CategoryTauntResist, personal)
 		excluded = append(excluded, defender.UserId)
 	}
 	visible := string(triad.ToRoom)
-	unseen := messaging.Anonymize(visible)
-	sendAudioRoomText(room, mob, messaging.CategoryTauntResist, unseen, visible, excluded...)
+	sendAudioRoomTextHidingNames(room, messaging.CategoryTauntResist, visible,
+		[]string{mob.Character.Name, defenderPlainName}, excluded...)
 }

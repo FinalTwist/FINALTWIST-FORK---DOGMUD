@@ -93,9 +93,12 @@ func clearRoomAggroOnDeparture(room *rooms.Room, departingInstanceId int) {
 // shapes. The shared primitive reads the same perception predicates the rest
 // of the pipeline does.
 //
-// This was the third hand-rolled darkness check in this package, after
-// darkness.go's canSeeInDark and sendAudioRoomText. They should collapse into
-// one when M5 consolidates the perception verdict.
+// This was the third hand-rolled darkness check in this package. canSeeInDark
+// is gone (M4e-1 Task 9: every visual reader now gets ParticipantSight +
+// HideNames, the three-tier verdict, instead of a binary lit-or-nightvision
+// check). What remains hand-rolled is darkness.go's sendAudioRoomText, still
+// two-tier by construction for the four speech commands (say.go, shout.go,
+// rally.go, warcry.go) that call it directly.
 func sendMovementMessage(room *rooms.Room, visualCat messaging.Category, visualMsg string, soundMsg string) {
 	room.SendTextVisualWithAudio(visualCat, visualMsg, soundMsg)
 }

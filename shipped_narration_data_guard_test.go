@@ -19,6 +19,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/grapplemessaging"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/itemvoices"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/quests"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -238,10 +239,26 @@ func TestShippedNarrationDataValidates(t *testing.T) {
 	t.Run("weather_emotes", func(t *testing.T) {
 		checkWeatherEmotes(t)
 	})
+
+	t.Run("special-moves", func(t *testing.T) {
+		dir := filepath.Join(shippedWorldRoot, "narration", "special-moves")
+		groups, err := fileloader.LoadAllFlatFiles[string, *movenarration.MoveNarrationGroup](dir)
+		if err != nil {
+			t.Fatalf("loading %s: %v", dir, err)
+		}
+		if len(groups) == 0 {
+			t.Fatalf("no special-move files loaded from %s", dir)
+		}
+		for id, g := range groups {
+			if err := g.Validate(); err != nil {
+				t.Errorf("move %q: %v", id, err)
+			}
+		}
+	})
 }
 
 // narrationStoreWalkRoots is exactly what TestNoLegacyRoleKeysInShippedData
-// walks: thirteen paths covering the fourteen shipped narration stores
+// walks: fourteen paths covering the fifteen shipped narration stores
 // (messaging/ holds two of them). It is a list of stores rather than a walk of
 // the world root, and both exclusions that buys are load-bearing.
 //
@@ -275,6 +292,7 @@ var narrationStoreWalkRoots = []string{
 	shippedWorldRoot + "/casting-messages.yaml",
 	shippedWorldRoot + "/gossip_templates.yaml",
 	shippedWorldRoot + "/tips.yaml",
+	shippedWorldRoot + "/narration/special-moves",
 }
 
 // legacyRoleKeysAnyStore are retired spellings that no narration store may use
@@ -512,11 +530,34 @@ func walkNodeForLegacyRoleKeys(t *testing.T, path string, n *yamlv3.Node, ancest
 	return keys
 }
 
+// isRoleKeyedNarrationStore reports whether path belongs to a store whose YAML
+// keys ARE narration roles, so the M4b-1 role-key ban applies to it.
+//
+// The ban cannot be repo-wide: `room` is a quest TRIGGER FILTER
+// (internal/quests/triggers.go), and `target`/`self` are legitimate words in
+// other stores, so a blanket ban would redden about a hundred shipped quest
+// lines. It is scoped by store instead. messaging/ was the only such store
+// until M4e added narration/, and a store added here without being added to
+// this list would simply not be checked, which is how the special-move store
+// shipped outside the ban until this was noticed.
+func isRoleKeyedNarrationStore(path string) bool {
+	slash := filepath.ToSlash(path)
+	for _, root := range []string{
+		shippedWorldRoot + "/messaging/",
+		shippedWorldRoot + "/narration/",
+	} {
+		if strings.HasPrefix(slash, root) {
+			return true
+		}
+	}
+	return false
+}
+
 func reportLegacyRoleKey(t *testing.T, path string, key *yamlv3.Node, ancestors []string) {
 	t.Helper()
 
 	replacement, banned := legacyRoleKeysAnyStore[key.Value]
-	if !banned && strings.HasPrefix(filepath.ToSlash(path), shippedWorldRoot+"/messaging/") {
+	if !banned && isRoleKeyedNarrationStore(path) {
 		replacement, banned = legacyRoleKeysMessagingOnly[key.Value]
 	}
 	if !banned || legacyKeyIsExempt(path, key.Value, ancestors) {

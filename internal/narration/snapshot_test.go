@@ -94,11 +94,13 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
+	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/gossip"
 	"github.com/GoMudEngine/GoMud/internal/grapplemessaging"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/itemvoices"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/narration"
 	"github.com/GoMudEngine/GoMud/internal/quests"
@@ -854,6 +856,9 @@ func TestSnapshotStores(t *testing.T) {
 	t.Run("position_control", func(t *testing.T) {
 		checkGolden(t, "position_control.golden", buildPositionControlGolden(t))
 	})
+	t.Run("special_moves", func(t *testing.T) {
+		checkGolden(t, "special_moves.golden", buildSpecialMovesGolden(t))
+	})
 }
 
 // ---------------------------------------------------------------------
@@ -1597,5 +1602,63 @@ func buildPositionControlGolden(t *testing.T) string {
 		emitTriple("submission|"+key, tri)
 	}
 
+	return b.String()
+}
+
+// ---------------------------------------------------------------------
+// Store 15: special-move narration (internal/movenarration)
+// ---------------------------------------------------------------------
+
+func buildSpecialMovesGolden(t *testing.T) string {
+	t.Helper()
+	dir := filepath.Join(dogmudDataDir(t), "narration", "special-moves")
+	groups, err := fileloader.LoadAllFlatFiles[string, *movenarration.MoveNarrationGroup](dir)
+	if err != nil {
+		t.Fatalf("loading %s: %v", dir, err)
+	}
+	verbs := make([]string, 0, len(groups))
+	for id := range groups {
+		verbs = append(verbs, id)
+	}
+	sort.Strings(verbs)
+
+	tokens := map[string]string{
+		narration.TokenActor:        `<ansi fg="mobname">ACTOR</ansi>`,
+		narration.TokenActee:        `<ansi fg="username">ACTEE</ansi>`,
+		narration.TokenActorPlain:   `ACTOR`,
+		narration.TokenActeePlain:   `ACTEE`,
+		movenarration.TokenDamage:   `DAMAGE`,
+		movenarration.TokenLabel:    `LABEL`,
+		movenarration.TokenWith:     `WITH`,
+		movenarration.TokenVerb:     `VERB`,
+		movenarration.TokenWeapon:   `WEAPON`,
+		movenarration.TokenExitName: `EXITNAME`,
+		movenarration.TokenPosition: `POSITION`,
+	}
+
+	var b strings.Builder
+	for _, verb := range verbs {
+		g := groups[verb]
+		keys := make([]string, 0, len(g.Events))
+		for k := range g.Events {
+			keys = append(keys, string(k))
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			v, ok := g.Variants(movenarration.EventKey(key))
+			if !ok {
+				t.Fatalf("verb %q lost event %q between listing and lookup", verb, key)
+			}
+			// Every index, not just index 0: a golden that renders one index
+			// cannot fail on a variant added or reordered behind it.
+			for i := 0; i < v.Len(); i++ {
+				r := narration.Render(v, tokens, narration.DefaultPicker, i)
+				fmt.Fprintf(&b, "%s|%s|%d|actor= %s\n", verb, key, i, r.Actor)
+				fmt.Fprintf(&b, "%s|%s|%d|actee= %s\n", verb, key, i, r.Actee)
+				fmt.Fprintf(&b, "%s|%s|%d|observer= %s\n", verb, key, i, r.Observer)
+				fmt.Fprintf(&b, "%s|%s|%d|remote_observer= %s\n", verb, key, i, r.ActeeObserver)
+			}
+		}
+	}
 	return b.String()
 }

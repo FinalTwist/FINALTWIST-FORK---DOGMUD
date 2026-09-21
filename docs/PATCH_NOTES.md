@@ -1,5 +1,24 @@
 # DOGMud Patch Notes
 
+## 2026-09-21: Telling shapes apart from nothing at all
+
+If you can sense heat but not see, the dark now reads differently to you
+than it does to someone who cannot see at all. Special moves used against
+you in an unlit room used to describe your attacker the same way whether
+you could make out a shape or nothing whatsoever. Now sensing warmth tells
+you a figure is doing it, and true blindness tells you only that something
+is. The move itself reads the same as it always did.
+
+This covers the moves creatures use on you in the dark: kicks, bashes,
+charges, trips, gores, mauls, rakes, pounces, throttles, hamstrings,
+drains, grapples and shots from another room. Taunts and howls follow the
+same rule, including the ones you only hear.
+
+One other thing you may notice: the words standing in for a name are now
+coloured like the other names in a fight, so a line about someone you
+cannot identify no longer reads as plain text in the middle of a
+coloured one.
+
 ## 2026-09-20: A few more names hidden in the dark
 
 A few places still named someone you could not see, even after the last
