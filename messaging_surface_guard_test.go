@@ -1518,21 +1518,18 @@ var m2FrozenFiles = map[string]string{
 	"internal/usercommands/grapple.go":  "8e64bb48750d09f9581c6b7a0a3c0ec9eadcd4befbe94d9553b25d8c2c452a85",
 	"internal/usercommands/shoot.go":    "d63942e7087292a898ce1730bcdf5b90f7c9dcaa08891a1a3af7ce4687d90376",
 	"internal/usercommands/throw.go":    "44fc7829103b0dea6a1ccdba8787ceafa42519f78dccb4659e3e38b74ca98851",
-	"internal/mobcommands/charge.go":    "f95af1258f05d1c8bb49ee10c6f0fa2b71c8953a727e3a0aa6e126c43e90e3d7",
-	"internal/mobcommands/hamstring.go": "87ecd26e30f0324b9e552446bcc6797b074e1aafd0087043634a805cd090501b",
-	"internal/mobcommands/drain.go":     "e28eb92ae670bb746ae9009c14f4056984f8ca68230e9531c63d30348faff8eb",
-	// internal/mobcommands/{kick,bash,gore,maul,rake}.go are gone from this
-	// list: M4e-1 Tasks 7 and 8 migrated them onto the movenarration store, so
-	// their player-facing text now lives in
-	// _datafiles/world/dogmud/narration/special-moves/{kick,bash,gore,maul,rake}.yaml
-	// and is guarded by TestMigratedWordingIsByteIdentical
-	// (special_move_net_test.go), the same way the two skill_move_defence.go
-	// files are guarded by the defence store's golden instead of this literal
-	// freeze (see TestM2FrozenFilesAllCarryText above). Task 12 removes the
-	// other eight mob rows the same way once they migrate.
-	"internal/mobcommands/pounce.go":   "4de98c9a45b40fb2a2dabd4dfb6033ebebe3573f3280e79bf46f7a1a9df7c866",
-	"internal/mobcommands/throttle.go": "caa10903bd759b2a0461a502a83fb0f59c2ebe80fe1eaeacfbba07f602886d0b",
-	"internal/mobcommands/trip.go":     "42f5206e6a08bccd4673067e31882b7a5147524c971dd0f31f0403a5086808bd",
+	"internal/mobcommands/charge.go": "f95af1258f05d1c8bb49ee10c6f0fa2b71c8953a727e3a0aa6e126c43e90e3d7",
+	// internal/mobcommands/{kick,bash,gore,maul,rake,drain,throttle,hamstring,
+	// pounce}.go are gone from this list: M4e-1 Tasks 7 and 8 migrated them
+	// onto the movenarration store, so their player-facing text now lives in
+	// _datafiles/world/dogmud/narration/special-moves/{kick,bash,gore,maul,
+	// rake,drain,throttle,hamstring,pounce}.yaml and is guarded by
+	// TestMigratedWordingIsByteIdentical (special_move_net_test.go), the same
+	// way the two skill_move_defence.go files are guarded by the defence
+	// store's golden instead of this literal freeze (see
+	// TestM2FrozenFilesAllCarryText above). Task 12 removes the remaining four
+	// mob rows the same way once they migrate.
+	"internal/mobcommands/trip.go": "42f5206e6a08bccd4673067e31882b7a5147524c971dd0f31f0403a5086808bd",
 	"internal/mobcommands/grapple.go":  "7183a365181000f6ccec5b3500657ef0a758ed663aa8140e9487a2ffc9372df8",
 	"internal/mobcommands/shoot.go":    "7ec3cee39749e1a422778894adf9b43b1be66efaedffd4f1f7b09f0171fd53e1",
 }
