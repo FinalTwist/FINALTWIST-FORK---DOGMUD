@@ -184,6 +184,13 @@ func Fire(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			fromDir := tr.FindExitTo(room.RoomId)
 			known := fromDir != ""
 
+			// The six arms are spelled out rather than built by concatenating
+			// an origin and an outcome. A composed key would be shorter here
+			// and INVISIBLE to the root key-agreement guard, which finds
+			// referenced events by matching literal sendMoveEvent/
+			// renderMoveEvent call sites: a grep can only find the name you
+			// guessed. Keeping each key literal is what lets the build fail on
+			// an event the YAML stops authoring.
 			var eventKey movenarration.EventKey
 			switch {
 			case known && hit:
