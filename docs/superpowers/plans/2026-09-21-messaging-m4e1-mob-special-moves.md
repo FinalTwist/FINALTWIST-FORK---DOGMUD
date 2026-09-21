@@ -957,13 +957,31 @@ related verbs together, and so a bisect lands on a small diff.
 - [ ] **Step 4: grapple, shoot** — the two files with prose sourced from outside
       the file.
 
-For `grapple`, Task 4's owner ruling applies: the literals behind
-`DisarmResult.Message/TargetMsg/RoomMessage` and
-`CritFailure.Message/TargetMessage/RoomMessage` in `internal/actions` move into
-`grapple.yaml` in this same commit, and the result structs carry the event key
-instead of the prose. Both grapple twins consume them, so the player-side file
-reads the migrated wording immediately even though its own literals wait for
-PR 1b.
+For `grapple`, owner ruling 3 applies, with one correction read from source on
+2026-09-21:
+
+🪤 **The external prose is in `internal/combat`, NOT `internal/actions`.** The
+early survey misreported the package. `DisarmResult{Message, TargetMsg,
+RoomMessage}` is `internal/combat/criteffects.go:12-19`, and
+`CritFailureResult{Message, TargetMessage, RoomMessage}` is
+`internal/combat/grapple.go:240-245`, assigned at `:274-276`.
+
+Those three crit-failure lines are already an actor/actee/observer trio, so
+they map onto one `crit_failure` event cleanly.
+
+**It lands as its OWN commit, after the grapple call site, for two reasons:**
+
+1. **The net does not cover it.** `pre_migration_literals.json` spans the
+   thirteen mob files only, so these literals have no byte-identity proof.
+   The commit must add a pinning test that asserts the store renders exactly
+   the old strings, or the migration is unverified.
+2. **`internal/combat` feeds BOTH grapple twins**, so the player side starts
+   reading migrated wording before PR 1b touches it. That is correct and
+   desirable, but it is a wider blast radius than the call-site change and
+   deserves its own reviewable diff.
+
+No import cycle: `movenarration` imports only `configs`, `fileloader` and
+`narration`, none of which import `combat`.
 
 For `shoot`, two specifics, both read from `internal/mobcommands/shoot.go:84-100`:
 
