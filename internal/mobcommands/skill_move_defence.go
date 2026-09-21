@@ -65,18 +65,22 @@ func sendMoveDefenceShortage(targetUser *users.UserRecord, lines moveDefence) {
 }
 
 // acteeDefenceLine renders the defender's personal defence line with the
-// call-site anonymization the audio channel cannot do for itself.
+// call-site name-hiding the audio channel cannot do for itself.
 //
 // users.UserRecord.SendText is hardcoded to ChannelAudio and the pipeline runs
-// the sight gate and anonymizer only on ChannelVisual, so this line is
-// anonymized here or not at all. M4's perception verdict consolidation is where
-// it moves into the pipeline; see internal/messaging/predicates.go:66.
-func acteeDefenceLine(targetUser *users.UserRecord, room *rooms.Room, cat messaging.Category, text string) messaging.Line {
+// the sight gate and hides names only on ChannelVisual, so this line is
+// hidden here or not at all -- that is the reason trio.go's own docstring
+// names this file as the sanctioned exception to "callers hand SendTrio
+// finished text and nothing more": text handed to SendTrio here has already
+// been hidden by the reader's three-tier sight verdict.
+//
+// sourceName is the attacker's BARE name (no ansi tag): every call site
+// already has it as mob.Character.Name.
+func acteeDefenceLine(targetUser *users.UserRecord, room *rooms.Room, cat messaging.Category, text string, sourceName string) messaging.Line {
 	if targetUser == nil || text == "" {
 		return messaging.NoLine
 	}
-	if !canSeeInDark(targetUser, room) {
-		text = messaging.Anonymize(text)
-	}
+	sight := messaging.ParticipantSight(targetUser.Character, room)
+	text = messaging.HideNames(text, []string{sourceName}, sight)
 	return messaging.Say(cat, text)
 }

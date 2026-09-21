@@ -51,17 +51,15 @@ func Howl(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	case result.Hit:
 		if !result.Defence.Defended {
 			if targetPlayer != nil {
-				if canSeeInDark(targetPlayer, room) {
-					targetPlayer.SendText(messaging.CategoryTauntSuccess, fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s menacing howl shakes your resolve! (<ansi fg="damage">%s</ansi>)`, mob.Character.Name, result.DmgDesc))
-				} else {
-					targetPlayer.SendText(messaging.CategoryTauntSuccess, fmt.Sprintf(`A menacing howl shakes your resolve! (<ansi fg="damage">%s</ansi>)`, result.DmgDesc))
-				}
+				personalText := fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s menacing howl shakes your resolve! (<ansi fg="damage">%s</ansi>)`, mob.Character.Name, result.DmgDesc)
+				sight := messaging.ParticipantSight(targetPlayer.Character, room)
+				targetPlayer.SendText(messaging.CategoryTauntSuccess, messaging.HideNames(personalText, []string{mob.Character.Name}, sight))
 			}
-			sendAudioRoomText(room, mob, messaging.CategoryTauntSuccess,
-				messaging.Anonymize(fmt.Sprintf(`Something lets out a bone-chilling howl at <ansi fg="username">%s</ansi>!`, targetName)),
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> throws back its head and lets out a bone-chilling howl at <ansi fg="username">%s</ansi>!`, mob.Character.Name, targetName))
+			sendAudioRoomTextHidingNames(room, messaging.CategoryTauntSuccess,
+				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> throws back its head and lets out a bone-chilling howl at <ansi fg="username">%s</ansi>!`, mob.Character.Name, targetName),
+				[]string{mob.Character.Name, targetName})
 		}
-		sendChannelDefenceMessages(result.Defence, mob, targetPlayer, room, targetIdentity, "howl")
+		sendChannelDefenceMessages(result.Defence, mob, targetPlayer, room, targetIdentity, targetName, "howl")
 
 		// Aggro-pull confirmation: the howl yanked the target off its prior foe
 		// and pinned it (taunt-hold). AggroPulled is only ever set when the
@@ -74,15 +72,13 @@ func Howl(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	default: // miss
 		if targetPlayer != nil {
-			if canSeeInDark(targetPlayer, room) {
-				targetPlayer.SendText(messaging.CategoryTauntResist, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> howls, but you steel yourself against the sound.`, mob.Character.Name))
-			} else {
-				targetPlayer.SendText(messaging.CategoryTauntResist, `Something howls, but you steel yourself against the sound.`)
-			}
+			personalText := fmt.Sprintf(`<ansi fg="mobname">%s</ansi> howls, but you steel yourself against the sound.`, mob.Character.Name)
+			sight := messaging.ParticipantSight(targetPlayer.Character, room)
+			targetPlayer.SendText(messaging.CategoryTauntResist, messaging.HideNames(personalText, []string{mob.Character.Name}, sight))
 		}
-		sendAudioRoomText(room, mob, messaging.CategoryTauntResist,
-			messaging.Anonymize(fmt.Sprintf(`Something howls menacingly at <ansi fg="username">%s</ansi>, but it has no effect.`, targetName)),
-			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> howls menacingly at <ansi fg="username">%s</ansi>, but it has no effect.`, mob.Character.Name, targetName))
+		sendAudioRoomTextHidingNames(room, messaging.CategoryTauntResist,
+			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> howls menacingly at <ansi fg="username">%s</ansi>, but it has no effect.`, mob.Character.Name, targetName),
+			[]string{mob.Character.Name, targetName})
 	}
 
 	return true, nil

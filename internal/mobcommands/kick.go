@@ -126,7 +126,7 @@ func Kick(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		sendMoveDefenceShortage(targetUser, defence)
 		messaging.SendTrio(messaging.Trio{
 			Actor:    messaging.NoLine,
-			Actee:    acteeDefenceLine(targetUser, room, messaging.CategoryKick, defence.ToDefender),
+			Actee:    acteeDefenceLine(targetUser, room, messaging.CategoryKick, defence.ToDefender, mobName),
 			Observer: messaging.Say(messaging.CategoryKick, defence.ToRoom),
 		}, aud)
 	} else {

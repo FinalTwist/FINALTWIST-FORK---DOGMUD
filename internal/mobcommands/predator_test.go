@@ -529,7 +529,7 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 			events.DrainQueuedMessagesForTest(observer.UserId)
 			sendChannelDefenceMessages(combat.ChannelDefenceResult{
 				Defence: combatvocab.DefenceDefy, Defended: true, NormalizedDefenceMargin: 0.1, DamageMultiplier: 0.4,
-			}, mob, target, darkRoom, target.Character.Name, attack)
+			}, mob, target, darkRoom, target.Character.Name, target.Character.Name, attack)
 
 			targetLines := events.DrainQueuedMessagesForTest(target.UserId)
 			observerLines := events.DrainQueuedMessagesForTest(observer.UserId)
@@ -537,8 +537,16 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 			require.Len(t, observerLines, 1)
 			for _, line := range []string{targetLines[0], observerLines[0]} {
 				require.NotContains(t, line, mob.Character.Name, "dark routing leaked mob identity")
-				require.Contains(t, line, "a figure")
 			}
+			// The target has neither nightvision nor infrared and stands in
+			// total darkness: SightNone, "something". The observer carries
+			// condition 9001 (InfraredVision): SightShapes, "a figure". Before
+			// M4e-1 Task 9 both fell through the same canSeeInDark branch and
+			// both read "a figure" -- the actual defect this task fixes.
+			require.Contains(t, targetLines[0], "something",
+				"a fully blind defender must read \"something\", not the shapes-tier word")
+			require.NotContains(t, targetLines[0], "a figure")
+			require.Contains(t, observerLines[0], "a figure")
 		})
 	}
 }
@@ -611,9 +619,17 @@ func TestMobTauntAndHowlRuntimeHideIndexedActorAndExcludeDefender(t *testing.T) 
 				"defended %s must replace its generic room hit line", command.name)
 			for _, line := range []string{targetLines[0], observerLines[0]} {
 				require.NotContains(t, line, first.Character.Name, "indexed mob identity leaked through dark routing")
-				require.Contains(t, line, "a figure")
 				require.Contains(t, line, `fg="taunt-resist"`)
 			}
+			// The target has neither nightvision nor infrared: SightNone,
+			// "something". The observer carries condition 9001
+			// (InfraredVision): SightShapes, "a figure". Before M4e-1 Task 9
+			// both fell through the same canSeeInDark branch and both read
+			// "a figure" -- the actual defect this task fixes.
+			require.Contains(t, targetLines[0], "something",
+				"a fully blind defender must read \"something\", not the shapes-tier word")
+			require.NotContains(t, targetLines[0], "a figure")
+			require.Contains(t, observerLines[0], "a figure")
 		})
 	}
 }

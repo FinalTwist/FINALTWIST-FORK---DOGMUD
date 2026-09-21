@@ -104,7 +104,7 @@ func Charge(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		sendMoveDefenceShortage(targetChar, defence)
 		messaging.SendTrio(messaging.Trio{
 			Actor:    messaging.NoLine,
-			Actee:    acteeDefenceLine(targetChar, room, messaging.CategoryTrip, defence.ToDefender),
+			Actee:    acteeDefenceLine(targetChar, room, messaging.CategoryTrip, defence.ToDefender, mobName),
 			Observer: messaging.Say(messaging.CategoryTrip, defence.ToRoom),
 		}, aud)
 	} else {
