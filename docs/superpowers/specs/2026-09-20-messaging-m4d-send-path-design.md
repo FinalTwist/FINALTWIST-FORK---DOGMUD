@@ -357,6 +357,35 @@ section of the flip spec.
 
 ---
 
+## Filed follow-ups
+
+### The `item_procs.go` submission bypass (small, high leverage)
+
+`internal/hooks/item_procs.go:274-275` sends `messaging.CategorySubmission`
+through a raw `room.SendTextVisual`:
+
+```go
+room.SendTextVisual(messaging.CategorySubmission,
+    `<ansi fg="yellow">A jarring shockwave ripples outward, staggering the hostile creatures nearby!</ansi>`)
+```
+
+**It is not a leak.** The line names nobody, so no reader learns anything they
+should not; condition 84's stagger shockwave is room-wide flavour. Nothing a
+player sees is wrong today.
+
+**What it blocks is the guard.** PR 3's Task 6 re-survey found this is the
+ONLY remaining raw sender of `CategorySubmission` now that
+`sendSubmissionTriple` is on `SendTrio` (`633576fc6`). So migrating this one
+call to `SendTrio`'s observer-only form would make `CategorySubmission` fully
+clean and let `send_trio_only_guard_test.go` widen from 3 guarded categories to
+4. That is the best ratio of effort to guard coverage anywhere in the arc right
+now: one line, one category.
+
+It has no actee and no names, so the migration is the simple observer-only
+shape, and the existing guard's own sabotage procedure proves it afterwards.
+
+---
+
 ## Out of scope
 
 - `Room.Info` and the GMCP contents roster: the filed GMCP slice.
