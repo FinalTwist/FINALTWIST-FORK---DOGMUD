@@ -50,6 +50,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/language"
 	"github.com/GoMudEngine/GoMud/internal/migration"
 	"github.com/GoMudEngine/GoMud/internal/mobcommands"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/planners" // chunk 4.4 — fire planner init()s + expose ClearPlanState
 	"github.com/GoMudEngine/GoMud/internal/seeders"  // chunk 4.5 — rule init()s + Dispatch listener
 	"github.com/GoMudEngine/GoMud/internal/usercommands"
@@ -1943,6 +1944,7 @@ func loadAllDataFiles(isReload bool) {
 
 	colorpatterns.LoadColorPatterns()
 	combat.LoadTauntMessageFiles()
+	movenarration.LoadMoveNarrationFiles()
 	spells.LoadCastingMessages()
 	audio.LoadAudioConfig()
 	characters.CompileAdjectiveSwaps() // This should come after loading color patterns.
