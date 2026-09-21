@@ -2,13 +2,13 @@ moveid: shoot
 events:
   hit:
     actee:
-      - '{actor_plain}''s shot strikes you!'
+      - '{actor}''s shot strikes you!'
   partial:
     actee:
-      - '{actor_plain}''s shot goes wide, but the edge of it still clips you!'
+      - '{actor}''s shot goes wide, but the edge of it still clips you!'
   miss:
     actee:
-      - '{actor_plain}''s shot narrowly misses you!'
+      - '{actor}''s shot narrowly misses you!'
   fire_announce:
     observer:
       - '{actor} fires their {weapon} at {actee}!'

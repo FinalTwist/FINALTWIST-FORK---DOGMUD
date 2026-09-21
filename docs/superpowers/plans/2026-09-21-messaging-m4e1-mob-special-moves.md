@@ -942,13 +942,22 @@ PR 1b.
 
 For `shoot`, two specifics, both read from `internal/mobcommands/shoot.go:84-100`:
 
-🪤 **`shoot`'s lines take `{actor_plain}`, not `{actor}`.** The existing code
-substitutes `shooter := mobName` **bare**, with no `<ansi>` tag:
-`fmt.Sprintf(`%s's shot strikes you!`, shooter)`. Authoring `{actor}` would wrap
-it in an identity tag and add colour the line never had, and the net would
-correctly report it as a migration defect. Use `{actor_plain}` for every
-`shoot` line that names the shooter this way. `HideNames` matches bare names as
-whole words, so the pipeline still hides it.
+🪤 **`shoot`'s `mobName` is PRE-TAGGED, unlike every other file's.**
+`internal/mobcommands/shoot.go:49` builds it as
+`fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mob.Character.Name)`, so
+`shooter := mobName` at `:84` already carries the identity tag. Its lines take
+`{actor}`, the same as every other verb.
+
+🔴 **An earlier revision of this plan asserted the opposite**, from reading
+`shooter := mobName` without checking how `mobName` was built. The byte-identity
+net caught it on three rows. That is the plan's own rule biting: read the
+source, do not infer from a variable's name. `aud.ActorName` is separately the
+BARE `mob.Character.Name`, which is correct and is what `HideNames` matches.
+
+🪤 **`bash` wraps its species-varying label in `<ansi fg="yellow-bold">`** at
+`bash.go:77,86,92` and in the knockdown observer line, so the YAML must carry
+that tag around `{label}`. Its MISS line does not tag the label. Reproduce that
+inconsistency rather than regularising it; the net enforces both.
 
 **Preserve the `IsSneaking` disjunction.** The darkness half of
 `anonymous := result.IsSneaking || !canSeeInDark(u, room)` is deleted in favour

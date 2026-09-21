@@ -1,17 +1,17 @@
 bash|hit|0|actor= 
-bash|hit|0|actee= <ansi fg="mobname">ACTOR</ansi>'s LABEL strikes you! (<ansi fg="damage">DAMAGE</ansi>)
+bash|hit|0|actee= <ansi fg="mobname">ACTOR</ansi>'s <ansi fg="yellow-bold">LABEL</ansi> strikes you! (<ansi fg="damage">DAMAGE</ansi>)
 bash|hit|0|observer= <ansi fg="mobname">ACTOR</ansi> VERB <ansi fg="username">ACTEE</ansi> WITH!
 bash|hit|0|remote_observer= 
 bash|knockdown|0|actor= 
-bash|knockdown|0|actee= <ansi fg="mobname">ACTOR</ansi>'s LABEL knocks you to the ground! (<ansi fg="damage">DAMAGE</ansi>)
-bash|knockdown|0|observer= <ansi fg="mobname">ACTOR</ansi>'s LABEL knocks <ansi fg="username">ACTEE</ansi> to the ground!
+bash|knockdown|0|actee= <ansi fg="mobname">ACTOR</ansi>'s <ansi fg="yellow-bold">LABEL</ansi> knocks you to the ground! (<ansi fg="damage">DAMAGE</ansi>)
+bash|knockdown|0|observer= <ansi fg="mobname">ACTOR</ansi>'s <ansi fg="yellow-bold">LABEL</ansi> knocks <ansi fg="username">ACTEE</ansi> to the ground!
 bash|knockdown|0|remote_observer= 
 bash|miss|0|actor= 
 bash|miss|0|actee= <ansi fg="mobname">ACTOR</ansi> attempts a LABEL, but misses!
 bash|miss|0|observer= <ansi fg="mobname">ACTOR</ansi> attempts to bash <ansi fg="username">ACTEE</ansi>, but misses!
 bash|miss|0|remote_observer= 
 bash|partial|0|actor= 
-bash|partial|0|actee= <ansi fg="mobname">ACTOR</ansi>'s LABEL fails to floor you, but still crashes into you! (<ansi fg="damage">DAMAGE</ansi>)
+bash|partial|0|actee= <ansi fg="mobname">ACTOR</ansi>'s <ansi fg="yellow-bold">LABEL</ansi> fails to floor you, but still crashes into you! (<ansi fg="damage">DAMAGE</ansi>)
 bash|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> VERB <ansi fg="username">ACTEE</ansi> WITH, who staggers but stays up!
 bash|partial|0|remote_observer= 
 charge|hit|0|actor= 
@@ -195,15 +195,15 @@ shoot|fire_depart|0|actee=
 shoot|fire_depart|0|observer= <ansi fg="mobname">ACTOR</ansi> fires their WEAPON EXITNAMEward.
 shoot|fire_depart|0|remote_observer= 
 shoot|hit|0|actor= 
-shoot|hit|0|actee= ACTOR's shot strikes you!
+shoot|hit|0|actee= <ansi fg="mobname">ACTOR</ansi>'s shot strikes you!
 shoot|hit|0|observer= 
 shoot|hit|0|remote_observer= 
 shoot|miss|0|actor= 
-shoot|miss|0|actee= ACTOR's shot narrowly misses you!
+shoot|miss|0|actee= <ansi fg="mobname">ACTOR</ansi>'s shot narrowly misses you!
 shoot|miss|0|observer= 
 shoot|miss|0|remote_observer= 
 shoot|partial|0|actor= 
-shoot|partial|0|actee= ACTOR's shot goes wide, but the edge of it still clips you!
+shoot|partial|0|actee= <ansi fg="mobname">ACTOR</ansi>'s shot goes wide, but the edge of it still clips you!
 shoot|partial|0|observer= 
 shoot|partial|0|remote_observer= 
 throttle|cast_interrupt|0|actor= 
