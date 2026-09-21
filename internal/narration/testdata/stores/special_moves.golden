@@ -62,6 +62,62 @@ drain|partial|0|actor=
 drain|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> reaches for you and you slip most of its grip, but it still catches a sliver of you! (<ansi fg="damage">DAMAGE</ansi>)
 drain|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> reaches for <ansi fg="username">ACTEE</ansi> hungrily, who slips mostly free but still gets caught!
 drain|partial|0|remote_observer= 
+drain|player_hit|0|actor= Your <ansi fg="item">claws</ansi> plunge into <ansi fg="username">ACTEE</ansi>, sapping their vitality as warmth floods into you! (<ansi fg="damage">DAMAGE</ansi>)
+drain|player_hit|0|actee= <ansi fg="mobname">ACTOR</ansi> plunges their <ansi fg="item">claws</ansi> into you, sapping your vitality! (<ansi fg="damage">DAMAGE</ansi>)
+drain|player_hit|0|observer= <ansi fg="mobname">ACTOR</ansi> plunges their <ansi fg="item">claws</ansi> into <ansi fg="username">ACTEE</ansi>, leeching their vitality!
+drain|player_hit|0|remote_observer= 
+drain|player_hit|1|actor= You latch onto <ansi fg="username">ACTEE</ansi> and drink deep, leeching their life-force! (<ansi fg="damage">DAMAGE</ansi>)
+drain|player_hit|1|actee= <ansi fg="mobname">ACTOR</ansi> latches onto you and drinks deep, leeching your life-force! (<ansi fg="damage">DAMAGE</ansi>)
+drain|player_hit|1|observer= <ansi fg="mobname">ACTOR</ansi> latches onto <ansi fg="username">ACTEE</ansi> and drinks deep!
+drain|player_hit|1|remote_observer= 
+drain|player_hit|2|actor= Your touch drains <ansi fg="username">ACTEE</ansi>, pulling vitality through your <ansi fg="item">claws</ansi>! (<ansi fg="damage">DAMAGE</ansi>)
+drain|player_hit|2|actee= <ansi fg="mobname">ACTOR</ansi>''s touch drains you, pulling vitality through their grasp! (<ansi fg="damage">DAMAGE</ansi>)
+drain|player_hit|2|observer= <ansi fg="mobname">ACTOR</ansi> tears into <ansi fg="username">ACTEE</ansi> and feeds hungrily!
+drain|player_hit|2|remote_observer= 
+drain|player_hit|3|actor= You tear into <ansi fg="username">ACTEE</ansi> and feed, growing stronger as they weaken! (<ansi fg="damage">DAMAGE</ansi>)
+drain|player_hit|3|actee= <ansi fg="mobname">ACTOR</ansi> tears into you and feeds, growing stronger as you weaken! (<ansi fg="damage">DAMAGE</ansi>)
+drain|player_hit|3|observer= <ansi fg="mobname">ACTOR</ansi> tears into <ansi fg="username">ACTEE</ansi> and feeds, growing stronger as they weaken!
+drain|player_hit|3|remote_observer= 
+drain|player_hit_heal|0|actor= <ansi fg="green">Their stolen vitality flows into you — {heal}.</ansi>
+drain|player_hit_heal|0|actee= 
+drain|player_hit_heal|0|observer= 
+drain|player_hit_heal|0|remote_observer= 
+drain|player_hit_heal|1|actor= <ansi fg="green">Stolen life-force surges through you — {heal}.</ansi>
+drain|player_hit_heal|1|actee= 
+drain|player_hit_heal|1|observer= 
+drain|player_hit_heal|1|remote_observer= 
+drain|player_hit_heal|2|actor= <ansi fg="green">You feel {heal} as their warmth becomes yours.</ansi>
+drain|player_hit_heal|2|actee= 
+drain|player_hit_heal|2|observer= 
+drain|player_hit_heal|2|remote_observer= 
+drain|player_miss|0|actor= Your drain misses <ansi fg="username">ACTEE</ansi>!
+drain|player_miss|0|actee= <ansi fg="mobname">ACTOR</ansi> reaches for you with hungry <ansi fg="item">claws</ansi>, but misses!
+drain|player_miss|0|observer= <ansi fg="mobname">ACTOR</ansi> lunges to drain <ansi fg="username">ACTEE</ansi>, but misses!
+drain|player_miss|0|remote_observer= 
+drain|player_miss|1|actor= You reach for <ansi fg="username">ACTEE</ansi> but they slip away!
+drain|player_miss|1|actee= <ansi fg="mobname">ACTOR</ansi> lunges to drain you but you slip away!
+drain|player_miss|1|observer= <ansi fg="mobname">ACTOR</ansi> reaches for <ansi fg="username">ACTEE</ansi>, who slips away!
+drain|player_miss|1|remote_observer= 
+drain|player_miss|2|actor= Your draining lunge glances off <ansi fg="username">ACTEE</ansi> harmlessly!
+drain|player_miss|2|actee= <ansi fg="mobname">ACTOR</ansi>'s draining lunge glances off you harmlessly!
+drain|player_miss|2|observer= <ansi fg="mobname">ACTOR</ansi>'s draining lunge glances off <ansi fg="username">ACTEE</ansi> harmlessly!
+drain|player_miss|2|remote_observer= 
+drain|player_partial|0|actor= Your reach for <ansi fg="username">ACTEE</ansi> mostly fails, but your <ansi fg="item">claws</ansi> still catch a sliver of vitality! (<ansi fg="damage">DAMAGE</ansi>)
+drain|player_partial|0|actee= <ansi fg="mobname">ACTOR</ansi> reaches for you with hungry <ansi fg="item">claws</ansi>, and you slip most of it, but they still catch a sliver of you! (<ansi fg="damage">DAMAGE</ansi>)
+drain|player_partial|0|observer= <ansi fg="mobname">ACTOR</ansi> lunges to drain <ansi fg="username">ACTEE</ansi>, who slips mostly free but still gets caught!
+drain|player_partial|0|remote_observer= 
+drain|player_partial|1|actor= <ansi fg="username">ACTEE</ansi> slips most of your grip, but you still sap a trace of their life-force! (<ansi fg="damage">DAMAGE</ansi>)
+drain|player_partial|1|actee= <ansi fg="mobname">ACTOR</ansi> lunges to drain you; you slip most of it away, but not all! (<ansi fg="damage">DAMAGE</ansi>)
+drain|player_partial|1|observer= <ansi fg="mobname">ACTOR</ansi> lunges to drain <ansi fg="username">ACTEE</ansi>, who slips most of it away but not all!
+drain|player_partial|1|remote_observer= 
+drain|player_partial_heal|0|actor= <ansi fg="green">A trickle of stolen vitality flows into you. You feel {heal}.</ansi>
+drain|player_partial_heal|0|actee= 
+drain|player_partial_heal|0|observer= 
+drain|player_partial_heal|0|remote_observer= 
+drain|player_partial_heal|1|actor= <ansi fg="green">You feel {heal} as a sliver of their warmth becomes yours.</ansi>
+drain|player_partial_heal|1|actee= 
+drain|player_partial_heal|1|observer= 
+drain|player_partial_heal|1|remote_observer= 
 gore|hit|0|actor= 
 gore|hit|0|actee= <ansi fg="mobname">ACTOR</ansi> drives its horns into you with a powerful charge! (<ansi fg="damage">DAMAGE</ansi>)
 gore|hit|0|observer= <ansi fg="mobname">ACTOR</ansi> drives its horns into <ansi fg="username">ACTEE</ansi>!
@@ -174,6 +230,46 @@ maul|partial|0|actor=
 maul|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> snaps at you and you dodge most of it, but the fangs still tear you! (<ansi fg="damage">DAMAGE</ansi>)
 maul|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> snaps its fangs at <ansi fg="username">ACTEE</ansi>, who twists mostly free but still gets torn!
 maul|partial|0|remote_observer= 
+maul|player_hit|0|actor= Your fangs savage <ansi fg="username">ACTEE</ansi>, tearing wounds that weep blood! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_hit|0|actee= <ansi fg="mobname">ACTOR</ansi> savages you with their fangs, tearing bleeding wounds! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_hit|0|observer= <ansi fg="mobname">ACTOR</ansi> savages <ansi fg="username">ACTEE</ansi> with vicious fangs!
+maul|player_hit|0|remote_observer= 
+maul|player_hit|1|actor= You maul <ansi fg="username">ACTEE</ansi>, worrying their flesh with savage fury! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_hit|1|actee= <ansi fg="mobname">ACTOR</ansi> mauls you, worrying your flesh with savage fury! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_hit|1|observer= <ansi fg="mobname">ACTOR</ansi> mauls <ansi fg="username">ACTEE</ansi> savagely!
+maul|player_hit|1|remote_observer= 
+maul|player_hit|2|actor= Your savage bite tears into <ansi fg="username">ACTEE</ansi>! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_hit|2|actee= <ansi fg="mobname">ACTOR</ansi>'s savage bite tears into you! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_hit|2|observer= <ansi fg="mobname">ACTOR</ansi>'s fangs tear deep into <ansi fg="username">ACTEE</ansi>!
+maul|player_hit|2|remote_observer= 
+maul|player_hit|3|actor= You drive your fangs into <ansi fg="username">ACTEE</ansi> and worry the wound viciously! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_hit|3|actee= <ansi fg="mobname">ACTOR</ansi> drives their fangs into you and worries the wound! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_hit|3|observer= <ansi fg="mobname">ACTOR</ansi> drives their fangs into <ansi fg="username">ACTEE</ansi> and worries the wound viciously!
+maul|player_hit|3|remote_observer= 
+maul|player_hit|4|actor= A brutal mauling drives your teeth deep into <ansi fg="username">ACTEE</ansi>! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_hit|4|actee= <ansi fg="mobname">ACTOR</ansi>'s brutal mauling drives their teeth deep into you! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_hit|4|observer= <ansi fg="mobname">ACTOR</ansi>'s brutal mauling drives fangs deep into <ansi fg="username">ACTEE</ansi>!
+maul|player_hit|4|remote_observer= 
+maul|player_miss|0|actor= Your savage bite misses <ansi fg="username">ACTEE</ansi>!
+maul|player_miss|0|actee= <ansi fg="mobname">ACTOR</ansi> snaps their fangs at you, but misses!
+maul|player_miss|0|observer= <ansi fg="mobname">ACTOR</ansi> lunges to maul <ansi fg="username">ACTEE</ansi>, but misses!
+maul|player_miss|0|remote_observer= 
+maul|player_miss|1|actor= You snap at <ansi fg="username">ACTEE</ansi> but they dodge your fangs!
+maul|player_miss|1|actee= <ansi fg="mobname">ACTOR</ansi> lunges to maul you but you dodge!
+maul|player_miss|1|observer= <ansi fg="mobname">ACTOR</ansi> snaps at <ansi fg="username">ACTEE</ansi>, who dodges the fangs!
+maul|player_miss|1|remote_observer= 
+maul|player_miss|2|actor= Your mauling lunge glances off <ansi fg="username">ACTEE</ansi> harmlessly!
+maul|player_miss|2|actee= <ansi fg="mobname">ACTOR</ansi>'s mauling lunge glances off you harmlessly!
+maul|player_miss|2|observer= <ansi fg="mobname">ACTOR</ansi>'s mauling lunge glances off <ansi fg="username">ACTEE</ansi> harmlessly!
+maul|player_miss|2|remote_observer= 
+maul|player_partial|0|actor= Your fangs mostly miss <ansi fg="username">ACTEE</ansi>, but still tear a shallow gash! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_partial|0|actee= <ansi fg="mobname">ACTOR</ansi> snaps at you, and you dodge most of it, but the fangs still tear you! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_partial|0|observer= <ansi fg="mobname">ACTOR</ansi> lunges to maul <ansi fg="username">ACTEE</ansi>, who twists mostly free but still gets torn!
+maul|player_partial|0|remote_observer= 
+maul|player_partial|1|actor= <ansi fg="username">ACTEE</ansi> twists free of your bite, but your fangs still rake them! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_partial|1|actee= <ansi fg="mobname">ACTOR</ansi> lunges to maul you; you twist free of most of it, but not all! (<ansi fg="damage">DAMAGE</ansi>)
+maul|player_partial|1|observer= <ansi fg="mobname">ACTOR</ansi> lunges to maul <ansi fg="username">ACTEE</ansi>, who twists free of most of it but not all!
+maul|player_partial|1|remote_observer= 
 pounce|hit|0|actor= 
 pounce|hit|0|actee= <ansi fg="mobname">ACTOR</ansi> springs at you and crashes into your body! (<ansi fg="damage">DAMAGE</ansi>)
 pounce|hit|0|observer= <ansi fg="mobname">ACTOR</ansi> springs at <ansi fg="username">ACTEE</ansi> and crashes into them!
@@ -202,6 +298,46 @@ rake|partial|0|actor=
 rake|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> swipes its claws and you dodge most of it, but they still scratch you! (<ansi fg="damage">DAMAGE</ansi>)
 rake|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> swipes its claws at <ansi fg="username">ACTEE</ansi>, who mostly dodges but still gets scratched!
 rake|partial|0|remote_observer= 
+rake|player_hit|0|actor= Your claws rake across <ansi fg="username">ACTEE</ansi>, opening raking gashes that weep! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_hit|0|actee= <ansi fg="mobname">ACTOR</ansi> rakes their claws across you, opening bleeding wounds! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_hit|0|observer= <ansi fg="mobname">ACTOR</ansi> rakes their claws across <ansi fg="username">ACTEE</ansi>!
+rake|player_hit|0|remote_observer= 
+rake|player_hit|1|actor= You slash <ansi fg="username">ACTEE</ansi> with raking claws, leaving bleeding wounds! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_hit|1|actee= <ansi fg="mobname">ACTOR</ansi> slashes you with raking claws! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_hit|1|observer= <ansi fg="mobname">ACTOR</ansi> slashes <ansi fg="username">ACTEE</ansi> with raking claws!
+rake|player_hit|1|remote_observer= 
+rake|player_hit|2|actor= Your raking strike tears into <ansi fg="username">ACTEE</ansi>! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_hit|2|actee= <ansi fg="mobname">ACTOR</ansi>'s raking strike tears into you! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_hit|2|observer= <ansi fg="mobname">ACTOR</ansi>'s claws tear into <ansi fg="username">ACTEE</ansi>!
+rake|player_hit|2|remote_observer= 
+rake|player_hit|3|actor= You drive your claws across <ansi fg="username">ACTEE</ansi>'s flesh — blood wells up! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_hit|3|actee= <ansi fg="mobname">ACTOR</ansi> drives their claws across your flesh — you bleed! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_hit|3|observer= <ansi fg="mobname">ACTOR</ansi> drives their claws across <ansi fg="username">ACTEE</ansi>'s flesh, drawing blood!
+rake|player_hit|3|remote_observer= 
+rake|player_hit|4|actor= A vicious rake of your claws shreds <ansi fg="username">ACTEE</ansi>! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_hit|4|actee= <ansi fg="mobname">ACTOR</ansi>'s vicious rake of claws shreds you! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_hit|4|observer= <ansi fg="mobname">ACTOR</ansi>'s vicious rake of claws shreds <ansi fg="username">ACTEE</ansi>!
+rake|player_hit|4|remote_observer= 
+rake|player_miss|0|actor= Your raking claws miss <ansi fg="username">ACTEE</ansi>!
+rake|player_miss|0|actee= <ansi fg="mobname">ACTOR</ansi> rakes their claws at you, but misses!
+rake|player_miss|0|observer= <ansi fg="mobname">ACTOR</ansi> rakes their claws at <ansi fg="username">ACTEE</ansi>, but misses!
+rake|player_miss|0|remote_observer= 
+rake|player_miss|1|actor= You swipe at <ansi fg="username">ACTEE</ansi> but they dodge your claws!
+rake|player_miss|1|actee= <ansi fg="mobname">ACTOR</ansi> swipes at you but you dodge!
+rake|player_miss|1|observer= <ansi fg="mobname">ACTOR</ansi> swipes at <ansi fg="username">ACTEE</ansi>, who dodges the claws!
+rake|player_miss|1|remote_observer= 
+rake|player_miss|2|actor= Your rake glances off <ansi fg="username">ACTEE</ansi> harmlessly!
+rake|player_miss|2|actee= <ansi fg="mobname">ACTOR</ansi>'s rake glances off you harmlessly!
+rake|player_miss|2|observer= <ansi fg="mobname">ACTOR</ansi>'s rake glances off <ansi fg="username">ACTEE</ansi> harmlessly!
+rake|player_miss|2|remote_observer= 
+rake|player_partial|0|actor= Your raking claws mostly miss <ansi fg="username">ACTEE</ansi>, but still leave a shallow scratch! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_partial|0|actee= <ansi fg="mobname">ACTOR</ansi> rakes their claws at you, and you dodge most of it, but they still scratch you! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_partial|0|observer= <ansi fg="mobname">ACTOR</ansi> rakes their claws at <ansi fg="username">ACTEE</ansi>, who mostly dodges but still gets scratched!
+rake|player_partial|0|remote_observer= 
+rake|player_partial|1|actor= <ansi fg="username">ACTEE</ansi> dodges most of your swipe, but your claws still catch them! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_partial|1|actee= <ansi fg="mobname">ACTOR</ansi> swipes at you; you dodge most of it, but not all! (<ansi fg="damage">DAMAGE</ansi>)
+rake|player_partial|1|observer= <ansi fg="mobname">ACTOR</ansi> swipes at <ansi fg="username">ACTEE</ansi>, who dodges most of it but not all!
+rake|player_partial|1|remote_observer= 
 shoot|arrival_known_hit|0|actor= 
 shoot|arrival_known_hit|0|actee= 
 shoot|arrival_known_hit|0|observer= 
@@ -306,6 +442,46 @@ throttle|partial|0|actor=
 throttle|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> lunges for your throat and you pull mostly free, but the fangs still catch you! (<ansi fg="damage">DAMAGE</ansi>)
 throttle|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> lunges for <ansi fg="username">ACTEE</ansi>'s throat, who pulls mostly free but still gets grazed!
 throttle|partial|0|remote_observer= 
+throttle|player_cast_interrupt|0|actor= <ansi fg="username">ACTEE</ansi>'s spell collapses as they fight for air!
+throttle|player_cast_interrupt|0|actee= Your spell collapses as you fight for air!
+throttle|player_cast_interrupt|0|observer= <ansi fg="mobname">ACTOR</ansi>'s grip chokes the spell out of <ansi fg="username">ACTEE</ansi>!
+throttle|player_cast_interrupt|0|remote_observer= 
+throttle|player_hit|0|actor= Your fangs clamp around <ansi fg="username">ACTEE</ansi>'s throat, cutting off their air! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|player_hit|0|actee= <ansi fg="mobname">ACTOR</ansi>'s fangs clamp around your throat, cutting off your air! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|player_hit|0|observer= <ansi fg="mobname">ACTOR</ansi> clamps fangs around <ansi fg="username">ACTEE</ansi>'s throat in a savage choke!
+throttle|player_hit|0|remote_observer= 
+throttle|player_hit|1|actor= You seize <ansi fg="username">ACTEE</ansi> by the throat with savage fangs, crushing their windpipe! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|player_hit|1|actee= <ansi fg="mobname">ACTOR</ansi> seizes your throat with savage fangs, crushing your windpipe! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|player_hit|1|observer= <ansi fg="mobname">ACTOR</ansi> seizes <ansi fg="username">ACTEE</ansi> by the throat with crushing fangs!
+throttle|player_hit|1|remote_observer= 
+throttle|player_hit|2|actor= Your jaws lock around <ansi fg="username">ACTEE</ansi>'s neck in a crushing choke! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|player_hit|2|actee= <ansi fg="mobname">ACTOR</ansi>'s jaws lock around your neck in a crushing choke! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|player_hit|2|observer= <ansi fg="mobname">ACTOR</ansi>'s jaws lock around <ansi fg="username">ACTEE</ansi>'s neck in a crushing choke!
+throttle|player_hit|2|remote_observer= 
+throttle|player_hit|3|actor= You drive your fangs into <ansi fg="username">ACTEE</ansi>'s throat and squeeze! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|player_hit|3|actee= <ansi fg="mobname">ACTOR</ansi> drives their fangs into your throat and squeezes! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|player_hit|3|observer= <ansi fg="mobname">ACTOR</ansi> drives their fangs into <ansi fg="username">ACTEE</ansi>'s throat and squeezes!
+throttle|player_hit|3|remote_observer= 
+throttle|player_miss|0|actor= Your throttle lunge misses <ansi fg="username">ACTEE</ansi>'s throat!
+throttle|player_miss|0|actee= <ansi fg="mobname">ACTOR</ansi> lunges for your throat but misses!
+throttle|player_miss|0|observer= <ansi fg="mobname">ACTOR</ansi> lunges for <ansi fg="username">ACTEE</ansi>'s throat but misses!
+throttle|player_miss|0|remote_observer= 
+throttle|player_miss|1|actor= You snap at <ansi fg="username">ACTEE</ansi>'s throat but they pull away!
+throttle|player_miss|1|actee= You twist away as <ansi fg="mobname">ACTOR</ansi> snaps at your throat!
+throttle|player_miss|1|observer= <ansi fg="mobname">ACTOR</ansi> snaps at <ansi fg="username">ACTEE</ansi>'s throat, who pulls away!
+throttle|player_miss|1|remote_observer= 
+throttle|player_miss|2|actor= <ansi fg="username">ACTEE</ansi> twists away before your fangs can find their throat!
+throttle|player_miss|2|actee= You twist away before <ansi fg="mobname">ACTOR</ansi>'s fangs can find your throat!
+throttle|player_miss|2|observer= <ansi fg="username">ACTEE</ansi> twists away before <ansi fg="mobname">ACTOR</ansi>'s fangs can find their throat!
+throttle|player_miss|2|remote_observer= 
+throttle|player_partial|0|actor= Your throttle lunge mostly misses <ansi fg="username">ACTEE</ansi>'s throat, but your fangs still graze it! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|player_partial|0|actee= <ansi fg="mobname">ACTOR</ansi> lunges for your throat and you pull mostly free, but the fangs still catch you! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|player_partial|0|observer= <ansi fg="mobname">ACTOR</ansi> lunges for <ansi fg="username">ACTEE</ansi>'s throat, who pulls mostly free but still gets grazed!
+throttle|player_partial|0|remote_observer= 
+throttle|player_partial|1|actor= <ansi fg="username">ACTEE</ansi> pulls mostly free of your grip, but your fangs still catch their throat! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|player_partial|1|actee= You twist mostly away as <ansi fg="mobname">ACTOR</ansi> snaps at your throat, but not all the way! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|player_partial|1|observer= <ansi fg="mobname">ACTOR</ansi> snaps at <ansi fg="username">ACTEE</ansi>'s throat, who twists mostly away but not all the way!
+throttle|player_partial|1|remote_observer= 
 throw|player_cast_interrupt|0|actor= <ansi fg="cyan-bold">The blast shatters ACTEE's concentration -- its spell collapses!</ansi>
 throw|player_cast_interrupt|0|actee= 
 throw|player_cast_interrupt|0|observer= <ansi fg="cyan">ACTEE's spell collapses as the blast strikes!</ansi>

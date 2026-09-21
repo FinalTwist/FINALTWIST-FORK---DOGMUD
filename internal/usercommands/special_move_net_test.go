@@ -278,6 +278,7 @@ func standInTokens() map[string]string {
 		movenarration.TokenExitName: standInExitName,
 		movenarration.TokenPosition: standInPosition,
 		movenarration.TokenItem:     standInItem,
+		movenarration.TokenHeal:     standInHeal,
 	}
 }
 
@@ -286,12 +287,12 @@ func standInTokens() map[string]string {
 // original Go call site passed (bare name, pre-tagged name, or a plain
 // word), never what the YAML token happens to expect.
 //
-// "heal" and "item" have no YAML-side token yet (drain's lifesteal detail
-// line and throw's item name have no home in the shipped store today); they
-// are defined here so a fixture row naming them can still be converted to a
-// concrete fmt.Sprintf argument list on the "want" side once a later task
-// gives them one, without a hidden "unknown arg token" surprise landing only
-// then.
+// "heal" and "item" once had no YAML-side token (drain's lifesteal detail
+// line and throw's item name had no home in the shipped store at M4e-1b's
+// start); both now map onto movenarration.TokenItem and
+// movenarration.TokenHeal respectively (throw's migration added the former,
+// drain's added the latter), so this comment's original "no home yet" is
+// history rather than a live gap.
 var argStandins = map[string]string{
 	"actor":        standInActorBare,
 	"actor_tagged": standInActorTagged,

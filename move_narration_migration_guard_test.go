@@ -469,6 +469,14 @@ var intentionallySilentRoles = map[string]string{
 	"throw/player_fumble":         "no actee: same as throw/player_hurl -- a fumble hits the thrower, not a chosen target.",
 	"throw/player_cast_interrupt": "no actee: the interrupted party is a mob with no client; its name rides the actor and observer text as plain prose instead.",
 	"throw/player_partial_hit":    "actor only: the room's line for a defended throw always comes from the channel defence triad (combat.RenderChannelDefenceMessages, sourced outside this store), and there is no actee -- see throw/player_hurl.",
+
+	// M4e-1b Task 4b Step 2: drain's lifesteal detail lines. Private
+	// knowledge under the detail-line ruling -- this reports the drainer's
+	// own returning vigour to the drainer, not a world event -- so neither
+	// carries an actee or an observer role, same shape as
+	// grapple/player_prone_penalty above.
+	"drain/player_hit_heal":     "actor only: private knowledge about the drainer's own returning vigour (drain.go's own comment) -- a room or target line here would invent an observation nobody made about a lifesteal the player_hit event already narrated as damage.",
+	"drain/player_partial_heal": "actor only: private knowledge, same ruling as drain/player_hit_heal -- a partial drain that still lifesteals reports the trickle to the drainer alone.",
 }
 
 // TestMoveEventRoleSetsAgree asserts every authored event carries both an

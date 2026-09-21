@@ -1537,13 +1537,9 @@ func TestNarrationSitesMatchViewpointAudit(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 var m2FrozenFiles = map[string]string{
-	"internal/usercommands/drain.go":    "3a32f21ca0b34c14ef6cb625cd8b56263b6ef66ffece7038b362b494d2710257",
-	"internal/usercommands/gore.go":     "cda7cd477eacf9f2cdb8d5f90803d09930755a74d875bd20f8de42326bbca3b4",
-	"internal/usercommands/kick.go":     "f5dc3b8af7b4f702e3a8f7879b413d21d78b73d2c4a820088adfb322d57ca3ed",
-	"internal/usercommands/maul.go":     "2abb23ead58ccd3af940cab05d01462df4899982e91f3440dbe1510d9790fb5b",
-	"internal/usercommands/pounce.go":   "4cb8896a5627a3ea05cae952f4b48f1d4a7c73b8f8a4f0ab58b0adb8152b85d0",
-	"internal/usercommands/rake.go":     "c192d3cde4c80035226f2af63cceacbb98f3d6cc5c142a4685e6d4b14d31fb5a",
-	"internal/usercommands/throttle.go": "c93996b0c46bd28f59d3e79c3f83968762c8e458e0f3f81aa7d67c86736d9e34",
+	"internal/usercommands/gore.go":   "cda7cd477eacf9f2cdb8d5f90803d09930755a74d875bd20f8de42326bbca3b4",
+	"internal/usercommands/kick.go":   "f5dc3b8af7b4f702e3a8f7879b413d21d78b73d2c4a820088adfb322d57ca3ed",
+	"internal/usercommands/pounce.go": "4cb8896a5627a3ea05cae952f4b48f1d4a7c73b8f8a4f0ab58b0adb8152b85d0",
 	// internal/usercommands/{bash,trip,grapple,shoot,throw}.go are gone from
 	// this list: M4e-1b Task 4b Step 1 migrated them onto the movenarration
 	// store (player_* prefixed events, sharing the mob's files), so their
@@ -1552,6 +1548,11 @@ var m2FrozenFiles = map[string]string{
 	// shoot,throw}.yaml and is guarded by TestMigratedWordingIsByteIdentical
 	// (special_move_net_test.go), the same way the mobcommands files were
 	// removed from this same list in M4e-1.
+	//
+	// internal/usercommands/{drain,maul,rake,throttle}.go are gone from this
+	// list too: M4e-1b Task 4b Step 2 squared their ragged variant pools and
+	// migrated them onto the same store (player_* prefixed events), same
+	// reason and same guard.
 	//
 	// internal/mobcommands/{kick,bash,gore,maul,rake,drain,throttle,hamstring,
 	// pounce,charge,trip,grapple,shoot}.go are gone from this list: M4e-1
