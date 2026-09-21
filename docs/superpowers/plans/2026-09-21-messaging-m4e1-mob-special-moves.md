@@ -1282,6 +1282,28 @@ produce an empty set that satisfies the first loop vacuously — the same
 "vacuous pass" defect that shipped an empty pair list during M4b-1. **"I grepped
 and found nothing" is only evidence if the grep could have found something.**
 
+- [ ] **Step 4b: Extend the key guard to ROLES, not just event keys**
+
+🔴 **Task 5 proved that an event which omits a whole role validates clean.**
+`narration.ValidateVariants` skips empty pools (`if len(role.pool) == 0 {
+continue }`) and only compares two NON-EMPTY pools, so deleting an event's
+entire `observer:` block passes every guard and then tells the room nothing.
+That is the M1 viewpoint audit's defect family exactly: a path that keeps the
+mechanical effect and silently drops the narration.
+
+An absent role cannot simply be banned: mob events legitimately have no `actor`
+line, `throttle`'s `cast_interrupt` has no `observer`, and `shoot`'s arrival
+events have only `remote_observer`. The honest check is agreement with the CALL
+SITE, so extend `TestMoveEventKeysAgree` to compare role sets:
+
+- For each `sendMoveEvent` call site, record which roles the helper will
+  actually deliver for that event.
+- Assert the authored role set equals the delivered role set, naming both when
+  they differ.
+
+A role Go delivers but YAML omits is silence in play. A role YAML authors but
+Go never delivers is dead wording. Both must fail.
+
 - [ ] **Step 5: Prove that guard can fail, both ways**
 
 Rename one event key in `kick.yaml` (`standard_hit` to `standard_hits`) and run:
