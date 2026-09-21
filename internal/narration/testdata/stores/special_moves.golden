@@ -1,0 +1,260 @@
+bash|hit|0|actor= 
+bash|hit|0|actee= <ansi fg="mobname">ACTOR</ansi>'s LABEL strikes you! (<ansi fg="damage">DAMAGE</ansi>)
+bash|hit|0|observer= <ansi fg="mobname">ACTOR</ansi> VERB <ansi fg="username">ACTEE</ansi> WITH!
+bash|hit|0|remote_observer= 
+bash|knockdown|0|actor= 
+bash|knockdown|0|actee= <ansi fg="mobname">ACTOR</ansi>'s LABEL knocks you to the ground! (<ansi fg="damage">DAMAGE</ansi>)
+bash|knockdown|0|observer= <ansi fg="mobname">ACTOR</ansi>'s LABEL knocks <ansi fg="username">ACTEE</ansi> to the ground!
+bash|knockdown|0|remote_observer= 
+bash|miss|0|actor= 
+bash|miss|0|actee= <ansi fg="mobname">ACTOR</ansi> attempts a LABEL, but misses!
+bash|miss|0|observer= <ansi fg="mobname">ACTOR</ansi> attempts to bash <ansi fg="username">ACTEE</ansi>, but misses!
+bash|miss|0|remote_observer= 
+bash|partial|0|actor= 
+bash|partial|0|actee= <ansi fg="mobname">ACTOR</ansi>'s LABEL fails to floor you, but still crashes into you! (<ansi fg="damage">DAMAGE</ansi>)
+bash|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> VERB <ansi fg="username">ACTEE</ansi> WITH, who staggers but stays up!
+bash|partial|0|remote_observer= 
+charge|hit|0|actor= 
+charge|hit|0|actee= <ansi fg="mobname">ACTOR</ansi> charges at you, but you keep your footing! (<ansi fg="damage">DAMAGE</ansi>)
+charge|hit|0|observer= <ansi fg="mobname">ACTOR</ansi> charges at <ansi fg="username">ACTEE</ansi>, but they keep their footing!
+charge|hit|0|remote_observer= 
+charge|knockdown|0|actor= 
+charge|knockdown|0|actee= <ansi fg="mobname">ACTOR</ansi> charges and slams into you, sending you sprawling! (<ansi fg="damage">DAMAGE</ansi>)
+charge|knockdown|0|observer= <ansi fg="mobname">ACTOR</ansi> charges and slams into <ansi fg="username">ACTEE</ansi>, sending them sprawling!
+charge|knockdown|0|remote_observer= 
+charge|miss|0|actor= 
+charge|miss|0|actee= <ansi fg="mobname">ACTOR</ansi> charges past you, missing entirely!
+charge|miss|0|observer= <ansi fg="mobname">ACTOR</ansi> charges past <ansi fg="username">ACTEE</ansi>, missing entirely!
+charge|miss|0|remote_observer= 
+charge|partial|0|actor= 
+charge|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> charges and you dodge the worst of it, but the impact still clips you! (<ansi fg="damage">DAMAGE</ansi>)
+charge|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> charges at <ansi fg="username">ACTEE</ansi>, who mostly dodges but still gets clipped!
+charge|partial|0|remote_observer= 
+charge|whiff_on_prone|0|actor= 
+charge|whiff_on_prone|0|actee= <ansi fg="mobname">ACTOR</ansi> thunders in, but you are already down, and it overruns you.
+charge|whiff_on_prone|0|observer= <ansi fg="mobname">ACTOR</ansi> charges <ansi fg="username">ACTEE</ansi>, who is already down, and overruns them.
+charge|whiff_on_prone|0|remote_observer= 
+drain|hit|0|actor= 
+drain|hit|0|actee= <ansi fg="mobname">ACTOR</ansi> plunges into you, sapping your vitality and leeching your life-force! (<ansi fg="damage">DAMAGE</ansi>)
+drain|hit|0|observer= <ansi fg="mobname">ACTOR</ansi> plunges into <ansi fg="username">ACTEE</ansi> and leeches their vitality!
+drain|hit|0|remote_observer= 
+drain|miss|0|actor= 
+drain|miss|0|actee= <ansi fg="mobname">ACTOR</ansi> reaches for you hungrily, but misses!
+drain|miss|0|observer= <ansi fg="mobname">ACTOR</ansi> reaches for <ansi fg="username">ACTEE</ansi> hungrily, but misses!
+drain|miss|0|remote_observer= 
+drain|partial|0|actor= 
+drain|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> reaches for you and you slip most of its grip, but it still catches a sliver of you! (<ansi fg="damage">DAMAGE</ansi>)
+drain|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> reaches for <ansi fg="username">ACTEE</ansi> hungrily, who slips mostly free but still gets caught!
+drain|partial|0|remote_observer= 
+gore|hit|0|actor= 
+gore|hit|0|actee= <ansi fg="mobname">ACTOR</ansi> drives its horns into you with a powerful charge! (<ansi fg="damage">DAMAGE</ansi>)
+gore|hit|0|observer= <ansi fg="mobname">ACTOR</ansi> drives its horns into <ansi fg="username">ACTEE</ansi>!
+gore|hit|0|remote_observer= 
+gore|knockdown|0|actor= 
+gore|knockdown|0|actee= <ansi fg="mobname">ACTOR</ansi> lowers its head and charges into you, driving you to the ground! (<ansi fg="damage">DAMAGE</ansi>)
+gore|knockdown|0|observer= <ansi fg="mobname">ACTOR</ansi> charges into <ansi fg="username">ACTEE</ansi> and hurls them to the ground!
+gore|knockdown|0|remote_observer= 
+gore|miss|0|actor= 
+gore|miss|0|actee= <ansi fg="mobname">ACTOR</ansi> charges at you, but you sidestep the gore!
+gore|miss|0|observer= <ansi fg="mobname">ACTOR</ansi> charges at <ansi fg="username">ACTEE</ansi>, but misses!
+gore|miss|0|remote_observer= 
+gore|partial|0|actor= 
+gore|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> charges you and you sidestep most of it, but the horns still catch you! (<ansi fg="damage">DAMAGE</ansi>)
+gore|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> charges <ansi fg="username">ACTEE</ansi>, who mostly dodges but still gets grazed by the horns!
+gore|partial|0|remote_observer= 
+grapple|fail|0|actor= 
+grapple|fail|0|actee= <ansi fg="mobname">ACTOR</ansi> tries to grapple you, but you slip away!
+grapple|fail|0|observer= <ansi fg="mobname">ACTOR</ansi> tries to grapple <ansi fg="username">ACTEE</ansi>, but fails!
+grapple|fail|0|remote_observer= 
+grapple|success|0|actor= 
+grapple|success|0|actee= <ansi fg="mobname">ACTOR</ansi> <ansi fg="yellow-bold">grapples</ansi> you, transitioning to <ansi fg="cyan">POSITION</ansi> position!
+grapple|success|0|observer= <ansi fg="mobname">ACTOR</ansi> <ansi fg="yellow-bold">grapples</ansi> <ansi fg="username">ACTEE</ansi> into <ansi fg="cyan">POSITION</ansi> position!
+grapple|success|0|remote_observer= 
+hamstring|hit|0|actor= 
+hamstring|hit|0|actee= <ansi fg="mobname">ACTOR</ansi> rakes its fangs across your legs, opening deep wounds! (<ansi fg="damage">DAMAGE</ansi>)
+hamstring|hit|0|observer= <ansi fg="mobname">ACTOR</ansi> lunges low and rakes its fangs across <ansi fg="username">ACTEE</ansi>'s legs!
+hamstring|hit|0|remote_observer= 
+hamstring|miss|0|actor= 
+hamstring|miss|0|actee= <ansi fg="mobname">ACTOR</ansi> lunges at your legs, but you sidestep the attack!
+hamstring|miss|0|observer= <ansi fg="mobname">ACTOR</ansi> lunges at <ansi fg="username">ACTEE</ansi>'s legs, but misses!
+hamstring|miss|0|remote_observer= 
+hamstring|partial|0|actor= 
+hamstring|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> lunges at your legs and you dodge most of it, but the fangs still catch you! (<ansi fg="damage">DAMAGE</ansi>)
+hamstring|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> lunges at <ansi fg="username">ACTEE</ansi>'s legs, who mostly dodges but still gets caught!
+hamstring|partial|0|remote_observer= 
+kick|knee_hit|0|actor= 
+kick|knee_hit|0|actee= <ansi fg="mobname">ACTOR</ansi> drives a knee into you in the grapple! (<ansi fg="damage">DAMAGE</ansi>)
+kick|knee_hit|0|observer= <ansi fg="mobname">ACTOR</ansi> drives a knee into <ansi fg="username">ACTEE</ansi>!
+kick|knee_hit|0|remote_observer= 
+kick|knee_miss|0|actor= 
+kick|knee_miss|0|actee= <ansi fg="mobname">ACTOR</ansi> tries to knee you, but you block it!
+kick|knee_miss|0|observer= <ansi fg="mobname">ACTOR</ansi> tries to knee <ansi fg="username">ACTEE</ansi>, but misses!
+kick|knee_miss|0|remote_observer= 
+kick|knee_partial|0|actor= 
+kick|knee_partial|0|actee= <ansi fg="mobname">ACTOR</ansi> tries to knee you, and you block most of it, but it still lands! (<ansi fg="damage">DAMAGE</ansi>)
+kick|knee_partial|0|observer= <ansi fg="mobname">ACTOR</ansi> tries to knee <ansi fg="username">ACTEE</ansi> in the grapple, who blocks most of it but still takes the hit!
+kick|knee_partial|0|remote_observer= 
+kick|standard_hit|0|actor= 
+kick|standard_hit|0|actee= <ansi fg="mobname">ACTOR</ansi> kicks you hard! (<ansi fg="damage">DAMAGE</ansi>)
+kick|standard_hit|0|observer= <ansi fg="mobname">ACTOR</ansi> kicks <ansi fg="username">ACTEE</ansi>!
+kick|standard_hit|0|remote_observer= 
+kick|standard_knockdown|0|actor= 
+kick|standard_knockdown|0|actee= <ansi fg="mobname">ACTOR</ansi>'s powerful <ansi fg="yellow-bold">kick</ansi> knocks you to the ground! (<ansi fg="damage">DAMAGE</ansi>)
+kick|standard_knockdown|0|observer= <ansi fg="mobname">ACTOR</ansi> kicks <ansi fg="username">ACTEE</ansi>, knocking them to the ground!
+kick|standard_knockdown|0|remote_observer= 
+kick|standard_miss|0|actor= 
+kick|standard_miss|0|actee= <ansi fg="mobname">ACTOR</ansi> attempts to kick you, but misses!
+kick|standard_miss|0|observer= <ansi fg="mobname">ACTOR</ansi> attempts to kick <ansi fg="username">ACTEE</ansi>, but misses!
+kick|standard_miss|0|remote_observer= 
+kick|standard_partial|0|actor= 
+kick|standard_partial|0|actee= <ansi fg="mobname">ACTOR</ansi> attempts to kick you, and you slip most of it, but the boot still clips you! (<ansi fg="damage">DAMAGE</ansi>)
+kick|standard_partial|0|observer= <ansi fg="mobname">ACTOR</ansi> swings a kick at <ansi fg="username">ACTEE</ansi>, who mostly dodges but still gets clipped!
+kick|standard_partial|0|remote_observer= 
+kick|stomp_hit|0|actor= 
+kick|stomp_hit|0|actee= <ansi fg="mobname">ACTOR</ansi> stomps on you while you're down! (<ansi fg="damage">DAMAGE</ansi>)
+kick|stomp_hit|0|observer= <ansi fg="mobname">ACTOR</ansi> stomps on the downed <ansi fg="username">ACTEE</ansi>!
+kick|stomp_hit|0|remote_observer= 
+kick|stomp_miss|0|actor= 
+kick|stomp_miss|0|actee= <ansi fg="mobname">ACTOR</ansi> tries to stomp you, but you roll aside!
+kick|stomp_miss|0|observer= <ansi fg="mobname">ACTOR</ansi> tries to stomp <ansi fg="username">ACTEE</ansi>, but misses!
+kick|stomp_miss|0|remote_observer= 
+kick|stomp_partial|0|actor= 
+kick|stomp_partial|0|actee= <ansi fg="mobname">ACTOR</ansi> tries to stomp you, and you roll aside, but the heel still catches you! (<ansi fg="damage">DAMAGE</ansi>)
+kick|stomp_partial|0|observer= <ansi fg="mobname">ACTOR</ansi> tries to stomp <ansi fg="username">ACTEE</ansi>, who rolls mostly clear but still gets caught!
+kick|stomp_partial|0|remote_observer= 
+maul|hit|0|actor= 
+maul|hit|0|actee= <ansi fg="mobname">ACTOR</ansi> savages you with vicious fangs, tearing bleeding wounds! (<ansi fg="damage">DAMAGE</ansi>)
+maul|hit|0|observer= <ansi fg="mobname">ACTOR</ansi> savages <ansi fg="username">ACTEE</ansi> with vicious fangs!
+maul|hit|0|remote_observer= 
+maul|miss|0|actor= 
+maul|miss|0|actee= <ansi fg="mobname">ACTOR</ansi> snaps its fangs at you, but misses!
+maul|miss|0|observer= <ansi fg="mobname">ACTOR</ansi> snaps its fangs at <ansi fg="username">ACTEE</ansi>, but misses!
+maul|miss|0|remote_observer= 
+maul|partial|0|actor= 
+maul|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> snaps at you and you dodge most of it, but the fangs still tear you! (<ansi fg="damage">DAMAGE</ansi>)
+maul|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> snaps its fangs at <ansi fg="username">ACTEE</ansi>, who twists mostly free but still gets torn!
+maul|partial|0|remote_observer= 
+pounce|hit|0|actor= 
+pounce|hit|0|actee= <ansi fg="mobname">ACTOR</ansi> springs at you and crashes into your body! (<ansi fg="damage">DAMAGE</ansi>)
+pounce|hit|0|observer= <ansi fg="mobname">ACTOR</ansi> springs at <ansi fg="username">ACTEE</ansi> and crashes into them!
+pounce|hit|0|remote_observer= 
+pounce|knockdown|0|actor= 
+pounce|knockdown|0|actee= <ansi fg="mobname">ACTOR</ansi> leaps at you and slams you to the ground! (<ansi fg="damage">DAMAGE</ansi>)
+pounce|knockdown|0|observer= <ansi fg="mobname">ACTOR</ansi> leaps at <ansi fg="username">ACTEE</ansi> and slams them to the ground!
+pounce|knockdown|0|remote_observer= 
+pounce|miss|0|actor= 
+pounce|miss|0|actee= <ansi fg="mobname">ACTOR</ansi> leaps at you, but you sidestep the pounce!
+pounce|miss|0|observer= <ansi fg="mobname">ACTOR</ansi> leaps at <ansi fg="username">ACTEE</ansi>, but misses!
+pounce|miss|0|remote_observer= 
+pounce|partial|0|actor= 
+pounce|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> leaps at you and you sidestep most of it, but it still clips you! (<ansi fg="damage">DAMAGE</ansi>)
+pounce|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> leaps at <ansi fg="username">ACTEE</ansi>, who mostly dodges but still gets clipped!
+pounce|partial|0|remote_observer= 
+rake|hit|0|actor= 
+rake|hit|0|actee= <ansi fg="mobname">ACTOR</ansi> rakes its claws across you, opening bleeding wounds! (<ansi fg="damage">DAMAGE</ansi>)
+rake|hit|0|observer= <ansi fg="mobname">ACTOR</ansi> rakes its claws across <ansi fg="username">ACTEE</ansi>!
+rake|hit|0|remote_observer= 
+rake|miss|0|actor= 
+rake|miss|0|actee= <ansi fg="mobname">ACTOR</ansi> swipes its claws at you, but misses!
+rake|miss|0|observer= <ansi fg="mobname">ACTOR</ansi> swipes its claws at <ansi fg="username">ACTEE</ansi>, but misses!
+rake|miss|0|remote_observer= 
+rake|partial|0|actor= 
+rake|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> swipes its claws and you dodge most of it, but they still scratch you! (<ansi fg="damage">DAMAGE</ansi>)
+rake|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> swipes its claws at <ansi fg="username">ACTEE</ansi>, who mostly dodges but still gets scratched!
+rake|partial|0|remote_observer= 
+shoot|arrival_known_hit|0|actor= 
+shoot|arrival_known_hit|0|actee= 
+shoot|arrival_known_hit|0|observer= 
+shoot|arrival_known_hit|0|remote_observer= A shot streaks in from beyond the <ansi fg="exit">EXITNAME</ansi> and strikes <ansi fg="username">ACTEE</ansi>!
+shoot|arrival_known_miss|0|actor= 
+shoot|arrival_known_miss|0|actee= 
+shoot|arrival_known_miss|0|observer= 
+shoot|arrival_known_miss|0|remote_observer= A shot streaks in from beyond the <ansi fg="exit">EXITNAME</ansi> and narrowly misses <ansi fg="username">ACTEE</ansi>!
+shoot|arrival_known_partial|0|actor= 
+shoot|arrival_known_partial|0|actee= 
+shoot|arrival_known_partial|0|observer= 
+shoot|arrival_known_partial|0|remote_observer= A shot streaks in from beyond the <ansi fg="exit">EXITNAME</ansi> and clips <ansi fg="username">ACTEE</ansi>!
+shoot|arrival_unknown_hit|0|actor= 
+shoot|arrival_unknown_hit|0|actee= 
+shoot|arrival_unknown_hit|0|observer= 
+shoot|arrival_unknown_hit|0|remote_observer= A shot streaks in from somewhere nearby and strikes <ansi fg="username">ACTEE</ansi>!
+shoot|arrival_unknown_miss|0|actor= 
+shoot|arrival_unknown_miss|0|actee= 
+shoot|arrival_unknown_miss|0|observer= 
+shoot|arrival_unknown_miss|0|remote_observer= A shot streaks in from somewhere nearby and narrowly misses <ansi fg="username">ACTEE</ansi>!
+shoot|arrival_unknown_partial|0|actor= 
+shoot|arrival_unknown_partial|0|actee= 
+shoot|arrival_unknown_partial|0|observer= 
+shoot|arrival_unknown_partial|0|remote_observer= A shot streaks in from somewhere nearby and clips <ansi fg="username">ACTEE</ansi>!
+shoot|fire_announce|0|actor= 
+shoot|fire_announce|0|actee= 
+shoot|fire_announce|0|observer= <ansi fg="mobname">ACTOR</ansi> fires their WEAPON at <ansi fg="username">ACTEE</ansi>!
+shoot|fire_announce|0|remote_observer= 
+shoot|fire_depart|0|actor= 
+shoot|fire_depart|0|actee= 
+shoot|fire_depart|0|observer= <ansi fg="mobname">ACTOR</ansi> fires their WEAPON EXITNAMEward.
+shoot|fire_depart|0|remote_observer= 
+shoot|hit|0|actor= 
+shoot|hit|0|actee= ACTOR's shot strikes you!
+shoot|hit|0|observer= 
+shoot|hit|0|remote_observer= 
+shoot|miss|0|actor= 
+shoot|miss|0|actee= ACTOR's shot narrowly misses you!
+shoot|miss|0|observer= 
+shoot|miss|0|remote_observer= 
+shoot|partial|0|actor= 
+shoot|partial|0|actee= ACTOR's shot goes wide, but the edge of it still clips you!
+shoot|partial|0|observer= 
+shoot|partial|0|remote_observer= 
+throttle|cast_interrupt|0|actor= 
+throttle|cast_interrupt|0|actee= <ansi fg="mobname">ACTOR</ansi>'s choke shatters your concentration — your spell collapses!
+throttle|cast_interrupt|0|observer= 
+throttle|cast_interrupt|0|remote_observer= 
+throttle|hit|0|actor= 
+throttle|hit|0|actee= <ansi fg="mobname">ACTOR</ansi> clamps crushing fangs around your throat, cutting off your air! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|hit|0|observer= <ansi fg="mobname">ACTOR</ansi> clamps crushing fangs around <ansi fg="username">ACTEE</ansi>'s throat!
+throttle|hit|0|remote_observer= 
+throttle|miss|0|actor= 
+throttle|miss|0|actee= <ansi fg="mobname">ACTOR</ansi> lunges for your throat but misses!
+throttle|miss|0|observer= <ansi fg="mobname">ACTOR</ansi> lunges for <ansi fg="username">ACTEE</ansi>'s throat but misses!
+throttle|miss|0|remote_observer= 
+throttle|partial|0|actor= 
+throttle|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> lunges for your throat and you pull mostly free, but the fangs still catch you! (<ansi fg="damage">DAMAGE</ansi>)
+throttle|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> lunges for <ansi fg="username">ACTEE</ansi>'s throat, who pulls mostly free but still gets grazed!
+throttle|partial|0|remote_observer= 
+trip|tailsweep_hit|0|actor= 
+trip|tailsweep_hit|0|actee= <ansi fg="mobname">ACTOR</ansi> sweeps at you with their tail, but you manage to stay upright! (<ansi fg="damage">DAMAGE</ansi>)
+trip|tailsweep_hit|0|observer= <ansi fg="mobname">ACTOR</ansi> tailsweeps <ansi fg="username">ACTEE</ansi>, but they keep their footing!
+trip|tailsweep_hit|0|remote_observer= 
+trip|tailsweep_knockdown|0|actor= 
+trip|tailsweep_knockdown|0|actee= <ansi fg="mobname">ACTOR</ansi> hammers you with their tail, sending you crashing to the ground! (<ansi fg="damage">DAMAGE</ansi>)
+trip|tailsweep_knockdown|0|observer= <ansi fg="mobname">ACTOR</ansi> tailsweeps <ansi fg="username">ACTEE</ansi>, sending them crashing to the ground!
+trip|tailsweep_knockdown|0|remote_observer= 
+trip|tailsweep_miss|0|actor= 
+trip|tailsweep_miss|0|actee= <ansi fg="mobname">ACTOR</ansi> swings their tail at you, but you avoid it!
+trip|tailsweep_miss|0|observer= <ansi fg="mobname">ACTOR</ansi> attempts a tailsweep on <ansi fg="username">ACTEE</ansi>, but misses!
+trip|tailsweep_miss|0|remote_observer= 
+trip|tailsweep_partial|0|actor= 
+trip|tailsweep_partial|0|actee= <ansi fg="mobname">ACTOR</ansi> swings their tail and you keep your feet, but it still cracks into you! (<ansi fg="damage">DAMAGE</ansi>)
+trip|tailsweep_partial|0|observer= <ansi fg="mobname">ACTOR</ansi> tailsweeps <ansi fg="username">ACTEE</ansi>, who staggers but keeps their feet!
+trip|tailsweep_partial|0|remote_observer= 
+trip|trip_hit|0|actor= 
+trip|trip_hit|0|actee= <ansi fg="mobname">ACTOR</ansi> attempts to trip you, but you keep your footing! (<ansi fg="damage">DAMAGE</ansi>)
+trip|trip_hit|0|observer= <ansi fg="mobname">ACTOR</ansi> attempts to trip <ansi fg="username">ACTEE</ansi>, but they keep their footing!
+trip|trip_hit|0|remote_observer= 
+trip|trip_knockdown|0|actor= 
+trip|trip_knockdown|0|actee= <ansi fg="mobname">ACTOR</ansi> sweeps your legs, sending you crashing to the ground! (<ansi fg="damage">DAMAGE</ansi>)
+trip|trip_knockdown|0|observer= <ansi fg="mobname">ACTOR</ansi> trips <ansi fg="username">ACTEE</ansi>, sending them crashing to the ground!
+trip|trip_knockdown|0|remote_observer= 
+trip|trip_miss|0|actor= 
+trip|trip_miss|0|actee= <ansi fg="mobname">ACTOR</ansi> attempts to trip you, but you avoid it!
+trip|trip_miss|0|observer= <ansi fg="mobname">ACTOR</ansi> attempts to trip <ansi fg="username">ACTEE</ansi>, but misses!
+trip|trip_miss|0|remote_observer= 
+trip|trip_partial|0|actor= 
+trip|trip_partial|0|actee= <ansi fg="mobname">ACTOR</ansi> tries to trip you and you keep your feet, but the sweep still catches you! (<ansi fg="damage">DAMAGE</ansi>)
+trip|trip_partial|0|observer= <ansi fg="mobname">ACTOR</ansi> tries to trip <ansi fg="username">ACTEE</ansi>, who staggers but keeps their feet!
+trip|trip_partial|0|remote_observer= 
+trip|whiff_on_prone|0|actor= 
+trip|whiff_on_prone|0|actee= <ansi fg="mobname">ACTOR</ansi> rushes at you and finds only the ground you are already on.
+trip|whiff_on_prone|0|observer= <ansi fg="mobname">ACTOR</ansi> rushes at <ansi fg="username">ACTEE</ansi>, who is already down, and carries straight past.
+trip|whiff_on_prone|0|remote_observer= 

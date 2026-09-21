@@ -19,6 +19,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/grapplemessaging"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/itemvoices"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/quests"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -237,6 +238,22 @@ func TestShippedNarrationDataValidates(t *testing.T) {
 
 	t.Run("weather_emotes", func(t *testing.T) {
 		checkWeatherEmotes(t)
+	})
+
+	t.Run("special-moves", func(t *testing.T) {
+		dir := filepath.Join(shippedWorldRoot, "narration", "special-moves")
+		groups, err := fileloader.LoadAllFlatFiles[string, *movenarration.MoveNarrationGroup](dir)
+		if err != nil {
+			t.Fatalf("loading %s: %v", dir, err)
+		}
+		if len(groups) == 0 {
+			t.Fatalf("no special-move files loaded from %s", dir)
+		}
+		for id, g := range groups {
+			if err := g.Validate(); err != nil {
+				t.Errorf("move %q: %v", id, err)
+			}
+		}
 	})
 }
 
