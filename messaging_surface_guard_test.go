@@ -1519,17 +1519,17 @@ var m2FrozenFiles = map[string]string{
 	"internal/usercommands/shoot.go":    "d63942e7087292a898ce1730bcdf5b90f7c9dcaa08891a1a3af7ce4687d90376",
 	"internal/usercommands/throw.go":    "44fc7829103b0dea6a1ccdba8787ceafa42519f78dccb4659e3e38b74ca98851",
 	// internal/mobcommands/{kick,bash,gore,maul,rake,drain,throttle,hamstring,
-	// pounce,charge,trip}.go are gone from this list: M4e-1 Tasks 7, 8 and the
-	// step migrating charge and trip migrated them onto the movenarration
-	// store, so their player-facing text now lives in
-	// _datafiles/world/dogmud/narration/special-moves/{kick,bash,gore,maul,
-	// rake,drain,throttle,hamstring,pounce,charge,trip}.yaml and is guarded by
-	// TestMigratedWordingIsByteIdentical (special_move_net_test.go), the same
-	// way the two skill_move_defence.go files are guarded by the defence
-	// store's golden instead of this literal freeze (see
-	// TestM2FrozenFilesAllCarryText above).
-	"internal/mobcommands/grapple.go":  "7183a365181000f6ccec5b3500657ef0a758ed663aa8140e9487a2ffc9372df8",
-	"internal/mobcommands/shoot.go":    "7ec3cee39749e1a422778894adf9b43b1be66efaedffd4f1f7b09f0171fd53e1",
+	// pounce,charge,trip,grapple,shoot}.go are gone from this list: M4e-1
+	// Tasks 7, 8 and the steps migrating charge/trip and grapple/shoot
+	// migrated them onto the movenarration store, so their player-facing text
+	// now lives in _datafiles/world/dogmud/narration/special-moves/{kick,
+	// bash,gore,maul,rake,drain,throttle,hamstring,pounce,charge,trip,
+	// grapple,shoot}.yaml and is guarded by TestMigratedWordingIsByteIdentical
+	// (special_move_net_test.go), the same way the two skill_move_defence.go
+	// files are guarded by the defence store's golden instead of this literal
+	// freeze (see TestM2FrozenFilesAllCarryText above). This closes out the
+	// mob-side list: every mob special-move file in m2RoutingFiles now reads
+	// its wording from the store.
 }
 
 // m2LiteralFingerprint returns a stable hash of every string literal in the

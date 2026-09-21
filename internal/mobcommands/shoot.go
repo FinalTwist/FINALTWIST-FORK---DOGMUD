@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/targeting"
@@ -54,6 +55,13 @@ func Fire(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		targetColored = fmt.Sprintf(`<ansi fg="username">%s</ansi>`, result.TargetName)
 	}
 
+	ids := moveIdentities{
+		Actor:      mobName,
+		ActorPlain: mob.Character.Name,
+		Actee:      targetColored,
+		ActeePlain: result.TargetName,
+	}
+
 	// U6b Task 9: a defended same-room shot speaks the channel defence triad
 	// (dodge or block). Cross-room shots keep their origin-anonymous arrival
 	// lines: the triad names the shooter, which the target's room cannot see.
@@ -81,24 +89,35 @@ func Fire(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 				u.SendText(messaging.CategorySystem, text)
 			}
 		}
-		shooter := mobName
-		anonymous := result.IsSneaking || !canSeeInDark(u, room)
-		if anonymous {
-			shooter = `Someone`
+		// Stealth is not darkness. The pipeline hides the shooter's name by the
+		// reader's sight; a sneaking shooter is hidden from everyone regardless,
+		// so the name never enters the text in the first place.
+		actor := mobName
+		if result.IsSneaking {
+			actor = `Someone`
 		}
+		targetIds := ids
+		targetIds.Actor = actor
 		switch {
 		case hit:
-			targetLine = messaging.Say(messaging.CategoryHitRanged, fmt.Sprintf(`%s's shot strikes you!`, shooter))
+			roles, _ := renderMoveEvent("shoot", "hit", targetIds, nil)
+			targetLine = lineOrNone(messaging.CategoryHitRanged, roles.Actee)
 		case partial:
-			targetLine = messaging.Say(messaging.CategoryHitRanged, fmt.Sprintf(`%s's shot goes wide, but the edge of it still clips you!`, shooter))
+			roles, _ := renderMoveEvent("shoot", "partial", targetIds, nil)
+			targetLine = lineOrNone(messaging.CategoryHitRanged, roles.Actee)
 		case triadDef != "":
+			// Not migrated: triadDef is the channel defence triad's own text
+			// (combat.RenderChannelDefenceMessages), sourced outside this
+			// store. Stealth still applies here, unconditionally, the same
+			// way it does above; darkness is handled by SendTrio itself.
 			personal := triadDef
-			if anonymous {
+			if result.IsSneaking {
 				personal = messaging.Anonymize(personal)
 			}
 			targetLine = messaging.Say(messaging.CategoryHitRanged, personal)
 		default:
-			targetLine = messaging.Say(messaging.CategoryHitRanged, fmt.Sprintf(`%s's shot narrowly misses you!`, shooter))
+			roles, _ := renderMoveEvent("shoot", "miss", targetIds, nil)
+			targetLine = lineOrNone(messaging.CategoryHitRanged, roles.Actee)
 		}
 	}
 
@@ -121,10 +140,12 @@ func Fire(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		sameRoomLine := messaging.NoLine
 		if !result.IsSneaking {
 			if triadRoom != "" {
+				// Not migrated: triadRoom is the channel defence triad's own
+				// text, sourced outside this store.
 				sameRoomLine = messaging.Say(messaging.CategoryHitRanged, triadRoom)
 			} else {
-				sameRoomLine = messaging.Say(messaging.CategoryHitRanged,
-					fmt.Sprintf(`%s fires their %s at %s!`, mobName, weapon, targetColored))
+				roles, _ := renderMoveEvent("shoot", "fire_announce", ids, map[string]string{movenarration.TokenWeapon: weapon})
+				sameRoomLine = lineOrNone(messaging.CategoryHitRanged, roles.Observer)
 			}
 		}
 		messaging.SendTrio(messaging.Trio{
@@ -138,8 +159,11 @@ func Fire(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		// sneaking); the target's room sees it arrive.
 		departLine := messaging.NoLine
 		if !result.IsSneaking {
-			departLine = messaging.Say(messaging.CategoryHitRanged,
-				fmt.Sprintf(`%s fires their %s %sward.`, mobName, weapon, result.ExitName))
+			roles, _ := renderMoveEvent("shoot", "fire_depart", ids, map[string]string{
+				movenarration.TokenWeapon:   weapon,
+				movenarration.TokenExitName: result.ExitName,
+			})
+			departLine = lineOrNone(messaging.CategoryHitRanged, roles.Observer)
 		}
 		messaging.SendTrio(messaging.Trio{
 			Actor:    messaging.NoLine,
@@ -150,27 +174,41 @@ func Fire(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		// Target's room sees the shot arrive. The player target is excluded
 		// -- they already got their own line from the send above -- which is
 		// why ActeeId is set here while Actee is not.
+		//
+		// Six enumerated events, not a composed sentence: the key is picked
+		// from two axes, whether an exit back to the shooter is known
+		// (tr.FindExitTo) and the outcome, because each of the six is a
+		// complete sentence on the remote_observer role rather than an origin
+		// fragment plus a verb fragment.
 		if tr := rooms.LoadRoom(result.TargetRoomId); tr != nil {
 			fromDir := tr.FindExitTo(room.RoomId)
-			origin := `from somewhere nearby`
-			if fromDir != "" {
-				origin = fmt.Sprintf(`from beyond the <ansi fg="exit">%s</ansi>`, fromDir)
-			}
-			var verb string
+			known := fromDir != ""
+
+			var eventKey movenarration.EventKey
 			switch {
+			case known && hit:
+				eventKey = "arrival_known_hit"
+			case known && partial:
+				eventKey = "arrival_known_partial"
+			case known:
+				eventKey = "arrival_known_miss"
 			case hit:
-				verb = `and strikes`
+				eventKey = "arrival_unknown_hit"
 			case partial:
-				verb = `and clips`
+				eventKey = "arrival_unknown_partial"
 			default:
-				verb = `and narrowly misses`
+				eventKey = "arrival_unknown_miss"
 			}
-			arrivalLine := messaging.Say(messaging.CategoryHitRanged,
-				fmt.Sprintf(`A shot streaks in %s %s %s!`, origin, verb, targetColored))
+
+			arrivalTokens := map[string]string{}
+			if known {
+				arrivalTokens[movenarration.TokenExitName] = fromDir
+			}
+			roles, _ := renderMoveEvent("shoot", eventKey, ids, arrivalTokens)
 			messaging.SendTrio(messaging.Trio{
 				Actor:    messaging.NoLine,
 				Actee:    messaging.NoLine,
-				Observer: arrivalLine,
+				Observer: lineOrNone(messaging.CategoryHitRanged, roles.ActeeObserver),
 			}, messaging.Audience{ActorName: mob.Character.Name, ActeeId: result.TargetUserId, ActeeName: result.TargetName, Room: tr})
 		}
 	}

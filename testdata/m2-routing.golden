@@ -1,26 +1,3 @@
-internal/mobcommands/grapple.go | actee | messaging~CategoryGrappleFlow | `Something tries to grapple you, but you slip away!`
-internal/mobcommands/grapple.go | actee | messaging~CategoryGrappleFlow | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> <ansi fg="yellow-bold">grapples</ansi> you, transitioning to <ansi fg="cyan">%s</ansi> position!`~mobName~result~PositionDesc
-internal/mobcommands/grapple.go | actee | messaging~CategoryGrappleFlow | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> tries to grapple you, but you slip away!`~mobName
-internal/mobcommands/grapple.go | actee | messaging~CategoryGrappleFlow | fmt~Sprintf~`Something <ansi fg="yellow-bold">grapples</ansi> you, transitioning to <ansi fg="cyan">%s</ansi> position!`~result~PositionDesc
-internal/mobcommands/grapple.go | actee | messaging~CategoryGrappleFlow | result~CritFailure~TargetMessage
-internal/mobcommands/grapple.go | actee | messaging~CategoryGrappleFlow | result~DisarmResult~TargetMsg
-internal/mobcommands/grapple.go | observer | messaging~CategoryGrappleFlow | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> <ansi fg="yellow-bold">grapples</ansi> <ansi fg="username">%s</ansi> into <ansi fg="cyan">%s</ansi> position!`~mobName~targetName~result~PositionDesc
-internal/mobcommands/grapple.go | observer | messaging~CategoryGrappleFlow | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> tries to grapple <ansi fg="username">%s</ansi>, but fails!`~mobName~targetName
-internal/mobcommands/grapple.go | observer | messaging~CategoryGrappleFlow | result~CritFailure~RoomMessage
-internal/mobcommands/grapple.go | observer | messaging~CategoryGrappleFlow | result~DisarmResult~RoomMessage
-internal/mobcommands/shoot.go | actee | messaging~CategoryHitRanged | fmt~Sprintf~`%s's shot goes wide, but the edge of it still clips you!`~shooter
-internal/mobcommands/shoot.go | actee | messaging~CategoryHitRanged | fmt~Sprintf~`%s's shot goes wide, but the edge of it still clips you!`~shooter
-internal/mobcommands/shoot.go | actee | messaging~CategoryHitRanged | fmt~Sprintf~`%s's shot narrowly misses you!`~shooter
-internal/mobcommands/shoot.go | actee | messaging~CategoryHitRanged | fmt~Sprintf~`%s's shot narrowly misses you!`~shooter
-internal/mobcommands/shoot.go | actee | messaging~CategoryHitRanged | fmt~Sprintf~`%s's shot strikes you!`~shooter
-internal/mobcommands/shoot.go | actee | messaging~CategoryHitRanged | fmt~Sprintf~`%s's shot strikes you!`~shooter
-internal/mobcommands/shoot.go | actee | messaging~CategoryHitRanged | personal
-internal/mobcommands/shoot.go | actee | messaging~CategoryHitRanged | personal
-internal/mobcommands/shoot.go | actee | messaging~CategorySystem | text
-internal/mobcommands/shoot.go | observer | messaging~CategoryHitRanged | fmt~Sprintf~`%s fires their %s %sward.`~mobName~weapon~result~ExitName
-internal/mobcommands/shoot.go | observer | messaging~CategoryHitRanged | fmt~Sprintf~`%s fires their %s at %s!`~mobName~weapon~targetColored
-internal/mobcommands/shoot.go | observer | messaging~CategoryHitRanged | fmt~Sprintf~`A shot streaks in %s %s %s!`~origin~verb~targetColored
-internal/mobcommands/shoot.go | observer | messaging~CategoryHitRanged | triadRoom
 internal/usercommands/bash.go | actee |  | acteeDefenceLine~targetUser~room~messaging~CategoryBash~defence~ToDefender
 internal/usercommands/bash.go | actee | messaging~CategorySystem | fmt~Sprintf~`<ansi fg="username">%s</ansi> attempts to bash you with their shield, but misses!`~user~Character~Name
 internal/usercommands/bash.go | actee | messaging~CategorySystem | fmt~Sprintf~`<ansi fg="username">%s</ansi>'s <ansi fg="yellow-bold">shield bash</ansi> fails to floor you, but still slams into you! (<ansi fg="damage">%s</ansi>)`~user~Character~Name~dmgDesc
