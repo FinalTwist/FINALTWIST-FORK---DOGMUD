@@ -1141,6 +1141,41 @@ substitute pre-tagged identities via `meleeIdentityTag` instead (Task 4c,
 above), because those lines are built and dispatched from a different call
 path than `AttackResult.MessagesTo*`.
 
+### Wait-round room-line identity hiding (M4d PR 3)
+
+`GetWaitMessages(stepType items.Intensity, sourceChar, targetChar
+*characters.Character, ...)` (`combat.go`) is the wind-up message shown when
+`RoundsWaiting > 0` (bash cost, weapon wind-up, ranged reload). Its two
+personal lines (`toAttackerMsg`/`toDefenderMsg`) still go through
+`attackResult.SendToSource`/`SendToTarget`, unchanged. Its two ROOM lines
+(`toAttackerRoomMsg` from `roles.Observer`, `toDefenderRoomMsg` from
+`roles.ActeeObserver`) used to be handed to
+`attackResult.SendToSourceRoom`/`SendToTargetRoom`, pure accumulation whose
+real delivery happened downstream through `sendVisualRoomText` in
+`internal/hooks` — a path that sight-gates but never calls
+`messaging.HideNames`, only the tag-based `messaging.Anonymize`, which by its
+own docstring leaves a bare (untagged) name untouched.
+
+Both room lines now go through `messaging.SendTrio`, seated on the
+`Observer`/`RemoteObserver` roles and `Room`/`RemoteRoom` audience fields PR 1
+added and left unused. `Actor`/`Actee` are deliberately `messaging.NoLine` in
+this `Trio` — the personal lines were already sent above via
+`SendToSource`/`SendToTarget` — so this call carries only the two room roles.
+`RemoteRoom` is set only when the defender's room differs from the
+attacker's, the same guard the old `SendToTargetRoom` call used, now
+expressed as "is there a second room" rather than "should this text be
+sent". Because `SendTrio` always excludes both `ActorId` and `ActeeId` from
+the room broadcast (see `internal/messaging/context.md`'s `trio.go`
+entry), a PvP wait-round room echo now excludes BOTH combatants; the old
+`sendVisualRoomText` drain excluded only the single `viewerUserId` it was
+called with, so this migration also fixed a PvP self-echo gap, not only the
+name leak.
+
+`internal/hooks`' `handleCombatWaitRound` no longer drains
+`roundResult.MessagesToSourceRoom`/`MessagesToTargetRoom` — `GetWaitMessages`
+never populates them now, so the old drain loop was removed rather than left
+as dead code (see `internal/hooks/context.md`).
+
 ## Dependencies
 
 - `internal/characters` - Character stats, equipment, and abilities

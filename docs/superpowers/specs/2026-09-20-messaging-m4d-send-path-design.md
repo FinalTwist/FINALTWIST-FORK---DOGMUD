@@ -333,6 +333,59 @@ red.
 
 ---
 
+## PR 3, scoped 2026-09-20 after PR 2 merged as #149
+
+PR 3 is the remainder of M4d, and it is the ORIGINAL deferred scope only:
+
+1. **The ranged second room.** Seat the defender-room line on `RemoteObserver`
+   so it is hidden like every other audience. `SendToTargetRoom` sight-gates but
+   never runs `HideNames`, relying on tag-based `Anonymize` which its own
+   docstring says leaks bare untagged names.
+2. **The four non-combat paths PR 1 deferred**, each of which names a party the
+   reader may not be able to see: quest trigger actions
+   (`internal/questengine/bridge.go`), four of five `applyPlayerEffect` self-cast
+   branches, `position_control` entirely (its submission triples name the other
+   grappler in the PERSONAL lines, not just the observer line), and crafting's
+   instant-craft narration.
+3. **Widen the one-path guard.** It covers 3 of 60 categories today with an
+   empty allowlist. Every path migrated should add its categories, which is how
+   the guard earns its keep rather than ossifying.
+
+**NOT in PR 3, by owner ruling 2026-09-20:** the `canSeeInDark` migration. It
+rides with M4e's first PR, which opens the same twenty files. See the M4e
+section of the flip spec.
+
+---
+
+## Filed follow-ups
+
+### The `item_procs.go` submission bypass (small, high leverage)
+
+`internal/hooks/item_procs.go:274-275` sends `messaging.CategorySubmission`
+through a raw `room.SendTextVisual`:
+
+```go
+room.SendTextVisual(messaging.CategorySubmission,
+    `<ansi fg="yellow">A jarring shockwave ripples outward, staggering the hostile creatures nearby!</ansi>`)
+```
+
+**It is not a leak.** The line names nobody, so no reader learns anything they
+should not; condition 84's stagger shockwave is room-wide flavour. Nothing a
+player sees is wrong today.
+
+**What it blocks is the guard.** PR 3's Task 6 re-survey found this is the
+ONLY remaining raw sender of `CategorySubmission` now that
+`sendSubmissionTriple` is on `SendTrio` (`633576fc6`). So migrating this one
+call to `SendTrio`'s observer-only form would make `CategorySubmission` fully
+clean and let `send_trio_only_guard_test.go` widen from 3 guarded categories to
+4. That is the best ratio of effort to guard coverage anywhere in the arc right
+now: one line, one category.
+
+It has no actee and no names, so the migration is the simple observer-only
+shape, and the existing guard's own sabotage procedure proves it afterwards.
+
+---
+
 ## Out of scope
 
 - `Room.Info` and the GMCP contents roster: the filed GMCP slice.

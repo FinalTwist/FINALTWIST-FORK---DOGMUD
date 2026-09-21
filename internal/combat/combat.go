@@ -332,15 +332,50 @@ func GetWaitMessages(stepType items.Intensity, sourceChar *characters.Character,
 			attackResult.SendToTarget(waitCat, string(toDefenderMsg))
 		}
 
-		if string(toAttackerRoomMsg) != `` {
-			attackResult.SendToSourceRoom(waitCat, string(toAttackerRoomMsg))
+		// Room lines go through messaging.SendTrio rather than the raw
+		// AttackResult accumulation the personal lines above use (and that
+		// this function itself used to use for these two lines). SendTrio's
+		// Room/RemoteRoom branches always call Room.SendTextVisualHidingNames,
+		// which runs messaging.HideNames over the line for a shapes-only
+		// reader; the raw path these replaced went through
+		// Room.SendTextVisual/SendTextVisualToUser instead, which only ever
+		// apply tag-based messaging.Anonymize and, by that function's own
+		// docstring, never touch a bare (untagged) name. Both rooms are
+		// seated here, not just the defender's: routing only the second room
+		// through the seam and leaving the attacker's room on the old raw
+		// path would leave the two inconsistently protected for no reason,
+		// since both lines can equally name a real combatant.
+		//
+		// RemoteRoom is the defender's room, and is only set when it is a
+		// SEPARATE room from the attacker's -- the same guard that used to
+		// wrap the old SendToTargetRoom call, now expressed as "is there a
+		// second room at all" rather than "should this text be sent".
+		var room, remoteRoom messaging.Broadcaster
+		if atkRoom := rooms.LoadRoom(sourceChar.RoomId); atkRoom != nil {
+			room = atkRoom
 		}
-
 		if sourceChar.RoomId != targetChar.RoomId {
-			if string(toDefenderRoomMsg) != `` {
-				attackResult.SendToTargetRoom(waitCat, string(toDefenderRoomMsg))
+			if defRoom := rooms.LoadRoom(targetChar.RoomId); defRoom != nil {
+				remoteRoom = defRoom
 			}
 		}
+		messaging.SendTrio(messaging.Trio{
+			// Actor and Actee are deliberately silent here: the personal
+			// wait-round lines (toAttackerMsg / toDefenderMsg) were already
+			// sent above via attackResult.SendToSource/SendToTarget, so this
+			// Trio carries only the two room roles.
+			Actor:          messaging.NoLine,
+			Actee:          messaging.NoLine,
+			Observer:       messaging.Say(waitCat, string(toAttackerRoomMsg)),
+			RemoteObserver: messaging.Say(waitCat, string(toDefenderRoomMsg)),
+		}, messaging.Audience{
+			ActorId:    sourceChar.GetUserId(),
+			ActorName:  sourceChar.Name,
+			ActeeId:    targetChar.GetUserId(),
+			ActeeName:  targetChar.Name,
+			Room:       room,
+			RemoteRoom: remoteRoom,
+		})
 
 	}
 

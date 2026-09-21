@@ -50,8 +50,9 @@ const (
 // same convention the swing path (dispatchCritAndMessaging /
 // replaceDarknessMessages) already uses. The fixed line is only sent when
 // there was an authored line to begin with, so an empty authored list stays
-// silent as before. Room lines (MessagesToSourceRoom/ToTargetRoom) are
-// unchanged; sendVisualRoomText already sight-gates them per reader.
+// silent as before. Room lines are delivered inside combat.GetWaitMessages
+// itself via messaging.SendTrio, not drained here; see the comment at the
+// drain's old call site below.
 func handleCombatWaitRound(
 	attackerChar *characters.Character,
 	defenderChar *characters.Character,
@@ -96,15 +97,12 @@ func handleCombatWaitRound(
 		}
 	}
 
-	// AttackResult drainage: each TaggedMessage carries the Category
-	// the producer chose for that line (weapon subtype for hits,
-	// defense verb for defenses).
-	for _, msg := range roundResult.MessagesToSourceRoom {
-		sendVisualRoomText(attackerRoom, msg.Category, msg.Text, viewerUserId)
-	}
-	for _, msg := range roundResult.MessagesToTargetRoom {
-		sendVisualRoomText(defenderRoom, msg.Category, msg.Text, viewerUserId)
-	}
+	// No MessagesToSourceRoom/MessagesToTargetRoom drain here: wait-round
+	// room lines are delivered by combat.GetWaitMessages itself, through
+	// messaging.SendTrio's Observer/RemoteObserver seats, so each reader's
+	// own sight can hide names -- a raw drain through sendVisualRoomText
+	// could not do that. That is why a room-line handler has no room-line
+	// handling of its own here.
 	sendDarkRoomCombatFallback(attackerRoom, viewerUserId)
 	if defenderRoom != attackerRoom {
 		sendDarkRoomCombatFallback(defenderRoom, viewerUserId)

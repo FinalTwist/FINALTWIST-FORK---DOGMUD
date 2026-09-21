@@ -54,6 +54,46 @@ import (
 // last raw sender, add it here; if a regression reopens a bypass for one of
 // these three, add the file below with a comment naming why, same as
 // rawEventsMessageAllowed in raw_events_message_guard_test.go.
+//
+// M4d PR 3 re-survey (2026-09-20, this branch): PR 3 migrated five more
+// production paths (ranged wait-round room lines, quest trigger narration,
+// four self-cast spell branches, the position_control stamina warning and
+// submission triple, and crafting's instant-complete room line) onto
+// SendTrio. None of them closed out a whole category -- every one of the
+// five still has at least one raw sender left outside SendTrio elsewhere in
+// the same category, so sendTrioOnlyCategories is unchanged at three:
+//
+//   - CategoryHitRanged (ranged wait-round, PR 3 Task 1): still drained raw
+//     by internal/hooks/combat_verbosity.go's drainParticipantLines (every
+//     normal ranged swing, not just the wait round) and sent raw at
+//     internal/usercommands/shoot.go:245 (`user.SendText(messaging.
+//     CategoryHitRanged, line)`).
+//   - CategoryNPCDialogue (quest Narrate, PR 3 Task 2): still sent raw at
+//     internal/questengine/bridge.go:515 and :519 (QueueSequence's delayed
+//     and immediate dialogue lines), internal/actions/actor_mob.go:52, and
+//     internal/behaviortree/actions_dialogue.go:37,44,99.
+//   - CategorySpellElemental/Enhancement/Mental/Vital/Manifestation (four
+//     self-cast branches, PR 3 Task 3): the mob-target spell paths in the
+//     same file (applyMobEffect_damage, applyMobEffect_dot, and siblings,
+//     e.g. spell_resolution.go:607-670) still pair raw user.SendText /
+//     sendVisualRoomText calls carrying spellSchoolCategory(spellData) for
+//     every opposed/attack cast; CategorySpellFold was untouched by PR 3
+//     entirely.
+//   - CategoryGrappleFlow/CategorySubmission (position_control, PR 3 Task
+//     4): GrappleFlow is still sent raw at internal/hooks/
+//     Position_GrappleTick.go:668,706,708,710 and internal/mobcommands/
+//     flee.go:41. CategorySubmission -- despite sendSubmissionTriple now
+//     being fully Say()-shaped -- is still sent raw at
+//     internal/hooks/item_procs.go:275 (the condition-84 stagger shockwave,
+//     a pre-existing sender PR 3 did not touch).
+//   - CategorySystem/CategoryEmote (crafting instant-complete, PR 3 Task 5):
+//     both are among the most widely raw-sent categories in the tree (e.g.
+//     internal/usercommands/emote.go:17-48 for Emote; CategorySystem alone
+//     has raw senders in over 200 production files) -- nowhere near closed
+//     by one crafting call site.
+//
+// Honest result: zero categories added this pass. sendTrioOnlyCategories
+// stays {Kick, Trip, Bash}; sendTrioOnlyAllowed stays empty.
 var sendTrioOnlyCategories = []string{"Kick", "Trip", "Bash"}
 
 // sendTrioOnlyAllowed lists production files permitted to reference one of

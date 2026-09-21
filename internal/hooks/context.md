@@ -126,6 +126,20 @@ return-damage recoil lines (`emitReturnDamageText`), counter lines
 `resolvePurgeAffliction`, which takes a `purgeTarget`: a player, a mob such as a
 charmed companion, or the caster) all go through `messaging.SendTrio`, so a reader who
 cannot see the other party reads "something", or "a figure" with infrared.
+`applyPlayerEffect`'s four SELF-CAST branches (`"purge"`, `"heal"`,
+`"condition"`, `"shield"`, where `target.UserId == user.UserId`) have no
+second party for `spellAudience` to pair against, but each still sends a
+caster line plus a room line that names the caster
+(`target.Character.Name`, since `target == user`). Those room lines used to
+go out through `sendVisualRoomText` -> `room.SendTextVisual`, which never
+calls `messaging.HideNames`; every one of the four wraps the name in an
+`<ansi fg="username">` tag, so today's shipped text was incidentally safe
+via tag-based `messaging.Anonymize`, not by the delivery path itself. **M4d
+PR 3** moved all four onto `messaging.SendTrio` directly (`Actor` is the
+caster line, `Actee` is `messaging.NoLine`, `Observer` is the room line), so
+a future untagged name in that slot is caught too. The `default` arm's
+self-cast branch (no room line at all, single line to the caster) was
+already on `SendTrio` before this PR and is unaffected.
 The retarget notice ("You turn your attention to X!") is built once, by
 `actions.RetargetNotice` (`internal/actions/retarget_notice.go`), for
 `DoCombat`'s validate-aggro pass, `emitRetargetMessage`, and the mob-departure
@@ -138,16 +152,23 @@ hiding for a swing's personal lines now happens upstream, inside
 `internal/combat`, before this package ever sees the `AttackResult` — see
 `hideIdentitiesInPersonalLines` in `internal/combat/context.md`. This
 package's own job is unchanged for everything ELSE it renders (the trio
-lines above, the wait-round lines below). The wait-round
-participant lines (`handleCombatWaitRound` in `NewRound_DoCombat_resolution.go`,
-drained from `combat.GetWaitMessages`'s authored `{actor}`/`{actee}` text)
-have no swing events for identity hiding to act on, so they judge
-sight directly with the swing path's own predicate
+lines above, the wait-round personal lines below). The wait-round
+participant (personal) lines (`handleCombatWaitRound` in
+`NewRound_DoCombat_resolution.go`, drained from `combat.GetWaitMessages`'s
+authored `{actor}`/`{actee}` text) have no swing events for identity hiding to
+act on, so they judge sight directly with the swing path's own predicate
 (`messaging.CanSeeSightImpairedOnly`) and, for a participant without clear
 sight, send one fixed dark line instead of the authored one, the swing
 path's convention, because the authored wait lines name the weapon as well
 as the foe. Infrared readers get the same dark line as full darkness here,
 as they do on the swing path; only clear sight reads the authored text.
+**M4d PR 3** moved the wait-round's ROOM lines out of this package entirely:
+`combat.GetWaitMessages` now delivers them itself through `messaging.SendTrio`
+(see `internal/combat/context.md`'s "Wait-round room-line identity hiding"),
+so `handleCombatWaitRound` no longer drains
+`roundResult.MessagesToSourceRoom`/`MessagesToTargetRoom` — that drain was
+removed as dead code rather than kept as a no-op, because `GetWaitMessages`
+never populates those fields on any branch any more.
 
 ### Combat Round Processing
 ```go
@@ -1412,6 +1433,32 @@ resolved, fires supplementary messaging:
   the warning fires for, because the stamina room line is about the reader
   rather than about the controller. The store's golden is
   `internal/narration/testdata/stores/position_control.golden`.
+
+**Names in the dark (M4d PR 3).** `sendCharacterMsg` (self + room dispatch
+for `fireStaminaWarningIfLow`) and `sendSubmissionTriple` (attempter +
+recipient + room dispatch for the submission opening/resolution messages)
+both now go through `messaging.SendTrio` instead of `UserRecord.SendText` +
+`Room.SendTextVisual`. Before this, the stamina warning's room line named
+the warned character with a bare `Character.Name` — no ansi identity tag —
+so a shapes-only room observer read the real name straight through; only a
+tag-wrapped name is caught by `messaging.Anonymize`. `sendCharacterMsg`
+keeps `c` (the character the warning is ABOUT, per
+`staminaWarningSubstitutions`'s asymmetric mapping above, not necessarily the
+controller) as `ActorName`, unchanged.
+
+`sendSubmissionTriple` was a deeper leak: `position_control.yaml`'s
+submission templates name the OTHER grappler inside the actor and actee
+lines too, not only the observer line (e.g. `submission.opening.armbar`'s
+actor line reads "You isolate {actee}'s arm..."). Those personal lines rode
+`UserRecord.SendText` — the audio channel, which has no sight gate and no
+anonymize stage at all — so a grappler in the dark read the other
+grappler's real name in every submission line, not just the room echo. Both
+personal lines now go through `SendTrio`'s `Actor`/`Actee` roles, which each
+hide the OTHER party's name from that line's own reader by that reader's own
+sight; the room line hides both names from each observer the same way the
+gradient room broadcasts already did. `attempter` is `Actor`, `recipient` is
+`Actee`, matching the `{actor}`/`{actee}` substitution both submission
+callers already build.
 
 Cooldowns reset when the grapple ends (any `TransitionToStanding` via
 escape, break, or death).

@@ -1061,11 +1061,23 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 			// puts the caster in its own target list (resolveSpell), so every
 			// Cleansing Wave reaches this branch, not only a deliberate self-cast.
 			// critTag stays on the caster's line so a crit on yourself is not lost.
-			user.SendText(messaging.CategorySpellVital, fmt.Sprintf(
-				`<ansi fg="green">You purge the afflictions from your body.%s</ansi>`, critTag))
-			sendVisualRoomText(room, messaging.CategorySpellVital, fmt.Sprintf(
-				`<ansi fg="cyan">%s</ansi> cleanses <ansi fg="username">%s</ansi> of afflictions.`,
-				spellData.Name, target.Character.Name), user.UserId)
+			// The room line goes through SendTrio (messaging M4d PR 3 Task 3) so
+			// a shapes-only observer reads "a figure" for the caster instead of
+			// the name; target == user here, so there is no Actee.
+			messaging.SendTrio(messaging.Trio{
+				Actor: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
+					`<ansi fg="green">You purge the afflictions from your body.%s</ansi>`, critTag)),
+				Actee: messaging.NoLine,
+				Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
+					`<ansi fg="cyan">%s</ansi> cleanses <ansi fg="username">%s</ansi> of afflictions.`,
+					spellData.Name, target.Character.Name)),
+			}, messaging.Audience{
+				Actor:     user,
+				ActorId:   user.UserId,
+				ActorName: user.Character.Name,
+				ActeeName: messaging.NoName,
+				Room:      room,
+			})
 		}
 
 	case "heal":
@@ -1098,12 +1110,22 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 			}, spellAudience(user, user.Character.Name, target, target.Character.Name, room))
 		} else {
 			// SELF-CAST: see case "purge". The room line reuses the wording
-			// applyMobSelfEffect already uses for a mob healing itself.
-			user.SendText(messaging.CategorySpellVital, fmt.Sprintf(
-				`<ansi fg="green">A warm glow of healing magic envelops you. Your wounds begin to mend.%s</ansi>`, critTag))
-			sendVisualRoomText(room, messaging.CategorySpellVital, fmt.Sprintf(
-				`<ansi fg="username">%s</ansi> channels restorative magic.`,
-				user.Character.Name), user.UserId)
+			// applyMobSelfEffect already uses for a mob healing itself, and now
+			// goes through SendTrio the same way.
+			messaging.SendTrio(messaging.Trio{
+				Actor: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
+					`<ansi fg="green">A warm glow of healing magic envelops you. Your wounds begin to mend.%s</ansi>`, critTag)),
+				Actee: messaging.NoLine,
+				Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
+					`<ansi fg="username">%s</ansi> channels restorative magic.`,
+					user.Character.Name)),
+			}, messaging.Audience{
+				Actor:     user,
+				ActorId:   user.UserId,
+				ActorName: user.Character.Name,
+				ActeeName: messaging.NoName,
+				Room:      room,
+			})
 		}
 
 	case "condition":
@@ -1161,11 +1183,20 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 			// SELF-CAST: see case "purge". The caster line stays, reworded,
 			// rather than being dropped: a condition with no authored start text
 			// would otherwise leave a self-caster reading nothing at all.
-			user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
-				`Your %s takes effect.%s`, spellData.Name, critTag))
-			sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
-				`<ansi fg="cyan">%s</ansi> settles over <ansi fg="username">%s</ansi>.`,
-				spellData.Name, target.Character.Name), user.UserId)
+			messaging.SendTrio(messaging.Trio{
+				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
+					`Your %s takes effect.%s`, spellData.Name, critTag)),
+				Actee: messaging.NoLine,
+				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
+					`<ansi fg="cyan">%s</ansi> settles over <ansi fg="username">%s</ansi>.`,
+					spellData.Name, target.Character.Name)),
+			}, messaging.Audience{
+				Actor:     user,
+				ActorId:   user.UserId,
+				ActorName: user.Character.Name,
+				ActeeName: messaging.NoName,
+				Room:      room,
+			})
 		}
 
 	case "shield":
@@ -1199,10 +1230,21 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 			}, spellAudience(user, user.Character.Name, target, target.Character.Name, room))
 		} else {
 			// SELF-CAST: the caster is the target, so there is no third-person
-			// line to send them, and the room line excludes them.
-			target.SendText(spellSchoolCategory(spellData), `A shimmering magical barrier forms around you, bolstering your defenses.`)
-			sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
-				`A shimmering barrier surrounds <ansi fg="username">%s</ansi>.`, target.Character.Name), target.UserId)
+			// line to send them, and the room line excludes them. It now goes
+			// through SendTrio, same as the other three self-cast branches above.
+			messaging.SendTrio(messaging.Trio{
+				Actor: messaging.Say(spellSchoolCategory(spellData),
+					`A shimmering magical barrier forms around you, bolstering your defenses.`),
+				Actee: messaging.NoLine,
+				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
+					`A shimmering barrier surrounds <ansi fg="username">%s</ansi>.`, target.Character.Name)),
+			}, messaging.Audience{
+				Actor:     target,
+				ActorId:   target.UserId,
+				ActorName: target.Character.Name,
+				ActeeName: messaging.NoName,
+				Room:      room,
+			})
 		}
 
 	default:
@@ -1215,14 +1257,14 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 			break
 		}
 		if target.UserId == user.UserId {
-			// SELF-CAST: a single line to the caster, no room broadcast at all,
-			// unlike the purge/heal/condition/shield self-cast branches above.
-			// Those each pair a safe caster line with a room line that names the
-			// caster (target.Character.Name, since target == user here) and
-			// stay on sendVisualRoomText on purpose (messaging M4d Task 6):
-			// moving that room line to SendTrio would add name-hiding in the
-			// dark that does not happen today. This line has no such pairing,
-			// so no second party, and Actee/ActeeName are unset.
+			// SELF-CAST: a single line to the caster, no room broadcast at all.
+			// The purge/heal/condition/shield self-cast branches above each
+			// pair a safe caster line with a room line that names the caster
+			// (target.Character.Name, since target == user here); those room
+			// lines now go through SendTrio too (messaging M4d PR 3 Task 3), so
+			// a shapes-only observer reads "a figure" instead of the name. This
+			// line has no such pairing, so no second party, and Actee/ActeeName
+			// are unset.
 			messaging.SendTrio(messaging.Trio{
 				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
 					`Your %s takes effect.`, spellData.Name)),

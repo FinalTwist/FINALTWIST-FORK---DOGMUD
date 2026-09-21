@@ -298,6 +298,37 @@ silently.
 
 ### M4e: Go narration into YAML
 
+🔴 **OWNER RULING 2026-09-20: M4e's first PR (special moves, user and mob) ALSO
+carries the `canSeeInDark` sight migration.** Do not do it as a separate pass.
+
+M4d PR 2's playtest found that a fully blind player reads the shapes-tier word
+`a figure` on mob special-move defence lines and mob taunt room lines. The cause
+is `internal/mobcommands/darkness.go`'s `canSeeInDark`, a BINARY predicate
+(`visibility >= 1 || NightVision`) predating `SightDecision`. Anyone failing it,
+whether they would resolve to `SightShapes` or `SightNone`, is routed through
+`messaging.Anonymize`, which knows only the word `a figure`.
+
+Measured on master `93d5795e9`: **30 references across 20 files** (19 in
+`internal/mobcommands`: attack, bash, charge, drain, go, gore, grapple,
+hamstring, howl, kick, maul, pounce, rake, shoot, skill_move_defence, taunt,
+throttle, trip, plus darkness.go itself; and the `internal/usercommands`
+skill_move_defence twin). Six of them also make hand-rolled `messaging.Anonymize`
+calls outside the pipeline: `howl.go`, `shoot.go`, `skill_move_defence.go` and
+`taunt.go` in both packages.
+
+**Why it rides with M4e rather than being PR 3:** M4e's first PR opens exactly
+those twenty files to move their literals into YAML. Migrating their sight
+handling in the same pass means each file is opened once and reviewed once.
+Doing it separately means opening all twenty twice, which is how inconsistency
+gets introduced.
+
+The migration target is the pair PR 1 established: `messaging.ParticipantSight`
+for the verdict and `messaging.HideNames` for the substitution, so the three
+tiers stop collapsing into one word. Both `skill_move_defence.go` and
+`darkness.go` already carry comments naming M4's perception consolidation as the
+landing spot, and `skill_move_defence.go:89` notes the two `canSeeInDark` twins
+"should collapse".
+
 - **Task 1 re-derives the site list** with a broader search than the audit
   walk's candidate definition, and reconciles it against the registry and
   `m2FrozenFiles`. Starting count: 143 sites in 63 files plus 25 special-move

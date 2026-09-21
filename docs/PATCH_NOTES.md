@@ -1,5 +1,14 @@
 # DOGMud Patch Notes
 
+## 2026-09-20: A few more names hidden in the dark
+
+A few places still named someone you could not see, even after the last
+fix to fighting in the dark. Those are cleaned up now. The one you will
+notice most is grappling: hold someone in the dark, or be held by someone
+in the dark, and you no longer read their name as the hold and the escape
+attempts play out. Everything else about those lines is unchanged; only
+the name is missing when you cannot see who it is.
+
 ## 2026-09-20: What you can't see still happens
 
 Fighting somewhere too dark to see, or too dark for anything but heat, now
