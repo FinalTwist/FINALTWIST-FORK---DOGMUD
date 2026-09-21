@@ -199,7 +199,7 @@ func TestCompleteCraft_RealBranch_ShapesOnlyThirdPartyReadsAFigure(t *testing.T)
 
 	crafterLines, watcherLines := craftPlainLines(1), craftPlainLines(3)
 	require.Equal(t, 1, craftCountContaining(crafterLines, "You finish your work."))
-	require.Equal(t, 1, craftCountContaining(watcherLines, "a figure finishes a piece of work."))
+	require.Equal(t, 1, craftCountContaining(watcherLines, "A figure finishes a piece of work."))
 	require.Equal(t, 0, craftCountContaining(watcherLines, "Aliceia"))
 }
 
@@ -241,7 +241,7 @@ func TestCraftImmediateComplete_RealBranch_ShapesOnlyThirdPartyReadsAFigure(t *t
 
 	crafterLines, watcherLines := craftPlainLines(1), craftPlainLines(3)
 	require.Equal(t, 1, craftCountContaining(crafterLines, "You finish your work."))
-	require.Equal(t, 1, craftCountContaining(watcherLines, "a figure finishes a piece of work."))
+	require.Equal(t, 1, craftCountContaining(watcherLines, "A figure finishes a piece of work."))
 	require.Equal(t, 0, craftCountContaining(watcherLines, "Aliceia"))
 }
 

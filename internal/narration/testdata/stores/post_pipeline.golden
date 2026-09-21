@@ -8,7 +8,7 @@
 # Verbosity(full/medium/light) -> bool suppressed.
 
 render|hit-melee-with-name-tags|channel=visual|sight=full => "<ansi fg=\"hit-melee\"><ansi fg=\"username\">Target</ansi> is struck hard by <ansi fg=\"username\">Source</ansi>.</ansi>"
-render|hit-melee-with-name-tags|channel=visual|sight=shapes => "<ansi fg=\"hit-melee\"><ansi fg=\"combat-anon\">a figure</ansi> is struck hard by <ansi fg=\"combat-anon\">a figure</ansi>.</ansi>"
+render|hit-melee-with-name-tags|channel=visual|sight=shapes => "<ansi fg=\"hit-melee\"><ansi fg=\"combat-anon\">A figure</ansi> is struck hard by <ansi fg=\"combat-anon\">a figure</ansi>.</ansi>"
 render|hit-melee-with-name-tags|channel=visual|sight=none => ""
 render|hit-melee-with-name-tags|channel=audio|sight=full => "<ansi fg=\"hit-melee\"><ansi fg=\"username\">Target</ansi> is struck hard by <ansi fg=\"username\">Source</ansi>.</ansi>"
 render|hit-melee-with-name-tags|channel=audio|sight=shapes => "<ansi fg=\"hit-melee\"><ansi fg=\"username\">Target</ansi> is struck hard by <ansi fg=\"username\">Source</ansi>.</ansi>"

@@ -141,7 +141,12 @@ func atSentenceStart(text string, pos int) bool {
 			}
 			i = open
 		default:
-			return sawSpace && (c == '.' || c == '!' || c == '?')
+			// '*' joins the sentence terminators because combat banners open
+			// with one: "*** Kesh lands a DEVASTATING SNAP on you! ***". A '!'
+			// banner ("!!! ... !!!") already worked, since '!' ends a sentence
+			// anyway, so the two read inconsistently in the same fight until
+			// this was noticed in play on 2026-09-21.
+			return sawSpace && (c == '.' || c == '!' || c == '?' || c == '*')
 		}
 	}
 	return true
