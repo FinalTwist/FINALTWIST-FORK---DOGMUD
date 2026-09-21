@@ -1095,7 +1095,7 @@
     "event": "knee_miss",
     "role": "actor",
     "index": 0,
-    "format": "You try to knee <ansi fg=\"mobname\">%s</ansi>, but can't find the angle!",
+    "format": "You try to knee <ansi fg=\"mobname\">%s</ansi>, but they turn their body away!",
     "args": [
       "actee"
     ]
@@ -1124,7 +1124,7 @@
     "verb": "kick",
     "event": "knee_miss",
     "role": "actee",
-    "index": 0,
+    "index": 2,
     "format": "<ansi fg=\"username\">%s</ansi> tries to knee you, but you block it!",
     "args": [
       "actor"

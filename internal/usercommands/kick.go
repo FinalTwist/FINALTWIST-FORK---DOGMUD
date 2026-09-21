@@ -8,11 +8,15 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/questengine"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
-	"github.com/GoMudEngine/GoMud/internal/util"
 )
+
+// kickCategories: the player's own actor/actee feedback is CategorySystem;
+// the room's line carries CategoryKick (colour + light-verbosity gate).
+var kickCategories = moveCategories{Actor: messaging.CategorySystem, Actee: messaging.CategorySystem, Observer: messaging.CategoryKick}
 
 func Kick(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 	actor, handled := stageSpecialMoveTarget(user, room, rest, actions.MeleeTargetOpts{
@@ -44,177 +48,18 @@ func Kick(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		return true, nil
 	}
 
-	// Build variant-specific message arrays.
-	var kickMsgs, kickTargetMsgs, kickRoomMsgs []string
-	var knockdownMsgs, knockdownTargetMsgs, knockdownRoomMsgs []string
-	var missMsgs, missTargetMsgs, missRoomMsgs []string
-	var partialMsgs, partialTargetMsgs, partialRoomMsgs []string
-
-	targetName := res.Target.Name
-
-	switch res.Variant {
-	case actions.KickStomp:
-		kickMsgs = []string{
-			`You bring your heel down hard on <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-			`You slam your foot into the downed <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-			`You drive a vicious stomp into <ansi fg="mobname">%s</ansi> while they scramble! (<ansi fg="damage">%s</ansi>)`,
-			`You crush your boot down on <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-			`You stamp hard on the prone <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-			`You grind your heel into <ansi fg="mobname">%s</ansi> as they try to rise! (<ansi fg="damage">%s</ansi>)`,
-		}
-		kickTargetMsgs = []string{
-			`<ansi fg="username">%s</ansi> stomps on you while you're down! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> slams a boot into you! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> drives their heel into you! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> crushes you underfoot! (<ansi fg="damage">%s</ansi>)`,
-			`A vicious stomp from <ansi fg="username">%s</ansi> smashes into you! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> grinds a boot into your ribs! (<ansi fg="damage">%s</ansi>)`,
-		}
-		kickRoomMsgs = []string{
-			`<ansi fg="username">%s</ansi> stomps on the downed <ansi fg="mobname">%s</ansi>!`,
-			`<ansi fg="username">%s</ansi> slams a boot into <ansi fg="mobname">%s</ansi>!`,
-			`<ansi fg="username">%s</ansi> drives their heel into <ansi fg="mobname">%s</ansi>!`,
-			`<ansi fg="username">%s</ansi> viciously stomps <ansi fg="mobname">%s</ansi>!`,
-			`<ansi fg="username">%s</ansi> crushes <ansi fg="mobname">%s</ansi> underfoot!`,
-			`<ansi fg="username">%s</ansi> grinds their heel into <ansi fg="mobname">%s</ansi>!`,
-		}
-		missMsgs = []string{
-			`You try to stomp <ansi fg="mobname">%s</ansi>, but they roll aside!`,
-			`Your stomp misses as <ansi fg="mobname">%s</ansi> twists away!`,
-			`You slam your foot down but <ansi fg="mobname">%s</ansi> squirms free!`,
-		}
-		missTargetMsgs = []string{
-			`<ansi fg="username">%s</ansi> tries to stomp you, but you roll aside!`,
-			`<ansi fg="username">%s</ansi>'s stomp misses as you twist away!`,
-		}
-		missRoomMsgs = []string{
-			`<ansi fg="username">%s</ansi> tries to stomp <ansi fg="mobname">%s</ansi>, but misses!`,
-		}
-		partialMsgs = []string{
-			`You try to stomp <ansi fg="mobname">%s</ansi>; they roll aside, but your heel still catches them! (<ansi fg="damage">%s</ansi>)`,
-		}
-		partialTargetMsgs = []string{
-			`<ansi fg="username">%s</ansi> tries to stomp you, and you roll aside, but the heel still catches you! (<ansi fg="damage">%s</ansi>)`,
-		}
-		partialRoomMsgs = []string{
-			`<ansi fg="username">%s</ansi> tries to stomp <ansi fg="mobname">%s</ansi>, who rolls mostly clear but still gets caught!`,
-		}
-
-	case actions.KickKnee:
-		kickMsgs = []string{
-			`You drive a knee into <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-			`You slam your knee into <ansi fg="mobname">%s</ansi>'s body! (<ansi fg="damage">%s</ansi>)`,
-			`You ram a sharp knee into <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-			`You crack your knee against <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-			`You pump a knee strike into <ansi fg="mobname">%s</ansi>'s midsection! (<ansi fg="damage">%s</ansi>)`,
-			`You wrench <ansi fg="mobname">%s</ansi> close and knee them hard! (<ansi fg="damage">%s</ansi>)`,
-		}
-		kickTargetMsgs = []string{
-			`<ansi fg="username">%s</ansi> drives a knee into you! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> slams a knee into your body! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> rams their knee into you! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> cracks a knee against you! (<ansi fg="damage">%s</ansi>)`,
-			`A sharp knee from <ansi fg="username">%s</ansi> hits your midsection! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> wrenches you close and knees you hard! (<ansi fg="damage">%s</ansi>)`,
-		}
-		kickRoomMsgs = []string{
-			`<ansi fg="username">%s</ansi> drives a knee into <ansi fg="mobname">%s</ansi>!`,
-			`<ansi fg="username">%s</ansi> slams a knee into <ansi fg="mobname">%s</ansi>!`,
-			`<ansi fg="username">%s</ansi> rams their knee into <ansi fg="mobname">%s</ansi>!`,
-			`<ansi fg="username">%s</ansi> cracks a knee against <ansi fg="mobname">%s</ansi>!`,
-			`<ansi fg="username">%s</ansi> knees <ansi fg="mobname">%s</ansi> hard in the grapple!`,
-		}
-		missMsgs = []string{
-			`You try to knee <ansi fg="mobname">%s</ansi>, but can't find the angle!`,
-			`Your knee strike glances off <ansi fg="mobname">%s</ansi>!`,
-			`<ansi fg="mobname">%s</ansi> blocks your knee!`,
-		}
-		missTargetMsgs = []string{
-			`<ansi fg="username">%s</ansi> tries to knee you, but you block it!`,
-			`<ansi fg="username">%s</ansi>'s knee strike glances off you!`,
-		}
-		missRoomMsgs = []string{
-			`<ansi fg="username">%s</ansi> tries to knee <ansi fg="mobname">%s</ansi> in the grapple, but misses!`,
-		}
-		partialMsgs = []string{
-			`You try to knee <ansi fg="mobname">%s</ansi>; they block most of it, but the strike still lands! (<ansi fg="damage">%s</ansi>)`,
-		}
-		partialTargetMsgs = []string{
-			`<ansi fg="username">%s</ansi> tries to knee you, and you block most of it, but it still lands! (<ansi fg="damage">%s</ansi>)`,
-		}
-		partialRoomMsgs = []string{
-			`<ansi fg="username">%s</ansi> tries to knee <ansi fg="mobname">%s</ansi> in the grapple, who blocks most of it but still takes the hit!`,
-		}
-
-	default: // KickStandard
-		kickMsgs = []string{
-			`Your <ansi fg="yellow-bold">kick</ansi> strikes <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-			`You land a solid kick on <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-			`Your boot connects with <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-			`You drive a kick into <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-			`You snap a kick at <ansi fg="mobname">%s</ansi> and it lands! (<ansi fg="damage">%s</ansi>)`,
-			`Your foot crashes into <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-		}
-		kickTargetMsgs = []string{
-			`<ansi fg="username">%s</ansi> kicks you hard! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> lands a solid kick on you! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi>'s boot connects with you! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> drives a kick into you! (<ansi fg="damage">%s</ansi>)`,
-			`A sharp kick from <ansi fg="username">%s</ansi> hits you! (<ansi fg="damage">%s</ansi>)`,
-		}
-		kickRoomMsgs = []string{
-			`<ansi fg="username">%s</ansi> kicks <ansi fg="mobname">%s</ansi>!`,
-			`<ansi fg="username">%s</ansi> lands a solid kick on <ansi fg="mobname">%s</ansi>!`,
-			`<ansi fg="username">%s</ansi> drives a kick into <ansi fg="mobname">%s</ansi>!`,
-			`<ansi fg="username">%s</ansi> snaps a kick at <ansi fg="mobname">%s</ansi>!`,
-		}
-		knockdownMsgs = []string{
-			`Your powerful <ansi fg="yellow-bold">kick</ansi> knocks <ansi fg="mobname">%s</ansi> to the ground! (<ansi fg="damage">%s</ansi>)`,
-			`Your kick sends <ansi fg="mobname">%s</ansi> sprawling! (<ansi fg="damage">%s</ansi>)`,
-			`A devastating kick drops <ansi fg="mobname">%s</ansi> to the floor! (<ansi fg="damage">%s</ansi>)`,
-		}
-		knockdownTargetMsgs = []string{
-			`<ansi fg="username">%s</ansi>'s powerful kick knocks you to the ground! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi>'s kick sends you sprawling! (<ansi fg="damage">%s</ansi>)`,
-		}
-		knockdownRoomMsgs = []string{
-			`<ansi fg="username">%s</ansi> kicks <ansi fg="mobname">%s</ansi>, knocking them to the ground!`,
-			`<ansi fg="username">%s</ansi>'s kick sends <ansi fg="mobname">%s</ansi> sprawling!`,
-		}
-		missMsgs = []string{
-			`Your <ansi fg="yellow-bold">kick</ansi> misses <ansi fg="mobname">%s</ansi>!`,
-			`You swing a kick at <ansi fg="mobname">%s</ansi> but miss!`,
-			`Your kick sails past <ansi fg="mobname">%s</ansi>!`,
-		}
-		missTargetMsgs = []string{
-			`<ansi fg="username">%s</ansi> attempts to kick you, but misses!`,
-			`<ansi fg="username">%s</ansi> swings a kick at you but misses!`,
-		}
-		missRoomMsgs = []string{
-			`<ansi fg="username">%s</ansi> attempts to kick <ansi fg="mobname">%s</ansi>, but misses!`,
-			`<ansi fg="username">%s</ansi> swings a kick at <ansi fg="mobname">%s</ansi> but misses!`,
-		}
-		partialMsgs = []string{
-			`Your <ansi fg="yellow-bold">kick</ansi> fails to beat <ansi fg="mobname">%s</ansi>'s guard, but your boot still clips them! (<ansi fg="damage">%s</ansi>)`,
-			`You swing a kick at <ansi fg="mobname">%s</ansi>; they slip most of it, but not all! (<ansi fg="damage">%s</ansi>)`,
-		}
-		partialTargetMsgs = []string{
-			`<ansi fg="username">%s</ansi> attempts to kick you, and you slip most of it, but the boot still clips you! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> swings a kick at you, and you dodge most of it, but not all! (<ansi fg="damage">%s</ansi>)`,
-		}
-		partialRoomMsgs = []string{
-			`<ansi fg="username">%s</ansi> swings a kick at <ansi fg="mobname">%s</ansi>, who mostly dodges but still gets clipped!`,
-		}
-	}
+	target := res.Target
+	result := res.MoveResult
+	targetName := target.Name
 
 	// Resolve player target for direct messaging.
 	var targetChar *users.UserRecord
-	if res.Target.UserId > 0 {
-		targetChar = users.GetByUserId(res.Target.UserId)
+	if target.UserId > 0 {
+		targetChar = users.GetByUserId(target.UserId)
 	}
 
 	// Send messages.
-	dmgDesc := combat.GetDamageDescription(res.MoveResult.Damage, res.MoveResult.TargetMaxHP)
+	dmgDesc := combat.GetDamageDescription(result.Damage, result.TargetMaxHP)
 
 	// Attack name for the defence triad renderer (U6b Task 9).
 	attackName := "kick"
@@ -236,40 +81,59 @@ func Kick(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		ActorId:   user.UserId,
 		ActorName: user.Character.Name,
 		Actee:     acteeRecipient,
-		ActeeId:   res.Target.UserId,
+		ActeeId:   target.UserId,
 		ActeeName: targetName,
 		Room:      room,
 	}
 
-	if res.MoveResult.Hit {
-		if res.MoveResult.KnockedDown && len(knockdownMsgs) > 0 {
-			messaging.SendTrio(messaging.Trio{
-				Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(knockdownMsgs[util.Rand(len(knockdownMsgs))], targetName, dmgDesc)),
-				Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(knockdownTargetMsgs[util.Rand(len(knockdownTargetMsgs))], user.Character.Name, dmgDesc)),
-				Observer: messaging.Say(messaging.CategoryKick, fmt.Sprintf(knockdownRoomMsgs[util.Rand(len(knockdownRoomMsgs))], user.Character.Name, targetName)),
-			}, aud)
-		} else {
-			messaging.SendTrio(messaging.Trio{
-				Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(kickMsgs[util.Rand(len(kickMsgs))], targetName, dmgDesc)),
-				Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(kickTargetMsgs[util.Rand(len(kickTargetMsgs))], user.Character.Name, dmgDesc)),
-				Observer: messaging.Say(messaging.CategoryKick, fmt.Sprintf(kickRoomMsgs[util.Rand(len(kickRoomMsgs))], user.Character.Name, targetName)),
-			}, aud)
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, user.Character.Name),
+		ActorPlain: user.Character.Name,
+		Actee:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, targetName),
+		ActeePlain: targetName,
+	}
+	damageTokens := map[string]string{movenarration.TokenDamage: dmgDesc}
+
+	if result.Hit {
+		switch res.Variant {
+		case actions.KickStomp:
+			sendMoveEvent("kick", "player_stomp_hit", ids, aud, kickCategories, damageTokens)
+
+		case actions.KickKnee:
+			sendMoveEvent("kick", "player_knee_hit", ids, aud, kickCategories, damageTokens)
+
+		default: // KickStandard
+			if result.KnockedDown {
+				sendMoveEvent("kick", "player_standard_knockdown", ids, aud, kickCategories, damageTokens)
+			} else {
+				sendMoveEvent("kick", "player_standard_hit", ids, aud, kickCategories, damageTokens)
+			}
 		}
-	} else if res.MoveResult.Damage > 0 {
+	} else if result.Damage > 0 {
 		// Defended-partial: personal lines carry the damage; the room line
 		// names the defence that blunted the kick (U6b Task 9).
-		defence, defended := moveDefenceLines(user, room, res.Target, res.MoveResult.Defence, attackName)
-		observer := messaging.Say(messaging.CategoryKick, fmt.Sprintf(partialRoomMsgs[util.Rand(len(partialRoomMsgs))], user.Character.Name, targetName))
+		var partialEvent movenarration.EventKey
+		switch res.Variant {
+		case actions.KickStomp:
+			partialEvent = "player_stomp_partial"
+		case actions.KickKnee:
+			partialEvent = "player_knee_partial"
+		default: // KickStandard
+			partialEvent = "player_standard_partial"
+		}
+		roles, _ := renderMoveEvent("kick", partialEvent, ids, damageTokens)
+		defence, defended := moveDefenceLines(user, room, target, result.Defence, attackName)
+		observer := lineOrNone(messaging.CategoryKick, roles.Observer)
 		if defended {
 			observer = messaging.Say(messaging.CategoryKick, defence.ToRoom)
 			sendMoveDefenceShortage(targetChar, defence)
 		}
 		messaging.SendTrio(messaging.Trio{
-			Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(partialMsgs[util.Rand(len(partialMsgs))], targetName, dmgDesc)),
-			Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(partialTargetMsgs[util.Rand(len(partialTargetMsgs))], user.Character.Name, dmgDesc)),
+			Actor:    lineOrNone(messaging.CategorySystem, roles.Actor),
+			Actee:    lineOrNone(messaging.CategorySystem, roles.Actee),
 			Observer: observer,
 		}, aud)
-	} else if defence, defended := moveDefenceLines(user, room, res.Target, res.MoveResult.Defence, attackName); defended {
+	} else if defence, defended := moveDefenceLines(user, room, target, result.Defence, attackName); defended {
 		// A defence stopped it outright: all three lines come from the triad.
 		sendMoveDefenceShortage(targetChar, defence)
 		messaging.SendTrio(messaging.Trio{
@@ -279,11 +143,16 @@ func Kick(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		}, aud)
 	} else {
 		// No defence to narrate (e.g. a fumbled kick): plain miss text.
-		messaging.SendTrio(messaging.Trio{
-			Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(missMsgs[util.Rand(len(missMsgs))], targetName)),
-			Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(missTargetMsgs[util.Rand(len(missTargetMsgs))], user.Character.Name)),
-			Observer: messaging.Say(messaging.CategoryKick, fmt.Sprintf(missRoomMsgs[util.Rand(len(missRoomMsgs))], user.Character.Name, targetName)),
-		}, aud)
+		switch res.Variant {
+		case actions.KickStomp:
+			sendMoveEvent("kick", "player_stomp_miss", ids, aud, kickCategories, nil)
+
+		case actions.KickKnee:
+			sendMoveEvent("kick", "player_knee_miss", ids, aud, kickCategories, nil)
+
+		default: // KickStandard
+			sendMoveEvent("kick", "player_standard_miss", ids, aud, kickCategories, nil)
+		}
 	}
 
 	// Quest engine: command notification

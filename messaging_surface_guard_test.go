@@ -1537,7 +1537,6 @@ func TestNarrationSitesMatchViewpointAudit(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 var m2FrozenFiles = map[string]string{
-	"internal/usercommands/kick.go": "f5dc3b8af7b4f702e3a8f7879b413d21d78b73d2c4a820088adfb322d57ca3ed",
 	// internal/usercommands/{bash,trip,grapple,shoot,throw}.go are gone from
 	// this list: M4e-1b Task 4b Step 1 migrated them onto the movenarration
 	// store (player_* prefixed events, sharing the mob's files), so their
@@ -1556,6 +1555,12 @@ var m2FrozenFiles = map[string]string{
 	// M4e-1b Task 4b Step 3 squared their two hit branches (knockdown, hit)
 	// and their partial and miss pools, migrating them onto the same store
 	// (player_* prefixed events), same reason and same guard.
+	//
+	// internal/usercommands/kick.go is gone from this list too: M4e-1b Task
+	// 4b Step 4 squared its three sub-movesets (stomp, knee, standard, the
+	// last of which alone splits hit into knockdown/hit) onto the same store
+	// (player_* prefixed events), same reason and same guard. kick.go was
+	// this list's last entry; the map is now empty.
 	//
 	// internal/mobcommands/{kick,bash,gore,maul,rake,drain,throttle,hamstring,
 	// pounce,charge,trip,grapple,shoot}.go are gone from this list: M4e-1
