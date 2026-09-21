@@ -158,7 +158,17 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 			// fixed the same defect for a spell's cast_observer line.
 			if roles.Observer != "" {
 				if r := rooms.LoadRoom(roomId); r != nil {
-					r.SendTextVisual(messaging.CategoryConditionApply, roles.Observer, excludeId)
+					// HidingNames, not plain SendTextVisual. Sight-gating alone
+					// leaves the line leaning on tag-based Anonymize, which by
+					// its own docstring only strips identity TAGS and cannot
+					// see a bare name. M4d PR 1 filed that as a latent defect
+					// waiting for the first bare name to be authored; condition
+					// 115 authors `{actee_plain}` ("{actee_plain} is raked
+					// open, blood welling from ragged claw-wounds."), so it was
+					// live. Read in play 2026-09-21: "Cave Crawler is raked
+					// open..." among lines that otherwise all said "A figure".
+					r.SendTextVisualHidingNames(messaging.CategoryConditionApply,
+						roles.Observer, []string{charPlainName}, excludeId)
 				}
 			}
 		}

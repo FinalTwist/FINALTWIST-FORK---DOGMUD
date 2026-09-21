@@ -295,7 +295,14 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 							}
 							if roles.Observer != "" {
 								if r := rooms.LoadRoom(user.Character.RoomId); r != nil {
-									r.SendTextVisual(messaging.CategoryConditionApply, roles.Observer, user.UserId) // visual: see Condition_ApplyConditions.go start text
+									// HidingNames: sight-gating alone leans on tag-based
+									// Anonymize, which cannot see a bare name, and 17
+									// shipped condition observer lines authored an
+									// {actee_plain}. See Condition_ApplyConditions.go.
+									r.SendTextVisualHidingNames(messaging.CategoryConditionApply,
+										roles.Observer,
+										[]string{user.Character.GetCharacterName(false)},
+										user.UserId)
 								}
 							}
 						}

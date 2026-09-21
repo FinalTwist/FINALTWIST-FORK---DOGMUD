@@ -101,8 +101,9 @@ func TestWaitRound_DarkRoomHidesAttackerName(t *testing.T) {
 	require.True(t, handled, "attacker should still be in its wait round")
 
 	lines := drainPlain(1)
-	require.Len(t, lines, 1, "dark room: defender should receive exactly the fixed dark line: %v", lines)
-	require.Equal(t, plainText(waitRoundDarkDefenderLine), lines[0])
+	require.Len(t, lines, 1, "dark room: defender should receive exactly the dark line: %v", lines)
+	// Fully blind: SightNone, so the attacker reads as "something".
+	require.Equal(t, "Something hangs back in the dark, biding its time.", lines[0])
 	require.Zero(t, countContaining(lines, "Skeleton"), "dark room: defender must not read the mob's name: %v", lines)
 	require.Zero(t, countContaining(lines, "Rusted Cleaver"), "dark room: defender must not read the weapon: %v", lines)
 }
@@ -164,8 +165,9 @@ func TestWaitRound_DarkRoomHidesTargetNameFromAttacker(t *testing.T) {
 	require.True(t, handled, "attacker should still be in its wait round")
 
 	lines := drainPlain(1)
-	require.Len(t, lines, 1, "dark room: attacker should receive exactly the fixed dark line: %v", lines)
-	require.Equal(t, plainText(waitRoundDarkAttackerLine), lines[0])
+	require.Len(t, lines, 1, "dark room: attacker should receive exactly the dark line: %v", lines)
+	// Fully blind: SightNone, and mid-sentence so the word is not capitalised.
+	require.Equal(t, "You bide your time, straining to place something in the dark.", lines[0])
 	require.Zero(t, countContaining(lines, "Skeleton"), "dark room: attacker must not read the target's name: %v", lines)
 	require.Zero(t, countContaining(lines, "Rusted Cleaver"), "dark room: attacker must not read the weapon: %v", lines)
 }
@@ -203,8 +205,16 @@ func TestWaitRound_DarkRoomInfraredDefenderStillGetsDarkLine(t *testing.T) {
 	require.True(t, handled, "attacker should still be in its wait round")
 
 	lines := drainPlain(1)
-	require.Len(t, lines, 1, "infrared: defender should still receive exactly the fixed dark line: %v", lines)
-	require.Equal(t, plainText(waitRoundDarkDefenderLine), lines[0])
+	require.Len(t, lines, 1, "infrared: defender should still receive exactly one dark line: %v", lines)
+	// 🔑 THE TIER SPLIT. An infrared defender still gets a DARK line rather
+	// than the authored one, which is what this test has always pinned. What
+	// changed on 2026-09-21 is the WORD: this line used to be a fixed
+	// sentence with "Something" baked in, so a reader who could make out warm
+	// shapes and a reader who was fully blind got the identical text. It now
+	// runs through HideNames by the reader's own sight, so shapes reads
+	// "A figure" and only true blindness reads "Something".
+	require.Equal(t, "A figure hangs back in the dark, biding its time.", lines[0])
+	require.Zero(t, countContaining(lines, "Skeleton"), "infrared: still must not read the mob's name: %v", lines)
 }
 
 // TestWaitRound_EmptyAuthoredListStaysSilentInTheDark pins that the dark
