@@ -109,10 +109,13 @@ var sendTrioOnlyAllowed = map[string]string{}
 var sendTrioOnlyCategoryRE = regexp.MustCompile(
 	`messaging\.Category(` + strings.Join(sendTrioOnlyCategories, "|") + `)\b`)
 
-// sendTrioOnlyProducerRE matches the two shapes allowed to carry a guarded
-// category on the same line: building a messaging.Line via Say, or the
-// skill-move defence helper that itself only calls Say.
-var sendTrioOnlyProducerRE = regexp.MustCompile(`messaging\.Say\(|acteeDefenceLine\(`)
+// sendTrioOnlyProducerRE matches the shapes allowed to carry a guarded
+// category on the same line: building a messaging.Line via Say, the
+// skill-move defence helper that itself only calls Say, or the special-move
+// store's call-site helpers (sendMoveEvent, lineOrNone) added in M4e-1 Task 7
+// -- both of which, like acteeDefenceLine, only ever produce a line through
+// Say or the zero-value NoLine.
+var sendTrioOnlyProducerRE = regexp.MustCompile(`messaging\.Say\(|acteeDefenceLine\(|sendMoveEvent\(|lineOrNone\(`)
 
 func TestNarrationTrioOnlyCategoriesLeaveOnlyThroughSendTrio(t *testing.T) {
 	seen := map[string]bool{}

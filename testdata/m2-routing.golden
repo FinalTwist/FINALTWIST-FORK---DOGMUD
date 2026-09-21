@@ -80,41 +80,6 @@ internal/mobcommands/hamstring.go | observer | messaging~CategoryHitNaturalSharp
 internal/mobcommands/hamstring.go | observer | messaging~CategoryHitNaturalSharp | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> lunges at <ansi fg="username">%s</ansi>'s legs, but misses!`~mobName~target~Name
 internal/mobcommands/hamstring.go | observer | messaging~CategoryHitNaturalSharp | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> lunges at <ansi fg="username">%s</ansi>'s legs, who mostly dodges but still gets caught!`~mobName~target~Name
 internal/mobcommands/hamstring.go | observer | messaging~CategoryHitNaturalSharp | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> lunges low and rakes its fangs across <ansi fg="username">%s</ansi>'s legs!`~mobName~target~Name
-internal/mobcommands/kick.go | actee |  | acteeDefenceLine~targetUser~room~messaging~CategoryKick~defence~ToDefender
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | `Something attempts to kick you, but misses!`
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | `Something tries to knee you, but you block it!`
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | `Something tries to stomp you, but you roll aside!`
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> attempts to kick you, and you slip most of it, but the boot still clips you! (<ansi fg="damage">%s</ansi>)`~mobName~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> attempts to kick you, but misses!`~mobName
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> drives a knee into you in the grapple! (<ansi fg="damage">%s</ansi>)`~mobName~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> kicks you hard! (<ansi fg="damage">%s</ansi>)`~mobName~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> stomps on you while you're down! (<ansi fg="damage">%s</ansi>)`~mobName~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> tries to knee you, and you block most of it, but it still lands! (<ansi fg="damage">%s</ansi>)`~mobName~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> tries to knee you, but you block it!`~mobName
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> tries to stomp you, and you roll aside, but the heel still catches you! (<ansi fg="damage">%s</ansi>)`~mobName~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> tries to stomp you, but you roll aside!`~mobName
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi>'s powerful <ansi fg="yellow-bold">kick</ansi> knocks you to the ground! (<ansi fg="damage">%s</ansi>)`~mobName~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`Something attempts to kick you, and you slip most of it, but it still clips you! (<ansi fg="damage">%s</ansi>)`~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`Something drives a knee into you! (<ansi fg="damage">%s</ansi>)`~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`Something kicks you hard! (<ansi fg="damage">%s</ansi>)`~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`Something stomps on you while you're down! (<ansi fg="damage">%s</ansi>)`~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`Something tries to knee you, and you block most of it, but it still lands! (<ansi fg="damage">%s</ansi>)`~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`Something tries to stomp you, and you roll aside, but the heel still catches you! (<ansi fg="damage">%s</ansi>)`~dmgDesc
-internal/mobcommands/kick.go | actee | messaging~CategoryKick | fmt~Sprintf~`Something's powerful <ansi fg="yellow-bold">kick</ansi> knocks you to the ground! (<ansi fg="damage">%s</ansi>)`~dmgDesc
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | defence~ToRoom
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | defence~ToRoom
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | defence~ToRoom
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | defence~ToRoom
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> attempts to kick <ansi fg="username">%s</ansi>, but misses!`~mobName~target~Name
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> drives a knee into <ansi fg="username">%s</ansi>!`~mobName~target~Name
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> kicks <ansi fg="username">%s</ansi>!`~mobName~target~Name
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> kicks <ansi fg="username">%s</ansi>, knocking them to the ground!`~mobName~target~Name
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> stomps on the downed <ansi fg="username">%s</ansi>!`~mobName~target~Name
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> swings a kick at <ansi fg="username">%s</ansi>, who mostly dodges but still gets clipped!`~mobName~target~Name
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> tries to knee <ansi fg="username">%s</ansi> in the grapple, who blocks most of it but still takes the hit!`~mobName~target~Name
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> tries to knee <ansi fg="username">%s</ansi>, but misses!`~mobName~target~Name
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> tries to stomp <ansi fg="username">%s</ansi>, but misses!`~mobName~target~Name
-internal/mobcommands/kick.go | observer | messaging~CategoryKick | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> tries to stomp <ansi fg="username">%s</ansi>, who rolls mostly clear but still gets caught!`~mobName~target~Name
 internal/mobcommands/maul.go | actee |  | acteeDefenceLine~targetUser~room~messaging~CategoryHitNaturalSharp~defence~ToDefender
 internal/mobcommands/maul.go | actee | messaging~CategoryHitNaturalSharp | `Something snaps its fangs at you, but misses!`
 internal/mobcommands/maul.go | actee | messaging~CategoryHitNaturalSharp | fmt~Sprintf~`<ansi fg="mobname">%s</ansi> savages you with vicious fangs, tearing bleeding wounds! (<ansi fg="damage">%s</ansi>)`~mobName~dmgDesc

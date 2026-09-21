@@ -17,14 +17,15 @@ import (
 // could pass the default picker and consume a global random draw per
 // narrated phase (see narration.FirstPicker), which no golden can see.
 var narrationRenderCallers = map[string]string{
-	"internal/combat/taunt_messages.go":    "Kind A: the taunt store's coordinated triad",
-	"internal/gossip/gossip.go":            "Kind A: gossip template pools, single role (the gossiping NPC)",
-	"internal/grapplemessaging/render.go":  "Kind A: the grapple store's coordinated triad",
-	"internal/items/defensive_messages.go": "Kind A: the defence store's coordinated triad",
-	"internal/items/attack_messages.go":    "Kind A: the combat-message store's coordinated triad and ranged quartet (M3 item 8)",
-	"internal/itemvoices/itemvoices.go":    "Kind A: sentient item voices, single role",
-	"internal/spells/casting_messages.go":  "Kind A: the caster-only casting pools",
-	"internal/textutil/narrate.go":         "the ONE door for the Kind B stores; must pass narration.FirstPicker",
+	"internal/combat/taunt_messages.go":      "Kind A: the taunt store's coordinated triad",
+	"internal/gossip/gossip.go":              "Kind A: gossip template pools, single role (the gossiping NPC)",
+	"internal/grapplemessaging/render.go":    "Kind A: the grapple store's coordinated triad",
+	"internal/items/defensive_messages.go":   "Kind A: the defence store's coordinated triad",
+	"internal/items/attack_messages.go":      "Kind A: the combat-message store's coordinated triad and ranged quartet (M3 item 8)",
+	"internal/itemvoices/itemvoices.go":      "Kind A: sentient item voices, single role",
+	"internal/mobcommands/move_narration.go": "Kind A: the special-move store's per-event triad, shared call-site helper for kick and the twelve mob verbs after it (M4e-1 Task 7)",
+	"internal/spells/casting_messages.go":    "Kind A: the caster-only casting pools",
+	"internal/textutil/narrate.go":           "the ONE door for the Kind B stores; must pass narration.FirstPicker",
 
 	// The first and only entry outside internal/. Weather is a module, and
 	// modules/weather/content carries its own purity rule (arch_test.go) that

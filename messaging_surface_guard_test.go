@@ -1523,14 +1523,21 @@ var m2FrozenFiles = map[string]string{
 	"internal/mobcommands/hamstring.go": "87ecd26e30f0324b9e552446bcc6797b074e1aafd0087043634a805cd090501b",
 	"internal/mobcommands/drain.go":     "e28eb92ae670bb746ae9009c14f4056984f8ca68230e9531c63d30348faff8eb",
 	"internal/mobcommands/gore.go":      "c9f3a5c218732ebdc1bdcd141736443c98d9fa8c0b08e6f4d6a4e1f687f4a270",
-	"internal/mobcommands/kick.go":      "622a3209b47a6ed5941a60900b57171083fd2116d6d7351e85a953dde45f073d",
-	"internal/mobcommands/maul.go":      "8cdcc16a2fa36a5f9cf05ed52d9ef7a385809bc06f418b25caad92166ed2cc6e",
-	"internal/mobcommands/pounce.go":    "4de98c9a45b40fb2a2dabd4dfb6033ebebe3573f3280e79bf46f7a1a9df7c866",
-	"internal/mobcommands/rake.go":      "94973b45a77e548bf5a085a7005ce3ab83916c9a5b9f0cb18906d3045a64e2d2",
-	"internal/mobcommands/throttle.go":  "caa10903bd759b2a0461a502a83fb0f59c2ebe80fe1eaeacfbba07f602886d0b",
-	"internal/mobcommands/trip.go":      "42f5206e6a08bccd4673067e31882b7a5147524c971dd0f31f0403a5086808bd",
-	"internal/mobcommands/grapple.go":   "7183a365181000f6ccec5b3500657ef0a758ed663aa8140e9487a2ffc9372df8",
-	"internal/mobcommands/shoot.go":     "7ec3cee39749e1a422778894adf9b43b1be66efaedffd4f1f7b09f0171fd53e1",
+	// internal/mobcommands/kick.go is gone from this list: M4e-1 Task 7 migrated
+	// it onto the movenarration store, so its player-facing text now lives in
+	// _datafiles/world/dogmud/narration/special-moves/kick.yaml and is guarded
+	// by TestMigratedWordingIsByteIdentical (special_move_net_test.go), the same
+	// way the two skill_move_defence.go files are guarded by the defence
+	// store's golden instead of this literal freeze (see
+	// TestM2FrozenFilesAllCarryText above). Task 12 removes the other twelve
+	// mob rows the same way once they migrate.
+	"internal/mobcommands/maul.go":     "8cdcc16a2fa36a5f9cf05ed52d9ef7a385809bc06f418b25caad92166ed2cc6e",
+	"internal/mobcommands/pounce.go":   "4de98c9a45b40fb2a2dabd4dfb6033ebebe3573f3280e79bf46f7a1a9df7c866",
+	"internal/mobcommands/rake.go":     "94973b45a77e548bf5a085a7005ce3ab83916c9a5b9f0cb18906d3045a64e2d2",
+	"internal/mobcommands/throttle.go": "caa10903bd759b2a0461a502a83fb0f59c2ebe80fe1eaeacfbba07f602886d0b",
+	"internal/mobcommands/trip.go":     "42f5206e6a08bccd4673067e31882b7a5147524c971dd0f31f0403a5086808bd",
+	"internal/mobcommands/grapple.go":  "7183a365181000f6ccec5b3500657ef0a758ed663aa8140e9487a2ffc9372df8",
+	"internal/mobcommands/shoot.go":    "7ec3cee39749e1a422778894adf9b43b1be66efaedffd4f1f7b09f0171fd53e1",
 }
 
 // m2LiteralFingerprint returns a stable hash of every string literal in the
