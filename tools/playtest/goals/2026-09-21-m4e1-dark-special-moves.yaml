@@ -1,0 +1,82 @@
+# M4e PR 1a, Task 14: the dark special-move check.
+#
+# WHAT CHANGED. The thirteen mob special-move files (kick, bash, charge,
+# drain, gore, grapple, hamstring, maul, pounce, rake, shoot, throttle,
+# trip) each used to carry a hand-rolled darkness branch that chose between
+# naming the mob and a hardcoded "Something ..." sentence. That branch was
+# BINARY: a player who could make out heat shapes and a player who was
+# fully blind both read the same word. Those branches are deleted;
+# messaging.SendTrio now hides the name by each reader's own three-tier
+# sight verdict.
+#
+# SO THE HEADLINE IS A WORD. Fully blind should read "something". Able to
+# sense heat but not see should read "a figure". Before this PR both read
+# "a figure" on some paths and "Something" on others, never split by tier.
+#
+# WHY THIS PLACE. Room 3101 (Cave Mouth, Ironwind Steppe) is `biome: cave`,
+# which Room.GetVisibility() takes to fully unlit, with no waiting for
+# night and no dousing of lights. Same lane the M2 darkness runs used.
+#
+# 🪤 THE PROFILE MAY NOT CARRY ITS CONDITION. slice-a-infrared grants
+# condition 85 (InfraredVision) in its saved condition list, but TWICE
+# (2026-09-11 and 2026-09-20) the character reached the world WITHOUT it,
+# so both runs silently tested the blind tier while believing they tested
+# shapes. That is why goal 1 checks before anything else. EITHER ANSWER IS
+# A USEFUL RUN: with infrared we exercise the shapes tier, without it we
+# exercise the blind tier. What is NOT acceptable is reporting one while
+# having tested the other.
+#
+# 3 commands per round; overflow is dropped.
+
+ephemeral:
+  profile: slice-a-infrared
+  start_room: 3101
+  budgets:
+    wall_clock: 30m
+
+goals:
+  - >-
+    FIRST, ESTABLISH WHICH TIER YOU ARE ACTUALLY TESTING. Type `conditions`
+    and read the output carefully. Report VERBATIM whether an infrared or
+    heat-sensing condition is listed. Then type `status`. State plainly in
+    your report: "I HAVE infrared" or "I DO NOT have infrared". Do not
+    guess from the profile name and do not assume. Everything else in this
+    run is interpreted through that answer, so get it right and say it
+    early.
+  - >-
+    SECOND, CONFIRM THE DARK. Type `look`. You should NOT get a normal room
+    description with visible details. You should be told you cannot see, or
+    that you can only make out vague shapes. If you get a full description,
+    the room is lit and this lane is invalid: say so immediately and stop.
+  - >-
+    Find a hostile creature in the room (a cave crawler or a wind scorpion)
+    and engage it with `attack <name>`. Fight normally. Do not flee. You
+    want it to keep attacking you for many rounds, because the lines under
+    test are the ones IT sends to YOU when it uses a special move.
+  - >-
+    THE HEADLINE. Every time the creature does something to you that is not
+    a plain attack -- a kick, a bash, a charge, a gore, a maul, a rake, a
+    pounce, a throttle, a hamstring, a drain, a trip, a grapple -- COPY THE
+    LINE YOU RECEIVE VERBATIM, exactly as it appears, including punctuation.
+    Collect as many DIFFERENT moves as you can. Four distinct moves is a
+    good run.
+  - >-
+    For each line you copied, answer two questions. ONE: what word stands in
+    for the creature's name? Quote it exactly. It should be "something" if
+    you have no infrared, or "a figure" if you do (possibly capitalised at
+    the start of a sentence). TWO: can you still tell WHAT the creature did
+    to you -- kicked, bashed, gored, tripped -- from the line alone? That
+    second question matters as much as the first: the whole point is that
+    you read the real move with only the identity hidden.
+  - >-
+    Report anything that reads WRONG rather than merely anonymous: a literal
+    token like {actor} or {damage} appearing in your text, a doubled or
+    missing name, an empty line where a line should be, a sentence that
+    reads like a fragment, or a line that names the creature outright when
+    everything else hides it. A raw token in play is the most serious thing
+    you could find here and must be reported immediately with the whole line.
+  - >-
+    Finally, if you survive long enough, type `look` once more and report
+    whether the creature is described to you the same way in the room
+    listing as it is in the combat lines. A mismatch between the two is
+    worth reporting.
