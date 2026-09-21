@@ -1,0 +1,121 @@
+# internal/movenarration
+
+The shipped wording for special-move narration: the player-side verbs (kick,
+bash, trip, gore, maul, rake, pounce, drain, throttle, hamstring, grapple,
+shoot, charge) and their mob twins.
+
+Added by M4e PR 1a of the messaging unification arc, which moved thirteen
+`internal/mobcommands` files off Go string literals.
+
+## What this package is for
+
+Go decides WHICH event fires and names it by a typed key. Go holds no wording.
+
+That split is the whole point. Before this package, a mob's kick sentence lived
+in `internal/mobcommands/kick.go` as a `fmt.Sprintf` format string, which meant
+content work required a Go change and a rebuild, and no content author could
+find it.
+
+## Data
+
+`_datafiles/world/dogmud/narration/special-moves/<verb>.yaml`, one file per
+verb, loaded flat by verb id.
+
+```yaml
+moveid: kick
+events:
+  standard_hit:
+    actee:
+      - '{actor} kicks you hard! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} kicks {actee}!'
+```
+
+Role keys are the arc's canonical four: `actor`, `actee`, `observer`,
+`remote_observer`. A mob has no client, so mob events author no `actor` line;
+PR 1b fills those in when the player-side files migrate into the same files.
+
+**Event keys carry the variant axis where one exists.** `kick` resolves as
+stomp, knee or standard and `trip` as tailsweep or trip, so their keys are
+`<variant>_<outcome>` (`stomp_hit`, `standard_knockdown`, `tailsweep_miss`).
+An outcome key alone would make three different moves collide on one pool.
+Every other verb has a single variant and keeps the bare outcome key.
+
+## Public surface
+
+Verified against source 2026-09-21 with
+`grep -nE '^(func|type|const|var)\s' internal/movenarration/store.go`.
+
+| Symbol | Kind | Notes |
+|---|---|---|
+| `LoadMoveNarrationFiles()` | func | Boot-time loader, called from `main.go` beside `combat.LoadTauntMessageFiles()`. **Panics** on any failure |
+| `GetMove(moveId string) *MoveNarrationGroup` | func | nil if the store is unloaded or the verb is absent |
+| `MoveNarrationGroup` | type | One verb's file. Fields `MoveId`, `Events` |
+| `(*MoveNarrationGroup) Variants(EventKey) (narration.Variants, bool)` | method | The lookup call sites use. `ok=false` for an absent event |
+| `(*MoveNarrationGroup) Validate() error` | method | Run by `fileloader` on load |
+| `(*MoveNarrationGroup) Id()` / `Filepath()` | methods | The `fileloader` generic contract |
+| `EventMessages` | type | One event's four role pools |
+| `EventKey` | type | Names one outcome branch of one verb |
+| `TokenDamage`, `TokenLabel`, `TokenWith`, `TokenVerb`, `TokenWeapon`, `TokenExitName`, `TokenPosition` | consts | This store's event tokens, beyond the four canonical name tokens |
+
+## Using it correctly
+
+Call sites do not touch this package directly. They go through
+`internal/mobcommands/move_narration.go`, which owns `sendMoveEvent` (the
+ordinary case) and `renderMoveEvent` (render without sending, for the
+channel-defended partial branch whose observer line comes from the defence
+triad instead of the store).
+
+🪤 **Check what the YAML already wraps before filling a token.** The shipped
+files bake `<ansi fg="damage">` around `{damage}`, so the call site passes the
+bare description. Wrapping it again double-tags the line.
+
+🪤 **The identity tags belong to the CALL SITE, not the helper.** `kick` tags
+its target `<ansi fg="username">`; `shoot` tags its target `<ansi fg="mobname">`
+and builds its actor name pre-tagged (`shoot.go:49`). A helper that hardcoded
+either would recolour the other.
+
+🔑 **Do not add a darkness branch.** `messaging.SendTrio` already hides each
+party's name from a reader who cannot make them out, judged by that reader's
+`SightDecision`, at three tiers. Every file this package replaced carried a
+hand-rolled two-tier version, and deleting those was the point of the slice.
+
+## Two rules this package enforces, and why
+
+**Role pools within one event must be equal length.** `narration.Variants`
+pairs roles by index: variant N of each role describes the same moment.
+`narration.ValidateVariants` rejects ragged pools, and `Variants.Len()` returns
+0 for them, which every caller treats as render nothing.
+
+**Unknown tokens are rejected.** `textutil.ValidateTokens` knows only the four
+canonical NAME tokens, so event tokens ship unvalidated in every other store: a
+value reading `{exit_name}` where the caller fills `{exitname}` would render its
+own braces to a player. `validateEventTokens` closes that for this store by
+declaring the vocabulary in `allowedTokens` and refusing anything outside it.
+Widening the set is a deliberate edit to that map.
+
+🪤 **`ValidateVariants` SKIPS EMPTY POOLS.** An event that omits a whole role
+validates clean and then tells that audience nothing. An absent role cannot
+simply be banned, because mob events legitimately have no `actor` line and
+`shoot`'s arrival events are remote-observer only. The real check is role-set
+agreement with the call site, in the root guard.
+
+## Tests that hold this together
+
+- `internal/movenarration/store_test.go` - round trip, ragged pools rejected,
+  unknown token rejected, and every declared token accepted
+- `shipped_narration_data_guard_test.go` - `TestShippedNarrationDataValidates`
+  loads and validates the shipped files, and
+  `TestNoLegacyRoleKeysInShippedData` walks this store for retired role-key
+  spellings
+- `internal/narration/testdata/stores/special_moves.golden` via
+  `TestSnapshotStores` - renders every event at every variant index
+- `internal/mobcommands/special_move_net_test.go` - the byte-identity net:
+  118 rows asserting each event renders exactly what the original Go literal
+  produced. This is what proves the migration changed no wording
+
+## Related
+
+- `internal/narration` - `Variants`, `Render`, `ValidateVariants`, the tokens
+- `internal/messaging` - `SendTrio`, `Audience`, `ParticipantSight`, `HideNames`
+- `internal/combat/taunt_messages.go` - the store this one is modelled on
