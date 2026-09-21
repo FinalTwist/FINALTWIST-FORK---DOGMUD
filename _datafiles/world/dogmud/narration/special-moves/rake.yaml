@@ -1,29 +1,17 @@
 moveid: rake
 events:
   hit:
-    actor:
-      - 'Your claws rake across {actee}, opening raking gashes that weep! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} rakes its claws across you, opening bleeding wounds! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} rakes its claws across {actee}!'
   partial:
-    actor:
-      - '{actee} dodges most of your swipe, but your claws still catch them! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} swipes its claws and you dodge most of it, but they still scratch you! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} swipes its claws at {actee}, who mostly dodges but still gets scratched!'
   miss:
-    actor:
-      - 'Your raking claws miss {actee}!'
-      - 'You swipe at {actee} but they dodge your claws!'
-      - 'Your rake glances off {actee} harmlessly!'
     actee:
       - '{actor} swipes its claws at you, but misses!'
-      - '{actor} swipes at you but you dodge!'
-      - '{actor}''s rake glances off you harmlessly!'
     observer:
       - '{actor} swipes its claws at {actee}, but misses!'
-      - '{actor} swipes at {actee}, who dodges the claws!'
-      - '{actor}''s rake glances off {actee} harmlessly!'

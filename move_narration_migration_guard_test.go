@@ -436,6 +436,8 @@ var intentionallySilentRoles = map[string]string{
 	"shoot/arrival_known_hit":       "remote_observer only: see shoot/arrival_unknown_hit.",
 	"shoot/arrival_known_partial":   "remote_observer only: see shoot/arrival_unknown_hit.",
 	"shoot/arrival_known_miss":      "remote_observer only: see shoot/arrival_unknown_hit.",
+
+	"throttle/cast_interrupt": "actee only: throttle.go's own comment says it plainly -- \"the YAML authors only an actee role for this event... matching today's behaviour of never broadcasting this to the room\" -- the interrupt is a private mechanical note riding on the hit event.",
 }
 
 // TestMoveEventRoleSetsAgree asserts every authored event carries both an

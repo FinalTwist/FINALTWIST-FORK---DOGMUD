@@ -1,36 +1,22 @@
 moveid: gore
 events:
   knockdown:
-    actor:
-      - 'You lower your head and charge {actee}, driving your horns in and sending them flying! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} lowers its head and charges into you, driving you to the ground! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} charges into {actee} and hurls them to the ground!'
   hit:
-    actor:
-      - 'You ram your horns into {actee} with a powerful charge! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} drives its horns into you with a powerful charge! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} drives its horns into {actee}!'
   partial:
-    actor:
-      - '{actee} dodges the worst of your charge, but your horns still catch them! (<ansi fg="damage">{damage}</ansi>)'
     actee:
       - '{actor} charges you and you sidestep most of it, but the horns still catch you! (<ansi fg="damage">{damage}</ansi>)'
     observer:
       - '{actor} charges {actee}, who mostly dodges but still gets grazed by the horns!'
   miss:
-    actor:
-      - 'Your charge at {actee} misses as they sidestep your horns!'
-      - 'You thunder toward {actee} but they dodge your gore!'
-      - 'Your horned charge carries you past {actee} — they step aside!'
     actee:
       - '{actor} charges at you, but you sidestep the gore!'
-      - '{actor} thunders toward you, but you dodge the gore!'
-      - '{actor}''s horned charge carries them past you as you step aside!'
     observer:
       - '{actor} charges at {actee}, but misses!'
-      - '{actor} thunders toward {actee}, who dodges the gore!'
-      - '{actor}''s horned charge carries them past {actee}, who steps aside!'
