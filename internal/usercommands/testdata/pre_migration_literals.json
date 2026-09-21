@@ -1095,7 +1095,7 @@
     "event": "knee_miss",
     "role": "actor",
     "index": 0,
-    "format": "You try to knee <ansi fg=\"mobname\">%s</ansi>, but can't find the angle!",
+    "format": "<ansi fg=\"mobname\">%s</ansi> blocks your knee!",
     "args": [
       "actee"
     ]
@@ -1115,7 +1115,7 @@
     "event": "knee_miss",
     "role": "actor",
     "index": 2,
-    "format": "<ansi fg=\"mobname\">%s</ansi> blocks your knee!",
+    "format": "You try to knee <ansi fg=\"mobname\">%s</ansi>, but they turn their body away!",
     "args": [
       "actee"
     ]

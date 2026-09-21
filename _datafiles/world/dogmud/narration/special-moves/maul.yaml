@@ -15,7 +15,15 @@ events:
     observer:
       - '{actor} snaps its fangs at {actee}, who twists mostly free but still gets torn!'
   miss:
+    actor:
+      - 'Your savage bite misses {actee}!'
+      - 'You snap at {actee} but they dodge your fangs!'
+      - 'Your mauling lunge glances off {actee} harmlessly!'
     actee:
       - '{actor} snaps its fangs at you, but misses!'
+      - '{actor} lunges to maul you but you dodge!'
+      - '{actor}''s mauling lunge glances off you harmlessly!'
     observer:
       - '{actor} snaps its fangs at {actee}, but misses!'
+      - '{actor} snaps at {actee}, who dodges the fangs!'
+      - '{actor}''s mauling lunge glances off {actee} harmlessly!'

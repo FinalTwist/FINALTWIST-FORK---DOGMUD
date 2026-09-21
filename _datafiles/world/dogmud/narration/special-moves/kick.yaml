@@ -64,7 +64,15 @@ events:
     observer:
       - '{actor} tries to knee {actee} in the grapple, who blocks most of it but still takes the hit!'
   knee_miss:
+    actor:
+      - '{actee} blocks your knee!'
+      - 'Your knee strike glances off {actee}!'
+      - 'You try to knee {actee}, but they turn their body away!'
     actee:
       - '{actor} tries to knee you, but you block it!'
+      - '{actor}''s knee strike glances off you!'
+      - '{actor} tries to knee you, but you turn your body away!'
     observer:
       - '{actor} tries to knee {actee}, but misses!'
+      - '{actor}''s knee strike glances off {actee} in the grapple!'
+      - '{actor} tries to knee {actee} in the grapple, but they block it!'

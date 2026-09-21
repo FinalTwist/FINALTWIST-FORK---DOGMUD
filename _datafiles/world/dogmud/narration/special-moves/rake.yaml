@@ -15,7 +15,15 @@ events:
     observer:
       - '{actor} swipes its claws at {actee}, who mostly dodges but still gets scratched!'
   miss:
+    actor:
+      - 'Your raking claws miss {actee}!'
+      - 'You swipe at {actee} but they dodge your claws!'
+      - 'Your rake glances off {actee} harmlessly!'
     actee:
       - '{actor} swipes its claws at you, but misses!'
+      - '{actor} swipes at you but you dodge!'
+      - '{actor}''s rake glances off you harmlessly!'
     observer:
       - '{actor} swipes its claws at {actee}, but misses!'
+      - '{actor} swipes at {actee}, who dodges the claws!'
+      - '{actor}''s rake glances off {actee} harmlessly!'

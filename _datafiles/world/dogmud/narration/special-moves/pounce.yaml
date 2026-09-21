@@ -22,7 +22,15 @@ events:
     observer:
       - '{actor} leaps at {actee}, who mostly dodges but still gets clipped!'
   miss:
+    actor:
+      - 'Your leap at {actee} misses as they sidestep!'
+      - 'You spring at {actee} but they dodge your pounce!'
+      - 'Your pounce carries you past {actee} — they step aside!'
     actee:
       - '{actor} leaps at you, but you sidestep the pounce!'
+      - '{actor} springs at you, but you dodge!'
+      - '{actor}''s pounce carries them past you as you step aside!'
     observer:
       - '{actor} leaps at {actee}, but misses!'
+      - '{actor} springs at {actee}, who dodges the pounce!'
+      - '{actor}''s pounce carries them past {actee}, who steps aside!'

@@ -15,7 +15,15 @@ events:
     observer:
       - '{actor} reaches for {actee} hungrily, who slips mostly free but still gets caught!'
   miss:
+    actor:
+      - 'Your drain misses {actee}!'
+      - 'You reach for {actee} but they slip away!'
+      - 'Your draining lunge glances off {actee} harmlessly!'
     actee:
       - '{actor} reaches for you hungrily, but misses!'
+      - '{actor} lunges to drain you but you slip away!'
+      - '{actor}''s draining lunge glances off you harmlessly!'
     observer:
       - '{actor} reaches for {actee} hungrily, but misses!'
+      - '{actor} reaches for {actee}, who slips away!'
+      - '{actor}''s draining lunge glances off {actee} harmlessly!'
