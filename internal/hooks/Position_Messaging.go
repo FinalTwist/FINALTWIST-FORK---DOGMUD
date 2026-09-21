@@ -295,7 +295,17 @@ func submissionTypeKey(t position.SubmissionType) string {
 
 // sendSubmissionTriple dispatches a submissionMsgTriple to the
 // attempter (personal), recipient (personal), and room (everyone
-// else). Empty string slots are silently skipped.
+// else) via messaging.SendTrio. Empty string slots are silently skipped.
+//
+// position_control.yaml's submission templates name the OTHER grappler
+// inside the actor and actee lines too, not only the observer line (e.g.
+// submission.opening.armbar's actor line reads "You isolate {actee}'s
+// arm...", naming the recipient in the attempter's own personal line). So
+// unlike a plain self-vs-room beat, both personal lines need the other
+// party's name hidden from THEIR OWN reader by that reader's own sight,
+// which is exactly what SendTrio's Actor/Actee halves do; the room line
+// hides both names from each observer the same way the gradient room
+// broadcasts do.
 func sendSubmissionTriple(
 	attempter, recipient *characters.Character,
 	tmpl submissionMsgTriple,
@@ -305,38 +315,34 @@ func sendSubmissionTriple(
 	tgtMsg := narration.Substitute(tmpl.Target, subs)
 	roomMsg := narration.Substitute(tmpl.Room, subs)
 
-	var excludeIds []int
+	var actor, actee messaging.Recipient
+	var actorId, acteeId int
 	if ua := userForCharacter(attempter); ua != nil {
-		if atkMsg != "" {
-			ua.SendText(messaging.CategorySubmission, atkMsg)
-		}
-		excludeIds = append(excludeIds, ua.UserId)
+		actor = ua
+		actorId = ua.UserId
 	}
 	if ur := userForCharacter(recipient); ur != nil {
-		if tgtMsg != "" {
-			ur.SendText(messaging.CategorySubmission, tgtMsg)
-		}
-		excludeIds = append(excludeIds, ur.UserId)
+		actee = ur
+		acteeId = ur.UserId
+	}
+	var room messaging.Broadcaster
+	if r := rooms.LoadRoom(attempter.RoomId); r != nil {
+		room = r
 	}
 
-	if roomMsg == "" {
-		return
-	}
-	r := rooms.LoadRoom(attempter.RoomId)
-	if r == nil {
-		return
-	}
-	// Submission room broadcasts substitute {actor} and {actee} names, so they
-	// fall in the same name-leak class as the gradient room broadcasts above.
-	// Route through SendTextVisual.
-	switch len(excludeIds) {
-	case 0:
-		r.SendTextVisual(messaging.CategorySubmission, roomMsg)
-	case 1:
-		r.SendTextVisual(messaging.CategorySubmission, roomMsg, excludeIds[0])
-	default:
-		r.SendTextVisual(messaging.CategorySubmission, roomMsg, excludeIds[0], excludeIds[1])
-	}
+	messaging.SendTrio(messaging.Trio{
+		Actor:    messaging.Say(messaging.CategorySubmission, atkMsg),
+		Actee:    messaging.Say(messaging.CategorySubmission, tgtMsg),
+		Observer: messaging.Say(messaging.CategorySubmission, roomMsg),
+	}, messaging.Audience{
+		Actor:     actor,
+		ActorId:   actorId,
+		ActorName: attempter.Name,
+		Actee:     actee,
+		ActeeId:   acteeId,
+		ActeeName: recipient.Name,
+		Room:      room,
+	})
 }
 
 // fireSubmissionOpeningMessage sends the "opening" message for a
