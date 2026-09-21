@@ -1115,11 +1115,29 @@ in `position_control`. Route them through `HideNames` with the listener's own
 sight so an infrared listener hears `a figure` and a blind one `something`,
 instead of everyone getting one word.
 
-`sendAudioRoomText` (`darkness.go:19-42`) is the third hand-rolled darkness
-check; its own comment at `go.go:96-98` says it should collapse, naming M5.
-Collapse it here rather than opening these files a third time: replace its
-`HasFlagFromAnySource(conditions.NightVision)` per-player branch with
-`messaging.ParticipantSight` + `HideNames`.
+🔴 **`sendAudioRoomText` is NOT collapsed in place. Measured 2026-09-21: it has
+15 call sites across 7 files**, four of which (`say.go`, `shout.go`,
+`rally.go`, `warcry.go`) are speech commands with nothing to do with this PR.
+Rewriting it in place would drag them into the diff.
+
+It also *cannot* express what is needed. Its signature takes an `anonMsg` and a
+`fullMsg` and picks one, so it is two-tier by construction. Three tiers need
+the text and the NAMES, so the hiding can be computed per listener.
+
+**Add a sibling instead** and migrate only `howl` and `taunt` onto it:
+
+```go
+// sendAudioRoomTextHidingNames broadcasts an audio line to the room, hiding
+// each of names from every listener by that listener's own sight.
+//
+// The audio channel bypasses the pipeline's sight gate on purpose: you hear a
+// howl whether or not you can see. But hearing it must not tell you WHO, so
+// the names are hidden here, per listener, at all three tiers.
+func sendAudioRoomTextHidingNames(room *rooms.Room, cat messaging.Category, fullMsg string, names []string, excludedUserIDs ...int)
+```
+
+Leave `sendAudioRoomText` in place for the four speech commands and file the
+follow-up. `go.go:96-98`'s comment naming M5 stays true for them.
 
 - [ ] **Step 5: Delete the predicate**
 
