@@ -33,7 +33,7 @@ Nothing here is recalled from a prior session.
 | `canSeeInDark` definition | `func canSeeInDark(u *users.UserRecord, room *rooms.Room) bool { return room.GetVisibility() >= 1 \|\| u.Character.HasFlagFromAnySource(conditions.NightVision) }` | `internal/mobcommands/darkness.go:43-46`, `cat` |
 | Second definition, not an import | byte-identical unexported twin | `internal/usercommands/skill_move_defence.go:93-95` |
 | Total references / files | **30 refs across 20 files** (19 `mobcommands` + 1 `usercommands`) | `grep -rn "canSeeInDark" --include=*.go . \| wc -l` |
-| Executable call sites | **25** (30 minus 2 definitions and 3 comments) | same grep, classified by reading |
+| Executable call sites | **24** (30 minus 2 definitions and 4 comments) | same grep, classified by reading; corrected from 25 by the Task 1 inventory |
 | Third hand-rolled darkness check | `sendAudioRoomText`, its own comment says it should collapse, names **M5** not M4 | `internal/mobcommands/darkness.go:19-42`, `internal/mobcommands/go.go:96-98` |
 | `messaging.ParticipantSight` | `func ParticipantSight(observer *characters.Character, room RoomVisibility) SightDecision` | `internal/messaging/predicates.go:51` |
 | `messaging.HideNames` | `func HideNames(text string, names []string, d SightDecision) string` | `internal/messaging/hidenames.go:38` |
@@ -43,7 +43,7 @@ Nothing here is recalled from a prior session.
 | 🔑 Mob files already pass the names | `aud := messaging.Audience{ActorName: mobName, ..., ActeeName: target.Name, Room: room}` | `internal/mobcommands/kick.go:52-59` |
 | Mob special-move files | **13**: attack, bash, charge, drain, gore, grapple, hamstring, kick, maul, pounce, rake, shoot, throttle, trip (minus attack — see note) | `m2FrozenFiles`, `messaging_surface_guard_test.go:1508` |
 | Frozen-list files, both packages | **25** (12 `usercommands` + 13 `mobcommands`), two lists agreeing 1:1 | `messaging_surface_guard_test.go:1508`, `m2_routing_guard_test.go:70` |
-| Mob backtick literals | **178** total across the 13 files | `grep -oE '`[^`]*`' <file> \| wc -l`, summed |
+| Mob backtick literals | **184** raw, **182** real narration rows (2 are an empty-string comparison and a backtick inside a comment) | Task 1 inventory, `docs/superpowers/audits/2026-09-21-m4e1-site-inventory.md` |
 | Mob variant pools | **zero** — no `util.Rand`, no `[]string{}` narration pool in any mob file | `grep -l 'util.Rand\|\[\]string{' internal/mobcommands/<13 files>` → no hits |
 | Mob Trio shape | `Actor` is always `messaging.NoLine` (a mob has no client); `Actee` + `Observer` carry the text; `shoot.go` additionally uses `RemoteObserver` | read across the 13 files |
 | Format verbs | `%s` only. **`%d` appears zero times** in all 25 files; damage is pre-formatted by `combat.GetDamageDescription()` | `grep -o '%d'` → 0 hits |
@@ -475,22 +475,36 @@ actor line, and PR 1b authors the player side into the same file.
 ```yaml
 moveid: kick
 events:
-  hit:
+  standard_hit:
     actee:
       - '{actor} kicks you hard! ({damage})'
     observer:
       - '{actor} kicks {actee}!'
-  knockdown:
+  standard_knockdown:
     actee:
       - '{actor} kicks you hard, knocking you down! ({damage})'
     observer:
       - '{actor} kicks {actee} to the ground!'
-  miss:
+  standard_miss:
     actee:
       - '{actor} kicks at you and misses!'
     observer:
       - '{actor} kicks at {actee} and misses!'
 ```
+
+🔴 **The variant axis goes in the event key.** Task 1 found that `kick` and
+`trip` carry an orthogonal variant dimension the outcome key alone does not
+capture: kick resolves as stomp, knee or standard, and trip as tailsweep or
+trip. A key of `hit` alone would make three different moves collide on one
+pool and silently narrate a stomp as a kick.
+
+Spell these `<variant>_<outcome>`: `stomp_hit`, `knee_miss`,
+`standard_knockdown`, `tailsweep_hit`. Every other verb has a single variant
+and keeps the bare outcome key (`hit`, `partial`, `miss`), so the shared keys
+stay shared where they genuinely mean the same moment.
+
+Task 12's bidirectional key guard is what enforces this: a variant whose key
+nothing references, or a reference with no authored key, fails the build.
 
 ⚠️ **Authoring rules for every file in this task:**
 - Copy each line **byte for byte** from the inventory. Task 6's net fails on a
@@ -817,7 +831,7 @@ finding" section above) with:
 
 ```go
 		default: // KickStandard
-			sendMoveEvent(`kick`, `hit`, aud, messaging.CategoryKick, map[string]string{
+			sendMoveEvent(`kick`, `standard_hit`, aud, messaging.CategoryKick, map[string]string{
 				movenarration.TokenDamage: fmt.Sprintf(`<ansi fg="damage">%s</ansi>`, dmgDesc),
 			})
 ```
@@ -969,11 +983,40 @@ grep -rn "canSeeInDark" --include=*.go internal/mobcommands
 Expected: the definition, plus exactly the sites listed above. If a special-move
 file still appears, Task 8 is incomplete.
 
-- [ ] **Step 2: Migrate the text-branching sites**
+- [ ] **Step 2: Apply the delivery test to each site BEFORE deleting anything**
 
-`attack.go:94`, `howl.go:54,77`, `taunt.go:71,97` each pick between a named and
-a generic sentence. Delete the branch, author the named sentence only, and let
-the pipeline hide the name — the same move as Task 7, for the same reason.
+🔴 **Deleting a darkness branch is only safe where `SendTrio` delivers the line
+and the `Audience` declares the name.** Task 7's deletion is safe precisely
+because `kick.go` satisfies both. Several sites here satisfy neither, and
+deleting their branch would leak the mob's name to a blind player.
+
+For each remaining site, answer both questions from source before touching it:
+
+1. Is the line delivered by `messaging.SendTrio`?
+2. Does the `Audience` carry the name in `ActorName` / `ActeeName`?
+
+**Both yes** → delete the branch, author the named sentence only (the Task 7
+move).
+
+**Either no** → keep an explicit substitution at the site:
+
+```go
+	sight := messaging.ParticipantSight(reader.Character, room)
+	text = messaging.HideNames(text, []string{mobName}, sight)
+```
+
+Known answers, from the Task 1 inventory:
+
+- **`attack.go:94` makes ZERO `SendTrio` calls.** Its engagement notice is
+  outside the Actor/Actee/Observer shape entirely. It takes the explicit
+  substitution, **not** the deletion. Its wording is **not** migrated to YAML in
+  this PR: putting it on `SendTrio` first is a separate change and belongs with
+  PR 4's remaining-paths work. `attack.go` is a sight-only file here.
+- **`howl.go:54,77` and `taunt.go:71,97`** — verify each individually. Where the
+  line rides the audio channel it is Step 4's problem, not this step's.
+
+Record the verdict per site in the commit message, so a reviewer can check the
+test was applied rather than assumed.
 
 - [ ] **Step 3: Migrate the pre-anonymised sites onto the three-tier pair**
 
@@ -1104,7 +1147,7 @@ without running the server.
 
 - [ ] **Step 1: Write a rendering harness test**
 
-A test that renders one representative event (`kick/hit`) at each of
+A test that renders one representative event (`kick/standard_hit`) at each of
 `SightFull`, `SightShapes`, `SightNone`, printing the actee line, and does the
 same against the pre-migration literal path.
 
@@ -1225,14 +1268,14 @@ and found nothing" is only evidence if the grep could have found something.**
 
 - [ ] **Step 5: Prove that guard can fail, both ways**
 
-Rename one event key in `kick.yaml` (`hit` to `hits`) and run:
+Rename one event key in `kick.yaml` (`standard_hit` to `standard_hits`) and run:
 
 ```bash
 go test . -run TestMoveEventKeysAgree -v
 ```
 
-Expected: **two** failures, one from each direction — `kick/hit` referenced but
-not authored, `kick/hits` authored but not referenced. Restore and confirm
+Expected: **two** failures, one from each direction — `kick/standard_hit` referenced but
+not authored, `kick/standard_hits` authored but not referenced. Restore and confirm
 green. A one-sided failure means one of the two loops is not wired.
 
 - [ ] **Step 6: Commit**
