@@ -831,14 +831,28 @@ finding" section above) with:
 
 ```go
 		default: // KickStandard
-			sendMoveEvent(`kick`, `standard_hit`, aud, messaging.CategoryKick, map[string]string{
-				movenarration.TokenDamage: fmt.Sprintf(`<ansi fg="damage">%s</ansi>`, dmgDesc),
+			sendMoveEvent(`kick`, `standard_hit`, ids, aud, messaging.CategoryKick, map[string]string{
+				movenarration.TokenDamage: dmgDesc,
 			})
 ```
 
 The `canSee` local at `:45` and the `targetUser` lookup that feeds **only** it
 are now unused. Delete them. Keep any `targetUser` use that still has a
 consumer; the compiler names what is left.
+
+🪤 **Pass `dmgDesc` BARE.** The YAML already bakes `<ansi fg="damage">` around
+`{damage}`, so wrapping the token value again double-tags the line and the net
+reports it. An earlier revision of this plan wrapped it; Task 7 caught the
+error against the net's fixture. The same applies to every verb: check what the
+YAML wraps before filling a token.
+
+🔑 **Two helpers, not one.** `sendMoveEvent` covers the ordinary case.
+`renderMoveEvent` returns the rendered roles WITHOUT sending, for the
+channel-defended partial branch, where the actee line comes from the store but
+the observer line is replaced by the defence triad's `ToRoom` text when a
+defence actually fired. `SendTrio` delivers a Trio atomically and cannot
+express that fork. Expect this shape again in `bash`, `gore`, `maul` and
+`rake`, which share `skill_move_defence.go`.
 
 - [ ] **Step 2: Write the shared call-site helper**
 
