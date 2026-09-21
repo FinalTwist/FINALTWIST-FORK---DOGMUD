@@ -12,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/narration"
 	"github.com/GoMudEngine/GoMud/internal/questengine"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -39,6 +40,29 @@ func craftDeliver(user *users.UserRecord, cat messaging.Category, text string) {
 		ActorId:   user.UserId,
 		ActorName: user.Character.Name,
 		ActeeName: messaging.NoName,
+	})
+}
+
+// craftDeliverInstant sends an instant-complete craft's two lines -- the
+// crafter's own success line and the room's observer line -- through
+// messaging.SendTrio. Unlike craftDeliver, this path HAS a room line that
+// names the crafter (recipe.Narrate's {actor} substitution), so it needs a
+// real Audience with Room set: that is what lets SendTrio's HideNames catch
+// the name for a shapes-only observer, rather than leaving it to the
+// tag-based messaging.Anonymize stage alone. Shared by both instant-complete
+// sites: case result.ImmediateComplete in Craft(), and completeCraft (the
+// enchanting instant path).
+func craftDeliverInstant(user *users.UserRecord, room *rooms.Room, roles narration.Roles) {
+	messaging.SendTrio(messaging.Trio{
+		Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, roles.Actor)),
+		Actee:    messaging.NoLine,
+		Observer: messaging.Say(messaging.CategoryEmote, roles.Observer),
+	}, messaging.Audience{
+		Actor:     user,
+		ActorId:   user.UserId,
+		ActorName: user.Character.Name,
+		ActeeName: messaging.NoName,
+		Room:      room,
 	})
 }
 
@@ -153,10 +177,7 @@ func Craft(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			ActorName:      user.Character.GetCharacterName(true),
 			ActorPlainName: user.Character.GetCharacterName(false),
 		})
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, roles.Actor))
-		if roles.Observer != "" {
-			room.SendTextVisual(messaging.CategoryEmote, roles.Observer, user.UserId)
-		}
+		craftDeliverInstant(user, room, roles)
 		return true, nil
 
 	case result.Initiated:
@@ -661,10 +682,7 @@ func completeCraft(user *users.UserRecord, room *rooms.Room, recipe *crafting.Re
 		ActorName:      user.Character.GetCharacterName(true),
 		ActorPlainName: user.Character.GetCharacterName(false),
 	})
-	user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="green">%s</ansi>`, roles.Actor))
-	if roles.Observer != "" {
-		room.SendTextVisual(messaging.CategoryEmote, roles.Observer, user.UserId)
-	}
+	craftDeliverInstant(user, room, roles)
 }
 
 // titleCase capitalises the first letter of each space-separated word.
