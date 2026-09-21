@@ -940,24 +940,40 @@ instead of the prose. Both grapple twins consume them, so the player-side file
 reads the migrated wording immediately even though its own literals wait for
 PR 1b.
 
-For `shoot`, preserve the `IsSneaking` disjunction. The darkness half of
+For `shoot`, two specifics, both read from `internal/mobcommands/shoot.go:84-100`:
+
+🪤 **`shoot`'s lines take `{actor_plain}`, not `{actor}`.** The existing code
+substitutes `shooter := mobName` **bare**, with no `<ansi>` tag:
+`fmt.Sprintf(`%s's shot strikes you!`, shooter)`. Authoring `{actor}` would wrap
+it in an identity tag and add colour the line never had, and the net would
+correctly report it as a migration defect. Use `{actor_plain}` for every
+`shoot` line that names the shooter this way. `HideNames` matches bare names as
+whole words, so the pipeline still hides it.
+
+**Preserve the `IsSneaking` disjunction.** The darkness half of
 `anonymous := result.IsSneaking || !canSeeInDark(u, room)` is deleted in favour
-of the pipeline; the stealth half is **not** darkness and stays:
+of the pipeline; the stealth half is not darkness and stays. Implement it by
+filling the token, not by touching the `Audience`:
 
 ```go
-	// Stealth is not darkness: SendTrio hides the shooter's name by the
-	// reader's sight, but a sneaking shooter is hidden from everyone.
+	// Stealth is not darkness. The pipeline hides the shooter's name by the
+	// reader's sight; a sneaking shooter is hidden from everyone regardless,
+	// so the name never enters the text in the first place.
+	actorPlain := mobName
 	if result.IsSneaking {
-		aud.ActorName = messaging.NoName
+		actorPlain = `Someone`
 	}
 ```
 
-⚠️ Verify this against `hideForReader`: it returns text unchanged when
-`otherName == NoName`. So clearing `ActorName` alone does **not** anonymise the
-line — it only stops the pipeline hiding it. The sneaking case must still
-substitute `Someone` into the token, which `sendMoveEvent` does by filling
-`narration.TokenActor` with `Someone` rather than the tagged name. Write the
-test for the sneaking case before the code.
+Do **not** clear `aud.ActorName`. `hideForReader` returns the text unchanged
+when `otherName == NoName`, so clearing it would *disable* the sight hiding
+rather than strengthen it. Leaving `ActorName` as the real name is correct and
+harmless in the sneaking case: `HideNames` simply finds nothing to replace,
+because the name is no longer in the text.
+
+Write the test for the sneaking-and-dark combination before the code. The four
+cases it must pin: seen/not-sneaking (real name), dark/not-sneaking (hidden by
+tier), lit/sneaking (`Someone`), dark/sneaking (`Someone`).
 
 Each of the four steps ends with the full Task 7 gate: the net, the package
 tests, `go test .`, and a commit.
