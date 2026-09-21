@@ -1,6 +1,7 @@
 package movenarration
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/narration"
@@ -57,5 +58,37 @@ func TestVariantsMissingEventReportsNotFound(t *testing.T) {
 	g := &MoveNarrationGroup{MoveId: "kick", Events: map[EventKey]*EventMessages{}}
 	if _, ok := g.Variants("nope"); ok {
 		t.Fatal(`Variants("nope") reported found for an absent event`)
+	}
+}
+
+func TestValidateRejectsUnknownToken(t *testing.T) {
+	g := &MoveNarrationGroup{
+		MoveId: "shoot",
+		Events: map[EventKey]*EventMessages{
+			"hit": {
+				Actee: []string{`{actor} shoots {exit_name}!`},
+			},
+		},
+	}
+	err := g.Validate()
+	if err == nil {
+		t.Fatal("Validate accepted an unknown token; nothing downstream would replace it")
+	}
+	if !strings.Contains(err.Error(), "{exit_name}") {
+		t.Errorf("error should name the offending token, got: %v", err)
+	}
+}
+
+func TestValidateAcceptsEveryShippedToken(t *testing.T) {
+	// Proves the guard is not simply rejecting everything: each token this
+	// store declares must pass.
+	for tok := range allowedTokens {
+		g := &MoveNarrationGroup{
+			MoveId: "probe",
+			Events: map[EventKey]*EventMessages{"hit": {Actee: []string{"x " + tok + " y"}}},
+		}
+		if err := g.Validate(); err != nil {
+			t.Errorf("declared token %s was rejected: %v", tok, err)
+		}
 	}
 }

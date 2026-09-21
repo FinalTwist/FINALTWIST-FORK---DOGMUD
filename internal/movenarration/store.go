@@ -9,6 +9,7 @@ package movenarration
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
@@ -16,10 +17,44 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TokenDamage is this store's one event token. Damage always arrives
-// pre-formatted as prose from combat.GetDamageDescription; there is no numeric
-// verb anywhere in the special-move surface.
-const TokenDamage = "{damage}"
+// This store's event tokens, beyond the four canonical name tokens every store
+// shares. Damage always arrives pre-formatted as prose from
+// combat.GetDamageDescription; there is no numeric verb anywhere in the
+// special-move surface.
+const (
+	TokenDamage   = "{damage}"   // a damage description, already prose
+	TokenLabel    = "{label}"    // bash's species-varying noun
+	TokenWith     = "{with}"     // bash's species-varying instrument
+	TokenVerb     = "{verb}"     // bash's species-varying verb
+	TokenWeapon   = "{weapon}"   // the ranged weapon being fired
+	TokenExitName = "{exitname}" // an exit, for ranged shots across rooms
+	TokenPosition = "{position}" // grapple's position description
+)
+
+// tokenPattern and allowedTokens exist because textutil.ValidateTokens knows
+// only the four canonical NAME tokens, so every event token in every store
+// ships unvalidated today. That is a real hole: a value reading {exit_name}
+// where the caller fills {exitname} renders the token itself to the player, and
+// nothing catches it.
+//
+// This store declares its own vocabulary and rejects anything outside it, so a
+// typo fails the boot instead of reaching a player. Widening the set is a
+// deliberate edit here, which is the point.
+var tokenPattern = regexp.MustCompile(`\{[a-z_]+\}`)
+
+var allowedTokens = map[string]bool{
+	narration.TokenActor:      true,
+	narration.TokenActee:      true,
+	narration.TokenActorPlain: true,
+	narration.TokenActeePlain: true,
+	TokenDamage:               true,
+	TokenLabel:                true,
+	TokenWith:                 true,
+	TokenVerb:                 true,
+	TokenWeapon:               true,
+	TokenExitName:             true,
+	TokenPosition:             true,
+}
 
 // EventKey names one outcome branch of one verb, such as "standard_hit".
 //
@@ -65,6 +100,25 @@ func (g *MoveNarrationGroup) Validate() error {
 		}
 		if err := narration.ValidateVariants(ev.variants(), 1); err != nil {
 			return errors.Wrapf(err, "move %q event %q", g.MoveId, key)
+		}
+		if err := validateEventTokens(g.MoveId, key, ev); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validateEventTokens rejects any {token} this store does not fill. An unknown
+// token is not a warning: nothing downstream would replace it, so it would
+// render its own braces to the player.
+func validateEventTokens(moveId string, key EventKey, ev *EventMessages) error {
+	for _, pool := range [][]string{ev.Actor, ev.Actee, ev.Observer, ev.RemoteObserver} {
+		for i, text := range pool {
+			for _, tok := range tokenPattern.FindAllString(text, -1) {
+				if !allowedTokens[tok] {
+					return errors.Errorf("move %q event %q variant %d uses unknown token %s", moveId, key, i, tok)
+				}
+			}
 		}
 	}
 	return nil
