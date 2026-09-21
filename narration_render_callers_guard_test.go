@@ -17,6 +17,7 @@ import (
 // could pass the default picker and consume a global random draw per
 // narrated phase (see narration.FirstPicker), which no golden can see.
 var narrationRenderCallers = map[string]string{
+	"internal/combat/grapple_narration.go":   "Kind A: grapple's crit-failure and disarm events, the special-move store's only internal/combat consumer (both are shared with internal/mobcommands/usercommands twins, so they cannot live in move_narration.go without a cycle) (M4e-1)",
 	"internal/combat/taunt_messages.go":      "Kind A: the taunt store's coordinated triad",
 	"internal/gossip/gossip.go":              "Kind A: gossip template pools, single role (the gossiping NPC)",
 	"internal/grapplemessaging/render.go":    "Kind A: the grapple store's coordinated triad",

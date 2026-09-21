@@ -10,3 +10,17 @@ events:
       - '{actor} tries to grapple you, but you slip away!'
     observer:
       - '{actor} tries to grapple {actee}, but fails!'
+  crit_failure:
+    actor:
+      - '<ansi fg="red-bold">You overextend badly and fall to the ground!</ansi>'
+    actee:
+      - '<ansi fg="yellow-bold">Your opponent overextends and falls - you see an opening!</ansi>'
+    observer:
+      - '<ansi fg="combat">The failed grapple sends them sprawling!</ansi>'
+  disarm:
+    actor:
+      - '<ansi fg="yellow-bold">You disarm {actee_plain}, loosening their grip on their {weapon}!</ansi>'
+    actee:
+      - '<ansi fg="red-bold">{actor_plain} disarms you! Your {weapon} slips from your grasp!</ansi>'
+    observer:
+      - '<ansi fg="combat">{actor_plain} disarms {actee_plain}, knocking their {weapon} loose!</ansi>'

@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -270,10 +271,14 @@ func HandleGrappleCritFailure(attacker *characters.Character, defender *characte
 	// Defender gets grapple opportunity (reuse existing system from Stage 8.4)
 	SetGrappleOpportunity(defender)
 
-	// Generate dramatic messages
-	result.Message = `<ansi fg="red-bold">You overextend badly and fall to the ground!</ansi>`
-	result.TargetMessage = `<ansi fg="yellow-bold">Your opponent overextends and falls - you see an opening!</ansi>`
-	result.RoomMessage = `<ansi fg="combat">The failed grapple sends them sprawling!</ansi>`
+	// Generate dramatic messages from the shipped store. Neither party is
+	// named on this event (crit_failure's actor line names nobody at all),
+	// so no identities are passed.
+	if roles, ok := renderGrappleEvent(movenarration.EventKey("crit_failure"), grappleMoveIdentities{}, nil); ok {
+		result.Message = roles.Actor
+		result.TargetMessage = roles.Actee
+		result.RoomMessage = roles.Observer
+	}
 
 	return result
 }

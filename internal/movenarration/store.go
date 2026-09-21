@@ -145,15 +145,27 @@ func (g *MoveNarrationGroup) Variants(key EventKey) (narration.Variants, bool) {
 
 var loadedMoves map[string]*MoveNarrationGroup
 
+// LoadFrom loads the store from an explicit directory, returning the error
+// rather than panicking. It exists because a TEST binary never reads
+// config.yaml, so configs.GetFilePathsConfig would hand back
+// _datafiles/world/default, which does not carry this store; a test that
+// needs real prose loads it explicitly from the shipped dogmud world dir.
+func LoadFrom(dir string) error {
+	loaded, err := fileloader.LoadAllFlatFiles[string, *MoveNarrationGroup](dir)
+	if err != nil {
+		return errors.Wrap(err, "loading special-move narration")
+	}
+	loadedMoves = loaded
+	return nil
+}
+
 // LoadMoveNarrationFiles loads the store at boot. It panics on any failure,
 // matching combat.LoadTauntMessageFiles: this is event narration, not ambient.
 func LoadMoveNarrationFiles() {
 	dir := string(configs.GetFilePathsConfig().DataFiles) + `/narration/special-moves`
-	loaded, err := fileloader.LoadAllFlatFiles[string, *MoveNarrationGroup](dir)
-	if err != nil {
-		panic(errors.Wrap(err, "loading special-move narration"))
+	if err := LoadFrom(dir); err != nil {
+		panic(err)
 	}
-	loadedMoves = loaded
 }
 
 // GetMove returns one verb's group, or nil if the store is unloaded or the verb

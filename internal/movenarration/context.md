@@ -49,6 +49,7 @@ Verified against source 2026-09-21 with
 | Symbol | Kind | Notes |
 |---|---|---|
 | `LoadMoveNarrationFiles()` | func | Boot-time loader, called from `main.go` beside `combat.LoadTauntMessageFiles()`. **Panics** on any failure |
+| `LoadFrom(dir string) error` | func | What `LoadMoveNarrationFiles` calls internally, exported for tests. A test binary never reads `config.yaml`, so `configs.GetFilePathsConfig` would resolve to `_datafiles/world/default`, which does not carry this store; a test that needs real prose loads the shipped dogmud dir explicitly (M4e-1, `internal/combat/grapple_narration_pin_test.go`) |
 | `GetMove(moveId string) *MoveNarrationGroup` | func | nil if the store is unloaded or the verb is absent |
 | `MoveNarrationGroup` | type | One verb's file. Fields `MoveId`, `Events` |
 | `(*MoveNarrationGroup) Variants(EventKey) (narration.Variants, bool)` | method | The lookup call sites use. `ok=false` for an absent event |
@@ -60,11 +61,20 @@ Verified against source 2026-09-21 with
 
 ## Using it correctly
 
-Call sites do not touch this package directly. They go through
+Most call sites do not touch this package directly. They go through
 `internal/mobcommands/move_narration.go`, which owns `sendMoveEvent` (the
 ordinary case) and `renderMoveEvent` (render without sending, for the
 channel-defended partial branch whose observer line comes from the defence
 triad instead of the store).
+
+The one exception is `internal/combat/grapple_narration.go`
+(`renderGrappleEvent`), added by M4e-1's grapple slice. Grapple's crit-failure
+and disarm results are consumed by BOTH `internal/mobcommands/grapple.go` and
+`internal/usercommands/grapple.go`, so the rendering has to live in
+`internal/combat` (where `HandleGrappleCritFailure` / `AttemptCritDisarm`
+already are) rather than in either twin's command file, and it cannot call
+`internal/mobcommands`'s helper without an import cycle. It duplicates
+`renderMoveEvent`'s shape rather than sharing it.
 
 🪤 **Check what the YAML already wraps before filling a token.** The shipped
 files bake `<ansi fg="damage">` around `{damage}`, so the call site passes the
@@ -113,6 +123,9 @@ agreement with the call site, in the root guard.
 - `internal/mobcommands/special_move_net_test.go` - the byte-identity net:
   118 rows asserting each event renders exactly what the original Go literal
   produced. This is what proves the migration changed no wording
+- `internal/combat/grapple_narration_pin_test.go` - the same proof for
+  grapple's crit-failure and disarm events, which live in `internal/combat`
+  rather than a mob command file and so sit outside the 118-row net
 
 ## Related
 
