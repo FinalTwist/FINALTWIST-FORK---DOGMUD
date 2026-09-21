@@ -102,10 +102,20 @@ This is the seam that keeps the evaluator testable: tests supply a fake
 `ActionContext.Narrate(v narration.Variants)` is the one door for a text action
 (since 2026-09-12; it replaced `SendText` and `RoomText`). `ExecuteAction` calls
 it with `a.Narration()`; `GameBridge.Narrate` renders with the triggering
-player's **tagged** name as `{actor}`, sends the Actor line to the player and
-the Observer line on the **visual** channel, the way the behaviour tree's own
-`room_text` action does. The tag matters: `messaging.Anonymize` strips only
-tagged names. The quest `actor` line is substituted too; no shipped line
+player's tagged name as `{actor}`, sends the Actor line to the player and,
+as of **M4d PR 3**, delivers the Observer line through `messaging.SendTrio`
+rather than the earlier `room.SendTextVisual`. `SendTrio` both sight-gates
+the line AND runs `messaging.HideNames` over it for a shapes-only reader;
+the earlier `room.SendTextVisual` call only ever applied tag-based
+`messaging.Anonymize`, which by its own docstring never touches a bare
+(untagged) name. Every shipped trigger observer line is tag-wrapped
+(`quests.RoomTextProblems` requires `{actor}` in every `observer` line), so
+production content was incidentally safe before this migration; nothing
+enforces that convention on the `Narrate` Go API itself, so the seam now
+carries the plain `ActorName` through to `SendTrio` instead of depending on
+authored text happening to be tagged. A quest trigger has one party (the
+triggering player), so `ActeeName` is `messaging.NoName` and there is no
+Actee line. The quest `actor` line is substituted too; no shipped line
 carries a token. (The quest keys are `actor` and `observer` since M4b-1; they
 were `send_text` and `room_text`, which the behaviour tree still uses for its
 own, unrelated action param.)

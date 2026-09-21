@@ -380,3 +380,32 @@ ranged refusal.
 never a target, and resolves as a room AoE. Aimed thrown weapons (darts,
 javelins) belong under `ranged-combat` and `ExecuteFire` instead. Settled
 2026-08-14; the reasoning is in `internal/actions/context.md`.
+
+### Crafting: instant-complete narration (`craft.go`)
+
+Two `messaging.SendTrio` helpers deliver crafting's text, and they are not
+interchangeable:
+
+- **`craftDeliver(user, cat, text)`** — the command's ordinary self-only
+  responses (recipe refusal, station/skill gate, "you begin" notice). No
+  second party, no room broadcast: `Actee` and `Observer` are always
+  `messaging.NoLine` and `Room` is left unset. `SendTrio` only hides a name
+  when it has a `Room` to judge sight by, so a self-only line with no `Room`
+  passes through unchanged.
+- **`craftDeliverInstant(user, room, roles)`** — the two instant-complete
+  sites: `case result.ImmediateComplete` in `Craft()`, and `completeCraft`
+  (the enchanting instant path). Both pair the crafter's own success line
+  with a room observer line built from `recipe.Narrate`'s `{actor}`
+  substitution, so it needs a real `Audience` with `Room` set. `craftDeliver`
+  is deliberately NOT reused here for that reason.
+
+Before **M4d PR 3**, both instant-complete sites sent the observer line on
+`room.SendTextVisual` with no names, which never calls `messaging.HideNames`
+— only tag-based `messaging.Anonymize` runs on that path. `{actor}` resolves
+to `GetCharacterName(true)`, which wraps the name in an `<ansi fg="username">`
+tag, so shipped content was incidentally safe (a `SightShapes` reader's tag
+gets stripped regardless of delivery call); a future untagged name, or a
+copy-paste that dropped the tag, would not have been. Both sites now go
+through `craftDeliverInstant`, so a shapes-only room observer reads "a
+figure" instead of the crafter's name on an instant complete, the same as
+every other `SendTrio` room line in the codebase.
