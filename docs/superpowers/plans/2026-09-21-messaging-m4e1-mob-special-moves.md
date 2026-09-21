@@ -73,8 +73,27 @@ is in scope for the **sight** half of this PR (Task 9) and out of scope for the
 1. **Ragged pools are squared by authoring the missing lines**, not by padding
    or truncating. That work lands in **PR 1b**, not here: every mob file has
    zero pools, so PR 1a is unaffected.
-2. **`usercommands/shoot.go`'s missing darkness check is a defect and gets
-   fixed**, in its own commit, flagged as a behaviour change (Task 10).
+2. ~~**`usercommands/shoot.go`'s missing darkness check is a defect and gets
+   fixed**, in its own commit, flagged as a behaviour change (Task 10).~~
+   🔴 **WITHDRAWN 2026-09-21: THE DEFECT DOES NOT EXIST.** The ruling was
+   sought on a false premise and is not implemented.
+
+   Verified from source. `targetLine` is delivered as the `Actee` line of
+   `SendTrio` (`internal/usercommands/shoot.go:503,519`); `SendTrio`'s actee
+   branch calls `hideForReader(aud, aud.ActeeId, text, aud.ActorName)`;
+   `aud.Room` is set and `aud.ActorName` is `user.Character.Name`
+   (`:452-459`). So the shooter's name is ALREADY hidden by the victim's sight
+   verdict, tagged or bare.
+
+   The survey saw that the mob twin ORed in `!canSeeInDark` while the player
+   twin did not, and the asymmetry was read as a leak. It is the opposite: the
+   MOB side carried a redundant hand-rolled check and the player side was
+   correct by relying on the pipeline. That redundant check is precisely what
+   this PR deletes everywhere else, and 8d removed it.
+
+   🔑 **The lesson is the arc's own: an asymmetry is evidence of a difference,
+   not evidence of which side is wrong.** Establish which side is correct
+   before proposing a fix, especially before asking the owner to rule on one.
 3. **Grapple's prose in `internal/actions` is pulled in** rather than deferred,
    so one verb's wording does not sit half in YAML and half in Go (Task 8).
 4. **PR 1a is mob-first**: the 13 mob files plus the **entire** `canSeeInDark`
