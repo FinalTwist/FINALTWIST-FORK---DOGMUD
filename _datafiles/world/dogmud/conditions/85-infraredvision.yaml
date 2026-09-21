@@ -7,6 +7,14 @@ expireMessage: ""
 statmods: {}
 roundinterval: 0
 triggernow: false
+# A pure flag condition never ticks: the trigger loop skips any record whose
+# RoundInterval is < 1, so TriggersLeft is never decremented and any count >= 1
+# persists for the holder's life. It must still be >= 1, because
+# Condition.Expired() is TriggersLeft <= 0 and AddCondition seeds TriggersLeft
+# from this field. Without it this condition was born expired on every apply
+# path that does not pass permanent=true, which is every path an admin or a
+# player can reach, so infrared vision never once worked.
+triggercount: 1
 flags:
   - infraredvision
 secret: true
