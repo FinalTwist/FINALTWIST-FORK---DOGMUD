@@ -221,35 +221,41 @@ func substitutionsForCharacter(c *characters.Character) map[string]string {
 	}
 }
 
-// sendCharacterMsg dispatches the self and room halves of a beat.
-// Self goes to the player's connection (no-op for mobs). Room goes to
-// the rest of the room, excluding the speaker so they don't read it
-// twice.
+// sendCharacterMsg dispatches the self and room halves of a beat via
+// messaging.SendTrio. Self goes to the player's connection (no-op for
+// mobs), seated as SendTrio's Actor. Room goes to the rest of the room,
+// excluding c automatically (SendTrio derives the exclusion from ActorId).
+//
+// c is ALWAYS the name in the room line here: the only caller,
+// fireStaminaWarningIfLow, already forced that via
+// staminaWarningSubstitutions before building roomMsg, so ActorName is
+// simply c.Name, not a re-derivation of who controls the grapple.
 func sendCharacterMsg(c *characters.Character, selfMsg, roomMsg string) {
-	var excludeId int
+	var actor messaging.Recipient
+	var actorId int
 	if u := userForCharacter(c); u != nil {
-		excludeId = u.UserId
-		if selfMsg != "" {
-			u.SendText(messaging.CategoryGrappleFlow, selfMsg)
-		}
+		actor = u
+		actorId = u.UserId
 	}
-	if roomMsg == "" {
-		return
+	var room messaging.Broadcaster
+	if r := rooms.LoadRoom(c.RoomId); r != nil {
+		room = r
 	}
-	r := rooms.LoadRoom(c.RoomId)
-	if r == nil {
-		return
-	}
-	// COMPANION-NAME-LEAK SIBLING FIX (T11-followup): grapple prose names
-	// both grapplers via the canonical {actor} and {actee} substitutions, so
-	// route through SendTextVisual: infrared observers see anonymized text and
-	// blind observers do not get a free identification. Same class as
-	// companion_follow.go:55.
-	if excludeId > 0 {
-		r.SendTextVisual(messaging.CategoryGrappleFlow, roomMsg, excludeId)
-	} else {
-		r.SendTextVisual(messaging.CategoryGrappleFlow, roomMsg)
-	}
+	// T11-followup / M4d PR3 Task 4: grapple prose names the character via
+	// the canonical {actor} substitution, so route through SendTrio: a
+	// shapes-only observer reads "a figure" instead of the bare name, the
+	// same class of fix companion_follow.go:55 made for the follow beat.
+	messaging.SendTrio(messaging.Trio{
+		Actor:    messaging.Say(messaging.CategoryGrappleFlow, selfMsg),
+		Actee:    messaging.NoLine,
+		Observer: messaging.Say(messaging.CategoryGrappleFlow, roomMsg),
+	}, messaging.Audience{
+		Actor:     actor,
+		ActorId:   actorId,
+		ActorName: c.Name,
+		ActeeName: messaging.NoName,
+		Room:      room,
+	})
 }
 
 // userForCharacter resolves the live user record for a player-side
