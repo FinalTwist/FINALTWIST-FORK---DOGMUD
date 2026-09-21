@@ -3,7 +3,6 @@ package usercommands
 import (
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/combat"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -83,36 +82,29 @@ func sendMoveDefenceShortage(targetUser *users.UserRecord, lines moveDefence) {
 	}
 }
 
-// canSeeInDark reports whether the user can make out who is acting on them:
-// the room is lit, or they carry night vision.
-//
-// An unexported twin of mobcommands.canSeeInDark. The two should collapse when
-// M4 consolidates darkness, blindness and sleep into one perception verdict --
-// internal/messaging/predicates.go:66 already flags that seam as temporary. A
-// shared helper package for two call sites would be the wrong shape today.
-func canSeeInDark(u *users.UserRecord, room *rooms.Room) bool {
-	return room.GetVisibility() >= 1 || u.Character.HasFlagFromAnySource(conditions.NightVision)
-}
-
-// acteeDefenceLine renders the defender's personal defence line, anonymized
-// when the defender cannot see who is acting on them.
+// acteeDefenceLine renders the defender's personal defence line with the
+// call-site name-hiding the audio channel cannot do for itself.
 //
 // WHY THIS EXISTS. users.UserRecord.SendText is hardcoded to ChannelAudio and
-// the pipeline runs the sight gate and the anonymizer only on ChannelVisual
-// (internal/messaging/pipeline.go:59), so this line is anonymized here or not
-// at all.
+// the pipeline runs the sight gate and hides names only on ChannelVisual
+// (internal/messaging/pipeline.go:59), so this line is hidden here or not at
+// all -- that is the reason trio.go's own docstring names this file as the
+// sanctioned exception to "callers hand SendTrio finished text and nothing
+// more": text handed to SendTrio here has already been hidden by the reader's
+// three-tier sight verdict.
 //
-// The mob-attacker copy of the defence helper always did this. This
-// player-attacker side did not, so a player defending in the dark was told who
-// hit them when the attacker was a player and was not when it was a mob. Same
-// duplicated-and-drifted shape as the five defects the M1 audit found, and
-// found the same way: by reading the two copies against each other.
-func acteeDefenceLine(targetUser *users.UserRecord, room *rooms.Room, cat messaging.Category, text string) messaging.Line {
+// This reads the same shared messaging.ParticipantSight verdict as the
+// mob-attacker copy of this helper (internal/mobcommands/skill_move_defence.go);
+// the two used to diverge on a binary canSeeInDark predicate until this task
+// collapsed them onto the shared verdict.
+//
+// sourceName is the attacker's BARE name (no ansi tag): every call site
+// already has it as user.Character.Name.
+func acteeDefenceLine(targetUser *users.UserRecord, room *rooms.Room, cat messaging.Category, text string, sourceName string) messaging.Line {
 	if targetUser == nil || text == "" {
 		return messaging.NoLine
 	}
-	if !canSeeInDark(targetUser, room) {
-		text = messaging.Anonymize(text)
-	}
+	sight := messaging.ParticipantSight(targetUser.Character, room)
+	text = messaging.HideNames(text, []string{sourceName}, sight)
 	return messaging.Say(cat, text)
 }
