@@ -59,6 +59,17 @@ events:
       - 'Your shot goes wide of {actee}!'
     actee:
       - '{actor}''s shot narrowly misses you!'
+  # The ambush shot's own actor line, for a shooter firing from concealment.
+  # Actor only: the room and the target learn about the shot through
+  # player_fire_announce and player_hit/player_partial/player_miss as usual;
+  # this is the extra line the SHOOTER alone reads, and it is why the surprise
+  # shot feels different from an ordinary one.
+  player_surprise_hit:
+    actor:
+      - 'Your shot from cover takes {actee} unaware! (<ansi fg="damage">{damage}</ansi>)'
+  player_surprise_miss:
+    actor:
+      - 'Your shot from cover goes wide of {actee}!'
   player_fire_announce:
     observer:
       - '{actor} fires their {weapon} at {actee}!'

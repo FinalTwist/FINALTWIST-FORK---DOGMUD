@@ -617,9 +617,21 @@ func sendShootMessages(user *users.UserRecord, room *rooms.Room, result actions.
 // targetColored and triad arrive already ANSI-tagged; tags render as zero
 // columns, which is what lets these lines stay inside 80.
 func surpriseShotShooterLine(hit bool, triad, targetColored, tier string, dealtDamage bool) string {
+	// 🪤 The event keys stay LITERAL at a renderMoveEvent call the root
+	// key-agreement guard recognises. An earlier draft routed both through a
+	// surpriseShotStoreLine(event, ...) helper, which reads better and made
+	// both keys invisible to that guard: it reported them as authored-but-
+	// unreachable dead content. A key a guard cannot see is a key nothing
+	// protects.
 	switch {
 	case hit:
-		return fmt.Sprintf(`Your shot from cover takes %s unaware! (<ansi fg="damage">%s</ansi>)`, targetColored, tier)
+		roles, ok := renderMoveEvent(`shoot`, `player_surprise_hit`,
+			moveIdentities{Actee: targetColored},
+			map[string]string{movenarration.TokenDamage: tier})
+		if !ok {
+			return ""
+		}
+		return roles.Actor
 	case triad != "":
 		if !dealtDamage {
 			// A defensive crit deals exactly 0. Appending "(negligible damage)"
@@ -629,7 +641,12 @@ func surpriseShotShooterLine(hit bool, triad, targetColored, tier string, dealtD
 		}
 		return triad + fmt.Sprintf(` (<ansi fg="damage">%s</ansi>)`, tier)
 	default:
-		return fmt.Sprintf(`Your shot from cover goes wide of %s!`, targetColored)
+		roles, ok := renderMoveEvent(`shoot`, `player_surprise_miss`,
+			moveIdentities{Actee: targetColored}, nil)
+		if !ok {
+			return ""
+		}
+		return roles.Actor
 	}
 }
 
