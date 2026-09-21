@@ -80,6 +80,20 @@ func Craft(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		return craftList(user, room), nil
 	}
 
+	// ── You cannot craft what you cannot see ──────────────────────────────────
+	//
+	// Owner ruling 2026-09-21. Listing what you know is memory and stays
+	// allowed above; an ATTEMPT to make something is refused.
+	//
+	// CanSeeClearly, not CanSeeShapes: it folds blindness, an unlit room and
+	// NightVision into one verdict, and crafting is fine work, so making out
+	// warm shapes by infrared is not enough to do it. Sibling refusals live in
+	// get.go, loot.go and shoot.go.
+	if !messaging.CanSeeClearly(user.Character, room) {
+		user.SendText(messaging.CategorySystem, `You can't see well enough to work on anything here.`)
+		return true, nil
+	}
+
 	// ── Enchanting: needs player-specific disambiguation before delegating ─────
 	// Peek at the recipe first to route enchanting separately.
 	// Input may be "recipe-name item-name" so try progressively shorter
