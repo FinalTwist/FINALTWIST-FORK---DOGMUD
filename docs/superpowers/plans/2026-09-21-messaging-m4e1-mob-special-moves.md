@@ -1483,6 +1483,48 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
    nothing, and Task 12's literal-free guard passes with an empty allowlist.
 5. **It boots:** `Server Ready` in an isolated worktree, no `PANIC` line.
 
+## Owner rulings for PR 1b, 2026-09-21 (do not relitigate)
+
+**5. Squaring a ragged pool means UNION, not alignment.** Where the three roles
+disagree on what moment they describe, do not pick one reading and discard the
+others. Each distinct "feel" present in ANY role becomes its own complete
+actor/actee/observer set. Owner's words: "if actor/actee/observer all disagree,
+we make a full actor/actee/observer set with text feel of each so 3 lines
+become 3 sets of lines."
+
+This is a deliberate content INCREASE, not a reconciliation. It raises the
+authoring estimate from about 55 lines to roughly 90 to 120; the exact number
+comes from counting distinct feels per verb, which PR 1b's first task does.
+
+Two shapes to expect, and they need different work:
+
+- **Hit pools are already parallel and merely truncated.** Measured on
+  `maul`: actor index 0 is "fangs savage, wounds weep blood", actee index 0 is
+  "savages you, tearing bleeding wounds", observer index 0 is "savages with
+  vicious fangs" -- the same moment, three seats. Indices 0 through 2 align
+  exactly, and the pools simply stop at 5 / 4 / 3. Here the missing lines are
+  not invention: each has a sibling that says precisely which moment it must
+  describe.
+- **Miss pools are NOT parallel.** `maul`'s actor lines are bite-misses /
+  snap-and-they-dodge / glancing-lunge while its actee lines are
+  snaps-and-misses / lunges-and-you-dodge. These take the union rule: each
+  distinct feel is promoted to a full trio.
+
+🔑 **The independent draw is a live defect, not just an authoring gap.** Each
+role calls `util.Rand` on its OWN pool, so one swing is narrated to three
+people as three different moments: the attacker reads "your savage bite tears
+into it" while the room reads "mauls it savagely" and the target reads about
+fangs worrying flesh. Squaring the pools and rendering every audience from ONE
+index fixes that, which is the same correction M3 made for core combat when it
+deleted `ConsistentAttackMessages`.
+
+**6. ESL-opaque idioms are FLAGGED FOR M6, not fixed in the migration.** Owner
+cited the project's recurring playtester on idioms that do not translate.
+`maul`'s "worry the wound" (a dog worrying prey) is the known example. Preserve
+the wording, and add a ledger row per idiom rather than rewriting it inside a
+slice whose whole proof is byte-identity. This applies to PR 1a's migrated mob
+text too: Task 13's ledger step files them.
+
 ## What PR 1b inherits
 
 - The twelve `usercommands` files and their ~55 unwritten variants, to square
