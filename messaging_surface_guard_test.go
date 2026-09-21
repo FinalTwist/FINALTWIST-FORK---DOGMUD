@@ -1537,9 +1537,7 @@ func TestNarrationSitesMatchViewpointAudit(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 var m2FrozenFiles = map[string]string{
-	"internal/usercommands/gore.go":   "cda7cd477eacf9f2cdb8d5f90803d09930755a74d875bd20f8de42326bbca3b4",
-	"internal/usercommands/kick.go":   "f5dc3b8af7b4f702e3a8f7879b413d21d78b73d2c4a820088adfb322d57ca3ed",
-	"internal/usercommands/pounce.go": "4cb8896a5627a3ea05cae952f4b48f1d4a7c73b8f8a4f0ab58b0adb8152b85d0",
+	"internal/usercommands/kick.go": "f5dc3b8af7b4f702e3a8f7879b413d21d78b73d2c4a820088adfb322d57ca3ed",
 	// internal/usercommands/{bash,trip,grapple,shoot,throw}.go are gone from
 	// this list: M4e-1b Task 4b Step 1 migrated them onto the movenarration
 	// store (player_* prefixed events, sharing the mob's files), so their
@@ -1553,6 +1551,11 @@ var m2FrozenFiles = map[string]string{
 	// list too: M4e-1b Task 4b Step 2 squared their ragged variant pools and
 	// migrated them onto the same store (player_* prefixed events), same
 	// reason and same guard.
+	//
+	// internal/usercommands/{gore,pounce}.go are gone from this list too:
+	// M4e-1b Task 4b Step 3 squared their two hit branches (knockdown, hit)
+	// and their partial and miss pools, migrating them onto the same store
+	// (player_* prefixed events), same reason and same guard.
 	//
 	// internal/mobcommands/{kick,bash,gore,maul,rake,drain,throttle,hamstring,
 	// pounce,charge,trip,grapple,shoot}.go are gone from this list: M4e-1

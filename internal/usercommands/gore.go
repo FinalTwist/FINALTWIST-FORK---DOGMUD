@@ -8,10 +8,15 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
-	"github.com/GoMudEngine/GoMud/internal/util"
 )
+
+// goreCategories: the player's own actor/actee feedback is CategorySystem;
+// the room's line carries CategoryHitNaturalSharp, matching every branch's
+// pre-migration Observer category.
+var goreCategories = moveCategories{Actor: messaging.CategorySystem, Actee: messaging.CategorySystem, Observer: messaging.CategoryHitNaturalSharp}
 
 func Gore(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 	actor, handled := stageSpecialMoveTarget(user, room, rest, actions.MeleeTargetOpts{
@@ -67,75 +72,34 @@ func Gore(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		Room:      room,
 	}
 
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, user.Character.Name),
+		ActorPlain: user.Character.Name,
+		Actee:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, targetName),
+		ActeePlain: targetName,
+	}
+	damageTokens := map[string]string{movenarration.TokenDamage: dmgDesc}
+
 	if res.MoveResult.Hit {
 		if res.MoveResult.KnockedDown {
-			// Hit + knockdown: horned charge tosses target off their feet.
-			goreMsgs := []string{
-				`You lower your head and charge <ansi fg="mobname">%s</ansi>, driving your horns in and sending them flying! (<ansi fg="damage">%s</ansi>)`,
-				`Your charge slams into <ansi fg="mobname">%s</ansi> with bone-jarring force, hurling them to the ground! (<ansi fg="damage">%s</ansi>)`,
-				`You thunder forward and gore <ansi fg="mobname">%s</ansi>, tossing them aside like a ragdoll! (<ansi fg="damage">%s</ansi>)`,
-				`Your horns catch <ansi fg="mobname">%s</ansi> and you heave them backward off their feet! (<ansi fg="damage">%s</ansi>)`,
-			}
-			goreTargetMsgs := []string{
-				`<ansi fg="username">%s</ansi> lowers their head and charges you — the impact sends you sprawling! (<ansi fg="damage">%s</ansi>)`,
-				`<ansi fg="username">%s</ansi> drives their horns into you with shattering force and hurls you to the ground! (<ansi fg="damage">%s</ansi>)`,
-				`<ansi fg="username">%s</ansi>'s charge catches you and tosses you off your feet! (<ansi fg="damage">%s</ansi>)`,
-			}
-			goreRoomMsgs := []string{
-				`<ansi fg="username">%s</ansi> charges <ansi fg="mobname">%s</ansi> and hurls them to the ground!`,
-				`<ansi fg="username">%s</ansi> drives their horns into <ansi fg="mobname">%s</ansi> and sends them flying!`,
-				`<ansi fg="username">%s</ansi>'s horned charge tosses <ansi fg="mobname">%s</ansi> off their feet!`,
-			}
-			messaging.SendTrio(messaging.Trio{
-				Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(goreMsgs[util.Rand(len(goreMsgs))], targetName, dmgDesc)),
-				Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(goreTargetMsgs[util.Rand(len(goreTargetMsgs))], user.Character.Name, dmgDesc)),
-				Observer: messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(goreRoomMsgs[util.Rand(len(goreRoomMsgs))], user.Character.Name, targetName)),
-			}, aud)
+			sendMoveEvent("gore", "player_knockdown", ids, aud, goreCategories, damageTokens)
 		} else {
-			// Hit but no knockdown: the charge connects but target stays up.
-			goreMsgs := []string{
-				`You ram your horns into <ansi fg="mobname">%s</ansi> with a powerful charge! (<ansi fg="damage">%s</ansi>)`,
-				`Your horned charge drives into <ansi fg="mobname">%s</ansi>, rocking them back! (<ansi fg="damage">%s</ansi>)`,
-				`You lower your head and slam your horns into <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-				`Your charge catches <ansi fg="mobname">%s</ansi> with your horns, drawing a pained grunt! (<ansi fg="damage">%s</ansi>)`,
-			}
-			goreTargetMsgs := []string{
-				`<ansi fg="username">%s</ansi> charges and drives their horns into you! (<ansi fg="damage">%s</ansi>)`,
-				`<ansi fg="username">%s</ansi>'s horned charge slams into you and rocks you back! (<ansi fg="damage">%s</ansi>)`,
-				`<ansi fg="username">%s</ansi> lowers their head and rams their horns into you! (<ansi fg="damage">%s</ansi>)`,
-			}
-			goreRoomMsgs := []string{
-				`<ansi fg="username">%s</ansi> charges <ansi fg="mobname">%s</ansi> and drives their horns in!`,
-				`<ansi fg="username">%s</ansi>'s horned charge slams into <ansi fg="mobname">%s</ansi>!`,
-			}
-			messaging.SendTrio(messaging.Trio{
-				Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(goreMsgs[util.Rand(len(goreMsgs))], targetName, dmgDesc)),
-				Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(goreTargetMsgs[util.Rand(len(goreTargetMsgs))], user.Character.Name, dmgDesc)),
-				Observer: messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(goreRoomMsgs[util.Rand(len(goreRoomMsgs))], user.Character.Name, targetName)),
-			}, aud)
+			sendMoveEvent("gore", "player_hit", ids, aud, goreCategories, damageTokens)
 		}
 	} else if res.MoveResult.Damage > 0 {
-		partialMsgs := []string{
-			`Your charge at <ansi fg="mobname">%s</ansi> mostly misses, but your horns still graze them! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="mobname">%s</ansi> dodges the worst of your charge, but your horns still catch them! (<ansi fg="damage">%s</ansi>)`,
-		}
-		partialTargetMsgs := []string{
-			`<ansi fg="username">%s</ansi> charges you and you sidestep most of it, but the horns still catch you! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> thunders toward you; you dodge most of the gore, but not all! (<ansi fg="damage">%s</ansi>)`,
-		}
-		partialRoomMsgs := []string{
-			`<ansi fg="username">%s</ansi> charges <ansi fg="mobname">%s</ansi>, who mostly dodges but still gets grazed by the horns!`,
-		}
-
+		// Defended-partial: the personal lines carry the damage, and the room
+		// line names the defence that blunted the gore (U6b Task 9), falling
+		// back to the squared partial text when there was no defence to name.
+		roles, _ := renderMoveEvent("gore", "player_partial", ids, damageTokens)
 		defence, defended := moveDefenceLines(user, room, res.Target, res.MoveResult.Defence, "goring charge")
-		observer := messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(partialRoomMsgs[util.Rand(len(partialRoomMsgs))], user.Character.Name, targetName))
+		observer := lineOrNone(messaging.CategoryHitNaturalSharp, roles.Observer)
 		if defended {
 			observer = messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom)
 			sendMoveDefenceShortage(targetChar, defence)
 		}
 		messaging.SendTrio(messaging.Trio{
-			Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(partialMsgs[util.Rand(len(partialMsgs))], targetName, dmgDesc)),
-			Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(partialTargetMsgs[util.Rand(len(partialTargetMsgs))], user.Character.Name, dmgDesc)),
+			Actor:    lineOrNone(messaging.CategorySystem, roles.Actor),
+			Actee:    lineOrNone(messaging.CategorySystem, roles.Actee),
 			Observer: observer,
 		}, aud)
 	} else if defence, defended := moveDefenceLines(user, room, res.Target, res.MoveResult.Defence, "goring charge"); defended {
@@ -147,24 +111,7 @@ func Gore(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			Observer: messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom),
 		}, aud)
 	} else {
-		missMsgs := []string{
-			`Your charge at <ansi fg="mobname">%s</ansi> misses as they sidestep your horns!`,
-			`You thunder toward <ansi fg="mobname">%s</ansi> but they dodge your gore!`,
-			`Your horned charge carries you past <ansi fg="mobname">%s</ansi> — they step aside!`,
-		}
-		missTargetMsgs := []string{
-			`<ansi fg="username">%s</ansi> charges you but you sidestep their horns!`,
-			`<ansi fg="username">%s</ansi> thunders toward you, but you dodge the gore!`,
-		}
-		missRoomMsgs := []string{
-			`<ansi fg="username">%s</ansi> charges <ansi fg="mobname">%s</ansi>, but misses!`,
-		}
-
-		messaging.SendTrio(messaging.Trio{
-			Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(missMsgs[util.Rand(len(missMsgs))], targetName)),
-			Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(missTargetMsgs[util.Rand(len(missTargetMsgs))], user.Character.Name)),
-			Observer: messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(missRoomMsgs[util.Rand(len(missRoomMsgs))], user.Character.Name, targetName)),
-		}, aud)
+		sendMoveEvent("gore", "player_miss", ids, aud, goreCategories, nil)
 	}
 
 	// U6b Task 11: the counter renders AFTER the move's own outcome.
