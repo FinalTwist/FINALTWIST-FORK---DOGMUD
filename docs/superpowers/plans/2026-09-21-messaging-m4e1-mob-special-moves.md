@@ -878,10 +878,21 @@ func sendMoveEvent(verb string, event movenarration.EventKey, aud messaging.Audi
 }
 ```
 
-`taggedMobName`, `taggedUserName` and `remoteLine` are three-line helpers in the
-same file: the first two wrap a name in `<ansi fg="mobname">` /
-`<ansi fg="username">`, and `remoteLine` returns `messaging.NoLine` for empty
-text so a verb without a second room sends nothing.
+🔴 **CORRECTION to the sketch above, made while executing Task 7: the helper
+must NOT build the identity tags itself.** It takes them from the call site as
+a `moveIdentities{Actor, ActorPlain, Actee, ActeePlain}`, because the tags
+vary by verb and only the call site knows which is right:
+
+- `kick.go` tags its target `<ansi fg="username">`
+- `shoot.go` tags its target `<ansi fg="mobname">` (`shoot.go:52`,
+  `targetColored`), and builds its own actor name PRE-TAGGED at `shoot.go:49`
+
+A helper that hardcoded `username` would have recoloured every `shoot` line and
+the net would have reported it. Verified by census: mob files are otherwise
+single-category, so ONE `messaging.Category` per event is correct.
+
+`lineOrNone` returns `messaging.NoLine` for empty text, so a role no event
+authors stays silent instead of sending an empty line.
 
 - [ ] **Step 3: Run the net and the package tests**
 
