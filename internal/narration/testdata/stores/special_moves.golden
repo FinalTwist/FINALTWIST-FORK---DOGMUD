@@ -62,6 +62,14 @@ gore|partial|0|actor=
 gore|partial|0|actee= <ansi fg="mobname">ACTOR</ansi> charges you and you sidestep most of it, but the horns still catch you! (<ansi fg="damage">DAMAGE</ansi>)
 gore|partial|0|observer= <ansi fg="mobname">ACTOR</ansi> charges <ansi fg="username">ACTEE</ansi>, who mostly dodges but still gets grazed by the horns!
 gore|partial|0|remote_observer= 
+grapple|crit_failure|0|actor= <ansi fg="red-bold">You overextend badly and fall to the ground!</ansi>
+grapple|crit_failure|0|actee= <ansi fg="yellow-bold">Your opponent overextends and falls - you see an opening!</ansi>
+grapple|crit_failure|0|observer= <ansi fg="combat">The failed grapple sends them sprawling!</ansi>
+grapple|crit_failure|0|remote_observer= 
+grapple|disarm|0|actor= <ansi fg="yellow-bold">You disarm ACTEE, loosening their grip on their WEAPON!</ansi>
+grapple|disarm|0|actee= <ansi fg="red-bold">ACTOR disarms you! Your WEAPON slips from your grasp!</ansi>
+grapple|disarm|0|observer= <ansi fg="combat">ACTOR disarms ACTEE, knocking their WEAPON loose!</ansi>
+grapple|disarm|0|remote_observer= 
 grapple|fail|0|actor= 
 grapple|fail|0|actee= <ansi fg="mobname">ACTOR</ansi> tries to grapple you, but you slip away!
 grapple|fail|0|observer= <ansi fg="mobname">ACTOR</ansi> tries to grapple <ansi fg="username">ACTEE</ansi>, but fails!
