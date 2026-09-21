@@ -1,0 +1,47 @@
+moveid: trip
+events:
+  tailsweep_knockdown:
+    actee:
+      - '{actor} hammers you with their tail, sending you crashing to the ground! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tailsweeps {actee}, sending them crashing to the ground!'
+  tailsweep_hit:
+    actee:
+      - '{actor} sweeps at you with their tail, but you manage to stay upright! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tailsweeps {actee}, but they keep their footing!'
+  tailsweep_partial:
+    actee:
+      - '{actor} swings their tail and you keep your feet, but it still cracks into you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tailsweeps {actee}, who staggers but keeps their feet!'
+  tailsweep_miss:
+    actee:
+      - '{actor} swings their tail at you, but you avoid it!'
+    observer:
+      - '{actor} attempts a tailsweep on {actee}, but misses!'
+  trip_knockdown:
+    actee:
+      - '{actor} sweeps your legs, sending you crashing to the ground! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} trips {actee}, sending them crashing to the ground!'
+  trip_hit:
+    actee:
+      - '{actor} attempts to trip you, but you keep your footing! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} attempts to trip {actee}, but they keep their footing!'
+  trip_partial:
+    actee:
+      - '{actor} tries to trip you and you keep your feet, but the sweep still catches you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tries to trip {actee}, who staggers but keeps their feet!'
+  trip_miss:
+    actee:
+      - '{actor} attempts to trip you, but you avoid it!'
+    observer:
+      - '{actor} attempts to trip {actee}, but misses!'
+  whiff_on_prone:
+    actee:
+      - '{actor} rushes at you and finds only the ground you are already on.'
+    observer:
+      - '{actor} rushes at {actee}, who is already down, and carries straight past.'

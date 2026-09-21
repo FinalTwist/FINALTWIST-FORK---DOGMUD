@@ -1,0 +1,22 @@
+moveid: bash
+events:
+  knockdown:
+    actee:
+      - '{actor}''s {label} knocks you to the ground! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor}''s {label} knocks {actee} to the ground!'
+  hit:
+    actee:
+      - '{actor}''s {label} strikes you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} {verb} {actee} {with}!'
+  partial:
+    actee:
+      - '{actor}''s {label} fails to floor you, but still crashes into you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} {verb} {actee} {with}, who staggers but stays up!'
+  miss:
+    actee:
+      - '{actor} attempts a {label}, but misses!'
+    observer:
+      - '{actor} attempts to bash {actee}, but misses!'

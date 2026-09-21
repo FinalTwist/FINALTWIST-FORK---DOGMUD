@@ -1,0 +1,17 @@
+moveid: drain
+events:
+  hit:
+    actee:
+      - '{actor} plunges into you, sapping your vitality and leeching your life-force! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} plunges into {actee} and leeches their vitality!'
+  partial:
+    actee:
+      - '{actor} reaches for you and you slip most of its grip, but it still catches a sliver of you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} reaches for {actee} hungrily, who slips mostly free but still gets caught!'
+  miss:
+    actee:
+      - '{actor} reaches for you hungrily, but misses!'
+    observer:
+      - '{actor} reaches for {actee} hungrily, but misses!'

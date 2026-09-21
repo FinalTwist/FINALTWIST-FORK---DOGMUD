@@ -1,0 +1,22 @@
+moveid: gore
+events:
+  knockdown:
+    actee:
+      - '{actor} lowers its head and charges into you, driving you to the ground! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} charges into {actee} and hurls them to the ground!'
+  hit:
+    actee:
+      - '{actor} drives its horns into you with a powerful charge! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} drives its horns into {actee}!'
+  partial:
+    actee:
+      - '{actor} charges you and you sidestep most of it, but the horns still catch you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} charges {actee}, who mostly dodges but still gets grazed by the horns!'
+  miss:
+    actee:
+      - '{actor} charges at you, but you sidestep the gore!'
+    observer:
+      - '{actor} charges at {actee}, but misses!'

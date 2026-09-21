@@ -1,0 +1,12 @@
+moveid: grapple
+events:
+  success:
+    actee:
+      - '{actor} <ansi fg="yellow-bold">grapples</ansi> you, transitioning to <ansi fg="cyan">{position}</ansi> position!'
+    observer:
+      - '{actor} <ansi fg="yellow-bold">grapples</ansi> {actee} into <ansi fg="cyan">{position}</ansi> position!'
+  fail:
+    actee:
+      - '{actor} tries to grapple you, but you slip away!'
+    observer:
+      - '{actor} tries to grapple {actee}, but fails!'

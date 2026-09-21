@@ -1,0 +1,17 @@
+moveid: maul
+events:
+  hit:
+    actee:
+      - '{actor} savages you with vicious fangs, tearing bleeding wounds! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} savages {actee} with vicious fangs!'
+  partial:
+    actee:
+      - '{actor} snaps at you and you dodge most of it, but the fangs still tear you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} snaps its fangs at {actee}, who twists mostly free but still gets torn!'
+  miss:
+    actee:
+      - '{actor} snaps its fangs at you, but misses!'
+    observer:
+      - '{actor} snaps its fangs at {actee}, but misses!'

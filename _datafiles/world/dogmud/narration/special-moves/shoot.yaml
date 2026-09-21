@@ -1,0 +1,32 @@
+moveid: shoot
+events:
+  hit:
+    actee:
+      - '{actor_plain}''s shot strikes you!'
+    remote_observer:
+      - 'and strikes'
+  partial:
+    actee:
+      - '{actor_plain}''s shot goes wide, but the edge of it still clips you!'
+    remote_observer:
+      - 'and clips'
+  miss:
+    actee:
+      - '{actor_plain}''s shot narrowly misses you!'
+    remote_observer:
+      - 'and narrowly misses'
+  fire_announce:
+    observer:
+      - '{actor} fires their {weapon} at {actee}!'
+  fire_depart:
+    observer:
+      - '{actor} fires their {weapon} {exitname}ward.'
+  origin_unknown:
+    remote_observer:
+      - 'from somewhere nearby'
+  origin_known:
+    remote_observer:
+      - 'from beyond the <ansi fg="exit">{exitname}</ansi>'
+  arrival:
+    remote_observer:
+      - 'A shot streaks in {origin} {verb} {actee}!'
