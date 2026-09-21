@@ -80,21 +80,18 @@ var m2RoutingFiles = []string{
 	"internal/usercommands/throttle.go",
 	"internal/usercommands/throw.go",
 	"internal/usercommands/trip.go",
-	"internal/mobcommands/bash.go",
 	"internal/mobcommands/charge.go",
 	"internal/mobcommands/drain.go",
-	"internal/mobcommands/gore.go",
 	"internal/mobcommands/grapple.go",
 	"internal/mobcommands/hamstring.go",
-	// internal/mobcommands/kick.go is gone from this list, in step with its
-	// removal from m2FrozenFiles: M4e-1 Task 7 migrated it onto the
-	// movenarration store, so its sends route through sendMoveEvent in
-	// move_narration.go rather than an inline messaging.Trio{...Say(...)}
-	// literal this scanner can see. TestM2FreezeListsAgree requires the two
-	// lists stay 1:1; Task 12 removes the other twelve mob rows the same way.
-	"internal/mobcommands/maul.go",
+	// internal/mobcommands/{kick,bash,gore,maul,rake}.go are gone from this
+	// list, in step with their removal from m2FrozenFiles: M4e-1 Tasks 7 and 8
+	// migrated them onto the movenarration store, so their sends route through
+	// sendMoveEvent in move_narration.go rather than an inline
+	// messaging.Trio{...Say(...)} literal this scanner can see.
+	// TestM2FreezeListsAgree requires the two lists stay 1:1; Task 12 removes
+	// the other eight mob rows the same way.
 	"internal/mobcommands/pounce.go",
-	"internal/mobcommands/rake.go",
 	"internal/mobcommands/shoot.go",
 	"internal/mobcommands/throttle.go",
 	"internal/mobcommands/trip.go",

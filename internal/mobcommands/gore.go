@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
@@ -42,12 +43,20 @@ func Gore(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	mobName := mob.Character.Name
 	dmgDesc := combat.GetDamageDescription(result.Damage, result.TargetMaxHP)
 
-	// Look up target player record for darkness-aware personal messaging.
+	// Look up target player record: needed for the actee recipient and for the
+	// defence-triad call sites below. SendTrio hides names by sight itself, so
+	// there is no darkness branch here.
 	var targetUser *users.UserRecord
 	if target.UserId > 0 {
 		targetUser = users.GetByUserId(target.UserId)
 	}
-	canSee := targetUser == nil || canSeeInDark(targetUser, room)
+
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mobName),
+		ActorPlain: mobName,
+		Actee:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, target.Name),
+		ActeePlain: target.Name,
+	}
 
 	// Declared as the interface and left unset when the target is not a player.
 	// Assigning a typed-nil *users.UserRecord would make it a non-nil interface
@@ -64,59 +73,29 @@ func Gore(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		Room:      room,
 	}
 
+	damageTokens := map[string]string{movenarration.TokenDamage: dmgDesc}
+
 	if result.Hit {
 		if result.KnockedDown {
-			// Hit + knockdown: horned charge tosses target off their feet.
-			downActee := messaging.NoLine
-			if targetUser != nil {
-				if canSee {
-					downActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> lowers its head and charges into you, driving you to the ground! (<ansi fg="damage">%s</ansi>)`, mobName, dmgDesc))
-				} else {
-					downActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`Something charges into you with bone-jarring force, hurling you to the ground! (<ansi fg="damage">%s</ansi>)`, dmgDesc))
-				}
-			}
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.NoLine,
-				Actee: downActee,
-				Observer: messaging.Say(messaging.CategoryHitNaturalSharp,
-					fmt.Sprintf(`<ansi fg="mobname">%s</ansi> charges into <ansi fg="username">%s</ansi> and hurls them to the ground!`, mobName, target.Name)),
-			}, aud)
+			sendMoveEvent("gore", "knockdown", ids, aud, messaging.CategoryHitNaturalSharp, damageTokens)
 		} else {
-			// Hit but no knockdown: the charge connects but target stays up.
-			hitActee := messaging.NoLine
-			if targetUser != nil {
-				if canSee {
-					hitActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> drives its horns into you with a powerful charge! (<ansi fg="damage">%s</ansi>)`, mobName, dmgDesc))
-				} else {
-					hitActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`Something drives into you with a powerful charge! (<ansi fg="damage">%s</ansi>)`, dmgDesc))
-				}
-			}
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.NoLine,
-				Actee: hitActee,
-				Observer: messaging.Say(messaging.CategoryHitNaturalSharp,
-					fmt.Sprintf(`<ansi fg="mobname">%s</ansi> drives its horns into <ansi fg="username">%s</ansi>!`, mobName, target.Name)),
-			}, aud)
+			sendMoveEvent("gore", "hit", ids, aud, messaging.CategoryHitNaturalSharp, damageTokens)
 		}
 	} else if result.Damage > 0 {
-		partialActee := messaging.NoLine
-		if targetUser != nil {
-			if canSee {
-				partialActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> charges you and you sidestep most of it, but the horns still catch you! (<ansi fg="damage">%s</ansi>)`, mobName, dmgDesc))
-			} else {
-				partialActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`Something charges you and you sidestep most of it, but it still catches you! (<ansi fg="damage">%s</ansi>)`, dmgDesc))
-			}
-		}
+		// Defended-partial: the actee line still carries the damage from the
+		// store; the room line names the defence that blunted the gore, so it
+		// is swapped for the defence triad's ToRoom text when a defence
+		// actually fired.
+		roles, _ := renderMoveEvent("gore", "partial", ids, damageTokens)
 		defence, defended := moveDefenceLines(mob, room, target, result.Defence, "goring charge")
-		partialObserver := messaging.Say(messaging.CategoryHitNaturalSharp,
-			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> charges <ansi fg="username">%s</ansi>, who mostly dodges but still gets grazed by the horns!`, mobName, target.Name))
+		partialObserver := lineOrNone(messaging.CategoryHitNaturalSharp, roles.Observer)
 		if defended {
 			partialObserver = messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom)
 			sendMoveDefenceShortage(targetUser, defence)
 		}
 		messaging.SendTrio(messaging.Trio{
 			Actor:    messaging.NoLine,
-			Actee:    partialActee,
+			Actee:    lineOrNone(messaging.CategoryHitNaturalSharp, roles.Actee),
 			Observer: partialObserver,
 		}, aud)
 	} else if defence, defended := moveDefenceLines(mob, room, target, result.Defence, "goring charge"); defended {
@@ -129,20 +108,7 @@ func Gore(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			Observer: messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom),
 		}, aud)
 	} else {
-		missActee := messaging.NoLine
-		if targetUser != nil {
-			if canSee {
-				missActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> charges at you, but you sidestep the gore!`, mobName))
-			} else {
-				missActee = messaging.Say(messaging.CategoryHitNaturalSharp, `Something charges at you, but you sidestep!`)
-			}
-		}
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.NoLine,
-			Actee: missActee,
-			Observer: messaging.Say(messaging.CategoryHitNaturalSharp,
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> charges at <ansi fg="username">%s</ansi>, but misses!`, mobName, target.Name)),
-		}, aud)
+		sendMoveEvent("gore", "miss", ids, aud, messaging.CategoryHitNaturalSharp, nil)
 	}
 
 	// U6b Task 11: the counter renders AFTER the move's own outcome.

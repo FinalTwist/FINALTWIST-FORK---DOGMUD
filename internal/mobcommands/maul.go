@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
@@ -41,12 +42,20 @@ func Maul(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	mobName := mob.Character.Name
 	dmgDesc := combat.GetDamageDescription(result.Damage, result.TargetMaxHP)
 
-	// Look up target player record for darkness-aware personal messaging.
+	// Look up target player record: needed for the actee recipient and for the
+	// defence-triad call sites below. SendTrio hides names by sight itself, so
+	// there is no darkness branch here.
 	var targetUser *users.UserRecord
 	if target.UserId > 0 {
 		targetUser = users.GetByUserId(target.UserId)
 	}
-	canSee := targetUser == nil || canSeeInDark(targetUser, room)
+
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mobName),
+		ActorPlain: mobName,
+		Actee:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, target.Name),
+		ActeePlain: target.Name,
+	}
 
 	// Declared as the interface and left unset when the target is not a player.
 	// Assigning a typed-nil *users.UserRecord would make it a non-nil interface
@@ -63,40 +72,25 @@ func Maul(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		Room:      room,
 	}
 
+	damageTokens := map[string]string{movenarration.TokenDamage: dmgDesc}
+
 	if result.Hit {
-		hitActee := messaging.NoLine
-		if targetUser != nil {
-			if canSee {
-				hitActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> savages you with vicious fangs, tearing bleeding wounds! (<ansi fg="damage">%s</ansi>)`, mobName, dmgDesc))
-			} else {
-				hitActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`Something savages you with vicious fangs, tearing bleeding wounds! (<ansi fg="damage">%s</ansi>)`, dmgDesc))
-			}
-		}
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.NoLine,
-			Actee: hitActee,
-			Observer: messaging.Say(messaging.CategoryHitNaturalSharp,
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> savages <ansi fg="username">%s</ansi> with vicious fangs!`, mobName, target.Name)),
-		}, aud)
+		sendMoveEvent("maul", "hit", ids, aud, messaging.CategoryHitNaturalSharp, damageTokens)
 	} else if result.Damage > 0 {
-		partialActee := messaging.NoLine
-		if targetUser != nil {
-			if canSee {
-				partialActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> snaps at you and you dodge most of it, but the fangs still tear you! (<ansi fg="damage">%s</ansi>)`, mobName, dmgDesc))
-			} else {
-				partialActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`Something snaps at you and you dodge most of it, but the fangs still tear you! (<ansi fg="damage">%s</ansi>)`, dmgDesc))
-			}
-		}
+		// Defended-partial: the actee line still carries the damage from the
+		// store; the room line names the defence that blunted the maul, so it
+		// is swapped for the defence triad's ToRoom text when a defence
+		// actually fired.
+		roles, _ := renderMoveEvent("maul", "partial", ids, damageTokens)
 		defence, defended := moveDefenceLines(mob, room, target, result.Defence, "savage bite")
-		partialObserver := messaging.Say(messaging.CategoryHitNaturalSharp,
-			fmt.Sprintf(`<ansi fg="mobname">%s</ansi> snaps its fangs at <ansi fg="username">%s</ansi>, who twists mostly free but still gets torn!`, mobName, target.Name))
+		partialObserver := lineOrNone(messaging.CategoryHitNaturalSharp, roles.Observer)
 		if defended {
 			partialObserver = messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom)
 			sendMoveDefenceShortage(targetUser, defence)
 		}
 		messaging.SendTrio(messaging.Trio{
 			Actor:    messaging.NoLine,
-			Actee:    partialActee,
+			Actee:    lineOrNone(messaging.CategoryHitNaturalSharp, roles.Actee),
 			Observer: partialObserver,
 		}, aud)
 	} else if defence, defended := moveDefenceLines(mob, room, target, result.Defence, "savage bite"); defended {
@@ -109,20 +103,7 @@ func Maul(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			Observer: messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom),
 		}, aud)
 	} else {
-		missActee := messaging.NoLine
-		if targetUser != nil {
-			if canSee {
-				missActee = messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> snaps its fangs at you, but misses!`, mobName))
-			} else {
-				missActee = messaging.Say(messaging.CategoryHitNaturalSharp, `Something snaps its fangs at you, but misses!`)
-			}
-		}
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.NoLine,
-			Actee: missActee,
-			Observer: messaging.Say(messaging.CategoryHitNaturalSharp,
-				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> snaps its fangs at <ansi fg="username">%s</ansi>, but misses!`, mobName, target.Name)),
-		}, aud)
+		sendMoveEvent("maul", "miss", ids, aud, messaging.CategoryHitNaturalSharp, nil)
 	}
 
 	// U6b Task 11: the counter renders AFTER the move's own outcome.
