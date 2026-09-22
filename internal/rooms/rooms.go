@@ -309,12 +309,14 @@ func (r *Room) SendTextVisualAsLitHidingNames(cat messaging.Category, txt string
 	r.sendTextVisualJudgedBy(litRoom{}, cat, txt, names, excludeUserIds...)
 }
 
-// litRoom is a messaging.RoomVisibility that is always lit. Any light source
-// lifts a room to at least visibility 1 (see GetVisibility), and 1 is all that
-// sight needs.
+// litRoom is a messaging.RoomVisibility that always reports the graded
+// light level LightRoomOnly (internal/rooms/lighting.go). Any light source
+// lifts a room to at least that level (the old model's visibility 1), which
+// already sits at or above LightDimBelow, so ParticipantSight reads it as
+// SightFull.
 type litRoom struct{}
 
-func (litRoom) GetVisibility() int { return 1 }
+func (litRoom) LightLevel() int { return LightRoomOnly }
 
 // sendTextVisualJudgedBy is SendTextVisual with the lighting it judges sight
 // against passed in, so SendTextVisualAsLit shares one delivery path. names,
