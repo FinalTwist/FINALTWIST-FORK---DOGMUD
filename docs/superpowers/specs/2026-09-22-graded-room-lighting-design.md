@@ -252,28 +252,53 @@ leaving these spells as two new exceptions.
 
 ### The throttle
 
-Every adjustable source, spell or hooded item, re-trims **every round** so its
-bearer is never dazzled by their own light. The target is simply the top of
-the bearer's own perfect band, which the window model already defines: 75 for
-a normal bearer, `75 - strength` for one running nightvision.
-
-🔴 **This is circular, and the circularity must be broken explicitly.** A
-source's output depends on room light, and room light includes that source.
-Two adjustable lights in one room would each assume the other fixed and
-oscillate between rounds.
-
-**Resolution: adjustable sources resolve in a deterministic order, strongest
-maximum first, ties broken by a stable id. Each computes against the room as
-lit by ambient, fixed sources, and every source already resolved, never
-including itself.**
+An adjustable source, spell or hooded item, trims itself so its bearer is
+never dazzled by their own light. The target is the top of the bearer's own
+perfect band, which the window model already defines: 75 for a normal bearer,
+`75 - strength` for one running nightvision.
 
 ```
-my output = clamp(my target - room_so_far, 0, my max strength)
+my output = clamp(my target - current room light, 0, my max strength)
 ```
 
-The strongest light fills the gap; weaker ones then see a lit room and trim to
-nothing. So a party of five casters does not produce five times the light,
-which agrees with the diminishing-returns rule rather than fighting it.
+🔑 **Adjustment happens ON EVENTS, not every round.** Owner ruling
+2026-09-22. The trigger set is exactly:
+
+- **entering a room**, each mover in entry order,
+- **activating a source**: casting, lighting a lantern, equipping one,
+- **a manual command**.
+
+**Sources already in the room do NOT re-trim** when someone else walks in, and
+nothing re-trims on a round tick.
+
+### Why event-based, and not continuous
+
+🔴 **Continuous adjustment is circular.** A source's output depends on room
+light, and room light includes that source, so two adjustable lights would
+each assume the other fixed and oscillate between rounds. Event-based
+adjustment removes the circularity rather than managing it: each adjustment is
+a one-shot computation against a room state that is stable at that instant,
+and entry order is a real ordering the room already has, so no artificial
+tie-break rule is needed.
+
+🔑 **It also rescues darkness spells.** Under continuous adjustment every
+light in the room would automatically crank up to compensate for an incoming
+darkness spell, so darkness would essentially never work. Because lights are
+already committed when the darkness lands, a darkness spell actually bites.
+
+🔑 **The trigger already exists.** `internal/hooks/Awareness_LightChange.go`
+fires on movement, already filters to actors who emit light, and carries a
+FUTURE note (fact 23) to compare visibility before and after the move. This
+rule lands on a hook that is already waiting for it.
+
+### The moment this deliberately creates
+
+If the room changes around a standing player, dawn breaking, weather lifting,
+an enemy casting darkness, their light is now wrong and **stays wrong until
+they act**. That is a moment, not a gap, and it wants a notice rather than a
+silent correction: "your glow has become painfully bright". Automatic
+correction here would be the continuous model sneaking back in, and would
+neuter darkness a second time.
 
 ### Two consequences
 
@@ -289,12 +314,16 @@ correct behaviour and wants a help-text line, not a special case.
 
 ### What items are for
 
-Continuous throttling means a hooded lantern no longer differs from a spell in
-how it behaves, so plan 5 must justify items on other grounds. The honest
-ones: a lantern costs no conviction, requires no spellcasting skill, works
-while silenced, and can be handed to a companion or a mob. Item 40038 Oil
-Lantern already ships as a crafting material (fact 14 says nothing grants
-light today) and becomes functional rather than being invented.
+A hooded lantern trims on the same events a spell does, so it must be
+justified on other grounds. The honest ones: a lantern costs no conviction,
+requires no spellcasting skill, works while silenced, and can be handed to a
+companion or a mob. Item 40038 Oil Lantern already ships as a crafting
+material (fact 14 says nothing grants light today) and becomes functional
+rather than being invented.
+
+A hood also gives an item something a spell lacks: it can be **shut and
+reopened by hand** without recasting, which is the cheap manual override for
+the moment described above.
 
 ---
 
@@ -329,10 +358,10 @@ Six plans, each shipping on its own. The order is a dependency order.
 5. **Light and darkness as play.** A darkness spell, light-bearing items
    (fact 14 says there are none today), and `chrysalis-glow` retuned against
    the scale it now lives on. Strength and duration scale from stat and skill;
-   every adjustable source self-throttles each round against the resolution
-   order above; a manual full-power override exists so light can be used as a
-   weapon against creatures whose windows sit low. See "Source strength, and
-   the self-throttle".
+   adjustable sources trim themselves ON EVENTS (room entry in entry order,
+   activation, manual command) rather than per round; a manual full-power
+   override exists so light can be used as a weapon against creatures whose
+   windows sit low. See "Source strength, and the self-throttle".
 6. **Balance and the deferred gate.** Retune every ambient and source value,
    then run **M5 PR 3's deferred adversarial playtest**, which this arc exists
    to make meaningful.
