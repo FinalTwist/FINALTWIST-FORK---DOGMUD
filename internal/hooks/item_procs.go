@@ -272,7 +272,23 @@ func procAoeStun(owner *characters.Character, room *rooms.Room, params map[strin
 
 	// Room-wide narration, no raw numbers (project rule). CategorySubmission
 	// matches condition 84's own submission-stagger flavor.
-	room.SendTextVisual(messaging.CategorySubmission,
-		`<ansi fg="yellow">A jarring shockwave ripples outward, staggering the hostile creatures nearby!</ansi>`)
+	//
+	// Observer-only SendTrio, not a raw SendTextVisual. The line names nobody,
+	// so this is not a leak fix: it is what lets CategorySubmission join
+	// sendTrioOnlyCategories, since this was the category's last raw sender.
+	// Both names are NoName because there is no actor and no actee to hide.
+	messaging.SendTrio(messaging.Trio{
+		// Room flavour with no participants: the shockwave is the condition's,
+		// not any character's. Both personal roles are NoLine so the silence
+		// reads as considered rather than forgotten.
+		Actor: messaging.NoLine,
+		Actee: messaging.NoLine,
+		Observer: messaging.Say(messaging.CategorySubmission,
+			`<ansi fg="yellow">A jarring shockwave ripples outward, staggering the hostile creatures nearby!</ansi>`),
+	}, messaging.Audience{
+		ActorName: messaging.NoName,
+		ActeeName: messaging.NoName,
+		Room:      room,
+	})
 	return true
 }

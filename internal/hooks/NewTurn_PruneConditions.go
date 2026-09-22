@@ -50,7 +50,8 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 							}
 							if roles.Observer != "" {
 								if r := rooms.LoadRoom(user.Character.RoomId); r != nil {
-									sendConditionEndRoomText(r, endConditionSpec, roles.Observer, user.UserId)
+									sendConditionEndRoomText(r, endConditionSpec, roles.Observer,
+										[]string{user.Character.GetCharacterName(false)}, user.UserId)
 								}
 							}
 						}
@@ -108,7 +109,8 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 						holderName, mob.Character.GetCharacterName(false))
 					if roles.Observer != "" {
 						if r := rooms.LoadRoom(mob.Character.RoomId); r != nil {
-							sendConditionEndRoomText(r, endConditionSpec, roles.Observer)
+							sendConditionEndRoomText(r, endConditionSpec, roles.Observer,
+								[]string{mob.Character.GetCharacterName(false)})
 						}
 					}
 				}
@@ -127,12 +129,17 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 // light condition's line is judged as if the room were still lit, because its light
 // went out when the condition expired, a round before this prune: see
 // Room.SendTextVisualAsLit. Every other end line is judged by the room as it is.
-func sendConditionEndRoomText(r *rooms.Room, spec *conditions.ConditionSpec, msg string, skip ...int) {
+//
+// names is the holder's PLAIN name. An end line may author a bare
+// {actee_plain} (shipped conditions 1 and 9 both do), which tag-based
+// Anonymize cannot see, so the name must be handed to HideNames explicitly.
+// This is the End-phase twin of the start and trigger senders.
+func sendConditionEndRoomText(r *rooms.Room, spec *conditions.ConditionSpec, msg string, names []string, skip ...int) {
 	for _, flag := range spec.Flags {
 		if flag == conditions.EmitsLight {
-			r.SendTextVisualAsLit(messaging.CategoryConditionExpire, msg, skip...)
+			r.SendTextVisualAsLitHidingNames(messaging.CategoryConditionExpire, msg, names, skip...)
 			return
 		}
 	}
-	r.SendTextVisual(messaging.CategoryConditionExpire, msg, skip...)
+	r.SendTextVisualHidingNames(messaging.CategoryConditionExpire, msg, names, skip...)
 }

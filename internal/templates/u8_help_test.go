@@ -359,6 +359,15 @@ func TestU8HelpTuningGuardInspectsStyledVisibleText(t *testing.T) {
 }
 
 func TestU8CrossReferenceValidationRejectsMissingDOGMudOnlyTopic(t *testing.T) {
+	// This test needs the DEFAULT world's shoot.template, which only that tree
+	// ships: dogmud renamed the command to `fire`. TestMain points at dogmud
+	// (the live world every other test should assert against), so this one
+	// registers default explicitly rather than depending on a global that is
+	// wrong for everyone else.
+	saved := fileSystems
+	RegisterFS(os.DirFS(`../../_datafiles/world/default`).(fs.ReadFileFS))
+	t.Cleanup(func() { fileSystems = saved })
+
 	registeredDefaultShoot := false
 	for _, registeredFS := range fileSystems {
 		// The DEFAULT WORLD's template, not DOGMud's. Upstream still ships this

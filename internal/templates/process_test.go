@@ -23,8 +23,13 @@ type emptyFS struct{}
 func (emptyFS) Open(name string) (fs.File, error)    { return nil, fmt.Errorf("not found: %s", name) }
 func (emptyFS) ReadFile(name string) ([]byte, error) { return nil, fmt.Errorf("not found: %s", name) }
 
-// dataFilesRoot is the relative path from this package dir to the default data files.
-const dataFilesRoot = `../../_datafiles/world/default`
+// dataFilesRoot is the relative path from this package dir to the LIVE world's
+// data files. It was `world/default` until 2026-09-22, which meant this whole
+// test binary asserted against templates no player ever reads: `help/attack`
+// resolved to default's attack.md stub, printing raw formulas at the player,
+// while dogmud's real attack.template had zero coverage. Tests that genuinely
+// want the default tree register it explicitly.
+const dataFilesRoot = `../../_datafiles/world/dogmud`
 
 func TestMain(m *testing.M) {
 	mudlog.SetupLogger(nil, "", "", false)
@@ -171,6 +176,14 @@ func TestProcess_CharacterSkillsTemplate(t *testing.T) {
 			"ranged":  0,
 			"stealth": 0,
 		},
+		// The live template indexes SkillBlurbs per skill. Default's stub did
+		// not, which is why this fixture never had the key and why the test
+		// never exercised the template a player is actually served.
+		"SkillBlurbs": map[string]string{
+			"melee":   "Striking with a held weapon.",
+			"ranged":  "Loosing a shot at a distance.",
+			"stealth": "Moving without being noticed.",
+		},
 		"TrainingPoints": 3,
 	}
 
@@ -181,6 +194,8 @@ func TestProcess_CharacterSkillsTemplate(t *testing.T) {
 	assert.Contains(t, result, "melee")
 	// DOG skills soft-cap at 50; level 4 = apprentice, not MAXIMUM
 	assert.Contains(t, result, "apprentice")
+	assert.Contains(t, result, "Striking with a held weapon.",
+		"the live template renders a skill blurb; default's stub has no blurb line at all")
 }
 
 func TestProcess_CharacterConditionsTemplate(t *testing.T) {

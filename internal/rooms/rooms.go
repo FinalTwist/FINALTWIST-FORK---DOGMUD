@@ -339,6 +339,20 @@ func (r *Room) SendTextVisualAsLit(cat messaging.Category, txt string, excludeUs
 	r.sendTextVisualJudgedBy(litRoom{}, cat, txt, nil, excludeUserIds...)
 }
 
+// SendTextVisualAsLitHidingNames is SendTextVisualAsLit for a line that names
+// the parties to an event.
+//
+// ⚠️ NO READER OF THIS PATH IS EVER AT SightShapes, so names is never
+// consulted today: litRoom{} reports the room lit, and ParticipantSight only
+// returns SightShapes for an unblinded observer in an UNLIT room. It exists so
+// that the light and non-light end-text paths are threaded identically, and so
+// that if SendTextVisualAsLit ever grows a shapes tier, the names are already
+// there rather than newly missing. TestConditionEndRoomText_LightPathHasNoShapesTier
+// pins the reason.
+func (r *Room) SendTextVisualAsLitHidingNames(cat messaging.Category, txt string, names []string, excludeUserIds ...int) {
+	r.sendTextVisualJudgedBy(litRoom{}, cat, txt, names, excludeUserIds...)
+}
+
 // litRoom is a messaging.RoomVisibility that is always lit. Any light source
 // lifts a room to at least visibility 1 (see GetVisibility), and 1 is all that
 // sight needs.

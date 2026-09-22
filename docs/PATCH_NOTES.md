@@ -1,5 +1,21 @@
 # DOGMud Patch Notes
 
+## 2026-09-22: The last two names the dark forgot to hide
+
+Two more lines named someone you could not make out. When a creature
+stopped hiding and stepped out of the shadows, the line announcing it used
+their real name even to a watcher who could only sense a shape. And when a
+thrown disruptor cut short a creature's spell, the report of it named that
+creature to everyone in the room, including anyone who could see nothing
+at all.
+
+Both now follow the same rule as the rest of the game: you read a name
+only if you could actually tell who it was.
+
+One line that looks like the same problem is not. When a light someone was
+carrying goes out, the line about the glow fading still names them, and
+that is correct: the light was there, and you saw it by the light it gave.
+
 ## 2026-09-21: One fight, one story
 
 Kicking, draining, goring, mauling, raking, pouncing, and throttling in
