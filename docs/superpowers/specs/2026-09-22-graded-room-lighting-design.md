@@ -265,11 +265,28 @@ my output = clamp(my target - current room light, 0, my max strength)
 2026-09-22. The trigger set is exactly:
 
 - **entering a room**, each mover in entry order,
-- **activating a source**: casting, lighting a lantern, equipping one,
-- **a manual command**.
+- **a manual command**, or shutting a hood.
 
-**Sources already in the room do NOT re-trim** when someone else walks in, and
-nothing re-trims on a round tick.
+**A source does NOT trim when it is created.** A spell is cast at FULL
+strength and stays there until its bearer moves. **Sources already in the room
+do NOT re-trim** when someone else walks in, and nothing re-trims on a round
+tick.
+
+### Casting at full strength is the point
+
+Owner ruling 2026-09-22. A strong caster's light flares blindingly when first
+summoned, and only settles to that caster's own preference once they move.
+
+This is deliberate on three counts. It keeps magic a committed act rather than
+a thermostat. It means **the offensive flash is the DEFAULT rather than an
+override**: casting a powerful light into a dark room is itself the weapon
+against creatures whose windows sit low, with no special mode to invoke. And
+it is one fewer trigger, because creation stops being an adjustment event at
+all.
+
+The manual control therefore exists for the opposite purpose from the one it
+first appears to serve: not to force a light UP, which a fresh cast already
+does, but to force it DOWN without walking somewhere.
 
 ### Why event-based, and not continuous
 
@@ -357,11 +374,11 @@ Six plans, each shipping on its own. The order is a dependency order.
    strength and its negative reach, and magical darkness gets its floor.
 5. **Light and darkness as play.** A darkness spell, light-bearing items
    (fact 14 says there are none today), and `chrysalis-glow` retuned against
-   the scale it now lives on. Strength and duration scale from stat and skill;
-   adjustable sources trim themselves ON EVENTS (room entry in entry order,
-   activation, manual command) rather than per round; a manual full-power
-   override exists so light can be used as a weapon against creatures whose
-   windows sit low. See "Source strength, and the self-throttle".
+   the scale it now lives on. Strength and duration scale from stat and skill.
+   A spell is cast at FULL strength and trims only when its bearer moves, so
+   the blinding flash of a fresh cast is the default weapon against creatures
+   whose windows sit low, and the manual control exists to force a light DOWN
+   rather than up. See "Source strength, and the self-throttle".
 6. **Balance and the deferred gate.** Retune every ambient and source value,
    then run **M5 PR 3's deferred adversarial playtest**, which this arc exists
    to make meaningful.
