@@ -268,3 +268,60 @@ func TestConditionEndRoomText_LightConditionEndIsSeenByItsOwnLight_Mob(t *testin
 	PruneConditions(events.NewTurn{TurnNumber: 1})
 	assert.Equal(t, 1, countContaining(drainPlain(2), "Skeleton's light gutters out."))
 }
+
+// TestConditionEndRoomText_InfraredObserverDoesNotReadABareHolderName is the
+// End-phase twin of the start and trigger fixes in 39b75fe07. A bare
+// {actee_plain} is invisible to tag-based Anonymize, so unless the sender
+// passes the holder's plain name into HideNames, a shapes-only observer reads
+// the real name. Shipped condition 9 authors exactly this line.
+func TestConditionEndRoomText_InfraredObserverDoesNotReadABareHolderName(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restore := seedNarrationConditions()
+	defer restore()
+	darken(t, 1)
+	holder := users.GetByUserId(1)
+	require.True(t, holder.Character.Conditions.AddCondition(shadeConditionId, false))
+	require.True(t, users.GetByUserId(2).Character.Conditions.AddCondition(heatEyesConditionId, true))
+	expire(t, holder.Character.Conditions.List, shadeConditionId)
+	drainPlain(2)
+
+	PruneConditions(events.NewTurn{TurnNumber: 1})
+
+	lines := drainPlain(2)
+	require.Equal(t, 1, countContaining(lines, "emerges from the shadows"),
+		"the shapes observer must still receive the line, or this test proves nothing: %v", lines)
+	assert.Zero(t, countContaining(lines, "Aliceia"),
+		"an infrared-only observer read the holder's bare name: %v", lines)
+}
+
+// TestConditionEndRoomText_LightPathHasNoShapesTier pins the structural reason
+// shipped condition 1 ("The glow surrounding {actee_plain} fades away.") does
+// not leak despite authoring a bare name: SendTextVisualAsLit judges sight
+// against litRoom{}, and ParticipantSight returns SightShapes only for an
+// UNLIT room, so no reader of that path is ever at the one tier HideNames acts
+// on. An infrared observer therefore reads the real name here, correctly, and
+// a blind or sleeping one reads nothing.
+//
+// If this test ever fails, SendTextVisualAsLit has grown a shapes tier and
+// every light condition authoring a bare _plain token became a live leak.
+func TestConditionEndRoomText_LightPathHasNoShapesTier(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	restore := seedNarrationConditions()
+	defer restore()
+	darken(t, 1)
+	holder := users.GetByUserId(1)
+	require.True(t, holder.Character.Conditions.AddCondition(emberConditionId, false))
+	require.True(t, users.GetByUserId(2).Character.Conditions.AddCondition(heatEyesConditionId, true))
+	expire(t, holder.Character.Conditions.List, emberConditionId)
+	drainPlain(2)
+
+	PruneConditions(events.NewTurn{TurnNumber: 1})
+
+	lines := drainPlain(2)
+	require.Equal(t, 1, countContaining(lines, "fades away"),
+		"the light line must reach the observer, or this test proves nothing: %v", lines)
+	assert.Equal(t, 1, countContaining(lines, "Aliceia"),
+		"the lit path has no shapes tier, so the name is expected here: %v", lines)
+}

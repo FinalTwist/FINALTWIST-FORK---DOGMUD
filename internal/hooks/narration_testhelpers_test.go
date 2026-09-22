@@ -43,6 +43,8 @@ const (
 	heatEyesConditionId  = 7005 // grants InfraredVision; RoundInterval 0, so it never ticks
 	lanternConditionId   = 7006 // a light source with end_observer
 	dozeConditionId      = 7007 // puts the bearer to sleep; RoundInterval 0, so it never ticks
+	shadeConditionId     = 7008 // end_observer with a BARE {actee_plain}, mirrors shipped condition 9
+	emberConditionId     = 7009 // a light source whose end_observer has a BARE {actee_plain}, mirrors shipped condition 1
 )
 
 // seedNarrationConditions installs the narration test conditions and returns the restore
@@ -64,6 +66,11 @@ func seedNarrationConditions() func() {
 			Flags: []conditions.Flag{conditions.EmitsLight}, EndRoomText: "{actee}'s light gutters out."},
 		dozeConditionId: {ConditionId: dozeConditionId, Name: "Test Doze",
 			Flags: []conditions.Flag{conditions.Sleeping}},
+		shadeConditionId: {ConditionId: shadeConditionId, Name: "Test Shade", RoundInterval: 5, TriggerCount: 3,
+			EndRoomText: "{actee_plain} emerges from the shadows."},
+		emberConditionId: {ConditionId: emberConditionId, Name: "Test Ember", RoundInterval: 5, TriggerCount: 3,
+			Flags:       []conditions.Flag{conditions.EmitsLight},
+			EndRoomText: "The glow surrounding {actee_plain} fades away."},
 	})
 }
 
