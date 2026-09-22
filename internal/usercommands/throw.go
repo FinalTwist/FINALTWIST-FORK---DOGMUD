@@ -155,6 +155,16 @@ func engageAfterThrow(user *users.UserRecord, room *rooms.Room, hitMobs []*mobs.
 	}
 }
 
+// throwInterruptAudience returns a copy of throw's actee-less Audience that
+// names one mob, for the single event that has an actee.
+//
+// It returns a copy rather than mutating: every other throw event in the same
+// loop reuses the base Audience and must stay actee-less.
+func throwInterruptAudience(base messaging.Audience, mobName string) messaging.Audience {
+	base.ActeeName = mobName
+	return base
+}
+
 func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 	if refuseWhileBusy(user, `throw anything`) {
 		return true, nil
@@ -287,6 +297,12 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	// every Trio below writes Actee: messaging.NoLine. That is correct, not an
 	// oversight: the M1 audit ruled this file's 17 actor sends and zero actee
 	// sends as the one genuinely actee-less member of the special-move family.
+	//
+	// ONE EXCEPTION: player_cast_interrupt names a single mob, because it
+	// reports what happened to that mob's cast. It takes a named copy of this
+	// Audience via throwInterruptAudience so SendTrio can hide that name from a
+	// reader who cannot see; the base Audience below stays actee-less for
+	// every other event.
 	aud := messaging.Audience{
 		Actor:     user,
 		ActorId:   user.UserId,
@@ -362,7 +378,8 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		// interrupt. (Fumbles break above, so a botched throw still can't cancel.)
 		if maybeInterruptOnThrow(mob, matchItem.ItemId, state.ActorRef{UserId: user.UserId}) {
 			sendMoveEvent("throw", "player_cast_interrupt",
-				moveIdentities{ActeePlain: mob.Character.Name}, aud,
+				moveIdentities{ActeePlain: mob.Character.Name},
+				throwInterruptAudience(aud, mob.Character.Name),
 				sameMoveCategory(messaging.CategorySpellDisruption), nil)
 		}
 
