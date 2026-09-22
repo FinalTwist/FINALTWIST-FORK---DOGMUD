@@ -31,6 +31,15 @@ checkout did not actually land before the build ran. Verify with
 `git rev-parse HEAD` BEFORE building, and compare FULL SHAs, not abbreviated
 ones, against the commit that was meant to deploy.
 
+## A prod build is not a test signal
+
+`provisioning/Dockerfile` defines a `test` stage (`CMD go test -race ./...`),
+but nothing depends on it and BuildKit skips unreferenced stages, so a real
+build goes straight from `[builder 8/8]` to `[runner 2/5]`. **`docker compose
+up --build` runs NO tests**, despite the stage existing. Do not treat a
+successful prod build as any kind of test signal.
+[[reference-droplet-build-cache-and-dockerfile]]
+
 ## Known deploy failures
 
 Three failure modes have hit prod, each with its own fix:

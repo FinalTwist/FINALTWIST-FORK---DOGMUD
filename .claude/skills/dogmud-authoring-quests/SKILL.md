@@ -110,6 +110,20 @@ trigger per plausible noun variant a player might type (`altar stone`,
 actions). Cross-reference room nouns against trigger nouns before shipping.
 [[feedback_room_interact_noun_matching]]
 
+There is no space/hyphen normalization on either side, which is the form
+this bites in most often. `usercommands.go` notifies the engine with
+`Noun: strings.ToLower(rest)` and `questengine/engine.go` compares
+`t.Noun != d.Noun` as an exact string, and the shipped `noun:` spellings are
+mixed: hyphenated (`old-guild-mark`, `hearth-marks`, `paper-scrap`) and
+spaced (`gray material`, `buried marker`). Quest 68's trigger noun is
+`loose-floorboard` while room 5720 lists the noun `loose floorboard`, so
+`look loose floorboard` prints the room text and only `look loose-floorboard`
+fires the trigger, which no player can guess. When a quest interaction "does
+nothing," diff the room noun spelling against the trigger noun before
+suspecting the step gate. Normalizing both sides in the engine is filed as an
+owner call on the quest mechanisms arc, not a fix to make in passing.
+[[project-quest-room-interact-noun-hyphen-trap]]
+
 ## Items
 
 ### Quest Item Delivery: give.go Gotcha
@@ -246,4 +260,7 @@ Folded memory files:
 - [[feedback_quest_items_not_components]]
 - [[feedback_loot_placement]]
 - [[feedback_room_interact_noun_matching]]
+- [[project-quest-room-interact-noun-hyphen-trap]] (the space/hyphen half of
+  the same exact-match rule; its engine-normalization proposal belongs to
+  [[project-quest-mechanisms-arc]])
 - [[reference_quest_reward_yaml_key_gotcha]]

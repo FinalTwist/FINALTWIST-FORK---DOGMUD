@@ -267,4 +267,7 @@ Folded memory files:
 - [[feedback-room-cartesian-consistency]]
 - [[feedback_ansi_plural_inside_tag]]
 - [[reference_world_coordinate_frame_crawl]]
-- [[reference_room_coordinate_and_reciprocity_gotchas]]
+- [[reference_room_coordinate_and_reciprocity_gotchas]]. The memory index
+  cited this file as [[reference-room-coordinate-and-reciprocity-gotchas]];
+  that hyphenated name has never existed on disk, and the underscore form is
+  the real file.

@@ -27,15 +27,48 @@ diff structurally), sabotage BY LINE NUMBER: pick the exact line the fix
 touches, break only that line, and confirm the failure names that line, not
 a neighboring one.
 
-The project has recorded three false passes from skipping this discipline
-(noted in the project memory index's current-status log, not a single topic
-file). [[reference-test-binary-config-defaults-differ-from-shipped]]
+The project has recorded three false passes from skipping this discipline.
+That count was carried in the memory index until this skill took ownership of
+the rule; it has no topic file of its own, so it is recorded here.
+[[reference-test-binary-config-defaults-differ-from-shipped]]
 documents one concrete case of the same failure mode from a different angle: a new
 `TestCalcSwingCount_FistSwingsAtFistSkill` draft passed against unfixed code
 because the test binary's `SkillWeight` default (2.0) happened to compress
 two different skill levels to the same swing count. Confirming red is not
 ceremony there either; a config default is one of the quietest ways a test
 passes for the wrong reason.
+
+**A gate that cannot fail is not a gate.** The null-probe rule generalizes
+past tests to any check the project relies on: a guard test, a CI step, a
+lint rule, or a validator that has no input that would make it complain is
+decoration. Whenever you add one, produce the input that makes it fire.
+
+## Every task gate includes the repo root
+
+Run `go test .` at the repo ROOT as part of every task's test gate, not only
+the packages you touched. `condition_apply_path_guard_test.go` at the root is
+a LINE-NUMBER allowlist over `spell_resolution.go` and `combat_*.go`, so any
+edit that shifts an allowlisted line re-keys it and the guard goes red in a
+package nobody in the change thought they were touching. In M4b-2 a comment
+insertion broke it and an implementer plus two reviewers all missed it,
+because none of them ran the root package.
+[[feedback-refactor-parity-and-root-gate]]
+
+## Tests that fail locally on Windows and are not your fault
+
+`internal/rooms`' `TestDeleteZone_RemovesEveryTree` and
+`TestRenameZone_MovesRewritesAndRekeys` fail locally on Windows under
+`DOGMUD_BOOT_SMOKE=1`, on master too; Linux CI is green. They skip without
+that variable, so a plain local `go test ./...` never shows it (the 0.02s
+"ok" is a skip). They `os.Chdir` to the repo root and `ReloadConfig()`, and
+the data root then resolves differently between the create and the load
+(`CreateZone` writes under `_datafiles/world/dogmud/rooms/` while
+`loadRoomFromFile` reads `_datafiles\world\default\rooms\...`). Do not read
+them as a regression from unrelated work. They also write into the REAL world
+tree, leaving untracked `ziggurat_test_zone/` and `rename_probe_zone/`
+folders under `_datafiles/world/dogmud/rooms/`; clean those up after a
+failing run, because they break the next one.
+[[project-rooms-zone-lifecycle-tests-fail-on-windows]]
 
 ## Test binaries never load config.yaml
 
@@ -155,7 +188,11 @@ Folded: [[reference-test-binary-config-defaults-differ-from-shipped]] ·
 [[feedback_verify_test_server_bound_its_port]] ·
 [[feedback_verify_served_not_just_written]] ·
 [[feedback_yaml_unexported_field_tag_noop]] ·
-[[feedback_validator_conditional_checks]] · the project memory index's
+[[feedback_validator_conditional_checks]] ·
+[[feedback-refactor-parity-and-root-gate]] (its rule 2, the root-package
+gate; its rule 1, parity tests pinning the old table, is folded into
+`dogmud-refactoring`) ·
+[[project-rooms-zone-lifecycle-tests-fail-on-windows]] · the project memory index's
 current-status and feedback sections (null-probe discipline, CWD/
 `runtime.Caller`, stat `.Base`/`Recalculate()`, and the two progression
 banner strings, none of which have a separate topic file).
