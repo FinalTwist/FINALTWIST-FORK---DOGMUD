@@ -33,9 +33,13 @@ The `internal/crimes` package maintains per-faction crime logs tracking harmful 
 - **PruneStale(factionId string) int**: Resolves all unresolved crimes older than `Balance.CrimeStaleAfterRounds` with reason "stale". Returns count of rows resolved. Safety net for indefinite-storage growth; primary expiry is consumer-driven (town justice fines, redemption quests).
 
 ### Witness and Perpetrator Resolution
-- **WitnessesInRoom(factionIds \[\]string, room \*rooms.Room, excludeInstanceId int) \[\]int**: Returns the list of mob instance IDs in the given room whose mob template's Groups overlap any of factionIds. Pass `excludeInstanceId = victim's instance` for murder (victim is dead); pass 0 for assault and theft (victim is alive and a self-witness).
+- **Witnesses struct**: `{ Identifying []int; ShapesOnly []int }`. `Identifying` mob instance IDs saw the room clearly and can name the perpetrator. `ShapesOnly` instance IDs made out movement but no faces; they record that something happened and never attribute it. A mob failing both sight checks is not a witness at all and appears in neither slice. The struct carries no helper methods on purpose: every production consumer reads `Identifying`, `ShapesOnly` is read in exactly one place (`internal/seeders`), and shipping unused exported methods would be dead API on day one.
 
-- **IdentifiedPerp(userId int, witnesses \[\]int) Perpetrator**: Returns `PerpPlayer` if witnesses is non-empty, otherwise `PerpUnknown`. Helper that centralizes the perpetrator-identification logic.
+- **WitnessesInRoom(factionIds \[\]string, room \*rooms.Room, excludeInstanceId int) Witnesses**: Classifies each faction-matching mob instance in the room with `messaging.CanSeeClearly` then `messaging.CanSeeShapes`, in that order, because `CanSeeShapes` is also true for full sight; testing it first would misclassify every identifying witness as shapes-only. Pass `excludeInstanceId = victim's instance` for murder (victim is dead, not a self-witness); pass 0 for assault and theft (victim is alive and a self-witness).
+
+  Sight is checked with the composed predicates `messaging.CanSeeClearly` and `messaging.CanSeeShapes`, never the raw `messaging.ParticipantSight`. That primitive is optics only and deliberately excludes sleep; the composed pair folds in attention, so a sleeping mob witnesses nothing in a lit room or a dark one, with no separate sleep check written in this package.
+
+- **IdentifiedPerp(userId int, w Witnesses) Perpetrator**: Returns `PerpPlayer` only when `len(w.Identifying) > 0`, otherwise `PerpUnknown`. A room full of shapes-only witnesses, one where a crime was noticed but nobody saw a face, records `PerpUnknown` the same as an empty room.
 
 ## Global State
 
@@ -135,7 +139,10 @@ Stored lazily on first mutation for each faction. The `id` is monotonic per-fact
 - **steal.go** (`internal/usercommands/skill.skullduggery.steal.go`): Records theft crime at FAILED steal/pickpocket on a faction member. Successful theft is silent; only the failed attempt produces a record.
 
 ### Knowledge Integration (Chunk 1.4)
-Each crime call site also writes knowledge records for witnesses via `knowledge.RecordCrimeWitnessed` and `knowledge.RecordMet`, connecting witnesses to the perpetrator and marking that they met a player. The crimes package is agnostic to knowledge; the integration point is at the caller (attack.go, MobDeath_FactionRep.go, steal.go).
+Each crime call site also writes knowledge records for witnesses via `knowledge.RecordCrimeWitnessed` and `knowledge.RecordMet`, connecting witnesses to the perpetrator and marking that they met a player. **These writes read `Witnesses.Identifying` only.** Both knowledge calls are keyed on the player subject, so folding in a shapes-only witness would record a mob as knowing exactly who committed the crime when all it actually saw was a figure. The crimes package is agnostic to knowledge; the integration point is at the caller (attack.go, MobDeath_FactionRep.go, steal.go).
+
+### Witness Response (Cross-Reference)
+`internal/seeders` reacts to a crime witness by classification rather than by list: an identifying witness runs the normal `seedWitnessResponse` path unchanged; a shapes-only witness gets `alarmReaction` only, which names nobody; a guard stays a no-op in both tiers. That split is `internal/seeders` behavior, not this package's, and is mentioned here only as a pointer for anyone tracing what happens to a `Witnesses` value after `WitnessesInRoom` returns it.
 
 ### Rep Change Consumers
 - **MobDeath_FactionRep.go**: Bumps killer's rep via `factions.BumpRep` when a murder crime is recorded. The delta depends on whether the assault was prior-recorded (incremental delta) or fresh (full murder delta).
@@ -160,7 +167,7 @@ Each crime call site also writes knowledge records for witnesses via `knowledge.
 
 ## Four-Case Murder Upgrade Logic
 
-When a player kills a faction-member mob in `MobDeath_FactionRep.go`, the engine checks for an unresolved assault crime committed by the same player against the same faction within 100 rounds. If an assault row exists, it is upgraded in-place to murder; if not, a fresh murder row is recorded. The upgrade uses two flags — `currentExternal` (whether witnesses are present now) and `assault.HadExternalWitness` (whether the prior assault was witnessed) — to implement four distinct cases:
+When a player kills a faction-member mob in `MobDeath_FactionRep.go`, the engine checks for an unresolved assault crime committed by the same player against the same faction within 100 rounds. If an assault row exists, it is upgraded in-place to murder; if not, a fresh murder row is recorded. The upgrade uses two flags — `currentExternal` (whether an identifying witness, `len(witnesses.Identifying) > 0`, is present now; a shapes-only witness does not count, since the four-case model turns on whether the killing was identified, not merely sensed) and `assault.HadExternalWitness` (whether the prior assault was witnessed) — to implement four distinct cases:
 
 ### Case A: External Witness Now
 - **Condition**: `currentExternal = true` (witnesses in the room at death time)
@@ -205,7 +212,7 @@ Tests inject fake implementations via global function pointers (`roundForTest`, 
 - `UpgradeAssaultToMurder` mutates kind and optionally preserves perpetrator.
 - `AllForFaction` filters by resolved status.
 - `AllForPlayer` walks cache for all matching crimes.
-- `WitnessesInRoom` checks faction-membership overlap and excludes the specified instance.
-- `IdentifiedPerp` returns `PerpPlayer` iff witnesses is non-empty.
+- `WitnessesInRoom` checks faction-membership overlap, excludes the specified instance, and splits matches into `Identifying` versus `ShapesOnly` by sight (`sight_test.go`), including that a sleeping mob in a lit room witnesses nothing.
+- `IdentifiedPerp` returns `PerpPlayer` iff `w.Identifying` is non-empty; a shapes-only witness alone still returns `PerpUnknown`.
 - `PruneStale` respects the age threshold and returns count.
 - Four-case murder upgrade: Case A (external now → identified + incremental delta), Case B (assault external, murder not → keep perp, no delta), Case C (lone → unknown, refund), fresh (no assault → full delta if identified).

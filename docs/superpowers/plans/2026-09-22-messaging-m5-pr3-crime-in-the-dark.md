@@ -1140,6 +1140,45 @@ commit it on its own with a message naming what the gate caught.
 
 ## Task 9: The adversarial playtest gate
 
+🔴 **DEFERRED, owner ruling 2026-09-22. Do not run this yet.** It is not
+cancelled and not weakened, it is resequenced behind the graded lighting arc,
+because measuring the world to write the goals file showed the run would
+exercise almost nothing.
+
+**The measurements that forced the deferral:**
+
+- Sight reads a room as lit at `GetVisibility() >= 1`, and night is only minus
+  1 from a base of 2. **Night never produces darkness.** A forest at midnight
+  is visibility 1, which is lit.
+- **Four** biomes set `darkarea: true`: `cave`, `dungeon`, `swamp` and the
+  unused `spiderweb`. **140 of 1387 rooms.**
+- 🔑 **43 of those are permanently lit by static room mutators**
+  (`hull_suppression` on all 31 Crash Site Interior rooms, `foldweave-glow` on
+  all 12 Foldweave cave rooms, both `lightmod: 2`, never despawning). Two of
+  the four dark zones are deliberately kept lit. **Genuinely dark: 97.**
+- **14 dark rooms DO hold faction mobs**: an 11-room Warren enclave, a 2-room
+  `ironwind_tribe` den, and Tova (`stillwater_citizens`) in Stillwater Marsh.
+  Wander and forager territory reach 2 more. **About 16 rooms, ~1% of the
+  world, across 3 of 22 factions.**
+- 🔴 **`chrysalis-glow` is a STARTER SPELL** granted to every new character,
+  commented "light source for caves". No shipped item grants light. So any
+  player can light any dark room from level 1, for everyone in it.
+
+So the gate is a real but NARROW live edge. Thornwall's cellars, the case the
+original prediction named, hold only wildlife (`rats`, `animal`, neither a
+faction), so no crime happens there at all.
+
+**Run it when the graded lighting arc lands**, because two thresholds instead
+of one put an ordinary dim room into the shapes tier, which is what turns this
+PR's `ShapesOnly` arm into live content rather than a correct branch nothing
+exercises. See [[project-graded-room-lighting-arc]].
+
+The scenarios below stand as written for that later run.
+
+---
+
+*(Original task text, held for the deferred run:)*
+
 This is where the stage ends, per the project content SOP. It is not optional
 and it is not satisfied by a green suite.
 

@@ -320,14 +320,60 @@ actually exercise.
 
 ### The gate this stage ends with
 
-The adversarial playtest per the content SOP. It must include a crime committed
-in an unlit room, which no previous playtest has ever done, and it must test
-all three tiers: a crime seen clearly, a crime in the dark with a night-vision
-mob present, and a crime in the dark with only ordinary mobs present.
+🔴 **DEFERRED by owner ruling, 2026-09-22, until the graded lighting arc
+lands.** The gate is not cancelled and not weakened; it is resequenced,
+because running it today would exercise almost nothing.
 
-🪤 The shapes tier cannot be reached by shipped content (fact 34), so it is
-exercised by an admin applying condition 85 to a mob, the same way infrared was
-finally verified on 2026-09-21. `setcondition` is admin only, so the playtest
+**Why.** Measuring the world to write the goals file overturned the play
+consequence this ruling was accepted on:
+
+- Sight treats a room as lit at `GetVisibility() >= 1`. The model is base 2,
+  night minus 1, `darkarea` biome minus 2, lit biome plus 1, any light source
+  plus 1. **So night never makes a room dark**: a forest at midnight sits at
+  1, which reads as lit. "An unlit forest stays patrolled" was wrong, because
+  there is no unlit forest.
+- **Four** biomes carry `darkarea: true`: `cave`, `dungeon`, `swamp`, and
+  `spiderweb` which no shipped room uses. That is **140 of 1387 rooms**.
+- 🔑 **43 of those are permanently lit anyway.** All 31 Crash Site Interior
+  rooms carry `hull_suppression` and all 12 Foldweave cave rooms carry
+  `foldweave-glow`, both static room mutators with `lightmod: 2`, baked into
+  the room YAML and never despawning. Two of the four dark zones content
+  designers built are deliberately kept lit, so the gate is inert there **by
+  design, not by accident.** Genuinely dark: **97 rooms**.
+- **14 dark rooms DO spawn faction-aligned mobs**, in one contiguous cluster:
+  an 11-room Warren enclave (`warren`), a 2-room goblin den
+  (`ironwind_tribe`), and Tova in Stillwater Marsh (`stillwater_citizens`).
+  Wander and forager territory add 2 more reachable dark rooms. So roughly
+  **16 rooms, about 1% of the world**, across 3 of the 22 factions.
+- 🔴 **And any player can cancel darkness at will.** No shipped ITEM grants
+  light; the only source is the spell `chrysalis-glow`, which is a STARTER
+  SPELL granted to every new character at creation, commented in
+  `internal/characters/character.go` as "light source for caves". A player
+  carrying light raises visibility for everyone in the room.
+
+So the gate is a **real but narrow live edge**, not the broad behaviour change
+the ruling was accepted on and not a no-op either. Thornwall's cellars, the
+case the original prediction named, hold only wildlife: their tunnel rat
+swarms are grouped `rats` and `animal`, neither a defined faction, so harming
+one is not a crime and it cannot witness one.
+
+**What changes that** is the graded lighting arc: ambient light varying with
+time of day, light sources weighed rather than counted, light and darkness
+spells contesting at the room level, and two thresholds instead of one so an
+ordinary dim room lands in the shapes tier. That last point matters most here,
+because it is what turns this stage's `ShapesOnly` arm from a correct branch
+nothing exercises into live content.
+
+**The gate as it will be run, once darkness is reachable:** a crime seen
+clearly; a crime in the dark with only ordinary mobs present; a crime in the
+dark with a night-vision mob present; and the sleep case, a lit room whose
+only faction mob is asleep, which is the one that proves attention is read and
+not just lighting.
+
+🪤 The shapes tier cannot be reached by shipped content today (fact 34), so
+until lighting is graded it is exercised only by an admin applying condition
+85 to a mob, the same way infrared was finally verified on 2026-09-21.
+`setcondition` is admin only and does accept a target, so the playtest
 character must be Megalomania, not Meirok.
 
 ---

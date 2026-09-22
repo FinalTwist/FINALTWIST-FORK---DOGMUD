@@ -213,14 +213,14 @@ enemies: []
 }
 
 func TestIdentifiedPerp_EmptyWitnessesIsUnknown(t *testing.T) {
-	got := IdentifiedPerp(17, []int{})
+	got := IdentifiedPerp(17, Witnesses{})
 	if got.Type != PerpUnknown {
 		t.Errorf("empty witnesses: got type %q, want unknown", got.Type)
 	}
 }
 
 func TestIdentifiedPerp_NonEmptyIsPlayer(t *testing.T) {
-	got := IdentifiedPerp(17, []int{42})
+	got := IdentifiedPerp(17, Witnesses{Identifying: []int{42}})
 	if got.Type != PerpPlayer || got.Id != 17 {
 		t.Errorf("got %+v, want {player, 17}", got)
 	}
@@ -251,8 +251,8 @@ func TestWitnessesInRoom_FiltersByFactionGroup(t *testing.T) {
 	room.AddMob(300)
 
 	got := WitnessesInRoom([]string{"thornwall_citizens"}, room, 300)
-	if len(got) != 1 || got[0] != 100 {
-		t.Errorf("WitnessesInRoom = %v, want [100]", got)
+	if len(got.Identifying) != 1 || got.Identifying[0] != 100 {
+		t.Errorf("WitnessesInRoom.Identifying = %v, want [100]", got.Identifying)
 	}
 }
 
@@ -267,8 +267,8 @@ func TestWitnessesInRoom_VictimIncludedWhenNotExcluded(t *testing.T) {
 	room.AddMob(300)
 
 	got := WitnessesInRoom([]string{"thornwall_citizens"}, room, 0) // assault: include victim
-	if len(got) != 1 || got[0] != 300 {
-		t.Errorf("WitnessesInRoom = %v, want [300] (victim self-witness)", got)
+	if len(got.Identifying) != 1 || got.Identifying[0] != 300 {
+		t.Errorf("WitnessesInRoom.Identifying = %v, want [300] (victim self-witness)", got.Identifying)
 	}
 }
 

@@ -3,6 +3,7 @@ package crimes
 import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/factions"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -190,21 +191,51 @@ func AllForPlayer(userId int, includeResolved bool) []*Crime {
 	return out
 }
 
-// WitnessesInRoom returns the list of mob instance IDs in the
-// given room whose mob template's Groups overlap any of factionIds.
-// Pass excludeInstanceId = victim's instance for murder (victim is
-// dead, not a self-witness); pass 0 for assault and theft (victim
-// is alive and a self-witness).
-func WitnessesInRoom(factionIds []string, room *rooms.Room, excludeInstanceId int) []int {
+// Witnesses splits a room's witnesses to a crime by what they could
+// actually see, because a flat list forced one answer to two different
+// questions: "did anybody notice?" and "can anybody name the
+// perpetrator?" Those questions have different answers whenever sight is
+// anything less than perfect, which unlit rooms and imperfect vision make
+// common.
+//
+// Witnesses carries two plain fields and NO helper methods, on purpose:
+// every production consumer reads Identifying, ShapesOnly is read in
+// exactly one place, and shipping unused exported methods would be dead
+// API on day one.
+type Witnesses struct {
+	// Identifying witnesses saw the room clearly and can name the perp.
+	Identifying []int
+	// ShapesOnly witnesses made out movement but no faces. They record that
+	// a crime happened; they never attribute it.
+	ShapesOnly []int
+}
+
+// WitnessesInRoom returns the mob instance IDs in the given room whose
+// mob template's Groups overlap any of factionIds, split by what each
+// mob could see. Pass excludeInstanceId = victim's instance for murder
+// (victim is dead, not a self-witness); pass 0 for assault and theft
+// (victim is alive and a self-witness).
+//
+// Sight is checked with the composed predicates messaging.CanSeeClearly
+// and messaging.CanSeeShapes, never the raw messaging.ParticipantSight.
+// ParticipantSight is optics only and deliberately excludes sleep; the
+// composed pair folds in attention (awake()) the way ParticipantSight's
+// own docstring says a non-party observer should be checked. A crime
+// witness is exactly that kind of observer, so routing through the
+// composed pair is what gets the sleep gate for free, with no separate
+// check written here. Order matters: CanSeeShapes is also true for full
+// sight, so CanSeeClearly must be tested first or every identifying
+// witness would be misclassified as shapes-only.
+func WitnessesInRoom(factionIds []string, room *rooms.Room, excludeInstanceId int) Witnesses {
 	if room == nil || len(factionIds) == 0 {
-		return nil
+		return Witnesses{}
 	}
 	wantSet := make(map[string]struct{}, len(factionIds))
 	for _, fid := range factionIds {
 		wantSet[fid] = struct{}{}
 	}
 
-	out := make([]int, 0)
+	var out Witnesses
 	for _, instId := range room.GetMobs() {
 		if instId == excludeInstanceId {
 			continue
@@ -218,7 +249,12 @@ func WitnessesInRoom(factionIds []string, room *rooms.Room, excludeInstanceId in
 		for _, g := range mob.Groups {
 			if _, hit := wantSet[g]; hit {
 				if factions.GetDefinition(g) != nil {
-					out = append(out, instId)
+					switch {
+					case messaging.CanSeeClearly(&mob.Character, room):
+						out.Identifying = append(out.Identifying, instId)
+					case messaging.CanSeeShapes(&mob.Character, room):
+						out.ShapesOnly = append(out.ShapesOnly, instId)
+					}
 					break
 				}
 			}
@@ -227,10 +263,12 @@ func WitnessesInRoom(factionIds []string, room *rooms.Room, excludeInstanceId in
 	return out
 }
 
-// IdentifiedPerp returns PerpPlayer if witnesses is non-empty,
-// otherwise PerpUnknown.
-func IdentifiedPerp(userId int, witnesses []int) Perpetrator {
-	if len(witnesses) == 0 {
+// IdentifiedPerp returns PerpPlayer if any witness could identify the
+// perpetrator, otherwise PerpUnknown. A shapes-only room, one where a
+// crime was noticed but nobody saw a face, records PerpUnknown just the
+// same as an empty room.
+func IdentifiedPerp(userId int, w Witnesses) Perpetrator {
+	if len(w.Identifying) == 0 {
 		return Perpetrator{Type: PerpUnknown}
 	}
 	return Perpetrator{Type: PerpPlayer, Id: userId}
