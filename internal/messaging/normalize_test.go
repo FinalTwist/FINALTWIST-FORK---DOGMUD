@@ -110,3 +110,30 @@ func TestNormalizeAppendKeepsTrailingNewline(t *testing.T) {
 		t.Errorf("period must go before the trailing newline, got %q", got)
 	}
 }
+
+func TestNormalizeSkipsMOTDBannerTitle(t *testing.T) {
+	// The MOTD box (internal/usercommands/motd.go:50) hand-spaces its
+	// title with single letters separated by single spaces. Dup-word
+	// collapse sees the two adjacent "S" runs as a repeated word and
+	// drops one, and end-punct then appends a stray period. The MOTD
+	// owns its own formatting and must pass through untouched.
+	in := `.:  M E S S A G E   O F   T H E   D A Y`
+	got := Normalize(CategoryBroadcast, in)
+	if got != in {
+		t.Errorf("CategoryBroadcast must skip normalization, got %q, want %q", got, in)
+	}
+}
+
+func TestNormalizeSkipsPlayerChatCasing(t *testing.T) {
+	// Broadcast carries player-typed channel chat too
+	// (internal/hooks/ChannelMessage_SendToAll.go:30, msg.Text). It
+	// must be left alone exactly like the other player-typed
+	// categories (CategorySpeech, CategoryWhisper, CategoryShout,
+	// CategoryEmote) already are: no forced capitalization, no
+	// appended period.
+	in := "hey, anyone up for a dungeon run"
+	got := Normalize(CategoryBroadcast, in)
+	if got != in {
+		t.Errorf("CategoryBroadcast must not rewrite player chat, got %q, want %q", got, in)
+	}
+}
