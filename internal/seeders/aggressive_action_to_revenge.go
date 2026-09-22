@@ -58,18 +58,32 @@ func aggressiveActionToRevenge(event events.Event) {
 	// Classify and respond for the attacked mob at victim priority.
 	seedWitnessResponse(attackedMob, pa.UserId, aggressiveVictimRevengePriority)
 
-	// Seed revenge into witnesses who SHARE a faction with the victim (the same
-	// rule crimes.WitnessesInRoom applies), at witness priority. Skip AutoAggro
-	// witnesses — they already attack on sight, so revenge is redundant noise.
+	// Seed a response into witnesses who SHARE a faction with the victim (the
+	// same rule crimes.WitnessesInRoom applies), at witness priority. Skip
+	// AutoAggro witnesses — they already attack on sight, so a response is
+	// redundant noise.
+	//
+	// The two tiers differ in RESPONSE, not eligibility: an identifying
+	// witness can name the player by ID (seedWitnessResponse, unchanged), a
+	// shapes-only witness only sensed a scuffle and gets alarmReaction at
+	// most (seedShapesOnlyWitnessResponse) because it never saw who to hunt.
 	room := rooms.LoadRoom(attackedMob.Character.RoomId)
 	if room == nil {
 		return
 	}
-	for _, witnessInstId := range crimes.WitnessesInRoom(victimFactions, room, attackedMob.InstanceId) {
+	witnesses := crimes.WitnessesInRoom(victimFactions, room, attackedMob.InstanceId)
+	for _, witnessInstId := range witnesses.Identifying {
 		witness := mobs.GetInstance(witnessInstId)
 		if witness == nil || witness.AutoAggro {
 			continue
 		}
 		seedWitnessResponse(witness, pa.UserId, aggressiveWitnessRevengePriority)
+	}
+	for _, witnessInstId := range witnesses.ShapesOnly {
+		witness := mobs.GetInstance(witnessInstId)
+		if witness == nil || witness.AutoAggro {
+			continue
+		}
+		seedShapesOnlyWitnessResponse(witness)
 	}
 }

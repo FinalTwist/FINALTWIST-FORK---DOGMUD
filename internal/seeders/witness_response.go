@@ -52,6 +52,28 @@ func seedWitnessResponse(m *mobs.Mob, playerId, priority int) {
 	}
 }
 
+// seedShapesOnlyWitnessResponse handles a witness who only made out shapes
+// and movement, not a face (crimes.Witnesses.ShapesOnly). Owner ruling
+// 2026-09-22: split by RESPONSE, not by list. A shapes-only witness that
+// would classify ResponseRevenge cannot seed a goal naming the player by
+// ID, because it never identified who to hunt — so it gets alarmReaction
+// instead, exactly like the noncombatant ResponseAlarm case, since
+// alarmReaction names nobody. ResponseReportOnly (guard, or nil) stays a
+// no-op in this tier too, same as the identifying tier: a personal
+// reaction would still derail enforcement, and a guard that only glimpsed
+// shapes has nothing more to report than one that saw clearly.
+func seedShapesOnlyWitnessResponse(m *mobs.Mob) {
+	switch classifyWitnessResponse(m) {
+	case ResponseReportOnly:
+		// no-op, exactly as in the identifying tier.
+	default:
+		// ResponseAlarm and ResponseRevenge both land here: neither can
+		// name the player by ID from shapes alone, so both get the
+		// nameless alarm reaction instead of a targeted goal.
+		alarmReaction(m)
+	}
+}
+
 // alarmReaction is a momentary fright reaction for a noncombatant witness — a
 // room-visible emote plus a single step toward an exit. No persistent goal
 // (deliberately avoids the survival-goal-pruned-at-full-HP behavior). The
