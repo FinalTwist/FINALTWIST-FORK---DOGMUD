@@ -19,8 +19,8 @@ earlier in the same session.
 | # | Fact | Evidence |
 |---|------|----------|
 | 1 | `Room.GetVisibility()` returns 0, 1 or 2. Base 2, night minus 1, dark biome minus 2, lit biome plus 1, mutator `LightMod` summed, any light source plus 1, clamped | `internal/rooms/rooms.go:145-190` |
-| 2 | 🔑 It has only **14 non-test consumers**, and **12 are binary** `>= 1` or `< 1` tests. Exactly one reads the integer | `internal/usercommands/look.go:29` is the only int read |
-| 3 | Sight treats a room as lit at `GetVisibility() >= 1`, so **2 buys nothing over 1** | `internal/messaging/predicates.go:28` |
+| 2 | ⚠️ **CORRECTED BY PLAN 1.** The real count is **11 call sites, 9 of them binary**, plus the interface declaration and the `litRoom` stand-in. `look.go` reads the integer **twice**, not once | compiler enumeration after deleting `GetVisibility`; a repo-wide grep then found 20 more `_test.go` files `go build` cannot see |
+| 3 | 🔴 **DISPROVEN BY PLAN 1. "2 buys nothing over 1" is FALSE.** Sight asks `>= 1`, but `look.go` gates seeing THROUGH an exit on `< 2`, so 2 buys corridor-peering. This is why plan 1 preserved **two** thresholds; collapsing them onto one would have silently changed exit-peering in every lit-but-not-bright room | `internal/usercommands/look.go:258` before migration, now `LightExitsAbove` |
 | 4 | 🔴 Therefore **night alone never produces darkness**: base 2 minus 1 is 1, which reads lit | facts 1 and 3 together |
 | 5 | `mutators.LightMod` is declared `-2 to 2` and is summed into visibility | `internal/mutators/mutators.go:70`, `rooms.go:170` |
 | 6 | **6 of 24 shipped mutators declare a `lightmod`**: `weather_blizzard`, `weather_dust`, `weather_storm` darken; `bioluminescent_caves`, `foldweave_glow`, `hull_suppression` brighten | `_datafiles/world/dogmud/mutators/` |
@@ -41,6 +41,12 @@ earlier in the same session.
 | 21 | `GameDate` carries `Hour24`, `Night`, `DayStart`, `NightStart`. It has **no season field** | `internal/gametime/gametime.go` |
 | 22 | There are 12 named months | `internal/gametime/months.go` |
 | 23 | A FUTURE note already awaits this work: compare visibility before and after a light-bearing actor moves, to reroll hidden actors | `internal/hooks/Awareness_LightChange.go:73` |
+| 24 | ✅ **PLAN 1 SHIPPED 2026-09-22**, PR #159, master `7e200aa47`, not deployed. `GetVisibility` deleted, `LightLevel()` live, bands at 25/50/65, behaviour preserving | `internal/rooms/lighting.go`, `internal/configs/config.balance.lighting.go` |
+| 25 | The shipped room count is **1386**, not 1387. Fact 8's dark-biome figure of 140 verified exactly: cave 120, dungeon 1, swamp 19, spiderweb 0 | `testdata/lighting_parity.golden`, biome histogram |
+| 26 | 🔑 **`nightvision` has exactly ONE content path: condition 65, granted by item 30047 Cat's Eye Draught.** 500 rounds, costs `strength: -10`, also grants `see-hidden`, craftable at alchemy `skill_minimum: 12`, sold by no vendor | `items/consumables-30000/30047-cats_eye_draught.yaml:12-13`, `conditions/65-cats_eye_draught.yaml`, `recipes/alchemy/cats-eye-draught.yaml` |
+| 27 | 🔴 **Condition 29 "Night Vision" is granted by NOTHING**, and **`infraredvision` (condition 85) is granted by NOTHING**. No item, spell, mob, species or mutation. Admin `setcondition` only, which is admin-role gated | exhaustive grep of items, spells, mobs, mutations, species |
+| 28 | 🔴 **117 of 1386 rooms resolve to a synthetic `default` biome built in Go, not authored in data, and it is `LitArea: true`.** Those rooms can never darken by biome, so plan 3's ambient will leave them permanently bright until the gaps are authored | `internal/rooms/biomes.go` `LoadBiomeDataFiles`, ~100 boot warnings from `internal/mapper/mapper.go:1192` |
+| 29 | No dazzle threshold knob exists. Plan 1 deliberately omitted it because nothing would read it | grep `internal/configs` for `Dazzle`, empty |
 
 ---
 
@@ -361,8 +367,9 @@ the moment described above.
 
 Six plans, each shipping on its own. The order is a dependency order.
 
-1. **The scale and the bands.** The graded value, the normal observer's band
-   thresholds, and all 14 consumers migrated. Thresholds and the mapping are
+1. ✅ **SHIPPED, PR #159, master `7e200aa47`** (see fact 24). **The scale and
+   the bands.** The graded value, the normal observer's band
+   thresholds, and every consumer migrated. Thresholds and the mapping are
    chosen so every shipped room keeps its current classification, so this plan
    is behaviour-preserving despite replacing the whole model.
 
@@ -384,6 +391,30 @@ Six plans, each shipping on its own. The order is a dependency order.
    from full sight to shapes at night. The window model is what makes a dim
    room correct for them.
 
+   **Owner decisions, 2026-09-22, after facts 26 and 27 were verified:**
+
+   - **The Cat's Eye Draught is REWORDED, not rescued.** Under the window
+     model its nightvision leaves the drinker blind in an unlit cave, which is
+     where its current description promises the most. Rather than bolt an
+     infra reach onto a potion that never claimed heat-sense, plan 2 rewrites
+     its description and its start and end messages so it reads as a
+     dim-and-moonlight tool. It keeps `see-hidden` and its `strength: -10`
+     cost. The true-dark answer arrives in plan 5 as its own content.
+   - **Infravision is built AND granted to mobs in this plan.** Fact 27 says
+     nothing grants it, and shipping a mechanism with no consumer is the
+     unread-surface trap that had to be stripped from M5 PR 3 before merge.
+     Granting it to cave-dwelling mobs makes both halves of the window live,
+     and makes "mobs perceive darkness" real rather than notional.
+   - **Dazzle gets NO penalty here.** The too-bright band becomes reachable in
+     this plan, because a nightvision holder at light 60 or 70 sits above their
+     shifted upper edge. It resolves as `SightFull` with no mechanical effect
+     and **no `LightDazzleAbove` knob ships**, following plan 1's own rule
+     against shipping a knob nothing reads. Dazzle earns teeth when something
+     reads them.
+   - **Plan 2 ships on its own.** Nothing deploys until the messaging arc AND
+     this entire arc are finished, so the plan-2-to-plan-3 window in which
+     nightvision is strictly worse is never experienced by a player.
+
 3. **Celestial ambient.** The sun curve, the three moons derived from lore,
    and the seasonal noon peak delivered through season mutators. This is the
    plan that makes the day/night cycle matter.
@@ -396,6 +427,15 @@ Six plans, each shipping on its own. The order is a dependency order.
    the blinding flash of a fresh cast is the default weapon against creatures
    whose windows sit low, and the manual control exists to force a light DOWN
    rather than up. See "Source strength, and the self-throttle".
+
+   **Owner addition, 2026-09-22:** this slice also ships **a nightvision
+   spell, an infravision spell, and an infravision potion**. Fact 27 is why:
+   today a single crafted potion is the entire vision-ability surface in the
+   game. Plan 2 deliberately rewords that potion down to a dim-light tool
+   rather than widening it, so this slice is where seeing in TRUE dark becomes
+   obtainable, and where it is priced. Build these against the window model
+   plan 2 established: a spell grants a nightvision strength, and the
+   infravision spell and potion grant a negative reach as well.
 6. **Balance and the deferred gate.** Retune every ambient and source value,
    then run **M5 PR 3's deferred adversarial playtest**, which this arc exists
    to make meaningful.
