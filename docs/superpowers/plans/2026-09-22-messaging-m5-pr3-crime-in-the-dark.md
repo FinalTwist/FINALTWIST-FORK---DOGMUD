@@ -1140,6 +1140,37 @@ commit it on its own with a message naming what the gate caught.
 
 ## Task 9: The adversarial playtest gate
 
+🔴 **DEFERRED, owner ruling 2026-09-22. Do not run this yet.** It is not
+cancelled and not weakened, it is resequenced behind the graded lighting arc,
+because measuring the world to write the goals file showed the run would
+exercise almost nothing.
+
+**The measurements that forced the deferral:**
+
+- Sight reads a room as lit at `GetVisibility() >= 1`, and night is only minus
+  1 from a base of 2. **Night never produces darkness.** A forest at midnight
+  is visibility 1, which is lit.
+- Only `cave` and `dungeon` set `darkarea: true`: **121 of 1436 rooms**, 25 of
+  them inside `thornwall_city` as cellars and drainage tunnels.
+- Those rooms hold wildlife. The drainage tunnels spawn tunnel rat swarms
+  whose groups are `rats` and `animal`, **neither a defined faction**. Harming
+  a factionless mob is not a crime at all, and such a mob cannot witness one.
+
+So faction crime happens where faction mobs live, which is lit, and the dark
+rooms contain creatures the crime system ignores. The gate is correct and
+currently close to unreachable.
+
+**Run it when the graded lighting arc lands**, because two thresholds instead
+of one put an ordinary dim room into the shapes tier, which is what turns this
+PR's `ShapesOnly` arm into live content rather than a correct branch nothing
+exercises. See [[project-graded-room-lighting-arc]].
+
+The scenarios below stand as written for that later run.
+
+---
+
+*(Original task text, held for the deferred run:)*
+
 This is where the stage ends, per the project content SOP. It is not optional
 and it is not satisfied by a green suite.
 
