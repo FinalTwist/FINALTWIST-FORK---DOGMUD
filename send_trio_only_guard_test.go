@@ -94,7 +94,7 @@ import (
 //
 // Honest result: zero categories added this pass. sendTrioOnlyCategories
 // stays {Kick, Trip, Bash}; sendTrioOnlyAllowed stays empty.
-var sendTrioOnlyCategories = []string{"Kick", "Trip", "Bash"}
+var sendTrioOnlyCategories = []string{"Kick", "Trip", "Bash", "Submission"}
 
 // sendTrioOnlyAllowed lists production files permitted to reference one of
 // sendTrioOnlyCategories outside a Say(...)/acteeDefenceLine(...) producer
