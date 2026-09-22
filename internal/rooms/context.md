@@ -52,6 +52,37 @@ The `internal/rooms` package is the core world management system for GoMud, hand
 - **Item requirements**: Biomes that require specific items to navigate safely
 - **Dynamic loading**: File-based biome definitions with validation
 
+### Room Lighting (`lighting.go`, graded scale, plan 1 of the lighting arc)
+
+`Room.LightLevel() int` is the light accessor every consumer now reads. It
+reports light on the graded -100 to 100 scale the lighting arc introduces,
+though plan 1 only ever produces three points on that scale:
+
+- `LightDark` = 0: no light at all, a normal observer is blind.
+- `LightRoomOnly` = 60: enough light to see the room but not down an exit.
+  What the old three-value model called visibility 1.
+- `LightFull` = 70: enough light to see the room and its exits. What the
+  old model called visibility 2.
+
+The old three-value accessor, `GetVisibility() int`, is deleted. Every
+consumer, including `internal/messaging`'s `RoomVisibility` interface,
+reads `LightLevel()` instead.
+
+`legacyVisibility()` is the old accessor's body, moved here verbatim when
+`GetVisibility` was still a call-through to it. `LightLevel` computes from
+it and maps the 0/1/2 result onto the three constants above. Nothing
+outside `LightLevel` should call `legacyVisibility`; later plans that make
+the scale continuous replace this mapping rather than extend it.
+
+The three constants are load-bearing against the thresholds in
+`internal/configs/config.balance.lighting.go` (`LightBlindBelow` default
+25, `LightDimBelow` default 50, `LightExitsAbove` default 65):
+`LightRoomOnly` (60) must sit at or above `LightDimBelow` and below
+`LightExitsAbove`, and `LightFull` (70) must sit at or above
+`LightExitsAbove`. If those defaults ever move, these three constants must
+be re-checked against the new values, or the mapping this plan depends on
+for behaviour preservation silently breaks.
+
 ### Spawn Management (`spawninfo.go`)
 - **SpawnInfo**: Comprehensive mob and item spawning system
 - **Spawn configuration**: Mob templates, items, gold, and containers
@@ -191,6 +222,7 @@ When writing hidden noun descriptions:
 |------|---------|
 | `rooms.go` | The `Room` type and its core behaviour |
 | `roommanager.go` | The room registry, load/unload, and lookup |
+| `lighting.go` | `Room.LightLevel()`, the three graded-scale constants, and `legacyVisibility()` |
 | `save_and_load.go` | Room YAML + instance-save persistence, `restoreSkipTaggedFields` |
 | `prose_wrap.go` | Re-folds long prose into wrapped `>` block scalars on template save |
 | `roomdetails.go` | Assembled per-look detail payload |

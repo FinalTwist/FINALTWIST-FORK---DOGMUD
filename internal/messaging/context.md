@@ -75,8 +75,11 @@ Types and constants:
 - `SightDecision` — `SightFull`, `SightShapes`, `SightNone`.
 - `RenderInput` — bundles Category, Text, Channel, SightDecision,
   LineWidth for one recipient's pipeline pass.
-- `RoomVisibility` — minimal interface (`GetVisibility() int`)
-  satisfied by `*rooms.Room`.
+- `RoomVisibility` — minimal interface (`LightLevel() int`)
+  satisfied by `*rooms.Room`. Renamed from `GetVisibility() int` by the
+  graded lighting arc's plan 1, task 4; `internal/rooms.Room.LightLevel()`
+  reports the room's light on the graded -100 to 100 scale (see
+  `internal/rooms/context.md`).
 - `Line` — `{Text string; Cat Category}`, one audience's view of an
   event. Built with `Say(cat, text)`.
 - `NoLine` — the zero `Line`. A viewpoint that deliberately has
@@ -129,10 +132,35 @@ Functions:
   observer can make out and nothing else — blindness, room light,
   NightVision, InfraredVision — and deliberately does NOT consult sleep,
   because sleep is an attention property, not an optical one: a sleeping
-  character's eyes work, they are simply not reading. `SightFull` when
-  light or NightVision allow clear sight; `SightShapes` for an unblinded
-  observer with InfraredVision in the dark; `SightNone` otherwise. A nil
-  observer sees fully.
+  character's eyes work, they are simply not reading. A nil observer sees
+  fully.
+
+  Since the graded lighting arc's plan 1, sight is decided by a band
+  switch read off `room.LightLevel()` against two `Balance` config
+  thresholds, checked BEFORE the flag checks below: `SightFull` when light
+  is at or above `LightDimBelow` (default 50); `SightShapes` when light is
+  at or above `LightBlindBelow` (default 25). Only if light is below both
+  bands does the function fall through to the flag checks: `SightFull` if
+  the observer carries `conditions.NightVision`, `SightShapes` if they
+  carry `conditions.InfraredVision`, otherwise `SightNone`.
+
+  The NightVision and InfraredVision flag checks are PLAN 1 LEFTOVERS, the
+  pre-graded-lighting shortcuts kept deliberately rather than redesigned in
+  the same plan that introduced the scale, because plan 1 promises no
+  player-visible change and rebuilding these branches would be one. Plan 2
+  of the lighting arc replaces them with a window model, where an ability
+  shifts where the observer's usable band sits rather than granting sight
+  outright. Today a NightVision holder sees FULLY in a pitch dark room,
+  which the window model changes.
+
+  One semantic the band switch introduces is worth recording so the next
+  reader does not mistake it for a bug: because the band switch runs
+  before the flag checks, a NightVision holder standing in a DIM room
+  (light strictly between `LightBlindBelow` and `LightDimBelow`) would get
+  `SightShapes` from the band switch rather than `SightFull` from the
+  flag. Plan 1 never reaches this case, since `Room.LightLevel()` only ever
+  returns 0, 60 or 70, and nothing maps into that 25..50 gap. Plan 3, which
+  makes the scale continuous, makes it reachable.
 - `CanSeeClearly`, `CanSeeShapes`, `CanSeeSightImpairedOnly` — each is now a
   ONE-LINE POLICY over `ParticipantSight` that composes its own attention
   rule, not three independently-implemented predicates:
@@ -228,6 +256,11 @@ flags). Everything else — `rooms`, `users`, `mobs`, `combat`,
   `internal/combatvocab` (added M4b-2, `d4e5ab20d`) for the three
   defence-name constants `Category.String()` returns. `combatvocab`
   imports nothing but the standard library, so this adds no cycle risk.
+- `messaging` also imports `internal/configs` (added by the graded
+  lighting arc's plan 1, task 4), so `ParticipantSight` can read the
+  `LightBlindBelow` / `LightDimBelow` band thresholds off
+  `configs.GetBalanceConfig()`. `configs` imports nothing from
+  `messaging`, so this adds no cycle risk either.
 - Nothing in `characters` imports `messaging` (would close a cycle).
 
 > **Corrected 2026-09-08.** This file previously documented four
