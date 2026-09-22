@@ -1060,6 +1060,45 @@ type Balance struct {
 	BandolierAttuneRounds         ConfigInt `yaml:"BandolierAttuneRounds"`         // Rounds of re-attunement after bandolier contents change (default 100)
 	SentientChatterCooldownRounds ConfigInt `yaml:"SentientChatterCooldownRounds"` // Min rounds between sentient item lines (default 20)
 	SentientChatterChancePct      ConfigInt `yaml:"SentientChatterChancePct"`      // Percent chance per eligible round that a sentient item speaks (default 15)
+
+	// ── GRADED LIGHTING ───────────────────────────────────────────────────
+	// Graded room lighting thresholds, on the -100 to 100 light scale
+	// introduced by the graded lighting arc. They define the normal
+	// observer's bands: blind below LightBlindBelow, shapes from there to
+	// LightDimBelow, and perfect above it. The dazzle threshold above the
+	// perfect band arrives with the plan that gives dazzle an effect.
+	//
+	// LightExitsAbove is separate and older in spirit: it is the threshold
+	// for seeing THROUGH an exit into the next room, which the previous
+	// model expressed as visibility 2 rather than 1.
+	//
+	// LightBlindBelow and LightDimBelow are validated as a PAIR: blind must
+	// sit strictly below dim, or the shapes band is empty or inverted and
+	// Task 4's ParticipantSight would produce nonsense. An inverted or
+	// out-of-range pair reverts BOTH to their defaults, following the
+	// DarknessShapesCombatPenalty precedent.
+	//
+	// Zero is coerced here, not honoured the way SneakFailCooldown honours
+	// it. Zero is the canonical "pitch black" light value this whole arc's
+	// default mapping depends on (an old visibility-0 room must land at
+	// light 0, and light 0 must read as blind), so an authored
+	// LightBlindBelow: 0 would silently break that mapping if kept. An
+	// operator who genuinely wants nobody ever blind should author
+	// LightBlindBelow: -100, the scale floor: nothing can read as "below
+	// -100", so the blind band becomes empty on purpose, a deliberate act
+	// rather than an accidental zero.
+	//
+	// LightExitsAbove gets its own range clamp plus one cross-axis check: it
+	// must not sit below LightBlindBelow, because a value below the blind
+	// threshold would let a blind observer see through an exit, which is not
+	// merely an unusual design but a contradiction. It is NOT required to
+	// sit above LightDimBelow; a world where an exit's shape is visible to
+	// someone who only sees shapes in their own room is unusual but not
+	// incoherent, so that stays an operator choice rather than a validator
+	// rule.
+	LightBlindBelow ConfigInt `yaml:"LightBlindBelow"` // Below this a normal observer is blind (default 25)
+	LightDimBelow   ConfigInt `yaml:"LightDimBelow"`   // Below this a normal observer reads shapes only (default 50)
+	LightExitsAbove ConfigInt `yaml:"LightExitsAbove"` // At or above this, exits into adjacent rooms are visible (default 65)
 }
 
 func (b *Balance) Validate() {
@@ -1070,6 +1109,7 @@ func (b *Balance) Validate() {
 	b.validateDiscovery()
 	b.validateShops()
 	b.validateMisc()
+	b.validateLighting()
 }
 
 func GetBalanceConfig() Balance {
