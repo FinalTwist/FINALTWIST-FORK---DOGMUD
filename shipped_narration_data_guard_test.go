@@ -445,6 +445,121 @@ func TestNoLegacyRoleKeysInShippedData(t *testing.T) {
 		filesInspected, keysInspected, len(narrationStoreWalkRoots))
 }
 
+// knownConditionObserverPhaseKeys are the only mapping keys ending in
+// "observer" the conditions store may author. inObserverRole matches any key
+// ending in that suffix, which is deliberately wide (conditions keys its
+// three phases start_observer/trigger_observer/end_observer, not a bare
+// "observer"), but the width cuts both ways: a fourth phase key, say
+// "foo_observer", would also satisfy the suffix match and would be silently
+// waved through by observerIdentityGuardContentSafeViaCode's file-level
+// exemption for conditions/*.yaml, even though nothing has proven that a
+// sender narrates it with a hidden name. Each key here is safe only because a
+// specific, audited sender is proven to pass the holder's plain name into
+// HideNames for it:
+var knownConditionObserverPhaseKeys = map[string]bool{
+	// Narrated by Condition_ApplyConditions.go, which passes the holder's
+	// plain name into HideNames when a condition is first applied.
+	"start_observer": true,
+	// Narrated by NewRound_UserRoundTick.go and NewRound_MobRoundTick.go,
+	// both of which pass the holder's plain name into HideNames on every
+	// round a condition fires.
+	"trigger_observer": true,
+	// Narrated by NewTurn_PruneConditions.go's sendConditionEndRoomText,
+	// which passes the holder's plain name into HideNames when a condition
+	// expires.
+	"end_observer": true,
+}
+
+// TestConditionObserverPhaseKeysAreKnown fails the build when the conditions
+// store authors a mapping key ending in "observer" outside the three phase
+// keys named in knownConditionObserverPhaseKeys.
+//
+// Why this exists: inObserverRole's suffix match and the conditions/*.yaml
+// entries in observerIdentityGuardContentSafeViaCode are keyed to a STORE, not
+// to the three specific phase keys that store happens to ship today. Someone
+// authoring a fourth phase key (say foo_observer) would have it accepted as
+// an observer role by the suffix match, and TestObserverIdentityTagsAreAnonymizable
+// would wave it through silently because the whole conditions/*.yaml file is
+// exempted by path. That leaves the new key either dead content or, if a
+// sender is later wired to narrate it without passing names through
+// HideNames, a live name leak that no guard would catch. This test pins the
+// vocabulary so a new phase key has to earn its way into the known set rather
+// than riding in on the file-level exemption.
+func TestConditionObserverPhaseKeysAreKnown(t *testing.T) {
+	dir := shippedWorldRoot + "/conditions"
+	files := yamlFilesUnder(t, dir)
+	if len(files) == 0 {
+		t.Fatalf("walk root %s yielded zero YAML files: the guard would scan nothing there", dir)
+	}
+
+	filesInspected := 0
+	keysFound := 0
+	for _, path := range files {
+		filesInspected++
+		keysFound += checkFileForUnknownObserverPhaseKeys(t, path)
+	}
+
+	if keysFound == 0 {
+		t.Fatal("inspected zero observer-suffixed keys: the walk found nothing, so a green run proves nothing")
+	}
+	t.Logf("inspected %d YAML files and %d observer-suffixed keys under %s", filesInspected, keysFound, dir)
+}
+
+// checkFileForUnknownObserverPhaseKeys reports every mapping key ending in
+// "observer" in one conditions file that is not in
+// knownConditionObserverPhaseKeys, and returns how many observer-suffixed
+// keys it looked at (known or not), so the caller can prove the walk is not
+// silently inspecting nothing.
+func checkFileForUnknownObserverPhaseKeys(t *testing.T, path string) int {
+	t.Helper()
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Errorf("%s: %v", path, err)
+		return 0
+	}
+
+	found := 0
+	dec := yamlv3.NewDecoder(bytes.NewReader(data))
+	for {
+		var doc yamlv3.Node
+		if err := dec.Decode(&doc); err != nil {
+			if err == io.EOF {
+				break
+			}
+			t.Errorf("%s: parse: %v", path, err)
+			return found
+		}
+		found += walkNodeForUnknownObserverPhaseKeys(t, path, &doc)
+	}
+	return found
+}
+
+func walkNodeForUnknownObserverPhaseKeys(t *testing.T, path string, n *yamlv3.Node) int {
+	t.Helper()
+
+	found := 0
+	switch n.Kind {
+	case yamlv3.DocumentNode, yamlv3.SequenceNode:
+		for _, child := range n.Content {
+			found += walkNodeForUnknownObserverPhaseKeys(t, path, child)
+		}
+	case yamlv3.MappingNode:
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			k, v := n.Content[i], n.Content[i+1]
+			if strings.HasSuffix(k.Value, "observer") {
+				found++
+				if !knownConditionObserverPhaseKeys[k.Value] {
+					t.Errorf("%s:%d: unknown observer phase key %q: inObserverRole's suffix match accepts it and observerIdentityGuardContentSafeViaCode's file-level exemption for conditions/*.yaml would wave it through silently, but no audited sender is proven to narrate it with a hidden name. Add an audited sender that passes the holder's plain name into HideNames for this phase, then add the key to knownConditionObserverPhaseKeys.",
+						filepath.ToSlash(path), k.Line, k.Value)
+				}
+			}
+			found += walkNodeForUnknownObserverPhaseKeys(t, path, v)
+		}
+	}
+	return found
+}
+
 // yamlFilesUnder returns every .yaml/.yml file at or under root. root may name
 // a single file, which three of the stores are.
 func yamlFilesUnder(t *testing.T, root string) []string {

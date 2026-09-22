@@ -94,6 +94,14 @@ import (
 //
 // Honest result: zero categories added this pass. sendTrioOnlyCategories
 // stays {Kick, Trip, Bash}; sendTrioOnlyAllowed stays empty.
+//
+// M5 PR 1 update (2026-09-22, this branch): commit 254aa49e9 migrated the
+// item_procs.go:275 condition-84 stagger shockwave -- the sender the
+// CategoryGrappleFlow/CategorySubmission bullet above names as the one raw
+// CategorySubmission sender left after PR 3 -- onto SendTrio. That was
+// CategorySubmission's last raw sender, so it joined sendTrioOnlyCategories
+// below. The bullet above is a survey record of PR 3 and stays as written;
+// this note is what supersedes it.
 var sendTrioOnlyCategories = []string{"Kick", "Trip", "Bash", "Submission"}
 
 // sendTrioOnlyAllowed lists production files permitted to reference one of
