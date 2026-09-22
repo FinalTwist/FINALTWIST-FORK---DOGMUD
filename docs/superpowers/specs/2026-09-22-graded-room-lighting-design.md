@@ -233,6 +233,71 @@ the design had missed.
 
 ---
 
+## Source strength, and the self-throttle
+
+Owner ruling 2026-09-22, for plan 5.
+
+**Strength and duration both scale from stat and skill.** The house idiom is
+`stat / statDivisor + skill / skillDivisor` with both divisors as config
+knobs, which is how unarmed damage already scales
+(`internal/characters/combat.go:96-98`). `GetSkillLevel` runs 0 to 100
+(`combat.go:105`), so an endgame caster at 175 stat and 65 skill yields
+`175/10 + 65/2 = 50` on the light scale. Two knobs rather than one lets a
+balance pass move stat and skill weighting independently.
+
+⚠️ **Duration scaling overlaps the pending spell scaling unification arc**,
+where `effect_type: buff` spells get no duration scaling at all today. Scale
+it locally here, and record that the unification should absorb it rather than
+leaving these spells as two new exceptions.
+
+### The throttle
+
+Every adjustable source, spell or hooded item, re-trims **every round** so its
+bearer is never dazzled by their own light. The target is simply the top of
+the bearer's own perfect band, which the window model already defines: 75 for
+a normal bearer, `75 - strength` for one running nightvision.
+
+🔴 **This is circular, and the circularity must be broken explicitly.** A
+source's output depends on room light, and room light includes that source.
+Two adjustable lights in one room would each assume the other fixed and
+oscillate between rounds.
+
+**Resolution: adjustable sources resolve in a deterministic order, strongest
+maximum first, ties broken by a stable id. Each computes against the room as
+lit by ambient, fixed sources, and every source already resolved, never
+including itself.**
+
+```
+my output = clamp(my target - room_so_far, 0, my max strength)
+```
+
+The strongest light fills the gap; weaker ones then see a lit room and trim to
+nothing. So a party of five casters does not produce five times the light,
+which agrees with the diminishing-returns rule rather than fighting it.
+
+### Two consequences
+
+🔑 **Light becomes a weapon.** A creature with nightvision has its window
+shifted left, so its dazzle threshold is lower than a normal creature's.
+Deliberately overloading a cave blinds precisely the things that live there.
+This is why a **manual full-power override must exist** beside the automatic
+throttle: the throttle is the default, not a cage.
+
+**A nightvision bearer under-lights the party**, targeting 51 rather than 75
+and leaving normal companions at the bottom of their perfect band. That is
+correct behaviour and wants a help-text line, not a special case.
+
+### What items are for
+
+Continuous throttling means a hooded lantern no longer differs from a spell in
+how it behaves, so plan 5 must justify items on other grounds. The honest
+ones: a lantern costs no conviction, requires no spellcasting skill, works
+while silenced, and can be handed to a companion or a mob. Item 40038 Oil
+Lantern already ships as a crafting material (fact 14 says nothing grants
+light today) and becomes functional rather than being invented.
+
+---
+
 ## Out of scope
 
 - **Rebalancing what darkness does to combat.** `DarknessCombatPenalty`
@@ -263,7 +328,11 @@ Six plans, each shipping on its own. The order is a dependency order.
    strength and its negative reach, and magical darkness gets its floor.
 5. **Light and darkness as play.** A darkness spell, light-bearing items
    (fact 14 says there are none today), and `chrysalis-glow` retuned against
-   the scale it now lives on.
+   the scale it now lives on. Strength and duration scale from stat and skill;
+   every adjustable source self-throttles each round against the resolution
+   order above; a manual full-power override exists so light can be used as a
+   weapon against creatures whose windows sit low. See "Source strength, and
+   the self-throttle".
 6. **Balance and the deferred gate.** Retune every ambient and source value,
    then run **M5 PR 3's deferred adversarial playtest**, which this arc exists
    to make meaningful.
