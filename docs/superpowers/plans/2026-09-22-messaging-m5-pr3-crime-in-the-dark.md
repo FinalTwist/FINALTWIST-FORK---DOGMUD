@@ -37,6 +37,12 @@ reproduced by running code, not by reading it.
 | 18 | Two existing tests call `WitnessesInRoom` and index the result as a slice | `crimes_test.go:253-256`, `:269-272` |
 | 19 | One existing test calls `IdentifiedPerp` with a slice literal | `crimes_test.go:222-227` |
 | 20 | `crimes` `TestMain` today only sets up the logger | `internal/crimes/test_main_test.go` |
+| 21 | `classifyWitnessResponse` already sorts witnesses three ways: guard to `ResponseReportOnly` (a no-op), noncombatant to `ResponseAlarm`, everything else to `ResponseRevenge` | `internal/seeders/witness_response.go:26-36` |
+| 22 | The two responses differ in exactly the way the sight tiers care about. `alarmReaction` emotes and steps toward an exit and NAMES NOBODY; `seedRevengeGoalIfAbsent(m, "player", playerId, priority)` targets the player BY ID | `witness_response.go:57-75` and `:44-46` |
+| 23 | `alarmReaction` is unexported and reachable only through `seedWitnessResponse` | `witness_response.go:64` |
+| 24 | 🔑 **The suspected free-reputation exploit does NOT exist.** `FindRecentAssault` skips any row where `c.Perpetrator.Type != PerpPlayer \|\| c.Perpetrator.Id != userId`, so an unattributed assault row is never found, murder Case C is unreachable for it, and the kill takes the fresh-record path instead. Chased and disproved 2026-09-22; do not re-raise | `internal/crimes/crimes.go`, `FindRecentAssault` perp filter |
+| 25 | `crimes.Record` fires unconditionally, OUTSIDE the `perp.Type == PerpPlayer` guard, and already stores `RoomId` and `Zone` | `aggression.go:39-41`; `crimes.go:85-91` |
+| 26 | Condition 15 (Sleeping) wakes on `cancel-on-action`, `cancel-on-combat` and `cancel-on-damage` only. There is no proximity or noise wake | `_datafiles/world/dogmud/conditions/15-sleeping.yaml:14-19` |
 
 ### The probed tier matrix
 
@@ -247,7 +253,16 @@ which is this project's refactoring idiom: change the declaration first and let
 the build find the call sites.
 
 **Names fixed here and used unchanged by every later task:** type `Witnesses`,
-fields `Identifying` and `ShapesOnly`, methods `All()` and `Any()`.
+fields `Identifying` and `ShapesOnly`. **No helper methods.**
+
+🔑 **Why no `All()` or `Any()`.** An earlier draft of this plan gave the type
+both. After the owner's 2026-09-22 rulings, every production consumer reads
+`Identifying`: `HadExternalWitness` and `currentExternal` take it (Tasks 3 to
+6), and the witness response splits by classification rather than by list
+(Task 7). `ShapesOnly` is read in exactly one place, Task 7's second loop.
+Shipping two exported methods that nothing calls would be dead API on day one.
+If a future consumer genuinely wants "did anybody notice at all", add the
+method then, with its caller.
 
 **Files:**
 - Modify: `internal/crimes/crimes.go:193-237`
@@ -289,11 +304,9 @@ func TestWitnessesInRoom_SplitsBySight(t *testing.T) {
 	if len(got.ShapesOnly) != 1 || got.ShapesOnly[0] != 101 {
 		t.Errorf("ShapesOnly = %v, want [101] (the infrared mob)", got.ShapesOnly)
 	}
-	if !got.Any() {
-		t.Error("Any() = false, want true: two mobs noticed the crime")
-	}
-	if len(got.All()) != 2 {
-		t.Errorf("All() = %v, want two entries: the blind mob is not a witness", got.All())
+	// The blind mob appears in neither list: it is not a witness at all.
+	if total := len(got.Identifying) + len(got.ShapesOnly); total != 2 {
+		t.Errorf("total witnesses = %d, want 2: the blind mob must not be a witness", total)
 	}
 }
 
@@ -320,8 +333,8 @@ func TestWitnessesInRoom_SleeperInLitRoomIsNotAWitness(t *testing.T) {
 	lit.AddMob(103)
 
 	got := WitnessesInRoom([]string{"thornwall_citizens"}, lit, 0)
-	if got.Any() {
-		t.Errorf("Any() = true with %+v, want false: a sleeping mob witnesses nothing even in a lit room", got)
+	if len(got.Identifying) > 0 || len(got.ShapesOnly) > 0 {
+		t.Errorf("witnesses = %+v, want empty: a sleeping mob witnesses nothing even in a lit room", got)
 	}
 }
 ```
@@ -345,27 +358,15 @@ In `internal/crimes/crimes.go`, add `"github.com/GoMudEngine/GoMud/internal/mess
 // cannot name anyone for it.
 //
 // The split exists because a flat list forced one answer to two different
-// questions: "did anybody notice?" (which drives HadExternalWitness) and
-// "can anybody name the perpetrator?" (which drives rep, bounties and
-// knowledge).
+// questions: "did anybody notice?" and "can anybody name the perpetrator?".
+// Every consumer turned out to want the second one, which is why this type
+// carries two plain fields and no helper methods: see the note below.
 type Witnesses struct {
 	// Identifying witnesses saw the room clearly and can name the perp.
 	Identifying []int
-	// ShapesOnly witnesses made out movement but no faces.
+	// ShapesOnly witnesses made out movement but no faces. They record that
+	// a crime happened; they never attribute it.
 	ShapesOnly []int
-}
-
-// All returns every witness of either tier, Identifying first.
-func (w Witnesses) All() []int {
-	out := make([]int, 0, len(w.Identifying)+len(w.ShapesOnly))
-	out = append(out, w.Identifying...)
-	out = append(out, w.ShapesOnly...)
-	return out
-}
-
-// Any reports whether anybody noticed the crime at all, at either tier.
-func (w Witnesses) Any() bool {
-	return len(w.Identifying) > 0 || len(w.ShapesOnly) > 0
 }
 
 // WitnessesInRoom returns the mob instance IDs in the given room whose mob
@@ -537,10 +538,14 @@ closing brace of the `for _, fid := range factionIds` loop with:
 	// set HadExternalWitness so the murder-upgrade path knows whether
 	// the assault was seen by someone other than the victim.
 	//
-	// Any(), not Identifying: somebody noticing the assault is what that
-	// flag records, and a witness who made out only shapes still noticed.
+	// Identifying, NOT Any() (owner ruling 2026-09-22). This flag's only
+	// consumer is the murder upgrade, which asks whether the ORIGINAL
+	// ASSAULT WAS IDENTIFIED by someone other than the victim. A bystander
+	// that made out only a figure contributes nothing to identification, so
+	// counting it would let a creature that never saw a face be treated as
+	// able to testify to who was there.
 	externalWitnesses := crimes.WitnessesInRoom(factionIds, room, mob.InstanceId)
-	hadExternal := externalWitnesses.Any()
+	hadExternal := len(externalWitnesses.Identifying) > 0
 	delta := int(configs.GetBalanceConfig().CrimeRepDeltaAssault)
 	for _, fid := range factionIds {
 		crimeIds := crimes.Record([]string{fid}, crimes.KindAssault, perp,
@@ -630,10 +635,11 @@ Inside that block:
 		witnesses := crimes.WitnessesInRoom(factionIds, room, 0)
 		perp := crimes.IdentifiedPerp(actor.GetUserId(), witnesses)
 		// External witnesses (excluding victim) for HadExternalWitness.
-		// Any(): the flag records that somebody noticed, and a shapes-only
-		// witness noticed.
+		// Identifying, not Any() (owner ruling 2026-09-22): the flag feeds
+		// the murder upgrade's "was the assault identified by someone other
+		// than the victim", and a shapes-only bystander identifies nobody.
 		externalWitnesses := crimes.WitnessesInRoom(factionIds, room, m.InstanceId)
-		hadExternal := externalWitnesses.Any()
+		hadExternal := len(externalWitnesses.Identifying) > 0
 ```
 
 and change the knowledge loop's range from `witnesses` to
@@ -660,10 +666,10 @@ git add internal/actions/steal.go
 git commit -F - <<'EOF'
 feat(crimes): theft reads the witness split
 
-Same three changes as assault: Any() for HadExternalWitness, Identifying
-for the perpetrator, Identifying for the knowledge writes. Stealing in
-an unlit room is now unattributable unless something in the room can see
-in the dark.
+Same three changes as assault, and all three read Identifying: for
+HadExternalWitness, for the perpetrator, and for the knowledge writes.
+Stealing in an unlit room is now unattributable unless something in the
+room can see in the dark.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 EOF
@@ -690,10 +696,12 @@ external witnesses is split across two lines.
 		witnesses := crimes.WitnessesInRoom(factionIds, room, 0)
 		perp := crimes.IdentifiedPerp(actor.GetUserId(), witnesses)
 		// External witnesses (excluding victim) for HadExternalWitness.
-		// Any(): the flag records that somebody noticed.
+		// Identifying, not Any() (owner ruling 2026-09-22): a shapes-only
+		// bystander identifies nobody, so it cannot make an assault
+		// "externally identified" for the murder upgrade.
 		externalWitnesses := crimes.WitnessesInRoom(factionIds, room,
 			m.InstanceId)
-		hadExternal := externalWitnesses.Any()
+		hadExternal := len(externalWitnesses.Identifying) > 0
 ```
 
 and:
@@ -719,8 +727,9 @@ git add internal/actions/plant.go
 git commit -F - <<'EOF'
 feat(crimes): planting reads the witness split
 
-The third of the three identical action-side sites. Same rule: Any() for
-whether anybody noticed, Identifying for who can name the player.
+The third of the three identical action-side sites. Same rule: the
+identifying list everywhere, because every consumer here asks who can
+name the player rather than who noticed something happen.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 EOF
@@ -756,12 +765,12 @@ then `currentExternal := len(witnesses) > 0`, then the Case A/B/C comments.
 and
 
 ```go
-	// Any(), not Identifying. currentExternal drives the assault-to-murder
-	// upgrade's four-case model, and every one of those cases asks whether
-	// the killing blow was SEEN, not whether the killer was recognised.
-	// Whether it can be attributed is IdentifiedPerp's separate answer
-	// below, and Case A already re-checks perp.Type before paying rep.
-	currentExternal := witnesses.Any()
+	// Identifying, NOT Any() (owner ruling 2026-09-22). This drives the
+	// assault-to-murder upgrade's four-case model, and every case turns on
+	// whether the killing was IDENTIFIED by someone other than the victim,
+	// not merely sensed. A shapes-only witness identifies nobody, so it
+	// must not push the upgrade into Case A.
+	currentExternal := len(witnesses.Identifying) > 0
 ```
 
 `perp := crimes.IdentifiedPerp(userId, witnesses)` needs no edit: it now takes
@@ -814,10 +823,17 @@ git add internal/hooks/MobDeath_FactionRep.go
 git commit -F - <<'EOF'
 feat(crimes): murder reads the witness split
 
-currentExternal takes Any(), because every case of the assault-to-murder
-upgrade asks whether the killing blow was seen, not whether the killer
-was recognised. Attribution is IdentifiedPerp's separate answer, and
-Case A already re-checks perp.Type before paying rep.
+currentExternal takes the identifying list, because every case of the
+assault-to-murder upgrade turns on whether the killing was identified by
+someone other than the victim, not merely sensed. A witness that made
+out a figure identifies nobody and must not push the upgrade into
+Case A.
+
+Not a free-reputation exploit in the other direction either:
+FindRecentAssault skips any row whose perpetrator is not this player, so
+an unattributed assault row is never found and Case C is unreachable for
+it. The kill takes the fresh-record path instead. Chased and disproved,
+recorded in the plan's facts table so nobody chases it twice.
 
 writeKnowledgeForWitnesses now takes Witnesses rather than a slice, so
 the Identifying choice is made once inside the helper where it cannot be
@@ -829,62 +845,239 @@ EOF
 
 ---
 
-## Task 7: Revenge seeding
+## Task 7: Witness response, split by RESPONSE and not by list
 
-⚠️ **This site is NOT in the spec.** It was found by the compiler while
-planning. See "Open owner questions": the tier it should read is an owner call,
-and this task ships the default.
+⚠️ **This site is NOT in the spec.** The compiler found it when
+`WitnessesInRoom` changed shape.
+
+🔵 **OWNER RULING 2026-09-22, settled, do not relitigate.** The answer is
+neither `All()` nor `Identifying`. **Split by the RESPONSE, not by the list.**
+
+`classifyWitnessResponse` (fact 21) already sorts witnesses three ways, and
+that classification answers the question by itself, because the three branches
+differ in exactly the way sight cares about (fact 22):
+
+| Classification | Effect today | Names anyone? |
+|---|---|---|
+| guard, `ResponseReportOnly` | no-op | no |
+| noncombatant, `ResponseAlarm` | `alarmReaction(m)`: emote, step toward an exit | **no** |
+| anything else, `ResponseRevenge` | `seedRevengeGoalIfAbsent(m, "player", playerId, priority)` | **yes, by player ID** |
+
+So the rule is:
+
+- **Identifying witnesses** go through `seedWitnessResponse` exactly as today.
+- **ShapesOnly witnesses** get `alarmReaction` ONLY, whatever they would
+  otherwise classify as, because a creature that sensed a scuffle can recoil
+  and run but cannot hunt a person it never saw.
+- **Guards stay on ReportOnly in BOTH tiers.** A guard reports through the
+  crime record; a personal reaction would derail enforcement.
 
 **Files:**
+- Modify: `internal/seeders/witness_response.go`
 - Modify: `internal/seeders/aggressive_action_to_revenge.go:62-75`
+- Test: `internal/seeders/witness_response_test.go`
 
-- [ ] **Step 1: Read the site**
+- [ ] **Step 1: Read both sites**
+
+Run: `cat internal/seeders/witness_response.go`
+
+Expected: `WitnessResponse`, `classifyWitnessResponse`, `seedWitnessResponse`
+and the unexported `alarmReaction`.
 
 Run: `sed -n '58,78p' internal/seeders/aggressive_action_to_revenge.go`
 
-Expected: a `for _, witnessInstId := range crimes.WitnessesInRoom(victimFactions, room, attackedMob.InstanceId)` loop that skips `AutoAggro` witnesses and seeds a revenge response into the rest.
+Expected: a `for _, witnessInstId := range crimes.WitnessesInRoom(victimFactions, room, attackedMob.InstanceId)` loop that skips `AutoAggro` witnesses and calls `seedWitnessResponse`.
 
-- [ ] **Step 2: Range over All()**
+- [ ] **Step 2: Write the failing test**
+
+Create `internal/seeders/witness_response_test.go` (if the file exists, append
+these three tests to it):
 
 ```go
-	// Seed revenge into witnesses who SHARE a faction with the victim (the same
-	// rule crimes.WitnessesInRoom applies), at witness priority. Skip AutoAggro
-	// witnesses - they already attack on sight, so revenge is redundant noise.
-	//
-	// All(), so a witness that made out only shapes still joins in. It sensed
-	// an attack on its own faction; not being able to name the attacker does
-	// not make it indifferent. This is the ONE line to change if the owner
-	// rules that revenge requires identification: swap All() for Identifying.
-	for _, witnessInstId := range crimes.WitnessesInRoom(victimFactions, room, attackedMob.InstanceId).All() {
+package seeders
+
+import (
+	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+)
+
+// TestShapesOnlyWitness_NoncombatantGetsAlarmOnly is the baseline: a
+// noncombatant behaves the same in both tiers, because its response never
+// named anybody to begin with.
+func TestShapesOnlyWitness_NoncombatantGetsAlarmOnly(t *testing.T) {
+	m := newNoncombatantWitnessForTest(t)
+	seedShapesOnlyWitnessResponse(m)
+
+	if hasRevengeGoalForTest(t, m) {
+		t.Error("a shapes-only noncombatant seeded a revenge goal; it saw no face to hunt")
+	}
+	if !issuedAlarmForTest(t, m) {
+		t.Error("a shapes-only noncombatant issued no alarm reaction")
+	}
+}
+
+// TestShapesOnlyWitness_FighterAlsoGetsAlarmOnly is the ruling's actual
+// content: a combat-capable mob that would normally take revenge collapses
+// into the alarm, because seedRevengeGoalIfAbsent targets the player BY ID
+// and this witness has no ID to target.
+func TestShapesOnlyWitness_FighterAlsoGetsAlarmOnly(t *testing.T) {
+	m := newFighterWitnessForTest(t)
+	if got := classifyWitnessResponse(m); got != ResponseRevenge {
+		t.Fatalf("fixture misbuilt: classifyWitnessResponse = %v, want ResponseRevenge", got)
+	}
+
+	seedShapesOnlyWitnessResponse(m)
+
+	if hasRevengeGoalForTest(t, m) {
+		t.Error("a shapes-only fighter seeded a revenge goal against a player it never saw")
+	}
+	if !issuedAlarmForTest(t, m) {
+		t.Error("a shapes-only fighter issued no alarm reaction")
+	}
+}
+
+// TestIdentifyingWitness_FighterStillTakesRevenge proves the gate did not
+// quietly disarm the identifying tier as well.
+func TestIdentifyingWitness_FighterStillTakesRevenge(t *testing.T) {
+	m := newFighterWitnessForTest(t)
+	seedWitnessResponse(m, 17, aggressiveWitnessRevengePriority)
+
+	if !hasRevengeGoalForTest(t, m) {
+		t.Error("an identifying fighter seeded no revenge goal; the identifying tier must be unchanged")
+	}
+}
+
+// TestShapesOnlyWitness_GuardStillReportsOnly pins the third branch: a guard
+// is a no-op in both tiers.
+func TestShapesOnlyWitness_GuardStillReportsOnly(t *testing.T) {
+	m := newGuardWitnessForTest(t)
+	seedShapesOnlyWitnessResponse(m)
+
+	if hasRevengeGoalForTest(t, m) {
+		t.Error("a shapes-only guard seeded a revenge goal")
+	}
+	if issuedAlarmForTest(t, m) {
+		t.Error("a shapes-only guard issued an alarm; guards report through the crime record instead")
+	}
+}
 ```
 
-- [ ] **Step 3: Build and test**
+**Fixtures and assertion helpers.** `alarmReaction` works by issuing
+`m.Command(...)`, and `seedRevengeGoalIfAbsent` writes a goal onto the mob, so
+both are observable on the mob itself. Before writing the four helpers
+(`newNoncombatantWitnessForTest`, `newFighterWitnessForTest`,
+`newGuardWitnessForTest`, `hasRevengeGoalForTest`, `issuedAlarmForTest`), read
+how the package's existing tests build a mob and inspect its goals:
+
+Run: `ls internal/seeders/*_test.go && grep -rn "mobs.Mob{" internal/seeders/*_test.go | head`
+
+Build the fixtures on whatever pattern is already there. `newGuardWitnessForTest`
+must give the mob a group that `mobs.IsGuardMob` recognises, and
+`newNoncombatantWitnessForTest` must satisfy `m.IsNonCombatant()`; check both
+predicates' sources before choosing the fixture data, rather than guessing at
+a group name.
+
+- [ ] **Step 3: Run it and watch it fail to compile**
+
+Run: `go test ./internal/seeders/ -run TestShapesOnlyWitness`
+
+Expected: build failure, `undefined: seedShapesOnlyWitnessResponse`.
+
+- [ ] **Step 4: Add the shapes-tier responder**
+
+In `internal/seeders/witness_response.go`, directly below `seedWitnessResponse`:
+
+```go
+// seedShapesOnlyWitnessResponse is seedWitnessResponse for a witness that made
+// out shapes but no faces (crimes.Witnesses.ShapesOnly).
+//
+// Owner ruling 2026-09-22: the tier is decided by the RESPONSE, not by which
+// list the witness came from. ResponseRevenge collapses into the alarm here,
+// because seedRevengeGoalIfAbsent targets the player BY ID and this witness
+// has no identity to target: it can recoil and run, it cannot hunt a person it
+// never saw. ResponseAlarm is already identical in both tiers, since
+// alarmReaction names nobody. Guards stay a no-op in both tiers, because a
+// personal reaction would derail enforcement.
+//
+// It stays in this file so alarmReaction does not need exporting for a single
+// extra caller.
+func seedShapesOnlyWitnessResponse(m *mobs.Mob) {
+	switch classifyWitnessResponse(m) {
+	case ResponseReportOnly:
+		// no-op, exactly as in the identifying tier.
+	default:
+		// ResponseAlarm and ResponseRevenge both land here.
+		alarmReaction(m)
+	}
+}
+```
+
+- [ ] **Step 5: Run the tests and watch them pass**
+
+Run: `go test ./internal/seeders/ -run "TestShapesOnlyWitness|TestIdentifyingWitness" -v 2>&1 | tail -20`
+
+Expected: PASS on all four.
+
+- [ ] **Step 6: Split the caller's loop by tier**
+
+In `internal/seeders/aggressive_action_to_revenge.go`, replace the single
+witness loop with:
+
+```go
+	// Witnesses who SHARE a faction with the victim (the same rule
+	// crimes.WitnessesInRoom applies), at witness priority. Skip AutoAggro
+	// witnesses - they already attack on sight, so revenge is redundant noise.
+	//
+	// The two tiers get different responses, not different eligibility (owner
+	// ruling 2026-09-22): a witness that made out only shapes can raise the
+	// alarm but cannot seed a goal that targets the player by ID.
+	witnesses := crimes.WitnessesInRoom(victimFactions, room, attackedMob.InstanceId)
+	for _, witnessInstId := range witnesses.Identifying {
+		witness := mobs.GetInstance(witnessInstId)
+		if witness == nil || witness.AutoAggro {
+			continue
+		}
+		seedWitnessResponse(witness, pa.UserId, aggressiveWitnessRevengePriority)
+	}
+	for _, witnessInstId := range witnesses.ShapesOnly {
+		witness := mobs.GetInstance(witnessInstId)
+		if witness == nil || witness.AutoAggro {
+			continue
+		}
+		seedShapesOnlyWitnessResponse(witness)
+	}
+```
+
+- [ ] **Step 7: Build and test**
 
 Run: `go build ./internal/seeders/ && go test ./internal/seeders/ 2>&1 | tail -5`
 
-Expected: no build output, then `ok` or `no test files`.
+Expected: no build output, then `ok  github.com/GoMudEngine/GoMud/internal/seeders`.
 
-- [ ] **Step 4: Prove the whole tree builds**
+- [ ] **Step 8: Prove the whole tree builds**
 
 Run: `go build ./... 2>&1 | head -20`
 
 Expected: no output. Every consumer of the changed signature is now updated,
 which is the compiler confirming the enumeration is complete.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add internal/seeders/aggressive_action_to_revenge.go
+git add internal/seeders/witness_response.go internal/seeders/aggressive_action_to_revenge.go internal/seeders/witness_response_test.go
 git commit -F - <<'EOF'
-feat(crimes): revenge seeding reads the witness split
+feat(crimes): a witness that saw no face raises the alarm, not a hunt
 
-A mob that cannot see the room no longer seeds revenge, because it is no
-longer a witness at all.
+A mob that cannot see the room no longer responds at all, because it is
+no longer a witness.
 
-Shapes-only witnesses DO seed revenge, on All(). Sensing an attack on
-your own faction is enough to join in; naming the attacker is a
-different question. Flagged for the owner, and it is a one-line change
-to Identifying if they rule the other way.
+For the shapes tier the owner ruled the split belongs on the RESPONSE
+rather than the witness list, and the existing classification already
+draws that line: alarmReaction emotes and runs and names nobody, while
+seedRevengeGoalIfAbsent targets the player by ID. So a shapes-only
+witness gets the alarm whatever it would otherwise classify as, a
+combat-capable one included, and guards stay a no-op in both tiers.
 
 This site is not in the M5 spec. The compiler found it when
 WitnessesInRoom changed shape, which is why the return type changed
@@ -1090,12 +1283,18 @@ EOF
    outside tests and an admin command. The owner accepted this. It is a real
    risk only in that a future bug there would be invisible until something
    grants condition 85.
-4. **`currentExternal` changing from `len(witnesses) > 0` to `witnesses.Any()`
-   is behaviour-preserving only if the gate is correct.** If the gate wrongly
-   excludes a witness, the murder upgrade silently takes Case C and REFUNDS the
-   assault rep. That is a quiet, player-favouring failure, which is the kind
-   that goes unreported. Task 8's full suite plus playtest scenario 1 are what
-   stand between that and production.
+4. **`currentExternal` is now `len(witnesses.Identifying) > 0`, which is
+   strictly narrower than today's `len(witnesses) > 0`.** If the gate wrongly
+   excludes a witness, or wrongly files one as ShapesOnly, the murder upgrade
+   silently takes Case C and REFUNDS the assault rep. That is a quiet,
+   player-favouring failure, which is the kind that goes unreported. Task 8's
+   full suite plus playtest scenario 1 are what stand between that and
+   production.
+
+   🔑 The mirror-image worry, that an unattributed assault could be farmed for
+   free rep through Case C, was chased and DISPROVED (fact 24). Do not re-raise
+   it: `FindRecentAssault` never matches a row whose perpetrator is not this
+   player, so Case C cannot be reached for an unattributed assault at all.
 5. **Two existing crimes tests were written against a world with no lighting at
    all.** Task 1 gives that binary real data, which means those tests now
    exercise a code path they never did. If either starts failing for a reason
@@ -1104,19 +1303,52 @@ EOF
 
 ---
 
-## Open owner questions
+## Settled by the owner, 2026-09-22
 
-1. 🔴 **Does a shapes-only witness seed revenge?** Task 7 ships `All()`: a mob
-   that sensed an attack on its own faction joins in, even though it cannot
-   name the attacker. The alternative reading is that you cannot take revenge
-   on someone you never saw, which would be `Identifying`. It is a one-line
-   change either way and the line is commented to say so. This site is not in
-   the spec; the compiler found it.
-2. **Should `HadExternalWitness` really take `Any()`?** The plan says yes, on
-   the grounds that the flag records that somebody noticed. If the owner reads
-   it as "somebody who could testify," it becomes `len(Identifying) > 0` at
-   three sites, and murder Case B changes meaning for shapes-only assaults.
-3. **Does a shapes-only witness deserve any knowledge record at all?** The plan
-   writes none, because every knowledge call is keyed on the player subject and
-   there is no "saw a crime, cannot say who" subject today. Adding one would be
-   a `knowledge` package change and is deliberately out of scope here.
+All three questions this plan opened have been answered. They are recorded here
+as rulings and implemented in the tasks above; do not reopen them.
+
+1. **Witness response is split by RESPONSE, not by list.** Task 7. Neither
+   `All()` nor `Identifying`: identifying witnesses take the existing
+   `seedWitnessResponse`, shapes-only witnesses get `alarmReaction` alone
+   whatever they classify as, and guards stay a no-op in both tiers.
+2. **`HadExternalWitness` takes the identifying list, minus the victim.**
+   Tasks 3, 4, 5, and `currentExternal` in Task 6. Its only consumer asks
+   whether the assault was identified by someone other than the victim, and a
+   shapes-only bystander identifies nobody.
+3. **No new knowledge `Subject` is needed, and none is built.** See the note
+   below: the substrate a future system would read already ships.
+
+### The crime-heat substrate ships with this PR; the system that reads it does not
+
+The owner wants "a place with frequent crimes goes on high alert and hires more
+guards." That is **future work and explicitly not M5.**
+
+It needs nothing added here. `crimes.Record` already fires unconditionally,
+outside the `perp.Type == PerpPlayer` guard, and already stores `RoomId` and
+`Zone` (fact 25). So a shapes-only crime already lands in the faction crime log
+as a located, unattributed row, which is exactly the shape a heat system would
+count. This PR makes that row *more* common rather than less, since crimes in
+the dark now record as `PerpUnknown` instead of being fully attributed.
+
+**Build none of it here.** The note exists so that whoever picks the feature up
+knows the data is already being written and does not add a parallel log.
+
+### Filed, not built: a sleeping bystander never wakes to a nearby brawl
+
+The owner raised a noise-based wake system as a separate future sidequest, and
+it interacts with this PR directly enough to record.
+
+Condition 15 wakes on `cancel-on-action`, `cancel-on-combat` and
+`cancel-on-damage` only (fact 26). There is no proximity or noise trigger, so a
+sleeper wakes when violence lands **on it**, never because a fight is happening
+next to it.
+
+After this PR, therefore, a sleeping bystander witnesses nothing no matter how
+long a brawl runs in its room. That is correct under the sleep gate and it is
+what the owner asked for. It is also precisely the behaviour a noise-based wake
+system would change, and **this PR is where that behaviour is decided**, so the
+next person to touch it should start here rather than assuming the sleep gate
+was an oversight.
+
+Build none of it in M5.

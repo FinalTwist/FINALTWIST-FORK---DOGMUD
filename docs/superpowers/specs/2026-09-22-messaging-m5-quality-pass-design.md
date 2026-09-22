@@ -284,10 +284,30 @@ should not seek revenge either, so it is in scope.
 Changing the return type rather than adding a parameter makes the compiler
 enumerate all five, which is this project's established refactoring idiom.
 
-**Open owner questions, recorded at the foot of the plan:** whether revenge
-seeding reads every witness or only the identifying ones; whether
-`HadExternalWitness` does the same; and whether a "saw a crime, cannot say who"
-knowledge subject should exist at all, which today it does not.
+**All three open questions were answered by the owner on 2026-09-22:**
+
+1. **Revenge seeding splits by RESPONSE, not by list.**
+   `classifyWitnessResponse` already sorts witnesses into guard (no-op),
+   noncombatant (`alarmReaction`, which names nobody) and everything else
+   (`seedRevengeGoalIfAbsent`, which targets a player by id). So `Identifying`
+   witnesses behave exactly as today, and `ShapesOnly` witnesses get the alarm
+   only, whatever they would otherwise classify as. A creature that sensed a
+   scuffle can recoil and run; it cannot hunt a person it never saw.
+2. **`HadExternalWitness` reads `Identifying`, excluding the victim.** Its only
+   consumer asks whether the assault was identified by somebody other than the
+   victim, and a shapes-only bystander contributes nothing to identification.
+3. **No new knowledge subject is needed.** `crimes.Record` already fires
+   unconditionally, outside the `PerpPlayer` guard, and already stores
+   `RoomId` and `Zone`, so a shapes-only crime already lands in the faction
+   crime log, located and unattributed. The owner's "a place with frequent
+   crime goes on high alert and hires more guards" is a future feature that
+   reads that log; this stage ships its substrate and nothing more.
+
+🪤 **A suspected free-reputation exploit here was chased and DISPROVED.** Do
+not re-raise it: `FindRecentAssault` matches only rows whose perpetrator is
+`PerpPlayer` with that user's id, so an unattributed assault row is never
+found, murder-upgrade Case C is unreachable for it, and the kill takes the
+fresh-record path instead.
 
 ### What this changes in play
 
@@ -334,6 +354,21 @@ character must be Megalomania, not Meirok.
 - **Splitting `CategorySystem`.** Two separate mechanisms now misbehave because
   one category carries both prose and pre-formatted output. That is the real
   fix, and it is too large for M5.
+- **Noise-based waking** (owner sidequest, 2026-09-22, scheduled after M5).
+  Waking is already half data-driven: condition 15 ships `cancel-on-damage`,
+  `cancel-on-combat` and `cancel-on-action`, so violence landing ON a sleeper
+  wakes it. The gap is bystanders, and only `shout`, arriving with a light and
+  a steal attempt wake a third party today.
+
+  🔑 **This stage is where that behaviour is decided.** After PR 3 a sleeping
+  bystander witnesses nothing however long a brawl runs beside it, which is
+  correct per the sleep gate and is exactly what the noise system would
+  nuance: one killing blow should not wake a guard, several rounds should.
+  Filed in full, with the eleven hand-rolled wake sites and the trap that
+  `mobs.OnSleeperWoken` is schedule bookkeeping rather than the wake itself.
+- **A heat system** reading the crime log by room and zone, to raise alert and
+  spawn guards where crime is frequent. Owner-proposed, future. Its substrate
+  ships with PR 3.
 
 ---
 
