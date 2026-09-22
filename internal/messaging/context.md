@@ -256,7 +256,7 @@ The package is the pipeline, one stage per file, plus the fan-out (`trio.go`):
 | File | Stage |
 |------|-------|
 | `messaging.go` | Entry points and the `Category` vocabulary |
-| `pipeline.go` | Stage ordering — compose → normalize → anonymize → color → wrap → deliver |
+| `pipeline.go` | Stage ordering: compose, normalize, sight gate, anonymize, color, wrap, deliver |
 | `normalize.go` | Grammar and article normalisation |
 | `anonymize.go` | Replacing names the observer should not see (infrared fallback, whole-line) |
 | `hidenames.go` | `HideNames` — replacing specific names in bare prose, longest-first, whole-word |
