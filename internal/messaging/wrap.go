@@ -3,6 +3,7 @@ package messaging
 import (
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 // ansiTagPattern matches <ansi …> (any attribute set, including fg,
@@ -152,10 +153,13 @@ func WrapAnsi(text string, maxWidth int) (wrapped string) {
 			i++
 			continue
 		}
-		// Visible character.
-		curWord.WriteByte(text[i])
+		// Visible character. Advance by one RUNE: the counter is display
+		// columns, and indexing the string byte-by-byte made every
+		// multi-byte character count as two or more columns.
+		_, size := utf8.DecodeRuneInString(text[i:])
+		curWord.WriteString(text[i : i+size])
 		curWordW++
-		i++
+		i += size
 	}
 	if curWord.Len() > 0 {
 		flushWord()

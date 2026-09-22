@@ -224,3 +224,30 @@ func TestWrapAnsiHandlesThreeLevelNesting(t *testing.T) {
 		}
 	}
 }
+
+// TestWrapAnsiCountsRunesNotBytes pins the width unit. Reproduced against
+// the old code: twenty two-byte runes plus "t ail" broke at visible column
+// 21 against a requested width of 40, because each two-byte rune counted
+// as two columns.
+func TestWrapAnsiCountsRunesNotBytes(t *testing.T) {
+	word := strings.Repeat("\u00e9", 20) // e-acute, 2 bytes each
+	in := word + "t ail"                 // 21 visible columns, then a space, then 3 more
+
+	got := WrapAnsi(in, 40)
+	if strings.Contains(got, "\n") {
+		t.Fatalf("25 visible columns must not wrap at width 40, got:\n%q", got)
+	}
+
+	// And a multi-byte character sitting exactly at the boundary.
+	boundary := word + " " + word // 20 + 1 + 20 = 41 visible columns
+	wrapped := WrapAnsi(boundary, 40)
+	lines := splitLines(wrapped)
+	if len(lines) != 2 {
+		t.Fatalf("41 visible columns at width 40 must wrap into 2 lines, got %d:\n%q", len(lines), wrapped)
+	}
+	for i, line := range lines {
+		if w := displayWidth(line); w > 40 {
+			t.Errorf("line %d is %d visible columns, over the 40 requested: %q", i+1, w, line)
+		}
+	}
+}
