@@ -38,7 +38,8 @@ CORRECTS overturn something an existing arc document asserts.
 | 16 | Speech self-echo is already wrapped at a hardcoded 80, ignoring `LineWidth` | `say.go:39`, `shout.go:63`, `reply.go:37`, `whisper.go:56` |
 | 17 | Four categories have zero production sends: `GrappleHigh`, `Login`, `OOC`, `Toxin` | `messaging.go:40`, `:86`, `:72`, `:103` |
 | 18 | 🔴 CORRECTS the arc spec and the M6 ledger. Of the 17 bare `_plain` condition lines, 15 were fixed on 2026-09-21 | `39b75fe07`; `Condition_ApplyConditions.go:170`, `NewRound_UserRoundTick.go:302`, `NewRound_MobRoundTick.go:287` |
-| 19 | Two remain, both End phase, which never got that fix | `NewTurn_PruneConditions.go:130-138` passes no names; leaks are `conditions/1-illumination.yaml:12` and `conditions/9-hidden.yaml:15` |
+| 19 | 🔴 CORRECTED while planning. **One** leaks, not two. `NewTurn_PruneConditions.go:130-138` passes no names, so neither End line can hide a name, but only `conditions/9-hidden.yaml:15` reaches a reader who should not see it | see row 19a |
+| 19a | `conditions/1-illumination.yaml:12` is safe BY CONSTRUCTION, not by design. It carries `EmitsLight`, so it goes through `SendTextVisualAsLit`, which judges sight against `litRoom{}` (`rooms.go:345`, visibility hardcoded to 1). `ParticipantSight` therefore returns `SightFull` for anyone unblinded and `SightNone` otherwise, so `SightShapes` is unreachable on that path, and `HideNames` runs only at `SightShapes` (`rooms.go:370`). The safety is accidental and undefended: give the lit path a shapes tier and every light condition with a bare token leaks at once | `rooms.go:338-345`, `:362-376`; `predicates.go:51-68` |
 | 20 | 🔴 NEW, in no document. `throw.go` builds one Audience with `ActeeName: NoName`, but `player_cast_interrupt` renders a real mob name into `{actee_plain}` | `usercommands/throw.go:290-296`, `:363-366`; `throw.yaml:26,28`. `NoName` is treated as "nobody to hide" at `trio.go:127` and `hidenames.go:48` |
 | 21 | `Anonymize` strips identity TAGS only and says so in its own docstring | `internal/messaging/anonymize.go:25-31` |
 | 22 | The guard for this class already exists in one store. Quest observer lines refuse `{actor_plain}` at load | `internal/quests/roomtext.go:32-34` |
@@ -101,10 +102,16 @@ revertible.
 
 ### 1a. Close the bare `_plain` leak, then close the class
 
-The two remaining End-phase lines (fact 19) are fixed the way the other 15
+The remaining End-phase line (facts 19, 19a) is fixed the way the other 15
 already were: `sendConditionEndRoomText` passes the holder's plain name so
 `HideNames` runs. `throw.go`'s `player_cast_interrupt` (fact 20) gets the real
 actee name into the hide list for that event.
+
+Both End paths get names threaded through, including the lit one whose bare
+token cannot currently leak (fact 19a), because that safety is an accident of
+`litRoom{}` rather than a decision. A test pins the structural reason, so a
+future shapes tier on the lit path fails loudly instead of silently converting
+every light condition with a bare token into a live leak.
 
 Then the class closes. Quest observer lines already refuse a bare
 `{actor_plain}` at load (fact 22). That rule generalizes into a shipped-data
@@ -183,6 +190,33 @@ admit:
   would therefore wrap twice at two different widths
 - the four dead categories (fact 17), which would be unreachable policy
 
+### 🔴 Two findings that change what 2c can assert
+
+Both measured while planning, neither known when this spec was drafted.
+
+**`WrapAnsi` destroys a table without adding a line.** A real
+`templates.DynamicList` table went from 494 bytes to 436 at width 55 with its
+newline count unchanged, because `flushWord` collapses runs of padding spaces.
+So the obvious guard, asserting the line count did not change, would pass while
+an inventory listing was ruined. **The guard must be a checked-in golden of the
+rendered bytes**, not a shape assertion.
+
+**The pipeline already alters a table today, with wrap off.** Byte-identity
+against the raw template render fails on day one: stage 5 wraps the sheet in
+`<ansi fg="system">`, and stage 2 normalizes it, because
+`skipStages(CategorySystem)` returns 0 and runs all five normalization stages
+over table output. One live consequence: normalization appends sentence
+punctuation to the status sheet's last row, so a player reads
+`auto-tap-below 15.` where the template authored `auto-tap-below 15`.
+
+🔑 **That stray period is the mixed-bucket problem again, in a second
+mechanism.** It is not a wrap bug and it does not have a category-level fix:
+adding `CategorySystem` to `skipStages` would disable capitalization and a/an
+agreement across roughly 1975 refusal sites to protect a few dozen tables.
+`Category` is the wrong axis for normalization for exactly the reason it is the
+wrong axis for wrap. Filed, not fixed here, and the golden deliberately locks
+in the stray period so nobody re-records it by accident.
+
 ### 2c. Guards
 
 A golden that renders a real table and the MOTD banner through the pipeline and
@@ -221,10 +255,39 @@ witnesses nothing, in a lit room or a dark one.
 
 ### The knowledge side
 
-`aggression.go:48-58` gives every witness both `RecordCrimeWitnessed` and
-`RecordMet`. A shapes-only witness records the crime and must NOT record having
-met anyone: it saw a figure, not a face. `steal.go`, `plant.go` and
-`MobDeath_FactionRep.go` carry the same shape and get the same treatment.
+🔴 **CORRECTED while planning. The obvious rule is wrong and would leak.**
+
+The intuitive split is to give a shapes-only witness `RecordCrimeWitnessed` but
+not `RecordMet`, on the grounds that it saw a figure and not a face. That does
+not work: **both calls are keyed on `knowledge.PlayerSubject(userId)`**
+(`knowledge/types.go:15`), so `RecordCrimeWitnessed` already means "this mob
+knows player X did it". Handing it to a witness who could not identify anyone
+writes exactly the identity the tier exists to withhold.
+
+The correct rule needs no split at all: **the knowledge loop iterates
+`Identifying` only.**
+
+🔴 **This is a live defect today, not merely a design note.** `perp` is
+computed once for the whole room, so a single clear-sighted witness opens the
+`perp.Type == PerpPlayer` guard at `aggression.go:46` and the loop beneath it
+then writes player-subject knowledge for **every** witness in the room,
+including ones that cannot see. `steal.go`, `plant.go` and
+`MobDeath_FactionRep.go` are checked for the same shape.
+
+### There are five call sites, not four
+
+Found while planning. Besides `aggression.go`, `steal.go`, `plant.go` and
+`MobDeath_FactionRep.go`, the revenge AI seeder reads the same list at
+`internal/seeders/aggressive_action_to_revenge.go:68`. A mob that cannot see
+should not seek revenge either, so it is in scope.
+
+Changing the return type rather than adding a parameter makes the compiler
+enumerate all five, which is this project's established refactoring idiom.
+
+**Open owner questions, recorded at the foot of the plan:** whether revenge
+seeding reads every witness or only the identifying ones; whether
+`HadExternalWitness` does the same; and whether a "saw a crime, cannot say who"
+knowledge subject should exist at all, which today it does not.
 
 ### What this changes in play
 
@@ -264,6 +327,13 @@ character must be Megalomania, not Meirok.
   item (fact 34). A content decision, not M5's.
 - **Em dashes in shipped tips.** The longest tip contains them. M6 ledger row
   55 already owns em dashes in shipped narration; tips are the same family.
+- **Normalization runs over table output**, appending a stray sentence period
+  to the status sheet. Same mixed-bucket root cause as the wrap exclusion, and
+  like it, not fixable at category granularity. Filed for whoever splits
+  `CategorySystem`.
+- **Splitting `CategorySystem`.** Two separate mechanisms now misbehave because
+  one category carries both prose and pre-formatted output. That is the real
+  fix, and it is too large for M5.
 
 ---
 
@@ -281,4 +351,5 @@ character must be Megalomania, not Meirok.
    lit sees no change at all, which is most of the world.
 4. **Fact 18 means the anonymizer item is far smaller than every document
    says.** If a reviewer sizes PR 1 from the arc spec or the M6 ledger they
-   will expect 17 fixes and find 2. The facts table exists to prevent that.
+   will expect 17 fixes and find one real leak plus one hardening (facts 19,
+   19a). The facts table exists to prevent that.
