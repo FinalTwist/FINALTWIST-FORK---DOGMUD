@@ -66,7 +66,13 @@ func MobDeathFactionRep(e events.Event) events.ListenerReturn {
 	deltaMurder := int(cfg.CrimeRepDeltaMurder)
 	deltaAssault := int(cfg.CrimeRepDeltaAssault)
 
-	currentExternal := len(witnesses) > 0
+	// OWNER RULING 2026-09-22: currentExternal reads Identifying, not the
+	// full witness set. Every case of the four-case assault-to-murder
+	// upgrade below turns on whether the killing blow was IDENTIFIED by
+	// someone other than the victim, not merely sensed. A shapes-only
+	// witness identifies nobody, so it must not push the upgrade into
+	// the full-identification path (Case A).
+	currentExternal := len(witnesses.Identifying) > 0
 
 	for userId := range toBump {
 		perp := crimes.IdentifiedPerp(userId, witnesses)
@@ -140,13 +146,20 @@ func MobDeathFactionRep(e events.Event) events.ListenerReturn {
 // writeKnowledgeForWitnesses writes a knowledge record for each witness
 // linking them to the given crime IDs and the player perp. Skips when
 // perp is not a player (e.g. PerpUnknown in Case C).
-func writeKnowledgeForWitnesses(witnesses []int, perp crimes.Perpetrator,
+//
+// Takes crimes.Witnesses rather than a []int so the Identifying/ShapesOnly
+// choice is made in exactly one place and cannot be got wrong by a caller.
+// Both knowledge.RecordCrimeWitnessed and knowledge.RecordMet are keyed on
+// the PLAYER SUBJECT (who did it), so a shapes-only witness must never
+// appear here: recording one would tell a mob it knows exactly who the
+// killer was when all it actually saw was a figure.
+func writeKnowledgeForWitnesses(witnesses crimes.Witnesses, perp crimes.Perpetrator,
 	crimeIds []int, roomId int) {
 	if perp.Type != crimes.PerpPlayer {
 		return
 	}
 	subject := knowledge.PlayerSubject(perp.Id)
-	for _, witnessInstId := range witnesses {
+	for _, witnessInstId := range witnesses.Identifying {
 		w := mobs.GetInstance(witnessInstId)
 		if w == nil {
 			continue
