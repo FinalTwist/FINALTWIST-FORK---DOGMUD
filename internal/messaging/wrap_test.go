@@ -1,6 +1,9 @@
 package messaging
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestWrapAnsiShortLineUnchanged(t *testing.T) {
 	got := WrapAnsi("short", 80)
@@ -130,17 +133,39 @@ func startsWith(s, prefix string) bool {
 	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
 }
 
+// TestDisplayWidthCountsRunesNotBytes pins the test oracle itself. Every
+// width assertion in this package leans on displayWidth, so an oracle that
+// counts bytes makes those assertions meaningless for any non-ASCII text.
+// Fixed before WrapAnsi's own byte-counting bug, so that fix has a truthful
+// judge. Matches internal/messaging/hidenames.go:70, which already decodes
+// runes correctly in this same package.
+func TestDisplayWidthCountsRunesNotBytes(t *testing.T) {
+	// Twenty two-byte runes: 40 bytes, 20 visible columns.
+	s := strings.Repeat("é", 20) // e-acute, 2 bytes each in UTF-8
+	if got := displayWidth(s); got != 20 {
+		t.Fatalf("displayWidth(20 two-byte runes) = %d, want 20: the oracle is counting bytes", got)
+	}
+
+	// Same, wrapped in a tag the oracle must not count.
+	tagged := `<ansi fg="username">` + s + `</ansi>`
+	if got := displayWidth(tagged); got != 20 {
+		t.Fatalf("displayWidth(tagged) = %d, want 20: tag content must not count toward width", got)
+	}
+}
+
 func displayWidth(s string) int {
-	// Inline scan to count visible chars (skip <ansi …> and </ansi>).
+	// Inline scan to count visible RUNES (skip <ansi …> and </ansi>).
+	// Ranging over a string decodes runes; indexing it would count bytes
+	// and make every width assertion in this file lie about non-ASCII
+	// text. See hidenames.go, which decodes runes for the same reason.
 	w := 0
 	inTag := false
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c == '<' {
+	for _, r := range s {
+		if r == '<' {
 			inTag = true
 			continue
 		}
-		if c == '>' {
+		if r == '>' {
 			inTag = false
 			continue
 		}
