@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
 )
@@ -28,7 +29,7 @@ func TestCanSeeClearlyLitRoomSighted(t *testing.T) {
 	c := newChar(t)
 	// Use nil room — the predicate short-circuits to "lit" on nil.
 	// A zero-value &rooms.Room{} cannot be used here because
-	// Room.GetVisibility() calls into the biome registry which isn't
+	// Room.LightLevel() calls into the biome registry which isn't
 	// loaded in unit-test context (panics on nil BiomeInfo). Real
 	// lit-room behavior is exercised in end-to-end tests with engine
 	// boot.
@@ -48,8 +49,8 @@ func TestCanSeeClearlyBlinded(t *testing.T) {
 
 func TestCanSeeShapesInfraredInDark(t *testing.T) {
 	c := newChar(t)
-	// Note: GetVisibility() < 1 = dark. We can't easily fabricate a
-	// dark Room here without engine coupling — this test uses the
+	// Note: LightLevel() < LightBlindBelow = dark. We can't easily fabricate
+	// a dark Room here without engine coupling — this test uses the
 	// nil-room path which short-circuits to lit. Real darkness
 	// behavior is exercised in pipeline_test.go's end-to-end suite.
 	if !CanSeeShapes(c, nil) {
@@ -164,5 +165,57 @@ func TestCanSeeSightImpairedOnly_StillHonoursBlindness(t *testing.T) {
 	setBlinded(t, c)
 	if CanSeeSightImpairedOnly(c, nil) {
 		t.Error("a blinded character's sight IS impaired, sleep aside")
+	}
+}
+
+// TestParticipantSightReadsTheBands reuses sightLight (participant_sight_test.go,
+// same package) as its fixed-light RoomVisibility rather than adding a second
+// stub. sightLight is already `type X int` implementing LightLevel() int, which
+// is exactly what an arbitrary light value here needs; a second type with an
+// identical body would just be the parallel-mechanism trap.
+//
+// It pins ParticipantSight's band switch for a plain observer: no blindness,
+// no NightVision, no InfraredVision. Those three are already pinned by
+// TestParticipantSight (participant_sight_test.go) and TestOpticsTruthTable
+// (optics_pin_test.go); this test's only job is the light-band arithmetic
+// itself.
+//
+// The config knobs are pinned explicitly to LightBlindBelow: 25 and
+// LightDimBelow: 50 rather than trusted from the test binary's ambient Go
+// defaults. A bare Balance{} only resolves to 25/50 because
+// Balance.Validate() coerces zero to those defaults
+// (config_lighting_thresholds_test.go pins that fact on the configs side),
+// and this package's test binary also runs tests that call
+// configs.SetConfigForTest. Pinning makes every boundary number below
+// self-documenting and immune to drift from another test's config mutation,
+// following the precedent in internal/rooms/lighting_test.go, which pins
+// Timing explicitly for the equivalent reason.
+func TestParticipantSightReadsTheBands(t *testing.T) {
+	cfg := configs.GetConfig()
+	cfg.Balance.LightBlindBelow = 25
+	cfg.Balance.LightDimBelow = 50
+	configs.SetConfigForTest(t, cfg)
+
+	tests := []struct {
+		name  string
+		light int
+		want  SightDecision
+	}{
+		{"pitch dark", 0, SightNone},
+		{"just below blind threshold", 24, SightNone},
+		{"dim, bottom", 25, SightShapes},
+		{"dim, top", 49, SightShapes},
+		{"perfect, bottom", 50, SightFull},
+		{"perfect, top", 75, SightFull},
+		{"dazzled, still sees", 90, SightFull},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ch := characters.New()
+			got := ParticipantSight(ch, sightLight(tc.light))
+			if got != tc.want {
+				t.Errorf("ParticipantSight at light %d = %v, want %v", tc.light, got, tc.want)
+			}
+		})
 	}
 }

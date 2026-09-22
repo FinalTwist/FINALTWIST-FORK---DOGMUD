@@ -208,7 +208,7 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 							msg := idleMsgs[idleMsgIndex]
 							if msg != `` {
 								wrappedMsg := util.SplitStringNL(msg, 80)
-								if room.GetVisibility() < 1 {
+								if room.LightLevel() < int(configs.GetBalanceConfig().LightBlindBelow) {
 									// Idle flavor text is visual — only nightvision players see it
 									for _, uid := range room.GetPlayers() {
 										u := users.GetByUserId(uid)

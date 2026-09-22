@@ -668,6 +668,38 @@ special-move base instead. Physical rows add encumbrance, every row applies the
 inverse governing-skill term, and callers may supply a documented modifier.
 See the live config and validation code for tuning values.
 
+### Graded room lighting (plan 1 of the graded lighting arc)
+
+Three `ConfigInt` knobs, validated in their own file
+(`config.balance.lighting.go`) rather than folded into `validateMisc`,
+because plans 2 and 3 of the arc add more knobs here (a dazzle threshold,
+ambient light by time of day, NightVision strength). They define the bands
+`internal/messaging.ParticipantSight` reads against
+`internal/rooms.Room.LightLevel()`'s -100 to 100 scale. As of this
+writing, none of the three appears in `_datafiles/config.yaml`, so the
+shipped value is the Go default in every case.
+
+| Knob | Default | Effect |
+|------|---------|--------|
+| `LightBlindBelow` | 25 | Below this, a normal observer is blind. |
+| `LightDimBelow` | 50 | Below this, a normal observer reads shapes only. |
+| `LightExitsAbove` | 65 | At or above this, exits into adjacent rooms are visible. |
+
+`LightBlindBelow` and `LightDimBelow` validate as a PAIR, the
+`DarknessShapesCombatPenalty` precedent: an inverted or out-of-range pair
+reverts both to their defaults rather than leaving one knob correct and
+the other wrong. Zero is deliberately coerced rather than honoured for
+these two, unlike `SneakFailCooldown`'s honoured zero: zero is the value
+plan 1's `LightDark`/`LightRoomOnly`/`LightFull` mapping treats as
+canonical darkness, so an authored `LightBlindBelow: 0` would silently
+break that mapping. `LightExitsAbove` validates on its own range plus one
+cross-axis rule, that it must not sit below `LightBlindBelow`.
+
+`internal/rooms.LightDark` (0), `LightRoomOnly` (60) and `LightFull` (70)
+are load-bearing against these three defaults: if the defaults above ever
+move, those constants must be re-checked against the new values, or the
+behaviour-preservation guarantee plan 1 depends on silently breaks.
+
 ### Bleed stacks (conditions unification slice 1b)
 
 Fifteen `ConfigInt` knobs, three per bleed move, in the Bleed stacks block of
@@ -717,6 +749,7 @@ Config is split one file per section, all assembled in `configs.go`.
 | `config.balance.shops.go` | Shop pricing and restock |
 | `config.balance.mobs.go` | Mob scaling |
 | `config.balance.discovery.go` | Discovery/offset mechanics |
+| `config.balance.lighting.go` | Graded room lighting thresholds |
 | `config.balance.misc.go` | Everything else in Balance |
 | `config.roles.go` | Role definitions |
 | `config.modules.go` | Per-module config bags |

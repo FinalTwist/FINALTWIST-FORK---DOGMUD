@@ -38,7 +38,7 @@ func TestActeeDefenceLine_ThreeTierSightNotBinary(t *testing.T) {
 	darkRoom := rooms.LoadRoom(2)
 	require.NotNil(t, darkRoom)
 	darkRoom.Biome = "cave"
-	require.Zero(t, darkRoom.GetVisibility(), "fixture room must be unlit for this lane")
+	require.Equal(t, rooms.LightDark, darkRoom.LightLevel(), "fixture room must be unlit for this lane")
 
 	text := `<ansi fg="mobname">Skeleton</ansi> catches your blow on its shield!`
 

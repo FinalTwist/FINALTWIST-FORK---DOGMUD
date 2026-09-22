@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -38,10 +39,13 @@ func secretExitDiscoveryKey(exitName string) string {
 // Scores follow the convention U6b Task 16 set — CalcDetectionScore for the
 // opposed observer side, CalcSneakScoreVsObserver for the hider, which folds in
 // per-observer lighting (NightVision counts as lit for that observer alone).
-func spotsHider(observer *characters.Character, hider *characters.Character, room *rooms.Room) bool {
+//
+// roomLit is the room's own light state, computed once by the caller (see
+// CalcSneakScoreVsObserver) rather than refetched per occupant.
+func spotsHider(observer *characters.Character, hider *characters.Character, roomLit bool) bool {
 	return combat.RunContest(
 		CalcDetectionScore(observer),
-		[]contest.Entry{{Score: CalcSneakScoreVsObserver(hider, observer, room)}},
+		[]contest.Entry{{Score: CalcSneakScoreVsObserver(hider, observer, roomLit)}},
 	).Success
 }
 
@@ -226,6 +230,12 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 	// every other opposed contest. The four static tiers in this file are the
 	// other kind and stay on AgainstDifficulty.
 
+	// The room's own light state is invariant across every hidden occupant
+	// checked below, so it is computed once here rather than inside
+	// spotsHider on every iteration (config.GetBalanceConfig() copies a
+	// 424-field struct by value).
+	roomLit := room.LightLevel() >= int(configs.GetBalanceConfig().LightBlindBelow)
+
 	// ── Tier 2 (target 135): Hidden players ─────────────────────
 	hiddenPlayerNames := []string{}
 	for _, pId := range room.GetPlayers() {
@@ -237,7 +247,7 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 			continue
 		}
 		rolledAgainstSomething = true
-		if spotsHider(char, p.Character, room) {
+		if spotsHider(char, p.Character, roomLit) {
 			result.HiddenPlayersFound = append(result.HiddenPlayersFound, pId)
 			if actor.IsPlayer() {
 				hiddenPlayerNames = append(hiddenPlayerNames,
@@ -264,7 +274,7 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 			continue
 		}
 		rolledAgainstSomething = true
-		if spotsHider(char, &m.Character, room) {
+		if spotsHider(char, &m.Character, roomLit) {
 			result.HiddenMobsFound = append(result.HiddenMobsFound, mId)
 			if actor.IsPlayer() {
 				hiddenMobNames = append(hiddenMobNames,

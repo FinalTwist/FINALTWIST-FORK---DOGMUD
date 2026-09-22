@@ -31,12 +31,14 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
 )
 
-// verdictLight is a messaging.RoomVisibility with a fixed light level: 0
-// dark, 1 lit. Local to this file rather than reused from messaging's
-// unexported test fixtures, since those do not cross the package boundary.
+// verdictLight is a messaging.RoomVisibility with a fixed light level on the
+// graded scale: 0 dark (comfortably below LightBlindBelow's default of 25),
+// 100 lit (the scale's top, comfortably above LightDimBelow's default of
+// 50). Local to this file rather than reused from messaging's unexported
+// test fixtures, since those do not cross the package boundary.
 type verdictLight int
 
-func (l verdictLight) GetVisibility() int { return int(l) }
+func (l verdictLight) LightLevel() int { return int(l) }
 
 const (
 	verdictInfraredConditionId = 9201
@@ -112,7 +114,7 @@ func TestDarknessPenaltyVerdictMatchesOldBoolean(t *testing.T) {
 
 			var room messaging.RoomVisibility = verdictLight(0)
 			if tc.lit {
-				room = verdictLight(1)
+				room = verdictLight(100)
 			}
 
 			// Fixture sanity: confirm this row still matches what

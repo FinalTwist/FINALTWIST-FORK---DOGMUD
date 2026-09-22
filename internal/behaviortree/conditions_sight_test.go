@@ -23,7 +23,7 @@ func TestCondPlayersInRoomNeedsSight(t *testing.T) {
 // The case that keeps the Ironwind cave bosses working: a light carried by
 // anyone lifts the darkness for everyone, so a mob with no night vision of its
 // own still sees. If this fails, the gate is reading the biome instead of
-// Room.GetVisibility.
+// Room.LightLevel.
 func TestCondPlayersInRoomSeesWhenSomeoneCarriesLight(t *testing.T) {
 	m, room := sightScene(t, "cave")
 	u := users.NewTestUser(8111, "lume", "Lume", 98111)

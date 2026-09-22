@@ -6,7 +6,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
-	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -50,9 +49,16 @@ func CalcSneakScore(c *characters.Character, effectiveLit bool) float64 {
 // case where the caller has sneaker + observer + room in scope. Computes
 // effectiveLit per-observer (NightVision counts as effectively lit for
 // that specific observer).
-func CalcSneakScoreVsObserver(sneaker, observer *characters.Character, room *rooms.Room) float64 {
-	effectiveLit := room.GetVisibility() >= 1 ||
-		observer.HasFlagFromAnySource(conditions.NightVision)
+//
+// roomLit is the room's own light state (room.LightLevel() >=
+// configs.GetBalanceConfig().LightBlindBelow), NOT the room itself. It is
+// invariant across every observer in a room, so a caller looping over
+// occupants must compute it ONCE above the loop and pass it in here, rather
+// than letting this function fetch config.GetBalanceConfig() (424 fields,
+// copied by value) on every occupant. See internal/actions/sneak.go and
+// internal/usercommands/go.go for the hoisted call sites this exists for.
+func CalcSneakScoreVsObserver(sneaker, observer *characters.Character, roomLit bool) float64 {
+	effectiveLit := roomLit || observer.HasFlagFromAnySource(conditions.NightVision)
 	return CalcSneakScore(sneaker, effectiveLit)
 }
 

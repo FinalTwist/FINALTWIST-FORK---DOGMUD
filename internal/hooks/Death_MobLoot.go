@@ -121,7 +121,7 @@ func dropMobLootAndSetCorpse(m *mobs.Mob, room *rooms.Room) {
 	}
 
 	// Dark-room fallback sound for loot drops.
-	if lootDropped && room.GetVisibility() < 1 {
+	if lootDropped && room.LightLevel() < int(configs.GetBalanceConfig().LightBlindBelow) {
 		room.SendText(messaging.CategoryLoot, `You hear something clatter to the ground.`)
 	}
 }

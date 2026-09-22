@@ -3,6 +3,7 @@ package messaging
 import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/state/perception"
 )
 
@@ -10,22 +11,15 @@ import (
 // need from a room. *rooms.Room satisfies this implicitly. Decoupled
 // so messaging/ does not import rooms/ — rooms/ imports messaging/,
 // and an interface here keeps the dependency arrow one-way.
+//
+// Graded lighting arc, plan 1 task 4: this interface's method was renamed
+// from the old three-value visibility accessor's name to LightLevel() int.
+// Room.LightLevel() (internal/rooms/lighting.go) reports the room's light
+// on the graded -100..100 scale (Task 3). Task 5 deleted that old accessor
+// and migrated its remaining callers, so LightLevel is this interface's
+// only implementation obligation.
 type RoomVisibility interface {
-	GetVisibility() int
-}
-
-// roomIsLit returns true if the room is bright enough to read
-// (visibility >= 1). Helper so callers don't need to know the
-// threshold value.
-func roomIsLit(room RoomVisibility) bool {
-	if room == nil {
-		return true
-	}
-	// Reflection-free nil-interface guard: a typed-nil *rooms.Room
-	// would panic on GetVisibility; callers must pass nil interface,
-	// not a typed-nil. The room/Room.SendText path always has a real
-	// receiver, so this is safe in practice.
-	return room.GetVisibility() >= 1
+	LightLevel() int
 }
 
 // ParticipantSight is THE optics primitive. It answers what an observer can
@@ -45,9 +39,19 @@ func roomIsLit(room RoomVisibility) bool {
 // and CanSeeShapes instead, which do compose attention, so a sleeper still
 // receives no room lines.
 //
-// Full when light or NightVision allow clear sight; shapes for an unblinded
-// observer with infrared; none otherwise. A nil observer sees fully, matching
-// the policies below.
+// Full when the room's light or NightVision allow clear sight; shapes for an
+// unblinded observer in a dim room, or with infrared in the dark; none
+// otherwise. A nil observer sees fully, matching the policies below.
+//
+// PLAN 1 NOTE. The NightVision and InfraredVision branches below are the
+// pre-graded-lighting flag shortcuts, kept deliberately. Plan 2 of the graded
+// lighting arc replaces them with the window model, where an ability shifts
+// where the observer's usable band sits rather than granting sight outright.
+// They are left alone here because the window model is a real behaviour
+// change for those holders (today a NightVision holder sees fully in a pitch
+// dark room, and under the window model they are blind below 1), and changing
+// the scale and their behaviour in one plan would make this plan's
+// behaviour-preservation guarantee impossible to assert.
 func ParticipantSight(observer *characters.Character, room RoomVisibility) SightDecision {
 	if observer == nil {
 		return SightFull
@@ -55,8 +59,30 @@ func ParticipantSight(observer *characters.Character, room RoomVisibility) Sight
 	if observer.Perception != nil && observer.Perception.State() == perception.Blinded {
 		return SightNone
 	}
-	if room == nil || roomIsLit(room) {
+	if room == nil {
+		// Reflection-free nil-interface guard: a typed-nil *rooms.Room
+		// would panic on LightLevel; callers must pass nil interface,
+		// not a typed-nil. The room/Room.SendText path always has a real
+		// receiver, so this is safe in practice. (This was roomIsLit's
+		// job before it was folded into this function; it had exactly
+		// one caller, this one.)
 		return SightFull
+	}
+	// Fetched once into a local rather than called from each case below.
+	// GetBalanceConfig takes configDataLock (twice: once inside its own
+	// ensureConfigValidated call, once itself) and returns Balance BY
+	// VALUE -- a struct of well over 400 fields (424 counted directly off
+	// internal/configs/config.balance.go at time of writing) -- so a
+	// tagless switch that called it from both case expressions would pay
+	// that cost twice on the dark path, where the first case is false and
+	// the second is evaluated.
+	balance := configs.GetBalanceConfig()
+	light := room.LightLevel()
+	switch {
+	case light >= int(balance.LightDimBelow):
+		return SightFull
+	case light >= int(balance.LightBlindBelow):
+		return SightShapes
 	}
 	if observer.HasFlagFromAnySource(conditions.NightVision) {
 		return SightFull

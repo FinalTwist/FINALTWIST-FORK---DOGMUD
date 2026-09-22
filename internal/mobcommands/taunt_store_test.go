@@ -46,7 +46,7 @@ func TestMobTauntTriadUsesTheAuthoredStore(t *testing.T) {
 	require.NotNil(t, target)
 	litRoom := rooms.LoadRoom(mob.Character.RoomId)
 	require.NotNil(t, litRoom)
-	require.GreaterOrEqual(t, litRoom.GetVisibility(), 1, "fixture room must be lit for this lane")
+	require.Greater(t, litRoom.LightLevel(), rooms.LightDark, "fixture room must be lit for this lane")
 
 	litRoom.AddPlayer(target.UserId)
 	defer litRoom.RemovePlayer(target.UserId)
@@ -83,7 +83,7 @@ func TestMobTauntTriadAnonymizesInTheDark(t *testing.T) {
 	require.NotNil(t, target)
 	require.NotNil(t, observer)
 
-	// "cave" must be REGISTERED as a dark biome: GetVisibility asks the biome
+	// "cave" must be REGISTERED as a dark biome: LightLevel asks the biome
 	// registry, so setting the field alone leaves the room lit.
 	restoreBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
 		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
@@ -93,7 +93,7 @@ func TestMobTauntTriadAnonymizesInTheDark(t *testing.T) {
 	darkRoom := rooms.LoadRoom(2)
 	require.NotNil(t, darkRoom)
 	darkRoom.Biome = "cave"
-	require.Zero(t, darkRoom.GetVisibility(), "fixture room must be unlit for this lane")
+	require.Equal(t, rooms.LightDark, darkRoom.LightLevel(), "fixture room must be unlit for this lane")
 
 	mob.Character.RoomId = 2
 	target.Character.RoomId = 2

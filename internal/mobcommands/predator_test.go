@@ -514,7 +514,7 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 	darkRoom := rooms.LoadRoom(2)
 	require.NotNil(t, darkRoom)
 	darkRoom.Biome = "cave"
-	require.Zero(t, darkRoom.GetVisibility())
+	require.Equal(t, rooms.LightDark, darkRoom.LightLevel())
 	mob.Character.RoomId = 2
 	target.Character.RoomId = 2
 	observer.Character.RoomId = 2

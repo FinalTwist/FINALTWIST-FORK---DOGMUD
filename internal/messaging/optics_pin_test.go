@@ -46,14 +46,14 @@ func newOpticsObserver(t *testing.T, tc opticsCase) *characters.Character {
 
 // newOpticsRoom builds a RoomVisibility at the given light level, reusing
 // sightLight (participant_sight_test.go) rather than a real *rooms.Room --
-// Room.GetVisibility() calls into the biome registry, which is not loaded
+// Room.LightLevel() calls into the biome registry, which is not loaded
 // in unit-test context.
 func newOpticsRoom(t *testing.T, lit bool) RoomVisibility {
 	t.Helper()
 	if lit {
-		return sightLight(1)
+		return sightLightLit
 	}
-	return sightLight(0)
+	return sightLightDark
 }
 
 // TestOpticsTruthTable pins what the three sight predicates answer TODAY, for

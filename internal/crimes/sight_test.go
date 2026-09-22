@@ -31,11 +31,11 @@ func TestSightTiersBehaveAsWitnessGateExpects(t *testing.T) {
 	lit := &rooms.Room{RoomId: 467}
 	dark := &rooms.Room{RoomId: 468, Biome: "cave"}
 
-	if got := lit.GetVisibility(); got < 1 {
-		t.Fatalf("default-biome room visibility = %d, want >= 1 (lit)", got)
+	if got := lit.LightLevel(); got <= rooms.LightDark {
+		t.Fatalf("default-biome room light = %d, want > %d (lit)", got, rooms.LightDark)
 	}
-	if got := dark.GetVisibility(); got != 0 {
-		t.Fatalf("cave room visibility = %d, want 0 (unlit)", got)
+	if got := dark.LightLevel(); got != rooms.LightDark {
+		t.Fatalf("cave room light = %d, want %d (unlit)", got, rooms.LightDark)
 	}
 
 	tests := []struct {

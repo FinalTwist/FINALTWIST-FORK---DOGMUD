@@ -7,6 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
@@ -26,9 +27,10 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 	secretLook := flags.Has(events.CmdSecretly)
 
-	visibility := room.GetVisibility()
+	light := room.LightLevel()
+	balance := configs.GetBalanceConfig()
 
-	if visibility < 1 {
+	if light < int(balance.LightBlindBelow) {
 		if !user.Character.HasFlagFromAnySource(conditions.NightVision) {
 			user.SendText(messaging.CategorySystem, `You can't see anything!`)
 			return true, nil
@@ -255,7 +257,10 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 	if exitName != `` {
 
-		if visibility < 2 {
+		// Seeing THROUGH an exit needs more light than seeing the room you
+		// are standing in. The old model expressed this as visibility 2
+		// rather than 1; LightExitsAbove carries it explicitly.
+		if light < int(balance.LightExitsAbove) {
 
 			if !user.Character.HasFlagFromAnySource(conditions.NightVision) {
 				biome := room.GetBiome()

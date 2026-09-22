@@ -542,6 +542,13 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 				}
 			}
 
+			// The destination room's own light state is invariant across
+			// every occupant checked in the two stealth-detection blocks
+			// below (isSneaking and !isSneaking), so it is computed once
+			// here rather than inside CalcSneakScoreVsObserver on every
+			// occupant in what can be an unconditional per-room-entry loop.
+			destRoomLit := destRoom.LightLevel() >= int(configs.GetBalanceConfig().LightBlindBelow)
+
 			// Stealth detection: hidden player entering a room
 			if isSneaking {
 				// Build party exclusion set so allies don't expose the sneaker
@@ -564,7 +571,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 					if p == nil {
 						continue
 					}
-					sneakScore := actions.CalcSneakScoreVsObserver(user.Character, p.Character, destRoom)
+					sneakScore := actions.CalcSneakScoreVsObserver(user.Character, p.Character, destRoomLit)
 					observerScore := actions.CalcDetectionScore(p.Character)
 					success := combat.RunContest(sneakScore, []contest.Entry{{Score: observerScore}}).Success
 					if !success {
@@ -583,7 +590,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 						if mob == nil {
 							continue
 						}
-						sneakScore := actions.CalcSneakScoreVsObserver(user.Character, &mob.Character, destRoom)
+						sneakScore := actions.CalcSneakScoreVsObserver(user.Character, &mob.Character, destRoomLit)
 						observerScore := actions.CalcDetectionScore(&mob.Character)
 						success := combat.RunContest(sneakScore, []contest.Entry{{Score: observerScore}}).Success
 						if !success {
@@ -626,7 +633,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 					if hiddenP == nil || !hiddenP.Character.IsHidden() {
 						continue
 					}
-					hiddenScore := actions.CalcSneakScoreVsObserver(hiddenP.Character, user.Character, destRoom)
+					hiddenScore := actions.CalcSneakScoreVsObserver(hiddenP.Character, user.Character, destRoomLit)
 					success := combat.RunContest(observerScore, []contest.Entry{{Score: hiddenScore}}).Success
 					if success {
 						_ = hiddenP.Character.Awareness.TransitionToRevealing(
@@ -682,7 +689,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 					if mob == nil || !mob.Character.IsHidden() {
 						continue
 					}
-					hiddenScore := actions.CalcSneakScoreVsObserver(&mob.Character, user.Character, destRoom)
+					hiddenScore := actions.CalcSneakScoreVsObserver(&mob.Character, user.Character, destRoomLit)
 					success := combat.RunContest(observerScore, []contest.Entry{{Score: hiddenScore}}).Success
 					if success {
 						_ = mob.Character.Awareness.TransitionToRevealing(

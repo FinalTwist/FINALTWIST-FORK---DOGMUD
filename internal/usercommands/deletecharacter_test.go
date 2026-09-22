@@ -18,7 +18,7 @@ var defaultBiome = &rooms.BiomeInfo{
 
 // seedDefaultBiome seeds the rooms biome registry with a single default entry
 // and returns a cleanup function. Required by any test that calls into
-// room.SendTextVisual (which calls GetVisibility → GetBiome).
+// room.SendTextVisual (which reads the room's light via LightLevel → GetBiome).
 func seedDefaultBiome(t *testing.T) func() {
 	t.Helper()
 	return rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
