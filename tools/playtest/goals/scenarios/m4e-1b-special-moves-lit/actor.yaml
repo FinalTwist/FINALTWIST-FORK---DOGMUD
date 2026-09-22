@@ -26,7 +26,9 @@ goals:
   - >-
     ALWAYS NAME YOUR TARGET. Type `kick champion`, never a bare `kick`. A bare
     verb answers "Kick whom?" the moment you are not already in combat, and in
-    a 2026-09-21 run that silently ate most of the sample.
+    a 2026-09-21 run that silently ate most of the sample. The nouns that
+    work are `champion`, `dummy` and `sparring`. `partner` does NOT match
+    the Sparring Partner; it answers "You don't see them here."
   - >-
     Then confirm Ordel Quist is in the room with you. Tell them on the party
     channel that you are starting. Type `look` once and quote the room title,
@@ -47,29 +49,29 @@ goals:
     knockdown lines. Record which mark gave which.
   - >-
     LANE 2, A SECOND OPPONENT. Go `east` to the Training Yard (201) and then
-    `south` to the Sparring Ring (202). Ordel follows. `kick partner` to engage
+    `south` to the Sparring Ring (202). Ordel follows. `kick sparring` to engage
     the Sparring Partner, a fair match who fights back, so you will also see
     kicks that MISS and kicks that get through a guard only partly. Under a
-    fresh mark each time, `kick partner` at least TEN more times. Quote every line in full, misses included. If your
+    fresh mark each time, `kick sparring` at least TEN more times. Quote every line in full, misses included. If your
     health drops below a quarter, go `north` and rest until it recovers, then
     come back.
   - >-
     LANE 3, THE STOMP FORM. A kick at a target who is ON THE GROUND is a stomp
-    and uses different words. Under a fresh mark, `trip partner`. If they go
+    and uses different words. Under a fresh mark, `trip sparring`. If they go
     down, IMMEDIATELY under the next mark type `kick`. Quote both lines. Repeat
     this at least FOUR times. The stomp lines talk about bringing your heel
     down, slamming your foot into a downed target, grinding your heel in.
   - >-
     LANE 4, THE KNEE FORM. A kick from inside a grapple is a knee strike.
-    Under a fresh mark, `grapple partner`. If you take hold, then under the
+    Under a fresh mark, `grapple sparring`. If you take hold, then under the
     next mark type `kick`. Quote both lines. Repeat at least FOUR times. The
     knee lines talk about driving a knee in, ramming a knee, wrenching them
     close. Ordel should read lines that mention the grapple. Tell them on the
     party channel each time you are IN a grapple, so they know which of their
     lines to expect.
   - >-
-    LANE 5, THE OTHER MOVES. Under fresh marks, use `bash partner` at least
-    THREE times and `trip partner` at least THREE more times on its own
+    LANE 5, THE OTHER MOVES. Under fresh marks, use `bash sparring` at least
+    THREE times and `trip sparring` at least THREE more times on its own
     (without a kick after it). Quote every line.
   - >-
     JUDGE THE WRITING. When the fighting is done, look back over everything
