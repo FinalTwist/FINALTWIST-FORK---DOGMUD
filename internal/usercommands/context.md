@@ -409,3 +409,34 @@ copy-paste that dropped the tag, would not have been. Both sites now go
 through `craftDeliverInstant`, so a shapes-only room observer reads "a
 figure" instead of the crafter's name on an instant complete, the same as
 every other `SendTrio` room line in the codebase.
+
+### Crafting: storage is part of the answer (`craft.go`)
+
+`user.ItemStorage` is known here and nowhere below. `actions.InitiateCraft`
+is shared with mobs, which have no storage, so anything storage-aware is the
+command layer's job. Three helpers hold that split:
+
+- **`ensureComponentsFromStorage(user, room, recipe)`** pulls missing
+  components out of the bank. ⚠️ **Must run before every dispatch in
+  `Craft()`**, and every gate that would refuse the craft anyway belongs
+  INSIDE its guard clause (recipe known, station satisfied, and
+  `IsCrafting()`, which mirrors `InitiateCraft`'s `AlreadyCrafting`). An
+  early return in `Craft()` instead would skip the pull for every path
+  beneath it; `craft_storage_order_test.go` guards that.
+- **`storageCompletable(user, r)`** asks whether the bank could complete
+  this recipe right now. Used by `classifyRecipe` to bucket a row as ready.
+- **`storageAwareMissingTag(user, r, fallback)`** gives the tag a refusal is
+  allowed to print, from `crafting.HasIngredientsWithStorage`. 🐛 Prod
+  defect 2026-09-21: the storage pull is all-or-nothing, so a shortfall the
+  bank cannot fully cover moves nothing, and every refusal below was written
+  from the carried-only `HasIngredients` answer. `craft setting` told a
+  player "You are missing: copper-wire." with 39 in the bank, because
+  copper-wire is the recipe's first ingredient; the real blocker was
+  chrysalis-shard. Both refusal sites (the `InitiateCraft` result switch and
+  `craftEnchanting`) now print through this helper, and `recipeStatus` asks
+  `crafting.HasIngredientsWithStorage` directly for the `craft list` row.
+
+Read that with the ordering rule above: running before the dispatch is
+necessary and not sufficient. A path below the pull still has to ask a
+storage-aware question, because all-or-nothing legitimately leaves a
+shortfall in place.
