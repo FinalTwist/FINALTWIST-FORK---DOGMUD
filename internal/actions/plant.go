@@ -225,7 +225,10 @@ func plantOnMob(actor Actor, mobInstanceId int, plantItem items.Item,
 		// External witnesses (excluding victim) for HadExternalWitness.
 		externalWitnesses := crimes.WitnessesInRoom(factionIds, room,
 			m.InstanceId)
-		hadExternal := len(externalWitnesses) > 0
+		// HadExternalWitness asks whether the planting was identified by
+		// someone other than the victim, not merely noticed, so it reads
+		// Identifying.
+		hadExternal := len(externalWitnesses.Identifying) > 0
 		delta := int(configs.GetBalanceConfig().CrimeRepDeltaTheft)
 		for _, fid := range factionIds {
 			crimeIds := crimes.Record([]string{fid}, crimes.KindTheft, perp,
@@ -233,8 +236,15 @@ func plantOnMob(actor Actor, mobInstanceId int, plantItem items.Item,
 			if perp.Type == crimes.PerpPlayer {
 				factions.BumpRep(fid, actor.GetUserId(), delta)
 				justice.MaybeDeclareBounty(fid, actor.GetUserId(), crimes.KindTheft)
+				// Knowledge: each witness records the player as the perp of
+				// these crimes. Range Identifying only. perp is computed
+				// once for the whole room, so a single clear-sighted
+				// witness makes perp.Type PerpPlayer for everyone present;
+				// writing this player-subject knowledge for a shapes-only
+				// witness would record that mob knowing exactly who it was
+				// when all it saw was a figure.
 				subject := knowledge.PlayerSubject(actor.GetUserId())
-				for _, witnessInstId := range witnesses {
+				for _, witnessInstId := range witnesses.Identifying {
 					w := mobs.GetInstance(witnessInstId)
 					if w == nil {
 						continue

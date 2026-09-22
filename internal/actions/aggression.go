@@ -34,7 +34,9 @@ func RecordAssaultCrime(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room)
 	// set HadExternalWitness so the murder-upgrade path knows whether
 	// the assault was seen by someone other than the victim.
 	externalWitnesses := crimes.WitnessesInRoom(factionIds, room, mob.InstanceId)
-	hadExternal := len(externalWitnesses) > 0
+	// HadExternalWitness asks whether the assault was identified by someone
+	// other than the victim, not merely noticed, so it reads Identifying.
+	hadExternal := len(externalWitnesses.Identifying) > 0
 	delta := int(configs.GetBalanceConfig().CrimeRepDeltaAssault)
 	for _, fid := range factionIds {
 		crimeIds := crimes.Record([]string{fid}, crimes.KindAssault, perp,
@@ -43,9 +45,14 @@ func RecordAssaultCrime(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room)
 			factions.BumpRep(fid, user.UserId, delta)
 			justice.MaybeDeclareBounty(fid, user.UserId, crimes.KindAssault)
 			// Knowledge: each witness records the player as the perp of
-			// these crimes.
+			// these crimes. Range Identifying only. perp is computed once
+			// for the whole room, so a single clear-sighted witness makes
+			// perp.Type PerpPlayer for everyone present; writing this
+			// player-subject knowledge for a shapes-only witness would
+			// record that mob knowing exactly who it was when all it saw
+			// was a figure.
 			subject := knowledge.PlayerSubject(user.UserId)
-			for _, witnessInstId := range witnesses {
+			for _, witnessInstId := range witnesses.Identifying {
 				w := mobs.GetInstance(witnessInstId)
 				if w == nil {
 					continue
