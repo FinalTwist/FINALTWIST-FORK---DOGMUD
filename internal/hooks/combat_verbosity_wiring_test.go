@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -87,6 +88,47 @@ func countContaining(texts []string, needle string) int {
 		}
 	}
 	return n
+}
+
+// runOfTwoOrMoreNewlines matches a blank-line separator: two or more
+// consecutive newlines. It is what unfoldSoftWrap protects from being
+// flattened.
+var runOfTwoOrMoreNewlines = regexp.MustCompile(`\n{2,}`)
+
+// unfoldSoftWrap rejoins a soft wrap, a single newline with no blank line
+// around it, back into the space it replaced. As of M5 PR 2 the render
+// pipeline (internal/messaging) wraps delivered narration at the reader's
+// LineWidth, so an authored line longer than that width arrives with a
+// line break at whatever word boundary the fold landed on. An assertion
+// built on the authored line must not depend on where that break fell.
+//
+// It does NOT touch a run of two or more consecutive newlines. That run is
+// a blank-line separator, not a fold: a deliberate paragraph break or a
+// genuinely multi-line message survives unchanged, so a message that is
+// broken across lines for the WRONG reason still shows up as a mismatch
+// instead of being silently flattened along with everything else.
+func unfoldSoftWrap(s string) string {
+	const placeholder = "\x00"
+	protected := runOfTwoOrMoreNewlines.ReplaceAllStringFunc(s, func(run string) string {
+		return strings.ReplaceAll(run, "\n", placeholder)
+	})
+	protected = strings.ReplaceAll(protected, "\n", " ")
+	return strings.ReplaceAll(protected, placeholder, "\n")
+}
+
+// countContainingFolded is countContaining for a needle that may have been
+// soft-wrapped by the render pipeline: both the haystack texts and the
+// needle are passed through unfoldSoftWrap before matching, so a fold
+// inserted between two words of a long authored line does not defeat the
+// match. Use this instead of countContaining when the needle is an authored
+// line that can exceed a reader's LineWidth (currently 80); a plain
+// countContaining on such a needle asserts layout, not delivery.
+func countContainingFolded(texts []string, needle string) int {
+	folded := make([]string, len(texts))
+	for i, t := range texts {
+		folded[i] = unfoldSoftWrap(t)
+	}
+	return countContaining(folded, unfoldSoftWrap(needle))
 }
 
 func TestCombatVerbosityWiring(t *testing.T) {
