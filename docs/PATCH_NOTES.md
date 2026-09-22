@@ -1,5 +1,27 @@
 # DOGMud Patch Notes
 
+## 2026-09-22: Crime in the dark no longer names you
+
+Committing a crime used to work the same whether you did it in broad
+daylight or in a pitch black room. Any faction aligned creature nearby
+counted as a full witness and could name you afterward, whether it was
+blind, asleep, or standing in total darkness.
+
+Not anymore. What a witness can tell on you now depends on what it can
+actually see. A creature that gets a clear look at you still names you,
+your reputation still drops, and a bounty can still follow, same as
+always. A creature that only makes out a shape and some motion raises
+the alarm and knows something happened, but it cannot come hunting you
+by name, your reputation holds, and no bounty follows. Either way, the
+crime itself is still noticed and recorded somewhere.
+
+This makes darkness a genuine tool for getting away with something,
+which is the point of the change and not a side effect. Watch what you
+are hiding from, though. A great many wild creatures see in the dark
+about as well as they see in daylight, so a shadowed forest can be far
+riskier for this than a dim back alley. And a sleeping creature, even in
+a fully lit room, now notices nothing at all, which was not true before.
+
 ## 2026-09-22: Long lines now fit your screen
 
 Until now the server sent every line at whatever length it was written,
