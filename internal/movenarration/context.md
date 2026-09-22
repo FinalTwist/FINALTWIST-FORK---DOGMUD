@@ -5,7 +5,11 @@ bash, trip, gore, maul, rake, pounce, drain, throttle, hamstring, grapple,
 shoot, charge) and their mob twins.
 
 Added by M4e PR 1a of the messaging unification arc, which moved thirteen
-`internal/mobcommands` files off Go string literals.
+`internal/mobcommands` files off Go string literals. M4e PR 1b then moved the
+twelve `internal/usercommands` player twins the same way, so all 25
+special-move Go files now read their wording from this store. There are 14
+verb YAML files, one more than the 13 on the mob side, because `throw`
+carries only a player twin.
 
 ## What this package is for
 
@@ -60,7 +64,7 @@ Verified against source 2026-09-21 with
 | Symbol | Kind | Notes |
 |---|---|---|
 | `LoadMoveNarrationFiles()` | func | Boot-time loader, called from `main.go` beside `combat.LoadTauntMessageFiles()`. **Panics** on any failure |
-| `LoadFrom(dir string) error` | func | What `LoadMoveNarrationFiles` calls internally, exported for tests. A test binary never reads `config.yaml`, so `configs.GetFilePathsConfig` would resolve to `_datafiles/world/default`, which does not carry this store; a test that needs real prose loads the shipped dogmud dir explicitly (M4e-1, `internal/combat/grapple_narration_pin_test.go`) |
+| `LoadFrom(dir string) error` | func | What `LoadMoveNarrationFiles` calls internally, exported for tests. A test binary never reads `config.yaml`, so `configs.GetFilePathsConfig` would resolve to `_datafiles/world/default`, which does not carry this store; a test that needs real prose loads the shipped dogmud dir explicitly (M4e-1, `internal/combat/grapple_narration_pin_test.go`; M4e-1b, `internal/usercommands/usercommands_test.go:96`'s `TestMain`) |
 | `GetMove(moveId string) *MoveNarrationGroup` | func | nil if the store is unloaded or the verb is absent |
 | `MoveNarrationGroup` | type | One verb's file. Fields `MoveId`, `Events` |
 | `(*MoveNarrationGroup) Variants(EventKey) (narration.Variants, bool)` | method | The lookup call sites use. `ok=false` for an absent event |
@@ -143,19 +147,29 @@ agreement with the call site, in the root guard.
   118 rows asserting each event renders exactly what the original Go literal
   produced. This is what proves the migration changed no wording
 - `internal/usercommands/special_move_net_test.go` - the player-side twin,
-  305 rows across all twelve player files. Unlike the mob net, most rows
-  SKIP rather than compare until a verb's `player_*` events are authored; a
-  verb graduates to fully-checked, zero-skip, zero-fail as its Go file
-  migrates (M4e-1b, one verb group per commit)
+  `TestMigratedWordingIsByteIdentical`: 305 rows across all twelve player
+  files, all comparing, 0 skipped and 0 failed now that the migration is
+  complete
 - `internal/combat/grapple_narration_pin_test.go` - the same proof for
   grapple's crit-failure and disarm events, which live in `internal/combat`
   rather than a mob command file and so sit outside the 118-row net
-- `move_narration_migration_guard_test.go` (root package) - `TestMoveEventKeysAgree`
-  and `TestMoveEventRoleSetsAgree` scan `internal/mobcommands`,
-  `internal/combat` AND `internal/usercommands` (M4e-1b) for
-  `sendMoveEvent`/`renderMoveEvent`/`renderGrappleEvent` call sites, and fail
-  if a Go call site and the shipped YAML ever name a different set of
-  (verb, event) pairs or role sets
+- `move_narration_migration_guard_test.go` (root package) -
+  `TestMigratedFilesHoldNoNarrationLiterals` walks all 25 migrated files (13
+  mob, 12 player) and fails on any backtick prose literal reached from a
+  function body. It replaced the M2 freeze machinery (`TestM2LiteralsAreFrozen`,
+  `TestM2FrozenFilesAllCarryText`), deleted in M4e PR 1b once the last frozen
+  file migrated; a fingerprint saying wording had not changed was strictly
+  weaker than this guard's claim that no narration literal remains at all.
+  It scopes by DELIVERY PATH, not an allowlist: a literal inside a `SendText`
+  call or a `refuse*` helper is a refusal (Group A, owned by M7, and
+  legitimately present in player files though never in mob ones), a
+  package-level const is a declaration, and everything else reached from a
+  function body is narration. The same file also carries
+  `TestMoveEventKeysAgree` and `TestMoveEventRoleSetsAgree`, which scan
+  `internal/mobcommands`, `internal/combat` AND `internal/usercommands`
+  (M4e-1b) for `sendMoveEvent`/`renderMoveEvent`/`renderGrappleEvent` call
+  sites, and fail if a Go call site and the shipped YAML ever name a
+  different set of (verb, event) pairs or role sets
 
 ## Related
 
