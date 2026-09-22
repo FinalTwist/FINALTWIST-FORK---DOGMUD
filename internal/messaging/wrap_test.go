@@ -175,3 +175,52 @@ func displayWidth(s string) int {
 	}
 	return w
 }
+
+// TestWrapAnsiReopensNestedTagsAcrossBreak is the regression test for the
+// scalar-openTag bug. The input is the exact shape applyCategoryColor
+// produces: an outer category tag around prose that already carries an
+// inner item tag. Before the stack fix, the inner </ansi> cleared the
+// tracker and every continuation line rendered uncolored.
+func TestWrapAnsiReopensNestedTagsAcrossBreak(t *testing.T) {
+	in := `<ansi fg="214">The <ansi fg="item">iron sword</ansi> shatters into ` +
+		`a thousand bright splinters that scatter across the floor</ansi>`
+
+	got := WrapAnsi(in, 40)
+	lines := splitLines(got)
+	if len(lines) < 2 {
+		t.Fatalf("expected the input to wrap into several lines, got %d:\n%s", len(lines), got)
+	}
+
+	// Every line after the first is still inside the outer fg="214" span,
+	// so each must open with a reopener.
+	for i, line := range lines[1:] {
+		if !startsWith(line, `<ansi fg="214">`) {
+			t.Errorf("line %d does not reopen the outer span: %q", i+2, line)
+		}
+	}
+
+	// Every line must also be balanced: as many opens as closes.
+	for i, line := range lines {
+		opens := strings.Count(line, "<ansi")
+		closes := strings.Count(line, "</ansi>")
+		if opens != closes {
+			t.Errorf("line %d is unbalanced (%d opens, %d closes): %q", i+1, opens, closes, line)
+		}
+	}
+}
+
+// TestWrapAnsiHandlesThreeLevelNesting proves the stack is a stack and not
+// a two-slot special case.
+func TestWrapAnsiHandlesThreeLevelNesting(t *testing.T) {
+	in := `<ansi fg="214">alpha <ansi fg="item">bravo <ansi fg="username">charlie</ansi> ` +
+		`delta</ansi> echo foxtrot golf hotel india juliet kilo lima</ansi>`
+
+	got := WrapAnsi(in, 30)
+	for i, line := range splitLines(got) {
+		opens := strings.Count(line, "<ansi")
+		closes := strings.Count(line, "</ansi>")
+		if opens != closes {
+			t.Errorf("line %d is unbalanced (%d opens, %d closes): %q", i+1, opens, closes, line)
+		}
+	}
+}
