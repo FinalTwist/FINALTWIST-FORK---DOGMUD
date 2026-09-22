@@ -76,6 +76,38 @@ drains those chests into cook-vendor stock.
   recipes belonging to a skill tag (e.g., `"cooking"`), sorted by
   name for stable UI ordering.
 
+#### The three ingredient questions, and which one to ask
+
+All three share one tag matcher (`componentTagOf`) and answer in recipe
+order, so they never disagree about WHICH tag is short. They differ only in
+what they are allowed to count.
+
+- **`HasIngredients(inv, componentInv, recipe) (bool, string)`** counts
+  only what the actor CARRIES. This is what `actions.InitiateCraft` asks,
+  and it has to be: `InitiateCraft` is shared with mobs, which have no
+  storage. Its `MissingTag` is therefore a carried-only answer and must not
+  be printed to a player as-is.
+- **`PlanStoragePull(recipe, inv, componentInv, storage) ([]items.Item, bool)`**
+  gives the exact storage items to pull, and whether pulling them makes the
+  recipe craftable. **All-or-nothing by owner ruling**: if storage cannot
+  cover the whole shortfall it returns `(nil, false)` and nothing moves,
+  including the part it could have covered. Do not change that. Its
+  completeness loop ranges a MAP, which is fine for a boolean and cannot
+  pick a name.
+- **`HasIngredientsWithStorage(inv, componentInv, storage, recipe) (bool, string)`**
+  is `HasIngredients` with storage counted too, returning the first tag in
+  RECIPE order that neither the actor nor storage can supply. 🐛 **Every
+  player-facing "you are missing X" must come from this one.** `craft
+  setting` shipped to prod saying "You are missing: copper-wire." to a
+  player with 39 in the bank, because the all-or-nothing pull moved nothing
+  and the refusal fell back to the carried-only answer, whose first short
+  tag was the one they had. Player command paths recompute with it in
+  `internal/usercommands/craft.go` (`storageAwareMissingTag`,
+  `recipeStatus`), which is where `user.ItemStorage` is known.
+
+`planAgainstStorage` is the single private traversal behind the latter two,
+so the shortfall is computed in exactly one place.
+
 ### Salvage Math
 
 🔴 **`CalcSalvageChance` and `CalcSuccessChance` were DELETED by U10b-1b.**

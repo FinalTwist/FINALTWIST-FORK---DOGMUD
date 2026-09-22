@@ -160,7 +160,8 @@ func Craft(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		return true, nil
 
 	case result.MissingIngredients:
-		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">You are missing: %s.</ansi>`, result.MissingTag))
+		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">You are missing: %s.</ansi>`,
+			storageAwareMissingTag(user, result.Recipe, result.MissingTag)))
 		return true, nil
 
 	case result.ForeignComponent:
@@ -231,12 +232,41 @@ func Craft(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 // path added to Craft() has something obvious to sit below, and so the guard in
 // craft_storage_order_test.go can assert no `return` sneaks in above it.
 //
+// ⚠️ THE SAME FAMILY OF DEFECT CAME BACK ON 2026-09-21, and the earlier fix
+// above did not cover it. `craft setting` reported "You are missing:
+// copper-wire." with 39 Copper Wire in the bank. This time the ORDER was
+// right: the pull ran, found it could not cover chrysalis-shard as well, and
+// correctly moved nothing. What was wrong was the REPORT. Every refusal below
+// was written from crafting.HasIngredients, which sees only what is carried
+// and names the first short tag in recipe order, and copper-wire is listed
+// first. So the fix is not ordering but crafting.HasIngredientsWithStorage,
+// reached through storageAwareMissingTag at all three player-facing sites.
+//
+// Read those two together: running before the dispatch is necessary and is
+// not sufficient. A path that runs after the pull still has to ask a
+// storage-aware question, because all-or-nothing means the pull legitimately
+// leaves a shortfall in place.
+//
+// ⚠️ Running before the dispatch also means this function owns every gate
+// that would refuse the craft anyway. IsCrafting is one: it is not returned
+// until actions.InitiateCraft below, so without the guard in the clause
+// below, a busy player had their bank emptied onto their person and was then
+// told to finish what they were doing. Take such a gate INTO the clause; an
+// early return in Craft() would skip the pull for every path beneath it,
+// which is the original defect again.
+//
 // ⚠️ The station clause MUST track actions.StationSatisfied, which honours
 // Chrysifier's Walking Chrysalis. When those two disagreed, a Chrysifier could
 // craft anywhere but never receive components off-station, which read as the
 // mutation doing nothing at all.
 func ensureComponentsFromStorage(user *users.UserRecord, room *rooms.Room, recipe *crafting.RecipeSpec) {
+	// char.IsCrafting() is the SAME predicate actions.InitiateCraft uses for
+	// its AlreadyCrafting result, and the two must not drift: this function
+	// runs above the dispatch, so a busy player used to have components
+	// hauled out of the bank onto their person and then be refused anyway
+	// with "You are already working on something."
 	if recipe == nil ||
+		user.Character.IsCrafting() ||
 		!actions.StationSatisfied(user.Character, recipe.Station, room.Station) ||
 		!user.Character.HasRecipe(recipe.RecipeId) {
 		return
@@ -313,7 +343,8 @@ func craftEnchanting(rest string, recipe *crafting.RecipeSpec, user *users.UserR
 	// Ingredient check
 	ok, missing := crafting.HasIngredients(user.Character.Items, user.Character.ComponentItems, recipe)
 	if !ok {
-		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">You are missing: %s.</ansi>`, missing))
+		craftDeliver(user, messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">You are missing: %s.</ansi>`,
+			storageAwareMissingTag(user, recipe, missing)))
 		return true, nil
 	}
 
@@ -654,16 +685,50 @@ func recipeStatus(user *users.UserRecord, room *rooms.Room, r *crafting.RecipeSp
 	if !actions.StationSatisfied(user.Character, r.Station, room.Station) {
 		return "X", fmt.Sprintf("need %s", strings.ReplaceAll(r.Station, "_", " "))
 	}
-	ok, missing := crafting.HasIngredients(user.Character.Items, user.Character.ComponentItems, r)
+	// Storage counts toward BOTH halves of this answer. Components are
+	// auto-pulled at craft time, so a recipe the bank can complete shows as
+	// ready (matching the "Ready to craft" section), and one it cannot is
+	// short of whatever the bank ALSO lacks, which is not necessarily the
+	// first tag a carried-only count comes up short on.
+	ok, missing := crafting.HasIngredientsWithStorage(
+		user.Character.Items, user.Character.ComponentItems, user.ItemStorage.GetItems(), r)
 	if !ok {
-		// Completable by auto-pull from storage → shows as ready, matching the
-		// "Ready to craft" section and the auto-pull behavior.
-		if storageCompletable(user, r) {
-			return "V", ""
-		}
 		return "X", fmt.Sprintf("missing %s", missing)
 	}
 	return "V", ""
+}
+
+// storageAwareMissingTag re-answers "what are you actually missing?" with the
+// player's storage counted alongside what they carry, and is what every
+// player-facing craft refusal must print.
+//
+// 🐛 Prod defect, owner 2026-09-21. `craft setting` said "You are missing:
+// copper-wire." to a player with 39 Copper Wire in the bank. The storage pull
+// is all-or-nothing by owner ruling, so a shortfall the bank cannot fully
+// cover moves nothing at all, and the refusal was then written from a
+// carried-only count that names the FIRST short tag in recipe order.
+// chrysalis-setting lists copper-wire first; the real blocker was
+// chrysalis-shard, listed second and absent everywhere.
+//
+// ⚠️ This lives in the command layer, not in actions.InitiateCraft, because
+// storage hangs off the USER RECORD and InitiateCraft is shared with mobs,
+// which have none. storageCompletable is the same split for the same reason.
+//
+// fallback is the carried-only tag the caller already has. It is returned
+// when there is no recipe to recompute against, and when the storage-aware
+// count says the recipe IS satisfiable -- which only happens if the pull was
+// cut short by encumbrance, and in that case the carried-only answer is the
+// truthful one.
+func storageAwareMissingTag(user *users.UserRecord, r *crafting.RecipeSpec, fallback string) string {
+	if r == nil {
+		return fallback
+	}
+	ok, missing := crafting.HasIngredientsWithStorage(
+		user.Character.Items, user.Character.ComponentItems, user.ItemStorage.GetItems(), r)
+	if ok {
+		return fallback
+	}
+	return missing
 }
 
 // storageCompletable reports whether recipe r could be crafted right now by
