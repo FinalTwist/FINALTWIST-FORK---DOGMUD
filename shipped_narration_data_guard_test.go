@@ -764,12 +764,36 @@ func checkWeatherEmotes(t *testing.T) {
 var observerIdentityGuardRoots = []string{
 	shippedWorldRoot + "/combat-messages",
 	shippedWorldRoot + "/defense-messages",
+	shippedWorldRoot + "/conditions",
+	shippedWorldRoot + "/narration/special-moves",
 }
 
-// observerIdentityGuardContentSafeViaCode names the defense-messages files
-// whose {actor}/{actee} placeholders this guard would otherwise flag, but
-// does not fail on, because every one of them is proven to render through a
-// Go function that already substitutes a fully self-tagged identity string
+// observerIdentityGuardContentSafeViaCode names the files across all four
+// walk roots whose {actor}/{actee}/{actor_plain}/{actee_plain} placeholders
+// this guard would otherwise flag, but does not fail on, because every one of
+// them is proven to render through a Go function that already substitutes an
+// identity string this content-only walk cannot see.
+//
+// THE KEY IS THE PATH RELATIVE TO shippedWorldRoot ("conditions/9-hidden.yaml",
+// "narration/special-moves/drain.yaml", "defense-messages/dodge.yaml"), never a
+// bare basename. combat-messages and narration/special-moves both ship a
+// drain.yaml, gore.yaml, maul.yaml, pounce.yaml and throttle.yaml; a
+// basename-only key would let marking the special-moves twin safe silently
+// also exempt the combat-messages twin, which earns its safety a completely
+// different way (its own ansi tagging, not SendTrio) and was never meant to
+// be exempted at all. That collision shipped for one commit (M5 PR 1 Task 3)
+// before being caught and re-keyed here: five combat-messages files were
+// briefly merely logged instead of enforced. Every lookup builds this same
+// store-relative, slash-normalised path from the file it is checking, so the
+// two stores can never collide again regardless of what they name their
+// files.
+//
+// Three separate runtime guarantees are recorded here, one per group below.
+// A file NOT in this map is enforced like any other; a new entry earns its
+// place only with the same kind of proof.
+//
+// defense-messages/*.yaml (ten files) -> a Go function that already
+// substitutes a fully self-tagged identity string
 // (`<ansi fg="mobname">Name</ansi>` or `<ansi fg="username">Name</ansi>`,
 // built by meleeIdentityTag or the pre-existing taunt/spell defence path).
 // messaging.nameTagPattern matches that SUBSTITUTED span wherever it lands in
@@ -781,12 +805,7 @@ var observerIdentityGuardRoots = []string{
 // anonymizableAliases was rejected (it would blind this guard to a genuinely
 // bad alias in combat-messages, which has no such runtime fallback); naming
 // the files here instead keeps the alias check strict everywhere it still
-// matters.
-//
-// This is not a blanket defense-messages exemption. It is exactly the ten
-// files this directory holds today, each with the renderer that makes it
-// safe, and a file NOT in this map is enforced like any other -- a new
-// eleventh file earns a place here only with the same proof:
+// matters:
 //
 //	dodge.yaml, parry.yaml, block.yaml    -> combat.sendDefenseMessages (Item 1)
 //	counter-dodge/parry/block/quell.yaml  -> combat.fillCounterMessages (Item 1)
@@ -801,17 +820,144 @@ var observerIdentityGuardRoots = []string{
 //	                                          and mobcommands/usercommands
 //	                                          taunt.go -- already safe before
 //	                                          Task 4c, per its own bug report
+//
+// A SECOND safety route covers conditions and special-moves, widened into
+// this guard's walk in M5 PR 1 Task 3. Both rest on the same idea as
+// defense-messages above (a Go layer that substitutes an identity string
+// this content-only walk cannot see), but neither one tags that string with
+// an ansi alias at all, so nameTagPattern never matches it; the runtime
+// guarantee instead comes from messaging.HideNames scanning the RENDERED
+// text for the substituted plain name and redacting it per reader. That
+// holds regardless of which token the YAML happened to author -- {actee},
+// {actee_plain}, {actor} or {actor_plain} -- because HideNames matches the
+// substituted name as a substring wherever it lands, tagged or bare
+// (internal/messaging/hidenames.go: hideOneName also strips the identity tag
+// around a match). This is why the entries below cover every file in each
+// store that authors a name-referencing observer line at all, not only the
+// files that happen to author a bare `_plain` token -- 48 entries where the
+// plan anticipated 16, discovered by investigating the Step 3 red run rather
+// than trimming it to match the plan:
+//
+//	conditions/*.yaml               -> ConditionSpec.Narrate always maps
+//	                                    {actee}/{actee_plain} to the holder
+//	                                    (ActorName is permanently empty until
+//	                                    M6 gives a condition a caster --
+//	                                    internal/conditions/narration.go:45-50),
+//	                                    and all three phases pass that same
+//	                                    holder plain name to HideNames: start
+//	                                    Condition_ApplyConditions.go:170,
+//	                                    trigger NewRound_UserRoundTick.go:302
+//	                                    and NewRound_MobRoundTick.go:287, end
+//	                                    sendConditionEndRoomText
+//	                                    (NewTurn_PruneConditions.go:137).
+//	                                    1-illumination.yaml is safe for a
+//	                                    second reason as well: its light flag
+//	                                    routes it through SendTextVisualAsLit,
+//	                                    which has no SightShapes tier at all.
+//	                                    inObserverRole was widened from an
+//	                                    exact "observer"/"remote_observer"
+//	                                    match to a suffix match, because
+//	                                    conditions keys its three phases
+//	                                    start_observer/trigger_observer/
+//	                                    end_observer -- with the exact match
+//	                                    the widened root inspected zero
+//	                                    condition placeholders, which was not
+//	                                    "conditions are clean", it was
+//	                                    "conditions were never inspected". See
+//	                                    TestObserverIdentityTagsAreAnonymizable's
+//	                                    per-root placeholder check, which now
+//	                                    catches that regression directly.
+//	narration/special-moves/*.yaml  -> messaging.SendTrio hides Audience
+//	                                    ActorName and ActeeName from every
+//	                                    reader by that reader's
+//	                                    ParticipantSight, for every event a
+//	                                    special-move file authors, not only
+//	                                    the two (grapple.yaml, throw.yaml)
+//	                                    that happen to also author a `_plain`
+//	                                    token. Confirmed for all fourteen
+//	                                    shipped files by grepping every
+//	                                    mobcommands/usercommands move handler
+//	                                    for its SendTrio call site. throw.yaml
+//	                                    additionally relies on M5 PR 1 Task 2,
+//	                                    which stopped its interrupt event
+//	                                    passing NoName.
+//
+// This map staying at 48 entries does not mean the guard went vacuous: a
+// clean run inspects 153 files and 4358 {actor}/{actee} placeholders across
+// the four roots, of which 732 are logged here as exempt and the remaining
+// 3626 -- the large majority -- are still fully enforced (see the t.Logf line
+// at the end of TestObserverIdentityTagsAreAnonymizable for the current
+// numbers).
 var observerIdentityGuardContentSafeViaCode = map[string]bool{
-	"dodge.yaml":         true,
-	"parry.yaml":         true,
-	"block.yaml":         true,
-	"quell.yaml":         true,
-	"defy.yaml":          true,
-	"counter-dodge.yaml": true,
-	"counter-parry.yaml": true,
-	"counter-block.yaml": true,
-	"counter-quell.yaml": true,
-	"counter-defy.yaml":  true,
+	"defense-messages/dodge.yaml":         true,
+	"defense-messages/parry.yaml":         true,
+	"defense-messages/block.yaml":         true,
+	"defense-messages/quell.yaml":         true,
+	"defense-messages/defy.yaml":          true,
+	"defense-messages/counter-dodge.yaml": true,
+	"defense-messages/counter-parry.yaml": true,
+	"defense-messages/counter-block.yaml": true,
+	"defense-messages/counter-quell.yaml": true,
+	"defense-messages/counter-defy.yaml":  true,
+	// Conditions: all three narration phases pass the holder's plain name
+	// into HideNames (start Condition_ApplyConditions.go:170, trigger
+	// NewRound_UserRoundTick.go:302 and NewRound_MobRoundTick.go:287, end
+	// sendConditionEndRoomText). Applies to the store's every
+	// name-referencing observer line, not only the ones that author a
+	// `_plain` token; see the doc comment above.
+	"conditions/0-meditating.yaml":         true,
+	"conditions/1-illumination.yaml":       true, // also routed through SendTextVisualAsLit, which has no SightShapes tier
+	"conditions/2-stunned.yaml":            true,
+	"conditions/3-blinded.yaml":            true,
+	"conditions/9-hidden.yaml":             true,
+	"conditions/29-night_vision.yaml":      true,
+	"conditions/31-empathic_shroud.yaml":   true,
+	"conditions/38-conviction_armor.yaml":  true,
+	"conditions/39-venom.yaml":             true,
+	"conditions/40-spore_toxin.yaml":       true,
+	"conditions/47-minor_antidote.yaml":    true,
+	"conditions/48-clarity_tonic.yaml":     true,
+	"conditions/49-fire_resistance.yaml":   true,
+	"conditions/50-greater_healing.yaml":   true,
+	"conditions/51-berserker_elixir.yaml":  true,
+	"conditions/52-chrysalis_shell.yaml":   true,
+	"conditions/65-cats_eye_draught.yaml":  true,
+	"conditions/78-toxic_cloud.yaml":       true,
+	"conditions/94-cold_discharge.yaml":    true,
+	"conditions/96-hull_discharge.yaml":    true,
+	"conditions/97-arc_trap.yaml":          true,
+	"conditions/100-blood_frenzy.yaml":     true,
+	"conditions/102-disrupted.yaml":        true,
+	"conditions/106-searing_backlash.yaml": true,
+	"conditions/107-rimefrost.yaml":        true,
+	"conditions/108-static_shock.yaml":     true,
+	"conditions/109-reeling.yaml":          true,
+	"conditions/110-mired.yaml":            true,
+	"conditions/111-ensnared.yaml":         true,
+	"conditions/112-paralysed.yaml":        true,
+	"conditions/114-cursed.yaml":           true,
+	"conditions/115-rending_bleed.yaml":    true,
+	"conditions/116-terrified.yaml":        true,
+	"conditions/119-minor_shield.yaml":     true,
+	// Special moves: messaging.SendTrio hides Audience ActorName and ActeeName
+	// from every reader by that reader's ParticipantSight. Applies to all
+	// fourteen shipped files, not only the two that author a `_plain` token;
+	// see the doc comment above. The store-relative key is what keeps these
+	// five from colliding with their combat-messages basename twins.
+	"narration/special-moves/bash.yaml":      true,
+	"narration/special-moves/charge.yaml":    true,
+	"narration/special-moves/drain.yaml":     true,
+	"narration/special-moves/gore.yaml":      true,
+	"narration/special-moves/grapple.yaml":   true,
+	"narration/special-moves/hamstring.yaml": true,
+	"narration/special-moves/kick.yaml":      true,
+	"narration/special-moves/maul.yaml":      true,
+	"narration/special-moves/pounce.yaml":    true,
+	"narration/special-moves/rake.yaml":      true,
+	"narration/special-moves/shoot.yaml":     true,
+	"narration/special-moves/throttle.yaml":  true,
+	"narration/special-moves/throw.yaml":     true, // SendTrio hides both Audience names by reader sight; the interrupt event stopped passing NoName in M5 PR 1 Task 2
+	"narration/special-moves/trip.yaml":      true,
 }
 
 // anonymizableAliases are the ansi aliases messaging.Anonymize's
@@ -830,11 +976,17 @@ var anonymizableAliases = map[string]bool{
 	"{acteetype}": true,
 }
 
-// identityPlaceholderPattern finds a bare {actor} or {actee} token in an
-// authored line. It does not match inside {actortype}/{acteetype}: neither
-// ends in a `}` immediately after "actor"/"actee", so the exact-token anchor
-// is enough without a word boundary.
-var identityPlaceholderPattern = regexp.MustCompile(`\{actor\}|\{actee\}`)
+// identityPlaceholderPattern finds a bare {actor}, {actee}, {actor_plain} or
+// {actee_plain} token in an authored line. The two _plain variants are the
+// dangerous ones: they are untagged by definition, so messaging.Anonymize,
+// which strips identity TAGS only, cannot see them at all. They are safe only
+// when the delivery path hands the name to HideNames, which is a runtime
+// property this content-only guard cannot verify and which
+// observerIdentityGuardContentSafeViaCode therefore records by hand.
+//
+// It does not match inside {actortype}/{acteetype}: those do not end in `}`
+// immediately after "actor"/"actee", so the exact-token anchor is enough.
+var identityPlaceholderPattern = regexp.MustCompile(`\{actor\}|\{actee\}|\{actor_plain\}|\{actee_plain\}`)
 
 // identityTagSpanPattern finds one whole `<ansi fg="ALIAS">content</ansi>`
 // span and captures both the alias and the content, mirroring
@@ -867,10 +1019,22 @@ var identityTagSpanPattern = regexp.MustCompile(`<ansi fg="([^"]+)">([^<]*)</ans
 // inspected, and refuses to pass on a walk that found nothing, for the same
 // reason TestNoLegacyRoleKeysInShippedData does: a walk that silently scans
 // zero files or zero placeholders would pass in 0.00s and prove nothing.
+//
+// It also checks that count PER ROOT, not only summed across all four. The
+// summed check alone cannot see one root going dark while the others keep
+// the total comfortably positive -- which is exactly what happened to
+// conditions before inObserverRole was widened to a suffix match: conditions
+// keys its three phases start_observer/trigger_observer/end_observer, none
+// of which equalled the old exact "observer"/"remote_observer" check, so
+// that root silently inspected zero placeholders while combat-messages and
+// defense-messages carried the overall count and the test stayed green. A
+// future narrowing of inObserverRole back toward exact equality would
+// reproduce that silently; the per-root check below catches it directly.
 func TestObserverIdentityTagsAreAnonymizable(t *testing.T) {
 	filesInspected := 0
 	placeholdersInspected := 0
 	exemptFindings := 0
+	placeholdersByRoot := make(map[string]int, len(observerIdentityGuardRoots))
 
 	for _, root := range observerIdentityGuardRoots {
 		files := yamlFilesUnder(t, root)
@@ -883,19 +1047,33 @@ func TestObserverIdentityTagsAreAnonymizable(t *testing.T) {
 			placeholders, exempt := checkFileForUnanonymizableIdentities(t, path)
 			placeholdersInspected += placeholders
 			exemptFindings += exempt
+			placeholdersByRoot[root] += placeholders
 		}
 	}
 
 	if placeholdersInspected == 0 {
 		t.Fatal("inspected zero {actor}/{actee} placeholders: the walk found nothing, so a green run proves nothing")
 	}
+	for _, root := range observerIdentityGuardRoots {
+		if placeholdersByRoot[root] == 0 {
+			t.Errorf("walk root %s inspected zero {actor}/{actee} placeholders: either it has no matching content or inObserverRole stopped recognising its observer-role keys", root)
+		}
+	}
 	// A floor, not a pin. Content volume moves; a walk collapsing to a
-	// handful of files does not happen for a legitimate reason.
-	if filesInspected < 10 {
-		t.Errorf("inspected only %d files across %d walk roots: expected the whole combat/defense message tree", filesInspected, len(observerIdentityGuardRoots))
+	// handful of files does not happen for a legitimate reason. Four roots
+	// now: combat-messages, defense-messages, conditions, special-moves. A
+	// clean run on 2026-09-22 inspected 153 files; 100 is comfortably below
+	// that (leaves room for content to move without a false trip) while
+	// still catching a walk that collapses back toward the old two-root,
+	// ten-file floor.
+	if filesInspected < 100 {
+		t.Errorf("inspected only %d files across %d walk roots: expected the whole combat, defense, condition and special-move message tree", filesInspected, len(observerIdentityGuardRoots))
 	}
 	t.Logf("inspected %d YAML files and %d {actor}/{actee} placeholders across %d walk roots (%d placeholders logged, not failed, under observerIdentityGuardContentSafeViaCode)",
 		filesInspected, placeholdersInspected, len(observerIdentityGuardRoots), exemptFindings)
+	for _, root := range observerIdentityGuardRoots {
+		t.Logf("  %s: %d placeholders", root, placeholdersByRoot[root])
+	}
 }
 
 // checkFileForUnanonymizableIdentities reports every unanonymizable
@@ -914,7 +1092,12 @@ func checkFileForUnanonymizableIdentities(t *testing.T, path string) (placeholde
 		return 0, 0
 	}
 
-	contentSafeViaCode := observerIdentityGuardContentSafeViaCode[filepath.Base(path)]
+	relPath, err := filepath.Rel(shippedWorldRoot, path)
+	if err != nil {
+		t.Errorf("%s: relative to %s: %v", path, shippedWorldRoot, err)
+		return 0, 0
+	}
+	contentSafeViaCode := observerIdentityGuardContentSafeViaCode[filepath.ToSlash(relPath)]
 
 	dec := yamlv3.NewDecoder(bytes.NewReader(data))
 	for {
@@ -960,14 +1143,26 @@ func walkNodeForObserverIdentities(t *testing.T, path string, n *yamlv3.Node, an
 	return placeholders, exempt
 }
 
-// inObserverRole reports whether "observer" or "remote_observer" appears
-// anywhere in the ancestor key path, not only as the immediate parent --
-// combat-messages nests an intensity band (beginner/expert/master) between
-// the role key and the scalar list, defense-messages does not, and this
-// check must hold for both without caring which.
+// inObserverRole reports whether an observer-facing key appears anywhere in
+// the ancestor key path, not only as the immediate parent -- combat-messages
+// nests an intensity band (beginner/expert/master) between the role key and
+// the scalar list, defense-messages does not, and this check must hold for
+// both without caring which.
+//
+// It matches by SUFFIX ("observer"), not exact equality, because conditions
+// does not use a bare "observer"/"remote_observer" key at all: its three
+// narration phases key their room-facing text as start_observer,
+// trigger_observer and end_observer. An exact-equality check silently walks
+// every condition file and finds nothing -- confirmed empirically before this
+// suffix match was added: with only the roots and pattern widened, the guard
+// found zero condition placeholders, which is not "conditions are clean", it
+// is "conditions were never inspected". combat-messages, defense-messages and
+// special-moves all key their room-facing text as bare "observer" or
+// "remote_observer", both of which also satisfy a suffix match, so this is a
+// pure widening with no narrowing risk to the two original stores.
 func inObserverRole(ancestors []string) bool {
 	for _, a := range ancestors {
-		if a == "observer" || a == "remote_observer" {
+		if strings.HasSuffix(a, "observer") {
 			return true
 		}
 	}
