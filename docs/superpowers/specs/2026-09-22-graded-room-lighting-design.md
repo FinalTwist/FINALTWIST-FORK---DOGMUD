@@ -361,17 +361,34 @@ the moment described above.
 
 Six plans, each shipping on its own. The order is a dependency order.
 
-1. **The scale and the window.** The graded value, the band model, the three
-   tiers derived from it, and all 14 consumers migrated. Thresholds chosen so
-   that today's lit and dark rooms keep their current classification, so this
-   plan is behaviour-preserving despite replacing the whole model.
-2. **Celestial ambient.** The sun curve, the three moons derived from lore,
+1. **The scale and the bands.** The graded value, the normal observer's band
+   thresholds, and all 14 consumers migrated. Thresholds and the mapping are
+   chosen so every shipped room keeps its current classification, so this plan
+   is behaviour-preserving despite replacing the whole model.
+
+   ⚠️ **NightVision and InfraredVision keep their current flag shortcuts in
+   this plan.** Replacing them with windows is plan 2. They are left alone
+   here because the window model is a deliberate behaviour change for them:
+   today a NightVision holder sees fully in a pitch dark room, and under the
+   window model that holder is blind below 1. Changing both the scale and
+   their behaviour in one plan would make the behaviour-preserving guarantee
+   impossible to assert.
+
+2. **Vision windows.** NightVision gains strength, InfraredVision gains
+   strength and its negative reach, magical darkness gets its floor, and the
+   flag shortcuts left in plan 1 are replaced.
+
+   🔴 **This MUST land before ambient.** Plan 3 creates genuinely dim rooms
+   for the first time. A dim room is caught by the band check before plan 1's
+   flag shortcut is reached, so a NightVision holder would silently regress
+   from full sight to shapes at night. The window model is what makes a dim
+   room correct for them.
+
+3. **Celestial ambient.** The sun curve, the three moons derived from lore,
    and the seasonal noon peak delivered through season mutators. This is the
    plan that makes the day/night cycle matter.
-3. **Occlusion.** Weather mutators become multiplicative blockers, and the
+4. **Occlusion.** Weather mutators become multiplicative blockers, and the
    `-2 to 2` `LightMod` vocabulary is retired in favour of the new scale.
-4. **Vision abilities.** NightVision gains strength, InfraredVision gains
-   strength and its negative reach, and magical darkness gets its floor.
 5. **Light and darkness as play.** A darkness spell, light-bearing items
    (fact 14 says there are none today), and `chrysalis-glow` retuned against
    the scale it now lives on. Strength and duration scale from stat and skill.
