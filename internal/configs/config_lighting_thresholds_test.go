@@ -259,3 +259,56 @@ func TestLightingThresholds_ExitsUpperBoundRejected(t *testing.T) {
 		t.Fatalf("LightExitsAbove above 100 must revert to 65, got %v", b.LightExitsAbove)
 	}
 }
+
+// TestLightingThresholds_ElevatedBlindWithInvalidExitsDoesNotFallBelowBlind
+// is the case the whole-arc review found: every other test in this file
+// authors the default LightBlindBelow of 25, and the hardcoded exits
+// fallback of 65 is always above 25, so no existing test could see this.
+// An operator who legitimately raises LightBlindBelow above 65 and
+// separately authors an invalid LightExitsAbove used to get the fallback
+// 65 unconditionally, landing BELOW their own valid blind threshold: the
+// exact contradiction (a blind observer who can see through an exit) this
+// validator exists to prevent. The fallback must be re-checked against the
+// final LightBlindBelow, not assigned and left alone.
+func TestLightingThresholds_ElevatedBlindWithInvalidExitsDoesNotFallBelowBlind(t *testing.T) {
+	b := Balance{LightBlindBelow: 90, LightDimBelow: 95, LightExitsAbove: -50}
+	b.Validate()
+	if b.LightBlindBelow != 90 || b.LightDimBelow != 95 {
+		t.Fatalf("a valid blind/dim pair must survive untouched, got blind=%v dim=%v", b.LightBlindBelow, b.LightDimBelow)
+	}
+	if b.LightExitsAbove < b.LightBlindBelow {
+		t.Fatalf("LightExitsAbove fallback must never sit below the final LightBlindBelow, got exits=%v blind=%v", b.LightExitsAbove, b.LightBlindBelow)
+	}
+	if b.LightExitsAbove != 90 {
+		t.Fatalf("LightExitsAbove fallback should clamp up to the elevated LightBlindBelow of 90, got %v", b.LightExitsAbove)
+	}
+}
+
+// TestLightingThresholds_ElevatedBlindWithOutOfRangeExitsDoesNotFallBelowBlind
+// is the same hazard reached through the range check instead of the
+// cross-axis check: LightExitsAbove is out of range (200) rather than
+// merely below blind, but the unconditional 65 fallback would still land
+// below an elevated LightBlindBelow.
+func TestLightingThresholds_ElevatedBlindWithOutOfRangeExitsDoesNotFallBelowBlind(t *testing.T) {
+	b := Balance{LightBlindBelow: 90, LightDimBelow: 95, LightExitsAbove: 200}
+	b.Validate()
+	if b.LightExitsAbove < b.LightBlindBelow {
+		t.Fatalf("LightExitsAbove fallback must never sit below the final LightBlindBelow, got exits=%v blind=%v", b.LightExitsAbove, b.LightBlindBelow)
+	}
+	if b.LightExitsAbove != 90 {
+		t.Fatalf("LightExitsAbove fallback should clamp up to the elevated LightBlindBelow of 90, got %v", b.LightExitsAbove)
+	}
+}
+
+// TestLightingThresholds_ShippedDefaultsUnchangedByFallbackFix pins that the
+// fallback fix does not move the arc's shipped defaults: an all-zero
+// Balance, exactly what a Go test binary loads, must still land on
+// 25/50/65. The clamp-up branch must never fire when the final
+// LightBlindBelow is at or below the hardcoded 65.
+func TestLightingThresholds_ShippedDefaultsUnchangedByFallbackFix(t *testing.T) {
+	b := Balance{}
+	b.Validate()
+	if b.LightBlindBelow != 25 || b.LightDimBelow != 50 || b.LightExitsAbove != 65 {
+		t.Fatalf("shipped defaults must remain 25/50/65, got blind=%v dim=%v exits=%v", b.LightBlindBelow, b.LightDimBelow, b.LightExitsAbove)
+	}
+}
