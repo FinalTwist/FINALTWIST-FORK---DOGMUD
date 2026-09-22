@@ -379,13 +379,19 @@ func ConsumeIngredients(inv []items.Item, componentInv []items.Item, recipe *Rec
 	return newInv, newComponent
 }
 
-// PlanStoragePull computes which storage items would complete recipe's
-// ingredients given what the actor already holds (inv = backpack, componentInv
-// = component bag). Returns the exact storage items to pull and whether pulling
-// them makes the recipe craftable. All-or-nothing: if storage can't cover the
-// full shortfall, returns (nil, false) — pull nothing. Tag-matching mirrors
-// HasIngredients / ConsumeIngredients via componentTagOf.
-func PlanStoragePull(recipe *RecipeSpec, inv, componentInv, storage []items.Item) ([]items.Item, bool) {
+// planAgainstStorage is THE single shortfall traversal behind both
+// PlanStoragePull and HasIngredientsWithStorage. It counts recipe's
+// requirement down against the component bag, then the backpack, then
+// storage, and hands back both the concrete storage items it counted and
+// whatever quantity each tag is STILL short by.
+//
+// It exists because PlanStoragePull computed the shortfall and then threw it
+// away at `return nil, false`, which left the only honest answer to "what is
+// actually missing?" unreachable. See the defect recorded on
+// HasIngredientsWithStorage below.
+//
+// Tag-matching mirrors HasIngredients / ConsumeIngredients via componentTagOf.
+func planAgainstStorage(recipe *RecipeSpec, inv, componentInv, storage []items.Item) ([]items.Item, map[string]int) {
 	shortfall := make(map[string]int)
 	for _, ing := range recipe.Ingredients {
 		shortfall[ing.ItemTag] = ing.Quantity
@@ -408,12 +414,59 @@ func PlanStoragePull(recipe *RecipeSpec, inv, componentInv, storage []items.Item
 			shortfall[t]--
 		}
 	}
+	return pull, shortfall
+}
+
+// PlanStoragePull computes which storage items would complete recipe's
+// ingredients given what the actor already holds (inv = backpack, componentInv
+// = component bag). Returns the exact storage items to pull and whether pulling
+// them makes the recipe craftable. All-or-nothing: if storage can't cover the
+// full shortfall, returns (nil, false) — pull nothing.
+//
+// The all-or-nothing policy is deliberate and owner-ruled. What it must not do
+// is decide the player-facing wording; ask HasIngredientsWithStorage for the
+// tag to name.
+func PlanStoragePull(recipe *RecipeSpec, inv, componentInv, storage []items.Item) ([]items.Item, bool) {
+	pull, shortfall := planAgainstStorage(recipe, inv, componentInv, storage)
+	// A map range is fine for a boolean and is NOT acceptable for picking a
+	// name, which is why HasIngredientsWithStorage walks the ingredient list.
 	for _, remaining := range shortfall {
 		if remaining > 0 {
 			return nil, false
 		}
 	}
 	return pull, true
+}
+
+// HasIngredientsWithStorage is HasIngredients with the actor's storage counted
+// alongside what they carry. Returns (true, "") when carried holdings plus
+// storage cover the recipe, and (false, firstMissingTag) otherwise, where the
+// tag is the FIRST ingredient in the recipe's own declared order that neither
+// the actor nor storage can supply.
+//
+// 🐛 Prod defect, owner 2026-09-21. `craft setting` reported "You are missing:
+// copper-wire." to a player holding 39 Copper Wire in their bank. The pull is
+// all-or-nothing, so a shortfall storage cannot fully cover moves nothing at
+// all, and the refusal was then written from HasIngredients, which only ever
+// sees what is carried. chrysalis-setting lists copper-wire FIRST, so that is
+// the first tag the carried-only count comes up short on, and the player was
+// sent to fetch the one component they had in quantity. The real blocker was
+// chrysalis-shard, listed second and absent everywhere.
+//
+// ⚠️ Recipe order, never map order. This tag becomes player-facing text, so it
+// has to be the same tag every time it is asked.
+//
+// Storage hangs off the USER RECORD, not the character, so mobs have none and
+// this is deliberately NOT what actions.InitiateCraft calls. The player
+// command layer recomputes with it; see internal/usercommands/craft.go.
+func HasIngredientsWithStorage(inv, componentInv, storage []items.Item, recipe *RecipeSpec) (bool, string) {
+	_, shortfall := planAgainstStorage(recipe, inv, componentInv, storage)
+	for _, ing := range recipe.Ingredients {
+		if shortfall[ing.ItemTag] > 0 {
+			return false, ing.ItemTag
+		}
+	}
+	return true, ""
 }
 
 // craftableComponentTags is the set of component_tags that some recipe
