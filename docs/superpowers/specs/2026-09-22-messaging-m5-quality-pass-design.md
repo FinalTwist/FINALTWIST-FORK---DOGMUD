@@ -332,19 +332,30 @@ consequence this ruling was accepted on:
   plus 1. **So night never makes a room dark**: a forest at midnight sits at
   1, which reads as lit. "An unlit forest stays patrolled" was wrong, because
   there is no unlit forest.
-- Only `cave` and `dungeon` carry `darkarea: true`. That is **121 of 1436
-  rooms**, and 25 of them are in `thornwall_city`, its cellars and drainage
-  tunnels. So unlit city rooms DO exist, which is the half of the prediction
-  that held.
-- But those rooms are stocked with wildlife. The drainage tunnels spawn tunnel
-  rat swarms whose groups are `rats` and `animal`, **neither of which is one
-  of the 22 defined factions**. Harming a factionless mob is not a crime at
-  all (`RecordAssaultCrime` returns early on an empty faction list), and such
-  a mob cannot witness one either.
+- **Four** biomes carry `darkarea: true`: `cave`, `dungeon`, `swamp`, and
+  `spiderweb` which no shipped room uses. That is **140 of 1387 rooms**.
+- 🔑 **43 of those are permanently lit anyway.** All 31 Crash Site Interior
+  rooms carry `hull_suppression` and all 12 Foldweave cave rooms carry
+  `foldweave-glow`, both static room mutators with `lightmod: 2`, baked into
+  the room YAML and never despawning. Two of the four dark zones content
+  designers built are deliberately kept lit, so the gate is inert there **by
+  design, not by accident.** Genuinely dark: **97 rooms**.
+- **14 dark rooms DO spawn faction-aligned mobs**, in one contiguous cluster:
+  an 11-room Warren enclave (`warren`), a 2-room goblin den
+  (`ironwind_tribe`), and Tova in Stillwater Marsh (`stillwater_citizens`).
+  Wander and forager territory add 2 more reachable dark rooms. So roughly
+  **16 rooms, about 1% of the world**, across 3 of the 22 factions.
+- 🔴 **And any player can cancel darkness at will.** No shipped ITEM grants
+  light; the only source is the spell `chrysalis-glow`, which is a STARTER
+  SPELL granted to every new character at creation, commented in
+  `internal/characters/character.go` as "light source for caves". A player
+  carrying light raises visibility for everyone in the room.
 
-So the mobs whose harm is a crime live in lit places, and the dark places hold
-creatures the crime system ignores entirely. The gate is correct and, with
-today's content, close to unreachable.
+So the gate is a **real but narrow live edge**, not the broad behaviour change
+the ruling was accepted on and not a no-op either. Thornwall's cellars, the
+case the original prediction named, hold only wildlife: their tunnel rat
+swarms are grouped `rats` and `animal`, neither a defined faction, so harming
+one is not a crime and it cannot witness one.
 
 **What changes that** is the graded lighting arc: ambient light varying with
 time of day, light sources weighed rather than counted, light and darkness

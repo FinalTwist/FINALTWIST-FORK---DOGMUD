@@ -1150,15 +1150,23 @@ exercise almost nothing.
 - Sight reads a room as lit at `GetVisibility() >= 1`, and night is only minus
   1 from a base of 2. **Night never produces darkness.** A forest at midnight
   is visibility 1, which is lit.
-- Only `cave` and `dungeon` set `darkarea: true`: **121 of 1436 rooms**, 25 of
-  them inside `thornwall_city` as cellars and drainage tunnels.
-- Those rooms hold wildlife. The drainage tunnels spawn tunnel rat swarms
-  whose groups are `rats` and `animal`, **neither a defined faction**. Harming
-  a factionless mob is not a crime at all, and such a mob cannot witness one.
+- **Four** biomes set `darkarea: true`: `cave`, `dungeon`, `swamp` and the
+  unused `spiderweb`. **140 of 1387 rooms.**
+- 🔑 **43 of those are permanently lit by static room mutators**
+  (`hull_suppression` on all 31 Crash Site Interior rooms, `foldweave-glow` on
+  all 12 Foldweave cave rooms, both `lightmod: 2`, never despawning). Two of
+  the four dark zones are deliberately kept lit. **Genuinely dark: 97.**
+- **14 dark rooms DO hold faction mobs**: an 11-room Warren enclave, a 2-room
+  `ironwind_tribe` den, and Tova (`stillwater_citizens`) in Stillwater Marsh.
+  Wander and forager territory reach 2 more. **About 16 rooms, ~1% of the
+  world, across 3 of 22 factions.**
+- 🔴 **`chrysalis-glow` is a STARTER SPELL** granted to every new character,
+  commented "light source for caves". No shipped item grants light. So any
+  player can light any dark room from level 1, for everyone in it.
 
-So faction crime happens where faction mobs live, which is lit, and the dark
-rooms contain creatures the crime system ignores. The gate is correct and
-currently close to unreachable.
+So the gate is a real but NARROW live edge. Thornwall's cellars, the case the
+original prediction named, hold only wildlife (`rats`, `animal`, neither a
+faction), so no crime happens there at all.
 
 **Run it when the graded lighting arc lands**, because two thresholds instead
 of one put an ordinary dim room into the shapes tier, which is what turns this
