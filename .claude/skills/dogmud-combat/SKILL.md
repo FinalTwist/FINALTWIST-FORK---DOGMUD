@@ -265,6 +265,18 @@ anywhere in CLAUDE.md:
 - **Reflect lives on the species record** (`return_damage` plus
   `return_damage_channel`), not on conditions and not in the mob file. Equipment
   `return_damage` is a separate mechanism: physical and uncapped.
+- **Rates are MEASURED, never inferred.** The source is
+  `_datafiles/logs/combat-analytics.jsonl`, read with
+  `tools/balance/read_combat_analytics.py`. Its buffer is CUMULATIVE: each
+  flush line restates the running total, so summing flush lines multiplies
+  the truth. Note also that `0.5752` there is the HIT rate and clean-hit is
+  `0.3856`; the field name misleads, because melee `won` means CleanHit while
+  special-move `won` means `result.Hit`.
+- **Meirok is the USER'S character**, not a fixture to invent numbers for.
+  Real melee score 455, block 523 (higher than the attack score),
+  manifestation 59 = 48 skill + 11 gear. Read
+  `_datafiles/world/dogmud/users/3.yaml` before modelling anything as a
+  "veteran."
 - **False claims not to remake**: there is no prone/stand death spiral; an
   exhausted defender is not auto-hit; the melee attack score is not
   Dexterity; a mob's `Training` is only the spawn pool.
@@ -377,6 +389,19 @@ resolution and stay as direct `mobs.GetInstance` / `users.GetByUserId`
 calls. Do not extend the `Actor` interface to cover mob-only or user-only
 behavior; type-assert at the leaf instead
 (`target.(*actions.MobActor).Mob...`).
+
+**`mobs.CheckPlayerHarm` is THE player-harm policy.**
+`internal/mobs/harm_authorization.go:41` is the single authorization point
+for every player-initiated harmful action: melee, special moves, ranged
+fire, thrown weapons, theft, item procs, target switching, and harmful
+spells at both cast time and resolution time. It returns a `HarmBlock`
+(`HarmAllowed`, `HarmBlockedCompanion`, `HarmBlockedNonCombatant`,
+`HarmBlockedAttackImmune`), companion first so the player gets the most
+informative refusal, and a nil mob returns `HarmAllowed` because callers
+nil-check their own registry lookups. Every path used to re-implement this
+inline and they had drifted: a quest NPC protected from melee could still be
+killed with a spell, because harmful multi-target and area casting blocked
+nothing at all. A new harm path calls this; it does not re-derive the policy.
 
 [[feedback_companion_autonomy]]: companions are intentionally autonomous.
 Never propose an `order <companion> <command>` or similar direct-control

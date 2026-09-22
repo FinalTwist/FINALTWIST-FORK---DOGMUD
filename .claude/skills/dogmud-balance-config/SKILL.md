@@ -80,6 +80,41 @@ the plain hit rate under the label "CLEAN-HIT RATE," and a balance change
 was tuned against the mislabelled number before anyone re-derived it from
 source.
 
+## The `< 0 || > 1.0` validator can never default a knob
+
+An absent YAML key unmarshals to **0**. Zero is neither negative nor above
+1.0, so a validator written `if x < 0 || x > 1.0 { x = default }` never takes
+its defaulting branch, and the knob stays at **0.0** forever rather than at
+the default the comment advertises. The five `SurpriseAttack*Penalty` knobs
+advertised 0.10 through 0.70 and every one of them ran at 0.0, which is why
+the pre-U10d surprise burst auto-hit every limb; they have since been deleted
+(`3abb94585`). For any knob whose legitimate range includes 0, validate with
+`if x <= 0 { x = default }`, and reserve the range-check shape for knobs where
+0 is a meaningful shipped value.
+
+The dangerous pair is specifically a **non-zero advertised default** on a key
+**absent from `config.yaml`**; the shape alone is often harmless
+(`MinAttackCritChance` and `EquipmentDropChance` both use it and both ship
+explicitly). A sweep after the source note was corrected found no live
+instance left, and that correction is itself the cautionary tale: the false
+finding came from grepping the Go field name `SubGoldLossFraction` against a
+YAML file whose key is the snake_case tag `sub_gold_loss_fraction`, which is
+the same "grep the tag, not the identifier" rule stated below.
+[[project-dead-state-machine-registry-and-validator-trap]]
+
+## Fixing the owner's local config is Claude's job
+
+When the owner's local `_datafiles/config.yaml` needs a change (a renamed key,
+a stale knob), make the change rather than handing them the chore. Deploys are
+the owner's job ([[feedback-owner-does-the-deploys]]); local dev config is not
+a deploy. Diff the disk copy against `git show HEAD:_datafiles/config.yaml`,
+separate the owner's real local edits from lag behind HEAD, back the disk copy
+up to the scratchpad, rebuild from the HEAD blob, reapply only the real edits,
+and confirm the `S` bit survived. As of 2026-09-15 the real local edits are
+`HttpPort: 8090`, `LogLevel: "info"`, and the `Playtest:` block. Prod's
+`config-production.yaml` on the droplet stays the owner's to change.
+[[feedback-fix-local-config-yourself]]
+
 ## Where knobs are declared
 
 All balance knob fields live in the single file
@@ -166,6 +201,14 @@ Folded memory files:
 - [[reference_config_yaml_skip_worktree]] (skip-worktree desync, both
   directions; the `--cacheinfo` trap; build commits from the `git show HEAD:`
   blob)
+- [[project-dead-state-machine-registry-and-validator-trap]] (its part 2 only:
+  the `< 0 || > 1.0` validator shape, the dangerous non-zero-default-plus-
+  absent-key pair, and the grep-the-tag correction. Its part 1, the state
+  machine registry, is obsolete: the registry was replaced by an on-demand
+  resolver on 2026-08-30 and the trap it described no longer exists)
+- [[feedback-fix-local-config-yourself]] (resync the owner's local
+  `config.yaml` yourself; cites [[feedback-owner-does-the-deploys]] for the
+  boundary against deploys, which stays the owner's)
 
 Cited, not folded:
 - [[reference-clean-hit-rate-is-mislabelled]] (a dated incident where a

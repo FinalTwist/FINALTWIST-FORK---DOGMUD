@@ -98,6 +98,33 @@ declaring done. A partial hack-around does not delete the concept, it
 just hides it, and hidden scaffolding re-arms later as a confusing bug
 that looks like the removal never happened.
 
+## Fix the primitive, not the call sites
+
+When the same defect shows up at several call sites, fix the thing they all
+call. Patching each caller leaves the primitive still wrong for the next one
+and multiplies the surface a later change has to keep in step. This pairs
+with the sibling-consistency rule below: a change that half-converts a set of
+call sites is worse than either fixing the primitive or converting all of
+them.
+
+## A parity test pins the OLD table
+
+When a switch keyed on enum A is replaced by a function keyed on enum B, the
+parity test must enumerate every value of A, translate it to B, and assert
+the OLD answer. A test keyed on B alone cannot see a value of A that maps to
+two values of B with different answers. In M4b-2 the flattened
+`ChannelSocial` covered taunt AND charm and toughened charisma, while a
+derivation keyed on attack TYPE sent charm (a spell) to willpower; the new
+test enumerated the new types and passed, and the same shape hit the counter
+pool as well. Reviewers caught both, tests caught neither.
+
+For every switch you delete, write the parity table as the OLD cases, pinned
+as literals from `git show master:...`, each mapped to its new input, BEFORE
+deleting the switch. The matching gate rule from the same source (every task
+also runs `go test .` at the repo root, where the line-number allowlist guard
+lives) is in `dogmud-writing-tests`.
+[[feedback-refactor-parity-and-root-gate]]
+
 ## Shallow copies share pointers
 
 A struct copy made as `dst := *src` shares every pointer-, map-, and
@@ -184,6 +211,9 @@ reverting the work).
 - [[feedback_shallow_copy_shared_pointers]]
 - [[feedback_remove_downed_fully]]
 - [[feedback_admin_command_wiring_checklist]]
+- [[feedback-refactor-parity-and-root-gate]] (its rule 1, parity tests pinning
+  the old table; its rule 2, the repo-root test gate, is folded into
+  `dogmud-writing-tests`)
 - [[feedback-dont-file-your-own-inconsistency-as-followup]]
 - [[feedback-fix-flaws-dont-revert-the-work]]
 - User global instructions (`C:\Users\Calabe Davis\.claude\CLAUDE.md`):

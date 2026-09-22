@@ -253,6 +253,18 @@ direction: never commit or push `mobs.instances/`, `shops/`, or
 pushing them to prod overwrites live server state; if `git status` shows
 changes in these directories, leave them unstaged.
 
+## Before deleting a branch
+
+Check every branch for unlanded work before deleting it, and check whether a
+file that looks missing has actually MOVED rather than being lost: 46 files
+once read as lost when a merged PR had simply relocated them. Work that
+failed is landed and banner-marked as abandoned, never deleted.
+
+⚠️ **`git rev-parse @{upstream}` coming back empty means the branch has NO
+TRACKING configured, not that it was never pushed.** The two look identical
+from the terminal and only one of them is safe to delete on. Ask the remote
+directly with `git ls-remote` before concluding a branch exists only locally.
+
 ## Traps that exit 0 while doing the wrong thing
 
 Four gotchas that report success while doing something other than what you
