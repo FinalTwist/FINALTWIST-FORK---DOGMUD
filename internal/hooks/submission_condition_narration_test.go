@@ -92,7 +92,10 @@ func TestSubmissionBrokenLimbIsNarratedToAPlayerVictim(t *testing.T) {
 
 	require.Contains(t, brokenLine, "You feel the wrench of a broken limb.",
 		"the authored broken-limb line changed; update this lane with the copy")
-	assert.Equal(t, 1, countContaining(drainPlain(1), brokenLine),
+	// brokenLine is 89 characters; the reader's LineWidth in this fixture is
+	// 80, so the wrap stage folds it with a newline. countContainingFolded
+	// matches on delivery, not on where that fold landed.
+	assert.Equal(t, 1, countContainingFolded(drainPlain(1), brokenLine),
 		"a player whose limb was broken must be told, exactly once")
 }
 
@@ -117,7 +120,9 @@ func TestSubmissionEffectsNarrateOnlyToTheVictim(t *testing.T) {
 
 	got := drainPlain(1)
 	assert.Equal(t, 1, countContaining(got, stunnedLine))
-	assert.Equal(t, 1, countContaining(got, brokenLine))
+	// brokenLine is 89 characters and folds at the reader's 80-column
+	// LineWidth; see countContainingFolded's doc comment.
+	assert.Equal(t, 1, countContainingFolded(got, brokenLine))
 
 	bystander := drainPlain(2)
 	assert.Equal(t, 0, countContaining(bystander, stunnedLine),

@@ -70,15 +70,12 @@ func RenderForRecipient(in RenderInput) string {
 	// Stage 5: color (stubbed; T2 lands a no-op, T4 wires data).
 	text = applyCategoryColor(in.Category, text)
 
-	// Stage 6: wrap (disabled by default — terminal clients handle
-	// wrap on their own; server-side wrap was creating more layout
-	// regressions than it fixed for combat / spells / system feedback
-	// once chunk-7 routed everything through SendText). WrapAnsi
-	// remains callable directly by sites that genuinely need it
-	// (e.g., motd.go for the box-bordered banner). The shouldWrap
-	// hook is left in place as a future-extension point if a specific
-	// Category turns out to need server-side wrap; today it returns
-	// false for everything.
+	// Stage 6: wrap, for the narration categories shouldWrap admits.
+	// Pre-formatted output (tables, banners, ASCII art, side-by-side
+	// templates) is excluded by category; see shouldWrap for the full
+	// list and the reason for each exclusion. WrapAnsi also remains
+	// callable directly by sites that wrap themselves, such as motd.go's
+	// box-bordered banner.
 	if shouldWrap(in.Category) {
 		text = wrap(text, in.LineWidth)
 	}
@@ -86,15 +83,64 @@ func RenderForRecipient(in RenderInput) string {
 	return text
 }
 
-// shouldWrap controls whether the pipeline's wrap stage fires. Today
-// it returns false for every Category — terminal clients wrap long
-// lines themselves, and server-side wrap was breaking pre-formatted
-// table output, banners, side-by-side templates, and combat /
-// spell prose that already fit comfortably in a typical terminal.
+// shouldWrap controls whether the pipeline's wrap stage fires, by
+// Category. It is an explicit ALLOWLIST and the default is false, so a
+// category nobody has classified keeps today's behavior. That is the
+// fail-safe direction: a narration category missing from this list ships
+// slightly ugly, where a table category wrongly added to it ships
+// mangled.
 //
-// Sites that explicitly want server-side wrap (motd.go's banner, for
-// example) call WrapAnsi directly with their own width.
+// Shape follows skipStages in normalize.go, this package's established
+// idiom for per-Category policy.
+//
+// DELIBERATELY ABSENT, and each one has a reason:
+//
+//   - CategorySystem and CategoryBroadcast are MIXED BUCKETS. System
+//     carries one-line refusals alongside the score sheet, inventory,
+//     who, help, the admin DynamicList tables and the ASCII map.
+//     Broadcast carries free channel chat alongside the hand-drawn MOTD
+//     box. Neither can be folded without shattering the other half.
+//   - CategoryRoomDescription renders a side-by-side block, prose left
+//     and minimap right. TestRoomDescriptionSkipsWrap pins it.
+//   - CategorySplash is rendered ASCII art.
+//   - CategorySkillProgress is a banner with its own formatting, and
+//     skipStages already excludes it for the same reason.
+//   - Speech, Whisper, Shout and Emote are ALREADY wrapped, at a
+//     hardcoded 80 that ignores the reader's LineWidth (say.go,
+//     shout.go, reply.go, whisper.go). Adding them here would wrap the
+//     same text twice at two different widths.
+//   - Error and Warning are Group A system output, which M7 owns.
+//   - GrappleHigh, Login, OOC and Toxin have zero production senders, so
+//     any policy here would be unreachable.
 func shouldWrap(cat Category) bool {
+	switch cat {
+	// Combat — hits.
+	case CategoryHitMelee, CategoryHitBlunt, CategoryHitNaturalSharp,
+		CategoryHitRanged, CategoryHitCaster, CategoryHitUnarmed,
+		// Combat — defense.
+		CategoryDodge, CategoryParry, CategoryBlock,
+		// Combat — grapple.
+		CategoryGrappleFlow,
+		// Combat — outcome.
+		CategorySubmission, CategoryDeath, CategoryCombatSummary,
+		CategoryCombatBlindWarning,
+		// Combat — special moves.
+		CategorySurpriseAttack, CategoryKick, CategoryTrip, CategoryBash,
+		CategoryRally, CategoryWarcry, CategoryTauntSuccess,
+		CategoryTauntResist, CategoryTauntFailure,
+		// Spells.
+		CategorySpellFold, CategorySpellDisruption, CategorySpellElemental,
+		CategorySpellEnhancement, CategorySpellMental, CategorySpellVital,
+		CategorySpellManifestation,
+		// NPC and ambient prose.
+		CategoryNPCDialogue, CategoryDialogueHint, CategoryMobIdle,
+		CategoryMobEmote, CategoryRoomEntry, CategoryRoomExit,
+		CategoryWeather, CategoryTimeOfDay,
+		// Other narration plus tips.
+		CategoryLoot, CategoryEquipment, CategoryConditionApply,
+		CategoryConditionExpire, CategoryMutation, CategoryTip:
+		return true
+	}
 	return false
 }
 

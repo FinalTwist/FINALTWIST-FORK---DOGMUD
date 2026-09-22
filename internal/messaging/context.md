@@ -19,7 +19,19 @@ the recipient's connection.
    `mobname-dup2`, then substitutes "a figure" + the `combat-anon` color alias.
 5. **Apply category color tag** — `<ansi fg="<category-alias>">…</ansi>`.
 6. **Wrap** at recipient's `UserRecord.LineWidth` (default 80, range
-   40–240), ANSI-aware.
+   40-240), ANSI-aware, but only for the narration categories
+   `shouldWrap` admits (44 of the 61 `Category` values as of this
+   writing). Pre-formatted output is excluded by category: mixed
+   buckets that mix refusals or chat with tables, ASCII art or a
+   banner (`System`, `Broadcast`, `Splash`, `SkillProgress`), the
+   side-by-side minimap block (`RoomDescription`), categories that
+   already wrap themselves at a hardcoded 80 (`Speech`, `Whisper`,
+   `Shout`, `Emote`), system output owned by a later stage (`Error`,
+   `Warning`), and categories with zero production senders
+   (`GrappleHigh`, `Login`, `OOC`, `Toxin`). `shouldWrap` in
+   `pipeline.go` is the authoritative list. `WrapAnsi` closes and
+   reopens the whole stack of open ansi tags across a line break and
+   measures width in runes, not bytes.
 7. **Deliver** to the recipient's connection.
 
 ## Channels
@@ -261,7 +273,7 @@ The package is the pipeline, one stage per file, plus the fan-out (`trio.go`):
 | `anonymize.go` | Replacing names the observer should not see (infrared fallback, whole-line) |
 | `hidenames.go` | `HideNames` — replacing specific names in bare prose, longest-first, whole-word |
 | `hidenames_tagged.go` | Identity-tag-aware name replacement `HideNames` and `Anonymize` share, including the trailing adjective span |
-| `wrap.go` | 80-column wrapping (uses visible width, not byte length) |
+| `wrap.go` | `WrapAnsi`, ANSI-aware folding at a caller-supplied width measured in visible runes; called by the pipeline for the categories `shouldWrap` admits, and directly by `motd.go` for its box-bordered banner |
 | `predicates.go` | `ParticipantSight` (the optics primitive) plus `CanSeeClearly`/`CanSeeShapes`/`CanSeeSightImpairedOnly`, the one-line attention policies built on it |
 | `verbosity.go` | Per-player verbosity filtering |
 | `trio.go` | `Line`/`Trio`/`Audience`/`SendTrio` — fan-out of one narrated event to its four audiences |

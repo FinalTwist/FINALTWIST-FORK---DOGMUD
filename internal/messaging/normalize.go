@@ -29,7 +29,16 @@ func skipStages(cat Category) normalizeStage {
 		CategoryNPCDialogue, CategoryDialogueHint,
 		CategoryMobIdle, CategoryMobEmote,
 		CategorySpeech, CategoryWhisper, CategoryShout, CategoryEmote,
+		CategoryBroadcast,
 		CategorySkillProgress: // banner has its own formatting
+		// CategoryBroadcast has exactly two production senders and
+		// neither wants the server rewriting its text: the MOTD box
+		// (internal/usercommands/motd.go:77) owns its formatting
+		// completely, down to the hand-spaced banner title, and
+		// channel chat (internal/hooks/ChannelMessage_SendToAll.go:30)
+		// sends text a player typed, same as the other player-typed
+		// categories (CategorySpeech, CategoryWhisper, CategoryShout,
+		// CategoryEmote) already exempted above.
 		// These categories own their prose shape. Skip everything.
 		return stageCapitalize | stageAAnAgreement | stageDupWordCollapse |
 			stageEndPunct | stageNameCanon

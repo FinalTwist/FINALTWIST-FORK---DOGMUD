@@ -3,6 +3,7 @@ package messaging
 import (
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 // ansiTagPattern matches <ansi …> (any attribute set, including fg,
@@ -12,8 +13,9 @@ var ansiTagPattern = regexp.MustCompile(`<ansi[^>]*>|</ansi>`)
 
 // WrapAnsi wraps text at maxWidth display columns. ANSI escape
 // sequences (<ansi …> / </ansi> tags) don't count toward width.
-// Open tags carry across line breaks: each new line gets a fresh
-// reopener if the previous line ended mid-tag.
+// Open tags carry across line breaks: a break inside N nested spans
+// closes all N before the newline and reopens all N, outermost first,
+// on the next line.
 //
 // On malformed input (orphan tags, unmatched closers), falls back to
 // a byte-count wrap to avoid panicking. The visual output is uglier
@@ -34,35 +36,65 @@ func WrapAnsi(text string, maxWidth int) (wrapped string) {
 		}
 	}()
 
+	// tagOp is a push or a pop recorded while scanning the word that is
+	// still being accumulated in curWord. Tag state for a word in
+	// progress must not mutate openTags until that word actually
+	// commits to line: the wrap decision for THIS word has to see the
+	// stack as it stood at the end of the PREVIOUS word, not a stack
+	// already advanced by a closer sitting at this word's own tail
+	// (e.g. "floor</ansi>" as one token). Applying pops live during the
+	// scan let a same-word closer erase the span the wrap decision was
+	// about to close, which left the next line unreopened.
+	type tagOp struct {
+		close bool
+		tag   string
+	}
+
 	// Walk the text token-by-token, tracking display column and the
-	// currently-open ANSI tag (if any). When we cross maxWidth at a
-	// word boundary, emit a newline; if a tag is open, close it
-	// before the break and reopen on the next line.
+	// stack of currently-open ANSI tags. When we cross maxWidth at a
+	// word boundary, emit a newline; every open tag is closed before
+	// the break and reopened, outermost first, on the next line.
 	var (
 		out            strings.Builder
 		line           strings.Builder
 		col            int
-		openTag        string // empty when no tag is open
+		openTags       []string // stack committed to `line`/`out`, outermost first
+		pending        []tagOp  // tag ops seen inside the word still in curWord
 		curWord        strings.Builder
 		curWordW       int
 		lineHasContent bool // visible content on line (not just tag re-opener)
 	)
 
+	// closeAll and reopenAll keep a wrapped line balanced. A line break
+	// inside N open spans must close all N before the newline and reopen
+	// all N, outermost first, on the next line. The old code tracked a
+	// single tag, so a balanced inner </ansi> silently dropped the outer
+	// span for the rest of the message.
+	closeAll := func(b *strings.Builder) {
+		for range openTags {
+			b.WriteString(`</ansi>`)
+		}
+	}
+	reopenAll := func(b *strings.Builder) {
+		for _, tag := range openTags {
+			b.WriteString(tag)
+		}
+	}
+
 	flushWord := func() {
 		// Add space before word if line already has content and there's room.
+		// The wrap/no-wrap decision below uses openTags as committed by the
+		// PREVIOUS word: pending (this word's own tag ops) is applied only
+		// after the word lands in line.
 		if lineHasContent && col+1+curWordW > maxWidth {
 			// Wrap before the word.
-			if openTag != "" {
-				line.WriteString(`</ansi>`)
-			}
+			closeAll(&line)
 			out.WriteString(line.String())
 			out.WriteByte('\n')
 			line.Reset()
 			col = 0
 			lineHasContent = false
-			if openTag != "" {
-				line.WriteString(openTag)
-			}
+			reopenAll(&line)
 		} else if lineHasContent {
 			line.WriteByte(' ')
 			col++
@@ -72,6 +104,19 @@ func WrapAnsi(text string, maxWidth int) (wrapped string) {
 		lineHasContent = true
 		curWord.Reset()
 		curWordW = 0
+
+		// Now that the word has committed to line, fold its tag ops into
+		// the stack that governs future wrap decisions.
+		for _, op := range pending {
+			if op.close {
+				if len(openTags) > 0 {
+					openTags = openTags[:len(openTags)-1]
+				}
+			} else {
+				openTags = append(openTags, op.tag)
+			}
+		}
+		pending = pending[:0]
 	}
 
 	i := 0
@@ -82,9 +127,9 @@ func WrapAnsi(text string, maxWidth int) (wrapped string) {
 			if loc != nil && loc[0] == 0 {
 				tag := text[i : i+loc[1]]
 				if strings.HasPrefix(tag, `</`) {
-					openTag = ""
+					pending = append(pending, tagOp{close: true})
 				} else {
-					openTag = tag
+					pending = append(pending, tagOp{close: false, tag: tag})
 				}
 				curWord.WriteString(tag)
 				i += loc[1]
@@ -97,25 +142,24 @@ func WrapAnsi(text string, maxWidth int) (wrapped string) {
 				flushWord()
 			}
 			if text[i] == '\n' {
-				if openTag != "" {
-					line.WriteString(`</ansi>`)
-				}
+				closeAll(&line)
 				out.WriteString(line.String())
 				out.WriteByte('\n')
 				line.Reset()
 				col = 0
 				lineHasContent = false
-				if openTag != "" {
-					line.WriteString(openTag)
-				}
+				reopenAll(&line)
 			}
 			i++
 			continue
 		}
-		// Visible character.
-		curWord.WriteByte(text[i])
+		// Visible character. Advance by one RUNE: the counter is display
+		// columns, and indexing the string byte-by-byte made every
+		// multi-byte character count as two or more columns.
+		_, size := utf8.DecodeRuneInString(text[i:])
+		curWord.WriteString(text[i : i+size])
 		curWordW++
-		i++
+		i += size
 	}
 	if curWord.Len() > 0 {
 		flushWord()

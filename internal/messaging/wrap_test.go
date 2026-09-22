@@ -1,6 +1,9 @@
 package messaging
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestWrapAnsiShortLineUnchanged(t *testing.T) {
 	got := WrapAnsi("short", 80)
@@ -130,17 +133,39 @@ func startsWith(s, prefix string) bool {
 	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
 }
 
+// TestDisplayWidthCountsRunesNotBytes pins the test oracle itself. Every
+// width assertion in this package leans on displayWidth, so an oracle that
+// counts bytes makes those assertions meaningless for any non-ASCII text.
+// Fixed before WrapAnsi's own byte-counting bug, so that fix has a truthful
+// judge. Matches internal/messaging/hidenames.go:70, which already decodes
+// runes correctly in this same package.
+func TestDisplayWidthCountsRunesNotBytes(t *testing.T) {
+	// Twenty two-byte runes: 40 bytes, 20 visible columns.
+	s := strings.Repeat("é", 20) // e-acute, 2 bytes each in UTF-8
+	if got := displayWidth(s); got != 20 {
+		t.Fatalf("displayWidth(20 two-byte runes) = %d, want 20: the oracle is counting bytes", got)
+	}
+
+	// Same, wrapped in a tag the oracle must not count.
+	tagged := `<ansi fg="username">` + s + `</ansi>`
+	if got := displayWidth(tagged); got != 20 {
+		t.Fatalf("displayWidth(tagged) = %d, want 20: tag content must not count toward width", got)
+	}
+}
+
 func displayWidth(s string) int {
-	// Inline scan to count visible chars (skip <ansi …> and </ansi>).
+	// Inline scan to count visible RUNES (skip <ansi …> and </ansi>).
+	// Ranging over a string decodes runes; indexing it would count bytes
+	// and make every width assertion in this file lie about non-ASCII
+	// text. See hidenames.go, which decodes runes for the same reason.
 	w := 0
 	inTag := false
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c == '<' {
+	for _, r := range s {
+		if r == '<' {
 			inTag = true
 			continue
 		}
-		if c == '>' {
+		if r == '>' {
 			inTag = false
 			continue
 		}
@@ -149,4 +174,80 @@ func displayWidth(s string) int {
 		}
 	}
 	return w
+}
+
+// TestWrapAnsiReopensNestedTagsAcrossBreak is the regression test for the
+// scalar-openTag bug. The input is the exact shape applyCategoryColor
+// produces: an outer category tag around prose that already carries an
+// inner item tag. Before the stack fix, the inner </ansi> cleared the
+// tracker and every continuation line rendered uncolored.
+func TestWrapAnsiReopensNestedTagsAcrossBreak(t *testing.T) {
+	in := `<ansi fg="214">The <ansi fg="item">iron sword</ansi> shatters into ` +
+		`a thousand bright splinters that scatter across the floor</ansi>`
+
+	got := WrapAnsi(in, 40)
+	lines := splitLines(got)
+	if len(lines) < 2 {
+		t.Fatalf("expected the input to wrap into several lines, got %d:\n%s", len(lines), got)
+	}
+
+	// Every line after the first is still inside the outer fg="214" span,
+	// so each must open with a reopener.
+	for i, line := range lines[1:] {
+		if !startsWith(line, `<ansi fg="214">`) {
+			t.Errorf("line %d does not reopen the outer span: %q", i+2, line)
+		}
+	}
+
+	// Every line must also be balanced: as many opens as closes.
+	for i, line := range lines {
+		opens := strings.Count(line, "<ansi")
+		closes := strings.Count(line, "</ansi>")
+		if opens != closes {
+			t.Errorf("line %d is unbalanced (%d opens, %d closes): %q", i+1, opens, closes, line)
+		}
+	}
+}
+
+// TestWrapAnsiHandlesThreeLevelNesting proves the stack is a stack and not
+// a two-slot special case.
+func TestWrapAnsiHandlesThreeLevelNesting(t *testing.T) {
+	in := `<ansi fg="214">alpha <ansi fg="item">bravo <ansi fg="username">charlie</ansi> ` +
+		`delta</ansi> echo foxtrot golf hotel india juliet kilo lima</ansi>`
+
+	got := WrapAnsi(in, 30)
+	for i, line := range splitLines(got) {
+		opens := strings.Count(line, "<ansi")
+		closes := strings.Count(line, "</ansi>")
+		if opens != closes {
+			t.Errorf("line %d is unbalanced (%d opens, %d closes): %q", i+1, opens, closes, line)
+		}
+	}
+}
+
+// TestWrapAnsiCountsRunesNotBytes pins the width unit. Reproduced against
+// the old code: twenty two-byte runes plus "t ail" broke at visible column
+// 21 against a requested width of 40, because each two-byte rune counted
+// as two columns.
+func TestWrapAnsiCountsRunesNotBytes(t *testing.T) {
+	word := strings.Repeat("\u00e9", 20) // e-acute, 2 bytes each
+	in := word + "t ail"                 // 21 visible columns, then a space, then 3 more
+
+	got := WrapAnsi(in, 40)
+	if strings.Contains(got, "\n") {
+		t.Fatalf("25 visible columns must not wrap at width 40, got:\n%q", got)
+	}
+
+	// And a multi-byte character sitting exactly at the boundary.
+	boundary := word + " " + word // 20 + 1 + 20 = 41 visible columns
+	wrapped := WrapAnsi(boundary, 40)
+	lines := splitLines(wrapped)
+	if len(lines) != 2 {
+		t.Fatalf("41 visible columns at width 40 must wrap into 2 lines, got %d:\n%q", len(lines), wrapped)
+	}
+	for i, line := range lines {
+		if w := displayWidth(line); w > 40 {
+			t.Errorf("line %d is %d visible columns, over the 40 requested: %q", i+1, w, line)
+		}
+	}
 }
