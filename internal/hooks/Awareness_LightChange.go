@@ -70,7 +70,7 @@ func onRoomChangeForAwareness(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
-	// FUTURE: compare GetVisibility() before and after; if changed, call
+	// FUTURE: compare LightLevel() before and after; if changed, call
 	// rerollHiddenActorsInRoom(toRoom) and rerollHiddenActorsInRoom(fromRoom).
 	// For now, just validate the rooms are reachable (defensive nil-check).
 	_ = rooms.LoadRoom(evt.ToRoomId)

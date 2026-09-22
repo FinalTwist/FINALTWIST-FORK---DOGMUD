@@ -112,7 +112,7 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
 					mob.Character.Name)
 			}
 			// Visual text — suppress in dark rooms except for nightvision
-			if room.GetVisibility() < 1 {
+			if room.LightLevel() < int(configs.GetBalanceConfig().LightBlindBelow) {
 				for _, uid := range room.GetPlayers() {
 					u := users.GetByUserId(uid)
 					if u != nil && u.Character.HasFlagFromAnySource(conditions.NightVision) {

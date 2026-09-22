@@ -29,7 +29,7 @@ func TestCanSeeClearlyLitRoomSighted(t *testing.T) {
 	c := newChar(t)
 	// Use nil room — the predicate short-circuits to "lit" on nil.
 	// A zero-value &rooms.Room{} cannot be used here because
-	// Room.GetVisibility() calls into the biome registry which isn't
+	// Room.LightLevel() calls into the biome registry which isn't
 	// loaded in unit-test context (panics on nil BiomeInfo). Real
 	// lit-room behavior is exercised in end-to-end tests with engine
 	// boot.
@@ -49,8 +49,8 @@ func TestCanSeeClearlyBlinded(t *testing.T) {
 
 func TestCanSeeShapesInfraredInDark(t *testing.T) {
 	c := newChar(t)
-	// Note: GetVisibility() < 1 = dark. We can't easily fabricate a
-	// dark Room here without engine coupling — this test uses the
+	// Note: LightLevel() < LightBlindBelow = dark. We can't easily fabricate
+	// a dark Room here without engine coupling — this test uses the
 	// nil-room path which short-circuits to lit. Real darkness
 	// behavior is exercised in pipeline_test.go's end-to-end suite.
 	if !CanSeeShapes(c, nil) {

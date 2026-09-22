@@ -224,9 +224,9 @@ func TestConditionEndRoomText_LightConditionEndIsSeenByItsOwnLight_Player(t *tes
 	room := rooms.LoadRoom(1)
 	holder := users.GetByUserId(1)
 	require.True(t, holder.Character.Conditions.AddCondition(lanternConditionId, false))
-	require.GreaterOrEqual(t, room.GetVisibility(), 1, "the lantern must light the cave, or this test proves nothing")
+	require.Greater(t, room.LightLevel(), rooms.LightDark, "the lantern must light the cave, or this test proves nothing")
 	expire(t, holder.Character.Conditions.List, lanternConditionId)
-	require.Zero(t, room.GetVisibility(), "the light is already out once the condition expires, before any prune")
+	require.Equal(t, rooms.LightDark, room.LightLevel(), "the light is already out once the condition expires, before any prune")
 	drainPlain(2)
 
 	PruneConditions(events.NewTurn{TurnNumber: 1})
@@ -261,7 +261,7 @@ func TestConditionEndRoomText_LightConditionEndIsSeenByItsOwnLight_Mob(t *testin
 	room := rooms.LoadRoom(1)
 	mob := mobs.GetInstance(100)
 	require.True(t, mob.Character.Conditions.AddCondition(lanternConditionId, false))
-	require.GreaterOrEqual(t, room.GetVisibility(), 1, "the lantern must light the cave, or this test proves nothing")
+	require.Greater(t, room.LightLevel(), rooms.LightDark, "the lantern must light the cave, or this test proves nothing")
 	expire(t, mob.Character.Conditions.List, lanternConditionId)
 	drainPlain(2)
 

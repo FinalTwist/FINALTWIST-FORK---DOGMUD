@@ -141,13 +141,6 @@ func (r *Room) IsEphemeral() bool {
 	return r.RoomId >= ephemeralRoomIdMinimum
 }
 
-// 0 = none (darkness). 1 = can see this room. 2 = can see this room and all exits
-//
-// The body now lives in legacyVisibility (internal/rooms/lighting.go),
-// moved there verbatim so GetVisibility and LightLevel cannot drift apart
-// while both exist. Task 5 deletes this method.
-func (r *Room) GetVisibility() int { return r.legacyVisibility() }
-
 func (r *Room) AddCorpse(c Corpse) {
 	r.Corpses = append(r.Corpses, c)
 }

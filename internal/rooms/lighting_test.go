@@ -16,10 +16,12 @@ import (
 // 60 lit enough to see the room, NOT down an exit
 // 70 lit enough to see the room and its exits
 //
-// legacyVisibility (moved from the old GetVisibility body, internal/rooms/
-// rooms.go) reads two pieces of ambient global state that a bare *Room{}
-// fixture does not control by default, so both are pinned explicitly rather
-// than left to whatever the test binary happens to start with:
+// legacyVisibility (the old three-value visibility accessor's body, moved to
+// this file in Task 3 and now the only surviving copy since Task 5 deleted
+// that old accessor itself) reads two pieces of ambient global state that a
+// bare *Room{} fixture does not control by default, so both are pinned
+// explicitly rather than left to whatever the test binary happens to start
+// with:
 //
 //   - Room.GetBiome() (rooms.go) reads the package-level `biomes` map, which
 //     is empty until LoadBiomeDataFiles() has run. An empty map makes

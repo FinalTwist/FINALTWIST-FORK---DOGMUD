@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	// Seed a default biome so GetVisibility() / GetBiome() don't return nil
+	// Seed a default biome so LightLevel() / GetBiome() don't return nil
 	// when rooms are created with no explicit Biome field. Without this,
 	// any code path that calls room.GetBiome().IsDark() panics.
 	rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{

@@ -419,7 +419,7 @@ func isExcludedUser(uid int, excludeIds []int) bool {
 // sendDarkRoomCombatFallback sends a one-time "sounds of fighting" message
 // to non-nightvision players in dark rooms.
 func sendDarkRoomCombatFallback(room *rooms.Room, excludeUserIds ...int) {
-	if room == nil || room.GetVisibility() >= 1 {
+	if room == nil || room.LightLevel() >= int(configs.GetBalanceConfig().LightBlindBelow) {
 		return
 	}
 	for _, uid := range room.GetPlayers() {

@@ -71,12 +71,12 @@ func TestLightingParityAcrossEveryShippedRoom(t *testing.T) {
 
 	// Order matches main.go's own boot sequence (main.go:1631, 1636, 1643,
 	// 1862): biomes, then rooms, then conditions, then mutators last.
-	// Mutators load after rooms in main.go too, because Room.GetVisibility()
+	// Mutators load after rooms in main.go too, because Room.LightLevel()
 	// -> ActiveMutators() is only ever called once content is fully up, and
-	// GetVisibility() itself dereferences the mutator registry
-	// unconditionally (internal/rooms/rooms.go:169-170: `spec :=
+	// LightLevel() itself dereferences the mutator registry
+	// unconditionally (internal/rooms/lighting.go:87-88: `spec :=
 	// mut.GetSpec(); if spec.LightMod != 0` has no nil guard on spec). Load
-	// it before the walk below calls GetVisibility for the first time.
+	// it before the walk below calls LightLevel for the first time.
 	rooms.LoadBiomeDataFiles()
 	rooms.LoadDataFiles()
 	conditions.LoadDataFiles()

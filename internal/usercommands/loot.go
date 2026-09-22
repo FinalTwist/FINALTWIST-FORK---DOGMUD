@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -21,7 +22,7 @@ import (
 func Loot(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
 	// Can't loot if you can't see.
-	if room.GetVisibility() < 1 && !user.Character.HasFlagFromAnySource(conditions.NightVision) {
+	if room.LightLevel() < int(configs.GetBalanceConfig().LightBlindBelow) && !user.Character.HasFlagFromAnySource(conditions.NightVision) {
 		user.SendText(messaging.CategorySystem, "You can't see anything to loot!")
 		return true, nil
 	}

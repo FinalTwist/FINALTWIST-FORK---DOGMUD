@@ -75,7 +75,7 @@ func seedNarrationConditions() func() {
 }
 
 // darken turns a fixture room into an unlit cave. The fixture seeds `cave` as
-// DarkArea, and GetVisibility reads the biome registry, so setting the field is
+// DarkArea, and LightLevel reads the biome registry, so setting the field is
 // enough. Asserts the room really is unlit, so a lane cannot pass by accident
 // in a lit room.
 func darken(t *testing.T, roomId int) {
@@ -83,5 +83,5 @@ func darken(t *testing.T, roomId int) {
 	room := rooms.LoadRoom(roomId)
 	require.NotNil(t, room)
 	room.Biome = "cave"
-	require.Zero(t, room.GetVisibility(), "room %d must actually be unlit", roomId)
+	require.Equal(t, rooms.LightDark, room.LightLevel(), "room %d must actually be unlit", roomId)
 }

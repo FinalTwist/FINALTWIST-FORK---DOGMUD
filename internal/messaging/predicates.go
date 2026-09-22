@@ -12,12 +12,12 @@ import (
 // so messaging/ does not import rooms/ — rooms/ imports messaging/,
 // and an interface here keeps the dependency arrow one-way.
 //
-// Graded lighting arc, plan 1 task 4: renamed from GetVisibility() int to
-// LightLevel() int. Room.LightLevel() (internal/rooms/lighting.go) reports
-// the room's light on the graded -100..100 scale (Task 3). The old
-// three-value GetVisibility still exists on *rooms.Room as a separate
-// method for its own remaining callers; Task 5 deletes it and this
-// interface's only implementation obligation becomes LightLevel.
+// Graded lighting arc, plan 1 task 4: this interface's method was renamed
+// from the old three-value visibility accessor's name to LightLevel() int.
+// Room.LightLevel() (internal/rooms/lighting.go) reports the room's light
+// on the graded -100..100 scale (Task 3). Task 5 deleted that old accessor
+// and migrated its remaining callers, so LightLevel is this interface's
+// only implementation obligation.
 type RoomVisibility interface {
 	LightLevel() int
 }

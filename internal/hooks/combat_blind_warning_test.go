@@ -78,7 +78,7 @@ func TestBlindCombatNotice(t *testing.T) {
 
 		room1 := rooms.LoadRoom(1)
 		require.NotNil(t, room1)
-		require.NotZero(t, room1.GetVisibility(), "room 1 must be lit for this lane")
+		require.Greater(t, room1.LightLevel(), rooms.LightDark, "room 1 must be lit for this lane")
 
 		u1 := users.GetByUserId(1)
 		require.NotNil(t, u1)

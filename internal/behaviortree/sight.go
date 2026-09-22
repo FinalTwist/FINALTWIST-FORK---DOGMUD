@@ -14,9 +14,10 @@ import (
 //
 // Two things flow through here for free. Restoring condition 29 works because the
 // predicate ends by reading the NightVision flag, and a light carried by ANY
-// player or mob lifts the darkness for everyone, because Room.GetVisibility
-// adds +1 when someone in the room has conditions.EmitsLight. That second one is
-// what keeps the Ironwind cave bosses attacking: neither has night vision.
+// player or mob lifts the darkness for everyone, because Room.LightLevel
+// (via legacyVisibility) adds +1 when someone in the room has conditions.EmitsLight.
+// That second one is what keeps the Ironwind cave bosses attacking: neither has
+// night vision.
 //
 // A nil mob or room returns true. These run on every behaviour tree tick and a
 // missing instance must not silently blind the world.

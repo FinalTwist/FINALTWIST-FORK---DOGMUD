@@ -37,10 +37,11 @@ const (
 
 // LightLevel reports the room's light on the graded scale.
 //
-// Plan 1 deliberately computes this from the same inputs the previous
-// GetVisibility used, then maps the result onto the three constants above.
-// The point of this plan is the SCALE and its consumers, not new lighting
-// behaviour, so a diff in what any room reports here is a defect.
+// Plan 1 deliberately computes this from the same inputs the old visibility
+// model used (legacyVisibility, below), then maps the result onto the three
+// constants above. The point of this plan is the SCALE and its consumers,
+// not new lighting behaviour, so a diff in what any room reports here is a
+// defect.
 func (r *Room) LightLevel() int {
 	switch r.legacyVisibility() {
 	case 0:
@@ -52,10 +53,11 @@ func (r *Room) LightLevel() int {
 	}
 }
 
-// legacyVisibility is the body of the old GetVisibility, moved here
-// verbatim. GetVisibility (rooms.go) now calls through to this so the old
-// and new models cannot drift apart while both exist. Task 5 deletes this
-// once GetVisibility and its callers are gone.
+// legacyVisibility is the body of the room's old three-value visibility
+// accessor, moved here verbatim when that old accessor was still a
+// call-through to it. That accessor itself was deleted in Task 5 once
+// LightLevel and its callers took over, but this body stays, since
+// LightLevel still computes from it.
 //
 // 0 = none (darkness). 1 = can see this room. 2 = can see this room and all exits
 func (r *Room) legacyVisibility() int {
