@@ -1,5 +1,40 @@
 # DOGMud Patch Notes
 
+## 2026-09-22: Long lines now fit your screen
+
+Until now the server sent every line at whatever length it was written,
+and left your client to deal with it. That works fine in most clients and
+badly in some, where a long tip or a wordy spell description could break
+in the middle of a word.
+
+Narration now folds to your own line width before it reaches you. Combat,
+spells, conditions, weather, loot, NPC speech and tips all follow it. Tips
+benefit most: most of them were longer than a standard screen.
+
+You control the width. `set linewidth` on its own tells you your current
+setting, and `set linewidth 100` changes it. Anything from 40 to 240
+works, and it starts at 80.
+
+Some things are deliberately left alone, because folding them would wreck
+them: your character sheet, your inventory, shop and item listings, the
+map, the message of the day, room descriptions with a map beside them,
+and anything your client already wraps for you, like speech.
+
+Two related fixes. Colour no longer drops out partway through a long line
+that had highlighted words in it. And lines containing accented letters no
+longer fold early, because the server used to count those letters twice.
+
+## 2026-09-22: The message of the day says MESSAGE again
+
+The banner's title was rendering with a letter missing, reading
+`M E S A G E` instead of `M E S S A G E`, and picked up a stray full stop
+at the end. The tidy-up pass that fixes doubled words in ordinary prose
+was reading the spaced-out title as a repeated word and removing one.
+
+That pass no longer touches the banner, and it no longer touches what you
+type in global chat either. If you write in lower case, it stays in lower
+case, which is already how speaking and emoting behaved.
+
 ## 2026-09-22: The last two names the dark forgot to hide
 
 Two more lines named someone you could not make out. When a creature
