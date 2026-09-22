@@ -2,8 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"go/ast"
 	"go/parser"
 	"go/printer"
@@ -1536,155 +1534,35 @@ func TestNarrationSitesMatchViewpointAudit(t *testing.T) {
 // diff shows both together.
 // ---------------------------------------------------------------------------
 
-var m2FrozenFiles = map[string]string{
-	"internal/usercommands/bash.go":     "1d8d25c0ceac07fb5fc976e15c8a26acf0614a398f69438c9ec94bc253513759",
-	"internal/usercommands/drain.go":    "3a32f21ca0b34c14ef6cb625cd8b56263b6ef66ffece7038b362b494d2710257",
-	"internal/usercommands/gore.go":     "cda7cd477eacf9f2cdb8d5f90803d09930755a74d875bd20f8de42326bbca3b4",
-	"internal/usercommands/kick.go":     "f5dc3b8af7b4f702e3a8f7879b413d21d78b73d2c4a820088adfb322d57ca3ed",
-	"internal/usercommands/maul.go":     "2abb23ead58ccd3af940cab05d01462df4899982e91f3440dbe1510d9790fb5b",
-	"internal/usercommands/pounce.go":   "4cb8896a5627a3ea05cae952f4b48f1d4a7c73b8f8a4f0ab58b0adb8152b85d0",
-	"internal/usercommands/rake.go":     "c192d3cde4c80035226f2af63cceacbb98f3d6cc5c142a4685e6d4b14d31fb5a",
-	"internal/usercommands/throttle.go": "c93996b0c46bd28f59d3e79c3f83968762c8e458e0f3f81aa7d67c86736d9e34",
-	"internal/usercommands/trip.go":     "a72aba7fdbff9b09d84f27f419d0ef17b7b5eddd1586604b0515d4f6ac0023a2",
-	"internal/usercommands/grapple.go":  "8e64bb48750d09f9581c6b7a0a3c0ec9eadcd4befbe94d9553b25d8c2c452a85",
-	"internal/usercommands/shoot.go":    "d63942e7087292a898ce1730bcdf5b90f7c9dcaa08891a1a3af7ce4687d90376",
-	"internal/usercommands/throw.go":    "44fc7829103b0dea6a1ccdba8787ceafa42519f78dccb4659e3e38b74ca98851",
-	// internal/mobcommands/{kick,bash,gore,maul,rake,drain,throttle,hamstring,
-	// pounce,charge,trip,grapple,shoot}.go are gone from this list: M4e-1
-	// Tasks 7, 8 and the steps migrating charge/trip and grapple/shoot
-	// migrated them onto the movenarration store, so their player-facing text
-	// now lives in _datafiles/world/dogmud/narration/special-moves/{kick,
-	// bash,gore,maul,rake,drain,throttle,hamstring,pounce,charge,trip,
-	// grapple,shoot}.yaml and is guarded by TestMigratedWordingIsByteIdentical
-	// (special_move_net_test.go), the same way the two skill_move_defence.go
-	// files are guarded by the defence store's golden instead of this literal
-	// freeze (see TestM2FrozenFilesAllCarryText above). This closes out the
-	// mob-side list: every mob special-move file in m2RoutingFiles now reads
-	// its wording from the store.
-}
+// m2FrozenFiles is EMPTY and stays that way.
+//
+// It held a sha256 fingerprint of every string literal in each special-move
+// file that still carried its wording in Go. The last entry left on
+// 2026-09-21, when M4e PR 1b migrated the twelve player files, and the two
+// tests that read it were deleted with it (see the tombstone below).
+//
+// The declaration survives because TestM2FileListsAgree cross-checks it
+// against m2RoutingFiles, and "both are empty" is a real invariant worth
+// keeping: a file added back to one list must be added to the other.
+var m2FrozenFiles = map[string]string{}
 
-// m2LiteralFingerprint returns a stable hash of every string literal in the
-// file outside its import declarations.
-func m2LiteralFingerprint(path string) (string, error) {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, path, nil, 0)
-	if err != nil {
-		return "", err
-	}
-	var lits []string
-	for _, decl := range file.Decls {
-		if gd, ok := decl.(*ast.GenDecl); ok && gd.Tok == token.IMPORT {
-			continue
-		}
-		ast.Inspect(decl, func(n ast.Node) bool {
-			bl, ok := n.(*ast.BasicLit)
-			if ok && bl.Kind == token.STRING {
-				lits = append(lits, bl.Value)
-			}
-			return true
-		})
-	}
-	sort.Strings(lits)
-	sum := sha256.Sum256([]byte(strings.Join(lits, "\x00")))
-	return hex.EncodeToString(sum[:]), nil
-}
+// ---------------------------------------------------------------------------
+// TestM2LiteralsAreFrozen and TestM2FrozenFilesAllCarryText were DELETED by
+// M4e PR 1b, 2026-09-21, when m2FrozenFiles became empty.
+//
+// They pinned a sha256 fingerprint of every string literal in the twenty-five
+// special-move files, so a literal could not change without someone noticing.
+// That was the right guard while the wording still lived in Go. It is strictly
+// weaker than what replaced it: TestMigratedFilesHoldNoNarrationLiterals in
+// move_narration_migration_guard_test.go asserts those files carry no
+// narration literal AT ALL, which no fingerprint can say, and the wording they
+// used to hold is now pinned line by line by the two byte-identity nets in
+// internal/mobcommands and internal/usercommands.
+//
+// The arc spec called for exactly this: "TestM2LiteralsAreFrozen is deleted as
+// its files move."
+// ---------------------------------------------------------------------------
 
-func TestM2LiteralsAreFrozen(t *testing.T) {
-	var drift []string
-	for path, want := range m2FrozenFiles {
-		got, err := m2LiteralFingerprint(path)
-		if err != nil {
-			t.Errorf("fingerprint %s (test must run from the repo root): %v", path, err)
-			continue
-		}
-		if want == "" {
-			drift = append(drift, path+"  RECORD: "+got)
-			continue
-		}
-		if got != want {
-			drift = append(drift, path+"\n    want "+want+"\n    got  "+got)
-		}
-	}
-	sort.Strings(drift)
-	if len(drift) > 0 {
-		t.Errorf("%d M2-frozen file(s) have a different set of string literals "+
-			"than recorded:\n  %s\n\n"+
-			"During the M2 migration this means text was lost or altered by a "+
-			"refactor that was supposed to move it unchanged -- find the "+
-			"dropped or edited literal rather than re-recording the hash. "+
-			"Re-record ONLY when the commit deliberately changes player-facing "+
-			"text (the seven output changes in the M2 spec's section 4), and "+
-			"do it in that same commit.",
-			len(drift), strings.Join(drift, "\n  "))
-	}
-}
-
-// TestM2FrozenFilesAllCarryText stops a vacuous entry being added to
-// m2FrozenFiles.
-//
-// WHY THIS EXISTS. The first draft of the freeze listed both
-// skill_move_defence.go files. Neither contains any player-facing text at all
-// -- every line they speak comes from the authored defence store via
-// combat.RenderChannelDefenceMessages -- so their only string literals are the
-// two `""` in `== ""` comparisons. Their fingerprints were IDENTICAL to each
-// other, and could not have moved no matter what the migration did to them.
-// The freeze silently claimed to protect two files it could not protect.
-//
-// Those two are covered instead by M1's store goldens, extended by PR #112
-// with 84 melee lines: internal/narration/testdata/stores/defense_messages.golden.
-//
-// A file whose text lives in a store does not belong in this list. This test
-// makes that a build failure rather than a thing someone notices later.
-func TestM2FrozenFilesAllCarryText(t *testing.T) {
-	var vacuous []string
-	for path := range m2FrozenFiles {
-		fset := token.NewFileSet()
-		file, err := parser.ParseFile(fset, path, nil, 0)
-		if err != nil {
-			t.Fatalf("parse %s (test must run from the repo root): %v", path, err)
-		}
-		substantive := 0
-		for _, decl := range file.Decls {
-			if gd, ok := decl.(*ast.GenDecl); ok && gd.Tok == token.IMPORT {
-				continue
-			}
-			ast.Inspect(decl, func(n ast.Node) bool {
-				bl, ok := n.(*ast.BasicLit)
-				// len > 2 excludes `""` and backtick-empty: a quoted literal
-				// carries two delimiter characters of its own.
-				if ok && bl.Kind == token.STRING && len(bl.Value) > 2 {
-					substantive++
-				}
-				return true
-			})
-		}
-		if substantive == 0 {
-			vacuous = append(vacuous, path)
-		}
-	}
-	sort.Strings(vacuous)
-	if len(vacuous) > 0 {
-		t.Errorf("%d file(s) in m2FrozenFiles carry no string literal with any "+
-			"content, so their fingerprint cannot move and the freeze protects "+
-			"nothing:\n  %s\n\n"+
-			"Remove them. A file whose player-facing text comes from an authored "+
-			"store is guarded by that store's golden, not by this literal freeze.",
-			len(vacuous), strings.Join(vacuous, "\n  "))
-	}
-}
-
-// TestEveryTrioLiteralNamesAllThreeRoles is the enforcement behind
-// messaging.NoLine.
-//
-// A composite literal messaging.Trio{...} must name Actor, Actee AND Observer.
-// A role left out is indistinguishable from a role forgotten, and forgetting a
-// role is exactly how every defect in
-// docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md happened: a
-// duplicated code path copied the mechanical effect and dropped the narration
-// beside it. Write messaging.NoLine for a viewpoint that genuinely has nothing
-// to say, so a considered silence is visible as one.
-//
-// There is deliberately no exceptions list.
 func TestEveryTrioLiteralNamesAllThreeRoles(t *testing.T) {
 	roles := []string{"Actor", "Actee", "Observer"}
 	var bad []string

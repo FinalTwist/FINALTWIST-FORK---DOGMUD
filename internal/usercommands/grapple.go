@@ -7,9 +7,18 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
+
+// grappleCategories: the player's own actor/actee feedback is CategorySystem;
+// the room's line carries CategoryGrappleFlow (colour + light-verbosity gate).
+var grappleCategories = moveCategories{
+	Actor:    messaging.CategorySystem,
+	Actee:    messaging.CategorySystem,
+	Observer: messaging.CategoryGrappleFlow,
+}
 
 func Grapple(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 	actor, handled := stageSpecialMoveTarget(user, room, rest, actions.MeleeTargetOpts{
@@ -108,14 +117,17 @@ func Grapple(rest string, user *users.UserRecord, room *rooms.Room, flags events
 		Room:      room,
 	}
 
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, user.Character.Name),
+		ActorPlain: user.Character.Name,
+		Actee:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, targetName),
+		ActeePlain: targetName,
+	}
+
 	// Send messages based on result
 	if result.Success {
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`You <ansi fg="yellow-bold">grapple</ansi> <ansi fg="mobname">%s</ansi>, transitioning to <ansi fg="cyan">%s</ansi> position!`, targetName, result.PositionDesc)),
-			Actee: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> <ansi fg="yellow-bold">grapples</ansi> you, transitioning to <ansi fg="cyan">%s</ansi> position!`, user.Character.Name, result.PositionDesc)),
-			Observer: messaging.Say(messaging.CategoryGrappleFlow,
-				fmt.Sprintf(`<ansi fg="username">%s</ansi> <ansi fg="yellow-bold">grapples</ansi> <ansi fg="mobname">%s</ansi> into <ansi fg="cyan">%s</ansi> position!`, user.Character.Name, targetName, result.PositionDesc)),
-		}, aud)
+		positionTokens := map[string]string{movenarration.TokenPosition: result.PositionDesc}
+		sendMoveEvent("grapple", "player_success", ids, aud, grappleCategories, positionTokens)
 
 		// Flavor text for prone targets.
 		//
@@ -124,11 +136,7 @@ func Grapple(rest string, user *users.UserRecord, room *rooms.Room, flags events
 		// observation nobody in the room made, about a grapple the event above
 		// already narrated to them.
 		if result.PositionPenalty < 0 {
-			messaging.SendTrio(messaging.Trio{
-				Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="yellow">%s was already prone - they had little chance to resist!</ansi>`, targetName)),
-				Actee:    messaging.NoLine,
-				Observer: messaging.NoLine,
-			}, aud)
+			sendMoveEvent("grapple", "player_prone_penalty", ids, aud, grappleCategories, nil)
 		}
 
 		// Disarm messaging: a WORLD EVENT, so it carries the full trio, which
@@ -141,20 +149,11 @@ func Grapple(rest string, user *users.UserRecord, room *rooms.Room, flags events
 			}, aud)
 		}
 	} else {
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`Your <ansi fg="yellow-bold">grapple</ansi> attempt against <ansi fg="mobname">%s</ansi> fails!`, targetName)),
-			Actee: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="username">%s</ansi> tries to grapple you, but you slip away!`, user.Character.Name)),
-			Observer: messaging.Say(messaging.CategoryGrappleFlow,
-				fmt.Sprintf(`<ansi fg="username">%s</ansi> tries to grapple <ansi fg="mobname">%s</ansi>, but fails!`, user.Character.Name, targetName)),
-		}, aud)
+		sendMoveEvent("grapple", "player_fail", ids, aud, grappleCategories, nil)
 
 		// Defense penalty: private knowledge again, same ruling as above.
 		if result.DefensePenalty {
-			messaging.SendTrio(messaging.Trio{
-				Actor:    messaging.Say(messaging.CategorySystem, `<ansi fg="red">Your failed attempt leaves you exposed!</ansi>`),
-				Actee:    messaging.NoLine,
-				Observer: messaging.NoLine,
-			}, aud)
+			sendMoveEvent("grapple", "player_defense_exposed", ids, aud, grappleCategories, nil)
 		}
 
 		// Critical failure: a world event, full trio, as before.

@@ -14,6 +14,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/questengine"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -294,15 +295,13 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		Room:      room,
 	}
 
-	messaging.SendTrio(messaging.Trio{
-		Actor: messaging.Say(messaging.CategorySystem, fmt.Sprintf(
-			`<ansi fg="yellow-bold">You hurl the <ansi fg="itemname">%s</ansi> into the fray!</ansi>`,
-			matchItem.DisplayName())),
-		Actee: messaging.NoLine,
-		Observer: messaging.Say(messaging.CategoryHitRanged, fmt.Sprintf(
-			`<ansi fg="yellow-bold"><ansi fg="username">%s</ansi> hurls a <ansi fg="itemname">%s</ansi> into the fray!</ansi>`,
-			user.Character.Name, matchItem.DisplayName())),
-	}, aud)
+	playerIds := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, user.Character.Name),
+		ActorPlain: user.Character.Name,
+	}
+	sendMoveEvent("throw", "player_hurl", playerIds, aud,
+		moveCategories{Actor: messaging.CategorySystem, Observer: messaging.CategoryHitRanged},
+		map[string]string{movenarration.TokenItem: matchItem.DisplayName()})
 
 	hasDamage := spec.DamageMultiplier > 0
 	hasConditions := len(spec.ConditionIds) > 0
@@ -332,13 +331,8 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		// throw aborts even a winning roll): effect hits thrower instead.
 		if out.AttackerFumble {
 			fumbled = true
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(messaging.CategorySystem, `<ansi fg="red-bold">Your throw goes horribly wrong — the projectile detonates in your hand!</ansi>`),
-				Actee: messaging.NoLine,
-				Observer: messaging.Say(messaging.CategoryHitRanged, fmt.Sprintf(
-					`<ansi fg="red"><ansi fg="username">%s</ansi>'s throw backfires spectacularly!</ansi>`,
-					user.Character.Name)),
-			}, aud)
+			sendMoveEvent("throw", "player_fumble", playerIds, aud,
+				moveCategories{Actor: messaging.CategorySystem, Observer: messaging.CategoryHitRanged}, nil)
 
 			// Apply effects to thrower
 			if hasDamage {
@@ -367,15 +361,9 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		// before the attack-success gate so a tanky boss can't simply dodge the
 		// interrupt. (Fumbles break above, so a botched throw still can't cancel.)
 		if maybeInterruptOnThrow(mob, matchItem.ItemId, state.ActorRef{UserId: user.UserId}) {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(messaging.CategorySpellDisruption, fmt.Sprintf(
-					`<ansi fg="cyan-bold">The blast shatters %s's concentration -- its spell collapses!</ansi>`,
-					mob.Character.Name)),
-				Actee: messaging.NoLine,
-				Observer: messaging.Say(messaging.CategorySpellDisruption, fmt.Sprintf(
-					`<ansi fg="cyan">%s's spell collapses as the blast strikes!</ansi>`,
-					mob.Character.Name)),
-			}, aud)
+			sendMoveEvent("throw", "player_cast_interrupt",
+				moveIdentities{ActeePlain: mob.Character.Name}, aud,
+				sameMoveCategory(messaging.CategorySpellDisruption), nil)
 		}
 
 		hit := !out.Defended
@@ -420,9 +408,10 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			throwerLine := messaging.NoLine
 			if dmg > 0 {
 				dmgDesc := combat.GetDamageDescription(dmg, mob.Character.HealthMax.Value)
-				throwerLine = messaging.Say(messaging.CategorySystem, fmt.Sprintf(
-					`The edge of the blast still catches <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-					mob.Character.Name, dmgDesc))
+				partialRoles, _ := renderMoveEvent("throw", "player_partial_hit",
+					moveIdentities{Actee: fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mob.Character.Name)},
+					map[string]string{movenarration.TokenDamage: dmgDesc})
+				throwerLine = lineOrNone(messaging.CategorySystem, partialRoles.Actor)
 			} else if triad.ToAttacker != "" {
 				throwerLine = messaging.Say(messaging.CategoryDodge, string(triad.ToAttacker))
 			}

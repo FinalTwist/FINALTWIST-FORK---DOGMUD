@@ -59,6 +59,23 @@ var migratedNarrationLiteralFiles = []string{
 	"internal/mobcommands/shoot.go",
 	"internal/mobcommands/throttle.go",
 	"internal/mobcommands/trip.go",
+	// The twelve player twins, migrated by M4e PR 1b. With these added the
+	// list is the complete 25-file special-move surface, which is what let
+	// TestM2LiteralsAreFrozen be deleted: a fingerprint saying "these
+	// literals have not changed" is strictly weaker than this guard saying
+	// "there are no literals".
+	"internal/usercommands/bash.go",
+	"internal/usercommands/drain.go",
+	"internal/usercommands/gore.go",
+	"internal/usercommands/grapple.go",
+	"internal/usercommands/kick.go",
+	"internal/usercommands/maul.go",
+	"internal/usercommands/pounce.go",
+	"internal/usercommands/rake.go",
+	"internal/usercommands/shoot.go",
+	"internal/usercommands/throttle.go",
+	"internal/usercommands/throw.go",
+	"internal/usercommands/trip.go",
 }
 
 // migratedNarrationLiteralAllowlist names a "path|literal text" pair this
@@ -122,10 +139,63 @@ func isProseLiteral(lit string) bool {
 	return false
 }
 
-// TestMigratedFilesHoldNoNarrationLiterals asserts each of the thirteen
-// migrated files holds no backtick-quoted prose literal, per isProseLiteral's
-// rule above. See migratedNarrationLiteralAllowlist for why that map must
-// stay empty.
+// refusalLiteralPositions returns the position of every string literal that
+// sits inside a `.SendText(...)` call.
+//
+// 🔑 WHY THIS EXISTS. The guard's claim is "no NARRATION literal remains",
+// but isProseLiteral can only see "this looks like prose". For the thirteen
+// MOB files those coincide, because a mob is never refused anything. The
+// twelve PLAYER files are different: they legitimately carry refusals and
+// mechanical notes ("You don't have a ranged weapon equipped.", "Could not
+// find your target.", "You can't see well enough to aim."), which reach a
+// player through a direct user.SendText and are GROUP A, owned by M7, not by
+// this arc stage. Flagging them would be demanding a migration this slice was
+// never scoped to do.
+//
+// The discriminator is the DELIVERY PATH, which is exactly the distinction
+// that matters: narration goes out through SendTrio and the store, a refusal
+// goes out through SendText. Scoping by path rather than by wording is what
+// keeps this from becoming a guard with an allowlist full of excuses.
+func refusalLiteralPositions(file *ast.File) map[token.Pos]bool {
+	marked := map[token.Pos]bool{}
+	ast.Inspect(file, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		name := ""
+		switch fn := call.Fun.(type) {
+		case *ast.SelectorExpr:
+			if fn.Sel != nil {
+				name = fn.Sel.Name
+			}
+		case *ast.Ident:
+			name = fn.Name
+		}
+		// SendText is the refusal/mechanical-note delivery path. A `refuse...`
+		// helper is the same thing behind a wrapper: throw.go's
+		// refuseWhileBusy(user, `throw anything`) takes a sentence FRAGMENT
+		// that it completes into a refusal, and the fragment is not narration.
+		if name != "SendText" && !strings.HasPrefix(name, "refuse") {
+			return true
+		}
+		// Mark every literal in this call's subtree, so a literal wrapped in
+		// fmt.Sprintf inside the SendText is marked too.
+		ast.Inspect(call, func(inner ast.Node) bool {
+			if lit, ok := inner.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+				marked[lit.Pos()] = true
+			}
+			return true
+		})
+		return true
+	})
+	return marked
+}
+
+// TestMigratedFilesHoldNoNarrationLiterals asserts each migrated file holds no
+// backtick-quoted prose literal on a NARRATION path, per isProseLiteral's rule
+// above and refusalLiteralPositions' scoping. See
+// migratedNarrationLiteralAllowlist for why that map must stay empty.
 func TestMigratedFilesHoldNoNarrationLiterals(t *testing.T) {
 	for _, path := range migratedNarrationLiteralFiles {
 		path := path
@@ -135,22 +205,40 @@ func TestMigratedFilesHoldNoNarrationLiterals(t *testing.T) {
 			if err != nil {
 				t.Fatalf("parsing %s: %v", path, err)
 			}
-			ast.Inspect(file, func(n ast.Node) bool {
-				lit, ok := n.(*ast.BasicLit)
-				if !ok || lit.Kind != token.STRING || !strings.HasPrefix(lit.Value, "`") {
-					return true
+			refusals := refusalLiteralPositions(file)
+			// Walk FUNCTION BODIES only. A package-level const declaration is
+			// not a send site, and the ones in these files
+			// (shoot.go's recoveryArrowsText, surpriseShotRevealedText,
+			// aimedWhileEngagedText and friends) are one-audience mechanical
+			// notes -- Group A, owned by M7. Narration reaches a player from
+			// inside a function, through the store.
+			for _, decl := range file.Decls {
+				fn, ok := decl.(*ast.FuncDecl)
+				if !ok || fn.Body == nil {
+					continue
 				}
-				text := strings.Trim(lit.Value, "`")
-				if !isProseLiteral(text) {
+				ast.Inspect(fn.Body, func(n ast.Node) bool {
+					lit, ok := n.(*ast.BasicLit)
+					if !ok || lit.Kind != token.STRING || !strings.HasPrefix(lit.Value, "`") {
+						return true
+					}
+					text := strings.Trim(lit.Value, "`")
+					if !isProseLiteral(text) {
+						return true
+					}
+					// A refusal or mechanical note delivered by SendText is Group
+					// A, owned by M7. Not this stage's to move.
+					if refusals[lit.Pos()] {
+						return true
+					}
+					if migratedNarrationLiteralAllowlist[path+"|"+text] {
+						return true
+					}
+					pos := fset.Position(lit.Pos())
+					t.Errorf("%s:%d: narration-looking backtick literal remains in a migrated file: %q", pos.Filename, pos.Line, text)
 					return true
-				}
-				if migratedNarrationLiteralAllowlist[path+"|"+text] {
-					return true
-				}
-				pos := fset.Position(lit.Pos())
-				t.Errorf("%s:%d: narration-looking backtick literal remains in a migrated file: %q", pos.Filename, pos.Line, text)
-				return true
-			})
+				})
+			}
 		})
 	}
 }
@@ -172,9 +260,15 @@ type moveEventPair struct {
 // internal/combat/grapple_narration.go's own comment on why renderGrappleEvent
 // is not just a call into mobcommands.renderMoveEvent -- mobcommands already
 // imports combat, so the reverse import would cycle).
+//
+// internal/usercommands joined M4e-1b: the player-side special-move files
+// carry their own sendMoveEvent/renderMoveEvent pair
+// (internal/usercommands/move_narration.go), naming player_* prefixed event
+// keys in the SAME store files this scan already covers.
 var moveEventScanDirs = []string{
 	"internal/mobcommands",
 	"internal/combat",
+	"internal/usercommands",
 }
 
 // collectStringAssignments returns every string literal ever assigned to each
@@ -423,9 +517,15 @@ func TestMoveEventKeysAgree(t *testing.T) {
 // reason read directly off the call site that sends it, not guessed from the
 // YAML alone.
 var intentionallySilentRoles = map[string]string{
-	"shoot/hit":     "actee only: the room's line for a same-room shot always comes from fire_announce's observer role, sent unconditionally before the outcome is known; hit/partial/miss carry only the target's own line (shoot.go's same-room branch).",
-	"shoot/partial": "actee only: same as shoot/hit -- the room line is fire_announce's, not this event's.",
-	"shoot/miss":    "actee only: same as shoot/hit -- the room line is fire_announce's, not this event's.",
+	"shoot/player_surprise_hit": "actor only: the ambush shot's EXTRA line, read by the shooter alone. " +
+		"The room and the target learn about the shot through player_fire_announce and " +
+		"player_hit/player_partial/player_miss exactly as they do for an ordinary shot; this line " +
+		"is what makes firing from concealment feel different to the person doing it, and giving " +
+		"it a room line would tell everyone the shot came from cover.",
+	"shoot/player_surprise_miss": "actor only: see shoot/player_surprise_hit.",
+	"shoot/hit":                  "actee only: the room's line for a same-room shot always comes from fire_announce's observer role, sent unconditionally before the outcome is known; hit/partial/miss carry only the target's own line (shoot.go's same-room branch).",
+	"shoot/partial":              "actee only: same as shoot/hit -- the room line is fire_announce's, not this event's.",
+	"shoot/miss":                 "actee only: same as shoot/hit -- the room line is fire_announce's, not this event's.",
 
 	"shoot/fire_announce": "observer only: this is the room's line for a same-room shot, sent once regardless of outcome; the outcome itself is authored separately on hit/partial/miss's actee role (shoot.go's same-room branch).",
 	"shoot/fire_depart":   "observer only: the SHOOTER's own room sees the shot leave; the outcome is narrated to the TARGET's room by the arrival_* events instead, and the target got their own hit/partial/miss line already (shoot.go's cross-room branch).",
@@ -438,6 +538,39 @@ var intentionallySilentRoles = map[string]string{
 	"shoot/arrival_known_miss":      "remote_observer only: see shoot/arrival_unknown_hit.",
 
 	"throttle/cast_interrupt": "actee only: throttle.go's own comment says it plainly -- \"the YAML authors only an actee role for this event... matching today's behaviour of never broadcasting this to the room\" -- the interrupt is a private mechanical note riding on the hit event.",
+
+	// M4e-1b: the player-side special-move files (internal/usercommands),
+	// naming player_* prefixed keys in the same store files. These mirror
+	// the asymmetric role shapes their pre-migration call sites already had.
+	"grapple/player_prone_penalty":   "actor only: private knowledge about the actor's own roll against an already-prone target (grapple.go's own comment) -- a room line here would invent an observation nobody in the room made, about a grapple the success event already narrated to them.",
+	"grapple/player_defense_exposed": "actor only: private knowledge, same ruling as player_prone_penalty -- the actor alone learns their failed grapple left them exposed.",
+
+	"shoot/player_hit":     "actee only: the room's line for a same-room shot always comes from player_fire_announce's observer role, sent unconditionally before the outcome is known; hit/partial/miss carry only the target's own line (shoot.go's sendShootMessages, same-room branch).",
+	"shoot/player_partial": "actee only: same as shoot/player_hit -- the room line is player_fire_announce's, not this event's.",
+	"shoot/player_miss":    "actee only: same as shoot/player_hit -- the room line is player_fire_announce's, not this event's.",
+
+	"shoot/player_fire_announce": "observer only: this is the room's line for a same-room shot, sent once regardless of outcome; the outcome itself is authored separately on player_hit/player_partial/player_miss's actee role (shoot.go's same-room branch). No actor role either -- the shooter's own line for this shot is the hit/partial/miss actor role, not a duplicate announce.",
+	"shoot/player_fire_depart":   "observer only: the SHOOTER's own room sees the shot leave; the outcome is narrated to the TARGET's room by the player_arrival_* events instead, and the target already got their own player_hit/player_partial/player_miss line (shoot.go's cross-room branch).",
+
+	"shoot/player_arrival_unknown_hit":     "remote_observer only: these six arrival_* events exist solely for the defender's-room audience on a cross-room shot. The shooter's room already got player_fire_depart and the target already got player_hit/player_partial/player_miss (shoot.go's cross-room arrival send).",
+	"shoot/player_arrival_unknown_partial": "remote_observer only: see shoot/player_arrival_unknown_hit.",
+	"shoot/player_arrival_unknown_miss":    "remote_observer only: see shoot/player_arrival_unknown_hit.",
+	"shoot/player_arrival_known_hit":       "remote_observer only: see shoot/player_arrival_unknown_hit.",
+	"shoot/player_arrival_known_partial":   "remote_observer only: see shoot/player_arrival_unknown_hit.",
+	"shoot/player_arrival_known_miss":      "remote_observer only: see shoot/player_arrival_unknown_hit.",
+
+	"throw/player_hurl":           "no actee: throw is an untargeted room AoE against every hostile present, so it has no single actee at all (throw.go's own comment: \"17 actor sends and zero actee sends... the one genuinely actee-less member of the special-move family\").",
+	"throw/player_fumble":         "no actee: same as throw/player_hurl -- a fumble hits the thrower, not a chosen target.",
+	"throw/player_cast_interrupt": "no actee: the interrupted party is a mob with no client; its name rides the actor and observer text as plain prose instead.",
+	"throw/player_partial_hit":    "actor only: the room's line for a defended throw always comes from the channel defence triad (combat.RenderChannelDefenceMessages, sourced outside this store), and there is no actee -- see throw/player_hurl.",
+
+	// M4e-1b Task 4b Step 2: drain's lifesteal detail lines. Private
+	// knowledge under the detail-line ruling -- this reports the drainer's
+	// own returning vigour to the drainer, not a world event -- so neither
+	// carries an actee or an observer role, same shape as
+	// grapple/player_prone_penalty above.
+	"drain/player_hit_heal":     "actor only: private knowledge about the drainer's own returning vigour (drain.go's own comment) -- a room or target line here would invent an observation nobody made about a lifesteal the player_hit event already narrated as damage.",
+	"drain/player_partial_heal": "actor only: private knowledge, same ruling as drain/player_hit_heal -- a partial drain that still lifesteals reports the trickle to the drainer alone.",
 }
 
 // TestMoveEventRoleSetsAgree asserts every authored event carries both an

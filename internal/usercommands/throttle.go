@@ -8,10 +8,23 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
-	"github.com/GoMudEngine/GoMud/internal/util"
 )
+
+// throttleCategories: the player's own actor/actee feedback is
+// CategorySystem; the room's line carries CategoryHitNaturalSharp, matching
+// every branch's pre-migration Observer category.
+var throttleCategories = moveCategories{Actor: messaging.CategorySystem, Actee: messaging.CategorySystem, Observer: messaging.CategoryHitNaturalSharp}
+
+// throttleCastInterruptCategories: player_cast_interrupt's own room line
+// deliberately rides CategorySpellDisruption rather than
+// CategoryHitNaturalSharp, matching pre-migration -- a bystander watching a
+// spell die is reading about the disruption, not the bite that caused it
+// (see throttle.go's own comment on the pre-migration send, and throw.go's
+// player_cast_interrupt, which uses the same category for the same reason).
+var throttleCastInterruptCategories = moveCategories{Actor: messaging.CategorySystem, Actee: messaging.CategorySystem, Observer: messaging.CategorySpellDisruption}
 
 func Throttle(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 	actor, handled := stageSpecialMoveTarget(user, room, rest, actions.MeleeTargetOpts{
@@ -67,75 +80,40 @@ func Throttle(rest string, user *users.UserRecord, room *rooms.Room, flags event
 		Room:      room,
 	}
 
-	if res.MoveResult.Hit {
-		hitMsgs := []string{
-			`Your fangs clamp around <ansi fg="mobname">%s</ansi>'s throat, cutting off their air! (<ansi fg="damage">%s</ansi>)`,
-			`You seize <ansi fg="mobname">%s</ansi> by the throat with savage fangs, crushing their windpipe! (<ansi fg="damage">%s</ansi>)`,
-			`Your jaws lock around <ansi fg="mobname">%s</ansi>'s neck in a crushing choke! (<ansi fg="damage">%s</ansi>)`,
-			`You drive your fangs into <ansi fg="mobname">%s</ansi>'s throat and squeeze! (<ansi fg="damage">%s</ansi>)`,
-		}
-		hitTargetMsgs := []string{
-			`<ansi fg="username">%s</ansi>'s fangs clamp around your throat, cutting off your air! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> seizes your throat with savage fangs, crushing your windpipe! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi>'s jaws lock around your neck in a crushing choke! (<ansi fg="damage">%s</ansi>)`,
-		}
-		hitRoomMsgs := []string{
-			`<ansi fg="username">%s</ansi> clamps fangs around <ansi fg="mobname">%s</ansi>'s throat in a savage choke!`,
-			`<ansi fg="username">%s</ansi> seizes <ansi fg="mobname">%s</ansi> by the throat with crushing fangs!`,
-		}
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, user.Character.Name),
+		ActorPlain: user.Character.Name,
+		Actee:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, targetName),
+		ActeePlain: targetName,
+	}
+	damageTokens := map[string]string{movenarration.TokenDamage: dmgDesc}
 
-		messaging.SendTrio(messaging.Trio{
-			Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(hitMsgs[util.Rand(len(hitMsgs))], targetName, dmgDesc)),
-			Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(hitTargetMsgs[util.Rand(len(hitTargetMsgs))], user.Character.Name, dmgDesc)),
-			Observer: messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(hitRoomMsgs[util.Rand(len(hitRoomMsgs))], user.Character.Name, targetName)),
-		}, aud)
+	if res.MoveResult.Hit {
+		sendMoveEvent("throttle", "player_hit", ids, aud, throttleCategories, damageTokens)
 
 		// A detail line riding on the hit above, and a WORLD EVENT under the
-		// detail-line ruling: a spell visibly failing is something the room can
-		// see, so it carries all three viewpoints rather than staying private
-		// between the two people involved.
-		//
-		// The observer's category is CategorySpellDisruption, not the
-		// CategorySystem its two siblings use. That is deliberate and is
-		// exactly why the category rides on the Line: throw.go already uses
-		// that category for the same event, a blast shattering a caster's
-		// concentration, and a bystander watching a spell die is reading about
-		// the disruption rather than about the bite that caused it.
-		//
-		// The room line precedes this trio rather than following it. No
-		// individual recipient sees a different order: the room line is never
-		// delivered to the actor or the actee, and the observer never receives
-		// their two lines, so only the cross-recipient interleaving moved.
+		// detail-line ruling: a spell visibly failing is something the room
+		// can see, so it carries all three viewpoints rather than staying
+		// private between the two people involved. Not squared: this was
+		// already a hardcoded 1/1/1 triad pre-migration, not a pool.
 		if res.InterruptedCast {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s spell collapses as they fight for air!`, targetName)),
-				Actee: messaging.Say(messaging.CategorySystem, `Your spell collapses as you fight for air!`),
-				Observer: messaging.Say(messaging.CategorySpellDisruption,
-					fmt.Sprintf(`<ansi fg="username">%s</ansi>'s grip chokes the spell out of <ansi fg="mobname">%s</ansi>!`, user.Character.Name, targetName)),
-			}, aud)
+			sendMoveEvent("throttle", "player_cast_interrupt", ids, aud, throttleCastInterruptCategories, nil)
 		}
 	} else if res.MoveResult.Damage > 0 {
-		partialMsgs := []string{
-			`Your throttle lunge mostly misses <ansi fg="mobname">%s</ansi>'s throat, but your fangs still graze it! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="mobname">%s</ansi> pulls mostly free of your grip, but your fangs still catch their throat! (<ansi fg="damage">%s</ansi>)`,
-		}
-		partialTargetMsgs := []string{
-			`<ansi fg="username">%s</ansi> lunges for your throat and you pull mostly free, but the fangs still catch you! (<ansi fg="damage">%s</ansi>)`,
-			`You twist mostly away as <ansi fg="username">%s</ansi> snaps at your throat, but not all the way! (<ansi fg="damage">%s</ansi>)`,
-		}
-		partialRoomMsgs := []string{
-			`<ansi fg="username">%s</ansi> lunges for <ansi fg="mobname">%s</ansi>'s throat, who pulls mostly free but still gets grazed!`,
-		}
-
+		// Defended-partial: the personal lines carry the damage, and the room
+		// line names the defence that blunted the throttle (U6b Task 9),
+		// falling back to the squared partial text when there was no defence
+		// to name.
+		roles, _ := renderMoveEvent("throttle", "player_partial", ids, damageTokens)
 		defence, defended := moveDefenceLines(user, room, res.Target, res.MoveResult.Defence, "throttle lunge")
-		observer := messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(partialRoomMsgs[util.Rand(len(partialRoomMsgs))], user.Character.Name, targetName))
+		observer := lineOrNone(messaging.CategoryHitNaturalSharp, roles.Observer)
 		if defended {
 			observer = messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom)
 			sendMoveDefenceShortage(targetChar, defence)
 		}
 		messaging.SendTrio(messaging.Trio{
-			Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(partialMsgs[util.Rand(len(partialMsgs))], targetName, dmgDesc)),
-			Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(partialTargetMsgs[util.Rand(len(partialTargetMsgs))], user.Character.Name, dmgDesc)),
+			Actor:    lineOrNone(messaging.CategorySystem, roles.Actor),
+			Actee:    lineOrNone(messaging.CategorySystem, roles.Actee),
 			Observer: observer,
 		}, aud)
 	} else if defence, defended := moveDefenceLines(user, room, res.Target, res.MoveResult.Defence, "throttle lunge"); defended {
@@ -147,24 +125,7 @@ func Throttle(rest string, user *users.UserRecord, room *rooms.Room, flags event
 			Observer: messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom),
 		}, aud)
 	} else {
-		missMsgs := []string{
-			`Your throttle lunge misses <ansi fg="mobname">%s</ansi>'s throat!`,
-			`You snap at <ansi fg="mobname">%s</ansi>'s throat but they pull away!`,
-			`<ansi fg="mobname">%s</ansi> twists away before your fangs can find their throat!`,
-		}
-		missTargetMsgs := []string{
-			`<ansi fg="username">%s</ansi> lunges for your throat but misses!`,
-			`You twist away as <ansi fg="username">%s</ansi> snaps at your throat!`,
-		}
-		missRoomMsgs := []string{
-			`<ansi fg="username">%s</ansi> lunges for <ansi fg="mobname">%s</ansi>'s throat but misses!`,
-		}
-
-		messaging.SendTrio(messaging.Trio{
-			Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(missMsgs[util.Rand(len(missMsgs))], targetName)),
-			Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(missTargetMsgs[util.Rand(len(missTargetMsgs))], user.Character.Name)),
-			Observer: messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(missRoomMsgs[util.Rand(len(missRoomMsgs))], user.Character.Name, targetName)),
-		}, aud)
+		sendMoveEvent("throttle", "player_miss", ids, aud, throttleCategories, nil)
 	}
 
 	// U6b Task 11: the counter renders AFTER the move's own outcome.

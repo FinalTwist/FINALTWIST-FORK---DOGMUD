@@ -534,7 +534,639 @@ def check_against_shipped_store(all_rows, disagreements):
             )
 
 
-def main():
+# ============================================================================
+# usercommands (player-side) extraction -- messaging-M4e1b Task 1
+#
+# WHAT THIS DOES
+#
+# The mobcommands extraction above leans on a hand-verified inventory doc
+# (docs/superpowers/audits/2026-09-21-m4e1-site-inventory.md) that does not
+# exist for the player files -- no PR has audited them line by line yet. So
+# this half of the script is fully self-verifying instead: every fixture row
+# is checked against a FRESH parse of the current internal/usercommands/*.go
+# source at extraction time, and any drift between what is hand-listed below
+# and what the source actually contains is reported as a disagreement, never
+# silently resolved.
+#
+# Two extraction strategies, matching the two shapes PR 1a's census
+# (docs/superpowers/plans/2026-09-21-messaging-m4e1b-player-special-moves.md)
+# found in these twelve files:
+#
+#   POOLED files (drain, gore, kick, maul, pounce, rake, throttle) declare
+#   `varName := []string{ "...", "...", ... }` pools and pick with
+#   util.Rand(len(pool)). extract_all_pools_in_order() walks the file and
+#   harvests every backtick literal from every such pool IN FILE ORDER; a
+#   hand-authored table (verified against source by direct reading, cross
+#   checked here by variable name and pool count) says which (event, role,
+#   args) each pool corresponds to. Every entry of every pool becomes its own
+#   fixture row, tagged with its index in the pool -- this is what lets the
+#   net fail on entry 5 and not just entry 0.
+#
+#   UNPOOLED files (bash, trip, grapple, shoot, throw) already ship one
+#   literal per role per branch (verified: zero `[]string{` / `util.Rand`
+#   matches in any of the five). Each row is hand-transcribed from source and
+#   then matched by EXACT TEXT against extract_literal_calls()'s fresh
+#   extraction of every backtick literal + its call-site argument list; a
+#   transcription typo or a source edit that moves the text produces a
+#   reported disagreement rather than a silent pass.
+#
+# extract_literal_calls() is a second, independent Sprintf-call extractor
+# (not the mobcommands section's extract_sprintf_calls / BACKTICK_LITERAL_RE)
+# because several of these files pass an argument that is ITSELF a call
+# carrying its own parentheses, e.g. trip.go:
+#
+#   fmt.Sprintf(`...%s...(<ansi fg="damage">%s</ansi>)`, targetName,
+#       combat.GetDamageDescription(result.Damage, result.TargetMaxHP))
+#
+# BACKTICK_LITERAL_RE's `([^()]*)\)` argument capture cannot see past the
+# first `)`, which belongs to GetDamageDescription's own call, not the
+# enclosing Sprintf. extract_literal_calls() instead scans character by
+# character with a paren-depth counter, splitting on top-level commas only,
+# so a nested call in argument position does not truncate the argument list.
+#
+# WHAT SHOOT.GO (USER SIDE) IS PARAMETERISED DIFFERENTLY FROM SHOOT.GO (MOB
+# SIDE)
+#
+# The mob's shoot.go has no `actor` role (a mob has no client) and speaks the
+# shooter's own outcome nowhere. The player's shoot.go speaks it in
+# `shooterLine` (Fire's own hit/partial/miss lines back to the shooter) --
+# three genuinely new rows the mob-side extraction never had reason to
+# produce. The two files' fire_announce, fire_depart and six arrival_* rows
+# are otherwise the SAME events, reached the same way (a shot leaving/
+# arriving is described identically regardless of who fired it), composed
+# from an origin fragment and an outcome template exactly as the mob-side
+# SHOOT section already documents; the same compose-from-fragments technique
+# is reused here for the player's origin/template split.
+#
+# THROW.GO has no equivalent in the mob-side store at all (mobs cannot throw
+# grenades) and is AREA-only: it has no actee ever (an AoE has no single
+# target), so every row extracted from it is actor or observer.
+#
+# TOKEN VOCABULARY ADDITIONS beyond the mobcommands section's actor/
+# actor_tagged/actee/actee_tagged/damage/label/verb/with/weapon/exitname/
+# position:
+#
+#   heal    drain's lifesteal detail line (combat.GetHealDescription), a
+#           HEAL amount, never conflated with a DAMAGE amount even though
+#           both are opaque prose strings.
+#   item    throw's matchItem.DisplayName(), always bare in the Go call site
+#           (the format string supplies its own <ansi fg="itemname"> wrap).
+#
+# WHAT COUNTS AS "IN SCOPE" HERE, PER TASK 1'S BRIEF
+#
+# Skipped, not extracted at all (see the task brief for the full reasoning):
+#   - prose sourced from OUTSIDE the file under test: moveDefenceLines()'s
+#     defence.ToRoom/ToDefender/ToAttacker, combat.ChannelDefenceShortageText,
+#     result.DisarmResult.*, result.CritFailure.*, combat.
+#     RenderChannelDefenceMessages' triad.* (shoot.go, throw.go)
+#   - user.SendText(...) calls: pre-flight refusals, validation messages, and
+#     (throw.go specifically) the per-target flavour notes sent directly to
+#     the thrower rather than through messaging.SendTrio -- none of these go
+#     through the store's actor/actee/observer/remote_observer roles, so none
+#     of them are within this net's surface
+#   - drain's healMsgs ACTEE/OBSERVER (both messaging.NoLine by design, a
+#     private detail line); the ACTOR line is real content and IS extracted
+#   - throttle's InterruptedCast trio: a hardcoded 1/1/1 already flagged by
+#     the plan census as "not a pool", and per Task 1's brief, not extracted
+#
+# Included despite not being explicitly named in the plan's 30-event census
+# (which counts only what Task 2 must SQUARE): drain's two healMsgs actor
+# pools (legitimate Actor-only content, per the task brief), grapple's
+# PositionPenalty/DefensePenalty single Actor-only literals (the same
+# NoLine-twice, Actor-only shape as drain's heal lines), and throw's four
+# genuinely-narrated events (hurl, fumble, a boss-interrupt cast-disruption
+# announcement, and the defended-partial local literal). None of these has a
+# home in the shipped store yet, so every row from them skips at the
+# verb/event tier until a later task decides whether and how to migrate them.
+# ============================================================================
+
+USERCOMMANDS_DIR = os.path.join(REPO_ROOT, "internal", "usercommands")
+USER_FIXTURE_PATH = os.path.join(
+    REPO_ROOT, "internal", "usercommands", "testdata", "pre_migration_literals.json"
+)
+
+USER_POOLED_VERBS = ["drain", "gore", "kick", "maul", "pounce", "rake", "throttle"]
+USER_UNPOOLED_VERBS = ["bash", "trip", "grapple", "shoot", "throw"]
+
+
+# --------------------------------------------------------------------------
+# A second, paren-aware Sprintf-call extractor (see module docstring above
+# for why the mobcommands section's extract_sprintf_calls is not reused).
+# --------------------------------------------------------------------------
+
+BACKTICK_ONLY_RE = re.compile(r"`([^`]*)`")
+
+
+def split_call_tail(text):
+    """text starts right after a format string's closing backtick, e.g.
+    ", targetName, combat.GetDamageDescription(a, b))) " or just ")),".
+    Returns the top-level comma-separated argument list up to the `)` that
+    closes THIS Sprintf call (paren depth back to zero), or None if that
+    closing paren is not present in `text` at all (caller should append more
+    source text and retry).
+    """
+    i, n = 0, len(text)
+    while i < n and text[i] in " \t":
+        i += 1
+    if i < n and text[i] == ")":
+        return []
+    if i >= n or text[i] != ",":
+        return None
+    i += 1
+    args = []
+    depth = 0
+    current = []
+    while i < n:
+        c = text[i]
+        if c == "(":
+            depth += 1
+            current.append(c)
+        elif c == ")":
+            if depth == 0:
+                tail = "".join(current).strip()
+                if tail:
+                    args.append(tail)
+                return args
+            depth -= 1
+            current.append(c)
+        elif c == "," and depth == 0:
+            args.append("".join(current).strip())
+            current = []
+        else:
+            current.append(c)
+        i += 1
+    return None
+
+
+def extract_literal_calls(go_path, max_lookahead=4):
+    """Returns dict[line_no] -> (format, [arg, ...]) for every backtick
+    literal in go_path, using split_call_tail (paren-depth aware) rather than
+    a single-shot regex, so a nested call in argument position (trip.go's
+    inline combat.GetDamageDescription(...)) does not truncate the argument
+    list. Multi-line calls (throw.go's format-on-one-line,
+    args-on-the-next-line style) are handled by extending the search window
+    up to max_lookahead further lines.
+    """
+    with open(go_path, encoding="utf-8") as f:
+        lines = f.readlines()
+
+    out = {}
+    for i, line in enumerate(lines, start=1):
+        for m in BACKTICK_ONLY_RE.finditer(line):
+            fmt_str = m.group(1)
+            tail = line[m.end():]
+            args = split_call_tail(tail)
+            j = i
+            while args is None and (j - i) < max_lookahead and j < len(lines):
+                tail += lines[j]
+                args = split_call_tail(tail)
+                j += 1
+            if args is None:
+                args = []
+            out.setdefault(i, (fmt_str, args))
+    return out
+
+
+# --------------------------------------------------------------------------
+# Pooled-file extraction: harvest every []string{...} pool IN FILE ORDER,
+# zip against a hand-authored table of (event, role, args) per pool.
+# --------------------------------------------------------------------------
+
+POOL_DECL_RE = re.compile(r"^\s*(\w+)\s*:?=\s*\[\]string\{\s*$")
+
+
+def extract_all_pools_in_order(go_path):
+    """Returns [(var_name, decl_line_1based, [entry, ...]), ...] in file
+    order, for every `varName := []string{` / `varName = []string{` block
+    whose entries are one backtick literal per line (verified true of all
+    seven pooled usercommands files by direct reading).
+    """
+    with open(go_path, encoding="utf-8") as f:
+        lines = f.readlines()
+
+    pools = []
+    i, n = 0, len(lines)
+    while i < n:
+        m = POOL_DECL_RE.match(lines[i])
+        if m:
+            var_name = m.group(1)
+            entries = []
+            j = i + 1
+            while j < n and not lines[j].strip().startswith("}"):
+                bm = BACKTICK_ONLY_RE.search(lines[j])
+                if bm:
+                    entries.append(bm.group(1))
+                j += 1
+            pools.append((var_name, i + 1, entries))
+            i = j + 1
+            continue
+        i += 1
+    return pools
+
+
+def branch_triplet(event, actor_var, actee_var, observer_var, has_damage):
+    """The uniform per-branch shape every one of the seven pooled files uses:
+    actor's pool takes (actee[, damage]), actee's takes (actor[, damage]),
+    observer's always takes (actor, actee). Returns the three
+    (var_name, event, role, args) table rows for one branch.
+    """
+    actor_args = ["actee", "damage"] if has_damage else ["actee"]
+    actee_args = ["actor", "damage"] if has_damage else ["actor"]
+    return [
+        (actor_var, event, "actor", actor_args),
+        (actee_var, event, "actee", actee_args),
+        (observer_var, event, "observer", ["actor", "actee"]),
+    ]
+
+
+def rows_from_pool_table(verb, go_path, table):
+    pools = extract_all_pools_in_order(go_path)
+    if len(pools) != len(table):
+        raise ValueError(
+            f"{go_path}: found {len(pools)} pool declarations in file order "
+            f"but the hand-authored table has {len(table)} entries -- the "
+            f"table is out of sync with source (a pool was added, removed, "
+            f"or reordered)"
+        )
+    rows = []
+    for (var_name, decl_line, entries), (expect_var, event, role, args) in zip(pools, table):
+        if var_name != expect_var:
+            raise ValueError(
+                f"{go_path}:{decl_line}: expected pool {expect_var!r} at this "
+                f"position in file order, found {var_name!r} instead -- the "
+                f"table is out of sync with source"
+            )
+        if not entries:
+            raise ValueError(f"{go_path}:{decl_line}: {var_name} pool extracted ZERO entries")
+        for idx, fmt_str in enumerate(entries):
+            rows.append({
+                "verb": verb, "event": event, "role": role, "index": idx,
+                "format": fmt_str, "args": list(args),
+            })
+    return rows
+
+
+# Per-verb pool tables. Verified against source by direct reading; the
+# variable-name + pool-count cross-check in rows_from_pool_table() catches
+# any drift between this table and the live file.
+
+DRAIN_TABLE = (
+    branch_triplet("hit", "drainMsgs", "drainTargetMsgs", "drainRoomMsgs", True)
+    + [("healMsgs", "hit_heal", "actor", ["heal"])]
+    + branch_triplet("partial", "partialMsgs", "partialTargetMsgs", "partialRoomMsgs", True)
+    + [("healMsgs", "partial_heal", "actor", ["heal"])]
+    + branch_triplet("miss", "missMsgs", "missTargetMsgs", "missRoomMsgs", False)
+)
+
+GORE_TABLE = (
+    branch_triplet("knockdown", "goreMsgs", "goreTargetMsgs", "goreRoomMsgs", True)
+    + branch_triplet("hit", "goreMsgs", "goreTargetMsgs", "goreRoomMsgs", True)
+    + branch_triplet("partial", "partialMsgs", "partialTargetMsgs", "partialRoomMsgs", True)
+    + branch_triplet("miss", "missMsgs", "missTargetMsgs", "missRoomMsgs", False)
+)
+
+MAUL_TABLE = (
+    branch_triplet("hit", "maulMsgs", "maulTargetMsgs", "maulRoomMsgs", True)
+    + branch_triplet("partial", "partialMsgs", "partialTargetMsgs", "partialRoomMsgs", True)
+    + branch_triplet("miss", "missMsgs", "missTargetMsgs", "missRoomMsgs", False)
+)
+
+POUNCE_TABLE = (
+    branch_triplet("knockdown", "pounceMsgs", "pounceTargetMsgs", "pounceRoomMsgs", True)
+    + branch_triplet("hit", "pounceMsgs", "pounceTargetMsgs", "pounceRoomMsgs", True)
+    + branch_triplet("partial", "partialMsgs", "partialTargetMsgs", "partialRoomMsgs", True)
+    + branch_triplet("miss", "missMsgs", "missTargetMsgs", "missRoomMsgs", False)
+)
+
+RAKE_TABLE = (
+    branch_triplet("hit", "rakeMsgs", "rakeTargetMsgs", "rakeRoomMsgs", True)
+    + branch_triplet("partial", "partialMsgs", "partialTargetMsgs", "partialRoomMsgs", True)
+    + branch_triplet("miss", "missMsgs", "missTargetMsgs", "missRoomMsgs", False)
+)
+
+THROTTLE_TABLE = (
+    branch_triplet("hit", "hitMsgs", "hitTargetMsgs", "hitRoomMsgs", True)
+    + branch_triplet("partial", "partialMsgs", "partialTargetMsgs", "partialRoomMsgs", True)
+    + branch_triplet("miss", "missMsgs", "missTargetMsgs", "missRoomMsgs", False)
+)
+
+KICK_TABLE = []
+for _variant in ("stomp", "knee"):
+    KICK_TABLE += branch_triplet(f"{_variant}_hit", "kickMsgs", "kickTargetMsgs", "kickRoomMsgs", True)
+    KICK_TABLE += branch_triplet(f"{_variant}_miss", "missMsgs", "missTargetMsgs", "missRoomMsgs", False)
+    KICK_TABLE += branch_triplet(f"{_variant}_partial", "partialMsgs", "partialTargetMsgs", "partialRoomMsgs", True)
+KICK_TABLE += branch_triplet("standard_hit", "kickMsgs", "kickTargetMsgs", "kickRoomMsgs", True)
+KICK_TABLE += branch_triplet("standard_knockdown", "knockdownMsgs", "knockdownTargetMsgs", "knockdownRoomMsgs", True)
+KICK_TABLE += branch_triplet("standard_miss", "missMsgs", "missTargetMsgs", "missRoomMsgs", False)
+KICK_TABLE += branch_triplet("standard_partial", "partialMsgs", "partialTargetMsgs", "partialRoomMsgs", True)
+
+POOL_VERB_TABLES = {
+    "drain": DRAIN_TABLE,
+    "gore": GORE_TABLE,
+    "kick": KICK_TABLE,
+    "maul": MAUL_TABLE,
+    "pounce": POUNCE_TABLE,
+    "rake": RAKE_TABLE,
+    "throttle": THROTTLE_TABLE,
+}
+
+
+def build_pooled_rows(disagreements):
+    rows = []
+    counts = {}
+    for verb, table in POOL_VERB_TABLES.items():
+        go_path = os.path.join(USERCOMMANDS_DIR, f"{verb}.go")
+        try:
+            verb_rows = rows_from_pool_table(verb, go_path, table)
+        except ValueError as e:
+            disagreements.append(str(e))
+            verb_rows = []
+        rows += verb_rows
+        counts[verb] = len(verb_rows)
+    return rows, counts
+
+
+# --------------------------------------------------------------------------
+# Unpooled-file extraction: hand-transcribed (event, role, format, args)
+# rows, matched against extract_literal_calls() by EXACT format-string text.
+# --------------------------------------------------------------------------
+
+def find_and_add(rows, calls, used_lines, verb, event, role, expected_fmt, token_args, disagreements):
+    match_line = None
+    match_args = None
+    for line, (fmt_str, args) in sorted(calls.items()):
+        if line in used_lines:
+            continue
+        if fmt_str == expected_fmt:
+            match_line = line
+            match_args = args
+            break
+    if match_line is None:
+        disagreements.append(
+            f"{verb}.go: {event}/{role}: expected literal not found verbatim "
+            f"in a fresh source scan: {expected_fmt!r}"
+        )
+        return
+    used_lines.add(match_line)
+    if len(match_args) != len(token_args):
+        disagreements.append(
+            f"{verb}.go:{match_line}: {event}/{role}: expected {len(token_args)} "
+            f"call-site arg(s) {token_args!r} but source has {len(match_args)} "
+            f"({match_args!r})"
+        )
+    rows.append({
+        "verb": verb, "event": event, "role": role, "index": 0,
+        "format": expected_fmt, "args": list(token_args),
+    })
+
+
+# ---- bash.go ---------------------------------------------------------------
+
+BASH_ROWS = [
+    ("knockdown", "actor", """Your <ansi fg="yellow-bold">shield bash</ansi> knocks <ansi fg="mobname">%s</ansi> to the ground! (<ansi fg="damage">%s</ansi>)""", ["actee", "damage"]),
+    ("knockdown", "actee", """<ansi fg="username">%s</ansi>'s <ansi fg="yellow-bold">shield bash</ansi> knocks you to the ground! (<ansi fg="damage">%s</ansi>)""", ["actor", "damage"]),
+    ("knockdown", "observer", """<ansi fg="username">%s</ansi>'s <ansi fg="yellow-bold">shield bash</ansi> knocks <ansi fg="mobname">%s</ansi> to the ground!""", ["actor", "actee"]),
+    ("hit", "actor", """Your <ansi fg="yellow-bold">shield bash</ansi> strikes <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)""", ["actee", "damage"]),
+    ("hit", "actee", """<ansi fg="username">%s</ansi>'s <ansi fg="yellow-bold">shield bash</ansi> strikes you! (<ansi fg="damage">%s</ansi>)""", ["actor", "damage"]),
+    ("hit", "observer", """<ansi fg="username">%s</ansi> bashes <ansi fg="mobname">%s</ansi> with their shield!""", ["actor", "actee"]),
+    ("partial", "observer", """<ansi fg="username">%s</ansi> bashes <ansi fg="mobname">%s</ansi> with their shield, who staggers but stays up!""", ["actor", "actee"]),
+    ("partial", "actor", """Your <ansi fg="yellow-bold">shield bash</ansi> fails to floor <ansi fg="mobname">%s</ansi>, but still slams into them! (<ansi fg="damage">%s</ansi>)""", ["actee", "damage"]),
+    ("partial", "actee", """<ansi fg="username">%s</ansi>'s <ansi fg="yellow-bold">shield bash</ansi> fails to floor you, but still slams into you! (<ansi fg="damage">%s</ansi>)""", ["actor", "damage"]),
+    ("miss", "actor", """Your <ansi fg="yellow-bold">shield bash</ansi> misses <ansi fg="mobname">%s</ansi>!""", ["actee"]),
+    ("miss", "actee", """<ansi fg="username">%s</ansi> attempts to bash you with their shield, but misses!""", ["actor"]),
+    ("miss", "observer", """<ansi fg="username">%s</ansi> attempts to bash <ansi fg="mobname">%s</ansi>, but misses!""", ["actor", "actee"]),
+]
+
+
+def build_bash_rows(disagreements):
+    go_path = os.path.join(USERCOMMANDS_DIR, "bash.go")
+    calls = extract_literal_calls(go_path)
+    used = set()
+    rows = []
+    for event, role, fmt_str, args in BASH_ROWS:
+        find_and_add(rows, calls, used, "bash", event, role, fmt_str, args, disagreements)
+    return rows
+
+
+# ---- trip.go ----------------------------------------------------------------
+
+TRIP_ROWS = [
+    ("tailsweep_knockdown", "actor", """Your <ansi fg="yellow-bold">tailsweep</ansi> sends <ansi fg="mobname">%s</ansi> crashing to the ground! (<ansi fg="damage">%s</ansi>)""", ["actee", "damage"]),
+    ("tailsweep_knockdown", "actee", """<ansi fg="username">%s</ansi> hammers you with their tail, sending you crashing to the ground! (<ansi fg="damage">%s</ansi>)""", ["actor", "damage"]),
+    ("tailsweep_knockdown", "observer", """<ansi fg="username">%s</ansi> tailsweeps <ansi fg="mobname">%s</ansi>, sending them crashing to the ground!""", ["actor", "actee"]),
+    ("tailsweep_hit", "actor", """Your <ansi fg="yellow-bold">tailsweep</ansi> strikes <ansi fg="mobname">%s</ansi>, but they keep their footing! (<ansi fg="damage">%s</ansi>)""", ["actee", "damage"]),
+    ("tailsweep_hit", "actee", """<ansi fg="username">%s</ansi> sweeps at you with their tail, but you manage to stay upright! (<ansi fg="damage">%s</ansi>)""", ["actor", "damage"]),
+    ("tailsweep_hit", "observer", """<ansi fg="username">%s</ansi> tailsweeps <ansi fg="mobname">%s</ansi>, but they keep their footing!""", ["actor", "actee"]),
+    ("trip_knockdown", "actor", """Your <ansi fg="yellow-bold">trip</ansi> sends <ansi fg="mobname">%s</ansi> crashing to the ground! (<ansi fg="damage">%s</ansi>)""", ["actee", "damage"]),
+    ("trip_knockdown", "actee", """<ansi fg="username">%s</ansi> sweeps your legs, sending you crashing to the ground! (<ansi fg="damage">%s</ansi>)""", ["actor", "damage"]),
+    ("trip_knockdown", "observer", """<ansi fg="username">%s</ansi> trips <ansi fg="mobname">%s</ansi>, sending them crashing to the ground!""", ["actor", "actee"]),
+    ("trip_hit", "actor", """Your <ansi fg="yellow-bold">trip</ansi> strikes <ansi fg="mobname">%s</ansi>, but they stay on their feet! (<ansi fg="damage">%s</ansi>)""", ["actee", "damage"]),
+    ("trip_hit", "actee", """<ansi fg="username">%s</ansi> attempts to trip you, but you keep your footing! (<ansi fg="damage">%s</ansi>)""", ["actor", "damage"]),
+    ("trip_hit", "observer", """<ansi fg="username">%s</ansi> attempts to trip <ansi fg="mobname">%s</ansi>, but they keep their footing!""", ["actor", "actee"]),
+    ("tailsweep_partial", "observer", """<ansi fg="username">%s</ansi> tailsweeps <ansi fg="mobname">%s</ansi>, who staggers but keeps their feet!""", ["actor", "actee"]),
+    ("tailsweep_partial", "actor", """Your <ansi fg="yellow-bold">tailsweep</ansi> fails to trip <ansi fg="mobname">%s</ansi>, but still cracks into them! (<ansi fg="damage">%s</ansi>)""", ["actee", "damage"]),
+    ("tailsweep_partial", "actee", """<ansi fg="username">%s</ansi> swings their tail and you keep your feet, but it still cracks into you! (<ansi fg="damage">%s</ansi>)""", ["actor", "damage"]),
+    ("trip_partial", "observer", """<ansi fg="username">%s</ansi> tries to trip <ansi fg="mobname">%s</ansi>, who staggers but keeps their feet!""", ["actor", "actee"]),
+    ("trip_partial", "actor", """Your <ansi fg="yellow-bold">trip</ansi> fails to take <ansi fg="mobname">%s</ansi> down, but still catches them hard! (<ansi fg="damage">%s</ansi>)""", ["actee", "damage"]),
+    ("trip_partial", "actee", """<ansi fg="username">%s</ansi> tries to trip you and you keep your feet, but the sweep still catches you! (<ansi fg="damage">%s</ansi>)""", ["actor", "damage"]),
+    ("tailsweep_miss", "actor", """Your <ansi fg="yellow-bold">tailsweep</ansi> misses <ansi fg="mobname">%s</ansi>!""", ["actee"]),
+    ("tailsweep_miss", "actee", """<ansi fg="username">%s</ansi> swings their tail at you, but you avoid it!""", ["actor"]),
+    ("tailsweep_miss", "observer", """<ansi fg="username">%s</ansi> attempts a tailsweep on <ansi fg="mobname">%s</ansi>, but misses!""", ["actor", "actee"]),
+    ("trip_miss", "actor", """Your <ansi fg="yellow-bold">trip</ansi> attempt misses <ansi fg="mobname">%s</ansi>!""", ["actee"]),
+    ("trip_miss", "actee", """<ansi fg="username">%s</ansi> attempts to trip you, but you avoid it!""", ["actor"]),
+    ("trip_miss", "observer", """<ansi fg="username">%s</ansi> attempts to trip <ansi fg="mobname">%s</ansi>, but misses!""", ["actor", "actee"]),
+]
+
+
+def build_trip_rows(disagreements):
+    go_path = os.path.join(USERCOMMANDS_DIR, "trip.go")
+    calls = extract_literal_calls(go_path)
+    used = set()
+    rows = []
+    for event, role, fmt_str, args in TRIP_ROWS:
+        find_and_add(rows, calls, used, "trip", event, role, fmt_str, args, disagreements)
+    return rows
+
+
+# ---- grapple.go ---------------------------------------------------------------
+
+GRAPPLE_ROWS = [
+    ("success", "actor", """You <ansi fg="yellow-bold">grapple</ansi> <ansi fg="mobname">%s</ansi>, transitioning to <ansi fg="cyan">%s</ansi> position!""", ["actee", "position"]),
+    ("success", "actee", """<ansi fg="username">%s</ansi> <ansi fg="yellow-bold">grapples</ansi> you, transitioning to <ansi fg="cyan">%s</ansi> position!""", ["actor", "position"]),
+    ("success", "observer", """<ansi fg="username">%s</ansi> <ansi fg="yellow-bold">grapples</ansi> <ansi fg="mobname">%s</ansi> into <ansi fg="cyan">%s</ansi> position!""", ["actor", "actee", "position"]),
+    ("fail", "actor", """Your <ansi fg="yellow-bold">grapple</ansi> attempt against <ansi fg="mobname">%s</ansi> fails!""", ["actee"]),
+    ("fail", "actee", """<ansi fg="username">%s</ansi> tries to grapple you, but you slip away!""", ["actor"]),
+    ("fail", "observer", """<ansi fg="username">%s</ansi> tries to grapple <ansi fg="mobname">%s</ansi>, but fails!""", ["actor", "actee"]),
+    ("prone_penalty", "actor", """<ansi fg="yellow">%s was already prone - they had little chance to resist!</ansi>""", ["actee"]),
+    ("defense_exposed", "actor", """<ansi fg="red">Your failed attempt leaves you exposed!</ansi>""", []),
+]
+
+
+def build_grapple_rows(disagreements):
+    go_path = os.path.join(USERCOMMANDS_DIR, "grapple.go")
+    calls = extract_literal_calls(go_path)
+    used = set()
+    rows = []
+    for event, role, fmt_str, args in GRAPPLE_ROWS:
+        find_and_add(rows, calls, used, "grapple", event, role, fmt_str, args, disagreements)
+    return rows
+
+
+# ---- shoot.go (player side, Fire) --------------------------------------------
+
+SHOOT_USER_ROWS = [
+    ("hit", "actor", """Your shot takes %s (<ansi fg="damage">%s</ansi>)!""", ["actee_tagged", "damage"]),
+    ("partial", "actor", """Your shot goes wide of %s, but the edge of it still clips them! (<ansi fg="damage">%s</ansi>)""", ["actee_tagged", "damage"]),
+    ("miss", "actor", """Your shot goes wide of %s!""", ["actee_tagged"]),
+    ("hit", "actee", """%s's shot strikes you (<ansi fg="damage">%s</ansi>)!""", ["actor_tagged", "damage"]),
+    ("partial", "actee", """%s's shot goes wide, but the edge of it still clips you! (<ansi fg="damage">%s</ansi>)""", ["actor_tagged", "damage"]),
+    ("miss", "actee", """%s's shot narrowly misses you!""", ["actor_tagged"]),
+    ("fire_announce", "observer", """%s fires their %s at %s!""", ["actor_tagged", "weapon", "actee_tagged"]),
+    ("fire_depart", "observer", """%s fires their %s %sward.""", ["actor_tagged", "weapon", "exitname"]),
+]
+
+# The arrival_* remote_observer rows are composed from an origin fragment
+# (unknown vs known exit) and an outcome template, mirroring the mob-side
+# SHOOT section's own compose() technique -- see this file's module
+# docstring. Each template is verified fresh against source, then the FIRST
+# %s of the template (the origin slot) is replaced with the origin
+# fragment's own raw text, exactly as the live Go code builds `origin` before
+# handing it to the outer Sprintf.
+SHOOT_ARRIVAL_TEMPLATES = {
+    "hit": """A shot streaks in %s and strikes %s!""",
+    "partial": """A shot streaks in %s and clips %s!""",
+    "miss": """A shot streaks in %s and narrowly misses %s!""",
+}
+SHOOT_ORIGIN_UNKNOWN = "from somewhere nearby"
+SHOOT_ORIGIN_KNOWN = """from beyond the <ansi fg="exit">%s</ansi>"""
+
+
+def build_shoot_user_rows(disagreements):
+    go_path = os.path.join(USERCOMMANDS_DIR, "shoot.go")
+    calls = extract_literal_calls(go_path)
+    used = set()
+    rows = []
+    for event, role, fmt_str, args in SHOOT_USER_ROWS:
+        find_and_add(rows, calls, used, "shoot", event, role, fmt_str, args, disagreements)
+
+    # Cross-check the origin fragments and outcome templates against a fresh
+    # scan, the same way the mob-side SHOOT section verifies its fragments,
+    # before composing the six arrival_* rows by hand.
+    origin_unknown_seen = False
+    origin_known_seen = False
+    for _line, (fmt_str, fargs) in calls.items():
+        if fmt_str == SHOOT_ORIGIN_UNKNOWN and fargs == []:
+            origin_unknown_seen = True
+        if fmt_str == SHOOT_ORIGIN_KNOWN and fargs == ["fromDir"]:
+            origin_known_seen = True
+    if not origin_unknown_seen:
+        disagreements.append(
+            f"shoot.go: expected the bare origin fragment {SHOOT_ORIGIN_UNKNOWN!r} "
+            "not found verbatim in a fresh source scan"
+        )
+    if not origin_known_seen:
+        disagreements.append(
+            f"shoot.go: expected the known-exit origin fragment {SHOOT_ORIGIN_KNOWN!r} "
+            "(args=['fromDir']) not found verbatim in a fresh source scan"
+        )
+
+    for outcome, template in SHOOT_ARRIVAL_TEMPLATES.items():
+        found = False
+        for _line, (fmt_str, fargs) in calls.items():
+            if fmt_str == template and fargs == ["origin", "targetColored"]:
+                found = True
+                break
+        if not found:
+            disagreements.append(
+                f"shoot.go: arrival template for {outcome!r} not found verbatim "
+                f"with args ['origin','targetColored'] in a fresh source scan: {template!r}"
+            )
+            continue
+        unknown_fmt = template.replace("%s", SHOOT_ORIGIN_UNKNOWN, 1)
+        rows.append({
+            "verb": "shoot", "event": f"arrival_unknown_{outcome}", "role": "remote_observer",
+            "index": 0, "format": unknown_fmt, "args": ["actee_tagged"],
+        })
+        known_fmt = template.replace("%s", SHOOT_ORIGIN_KNOWN, 1)
+        rows.append({
+            "verb": "shoot", "event": f"arrival_known_{outcome}", "role": "remote_observer",
+            "index": 0, "format": known_fmt, "args": ["exitname", "actee_tagged"],
+        })
+
+    return rows
+
+
+# ---- throw.go -----------------------------------------------------------------
+
+THROW_ROWS = [
+    ("hurl", "actor", """<ansi fg="yellow-bold">You hurl the <ansi fg="itemname">%s</ansi> into the fray!</ansi>""", ["item"]),
+    ("hurl", "observer", """<ansi fg="yellow-bold"><ansi fg="username">%s</ansi> hurls a <ansi fg="itemname">%s</ansi> into the fray!</ansi>""", ["actor", "item"]),
+    ("fumble", "actor", """<ansi fg="red-bold">Your throw goes horribly wrong — the projectile detonates in your hand!</ansi>""", []),
+    ("fumble", "observer", """<ansi fg="red"><ansi fg="username">%s</ansi>'s throw backfires spectacularly!</ansi>""", ["actor"]),
+    ("cast_interrupt", "actor", """<ansi fg="cyan-bold">The blast shatters %s's concentration -- its spell collapses!</ansi>""", ["actee"]),
+    ("cast_interrupt", "observer", """<ansi fg="cyan">%s's spell collapses as the blast strikes!</ansi>""", ["actee"]),
+    ("partial_hit", "actor", """The edge of the blast still catches <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)""", ["actee", "damage"]),
+]
+
+
+def build_throw_rows(disagreements):
+    go_path = os.path.join(USERCOMMANDS_DIR, "throw.go")
+    calls = extract_literal_calls(go_path)
+    used = set()
+    rows = []
+    for event, role, fmt_str, args in THROW_ROWS:
+        find_and_add(rows, calls, used, "throw", event, role, fmt_str, args, disagreements)
+    return rows
+
+
+def build_unpooled_rows(disagreements):
+    rows = []
+    counts = {}
+    builders = {
+        "bash": build_bash_rows,
+        "trip": build_trip_rows,
+        "grapple": build_grapple_rows,
+        "shoot": build_shoot_user_rows,
+        "throw": build_throw_rows,
+    }
+    for verb, builder in builders.items():
+        verb_rows = builder(disagreements)
+        rows += verb_rows
+        counts[verb] = len(verb_rows)
+    return rows, counts
+
+
+def main_usercommands():
+    disagreements = []
+
+    pooled_rows, pooled_counts = build_pooled_rows(disagreements)
+    unpooled_rows, unpooled_counts = build_unpooled_rows(disagreements)
+
+    all_rows = pooled_rows + unpooled_rows
+    counts = {**pooled_counts, **unpooled_counts}
+
+    os.makedirs(os.path.dirname(USER_FIXTURE_PATH), exist_ok=True)
+    with open(USER_FIXTURE_PATH, "w", encoding="utf-8") as f:
+        json.dump(all_rows, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+    pool_entry_rows = sum(1 for r in all_rows if r["index"] > 0)
+
+    print(f"Wrote {len(all_rows)} fixture rows to {USER_FIXTURE_PATH}")
+    for verb in USER_POOLED_VERBS + USER_UNPOOLED_VERBS:
+        print(f"  {verb:12s} {counts.get(verb, 0)}")
+    print(f"  ({pool_entry_rows} rows are pool entries beyond index 0)")
+
+    if disagreements:
+        print(f"\n{len(disagreements)} disagreement(s) found:")
+        for d in disagreements:
+            print(f"  - {d}")
+    else:
+        print("\nNo disagreements between fresh source extraction and the hand-authored tables.")
+
+    return disagreements
+
+def main_mobcommands():
     disagreements = []
     inventory = parse_inventory(INVENTORY_PATH)
 
@@ -562,7 +1194,18 @@ def main():
     else:
         print("\nNo disagreements between fresh source extraction and the inventory.")
 
-    return 1 if disagreements else 0
+    return disagreements
+
+
+def main():
+    print("=== mobcommands ===")
+    mob_disagreements = main_mobcommands()
+
+    print("\n=== usercommands ===")
+    user_disagreements = main_usercommands()
+
+    total = len(mob_disagreements) + len(user_disagreements)
+    return 1 if total else 0
 
 
 if __name__ == "__main__":

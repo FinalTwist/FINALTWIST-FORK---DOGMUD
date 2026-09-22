@@ -17,6 +17,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/keywords"
 	"github.com/GoMudEngine/GoMud/internal/language"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/species"
@@ -82,6 +83,18 @@ func TestMain(m *testing.M) {
 	}
 	if err := configs.AddOverlayOverrides(map[string]any{"FilePaths.DataFiles": dataDir}); err != nil {
 		panic(err)
+	}
+
+	// Load the special-move narration store from the SHIPPED world.
+	//
+	// It cannot come from the temp dir above, which holds no world data, and
+	// it cannot come from the configured path, because a test binary never
+	// reads config.yaml and would resolve to _datafiles/world/default, which
+	// does not carry this store. Since M4e PR 1b these files narrate every
+	// special move from it, so a test that calls one of them renders empty
+	// without this.
+	if err := movenarration.LoadFrom("../../_datafiles/world/dogmud/narration/special-moves"); err != nil {
+		panic("usercommands test: loading the shipped special-move store: " + err.Error())
 	}
 
 	code := m.Run()

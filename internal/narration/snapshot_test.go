@@ -1634,6 +1634,7 @@ func buildSpecialMovesGolden(t *testing.T) string {
 		movenarration.TokenWeapon:   `WEAPON`,
 		movenarration.TokenExitName: `EXITNAME`,
 		movenarration.TokenPosition: `POSITION`,
+		movenarration.TokenItem:     `ITEM`,
 	}
 
 	var b strings.Builder

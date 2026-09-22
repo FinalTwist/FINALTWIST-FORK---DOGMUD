@@ -8,10 +8,15 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
-	"github.com/GoMudEngine/GoMud/internal/util"
 )
+
+// maulCategories: the player's own actor/actee feedback is CategorySystem;
+// the room's line carries CategoryHitNaturalSharp, matching every branch's
+// pre-migration Observer category.
+var maulCategories = moveCategories{Actor: messaging.CategorySystem, Actee: messaging.CategorySystem, Observer: messaging.CategoryHitNaturalSharp}
 
 func Maul(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 	actor, handled := stageSpecialMoveTarget(user, room, rest, actions.MeleeTargetOpts{
@@ -67,53 +72,30 @@ func Maul(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		Room:      room,
 	}
 
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, user.Character.Name),
+		ActorPlain: user.Character.Name,
+		Actee:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, targetName),
+		ActeePlain: targetName,
+	}
+	damageTokens := map[string]string{movenarration.TokenDamage: dmgDesc}
+
 	if res.MoveResult.Hit {
-		maulMsgs := []string{
-			`Your fangs savage <ansi fg="mobname">%s</ansi>, tearing wounds that weep blood! (<ansi fg="damage">%s</ansi>)`,
-			`You maul <ansi fg="mobname">%s</ansi>, worrying their flesh with savage fury! (<ansi fg="damage">%s</ansi>)`,
-			`Your savage bite tears into <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-			`You drive your fangs into <ansi fg="mobname">%s</ansi> and worry the wound viciously! (<ansi fg="damage">%s</ansi>)`,
-			`A brutal mauling drives your teeth deep into <ansi fg="mobname">%s</ansi>! (<ansi fg="damage">%s</ansi>)`,
-		}
-		maulTargetMsgs := []string{
-			`<ansi fg="username">%s</ansi> savages you with their fangs, tearing bleeding wounds! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> mauls you, worrying your flesh with savage fury! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi>'s savage bite tears into you! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> drives their fangs into you and worries the wound! (<ansi fg="damage">%s</ansi>)`,
-		}
-		maulRoomMsgs := []string{
-			`<ansi fg="username">%s</ansi> savages <ansi fg="mobname">%s</ansi> with vicious fangs!`,
-			`<ansi fg="username">%s</ansi> mauls <ansi fg="mobname">%s</ansi> savagely!`,
-			`<ansi fg="username">%s</ansi>'s fangs tear deep into <ansi fg="mobname">%s</ansi>!`,
-		}
-
-		messaging.SendTrio(messaging.Trio{
-			Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(maulMsgs[util.Rand(len(maulMsgs))], targetName, dmgDesc)),
-			Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(maulTargetMsgs[util.Rand(len(maulTargetMsgs))], user.Character.Name, dmgDesc)),
-			Observer: messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(maulRoomMsgs[util.Rand(len(maulRoomMsgs))], user.Character.Name, targetName)),
-		}, aud)
+		sendMoveEvent("maul", "player_hit", ids, aud, maulCategories, damageTokens)
 	} else if res.MoveResult.Damage > 0 {
-		partialMsgs := []string{
-			`Your fangs mostly miss <ansi fg="mobname">%s</ansi>, but still tear a shallow gash! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="mobname">%s</ansi> twists free of your bite, but your fangs still rake them! (<ansi fg="damage">%s</ansi>)`,
-		}
-		partialTargetMsgs := []string{
-			`<ansi fg="username">%s</ansi> snaps at you, and you dodge most of it, but the fangs still tear you! (<ansi fg="damage">%s</ansi>)`,
-			`<ansi fg="username">%s</ansi> lunges to maul you; you twist free of most of it, but not all! (<ansi fg="damage">%s</ansi>)`,
-		}
-		partialRoomMsgs := []string{
-			`<ansi fg="username">%s</ansi> lunges to maul <ansi fg="mobname">%s</ansi>, who twists mostly free but still gets torn!`,
-		}
-
+		// Defended-partial: the personal lines carry the damage, and the room
+		// line names the defence that blunted the maul (U6b Task 9), falling
+		// back to the squared partial text when there was no defence to name.
+		roles, _ := renderMoveEvent("maul", "player_partial", ids, damageTokens)
 		defence, defended := moveDefenceLines(user, room, res.Target, res.MoveResult.Defence, "savage bite")
-		observer := messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(partialRoomMsgs[util.Rand(len(partialRoomMsgs))], user.Character.Name, targetName))
+		observer := lineOrNone(messaging.CategoryHitNaturalSharp, roles.Observer)
 		if defended {
 			observer = messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom)
 			sendMoveDefenceShortage(targetChar, defence)
 		}
 		messaging.SendTrio(messaging.Trio{
-			Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(partialMsgs[util.Rand(len(partialMsgs))], targetName, dmgDesc)),
-			Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(partialTargetMsgs[util.Rand(len(partialTargetMsgs))], user.Character.Name, dmgDesc)),
+			Actor:    lineOrNone(messaging.CategorySystem, roles.Actor),
+			Actee:    lineOrNone(messaging.CategorySystem, roles.Actee),
 			Observer: observer,
 		}, aud)
 	} else if defence, defended := moveDefenceLines(user, room, res.Target, res.MoveResult.Defence, "savage bite"); defended {
@@ -125,24 +107,7 @@ func Maul(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			Observer: messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom),
 		}, aud)
 	} else {
-		missMsgs := []string{
-			`Your savage bite misses <ansi fg="mobname">%s</ansi>!`,
-			`You snap at <ansi fg="mobname">%s</ansi> but they dodge your fangs!`,
-			`Your mauling lunge glances off <ansi fg="mobname">%s</ansi> harmlessly!`,
-		}
-		missTargetMsgs := []string{
-			`<ansi fg="username">%s</ansi> snaps their fangs at you, but misses!`,
-			`<ansi fg="username">%s</ansi> lunges to maul you but you dodge!`,
-		}
-		missRoomMsgs := []string{
-			`<ansi fg="username">%s</ansi> lunges to maul <ansi fg="mobname">%s</ansi>, but misses!`,
-		}
-
-		messaging.SendTrio(messaging.Trio{
-			Actor:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(missMsgs[util.Rand(len(missMsgs))], targetName)),
-			Actee:    messaging.Say(messaging.CategorySystem, fmt.Sprintf(missTargetMsgs[util.Rand(len(missTargetMsgs))], user.Character.Name)),
-			Observer: messaging.Say(messaging.CategoryHitNaturalSharp, fmt.Sprintf(missRoomMsgs[util.Rand(len(missRoomMsgs))], user.Character.Name, targetName)),
-		}, aud)
+		sendMoveEvent("maul", "player_miss", ids, aud, maulCategories, nil)
 	}
 
 	// U6b Task 11: the counter renders AFTER the move's own outcome.

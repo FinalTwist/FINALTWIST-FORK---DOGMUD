@@ -68,18 +68,28 @@ const m2RoutingGoldenPath = "testdata/m2-routing.golden"
 // with the same actee-send plus room-broadcast shape, and both call the defence
 // helper M2 rewrites, so M2's accepted room-line delivery change reaches them.
 var m2RoutingFiles = []string{
-	"internal/usercommands/bash.go",
-	"internal/usercommands/drain.go",
-	"internal/usercommands/gore.go",
-	"internal/usercommands/grapple.go",
-	"internal/usercommands/kick.go",
-	"internal/usercommands/maul.go",
-	"internal/usercommands/pounce.go",
-	"internal/usercommands/rake.go",
-	"internal/usercommands/shoot.go",
-	"internal/usercommands/throttle.go",
-	"internal/usercommands/throw.go",
-	"internal/usercommands/trip.go",
+	// internal/usercommands/{bash,trip,grapple,shoot,throw}.go are gone from
+	// this list, in step with their removal from m2FrozenFiles: M4e-1b Task
+	// 4b Step 1 migrated them onto the movenarration store, so their sends
+	// route through sendMoveEvent in internal/usercommands/move_narration.go
+	// rather than an inline messaging.Trio{...Say(...)} literal this scanner
+	// can see.
+	//
+	// internal/usercommands/{drain,maul,rake,throttle}.go are gone from this
+	// list too, in step with their removal from m2FrozenFiles: M4e-1b Task 4b
+	// Step 2 squared their variant pools and migrated them onto the same
+	// store, same reason.
+	//
+	// internal/usercommands/{gore,pounce}.go are gone from this list too, in
+	// step with their removal from m2FrozenFiles: M4e-1b Task 4b Step 3
+	// squared their two hit branches (knockdown, hit) and their partial and
+	// miss pools, migrating them onto the same store, same reason.
+	//
+	// internal/usercommands/kick.go is gone from this list too, in step with
+	// its removal from m2FrozenFiles: M4e-1b Task 4b Step 4 squared its three
+	// sub-movesets (stomp, knee, standard) onto the same store, same reason.
+	// kick.go was this list's last entry; the slice is now empty.
+	//
 	// internal/mobcommands/{kick,bash,gore,maul,rake,drain,throttle,hamstring,
 	// pounce,charge,trip,grapple,shoot}.go are gone from this list, in step
 	// with their removal from m2FrozenFiles: M4e-1 Tasks 7, 8 and the steps
@@ -321,7 +331,17 @@ func TestM2RoutingIsFrozen(t *testing.T) {
 	// to say no such rule existed and that defense_messages.golden failed on
 	// Windows; both were true until that commit and are false now.
 	normalised := strings.ReplaceAll(string(raw), "\r\n", "\n")
-	want := strings.Split(strings.TrimRight(normalised, "\n"), "\n")
+	trimmed := strings.TrimRight(normalised, "\n")
+	// m2RoutingFiles graduated to empty at kick.go (M4e-1b Task 4b Step 4): the
+	// golden is now just the recorder's own trailing newline, and
+	// strings.Split on an empty string returns [""], one phantom record that
+	// no real file ever produces (m2RoutingLines never emits an empty
+	// string). Without this guard every run would report that one
+	// non-existent record as GONE.
+	var want []string
+	if trimmed != "" {
+		want = strings.Split(trimmed, "\n")
+	}
 
 	// SET semantics, not multiset, and the reason is the local resolver above.
 	//
