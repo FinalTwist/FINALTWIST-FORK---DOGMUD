@@ -186,6 +186,14 @@ room does not read damage today.
 The net proves this. Existing entries keep their exact wording, including the
 em dashes in `gore` and `pounce` (ruling 3) and the idioms filed in rows 48-53.
 
+🪤 **The net proves byte-identity of TEXT, not of INDEX.** Two different
+claims, and only the first is guarded. `kick`'s knee-miss actee[0] was
+deliberately reassigned to actee[2] (the `kick.yaml` comment records why: the
+GLANCES and BLOCKS feel slots), and the net still passes, because it checks
+that each line renders its original wording, not that it renders at its
+original position. Read this step as "no line is reworded", not "no line
+moves". The lit-room playtest caught the stronger reading being false.
+
 - [ ] **Step 3: Gate and commit per file**
 
 ```bash
