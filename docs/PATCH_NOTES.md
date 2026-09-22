@@ -1,5 +1,19 @@
 # DOGMud Patch Notes
 
+## 2026-09-21: One fight, one story
+
+Kicking, draining, goring, mauling, raking, pouncing, and throttling in
+combat used to describe the same swing inconsistently: you, your target,
+and anyone watching could each read a slightly different version of what
+just happened. That mismatch is fixed. All three views of these moves now
+describe the same event, so a fight reads as one story instead of three
+different ones.
+
+Several of these moves also gained new lines, so you may see wording you
+have never read before when one of them lands or misses. A missed kick to
+the knee reads a little differently too: your target now turns their body
+away, rather than you simply failing to find the angle.
+
 ## 2026-09-21: Telling shapes apart from nothing at all
 
 If you can sense heat but not see, the dark now reads differently to you
