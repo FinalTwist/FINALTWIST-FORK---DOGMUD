@@ -105,21 +105,52 @@ func TestMoonWeightsRejectAllZero(t *testing.T) {
 	}
 }
 
+// Every field of Lighting is asserted, not a sample of them.
+//
+// 🔑 GetLightingConfig is a hand-written field-by-field mapping between two
+// structs whose names deliberately differ (Balance.LightMoonsFull becomes
+// Lighting.MoonsFull), which is exactly the shape where a copy-paste swap hides
+// silently: reading Starlight into MoonsFull would compile, pass any sampled
+// test, and inverts the moon curve at runtime. Each value below is distinct so
+// a transposition cannot pass by coincidence.
 func TestGetLightingConfigMirrorsBalance(t *testing.T) {
 	c := GetConfig()
 	c.Balance.LightBlindBelow = 30
+	c.Balance.LightDimBelow = 31
+	c.Balance.LightExitsAbove = 32
+	c.Balance.LightDefaultVisionStrength = 13
 	c.Balance.LightDoublingStep = 11
 	c.Balance.WorldLatitude = 12.5
+	c.Balance.LightEquinoxNoon = 14.5
+	c.Balance.LightStarlight = 15.5
+	c.Balance.LightMoonsFull = 16.5
+	c.Balance.LightMoonWeightSwiftmoon = 17.5
+	c.Balance.LightMoonWeightWanderer = 18.5
+	c.Balance.LightMoonWeightEye = 19.5
 	SetConfigForTest(t, c)
 
 	got := GetLightingConfig()
-	if got.BlindBelow != 30 {
-		t.Errorf("BlindBelow = %d, want 30", got.BlindBelow)
-	}
-	if got.DoublingStep != 11 {
-		t.Errorf("DoublingStep = %v, want 11", got.DoublingStep)
-	}
-	if got.WorldLatitude != 12.5 {
-		t.Errorf("WorldLatitude = %v, want 12.5", got.WorldLatitude)
+
+	for _, tc := range []struct {
+		name string
+		got  float64
+		want float64
+	}{
+		{"BlindBelow", float64(got.BlindBelow), 30},
+		{"DimBelow", float64(got.DimBelow), 31},
+		{"ExitsAbove", float64(got.ExitsAbove), 32},
+		{"DefaultVisionStrength", float64(got.DefaultVisionStrength), 13},
+		{"DoublingStep", got.DoublingStep, 11},
+		{"WorldLatitude", got.WorldLatitude, 12.5},
+		{"EquinoxNoon", got.EquinoxNoon, 14.5},
+		{"Starlight", got.Starlight, 15.5},
+		{"MoonsFull", got.MoonsFull, 16.5},
+		{"MoonWeightSwiftmoon", got.MoonWeightSwiftmoon, 17.5},
+		{"MoonWeightWanderer", got.MoonWeightWanderer, 18.5},
+		{"MoonWeightEye", got.MoonWeightEye, 19.5},
+	} {
+		if tc.got != tc.want {
+			t.Errorf("%s = %v, want %v", tc.name, tc.got, tc.want)
+		}
 	}
 }

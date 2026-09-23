@@ -1163,7 +1163,7 @@ func TestCelestialLightIsMemoisedPerRound(t *testing.T) {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `go test ./internal/gametime/... -run 'Declination|NightHoursAt|Polar|Equinox|Solstice|Sun|Moon|Celestial'`
+Run: `go test ./internal/gametime/... -run 'Declination|NightHoursAt|Polar|Equinox|Solstice|Sun|Moon|Celestial|Swiftmoon|Dazzle'`
 Expected: FAIL to build, "undefined: declinationDegrees"
 
 - [ ] **Step 3: Write the implementation**
@@ -1368,8 +1368,15 @@ func CelestialLight() float64 {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `go test ./internal/gametime/... -v -run 'Declination|NightHoursAt|Polar|Equinox|Solstice|Sun|Moon|Celestial'`
+Run: `go test ./internal/gametime/... -v -run 'Declination|NightHoursAt|Polar|Equinox|Solstice|Sun|Moon|Celestial|Swiftmoon|Dazzle'`
 Expected: PASS, 12 tests
+
+🔴 **CORRECTED 2026-09-23 after this task ran.** The regex originally stopped at
+`Celestial` and silently matched only ten of the twelve tests: Go's `-run` is
+case-sensitive, so `Sun` and `Moon` do not match `TestSwiftmoonOutweighsTheWanderer`
+or `TestNaturalDaylightNeverDazzles`. Running the old command gave a clean pass
+while two tests, including the one asserting daylight never dazzles, never ran at
+all. **Always confirm the test COUNT, not just the exit status.**
 
 - [ ] **Step 5: Run the whole gametime package**
 

@@ -110,7 +110,11 @@ func (b *Balance) validateLighting() {
 	// LightEquinoxNoon must sit on the scale. Zero is coerced: a world whose
 	// equinox noon is as dark as an unlit cave is not a calibration, it is an
 	// unset field.
-	if b.LightEquinoxNoon <= -100 || b.LightEquinoxNoon > 100 || b.LightEquinoxNoon == 0 {
+	// The range is INCLUSIVE at both ends, matching LightStarlight and
+	// LightMoonsFull below and LightBlindBelow/LightDimBelow above. An earlier
+	// draft wrote `<= -100` here, which silently reverted an operator who
+	// authored the scale floor while every sibling knob accepted it.
+	if b.LightEquinoxNoon < -100 || b.LightEquinoxNoon > 100 || b.LightEquinoxNoon == 0 {
 		b.LightEquinoxNoon = 70
 	}
 
@@ -118,6 +122,12 @@ func (b *Balance) validateLighting() {
 	// DarknessShapesCombatPenalty and the LightBlindBelow/LightDimBelow pair
 	// above: starlight at or above the full-moon value inverts the curve, so
 	// an invalid pair reverts BOTH rather than leaving one correct.
+	//
+	// Unlike the LightBlindBelow/LightDimBelow pair, neither knob needs its own
+	// `!= 0` unset guard, and that is not an oversight. An unset pair is (0, 0),
+	// which the ordering check below already catches, because starlight is then
+	// not strictly below the full-moon value. Adding the guard would be dead
+	// code.
 	starOK := b.LightStarlight >= -100 && b.LightStarlight <= 100
 	fullOK := b.LightMoonsFull >= -100 && b.LightMoonsFull <= 100
 	if !starOK || !fullOK || b.LightStarlight >= b.LightMoonsFull {
