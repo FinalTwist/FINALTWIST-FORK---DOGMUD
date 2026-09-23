@@ -47,7 +47,12 @@ func TestSightTiersBehaveAsWitnessGateExpects(t *testing.T) {
 	}{
 		{"plain mob in a lit room", 0, lit, true, true},
 		{"plain mob in the dark", 0, dark, false, false},
-		{"nightvision mob in the dark", 29, dark, true, true},
+		// GRADED LIGHTING PLAN 2: condition 29 now declares
+		// nightvision_strength: 18 (_datafiles/world/dogmud/conditions/
+		// 29-night_vision.yaml), but a shifted window is still blind below
+		// its floor at light 0 no matter the shift, so nightvision alone no
+		// longer sees anything in true darkness.
+		{"nightvision mob in the dark", 29, dark, false, false},
 		{"infrared mob in the dark", 85, dark, false, true},
 		{"sleeping mob in a LIT room", 15, lit, false, false},
 	}
@@ -95,15 +100,19 @@ func TestWitnessesInRoom_SplitsBySight(t *testing.T) {
 
 	got := WitnessesInRoom([]string{"thornwall_citizens"}, room, 0)
 
-	if len(got.Identifying) != 1 || got.Identifying[0] != 403 {
-		t.Errorf("Identifying = %v, want [403] (nightvision mob)", got.Identifying)
+	// GRADED LIGHTING PLAN 2: condition 29's nightvision_strength cannot
+	// reach past the window floor at light 0 (see
+	// TestSightTiersBehaveAsWitnessGateExpects above), so the nightvision mob
+	// is no longer a witness at all here, the same as the plain mob.
+	if len(got.Identifying) != 0 {
+		t.Errorf("Identifying = %v, want [] (nightvision alone cannot see in true darkness)", got.Identifying)
 	}
 	if len(got.ShapesOnly) != 1 || got.ShapesOnly[0] != 402 {
 		t.Errorf("ShapesOnly = %v, want [402] (infrared mob)", got.ShapesOnly)
 	}
 	total := len(got.Identifying) + len(got.ShapesOnly)
-	if total != 2 {
-		t.Errorf("total witnesses = %d, want 2 (plain mob in the dark is not a witness at all)", total)
+	if total != 1 {
+		t.Errorf("total witnesses = %d, want 1 (plain and nightvision mobs in the dark are not witnesses at all)", total)
 	}
 }
 

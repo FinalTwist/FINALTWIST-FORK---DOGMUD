@@ -36,8 +36,16 @@ func counterTrioRoom(t *testing.T, biome string) *rooms.Room {
 		"city":    {BiomeId: "city", LitArea: true},
 		"default": {BiomeId: "default", LitArea: true},
 	}))
+	// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
+	// design (internal/characters/vision.go), so this fixture declares an
+	// explicit infra_reach, matching shipped condition 85.
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
-		counterTrioInfraredConditionId: {ConditionId: counterTrioInfraredConditionId, Name: "Test Heat Eyes", Flags: []conditions.Flag{conditions.InfraredVision}},
+		counterTrioInfraredConditionId: {
+			ConditionId: counterTrioInfraredConditionId,
+			Name:        "Test Heat Eyes",
+			Flags:       []conditions.Flag{conditions.InfraredVision},
+			Effects:     map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}},
+		},
 	}))
 	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{
 		7511: users.NewTestUser(7511, "aliceia", "Aliceia", 97511),

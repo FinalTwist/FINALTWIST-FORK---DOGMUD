@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -52,6 +53,18 @@ const craftHidingInfraredConditionId = 9101
 // dark". It is the sharper one: the crafter CAN see, the bystander can make
 // out warmth only, and the bystander must still read "a figure" rather than a
 // name. Without this the craft is refused and nothing is narrated at all.
+//
+// GRADED LIGHTING PLAN 2. Under the window model no shift can reach SightFull
+// at light 0 with the SHIPPED band edges: even the shift cap (24) cannot
+// clear LightDimBelow's default of 50. TestCraftImmediateComplete_RealBranch_
+// ShapesOnlyThirdPartyReadsAFigure (the one caller that needs the crafter at
+// SightFull here) declares this condition's nightvision_strength at the cap
+// AND pins a smaller LightBlindBelow/LightDimBelow pair for its own scope
+// (configs.SetConfigForTest), so the crafter's shifted window clears the
+// room's light while the bystander's infra reach still only reaches shapes.
+// That is a real, valid server configuration, not a fabricated one: a lower
+// LightDimBelow is exactly the kind of thing this arc's config knobs exist
+// to let an operator tune.
 const craftHidingNightVisionConditionId = 9102
 
 // seedCraftHidingCondition installs a test condition that grants
@@ -61,15 +74,21 @@ const craftHidingNightVisionConditionId = 9102
 // replaces the whole registry).
 func seedCraftHidingCondition() func() {
 	return conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
+		// design (internal/characters/vision.go), so this fixture declares
+		// an explicit infra_reach, matching shipped condition 85, or the
+		// watcher would stop being shapes-only in the dark at all.
 		craftHidingInfraredConditionId: {
 			ConditionId: craftHidingInfraredConditionId,
 			Name:        "Test Heat Eyes",
 			Flags:       []conditions.Flag{conditions.InfraredVision},
+			Effects:     map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}},
 		},
 		craftHidingNightVisionConditionId: {
 			ConditionId: craftHidingNightVisionConditionId,
 			Name:        "Test Dark Eyes",
 			Flags:       []conditions.Flag{conditions.NightVision},
+			Effects:     map[conditions.EffectKind]conditions.EffectValue{conditions.EffectNightVisionStrength: {Literal: 24}},
 		},
 	})
 }
@@ -215,6 +234,19 @@ func TestCraftImmediateComplete_RealBranch_ShapesOnlyThirdPartyReadsAFigure(t *t
 	restoreCond := seedCraftHidingCondition()
 	defer restoreCond()
 	darkenCraftRoom(t, 1)
+
+	// GRADED LIGHTING PLAN 2: with the SHIPPED band edges (LightBlindBelow
+	// 25, LightDimBelow 50) no shift can reach SightFull at light 0, since
+	// even the shift cap (24) cannot clear 50. This scenario needs the
+	// crafter to see clearly AND the bystander to stay shapes-only in the
+	// SAME dark room, so this test pins a smaller band pair, scoped to this
+	// test only, under which the crafter's capped shift (see
+	// craftHidingNightVisionConditionId) clears the room's light while the
+	// bystander's infra reach (unshifted) still only reaches shapes.
+	cfg := configs.GetConfig()
+	cfg.Balance.LightBlindBelow = 10
+	cfg.Balance.LightDimBelow = 20
+	configs.SetConfigForTest(t, cfg)
 
 	crafter := users.GetByUserId(1)
 	watcher := users.NewTestUser(3, "cara", "Carrow", 1003)

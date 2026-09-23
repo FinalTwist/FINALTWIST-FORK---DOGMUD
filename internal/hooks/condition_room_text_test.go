@@ -67,7 +67,13 @@ func TestConditionStartRoomText_UnsightedObserverInTheDarkGetsNothing(t *testing
 		"an observer who cannot see must not be told what a condition looks like")
 }
 
-func TestConditionStartRoomText_NightVisionSeesItInTheDark(t *testing.T) {
+// GRADED LIGHTING PLAN 2 renamed and flipped this test. NightVision no
+// longer grants sight outright; it shifts the observer's usable band, and a
+// shifted window is still blind below its floor at light 0 no matter how
+// strong the shift (internal/messaging/window.go). So a nightvision-only
+// observer in a pitch dark room now reads nothing, the same as an unsighted
+// one; only actual room light or an infra reach change the answer.
+func TestConditionStartRoomText_NightVisionAloneStillGetsNothingInTheDark(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	restore := seedNarrationConditions()
@@ -77,7 +83,8 @@ func TestConditionStartRoomText_NightVisionSeesItInTheDark(t *testing.T) {
 	drainPlain(2)
 
 	ApplyConditions(events.Condition{UserId: 1, ConditionId: glowConditionId})
-	assert.Equal(t, 1, countContaining(drainPlain(2), "Aliceia glows."))
+	assert.Equal(t, 0, countContaining(drainPlain(2), "glows."),
+		"nightvision alone must not see room text in true darkness")
 }
 
 func TestConditionStartRoomText_MobHolderUsesTheMobTag(t *testing.T) {

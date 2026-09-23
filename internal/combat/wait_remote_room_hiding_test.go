@@ -90,11 +90,16 @@ func TestGetWaitMessages_RemoteRoomLineHidesBareNameFromShapesOnlyObserver(t *te
 		"city": {BiomeId: "city", LitArea: true},
 		"cave": {BiomeId: "cave", DarkArea: true},
 	}))
+	// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
+	// design (internal/characters/vision.go), so this fixture declares an
+	// explicit infra_reach, matching shipped condition 85, or the observer
+	// would no longer be shapes-only in the dark at all.
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		remoteRoomHidingInfraredConditionId: {
 			ConditionId: remoteRoomHidingInfraredConditionId,
 			Name:        "Test Heat Eyes",
 			Flags:       []conditions.Flag{conditions.InfraredVision},
+			Effects:     map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}},
 		},
 	}))
 

@@ -43,15 +43,16 @@ type RoomVisibility interface {
 // unblinded observer in a dim room, or with infrared in the dark; none
 // otherwise. A nil observer sees fully, matching the policies below.
 //
-// PLAN 1 NOTE. The NightVision and InfraredVision branches below are the
-// pre-graded-lighting flag shortcuts, kept deliberately. Plan 2 of the graded
-// lighting arc replaces them with the window model, where an ability shifts
-// where the observer's usable band sits rather than granting sight outright.
-// They are left alone here because the window model is a real behaviour
-// change for those holders (today a NightVision holder sees fully in a pitch
-// dark room, and under the window model they are blind below 1), and changing
-// the scale and their behaviour in one plan would make this plan's
-// behaviour-preservation guarantee impossible to assert.
+// GRADED LIGHTING PLAN 2. An ability does not grant sight outright; it moves
+// where the observer's usable band sits on the light scale, and that band
+// still has a floor. NightVisionStrength shifts the blind and dim edges down
+// by that many points (SightThroughWindow, internal/messaging/window.go), so
+// night sight is bought with bright-light comfort rather than being free: the
+// same shift that lets a holder read a dim room by candlelight does nothing
+// in a pitch dark one, because the shifted window is still blind below its
+// floor. InfraReach is the separate number that reads past that floor, which
+// is why an infrared holder and a nightvision-only holder diverge in a truly
+// dark room even though both looked identical under the old flag shortcuts.
 func ParticipantSight(observer *characters.Character, room RoomVisibility) SightDecision {
 	if observer == nil {
 		return SightFull
@@ -77,20 +78,13 @@ func ParticipantSight(observer *characters.Character, room RoomVisibility) Sight
 	// that cost twice on the dark path, where the first case is false and
 	// the second is evaluated.
 	balance := configs.GetBalanceConfig()
-	light := room.LightLevel()
-	switch {
-	case light >= int(balance.LightDimBelow):
-		return SightFull
-	case light >= int(balance.LightBlindBelow):
-		return SightShapes
-	}
-	if observer.HasFlagFromAnySource(conditions.NightVision) {
-		return SightFull
-	}
-	if observer.HasFlagFromAnySource(conditions.InfraredVision) {
-		return SightShapes
-	}
-	return SightNone
+	return SightThroughWindow(
+		room.LightLevel(),
+		observer.NightVisionStrength(),
+		observer.InfraReach(),
+		int(balance.LightBlindBelow),
+		int(balance.LightDimBelow),
+	)
 }
 
 // awake reports attention. Kept separate from optics on purpose; see

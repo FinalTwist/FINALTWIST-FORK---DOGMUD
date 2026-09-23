@@ -12,12 +12,16 @@ import (
 // combatContext.sourceCanSee from CanSeeSightImpairedOnly, so a mob's decisions
 // and its darkness combat penalty cannot disagree about whether it can see.
 //
-// Two things flow through here for free. Restoring condition 29 works because the
-// predicate ends by reading the NightVision flag, and a light carried by ANY
-// player or mob lifts the darkness for everyone, because Room.LightLevel
-// (via legacyVisibility) adds +1 when someone in the room has conditions.EmitsLight.
-// That second one is what keeps the Ironwind cave bosses attacking: neither has
-// night vision.
+// GRADED LIGHTING PLAN 2. NightVision no longer restores this on its own in a
+// pitch dark room: the window model shifts the usable band rather than
+// granting sight outright, and CanSeeSightImpairedOnly demands SightFull
+// specifically, which a shifted window still cannot produce below its floor
+// (internal/messaging/window.go). So a nightvision mob is now sight-gated the
+// same as one with no vision at all, in a room this dark; only actual room
+// light changes the answer. A light carried by ANY player or mob lifts the
+// darkness for everyone, because Room.LightLevel (via legacyVisibility) adds
+// +1 when someone in the room has conditions.EmitsLight. That is what keeps
+// the Ironwind cave bosses attacking: neither has night vision.
 //
 // A nil mob or room returns true. These run on every behaviour tree tick and a
 // missing instance must not silently blind the world.

@@ -56,11 +56,15 @@ func TestGameBridge_Narrate_RoomLineHidesBareNameFromShapesOnlyObserver(t *testi
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
 		"cave": {BiomeId: "cave", DarkArea: true},
 	}))
+	// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
+	// design (internal/characters/vision.go), so this fixture declares an
+	// explicit infra_reach, matching shipped condition 85.
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		narrateHidingInfraredConditionId: {
 			ConditionId: narrateHidingInfraredConditionId,
 			Name:        "Test Heat Eyes",
 			Flags:       []conditions.Flag{conditions.InfraredVision},
+			Effects:     map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}},
 		},
 	}))
 
