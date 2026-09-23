@@ -54,7 +54,7 @@ Legacy `pro`/`con` single-effect fields are automatically migrated into the
 | `health_regen` | `hooks/UserRoundTick` | Passive HP regen per tick |
 | `skill_progression_multiplier` | `character.CheckSkillProgression()` | Scale skill gain chance |
 | `stat_progression_multiplier` | `character.CheckStatProgression()` | Scale stat gain chance |
-| `flag` | various | Grant a permanent flag (nightvision, lightsource, hidden, see-hidden) |
+| `flag` | various | Grant a permanent flag (nightvision, lightsource, hidden, see-hidden). `Target` names the flag; `Value` is read by `FlagValue` (below) for flags that carry a magnitude, such as the vision window's strength/reach numbers. Presence (`GetMutationFlags`, `HasMutationFlag`) never scaled with rank, but `Value` had been silently discarded until graded lighting plan 2 gave it a reader. |
 | `health_regen_if_lit` | `hooks/UserRoundTick` | HP regen only in lit rooms |
 | `gear_effectiveness_loss` | `character.StatMod()`, `itemvalue.ItemValueDelta()` | Percentage loss (0–1.0) applied to all gear-derived values; summed across owned mutations. **Special carve-out: uses raw level multiplication (ranks 1–4 = 0.25/0.50/0.75/1.00), NOT `LevelMultiplier`**. Reason: percentage-loss effects need linear scaling so rank 4 = exactly 100% loss. Consumers apply `(1.0 - loss)` multiplier. Clamped to [0.0, 1.0]. |
 | `physical_defense_bonus` | `combat.calculateCombat()` | Flat additive bonus to defender's roll margin for physical-channel attacks; summed across mutations. Uses standard `LevelMultiplier` scaling. |
@@ -150,7 +150,34 @@ GearEffectivenessMultiplier(owned map[string]int) float64 // Convenience: (1.0 -
 
 // Physical defense bonus (chunk 2.2a — Incorporeal mutation)
 GetPhysicalDefenseBonus(owned map[string]int) float64 // Sum bonus across owned
+
+// Flag magnitude (graded lighting arc, plan 2: vision window)
+FlagValue(owned map[string]int, flag string) float64 // Strongest RANK-SCALED Value across owned mutations granting flag, or 0
 ```
+
+`FlagValue` is the MAX analogue of the summing helpers above: same
+`for id, level := range owned`, `mult := LevelMultiplier(level)` loop shape,
+but it keeps the strongest `p.Value * mult` rather than summing, so two
+mutations granting the same flag (e.g. two night-sight sources) cannot stack
+into a stronger shift than the better one grants, matching the MAX
+aggregation `conditions.EffectKind.isMax()` uses on the condition side.
+Comparison happens AFTER scaling, so a rank-1 mutation with a larger raw
+`Value` can correctly lose to a rank-4 mutation with a smaller raw `Value`.
+`GetMutationFlags` and `HasMutationFlag` only ever answered presence; the
+rank-scaling in `FlagValue` is new, and the `Value` field it reads had been
+declared on `MutationEffect` and silently ignored by every flag-effect
+consumer until this plan.
+
+Authored convention for a four-rank vision mutation: `value: 6`. At the
+shipped rank multipliers (`MutationLevel2Multiplier` 1.6,
+`MutationLevel3Multiplier` 2.5, `MutationLevel4Multiplier` 4.0, in
+`_datafiles/config.yaml`), rank 4 scales to `6 * 4.0 = 24`, exactly
+`windowShiftCap` in `internal/messaging/window.go`, the strongest window
+the model allows, and nothing beyond it. 🔴 A bare test binary never loads
+`_datafiles/config.yaml` and falls back to the Go default multipliers
+(1.5 / 2.0 / 2.5 in `config.balance.progression.go`), so a rank-4 test
+asserting this ceiling must pin the shipped multipliers explicitly with
+`configs.SetConfigForTest` or it silently checks the wrong number.
 
 ### Registry
 

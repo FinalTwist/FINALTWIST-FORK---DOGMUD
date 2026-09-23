@@ -1830,6 +1830,40 @@ it intentionally to avoid readers being added before the messaging
 framework context is in place. The predicate will land in the messaging
 framework chunk alongside the first real consumer.
 
+### Vision window: NightVisionStrength and InfraReach (vision.go, graded lighting plan 2)
+
+`internal/messaging.ParticipantSight` reads two numbers off the observer
+rather than checking flags directly:
+
+- `NightVisionStrength() int`: how far DOWN the light scale this
+  character's usable band shifts. Reads
+  `conditions.EffectNightVisionStrength` off `Conditions.Effect` (MAX
+  aggregation: two sources never stack into a wider shift than the
+  stronger one grants) and `mutations.FlagValue` against the
+  `conditions.NightVision` flag name, taking whichever is larger. If both
+  are zero but the character still carries a bare `NightVision` flag from
+  any source, it falls back to `configs.GetBalanceConfig().LightDefaultVisionStrength`
+  (default 12): a bare "sees in the dark" flag with no authored number
+  still means something.
+- `InfraReach() int`: how far BELOW the window floor this character
+  still reads shapes by sensing heat. Same shape, against
+  `conditions.EffectInfraReach` and the `conditions.InfraredVision` flag
+  name, but with NO bare-flag default: a bare infrared flag with no
+  stated range has no sensible fallback and reads reach 0.
+
+Both are backed by the unexported shared body `bestVisionNumber`, which
+compares the condition-effect number and the mutation-flag number in
+`float64` and rounds ONCE, at the return, with `math.Round`, matching
+the single-rounding convention `companions.go` and `cast_helpers.go`
+already use rather than `int()`'s silent truncation.
+
+These two numbers are independent by design: a creature can sense heat
+deeply while being no better than anyone else at using faint light
+(`InfraReach` high, `NightVisionStrength` zero), and vice versa. See
+`internal/messaging/context.md` for how `SightThroughWindow` turns them
+into a sight decision, and `internal/mutations/context.md` for
+`FlagValue`'s rank scaling.
+
 ### HasAnyBlindSource helper (sight.go)
 
 `Character.HasAnyBlindSource()` in `internal/characters/sight.go` checks
@@ -1865,15 +1899,18 @@ implementation-detail rationale.
 
 ## Files
 
-48 non-test files (`conditions.go` was deleted by the conditions unification,
-2026-09-12). Every file on disk appears in exactly one row below, and the rows
-name nothing that is not on disk. Grouped by what they own:
+50 non-test files (`conditions.go` was deleted by the conditions unification,
+2026-09-12; `vision.go` was added by the graded lighting arc's plan 2).
+`progression_notify.go` is corrected into this table by the same plan 2 pass;
+it was already on disk but had drifted out of the list. Every file on disk
+appears in exactly one row below, and the rows name nothing that is not on
+disk. Grouped by what they own:
 
 | Group | Files |
 |-------|-------|
 | Core | `character.go`, `validate.go`, `migrations.go`, `overrides.go`, `description.go`, `formattedname.go`, `actor_identity.go` |
-| Stats & progression | `progression.go`, `progression_award_resolved.go` (`AwardResolved`, the U10b-1 firing rule), `skills.go`, `effective_stats.go`, `mobmastery.go`, `kdstats.go` |
-| Resources & timed state | `pools.go`, `reservation.go`, `resources.go`, `cooldowns.go`, `conditions.go` (holds `Character.AddCondition`, `AddConditionScaled` and the `AddConditionMagnitude` writer door), `sight.go` |
+| Stats & progression | `progression.go`, `progression_award_resolved.go` (`AwardResolved`, the U10b-1 firing rule), `progression_notify.go` (`SetProgressionNotifier`, the injected notify-text callback), `skills.go`, `effective_stats.go`, `mobmastery.go`, `kdstats.go` |
+| Resources & timed state | `pools.go`, `reservation.go`, `resources.go`, `cooldowns.go`, `conditions.go` (holds `Character.AddCondition`, `AddConditionScaled` and the `AddConditionMagnitude` writer door), `sight.go`, `vision.go` (`NightVisionStrength`, `InfraReach`, the window model's two observer numbers) |
 | Inventory & gear | `inventory.go`, `inventory_handle.go`, `worn.go`, `hand_slots.go`, `anatomy.go`, `masterwork.go`, `migrate_enchantments.go`, `migrate_detuned_bows.go` |
 | Combat | `combat.go`, `combat_tokens.go`, `position_predicates.go`, `taunt_hold.go`, `submission_policy.go`, `die.go`, `respawn_home.go`, `engagement_storage.go` (was `combat_state_compat.go`; renamed by U12c-2 when the struct it kept compatible was deleted) |
 | Casting | `cast_helpers.go`, `spells.go` |

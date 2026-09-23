@@ -599,18 +599,32 @@ const (
     EffectMitigationFlat EffectKind = "mitigation_flat" // flat physical mitigation points (wards)
     EffectPoolMaxPct     EffectKind = "pool_max_pct"    // fraction taken off a pool maximum; the pool rides on Condition.Source
     EffectAttacksCap     EffectKind = "attacks_cap"     // upper bound on swings per round
+    EffectNightVisionStrength EffectKind = "nightvision_strength" // graded lighting plan 2: how far DOWN the light scale the observer's usable band shifts
+    EffectInfraReach          EffectKind = "infra_reach"          // graded lighting plan 2: how far BELOW the window floor heat-sensing still reads shapes
 )
 ```
 
-`Conditions.Effect(kind EffectKind) float64` is the ONE door combat reads timed
-state through. It folds every held, unexpired record's contribution for
-that kind: a multiplier kind (`damage_mult`, `defense_mult`, `dodge_mult`,
-`regen_mult`) multiplies across records with identity `1.0`; `attacks_cap`
-takes the minimum non-zero value (`0` meaning no cap); everything else
-(`mitigation_flat`, `pool_max_pct`) sums with identity `0`. It never calls
-`HasFlag` with `expire=true`, so reading it has no side effect.
+`Conditions.Effect(kind EffectKind) float64` is the ONE door combat (and,
+since graded lighting plan 2, `internal/characters.Character.NightVisionStrength`
+/ `InfraReach`) reads timed state through. It folds every held, unexpired
+record's contribution for that kind: a multiplier kind (`damage_mult`,
+`defense_mult`, `dodge_mult`, `regen_mult`) multiplies across records with
+identity `1.0`; `attacks_cap` takes the minimum non-zero value (`0` meaning
+no cap); a MAX kind (`nightvision_strength`, `infra_reach`) takes the
+strongest held value rather than summing, so two sources of the same vision
+effect cannot stack into a window wider than the better one grants; everything
+else (`mitigation_flat`, `pool_max_pct`) sums with identity `0`. It never
+calls `HasFlag` with `expire=true`, so reading it has no side effect.
 `Conditions.HasEffect(kind EffectKind) bool` reports whether any held,
 unexpired record declares the kind at all, without computing a value.
+
+Which predicate a kind matches is closed and mutually exclusive:
+`EffectKind.isMultiplier()`, `.isCap()` and `.isMax()` are checked in that
+order inside `Effect`'s switch, so a kind classified under more than one
+would silently lose whichever mode its later predicate would have produced.
+`TestEveryEffectKindIsClassifiedExactlyOnce` (`effects_test.go`) guards this
+by counting matches rather than checking pairs by hand, so it also covers any
+kind added after the test was written.
 
 ## Condition Management Operations
 
