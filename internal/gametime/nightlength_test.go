@@ -17,6 +17,14 @@ func pinTiming(t *testing.T, latitude float64) {
 	c.Balance.WorldLatitude = configs.ConfigFloat(latitude)
 	c.Balance.Validate()
 	configs.SetConfigForTest(t, c)
+
+	// 🚨 MANDATORY, not hygiene. roundDateCache is keyed on the round number
+	// alone and carries no config fingerprint, so without this a test inherits
+	// whatever an earlier test cached for the same round under a DIFFERENT
+	// latitude, and asserts on arithmetic it never performed. Clear on the way
+	// out as well, so this test cannot poison the next one.
+	ClearDateCacheForTest()
+	t.Cleanup(ClearDateCacheForTest)
 }
 
 // roundFor returns the round number for a given day of the year and hour, at
@@ -77,6 +85,17 @@ func TestShippedConfigHasASeasonalNight(t *testing.T) {
 	c.Timing.Validate()
 	c.Balance.Validate() // no latitude authored: this is what ships
 	configs.SetConfigForTest(t, c)
+
+	// 🔴 THIS LINE IS THE TEST. Without it this test is a fraud, and was
+	// one: TestNightLengthVariesWithTheSeason runs first, pins latitude 46.5,
+	// and asks about these exact two rounds, so roundDateCache already holds
+	// the correct seasonal answer. This test would then get a cache hit and
+	// pass on the other test's arithmetic, never once exercising the shipped
+	// default it exists to guard. Proven, not theorised: with the zero-latitude
+	// coercion deliberately broken, this test failed in isolation and PASSED in
+	// the normal package run.
+	ClearDateCacheForTest()
+	t.Cleanup(ClearDateCacheForTest)
 
 	original := util.GetRoundCount()
 	t.Cleanup(func() { util.SetRoundCount(original) })
