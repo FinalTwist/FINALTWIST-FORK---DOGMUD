@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
+	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/dialogue"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -128,6 +129,13 @@ func Ask(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		args = args[1:]
 	}
 
+	// A bonded AI companion converses. The aicompanion module claims the ask
+	// when it drives this mob; for every other mob this returns false and the
+	// normal paths below run unchanged.
+	if companionai.RouteAsk(user.UserId, mob.InstanceId, strings.Join(args, ` `)) {
+		return true, nil
+	}
+
 	// Companions can't be ordered around — they act on their own
 	if mob.Character.IsCharmed(user.UserId) {
 		mob.Command(`emote regards you blankly. It doesn't seem to understand.`)
@@ -136,14 +144,32 @@ func Ask(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 
 	rest = strings.Join(args, ` `)
 
-	// Quest engine: dialogue notification
-	bridge := questengine.NewGameBridge(user, room.RoomId)
-	questengine.GetEngine().Notify("dialogue", questengine.EventDetails{
-		UserId: user.UserId,
-		RoomId: room.RoomId,
-		MobId:  int(mob.MobId),
-		Topic:  rest,
-	}, bridge, bridge)
+	askNpcChain(user, mob, mobId, room, rest, true)
+
+	room.SendTextToExits(`You hear someone talking.`, true)
+
+	return true, nil
+}
+
+// askNpcChain is everything that happens once a question has reached an NPC:
+// the quest engine, the behaviour tree, an LLM dialogue profile if the mob
+// has one, and the authored YAML dialogue as the fallback. Split out of Ask
+// so a bonded AI companion can ask an NPC a question on its owner's behalf
+// and get the same answer a player would (see AskNpcForOwner). The dialogue
+// memory is keyed to the owner, so the NPC treats the pair as one party.
+// allowQuest is false for a question the player did not ask for: the NPC
+// still answers, but the player's quests are not touched by it.
+func askNpcChain(user *users.UserRecord, mob *mobs.Mob, mobId int, room *rooms.Room, rest string, allowQuest bool) {
+	if allowQuest {
+		// Quest engine: dialogue notification
+		bridge := questengine.NewGameBridge(user, room.RoomId)
+		questengine.GetEngine().Notify("dialogue", questengine.EventDetails{
+			UserId: user.UserId,
+			RoomId: room.RoomId,
+			MobId:  int(mob.MobId),
+			Topic:  rest,
+		}, bridge, bridge)
+	}
 
 	// Build PlayerState for quest/item gating in dialogue
 	ps := buildPlayerState(user)
@@ -155,7 +181,7 @@ func Ask(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		Text:      rest,
 		RoomId:    room.RoomId,
 	}) {
-		return true, nil
+		return
 	}
 
 	jsHandled := false
@@ -210,7 +236,37 @@ func Ask(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		deliverDialogue(df, mob, mobId, user.UserId, rest, ps)
 	}
 
-	room.SendTextToExits(`You hear someone talking.`, true)
+}
 
-	return true, nil
+// AskNpcForOwner lets a charmed companion put a question to an NPC as though
+// its owner had asked it. Installed into internal/companionai at init, so
+// modules can reach it without internal/ importing modules/. The owner must
+// be in the room: the reply is spoken aloud there, and the companion hears
+// it like anyone else. Unless authorized, the quest engine is not told,
+// because the model must not be able to move a player through a quest on
+// its own.
+func AskNpcForOwner(ownerUserId int, mobInstanceId int, text string, authorized bool) bool {
+	user := users.GetByUserId(ownerUserId)
+	mob := mobs.GetInstance(mobInstanceId)
+	text = strings.TrimSpace(text)
+	if user == nil || user.Character == nil || mob == nil || text == `` {
+		return false
+	}
+	if mob.Character.IsCharmed() || mob.Character.RoomId != user.Character.RoomId {
+		return false
+	}
+	room := rooms.LoadRoom(mob.Character.RoomId)
+	if room == nil {
+		return false
+	}
+	// A companion chatting to a shopkeeper must not advance, grant or spend
+	// its owner's quests. Only a question the owner asked for in the moment
+	// carries that authority.
+	askNpcChain(user, mob, mob.InstanceId, room, text, authorized)
+	room.SendTextToExits(`You hear someone talking.`, true)
+	return true
+}
+
+func init() {
+	companionai.SetNpcAsker(AskNpcForOwner)
 }

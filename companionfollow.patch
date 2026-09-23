@@ -1,0 +1,212 @@
+diff --git a/docs/aicompanion/testing-and-prompts.md b/docs/aicompanion/testing-and-prompts.md
+index 63866bdba73ceea80a991adfa5cf98995fe073cc..70279573d0b134faa6eb81000cd7e615302741fa 100644
+--- a/docs/aicompanion/testing-and-prompts.md
++++ b/docs/aicompanion/testing-and-prompts.md
+@@ -240,6 +240,16 @@ Rarely, out of a quiet moment, she brings one up unprompted: the oldest and
+ least-told first, never the same one twice in three days. "You gave me the
+ last of the bread under Thornwall, and said nothing about it."
+ 
++## Following
++
++She is not carried along with her owner. When they walk out through a door,
++she waits a moment (`FollowDelayMin` to `FollowDelayMax`, about a quarter of
++a second) and then takes the same way herself, so the rooms either side see
++an ordinary departure and arrival rather than her materialising beside them.
++Anything that is not walking (a portal, a ferry, a locked or secret door,
++being pulled out of a fight) is left to the engine, which moves her the old
++way. `FollowOnFoot: false` restores the instant follow.
++
+ ## When the owner is sneaking
+ 
+ While its owner is hidden, the companion tries to get out of sight itself:
+diff --git a/modules/aicompanion/aicompanion.go b/modules/aicompanion/aicompanion.go
+index f53929c170410daaf2e68655148e34a4a444899c..4a6611eb1216c2d33afd6e9a7cd49d50093eb118 100644
+--- a/modules/aicompanion/aicompanion.go
++++ b/modules/aicompanion/aicompanion.go
+@@ -212,7 +212,7 @@ func (m *AICompanionModule) onLoad() {
+ 	events.RegisterListener(events.PlayerDeath{}, m.onPlayerDeath)
+ 	companionai.SetAskHandler(m.handleAsk)
+ 	companionai.SetIdleHandler(m.handleIdle)
+-	companionai.SetHolder(m.holdForSneak)
++	companionai.SetHolder(m.holdFollow)
+ 
+ 	if m.cfg.RejectedBaseURL != `` {
+ 		mudlog.Error(`aicompanion`, `action`, `config`, `error`,
+diff --git a/modules/aicompanion/aicompanion_test.go b/modules/aicompanion/aicompanion_test.go
+index b810aca7029a904625c624a8f97cae46d798ab70..561a90a46cfb51a99a034c0bc1c5728e384e8da4 100644
+--- a/modules/aicompanion/aicompanion_test.go
++++ b/modules/aicompanion/aicompanion_test.go
+@@ -1795,3 +1795,30 @@ func TestRomanceClockAndLapsedProposal(t *testing.T) {
+ 		t.Fatal("once courting, her profile's guidance applies")
+ 	}
+ }
++
++func TestFollowDelayBounds(t *testing.T) {
++	c := buildConfig(nil)
++	if !c.FollowOnFoot || c.FollowDelayMin != 0.15 || c.FollowDelayMax != 0.45 {
++		t.Fatalf("following on foot defaults: %v %v-%v", c.FollowOnFoot, c.FollowDelayMin, c.FollowDelayMax)
++	}
++	wild := buildConfig(func(k string) any {
++		switch k {
++		case `FollowDelayMin`:
++			return -1.0
++		case `FollowDelayMax`:
++			return 30.0
++		}
++		return nil
++	})
++	if wild.FollowDelayMin != 0 || wild.FollowDelayMax != 3 {
++		t.Fatalf("a companion should never be more than a few seconds behind: %v-%v", wild.FollowDelayMin, wild.FollowDelayMax)
++	}
++	if reversed := buildConfig(func(k string) any {
++		if k == `FollowDelayMax` {
++			return 0.05
++		}
++		return nil
++	}); reversed.FollowDelayMax < reversed.FollowDelayMin {
++		t.Fatal("a max below the min must not invert the pause")
++	}
++}
+diff --git a/modules/aicompanion/autonomy.go b/modules/aicompanion/autonomy.go
+index 9dec28fb2b94577162d614a5dc9c1b925bfecd34..ddaad8d750bc4e09ca08095097cf8a8f972e0431 100644
+--- a/modules/aicompanion/autonomy.go
++++ b/modules/aicompanion/autonomy.go
+@@ -521,12 +521,13 @@ func (m *AICompanionModule) noticeGold(c *controller, mob *mobs.Mob, u *users.Us
+ 	c.push(stimulus{Kind: `gift`, Speaker: giver, Text: `some gold`, FromOwner: true})
+ }
+ 
+-// holdForSneak reports that a companion should stay where it is and keep
+-// still: its owner is moving in secret, and a second pair of footsteps, a
+-// remark or a rummage through a chest would give them away. The engine asks
+-// this before it drags companions along (companionai.HoldPosition).
+-func (m *AICompanionModule) holdForSneak(userId int) bool {
+-	if !m.cfg.Enabled || !m.cfg.HoldWhenSneaking {
++// holdFollow reports that the engine should not carry a companion along
++// with its owner. There are two reasons: the owner is moving in secret and
++// a second pair of footsteps would give them away, or the companion is
++// walking after them under her own feet a moment later (followOnFoot). The
++// engine asks this before it moves companions (companionai.HoldPosition).
++func (m *AICompanionModule) holdFollow(userId int) bool {
++	if !m.cfg.Enabled {
+ 		return false
+ 	}
+ 	c, ok := m.ctrls[userId]
+@@ -534,9 +535,15 @@ func (m *AICompanionModule) holdForSneak(userId int) bool {
+ 		return false
+ 	}
+ 	u := users.GetByUserId(userId)
+-	if u == nil || u.Character == nil || !u.Character.IsHidden() {
++	if u == nil || u.Character == nil {
+ 		return false
+ 	}
++	if !u.Character.IsHidden() || !m.cfg.HoldWhenSneaking {
++		// Not sneaking (or the server does not care): she may still be held
++		// back a moment so she walks in after her owner rather than
++		// appearing beside them.
++		return m.followOnFoot(c, u)
++	}
+ 	// A companion that got out of sight itself can come along: two shadows
+ 	// are no worse than one. One that could not keeps still instead.
+ 	if mob := mobs.GetInstance(c.instanceId); mob != nil && mob.Character.IsHidden() {
+@@ -587,3 +594,36 @@ func (m *AICompanionModule) noteRevive(c *controller, mob *mobs.Mob) {
+ 	}
+ 	c.ownerWasDown = u.Character.Health <= 0
+ }
++
++// followOnFoot is the companion walking after her owner rather than being
++// carried along with them. When the room they have just left has a way out
++// leading where they went, she takes it herself a quarter of a second
++// later, which puts an ordinary "leaves" and "enters" in the room and lets
++// everyone see her come in. Anything the engine would have to do for her
++// (a portal, a ferry, a locked door, being dragged out of a fight) is left
++// to the engine: this reports false and the owner's companions are moved
++// the old way.
++func (m *AICompanionModule) followOnFoot(c *controller, u *users.UserRecord) bool {
++	if !m.cfg.FollowOnFoot {
++		return false
++	}
++	mob := mobs.GetInstance(c.instanceId)
++	if mob == nil || mob.Character.IsInCombat() || mob.Character.RoomId == u.Character.RoomId {
++		return false
++	}
++	here := rooms.LoadRoom(mob.Character.RoomId)
++	if here == nil {
++		return false
++	}
++	exitName := here.FindExitTo(u.Character.RoomId)
++	if exitName == `` || !safeExitName(exitName) {
++		return false // they did not walk: whatever took them, it takes her too
++	}
++	if info, ok := here.GetExitInfo(exitName); ok && (info.Lock.IsLocked() || info.Secret) {
++		return false
++	}
++	lo, hi := m.cfg.FollowDelayMin, m.cfg.FollowDelayMax
++	delay := lo + (hi-lo)*float64(util.Rand(101))/100.0
++	mob.Command(`go `+util.EscapeAnsiTags(exitName), delay)
++	return true
++}
+diff --git a/modules/aicompanion/config.go b/modules/aicompanion/config.go
+index 2570e6bee163242135646edfb7998d9a417975a1..12fe8c6a4aceec71f7fd0b9f67684803030e6ff1 100644
+--- a/modules/aicompanion/config.go
++++ b/modules/aicompanion/config.go
+@@ -80,6 +80,9 @@ type Config struct {
+ 	RespondWhenAlone             bool
+ 	RecordBystanderSpeech        bool
+ 	HoldWhenSneaking             bool
++	FollowOnFoot                 bool
++	FollowDelayMin               float64
++	FollowDelayMax               float64
+ 	RoadTalkLines                int
+ 	ConversationSummaries        bool
+ 	ConversationGapSeconds       int
+@@ -238,6 +241,9 @@ func buildConfig(get getter) Config {
+ 		RespondWhenAlone:             true,
+ 		RecordBystanderSpeech:        true,
+ 		HoldWhenSneaking:             true,
++		FollowOnFoot:                 true,
++		FollowDelayMin:               asFloat(get(`FollowDelayMin`), 0.15),
++		FollowDelayMax:               asFloat(get(`FollowDelayMax`), 0.45),
+ 		RoadTalkLines:                asInt(get(`RoadTalkLines`), 3),
+ 		ConversationSummaries:        true,
+ 		ConversationGapSeconds:       asInt(get(`ConversationGapSeconds`), 240),
+@@ -268,6 +274,9 @@ func buildConfig(get getter) Config {
+ 	if v := get(`HoldWhenSneaking`); v != nil {
+ 		c.HoldWhenSneaking = asBool(v)
+ 	}
++	if v := get(`FollowOnFoot`); v != nil {
++		c.FollowOnFoot = asBool(v)
++	}
+ 	if v := get(`RecoverArrows`); v != nil {
+ 		c.RecoverArrows = asBool(v)
+ 	}
+@@ -391,6 +400,15 @@ func buildConfig(get getter) Config {
+ 	if c.CombatReactionRounds < 1 {
+ 		c.CombatReactionRounds = 1
+ 	}
++	if c.FollowDelayMin < 0 {
++		c.FollowDelayMin = 0
++	}
++	if c.FollowDelayMax < c.FollowDelayMin {
++		c.FollowDelayMax = c.FollowDelayMin
++	}
++	if c.FollowDelayMax > 3 {
++		c.FollowDelayMax = 3
++	}
+ 	if c.RoadTalkLines < 0 {
+ 		c.RoadTalkLines = 0
+ 	}
+diff --git a/modules/aicompanion/files/data-overlays/config.yaml b/modules/aicompanion/files/data-overlays/config.yaml
+index 57db5850f27a249a5c6230352951f4d92e13b867..7c32f1de91da4801818a769a5ca0829904449ef6 100644
+--- a/modules/aicompanion/files/data-overlays/config.yaml
++++ b/modules/aicompanion/files/data-overlays/config.yaml
+@@ -199,3 +199,10 @@ RecoverArrowsMax: 0.8
+ # How many of the world's recent notable happenings reach her when she is
+ # somewhere with people to have heard them from. 0 = she hears no rumours.
+ RoadTalkLines: 3
++# She walks after her owner rather than arriving with them: a moment's
++# pause, then she takes the same way out herself, so the room sees her leave
++# and enter like anyone else. Only when they actually walked; a portal, a
++# ferry or being pulled out of a fight still moves her the engine's way.
++FollowOnFoot: true
++FollowDelayMin: 0.15
++FollowDelayMax: 0.45

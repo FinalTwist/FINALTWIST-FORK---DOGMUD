@@ -28,6 +28,7 @@ func Emote(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		aliasMsg := actions.FormatEmoteText(user.Character.Name, result.AliasText, "username")
 		user.SendText(messaging.CategoryEmote, fmt.Sprintf(`You Emote: %s`, aliasMsg))
 		room.SendTextVisual(messaging.CategoryEmote, aliasMsg, user.UserId)
+		events.AddToQueue(events.Emote{UserId: user.UserId, RoomId: room.RoomId, Text: result.AliasText})
 		return true, nil
 	}
 
@@ -52,6 +53,7 @@ func Emote(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		actions.FormatEmoteText(user.Character.Name, rest, "username"),
 		user.UserId,
 	)
+	events.AddToQueue(events.Emote{UserId: user.UserId, RoomId: room.RoomId, Text: rest})
 
 	return true, nil
 }

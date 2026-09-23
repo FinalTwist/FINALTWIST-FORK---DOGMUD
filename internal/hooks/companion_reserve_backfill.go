@@ -46,6 +46,11 @@ func refreshCompanionReserves(ch *characters.Character) bool {
 	changed := false
 	for i := range ch.Companions {
 		want := ch.CalcCompanionReserve(companionBaseReserveFor(ch.Companions[i].MobId))
+		// A bonded companion is a character who chose to travel with its
+		// owner, not a working the owner sustains, so it holds no reserve.
+		if ch.Companions[i].SourceType == characters.CompanionBonded {
+			want = 0
+		}
 		if ch.Companions[i].ConvictionReserve != want {
 			ch.Companions[i].ConvictionReserve = want
 			changed = true
