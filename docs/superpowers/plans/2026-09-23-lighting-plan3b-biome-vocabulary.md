@@ -1038,3 +1038,15 @@ Not defects. Put them in the PR description so a reviewer does not file them.
 - **`LightMod` still exists** as a mutator field with three negative-value
   weather consumers. **Plan 4.**
 - **Dazzle is still inert.** **Plan 5.**
+- **The new biomes' `movementcost` matches their sibling exactly.**
+  `dense_forest` costs the same to cross as `forest`, and `river` the same as
+  `water`. Task 3 chose this deliberately over the plan's draft values: nothing
+  justified the deltas, existing biomes always comment a non-default cost, and
+  `movementcost` is stamina, so a lighting plan must not retune it silently.
+  **Whether dense woods and moving water should cost more to cross is a real
+  balance question, and it is open.**
+- 📌 **`modules/weather/sim/climate.go` already held a generic `"plains"`
+  archetype key** before this arc, which now shares a name with a real biome. It
+  resolves correctly, because the per-biome YAML overlays it at load time and a
+  second Go key would be a duplicate-key compile error, but the coincidence is
+  worth a reviewer's eye.
