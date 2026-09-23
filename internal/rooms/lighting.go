@@ -1,6 +1,7 @@
 package rooms
 
 import (
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 )
 
@@ -51,6 +52,25 @@ func (r *Room) LightLevel() int {
 	default:
 		return LightFull
 	}
+}
+
+// IsLit reports whether the room's CURRENT light (LightLevel, above) is
+// enough for a normal observer to see anything at all: at or above
+// LightBlindBelow.
+//
+// This is the room-level predicate plan 1 promised and never built. It is
+// defined purely in terms of LightLevel(), so it does not change what any
+// room reports; it only gives production callers a name for "is this room
+// lit" that reads room light instead of reaching past it into a biome's
+// DarkArea/LitArea flags, which describe the biome's natural tendency, not
+// what a mutator, time of day or someone's torch left the room at.
+//
+// Reads configs.GetLightingConfig(), not configs.GetBalanceConfig(): the
+// latter copies a 424-field struct under two read locks (about 99 ns)
+// against about 10 ns for the narrow accessor, and LightLevel and IsLit are
+// both called from per-round loops.
+func (r *Room) IsLit() bool {
+	return r.LightLevel() >= configs.GetLightingConfig().BlindBelow
 }
 
 // legacyVisibility is the body of the room's old three-value visibility

@@ -183,8 +183,7 @@ func AutoHeal(e events.Event) events.ListenerReturn {
 
 				// Conditional multiplier (e.g. Photosynthetic Skin in lit rooms)
 				if userRoom := rooms.LoadRoom(user.Character.RoomId); userRoom != nil {
-					biome := userRoom.GetBiome()
-					if condMult := mutations.GetConditionalHealthRegenMultiplier(user.Character.Mutations, biome.IsLit()); condMult != 0 {
+					if condMult := mutations.GetConditionalHealthRegenMultiplier(user.Character.Mutations, userRoom.IsLit()); condMult != 0 {
 						healthRegen *= (1.0 + condMult)
 					}
 				}

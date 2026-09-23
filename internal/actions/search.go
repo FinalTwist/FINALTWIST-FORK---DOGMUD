@@ -203,7 +203,7 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 	if actor.IsPlayer() && len(stashedNames) > 0 {
 		details := map[string]any{
 			"GroundStuff": stashedNames,
-			"IsDark":      room.GetBiome().IsDark(),
+			"IsDark":      !room.IsLit(),
 			"IsNight":     gametime.IsNight(),
 		}
 		text, _ := templates.Process("descriptions/ontheground", details, actor.GetUserId())

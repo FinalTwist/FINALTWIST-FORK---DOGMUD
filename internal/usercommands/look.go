@@ -263,11 +263,8 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		if light < int(balance.LightExitsAbove) {
 
 			if !user.Character.HasFlagFromAnySource(conditions.NightVision) {
-				biome := room.GetBiome()
-				if !biome.IsLit() {
-					user.SendText(messaging.CategorySystem, `It's too dark to see anything in that direction.`)
-					return true, nil
-				}
+				user.SendText(messaging.CategorySystem, `It's too dark to see anything in that direction.`)
+				return true, nil
 			}
 
 		}
@@ -711,7 +708,7 @@ func lookRoom(user *users.UserRecord, roomId int, secretLook bool) {
 
 	groundDetails := map[string]any{
 		`GroundStuff`: groundStuff,
-		`IsDark`:      room.GetBiome().IsDark(),
+		`IsDark`:      !room.IsLit(),
 		`IsNight`:     gametime.IsNight(),
 	}
 	textOut, _ = templates.Process("descriptions/ontheground", groundDetails, user.UserId)

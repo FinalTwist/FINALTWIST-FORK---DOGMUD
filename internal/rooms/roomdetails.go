@@ -47,8 +47,6 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 	// Room.MapSymbolAndLegend (shared with the zone mapper's priority).
 	roomSymbol, roomLegend := r.MapSymbolAndLegend()
 
-	b := r.GetBiome()
-
 	showPvp := false
 	// Don't need to show the PVP flag if Pvp is globally enabled or globally disabled
 	if c.PVP == configs.PVPLimited {
@@ -68,7 +66,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 		Character:      user.Character, // The character of the user viewing the room
 		RoomSymbol:     roomSymbol,
 		RoomLegend:     roomLegend,
-		IsDark:         b.IsDark(),
+		IsDark:         !r.IsLit(),
 		IsNight:        gametime.IsNight(),
 		TrackingString: ``,
 		ShowPvp:        showPvp,
