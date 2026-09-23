@@ -299,3 +299,39 @@ func TestEveryEffectKindIsClassifiedExactlyOnce(t *testing.T) {
 		}
 	}
 }
+
+// TestEffectMaxKindTakesStrongestNotSum pins the aggregation mode the vision
+// window needs. Two nightvision sources must not stack into a wider window
+// than the better one grants, which is what the default summing behaviour
+// would do.
+func TestEffectMaxKindTakesStrongestNotSum(t *testing.T) {
+	if !EffectNightVisionStrength.isMax() {
+		t.Fatalf("EffectNightVisionStrength must aggregate as MAX, or two sources would stack")
+	}
+	if !EffectInfraReach.isMax() {
+		t.Fatalf("EffectInfraReach must aggregate as MAX")
+	}
+	// A summing kind must not have become a max kind by accident.
+	if EffectMitigationFlat.isMax() {
+		t.Fatalf("EffectMitigationFlat must keep summing")
+	}
+}
+
+// TestEffectMaxKindArithmeticTakesTheLarger builds two held records declaring
+// the same max kind at different values and proves Effect returns the
+// larger, not the sum. TestEffectMaxKindTakesStrongestNotSum above only pins
+// the mode flag; this pins the arithmetic that flag is supposed to select.
+func TestEffectMaxKindArithmeticTakesTheLarger(t *testing.T) {
+	withSpecs(t,
+		&ConditionSpec{ConditionId: 923, Name: "Weak Nightsight", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectNightVisionStrength: {Literal: 10}}},
+		&ConditionSpec{ConditionId: 924, Name: "Strong Nightsight", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectNightVisionStrength: {UsesMagnitude: true}}},
+	)
+	bs := Conditions{}
+	bs.Validate(true)
+	bs.AddConditionMagnitude(923, 5, 0)
+	bs.AddConditionMagnitude(924, 5, 18)
+
+	if got := bs.Effect(EffectNightVisionStrength); got != 18 {
+		t.Fatalf("max kind must take the larger held value 18, not the sum 28: got %v", got)
+	}
+}

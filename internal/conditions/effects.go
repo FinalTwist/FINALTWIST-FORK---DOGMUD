@@ -19,12 +19,21 @@ const (
 	EffectMitigationFlat EffectKind = "mitigation_flat" // flat physical mitigation points (wards)
 	EffectPoolMaxPct     EffectKind = "pool_max_pct"    // fraction taken off a pool maximum; the pool rides on Condition.Source
 	EffectAttacksCap     EffectKind = "attacks_cap"     // upper bound on swings per round
+	// EffectNightVisionStrength is how far DOWN the scale an observer's usable
+	// light band shifts. Aggregated as MAX, not summed: two night-sight
+	// sources do not stack into a wider window than the better one grants.
+	EffectNightVisionStrength EffectKind = `nightvision_strength`
+	// EffectInfraReach is how far BELOW the window floor heat-sensing still
+	// reads shapes. Independent of strength: a creature can sense heat deeply
+	// while being no better than anyone else at using faint light.
+	EffectInfraReach EffectKind = `infra_reach`
 )
 
 // AllEffectKinds is the closed set, for validation and docs.
 var AllEffectKinds = []EffectKind{
 	EffectDamageMult, EffectDefenseMult, EffectDodgeMult, EffectRegenMult,
 	EffectMitigationFlat, EffectPoolMaxPct, EffectAttacksCap,
+	EffectNightVisionStrength, EffectInfraReach,
 }
 
 func (k EffectKind) isMultiplier() bool {
@@ -32,6 +41,13 @@ func (k EffectKind) isMultiplier() bool {
 }
 
 func (k EffectKind) isCap() bool { return k == EffectAttacksCap }
+
+// isMax reports whether this kind aggregates by taking the strongest held
+// value. Used by the vision window, where summing would let two abilities
+// stack into a window wider than either one grants.
+func (k EffectKind) isMax() bool {
+	return k == EffectNightVisionStrength || k == EffectInfraReach
+}
 
 // EffectValue is either a literal number or the word "magnitude", meaning the
 // instance's own Magnitude, which the applier set.
@@ -103,12 +119,15 @@ func (b *ConditionSpec) validateEffects() error {
 // Effect combines every held, unexpired record's contribution for one kind:
 // multipliers multiply (identity 1, a zero magnitude contributes nothing),
 // flats and pool fractions sum (identity 0), attacks_cap takes the minimum
-// (0 meaning no cap). This is the ONE door combat reads timed state through.
+// (0 meaning no cap), and a max kind takes the strongest held value (identity
+// 0). This is the ONE door timed state's mechanical effects are read through;
+// combat was its first reader, and optics (the vision window) is now another.
 // It never calls HasFlag with expire=true, which mutates.
 func (bs *Conditions) Effect(kind EffectKind) float64 {
 	product := 1.0
 	sum := 0.0
 	capValue := 0.0
+	maxValue := 0.0
 	for _, b := range bs.List {
 		if b.Expired() {
 			continue
@@ -134,6 +153,10 @@ func (bs *Conditions) Effect(kind EffectKind) float64 {
 			if val > 0 && (capValue == 0 || val < capValue) {
 				capValue = val
 			}
+		case kind.isMax():
+			if val > maxValue {
+				maxValue = val
+			}
 		default:
 			sum += val
 		}
@@ -143,6 +166,8 @@ func (bs *Conditions) Effect(kind EffectKind) float64 {
 		return product
 	case kind.isCap():
 		return capValue
+	case kind.isMax():
+		return maxValue
 	default:
 		return sum
 	}
