@@ -897,6 +897,81 @@ func abs(x float64) float64 {
 	return x
 }
 
+// TestFlagValueReadsTheValueHasMutationFlagIgnores pins that a mutation
+// granting a vision flag can also declare how strong it is. HasMutationFlag
+// answers only yes or no; the window model needs a number, and MutationEffect
+// has carried an unused Value field all along.
+func TestFlagValueReadsTheValueHasMutationFlagIgnores(t *testing.T) {
+	prev := allMutations
+	defer func() { allMutations = prev }()
+	allMutations = map[string]*MutationSpec{
+		"testmut-nightsight": {
+			MutationId: "testmut-nightsight",
+			Name:       "Test Nightsight",
+			Rarity:     1,
+			Pros: []MutationEffect{
+				{Type: "flag", Target: "nightvision", Value: 18},
+			},
+		},
+	}
+
+	owned := map[string]int{"testmut-nightsight": 1}
+
+	got := FlagValue(owned, "nightvision")
+	if got != 18 {
+		t.Errorf("FlagValue = %v, want 18 (the Value on the flag effect)", got)
+	}
+
+	// A flag the mutation does not grant reads zero, not a default.
+	if v := FlagValue(owned, "infraredvision"); v != 0 {
+		t.Errorf("FlagValue for an ungranted flag = %v, want 0", v)
+	}
+}
+
+// TestFlagValueArithmeticTakesTheLargerNotTheSum owns TWO mutations that both
+// grant the same flag at different values and proves FlagValue returns the
+// larger, not the sum. This is the mutation-side twin of the condition side's
+// TestEffectMaxKindArithmeticTakesTheLarger (internal/conditions/effects_test.go):
+// the whole reason FlagValue takes the strongest rather than summing is so two
+// mutations granting night sight cannot stack into a wider window than either
+// grants on its own.
+//
+// It also folds in the Pros-versus-Cons question for free: one mutation
+// grants the flag via Pros, the other via Cons, so a max that only checked
+// one list would silently under-count instead of over-count, which is a
+// distinct and equally real bug this same assertion catches.
+func TestFlagValueArithmeticTakesTheLargerNotTheSum(t *testing.T) {
+	prev := allMutations
+	defer func() { allMutations = prev }()
+	allMutations = map[string]*MutationSpec{
+		"testmut-weak-nightsight": {
+			MutationId: "testmut-weak-nightsight",
+			Name:       "Test Weak Nightsight",
+			Rarity:     1,
+			Pros: []MutationEffect{
+				{Type: "flag", Target: "nightvision", Value: 10},
+			},
+		},
+		"testmut-strong-nightsight": {
+			MutationId: "testmut-strong-nightsight",
+			Name:       "Test Strong Nightsight",
+			Rarity:     1,
+			Cons: []MutationEffect{
+				{Type: "flag", Target: "nightvision", Value: 18},
+			},
+		},
+	}
+
+	owned := map[string]int{
+		"testmut-weak-nightsight":   1,
+		"testmut-strong-nightsight": 1,
+	}
+
+	if got := FlagValue(owned, "nightvision"); got != 18 {
+		t.Fatalf("FlagValue must take the larger held value 18, not the sum 28: got %v", got)
+	}
+}
+
 func countOccurrences(pool []string, id string) int {
 	n := 0
 	for _, v := range pool {

@@ -545,6 +545,41 @@ func HasMutationFlag(owned map[string]int, flag string) bool {
 	return false
 }
 
+// FlagValue returns the strongest Value declared on any owned mutation's flag
+// effect matching flag, or 0 if no owned mutation grants it.
+//
+// HasMutationFlag answers whether the flag is present. This answers how
+// strongly, which the vision window needs: a mutation that grants night sight
+// declares how far it shifts the observer's band on the same effect entry that
+// grants the flag. MutationEffect has carried Value since it was written and
+// flag effects have always ignored it.
+//
+// Strongest rather than summed, matching the MAX aggregation the condition side
+// uses, so two mutations granting the same flag do not stack. best starts at
+// 0 and only rises on a strictly greater Value, so a negative authored Value
+// can never pull the result below 0; it can only fail to raise it above "not
+// strengthened".
+func FlagValue(owned map[string]int, flag string) float64 {
+	best := 0.0
+	for id := range owned {
+		spec := GetMutation(id)
+		if spec == nil {
+			continue
+		}
+		for _, p := range spec.Pros {
+			if p.Type == "flag" && p.Target == flag && p.Value > best {
+				best = p.Value
+			}
+		}
+		for _, c := range spec.Cons {
+			if c.Type == "flag" && c.Target == flag && c.Value > best {
+				best = c.Value
+			}
+		}
+	}
+	return best
+}
+
 // GetCompanionReserveRank returns the highest owned rank among mutations that
 // carry a "companion_reserve_reduction" effect (0 if none). The reduction
 // magnitude is computed by the caller from config knobs (linear per rank) —
