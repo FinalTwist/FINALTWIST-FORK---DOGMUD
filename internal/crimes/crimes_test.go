@@ -234,7 +234,7 @@ func TestWitnessesInRoom_FiltersByFactionGroup(t *testing.T) {
 	//   100 — a citizen (faction member, witness)
 	//   200 — humanoid only (not a witness)
 	//   300 — citizen but the dead victim (excluded)
-	room := &rooms.Room{RoomId: 467}
+	room := &rooms.Room{RoomId: 467, Lamp: rooms.LampPtr(90)}
 	citizen := &mobs.Mob{MobId: 100, InstanceId: 100, Groups: []string{"thornwall_citizens"}}
 	otherMob := &mobs.Mob{MobId: 999, InstanceId: 200, Groups: []string{"humanoid"}}
 	victim := &mobs.Mob{MobId: 102, InstanceId: 300, Groups: []string{"thornwall_citizens"}}
@@ -260,7 +260,7 @@ func TestWitnessesInRoom_VictimIncludedWhenNotExcluded(t *testing.T) {
 	setupTestCrimes(t)
 	setupFactionsForCrimesTest(t)
 
-	room := &rooms.Room{RoomId: 467}
+	room := &rooms.Room{RoomId: 467, Lamp: rooms.LampPtr(90)}
 	victim := &mobs.Mob{MobId: 100, InstanceId: 300, Groups: []string{"thornwall_citizens"}}
 	mobs.SetInstanceForTest(300, victim)
 	defer mobs.SetInstanceForTest(300, nil)

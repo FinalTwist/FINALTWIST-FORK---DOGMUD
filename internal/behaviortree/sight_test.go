@@ -22,7 +22,15 @@ func sightScene(t *testing.T, biome string) (*mobs.Mob, *rooms.Room) {
 	t.Helper()
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
 		"cave": {BiomeId: "cave", SkyLight: rooms.SkyLightPtr(0.0)},
-		"city": {BiomeId: "city"},
+		// Lamp pins "city" fully lit regardless of the ambient test round.
+		// Since graded lighting plan 3a Task 8, LightLevel() reads the real
+		// celestial term (sun + moons at whatever round util.GetRoundCount()
+		// holds), which a bare, unpinned test round reads as night with a
+		// mixed moon phase (about 28 on the scale, shapes tier) rather than
+		// unconditionally lit. A lamp is a room's own light source and always
+		// present regardless of time of day, which is exactly the
+		// determinism this fixture needs.
+		"city": {BiomeId: "city", Lamp: rooms.LampPtr(90)},
 	}))
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		sightNightVisionConditionId:  {ConditionId: sightNightVisionConditionId, Name: "Night Vision", Flags: []conditions.Flag{conditions.NightVision}},

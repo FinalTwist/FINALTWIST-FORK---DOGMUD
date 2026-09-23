@@ -74,6 +74,13 @@ func seedHookRoom(t *testing.T, roomId int) (*rooms.Room, func()) {
 			Name:         "City",
 			Symbol:       "#",
 			MovementCost: 1.0,
+			// Lamp pins this fixture fully lit regardless of the ambient
+			// test round. Since graded lighting plan 3a Task 8,
+			// Room.LightLevel() reads the real celestial term at whatever
+			// round util.GetRoundCount() holds, which a bare unpinned round
+			// reads as shapes tier, not full. None of this helper's callers
+			// mutate the room's biome to simulate darkness, so this is safe.
+			Lamp: rooms.LampPtr(90),
 		},
 	})
 	return room, func() {

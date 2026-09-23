@@ -29,7 +29,13 @@ func charEnemiesFixture(t *testing.T, blind bool) []GMCPCharModule_Enemy {
 		"default": {BiomeId: "default"},
 	}))
 
-	room := &rooms.Room{RoomId: 9700, Zone: "TestZone", Biome: "default"}
+	// Lamp pins the room fully lit regardless of the ambient test round.
+	// Since graded lighting plan 3a Task 8, Room.LightLevel() reads the real
+	// celestial term at whatever round util.GetRoundCount() holds, which a
+	// bare unpinned round reads as shapes tier, not full -- and this fixture
+	// is reused by the blind-viewer lane below, whose expectations do not
+	// depend on room light at all (a blinded observer sees nothing regardless).
+	room := &rooms.Room{RoomId: 9700, Zone: "TestZone", Biome: "default", Lamp: rooms.LampPtr(90)}
 	t.Cleanup(rooms.SeedRoomsForTest(
 		map[int]*rooms.Room{9700: room},
 		map[string]*rooms.ZoneConfig{

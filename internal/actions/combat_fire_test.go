@@ -132,11 +132,19 @@ func seedFireMobInRoom(t *testing.T, defenderRoomId int, defenderDex int) (int, 
 	}
 	cleanupMobs := mobs.SeedMobsForTest(mobSpecs, mobInstances)
 
+	// Lamp pins both rooms fully lit regardless of the ambient test round.
+	// Since graded lighting plan 3a Task 8, LightLevel() reads the real
+	// celestial term at whatever round util.GetRoundCount() holds, which a
+	// bare unpinned round reads as shapes tier, not full.
+	// TestFire_DarkRoomIsRejectedAsLightingNotAsMissingTarget explicitly
+	// clears room 1's Lamp before darkening it, since a room-level Lamp
+	// override takes priority over the biome darken() would otherwise set.
 	room1 := &rooms.Room{
 		RoomId: 1, Zone: "TestZone", Title: "Room One", Biome: "city",
 		Exits: map[string]exit.RoomExit{"north": {RoomId: 2}},
+		Lamp:  rooms.LampPtr(90),
 	}
-	room2 := &rooms.Room{RoomId: 2, Zone: "TestZone", Title: "Room Two", Biome: "city"}
+	room2 := &rooms.Room{RoomId: 2, Zone: "TestZone", Title: "Room Two", Biome: "city", Lamp: rooms.LampPtr(90)}
 	cleanupRooms := rooms.SeedRoomsForTest(
 		map[int]*rooms.Room{1: room1, 2: room2},
 		map[string]*rooms.ZoneConfig{
@@ -792,7 +800,9 @@ func TestFire_DarkRoomIsRejectedAsLightingNotAsMissingTarget(t *testing.T) {
 		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 	})
 	defer biomeCleanup()
-	rooms.LoadRoom(1).Biome = "cave"
+	room1 := rooms.LoadRoom(1)
+	room1.Lamp = nil // clear the fixture's default lit pin so the biome switch below actually darkens
+	room1.Biome = "cave"
 
 	char := fireAttacker()
 	char.Stamina = 10

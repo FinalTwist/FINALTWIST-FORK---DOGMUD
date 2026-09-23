@@ -100,7 +100,7 @@ func darkenCraftRoom(t *testing.T, roomId int) {
 	room := rooms.LoadRoom(roomId)
 	require.NotNil(t, room)
 	room.Biome = "cave"
-	require.Equal(t, rooms.LightDark, room.LightLevel(), "room %d must actually be unlit", roomId)
+	require.Equal(t, 0, room.LightLevel(), "room %d must actually be unlit", roomId)
 }
 
 var craftHidingTagPattern = regexp.MustCompile(`<[^>]*>`)

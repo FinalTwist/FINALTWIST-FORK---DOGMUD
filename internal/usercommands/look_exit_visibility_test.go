@@ -24,16 +24,20 @@ import (
 // look.go:258 site.
 //
 // TestLookExit_RoomOnlyLightBlocksExitPeering pins the band the old model
-// could not name explicitly: light enough to see the room (LightRoomOnly,
-// 60, which is >= LightBlindBelow's 25) but not enough to see down an exit
-// (60 < LightExitsAbove's 65). The old model expressed this exact band as
+// could not name explicitly: light enough to see the room (at or above
+// LightBlindBelow, default 25) but not enough to see down an exit (below
+// LightExitsAbove, default 65). The old model expressed this exact band as
 // visibility 1: enough to pass the "can't see anything" gate but not the
-// "too dark to see anything in that direction" gate. Getting a room to land
-// on LightRoomOnly requires a dark biome (which alone clamps to LightDark)
-// plus a light source in the room (which then adds exactly one step); see
-// internal/rooms/lighting_test.go's TestLightLevelMapsTheOldModel and
-// internal/rooms/lighting.go's legacyVisibility for why that combination is
-// the only cheap way to reach the middle constant.
+// "too dark to see anything in that direction" gate.
+//
+// 🔑 Since graded lighting plan 3a Task 8, LightLevel() composes a
+// continuous value rather than landing on one of three named points, so the
+// fixture is asserted against the BAND (the property this test actually
+// needs), not a fixed constant. A dark biome (cave, sky fraction 0) plus one
+// carried light source lands exactly on LightDimBelow (the model lifts a lit
+// room to the bottom of the "room readable, exits not" band; see
+// internal/rooms/lighting.go's lightLevelWithMutatorBridge, term 4), which is
+// inside the band asserted below by construction.
 func TestLookExit_RoomOnlyLightBlocksExitPeering(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
@@ -61,8 +65,11 @@ func TestLookExit_RoomOnlyLightBlocksExitPeering(t *testing.T) {
 	room.AddPlayer(user.UserId)
 	require.NoError(t, user.Character.AddCondition(torchConditionId, false))
 
-	require.Equal(t, rooms.LightRoomOnly, room.LightLevel(),
-		"fixture must land on the room-only band (dark biome + a light source), or this test proves nothing")
+	cfg := configs.GetLightingConfig()
+	light := room.LightLevel()
+	require.True(t, light >= cfg.BlindBelow && light < cfg.ExitsAbove,
+		"fixture must land in the room-only band (>= BlindBelow %d, < ExitsAbove %d), got %d; dark biome + a light source, or this test proves nothing",
+		cfg.BlindBelow, cfg.ExitsAbove, light)
 
 	events.DrainQueuedMessagesForTest(user.UserId)
 
@@ -78,23 +85,17 @@ func TestLookExit_RoomOnlyLightBlocksExitPeering(t *testing.T) {
 }
 
 // TestLookExit_FullLightAllowsExitPeering is the sibling positive case: a
-// room lit up to LightFull (>= LightExitsAbove) must NOT be refused. Without
-// this, a defect that always blocks exit-peering would still pass the test
-// above (it only checks the blocked case).
+// room lit at or above LightExitsAbove must NOT be refused. Without this, a
+// defect that always blocks exit-peering would still pass the test above (it
+// only checks the blocked case).
 //
-// The fixture room is biome "city", and until this test explicitly pinned
-// the round below, it relied on an accident: gametime's day/night boundary
-// is computed from configs.GetLightingConfig().WorldLatitude and the round
-// number (internal/gametime/gametime.go's ReCalculate), NOT from
-// Timing.NightHours, so a bare test binary's unpinned round 0 actually reads
-// as NIGHT, not day. That used to be masked here because the old
-// darkarea/litarea model gave a lit biome like "city" a +1 night bonus that
-// exactly cancelled gametime's -1 night penalty, so the room read LightFull
-// either way. Graded lighting Task 6b deletes that bonus (a biome's lamp is
-// now separate, authored data that nothing reads yet), which unmasks the
-// night default and drops this fixture to LightRoomOnly. Pinning the round
-// to a guaranteed daytime moment (noon) is the actual fix; it does not
-// depend on which biome the fixture room happens to use.
+// The fixture room is whatever biome the seeded test room carries, at a
+// pinned, guaranteed daytime round (noon). Since graded lighting plan 3a
+// Task 8, LightLevel() at noon is the celestial term (sun near its daily
+// peak) attenuated by the room's own sky fraction, so the exact value is not
+// a fixed constant; the fixture is asserted against the ExitsAbove
+// threshold, the property this test actually needs, and the assertion below
+// fails loudly with the real value if the fixture ever stops landing there.
 func TestLookExit_FullLightAllowsExitPeering(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
@@ -104,14 +105,26 @@ func TestLookExit_FullLightAllowsExitPeering(t *testing.T) {
 	configs.SetConfigForTest(t, cfg)
 	gametime.ClearDateCacheForTest()
 	t.Cleanup(gametime.ClearDateCacheForTest)
-	// Noon: hourOfDay 12 is inside daytime for any latitude short of a polar
-	// night, regardless of the season-driven night length.
-	util.SetRoundCountForTest(uint64(cfg.Timing.RoundsPerDay) / 2)
+	// Midsummer noon, not just any noon: GameDate's day-of-year is
+	// floor(round/RoundsPerDay)+1 (internal/gametime/gametime.go), so day 172
+	// (midsummer) at roundOfDay 10 (noon, half of RoundsPerDay=20) is round
+	// (172-1)*20+10 = 3430. A noon picked at an arbitrary day of year is not
+	// enough: this fixture's room has an open (unattenuated) sky, and at this
+	// world's latitude an equinox or midwinter noon reads in the low 60s,
+	// UNDER LightExitsAbove's default 65, which would make this "positive
+	// case" fail for a reason that has nothing to do with the exit-peering
+	// gate under test. Midsummer noon is the celestial model's brightest
+	// point in the year, comfortably above ExitsAbove.
+	const middayOfMidsummer = uint64(3430)
+	util.SetRoundCountForTest(middayOfMidsummer)
 	t.Cleanup(util.ResetRoundCountForTest)
 
 	user, room := getTestUserAndRoom(t)
-	require.Equal(t, rooms.LightFull, room.LightLevel(),
-		"fixture room must be at full light, or this test proves nothing")
+	lcfg := configs.GetLightingConfig()
+	light := room.LightLevel()
+	require.GreaterOrEqual(t, light, lcfg.ExitsAbove,
+		"fixture room must be at or above ExitsAbove (%d), got %d; or this test proves nothing",
+		lcfg.ExitsAbove, light)
 
 	events.DrainQueuedMessagesForTest(user.UserId)
 

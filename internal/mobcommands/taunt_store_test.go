@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -46,7 +47,13 @@ func TestMobTauntTriadUsesTheAuthoredStore(t *testing.T) {
 	require.NotNil(t, target)
 	litRoom := rooms.LoadRoom(mob.Character.RoomId)
 	require.NotNil(t, litRoom)
-	require.Greater(t, litRoom.LightLevel(), rooms.LightDark, "fixture room must be lit for this lane")
+	// Pins the room fully lit regardless of the ambient test round. Since
+	// graded lighting plan 3a Task 8, LightLevel() reads the real celestial
+	// term at whatever round util.GetRoundCount() holds, which a bare
+	// unpinned round reads as shapes tier (light ~28, > 0 but not full).
+	litRoom.Lamp = rooms.LampPtr(90)
+	require.GreaterOrEqual(t, litRoom.LightLevel(), configs.GetLightingConfig().ExitsAbove,
+		"fixture room must be fully lit for this lane")
 
 	litRoom.AddPlayer(target.UserId)
 	defer litRoom.RemovePlayer(target.UserId)
@@ -93,7 +100,7 @@ func TestMobTauntTriadAnonymizesInTheDark(t *testing.T) {
 	darkRoom := rooms.LoadRoom(2)
 	require.NotNil(t, darkRoom)
 	darkRoom.Biome = "cave"
-	require.Equal(t, rooms.LightDark, darkRoom.LightLevel(), "fixture room must be unlit for this lane")
+	require.Equal(t, 0, darkRoom.LightLevel(), "fixture room must be unlit for this lane")
 
 	mob.Character.RoomId = 2
 	target.Character.RoomId = 2

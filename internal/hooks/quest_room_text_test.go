@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/questengine"
 	"github.com/GoMudEngine/GoMud/internal/quests"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,6 +22,9 @@ import (
 func TestQuestRoomText_NamesThePlayerToASightedObserver(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
+	// Pins room 1 fully lit regardless of the ambient test round (see
+	// combat_blind_warning_test.go).
+	rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 	drainPlain(1)
 	drainPlain(2)
 

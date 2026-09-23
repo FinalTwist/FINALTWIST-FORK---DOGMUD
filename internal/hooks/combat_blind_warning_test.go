@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -78,7 +79,14 @@ func TestBlindCombatNotice(t *testing.T) {
 
 		room1 := rooms.LoadRoom(1)
 		require.NotNil(t, room1)
-		require.Greater(t, room1.LightLevel(), rooms.LightDark, "room 1 must be lit for this lane")
+		// Pins room 1 fully lit regardless of the ambient test round. Since
+		// graded lighting plan 3a Task 8, LightLevel() reads the real
+		// celestial term at whatever round util.GetRoundCount() holds,
+		// which a bare unpinned round reads as shapes tier (light ~28),
+		// not full sight, and this lane needs SightFull specifically.
+		room1.Lamp = rooms.LampPtr(90)
+		require.GreaterOrEqual(t, room1.LightLevel(), configs.GetLightingConfig().ExitsAbove,
+			"room 1 must be fully lit for this lane")
 
 		u1 := users.GetByUserId(1)
 		require.NotNil(t, u1)

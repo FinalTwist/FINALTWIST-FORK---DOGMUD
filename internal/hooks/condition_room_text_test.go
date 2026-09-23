@@ -48,6 +48,9 @@ func TestConditionStartRoomText_SightedObserverSeesIt(t *testing.T) {
 	defer cleanup()
 	restore := seedNarrationConditions()
 	defer restore()
+	// Pins room 1 fully lit regardless of the ambient test round (see
+	// combat_blind_warning_test.go).
+	rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 	drainPlain(2)
 
 	assert.Equal(t, events.Continue, ApplyConditions(events.Condition{UserId: 1, ConditionId: glowConditionId}))
@@ -92,6 +95,9 @@ func TestConditionStartRoomText_MobHolderUsesTheMobTag(t *testing.T) {
 	defer cleanup()
 	restore := seedNarrationConditions()
 	defer restore()
+	// Pins room 1 fully lit regardless of the ambient test round (see
+	// combat_blind_warning_test.go).
+	rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 	events.DrainQueuedMessagesForTest(2)
 
 	ApplyConditions(events.Condition{MobInstanceId: 100, ConditionId: glowConditionId})
@@ -120,6 +126,9 @@ func TestConditionTriggerRoomText_SightedObserverSeesIt(t *testing.T) {
 	defer cleanup()
 	restore := seedNarrationConditions()
 	defer restore()
+	// Pins room 1 fully lit regardless of the ambient test round (see
+	// combat_blind_warning_test.go).
+	rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 	require.True(t, users.GetByUserId(1).Character.Conditions.AddCondition(shiverConditionId, false))
 	drainPlain(2)
 
@@ -147,6 +156,9 @@ func TestConditionEndRoomText_SightedObserverSeesIt(t *testing.T) {
 	defer cleanup()
 	restore := seedNarrationConditions()
 	defer restore()
+	// Pins room 1 fully lit regardless of the ambient test round (see
+	// combat_blind_warning_test.go).
+	rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 	holder := users.GetByUserId(1)
 	require.True(t, holder.Character.Conditions.AddCondition(fadeConditionId, false))
 	expire(t, holder.Character.Conditions.List, fadeConditionId)
@@ -161,6 +173,13 @@ func TestConditionEndRoomText_MobHolderIsVisualAndUsesTheMobTag(t *testing.T) {
 	defer cleanup()
 	restore := seedNarrationConditions()
 	defer restore()
+	// Pins room 1 fully lit for the first (sighted) phase below, regardless
+	// of the ambient test round (see combat_blind_warning_test.go). Cleared
+	// before the second phase's darken(t, 1): Room.Lamp is a room-level
+	// override that takes priority over the biome darken() sets, so leaving
+	// it set would keep the room lit through the biome switch.
+	room1 := rooms.LoadRoom(1)
+	room1.Lamp = rooms.LampPtr(90)
 	mob := mobs.GetInstance(100)
 	require.True(t, mob.Character.Conditions.AddCondition(fadeConditionId, false))
 	expire(t, mob.Character.Conditions.List, fadeConditionId)
@@ -174,6 +193,7 @@ func TestConditionEndRoomText_MobHolderIsVisualAndUsesTheMobTag(t *testing.T) {
 	// And the same line is gated by sight.
 	require.True(t, mob.Character.Conditions.AddCondition(fadeConditionId, false))
 	expire(t, mob.Character.Conditions.List, fadeConditionId)
+	room1.Lamp = nil // clear the phase-1 pin so darken() below actually darkens
 	darken(t, 1)
 	drainPlain(2)
 	PruneConditions(events.NewTurn{TurnNumber: 2})
@@ -189,6 +209,9 @@ func TestMobConditionTriggerRoomText(t *testing.T) {
 	defer cleanup()
 	restore := seedNarrationConditions()
 	defer restore()
+	// Pins room 1 fully lit regardless of the ambient test round (see
+	// combat_blind_warning_test.go).
+	rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 	mob := mobs.GetInstance(100)
 	require.True(t, mob.Character.Conditions.AddCondition(shiverConditionId, false))
 	events.DrainQueuedMessagesForTest(2)
@@ -206,7 +229,10 @@ func TestMobConditionTriggerRoomText(t *testing.T) {
 	}
 	assert.Equal(t, 1, delivered, "the trigger line must arrive exactly once")
 
-	// Sight-gated like every other condition room line.
+	// Sight-gated like every other condition room line. Clear the pin above
+	// first: Room.Lamp overrides the biome darken() sets, so leaving it
+	// would keep the room lit through the biome switch.
+	rooms.LoadRoom(1).Lamp = nil
 	darken(t, 1)
 	drainPlain(2)
 	tickMobConditions(mob, 100)
@@ -231,9 +257,9 @@ func TestConditionEndRoomText_LightConditionEndIsSeenByItsOwnLight_Player(t *tes
 	room := rooms.LoadRoom(1)
 	holder := users.GetByUserId(1)
 	require.True(t, holder.Character.Conditions.AddCondition(lanternConditionId, false))
-	require.Greater(t, room.LightLevel(), rooms.LightDark, "the lantern must light the cave, or this test proves nothing")
+	require.Greater(t, room.LightLevel(), 0, "the lantern must light the cave, or this test proves nothing")
 	expire(t, holder.Character.Conditions.List, lanternConditionId)
-	require.Equal(t, rooms.LightDark, room.LightLevel(), "the light is already out once the condition expires, before any prune")
+	require.Equal(t, 0, room.LightLevel(), "the light is already out once the condition expires, before any prune")
 	drainPlain(2)
 
 	PruneConditions(events.NewTurn{TurnNumber: 1})
@@ -268,7 +294,7 @@ func TestConditionEndRoomText_LightConditionEndIsSeenByItsOwnLight_Mob(t *testin
 	room := rooms.LoadRoom(1)
 	mob := mobs.GetInstance(100)
 	require.True(t, mob.Character.Conditions.AddCondition(lanternConditionId, false))
-	require.Greater(t, room.LightLevel(), rooms.LightDark, "the lantern must light the cave, or this test proves nothing")
+	require.Greater(t, room.LightLevel(), 0, "the lantern must light the cave, or this test proves nothing")
 	expire(t, mob.Character.Conditions.List, lanternConditionId)
 	drainPlain(2)
 

@@ -123,6 +123,9 @@ func TestWaitRound_LitRoomShowsAttackerName(t *testing.T) {
 	require.NotNil(t, user1)
 	room := rooms.LoadRoom(1)
 	require.NotNil(t, room)
+	// Pins room 1 fully lit regardless of the ambient/pinned test round
+	// (see combat_blind_warning_test.go).
+	room.Lamp = rooms.LampPtr(90)
 
 	armWait(&mob.Character, 1)
 
