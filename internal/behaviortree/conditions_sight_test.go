@@ -16,8 +16,12 @@ func TestCondPlayersInRoomNeedsSight(t *testing.T) {
 	ctx := &EvalContext{InstanceId: m.InstanceId, RoomId: room.RoomId}
 	require.Equal(t, Failure, condPlayersInRoom(nil, ctx), "a blind mob finds nobody")
 
+	// GRADED LIGHTING PLAN 2: this rides mobCanSee, which requires SightFull
+	// specifically. A shifted window is still blind below its floor at
+	// light 0, so night vision alone no longer restores sight in true
+	// darkness; see sight.go's doc comment.
 	require.NoError(t, m.Character.AddCondition(sightNightVisionConditionId, true))
-	require.Equal(t, Success, condPlayersInRoom(nil, ctx), "night vision finds them")
+	require.Equal(t, Failure, condPlayersInRoom(nil, ctx), "night vision alone still cannot see in true darkness")
 }
 
 // The case that keeps the Ironwind cave bosses working: a light carried by
@@ -46,8 +50,9 @@ func TestCondMultipleEnemiesNeedsSight(t *testing.T) {
 	ctx := &EvalContext{InstanceId: m.InstanceId, RoomId: room.RoomId}
 	require.Equal(t, Failure, condMultipleEnemies(nil, ctx), "a blind mob counts no enemies")
 
+	// GRADED LIGHTING PLAN 2: see TestCondPlayersInRoomNeedsSight above.
 	require.NoError(t, m.Character.AddCondition(sightNightVisionConditionId, true))
-	require.Equal(t, Success, condMultipleEnemies(nil, ctx), "night vision counts both")
+	require.Equal(t, Failure, condMultipleEnemies(nil, ctx), "night vision alone still cannot see in true darkness")
 }
 
 // Quest givers must NOT be sight-gated. Dewey (9491) and Cleric Hadwen (9100)
@@ -77,7 +82,8 @@ func TestEngageHostilePlayerInRoomNeedsSight(t *testing.T) {
 		"a blind mob does not pick up aggro")
 	require.False(t, m.Character.IsInCombat(), "and starts no fight")
 
+	// GRADED LIGHTING PLAN 2: see TestCondPlayersInRoomNeedsSight above.
 	require.NoError(t, m.Character.AddCondition(sightNightVisionConditionId, true))
-	require.True(t, engageHostilePlayerInRoom(m.InstanceId, room.RoomId),
-		"night vision engages normally")
+	require.False(t, engageHostilePlayerInRoom(m.InstanceId, room.RoomId),
+		"night vision alone still cannot see in true darkness, so still no aggro")
 }

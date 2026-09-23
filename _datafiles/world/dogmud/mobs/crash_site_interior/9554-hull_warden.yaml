@@ -6,6 +6,7 @@ archetype: fighting
 hostile: true
 statpool: 300
 maxwander: 0
+conditionids: [85]
 groups:
   - construct
 idlecommands:

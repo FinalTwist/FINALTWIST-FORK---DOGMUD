@@ -1,5 +1,28 @@
 # DOGMud Patch Notes
 
+## 2026-09-22: Seeing in the dark now has a price
+
+Abilities and potions that let you see in the dark used to have no limit. Strong
+enough night sight let you see a pitch dark room as clearly as a lit one. That
+is no longer true. Night sight now has a floor of its own: past a certain point
+of true darkness, even the strongest night sight shows you nothing at all, the
+same as someone with no night sight would see. If you once saw clearly in the
+darkest places, you may find yourself blind there now.
+
+The Cat's Eye Draught still works the way its label promises. Drink it and
+your eyes catch every bit of dim light and moonlight, revealing things that
+would otherwise stay hidden. What it never claimed to do is let you see
+through true darkness. In a room with no light at all, you are still
+blind, draught or not.
+
+A few creatures living deep in caves do not rely on their eyes at all.
+They hunt by sensing warmth, so a totally dark cave hides nothing from
+them even while it blinds you completely. This only matters when the room
+is actually dark. Every character starts out knowing a spell that lights a
+room, and casting it before trouble finds you erases the advantage
+entirely. Treat these creatures as a reason to light your way before you
+go looking around an unlit cave, not as caves in general growing harder.
+
 ## 2026-09-22: Crime in the dark no longer names you
 
 Committing a crime used to work the same whether you did it in broad

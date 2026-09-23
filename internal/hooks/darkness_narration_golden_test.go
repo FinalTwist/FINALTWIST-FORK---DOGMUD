@@ -65,12 +65,17 @@ var updateDarkness = flag.Bool("update-darkness", false, "rewrite testdata/darkn
 
 // seedDarknessSpectator adds a third player (user 3) to room 1 as a pure
 // spectator -- never the attacker or defender -- so the grid can record
-// what a bystander reads. The spectator is given permanent NightVision so
-// their OWN sight stays SightFull throughout, regardless of the room
-// darkness under test: their column exists to show whether
-// replaceDarknessMessages' substitution reaches room broadcasts at all
-// (it does not -- see the golden's own header), not to add a third sight
-// axis this grid does not otherwise cross.
+// what a bystander reads. The spectator carries NightVision, but under the
+// graded lighting arc's window model that no longer buys SightFull in this
+// truly dark room: a shifted window is still blind below its floor no
+// matter how strong the shift (internal/messaging/window.go), and no
+// vision condition can restore SightFull at light 0. So the spectator's
+// room line now reads "(none)" in every cell, the same as an unsighted
+// bystander would -- which is itself the answer to what this column was
+// built to show: replaceDarknessMessages is gone (M4d PR 2), and nothing
+// in the current production path treats MessagesToSourceRoom differently
+// depending on WHO the darkness gate blocks.
+
 func seedDarknessSpectator(t *testing.T) func() {
 	t.Helper()
 	u1 := users.GetByUserId(1)
@@ -213,9 +218,12 @@ func TestDarknessNarrationGolden(t *testing.T) {
 	fmt.Fprintf(&b, "# columns: atk sight | def sight | outcome | reader => text\n")
 	fmt.Fprintf(&b, "# PRE-FLIP (today): any cell where a participant's OWN sight isn't 'full' shows one\n")
 	fmt.Fprintf(&b, "# of the twelve hardcoded dark sentences on THAT participant's line, replacing the\n")
-	fmt.Fprintf(&b, "# AUTHORED pool line. The spectator line is never substituted -- replaceDarknessMessages\n")
-	fmt.Fprintf(&b, "# only touches MessagesToSource/MessagesToTarget, never MessagesToSourceRoom -- so the\n")
-	fmt.Fprintf(&b, "# spectator column stays AUTHORED in every cell regardless of atk/def sight.\n\n")
+	fmt.Fprintf(&b, "# AUTHORED pool line. The spectator line is never substituted by replaceDarknessMessages\n")
+	fmt.Fprintf(&b, "# (it only ever touched MessagesToSource/MessagesToTarget, never MessagesToSourceRoom,\n")
+	fmt.Fprintf(&b, "# and M4d PR 2 deleted it regardless) -- but under the graded lighting arc's window\n")
+	fmt.Fprintf(&b, "# model, no vision condition restores SightFull in a truly dark room, so the spectator's\n")
+	fmt.Fprintf(&b, "# own darkness now gates their room line to (none) in every cell, same as an unsighted\n")
+	fmt.Fprintf(&b, "# bystander.\n\n")
 
 	for _, atkSight := range sights {
 		for _, defSight := range sights {

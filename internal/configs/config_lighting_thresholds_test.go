@@ -312,3 +312,86 @@ func TestLightingThresholds_ShippedDefaultsUnchangedByFallbackFix(t *testing.T) 
 		t.Fatalf("shipped defaults must remain 25/50/65, got blind=%v dim=%v exits=%v", b.LightBlindBelow, b.LightDimBelow, b.LightExitsAbove)
 	}
 }
+
+// Graded lighting arc, plan 2 task 4. LightDefaultVisionStrength is the
+// window shift a bare vision flag (one that declares no strength of its
+// own, like condition 29's nightvision) falls back to.
+//
+// Zero is coerced to the default of 12 following the ProgressMult idiom, so
+// the accepted AUTHORED range is effectively [1, 24], not [0, 24]: zero is
+// never a value an operator can choose, it is indistinguishable from the
+// field being unset. The clamp boundary tests below therefore pin 1 and 24
+// as the accepted edges, not 0 and 24; a negative value clamps to 0 and then
+// defaults to 12 exactly like an authored zero, while a value above 24
+// clamps down to 24 rather than reverting, since 24 is windowShiftCap in
+// internal/messaging/window.go and a value above it is still meaningful
+// intent (a strong shift), just uncapped.
+
+// TestLightingDefaultVisionStrength_ZeroDefaultsCorrectly covers the trap that
+// a Go test binary never loads config.yaml, so a zero-valued Balance must
+// land this knob on its documented default.
+func TestLightingDefaultVisionStrength_ZeroDefaultsCorrectly(t *testing.T) {
+	b := Balance{}
+	b.Validate()
+	if b.LightDefaultVisionStrength != 12 {
+		t.Fatalf("zero LightDefaultVisionStrength must default to 12, got %v", b.LightDefaultVisionStrength)
+	}
+}
+
+// TestLightingDefaultVisionStrength_AuthoredValueSurvives proves a legal,
+// in-range, non-zero authored value passes validation untouched.
+func TestLightingDefaultVisionStrength_AuthoredValueSurvives(t *testing.T) {
+	b := Balance{LightDefaultVisionStrength: 18}
+	b.Validate()
+	if b.LightDefaultVisionStrength != 18 {
+		t.Fatalf("authored LightDefaultVisionStrength must survive validation, got %v", b.LightDefaultVisionStrength)
+	}
+}
+
+// TestLightingDefaultVisionStrength_LowerBoundAccepted pins exactly 1 as
+// accepted. This is the true lower edge of the AUTHORED range: 0 is not
+// available to an operator because it is indistinguishable from unset, so
+// unlike the other lighting knobs (whose accepted range starts at their
+// scale floor) this one's accepted range starts one above the coerced
+// value.
+func TestLightingDefaultVisionStrength_LowerBoundAccepted(t *testing.T) {
+	b := Balance{LightDefaultVisionStrength: 1}
+	b.Validate()
+	if b.LightDefaultVisionStrength != 1 {
+		t.Fatalf("LightDefaultVisionStrength of exactly 1 must survive validation, got %v", b.LightDefaultVisionStrength)
+	}
+}
+
+// TestLightingDefaultVisionStrength_LowerBoundRejected pins -1 as rejected: it
+// clamps to 0 and then, like an authored zero, defaults to 12.
+func TestLightingDefaultVisionStrength_LowerBoundRejected(t *testing.T) {
+	b := Balance{LightDefaultVisionStrength: -1}
+	b.Validate()
+	if b.LightDefaultVisionStrength != 12 {
+		t.Fatalf("LightDefaultVisionStrength of -1 must clamp to 0 and then default to 12, got %v", b.LightDefaultVisionStrength)
+	}
+}
+
+// TestLightingDefaultVisionStrength_UpperBoundAccepted pins exactly 24 as
+// accepted: it equals windowShiftCap in internal/messaging/window.go, the
+// strongest shift the window model can express, so it is a legitimate
+// authored ceiling rather than an overflow.
+func TestLightingDefaultVisionStrength_UpperBoundAccepted(t *testing.T) {
+	b := Balance{LightDefaultVisionStrength: 24}
+	b.Validate()
+	if b.LightDefaultVisionStrength != 24 {
+		t.Fatalf("LightDefaultVisionStrength of exactly 24 must survive validation, got %v", b.LightDefaultVisionStrength)
+	}
+}
+
+// TestLightingDefaultVisionStrength_UpperBoundRejected pins 25 as rejected: it
+// clamps DOWN to 24 rather than reverting to the default, since a value
+// above the cap is still meaningful operator intent (a strong shift), just
+// one the window model cannot express beyond its cap.
+func TestLightingDefaultVisionStrength_UpperBoundRejected(t *testing.T) {
+	b := Balance{LightDefaultVisionStrength: 25}
+	b.Validate()
+	if b.LightDefaultVisionStrength != 24 {
+		t.Fatalf("LightDefaultVisionStrength of 25 must clamp down to 24, got %v", b.LightDefaultVisionStrength)
+	}
+}

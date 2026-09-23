@@ -486,7 +486,8 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 	})
 	defer restoreBiomes()
 	restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
-		9001: {ConditionId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []conditions.Flag{conditions.InfraredVision}},
+		9001: {ConditionId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []conditions.Flag{conditions.InfraredVision},
+			Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}}},
 	})
 	defer restoreConditions()
 
@@ -570,7 +571,8 @@ func TestMobTauntAndHowlRuntimeHideIndexedActorAndExcludeDefender(t *testing.T) 
 			})
 			defer restoreBiomes()
 			restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
-				9001: {ConditionId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []conditions.Flag{conditions.InfraredVision}},
+				9001: {ConditionId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []conditions.Flag{conditions.InfraredVision},
+					Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}}},
 			})
 			defer restoreConditions()
 

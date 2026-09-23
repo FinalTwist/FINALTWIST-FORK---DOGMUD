@@ -3,9 +3,9 @@ name: Cat's Eye Draught
 vendor_categories:
 - alchemy
 namesimple: draught
-description: A draught of concentrated moonpetal extract.
-  Your pupils dilate and the darkness becomes
-  transparent.
+description: A draught of concentrated moonpetal extract. Your pupils
+  dilate so dim light and moonlight become easy to use, though true
+  darkness stays impossible to see through.
 type: potion
 subtype: drinkable
 uses: 1

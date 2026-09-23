@@ -38,12 +38,30 @@ const (
 
 // sightChar returns a fresh character carrying the given test flags. The three
 // flag conditions are seeded once per test, so applying one never replaces another.
+//
+// GRADED LIGHTING PLAN 2. The infrared fixture declares an explicit
+// infra_reach (matching shipped condition 85's authored 30, see
+// _datafiles/world/dogmud/conditions/85-infraredvision.yaml), not a bare
+// flag. A bare InfraredVision flag reads reach 0 by design
+// (Character.InfraReach, internal/characters/vision.go: only nightvision
+// defaults on a bare flag), so without a declared reach these fixtures would
+// stop demonstrating infrared at all and would collapse into the same
+// SightNone the no-vision fixture already covers. The nightvision fixture is
+// deliberately left as a bare flag: under the window model a shifted window
+// is still blind below its floor at light 0 regardless of strength, so a
+// bare flag (falling back to LightDefaultVisionStrength) already proves the
+// point the "dark with night vision" test cases below now make.
 func sightChar(t *testing.T, flags ...conditions.Flag) *characters.Character {
 	t.Helper()
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
-		sightInfraredConditionId: {ConditionId: sightInfraredConditionId, Name: "Test Infrared", Flags: []conditions.Flag{conditions.InfraredVision}},
-		sightNightConditionId:    {ConditionId: sightNightConditionId, Name: "Test Night", Flags: []conditions.Flag{conditions.NightVision}},
-		sightSleepConditionId:    {ConditionId: sightSleepConditionId, Name: "Test Sleep", Flags: []conditions.Flag{conditions.Sleeping}},
+		sightInfraredConditionId: {
+			ConditionId: sightInfraredConditionId,
+			Name:        "Test Infrared",
+			Flags:       []conditions.Flag{conditions.InfraredVision},
+			Effects:     map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}},
+		},
+		sightNightConditionId: {ConditionId: sightNightConditionId, Name: "Test Night", Flags: []conditions.Flag{conditions.NightVision}},
+		sightSleepConditionId: {ConditionId: sightSleepConditionId, Name: "Test Sleep", Flags: []conditions.Flag{conditions.Sleeping}},
 	}))
 	c := newChar(t)
 	ids := map[conditions.Flag]int{
@@ -69,7 +87,13 @@ func TestParticipantSight(t *testing.T) {
 	}{
 		{name: "lit room", light: sightLightLit, want: SightFull},
 		{name: "dark room", light: sightLightDark, want: SightNone},
-		{name: "dark with night vision", light: sightLightDark, flags: []conditions.Flag{conditions.NightVision}, want: SightFull},
+		// GRADED LIGHTING PLAN 2: a shifted window is still blind below its
+		// floor (windowFloor = 1, internal/messaging/window.go). At light 0
+		// even the shift cap (24) only pulls the blind edge down to 1, which
+		// light 0 still fails, so nightvision alone can never produce
+		// anything but SightNone in a pitch dark room. Only infra reach
+		// reads past the floor.
+		{name: "dark with night vision", light: sightLightDark, flags: []conditions.Flag{conditions.NightVision}, want: SightNone},
 		{name: "dark with infrared", light: sightLightDark, flags: []conditions.Flag{conditions.InfraredVision}, want: SightShapes},
 		{name: "blinded in a lit room", light: sightLightLit, blind: true, want: SightNone},
 		{name: "blinded with infrared in the dark", light: sightLightDark, flags: []conditions.Flag{conditions.InfraredVision}, blind: true, want: SightNone},

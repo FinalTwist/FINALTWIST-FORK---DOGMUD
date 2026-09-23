@@ -51,8 +51,17 @@ func castSightScene(t *testing.T, biome string) (*castSightActor, *rooms.Room) {
 		"city":    {BiomeId: "city", LitArea: true},
 		"default": {BiomeId: "default", LitArea: true},
 	}))
+	// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
+	// design (internal/characters/vision.go), so this fixture declares an
+	// explicit infra_reach, matching shipped condition 85, or the fixture
+	// would stop being shapes-only in the dark at all.
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
-		castSightInfraredConditionId: {ConditionId: castSightInfraredConditionId, Name: "Test Infrared", Flags: []conditions.Flag{conditions.InfraredVision}},
+		castSightInfraredConditionId: {
+			ConditionId: castSightInfraredConditionId,
+			Name:        "Test Infrared",
+			Flags:       []conditions.Flag{conditions.InfraredVision},
+			Effects:     map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}},
+		},
 	}))
 	t.Cleanup(spells.SeedSpellsForTest(map[string]*spells.SpellData{
 		"sight-heal": {SpellId: "sight-heal", Name: "Sight Heal", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, BaseFolds: 2, Cost: 5},

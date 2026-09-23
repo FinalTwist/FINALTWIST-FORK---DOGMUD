@@ -135,102 +135,102 @@ room 204 biome=fort
   blinded      sight=none   clear=false shapes=false
 room 300 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 301 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 302 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 303 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 304 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 305 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 306 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 307 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 308 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 309 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 310 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 311 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 312 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 313 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 314 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 315 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 316 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 317 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 318 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 319 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 400 biome=land
@@ -490,127 +490,127 @@ room 484 biome=city
   blinded      sight=none   clear=false shapes=false
 room 485 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 486 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 487 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 488 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 489 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 490 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 491 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 492 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 493 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 494 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 495 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 496 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 497 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 498 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 499 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 500 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 501 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 502 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 503 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 504 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 505 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 506 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 507 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 508 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 509 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 510 biome=city
@@ -1385,12 +1385,12 @@ room 3070 biome=cliffs
   blinded      sight=none   clear=false shapes=false
 room 3071 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3072 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3073 biome=land
@@ -1535,72 +1535,72 @@ room 3100 biome=cliffs
   blinded      sight=none   clear=false shapes=false
 room 3101 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3102 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3103 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3104 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3105 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3106 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3107 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3108 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3109 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3110 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3111 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3112 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3113 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3114 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 3115 biome=land
@@ -1830,7 +1830,7 @@ room 4036 biome=land
   blinded      sight=none   clear=false shapes=false
 room 4037 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 4038 biome=farmland
@@ -2025,7 +2025,7 @@ room 4113 biome=city
   blinded      sight=none   clear=false shapes=false
 room 4114 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 4115 biome=water
@@ -2060,7 +2060,7 @@ room 4120 biome=water
   blinded      sight=none   clear=false shapes=false
 room 4121 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 4122 biome=city
@@ -2090,27 +2090,27 @@ room 4126 biome=city
   blinded      sight=none   clear=false shapes=false
 room 4127 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 4128 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 4129 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 4130 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 4131 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 4132 biome=city
@@ -2230,7 +2230,7 @@ room 4154 biome=forest
   blinded      sight=none   clear=false shapes=false
 room 4155 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 4156 biome=forest
@@ -2430,7 +2430,7 @@ room 4194 biome=water
   blinded      sight=none   clear=false shapes=false
 room 4195 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 4196 biome=water
@@ -2445,7 +2445,7 @@ room 4197 biome=forest
   blinded      sight=none   clear=false shapes=false
 room 4198 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5000 biome=city
@@ -2530,7 +2530,7 @@ room 5106 biome=city
   blinded      sight=none   clear=false shapes=false
 room 5107 biome=dungeon
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5200 biome=water
@@ -2805,42 +2805,42 @@ room 5254 biome=mountains
   blinded      sight=none   clear=false shapes=false
 room 5255 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5256 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5257 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5258 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5259 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5260 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5261 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5264 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5265 biome=water
@@ -2850,12 +2850,12 @@ room 5265 biome=water
   blinded      sight=none   clear=false shapes=false
 room 5266 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5267 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5268 biome=water
@@ -2865,62 +2865,62 @@ room 5268 biome=water
   blinded      sight=none   clear=false shapes=false
 room 5269 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5270 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5271 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5272 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5273 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5274 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5275 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5276 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5277 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5278 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5279 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5280 biome=swamp
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 5281 biome=water
@@ -6920,11 +6920,11 @@ room 6467 biome=default
   blinded      sight=none   clear=false shapes=false
 room 6468 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6469 biome=cave
   plain        sight=none   clear=false shapes=false
-  nightvision  sight=full   clear=true shapes=true
+  nightvision  sight=none   clear=false shapes=false
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false

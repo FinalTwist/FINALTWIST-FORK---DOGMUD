@@ -60,8 +60,13 @@ func seedNarrationConditions() func() {
 			EndRoomText: "{actee} fades."},
 		nightEyesConditionId: {ConditionId: nightEyesConditionId, Name: "Test Night Eyes",
 			Flags: []conditions.Flag{conditions.NightVision}},
+		// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
+		// design (internal/characters/vision.go), so this fixture declares
+		// an explicit infra_reach, matching shipped condition 85, or heat
+		// eyes would stop being shapes-only in the dark at all.
 		heatEyesConditionId: {ConditionId: heatEyesConditionId, Name: "Test Heat Eyes",
-			Flags: []conditions.Flag{conditions.InfraredVision}},
+			Flags:   []conditions.Flag{conditions.InfraredVision},
+			Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}}},
 		lanternConditionId: {ConditionId: lanternConditionId, Name: "Test Lantern", RoundInterval: 5, TriggerCount: 3,
 			Flags: []conditions.Flag{conditions.EmitsLight}, EndRoomText: "{actee}'s light gutters out."},
 		dozeConditionId: {ConditionId: dozeConditionId, Name: "Test Doze",

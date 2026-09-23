@@ -15,6 +15,17 @@ triggernow: false
 # path that does not pass permanent=true, which is every path an admin or a
 # player can reach, so infrared vision never once worked.
 triggercount: 1
+# nightvision_strength: 12 matches the bare-flag default
+# (LightDefaultVisionStrength, internal/configs/config.balance.go), so this
+# condition does not out-shift an admin-granted bare nightvision flag on its
+# own; its value lives in infra_reach.
+# infra_reach: 30 makes shallow magical darkness readable while deep magical
+# darkness, past light -30, still reads nothing (windowFloor = 1 and
+# windowShiftCap = 24, internal/messaging/window.go). The two numbers are
+# independent by design.
+effects:
+  nightvision_strength: 12
+  infra_reach: 30
 flags:
   - infraredvision
 secret: true

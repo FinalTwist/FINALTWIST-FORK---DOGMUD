@@ -55,8 +55,12 @@ func TestMobCanSeeDarkRoom(t *testing.T) {
 	m, room := sightScene(t, "cave")
 	require.False(t, mobCanSee(m, room), "an unlit cave blinds a mob with no night vision")
 
+	// GRADED LIGHTING PLAN 2: mobCanSee requires SightFull specifically
+	// (messaging.CanSeeSightImpairedOnly), and a shifted window is still
+	// blind below its floor at light 0 no matter how strong the shift, so
+	// night vision alone no longer restores sight in a pitch dark room.
 	require.NoError(t, m.Character.AddCondition(sightNightVisionConditionId, true))
-	require.True(t, mobCanSee(m, room), "night vision restores sight in the dark")
+	require.False(t, mobCanSee(m, room), "night vision alone still cannot see in true darkness")
 }
 
 func TestMobCanSeeLitRoom(t *testing.T) {

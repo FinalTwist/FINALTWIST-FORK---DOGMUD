@@ -668,15 +668,15 @@ special-move base instead. Physical rows add encumbrance, every row applies the
 inverse governing-skill term, and callers may supply a documented modifier.
 See the live config and validation code for tuning values.
 
-### Graded room lighting (plan 1 of the graded lighting arc)
+### Graded room lighting (plans 1 and 2 of the graded lighting arc)
 
-Three `ConfigInt` knobs, validated in their own file
+Four `ConfigInt` knobs, validated in their own file
 (`config.balance.lighting.go`) rather than folded into `validateMisc`,
-because plans 2 and 3 of the arc add more knobs here (a dazzle threshold,
-ambient light by time of day, NightVision strength). They define the bands
+because plan 3 of the arc adds more knobs here (a dazzle threshold, ambient
+light by time of day). They define the bands
 `internal/messaging.ParticipantSight` reads against
 `internal/rooms.Room.LightLevel()`'s -100 to 100 scale. As of this
-writing, none of the three appears in `_datafiles/config.yaml`, so the
+writing, none of the four appears in `_datafiles/config.yaml`, so the
 shipped value is the Go default in every case.
 
 | Knob | Default | Effect |
@@ -684,6 +684,7 @@ shipped value is the Go default in every case.
 | `LightBlindBelow` | 25 | Below this, a normal observer is blind. |
 | `LightDimBelow` | 50 | Below this, a normal observer reads shapes only. |
 | `LightExitsAbove` | 65 | At or above this, exits into adjacent rooms are visible. |
+| `LightDefaultVisionStrength` | 12 | Window shift (`internal/messaging.SightThroughWindow`'s `strength`) for a vision flag that declares no strength of its own. Plan 2. |
 
 `LightBlindBelow` and `LightDimBelow` validate as a PAIR, the
 `DarknessShapesCombatPenalty` precedent: an inverted or out-of-range pair
@@ -699,6 +700,18 @@ cross-axis rule, that it must not sit below `LightBlindBelow`.
 are load-bearing against these three defaults: if the defaults above ever
 move, those constants must be re-checked against the new values, or the
 behaviour-preservation guarantee plan 1 depends on silently breaks.
+
+`LightDefaultVisionStrength` (plan 2) clamps to `[0, 24]` first, then zero
+(whether authored directly or reached by clamping a negative) defaults to
+12, following the `ProgressMult` idiom where zero means "unset", not "shift
+by nothing", so the effective authored range is `[1, 24]`. The upper bound
+24 duplicates `windowShiftCap` in `internal/messaging/window.go` on purpose:
+`internal/configs` cannot import `internal/messaging` (the dependency runs
+the other way), so if `windowShiftCap` ever changes this literal must change
+with it. A value above 24 clamps down to it rather than reverting to the
+default, honouring the operator's intent (a strong shift) at the strongest
+the window model can express, the same way `LightExitsAbove` clamps rather
+than reverts for its own out-of-range case above.
 
 ### Bleed stacks (conditions unification slice 1b)
 

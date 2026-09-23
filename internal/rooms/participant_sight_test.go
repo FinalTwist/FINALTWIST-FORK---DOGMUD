@@ -32,8 +32,16 @@ func sightTestRoom(t *testing.T, biome string) *Room {
 		"city":    {BiomeId: "city", LitArea: true},
 		"default": {BiomeId: "default", LitArea: true},
 	}))
+	// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
+	// design (internal/characters/vision.go), so this fixture declares an
+	// explicit infra_reach, matching shipped condition 85.
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
-		sightTestInfraredConditionId: {ConditionId: sightTestInfraredConditionId, Name: "Test Heat Eyes", Flags: []conditions.Flag{conditions.InfraredVision}},
+		sightTestInfraredConditionId: {
+			ConditionId: sightTestInfraredConditionId,
+			Name:        "Test Heat Eyes",
+			Flags:       []conditions.Flag{conditions.InfraredVision},
+			Effects:     map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}},
+		},
 	}))
 	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{
 		7411: users.NewTestUser(7411, "aliceia", "Aliceia", 97411),

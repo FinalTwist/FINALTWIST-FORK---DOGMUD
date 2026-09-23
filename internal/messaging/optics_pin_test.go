@@ -71,6 +71,14 @@ func newOpticsRoom(t *testing.T, lit bool) RoomVisibility {
 //   - asleep in a lit room: CanSeeSightImpairedOnly is TRUE. It has no
 //     attention test on purpose, so combat does not double a sleeper's
 //     disadvantage (they are already auto-crit).
+//
+// GRADED LIGHTING PLAN 2 moved one row. "dark, nightvision" used to read
+// fully (the old flag shortcut granted sight outright); under the window
+// model a shifted window is still blind below its floor at light 0, no
+// matter how strong the shift, so a nightvision-only holder now reads
+// nothing in a pitch dark room. "dark, infrared only" is unchanged on
+// purpose: infra reach reads past the floor where nightvision's shift
+// cannot, which is the whole reason the two numbers are independent.
 func TestOpticsTruthTable(t *testing.T) {
 	cases := []opticsCase{
 		{name: "lit, ordinary", lit: true,
@@ -78,7 +86,7 @@ func TestOpticsTruthTable(t *testing.T) {
 		{name: "dark, no vision",
 			wantClearly: false, wantImpairedOnly: false, wantShapes: false},
 		{name: "dark, nightvision", nightVision: true,
-			wantClearly: true, wantImpairedOnly: true, wantShapes: true},
+			wantClearly: false, wantImpairedOnly: false, wantShapes: false},
 		{name: "dark, infrared only", infraredVision: true,
 			wantClearly: false, wantImpairedOnly: false, wantShapes: true},
 		{name: "blind in a lit room", blind: true, lit: true,

@@ -2,7 +2,7 @@ mobid: 227
 zone: Ironwind Steppe
 behavior_archetype: ambusher
 routine: cave_pack_ironwind
-conditionids: [9]
+conditionids: [9, 85]
 statpool: 200
 itemdropchance: 20
 hostile: false # engagement owned by ambusher btree (hidden surprise strike)

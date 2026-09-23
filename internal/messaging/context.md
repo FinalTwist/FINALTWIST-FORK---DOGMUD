@@ -127,6 +127,11 @@ Functions:
 
 - `RenderForRecipient(in RenderInput) string` — entry point; runs the
   full pipeline for one recipient. Empty return = "don't deliver".
+- `SightThroughWindow(light, strength, reach int, blindBelow, dimBelow int) SightDecision`
+  (`window.go`): the pure function behind `ParticipantSight`'s optics
+  decision; see the window-model description under `ParticipantSight`
+  below. No locks, no global state, no config read: its caller owns
+  fetching `blindBelow`/`dimBelow` from `Balance`.
 - `ParticipantSight(observer *characters.Character, room RoomVisibility) SightDecision`
   is THE optics primitive, added M4d (`01bbee127`). It answers what an
   observer can make out and nothing else — blindness, room light,
@@ -135,32 +140,57 @@ Functions:
   character's eyes work, they are simply not reading. A nil observer sees
   fully.
 
-  Since the graded lighting arc's plan 1, sight is decided by a band
-  switch read off `room.LightLevel()` against two `Balance` config
-  thresholds, checked BEFORE the flag checks below: `SightFull` when light
-  is at or above `LightDimBelow` (default 50); `SightShapes` when light is
-  at or above `LightBlindBelow` (default 25). Only if light is below both
-  bands does the function fall through to the flag checks: `SightFull` if
-  the observer carries `conditions.NightVision`, `SightShapes` if they
-  carry `conditions.InfraredVision`, otherwise `SightNone`.
+  Since the graded lighting arc's plan 1, sight is decided against two
+  `Balance` config thresholds: `LightBlindBelow` (default 25) and
+  `LightDimBelow` (default 50). Plan 2 replaced the band switch plus flag
+  shortcuts that used to sit here with a WINDOW model. `ParticipantSight`
+  now hands `room.LightLevel()`, the observer's two vision numbers and
+  those two thresholds straight to `SightThroughWindow` (the pure function
+  in `internal/messaging/window.go`) and returns whatever it decides; there
+  is one decision now, not a band switch followed by a flag fallback.
 
-  The NightVision and InfraredVision flag checks are PLAN 1 LEFTOVERS, the
-  pre-graded-lighting shortcuts kept deliberately rather than redesigned in
-  the same plan that introduced the scale, because plan 1 promises no
-  player-visible change and rebuilding these branches would be one. Plan 2
-  of the lighting arc replaces them with a window model, where an ability
-  shifts where the observer's usable band sits rather than granting sight
-  outright. Today a NightVision holder sees FULLY in a pitch dark room,
-  which the window model changes.
+  `SightThroughWindow(light, strength, reach int, blindBelow, dimBelow
+  int) SightDecision` reads: `strength`
+  (`Character.NightVisionStrength()`, `internal/characters/vision.go`)
+  shifts BOTH `blindBelow` and `dimBelow` down by that many points,
+  capped at the unexported `windowShiftCap` (24) and floored at zero, so
+  an ability trades bright-light comfort for dark-light acuity rather
+  than simply granting sight: the same shift that lets its holder read a
+  dim room by candlelight does nothing extra in a pitch dark one, because
+  the shifted window still has a floor. That floor is the unexported
+  `windowFloor` (1): at or below it, only `reach`
+  (`Character.InfraReach()`, the separate heat-sensing number) reads
+  anything, and only within `reach` points below zero, which is what lets
+  a heat-sensing creature act in darkness a nightvision-only observer
+  cannot parse at all. The unexported `windowDazzleEdge` (75) is declared
+  but not yet consulted by any branch: it marks where the perfect band
+  ends and too-bright begins, reserved for a future plan's dazzle
+  penalty. It is a constant, not a `Balance` knob, on purpose: plan 1's
+  rule is that a config knob nothing reads does not ship, and nothing
+  reads this one yet.
 
-  One semantic the band switch introduces is worth recording so the next
-  reader does not mistake it for a bug: because the band switch runs
-  before the flag checks, a NightVision holder standing in a DIM room
-  (light strictly between `LightBlindBelow` and `LightDimBelow`) would get
-  `SightShapes` from the band switch rather than `SightFull` from the
-  flag. Plan 1 never reaches this case, since `Room.LightLevel()` only ever
-  returns 0, 60 or 70, and nothing maps into that 25..50 gap. Plan 3, which
-  makes the scale continuous, makes it reachable.
+  🔴 **Structural fact worth knowing before reading a bug into it:** with
+  `windowShiftCap` at 24 and `LightDimBelow` at 50, no ability can shift
+  `dimBelow` down to or below light 0 (50 − 24 = 26, still positive), so
+  nobody sees fully in pitch darkness at any strength. A test that needs
+  `SightFull` at light 0 has to override config to reach an otherwise
+  unreachable scenario (see `internal/mobs`'s heat-sensing guard test,
+  which raises `InfraReach` instead of asking for full sight). See
+  `internal/mutations/context.md` for how a rank-4 vision mutation is
+  authored to land exactly at `windowShiftCap` and no further.
+
+  One semantic worth recording so the next reader does not mistake it for
+  a bug: a NightVision holder does NOT automatically read `SightFull` just
+  by holding the ability. Whether a given room's light clears the
+  SHIFTED `dimBelow` is arithmetic, not a flag check, so a holder in a
+  room whose light sits between the shifted `blindBelow` and the shifted
+  `dimBelow` reads `SightShapes`, same as an unaided observer would in an
+  ordinary dim room. `Room.LightLevel()` only ever returns 0, 60 or 70
+  today, and both nonzero values clear every possible shifted `dimBelow`
+  (60 and 70 both exceed 50, and shifting only lowers the edge further),
+  so this in-between case cannot occur in the shipped game yet; the
+  graded lighting arc's plan 3, which makes the scale continuous, makes
+  it reachable.
 - `CanSeeClearly`, `CanSeeShapes`, `CanSeeSightImpairedOnly` — each is now a
   ONE-LINE POLICY over `ParticipantSight` that composes its own attention
   rule, not three independently-implemented predicates:
@@ -308,6 +338,7 @@ The package is the pipeline, one stage per file, plus the fan-out (`trio.go`):
 | `hidenames_tagged.go` | Identity-tag-aware name replacement `HideNames` and `Anonymize` share, including the trailing adjective span |
 | `wrap.go` | `WrapAnsi`, ANSI-aware folding at a caller-supplied width measured in visible runes; called by the pipeline for the categories `shouldWrap` admits, and directly by `motd.go` for its box-bordered banner |
 | `predicates.go` | `ParticipantSight` (the optics primitive) plus `CanSeeClearly`/`CanSeeShapes`/`CanSeeSightImpairedOnly`, the one-line attention policies built on it |
+| `window.go` | `SightThroughWindow`, the pure window-model function `ParticipantSight` calls, plus its three unexported constants (`windowDazzleEdge`, `windowShiftCap`, `windowFloor`) |
 | `verbosity.go` | Per-player verbosity filtering |
 | `trio.go` | `Line`/`Trio`/`Audience`/`SendTrio` — fan-out of one narrated event to its four audiences |
 

@@ -27,8 +27,13 @@ func TestActeeDefenceLine_ThreeTierSightNotBinary(t *testing.T) {
 	})
 	defer restoreBiomes()
 
+	// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
+	// design (internal/characters/vision.go), so this fixture declares an
+	// explicit infra_reach, matching shipped condition 85, or it would
+	// stop being shapes-only in the dark at all.
 	restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
-		9001: {ConditionId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []conditions.Flag{conditions.InfraredVision}},
+		9001: {ConditionId: 9001, Name: "Test Infrared", RoundInterval: 1, TriggerCount: 1, Flags: []conditions.Flag{conditions.InfraredVision},
+			Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}}},
 	})
 	defer restoreConditions()
 

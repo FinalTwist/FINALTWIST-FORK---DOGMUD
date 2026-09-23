@@ -509,7 +509,12 @@ func GetMutationFlags(owned map[string]int) map[string]bool {
 		if spec == nil {
 			continue
 		}
-		_ = LevelMultiplier(level) // flags don't scale, but keep the pattern
+		// A flag's PRESENCE does not scale with rank, only its magnitude
+		// does (see FlagValue). This function returns presence only, so
+		// the level is read and discarded here to keep the loop shape
+		// consistent with FlagValue and sumEffects, not because rank is
+		// meaningless to flags in general.
+		_ = LevelMultiplier(level)
 		for _, p := range spec.Pros {
 			if p.Type == "flag" && p.Target != "" {
 				flags[p.Target] = true
@@ -543,6 +548,82 @@ func HasMutationFlag(owned map[string]int, flag string) bool {
 		}
 	}
 	return false
+}
+
+// FlagValue returns the strongest RANK-SCALED Value declared on any owned
+// mutation's flag effect matching flag, or 0 if no owned mutation grants it.
+//
+// HasMutationFlag answers whether the flag is present. This answers how
+// strongly, which the vision window needs: a mutation that grants night sight
+// declares how far it shifts the observer's band on the same effect entry that
+// grants the flag. MutationEffect has carried Value since it was written and
+// flag effects have always ignored it.
+//
+// This is the MAX analogue of sumEffects: same "for id, level := range owned,
+// mult := LevelMultiplier(level), Value * mult" rank scaling, but the
+// strongest scaled value wins rather than the sum, matching the MAX
+// aggregation the condition side uses so two mutations granting the same flag
+// do not stack. The comparison happens AFTER scaling (p.Value*mult, not
+// p.Value), which matters: a rank-1 mutation with a larger raw Value can lose
+// to a rank-4 mutation with a smaller raw Value once both are scaled, and
+// comparing raw values first would pick the wrong one.
+//
+// The loops are duplicated rather than factored through a shared helper with
+// sumEffects, because the two functions differ only in "+=" versus a
+// conditional "if scaled > best", and that difference is the whole point a
+// reader is meant to see; a shared helper would hide it behind a parameter.
+//
+// best starts at 0 and only rises on a strictly greater scaled value, so a
+// negative authored Value (or a negative product, impossible today since
+// LevelMultiplier never returns negative) can never pull the result below 0;
+// it can only fail to raise it above "not strengthened".
+//
+// Authored convention for a four-rank vision mutation: value: 6. At the
+// shipped multipliers in _datafiles/config.yaml (MutationLevel2Multiplier:
+// 1.6, MutationLevel3Multiplier: 2.5, MutationLevel4Multiplier: 4.0, verified
+// there directly), that authors as:
+//
+//	rank 1: 6 * 1.0 = 6
+//	rank 2: 6 * 1.6 = 9.6
+//	rank 3: 6 * 2.5 = 15
+//	rank 4: 6 * 4.0 = 24  (== windowShiftCap in internal/messaging/window.go)
+//
+// so a max-rank vision mutation reaches exactly the strongest window the
+// model allows, and nothing beyond it. This is the reference for whoever
+// authors the shapeshifter/beastform branch later.
+//
+// 🔴 A bare test binary never loads _datafiles/config.yaml (the project's
+// standing "a Go default is never a live value" trap), so LevelMultiplier
+// falls back to the Go DEFAULTS in
+// internal/configs/config.balance.progression.go (~line 198-205), which are
+// 1.5 / 2.0 / 2.5, NOT the shipped 1.6 / 2.5 / 4.0. Under those defaults
+// rank 4 with value: 6 scales to 6*2.5 = 15, not 24. A rank-4 test must pin
+// the shipped multipliers explicitly with configs.SetConfigForTest, or it
+// silently asserts the wrong number.
+func FlagValue(owned map[string]int, flag string) float64 {
+	best := 0.0
+	for id, level := range owned {
+		spec := GetMutation(id)
+		if spec == nil {
+			continue
+		}
+		mult := LevelMultiplier(level)
+		for _, p := range spec.Pros {
+			if p.Type == "flag" && p.Target == flag {
+				if scaled := p.Value * mult; scaled > best {
+					best = scaled
+				}
+			}
+		}
+		for _, c := range spec.Cons {
+			if c.Type == "flag" && c.Target == flag {
+				if scaled := c.Value * mult; scaled > best {
+					best = scaled
+				}
+			}
+		}
+	}
+	return best
 }
 
 // GetCompanionReserveRank returns the highest owned rank among mutations that

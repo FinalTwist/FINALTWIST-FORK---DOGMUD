@@ -48,12 +48,25 @@ const (
 
 // verdictObserver builds a fresh *characters.Character carrying the flags one
 // of the eight optics_pin_test.go rows asks for.
+//
+// GRADED LIGHTING PLAN 2. The infrared fixture declares an explicit
+// infra_reach (matching shipped condition 85's authored 30; see
+// internal/characters/vision.go), not a bare flag. A bare InfraredVision
+// flag reads reach 0 by design, so without a declared reach this fixture
+// would stop demonstrating infrared reading shapes in the dark, which is
+// exactly the row (M4d PR 2's reduced darkness penalty) this file exists to
+// pin.
 func verdictObserver(t *testing.T, nightVision, infraredVision, asleep, blind bool) *characters.Character {
 	t.Helper()
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
-		verdictInfraredConditionId: {ConditionId: verdictInfraredConditionId, Name: "Test Infrared", Flags: []conditions.Flag{conditions.InfraredVision}},
-		verdictNightConditionId:    {ConditionId: verdictNightConditionId, Name: "Test Night", Flags: []conditions.Flag{conditions.NightVision}},
-		verdictSleepConditionId:    {ConditionId: verdictSleepConditionId, Name: "Test Sleep", Flags: []conditions.Flag{conditions.Sleeping}},
+		verdictInfraredConditionId: {
+			ConditionId: verdictInfraredConditionId,
+			Name:        "Test Infrared",
+			Flags:       []conditions.Flag{conditions.InfraredVision},
+			Effects:     map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}},
+		},
+		verdictNightConditionId: {ConditionId: verdictNightConditionId, Name: "Test Night", Flags: []conditions.Flag{conditions.NightVision}},
+		verdictSleepConditionId: {ConditionId: verdictSleepConditionId, Name: "Test Sleep", Flags: []conditions.Flag{conditions.Sleeping}},
 	}))
 	c := characters.New()
 	if nightVision {
@@ -99,7 +112,12 @@ func TestDarknessPenaltyVerdictMatchesOldBoolean(t *testing.T) {
 	}{
 		{name: "lit, ordinary", lit: true, wantOldImpairedOnly: true},
 		{name: "dark, no vision", wantOldImpairedOnly: false},
-		{name: "dark, nightvision", nightVision: true, wantOldImpairedOnly: true},
+		// GRADED LIGHTING PLAN 2 moved this row (see
+		// internal/messaging/optics_pin_test.go): a shifted window is still
+		// blind below its floor at light 0, no matter the shift, so a
+		// nightvision-only holder no longer reads SightFull in a pitch dark
+		// room and now DOES take the darkness penalty.
+		{name: "dark, nightvision", nightVision: true, wantOldImpairedOnly: false},
 		{name: "dark, infrared only", infraredVision: true, wantOldImpairedOnly: false},
 		{name: "blind in a lit room", blind: true, lit: true, wantOldImpairedOnly: false},
 		{name: "blind with infrared", blind: true, infraredVision: true, wantOldImpairedOnly: false},
