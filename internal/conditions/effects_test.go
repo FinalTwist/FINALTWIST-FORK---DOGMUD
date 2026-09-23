@@ -288,14 +288,27 @@ func TestSeedConditionRecordsForTestIsAdditiveAndReversible(t *testing.T) {
 	}
 }
 
-// A kind classified as both a multiplier and a cap would double-count in
-// Effect's switch (multiplier branch always wins), silently dropping it from
-// the cap aggregation. This keeps a future kind added to only one list from
-// failing silently instead of loudly.
+// A kind classified under more than one of Effect's aggregation predicates
+// would double-count in its switch (the first matching case always wins),
+// silently dropping the kind from whichever mode its other predicate would
+// have produced. Counting how many predicates match, rather than checking
+// pairs by hand, is what makes this test's name true: it covers every
+// predicate Effect dispatches on, including one added after this test was
+// written, without needing a new pairwise check bolted on each time.
 func TestEveryEffectKindIsClassifiedExactlyOnce(t *testing.T) {
 	for _, k := range AllEffectKinds {
-		if k.isMultiplier() && k.isCap() {
-			t.Fatalf("effect kind %q is classified as both a multiplier and a cap", k)
+		matches := 0
+		if k.isMultiplier() {
+			matches++
+		}
+		if k.isCap() {
+			matches++
+		}
+		if k.isMax() {
+			matches++
+		}
+		if matches > 1 {
+			t.Fatalf("effect kind %q matches %d aggregation predicates, want at most 1", k, matches)
 		}
 	}
 }

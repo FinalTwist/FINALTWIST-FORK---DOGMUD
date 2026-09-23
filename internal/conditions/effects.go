@@ -87,6 +87,16 @@ func (v EffectValue) MarshalYAML() (interface{}, error) {
 
 // validateEffects refuses an unknown key and a magnitude-bound tick without a
 // pool. It is called from ConditionSpec.Validate.
+//
+// It deliberately adds no range rule for EffectNightVisionStrength or
+// EffectInfraReach. An EffectValue with UsesMagnitude set is not a number
+// until AddConditionMagnitude or stack summation set the record's Magnitude
+// at runtime, so a load-time check here could only ever catch a
+// literal-declared instance, never a magnitude-declared one, which is
+// partial coverage not worth the drift risk. The real clamp lives in
+// SightThroughWindow (internal/messaging/window.go), which floors both
+// numbers at zero and caps strength at windowShiftCap; a second copy here
+// would only be able to disagree with that one, not replace it.
 func (b *ConditionSpec) validateEffects() error {
 	keys := make([]string, 0, len(b.Effects))
 	for k := range b.Effects {
