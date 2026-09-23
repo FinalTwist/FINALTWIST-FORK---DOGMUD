@@ -8,16 +8,16 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
-// TestRoomIsLit pins Task 6a's new room-level predicate: IsLit() is true iff
-// the room's CURRENT LightLevel() is at or above LightBlindBelow. It is
-// defined purely against LightLevel, so this test deliberately reuses the
-// same two fixtures TestLightLevelMapsTheOldModel already proves land on
-// LightDark and LightFull, rather than asserting anything new about the
-// light model itself.
+// TestRoomIsLit pins the room-level predicate: IsLit() is true iff the room's
+// CURRENT LightLevel() is at or above LightBlindBelow. It is defined purely
+// against LightLevel, so it asserts nothing about the light model itself; the
+// model's own arithmetic is pinned by lighting_model_test.go and its shipped
+// numbers by testdata/lighting_daycycle.golden.
 //
-// See TestLightLevelMapsTheOldModel's doc comment above for why Timing and
-// the round count must both be pinned explicitly (gametime.IsNight() and
-// GetBiome() otherwise read ambient test-binary state), and why
+// Timing and the round count must both be pinned explicitly, because
+// gametime.IsNight() and GetBiome() otherwise read ambient test-binary state:
+// a bare binary loads Go defaults, and the day/night boundary now derives from
+// WorldLatitude, so an unpinned round is whatever the ambient counter says. And
 // gametime.ClearDateCacheForTest() is called before sampling: the
 // round->date cache is keyed only on the round number, not on Timing
 // config, so a round another test in this package already asked about would

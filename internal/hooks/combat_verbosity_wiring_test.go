@@ -373,7 +373,7 @@ func TestCombatVerbosityWiring(t *testing.T) {
 		spectator.CombatVerbosity = "medium" // → effective light tier
 
 		// Make room 2 dark by setting the cave biome (SkyLight 0.0 →
-		// LightLevel() == LightDark → CanSeeClearly returns false).
+		// LightLevel() == 0 → CanSeeClearly returns false).
 		room1 := rooms.LoadRoom(1)
 		room2 := rooms.LoadRoom(2)
 		require.NotNil(t, room1)
