@@ -743,14 +743,23 @@ In `internal/configs/config.balance.go`, immediately after
 	// and noon height all derive from it, which is why no seasonal noon-peak
 	// table exists. DOGMud ships 46.5, mirroring Washington State.
 	//
-	// 🔑 ZERO IS HONOURED and means "this world has no latitude": night length
-	// falls back to the Timing.NightHours knob, preserving upstream GoMud
-	// behaviour for anyone who has not set a latitude. Out-of-range reverts.
+	// 🔑 ZERO MEANS UNSET and is coerced to the default, the same idiom as
+	// LightDefaultVisionStrength. Out-of-range reverts.
+	//
+	// 🔴 CORRECTED 2026-09-23 after this task ran. An earlier draft honoured
+	// zero as "this world has no latitude", falling back to Timing.NightHours.
+	// That could not work: Go cannot distinguish an unset float from an
+	// authored zero, and none of these knobs appear in config.yaml, so the
+	// SHIPPED configuration is a bare Balance. Honouring zero would have
+	// shipped DOGMud at no latitude, with a flat night, no seasons, and this
+	// entire model unreachable. There is now NO path from day length back to
+	// Timing.NightHours. An operator wanting an equator-like world authors a
+	// latitude near zero, such as 0.001.
 	//
 	// ⚠️ Beyond about 66 degrees this produces days with no sunrise and days
 	// with no sunset. The model handles both (the half-day angle clamps), but
 	// it is almost certainly not what an operator intended.
-	WorldLatitude ConfigFloat `yaml:"WorldLatitude"` // Degrees north; 0 disables latitude and falls back to NightHours (default 46.5)
+	WorldLatitude ConfigFloat `yaml:"WorldLatitude"` // Degrees north; 0 means unset and is coerced (default 46.5)
 
 	// LightEquinoxNoon calibrates the sun: it is the light at noon on an
 	// equinox, which is the one moment the geometry pins exactly, because
@@ -805,13 +814,11 @@ In `internal/configs/config.balance.lighting.go`, append inside `validateLightin
 		b.LightDoublingStep = 8
 	}
 
-	// WorldLatitude: zero is HONOURED and means "no latitude, use NightHours".
-	// Only genuinely impossible values revert. This is the opposite convention
-	// from LightDefaultVisionStrength, where zero means "unset", and the
-	// difference is deliberate: an equatorial world is a real thing to want,
-	// and it happens to be exactly what falling back to a flat NightHours
-	// produces.
-	if b.WorldLatitude < -90 || b.WorldLatitude > 90 {
+	// WorldLatitude: zero means UNSET and is coerced, the LightDefaultVisionStrength
+	// idiom. Out-of-range reverts. 🔴 CORRECTED 2026-09-23: honouring zero would
+	// have shipped DOGMud at no latitude, because the shipped config is a bare
+	// Balance. See the field comment.
+	if b.WorldLatitude < -90 || b.WorldLatitude > 90 || b.WorldLatitude == 0 {
 		b.WorldLatitude = 46.5
 	}
 
@@ -1411,7 +1418,8 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 `ReCalculate` currently splits `NightHoursPerDay` in half around midnight. It
 must instead derive night length from the latitude on the current day of the
-year, falling back to `NightHours` when the latitude is zero.
+year. 🔴 The `NightHours` fallback an earlier draft described is DELETED; see
+the correction in Task 3.
 
 ⚠️ **`ReCalculate` computes `day` AFTER the night block today.** The night block
 now needs the day of the year, so the day computation moves up. Do this carefully
@@ -1468,20 +1476,51 @@ func TestNightLengthVariesWithTheSeason(t *testing.T) {
 	}
 }
 
-// Latitude zero must reproduce the shipped flat model exactly, so an operator
-// who has not set a latitude sees no change at all.
-func TestZeroLatitudeFallsBackToNightHours(t *testing.T) {
-	pinTiming(t, 0)
+// 🔴 REPLACES TestZeroLatitudeFallsBackToNightHours, deleted 2026-09-23.
+// There is no NightHours fallback any more: zero is coerced to the default in
+// validation, because the shipped config is a bare Balance and honouring zero
+// would have shipped DOGMud with a flat night and no seasons.
+//
+// A near-equatorial latitude is the replacement for that behaviour, and gives
+// a flat twelve-hour night all year, which is what an operator asking for "no
+// seasons" actually wants.
+func TestNearEquatorialLatitudeGivesAFlatTwelveHourNight(t *testing.T) {
+	pinTiming(t, 0.001)
 	original := util.GetRoundCount()
 	t.Cleanup(func() { util.SetRoundCount(original) })
 
 	for _, doy := range []int{1, 81, 172, 356} {
+		// Night runs 18:00 to 06:00 at twelve hours, so 03:00 is night and
+		// 09:00 is day, on every day of the year.
 		if gd := GetDate(roundFor(doy, 3)); !gd.Night {
-			t.Errorf("day %d 03:00 reported day; NightHours 8 puts night from 20:00 to 04:00", doy)
+			t.Errorf("day %d 03:00 reported day under a flat twelve-hour night", doy)
 		}
-		if gd := GetDate(roundFor(doy, 5)); gd.Night {
-			t.Errorf("day %d 05:00 reported night under the flat fallback", doy)
+		if gd := GetDate(roundFor(doy, 9)); gd.Night {
+			t.Errorf("day %d 09:00 reported night under a flat twelve-hour night", doy)
 		}
+	}
+}
+
+// 🔴 The load-bearing test of this task. The shipped config is a bare Balance,
+// so if validation ever stops coercing a zero latitude, DOGMud runs with no
+// seasons and every other test here still passes because they all pin a
+// latitude explicitly. This one deliberately does not.
+func TestShippedConfigHasASeasonalNight(t *testing.T) {
+	c := configs.GetConfig()
+	c.Timing.RoundsPerDay = 900
+	c.Timing.RoundSeconds = 4
+	c.Timing.Validate()
+	c.Balance.Validate() // no latitude authored: this is what ships
+	configs.SetConfigForTest(t, c)
+
+	original := util.GetRoundCount()
+	t.Cleanup(func() { util.SetRoundCount(original) })
+
+	winter := GetDate(roundFor(356, 5)).Night
+	summer := GetDate(roundFor(172, 5)).Night
+	if winter == summer {
+		t.Fatalf("05:00 reads the same in midwinter and midsummer (both night=%v); "+
+			"the shipped config has no seasonal night, so WorldLatitude defaulted to zero", winter)
 	}
 }
 
@@ -1505,7 +1544,7 @@ func TestMidnightIsAlwaysNightAndNoonAlwaysDay(t *testing.T) {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `go test ./internal/gametime/... -run 'NightLength|ZeroLatitude|MidnightIsAlways' -v`
+Run: `go test ./internal/gametime/... -run 'NightLength|NearEquatorial|ShippedConfig|MidnightIsAlways' -v`
 Expected: FAIL. `TestNightLengthVariesWithTheSeason` fails both assertions,
 because night is a fixed 20:00 to 04:00 today.
 
@@ -1537,9 +1576,11 @@ because the night length now depends on the day of the year:
 	}
 
 	// Night length is derived from the world's latitude on this day of the
-	// year. A latitude of zero means "this world has no latitude", and falls
-	// back to the flat Timing.NightHours knob, which is upstream GoMud's model
-	// and what an operator who has set no latitude still gets.
+	// year. 🔴 CORRECTED 2026-09-23: there is NO NightHours fallback. Zero is
+	// coerced to the default in validation, because the shipped config is a
+	// bare Balance and honouring zero would have shipped a flat night with no
+	// seasons. Timing.NightHours is no longer read for the day/night boundary
+	// at all; it stays only for upstream compatibility.
 	//
 	// The hour used here is FRACTIONAL, unlike the integer `hour` above,
 	// because a latitude-derived night boundary lands at 07:49, not 08:00.
@@ -1547,10 +1588,7 @@ because the night length now depends on the day of the year:
 	// nearest hour and lose up to half an hour of night at each end.
 	hourOfDay := float64(roundOfDay) / float64(g.RoundsPerDay) * 24
 
-	nightHours := float64(g.NightHoursPerDay)
-	if latitude := configs.GetLightingConfig().WorldLatitude; latitude != 0 {
-		nightHours = NightHoursAt(latitude, int(day))
-	}
+	nightHours := NightHoursAt(configs.GetLightingConfig().WorldLatitude, int(day))
 	halfNight := nightHours / 2
 	nightStartHour := 24 - halfNight
 	nightEndHour := halfNight
@@ -1593,12 +1631,13 @@ that use it:
 	// disagree with whether it is currently night. Fact from the spec: no
 	// shipped data uses a sunrise or sunset decayrate today, so this path is
 	// exercised only by the admin time-jump commands and the time command.
-	nightHoursPerDay := float64(c.NightHours)
-	if latitude := configs.GetLightingConfig().WorldLatitude; latitude != 0 {
-		dayOfYear := int(roundNumber/roundsPerDay)%365 + 1
-		nightHoursPerDay = NightHoursAt(latitude, dayOfYear)
-	}
+	dayOfYear := int(roundNumber/roundsPerDay)%365 + 1
+	nightHoursPerDay := NightHoursAt(configs.GetLightingConfig().WorldLatitude, dayOfYear)
 ```
+
+⚠️ `c` (the `Timing` config) may now be unused in this function, or used only
+for `RoundsPerDay`. Check and remove the dead read if so; `go vet` will not
+catch an unused struct field read.
 
 and in the two arms replace `float64(nightHoursPerDay)` with `nightHoursPerDay`.
 
@@ -1637,8 +1676,10 @@ ReCalculate derives night length from WorldLatitude on the current day of the
 year instead of splitting a flat NightHours around midnight. At 46.5 degrees
 midwinter night is 15h37m and midsummer 8h23m, against a flat 8h all year.
 
-Latitude zero falls back to NightHours exactly, so an operator who has set no
-latitude sees no change and upstream GoMud behaviour is preserved.
+Zero latitude means unset and coerces to the default, because the shipped
+config is a bare Balance and honouring zero would have shipped a flat night
+with no seasons. Timing.NightHours is no longer read for the day/night
+boundary; an operator wanting a seasonless world authors a latitude near zero.
 
 The day-of-year computation moved ABOVE the night block, because night length
 now depends on it. The Night boolean is computed from fractional hours rather

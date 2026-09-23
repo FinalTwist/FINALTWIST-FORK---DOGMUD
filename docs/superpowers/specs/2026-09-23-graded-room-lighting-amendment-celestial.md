@@ -51,7 +51,7 @@ Every row read from the tree on 2026-09-23. Nothing here is recalled.
 | Seasonal noon peak 78 / 70 / 62, delivered by season mutators | **Derived from `WorldLatitude`.** The peak table and the mutator delivery are deleted before being built | One astronomical input produces day length and noon height together. Two independent knobs could contradict each other |
 | Weather multiplies the celestial term | **Unchanged in intent, but a multiplier is a subtraction on a log scale.** Biome shade, roofs and weather are one operator | Collapses plan 4's occlusion into a term plan 3 already built |
 | Biomes carry `darkarea` / `litarea` booleans | **Deleted.** Replaced by a per-biome `skylight` fraction and a per-room `lamp` value | Fact 6: the booleans hold 62% of the world permanently lit, and cannot express "dim gold" versus "street lantern" |
-| `NightHours` sets the day/night boundary | **Demoted to the fallback used only when `WorldLatitude` is zero** | Keeps upstream behaviour mergeable while latitude drives DOGMud |
+| `NightHours` sets the day/night boundary | **No longer read for the day/night boundary at all.** `WorldLatitude` always drives it | 🔴 See the correction below. The fallback this row originally described was incoherent |
 | (plan 5) A light source trims to avoid dazzling its bearer | 🅾️ **Darkness sources trim symmetrically**, to the bottom of the bearer's usable band | Owner ruling. See "Plan 5 amendment" |
 
 ---
@@ -104,6 +104,31 @@ removes a special case rather than adding one.
 🔑 **Two knobs disappear.** The flatness exponent is gone, because `sin` is
 already flat near its peak. The seasonal peak table is gone, because noon height
 falls out of declination.
+
+🔴 **CORRECTION, 2026-09-23, found while implementing.** This spec originally
+demoted `NightHours` to "the fallback used only when `WorldLatitude` is zero".
+**That could not work, and would have made this entire model unreachable.**
+
+Go cannot distinguish an unset float from an authored zero, and fact 17 says
+none of the lighting knobs appear in `config.yaml`, so **the shipped
+configuration is a bare `Balance`, whose `WorldLatitude` is zero.** Honouring
+zero would therefore have shipped DOGMud at no latitude: a flat eight-hour
+night, no seasons, and every line of the celestial model built, wired and never
+once reached. It was verified by probe rather than argued: a bare `Balance`
+validates to `WorldLatitude = 0`.
+
+**Zero therefore means UNSET and coerces to 46.5**, the `LightDefaultVisionStrength`
+idiom, and the `NightHours` fallback is **deleted rather than repaired**. There
+is no path from day length back to `Timing.NightHours`; that knob stays for
+upstream compatibility but nothing reads it for the day/night boundary. An
+operator wanting an equator-like world of twelve-hour nights all year authors a
+latitude near zero, such as 0.001.
+
+🪤 **The general lesson, which applies to every knob this arc adds:** a "zero
+means disabled" convention is only safe for a knob that ships a value in
+`config.yaml`. For a knob that runs on Go defaults, zero *is* the shipped value,
+so "disabled" and "unset" are the same state and the disabled branch is what
+ships.
 
 At 46.5°, calibrating equinox noon to 🅾️ **70**:
 
