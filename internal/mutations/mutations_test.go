@@ -3,6 +3,7 @@ package mutations
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/species"
 	"github.com/stretchr/testify/assert"
 )
@@ -969,6 +970,98 @@ func TestFlagValueArithmeticTakesTheLargerNotTheSum(t *testing.T) {
 
 	if got := FlagValue(owned, "nightvision"); got != 18 {
 		t.Fatalf("FlagValue must take the larger held value 18, not the sum 28: got %v", got)
+	}
+}
+
+// TestFlagValueScalesByRank pins that a mutation's rank changes its FlagValue
+// strength, following the authored convention documented on FlagValue: a
+// four-rank vision mutation ships value: 6, and at the shipped multipliers
+// (MutationLevel2Multiplier: 1.6, MutationLevel3Multiplier: 2.5,
+// MutationLevel4Multiplier: 4.0, read from _datafiles/config.yaml) rank 4
+// lands exactly on windowShiftCap (24, internal/messaging/window.go).
+//
+// Multipliers are pinned explicitly via configs.SetConfigForTest, following
+// the precedent in internal/rooms/lighting_test.go, rather than left to
+// whatever the test binary's ambient Go defaults resolve to. A bare test
+// binary never loads config.yaml, and the Go defaults in
+// internal/configs/config.balance.progression.go (1.5 / 2.0 / 2.5) would
+// silently produce 6*2.5=15 at rank 4 instead of 24.
+func TestFlagValueScalesByRank(t *testing.T) {
+	cfg := configs.GetConfig()
+	cfg.Balance.MutationLevel2Multiplier = 1.6
+	cfg.Balance.MutationLevel3Multiplier = 2.5
+	cfg.Balance.MutationLevel4Multiplier = 4.0
+	configs.SetConfigForTest(t, cfg)
+
+	prev := allMutations
+	defer func() { allMutations = prev }()
+	allMutations = map[string]*MutationSpec{
+		"testmut-graded-nightsight": {
+			MutationId: "testmut-graded-nightsight",
+			Name:       "Test Graded Nightsight",
+			Rarity:     1,
+			Pros: []MutationEffect{
+				{Type: "flag", Target: "nightvision", Value: 6},
+			},
+		},
+	}
+
+	rank1 := FlagValue(map[string]int{"testmut-graded-nightsight": 1}, "nightvision")
+	if rank1 != 6 {
+		t.Errorf("rank 1: FlagValue = %v, want 6 (value 6 x multiplier 1.0)", rank1)
+	}
+
+	rank4 := FlagValue(map[string]int{"testmut-graded-nightsight": 4}, "nightvision")
+	if rank4 != 24 {
+		t.Errorf("rank 4: FlagValue = %v, want 24 (value 6 x multiplier 4.0)", rank4)
+	}
+
+	if rank4 <= rank1 {
+		t.Errorf("rank 4 (%v) must be stronger than rank 1 (%v)", rank4, rank1)
+	}
+}
+
+// TestFlagValueComparesScaledNotRawAcrossMutations builds two mutations whose
+// RAW Values disagree with their SCALED strengths and proves FlagValue
+// compares after scaling, not before. Mutation A authors the bigger raw value
+// at rank 1 (10 x 1.0 = 10); mutation B authors the smaller raw value at rank
+// 4 (6 x 4.0 = 24, the shipped multiplier pinned below). The larger raw value
+// loses; the larger scaled value wins. A naive implementation that finds the
+// larger raw Value and scales only that winner afterward would return 10, not
+// 24 -- proving that failure mode is the whole point of this test.
+func TestFlagValueComparesScaledNotRawAcrossMutations(t *testing.T) {
+	cfg := configs.GetConfig()
+	cfg.Balance.MutationLevel4Multiplier = 4.0
+	configs.SetConfigForTest(t, cfg)
+
+	prev := allMutations
+	defer func() { allMutations = prev }()
+	allMutations = map[string]*MutationSpec{
+		"testmut-bigger-raw-lower-rank": {
+			MutationId: "testmut-bigger-raw-lower-rank",
+			Name:       "Test Bigger Raw Lower Rank",
+			Rarity:     1,
+			Pros: []MutationEffect{
+				{Type: "flag", Target: "nightvision", Value: 10},
+			},
+		},
+		"testmut-smaller-raw-max-rank": {
+			MutationId: "testmut-smaller-raw-max-rank",
+			Name:       "Test Smaller Raw Max Rank",
+			Rarity:     1,
+			Pros: []MutationEffect{
+				{Type: "flag", Target: "nightvision", Value: 6},
+			},
+		},
+	}
+
+	owned := map[string]int{
+		"testmut-bigger-raw-lower-rank": 1,
+		"testmut-smaller-raw-max-rank":  4,
+	}
+
+	if got := FlagValue(owned, "nightvision"); got != 24 {
+		t.Fatalf("FlagValue must compare SCALED values (10 vs 24) and return the larger scaled value 24, got %v", got)
 	}
 }
 
