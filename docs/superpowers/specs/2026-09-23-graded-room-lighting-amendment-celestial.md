@@ -355,7 +355,39 @@ occasional mistake the player makes, it is the default outcome of drinking at th
 start of the night. Plan 5 should decide deliberately between three answers and
 not discover this at playtest: shorten the duration below the shortest night,
 give the draught a cancel verb, or accept the overhang as the cost and say so in
-the item description. 🅾️ **Not decided here.**
+the item description.
+
+🅾️ **Owner ruling: accept the overhang, and say so on the tin.** The duration is
+not shortened and no cancel verb is added. Every grant of a vision ability states
+its daylight cost in the text the player reads.
+
+🔑 **The cost differs per grant, so the text must be specific rather than
+boilerplate.** A shifted window's dazzle edge is `windowDazzleEdge − strength`:
+
+| Grant | Strength | Dazzle edge | Player-visible? |
+|---|---|---|---|
+| Cat's Eye Draught, condition 65 + item 30047 | 24 | **51** | Yes. Today the only player path |
+| Night Vision, condition 29 | 18 | **57** | Visible, but admin `setcondition` only |
+| InfraredVision, condition 85 | 12 | **63** | No, `secret: true`. Five cave mobs |
+
+Against a daylight range of 62 to 73, the draught is dazzled through all of
+daylight, condition 29 through nearly all of it, and condition 85 only around
+midday in summer. A cave mob permanently dazzled by daylight is correct flavour
+and needs no text, since it is secret and mobs read nothing.
+
+**Mutations: none today.** No mutation grants either vision flag; the only three
+data files mentioning them are conditions 29, 65 and 85. Plan 2 built
+`mutations.FlagValue` as groundwork for the parked shapeshifter branch, so this
+is written as a **standing convention rather than a one-off edit**: any future
+mutation that grants a vision ability states its daylight cost in its
+description, at the strength that mutation actually confers after
+`LevelMultiplier(rank)` scaling.
+
+⚠️ **The text lands in plan 5, not plan 3.** Dazzle has no mechanical effect until
+plan 5 builds it, and a description that promises a penalty the game does not yet
+apply is a lie to the player. Plan 3 records the convention; plan 5 writes the
+words in the same slice that gives dazzle teeth, and applies it to the nightvision
+spell, infravision spell and infravision potion it authors.
 
 ---
 
