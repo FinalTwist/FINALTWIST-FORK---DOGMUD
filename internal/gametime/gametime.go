@@ -198,13 +198,34 @@ func (g *GameDate) ReCalculate() {
 	hour := int(hourFloat)
 	hour24 := hour
 
-	night := false
-	halfNight := int(math.Floor(float64(g.NightHoursPerDay) / 2))
-	nightStart := 24 - halfNight
-	nightEnd := int(g.NightHoursPerDay) - halfNight
-	if hour >= nightStart || hour < nightEnd {
-		night = true
+	// Day of the year must be known before night length, because night length
+	// is seasonal. This block was BELOW the night block before the celestial
+	// model landed; it moved up for that reason and must stay here.
+	day := math.Floor(float64(currentRoundAdjusted)/float64(g.RoundsPerDay)) + 1
+	year := math.Ceil(day / 365)
+	if year > 1 {
+		day -= math.Floor((year - 1) * 365)
 	}
+
+	// Night length is derived from the world's latitude on this day of the
+	// year. 🔴 CORRECTED 2026-09-23: there is NO NightHours fallback. Zero is
+	// coerced to the default in validation, because the shipped config is a
+	// bare Balance and honouring zero would have shipped a flat night with no
+	// seasons. Timing.NightHours is no longer read for the day/night boundary
+	// at all; it stays only for upstream compatibility.
+	//
+	// The hour used here is FRACTIONAL, unlike the integer `hour` above,
+	// because a latitude-derived night boundary lands at 07:49, not 08:00.
+	// Comparing an integer hour against it would round the boundary to the
+	// nearest hour and lose up to half an hour of night at each end.
+	hourOfDay := float64(roundOfDay) / float64(g.RoundsPerDay) * 24
+
+	nightHours := NightHoursAt(configs.GetLightingConfig().WorldLatitude, int(day))
+	halfNight := nightHours / 2
+	nightStartHour := 24 - halfNight
+	nightEndHour := halfNight
+
+	night := hourOfDay >= nightStartHour || hourOfDay < nightEndHour
 
 	ampm := `AM`
 	if hour >= 12 {
@@ -218,12 +239,6 @@ func (g *GameDate) ReCalculate() {
 
 	minute := math.Floor(minutesFloat * 60)
 
-	day := math.Floor(float64(currentRoundAdjusted)/float64(g.RoundsPerDay)) + 1
-	year := math.Ceil(day / 365)
-
-	if year > 1 {
-		day -= math.Floor((year - 1) * 365)
-	}
 	week := math.Floor(float64(day) / 7)
 
 	month := 1 + math.Floor((day*24)/730) // 730 hours in a "month" (24 hours * 365 days / 12 months)
@@ -239,8 +254,11 @@ func (g *GameDate) ReCalculate() {
 	g.AmPm = ampm
 	g.Night = night
 
-	g.NightStart = nightStart
-	g.DayStart = nightEnd
+	// NightStart and DayStart are display values (GameDate.String's dusk check
+	// and the time command), so they round to the nearest hour. The Night
+	// boolean above is computed from the unrounded boundaries.
+	g.NightStart = int(math.Round(nightStartHour))
+	g.DayStart = int(math.Round(nightEndHour))
 }
 
 func (g GameDate) Add(adjustHours int, adjustDays int, adjustYears int) GameDate {
@@ -508,7 +526,13 @@ func GetLastPeriod(periodName string, roundNumber uint64) uint64 {
 	c := configs.GetTimingConfig()
 
 	roundsPerDay := uint64(c.RoundsPerDay)
-	nightHoursPerDay := uint64(c.NightHours)
+
+	// Night length here must match ReCalculate's, or "the last sunrise" will
+	// disagree with whether it is currently night. Fact from the spec: no
+	// shipped data uses a sunrise or sunset decayrate today, so this path is
+	// exercised only by the admin time-jump commands and the time command.
+	dayOfYear := int(roundNumber/roundsPerDay)%365 + 1
+	nightHoursPerDay := NightHoursAt(configs.GetLightingConfig().WorldLatitude, dayOfYear)
 
 	roundsPerHour := float64(roundsPerDay) / 24
 
@@ -552,14 +576,14 @@ func GetLastPeriod(periodName string, roundNumber uint64) uint64 {
 
 	} else if periodName == `sunrise` { // last sunrise
 
-		roundNumber -= roundOfDay                                                       // Strip rounds of today off
-		roundNumber -= uint64(roundsPerDay)                                             // Subtract a day
-		roundNumber += uint64(math.Ceil(float64(nightHoursPerDay) / 2 * roundsPerHour)) // add half a night
+		roundNumber -= roundOfDay                                              // Strip rounds of today off
+		roundNumber -= uint64(roundsPerDay)                                    // Subtract a day
+		roundNumber += uint64(math.Ceil(nightHoursPerDay / 2 * roundsPerHour)) // add half a night
 
 	} else if periodName == `sunset` { // 12am of next day, minus half of night
 
-		roundNumber -= roundOfDay                                                       // Strip rounds of today off
-		roundNumber -= uint64(math.Ceil(float64(nightHoursPerDay) / 2 * roundsPerHour)) // Subtract half a night
+		roundNumber -= roundOfDay                                              // Strip rounds of today off
+		roundNumber -= uint64(math.Ceil(nightHoursPerDay / 2 * roundsPerHour)) // Subtract half a night
 
 	}
 
