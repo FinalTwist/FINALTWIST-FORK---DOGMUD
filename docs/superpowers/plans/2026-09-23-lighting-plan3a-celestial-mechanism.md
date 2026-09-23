@@ -57,6 +57,19 @@ Before deleting any exported method or field, grep `_datafiles/**/templates/`
 for its name as well as the Go tree. This arc leans on delete-and-enumerate
 throughout, and this is the one consumer it cannot catch.
 
+🪤 🔴 **AND THE TEMPLATE PACKAGE SHADOWS `lt`, `lte` AND `gte` WITH
+INT-ONLY VERSIONS.** `internal/templates/templatesfunctions.go` overrides those
+three builtins, so `{{ if lt .SomeFloat 0.5 }}` fails at RENDER TIME with
+"wrong type for value; expected int; got float64". `le` and `ge` are NOT
+shadowed and work on floats.
+
+Found the hard way in Task 6b, whose first rewrite of `biome.template` used
+`lt` on a sky fraction. Build green, vet green, every test green, and the
+`biome` command broken for every player. **The only way to catch this class is
+to RENDER the template in a test.** Task 6b wrote a throwaway test that
+rendered all seven shipped shapes; do the same for any template edit touching a
+float.
+
 🪤 **Three goldens are already in play**: `testdata/lighting_parity.golden`,
 `internal/narration/testdata/stores/conditions.golden`, and
 `internal/hooks/darkness_narration.golden`. This plan adds a fourth and retires
