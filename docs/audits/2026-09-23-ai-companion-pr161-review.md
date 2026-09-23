@@ -66,7 +66,7 @@ document.
 | 8 | **Moderation on by default, and the fail-open fixed** | `moderate` gains an `error` return so an outage is distinguishable from a clean pass. See S8 |
 | 9 | **Full disabled-path fix**, including the help templates | Nothing visible with the module off. See S12 |
 | 10 | **An instance-keyed opinion store**, as its own engine task | The real fix for S11, and explicitly not a blocker on this PR |
-| 11 | **Companion opinion does not decay** | Deliberate, and it needs writing down rather than leaving as an omission. See S11 |
+| 11 | **Whether companion opinion decays is FinalTwist's call** | Engine NPCs already decay, but glacially: one point per 4.6 days at the shipped default. All three answers are the same knob at different values, so nothing is blocked either way. See S11 |
 
 **Sequence for the contributor:** the `ask.go` PR now, then blockers S1 to S6 on
 the branch while the code is fresh, then hold. Do not ask for the consent,
@@ -76,9 +76,8 @@ rewrite for nothing. Tell him plainly that the wait is our arc, not his code.
 ### Numbers these decisions imply
 
 These are `config.yaml` knobs, so they are retunable later without a code change,
-per `dogmud-balance-config`. Two are settled and three are delegated to the
-contributor, who works with API pricing far more than we do; see "Calls we are
-asking FinalTwist to make" below.
+per `dogmud-balance-config`. Two are settled and four are delegated to the
+contributor; see "Calls we are asking FinalTwist to make" below.
 
 | Knob | Value | Status |
 |---|---|---|
@@ -87,12 +86,14 @@ asking FinalTwist to make" below.
 | `DeepModel` | to be chosen | **His call.** Must stop the logout reflection auto-selecting `gpt-5.5` at `models.go:254`; which model replaces it is his |
 | Non-owner daily ask cap | to be chosen | **His call.** The cooldown alone lets a patient attacker spend all day; the cap is what bounds the spend |
 | Whether `50000` is the right order of magnitude | to be confirmed | **His call.** We have set it; he has the measurement |
+| Companion opinion decay | to be chosen | **His call.** Inherit the engine's `100000`, pick something slower, or `0` for never. All three work today |
 
 ### Calls we are asking FinalTwist to make
 
-We are setting the policy and the defaults. These three are judgement calls where
-he has information we do not, and we would rather he decided them than guessed at
-what we wanted. Each is a config value, so none of them blocks any code work.
+We are setting the policy and the defaults. These four are judgement calls where
+he has information we do not, three on cost and one on his character's temper,
+and we would rather he decided them than guessed at what we wanted. Each is a
+config value, so none of them blocks any code work.
 
 1. **Is `DailyTokensPerCompanion: 50000` the right order of magnitude?** We picked
    it from the global pool, not from measurement. What does a main-tier dispatch
@@ -112,8 +113,21 @@ what we wanted. Each is a config value, so none of them blocks any code work.
    we chose throttling over an owner-only gate, and low enough that a griefer with
    a 30 second cooldown cannot walk through a companion's 50,000 tokens in an
    afternoon. He knows better than we do what a normal social exchange costs.
+4. **Should a companion's opinion of someone decay, and how fast?** Every other
+   mob in the game already forgives on a shared knob,
+   `DispositionDecayHalfLifeRounds`; the module's own store has no decay path at
+   all, so right now a bonded companion remembers a slight forever while a
+   shopkeeper does not. This is a character question more than a mechanical one
+   and it is his character, so it is his call. The three options are the same
+   knob at different values and none of them needs new code:
 
-If any of the three argues for changing a decision above rather than just filling
+   | Option | Value | What it feels like |
+   |---|---|---|
+   | Same as every other mob | inherit `100000` | One point of forgiveness per 4.6 days of world time. A -70 grudge clears in roughly 324 days. Already close to permanent in practice |
+   | Slower than other mobs | a larger number | A companion has a real relationship and remembers longer than a shopkeeper does |
+   | Never | `0` | `decayedScore` returns the score unchanged at zero, so this is supported today. A companion never forgets anything, ever |
+
+If any of the four argues for changing a decision above rather than just filling
 in a number, we want to hear that too.
 
 ## Findings by severity
@@ -623,9 +637,10 @@ path is S3, which walks the counters down with no restart at all.
 ### S11. Opinions are written in two places and never decay
 
 `internal/opinions` already stores a per-(mob, user) score with `Get`/`Bump`, a
-plus or minus 100 range, `TierOf` cut points and a config-driven decay half-life.
-The module keeps its own three-axis `Opinion` (`opinion.go:13-17`), re-derives the
-same cut points at `opinion.go:210-216`, and has no decay path. Meanwhile
+plus or minus 100 range, `TierOf` cut points and a config-driven decay toward
+`DefaultDisposition`. The module keeps its own three-axis `Opinion`
+(`opinion.go:13-17`), re-derives the same cut points at `opinion.go:210-216`, and
+has no decay path at all. Meanwhile
 `internal/actions/aggression.go:107` still calls `opinions.Bump` for companion
 mobs with no exclusion, as does the gift seeder, so two numbers move on one event
 and `admin.opinion` and `planners/befriend.go` read the one that does not drive
@@ -659,16 +674,28 @@ disk write on the game loop per update.
    authoritative and `modules/aicompanion/context.md` must say that
    `admin.opinion` does not describe a bonded companion.
 
-**Decided: companion opinion does not decay. It is permanent, on purpose.**
+**Decay is FinalTwist's call.** See "Calls we are asking FinalTwist to make".
 
-This needs building, not merely omitting, and the two decisions above collide if
-that is missed. `internal/opinions` already carries decay: `opinions/decay.go:27`
-pulls a score back toward `DefaultDisposition` on a config half-life. An
-instance-keyed store built inside that package **inherits it**. So the new store
-needs an explicit per-entry or per-kind decay exemption for bonded companions,
-and the reason belongs in `internal/opinions/context.md`: a companion has a real
-relationship and is meant to remember, where a shopkeeper forgives. Left
-unstated, the next person to read `decay.go` will "fix" the exemption as a bug.
+What the engine actually does, because the naming misleads. `decayedScore`
+(`opinions/decay.go:27-32`) is **not** an exponential half-life. It is an
+integer-step pull: `steps = (now - anchor) / halfLifeRounds`, then the score
+moves toward `DefaultDisposition` by that many **whole points**, without
+overshooting. `DispositionDecayHalfLifeRounds`
+(`internal/configs/config.balance.go:1029`) defaults to `100000` and is **absent
+from `_datafiles/config.yaml`**, so the Go default is live. At `RoundSeconds: 4`
+that is one point of forgiveness per 4.6 days, so an ordinary NPC takes on the
+order of 324 days of world time to clear a -70 grudge.
+
+**Two consequences worth stating.** First, "every other NPC forgives and the
+companion does not" is an overstatement: engine NPCs forgive glacially, so the
+gap is far smaller than it looks. Second, **permanence needs no new machinery**:
+`decayedScore` returns the score unchanged when `halfLifeRounds == 0`, so "never
+decays" is already an expressible config value. An instance-keyed store built
+inside `internal/opinions` inherits all three behaviours for free, and the choice
+between them is a number, not a code path.
+
+Whatever he picks, the reasoning belongs in `internal/opinions/context.md`, so
+the next reader does not treat a deliberate setting as a bug.
 
 ---
 
@@ -910,8 +937,8 @@ help-template half is fixed.
 
 **Delegated rather than unverified:** the per-call token cost, and with it whether
 `DailyTokensPerCompanion: 50000` is the right order of magnitude; the `DeepModel`
-string; and the per-caller daily ask cap. These are not gaps in the review, they
-are questions put to the contributor on purpose, and they are listed in "Calls we
-are asking FinalTwist to make". `-race` was not run, for want of a C toolchain on this
+string; the per-caller daily ask cap; and whether companion opinion decays. These
+are not gaps in the review, they are questions put to the contributor on purpose,
+and they are listed in "Calls we are asking FinalTwist to make". `-race` was not run, for want of a C toolchain on this
 machine; no test in the module starts a goroutine, so it would have had nothing
 to detect.
