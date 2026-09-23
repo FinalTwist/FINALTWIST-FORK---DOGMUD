@@ -1463,6 +1463,13 @@ func pinTiming(t *testing.T, latitude float64) {
 
 // roundFor returns the round number for a given day of the year and hour, at
 // the pinned RoundsPerDay of 900.
+//
+// 🩤 EXACT ONLY AT EVEN HOURS. 37.5 is RoundsPerDay/24, so an odd hour
+// lands on a half-round that the uint64 conversion truncates, putting the
+// sample about 48 game-seconds early. That is far inside every boundary these
+// tests assert on, so it changes no outcome, but a future test placed within a
+// minute of a sunrise would be measuring the wrong instant. Prefer even hours,
+// or round explicitly.
 func roundFor(dayOfYear int, hour float64) uint64 {
 	return uint64(float64(dayOfYear-1)*900 + hour*37.5)
 }
@@ -1684,7 +1691,9 @@ exactly that. Say in a comment that the test needs daylight and why.
 
 Run: `go test ./...`
 Expected: PASS. Any failure outside `gametime` is a real consumer of `IsNight()`
-whose fixture assumed a fixed boundary. There are 14 non-test consumers; fix the
+whose fixture assumed a fixed boundary. 🔴 There are **10** non-test
+consumers outside `gametime`, not the 14 this plan originally claimed; that
+figure counted `gametime`'s own internal uses. Fix the
 fixture, not the model.
 
 - [ ] **Step 7: Commit**
@@ -2568,6 +2577,21 @@ before it is re-recorded. A blanket re-record proves nothing.
 **Files:**
 - Modify: `testdata/lighting_daycycle.golden` (re-recorded)
 - Modify: `testdata/lighting_parity.golden` (re-recorded)
+
+🔴 **CORRECTED 2026-09-23 after Task 5 ran. This golden has ALREADY moved
+by the time you reach this task.** The plan assumed only Task 8 would move it,
+but `legacyVisibility` still calls `gametime.IsNight()` and is still the live
+path behind `LightLevel`, so Task 5's seasonal night moved it five commits
+earlier, and Task 6's biome change moves it again.
+
+Task 5's move was re-recorded at the time, with its shape proven first: 391
+rooms from 70 to 60 in four sections (midwinter and equinox dawn and dusk), all
+six midnights and noons unchanged, all four midsummer sections unchanged.
+
+**So the baseline you are diffing against is NOT the unmodified tree.** The
+properties below must be read as "what Task 8 changes on top of Task 5 and
+Task 6", not "what the whole arc changed". Re-derive the expected before-values
+from the current golden rather than from this plan's prose.
 
 - [ ] **Step 1: Capture the current failure**
 
