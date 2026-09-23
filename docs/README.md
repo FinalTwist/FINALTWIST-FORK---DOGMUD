@@ -61,6 +61,7 @@ than reading an old result:
 | Path | What it does |
 |------|--------------|
 | [`../tools/context_md_audit.py`](../tools/context_md_audit.py) | Finds `context.md` files documenting symbols the package no longer defines. Coverage is 100%; accuracy is what rots. Triage the output, it has known false positives |
+| [`../tools/lighting_golden_diff.py`](../tools/lighting_golden_diff.py) | Read-only analyser for the graded-lighting arc: groups a `lighting_daycycle.golden` diff by sample section and by biome transition, and reports section and room COUNT changes separately from value moves. Every golden move in the arc must be explained room-for-room with this before it is re-recorded |
 | [`../tools/balance/`](../tools/balance/) | Combat balance models behind roadmap 5.11 — skill leverage, real player-vs-mob matchups, and the `SkillWeight`/statpool tuning matrix |
 | [`../tools/combat_message_pool_audit.py`](../tools/combat_message_pool_audit.py) | Read-only check that every combat-message role pool is equal per tier, which is what the coordinated narration index of M3 item 8 requires. Exits 1 with a per-group listing when any pool is short |
 | [`../tools/combat_message_pad_check.py`](../tools/combat_message_pad_check.py) | Read-only proof that a combat-message pad deleted and edited nothing, comparing each (file, verb, split, role, tier) group's multiset of lines against a baseline git ref. Permits free reordering and additions, which a plain diff cannot distinguish from an edit. Both directions were probed before it was trusted |
