@@ -76,14 +76,45 @@ rewrite for nothing. Tell him plainly that the wait is our arc, not his code.
 ### Numbers these decisions imply
 
 These are `config.yaml` knobs, so they are retunable later without a code change,
-per `dogmud-balance-config`. They are proposals, not measurements.
+per `dogmud-balance-config`. Two are settled and three are delegated to the
+contributor, who works with API pricing far more than we do; see "Calls we are
+asking FinalTwist to make" below.
 
-| Knob | Value | Reasoning |
+| Knob | Value | Status |
 |---|---|---|
-| `DailyTokensPerCompanion` | `50000` | Against the 2,000,000 global pool this supports roughly forty active companions before the pool binds rather than the per-player cap. **Wants checking against a measured per-call prompt size, which this review did not obtain** |
-| `DeepModel` | pinned to the mini line | Stops the logout reflection auto-selecting `gpt-5.5` at `models.go:254`. The exact model string is the operator's to confirm against the current OpenAI catalogue; this review could not verify availability or price |
-| Non-owner ask cooldown | 30 seconds per caller | Via `characters.TryCooldown`, which already exists and persists with the character |
-| Non-owner daily ask cap | per caller, operator-set | The cooldown alone lets a patient attacker spend all day; the cap is what actually bounds the spend |
+| `DailyTokensPerCompanion` | `50000` | **Settled as the starting default.** Against the 2,000,000 global pool it supports roughly forty active companions before the pool binds rather than the per-player cap. Open to revision on his measurement, not on principle |
+| Non-owner ask cooldown | 30 seconds per caller | **Settled.** Via `characters.TryCooldown`, which already exists and persists with the character |
+| `DeepModel` | to be chosen | **His call.** Must stop the logout reflection auto-selecting `gpt-5.5` at `models.go:254`; which model replaces it is his |
+| Non-owner daily ask cap | to be chosen | **His call.** The cooldown alone lets a patient attacker spend all day; the cap is what bounds the spend |
+| Whether `50000` is the right order of magnitude | to be confirmed | **His call.** We have set it; he has the measurement |
+
+### Calls we are asking FinalTwist to make
+
+We are setting the policy and the defaults. These three are judgement calls where
+he has information we do not, and we would rather he decided them than guessed at
+what we wanted. Each is a config value, so none of them blocks any code work.
+
+1. **Is `DailyTokensPerCompanion: 50000` the right order of magnitude?** We picked
+   it from the global pool, not from measurement. What does a main-tier dispatch
+   actually cost, prompt plus completion, for a warmed-up mind with memories near
+   `MaxMemories` in a busy room, and roughly how many dispatches does 50,000 buy?
+   If that is half a session for a talkative player, the number is wrong and we
+   would rather hear it from him now than discover it live. Worth noting the
+   conversation-close summary at `conversation.go:146` in the arithmetic, since it
+   is a call the ask count does not show.
+2. **Which model should `DeepModel` pin to?** The requirement is only that the
+   once-per-logout reflection stops auto-selecting the newest flagship at a price
+   the operator never chose. The reflection is the call where quality plausibly
+   matters most, so this is a real trade rather than "pick the cheapest", and he
+   has seen the output quality across tiers and we have not.
+3. **What should the per-caller daily ask cap be?** It has to be generous enough
+   that strangers talking to a companion stays a real part of play, which is why
+   we chose throttling over an owner-only gate, and low enough that a griefer with
+   a 30 second cooldown cannot walk through a companion's 50,000 tokens in an
+   afternoon. He knows better than we do what a normal social exchange costs.
+
+If any of the three argues for changing a decision above rather than just filling
+in a number, we want to hear that too.
 
 ## Findings by severity
 
@@ -828,6 +859,11 @@ the five blockers are real work he can do immediately, and the hold on everythin
 else is scheduling rather than a verdict on the design. Say plainly that the
 module is being taken.
 
+Include the three calls above, and frame them as what they are: places where he
+knows more than we do, not a quiz. Everything else in this document is a change
+request; those three are a request for his judgement, and they can be answered in
+a comment rather than a commit.
+
 ## Claims re-verified after the first draft, and the method
 
 The first draft of this document got six remedies wrong, which is why this
@@ -868,11 +904,14 @@ were read from the PR head or from `master` at review time.
 
 **Not verified, and flagged in place:** whether a panic is actually reachable
 inside `answerTools` (S1); how reliably a model complies with a puppeting
-injection (S8); the per-call token cost that sets how fast S5's attack exhausts
-the daily budget, and therefore whether `DailyTokensPerCompanion: 50000` is the
-right order of magnitude; whether a late `AttachFileSystem` in `onLoad` works
-against `templates.RegisterFS` timing at `main.go:268`, which decides how S12's
-help-template half is fixed; and the current OpenAI catalogue, so the `DeepModel`
-string is the operator's to confirm. `-race` was not run, for want of a C toolchain on this
+injection (S8); and whether a late `AttachFileSystem` in `onLoad` works against
+`templates.RegisterFS` timing at `main.go:268`, which decides how S12's
+help-template half is fixed.
+
+**Delegated rather than unverified:** the per-call token cost, and with it whether
+`DailyTokensPerCompanion: 50000` is the right order of magnitude; the `DeepModel`
+string; and the per-caller daily ask cap. These are not gaps in the review, they
+are questions put to the contributor on purpose, and they are listed in "Calls we
+are asking FinalTwist to make". `-race` was not run, for want of a C toolchain on this
 machine; no test in the module starts a goroutine, so it would have had nothing
 to detect.
