@@ -223,14 +223,43 @@ Expected: PASS, logs "recorded testdata/lighting_daycycle.golden"
 
 - [ ] **Step 4: Prove the baseline is not fake**
 
-The pin in Step 1 exists because of a known trap. Prove it took effect:
+The pin in Step 1 exists because of a known trap, and a baseline recorded
+without it describes a world that has no night in it. Prove the pin took effect.
+
+🔴 **CORRECTED 2026-09-23 after this task ran.** The original check counted
+`light=0` rooms and expected "more than 100". **That probe cannot work.**
+`legacyVisibility` floors a dark-biome room at 0 in daylight too
+(`2 − 2 = 0`, and night's extra `−1` only clamps harder to the same floor), so
+the `light=0` count is **invariant to the time of day** and proves nothing about
+night. Its true value is exactly **97**, which is 140 dark-biome rooms minus the
+43 held lit by a static `lightmod: 2` (31 Crash Site Interior, 12 Foldweave) —
+the same 97 plan 2's golden landed on. Use the probe below instead.
 
 Run: `grep -c "^== midwinter-midnight" testdata/lighting_daycycle.golden`
 Expected: `1`
 
-Run: `awk '/^== midwinter-midnight/{f=1;next} /^== /{f=0} f' testdata/lighting_daycycle.golden | grep -c "light=0"`
-Expected: a number **greater than 100**. If it is 0, `NightHours` did not take
-and the baseline is worthless — fix the pin and re-record.
+Run standalone, counting the rooms that sit at `LightRoomOnly`:
+
+```bash
+awk '/^== midwinter-midnight/{f=1;next} /^== /{f=0} f' testdata/lighting_daycycle.golden | grep -c "light=60"
+awk '/^== equinox-noon/{f=1;next} /^== /{f=0} f' testdata/lighting_daycycle.golden | grep -c "light=60"
+```
+
+Expected: **391** at midnight and **0** at noon.
+
+🔑 **Why this probe works where the other did not.** 60 is `LightRoomOnly`,
+which `legacyVisibility` reaches only via `2 − 1 = 1`, and that `−1` is applied
+**only** by `gametime.IsNight()`. A neutral biome — one that is neither dark nor
+lit — therefore reads 70 by day and 60 by night, and nothing else in the old
+model can produce 60. So a non-zero count at midnight is a direct assertion that
+`IsNight()` was genuinely true, which is exactly what the pin buys.
+
+391 is independently checkable: it is the count of neutral-biome rooms, farmland
+100 + cliffs 97 + water 91 + forest 61 + mountains 27 + shore 14 + desert 1.
+
+If the midnight count is **0**, `NightHours` did not take and the baseline is
+worthless — fix the pin and re-record. If it is non-zero but not 391, the biome
+histogram has drifted since this plan was written; investigate before accepting.
 
 - [ ] **Step 5: Verify it passes on a re-run**
 
