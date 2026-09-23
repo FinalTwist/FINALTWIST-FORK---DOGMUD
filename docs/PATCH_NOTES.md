@@ -1,5 +1,29 @@
 # DOGMud Patch Notes
 
+## 2026-09-23: The night now follows the season and the moon
+
+Until now, night fell the same way every day of the year, and moonlight made
+no real difference to what you could see outdoors. Both of those are gone.
+
+Nights grow long in the cold months and short in the warm ones, the way real
+nights do. Watch the sky rather than the clock. How dark a given night gets
+depends on the season as much as the hour.
+
+Moonlight now matters outdoors. Walk open country under a bright, full sky
+and you can still find your footing and read the road ahead. Walk the same
+ground under a moonless sky and you will see very little, feeling your way
+more than seeing it.
+
+Not every place goes dark the same way. Forests and swamps hold onto shadow
+that open fields and roads do not, so a moonlit night that feels safe out in
+the open can turn truly black under the trees. Caves keep a darkness of their
+own kind entirely: most show you nothing at all without a light source of
+your own, whatever the sky above them is doing.
+
+Towns are the exception. Main streets and open squares hold enough light to
+walk safely after dark. Step off them into a back lane, though, and you may
+still make out that someone is near without being able to say who it is.
+
 ## 2026-09-22: Seeing in the dark now has a price
 
 Abilities and potions that let you see in the dark used to have no limit. Strong

@@ -52,36 +52,54 @@ The `internal/rooms` package is the core world management system for GoMud, hand
 - **Item requirements**: Biomes that require specific items to navigate safely
 - **Dynamic loading**: File-based biome definitions with validation
 
-### Room Lighting (`lighting.go`, graded scale, plan 1 of the lighting arc)
+### Room Lighting (`lighting.go`, graded scale, plans 1 through 3a of the lighting arc)
 
-`Room.LightLevel() int` is the light accessor every consumer now reads. It
-reports light on the graded -100 to 100 scale the lighting arc introduces,
-though plan 1 only ever produces three points on that scale:
+`Room.LightLevel() int` is the light accessor every consumer reads. It
+reports light on a continuous -100 to 100 scale, composed from up to four
+terms on one logarithmic operator (`internal/lightscale.Combine`):
 
-- `LightDark` = 0: no light at all, a normal observer is blind.
-- `LightRoomOnly` = 60: enough light to see the room but not down an exit.
-  What the old three-value model called visibility 1.
-- `LightFull` = 70: enough light to see the room and its exits. What the
-  old model called visibility 2.
+1. **The sky**: `internal/gametime.CelestialLight()` (sun plus moons, one
+   value for the whole world per round), attenuated by this room's sky
+   fraction and by any active weather/mutator occlusion.
+2. **The room's own lamp**, if it has one.
+3. **The positive `LightMod` bridge** from the pre-graded mutator
+   vocabulary (plan 4 replaces this with an authored lamp value; do not
+   extend it).
+4. **Anyone present carrying a light.**
 
-The old three-value accessor, `GetVisibility() int`, is deleted. Every
-consumer, including `internal/messaging`'s `RoomVisibility` interface,
-reads `LightLevel()` instead.
+`Room.IsLit() bool` reports whether a normal observer can see anything at
+all here (`LightLevel() >= cfg.BlindBelow`). It reads `configs.Lighting`
+via `configs.GetLightingConfig()` rather than `GetBalanceConfig()` on
+purpose: sixteen hand-rolled call sites used to copy the whole 424-field
+`Balance` struct to check one threshold, and `IsLit` collapsed all of them
+onto itself.
 
-`legacyVisibility()` is the old accessor's body, moved here verbatim when
-`GetVisibility` was still a call-through to it. `LightLevel` computes from
-it and maps the 0/1/2 result onto the three constants above. Nothing
-outside `LightLevel` should call `legacyVisibility`; later plans that make
-the scale continuous replace this mapping rather than extend it.
+**Sky fraction and lamp are both `*float64`/`*int` POINTERS, on both
+`Room` and `BiomeInfo`, because zero is meaningful for both.** A cave's sky
+fraction is genuinely `0` (no sky reaches it at all) and must be
+distinguishable from "unset," which reads as a fully open sky (`1.0`). The
+YAML keys are `skylight` and `lamp`:
 
-The three constants are load-bearing against the thresholds in
-`internal/configs/config.balance.lighting.go` (`LightBlindBelow` default
-25, `LightDimBelow` default 50, `LightExitsAbove` default 65):
-`LightRoomOnly` (60) must sit at or above `LightDimBelow` and below
-`LightExitsAbove`, and `LightFull` (70) must sit at or above
-`LightExitsAbove`. If those defaults ever move, these three constants must
-be re-checked against the new values, or the mapping this plan depends on
-for behaviour preservation silently breaks.
+- `BiomeInfo.SkyLight *float64` / `BiomeInfo.Lamp *int` are the biome
+  default, read through `SkyLightFraction()` / `LampValue()` (`biomes.go`).
+- `Room.SkyLight *float64` / `Room.Lamp *int` (`rooms.go`) **override** the
+  room's biome when set. This exists because a biome is not always granular
+  enough: `fort` holds both an open training yard and a buried tower base,
+  and `new_plymouth_sewers` is a brick vault lit by one drain-cap. Both
+  carry `instance:"skip"`, matching `Biome`, so an ephemeral instance of a
+  room inherits its template's lighting rather than persisting its own.
+
+**`GetVisibility()` and `legacyVisibility()` are GONE.** Plan 1 shipped
+`GetVisibility` as a call-through to the old three-value (0/1/2) model, kept
+as `legacyVisibility` while `LightLevel` bridged onto it with three fixed
+constants (`LightDark`/`LightRoomOnly`/`LightFull`). Plan 3a deleted all of
+it: `LightLevel` now composes light from the sky, lamp and carried
+sources directly, with no bridge and no three-value model underneath. If
+you find a reference to `GetVisibility`, `legacyVisibility`,
+`LightDark`, `LightRoomOnly` or `LightFull`, it describes deleted code.
+Every consumer, including `internal/messaging`'s `RoomVisibility`
+interface, reads `LightLevel()` (or `IsLit()` for a plain lit/dark
+question).
 
 ### Spawn Management (`spawninfo.go`)
 - **SpawnInfo**: Comprehensive mob and item spawning system
@@ -222,7 +240,7 @@ When writing hidden noun descriptions:
 |------|---------|
 | `rooms.go` | The `Room` type and its core behaviour |
 | `roommanager.go` | The room registry, load/unload, and lookup |
-| `lighting.go` | `Room.LightLevel()`, the three graded-scale constants, and `legacyVisibility()` |
+| `lighting.go` | `Room.LightLevel()`, `Room.IsLit()`, and the sky/lamp/mutator/carried-light composition |
 | `save_and_load.go` | Room YAML + instance-save persistence, `restoreSkipTaggedFields` |
 | `prose_wrap.go` | Re-folds long prose into wrapped `>` block scalars on template save |
 | `roomdetails.go` | Assembled per-look detail payload |
@@ -354,6 +372,7 @@ from `Exits`.
 - `internal/mutators`: Room effect modifiers
 - `internal/conditions`: Status effects in rooms
 - `internal/configs`: Configuration management
+- `internal/lightscale`: The graded light scale's combine/attenuate arithmetic
 - `internal/fileloader`: Data file loading system
 
 ## Usage Patterns
