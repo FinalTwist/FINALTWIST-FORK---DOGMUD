@@ -801,6 +801,37 @@ EOF
 
 ---
 
+## 🔴 ORDERING CORRECTION, found during execution
+
+**Task 7 must run BEFORE Task 6.** The plan as first written had the switch
+flipped before the strengths were authored, which produces TWO golden
+re-records instead of one and makes Task 6's shape check false.
+
+Why: condition 85 (InfraredVision) has no `infra_reach` until Task 7 authors it.
+If Task 6 runs first, infrared's reach is 0, so at light 0 the window returns
+`SightNone` where the old flag shortcut returned `SightShapes`. That is a
+regression Task 7 would then revert, so the golden would move twice and Task 6's
+claim that "only nightvision lines change" would be wrong.
+
+Authoring first is safe precisely because the authored numbers are INERT until
+`ParticipantSight` reads them, which only happens in Task 6. So Task 7 moves
+nothing, and Task 6 then produces exactly one re-record in which only
+`nightvision` lines change.
+
+Execute in the order: 1, 2, 3, 4, 5, **7, 6**, 8, 9.
+
+With condition 29 authored at `nightvision_strength: 18` and condition 85 at
+`nightvision_strength: 12` plus `infra_reach: 30`, the expected Task 6 diff is:
+
+| Light | Observer | Before | After |
+|---|---|---|---|
+| 0 | nightvision (strength 18, shifted blind 7) | `SightFull` | **`SightNone`** |
+| 0 | infrared (reach 30) | `SightShapes` | `SightShapes` (unchanged) |
+| 0 | plain, blinded | `SightNone` | `SightNone` (unchanged) |
+| 60, 70 | every kind | as today | unchanged |
+
+---
+
 ## Task 6: Replace the flag shortcuts, and re-record the golden ONCE
 
 This is the behaviour change. Everything before it was inert.
