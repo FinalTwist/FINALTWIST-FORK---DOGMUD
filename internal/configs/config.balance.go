@@ -1144,14 +1144,26 @@ type Balance struct {
 	// and noon height all derive from it, which is why no seasonal noon-peak
 	// table exists. DOGMud ships 46.5, mirroring Washington State.
 	//
-	// 🔑 ZERO IS HONOURED and means "this world has no latitude": night length
-	// falls back to the Timing.NightHours knob, preserving upstream GoMud
-	// behaviour for anyone who has not set a latitude. Out-of-range reverts.
+	// 🔑 ZERO MEANS UNSET and is coerced to the default, the same idiom as
+	// LightDefaultVisionStrength. Out-of-range reverts.
+	//
+	// 🔴 An earlier draft honoured zero as "this world has no latitude", with
+	// night length falling back to Timing.NightHours. That could not work. Go
+	// cannot distinguish an unset float from an authored zero, and none of the
+	// lighting knobs appear in config.yaml, so the shipped configuration IS a
+	// bare Balance. Honouring zero would have shipped DOGMud at no latitude:
+	// a flat eight-hour night, no seasons, and this entire model unreachable.
+	//
+	// There is therefore NO path from day length back to Timing.NightHours.
+	// That knob still exists for upstream compatibility but nothing reads it
+	// for the day/night boundary any more. An operator wanting an equator-like
+	// world of twelve-hour nights all year authors a latitude near zero, such
+	// as 0.001.
 	//
 	// ⚠️ Beyond about 66 degrees this produces days with no sunrise and days
 	// with no sunset. The model handles both (the half-day angle clamps), but
 	// it is almost certainly not what an operator intended.
-	WorldLatitude ConfigFloat `yaml:"WorldLatitude"` // Degrees north; 0 disables latitude and falls back to NightHours (default 46.5)
+	WorldLatitude ConfigFloat `yaml:"WorldLatitude"` // Degrees north; 0 means unset and is coerced (default 46.5)
 
 	// LightEquinoxNoon calibrates the sun: it is the light at noon on an
 	// equinox, which is the one moment the geometry pins exactly, because

@@ -8,15 +8,14 @@ func TestLightingDefaultsAreTheShippedCalibration(t *testing.T) {
 	if b.LightDoublingStep != 8 {
 		t.Errorf("LightDoublingStep = %v, want 8", b.LightDoublingStep)
 	}
-	// WorldLatitude is deliberately NOT asserted here. Unlike every other
-	// knob in this test, zero is a HONOURED value for WorldLatitude (see the
-	// field comment and validateLighting): a bare Balance{} validates to
-	// WorldLatitude == 0, not 46.5. TestWorldLatitudeRangeAndZero below
-	// already covers this knob correctly, asserting zero survives and only
-	// out-of-range values revert to 46.5. An assertion here that a bare
-	// struct becomes 46.5 would contradict that test and the deliberate
-	// zero-honouring design; this is a plan defect in the original test,
-	// not a change to validation behaviour.
+	// 🔴 This assertion is the one that matters most in this test. None of the
+	// lighting knobs appear in config.yaml, so a bare Balance is not a test
+	// fixture, it is the SHIPPED configuration. If this ever reads zero,
+	// DOGMud is running with no latitude: a flat night, no seasons, and the
+	// whole celestial model unreachable.
+	if b.WorldLatitude != 46.5 {
+		t.Errorf("WorldLatitude = %v, want 46.5", b.WorldLatitude)
+	}
 	if b.LightEquinoxNoon != 70 {
 		t.Errorf("LightEquinoxNoon = %v, want 70", b.LightEquinoxNoon)
 	}
@@ -44,14 +43,21 @@ func TestDoublingStepRejectsNonPositive(t *testing.T) {
 }
 
 // Latitude beyond the polar circles produces days with no sunrise or no sunset,
-// which the model handles but which is almost never intended. Out of range
-// reverts; zero is HONOURED and means "no latitude, fall back to NightHours".
-func TestWorldLatitudeRangeAndZero(t *testing.T) {
+// which the model handles but which is almost never intended, so out of range
+// reverts. Zero means UNSET and is coerced to the default.
+//
+// 🔴 This is the load-bearing assertion of the whole celestial model, not a
+// boundary nicety. None of the lighting knobs appear in config.yaml, so the
+// SHIPPED configuration is a bare Balance, whose WorldLatitude is zero. If zero
+// were honoured as "no latitude", DOGMud would ship with a flat night, no
+// seasons, and the entire model unreachable. Do not "fix" this test by making
+// zero survive.
+func TestWorldLatitudeCoercesZeroAndRejectsOutOfRange(t *testing.T) {
 	var b Balance
 	b.WorldLatitude = 0
 	b.Validate()
-	if b.WorldLatitude != 0 {
-		t.Errorf("zero latitude was coerced to %v; zero must be honoured", b.WorldLatitude)
+	if b.WorldLatitude != 46.5 {
+		t.Errorf("zero latitude survived as %v; zero means unset and must coerce to 46.5", b.WorldLatitude)
 	}
 
 	for _, v := range []ConfigFloat{-91, 91} {
@@ -60,6 +66,17 @@ func TestWorldLatitudeRangeAndZero(t *testing.T) {
 		b2.Validate()
 		if b2.WorldLatitude != 46.5 {
 			t.Errorf("latitude %v survived as %v", v, b2.WorldLatitude)
+		}
+	}
+
+	// A southern or near-equatorial latitude an operator actually authored must
+	// survive untouched, or the coercion above would be swallowing real values.
+	for _, v := range []ConfigFloat{-46.5, 0.001, 66} {
+		var b3 Balance
+		b3.WorldLatitude = v
+		b3.Validate()
+		if b3.WorldLatitude != v {
+			t.Errorf("authored latitude %v was changed to %v", v, b3.WorldLatitude)
 		}
 	}
 }

@@ -88,13 +88,22 @@ func (b *Balance) validateLighting() {
 		b.LightDoublingStep = 8
 	}
 
-	// WorldLatitude: zero is HONOURED and means "no latitude, use NightHours".
-	// Only genuinely impossible values revert. This is the opposite convention
-	// from LightDefaultVisionStrength, where zero means "unset", and the
-	// difference is deliberate: an equatorial world is a real thing to want,
-	// and it happens to be exactly what falling back to a flat NightHours
-	// produces.
-	if b.WorldLatitude < -90 || b.WorldLatitude > 90 {
+	// WorldLatitude: zero means UNSET and is coerced, the same idiom as
+	// LightDefaultVisionStrength. Out-of-range reverts.
+	//
+	// 🔴 An earlier draft had zero HONOURED, meaning "this world has no
+	// latitude, fall back to Timing.NightHours". That was incoherent, and the
+	// incoherence was not academic. Go cannot distinguish an unset float from
+	// an authored zero, and none of these knobs appear in config.yaml, so the
+	// shipped configuration IS a bare Balance. Honouring zero would therefore
+	// have shipped DOGMud at no latitude: a flat eight-hour night, no seasons,
+	// and the entire celestial model built and never once reached.
+	//
+	// So zero is unset, and the NightHours fallback is deleted rather than
+	// repaired. An operator who wants an equator-like world of twelve-hour
+	// nights all year authors a latitude near zero, such as 0.001; there is no
+	// longer any path that reaches Timing.NightHours for day length.
+	if b.WorldLatitude < -90 || b.WorldLatitude > 90 || b.WorldLatitude == 0 {
 		b.WorldLatitude = 46.5
 	}
 
