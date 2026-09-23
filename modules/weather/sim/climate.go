@@ -72,6 +72,17 @@ func DefaultClimate() Climate {
 			Influence:   WeatherInfluence{IntensityDelta: -0.02, MoistureDelta: 0, MovementResistance: 0.1},
 			SpawnWeight: 1.0,
 		},
+		// 🔑 This "plains" key is the generic archetype other engines' worlds
+		// bind to, not a DOGMud biome id -- except DOGMud's plan 3b adds a
+		// biome that is ALSO literally named "plains" (see the DOGMud id
+		// block below). land's "= plains archetype" comment means DOGMud's
+		// land already copies these exact values, so this entry happens to
+		// already be the right fallback for DOGMud's plains biome too.
+		// Do NOT add a second "plains" key below to bind it explicitly: two
+		// identical map keys in one composite literal is a go build error,
+		// and _datafiles/world/dogmud/weather/climate/plains.yaml overlays
+		// this entry at load time regardless (LoadClimate replaces wholesale
+		// per biome), so no explicit binding is needed or possible here.
 		"plains": {
 			Weather:     map[WeatherType]float64{"clear": 5, "overcast": 3, "rain": 3, "storm": 2},
 			Influence:   WeatherInfluence{IntensityDelta: 0.02, MoistureDelta: 0, MovementResistance: 0.05},
@@ -144,6 +155,12 @@ func DefaultClimate() Climate {
 			Track:       "temperate",
 		},
 		"water": { // = ocean archetype
+			Weather:     map[WeatherType]float64{"clear": 3, "overcast": 4, "rain": 4, "storm": 4, "fog": 2},
+			Influence:   WeatherInfluence{IntensityDelta: 0.06, MoistureDelta: 0.08, MovementResistance: 0.02},
+			SpawnWeight: 1.5,
+			Track:       "temperate",
+		},
+		"river": { // = ocean archetype, same voice as water
 			Weather:     map[WeatherType]float64{"clear": 3, "overcast": 4, "rain": 4, "storm": 4, "fog": 2},
 			Influence:   WeatherInfluence{IntensityDelta: 0.06, MoistureDelta: 0.08, MovementResistance: 0.02},
 			SpawnWeight: 1.5,

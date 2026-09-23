@@ -227,6 +227,9 @@ func renderAmbient(lines []string, pick narration.Picker) string {
 var undergroundBiomes = map[string]bool{
 	"cave":    true,
 	"dungeon": true,
+	// sewer is brick vaults and channels under a city: felt through stone
+	// (seepage, draughts, mineral cold), not through a roof.
+	"sewer": true,
 }
 
 // surfaceIndoorBiomes names the sheltered-but-not-underground biomes: built
@@ -244,6 +247,15 @@ var surfaceIndoorBiomes = map[string]bool{
 	"house":     true,
 	"fort":      true,
 	"spiderweb": true,
+	// interior is a built structure like house: roofs, eaves, windows.
+	"interior": true,
+	// ether has no weather at all, so it is genuinely neither class. It is
+	// filed here rather than in undergroundBiomes because surface-indoor is
+	// the right default for a place with no stone around it, and because
+	// classification must be TOTAL (TestEveryIndoorBiomeIsClassified). It has
+	// zero rooms authoring weather prose today, so this choice is currently
+	// theoretical, same as spiderweb above.
+	"ether": true,
 }
 
 // bandedSectionLines resolves one prose class and then biome -> "default"
