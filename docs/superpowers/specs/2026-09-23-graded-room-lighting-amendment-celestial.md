@@ -331,6 +331,32 @@ on events, never on a round tick; a source is created at full strength and does
 not trim until its bearer moves; sources already in the room do not re-trim when
 someone else arrives.
 
+### What this calibration does to dazzle, which plan 5 inherits
+
+🔑 **Dazzle stops being a weather condition and becomes purely a play mechanic.**
+Natural daylight tops out at 73 and can never reach 75 at any latitude-derived
+peak, so a normal observer is dazzled by exactly two things: a shifted window, or
+an artificial source strong enough to push a room past 75. That is precisely the
+"light becomes a weapon" case, and it means plan 5 is not merely the plan that
+*may* give dazzle teeth, it is the only plan in which dazzle is reachable at all.
+
+⚠️ **The Cat's Eye Draught overhang is structural, and plan 5 must price it.**
+The draught runs `triggercount: 500` at `triggerrate: 1 round`
+(`conditions/65-cats_eye_draught.yaml`), which against `RoundsPerDay: 900` is
+**13h20m of game time**. Equinox night is 12h and midsummer night 8h23m, so for
+most of the year a drinker who takes it at dusk is still under it after sunrise.
+Their shifted dazzle edge is `75 − 24 = 51` against a daylight range of 62 to 73,
+so they spend the tail of every dose penalised in daylight.
+
+The original spec calls this intended: "Nightvision hurts in daylight. That is
+the point of a window that moves rather than widens." This amendment does not
+dispute that, it **quantifies** it. A 13h20m potion against a 12h night is not an
+occasional mistake the player makes, it is the default outcome of drinking at the
+start of the night. Plan 5 should decide deliberately between three answers and
+not discover this at playtest: shorten the duration below the shortest night,
+give the draught a cancel verb, or accept the overhang as the cost and say so in
+the item description. 🅾️ **Not decided here.**
+
 ---
 
 ## Out of scope, and defects filed rather than fixed
@@ -339,8 +365,12 @@ someone else arrives.
   vocabulary alone and maps it onto the new scale at its existing meaning.
 - **Darkness sources** stay plan 5. Plan 3 ships the light side of the combine
   only, following plan 1's rule that a knob nothing reads does not ship.
-- **Dazzle keeps no mechanical effect.** Fact: natural daylight cannot reach the
-  band at this calibration anyway.
+- **Dazzle gains no teeth in plan 3**, but it is not unowned. The original spec
+  assigns "the dazzle penalty's exact effect on skills and combat rolls" to "the
+  plan that implements vision abilities" (line 360), and plan 5's own "light
+  becomes a weapon" paragraph (line 329) *is* the dazzle penalty: deliberately
+  overloading a cave to blind its residents does nothing without one. **Plan 5
+  owns it.** See the note below for how this calibration changes what it means.
 - 🐛 **Weather renders in the New Plymouth sewers** (fact 12). Fixed here as a
   side effect of the `sewer` biome, but it predates this arc.
 - 🐛 **Five zones name a biome that does not exist** (fact 19). Fixed here.
