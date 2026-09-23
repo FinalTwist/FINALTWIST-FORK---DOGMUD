@@ -635,7 +635,7 @@ func GetLastPeriod(periodName string, roundNumber uint64) uint64 {
 	} else if periodName == `sunrise` { // last sunrise
 
 		roundNumber -= roundOfDay                                              // Strip rounds of today off
-		roundNumber -= uint64(roundsPerDay)                                    // Subtract a day
+		roundNumber -= roundsPerDay                                            // Subtract a day; roundsPerDay is already uint64
 		roundNumber += uint64(math.Ceil(nightHoursPerDay / 2 * roundsPerHour)) // add half a night
 
 	} else if periodName == `sunset` { // 12am of next day, minus half of night
