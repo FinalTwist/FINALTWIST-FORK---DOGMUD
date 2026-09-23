@@ -335,13 +335,24 @@ func TestFourEqualSourcesAddTwoSteps(t *testing.T) {
 	}
 }
 
-// A much weaker source adds almost nothing. This is what stops a lantern from
+// A source five doublings weaker than the brightest is negligible: it
+// contributes something, but under half a point. This is what stops a lantern
 // mattering at noon, which the halving rule the spec originally used could not
 // express.
+//
+// 🔴 CORRECTED 2026-09-23 after this task ran. The original bound here was
+// "above 70 and no more than 70.05", which is wrong by about sevenfold. The
+// exact value is 70 + 8*log2(1 + 2^((30-70)/8)) = 70.35515295486763. The
+// assertion is deliberately a PROPERTY rather than that exact number, because
+// exact equality here would only re-test that log2 works, which
+// TestTwoEqualSourcesAddOneStep already covers.
 func TestFarWeakerSourceBarelyContributes(t *testing.T) {
 	got := Combine(8, 70, 30)
-	if got <= 70 || got > 70.05 {
-		t.Fatalf("want just above 70, got %v", got)
+	if got <= 70 {
+		t.Fatalf("weaker source contributed nothing: got %v, want above 70", got)
+	}
+	if got-70 >= 0.5 {
+		t.Fatalf("weaker source contributed too much: got %v, want within 0.5 of 70", got)
 	}
 }
 
@@ -536,17 +547,29 @@ mutators). Plans 4 and 5 add weather occlusion and darkness sources on the same
 two functions.
 ```
 
-- [ ] **Step 6: Add the package to `docs/README.md`**
+- [ ] **Step 6: ~~Add the package to `docs/README.md`~~ — DELETED**
 
-Add a row to the package table pointing at `internal/lightscale/context.md` with
-the one-line summary "Pure arithmetic of the graded light scale: combining
-sources on a logarithmic scale and applying a transmission fraction, with an
-explicit Absent distinct from a dark term."
+🔴 **CORRECTED 2026-09-23 after this task ran. Do not do this step.** The plan
+told the implementer to add a row to `docs/README.md`'s package table. **There is
+no package table.** Verified: 137 `context.md` files exist under `internal/` and
+`modules/`, and not one of them is individually listed in `docs/README.md`; the
+eight `context.md` mentions in that file are references to
+`tools/context_md_audit.py` and incidental mentions inside spec descriptions.
+
+The convention is the one `docs/README.md` states itself: *"Per-package developer
+notes live beside the code, as `context.md` in each `internal/` and `modules/`
+package."* A new package's documentation home is its own `context.md`, which
+Step 5 already writes. `CLAUDE.md`'s "new files go in `docs/README.md`" rule
+governs files under `docs/`, not Go packages.
+
+**The same correction applies to every later task in this plan** that mentions
+adding a package to `docs/README.md`. Plan and spec documents under `docs/` still
+get a row; packages do not.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add internal/lightscale docs/README.md
+git add internal/lightscale
 git commit -m "feat(lighting): pure arithmetic for the graded light scale
 
 Combine and Attenuate on a logarithmic scale, with one doubling step relating
