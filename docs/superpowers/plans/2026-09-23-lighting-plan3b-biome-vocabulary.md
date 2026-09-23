@@ -51,6 +51,20 @@ AND `gofmt -d <path>` before dismissing it.
 truncates before the write expression evaluates; this has destroyed files here
 twice. Read fully into a variable first, or use the Edit tool.
 
+🪤 **The boot-check recipe builds from `HEAD`, which does NOT contain your
+uncommitted work.** Every task here boots BEFORE committing, so booting `HEAD`
+would test the tree without your change and pass for the wrong reason. Snapshot
+the working tree first:
+
+```bash
+SNAP=$(git stash create)
+git worktree add --detach C:/tmp/dogmud-boot-check "$SNAP"
+```
+
+`git stash create` writes a commit object without touching your index, your
+working tree or the stash list. Confirm the snapshot actually contains the
+change with `git ls-tree` before booting, or you have proven nothing.
+
 🚨 **Run `golangci-lint run --new-from-merge-base=origin/master` before pushing.**
 It is step 3 of the pre-push SOP and it is the only local gate that sees what
 CI's lint gate sees. `unconvert` and friends are in neither `go vet` nor `gofmt`.
