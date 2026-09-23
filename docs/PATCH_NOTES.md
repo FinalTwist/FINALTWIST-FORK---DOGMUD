@@ -2,12 +2,12 @@
 
 ## 2026-09-22: Seeing in the dark now has a price
 
-Abilities and potions that let you see in the dark used to be a pure gain,
-with no downside anywhere. That is no longer true. Night sight now works by
-shifting your eyes' comfortable range toward the dark, rather than adding
-extra sight on top of what you already had. The trade is real: the same
-gift that helps you make out shapes in a gloomy room does less for you in
-bright daylight than an unaided eye would.
+Abilities and potions that let you see in the dark used to have no limit. Strong
+enough night sight let you see a pitch dark room as clearly as a lit one. That
+is no longer true. Night sight now has a floor of its own: past a certain point
+of true darkness, even the strongest night sight shows you nothing at all, the
+same as someone with no night sight would see. If you once saw clearly in the
+darkest places, you may find yourself blind there now.
 
 The Cat's Eye Draught still works the way its label promises. Drink it and
 your eyes catch every bit of dim light and moonlight, revealing things that
