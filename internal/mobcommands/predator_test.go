@@ -482,7 +482,7 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	restoreBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
+		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 	})
 	defer restoreBiomes()
 	restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
@@ -515,7 +515,7 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 	darkRoom := rooms.LoadRoom(2)
 	require.NotNil(t, darkRoom)
 	darkRoom.Biome = "cave"
-	require.Equal(t, rooms.LightDark, darkRoom.LightLevel())
+	require.Equal(t, 0, darkRoom.LightLevel())
 	mob.Character.RoomId = 2
 	target.Character.RoomId = 2
 	observer.Character.RoomId = 2
@@ -567,7 +567,7 @@ func TestMobTauntAndHowlRuntimeHideIndexedActorAndExcludeDefender(t *testing.T) 
 			restoreMessages := seedMobTauntRuntimeMessages(t)
 			defer restoreMessages()
 			restoreBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-				"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
+				"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 			})
 			defer restoreBiomes()
 			restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
@@ -682,6 +682,11 @@ func TestMobTauntRuntimeRoutesMobToMobDefyAndPreservesAggroPull(t *testing.T) {
 	actor := mobs.GetInstance(100)
 	target := mobs.GetInstance(200)
 	room := rooms.LoadRoom(1)
+	// Pins room 1 fully lit regardless of the ambient test round. Since
+	// graded lighting plan 3a Task 8, Room.LightLevel() reads the real
+	// celestial term at whatever round util.GetRoundCount() holds, which a
+	// bare unpinned round reads as shapes tier, not full.
+	room.Lamp = rooms.LampPtr(90)
 	actor.Character.SetAggro(0, target.InstanceId, characters.DefaultAttack)
 	target.Character.MobInstanceId = target.InstanceId
 	target.Character.SetAggro(1, 0, characters.DefaultAttack)

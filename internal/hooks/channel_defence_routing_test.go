@@ -167,6 +167,7 @@ func TestSpellChannelDefenceRuntimeQueuesCoverActorOrientations(t *testing.T) {
 	})
 	defer restoreUsers()
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	room.AddPlayer(observer.UserId)
 
 	userAttacker := attackerUser.Character.GetPlayerName(attackerUser.UserId).String()
@@ -224,6 +225,7 @@ func TestSpellChannelDefenceRuntimeQueuesUseOutcomeAndStaySilentOnAttackWin(t *t
 	defer restoreMessages()
 
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	attacker := users.GetByUserId(1)
 	defender := users.GetByUserId(2)
 	identities := combat.ChannelDefenceIdentities{
@@ -268,6 +270,7 @@ func TestSpellChannelDefenceShortageIsPrivateForMentalAndPhysicalWinners(t *test
 	restoreMessages := seedChannelRoutingMessages(t)
 	defer restoreMessages()
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	attacker, defender := users.GetByUserId(1), users.GetByUserId(2)
 	observer := users.NewTestUser(3, "observer", "Orin", 1003)
 	observer.Character.RoomId = room.RoomId
@@ -298,6 +301,7 @@ func TestSpellChannelDefenceShortageSilenceCases(t *testing.T) {
 	restoreMessages := seedChannelRoutingMessages(t)
 	defer restoreMessages()
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	attacker, defender := users.GetByUserId(1), users.GetByUserId(2)
 	short := characters.CostCommitResult{Status: characters.CostPartiallyPaid, Pool: characters.PoolConviction}
 	paid := characters.CostCommitResult{Status: characters.CostPaid, Pool: characters.PoolConviction}
@@ -328,6 +332,7 @@ func TestMobAreaSpellEmitsOnePrivateShortagePerActualPlayerTarget(t *testing.T) 
 	restoreMessages := seedChannelRoutingMessages(t)
 	defer restoreMessages()
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	caster := mobs.GetInstance(100)
 	require.NotNil(t, caster)
 	for _, userID := range []int{1, 2} {
@@ -362,6 +367,7 @@ func TestSpellChannelDefencePreservesComputedDuplicateMobIdentity(t *testing.T) 
 	defer restoreMessages()
 
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	attacker := users.GetByUserId(1)
 	first := mobs.GetInstance(100)
 	require.NotNil(t, first)
@@ -417,6 +423,7 @@ func TestResolveSpellDispatchDefensiveCritStopsKnockdownSpell(t *testing.T) {
 			t.Cleanup(func() { runSpellChannelAttack = original })
 
 			room := rooms.LoadRoom(1)
+			room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 			attacker := users.GetByUserId(1)
 			observer := users.GetByUserId(2)
 			target := mobs.GetInstance(100)
@@ -470,6 +477,7 @@ func TestResolveSpellDispatchDefendedKnockdownDealsPartialDamageWithoutKnockdown
 	t.Cleanup(func() { runSpellChannelAttack = original })
 
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	attacker := users.GetByUserId(1)
 	target := mobs.GetInstance(100)
 	target.Character.MobInstanceId = target.InstanceId

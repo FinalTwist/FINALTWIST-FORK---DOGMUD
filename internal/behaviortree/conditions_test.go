@@ -491,12 +491,17 @@ func seedMultipleEnemiesRoom(
 	}
 	cleanupMobs := mobs.SeedMobsForTest(specs, instances)
 
-	// Seed room.
+	// Seed room. Lamp pins it fully lit regardless of the ambient test
+	// round: condMultipleEnemies gates on mobCanSee, which requires
+	// SightFull, and since graded lighting plan 3a Task 8, LightLevel()
+	// reads the real celestial term at whatever round util.GetRoundCount()
+	// holds, which a bare unpinned round reads as shapes tier, not full.
 	r := &rooms.Room{
 		RoomId: roomId,
 		Zone:   "test",
 		Title:  "Test Room",
 		Exits:  map[string]exit.RoomExit{},
+		Lamp:   rooms.LampPtr(90),
 	}
 	cleanupRooms := rooms.SeedRoomsForTest(
 		map[int]*rooms.Room{roomId: r},

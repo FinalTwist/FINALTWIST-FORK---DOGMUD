@@ -136,11 +136,14 @@ func seedUnengagedFire(t *testing.T, defenderRoomId int, watchers ...unengagedWa
 	}
 	cleanupMobs := mobs.SeedMobsForTest(mobSpecs, mobInstances)
 
+	// Lamp pins both rooms fully lit regardless of the ambient test round;
+	// see seedFireMobInRoom in combat_fire_test.go for why.
 	room1 := &rooms.Room{
 		RoomId: 1, Zone: "TestZone", Title: "Room One", Biome: "city",
 		Exits: map[string]exit.RoomExit{"north": {RoomId: 2}},
+		Lamp:  rooms.LampPtr(90),
 	}
-	room2 := &rooms.Room{RoomId: 2, Zone: "TestZone", Title: "Room Two", Biome: "city"}
+	room2 := &rooms.Room{RoomId: 2, Zone: "TestZone", Title: "Room Two", Biome: "city", Lamp: rooms.LampPtr(90)}
 	cleanupRooms := rooms.SeedRoomsForTest(
 		map[int]*rooms.Room{1: room1, 2: room2},
 		map[string]*rooms.ZoneConfig{

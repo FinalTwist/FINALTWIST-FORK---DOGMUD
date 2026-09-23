@@ -74,6 +74,9 @@ func TestRecoil_LitRoomNamesBothAndSparesTheParticipantsTheRoomLine(t *testing.T
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	room := rooms.LoadRoom(1)
+	// Pins room 1 fully lit regardless of the ambient test round (see
+	// combat_blind_warning_test.go).
+	room.Lamp = rooms.LampPtr(90)
 	drainPlain(1)
 	drainPlain(2)
 

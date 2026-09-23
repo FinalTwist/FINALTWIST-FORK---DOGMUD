@@ -2,8 +2,7 @@ biomeid: cave
 name: Cave
 symbol: ⌬
 description: Dark areas underground.
-darkarea: true
-litarea: false
+skylight: 0.0
 requireditemid: 0
 usesitem: false
 burns: false

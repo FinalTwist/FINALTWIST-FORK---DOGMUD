@@ -32,7 +32,21 @@ func moonContribution(phasePercent float64) float64 {
 }
 
 func currentPhases() (swift, wander, eye float64) {
-	roundNum := util.GetRoundCount()
+	return PhasesAtRound(util.GetRoundCount())
+}
+
+// PhasesAtRound returns all three moon phases at a SPECIFIC round, rather than
+// at whatever round the global counter happens to hold when it is called.
+//
+// 🔑 This exists so a caller that also reads something else round-dependent can
+// pin both to the same round. CelestialLight combines the sun's position with
+// the moons' phases and stores the result under a round key; if the two halves
+// were read from the counter independently, an advance between them would
+// memoise a sun from round N beside a moon from round N+1, filed under N. The
+// drift is imperceptible, since moon periods span thousands of rounds, but the
+// invariant it breaks ("one value for the whole world per round") is the thing
+// that makes the memo safe to reason about.
+func PhasesAtRound(roundNum uint64) (swift, wander, eye float64) {
 	rpd := uint64(configs.GetTimingConfig().RoundsPerDay)
 	if rpd == 0 {
 		return

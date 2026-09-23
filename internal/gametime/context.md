@@ -15,8 +15,12 @@ stat modifiers and mutation pacing, and with a zodiac year name.
 
 - **gametime.go** — `GameDate`, `RoundTimer`, day/night control, and the
   period-string arithmetic (`AddPeriod`, `GetLastPeriod`).
+- **celestial.go**: the solar and lunar light model, `NightHoursAt`,
+  `SunLight`, `MoonLight`, `CelestialLight`. Plan 3a of the graded lighting
+  arc.
 - **months.go** — `MonthName(month int) string`.
-- **moonphase.go** — the three moons and their stat contribution.
+- **moonphase.go**: the three moons and their stat contribution, plus
+  `PhasesAtRound`.
 - **zodiac.go** — `GetZodiac(year int) string`.
 - **copyover.go** — copyover contributor so a hot restart does not jump the
   clock.
@@ -28,7 +32,7 @@ type GameDate struct {
     RoundNumber      uint64
     RoundsPerDay     int
     NightHoursPerDay int
-    Year, Month, Week, Day, Hour int
+    Year, Month, Week, Day, Hour, Hour24 int
     Minute      int
     MinuteFloat float64
     AmPm        string
@@ -86,6 +90,71 @@ The three setters shift the world clock and back the admin `time` command.
 Day/night is a **derived** property (`GameDate.Night`), recomputed per query —
 there is no transition callback and no cached state to invalidate.
 
+**`GameDate.NightHoursPerDay` is VESTIGIAL as of the graded lighting arc.**
+`getDate` still stamps it from `Timing.NightHours`, but nothing reads it: the
+day/night boundary is computed in `ReCalculate` from `NightHoursAt` (below),
+which varies across the year, so a single per-day figure can no longer
+describe it. It is kept rather than deleted because `GameDate` is a
+serialised, widely passed struct. Do not read it: it will report eight
+hours on a night that runs fifteen.
+
+## Solar and lunar light (`celestial.go`, plan 3a)
+
+`configs.Lighting.WorldLatitude` is the **only** seasonal input. Declination,
+day length, sunrise, sunset and noon height all derive from that one degree
+value, so there is no separate seasonal table to keep in sync with it.
+Shipped at 46.5, mirroring Washington State: night runs 8h23m at midsummer
+and 15h37m at midwinter.
+
+```go
+func NightHoursAt(latitudeDegrees float64, dayOfYear int) float64
+func SunLight(cfg configs.Lighting, dayOfYear int, hour float64) float64
+func MoonLight(cfg configs.Lighting, swiftmoon, wanderer, eye float64) float64
+func CelestialLight() float64
+```
+
+- `NightHoursAt` is how `GameDate.ReCalculate` places the day/night boundary,
+  replacing the old flat `Timing.NightHours` cutoff. It clamps to 12 (polar
+  day) or 0 (polar night) rather than returning NaN beyond the polar circles.
+- `SunLight` is the sun's own contribution to the sky, calibrated so an
+  equinox noon reads exactly `cfg.EquinoxNoon`. 🔑 **The sun is Absent below
+  the horizon, not zero.** `sin(altitude) <= 0` returns `lightscale.Absent()`
+  directly, so night needs no separate branch: Absent already composes
+  correctly through `lightscale.Combine`.
+- `MoonLight` is the three moons' combined contribution (each moon's phase
+  from `PhasesAtRound`/`GetAllPhases`, below), interpolated between a
+  starlight anchor and a full-moon anchor on a logarithmic intensity axis.
+- `CelestialLight` combines both into the sky's light for the whole world at
+  the current round, memoized per round so 500 `Room.LightLevel()` calls in
+  one round compute it once. It reads `PhasesAtRound(round)`, never
+  `GetAllPhases()`, so the memoized sun and moon terms always come from the
+  same captured round rather than two different ones under one cache key.
+
+### Two traps for the next test author
+
+- **A bare `Balance{}` has `WorldLatitude` zero, and validation COERCES that
+  to 46.5** (`internal/configs/config.balance.lighting.go`) rather than
+  honouring it. Right for production, where a bare struct never ships and
+  none of the lighting knobs appear in `_datafiles/config.yaml` today so
+  production genuinely runs one. A test that wants a specific latitude must
+  set `Balance.WorldLatitude` and call `Validate()` explicitly.
+- **A test binary's `Timing` defaults are not the shipped ones.** Any test
+  that touches night must pin BOTH `Timing` (`RoundsPerDay`, `NightHours`,
+  `RoundSeconds`) and `Balance.WorldLatitude`, validate both, and install
+  them with `configs.SetConfigForTest`, or it asserts on arithmetic derived
+  from whatever Go zero-values happened to be in scope. `nightlength_test.go`'s
+  `pinTiming` helper is the pattern to copy.
+
+**`roundDateCache` carries no config fingerprint.** It is keyed on the round
+number alone (`gametime.go`), so a test that changes lighting or timing
+config and then asks about a round another test already cached silently
+gets that other test's answer. `ClearDateCacheForTest()` exists for this;
+call it both before sampling and via `t.Cleanup`. This is not hypothetical:
+`TestShippedConfigHasASeasonalNight` once passed a deliberately broken
+latitude coercion because an earlier test in the same file had already
+cached those exact rounds under a different, still-pinned latitude, and the
+break only showed up running the test in isolation.
+
 ## The three moons
 
 Cycle lengths are multiples of `RoundsPerDay`, matching the lore in
@@ -102,6 +171,7 @@ func GetSwiftmoonPhase() float64
 func GetWandererPhase() float64
 func GetEyePhase() float64
 func GetAllPhases() (swiftmoon, wanderer, eye float64)
+func PhasesAtRound(roundNum uint64) (swift, wander, eye float64)
 func CurrentMoonFlavorBucket() int
 func MoonStatDelta(phase, maxMod float64, base int) int
 ```
@@ -112,7 +182,10 @@ moon, 1.0 is full, and both quarters read 0.5. `MoonStatDelta` turns that into
 an integer stat adjustment scaled off a base value.
 
 **Use `GetAllPhases` when you need more than one** — each single-moon getter
-recomputes all three and discards two.
+recomputes all three and discards two. **Use `PhasesAtRound` instead of
+`GetAllPhases` when a caller already has a pinned round number** (plan 3a's
+`CelestialLight` is the example): it takes that round rather than reading
+the live counter itself, so two round-dependent values cannot drift apart.
 
 ## Other API
 
@@ -138,16 +211,22 @@ helper embedded in other packages' YAML.
 - **Real-world conversion used `84600` seconds per day until 2026-07-31** — an
   upstream digit transposition that made every `irl` period run 0.9% short. It
   is now the named constant `secondsPerRealDay = 86400`.
-- **Nothing here is cached.** `GetDate()` recomputes from scratch on every call.
-  Cheap individually; still worth hoisting out of a per-actor loop.
+- **`GetDate()` is memoized by round in `roundDateCache`, and that cache
+  carries no config fingerprint.** Since the graded lighting arc,
+  `GameDate.Night` derives from `Balance.WorldLatitude`, so a test that pins a
+  different latitude and reuses a round another test already computed
+  silently inherits that test's answer. See "Two traps for the next test
+  author," above, and call `ClearDateCacheForTest()`.
 - **There is no `GetTimeConfig`** — timing lives in
   `configs.GetTimingConfig()`.
 
 ## Dependencies
 
-`configs` (timing block), `util` (round count), `copyover`. No dependency on
-rooms, users, or mobs — this package sits low in the graph and is safe to
-import almost anywhere.
+`configs` (timing block, and `configs.Lighting` for the celestial model),
+`util` (round count), `copyover`, `lightscale` (the `Combine` operator
+`CelestialLight` composes the sun and moons on). No dependency on rooms,
+users, or mobs: this package sits low in the graph and is safe to import
+almost anywhere.
 
 ## Consumers
 

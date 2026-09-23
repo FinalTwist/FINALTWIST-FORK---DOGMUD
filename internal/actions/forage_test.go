@@ -105,16 +105,12 @@ func seedForageBiomes(t *testing.T) func() {
 			BiomeId:      "forest",
 			Name:         "Forest",
 			Symbol:       "T",
-			LitArea:      false,
-			DarkArea:     false,
 			MovementCost: 1.5,
 		},
 		"default": {
 			BiomeId:      "default",
 			Name:         "Default",
 			Symbol:       "•",
-			LitArea:      true,
-			DarkArea:     false,
 			MovementCost: 1.0,
 		},
 	})

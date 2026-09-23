@@ -7,7 +7,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
-	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -272,7 +271,7 @@ func Track(actor Actor, opts TrackOptions) TrackResult {
 		// like every other opposed contest. Mirrors usercommands/go.go's hidden
 		// detection, which resolves the same shape of question.
 		if tgt := trackTargetCharacter(targetUserId, targetMobId); tgt != nil {
-			roomLit := room.LightLevel() >= int(configs.GetBalanceConfig().LightBlindBelow)
+			roomLit := room.IsLit()
 			won := combat.RunContest(
 				CalcDetectionScore(char),
 				[]contest.Entry{{Score: CalcSneakScoreVsObserver(tgt, char, roomLit)}},

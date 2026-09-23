@@ -23,7 +23,7 @@ func TestActeeDefenceLine_ThreeTierSightNotBinary(t *testing.T) {
 	defer cleanup()
 
 	restoreBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
+		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 	})
 	defer restoreBiomes()
 
@@ -43,7 +43,7 @@ func TestActeeDefenceLine_ThreeTierSightNotBinary(t *testing.T) {
 	darkRoom := rooms.LoadRoom(2)
 	require.NotNil(t, darkRoom)
 	darkRoom.Biome = "cave"
-	require.Equal(t, rooms.LightDark, darkRoom.LightLevel(), "fixture room must be unlit for this lane")
+	require.Equal(t, 0, darkRoom.LightLevel(), "fixture room must be unlit for this lane")
 
 	text := `<ansi fg="username">Aliceia</ansi> catches your blow on its shield!`
 

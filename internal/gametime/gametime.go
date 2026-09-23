@@ -23,8 +23,43 @@ const secondsPerRealDay = 86400
 var (
 	dayResetOffset int = 0
 
+	// roundDateCache memoises GameDate by round number.
+	//
+	// 🪤 IT IS KEYED ON THE ROUND ALONE, WITH NO CONFIG FINGERPRINT, and since
+	// the graded lighting arc that is a trap for tests rather than a harmless
+	// optimisation. GameDate.Night now derives from Balance.WorldLatitude, so
+	// an entry computed under one latitude is returned unchanged under another.
+	//
+	// In production this is fine: the config is stable, so the cache can only
+	// ever hold answers computed under the config that is still in force.
+	//
+	// In a TEST BINARY it is not. Two tests that pin different lighting config
+	// and then ask about the SAME round number will silently share one answer,
+	// and the second test passes on the first test's arithmetic. That is not
+	// hypothetical: TestShippedConfigHasASeasonalNight was written as the guard
+	// against WorldLatitude regressing to zero, and it passed a deliberately
+	// broken coercion because an earlier test in the same file had already
+	// cached those exact rounds under a pinned latitude. It only failed when
+	// run in isolation.
+	//
+	// 🔑 ANY TEST THAT CHANGES LIGHTING OR TIMING CONFIG MUST CALL
+	// ClearDateCacheForTest BEFORE SAMPLING, or it is asserting on whatever the
+	// previous test happened to leave behind.
 	roundDateCache = map[uint64]GameDate{}
 )
+
+// ClearDateCacheForTest empties the round-to-GameDate memo.
+//
+// It exists because roundDateCache carries no config fingerprint (see above),
+// so a test that changes lighting or timing config must discard entries
+// computed under the old one. Named ForTest in the same spirit as
+// configs.SetConfigForTest and util.SetRoundCountForTest.
+//
+// Production has no reason to call this: SetTime already clears the cache when
+// it moves the clock, and nothing else changes the inputs mid-run.
+func ClearDateCacheForTest() {
+	clear(roundDateCache)
+}
 
 type RoundTimer struct {
 	RoundStart uint64 `yaml:"roundstart,omitempty"`
@@ -44,8 +79,17 @@ func (r RoundTimer) Expired() bool {
 
 type GameDate struct {
 	// The round number this GameDate represents
-	RoundNumber      uint64
-	RoundsPerDay     int
+	RoundNumber  uint64
+	RoundsPerDay int
+	// NightHoursPerDay is VESTIGIAL as of the graded lighting arc: it is still
+	// stamped from Timing.NightHours in getDate, but nothing reads it. The
+	// day/night boundary now derives from Balance.WorldLatitude via
+	// NightHoursAt, and night length varies across the year, so a single
+	// per-day figure can no longer describe it.
+	//
+	// Kept rather than deleted because GameDate is a serialised, widely passed
+	// struct and removing a field is a wider change than this arc wants. Do not
+	// read it: it will tell you eight hours on a night that runs fifteen.
 	NightHoursPerDay int
 
 	Year        int
@@ -198,13 +242,34 @@ func (g *GameDate) ReCalculate() {
 	hour := int(hourFloat)
 	hour24 := hour
 
-	night := false
-	halfNight := int(math.Floor(float64(g.NightHoursPerDay) / 2))
-	nightStart := 24 - halfNight
-	nightEnd := int(g.NightHoursPerDay) - halfNight
-	if hour >= nightStart || hour < nightEnd {
-		night = true
+	// Day of the year must be known before night length, because night length
+	// is seasonal. This block was BELOW the night block before the celestial
+	// model landed; it moved up for that reason and must stay here.
+	day := math.Floor(float64(currentRoundAdjusted)/float64(g.RoundsPerDay)) + 1
+	year := math.Ceil(day / 365)
+	if year > 1 {
+		day -= math.Floor((year - 1) * 365)
 	}
+
+	// Night length is derived from the world's latitude on this day of the
+	// year. 🔴 CORRECTED 2026-09-23: there is NO NightHours fallback. Zero is
+	// coerced to the default in validation, because the shipped config is a
+	// bare Balance and honouring zero would have shipped a flat night with no
+	// seasons. Timing.NightHours is no longer read for the day/night boundary
+	// at all; it stays only for upstream compatibility.
+	//
+	// The hour used here is FRACTIONAL, unlike the integer `hour` above,
+	// because a latitude-derived night boundary lands at 07:49, not 08:00.
+	// Comparing an integer hour against it would round the boundary to the
+	// nearest hour and lose up to half an hour of night at each end.
+	hourOfDay := float64(roundOfDay) / float64(g.RoundsPerDay) * 24
+
+	nightHours := NightHoursAt(configs.GetLightingConfig().WorldLatitude, int(day))
+	halfNight := nightHours / 2
+	nightStartHour := 24 - halfNight
+	nightEndHour := halfNight
+
+	night := hourOfDay >= nightStartHour || hourOfDay < nightEndHour
 
 	ampm := `AM`
 	if hour >= 12 {
@@ -218,12 +283,6 @@ func (g *GameDate) ReCalculate() {
 
 	minute := math.Floor(minutesFloat * 60)
 
-	day := math.Floor(float64(currentRoundAdjusted)/float64(g.RoundsPerDay)) + 1
-	year := math.Ceil(day / 365)
-
-	if year > 1 {
-		day -= math.Floor((year - 1) * 365)
-	}
 	week := math.Floor(float64(day) / 7)
 
 	month := 1 + math.Floor((day*24)/730) // 730 hours in a "month" (24 hours * 365 days / 12 months)
@@ -239,8 +298,11 @@ func (g *GameDate) ReCalculate() {
 	g.AmPm = ampm
 	g.Night = night
 
-	g.NightStart = nightStart
-	g.DayStart = nightEnd
+	// NightStart and DayStart are display values (GameDate.String's dusk check
+	// and the time command), so they round to the nearest hour. The Night
+	// boolean above is computed from the unrounded boundaries.
+	g.NightStart = int(math.Round(nightStartHour))
+	g.DayStart = int(math.Round(nightEndHour))
 }
 
 func (g GameDate) Add(adjustHours int, adjustDays int, adjustYears int) GameDate {
@@ -508,7 +570,27 @@ func GetLastPeriod(periodName string, roundNumber uint64) uint64 {
 	c := configs.GetTimingConfig()
 
 	roundsPerDay := uint64(c.RoundsPerDay)
-	nightHoursPerDay := uint64(c.NightHours)
+
+	// Night length here must match ReCalculate's, or "the last sunrise" will
+	// disagree with whether it is currently night. Fact from the spec: no
+	// shipped data uses a sunrise or sunset decayrate today, so this path is
+	// exercised only by the admin time-jump commands and the time command.
+	// ⚠️ This day-of-year does NOT apply dayResetOffset, while ReCalculate's
+	// does (it builds from currentRoundAdjusted). That divergence is older than
+	// the lighting arc: GetLastPeriod has never adjusted any of its round
+	// arithmetic for the offset, which the admin `settime` command mutates.
+	//
+	// What is new is that the value now feeds a SEASON-SENSITIVE computation,
+	// so the drift is observable rather than cosmetic. It stays small: the
+	// offset is bounded to under a day, and one day of day-of-year error moves
+	// the derived night length by two or three minutes at the shipped latitude.
+	// It is also narrow: no shipped data uses a sunrise or sunset decayrate, so
+	// this path is reached only by the admin time-jump commands and `time`.
+	//
+	// Recorded rather than fixed so the next reader knows the divergence is
+	// pre-existing and not a bug this arc introduced.
+	dayOfYear := int(roundNumber/roundsPerDay)%365 + 1
+	nightHoursPerDay := NightHoursAt(configs.GetLightingConfig().WorldLatitude, dayOfYear)
 
 	roundsPerHour := float64(roundsPerDay) / 24
 
@@ -552,14 +634,14 @@ func GetLastPeriod(periodName string, roundNumber uint64) uint64 {
 
 	} else if periodName == `sunrise` { // last sunrise
 
-		roundNumber -= roundOfDay                                                       // Strip rounds of today off
-		roundNumber -= uint64(roundsPerDay)                                             // Subtract a day
-		roundNumber += uint64(math.Ceil(float64(nightHoursPerDay) / 2 * roundsPerHour)) // add half a night
+		roundNumber -= roundOfDay                                              // Strip rounds of today off
+		roundNumber -= roundsPerDay                                            // Subtract a day; roundsPerDay is already uint64
+		roundNumber += uint64(math.Ceil(nightHoursPerDay / 2 * roundsPerHour)) // add half a night
 
 	} else if periodName == `sunset` { // 12am of next day, minus half of night
 
-		roundNumber -= roundOfDay                                                       // Strip rounds of today off
-		roundNumber -= uint64(math.Ceil(float64(nightHoursPerDay) / 2 * roundsPerHour)) // Subtract half a night
+		roundNumber -= roundOfDay                                              // Strip rounds of today off
+		roundNumber -= uint64(math.Ceil(nightHoursPerDay / 2 * roundsPerHour)) // Subtract half a night
 
 	}
 

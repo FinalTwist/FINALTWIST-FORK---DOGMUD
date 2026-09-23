@@ -33,9 +33,9 @@ func TestRevealSpotted_MobSearcherEndsNothing(t *testing.T) {
 func revealPlayerScene(t *testing.T, biome string) (*rooms.Room, *users.UserRecord) {
 	t.Helper()
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave":    {BiomeId: "cave", DarkArea: true},
-		"city":    {BiomeId: "city", LitArea: true},
-		"default": {BiomeId: "default", LitArea: true},
+		"cave":    {BiomeId: "cave", SkyLight: rooms.SkyLightPtr(0.0)},
+		"city":    {BiomeId: "city"},
+		"default": {BiomeId: "default"},
 	}))
 	hider := users.NewTestUser(7911, "kesh", "Kesh", 97911)
 	viewerTestHide(t, hider.Character)

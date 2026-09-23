@@ -20,6 +20,10 @@ func TestRetargetNotice_LitRoomNamesTheTarget(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	room := rooms.LoadRoom(1)
+	// Pins room 1 fully lit regardless of the ambient test round. See
+	// combat_blind_warning_test.go's comment for why this is necessary
+	// since graded lighting plan 3a Task 8.
+	room.Lamp = rooms.LampPtr(90)
 
 	line, ok := actions.RetargetNotice(room, 1, state.ActorRef{MobInstanceId: 100})
 	require.True(t, ok)

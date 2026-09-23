@@ -54,7 +54,7 @@ func narrateHidingPlain(lines []string) []string {
 // passes straight through untouched.
 func TestGameBridge_Narrate_RoomLineHidesBareNameFromShapesOnlyObserver(t *testing.T) {
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", DarkArea: true},
+		"cave": {BiomeId: "cave", SkyLight: rooms.SkyLightPtr(0.0)},
 	}))
 	// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
 	// design (internal/characters/vision.go), so this fixture declares an

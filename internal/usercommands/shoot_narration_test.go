@@ -227,6 +227,7 @@ func TestShoot_EngagedCueLatchesThroughTheRealCommand(t *testing.T) {
 	isolateOpinions(t)
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	user.Character.Stats.Perception.ValueAdj = 300
 	user.Character.Stats.Strength.ValueAdj = 1
 	user.Character.EndAggro()

@@ -81,4 +81,76 @@ func (b *Balance) validateLighting() {
 	if b.LightDefaultVisionStrength == 0 {
 		b.LightDefaultVisionStrength = 12
 	}
+
+	// LightDoublingStep: non-positive is coerced, not honoured. Zero divides
+	// by zero in the combine and makes every source identical.
+	if !(b.LightDoublingStep > 0) {
+		b.LightDoublingStep = 8
+	}
+
+	// WorldLatitude: zero means UNSET and is coerced, the same idiom as
+	// LightDefaultVisionStrength. Out-of-range reverts.
+	//
+	// 🔴 An earlier draft had zero HONOURED, meaning "this world has no
+	// latitude, fall back to Timing.NightHours". That was incoherent, and the
+	// incoherence was not academic. Go cannot distinguish an unset float from
+	// an authored zero, and none of these knobs appear in config.yaml, so the
+	// shipped configuration IS a bare Balance. Honouring zero would therefore
+	// have shipped DOGMud at no latitude: a flat eight-hour night, no seasons,
+	// and the entire celestial model built and never once reached.
+	//
+	// So zero is unset, and the NightHours fallback is deleted rather than
+	// repaired. An operator who wants an equator-like world of twelve-hour
+	// nights all year authors a latitude near zero, such as 0.001; there is no
+	// longer any path that reaches Timing.NightHours for day length.
+	if b.WorldLatitude < -90 || b.WorldLatitude > 90 || b.WorldLatitude == 0 {
+		b.WorldLatitude = 46.5
+	}
+
+	// LightEquinoxNoon must sit on the scale. Zero is coerced: a world whose
+	// equinox noon is as dark as an unlit cave is not a calibration, it is an
+	// unset field.
+	// The range is INCLUSIVE at both ends, matching LightStarlight and
+	// LightMoonsFull below and LightBlindBelow/LightDimBelow above. An earlier
+	// draft wrote `<= -100` here, which silently reverted an operator who
+	// authored the scale floor while every sibling knob accepted it.
+	if b.LightEquinoxNoon < -100 || b.LightEquinoxNoon > 100 || b.LightEquinoxNoon == 0 {
+		b.LightEquinoxNoon = 70
+	}
+
+	// The moon anchors are validated as a PAIR, following
+	// DarknessShapesCombatPenalty and the LightBlindBelow/LightDimBelow pair
+	// above: starlight at or above the full-moon value inverts the curve, so
+	// an invalid pair reverts BOTH rather than leaving one correct.
+	//
+	// Unlike the LightBlindBelow/LightDimBelow pair, neither knob needs its own
+	// `!= 0` unset guard, and that is not an oversight. An unset pair is (0, 0),
+	// which the ordering check below already catches, because starlight is then
+	// not strictly below the full-moon value. Adding the guard would be dead
+	// code.
+	starOK := b.LightStarlight >= -100 && b.LightStarlight <= 100
+	fullOK := b.LightMoonsFull >= -100 && b.LightMoonsFull <= 100
+	if !starOK || !fullOK || b.LightStarlight >= b.LightMoonsFull {
+		b.LightStarlight = 10
+		b.LightMoonsFull = 35
+	}
+
+	// Moon weights: a negative weight would make a waxing moon darken the sky,
+	// so negatives are floored at zero. All three at zero leaves the moon curve
+	// with no span at all, so that reverts the whole set rather than leaving a
+	// sky that never changes.
+	if b.LightMoonWeightSwiftmoon < 0 {
+		b.LightMoonWeightSwiftmoon = 0
+	}
+	if b.LightMoonWeightWanderer < 0 {
+		b.LightMoonWeightWanderer = 0
+	}
+	if b.LightMoonWeightEye < 0 {
+		b.LightMoonWeightEye = 0
+	}
+	if b.LightMoonWeightSwiftmoon+b.LightMoonWeightWanderer+b.LightMoonWeightEye <= 0 {
+		b.LightMoonWeightSwiftmoon = 4.0
+		b.LightMoonWeightWanderer = 1.0
+		b.LightMoonWeightEye = 0.5
+	}
 }

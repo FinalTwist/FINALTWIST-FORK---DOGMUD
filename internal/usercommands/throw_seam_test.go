@@ -72,7 +72,7 @@ func seedThrowSeamFixture(t *testing.T, mobCount int, mitigation int, rank int) 
 	t.Cleanup(cleanupItems)
 
 	cleanupBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"test": {BiomeId: "test", Name: "Test", LitArea: true},
+		"test": {BiomeId: "test", Name: "Test"},
 	})
 	t.Cleanup(cleanupBiomes)
 	room := &rooms.Room{RoomId: 1, Zone: "test", Biome: "test"}

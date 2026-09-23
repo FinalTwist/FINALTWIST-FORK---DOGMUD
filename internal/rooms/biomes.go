@@ -16,12 +16,38 @@ type BiomeInfo struct {
 	Name           string  `yaml:"name"`
 	Symbol         string  `yaml:"symbol"`
 	Description    string  `yaml:"description"`
-	DarkArea       bool    `yaml:"darkarea"`
-	LitArea        bool    `yaml:"litarea"`
 	RequiredItemId int     `yaml:"requireditemid"`
 	UsesItem       bool    `yaml:"usesitem"`
 	Burns          bool    `yaml:"burns"`
 	MovementCost   float64 `yaml:"movementcost"` // Terrain difficulty multiplier for stamina cost (1.0 = normal, 2.0 = rough)
+
+	// SkyLight is the fraction of the open sky's light that reaches this
+	// biome's floor: 1.0 for a desert dune, about 0.45 under forest canopy,
+	// 0.0 at the back of a cave. It is applied as an attenuation on the
+	// logarithmic light scale, so it is the SAME operator weather occlusion
+	// uses in plan 4. Canopy, roof, drain-cap and blizzard are one idea.
+	//
+	// 🔑 It is a POINTER because zero is meaningful. A cave's sky fraction is
+	// genuinely zero, which must be distinguishable from the field being
+	// absent; an unset fraction reads as fully open sky.
+	//
+	// A room may override this; see Room.SkyLight.
+	SkyLight *float64 `yaml:"skylight,omitempty"`
+
+	// Lamp is a permanent light source belonging to the place itself: street
+	// lanterns, a hearth, a cave's bioluminescence. It joins the room's light
+	// on the same combine as the sky and any carried source, rather than
+	// acting as a floor, so a lantern-lit tavern plus a carried torch does not
+	// double-count.
+	//
+	// 🔑 Also a POINTER, for the same reason: a lamp of zero is a place that
+	// has a light source producing nothing, which an unset field does not mean.
+	//
+	// Guidance: a value below LightDimBelow leaves a normal observer reading
+	// shapes with names hidden, which is what a back lane should do; a value
+	// above it means full sight all night, which is what a main street or an
+	// inn should do.
+	Lamp *int `yaml:"lamp,omitempty"`
 
 	// Indoor marks a room as sheltered from weather; outdoor-only mutators
 	// don't render here.
@@ -58,12 +84,36 @@ func (bi *BiomeInfo) SymbolString() string {
 	return bi.Symbol
 }
 
-func (bi *BiomeInfo) IsLit() bool {
-	return bi.LitArea && !bi.DarkArea
+// SkyLightFraction is the biome's sky fraction, defaulting to a fully open sky
+// when unset.
+func (bi *BiomeInfo) SkyLightFraction() float64 {
+	if bi.SkyLight == nil {
+		return 1.0
+	}
+	return *bi.SkyLight
 }
 
-func (bi *BiomeInfo) IsDark() bool {
-	return !bi.LitArea && bi.DarkArea
+// LampValue is the biome's own light source and whether it declares one at all.
+func (bi *BiomeInfo) LampValue() (int, bool) {
+	if bi.Lamp == nil {
+		return 0, false
+	}
+	return *bi.Lamp, true
+}
+
+// HasLamp reports whether this biome carries a light source that actually
+// produces light.
+//
+// 🔑 It exists because a Go template cannot express the distinction. A template
+// writing `{{ if .Lamp }}` tests only that the POINTER is non-nil, so a biome
+// authored `lamp: 0` -- a legal value meaning "a light source producing
+// nothing" -- would satisfy it and the player would be told the place is lit
+// after dark when it is not. The pointer-versus-zero distinction this whole
+// type is built on has to be readable from a template too, and this is the
+// only way to make it so.
+func (bi *BiomeInfo) HasLamp() bool {
+	v, ok := bi.LampValue()
+	return ok && v != 0
 }
 
 // GetMovementCost returns the terrain difficulty multiplier for stamina cost.
@@ -90,8 +140,11 @@ func (bi *BiomeInfo) Validate() error {
 	if bi.Symbol == "" || bi.Symbol == "?" {
 		return fmt.Errorf("biome '%s' has invalid or missing symbol", bi.BiomeId)
 	}
-	if bi.DarkArea && bi.LitArea {
-		return fmt.Errorf("biome '%s' cannot be both dark and lit", bi.BiomeId)
+	if bi.SkyLight != nil && (*bi.SkyLight < 0 || *bi.SkyLight > 1) {
+		return fmt.Errorf("biome '%s' skylight %v is outside 0.0 to 1.0", bi.BiomeId, *bi.SkyLight)
+	}
+	if bi.Lamp != nil && (*bi.Lamp < -100 || *bi.Lamp > 100) {
+		return fmt.Errorf("biome '%s' lamp %d is off the -100 to 100 light scale", bi.BiomeId, *bi.Lamp)
 	}
 	return nil
 }
@@ -126,7 +179,6 @@ func LoadBiomeDataFiles() {
 			BiomeId:      `default`,
 			Name:         `Default`,
 			Symbol:       `•`,
-			LitArea:      true,
 			Description:  `A default biome used when no other biome is specified.`,
 			MovementCost: 1.0,
 		}
@@ -137,7 +189,6 @@ func LoadBiomeDataFiles() {
 				BiomeId:      `default`,
 				Name:         `Default`,
 				Symbol:       `•`,
-				LitArea:      true,
 				Description:  `A default biome used when no other biome is specified.`,
 				MovementCost: 1.0,
 			}

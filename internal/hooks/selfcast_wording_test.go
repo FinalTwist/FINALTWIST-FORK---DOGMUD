@@ -27,6 +27,7 @@ func TestSelfCastPurge_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 	defer conditions.SeedConditionRecordsForTest()()
 	u := users.GetByUserId(1)
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	drainPlain(1)
 	drainPlain(2)
 
@@ -47,6 +48,7 @@ func TestSelfCastHeal_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 	defer cleanup()
 	u := users.GetByUserId(1)
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	drainPlain(1)
 	drainPlain(2)
 
@@ -67,6 +69,7 @@ func TestSelfCastCondition_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 	defer cleanup()
 	u := users.GetByUserId(1)
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	drainPlain(1)
 	drainPlain(2)
 
@@ -89,6 +92,7 @@ func TestSelfCastDefault_NamesNoOneInTheThirdPerson(t *testing.T) {
 	defer cleanup()
 	u := users.GetByUserId(1)
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	drainPlain(1)
 
 	spell := &spells.SpellData{SpellId: "curiosity", Name: "Curiosity", EffectType: "curiosity"}
@@ -107,6 +111,7 @@ func TestCrossCast_WordingUnchanged(t *testing.T) {
 	caster := users.GetByUserId(1)
 	target := users.GetByUserId(2)
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 
 	cases := []struct {
 		spell      *spells.SpellData
@@ -136,6 +141,7 @@ func TestAreaHeal_CasterIsTheirOwnTarget(t *testing.T) {
 	defer cleanup()
 	u := users.GetByUserId(1)
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	drainPlain(1)
 	drainPlain(2)
 
@@ -158,6 +164,7 @@ func TestAreaPurge_CasterIsTheirOwnTarget(t *testing.T) {
 	defer cleanup()
 	u := users.GetByUserId(1)
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	drainPlain(1)
 	drainPlain(2)
 
@@ -186,6 +193,7 @@ func TestCrossCast_RoomLinesUnchanged(t *testing.T) {
 	restoreUsers := users.SeedUsersForTest(map[int]*users.UserRecord{1: caster, 2: target, 3: watcher})
 	defer restoreUsers()
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	room.AddPlayer(3)
 
 	cases := []struct {
@@ -219,6 +227,7 @@ func TestSelfCastPurgeAffliction_OneLineToCaster(t *testing.T) {
 	defer cleanup()
 	u := users.GetByUserId(1)
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	drainPlain(1)
 
 	spell := &spells.SpellData{SpellId: "purge-affliction", Name: "Purge Affliction", AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle}
@@ -239,6 +248,7 @@ func TestHookSpellOnCompanion_NoGenericLine(t *testing.T) {
 	defer cleanup()
 	u := users.GetByUserId(1)
 	room := rooms.LoadRoom(1)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go
 	drainPlain(1)
 
 	applyMobEffect_default(u, u.Character, room,

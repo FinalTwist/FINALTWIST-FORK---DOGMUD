@@ -173,22 +173,18 @@ func seedAllRegistries() func() {
 			BiomeId:      "city",
 			Name:         "City",
 			Symbol:       "#",
-			LitArea:      true,
-			DarkArea:     false,
 			MovementCost: 1.0,
 		},
 		"cave": {
 			BiomeId:  "cave",
 			Name:     "Cave",
 			Symbol:   "C",
-			LitArea:  false,
-			DarkArea: true,
+			SkyLight: rooms.SkyLightPtr(0.0),
 		},
 		"default": {
 			BiomeId:      "default",
 			Name:         "Default",
 			Symbol:       ".",
-			LitArea:      true,
 			MovementCost: 1.0,
 		},
 	})

@@ -260,14 +260,18 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		// Seeing THROUGH an exit needs more light than seeing the room you
 		// are standing in. The old model expressed this as visibility 2
 		// rather than 1; LightExitsAbove carries it explicitly.
+		//
+		// 🪤 There used to be an "unless the biome is lit" exemption here. It
+		// was deleted with the graded light model, and it should not come
+		// back: a lit biome's light already cleared LightExitsAbove on its
+		// own, so the exemption only ever fired when a darkening mutator had
+		// dragged the room below the threshold, which is precisely the case
+		// where refusing is right. The light value decides now.
 		if light < int(balance.LightExitsAbove) {
 
 			if !user.Character.HasFlagFromAnySource(conditions.NightVision) {
-				biome := room.GetBiome()
-				if !biome.IsLit() {
-					user.SendText(messaging.CategorySystem, `It's too dark to see anything in that direction.`)
-					return true, nil
-				}
+				user.SendText(messaging.CategorySystem, `It's too dark to see anything in that direction.`)
+				return true, nil
 			}
 
 		}
@@ -711,7 +715,7 @@ func lookRoom(user *users.UserRecord, roomId int, secretLook bool) {
 
 	groundDetails := map[string]any{
 		`GroundStuff`: groundStuff,
-		`IsDark`:      room.GetBiome().IsDark(),
+		`IsDark`:      !room.IsLit(),
 		`IsNight`:     gametime.IsNight(),
 	}
 	textOut, _ = templates.Process("descriptions/ontheground", groundDetails, user.UserId)

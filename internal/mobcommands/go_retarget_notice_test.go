@@ -34,12 +34,12 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName(t *testing.T) 
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{}))
 
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
+		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 	}))
 
 	room := &rooms.Room{RoomId: 9300, Biome: "cave"}
 	t.Cleanup(rooms.SeedRoomsForTest(map[int]*rooms.Room{9300: room}, map[string]*rooms.ZoneConfig{}))
-	require.Equal(t, rooms.LightDark, room.LightLevel(), "room must actually be unlit")
+	require.Equal(t, 0, room.LightLevel(), "room must actually be unlit")
 
 	mobA := &mobs.Mob{
 		MobId: 9300, InstanceId: 9301, HomeRoomId: 9300,
@@ -95,12 +95,12 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName_CompanionBranc
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{}))
 
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
+		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 	}))
 
 	room := &rooms.Room{RoomId: 9400, Biome: "cave"}
 	t.Cleanup(rooms.SeedRoomsForTest(map[int]*rooms.Room{9400: room}, map[string]*rooms.ZoneConfig{}))
-	require.Equal(t, rooms.LightDark, room.LightLevel(), "room must actually be unlit")
+	require.Equal(t, 0, room.LightLevel(), "room must actually be unlit")
 
 	mobA := &mobs.Mob{
 		MobId: 9400, InstanceId: 9401, HomeRoomId: 9400,

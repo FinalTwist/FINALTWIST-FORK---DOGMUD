@@ -28,14 +28,14 @@ func newCharWithCondition(t *testing.T, name string, conditionId int) *character
 // is built on, in this package's own test binary. If TestMain stops loading
 // biomes or conditions, this fails here rather than somewhere confusing.
 func TestSightTiersBehaveAsWitnessGateExpects(t *testing.T) {
-	lit := &rooms.Room{RoomId: 467}
+	lit := &rooms.Room{RoomId: 467, Lamp: rooms.LampPtr(90)}
 	dark := &rooms.Room{RoomId: 468, Biome: "cave"}
 
-	if got := lit.LightLevel(); got <= rooms.LightDark {
-		t.Fatalf("default-biome room light = %d, want > %d (lit)", got, rooms.LightDark)
+	if got := lit.LightLevel(); got <= 0 {
+		t.Fatalf("default-biome room light = %d, want > %d (lit)", got, 0)
 	}
-	if got := dark.LightLevel(); got != rooms.LightDark {
-		t.Fatalf("cave room light = %d, want %d (unlit)", got, rooms.LightDark)
+	if got := dark.LightLevel(); got != 0 {
+		t.Fatalf("cave room light = %d, want %d (unlit)", got, 0)
 	}
 
 	tests := []struct {
@@ -132,7 +132,7 @@ func TestWitnessesInRoom_SleeperInLitRoomIsNotAWitness(t *testing.T) {
 	setupTestCrimes(t)
 	setupFactionsForCrimesTest(t)
 
-	room := &rooms.Room{RoomId: 467}
+	room := &rooms.Room{RoomId: 467, Lamp: rooms.LampPtr(90)}
 
 	sleeper := &mobs.Mob{MobId: 903, InstanceId: 501, Groups: []string{"thornwall_citizens"}}
 	sleeper.Character = *newCharWithCondition(t, "sleeping mob", 15)

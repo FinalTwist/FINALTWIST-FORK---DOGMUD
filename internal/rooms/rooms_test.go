@@ -1062,30 +1062,24 @@ func seedBiomes() func() {
 			BiomeId:      "city",
 			Name:         "City",
 			Symbol:       "#",
-			LitArea:      true,
-			DarkArea:     false,
 			MovementCost: 1.0,
 		},
 		"cave": {
 			BiomeId:  "cave",
 			Name:     "Cave",
 			Symbol:   "C",
-			LitArea:  false,
-			DarkArea: true,
+			SkyLight: SkyLightPtr(0.0),
 		},
 		"forest": {
 			BiomeId:      "forest",
 			Name:         "Forest",
 			Symbol:       "T",
-			LitArea:      false,
-			DarkArea:     false,
 			MovementCost: 1.5,
 		},
 		"default": {
 			BiomeId:      "default",
 			Name:         "Default",
 			Symbol:       "•",
-			LitArea:      true,
 			MovementCost: 1.0,
 		},
 	}
@@ -1125,40 +1119,9 @@ func TestRoom_MapSymbolAndLegend_PerRoomOverridesBiome(t *testing.T) {
 	assert.Equal(t, "City", legend2, "no per-room maplegend falls back to the biome name")
 }
 
-func TestBiomeInfo_IsLit(t *testing.T) {
-	t.Run("lit area", func(t *testing.T) {
-		bi := &BiomeInfo{LitArea: true, DarkArea: false}
-		assert.True(t, bi.IsLit())
-	})
-	t.Run("dark area is not lit", func(t *testing.T) {
-		bi := &BiomeInfo{LitArea: false, DarkArea: true}
-		assert.False(t, bi.IsLit())
-	})
-	t.Run("both dark and lit = not lit", func(t *testing.T) {
-		bi := &BiomeInfo{LitArea: true, DarkArea: true}
-		assert.False(t, bi.IsLit())
-	})
-	t.Run("neither = not lit", func(t *testing.T) {
-		bi := &BiomeInfo{LitArea: false, DarkArea: false}
-		assert.False(t, bi.IsLit())
-	})
-}
-
-func TestBiomeInfo_IsDark(t *testing.T) {
-	t.Run("dark area", func(t *testing.T) {
-		bi := &BiomeInfo{LitArea: false, DarkArea: true}
-		assert.True(t, bi.IsDark())
-	})
-	t.Run("lit area is not dark", func(t *testing.T) {
-		bi := &BiomeInfo{LitArea: true, DarkArea: false}
-		assert.False(t, bi.IsDark())
-	})
-	t.Run("both = not dark", func(t *testing.T) {
-		bi := &BiomeInfo{LitArea: true, DarkArea: true}
-		assert.False(t, bi.IsDark())
-	})
-}
-
+// BiomeInfo.IsLit()/IsDark() (DarkArea/LitArea booleans) are gone; their
+// replacements, SkyLightFraction() and LampValue(), are pinned by
+// internal/rooms/biomes_light_test.go.
 func TestBiomeInfo_GetMovementCost(t *testing.T) {
 	t.Run("default when zero", func(t *testing.T) {
 		bi := &BiomeInfo{}
@@ -1198,10 +1161,6 @@ func TestBiomeInfo_Validate(t *testing.T) {
 	})
 	t.Run("question mark symbol", func(t *testing.T) {
 		bi := &BiomeInfo{BiomeId: "city", Name: "City", Symbol: "?"}
-		assert.Error(t, bi.Validate())
-	})
-	t.Run("both dark and lit", func(t *testing.T) {
-		bi := &BiomeInfo{BiomeId: "city", Name: "City", Symbol: "#", DarkArea: true, LitArea: true}
 		assert.Error(t, bi.Validate())
 	})
 }

@@ -133,7 +133,7 @@ func shadowIsTargetingUser(shadower *users.UserRecord, moverId int) bool {
 // room is the current room in which the detection check occurs; used
 // to compute per-observer light conditions (NightVision, room darkness).
 func shadowDetectionRoll(shadower *users.UserRecord, target *users.UserRecord, room *rooms.Room) bool {
-	roomLit := room.LightLevel() >= int(configs.GetBalanceConfig().LightBlindBelow)
+	roomLit := room.IsLit()
 	sneakScore := actions.CalcSneakScoreVsObserver(shadower.Character, target.Character, roomLit)
 	targetScore := actions.CalcDetectionScore(target.Character)
 

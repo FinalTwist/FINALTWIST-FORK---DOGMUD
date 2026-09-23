@@ -91,7 +91,6 @@ func seedFollowRegistries(t *testing.T) func() {
 			BiomeId:      "default",
 			Name:         "Default",
 			Symbol:       ".",
-			LitArea:      true,
 			MovementCost: 1.0,
 		},
 	})

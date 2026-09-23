@@ -53,7 +53,7 @@ func seedThrowCostFixture(t *testing.T) (*users.UserRecord, *rooms.Room, *mobs.M
 	t.Cleanup(cleanupMobs)
 
 	cleanupBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"test": {BiomeId: "test", Name: "Test", LitArea: true},
+		"test": {BiomeId: "test", Name: "Test"},
 	})
 	t.Cleanup(cleanupBiomes)
 	room := &rooms.Room{RoomId: 1, Zone: "test", Biome: "test"}
@@ -250,7 +250,7 @@ func seedSneakCommandCostFixture(t *testing.T) (*users.UserRecord, *rooms.Room, 
 	t.Cleanup(cleanupMobs)
 
 	cleanupBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"test": {BiomeId: "test", Name: "Test", LitArea: true},
+		"test": {BiomeId: "test", Name: "Test"},
 	})
 	t.Cleanup(cleanupBiomes)
 	room := &rooms.Room{RoomId: 1, Zone: "test", Biome: "test"}

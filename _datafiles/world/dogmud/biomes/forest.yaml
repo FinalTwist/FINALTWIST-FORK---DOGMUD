@@ -3,8 +3,7 @@ name: Forest
 symbol: ♣
 description: Forests are generally green and verdant. All types of creatures lurk
   within them. Plenty of trees.
-darkarea: false
-litarea: false
+skylight: 0.45
 requireditemid: 0
 usesitem: false
 burns: true
