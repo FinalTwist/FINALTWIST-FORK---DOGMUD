@@ -181,7 +181,18 @@ func AutoHeal(e events.Event) events.ListenerReturn {
 					healthRegen *= (1.0 + mult)
 				}
 
-				// Conditional multiplier (e.g. Photosynthetic Skin in lit rooms)
+				// Conditional multiplier (e.g. Photosynthetic Skin in lit rooms).
+				//
+				// 🔑 This reads the ROOM's actual current light, not the biome's
+				// natural tendency, and the difference is a deliberate
+				// correction rather than a refactoring accident. The schema
+				// defines health_regen_if_lit as "HP regen only in lit rooms"
+				// (docs/schemas/mutation.md, internal/mutations/context.md), and
+				// the old biome.IsLit() read did not deliver that: it fired in a
+				// lamplit dungeon corridor whatever the hour, and stayed silent
+				// in a sunlit meadow at noon, because a neutral biome carried no
+				// lit flag. No shipped mutation grants this multiplier yet, so
+				// the fix lands before anything depends on it.
 				if userRoom := rooms.LoadRoom(user.Character.RoomId); userRoom != nil {
 					if condMult := mutations.GetConditionalHealthRegenMultiplier(user.Character.Mutations, userRoom.IsLit()); condMult != 0 {
 						healthRegen *= (1.0 + condMult)
