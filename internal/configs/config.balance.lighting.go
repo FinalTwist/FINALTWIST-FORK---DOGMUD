@@ -81,4 +81,57 @@ func (b *Balance) validateLighting() {
 	if b.LightDefaultVisionStrength == 0 {
 		b.LightDefaultVisionStrength = 12
 	}
+
+	// LightDoublingStep: non-positive is coerced, not honoured. Zero divides
+	// by zero in the combine and makes every source identical.
+	if !(b.LightDoublingStep > 0) {
+		b.LightDoublingStep = 8
+	}
+
+	// WorldLatitude: zero is HONOURED and means "no latitude, use NightHours".
+	// Only genuinely impossible values revert. This is the opposite convention
+	// from LightDefaultVisionStrength, where zero means "unset", and the
+	// difference is deliberate: an equatorial world is a real thing to want,
+	// and it happens to be exactly what falling back to a flat NightHours
+	// produces.
+	if b.WorldLatitude < -90 || b.WorldLatitude > 90 {
+		b.WorldLatitude = 46.5
+	}
+
+	// LightEquinoxNoon must sit on the scale. Zero is coerced: a world whose
+	// equinox noon is as dark as an unlit cave is not a calibration, it is an
+	// unset field.
+	if b.LightEquinoxNoon <= -100 || b.LightEquinoxNoon > 100 || b.LightEquinoxNoon == 0 {
+		b.LightEquinoxNoon = 70
+	}
+
+	// The moon anchors are validated as a PAIR, following
+	// DarknessShapesCombatPenalty and the LightBlindBelow/LightDimBelow pair
+	// above: starlight at or above the full-moon value inverts the curve, so
+	// an invalid pair reverts BOTH rather than leaving one correct.
+	starOK := b.LightStarlight >= -100 && b.LightStarlight <= 100
+	fullOK := b.LightMoonsFull >= -100 && b.LightMoonsFull <= 100
+	if !starOK || !fullOK || b.LightStarlight >= b.LightMoonsFull {
+		b.LightStarlight = 10
+		b.LightMoonsFull = 35
+	}
+
+	// Moon weights: a negative weight would make a waxing moon darken the sky,
+	// so negatives are floored at zero. All three at zero leaves the moon curve
+	// with no span at all, so that reverts the whole set rather than leaving a
+	// sky that never changes.
+	if b.LightMoonWeightSwiftmoon < 0 {
+		b.LightMoonWeightSwiftmoon = 0
+	}
+	if b.LightMoonWeightWanderer < 0 {
+		b.LightMoonWeightWanderer = 0
+	}
+	if b.LightMoonWeightEye < 0 {
+		b.LightMoonWeightEye = 0
+	}
+	if b.LightMoonWeightSwiftmoon+b.LightMoonWeightWanderer+b.LightMoonWeightEye <= 0 {
+		b.LightMoonWeightSwiftmoon = 4.0
+		b.LightMoonWeightWanderer = 1.0
+		b.LightMoonWeightEye = 0.5
+	}
 }

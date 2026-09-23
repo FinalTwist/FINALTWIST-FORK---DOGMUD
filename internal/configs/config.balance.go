@@ -1123,6 +1123,76 @@ type Balance struct {
 	// (messaging depends on configs, not the reverse). If windowShiftCap
 	// ever changes, this literal must change with it.
 	LightDefaultVisionStrength ConfigInt `yaml:"LightDefaultVisionStrength"` // Window shift for a vision flag that declares no strength of its own (default 12)
+
+	// LightDoublingStep is how many points on the -100..100 light scale are
+	// worth TWICE as much physical light. It is the single constant relating
+	// the perceptual scale to real light, and it governs three things at once:
+	// combining sources (two equal lamps read one step brighter), applying a
+	// sky fraction (half the light is minus one step) and the shape of the
+	// daylight curve.
+	//
+	// Eight means the 100-point span covers about 12.5 doublings, and the
+	// 25-point sight bands are about three doublings wide, so climbing from
+	// shapes to full sight takes roughly six times more light.
+	//
+	// Non-positive is coerced rather than honoured: zero would make every
+	// source identical and divide by zero in the combine.
+	LightDoublingStep ConfigFloat `yaml:"LightDoublingStep"` // Scale points per doubling of light (default 8)
+
+	// WorldLatitude is the latitude, in degrees, that the whole world sits at.
+	// It is the ONLY seasonal input: declination, day length, sunrise, sunset
+	// and noon height all derive from it, which is why no seasonal noon-peak
+	// table exists. DOGMud ships 46.5, mirroring Washington State.
+	//
+	// 🔑 ZERO IS HONOURED and means "this world has no latitude": night length
+	// falls back to the Timing.NightHours knob, preserving upstream GoMud
+	// behaviour for anyone who has not set a latitude. Out-of-range reverts.
+	//
+	// ⚠️ Beyond about 66 degrees this produces days with no sunrise and days
+	// with no sunset. The model handles both (the half-day angle clamps), but
+	// it is almost certainly not what an operator intended.
+	WorldLatitude ConfigFloat `yaml:"WorldLatitude"` // Degrees north; 0 disables latitude and falls back to NightHours (default 46.5)
+
+	// LightEquinoxNoon calibrates the sun: it is the light at noon on an
+	// equinox, which is the one moment the geometry pins exactly, because
+	// declination is zero there and sin(altitude) is exactly cos(latitude).
+	// Every other moment of every other day is derived from it.
+	//
+	// At 46.5 degrees and the shipped 70, midsummer noon reads 73 and
+	// midwinter noon 62. Note that 73 is UNDER the dazzle edge of 75, so
+	// natural daylight never dazzles; an operator wanting midsummer midday to
+	// dazzle must raise this to about 72.
+	LightEquinoxNoon ConfigFloat `yaml:"LightEquinoxNoon"` // Light at noon on an equinox (default 70)
+
+	// LightStarlight and LightMoonsFull are the two anchors of the moon curve:
+	// the light of a sky with every moon new, and with every moon full. They
+	// are validated as a PAIR, the LightBlindBelow/LightDimBelow precedent,
+	// because starlight at or above the full value inverts the curve and makes
+	// a full moon darker than a new one.
+	//
+	// The shipped 10 and 35 both sit BELOW LightDimBelow, so a normal observer
+	// without a lamp never reads full sight outdoors at night, any night of the
+	// year. The moons' whole mechanical job is deciding blind against shapes.
+	LightStarlight ConfigFloat `yaml:"LightStarlight"` // Light of a sky with every moon new (default 10)
+	LightMoonsFull ConfigFloat `yaml:"LightMoonsFull"` // Light of a sky with every moon full (default 35)
+
+	// The three moons' relative light at full, with The Wanderer as 1.0.
+	//
+	// Swiftmoon and The Wanderer are DERIVED from world.md:52-56: brightness
+	// goes as angular AREA, so Swiftmoon at twice Luna's apparent size is four
+	// times the area.
+	//
+	// ⚠️ The Eye's 0.5 is NOT derived. The lore says only "Small, bright",
+	// which this reads as about a quarter the area at roughly twice the albedo.
+	// It is a reading of prose and a balance pass may move it.
+	//
+	// Albedo is inside each weight rather than separate from it, deliberately:
+	// from the ground a large dull moon and a small bright one are
+	// indistinguishable, so only the product is observable and splitting them
+	// would be two knobs with one effect.
+	LightMoonWeightSwiftmoon ConfigFloat `yaml:"LightMoonWeightSwiftmoon"` // Relative light at full (default 4.0, derived: 2x Luna's size is 4x the area)
+	LightMoonWeightWanderer  ConfigFloat `yaml:"LightMoonWeightWanderer"`  // Relative light at full (default 1.0, the baseline)
+	LightMoonWeightEye       ConfigFloat `yaml:"LightMoonWeightEye"`       // Relative light at full (default 0.5, a reading of "Small, bright", not derived)
 }
 
 func (b *Balance) Validate() {
