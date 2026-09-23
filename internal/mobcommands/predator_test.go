@@ -482,7 +482,7 @@ func TestMobDefyRoutingExcludesDefenderAndAnonymizesDarkIdentity(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	restoreBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
+		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 	})
 	defer restoreBiomes()
 	restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
@@ -567,7 +567,7 @@ func TestMobTauntAndHowlRuntimeHideIndexedActorAndExcludeDefender(t *testing.T) 
 			restoreMessages := seedMobTauntRuntimeMessages(t)
 			defer restoreMessages()
 			restoreBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-				"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
+				"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 			})
 			defer restoreBiomes()
 			restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{

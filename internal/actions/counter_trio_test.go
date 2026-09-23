@@ -32,9 +32,9 @@ func counterTrioPlain(lines []string) []string {
 func counterTrioRoom(t *testing.T, biome string) *rooms.Room {
 	t.Helper()
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave":    {BiomeId: "cave", DarkArea: true},
-		"city":    {BiomeId: "city", LitArea: true},
-		"default": {BiomeId: "default", LitArea: true},
+		"cave":    {BiomeId: "cave", SkyLight: rooms.SkyLightPtr(0.0)},
+		"city":    {BiomeId: "city"},
+		"default": {BiomeId: "default"},
 	}))
 	// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
 	// design (internal/characters/vision.go), so this fixture declares an

@@ -34,7 +34,7 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName(t *testing.T) 
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{}))
 
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
+		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 	}))
 
 	room := &rooms.Room{RoomId: 9300, Biome: "cave"}
@@ -95,7 +95,7 @@ func TestClearRoomAggroOnDeparture_DarkRoomHidesTheRetargetedName_CompanionBranc
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{}))
 
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
+		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 	}))
 
 	room := &rooms.Room{RoomId: 9400, Biome: "cave"}

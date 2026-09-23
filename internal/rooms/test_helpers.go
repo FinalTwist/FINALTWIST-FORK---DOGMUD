@@ -43,3 +43,11 @@ func SeedBiomesForTest(biomeMap map[string]*BiomeInfo) func() {
 		biomes = orig
 	}
 }
+
+// SkyLightPtr and LampPtr let a test build a BiomeInfo{} literal with an
+// explicit SkyLight/Lamp value inline, without declaring a local variable at
+// the call site just to take its address. Both fields are pointers because
+// zero is a meaningful, distinct-from-unset value for each (see BiomeInfo's
+// doc comments), so a plain literal cannot express "authored as 0".
+func SkyLightPtr(f float64) *float64 { return &f }
+func LampPtr(n int) *int             { return &n }

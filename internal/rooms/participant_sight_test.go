@@ -28,9 +28,9 @@ func sightTestPlain(lines []string) []string {
 func sightTestRoom(t *testing.T, biome string) *Room {
 	t.Helper()
 	t.Cleanup(SeedBiomesForTest(map[string]*BiomeInfo{
-		"cave":    {BiomeId: "cave", DarkArea: true},
-		"city":    {BiomeId: "city", LitArea: true},
-		"default": {BiomeId: "default", LitArea: true},
+		"cave":    {BiomeId: "cave", SkyLight: SkyLightPtr(0.0)},
+		"city":    {BiomeId: "city"},
+		"default": {BiomeId: "default"},
 	}))
 	// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
 	// design (internal/characters/vision.go), so this fixture declares an

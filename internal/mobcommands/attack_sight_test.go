@@ -23,7 +23,7 @@ func TestMobAttackCannotNameAHiddenPlayer(t *testing.T) {
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{}))
 
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"city": {BiomeId: "city", LitArea: true},
+		"city": {BiomeId: "city"},
 	}))
 
 	room := &rooms.Room{RoomId: 8200, Biome: "city"}

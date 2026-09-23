@@ -25,7 +25,7 @@ import (
 func TestRoomIsLit(t *testing.T) {
 	cleanupBiomes := SeedBiomesForTest(map[string]*BiomeInfo{
 		"default": {BiomeId: "default", Name: "Default"},
-		"cave":    {BiomeId: "cave", Name: "Cave", DarkArea: true},
+		"cave":    {BiomeId: "cave", Name: "Cave", SkyLight: SkyLightPtr(0.0)},
 	})
 	defer cleanupBiomes()
 
@@ -87,7 +87,7 @@ func TestRoomIsLit(t *testing.T) {
 //
 //   - Room.GetBiome() (rooms.go) reads the package-level `biomes` map, which
 //     is empty until LoadBiomeDataFiles() has run. An empty map makes
-//     GetBiome() return a nil *BiomeInfo, and BiomeInfo.IsDark()
+//     GetBiome() return a nil *BiomeInfo, and BiomeInfo.SkyLightFraction()
 //     (internal/rooms/biomes.go) has a pointer receiver with no nil check,
 //     so calling it on a nil biome panics. This is seeded with
 //     SeedBiomesForTest (internal/rooms/test_helpers.go), which already
@@ -107,7 +107,7 @@ func TestRoomIsLit(t *testing.T) {
 func TestLightLevelMapsTheOldModel(t *testing.T) {
 	cleanupBiomes := SeedBiomesForTest(map[string]*BiomeInfo{
 		"default": {BiomeId: "default", Name: "Default"},
-		"cave":    {BiomeId: "cave", Name: "Cave", DarkArea: true},
+		"cave":    {BiomeId: "cave", Name: "Cave", SkyLight: SkyLightPtr(0.0)},
 	})
 	defer cleanupBiomes()
 

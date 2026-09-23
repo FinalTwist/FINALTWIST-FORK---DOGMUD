@@ -87,8 +87,8 @@ func TestGetWaitMessages_RemoteRoomLineHidesBareNameFromShapesOnlyObserver(t *te
 	defer restoreMsgs()
 
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"city": {BiomeId: "city", LitArea: true},
-		"cave": {BiomeId: "cave", DarkArea: true},
+		"city": {BiomeId: "city"},
+		"cave": {BiomeId: "cave", SkyLight: rooms.SkyLightPtr(0.0)},
 	}))
 	// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
 	// design (internal/characters/vision.go), so this fixture declares an

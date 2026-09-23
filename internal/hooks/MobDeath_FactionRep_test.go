@@ -73,7 +73,6 @@ func seedHookRoom(t *testing.T, roomId int) (*rooms.Room, func()) {
 			BiomeId:      "city",
 			Name:         "City",
 			Symbol:       "#",
-			LitArea:      true,
 			MovementCost: 1.0,
 		},
 	})

@@ -86,7 +86,7 @@ func TestMobTauntTriadAnonymizesInTheDark(t *testing.T) {
 	// "cave" must be REGISTERED as a dark biome: LightLevel asks the biome
 	// registry, so setting the field alone leaves the room lit.
 	restoreBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
+		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 	})
 	defer restoreBiomes()
 

@@ -79,10 +79,10 @@ func seedNarrationConditions() func() {
 	})
 }
 
-// darken turns a fixture room into an unlit cave. The fixture seeds `cave` as
-// DarkArea, and LightLevel reads the biome registry, so setting the field is
-// enough. Asserts the room really is unlit, so a lane cannot pass by accident
-// in a lit room.
+// darken turns a fixture room into an unlit cave. The fixture seeds `cave`
+// with a zero SkyLight, and LightLevel reads the biome registry, so setting
+// the field is enough. Asserts the room really is unlit, so a lane cannot
+// pass by accident in a lit room.
 func darken(t *testing.T, roomId int) {
 	t.Helper()
 	room := rooms.LoadRoom(roomId)

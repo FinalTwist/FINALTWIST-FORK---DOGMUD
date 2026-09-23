@@ -62,7 +62,7 @@ func (r *Room) LightLevel() int {
 // defined purely in terms of LightLevel(), so it does not change what any
 // room reports; it only gives production callers a name for "is this room
 // lit" that reads room light instead of reaching past it into a biome's
-// DarkArea/LitArea flags, which describe the biome's natural tendency, not
+// SkyLight/Lamp fields, which describe the biome's natural tendency, not
 // what a mutator, time of day or someone's torch left the room at.
 //
 // Reads configs.GetLightingConfig(), not configs.GetBalanceConfig(): the
@@ -90,15 +90,11 @@ func (r *Room) legacyVisibility() int {
 
 	biome := r.GetBiome()
 	// First calculate natural lighting level for biome
-	if biome.IsDark() { // If a naturally dark biome (cave), minimize visibility
+	// TEMPORARY, replaced wholesale in Task 8.
+	if biome.SkyLightFraction() <= 0 {
 		visibility -= 2
 		if visibility < 0 {
 			visibility = 0
-		}
-	} else if biome.IsLit() { // If the biome is naturally lit (streets with lanterns), increase visibility by one
-		visibility += 1
-		if visibility > 2 {
-			visibility = 2
 		}
 	}
 

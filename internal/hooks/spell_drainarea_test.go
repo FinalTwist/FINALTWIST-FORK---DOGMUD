@@ -80,8 +80,6 @@ func seedDrainAreaRegistries(t *testing.T, playerIds []int) func() {
 			BiomeId:      "city",
 			Name:         "City",
 			Symbol:       "#",
-			LitArea:      true,
-			DarkArea:     false,
 			MovementCost: 1.0,
 		},
 	})

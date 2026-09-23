@@ -23,7 +23,7 @@ func TestActeeDefenceLine_ThreeTierSightNotBinary(t *testing.T) {
 	defer cleanup()
 
 	restoreBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
+		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 	})
 	defer restoreBiomes()
 

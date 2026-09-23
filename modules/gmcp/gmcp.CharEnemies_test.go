@@ -26,7 +26,7 @@ func charEnemiesFixture(t *testing.T, blind bool) []GMCPCharModule_Enemy {
 	t.Helper()
 
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"default": {BiomeId: "default", LitArea: true},
+		"default": {BiomeId: "default"},
 	}))
 
 	room := &rooms.Room{RoomId: 9700, Zone: "TestZone", Biome: "default"}

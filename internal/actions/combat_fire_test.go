@@ -786,10 +786,10 @@ func TestFire_DarkRoomIsRejectedAsLightingNotAsMissingTarget(t *testing.T) {
 	_, cleanup := seedFireMobInRoom(t, 1, 1)
 	defer cleanup()
 
-	// DarkArea without LitArea drives LightLevel() to LightDark, which is
-	// what messaging.CanSeeClearly reads.
+	// A zero skylight drives LightLevel() to LightDark, which is what
+	// messaging.CanSeeClearly reads.
 	biomeCleanup := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", DarkArea: true, MovementCost: 1},
+		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), MovementCost: 1},
 	})
 	defer biomeCleanup()
 	rooms.LoadRoom(1).Biome = "cave"

@@ -21,8 +21,8 @@ const (
 func sightScene(t *testing.T, biome string) (*mobs.Mob, *rooms.Room) {
 	t.Helper()
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", DarkArea: true},
-		"city": {BiomeId: "city", LitArea: true},
+		"cave": {BiomeId: "cave", SkyLight: rooms.SkyLightPtr(0.0)},
+		"city": {BiomeId: "city"},
 	}))
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		sightNightVisionConditionId:  {ConditionId: sightNightVisionConditionId, Name: "Night Vision", Flags: []conditions.Flag{conditions.NightVision}},
