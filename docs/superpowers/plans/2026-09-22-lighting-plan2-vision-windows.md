@@ -263,13 +263,27 @@ func SightThroughWindow(light, strength, reach int, blindBelow, dimBelow int) Si
 	if light >= shiftedBlind && light >= windowFloor {
 		return SightShapes
 	}
-	// Below the shifted window. Only heat-sensing reaches further down.
-	if reach > 0 && light >= -reach {
+	// Below the shifted window, and at or below the floor. Only heat-sensing
+	// reaches further down.
+	//
+	// The floor gate is load-bearing. Without it, a DIM room (light 24,
+	// strength 0, so the shape check fails at the unshifted blind edge of 25)
+	// would fall through to `light >= -reach`, which any positive reach
+	// satisfies, and a heat sense would wrongly grant shapes in ordinary
+	// gloom. The spec is explicit: "at or below LightWindowFloor the reach
+	// decides".
+	if light <= windowFloor && reach > 0 && light >= -reach {
 		return SightShapes
 	}
 	return SightNone
 }
 ```
+
+⚠️ **This floor gate was MISSING from this plan's first draft and the bug was
+caught during Task 1's execution.** The row `{"reach does not help above the
+floor", 24, 0, 30, SightNone}` is the row that catches it: without the gate the
+function returns `SightShapes` there. The row was always correct; the reference
+code above was not. Corrected here so plans 3 and 5 do not copy it.
 
 ⚠️ **The test in Step 1 calls `SightThroughWindow` with three arguments and this
 signature takes five.** That is deliberate: write the test first, watch it fail,
