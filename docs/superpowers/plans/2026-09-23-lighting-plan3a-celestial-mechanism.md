@@ -2569,7 +2569,17 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 9: Collapse the fifteen hand-rolled lit checks
+### Task 9: Collapse the sixteen hand-rolled lit checks
+
+🔴 **CORRECTED 2026-09-23 after this task ran. The count is SIXTEEN, not
+fifteen, and the error is instructive.** This plan's own grep pattern searched
+for `LightLevel() >= int(configs.GetBalanceConfig()`, which cannot match
+`internal/actions/sneak.go` because that file already held a `cfg` and wrote
+`int(cfg.LightBlindBelow)`. The list below always had sixteen entries while the
+prose said fifteen; the prose was counting grep hits rather than call sites.
+
+🩤 **"I grepped and found fifteen" is only evidence if the grep could have
+found sixteen.** Search for the field name as well as the accessor call.
 
 **Files:**
 - Modify: 15 call sites listed below
@@ -2582,7 +2592,7 @@ Run standalone:
 grep -rn "LightLevel() >= int(configs.GetBalanceConfig().LightBlindBelow)\|LightLevel() < int(configs.GetBalanceConfig().LightBlindBelow)" --include=*.go internal/ modules/
 ```
 
-Expected, 15 lines across: `actions/plant.go:341`, `actions/search.go:237`,
+Expected, 15 lines (the sixteenth, sneak.go, needs the field-name search) across: `actions/plant.go:341`, `actions/search.go:237`,
 `actions/shadow.go:164`, `actions/sneak.go:78`, `actions/steal.go:444`,
 `actions/track.go:275`, `hooks/Death_MobBroadcast.go:56`,
 `hooks/Death_MobLoot.go:124`, `hooks/MobIdle_HandleIdleMobs.go:115`,
