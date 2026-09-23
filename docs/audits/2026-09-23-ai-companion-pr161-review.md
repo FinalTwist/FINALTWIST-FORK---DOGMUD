@@ -19,10 +19,9 @@ PR head `83f6b8ef3` unless attributed to `master`.
 
 ## Verdict
 
-1. **The merge decision is not "fix these and land it".** 09-22 recommended
-   salvaging the deterministic pieces into the behaviour rework arc and not
-   adopting the module. This review does not overturn that, and section
-   "The decision to actually make" says why.
+1. **The module is being taken, after the blockers and after the graded lighting
+   arc.** Owner's call, recorded in "Decisions" below. This supersedes 09-22's
+   recommendation to salvage the deterministic pieces and not adopt.
 2. Three defects can freeze the world or remove the spend ceiling, and a green
    test suite cannot see any of them, because coverage is 28.3% and the entire
    apply path is at zero.
@@ -48,39 +47,43 @@ PR head `83f6b8ef3` unless attributed to `master`.
 | `DeepModel` unset auto-selects the flagship | **Open.** `models.go:254` ships `tierDeep: {gpt-5.5, gpt-5.4, gpt-5, gpt-4.1, gpt-4o}` |
 | Moderation calls unmetered | Open, unchanged, low risk only because `ModerateOutput` ships `false`, which is itself S8 |
 
-## The decision to actually make
+## Decisions
 
-This document is a defect list. The owner's question is a different one, and it
-should be answered before any of the fixes below matter.
+Taken by the owner on 2026-09-23, after this review. They are settled, and the
+findings below are written as change requests against them rather than as open
+questions. Anything still genuinely unknown is marked at the foot of the
+document.
 
-**The module cannot be taken in pieces.** `git log master..HEAD` returns two
-commits for all 71 files, so there is nothing to cherry-pick. Any "take the good
-parts" plan means asking the contributor to re-author, not selecting commits.
+| # | Decision | Consequence |
+|---|---|---|
+| 1 | **Take the module**, after the blockers are fixed | Supersedes 09-22's salvage-and-decline. We own 19,645 lines and an OpenAI dependency. `git log master..HEAD` is two commits for 71 files, so there was never a cherry-pick option |
+| 2 | **Merge after graded lighting plan 6** | `perception.go:304` reads `messaging.ParticipantSight`, which plans 3 to 6 replace with bands. The contributor rebases once onto a settled API; the lighting arc never carries 19.6k extra lines through 3b and 3c |
+| 3 | **`ask.go` ships now as its own PR** | The only piece worth having independent of the module, and the only defect that reaches players with the module off. Does not wait for lighting |
+| 4 | **Consent prompt at first meeting** | `AutoBond` stays on, but the companion introduces itself, states that talking to it sends text to OpenAI and is kept on the server, and nothing is sent before the player accepts. See S7 |
+| 5 | **Non-owner asks are throttled, not banned** | Strangers can still talk to companions. 30 second per-caller cooldown plus a per-caller daily ask cap. See S5 |
+| 6 | **`give` is owner-recipient only**, on top of fixing the gate | Second lock on the verb that moves an item to an attacker. See S6 |
+| 7 | **Tight spend posture** | Real `DailyTokensPerCompanion`, `DeepModel` pinned off the flagship, all three counters persisted. See S10 |
+| 8 | **Moderation on by default, and the fail-open fixed** | `moderate` gains an `error` return so an outage is distinguishable from a clean pass. See S8 |
+| 9 | **Full disabled-path fix**, including the help templates | Nothing visible with the module off. See S12 |
+| 10 | **An instance-keyed opinion store**, as its own engine task | The real fix for S11, and explicitly not a blocker on this PR |
+| 11 | **Companion opinion does not decay** | Deliberate, and it needs writing down rather than leaving as an omission. See S11 |
 
-**What taking it costs long term:** 19,645 lines of a volunteer's code, on a
-single-operator MUD, depending on a paid third-party API, with 28.3% coverage
-and the entire decision-apply path untested. The OpenAI model names in
-`models.go:251-254` will rot on someone else's release schedule.
+**Sequence for the contributor:** the `ask.go` PR now, then blockers S1 to S6 on
+the branch while the code is fresh, then hold. Do not ask for the consent,
+moderation or disabled-path work yet; it would be rebased through the sight
+rewrite for nothing. Tell him plainly that the wait is our arc, not his code.
 
-**What declining it costs:** the two new events and the `internal/companionai`
-seam shape are genuinely general and would be worth having on their own. Nothing
-else in the module is reachable without the module.
+### Numbers these decisions imply
 
-Three live options, and this review does not have the standing to pick for you:
+These are `config.yaml` knobs, so they are retunable later without a code change,
+per `dogmud-balance-config`. They are proposals, not measurements.
 
-- **A. Merge after the blockers.** Take the feature, own the code. Choose this
-  only if you want AI companions in DOGMud as a product decision, not because
-  the code is good.
-- **B. Decline the module, ask for the general pieces as small PRs** (`events.Emote`,
-  `events.Healed`, and the `askNpcChain` extraction done correctly), and revisit
-  when the behaviour arc reaches the action layer. This is what 09-22
-  recommended, and nothing in this review contradicts it.
-- **C. Merge and never enable.** Explicitly the worst option: you own every line
-  and get no feature, while S4 and the S12 items still reach players.
-
-**What "do nothing" looks like, and it is defensible:** leave #161 open, take no
-code, and revisit after lighting plan 6 lands. Master is not currently broken by
-anything in this review; every defect here arrives with the merge.
+| Knob | Value | Reasoning |
+|---|---|---|
+| `DailyTokensPerCompanion` | `50000` | Against the 2,000,000 global pool this supports roughly forty active companions before the pool binds rather than the per-player cap. **Wants checking against a measured per-call prompt size, which this review did not obtain** |
+| `DeepModel` | pinned to the mini line | Stops the logout reflection auto-selecting `gpt-5.5` at `models.go:254`. The exact model string is the operator's to confirm against the current OpenAI catalogue; this review could not verify availability or price |
+| Non-owner ask cooldown | 30 seconds per caller | Via `characters.TryCooldown`, which already exists and persists with the character |
+| Non-owner daily ask cap | per caller, operator-set | The cooldown alone lets a patient attacker spend all day; the cap is what actually bounds the spend |
 
 ## Findings by severity
 
@@ -356,9 +359,17 @@ reached in an hour", this is severe; if it is "a day", it is an annoyance.
 | **B. A separate cooldown and daily cap for non-owner askers** | Preserves the design, bounds the rate to a number the operator picks. The throttle half needs no new state: `characters.Character` already carries `Cooldowns` with `TryCooldown(tag, period)` (`internal/characters/cooldowns.go:93`), persisted with the character | **Does not close the forced egress.** A stranger still pushes the owner's memories, facts, pack and quest state to OpenAI, only slower. Only the daily cap needs new state |
 | C. Non-owner asks push a stimulus but never trigger a dispatch of their own | Zero added cost, preserves overhearing | Reads as unresponsive to strangers, which is close to A's outcome without A's simplicity |
 
-**Recommend B**, with A as the interim, and ship a non-zero
-`DailyTokensPerCompanion` regardless so one companion's exhaustion is not the
-whole server's.
+**Decided: B.** Strangers keep the ability to talk to companions. A 30 second
+per-caller cooldown through `characters.TryCooldown`, plus a per-caller daily ask
+cap, because the cooldown alone lets a patient attacker spend all day. Ship a
+non-zero `DailyTokensPerCompanion` alongside it (decision 7) so one companion's
+exhaustion is never the whole server's.
+
+**The forced-egress half of this finding is accepted, not fixed.** Under B a
+stranger still pushes the owner's memories, facts, pack and quest state to
+OpenAI, only slower. That is the cost of keeping strangers able to talk to
+companions, and decision 4's consent prompt is what makes it defensible: the
+owner has been told their companion's conversations leave the server.
 
 **Implementation hazard.** Do not implement the refusal by returning `false` from
 `handleAsk`. `companionai.RouteAsk` returning false lets `Ask` fall through to
@@ -425,9 +436,11 @@ obvious reuse and is wrong three ways:
   argument constant true and the `purse.Reserve` and `largeShare()` branches dead
   code.
 
-**Also do:** restrict `give`'s recipient to the owner. It is the verb that
-actually moves an item to an attacker, and it is defence in depth on a gate that
-has now been wrong twice.
+**Also decided: restrict `give`'s recipient to the owner.** It is the verb that
+actually moves an item to an attacker, and it is a second lock on a gate that has
+now been wrong twice. Note what this gives up: a companion can no longer choose
+to hand anything to a third party, which is behaviour the design allowed. That is
+accepted.
 
 ---
 
@@ -463,9 +476,15 @@ player-facing help templates mention none of this.
 | **B. Make the meeting a consent moment: the companion introduces itself, states plainly that talking to it sends what is said to OpenAI and is kept on the server, and the player accepts or declines. Nothing sent before accept** | Real consent at the moment the player is thinking about it, and it preserves discovery. **Cheaper than it looks: two of the three pieces exist.** `meeting.go:150-154` already builds the greeting from `Profile.Meeting` with a hardcoded fallback and is not a model call; `requestLeave` (`meeting.go:206-215`) already implements the accept-within-N-minutes shape with `c.leaveAskedAt` and `LeaveConfirmSeconds` | Only the pending-consent persistence is genuinely new; `pendingMeet` is an in-memory map today |
 | C. Opt-in by command only (`companion-bond`) | Simplest honest consent | Discovery depends entirely on a help file, so in practice this is A with extra steps |
 
-**Recommend B**, with A as the hard gate before we enable on a server anyone else
-plays on. Either way, add a player-facing help entry covering the third-party API
-and the on-disk retention, and say in it that admins can read the transcript.
+**Decided: B.** `AutoBond` stays on, so discovery is preserved, but the meeting
+becomes the consent moment. Nothing is sent to OpenAI before the player accepts.
+The introduction must remain authored text, not a model call, or it defeats
+itself; `meeting.go:150-154` already satisfies that.
+
+**Also required, not optional:** a player-facing help entry covering the
+third-party API and the on-disk retention, saying plainly that admins can read
+the transcript. The absence of any such text is half of what makes the current
+default indefensible, and fixing `AutoBond` alone would have left it standing.
 
 ---
 
@@ -481,15 +500,19 @@ is enabled by default, and `moderate` fails open at `openai.go:300`. Whether a
 model actually complies with a puppeting injection is not something this review
 measured, and the finding does not rest on it.
 
-**Prescribed fix: default `ModerateOutput: true` whenever the module is enabled.**
-`ModerationModel` defaults to `omni-moderation-latest` (`config.go:448-449`), so
-this costs latency and not money.
+**Decided: on by default, and the fail-open fixed.** Default
+`ModerateOutput: true` whenever the module is enabled. `ModerationModel` defaults
+to `omni-moderation-latest` (`config.go:448-449`), so this costs a round trip per
+spoken line and not money.
 
-**Separately, the fail-open behaviour cannot be changed as a policy switch.**
-`moderate` returns bare `nil` for the empty case, for a transport error and for a
-non-200 (`openai.go:300-330`), so nothing downstream can tell a clean pass from an
-outage. Fixing it means changing the signature to `([]bool, error)`. Say that in
-the change request rather than describing it as a config choice.
+**The fail-open is a code change, not a config switch.** `moderate` returns bare
+`nil` for the empty case, for a transport error and for a non-200
+(`openai.go:300-330`), so nothing downstream can tell a clean pass from an outage.
+It needs the signature changed to `([]bool, error)`. The caller then has a policy
+to pick, which the change request should name explicitly: **fail closed for
+speech that was not prompted by the owner** (drop the line), and fail open for
+the owner's own conversation, so a moderation outage degrades the harassment
+surface rather than silencing every companion on the server.
 
 ---
 
@@ -598,14 +621,23 @@ disk write on the game loop per update.
    on the owner's `characters.CompanionInfo`, not on the mob, so the guard has to
    resolve the instance back to a bonded record the way
    `internal/hooks/companion_bonded.go:108` does. It is a lookup, not a field test.
-2. **Leave the module's store authoritative** and accept that `admin.opinion`
-   does not describe a bonded companion, documenting that in
-   `modules/aicompanion/context.md`. Unifying the two properly needs an
-   instance-keyed opinion store, which `internal/opinions` does not have and which
-   is its own piece of work.
+2. **Decided: build an instance-keyed opinion store in `internal/opinions`**, so
+   a companion's view of a player is not shared across every owner of the same
+   profile. That is the root-cause fix and it is **its own engine task, not a
+   blocker on this PR**. Until it lands, the module's three-axis store stays
+   authoritative and `modules/aicompanion/context.md` must say that
+   `admin.opinion` does not describe a bonded companion.
 
-**Add a decay path either way.** A companion that never forgives, where every
-other NPC does, is a design decision nobody made.
+**Decided: companion opinion does not decay. It is permanent, on purpose.**
+
+This needs building, not merely omitting, and the two decisions above collide if
+that is missed. `internal/opinions` already carries decay: `opinions/decay.go:27`
+pulls a score back toward `DefaultDisposition` on a config half-life. An
+instance-keyed store built inside that package **inherits it**. So the new store
+needs an explicit per-entry or per-kind decay exemption for bonded companions,
+and the reason belongs in `internal/opinions/context.md`: a companion has a real
+relationship and is meant to remember, where a shopkeeper forgives. Left
+unstated, the next person to read `decay.go` will "fix" the exemption as a bug.
 
 ---
 
@@ -646,17 +678,23 @@ startup, so a command registered only when enabled never reaches the client, and
 `RegisterCommand` takes the `allowedInCombat` flag the plugin API cannot express,
 which fixes the in-combat answer.
 
-**It does not fix the help files, and nothing in the command registry will.**
+**The help files are the third symptom and no registry change touches them.**
 `GetHelpContents` resolves a topic through `keywords.TryHelpAlias` and
 `templates.Process("help/"+name)` (`internal/usercommands/help.go:148-204`) and
 never reads `userCommands`. The templates are mounted by
 `module.plug.AttachFileSystem(files)` in `init()`, unconditionally, so
-`help companion-part` renders exactly as it does today. Treat that as its own
-small item.
+`help companion-part` renders whatever the toggle says.
 
-Fix the duplicate `companion-ask` line in the same change. Note that the fix
-moves only the five **user** commands: the four mob commands stay in `init()`, so
-`divergences.go:206` stays false unless they move too.
+**Decided: fix all three.** The help half needs its own approach, since the
+mount happens before config is read: either move `AttachFileSystem` into `onLoad`
+behind the flag, if the plugin API tolerates a late mount, or have the templates
+themselves render nothing when the module is off. The first is cleaner and needs
+checking against `templates.RegisterFS` timing at `main.go:268`; this review did
+not establish which works.
+
+**Two more items in the same change.** Delete the duplicate `companion-ask` line.
+And move the four **mob** commands too, not just the five user commands, or
+`divergences.go:206` stays false: its comment covers `mobOnlyCommands`.
 
 ---
 
@@ -750,29 +788,45 @@ Worth stating plainly, because the change request is long and the work is good.
 - **Both `context.md` files are present**, new files are listed in
   `docs/README.md`, and the house prose style is followed.
 
-## If the answer is "fix it", what to ask for and in what order
+## The work plan
 
-**Split by who has to decide, not only by merge gate.** A volunteer can start the
-left column today; the right column needs a ruling first.
+Every decision is made, so this is a schedule rather than a menu. The module
+ships off in two places, `config.yaml:2357` and the Go default at
+`config.go:176`, with no runtime reload anywhere in it, so enabling takes a
+deliberate config edit plus a restart and a config desync cannot do it by
+accident. That double lock is what makes it safe to stage the rest behind the
+merge.
 
-| Do now, no decision needed | Needs a ruling from the owner first |
-|---|---|
-| S1 (`defer` plus the `answerTools` bail), S2 (rune-space conversion plus length-asserting tests), S4 (`handled bool`, both call sites, own PR), S9 (helpers take the character), S12 (`RegisterCommand` in `onLoad`, duplicate line, the `:156` comment), S10's three config values, S13 | S5 (what is the non-owner cap, and is A or B wanted?), S6 (confirm the `give`-to-owner restriction), S7 (consent prompt, or opt-in command?), S10's persistence shape, S11 (does resentment decay, and by what rule?) |
+**Stage 0, now, independent of everything.** S4 as its own PR: the `handled bool`
+return, applied at **both** call sites, with a regression test asserting no exit
+broadcast on the behaviour-tree path. Does not wait for lighting.
 
-**Then by gate.** The module ships off in two places, `config.yaml:2357` and the
-Go default at `config.go:176`, and there is no runtime reload anywhere in the
-module, so enabling takes a deliberate config edit plus a restart. A config
-desync cannot enable it. That double lock is what makes the second tier safe to
-defer.
+**Stage 1, now, on the #161 branch while the code is fresh.** S1, S2, S3, S5, S6.
+These are the blockers and they are all things the contributor can do today
+without another ruling. Each lands with a test that can fail; S2's must assert
+chunk lengths, not merely the absence of a panic.
 
-0. **Independent of everything: S4, as its own PR**, since it is the only change
-   that reaches players with the module off and the only one worth having
-   whichever way the merge decision goes.
-1. **Before merge:** the S12 items visible with the module off.
-2. **Before the first `Enabled: true` anywhere, including a test server with one
-   other player on it:** S1, S2, S3, S5, S6, then S7, S8, S10 in that order.
-3. **Merge-window quality:** S9, S11.
-4. **Follow-up:** S13.
+**Stage 2, hold.** S7 consent prompt, S8 moderation, S9 health helpers, S10 cost
+controls, S12 disabled-path, S13. Do not ask for these yet. `perception.go` and
+`scene.go` read the sight model that graded lighting plans 3 to 6 are replacing,
+so this work would be rebased through the rewrite for nothing.
+
+**Stage 3, after lighting plan 6.** Contributor rebases onto the settled sight
+API, stage 2 lands, then merge.
+
+**Stage 4, before the first `Enabled: true` anywhere, including a test server
+with one other player on it.** Confirm S7, S8 and S10 are actually in, and set
+the four config values from the Decisions section.
+
+**Separate engine task, not gated on any of this:** the instance-keyed opinion
+store (S11), with its deliberate no-decay exemption for bonded companions.
+
+### What to tell the contributor
+
+That the wait is our arc and not his code. He is engaged now, the `ask.go` PR and
+the five blockers are real work he can do immediately, and the hold on everything
+else is scheduling rather than a verdict on the design. Say plainly that the
+module is being taken.
 
 ## Claims re-verified after the first draft, and the method
 
@@ -814,7 +868,11 @@ were read from the PR head or from `master` at review time.
 
 **Not verified, and flagged in place:** whether a panic is actually reachable
 inside `answerTools` (S1); how reliably a model complies with a puppeting
-injection (S8); and the per-call token cost that sets how fast S5's attack
-exhausts the daily budget. `-race` was not run, for want of a C toolchain on this
+injection (S8); the per-call token cost that sets how fast S5's attack exhausts
+the daily budget, and therefore whether `DailyTokensPerCompanion: 50000` is the
+right order of magnitude; whether a late `AttachFileSystem` in `onLoad` works
+against `templates.RegisterFS` timing at `main.go:268`, which decides how S12's
+help-template half is fixed; and the current OpenAI catalogue, so the `DeepModel`
+string is the operator's to confirm. `-race` was not run, for want of a C toolchain on this
 machine; no test in the module starts a goroutine, so it would have had nothing
 to detect.
