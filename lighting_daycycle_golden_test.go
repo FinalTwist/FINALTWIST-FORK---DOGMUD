@@ -164,10 +164,20 @@ func TestLightingDayCycleAcrossSampleRounds(t *testing.T) {
 		t.Fatalf("read golden: %v (record it with -update-lighting-daycycle)", err)
 	}
 	if got != string(want) {
-		t.Errorf("day-cycle golden moved. This baseline is pinned to the OLD lighting " +
-			"model and should change only when plan 3a's celestial mechanism lands " +
-			"(Task 8 onward). A diff before then is a REGRESSION, not something to " +
-			"re-record. If the change is genuinely intended:\n" +
+		t.Errorf("day-cycle golden moved.\n\n" +
+			"This golden is NOT a never-move guard. Plan 3a changes what rooms are lit " +
+			"on purpose, and moves this file several times on the way: Task 5 (night " +
+			"length follows the latitude), Task 6 (biomes declare a sky fraction) and " +
+			"Task 8 (LightLevel composes the real model).\n\n" +
+			"What it guards is that every move is EXPLAINED. Before re-recording, work " +
+			"out which sample sections should have changed and by how many rooms, and " +
+			"check the diff against that prediction. A move you cannot account for " +
+			"room-for-room is a defect, however plausible the totals look.\n\n" +
+			"Task 5's move, for reference, was exactly 391 rooms from 70 to 60 in four " +
+			"sections (midwinter and equinox dawn and dusk), all six midnights and " +
+			"noons unchanged, all four midsummer sections unchanged. 391 is the " +
+			"neutral-biome count.\n\n" +
+			"If you have done that and the shape is right:\n" +
 			"  go test . -run TestLightingDayCycleAcrossSampleRounds -update-lighting-daycycle -v")
 	}
 }
