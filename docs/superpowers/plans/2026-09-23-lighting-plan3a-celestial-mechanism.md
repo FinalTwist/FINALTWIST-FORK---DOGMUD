@@ -46,6 +46,17 @@ commit from `git show HEAD:_datafiles/config.yaml`, never from disk.
 
 🪤 **Use `go test ./...`, not `go test .`.**
 
+🪤 🔴 **"DELETE IT AND LET THE COMPILER ENUMERATE THE CONSUMERS" HAS A
+HOLE.** Go templates reach methods by REFLECTION, so `go build` cannot see them.
+`_datafiles/world/dogmud/templates/descriptions/biome.template:4` calls
+`.IsDark` and `.IsLit` directly on a `*BiomeInfo` handed to `templates.Process`
+by `internal/usercommands/biome.go:22`. Deleting those methods breaks the
+`biome` command at RUNTIME, with a green build AND a green test suite.
+
+Before deleting any exported method or field, grep `_datafiles/**/templates/`
+for its name as well as the Go tree. This arc leans on delete-and-enumerate
+throughout, and this is the one consumer it cannot catch.
+
 🪤 **Three goldens are already in play**: `testdata/lighting_parity.golden`,
 `internal/narration/testdata/stores/conditions.golden`, and
 `internal/hooks/darkness_narration.golden`. This plan adds a fourth and retires
@@ -1727,7 +1738,58 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 6: Biomes declare a sky fraction and a lamp
+### Task 6a: `Room.IsLit()`, and the biome predicates' consumers migrated
+
+🔴 **ADDED 2026-09-23. Task 6's original consumer survey was wrong.** It
+claimed the only consumers of `DarkArea`/`LitArea`/`IsDark()`/`IsLit()` were
+`internal/rooms/lighting.go` and the two synthetic `default` biome literals. The
+real list is five production Go sites, one template-reflection site the compiler
+cannot see, and 30+ test fixtures across ten packages.
+
+More importantly, **every one of the five Go sites wants ROOM-LEVEL light, not a
+biome flag**, so they cannot simply be translated into the new biome vocabulary.
+They need the predicate plan 1 promised and never built. This task builds it and
+migrates them, leaving Task 6b free to delete the booleans with no production
+consumer left.
+
+`Room.IsLit()` is defined against the CURRENT `LightLevel()`, so this task does
+not change the light model and **the day-cycle golden must NOT move.** Only the
+five sites' own semantics change.
+
+| Site | Was | Becomes | Why |
+|---|---|---|---|
+| `internal/rooms/roomdetails.go:71` | `IsDark: b.IsDark()` | `IsDark: !r.IsLit()` | Drives the `-dark` ansi variant in five templates; wants actual darkness, and those templates already OR it with `.IsNight` |
+| `internal/actions/search.go:206` | `"IsDark": room.GetBiome().IsDark()` | `"IsDark": !room.IsLit()` | Same, into `ontheground.template` |
+| `internal/usercommands/look.go:714` | `"IsDark": room.GetBiome().IsDark()` | `"IsDark": !room.IsLit()` | Same |
+| `internal/usercommands/look.go:267` | `if !biome.IsLit() {` | **delete the guard** | An exit-peering exemption for lit biomes. The graded light value already decides; the exemption only ever fired when a darkening mutator dragged a lit biome below `LightExitsAbove` |
+| `internal/hooks/NewRound_AutoHeal.go:187` | `GetConditionalHealthRegenMultiplier(..., biome.IsLit())` | `..., room.IsLit())` | 🔑 **Gameplay, and a correction.** Gates Photosynthetic Skin's regen. On the biome flag a sunlit meadow at noon did NOT count and a lamplit dungeon corridor DID |
+
+⚠️ **The `look.go:267` deletion and the AutoHeal change alter behaviour.** Both
+are corrections this arc exists to make, but say so in the commit message rather
+than presenting the task as pure refactoring.
+
+Otherwise mechanical: add `Room.IsLit()` in `internal/rooms/lighting.go`, reading
+`configs.GetLightingConfig()` once, migrate the five sites, and assert that a
+dark room reads unlit and a lit one reads lit.
+
+---
+
+### Task 6b: Biomes declare a sky fraction and a lamp
+
+🔴 **ADDED SCOPE 2026-09-23.** Task 6a has migrated every production
+consumer, so what remains is the biome data, the template and the fixtures. On
+top of the original list this task must also **rewrite
+`_datafiles/world/dogmud/templates/descriptions/biome.template:4`**, which calls
+`.IsDark`/`.IsLit` by reflection and would otherwise break the `biome` command at
+runtime, replacing its lighting line with one describing the sky fraction and
+lamp; and **convert 30+ test fixtures across ten packages** (`internal/actions`,
+`internal/behaviortree`, `internal/combat`, `internal/hooks`,
+`internal/mobcommands`, `internal/parser`, `internal/questengine`,
+`internal/rooms`, `internal/usercommands`, `modules/gmcp`).
+
+A partial attempt at the data half is stashed as `task6-wip-biome-yamls`; its 17
+authored biome YAMLs were verified against the table below and are worth
+recovering rather than redoing.
 
 Delete `DarkArea` and `LitArea` so the compiler enumerates every consumer. This
 is the project's established refactoring idiom and it found a missed call site
