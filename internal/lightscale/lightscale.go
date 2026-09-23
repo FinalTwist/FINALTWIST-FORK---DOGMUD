@@ -29,6 +29,17 @@ func Absent() float64 { return math.Inf(-1) }
 // present reports whether a term should take part in a combination. Only finite
 // values do; -Inf means absent and NaN means a caller made an arithmetic
 // mistake, which must not silently poison the whole room.
+//
+// ⚠️ +Inf is folded into "absent" too, which is deliberate but is NOT the same
+// judgement as the other two. -Inf is a legitimate value this package produces
+// on purpose, and NaN is excluded so one bad term cannot poison a whole room.
+// +Inf is neither: no caller can currently produce it, and if one ever does it
+// is a bug upstream, most likely a division by zero. Skipping it means that bug
+// would vanish without trace rather than reddening a test. It is folded in here
+// only because a term of infinite brightness has no sane reading on a bounded
+// -100..100 scale, so there is nothing better to do with it locally. If plans 4
+// or 5 add a source whose magnitude is computed by division, give +Inf its own
+// branch and make it loud.
 func present(v float64) bool { return !math.IsInf(v, 0) && !math.IsNaN(v) }
 
 // Combine returns the light produced by every present term together.
@@ -60,6 +71,12 @@ func Combine(step float64, terms ...float64) float64 {
 			sum += math.Exp2((t - best) / step)
 		}
 	}
+	// Unreachable as written, and kept as a backstop rather than removed. Once
+	// best is finite, the very term that set it is re-encountered by this loop
+	// and contributes Exp2(0/step) = 1 exactly, so sum is always at least 1. It
+	// stays because the guarantee depends on the two loops agreeing about which
+	// terms are present: change the best-selection loop without changing the
+	// summation loop and sum could reach here as zero, whose Log2 is -Inf.
 	if !(sum > 0) {
 		return best
 	}
