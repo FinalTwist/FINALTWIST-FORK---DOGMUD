@@ -1099,6 +1099,30 @@ type Balance struct {
 	LightBlindBelow ConfigInt `yaml:"LightBlindBelow"` // Below this a normal observer is blind (default 25)
 	LightDimBelow   ConfigInt `yaml:"LightDimBelow"`   // Below this a normal observer reads shapes only (default 50)
 	LightExitsAbove ConfigInt `yaml:"LightExitsAbove"` // At or above this, exits into adjacent rooms are visible (default 65)
+
+	// LightDefaultVisionStrength is plan 2's fallback for a bare vision
+	// flag. Condition 29 grants the nightvision flag and declares no
+	// strength, and under the window model a strength of literal zero would
+	// shift the observer's window by nothing, making the flag mean nothing
+	// at all. This is what a bare flag falls back to instead.
+	//
+	// Twelve is deliberately mid-range: it lets an authored source with its
+	// own declared strength be clearly better or clearly worse than an
+	// unadorned flag, rather than every source being identical to a bare
+	// flag or every bare flag being useless.
+	//
+	// Zero is coerced to the default here, the same idiom as ProgressMult
+	// (internal/conditions/conditionspec.go): a Go test binary never loads
+	// config.yaml, so an unset knob arrives zero-valued, and zero must mean
+	// "unset" rather than "no shift". The accepted authored range is
+	// therefore effectively [1, 24], not [0, 24]; see validateLighting for
+	// the clamp.
+	//
+	// The upper bound of 24 mirrors windowShiftCap in
+	// internal/messaging/window.go, which internal/configs cannot import
+	// (messaging depends on configs, not the reverse). If windowShiftCap
+	// ever changes, this literal must change with it.
+	LightDefaultVisionStrength ConfigInt `yaml:"LightDefaultVisionStrength"` // Window shift for a vision flag that declares no strength of its own (default 12)
 }
 
 func (b *Balance) Validate() {

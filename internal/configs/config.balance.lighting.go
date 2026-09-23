@@ -53,4 +53,32 @@ func (b *Balance) validateLighting() {
 		}
 		b.LightExitsAbove = exitsFallback
 	}
+
+	// LightDefaultVisionStrength is clamped to [0, 24] first, then zero
+	// (whether authored directly or reached by clamping a negative) is
+	// defaulted to 12. Doing it in that order means the accepted AUTHORED
+	// range is effectively [1, 24], not [0, 24]: zero is not a value an
+	// operator can choose, it is indistinguishable from the field being
+	// unset, following the same idiom as ProgressMult (0 means "use the
+	// default", not "shift by nothing"; see the struct field comment for
+	// why a bare flag cannot mean a shift of zero).
+	//
+	// The upper bound 24 is windowShiftCap in internal/messaging/window.go,
+	// duplicated here on purpose: internal/configs cannot import
+	// internal/messaging (messaging depends on configs, not the reverse).
+	// If windowShiftCap ever changes, this literal must change with it. A
+	// value above the cap is clamped down to 24 rather than reverted to the
+	// default, matching how LightExitsAbove clamps rather than reverts for
+	// its own out-of-range case above: the operator's intent (a strong
+	// shift) is still honoured, just capped at the strongest the window
+	// model can express.
+	if b.LightDefaultVisionStrength < 0 {
+		b.LightDefaultVisionStrength = 0
+	}
+	if b.LightDefaultVisionStrength > 24 {
+		b.LightDefaultVisionStrength = 24
+	}
+	if b.LightDefaultVisionStrength == 0 {
+		b.LightDefaultVisionStrength = 12
+	}
 }
