@@ -101,6 +101,21 @@ func (bi *BiomeInfo) LampValue() (int, bool) {
 	return *bi.Lamp, true
 }
 
+// HasLamp reports whether this biome carries a light source that actually
+// produces light.
+//
+// 🔑 It exists because a Go template cannot express the distinction. A template
+// writing `{{ if .Lamp }}` tests only that the POINTER is non-nil, so a biome
+// authored `lamp: 0` -- a legal value meaning "a light source producing
+// nothing" -- would satisfy it and the player would be told the place is lit
+// after dark when it is not. The pointer-versus-zero distinction this whole
+// type is built on has to be readable from a template too, and this is the
+// only way to make it so.
+func (bi *BiomeInfo) HasLamp() bool {
+	v, ok := bi.LampValue()
+	return ok && v != 0
+}
+
 // GetMovementCost returns the terrain difficulty multiplier for stamina cost.
 // Returns 1.0 (normal terrain) if not set.
 func (bi *BiomeInfo) GetMovementCost() float64 {
