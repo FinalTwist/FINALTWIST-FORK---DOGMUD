@@ -43,6 +43,10 @@ func sampleRounds() []struct {
 			name string
 			hour float64
 		}{{"midnight", 0}, {"dawn", 6}, {"noon", 12}, {"dusk", 18}} {
+			// 37.5 = RoundsPerDay(900) / 24 hours per round-day. Exact only
+			// when h.hour is even; an odd hour (e.g. 3am -> 112.5) would
+			// truncate silently via the uint64 conversion below. Keep every
+			// sampled hour even, or round explicitly.
 			r := uint64(float64(d.doy-1)*900 + h.hour*37.5)
 			out = append(out, s{Label: d.name + "-" + h.name, Round: r})
 		}
@@ -111,12 +115,22 @@ func TestLightingDayCycleAcrossSampleRounds(t *testing.T) {
 	sort.Ints(ids)
 
 	var b strings.Builder
+	skipped := 0
+	skippedIDs := map[int]bool{}
 	for _, s := range sampleRounds() {
 		util.SetRoundCount(s.Round)
 		fmt.Fprintf(&b, "== %s (round %d)\n", s.Label, s.Round)
 		for _, id := range ids {
 			r := rooms.LoadRoom(id)
 			if r == nil {
+				// rooms.LoadRoom can return nil (failed LoadRoomInstance, or
+				// a lost addRoomToMemory race). A silent `continue` here
+				// would let a mass load failure shrink the golden with no
+				// signal, since the recorded byte count would still clear
+				// the >= 1000 sanity floor above. See
+				// lighting_parity_golden_test.go's identical trap.
+				skipped++
+				skippedIDs[id] = true
 				continue
 			}
 			bi := r.GetBiome()
@@ -126,6 +140,14 @@ func TestLightingDayCycleAcrossSampleRounds(t *testing.T) {
 			}
 			fmt.Fprintf(&b, "room %d biome=%s light=%d\n", id, biomeName, r.LightLevel())
 		}
+	}
+	if skipped > 0 {
+		failedIDs := make([]int, 0, len(skippedIDs))
+		for id := range skippedIDs {
+			failedIDs = append(failedIDs, id)
+		}
+		sort.Ints(failedIDs)
+		t.Fatalf("%d room loads failed across %d sample rounds (room ids: %v): the golden would silently lose coverage for those rooms", skipped, len(sampleRounds()), failedIDs)
 	}
 	got := b.String()
 
@@ -142,7 +164,10 @@ func TestLightingDayCycleAcrossSampleRounds(t *testing.T) {
 		t.Fatalf("read golden: %v (record it with -update-lighting-daycycle)", err)
 	}
 	if got != string(want) {
-		t.Errorf("day-cycle golden moved. If intended, re-record with:\n" +
+		t.Errorf("day-cycle golden moved. This baseline is pinned to the OLD lighting " +
+			"model and should change only when plan 3a's celestial mechanism lands " +
+			"(Task 8 onward). A diff before then is a REGRESSION, not something to " +
+			"re-record. If the change is genuinely intended:\n" +
 			"  go test . -run TestLightingDayCycleAcrossSampleRounds -update-lighting-daycycle -v")
 	}
 }
