@@ -27,6 +27,23 @@ const (
 	// It is a constant rather than a knob because nothing yet needs to turn it
 	// independently of the anchors. Plan 6's balance pass may promote it.
 	moonReferenceIntensity = 0.923
+
+	// poleReferenceEpsilon is how close cos(latitude) may come to zero before
+	// SunLight gives up and calls the sun absent.
+	//
+	// 🪤 A plain `<= 0` test does NOT catch the poles, which is the one case it
+	// was written for. The config validator accepts a latitude of exactly 90,
+	// and cos(90 degrees) in float64 is 6.12e-17: a tiny POSITIVE number, so
+	// the guard is skipped, log2 of it is about -53.9, and the calibration
+	// hands back a sun of roughly 490 on a scale that ends at 100. No NaN, no
+	// panic, just a silently absurd number. Measured, not reasoned about:
+	// reverting this to `<= 0` reddens TestPoleLatitudeGivesAnAbsentSunNotAnAbsurdOne
+	// with "sun 490.22805498561 is off the -100..100 scale".
+	//
+	// The bound is generous on purpose. Within about a thousandth of a degree
+	// of a pole the model has nothing useful to say anyway, so there is no cost
+	// to giving up early and a real cost to giving up late.
+	poleReferenceEpsilon = 1e-9
 )
 
 // declinationDegrees is the sun's declination on a given day of the year:
@@ -97,10 +114,11 @@ func SunLight(cfg configs.Lighting, dayOfYear int, hour float64) float64 {
 		return lightscale.Absent()
 	}
 	reference := math.Cos(cfg.WorldLatitude * math.Pi / 180)
-	if reference <= 0 {
+	if reference <= poleReferenceEpsilon {
 		// A pole. There is no equinox noon to calibrate against, so the model
-		// has nothing to say; treat the sun as absent rather than dividing by
-		// a logarithm of zero.
+		// has nothing to say; treat the sun as absent rather than calibrating
+		// against a logarithm that runs away. See poleReferenceEpsilon for why
+		// this is not a comparison against zero.
 		return lightscale.Absent()
 	}
 	step := cfg.DoublingStep
@@ -181,7 +199,11 @@ func CelestialLight() float64 {
 	gd := GetDate(round)
 	hour := float64(gd.Hour24) + gd.MinuteFloat/60
 
-	swift, wander, eye := GetAllPhases()
+	// 🔑 PhasesAtRound, not GetAllPhases. Both halves of this value must come
+	// from the SAME round, or the memo files a sun from round N beside a moon
+	// from round N+1 under key N. GetAllPhases reads the global counter itself,
+	// so it cannot be pinned; this one takes the round we already captured.
+	swift, wander, eye := PhasesAtRound(round)
 
 	celestialValue = lightscale.Combine(cfg.DoublingStep,
 		SunLight(cfg, gd.Day, hour),

@@ -164,3 +164,71 @@ func TestCelestialLightIsMemoisedPerRound(t *testing.T) {
 		t.Fatalf("half a day later still returned %v; the memo is not keyed on the round", third)
 	}
 }
+
+// 🪤 The pole guard must fire at EXACTLY 90 degrees, which is the one value it
+// was written for and the one a plain `<= 0` test misses. cos(90 degrees) in
+// float64 is 6.12e-17, a tiny POSITIVE number, so the guard was skipped and the
+// calibration returned roughly 490 on a scale that ends at 100.
+//
+// The config validator accepts 90, so this is reachable by an operator.
+func TestPoleLatitudeGivesAnAbsentSunNotAnAbsurdOne(t *testing.T) {
+	for _, lat := range []float64{90, -90} {
+		cfg := lightingForTest()
+		cfg.WorldLatitude = lat
+		for _, doy := range []int{81, 172, 356} {
+			for _, hour := range []float64{0, 6, 12, 18} {
+				got := SunLight(cfg, doy, hour)
+				if math.IsInf(got, -1) {
+					continue // absent, which is the correct answer at a pole
+				}
+				if got > 100 || got < -100 {
+					t.Fatalf("latitude %v day %d hour %v: sun %v is off the -100..100 scale",
+						lat, doy, hour, got)
+				}
+			}
+		}
+	}
+}
+
+// clamp01 guards MoonLight against a phase outside [0,1]. Nothing in the
+// shipped phase functions can produce one, which is exactly why the branch
+// needs a test: an unexercised guard is indistinguishable from a broken one.
+func TestMoonLightClampsPhasesOutsideTheUnitRange(t *testing.T) {
+	cfg := lightingForTest()
+
+	if got, want := MoonLight(cfg, -0.5, -1, -99), MoonLight(cfg, 0, 0, 0); got != want {
+		t.Errorf("negative phases gave %v, want the all-new value %v", got, want)
+	}
+	if got, want := MoonLight(cfg, 1.5, 2, 99), MoonLight(cfg, 1, 1, 1); got != want {
+		t.Errorf("over-full phases gave %v, want the all-full value %v", got, want)
+	}
+}
+
+// 🔑 daysPerYear must agree with the year length GameDate.ReCalculate uses, and
+// a comment saying so is not a guard: the two literals live in different files
+// and a change to either compiles and passes both packages' own tests.
+//
+// This fails in BOTH directions. Change daysPerYear alone and the round count
+// below no longer lands on a year boundary; change ReCalculate's 365 alone and
+// the day it reports at that boundary is not day 1.
+func TestDaysPerYearAgreesWithTheCalendar(t *testing.T) {
+	c := configs.GetConfig()
+	c.Timing.RoundsPerDay = 900
+	c.Timing.RoundSeconds = 4
+	c.Timing.Validate()
+	configs.SetConfigForTest(t, c)
+
+	roundsPerYear := uint64(daysPerYear) * uint64(c.Timing.RoundsPerDay)
+
+	first := GetDate(0)
+	next := GetDate(roundsPerYear)
+	if first.Day != next.Day {
+		t.Fatalf("one year of rounds (%d) moved the day of year from %d to %d; "+
+			"daysPerYear (%v) disagrees with ReCalculate's year length",
+			roundsPerYear, first.Day, next.Day, daysPerYear)
+	}
+	if next.Year != first.Year+1 {
+		t.Fatalf("one year of rounds moved the year from %d to %d, want %d",
+			first.Year, next.Year, first.Year+1)
+	}
+}
