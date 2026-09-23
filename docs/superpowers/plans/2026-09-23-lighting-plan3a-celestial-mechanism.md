@@ -1659,12 +1659,26 @@ than leaving them.
 Run: `go test ./internal/gametime/... -v`
 Expected: PASS, including the pre-existing gametime tests.
 
-⚠️ If a pre-existing test fails, check whether it pins `Timing`. An unpinned test
-was asserting on a world with `NightHours: 0`, where `IsNight()` was always false
-and now still is, since latitude 0 is also the Balance default in a bare
-`Balance{}`. If a test fails because it *did* pin Timing but not latitude, it is
-now seeing a seasonal night: pin `WorldLatitude` to 0 in that test to keep its
-old meaning, and say so in a comment.
+🔴 **CORRECTED 2026-09-23. Read this before assuming a failure is your bug.**
+
+**`IsNight()` used to be false in every test binary, and now it is not.** A Go
+test binary loads Go defaults, where `Timing.NightHours` was 0, so the old code
+made every hour daytime. That crutch is gone: night length now comes from
+`WorldLatitude`, whose default is 46.5, so an unpinned test sees a real seasonal
+night and `IsNight()` varies with the round counter.
+
+Any pre-existing test anywhere in the repo that silently relied on "it is never
+night" can now fail, and the failure is legitimate rather than a regression you
+introduced.
+
+⚠️ **Do NOT try to restore the old behaviour by pinning `WorldLatitude` to 0.**
+Zero is coerced to 46.5 in validation, so that does nothing. There is no
+"never night" setting any more, by design.
+
+To pin a test to daylight, pin the **round counter** to a daytime round instead:
+`util.SetRoundCount` to a round whose hour-of-day is around noon, restoring it
+with `t.Cleanup`. `roundFor(dayOfYear, 12)` in this file's test helper gives
+exactly that. Say in a comment that the test needs daylight and why.
 
 - [ ] **Step 6: Run the full suite**
 
