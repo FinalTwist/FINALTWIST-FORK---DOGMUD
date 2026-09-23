@@ -125,3 +125,33 @@ func (r *Room) legacyVisibility() int {
 
 	return visibility
 }
+
+// skyLightFraction is this room's sky fraction: its own override if it has one,
+// otherwise its biome's.
+//
+// ⚠️ GetBiome can return nil when the biome registry has not been loaded, which
+// is the normal state in a unit test that does not read _datafiles. A nil check
+// here is not defensive padding: without it every table-driven lighting test
+// must load the whole world first, and a nil dereference in LightLevel would
+// take down a live room read.
+func (r *Room) skyLightFraction() float64 {
+	if r.SkyLight != nil {
+		return *r.SkyLight
+	}
+	if b := r.GetBiome(); b != nil {
+		return b.SkyLightFraction()
+	}
+	return 1.0
+}
+
+// lampValue is this room's own light source, and whether it has one at all.
+// Nil-safe for the same reason as skyLightFraction.
+func (r *Room) lampValue() (int, bool) {
+	if r.Lamp != nil {
+		return *r.Lamp, true
+	}
+	if b := r.GetBiome(); b != nil {
+		return b.LampValue()
+	}
+	return 0, false
+}
