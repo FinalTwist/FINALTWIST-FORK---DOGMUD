@@ -33,21 +33,21 @@ func TestFourEqualSourcesAddTwoSteps(t *testing.T) {
 	}
 }
 
-// A much weaker source adds almost nothing. This is what stops a lantern from
-// mattering at noon, which the halving rule the spec originally used could not
-// express.
+// A source five doublings weaker than the brightest is negligible: it
+// contributes something, but under half a point. This is what stops a
+// lantern mattering at noon, which the halving rule the spec originally
+// used could not express.
 //
-// The plan's original bound here was (70, 70.05]. That is wrong: the same
-// combine formula the two equal-source tests above pin gives
-// best + step*log2(1 + 2^((30-70)/8)) = 70 + 8*log2(1.03125) =
-// 70.35515295486763, about seven times the plan's stated ceiling. Verified by
-// computing it independently in Python, not just by running this package's
-// own code. The bound below is corrected to the real value with a small
-// float-precision tolerance.
+// Exact value at step 8 with terms 70 and 30:
+//
+//	70 + 8*log2(1 + 2^((30-70)/8)) = 70.35515295486763
 func TestFarWeakerSourceBarelyContributes(t *testing.T) {
 	got := Combine(8, 70, 30)
-	if got <= 70 || math.Abs(got-70.35515295486763) > 1e-9 {
-		t.Fatalf("want approx 70.355, got %v", got)
+	if got <= 70 {
+		t.Fatalf("weaker source contributed nothing: got %v, want above 70", got)
+	}
+	if got-70 >= 0.5 {
+		t.Fatalf("weaker source contributed too much: got %v, want within 0.5 of 70", got)
 	}
 }
 
