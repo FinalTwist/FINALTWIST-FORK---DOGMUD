@@ -161,7 +161,7 @@ func shadowPlayer(actor Actor, targetUserId int, cfg configs.Balance) ShadowResu
 	// one trying to notice -- so the shadowing actor's sneak score is the
 	// defending entry. Same formula as shadowDetectionRoll in
 	// usercommands/skill.skullduggery.shadow.go (Per+Search vs Dex+Skullduggery).
-	roomLit := actor.GetRoom().LightLevel() >= int(configs.GetBalanceConfig().LightBlindBelow)
+	roomLit := actor.GetRoom().IsLit()
 	sneakScore := CalcSneakScoreVsObserver(char, targetUser.Character, roomLit)
 	searchScore := CalcDetectionScore(targetUser.Character)
 	detected := combat.RunContest(searchScore, []contest.Entry{{Score: sneakScore}}).Success

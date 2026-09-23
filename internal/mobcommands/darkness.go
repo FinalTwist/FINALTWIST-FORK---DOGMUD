@@ -2,7 +2,6 @@ package mobcommands
 
 import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
-	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -29,7 +28,7 @@ func sendAudioRoomText(room *rooms.Room, mob *mobs.Mob, cat messaging.Category, 
 	for _, userID := range excludedUserIDs {
 		excluded[userID] = struct{}{}
 	}
-	if room.LightLevel() >= int(configs.GetBalanceConfig().LightBlindBelow) {
+	if room.IsLit() {
 		room.SendText(cat, fullMsg, excludedUserIDs...)
 		return
 	}

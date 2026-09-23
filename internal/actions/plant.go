@@ -338,7 +338,7 @@ func plantOnPlayer(actor Actor, targetUserId int, plantItem items.Item,
 	// Independent detection roll: victim may notice even on success.
 	if !actor.IsPlayer() {
 		searchScore := CalcDetectionScore(targetUser.Character)
-		roomLit := actor.GetRoom().LightLevel() >= int(configs.GetBalanceConfig().LightBlindBelow)
+		roomLit := actor.GetRoom().IsLit()
 		sneakScore := CalcSneakScoreVsObserver(actor.GetCharacter(), targetUser.Character, roomLit)
 		detected := combat.RunContest(searchScore, []contest.Entry{{Score: sneakScore}}).Success
 		if detected {

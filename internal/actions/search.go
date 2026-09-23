@@ -6,7 +6,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
-	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -232,9 +231,8 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 
 	// The room's own light state is invariant across every hidden occupant
 	// checked below, so it is computed once here rather than inside
-	// spotsHider on every iteration (config.GetBalanceConfig() copies a
-	// 424-field struct by value).
-	roomLit := room.LightLevel() >= int(configs.GetBalanceConfig().LightBlindBelow)
+	// spotsHider on every iteration.
+	roomLit := room.IsLit()
 
 	// ── Tier 2 (target 135): Hidden players ─────────────────────
 	hiddenPlayerNames := []string{}
