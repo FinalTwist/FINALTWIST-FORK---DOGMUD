@@ -139,9 +139,9 @@ condition|63|start_actee => A bitter film blunts spoken power and dulls your sen
 condition|63|end_actee => The bitter film dissolves and your senses sharpen.
 condition|64|start_actee => Nothing could turn your stomach now, but you feel slow.
 condition|64|end_actee => Your stomach is ordinary again and your reflexes return.
-condition|65|start_actee => The dark recedes and hidden things show, but you feel weak.
+condition|65|start_actee => Your eyes catch dim light and moonlight like a cat's. Hidden things reveal themselves, but you feel weak.
 condition|65|start_observer => <ansi fg="username">Aliceia</ansi>'s eyes catch the light like a cat's.
-condition|65|end_actee => The dark closes in, the hidden vanish, your strength returns.
+condition|65|end_actee => Your eyes lose their cat-like sharpness. The hidden things vanish, and your strength returns.
 condition|65|end_observer => The glint fades from <ansi fg="username">Aliceia</ansi>'s eyes.
 condition|66|start_actee => The world slows as your reflexes sharpen, but you tire.
 condition|66|end_actee => The world speeds up again and you feel ordinary.

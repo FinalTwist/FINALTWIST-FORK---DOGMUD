@@ -1,6 +1,7 @@
 conditionid: 29
 name: Night Vision
-description: You can see in the dark.
+description: Your eyes make use of light too faint for most people to read by,
+  though pitch darkness still leaves you blind.
 start_actee: The dark thins and you make out grey shapes around you.
 end_actee: The dark closes in again and the shapes are gone.
 start_observer: "{actee}'s eyes widen and catch the faint light."
@@ -8,5 +9,12 @@ end_observer: "The faint light leaves {actee}'s eyes."
 secret: false
 triggerrate: 3 real minutes
 triggercount: 1
+# nightvision_strength: the reference value for a flag this condition grants
+# that no shipped content path grants (admin setcondition only). Above the
+# bare-flag default of 12 (LightDefaultVisionStrength,
+# internal/configs/config.balance.go) and below the shift cap of 24
+# (windowShiftCap, internal/messaging/window.go).
+effects:
+  nightvision_strength: 18
 flags:
   - nightvision
