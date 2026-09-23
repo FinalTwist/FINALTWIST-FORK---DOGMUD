@@ -20,9 +20,11 @@ the open can turn truly black under the trees. Caves keep a darkness of their
 own kind entirely: most show you nothing at all without a light source of
 your own, whatever the sky above them is doing.
 
-Towns are the exception. Main streets and open squares hold enough light to
-walk safely after dark. Step off them into a back lane, though, and you may
-still make out that someone is near without being able to say who it is.
+Towns are the exception, though not a complete one. Lamps and lit windows
+keep the streets passable all night, so you will not be left groping in a
+city the way you would be in open country. What that light will not do is
+show you a face. After dark you may well see that someone is standing there,
+and still not be able to say who they are.
 
 ## 2026-09-22: Seeing in the dark now has a price
 
