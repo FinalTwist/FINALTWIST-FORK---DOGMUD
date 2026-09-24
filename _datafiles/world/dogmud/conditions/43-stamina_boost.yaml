@@ -1,9 +1,0 @@
-conditionid: 43
-name: Stamina Boost
-description: Hearty food restores your endurance and vigor.
-start_actee: The hearty food works through you and your vigour returns.
-end_actee: The vigour from the food ebbs away.
-triggerrate: 1 round
-triggercount: 200
-statmods:
-  staminarecovery: 1

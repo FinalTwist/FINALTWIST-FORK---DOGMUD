@@ -1,8 +1,0 @@
-id: chimeric
-name: Chimeric
-description: Bear five mutations.
-category: progression
-points: 20
-trigger:
-  type: mutation_count
-  threshold: 5

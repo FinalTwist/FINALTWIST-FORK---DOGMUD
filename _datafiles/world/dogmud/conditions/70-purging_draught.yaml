@@ -1,7 +1,0 @@
-conditionid: 70
-name: Purging Draught
-description: Your body convulses as every alchemical trace is violently expelled.
-start_actee: Your body convulses and expels everything inside you.
-end_actee: The convulsions stop and your body is your own.
-triggerrate: 1 round
-triggercount: 1

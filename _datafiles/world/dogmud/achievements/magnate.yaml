@@ -1,8 +1,0 @@
-id: magnate
-name: Magnate
-description: Amass a hundred thousand gold.
-category: wealth
-points: 30
-trigger:
-  type: gold_total
-  threshold: 100000

@@ -1,8 +1,0 @@
-conditionid: 39
-name: Keen Awareness
-description: You notice things about your surroundings others miss.
-secret: false
-triggerrate: 1 real minute
-triggercount: 1
-flags:
-  - see-nouns

@@ -1,4 +1,0 @@
-The <ansi fg="command">zap</ansi> command can be used in the following ways:
-
-<ansi fg="command">zap</ansi> - Drops your current combat target to the brink (1 Health, 1 Conviction).
-<ansi fg="command">zap [target]</ansi> - Drops the target to the brink (1 Health, 1 Conviction).

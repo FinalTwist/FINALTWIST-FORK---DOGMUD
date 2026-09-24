@@ -1,8 +1,0 @@
-id: wanderer
-name: Wanderer
-description: Set foot in twenty-five rooms.
-category: exploration
-points: 5
-trigger:
-  type: rooms_explored
-  threshold: 25
