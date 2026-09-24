@@ -208,7 +208,7 @@ combat:
     flee:
       - '"Not today!"'
       - breaks away, looking for an opening.
-meeting: comes along the road with a bow across her back, slows, and studies you with the careful look of someone who reads strangers for a living.
+meeting: comes along, destitute with a dagger in hand, slows, and studies you with the careful look of someone who reads strangers for a living.
 fallback:
   greetings:
     - nods as you appear, as if she had expected you about now.
