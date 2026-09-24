@@ -310,12 +310,25 @@ asked:
   touching a path-filtered trigger, confirm the expected workflows actually
   ran with `gh run list`. [[feedback-gh-pr-checks-can-return-early]]
 - **A red `validate / lint` check on a large PR can be meaningless.** The
-  `only-new-issues` gate asks GitHub's API for the PR patch, and that API
-  refuses any diff over 20,000 lines; when it fails, the action cannot tell
-  new findings from old and reports the entire grandfathered backlog as if the
-  branch introduced it. Verify locally with `golangci-lint run
-  --new-from-rev=master` before trusting a red check on a big PR.
-  [[reference-lint-gate-inverts-on-large-prs]]
+  `only-new-issues` gate asks GitHub's API for the PR patch; when that call
+  fails the action cannot tell new findings from old and reports the entire
+  grandfathered backlog as if the branch introduced it.
+
+  🔴 **TWO separate limits trigger it, and this note used to name only one.**
+  The API refuses a diff over **20,000 lines**, AND it pages the file list at
+  **300 files**. PR #163 inverted the gate at **307 files and only 9,963
+  lines**, so the file count is a real and independent trigger.
+
+  **How to recognise it in the log**, rather than guessing:
+  - `only new issues on pull_request:` prints with an **empty value**
+  - the invocation is a bare `golangci-lint run`, with **no `--new-from-patch`**
+    flag (a healthy run shows `--new-from-patch=/tmp/.../pull.patch`)
+  - the findings name files the branch never touched
+
+  Verify locally with `golangci-lint run --new-from-merge-base=origin/master`,
+  which is step 3 of the Pre-Push SOP and reproduces the healthy check exactly.
+  A green local run plus those three log signals is proof the red is an
+  artifact. [[reference-lint-gate-inverts-on-large-prs]]
 
 ## Sources
 
