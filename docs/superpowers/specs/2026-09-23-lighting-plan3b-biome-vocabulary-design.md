@@ -179,6 +179,19 @@ mirages, some are not."* The prose chose the number.
 
 - **The city main-street versus back-lane pass.** Every `city` room still
   shares one lamp of 35, so all town streets hide faces. **Plan 3c.**
+- 🔴 **Roughly 50 more mis-biomed city interiors, measured during 3b.** Task 5
+  moved the temple's 18 and `new_plymouth_crafting`'s 15, then scanned the
+  remaining `city` zones and found about 50 further candidates across eight of
+  them: offices, chapels, cells, halls, workshops and lofts in `greenford`,
+  `new_plymouth_docks`, `new_plymouth_merchant`, `new_plymouth_noble`,
+  `new_plymouth_old_quarter`, `stillwater`, `the_confluence` and
+  `thornwall_city`. `the_confluence` alone holds 128 city rooms.
+
+  🔑 **It declined to do them, and was right to.** Judging 50 rooms with the
+  care the temple got is a task of its own scale, not the tail of another one,
+  and a guessed interior is worse than a known-wrong city. **Plan 3c takes
+  them**, alongside the main-street split, since both are readings of the same
+  477 rooms.
 - **`fort`'s split** between its open training yard and its buried vault, which
   needs room-level overrides. **Plan 3c.**
 - **Transition notices** when light changes around or beneath a player.
