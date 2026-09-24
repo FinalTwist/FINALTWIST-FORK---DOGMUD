@@ -6,7 +6,7 @@ description: >
   glass. It lies flat and silent, giving back the faint shape of whoever leans
   over it, and something deeper glimmers far beneath. Dewey waits a step back
   from the edge, unhurried, leaving you room to look.
-biome: default
+biome: ether
 exits:
   north:
     roomid: 6260
