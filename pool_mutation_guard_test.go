@@ -56,6 +56,9 @@ var poolWriteExemptions = map[string]string{
 	"internal/characters/overrides.go":         "ApplyMobOverrides spawn-time set",
 	"internal/mobs/mobs.go":                    "mob spawn",
 	"internal/hooks/PlayerSpawn_HandleJoin.go": "companion re-summon",
+	// A recovered bonded companion returns at a fraction of max, the same
+	// spawn-time absolute set as Life_Cascades' respawn.
+	"internal/hooks/companion_bonded.go": "bonded companion recovery sets pools to a fraction of max",
 	// Respawn sets pools to a FRACTION of max, which is a reduction for anyone
 	// above it and a restore for anyone below. Neither primitive fits.
 	"internal/hooks/Life_Cascades.go": "respawn sets pools to a fraction of max",

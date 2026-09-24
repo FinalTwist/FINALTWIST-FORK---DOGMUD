@@ -1,6 +1,7 @@
 package seeders
 
 import (
+	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -65,6 +66,11 @@ func giftToOpinionBoost(event events.Event) {
 		return // cooldown active
 	}
 
+	// See aggression.go: a bonded companion's feelings live in its own
+	// mind, so the per-template score is left alone for it.
+	if companionai.IsBondedCompanion(receiver.InstanceId) {
+		return
+	}
 	opinions.Bump(int(receiver.MobId), ga.UserId, bump)
 }
 

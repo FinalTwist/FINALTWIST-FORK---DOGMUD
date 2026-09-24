@@ -568,6 +568,30 @@ type GiftAccepted struct {
 
 func (g GiftAccepted) Type() string { return "GiftAccepted" }
 
+// Emote fires after a player's emote has been shown to the room. Text is the
+// emote as the room read it, without the actor's name (for an emote alias,
+// the alias text). Consumed by modules/aicompanion so bonded companions can
+// notice and react to emotes aimed at them.
+type Emote struct {
+	UserId int
+	RoomId int
+	Text   string
+}
+
+func (e Emote) Type() string { return "Emote" }
+
+// Healed fires when a player casts a healing spell at a mob: at the cast,
+// not on the result. The mob-target branch of the vital school applies a
+// regeneration condition rather than restoring health directly, and its
+// error is discarded, so this can fire when nothing took hold. Consumed by
+// modules/aicompanion, where it means "somebody tried to tend me".
+type Healed struct {
+	HealerUserId  int
+	MobInstanceId int
+}
+
+func (h Healed) Type() string { return "Healed" }
+
 // CastInterrupted fires when a player's in-progress spellcast is cancelled by
 // an outside force (active interrupt, damage-broken concentration). Consumed by
 // the GMCP layer so the web-client action queue can re-arm the cast.
