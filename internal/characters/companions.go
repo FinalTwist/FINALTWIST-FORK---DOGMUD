@@ -47,6 +47,13 @@ const (
 	CompanionCharmed  CompanionSourceType = "charmed"
 	CompanionRaised   CompanionSourceType = "raised"
 	CompanionPet      CompanionSourceType = "pet"
+	// CompanionBonded is a companion driven by the aicompanion module: a
+	// character with its own mind, memory and opinion of its owner. It is
+	// never summoned, costs no Conviction reserve, cannot be dismissed or
+	// renamed, and recovers from death instead of being lost. The stored value
+	// is shown to players by the companion list, so it names the relationship
+	// rather than the mechanism.
+	CompanionBonded CompanionSourceType = "bonded"
 )
 
 // CompanionInfo holds the persistent state of a single companion.
@@ -76,6 +83,10 @@ type CompanionInfo struct {
 	// Conviction reserved to keep this companion fielded, snapshotted at summon
 	// time so it doesn't drift when the summoner's skill/mutation changes mid-life.
 	ConvictionReserve int `yaml:"conviction_reserve,omitempty"`
+	// Gold carried by the companion. Persisted only for CompanionBonded; other
+	// companion kinds keep the historical behaviour of not carrying money
+	// across a logout.
+	Gold int `yaml:"gold,omitempty"`
 }
 
 // GetCompanion finds a companion by name (case-insensitive partial match).

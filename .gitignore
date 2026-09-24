@@ -155,3 +155,5 @@ internal/**/_datafiles/
 
 # Codex CLI local config: holds live MCP provider API keys, never commit
 .codex/config.toml
+patch.patch
+runwithapi.sh

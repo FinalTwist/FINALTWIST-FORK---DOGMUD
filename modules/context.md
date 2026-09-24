@@ -24,6 +24,7 @@ and rebuilding. There is no dynamic loading and no sandbox.
 | Module | What it does |
 |--------|--------------|
 | [`achievements`](achievements/context.md) | Event wiring, unlock recording, and the web page for `internal/achievements` |
+| [`aicompanion`](aicompanion/context.md) | Bonded AI companions: conversation, memory and mood through a language model, acting only through ordinary mob commands |
 | [`auctions`](auctions/context.md) | The global auction house, including the NPC bidder panel |
 | [`cleanup`](cleanup/context.md) | `trash` and `bury`, in user and mob variants |
 | [`follow`](follow/context.md) | `follow` for players and mobs, plus every link-breaking listener |

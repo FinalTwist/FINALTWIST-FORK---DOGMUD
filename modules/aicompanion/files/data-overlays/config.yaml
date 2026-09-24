@@ -1,0 +1,222 @@
+# Defaults for Modules.aicompanion.*. Override in _datafiles/config.yaml.
+#
+# OFF BY DEFAULT. Set Modules.aicompanion.Enabled: true in _datafiles/config.yaml
+# to use it; while it is false this module loads nothing and the server behaves
+# as though it were not built in.
+#
+# Switched on, nothing else needs configuring to use OpenAI: set the
+# OPENAI_API_KEY environment variable (the one OpenAI's own tools read) before
+# starting the server, and the module picks suitable models for each tier by
+# itself. Without a key, companions still appear, follow, fight and answer with
+# short authored lines.
+Enabled: false
+# The main model. Empty = automatic: the first of gpt-5.4-mini, gpt-5-mini,
+# gpt-4.1-mini, gpt-4o-mini that the key can use.
+Model: ""
+# Model tiers. Model is the main tier (conversation and relationship: someone
+# speaks, asks, gives, hurts or heals; greetings and goodbyes). FastModel is a
+# small, low-latency model for moments that need an answer quickly (combat
+# plans, noticing things, quiet moments, follow-ups). DeepModel is the
+# strongest model, used only for the private reflection after a session.
+# An empty tier chooses automatically: fast from gpt-5.4-nano, gpt-5-nano,
+# gpt-4.1-nano, gpt-4o-mini; deep from gpt-5.5, gpt-5.4, gpt-5, gpt-4.1,
+# gpt-4o. A model the API refuses is skipped and the next one used.
+FastModel: ""
+DeepModel: "gpt-4.1-mini"
+# Reasoning effort per tier: none, minimal, low, medium, high or xhigh. Empty
+# = automatic (none for fast and main, which keeps replies quick and is
+# required for function tools on current models; medium for deep). Adjusted
+# to what each model family accepts, and not sent to models without it.
+FastReasoningEffort: ""
+MainReasoningEffort: ""
+DeepReasoningEffort: ""
+# Token and time limits for the fast and deep tiers (main uses
+# MaxCompletionTokens and RequestTimeoutSeconds).
+FastMaxCompletionTokens: 500
+DeepMaxCompletionTokens: 2000
+FastTimeoutSeconds: 12
+BaseURL: "https://api.openai.com/v1"
+# Environment variable holding the API key.
+APIKeyEnv: "OPENAI_API_KEY"
+# Alternatively, the key itself. Convenient on a private, single-player
+# server; anyone who can read the config file can read the key. The
+# environment variable wins when both are set. The key is never logged.
+APIKey: ""
+RequestTimeoutSeconds: 25
+# Upper bound on generated tokens per decision (reasoning models count their
+# reasoning against this, so do not set it too low).
+MaxCompletionTokens: 900
+# 0 = do not send a temperature (required for some reasoning models).
+Temperature: 0
+# Minimum real seconds between two model calls for one companion.
+MinSecondsBetweenCalls: 2
+# Total tokens per UTC day across all companions. 0 = unlimited.
+DailyTokenBudget: 2000000
+# Rounds a fallen bonded companion takes to recover and rejoin mid-session.
+RecoveryRounds: 40
+# How many recent lines of conversation the companion keeps word for word.
+WorkingMemoryLines: 40
+# How many lines of that are sent with each decision.
+PromptMemoryLines: 24
+# Long-term memories retrieved into each decision.
+PromptMemories: 8
+# Long-term memory store size. The least important, least recent memories are
+# forgotten first; importance 8 and above are never forgotten.
+MaxMemories: 300
+# Facts kept about the owner.
+MaxFacts: 40
+# Session summaries kept.
+MaxSummaries: 20
+# Speak up when the owner logs in.
+GreetOnLogin: true
+# A mood the model set drifts back to calm after this many real minutes
+# without being set again. 0 = moods never fade on their own.
+MoodDecayMinutes: 20
+# Log one line per decision: trigger kinds, the model's private intent,
+# lines spoken, tokens and latency. Player text itself is never logged.
+LogDecisions: true
+# Reflect privately on the session when the owner logs out (one extra call).
+ReflectOnLogout: true
+# Skip the reflection when less than this much happened.
+MinSessionLinesForReflection: 4
+# Minutes of quiet before the companion considers starting a conversation.
+# Whether it does depends on the profile's talkativeness. 0 = never.
+InitiativeMinutes: 5
+# How interesting (0..1, local score) something must be for the companion to
+# notice it aloud when it walks in or when it appears.
+NoticeThreshold: 0.6
+# Minimum seconds between two "you notice" moments.
+NoticeCooldownSeconds: 45
+# Minutes between chances to deal with something nearby on its own when
+# nothing else is happening. 0 = never acts unprompted.
+AutonomyMinutes: 3
+# Minutes between small idle gestures (authored, no model call). 0 = none.
+IdleEmoteMinutes: 6
+# How many room things are listed, with refs, in each decision.
+OptionsInPrompt: 10
+# May the companion go off on its own (errands, exploring one step) while
+# its owner stays put? The owner moving always calls it back.
+AllowErrands: true
+# Longest route, in steps, the companion will take on an errand.
+MaxErrandSteps: 15
+# Rounds the companion lingers at an errand's end before heading back.
+ErrandLingerRounds: 8
+# Rounds apart after which a companion that knows no way back rejoins its
+# owner as though it had followed.
+LostRounds: 40
+# Nearby known places with something in them, listed in each decision.
+NearbyPlacesInPrompt: 6
+# Rooms the companion remembers; the least recently seen are forgotten first.
+MaxKnownRooms: 5000
+# When a reply to someone speaking to the companion takes longer than this
+# many seconds, it makes a small "thinking" gesture. 0 = never.
+ThinkingSeconds: 4
+# Rounds between two of the companion's own combat moves on top of the
+# engine's fighting (switching target, taunting, drinking, fleeing). 1 = at
+# most one a round, never in the round something happened.
+CombatReactionRounds: 1
+# Retry a call once, after a short pause, on a rate limit, server error or
+# timeout.
+RetryTransient: true
+# Circuit breaker: after this many failures in a row, stop calling the model
+# for BreakerSeconds and use fallback lines.
+BreakerErrors: 5
+BreakerSeconds: 60
+# Tokens per UTC day for any one companion. 0 = only the server budget.
+DailyTokensPerCompanion: 300000
+# Check the companion's speech with the OpenAI moderation endpoint before it
+# is said. Adds a short delay to each reply.
+ModerateOutput: true
+ModerationModel: "omni-moderation-latest"
+# Keep a rotating backup of each mind every N sessions (three are kept).
+# 0 = no backups.
+BackupEverySessions: 1
+# Rounds between copies of the companion's gear, gold and skills into its
+# owner's saved record, so a restart or crash loses little. It is also
+# copied right after any trade or pickup.
+SnapshotRounds: 25
+# How many times, in one decision, the model may ask the game for more
+# information (look closer at something, recall memories, search its map)
+# before it must answer. Main tier only. 0 = never.
+ToolRounds: 2
+# Meeting a companion. A new character meets one right after character
+# creation, once it has stood in its first real room for MeetDelayRounds
+# (not in the void, a skipped zone, a fight, or quitting). With
+# AutoBondExisting, a character that has never had one meets one on its
+# next login. If the player sends the companion away it does not come back
+# on its own (an admin can still use aicompanion grant).
+AutoBond: true
+AutoBondProfile: "mara"
+AutoBondExisting: false
+MeetDelayRounds: 3
+MeetSkipZones:
+  - "Newcomer Antechamber"
+# Seconds the owner has to confirm with `companion-part` after a companion
+# asks to leave. The bond never ends on the model's word alone.
+LeaveConfirmSeconds: 120
+# Treat anything the owner says as spoken to the companion when no other
+# player is in the room. With this off, the companion answers only when it
+# is named or asked (`ask <name> ...`). Everything a player says in a room
+# with the companion is sent to the API either way, as remembered context.
+RespondWhenAlone: true
+# How much a companion's nerve wanders from one fight to the next (0..1):
+# it shifts when they decide to run and how readily they throw themselves in
+# front of their owner, so the same companion is not a machine. 0 = exact.
+CombatVariance: 0.25
+# Minutes between the small things a companion does with itself when
+# nothing is happening: a gesture, a search of the room, a look through the
+# undergrowth. Chosen at random from whatever makes sense there, with no
+# model call. Searching and foraging are also how those skills grow.
+IdlePastimeMinutes: 4
+# The chance she does anything at all when the moment comes round. At 0.5
+# and four minutes, something happens every eight minutes on average, and
+# never on a predictable beat.
+IdlePastimeChance: 0.5
+# Remember speech in the room that was not addressed to the companion. It is
+# what lets it overhear and react later; it also means other players' words
+# reach the API as context. Turn it off on a shared server.
+RecordBystanderSpeech: false
+# Allow BaseURL to point somewhere other than OpenAI (an OpenAI-compatible
+# provider). Off, any other host is refused and the official endpoint used,
+# so a mistyped URL cannot send the API key and player text elsewhere.
+AllowCustomEndpoint: false
+# Talk is remembered as a whole, not line by line: an exchange in one room
+# becomes a single memory in her own words when it ends ("we talked about
+# bread, and he told me his mother baked it"). A talk ends when it has gone
+# quiet for ConversationGapSeconds, when she moves, when a fight starts, or
+# at logout. Shorter exchanges than MinConversationExchanges leave nothing
+# unless something notable was said.
+ConversationSummaries: true
+ConversationGapSeconds: 240
+MinConversationExchanges: 3
+# While the owner is sneaking, the companion stays where it is and keeps
+# still: it does not follow, speak, notice things aloud or run errands. A
+# second set of footsteps is what gets people caught.
+HoldWhenSneaking: true
+# After a fight, a bonded companion walks the ground and works some of its
+# loosed arrows free: a random share between these two bounds, never all of
+# them. This is the companion only; the player's arrows are the engine's
+# business and are untouched.
+RecoverArrows: true
+RecoverArrowsMin: 0.1
+RecoverArrowsMax: 0.8
+# How many of the world's recent notable happenings reach her when she is
+# somewhere with people to have heard them from. 0 = she hears no rumours.
+RoadTalkLines: 3
+# She walks after her owner rather than arriving with them: a moment's
+# pause, then she takes the same way out herself, so the room sees her leave
+# and enter like anyone else. Only when they actually walked; a portal, a
+# ferry or being pulled out of a fight still moves her the engine's way.
+FollowOnFoot: true
+FollowDelayMin: 0.15
+FollowDelayMax: 0.45
+# A player is asked, in as many words, before anything they say is sent to
+# OpenAI. Until they answer "i agree" their companion behaves as a plain one.
+# Turning this off means players are never told; think hard before you do.
+RequireConsent: true
+# What a passer-by can ask of somebody else's companion: one question per
+# this many seconds each, and this many tokens a day each. Their asking is
+# charged to them, not to the companion's owner, and it never moves how the
+# companion feels about its owner.
+StrangerAskSeconds: 30
+StrangerDailyTokens: 50000

@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"github.com/GoMudEngine/GoMud/internal/caravan"
+	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/forager"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
@@ -10,6 +11,12 @@ import (
 
 // Register hooks here...
 func RegisterListeners() {
+
+	// Bonded AI companions: the aicompanion module asks hooks to bring a
+	// fallen companion back, because hooks owns the spawn-and-restore code.
+	companionai.SetRespawner(RespawnBondedCompanion)
+	companionai.SetRejoiner(RejoinBondedCompanions)
+	companionai.SetSnapshotter(SnapshotBondedCompanion)
 
 	// Conditions
 	events.RegisterListener(events.Condition{}, ApplyConditions)
