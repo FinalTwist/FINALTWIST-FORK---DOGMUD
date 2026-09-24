@@ -56,7 +56,8 @@ afterwards that the CR count still equals the line count:
 
 ```bash
 printf "%s %s
-" "$(tr -cd '' < <file> | wc -c)" "$(wc -l < <file>)"
+" "$(tr -cd '
+' < <file> | wc -c)" "$(wc -l < <file>)"
 ```
 
 🪤 **Never `git add -A` or `git add .`.** Named paths only.
@@ -1006,8 +1007,14 @@ result; plan 4 inherits exactly that list.
 
 - [ ] **Step 1: Update `internal/rooms/context.md`**
 
-Record the new biome set and what each means, that `house` is gone, and the two
-per-room override cases now in use (the oasis lamp, and whatever Task 5 needed).
+Record the new biome set and what each means, that `house` is gone, and the
+per-room override in use.
+
+🔴 **CORRECTED: there is exactly ONE, not two.** Only
+`instance_planar_oasis`'s three rooms carry an override (`lamp: 38`). Task 5
+needed none. Verified by grepping every room YAML for a top-level `skylight:`
+or `lamp:`. `fort`'s unsplit sky fraction is the open gap, and it belongs to
+plan 3c.
 
 ⚠️ **Every symbol you name must exist.** Run `python tools/context_md_audit.py`
 and confirm nothing for `rooms`. It has known false positives; read its findings
@@ -1019,8 +1026,16 @@ Read the `dogmud-player-copy` skill first. 80-character hard wrap, no raw
 numbers, ESL-clear, no em dashes or en dashes.
 
 Convey: some woods are darker than others and the deep timber is dim even at
-noon in winter; sewers and the inside of the wreck are their own kind of dark;
-nothing else a player will notice.
+noon in winter; the sewers have gone properly dark; the web-choked lair in the
+Foldweave now hides faces.
+
+🔴 **CORRECTED after this task ran. Do NOT write that the inside of the
+wreck is dark.** This plan said so and it is false. `crash_site_interior` is
+biome `interior` with a lamp of 50 and reads 50 to 59 at every sample in the
+golden, so it is always fully lit. Task 10's implementer checked the claim
+against the golden, found it inverted, and cut it. That is the instruction
+working: 3a shipped a patch note sentence measurement disproved, and this is
+the same error caught one step earlier.
 
 🔴 **Do NOT mention** dazzle, lanterns, light spells, or town streets. The first
 two are later plans, and town lighting does not change in 3b.
