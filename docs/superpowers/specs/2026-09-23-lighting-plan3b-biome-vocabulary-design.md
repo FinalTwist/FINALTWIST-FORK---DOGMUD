@@ -198,6 +198,23 @@ mirages, some are not."* The prose chose the number.
   **Plan 3d.**
 - **Retiring `LightMod`** itself. 3b empties it of load-bearing consumers;
   plan 4 deletes the vocabulary.
+
+  🔴 **Plan 4 inherits FOUR mutators, not three, and they are two different
+  problems.** Measured at the end of 3b:
+
+  | Mutator | `lightmod` | Consumers |
+  |---|---|---|
+  | `weather_blizzard` | -1 | live |
+  | `weather_dust` | -1 | live |
+  | `weather_storm` | -1 | live |
+  | `bioluminescent_caves` | **+2** | 🔴 **ZERO** |
+
+  The three negatives are the real work: they become an authored occlusion
+  fraction. `bioluminescent_caves` is dead weight, verified by grep during
+  Task 9 as referenced by no room and no zone-config anywhere in the tree,
+  only by its own definition file. It should be deleted rather than migrated,
+  and it is the reason the arc spec's "6 of 24 shipped mutators declare a
+  lightmod" figure overstates the live set.
 - **`test_arena`.** A test fixture zone on `fort`. Left alone deliberately.
 
 ---
