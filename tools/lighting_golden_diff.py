@@ -21,12 +21,37 @@ import sys
 
 ROOM = re.compile(r"^room (-?\d+) biome=(\S+) light=(-?\d+)")
 
+# The PARITY golden is a different shape: no `== ` section headers, and each
+# room is followed by one indented line per observer kind rather than a single
+# light value.
+#
+#     room 75 biome=default
+#       plain        sight=shapes clear=false shapes=true
+#       nightvision  sight=full   clear=true shapes=true
+#
+# Task 4 of plan 3b fell back to a raw diff because this parser only knew the
+# day-cycle format, and five later tasks move this file too. It is handled as
+# one unnamed section whose value is the room's whole observer block, so a
+# change to ANY sight tier shows up rather than only a light value.
+PARITY_ROOM = re.compile(r"^room (-?\d+) biome=(\S+)\s*$")
+
 
 def parse(path):
+    """Return {section: {roomid: value}} and the section order.
+
+    Auto-detects which golden this is. For the day-cycle golden a value is
+    (biome, light); for the parity golden it is (biome, observer block).
+    """
+    text = io.open(path, encoding="utf-8").read()
+    if "light=" in text:
+        return parse_daycycle(text)
+    return parse_parity(text)
+
+
+def parse_daycycle(text):
     """Return {section: {roomid: (biome, light)}} and the section order."""
     sections, order, current = {}, [], None
-    for line in io.open(path, encoding="utf-8"):
-        line = line.rstrip("\n")
+    for line in text.splitlines():
         if line.startswith("== "):
             current = line
             sections[current] = {}
@@ -36,6 +61,21 @@ def parse(path):
             if m:
                 sections[current][int(m.group(1))] = (m.group(2), int(m.group(3)))
     return sections, order
+
+
+def parse_parity(text):
+    """Return the parity golden as one section keyed by room id."""
+    rooms, current = {}, None
+    for line in text.splitlines():
+        m = PARITY_ROOM.match(line)
+        if m:
+            current = int(m.group(1))
+            rooms[current] = [m.group(2)]
+        elif current is not None and line.startswith("  "):
+            rooms[current].append(line.strip())
+    section = "== parity (every observer kind)"
+    packed = {r: (v[0], " | ".join(v[1:])) for r, v in rooms.items()}
+    return {section: packed}, [section]
 
 
 def main(before_path, after_path):
