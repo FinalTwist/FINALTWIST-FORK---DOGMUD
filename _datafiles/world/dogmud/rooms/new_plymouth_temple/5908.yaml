@@ -18,7 +18,7 @@ description: >
   the courtyard below; in morning light the precinct
   board is legible from here. The stair descends
   to the hall below.
-biome: city
+biome: interior
 coord:
   x: -7
   y: 91

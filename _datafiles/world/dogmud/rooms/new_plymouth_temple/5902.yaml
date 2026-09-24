@@ -23,7 +23,7 @@ description: >
   four corners are always fresh. Someone sees to
   this before the first arrival of the day and
   after the last.
-biome: city
+biome: interior
 coord:
   x: -5
   y: 89

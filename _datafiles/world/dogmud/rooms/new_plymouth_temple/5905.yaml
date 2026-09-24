@@ -23,7 +23,7 @@ description: >
   seminary — the chapel passage lies open to the south,
   while the seminary's corridor stands shut at this hour,
   extending out of sight.
-biome: city
+biome: interior
 coord:
   x: -6
   y: 88

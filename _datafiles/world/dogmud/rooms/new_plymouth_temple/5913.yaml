@@ -22,7 +22,7 @@ description: >
   in visible form. The room smells of nothing
   but cold stone and the trace of someone else's
   long attention.
-biome: city
+biome: interior
 coord:
   x: -5
   y: 87

@@ -13,7 +13,7 @@ description: >
   mark again. Only the way <ansi fg="itemname">east</ansi>, back
   toward the fold, breaks the circle. The passage does not want you
   to take it. The passage would rather you kept walking.
-biome: cave
+biome: spiderweb
 coord:
   x: -14
   y: -20

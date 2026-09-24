@@ -9,6 +9,7 @@ description: >-
   sealed shut — they only open when there is nothing left
   in the room that can open them. The arena champion waits
   here. It has been waiting a very long time.
+biome: interior
 exits:
   south:
     roomid: 5007

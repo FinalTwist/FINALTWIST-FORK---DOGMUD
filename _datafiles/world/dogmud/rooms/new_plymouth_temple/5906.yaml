@@ -22,7 +22,7 @@ description: >
   desk is through the door to the west; the
   warden's passage opens to the north; the
   lodging stairs go up.
-biome: city
+biome: interior
 coord:
   x: -7
   y: 91

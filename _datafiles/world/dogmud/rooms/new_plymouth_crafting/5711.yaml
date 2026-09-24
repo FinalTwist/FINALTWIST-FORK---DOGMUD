@@ -24,7 +24,7 @@ description: >
   on the reagent-stone burner — the work is ongoing.
   Pinned to the shelf-edge above it, a <ansi fg="itemname">consignment-slip</ansi>
   curls in the rising heat, marked for collection.
-biome: city
+biome: interior
 coord:
   x: -20
   y: 90
