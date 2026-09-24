@@ -2658,7 +2658,7 @@ room 5308 biome=dense_forest
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 5309 biome=dense_forest
+room 5309 biome=forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
@@ -2678,7 +2678,7 @@ room 5312 biome=forest
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 5313 biome=dense_forest
+room 5313 biome=forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
