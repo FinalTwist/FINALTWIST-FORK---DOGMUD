@@ -26,6 +26,22 @@ city the way you would be in open country. What that light will not do is
 show you a face. After dark you may well see that someone is standing there,
 and still not be able to say who they are.
 
+## 2026-09-23: Deep woods, sewers and a spider's lair
+
+Not every stretch of forest lets the same light through. Deep inside the
+thickest stands of trees, in the heart of winter, the canopy blocks enough
+of even a bright midday sun that you are left picking out shapes rather than
+clear detail. Lighter woods, and the brighter half of the year, still let
+plenty of light down.
+
+The sewers beneath New Plymouth have gone properly dark. Once you could make
+out at least the outline of the passage down there; now you see nothing at
+all, day or night.
+
+The web-choked lair deep in the Foldweave has changed as well. Where you
+could once make out a face clearly, you will now only catch a shape moving
+in the gloom.
+
 ## 2026-09-22: Seeing in the dark now has a price
 
 Abilities and potions that let you see in the dark used to have no limit. Strong
