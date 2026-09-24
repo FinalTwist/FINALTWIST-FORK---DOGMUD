@@ -13,6 +13,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
@@ -34,6 +35,7 @@ const (
 	cmdCompanionTakeout = `companion-takeout`
 	cmdCompanionUnlock  = `companion-unlock`
 	cmdCompanionBuy     = `companion-buy`
+	cmdCompanionFollow  = `companion-follow`
 )
 
 // corpseRef encodes a corpse's identity for companion-loot.
@@ -212,5 +214,43 @@ func mobCompanionBuy(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error)
 		Request:                     parts[1] + ` ` + parts[2],
 		TargetMerchantMobInstanceId: merchantId,
 	})
+	return true, nil
+}
+
+// mobCompanionFollow is "companion-follow <fromRoomId> <toRoomId>": the
+// step a companion takes a moment after its owner walks out, so the rooms
+// either side see an ordinary departure and arrival.
+//
+// It is issued with a delay, and the world can change in that moment: the
+// owner may walk on again and the engine carry her along, or she may be
+// dragged into a fight. So the step checks, at the moment it runs, that it
+// is still standing where it set off from and that its owner is still next
+// door. If either has changed it does nothing, which is what stops a
+// companion walking one room past its owner.
+func mobCompanionFollow(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
+	if room == nil {
+		return true, nil
+	}
+	parts := strings.Fields(strings.TrimSpace(rest))
+	if len(parts) != 2 {
+		return true, nil
+	}
+	fromRoom, err1 := strconv.Atoi(parts[0])
+	toRoom, err2 := strconv.Atoi(parts[1])
+	if err1 != nil || err2 != nil {
+		return true, nil
+	}
+	if mob.Character.RoomId != fromRoom || mob.Character.RoomId == toRoom {
+		return true, nil // already moved, by the engine or otherwise
+	}
+	owner := users.GetByUserId(mob.Character.GetCharmedUserId())
+	if owner == nil || owner.Character == nil || owner.Character.RoomId != toRoom {
+		return true, nil // they did not stay where they went
+	}
+	exitName := room.FindExitTo(toRoom)
+	if exitName == `` {
+		return true, nil
+	}
+	mob.Command(`go ` + util.EscapeAnsiTags(exitName))
 	return true, nil
 }

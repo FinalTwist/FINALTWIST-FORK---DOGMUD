@@ -76,6 +76,7 @@ func (m *AICompanionModule) perceive(c *controller, u *users.UserRecord, round u
 		}
 		c.lastRoomId = mob.Character.RoomId
 		c.seenKeys = sc.keysAbove(0)
+		c.followPending = false
 		c.bumpWorld()
 		c.dirty = true
 		if room := rooms.LoadRoom(mob.Character.RoomId); room != nil {
@@ -607,6 +608,12 @@ func (m *AICompanionModule) followOnFoot(c *controller, u *users.UserRecord) boo
 	if !m.cfg.FollowOnFoot {
 		return false
 	}
+	// A step is already on its way. Rather than queue a second one, let the
+	// engine carry her: the step in flight will find her somewhere other
+	// than where it set off from and do nothing.
+	if c.followPending && util.GetRoundCount()-c.followSince < 3 {
+		return false
+	}
 	mob := mobs.GetInstance(c.instanceId)
 	if mob == nil || mob.Character.IsInCombat() || mob.Character.RoomId == u.Character.RoomId {
 		return false
@@ -624,6 +631,7 @@ func (m *AICompanionModule) followOnFoot(c *controller, u *users.UserRecord) boo
 	}
 	lo, hi := m.cfg.FollowDelayMin, m.cfg.FollowDelayMax
 	delay := lo + (hi-lo)*float64(util.Rand(101))/100.0
-	mob.Command(`go `+util.EscapeAnsiTags(exitName), delay)
+	mob.Command(fmt.Sprintf(`%s %d %d`, cmdCompanionFollow, here.RoomId, u.Character.RoomId), delay)
+	c.followPending, c.followSince = true, util.GetRoundCount()
 	return true
 }

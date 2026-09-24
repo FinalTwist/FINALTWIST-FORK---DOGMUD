@@ -81,6 +81,8 @@ type controller struct {
 	lastPastime   int64           // last time it found something to do with itself
 	lastGearUp    int64           // last time it sorted its gear out
 	lastSneakTry  uint64          // round it last tried to slip into the shadows
+	followPending bool            // a follow step is on its way and not yet taken
+	followSince   uint64          // the round that step was issued
 
 	askAuth         *askAuthority  // the owner's leave to put one question to one NPC
 	ownerWasDown    bool           // the owner was on the ground when last looked at
@@ -429,6 +431,7 @@ func (m *AICompanionModule) registerCommands() {
 	mobcommands.RegisterCommand(cmdCompanionTakeout, mobCompanionTakeout, false)
 	mobcommands.RegisterCommand(cmdCompanionUnlock, mobCompanionUnlock, false)
 	mobcommands.RegisterCommand(cmdCompanionBuy, mobCompanionBuy, false)
+	mobcommands.RegisterCommand(cmdCompanionFollow, mobCompanionFollow, false)
 
 	// The help pages are mounted with the commands they describe.
 	if err := m.plug.AttachFileSystem(helpFiles); err != nil {

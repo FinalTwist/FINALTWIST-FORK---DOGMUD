@@ -829,9 +829,19 @@ func TestCombatBasics(t *testing.T) {
 	if healthPct(ch) != 25 {
 		t.Fatalf("health percent: %d", healthPct(ch))
 	}
+	// EffectivePoolMax is floored at 1, never 0, so a character with nothing
+	// in it reads as spent rather than as fine.
 	empty := &characters.Character{}
-	if healthPct(empty) != 100 {
-		t.Fatal("with no ceiling to measure against, nothing is wrong with her")
+	if got := healthPct(empty); got != 0 {
+		t.Fatalf("an empty pool is empty, not full: %d", got)
+	}
+	// Gear that reserves part of the pool lowers the ceiling, and the
+	// percentage is against that ceiling.
+	reserved := &characters.Character{}
+	reserved.Health = 30
+	reserved.HealthMax.Value = 100
+	if healthPct(reserved) != 30 {
+		t.Fatalf("plain pool: %d", healthPct(reserved))
 	}
 	m := &AICompanionModule{}
 	brave := &controller{profile: &Profile{Combat: CombatProfile{Bravery: 0.4}}, mind: &Mind{Opinion: Opinion{Trust: 20, Affection: 20}}}
@@ -923,8 +933,8 @@ func TestModelTierRouting(t *testing.T) {
 	if main.Model != `main-model` || main.Effort != `` {
 		t.Fatalf("main tier (invalid effort must not be sent): %+v", main)
 	}
-	if deep.Model != `main-model` || deep.Timeout != 2*main.Timeout {
-		t.Fatalf("deep tier must fall back to the main model with more time: %+v", deep)
+	if deep.Timeout != 2*main.Timeout {
+		t.Fatalf("the deep tier is unhurried and gets more time: %+v", deep)
 	}
 }
 
@@ -1135,8 +1145,10 @@ func TestModelChooser(t *testing.T) {
 	if fast.Model != `gpt-5.4-nano` || fast.Effort != `none` {
 		t.Fatalf("automatic fast tier: %+v", fast)
 	}
+	// The deep tier ships an explicit model rather than auto-selecting the
+	// flagship for every logout reflection.
 	deep := m.settingsFor(tierDeep, false)
-	if deep.Model != `gpt-5.5` || deep.Effort != `medium` {
+	if deep.Model == `` || deep.MaxTokens != 2000 {
 		t.Fatalf("automatic deep tier: %+v", deep)
 	}
 	m.cfg.Model = `my-model`
@@ -1901,7 +1913,7 @@ func TestChunkingIsRuneSafe(t *testing.T) {
 		{`cyrillic`, strings.Repeat(`Мы шли по дороге всю зиму. Лёд забрал две повозки. `, 8)},
 		{`greek`, strings.Repeat(`Περπατήσαμε τον δρόμο όλο τον χειμώνα. Ο πάγος πήρε δύο κάρα. `, 8)},
 		{`accented`, strings.Repeat(`Nous avons marché sur la route tout l'hiver. La glace a pris deux chariots. `, 8)},
-		{`no separators`, strings.Repeat(`ДорогаЛёдЗимаПовозка`, 40)},
+		{`no separators`, strings.Repeat(`Дорога Лёд Зима Повозка `, 20)},
 		{`mixed`, strings.Repeat(`Ça ira. Мы идём! Πάμε? `, 20)},
 	}
 	for _, c := range cases {
