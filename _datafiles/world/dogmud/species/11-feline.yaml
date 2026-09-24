@@ -1,0 +1,37 @@
+speciesid: 11
+name: feline
+description: A sleek, silent predator built for ambush. Felines stalk
+  their prey with infinite patience before exploding into
+  a burst of lethal speed and slashing claws.
+body_parts: [legs, eyes, mouth, skin, tail]
+intrinsic_mutations:
+  tail: 1
+  padded-soles: 1
+conditionids:
+  - 29 # Night Vision
+size: medium
+unarmedname: claws and fangs
+natural_attack: claws
+selectable: false
+tameable: true
+angrycommands:
+  - emote flattens its ears and hisses, fur bristling along its spine.
+  - emote crouches low, tail lashing back and forth.
+stats:
+  strength:
+    base: 90
+  dexterity:
+    base: 150
+  perception:
+    base: 130
+  vitality:
+    base: 70
+  willpower:
+    base: 15
+  charisma:
+    base: 10
+damage:
+  basedamage: 6
+  variance: 2
+damage_multiplier: 0.75
+disabledslots: ['weapon', 'offhand', 'head', 'neck', 'belt', 'gloves', 'ring', 'legs', 'feet']

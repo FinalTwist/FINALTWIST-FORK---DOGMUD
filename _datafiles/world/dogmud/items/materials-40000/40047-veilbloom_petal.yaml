@@ -1,0 +1,17 @@
+itemid: 40047
+name: Veilbloom Petal
+namesimple: petal
+description: A shimmering petal veined with threadlike lines of
+  silver that pulse faintly when touched. Veilbloom grows only
+  on wind-scoured steppes and is nearly impossible to cultivate.
+  Master alchemists use it in their most potent formulations.
+type: object
+subtype: mundane
+component_tag: veilbloom
+weight: 0.05
+value: 25
+rarity_tier: 40
+is_component: true
+vendor_categories:
+- alchemy
+material_tier: 4

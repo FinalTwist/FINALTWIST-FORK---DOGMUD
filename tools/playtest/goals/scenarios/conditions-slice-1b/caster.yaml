@@ -1,0 +1,36 @@
+# Conditions slice 1b: the CASTER. You start in the Rift Chamber, where Sable
+# sells arena fights. Quote every line VERBATIM.
+# 3 commands per round on the AI port; the overflow is dropped.
+#
+# Run 1 (da5bd63962ba656e) used the specialist-caster profile, which does not
+# know Blood Boil; its recovery-round and secret-record goals passed there and
+# are not repeated. The veteran profile knows Blood Boil.
+
+ephemeral:
+  profile: veteran
+  start_room: 5000
+  budgets:
+    wall_clock: 30m
+
+goals:
+  - >-
+    Type `spells` and confirm Blood Boil is listed. Send your companions away
+    or tell them to stay if you can, so they do not end the fight early.
+  - >-
+    ARENA. Type `ask sable arena 350` and follow Sable's directions into the
+    arena. Before attacking, type `cast blood-boil <mob>` at one arena mob.
+    If it fizzles or is resisted, cast it again. Quote the affliction line.
+  - >-
+    WATCH THE POISON. Do not attack that mob with weapons or other spells.
+    Defend only (flee to the arena edge or `look` if you must) and type
+    `look <mob>` or `consider <mob>` every round for six or more rounds.
+    Quote how its condition changes each round. Report whether it worsens
+    every round (the new behaviour) or only every few rounds (the old one).
+    You yourself should NOT read "The poison burns through your veins!" for
+    the mob's poison.
+  - >-
+    If the mob dies too quickly to watch, buy another fight if you have the
+    gold and repeat once.
+  - >-
+    Judge every line as writing. Quote anything with a raw number, a literal
+    "{source}", or that reads twice.

@@ -1,0 +1,427 @@
+package actions
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/crafting"
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/mutations"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/skills"
+	"github.com/GoMudEngine/GoMud/internal/util"
+)
+
+// salvageChanceWithMutations applies the Chrysifier salvage-yield bonus
+// (Provident Hands — a more thorough breakdown recovers more), capping at 1.0.
+// salvageScoreWithMutations applies the salvage-yield mutation to the SCORE.
+//
+// U10b-1b: it used to multiply a probability and clamp at 1.0. Salvage is a
+// contest now, so the same bonus scales the contest score instead — which is
+// also better behaved, because a score has no ceiling to saturate against and
+// the mutation keeps helping a master salvager instead of vanishing into a
+// clamp.
+func salvageScoreWithMutations(char *characters.Character, base float64) float64 {
+	if bonus := mutations.GetSalvageYieldBonus(char.Mutations); bonus > 0 {
+		return base * (1.0 + bonus)
+	}
+	return base
+}
+
+// spoiledPotionBonusSkill is the salvage rank at which a spoiled potion yields
+// one extra unit. It is 13 because the retired curve
+// (0.15 + 0.70*sqrt(skill/50)) crossed 0.5 there, and this bump was gated on
+// that crossing. Named so the provenance is not lost again.
+const spoiledPotionBonusSkill = 13
+
+// SalvageOptions identifies the salvage target.
+//
+//   - TargetCorpse: salvage an eligible corpse in the room. Default
+//     mode is "first eligible". When TargetCorpseMobId is also set
+//     (non-zero), filter for the specific corpse with that MobId +
+//     RoundCreated (used by the player path, which started the
+//     activity against a specific corpse).
+//   - TargetItemUuid: salvage a specific item from actor inventory
+//     by UUID. Used by the player path (resolved on the final
+//     activity tick from SalvagingData.ItemUuid).
+//   - SpoiledPotion: hint that this is a spoiled-potion salvage —
+//     overrides recipe lookup and yields binding paste. Set by the
+//     player wrapper when starting the activity.
+//
+// Exactly one of TargetCorpse or TargetItemUuid!="" should be set.
+type SalvageOptions struct {
+	TargetCorpse             bool
+	TargetCorpseMobId        int    // 0 = first eligible; non-zero = specific corpse
+	TargetCorpseRoundCreated uint64 // disambiguator paired with TargetCorpseMobId
+	TargetItemUuid           string
+	SpoiledPotion            bool
+}
+
+// SalvageResult is the structured outcome of one salvage tick.
+type SalvageResult struct {
+	Succeeded    bool
+	MaterialIds  []int
+	Reason       string
+	RollHappened bool
+}
+
+// Salvage runs one tick of the salvage roll. Single-tick by design
+// — player-side multi-round UX wraps this via the Activity machine
+// + per-tick hook in NewRound_UserRoundTick.go. UserActor emits
+// per-tick progress text; MobActor silent. Skill progression via
+// actor.OnSkillUse("salvage").
+func Salvage(actor Actor, opts SalvageOptions) SalvageResult {
+	result := SalvageResult{}
+
+	char := actor.GetCharacter()
+	room := actor.GetRoom()
+	if char == nil || room == nil {
+		result.Reason = "no character or room"
+		return result
+	}
+
+	if !opts.TargetCorpse && opts.TargetItemUuid == "" {
+		result.Reason = "no target"
+		return result
+	}
+
+	// U10b-1b: salvage is a contest. The salvager scores
+	// perception + salvageSkill*SkillWeight (salvage's primary stat is
+	// perception, per skills.SkillPrimaryStats); the DIFFICULTY is the item's
+	// own craft difficulty and is resolved per item, further down, because it
+	// depends on what is being taken apart rather than on who is doing it.
+	salvageSkill := char.GetSkillLevel(skills.Salvage)
+	score := crafting.CraftScore(
+		float64(char.GetStatValue(skills.GetSkillPrimaryStat(string(skills.Salvage)))), salvageSkill)
+	score = salvageScoreWithMutations(char, score)
+
+	if opts.TargetCorpse {
+		return salvageCorpse(actor, room, opts, score)
+	}
+	return salvageItem(actor, opts.TargetItemUuid, opts.SpoiledPotion, score)
+}
+
+// salvageCorpse handles the corpse-target path. Finds the target
+// corpse (specific by MobId+RoundCreated, or first eligible),
+// rolls returns, removes the corpse, stores materials.
+func salvageCorpse(actor Actor, room *rooms.Room, opts SalvageOptions, score float64) SalvageResult {
+	result := SalvageResult{}
+
+	var target rooms.Corpse
+	found := false
+	for _, c := range room.Corpses {
+		if c.Prunable {
+			continue
+		}
+		// Player corpses are out of scope.
+		if c.MobId <= 0 {
+			continue
+		}
+		// Specific-corpse filter (player path).
+		if opts.TargetCorpseMobId != 0 {
+			if c.MobId != opts.TargetCorpseMobId ||
+				c.RoundCreated != opts.TargetCorpseRoundCreated {
+				continue
+			}
+		}
+		mobSpec := mobs.GetMobSpec(mobs.MobId(c.MobId))
+		if mobSpec == nil {
+			continue
+		}
+		if len(crafting.LookupCorpseSalvage(mobSpec.Groups)) > 0 {
+			target = c
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		// Player-path UX: when the player started salvaging a specific
+		// corpse (TargetCorpseMobId != 0) and finished the multi-round
+		// activity but the corpse has vanished, surface the failure.
+		// The mob path (TargetCorpseMobId == 0, "first eligible") fails
+		// silently because finding nothing is the normal idle outcome.
+		if actor.IsPlayer() && opts.TargetCorpseMobId != 0 {
+			// Name the mob if we can resolve its spec (corpses inherit the
+			// mob's name), restoring the pre-2.9 "The <mob> corpse is no longer
+			// here." message; fall back to the generic line otherwise.
+			if spec := mobs.GetMobSpec(mobs.MobId(opts.TargetCorpseMobId)); spec != nil && spec.Character.Name != "" {
+				actor.SendText(messaging.CategoryError, fmt.Sprintf(
+					`<ansi fg="red">The <ansi fg="mobname">%s corpse</ansi> is no longer here.</ansi>`,
+					spec.Character.Name))
+			} else {
+				actor.SendText(messaging.CategoryError,
+					`<ansi fg="red">You can no longer find the corpse you were working on.</ansi>`)
+			}
+		}
+		result.Reason = "no eligible corpse"
+		return result
+	}
+
+	// Belt-and-suspenders: never consume a corpse that still holds loot.
+	// The user/mob start paths guard this, but salvaging removes the corpse
+	// and would destroy any loot on it — refuse here too.
+	if target.HasLoot() {
+		result.Reason = "corpse still holds loot"
+		return result
+	}
+
+	result.RollHappened = true
+
+	mobSpec := mobs.GetMobSpec(mobs.MobId(target.MobId))
+	returns := crafting.LookupCorpseSalvage(mobSpec.Groups)
+	// A corpse was never crafted, so there is no recipe to derive a difficulty
+	// from. Uses the documented fallback, which is deliberately untuned.
+	recovered := crafting.RollSalvageReturnsFromSpec(returns, score, crafting.FallbackSalvageDifficulty())
+
+	room.RemoveCorpse(target)
+
+	// U10b-1 Task 16: ONE award per salvage command, win or lose. This site is
+	// a CUT -- it paid a FULL event whether or not anything was recovered, so a
+	// salvage that returned nothing trained exactly as much as one that
+	// returned everything.
+	//
+	// won is "did anything come back", not "was the corpse consumed". The
+	// corpse is always destroyed; that is the COST of the attempt, not its
+	// outcome.
+	//
+	// Once per COMMAND, not per unit. RollSalvageReturnsFromSpec rolls each
+	// ingredient independently, so a rich corpse rolls many times and still
+	// pays one event -- the same one-resolved-action rule Search follows across
+	// its six tiers.
+	actor.AwardResolved(len(recovered) > 0,
+		actor.GetCharacter().CandidateFor(string(skills.Salvage)))
+
+	storeRecovered(actor, recovered, &result)
+
+	salvagerLine := messaging.NoLine
+	if actor.IsPlayer() {
+		if len(recovered) > 0 {
+			salvagerLine = messaging.Say(messaging.CategorySystem, fmt.Sprintf(
+				`<ansi fg="green">You salvage the <ansi fg="mobname">%s corpse</ansi> and recover: %s.</ansi>`,
+				target.Character.Name,
+				formatRecovered(recovered)))
+		} else {
+			salvagerLine = messaging.Say(messaging.CategorySystem, fmt.Sprintf(
+				`<ansi fg="red">You attempt to salvage the <ansi fg="mobname">%s corpse</ansi> but recover nothing useful.</ansi>`,
+				target.Character.Name))
+		}
+	}
+
+	// The room line now fires for a PLAYER as well as a mob.
+	//
+	// It used to sit on the mob-only `else if` branch, so a mob butchering a
+	// corpse was narrated to the room and a PLAYER doing exactly the same thing
+	// was invisible. M1 audit defect: a duplicated code path copied the
+	// mechanical effect and dropped the narration beside it.
+	//
+	// The name tag follows the actor, because <ansi fg="mobname"> around a
+	// player's name renders them as a mob.
+	//
+	// The category is unchanged from the mob line it generalises. Whether
+	// CategoryMobIdle is the right class for a player's action is a separate
+	// question and not this fix's to answer.
+	salvageObserver := messaging.NoLine
+	if room.PlayerCt() > 0 {
+		nameTag := "mobname"
+		if actor.IsPlayer() {
+			nameTag = "username"
+		}
+		salvageObserver = messaging.Say(messaging.CategoryMobIdle, fmt.Sprintf(
+			`<ansi fg="%s">%s</ansi> kneels over the <ansi fg="mobname">%s corpse</ansi> and works it for salvage.`,
+			nameTag, actor.GetName(), target.Character.Name))
+	}
+
+	messaging.SendTrio(messaging.Trio{
+		Actor: salvagerLine,
+		// The actee is a corpse. There is nobody on the receiving end to tell.
+		Actee:    messaging.NoLine,
+		Observer: salvageObserver,
+	}, messaging.Audience{
+		Actor:     actor,
+		ActorId:   actor.GetUserId(),
+		ActorName: actor.GetName(),
+		ActeeName: messaging.NoName,
+		Room:      room,
+	})
+
+	result.Succeeded = true
+	return result
+}
+
+// salvageItem handles the item-target path (by UUID). Mirrors the
+// logic of the prior resolveSalvageFromData in
+// hooks/NewRound_UserRoundTick.go, adapted for the actor interface.
+func salvageItem(actor Actor, uuid string, spoiledPotion bool, score float64) SalvageResult {
+	result := SalvageResult{}
+	char := actor.GetCharacter()
+
+	// Find the item by UUID across every carried container, not just the
+	// backpack.
+	//
+	// The backpack is NOT where a salvage target necessarily lives. StoreItem
+	// AUTO-ROUTES potions and throwables into an equipped bandolier
+	// (inventory.go:196) and is_component items into a component bag, so
+	// scanning char.Items alone made carried items invisible to the code that
+	// salvages them.
+	//
+	// ⚠️ NOT the spoiled-potion case, which is the obvious guess and is wrong:
+	// NewRound_AutoHeal auto-ejects PhaseSpoiled potions to the backpack, so
+	// those arrive here by the front door. The live cases are a DECLINING
+	// potion -- salvage accepts PhaseDeclining as well as PhaseSpoiled, and
+	// only Spoiled is ejected -- and a THROWABLE, which is bandolier-routed and
+	// never age-ejected at all.
+	//
+	// RemoveItem below already handles all three slices, so only the LOOKUP
+	// was narrow.
+	var targetItem items.Item
+	found := false
+	for _, pool := range [][]items.Item{char.Items, char.PotionItems, char.ComponentItems} {
+		for _, itm := range pool {
+			if itm.UUID.String() == uuid {
+				targetItem = itm
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		if actor.IsPlayer() {
+			actor.SendText(messaging.CategoryError,
+				`<ansi fg="red">The item you were salvaging is no longer in your possession.</ansi>`)
+		}
+		result.Reason = "item not found"
+		return result
+	}
+
+	itemId := targetItem.ItemId
+	spec := items.GetItemSpec(itemId)
+	if spec == nil {
+		if actor.IsPlayer() {
+			actor.SendText(messaging.CategoryError,
+				`<ansi fg="red">Something went wrong with your salvage attempt.</ansi>`)
+		}
+		result.Reason = "spec not found"
+		return result
+	}
+
+	// Roll returns from spoiled-potion branch, recipe lookup, or
+	// tagged salvage_returns.
+	var recovered []crafting.RecipeIngredient
+	if spoiledPotion {
+		qtyBonus := 0
+		// The old gate was "chance > 0.5" on the retired sqrt curve, which is
+		// exactly SALVAGE SKILL >= 13. Preserved as a skill threshold.
+		//
+		// 🔴 An earlier version of this translated it to
+		// "score > CraftDifficulty(0, 1.0)" and called that equivalent. It was
+		// not: score is perception + skill*SkillWeight, so at baseline
+		// perception that gate opens at salvage skill 1, and for anyone with
+		// perception >= 101 — or the Provident Hands mutation alone — at skill
+		// ZERO. A mid-skill milestone had become always-on, and gated on a stat
+		// rather than the skill it is named after.
+		if char.GetSkillLevel(skills.Salvage) >= spoiledPotionBonusSkill {
+			qtyBonus = 1
+		}
+		roll := func() float64 { return float64(util.Rand(10000)) / 10000.0 }
+		recovered = crafting.EnchantSalvageYield(itemId, roll, qtyBonus)
+	} else {
+		// AS HARD TO UNMAKE AS IT WAS TO MAKE: difficulty is the item's own
+		// craft difficulty, read from the recipe that produced it.
+		//
+		// 🔴 At the NEUTRAL material tier, deliberately. The tier would have to
+		// come from the recipe's ingredients, which do not exist yet — the
+		// salvage is what CREATES them — and the only tag-to-tier resolver is
+		// items.FindSpecByComponentTag, forbidden by spec 5.1.1.3 because it
+		// iterates a Go map. Reading the recipe's SkillMinimum needs no such
+		// lookup, which is exactly why the spec chose it.
+		salvageDiff, ok := crafting.SalvageDifficulty(itemId, 1.0)
+		if !ok {
+			salvageDiff = crafting.FallbackSalvageDifficulty()
+		}
+		recipe := crafting.GetRecipeByOutputItemId(itemId)
+		if recipe != nil {
+			recovered = crafting.RollSalvageReturns(recipe.Ingredients, score, salvageDiff)
+		} else if len(spec.SalvageReturns) > 0 {
+			recovered = crafting.RollSalvageReturnsFromSpec(spec.SalvageReturns, score, salvageDiff)
+		}
+	}
+
+	result.RollHappened = true
+
+	// Always destroy the item (matches existing behavior).
+	char.RemoveItem(targetItem)
+
+	// U10b-1 Task 16: see the corpse path above. One award per command, win or
+	// lose, won on whether anything was recovered. The item is destroyed either
+	// way -- that is the cost, not the outcome.
+	actor.AwardResolved(len(recovered) > 0, char.CandidateFor(string(skills.Salvage)))
+
+	storeRecovered(actor, recovered, &result)
+
+	if actor.IsPlayer() {
+		if len(recovered) > 0 {
+			actor.SendText(messaging.CategorySystem, fmt.Sprintf(
+				`<ansi fg="green">You salvage the <ansi fg="itemname">%s</ansi> and recover: %s.</ansi>`,
+				targetItem.DisplayName(),
+				formatRecovered(recovered)))
+		} else {
+			actor.SendText(messaging.CategorySystem, fmt.Sprintf(
+				`<ansi fg="red">You attempt to salvage the <ansi fg="itemname">%s</ansi> but recover nothing useful.</ansi>`,
+				targetItem.DisplayName()))
+		}
+	}
+
+	result.Succeeded = true
+	return result
+}
+
+// storeRecovered creates the material items and stores them in the
+// actor's inventory, populating result.MaterialIds.
+func storeRecovered(actor Actor, recovered []crafting.RecipeIngredient, result *SalvageResult) {
+	char := actor.GetCharacter()
+	for _, ing := range recovered {
+		for i := 0; i < ing.Quantity; i++ {
+			// Resolves to the CHEAPEST item carrying the tag, deterministically.
+			// This line used to hand back an arbitrary one of the four bottles,
+			// which let a craft-then-salvage loop farm Crystalline Decanters out
+			// of Clay Flasks. Found in playtest 2026-08-29; fixed in
+			// items.FindSpecByComponentTag itself so no caller can miss it.
+			matSpec := items.FindSpecByComponentTag(ing.ItemTag)
+			if matSpec == nil {
+				continue
+			}
+			newItem := items.New(matSpec.ItemId)
+			char.StoreItem(newItem)
+			result.MaterialIds = append(result.MaterialIds, matSpec.ItemId)
+		}
+	}
+}
+
+// formatRecovered builds the comma-separated yield list for player
+// flavor text. Matches the format used by the prior player path in
+// hooks/NewRound_UserRoundTick.go.
+func formatRecovered(recovered []crafting.RecipeIngredient) string {
+	parts := make([]string, 0, len(recovered))
+	for _, ing := range recovered {
+		// Show what the player will see in their pack, not the component tag.
+		// The tag is a data key ("cloth-strip") and reading one in a results
+		// line makes recovered materials look like database rows.
+		//
+		// Falls back to the tag when no item carries it, which is the honest
+		// answer: a recipe naming a tag nothing supplies is a content bug, and
+		// printing the tag is how someone notices.
+		name := ing.ItemTag
+		if spec := items.FindSpecByComponentTag(ing.ItemTag); spec != nil && spec.Name != "" {
+			name = spec.Name
+		}
+		parts = append(parts, fmt.Sprintf("%dx %s", ing.Quantity, name))
+	}
+	return strings.Join(parts, ", ")
+}

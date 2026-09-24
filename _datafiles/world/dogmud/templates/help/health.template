@@ -1,0 +1,45 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="command">health</ansi>
+
+<ansi fg="command">Health</ansi> (HP) represents how much physical punishment
+your character can endure. Your maximum Health is based
+primarily on your Vitality stat.
+
+Health will change color to reflect your condition:
+
+<ansi fg="health-100">untouched</ansi>
+<ansi fg="health-90">barely marked</ansi>
+<ansi fg="health-80">scratched</ansi>
+<ansi fg="health-70">bruised</ansi>
+<ansi fg="health-60">bloodied</ansi>
+<ansi fg="health-50">wounded</ansi>
+<ansi fg="health-40">badly wounded</ansi>
+<ansi fg="health-30">gravely hurt</ansi>
+<ansi fg="health-20">failing</ansi>
+<ansi fg="health-10">near death</ansi>
+<ansi fg="health-0">at the edge</ansi>
+<ansi fg="health-dead">dead</ansi>
+
+The colors run from the first of those to the last as you
+take punishment. Judge a fight by the color, not by counting:
+that is the whole point of showing it this way.
+
+When your Health drops to zero, you collapse and begin
+bleeding out. If you are not aided in time, you will die --
+but death on Gaius does not delete your character. You wake
+at your home point, weakened by the brush with death, and
+your gear stays with you. See <ansi fg="command">help death</ansi> for what a
+fall truly costs and how to avoid paying it.
+
+Health regenerates slowly over time, recovering faster
+when you are out of combat. Certain spells and items can
+speed the healing process.
+
+<ansi fg="yellow">Related: </ansi>
+  <ansi fg="command">help vitality</ansi>
+  <ansi fg="command">help death</ansi>
+  <ansi fg="command">help stamina</ansi>
+  <ansi fg="command">help conviction</ansi>
+  <ansi fg="command">help status</ansi>
+  <ansi fg="command">help armor</ansi>
+  <ansi fg="command">help toxicity</ansi>
+

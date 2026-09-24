@@ -1,0 +1,34 @@
+mutationid: chameleon-skin
+name: Chameleon Skin
+description: |
+  The change finishes and never lets go. Your skin runs with colour and shadow
+  at will, folding you into any surroundings until you are all but invisible in
+  the dark. You strike from nowhere -- but the same thin, sensitive hide leaves
+  you fragile and cold.
+rarity: 9
+max_rank: 1
+clusters: [stalker]
+pole: body
+requires_body_parts: [skin]
+prerequisites:
+  - id: padded-soles
+    min_level: 1
+  - id: compound-eyes
+    min_level: 1
+conflicts:
+  - thick-hide
+visual: Their outline swims and dissolves against the background, seen only as a ripple where the light bends wrong.
+pros:
+  - type: stealth_bonus
+    value: 45
+  - type: dodge_modifier
+    value: 15
+  - type: flag
+    target: see-hidden
+    value: 1
+cons:
+  - type: stat_flat
+    target: charisma
+    value: -8
+  - type: natural_armor
+    value: -15

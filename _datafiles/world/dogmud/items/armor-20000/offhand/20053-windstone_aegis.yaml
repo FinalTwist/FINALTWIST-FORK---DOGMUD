@@ -1,0 +1,18 @@
+itemid: 20053
+name: Windstone Aegis
+vendor_categories:
+- blacksmithing
+namesimple: aegis
+description: A round shield carved from a single slab of windstone crystal.
+  Pale blue veins pulse with captured steppe energy. The surface is cool
+  to the touch and hums faintly when struck. Light refracts through the
+  translucent edges, casting prismatic patterns.
+type: offhand
+subtype: wearable
+physical_mitigation: 12
+magical_mitigation: 8
+conviction_mitigation: 5
+blockrating: 22
+value: 250
+rarity_tier: 20
+weight: 6.0

@@ -1,0 +1,162 @@
+package usercommands
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/GoMudEngine/GoMud/internal/actions"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/users"
+	"github.com/GoMudEngine/GoMud/internal/util"
+)
+
+func Drop(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+
+	args := util.SplitButRespectQuotes(strings.ToLower(rest))
+
+	if len(args) == 0 {
+		user.SendText(messaging.CategorySystem, `Drop what?`)
+
+		return true, nil
+	}
+
+	if args[0] == "all" {
+
+		// "drop all gold": drop all gold explicitly.
+		//
+		// Dispatched on the WORD, not on the balance. Gating this on
+		// `Gold > 0` meant a penniless player typing "drop all gold" fell
+		// through to the bare-"drop all" fallback below and emptied their
+		// entire pack instead.
+		if len(args) >= 2 && args[1] == "gold" {
+			if user.Character.Gold > 0 {
+				// Propagate the delegate's result rather than discarding it: a
+				// swallowed error here would report success on a failed drop.
+				return Drop(fmt.Sprintf("%d gold", user.Character.Gold), user, room, flags)
+			}
+			user.SendText(messaging.CategorySystem, `You don't have any gold to drop.`)
+			return true, nil
+		}
+
+		// "drop all <name>": the space form of "drop all.<name>".
+		//
+		// Both spellings mean "every <name> I am carrying" and both must
+		// FILTER BY NAME. Only the dot form ever did: util.GetMatchNumber
+		// recognises "all.stone" but knows nothing about "all stone", and the
+		// `args[0] == "all"` test above swallowed the space form before the
+		// dot-form handler further down could ever see it. The result was that
+		// "drop all stone" dropped the player's whole inventory, quest items
+		// included, on a command that named exactly one thing.
+		//
+		// Normalising to the dot form and re-entering keeps ONE filtered
+		// implementation (the loop at the "all.item support" comment below)
+		// rather than a second copy that can drift from it.
+		if len(args) >= 2 {
+			return Drop("all."+strings.Join(args[1:], " "), user, room, flags)
+		}
+
+		// "drop all" — drop all items but not gold
+		iCopies := []items.Item{}
+		iCopies = append(iCopies, user.Character.Items...)
+
+		for _, item := range iCopies {
+			Drop(item.Name(), user, room, flags)
+		}
+
+		return true, nil
+	}
+
+	// Drop N gold
+	if len(args) >= 2 && args[1] == "gold" {
+		g, _ := strconv.ParseInt(args[0], 10, 32)
+		dropAmt := int(g)
+		if dropAmt < 1 {
+			user.SendText(messaging.CategorySystem, "Oops!")
+			return true, nil
+		}
+
+		if dropAmt > user.Character.Gold {
+			user.SendText(messaging.CategorySystem, fmt.Sprintf("You don't have %d gold to drop.", dropAmt))
+			return true, nil
+		}
+
+		user.Character.CancelConditionsWithFlag(conditions.Hidden)
+
+		if err := actions.FloorDropGold(dropAmt, user.Character, room); err != nil {
+			user.SendText(messaging.CategorySystem, "Oops!")
+			return true, nil
+		}
+
+		events.AddToQueue(events.EquipmentChange{
+			UserId:     user.UserId,
+			GoldChange: -dropAmt,
+		})
+
+		user.SendText(messaging.CategorySystem,
+			fmt.Sprintf(`You drop <ansi fg="gold">%d gold</ansi> on the floor.`, dropAmt),
+		)
+		room.SendTextVisual(messaging.CategoryLoot,
+			fmt.Sprintf(`<ansi fg="username">%s</ansi> drops <ansi fg="gold">%d gold</ansi>.`, user.Character.Name, dropAmt),
+			user.UserId,
+		)
+
+		return true, nil
+	}
+
+	// Parse match number for all.item support (e.g. "drop all.potion")
+	itemName, matchNum := util.GetMatchNumber(rest)
+	if matchNum == -1 {
+		actor := &actions.UserActor{User: user, Room: room}
+		dropped := 0
+		for {
+			result := actions.DropItem(actor, itemName)
+			if !result.Found {
+				break
+			}
+			user.Character.CancelConditionsWithFlag(conditions.Hidden)
+			dropped++
+		}
+		if dropped == 0 {
+			user.SendText(messaging.CategorySystem, fmt.Sprintf(`You don't have any "%s" to drop.`, itemName))
+		} else {
+			user.SendText(messaging.CategorySystem, fmt.Sprintf(`You drop %d item(s).`, dropped))
+			room.SendTextVisual(messaging.CategoryLoot,
+				fmt.Sprintf(`<ansi fg="username">%s</ansi> drops some items.`, user.Character.Name),
+				user.UserId,
+			)
+		}
+		return true, nil
+	}
+
+	// Single-item drop path
+	actor := &actions.UserActor{User: user, Room: room}
+	result := actions.DropItem(actor, rest)
+
+	if !result.Found {
+		user.SendText(messaging.CategorySystem, fmt.Sprintf("You don't have a %s to drop.", rest))
+	} else {
+		user.Character.CancelConditionsWithFlag(conditions.Hidden)
+
+		iSpec := result.Item.GetSpec()
+
+		user.SendText(messaging.CategorySystem,
+			fmt.Sprintf(`You drop the <ansi fg="item">%s</ansi>.`, result.Item.DisplayName()),
+		)
+		room.SendTextVisual(messaging.CategoryLoot,
+			fmt.Sprintf(`<ansi fg="username">%s</ansi> drops their <ansi fg="item">%s</ansi>...`, user.Character.Name, result.Item.DisplayName()),
+			user.UserId,
+		)
+
+		// If grenades are dropped, they explode and affect everyone in the room!
+		if iSpec.Type == items.Grenade {
+			user.SendText(messaging.CategorySystem, `Todo. Grenades disabled for now.`)
+		}
+	}
+
+	return true, nil
+}

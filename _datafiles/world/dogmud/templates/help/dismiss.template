@@ -1,0 +1,47 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="command">dismiss</ansi>
+
+The <ansi fg="command">dismiss</ansi> command ends the magical bond with one of
+your companions, releasing them from your service.
+
+<ansi fg="yellow">━━━ Usage ━━━</ansi>
+
+  <ansi fg="command">dismiss <name></ansi>    Release the named companion.
+
+<ansi fg="yellow">━━━ WARNING: Betrayal ━━━</ansi>
+
+Dismissing a charmed creature is an act of betrayal. It turns
+on you at once, and it keeps everything you handed it. Your
+other companions are unaffected.
+
+It only turns on you if you are standing beside it. Sever the
+bond from another room and the creature simply goes back to
+what it was.
+
+Choose the time regardless. Charm is the longest channel in the
+game, so freeing a slot in the middle of a fight leaves you
+with a new enemy and no time to replace it.
+
+<ansi fg="yellow">━━━ What Happens After ━━━</ansi>
+
+  <ansi fg="yellow">Summoned</ansi>    The creature unmakes itself and fades from
+              the world. It does not linger after dismissal.
+  <ansi fg="yellow">Raised</ansi>      The reanimated body collapses and crumbles.
+              The bond dissolves completely.
+  <ansi fg="yellow">Charmed</ansi>     The creature's will is its own again, and it
+              remembers who took it. You may charm it again if
+              you can win the contest a second time.
+
+<ansi fg="yellow">━━━ Gear Is Not Returned ━━━</ansi>
+
+Anything your companion is carrying or wearing goes with it. A
+summoned or raised companion dissolves along with every item you
+gave it, and a freed creature walks away still wearing your gear.
+Take back what you want to keep BEFORE you dismiss.
+
+<ansi fg="yellow">━━━ Alternative ━━━</ansi>
+
+If you simply want a companion to stop fighting alongside you
+without releasing it, use <ansi fg="command">companion assist <name></ansi> to
+toggle auto-assist off instead.
+
+<ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help manifestation</ansi>, <ansi fg="command">help companion</ansi>

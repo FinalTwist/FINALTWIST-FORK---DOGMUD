@@ -1,0 +1,9 @@
+conditionid: 45
+name: Well Fed
+description: A filling meal leaves you feeling hale and hearty.
+start_actee: You are full and hale, and it shows in how you stand.
+end_actee: You are no longer full, and hunger is not far off.
+triggerrate: 1 round
+triggercount: 30
+statmods:
+  vitality: 10

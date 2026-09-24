@@ -1,0 +1,9 @@
+conditionid: 35
+name: Mutation Catalyst
+description: Chrysalis energy accelerates your body's mutagenic processes.
+triggerrate: 1 round
+triggercount: 200
+flags:
+  - mutation-rate
+start_actee: "Chrysalis energy surges through your cells, accelerating mutation."
+end_actee: The mutagenic catalyst fades from your system.

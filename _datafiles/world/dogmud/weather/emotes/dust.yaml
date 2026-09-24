@@ -1,0 +1,37 @@
+weather: dust
+outdoor:
+  default:
+    - "Wind-borne grit rasps across everything, hissing like dry rain."
+    - "You squint against the stinging haze; the horizon is a brown smear."
+    - "Dust finds your teeth, your eyes, the inside of your collar."
+    - "The sun dims to a dull, coppery smear behind the blowing haze."
+    - "Grit ticks and hisses against every hard surface nearby."
+    - "Your throat turns dry and raw with each breath drawn in this air."
+indoor:
+  default:
+    mild:
+      - "Fine dust sifts down from the rafters with each passing gust."
+      - "A faint grit settles on every surface, barely there at all."
+      - "The air tastes dry, and your lips crack a little."
+      - "Light through the window has gone slightly hazy."
+      - "Grit whispers along the sill and gathers in little drifts."
+      - "The room smells faintly of dry earth."
+    strong:
+      - "Grit hisses against the walls; the air inside tastes of dry earth."
+      - "A gritty film settles over everything no matter how tight the shutters."
+      - "Each breath carries a faint, mineral grit that was not there before."
+      - "Dust sifts down from the rafters and hangs gold in shafts of light."
+      - "The shutters rattle faintly, though the wind never quite gets in."
+      - "The air feels gritty against the skin, even with every window shut."
+# Underground the dust storm is felt as sifting grit and dry air, not wind.
+# The mild pool stays empty: only a heavy dust storm reaches this deep.
+underground:
+  default:
+    mild: []
+    strong:
+      - "Fine grit sifts down from the stone ceiling, dry and constant."
+      - "The air turns dry and close, tasting faintly of dust."
+      - "A gritty film settles over everything, however deep you are."
+      - "Your throat catches on air gone suddenly thin and parched."
+      - "Somewhere above the storm rages; down here, only dust arrives."
+      - "Grit ticks softly as it lands, a thin rain that never gets wet."

@@ -1,0 +1,20 @@
+spellid: mend-wounds
+name: Mend Wounds
+aliases: [mend]
+description: Concentrated Chrysalis energy rapidly mends the target.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - vital
+cost: 40
+waitrounds: 1
+difficulty: 15
+primarystat: willpower
+base_folds: 4
+effect_type: heal
+effect_magnitude: 5
+categories:
+  - self_heal
+cast_actor: "You press your will into the wounds, urging flesh to mend."
+cast_observer: "{actor} places their hands forward as warm light gathers."

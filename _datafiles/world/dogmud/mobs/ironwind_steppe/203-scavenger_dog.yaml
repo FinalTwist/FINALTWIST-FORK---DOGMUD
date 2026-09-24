@@ -1,0 +1,39 @@
+mobid: 203
+behavior_archetype: generic_fighter
+zone: Ironwind Steppe
+statpool: 45
+itemdropchance: 5
+hostile: true
+maxwander: 4
+groups:
+  - animal
+  - canine
+hates:
+  - rodent
+archetype: fighting
+aiprofile: predator
+idlecommands:
+  - 'emote sniffs the air, hackles half-raised'
+  - ''
+  - 'emote paces in a tight circle, restless and watchful'
+  - ''
+  - ''
+  - 'emote growls low in its throat at a passing shadow'
+activitylevel: 20
+character:
+  name: Scavenger Dog
+  description: |
+    A medium-sized dog of indeterminate breed, gaunt and rough-coated.
+    Once someone's pet or working animal, it has gone feral and now
+    survives by scavenging the city fringe. Its ribs show through
+    a dull, matted coat, and it moves with the nervous energy of
+    something that is always hungry and always watching for a larger
+    predator. It bares yellowed teeth at your approach but does not
+    immediately flee -- desperation has made it brave.
+  speciesid: 2
+  level: 1
+  stats:
+    strength:
+      base: 93
+    vitality:
+      base: 83

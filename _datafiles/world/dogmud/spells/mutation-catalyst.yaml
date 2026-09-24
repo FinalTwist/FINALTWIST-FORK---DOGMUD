@@ -1,0 +1,19 @@
+spellid: mutation-catalyst
+name: Mutation Catalyst
+aliases: [mutate]
+description: Accelerates the target's mutagenic processes.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - vital
+cost: 270
+waitrounds: 2
+difficulty: 45
+primarystat: willpower
+base_folds: 12
+effect_type: condition
+condition_ids:
+  - 35
+cast_actor: "You channel Chrysalis energy into accelerating mutagenic change."
+cast_observer: "{actor} channels a sickly green energy that crackles with potential."

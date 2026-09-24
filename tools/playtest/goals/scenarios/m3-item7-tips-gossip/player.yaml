@@ -1,0 +1,66 @@
+# M3 item 7 solo actor: you are Bench Warden, seated in Delia's Cottage
+# (room 4027, Ashwick) for roughly 25 minutes so several periodic tips and,
+# if Delia (the cottage's gossiper) is home when you arrive, at least one
+# gossip line can be observed. Delia runs a schedule (mornings here
+# crafting, afternoons in her garden, evenings on the green, nights here
+# asleep), so she may not always be present or speaking; if she is absent
+# or asleep, just note that and focus on the tips, which do not depend on
+# her. Do NOT engage or attack anything; if anything hostile ever appears
+# and attacks you, prioritize surviving (flee/stand as needed) over the
+# goals below, then resume once safe.
+#
+# Quote every relevant line VERBATIM, including any color/ansi tags your
+# client shows, exactly as received. Do not wander off to explore. 3
+# commands per round on the AI port; the overflow is dropped, so pace
+# single commands a couple of seconds apart and do not send more than 3 in
+# a round.
+
+ephemeral:
+  profile: early
+  start_room: 4027
+  budgets:
+    wall_clock: 25m
+
+goals:
+  - >-
+    Confirm you are in Delia's Cottage (`look`) and note whether Delia is
+    present. Then type `set` with no argument and quote the ENTIRE reply verbatim.
+    Report specifically whether a `tips:` line appears and whether any
+    `hints:` line appears anywhere in that output.
+  - >-
+    Now just wait in the room (do not wander, do not attack, do not
+    initiate combat) and watch everything you receive. Roughly every 5
+    minutes you should receive a line prefixed `[Tip] `. Quote EVERY such
+    line verbatim, in the order you receive it, with an approximate
+    round/timestamp if your client shows one.
+  - >-
+    As soon as you have received and quoted your FIRST `[Tip] ` line, type
+    `set tips` and quote the exact reply verbatim. Then keep waiting
+    through the next tip interval (about 5 more minutes) WITHOUT sending
+    any other command that would reset the interval, and report plainly
+    whether a `[Tip] ` line arrived during that window or not (it should
+    not).
+  - >-
+    After that quiet interval, type `set hints` (the alias for the same
+    setting) and quote the exact reply verbatim. Then keep waiting through
+    the next tip interval and confirm whether a `[Tip] ` line arrives again
+    (it should). Quote it verbatim.
+  - >-
+    For the rest of your session (up to the ~25 minute budget), keep
+    waiting and keep quoting every further `[Tip] ` line verbatim in order,
+    so at least 4-5 tips total are captured across the run.
+  - >-
+    The whole time, watch for anything Delia herself SAYS (a `say` line
+    from her, not your own tips) -- she is a "gossiper" and periodically
+    shares a rumor or piece of local news, if she is home and awake. Quote
+    any such line verbatim, in full, exactly as it appears, with her name
+    as shown.
+  - >-
+    Flag immediately, verbatim, any line anywhere in your session
+    (tip, gossip, or otherwise) that contains a literal unsubstituted
+    token such as `{desc}`, `{description}`, or `{source}`, or anything
+    that reads doubled, garbled, or otherwise odd.
+  - >-
+    At the end, list every `[Tip] ` line you received in the exact order
+    received, every `set`/`set tips`/`set hints` reply verbatim, and every
+    gossip line you heard verbatim.

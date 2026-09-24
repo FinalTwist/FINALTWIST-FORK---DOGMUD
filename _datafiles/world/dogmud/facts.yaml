@@ -1,0 +1,164 @@
+facts:
+    - id: thornwall-mayor-disgraced
+      description: The Thornwall mayor has resigned in disgrace.
+      significance: 1
+      declared_round: 2077194
+      tags:
+        - politics
+        - thornwall
+      status: active
+    - id: stillwater-lake-decline
+      description: Boats return half-empty from the lake; nets come up shredded by something out of the caves.
+      significance: 2
+      declared_round: 0
+      tags:
+        - stillwater
+        - crisis
+      status: active
+    - id: stillwater-voss-death
+      description: Elgar Voss was lost to the lake twelve years ago; his body was never recovered.
+      significance: 1
+      declared_round: 0
+      tags:
+        - stillwater
+        - history
+      status: active
+    - id: stillwater-spiral-motif
+      description: A spiral older than the Chrysalis order is carved on the temple, the garden marker, the old chapel ruin, and the wardstones.
+      significance: 1
+      declared_round: 0
+      tags:
+        - stillwater
+        - lore
+      status: active
+    - id: stillwater-cave-creatures
+      description: Drowned hunters and skitter-shrimp from the deep caves have pushed into the shallows.
+      significance: 2
+      declared_round: 0
+      tags:
+        - stillwater
+        - crisis
+      status: active
+    - id: stillwater-pearl-divers-gone
+      description: The black-pearl divers stopped coming years ago; folk say the water has gone strange.
+      significance: 1
+      declared_round: 0
+      tags:
+        - stillwater
+        - history
+      status: active
+    - id: thornwall-road-bandits
+      description: The road between Thornwall and Stillwater draws bandits; the caravans run guarded.
+      significance: 1
+      declared_round: 0
+      tags:
+        - thornwall
+        - road
+      status: active
+    - id: thornwall-hard-times
+      description: Taxes bite and folk grumble about paying for protection; trade is tight in the city.
+      significance: 1
+      declared_round: 0
+      tags:
+        - thornwall
+        - hardship
+      status: active
+    - id: thornwall-steel-heritage
+      description: Thornwall steel is an old guild craft, the technique passed hand to hand and never written down.
+      significance: 1
+      declared_round: 0
+      tags:
+        - thornwall
+        - craft
+      status: active
+    - id: thornwall-caravan-trade
+      description: A caravan runs the Thornwall-Stillwater road regularly, hauling lake-iron, pearls, and trade goods.
+      significance: 1
+      declared_round: 0
+      tags:
+        - thornwall
+        - trade
+      status: active
+    - id: ashwick-deep-woods-wolves
+      description: Wolves have been prowling out of the Deep Woods, taking livestock from the outlying farms.
+      significance: 2
+      declared_round: 0
+      tags:
+        - ashwick
+        - crisis
+      status: active
+    - id: ashwick-newcomer-forager
+      description: Delia has taken in a wary newcomer, a skilled herb-gatherer no one knows the past of.
+      significance: 1
+      declared_round: 0
+      tags:
+        - ashwick
+        - people
+      status: active
+    - id: watchers-road-bandits
+      description: Bandits have grown bold on the trade roads; travelers and caravans cross with one hand on their purse.
+      significance: 2
+      declared_round: 0
+      tags:
+        - watchers_crossing
+        - crisis
+        - bandits
+      status: active
+    - id: watchers-toll-grumbling
+      description: Folk grumble over the bridge toll, though the collector only does as he is bid.
+      significance: 1
+      declared_round: 0
+      tags:
+        - watchers_crossing
+        - people
+      status: active
+    - id: ironwind-tribe-pressing
+      description: The goblins of the steppe have grown bolder, pushing toward the trails and the waterholes.
+      significance: 2
+      declared_round: 0
+      tags:
+        - ironwind_steppe
+        - ironwind_tribe
+        - crisis
+      status: active
+    - id: ironwind-steppe-drying
+      description: Water and game grow scarce on the steppe; every creature on it is pressed and hungry.
+      significance: 2
+      declared_round: 0
+      tags:
+        - ironwind_steppe
+        - crisis
+      status: active
+    - id: warren-misjudged
+      description: The surface folk fear the warren for no cause but their strangeness.
+      significance: 1
+      declared_round: 0
+      tags:
+        - labyrinth
+        - people
+      status: active
+    - id: fernway-wolves-ranging
+      description: The timber wolves range closer to the forest paths than they once did.
+      significance: 1
+      declared_round: 0
+      tags:
+        - the_fernway_south
+        - wildlife
+      status: active
+    - id: roads-bandit-peril
+      description: The trade roads have grown dangerous; bandits ambush the lonely stretches, so folk travel in numbers.
+      significance: 2
+      declared_round: 0
+      tags:
+        - roads
+        - bandits
+        - crisis
+      status: active
+    - id: roads-caravans-guarded
+      description: The caravans cross under hired guard now, running the gauntlet between the towns.
+      significance: 1
+      declared_round: 0
+      tags:
+        - roads
+        - trade
+      status: active

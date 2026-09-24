@@ -1,0 +1,20 @@
+# Learned from Elara, the Frostfang Librarian (ROOM 48)
+spellid: chrysalis-glow
+name: Chrysalis Glow
+aliases: [glow]
+description: Coaxes Chrysalis spores to luminesce, casting a soft glow.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - mental
+cost: 35
+waitrounds: 3
+difficulty: 0
+primarystat: willpower
+effect_type: condition
+condition_ids:
+  - 1
+cast_actor: "You coax the Chrysalis spores around you to luminesce."
+cast_observer: "{actor} concentrates as faint motes of light gather."
+wait_actor: "You hold the image steady, coaxing more spores to glow..."

@@ -1,0 +1,19 @@
+spellid: psychic-anchor
+name: Psychic Anchor
+aliases: [psychic]
+description: Anchors the target's mind, preventing movement or teleport.
+attack_type: spell
+damage_type: mental
+targeting: single
+schools:
+  - mental
+cost: 60
+waitrounds: 1
+difficulty: 35
+primarystat: willpower
+base_folds: 8
+effect_type: condition
+condition_ids:
+  - 36
+cast_actor: "You drive a psionic anchor into the target's mind."
+cast_observer: "{actor} stares at a target with piercing focus."

@@ -1,0 +1,55 @@
+mobid: 106
+zone: Thornwall City
+archetype: tank
+schedule_id: thornwall_city_guard_dayshift
+behavior_archetype: tank_taunter
+statpool: 240
+itemdropchance: 0
+hostile: false
+maxwander: 2
+groups:
+  - humanoid
+  - guard
+  - thornwall_guards
+  - thornwall_citizens
+idlecommands:
+  - 'emote patrols the area with steady, measured steps'
+  - 'emote scans the crowd with a practiced eye'
+  - ''
+  - ''
+activitylevel: 20
+character:
+  name: City Guard
+  description: |
+    A guard in Thornwall livery. The city guard are a visible
+    presence in the main streets and market, maintaining order through
+    routine patrol and the occasional pointed question. This one has the
+    alert but bored expression of someone on a long shift, watching for
+    trouble they hope will not come.
+  speciesid: 1
+  level: 1
+  gold: 0
+  equipment:
+    weapon:
+      itemid: 10019
+    offhand:
+      itemid: 20010
+    body:
+      itemid: 20011
+    head:
+      itemid: 20047
+    legs:
+      itemid: 20050
+    feet:
+      itemid: 20052
+    gloves:
+      itemid: 20051
+  items:
+    - itemid: 10014
+  stats:
+    strength:
+      base: 105
+    perception:
+      base: 105
+    vitality:
+      base: 105

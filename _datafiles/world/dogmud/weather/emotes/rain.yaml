@@ -1,0 +1,54 @@
+weather: rain
+outdoor:
+  default:
+    - "Rain patters down steadily, beading on every surface."
+    - "A cold runnel of rainwater finds its way down the back of your neck."
+    - "Puddles widen and merge underfoot."
+    - "The rain eases for a breath, then settles back into its steady rhythm."
+    - "The smell of wet earth rises thick with every fresh gust of rain."
+    - "Raindrops drum a steady beat on anything hard enough to answer."
+  forest:
+    - "Rain drips from leaf to leaf, a thousand small drumbeats overhead."
+    - "The canopy sheds fat, gathered drops long after each gust."
+    - "Water beads along every branch before falling in sudden little bursts."
+    - "Leaf litter darkens and softens underfoot, soaking up the rain."
+    - "Rivulets trace down every trunk, finding the same old grooves in bark."
+    - "The undergrowth glistens, each leaf holding its own small pool."
+  city:
+    - "Rainwater chuckles along the gutters and pools between the cobbles."
+    - "Awnings sag and drip; somewhere a shutter bangs against the wet."
+    - "People duck under doorways, waiting out the heaviest of the rain."
+    - "Water sheets off the roof lines and splatters loud against the stone."
+    - "Lamplight smears long and wavering across the wet cobblestones."
+    - "A gutter overflows somewhere close, sending a thin stream across the path."
+  swamp:
+    - "Rain stipples the standing water, setting the reeds nodding."
+    - "Rain pocks the mud flats, raising a rich, green smell from the ground."
+    - "Every reed bends and drips, feeding the standing water below."
+    - "Insects fall silent under the steady patter, then start up again."
+    - "The rain pits the standing water's surface, then it settles back smooth."
+    - "Runoff carries dead leaves into the sluggish, rain-stirred water."
+indoor:
+  default:
+    mild: []
+    strong:
+      - "The sound of rain on the roof settles into a rhythmic, soothing patter."
+      - "A gust flings a handful of rain against the panes, then relents."
+      - "The air turns damp and cool, carrying a faint smell of wet stone."
+      - "Water finds a gap in the eaves and starts a slow, steady drip."
+      - "Rain streaks the window, its reflected light rippling on the ceiling."
+      - "A drainpipe gurgles somewhere close, swallowing the rain in gulps."
+# Underground is felt through STONE, not through walls, so it carries no roofs,
+# panes, shutters, eaves or floorboards. The mild pool is deliberately empty:
+# light rain does not reach a cave at all. Only the strong band is authored,
+# which is what makes these lines heavy-rain-only.
+underground:
+  default:
+    mild: []
+    strong:
+      - "Water finds a seam in the rock and begins a slow, patient dripping."
+      - "The stone sweats. Every surface turns slick and cold to the touch."
+      - "Somewhere deeper in, water is running that was not running before."
+      - "A thin trickle threads down the wall and gathers in the hollows."
+      - "The air turns heavy and mineral, thick with the smell of wet rock."
+      - "Drips quicken overhead, counting out a rhythm with no pattern to it."

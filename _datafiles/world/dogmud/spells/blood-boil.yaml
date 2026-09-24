@@ -1,0 +1,20 @@
+spellid: blood-boil
+name: Blood Boil
+aliases: [boil]
+description: Superheats the target's blood, causing hemorrhage over time.
+attack_type: spell
+damage_type: physical
+targeting: single
+schools:
+  - vital
+cost: 50
+waitrounds: 1
+difficulty: 25
+primarystat: willpower
+base_folds: 6
+effect_type: dot
+effect_magnitude: 40
+damage_multiplier: 0.80
+effect_duration: 3
+cast_actor: "You focus on the target's blood, willing it to boil."
+cast_observer: "{actor} extends a trembling hand, eyes burning with intent."

@@ -1,0 +1,821 @@
+package combat
+
+import (
+	"fmt"
+	"math"
+
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/dice"
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/narration"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/skills"
+	"github.com/GoMudEngine/GoMud/internal/species"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/control"
+	"github.com/GoMudEngine/GoMud/internal/state/position"
+	"github.com/GoMudEngine/GoMud/internal/state/presence"
+	"github.com/GoMudEngine/GoMud/internal/targeting"
+	"github.com/GoMudEngine/GoMud/internal/users"
+	"github.com/GoMudEngine/GoMud/internal/util"
+)
+
+type SourceTarget string
+
+const (
+	User SourceTarget = "user"
+	Mob  SourceTarget = "mob"
+)
+
+const autoattackShortageText = "Exhaustion keeps your training from coming cleanly through."
+
+// Performs a combat round from a player to a mob
+// forceCrit is true when the defender was snapshotted as Sleeping at
+// round start (chunk 3.3); all swings this round against them crit.
+func AttackPlayerVsMob(user *users.UserRecord, mob *mobs.Mob, forceCrit bool) AttackResult {
+
+	// Chunk 5 (Presence) T7: auto-wake Dormant mobs on incoming attack.
+	// The mob's per-round tick was being skipped while Dormant; receivability
+	// stays intact. Wake fires BEFORE damage so the target is Active when
+	// per-round logic runs. Reset LastDormantEntryRound so the next
+	// Active→Dormant timer starts fresh.
+	if mob.Character.Presence != nil && mob.Character.Presence.State() == presence.Dormant {
+		_ = mob.Character.Presence.TransitionTo(presence.Active,
+			state.TransitionReason{Trigger: presence.TriggerAttacked})
+		mob.Character.LastDormantEntryRound = 0
+	}
+
+	room := rooms.LoadRoom(user.Character.RoomId)
+	ctx := combatContext{
+		sourceSight: messaging.ParticipantSight(user.Character, room),
+		targetSight: messaging.ParticipantSight(&mob.Character, room),
+		forceCrit:   forceCrit,
+	}
+	attackResult, _ := resolveCombatRound(user.Character, &mob.Character, User, Mob, ctx)
+
+	if attackResult.DamageToSource != 0 {
+		user.Character.ApplyHealthChange(attackResult.DamageToSource*-1, state.ActorRef{MobInstanceId: mob.InstanceId})
+		user.WimpyCheck()
+	}
+
+	mob.Character.ApplyHealthChange(attackResult.DamageToTarget*-1, state.ActorRef{UserId: user.UserId})
+
+	// Chunk 4e §5: third-party hit on grapple controller drifts their
+	// ControlLevel toward Neutral.
+	if attackResult.DamageToTarget > 0 {
+		chunk4eApplyOutsideHitDisruption(user.Character, &mob.Character)
+		// Chunk 4e §7: track third-party damage that would interrupt subs.
+		chunk4eAccumulateSubInterruptDamage(user.Character, &mob.Character, attackResult.DamageToTarget, attackResult.Crit)
+	}
+
+	// Remember who has hit him
+	mob.Character.TrackPlayerDamage(user.UserId, attackResult.DamageToTarget)
+
+	// U9: progression for the attacking player is handled exclusively by
+	// applyCombatProgression (phase 5 of the unified combat orchestrator,
+	// internal/hooks/NewRound_DoCombat_unified.go). This function used to
+	// also call OnStatUse/OnSkillUse here, which double-tracked every melee
+	// swing. See internal/hooks/progression_duplication_test.go.
+	//
+	// U6 Task 14: CleanHit, not Hit. A deflected swing deals partial damage
+	// (Hit is true) but the defence won the contest — the attacker earns no
+	// progression from it and hears the miss sound; the dodge/parry/block
+	// narration dominates what the player reads. The defender already earns
+	// progression through their defence.
+	if attackResult.CleanHit {
+		user.PlaySound(`hit-other`, `combat`)
+	} else {
+		user.PlaySound(`miss`, `combat`)
+	}
+
+	return attackResult
+}
+
+// Performs a combat round from a player to a player
+// forceCrit is true when the defender was snapshotted as Sleeping at
+// round start (chunk 3.3); all swings this round against them crit.
+func AttackPlayerVsPlayer(userAtk *users.UserRecord, userDef *users.UserRecord, forceCrit bool) AttackResult {
+
+	room := rooms.LoadRoom(userAtk.Character.RoomId)
+	ctx := combatContext{
+		sourceSight: messaging.ParticipantSight(userAtk.Character, room),
+		targetSight: messaging.ParticipantSight(userDef.Character, room),
+		forceCrit:   forceCrit,
+	}
+	attackResult, _ := resolveCombatRound(userAtk.Character, userDef.Character, User, User, ctx)
+
+	if attackResult.DamageToSource != 0 {
+		userAtk.Character.ApplyHealthChange(attackResult.DamageToSource*-1, state.ActorRef{UserId: userDef.UserId})
+		userAtk.WimpyCheck()
+	}
+
+	if attackResult.DamageToTarget != 0 {
+		userDef.Character.ApplyHealthChange(attackResult.DamageToTarget*-1, state.ActorRef{UserId: userAtk.UserId})
+		userDef.WimpyCheck()
+		// Chunk 4e §5: third-party hit on grapple controller drifts their
+		// ControlLevel toward Neutral.
+		chunk4eApplyOutsideHitDisruption(userAtk.Character, userDef.Character)
+		// Chunk 4e §7: track third-party damage that would interrupt subs.
+		chunk4eAccumulateSubInterruptDamage(userAtk.Character, userDef.Character, attackResult.DamageToTarget, attackResult.Crit)
+	}
+
+	// U9: progression for the attacking player is handled exclusively by
+	// applyCombatProgression (phase 5 of the unified combat orchestrator,
+	// internal/hooks/NewRound_DoCombat_unified.go). See AttackPlayerVsMob.
+	//
+	// U6 Task 14: CleanHit, not Hit — a deflected swing awards the attacker
+	// nothing and plays the miss sound (see AttackPlayerVsMob).
+	if attackResult.CleanHit {
+		userAtk.PlaySound(`hit-other`, `combat`)
+		userDef.PlaySound(`hit-self`, `combat`)
+	} else {
+		userAtk.PlaySound(`miss`, `combat`)
+	}
+
+	return attackResult
+}
+
+// Performs a combat round from a mob to a player
+// forceCrit is true when the defender was snapshotted as Sleeping at
+// round start (chunk 3.3); all swings this round against them crit.
+func AttackMobVsPlayer(mob *mobs.Mob, user *users.UserRecord, forceCrit bool) AttackResult {
+
+	room := rooms.LoadRoom(mob.Character.RoomId)
+	ctx := combatContext{
+		sourceSight: messaging.ParticipantSight(&mob.Character, room),
+		targetSight: messaging.ParticipantSight(user.Character, room),
+		forceCrit:   forceCrit,
+	}
+	attackResult, _ := resolveCombatRound(&mob.Character, user.Character, Mob, User, ctx)
+
+	mob.Character.ApplyHealthChange(attackResult.DamageToSource*-1, state.ActorRef{UserId: user.UserId})
+
+	if attackResult.DamageToTarget != 0 {
+		user.Character.ApplyHealthChange(attackResult.DamageToTarget*-1, state.ActorRef{MobInstanceId: mob.InstanceId})
+		user.WimpyCheck()
+		// Chunk 4e §5: third-party hit on grapple controller drifts their
+		// ControlLevel toward Neutral.
+		chunk4eApplyOutsideHitDisruption(&mob.Character, user.Character)
+		// Chunk 4e §7: track third-party damage that would interrupt subs.
+		chunk4eAccumulateSubInterruptDamage(&mob.Character, user.Character, attackResult.DamageToTarget, attackResult.Crit)
+	}
+
+	// U9: attacker progression and the defender's third dexterity-tracking
+	// source used to live here. Both are now handled exclusively by
+	// applyCombatProgression (phase 5, internal/hooks/NewRound_DoCombat_unified.go):
+	// the attacking mob via its per-weapon-hit loop, and the defending
+	// player's dexterity via AwardDefenceProgression on a dodge. This block
+	// duplicated both. See internal/hooks/progression_duplication_test.go.
+
+	// U6 Task 14: CleanHit, not Hit — a deflected swing plays no hit-self
+	// sound; the defence narration carries the player's perception of it.
+	if attackResult.CleanHit {
+		user.PlaySound(`hit-self`, `combat`)
+	}
+
+	return attackResult
+}
+
+// Performs a combat round from a mob to a mob
+// forceCrit is true when the defender was snapshotted as Sleeping at
+// round start (chunk 3.3); all swings this round against them crit.
+func AttackMobVsMob(mobAtk *mobs.Mob, mobDef *mobs.Mob, forceCrit bool) AttackResult {
+
+	// Chunk 5 (Presence) T7: auto-wake Dormant mobs on incoming attack.
+	// Same semantics as AttackPlayerVsMob: defender wakes before damage applies.
+	if mobDef.Character.Presence != nil && mobDef.Character.Presence.State() == presence.Dormant {
+		_ = mobDef.Character.Presence.TransitionTo(presence.Active,
+			state.TransitionReason{Trigger: presence.TriggerAttacked})
+		mobDef.Character.LastDormantEntryRound = 0
+	}
+
+	room := rooms.LoadRoom(mobAtk.Character.RoomId)
+	ctx := combatContext{
+		sourceSight: messaging.ParticipantSight(&mobAtk.Character, room),
+		targetSight: messaging.ParticipantSight(&mobDef.Character, room),
+		forceCrit:   forceCrit,
+	}
+	attackResult, _ := resolveCombatRound(&mobAtk.Character, &mobDef.Character, Mob, Mob, ctx)
+
+	mobAtk.Character.ApplyHealthChange(attackResult.DamageToSource*-1, state.ActorRef{MobInstanceId: mobDef.InstanceId})
+	mobDef.Character.ApplyHealthChange(attackResult.DamageToTarget*-1, state.ActorRef{MobInstanceId: mobAtk.InstanceId})
+
+	// Chunk 4e §5: third-party hit on grapple controller drifts their
+	// ControlLevel toward Neutral.
+	if attackResult.DamageToTarget > 0 {
+		chunk4eApplyOutsideHitDisruption(&mobAtk.Character, &mobDef.Character)
+		// Chunk 4e §7: track third-party damage that would interrupt subs.
+		chunk4eAccumulateSubInterruptDamage(&mobAtk.Character, &mobDef.Character, attackResult.DamageToTarget, attackResult.Crit)
+	}
+
+	// If attacking mob was player charmed, attribute damage done to that player
+	if charmedUserId := mobAtk.Character.GetCharmedUserId(); charmedUserId > 0 {
+		// Remember who has hit him
+		mobDef.Character.TrackPlayerDamage(charmedUserId, attackResult.DamageToTarget)
+	}
+
+	// U9: progression for both mobs used to be tracked here. It is now
+	// handled exclusively by applyCombatProgression (phase 5, see
+	// AttackMobVsPlayer above).
+
+	return attackResult
+}
+
+func GetWaitMessages(stepType items.Intensity, sourceChar *characters.Character, targetChar *characters.Character, sourceType SourceTarget, targetType SourceTarget) AttackResult {
+
+	attackResult := AttackResult{}
+
+	msgs := items.GetPreAttackMessage(sourceChar.Equipment.Weapon.GetSpec().Subtype, stepType)
+
+	var toAttackerMsg, toDefenderMsg, toAttackerRoomMsg, toDefenderRoomMsg items.ItemMessage
+
+	// Stage 9.4: Track attack for stance calculation
+	sourceChar.IncrementAttackCount()
+
+	// GetSpecies returns nil for an unknown SpeciesId; default before use.
+	unarmedName := "fists"
+	if raceInfo := species.GetSpecies(sourceChar.SpeciesId); raceInfo != nil {
+		unarmedName = raceInfo.UnarmedName
+	}
+
+	tokenReplacements := map[items.TokenName]string{
+		items.TokenItemName:     unarmedName,
+		items.TokenActor:        sourceChar.Name,
+		items.TokenActorType:    string(sourceType) + `name`,
+		items.TokenActee:        targetChar.Name,
+		items.TokenActeeType:    string(targetType) + `name`,
+		items.TokenUsesLeft:     `[Invalid]`,
+		items.TokenDamage:       `[Invalid]`,
+		items.TokenEntranceName: `unknown`,
+		items.TokenExitName:     `unknown`,
+		items.TokenStance:       sourceChar.CalculateStanceString(),
+		items.TokenPosition:     sourceChar.CalculatePositionString(),
+		items.TokenMomentum:     sourceChar.CalculateMomentumString(),
+	}
+
+	// Get source character's weapon skill level for message selection
+	skillLevel := sourceChar.GetCombatSkillLevel()
+
+	together := sourceChar.RoomId == targetChar.RoomId
+
+	if !together {
+
+		// Find the exit that leads to the target from the source (if any)
+		if atkRoom := rooms.LoadRoom(sourceChar.RoomId); atkRoom != nil {
+			tokenReplacements[items.TokenExitName] = `unknown`
+			for exitName, exit := range atkRoom.Exits {
+				if exit.RoomId == targetChar.RoomId {
+					tokenReplacements[items.TokenExitName] = exitName
+					break
+				}
+			}
+		}
+		// find the exit that leads to the source from the target (if any)
+		if defRoom := rooms.LoadRoom(targetChar.RoomId); defRoom != nil {
+			tokenReplacements[items.TokenEntranceName] = `unknown`
+			for exitName, exit := range defRoom.Exits {
+				if exit.RoomId == sourceChar.RoomId {
+					tokenReplacements[items.TokenEntranceName] = exitName
+					break
+				}
+			}
+		}
+	}
+
+	if sourceChar.Equipment.Weapon.ItemId > 0 {
+		tokenReplacements[items.TokenItemName] = sourceChar.Equipment.Weapon.DisplayName()
+	}
+
+	if sourceType == Mob {
+		tokenReplacements[items.TokenActor] = sourceChar.GetMobName(0).String()
+	}
+
+	if targetType == Mob {
+		tokenReplacements[items.TokenActee] = targetChar.GetMobName(0).String()
+	}
+
+	// ONE coordinated draw for every audience. Selection happens here, after
+	// the token map is complete, because Render substitutes as it renders.
+	// This used to be three or four independent GetForSkillLevel calls, one
+	// per viewpoint, which narrated a different moment to each of them.
+	var roles narration.Roles
+	if together {
+		roles = msgs.Together.Render(skillLevel, tokenReplacements, nil)
+	} else {
+		roles = msgs.Separate.Render(skillLevel, tokenReplacements, nil)
+	}
+
+	toAttackerMsg = items.ItemMessage(roles.Actor)
+	toDefenderMsg = items.ItemMessage(roles.Actee)
+	toAttackerRoomMsg = items.ItemMessage(roles.Observer)
+	toDefenderRoomMsg = items.ItemMessage(roles.ActeeObserver)
+
+	// Wait-round messages: source's weapon category for hit-band
+	// color; falls back to CategoryHitMelee if no main weapon.
+	waitCat := messaging.CategoryHitMelee
+	if sourceChar.Equipment.Weapon.ItemId > 0 {
+		waitCat = CategoryForWeaponSubtype(sourceChar.Equipment.Weapon.GetSpec().Subtype)
+	}
+
+	if string(toAttackerMsg) != `` {
+		attackResult.SendToSource(waitCat, string(toAttackerMsg))
+	}
+
+	if !sourceChar.IsHidden() {
+
+		if string(toDefenderMsg) != `` {
+			attackResult.SendToTarget(waitCat, string(toDefenderMsg))
+		}
+
+		// Room lines go through messaging.SendTrio rather than the raw
+		// AttackResult accumulation the personal lines above use (and that
+		// this function itself used to use for these two lines). SendTrio's
+		// Room/RemoteRoom branches always call Room.SendTextVisualHidingNames,
+		// which runs messaging.HideNames over the line for a shapes-only
+		// reader; the raw path these replaced went through
+		// Room.SendTextVisual/SendTextVisualToUser instead, which only ever
+		// apply tag-based messaging.Anonymize and, by that function's own
+		// docstring, never touch a bare (untagged) name. Both rooms are
+		// seated here, not just the defender's: routing only the second room
+		// through the seam and leaving the attacker's room on the old raw
+		// path would leave the two inconsistently protected for no reason,
+		// since both lines can equally name a real combatant.
+		//
+		// RemoteRoom is the defender's room, and is only set when it is a
+		// SEPARATE room from the attacker's -- the same guard that used to
+		// wrap the old SendToTargetRoom call, now expressed as "is there a
+		// second room at all" rather than "should this text be sent".
+		var room, remoteRoom messaging.Broadcaster
+		if atkRoom := rooms.LoadRoom(sourceChar.RoomId); atkRoom != nil {
+			room = atkRoom
+		}
+		if sourceChar.RoomId != targetChar.RoomId {
+			if defRoom := rooms.LoadRoom(targetChar.RoomId); defRoom != nil {
+				remoteRoom = defRoom
+			}
+		}
+		messaging.SendTrio(messaging.Trio{
+			// Actor and Actee are deliberately silent here: the personal
+			// wait-round lines (toAttackerMsg / toDefenderMsg) were already
+			// sent above via attackResult.SendToSource/SendToTarget, so this
+			// Trio carries only the two room roles.
+			Actor:          messaging.NoLine,
+			Actee:          messaging.NoLine,
+			Observer:       messaging.Say(waitCat, string(toAttackerRoomMsg)),
+			RemoteObserver: messaging.Say(waitCat, string(toDefenderRoomMsg)),
+		}, messaging.Audience{
+			ActorId:    sourceChar.GetUserId(),
+			ActorName:  sourceChar.Name,
+			ActeeId:    targetChar.GetUserId(),
+			ActeeName:  targetChar.Name,
+			Room:       room,
+			RemoteRoom: remoteRoom,
+		})
+
+	}
+
+	return attackResult
+}
+
+// resolveCombatRound plans, admits and then resolves one autoattack round. The
+// same mechanical path serves players and mobs; only a player source receives
+// the private once-per-round shortage explanation.
+func resolveCombatRound(sourceChar *characters.Character, targetChar *characters.Character, sourceType SourceTarget, targetType SourceTarget, ctx combatContext) (AttackResult, characters.CostCommitResult) {
+	plan := buildAttackPlan(sourceChar, targetChar)
+	costResult := ChargeAttackCost(sourceChar, plan.totalSwings)
+	ctx.omitAttackSkill = costResult.Short()
+
+	attackResult := calculateCombat(sourceChar, targetChar, sourceType, targetType, plan, ctx)
+	if sourceType == User && costResult.Short() {
+		attackResult.SendToSource(messaging.CategorySystem, autoattackShortageText)
+	}
+	return attackResult, costResult
+}
+
+// calculateCombat resolves one pre-planned round of swings from sourceChar at
+// targetChar. Weapon setup and swing count are snapshots from before the
+// aggregate Stamina commit and must not be recalculated here.
+//
+// Both combatants MUST stay pointers. Do not "simplify" them back to values.
+// This function took its combatants by value from the day it was written, and
+// every wrapper obligingly handed it a copy, so every in-place mutation the
+// callees made was written to that copy and thrown away when the function
+// returned. The costly one was the defence charge: runBestOfAllDefense calls
+// ApplyCostPartial on the defender, which means melee dodge, parry and block
+// have cost nothing in production for the entire life of the code. The
+// attacker's cost only survived historically because wrappers charged the real
+// character outside this function. U8 now commits that cost in
+// resolveCombatRound before calling here; damage still travels home in
+// AttackResult and the wrapper applies it to the real character.
+//
+// Nothing about that failure is visible. The compiler is happy either way, and
+// a test that asserts a charge was *requested* (ApplyCostPartial reports
+// Charged: 4) still passes while the real character's stamina never moves. If
+// you take a value parameter here again you will silently switch the whole
+// melee cost model back off and the suite will stay green.
+//
+// Reverting also re-disables three writes that only work through the pointer:
+// cross-round momentum (UpdateMomentum), the SurpriseAttack-to-DefaultAttack
+// demotion in SetAggro, and defender skill-use tracking on mobs.
+func calculateCombat(sourceChar *characters.Character, targetChar *characters.Character, sourceType SourceTarget, targetType SourceTarget, plan attackPlan, ctx combatContext) AttackResult {
+
+	attackResult := AttackResult{}
+
+	// Statmods can add a damage bonus
+	statModDBonus := sourceChar.StatMod(`damage`)
+
+	// U10d: exactly ONE swing of this engagement is the opening strike. The flag
+	// is round-scoped here only because the round is where the engagement opens;
+	// it is consumed per-swing below, on the swing that is THROWN.
+	// U12c-2: the opening is engagement state, and this is the production caller
+	// targeting.ConsumeOpeningStrike was written for in U12a.
+	//
+	// What stood here read Aggro.Type and DEMOTED it in the same breath, via a
+	// re-Commit. Splitting the query from the consumption removes the demotion
+	// entirely.
+	//
+	// That re-Commit did NOT change pacing, though it looks like it should:
+	// SetAggro seeds the round budget from the weapon's WaitRounds, no DOGMud
+	// weapon sets waitrounds (so it is 0), and phase1WaitRound has already
+	// returned early unless the budget is 0 by the time this runs. What it DID
+	// do is drive Engaged -> Engaging -> Engaged mid-round, re-running the
+	// taunt-hold and untargetable gates and re-firing anything listening for
+	// the engagement becoming active. That churn is what is gone.
+	//
+	// ⚠️ AttackResult.WasSurpriseAttack STAYS. applyCombatProgression runs after
+	// this point and cannot ask the engagement any more, because the opening is
+	// already spent. See U10d spec 2.8.3.
+	openingStrikeLeft := targeting.ConsumeOpeningStrike(sourceChar)
+	attackResult.WasSurpriseAttack = openingStrikeLeft
+
+	attackResult.DefenderWasAttacked = len(plan.weapons) > 0
+
+	for _, ws := range plan.weapons {
+		sdp := buildDamageParams(sourceChar, targetChar, ws, statModDBonus, sourceType)
+		sdp.critConditions = ws.critConditions
+
+		// Track per-weapon hits for skill progression
+		weaponHit := WeaponHitInfo{
+			SkillTag: string(characters.CombatSkillTagForItem(ws.weapon)),
+		}
+
+		swingCount := ws.swingCount
+
+		mudlog.Debug("DistDamage", "swings", swingCount, "baseDmg", ws.baseDmg, "variance", dice.StdDevFor(sdp.dmgMean), "dmgMean", sdp.dmgMean, "weaponMult", ws.weaponDmgMult, "critConditions", ws.critConditions)
+
+		critThreshold := calcCritThreshold(sourceChar, targetChar)
+
+		for j := 0; j < swingCount; j++ {
+
+			mudlog.Debug(`calculateCombat`, `Swing`, fmt.Sprintf(`%d/%d`, j+1, swingCount), `Weapon`, ws.weaponName, `Source`, fmt.Sprintf(`%s (%s)`, sourceChar.Name, sourceType), `Target`, fmt.Sprintf(`%s (%s)`, targetChar.Name, targetType))
+
+			// Reset per-swing flags
+			attackResult.Crit = false
+			attackResult.Fumble = false
+			attackResult.DoubleFumble = false
+
+			// Counted here after pre-resolution plan admission and outside the
+			// reset above. SwingsThrown reports how many planned swings actually
+			// resolved across every weapon; U8 pricing uses plan.totalSwings before
+			// this loop and never derives a post-resolution charge from this field.
+			attackResult.SwingsThrown++
+
+			attackTargetDamage := 0
+			attackTargetReduction := 0
+			attackSourceDamage := 0
+			attackSourceReduction := 0
+
+			attackScore := calcAttackScore(sourceChar, targetChar, ws.weapon, ws.penalty, ctx)
+
+			// Chunk 4e: position-tiered hit modifiers. Multiplies attackScore by
+			// the attacker's self-position modifier and the target's position
+			// modifier. Both default to 1.0 outside grapples. See
+			// internal/state/position/modifiers.go.
+			attackScore *= applyPositionHitModifiers(sourceChar, targetChar)
+
+			defenseSequence := DefenceEntriesFor(combatvocab.Melee(combatvocab.TargetSingle), targetChar, DefenceEntryOpts{})
+
+			// Third-party grapple vulnerability
+			defenseSequence, isThirdParty := filterDefensesForThirdParty(&attackResult, sourceChar, targetChar, defenseSequence)
+
+			// Roll attack once via best-of-all defense
+			best := runBestOfAllDefense(&attackResult, sourceChar, targetChar, defenseSequence, attackScore, isThirdParty, ctx)
+
+			// New resolution order: fumbles → crits → normal → floors
+			// Chunk 3.3: ctx.forceCrit is true when the defender was snapshotted
+			// as Sleeping at round start; every swing against them this round crits.
+			//
+			// U10d: the opening strike is ONE swing, consumed by the swing that
+			// is THROWN -- not by the first one that happens to land. Capturing
+			// and clearing HERE, inside the per-swing loop and before the
+			// contest runs, is what makes that true. A round-scoped flag passed
+			// bare would upgrade every winning swing of the round, and clearing
+			// on the first LANDING swing instead would hand the ambush a fresh
+			// roll after every miss, fumble and deflection.
+			openingStrikeThisSwing := openingStrikeLeft
+			openingStrikeLeft = false
+
+			// U10b-1 Task 11: keep this weapon's best ATTACK roll for the
+			// round's one progression award. Recorded here, before any
+			// outcome branch, because the selector must exist for a swing
+			// that missed as much as for one that landed -- the award fires
+			// win or lose and still has to name a skill. best.hitRoll is
+			// contest.Result.AttackRoll, which contest.Run populates before it
+			// looks at a single defence, so an uncontested swing has one too.
+			if j == 0 || best.hitRoll.Value > weaponHit.BestRoll {
+				weaponHit.BestRoll = best.hitRoll.Value
+			}
+
+			res := resolveDefenseOutcome(&attackResult, best, sourceChar, targetChar, critThreshold, isThirdParty, ctx.forceCrit, openingStrikeThisSwing)
+
+			// Momentum builds only on clean wins and resets on deflections,
+			// matching pre-U6 behavior where a deflected swing was a miss.
+			sourceChar.UpdateMomentum(res.hit && !res.defended)
+
+			if res.hit {
+				attackResult.Hit = true
+				weaponHit.Hit = true
+				// CleanHit aggregates across the round like Hit does: once any
+				// swing wins the contest outright, the round counts as a clean
+				// hit even if later swings are deflected.
+				attackResult.CleanHit = attackResult.CleanHit || !res.defended
+				weaponHit.CleanHit = weaponHit.CleanHit || !res.defended
+				if res.crit {
+					weaponHit.Crit = true
+				}
+				attackTargetDamage, _ = calcHitDamage(&attackResult, res.crit, openingStrikeThisSwing, sdp)
+
+				// U6 Task 10: a defensive win is no longer a clean miss, it is
+				// a partially deflected hit. res.damageMult is 1.0 on every
+				// other landing path, so this is a no-op outside that case.
+				//
+				// Applied AFTER calcHitDamage rather than folded into sdp.dmgMean
+				// on purpose: dice.RollStat derives its spread from the mean it
+				// is handed, so scaling the mean would also shrink the variance
+				// and make deflected hits artificially consistent. Scaling the
+				// rolled result keeps the deflection a flat reduction of whatever
+				// the swing happened to roll.
+				if res.damageMult < 1.0 && attackTargetDamage > 0 {
+					attackTargetDamage = int(math.Round(float64(attackTargetDamage) * res.damageMult))
+					if res.damageMult > 0 && attackTargetDamage < 1 {
+						// Matches CritOrMitigatedDamage's rule -- "a hit that
+						// lands must do something; 0 reads to the player as a
+						// bug." calcHitDamage floors at 0, not 1, so melee used
+						// to be able to land for nothing; the two agree now on
+						// this path.
+						attackTargetDamage = 1
+					}
+				}
+			}
+
+			if res.fumble {
+				attackResult.Fumble = true
+				weaponHit.Fumble = true
+			}
+
+			// Determine per-swing attack type for analytics
+			swingAtkType := "unarmed"
+			if weaponHit.SkillTag == string(skills.WeaponCombat) {
+				swingAtkType = "weapon"
+			}
+
+			// U10b-1: record what the DEFENDER put up on this swing, for the
+			// round's single defender progression award.
+			//
+			// best.defenseType is contest.Result.Winner -- the entry that
+			// defended best -- and runBestOfAllDefense sets it whenever the
+			// contest ran, so it is populated on a defence that LOST. That is
+			// the whole point: the per-type loop this feeds keyed on
+			// AttackResult.DefenseUsed, which only a WINNING defence stamps, so
+			// a round in which every defence lost trained nothing.
+			//
+			// An UNCONTESTED swing (empty defence set) appends nothing. An empty
+			// defence name awards nothing downstream, and an empty entry in the
+			// Best-of could only displace a real candidate from another swing.
+			if best.defenseType != "" {
+				attackResult.SwingDefences = append(attackResult.SwingDefences, SwingDefence{
+					Defence: best.defenseType,
+					Roll:    best.defRoll.Value,
+					Won:     res.defenceWon(),
+				})
+			}
+
+			// Record per-swing analytics
+			attackResult.SwingEvents = append(attackResult.SwingEvents, SwingEvent{
+				Hit:           res.hit,
+				Crit:          res.crit,
+				CritSource:    res.critSource,
+				Fumble:        res.fumble,
+				DoubleFumble:  res.doubleFumble,
+				DefenseCrit:   res.defenseCrit,
+				Damage:        attackTargetDamage,
+				DamageReduced: attackTargetReduction,
+				DefenseUsed:   attackResult.DefenseUsed,
+				AttackZScore:  attackResult.AttackZScore,
+				DefenseZScore: attackResult.DefenseZScore,
+				AttackType:    swingAtkType,
+			})
+
+			// Only build attack messages for non-double-fumble (double fumble already sent)
+			if !res.doubleFumble {
+				// U10d narration: the banner marks the ONE swing that carried
+				// the ambush, not the whole round. It used to be computed once
+				// above and handed to every swing, so a four-swing ambush round
+				// printed four identical banners and the player could not tell
+				// which line was the opening strike -- the only swing that
+				// crits on a win and pays the skullduggery-scaled bonus.
+				//
+				// !res.defended because an ANSWERED opener is narrated by
+				// openingStrikeDefendedLines, whose prose already names the
+				// opening blow. The banner exists for the swing narrated by the
+				// GENERIC weapon pool, which says nothing about an ambush; on a
+				// line that names itself it is redundant and costs 20 rendered
+				// columns an 80-column line needs for the damage description.
+				// Either way exactly one swing per round is marked, and it is
+				// the only one carrying CategorySurpriseAttack.
+				swingPrefix := ``
+				if openingStrikeThisSwing && !res.defended {
+					swingPrefix = surpriseAttackBanner
+				}
+				buildAttackMessages(&attackResult, sourceChar, targetChar, ws, sdp,
+					attackTargetDamage, attackTargetReduction, attackSourceDamage, attackSourceReduction,
+					sourceType, targetType, swingPrefix, res.defended, openingStrikeThisSwing)
+			}
+
+			attackResult.DamageToTarget += attackTargetDamage
+			attackResult.DamageToTargetReduction += attackTargetReduction
+			attackResult.DamageToSource += attackSourceDamage
+			attackResult.DamageToSourceReduction += attackSourceReduction
+		}
+
+		attackResult.WeaponHits = append(attackResult.WeaponHits, weaponHit)
+		applyPetDamage(&attackResult, sourceChar, targetChar, targetType)
+	}
+
+	// If unarmed (no weapons at all), add unarmed entry
+	if len(plan.weapons) == 0 {
+		attackResult.DefenderWasAttacked = true
+	}
+
+	// M4d PR 2: hide identities at composition, once, over every personal
+	// line this round composed -- rather than replaceDarknessMessages'
+	// approach of throwing the composed line away and substituting one of
+	// twelve hardcoded sentences. See hideIdentitiesInPersonalLines.
+	hideIdentitiesInPersonalLines(&attackResult, sourceChar, targetChar, ctx)
+
+	return attackResult
+
+}
+
+// hideIdentitiesInPersonalLines hides each side's counterpart from that
+// side's own personal lines, judged by that reader's own sight verdict
+// (ctx.sourceSight for MessagesToSource, ctx.targetSight for
+// MessagesToTarget). Applied ONCE here, at the end of calculateCombat, over
+// every line every composer in this file already produced -- buildAttackMessages,
+// sendDefenseMessages, handleDoubleFumble, filterDefensesForThirdParty,
+// applyPetDamage -- rather than threading ctx into each of them individually.
+//
+// This is safe, not just convenient: every one of those composers follows the
+// same convention SendTrio's hideForReader enforces at the messaging layer --
+// a personal line names only the OTHER party, never the reader's own name (a
+// SendToSource line interpolates targetChar's name if it names anyone at all;
+// a SendToTarget line interpolates sourceChar's name). So hiding
+// targetChar.Name out of MessagesToSource and sourceChar.Name out of
+// MessagesToTarget can never mask a reader's own identity from themselves --
+// there is nothing there to mask. TestHideIdentitiesInPersonalLines_UnitSeam
+// proves that invariant directly, with hand-built text that (unlike anything
+// this package's real composers produce) DOES put the reader's own name on
+// their own line, precisely so a regression that widened the hide list would
+// be caught even though no real template could ever trigger it.
+//
+// MessagesToSourceRoom / MessagesToTargetRoom are NOT touched here. Room
+// (spectator) lines are sight-judged per viewer downstream, in
+// internal/hooks (sendVisualRoomText / drainSpectatorLines), the same as
+// before this change -- replaceDarknessMessages never touched them either.
+//
+// The defender's side also hides sourceChar's PET, when sourceChar has one
+// (owner ruling, M4d PR 2 followup 2: "It shouldn't be able to see the
+// name."). applyPetDamage's toDefenderMsg names the pet via
+// sourceChar.Pet.DisplayName() -- the pet fights on the attacker's side, so
+// it is judged by ctx.targetSight exactly like sourceChar itself. It is
+// hidden by Pet.PlainName(), the bare name DisplayName wraps in either an
+// ansi identity tag (the common case, `<ansi fg="petname">Name</ansi>`,
+// which HideNames' tag-aware match strips cleanly) or a per-character color
+// pattern (only when the pet has a NameStyle set, which splinters the name
+// across individual color tags HideNames cannot reassemble -- a known,
+// narrower gap than the one this function already closes for player and
+// mob names, not a new one). It is NEVER hidden from MessagesToSource: the
+// owner's own line about their own pet is untouched, because
+// hideIdentitiesInPersonalLines only ever adds names to the OTHER side's
+// hide list. Guarded on Pet.Exists() -- Character.Pet is a pets.Pet VALUE,
+// embedded not pointed to, so there is no pointer to nil-check; Exists()
+// (Type != "") is that guard's value-type equivalent, true only once a
+// player has actually bonded a pet.
+func hideIdentitiesInPersonalLines(result *AttackResult, sourceChar, targetChar *characters.Character, ctx combatContext) {
+	for i := range result.MessagesToSource {
+		result.MessagesToSource[i].Text = messaging.HideNames(result.MessagesToSource[i].Text, []string{targetChar.Name}, ctx.sourceSight)
+	}
+	targetHides := []string{sourceChar.Name}
+	if sourceChar.Pet.Exists() {
+		targetHides = append(targetHides, sourceChar.Pet.PlainName())
+	}
+	for i := range result.MessagesToTarget {
+		result.MessagesToTarget[i].Text = messaging.HideNames(result.MessagesToTarget[i].Text, targetHides, ctx.targetSight)
+	}
+}
+
+// applyPositionHitModifiers returns the combined position-based hit
+// modifier for an attack from sourceChar to targetChar. Chunk 4e spec §3.
+// Both default to 1.0 if either character is missing position/control
+// state — equivalent to "outside a grapple, no modifier."
+func applyPositionHitModifiers(source, target *characters.Character) float64 {
+	if source == nil || target == nil {
+		return 1.0
+	}
+	srcPos := position.Standing
+	srcRole := control.Neutral
+	if source.Position != nil {
+		srcPos = source.Position.State()
+	}
+	if source.Control != nil {
+		srcRole = source.Control.State()
+	}
+	tgtPos := position.Standing
+	tgtRole := control.Neutral
+	if target.Position != nil {
+		tgtPos = target.Position.State()
+	}
+	if target.Control != nil {
+		tgtRole = target.Control.State()
+	}
+	return position.AttackerSelfHitModifier(srcPos, srcRole) *
+		position.TargetSideHitModifier(tgtPos, tgtRole)
+}
+
+// chunk4eAccumulateSubInterruptDamage fires §7 of the chunk 4e spec:
+// track third-party damage that would interrupt a sub attempt this
+// round. Damage qualifies if it's a crit OR exceeds
+// SubInterruptDamageThresholdPct × target.HealthMax. Accumulates on
+// Character.SubInterruptDamageThisRound, which Position_SubmissionTick
+// (T8) checks before resolving the sub outcome.
+func chunk4eAccumulateSubInterruptDamage(attacker, target *characters.Character, damage int, isCrit bool) {
+	if attacker == nil || target == nil {
+		return
+	}
+	if !IsThirdPartyAttack(attacker, target) {
+		return // partner hit — doesn't interrupt subs
+	}
+	bal := configs.GetBalanceConfig()
+	threshold := float64(bal.SubInterruptDamageThresholdPct)
+
+	qualifies := isCrit
+	if !qualifies && threshold > 0 && target.HealthMax.Value > 0 {
+		ratio := float64(damage) / float64(target.HealthMax.Value)
+		if ratio >= threshold {
+			qualifies = true
+		}
+	}
+	if qualifies {
+		target.SubInterruptDamageThisRound += float64(damage)
+	}
+}
+
+// chunk4eApplyOutsideHitDisruption fires §5 of the chunk 4e spec:
+// when a third party (non-grapple-partner) damages a grapple controller,
+// shift the controller's ControlLevel one step toward Neutral. Deduped
+// per round via Character.OutsideHitDisruptedRound. No-op if the config
+// knob is false, the target isn't a controller, or the attacker IS
+// the grapple partner.
+func chunk4eApplyOutsideHitDisruption(attacker, target *characters.Character) {
+	if !configs.GetBalanceConfig().ControlDegradeOnOutsideHit {
+		return
+	}
+	if attacker == nil || target == nil {
+		return
+	}
+	if !target.IsGrappling() {
+		return
+	}
+	if !target.IsController() {
+		return
+	}
+	if !IsThirdPartyAttack(attacker, target) {
+		return // attacker IS the partner — no disruption
+	}
+	round := int64(util.GetRoundCount())
+	if target.OutsideHitDisruptedRound == round {
+		return // already disrupted this round
+	}
+	target.OutsideHitDisruptedRound = round
+
+	// Shift one step toward Neutral. Fires gradient messaging via the
+	// chunk-4b-fixup-2 T13 boundary-cross callback automatically.
+	_ = target.GetControl().TransitionToNeutral(state.TransitionReason{
+		Trigger: control.TriggerDriftLoss,
+	})
+}

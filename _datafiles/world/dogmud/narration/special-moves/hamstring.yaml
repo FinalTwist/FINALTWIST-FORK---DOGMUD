@@ -1,0 +1,17 @@
+moveid: hamstring
+events:
+  hit:
+    actee:
+      - '{actor} rakes its fangs across your legs, opening deep wounds! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} lunges low and rakes its fangs across {actee}''s legs!'
+  partial:
+    actee:
+      - '{actor} lunges at your legs and you dodge most of it, but the fangs still catch you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} lunges at {actee}''s legs, who mostly dodges but still gets caught!'
+  miss:
+    actee:
+      - '{actor} lunges at your legs, but you sidestep the attack!'
+    observer:
+      - '{actor} lunges at {actee}''s legs, but misses!'

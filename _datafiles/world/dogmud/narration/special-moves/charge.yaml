@@ -1,0 +1,27 @@
+moveid: charge
+events:
+  knockdown:
+    actee:
+      - '{actor} charges and slams into you, sending you sprawling! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} charges and slams into {actee}, sending them sprawling!'
+  hit:
+    actee:
+      - '{actor} charges at you, but you keep your footing! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} charges at {actee}, but they keep their footing!'
+  partial:
+    actee:
+      - '{actor} charges and you dodge the worst of it, but the impact still clips you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} charges at {actee}, who mostly dodges but still gets clipped!'
+  miss:
+    actee:
+      - '{actor} charges past you, missing entirely!'
+    observer:
+      - '{actor} charges past {actee}, missing entirely!'
+  whiff_on_prone:
+    actee:
+      - '{actor} thunders in, but you are already down, and it overruns you.'
+    observer:
+      - '{actor} charges {actee}, who is already down, and overruns them.'

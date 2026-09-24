@@ -1,0 +1,22 @@
+# 6259 Knowing Yourself — movement gate only. Lessons + Dewey's voice live in
+# quest 28. Block the exit until the room's lesson (28-statused) is done.
+tree:
+  type: selector
+  children:
+    - type: sequence
+      event: room_command
+      children:
+        - type: condition
+          check: command_matches
+          commands: [north, n, go, south, s, east, e, west, w, up, u, down, d]
+        - type: condition
+          check: player_missing_quest
+          quest: "28-statused"
+        - type: action
+          do: mob_say
+          mob_id: 9491
+          text: >-
+            Not through yet -- if you have lost the thread, type
+            <ansi fg="command">hint</ansi> and it will point you at the next step.
+        - type: action
+          do: intercept

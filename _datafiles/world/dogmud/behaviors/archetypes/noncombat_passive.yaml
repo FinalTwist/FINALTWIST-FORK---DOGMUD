@@ -1,0 +1,26 @@
+# noncombat_passive archetype
+#
+# Ambient non-interactive creatures that cannot be attacked
+# (non_combatant: true). Sanctum Basin: chrysalis_echo, meadow_lizard.
+#
+# No dialogue, no give handler — just ambient reactions.
+#
+# Spec: docs/superpowers/specs/completed/2026-04-24-sanctum-basin-mob-audit-design.md
+
+tree:
+  type: selector
+  children:
+    # chunk 4.4: strategic goal pursuit (near top — primary idle behavior)
+    - type: action
+      event: mob_idle
+      do: try_goal_planner
+
+    - type: action
+      event: player_enter
+      do: emote
+      text: "pays you little mind."
+
+    - type: action
+      event: player_attack_rejected
+      do: emote
+      text: "slips just out of reach."

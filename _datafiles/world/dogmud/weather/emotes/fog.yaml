@@ -1,0 +1,40 @@
+weather: fog
+outdoor:
+  default:
+    - "The fog drifts in slow banks, swallowing shapes a few paces out."
+    - "Sound arrives strangely through the murk, close one moment, far the next."
+    - "Beads of mist settle cold on your skin and hair."
+    - "Shapes at the edge of sight lose their edges, then their color."
+    - "The air feels thick and cool, wet before any rain has fallen."
+    - "Distance itself seems to thin out, replaced by gray in every direction."
+  swamp:
+    - "The fog lies thick on the water, moving only when something moves it."
+    - "Mist pools low between the reeds, hiding the mud beneath."
+    - "The smell of rot and standing water thickens in the heavy air."
+    - "Insects hum unseen somewhere inside the drifting gray."
+    - "Fog clings to every reed stem, beading into slow, fat drops."
+    - "The murk hides where solid ground ends and the mire begins."
+  city:
+    - "Lamplight and doorways become dim halos in the drifting murk."
+    - "Cobblestones vanish underfoot, seen only a step before you reach them."
+    - "Voices carry oddly between the buildings, muffled and hard to place."
+    - "A figure passes close by and is swallowed again within a few steps."
+    - "Rooflines and chimneys dissolve into the gray a short way up."
+    - "Awning edges drip steadily, the only clear sound in the hush."
+indoor:
+  default:
+    mild: []
+    strong:
+      - "Mist curls in at the threshold and thins to nothing in the warmth."
+      - "Damp creeps under the door and beads on the cold windowpanes."
+      - "Sound goes oddly dead indoors, swallowed before it can echo."
+      - "The lamp flames burn low and steady, untroubled by any draft."
+      - "Every wooden surface feels faintly clammy to the touch."
+      - "Light through the windows comes thin and gray, strained through wool."
+# Underground is deliberately silent for this type: fog does not enter
+# stone. An empty pool is the authored answer, not a gap. See the owner
+# ruling that silence is the default underground.
+underground:
+  default:
+    mild: []
+    strong: []

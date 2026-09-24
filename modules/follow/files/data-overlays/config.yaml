@@ -1,0 +1,14 @@
+################################################################################
+# If modified, these settings will be copied into your config overrides
+# folder under `Modules.follow`:
+#
+# Modules:
+#   follow:
+#     DefaultFollowPeriod: 1 real hour
+################################################################################
+# - DefaultFollowPeriod -
+#   Default time a "follow" wears off. Empty = no auto-expiry; the
+#   follow only ends on teleport, death, or explicit `follow stop`.
+#   Players can still pass an explicit period at follow time
+#   (`follow kessa 30 real minutes`) to opt into a leash.
+DefaultFollowPeriod: ""

@@ -1,0 +1,55 @@
+mobid: 228
+zone: Ironwind Steppe
+# behavior_archetype removed 2026-08-15: the per-mob tree has no mob_idle
+# branch, so leader's fallback scan/track/chase chain (and its latent
+# flee-below-25% branch) would go live on this stationary maternal tank
+# boss. submission_policy/surrender_policy below are already pinned
+# explicitly, so they are unaffected by this removal.
+aiprofile: skirmisher
+submission_policy: lethal
+surrender_policy: never
+routine: cave_pack_ironwind
+statpool: 220
+itemdropchance: 10
+hostile: true
+maxwander: 1
+groups:
+  - cave-pack
+archetype: fighting
+mutationchance: 70
+spawnmutations: [living-carapace, chitin-plating]
+idlecommands:
+  - 'emote shifts its massive bulk, carapace scraping against stone'
+  - ''
+  - 'emote clicks its mandibles in a deep, resonant pattern'
+  - ''
+  - ''
+  - 'emote raises its armored head, antennae sweeping the air'
+  - ''
+activitylevel: 10
+character:
+  name: Stone Beetle Queen
+  items:
+    - itemid: 40010   # Chrysalis Core (Stage 3.4 — re-sourced from Aberrant Chrysalis)
+      dropchance: 10  # match mob's itemdropchance; carried items default to 100%
+  description: |
+    An enormous beetle the size of a pony, her carapace thick
+    and ridged like castle fortifications. The stone beetle queen
+    is the matriarch of the cave beetle colony, her body encased
+    in layers of hardened chitin reinforced with mineral deposits
+    absorbed from the cave stone itself. Her mandibles can shear
+    through solid rock, and her legs are powerful enough to crush
+    stone to gravel. She is slow but incredibly tough, her armored
+    body shrugging off blows that would fell lesser creatures. The
+    colony defends her with fanatical devotion.
+  speciesid: 12
+  level: 1
+  stats:
+    strength:
+      base: 85
+    vitality:
+      base: 135
+    dexterity:
+      base: 95
+    perception:
+      base: 85

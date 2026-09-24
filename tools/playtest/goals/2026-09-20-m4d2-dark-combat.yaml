@@ -1,0 +1,76 @@
+# M4d PR2 playtest gate: does composed narration still read right once the
+# only thing darkness replaces is the IDENTITY, not the whole line?
+#
+# Before this PR: a blind combat participant never saw the composed line at
+# all. It was discarded and replaced by one of twelve hardcoded sentences
+# ("You swing wildly in the darkness!", "Your attack is turned aside by
+# something!", "You strike blindly and connect!", "You stumble badly in the
+# darkness!", "You land a devastating blow in the dark!", "Something turns
+# your blow aside, but you feel it land!", and six more of the same shape).
+#
+# After this PR: the real composed line renders from the store, keeping
+# weapon flavour, which defence won, and the damage band. Only the identity
+# token is swapped: "something" when the viewer sees nothing at all, "a
+# figure" when the viewer has shapes-only sight (infrared). A per-round
+# notice explains the darkness once per round instead of drowning every
+# swing in a fixed sentence.
+#
+# Fixture: room 3112 (slice B, proven 2026-09-11) has the Stone Beetle Queen,
+# who engages a veteran on her own with no light needed. Run this file twice:
+# once with ephemeral.profile: veteran (blind tier, "something"), once with
+# ephemeral.profile: slice-a-infrared (shapes tier, "a figure") by editing the
+# profile line below, per the task instructions. Do not invent a new fixture.
+ephemeral:
+  profile: veteran
+  start_room: 3112
+  budgets:
+    wall_clock: 20m
+
+goals:
+  - >-
+    Type `look` and quote the result verbatim. You should read "You can't see
+    anything!" or an equivalent darkness message. If you can read a normal
+    room description instead, say so at once and STOP: this lane needs the
+    dark to mean anything.
+  - >-
+    Wait a couple of rounds to let the Stone Beetle Queen engage you on her
+    own; if she has not engaged within 6 rounds, type `attack queen`. Then
+    fight with plain `attack` for AT LEAST 8 to 10 rounds if your resources
+    allow it. Quote EVERY combat line you receive, verbatim, one per line,
+    labeled by round if the beacon makes rounds clear.
+  - >-
+    Specifically check every line against this list of SIX now-deleted
+    sentences: "You swing wildly in the darkness!", "Your attack is turned
+    aside by something!", "You strike blindly and connect!", "You stumble
+    badly in the darkness!", "You land a devastating blow in the dark!",
+    "Something turns your blow aside, but you feel it land!". If ANY line
+    matches one of these verbatim or near-verbatim, call it out explicitly as
+    a DEFECT: these lines were supposed to be deleted from this codepath.
+  - >-
+    For the lines that are NOT on that list, report whether they name a
+    weapon (e.g. a blade, a mace, fists), a body part struck, or which
+    defence was used (dodge, parry, block, miss), and whether the wording
+    varies from swing to swing rather than repeating the same sentence. This
+    is the behaviour the PR is supposed to produce.
+  - >-
+    Quote the per-round darkness notice verbatim (the line that explains you
+    cannot see, distinct from the per-swing combat lines). Count how many
+    times it appears within a single round. It must appear AT MOST ONCE per
+    round. If it appears more than once in the same round, call that out as a
+    DEFECT.
+  - >-
+    Read back over every line in the fight and confirm whether the Stone
+    Beetle Queen's actual name, or any other creature's name, appears
+    anywhere while you still cannot see normally. Quote any line where a
+    name leaks; that is a DEFECT. If none leak, say so explicitly.
+  - >-
+    Once you have at least a dozen combat lines or your resources run low,
+    stop fighting (flee if needed) and answer this directly in your own
+    words: does this new dark-combat text read BETTER or WORSE than a single
+    fixed sentence like "You swing wildly in the darkness!" would? Is it
+    clear what is happening in the fight? Does it feel repetitive? Give a
+    real verdict, not just "seems fine".
+  - >-
+    Do not report anything about text colour. The AI port strips ANSI colour
+    codes, so this method cannot see it either way; that is out of scope for
+    this run.

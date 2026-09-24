@@ -1,0 +1,150 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="command">defense</ansi>
+
+DOGMud uses a best-of-all defense system. When attacked, all
+your available defenses are rolled simultaneously and the best
+result wins. Each defense type uses different skills, costs
+different resources, and has different requirements.
+
+<ansi fg="yellow">━━━ Defense Order ━━━</ansi>
+
+When attacked, all available defenses are rolled and the best
+result wins. Each defense uses different skills and resources:
+
+  <ansi fg="stat">Dodge</ansi>  low stamina cost, always available
+  <ansi fg="stat">Parry</ansi>  moderate stamina cost, requires a weapon
+  <ansi fg="stat">Block</ansi>  highest stamina cost, requires a shield
+  <ansi fg="stat">Quell</ansi>  costs conviction, answers spells that attack the mind
+  <ansi fg="stat">Defy</ansi>   costs conviction, answers taunts
+
+<ansi fg="yellow">━━━ Degrees of Success ━━━</ansi>
+
+A defence is not all or nothing. Turn a blow aside decisively and it does
+nothing at all. Only just manage it and the blow still lands, robbed of most
+of its force. The better your defence reads the attack, the less of it reaches
+you.
+
+An exceptional defence does more than stop the blow. See Defense Crits under
+<ansi fg="command">help combat</ansi>.
+
+Dodge, parry and block cost stamina even when they fail. Quell and defy cost
+conviction instead. Run either pool dry and the defences it pays for collapse,
+which is what makes a long fight a war of attrition.
+
+<ansi fg="yellow">━━━ Dodge Defense ━━━</ansi>
+
+Your first line of defense, available to everyone.
+
+  <ansi fg="stat">Skills Used:</ansi> Unarmed Combat + Dexterity
+  <ansi fg="stat">Stamina Cost:</ansi> Low
+  <ansi fg="stat">Requirements:</ansi> None (always available)
+
+  <ansi fg="stat">Effectiveness Reduced By:</ansi>
+  - Heavy armor (reduces mobility)
+  - High encumbrance (too much weight)
+  - Being prone (severely reduced)
+
+Dodge is your bread-and-butter defense. Even heavily armored fighters rely
+on dodge as their first chance to take the force out of a blow.
+
+<ansi fg="yellow">━━━ Parry Defense ━━━</ansi>
+
+Use your weapon to deflect incoming attacks.
+
+  <ansi fg="stat">Skills Used:</ansi> Weapon Combat + weapon parry rating
+  <ansi fg="stat">Stamina Cost:</ansi> Moderate
+  <ansi fg="stat">Requirements:</ansi> Weapon equipped in primary or offhand
+
+  <ansi fg="stat">Bonuses:</ansi>
+  - Two-handed weapons get parry bonus
+  - Can parry with either hand when dual wielding
+
+  <ansi fg="stat">Penalties:</ansi>
+  - Being prone (noticeably reduced)
+
+Parry is more stamina-intensive than dodge but can be very effective with
+the right weapon. Two-handed weapons excel at parrying.
+
+<ansi fg="yellow">━━━ Block Defense ━━━</ansi>
+
+Use your shield to absorb the blow.
+
+  <ansi fg="stat">Skills Used:</ansi> Weapon Combat + shield block rating
+  <ansi fg="stat">Stamina Cost:</ansi> High (most expensive defense)
+  <ansi fg="stat">Requirements:</ansi> Shield equipped in offhand
+
+  <ansi fg="stat">Benefits:</ansi>
+  - High effectiveness with quality shields
+  - Works reasonably well even when prone (slightly reduced)
+
+  <ansi fg="stat">Penalties:</ansi>
+  - Highest stamina cost
+  - Cannot dual wield weapons (shield takes offhand slot)
+
+Block is your final defense layer. Shields are stamina-hungry but provide
+excellent protection when your other defenses fail.
+
+<ansi fg="yellow">━━━ Defense Strategy ━━━</ansi>
+
+  <ansi fg="stat">Stamina Management:</ansi>
+  Long fights drain stamina quickly. Each dodge, parry, or block
+  attempt costs stamina, so manage your pool carefully. Low stamina
+  imposes severe combat penalties.
+
+  <ansi fg="stat">Equipment Choices:</ansi>
+  - Dual wield: More attacks, only dodge and parry
+  - Sword + Shield: Fewer attacks, all three defenses
+  - Two-handed weapon: Moderate attacks, strong parry, no block
+
+  <ansi fg="stat">While Prone:</ansi>
+  All defenses are severely reduced when knocked down, and attacks against
+  you land harder. Getting up matters more than anything else you could be
+  doing.
+
+  You try to rise on your own after a moment, but that is no longer a
+  certainty: if an enemy is standing over you, the two of you contest it,
+  and a stronger opponent can keep you down. Nobody is held forever, and
+  fighting your way back up teaches you something either way.
+
+  <ansi fg="command">stand</ansi> is the guaranteed way out. It costs stamina and it always
+  works, however badly you are being held. If you are down and want out
+  now, use it rather than waiting.
+
+<ansi fg="yellow">━━━ Counterattacks ━━━</ansi>
+
+A defense does not only spare you damage. Defend decisively enough and
+your opponent leaves an opening:
+
+  - A decisive dodge, parry or block earns a free answering swing the
+    attacker must defend in turn, at reduced damage. A decisive quell
+    earns the same.
+  - A decisive defy answers with words instead: a retort that wounds
+    the other side's nerve, whether they taunted you or tried to charm
+    you.
+
+You do not choose this and it costs you no action. It falls out of
+defending well, which is another reason to carry defenses you can
+actually use.
+
+Two things worth knowing:
+
+  - Every attack channel can be answered, not just weapons.
+  - Reach and aim decide it. Someone shooting you from another room
+    cannot be answered, because you cannot reach them. A working or a
+    sweep that reaches everyone in the room earns no answer either: the
+    free strike is for an attack aimed at you alone.
+
+<ansi fg="yellow">━━━ Defense Skills ━━━</ansi>
+
+Improve your defenses by progressing these skills:
+
+  <ansi fg="stat">Unarmed Combat:</ansi> Improves dodge effectiveness
+  <ansi fg="stat">Weapon Combat:</ansi> Improves parry and block effectiveness
+  <ansi fg="stat">Dexterity Stat:</ansi> Improves dodge chance (use-based progression)
+
+Train these skills through combat and see your survivability increase
+dramatically.
+
+<ansi fg="yellow">See Also:</ansi>
+
+  <ansi fg="command">help combat</ansi>, <ansi fg="command">help attack</ansi>, <ansi fg="command">help stamina</ansi>, <ansi fg="command">help prone</ansi>
+  <ansi fg="command">help skills</ansi>, <ansi fg="command">help dual-wield</ansi>

@@ -1,0 +1,21 @@
+spellid: mind-fog
+name: Mind Fog
+aliases: [fog]
+description: Psionic fog dulls the target's perception and willpower.
+attack_type: spell
+damage_type: mental
+targeting: single
+schools:
+  - mental
+cost: 50
+waitrounds: 1
+difficulty: 25
+primarystat: willpower
+base_folds: 6
+effect_type: condition
+condition_ids:
+  - 41
+categories:
+  - harm_single
+cast_actor: "You project a dense psionic fog toward your target."
+cast_observer: "{actor} stares at a target with unfocused eyes, projecting something unseen."

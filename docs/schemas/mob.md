@@ -1,0 +1,280 @@
+# Mob Schema Reference
+
+## 1. Filename & Location
+
+**Path formula:**
+```
+_datafiles/world/dogmud/mobs/{zone_folder}/{mobid}-{ConvertForFilename(name)}.yaml
+```
+
+- `{zone_folder}` = `ConvertForFilename(zone display name)` — lowercase, keep a-z/0-9, drop apostrophes, all other chars → underscore.
+- `{ConvertForFilename(name)}` — same conversion applied to the mob's character name.
+
+**Worked example:**
+- Zone: `Sanctum Basin`, Mob ID: `12`, Name: `"Cave Troll"`
+- Path: `_datafiles/world/dogmud/mobs/sanctum_basin/12-cave_troll.yaml`
+
+**Optional JS script:**
+```
+_datafiles/world/dogmud/mobs/{zone_folder}/scripts/{mobid}-{ConvertForFilename(name)}-{scripttag}.js
+```
+
+**Existing zone folders:**
+- `startland/`
+- `sanctum_basin/`
+- `endless_trashheap/`
+- `test_arena/`
+- `tutorial/`
+- `test/`
+
+**Workflow:** new mobs are usually built as part of a zone — see
+`docs/guides/CONTENT_GENERATION_GUIDE.md` Section 2 for the full zone-build
+SOP including the `behavior_archetype` priority order.
+
+---
+
+## 2. Field Reference
+
+### Top-level Fields
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `mobid` | int | **yes** | Unique integer. Must match filename. |
+| `zone` | string | **yes** | Display name of the zone (e.g. `"Sanctum Basin"`). |
+| `hostile` | bool | no | Whether this mob attacks players on sight. Default: false. |
+| `non_combatant` | bool | no | When true, mob cannot be attacked or stolen from — same gate that protects shopkeepers. Mob also won't aggro on player entry. Default: false. |
+| `player_attack_immune` | bool | no | When true, mob refuses player-originated attacks (attack/bash/grapple/kick/shoot/taunt/throw/trip and steal) with a "you can't attack" message — like `non_combatant` — but still participates in mob-vs-mob combat. Used by caravan crew, who fight bandits but cannot be attacked by players. Default: false. |
+| `charm_immune` | bool | no | Mob cannot be charmed (resists charm spells/effects). Default: false. |
+| `pack_flee_immune` | bool | no | Mob does not flee when a packmate dies (overrides species-based pack flee). Default: false. |
+| `maxwander` | int | no | Max rooms the mob will wander from its home room. 0 = stationary. |
+| `activitylevel` | int | no | 1–100. How often the mob executes idle commands. Higher = more active. |
+| `itemdropchance` | int | no | Percent chance (0–100) to drop carried items on death. |
+| `statpool` | int | no | Stat points distributed across stats on spawn (weighted by archetype). |
+| `archetype` | string | no | Stat distribution archetype: `"fighting"` (80% physical), `"casting"` (80% mental), or `""` (even). |
+| `groups` | list | no | Group membership (e.g. `[rats, animal]`). Used for teamwork and hates logic, and drives corpse salvage returns (see `internal/crafting/corpse_salvage.go`). |
+| `fold_anchor_room` | int | no | Room ID stamped into `MiscData["fold-anchor-room"]` at spawn. Lets the mob `cast fold-recall` to that room without first casting `fold-anchor`. Resolver: `internal/hooks/spell_foldrecall.go`. Used by hermit Old Edrin (Stage 3.0d), caravan crew (Stage 2), and the three Stage 3.1 foragers. |
+| `hates` | list | no | Group names or species this mob will attack on sight. |
+| `conditionids` | list | no | Condition IDs always applied when mob spawns. |
+| `questflags` | list | no | Quest flag strings set on this mob. |
+| `scripttag` | string | no | Tag appended to the script filename. Must match the `.js` file. |
+| `behavior_archetype` | string | no | Filename (without `.yaml`) of an archetype in `_datafiles/world/dogmud/behaviors/archetypes/`. Drives the mob's behavior tree. **Strongly preferred over legacy `aiprofile`/`combatcommands`/`tactic_preset` for new mobs.** See "Behavior Archetypes" below. |
+| `carry_capacity` | float | no | (Stage 3.4) Override Strength-derived carry capacity. Used by special mobs (wagons) where the default formula doesn't fit. Zero = use default calc. |
+| `health_max` | int | no | (Stage 3.4) Override Vitality-derived max HP. Zero = use default calc. |
+| `stamina_max` | int | no | (Stage 3.4) Override default max SP. Zero = use default calc. |
+| `corpse_name` | string | no | (Stage 3.4) Override "<Name> corpse" rendering. Wagon uses "splintered wagon wreckage". Empty = use default. |
+| `corpse_description` | string | no | (Stage 3.4) Override default corpse look-text via `description-corpse` template. Empty = use template. |
+| `stock_multiplier` | float | no | (Stage 3.4) Shop stock-cap scale; default 1.0. EffectiveMaxStock = item.RarityTier × stock_multiplier. Future big-city shops can set > 1.0. |
+| `aiprofile` | string | no | Legacy combat AI profile: `"default"`, `"aggressive"`, `"defensive"`, `"grappler"`, `"brawler"`, `"tactical"`. (legacy — prefer `behavior_archetype`) |
+| `specialmovechance` | int | no | Base % chance to use special moves in combat (0–100). |
+| `tactic_preset` | string | no | Reactive AI preset: `"aggressive_melee"`, `"defensive_caster"`, `"ambusher"`, `"tank"`. See Reactive AI below. (legacy — prefer `behavior_archetype`) |
+| `tactics` | list | no | Custom tactic rules. Each entry: `trigger`, `action`, `priority`. Merged with preset. (legacy — prefer `behavior_archetype`) |
+| `reaction_delay` | float | no | Seconds before reactive AI acts (0.25–4.0). Lower = faster reactions. (legacy — prefer `behavior_archetype`) |
+| `tactical_discipline` | float | no | 0.0–1.0. Probability the mob follows through on a tactic. Higher = more reliable. (legacy — prefer `behavior_archetype`) |
+| `idlecommands` | list | no | Commands executed while not in combat. Use `""` for empty (wait) turns. |
+| `combatcommands` | list | no | Commands executed while in combat. |
+| `spawnmutations` | list | no | Mutation IDs always granted at level 1 on spawn (Phase 24.3). |
+| `mutationchance` | int | no | % chance (0–100) to gain 1 random bonus mutation on spawn (Phase 24.3). |
+| `character` | object | **yes** | Character sub-object. See below. |
+| `llmprofile` | object | no | LLM-driven dialogue. See below. |
+
+### Character Sub-object
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `name` | string | **yes** | Mob's display name. Must match filename (`ConvertForFilename(name)`). |
+| `description` | string | **yes** | Text shown when players look at the mob. |
+| `speciesid` | int | **yes** | Species template. See known species below. |
+| `level` | int | no | Starting level. Default: 1. |
+| `gold` | int | no | Gold the mob carries (can be looted). |
+| `stats` | map | no | Stat overrides. Each stat takes a `base` key (the mob's starting value for that stat). Never author `training`; see section 4a. |
+| `items` | list | no | Items the mob spawns with. Each entry: `itemid: N`. |
+
+**Known species IDs** (from `_datafiles/world/dogmud/species/`):
+| speciesid | Name |
+|-----------|------|
+| 0 | ghostly spirit |
+| 1 | human |
+| 10 | rodent |
+| 19 | dummy |
+| 20 | orb |
+| 22 | bat |
+
+### LLMProfile Sub-object (Stage 18.3)
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `model` | string | **yes** | Ollama model name (e.g. `"llama3.2:3b"`). |
+| `systemprompt` | string | **yes** | Character persona, world facts, speech rules. Use YAML block scalar (`\|`). |
+| `maxwords` | int | no | Max words per LLM response. Default: 100. |
+| `cachettl` | string | no | How long to cache identical responses. Format: `"1hour"`, `"30minutes"`. |
+| `defaultmood` | string | no | Starting mood: `"friendly"`, `"neutral"`, `"cautious"`, `"hostile"`. |
+
+---
+
+## 3. Annotated Example
+
+```yaml
+# _datafiles/world/dogmud/mobs/startland/1-rat.yaml
+mobid: 1                     # Must match filename (1-rat.yaml)
+zone: Startland              # Display name; folder = startland/
+itemdropchance: 10           # 10% chance to drop carried items on death
+hostile: false               # Does not attack on sight
+maxwander: 8                 # Will wander up to 8 rooms from home
+groups:
+  - rats
+  - animal
+idlecommands:
+  - 'emote wiggles its nose'
+  - 'wander'
+  - ''                       # Empty string = skip this turn (adds variance)
+activitylevel: 10            # Fairly slow/quiet mob
+
+character:
+  name: rat                  # Must match filename segment (rat → 1-rat.yaml)
+  description: 'The rat''s sleek, mottled fur...'   # Single quotes; escape ' as ''
+  level: 1
+  speciesid: 10              # rodent species
+  stats:
+    vitality:
+      base: 8                # Species base is 10, so slightly less HP
+  items:
+    - itemid: 40002          # Spawns carrying this item
+```
+
+**Example with LLMProfile (Elder Saris):**
+```yaml
+# _datafiles/world/dogmud/mobs/sanctum_basin/55-elder_saris.yaml
+mobid: 55
+zone: Sanctum Basin
+hostile: false
+maxwander: 0                 # Stationary
+activitylevel: 10
+idlecommands:
+  - 'emote observes the moons through the bronze sighting device'
+  - 'emote makes a small notation in a slim leather-bound journal'
+  - ''
+  - ''
+
+llmprofile:
+  model: "llama3.2:3b"
+  maxwords: 100
+  cachettl: "1hour"
+  defaultmood: "neutral"
+  systemprompt: |
+    You are Elder Saris, the oldest living resident of Sanctum Basin...
+    # (Full persona prompt here — 1–4 paragraphs max for 3b models)
+
+character:
+  name: Elder Saris
+  description: 'Elder Saris is old in the way that certain basalt formations are old...'
+  speciesid: 1               # human
+  level: 5
+  gold: 0
+```
+
+---
+
+## 4. Gotchas
+
+**Filename must match character.name exactly via `ConvertForFilename`.**
+If mob name is `"Cave Troll"`, filename must be `{id}-cave_troll.yaml`. A mismatch causes either a startup panic or the mob loading silently under the wrong key.
+
+**Zone folder must use underscores.**
+`sanctum-basin/` will panic. Always `sanctum_basin/`.
+
+**Script tag must match `.js` filename.**
+If `scripttag: patrol`, the JS file must be named `{mobid}-{name}-patrol.js`. Mismatches cause the script to never load (no error, silent failure).
+
+**LLMProfile is optional — dialogue file is the fallback.**
+If Ollama is unreachable, the engine falls back to the mob's dialogue YAML (if one exists). Always provide at minimum a dialogue file for important NPCs. See `docs/schemas/dialogue.md`.
+
+**Reactive AI fields require at least one tactic source.**
+A mob needs either `tactic_preset` or `tactics` (or both) for the reactive AI to fire. Without either, the mob uses only the legacy `aiprofile` + `combatcommands` system. `reaction_delay` and `tactical_discipline` are only meaningful when tactics exist.
+
+**Tactic presets:**
+- `aggressive_melee` — kick prone targets, bash casters, submit grapplers
+- `defensive_caster` — self-shield, AoE on multiple targets, flee when low, single-target spell
+- `ambusher` — flee after engagement, hide when out of combat, trip casters
+- `tank` — bash casters, kick prone targets, call for help when low
+
+**Available actions:** `flee`, `hide`, `kick`, `bash`, `trip`, `call_for_help`, `retarget_strongest`, `cast <spell>`, `track_memory`, `recall`
+
+**Authored stats go in `base:`, never `training:`.**
+`StatInfo` has two authored-looking fields and they mean different things:
+
+- `base:` is what the mob starts with. Leave a stat out entirely and it is
+  filled in from the species record instead, so the mob tracks future species
+  rebalances. Author `base:` only when this mob should differ from its species.
+- `training:` is what progression has added *since the mob spawned*. A template
+  has not spawned, so it is always zero there.
+
+That distinction is load-bearing: U10b-0 makes the progression curve read
+`Training` as its rank, so a template that parks its stat values there starts
+partway down the decay curve and can be frozen by the gain cap at spawn.
+
+Before 2026-08-22 the convention was the opposite and 599 templates authored
+`training:`. `tools/fold_mob_training_to_base.py` folded them
+(`base_new = species_base + training`) and
+`TestNoMobTemplateCarriesAuthoredTraining` in `internal/mobs` now fails, naming
+the file and line, if the old convention comes back. If you trip it, move the
+number into `base:` and add the stat's species base to it.
+
+One sharp edge: species hydration fills a stat whose `base:` key is **absent**,
+not one whose base happens to be zero. `base: 0` therefore means a real zero and
+is honoured (see `stats.StatInfo.BaseAuthored`). Two mobs rely on this.
+
+**`statpool` distributes by archetype.**
+Stats in `statpool` are weighted by `archetype` at spawn: `"fighting"` favors Str/Dex/Vit (80/20 split), `"casting"` favors Per/Wil/Cha (20/80 split), and default is uniform. Identical mob templates will still vary. Use explicit `stats:` overrides when a specific stat spread matters.
+
+**`level` in `character:` sets baseline — statpool modifies it.**
+The engine calls `AutoTrain()` after distributing statpool points. Do not set both a high level and a large statpool expecting them to stack cleanly.
+
+---
+
+## 5. Behavior Archetypes
+
+`behavior_archetype` selects a behavior-tree YAML from
+`_datafiles/world/dogmud/behaviors/archetypes/`. The archetype drives
+combat decision-making, packmate awareness, and reactive AI without
+needing to author per-mob `combatcommands`/`tactics`.
+
+### Available archetypes
+
+| Archetype | Role |
+|-----------|------|
+| `generic_fighter` | Melee with bash/trip/grapple toolkit. Default for non-tank fighters. |
+| `tank_taunter` | Melee with signature taunt + self-empowering spells. For high-priority threats. |
+| `melee_self_empower` | Melee fighter who empowers itself before engaging. |
+| `ambusher` | Hidden until engagement; high opening burst. |
+| `pure_caster` | Spell-focused; flees from melee, kites with damage. |
+| `support_caster` | Strengthens and heals packmates; rarely the front-line target. |
+| `leader` | Commands packmates, calls for help, coordinates. |
+| `prey` | Flees on engagement; non-aggressive. |
+| `lookout` | Stationary observer; calls for help when triggered. |
+| `combat_passive` | In combat but doesn't attack — atmospheric or quest fodder. |
+| `noncombat_passive` | Walks idles, no combat behavior. |
+| `noncombat_questgiver` | Stationary, dialogue-only NPC. |
+| `noncombat_shopkeeper` | Stationary shop NPC. |
+
+### Priority for new mobs
+
+When authoring a new mob:
+
+1. **Reuse** an existing archetype if one fits.
+2. **Author a new archetype YAML** under `behaviors/archetypes/` if
+   the behavior pattern is reusable across multiple mobs.
+3. **Custom legacy** (`aiprofile` + `combatcommands` + `tactic_preset`)
+   ONLY for bosses or signature one-off NPCs.
+
+See `docs/guides/CONTENT_GENERATION_GUIDE.md` "Building a Full Zone" for the
+full zone-build workflow including the smoke-test checklist.
+
+### Pairing with stat distribution
+
+`behavior_archetype` and `archetype` (stat distribution) usually pair
+naturally:
+
+- `pure_caster` / `support_caster` → `archetype: "casting"`
+- `generic_fighter` / `tank_taunter` / `ambusher` /
+  `melee_self_empower` → `archetype: "fighting"`
+- `prey` / `noncombat_*` → `archetype: ""` (uniform)

@@ -1,0 +1,19 @@
+id: reinforced-harness
+name: Reinforced Harness
+aliases: [reinforcedharness]
+skill: tailoring
+skill_minimum: 50
+station: loom
+time_rounds: 7
+ingredients:
+  - item_tag: leather-strip
+    quantity: 3
+  - item_tag: thread-spool
+    quantity: 2
+  - item_tag: sinew
+    quantity: 1
+output:
+  item_id: 40208
+  quantity: 1
+success_actor: "You layer cured leather over doubled webbing and sew every seam twice until nothing in it can flex. A reinforced harness!"
+failure_actor: "A seam gives out under the needle and the whole harness sags loose. The materials are ruined."

@@ -1,0 +1,34 @@
+id: pothole_toke
+# Crier Toke is a critical-path newbie NPC: Cleric Hadwen sends every new
+# arrival to him for their "footing." So he must be findable at Hub Square at
+# ALL hours -- a newbie who arrives in the evening or at night must not find an
+# empty square (2026-06-29 newbie smoke: Toke was away/asleep after 18:00 and
+# nighttime newbies got no guidance). He stays at the square (5203) around the
+# clock, awake; only his idle flavor changes by time of day.
+description: "Crier Toke works Hub Square around the clock -- loud by day, quieter by lamplight, a low night-watch murmur before dawn -- always ready to set a newcomer on their footing."
+segments:
+  - start: 6
+    end: 18
+    target_room: 5203
+    activity: ""
+    idlecommands:
+      - emote plants himself in the middle of the square and clears his throat.
+      - say Fresh from the coulee -- mind the wash road after dark!
+      - emote nods to a passerby and files the face away for later.
+      - emote calls the hour and the news in one breath while the throat-mouth hums the next.
+  - start: 18
+    end: 22
+    target_room: 5203
+    activity: ""
+    idlecommands:
+      - emote lights the squat lamp at the foot of the notice-post and settles in for the evening watch.
+      - say Square's quieter now, but a crier keeps his post. You need your footing, just ask.
+      - emote reads the day's notices over by lamplight, lips moving on both mouths.
+  - start: 22
+    end: 6
+    target_room: 5203
+    activity: ""
+    idlecommands:
+      - emote keeps a low night-watch by the notice-post, voice down to a murmur so as not to wake the town.
+      - say Late to arrive? No shame in it. Ask and I will point you right, even at this hour.
+      - emote stifles a yawn with one mouth while the other hums an old road-song, eyes still on the square.

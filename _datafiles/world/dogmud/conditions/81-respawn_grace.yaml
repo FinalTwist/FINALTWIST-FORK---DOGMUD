@@ -1,0 +1,8 @@
+conditionid: 81
+name: Respawn Grace
+secret: true
+description: The world gives you a moment to gather yourself after death.
+flags:
+  - no-aggro-target
+triggerrate: 1 round
+triggercount: 3

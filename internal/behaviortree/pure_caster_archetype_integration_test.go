@@ -1,0 +1,230 @@
+package behaviortree
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/spells"
+)
+
+const pureCasterYAML = "../../_datafiles/world/dogmud/behaviors/archetypes/pure_caster.yaml"
+
+// seedCasterSpells seeds the spells the pure_caster archetype uses.
+// Includes Phase 4's self_defense spells (iron-will, conviction-ward) plus
+// the new self_heal + harm_single + harm_multi additions. Replaces the
+// entire allSpells map via SeedSpellsForTest.
+func seedCasterSpells(t *testing.T) func() {
+	t.Helper()
+	return spells.SeedSpellsForTest(map[string]*spells.SpellData{
+		// self_defense (reused from Phase 4)
+		"iron-will": {
+			SpellId: "iron-will", Name: "Iron Will",
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 45, BaseFolds: 6,
+			EffectType: "condition", ConditionIds: []int{27},
+			Categories: []string{"self_defense"},
+		},
+		"conviction-ward": {
+			SpellId: "conviction-ward", Name: "Conviction Ward",
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 30, BaseFolds: 4,
+			EffectType: "shield", EffectMagnitude: 75,
+			Categories: []string{"self_defense"},
+		},
+		// self_heal
+		"heal": {
+			SpellId: "heal", Name: "Heal",
+			AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle, Cost: 40, BaseFolds: 5,
+			EffectType: "heal", EffectMagnitude: 3,
+			Categories: []string{"self_heal"},
+		},
+		// harm_single
+		"mind-spike": {
+			SpellId: "mind-spike", Name: "Mind Spike",
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle, Cost: 35, BaseFolds: 4,
+			EffectType: "damage",
+			Categories: []string{"harm_single"},
+		},
+		// harm_multi
+		"sparks": {
+			SpellId: "sparks", Name: "Sparks",
+			AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetArea, Cost: 75, BaseFolds: 4,
+			EffectType: "damage",
+			Categories: []string{"harm_multi"},
+		},
+	})
+}
+
+// seedCasterMob seeds a mob with BehaviorArchetype: "pure_caster" and the
+// provided spellbook. HP starts at 100/100 (full). Caller can mutate
+// m.Character.Health for low-HP tests.
+func seedCasterMob(t *testing.T, instanceId int, spellbook map[string]int) (*mobs.Mob, func()) {
+	t.Helper()
+	m := &mobs.Mob{
+		MobId:             mobs.MobId(400 + instanceId),
+		InstanceId:        instanceId,
+		BehaviorArchetype: "pure_caster",
+	}
+	m.Character.Name = "testcaster"
+	m.Character.Conviction = 500
+	// Base, not just Value: the two tests below that apply Minor Shield via
+	// AddConditionMagnitude trigger a full Character.Validate(), which recomputes
+	// ConvictionMax/HealthMax from Base + stats + balance config and clamps
+	// Conviction/Health down to the recomputed max (validate.go:347-348,
+	// ~150). Without a real Base here, that max floors near zero in a test
+	// binary (balance config all zero) and every spell's conviction-cost
+	// check then fails, masking every branch's real Success/Failure signal.
+	m.Character.ConvictionMax.Base = 500
+	m.Character.ConvictionMax.Value = 500
+	m.Character.Health = 100
+	m.Character.HealthMax.Base = 100
+	m.Character.HealthMax.Value = 100
+	m.Character.SpellBook = spellbook
+	m.Character.Conditions = conditions.New()
+	cleanup := mobs.SeedMobsForTest(
+		map[int]*mobs.Mob{400 + instanceId: m},
+		map[int]*mobs.Mob{instanceId: m},
+	)
+	return m, cleanup
+}
+
+// TestPureCaster_FullHP_MaintainsDefenseFirst verifies that a full-HP
+// caster with no conditions casts its top-scoring self_defense spell first — heal
+// branch is gated by mob_health_below (HP not < 40%), so the selector
+// moves to self_defense.
+func TestPureCaster_FullHP_MaintainsDefenseFirst(t *testing.T) {
+	defer seedCasterSpells(t)()
+	LoadArchetypeForTest(t, "pure_caster", pureCasterYAML)
+
+	mob, cleanup := seedCasterMob(t, 91001, map[string]int{
+		"conviction-ward": 4,
+		"iron-will":       3,
+		"heal":            3,
+		"mind-spike":      5,
+		"sparks":          3,
+	})
+	defer cleanup()
+	defer events.DrainQueuedInputsForTest(mob.InstanceId)
+
+	ok := TryMobBehavior(mob.InstanceId, EventContext{EventType: "mob_combat_round"})
+	if !ok {
+		t.Fatalf("TryMobBehavior: expected Success, got false")
+	}
+	DrainAllDelayedActionsForTest(t)
+
+	// iron-will (6×45=270) > conviction-ward (4×30=120) → iron-will wins.
+	cmd := events.InspectQueuedInputForTest(mob.InstanceId, "cast ")
+	if !strings.HasPrefix(cmd, "cast iron-will") {
+		t.Fatalf("full-HP fresh caster should cast iron-will (top defense), got %q", cmd)
+	}
+}
+
+// TestPureCaster_LowHP_EmergencyHeal verifies that when HP drops below 40%
+// the heal branch of the selector fires first, preempting defense.
+func TestPureCaster_LowHP_EmergencyHeal(t *testing.T) {
+	defer seedCasterSpells(t)()
+	LoadArchetypeForTest(t, "pure_caster", pureCasterYAML)
+
+	mob, cleanup := seedCasterMob(t, 91002, map[string]int{
+		"conviction-ward": 4,
+		"heal":            3,
+		"mind-spike":      5,
+	})
+	defer cleanup()
+	defer events.DrainQueuedInputsForTest(mob.InstanceId)
+
+	// Drop HP below 40% (30/100 = 30%).
+	mob.Character.Health = 30
+
+	ok := TryMobBehavior(mob.InstanceId, EventContext{EventType: "mob_combat_round"})
+	if !ok {
+		t.Fatalf("TryMobBehavior: expected Success, got false")
+	}
+	DrainAllDelayedActionsForTest(t)
+
+	cmd := events.InspectQueuedInputForTest(mob.InstanceId, "cast ")
+	if !strings.HasPrefix(cmd, "cast heal") {
+		t.Fatalf("low-HP caster should cast heal first, got %q", cmd)
+	}
+}
+
+// TestPureCaster_DefenseCovered_SingleEnemy_CastsHarmSingle verifies that
+// when defense conditions are active, HP is fine, and no "multiple enemies"
+// condition fires (1 actor = caster itself), the selector reaches the
+// harm_single branch.
+func TestPureCaster_DefenseCovered_SingleEnemy_CastsHarmSingle(t *testing.T) {
+	defer seedCasterSpells(t)()
+	LoadArchetypeForTest(t, "pure_caster", pureCasterYAML)
+
+	mob, cleanup := seedCasterMob(t, 91003, map[string]int{
+		"conviction-ward": 4,
+		"iron-will":       3,
+		"heal":            3,
+		"mind-spike":      5,
+	})
+	defer cleanup()
+	defer events.DrainQueuedInputsForTest(mob.InstanceId)
+
+	// Activate iron-will (condition 27) and conviction-ward (the Minor Shield
+	// record). seedConditionOnChar replaces the whole spec map with just {27}, so
+	// SeedConditionRecordsForTest must run AFTER it to add Minor Shield's
+	// spec back in (additive) before AddConditionMagnitude needs it.
+	defer seedConditionOnChar(t, &mob.Character, 27)()
+	defer conditions.SeedConditionRecordsForTest()()
+	_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, 20, 75, "test")
+	// AddConditionMagnitude validates the embedded Character directly, which
+	// installs a PLAYER Presence/Perception (Character.Validate()'s nil
+	// guard); mob.Validate() puts the mob ones back so TryMobBehavior sees a
+	// mob in its normal state, same as production (every producer applies
+	// this through a mob already wired by its own Validate() pass).
+	_ = mob.Validate()
+
+	// No room setup → multiple_enemies condition returns Failure (no other
+	// actors), so the AoE branch skips. Selector drops to harm_single.
+	ok := TryMobBehavior(mob.InstanceId, EventContext{EventType: "mob_combat_round"})
+	if !ok {
+		t.Fatalf("TryMobBehavior: expected Success, got false")
+	}
+	DrainAllDelayedActionsForTest(t)
+
+	cmd := events.InspectQueuedInputForTest(mob.InstanceId, "cast ")
+	if !strings.HasPrefix(cmd, "cast mind-spike") {
+		t.Fatalf("defense-covered, single-enemy caster should cast mind-spike, got %q", cmd)
+	}
+}
+
+// TestPureCaster_NoCandidates_FallsThrough verifies that when every branch
+// has no viable candidates (all defense active, no harm spells known,
+// HP fine) the selector returns Failure so legacy combat runs.
+func TestPureCaster_NoCandidates_FallsThrough(t *testing.T) {
+	defer seedCasterSpells(t)()
+	LoadArchetypeForTest(t, "pure_caster", pureCasterYAML)
+
+	// Caster with only self_defense spells — no harm, no heal. All defense active.
+	mob, cleanup := seedCasterMob(t, 91004, map[string]int{
+		"conviction-ward": 4,
+		"iron-will":       3,
+	})
+	defer cleanup()
+	defer events.DrainQueuedInputsForTest(mob.InstanceId)
+
+	// seedConditionOnChar replaces the whole spec map with just {27}, so
+	// SeedConditionRecordsForTest must run AFTER it to add Minor Shield's
+	// spec back in (additive) before AddConditionMagnitude needs it.
+	defer seedConditionOnChar(t, &mob.Character, 27)()
+	defer conditions.SeedConditionRecordsForTest()()
+	_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, 20, 75, "test")
+	// AddConditionMagnitude validates the embedded Character directly, which
+	// installs a PLAYER Presence/Perception (Character.Validate()'s nil
+	// guard); mob.Validate() puts the mob ones back so TryMobBehavior sees a
+	// mob in its normal state, same as production (every producer applies
+	// this through a mob already wired by its own Validate() pass).
+	_ = mob.Validate()
+
+	ok := TryMobBehavior(mob.InstanceId, EventContext{EventType: "mob_combat_round"})
+	if ok {
+		t.Fatalf("TryMobBehavior: expected Failure (all branches declined), got Success")
+	}
+}

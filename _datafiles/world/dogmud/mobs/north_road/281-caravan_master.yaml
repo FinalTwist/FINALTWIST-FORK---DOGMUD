@@ -1,0 +1,51 @@
+mobid: 281
+zone: North Road
+behavior_archetype: noncombat_questgiver
+statpool: 70
+itemdropchance: 0
+hostile: false
+non_combatant: true
+charm_immune: true
+maxwander: 0
+groups:
+  - humanoid
+  - dustwalk_caravans
+  - gossiper
+knows_facts:
+  - roads-caravans-guarded
+relationships:
+  - to: 357
+    type: employer
+    subtype: caravan
+  - to: 358
+    type: employer
+    subtype: caravan
+  - to: 359
+    type: employer
+    subtype: caravan
+idlecommands:
+  - 'emote checks a manifest, lips moving as he counts entries'
+  - ''
+  - 'emote glances toward the north road and frowns'
+  - ''
+  - 'emote adjusts the rope securing cargo on a nearby wagon'
+  - ''
+activitylevel: 8
+character:
+  name: Caravan Master
+  description: A lean man in a travel-stained coat, with the calculating eyes
+    of someone who weighs every interaction in terms of profit and risk. His
+    hands are ink-stained from ledger work, but callused enough to show he loads
+    his own wagons when he has to. A heavy purse hangs at his belt, and he rests
+    one hand on it unconsciously. He is polite in the way of people who are
+    polite because it is cheaper than being rude.
+  speciesid: 1
+  level: 1
+  gold: 100
+  stats:
+    perception:
+      base: 108
+    charisma:
+      base: 112
+    willpower:
+      base: 106

@@ -1,0 +1,156 @@
+package guilds
+
+import (
+	"fmt"
+	"strings"
+	"time"
+	"unicode"
+	"unicode/utf8"
+
+	"github.com/GoMudEngine/GoMud/internal/items"
+)
+
+type GuildRank string
+
+const (
+	RankMember  GuildRank = "member"
+	RankOfficer GuildRank = "officer"
+	RankLeader  GuildRank = "leader"
+)
+
+// rankOrder gives a comparable weight (higher = more authority).
+func rankOrder(r GuildRank) int {
+	switch r {
+	case RankLeader:
+		return 3
+	case RankOfficer:
+		return 2
+	case RankMember:
+		return 1
+	}
+	return 0
+}
+
+type GuildMember struct {
+	UserId        int       `yaml:"userid"`
+	CharacterName string    `yaml:"charactername"` // name at join time (display only; may be stale after a rename)
+	Rank          GuildRank `yaml:"rank"`
+	Joined        time.Time `yaml:"joined"`
+}
+
+type Guild struct {
+	Tag            string        `yaml:"tag"`
+	Name           string        `yaml:"name"`
+	LeaderUserId   int           `yaml:"leaderuserid"`
+	Members        []GuildMember `yaml:"members"`
+	PendingInvites []int         `yaml:"pendinginvites,omitempty"`
+	Motd           string        `yaml:"motd,omitempty"`
+	Created        time.Time     `yaml:"created"`
+
+	// Treasury/vault (guild slice 3): shared gold + items. Deposit is open to
+	// members; withdraw/take gate on CanWithdraw (leader, or officer when delegated).
+	Treasury          int          `yaml:"treasury,omitempty"`
+	Vault             []items.Item `yaml:"vault,omitempty"`
+	TreasuryDelegated bool         `yaml:"treasurydelegated,omitempty"`
+
+	// RankTitles holds per-guild cosmetic overrides for the three rank names.
+	// Unset/empty falls back to the default rank string.
+	RankTitles map[GuildRank]string `yaml:"ranktitles,omitempty"`
+}
+
+// RankTitle returns the guild's custom title for rank, or the default rank name.
+func (g *Guild) RankTitle(rank GuildRank) string {
+	if t, ok := g.RankTitles[rank]; ok && t != "" {
+		return t
+	}
+	return string(rank)
+}
+
+// ValidRankTitle is the exported gate for command-layer validation before a
+// SetRankTitle call. See validRankTitle.
+func ValidRankTitle(title string) error { return validRankTitle(title) }
+
+// validRankTitle enforces a short, single-line, markup-free title: 2-20 runes of
+// letters, digits, and spaces only (excludes ':' and ';' — YAML/command gotchas —
+// and ANSI markup).
+func validRankTitle(title string) error {
+	title = strings.TrimSpace(title)
+	if n := utf8.RuneCountInString(title); n < 2 || n > 20 {
+		return fmt.Errorf("a rank title must be 2-20 characters")
+	}
+	for _, r := range title {
+		if !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == ' ') {
+			return fmt.Errorf("a rank title may only contain letters, digits, and spaces")
+		}
+	}
+	return nil
+}
+
+func validGuildTag(tag string) error {
+	if len(tag) < 2 || len(tag) > 4 {
+		return fmt.Errorf("tag must be 2-4 characters")
+	}
+	for _, r := range tag {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')) {
+			return fmt.Errorf("tag must be letters and digits only")
+		}
+	}
+	return nil
+}
+
+func validGuildName(name string) error {
+	if len(name) < 3 || len(name) > 40 {
+		return fmt.Errorf("name must be 3-40 characters")
+	}
+	if strings.TrimSpace(name) != name {
+		return fmt.Errorf("name must not start or end with a space")
+	}
+	return nil
+}
+
+func (g *Guild) MemberRank(userId int) (GuildRank, bool) {
+	for _, m := range g.Members {
+		if m.UserId == userId {
+			return m.Rank, true
+		}
+	}
+	return "", false
+}
+
+func (g *Guild) IsMember(userId int) bool { _, ok := g.MemberRank(userId); return ok }
+func (g *Guild) IsLeader(userId int) bool { return g.LeaderUserId == userId }
+
+// CanManage reports whether userId is officer or leader.
+func (g *Guild) CanManage(userId int) bool {
+	r, ok := g.MemberRank(userId)
+	return ok && rankOrder(r) >= rankOrder(RankOfficer)
+}
+
+// CanKick reports whether actor may kick target: actor is officer+, target is a
+// member, and actor outranks target strictly.
+func (g *Guild) CanKick(actorId, targetId int) bool {
+	ar, aok := g.MemberRank(actorId)
+	tr, tok := g.MemberRank(targetId)
+	if !aok || !tok || !g.CanManage(actorId) {
+		return false
+	}
+	return rankOrder(ar) > rankOrder(tr)
+}
+
+// CanWithdraw reports whether userId may withdraw gold / take vault items: the
+// leader always, and officers when treasury access is delegated.
+func (g *Guild) CanWithdraw(userId int) bool {
+	if g.IsLeader(userId) {
+		return true
+	}
+	return g.TreasuryDelegated && g.CanManage(userId)
+}
+
+func (g *Guild) HasInvite(userId int) bool {
+	for _, id := range g.PendingInvites {
+		if id == userId {
+			return true
+		}
+	}
+	return false
+}

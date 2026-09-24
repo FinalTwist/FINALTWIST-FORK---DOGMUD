@@ -1,0 +1,34 @@
+spellid: raise-spectre
+name: Raise Spectre
+aliases: [spectre]
+description: Draws the deepest shadow of a powerful soul from its
+  remains and compresses it into a spectre, a being of pure cold
+  malice. Spectres strike at the mind as much as the body, and require
+  a corpse of great potency to anchor the transformation.
+attack_type: none
+damage_type: non_harm
+targeting: self
+schools:
+  - manifestation
+cost: 40
+waitrounds: 10
+difficulty: 35
+primarystat: charisma
+base_folds: 10
+effect_type: none
+effect_magnitude: 0
+cast_actor: >-
+  You reach into the deep cold beneath these remains, searching
+  for the heavy, hateful shadow of a powerful soul...
+cast_observer: >-
+  {actor} crouches over the remains, hands pressing into the
+  ground on either side. A ring of frost spreads outward from
+  the contact.
+wait_actor: >-
+  A cold dread emanates from the remains as the soul's deepest
+  shadow is compressed and shaped. The air tastes of iron and
+  old grief...
+summon_mob_id: 303
+summon_pet_multiplier: 0.75
+summon_requires_corpse: true
+summon_min_corpse_pool: 200

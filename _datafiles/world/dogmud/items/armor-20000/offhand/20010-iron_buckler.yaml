@@ -1,0 +1,13 @@
+itemid: 20010
+name: Iron Buckler
+vendor_categories:
+- blacksmithing
+namesimple: buckler
+description: A small, round shield of hammered iron. Its face is dented from blocking
+  countless blows, but the metal holds firm.
+type: offhand
+subtype: wearable
+value: 12
+rarity_tier: 40
+physical_mitigation: 8
+blockrating: 15  # Stage 7.1: Block defense bonus

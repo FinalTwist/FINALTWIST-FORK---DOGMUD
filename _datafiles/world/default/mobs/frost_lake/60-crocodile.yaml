@@ -1,0 +1,16 @@
+mobid:  60
+zone: Frost Lake
+itemdropchance: 2
+hostile: true
+maxwander: 1
+activitylevel: 10
+idlecommands:
+  - 'wander'
+statpool: 5
+character:
+  name: crocodile
+  description: 'A large fearsome beast known to drag its victims underwater.'
+  speciesid: 21
+  equipment:
+      body:
+        itemid: 27

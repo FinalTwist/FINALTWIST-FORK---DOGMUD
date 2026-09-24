@@ -1,0 +1,67 @@
+questid: 7
+name: The Fallow Field
+description: Farmer Dorn's neighbour was evicted by the Thornwall
+  Tax Authority, and the abandoned field is breeding pests that
+  threaten the remaining farms. Kill the pests and bring Dorn a
+  sample.
+secret: false
+
+steps:
+  - id: start
+    map_target: 444  # the Pest Fields — kill pests for a sample
+    description: "Farmer Dorn has asked you to clear the crop pests
+      from the south fields and bring back a sample."
+    hint: "Kill crop pests until one drops a sample. From Dorn's farm,
+      go east 1 to the fallow field, then south 1 to the pest fields."
+  - id: deliver
+    map_target: 442  # Farmer Dorn's farm
+    description: "You have a pest sample. Bring it back to Farmer Dorn."
+    hint: "Return to Farmer Dorn with the pest sample."
+  - id: end
+    description: "You reported back to Dorn. The pest problem is
+      under control for now."
+
+rewards:
+  actor: "Dorn examines the pest sample with a grim
+    expression, then sets it down carefully. 'Bigger than they
+    should be. The fallow field is feeding them -- all that
+    untended root growth, it is a paradise for vermin.' He looks
+    toward Thornwall's walls. 'Gareth was a good farmer. The tax
+    took everything. And now the rest of us pay for it in
+    different coin.' He reaches into a pouch. 'This is not much,
+    but it is honest.'"
+  observer: "Dorn nods slowly, the weight of the situation
+    evident in his weathered face."
+  gold: 8
+  itemid: 23
+  rep_faction: thornwall_citizens
+  rep_amount: 15
+
+triggers:
+  # Item delivery via give command
+  # A pest drops a sample -> advance to the deliver step.
+  - event: item_gain
+    item: 24
+    conditions:
+      has: [7-start]
+      missing: [7-deliver]
+    actions:
+      - grant: 7-deliver
+  - event: item_give
+    mob: 89
+    item: 24
+    conditions:
+      has: [7-deliver]
+      missing: [7-end]
+    actions:
+      - grant: 7-end
+      - npc_say:
+          mob: 89
+          lines:
+            - {delay: 1, text: "Too big. This is not natural
+                size."}
+            - {delay: 3, text: "Something in the fallow soil is
+                feeding them. As long as that field sits empty,
+                this will keep happening."}
+            - {delay: 5, text: "You have done what you can. The
+                rest is politics."}

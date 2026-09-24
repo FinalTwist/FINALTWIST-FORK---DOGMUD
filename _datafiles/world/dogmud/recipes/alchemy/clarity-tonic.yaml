@@ -1,0 +1,21 @@
+id: clarity-tonic
+name: Clarity Tonic
+aliases: [clarity]
+skill: alchemy
+skill_minimum: 15
+station: alchemy_bench
+time_rounds: 4
+ingredients:
+  - item_tag: chrysalis-core
+    quantity: 1
+  - item_tag: bitter-thistle
+    quantity: 1
+  - item_tag: beeswax
+    quantity: 1
+  - item_tag: bottle
+    quantity: 1
+output:
+  item_id: 30029
+  quantity: 1
+success_actor: "The chrysalis core dissolves into a shimmering pale liquid. A clarity tonic!"
+failure_actor: "The mixture refuses to blend and separates. The materials are lost."

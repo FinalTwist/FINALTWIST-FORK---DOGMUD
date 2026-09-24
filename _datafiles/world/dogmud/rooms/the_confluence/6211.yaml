@@ -1,0 +1,34 @@
+roomid: 6211
+zone: The Confluence
+title: The Echoing Walk
+description: >
+  A passage that carries sound from the gallery
+  strangely, compressing it and returning it changed.
+  A footstep here comes back as something slightly
+  wrong, from an angle that does not match the walls.
+  The pre-Founding builders knew what they were doing
+  with this stone; whether the echo is deliberate is
+  not clear. The walls are uncarved, the floor clean
+  and level. It has the shape of a passage -- but it
+  ends here, at a blank wall of fitted stone, as though
+  it once led somewhere that has since been closed off.
+  The gallery is back to the east.
+biome: city
+coord:
+  x: 4
+  y: -78
+  z: -2
+exits:
+  east:
+    roomid: 6208
+idlemessages:
+- 'A footstep echoes back after a pause: the timing
+  is slightly off and the direction wrong.'
+- 'The walk ends at a blank fitted wall: a passage that
+  goes nowhere now, or once went somewhere since sealed.'
+- The sound of the gallery's channel arrives here
+  as something lower and less distinct than the room
+  behind you would suggest.
+x: 10
+y: 82
+z: -2

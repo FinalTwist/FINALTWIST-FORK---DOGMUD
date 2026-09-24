@@ -1,0 +1,28 @@
+spellid: summon-hive-swarm
+name: Summon Hive Swarm
+aliases: [swarm]
+description: Shatters a Hive Fragment into a permanent swarm servant.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - manifestation
+cost: 30
+waitrounds: 3
+difficulty: 45
+primarystat: charisma
+base_folds: 24
+effect_type: none
+effect_magnitude: 0
+cast_actor: >-
+  You crush the Hive Fragment in your fist, feeling thousands of
+  tiny lives stir within...
+cast_observer: >-
+  {actor} crushes a chitinous fragment, a faint buzzing filling
+  the air.
+wait_actor: >-
+  The buzzing intensifies as countless tiny organisms pour from
+  the shattered fragment...
+summon_mob_id: 111
+summon_pet_multiplier: 0.30
+summon_component_id: 40011

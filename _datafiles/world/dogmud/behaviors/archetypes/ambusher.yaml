@@ -1,0 +1,81 @@
+# ambusher archetype
+#
+# Hit-and-fade predator. Cycle:
+#   1. Mob starts hidden (condition 9) via conditionids in mob YAML.
+#   2. player_enter while Hidden → surprise strike.
+#   3. mob_idle + Hidden + player in room → surprise strike again
+#      (covers the case where the player returned or never left while
+#      the mob was idle).
+#   4. Combat cancels condition 9 via CancelIfCombat flag.
+#   5. mob_hurt → flee to adjacent room.
+#   6. mob_idle + NOT hidden → re-apply condition 9 (gated so we don't spam
+#      the start_room_text every round on a refresh).
+#
+# Spec: docs/superpowers/plans/completed/2026-04-24-ironwind-steppe-mob-audit.md
+
+tree:
+  type: selector
+  children:
+    # 1. Surprise strike when hidden and a player just arrived
+    - type: sequence
+      event: player_enter
+      children:
+        - type: condition
+          check: mob_has_condition
+          condition_id: 9
+        - type: action
+          do: attack
+
+    # 2. Surprise strike when idle, hidden, and a player is in the room.
+    #    Handles "player returned or never left, mob never re-engaged."
+    - type: sequence
+      event: mob_idle
+      children:
+        - type: condition
+          check: mob_has_condition
+          condition_id: 9
+        - type: condition
+          check: players_in_room
+        - type: action
+          do: attack
+
+    # 3. Flee after being hit (the ambush has cost us our cover)
+    - type: action
+      event: mob_hurt
+      do: flee
+
+    # NEW: interrupt casting targets mid-combat (absorbs the
+    # `ambusher` tactic preset's third rule).
+    - type: sequence
+      event: mob_combat_round
+      children:
+        - type: condition
+          check: target_is_casting
+        - type: action
+          do: command_best_of
+          cmds: [trip]
+
+    # 4. Re-apply Hidden when idle and NOT already hidden.
+    #    The inverted condition prevents spamming add_condition (and its
+    #    "{source} disappears into the shadows" room text) every round.
+    - type: sequence
+      event: mob_idle
+      children:
+        - type: decorator
+          mod: invert
+          child:
+            type: condition
+            check: mob_has_condition
+            condition_id: 9
+        - type: action
+          do: add_condition
+          condition_id: 9
+
+    # chunk 4.4: strategic goal pursuit (after reflex/combat, before idle end)
+    - type: action
+      event: mob_idle
+      do: try_goal_planner
+
+default_goals:
+  - type: survival
+    priority: 80

@@ -1,0 +1,16 @@
+itemid: 40019
+name: Chain Link
+namesimple: links
+description: Interlocking iron rings, ready to be woven into mail. They clink
+  softly when handled.
+type: object
+subtype: mundane
+component_tag: chain-link
+weight: 0.1
+value: 2
+rarity_tier: 50
+is_component: true
+vendor_categories:
+- blacksmithing
+- jewelcrafting
+material_tier: 2

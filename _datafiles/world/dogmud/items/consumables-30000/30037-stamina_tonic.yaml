@@ -1,0 +1,21 @@
+itemid: 30037
+name: Stamina Tonic
+vendor_categories:
+- alchemy
+namesimple: tonic
+description: A sharp-smelling tonic brewed from bitter
+  thistle. One sip and your fatigue starts to lift.
+type: potion
+subtype: drinkable
+uses: 1
+conditionids:
+  - 55
+value: 5
+rarity_tier: 50
+weight: 0.3
+toxicity: 8
+aging:
+  ferment_rounds: 1000
+  peak_rounds: 5000
+  decay_rounds: 15000
+  spoil_rounds: 25000

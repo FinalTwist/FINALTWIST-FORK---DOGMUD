@@ -1,0 +1,16 @@
+roomid: 1058
+zone: A Dark Forest
+title: A Dark Forest - Room 1058
+description: A room in A Dark Forest. This area has not yet been described.
+exits:
+  east:
+    roomid: 1059
+  north:
+    roomid: 1049
+  south:
+    roomid: 1067
+  west:
+    roomid: 1057
+x: 2
+y: 6
+plane: 1

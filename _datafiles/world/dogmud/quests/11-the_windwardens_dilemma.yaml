@@ -1,0 +1,27 @@
+questid: 11
+name: The Windwarden's Dilemma
+description: A conflict is brewing on the Ironwind Steppe between a
+  druid who guards the ancient stone circle and a Thornwall scholar
+  who wants to extract rare crystal from beneath it. You must choose
+  a side.
+secret: false
+flags:
+  - key: branch
+    values: [sylara, rhett]
+    description: "Which NPC the player sided with"
+steps:
+  - id: start
+    map_target: -1  # -1: bundled objectives, rooms [3030, 3115]; Phase 2 split review
+    description: "A conflict is brewing on the Ironwind Steppe. Visit
+      Windwarden Sylara at the stone circle or Geomancer Rhett at the
+      ridge approach and choose a side."
+    hint: "Sylara is at the stone circle (east from the ridge trail).
+      Rhett is at the ridge approach (east from the ridge trail then
+      north). Ask either about the conflict to choose a side."
+  - id: end
+    description: "You have made your choice and completed the task.
+      The consequences remain to be seen."
+rewards:
+  actor: "You have chosen your path. The steppe will
+    remember."
+  gold: 10

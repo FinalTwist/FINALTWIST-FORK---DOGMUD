@@ -1,0 +1,25 @@
+conditionid: 65
+name: Cat's Eye Draught
+description: Your eyes catch every bit of dim light and moonlight, like a
+  cat's. Hidden things reveal themselves, though total darkness still
+  leaves you blind.
+start_actee: Your eyes catch dim light and moonlight like a cat's. Hidden
+  things reveal themselves, but you feel weak.
+end_actee: Your eyes lose their cat-like sharpness. The hidden things
+  vanish, and your strength returns.
+start_observer: "{actee}'s eyes catch the light like a cat's."
+end_observer: "The glint fades from {actee}'s eyes."
+triggerrate: 1 round
+triggercount: 500
+statmods:
+  strength: -10
+# nightvision_strength: the shift cap (windowShiftCap = 24,
+# internal/messaging/window.go). This is a crafted, costed, temporary potion,
+# so it should be the best night sight obtainable, which is the reason it
+# costs ten points of strength. No infra_reach: it sharpens vision for dim
+# light and moonlight, it does not sense heat.
+effects:
+  nightvision_strength: 24
+flags:
+  - nightvision
+  - see-hidden

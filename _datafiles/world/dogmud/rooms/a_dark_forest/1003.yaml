@@ -1,0 +1,13 @@
+roomid: 1003
+zone: A Dark Forest
+title: A Dark Forest - Room 1003
+description: A room in A Dark Forest. This area has not yet been described.
+exits:
+  east:
+    roomid: 1004
+  south:
+    roomid: 1012
+  west:
+    roomid: 1002
+x: 1
+plane: 1

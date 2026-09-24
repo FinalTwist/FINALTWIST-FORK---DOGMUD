@@ -1,0 +1,40 @@
+mobid: 9139
+zone: Pothole Coulee
+behavior_archetype: generic_fighter
+archetype: fighting
+statpool: 25
+itemdropchance: 100
+hostile: false
+maxwander: 2
+groups:
+  - beast
+  - steppe
+character:
+  name: Pronghorn
+  description: |
+    A pronghorn of the high steppe, rust-and-cream against the pale rock, with
+    hollow pronged horns and eyes set wide on the skull to catch movement in
+    nearly a full circle. It stands very still when uncertain — not the frozen
+    stillness of hiding, but the alert stillness of something already calculating
+    its exit — and when it decides to go it goes fast, faster than anything
+    that size has a right to be, in a smooth ground-eating stride that opens
+    the distance between itself and a threat with quiet efficiency.
+    The meat is good. Getting close enough to take a clean shot is the work.
+  speciesid: 7
+  level: 1
+  gold: 0
+  items:
+    # Raw meat is QUEST-CRITICAL: quest 42 "The Hunt" tells the player "it drops
+    # raw meat; pick it up" and then asks them to craft grilled meat from it.
+    # This sat at itemdropchance 15 until 2026-08-31, so five in six kills gave a
+    # newbie nothing to cook and no hint that grinding was expected. Meat is not
+    # valuable enough to be worth gating the newbie chain on a dice roll.
+    # Do not lower this without giving quest 42 its own guaranteed drop first.
+    - itemid: 40014   # raw meat (drops on death, always)
+  stats:
+    dexterity:
+      base: 152
+    vitality:
+      base: 88
+    perception:
+      base: 155

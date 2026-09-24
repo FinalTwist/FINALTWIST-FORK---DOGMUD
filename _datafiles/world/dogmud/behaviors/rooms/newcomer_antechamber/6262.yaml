@@ -1,0 +1,24 @@
+# 6262 The Proving — movement gate only. The combat lesson + Dewey's voice live
+# in quest 28. Block the exit until the lesson (28-tripped) is done. Once
+# tripped is held, north (and a successful flee, which carries the player to
+# 6467) pass through.
+tree:
+  type: selector
+  children:
+    - type: sequence
+      event: room_command
+      children:
+        - type: condition
+          check: command_matches
+          commands: [north, n, go, south, s, east, e, west, w, up, u, down, d]
+        - type: condition
+          check: player_missing_quest
+          quest: "28-tripped"
+        - type: action
+          do: mob_say
+          mob_id: 9491
+          text: >-
+            Not through here yet -- finish at the effigy first. If you have lost
+            the thread, type <ansi fg="command">hint</ansi> for your next step.
+        - type: action
+          do: intercept

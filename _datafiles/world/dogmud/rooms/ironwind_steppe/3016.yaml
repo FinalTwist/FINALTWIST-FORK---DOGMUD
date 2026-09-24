@@ -1,0 +1,32 @@
+roomid: 3016
+zone: Ironwind Steppe
+title: Ridgefoot Flats
+description: The open sagebrush flats narrow here at the foot of the
+  ridge. To the west the level grassland runs on toward the ridge
+  approach, while to the east and north the dark mass of Ironwind
+  Ridge breaks the skyline and the ground begins to climb. The wind
+  is steady and warm, bending the grass in continuous rolling waves.
+  A large boulder sits at the flats' edge, dropped here by some
+  ancient glacial force. Southward the soil thins and the ground
+  breaks into rock.
+biome: land
+exits:
+  west:
+    roomid: 3030
+  south:
+    roomid: 3017
+nouns:
+  boulder: An enormous grey boulder, taller than a person, sitting
+    alone on the flat steppe. Its surface is covered with pale
+    lichen and the scratches of sharpening claws. The wind has
+    carved shallow grooves into the softer stone.
+spawninfo:
+- mobid: 205
+- mobid: 206
+- mobid: 209
+idlemessages:
+- The boulder casts a shifting shadow across the flattened grass.
+- Two wolves trot across the distant flats, grey shapes against grey grass.
+- The wind carries a faint, eerie whistle from the ridge to the east.
+x: 25
+y: 5

@@ -1,0 +1,42 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="command">cast</ansi>
+
+The <ansi fg="command">cast</ansi> command attempts to cast a learned spell.
+
+<ansi fg="yellow">Usage: </ansi>
+
+  <ansi fg="command">cast illum</ansi>
+  This would attempt to cast the "Illuminate" spell, if it's in your spell book.
+
+  Spells can also be cast by using their shorthand/ID directly, such as: <ansi fg="command">illum</ansi>
+
+<ansi fg="yellow">━━━ Targets ━━━</ansi>
+
+  <ansi fg="command">cast heal Kesh</ansi>
+  Aim at someone by name.
+
+  <ansi fg="command">cast heal</ansi>
+  With no name, a harmful spell aims at your foe and a helpful one at you.
+
+You must be able to see what you aim at. In the dark you can cast only
+on yourself or on the whole room. If you can make out shapes but not
+faces, aim at your foe, or at a shape: <ansi fg="command">cast heal shape</ansi>,
+<ansi fg="command">cast heal 2.shape</ansi>. A creature hiding from you
+cannot be named at all until you find it.
+
+<ansi fg="yellow">━━━ Combat and Concentration ━━━</ansi>
+
+Casting is an act of held concentration. Spells build over several
+rounds as you complete their folds, and taking hits can disrupt the
+work. A strong <ansi fg="yellow">Willpower</ansi>, backed by real
+spellcasting training, keeps your concentration together.
+
+Position matters: casting while grappled or knocked down is much
+harder to hold together. If you must cast in a fight, do it on your
+feet with room to breathe. Casting counts as a special move and
+shares the special-move cooldown.
+
+You cannot begin a cast while crafting or salvaging. Finish your
+work first.
+
+<ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help spells</ansi>, <ansi fg="command">help grapple</ansi>, <ansi fg="command">help special</ansi>
+

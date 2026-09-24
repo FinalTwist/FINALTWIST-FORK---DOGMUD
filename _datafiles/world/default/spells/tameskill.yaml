@@ -1,0 +1,11 @@
+# Only applied by the tame skill
+spellid: tameskill
+name: Tame
+description: Attempts to tame a wild creature.
+attack_type: spell
+damage_type: mental
+targeting: single
+cost: 0
+waitrounds: 3
+difficulty: 0
+primarystat: willpower

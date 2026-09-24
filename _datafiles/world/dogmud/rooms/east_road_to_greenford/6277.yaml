@@ -1,0 +1,65 @@
+roomid: 6277
+zone: East Road to Greenford
+title: The Greenford Bridge
+description: >
+  The bridge spans the Greenford river in three long arches
+  of dressed stone, the water running fast and cold through
+  the pier-shadows below. Halfway across, the paving is
+  notched where a cart-wheel has struck it at the same spot
+  a thousand times — the mark of a working crossing. At the
+  far end, the toll-gate stands open, its timber bar raised
+  and hooked back clear of the road. The warden's booth is
+  occupied — smoke from the brazier, the window unshuttered.
+  Past the gate, the first streets of Greenford's riverfront
+  open up: low buildings against the bank, the smell of
+  fish and rope, and behind it all the long slope of the
+  hill rising to the university tower at the crown.
+biome: farmland
+coord: {x: 21, y: -70, z: 0}
+exits:
+  north: {roomid: 6276}
+  south: {roomid: 6278, zone: Greenford}
+nouns:
+  the gate: >
+    A bar of squared timber at the bridge's far end, its
+    iron fittings worn bright from use. The bar is raised
+    now — hooked back clear of the road on its pivot post,
+    the crossing open to travelers. The warden's booth
+    stands occupied beside it, smoke from the brazier,
+    the window unshuttered. The gate has not always been
+    open. This season it is. The sign above the arch
+    carries the current toll-road notice.
+  the bridge: >
+    Standing mid-span, the stone rail is at your hand and
+    the Greenford passes below in full — wide and swift
+    through the pier-channels, the bottom briefly visible
+    near the gravel bars. The roadway paving
+    is worn to a smooth shallow curve from traffic —
+    generations of carts and foot-travelers have used this
+    crossing and left their mark in it. The water below
+    the arches moves fast and dark between the piers.
+    From here Greenford is plainly visible: a real town,
+    built on a real hill, not going anywhere.
+  the far shore: >
+    Past the open gate, the road runs into Greenford —
+    the riverfront first, low buildings close on either
+    side, the smell of fish and rope and wet stone. Then
+    the streets climbing the hill, then the university
+    at the crown with its tower catching whatever light
+    is going. The town is inhabited and the gate is
+    open. Both things are now true at once.
+  sign: >
+    Nailed below the arch: GREENFORD — ALL TRAVELERS
+    SUBJECT TO TOLL AND WARDEN'S INSPECTION. Painted
+    black on pale board, the lettering repainted over
+    faint edges of older text that said something else.
+    A smaller addition in a different hand reads SCHOLARS
+    AND UNIVERSITY STAFF EXEMPT. Someone added that later.
+    No one has taken it down. The sign has been here a
+    long time. The wording has changed more than once.
+idlemessages:
+- The river moves fast under the bridge, indifferent to the crossing.
+- Greenford is visible past the open gate, the hill rising behind it.
+- The notch in the paving marks where every cart turned the same way.
+x: 22
+y: 74

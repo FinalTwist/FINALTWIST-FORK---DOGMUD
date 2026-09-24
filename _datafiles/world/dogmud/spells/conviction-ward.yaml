@@ -1,0 +1,20 @@
+spellid: conviction-ward
+name: Conviction Ward
+aliases: [ward]
+description: Solidifies belief into a barrier that absorbs damage.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - enhancement
+cost: 30
+waitrounds: 1
+difficulty: 10
+primarystat: willpower
+base_folds: 4
+effect_type: shield
+effect_magnitude: 75
+categories:
+  - self_defense
+cast_actor: "You solidify your belief into a protective barrier."
+cast_observer: "{actor} spreads their arms as conviction shimmers into a ward."

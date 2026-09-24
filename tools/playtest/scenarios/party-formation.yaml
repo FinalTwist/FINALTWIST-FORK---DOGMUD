@@ -1,0 +1,46 @@
+# DOGMud party + coordinated combat smoke (0.3d).
+# Path: spawn Main Street (462) → party invite/accept → party say →
+# walk south/west to Back Alley (474) → leader bash thug prone → joiner stomp.
+#
+# Party commands: invite / accept / list / party say
+# Combat: bash needs shield; kick auto-selects stomp on prone targets.
+
+name: party-formation
+mode: party
+summary: >-
+  Mixed-loadout party forms in Thornwall's Back Alley, communicates on the
+  party channel, and coordinates bash-knockdown → prone stomp on a thug.
+on_actor_stop: continue
+budgets:
+  wall_clock: 45m
+requires:
+  max_connections: 20
+roster:
+  - id: leader
+    personality: feature-tester
+    goals: goals/scenarios/party-formation/leader.yaml
+  - id: joiner
+    personality: bug-finder
+    goals: goals/scenarios/party-formation/joiner.yaml
+
+group_goals:
+  - id: party-formed
+    do: >-
+      Leader invites by character name; joiner accepts. Coordinate readiness
+      via blackboard; membership via party list.
+    verify: >-
+      Both see a two-member party. Invite/accept lines observed on both
+      bridges.
+  - id: party-comms
+    do: >-
+      Leader issues party say with the bash/stomp plan; joiner receives it
+      in-game ((party) channel), not only via blackboard.
+    verify: >-
+      Joiner events contain the leader's party say (or '(party)' line).
+  - id: coordinated-prone-stomp
+    do: >-
+      Leader shield-bashes the Thornwall Thug to the ground, party-says the
+      callout; joiner kicks into a stomp while the thug is down.
+    verify: >-
+      Leader bridge shows bash knockdown ('to the ground'). Joiner bridge
+      shows stomp/heel/boot-on-downed language in the same fight window.

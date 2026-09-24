@@ -1,0 +1,251 @@
+# UPSTREAM GoMud HOLDOVER. NOT LOADED BY DOGMud.
+#
+# The live combat-message store is _datafiles/world/dogmud/combat-messages.
+# This tree is upstream content kept for merge tracking only: main.go passes
+# it to util.ValidateWorldFiles, which compares top-level DIRECTORY NAMES and
+# never opens a file.
+#
+# It could not load if it were pointed at. These files put a flat list under
+# each role, while the schema expects beginner/expert/master tiers, and none
+# of them defines the `fumble` intensity that Validate() requires. The wider
+# tree is missing 30+ subsystems the engine loads unconditionally, so a boot
+# against it would die long before it reached this directory.
+#
+# Do not edit these to match dogmud. See
+# docs/superpowers/specs/2026-09-16-messaging-m3-item8-combat-messages-design.md
+# Possible tokens: 
+# {itemname}    - name of weapon/object e.g. 'sword'
+# {actor}      - name of mob or user e.g. 'goblin'
+# {actortype}  - 'user' or 'mob'
+# {actee}      - name of mob or user e.g. 'goblin'
+# {acteetype}  - 'user' or 'mob'
+# {damage}      - damage dealt as an integer e.g. '5'
+# {exitname}    - name of exit for attack e.g. 'north'
+# {entrancename}- name of entrance for attack e.g. 'south'
+optionid: shooting
+options:
+  prepare:
+    # messages for when they are in the same room
+    together:
+      toattacker:
+      - 'You prepare to enter into mortal combat with <ansi fg="{acteetype}">{actee}</ansi>.'
+      - 'You ready your <ansi fg="item">{itemname}</ansi> against <ansi fg="{acteetype}">{actee}</ansi>.'
+      - 'You take aim at <ansi fg="{acteetype}">{actee}</ansi>, preparing to attack.'
+      todefender:
+      - '<ansi fg="{actortype}">{actor}</ansi> prepares to fight you with their <ansi fg="item">{itemname}</ansi>.'
+      - '<ansi fg="{actortype}">{actor}</ansi> levels their <ansi fg="item">{itemname}</ansi> at you, eyes filled with intent.'
+      - '<ansi fg="{actortype}">{actor}</ansi> takes aim at you with their <ansi fg="item">{itemname}</ansi>.'
+      toroom:
+      - '<ansi fg="{actortype}">{actor}</ansi> prepares to attack <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
+      - '<ansi fg="{actortype}">{actor}</ansi> readies their <ansi fg="item">{itemname}</ansi> against <ansi fg="{acteetype}">{actee}</ansi>.'
+      - '<ansi fg="{actortype}">{actor}</ansi> takes aim at <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
+    # messages for when they are in different rooms, such as with projectiles
+    separate:
+      toattacker:
+      - 'You prepare to attack <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi> direction.'
+      - 'You ready your <ansi fg="item">{itemname}</ansi>, aiming towards the <ansi fg="exit">{exitname}</ansi> direction at <ansi fg="{acteetype}">{actee}</ansi>.'
+      - 'You take position to shoot at <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi>.'
+      todefender:
+      - 'Someone... or something, is aiming at you from the <ansi fg="exit">{entrancename}</ansi> direction.'
+      - 'You sense danger coming from the <ansi fg="exit">{entrancename}</ansi> direction.'
+      - 'A feeling of being watched comes from the <ansi fg="exit">{entrancename}</ansi> direction.'
+      toattackerroom:
+      - '<ansi fg="{actortype}">{actor}</ansi> prepares to attack towards the <ansi fg="exit">{exitname}</ansi> direction.'
+      - '<ansi fg="{actortype}">{actor}</ansi> readies their <ansi fg="item">{itemname}</ansi> aiming towards the <ansi fg="exit">{exitname}</ansi> direction.'
+      - '<ansi fg="{actortype}">{actor}</ansi> takes aim through the <ansi fg="exit">{exitname}</ansi>.'
+      todefenderroom:
+  wait:
+    # messages for when they are in the same room
+    together:
+      toattacker:
+      - 'You aim carefully at <ansi fg="{acteetype}">{actee}</ansi>.'
+      - 'You steady your <ansi fg="item">{itemname}</ansi>, focusing on <ansi fg="{acteetype}">{actee}</ansi>.'
+      - 'You take a deep breath and line up your shot at <ansi fg="{acteetype}">{actee}</ansi>.'
+      todefender:
+      - '<ansi fg="{actortype}">{actor}</ansi> aims carefully.'
+      - '<ansi fg="{actortype}">{actor}</ansi> fixes their gaze on you, weapon ready.'
+      - '<ansi fg="{actortype}">{actor}</ansi> points their <ansi fg="item">{itemname}</ansi> in your direction.'
+      toroom:
+      - '<ansi fg="{actortype}">{actor}</ansi> aims carefully at <ansi fg="{acteetype}">{actee}</ansi>.'
+      - '<ansi fg="{actortype}">{actor}</ansi> steadies their aim at <ansi fg="{acteetype}">{actee}</ansi>.'
+      - '<ansi fg="{actortype}">{actor}</ansi> focuses intently on <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
+    # messages for when they are in different rooms, such as with projectiles
+    separate:
+      toattacker:
+      - 'You aim carefully at <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi> direction.'
+      - 'You steady your aim towards the <ansi fg="exit">{exitname}</ansi>, targeting <ansi fg="{acteetype}">{actee}</ansi>.'
+      - 'You line up your shot through the <ansi fg="exit">{exitname}</ansi> direction at <ansi fg="{acteetype}">{actee}</ansi>.'
+      todefender:
+      - 'The hair on the back of your neck stands up.'
+      - 'A sudden chill runs down your spine.'
+      - 'You feel as if someone is watching you from the <ansi fg="exit">{entrancename}</ansi> direction.'
+      toattackerroom:
+      - '<ansi fg="{actortype}">{actor}</ansi> aims carefully towards the <ansi fg="exit">{exitname}</ansi> direction.'
+      - '<ansi fg="{actortype}">{actor}</ansi> steadies their <ansi fg="item">{itemname}</ansi> towards the <ansi fg="exit">{exitname}</ansi>.'
+      - '<ansi fg="{actortype}">{actor}</ansi> focuses intently towards the <ansi fg="exit">{exitname}</ansi> direction.'
+      todefenderroom:
+  miss:
+    # messages for when they are in the same room
+    together:
+      toattacker:
+      - 'You fire your <ansi fg="item">{itemname}</ansi> at <ansi fg="{acteetype}">{actee}</ansi>, to no avail!'
+      - 'Your shot at <ansi fg="{acteetype}">{actee}</ansi> misses completely!'
+      - 'You pull the trigger, but your shot goes wide of <ansi fg="{acteetype}">{actee}</ansi>!'
+      todefender:
+      - '<ansi fg="{actortype}">{actor}</ansi> fires a shot from their <ansi fg="item">{itemname}</ansi> at you, but misses by a mile.'
+      - '<ansi fg="{actortype}">{actor}</ansi> shoots at you but fails to hit.'
+      - 'A shot from <ansi fg="{actortype}">{actor}</ansi> whizzes past you!'
+      toroom:
+      - '<ansi fg="{actortype}">{actor}</ansi> fires a shot from their <ansi fg="item">{itemname}</ansi> at <ansi fg="{acteetype}">{actee}</ansi>, but misses by a mile.'
+      - '<ansi fg="{actortype}">{actor}</ansi> shoots at <ansi fg="{acteetype}">{actee}</ansi> but misses completely.'
+      - 'A shot from <ansi fg="{actortype}">{actor}</ansi> flies past <ansi fg="{acteetype}">{actee}</ansi> harmlessly.'
+    # messages for when they are in different rooms, such as with projectiles
+    separate:
+      toattacker:
+      - 'You fire your <ansi fg="item">{itemname}</ansi> through the <ansi fg="exit">{exitname}</ansi> direction, but miss <ansi fg="{acteetype}">{actee}</ansi>!'
+      - 'Your shot towards <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi> misses!'
+      - 'You pull the trigger, but your shot through the <ansi fg="exit">{exitname}</ansi> fails to hit <ansi fg="{acteetype}">{actee}</ansi>.'
+      todefender:
+      - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi> direction, but misses you!'
+      - 'A projectile whizzes past you from the <ansi fg="exit">{entrancename}</ansi> direction!'
+      - 'You hear a shot from the <ansi fg="exit">{entrancename}</ansi> direction, but it misses.'
+      toattackerroom:
+      - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi> towards the <ansi fg="exit">{exitname}</ansi> direction.'
+      - '<ansi fg="{actortype}">{actor}</ansi> shoots through the <ansi fg="exit">{exitname}</ansi> but seems to miss.'
+      - '<ansi fg="{actortype}">{actor}</ansi> fires a shot towards the <ansi fg="exit">{exitname}</ansi> direction, but nothing happens.'
+      todefenderroom:
+      - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi> direction, barely missing <ansi fg="{acteetype}">{actee}</ansi>.'
+      - 'A projectile flies in from the <ansi fg="exit">{entrancename}</ansi>, missing <ansi fg="{acteetype}">{actee}</ansi> by inches.'
+      - 'A shot from the <ansi fg="exit">{entrancename}</ansi> direction sails past <ansi fg="{acteetype}">{actee}</ansi>.'
+  weak:
+    # messages for when they are in the same room
+    together:
+      toattacker:
+      - 'You fire at <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi> causing <ansi fg="damage">{damage} damage</ansi>.'
+      - 'Your shot grazes <ansi fg="{acteetype}">{actee}</ansi>, causing <ansi fg="damage">{damage} damage</ansi>.'
+      - 'You manage to wound <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi> for <ansi fg="damage">{damage} damage</ansi>.'
+      todefender:
+      - '<ansi fg="{actortype}">{actor}</ansi> fires at you with their <ansi fg="item">{itemname}</ansi> causing <ansi fg="damage">{damage} damage</ansi>.'
+      - 'You feel a sting as <ansi fg="{actortype}">{actor}</ansi> grazes you with a shot for <ansi fg="damage">{damage} damage</ansi>.'
+      - '<ansi fg="{actortype}">{actor}</ansi> wounds you slightly with their <ansi fg="item">{itemname}</ansi>, causing <ansi fg="damage">{damage} damage</ansi>.'
+      toroom:
+      - '<ansi fg="{actortype}">{actor}</ansi> lands a shot on <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>.'
+      - '<ansi fg="{actortype}">{actor}</ansi> wounds <ansi fg="{acteetype}">{actee}</ansi> with a glancing shot.'
+      - '<ansi fg="{actortype}">{actor}</ansi> fires at <ansi fg="{acteetype}">{actee}</ansi>, causing a minor injury.'
+    # messages for when they are in different rooms, such as with projectiles
+    separate:
+      toattacker:
+      - 'You fire at <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi> direction, doing <ansi fg="damage">{damage} damage</ansi>.'
+      - 'Your shot through the <ansi fg="exit">{exitname}</ansi> grazes <ansi fg="{acteetype}">{actee}</ansi>, causing <ansi fg="damage">{damage} damage</ansi>.'
+      - 'You manage to hit <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi>, causing <ansi fg="damage">{damage} damage</ansi>.'
+      todefender:
+      - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi> direction, hitting you for <ansi fg="damage">{damage} damage</ansi>!'
+      - 'You are grazed by a shot from the <ansi fg="exit">{entrancename}</ansi> direction, taking <ansi fg="damage">{damage} damage</ansi>!'
+      - 'A projectile from the <ansi fg="exit">{entrancename}</ansi> wounds you for <ansi fg="damage">{damage} damage</ansi>.'
+      toattackerroom:
+      - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi> towards the <ansi fg="exit">{exitname}</ansi> direction.'
+      - '<ansi fg="{actortype}">{actor}</ansi> shoots through the <ansi fg="exit">{exitname}</ansi>, attempting to hit <ansi fg="{acteetype}">{actee}</ansi>.'
+      - '<ansi fg="{actortype}">{actor}</ansi> fires a shot towards the <ansi fg="exit">{exitname}</ansi>.'
+      todefenderroom:
+      - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi>, hitting <ansi fg="{acteetype}">{actee}</ansi>.'
+      - 'A projectile flies in from the <ansi fg="exit">{entrancename}</ansi>, grazing <ansi fg="{acteetype}">{actee}</ansi>.'
+      - 'A shot from the <ansi fg="exit">{entrancename}</ansi> direction wounds <ansi fg="{acteetype}">{actee}</ansi>.'
+  normal:
+    # messages for when they are in the same room
+    together:
+      toattacker:
+      - 'You fire your <ansi fg="item">{itemname}</ansi>, wounding <ansi fg="{acteetype}">{actee}</ansi> for <ansi fg="damage">{damage} damage</ansi>!'
+      - 'Your shot hits <ansi fg="{acteetype}">{actee}</ansi>, dealing <ansi fg="damage">{damage} damage</ansi>!'
+      - 'You successfully wound <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi>, causing <ansi fg="damage">{damage} damage</ansi>!'
+      todefender:
+      - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi>, wounding you for <ansi fg="damage">{damage} damage</ansi>!'
+      - 'You are hit by <ansi fg="{actortype}">{actor}</ansi>''s shot, taking <ansi fg="damage">{damage} damage</ansi>!'
+      - '<ansi fg="{actortype}">{actor}</ansi> wounds you with their <ansi fg="item">{itemname}</ansi>, causing <ansi fg="damage">{damage} damage</ansi>!'
+      toroom:
+      - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi>, wounding <ansi fg="{acteetype}">{actee}</ansi>!'
+      - '<ansi fg="{actortype}">{actor}</ansi>''s shot hits <ansi fg="{acteetype}">{actee}</ansi>, dealing damage!'
+      - '<ansi fg="{actortype}">{actor}</ansi> wounds <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
+    # messages for when they are in different rooms, such as with projectiles
+    separate:
+      toattacker:
+      - 'You fire through the <ansi fg="exit">{exitname}</ansi> direction, wounding <ansi fg="{acteetype}">{actee}</ansi> for <ansi fg="damage">{damage} damage</ansi>.'
+      - 'Your shot through the <ansi fg="exit">{exitname}</ansi> hits <ansi fg="{acteetype}">{actee}</ansi>, dealing <ansi fg="damage">{damage} damage</ansi>!'
+      - 'You successfully wound <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi>, causing <ansi fg="damage">{damage} damage</ansi>!'
+      todefender:
+      - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi> direction, wounding you for <ansi fg="damage">{damage} damage</ansi>!'
+      - 'You are hit by a shot from the <ansi fg="exit">{entrancename}</ansi> direction, taking <ansi fg="damage">{damage} damage</ansi>!'
+      - 'A projectile from the <ansi fg="exit">{entrancename}</ansi> wounds you for <ansi fg="damage">{damage} damage</ansi>!'
+      toattackerroom:
+      - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi> towards the <ansi fg="exit">{exitname}</ansi> direction.'
+      - '<ansi fg="{actortype}">{actor}</ansi> shoots through the <ansi fg="exit">{exitname}</ansi>, hitting their target.'
+      - '<ansi fg="{actortype}">{actor}</ansi> fires a shot towards the <ansi fg="exit">{exitname}</ansi>, dealing damage.'
+      todefenderroom:
+      - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi>, wounding <ansi fg="{acteetype}">{actee}</ansi>.'
+      - 'A projectile from the <ansi fg="exit">{entrancename}</ansi> hits <ansi fg="{acteetype}">{actee}</ansi>, causing damage.'
+      - 'A shot from the <ansi fg="exit">{entrancename}</ansi> wounds <ansi fg="{acteetype}">{actee}</ansi>.'
+  heavy:
+    # messages for when they are in the same room
+    together:
+      toattacker:
+      - 'In a moment of clarity, you fire at <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi>, doing an impressive <ansi fg="damage">{damage} damage</ansi>!'
+      - 'You land a powerful shot on <ansi fg="{acteetype}">{actee}</ansi>, causing an impressive <ansi fg="damage">{damage} damage</ansi>!'
+      - 'Your <ansi fg="item">{itemname}</ansi> hits <ansi fg="{acteetype}">{actee}</ansi> squarely, dealing significant damage of <ansi fg="damage">{damage}</ansi>!'
+      todefender:
+      - 'With incredible accuracy, <ansi fg="{actortype}">{actor}</ansi> wounds you with their <ansi fg="item">{itemname}</ansi>, doing an impressive <ansi fg="damage">{damage} damage</ansi>!'
+      - 'You are struck hard by <ansi fg="{actortype}">{actor}</ansi>, taking an impressive <ansi fg="damage">{damage} damage</ansi>!'
+      - '<ansi fg="{actortype}">{actor}</ansi>''s shot hits you with force, dealing <ansi fg="damage">{damage} damage</ansi>!'
+      toroom:
+      - 'With incredible accuracy, <ansi fg="{actortype}">{actor}</ansi> wounds <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
+      - '<ansi fg="{actortype}">{actor}</ansi> lands a powerful shot on <ansi fg="{acteetype}">{actee}</ansi>!'
+      - '<ansi fg="{actortype}">{actor}</ansi>''s shot hits <ansi fg="{acteetype}">{actee}</ansi> squarely, dealing significant damage!'
+    # messages for when they are in different rooms, such as with projectiles
+    separate:
+      toattacker:
+      - 'In a moment of clarity, you fire through the <ansi fg="exit">{exitname}</ansi> direction, doing an impressive <ansi fg="damage">{damage} damage</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
+      - 'You land a powerful shot on <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi>, causing <ansi fg="damage">{damage} damage</ansi>!'
+      - 'Your shot through the <ansi fg="exit">{exitname}</ansi> hits <ansi fg="{acteetype}">{actee}</ansi> squarely, dealing significant damage of <ansi fg="damage">{damage}</ansi>!'
+      todefender:
+      - 'With incredible accuracy, a shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi> direction, hitting you for an impressive <ansi fg="damage">{damage} damage</ansi>!'
+      - 'You are struck hard by a shot from the <ansi fg="exit">{entrancename}</ansi>, taking an impressive <ansi fg="damage">{damage} damage</ansi>!'
+      - 'A projectile from the <ansi fg="exit">{entrancename}</ansi> hits you with force, dealing <ansi fg="damage">{damage} damage</ansi>!'
+      toattackerroom:
+      - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi> towards the <ansi fg="exit">{exitname}</ansi> direction.'
+      - '<ansi fg="{actortype}">{actor}</ansi> shoots through the <ansi fg="exit">{exitname}</ansi>, hitting their target powerfully.'
+      - '<ansi fg="{actortype}">{actor}</ansi> fires a strong shot towards the <ansi fg="exit">{exitname}</ansi>.'
+      todefenderroom:
+      - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi>, hitting <ansi fg="{acteetype}">{actee}</ansi> with incredible accuracy.'
+      - 'A projectile from the <ansi fg="exit">{entrancename}</ansi> strikes <ansi fg="{acteetype}">{actee}</ansi> powerfully.'
+      - 'A strong shot from the <ansi fg="exit">{entrancename}</ansi> hits <ansi fg="{acteetype}">{actee}</ansi>.'
+  critical:
+    # messages for when they are in the same room
+    together:
+      toattacker:
+      - 'Your <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY SNIPES</ansi> <ansi fg="{acteetype}">{actee}</ansi> for <ansi fg="damage">{damage} damage</ansi>!'
+      - 'You deliver a <ansi fg="cyan-bold">CRITICAL HIT</ansi> to <ansi fg="{acteetype}">{actee}</ansi> with your <ansi fg="item">{itemname}</ansi>, causing <ansi fg="damage">{damage} damage</ansi>!'
+      - 'Your shot <ansi fg="cyan-bold">PIERCES</ansi> <ansi fg="{acteetype}">{actee}</ansi> for a devastating <ansi fg="damage">{damage} damage</ansi>!'
+      todefender:
+      - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY SNIPES</ansi> you for <ansi fg="damage">{damage} damage</ansi>!'
+      - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL HIT</ansi>, causing you <ansi fg="damage">{damage} damage</ansi>!'
+      - 'You are <ansi fg="cyan-bold">DEVASTATED</ansi> by <ansi fg="{actortype}">{actor}''s</ansi> shot for <ansi fg="damage">{damage} damage</ansi>!'
+      toroom:
+      - '<ansi fg="{actortype}">{actor}''s</ansi> <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY SNIPES</ansi> <ansi fg="{acteetype}">{actee}</ansi>!'
+      - '<ansi fg="{actortype}">{actor}''s</ansi> shot delivers a <ansi fg="cyan-bold">CRITICAL HIT</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
+      - '<ansi fg="{actortype}">{actor}</ansi> <ansi fg="cyan-bold">DEVASTATES</ansi> <ansi fg="{acteetype}">{actee}</ansi> with their <ansi fg="item">{itemname}</ansi>!'
+    # messages for when they are in different rooms, such as with projectiles
+    separate:
+      toattacker:
+      - 'Your <ansi fg="item">{itemname}</ansi> <ansi fg="cyan-bold">CRITICALLY SNIPES</ansi> <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi> direction for <ansi fg="damage">{damage} damage</ansi>!'
+      - 'You deliver a <ansi fg="cyan-bold">CRITICAL HIT</ansi> to <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi>, causing <ansi fg="damage">{damage} damage</ansi>!'
+      - 'Your shot <ansi fg="cyan-bold">PIERCES</ansi> <ansi fg="{acteetype}">{actee}</ansi> through the <ansi fg="exit">{exitname}</ansi>, dealing a devastating <ansi fg="damage">{damage} damage</ansi>!'
+      todefender:
+      - 'A <ansi fg="item">{itemname}</ansi> shot from the <ansi fg="exit">{entrancename}</ansi> direction <ansi fg="cyan-bold">CRITICALLY SNIPES</ansi> you for <ansi fg="damage">{damage} damage</ansi>!'
+      - 'A shot from the <ansi fg="exit">{entrancename}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL HIT</ansi>, causing you <ansi fg="damage">{damage} damage</ansi>!'
+      - 'You are <ansi fg="cyan-bold">DEVASTATED</ansi> by a shot from the <ansi fg="exit">{entrancename}</ansi> for <ansi fg="damage">{damage} damage</ansi>!'
+      toattackerroom:
+      - '<ansi fg="{actortype}">{actor}</ansi> fires their <ansi fg="item">{itemname}</ansi> towards the <ansi fg="exit">{exitname}</ansi> direction.'
+      - '<ansi fg="{actortype}">{actor}</ansi> fires a critical shot through the <ansi fg="exit">{exitname}</ansi>.'
+      - '<ansi fg="{actortype}">{actor}</ansi> delivers a devastating shot towards the <ansi fg="exit">{exitname}</ansi>.'
+      todefenderroom:
+      - 'A shot from a <ansi fg="item">{itemname}</ansi> flies in from the <ansi fg="exit">{entrancename}</ansi>, and <ansi fg="cyan-bold">CRITICALLY SNIPES</ansi> <ansi fg="{acteetype}">{actee}</ansi>.'
+      - 'A shot from the <ansi fg="exit">{entrancename}</ansi> delivers a <ansi fg="cyan-bold">CRITICAL HIT</ansi> to <ansi fg="{acteetype}">{actee}</ansi>!'
+      - '<ansi fg="{acteetype}">{actee}</ansi> is <ansi fg="cyan-bold">DEVASTATED</ansi> by a shot from the <ansi fg="exit">{entrancename}</ansi>!'

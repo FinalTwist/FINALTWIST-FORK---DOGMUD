@@ -1,0 +1,16 @@
+itemid: 20036
+name: Gold Signet Ring
+vendor_categories:
+- jewelcrafting
+namesimple: ring
+description: A heavy ring of hammered gold, its flat face engraved with an
+  intricate crest picked out in gem dust. It radiates quiet authority --
+  the kind of piece that makes people listen when you speak.
+type: ring
+subtype: wearable
+magical_mitigation: 1
+conviction_mitigation: 1
+statmods:
+  charisma: 4
+value: 25
+rarity_tier: 40

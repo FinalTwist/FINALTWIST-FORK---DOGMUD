@@ -1,0 +1,16 @@
+itemid: 30012
+name: Conviction Draught
+vendor_categories:
+- alchemy
+namesimple: draught
+description: A sharp-smelling brew the color of dark honey. It makes the mind feel
+  awake and certain of itself.
+type: potion
+subtype: drinkable
+uses: 1
+conditionids:
+  - 7
+value: 8
+rarity_tier: 50
+
+toxicity: 8

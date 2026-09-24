@@ -1,0 +1,95 @@
+mobid: 85
+zone: Watchers Crossing
+craft_support: general
+behavior_archetype: noncombat_shopkeeper
+statpool: 100
+itemdropchance: 0
+hostile: false
+charm_immune: true
+non_combatant: true
+maxwander: 0
+schedule_id: watchers_brecca
+groups:
+  - humanoid
+  - merchant
+  - watchers_crossing
+  - shopkeepers
+  - gossiper
+knows_facts:
+  - watchers-road-bandits
+  - watchers-toll-grumbling
+relationships:
+  - to: 86
+    type: rival
+    subtype: toll
+  - to: 88
+    type: rival
+    subtype: trade
+idlecommands:
+  - 'emote slides an abacus bead with a precise click'
+  - 'emote checks a slate tag against a list on the counter'
+  - ''
+  - 'emote rearranges a shelf display with fussy precision'
+  - ''
+activitylevel: 15
+character:
+  name: Merchant Brecca
+  description: |
+    A lean, sharp-eyed woman with ink-stained fingers and a merchant's
+    instinct for measuring people as quickly as she measures goods. Brecca wears
+    a practical smock over travelling clothes and keeps her dark hair cut short
+    -- a concession to practicality over vanity. Her trading post is organized
+    with an almost military precision, every item tagged and catalogued. She
+    speaks quickly, quotes prices from memory, and has strong opinions about the
+    toll that is strangling trade at the crossing.
+  speciesid: 1
+  level: 1
+  gold: 5000
+  shop:
+    - itemid: 30001
+      quantity: 0
+      quantitymax: 0
+      price: 5
+    - itemid: 30021
+      quantity: 0
+      quantitymax: 0
+      price: 3
+    - itemid: 30030
+      quantity: 0
+      quantitymax: 0
+      price: 3
+    - itemid: 10002
+      quantity: 0
+      quantitymax: 0
+      price: 8
+    - itemid: 10005
+      quantity: 0
+      quantitymax: 0
+      price: 6
+    - itemid: 20008
+      quantity: 0
+      quantitymax: 0
+      price: 5
+    - itemid: 20003
+      quantity: 0
+      quantitymax: 0
+      price: 4
+    - itemid: 40001
+      quantity: 0
+      quantitymax: 0
+      price: 3
+    - itemid: 40002
+      quantity: 0
+      quantitymax: 0
+      price: 2
+    - itemid: 40043
+      quantity: 0
+      quantitymax: 0
+      price: 1
+  stats:
+    perception:
+      base: 110
+    charisma:
+      base: 105
+    dexterity:
+      base: 105

@@ -1,0 +1,44 @@
+mobid: 216
+zone: Ironwind Steppe
+behavior_archetype: generic_fighter
+routine: boar_herd_ironwind
+statpool: 110
+itemdropchance: 15
+hostile: true
+maxwander: 2
+groups:
+  - steppe-boar
+hates:
+  - canine
+archetype: fighting
+aiprofile: brute
+mutationchance: 30
+combatcommands:
+  - charge
+idlecommands:
+  - 'emote sharpens its tusks against a stone with a grating rasp'
+  - ''
+  - 'emote paws the ground, lowering its massive head'
+  - ''
+  - ''
+  - 'emote snorts a blast of hot air from flared nostrils'
+activitylevel: 20
+character:
+  name: Tusked Boar
+  description: |
+    A veteran boar of exceptional size, its body a barrel of solid
+    muscle covered in bristles as coarse as wire. Two enormous tusks
+    curve upward from its lower jaw, yellowed and chipped from use
+    as weapons and digging tools. The tusked boar is the patriarch
+    of the steppe-boar groups, and its temper is legendary among the
+    creatures that share its range. Scars from past battles mark its
+    thick hide, and it charges with the force of a battering ram.
+  speciesid: 6
+  level: 1
+  stats:
+    strength:
+      base: 132
+    vitality:
+      base: 140
+    dexterity:
+      base: 67

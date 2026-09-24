@@ -1,0 +1,16 @@
+conditionid: 47
+name: Minor Antidote
+description: A cleansing draught purges toxins from your body.
+triggerrate: 1 round
+triggercount: 1
+start_actee: The bitter draught burns your throat but you feel poisons loosening their grip.
+start_observer: "{actee} grimaces as they swallow an antidote."
+end_actee: The antidote has run its course.
+trigger_actee: The antidote soothes your body.
+tick_pool: health
+tick_percent: 0.05
+tick_min: 1
+start_remove_conditions:
+  - 39
+  - 40
+  - 78

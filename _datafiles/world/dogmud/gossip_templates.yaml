@@ -1,0 +1,165 @@
+# Gossip templates for tavern patron NPCs (gossiper group).
+# Keyed by "EventType-Significance". {desc} is replaced with the event description.
+# Each key has 2-4 variants picked at random.
+
+# Distance variants: "-Local" for same-zone events, "-Distant" for other zones.
+# Falls back to the base key (no suffix) if no distance variant exists.
+
+MobCraftedRare-Regional-Local:
+  - "Right here in town, {desc} Imagine that."
+  - "One of ours made something worth talking about. {desc}"
+  - "{desc} And it happened right under our noses."
+
+MobCraftedRare-Regional-Distant:
+  - "Word from outside the walls is that {desc}"
+  - "Traders brought news -- {desc} Rare work, if true."
+  - "I heard something from the road. {desc}"
+
+MobCraftedRare-Regional:
+  - "Word from the market is that {desc}"
+  - "I heard something interesting -- {desc}"
+  - "They say {desc} Rare work, if true."
+
+MobCraftedRare-Global:
+  - "Now THIS is worth mentioning. {desc}"
+  - "Everyone is talking about it. {desc}"
+  - "I have not heard of work like this in years. {desc}"
+
+MobMutationGained-Regional-Local:
+  - "Something strange right here. {desc}"
+  - "{desc} And it is close. Too close."
+  - "I saw it myself. Well, heard about it. {desc}"
+
+MobMutationGained-Regional-Distant:
+  - "Something strange out in the wilds. {desc}"
+  - "Word came in from the road. {desc} The wilds are changing."
+
+MobMutationGained-Regional:
+  - "Something strange out there. {desc}"
+  - "I heard {desc} The wilds are changing."
+  - "Word is {desc} Keep your eyes open."
+
+MobMutationGained-Global:
+  - "You are not going to believe this. {desc}"
+  - "This changes things. {desc}"
+
+MobMutationAdvanced-Regional:
+  - "That thing out there is getting worse. {desc}"
+  - "I heard {desc} Whatever it is, it is growing stronger."
+
+MobMutationAdvanced-Global:
+  - "Listen to this. {desc} That is not natural."
+  - "Something is very wrong out there. {desc}"
+
+MobStatMilestone-Regional-Local:
+  - "Something nearby is getting stronger. {desc}"
+  - "{desc} And it is not far from here."
+
+MobStatMilestone-Regional-Distant:
+  - "There is something tougher out there now. {desc}"
+  - "Word from the road -- {desc} Watch yourself."
+
+MobStatMilestone-Regional:
+  - "There is something tougher out there now. {desc}"
+  - "I heard {desc} Watch yourself."
+
+MobStatMilestone-Global:
+  - "This one is serious. {desc}"
+  - "Everyone should hear this. {desc}"
+
+PackStrengthened-Regional:
+  - "The packs are getting organized. {desc}"
+  - "I heard {desc} They are banding together."
+
+PackStrengthened-Global:
+  - "This is trouble. {desc} A proper pack, that is."
+  - "You do not see this often. {desc}"
+
+PlayerCraftedRare-Regional-Local:
+  - "Someone right here made something impressive. {desc}"
+  - "{desc} Happened not far from where you are standing."
+
+PlayerCraftedRare-Regional-Distant:
+  - "Word came in that someone out there made something. {desc}"
+  - "Traders say {desc} Decent work."
+
+PlayerCraftedRare-Regional:
+  - "Someone made something impressive. {desc}"
+  - "I heard {desc} Decent work."
+
+PlayerCraftedRare-Global:
+  - "Now that is craftsmanship. {desc}"
+  - "Everyone is talking about {desc}"
+
+PlayerMutationMilestone-Regional:
+  - "Someone out there is changing. {desc}"
+  - "I heard {desc} Strange times."
+
+PlayerMutationMilestone-Global:
+  - "You hear about this? {desc}"
+  - "This is the kind of thing people remember. {desc}"
+
+IronwindEvent-Regional:
+  - "Something stirring on the steppe east of town. {desc}"
+  - "Word from the frontier -- {desc} The steppe is restless."
+  - "Traders coming in from the east say {desc}"
+
+IronwindEvent-Global:
+  - "The whole steppe is talking about this. {desc}"
+  - "This one came from the Ironwind frontier. {desc}"
+
+PlayerDiedPvE-Local-Local:
+  - "I heard some fool got themselves killed right near here. {desc}"
+  - "Not far from where we sit, {desc} did someone in."
+  - "It happened close by. {desc} claimed another."
+
+PlayerDiedPvE-Local-Distant:
+  - "I heard some fool went and got themselves killed. {desc}"
+  - "Word is somebody died to {desc} out there."
+
+PlayerDiedPvE-Local:
+  - "I heard some fool went and got themselves killed by {desc}. What a waste."
+  - "Word is somebody died to {desc}. You would think people would be more careful."
+  - "Another body for the Shadow Realm. {desc} got the better of some poor soul."
+  - "Someone was not careful enough and {desc} did them in. Happens more than you think."
+
+PlayerDiedPvE-Regional:
+  - "Word came in that someone got killed by {desc} out there. The wilds do not forgive."
+  - "Travellers are saying somebody died to {desc}. Another one gone."
+  - "I heard {desc} claimed another life. You would think people would learn."
+  - "Some poor soul ran into {desc} and did not make it back. Grim business."
+
+PlayerDiedPvE-Global:
+  - "Everyone is talking about it. Someone got killed by {desc}. Nasty way to go."
+  - "Did you hear? {desc} killed someone. Word travels fast when people die."
+  - "The whole town is buzzing. {desc} got the better of some adventurer."
+  - "A death out there. {desc}. You hate to hear it, but you always do."
+
+MobKilledByPlayer-Local-Local:
+  - "I heard {desc} Happened right nearby."
+  - "{desc} And it was not far from here."
+  - "Close to home, that. {desc}"
+
+MobKilledByPlayer-Local-Distant:
+  - "News from the road -- {desc}"
+  - "Word came in. {desc} Someone is busy out there."
+
+MobKilledByPlayer-Local:
+  - "I heard {desc} Another one bites the dust."
+  - "Word is {desc} Someone is keeping busy out there."
+  - "They say {desc} Good riddance, if you ask me."
+  - "Someone was talking about it. {desc}"
+  - "News from outside the walls -- {desc}"
+
+fallback:
+  - "Quiet day. Nothing worth repeating."
+  - "Mm. No news is... well, it is just no news."
+  - "Ask me later. Nothing interesting right now."
+  - "The world keeps turning, but it has not done anything worth mentioning."
+
+# Fact-based gossip templates. {description} is replaced with the fact's description.
+# Fallback chain: fact-{factId} → fact-{tag} → fact-default.
+fact-default:
+  - "I heard {description}"
+  - "Word is, {description}"
+  - "They say {description}"

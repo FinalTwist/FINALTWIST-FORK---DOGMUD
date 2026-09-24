@@ -1,0 +1,146 @@
+package playtestprofiles
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/users"
+	"gopkg.in/yaml.v3"
+)
+
+// MaterializeOptions configures a materialization pass.
+type MaterializeOptions struct {
+	ProfilesDir  string
+	World        WorldChecks
+	CredsOutPath string
+	RunID        string
+}
+
+// Materialize loads templates, applies overlays, generates credentials, and
+// persists offline users. Returns plaintext creds for the run artifact.
+func Materialize(m *Manifest, opts MaterializeOptions) ([]PlayerCreds, error) {
+	if m == nil {
+		return nil, fmt.Errorf("playtestprofiles: nil manifest")
+	}
+	if err := validateManifest(m); err != nil {
+		return nil, err
+	}
+	if opts.ProfilesDir == "" {
+		return nil, fmt.Errorf("playtestprofiles: ProfilesDir is required")
+	}
+	world := opts.World
+	if world.RoomExists == nil && world.SpellOK == nil && world.ItemOK == nil {
+		world = DefaultWorldChecks()
+	}
+
+	out := make([]PlayerCreds, 0, len(m.Entries))
+	for i, entry := range m.Entries {
+		u, err := LoadTemplate(opts.ProfilesDir, entry.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("playtestprofiles: entries[%d]: %w", i, err)
+		}
+		u, err = cloneUser(u)
+		if err != nil {
+			return nil, err
+		}
+		// Derive stats BEFORE the overlays run. The profile YAML sets
+		// Stats.<name>.Base, but ValueAdj is derived and stays 0 until a
+		// recalculation, and Validate(true) below is too late: grant_items goes
+		// through StoreItem, which refuses anything exceeding
+		// CarryCapacity() * 2, and CarryCapacity reads Strength.ValueAdj. With
+		// ValueAdj still 0 the capacity is 0, so EVERY item with non-zero weight
+		// was rejected and materialization died with "could not store item N".
+		u.Character.RecalculateStats()
+		if err := ApplyOverlays(u, entry.StartRoom, entry.Overlays, world); err != nil {
+			return nil, fmt.Errorf("playtestprofiles: entries[%d]: %w", i, err)
+		}
+		if err := ForbiddenIdentity(u.Character.Name); err != nil {
+			return nil, fmt.Errorf("playtestprofiles: entries[%d]: %w", i, err)
+		}
+		if err := u.Character.Validate(true); err != nil {
+			return nil, fmt.Errorf("playtestprofiles: entries[%d]: character validate: %w", i, err)
+		}
+		username, password, err := GenerateCredentials(u, entry.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("playtestprofiles: entries[%d]: %w", i, err)
+		}
+		if err := PersistOfflineUser(u); err != nil {
+			return nil, fmt.Errorf("playtestprofiles: entries[%d]: %w", i, err)
+		}
+		out = append(out, PlayerCreds{
+			Profile:  entry.Profile,
+			ActorID:  strings.TrimSpace(entry.ActorID),
+			Username: username,
+			Password: password,
+			UserID:   u.UserId,
+			RoomID:   u.Character.RoomId,
+		})
+	}
+
+	if opts.CredsOutPath != "" {
+		if err := writeCredsFile(opts.CredsOutPath, opts.RunID, out); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
+// MaterializeFromConfig runs materialization when Playtest.ProfilesManifest is set.
+// Empty/absent path → no-op (nil, nil).
+func MaterializeFromConfig() ([]PlayerCreds, error) {
+	cfg := configs.GetPlaytestConfig()
+	manifestPath := string(cfg.ProfilesManifest)
+	if manifestPath == "" {
+		return nil, nil
+	}
+	m, err := LoadManifest(manifestPath)
+	if err != nil {
+		return nil, err
+	}
+	credsPath := filepath.Join(filepath.Dir(manifestPath), "creds.json")
+	return Materialize(m, MaterializeOptions{
+		ProfilesDir:  string(cfg.ProfilesDir),
+		World:        DefaultWorldChecks(),
+		CredsOutPath: credsPath,
+	})
+}
+
+// writeCredsFile writes the run's plaintext credentials with mode 0600.
+//
+// Do NOT convert this to an atomic write-temp-then-rename. Under the
+// containerized playtest supervisor this file lives in a bind mount and is
+// written by root, while the host user that started the run has to read it
+// back. internal/playtestenv pre-creates the file host-side and relies on this
+// call truncating it IN PLACE so the inode keeps its host owner. A rename
+// replaces the inode, ownership reverts to root, and every profile-based run
+// fails on Linux with "permission denied" — see precreateCredsFile.
+func writeCredsFile(path, runID string, players []PlayerCreds) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("playtestprofiles: create creds dir: %w", err)
+	}
+	payload := CredsFile{RunID: runID, Players: players}
+	buf, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return fmt.Errorf("playtestprofiles: marshal creds: %w", err)
+	}
+	if err := os.WriteFile(path, buf, 0o600); err != nil {
+		return fmt.Errorf("playtestprofiles: write creds: %w", err)
+	}
+	return nil
+}
+
+func cloneUser(u *users.UserRecord) (*users.UserRecord, error) {
+	data, err := yaml.Marshal(u)
+	if err != nil {
+		return nil, fmt.Errorf("playtestprofiles: clone marshal: %w", err)
+	}
+	out := &users.UserRecord{}
+	if err := yaml.Unmarshal(data, out); err != nil {
+		return nil, fmt.Errorf("playtestprofiles: clone unmarshal: %w", err)
+	}
+	return out, nil
+}

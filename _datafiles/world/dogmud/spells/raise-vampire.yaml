@@ -1,0 +1,34 @@
+spellid: raise-vampire
+name: Raise Vampire
+aliases: [vampire]
+description: Performs the forbidden rite that transforms a worthy
+  corpse into a blood-drinking undead noble. Unlike lesser risen, the
+  vampire retains cunning and can act with terrifying independence.
+  Only the most formidable remains can survive the dark gift's demands.
+attack_type: none
+damage_type: non_harm
+targeting: self
+schools:
+  - manifestation
+cost: 45
+waitrounds: 12
+difficulty: 45
+primarystat: charisma
+base_folds: 12
+effect_type: none
+effect_magnitude: 0
+cast_actor: >-
+  You begin the forbidden rite, weaving blood-dark energy through
+  the remains. This will either work or unmake the corpse
+  entirely...
+cast_observer: >-
+  {actor} begins a low, rhythmic incantation over the remains.
+  The shadows around them deepen and lean inward.
+wait_actor: >-
+  Blood-dark energy pulses through the corpse in rhythmic waves,
+  hunting for the thread of self that the dark gift requires.
+  Something almost stirs...
+summon_mob_id: 304
+summon_pet_multiplier: 0.83
+summon_requires_corpse: true
+summon_min_corpse_pool: 300

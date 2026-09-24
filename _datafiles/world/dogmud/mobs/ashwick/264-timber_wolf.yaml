@@ -1,0 +1,39 @@
+mobid: 264
+zone: Ashwick
+statpool: 65
+hostile: true
+maxwander: 1
+groups:
+  - animal
+  - canine
+  - predator
+archetype: fighting
+behavior_archetype: generic_fighter
+aiprofile: skirmisher
+idlecommands:
+  - 'emote paces at the edge of the clearing, hackles raised'
+  - ''
+  - 'emote watches with yellow eyes, utterly still'
+  - ''
+  - 'emote lifts its head and scents the wind'
+  - ''
+activitylevel: 10
+character:
+  name: Timber Wolf
+  description: |
+    A large gray wolf with a heavy winter coat and yellow eyes that
+    track every movement with predatory focus. It stands its ground
+    with the settled confidence of a territorial animal in its home
+    range. The deep woods belong to the pack, and you are in them.
+  speciesid: 10
+  level: 1
+  gold: 0
+  stats:
+    strength:
+      base: 28
+    dexterity:
+      base: 66
+    perception:
+      base: 48
+    vitality:
+      base: 21

@@ -1,0 +1,548 @@
+package hooks
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/GoMudEngine/GoMud/internal/actions"
+	"github.com/GoMudEngine/GoMud/internal/behaviortree"
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/gametime"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/life"
+	"github.com/GoMudEngine/GoMud/internal/targeting"
+	"github.com/GoMudEngine/GoMud/internal/users"
+	"github.com/GoMudEngine/GoMud/internal/util"
+)
+
+func DoCombat(e events.Event) events.ListenerReturn {
+
+	evt := e.(events.NewRound)
+
+	// Chunk 3.3: snapshot victims with the Sleeping condition flag BEFORE any
+	// damage events resolve this round. cancel-on-damage (in
+	// applyCombatProgression) fires mid-round after each attacker's turn;
+	// without a snapshot, later attackers would miss the forceCrit window
+	// because the condition was already cleared by the first hit. Taking the
+	// snapshot here — once, at the very start of the round, before
+	// handlePlayerCombat and handleMobCombat both run — ensures every
+	// attacker in both passes sees a consistent, unmodified set of sleeping
+	// defenders.
+	//
+	// Task 17: the snapshot is PUBLISHED to the combat package rather than
+	// threaded as parameters, because the melee passes below are no longer
+	// its only consumers — every channel attack (cast/shoot/taunt/bash/...)
+	// resolving later in the same round reads it through
+	// combat.SleepingForceCrit, which is now the ONE lookup for the
+	// sleeping-victim auto-crit contract on every channel.
+	sleepingUserIds, sleepingMobInstanceIds := snapshotSleepingVictims()
+	combat.PublishSleepingSnapshot(util.GetRoundCount(), sleepingUserIds, sleepingMobInstanceIds)
+
+	//
+	// Combat rounds
+	//
+	affectedPlayers1, affectedMobs1 := handlePlayerCombat(evt)
+
+	affectedPlayers2, affectedMobs2 := handleMobCombat(evt)
+
+	// Do any resolution or extra checks based on everyone that has been involved in combat this round.
+	handleAffected(append(affectedPlayers1, affectedPlayers2...), append(affectedMobs1, affectedMobs2...))
+
+	// Post-combat retarget pass: players with no aggro who have mobs
+	// attacking them (or their companions) should pick up a target.
+	// This catches cases where mobs initiated combat during handleMobCombat
+	// but the player's retarget scan in handlePlayerCombat ran too early.
+	for _, userId := range users.GetOnlineUserIds() {
+		user := users.GetByUserId(userId)
+		if user == nil || user.Character.IsInCombat() {
+			continue
+		}
+		uRoom := rooms.LoadRoom(user.Character.RoomId)
+		if uRoom == nil {
+			continue
+		}
+		if RetargetOrEnd(user.Character, uRoom, user.UserId, 0) {
+			targetName := "something"
+			newTarget := user.Character.CurrentCombatTarget()
+			if newTarget.MobInstanceId > 0 {
+				if m := mobs.GetInstance(newTarget.MobInstanceId); m != nil {
+					targetName = m.Character.Name
+				}
+			} else if newTarget.UserId > 0 {
+				if u := users.GetByUserId(newTarget.UserId); u != nil {
+					targetName = u.Character.Name
+				}
+			}
+			// You cannot identify what you have just turned to face if you
+			// cannot see it. This line rides CategorySystem on a raw SendText,
+			// which bypasses the sight gate, so the hiding is done here by the
+			// reader's own sight. Found in play 2026-09-21: a player in a
+			// pitch-dark cave read "You shift your focus to Cave Crawler!"
+			// while every combat line in the same round called that same mob
+			// "something".
+			// The literal stays INLINE: the root viewpoint guard fingerprints
+			// these sites by their literal, so hoisting it into a local makes
+			// the site invisible to it.
+			user.SendText(messaging.CategorySystem, messaging.HideNames(
+				fmt.Sprintf("You shift your focus to <ansi fg=\"mobname\">%s</ansi>!", targetName),
+				[]string{targetName},
+				messaging.ParticipantSight(user.Character, uRoom)))
+		}
+	}
+
+	// Light-verbosity round tallies (spec: combat-verbosity design).
+	flushCombatTallies()
+
+	// Per-round "you can't see" notice for blind/shapes-only combatants
+	// (M4d PR 2, Task 4).
+	flushBlindCombatNotices()
+
+	return events.Continue
+}
+
+func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobInstanceIds []int) {
+
+	moonMod := float64(configs.GetBalanceConfig().MoonStatModMax)
+
+	tStart := time.Now()
+
+	for _, userId := range users.GetOnlineUserIds() {
+
+		user := users.GetByUserId(userId)
+
+		if user == nil {
+			continue
+		}
+
+		if user.Character.HasConditionFlag(conditions.NoCombat) {
+			continue
+		}
+
+		// Task 15: tick the Combat Phase machine every round for every
+		// player. This advances Engaging→Engaged countdowns and fires
+		// registered DispatchTickEvent listeners.
+		if user.Character.CombatPhase != nil {
+			user.Character.CombatPhase.OnRoundTick()
+			user.Character.CombatPhase.DispatchTickEvent()
+		}
+
+		if handlePlayerFoldCasting(user, userId) {
+			continue
+		}
+
+		if !user.Character.IsInCombat() {
+			continue
+		}
+
+		// Validate aggro target still exists and is alive; retarget if possible
+		if !ValidateAggro(user.Character) {
+			uRoom := rooms.LoadRoom(user.Character.RoomId)
+			if uRoom != nil {
+				if RetargetOrEnd(user.Character, uRoom, user.UserId, 0) {
+					if line, ok := actions.RetargetNotice(uRoom, user.UserId, user.Character.CurrentCombatTarget()); ok {
+						user.SendText(messaging.CategorySystem, line)
+					}
+				}
+			}
+			if !user.Character.IsInCombat() {
+				continue
+			}
+		}
+
+		user.Character.CancelCombatConditions()
+
+		uRoom := rooms.LoadRoom(user.Character.RoomId)
+		if uRoom == nil {
+			continue
+		}
+
+		if handlePlayerFlee(user, uRoom, userId) {
+			continue
+		}
+
+		// Unified combat dispatch (replaces PvP/PvM branch).
+		if user.Character.IsInCombat() {
+			var def actions.Actor
+			var defForceCrit bool
+			atkTarget := user.Character.CurrentCombatTarget()
+			if atkTarget.UserId > 0 {
+				if defUser := users.GetByUserId(atkTarget.UserId); defUser != nil {
+					defRoom := rooms.LoadRoom(defUser.Character.RoomId)
+					def = actions.NewUserActorInRoom(defUser, defRoom)
+					defForceCrit = combat.SleepingForceCrit(defUser.Character)
+				}
+			} else if atkTarget.MobInstanceId > 0 {
+				if defMob := mobs.GetInstance(atkTarget.MobInstanceId); defMob != nil {
+					defRoom := rooms.LoadRoom(defMob.Character.RoomId)
+					def = actions.NewMobActorInRoom(defMob, defRoom)
+					defForceCrit = combat.SleepingForceCrit(&defMob.Character)
+				}
+			}
+			if def != nil {
+				atk := actions.NewUserActorInRoom(user, uRoom)
+				cfg := configs.GetConfig()
+				handleCombatRound(atk, def, evt, moonMod, &cfg, &affectedPlayerIds, &affectedMobInstanceIds, defForceCrit)
+			}
+		}
+	}
+
+	util.TrackTime(`DoCombat::handlePlayerCombat()`, time.Since(tStart).Seconds())
+
+	return affectedPlayerIds, affectedMobInstanceIds
+}
+
+// archerReengageable reports whether a nil-aggro ranged mob should still be
+// driven through its behavior tree this round, so a kiting archer that just
+// retreated (and had its aggro ended by ValidateAggro's same-room check) can
+// fire from range on the following round. True only when ALL of:
+//   - the mob has an equipped ranged weapon (main or off hand),
+//   - its CombatMemory is non-nil and not expired, and
+//   - the remembered target's last-seen room is the mob's own room or exactly
+//     one exit away (the bounded one-exit engagement window).
+//
+// Non-ranged mobs and stale/absent memories return false, preserving the
+// unconditional skip for every mob that isn't a live-memory archer.
+func archerReengageable(mob *mobs.Mob, room *rooms.Room, round uint64) bool {
+	if !mob.Character.Equipment.Weapon.IsRangedWeapon() &&
+		!mob.Character.Equipment.Offhand.IsRangedWeapon() {
+		return false
+	}
+	if mob.CombatMemory == nil {
+		return false
+	}
+	if mobs.CombatMemoryExpired(mob.CombatMemory, round,
+		int(configs.GetBalanceConfig().CombatMemoryDuration)) {
+		return false
+	}
+	if room == nil {
+		return false
+	}
+	lastSeen := mob.CombatMemory.LastSeenRoomId
+	if lastSeen == mob.Character.RoomId {
+		return true
+	}
+	return room.FindExitTo(lastSeen) != ""
+}
+
+func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobInstanceIds []int) {
+
+	moonMod := float64(configs.GetBalanceConfig().MoonStatModMax)
+	tStart := time.Now()
+	activeZones := rooms.SnapshotActiveZones()
+
+	// Sweep: kill any mob stuck at 0 HP from a previous round (e.g., DOT
+	// damage, dismissed companion beaten down, or missed death check).
+	// Sweep runs for every mob regardless of zone activity — dead mobs
+	// should not linger even in idle zones.
+	for _, mobId := range mobs.GetAllMobInstanceIds() {
+		// U5c: skips on DeathQueued, NEVER on health. A mob reaped here is
+		// dying but NOT queued, i.e. it reached zero without going through
+		// ApplyHarm. Skipping on health would skip the entire population this
+		// sweep exists for. The log is how we learn which paths still bypass
+		// the harm helper; it going quiet is the evidence the migration is
+		// complete.
+		if mob := mobs.GetInstance(mobId); mob != nil && shouldSweepReap(&mob.Character) {
+			mudlog.Debug("U5c sweep", "reason", "unattributed death",
+				"mob", mob.Character.Name, "instanceId", mobId)
+			mob.Character.Die(state.ActorRef{}, life.TriggerHealthZero)
+		}
+	}
+
+	for _, mobId := range mobs.GetAllMobInstanceIds() {
+
+		mob := mobs.GetInstance(mobId)
+
+		if mob == nil || mob.Character.Health <= 0 {
+			continue
+		}
+
+		if mob.Character.HasConditionFlag(conditions.NoCombat) {
+			continue
+		}
+
+		// Non-combatant mobs (merchants, quest NPCs) should never fight.
+		// If they somehow got aggro (e.g., from pack scatter), clear it.
+		if mob.IsNonCombatant() {
+			if mob.Character.IsInCombat() {
+				targeting.Release(&mob.Character, targeting.ReasonDisengage)
+			}
+			continue
+		}
+
+		// Drop stale aggro on a player who is now untargetable (e.g. a jailed
+		// player carrying the no-aggro-target flag, or one under respawn grace).
+		// Without this, a guard that held aggro from the pre-arrest fight keeps
+		// pursuing the prisoner into the cell and re-declaring combat each round
+		// even though its swings are already suppressed (5.1c smoke BUG-04).
+		if targetUserId := mob.Character.CurrentCombatTarget().UserId; targetUserId > 0 {
+			if tgt := users.GetByUserId(targetUserId); tgt != nil &&
+				tgt.Character.HasConditionFlag(conditions.NoAggroTarget) {
+				targeting.Release(&mob.Character, targeting.ReasonDisengage)
+				continue
+			}
+		}
+
+		// Task 15: tick the Combat Phase machine every round for every mob.
+		// Advances Engaging→Engaged countdowns and fires tick event listeners.
+		if mob.Character.CombatPhase != nil {
+			mob.Character.CombatPhase.OnRoundTick()
+			mob.Character.CombatPhase.DispatchTickEvent()
+		}
+
+		mobRoom := rooms.LoadRoom(mob.Character.RoomId)
+		if mobRoom == nil {
+			if mob.Character.IsInCombat() {
+				targeting.Release(&mob.Character, targeting.ReasonDisengage)
+			}
+			continue
+		}
+
+		// Idle zone → skip combat entirely. Mobs "in combat" whose last
+		// opponent left the zone sit frozen until combat-memory expiry
+		// (handled in the idle lane of MobRoundTick) clears the flag.
+		if !activeZones[mobRoom.Zone] {
+			continue
+		}
+
+		// Only run the full combat prep (condition stripping, etc.) when
+		// actually fighting or when the mob might enter combat this round.
+		if mob.Character.IsInCombat() {
+			// Strip combat-cancelling conditions (Hidden, etc.) and remove
+			// their permanent condition entries so Validate() doesn't re-apply them.
+			mob.Character.CancelCombatConditions()
+
+			if handleMobFoldCasting(mob, mobRoom) {
+				continue
+			}
+
+			// Validate mob's aggro target still exists and is alive; retarget if possible
+			if !ValidateAggro(&mob.Character) {
+				if mobRoom != nil {
+					RetargetOrEnd(&mob.Character, mobRoom, 0, mob.InstanceId)
+				}
+			}
+		}
+
+		// Idle companions with autoassist scan for threats to owner
+		if !mob.Character.IsInCombat() && mob.Character.IsCharmed() {
+			CompanionAutoTarget(mob, mobRoom)
+			if !mob.Character.IsInCombat() {
+				continue
+			}
+		} else if !mob.Character.IsInCombat() {
+			// Ranged-mob bounded re-engagement window. A kiting archer ends
+			// each round having retreated one exit (keep_distance), which
+			// trips ValidateAggro's same-room check above and ENDS its aggro.
+			// Without an exemption the archer would stand inert the moment it
+			// broke melee contact — defeating the whole kite-and-shoot loop
+			// (this was the committed-AI "retreat once then go idle" defect).
+			//
+			// Let a mob with a loaded ranged weapon proceed to its behavior
+			// tree when its fresh CombatMemory points at a target in its own
+			// room or exactly one exit away. The btree's try_fire then fires
+			// via its CombatMemory fallback. This is a BOUNDED one-exit window
+			// keyed on the loaded-weapon model — NOT the old continuous
+			// remote-shoot: actual firing still routes through the one-shot
+			// `shoot` command + reload cooldowns, and the window closes as soon
+			// as CombatMemory expires or the target moves >1 exit from the mob.
+			//
+			// Note: the mob is not in combat here, so ValidateAggro (run only
+			// in the in-combat block above) does not apply to this path.
+			if !archerReengageable(mob, mobRoom, evt.RoundNumber) {
+				continue
+			}
+			// else: fall through to TryMobBehavior with nil aggro.
+		}
+
+		// Initialize CombatMemory on the first round of engagement so
+		// the mob can track its aggro target across flee/re-engage cycles.
+		if mob.CombatMemory == nil && mob.Character.IsInCombat() {
+			memTarget := mob.Character.CurrentCombatTarget()
+			mob.CombatMemory = mobs.SetCombatMemory(
+				memTarget.UserId,
+				memTarget.MobInstanceId,
+				mob.Character.RoomId,
+				evt.RoundNumber,
+			)
+		}
+
+		// Fire mob_combat_round for the attacking mob BEFORE the legacy
+		// handleMobAIDecision. Mobs with a matching btree (per-mob file or
+		// archetype via BehaviorArchetype) get first shot at this round's
+		// action; if the tree returns Success (e.g., initiated a cast) we
+		// skip both the legacy AI and handleCombatRound for this mob.
+		//
+		// Legacy preferredSpell has a hardcoded priority (shield → heal →
+		// harm-list) that would otherwise preempt archetype self-empowering casts every
+		// round. Firing here makes the archetype authoritative.
+		btCtx := behaviortree.EventContext{
+			EventType: "mob_combat_round",
+			RoomId:    mob.Character.RoomId,
+		}
+		if behaviortree.TryMobBehavior(mob.InstanceId, btCtx) {
+			continue
+		}
+
+		c := configs.GetConfig()
+		if handleMobAIDecision(mob, c) {
+			continue
+		}
+
+		affectedMobInstanceIds = append(affectedMobInstanceIds, mob.InstanceId)
+
+		// Unified combat dispatch (replaces MvP/MvM branch).
+		if mob.Character.IsInCombat() {
+			var def actions.Actor
+			var defForceCrit bool
+			atkTarget := mob.Character.CurrentCombatTarget()
+			if atkTarget.UserId > 0 {
+				if defUser := users.GetByUserId(atkTarget.UserId); defUser != nil {
+					defRoom := rooms.LoadRoom(defUser.Character.RoomId)
+					def = actions.NewUserActorInRoom(defUser, defRoom)
+					defForceCrit = combat.SleepingForceCrit(defUser.Character)
+				}
+			} else if atkTarget.MobInstanceId > 0 {
+				if defMob := mobs.GetInstance(atkTarget.MobInstanceId); defMob != nil {
+					defRoom := rooms.LoadRoom(defMob.Character.RoomId)
+					def = actions.NewMobActorInRoom(defMob, defRoom)
+					defForceCrit = combat.SleepingForceCrit(&defMob.Character)
+				}
+			}
+			if def != nil {
+				atk := actions.NewMobActorInRoom(mob, mobRoom)
+				cfg := configs.GetConfig()
+				handleCombatRound(atk, def, evt, moonMod, &cfg, &affectedPlayerIds, &affectedMobInstanceIds, defForceCrit)
+			}
+		}
+	}
+
+	util.TrackTime(`World::handleMobCombat()`, time.Since(tStart).Seconds())
+
+	return affectedPlayerIds, affectedMobInstanceIds
+}
+
+// processGrappleProgression was the chunk-2-era binary single-roll
+// progression scanner: every round, take a clinched pair to Grounded
+// or break it. Chunk 4b replaces it with the per-round drift tick in
+// Position_GrappleTick.go (T6) — graduated multi-round ControlLevel
+// shifts that fire threshold-triggered transitions when either side
+// hits Controlled. Deleted here in T10.
+
+func handleAffected(affectedPlayerIds []int, affectedMobInstanceIds []int) {
+
+	playersHandled := map[int]struct{}{}
+	for _, userId := range affectedPlayerIds {
+		if _, ok := playersHandled[userId]; ok {
+			continue
+		}
+		playersHandled[userId] = struct{}{}
+
+		if user := users.GetByUserId(userId); user != nil {
+			// U5c: BACKSTOP only. Damage routed through ApplyHarm has already
+			// queued an ATTRIBUTED death naming the killer, and shouldSweepReap
+			// skips those.
+			//
+			// Reaping a queued PLAYER here would be worse than losing the
+			// killer: Die cascades Dead -> Respawning -> Alive, so it returns
+			// with the player alive and its !IsAlive() guard cannot stop the
+			// queued event from running the whole cascade a second time. See
+			// shouldSweepReap.
+			//
+			// This stays rather than being deleted because it is the only death
+			// check covering PLAYERS hit in combat; the other two sweeps
+			// iterate mob instances only.
+			if shouldSweepReap(user.Character) {
+				mudlog.Debug("U5c backstop", "reason", "unattributed player death",
+					"user", user.Character.Name, "userId", userId)
+				user.Character.Die(state.ActorRef{}, life.TriggerHealthZero)
+			}
+		}
+	}
+
+	mobsHandled := map[int]struct{}{}
+	for _, mobId := range affectedMobInstanceIds {
+		if _, ok := mobsHandled[mobId]; ok {
+			continue
+		}
+		mobsHandled[mobId] = struct{}{}
+
+		if mob := mobs.GetInstance(mobId); mob != nil {
+			// U5c backstop, same reasoning as the player loop above.
+			if shouldSweepReap(&mob.Character) {
+				mudlog.Debug("U5c backstop", "reason", "unattributed mob death",
+					"mob", mob.Character.Name, "instanceId", mobId)
+				mob.Character.Die(state.ActorRef{}, life.TriggerHealthZero)
+			}
+		}
+
+	}
+
+}
+
+// applyMoonMods temporarily adds moon phase stat deltas to a mutated character's
+// six combat stats (DEX/STR via Swiftmoon, VIT/WIL via Wanderer, PER/CHA via The Eye).
+// Returns a no-op restore function when the character has no mutations or moonMod is zero.
+// Always call the returned function immediately after the combat roll to undo the changes.
+func applyMoonMods(ch *characters.Character, moonMod float64) func() {
+	if len(ch.Mutations) == 0 || moonMod == 0 {
+		return func() {}
+	}
+	swift, wander, eye := gametime.GetAllPhases()
+	dex := gametime.MoonStatDelta(swift, moonMod, ch.Stats.Dexterity.ValueAdj)
+	str := gametime.MoonStatDelta(swift, moonMod, ch.Stats.Strength.ValueAdj)
+	vit := gametime.MoonStatDelta(wander, moonMod, ch.Stats.Vitality.ValueAdj)
+	wil := gametime.MoonStatDelta(wander, moonMod, ch.Stats.Willpower.ValueAdj)
+	per := gametime.MoonStatDelta(eye, moonMod, ch.Stats.Perception.ValueAdj)
+	cha := gametime.MoonStatDelta(eye, moonMod, ch.Stats.Charisma.ValueAdj)
+	ch.Stats.Dexterity.ValueAdj += dex
+	ch.Stats.Strength.ValueAdj += str
+	ch.Stats.Vitality.ValueAdj += vit
+	ch.Stats.Willpower.ValueAdj += wil
+	ch.Stats.Perception.ValueAdj += per
+	ch.Stats.Charisma.ValueAdj += cha
+	return func() {
+		ch.Stats.Dexterity.ValueAdj -= dex
+		ch.Stats.Strength.ValueAdj -= str
+		ch.Stats.Vitality.ValueAdj -= vit
+		ch.Stats.Willpower.ValueAdj -= wil
+		ch.Stats.Perception.ValueAdj -= per
+		ch.Stats.Charisma.ValueAdj -= cha
+	}
+}
+
+// snapshotSleepingVictims walks all online users and all mob instances and
+// records which ones currently have the Sleeping condition flag. The two maps are
+// published to the combat package (combat.PublishSleepingSnapshot) so that
+// both melee combat passes AND every channel attack resolving later in the
+// same round (Task 17) can resolve forceCrit=true — via
+// combat.SleepingForceCrit — for any defender that was asleep at the very
+// start of the round.
+//
+// Chunk 3.3: this must be called ONCE at the top of DoCombat, before either
+// combat pass runs, so that cancel-on-damage (fired mid-round inside
+// applyCombatProgression) does not blunt later attackers' crit payoff in the
+// same round. Future first-hit-crit triggers (surprise attack, backstab, etc.)
+// can add parallel snapshot checks at this same site.
+func snapshotSleepingVictims() (sleepingUserIds map[int]bool, sleepingMobInstanceIds map[int]bool) {
+	sleepingUserIds = map[int]bool{}
+	sleepingMobInstanceIds = map[int]bool{}
+	for _, uid := range users.GetOnlineUserIds() {
+		if u := users.GetByUserId(uid); u != nil && u.Character.HasConditionFlag(conditions.Sleeping) {
+			sleepingUserIds[uid] = true
+		}
+	}
+	for _, mobId := range mobs.GetAllMobInstanceIds() {
+		if m := mobs.GetInstance(mobId); m != nil && m.Character.HasConditionFlag(conditions.Sleeping) {
+			sleepingMobInstanceIds[mobId] = true
+		}
+	}
+	return sleepingUserIds, sleepingMobInstanceIds
+}

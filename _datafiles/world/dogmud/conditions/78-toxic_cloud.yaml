@@ -1,0 +1,15 @@
+conditionid: 78
+name: Toxic Cloud
+description: A noxious cloud clings to you, sapping your strength.
+triggerrate: 1 round
+triggercount: 5
+start_actee: A cloud of choking fumes engulfs you!
+start_observer: "{actee} is engulfed in a cloud of toxic fumes."
+end_actee: The toxic cloud finally dissipates.
+trigger_actee: The toxic fumes sear your lungs.
+tick_pool: health
+tick_percent: -0.06
+tick_variance: 0.04
+tick_min: 2
+flags:
+  - poison

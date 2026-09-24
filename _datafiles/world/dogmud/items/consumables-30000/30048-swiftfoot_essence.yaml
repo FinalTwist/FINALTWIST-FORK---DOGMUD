@@ -1,0 +1,22 @@
+itemid: 30048
+name: Swiftfoot Essence
+vendor_categories:
+- alchemy
+namesimple: essence
+description: An almost weightless liquid that evaporates
+  on contact with your tongue. The world seems to slow
+  down.
+type: potion
+subtype: drinkable
+uses: 1
+conditionids:
+  - 66
+value: 28
+rarity_tier: 40
+weight: 0.3
+toxicity: 20
+aging:
+  ferment_rounds: 1500
+  peak_rounds: 6000
+  decay_rounds: 18000
+  spoil_rounds: 30000

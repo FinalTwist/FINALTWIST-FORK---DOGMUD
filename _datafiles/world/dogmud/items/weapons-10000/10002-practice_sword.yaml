@@ -1,0 +1,20 @@
+itemid: 10002
+name: Practice Sword
+vendor_categories:
+- blacksmithing
+namesimple: sword
+description: A blunted training sword with a wrapped leather grip. The edge has been
+  deliberately dulled, but it still packs a solid wallop.
+type: weapon
+value: 5
+rarity_tier: 50
+hands: 1
+subtype: slashing
+weight: 6.0  # Medium sword weight
+speedmultiplier: 0.7  # Standard sword - slower than unarmed but versatile
+grapplemodifier: 1.0  # Stage 8.7: Training sword, manageable for grappling
+damage:
+  basedamage: 4
+  variance: 2
+damage_multiplier: 0.25
+parryrating: 12

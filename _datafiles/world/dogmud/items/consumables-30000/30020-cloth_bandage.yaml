@@ -1,0 +1,14 @@
+itemid: 30020
+name: Cloth Bandage
+vendor_categories:
+- tailoring
+namesimple: bandage
+description: A clean strip of linen wound into a tight roll. When applied to a
+  wound it stems bleeding and promotes healing.
+type: object
+subtype: usable
+uses: 1
+conditionids:
+  - 5
+value: 5
+rarity_tier: 50

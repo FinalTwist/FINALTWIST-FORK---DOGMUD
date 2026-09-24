@@ -1,0 +1,59 @@
+mobid: 283
+zone: North Road
+archetype: fighting
+behavior_archetype: lookout
+routine: watch_north_road
+routine_links:
+  - bandit_camp_guard
+statpool: 100
+itemdropchance: 30
+hostile: false # engagement owned by lookout btree (power-ratio gate)
+pack_flee_immune: true
+conditionids: [9]
+maxwander: 1
+groups:
+  - humanoid
+  - bandit
+  - bandits
+hates:
+  - caravan
+idlecommands:
+  - 'emote leans against a tree, watching the road with practiced indifference'
+  - ''
+  - 'emote picks at a thumbnail with a short knife'
+  - ''
+  - 'emote glances west toward the scrub, then back to the road'
+  - ''
+combatcommands:
+  - 'emote darts in low, blade flicking toward an opening'
+  - ''
+  - 'emote feints left and strikes right'
+  - ''
+activitylevel: 15
+character:
+  name: Bandit Lookout
+  description: |
+    A wiry figure in dark, travel-worn clothing, standing near the
+    treeline with the too-casual posture of someone pretending to
+    belong. A short blade hangs at the hip, half-hidden by a
+    loose coat. The eyes are the giveaway — they track every
+    movement on the road with a focus that has nothing to do with
+    idle curiosity. This person is waiting for something specific.
+  speciesid: 1
+  level: 1
+  gold: 20
+  items:
+    - itemid: 53
+  equipment:
+    weapon:
+      itemid: 10003
+  stats:
+    dexterity:
+      base: 115
+    perception:
+      base: 110
+    strength:
+      base: 105
+  skills:
+    skullduggery: 1
+    weapon-combat: 1

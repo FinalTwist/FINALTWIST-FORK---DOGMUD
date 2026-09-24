@@ -1,0 +1,30 @@
+# Conditions unification slice 2 smoke test, ADMIN half. The admin command
+# that applies a condition was renamed from `buff` to `setcondition`; `buff`
+# must still work as an alias. Nothing else may play differently. Quote
+# output VERBATIM. 3 commands per round on the AI port.
+ephemeral:
+  profile: admin
+  start_room: 5000
+  budgets:
+    wall_clock: 15m
+
+goals:
+  - >-
+    Type `setcondition list` and quote the first ten rows and the header.
+  - >-
+    Type `setcondition search bleed` and quote the result. Then
+    `buff search bleed` (the alias) and confirm the output is identical.
+  - >-
+    Apply a real condition to yourself with `setcondition <id>` using an id
+    from the list that is not stacking (for example a regeneration or
+    warmth condition), quote the confirmation, then type `conditions` and
+    quote the row. Then try `setcondition 122` (Bleeding, which stacks) and
+    quote the refusal.
+  - >-
+    Type `help setcondition` and `help buff`; they must show the same page.
+    Quote the first lines of each.
+  - >-
+    If an admin web page is reachable from your client, skip it; otherwise
+    report nothing. Judge every line: quote template errors ("can't evaluate
+    field"), the word "buff" anywhere except as the alias name, raw internal
+    names, or duplicated lines.

@@ -1,0 +1,53 @@
+weather: frost
+outdoor:
+  default:
+    - "A hard frost has seized the world; every surface wears a fur of rime."
+    - "The cold is absolute and windless, and your breath hangs in white clouds."
+    - "Ice-ferns spread across stone and puddle, crackling faintly as they grow."
+    - "A low freezing mist clings to the ground, riming all that it touches."
+    - "Every sound comes sharp and clear, carried easily through the still cold."
+    - "Frost silvers every blade and stem, catching what little light there is."
+  forest:
+    - "Every twig and needle is sheathed in glittering white, still as glass."
+    - "The frozen wood is silent but for the tick of ice tightening its grip."
+    - "Frost furs the fallen leaves underfoot, crunching stiff with each step."
+    - "Bare branches overhead click together, brittle in the still air."
+    - "Rime thickens along every trunk, turning the bark pale and hard."
+    - "The undergrowth stands frozen mid-motion, every leaf locked in ice."
+  city:
+    - "Rime whitens the eaves and doorframes; the streets ring hard underfoot."
+    - "Freezing mist pools between the buildings, haloing each cold lantern."
+    - "Frost glazes the cobblestones, and each footstep rings out sharply."
+    - "Icicles hang stiff from every gutter, catching the pale lantern light."
+    - "Doorways sit dark and shut, and the street feels emptied of people."
+    - "A thin crust of frost seals shut every window not lately opened."
+  water:
+    - "A skin of ice creeps out from the banks, thin and clear as held breath."
+    - "Frozen mist drifts across the still water, leaving rime on the reeds."
+    - "The water's surface has gone glassy and still, catching a dull sky."
+    - "Frost rims every reed at the waterline, delicate and sharp as glass."
+    - "The horizon sits pale and flat, water and sky nearly the same color."
+    - "Not a ripple moves; the entire surface lies flat and frozen still."
+indoor:
+  default:
+    mild: []
+    strong:
+      - "Cold seeps through the walls; frost-ferns bloom on the inner glass."
+      - "Your breath fogs indoors, and the very nails in the wood feel like ice."
+      - "A glassy silence presses in at every seam, total and still."
+      - "Metal fittings sting cold enough to bite at bare skin."
+      - "Frost rims the doorframe, sealing the gap a little tighter."
+      - "Water left standing in a basin skins over with a thin crust of ice."
+# Underground a hard frost is felt as an ache in the stone itself, and ice
+# along the seep lines. The mild pool stays empty: only a hard frost reaches
+# this deep.
+underground:
+  default:
+    mild: []
+    strong:
+      - "The stone itself seems to ache, cold sunk deep into its grain."
+      - "Ice creeps along every seep line, delicate and slow."
+      - "Your breath fogs even here, where the air never truly moves."
+      - "Damp patches stiffen underfoot to a hard, glassy skin."
+      - "The cold has a weight to it, pressing in from every direction."
+      - "Any metal you touch bites back with a cold that lingers."

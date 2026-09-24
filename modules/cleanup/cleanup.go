@@ -1,0 +1,115 @@
+package cleanup
+
+import (
+	"embed"
+	"fmt"
+
+	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/plugins"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/users"
+)
+
+var (
+
+	//////////////////////////////////////////////////////////////////////
+	// NOTE: The below //go:embed directive is important!
+	// It embeds the relative path into the var below it.
+	//////////////////////////////////////////////////////////////////////
+
+	//go:embed files/*
+	files embed.FS
+)
+
+// ////////////////////////////////////////////////////////////////////
+// NOTE: The init function in Go is a special function that is
+// automatically executed before the main function within a package.
+// It is used to initialize variables, set up configurations, or
+// perform any other setup tasks that need to be done before the
+// program starts running.
+// ////////////////////////////////////////////////////////////////////
+func init() {
+	//
+	// We can use all functions only, but this demonstrates
+	// how to use a struct
+	//
+	c := CleanupModule{
+		plug: plugins.New(`cleanup`, `1.0`),
+	}
+
+	//
+	// Add the embedded filesystem
+	//
+	if err := c.plug.AttachFileSystem(files); err != nil {
+		panic(err)
+	}
+
+	//
+	// Register any user/mob commands
+	//
+	c.plug.AddUserCommand("trash", c.userTrashCommand, false, false)
+
+	c.plug.AddMobCommand("trash", c.mobTrashCommand, false)
+
+}
+
+// Using a struct gives a way to store longer term data.
+type CleanupModule struct {
+	// Keep a reference to the plugin when we create it so that we can call ReadBytes() and WriteBytes() on it.
+	plug *plugins.Plugin
+}
+
+func (c *CleanupModule) userTrashCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+
+	// Check whether the user has an item in their inventory that matches
+	matchItem, found := user.Character.FindInBackpack(rest)
+
+	if !found {
+		user.SendText(messaging.CategoryError, fmt.Sprintf(`You don't have a "%s" to trash.`, rest))
+	} else {
+
+		isSneaking := user.Character.HasConditionFlag(conditions.Hidden)
+
+		user.Character.RemoveItem(matchItem)
+
+		events.AddToQueue(events.ItemOwnership{
+			UserId: user.UserId,
+			Item:   matchItem,
+			Gained: false,
+		})
+
+		user.SendText(messaging.CategorySystem,
+			fmt.Sprintf(`You trash the <ansi fg="item">%s</ansi> for good.`, matchItem.DisplayName()))
+
+		if !isSneaking {
+			room.SendText(messaging.CategoryMobEmote,
+				fmt.Sprintf(`<ansi fg="username">%s</ansi> destroys <ansi fg="item">%s</ansi>...`, user.Character.Name, matchItem.DisplayName()),
+				user.UserId)
+		}
+
+	}
+
+	return true, nil
+}
+
+func (c *CleanupModule) mobTrashCommand(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
+
+	// Check whether the user has an item in their inventory that matches
+	matchItem, found := mob.Character.FindInBackpack(rest)
+
+	if found {
+		mob.Character.RemoveItem(matchItem)
+
+		events.AddToQueue(events.ItemOwnership{
+			MobInstanceId: mob.InstanceId,
+			Item:          matchItem,
+			Gained:        false,
+		})
+
+	}
+
+	return true, nil
+}

@@ -1,0 +1,39 @@
+weather: heatwave
+outdoor:
+  default:
+    - "Heat shimmers up off the ground in wavering curtains."
+    - "Sweat dries to salt almost before it forms."
+    - "The air is an oven's breath; even the wind has given up."
+    - "The light glares white and merciless off every pale surface."
+    - "Your skin prickles with heat that has nowhere to escape to."
+    - "Even the shade offers little relief from the heavy, still air."
+  city:
+    - "The stones radiate stored heat like a banked forge."
+    - "Heat rises off the cobbles in waves that blur the street beyond."
+    - "Awnings hang limp, offering thin shade against the glare."
+    - "Doorways stand open, everyone inside seeking whatever shade there is."
+    - "Metal fixtures on every door are too hot to touch bare-handed."
+    - "The city smells of hot dust and baked stone, thick in every breath."
+indoor:
+  default:
+    mild: []
+    strong:
+      - "The trapped air hangs hot and motionless, thick as wool."
+      - "The walls themselves give off warmth, offering no relief at all."
+      - "Time seems to thicken; every small motion costs more than it should."
+      - "Sweat beads and clings, refusing to dry in the still air."
+      - "Every breath feels heavier, as if the room itself resists you."
+      - "The floorboards feel warm underfoot, as though heat rose from below."
+# Underground the heatwave is felt as a contrast: the cave stays cool, and
+# that contrast sharpens toward the entrance. The mild pool stays empty:
+# only a severe heatwave registers at all this deep.
+underground:
+  default:
+    mild: []
+    strong:
+      - "The stone stays cool under your hand, indifferent to the season."
+      - "A faint warmth reaches even this far, thinned almost to nothing."
+      - "The air here is still and cool, and gives away nothing of the day."
+      - "Cool air pools in the low places and stays, heavy and welcome."
+      - "Whatever heat you carried in is gone, drawn off by the rock."
+      - "Deep stone remembers no season; the cool here never wavers."

@@ -1,0 +1,14 @@
+itemid: 20027
+name: Chainmail Vest
+vendor_categories:
+- blacksmithing
+namesimple: chainmail
+description: A vest of tightly woven iron chain links. It covers the torso well
+  and turns aside most blades, though its weight slows quick
+  movements.
+type: body
+subtype: wearable
+physical_mitigation: 12
+escapemodifier: -0.05
+value: 25
+rarity_tier: 40

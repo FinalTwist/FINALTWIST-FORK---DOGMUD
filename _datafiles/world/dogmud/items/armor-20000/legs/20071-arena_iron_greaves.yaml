@@ -1,0 +1,16 @@
+itemid: 20071
+name: Arena Iron Greaves
+vendor_categories:
+- blacksmithing
+namesimple: greaves
+description: >-
+  Solid iron plate formed to protect the shins and thighs, worn
+  smooth at the edges from long use in the pit. Heavier than
+  chain, but hits against the legs glance off where they would
+  bite through lighter armor.
+type: legs
+subtype: wearable
+physical_mitigation: 4
+weight: 1.0
+value: 25
+rarity_tier: 40

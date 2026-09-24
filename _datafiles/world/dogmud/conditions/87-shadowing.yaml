@@ -1,0 +1,7 @@
+conditionid: 87
+name: Shadowing
+description: You are stalking a quarry from the shadows, matching their every step.
+triggerrate: 1 round
+triggercount: 25
+start_actee: You fall into your quarry's wake, footfalls silenced to match theirs.
+end_actee: Your focus on the quarry breaks.

@@ -1,0 +1,191 @@
+package actions
+
+import (
+	"fmt"
+
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/forager"
+	"github.com/GoMudEngine/GoMud/internal/gametime"
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/mutations"
+	"github.com/GoMudEngine/GoMud/internal/skills"
+)
+
+// foragedSearchScore applies the Chrysifier forage-yield multiplier (Provident
+// Hands) to the base search score — a keener eye turns up more from the land.
+func foragedSearchScore(char *characters.Character) float64 {
+	return CalcSearchScore(char) * (1.0 + mutations.GetForageYieldMult(char.Mutations))
+}
+
+// ForageOptions parameterizes a forage attempt.
+// Empty v1 — biome derives from actor.GetRoom().GetBiome().
+type ForageOptions struct{}
+
+// ForageResult is the structured outcome.
+type ForageResult struct {
+	Found        bool
+	ItemId       int
+	ItemName     string
+	Reason       string
+	OnCooldown   bool
+	RollHappened bool
+}
+
+// Forage runs a Perception+Search forage attempt scoped to the
+// actor's current room biome. Cooldown key "forage" shared with
+// the player path (6 rounds). UserActor emits the existing
+// "you crouch low..." actor-direct message + room broadcast.
+// MobActor's actor-direct SendText is a no-op (silent), but the
+// room broadcast emits regardless (chunk 3.8) so players can
+// observe forager NPCs working in their territory.
+func Forage(actor Actor, opts ForageOptions) ForageResult {
+	result := ForageResult{}
+
+	char := actor.GetCharacter()
+	room := actor.GetRoom()
+	if char == nil || room == nil {
+		result.Reason = "no character or room"
+		return result
+	}
+
+	biome := room.GetBiome()
+	if _, ok := forager.ForageYields[biome.BiomeId]; !ok {
+		if actor.IsPlayer() {
+			actor.SendText(messaging.CategorySystem,
+				`There is nothing here worth foraging. Try an outdoor area.`)
+		}
+		result.Reason = "wrong biome"
+		return result
+	}
+
+	if !char.TryCooldown("forage", "6 rounds") {
+		result.OnCooldown = true
+		if actor.IsPlayer() {
+			actor.SendText(messaging.CategorySystem,
+				fmt.Sprintf("You need to wait %d more rounds before you can forage again.",
+					char.GetCooldown("forage")))
+		}
+		return result
+	}
+
+	searchScore := foragedSearchScore(char)
+
+	// Actor-direct message: player-only ("you crouch low" reads from
+	// the actor's perspective; mobs have no perspective to address).
+	if actor.IsPlayer() {
+		actor.SendText(messaging.CategorySystem,
+			`You crouch low and begin searching the ground carefully...`)
+	}
+	// Room broadcast: emits for both player and mob actors. Chunk 3.8
+	// made this visible for mob foragers (Tova/Halix/Kessa) so players
+	// observing their territory can see them working. Username vs
+	// mobname ANSI tag picked per actor type.
+	nameTag := "mobname"
+	if actor.IsPlayer() {
+		nameTag = "username"
+	}
+	room.SendTextVisual(messaging.CategoryMobEmote,
+		fmt.Sprintf(`<ansi fg="%s">%s</ansi> is searching the ground for something.`,
+			nameTag, char.Name),
+		actor.GetUserId(),
+	)
+
+	// Zone + weather overlay: PLAYER-forage ONLY. Forage() is a shared entry
+	// point called by both the player command and the NPC forager path
+	// (behaviortree/mobcommands → actions.Forage), so the zone/weather
+	// overlay MUST be gated on actor.IsPlayer(). Leaving Zone/Weather
+	// zero-valued for mob actors is the intentional guard against
+	// zone/storm-gated ultra-rare reagents leaking into vendor stock via
+	// forager NPCs.
+	attempt := forager.ForageAttempt{
+		Biome:       biome.BiomeId,
+		SearchScore: searchScore,
+		AtNight:     gametime.IsNight(),
+	}
+	if actor.IsPlayer() {
+		attempt.Zone = room.Zone
+		attempt.Weather = currentWeatherType(room.Zone)
+	}
+
+	coreResult := forager.ForageCore(attempt)
+
+	result.RollHappened = true
+
+	// U10b-1 Task 15. Awarded HERE, on the resolved forage, rather than inside
+	// the success path further down where it used to sit.
+	//
+	// This site is a GAIN, unlike its siblings in this phase: forage was
+	// SUCCESS-ONLY, so a forager who turned up nothing trained nothing at all.
+	// A fruitless forage is a resolved contest and now pays
+	// ProgressionFailureFraction.
+	//
+	// Placed after RollHappened deliberately: every early exit above -- wrong
+	// biome, cooldown -- returns before this line, so a forage that never
+	// rolled still awards nothing. That marker is the honest "a contest
+	// resolved" signal, the same role rolledAgainstSomething plays in Search.
+	//
+	// won is coreResult.Found, NOT "an item reached the backpack". The
+	// crumbles-in-your-hands branch below is a found item that failed to
+	// construct -- a data problem, not a contest the forager lost.
+	actor.AwardResolved(coreResult.Found, char.CandidateFor(string(skills.Search)))
+
+	if !coreResult.Found {
+		if actor.IsPlayer() {
+			actor.SendText(messaging.CategorySystem,
+				`You find nothing of use this time.`)
+		}
+		return result
+	}
+
+	newItem := items.New(coreResult.ItemId)
+	if !newItem.IsValid() {
+		if actor.IsPlayer() {
+			actor.SendText(messaging.CategorySystem,
+				`You find something, but it crumbles in your hands.`)
+		}
+		result.Reason = "item invalid"
+		return result
+	}
+
+	char.StoreItem(newItem)
+	if actor.GetUserId() != 0 {
+		events.AddToQueue(events.ItemOwnership{
+			UserId: actor.GetUserId(),
+			Item:   newItem,
+			Gained: true,
+		})
+	}
+	if actor.IsPlayer() {
+		actor.SendText(messaging.CategorySystem,
+			fmt.Sprintf(`You find a <ansi fg="itemname">%s</ansi>.`, newItem.DisplayName()))
+	}
+
+	result.Found = true
+	result.ItemId = coreResult.ItemId
+	result.ItemName = newItem.DisplayName()
+	return result
+}
+
+// currentWeatherType returns the weather module's reported weather type for
+// a zone ("storm", "clear", etc.), or "" when the weather module isn't
+// installed, the export has an unexpected signature, or the zone is
+// unrecognized. All three degrade paths return "" so the caller safely
+// treats the zone as calm.
+func currentWeatherType(zone string) string {
+	f, ok := GetExportedFunction("GetWeather")
+	if !ok {
+		return ""
+	}
+	getW, ok := f.(func(string) map[string]any)
+	if !ok {
+		return ""
+	}
+	wx := getW(zone)
+	if wx == nil {
+		return ""
+	}
+	wtype, _ := wx["type"].(string)
+	return wtype
+}

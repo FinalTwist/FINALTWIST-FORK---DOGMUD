@@ -1,0 +1,10 @@
+conditionid: 41
+name: Mind Fog
+description: A psionic fog clouds your thoughts, dulling perception and willpower.
+triggerrate: 1 round
+triggercount: 9
+statmods:
+  perception: -15
+  willpower: -10
+start_actee: A thick fog descends over your thoughts...
+end_actee: The fog lifts from your mind and clarity returns.

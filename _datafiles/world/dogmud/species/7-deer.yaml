@@ -1,0 +1,35 @@
+speciesid: 7
+name: deer
+description: A graceful, fleet-footed herbivore with large, watchful
+  eyes. Deer rely on speed and acute senses to escape
+  danger, but a cornered buck will lower its antlers and gore.
+body_parts: [legs, eyes, mouth, skin, tail, horns]
+intrinsic_mutations:
+  tail: 1
+  keen-senses: 1
+size: medium
+unarmedname: antlers
+natural_attack: gore
+selectable: false
+tameable: true
+angrycommands:
+  - emote stamps a hoof and snorts nervously.
+  - emote lowers its antlers and paws the ground.
+stats:
+  strength:
+    base: 70
+  dexterity:
+    base: 140
+  perception:
+    base: 150
+  vitality:
+    base: 80
+  willpower:
+    base: 10
+  charisma:
+    base: 15
+damage:
+  basedamage: 3
+  variance: 2
+damage_multiplier: 0.40
+disabledslots: ['weapon', 'offhand', 'head', 'neck', 'belt', 'gloves', 'ring', 'legs', 'feet']

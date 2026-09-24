@@ -1,0 +1,75 @@
+mobid: 336
+zone: Stillwater
+craft_support: cooking
+crafter: true
+crafterskill: cooking
+crafterrecipeids:
+  - grilled-meat
+  - trail-rations
+crafterrestockmaterials: []
+behavior_archetype: noncombat_shopkeeper
+statpool: 58
+itemdropchance: 0
+hostile: false
+charm_immune: true
+non_combatant: true
+maxwander: 0
+groups:
+  - humanoid
+  - merchant
+  - stillwater_citizens
+  - shopkeepers
+knows_facts:
+  - stillwater-lake-decline
+  - stillwater-cave-creatures
+idlecommands:
+  - 'emote rearranges a tray of fish on chipped ice, nudging each one
+    into a tighter row'
+  - ''
+  - 'emote calls out to no one in particular, "Fresh catch, pulled this
+    morning!"'
+  - ''
+  - 'emote wraps a parcel of fish in rush-paper with practiced speed'
+  - ''
+activitylevel: 14
+character:
+  name: Fishmonger Tov Brann
+  description: |
+    A compact, quick-eyed man who smells permanently of brine and cold
+    water. Tov has worked the lakefront stall since he was old enough to
+    carry a crate, and he knows which boats came in full and which came in
+    light before the dock master does. His hands never stop -- sorting,
+    wrapping, passing coin -- and his patter is cheerful even when the
+    catch is poor. He sells freshwater clam and raw fish from the
+    morning haul. Business is thin lately, with half the nets coming
+    back torn.
+  speciesid: 1
+  gold: 1000
+  skills:
+    cooking: 1
+  stats:
+    dexterity:
+      base: 110
+    charisma:
+      base: 108
+    perception:
+      base: 106
+  shop:
+    # Stillwater unique fish
+    - itemid: 40058    # freshwater clam
+      quantity: 0
+      quantitymax: 0
+      price: 4
+    - itemid: 40051    # skitter-shrimp shell
+      quantity: 0
+      quantitymax: 0
+      price: 8
+    # Base meat
+    - itemid: 40014    # raw meat
+      quantity: 0
+      quantitymax: 0
+      price: 3
+    - itemid: 40017    # salt pouch
+      quantity: 0
+      quantitymax: 0
+      price: 1
