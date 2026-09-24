@@ -1,5 +1,0 @@
-biome: river
-weather: { clear: 2, overcast: 2, fog: 2, rain: 2, storm: 1 }
-influence: { intensityDelta: 0.06, moistureDelta: 0.10, movementResistance: 0.0 }
-spawnWeight: 1.4
-track: temperate

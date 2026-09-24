@@ -1,6 +1,0 @@
-welcome: hello
-welcomeWithName: hello {{ .name }}
-welcomeWithAge: I am {{ .age }} years old
-fallbackToEnglish: "fallback to english"
-fallbackToEnglish2: "fallback to english2"
-fallbackToMsgID:

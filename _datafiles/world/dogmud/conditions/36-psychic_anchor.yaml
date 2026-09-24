@@ -1,9 +1,0 @@
-conditionid: 36
-name: Psychic Anchor
-description: A psionic anchor roots you in place, preventing teleportation.
-triggerrate: 1 round
-triggercount: 9
-flags:
-  - no-go
-start_actee: "A psionic anchor locks onto your mind, rooting you in place!"
-end_actee: The psychic anchor releases its grip on your mind.

@@ -1,7 +1,0 @@
-conditionid: 24
-name: Death Recovery
-description: You are recovering from dying
-start_actee: You are weak and shaking as you recover from dying.
-end_actee: You have recovered from dying and feel steady again.
-triggerrate: 1 rounds
-triggercount: 15

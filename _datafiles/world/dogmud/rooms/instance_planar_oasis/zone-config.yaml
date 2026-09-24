@@ -1,7 +1,0 @@
-name: Instance Planar Oasis
-instanced: true
-non_cartesian: true
-death_policy: rejoin
-portal_duration: "30 real minutes"
-entry_room: 5003
-allow_recall: true

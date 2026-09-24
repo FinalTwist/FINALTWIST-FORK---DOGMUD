@@ -1,9 +1,0 @@
-conditionid: 123
-name: Enchant Withdrawal
-description: Weakened from severing a Chrysalis bond. One of your reserves runs shallow.
-triggerrate: 1 round
-triggercount: 10
-start_actee: "The severed bond leaves a hollow in you that will take time to fill."
-end_actee: "The hollow the severed bond left in you has finally closed."
-effects:
-  pool_max_pct: magnitude

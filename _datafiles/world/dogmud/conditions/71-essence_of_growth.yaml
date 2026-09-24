@@ -1,9 +1,0 @@
-conditionid: 71
-name: Essence of Growth
-description: Your body hums with potential, as though every movement teaches it something.
-start_actee: Your body hums with potential and learns as you move.
-end_actee: The hum of potential fades from your body.
-triggerrate: 1 round
-triggercount: 800
-flags:
-  - skill-progress

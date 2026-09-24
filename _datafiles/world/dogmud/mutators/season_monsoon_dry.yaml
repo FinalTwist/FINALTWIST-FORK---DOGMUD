@@ -1,7 +1,0 @@
-mutatorid: season-monsoon-dry
-outdooronly: true
-descriptionmodifier:
-  behavior: append
-  text: The dry season has baked the earth to cracked hardpan.
-  colorpattern: brown
-decayrate: 24 hours

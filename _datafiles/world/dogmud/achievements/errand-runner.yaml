@@ -1,8 +1,0 @@
-id: errand-runner
-name: Errand Runner
-description: Complete your first quest.
-category: quests
-points: 5
-trigger:
-  type: quests_completed
-  threshold: 1

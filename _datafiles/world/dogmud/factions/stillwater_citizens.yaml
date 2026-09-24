@@ -1,8 +1,0 @@
-faction_id: stillwater_citizens
-display_name: "Stillwater Townsfolk"
-description: |
-  The fishers, traders, and craftspeople of Stillwater. They keep the lake
-  town alive and look out for one another.
-default_rep: 0
-allies: [thornwall_guards, stillwater_guards, road_wardens, thornwall_citizens, dustwalk_caravans, shopkeepers, ashwick_villagers, watchers_crossing]
-enemies: []
