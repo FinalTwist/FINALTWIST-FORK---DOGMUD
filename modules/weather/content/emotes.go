@@ -244,10 +244,10 @@ var undergroundBiomes = map[string]bool{
 // be wrong. It currently has ZERO rooms, so no prose is authored for it; if it
 // is ever used it wants its own biome-keyed pool rather than either default.
 var surfaceIndoorBiomes = map[string]bool{
-	"house":     true,
 	"fort":      true,
 	"spiderweb": true,
-	// interior is a built structure like house: roofs, eaves, windows.
+	// interior is a built structure: houses, halls, temples, archives.
+	// Roofs, eaves, windows are the right images. house was folded into it.
 	"interior": true,
 	// ether has no weather at all, so it is genuinely neither class. It is
 	// filed here rather than in undergroundBiomes because surface-indoor is

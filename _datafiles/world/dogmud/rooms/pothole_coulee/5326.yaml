@@ -14,7 +14,7 @@ description: >
   progresses. A farmhand's daily work happens in this room -- the kind
   of repetitive, necessary labor that keeps everything else possible --
   and the barn holds the comfortable smell of that work done well.
-biome: house
+biome: interior
 coord:
   x: 47
   y: -5
