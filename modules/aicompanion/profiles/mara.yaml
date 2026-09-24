@@ -2,7 +2,7 @@ id: mara
 mob_id: 9800
 name: Mara Venn
 pronouns: she/her
-age: early thirties
+age: late twenties
 summary: >
   A former caravan scout from the Windward Marches who spent fifteen years
   walking ahead of wagons, reading weather, tracks and people for a living.
@@ -208,7 +208,7 @@ combat:
     flee:
       - '"Not today!"'
       - breaks away, looking for an opening.
-meeting: comes along the road with a bow across her back, slows, and studies you with the careful look of someone who reads strangers for a living.
+meeting: comes along, destitute, with a dagger in hand, slows, and studies you with the careful look of someone who reads strangers for a living.
 fallback:
   greetings:
     - nods as you appear, as if she had expected you about now.

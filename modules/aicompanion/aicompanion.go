@@ -15,6 +15,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/mobcommands"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/plugins"
@@ -418,10 +419,14 @@ func (m *AICompanionModule) registerCommands() {
 	usercommands.RegisterCommand(`companion-boundary`, m.cmdBoundary, false, true, false)
 	usercommands.RegisterCommand(`companion-ask`, m.cmdAskFor, false, false, false)
 
-	m.plug.AddMobCommand(cmdCompanionLoot, mobCompanionLoot, false)
-	m.plug.AddMobCommand(cmdCompanionTakeout, mobCompanionTakeout, false)
-	m.plug.AddMobCommand(cmdCompanionUnlock, mobCompanionUnlock, false)
-	m.plug.AddMobCommand(cmdCompanionBuy, mobCompanionBuy, false)
+	// mobcommands.RegisterCommand, not plug.AddMobCommand: the plugin
+	// helper only fills a map that plugins.Load copies into the registry
+	// before onLoad runs, so a command added here would never arrive and
+	// the companion would be told it does not know how to do it.
+	mobcommands.RegisterCommand(cmdCompanionLoot, mobCompanionLoot, false)
+	mobcommands.RegisterCommand(cmdCompanionTakeout, mobCompanionTakeout, false)
+	mobcommands.RegisterCommand(cmdCompanionUnlock, mobCompanionUnlock, false)
+	mobcommands.RegisterCommand(cmdCompanionBuy, mobCompanionBuy, false)
 
 	// The help pages are mounted with the commands they describe.
 	if err := m.plug.AttachFileSystem(helpFiles); err != nil {
