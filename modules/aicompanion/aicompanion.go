@@ -83,6 +83,8 @@ type controller struct {
 	lastSneakTry  uint64          // round it last tried to slip into the shadows
 	followPending bool            // a follow step is on its way and not yet taken
 	followSince   uint64          // the round that step was issued
+	calledAt      uint64          // the round its owner last called it back by name
+	lastErrand    string          // what the last trip was for, so an idle wander is not lingered over
 
 	askAuth         *askAuthority  // the owner's leave to put one question to one NPC
 	ownerWasDown    bool           // the owner was on the ground when last looked at

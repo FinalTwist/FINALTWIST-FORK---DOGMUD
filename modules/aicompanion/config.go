@@ -47,6 +47,7 @@ type Config struct {
 	MaxErrandSteps               int
 	ErrandLingerRounds           int
 	LostRounds                   int
+	RescueRounds                 int
 	NearbyPlacesInPrompt         int
 	MaxKnownRooms                int
 	ThinkingSeconds              int
@@ -211,6 +212,7 @@ func buildConfig(get getter) Config {
 		MaxErrandSteps:               asInt(get(`MaxErrandSteps`), 15),
 		ErrandLingerRounds:           asInt(get(`ErrandLingerRounds`), 8),
 		LostRounds:                   asInt(get(`LostRounds`), 40),
+		RescueRounds:                 asInt(get(`RescueRounds`), 90),
 		NearbyPlacesInPrompt:         asInt(get(`NearbyPlacesInPrompt`), 6),
 		MaxKnownRooms:                asInt(get(`MaxKnownRooms`), 5000),
 		ThinkingSeconds:              asInt(get(`ThinkingSeconds`), 4),
@@ -399,6 +401,9 @@ func buildConfig(get getter) Config {
 	}
 	if c.LostRounds < c.ErrandLingerRounds {
 		c.LostRounds = c.ErrandLingerRounds
+	}
+	if c.RescueRounds < c.LostRounds {
+		c.RescueRounds = c.LostRounds
 	}
 	if c.NearbyPlacesInPrompt < 0 {
 		c.NearbyPlacesInPrompt = 0

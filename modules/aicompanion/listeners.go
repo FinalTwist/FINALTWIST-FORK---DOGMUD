@@ -89,6 +89,18 @@ func (m *AICompanionModule) onCommunication(e events.Event) events.ListenerRetur
 	room := rooms.LoadRoom(roomId)
 	now := time.Now().Unix()
 
+	// Calling her name when she is elsewhere brings her back on her own
+	// feet. She does not have to be in earshot for this: a companion who
+	// cannot be called is a companion an owner has to go and find.
+	if speakerUserId > 0 {
+		if c, ok := m.ctrls[speakerUserId]; ok && m.cfg.Enabled {
+			if mob := mobs.GetInstance(c.instanceId); mob != nil && mob.Character.RoomId != roomId &&
+				mentionsName(evt.Message, c.profile.Name) {
+				m.calledBack(c, mob, users.GetByUserId(speakerUserId))
+			}
+		}
+	}
+
 	for _, c := range m.companionsInRoom(roomId) {
 		mob := mobs.GetInstance(c.instanceId)
 		others := 0
@@ -458,4 +470,27 @@ func (m *AICompanionModule) strangerMayAsk(userId int, c *controller) bool {
 		m.strangerTokens = map[int]int{}
 	}
 	return m.strangerTokens[userId] < m.cfg.StrangerDailyTokens
+}
+
+// calledBack is the companion hearing her own name from her owner while she
+// is somewhere else: she breaks off whatever she was at and walks back. No
+// model call, no teleport, and nothing for the owner to type but her name.
+func (m *AICompanionModule) calledBack(c *controller, mob *mobs.Mob, u *users.UserRecord) {
+	if u == nil || u.Character == nil || c.calledAt == util.GetRoundCount() {
+		return
+	}
+	c.calledAt = util.GetRoundCount()
+	if c.travel != nil && c.travel.Purpose == `return` {
+		return // already on her way
+	}
+	c.travel = nil
+	if reason := m.startTravel(c, mob, u.Character.RoomId, `return`, false); reason != `` {
+		c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` called you, and you could not find the way back.`},
+			m.cfg.WorkingMemoryLines)
+		c.dirty = true
+		return
+	}
+	c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` called you by name; you started back.`},
+		m.cfg.WorkingMemoryLines)
+	c.dirty = true
 }

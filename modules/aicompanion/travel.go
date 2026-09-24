@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -177,6 +178,7 @@ func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *u
 				c.mind.rememberShop(l, cur, now)
 			}
 		}
+		c.lastErrand = p.Errand
 		c.push(stimulus{Kind: `arrived`, Text: here, Authorized: p.Authorized, Errand: p.Errand})
 		return
 	}
@@ -230,17 +232,30 @@ func (m *AICompanionModule) headBack(c *controller, mob *mobs.Mob, u *users.User
 		return // still doing whatever she went for
 	}
 	apart := round - c.apartSince
-	if apart < uint64(m.cfg.ErrandLingerRounds) {
+	linger := uint64(m.cfg.ErrandLingerRounds)
+	if c.lastErrand == `` {
+		linger = 2 // she only wandered; there is nothing to stay for
+	}
+	if apart < linger {
 		return
 	}
 	if reason := m.startTravel(c, mob, u.Character.RoomId, `return`, false); reason == `` {
+		c.lastErrand = ``
 		c.mind.addLine(Line{Kind: `event`, Text: `You started back toward ` + u.Character.Name + `.`}, m.cfg.WorkingMemoryLines)
+		c.dirty = true
 		return
 	}
-	if apart >= uint64(m.cfg.LostRounds) && companionai.Rejoin(u.UserId) {
+	// She could not work out a way back on her own. Try again each round:
+	// her owner may move somewhere she does know. Only when she has been
+	// lost a long while does the engine put her back beside them, because a
+	// companion that blinks across the world is not a companion, it is a
+	// convenience.
+	if apart >= uint64(m.cfg.RescueRounds) && companionai.Rejoin(u.UserId) {
 		c.apartSince = 0
-		c.mind.addLine(Line{Kind: `event`, Text: `You found your way back to ` + u.Character.Name + `.`}, m.cfg.WorkingMemoryLines)
+		c.mind.addLine(Line{Kind: `event`, Text: `You were lost for a long while before you found ` + u.Character.Name + ` again.`},
+			m.cfg.WorkingMemoryLines)
 		c.dirty = true
+		mudlog.Info(`aicompanion`, `action`, `rescue`, `owner`, u.UserId, `roundsLost`, apart)
 	}
 }
 
