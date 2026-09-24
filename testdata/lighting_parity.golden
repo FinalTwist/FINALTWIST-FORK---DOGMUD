@@ -6304,62 +6304,62 @@ room 6425 biome=water
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6426 biome=spiderweb
-  plain        sight=full   clear=true shapes=true
+  plain        sight=shapes clear=false shapes=true
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6427 biome=spiderweb
-  plain        sight=full   clear=true shapes=true
+  plain        sight=shapes clear=false shapes=true
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6428 biome=spiderweb
-  plain        sight=full   clear=true shapes=true
+  plain        sight=shapes clear=false shapes=true
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6429 biome=spiderweb
-  plain        sight=full   clear=true shapes=true
+  plain        sight=shapes clear=false shapes=true
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6430 biome=spiderweb
-  plain        sight=full   clear=true shapes=true
+  plain        sight=shapes clear=false shapes=true
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6431 biome=spiderweb
-  plain        sight=full   clear=true shapes=true
+  plain        sight=shapes clear=false shapes=true
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6432 biome=spiderweb
-  plain        sight=full   clear=true shapes=true
+  plain        sight=shapes clear=false shapes=true
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6433 biome=spiderweb
-  plain        sight=full   clear=true shapes=true
+  plain        sight=shapes clear=false shapes=true
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6434 biome=spiderweb
-  plain        sight=full   clear=true shapes=true
+  plain        sight=shapes clear=false shapes=true
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6435 biome=spiderweb
-  plain        sight=full   clear=true shapes=true
+  plain        sight=shapes clear=false shapes=true
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6436 biome=spiderweb
-  plain        sight=full   clear=true shapes=true
+  plain        sight=shapes clear=false shapes=true
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
 room 6437 biome=spiderweb
-  plain        sight=full   clear=true shapes=true
+  plain        sight=shapes clear=false shapes=true
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=full   clear=true shapes=true
   blinded      sight=none   clear=false shapes=false
