@@ -533,10 +533,16 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	// above).
 	reserved := worstCaseTokens(estimateTokens(messages)+requestOverhead(call), ts.MaxTokens, toolRounds, call.Retry)
 	if !m.tryReserveTokens(ownerId, reserved) {
+		// Out of allowance, not out of sorts: without this line a spent
+		// budget looks exactly like a broken companion, because she carries
+		// on answering with her authored lines and nothing is logged.
+		c.budgetSpent = true
+		m.logBudgetRefusal(ownerId, reserved)
 		c.seq++ // the decision is abandoned, not merely delayed
 		m.fallback(c, mob, stims)
 		return
 	}
+	c.budgetSpent = false
 	ctx, cancel := context.WithCancel(context.Background())
 	c.cancelCall = cancel
 	call.Ctx = ctx
@@ -1284,4 +1290,18 @@ func (m *AICompanionModule) chargeStranger(userId int, tokens int) {
 		m.strangerTokens = map[int]int{}
 	}
 	m.strangerTokens[userId] += tokens
+}
+
+// logBudgetRefusal notes a decision the budgets would not pay for, at most
+// once a minute per server, so a spent allowance is visible in the log
+// rather than silently turning a companion into a set of stock phrases.
+func (m *AICompanionModule) logBudgetRefusal(ownerId int, wanted int) {
+	now := time.Now()
+	if now.Sub(m.lastBudgetLog) < time.Minute {
+		return
+	}
+	m.lastBudgetLog = now
+	mudlog.Warn(`aicompanion`, `action`, `budgetRefused`, `owner`, ownerId, `wanted`, wanted,
+		`ownerSpentToday`, m.ownerTokens[ownerId], `ownerCap`, m.cfg.DailyTokensPerCompanion,
+		`serverSpentToday`, m.tokensToday, `serverCap`, m.cfg.DailyTokenBudget)
 }

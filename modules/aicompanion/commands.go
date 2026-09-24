@@ -99,6 +99,10 @@ func (m *AICompanionModule) cmdStatus(user *users.UserRecord) {
 	}
 	fmt.Fprintf(&b, "Today (UTC): calls=%d tokens=%d/%s errors=%d\n",
 		m.callsToday, m.tokensToday, budget, m.errorsToday)
+	if m.cfg.DailyTokensPerCompanion > 0 {
+		fmt.Fprintf(&b, "Per companion today: cap=%d tokens (0 = only the server budget applies)\n",
+			m.cfg.DailyTokensPerCompanion)
+	}
 	if m.breakerOpen(time.Now()) {
 		fmt.Fprintf(&b, "Circuit breaker OPEN until %s (fallback lines only).\n", m.breakerUntil.Format(`15:04:05`))
 	}
@@ -128,6 +132,13 @@ func (m *AICompanionModule) cmdStatus(user *users.UserRecord) {
 		fmt.Fprintf(&b, "  %s -> %s [%s] mood=%s sessions=%d memories=%d facts=%d lines=%d pending=%d",
 			ownerName, c.profile.Name, state, c.mind.Mood, c.mind.SessionCount,
 			len(c.mind.Memories), len(c.mind.Facts), len(c.mind.RecentLines), len(c.pending))
+		fmt.Fprintf(&b, " spentToday=%d", m.ownerTokens[c.ownerUserId])
+		if !m.consented(c.ownerUserId) {
+			b.WriteString(` NOT CONSENTED (they have not said "i agree", so she answers with set lines only)`)
+		}
+		if c.budgetSpent {
+			b.WriteString(` BUDGET SPENT (set lines only until the day turns, or raise DailyTokensPerCompanion)`)
+		}
 		if c.lastErr != `` {
 			fmt.Fprintf(&b, " lastError=%q", c.lastErr)
 		}

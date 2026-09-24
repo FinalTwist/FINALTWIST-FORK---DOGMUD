@@ -87,6 +87,7 @@ type controller struct {
 	knownConditions map[int]bool   // what ailed them both when last looked at
 	lastAilment     int64          // last time it remarked on one
 	lastSavedSeen   int64          // when the mind was last written to disk
+	budgetSpent     bool           // its last decision went unpaid for want of allowance
 	pendingAct      *pendingAction // issued command awaiting its outcome
 	travel          *travelPlan    // trip in progress
 	apartSince      uint64         // round it was first found apart from its owner, 0 when together
@@ -147,6 +148,7 @@ type AICompanionModule struct {
 	breakerUntil      time.Time             // model calls paused until then
 	consecutiveErrors int
 	outstanding       int // tokens held for calls that have not come back
+	lastBudgetLog     time.Time
 }
 
 var module AICompanionModule
