@@ -2056,7 +2056,7 @@ Network:
   #   container on 0.0.0.0:80 (up since 2026-07-30), so a DOGMud server set
   #   to 80 loses the bind and boots with NO web listener. The droplet's own
   #   config (not this file — skip-worktree) owns the prod value.
-  HttpPort: 80
+  HttpPort: 8090
   # - HttpsPort -
   #   The port the server listens on for web requests
   #   Note: Must have a cert/key file (See FilePaths)
@@ -2354,7 +2354,7 @@ Modules:
   #   for each. Any of them can be overridden here.
   aicompanion:
     # The module itself. Nothing below has any effect while this is false.
-    Enabled: false
+    Enabled: true
     # The OpenAI key. Prefer the OPENAI_API_KEY environment variable; anyone
     # who can read this file can read a key put here.
     APIKey: ""
@@ -2378,7 +2378,7 @@ Modules:
     # Check what a companion is about to say with OpenAI's moderation
     # endpoint. Speech a passer-by prompted is dropped when the check cannot
     # be made; the owner's own conversation is not.
-    ModerateOutput: true
+    ModerateOutput: false
     # A new character meets a companion shortly after character creation.
     # AutoBondExisting does the same for characters that already exist, at
     # their next login: off by default, because it changes every player's
@@ -2393,9 +2393,6 @@ Modules:
     # companion. Off by default: on a shared server that is other players'
     # conversation.
     RecordBystanderSpeech: false
-    # Check the companion's speech with OpenAI's moderation endpoint before
-    # it is said.
-    ModerateOutput: false
   playtest:
     Enabled: true
     SafeMode: true
