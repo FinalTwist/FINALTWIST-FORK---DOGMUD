@@ -718,10 +718,11 @@ This is the largest move in the plan. Expected transitions:
 | `none -> interior` | 5 | open-sky default to interior's 50 |
 | `city -> interior` | ~13 | 42ish at night to 50; 70 by day to 57ish |
 
-🔴 **The `cave -> spiderweb` rooms going DARK here is expected and temporary.**
-Task 9 gives `spiderweb` a lamp and retires the mutator. Do not "fix" it by
-authoring the lamp early; that is Task 9's job and its shape proof depends on
-this being the state it starts from.
+🔴 **CORRECTED after this task ran: the `cave -> spiderweb` rooms do NOT move
+here.** They stay at 58. The `lightmod: 2` bridge is additive on
+`ActiveMutators` and independent of biome, so exchanging two zero-sky no-lamp
+biomes changes nothing. Task 9 moves them, by deleting the mutator's
+`lightmod`. Do not author `spiderweb`'s lamp early to force a change here.
 
 ⚠️ **Derive the expected numbers yourself from the current golden** rather than
 trusting the table, which is approximate. Report predicted against measured.
@@ -901,7 +902,17 @@ read about **47**, in the shapes band, where the same room read about 54 before.
 ⚠️ **`marches_spur_road` and `stillwater` also contain farmland, cave, city and
 swamp rooms.** Move only the `land` ones.
 
-- [ ] **Step 2: Fix the four zone-configs**
+- [ ] **Step 2: Fix the zone-configs**
+
+🔴 **ADDED after Task 5.** Three more zone-configs carry a `defaultbiome`
+that is now stale: `new_plymouth_sewers` says `city`, and
+`crash_site_interior` and `the_foldweave` say `cave`. All three are dead today,
+because every room in those directories carries an explicit `biome:`, but they
+are the same latent trap as `plains`: the moment someone adds a room without
+one it inherits a wrong biome silently. Point them at `sewer`, `interior` and
+`spiderweb` respectively.
+
+Then the four this task was originally scoped for:
 
 `dustwalk_road`, `marches_spur_road` and `stillwater` declare
 `defaultbiome: plains`; `watchers_crossing` declares `river`. Those biomes now
@@ -952,7 +963,15 @@ alone: the three weather mutators with negative values belong to plan 4.
 Expected:
 - 31 Crash Site rooms: the `+2` bridge term (58) goes away, leaving
   `interior`'s lamp of 50 at night and about 57 by day.
-- 12 Foldweave rooms: from 0 (where Task 5 left them) to `spiderweb`'s 45.
+- 12 Foldweave rooms: from **58** to `spiderweb`'s **45**.
+
+  🔴 **CORRECTED 2026-09-23 after Task 5 ran.** This plan predicted they
+  would be at 0 by now, because Task 5 moved them from `cave` to `spiderweb`.
+  They did not move at all. The `lightmod: 2` bridge is a flat additive term
+  computed from `ActiveMutators` in `internal/rooms/lighting.go`, **entirely
+  independent of biome**, so swapping one zero-sky no-lamp biome for another
+  cannot change the number. Deleting the mutator's `lightmod` is the only
+  thing that moves them, which is this task.
 - **Nothing else moves.**
 
 - [ ] **Step 4: Confirm the bridge has no load-bearing consumers left**
