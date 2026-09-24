@@ -1,0 +1,19 @@
+spellid: skill-attunement
+name: Skill Attunement
+aliases: [attune]
+description: Opens the mind to accelerated learning and skill growth.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - mental
+cost: 180
+waitrounds: 1
+difficulty: 35
+primarystat: willpower
+base_folds: 8
+effect_type: condition
+condition_ids:
+  - 34
+cast_actor: "You attune the target's mind for accelerated learning."
+cast_observer: "{actor} touches their temple and focuses deeply."

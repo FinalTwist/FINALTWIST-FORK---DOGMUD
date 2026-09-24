@@ -1,0 +1,7 @@
+conditionid: 86
+name: Active Tracking
+description: You are following a quarry's trail with heightened awareness.
+triggerrate: 1 round
+triggercount: 25
+start_actee: You commit the trail to memory and steady your senses.
+end_actee: Your focus on the trail breaks.

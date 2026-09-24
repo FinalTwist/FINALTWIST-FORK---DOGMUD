@@ -1,0 +1,111 @@
+package perception
+
+import (
+	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/state"
+)
+
+func TestStateString(t *testing.T) {
+	cases := []struct {
+		s    State
+		want string
+	}{
+		{Sighted, "Sighted"},
+		{Blinded, "Blinded"},
+	}
+	for _, c := range cases {
+		if got := c.s.String(); got != c.want {
+			t.Errorf("State(%d).String() = %q, want %q", c.s, got, c.want)
+		}
+	}
+}
+
+// PE-001: NewMachine starts in Sighted.
+func TestNewMachine_InitialSighted(t *testing.T) {
+	m := NewMachine()
+	if m.State() != Sighted {
+		t.Errorf("NewMachine() state = %v, want Sighted", m.State())
+	}
+}
+
+// PE-002: Sighted → Blinded via condition applied.
+func TestSightedToBlindedOnConditionApplied(t *testing.T) {
+	m := NewMachine()
+	if err := m.TransitionTo(Blinded, state.TransitionReason{Trigger: TriggerConditionApplied}); err != nil {
+		t.Fatalf("TransitionTo(Blinded): %v", err)
+	}
+	if m.State() != Blinded {
+		t.Errorf("state = %v, want Blinded", m.State())
+	}
+}
+
+// PE-003: Same Sighted→Blinded path, this time carrying a conditionId metadata
+// payload identifying flashbang as the source. The FSM itself ignores
+// metadata — it's a pass-through payload for observers/consumers to use
+// during the messaging-framework wiring. Trigger string is identical to
+// PE-002 (both use TriggerConditionApplied).
+func TestSightedToBlindedOnFlashbang(t *testing.T) {
+	m := NewMachine()
+	if err := m.TransitionTo(Blinded, state.TransitionReason{Trigger: TriggerConditionApplied, Metadata: map[string]any{"conditionId": ConditionIdFlashbangBlindness}}); err != nil {
+		t.Fatalf("TransitionTo(Blinded): %v", err)
+	}
+	if m.State() != Blinded {
+		t.Errorf("state = %v, want Blinded", m.State())
+	}
+}
+
+// PE-004 (Sighted → Blinded via condition added) and PE-007 (the reverse)
+// were deleted with the ConditionBlinded source by the conditions unification
+// (slice 1, 2026-09-12). Both edges are still covered, by PE-003/PE-005/PE-006
+// on the condition triggers, which are now the only triggers there are.
+
+// PE-005: Blinded → Sighted via condition expired.
+func TestBlindedToSightedOnConditionExpired(t *testing.T) {
+	m := NewMachine()
+	_ = m.TransitionTo(Blinded, state.TransitionReason{Trigger: TriggerConditionApplied})
+	if err := m.TransitionTo(Sighted, state.TransitionReason{Trigger: TriggerConditionExpired}); err != nil {
+		t.Fatalf("TransitionTo(Sighted): %v", err)
+	}
+	if m.State() != Sighted {
+		t.Errorf("state = %v, want Sighted", m.State())
+	}
+}
+
+// PE-006: Blinded → Sighted via flashbang expired.
+func TestBlindedToSightedOnFlashbangExpired(t *testing.T) {
+	m := NewMachine()
+	_ = m.TransitionTo(Blinded, state.TransitionReason{Trigger: TriggerConditionApplied})
+	if err := m.TransitionTo(Sighted, state.TransitionReason{Trigger: TriggerConditionExpired, Metadata: map[string]any{"conditionId": ConditionIdFlashbangBlindness}}); err != nil {
+		t.Fatalf("TransitionTo(Sighted): %v", err)
+	}
+	if m.State() != Sighted {
+		t.Errorf("state = %v, want Sighted", m.State())
+	}
+}
+
+// PE-008: Pure-FSM check that Blinded→Blinded is not in the table.
+// (Caller guards against this via HasAnyBlindSource; this test just
+// confirms the table rejects re-entry.)
+func TestBlindedSelfTransitionRejected(t *testing.T) {
+	m := NewMachine()
+	_ = m.TransitionTo(Blinded, state.TransitionReason{Trigger: TriggerConditionApplied})
+	if err := m.TransitionTo(Blinded, state.TransitionReason{Trigger: TriggerConditionApplied}); err == nil {
+		t.Errorf("TransitionTo(Blinded) from Blinded: got nil err; want ErrInvalidTransition")
+	}
+	// State unchanged.
+	if m.State() != Blinded {
+		t.Errorf("state after rejected self-transition = %v, want Blinded", m.State())
+	}
+}
+
+// PE-009: Sighted→Sighted is also not in the table (symmetric check).
+func TestSightedSelfTransitionRejected(t *testing.T) {
+	m := NewMachine()
+	if err := m.TransitionTo(Sighted, state.TransitionReason{Trigger: TriggerConditionExpired}); err == nil {
+		t.Errorf("TransitionTo(Sighted) from Sighted: got nil err; want ErrInvalidTransition")
+	}
+	if m.State() != Sighted {
+		t.Errorf("state after rejected self-transition = %v, want Sighted", m.State())
+	}
+}

@@ -1,0 +1,58 @@
+weather: storm
+outdoor:
+  default:
+    - "Thunder cracks close enough to feel in your teeth."
+    - "Wind-driven rain stings like flung gravel."
+    - "Lightning whitewashes the world for a heartbeat, then the dark slams back."
+    - "The wind leans on you like a shoulder, gusting and shoving."
+    - "Rain drives sideways, finding every gap in whatever you are wearing."
+    - "Thunder rolls on and on, one peal folding into the next."
+  forest:
+    - "The trees groan and thrash, shedding twigs and torn leaves."
+    - "Branches whip overhead, and loose leaves scatter in every direction."
+    - "A trunk creaks somewhere close, straining hard against the wind."
+    - "Rain hammers the canopy, and the drips below turn heavy and fast."
+    - "Torn leaves plaster themselves flat against trunks and undergrowth."
+    - "The wood roars with wind, drowning out every smaller sound."
+  city:
+    - "A loose shutter hammers somewhere down the street, slave to the wind."
+    - "Rain sheets off the rooflines in ragged silver curtains."
+    - "Awnings snap and strain against ropes stretched taut by the wind."
+    - "Gutters overflow, sending sheets of water across the cobblestones."
+    - "Doorways stand empty, everyone gone in ahead of the worst of it."
+    - "Lightning throws every rooftop into stark, sudden silhouette."
+  water:
+    - "The water heaves into whitecaps, spray mixing with the rain."
+    - "Waves slap hard against anything standing in the water's way."
+    - "Spray flies off every crest, stinging where it lands."
+    - "The horizon has vanished, swallowed by rain and heaving water."
+    - "Whitecaps chase each other across a surface gone wild and dark."
+    - "The water churns and slaps, restless under the driving wind."
+indoor:
+  default:
+    mild:
+      - "Wind moans low around the eaves."
+      - "A shutter taps somewhere, not quite latched."
+      - "The windowpanes tick as the gusts come and go."
+      - "Draughts wander the room, then settle again."
+      - "Rain comes and goes on the roof, never quite settling in."
+      - "The chimney draws unevenly, breathing with the wind."
+    strong:
+      - "Thunder rolls through the walls, rattling anything not nailed down."
+      - "The storm hammers at the roof, wind worrying every joint and seam."
+      - "A flash of light turns the room white for an instant."
+      - "A cold draft slips under the door with each fresh gust."
+      - "The doorframe shudders with each gust that leans against it."
+      - "Loose shingles clatter and settle, then clatter again."
+# Underground the storm arrives as pressure and grit, not sound or light.
+# The mild pool stays empty: only a heavy storm reaches this deep.
+underground:
+  default:
+    mild: []
+    strong:
+      - "Thunder arrives as pressure, not sound, pressing on your chest."
+      - "Grit sifts loose from the stone overhead with each distant boom."
+      - "The rock itself seems to shudder, felt more than heard."
+      - "Dust motes drift down, stirred by something far above."
+      - "A tremor runs through the stone, gone before you can name it."
+      - "The stone carries the storm down to you, stripped of its noise."

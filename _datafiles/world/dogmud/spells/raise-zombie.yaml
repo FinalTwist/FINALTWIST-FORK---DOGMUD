@@ -1,0 +1,33 @@
+spellid: raise-zombie
+name: Raise Zombie
+aliases: [zombie]
+description: Infuses a corpse with foul necrotic energy, reanimating it
+  as a shambling zombie. Slower than a skeleton but considerably
+  tougher, the zombie retains the bulk and durability of its former
+  flesh. Requires a more substantial corpse to sustain the animating
+  force.
+attack_type: none
+damage_type: non_harm
+targeting: self
+schools:
+  - manifestation
+cost: 35
+waitrounds: 6
+difficulty: 20
+primarystat: charisma
+base_folds: 6
+effect_type: none
+effect_magnitude: 0
+cast_actor: >-
+  You press your will deep into the flesh, searching for the
+  rot-thread that ties body to borrowed life...
+cast_observer: >-
+  {actor} leans over the remains, hands splayed, a sickly green
+  light seeping between their fingers.
+wait_actor: >-
+  Foul energy seeps into the decaying flesh, swelling it with
+  borrowed animation. A low, wet groan rises from the remains...
+summon_mob_id: 301
+summon_pet_multiplier: 0.67
+summon_requires_corpse: true
+summon_min_corpse_pool: 60

@@ -1,0 +1,649 @@
+package gametime
+
+import (
+	"fmt"
+	"math"
+	"strconv"
+	"strings"
+
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/util"
+)
+
+// secondsPerRealDay is the length of a real-world day, used when a period
+// string asks for real time ("2 irl days") rather than game time.
+//
+// This was hard-coded as 84600 from the upstream import until 2026-07-31 — a
+// digit transposition of 86400 that made every `irl` period run 0.9% short
+// (about 13 minutes per day). Correcting it shifts the expiry of any in-flight
+// real-time period slightly later; nothing else depends on the old value.
+const secondsPerRealDay = 86400
+
+var (
+	dayResetOffset int = 0
+
+	// roundDateCache memoises GameDate by round number.
+	//
+	// 🪤 IT IS KEYED ON THE ROUND ALONE, WITH NO CONFIG FINGERPRINT, and since
+	// the graded lighting arc that is a trap for tests rather than a harmless
+	// optimisation. GameDate.Night now derives from Balance.WorldLatitude, so
+	// an entry computed under one latitude is returned unchanged under another.
+	//
+	// In production this is fine: the config is stable, so the cache can only
+	// ever hold answers computed under the config that is still in force.
+	//
+	// In a TEST BINARY it is not. Two tests that pin different lighting config
+	// and then ask about the SAME round number will silently share one answer,
+	// and the second test passes on the first test's arithmetic. That is not
+	// hypothetical: TestShippedConfigHasASeasonalNight was written as the guard
+	// against WorldLatitude regressing to zero, and it passed a deliberately
+	// broken coercion because an earlier test in the same file had already
+	// cached those exact rounds under a pinned latitude. It only failed when
+	// run in isolation.
+	//
+	// 🔑 ANY TEST THAT CHANGES LIGHTING OR TIMING CONFIG MUST CALL
+	// ClearDateCacheForTest BEFORE SAMPLING, or it is asserting on whatever the
+	// previous test happened to leave behind.
+	roundDateCache = map[uint64]GameDate{}
+)
+
+// ClearDateCacheForTest empties the round-to-GameDate memo.
+//
+// It exists because roundDateCache carries no config fingerprint (see above),
+// so a test that changes lighting or timing config must discard entries
+// computed under the old one. Named ForTest in the same spirit as
+// configs.SetConfigForTest and util.SetRoundCountForTest.
+//
+// Production has no reason to call this: SetTime already clears the cache when
+// it moves the clock, and nothing else changes the inputs mid-run.
+func ClearDateCacheForTest() {
+	clear(roundDateCache)
+}
+
+type RoundTimer struct {
+	RoundStart uint64 `yaml:"roundstart,omitempty"`
+	Period     string `yaml:"period,omitempty"`
+	gd         GameDate
+}
+
+func (r RoundTimer) Expired() bool {
+	if r.Period == `` || r.RoundStart == 0 {
+		return true
+	}
+	if r.gd.RoundNumber == 0 {
+		r.gd = GetDate(r.RoundStart)
+	}
+	return r.gd.AddPeriod(r.Period) < util.GetRoundCount()
+}
+
+type GameDate struct {
+	// The round number this GameDate represents
+	RoundNumber  uint64
+	RoundsPerDay int
+	// NightHoursPerDay is VESTIGIAL as of the graded lighting arc: it is still
+	// stamped from Timing.NightHours in getDate, but nothing reads it. The
+	// day/night boundary now derives from Balance.WorldLatitude via
+	// NightHoursAt, and night length varies across the year, so a single
+	// per-day figure can no longer describe it.
+	//
+	// Kept rather than deleted because GameDate is a serialised, widely passed
+	// struct and removing a field is a wider change than this arc wants. Do not
+	// read it: it will tell you eight hours on a night that runs fifteen.
+	NightHoursPerDay int
+
+	Year        int
+	Month       int
+	Week        int
+	Day         int
+	Hour        int
+	Hour24      int
+	Minute      int
+	MinuteFloat float64
+	AmPm        string
+	Night       bool
+
+	DayStart   int
+	NightStart int
+}
+
+func (gd GameDate) String(symbolOnly ...bool) string {
+
+	dayNight := `day`
+	if gd.Night {
+		dayNight = `night`
+	} else {
+		hoursLeft := int(math.Abs(float64(gd.Hour24) - float64(gd.NightStart)))
+		if hoursLeft < 3 {
+			dayNight = `day-dusk`
+		}
+	}
+
+	if len(symbolOnly) > 0 && symbolOnly[0] {
+
+		if gd.Night {
+			return `<ansi fg="night">☾</ansi>` // •
+		}
+		return fmt.Sprintf(`<ansi fg="%s">☀</ansi>`, dayNight) //
+	}
+
+	return fmt.Sprintf("<ansi fg=\"%s\">%d:%02d%s</ansi>", dayNight, gd.Hour, gd.Minute, gd.AmPm)
+}
+
+// Jumps the clock foward to the next night
+// If a roundAdjustment is provided, it will be added to the offset
+// This is useful to set to the round right before the rollover
+func SetToNight(roundAdjustment ...int) {
+
+	dayRound := GetLastPeriod(`sunset`, util.GetRoundCount())
+
+	if len(roundAdjustment) > 0 {
+		if roundAdjustment[0] < 0 {
+			dayRound -= uint64(-1 * roundAdjustment[0])
+		} else {
+			dayRound += uint64(roundAdjustment[0])
+		}
+	}
+
+	gd := GetDate(dayRound).Add(0, 1, 0)
+	util.SetRoundCount(gd.RoundNumber)
+}
+
+// Jumps the clock forward to the next day
+// If a roundAdjustment is provided, it will be added to the offset
+// This is useful to set to the round right before the rollover
+func SetToDay(roundAdjustment ...int) {
+
+	dayRound := GetLastPeriod(`sunrise`, util.GetRoundCount())
+
+	if len(roundAdjustment) > 0 {
+		if roundAdjustment[0] < 0 {
+			dayRound -= uint64(-1 * roundAdjustment[0])
+		} else {
+			dayRound += uint64(roundAdjustment[0])
+		}
+	}
+
+	gd := GetDate(dayRound).Add(0, 1, 0)
+	util.SetRoundCount(gd.RoundNumber)
+}
+
+// Jumps the clock forward a specific hour/minutes
+// Between 0 and 23
+func SetTime(setToHour int, setToMinutes ...int) {
+
+	c := configs.GetTimingConfig()
+
+	setToHour = setToHour % 24
+	roundsPerHour := float64(c.RoundsPerDay) / 24
+	dayResetOffset = int(math.Floor(float64(setToHour) * roundsPerHour))
+	if len(setToMinutes) > 0 {
+		dayResetOffset += int(math.Ceil((float64(setToMinutes[0]) / 60) * roundsPerHour))
+	}
+
+	roundOfDay := int(util.GetRoundCount() % uint64(c.RoundsPerDay))
+	dayResetOffset -= roundOfDay
+
+	// Reset the cache
+	clear(roundDateCache)
+}
+
+func IsNight() bool {
+	gd := GetDate()
+	return gd.Night
+}
+
+// Gets the details of the current date
+func GetDate(forceRound ...uint64) GameDate {
+
+	currentRound := uint64(0)
+	if len(forceRound) > 0 {
+		currentRound = forceRound[0]
+	} else {
+		currentRound = util.GetRoundCount()
+	}
+
+	if d, ok := roundDateCache[currentRound]; ok {
+		return d
+	}
+
+	// Do a reset when it fills up too much
+	if len(roundDateCache) > 20 {
+		clear(roundDateCache)
+	}
+
+	roundDateCache[currentRound] = getDate(currentRound)
+
+	return roundDateCache[currentRound]
+}
+
+func getDate(currentRound uint64) GameDate {
+
+	c := configs.GetTimingConfig()
+
+	gd := GameDate{
+		RoundNumber:      currentRound,
+		RoundsPerDay:     int(c.RoundsPerDay),
+		NightHoursPerDay: int(c.NightHours),
+	}
+
+	gd.ReCalculate()
+
+	return gd
+}
+
+func (g *GameDate) ReCalculate() {
+
+	currentRoundAdjusted := (g.RoundNumber + uint64(dayResetOffset))
+	roundOfDay := int(currentRoundAdjusted % uint64(g.RoundsPerDay))
+
+	hourFloat, minutesFloat := math.Modf(float64(roundOfDay) / float64(g.RoundsPerDay) * 24)
+
+	hour := int(hourFloat)
+	hour24 := hour
+
+	// Day of the year must be known before night length, because night length
+	// is seasonal. This block was BELOW the night block before the celestial
+	// model landed; it moved up for that reason and must stay here.
+	day := math.Floor(float64(currentRoundAdjusted)/float64(g.RoundsPerDay)) + 1
+	year := math.Ceil(day / 365)
+	if year > 1 {
+		day -= math.Floor((year - 1) * 365)
+	}
+
+	// Night length is derived from the world's latitude on this day of the
+	// year. 🔴 CORRECTED 2026-09-23: there is NO NightHours fallback. Zero is
+	// coerced to the default in validation, because the shipped config is a
+	// bare Balance and honouring zero would have shipped a flat night with no
+	// seasons. Timing.NightHours is no longer read for the day/night boundary
+	// at all; it stays only for upstream compatibility.
+	//
+	// The hour used here is FRACTIONAL, unlike the integer `hour` above,
+	// because a latitude-derived night boundary lands at 07:49, not 08:00.
+	// Comparing an integer hour against it would round the boundary to the
+	// nearest hour and lose up to half an hour of night at each end.
+	hourOfDay := float64(roundOfDay) / float64(g.RoundsPerDay) * 24
+
+	nightHours := NightHoursAt(configs.GetLightingConfig().WorldLatitude, int(day))
+	halfNight := nightHours / 2
+	nightStartHour := 24 - halfNight
+	nightEndHour := halfNight
+
+	night := hourOfDay >= nightStartHour || hourOfDay < nightEndHour
+
+	ampm := `AM`
+	if hour >= 12 {
+		ampm = `PM`
+		hour -= 12
+	}
+
+	if hour == 0 {
+		hour = 12
+	}
+
+	minute := math.Floor(minutesFloat * 60)
+
+	week := math.Floor(float64(day) / 7)
+
+	month := 1 + math.Floor((day*24)/730) // 730 hours in a "month" (24 hours * 365 days / 12 months)
+
+	g.Day = int(day)
+	g.Year = int(year)
+	g.Month = int(month)
+	g.Week = int(week)
+	g.Hour = hour
+	g.Hour24 = hour24
+	g.Minute = int(minute)
+	g.MinuteFloat = minutesFloat * 60
+	g.AmPm = ampm
+	g.Night = night
+
+	// NightStart and DayStart are display values (GameDate.String's dusk check
+	// and the time command), so they round to the nearest hour. The Night
+	// boolean above is computed from the unrounded boundaries.
+	g.NightStart = int(math.Round(nightStartHour))
+	g.DayStart = int(math.Round(nightEndHour))
+}
+
+func (g GameDate) Add(adjustHours int, adjustDays int, adjustYears int) GameDate {
+
+	rStart := g.RoundNumber
+
+	if adjustYears != 0 {
+		if adjustYears < 1 {
+			g.RoundNumber -= uint64(-1 * adjustYears * g.RoundsPerDay * 365)
+		} else {
+			g.RoundNumber += uint64(adjustYears * g.RoundsPerDay * 365)
+		}
+	}
+
+	if adjustDays != 0 {
+		if adjustDays < 1 {
+			g.RoundNumber -= uint64(-1 * adjustDays * g.RoundsPerDay)
+		} else {
+			g.RoundNumber += uint64(adjustDays * g.RoundsPerDay)
+		}
+	}
+
+	if adjustHours != 0 {
+		if adjustHours < 1 {
+			g.RoundNumber -= uint64(math.Floor(-1 * float64(adjustHours) * (float64(g.RoundsPerDay) / 24)))
+		} else {
+			g.RoundNumber += uint64(math.Floor(float64(adjustHours) * (float64(g.RoundsPerDay) / 24)))
+		}
+	}
+
+	if rStart != g.RoundNumber {
+		g.ReCalculate()
+	}
+
+	return g
+}
+
+// Example:
+// gd := gametime.GetDate()
+// nextPeriodRound := gd.AddPeriod(`10 days`)
+// Accepts: x years, x months, x weeks, x days, x hours, x rounds
+// If `IRL` or `real` are in the mix, such as `x irl days` or `x days irl`, then it will use real world time
+func (g GameDate) AddPeriod(periodStr string) uint64 {
+
+	if periodStr == `` {
+		return g.RoundNumber
+	}
+
+	qty := 1
+	timeStr := ``
+	realTime := false
+	roundsPerRealDay := 0
+	roundsPerRealHour := 0
+	roundsPerRealMinute := 0
+
+	parts := strings.Split(strings.ToLower(periodStr), ` `)
+	if len(parts) == 1 { // e.g. 2
+
+		// try and parse a number, if not a number, must be a str
+		if qty, _ = strconv.Atoi(parts[0]); qty < 1 {
+			qty = 1
+			timeStr = parts[0]
+		}
+
+	} else if len(parts) == 2 { // e.g. - 2 days
+		// first arg is quantity, second is unit
+		if qty, _ = strconv.Atoi(parts[0]); qty < 1 {
+			qty = 1
+		}
+		timeStr = parts[1]
+
+	} else if len(parts) == 3 {
+
+		// first arg is quantity, second should be `real` and the last is the unit
+		if qty, _ = strconv.Atoi(parts[0]); qty < 1 {
+			qty = 1
+		}
+
+		c := configs.GetTimingConfig()
+
+		if parts[1] == `real` || parts[1] == `irl` { // e.g. - 2 irl days
+			realTime = true
+			roundsPerRealDay = secondsPerRealDay / int(c.RoundSeconds)
+			roundsPerRealHour = 3600 / int(c.RoundSeconds)
+			roundsPerRealMinute = 60 / int(c.RoundSeconds)
+
+			timeStr = parts[2]
+		} else if parts[1] == `game` || parts[1] == `gametime` { // e.g. - 2 game days
+			timeStr = parts[2]
+		} else if parts[2] == `real` || parts[2] == `irl` { // e.g. - 2 days irl
+			realTime = true
+			roundsPerRealDay = secondsPerRealDay / int(c.RoundSeconds)
+			roundsPerRealHour = 3600 / int(c.RoundSeconds)
+			roundsPerRealMinute = 60 / int(c.RoundSeconds)
+
+			timeStr = parts[1]
+		} else if parts[2] == `game` || parts[2] == `gametime` { // e.g. - 2 days gametime
+			timeStr = parts[1]
+		}
+
+	}
+
+	if len(timeStr) >= 3 {
+
+		strShort := timeStr[0:3]
+
+		if strShort == `yea` { // timeStr == `year` || timeStr == `years` || timeStr == `yearly` {
+
+			if realTime {
+				adjustment := uint64(qty * roundsPerRealDay * 365)
+				return g.RoundNumber + adjustment
+			}
+
+			gNext := g.Add(0, 0, 1*qty)
+
+			return gNext.RoundNumber
+
+		} else if strShort == `mon` { // else if timeStr == `month` || timeStr == `months` || timeStr == `monthly` {
+
+			if realTime {
+				adjustment := uint64(qty * roundsPerRealHour * 730)
+				return g.RoundNumber + adjustment
+			}
+
+			gNext := g.Add(730*qty, 0, 0)
+
+			return gNext.RoundNumber
+
+		} else if strShort == `wee` { //  else if timeStr == `week` || timeStr == `weeks` || timeStr == `weekly` {
+
+			if realTime {
+				adjustment := uint64(qty * roundsPerRealDay * 7)
+				return g.RoundNumber + adjustment
+			}
+
+			gNext := g.Add(0, 7*qty, 0)
+
+			return gNext.RoundNumber
+
+		} else if strShort == `day` || strShort == `dai` { //  else if timeStr == `day` || timeStr == `days` || timeStr == `daily` {
+
+			if realTime {
+				adjustment := uint64(qty * roundsPerRealDay)
+				return g.RoundNumber + adjustment
+			}
+
+			gNext := g.Add(0, qty, 0)
+
+			return gNext.RoundNumber
+
+		} else if strShort == `hou` { // if timeStr == `hour` || timeStr == `hours` || timeStr == `hourly` {
+
+			if realTime {
+				adjustment := uint64(qty * roundsPerRealHour)
+				return g.RoundNumber + adjustment
+			}
+
+			gNext := g.Add(qty, 0, 0)
+
+			return gNext.RoundNumber
+
+		} else if strShort == `min` { // if timeStr == `minute` || if timeStr == `minutes` || if timeStr == `minutely`
+
+			if realTime {
+				adjustment := uint64(qty * roundsPerRealMinute)
+				return g.RoundNumber + adjustment
+			}
+
+			return g.RoundNumber + uint64(math.Floor(float64(qty)*(float64(g.RoundsPerDay)/24/60)))
+
+		} else if strShort == `noo` { // if timeStr == `noon` || timeStr == `noons` {
+
+			if realTime {
+				mudlog.Error("AddPeriod", "error", "real time not supported for noon yet: "+timeStr)
+			}
+
+			g = getDate(GetLastPeriod(`noon`, g.RoundNumber))
+			// adjusts by days
+			gNext := g.Add(0, qty, 0)
+
+			return gNext.RoundNumber
+
+		} else if strShort == `mid` { // if timeStr == `midnight` || timeStr == `midnights` {
+
+			if realTime {
+				mudlog.Error("AddPeriod", "error", "real time not supported for midnight yet: "+timeStr)
+			}
+
+			g = getDate(GetLastPeriod(`day`, g.RoundNumber))
+			// adjusts by days
+			gNext := g.Add(0, qty, 0)
+
+			return gNext.RoundNumber
+
+		} else if timeStr == `sunrise` || timeStr == `sunrises` {
+
+			if realTime {
+				mudlog.Error("AddPeriod", "error", "real time not supported for sunrise yet: "+timeStr)
+			}
+
+			g = getDate(GetLastPeriod(`sunrise`, g.RoundNumber))
+			// adjusts by days
+			gNext := g.Add(0, qty, 0)
+
+			return gNext.RoundNumber
+
+		} else if timeStr == `sunset` || timeStr == `sunsets` {
+
+			if realTime {
+				mudlog.Error("AddPeriod", "error", "real time not supported for sunset yet: "+timeStr)
+			}
+
+			g = getDate(GetLastPeriod(`sunset`, g.RoundNumber))
+			// adjusts by days
+			gNext := g.Add(0, qty, 0)
+
+			return gNext.RoundNumber
+
+		}
+
+		// Failover to rounds
+		return g.RoundNumber + uint64(qty)
+	}
+
+	// Assume rounds?
+	//if timeStr == `hour` || timeStr == `hours` || timeStr == `hourly` {
+
+	gNext := g.Add(qty, 0, 0)
+
+	return gNext.RoundNumber
+
+	//}
+
+}
+
+// PeriodLength returns how many rounds a period string spans, as a duration
+// rather than an absolute round.
+//
+// AddPeriod answers "which round does this period end on, counting from this
+// date", which is the right shape for scheduling but awkward when all you want
+// is a length. Callers used to fake it by picking an arbitrary origin round,
+// calling AddPeriod, and subtracting the origin back out. This does that once,
+// correctly, instead of at each call site.
+//
+// An empty or unparseable period is zero rounds.
+//
+// Note that game-time periods are not constant-length — months and years vary
+// with the calendar config — so the result is measured from the CURRENT date.
+// For a length anchored elsewhere, use AddPeriod on that date directly.
+func PeriodLength(periodStr string) uint64 {
+	if periodStr == `` {
+		return 0
+	}
+
+	now := GetDate()
+	end := now.AddPeriod(periodStr)
+	if end <= now.RoundNumber {
+		return 0
+	}
+	return end - now.RoundNumber
+}
+
+func GetLastPeriod(periodName string, roundNumber uint64) uint64 {
+
+	c := configs.GetTimingConfig()
+
+	roundsPerDay := uint64(c.RoundsPerDay)
+
+	// Night length here must match ReCalculate's, or "the last sunrise" will
+	// disagree with whether it is currently night. Fact from the spec: no
+	// shipped data uses a sunrise or sunset decayrate today, so this path is
+	// exercised only by the admin time-jump commands and the time command.
+	// ⚠️ This day-of-year does NOT apply dayResetOffset, while ReCalculate's
+	// does (it builds from currentRoundAdjusted). That divergence is older than
+	// the lighting arc: GetLastPeriod has never adjusted any of its round
+	// arithmetic for the offset, which the admin `settime` command mutates.
+	//
+	// What is new is that the value now feeds a SEASON-SENSITIVE computation,
+	// so the drift is observable rather than cosmetic. It stays small: the
+	// offset is bounded to under a day, and one day of day-of-year error moves
+	// the derived night length by two or three minutes at the shipped latitude.
+	// It is also narrow: no shipped data uses a sunrise or sunset decayrate, so
+	// this path is reached only by the admin time-jump commands and `time`.
+	//
+	// Recorded rather than fixed so the next reader knows the divergence is
+	// pre-existing and not a bug this arc introduced.
+	dayOfYear := int(roundNumber/roundsPerDay)%365 + 1
+	nightHoursPerDay := NightHoursAt(configs.GetLightingConfig().WorldLatitude, dayOfYear)
+
+	roundsPerHour := float64(roundsPerDay) / 24
+
+	// What round started this week?
+	roundOfWeek := roundNumber % (roundsPerDay * 7)
+
+	// What round started this day? (midnight)
+	roundOfDay := roundNumber % roundsPerDay
+
+	// What round started this hour?
+	// Guard: if RoundsPerDay < 24, integer roundsPerHour floors to 0
+	// and the modulo panics. Production default is RoundsPerDay=20,
+	// which falls in this danger zone for the "hour" period name.
+	// Degrade gracefully: treat hour-of-day as 0 (i.e., "hour"
+	// boundaries collapse onto day boundaries) rather than panic.
+	var roundsPerHourFloor uint64
+	if rph := uint64(math.Floor(roundsPerHour)); rph > 0 {
+		roundsPerHourFloor = rph
+	}
+	var roundOfHour uint64
+	if roundsPerHourFloor > 0 {
+		roundOfHour = roundOfDay % roundsPerHourFloor
+	}
+
+	if periodName == `hour` { // Start of the current hour (or closest to it)
+
+		roundNumber -= roundOfHour
+
+	} else if periodName == `day` { // Start of current day
+
+		roundNumber -= roundOfDay
+
+	} else if periodName == `week` { // Start of current week
+
+		roundNumber -= roundOfWeek // First go to the start of the day
+
+	} else if periodName == `noon` { // Last time 12pm was hit
+
+		roundNumber -= roundOfDay
+		roundNumber -= uint64(math.Floor(float64(roundsPerDay) / 2))
+
+	} else if periodName == `sunrise` { // last sunrise
+
+		roundNumber -= roundOfDay                                              // Strip rounds of today off
+		roundNumber -= roundsPerDay                                            // Subtract a day; roundsPerDay is already uint64
+		roundNumber += uint64(math.Ceil(nightHoursPerDay / 2 * roundsPerHour)) // add half a night
+
+	} else if periodName == `sunset` { // 12am of next day, minus half of night
+
+		roundNumber -= roundOfDay                                              // Strip rounds of today off
+		roundNumber -= uint64(math.Ceil(nightHoursPerDay / 2 * roundsPerHour)) // Subtract half a night
+
+	}
+
+	return roundNumber
+}

@@ -1,0 +1,21 @@
+spellid: conviction-armor
+name: Conviction Armor
+aliases: [armor]
+description: Encases the target in solidified belief for protection.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - enhancement
+cost: 50
+waitrounds: 1
+difficulty: 15
+primarystat: willpower
+base_folds: 6
+effect_type: condition
+condition_ids:
+  - 38
+categories:
+  - self_defense
+cast_actor: "You solidify your conviction into a protective shell."
+cast_observer: "{actor} concentrates as conviction hardens into visible armor."

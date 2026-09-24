@@ -1,0 +1,15 @@
+itemid: 40021
+name: Copper Wire
+namesimple: wire
+description: A thin coil of bright copper wire, soft enough to bend by hand.
+  Jewelers use it to form settings and clasps.
+type: object
+subtype: mundane
+component_tag: copper-wire
+weight: 0.1
+value: 2
+rarity_tier: 50
+is_component: true
+vendor_categories:
+- jewelcrafting
+material_tier: 2

@@ -1,0 +1,16 @@
+itemid: 30034
+name: Artisan's Satchel
+vendor_categories:
+- tailoring
+namesimple: satchel
+description: A well-organized leather satchel with padded dividers and
+  individual slots for delicate components. A brass clasp keeps
+  the main compartment sealed, while smaller pockets along the
+  sides hold frequently-used materials within easy reach.
+type: componentbag
+subtype: wearable
+value: 60
+rarity_tier: 30
+weight: 1.5
+bag_capacity: 120
+weight_reduction: 0.35

@@ -1,0 +1,37 @@
+speciesid: 14
+name: carnivorous plant
+description: A grotesque flora with grasping tendrils and a tooth-lined
+  maw hidden among deceptively lush foliage. It waits with
+  the patience of stone for prey to wander within reach.
+body_parts: [mouth, skin]
+intrinsic_mutations:
+  grasping-tendrils: 1
+naturalarmor: 6
+size: medium
+unarmedname: tendrils and maw
+natural_attack: bite
+selectable: false
+tameable: false
+angrycommands:
+  - emote shudders, its tendrils whipping toward you with surprising speed.
+  - emote opens its maw wide, releasing the stench of rotting meat.
+stats:
+  strength:
+    base: 110
+  dexterity:
+    base: 40
+  perception:
+    base: 50
+  vitality:
+    base: 150
+  willpower:
+    base: 60
+  charisma:
+    base: 5
+damage:
+  basedamage: 7
+  variance: 3
+  critconditionids:
+    - 39 # Venom (digestive toxin)
+damage_multiplier: 0.85
+disabledslots: ['weapon', 'offhand', 'head', 'neck', 'belt', 'gloves', 'ring', 'legs', 'feet', 'body']

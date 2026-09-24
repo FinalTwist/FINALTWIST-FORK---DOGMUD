@@ -1,0 +1,195 @@
+package actions
+
+import (
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/costs"
+	"github.com/GoMudEngine/GoMud/internal/skills"
+	"github.com/GoMudEngine/GoMud/internal/util"
+)
+
+// TripVariant identifies which trip form was executed.
+type TripVariant int
+
+const (
+	// TripStandard is a regular leg-sweep trip.
+	TripStandard TripVariant = iota
+	// TripTailsweep is used when the actor has the tail mutation — a tail-powered
+	// knockdown with better damage and knockdown chance than the standard form.
+	TripTailsweep
+)
+
+// TripResult holds the outcome of a trip attempt for the caller to use when
+// formatting messages, firing events, and updating UI.
+type TripResult struct {
+	Cost characters.CostCommitResult
+
+	// Target is the resolved aggro target. Valid only when Executed is true.
+	Target AggroTarget
+
+	// MoveResult is the outcome from ExecuteSkillMove. Valid only when Executed is true.
+	MoveResult combat.SkillMoveResult
+
+	// Counter is the counter tier outcome (U6b Tasks 10-11): non-zero when the
+	// defender crit-defended and answered. The command wrapper speaks its
+	// narration AFTER the move's own outcome via DispatchCounterMessages.
+	Counter combat.CounterResult
+
+	// Variant reports which trip form was used.
+	Variant TripVariant
+
+	// Executed reports whether the trip was actually performed. False when any
+	// early-exit condition fired (OnCooldown, NoTarget).
+	Executed bool
+
+	// OnCooldown is true when the special-move cooldown blocked the trip.
+	OnCooldown bool
+
+	// Crafting is true when the actor is mid-craft and cannot trip.
+	Crafting bool
+
+	// NoTarget is true when there is no aggro target or the target is gone.
+	NoTarget bool
+
+	// TargetOnFloor is true when the target is already down.
+	TargetOnFloor bool
+}
+
+// ExecuteTrip performs the core trip resolution shared between player and mob
+// callers. It handles:
+//   - Special-move cooldown (using SpecialMoveCooldown from balance config)
+//   - Variant detection: tailsweep when actor has "tail" mutation
+//   - Target resolution via ResolveAggroTarget
+//   - ExecuteSkillMove via combat package with variant-specific params
+//   - Tail equipment bonuses applied when tailsweep variant is active
+//   - RecordAndWait (analytics + round consumption)
+//
+// Callers are responsible for all messaging, skill progression events, and
+// any combat-initiation logic (e.g. SetAggro for player out-of-combat trip).
+func ExecuteTrip(actor Actor) TripResult {
+	char := actor.GetCharacter()
+
+	// Don't interrupt any active activity (cast/craft/salvage) to trip someone.
+	if char.IsActing() {
+		return TripResult{Crafting: true}
+	}
+
+	// Resolve the aggro target.
+	target := resolveActionTarget(actor, char)
+	if !target.Found {
+		return TripResult{NoTarget: true}
+	}
+
+	// Defense-in-depth anatomy gate; unreachable for players, AI/readiness gate upstream.
+	// Placed on the common path before the tailsweep variant split so both forms are gated.
+	if !char.HasBodyPart("legs") {
+		return TripResult{NoTarget: true}
+	}
+	if target.Char.IsOnFloor() {
+		return TripResult{Target: target, TargetOnFloor: true}
+	}
+
+	cfg := configs.GetBalanceConfig()
+	if !SpecialMoveReady(char) {
+		return TripResult{OnCooldown: true}
+	}
+	cost := admitFullCost(actor, costs.ActionTrip, characters.PoolStamina, float64(cfg.SpecialMoveBaseStaminaCost))
+	if cost.Status == characters.CostRefused {
+		return TripResult{Cost: cost}
+	}
+	if !ClaimSpecialMove(char) {
+		return TripResult{Cost: cost, OnCooldown: true}
+	}
+	commitMeleeEngagement(actor)
+
+	// Determine trip variant and associated params.
+	variant := TripStandard
+	damagePercent := float64(cfg.TripDamagePercent)
+	knockdownFactor := float64(cfg.TripKnockdownFactor)
+
+	// Tailsweep: actor has the tail mutation.
+	if _, ok := char.Mutations["tail"]; ok {
+		variant = TripTailsweep
+		damagePercent = 0.40 // Better than regular trip (0.25)
+		// U10: tailsweep's intended parity rate is 70% (vs regular trip's
+		// 60%). Solved on the same engine curve as the config factors:
+		// 70% needs factor 1.125. Re-derive alongside them on any retune.
+		knockdownFactor = 1.125
+
+		// Apply tail equipment bonuses if a tail item is equipped.
+		if char.Equipment.Tail.ItemId > 0 {
+			tailSpec := char.Equipment.Tail.GetSpec()
+			if tailSpec.DamageMultiplier > 0 {
+				damagePercent += tailSpec.DamageMultiplier / 100.0
+			}
+			// U10: StatMod("knockdown") is denominated in intended parity
+			// percentage points on top of tailsweep's 70%. The local slope
+			// of the factor curve there is ~0.009 per point (75% = 1.167,
+			// 80% = 1.217, vs the 1.125 base), so the shipped items
+			// (knockdown 5 and 10) land within a point of their intent.
+			knockdownFactor += float64(char.Equipment.Tail.StatMod("knockdown")) * 0.009
+		}
+	}
+
+	// Execute the skill move.
+	// U6b Task 6: through the channel seam — raw rank in, the seam applies
+	// SkillWeight (x1 -> x5 both sides); the defence is the equipment-gated
+	// set, charged and progressed; the crit tier and fumble abort exist now.
+	result := combat.ExecuteSkillMove(combat.SkillMoveParams{
+		Attacker: char,
+		Defender: target.Char,
+		Shape:    combatvocab.Melee(combatvocab.TargetSingle),
+		Attack: combat.AttackSide{
+			Stat: char.GetEffectiveDexterity(), StatName: "dexterity",
+			Skill: skills.UnarmedCombat, SkillRank: char.GetSkillLevel(skills.UnarmedCombat),
+			Mult:      combat.SituationalAttackMult(char, combatvocab.Melee(combatvocab.TargetSingle)),
+			ForceCrit: combat.SleepingForceCrit(target.Char),
+		},
+		DamagePercent:   damagePercent,
+		KnockdownFactor: knockdownFactor,
+		DamageStat:      char.Stats.Strength.ValueAdj,
+	})
+
+	// U6b Task 10: a crit-defended move earns the defender a counter-swing.
+	counter := counterSkillMoveExit(actor, target.Char, result, combatvocab.Melee(combatvocab.TargetSingle), true)
+
+	// Choose the move name for analytics based on variant.
+	moveName := "trip"
+	if variant == TripTailsweep {
+		moveName = "tailsweep"
+	}
+
+	// Determine source/target types for analytics.
+	sourceType := combat.User
+	if !actor.IsPlayer() {
+		sourceType = combat.Mob
+	}
+	targetType := combat.User
+	if target.MobInstanceId > 0 {
+		targetType = combat.Mob
+	}
+
+	// Record analytics and consume the combat round. result.Damage is always
+	// the amount actually applied (hit, partial-on-defended, or 0 on a
+	// defensive crit), so it is truthful whether or not the move landed.
+	dmgRecorded := result.Damage
+	RecordAndWait(char, moveName, sourceType, target.Char, targetType, result.Hit, dmgRecorded, util.GetRoundCount())
+
+	// Progression: unarmed-combat on hit (moved from user/mob wrappers)
+	// U10b-1 Task 18b: win OR lose. This was gated on the hit, so a special
+	// move that missed trained nothing -- the same defect a failed craft had
+	// before Task 16. The gate is now the AWARD WEIGHT rather than a
+	// precondition; a thrown move is a resolved contest either way.
+	actor.AwardResolved(result.Hit, actor.GetCharacter().CandidateFor(string(skills.UnarmedCombat)))
+
+	return TripResult{
+		Cost:       cost,
+		Target:     target,
+		MoveResult: result,
+		Counter:    counter,
+		Variant:    variant,
+		Executed:   true,
+	}
+}

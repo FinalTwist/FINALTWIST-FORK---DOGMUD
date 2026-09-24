@@ -1,0 +1,32 @@
+speciesid: 31
+name: Zombie
+description: A rotting corpse reanimated by necromantic energy, driven by a
+  mindless hunger. Zombies are ponderous but terrifyingly strong, their decaying
+  flesh absorbing punishment that would fell a living creature. They do not stop.
+body_parts: [arms, hands, legs, eyes, mouth, skin]
+intrinsic_mutations:
+  regrowth: 1
+size: medium
+unarmedname: fists
+selectable: false
+tameable: false
+angrycommands:
+  - emote lurches toward you with a wet, rattling moan.
+  - emote reaches for you with fingers dark with rot.
+stats:
+  strength:
+    base: 130
+  dexterity:
+    base: 50
+  perception:
+    base: 40
+  vitality:
+    base: 200
+  willpower:
+    base: 15
+  charisma:
+    base: 5
+damage:
+  basedamage: 5
+  variance: 2
+disabledslots: []  # companion-gearable summon; see PATCH_NOTES 2026-05-29

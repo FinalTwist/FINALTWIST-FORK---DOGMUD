@@ -1,0 +1,12 @@
+# Learned from Elara, the Frostfang Librarian (ROOM 48)
+spellid: illum
+name: Illuminate
+description: Grants a light aura
+attack_type: none
+damage_type: non_harm
+targeting: single
+school: illlusion
+cost: 5
+waitrounds: 3
+difficulty: 0
+primarystat: willpower

@@ -1,0 +1,11 @@
+conditionid: 108
+name: Static Shock
+description: A snapping charge scrambles your nerves, fraying aim and reflex.
+triggerrate: 1 round
+triggercount: 3
+statmods:
+  dexterity: -12
+  perception: -12
+start_actee: A jolt snaps through you, scrambling your nerves.
+start_observer: "{actee_plain} jerks as a charge arcs through them."
+end_actee: The buzzing charge drains away and your nerves settle.

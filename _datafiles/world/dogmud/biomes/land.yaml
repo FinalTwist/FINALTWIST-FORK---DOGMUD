@@ -1,0 +1,9 @@
+biomeid: land
+name: Land
+symbol: •
+description: The world is made of land.
+skylight: 1.0
+requireditemid: 0
+usesitem: false
+burns: false
+movementcost: 1.0

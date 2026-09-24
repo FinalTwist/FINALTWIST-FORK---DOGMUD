@@ -1,0 +1,11 @@
+itemid: 20007
+name: Rusty Pot
+vendor_categories:
+- blacksmithing
+namesimple: pot
+description: It just barely works as a helmet.
+type: head
+subtype: wearable
+physical_mitigation: 1
+value: 1
+rarity_tier: 50

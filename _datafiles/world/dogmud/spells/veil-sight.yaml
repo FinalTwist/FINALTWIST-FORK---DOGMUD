@@ -1,0 +1,19 @@
+spellid: veil-sight
+name: Veil Sight
+aliases: [sight]
+description: Opens the target's perception to see hidden creatures.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - mental
+cost: 35
+waitrounds: 1
+difficulty: 5
+primarystat: willpower
+base_folds: 4
+effect_type: condition
+condition_ids:
+  - 53
+cast_actor: "You open your perception to the Veil, seeking what hides beyond."
+cast_observer: "{actor} narrows their eyes, peering at something unseen."

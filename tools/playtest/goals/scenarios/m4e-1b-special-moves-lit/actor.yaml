@@ -1,0 +1,87 @@
+# M4e PR 1b: the ACTOR. You are Sil Vantage, in the Test Arena Champion's Pit
+# (room 204), which is lit (biome `fort`, litarea true). Ordel Quist stands with you and reads what the ROOM
+# is told. You read what YOU are told.
+#
+# Your whole job is to make ONE move at a time and quote the line you get back
+# WORD FOR WORD, including the damage in parentheses. Do not paraphrase, do not
+# summarise, do not tidy the punctuation.
+#
+# 3 commands per round on the AI port; the overflow is dropped. A special move
+# has a 4 round cooldown, so there is no hurry at all. One move every few
+# rounds is the correct pace.
+#
+# Companions may follow you. They are expected; ignore them.
+
+ephemeral:
+  profile: m2-actor
+  start_room: 204
+  budgets:
+    wall_clock: 35m
+
+goals:
+  - >-
+    FIRST COMMAND, BEFORE ANYTHING ELSE: `remove longsword`. Your auto-attack
+    with a weapon kills every opponent in this zone in under a minute, and the
+    run needs each one to live long enough to be kicked twenty times.
+  - >-
+    ALWAYS NAME YOUR TARGET. Type `kick champion`, never a bare `kick`. A bare
+    verb answers "Kick whom?" the moment you are not already in combat, and in
+    a 2026-09-21 run that silently ate most of the sample. The nouns that
+    work are `champion`, `dummy` and `sparring`. `partner` does NOT match
+    the Sparring Partner; it answers "You don't see them here."
+  - >-
+    Then confirm Ordel Quist is in the room with you. Tell them on the party
+    channel that you are starting. Type `look` once and quote the room title,
+    so the report can show the room was lit and you could see.
+  - >-
+    THE MARK RULE, and it governs everything below. Before EVERY special move,
+    type `say MARK 1`, then `say MARK 2`, and so on, counting up and never
+    reusing a number. Then use ONE move. Then wait for the line. Never put two
+    moves under one mark. Ordel is pairing your line to theirs by that number,
+    so a skipped or reused mark loses the pair.
+  - >-
+    LANE 1, STANDARD KICK, in this room. You are in the Champion's Pit with
+    the Arena Champion, who is the most durable opponent in the zone. Under a
+    fresh mark each time, `kick champion` at least TEN times. Quote every line you are told, in
+    full. You are looking for the lines that begin "Your kick strikes", "You
+    land a solid kick on", "Your boot connects with", "You drive a kick into",
+    "You snap a kick at ... and it lands", "Your foot crashes into", and the
+    knockdown lines. Record which mark gave which.
+  - >-
+    LANE 2, A SECOND OPPONENT. Go `east` to the Training Yard (201) and then
+    `south` to the Sparring Ring (202). Ordel follows. `kick sparring` to engage
+    the Sparring Partner, a fair match who fights back, so you will also see
+    kicks that MISS and kicks that get through a guard only partly. Under a
+    fresh mark each time, `kick sparring` at least TEN more times. Quote every line in full, misses included. If your
+    health drops below a quarter, go `north` and rest until it recovers, then
+    come back.
+  - >-
+    LANE 3, THE STOMP FORM. A kick at a target who is ON THE GROUND is a stomp
+    and uses different words. Under a fresh mark, `trip sparring`. If they go
+    down, IMMEDIATELY under the next mark type `kick`. Quote both lines. Repeat
+    this at least FOUR times. The stomp lines talk about bringing your heel
+    down, slamming your foot into a downed target, grinding your heel in.
+  - >-
+    LANE 4, THE KNEE FORM. A kick from inside a grapple is a knee strike.
+    Under a fresh mark, `grapple sparring`. If you take hold, then under the
+    next mark type `kick`. Quote both lines. Repeat at least FOUR times. The
+    knee lines talk about driving a knee in, ramming a knee, wrenching them
+    close. Ordel should read lines that mention the grapple. Tell them on the
+    party channel each time you are IN a grapple, so they know which of their
+    lines to expect.
+  - >-
+    LANE 5, THE OTHER MOVES. Under fresh marks, use `bash sparring` at least
+    THREE times and `trip sparring` at least THREE more times on its own
+    (without a kick after it). Quote every line.
+  - >-
+    JUDGE THE WRITING. When the fighting is done, look back over everything
+    you quoted. Report any line that reads machine-made, any two lines in the
+    same situation that say nearly the same thing, and anything that names
+    someone oddly or twice. Quote the exact text of anything you flag.
+  - >-
+    THE HEADLINE. Ask Ordel on the party channel to send you their lines for
+    a handful of your marks. For each of those marks, state plainly whether
+    your line and their line describe THE SAME MOMENT. A hit beside a miss, a
+    knockdown beside a plain hit, or a knee beside a stomp is the defect.
+    Different WORDS for the same moment are fine. Quote both lines for every
+    mark you judge.

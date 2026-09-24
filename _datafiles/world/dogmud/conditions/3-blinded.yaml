@@ -1,0 +1,10 @@
+conditionid: 3
+name: Blinded
+description: Your vision is obscured, hindering your senses.
+triggerrate: 1 round
+triggercount: 3
+statmods:
+  perception: -40
+start_actee: '<ansi fg="yellow">Your vision goes dark — you have been blinded!</ansi>'
+start_observer: "{actee_plain} claws at their eyes, blinded!"
+end_actee: '<ansi fg="green">Your vision slowly returns to normal.</ansi>'

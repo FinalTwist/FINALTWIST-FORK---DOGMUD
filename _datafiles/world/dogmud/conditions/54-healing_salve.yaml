@@ -1,0 +1,9 @@
+conditionid: 54
+name: Healing Salve
+description: Warmth spreads through your body, mending injuries.
+start_actee: Warmth spreads as the salve knits your wounds closed.
+end_actee: The warmth of the healing salve fades.
+triggerrate: 1 round
+triggercount: 150
+statmods:
+  healthrecovery: 3

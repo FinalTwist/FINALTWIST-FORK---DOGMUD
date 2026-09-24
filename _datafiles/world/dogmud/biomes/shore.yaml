@@ -1,0 +1,9 @@
+biomeid: shore
+name: Shore
+symbol: "~"
+description: Where the land meets the water.
+skylight: 1.0
+requireditemid: 0
+usesitem: false
+burns: false
+movementcost: 1.0

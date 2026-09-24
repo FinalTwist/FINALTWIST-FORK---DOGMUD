@@ -1,0 +1,107 @@
+moveid: trip
+events:
+  tailsweep_knockdown:
+    actee:
+      - '{actor} hammers you with their tail, sending you crashing to the ground! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tailsweeps {actee}, sending them crashing to the ground!'
+  tailsweep_hit:
+    actee:
+      - '{actor} sweeps at you with their tail, but you manage to stay upright! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tailsweeps {actee}, but they keep their footing!'
+  tailsweep_partial:
+    actee:
+      - '{actor} swings their tail and you keep your feet, but it still cracks into you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tailsweeps {actee}, who staggers but keeps their feet!'
+  tailsweep_miss:
+    actee:
+      - '{actor} swings their tail at you, but you avoid it!'
+    observer:
+      - '{actor} attempts a tailsweep on {actee}, but misses!'
+  trip_knockdown:
+    actee:
+      - '{actor} sweeps your legs, sending you crashing to the ground! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} trips {actee}, sending them crashing to the ground!'
+  trip_hit:
+    actee:
+      - '{actor} attempts to trip you, but you keep your footing! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} attempts to trip {actee}, but they keep their footing!'
+  trip_partial:
+    actee:
+      - '{actor} tries to trip you and you keep your feet, but the sweep still catches you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tries to trip {actee}, who staggers but keeps their feet!'
+  trip_miss:
+    actee:
+      - '{actor} attempts to trip you, but you avoid it!'
+    observer:
+      - '{actor} attempts to trip {actee}, but misses!'
+  whiff_on_prone:
+    actee:
+      - '{actor} rushes at you and finds only the ground you are already on.'
+    observer:
+      - '{actor} rushes at {actee}, who is already down, and carries straight past.'
+  # player_* events are the PLAYER twin's own wording (M4e-1b, option B): the
+  # twins shipped different prose for the same event, so they take separate
+  # keys rather than sharing the mob events above. Merging them into one pool
+  # is filed as M6 ledger row 56.
+  player_tailsweep_knockdown:
+    actor:
+      - 'Your <ansi fg="yellow-bold">tailsweep</ansi> sends {actee} crashing to the ground! (<ansi fg="damage">{damage}</ansi>)'
+    actee:
+      - '{actor} hammers you with their tail, sending you crashing to the ground! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tailsweeps {actee}, sending them crashing to the ground!'
+  player_tailsweep_hit:
+    actor:
+      - 'Your <ansi fg="yellow-bold">tailsweep</ansi> strikes {actee}, but they keep their footing! (<ansi fg="damage">{damage}</ansi>)'
+    actee:
+      - '{actor} sweeps at you with their tail, but you manage to stay upright! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tailsweeps {actee}, but they keep their footing!'
+  player_trip_knockdown:
+    actor:
+      - 'Your <ansi fg="yellow-bold">trip</ansi> sends {actee} crashing to the ground! (<ansi fg="damage">{damage}</ansi>)'
+    actee:
+      - '{actor} sweeps your legs, sending you crashing to the ground! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} trips {actee}, sending them crashing to the ground!'
+  player_trip_hit:
+    actor:
+      - 'Your <ansi fg="yellow-bold">trip</ansi> strikes {actee}, but they stay on their feet! (<ansi fg="damage">{damage}</ansi>)'
+    actee:
+      - '{actor} attempts to trip you, but you keep your footing! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} attempts to trip {actee}, but they keep their footing!'
+  player_tailsweep_partial:
+    actor:
+      - 'Your <ansi fg="yellow-bold">tailsweep</ansi> fails to trip {actee}, but still cracks into them! (<ansi fg="damage">{damage}</ansi>)'
+    actee:
+      - '{actor} swings their tail and you keep your feet, but it still cracks into you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tailsweeps {actee}, who staggers but keeps their feet!'
+  player_trip_partial:
+    actor:
+      - 'Your <ansi fg="yellow-bold">trip</ansi> fails to take {actee} down, but still catches them hard! (<ansi fg="damage">{damage}</ansi>)'
+    actee:
+      - '{actor} tries to trip you and you keep your feet, but the sweep still catches you! (<ansi fg="damage">{damage}</ansi>)'
+    observer:
+      - '{actor} tries to trip {actee}, who staggers but keeps their feet!'
+  player_tailsweep_miss:
+    actor:
+      - 'Your <ansi fg="yellow-bold">tailsweep</ansi> misses {actee}!'
+    actee:
+      - '{actor} swings their tail at you, but you avoid it!'
+    observer:
+      - '{actor} attempts a tailsweep on {actee}, but misses!'
+  player_trip_miss:
+    actor:
+      - 'Your <ansi fg="yellow-bold">trip</ansi> attempt misses {actee}!'
+    actee:
+      - '{actor} attempts to trip you, but you avoid it!'
+    observer:
+      - '{actor} attempts to trip {actee}, but misses!'

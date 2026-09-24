@@ -1,0 +1,15 @@
+itemid: 30001
+name: Small Red Potion
+vendor_categories:
+- alchemy
+namesimple: bottle
+description: A small red potion... you COULD drink it...
+type: potion
+subtype: drinkable
+uses: 1
+conditionids:
+- 5
+value: 2
+rarity_tier: 50
+
+toxicity: 6

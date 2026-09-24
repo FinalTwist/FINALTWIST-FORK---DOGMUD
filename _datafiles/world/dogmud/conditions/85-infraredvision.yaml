@@ -1,0 +1,31 @@
+conditionid: 85
+name: InfraredVision
+description: "You can see heat signatures in total darkness."
+visible: true
+sequential: false
+expireMessage: ""
+statmods: {}
+roundinterval: 0
+triggernow: false
+# A pure flag condition never ticks: the trigger loop skips any record whose
+# RoundInterval is < 1, so TriggersLeft is never decremented and any count >= 1
+# persists for the holder's life. It must still be >= 1, because
+# Condition.Expired() is TriggersLeft <= 0 and AddCondition seeds TriggersLeft
+# from this field. Without it this condition was born expired on every apply
+# path that does not pass permanent=true, which is every path an admin or a
+# player can reach, so infrared vision never once worked.
+triggercount: 1
+# nightvision_strength: 12 matches the bare-flag default
+# (LightDefaultVisionStrength, internal/configs/config.balance.go), so this
+# condition does not out-shift an admin-granted bare nightvision flag on its
+# own; its value lives in infra_reach.
+# infra_reach: 30 makes shallow magical darkness readable while deep magical
+# darkness, past light -30, still reads nothing (windowFloor = 1 and
+# windowShiftCap = 24, internal/messaging/window.go). The two numbers are
+# independent by design.
+effects:
+  nightvision_strength: 12
+  infra_reach: 30
+flags:
+  - infraredvision
+secret: true

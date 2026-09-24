@@ -1,0 +1,11 @@
+spellid: sparks
+name: Shower of Sparks
+description: Hurts for 1d3+1
+attack_type: spell
+damage_type: mental
+targeting: multi
+school: conjuration
+cost: 10
+waitrounds: 1
+difficulty: 50
+primarystat: willpower

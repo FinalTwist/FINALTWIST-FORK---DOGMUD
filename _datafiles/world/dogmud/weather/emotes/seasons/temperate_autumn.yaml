@@ -1,0 +1,23 @@
+track: temperate
+season: autumn
+# No underground section by design: deep stone does not register a season, so
+# a cave gets no seasonal ambience rather than borrowing prose written for a
+# built interior. The section CAN now be authored here if that judgement ever
+# changes; before this it would have been silently dropped by the parser.
+outdoor:
+  default:
+    - "Dry leaves scrape past on a chill gust."
+    - "The light has gone thin and slanted with the turning year."
+    - "The air carries a crisp, cool edge beneath the fading sun."
+    - "Leaves in red and gold litter the ground in drifting patches."
+    - "A chill threads through gaps that summer never let the wind find."
+    - "Bare patches show through the trees where leaves have let go."
+indoor:
+  default:
+    strong:
+      - "A draft carries the cold smell of leaf-rot and coming frost."
+      - "A fresh fire snaps and pops in the hearth."
+      - "Woodsmoke clings faintly to the curtains and rugs."
+      - "Light through the windows fades early, thin and grey."
+      - "Damp has crept back into the corners of the room."
+      - "The floorboards feel cool and slightly damp underfoot."

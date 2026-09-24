@@ -1,0 +1,22 @@
+itemid: 30054
+name: Savant's Infusion
+vendor_categories:
+- alchemy
+namesimple: infusion
+description: An amber liquid flecked with crystallized
+  chrysalis. Knowledge seems to settle faster after
+  drinking it.
+type: potion
+subtype: drinkable
+uses: 1
+conditionids:
+  - 72
+value: 100
+rarity_tier: 30
+weight: 0.5
+toxicity: 34
+aging:
+  ferment_rounds: 3000
+  peak_rounds: 12000
+  decay_rounds: 30000
+  spoil_rounds: 50000

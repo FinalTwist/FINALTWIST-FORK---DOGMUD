@@ -1,0 +1,15 @@
+################################################################################
+# If modified, these settings will be copied into your config overrides
+# folder under `Modules.leaderboards`:
+#
+# Modules:
+#   leaderboards:
+#     Size: 10
+#     PowerEnabled: true
+################################################################################
+# - Size -
+#   Maximum size of each leaderboard. 0 to disable.
+Size: 10
+# - PowerEnabled -
+# Enable leaderboard for character with the highest Power Score
+PowerEnabled: true

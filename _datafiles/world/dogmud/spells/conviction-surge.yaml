@@ -1,0 +1,21 @@
+spellid: conviction-surge
+name: Conviction Surge
+aliases: [surge]
+description: Surge of conviction that bolsters the target's attack power.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - enhancement
+cost: 35
+waitrounds: 1
+difficulty: 10
+primarystat: willpower
+base_folds: 4
+effect_type: condition
+condition_ids:
+  - 26
+categories:
+  - self_offense
+cast_actor: You channel conviction into empowering energy.
+cast_observer: "{actor} gathers conviction, a fierce glow building."

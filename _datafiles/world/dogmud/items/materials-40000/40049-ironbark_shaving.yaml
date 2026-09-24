@@ -1,0 +1,17 @@
+itemid: 40049
+name: Ironbark Shaving
+namesimple: shaving
+description: A thin curl of bark stripped from an ironbark tree,
+  dark as charcoal and hard as its namesake. It has a faintly
+  metallic smell and resists bending. Brewers grind it into
+  tinctures that harden the body against harm.
+type: object
+subtype: mundane
+component_tag: ironbark
+weight: 0.1
+value: 25
+rarity_tier: 30
+is_component: true
+vendor_categories:
+- alchemy
+material_tier: 3

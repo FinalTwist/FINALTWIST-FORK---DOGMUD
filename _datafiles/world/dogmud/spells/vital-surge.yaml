@@ -1,0 +1,19 @@
+spellid: vital-surge
+name: Vital Surge
+aliases: [vital]
+description: Sustained pulse of Chrysalis healing energy over time.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - vital
+cost: 40
+waitrounds: 1
+difficulty: 15
+primarystat: willpower
+base_folds: 5
+effect_type: condition
+condition_ids:
+  - 32
+cast_actor: "You channel a sustained pulse of healing energy."
+cast_observer: "{actor} channels a warm, pulsing glow."

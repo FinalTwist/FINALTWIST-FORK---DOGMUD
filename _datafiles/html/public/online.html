@@ -1,0 +1,31 @@
+{{template "header" .}}
+
+    <div class="overlay">
+        <h3>Users Online: </h3>
+
+        {{if gt (len .STATS.OnlineUsers) 0 }}
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Character</th>
+                <th>Title</th>
+                <th>Time Online</th>
+                <th>Role</th>
+            </tr>
+            {{range $index, $uInfo := .STATS.OnlineUsers}}
+            <tr>
+                <td align="right">{{ add $index 1 }}.</td>
+                <td align="center"><b>{{ $uInfo.CharacterName }}</b></td>
+                <td align="center">{{ $uInfo.Title }}</td>
+                <td align="center">{{ $uInfo.OnlineTimeStr }}{{ if $uInfo.IsAFK }} (AFK){{end}}</td>
+                <td align="center">{{ $uInfo.Role }}</td>
+            </tr>
+            {{end}}
+        </table>
+        {{else}}
+            <p class="hero-sub">No adventurers are online right now.</p>
+        {{end}}
+    </div>
+        <p>&nbsp;</p>
+
+{{template "footer" .}}

@@ -1,0 +1,10 @@
+conditionid: 109
+name: Reeling
+description: Your blow rebounded off a telekinetic guard, and your footing is still unsure.
+triggerrate: 1 round
+triggercount: 2
+statmods:
+  dexterity: -15
+start_actee: Your blow rebounds off a skin of telekinetic force, and you stagger!
+start_observer: "{actee_plain} staggers as their own blow rebounds on them."
+end_actee: You recover your footing.

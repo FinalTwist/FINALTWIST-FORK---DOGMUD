@@ -1,0 +1,24 @@
+itemid: 10036
+name: Drowned Claws
+namesimple: claws
+vendor_categories:
+- blacksmithing
+type: weapon
+subtype: claws
+hands: 1
+damage_multiplier: 0.45
+speedmultiplier: 1.20
+damage:
+  basedamage: 4
+  variance: 2
+parryrating: 2
+staminacost: 3
+grapplemodifier: 0.5
+weight: 0.8
+value: 70
+rarity_tier: 30
+description: >-
+  Four curved talons of solidified oasis water, clear as glass and
+  cold to the touch. They flex like living tendrils between strikes,
+  then snap rigid at the moment of impact. Water beads and runs along
+  the edges without ever dripping free.

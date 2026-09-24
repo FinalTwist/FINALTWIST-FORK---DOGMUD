@@ -1,0 +1,35 @@
+id: pothole_esk
+# Warden Esk keeps the ONLY way out of Pothole Coulee (the Threshold House
+# arch, room 5215). The exit must work at any hour: a player who comes to leave
+# must always find Esk awake at the arch to grant passage. (2026-06-29 veteran
+# smoke: Esk was at the Lantern 18-22 and ASLEEP 22-6 -- asking passage while he
+# slept teleported the player out with no send-off and no arrival text.) So he
+# now holds the arch around the clock, awake; only his idle flavor shifts with
+# the hours. The arch keeps no hours; neither does its warden.
+description: "Warden Esk holds the Threshold House arch at every hour -- watchful by day, still by lamplight, an unsleeping vigil through the night. The way out is never closed."
+segments:
+  - start: 6
+    end: 18
+    target_room: 5215
+    activity: ""
+    idlecommands:
+      - emote sits the three-legged stool by the arch, still as the stone, and watches the empty air within it.
+      - emote whittles a curl off the driftwood stick without ever looking down at his hands.
+      - say The arch has stood longer than this town. It will stand after.
+      - emote turns his head slowly, ember-light behind his eyes brightening, then banking.
+  - start: 18
+    end: 22
+    target_room: 5215
+    activity: ""
+    idlecommands:
+      - emote keeps the stool by the arch as the light fails, lighting no lamp -- the ember behind his eyes is enough to see by.
+      - say Evening or not, the way out stays open. Say the word when you are ready to take it.
+      - emote sets the driftwood stick aside and folds his hands, watchful in the gloom.
+  - start: 22
+    end: 6
+    target_room: 5215
+    activity: ""
+    idlecommands:
+      - emote holds an unsleeping vigil at the arch through the small hours, ember-eyes banked low but open.
+      - say A warden who sleeps is a door left unlatched. I do not sleep. Cross when you will.
+      - emote turns his head to the dark mouth of the arch, listening to something only he can hear.

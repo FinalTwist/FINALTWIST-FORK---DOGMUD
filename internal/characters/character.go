@@ -1,0 +1,950 @@
+package characters
+
+import (
+	"strings"
+	"time"
+
+	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/crafting"
+	"github.com/GoMudEngine/GoMud/internal/dice"
+	"github.com/GoMudEngine/GoMud/internal/gametime"
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/mutations"
+	"github.com/GoMudEngine/GoMud/internal/pets"
+	"github.com/GoMudEngine/GoMud/internal/skills"
+	"github.com/GoMudEngine/GoMud/internal/species"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/activity"
+	"github.com/GoMudEngine/GoMud/internal/state/awareness"
+	"github.com/GoMudEngine/GoMud/internal/state/combatphase"
+	"github.com/GoMudEngine/GoMud/internal/state/control"
+	"github.com/GoMudEngine/GoMud/internal/state/life"
+	"github.com/GoMudEngine/GoMud/internal/state/perception"
+	"github.com/GoMudEngine/GoMud/internal/state/position"
+	"github.com/GoMudEngine/GoMud/internal/state/presence"
+	"github.com/GoMudEngine/GoMud/internal/stats"
+)
+
+var (
+	startingRace   = 0
+	startingHealth = 10
+	// New characters begin in the void (RoomId -1), not directly at the start
+	// room. The void prompts "type start", which runs the start command — where
+	// the character is named and the experience-tier onboarding poll is asked
+	// (see internal/usercommands/start.go). Without this, new characters spawn
+	// straight into the world (StartRoom) and never reach the poll.
+	StartingRoomId = -1
+	startingZone   = `Nowhere`
+	defaultName    = `nameless`
+)
+
+// onCharacterCreatedCallbacks fire after every fresh Character instance is
+// constructed via New() or after Validate() initializes a freshly-loaded
+// Character. Used by hook packages to wire up per-Character state-machine
+// veto callbacks without import cycles.
+var onCharacterCreatedCallbacks []func(*Character)
+
+// OnCharacterCreated registers a callback that fires whenever a Character is
+// fully constructed (post-init). The callback is called with a pointer to the
+// Character so it can register vetoes/cascades/observers on its CombatPhase
+// machine.
+//
+// Used by internal/hooks/* to wire state-machine veto callbacks to Character
+// fields without creating import cycles.
+func OnCharacterCreated(fn func(*Character)) {
+	onCharacterCreatedCallbacks = append(onCharacterCreatedCallbacks, fn)
+}
+
+// fireCharacterCreated runs all registered OnCharacterCreated callbacks.
+// Called by New() and guarded by combatPhaseWired in Validate() so
+// YAML-loaded characters fire callbacks exactly once.
+func fireCharacterCreated(c *Character) {
+	for _, fn := range onCharacterCreatedCallbacks {
+		fn(c)
+	}
+}
+
+// ResetForMobInstance clears state-machine pointers and the
+// OnCharacterCreated guard so a freshly shallow-copied mob instance
+// gets its own state machines (and its own observer closures) rather
+// than sharing the template's. mobs.newMobByIdInternal shallow-copies
+// the template Character; without this reset, every instance points
+// at the same Life/CombatPhase/Position/Awareness/Activity machines,
+// and observers wired on the template fire with the template's *c
+// (MobInstanceId=0) instead of the instance's, causing despawn /
+// cascade bugs.
+//
+// Called from mobs.newMobByIdInternal between the shallow copy and
+// the first Validate() call. Validate() then constructs new machines
+// and re-fires fireCharacterCreated for the instance.
+func (c *Character) ResetForMobInstance() {
+	c.Life = nil
+	c.CombatPhase = nil
+	c.Position = nil
+	c.Awareness = nil
+	c.Activity = nil
+	c.Control = nil
+	c.Presence = nil
+	c.Perception = nil
+	c.combatPhaseWired = false
+	c.PerGrappleMessageCooldowns = nil
+	c.PerGrappleMessageCooldownsLastRound = nil
+	c.RangedEngagedCueSpoken = false
+	c.OutsideHitDisruptedRound = 0
+	c.SubInterruptDamageThisRound = 0
+	c.LastTargetFoundRound = 0
+	c.AssistCommandedRound = 0
+	c.LastDormantEntryRound = 0
+}
+
+type NameRenderFlag uint8
+
+const (
+	RenderHealth NameRenderFlag = iota
+	RenderAggro
+	RenderShortAdjectives
+)
+
+type Character struct {
+	Name                string           // The name of the character
+	Description         string           // A description of the character.
+	Adjectives          []string         `yaml:"adjectives,omitempty"` // Decorative text for the name of the character (e.g. "sleeping", "dead", "wounded")
+	RoomId              int              // The room id the character is in.
+	Zone                string           // The zone the character is in. The folder the room can be located in too.
+	SpeciesId           int              // Character species
+	Stats               stats.Statistics // Character stats
+	Health              int              // The health of the character
+	Stamina             int              // The stamina of the character (physical energy)
+	Conviction          int              // The conviction of the character (mental/spiritual energy)
+	Toxicity            float64          `yaml:"toxicity,omitempty"`        // Current toxicity from potions
+	BloomAddiction      int              `yaml:"bloom_addiction,omitempty"` // Bloom-drug addiction level (0 = clean)
+	BloomLastDoseRound  uint64           `yaml:"-"`                         // runtime: round of last Bloom dose (abstinence clock)
+	BloomHadCommunion   bool             `yaml:"-"`                         // runtime: true while condition 90 was active last tick (Crash transition gate)
+	ActionPoints        int              // The resevoir of action points the character has to spend on movement etc.
+	Gold                int              // The gold the character is holding
+	Bank                int              // The gold the character has in the bank
+	StorageFeeLastMonth int              `yaml:"storagefee_lastmonth,omitempty"` // Game month when storage fees were last charged
+	LastMailSentRound   uint64           `yaml:"lastmailsentround,omitempty"`    // Round of the character's last sent mail (mail send cooldown)
+	Shop                Shop             `yaml:"shop,omitempty"`                 // Definition of shop services/items this character stocks (or just has at the moment)
+	SpellBook           map[string]int   `yaml:"spellbook,omitempty"`            // The spells the character has learned
+	KnownRecipes        map[string]int   `yaml:"knownrecipes,omitempty"`         // The crafting recipes the character has discovered
+	// NonCombatant indicates whether this character is exempt from combat.
+	// Default false (i.e., everyone is a combatant by default). Set true for
+	// non-combatant NPCs and future player passivity spells. Inverted name
+	// gives a sensible zero value — no init needed in New().
+	// For mobs, this is populated from Mob.NonCombatant during Mob.Validate().
+	// Consumed by Combat Phase's veto chain (chunk 0 Task 10).
+	NonCombatant    bool                  `yaml:"non_combatant,omitempty"`  // True = exempt from combat
+	Charmed         *CharmInfo            `yaml:"-"`                        // If they are charmed, this is the info
+	EverCharmed     bool                  `yaml:"-"`                        // True if this mob was ever a companion (survives dismiss)
+	CharmedMobs     []int                 `yaml:"-"`                        // If they have charmed anyone, this is the list of mob instance ids
+	Items           []items.Item          `yaml:"items,omitempty"`          // The items the character is holding
+	ComponentItems  []items.Item          `yaml:"componentitems,omitempty"` // Contents of equipped component bag
+	PotionItems     []items.Item          `yaml:"potionitems,omitempty"`    // Contents of equipped potion bandolier
+	Conditions      conditions.Conditions `yaml:"conditions,omitempty"`     // The conditions the character has active
+	Equipment       Worn                  `yaml:"equipment,omitempty"`      // The equipment the character is wearing
+	HealthMax       stats.StatInfo        `yaml:"-"`                        // The maximum health of the character. Don't write to yaml since is dynamically calculated.
+	StaminaMax      stats.StatInfo        `yaml:"-"`                        // The maximum stamina of the character. Don't write to yaml since is dynamically calculated.
+	ConvictionMax   stats.StatInfo        `yaml:"-"`                        // The maximum conviction of the character. Don't write to yaml since is dynamically calculated.
+	ActionPointsMax stats.StatInfo        `yaml:"-"`                        // The maximum actions of character. Don't write to yaml since is dynamically calculated.
+	// Taunt-hold lock (transient, not serialized): a successful taunt pins
+	// this character's aggro onto the taunter until tauntHoldUntilRound, so
+	// reactive basic-attack re-aggro can't flip the target back. Set via
+	// ForceTauntAggro, read in SetAggro's gate, cleared in EndAggro.
+	tauntHoldUntilRound    uint64 `yaml:"-"`
+	tauntHoldUserId        int    `yaml:"-"`
+	tauntHoldMobInstanceId int    `yaml:"-"`
+	// costCarry banks the sub-integer remainder of every cost so that small
+	// per-action modifiers survive. Pools are ints, and dodge, parry and block
+	// differ by only 14%; rounding each action to a whole number collapses all
+	// three onto the same integer for a low-skill character, which makes the
+	// modifiers decoration. Deliberately NOT persisted: an in-flight fraction is
+	// worth less than the byte it would take in a save file, and a stale one
+	// after a reload would be indistinguishable from a rounding bug.
+	//
+	// No yaml:"-" tag on purpose. An unexported field is already invisible to the
+	// marshaller, and a yaml tag on one is a silent no-op that misleads the next
+	// reader into thinking it is load-bearing.
+	//
+	// TEMPLATE INVARIANT: mobs.newMobByIdInternal shallow-copies the mob template
+	// (`mob := *m`) and re-makes PlayerDamage on the very next line precisely
+	// because a shallow copy shares maps. costCarry is NOT re-made there, and is
+	// safe only because it is lazily allocated by ApplyCostFloat and a template's
+	// Character is never charged. Anything that charges a template -- a balance
+	// preview tool, an offline simulator -- would allocate the map on the
+	// template and hand every instance spawned afterwards the SAME shared carry.
+	// Re-make it alongside PlayerDamage before doing that.
+	costCarry map[Pool]float64
+	// CombatPhase is the canonical state machine for "am I in combat?" and
+	// "who am I targeting?". It runs alongside the Aggro field; both are
+	// kept in sync by SetAggro/EndAggro. Direct .Aggro reads remain valid.
+	CombatPhase *combatphase.Machine `yaml:"-"`
+	// Chunk 4d: submission policy fields. Set via `set submission`
+	// and `set surrender` commands. Defaults are PolicySubdue and
+	// SurrenderPolicy{Mode: SurrenderAutoTap, HpPctThreshold: 15}
+	// for players (applied by characters.New()); mobs inherit from
+	// archetype defaults at spawn (see DefaultSubmissionPolicyForArchetype).
+	SubmissionPolicy SubmissionPolicy `yaml:"submission_policy,omitempty"`
+	SurrenderPolicy  SurrenderPolicy  `yaml:"surrender_policy,omitempty"`
+	ArrestPolicy     ArrestPolicy     `yaml:"arrest_policy,omitempty"`
+	// LastSubmissionAttempted tracks the most recent sub type the
+	// character attempted (per role). Used by Position_SubmissionTick
+	// for round-robin sub-type selection so multi-sub positions don't
+	// hammer the same sub every round.
+	LastSubmissionAttempted int `yaml:"-"` // index into TopSubmissionsForPosition / BottomSubmissionsForPosition
+	// LastDriftRoll is populated by Position_GrappleTick each round
+	// with the result of the opposed drift check.
+	// Position_SubmissionTick reads it to decide whether a sub-attempt
+	// opportunity has opened without re-rolling (chunk 4d T5/T6).
+	LastDriftRoll DriftRollSnapshot `yaml:"-"` // chunk 4d: read by Position_SubmissionTick
+	// Awareness state machine (chunk 1). Source of truth for
+	// "is this character hidden?" Condition #9 still exists as effect
+	// carrier; this machine drives its add/remove via cascade.
+	Awareness *awareness.Machine `yaml:"-"`
+	// Life state machine (chunk 2). Source of truth for "is this
+	// character alive/dead/respawning?" Cascade handlers in
+	// internal/hooks/Life_Cascades.go fire on transitions to clean
+	// up other machines and trigger per-actor effects (loot,
+	// teleport, decay, etc.).
+	Life *life.Machine `yaml:"-"`
+	// Activity state machine (chunk 3). Source of truth for "what
+	// activity is this character engaged in?" Replaces
+	// CastingState + CraftingState pointer fields (Task 11).
+	Activity *activity.Machine `yaml:"-"`
+	// Position state machine (chunk 4a). Source of truth for body
+	// position + grapple geometry. 14 states (Standing/Prone/Supine/
+	// Clinch/BackStanding/Mount/SideControl/KneeOnBelly/NorthSouth/
+	// Crucifix/BackGround/HalfGuard/Guard/Turtle).
+	Position *position.Machine `yaml:"-"`
+	// Control is the per-character ControlLevel state machine
+	// (chunk 4b-fixup-2). Tracks dominance within a grapple — 5 states:
+	// 3 stable (Controlling/Neutral/Controlled) + 2 transient
+	// (LosingControl/BecomingControlled) entered same-tick during
+	// boundary crossings. Resets to Neutral on grapple exit.
+	Control *control.Machine `yaml:"-"` // not persisted; recomputed at boot
+	// Presence is the canonical state machine for "is this character
+	// meaningfully present?". Per-actor states (Player: Connecting /
+	// Active / Idle / AFK / Disconnected; Mob: Spawning / Active /
+	// Dormant / Despawning). See internal/state/presence/context.md.
+	Presence *presence.Machine `yaml:"-"`
+	// Perception is the canonical state machine for "do this character's
+	// eyes work?" — Sighted / Blinded. Ships DORMANT in chunk 6: the
+	// machine transitions correctly via condition-add and state-change observers but no
+	// consumer reads the state yet. The future centralized messaging
+	// framework chunk will wire it into broadcast gating, infrared
+	// rendering, look-command blocking. See
+	// internal/state/perception/context.md.
+	Perception *perception.Machine `yaml:"-"`
+	// PerGrappleMessageCooldowns tracks which gradient/stamina
+	// messages have already fired during the current grapple session.
+	// Resets when the character returns to a non-grapple state.
+	// Non-persistent — combat doesn't survive logout.
+	PerGrappleMessageCooldowns map[string]bool `yaml:"-"`
+	// PerGrappleMessageCooldownsLastRound tracks the last round number
+	// at which a sparse hold-flavor message was emitted, keyed by hold
+	// context (e.g. "hold_last_round:clinch"). Used by
+	// internal/hooks/Position_GrappleTick.go's emitHoldFlavor to
+	// throttle hold-round messages to once every ~4 rounds.
+	PerGrappleMessageCooldownsLastRound map[string]uint64 `yaml:"-"`
+	// RangedEngagedCueSpoken records that the "you cannot steady your aim"
+	// cue has already been spoken for the CURRENT engagement (U10d). A shot
+	// taken while something in the room is targeting the shooter loses the
+	// unengaged damage bonus, and silent damage loss reads as a bug -- but
+	// repeating the explanation on every round of a fight is worse noise than
+	// the silence it fixes. Cleared by EndAggro (the engagement is over) and by
+	// the shoot wrapper whenever a shot goes off with nothing on the shooter
+	// (they got clear again, so the next time it happens is news). Not
+	// persisted -- combat does not survive logout.
+	RangedEngagedCueSpoken bool `yaml:"-"`
+	// OutsideHitDisruptedRound tracks the last round number at which a
+	// third-party hit caused a ControlLevel disruption (chunk 4e §5).
+	// Used to dedupe multiple hits per round — one disruption per round
+	// even if multiple third parties land hits. Compared against
+	// util.GetRoundCount(); equality means "already disrupted this round."
+	OutsideHitDisruptedRound int64 `yaml:"-"`
+	// SubInterruptDamageThisRound accumulates qualifying third-party
+	// damage delivered to this character during the current round.
+	// "Qualifying" means: from a non-grapple-partner AND (crit OR damage
+	// >= SubInterruptDamageThresholdPct × HealthMax). Chunk 4e §7 reads
+	// this in Position_SubmissionTick to decide whether to force-Bad
+	// any sub firing this round. Reset implicitly by being read once
+	// per round.
+	SubInterruptDamageThisRound float64 `yaml:"-"`
+	// LastTargetFoundRound tracks the round number when this character
+	// last found a combat target. Used by Presence.PresenceTick to
+	// determine when a mob is "bored". Replaces Mob.BoredomCounter.
+	LastTargetFoundRound uint64 `yaml:"-"`
+	// AssistCommandedRound is the round in which an auto-assist `attack`
+	// command was last ENQUEUED for this character.
+	//
+	// ⚠️ Deduplicates two systems that both tell a companion (and its owner) to
+	// join a fight: the reactive SubscribeAttackersChange handler in
+	// CombatPhase_CompanionAssist.go, which fires the moment an attacker is
+	// recorded, and the polling handleCompanionOwnerAssist /
+	// handleCharmedMobAssist pair, which runs later during hit resolution.
+	//
+	// Both guard on !IsInCombat(), and that guard is NOT sufficient: Command()
+	// only ENQUEUES an events.Input, so IsInCombat() stays false until the
+	// command actually executes. Both paths therefore passed the guard in the
+	// same window and both enqueued, which a playtest saw as the same companion
+	// announcing "prepares to fight X" in two consecutive rounds.
+	//
+	// The reactive path was inert before 2026-08-30, so only one system ever
+	// ran and the gap did not show.
+	AssistCommandedRound uint64 `yaml:"-"`
+	// LastDormantEntryRound tracks when this character entered
+	// Presence.Dormant. Used by Presence.PresenceTick to determine
+	// when to transition to Despawning.
+	LastDormantEntryRound   uint64                         `yaml:"-"`
+	AttacksThisRound        int                            `yaml:"-"`                             // Stage 9.4: Tracks recent attacks for stance calculation. Don't store this.
+	DefensesThisRound       int                            `yaml:"-"`                             // Stage 9.4: Tracks recent defenses for stance calculation. Don't store this.
+	ConsecutiveHits         int                            `yaml:"-"`                             // Stage 9.4: Consecutive successful hits for momentum. Don't store this.
+	ConsecutiveMisses       int                            `yaml:"-"`                             // Stage 9.4: Consecutive misses for momentum. Don't store this.
+	ExtraArms               int                            `yaml:"-"`                             // Derived from extra-arms mutation level (0-2). Don't store this.
+	IsMob                   bool                           `yaml:"-"`                             // True for mob characters; used for progression caps. Don't store this.
+	MobInstanceId           int                            `yaml:"-"`                             // Non-zero for mob characters; mirrors Mob.InstanceId. Don't store this.
+	Skills                  map[string]int                 `yaml:"skills,omitempty"`              // The skills the character has, and what level they are at
+	Mutations               map[string]int                 `yaml:"mutations,omitempty"`           // mutationId → level (Stage 12.1)
+	MutationProgress        float64                        `yaml:"mutationprogress,omitempty"`    // accumulates toward next mutation (Stage 12.1)
+	MutationRerollBonus     int                            `yaml:"mutationrerollbonus,omitempty"` // post-scour charges: while >0, re-acquired mutations bias hard toward rare, one charge consumed per new mutation
+	Cooldowns               Cooldowns                      `yaml:"cooldowns,omitempty"`           // How many rounds until it is cooled down
+	Settings                map[string]string              `yaml:"settings,omitempty"`            // custom setting tracking, used for anything.
+	QuestProgress           map[int]string                 `yaml:"questprogress,omitempty"`       // quest progress tracking
+	QuestFlags              map[string]string              `yaml:"questflags,omitempty"`          // quest flag tracking (e.g., "11-branch" → "rhett")
+	LastQuestId             int                            `yaml:"lastquestid,omitempty"`         // most recently progressed quest
+	KeyRing                 map[string]string              `yaml:"keyring,omitempty"`             // key is the lock id, value is the sequence
+	KD                      KDStats                        `yaml:"kd,omitempty"`                  // Kill/Death stats
+	MiscData                map[string]any                 `yaml:"miscdata,omitempty"`            // Any random other data that needs to be stored
+	Discoveries             map[int][]string               `yaml:"discoveries,omitempty"`         // Per-room hidden object discoveries
+	VisitedRooms            map[string][]int               `yaml:"visitedrooms,omitempty"`        // zone name -> visited roomIds (fog-of-war for the web map)
+	Achievements            map[string]uint64              `yaml:"achievements,omitempty"`        // achievement id -> round unlocked
+	MobMastery              MobMasteries                   `yaml:"mobmastery,omitempty"`          // Tracks particular masteries around a given mob
+	SkillUseCount           map[string]int                 `yaml:"skillusecount,omitempty"`       // Tracks how many times each skill has been used
+	StatUseCount            map[string]int                 `yaml:"statusecount,omitempty"`        // Tracks how many times each stat has been checked
+	ClusterAffinity         map[string]float64             `yaml:"clusteraffinity,omitempty"`     // cluster -> mutation-graph drift affinity
+	combatDriftRound        map[string]uint64              // transient (not persisted): cluster -> last round we granted combat drift (once-per-round spam guard)
+	bonusProgressionRound   map[string]uint64              // transient (not persisted): "skill|class" -> last round a BONUS progression event fired (once-per-round guard; ordinary events are never deduped)
+	Pet                     pets.Pet                       `yaml:"pet,omitempty"`        // Do they have a pet?
+	Companions              []CompanionInfo                `yaml:"companions,omitempty"` // Active companions (manifestation system)
+	Created                 time.Time                      `yaml:"created"`              // When this character was created
+	Timers                  map[string]gametime.RoundTimer `yaml:"timers,omitempty"`     // any special timers added to this character
+	roomHistory             []int                          // A stack FILO of the last X rooms the character has been in
+	PlayerDamage            map[int]int                    `yaml:"-"` // key = who, value = how much
+	LastPlayerDamage        uint64                         `yaml:"-"` // last round a player damaged this character
+	LastSuicideRound        uint64                         `yaml:"-"` // runtime only — round of last Suicide execution, for double-fire dedupe
+	DeathQueued             bool                           `yaml:"-"` // runtime only — a CharacterDied event is in flight. NOT the same as "dying" (Health < 1 && IsAlive()); the backstop sweeps skip on THIS, never on health, or they skip the very population they exist to reap. See the U5c spec.
+	LifeEpoch               uint64                         `yaml:"-"` // runtime only. Counts the lives this character has ended this session; the death cascade bumps it beside the condition strip. A queued events.Condition carries the epoch it was aimed at, and ApplyConditions refuses one from an ended life, so a condition queued in the killing round cannot land on the respawned player.
+	LastTickCause           string                         `yaml:"-"` // runtime only — "poison" or "bleeding out", set by the round tick when a damaging health tick from a record carrying the poison or bleeding flag lands; read by the death announcement when no attacker is engaged.
+	LastTickCauseRound      uint64                         `yaml:"-"` // runtime only — the round LastTickCause was stamped; the death announcement only honours the fallback within one round of this, so a tick from an earlier fight cannot outlive it and name a later death.
+	LastAttackRejectedRound uint64                         `yaml:"-"` // runtime only — round of last player_attack_rejected event fire, for dedupe
+	permanentConditionIds   []int                          // Condition Id's that are always present for this character
+	userId                  int                            // User ID of the character if any
+	combatPhaseWired        bool                           `yaml:"-"` // true after OnCharacterCreated callbacks have fired once
+	// Stage 3.4: spawn-time override for carry capacity. Set via
+	// ApplyMobOverrides for special mobs (wagons). Zero falls through
+	// to the default Strength-derived calc.
+	carryCapacityOverride float64 `yaml:"-"`
+}
+
+// DriftRollSnapshot captures the chunk-4b grapple-tick drift roll
+// result for the most recent round, so that the chunk-4d
+// Position_SubmissionTick observer can read it without re-rolling.
+// The two sides are stored separately because both can be checked
+// for sub-attempt eligibility per round.
+type DriftRollSnapshot struct {
+	Round          uint64  // round number this snapshot was taken
+	MarginAttacker float64 // attacker-side margin (positive = attacker won)
+	AttackerZScore float64
+	DefenderZScore float64
+}
+
+// StarterSpells is the baseline spellbook every new player receives at
+// creation AND every mob receives at Validate() (actor parity — added
+// 2026-07-10 so mutation-driven archetype shifts into caster roles
+// always have something to cast). Values seed at 1 (fresh-player
+// proficiency) and never overwrite authored entries.
+var StarterSpells = []string{
+	"conviction-spike", // starting attack spell
+	"chrysalis-glow",   // light source for caves
+	"identify",         // inspect item properties
+}
+
+// starterSpellbook builds a fresh SpellBook map from StarterSpells.
+func starterSpellbook() map[string]int {
+	sb := make(map[string]int, len(StarterSpells))
+	for _, id := range StarterSpells {
+		sb[id] = 1
+	}
+	return sb
+}
+
+func New() *Character {
+	c := &Character{
+		//Name:   defaultName,
+		Adjectives: []string{},
+		RoomId:     StartingRoomId,
+		Zone:       startingZone,
+		SpeciesId:  startingRace,
+		Health:     startingHealth,
+		HealthMax:  stats.StatInfo{},
+		Skills:     initAllSkills(),
+		Gold:       250,
+		Bank:       100,
+		// Starting spells — attack, utility light for dark zones, and
+		// basic item inspection so new players can evaluate drops.
+		SpellBook:                  starterSpellbook(),
+		KnownRecipes:               crafting.GetStarterRecipes(), // All recipes with skill_minimum == 0
+		CharmedMobs:                []int{},
+		Items:                      []items.Item{},
+		Conditions:                 conditions.New(),
+		Equipment:                  Worn{},
+		Cooldowns:                  make(Cooldowns), // Initialize cooldowns map
+		MiscData:                   make(map[string]any),
+		Discoveries:                make(map[int][]string),
+		SkillUseCount:              make(map[string]int),
+		StatUseCount:               make(map[string]int),
+		roomHistory:                make([]int, 0, 10),
+		KeyRing:                    make(map[string]string),
+		Created:                    time.Now(),
+		PlayerDamage:               map[int]int{},
+		Timers:                     map[string]gametime.RoundTimer{},
+		AttacksThisRound:           0,
+		DefensesThisRound:          0,
+		ConsecutiveHits:            0,
+		ConsecutiveMisses:          0,
+		CombatPhase:                combatphase.NewMachine(),
+		Awareness:                  awareness.NewMachine(),
+		Life:                       life.NewMachine(),
+		Activity:                   activity.NewMachine(),
+		Position:                   position.NewMachine(),
+		Control:                    control.NewMachine(),
+		Presence:                   presence.NewPlayerPresence(),
+		Perception:                 perception.NewMachine(),
+		PerGrappleMessageCooldowns: map[string]bool{},
+		SubmissionPolicy:           PolicySubdue,
+		SurrenderPolicy:            SurrenderPolicy{Mode: SurrenderAutoTap, HpPctThreshold: 15},
+		ArrestPolicy:               ArrestSurrender,
+		LastSubmissionAttempted:    0,
+	}
+
+	// Roll character stats using normal distribution
+	c.Stats = RollCharacterStats()
+
+	// Validate and calculate stats (this calls RecalculateStats internally)
+	c.Validate()
+
+	// Set starting health/stamina/conviction to max values
+	c.Health = c.HealthMax.Value
+	c.Stamina = c.StaminaMax.Value
+	c.Conviction = c.ConvictionMax.Value
+
+	return c
+}
+
+// initAllSkills creates a skill map with all known skills at rank 1.
+func initAllSkills() map[string]int {
+	allSkills := skills.GetAllSkillNames()
+	m := make(map[string]int, len(allSkills))
+	for _, sk := range allSkills {
+		m[string(sk)] = 1
+	}
+	return m
+}
+
+// ensureAllSkills ensures all known skills exist in the map at rank 1 minimum.
+// Used during Validate() to retroactively update existing characters.
+func ensureAllSkills(existing map[string]int) map[string]int {
+	if existing == nil {
+		return initAllSkills()
+	}
+	for _, sk := range skills.GetAllSkillNames() {
+		if existing[string(sk)] < 1 {
+			existing[string(sk)] = 1
+		}
+	}
+	return existing
+}
+
+// RollCharacterStats generates a new set of character stats using normal distribution.
+// Parameters are driven by the Balance config (StatRollMean, StatRollStdDev, StatRollMin, StatRollMax).
+func RollCharacterStats() stats.Statistics {
+	b := configs.GetBalanceConfig()
+	statMean := float64(b.StatRollMean)
+	statStdDev := float64(b.StatRollStdDev)
+	statMin := float64(b.StatRollMin)
+	statMax := float64(b.StatRollMax)
+
+	// Roll 6 stats
+	rolledStats := dice.RollStatArray(6, statMean, statStdDev, statMin, statMax)
+
+	return stats.Statistics{
+		Strength:   stats.StatInfo{Base: rolledStats[0]},
+		Dexterity:  stats.StatInfo{Base: rolledStats[1]},
+		Perception: stats.StatInfo{Base: rolledStats[2]},
+		Vitality:   stats.StatInfo{Base: rolledStats[3]},
+		Willpower:  stats.StatInfo{Base: rolledStats[4]},
+		Charisma:   stats.StatInfo{Base: rolledStats[5]},
+	}
+}
+
+// Sometimes it's useful for a character to know what user it belongs to.
+//
+// Also records the identity on the CombatPhase machine: on every player path
+// this runs AFTER Validate(), so this is where a player's identity first
+// becomes known.
+func (c *Character) SetUserId(userId int) {
+	c.userId = userId
+	c.SyncMachineSelf()
+}
+
+func (c *Character) GetUserId() int {
+	return c.userId
+}
+
+// GetMobInstanceId returns the mob instance ID (non-zero for mobs, zero for
+// players). Satisfies position.GrappleActor for TransitionPair callers.
+func (c *Character) GetMobInstanceId() int {
+	return c.MobInstanceId
+}
+
+// GetPosition returns the Position state machine pointer. Satisfies
+// position.GrappleActor for TransitionPair callers.
+func (c *Character) GetPosition() *position.Machine {
+	return c.Position
+}
+
+// GetControl returns the ControlLevel state machine pointer. Satisfies
+// position.GrappleActor for TransitionPair callers (chunk 4b-fixup-2 T6).
+func (c *Character) GetControl() *control.Machine {
+	return c.Control
+}
+
+// IsCombatant returns true unless the character is flagged NonCombatant.
+// Used by Combat Phase's veto chain (chunk 0 Task 10) and any code that
+// needs to ask "can this character be in combat at all?".
+func (c *Character) IsCombatant() bool {
+	return !c.NonCombatant
+}
+
+// CancelAllScheduled cancels every pending scheduled transition across
+// all of this character's state machines (CombatPhase, Awareness, Life,
+// Activity, Position, Presence). Called by the Presence terminal-state
+// observers (Disconnected for players, Despawning for mobs) to ensure
+// Activity casting timers, Position recovery timers, and any other
+// deferred transitions do not fire after the character has left the world.
+//
+// Control is intentionally omitted — it uses same-tick transient
+// traversal and never registers scheduled transitions.
+func (c *Character) CancelAllScheduled() {
+	if c.CombatPhase != nil {
+		c.CombatPhase.Inner().CancelScheduled()
+	}
+	if c.Awareness != nil {
+		c.Awareness.Inner().CancelScheduled()
+	}
+	if c.Life != nil {
+		c.Life.Inner().CancelScheduled()
+	}
+	if c.Activity != nil {
+		c.Activity.Inner().CancelScheduled()
+	}
+	if c.Position != nil {
+		c.Position.Inner().CancelScheduled()
+	}
+	if c.Presence != nil {
+		c.Presence.CancelScheduled()
+	}
+}
+
+// HasAchievement reports whether this character has unlocked the given achievement.
+func (c *Character) HasAchievement(id string) bool {
+	_, ok := c.Achievements[id]
+	return ok
+}
+
+// GrantAchievement records an achievement unlock at the given round. Idempotent:
+// a re-grant keeps the original unlock round.
+func (c *Character) GrantAchievement(id string, round uint64) {
+	if c.Achievements == nil {
+		c.Achievements = make(map[string]uint64)
+	}
+	if _, ok := c.Achievements[id]; !ok {
+		c.Achievements[id] = round
+	}
+}
+
+func (c *Character) SetMiscData(key string, value any) {
+
+	if c.MiscData == nil {
+		c.MiscData = make(map[string]any)
+	}
+
+	if value == nil {
+		delete(c.MiscData, key)
+		return
+	}
+	c.MiscData[key] = value
+}
+
+func (c *Character) GetMiscData(key string) any {
+
+	if c.MiscData == nil {
+		c.MiscData = make(map[string]any)
+	}
+
+	if value, ok := c.MiscData[key]; ok {
+		return value
+	}
+	return nil
+}
+
+func (c *Character) GetMiscDataKeys(prefixMatch ...string) []string {
+
+	if c.MiscData == nil {
+		c.MiscData = make(map[string]any)
+	}
+
+	allKeys := []string{}
+	for key := range c.MiscData {
+		allKeys = append(allKeys, key)
+	}
+
+	if len(prefixMatch) == 0 {
+		return allKeys
+	}
+
+	retKeys := []string{}
+	for _, prefix := range prefixMatch {
+		for _, key := range allKeys {
+			if finalKey, ok := strings.CutPrefix(key, prefix); ok {
+				retKeys = append(retKeys, finalKey)
+			}
+		}
+	}
+
+	return retKeys
+}
+
+func (c *Character) HasDiscovery(roomId int, key string) bool {
+	if c.Discoveries == nil {
+		return false
+	}
+	for _, k := range c.Discoveries[roomId] {
+		if k == key {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Character) AddDiscovery(roomId int, key string) {
+	if c.HasDiscovery(roomId, key) {
+		return
+	}
+	if c.Discoveries == nil {
+		c.Discoveries = make(map[int][]string)
+	}
+	c.Discoveries[roomId] = append(c.Discoveries[roomId], key)
+}
+
+// MarkRoomVisited records that this character has seen roomId in zone (dedup'd).
+func (c *Character) MarkRoomVisited(zone string, roomId int) {
+	if c.VisitedRooms == nil {
+		c.VisitedRooms = map[string][]int{}
+	}
+	for _, id := range c.VisitedRooms[zone] {
+		if id == roomId {
+			return
+		}
+	}
+	c.VisitedRooms[zone] = append(c.VisitedRooms[zone], roomId)
+}
+
+// HasVisitedRoom reports whether roomId in zone has been seen.
+func (c *Character) HasVisitedRoom(zone string, roomId int) bool {
+	for _, id := range c.VisitedRooms[zone] {
+		if id == roomId {
+			return true
+		}
+	}
+	return false
+}
+
+// GetVisitedRooms returns the visited roomIds for a zone (nil if none).
+func (c *Character) GetVisitedRooms(zone string) []int {
+	return c.VisitedRooms[zone]
+}
+
+// GetAllVisitedRooms returns every room the character has visited, in any zone.
+//
+// The map is drawn per-zone, but a zone boundary is an engine concept, not a
+// player-facing one: having walked a room, you should keep seeing it when you
+// step over a line you cannot perceive. Callers are expected to intersect this
+// with the current mapper (mapper.HasRoom), which bounds the result to that
+// zone plus the ring of neighbouring rooms its crawl reached — so this does not
+// leak distant geography into a snapshot.
+func (c *Character) GetAllVisitedRooms() []int {
+	total := 0
+	for _, ids := range c.VisitedRooms {
+		total += len(ids)
+	}
+	out := make([]int, 0, total)
+	for _, ids := range c.VisitedRooms {
+		out = append(out, ids...)
+	}
+	return out
+}
+
+// SetSetting stores a named character setting, or deletes it when the value is empty.
+func (c *Character) SetSetting(settingName string, settingValue string) {
+	if c.Settings == nil {
+		c.Settings = make(map[string]string)
+	}
+
+	if settingValue == "" {
+		delete(c.Settings, settingName)
+	} else {
+		c.Settings[settingName] = settingValue
+	}
+}
+
+func (c *Character) GetSetting(settingName string) string {
+	if c.Settings == nil {
+		c.Settings = make(map[string]string)
+	}
+	if settingValue, ok := c.Settings[settingName]; ok {
+		return settingValue
+	}
+	return ""
+}
+
+// ===================================================================
+// Stage 7.1: Segmented Defense Helper Methods
+// ===================================================================
+//
+// The five defence names used to be declared here as untyped string
+// constants (DefenseNone/Dodge/Parry/Block/Quell/Defy). M4b-2 deleted them:
+// combatvocab.Defence is now the one declaration, and every function below
+// takes combatvocab.Defence instead of string.
+
+// StatMod aggregates stat-mod contributions from gear, conditions,
+// and pets. Equipment contributions are scaled by the gear-
+// effectiveness multiplier from the character's mutations
+// (Incorporeal scales gear to zero at max rank). Condition and pet
+// contributions are unaffected — they're not gear-derived.
+func (c *Character) StatMod(statName string) int {
+	gearStat := c.Equipment.StatMod(statName)
+	gearStat = int(float64(gearStat) * mutations.GearEffectivenessMultiplier(c.Mutations))
+	return gearStat + c.Conditions.StatMod(statName) + c.Pet.StatMod(statName)
+}
+
+// ===================================================================
+// Combat Phase Convenience Methods (Task 11)
+// ===================================================================
+
+// IsEngaged returns true if Combat Phase is Engaged (actively
+// in a combat round). Replacement for `c.Aggro != nil && wait==0`
+// (the closest historical equivalent).
+func (c *Character) IsEngaged() bool {
+	if c.CombatPhase == nil {
+		return false
+	}
+	return c.CombatPhase.IsEngaged()
+}
+
+// IsInCombat returns true if the character is in any non-Idle combat state.
+//
+// U12c-2 deleted the `Aggro != nil` fallback that used to sit under this. A nil
+// CombatPhase now means "not in combat" with no second opinion, which is safe
+// because every production load path Validates and Validate builds the machine.
+func (c *Character) IsInCombat() bool {
+	return c.CombatPhase != nil && c.CombatPhase.IsInCombat()
+}
+
+// CastingData returns the in-flight cast's data, and whether there is one.
+//
+// U12c-2: this is where Aggro.SpellInfo's readers moved. Nil-guards Activity in
+// the same shape as IsCasting.
+func (c *Character) CastingData() (activity.CastingData, bool) {
+	if c.Activity == nil {
+		return activity.CastingData{}, false
+	}
+	return c.Activity.CastingData()
+}
+
+// RoundsWaiting reports the actor's remaining round budget: how many rounds
+// before this actor may act again. Zero means free to act.
+//
+// U12c-2: this was Aggro.RoundsWaiting. It lives on the combat phase machine
+// now; see the two-counter note in internal/state/combatphase, which explains
+// why it is NOT the same thing as EngagingData.RoundsUntil.
+//
+// Nil-guards CombatPhase in the same shape as IsCasting/IsInCombat, so an
+// unvalidated fixture reads zero rather than panicking.
+func (c *Character) RoundsWaiting() int {
+	if c.CombatPhase == nil {
+		return 0
+	}
+	return c.CombatPhase.RoundsWaiting()
+}
+
+// SetRoundsWaiting sets the actor's round budget. No-op without a combat phase
+// machine.
+func (c *Character) SetRoundsWaiting(n int) {
+	if c.CombatPhase == nil {
+		return
+	}
+	c.CombatPhase.SetRoundsWaiting(n)
+}
+
+// ConsumeRoundWaiting decrements the round budget and reports whether this
+// round was consumed by the wait. False means the actor is free to act.
+func (c *Character) ConsumeRoundWaiting() bool {
+	if c.CombatPhase == nil {
+		return false
+	}
+	return c.CombatPhase.ConsumeRoundWaiting()
+}
+
+// IsDisengaging returns true if Combat Phase is Disengaging (flee in
+// progress). Replacement for `c.Aggro != nil && c.Aggro.Type == characters.Flee`.
+func (c *Character) IsDisengaging() bool {
+	if c.CombatPhase == nil {
+		return false
+	}
+	return c.CombatPhase.State() == combatphase.Disengaging
+}
+
+// EngagedTarget returns the current Engaged target as an ActorRef.
+// Returns zero ActorRef when not Engaged (or Engaging/Disengaging).
+// Replacement for `c.Aggro.UserId` / `c.Aggro.MobInstanceId` reads
+// during Engaged state.
+func (c *Character) EngagedTarget() state.ActorRef {
+	if c.CombatPhase == nil {
+		return state.ActorRef{}
+	}
+	if d, ok := c.CombatPhase.EngagedData(); ok {
+		return d.Target
+	}
+	return state.ActorRef{}
+}
+
+// CurrentCombatTarget returns the current combat target across all non-Idle
+// states (Engaging.Target, Engaged.Target, or Disengaging.LastTarget).
+// Returns zero ActorRef when Idle.
+//
+// U12c-2 deleted the Aggro fallback that used to sit under this.
+func (c *Character) CurrentCombatTarget() state.ActorRef {
+	if c.CombatPhase == nil {
+		return state.ActorRef{}
+	}
+	return c.CombatPhase.CurrentTarget()
+}
+
+// Attackers returns the framework-maintained inbound attacker
+// list — every character currently Engaging or Engaged with
+// this Character as their target.
+//
+// Replaces room-scan loops for "who's attacking me?". The list
+// is updated atomically by the Combat Phase framework on every
+// transition.
+func (c *Character) Attackers() []state.ActorRef {
+	if c.CombatPhase == nil {
+		return nil
+	}
+	return c.CombatPhase.Attackers()
+}
+
+// ===================================================================
+// Awareness Convenience Methods (Task 10)
+// ===================================================================
+
+// IsHidden returns true when the character's Awareness state is
+// Hidden. Replacement for the legacy HasConditionFlag(conditions.Hidden)
+// pattern. Condition #9 still exists as an effect carrier; the cascade
+// in internal/hooks/Awareness_Cascades.go keeps the condition and the
+// Awareness state synchronized.
+func (c *Character) IsHidden() bool {
+	if c.Awareness == nil {
+		return false
+	}
+	return c.Awareness.IsHidden()
+}
+
+// ===================================================================
+// Life Convenience Methods (Task 4)
+// ===================================================================
+
+// IsAlive returns true when Life state is Alive.
+// Replacement for ad-hoc Health > 0 checks once callers migrate.
+func (c *Character) IsAlive() bool {
+	if c.Life == nil {
+		return true // defensive: pre-init characters treated as alive
+	}
+	return c.Life.IsAlive()
+}
+
+// IsDead returns true when Life state is Dead.
+func (c *Character) IsDead() bool {
+	if c.Life == nil {
+		return false
+	}
+	return c.Life.IsDead()
+}
+
+// IsRespawning returns true when Life state is Respawning.
+func (c *Character) IsRespawning() bool {
+	if c.Life == nil {
+		return false
+	}
+	return c.Life.IsRespawning()
+}
+
+// GrantRandomMutation rolls one mutation from the weighted acquisition pool
+// for this character's species and adds it at level 1. Returns the granted
+// mutation id, or "" if none were available. Shared by the Awakening Rite
+// (behaviortree actGrantMutation) and the veteran character-creation skip.
+func (c *Character) GrantRandomMutation() string {
+	return c.GrantRandomMutationRare(0)
+}
+
+// GrantRandomMutationRare grants one mutation from the rarity-floored
+// weighted pool. Returns the granted id, or "" if none qualify.
+func (c *Character) GrantRandomMutationRare(minRarity int) string {
+	sp := species.GetSpecies(c.SpeciesId)
+	pool := mutations.GetWeightedPoolWithFloor(c.Mutations, sp, minRarity)
+	if len(pool) == 0 {
+		return ""
+	}
+	mutId := mutations.RollAcquisition(pool)
+	if mutId == "" {
+		return ""
+	}
+	if c.Mutations == nil {
+		c.Mutations = make(map[string]int)
+	}
+	c.Mutations[mutId] = 1
+	c.Validate()
+	return mutId
+}
+
+// Perceives reports whether c can make out other in the same room: other is c,
+// other is not hidden, or c has see-hidden from any source (a condition or a
+// mutation). It is the one rule for the room listing (rooms/roomdetails.go)
+// and for naming a creature (rooms.Room.FindByNameSeenBy), so the two cannot
+// disagree.
+//
+// No pet is involved. The listing used to require a pet as well, a leftover
+// from upstream GoMud where see-hidden was a pet power (commit 463a76727).
+// No player can own a pet in DOGMud, so that check hid every hidden creature
+// from everyone.
+func (c *Character) Perceives(other *Character) bool {
+	if other == nil {
+		return false
+	}
+	if c == other || !other.IsHidden() {
+		return true
+	}
+	return c.HasFlagFromAnySource(conditions.SeeHidden)
+}

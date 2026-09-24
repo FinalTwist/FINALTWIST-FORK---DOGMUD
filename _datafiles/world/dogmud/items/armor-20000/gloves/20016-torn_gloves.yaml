@@ -1,0 +1,14 @@
+itemid: 20016
+name: Torn Gloves
+vendor_categories:
+- tailoring
+namesimple: gloves
+description: The gloves are in terrible shape.
+type: gloves
+value: 8
+rarity_tier: 50
+subtype: wearable
+physical_mitigation: 2
+statmods:
+  strength: 1
+  perception: -1

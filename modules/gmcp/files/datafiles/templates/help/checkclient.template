@@ -1,0 +1,14 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="command">checkclient</ansi>
+
+The <ansi fg="command">checkclient</ansi> command displays information about client-specific features available to you.
+
+<ansi fg="yellow">Usage: </ansi>
+
+  <ansi fg="command">checkclient</ansi> - Shows details about detected client features and available enhancements
+
+<ansi fg="yellow-bold">Notes:</ansi>
+- This command is particularly useful for Mudlet users to see what special features are available
+- It will detect if you're using Mudlet and show relevant package information
+- The command runs automatically when you log in to provide helpful information
+
+<ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help mudletui</ansi>, <ansi fg="command">mudletmap</ansi> 

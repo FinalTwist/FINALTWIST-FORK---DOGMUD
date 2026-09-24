@@ -1,0 +1,10 @@
+conditionid: 74
+name: Chrysalis Catalyst
+description: The chrysalis energy rewrites something fundamental. You feel it in your bones.
+start_actee: Chrysalis energy rewrites something deep in your bones.
+end_actee: The Chrysalis energy settles and your bones go quiet.
+triggerrate: 1 round
+triggercount: 1000
+flags:
+  - mutation-rate
+progress_mult: 3.0

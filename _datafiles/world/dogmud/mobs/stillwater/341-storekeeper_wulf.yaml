@@ -1,0 +1,78 @@
+mobid: 341
+zone: Stillwater
+craft_support: general
+behavior_archetype: noncombat_shopkeeper
+statpool: 65
+itemdropchance: 0
+hostile: false
+charm_immune: true
+non_combatant: true
+maxwander: 0
+groups:
+  - humanoid
+  - merchant
+  - stillwater_citizens
+  - shopkeepers
+idlecommands:
+  - 'emote restacks a shelf of tin goods with methodical care, turning each
+    label outward'
+  - ''
+  - 'emote writes a figure in a ledger, taps the pen twice on the page, and
+    closes it'
+  - ''
+  - 'emote peers at a customer from behind the counter with calm professional
+    attention'
+  - ''
+activitylevel: 10
+character:
+  name: Storekeeper Wulf
+  description: |
+    A round-faced man with the unhurried manner of someone who has never
+    needed to rush and has no intention of starting. Wulf runs Tinder &
+    Tackle as a general store -- a little of everything, most of it useful,
+    none of it particularly cheap. He is the kind of merchant who remembers
+    exactly what he paid for every item on his shelves and will cheerfully
+    tell you if you ask. His store smells of lantern oil, salt, and old rope,
+    and there is a cat asleep behind the counter that he swears keeps the
+    mice out.
+  speciesid: 1
+  gold: 5000
+  stats:
+    charisma:
+      base: 108
+    perception:
+      base: 108
+    willpower:
+      base: 105
+  shop:
+    # Existing tools/lantern/inn items (preserve original quantities + prices)
+    - itemid: 40038    # oil lantern
+      quantity: 2
+      quantitymax: 5
+      price: 5
+    - itemid: 30021
+      quantity: 3
+      quantitymax: 8
+      price: 2
+    # Base mats (general goods) — preserve Wulf's pre-3.0b stocking
+    - itemid: 40015    # wild vegetables
+      quantity: 5
+      quantitymax: 10
+      price: 1
+    - itemid: 40016    # water flask
+      quantity: 5
+      quantitymax: 10
+      price: 1
+    - itemid: 40017    # salt pouch
+      quantity: 3
+      quantitymax: 8
+      price: 2
+    - itemid: 40003    # wooden plank
+      quantity: 0
+      quantitymax: 0
+      price: 2
+    # Stillwater unique (forager-fed; cross-sell from Brindle's surplus)
+    - itemid: 40059    # lake-iron nodule
+      quantity: 0
+      quantitymax: 0
+      price: 10

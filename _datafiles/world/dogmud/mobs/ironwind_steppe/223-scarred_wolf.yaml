@@ -1,0 +1,51 @@
+mobid: 223
+zone: Ironwind Steppe
+behavior_archetype: predator
+routine: wolf_pack_ironwind
+statpool: 130
+itemdropchance: 15
+hostile: true
+maxwander: 2
+groups:
+  - steppe-wolf
+  - canine
+hates:
+  - boar
+  - rodent
+archetype: fighting
+aiprofile: predator
+mutationchance: 50
+spawnmutations: [apex-predator, rending-claws]
+combatcommands:
+  - howl
+  - hamstring
+idlecommands:
+  - 'emote limps slightly on an old injury but moves with deadly purpose'
+  - ''
+  - 'emote bares its fangs in a silent snarl, scars twisting its muzzle'
+  - ''
+  - consume
+  - 'emote watches with one good eye, the other clouded by an old wound'
+activitylevel: 20
+character:
+  name: Scarred Wolf
+  description: |
+    A battle-hardened wolf covered in old wounds -- a torn ear, a
+    clouded eye, deep scars crossing its muzzle and flanks. Despite
+    its injuries, the scarred wolf is more dangerous than the
+    younger pack members. Its muscles are dense and powerful,
+    hardened by years of survival on the steppe. It moves with
+    a slight limp but strikes with devastating force. The other
+    wolves give it respectful space, recognizing a veteran
+    fighter who has earned its scars.
+  speciesid: 2
+  level: 1
+  stats:
+    strength:
+      base: 102
+    vitality:
+      base: 88
+    dexterity:
+      base: 133
+    perception:
+      base: 137

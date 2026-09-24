@@ -1,0 +1,328 @@
+package characters
+
+import (
+	"math"
+	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/skills"
+)
+
+// Test constants matching the default balance config values.
+// These are used instead of pulling from configs to keep tests self-contained.
+const (
+	SkillSoftCap = 50
+	StatSoftCap  = 150
+)
+
+func TestCalculateProgressionChance_RankZero(t *testing.T) {
+	chance := CalculateProgressionChance(0, SkillSoftCap)
+	if chance != 0.30 {
+		t.Errorf("Expected 30%% at rank 0, got %.4f", chance)
+	}
+}
+
+func TestCalculateProgressionChance_NegativeRank(t *testing.T) {
+	chance := CalculateProgressionChance(-5, SkillSoftCap)
+	if chance != 0.30 {
+		t.Errorf("Expected 30%% at negative rank, got %.4f", chance)
+	}
+}
+
+func TestCalculateProgressionChance_Decreasing(t *testing.T) {
+	prev := CalculateProgressionChance(0, SkillSoftCap)
+	for rank := 1; rank <= SkillSoftCap+20; rank++ {
+		curr := CalculateProgressionChance(rank, SkillSoftCap)
+		if curr >= prev {
+			t.Errorf("Chance should decrease: rank %d (%.4f) >= rank %d (%.4f)", rank, curr, rank-1, prev)
+		}
+		prev = curr
+	}
+}
+
+func TestCalculateProgressionChance_AtSoftCap(t *testing.T) {
+	chance := CalculateProgressionChance(SkillSoftCap, SkillSoftCap)
+	expected := 0.30 * math.Exp(-3.0)
+	if math.Abs(chance-expected) > 0.001 {
+		t.Errorf("Expected ~%.4f at soft cap, got %.4f", expected, chance)
+	}
+}
+
+func TestCalculateProgressionChance_AboveSoftCap(t *testing.T) {
+	atCap := CalculateProgressionChance(SkillSoftCap, SkillSoftCap)
+	aboveCap := CalculateProgressionChance(SkillSoftCap+10, SkillSoftCap)
+
+	if aboveCap >= atCap {
+		t.Errorf("Above soft cap should be harder: %f >= %f", aboveCap, atCap)
+	}
+
+	// Should be very small above cap
+	if aboveCap > 0.05 {
+		t.Errorf("Above soft cap should be < 5%%, got %.4f", aboveCap)
+	}
+}
+
+func TestCalculateProgressionChance_VeryHighRank(t *testing.T) {
+	chance := CalculateProgressionChance(SkillSoftCap*3, SkillSoftCap)
+	if chance > 0.001 {
+		t.Errorf("Very high rank should be < 0.1%%, got %.6f", chance)
+	}
+	if chance <= 0 {
+		t.Errorf("Chance should always be positive, got %.6f", chance)
+	}
+}
+
+func TestCalculateProgressionChance_ZeroSoftCap(t *testing.T) {
+	// Should not panic with zero soft cap
+	chance := CalculateProgressionChance(5, 0)
+	if chance < 0 || chance > 1 {
+		t.Errorf("Chance should be between 0 and 1, got %.4f", chance)
+	}
+}
+
+func TestCalculateProgressionChance_StatSoftCap(t *testing.T) {
+	// Verify the curve works with the stat soft cap too
+	rankZero := CalculateProgressionChance(0, StatSoftCap)
+	midRange := CalculateProgressionChance(StatSoftCap/2, StatSoftCap)
+	atCap := CalculateProgressionChance(StatSoftCap, StatSoftCap)
+
+	if rankZero != 0.30 {
+		t.Errorf("Expected 30%% at rank 0 for stats, got %.4f", rankZero)
+	}
+	if midRange >= rankZero || midRange <= atCap {
+		t.Errorf("Mid-range should be between rank 0 and cap: %.4f not between %.4f and %.4f", midRange, rankZero, atCap)
+	}
+	if atCap > 0.05 {
+		t.Errorf("At stat soft cap should be < 5%%, got %.4f", atCap)
+	}
+}
+
+func TestIncreaseSkill_Basic(t *testing.T) {
+	c := New()
+	// All skills start at rank 1 (Stage 3.5). 1→2 crosses novice→apprentice boundary.
+	if !c.IncreaseSkill("unarmed-combat") {
+		t.Error("Expected IncreaseSkill to return true for level 1→2 (rank change)")
+	}
+	if c.Skills["unarmed-combat"] != 2 {
+		t.Errorf("Expected skill level 2, got %d", c.Skills["unarmed-combat"])
+	}
+}
+
+func TestIncreaseSkill_NoCap(t *testing.T) {
+	c := New()
+	c.Skills["unarmed-combat"] = 4
+	// 4→5: both are "apprentice", so returns false (no visible rank change).
+	// The counter still increments — this tests that IncreaseSkill always advances
+	// the internal counter regardless of return value.
+	_ = c.IncreaseSkill("unarmed-combat")
+	if c.Skills["unarmed-combat"] != 5 {
+		t.Errorf("Expected skill level 5, got %d", c.Skills["unarmed-combat"])
+	}
+}
+
+func TestIncreaseSkill_Incremental(t *testing.T) {
+	c := New()
+	// Start from 0. The rank description boundaries are:
+	//   0→1: "" → "novice"     (true)
+	//   1→2: "novice" → "apprentice" (true)
+	//   2→9: all "apprentice"  (false)
+	//   9→10: "apprentice" → "journeyman" (true)
+	c.Skills["spellcasting"] = 0
+	rankChanged := c.IncreaseSkill("spellcasting") // 0→1 novice
+	if !rankChanged {
+		t.Error("Expected true for 0→1 (unknown→novice)")
+	}
+	rankChanged = c.IncreaseSkill("spellcasting") // 1→2 apprentice
+	if !rankChanged {
+		t.Error("Expected true for 1→2 (novice→apprentice)")
+	}
+	// 2→9: all within apprentice, should return false
+	for i := 2; i < 9; i++ {
+		if c.IncreaseSkill("spellcasting") {
+			t.Errorf("Expected false at level %d→%d (still apprentice)", i, i+1)
+		}
+	}
+	// 9→10: apprentice→journeyman, should return true
+	if !c.IncreaseSkill("spellcasting") {
+		t.Error("Expected true for 9→10 (apprentice→journeyman)")
+	}
+	if c.Skills["spellcasting"] != 10 {
+		t.Errorf("Expected skill level 10, got %d", c.Skills["spellcasting"])
+	}
+}
+
+func TestIncreaseStat_Strength(t *testing.T) {
+	c := New()
+	before := c.Stats.Strength.Training
+	ok := c.IncreaseStat("strength", 1)
+	if !ok {
+		t.Error("Expected IncreaseStat to return true for valid stat")
+	}
+	if c.Stats.Strength.Training != before+1 {
+		t.Errorf("Expected Training to be %d, got %d", before+1, c.Stats.Strength.Training)
+	}
+}
+
+func TestIncreaseStat_AllStats(t *testing.T) {
+	statNames := []string{"strength", "dexterity", "perception", "vitality", "willpower", "charisma"}
+	for _, name := range statNames {
+		c := New()
+		ok := c.IncreaseStat(name, 3)
+		if !ok {
+			t.Errorf("Expected IncreaseStat to return true for %s", name)
+		}
+	}
+}
+
+func TestIncreaseStat_InvalidStat(t *testing.T) {
+	c := New()
+	ok := c.IncreaseStat("nonexistent", 1)
+	if ok {
+		t.Error("Expected IncreaseStat to return false for invalid stat name")
+	}
+}
+
+func TestResolveSkillName_PassThrough(t *testing.T) {
+	// With empty skillNameMap, all names pass through unchanged
+	result := resolveSkillName("weapon-combat")
+	if result != "weapon-combat" {
+		t.Errorf("Expected 'weapon-combat' to pass through, got '%s'", result)
+	}
+	result = resolveSkillName("spellcasting")
+	if result != "spellcasting" {
+		t.Errorf("Expected 'spellcasting' to pass through, got '%s'", result)
+	}
+}
+
+func TestGetCombatSkillLevel_UnarmedWithUnarmedCombat(t *testing.T) {
+	// No weapon equipped → uses UnarmedCombat skill
+	c := New()
+	c.Skills["unarmed-combat"] = 3
+	if got := c.GetCombatSkillLevel(); got != 3 {
+		t.Errorf("Expected combat skill 3 from unarmed-combat, got %d", got)
+	}
+}
+
+func TestGetCombatSkillLevel_BrawlingFallback(t *testing.T) {
+	// No combat skills → minimum 1 (brawling fallback removed)
+	c := New()
+	delete(c.Skills, "unarmed-combat")
+	delete(c.Skills, "weapon-combat")
+	if got := c.GetCombatSkillLevel(); got != 1 {
+		t.Errorf("Expected combat skill minimum 1 with no skills, got %d", got)
+	}
+}
+
+func TestGetCombatSkillLevel_NoSkillsReturns1(t *testing.T) {
+	// No combat skills at all → minimum 1
+	c := New()
+	delete(c.Skills, "unarmed-combat")
+	delete(c.Skills, "brawling")
+	delete(c.Skills, "weapon-combat")
+	if got := c.GetCombatSkillLevel(); got != 1 {
+		t.Errorf("Expected combat skill 1 (minimum), got %d", got)
+	}
+}
+
+func TestGetCombatSkillTag_NoWeapon(t *testing.T) {
+	c := New()
+	if got := c.GetCombatSkillTag(); got != skills.UnarmedCombat {
+		t.Errorf("Expected UnarmedCombat with no weapon, got %s", got)
+	}
+}
+
+func TestCalculateProgressionChance_SampleValues(t *testing.T) {
+	// Verify the documented sample values are approximately correct
+	tests := []struct {
+		rank    int
+		softCap int
+		minPct  float64
+		maxPct  float64
+	}{
+		{0, 50, 29.0, 31.0},  // ~30%
+		{10, 50, 12.0, 20.0}, // ~16%
+		{25, 50, 3.0, 9.0},   // ~6.7%
+		{40, 50, 1.0, 4.0},   // ~2.7%
+		{50, 50, 0.5, 2.5},   // ~1.5%
+	}
+
+	for _, tt := range tests {
+		chance := CalculateProgressionChance(tt.rank, tt.softCap) * 100
+		if chance < tt.minPct || chance > tt.maxPct {
+			t.Errorf("Rank %d (cap %d): expected %.1f-%.1f%%, got %.2f%%",
+				tt.rank, tt.softCap, tt.minPct, tt.maxPct, chance)
+		}
+	}
+}
+
+func TestGetProgressionMultiplier(t *testing.T) {
+	// Solved, not chosen: `python tools/balance/u10b1_solve_v4.py`. If this
+	// fails after a retune, REGENERATE these rather than editing them to fit.
+	// unarmed sits below weapon on purpose. Each is solved at its OWN
+	// concentrating build, and unarmed's is BARE HANDS: two fist entries fold
+	// into one candidate that wins the round's Best-of outright, 8 swings make
+	// its clean hit near-certain, and the unarmed-style equipment gate gives it
+	// dodge alone, so it takes the whole defence award. 1.74 events per engaged
+	// round against a shield build's 0.93.
+	//
+	// bartering is unchanged from v3 on purpose: buy and sell award with
+	// won=true, so the convention did not touch its rate. It is the control.
+	// A future solve that moves bartering has a bug in it.
+	tests := []struct {
+		skill    string
+		expected float64
+	}{
+		{"weapon-combat", 1.34},
+		{"unarmed-combat", 0.72},
+		{"spellcasting", 2.99},
+		{"search", 1.02},
+		{"bartering", 2.07},
+		{"skullduggery", 1.23},
+		{"unknown-skill", 1.0},
+	}
+
+	for _, tt := range tests {
+		got := skills.GetProgressionMultiplier(tt.skill)
+		if got != tt.expected {
+			t.Errorf("GetProgressionMultiplier(%q) = %.2f, want %.2f", tt.skill, got, tt.expected)
+		}
+	}
+}
+
+func TestOnSkillUseScaled_PassesBonusMultiplier(t *testing.T) {
+	// Initialize logger for this test
+	mudlog.SetupLogger(nil, "", "", false)
+
+	// OnSkillUseScaled should exist and accept a bonus multiplier.
+	// We can't easily test the full progression pipeline in a unit test
+	// (it depends on configs and RNG), but we can verify the method exists
+	// and tracks skill usage by checking it compiles and doesn't panic.
+	c := Character{
+		Name:          "TestChar",
+		Skills:        map[string]int{string(skills.Spellcasting): 5},
+		SkillUseCount: map[string]int{},
+		StatUseCount:  map[string]int{},
+	}
+	// Should not panic and should track the skill use
+	c.OnSkillUseScaled(string(skills.Spellcasting), 0, 1.5, false)
+	if c.SkillUseCount[string(skills.Spellcasting)] != 1 {
+		t.Errorf("Expected use count 1 after OnSkillUseScaled, got %d", c.SkillUseCount[string(skills.Spellcasting)])
+	}
+}
+
+func TestOnSkillUse_DelegatesToScaled(t *testing.T) {
+	// Initialize logger for this test
+	mudlog.SetupLogger(nil, "", "", false)
+
+	// OnSkillUse should work exactly as before (delegates with bonus=1.0)
+	c := Character{
+		Name:          "TestChar",
+		Skills:        map[string]int{string(skills.Spellcasting): 5},
+		SkillUseCount: map[string]int{},
+		StatUseCount:  map[string]int{},
+	}
+	c.OnSkillUse(string(skills.Spellcasting), 0)
+	if c.SkillUseCount[string(skills.Spellcasting)] != 1 {
+		t.Errorf("Expected use count 1, got %d", c.SkillUseCount[string(skills.Spellcasting)])
+	}
+}

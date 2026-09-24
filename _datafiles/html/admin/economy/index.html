@@ -1,0 +1,579 @@
+{{template "header" .}}
+
+<div class="container-fluid">
+    <h1 class="mt-4">Economy Health Dashboard</h1>
+
+    <!-- Five summary cards: Overall / Stock / Input / Throughput / Shop Gold -->
+    <div class="row mb-2">
+        <div class="col-md-2">
+            <div class="card text-center"><div class="card-body p-2">
+                <h6 class="card-subtitle text-muted">Overall</h6>
+                <h4 id="score-overall" class="card-title mb-0">—</h4>
+            </div></div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center"><div class="card-body p-2">
+                <h6 class="card-subtitle text-muted">Stock</h6>
+                <h4 id="score-stock" class="card-title mb-0">—</h4>
+            </div></div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center"><div class="card-body p-2">
+                <h6 class="card-subtitle text-muted">Input</h6>
+                <h4 id="score-input" class="card-title mb-0">—</h4>
+            </div></div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center"><div class="card-body p-2">
+                <h6 class="card-subtitle text-muted">Throughput</h6>
+                <h4 id="score-throughput" class="card-title mb-0">—</h4>
+            </div></div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center"><div class="card-body p-2">
+                <h6 class="card-subtitle text-muted">Shop Gold</h6>
+                <h4 id="score-gold" class="card-title mb-0">—</h4>
+            </div></div>
+        </div>
+    </div>
+
+    <!-- Secondary row: snapshot controls -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card"><div class="card-body p-2">
+                <h6 class="card-subtitle text-muted d-inline">Last Snapshot</h6>
+                <span id="last-ts" class="ml-2">—</span>
+                <input id="manual-label" type="text" placeholder="(optional label)"
+                       class="form-control form-control-sm d-inline-block ml-2"
+                       style="width:auto">
+                <button class="btn btn-sm btn-outline-info ml-2"
+                        onclick="doSnapshot()">Snapshot Now</button>
+            </div></div>
+        </div>
+    </div>
+
+    <!-- Auto-refresh controls -->
+    <div class="row mb-3">
+        <div class="col-auto">
+            <button class="btn btn-sm btn-primary" onclick="fetchData()">Refresh</button>
+            <button id="btn-auto" class="btn btn-sm btn-outline-secondary ml-2"
+                    onclick="toggleAuto()">Auto: OFF</button>
+            <select id="sel-interval" class="custom-select custom-select-sm ml-2"
+                    style="width:auto;display:inline-block;" onchange="updateInterval()">
+                <option value="30" selected>30s</option>
+                <option value="60">60s</option>
+                <option value="120">2m</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Section A: Shopkeepers — by Craft Discipline -->
+    <h3 class="mt-3">Shopkeepers — by Craft Discipline</h3>
+    <table class="table table-sm table-striped">
+        <thead><tr>
+            <th>Discipline</th><th>Shops</th><th>Stock Score</th>
+            <th>Total Gold</th>
+        </tr></thead>
+        <tbody id="tbl-discipline"></tbody>
+    </table>
+
+    <h4 class="mt-3">Per-Shop Detail</h4>
+    <table class="table table-sm table-striped">
+        <thead><tr>
+            <th>Shop</th><th>Discipline</th><th>Stock Score</th>
+            <th>Gold Score</th><th>Gold</th>
+            <th>Stock by Tier</th>
+        </tr></thead>
+        <tbody id="tbl-shops"></tbody>
+    </table>
+
+    <!-- Section A2: Throughput — Time-to-Refill -->
+    <h4 class="mt-3">Throughput — Time-to-Refill</h4>
+    <table class="table table-sm table-striped">
+        <thead><tr>
+            <th>Shop</th><th>Score</th>
+            <th>TtR (commons)</th><th>TtR (rares)</th>
+            <th>Depleted now</th>
+            <th>1h</th><th>6h</th><th>1d</th><th>3d</th><th>1w</th>
+        </tr></thead>
+        <tbody id="tbl-throughput"></tbody>
+    </table>
+
+    <!-- Section A3: Input Rate — items/day per zone -->
+    <h4 class="mt-3">Input Rate — items/day per zone</h4>
+    <table class="table table-sm table-striped">
+        <thead><tr>
+            <th>Zone</th><th>Score</th>
+            <th>Items/day (in)</th><th>From foragers</th>
+            <th>From restock</th><th>Tier mix</th>
+        </tr></thead>
+        <tbody id="tbl-input"></tbody>
+    </table>
+
+    <!-- Section B: Caravans -->
+    <h3 class="mt-3">Caravans</h3>
+    <table class="table table-sm table-striped">
+        <thead><tr>
+            <th>Name</th><th>Score</th><th>State</th><th>Time-in-State</th>
+            <th>Room</th><th>Cargo</th><th>Multiplier</th><th>Lbs Delivered</th>
+            <th>Cycles 1h</th><th>6h</th><th>1d</th><th>3d</th><th>1w</th>
+        </tr></thead>
+        <tbody id="tbl-caravans"></tbody>
+    </table>
+
+    <!-- Section C: Warehouses -->
+    <h3 class="mt-3">Warehouses</h3>
+    <div class="row mb-3" id="warehouses-row"></div>
+
+    <!-- Section D: Foragers -->
+    <h3 class="mt-3">Foragers</h3>
+    <table class="table table-sm table-striped">
+        <thead><tr>
+            <th>Name</th><th>Score</th><th>Territory</th><th>State</th>
+            <th>Time-in-State</th><th>Room</th><th>Cargo</th>
+            <th>Multiplier</th><th>Lbs Delivered</th>
+            <th>Cycles 1h</th><th>6h</th><th>1d</th><th>3d</th><th>1w</th>
+        </tr></thead>
+        <tbody id="tbl-foragers"></tbody>
+    </table>
+</div>
+
+<style>
+.tier-50 { background: #9aa0a6; }
+.tier-40 { background: #5fb878; }
+.tier-30 { background: #5b9dd9; }
+.tier-20 { background: #a979e8; }
+.tier-10 { background: #d4a73a; }
+.bar-container { display: flex; height: 14px; width: 140px; }
+.bar-segment { min-width: 1px; }
+</style>
+
+<script>
+(function() {
+    // Default-safe HTML construction (see /admin/static/js/safe-dom.js).
+    // Every table cell below is escaped unless wrapped in raw(), which is
+    // reserved for fragments this page builds itself from numbers.
+    var esc = SafeDom.esc, raw = SafeDom.raw, tr = SafeDom.tr;
+
+    var autoTimer = null;
+    var autoOn = false;
+
+    var BUCKET_COLORS = {
+        base: "#4e79a7", stillwater: "#76b7b2", thornwall: "#f28e2b",
+        fernway: "#59a14f", overlap: "#bab0ac"
+    };
+
+    function colorScore(v) {
+        if (v < 40) return "text-danger";
+        if (v < 70) return "text-warning";
+        return "text-success";
+    }
+
+    function fmtScore(score, hasScore) {
+        if (!hasScore) return '<span class="text-muted">—</span>';
+        return '<span class="' + colorScore(score) + '">' + score.toFixed(0) + '</span>';
+    }
+
+    function fmtDelta(v) {
+        if (v === 0 || v === undefined) return '<span class="text-muted">0</span>';
+        var sign = v > 0 ? '+' : '';
+        var cls = v > 0 ? 'text-success' : 'text-danger';
+        return '<span class="' + cls + '">' + sign + v + '</span>';
+    }
+
+    function bucketBar(stockEntries, totalCap) {
+        if (!stockEntries || stockEntries.length === 0) return '';
+        var sumByBucket = {};
+        for (var i = 0; i < stockEntries.length; i++) {
+            var e = stockEntries[i];
+            if (!e.bucket) continue;
+            sumByBucket[e.bucket] = (sumByBucket[e.bucket] || 0) + e.current;
+        }
+        var bar = '<div style="display:flex;height:14px;width:140px;">';
+        for (var b in sumByBucket) {
+            var pct = totalCap > 0 ? (sumByBucket[b] / totalCap * 100) : 0;
+            var color = BUCKET_COLORS[b] || "#999";
+            bar += '<div title="' + b + ': ' + sumByBucket[b] + '" ' +
+                'style="width:' + pct.toFixed(0) + '%;background:' + color + '"></div>';
+        }
+        bar += '</div>';
+        return bar;
+    }
+
+    function tierBar(stockEntries, totalCap) {
+        var byTier = {50:0, 40:0, 30:0, 20:0, 10:0};
+        for (var i = 0; i < (stockEntries || []).length; i++) {
+            var t = stockEntries[i].tier;
+            if (byTier[t] !== undefined) byTier[t] += stockEntries[i].current;
+        }
+        var html = '<div class="bar-container">';
+        [50, 40, 30, 20, 10].forEach(function(t) {
+            var pct = totalCap > 0 ? (byTier[t] / totalCap) * 100 : 0;
+            html += '<div class="bar-segment tier-' + t + '" style="width:' + pct + '%"></div>';
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function tierBarFromDelta(delta) {
+        if (!delta) return '<span class="text-muted">no data</span>';
+        var total = 0;
+        for (var k in delta) total += Math.abs(delta[k] || 0);
+        if (total === 0) return '<span class="text-muted">no movement</span>';
+        var html = '<div class="bar-container">';
+        [50, 40, 30, 20, 10].forEach(function(t) {
+            var pct = total > 0 ? ((delta[t] || 0) / total) * 100 : 0;
+            html += '<div class="bar-segment tier-' + t + '" style="width:' + pct + '%"></div>';
+        });
+        html += '</div>';
+        return html + ' <span class="text-muted">(' + total + ' items)</span>';
+    }
+
+    // warehouseFillBar renders a single-item bar colored by economy
+    // bucket — same BUCKET_COLORS palette as bucketBar. Scaled against
+    // the LARGEST row in the same warehouse (relative composition), not
+    // the per-item cap: the cap is effectively unbounded (4M), so a
+    // cap-relative bar would render 0% forever.
+    function warehouseFillBar(current, scaleMax, bucket) {
+        var pct = scaleMax > 0 ? Math.min(100, (current / scaleMax) * 100) : 0;
+        var color = BUCKET_COLORS[bucket] || "#999";
+        return '<div style="display:flex;height:14px;width:100px;background:#e9ecef;">' +
+            '<div style="width:' + pct.toFixed(0) + '%;background:' + color + '"></div></div>';
+    }
+
+    // fmtCap compacts the effectively-unbounded per-item cap for the
+    // card header (4000000 → "4.0M").
+    function fmtCap(cap) {
+        if (!cap) return '?';
+        if (cap >= 1000000) return (cap / 1000000).toFixed(1) + 'M';
+        if (cap >= 1000) return (cap / 1000).toFixed(1) + 'k';
+        return '' + cap;
+    }
+
+    function shopKey(s) { return s.zone + '/' + s.mob_id + '/' + s.room_id; }
+
+    function totalCap(stockEntries) {
+        var s = 0;
+        for (var i = 0; i < (stockEntries || []).length; i++) s += stockEntries[i].max;
+        return s;
+    }
+
+    function totalGold(shops) {
+        var s = 0;
+        for (var i = 0; i < shops.length; i++) s += shops[i].gold;
+        return s;
+    }
+
+    // fmtTtR converts a round count to a human-readable time string.
+    // Uses RoundsPerGameHour from the API (d.scores.RoundsPerGameHour)
+    // when available; falls back to 600 for pre-Phase-4 responses.
+    var _rph = 0; // set from API on each render
+    function fmtTtR(rounds) {
+        if (!rounds || rounds <= 0) return '—';
+        var rph = _rph > 0 ? _rph : 600;
+        var hours = rounds / rph;
+        if (hours < 1) return Math.round(hours * 60) + 'min';
+        if (hours < 24) return hours.toFixed(1) + 'h';
+        return (hours / 24).toFixed(1) + 'd';
+    }
+
+    // multText returns a human-readable string describing the logistics
+    // multiplier currently active for a caravan or forager snapshot.
+    var _stuckThreshold = 3000; // matches LogisticsStuckRounds config default; updated on each render
+    function multText(snap) {
+        if (snap.state === '(despawned)' || snap.state === '(not active)') {
+            return '<span class="text-danger">despawned</span>';
+        }
+        if (snap.stuck_rounds && snap.stuck_rounds > _stuckThreshold) {
+            return '<span class="text-warning">stuck (&times;0.4)</span>';
+        }
+        return '&mdash;';
+    }
+
+    function render(data) {
+        var d = data;
+
+        // Capture RoundsPerGameHour and LogisticsStuckRounds from API so
+        // fmtTtR and multText use live server config values.
+        _rph = (d.scores && d.scores.RoundsPerGameHour) ? d.scores.RoundsPerGameHour : 0;
+        if (d.scores && d.scores.LogisticsStuckRounds) {
+            _stuckThreshold = d.scores.LogisticsStuckRounds;
+        }
+
+        document.getElementById('score-overall').innerHTML = fmtScore(d.scores.OverallScore, true);
+        document.getElementById('score-stock').innerHTML = fmtScore(d.scores.MeanStock, d.scores.MeanStock > 0);
+        document.getElementById('score-input').innerHTML = fmtScore(d.scores.MeanInput, d.scores.MeanInput > 0);
+        document.getElementById('score-throughput').innerHTML = fmtScore(d.scores.MeanThroughput, d.scores.MeanThroughput > 0);
+        document.getElementById('score-gold').innerHTML = fmtScore(d.scores.MeanShopGold, d.scores.MeanShopGold > 0);
+        document.getElementById('last-ts').textContent = d.snapshot.timestamp;
+
+        // Group shops by craft discipline they support.
+        var byDisc = {};
+        for (var i = 0; i < d.snapshot.shops.length; i++) {
+            var s = d.snapshot.shops[i];
+            var disc = s.craft_support || "(uncategorized)";
+            if (!byDisc[disc]) byDisc[disc] = [];
+            byDisc[disc].push(s);
+        }
+        // Render discipline rollup, alphabetical by discipline name.
+        var discKeys = Object.keys(byDisc).sort();
+        var discHtml = '';
+        for (var i = 0; i < discKeys.length; i++) {
+            var disc = discKeys[i];
+            var shops = byDisc[disc];
+            var score = d.scores.PerCraftSupport[disc] || 0;
+            var gold = totalGold(shops);
+            discHtml += tr([
+                disc,
+                shops.length,
+                raw(fmtScore(score, score > 0)),
+                gold
+            ]);
+        }
+        document.getElementById('tbl-discipline').innerHTML = discHtml;
+
+        // Render per-shop rows, alphabetical by name (fall back to
+        // mobId for un-spawned shops with no Name yet).
+        var shopPairs = d.snapshot.shops.map(function(s, i) {
+            return { snap: s, row: d.scores.PerShop[i] };
+        });
+        shopPairs.sort(function(a, b) {
+            var an = a.row.Name || ('#' + a.row.MobId);
+            var bn = b.row.Name || ('#' + b.row.MobId);
+            return an.localeCompare(bn);
+        });
+        var shopHtml = '';
+        for (var i = 0; i < shopPairs.length; i++) {
+            var row = shopPairs[i].row;
+            var snap = shopPairs[i].snap;
+            shopHtml += tr([
+                row.Name || ('#' + row.MobId),
+                row.CraftSupport || '—',
+                raw(fmtScore(row.StockScore, row.HasScore)),
+                raw(fmtScore(row.GoldScore, true)),
+                snap.gold,
+                raw(tierBar(snap.stock, totalCap(snap.stock)))
+            ]);
+        }
+        document.getElementById('tbl-shops').innerHTML = shopHtml;
+
+        // Throughput table — Time-to-Refill per shop.
+        var thruHtml = '';
+        for (var i = 0; i < shopPairs.length; i++) {
+            var row = shopPairs[i].row;
+            var snap = shopPairs[i].snap;
+            var key = shopKey(snap);
+            var depCnt = snap.currently_depleted_count || 0;
+            var depCell = depCnt > 0
+                ? raw('<span class="text-danger">' + esc(depCnt) + '</span>')
+                : '0';
+            var thruCells = [
+                row.Name || ('#' + row.MobId),
+                raw(fmtScore(row.ThroughputScore, true)),
+                fmtTtR(snap.median_ttr_commons),
+                fmtTtR(snap.median_ttr_rares),
+                depCell
+            ];
+            ['1h','6h','1d','3d','1w'].forEach(function(label) {
+                var sd = d.deltas[label] && d.deltas[label].shops[key];
+                thruCells.push(fmtTtR(sd ? sd.MedianTtR : 0));
+            });
+            thruHtml += tr(thruCells);
+        }
+        document.getElementById('tbl-throughput').innerHTML =
+            thruHtml || '<tr><td colspan="10" class="text-muted">No shops.</td></tr>';
+
+        // Input rate table — items/day per zone.
+        var inputHtml = '';
+        var zoneRates = d.scores.InputRateByZone || {};
+        var zoneKeys = Object.keys(zoneRates).sort();
+        for (var i = 0; i < zoneKeys.length; i++) {
+            var zone = zoneKeys[i];
+            var zr = zoneRates[zone];
+            // Build a compact tier-mix string.
+            var tierMixStr = '';
+            if (zr.tier_mix) {
+                var tiers = [50, 40, 30, 20, 10];
+                var parts = [];
+                for (var ti = 0; ti < tiers.length; ti++) {
+                    var t = tiers[ti];
+                    if (zr.tier_mix[t]) {
+                        parts.push('T' + t + ':' + Math.round(zr.tier_mix[t]));
+                    }
+                }
+                tierMixStr = parts.join(' ');
+            }
+            inputHtml += tr([
+                zone,
+                raw(fmtScore(zr.score, true)),
+                (zr.items_per_day || 0).toFixed(1),
+                (zr.from_foragers || 0).toFixed(0),
+                (zr.from_restock || 0).toFixed(0),
+                raw('<small>' + esc(tierMixStr || '—') + '</small>')
+            ]);
+        }
+        document.getElementById('tbl-input').innerHTML =
+            inputHtml || '<tr><td colspan="6" class="text-muted">No zone data.</td></tr>';
+
+        // Caravans, alphabetical by name.
+        var caravanPairs = (d.snapshot.caravans || []).map(function(c, i) {
+            return { snap: c, score: d.scores.PerCaravan[i] || {} };
+        });
+        caravanPairs.sort(function(a, b) {
+            return (a.snap.name || '').localeCompare(b.snap.name || '');
+        });
+        var caravanHtml = '';
+        for (var i = 0; i < caravanPairs.length; i++) {
+            var c = caravanPairs[i].snap;
+            var sc = caravanPairs[i].score;
+            var bar = bucketBar(
+                Object.keys(c.cargo_by_bucket || {}).map(function(b){ return {bucket:b, current:c.cargo_by_bucket[b]}; }),
+                c.cargo_capacity || 1
+            );
+            var cd = d.deltas['1d'] && d.deltas['1d'].caravans && d.deltas['1d'].caravans[c.inst_id];
+            caravanHtml += tr([
+                c.name,
+                raw(fmtScore(sc.Score, sc.HasScore)),
+                c.state,
+                'round +' + (d.snapshot.round - c.state_entered_round),
+                c.room_id,
+                raw(bar + ' ' + esc(c.cargo_weight) + '/' + esc(c.cargo_capacity) + ' lbs'),
+                raw(multText(c)),
+                c.lbs_delivered || 0,
+                { v: raw(tierBarFromDelta(cd ? cd.DeliveriesByTierDelta : null)), colspan: 5 }
+            ]);
+        }
+        document.getElementById('tbl-caravans').innerHTML = caravanHtml || '<tr><td colspan="13" class="text-muted">No caravans active.</td></tr>';
+
+        // Warehouses — one card per city, alphabetical by zone. Field is
+        // absent entirely on pre-Stage-3 snapshots (undefined), so guard
+        // with || [] like the caravans/foragers arrays above.
+        var warehouses = (d.snapshot.warehouses || []).slice().sort(function(a, b) {
+            return (a.zone || '').localeCompare(b.zone || '');
+        });
+        var whHtml = '';
+        for (var i = 0; i < warehouses.length; i++) {
+            var wh = warehouses[i];
+            var stockRows = wh.stock || [];
+            var bodyHtml;
+            if (stockRows.length === 0) {
+                bodyHtml = '<div class="text-muted">&mdash;</div>';
+            } else {
+                var rows = '';
+                var sortedStock = stockRows.slice().sort(function(a, b) {
+                    return (b.current || 0) - (a.current || 0) ||
+                        (a.item_name || '').localeCompare(b.item_name || '');
+                });
+                var scaleMax = sortedStock[0].current || 1;
+                for (var j = 0; j < sortedStock.length; j++) {
+                    var s = sortedStock[j];
+                    var name = s.item_name || ('item ' + s.item_id);
+                    rows += tr([
+                        name,
+                        s.bucket ? s.bucket : raw('&mdash;'),
+                        raw(warehouseFillBar(s.current, scaleMax, s.bucket) + ' ' + esc(s.current))
+                    ]);
+                }
+                bodyHtml = '<table class="table table-sm table-striped mb-0">' +
+                    '<thead><tr><th>Item</th><th>Bucket</th><th>Stock</th></tr></thead>' +
+                    '<tbody>' + rows + '</tbody></table>';
+            }
+            var capNote = (stockRows.length > 0 && stockRows[0].cap)
+                ? ' <span class="text-muted small">cap ' + fmtCap(stockRows[0].cap) + '/item</span>'
+                : '';
+            whHtml += '<div class="col-md-6 mb-3"><div class="card">' +
+                '<div class="card-header"><strong>' + esc(wh.zone) + '</strong>' + capNote + '</div>' +
+                '<div class="card-body p-2">' +
+                '<div class="row text-center mb-2">' +
+                    '<div class="col-4"><div class="text-muted small">captured surplus</div><div>' + (wh.captured_count || 0) + '</div></div>' +
+                    '<div class="col-4"><div class="text-muted small">ambient accrual</div><div>' + (wh.accrued_count || 0) + '</div></div>' +
+                    '<div class="col-4"><div class="text-muted small">drawn down</div><div>' + (wh.drawn_count || 0) + '</div></div>' +
+                '</div>' +
+                bodyHtml +
+                '</div></div></div>';
+        }
+        document.getElementById('warehouses-row').innerHTML =
+            whHtml || '<div class="col-12 text-muted">No warehouses registered.</div>';
+
+        // Foragers, alphabetical by name.
+        var foragerPairs = (d.snapshot.foragers || []).map(function(f, i) {
+            return { snap: f, score: d.scores.PerForager[i] || {} };
+        });
+        foragerPairs.sort(function(a, b) {
+            return (a.snap.name || '').localeCompare(b.snap.name || '');
+        });
+        var foragerHtml = '';
+        for (var i = 0; i < foragerPairs.length; i++) {
+            var f = foragerPairs[i].snap;
+            var sc = foragerPairs[i].score;
+            var bar = bucketBar(
+                Object.keys(f.cargo_by_bucket || {}).map(function(b){ return {bucket:b, current:f.cargo_by_bucket[b]}; }),
+                f.cargo_capacity || 1
+            );
+            var fd = d.deltas['1d'] && d.deltas['1d'].foragers && d.deltas['1d'].foragers[f.mob_id];
+            var isDespawned = f.state === '(despawned)' || f.state === '(not active)';
+            foragerHtml += tr([
+                f.name,
+                raw(fmtScore(sc.Score, sc.HasScore)),
+                f.territory || '—',
+                f.state,
+                isDespawned ? raw('&mdash;') : 'round +' + (d.snapshot.round - f.state_entered_round),
+                f.room_id,
+                raw(bar + ' ' + esc(f.cargo_weight) + '/' + esc(f.cargo_capacity) + ' lbs'),
+                raw(multText(f)),
+                f.lbs_delivered || 0,
+                { v: raw(tierBarFromDelta(fd ? fd.DeliveriesByTierDelta : null)), colspan: 5 }
+            ]);
+        }
+        document.getElementById('tbl-foragers').innerHTML = foragerHtml || '<tr><td colspan="14" class="text-muted">No foragers active.</td></tr>';
+    }
+
+    window.fetchData = function() {
+        fetch('/admin/api/economy/')
+            .then(function(r){ return r.json(); })
+            .then(render)
+            .catch(function(err){ console.error(err); });
+    };
+
+    window.toggleAuto = function() {
+        autoOn = !autoOn;
+        var btn = document.getElementById('btn-auto');
+        if (autoOn) {
+            btn.textContent = 'Auto: ON';
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-success');
+            startTimer();
+        } else {
+            btn.textContent = 'Auto: OFF';
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-secondary');
+            stopTimer();
+        }
+    };
+
+    window.updateInterval = function() {
+        if (autoOn) { stopTimer(); startTimer(); }
+    };
+
+    function startTimer() {
+        var secs = parseInt(document.getElementById('sel-interval').value, 10);
+        autoTimer = setInterval(fetchData, secs * 1000);
+    }
+    function stopTimer() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } }
+
+    window.doSnapshot = function() {
+        var label = document.getElementById('manual-label').value || '';
+        fetch('/admin/api/economy/snapshot?label=' + encodeURIComponent(label), { method: 'POST' })
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                alert('Snapshot saved: ' + d.unix_ts);
+                fetchData();
+            })
+            .catch(function(err){ alert('Snapshot failed: ' + err); });
+    };
+
+    fetchData();
+})();
+</script>
+
+{{template "footer" .}}

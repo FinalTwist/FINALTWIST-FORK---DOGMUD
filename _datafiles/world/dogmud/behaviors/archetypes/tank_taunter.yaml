@@ -1,0 +1,109 @@
+# tank_taunter archetype
+#
+# Sticky front-liner that holds aggro, cycles self-empowering spells, and prefers
+# knockdown/interrupt control over grappling. All moves share the
+# special-move cooldown, so priorities determine what fires on any
+# given ready-round; cooldown rounds fall through to legacy attack.
+#
+# Decision order per mob_combat_round:
+#   1. Interrupt — bash/trip a casting target
+#   2. Taunt — if I'm not already the target's aggro
+#   3. Bonus-damage kick — target prone (stomp) or clinched (knee)
+#   4. Rally — mitigation condition (CommandIsReady skips if already active)
+#   5. Warcry — damage condition (CommandIsReady skips if already active)
+#   6-8. Knockdown cascade: bash (first if qualified) → grapple
+#        (single-enemy only) → trip (final fallback)
+#   fall through to legacy attack
+#
+# On packmate_hurt (a same-room routine-matched packmate was attacked):
+#   engage the attacker via the existing attack action (sets Aggro from
+#   ctx.Event.UserId). Taunt will fire on the next mob_combat_round.
+
+tree:
+  type: selector
+  children:
+    # Call for help at low HP (absorbs the `tank` tactic preset's
+    # `health_below:20 → call_for_help` rule).
+    #
+    # Tank archetype intentionally has NO panic-flee branch — tanks
+    # hold aggro under pressure rather than running. The chunk-2.6
+    # smoke verified that adding panic-flee at HP<25 made the
+    # HP<20 callforhelp branch unreachable.
+    - type: sequence
+      event: mob_hurt
+      children:
+        - type: condition
+          check: mob_health_below
+          percent: 20
+        - type: action
+          do: command
+          cmd: callforhelp
+
+    # ── packmate_hurt: engage the attacker ───────────────────────
+    - type: action
+      event: packmate_hurt
+      do: attack
+
+    # ── mob_combat_round: original cascade (unchanged) ───────────
+    - type: selector
+      event: mob_combat_round
+      children:
+        - type: sequence
+          children:
+            - type: condition
+              check: target_is_casting
+            - type: action
+              do: command_best_of
+              cmds: [bash, trip]
+
+        - type: sequence
+          children:
+            - type: condition
+              check: target_aggro_not_on_me
+            - type: action
+              do: command_best_of
+              cmds: [taunt]
+
+        - type: sequence
+          children:
+            - type: condition
+              check: target_not_standing
+            - type: action
+              do: command_best_of
+              cmds: [kick]
+
+        - type: action
+          do: command_best_of
+          cmds: [rally]
+
+        - type: action
+          do: command_best_of
+          cmds: [warcry]
+
+        - type: action
+          do: command_best_of
+          cmds: [bash]
+
+        - type: sequence
+          children:
+            - type: decorator
+              mod: invert
+              child:
+                type: condition
+                check: multiple_enemies
+            - type: action
+              do: command_best_of
+              cmds: [grapple]
+
+        - type: action
+          do: command_best_of
+          cmds: [trip]
+
+    # chunk 4.4: strategic goal pursuit (after reflex/combat, before idle end)
+    - type: action
+      event: mob_idle
+      do: try_goal_planner
+
+default_goals:
+  - type: survival
+    priority: 80

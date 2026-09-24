@@ -1,0 +1,19 @@
+spellid: chrysalis-regeneration
+name: Chrysalis Regeneration
+aliases: [regen]
+description: Deep Chrysalis energy that rapidly regenerates the target.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - vital
+cost: 80
+waitrounds: 2
+difficulty: 35
+primarystat: willpower
+base_folds: 10
+effect_type: condition
+condition_ids:
+  - 33
+cast_actor: "You call upon deep Chrysalis energy to wrap the target in regenerative power."
+cast_observer: "{actor} draws deep Chrysalis energy, a vivid green glow pulsing."

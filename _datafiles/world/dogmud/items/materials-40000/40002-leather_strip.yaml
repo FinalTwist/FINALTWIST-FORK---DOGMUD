@@ -1,0 +1,16 @@
+itemid: 40002
+name: Leather Strip
+namesimple: strip
+description: A narrow strip of tanned hide, supple and strong.
+type: object
+subtype: mundane
+component_tag: leather-strip
+weight: 0.1
+value: 8
+rarity_tier: 40
+is_component: true
+vendor_categories:
+- blacksmithing
+- jewelcrafting
+- tailoring
+material_tier: 1

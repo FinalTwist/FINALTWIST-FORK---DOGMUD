@@ -1,0 +1,495 @@
+package configs
+
+// validateMisc sets defaults for miscellaneous balance fields. A field left
+// unset (absent) in config.yaml falls back to the Go-code default applied
+// below.
+func (b *Balance) validateMisc() {
+	// ── REGEN RATES ──────────────────────────────────────────────────────────
+	clampPct := func(v *ConfigFloat, def ConfigFloat) {
+		if *v <= 0 {
+			*v = def
+		}
+		if *v > 1.0 {
+			*v = 1.0
+		}
+	}
+	clampPct(&b.PlayerHealthRegenPct, 0.01)
+	clampPct(&b.PlayerStaminaRegenPct, 0.01)
+	clampPct(&b.PlayerConvictionRegenPct, 0.01)
+
+	// ── STAMINA & CONVICTION ──────────────────────────────────────────────────
+	// U7 Task 8: 2.0 -> 0.5. The base is no longer the whole price of a move --
+	// it is now multiplied by the shared encumbrance curve and the inverse-skill
+	// curve, exactly as every other physical action is. At 0.5 an ordinary
+	// traveller pays slightly LESS than the old flat 2.0 and a traveller at carry
+	// capacity pays markedly more, which is the point: the term it replaced was
+	// flat 1.0 until the actor EXCEEDED capacity and therefore priced nothing for
+	// anyone who was not deliberately overloaded.
+	//
+	// config.yaml still ships MovementBaseStaminaCost: 2.0 and that value WINS
+	// over this default until the Task 12 config pass lowers it.
+	if b.MovementBaseStaminaCost <= 0 {
+		b.MovementBaseStaminaCost = 0.5
+	}
+	if b.MovementMaxStaminaCost <= 0 {
+		b.MovementMaxStaminaCost = 20.0
+	}
+	// MovementCostFloor's default went with the field. See the comment where it
+	// was declared: banking the fractional remainder is what stops a move being
+	// free now, and a floor would flatten the curve instead of protecting it.
+	// U7 Task 10. Note the `== 0` rather than the `<= 0` used above: absence
+	// means "take the default", but a NEGATIVE value is an explicit "switch
+	// travel-training off" and is left alone so movementTrainsSearch can read it
+	// as off. Clamped at 1.0 because it is a probability, not a rate.
+	if b.MovementSearchTrainChance == 0 {
+		b.MovementSearchTrainChance = 0.005
+	}
+	if b.MovementSearchTrainChance > 1.0 {
+		b.MovementSearchTrainChance = 1.0
+	}
+	// U7 Task 7 deleted UnarmedAttackStaminaCost's default with the field. The
+	// attack charge is per swing now and lives in validateCombat with the rest of
+	// the U7 cost knobs.
+
+	// ── RESOURCE MAXIMUMS ─────────────────────────────────────────────────────
+	if b.HealthBase < 0 {
+		b.HealthBase = 5
+	}
+	if b.HealthPerStrength < 0 {
+		b.HealthPerStrength = 1
+	}
+	if b.HealthPerVitality < 0 {
+		b.HealthPerVitality = 3
+	}
+	if b.StaminaBase < 0 {
+		b.StaminaBase = 5
+	}
+	if b.StaminaPerStrength < 0 {
+		b.StaminaPerStrength = 0
+	}
+	if b.StaminaPerWillpower < 0 {
+		b.StaminaPerWillpower = 1
+	}
+	if b.StaminaPerVitality < 0 {
+		b.StaminaPerVitality = 3
+	}
+	if b.ConvictionBase < 0 {
+		b.ConvictionBase = 5
+	}
+	if b.ConvictionPerCharisma < 0 {
+		b.ConvictionPerCharisma = 3
+	}
+	if b.ConvictionPerWillpower < 0 {
+		b.ConvictionPerWillpower = 1
+	}
+
+	// ── RESOURCE DEPLETION PENALTIES ─────────────────────────────────────────
+	if b.ResourcePenaltyCurve <= 0 {
+		b.ResourcePenaltyCurve = 2.0
+	}
+	if b.HealthPenaltyMax <= 0 || b.HealthPenaltyMax > 1.0 {
+		b.HealthPenaltyMax = 0.28
+	}
+	if b.StaminaPenaltyMax <= 0 || b.StaminaPenaltyMax > 1.0 {
+		b.StaminaPenaltyMax = 0.28
+	}
+	if b.ConvictionPenaltyMax <= 0 || b.ConvictionPenaltyMax > 1.0 {
+		b.ConvictionPenaltyMax = 0.28
+	}
+
+	// ── CHARACTER CREATION ────────────────────────────────────────────────────
+	if b.StatRollMean <= 0 {
+		b.StatRollMean = 100.0
+	}
+	if b.StatRollStdDev <= 0 {
+		b.StatRollStdDev = 15.0
+	}
+	if b.StatRollMin <= 0 {
+		b.StatRollMin = 70.0
+	}
+	if b.StatRollMax <= 0 {
+		b.StatRollMax = 130.0
+	}
+	if b.StartingHealth < 1 {
+		b.StartingHealth = 10
+	}
+
+	// ── SALVAGE ──────────────────────────────────────────────────────────────
+	if b.SalvageMinChance <= 0 {
+		b.SalvageMinChance = 0.15
+	}
+	if b.SalvageMaxChance <= 0 {
+		b.SalvageMaxChance = 0.85
+	}
+	if b.SalvageSoftCap < 1 {
+		b.SalvageSoftCap = 50
+	}
+	if b.SalvageGoldPerRound < 1 {
+		b.SalvageGoldPerRound = 10
+	}
+	if b.SalvageMaxRounds < 1 {
+		b.SalvageMaxRounds = 5
+	}
+
+	// ── QUEST ENGINE ─────────────────────────────────────────────────────────
+	if b.QuestLogLevel == "" {
+		b.QuestLogLevel = "verbose"
+	}
+	if b.QuestChainDepthLimit < 1 {
+		b.QuestChainDepthLimit = 10
+	}
+	if b.QuestPerformanceWarnMs < 1 {
+		b.QuestPerformanceWarnMs = 50
+	}
+
+	// ── WORLD EVENTS ─────────────────────────────────────────────────────────
+	if b.WorldEventBufferSize < 10 {
+		b.WorldEventBufferSize = 200
+	}
+
+	// ── CHARACTER MANAGEMENT ────────────────────────────────────────────────
+	if b.CharacterRenameCooldownHours < 0 {
+		b.CharacterRenameCooldownHours = 0
+	}
+
+	// ── CARRY CAPACITY ──────────────────────────────────────────────────────
+	if b.CarryCapacityMultiplier < 0.1 || b.CarryCapacityMultiplier > 10.0 {
+		b.CarryCapacityMultiplier = 0.65
+	}
+
+	// ── CONTEST FLOOR ────────────────────────────────────────────────────────
+	// U6 replaced the MinDefenseChance / MinAttackHitChance pair with this one
+	// symmetric knob. The pair was applied AFTER crit resolution in
+	// resolveDefenseOutcomeCore, where every crit branch returned first, so
+	// against a reliably-critting defender the attack floor was evaluated on
+	// almost nothing.
+	//
+	// Zero is REJECTED, not accepted. A Go test binary never loads config.yaml,
+	// so a permissive [0, 0.5) check would leave this at zero and silently
+	// disable the floor in every Go test.
+	if b.ContestFloor <= 0 || b.ContestFloor > 0.5 {
+		b.ContestFloor = 0.125
+	}
+
+	// ── MOVEMENT ─────────────────────────────────────────────────────────────
+	// (MovementBaseStaminaCost and MovementMaxStaminaCost handled in STAMINA & CONVICTION above)
+
+	// ── STAND ────────────────────────────────────────────────────────────────
+	if b.StandStaminaCost <= 0 || b.StandStaminaCost > 1.0 {
+		b.StandStaminaCost = 0.15
+	}
+	if b.StandMinStamina <= 0 || b.StandMinStamina > 1.0 {
+		b.StandMinStamina = 0.15
+	}
+
+	// ── GLOBAL DAMAGE ────────────────────────────────────────────────────────
+	if b.GlobalDamageMultiplier <= 0 {
+		b.GlobalDamageMultiplier = 1.0
+	}
+	if b.HasteSwingMultiplier <= 0 {
+		b.HasteSwingMultiplier = 1.50
+	}
+
+	// ── SKILL MULTIPLIER ─────────────────────────────────────────────────────
+	if b.SkillMultiplierBase <= 0 {
+		b.SkillMultiplierBase = 1.0
+	}
+	if b.SkillMultiplierMax <= 0 {
+		b.SkillMultiplierMax = 3.0
+	}
+
+	// ── THIRD-PARTY GRAPPLE ──────────────────────────────────────────────────
+	if b.ThirdPartyGrapplePenalty <= 0 || b.ThirdPartyGrapplePenalty > 1.0 {
+		b.ThirdPartyGrapplePenalty = 0.70
+	}
+
+	// ── UNARMED ──────────────────────────────────────────────────────────────
+	if b.UnarmedBaseDamage <= 0 {
+		b.UnarmedBaseDamage = 2.0
+	}
+	if b.UnarmedStrengthDivisor <= 0 {
+		b.UnarmedStrengthDivisor = 25.0
+	}
+	if b.UnarmedSkillDivisor <= 0 {
+		b.UnarmedSkillDivisor = 10.0
+	}
+	if b.UnarmedBaseVariance <= 0 {
+		b.UnarmedBaseVariance = 3.0
+	}
+	if b.UnarmedDamageMultiplier <= 0 {
+		b.UnarmedDamageMultiplier = 0.30
+	}
+	if b.UnarmedSpeedMultiplier <= 0 {
+		b.UnarmedSpeedMultiplier = 1.8
+	}
+
+	// ── SPECIAL MOVE DAMAGE % ────────────────────────────────────────────────
+	if b.BashDamagePercent <= 0 || b.BashDamagePercent > 1.0 {
+		b.BashDamagePercent = 0.50
+	}
+	if b.BashKnockdownFactor <= 0 {
+		b.BashKnockdownFactor = 1.0
+	}
+	if b.TripDamagePercent <= 0 || b.TripDamagePercent > 1.0 {
+		b.TripDamagePercent = 0.25
+	}
+	if b.TripKnockdownFactor <= 0 {
+		b.TripKnockdownFactor = 1.057
+	}
+	if b.KickDamagePercent <= 0 || b.KickDamagePercent > 2.0 {
+		b.KickDamagePercent = 0.80
+	}
+	// KnockdownFrequencyScale is deliberately NOT called *KnockdownChance: U10
+	// retired the per-move threshold knobs of that name, and
+	// combat.TestU10DoneWhen_DeadPathsStayDead forbids the substring in
+	// config.yaml so they cannot return. This is a different mechanism.
+	//
+	// It uses `<= 0`, NOT `< 0`, and that is deliberate.
+	//
+	// ⚠️ A `< 0` check here would be the exact trap that left StealCooldown,
+	// StealHiddenBonus, ShadowCooldown, SneakFailCooldown and PackScatterRounds
+	// silently pinned at zero: an absent key unmarshals to 0, and `< 0` cannot
+	// repair a 0. For those knobs the cost was a dead cooldown. Here it would
+	// be worse -- 0 means "no contested knockdown ever lands", so deleting the
+	// line from config.yaml would silently disable every knockdown in the game.
+	//
+	// The price is that 0 is NOT an off-switch for this knob: it reads as
+	// "unset" and becomes 1.0. To suppress knockdowns entirely, set a very
+	// small value such as 0.001, or zero the per-move *KnockdownFactor knobs.
+	if b.KnockdownFrequencyScale <= 0 || b.KnockdownFrequencyScale > 1.0 {
+		b.KnockdownFrequencyScale = 1.0
+	}
+
+	if b.KickKnockdownFactor <= 0 {
+		b.KickKnockdownFactor = 0.924
+	}
+	if b.DrainHealRatio <= 0 {
+		b.DrainHealRatio = 0.75
+	}
+	if b.DrainHealRatio > 2.0 {
+		b.DrainHealRatio = 2.0
+	}
+	if b.StompDamagePercent <= 0 || b.StompDamagePercent > 3.0 {
+		b.StompDamagePercent = 1.20
+	}
+	if b.KneeDamagePercent <= 0 || b.KneeDamagePercent > 2.0 {
+		b.KneeDamagePercent = 1.00
+	}
+
+	// ── COUP DE GRACE ────────────────────────────────────────────────────────
+	if b.CoupDeGraceRounds < 0 {
+		b.CoupDeGraceRounds = 1
+	}
+
+	// ── CLINCH ───────────────────────────────────────────────────────────────
+	if b.ClinchDodgePenalty <= 0 || b.ClinchDodgePenalty > 1.0 {
+		b.ClinchDodgePenalty = 0.80
+	}
+	if b.ClinchParryPenalty <= 0 || b.ClinchParryPenalty > 1.0 {
+		b.ClinchParryPenalty = 0.83
+	}
+	if b.ClinchBlockPenalty <= 0 || b.ClinchBlockPenalty > 1.0 {
+		b.ClinchBlockPenalty = 0.85
+	}
+
+	// ── GROUNDED ─────────────────────────────────────────────────────────────
+	if b.GroundedDodgePenalty <= 0 || b.GroundedDodgePenalty > 1.0 {
+		b.GroundedDodgePenalty = 0.75
+	}
+	if b.GroundedParryPenalty <= 0 || b.GroundedParryPenalty > 1.0 {
+		b.GroundedParryPenalty = 0.77
+	}
+	if b.GroundedBlockPenalty <= 0 || b.GroundedBlockPenalty > 1.0 {
+		b.GroundedBlockPenalty = 0.80
+	}
+
+	// ── LOOT ──────────────────────────────────────────────────────────────────
+	if b.LootBudgetScalar <= 0 {
+		b.LootBudgetScalar = 7.0
+	}
+	if b.GoldPerAffixPoint <= 0 {
+		b.GoldPerAffixPoint = 3.0
+	}
+	if b.ShopAffixedStockCap <= 0 {
+		b.ShopAffixedStockCap = 8
+	}
+
+	// ── INSTANCES ────────────────────────────────────────────────────────────
+	if b.InstanceStatPoolCap < 1 {
+		b.InstanceStatPoolCap = 50000
+	}
+
+	// ── CRASH SITE (#22) ─────────────────────────────────────────────────────
+	// inside the buried hull (#22), spell power and mutation combat bonuses are
+	// scaled to this fraction; 0=fully suppressed, 1=no effect.
+	if b.CrashSiteSuppressionFactor <= 0 || b.CrashSiteSuppressionFactor > 1.0 {
+		b.CrashSiteSuppressionFactor = 0.35
+	}
+
+	// ── BOSS INTERRUPTS ──────────────────────────────────────────────────────
+	if len(b.BossInterruptItemIds) == 0 {
+		b.BossInterruptItemIds = []int{30057}
+	}
+	if len(b.BossInterruptSpellIds) == 0 {
+		b.BossInterruptSpellIds = []string{"neural-stun", "sensory-overload", "kinetic-shove"}
+	}
+
+	// ── SKILL WEIGHT ─────────────────────────────────────────────────────────
+	if b.SkillWeight <= 0 {
+		b.SkillWeight = 2.0
+	}
+
+	// ── CARAVAN SYSTEM ───────────────────────────────────────────────────────
+	if len(b.CaravanServedZones) == 0 {
+		b.CaravanServedZones = []string{"Stillwater", "Thornwall City"}
+	}
+	if b.CaravanDepotDwellRounds <= 0 {
+		b.CaravanDepotDwellRounds = 360
+	}
+	if b.FernwayPickupDwellRounds <= 0 {
+		b.FernwayPickupDwellRounds = 6
+	}
+
+	// ── FORAGER SYSTEM (Stage 3.1) ───────────────────────────────────────────
+	if b.ForagerCarryThresholdPct <= 0 || b.ForagerCarryThresholdPct > 1.0 {
+		b.ForagerCarryThresholdPct = 0.75
+	}
+	if b.ForagerHPRecallThresholdPct <= 0 || b.ForagerHPRecallThresholdPct > 1.0 {
+		b.ForagerHPRecallThresholdPct = 0.50
+	}
+	if b.ForagerHealPotionThresholdPct <= 0 || b.ForagerHealPotionThresholdPct > 1.0 {
+		b.ForagerHealPotionThresholdPct = 0.75
+	}
+	if b.ForagerWaitTimeoutRounds <= 0 {
+		b.ForagerWaitTimeoutRounds = 150
+	}
+	if b.ForagerRestCarryThreshold <= 0 || b.ForagerRestCarryThreshold > 1.0 {
+		b.ForagerRestCarryThreshold = 0.5
+	}
+	if b.ChestBackpressureResumePct <= 0 || b.ChestBackpressureResumePct > 1.0 {
+		b.ChestBackpressureResumePct = 0.9
+	}
+	if b.ForagerRestDurationRounds <= 0 {
+		b.ForagerRestDurationRounds = 40
+	}
+	if b.MailSendCooldownRounds <= 0 {
+		b.MailSendCooldownRounds = 10
+	}
+	if b.AchievementPollRounds <= 0 {
+		b.AchievementPollRounds = 10
+	}
+	if b.GuildFoundingCost <= 0 {
+		b.GuildFoundingCost = 5000
+	}
+	if b.GuildVaultCapacity <= 0 {
+		b.GuildVaultCapacity = 100
+	}
+	if b.ForagerLockboxCapacity <= 0 {
+		b.ForagerLockboxCapacity = 500
+	}
+	if b.ForagerStuckThresholdRounds <= 0 {
+		b.ForagerStuckThresholdRounds = 600
+	}
+
+	// ── ECONOMY HEALTH DASHBOARD ─────────────────────────────────────────────
+	if b.EconomySnapshotIntervalHours <= 0 {
+		b.EconomySnapshotIntervalHours = 1
+	}
+	if b.EconomySnapshotRetentionDays <= 0 {
+		b.EconomySnapshotRetentionDays = 30
+	}
+	if b.EconomyScoreWeightShop <= 0 {
+		b.EconomyScoreWeightShop = 0.6
+	}
+	if b.EconomyScoreWeightCaravan <= 0 {
+		b.EconomyScoreWeightCaravan = 0.2
+	}
+	if b.EconomyScoreWeightForager <= 0 {
+		b.EconomyScoreWeightForager = 0.2
+	}
+
+	// ── OPINIONS / DISPOSITION ───────────────────────────────────────────────
+	if b.OpinionAttackBump == 0 {
+		b.OpinionAttackBump = -15
+	}
+	if b.DispositionDecayHalfLifeRounds == 0 {
+		b.DispositionDecayHalfLifeRounds = 100000
+	}
+
+	// ── FACTIONS ─────────────────────────────────────────────────────────────
+	if b.FactionMemberKillRep == 0 {
+		b.FactionMemberKillRep = -10
+	}
+	if b.CrimeRepDeltaMurder == 0 {
+		b.CrimeRepDeltaMurder = -25
+	}
+	if b.CrimeRepDeltaAssault == 0 {
+		b.CrimeRepDeltaAssault = -10
+	}
+	if b.CrimeRepDeltaTheft == 0 {
+		b.CrimeRepDeltaTheft = -5
+	}
+	if b.CrimeStaleAfterRounds == 0 {
+		b.CrimeStaleAfterRounds = 7884000 // ~365 game-days at 4-second rounds
+	}
+
+	// ── KNOWLEDGE ──────────────────────────────────────────────────────────
+	if b.KnowledgeObservationLogMax <= 0 {
+		b.KnowledgeObservationLogMax = 32
+	}
+
+	// ── BOUNTIES ────────────────────────────────────────────────────────
+	if b.BountyGoldDefaultMultiplier <= 0 {
+		b.BountyGoldDefaultMultiplier = 0.5
+	}
+	if b.BountyGoldFloor <= 0 {
+		b.BountyGoldFloor = 50
+	}
+
+	// ── BOUNTY HUNTING (5.2) ────────────────────────────────────────────
+	if b.BountyHunterGoldThreshold <= 0 {
+		b.BountyHunterGoldThreshold = 500
+	}
+	if b.BountyHunterBaseStatpool <= 0 {
+		b.BountyHunterBaseStatpool = 250
+	}
+	if b.BountyHunterStatpoolPerGold <= 0 {
+		b.BountyHunterStatpoolPerGold = 0.25
+	}
+	if b.BountyHunterMinStatpool <= 0 {
+		b.BountyHunterMinStatpool = 300
+	}
+	if b.BountyHunterMaxStatpool <= 0 {
+		b.BountyHunterMaxStatpool = 500
+	}
+	if b.BountyHunterRedispatchCooldown <= 0 {
+		b.BountyHunterRedispatchCooldown = 500
+	}
+	if b.BountyHunterGearGoldDivisor <= 0 {
+		b.BountyHunterGearGoldDivisor = 5
+	}
+
+	// ── EQUIPMENT-AWARE SHOPPING (5.3) ──────────────────────────────────
+	if b.MobUpgradeGoldReserve <= 0 {
+		b.MobUpgradeGoldReserve = 50
+	}
+	if b.MobUpgradeMinDelta <= 0 {
+		b.MobUpgradeMinDelta = 1.0
+	}
+
+	// ── FACTS & EVENTS ──────────────────────────────────────────────────────
+	if b.FactsHeardEventsMax <= 0 {
+		b.FactsHeardEventsMax = 32
+	}
+
+	// ── PINNACLE ITEMS ───────────────────────────────────────────────────
+	if b.BandolierAttuneRounds <= 0 {
+		b.BandolierAttuneRounds = 10
+	}
+	if b.SentientChatterCooldownRounds <= 0 {
+		b.SentientChatterCooldownRounds = 20
+	}
+	if b.SentientChatterChancePct < 1 || b.SentientChatterChancePct > 100 {
+		b.SentientChatterChancePct = 15
+	}
+}

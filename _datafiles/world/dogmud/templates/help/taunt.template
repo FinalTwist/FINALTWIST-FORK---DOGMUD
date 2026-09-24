@@ -1,0 +1,55 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="command">taunt</ansi>
+
+The <ansi fg="command">taunt</ansi> command launches a verbal assault against your
+opponent, dealing <ansi fg="stat">conviction damage</ansi> instead of physical
+damage. It attacks their will to fight rather than their body.
+
+<ansi fg="yellow">Requirements:</ansi>
+
+  - Must be in active combat
+  - Cannot be used if special move cooldown is active
+
+<ansi fg="yellow">Usage:</ansi>
+
+  <ansi fg="command">taunt</ansi>
+  Hurl a scathing verbal attack at your current combat target
+
+<ansi fg="yellow">Mechanics:</ansi>
+
+  <ansi fg="stat">Hit Check:</ansi> Opposed roll
+    - Attacker: Charisma + Rhetoric skill
+    - Defender: Willpower + Rhetoric skill
+  <ansi fg="stat">Damage:</ansi> Based on Charisma, Rhetoric skill, and target's
+    conviction mitigation
+  <ansi fg="stat">Damage Type:</ansi> Conviction (mental/social)
+  <ansi fg="stat">Cooldown:</ansi> Shared with bash, trip, and kick
+  <ansi fg="stat">Skill:</ansi> Progresses Rhetoric
+
+Taunting spends Conviction and requires full payment before the contest or
+engagement begins. <ansi fg="skill">Rhetoric</ansi> lowers the price; carried
+load does not affect this act of will. If you cannot muster the resolve, no
+cooldown, combat round, or effect is consumed.
+
+<ansi fg="yellow">Aggro Pull:</ansi>
+
+  When a taunt lands against a creature that is fighting someone
+  else, the creature is forced to turn its attention to you. This
+  makes taunt a powerful tool for drawing enemies away from weaker
+  allies and controlling the flow of battle.
+
+  Aggro pull triggers on both normal hits and critical hits. It
+  only applies to hostile creatures; taunting another player will
+  not redirect their attacks.
+
+As a target's conviction drains, their fighting spirit fades with it;
+their attacks and defenses weaken steadily, the same way exhaustion
+saps a fighter. Conviction recovers over time like health and stamina.
+
+Armor with <ansi fg="stat">conviction mitigation</ansi> reduces taunt damage.
+Items like willpower amulets or enchanted robes may provide
+this protection.
+
+<ansi fg="yellow">See Also:</ansi>
+
+  <ansi fg="command">help rhetoric</ansi>, <ansi fg="command">help conviction</ansi>,
+  <ansi fg="command">help defy</ansi>, <ansi fg="command">help combat</ansi>, <ansi fg="command">help skills</ansi>

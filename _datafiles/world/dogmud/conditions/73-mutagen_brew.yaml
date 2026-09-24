@@ -1,0 +1,9 @@
+conditionid: 73
+name: Mutagen Brew
+description: Something shifts inside you -- subtle, deep, and irreversible.
+start_actee: Something shifts deep inside you, quiet and certain.
+end_actee: The shifting inside you settles and goes still.
+triggerrate: 1 round
+triggercount: 600
+flags:
+  - mutation-rate

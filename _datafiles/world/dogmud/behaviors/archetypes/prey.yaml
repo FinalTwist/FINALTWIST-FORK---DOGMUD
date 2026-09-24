@@ -1,0 +1,25 @@
+# prey archetype
+#
+# Flee-on-hurt wildlife. Complements the existing `hates` mechanic
+# (which drives "predator attacks on sight"); this gives the reverse
+# — "prey flees when attacked." Small animals huntable for food/
+# materials: hares, grouse, squirrels, lizards, etc.
+#
+# Spec: docs/superpowers/plans/completed/2026-04-24-ironwind-steppe-mob-audit.md
+
+tree:
+  type: selector
+  children:
+    # Flee when hurt — core prey behavior
+    - type: action
+      event: mob_hurt
+      do: flee
+
+    # chunk 4.4: strategic goal pursuit (after flee reflex, before idle end)
+    - type: action
+      event: mob_idle
+      do: try_goal_planner
+
+default_goals:
+  - type: survival
+    priority: 80

@@ -1,0 +1,59 @@
+mobid: 270
+zone: Thornwall City
+conditionids: [9]
+archetype: fighting
+behavior_archetype: ambusher
+routine: thornwall_chrysalis
+statpool: 110
+itemdropchance: 10
+hostile: false # engagement owned by ambusher btree (hidden surprise strike)
+maxwander: 1
+groups:
+  - humanoid
+  - smuggler
+idlecommands:
+  - 'sneak'
+  - 'emote melts into the shadows along the wall, barely a shape in the dark'
+  - ''
+  - 'emote runs a thumb along a resin-coated blade, checking the edge'
+  - ''
+  - 'emote crouches low and goes still, watching the corridor entrance'
+  - ''
+combatcommands:
+  - 'emote lunges from cover, striking for the throat'
+  - ''
+  - 'emote twists behind you and drives an elbow toward your kidney'
+  - ''
+  - 'flee'
+  - 'emote breaks contact and vanishes into the nearest shadow'
+  - ''
+activitylevel: 60
+character:
+  name: Chrysalis Skulker
+  description: |
+    A lean figure wrapped in dark cloth treated with chrysalis resin to
+    kill the sheen. Every edge of their clothing is sealed against
+    catching light or snagging on stone. The skulker moves in a low,
+    rolling crouch, weight always forward, never settling. Their face is
+    wrapped below the eyes. What shows above the wrap is alert and
+    calculating -- the look of someone who has survived exclusively by
+    seeing trouble before trouble sees them. A resin-coated blade hangs
+    at one hip. The other hip is empty, but the hand rests near it
+    anyway, habit or misdirection.
+  speciesid: 1
+  level: 1
+  gold: 8
+  stats:
+    dexterity:
+      base: 130
+    perception:
+      base: 120
+    strength:
+      base: 115
+  skills:
+    skullduggery: 1
+    weapon-combat: 1
+    unarmed-combat: 1
+  items:
+    - itemid: 10023
+      dropchance: 10

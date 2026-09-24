@@ -1,0 +1,21 @@
+itemid: 30038
+name: Conviction Draught
+vendor_categories:
+- alchemy
+namesimple: draught
+description: A bittersweet blend of root and thistle. It
+  steadies the mind and renews purpose.
+type: potion
+subtype: drinkable
+uses: 1
+conditionids:
+  - 56
+value: 8
+rarity_tier: 50
+weight: 0.3
+toxicity: 8
+aging:
+  ferment_rounds: 1000
+  peak_rounds: 5000
+  decay_rounds: 15000
+  spoil_rounds: 25000

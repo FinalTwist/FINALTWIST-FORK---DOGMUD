@@ -1,0 +1,16 @@
+itemid: 20059
+name: Leather Bandolier
+vendor_categories:
+- tailoring
+namesimple: bandolier
+description: A wide leather belt fitted with loops and pockets
+  designed to hold small bottles and vials. It trades the
+  protection of a normal belt for quick access to potions.
+type: belt
+subtype: wearable
+value: 15
+rarity_tier: 40
+weight: 1.5
+is_bandolier: true
+bandolier_capacity: 12
+weight_reduction: 0.30

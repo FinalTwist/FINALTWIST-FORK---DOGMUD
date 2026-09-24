@@ -1,0 +1,11 @@
+conditionid: 68
+name: Silver Tongue Oil
+description: Words come easily, each one landing with uncanny precision.
+start_actee: Words come easily now, each one landing where you aim.
+end_actee: Your words lose their edge and your strength returns.
+triggerrate: 1 round
+triggercount: 350
+statmods:
+  charisma: 20
+  strength: -15
+  vitality: -10

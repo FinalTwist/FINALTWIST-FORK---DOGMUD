@@ -1,0 +1,402 @@
+package usercommands
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/GoMudEngine/GoMud/internal/actions"
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/gametime"
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/mutations"
+	"github.com/GoMudEngine/GoMud/internal/questengine"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/skills"
+	"github.com/GoMudEngine/GoMud/internal/spells"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/activity"
+	"github.com/GoMudEngine/GoMud/internal/textutil"
+	"github.com/GoMudEngine/GoMud/internal/users"
+)
+
+// Cast initiates fold-based spellcasting (Stage 11.2).
+// Each round the combat hook adds folds until FoldsNeeded is reached,
+// then Stage 11.4 resolves the actual spell effect.
+func Cast(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+
+	// 0. Dead characters can't cast (Health <= 0).
+	if user.Character.IsDisabled() {
+		user.SendText(messaging.CategorySystem, `<ansi fg="red">You can't cast. You are dead.</ansi>`)
+		return true, nil
+	}
+
+	// 1. Spellcasting or manifestation skill required (checked again after spell
+	//    lookup for a better error message, but we need at least one non-zero).
+	skillLevel := user.Character.GetSkillLevel(skills.Spellcasting)
+	manifestLevel := user.Character.GetSkillLevel(skills.Manifestation)
+	if skillLevel == 0 && manifestLevel == 0 {
+		user.SendText(messaging.CategorySystem, `<ansi fg="red">You have no spellcasting skill.</ansi>`)
+		return true, nil
+	}
+
+	// 2. Parse spell name and optional target from rest
+	rest = strings.TrimSpace(rest)
+	if rest == `` {
+		user.SendText(messaging.CategorySystem, `<ansi fg="red">Cast what? (Usage: cast <spell> [target])</ansi>`)
+		return true, nil
+	}
+
+	// Greedy longest-match: try the whole rest as a spell (id, alias, or full
+	// multi-word display name), then drop the last word and retry. The leftover
+	// trailing words are the target. This lets "cast conviction ward on bob"
+	// and single-word aliases ("cast ward") both resolve. Downstream plumbing
+	// (skill check, InitiateCast, cooldowns, quests) is keyed by the canonical
+	// spellid, so we assign spellInfo.SpellId to spellName below.
+	//
+	// spells.ResolveSpellGreedy is shared with actions.castReadiness (the
+	// read-only probe behind the client action queue) so the two cannot
+	// drift on which spell names resolve.
+	spellInfo, targetName := spells.ResolveSpellGreedy(rest)
+	if spellInfo == nil {
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`<ansi fg="red">No spell found for "%s". Use the spell name or an alias `+
+				`(e.g. <ansi fg="cyan-bold">mm</ansi>, <ansi fg="cyan-bold">heal</ansi>). `+
+				`Type <ansi fg="cyan-bold">spells</ansi> to list what you know.</ansi>`,
+			rest))
+		return true, nil
+	}
+
+	// The room target resolver (FindByName) doesn't tolerate a leading
+	// preposition, so strip one "on"/"at" so "cast heal on bob" works.
+	if targetName != `` {
+		tw := strings.Fields(targetName)
+		if len(tw) > 0 && (strings.ToLower(tw[0]) == `on` || strings.ToLower(tw[0]) == `at`) {
+			targetName = strings.TrimSpace(strings.Join(tw[1:], ` `))
+		}
+	}
+
+	spellName := spellInfo.SpellId
+
+	if !user.Character.HasSpell(spellInfo.SpellId) {
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">You haven't learned the spell "%s".</ansi>`, spellInfo.Name))
+		return true, nil
+	}
+
+	// 3b. Verify the player has the skill appropriate for this spell's school.
+	if spellInfo.HasSchool(spells.SchoolManifestation) {
+		if manifestLevel == 0 {
+			user.SendText(messaging.CategorySystem, `<ansi fg="red">You have no manifestation skill.</ansi>`)
+			return true, nil
+		}
+	} else {
+		if skillLevel == 0 {
+			user.SendText(messaging.CategorySystem, `<ansi fg="red">You have no spellcasting skill.</ansi>`)
+			return true, nil
+		}
+	}
+
+	// 4. Already casting?
+	if user.Character.Activity != nil && user.Character.Activity.IsCasting() {
+		cs, _ := user.Character.Activity.CastingData()
+		user.SendText(messaging.CategorySpellFold, spells.GetCastMessage("already_casting", cs.SpellId))
+		return true, nil
+	}
+
+	// 4.5. Can't cast while doing anything else (crafting, salvaging, etc.)
+	// Use IsFree() rather than checking CraftingState directly so that all
+	// Activity machine states are covered through the migration window.
+	if !user.Character.IsFree() {
+		user.SendText(messaging.CategorySystem, `You are too busy to cast right now.`)
+		return true, nil
+	}
+
+	// 5. Conviction check — must have enough for the full cast.
+	// Stage 12.1: Apply conviction_cost_multiplier from Magical Resistance mutation.
+	convMult := 1.0 + mutations.GetConvictionCostMultiplier(user.Character.Mutations)
+	totalConvictionCost := spellInfo.GetTotalConvictionCost(convMult)
+	if totalConvictionCost > 0 && user.Character.Conviction < totalConvictionCost {
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`<ansi fg="red">You don't have the conviction to cast %s.</ansi>`,
+			spellInfo.Name))
+		return true, nil
+	}
+
+	// 6. Component check — must have the required item in inventory.
+	// Two separate mechanisms: ComponentTag (generic tag-based, consumed at
+	// resolution) and SummonComponentId (specific item id, used by summon
+	// spells and consumed in companion_summon.go). Both pre-validated here
+	// so a missing component rejects the cast BEFORE the animation runs.
+	if spellInfo.ComponentTag != "" {
+		found := false
+		for _, itm := range user.Character.Items {
+			if itm.GetSpec().ComponentTag == spellInfo.ComponentTag {
+				found = true
+				break
+			}
+		}
+		if !found {
+			user.SendText(messaging.CategorySystem, fmt.Sprintf(
+				`<ansi fg="red">%s requires a %s in your inventory.</ansi>`,
+				spellInfo.Name, spellInfo.ComponentTag))
+			return true, nil
+		}
+	}
+	if spellInfo.SummonComponentId > 0 {
+		found := false
+		for _, itm := range user.Character.Items {
+			if itm.ItemId == spellInfo.SummonComponentId {
+				found = true
+				break
+			}
+		}
+		if !found {
+			componentName := fmt.Sprintf("item #%d", spellInfo.SummonComponentId)
+			if spec := items.GetItemSpec(spellInfo.SummonComponentId); spec != nil && spec.NameSimple != "" {
+				componentName = spec.NameSimple
+			} else if spec != nil && spec.Name != "" {
+				componentName = spec.Name
+			}
+			user.SendText(messaging.CategorySystem, fmt.Sprintf(
+				`<ansi fg="red">%s requires a %s in your inventory.</ansi>`,
+				spellInfo.Name, componentName))
+			return true, nil
+		}
+	}
+
+	// 6b. U7b: refuse an unsustainable binding at INITIATION, before any
+	// conviction moves.
+	//
+	// Spell conviction is charged per round as the cast channels (the upkeep
+	// ApplyCost in combat_shared_helpers.go), while the reservation gates in
+	// companion_summon.go and charm_spell.go sit at RESOLUTION. So a doomed
+	// summon used to channel to completion, spend the whole cost, and only then
+	// refuse -- measured at a full pool's worth of conviction for a refused
+	// elemental, and it could even roll skill progression on the way. Both
+	// `help companion` and `help manifestation` promise the refusal costs
+	// nothing; this is what makes that true.
+	//
+	// The resolution-time checks STAY as a backstop and must not be removed. A
+	// multi-round channel gives the world time to move the ceiling out from
+	// under a cast that was affordable when it began: gear comes off, a condition
+	// lapses and shrinks the pool, another companion arrives.
+	//
+	// SummonPetMultiplier is 0 for charm, and CompanionReserveBase(0) is the
+	// unscaled default -- exactly what charm_spell.go prices. Keeping one
+	// expression for both is what stops the two seams disagreeing.
+	if spellInfo.SummonMobId > 0 || spellInfo.EffectType == `charm` {
+		if len(user.Character.Companions) >= user.Character.GetMaxCompanions() {
+			user.SendText(messaging.CategorySpellManifestation,
+				`You are already sustaining as many companions as your will can hold.`)
+			return true, nil
+		}
+		reserve := user.Character.CalcCompanionReserve(
+			characters.CompanionReserveBase(spellInfo.SummonPetMultiplier))
+		if user.Character.WouldBreachReservationCap(characters.PoolConviction, reserve) {
+			user.SendText(messaging.CategorySpellManifestation,
+				user.Character.ReservationRefusal(characters.PoolConviction, reserve))
+			return true, nil
+		}
+	}
+
+	// The player-only spell-initiation roll was deleted here (roadmap U0).
+	// CalcInitiationChance clamped at 95 while a maxed caster's computed value
+	// was 1372, so mastery could never touch it: every caster failed one cast in
+	// twenty forever, each failure costing a 2-round cooldown. Concentration
+	// break (see checkConcentrationBreak) already covers the design intent, and
+	// unlike the initiation gate it responds to skill.
+
+	// 8. Stage 17.2: The Eye modulates Perception → folds-per-round for mutated
+	// traditional casters. Manifestation spells use Charisma instead and are
+	// NOT modulated by The Eye.
+	isManifestation := spellInfo.HasSchool(spells.SchoolManifestation)
+	var primaryStatForCast int
+	if isManifestation {
+		primaryStatForCast = user.Character.Stats.Charisma.ValueAdj
+	} else {
+		primaryStatForCast = user.Character.GetEffectivePerception()
+		if len(user.Character.Mutations) > 0 {
+			eyeFrac := (gametime.GetEyePhase() - 0.5) * 2 * float64(configs.GetBalanceConfig().MoonStatModMax)
+			primaryStatForCast += int(float64(primaryStatForCast) * eyeFrac)
+		}
+	}
+
+	// 9. Shared initiation logic.
+	actor := &actions.UserActor{User: user, Room: room}
+	result := actions.InitiateCast(actor, spellName, targetName)
+
+	switch {
+	case result.OnCooldown:
+		user.SendText(messaging.CategorySystem, `You need a moment before you can do that.`)
+		return true, nil
+	case result.NoTarget:
+		// The refusal may already have been narrated with a specific reason -- a
+		// protected NPC, or a player target for a mob-only spell. Adding the
+		// generic line after one of those contradicts it: the player named a
+		// target, was told why it was refused, and is then told they named
+		// nobody. Caught by the 2026-08-24 charm playtest on two paths.
+		if result.RefusalExplained {
+			return true, nil
+		}
+		// HarmSingle / HarmArea / HelpSingle can set this; supply a
+		// context-aware message.
+		if !spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetSingle {
+			user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="red">You don't see "%s" here.</ansi>`, targetName))
+		} else if spellInfo.IsHarm() && spellInfo.Targeting == combatvocab.TargetArea {
+			// Refused before any resources were spent (U7b admission rule).
+			user.SendText(messaging.CategorySystem, `<ansi fg="red">There is nothing here for that spell to strike.</ansi>`)
+		} else {
+			user.SendText(messaging.CategorySystem, `<ansi fg="red">You need a target to cast that spell.</ansi>`)
+		}
+		return true, nil
+	case !result.Initiated:
+		// Catch-all for any other early exit (AlreadyCasting was handled above;
+		// InvalidSpell was handled above). Should not normally be reached.
+		return true, nil
+	}
+
+	// 10. Compute final folds-per-round and total conviction cost.
+	// Apply stat override for folds-per-round when The Eye (or manifestation
+	// path) requires a different stat than what InitiateCast used.
+	foldsPerRound := result.FoldsPerRound
+	var baseStatForCast int
+	if isManifestation {
+		baseStatForCast = user.Character.Stats.Charisma.ValueAdj
+	} else {
+		baseStatForCast = user.Character.GetEffectivePerception()
+	}
+	if primaryStatForCast != baseStatForCast {
+		manifestSkill := user.Character.GetSkillLevel(skills.Manifestation)
+		castSkill := user.Character.GetSkillLevel(skills.Spellcasting)
+		var overrideSkill int
+		if isManifestation {
+			overrideSkill = manifestSkill
+		} else {
+			overrideSkill = castSkill
+		}
+		foldsPerRound = characters.CalcFoldsPerRound(primaryStatForCast, overrideSkill)
+	}
+
+	// 11 + 12. Build CastingData and commit to Activity machine (sole truth).
+	castData := activity.CastingData{
+		SpellId:              result.SpellInfo.SpellId,
+		FoldsNeeded:          result.FoldsNeeded,
+		FoldsAccumulated:     0,
+		FoldsPerRound:        foldsPerRound,
+		TotalConvictionCost:  totalConvictionCost,
+		ConvictionSpent:      0,
+		TargetUserIds:        result.TargetUserIds,
+		TargetMobInstanceIds: result.TargetMobInstanceIds,
+		SpellRest:            result.SpellRest,
+	}
+	if err := user.Character.Activity.TransitionToCasting(
+		castData,
+		state.TransitionReason{
+			Trigger: activity.TriggerCastBegin,
+			Actor:   state.ActorRef{UserId: user.UserId},
+		},
+	); err != nil {
+		// Activity machine refused — already busy with something. This
+		// path should not be reached (IsFree() check above guards it),
+		// but handle defensively.
+		user.SendText(messaging.CategorySystem, `You're already busy with something else.`)
+		return true, nil
+	}
+
+	// 12b. Send YAML cast text (if defined).
+	if spellInfo.Narration(spells.PhaseCast).Len() > 0 {
+		castRoom := rooms.LoadRoom(user.Character.RoomId)
+		tCtx := textutil.TokenContext{
+			ActorName:      user.Character.GetCharacterName(true),
+			ActorPlainName: user.Character.GetCharacterName(false),
+		}
+		if len(result.TargetUserIds) > 0 {
+			if tUser := users.GetByUserId(result.TargetUserIds[0]); tUser != nil {
+				tCtx.ActeeName = tUser.Character.GetCharacterName(true)
+				tCtx.ActeePlainName = tUser.Character.GetCharacterName(false)
+			}
+		} else if len(result.TargetMobInstanceIds) > 0 {
+			if tMob := mobs.GetInstance(result.TargetMobInstanceIds[0]); tMob != nil {
+				tCtx.ActeeName = tMob.Character.GetCharacterName(true)
+				tCtx.ActeePlainName = tMob.Character.GetCharacterName(false)
+			}
+		}
+		roles := spellInfo.Narrate(spells.PhaseCast, tCtx)
+		if roles.Actor != "" {
+			user.SendText(messaging.CategorySpellFold, roles.Actor)
+		}
+		// SendTextVisual, not SendText: a cast_observer line describes what the
+		// room SEES ("a fierce glow building"), and the audio channel is never
+		// sight-gated, so this reached blind observers with the caster name
+		// and the visual detail. Found by the 2026-09-08 darkness playtest. Its
+		// sibling windup two steps below already used SendTextVisual -- one
+		// event, two paths, only one darkness-aware.
+		if roles.Observer != "" && castRoom != nil {
+			castRoom.SendTextVisual(messaging.CategorySpellFold, roles.Observer, user.UserId)
+		}
+	}
+
+	// 13. Go onCast hooks — run before JS, can abort the cast.
+	if spellInfo.SpellId == "fold-recall" {
+		currentRoomId := user.Character.RoomId
+		blocked := false
+		if currentRoom := rooms.LoadRoom(currentRoomId); currentRoom != nil {
+			if allowed, ok := currentRoom.GetTempData("allow_recall").(bool); ok && !allowed {
+				user.SendText(messaging.CategorySystem, "Something about this place prevents you from recalling.")
+				blocked = true
+			}
+		}
+		if !blocked {
+			anchorRoom := 0
+			if v := user.Character.GetMiscData("fold-anchor-room"); v != nil {
+				switch val := v.(type) {
+				case int:
+					anchorRoom = val
+				case float64:
+					anchorRoom = int(val)
+				}
+			}
+			if anchorRoom <= 0 {
+				user.SendText(messaging.CategorySystem, `You reach for the Veil, but there is no anchor to `+
+					`pull you. Set one first with `+
+					`<ansi fg="command">cast fold-anchor</ansi>.`)
+				blocked = true
+			} else if anchorRoom == currentRoomId {
+				user.SendText(messaging.CategorySystem, "You are already standing on your anchor.")
+				blocked = true
+			}
+		}
+		if blocked {
+			// Abort the cast — undo Activity machine.
+			if user.Character.Activity != nil && user.Character.Activity.IsCasting() {
+				_ = user.Character.Activity.TransitionToFree(state.TransitionReason{
+					Trigger: activity.TriggerCastCancel,
+					Actor:   state.ActorRef{UserId: user.UserId},
+				})
+			}
+			return true, nil
+		}
+	}
+
+	// 14. Announce the cast start (skill progression now fires in InitiateCast).
+	user.SendText(messaging.CategorySpellFold, spells.GetCastMessage("cast_started", spellInfo.Name))
+	room.SendTextVisual(messaging.CategorySpellFold, fmt.Sprintf(
+		`<ansi fg="username">%s</ansi> closes their eyes in concentration.`,
+		user.Character.Name), user.UserId)
+
+	// Quest engine: command notification — the cast successfully initiated.
+	// Lets quests gate a step on the `cast` command (the newbie Folding
+	// spoke's "cast at the practice mark" beat). Mirrors forage/drink/throw.
+	bridge := questengine.NewGameBridge(user, room.RoomId)
+	questengine.GetEngine().Notify("command", questengine.EventDetails{
+		UserId:  user.UserId,
+		RoomId:  room.RoomId,
+		Command: "cast",
+	}, bridge, bridge)
+
+	return true, nil
+}

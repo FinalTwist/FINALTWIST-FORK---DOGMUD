@@ -1,0 +1,18 @@
+spellid: fold-recall
+name: Fold Recall
+aliases: [recall]
+description: Folds the Veil and teleports you to your Chrysalis anchor.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - enhancement
+cost: 50
+waitrounds: 1
+difficulty: 5
+primarystat: willpower
+base_folds: 6
+cast_actor: You reach through the Veil toward your anchor point...
+cast_observer: >-
+  {actor} reaches into the Veil, reality blurring around them.
+wait_actor: The Veil thins as you pull yourself toward the anchor...

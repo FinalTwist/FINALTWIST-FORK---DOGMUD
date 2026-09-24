@@ -1,0 +1,337 @@
+package hooks
+
+import (
+	"fmt"
+
+	"github.com/GoMudEngine/GoMud/internal/behaviortree"
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/connections"
+	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/guilds"
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/justice"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/questengine"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/presence"
+	"github.com/GoMudEngine/GoMud/internal/users"
+	"github.com/GoMudEngine/GoMud/internal/util"
+)
+
+// respawnCompanions re-creates mob instances for all stored companions.
+// Called once the player is fully in the world.
+func respawnCompanions(user *users.UserRecord) {
+	// First: clean up any stale instances from a previous session
+	// (e.g., browser refresh without clean logout).
+	for i := range user.Character.Companions {
+		comp := &user.Character.Companions[i]
+		if comp.InstanceId > 0 {
+			if oldMob := mobs.GetInstance(comp.InstanceId); oldMob != nil {
+				oldMob.Character.RemoveCharm()
+				if oldRoom := rooms.LoadRoom(oldMob.Character.RoomId); oldRoom != nil {
+					oldRoom.RemoveMob(comp.InstanceId)
+				}
+				mobs.DestroyInstance(comp.InstanceId)
+			}
+			comp.InstanceId = 0
+		}
+	}
+	// Also clean up any charmed mobs that aren't in the Companions list
+	for _, charmId := range user.Character.GetCharmIds() {
+		user.Character.TrackCharmed(charmId, false)
+		if oldMob := mobs.GetInstance(charmId); oldMob != nil {
+			oldMob.Character.RemoveCharm()
+			if oldRoom := rooms.LoadRoom(oldMob.Character.RoomId); oldRoom != nil {
+				oldRoom.RemoveMob(charmId)
+			}
+			mobs.DestroyInstance(charmId)
+		}
+	}
+
+	// Remove charmed companions — they don't persist through restart.
+	// Charmed mobs are temporary by nature (borrowed, not created).
+	cleaned := make([]characters.CompanionInfo, 0, len(user.Character.Companions))
+	for _, comp := range user.Character.Companions {
+		if comp.SourceType != characters.CompanionCharmed {
+			cleaned = append(cleaned, comp)
+		}
+	}
+	user.Character.Companions = cleaned
+
+	// D11: recompute every companion's reserve from what it would cost today.
+	// The snapshot is deliberately frozen at summon time so it cannot drift
+	// mid-life, which makes login the only place a rebase can reach a returning
+	// veteran. This never dismisses anyone; reservation is refused on addition
+	// only, and a recompute that leaves them further over says so rather than
+	// letting a silently dearer bond read as a bug.
+	refreshCompanionReservesOnLogin(user)
+
+	for i := range user.Character.Companions {
+		comp := &user.Character.Companions[i]
+		if comp.MobId == 0 {
+			continue
+		}
+
+		mob := mobs.NewMobByIdFresh(mobs.MobId(comp.MobId), user.Character.RoomId)
+		if mob == nil {
+			mudlog.Error("respawnCompanions", "error", fmt.Sprintf("mob template %d not found for companion %s", comp.MobId, comp.Name))
+			continue
+		}
+
+		// Apply saved progression back onto the fresh mob instance.
+		applyCompanionState(mob, comp)
+
+		// Apply nickname if the companion was renamed.
+		if comp.Nickname != "" {
+			mob.Character.Name = comp.Name
+		}
+
+		// Restore to full resources.
+		mob.Character.Health = mob.Character.HealthMax.Value
+		mob.Character.Stamina = mob.Character.StaminaMax.Value
+		mob.Character.Conviction = mob.Character.ConvictionMax.Value
+
+		// Charm permanently to the player (-1 rounds = permanent).
+		mob.Character.Charm(user.UserId, -1, "")
+		user.Character.TrackCharmed(mob.InstanceId, true)
+
+		// Place in the player's current room.
+		if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
+			room.AddMob(mob.InstanceId)
+		}
+
+		comp.InstanceId = mob.InstanceId
+	}
+}
+
+// applyCompanionState writes saved CompanionInfo progression onto a fresh mob.
+func applyCompanionState(mob *mobs.Mob, comp *characters.CompanionInfo) {
+	// Stat training.
+	//
+	// A companion without a SchemaVersion was saved before U10b-0 Phase C, when
+	// the template's authored stats and the spawn pool both lived in Training.
+	// This mob came from NewMobByIdFresh, which has already rolled a fresh pool
+	// into Base, and the template supplies the authored part -- so assigning the
+	// saved value as-is would count both a second time and roughly double the
+	// pet. LegacyTrainingToGains separates out what was actually earned.
+	if comp.StatTraining != nil {
+		saved := comp.StatTraining
+		if comp.SchemaVersion < mobs.InstanceSchemaVersion {
+			saved = mobs.LegacyTrainingToGains(mobs.MobId(comp.MobId), saved)
+		}
+		mob.Character.Stats.Strength.Training = saved["strength"]
+		mob.Character.Stats.Dexterity.Training = saved["dexterity"]
+		mob.Character.Stats.Perception.Training = saved["perception"]
+		mob.Character.Stats.Vitality.Training = saved["vitality"]
+		mob.Character.Stats.Willpower.Training = saved["willpower"]
+		mob.Character.Stats.Charisma.Training = saved["charisma"]
+	}
+
+	// Skill maps.
+	if comp.Skills != nil {
+		mob.Character.Skills = copyIntMap(comp.Skills)
+	}
+	if comp.SkillUseCount != nil {
+		mob.Character.SkillUseCount = copyIntMap(comp.SkillUseCount)
+	}
+	if comp.Mutations != nil {
+		mob.Character.Mutations = copyIntMap(comp.Mutations)
+	}
+	if comp.SpellBook != nil {
+		mob.Character.SpellBook = copyIntMap(comp.SpellBook)
+	}
+	mob.Character.MutationProgress = comp.MutationProgress
+
+	// Restore gear snapshot from the previous logout. Items REPLACES the
+	// mob template's default carried items — companion takes what the
+	// player left them with, not what the template ships. Same for
+	// Equipment: the saved worn slots replace the template defaults.
+	if comp.Items != nil {
+		mob.Character.Items = make([]items.Item, len(comp.Items))
+		copy(mob.Character.Items, comp.Items)
+	}
+	// Worn is a value type; direct assignment replaces all slots.
+	// Only restore if any slot was non-zero on the saved snapshot,
+	// otherwise leave the template defaults intact.
+	if compHasEquipment(comp) {
+		mob.Character.Equipment = comp.Equipment
+	}
+
+	// Recalculate derived stats from the applied training.
+	mob.Character.Validate()
+}
+
+// compHasEquipment reports whether the saved Equipment snapshot has any
+// non-zero item slot. Avoids stomping a fresh template's equipment with
+// an all-empty Worn struct when the companion never carried gear.
+func compHasEquipment(comp *characters.CompanionInfo) bool {
+	e := comp.Equipment
+	return e.Weapon.ItemId != 0 || e.Offhand.ItemId != 0 ||
+		e.Head.ItemId != 0 || e.Neck.ItemId != 0 || e.Body.ItemId != 0 ||
+		e.Belt.ItemId != 0 || e.Shoulders.ItemId != 0 || e.Back.ItemId != 0 ||
+		e.Gloves.ItemId != 0 || e.Legs.ItemId != 0 || e.Feet.ItemId != 0 ||
+		e.Ring.ItemId != 0 || e.Ring2.ItemId != 0 ||
+		e.Wrist1.ItemId != 0 || e.Wrist2.ItemId != 0 ||
+		e.ExtraArm1.ItemId != 0 || e.ExtraArm2.ItemId != 0 ||
+		e.ExtraArm3.ItemId != 0 || e.ExtraArm4.ItemId != 0 ||
+		e.ExtraWrist1.ItemId != 0 || e.ExtraWrist2.ItemId != 0 ||
+		e.ExtraWrist3.ItemId != 0 || e.ExtraWrist4.ItemId != 0 ||
+		e.Tail.ItemId != 0 || e.ComponentBag.ItemId != 0
+}
+
+//
+// Execute on join commands
+//
+
+// firstSpawnMiscKey marks a character as having completed their first
+// world entry. Set once by emitFirstSpawnMobEvents and never cleared.
+const firstSpawnMiscKey = "first_spawn_done"
+
+// emitFirstSpawnMobEvents fires player_enter behavior-tree events for
+// every mob in the room, exactly once per character (first spawn ever).
+// Spawning into a room IS entering it — without this, btree greeters in
+// the start room never see brand-new characters. The MiscData gate also
+// covers pre-existing characters: their next login is treated as the
+// one-time emission, which is harmless for non-hostile trees and skipped
+// thereafter.
+func emitFirstSpawnMobEvents(user *users.UserRecord, room *rooms.Room) {
+	if user.Character.GetMiscData(firstSpawnMiscKey) != nil {
+		return
+	}
+	user.Character.SetMiscData(firstSpawnMiscKey, "1")
+
+	for _, mobInstId := range room.GetMobs(rooms.FindAll) {
+		mob := mobs.GetInstance(mobInstId)
+		if mob == nil || mob.Character.IsCharmed() {
+			continue
+		}
+		behaviortree.TryMobBehavior(mobInstId, behaviortree.EventContext{
+			EventType: "player_enter",
+			UserId:    user.UserId,
+			RoomId:    room.RoomId,
+		})
+	}
+}
+
+func HandleJoin(e events.Event) events.ListenerReturn {
+
+	evt, typeOk := e.(events.PlayerSpawn)
+	if !typeOk {
+		mudlog.Error("Event", "Expected Type", "PlayerSpawn", "Actual Type", e.Type())
+		return events.Cancel
+	}
+
+	user := users.GetByUserId(evt.UserId)
+	if user == nil {
+		mudlog.Error("HandleJoin", "error", fmt.Sprintf(`user %d not found`, evt.UserId))
+		return events.Cancel
+	}
+
+	// Auto-flag AI-port characters so leaderboards exclude them. Bots play via
+	// an AI connection but never get the persisted IsAI account flag on their
+	// own; the leaderboard filters on UserRecord.IsAI (online + offline), so
+	// persist it once here the first time they enter the world on the AI port.
+	if !user.IsAI {
+		if cd := connections.Get(user.ConnectionId()); cd != nil && cd.ConnType() == connections.ConnAI {
+			user.IsAI = true
+			// Persist so offline leaderboard exclusion works even on an unclean
+			// disconnect. Fires once per account (the !user.IsAI guard above).
+			if err := users.SaveUser(user); err != nil {
+				mudlog.Error("HandleJoin", "auto-flag save failed", user.Username, "error", err)
+			}
+			mudlog.Info("HandleJoin", "auto-flagged AI account", user.Username)
+		}
+	}
+
+	user.EventLog.Add(`conn`, fmt.Sprintf(`<ansi fg="username">%s</ansi> entered the world`, user.Character.Name))
+
+	// Preserved-bandolier potions are frozen only while online (tickPreserveContents
+	// runs on UserRoundTick), so an offline gap balloons their aging elapsed and they
+	// spoil+eject at login. Re-baseline them to fresh here so the pinnacle bandolier
+	// keeps its no-rot promise.
+	reconcilePreservedPotionRounds(user.Character.PotionItems, user.Character.Equipment.Belt.GetSpec().PreservesContents, util.GetRoundCount())
+
+	users.RemoveZombieUser(evt.UserId)
+
+	room := rooms.LoadRoom(user.Character.RoomId)
+	if room == nil {
+
+		mudlog.Error("EnterWorld", "error", fmt.Sprintf(`room %d not found`, user.Character.RoomId))
+
+		if err := rooms.MoveToRoom(user.UserId, 0); err != nil {
+			mudlog.Error("EnterWorld", "msg", "could not move to room 0", "error", err)
+		}
+
+		room = rooms.LoadRoom(user.Character.RoomId)
+	}
+
+	// Respawn any saved companions.
+	respawnCompanions(user)
+
+	// Reconcile jail state: if the sentence elapsed while the player was offline,
+	// release them; otherwise re-create a fresh instanced cell and place them
+	// inside. This must run after default room placement (above) so that
+	// RestoreJailOnLogin's MoveToRoom call is the authoritative final placement.
+	justice.RestoreJailOnLogin(user.Character, user.UserId)
+
+	if user.HasPlaintextPassword() {
+		user.SendText(messaging.CategorySystem, `<ansi fg="alert-5">You must change your password before doing anything else.</ansi>`)
+		user.SendText(messaging.CategorySystem, `<ansi fg="yellow">Type <ansi fg="yellow-bold">password</ansi> to set a new password.</ansi>`)
+	} else {
+		loginCmds := configs.GetConfig().Server.OnLoginCommands
+		if len(loginCmds) > 0 {
+
+			for _, cmd := range loginCmds {
+
+				events.AddToQueue(events.Input{
+					UserId:    evt.UserId,
+					InputText: cmd,
+					ReadyTurn: 0, // No delay between execution of commands
+				})
+
+			}
+
+		}
+	}
+
+	if room != nil {
+		// Quest engine: room_enter notification on login/spawn. Match the
+		// TEMPLATE id for an ephemeral room (OriginalRoomId is a no-op for
+		// normal rooms); the bridge keeps the real id for mob/exit resolution.
+		matchRoom, _ := rooms.OriginalRoomId(user.Character.RoomId)
+		bridge := questengine.NewGameBridge(user, user.Character.RoomId)
+		questengine.GetEngine().Notify("room_enter", questengine.EventDetails{
+			UserId: user.UserId,
+			RoomId: matchRoom,
+		}, bridge, bridge)
+
+		// First spawn only: a brand-new character materializing in the
+		// start room never "walked in", so mob player_enter btrees (e.g.
+		// the newbie-hub greeter) would otherwise never fire for the one
+		// player who needs them most. Scoped to first spawn — NOT every
+		// login — so mobs with hostile player_enter handlers (ambusher,
+		// thief) can't trigger on someone who logged out beside them.
+		emitFirstSpawnMobEvents(user, room)
+
+		user.CommandFlagged(`look`, events.CmdSecretly) // Do a secret look.
+	}
+
+	// Chunk 5 (Presence): newly-joined character transitions Connecting → Active.
+	// Character is now fully in the world (placed in a room), so the
+	// Connecting warm-up state is complete.
+	if user.Character != nil && user.Character.Presence != nil {
+		_ = user.Character.Presence.TransitionTo(presence.Active,
+			state.TransitionReason{Trigger: presence.TriggerEnteredRoom})
+	}
+
+	// Guild message-of-the-day greeting for guilded players.
+	if g, ok := guilds.GetByUser(user.UserId); ok && g.Motd != "" {
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="cyan">[%s] %s</ansi>`, g.Tag, g.Motd))
+	}
+
+	return events.Continue
+}

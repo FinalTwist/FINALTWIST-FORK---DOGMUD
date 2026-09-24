@@ -1,0 +1,37 @@
+weather: blizzard
+outdoor:
+  default:
+    - "The wind drives the snow level, scouring every exposed inch of skin."
+    - "The world whites out; up and down are a rumor."
+    - "Cold knifes through every seam in your clothing."
+    - "Snow packs into drifts that swallow footprints as fast as they form."
+    - "The wind screams past, hollow and unrelenting, carrying no warmth."
+    - "Ice crystals sting bare skin like a hundred tiny needles flung sideways."
+indoor:
+  default:
+    mild:
+      - "Wind keens around the corners of the building."
+      - "A thin cold works its way in at the doorsill."
+      - "Snow ticks against the glass, light and dry."
+      - "The fire leans and straightens as the wind shifts."
+      - "A beam creaks somewhere above, taking on weight."
+      - "The air near the walls has turned noticeably colder."
+    strong:
+      - "The blizzard howls against the walls, packing snow into every crack."
+      - "Something on the roof strains and thrums with each long gust."
+      - "Frost creeps across the inside of the glass in feathered white ferns."
+      - "The rafters groan under snow piling heavier on the roof above."
+      - "Cold radiates off the windowpanes, a chill felt without touching them."
+      - "Draughts needle in at the doorsill, sharp as a blade."
+# Underground the blizzard is felt as a reversed, chilled draught, not a
+# howl. The mild pool stays empty: only a full blizzard reaches this deep.
+underground:
+  default:
+    mild: []
+    strong:
+      - "The draught that once blew outward reverses without warning."
+      - "Cold air pours down the passage like water finding low ground."
+      - "A low moan travels down through the rock, thin and constant."
+      - "Near the entrance, a faint rime creeps over the stone."
+      - "The inward draught sharpens, and its bite goes through everything."
+      - "Fine snow dust sifts in at the entrance and vanishes in the dark."

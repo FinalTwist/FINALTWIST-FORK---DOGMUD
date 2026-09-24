@@ -1,0 +1,11 @@
+conditionid: 100
+name: Blood Frenzy
+description: A red haze — you hit like a cornered beast and cannot make yourself retreat.
+triggerrate: 1 round
+triggercount: 2
+flags:
+  - damage-bonus
+  - no-flee
+start_actee: The world goes red. Something in you comes off its chain.
+start_observer: "{actee}'s eyes go wide and bloodshot, and a low snarl builds in their throat."
+end_actee: The red haze recedes, and your limbs sag with the ebb of it.

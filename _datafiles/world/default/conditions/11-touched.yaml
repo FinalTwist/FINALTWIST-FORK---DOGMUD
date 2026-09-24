@@ -1,0 +1,6 @@
+conditionid: 11
+name: Touched
+description: You've been touched by the Gods and receive a blessing.
+triggerrate: 1 round
+triggercount: 100
+statmods: {}

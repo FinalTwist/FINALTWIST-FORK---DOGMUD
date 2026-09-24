@@ -1,0 +1,9 @@
+biomeid: snow
+name: Snow
+symbol: ❄
+description: Cold and wet.
+skylight: 1.0
+requireditemid: 0
+usesitem: false
+burns: false
+movementcost: 1.4 # Wading through drifts

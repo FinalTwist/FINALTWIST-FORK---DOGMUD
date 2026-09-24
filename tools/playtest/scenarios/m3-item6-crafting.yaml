@@ -1,0 +1,49 @@
+# M3 item 6: crafting outcome lines through the recipe "door", and progression
+# banners/flavor lines through the messaging pipeline on CategorySkillProgress.
+#
+# Room 6456, Apothecary's Hut, Thornwall City: station alchemy_bench. The
+# crafter repeatedly crafts healing-salve (roughly 50/50 at these stats) while
+# a plain witness stands in the same room and reads nothing about the craft.
+name: m3-item6-crafting
+mode: party
+summary: >-
+  A crafter works a bench in front of a witness who must read nothing about
+  the craft, while the crafter's own outcome lines and progression banners
+  must match byte-for-byte and arrive once, whole.
+on_actor_stop: continue
+budgets:
+  wall_clock: 30m
+requires:
+  max_connections: 20
+roster:
+  - id: crafter
+    personality: bug-finder
+    goals: goals/scenarios/m3-item6-crafting/crafter.yaml
+  - id: witness
+    personality: bug-finder
+    goals: goals/scenarios/m3-item6-crafting/witness.yaml
+
+group_goals:
+  - id: witness-reads-nothing-about-the-craft
+    do: >-
+      Crafter confirms witness is present, then types `craft healing salve`
+      repeatedly at the alchemy bench while the witness stands still.
+    verify: >-
+      The witness must not read either outcome line ("You grind the root to
+      paste..." / "The mixture separates..."), any variant naming the
+      crafter, or any progression banner/flavor line belonging to the
+      crafter. Anything the witness reads about the craft is the defect.
+  - id: crafter-outcome-lines-verbatim
+    do: Crafter types `craft healing salve` at least 6 times, quoting every line received.
+    verify: >-
+      Success is exactly "You grind the root to paste, mix it with water, and
+      seal it in the bottle. A healing salve!" and failure is exactly "The
+      mixture separates and goes cloudy. The materials are wasted." Both
+      outcomes should appear across 6+ attempts. Any deviation, doubling, or
+      literal "{token}" is the defect.
+  - id: progression-banners-whole-and-private
+    do: Crafter notes every SKILL ADVANCEMENT / STATISTIC INCREASED banner and every "grows stronger"/"moment of brilliance"/"learn from your mistake" line it receives.
+    verify: >-
+      Each banner/flavor line arrives once, as a single whole block (not
+      split across multiple reads), and only to the crafter. The witness
+      reading any of these lines is the defect.

@@ -1,0 +1,18 @@
+itemid: 20060
+name: Reinforced Bandolier
+vendor_categories:
+- tailoring
+namesimple: bandolier
+description: A heavy-duty bandolier of layered leather and
+  iron clasps, capable of holding a full complement of
+  potions. The reinforced stitching prevents bottles from
+  jostling loose even in combat.
+type: belt
+subtype: wearable
+value: 35
+rarity_tier: 40
+weight: 2.5
+physical_mitigation: 1
+is_bandolier: true
+bandolier_capacity: 24
+weight_reduction: 0.40

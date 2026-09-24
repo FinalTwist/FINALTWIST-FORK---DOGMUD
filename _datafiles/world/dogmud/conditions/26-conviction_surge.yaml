@@ -1,0 +1,11 @@
+conditionid: 26
+name: Conviction Surge
+description: Your conviction bolsters your strength, empowering your attacks.
+triggerrate: 1 round
+triggercount: 16
+flags:
+  - damage-bonus
+statmods:
+  strength: 15
+start_actee: Conviction surges through your limbs, empowering your strikes.
+end_actee: The surge of conviction fades from your limbs.

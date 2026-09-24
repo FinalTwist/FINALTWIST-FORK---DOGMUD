@@ -1,0 +1,60 @@
+mobid: 215
+zone: Ironwind Steppe
+behavior_archetype: leader
+routine: wolf_pack_ironwind
+statpool: 120
+itemdropchance: 15
+hostile: true
+maxwander: 3
+groups:
+  - steppe-wolf
+  - canine
+relationships:
+  - to: 205
+    type: family
+    subtype: pack
+  - to: 206
+    type: family
+    subtype: offspring
+  - to: 223
+    type: family
+    subtype: pack
+hates:
+  - boar
+  - rodent
+archetype: fighting
+aiprofile: predator
+mutationchance: 40
+combatcommands:
+  - howl
+  - hamstring
+idlecommands:
+  - 'emote stands rigid, ears forward, surveying its territory'
+  - ''
+  - 'emote growls low and deep, a rumble felt more than heard'
+  - ''
+  - consume
+  - 'emote raises its muzzle and lets out a long, commanding howl'
+activitylevel: 25
+spawnmutations: [apex-predator, rending-claws]
+character:
+  name: Alpha Wolf
+  description: |
+    The largest wolf on the steppe -- a massive grey-furred predator
+    with shoulders as high as a person's waist. Old scars cross its
+    muzzle and flanks, each one a record of a fight won. The alpha
+    wolf moves with the confident authority of an apex predator in
+    its own territory. Its pale eyes are intelligent and assessing,
+    and the younger wolves in the pack defer to it with lowered
+    heads and tucked tails. This is not a creature to underestimate.
+  speciesid: 2
+  level: 1
+  stats:
+    strength:
+      base: 100
+    vitality:
+      base: 88
+    dexterity:
+      base: 135
+    perception:
+      base: 145

@@ -1,0 +1,135 @@
+package usercommands
+
+import (
+	"fmt"
+
+	"github.com/GoMudEngine/GoMud/internal/actions"
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/movenarration"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/users"
+)
+
+// throttleCategories: the player's own actor/actee feedback is
+// CategorySystem; the room's line carries CategoryHitNaturalSharp, matching
+// every branch's pre-migration Observer category.
+var throttleCategories = moveCategories{Actor: messaging.CategorySystem, Actee: messaging.CategorySystem, Observer: messaging.CategoryHitNaturalSharp}
+
+// throttleCastInterruptCategories: player_cast_interrupt's own room line
+// deliberately rides CategorySpellDisruption rather than
+// CategoryHitNaturalSharp, matching pre-migration -- a bystander watching a
+// spell die is reading about the disruption, not the bite that caused it
+// (see throttle.go's own comment on the pre-migration send, and throw.go's
+// player_cast_interrupt, which uses the same category for the same reason).
+var throttleCastInterruptCategories = moveCategories{Actor: messaging.CategorySystem, Actee: messaging.CategorySystem, Observer: messaging.CategorySpellDisruption}
+
+func Throttle(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+	actor, handled := stageSpecialMoveTarget(user, room, rest, actions.MeleeTargetOpts{
+		Verb: "throttle",
+	})
+	if handled {
+		return true, nil
+	}
+
+	// Delegate core resolution to the shared action.
+	res := actions.ExecuteThrottle(actor)
+	if res.Cost.Status == characters.CostRefused {
+		user.SendText(messaging.CategorySystem, actions.CostRefusalText(res.Cost))
+		return true, nil
+	}
+
+	if res.NotFanged {
+		user.SendText(messaging.CategorySystem, "You have no fangs to throttle with.")
+		return true, nil
+	}
+	if res.OnCooldown {
+		user.SendText(messaging.CategorySystem, "You need a moment to recover before attempting another special move.")
+		return true, nil
+	}
+	if res.NoTarget {
+		user.SendText(messaging.CategorySystem, "You have no target!")
+		return true, nil
+	}
+
+	targetName := res.Target.Name
+
+	// Resolve player target for direct messaging.
+	var targetChar *users.UserRecord
+	if res.Target.UserId > 0 {
+		targetChar = users.GetByUserId(res.Target.UserId)
+	}
+
+	dmgDesc := combat.GetDamageDescription(res.MoveResult.Damage, res.MoveResult.TargetMaxHP)
+
+	// Declared as the interface and left unset for a mob target. Assigning a
+	// typed-nil *users.UserRecord would make it a non-nil interface value.
+	var acteeRecipient messaging.Recipient
+	if targetChar != nil {
+		acteeRecipient = targetChar
+	}
+	aud := messaging.Audience{
+		Actor:     user,
+		ActorId:   user.UserId,
+		ActorName: user.Character.Name,
+		Actee:     acteeRecipient,
+		ActeeId:   res.Target.UserId,
+		ActeeName: targetName,
+		Room:      room,
+	}
+
+	ids := moveIdentities{
+		Actor:      fmt.Sprintf(`<ansi fg="username">%s</ansi>`, user.Character.Name),
+		ActorPlain: user.Character.Name,
+		Actee:      fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, targetName),
+		ActeePlain: targetName,
+	}
+	damageTokens := map[string]string{movenarration.TokenDamage: dmgDesc}
+
+	if res.MoveResult.Hit {
+		sendMoveEvent("throttle", "player_hit", ids, aud, throttleCategories, damageTokens)
+
+		// A detail line riding on the hit above, and a WORLD EVENT under the
+		// detail-line ruling: a spell visibly failing is something the room
+		// can see, so it carries all three viewpoints rather than staying
+		// private between the two people involved. Not squared: this was
+		// already a hardcoded 1/1/1 triad pre-migration, not a pool.
+		if res.InterruptedCast {
+			sendMoveEvent("throttle", "player_cast_interrupt", ids, aud, throttleCastInterruptCategories, nil)
+		}
+	} else if res.MoveResult.Damage > 0 {
+		// Defended-partial: the personal lines carry the damage, and the room
+		// line names the defence that blunted the throttle (U6b Task 9),
+		// falling back to the squared partial text when there was no defence
+		// to name.
+		roles, _ := renderMoveEvent("throttle", "player_partial", ids, damageTokens)
+		defence, defended := moveDefenceLines(user, room, res.Target, res.MoveResult.Defence, "throttle lunge")
+		observer := lineOrNone(messaging.CategoryHitNaturalSharp, roles.Observer)
+		if defended {
+			observer = messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom)
+			sendMoveDefenceShortage(targetChar, defence)
+		}
+		messaging.SendTrio(messaging.Trio{
+			Actor:    lineOrNone(messaging.CategorySystem, roles.Actor),
+			Actee:    lineOrNone(messaging.CategorySystem, roles.Actee),
+			Observer: observer,
+		}, aud)
+	} else if defence, defended := moveDefenceLines(user, room, res.Target, res.MoveResult.Defence, "throttle lunge"); defended {
+		// A defence stopped it outright: all three lines come from the triad.
+		sendMoveDefenceShortage(targetChar, defence)
+		messaging.SendTrio(messaging.Trio{
+			Actor:    messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToAttacker),
+			Actee:    acteeDefenceLine(targetChar, room, messaging.CategoryHitNaturalSharp, defence.ToDefender, user.Character.Name),
+			Observer: messaging.Say(messaging.CategoryHitNaturalSharp, defence.ToRoom),
+		}, aud)
+	} else {
+		sendMoveEvent("throttle", "player_miss", ids, aud, throttleCategories, nil)
+	}
+
+	// U6b Task 11: the counter renders AFTER the move's own outcome.
+	actions.DispatchCounterMessages(actor, res.Counter)
+
+	return true, nil
+}

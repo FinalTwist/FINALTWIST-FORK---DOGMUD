@@ -1,0 +1,80 @@
+# Messaging M4d PR 3, Task 7 Step 6: the targeted grapple check.
+#
+# position_control's submission triples used to name the OTHER grappler
+# inside the ATTEMPTER's and RECIPIENT's own personal lines, not only the
+# room's observer line, and those personal lines rode the audio channel
+# (no sight gate at all). This PR moved sendSubmissionTriple onto
+# messaging.SendTrio, so each personal line should now hide the OTHER
+# party's name from that line's own reader by that reader's own sight.
+#
+# WHY THIS PLACE. Room 3101 (Cave Mouth, Ironwind Steppe) is `biome: cave`,
+# which Room.GetVisibility() takes to fully unlit with no waiting for night
+# and no dousing of lights (same room the M2 darkness lane used). You carry
+# no light source and no night vision or infrared: deliberate.
+#
+# PvP is disabled on this server (GamePlay.PVP: disabled), so the other
+# grappler here is a mob, not a second player. That still proves the exact
+# mechanism under test: SendTrio hides the OTHER party's name from a
+# personal line's reader by THAT READER'S OWN sight, independent of which
+# role (attempter/attacker or recipient/defender) the reader is in. Grapple
+# the same mob from both sides of a submission exchange if you can, and
+# quote what you personally receive each time, verbatim.
+#
+# 3 commands per round, overflow silently dropped after being echoed.
+
+ephemeral:
+  profile: counters
+  start_room: 3101
+  budgets:
+    wall_clock: 30m
+
+goals:
+  - >-
+    FIRST, CONFIRM THE DARK. `look`. If you get a normal room description
+    with visible details, you are not unlit and the lane is invalid; say so
+    immediately. You should instead get a dark-room message telling you that
+    you cannot see (or can only make out vague shapes) -- you have no light
+    source and no infrared.
+  - >-
+    Find a hostile creature in the room (a cave crawler or a wind scorpion)
+    and engage it: `attack <name>`. Fight normally for a couple of rounds so
+    it is aggroed on you.
+  - >-
+    Once you are fighting it, type `grapple <name>` to take it into a
+    clinch. If it says you are on cooldown, wait a round and try again. Once
+    grappled, keep fighting normally (do not flee); the position system runs
+    automatically each round and will attempt submissions on its own once
+    control drifts far enough either way.
+  - >-
+    THE HEADLINE. Watch for any line mentioning a hold, an isolation, an
+    attempt to lock a limb or choke, or a submission outcome (mercy, subdue,
+    cripple, or a struggle/resistance line). The very first time you see
+    such a line, whether it is about YOU attempting something on the
+    creature or the creature attempting something on YOU, STOP and quote
+    that exact line verbatim, along with the two or three lines around it.
+    Say plainly whether the creature's name (Cave Crawler / Wind Scorpion)
+    appears anywhere in YOUR OWN line, or whether it is replaced by
+    something like "something" or "a figure" or is simply absent.
+  - >-
+    Keep fighting and grappling for as many rounds as your budget allows,
+    aiming to see submission-related lines from BOTH directions if you can:
+    once where you seem to be the one attempting something on the creature,
+    and once where the creature seems to be attempting something on you.
+    Quote every such line verbatim as it arrives, in order, and label each
+    one with who seemed to be acting.
+  - >-
+    Also report, verbatim, anything you read about your OWN actions during
+    this fight (ordinary hit/miss lines, your own attack results): these
+    should read completely normally, naming the creature plainly, since
+    ordinary combat lines are not part of what changed.
+  - >-
+    If health runs low and death looks likely, disengage (flee, or let it
+    stand) rather than dying; report what you saw up to that point. If no
+    grapple or submission line ever appears within the budget, say so
+    plainly and describe exactly what you tried -- an honest "did not
+    happen" is worth more than an inference.
+  - >-
+    Report. List every submission-related line you quoted, in order, each
+    labeled with who was acting and whether the creature's name leaked into
+    your own personal line. Separately, quote one or two ordinary combat
+    lines to show those still name the creature normally.

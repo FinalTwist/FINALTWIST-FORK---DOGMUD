@@ -1,0 +1,698 @@
+# Messaging Unification Arc — Design
+
+**Created:** 2026-08-31
+**Status:** Design approved by owner 2026-08-31. M0, M0b and M1 are merged
+(PRs #104, #106, #111). M2 is designed as of 2026-09-08 in its own spec and
+**supersedes the M2 section below in two places** — see the banner there.
+**Predecessor:** [Unified Resolution Roadmap](../../roadmaps/UNIFIED_RESOLUTION_ROADMAP.md)
+(closed) — this arc borrows its refactor-first / flip-once shape.
+**Backlog entry:** [`CURRENT_BACKLOG.md`](../../roadmaps/CURRENT_BACKLOG.md),
+queued arc 2.
+
+---
+
+## Facts verified against source, 2026-08-31
+
+Everything below was read from the tree on the date of writing. **Do not quote
+this table after a slice lands without re-grepping** — this arc exists partly
+because a "verified" claim about quell survived two weeks past its own fix.
+
+### Claims this arc was nearly designed on, which are FALSE
+
+| Claim | Verdict | Evidence |
+|---|---|---|
+| "Quell and defy are unnarrated, fall back to the verb `counter`" | **FALSE** | `items.DefenseType` defines `DefenseQuell`, `DefenseDefy` and four counter pools (`internal/items/defensive_messages.go:15`). `defense-messages/` holds **9** files including `quell.yaml`, `defy.yaml`, `counter-{melee,ranged,quell,defy}.yaml`, with band-split, actor-aware text. Rendered by `combat.RenderChannelDefenceMessages` (`internal/combat/defence_multiplier.go:286`) from **9 production call sites**. |
+| "The `counter` fallback proves they are unnarrated" | **Misread** | That fallback is in `sendDefenseMessages` (`internal/combat/combat_helpers.go:1284`), the **melee** path. Quell and defy are not in melee's defence set, and the code says the fallback is *"Unreachable today … made unreachable by construction rather than by argument."* |
+| "Combat-state Perception shipped dormant with no consumer" | **FALSE** | `messaging.CanSeeClearly` (`internal/messaging/predicates.go:24`) and `CanSeeShapes` (`:44`) read `Perception.State()` on every sight-gated broadcast; `internal/actions/combat_fire.go:250` reads it; `internal/characters/buffs.go` drives it from the blind buffs. |
+
+### The delivery layer that already exists
+
+| Fact | Evidence |
+|---|---|
+| 7-stage pipeline: compose → normalize → sight gate → anonymize → color → wrap → deliver | `internal/messaging/pipeline.go:53` |
+| **The wrap stage never runs.** `shouldWrap` returns false for every category, deliberately | `internal/messaging/pipeline.go` — and `internal/messaging/context.md` still documents wrap as an active stage (chunk 5.12 material) |
+| 60 `Category` values | `internal/messaging/messaging.go:18` |
+| 3 verbosity tiers + spectator step-down | `internal/messaging/verbosity.go` |
+| Audio (`SendText`) bypasses sight gate and anonymizer by design; Visual (`SendTextVisual`) runs all stages | `internal/rooms/rooms.go:279`, `:307` |
+| `Anonymize` strips **only ANSI-tagged** names; its docstring admits bare names leak | `internal/messaging/anonymize.go` |
+
+### The sprawl
+
+**14 narration stores, 6 role conventions, 2 token engines, 3 send helpers,
+1 hard bypass.**
+
+> **Counted vs estimated, stated explicitly** because this arc exists partly
+> because uncounted claims were trusted. **679 text fields are counted exactly**
+> — recipes 252, buffs 170, spells 135, quests 122, by grepping the field keys.
+> The remaining **ten** stores are counted **in files, not fields** (69 files:
+> combat-messages 20, conversations 18, weather 15, defense-messages 9,
+> itemvoices 2, and one each for taunt, grapple, casting, gossip and hints),
+> because their fields are nested pools whose sizes were not enumerated.
+> The often-quoted "about a thousand fields" is an **estimate** extrapolating
+> those 68 files, and M0 replaces it with a real number. Do not quote it as
+> measured.
+
+| Store | Size | Role convention | Loader | Validator |
+|---|---|---|---|---|
+| `recipes/` (crafting) | **252 fields** (126 `success_message`, 126 `failure_message`) across 126 files | **none — no audience split at all** | crafting | — |
+| `buffs/` | **170 fields** across 101 files | `*_user_text` / `*_room_text` | buffs | — |
+| `spells/` | **135 fields** across 59 files | `*_user_text` / `*_room_text` | spells | — |
+| `quests/` | **122 fields** (66 `playermessage`, 56 `roommessage`) | `playermessage` / `roommessage` | questengine | — |
+| `combat-messages/` | 20 files | `toattacker`/`todefender`/`toroom`, split `together`/`separate` | `internal/items/itemspec.go` | ✅ |
+| `defense-messages/` | 9 files | `toattacker`/`todefender`/`toroom` | `internal/items/itemspec.go` | ✅ |
+| weather emotes | 15 files | **ambient — no actors** | `modules/weather/content` | test-only |
+| `conversations/` | 18 files | speaker A / B | `internal/conversations` | — |
+| `hints.yaml` | 250 lines | — | scattered, 15 files | — |
+| `itemvoices/` | 2 files | owner only | `internal/itemvoices` | ✅ |
+| `taunt-messages/` | 1 file | `{source}`/`{target}`, `toattacker`/`todefender` | `internal/combat/taunt_messages.go` | ✅ |
+| `messaging/grapple_outcomes.yaml` | 1 file | **`controller`/`controlled`/`observers`** | `internal/grapplemessaging` | ✅ |
+| `casting-messages.yaml` (tree root) | 1 file | caster only | `internal/spells/casting_messages.go` | **none** |
+| `gossip_templates.yaml` | 1 file | — | inline in `internal/hooks/MobIdle_HandleIdleMobs.go` | — |
+
+### Fragmentation, precisely
+
+| Finding | Evidence |
+|---|---|
+| **Three `DefenseType` declarations.** The combat one stops at block — no quell, no defy | `internal/combat/attackresult.go:9`, `internal/items/defensive_messages.go:15`, and bare `string` constants at `internal/characters/character.go:726` |
+| They are joined by a **raw string cast** that compiles for any string and yields an empty pool on drift | `items.DefenseType(out.DefenceType)`, `internal/combat/defence_multiplier.go:290` |
+| **Two token engines with an overlapping vocabulary.** `items.TokenName` has 16 tokens, 4 consuming files; `textutil` has 4 tokens, 13 consuming files. `{source}` and `{target}` exist in **both** | `internal/items/itemspec.go:200-216`; `internal/textutil/tokens.go`. ⚠️ **Corrected 2026-08-31 by M0 Task 3:** `SetTokenValue` is a **method with a receiver** (`func (am ItemMessage) SetTokenValue`) and lives in `internal/items/attack_messages.go`, not as a plain function in `itemspec.go`. Any detector that only matches `func Name(` is blind to it |
+| **Send helpers: 4 distinct names across 6 files, 8 sites** — corrected upward from the "three" this table first claimed. `SendText` is an **`Actor` interface method** with several implementers | `internal/actions/actor_mob.go`, `internal/actions/actor_user.go`, `internal/questengine/bridge.go`, `internal/rooms/rooms.go` (×3), `internal/textutil/spelltext.go`, `internal/users/userrecord.go` |
+| 🔴 **275 Go files carry ANSI-marked player-facing text, across 2,257 lines** — corrected sharply upward from the "54 files with in-code text pools" this table first claimed, which counted only `[]string{` literals. This is the largest single surface the audit has found | measured by M0 Task 3's Go walk. Note `internal/combat/descriptions.go` is **not** among them: it holds plain vocabulary strings and colour is applied later in the pipeline |
+| **Two randomness sources.** `util.Rand` in defence/attack/taunt/itemvoices; stdlib global `rand.Intn` in casting (`internal/spells/casting_messages.go:96`) and grapple (`internal/grapplemessaging/render.go:52`) | — |
+| **Only one determinism seam exists** — `indexOverride` on `RenderDefenseMessage` (`internal/items/defensive_messages.go:107`). The other pickers have none | — |
+| **Progression bypasses the pipeline entirely.** Six raw `events.AddToQueue(events.Message{…})` calls, so no Category, no color, no normalize, no sight gate, no verbosity | `internal/characters/progression.go` |
+| **A config-driven decoration layer** wraps enter/exit messages from `config.yaml` | `EnterRoomMessageWrapper`, `ExitRoomMessageWrapper`, `internal/configs/config.textformats.go` |
+| 54 Go files carry in-code text pools | — |
+
+### Four live defects this audit found
+
+| Defect | Evidence |
+|---|---|
+| **`{source_plain}` / `{target_plain}` produce deliberately untagged names, which `Anonymize` is structurally unable to strip.** **14 buff files** use `{source_plain}` in `*_room_text`, so an infrared-only observer in a dark room reads the actor's real name in full while every correctly-tagged message renders "a figure" | `internal/textutil/tokens.go:12-13`; `_datafiles/world/dogmud/buffs/` |
+| 🔴 **An empty room line silences the event for EVERYONE — FOUR sites.** ⚠️ **Corrected 2026-08-31: an earlier draft of this row said six.** Six sites gate on `if triad.ToRoom == ""`, but the two in `internal/combat/counter.go` (`:190`, `:249`) **degrade gracefully** to `fillGenericCounterMessages` / `buildGenericCounterTauntMessages` and are NOT defects. The four that go silent: `internal/hooks/spell_resolution.go:487` and `internal/mobcommands/taunt.go:112` (bare `return`), and both copies of `skill_move_defence.go` (`return false`). 🔑 **The counter.go pair is the in-repo precedent for the right behaviour, so the fix does not need inventing.** `RenderDefenseMessage` returns a wholly empty triad on a missing pool, a missing intensity band, or audience lists of unequal length — and the lookup is the raw string cast `items.DefenseType(out.DefenceType)`, which compiles for any string and yields nil for one with no pool. So a single naming or authoring gap produces **no message at all** to the caster, the target, or the room, while the mechanics resolve normally. **Owner-reported symptom, 2026-08-31: "a lot of spells early on seem to just stop happening from the player's point of view."** The attacker and defender lines may well exist; they are discarded because the *room* line is missing. This is the strongest single argument for the coordinated-pick invariant becoming universal | the four silent sites listed above |
+| 🔴 **A sleeping player still receives every visual broadcast.** Owner-reported 2026-08-31: room flavour and NPC dialogue keep arriving while asleep. **`internal/messaging/*.go` and `internal/rooms/rooms.go` never mention `buffs.Sleeping` at all** — the delivery pipeline has no concept of sleep. The concept is enforced everywhere else (movement in `go.go`, wake-on-shout in both `shout.go` files, `steal.go`, schedules, regen, `stand.go`) but is never consulted when deciding what text to send | grep for `Sleeping` under `internal/messaging/` returns nothing |
+| **The Observer role exists twice with contradictory rules.** Text observers get a per-recipient sight gate. Knowledge observers — `crimes.WitnessesInRoom` (`internal/crimes/crimes.go:198`) — filter on **faction membership only**, with no sight, darkness, blindness or hidden check, and `IdentifiedPerp` names the perpetrator the moment that list is non-empty | — |
+
+### The Actee gap
+
+**Buffs, spells and quests are all Actor + Observer with no Actee: 427 text
+fields that cannot address the person the thing happens to.** Crafting's 252
+have neither Observer nor Actee.
+
+---
+
+## Why this arc exists
+
+The stores are all the same abstraction wearing different costumes:
+
+> **(event key) × (band, optional) → one variant, rendered for Actor, Actee and
+> Observer from a single coordinated index, with tokens substituted.**
+
+The *text* is all keepers. The scaffolding around it is six arbitrary dialects,
+two token engines, two randomness sources and three send helpers. The goal is to
+**unify the messaging and simplify the underlying mechanics as much as possible
+without losing the flavor and complexity we already have** (owner, 2026-08-31).
+
+The precedent is direct: unifying combat resolution and progression surfaced a
+long list of fragile and broken things that no amount of reasoning had found —
+five floor pairs that were one value by coincidence, a registry with zero
+production callers, five knobs silently inert at zero, a phase boundary that had
+never once been true. This audit has already repeated the pattern twice, finding
+the `{source_plain}` leak and the split Observer role. **The defect list is an
+output of unification, not an input to it.**
+
+---
+
+## The model
+
+### Three roles, and the roles are the audiences
+
+**Actor, Actee, Observer.** There is no separate audience axis; the existing
+`toattacker`/`todefender`/`toroom` and `controller`/`controlled`/`observers`
+pairs are the same three slots with domain labels on top.
+
+Grapple's controller/controlled and combat's attacker/defender remain as
+**authoring aliases**, so no shipped file is rewritten to make the flip work.
+
+⚠️ **But a key's NAME does not determine its role. The STORE does.** M0 proved
+it: `text` is dialogue content in 286 files and genuine narration in
+behaviour-tree say/emote actions, NPC-to-NPC conversation lines and `npc_say`
+scripted lines. `hints` is dialogue content everywhere except the top-level
+`hints.yaml`, where the same spelling carries periodic gameplay tips broadcast
+by `internal/hooks/NewRound_BroadcastHints.go`.
+
+**One spelling, two roles, and the alias table cannot express that**, because it
+maps name to role. So the M4 schema must key role on **(store, key)**, not on
+key alone, and the migration must not assume a global name-to-role mapping
+exists. This was an unexamined assumption in the approved design and it is
+false.
+
+M0's guard records the majority scope per spelling and notes the outlier in the
+`Reason` string, which is the best a spelling-keyed registry can do. **That
+limitation is the registry's, not the schema's** — do not carry it into M4.
+
+### The Observer role carries a perception verdict
+
+Computed once per observer per event, read by **every** consumer: the narration
+pipeline picks full text, anonymized text or silence; the knowledge and crime
+path decides whether that observer learned anything. One answer to "who
+perceived this", replacing today's several answers that disagree.
+
+🔴 **Three subsystems currently answer that question, and no two agree:**
+
+| Decided by | Darkness | Blindness | Sleep |
+|---|---|---|---|
+| Text delivery — `messaging.CanSeeClearly` | yes | yes | **no** |
+| Crime witnessing — `crimes.WitnessesInRoom` | **no** | **no** | **no** |
+| Sleep mechanics — `go.go`, `shout.go`, `steal.go` | n/a | n/a | yes |
+
+So a blind guard in a dark room witnesses and names a criminal, while a sleeping
+player reads the room's dialogue. **The verdict must own darkness, blindness and
+sleep together**, and every consumer must read it rather than re-deriving its
+own rule. That consolidation is the single highest-value structural change in
+this arc, because all three of the audit's perception defects collapse into it.
+
+#### Owner ruling, 2026-08-31: darkness defeats crime reporting
+
+> *"It'd be fairly hard to observe a crime in the dark and identify who did it,
+> but it's probable that you'd know something is happening. … For now, I'd say
+> no crime reporting in the dark unless you have nightvision/etc."*
+
+**This arc applies the ruling rather than filing it.** Crime witnessing stops
+being a faction-membership test and starts reading the same per-observer
+perception verdict the narration pipeline reads.
+
+🔑 **The three tiers already have machinery.** `crimes.PerpUnknown`
+(`internal/crimes/types.go:22`) is a real recorded state, not a null: a crime row
+is written and every downstream consumer — arrest (`internal/justice/arrest.go`),
+justice (`internal/justice/justice.go`), faction rep
+(`internal/hooks/MobDeath_FactionRep.go`), and knowledge-writing — gates on
+`perp.Type == crimes.PerpPlayer`. So "a crime happened and nobody can pin it on
+you" is already supported end to end.
+
+The only reason the middle tier is unreachable is that `IdentifiedPerp`
+(`internal/crimes/crimes.go:232`) derives identification from **whether the
+witness list is empty**, not from what those witnesses could see:
+
+```go
+if len(witnesses) == 0 { return Perpetrator{Type: PerpUnknown} }
+return Perpetrator{Type: PerpPlayer, Id: userId}
+```
+
+Target mapping, using the sight verdicts the pipeline already computes:
+
+| Verdict | Witness outcome | Perpetrator |
+|---|---|---|
+| `SightFull` — lit, or NightVision | witnessed and identified | `PerpPlayer` (today's behavior) |
+| `SightShapes` — InfraredVision in the dark | knows something happened, cannot say who | `PerpUnknown` **with a non-empty witness list** — the combination that cannot occur today |
+| `SightNone` — dark, no aid | not witnessed | no crime row |
+
+⚠️ **Mobs need a perception verdict, and today only players get one.**
+`CanSeeClearly`/`CanSeeShapes` take a `*characters.Character`, which a mob has,
+so the predicate applies unchanged — but every one of the 13 call sites checking
+`buffs.NightVision` passes a **user**, never a mob.
+
+🔴 **BLOCKING FINDING — `buffs.NightVision` is granted by NOTHING.** The flag is
+defined at `internal/buffs/buffspec.go:62` and **13 production sites read it**,
+but a grep across the entire data tree finds **no buff, no mutation, no species
+and no item that grants it**. `internal/mutations/describe.go:128` even carries
+finished player copy for it — *"You see clearly in the dark."* — that no mutation
+triggers. `InfraredVision` fares barely better: one buff (`85-infraredvision`),
+carried by exactly **one** mob file.
+
+Three consequences, all of which must be settled before this ruling is
+implemented:
+
+1. **Every darkness gate in the game currently reduces to "is the room lit?"**
+   The nightvision branch of all 13 checks is dead in practice, including the two
+   fixed in `go.go` on 2026-08-31 and `canSeeInDark` in `mobcommands/darkness.go`.
+2. **The ruling's escape hatch does not exist.** "No crime reporting in the dark
+   unless you have nightvision/etc" currently means *no crime reporting in an
+   unlit room, full stop*, for every actor in the world.
+3. **The middle tier would apply to one mob.** `SightShapes` requires
+   `InfraredVision`, which exactly one mob carries.
+
+**This is a content/balance gap, not a messaging defect**, and it is the owner's
+call: either something must grant `NightVision` (a mutation is the obvious home,
+since the copy is already written), or the ruling should be restated in terms of
+room lighting alone. **Do not implement the crime gate until that is decided** —
+shipping it as-is would make every unlit room a free-crime zone and would look
+like a messaging-arc regression.
+
+⚠️ **This is a real behavior change and does not belong in a refactor stage.** It
+lands in **M5**, as its own commit, after the perception verdict has a single
+owner — not inside M2 or M3, where every change must be snapshot-provable.
+
+### One band model
+
+The six existing systems — `items.Intensity`, `TauntIntensity`, `AgingPhase`,
+defence z-score bands, defence normalized-margin bands, weather's felt threshold
+— collapse to one ordered scale. Each store declares what *feeds* it. The
+mapping becomes a parameter that M4 flips, not a branch.
+
+### One coordinated pick
+
+`DefenseMessageTriad` already guarantees all audiences come from the same
+variant index, enforced by a validator requiring equal-length lists, at least
+five variants, and no empty strings. That property becomes universal — it is why
+the room never sees a different event than the participants.
+
+### Deliberately out of scope
+
+- **Help templates, room descriptions, dialogue trees, quest `description`
+  fields, `localize/`.** Authored content a player reads on request, not events
+  narrated at them. The *delivery* of `talk`/`ask` is in scope; the dialogue
+  text is not.
+- **Weather stays adjacent, not absorbed.** Same renderer, tokens and pipeline;
+  it keeps its actorless shape rather than pretending an ambient line has an
+  Actor.
+- **Weather-driven mechanics** (wet conditions affecting items or players) are a
+  different arc entirely (owner, 2026-08-31).
+
+---
+
+## Stages
+
+Everything through M3 is provably no-op against snapshots. The behavior change is
+one commit.
+
+> **Plan granularity.** This is an arc spec, not a single implementation plan.
+> Each stage gets its own plan, written when the stage is next, so that later
+> stages are planned against what earlier ones actually found. M3 in particular
+> should not be planned in full up front: its whole purpose is to surface
+> defects, and a plan written before those defects exist would be fiction.
+
+### M0 — The sweep *(a slice, not a preamble)*
+
+A categorized inventory of every narration site and every delivery-layer stage,
+as a standalone reviewed document before any code. Covers stores and delivery
+layer **in one pass** — they are coupled through `Category`, and auditing the
+stores blind to what the pipeline does to their output would be auditing half a
+system.
+
+**Enumeration must be mechanical, by property, not curated.** A curated list
+failed twice during this design: the first pass missed buffs, spells, quests,
+crafting, progression, the second token engine and the third send helper.
+Enumerate every YAML key matching a text pattern, every Go string pool, every
+send call site, every token vocabulary.
+
+**Deliverable beyond the document: a registered surface list plus a guard test
+that fails when an unregistered text-bearing surface appears.** Completeness has
+to be testable, not asserted, or this inventory decays exactly as the quell claim
+did.
+
+### M0b — The live defect slice *(added 2026-08-31, owner-approved)*
+
+**This stage did not exist in the approved design. M0's audit created it.**
+
+The original plan put every quality fix in M5, after four stages of refactoring.
+That is the wrong trade for defects that are hurting play **now**, and the audit
+found two of them.
+
+🔑 **The decisive argument is about the snapshot, not about urgency.** The
+empty-room-line bug **deletes messages**. A snapshot taken before it is fixed
+would freeze the silence as the baseline, and every later stage would then be
+verified against a broken truth. **Fix the silencing first, then snapshot what
+the game should actually say.**
+
+Two items, both player-visible today, both small, neither owner-deferred:
+
+1. **An empty room line silences the event for everyone**, FOUR sites (two more gate on the same condition but degrade to generic text and are fine).
+   `if triad.ToRoom == "" { return }` discards the attacker and defender lines
+   along with the missing room line. Owner-reported symptom: *"a lot of spells
+   early on seem to just stop happening from the player's point of view."*
+2. **Sleeping players receive every visual broadcast.** The delivery pipeline
+   has no concept of `buffs.Sleeping` at all. A tactical fix here (teach the
+   sight predicate about sleep) is correct and cheap; the full three-way
+   perception verdict still lands in M2/M4, and this fix must not be written in
+   a way that makes that consolidation harder.
+
+⚠️ **Deliberately NOT pulled forward, because the owner sequenced them
+elsewhere:**
+
+- the `{source_plain}` anonymizer leak — owner held it for M5;
+- the crime-in-the-dark gate — M5, and blocked on the `NightVision` decision.
+
+Moving those without being asked would be overriding a ruling, not accelerating
+a fix.
+
+### M1 — The viewpoint audit, then the snapshot harness
+
+Freeze what every narration path emits today, including paths nobody plays.
+
+🔴 **TASK 0 IS AN AUDIT, AND IT IS THE STAGE'S MAIN DELIVERABLE.** Not a
+preamble to the harness: the harness is worth little until we know which sites
+are *correctly* shaped and which are quietly missing a viewpoint. It is written
+to `docs/superpowers/audits/2026-XX-XX-narration-viewpoint-audit.md` and every
+later stage reads from it.
+
+#### Why the audit comes first
+
+Measured 2026-09-07 against source. In-code narration addresses these
+viewpoints:
+
+| Viewpoints addressed | Sites |
+|---|---:|
+| actor + observer | 177 |
+| **actor + actee + observer** (the full trio) | **50** |
+| actor + actee | 20 |
+| | **247 across 80 files** |
+
+The trio is the general case and the other two are degenerate forms of it. A
+core designed against actor+observer alone — which a naive pair-count suggests —
+would need 50 special cases immediately.
+
+**But a 2-of-3 site is not automatically wrong, and that is the point of the
+audit.** Each one is either:
+
+- **Correct by nature.** The actee is a mob, and mobs receive no narration
+  (`show.go`'s mob branch). Or the exchange is genuinely private: a reply, a
+  guild invite, an admin action on a player. The room has no business seeing it.
+- **A GAP.** A public act whose room message was never written. Example found
+  while scoping: `spell_resolution.go` sends *"Your spell backfires violently,
+  wounding you!"* to the caster and nothing at all to the room. A spell
+  backfiring in front of people is not a private event.
+
+Only reading the site tells the two apart, so the audit adjudicates every one.
+
+#### The audit's method, and one trap in it
+
+⚠️ **A window-based detector produces FALSE POSITIVES and must not be trusted
+on its own.** The 247 figure comes from scanning a 16-line window after each
+actor send. `show.go` was classified actor+actee by that scan and is in fact a
+correct trio — its room send simply sits further down, and its mob branch
+legitimately has no actee. **The scan produces CANDIDATES; a reader produces the
+verdict.**
+
+For each of the 247 sites the audit records:
+
+1. file:line, and the event in one phrase;
+2. which of actor / actee / observer are addressed;
+3. **verdict: `correct` or `gap`**, with the reason in a clause;
+4. for a gap, what the missing viewpoint should say — not written, just named;
+5. whether the site's viewpoints span more than one `messaging.Category`.
+
+Point 5 exists because **`messaging.Category` is not a reliable classifier and
+must not be used as one.** `give.go` sends one event's three viewpoints as
+`CategorySystem`, `CategorySystem` and `CategoryLoot`. Half of most triads is
+tagged `CategorySystem`, which is also the tag on ~2,000 refusals and admin
+tables. Classify by SHAPE — does this text vary by who is watching — never by
+tag.
+
+#### Scope: which surfaces this arc owns
+
+Measured, not estimated. The spec's original alarm — *275 Go files, 2,257
+lines* — counted three different kinds of text as one.
+
+| Group | What it is | Test | Owner |
+|---|---|---|---|
+| **B** | Keyed narration stores | has a data file | **this arc** |
+| **C** | Hand-rolled viewpoint narration, 247 sites / 80 files | addresses 2+ viewpoints | **this arc** |
+| **A** | Refusals, admin output, status tables | one audience, no counterpart | **its own arc, after** |
+
+> **Updated 2026-09-17:** Group A is no longer "after". The owner scheduled it
+> as **M7**, the arc's last stage, so it stops being undated work. It is still
+> a separate stage for the reasons below, and it is still not designed.
+
+**Group A leaves this arc by owner decision (2026-09-07).** Roughly 2,000
+strings: *"Zone not found"*, *"Vault: empty"*, *"Usage: caravan reset"*. They
+have no band, no viewpoint split and no pool, so a narration core would add
+nothing. Owner: they are *"essentially just error messages... standardizable
+with a few extra keywords passed in"* — a real job, and a different one.
+
+⚠️ **Warning to hand the refusal arc:** it cannot select its work by
+`CategorySystem` either, or it will drag ~247 narration sites in with it. Its
+first task is fixing what things are TAGGED, not what they say.
+
+#### The harness itself
+
+Once the audit exists:
+
+**One seeded pick, and this is the stage's one production change.** Two stores
+(`internal/grapplemessaging/render.go`, `internal/spells/casting_messages.go`)
+use stdlib `math/rand` and are unreachable by any seam controlling `util.Rand`,
+so without this the net has holes exactly where two stores live. Owning that
+change here is cheaper than snapshotting around it.
+
+The mechanism is an **injected picker**, not a global seed: the core takes a
+`pick(n int) int`, production supplies the engine's randomness, the harness
+supplies a deterministic sequence. A global seed is process-wide and makes
+snapshot runs order-dependent — the trap this repo already has, since all tests
+share one binary and relative state passes or fails by order. The existing
+`indexOverride` on `RenderChannelDefenceMessages` is the same idea and folds in.
+
+**Group B is snapshotted** at three levels:
+
+1. **Raw render** — every `(store × key × band × role)` tuple, tokens
+   substituted, all roles from the same index.
+2. **Post-pipeline** — the same events at each sight verdict (full / shapes /
+   none) and each verbosity tier, catching "the text survived but the delivery
+   changed".
+3. **Empty cases assert empty.** `RenderDefenseMessage` returns an empty triad
+   on a missing or malformed pool; a refactor that makes that path start
+   emitting is equally a regression. Both directions.
+
+**Group C is inventoried, not snapshotted.** It freezes the string literals via
+AST, extending the existing `messaging_surface_guard_test.go`, which already
+carries the `narration / content / config` scope concept. This freezes the
+literal rather than the rendered output — the honest limit, and acceptable
+because these sites have no bands or pools to render. Building ~247 fixtures to
+render text that M2 may replace outright is the most expensive thing in the arc
+and buys the least.
+
+#### What M1 hands M2
+
+> ✅ **Updated 2026-09-07 with what M1 actually found.** The numbers below the
+> line were predictions taken from the scanner's raw labels; the audit corrected
+> 64 of those labels, so they are replaced here rather than left to propagate.
+> Source: `docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md`.
+
+- **The reason the core is worth building.** All 247 candidate sites were ruled.
+  240 are correctly incomplete (the actee is a mob and has no client, the target
+  is a door, the line is a refusal) and 7 are defects, which are 5 distinct bugs.
+  **Every one of the 5 is the same shape: a duplicated code path that copied the
+  mechanical effect and dropped the narration beside it.** Not one came from an
+  author deciding a viewpoint should not exist. If applying an effect and
+  narrating it were one call, none of them could have happened. That is M2's
+  justification, and it is stronger than "the code is scattered".
+- **M2's fix list**, the viewpoints nothing emits today: `salvage.go:202`/`:207`,
+  `spell_resolution.go:1075`, `rally.go:72` + `warcry.go:76` (mirrored),
+  `equip.go:218`, `admin.zap.go:82`.
+- **The trio pattern is copied TEN times, not twelve.** `bash` `drain` `gore`
+  `kick` `maul` `pounce` `rake` `throttle` `trip` `grapple` all hand-roll the
+  identical shape: actor unconditional, actee nil-guarded so mobs are skipped,
+  observer unconditional. The other two named special-move verbs differ and need
+  separate handling: **`shoot`** emits the trio but names its actee `p`, and
+  **`throw`** has no actee at all (17 actor sends, zero others), correctly,
+  because it is an area effect against mobs. These are the same verbs whose
+  cooldown handling was unified on 2026-09-07.
+- **M2 extracts a pattern that already exists rather than imposing one**, which
+  lowers its risk considerably. Three agents ruled this family identically
+  without conferring.
+- 🪤 **Do not scope M2 from `tools/narration_viewpoint_scan.py`'s labels.** They
+  are wrong 26% of the time, in three ways: it cannot see the
+  `sendVisualRoomText` wrapper all of `internal/hooks` uses, it matches the actee
+  by variable name (so `u.SendText`, `p.SendText` and `memberUser.SendText` are
+  invisible), and its 16-line forward window pairs error branches with
+  success-path messages they can never reach.
+- **Two convention questions M2 must settle**, both ruled `correct` but currently
+  per-author: whether a detail line riding on a parent event inherits that
+  event's viewpoints (`throttle.go:77`, `grapple.go:108`/`:131`), and the fact
+  that `internal/questengine/bridge.go` exposes an actor seam and an observer
+  seam but **no actee seam at all**, so a quest script cannot address a third
+  party.
+
+> **Acknowledged gap:** snapshots cannot capture the *order and interleaving* of
+> messages within a round. That is player-visible and real. It stays a playtest
+> question, which is part of why M5 ends with the adversarial gate.
+
+### M2 — The shared core, bug-compatible
+
+One narration seam reproducing today's behavior **including its
+inconsistencies**, taking them as parameters rather than branches: band input,
+pool shape, token set, role split. The core is **extracted from the defence
+store**, which is already closest to the target shape, rather than designed
+beside it. Snapshots green throughout.
+
+> ### 🔴 SUPERSEDED IN TWO PLACES, 2026-09-08
+>
+> M2 was designed out on 2026-09-08 and two sentences above did not survive
+> contact with the tree. Full design:
+> [`2026-09-08-messaging-m2-shared-narration-seam-design.md`](completed/2026-09-08-messaging-m2-shared-narration-seam-design.md).
+> Read that, not this, when planning M2 or anything downstream of it.
+>
+> **1. "Snapshots green throughout" is not available, and is replaced by a
+> literal freeze built as M2's first task.** This section assumed M1's harness
+> would protect M2's refactor. It does not. M1 snapshots the message *stores*;
+> M2 rewrites 23 files of hand-rolled `fmt.Sprintf` literals that M1
+> deliberately and correctly chose to **inventory rather than render** (see
+> "Group C is inventoried, not snapshotted" above). None of M1's six goldens
+> touches a special-move verb, so without a new net the 23-file migration would
+> have had no automated protection at all.
+>
+> This is the same class of gap that let the melee defence triad bug survive
+> M1: the goldens froze `RenderDefenseMessage` and never called
+> `GetDefenseMessage`, so the melee seam had zero snapshot coverage. **When two
+> functions read the same authored store, snapshotting one proves nothing about
+> the other**, and when a slice's work is literals rather than stores, store
+> snapshots prove nothing about it either.
+>
+> **2. M2 ends with the adversarial playtest gate**, which the M5 section below
+> places at M5. This section assumed M2 would be bug-compatible with no output
+> changes, so no gate was needed. As scoped, M2 closes the five defects M1
+> found across seven sites, plus two more of its own (a detail-line ruling, and
+> an information leak found by reading the two `sendMoveDefenceTriad` copies
+> properly: a player defending in the dark is told who hit them if the attacker
+> was a player and not if it was a mob), which puts new
+> player-facing lines into the world. That is authored content under the
+> project content SOP, and the SOP requires a playtest. M5 keeps its own gate
+> for the crime-in-the-dark ruling.
+>
+> **Also settled by that design, both of which this section left open:** the
+> seam lives in `internal/messaging` (the import graph rules out both
+> `internal/narration` and `internal/actions`, with the edges verified in the
+> new spec's facts table), and the two convention questions listed under "What
+> M1 hands M2" are ruled. Detail lines are classified by kind: a world event
+> inherits the parent's viewpoints, private knowledge stays actor-only. The
+> quest bridge's missing actee seam is **correctly absent** and stays absent
+> until M3, because quest YAML has no actee key for it to read.
+
+### M3 — Store migration
+
+Each store moves onto the core, its old path deleted at the moment it migrates.
+No dual maintenance, no final sweep. Snapshots green at every step. This is where
+the fragile and broken things surface.
+
+Order — cheapest proof first, hardest last:
+
+| | Store | What it proves |
+|---|---|---|
+| 1 | defence → extract the core | Already the target shape: coordinated triad, band model, real validator |
+| 2 | itemvoices, casting-messages | The degenerate case: single role, no band. Proves roles and bands are genuinely optional. **casting gains the validator it has never had** |
+| 3 | taunt-messages | Token-vocabulary aliasing: `{source}`/`{target}` read as Actor/Actee without rewriting the file |
+| 4 | grapple_outcomes | Role *and* audience aliasing, and it forces the second randomness source to die |
+| 5 | buffs, spells, quests | The `*_user_text`/`*_room_text` and `playermessage`/`roommessage` families. The Actee **slot** appears here |
+| 6 | crafting, progression | The two that need *new* behavior. Crafting gains the Actee and Observer **slots** (authoring their text is M6); progression comes inside the pipeline and gains a `Category` |
+| 7 | conversations, gossip_templates, hints | The non-combat narration tail. Conversations already have a speaker-A/speaker-B split that maps to Actor/Actee with no Observer; `hints` is reached from 15 files and needs a single owner before it can migrate at all. **Ruled 2026-09-15:** conversations are not migrated (speakers of a sequence through say, not audiences of one moment); gossip joins the core; hints becomes tips. See [the item 7 spec](2026-09-15-messaging-m3-item7-gossip-tips-design.md). |
+| 8 | combat-messages | Largest, and the only `together`/`separate` split. Done on a core proven seven times over |
+| 9 | weather emotes | Adjacent: joins renderer, tokens and pipeline, keeps its actorless shape |
+
+### M4 — The flip
+
+One reviewable, revertable commit collapsing the parameters: one role
+vocabulary, one token engine (resolving the `{source}`/`{target}` overlap), one
+band model, one send path, one loader and layout, one `DefenseType`.
+
+**Snapshots change here, deliberately and visibly — the diff is the review.** The
+flip changes *parameters*, not text. A snapshot diff that touches wording means
+something is wrong.
+
+> ### 🔴 SUPERSEDED, 2026-09-17
+>
+> M4 was designed out on 2026-09-17:
+> [`2026-09-17-messaging-m4-flip-design.md`](2026-09-17-messaging-m4-flip-design.md).
+> Read that, not this, when planning M4 or anything downstream.
+>
+> 1. **Not one commit.** Five slices, M4a to M4e, each its own PR (owner).
+> 2. **The "six band systems" are two.** `AgingPhase` is item potency, not
+>    narration; skill tiers are a pool union; taunt and item intensities are
+>    caller-named outcomes. What remains is one defence band model (margin
+>    plus defensive crit on every path) and weather's felt threshold.
+> 3. **"Loader accepts both old and new locations through M3" never
+>    happened.** Every loader reads one path. That risk row is void.
+> 4. **Group C had no owning stage.** M4e moves every audited Go narration
+>    site into YAML.
+> 5. **A tenth store exists:** `_datafiles/messages/position_control.yaml`,
+>    outside the world tree the M0 guard walks.
+> 6. **Aliases are not kept.** Shipped YAML is rewritten to canonical tokens
+>    and role keys, contradicting "no shipped file is rewritten" above.
+
+### M5 — Quality pass
+
+On a single path: the `{source_plain}` anonymizer leak (held here by the owner
+rather than fixed standalone), the wrap decision, the `world/default` template
+shadowing, `internal/messaging/context.md`'s phantom wrap stage, and whatever M3
+turned up.
+
+**Also here, as its own commit: the crime-in-the-dark ruling.** Crime witnessing
+starts reading the shared perception verdict, per the owner ruling recorded
+above. It is a behavior change, so it cannot live in a snapshot-provable stage.
+
+**Ends with the adversarial playtest gate** per the content SOP. That playtest
+must exercise a crime committed in an unlit room, which no previous playtest has
+done.
+
+### M6 — Content pass
+
+Authoring the text for slots that M3 and M4 created but left empty: Actee lines
+for the 427 buff, spell and quest fields that have never had one, and Actee plus
+Observer lines for crafting's 252.
+
+**The split is slot versus content, and it is drawn at the same place
+everywhere.** M3 and M4 make the slot exist; M6 fills it. Crafting is the
+clearest case: M3 gives it an audience model, M6 writes the lines that model can
+carry.
+
+> **This is sequencing, not descoping.** Making the Actee *slot* exist
+> everywhere is M3/M4; *authoring* several hundred new lines is a content project
+> that can land incrementally. A store with no Actee text renders exactly as it
+> does today, so nothing is broken by the split. Conflating them would stall the
+> structural work behind a writing project.
+
+**Playtested on both sides** (owner, 2026-08-31): M5's adversarial playtest is
+the "before", and M6 ends with its own.
+
+### M7: Refusals and system output *(added 2026-09-17, owner)*
+
+Group A: roughly 2,000 one-audience strings that the scope table above sent to
+"its own arc, after". The owner scheduled it here rather than leaving it
+undated, so the arc ends with every player-facing string owned by something.
+
+**Scope:** refusals ("You don't see them here.", "You can't afford that."),
+admin command output, status and listing tables, usage lines. One audience, no
+counterpart, no band, no pool. They do not want the narration core, which is
+why they are their own stage and not folded into M4.
+
+**Its first task is fixing what things are TAGGED, not what they say.** After
+M4e there is no narration literal left in Go, so a Go string tagged
+`CategorySystem` is by construction either Group A or a bug. That makes the
+selection problem the M1 scope section warned about (`:417`) solvable
+mechanically here, where it was not solvable when the warning was written.
+
+**Not designed yet.** It gets its own brainstorm and spec when it is next, with
+these open questions recorded now:
+
+- Does a refusal become data, or stay in Go with a shared vocabulary? The owner
+  called them *"standardizable with a few extra keywords passed in"*
+  (2026-09-07), which points at the second answer and away from a store.
+- Is `localize/` part of this, given refusals are the strings most worth
+  translating? The arc has kept `localize/` out of scope throughout.
+- Does help output belong here or with the command help discoverability audit
+  already in the backlog?
+
+**Ordering:** after M6. It depends on M4e having emptied Go of narration, and
+on nothing else.
+
+---
+
+## Risks
+
+| Risk | Answer |
+|---|---|
+| Moving files → `Filepath()` mismatch → **boot panic**, not a soft failure | Loader accepts both old and new locations through M3; the old path dies only at M4 |
+| Mechanical edits to prose are exactly how flavor gets lost | The snapshots **are** the flavor; nothing through M3 may change one |
+| Two randomness sources leave 2 of 14 stores unfreezable | M1's first task, before any snapshot is trusted |
+| M4's snapshot diff too large to review | The flip changes parameters, not text; wording changes are defects |
+| Message ordering within a round is invisible to snapshots | Acknowledged; M5's playtest owns it |
+| The inventory is still not provably complete | M0's guard test, which fails on any unregistered text surface |
+
+## How we know it worked
+
+1. **Snapshots green through all of M3** — the no-op proof.
+2. **M4's snapshot diff reviewed line by line**; wording changes are defects, not
+   deliverables.
+3. **Guard tests**, in the style this repo already uses: no unregistered text
+   surface; no second token engine; no raw `events.Message` outside the pipeline
+   plumbing; one `DefenseType`.
+4. **M5 and M6 each end with an adversarial playtest.** Boot-clean and
+   snapshots-green both verify the *system*, never the experience.

@@ -1,0 +1,48 @@
+mobid: 88
+zone: Watchers Crossing
+behavior_archetype: noncombat_questgiver
+statpool: 85
+itemdropchance: 0
+hostile: false
+non_combatant: true
+maxwander: 3
+groups:
+  - humanoid
+  - merchant
+  - watchers_crossing
+  - shopkeepers
+  - gossiper
+knows_facts:
+  - watchers-road-bandits
+idlecommands:
+  - 'emote sips from a clay cup, watching the room over the rim'
+  - 'emote adjusts the pack leaning against the table leg'
+  - ''
+  - 'emote unfolds a creased map and traces a route with one finger'
+  - ''
+  - ''
+activitylevel: 20
+character:
+  name: Traveling Merchant
+  description: |
+    A road-worn figure sitting at a table with the easy patience of someone
+    accustomed to waiting. The merchant's pack is large and well-secured, its
+    contents hidden beneath oiled canvas. The merchant has
+    the weathered look of someone who spends more time on the road than off
+    it -- cracked lips, sun-darkened skin, and eyes that have seen a lot of
+    horizon. Despite the travel stains, there is a quiet contentment about
+    the figure, as though being nowhere in particular is exactly where they
+    want to be.
+  speciesid: 1
+  level: 1
+  gold: 500
+  equipment:
+    weapon:
+      itemid: 10020
+    neck:
+      itemid: 20024
+  stats:
+    perception:
+      base: 105
+    charisma:
+      base: 105

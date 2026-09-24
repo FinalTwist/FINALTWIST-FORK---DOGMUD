@@ -1,0 +1,19 @@
+spellid: sensory-overload
+name: Sensory Overload
+aliases: [overload]
+description: Overwhelms the target's senses, blinding and slowing them.
+attack_type: spell
+damage_type: mental
+targeting: single
+schools:
+  - mental
+cost: 80
+waitrounds: 2
+difficulty: 40
+primarystat: willpower
+base_folds: 10
+effect_type: condition
+condition_ids:
+  - 37
+cast_actor: "You unleash a barrage of sensory input at the target's mind."
+cast_observer: "{actor} grimaces as they project overwhelming sensory energy."

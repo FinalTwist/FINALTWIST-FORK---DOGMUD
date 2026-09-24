@@ -1,0 +1,12 @@
+################################################################################
+# If modified, these settings will be copied into your config overrides 
+# folder under `Modules.cleanup`:
+#
+# Modules:
+#   cleanup:
+#     TrashExperienceEnabled: true
+#     ExperienceValue: 5
+################################################################################
+# Experience values, set enabled with a value of 1 to ensure a non-breaking change
+TrashExperienceEnabled: true
+ExperienceValue: 1

@@ -1,0 +1,124 @@
+package forager
+
+import "testing"
+
+func TestForageCore_UnknownBiomeReturnsEmpty(t *testing.T) {
+	r := ForageCore(ForageAttempt{Biome: "nonexistent", SearchScore: 1000})
+	if r.Found {
+		t.Error("expected unknown biome to return Found=false")
+	}
+	if r.ItemId != 0 {
+		t.Errorf("expected ItemId=0 for empty biome, got %d", r.ItemId)
+	}
+}
+
+func TestForageCore_HighScoreFinds(t *testing.T) {
+	// Score 1000 vs forest difficulty 120 — should always find.
+	found := false
+	for i := 0; i < 50 && !found; i++ {
+		r := ForageCore(ForageAttempt{Biome: "forest", SearchScore: 1000})
+		if r.Found {
+			found = true
+			if r.ItemId == 0 {
+				t.Errorf("Found=true but ItemId=0")
+			}
+		}
+	}
+	if !found {
+		t.Error("expected at least one find in 50 attempts at SearchScore 1000")
+	}
+}
+
+func TestForageCore_LowScoreMisses(t *testing.T) {
+	// Score 1 vs any biome difficulty (110+) — should always miss.
+	for i := 0; i < 50; i++ {
+		r := ForageCore(ForageAttempt{Biome: "forest", SearchScore: 1})
+		if r.Found {
+			t.Errorf("expected miss at SearchScore=1, got Found=true ItemId=%d", r.ItemId)
+		}
+	}
+}
+
+func TestForageYields_ForestHasCookingFlora(t *testing.T) {
+	forest := ForageYields["forest"]
+	has := func(id int) bool {
+		for _, x := range forest {
+			if x == id {
+				return true
+			}
+		}
+		return false
+	}
+	if !has(40063) {
+		t.Error("forest forage should include shadowcap (40063)")
+	}
+	if !has(40066) {
+		t.Error("forest forage should include blood-moss (40066)")
+	}
+}
+
+func TestForageYields_WaterHasRiverForageables(t *testing.T) {
+	water := ForageYields["water"]
+	has := func(id int) bool {
+		for _, x := range water {
+			if x == id {
+				return true
+			}
+		}
+		return false
+	}
+	if !has(40123) {
+		t.Error("water forage should include watercress (40123)")
+	}
+	if !has(40124) {
+		t.Error("water forage should include freshwater mussels (40124)")
+	}
+}
+
+func TestForageYields_FarmlandHasWheatCountryForageables(t *testing.T) {
+	has := func(list []int, id int) bool {
+		for _, x := range list {
+			if x == id {
+				return true
+			}
+		}
+		return false
+	}
+	farmland := ForageYields["farmland"]
+	if !has(farmland, 40150) {
+		t.Error("farmland forage should include wild plums (40150)")
+	}
+	if !has(farmland, 40151) {
+		t.Error("farmland forage should include gleaned grain (40151)")
+	}
+	land := ForageYields["land"]
+	if !has(land, 40151) {
+		t.Error("dry land forage should include gleaned grain (40151)")
+	}
+}
+
+func TestForageCore_NightYieldsAppendedForForestAtNight(t *testing.T) {
+	// At night, moonpetal (40046) is added to forest yields.
+	// We can't deterministically force a moonpetal, but we can confirm
+	// no out-of-table items appear and many runs eventually hit moonpetal.
+	moonpetalSeen := false
+	for i := 0; i < 200; i++ {
+		r := ForageCore(ForageAttempt{Biome: "forest", SearchScore: 1000, AtNight: true})
+		if !r.Found {
+			continue
+		}
+		// Acceptable IDs: forest day (40004, 40005, 40049, 40067 pine pitch,
+		// 40063 shadowcap, 40066 blood-moss) + night (40046)
+		switch r.ItemId {
+		case 40004, 40005, 40049, 40067, 40063, 40066:
+			// ok
+		case 40046:
+			moonpetalSeen = true
+		default:
+			t.Errorf("unexpected itemId %d in forest-night yields", r.ItemId)
+		}
+	}
+	if !moonpetalSeen {
+		t.Error("expected at least one moonpetal (40046) in 200 forest-night attempts")
+	}
+}

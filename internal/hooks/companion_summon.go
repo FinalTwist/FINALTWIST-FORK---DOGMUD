@@ -1,0 +1,251 @@
+package hooks
+
+import (
+	"github.com/GoMudEngine/GoMud/internal/targeting"
+	"strings"
+
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/skills"
+	"github.com/GoMudEngine/GoMud/internal/spells"
+	"github.com/GoMudEngine/GoMud/internal/users"
+	"github.com/GoMudEngine/GoMud/internal/util"
+)
+
+// resolveCompanionSummon handles YAML-driven companion summoning spells.
+// It replaces 13 nearly-identical JS onMagic scripts with one parameterized
+// Go function. Called when spellData.SummonMobId > 0.
+//
+// Steps: companion cap check, optional component consumption, optional corpse
+// consumption, stat scaling, mob spawn, charm, companion registration.
+//
+// Returns true on success, false on failure (error already sent to user).
+func resolveCompanionSummon(user *users.UserRecord, spellData *spells.SpellData, spellRest string, room *rooms.Room) bool {
+
+	// Handle corpse targeting: "corpse", "2.corpse", "corpse#2", etc.
+	// Use the engine's standard disambiguation parser.
+	targetWord, targetIndex := util.GetMatchNumber(spellRest)
+	genericTargets := map[string]bool{"corpse": true, "remains": true, "body": true, "corpses": true, "bones": true, "": true}
+	if genericTargets[targetWord] {
+		spellRest = "" // Generic word — match by index, not name
+	}
+	// targetIndex: 1 = first valid, 2 = second valid, etc.
+
+	ch := user.Character
+
+	// ── 1. Reservation + budget gate ────────────────────────────────────
+	// Reservation is DERIVED from the pet multiplier (D9), never authored.
+	// Fail early, before consuming any component or corpse.
+	baseReserve := characters.CompanionReserveBase(spellData.SummonPetMultiplier)
+	// Count cap and conviction budget are separate refusals, reported
+	// separately so a player at their companion limit isn't wrongly told they
+	// lack conviction.
+	if len(ch.Companions) >= ch.GetMaxCompanions() {
+		user.SendText(messaging.CategorySpellManifestation,
+			"You are already sustaining as many companions as your will can hold.")
+		return false
+	}
+	reserve := ch.CalcCompanionReserve(baseReserve)
+	if ch.WouldBreachReservationCap(characters.PoolConviction, reserve) {
+		user.SendText(messaging.CategorySpellManifestation,
+			ch.ReservationRefusal(characters.PoolConviction, reserve))
+		return false
+	}
+
+	// ── 2. Component consumption (if required) ──────────────────────────
+	if spellData.SummonComponentId > 0 {
+		found := false
+		for i, itm := range ch.Items {
+			if itm.ItemId == spellData.SummonComponentId {
+				ch.Items = append(ch.Items[:i], ch.Items[i+1:]...)
+				found = true
+				break
+			}
+		}
+		if !found {
+			user.SendText(messaging.CategorySpellManifestation, "You lack the required component for this summoning.")
+			return false
+		}
+	}
+
+	// ── 3. Corpse consumption (if required) ─────────────────────────────
+	var corpsePool int
+
+	if spellData.SummonRequiresCorpse {
+		targetIdx, pool, reason := selectRaiseCorpse(room.Corpses, spellRest, targetIndex, int(spellData.SummonMinCorpsePool))
+		if targetIdx < 0 {
+			// Specific, actionable message (e.g. "still holds loot") rather than
+			// a blanket "no suitable remains".
+			user.SendText(messaging.CategorySpellManifestation, raiseFailureMessage(reason, spellRest))
+			return false
+		}
+		corpsePool = pool
+
+		// Remove the corpse
+		room.Corpses = append(room.Corpses[:targetIdx], room.Corpses[targetIdx+1:]...)
+	}
+
+	// ── 4. Stat scaling ─────────────────────────────────────────────────
+	charisma := ch.Stats.Charisma.ValueAdj
+	manifestSkill := ch.GetSkillLevel(skills.Manifestation)
+
+	// corpsePool is 0 unless a corpse was consumed, and CalcCompanionPool reads
+	// a non-positive corpse pool as "conjured". The corpse average now lives
+	// INSIDE that function -- averaging again here would average twice.
+	pool := characters.CalcCompanionPool(charisma, manifestSkill, spellData.SummonPetMultiplier, corpsePool)
+
+	// ── 5. Spawn and register ───────────────────────────────────────────
+	mob := mobs.NewMobByIdFresh(mobs.MobId(spellData.SummonMobId), room.RoomId, pool)
+	if mob == nil {
+		user.SendText(messaging.CategorySpellDisruption, "The summoning fails — something is wrong.")
+		return false
+	}
+	room.AddMob(mob.InstanceId)
+
+	// Charm permanently (effectively infinite duration)
+	mob.Character.Charm(user.UserId, 99999, "")
+	targeting.Release(&mob.Character, targeting.ReasonDisengage)
+	user.Character.TrackCharmed(mob.InstanceId, true)
+
+	// Determine source type based on whether a corpse was consumed
+	sourceType := characters.CompanionSummoned
+	if spellData.SummonRequiresCorpse {
+		sourceType = characters.CompanionRaised
+	}
+
+	// Register as companion
+	info := characters.CompanionInfo{
+		MobId:             int(mob.MobId),
+		InstanceId:        mob.InstanceId,
+		SourceType:        sourceType,
+		Name:              mob.Character.Name,
+		BaseName:          mob.Character.Name,
+		AutoAssist:        true,
+		ConvictionReserve: reserve,
+	}
+	if !ch.AddCompanion(info) {
+		// Should not happen since we checked the budget above, but be safe
+		user.SendText(messaging.CategorySystem, "You cannot maintain any more companions.")
+		return false
+	}
+	// Apply the new reservation immediately so usable Conviction drops now.
+	ch.RecalculateStats()
+
+	// Clear aggro from existing companions toward the new mob
+	for _, charmId := range ch.GetCharmIds() {
+		if charmId == mob.InstanceId {
+			continue
+		}
+		if companion := mobs.GetInstance(charmId); companion != nil {
+			if companion.Character.IsInCombat() &&
+				companion.Character.CurrentCombatTarget().MobInstanceId == mob.InstanceId {
+				targeting.Release(&companion.Character, targeting.ReasonDisengage)
+			}
+		}
+	}
+
+	// Clear the owner's own aggro if targeting the new mob
+	if ch.IsInCombat() && ch.CurrentCombatTarget().MobInstanceId == mob.InstanceId {
+		targeting.Release(ch, targeting.ReasonDisengage)
+	}
+
+	return true
+}
+
+// raiseSkipReason explains why no corpse could be raised, so the failure
+// message can be specific and actionable instead of a blanket "no remains".
+type raiseSkipReason int
+
+const (
+	raiseNoMatch    raiseSkipReason = iota // no name/type-matching corpse present
+	raiseWasCharmed                        // matched, but it was already a companion
+	raiseTooWeak                           // matched, but its essence is too faint
+	raiseHasLoot                           // matched, but it still holds loot
+)
+
+// raisePriority ranks reasons by how actionable they are; the most actionable
+// (HasLoot — just loot it and retry) wins when several near-matches apply.
+func raisePriority(r raiseSkipReason) int {
+	switch r {
+	case raiseHasLoot:
+		return 3
+	case raiseTooWeak:
+		return 2
+	case raiseWasCharmed:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func worseReason(a, b raiseSkipReason) raiseSkipReason {
+	if raisePriority(b) > raisePriority(a) {
+		return b
+	}
+	return a
+}
+
+// corpseRaisePool is the stat metric the raise spell scores a corpse by — the
+// same number `assess` reports, so the two agree on a corpse's worth. That
+// invariant is now enforced by both calling StatPoolTotal rather than by two
+// copies of the same sum staying in step.
+func corpseRaisePool(c rooms.Corpse) int {
+	return c.Character.StatPoolTotal()
+}
+
+// selectRaiseCorpse picks the targetIndex-th valid mob corpse to raise (1-based
+// among valid candidates). Returns (-1, 0, reason) when none qualifies, where
+// reason describes why the best name/type-matching corpse was rejected — so the
+// caller can show a helpful message. minPool <= 0 disables the stat-pool gate.
+func selectRaiseCorpse(corpses []rooms.Corpse, nameFilter string, targetIndex, minPool int) (idx int, pool int, reason raiseSkipReason) {
+	reason = raiseNoMatch
+	validCount := 0
+	for i, c := range corpses {
+		// Not a raisable mob corpse at all — never counts as a near-match.
+		if c.Prunable || c.UserId != 0 {
+			continue
+		}
+		// Name filter: a non-matching corpse isn't what the player asked for.
+		if nameFilter != "" && !strings.Contains(strings.ToLower(c.Character.Name), strings.ToLower(nameFilter)) {
+			continue
+		}
+		// From here the corpse matched name/type; rejections carry a reason.
+		if c.WasCharmed {
+			reason = worseReason(reason, raiseWasCharmed)
+			continue
+		}
+		if c.HasLoot() {
+			reason = worseReason(reason, raiseHasLoot)
+			continue
+		}
+		p := corpseRaisePool(c)
+		if minPool > 0 && p < minPool {
+			reason = worseReason(reason, raiseTooWeak)
+			continue
+		}
+		validCount++
+		if validCount == targetIndex {
+			return i, p, raiseNoMatch
+		}
+	}
+	return -1, 0, reason
+}
+
+// raiseFailureMessage renders the player-facing reason a raise found no corpse.
+func raiseFailureMessage(reason raiseSkipReason, nameFilter string) string {
+	switch reason {
+	case raiseHasLoot:
+		return "Those remains still hold spoils — clear the loot from them first, then raise what's left."
+	case raiseTooWeak:
+		return "Those remains are too faint to hold a bound spirit."
+	case raiseWasCharmed:
+		return "Those remains were already animated once; there is nothing left to raise."
+	default:
+		if nameFilter != "" {
+			return "You cannot find suitable remains matching that description."
+		}
+		return "There are no suitable remains here to raise."
+	}
+}

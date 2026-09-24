@@ -1,0 +1,11 @@
+conditionid: 28
+name: Chrysalis Haste
+description: Chrysalis energy accelerates your movements and reflexes.
+triggerrate: 1 round
+triggercount: 20
+flags:
+  - haste
+statmods:
+  dexterity: 10
+start_actee: "Chrysalis energy floods your nerves \u2014 everything feels faster."
+end_actee: The Chrysalis haste fades and your movements return to normal.

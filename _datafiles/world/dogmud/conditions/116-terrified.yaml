@@ -1,0 +1,12 @@
+conditionid: 116
+name: Terrified
+description: A primal, animal dread rolls off the thing in front of you, and every instinct screams to run.
+start_actee: A primal dread rolls over you and every instinct says run.
+end_actee: The dread loosens its grip on you.
+triggerrate: 1 round
+triggercount: 2
+statmods:
+  willpower: -12
+  charisma: -10
+start_observer: "{actee_plain} shrinks back, gripped by a sudden animal dread."
+end_observer: "The dread gripping {actee} loosens."

@@ -1,0 +1,23 @@
+# Conditions unification slice 3 smoke test, ADMIN half. The buff alias for
+# setcondition was removed; the condition data folder and keys were renamed.
+# Quote output VERBATIM. 3 commands per round on the AI port.
+ephemeral:
+  profile: admin
+  start_room: 5000
+  budgets:
+    wall_clock: 15m
+
+goals:
+  - >-
+    Type `setcondition list` and quote the header and first five rows.
+  - >-
+    Type `buff list` and quote the result; the alias was removed, so it must
+    not run the command.
+  - >-
+    Type `help setcondition` and quote it; it must not mention "buff".
+  - >-
+    Apply condition 1 to yourself with `setcondition 1`, type `conditions`,
+    and quote the row.
+  - >-
+    Judge every line for template errors, raw internal names, or the word
+    "buff".

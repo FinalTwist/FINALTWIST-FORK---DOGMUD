@@ -1,0 +1,18 @@
+itemid: 40044
+name: Sealed Phial
+namesimple: phial
+description: A glass phial reinforced with copper wire and fitted
+  with an airtight chrysalis-infused stopper. The faint shimmer
+  in the seal slows whatever reactions are happening inside.
+type: object
+subtype: mundane
+component_tag: bottle
+weight: 0.1
+value: 10
+rarity_tier: 50
+is_component: true
+vendor_categories:
+- alchemy
+- jewelcrafting
+bottle_aging_multiplier: 0.5
+material_tier: 3

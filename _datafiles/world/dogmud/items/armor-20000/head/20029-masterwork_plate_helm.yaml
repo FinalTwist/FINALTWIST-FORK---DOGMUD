@@ -1,0 +1,13 @@
+itemid: 20029
+name: Masterwork Plate Helm
+vendor_categories:
+- blacksmithing
+namesimple: helm
+description: A full-faced helm of thick steel plate, shaped by a master smith.
+  It offers excellent protection at the cost of slightly
+  narrowed vision.
+type: head
+subtype: wearable
+physical_mitigation: 5
+value: 30
+rarity_tier: 40

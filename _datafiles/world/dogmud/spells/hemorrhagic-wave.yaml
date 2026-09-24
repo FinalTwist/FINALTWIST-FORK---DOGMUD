@@ -1,0 +1,21 @@
+spellid: hemorrhagic-wave
+name: Hemorrhagic Wave
+aliases: [hemorrhage]
+description: Rupturing wave that bursts blood vessels in all nearby foes.
+attack_type: spell
+damage_type: physical
+targeting: area
+schools:
+  - vital
+cost: 80
+waitrounds: 2
+difficulty: 45
+primarystat: willpower
+base_folds: 20
+effect_type: damage
+effect_magnitude: 225
+damage_multiplier: 0.80
+categories:
+  - harm_multi
+cast_actor: "You channel a wave of rupturing force outward."
+cast_observer: "{actor} clenches both fists as a sickening pressure builds."

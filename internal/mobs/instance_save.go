@@ -1,0 +1,427 @@
+package mobs
+
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/util"
+	"gopkg.in/yaml.v2"
+)
+
+// MobInstanceData holds only the progression fields that need to persist
+// across server restarts. Combat state (health, stamina, aggro, etc.) is
+// intentionally excluded — mobs respawn at full resources.
+type MobInstanceData struct {
+	// SchemaVersion is absent (0) in any save written before U10b-0 Phase C.
+	// Those files fused authored stats, spawn pool and gains into the *Training
+	// fields; LegacyTrainingToGains separates them on load. A save at
+	// InstanceSchemaVersion is already gains-only and is restored verbatim.
+	SchemaVersion int `yaml:"schema_version,omitempty"`
+
+	StrengthTraining   int            `yaml:"strength_training,omitempty"`
+	DexterityTraining  int            `yaml:"dexterity_training,omitempty"`
+	PerceptionTraining int            `yaml:"perception_training,omitempty"`
+	VitalityTraining   int            `yaml:"vitality_training,omitempty"`
+	WillpowerTraining  int            `yaml:"willpower_training,omitempty"`
+	CharismaTraining   int            `yaml:"charisma_training,omitempty"`
+	Skills             map[string]int `yaml:"skills,omitempty"`
+	SkillUseCount      map[string]int `yaml:"skill_use_count,omitempty"`
+	StatUseCount       map[string]int `yaml:"stat_use_count,omitempty"`
+	Mutations          map[string]int `yaml:"mutations,omitempty"`
+	MutationProgress   float64        `yaml:"mutation_progress,omitempty"`
+
+	// BehaviorArchetype persists a mutation-driven archetype shift
+	// (2026-07-10). Written only when the live value differs from the
+	// template's; empty = never shifted.
+	BehaviorArchetype string `yaml:"behavior_archetype,omitempty"`
+
+	// Goal-progress persistence (2026-06-01). Pointers / nil-able so that
+	// "absent in the save" (old file or non-goal mob) is distinguishable
+	// from a real zero value (mob spent all gold / stripped all gear).
+	Gold      *int             `yaml:"gold,omitempty"`
+	Equipment *characters.Worn `yaml:"equipment,omitempty"`
+	PlanState map[string]any   `yaml:"plan_state,omitempty"`
+}
+
+// instanceFilename returns the base filename for a mob instance save.
+func instanceFilename(mobId MobId, mobName string, homeRoomId int) string {
+	return fmt.Sprintf("%d-%s-room%d.yaml", int(mobId), util.ConvertForFilename(mobName), homeRoomId)
+}
+
+// instancePath returns the full filesystem path for a mob instance save.
+// An empty zone routes to the fixed "unzoned" folder, mirroring
+// Mob.Filepath()'s template routing — without this, zoneless mobs' instance
+// saves piled up at the mobs.instances/ root.
+func instancePath(mobId MobId, zone string, mobName string, homeRoomId int) string {
+	if zone == "" {
+		zone = "unzoned"
+	}
+	zonePath := ZoneNameSanitize(zone)
+	filename := instanceFilename(mobId, mobName, homeRoomId)
+	return util.FilePath(
+		configs.GetFilePathsConfig().DataFiles.String(), `/`, `mobs.instances`, `/`, zonePath, `/`, filename,
+	)
+}
+
+// SaveMobInstance writes a mob's progression data to disk so it survives
+// server restarts. Only called for mobs with progression enabled.
+//
+// Charmed mobs are skipped — their progression is the owner's
+// responsibility (CompanionInfo on the owner's user YAML). The file
+// layer would otherwise be a redundant, room-keyed second persistence
+// that leaks across player-summon cycles. See
+// docs/superpowers/specs/completed/2026-04-21-summons-dont-persist-design.md.
+func SaveMobInstance(mob *Mob) error {
+	// Companions live on CompanionInfo, not in mobs.instances/.
+	//
+	// EverCharmed, not just IsCharmed: once a bond expires the ex-companion is
+	// uncharmed while STILL WEARING the equipment its owner handed it. Saving it
+	// would bake player gear into a world mob permanently, because
+	// MobInstanceData persists Equipment and mobs.go's loader re-equips it on
+	// respawn -- kill, loot, re-charm, repeat. The betrayal stays real in-session
+	// (it fights you with your own gear) but nothing is written to disk.
+	//
+	// EverCharmed is yaml:"-" ON PURPOSE, and that is what makes this work: it is
+	// read from the live character here and never persisted, so a reboot clears
+	// it and an ordinary world mob is never permanently barred from saving.
+	if mob.Character.IsCharmed() || mob.Character.EverCharmed {
+		return nil
+	}
+
+	// Bounty hunters are transient dispatched entities. bountyhunter.
+	// RunDispatchSweep re-evaluates every open bounty fresh on each boot and
+	// its per-player dedup (activeHunts) is in-memory only. If a combat-trained
+	// hunter's instance file reloaded after a restart, the sweep — seeing an
+	// empty activeHunts — would spawn ANOTHER hunter on top, accumulating one
+	// duplicate "guard" per restart while the bounty stays open. The
+	// bh_target_user_id marker is stamped on the live instance at spawn
+	// (bountyhunter.spawnHunter) and never cleared, so it reliably identifies
+	// a hunter here at save time.
+	if mob.Character.GetMiscData("bh_target_user_id") != nil {
+		return nil
+	}
+
+	b := configs.GetBalanceConfig()
+	if !bool(b.MobProgressionEnabled) {
+		return nil
+	}
+
+	// Only save if the mob has progression, planner working state, or
+	// gold/equipment that differs from its template.
+	if !hasPersistableState(mob) {
+		return nil
+	}
+
+	data := MobInstanceData{
+		SchemaVersion:      InstanceSchemaVersion,
+		StrengthTraining:   mob.Character.Stats.Strength.Training,
+		DexterityTraining:  mob.Character.Stats.Dexterity.Training,
+		PerceptionTraining: mob.Character.Stats.Perception.Training,
+		VitalityTraining:   mob.Character.Stats.Vitality.Training,
+		WillpowerTraining:  mob.Character.Stats.Willpower.Training,
+		CharismaTraining:   mob.Character.Stats.Charisma.Training,
+		MutationProgress:   mob.Character.MutationProgress,
+	}
+
+	// Persist a mutation-driven archetype shift (2026-07-10): only when
+	// the live value differs from the template's.
+	if tmpl := GetMobSpec(mob.MobId); tmpl != nil && mob.BehaviorArchetype != tmpl.BehaviorArchetype {
+		data.BehaviorArchetype = mob.BehaviorArchetype
+	}
+
+	if len(mob.Character.Skills) > 0 {
+		data.Skills = mob.Character.Skills
+	}
+	if len(mob.Character.SkillUseCount) > 0 {
+		data.SkillUseCount = mob.Character.SkillUseCount
+	}
+	if len(mob.Character.StatUseCount) > 0 {
+		data.StatUseCount = mob.Character.StatUseCount
+	}
+	if len(mob.Character.Mutations) > 0 {
+		data.Mutations = mob.Character.Mutations
+	}
+
+	// Goal-progress capture (2026-06-01). Captured unconditionally for a
+	// persistable mob — the live value IS the truth, so capturing even when
+	// it equals the template is harmless (restore becomes a no-op). Pointers
+	// preserve the spent-all-gold (0) and stripped-gear (empty) cases.
+	gold := mob.Character.Gold
+	data.Gold = &gold
+
+	eq := mob.Character.Equipment
+	data.Equipment = &eq
+
+	if planState := collectPlanState(mob); planState != nil {
+		data.PlanState = planState
+	}
+
+	savePath := instancePath(mob.MobId, mob.Zone, mob.Character.Name, mob.HomeRoomId)
+
+	// Ensure zone subdirectory exists
+	dir := filepath.Dir(savePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("mobs.SaveMobInstance: mkdir %s: %w", dir, err)
+	}
+
+	bytes, err := yaml.Marshal(&data)
+	if err != nil {
+		return fmt.Errorf("mobs.SaveMobInstance: marshal: %w", err)
+	}
+
+	// util.Save is atomic and durable (temp file, fsync, rename). A mob
+	// instance file is the ONLY record of what that mob became — stats,
+	// skills, mutations, gold, gear, planner state — and cannot be rebuilt
+	// from the repo, so a torn write here is unrecoverable data loss. See the
+	// living-state contract in internal/util/livingstate.go.
+	if err := util.Save(savePath, bytes); err != nil {
+		return fmt.Errorf("mobs.SaveMobInstance: write %s: %w", savePath, err)
+	}
+
+	return nil
+}
+
+// LoadMobInstance reads a saved mob instance from disk. Returns nil when the
+// mob should spawn fresh from its template.
+//
+// nil covers two very different situations, and the difference is handled here
+// rather than pushed onto the caller, whose action is identical either way:
+//
+//   - No file. Normal. The mob has never persisted anything. Silent.
+//   - A file that cannot be read or parsed. NOT normal. The file is
+//     quarantined (moved aside, never deleted) and logged at ERROR, then the
+//     mob spawns from template.
+//
+// Quarantining is the part that matters. Before this, a corrupt file returned
+// nil exactly like a missing one, the mob respawned from template, and the very
+// next SaveMobInstance overwrote the damaged file — destroying the only
+// evidence that anything had been lost. Moving it aside preserves the bytes for
+// inspection AND frees the path so the fresh save succeeds (review finding 5;
+// contract in internal/util/livingstate.go).
+func LoadMobInstance(mobId MobId, zone string, mobName string, homeRoomId int) *MobInstanceData {
+	savePath := instancePath(mobId, zone, mobName, homeRoomId)
+
+	raw, err := util.ReadLivingState(savePath)
+	if err != nil {
+		if errors.Is(err, util.ErrStateAbsent) {
+			return nil // No file = fresh spawn, the ordinary case.
+		}
+		quarantineInstance(savePath, err)
+		return nil
+	}
+
+	var data MobInstanceData
+	if err := yaml.Unmarshal(raw, &data); err != nil {
+		quarantineInstance(savePath, err)
+		return nil
+	}
+
+	// Skill rename migration: stealth -> skullduggery
+	if data.Skills != nil {
+		if v, ok := data.Skills["stealth"]; ok {
+			data.Skills["skullduggery"] = v
+			delete(data.Skills, "stealth")
+		}
+	}
+
+	return &data
+}
+
+// quarantineInstance moves a corrupt instance file aside and reports it at
+// ERROR so it is visible in production rather than only in a stack trace.
+//
+// The log names what was lost and where the evidence went, because by the time
+// anyone reads it the mob is already walking around with template stats and the
+// only way to know what it used to be is the quarantined file.
+func quarantineInstance(savePath string, cause error) {
+	dest, qErr := util.QuarantineCorrupt(savePath)
+	if qErr != nil {
+		// Quarantine itself failed, so the bad file is still in place. Say so
+		// plainly: the next save will overwrite it and the evidence is gone.
+		mudlog.Error("mobs.LoadMobInstance",
+			"path", savePath,
+			"error", cause,
+			"quarantine", "FAILED",
+			"quarantineError", qErr,
+			"impact", "mob spawns from template; corrupt file left in place and will be overwritten")
+		return
+	}
+	mudlog.Error("mobs.LoadMobInstance",
+		"path", savePath,
+		"error", cause,
+		"quarantinedTo", dest,
+		"impact", "mob spawns from template; its saved progression, gold, gear and plan state were not recovered")
+}
+
+// DeleteMobInstance removes a mob's saved instance file from disk.
+// Called on mob death so respawns start fresh from template.
+func DeleteMobInstance(mobId MobId, zone string, mobName string, homeRoomId int) {
+	savePath := instancePath(mobId, zone, mobName, homeRoomId)
+	os.Remove(savePath) // Ignore errors (file may not exist)
+}
+
+// PruneStaleInstances walks the mobs.instances directory and removes any
+// instance files older than maxAgeDays. Called at startup.
+func PruneStaleInstances(maxAgeDays int) {
+	baseDir := util.FilePath(
+		configs.GetFilePathsConfig().DataFiles.String(), `/`, `mobs.instances`,
+	)
+
+	cutoff := time.Now().AddDate(0, 0, -maxAgeDays)
+	pruned := 0
+
+	filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Skip errors
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if info.ModTime().Before(cutoff) {
+			if removeErr := os.Remove(path); removeErr == nil {
+				pruned++
+			}
+		}
+		return nil
+	})
+
+	if pruned > 0 {
+		mudlog.Info("mobs.PruneStaleInstances", "pruned", pruned, "maxAgeDays", maxAgeDays)
+	}
+}
+
+// NukeSummonsInstances removes every file under
+// _datafiles/.../mobs.instances/summons/ at boot. Companion persistence
+// lives on CompanionInfo on the owner's user YAML; any file in this
+// directory is stale and would poison the next summon of the same
+// template in the same room. No-op if the directory doesn't exist.
+// Returns the count of files removed (for logging).
+func NukeSummonsInstances() int {
+	baseDir := util.FilePath(
+		configs.GetFilePathsConfig().DataFiles.String(), `/`, `mobs.instances`, `/`, `summons`,
+	)
+
+	pruned := 0
+	filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Skip errors (e.g., directory doesn't exist)
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if removeErr := os.Remove(path); removeErr == nil {
+			pruned++
+		}
+		return nil
+	})
+
+	if pruned > 0 {
+		mudlog.Info("mobs.NukeSummonsInstances", "pruned", pruned)
+	}
+
+	return pruned
+}
+
+// planKeyPrefix MUST match planners.PlanKeyPrefix. It is duplicated here
+// rather than imported because internal/planners imports internal/mobs;
+// referencing it the other way would form an import cycle.
+const planKeyPrefix = "plan:"
+
+// collectPlanState returns a copy of every "plan:"-prefixed MiscData entry
+// on the mob — the planners' working state (target shop room, worst slot,
+// etc.). Returns nil if the mob has no MiscData or no plan keys.
+func collectPlanState(mob *Mob) map[string]any {
+	if mob.Character.MiscData == nil {
+		return nil
+	}
+	out := map[string]any{}
+	for k, v := range mob.Character.MiscData {
+		if strings.HasPrefix(k, planKeyPrefix) {
+			out[k] = v
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// equipmentDiffers reports whether two worn loadouts differ in any
+// persistent field. It compares marshaled YAML bytes: items.Item.UUID is
+// yaml:"-" (excluded) and the unexported tempDataStore is not marshaled,
+// so this is a value comparison that ignores per-instance identity and
+// correctly detects a changed itemId or enchant tier in any slot.
+// EnableAll() normalizes species-disabled slot sentinels (ItemId < 0,
+// stamped by validateDisabledSlotsForSpecies at spawn) to the zero item
+// on the local copies first, so species-gated slot disabling does not
+// count as an equipment change. a and b are value parameters, so this
+// does not mutate the caller's equipment.
+func equipmentDiffers(a, b characters.Worn) bool {
+	a.EnableAll()
+	b.EnableAll()
+	ab, _ := yaml.Marshal(&a)
+	bb, _ := yaml.Marshal(&b)
+	return !bytes.Equal(ab, bb)
+}
+
+// hasPersistableState reports whether a mob has any state worth saving to
+// its instance file: stat/skill/mutation progression (hasProgression),
+// planner working state, gold that differs from its template, or an
+// equipment loadout that differs from its template. The template
+// comparison keeps the gate meaningful — without it every mob in the
+// world (all of which carry template gold/equipment) would write a file
+// every save interval.
+func hasPersistableState(mob *Mob) bool {
+	if hasProgression(mob) {
+		return true
+	}
+	if collectPlanState(mob) != nil {
+		return true
+	}
+	tmpl := GetMobSpec(mob.MobId)
+	if tmpl == nil {
+		return false
+	}
+	if mob.BehaviorArchetype != tmpl.BehaviorArchetype {
+		return true
+	}
+	if mob.Character.Gold != tmpl.Character.Gold {
+		return true
+	}
+	return equipmentDiffers(mob.Character.Equipment, tmpl.Character.Equipment)
+}
+
+// hasProgression returns true if the mob has any non-zero progression data
+// worth persisting (any stat training, skills, use counts, or mutations).
+func hasProgression(mob *Mob) bool {
+	s := &mob.Character.Stats
+	if s.Strength.Training != 0 || s.Dexterity.Training != 0 ||
+		s.Perception.Training != 0 || s.Vitality.Training != 0 ||
+		s.Willpower.Training != 0 || s.Charisma.Training != 0 {
+		return true
+	}
+	if len(mob.Character.Skills) > 0 {
+		return true
+	}
+	if len(mob.Character.SkillUseCount) > 0 {
+		return true
+	}
+	if len(mob.Character.StatUseCount) > 0 {
+		return true
+	}
+	if len(mob.Character.Mutations) > 0 {
+		return true
+	}
+	if mob.Character.MutationProgress > 0 {
+		return true
+	}
+	return false
+}
