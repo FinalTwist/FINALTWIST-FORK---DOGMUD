@@ -22,7 +22,7 @@ description: >
   even in the ones written for people who cannot
   read them yet. The almonry is reached by the
   north door for those recovered enough to move.
-biome: city
+biome: interior
 coord:
   x: -7
   y: 87

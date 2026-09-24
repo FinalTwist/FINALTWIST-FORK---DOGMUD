@@ -14,7 +14,7 @@ description: >
   <ansi fg="itemname">chimney</ansi> drops toward the sweetest and
   coldest of the air. From here on the weave stops pretending the
   cave has a shape.
-biome: cave
+biome: spiderweb
 coord:
   x: -13
   y: -20

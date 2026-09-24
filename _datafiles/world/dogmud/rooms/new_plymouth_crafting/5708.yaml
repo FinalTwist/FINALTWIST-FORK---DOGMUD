@@ -14,7 +14,7 @@ description: >
   objects that do not look like maps. The street here is
   quiet in a particular way, as if foot-traffic has learned
   to move around this building without quite deciding to.
-biome: city
+biome: interior
 coord:
   x: -19
   y: 89

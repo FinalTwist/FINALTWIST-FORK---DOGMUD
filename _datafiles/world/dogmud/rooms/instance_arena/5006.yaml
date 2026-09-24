@@ -9,6 +9,7 @@ description: >-
   many boots, and the walls at shoulder height are marked by
   scrapes of metal. Whatever gets put in here has to be
   fought through — there is no route around it.
+biome: interior
 exits:
   south:
     roomid: 5002

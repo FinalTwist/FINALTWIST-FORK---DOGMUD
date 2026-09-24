@@ -1,0 +1,10 @@
+biomeid: plains
+name: Plains
+symbol: ⁖
+description: Open grassland running to the horizon, with nothing between the
+  ground and the sky.
+skylight: 1.0
+requireditemid: 0
+usesitem: false
+burns: false
+movementcost: 1.0

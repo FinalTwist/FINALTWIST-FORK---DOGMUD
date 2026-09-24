@@ -17,7 +17,7 @@ description: >
   <ansi fg="itemname">leaf-litter</ansi> rises from the ground
   where the bramble has sheltered last autumn's fall from any
   wind, ankle-deep and brown and curl-edged.
-biome: forest
+biome: dense_forest
 coord:
   x: -14
   y: -15

@@ -6,7 +6,7 @@ description: >
   hangs where the between-place wears through into the real world -- close enough
   now to step into. Dewey stands easy at the threshold, hands in pockets,
   unhurried as ever.
-biome: default
+biome: ether
 exits: {}
 spawninfo:
   - mobid: 9491

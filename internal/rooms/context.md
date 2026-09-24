@@ -83,11 +83,50 @@ YAML keys are `skylight` and `lamp`:
 - `BiomeInfo.SkyLight *float64` / `BiomeInfo.Lamp *int` are the biome
   default, read through `SkyLightFraction()` / `LampValue()` (`biomes.go`).
 - `Room.SkyLight *float64` / `Room.Lamp *int` (`rooms.go`) **override** the
-  room's biome when set. This exists because a biome is not always granular
-  enough: `fort` holds both an open training yard and a buried tower base,
-  and `new_plymouth_sewers` is a brick vault lit by one drain-cap. Both
-  carry `instance:"skip"`, matching `Biome`, so an ephemeral instance of a
-  room inherits its template's lighting rather than persisting its own.
+  room's biome when set. Both carry `instance:"skip"`, matching `Biome`, so
+  an ephemeral instance of a room inherits its template's lighting rather
+  than persisting its own.
+
+  Plan 3b gave the world a wider biome vocabulary instead of reaching for
+  this override in most of the cases that once seemed to need it: a brick
+  sewer vault, a wrecked ship's interior and a web-choked lair each got
+  their own biome (`sewer`, `interior`, `spiderweb`) rather than a
+  room-level number. **The only shipped override is the three-room Planar
+  Oasis** (`instance_planar_oasis/500{3,4,5}.yaml`), which sets `lamp: 38`
+  against `ether`'s biome lamp of `60`. Its room text reads "Shapes move in
+  the heat haze, some are mirages, some are not," so a fully lit oasis
+  would contradict its own description; `38` lands it in the shapes band
+  on purpose. `fort` still shares one sky fraction between its open yard
+  and its buried vault with no override yet: a real granularity gap, left
+  for a later plan.
+
+### The shipped biome vocabulary (plan 3b)
+
+Every room's `biome:` field names one of the biomes below (`biomes.go`
+loads each `_datafiles/world/dogmud/biomes/*.yaml` file). `skylight` is the
+sky attenuation fraction `SkyLightFraction()` applies (`0.0` blocks the sky
+entirely, `1.0` lets it straight through); `lamp`, where a biome sets one,
+is a flat light floor from `LampValue()`, independent of the sky. A biome
+with no listed lamp has none: its light is sky alone (plus whatever a
+carried light or the room adds).
+
+| Biome | skylight | lamp | Meaning |
+|---|---|---|---|
+| `sewer` | `0.0` | none | A brick vault under a city; no sky and no fixture of its own. Ships with New Plymouth Sewers |
+| `interior` | `0.15` | `50` | A built structure with its own light: a house, a wrecked ship's cabins, a temple's interior rooms, a crafting hall, an arena's vaulted chambers |
+| `dense_forest` | `0.25` | none | Canopy thick enough to matter, split out of `forest`'s rooms |
+| `plains` | `1.0` | none | Open grassland, fully open sky |
+| `river` | `1.0` | none | Flowing water, fully open sky |
+| `ether` | `0.0` | `60` | Outside the world; time-invariant. Character creation, the shadow realm, the planar oasis |
+| `spiderweb` | `0.0` | `45` | A web-choked lair. Declared before plan 3b but held zero rooms until this plan gave it the Foldweave |
+
+**`house` is deleted.** Plan 3b folded its rooms into `interior` along with
+every other room that was really an indoor space wearing an outdoor biome:
+the Crash Site's interior rooms (previously `cave`), the temple's interior
+rooms and `new_plymouth_crafting`'s rooms (both previously `city`), and
+`instance_arena`'s rooms (previously no biome at all, falling through to
+the synthetic default). `house.yaml` and its climate file no longer exist;
+a reference to either describes deleted content.
 
 **`GetVisibility()` and `legacyVisibility()` are GONE.** Plan 1 shipped
 `GetVisibility` as a call-through to the old three-value (0/1/2) model, kept

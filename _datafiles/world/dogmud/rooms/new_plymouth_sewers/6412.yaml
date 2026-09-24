@@ -13,7 +13,7 @@ description: >
   fg="itemname">stair</ansi> climbs back up toward the sewers you
   know. A passage opens west, into the dark that the moving air
   comes from.
-biome: city
+biome: sewer
 coord:
   x: -17
   y: 84

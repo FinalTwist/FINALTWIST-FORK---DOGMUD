@@ -11,6 +11,7 @@ description: The Endless Trashheap stretches to the horizon, a bizarre landscape
   Here, in this paradoxical realm, the line between the precious and the worthless
   blurs, and treasure-seekers must tread lightly, lest they become yet another forgotten
   piece of the Goblin's endless collection.
+biome: land
 exits:
   north:
     roomid: 153

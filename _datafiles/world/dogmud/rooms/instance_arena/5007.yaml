@@ -9,6 +9,7 @@ description: >-
   split shields, a sword bent nearly double. Not trophies.
   Warnings. The fighters kept here are the ones who put them
   there.
+biome: interior
 exits:
   south:
     roomid: 5006

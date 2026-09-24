@@ -22,7 +22,7 @@ description: >
   quantity. The ledger does not record what was not
   given. The line that forms here each morning does
   not argue about that.
-biome: city
+biome: interior
 coord:
   x: -7
   y: 88
