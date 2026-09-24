@@ -5,7 +5,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
-	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -53,7 +52,7 @@ func wireMobDeathBroadcast(c *characters.Character) {
 				m.Character.Name,
 			)
 			soundMsg := `You hear something collapse to the ground.`
-			if room.LightLevel() >= int(configs.GetBalanceConfig().LightBlindBelow) {
+			if room.IsLit() {
 				room.SendTextVisual(messaging.CategoryDeath, deathMsg)
 			} else {
 				for _, uid := range room.GetPlayers() {

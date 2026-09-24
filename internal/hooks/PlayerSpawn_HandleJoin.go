@@ -25,12 +25,6 @@ import (
 // respawnCompanions re-creates mob instances for all stored companions.
 // Called once the player is fully in the world.
 func respawnCompanions(user *users.UserRecord) {
-	// A live instance from an unfinished session (a refresh, a dropped
-	// link) still holds everything it picked up since the last save. Take
-	// that down before destroying it, or the rebuilt companion comes back
-	// from the older record and the session's gear and gold are lost.
-	SnapshotBondedCompanion(user.UserId)
-
 	// First: clean up any stale instances from a previous session
 	// (e.g., browser refresh without clean logout).
 	for i := range user.Character.Companions {
@@ -165,11 +159,6 @@ func applyCompanionState(mob *mobs.Mob, comp *characters.CompanionInfo) {
 	// otherwise leave the template defaults intact.
 	if compHasEquipment(comp) {
 		mob.Character.Equipment = comp.Equipment
-	}
-
-	// A bonded companion's purse is its own and replaces any template gold.
-	if comp.SourceType == characters.CompanionBonded {
-		mob.Character.Gold = comp.Gold
 	}
 
 	// Recalculate derived stats from the applied training.

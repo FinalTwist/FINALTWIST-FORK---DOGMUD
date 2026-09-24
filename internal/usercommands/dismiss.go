@@ -69,16 +69,6 @@ func Dismiss(rest string, user *users.UserRecord,
 	instanceId := comp.InstanceId
 	sourceType := comp.SourceType
 
-	// A bonded companion is a person, not a working: it cannot be dismissed
-	// by command. Parting ways happens in conversation, on its own terms.
-	if sourceType == characters.CompanionBonded {
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(
-			`<ansi fg="mobname">%s</ansi> is not yours to dismiss. If you want to part ways, you will have to tell them.`,
-			compName,
-		))
-		return true, nil
-	}
-
 	mob := mobs.GetInstance(instanceId)
 
 	if mob == nil {

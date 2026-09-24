@@ -52,36 +52,93 @@ The `internal/rooms` package is the core world management system for GoMud, hand
 - **Item requirements**: Biomes that require specific items to navigate safely
 - **Dynamic loading**: File-based biome definitions with validation
 
-### Room Lighting (`lighting.go`, graded scale, plan 1 of the lighting arc)
+### Room Lighting (`lighting.go`, graded scale, plans 1 through 3a of the lighting arc)
 
-`Room.LightLevel() int` is the light accessor every consumer now reads. It
-reports light on the graded -100 to 100 scale the lighting arc introduces,
-though plan 1 only ever produces three points on that scale:
+`Room.LightLevel() int` is the light accessor every consumer reads. It
+reports light on a continuous -100 to 100 scale, composed from up to four
+terms on one logarithmic operator (`internal/lightscale.Combine`):
 
-- `LightDark` = 0: no light at all, a normal observer is blind.
-- `LightRoomOnly` = 60: enough light to see the room but not down an exit.
-  What the old three-value model called visibility 1.
-- `LightFull` = 70: enough light to see the room and its exits. What the
-  old model called visibility 2.
+1. **The sky**: `internal/gametime.CelestialLight()` (sun plus moons, one
+   value for the whole world per round), attenuated by this room's sky
+   fraction and by any active weather/mutator occlusion.
+2. **The room's own lamp**, if it has one.
+3. **The positive `LightMod` bridge** from the pre-graded mutator
+   vocabulary (plan 4 replaces this with an authored lamp value; do not
+   extend it).
+4. **Anyone present carrying a light.**
 
-The old three-value accessor, `GetVisibility() int`, is deleted. Every
-consumer, including `internal/messaging`'s `RoomVisibility` interface,
-reads `LightLevel()` instead.
+`Room.IsLit() bool` reports whether a normal observer can see anything at
+all here (`LightLevel() >= cfg.BlindBelow`). It reads `configs.Lighting`
+via `configs.GetLightingConfig()` rather than `GetBalanceConfig()` on
+purpose: sixteen hand-rolled call sites used to copy the whole 424-field
+`Balance` struct to check one threshold, and `IsLit` collapsed all of them
+onto itself.
 
-`legacyVisibility()` is the old accessor's body, moved here verbatim when
-`GetVisibility` was still a call-through to it. `LightLevel` computes from
-it and maps the 0/1/2 result onto the three constants above. Nothing
-outside `LightLevel` should call `legacyVisibility`; later plans that make
-the scale continuous replace this mapping rather than extend it.
+**Sky fraction and lamp are both `*float64`/`*int` POINTERS, on both
+`Room` and `BiomeInfo`, because zero is meaningful for both.** A cave's sky
+fraction is genuinely `0` (no sky reaches it at all) and must be
+distinguishable from "unset," which reads as a fully open sky (`1.0`). The
+YAML keys are `skylight` and `lamp`:
 
-The three constants are load-bearing against the thresholds in
-`internal/configs/config.balance.lighting.go` (`LightBlindBelow` default
-25, `LightDimBelow` default 50, `LightExitsAbove` default 65):
-`LightRoomOnly` (60) must sit at or above `LightDimBelow` and below
-`LightExitsAbove`, and `LightFull` (70) must sit at or above
-`LightExitsAbove`. If those defaults ever move, these three constants must
-be re-checked against the new values, or the mapping this plan depends on
-for behaviour preservation silently breaks.
+- `BiomeInfo.SkyLight *float64` / `BiomeInfo.Lamp *int` are the biome
+  default, read through `SkyLightFraction()` / `LampValue()` (`biomes.go`).
+- `Room.SkyLight *float64` / `Room.Lamp *int` (`rooms.go`) **override** the
+  room's biome when set. Both carry `instance:"skip"`, matching `Biome`, so
+  an ephemeral instance of a room inherits its template's lighting rather
+  than persisting its own.
+
+  Plan 3b gave the world a wider biome vocabulary instead of reaching for
+  this override in most of the cases that once seemed to need it: a brick
+  sewer vault, a wrecked ship's interior and a web-choked lair each got
+  their own biome (`sewer`, `interior`, `spiderweb`) rather than a
+  room-level number. **The only shipped override is the three-room Planar
+  Oasis** (`instance_planar_oasis/500{3,4,5}.yaml`), which sets `lamp: 38`
+  against `ether`'s biome lamp of `60`. Its room text reads "Shapes move in
+  the heat haze, some are mirages, some are not," so a fully lit oasis
+  would contradict its own description; `38` lands it in the shapes band
+  on purpose. `fort` still shares one sky fraction between its open yard
+  and its buried vault with no override yet: a real granularity gap, left
+  for a later plan.
+
+### The shipped biome vocabulary (plan 3b)
+
+Every room's `biome:` field names one of the biomes below (`biomes.go`
+loads each `_datafiles/world/dogmud/biomes/*.yaml` file). `skylight` is the
+sky attenuation fraction `SkyLightFraction()` applies (`0.0` blocks the sky
+entirely, `1.0` lets it straight through); `lamp`, where a biome sets one,
+is a flat light floor from `LampValue()`, independent of the sky. A biome
+with no listed lamp has none: its light is sky alone (plus whatever a
+carried light or the room adds).
+
+| Biome | skylight | lamp | Meaning |
+|---|---|---|---|
+| `sewer` | `0.0` | none | A brick vault under a city; no sky and no fixture of its own. Ships with New Plymouth Sewers |
+| `interior` | `0.15` | `50` | A built structure with its own light: a house, a wrecked ship's cabins, a temple's interior rooms, a crafting hall, an arena's vaulted chambers |
+| `dense_forest` | `0.25` | none | Canopy thick enough to matter, split out of `forest`'s rooms |
+| `plains` | `1.0` | none | Open grassland, fully open sky |
+| `river` | `1.0` | none | Flowing water, fully open sky |
+| `ether` | `0.0` | `60` | Outside the world; time-invariant. Character creation, the shadow realm, the planar oasis |
+| `spiderweb` | `0.0` | `45` | A web-choked lair. Declared before plan 3b but held zero rooms until this plan gave it the Foldweave |
+
+**`house` is deleted.** Plan 3b folded its rooms into `interior` along with
+every other room that was really an indoor space wearing an outdoor biome:
+the Crash Site's interior rooms (previously `cave`), the temple's interior
+rooms and `new_plymouth_crafting`'s rooms (both previously `city`), and
+`instance_arena`'s rooms (previously no biome at all, falling through to
+the synthetic default). `house.yaml` and its climate file no longer exist;
+a reference to either describes deleted content.
+
+**`GetVisibility()` and `legacyVisibility()` are GONE.** Plan 1 shipped
+`GetVisibility` as a call-through to the old three-value (0/1/2) model, kept
+as `legacyVisibility` while `LightLevel` bridged onto it with three fixed
+constants (`LightDark`/`LightRoomOnly`/`LightFull`). Plan 3a deleted all of
+it: `LightLevel` now composes light from the sky, lamp and carried
+sources directly, with no bridge and no three-value model underneath. If
+you find a reference to `GetVisibility`, `legacyVisibility`,
+`LightDark`, `LightRoomOnly` or `LightFull`, it describes deleted code.
+Every consumer, including `internal/messaging`'s `RoomVisibility`
+interface, reads `LightLevel()` (or `IsLit()` for a plain lit/dark
+question).
 
 ### Spawn Management (`spawninfo.go`)
 - **SpawnInfo**: Comprehensive mob and item spawning system
@@ -222,7 +279,7 @@ When writing hidden noun descriptions:
 |------|---------|
 | `rooms.go` | The `Room` type and its core behaviour |
 | `roommanager.go` | The room registry, load/unload, and lookup |
-| `lighting.go` | `Room.LightLevel()`, the three graded-scale constants, and `legacyVisibility()` |
+| `lighting.go` | `Room.LightLevel()`, `Room.IsLit()`, and the sky/lamp/mutator/carried-light composition |
 | `save_and_load.go` | Room YAML + instance-save persistence, `restoreSkipTaggedFields` |
 | `prose_wrap.go` | Re-folds long prose into wrapped `>` block scalars on template save |
 | `roomdetails.go` | Assembled per-look detail payload |
@@ -354,6 +411,7 @@ from `Exits`.
 - `internal/mutators`: Room effect modifiers
 - `internal/conditions`: Status effects in rooms
 - `internal/configs`: Configuration management
+- `internal/lightscale`: The graded light scale's combine/attenuate arithmetic
 - `internal/fileloader`: Data file loading system
 
 ## Usage Patterns

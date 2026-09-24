@@ -59,7 +59,7 @@ func seedParserTest(t *testing.T) (Scope, func()) {
 	room.AddMob(100)
 
 	cleanBiomes := rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"default": {BiomeId: "default", Name: "Default", Symbol: ".", LitArea: true, MovementCost: 1.0},
+		"default": {BiomeId: "default", Name: "Default", Symbol: ".", MovementCost: 1.0},
 	})
 
 	scope := Scope{User: u, Room: room}

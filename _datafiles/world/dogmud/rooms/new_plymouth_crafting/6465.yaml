@@ -13,7 +13,7 @@ description: >
   has nothing to do with the tannery-district's usual clutter.
   A single high window lets in a controlled measure of light.
   South, the Tannery's noise carries faintly through the wall.
-biome: city
+biome: interior
 station: enchanting_circle
 coord:
   x: -16

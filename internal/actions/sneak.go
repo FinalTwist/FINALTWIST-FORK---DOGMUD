@@ -72,10 +72,9 @@ func Sneak(actor Actor) SneakResult {
 
 	cfg := configs.GetBalanceConfig()
 	// The room's own light state is invariant across every occupant checked
-	// below, so it is computed once here (reusing the cfg already fetched
-	// above) rather than inside CalcSneakScoreVsObserver on every iteration
-	// of the player and mob loops.
-	roomLit := room.LightLevel() >= int(cfg.LightBlindBelow)
+	// below, so it is computed once here rather than inside
+	// CalcSneakScoreVsObserver on every iteration of the player and mob loops.
+	roomLit := room.IsLit()
 	cost := admitFullCost(actor, costs.ActionSneak, characters.PoolStamina,
 		float64(cfg.SneakBaseStaminaCost))
 	if cost.Status == characters.CostRefused {

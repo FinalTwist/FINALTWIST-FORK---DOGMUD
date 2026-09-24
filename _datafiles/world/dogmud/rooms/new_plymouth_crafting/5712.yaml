@@ -18,7 +18,7 @@ description: >
   arranged by some logic other than size or color. The
   room is functional; comfort has been adjusted around
   the work, not the reverse.
-biome: city
+biome: interior
 coord:
   x: -20
   y: 90

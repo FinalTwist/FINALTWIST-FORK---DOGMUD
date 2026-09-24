@@ -54,6 +54,9 @@ func TestCrossCastHeal_InfraredTargetReadsAFigure(t *testing.T) {
 func TestCrossCastHeal_LitRoomIsUnchanged(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
+	// Pins room 1 fully lit regardless of the ambient test round (see
+	// combat_blind_warning_test.go).
+	rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 	drainPlain(1)
 	drainPlain(2)
 

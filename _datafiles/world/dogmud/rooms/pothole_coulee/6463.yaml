@@ -9,7 +9,7 @@ description: >
   the knife. The smell of woodsmoke and rendered fat clings to
   everything this close to the strongbox wall, coin-guards and
   cook-fire sharing one patch of hard ground.
-biome: house
+biome: interior
 station: cooking_fire
 coord:
   x: 47

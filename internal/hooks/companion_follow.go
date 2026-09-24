@@ -2,14 +2,13 @@ package hooks
 
 import (
 	"fmt"
+	"github.com/GoMudEngine/GoMud/internal/targeting"
 
-	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/state"
-	"github.com/GoMudEngine/GoMud/internal/targeting"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -43,12 +42,6 @@ func CompanionSweepCallback(userId, destRoomId int) {
 // No-op when newRoomId == oldRoomId or owner is nil.
 func TransportCompanions(owner *users.UserRecord, oldRoomId, newRoomId int) {
 	if owner == nil || newRoomId == oldRoomId {
-		return
-	}
-
-	// A bonded companion stays put when its owner is moving in secret: a
-	// second set of footsteps is the one thing a sneak cannot afford.
-	if companionai.HoldPosition(owner.UserId) {
 		return
 	}
 

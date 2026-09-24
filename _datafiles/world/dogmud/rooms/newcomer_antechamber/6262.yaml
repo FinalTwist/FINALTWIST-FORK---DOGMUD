@@ -6,7 +6,7 @@ description: >
   of everyone who ever came through this way. At its center a straw effigy stands
   quiet on a fixed post, faceless but for two charcoal smudges where eyes might
   be. Dewey rolls both shoulders loose and nods you toward it.
-biome: default
+biome: ether
 exits:
   north:
     roomid: 6467

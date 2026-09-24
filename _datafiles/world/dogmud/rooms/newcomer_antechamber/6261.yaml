@@ -6,7 +6,7 @@ description: >
   of wind, the clatter of a living world going about its business somewhere past
   the grey. A ragged doorway of brighter light hangs in the air, and through it
   you catch half-glimpses of rooftops and open sky. Dewey stands easy beside it.
-biome: default
+biome: ether
 exits:
   north:
     roomid: 6262

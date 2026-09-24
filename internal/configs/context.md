@@ -668,38 +668,45 @@ special-move base instead. Physical rows add encumbrance, every row applies the
 inverse governing-skill term, and callers may supply a documented modifier.
 See the live config and validation code for tuning values.
 
-### Graded room lighting (plans 1 and 2 of the graded lighting arc)
+### Graded room lighting (plans 1, 2 and 3a of the graded lighting arc)
 
-Four `ConfigInt` knobs, validated in their own file
-(`config.balance.lighting.go`) rather than folded into `validateMisc`,
-because plan 3 of the arc adds more knobs here (a dazzle threshold, ambient
-light by time of day). They define the bands
-`internal/messaging.ParticipantSight` reads against
-`internal/rooms.Room.LightLevel()`'s -100 to 100 scale. As of this
-writing, none of the four appears in `_datafiles/config.yaml`, so the
-shipped value is the Go default in every case.
+Twelve knobs, validated in their own file (`config.balance.lighting.go`)
+rather than folded into `validateMisc`, because the arc kept adding more
+here across plans: plan 1 shipped the three band thresholds, plan 2 added
+the vision-strength fallback, and plan 3a added the eight knobs that turn
+the sky itself into a solar and lunar model. None of the twelve appears in
+`_datafiles/config.yaml`, so the shipped value is the Go default in every
+case.
 
-| Knob | Default | Effect |
-|------|---------|--------|
-| `LightBlindBelow` | 25 | Below this, a normal observer is blind. |
-| `LightDimBelow` | 50 | Below this, a normal observer reads shapes only. |
-| `LightExitsAbove` | 65 | At or above this, exits into adjacent rooms are visible. |
-| `LightDefaultVisionStrength` | 12 | Window shift (`internal/messaging.SightThroughWindow`'s `strength`) for a vision flag that declares no strength of its own. Plan 2. |
+| Knob | Type | Default | Effect |
+|------|------|---------|--------|
+| `LightBlindBelow` | ConfigInt | 25 | Below this, a normal observer is blind. |
+| `LightDimBelow` | ConfigInt | 50 | Below this, a normal observer reads shapes only. |
+| `LightExitsAbove` | ConfigInt | 65 | At or above this, exits into adjacent rooms are visible. |
+| `LightDefaultVisionStrength` | ConfigInt | 12 | Window shift (`internal/messaging.SightThroughWindow`'s `strength`) for a vision flag that declares no strength of its own. Plan 2. |
+| `LightDoublingStep` | ConfigFloat | 8 | Scale points per doubling of physical light; the one constant `internal/lightscale.Combine`/`Attenuate` take as `step`. Plan 3a. |
+| `WorldLatitude` | ConfigFloat | 46.5 | Degrees north; the world's ONLY seasonal input (declination, day length, sunrise, sunset, noon height all derive from it). Plan 3a. |
+| `LightEquinoxNoon` | ConfigFloat | 70 | Calibration anchor: the sky's light at noon on an equinox. Plan 3a. |
+| `LightStarlight` | ConfigFloat | 10 | Sky light with every moon new. Plan 3a. |
+| `LightMoonsFull` | ConfigFloat | 35 | Sky light with every moon full. Plan 3a. |
+| `LightMoonWeightSwiftmoon` | ConfigFloat | 4.0 | Swiftmoon's relative light at full. Plan 3a. |
+| `LightMoonWeightWanderer` | ConfigFloat | 1.0 | The Wanderer's relative light at full (the baseline). Plan 3a. |
+| `LightMoonWeightEye` | ConfigFloat | 0.5 | The Eye's relative light at full. Plan 3a. |
 
 `LightBlindBelow` and `LightDimBelow` validate as a PAIR, the
 `DarknessShapesCombatPenalty` precedent: an inverted or out-of-range pair
 reverts both to their defaults rather than leaving one knob correct and
 the other wrong. Zero is deliberately coerced rather than honoured for
-these two, unlike `SneakFailCooldown`'s honoured zero: zero is the value
-plan 1's `LightDark`/`LightRoomOnly`/`LightFull` mapping treats as
-canonical darkness, so an authored `LightBlindBelow: 0` would silently
-break that mapping. `LightExitsAbove` validates on its own range plus one
-cross-axis rule, that it must not sit below `LightBlindBelow`.
+these two, unlike `SneakFailCooldown`'s honoured zero. `LightExitsAbove`
+validates on its own range plus one cross-axis rule, that it must not sit
+below `LightBlindBelow`.
 
-`internal/rooms.LightDark` (0), `LightRoomOnly` (60) and `LightFull` (70)
-are load-bearing against these three defaults: if the defaults above ever
-move, those constants must be re-checked against the new values, or the
-behaviour-preservation guarantee plan 1 depends on silently breaks.
+⚠️ **`internal/rooms.LightDark`/`LightRoomOnly`/`LightFull` are GONE.** Plan
+1 shipped them as a bridge from the old three-value visibility model onto
+the graded scale; plan 3a deleted them along with `legacyVisibility()`
+once `Room.LightLevel()` composed light from the sky, a lamp and carried
+light directly. A stale copy of this file once called them "load-bearing
+against these defaults"; they are not consulted anywhere any more.
 
 `LightDefaultVisionStrength` (plan 2) clamps to `[0, 24]` first, then zero
 (whether authored directly or reached by clamping a negative) defaults to
@@ -712,6 +719,36 @@ with it. A value above 24 clamps down to it rather than reverting to the
 default, honouring the operator's intent (a strong shift) at the strongest
 the window model can express, the same way `LightExitsAbove` clamps rather
 than reverts for its own out-of-range case above.
+
+`LightDoublingStep` coerces any non-positive value to 8 rather than
+honouring it: zero divides by zero inside `internal/lightscale.Combine`.
+`WorldLatitude` treats zero as UNSET and coerces it to 46.5, the same idiom
+as `LightDefaultVisionStrength`, because Go cannot distinguish an unset
+float from an authored zero and none of these knobs ship in
+`_datafiles/config.yaml` today: a bare `Balance{}` is what production
+actually runs on. Honouring zero would have shipped a world with no
+latitude at all, no seasons, and the celestial model never reached. An
+operator wanting equator-like twelve-hour nights all year authors a
+latitude near zero (e.g. `0.001`), not exactly zero. `LightEquinoxNoon`
+also coerces zero, on the same "unset, not a legitimate dark noon"
+reasoning. `LightStarlight`/`LightMoonsFull` validate as a pair, the
+`LightBlindBelow`/`LightDimBelow` precedent again: starlight at or above
+the full-moon value would make a full moon read darker than a new one, so
+an invalid pair reverts both. The three moon weights floor negative values
+at zero, and if all three land at zero (no span at all for the moon curve)
+the whole trio reverts to its defaults.
+
+**`GetLightingConfig() Lighting`** (`config.lighting_accessor.go`) exists
+because `GetBalanceConfig()` copies the entire 424-field `Balance` struct
+under two read locks to answer a question about one int: measured at 99.75
+ns against 8.23 ns for the much smaller `GetTimingConfig()`. Fifteen call
+sites were paying that copy, and `Room.LightLevel()` is called from a
+per-round loop, so the cost was not incidental. `GetLightingConfig` reads
+only the twelve knobs above into a small `Lighting` struct; the knobs stay
+declared on `Balance` (the yaml schema is unchanged), only the read path is
+narrowed. `internal/gametime`'s `SunLight`, `MoonLight` and
+`CelestialLight`, and `internal/rooms`'s `Room.LightLevel()`/`IsLit()`, all
+read through this accessor rather than `GetBalanceConfig()`.
 
 ### Bleed stacks (conditions unification slice 1b)
 
@@ -762,7 +799,8 @@ Config is split one file per section, all assembled in `configs.go`.
 | `config.balance.shops.go` | Shop pricing and restock |
 | `config.balance.mobs.go` | Mob scaling |
 | `config.balance.discovery.go` | Discovery/offset mechanics |
-| `config.balance.lighting.go` | Graded room lighting thresholds |
+| `config.balance.lighting.go` | Graded room lighting thresholds, and the plan 3a solar/lunar knobs |
+| `config.lighting_accessor.go` | `Lighting` struct and `GetLightingConfig()`, a narrow read that avoids copying all of `Balance` |
 | `config.balance.misc.go` | Everything else in Balance |
 | `config.roles.go` | Role definitions |
 | `config.modules.go` | Per-module config bags |

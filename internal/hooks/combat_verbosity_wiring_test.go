@@ -137,6 +137,11 @@ func TestCombatVerbosityWiring(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
 		roundTallies = newCombatTallies()
+		// Pins room 1 fully lit regardless of the ambient test round (see
+		// combat_blind_warning_test.go). Harmless for the two dark-room
+		// lanes below, which move their combatants into room 2 and darken
+		// THAT room instead.
+		rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 
 		u := users.GetByUserId(1)
 		require.NotNil(t, u)
@@ -158,6 +163,11 @@ func TestCombatVerbosityWiring(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
 		roundTallies = newCombatTallies()
+		// Pins room 1 fully lit regardless of the ambient test round (see
+		// combat_blind_warning_test.go). Harmless for the two dark-room
+		// lanes below, which move their combatants into room 2 and darken
+		// THAT room instead.
+		rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 
 		u := users.GetByUserId(1)
 		require.NotNil(t, u)
@@ -179,6 +189,11 @@ func TestCombatVerbosityWiring(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
 		roundTallies = newCombatTallies()
+		// Pins room 1 fully lit regardless of the ambient test round (see
+		// combat_blind_warning_test.go). Harmless for the two dark-room
+		// lanes below, which move their combatants into room 2 and darken
+		// THAT room instead.
+		rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 
 		u := users.GetByUserId(1)
 		require.NotNil(t, u)
@@ -203,6 +218,11 @@ func TestCombatVerbosityWiring(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
 		roundTallies = newCombatTallies()
+		// Pins room 1 fully lit regardless of the ambient test round (see
+		// combat_blind_warning_test.go). Harmless for the two dark-room
+		// lanes below, which move their combatants into room 2 and darken
+		// THAT room instead.
+		rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 
 		u := users.GetByUserId(1)
 		require.NotNil(t, u)
@@ -236,6 +256,11 @@ func TestCombatVerbosityWiring(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
 		roundTallies = newCombatTallies()
+		// Pins room 1 fully lit regardless of the ambient test round (see
+		// combat_blind_warning_test.go). Harmless for the two dark-room
+		// lanes below, which move their combatants into room 2 and darken
+		// THAT room instead.
+		rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 
 		spectator := users.GetByUserId(2)
 		require.NotNil(t, spectator)
@@ -263,6 +288,11 @@ func TestCombatVerbosityWiring(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
 		roundTallies = newCombatTallies()
+		// Pins room 1 fully lit regardless of the ambient test round (see
+		// combat_blind_warning_test.go). Harmless for the two dark-room
+		// lanes below, which move their combatants into room 2 and darken
+		// THAT room instead.
+		rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 
 		spectator := users.GetByUserId(2)
 		require.NotNil(t, spectator)
@@ -301,6 +331,11 @@ func TestCombatVerbosityWiring(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
 		roundTallies = newCombatTallies()
+		// Pins room 1 fully lit regardless of the ambient test round (see
+		// combat_blind_warning_test.go). Harmless for the two dark-room
+		// lanes below, which move their combatants into room 2 and darken
+		// THAT room instead.
+		rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 
 		u := users.GetByUserId(1)
 		require.NotNil(t, u)
@@ -327,13 +362,18 @@ func TestCombatVerbosityWiring(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
 		roundTallies = newCombatTallies()
+		// Pins room 1 fully lit regardless of the ambient test round (see
+		// combat_blind_warning_test.go). Harmless for the two dark-room
+		// lanes below, which move their combatants into room 2 and darken
+		// THAT room instead.
+		rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 
 		spectator := users.GetByUserId(2)
 		require.NotNil(t, spectator)
 		spectator.CombatVerbosity = "medium" // → effective light tier
 
-		// Make room 2 dark by setting the cave biome (DarkArea:true →
-		// LightLevel() == LightDark → CanSeeClearly returns false).
+		// Make room 2 dark by setting the cave biome (SkyLight 0.0 →
+		// LightLevel() == 0 → CanSeeClearly returns false).
 		room1 := rooms.LoadRoom(1)
 		room2 := rooms.LoadRoom(2)
 		require.NotNil(t, room1)
@@ -372,6 +412,11 @@ func TestCombatVerbosityWiring(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
 		roundTallies = newCombatTallies()
+		// Pins room 1 fully lit regardless of the ambient test round (see
+		// combat_blind_warning_test.go). Harmless for the two dark-room
+		// lanes below, which move their combatants into room 2 and darken
+		// THAT room instead.
+		rooms.LoadRoom(1).Lamp = rooms.LampPtr(90)
 
 		u1 := users.GetByUserId(1)
 		require.NotNil(t, u1)

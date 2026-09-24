@@ -1,0 +1,10 @@
+biomeid: dense_forest
+name: Dense Forest
+symbol: ♠
+description: Old timber grown close, where the canopy closes over and the
+  ground stays dim even at midday. Deeper and darker than ordinary woodland.
+skylight: 0.25
+requireditemid: 0
+usesitem: false
+burns: true
+movementcost: 1.0

@@ -21,13 +21,26 @@ import (
 var updateLightingParity = flag.Bool("update-lighting-parity", false,
 	"re-record testdata/lighting_parity.golden")
 
-// TestLightingParityAcrossEveryShippedRoom is the behaviour-preservation
+// TestLightingParityAcrossEveryShippedRoom was the behaviour-preservation
 // proof for graded lighting plan 1. It records, for every shipped room, what
 // each kind of observer can see and whether exits are visible.
 //
-// It is recorded against the UNMODIFIED tree and must come back byte
-// identical after the scale swap. A golden recorded after the change would
-// prove nothing, which is why Task 1 comes first.
+// 🔴 RETIRED as of plan 3a Task 10. It was recorded against the unmodified
+// tree and had to come back byte identical through plans 1 and 2, because
+// those plans only swapped the SCALE the old three-value model reported on,
+// not what any room actually showed a player. Plan 3a is the opposite: it
+// deliberately changes what is lit, replacing legacyVisibility with sun,
+// moons, season and a per-biome sky fraction. There is no "unmodified tree"
+// left to preserve, so this file is re-recorded here as the POST-change
+// state, not diffed against a pre-change one.
+//
+// testdata/lighting_daycycle.golden (lighting_daycycle_golden_test.go) is now
+// the guard for lighting behaviour: it is explicitly allowed to move, but
+// only with its diff's shape proven first (see that test's own failure
+// message). This file remains useful as a snapshot of what every room shows
+// every kind of observer today, and still catches an accidental change
+// between two runs of an unrelated PR, but a change here is no longer, on its
+// own, evidence of a defect.
 //
 // The four observer kinds are the ones ParticipantSight actually branches on
 // (internal/messaging/predicates.go:51-68): an ordinary character, one
@@ -155,9 +168,14 @@ func TestLightingParityAcrossEveryShippedRoom(t *testing.T) {
 	if b.String() != string(want) {
 		pos, ctxWant, ctxGot := firstDiffContext(string(want), b.String())
 		t.Fatalf(
-			"lighting parity changed (first difference at byte %d). This plan is behaviour preserving, so a diff here is a DEFECT, not something to re-record.\n\n"+
+			"lighting parity changed (first difference at byte %d).\n\n"+
+				"This golden's behaviour-preservation guarantee was RETIRED at plan 3a Task 10 "+
+				"(see this test's doc comment): it is now a snapshot, not a never-move guard. "+
+				"The actual guard is testdata/lighting_daycycle.golden, whose own failure message "+
+				"explains what to prove before re-recording IT. If daycycle's diff shape is already "+
+				"proven and accepted, this file re-records freely.\n\n"+
 				"want context:\n%s\n\ngot context:\n%s\n\n"+
-				"If this change is genuinely intended, re-record with:\n"+
+				"Re-record with:\n"+
 				"  go test . -run TestLightingParityAcrossEveryShippedRoom -update-lighting-parity -v",
 			pos, ctxWant, ctxGot,
 		)

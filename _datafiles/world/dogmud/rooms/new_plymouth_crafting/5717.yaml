@@ -18,7 +18,7 @@ description: >
   district continues in that direction — its smell
   rides over on any wind shift and tells you the trade
   is bigger than this one building.
-biome: city
+biome: interior
 coord:
   x: -16
   y: 90

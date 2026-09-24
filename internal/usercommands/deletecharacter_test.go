@@ -9,11 +9,10 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-// defaultBiome returns a minimal lit biome suitable for test rooms.
+// defaultBiome returns a minimal open-sky biome suitable for test rooms.
 var defaultBiome = &rooms.BiomeInfo{
 	BiomeId: "default",
 	Name:    "Default",
-	LitArea: true,
 }
 
 // seedDefaultBiome seeds the rooms biome registry with a single default entry

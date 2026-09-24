@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -111,13 +110,6 @@ func Companion(rest string, user *users.UserRecord,
 
 	// ── Form 4: rename companion ─────────────────────────────────────────────
 	if renameNick != "" {
-		// A bonded companion already has a name of its own.
-		if comp.SourceType == characters.CompanionBonded {
-			user.SendText(messaging.CategorySystem, fmt.Sprintf(
-				`<ansi fg="mobname">%s</ansi> already has a name.`, comp.Name,
-			))
-			return true, nil
-		}
 		if err := validateCompanionName(renameNick); err != nil {
 			user.SendText(messaging.CategorySystem, err.Error())
 			return true, nil

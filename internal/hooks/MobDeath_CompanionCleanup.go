@@ -3,7 +3,6 @@ package hooks
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -26,12 +25,6 @@ func CompanionCleanup(e events.Event) events.ListenerReturn {
 		comp := user.Character.GetCompanionByInstanceId(evt.InstanceId)
 		if comp == nil {
 			continue
-		}
-
-		// A bonded companion recovers from death; its record is kept.
-		if comp.SourceType == characters.CompanionBonded {
-			bondedCompanionFell(user, comp, evt.InstanceId)
-			break
 		}
 
 		// We found the owner. Remove the companion from the list.

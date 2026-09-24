@@ -20,7 +20,7 @@ description: >
   its neighbors. The stacks lie to the east; a
   northern passage leads to a door that does not
   open.
-biome: city
+biome: interior
 coord:
   x: -5
   y: 91

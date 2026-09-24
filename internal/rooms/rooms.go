@@ -76,41 +76,55 @@ type HiddenNoun struct {
 
 type Room struct {
 	//mutex
-	RoomId            int                               `yaml:"roomid" instance:"skip"`                    // a unique numeric index of the room. Also the filename.
-	Zone              string                            `yaml:"zone" instance:"skip"`                      // zone is a way to partition rooms into groups. Also into folders.
-	MusicFile         string                            `yaml:"musicfile,omitempty" instance:"skip"`       // background music to play when in this room
-	IsBank            bool                              `yaml:"isbank,omitempty" instance:"skip"`          // Is this a bank room? If so, players can deposit/withdraw gold here.
-	IsStorage         bool                              `yaml:"isstorage,omitempty" instance:"skip"`       // Is this a storage room? If so, players can add/remove objects here.
-	StorageCapacity   int                               `yaml:"storagecapacity,omitempty" instance:"skip"` // Max items in storage (0 = default 20)
-	IsCharacterRoom   bool                              `yaml:"ischaracterroom,omitempty" instance:"skip"` // Is this a room where characters can create new characters to swap between them?
-	Title             string                            `yaml:"title" instance:"skip"`                     // Title shown to the user
-	Description       string                            `yaml:"description" instance:"skip"`               // Description shown to the user
-	MapSymbol         string                            `yaml:"mapsymbol,omitempty" instance:"skip"`       // The symbol to use when generating a map of the zone
-	MapLegend         string                            `yaml:"maplegend,omitempty" instance:"skip"`       // The text to display in the legend for this room. Should be one word.
-	Biome             string                            `yaml:"biome,omitempty" instance:"skip"`           // The biome of the room. Used for weather generation.
-	X                 int                               `yaml:"x,omitempty" instance:"skip"`               // authored grid coordinate within Plane
-	Y                 int                               `yaml:"y,omitempty" instance:"skip"`               // authored grid coordinate within Plane (engine frame: north = y-1)
-	Z                 int                               `yaml:"z,omitempty" instance:"skip"`               // vertical level (up = z+1, down = z-1)
-	Plane             int                               `yaml:"plane,omitempty" instance:"skip"`           // coordinate-space id; 0 = overworld
-	Containers        map[string]Container              `yaml:"containers,omitempty"`                      // If this room has a chest, what is in it?
-	Exits             map[string]exit.RoomExit          `yaml:"exits" instance:"skip"`                     // Exits to other rooms
-	DefusedExits      []string                          `yaml:"defusedexits,omitempty,flow"`               // Exit names whose lock traps a player has disarmed. Instance-persisted; see MarkExitTrapDefused.
-	ExitsTemp         map[string]exit.TemporaryRoomExit `yaml:"-"`                                         // Temporary exits that will be removed after a certain time. Don't bother saving on sever shutting down.
-	Nouns             map[string]string                 `yaml:"nouns,omitempty" instance:"skip"`           // Interesting nouns to highlight in the room or reveal on succesful searches.
-	HiddenNouns       map[string]HiddenNoun             `yaml:"hidden_nouns,omitempty" instance:"skip"`    // Nouns invisible until discovered via search.
-	Items             []items.Item                      `yaml:"items,omitempty"`                           // Items on the floor
-	Stash             []items.Item                      `yaml:"stash,omitempty"`                           // list of items in the room that are not visible to players
-	Corpses           []Corpse                          `yaml:"-"`                                         // Any corpses laying around from recent deaths
-	Gold              int                               `yaml:"gold,omitempty"`                            // How much gold is on the ground?
-	SpawnInfo         []SpawnInfo                       `yaml:"spawninfo,omitempty" instance:"skip"`       // key is creature ID, value is spawn chance
-	Signs             []Sign                            `yaml:"sign,omitempty"`                            // list of scribbles in the room
-	IdleMessages      []string                          `yaml:"idlemessages,omitempty" instance:"skip"`    // list of messages that can be displayed to players in the room
-	LastIdleMessage   uint8                             `yaml:"-"`                                         // index of the last idle message displayed
-	LongTermDataStore map[string]any                    `yaml:"longtermdatastore,omitempty"`               // Long term data store for the room
-	Mutators          mutators.MutatorList              `yaml:"mutators,omitempty"`                        // mutators this room spawns with.
-	Pvp               bool                              `yaml:"pvp,omitempty" instance:"skip"`             // if config pvp is set to `limited`, uses this value
-	Station           string                            `yaml:"station,omitempty" instance:"skip"`         // Crafting station type present in this room (Stage 13.1)
-	SealedCrate       *sealedcrate.Crate                `yaml:"-"`                                         // Player-untouchable delivery crate; populated at boot from _datafiles/world/dogmud/crates/<roomid>-*.yaml. Nil for rooms with no crate.
+	RoomId          int    `yaml:"roomid" instance:"skip"`                    // a unique numeric index of the room. Also the filename.
+	Zone            string `yaml:"zone" instance:"skip"`                      // zone is a way to partition rooms into groups. Also into folders.
+	MusicFile       string `yaml:"musicfile,omitempty" instance:"skip"`       // background music to play when in this room
+	IsBank          bool   `yaml:"isbank,omitempty" instance:"skip"`          // Is this a bank room? If so, players can deposit/withdraw gold here.
+	IsStorage       bool   `yaml:"isstorage,omitempty" instance:"skip"`       // Is this a storage room? If so, players can add/remove objects here.
+	StorageCapacity int    `yaml:"storagecapacity,omitempty" instance:"skip"` // Max items in storage (0 = default 20)
+	IsCharacterRoom bool   `yaml:"ischaracterroom,omitempty" instance:"skip"` // Is this a room where characters can create new characters to swap between them?
+	Title           string `yaml:"title" instance:"skip"`                     // Title shown to the user
+	Description     string `yaml:"description" instance:"skip"`               // Description shown to the user
+	MapSymbol       string `yaml:"mapsymbol,omitempty" instance:"skip"`       // The symbol to use when generating a map of the zone
+	MapLegend       string `yaml:"maplegend,omitempty" instance:"skip"`       // The text to display in the legend for this room. Should be one word.
+	Biome           string `yaml:"biome,omitempty" instance:"skip"`           // The biome of the room. Used for weather generation.
+	// SkyLight and Lamp override this room's biome defaults. Both are
+	// pointers, and nil means "use the biome", which is distinct from an
+	// authored zero.
+	//
+	// 🔑 These exist because a biome is not always granular enough. `fort`
+	// holds both the open Training Yard and the buried Tower Base, and
+	// `new_plymouth_sewers` is a brick vault lit by one drain-cap. Splitting
+	// a biome for every such room would multiply the weather prose classes
+	// that key on biome name; an override does not.
+	//
+	// They carry instance:"skip" to match Biome: an ephemeral instance of a
+	// room inherits its template's lighting rather than persisting its own.
+	SkyLight          *float64                          `yaml:"skylight,omitempty" instance:"skip"`
+	Lamp              *int                              `yaml:"lamp,omitempty" instance:"skip"`
+	X                 int                               `yaml:"x,omitempty" instance:"skip"`            // authored grid coordinate within Plane
+	Y                 int                               `yaml:"y,omitempty" instance:"skip"`            // authored grid coordinate within Plane (engine frame: north = y-1)
+	Z                 int                               `yaml:"z,omitempty" instance:"skip"`            // vertical level (up = z+1, down = z-1)
+	Plane             int                               `yaml:"plane,omitempty" instance:"skip"`        // coordinate-space id; 0 = overworld
+	Containers        map[string]Container              `yaml:"containers,omitempty"`                   // If this room has a chest, what is in it?
+	Exits             map[string]exit.RoomExit          `yaml:"exits" instance:"skip"`                  // Exits to other rooms
+	DefusedExits      []string                          `yaml:"defusedexits,omitempty,flow"`            // Exit names whose lock traps a player has disarmed. Instance-persisted; see MarkExitTrapDefused.
+	ExitsTemp         map[string]exit.TemporaryRoomExit `yaml:"-"`                                      // Temporary exits that will be removed after a certain time. Don't bother saving on sever shutting down.
+	Nouns             map[string]string                 `yaml:"nouns,omitempty" instance:"skip"`        // Interesting nouns to highlight in the room or reveal on succesful searches.
+	HiddenNouns       map[string]HiddenNoun             `yaml:"hidden_nouns,omitempty" instance:"skip"` // Nouns invisible until discovered via search.
+	Items             []items.Item                      `yaml:"items,omitempty"`                        // Items on the floor
+	Stash             []items.Item                      `yaml:"stash,omitempty"`                        // list of items in the room that are not visible to players
+	Corpses           []Corpse                          `yaml:"-"`                                      // Any corpses laying around from recent deaths
+	Gold              int                               `yaml:"gold,omitempty"`                         // How much gold is on the ground?
+	SpawnInfo         []SpawnInfo                       `yaml:"spawninfo,omitempty" instance:"skip"`    // key is creature ID, value is spawn chance
+	Signs             []Sign                            `yaml:"sign,omitempty"`                         // list of scribbles in the room
+	IdleMessages      []string                          `yaml:"idlemessages,omitempty" instance:"skip"` // list of messages that can be displayed to players in the room
+	LastIdleMessage   uint8                             `yaml:"-"`                                      // index of the last idle message displayed
+	LongTermDataStore map[string]any                    `yaml:"longtermdatastore,omitempty"`            // Long term data store for the room
+	Mutators          mutators.MutatorList              `yaml:"mutators,omitempty"`                     // mutators this room spawns with.
+	Pvp               bool                              `yaml:"pvp,omitempty" instance:"skip"`          // if config pvp is set to `limited`, uses this value
+	Station           string                            `yaml:"station,omitempty" instance:"skip"`      // Crafting station type present in this room (Stage 13.1)
+	SealedCrate       *sealedcrate.Crate                `yaml:"-"`                                      // Player-untouchable delivery crate; populated at boot from _datafiles/world/dogmud/crates/<roomid>-*.yaml. Nil for rooms with no crate.
 	// Unexported/private
 	players       []int                          // list of user IDs currently in the room
 	mobs          []int                          // list of mob instance IDs currently in the room. Does not get saved.
@@ -302,14 +316,14 @@ func (r *Room) SendTextVisualAsLitHidingNames(cat messaging.Category, txt string
 	r.sendTextVisualJudgedBy(litRoom{}, cat, txt, names, excludeUserIds...)
 }
 
-// litRoom is a messaging.RoomVisibility that always reports the graded
-// light level LightRoomOnly (internal/rooms/lighting.go). Any light source
-// lifts a room to at least that level (the old model's visibility 1), which
-// already sits at or above LightDimBelow, so ParticipantSight reads it as
-// SightFull.
+// litRoom is a messaging.RoomVisibility test stand-in that always reports a
+// lit room. 60 is not a scale constant (LightLevel now computes a continuous
+// value; there is no fixed point to name), it is simply a value that sits at
+// or above LightDimBelow (default 50) and below LightExitsAbove (default 65),
+// so ParticipantSight reads it as SightFull for the room itself.
 type litRoom struct{}
 
-func (litRoom) LightLevel() int { return LightRoomOnly }
+func (litRoom) LightLevel() int { return 60 }
 
 // sendTextVisualJudgedBy is SendTextVisual with the lighting it judges sight
 // against passed in, so SendTextVisualAsLit shares one delivery path. names,

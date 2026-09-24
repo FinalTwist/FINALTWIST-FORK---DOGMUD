@@ -33,7 +33,7 @@ Server:
   # - MudName -
   #   Display name of the MUD.
   #   This will be used a few places by default (such as the web pages).
-  MudName: "Delusions Forked"
+  MudName: "Delusions of Grandeur"
   # - MSSP -
   #   MUD Server Status Protocol (telnet option 70). Lets directory sites read
   #   live player count, uptime, world size, and features. Hostname/Port are
@@ -2056,7 +2056,7 @@ Network:
   #   container on 0.0.0.0:80 (up since 2026-07-30), so a DOGMud server set
   #   to 80 loses the bind and boots with NO web listener. The droplet's own
   #   config (not this file — skip-worktree) owns the prod value.
-  HttpPort: 8090
+  HttpPort: 80
   # - HttpsPort -
   #   The port the server listens on for web requests
   #   Note: Must have a cert/key file (See FilePaths)

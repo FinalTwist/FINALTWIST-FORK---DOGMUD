@@ -74,8 +74,14 @@ func newWeakChar() *characters.Character {
 }
 
 // newTestRoom creates a minimal room suitable for item / gold operations.
+//
+// Lamp pins it fully lit regardless of the ambient test round. Since graded
+// lighting plan 3a Task 8, Room.LightLevel() reads the real celestial term
+// at whatever round util.GetRoundCount() holds, which a bare unpinned round
+// reads as shapes tier, not full. No caller of this helper darkens the room
+// afterward, so this is safe for all of them.
 func newTestRoom() *rooms.Room {
-	return &rooms.Room{}
+	return &rooms.Room{Lamp: rooms.LampPtr(90)}
 }
 
 // ---------------------------------------------------------------------------

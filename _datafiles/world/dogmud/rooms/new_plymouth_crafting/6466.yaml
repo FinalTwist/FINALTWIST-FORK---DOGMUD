@@ -12,7 +12,7 @@ description: >
   velvet display cloth lies folded at the bench's corner,
   ready to be unrolled for a customer's inspection. The stair
   down returns to the Tannery floor below.
-biome: city
+biome: interior
 station: jeweler_bench
 coord:
   x: -16

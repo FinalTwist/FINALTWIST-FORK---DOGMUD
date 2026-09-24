@@ -11,7 +11,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
-	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -923,9 +922,6 @@ func applyMobEffect(user *users.UserRecord, casterChar *characters.Character, mo
 	case "condition":
 		return applyMobEffect_condition(user, casterChar, mob, room, spellData, out, critTag, mName)
 	case "heal":
-		if user != nil {
-			events.AddToQueue(events.Healed{HealerUserId: user.UserId, MobInstanceId: mob.InstanceId})
-		}
 		return applyMobEffect_heal(casterChar, mob, room, spellData, magnitude, mName)
 	case "charm":
 		// Charm resolves HERE, off the contest this cast already ran, rather

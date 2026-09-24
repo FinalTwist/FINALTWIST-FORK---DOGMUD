@@ -1,5 +1,47 @@
 # DOGMud Patch Notes
 
+## 2026-09-23: The night now follows the season and the moon
+
+Until now, night fell the same way every day of the year, and moonlight made
+no real difference to what you could see outdoors. Both of those are gone.
+
+Nights grow long in the cold months and short in the warm ones, the way real
+nights do. Watch the sky rather than the clock. How dark a given night gets
+depends on the season as much as the hour.
+
+Moonlight now matters outdoors. Walk open country under a bright, full sky
+and you can still find your footing and read the road ahead. Walk the same
+ground under a moonless sky and you will see very little, feeling your way
+more than seeing it.
+
+Not every place goes dark the same way. Forests and swamps hold onto shadow
+that open fields and roads do not, so a moonlit night that feels safe out in
+the open can turn truly black under the trees. Caves keep a darkness of their
+own kind entirely: most show you nothing at all without a light source of
+your own, whatever the sky above them is doing.
+
+Towns are the exception, though not a complete one. Lamps and lit windows
+keep the streets passable all night, so you will not be left groping in a
+city the way you would be in open country. What that light will not do is
+show you a face. After dark you may well see that someone is standing there,
+and still not be able to say who they are.
+
+## 2026-09-23: Deep woods, sewers and a spider's lair
+
+Not every stretch of forest lets the same light through. Deep inside the
+thickest stands of trees, in the heart of winter, the canopy blocks enough
+of even a bright midday sun that you are left picking out shapes rather than
+clear detail. Lighter woods, and the brighter half of the year, still let
+plenty of light down.
+
+The sewers beneath New Plymouth have gone properly dark. Once you could make
+out at least the outline of the passage down there; now you see nothing at
+all, day or night.
+
+The web-choked lair deep in the Foldweave has changed as well. Where you
+could once make out a face clearly, you will now only catch a shape moving
+in the gloom.
+
 ## 2026-09-22: Seeing in the dark now has a price
 
 Abilities and potions that let you see in the dark used to have no limit. Strong

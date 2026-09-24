@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
-	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
@@ -44,14 +43,6 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
 	// emotes. The schedule executor and damage/wake events own the wake
 	// transition — not this idle handler.
 	if mob.Character.HasConditionFlag(conditions.Sleeping) {
-		return events.Continue
-	}
-
-	// A bonded AI companion's idle time belongs to the aicompanion module:
-	// the default idle behaviour (floor-loot grabs, behaviour-tree idle,
-	// canned emotes) would fight the choices it makes. The module keeps the
-	// charmed first-aid behaviour itself.
-	if companionai.RouteIdle(mob.InstanceId) {
 		return events.Continue
 	}
 
@@ -121,7 +112,7 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
 					mob.Character.Name)
 			}
 			// Visual text — suppress in dark rooms except for nightvision
-			if room.LightLevel() < int(configs.GetBalanceConfig().LightBlindBelow) {
+			if !room.IsLit() {
 				for _, uid := range room.GetPlayers() {
 					u := users.GetByUserId(uid)
 					if u != nil && u.Character.HasFlagFromAnySource(conditions.NightVision) {

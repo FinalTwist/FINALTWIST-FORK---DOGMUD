@@ -21,7 +21,7 @@ description: >
   of it. A small
   <ansi fg="itemname">hostel-window</ansi> looks
   out over the courtyard below.
-biome: city
+biome: interior
 coord:
   x: -6
   y: 92

@@ -142,6 +142,7 @@ func getRangedTestMobAndRoom(t *testing.T) (*mobs.Mob, *rooms.Room) {
 	require.NotNil(t, mob)
 	room := rooms.LoadRoom(mob.Character.RoomId)
 	require.NotNil(t, room)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	return mob, room
 }
 
@@ -161,6 +162,7 @@ func TestShoot_UnloadedWeapon_NoDamage(t *testing.T) {
 	isolateOpinions(t)
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	user.Character.Stats.Perception.ValueAdj = 300
 	equipBow(user.Character, false) // unloaded
 
@@ -187,6 +189,7 @@ func TestShoot_SameRoomLoaded_DamageAndAggro(t *testing.T) {
 	isolateOpinions(t)
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	user.Character.Stats.Perception.ValueAdj = 300
 	user.Character.Stats.Strength.ValueAdj = 1
 	equipBow(user.Character, true)
@@ -224,6 +227,7 @@ func TestShoot_CrossRoomLoaded_NoShooterAggro_MobPursues(t *testing.T) {
 	isolateOpinions(t)
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	user.Character.Stats.Perception.ValueAdj = 300
 	user.Character.Stats.Strength.ValueAdj = 1
 	user.Character.EndAggro()
@@ -248,6 +252,7 @@ func TestShoot_CrossRoomLoaded_NoShooterAggro_MobPursues(t *testing.T) {
 	defer mobs.SetInstanceForTest(400, nil)
 	room2 := rooms.LoadRoom(2)
 	require.NotNil(t, room2)
+	room2.Lamp = rooms.LampPtr(90) // pin fully lit; the shot needs sight into the target's room
 	room2.AddMob(400)
 	defer room2.RemoveMob(400)
 
@@ -295,6 +300,7 @@ enemies: []
 	opinions.ClearCache()
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	user.Character.Stats.Perception.ValueAdj = 300
 	equipBow(user.Character, true)
 
@@ -345,6 +351,7 @@ func TestShoot_PvpDisabled_PreFireGate(t *testing.T) {
 	defer configs.AddOverlayOverrides(map[string]any{"GamePlay.PVP": "enabled"})
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	user.Character.Stats.Perception.ValueAdj = 300
 	user.Character.EndAggro()
 	equipBow(user.Character, true)
@@ -376,6 +383,7 @@ func TestShoot_OpeningShot_ChargesCombatRound(t *testing.T) {
 	isolateOpinions(t)
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	user.Character.Stats.Perception.ValueAdj = 300
 	user.Character.EndAggro()
 	equipBow(user.Character, true)
@@ -403,6 +411,7 @@ func TestShoot_RefusedNonCombatant_NoAggro(t *testing.T) {
 	isolateOpinions(t)
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	user.Character.Stats.Perception.ValueAdj = 300
 	user.Character.EndAggro()
 	equipBow(user.Character, true)
@@ -443,6 +452,7 @@ func TestShoot_SelfTarget_Blocked(t *testing.T) {
 	isolateOpinions(t)
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	user.Character.Stats.Perception.ValueAdj = 300
 	user.Character.EndAggro()
 	equipBow(user.Character, true)
@@ -462,6 +472,7 @@ func TestShoot_NoWeapon(t *testing.T) {
 	defer cleanup()
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90)                  // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	user.Character.Equipment.Weapon = items.Item{} // no weapon
 
 	handled, err := Fire("skeleton", user, room, 0)
@@ -493,6 +504,7 @@ func TestShootReload_PlayerAndMobWrappersShareMechanicalDeltas(t *testing.T) {
 		isolateOpinions(t)
 
 		user, room := getTestUserAndRoom(t)
+		room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 		prepareRangedCostCycle(user.Character, true, 50)
 		user.Character.EndAggro()
 		user.Character.Cooldowns = nil
@@ -571,6 +583,7 @@ func TestShootRefusal_PlayerAndMobWrappersAreAtomic(t *testing.T) {
 		isolateOpinions(t)
 
 		user, room := getTestUserAndRoom(t)
+		room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 		prepareRangedCostCycle(user.Character, true, 0)
 		user.Character.EndAggro()
 		user.Character.Cooldowns = characters.Cooldowns{"special-move": 3}

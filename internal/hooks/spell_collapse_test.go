@@ -242,6 +242,10 @@ func roomForCollapseTest(t *testing.T) *rooms.Room {
 	t.Helper()
 	room := rooms.LoadRoom(1)
 	require.NotNil(t, room)
+	// Pins room 1 fully lit regardless of the ambient test round (see
+	// combat_blind_warning_test.go). No caller of this helper darkens the
+	// room, so this is safe for all of them.
+	room.Lamp = rooms.LampPtr(90)
 	return room
 }
 

@@ -252,7 +252,7 @@ func TestAutoattackAffordableCostPreservesSkillSwingCountAndDamage(t *testing.T)
 func TestAutoattackShortCostPreservesProgressionAndMessagesOnlyPlayers(t *testing.T) {
 	pinAutoattackAdmissionBalance(t)
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"default": {BiomeId: "default", LitArea: true},
+		"default": {BiomeId: "default"},
 	}))
 	t.Cleanup(rooms.SeedRoomsForTest(map[int]*rooms.Room{
 		1: {RoomId: 1},

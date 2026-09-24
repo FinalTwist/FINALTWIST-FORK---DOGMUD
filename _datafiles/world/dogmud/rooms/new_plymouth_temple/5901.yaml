@@ -35,7 +35,7 @@ description: >
   altar passage opens to the east, the cloister
   walk to the north, and the bell tower to the
   south.
-biome: city
+biome: interior
 coord:
   x: -6
   y: 89

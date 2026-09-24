@@ -9,7 +9,7 @@ description: >
   lifts it clean. Shelves cut into the dirt walls hold jars of glowing
   shard-dust and coils of binding wire, all of it catching a faint,
   sourceless light that owes nothing to any lamp in the room.
-biome: house
+biome: interior
 station: enchanting_circle
 coord:
   x: 46

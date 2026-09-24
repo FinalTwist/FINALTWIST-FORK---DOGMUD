@@ -25,7 +25,6 @@ func init() {
 			BiomeId:      `default`,
 			Name:         `Default`,
 			Symbol:       `•`,
-			LitArea:      true,
 			Description:  `A default biome used in tests.`,
 			MovementCost: 1.0,
 		},

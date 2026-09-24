@@ -6,7 +6,7 @@ description: >
   something in for whoever comes next. A single smooth token rests in it, cool
   and pale, catching what little light there is. Dewey leans against nothing in
   particular nearby, watching with a small, easy grin.
-biome: default
+biome: ether
 exits:
   north:
     roomid: 6261

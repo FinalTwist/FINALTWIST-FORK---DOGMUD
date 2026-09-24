@@ -5,8 +5,13 @@ import (
 	"testing"
 )
 
-// Validates the shipped DOGMud climate profiles: all 17 biomes covered,
-// parseable, indoor biomes have zero spawn weight.
+// Validates the shipped DOGMud climate profiles: this fixed set of 16
+// biomes covered, parseable, indoor biomes have zero spawn weight.
+//
+// house is gone (folded into interior, plan 3b Task 4); this list is not
+// exhaustive over every shipped biome, so the six biomes plan 3b Task 3
+// added (sewer, interior, dense_forest, plains, river, ether) are not swept
+// here either.
 func TestShippedDogmudClimateProfiles(t *testing.T) {
 	fsys := os.DirFS("../../../_datafiles/world/dogmud")
 	climate, err := LoadClimate(fsys, "weather/climate")
@@ -16,7 +21,7 @@ func TestShippedDogmudClimateProfiles(t *testing.T) {
 
 	biomes := []string{"water", "shore", "cliffs", "desert", "snow", "mountains",
 		"swamp", "forest", "farmland", "land", "road", "city",
-		"cave", "dungeon", "house", "fort", "spiderweb"}
+		"cave", "dungeon", "fort", "spiderweb"}
 	for _, b := range biomes {
 		p, ok := climate[b]
 		if !ok {
@@ -28,7 +33,7 @@ func TestShippedDogmudClimateProfiles(t *testing.T) {
 		}
 	}
 
-	for _, indoor := range []string{"cave", "dungeon", "house", "fort", "spiderweb"} {
+	for _, indoor := range []string{"cave", "dungeon", "fort", "spiderweb"} {
 		if w := climate[indoor].SpawnWeight; w != 0 {
 			t.Errorf("%s: indoor biome must have spawnWeight 0, got %v", indoor, w)
 		}

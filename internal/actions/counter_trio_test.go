@@ -32,9 +32,13 @@ func counterTrioPlain(lines []string) []string {
 func counterTrioRoom(t *testing.T, biome string) *rooms.Room {
 	t.Helper()
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave":    {BiomeId: "cave", DarkArea: true},
-		"city":    {BiomeId: "city", LitArea: true},
-		"default": {BiomeId: "default", LitArea: true},
+		"cave": {BiomeId: "cave", SkyLight: rooms.SkyLightPtr(0.0)},
+		// Lamp pins "city" fully lit regardless of the ambient test round.
+		// Since graded lighting plan 3a Task 8, LightLevel() reads the real
+		// celestial term at whatever round util.GetRoundCount() holds, which
+		// a bare unpinned round reads as shapes tier, not full.
+		"city":    {BiomeId: "city", Lamp: rooms.LampPtr(90)},
+		"default": {BiomeId: "default"},
 	}))
 	// GRADED LIGHTING PLAN 2: a bare InfraredVision flag reads reach 0 by
 	// design (internal/characters/vision.go), so this fixture declares an

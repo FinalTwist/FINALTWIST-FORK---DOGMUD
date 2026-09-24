@@ -6,7 +6,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
-	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -73,7 +72,7 @@ func getAllMatchingFromFloor(user *users.UserRecord, room *rooms.Room, itemName 
 func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
 	// Can't pick things up if you can't see
-	if room.LightLevel() < int(configs.GetBalanceConfig().LightBlindBelow) && !user.Character.HasFlagFromAnySource(conditions.NightVision) {
+	if !room.IsLit() && !user.Character.HasFlagFromAnySource(conditions.NightVision) {
 		user.SendText(messaging.CategorySystem, "You can't see anything to pick up!")
 		return true, nil
 	}

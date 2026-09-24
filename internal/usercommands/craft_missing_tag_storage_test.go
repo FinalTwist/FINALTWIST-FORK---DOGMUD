@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/crafting"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/activity"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -88,6 +89,7 @@ func TestCraft_RefusalNamesWhatStorageCannotCover(t *testing.T) {
 	defer cleanup()
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	undo := registerCraftStorageRecipe(t, user)
 	defer undo()
 
@@ -118,6 +120,7 @@ func TestRecipeStatus_MissingRowNamesWhatStorageCannotCover(t *testing.T) {
 	defer cleanup()
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	undo := registerCraftStorageRecipe(t, user)
 	defer undo()
 
@@ -139,6 +142,7 @@ func TestRecipeStatus_StorageCompletableStaysReady(t *testing.T) {
 	defer cleanup()
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	undo := registerCraftStorageRecipe(t, user)
 	defer undo()
 
@@ -168,6 +172,7 @@ func TestEnsureComponentsFromStorage_LeavesABusyPlayersBankAlone(t *testing.T) {
 	defer cleanup()
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 	undo := registerCraftStorageRecipe(t, user)
 	defer undo()
 

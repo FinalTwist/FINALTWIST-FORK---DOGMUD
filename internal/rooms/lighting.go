@@ -1,111 +1,157 @@
 package rooms
 
 import (
+	"math"
+
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
+	"github.com/GoMudEngine/GoMud/internal/lightscale"
 )
 
-// Light levels on the graded scale. Plan 1 maps the previous three-value
-// visibility model onto exactly these three points, chosen so that every
-// shipped room keeps its current classification against every threshold
-// defined in internal/configs/config.balance.lighting.go:
+// LightLevel reports the room's light on the graded -100 to 100 scale.
 //
-//   - LightBlindBelow (default 25): below this a normal observer is blind.
-//   - LightDimBelow (default 50): below this an observer reads shapes only.
-//   - LightExitsAbove (default 65): at or above this, exits are visible.
+// Three terms compose it, all on one logarithmic operator:
 //
-// LightDark (0) sits below LightBlindBelow (0 < 25), so a dark room stays
-// blind. LightRoomOnly (60) sits at or above LightDimBelow but strictly
-// below LightExitsAbove (50 <= 60 < 65), so the room reads but its exits
-// do not. LightFull (70) sits at or above LightExitsAbove (70 >= 65), so
-// both the room and its exits read. Those three named knobs are config,
-// not Go constants, and can move; if their shipped defaults ever change,
-// these three constants must be re-checked against the new values, or the
-// mapping this plan depends on for behaviour preservation silently breaks.
+//  1. The sky, which is the celestial term attenuated by this room's sky
+//     fraction. A room with no sky receives no term at all, which is not the
+//     same as receiving a term of zero.
+//  2. The room's own lamp, if it has one, joining the combine rather than
+//     acting as a floor, so a lantern-lit tavern plus a carried torch does not
+//     double-count.
+//  3. Anyone in the room carrying a light.
 //
-// Later plans in this arc make the scale continuous. Nothing outside this
-// file should assume a room's light is one of these three values.
-const (
-	// LightDark is a room with no light at all. A normal observer is blind.
-	LightDark = 0
-	// LightRoomOnly is lit enough to see the room but not down an exit.
-	// It is what the old model called visibility 1.
-	LightRoomOnly = 60
-	// LightFull is lit enough to see the room and its exits. It is what the
-	// old model called visibility 2.
-	LightFull = 70
-)
-
-// LightLevel reports the room's light on the graded scale.
-//
-// Plan 1 deliberately computes this from the same inputs the old visibility
-// model used (legacyVisibility, below), then maps the result onto the three
-// constants above. The point of this plan is the SCALE and its consumers,
-// not new lighting behaviour, so a diff in what any room reports here is a
-// defect.
+// Weather and mutators attenuate the SKY only: a blizzard does not dim a
+// lantern. Plan 4 gives them a real occlusion fraction; until then the old
+// -2 to 2 LightMod vocabulary is bridged, one point per doubling step.
 func (r *Room) LightLevel() int {
-	switch r.legacyVisibility() {
-	case 0:
-		return LightDark
-	case 1:
-		return LightRoomOnly
-	default:
-		return LightFull
-	}
+	return r.lightLevel(configs.GetLightingConfig(), gametime.CelestialLight())
 }
 
-// legacyVisibility is the body of the room's old three-value visibility
-// accessor, moved here verbatim when that old accessor was still a
-// call-through to it. That accessor itself was deleted in Task 5 once
-// LightLevel and its callers took over, but this body stays, since
-// LightLevel still computes from it.
+// IsLit reports whether a normal observer can see anything at all here.
 //
-// 0 = none (darkness). 1 = can see this room. 2 = can see this room and all exits
-func (r *Room) legacyVisibility() int {
+// 🔑 This is the predicate plan 1's design promised and never built. Fifteen
+// call sites were hand-rolling `LightLevel() >= GetBalanceConfig().LightBlindBelow`,
+// each copying a 424-field struct (99.75 ns measured) to read one int. This
+// reads the narrow lighting config once.
+func (r *Room) IsLit() bool {
+	cfg := configs.GetLightingConfig()
+	return r.lightLevel(cfg, gametime.CelestialLight()) >= cfg.BlindBelow
+}
 
-	visibility := 2 // default to max visibility
-	// At night visibility decreases by one
-	if gametime.IsNight() {
-		visibility -= 1
+// lightLevel is LightLevel with its two reads injected, so it is testable
+// without global state and so a caller holding both can avoid reading twice.
+func (r *Room) lightLevel(cfg configs.Lighting, celestial float64) int {
+	lightMod, occlusionSteps := r.mutatorLightTerms()
+	return r.lightLevelWithMutatorBridge(cfg, celestial, lightMod, occlusionSteps)
+}
+
+// lightLevelWithMutatorBridge is the composition itself, with the mutator
+// contribution already summarised, so tests can drive it directly.
+//
+// lightMod is the total POSITIVE LightMod across active mutators, and
+// occlusionSteps the total NEGATIVE, expressed as doubling steps of sky removed.
+func (r *Room) lightLevelWithMutatorBridge(cfg configs.Lighting, celestial float64, lightMod, occlusionSteps int) int {
+	step := cfg.DoublingStep
+	if !(step > 0) {
+		step = 1
 	}
 
-	biome := r.GetBiome()
-	// First calculate natural lighting level for biome
-	if biome.IsDark() { // If a naturally dark biome (cave), minimize visibility
-		visibility -= 2
-		if visibility < 0 {
-			visibility = 0
-		}
-	} else if biome.IsLit() { // If the biome is naturally lit (streets with lanterns), increase visibility by one
-		visibility += 1
-		if visibility > 2 {
-			visibility = 2
-		}
+	terms := make([]float64, 0, 4)
+
+	// 1. The sky, attenuated by this room's fraction and then by any weather
+	// blocking it. Attenuate returns Absent for a fraction of zero, so a cave
+	// contributes no term rather than a term of zero.
+	sky := r.skyLightFraction()
+	if occlusionSteps > 0 {
+		sky *= math.Exp2(-float64(occlusionSteps))
+	}
+	terms = append(terms, lightscale.Attenuate(step, celestial, sky))
+
+	// 2. The room's own lamp.
+	if lamp, ok := r.lampValue(); ok {
+		terms = append(terms, float64(lamp))
 	}
 
-	// Apply any mutators
+	// 3. The positive LightMod bridge. A +1 mutator lands exactly on
+	// LightDimBelow and +2 one step above it, so the 31 Crash Site Interior
+	// rooms and 12 Foldweave rooms that a static `lightmod: 2` holds lit today
+	// stay fully visible. Plan 4 replaces this with an authored lamp value.
+	if lightMod > 0 {
+		terms = append(terms, float64(cfg.DimBelow)+float64(lightMod-1)*step)
+	}
+
+	// 4. Anyone carrying a light. Plan 5 gives carried sources real magnitudes
+	// that scale from stat and skill; until then any light source lifts the
+	// room to the bottom of the perfect band, which is what the old model's
+	// "someone has light, cancel the darkness" rule effectively did.
+	if len(r.GetMobs(FindHasLight)) > 0 || len(r.GetPlayers(FindHasLight)) > 0 {
+		terms = append(terms, float64(cfg.DimBelow))
+	}
+
+	v := lightscale.Combine(step, terms...)
+	if math.IsInf(v, -1) {
+		// No light of any kind. Zero is the darkest light that NATURALLY
+		// occurs, which is what an unlit cave is. Magical darkness goes below
+		// this and arrives in plan 5.
+		v = 0
+	}
+
+	n := int(math.Round(v))
+	if n < -100 {
+		n = -100
+	} else if n > 100 {
+		n = 100
+	}
+	return n
+}
+
+// mutatorLightTerms sums the active mutators' LightMod into a positive
+// contribution and a count of negative doubling steps.
+//
+// ⚠️ This is a BRIDGE. The -2 to 2 LightMod vocabulary predates the graded
+// scale and plan 4 retires it in favour of an authored occlusion fraction and
+// lamp value. Do not extend it.
+func (r *Room) mutatorLightTerms() (lightMod, occlusionSteps int) {
 	for mut := range r.ActiveMutators {
 		spec := mut.GetSpec()
-		if spec.LightMod != 0 {
-			visibility += spec.LightMod
+		if spec == nil || spec.LightMod == 0 {
+			continue
+		}
+		if spec.LightMod > 0 {
+			lightMod += spec.LightMod
+		} else {
+			occlusionSteps += -spec.LightMod
 		}
 	}
+	return lightMod, occlusionSteps
+}
 
-	// min/max visibility
-	if visibility < 0 {
-		visibility = 0
-	} else if visibility > 2 {
-		visibility = 2
+// skyLightFraction is this room's sky fraction: its own override if it has one,
+// otherwise its biome's.
+//
+// ⚠️ GetBiome can return nil when the biome registry has not been loaded, which
+// is the normal state in a unit test that does not read _datafiles. A nil check
+// here is not defensive padding: without it every table-driven lighting test
+// must load the whole world first, and a nil dereference in LightLevel would
+// take down a live room read.
+func (r *Room) skyLightFraction() float64 {
+	if r.SkyLight != nil {
+		return *r.SkyLight
 	}
-
-	// If someone has light, cancel the darkness
-	if visibility < 2 { // no need to increase light if it's already maxed
-		if len(r.GetMobs(FindHasLight)) > 0 || len(r.GetPlayers(FindHasLight)) > 0 {
-			visibility += 1
-			if visibility > 2 {
-				visibility = 2
-			}
-		}
+	if b := r.GetBiome(); b != nil {
+		return b.SkyLightFraction()
 	}
+	return 1.0
+}
 
-	return visibility
+// lampValue is this room's own light source, and whether it has one at all.
+// Nil-safe for the same reason as skyLightFraction.
+func (r *Room) lampValue() (int, bool) {
+	if r.Lamp != nil {
+		return *r.Lamp, true
+	}
+	if b := r.GetBiome(); b != nil {
+		return b.LampValue()
+	}
+	return 0, false
 }

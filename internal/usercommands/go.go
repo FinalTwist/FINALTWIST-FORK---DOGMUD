@@ -547,7 +547,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 			// below (isSneaking and !isSneaking), so it is computed once
 			// here rather than inside CalcSneakScoreVsObserver on every
 			// occupant in what can be an unconditional per-room-entry loop.
-			destRoomLit := destRoom.LightLevel() >= int(configs.GetBalanceConfig().LightBlindBelow)
+			destRoomLit := destRoom.IsLit()
 
 			// Stealth detection: hidden player entering a room
 			if isSneaking {

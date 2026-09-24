@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -67,11 +66,6 @@ func saveCompanionState(user *users.UserRecord) {
 			comp.Items = nil
 		}
 		comp.Equipment = mob.Character.Equipment
-
-		// A bonded companion keeps its own purse between sessions.
-		if comp.SourceType == characters.CompanionBonded {
-			comp.Gold = mob.Character.Gold
-		}
 
 		// Remove charm so the mob does not flag as charmed in any cleanup loops.
 		mob.Character.RemoveCharm()

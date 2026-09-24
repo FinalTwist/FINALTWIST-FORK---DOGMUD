@@ -50,6 +50,9 @@ func TestPurgeAffliction_NamedMobTargetIsPurgedNotTheCaster(t *testing.T) {
 	defer conditions.SeedConditionRecordsForTest()()
 	pinSpellContest(t)
 	room := rooms.LoadRoom(1)
+	// Pins room 1 fully lit regardless of the ambient test round (see
+	// combat_blind_warning_test.go).
+	room.Lamp = rooms.LampPtr(90)
 	caster := users.GetByUserId(1)
 	mob := mobs.GetInstance(100)
 	require.True(t, caster.Character.Conditions.AddCondition(purgeTestPoisonConditionId, false))

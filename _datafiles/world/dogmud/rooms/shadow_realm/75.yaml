@@ -12,6 +12,7 @@ description: You find yourself in the heart of the Shadow Realm, a place suspend
   the obscurity, and the distant, mournful wails of phantom creatures send shivers
   down your spine. The Shadow Realm is a place of transition, where the boundary between
   life and the beyond blurs, and the mysteries of the afterlife begin to unravel.
+biome: ether
 exits: {}
 mutators:
 - mutatorid: death-recovery

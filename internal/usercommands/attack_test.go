@@ -12,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/factions"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/opinions"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -24,6 +25,7 @@ func TestAttack_PlayerAttackImmune_RejectsAttack(t *testing.T) {
 	defer cleanup()
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 
 	// Seed a PlayerAttackImmune mob instance (NonCombatant: false so it can fight).
 	immuneMob := &mobs.Mob{
@@ -100,6 +102,7 @@ func TestAttackBumpsOpinion(t *testing.T) {
 	opinions.ClearCache()
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 
 	// Seed a fresh attackable mob instance backed by template mobId=1 (Skeleton).
 	target := &mobs.Mob{
@@ -145,6 +148,7 @@ func TestAttackOnSameTargetDoesNotDoubleBump(t *testing.T) {
 	opinions.ClearCache()
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 
 	target := &mobs.Mob{
 		MobId:      1,
@@ -195,6 +199,7 @@ func TestTargetSwitchBumpsNewMobOpinion(t *testing.T) {
 	opinions.ClearCache()
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 
 	// Two mobs, different templates: Skeleton (mobId 1) and Merchant (mobId 2).
 	mobA := &mobs.Mob{
@@ -280,6 +285,7 @@ enemies: []
 	opinions.ClearCache()
 
 	user, room := getTestUserAndRoom(t)
+	room.Lamp = rooms.LampPtr(90) // pin fully lit; see combat_blind_warning_test.go in internal/hooks
 
 	// Seed a citizen mob in the room.
 	target := &mobs.Mob{
