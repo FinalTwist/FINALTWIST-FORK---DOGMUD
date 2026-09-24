@@ -1388,7 +1388,7 @@ room 4029 biome=forest
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 4030 biome=forest
+room 4030 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
@@ -1403,12 +1403,12 @@ room 4032 biome=forest
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 4033 biome=forest
+room 4033 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 4034 biome=forest
+room 4034 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
@@ -1833,7 +1833,7 @@ room 4156 biome=forest
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 4157 biome=forest
+room 4157 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
@@ -1898,12 +1898,12 @@ room 4169 biome=forest
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 4170 biome=forest
+room 4170 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 4171 biome=forest
+room 4171 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
@@ -2578,7 +2578,7 @@ room 5292 biome=land
   nightvision  sight=full   clear=true shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 5293 biome=forest
+room 5293 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
@@ -2603,7 +2603,7 @@ room 5297 biome=forest
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 5298 biome=forest
+room 5298 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
@@ -2618,7 +2618,7 @@ room 5300 biome=forest
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 5301 biome=forest
+room 5301 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
@@ -2653,17 +2653,17 @@ room 5307 biome=fort
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 5308 biome=forest
+room 5308 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 5309 biome=forest
+room 5309 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 5310 biome=forest
+room 5310 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
@@ -2678,7 +2678,7 @@ room 5312 biome=forest
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 5313 biome=forest
+room 5313 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
@@ -5813,7 +5813,7 @@ room 6327 biome=forest
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 6328 biome=forest
+room 6328 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
@@ -5828,7 +5828,7 @@ room 6330 biome=forest
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true
   blinded      sight=none   clear=false shapes=false
-room 6331 biome=forest
+room 6331 biome=dense_forest
   plain        sight=none   clear=false shapes=false
   nightvision  sight=shapes clear=false shapes=true
   infrared     sight=shapes clear=false shapes=true

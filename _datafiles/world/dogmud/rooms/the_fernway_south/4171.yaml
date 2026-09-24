@@ -17,7 +17,7 @@ description: >
   <ansi fg="itemname">root-throne</ansi> that could seat a
   person comfortably — generations of foragers have rested
   there before pressing south.
-biome: forest
+biome: dense_forest
 coord:
   x: -14
   y: -19

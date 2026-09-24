@@ -16,7 +16,7 @@ description: >
   in the bracken the constant low <ansi fg="itemname">insect-hum</ansi>
   fills the silence — flies, beetles, and other things that
   live unseen in the tangle.
-biome: forest
+biome: dense_forest
 coord:
   x: -14
   y: -18
