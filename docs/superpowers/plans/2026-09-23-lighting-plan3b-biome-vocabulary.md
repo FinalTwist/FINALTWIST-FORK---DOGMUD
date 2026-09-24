@@ -45,6 +45,20 @@ AND `gofmt -d <path>` before dismissing it.
 🪤 **`grep -c` exits 1 on zero matches**, so an "expect zero" check breaks an
 `&&` chain and silently skips everything after it. Run such checks standalone.
 
+🪤 **SOME ROOM YAMLs ARE CRLF-ENCODED, AND `sed` SILENTLY WRECKS THEM.**
+Task 6 hit this on `instance_planar_oasis/5004.yaml`: a `sed` line insertion
+downgraded every line AFTER the insertion point from CRLF to LF, with no error
+and no visible diff in most viewers. It was caught with `cat -A` and redone
+with the Edit tool, which preserves the encoding.
+
+**Use the Edit tool for room YAMLs, not `sed`.** If you must use `sed`, check
+afterwards that the CR count still equals the line count:
+
+```bash
+printf "%s %s
+" "$(tr -cd '' < <file> | wc -c)" "$(wc -l < <file>)"
+```
+
 🪤 **Never `git add -A` or `git add .`.** Named paths only.
 
 🪤 **Never edit a file with a Python read-modify-write.** `open(path, 'w')`
