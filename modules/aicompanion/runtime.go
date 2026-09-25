@@ -403,13 +403,10 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	}
 	// A stranger's question is not refused because her owner's allowance is
 	// spent (it is not theirs to spend); the server's budget and the
-	// breaker still apply, and the stranger's own allowance is weighed when
-	// the call is reserved.
-	ownerCheck := c.ownerUserId
-	if asker > 0 {
-		ownerCheck = 0
-	}
-	if !m.modelReady(ownerCheck) {
+	// breaker still apply on the server's key, and the stranger's own
+	// allowance is weighed when the call is reserved. It is routed by her
+	// owner either way: on the owner's own key, the owner's key pays.
+	if !m.modelReadyFor(c.ownerUserId, asker) {
 		m.fallback(c, mob, stims)
 		return
 	}
@@ -506,16 +503,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		toolRounds = m.cfg.ToolRounds
 	}
 	ts := m.settingsFor(tier, toolRounds > 0)
-	if ts.Model == `` {
-		// Every model this tier knows has been refused by the API. Rather
-		// than hammer one that will not answer, she falls back to her own
-		// lines until an operator sets a model or the key is fixed.
-		m.logModelError(fmt.Errorf(`no usable model for the %s tier; set Model in the config`, tier))
-		m.fallback(c, mob, stims)
-		return
-	}
 	messages := buildMessages(in)
-	c.lastPrompt = messages
 
 	call := modelCall{
 		BaseURL:     m.cfg.BaseURL,
@@ -531,7 +519,28 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		Retry:       m.cfg.RetryTransient && tier != tierFast,
 		OwnerUserId: c.ownerUserId,
 	}
-	moderation := m.cfg.ModerateOutput
+	m.applyRoute(&call)
+	rt := call.Route
+	if rt.kind == routeNone {
+		// Her owner's relay went away since modelReadyFor, and there is no
+		// server key to cover: nothing to call.
+		m.fallback(c, mob, stims)
+		return
+	}
+	if call.Model == `` {
+		// Every model this tier knows has been refused by the API. Rather
+		// than hammer one that will not answer, she falls back to her own
+		// lines until an operator sets a model or the key is fixed.
+		m.logModelError(fmt.Errorf(`no usable model for the %s tier; set Model in the config`, tier))
+		m.fallback(c, mob, stims)
+		return
+	}
+	c.lastPrompt = messages
+	// Moderation is the server's check on what the server's key bought. A
+	// reply from a player's own key is forgeable by that player anyway, and
+	// their provider may have no moderation endpoint; the owner answers for
+	// it instead.
+	moderation := m.cfg.ModerateOutput && rt.kind == routeServer
 	moderationModel := m.cfg.ModerationModel
 	// Words a passer-by prompted are held to the stricter rule: if the
 	// check cannot be made, they are not said at all.
@@ -547,9 +556,11 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	// let two calls slip past a nearly spent budget together.
 	// Whoever prompted this pays for it in their own daily allowance: a
 	// passer-by cannot spend an owner's companion into silence (asker,
-	// above). The settlement below goes back to the same payer.
+	// above). The settlement below goes back to the same payer, by the
+	// same route: on her owner's own key only a passer-by's allowance is
+	// held (reserveRoute).
 	reserved := worstCaseTokens(estimateTokens(messages)+requestOverhead(call), ts.MaxTokens, toolRounds, call.Retry)
-	if !m.tryReserveFor(ownerId, asker, reserved) {
+	if !m.reserveRoute(rt, ownerId, asker, reserved) {
 		// Out of allowance, not out of sorts: without this line a spent
 		// budget looks exactly like a broken companion, because she carries
 		// on answering with her authored lines and nothing is logged. A
@@ -593,7 +604,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 			if !settled {
 				util.LockMud()
 				defer util.UnlockMud()
-				m.settleFor(ownerId, asker, reserved, 0)
+				m.settleRoute(rt, ownerId, asker, reserved, 0)
 				if c := m.ctrls[ownerId]; c != nil && c.seq == seq {
 					c.inFlight = false
 					c.cancelCall = nil
@@ -627,13 +638,13 @@ func (m *AICompanionModule) dispatch(c *controller) {
 			defer util.UnlockMud()
 			defer func() {
 				settled = true
-				m.settleFor(ownerId, asker, reserved, res.Tokens)
+				m.settleRoute(rt, ownerId, asker, reserved, res.Tokens)
 				if c := m.ctrls[ownerId]; c != nil && c.seq == seq {
 					c.inFlight = false
 					c.cancelCall = nil
 				}
 			}()
-			m.applyResult(ownerId, seq, rev, roomAtCall, reserved, stims, sc, tier, call.Model, res)
+			m.applyResult(ownerId, seq, rev, roomAtCall, reserved, stims, sc, tier, call.Model, rt, res)
 		}()
 	}()
 }
@@ -642,7 +653,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 // applyResult applies one model reply. Its caller owns the mud lock, the
 // token settlement and the in-flight flags (see dispatch), so a panic in
 // here cannot leave the budget or the companion stuck.
-func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roomAtCall int, reserved int, stims []stimulus, sc *scene, tier string, model string, res modelResult) {
+func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roomAtCall int, reserved int, stims []stimulus, sc *scene, tier string, model string, rt route, res modelResult) {
 	m.rollDay()
 	m.recordCall(tier, res)
 	failure := res.Err
@@ -656,8 +667,10 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 	if res.Canceled {
 		failure = nil
 	}
-	m.breakerResult(failure, time.Now())
-	if modelRefused(res) {
+	m.routeResult(rt, ownerId, failure, time.Now())
+	// A model the player's provider refused says nothing about the server's
+	// choice of models.
+	if rt.kind == routeServer && modelRefused(res) {
 		m.models.refuse(model)
 		mudlog.Warn(`aicompanion`, `action`, `modelRefused`, `tier`, tier, `model`, model, `next`, m.models.pick(tier))
 	}

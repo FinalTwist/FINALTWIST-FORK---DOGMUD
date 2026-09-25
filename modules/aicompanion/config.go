@@ -93,6 +93,16 @@ type Config struct {
 	MinConversationExchanges     int
 	AllowCustomEndpoint          bool
 	RejectedBaseURL              string
+
+	// PlayerKeys lets a player run their companion on their own key, held
+	// in their browser on the relay origin. Off unless the config says so.
+	PlayerKeys bool
+	// RelayOrigin is where the relay page is served, "https://host". Tier 2
+	// is offered only when this is a valid https origin other than the
+	// game's own (validRelayOrigin).
+	RelayOrigin string
+	// RelayTimeoutSeconds bounds how long a call waits for the browser.
+	RelayTimeoutSeconds int
 }
 
 type getter func(string) any
@@ -257,6 +267,11 @@ func buildConfig(get getter) Config {
 		ConversationGapSeconds:       asInt(get(`ConversationGapSeconds`), 240),
 		MinConversationExchanges:     asInt(get(`MinConversationExchanges`), 3),
 		AllowCustomEndpoint:          asBool(get(`AllowCustomEndpoint`)),
+		RelayOrigin:                  strings.TrimRight(strings.TrimSpace(asString(get(`RelayOrigin`))), `/`),
+		RelayTimeoutSeconds:          asInt(get(`RelayTimeoutSeconds`), 30),
+	}
+	if v := get(`PlayerKeys`); v != nil {
+		c.PlayerKeys = asBool(v)
 	}
 	if v := get(`Enabled`); v != nil {
 		c.Enabled = asBool(v)
@@ -323,6 +338,9 @@ func buildConfig(get getter) Config {
 	}
 	if c.RequestTimeoutSeconds < 5 {
 		c.RequestTimeoutSeconds = 5
+	}
+	if c.RelayTimeoutSeconds < 5 {
+		c.RelayTimeoutSeconds = 5
 	}
 	if c.MaxCompletionTokens < 200 {
 		c.MaxCompletionTokens = 200

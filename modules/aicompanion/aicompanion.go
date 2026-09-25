@@ -154,6 +154,8 @@ type AICompanionModule struct {
 	consecutiveErrors int
 	outstanding       int // tokens held for calls that have not come back
 	lastBudgetLog     time.Time
+
+	relays *relayTable // owners with a live relay for their own key (tier 2)
 }
 
 var module AICompanionModule
@@ -168,6 +170,7 @@ func init() {
 
 		pendingMeet:  map[int]*meetWait{},
 		meetingPlace: map[int]string{},
+		relays:       newRelayTable(),
 	}
 	// No data-overlays/config.yaml is shipped. A plugin overlay is pushed
 	// into the live config AFTER _datafiles/config.yaml is read, and
@@ -320,12 +323,30 @@ func (m *AICompanionModule) rollDay() {
 	}
 }
 
-// modelReady reports whether a model call may be made right now: a model
-// and key are set, the circuit breaker is closed, and neither the server's
-// nor this owner's companion's daily budget is spent. ownerId 0 skips the
-// per-companion check.
+// modelReady reports whether a model call may be made right now for this
+// owner's companion, on the owner's own account (modelReadyFor with no
+// passer-by). ownerId 0 is no owner: never a relay, and no per-companion
+// check.
 func (m *AICompanionModule) modelReady(ownerId ...int) bool {
-	if !m.cfg.Enabled || m.apiKey() == `` {
+	owner := 0
+	if len(ownerId) > 0 {
+		owner = ownerId[0]
+	}
+	return m.modelReadyFor(owner, 0)
+}
+
+// modelReadyFor reports whether a call may be made right now, routed by the
+// owner (route) whoever prompted it. On the owner's own key (tier 2) the
+// server's budgets and breaker do not apply; the owner's breaker is part of
+// the route. On the server's key (tier 3) the global breaker must be closed
+// and the server's budget unspent, and a call on the owner's account
+// (askerId 0) also needs the owner's companion allowance: a passer-by's is
+// weighed when the call is reserved (reserveRoute), not here.
+func (m *AICompanionModule) modelReadyFor(ownerId int, askerId int) bool {
+	switch m.route(ownerId).kind {
+	case routeRelay:
+		return true
+	case routeNone:
 		return false
 	}
 	if m.breakerOpen(time.Now()) {
@@ -335,7 +356,7 @@ func (m *AICompanionModule) modelReady(ownerId ...int) bool {
 	if m.cfg.DailyTokenBudget > 0 && m.tokensToday >= m.cfg.DailyTokenBudget {
 		return false
 	}
-	if len(ownerId) > 0 && ownerId[0] > 0 && !m.ownerBudgetLeft(ownerId[0]) {
+	if askerId <= 0 && ownerId > 0 && !m.ownerBudgetLeft(ownerId) {
 		return false
 	}
 	return true

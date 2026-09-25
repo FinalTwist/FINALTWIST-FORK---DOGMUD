@@ -2626,11 +2626,12 @@ func TestStrangerTalkSummaryIsTheStrangersToPayFor(t *testing.T) {
 func TestGoneMindStillRefundsItsOwner(t *testing.T) {
 	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000, StrangerDailyTokens: 1000, DailyTokenBudget: 5000}}
 	failed := modelResult{Err: errors.New(`gone`)}
+	server := route{kind: routeServer} // reserved below on the server's key
 
 	for name, apply := range map[string]func(){
-		`summary`:    func() { m.applyConversationSummary(`nobody`, 1, `Corvin`, 7, 0, 300, failed) },
-		`core`:       func() { m.applyCore(`nobody`, 1, CoreMemory{}, 300, failed) },
-		`reflection`: func() { m.applyReflection(`nobody`, 1, 0, `m`, 300, failed) },
+		`summary`:    func() { m.applyConversationSummary(`nobody`, 1, `Corvin`, 7, 0, 300, server, failed) },
+		`core`:       func() { m.applyCore(`nobody`, 1, CoreMemory{}, 300, server, failed) },
+		`reflection`: func() { m.applyReflection(`nobody`, 1, 0, `m`, 300, server, failed) },
 	} {
 		if !m.tryReserveTokens(1, 300) {
 			t.Fatalf("%s: fixture reservation refused", name)

@@ -94,18 +94,22 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 	}
 	now := time.Now().Unix()
 
-	ts := m.settingsFor(tierFast, false)
-	if !m.consented(c.ownerUserId) || !m.modelReady(c.ownerUserId) || ts.Model == `` {
-		// No model to put words to it: keep the bare fact, which is still
-		// worth more than nothing.
-		text := fmt.Sprintf(`Something changed between %s and me here.`, ownerName)
-		if !positive {
-			text = fmt.Sprintf(`Something between %s and me was spoiled here.`, ownerName)
-		}
-		c.mind.addCore(CoreMemory{Unix: now, Text: text, Place: place, PlaceId: placeId, Positive: positive, Stage: stage})
+	// No model to put words to it: keep the bare fact, which is still worth
+	// more than nothing. A call that fails keeps it too (applyCore).
+	bare := CoreMemory{Unix: now, Text: fmt.Sprintf(`Something changed between %s and me here.`, ownerName),
+		Place: place, PlaceId: placeId, Positive: positive, Stage: stage}
+	if !positive {
+		bare.Text = fmt.Sprintf(`Something between %s and me was spoiled here.`, ownerName)
+	}
+	bareFact := func() {
+		c.mind.addCore(bare)
 		c.dirty = true
+	}
+	if !m.consented(c.ownerUserId) || !m.modelReady(c.ownerUserId) {
+		bareFact()
 		return
 	}
+	ts := m.settingsFor(tierFast, false)
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "Something has just changed between you and %s", ownerName)
@@ -135,8 +139,16 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 		Messages: messages, SchemaName: `companion_core_memory`, Schema: coreSchema(), Effort: ts.Effort,
 		OwnerUserId: c.ownerUserId,
 	}
+	m.applyRoute(&call)
+	rt := call.Route
+	if rt.kind == routeNone || call.Model == `` {
+		bareFact()
+		return
+	}
 	reserved := worstCaseTokens(estimateTokens(messages), ts.MaxTokens, 0, false)
-	if !m.tryReserveTokens(c.ownerUserId, reserved) {
+	if !m.reserveRoute(rt, c.ownerUserId, 0, reserved) {
+		// The day's allowance cannot cover it: the moment is still kept.
+		bareFact()
 		return
 	}
 	m.callsToday++
@@ -152,33 +164,49 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 
 		util.LockMud()
 		defer util.UnlockMud()
-		m.applyCore(key, call.OwnerUserId, CoreMemory{Unix: now, Place: place, PlaceId: placeId, Positive: positive, Stage: stage}, reserved, res)
+		m.applyCore(key, call.OwnerUserId, bare, reserved, rt, res)
 	}()
 }
 
-// applyCore writes the model's account of the moment.
-func (m *AICompanionModule) applyCore(key string, ownerId int, cm CoreMemory, reserved int, res modelResult) {
+// applyCore writes the model's account of the moment. cm arrives holding
+// the bare fact, which is what is kept when the model gives no usable
+// account: the moment is never lost to a failed call.
+func (m *AICompanionModule) applyCore(key string, ownerId int, cm CoreMemory, reserved int, rt route, res modelResult) {
 	m.rollDay()
 	m.recordCall(tierFast, res)
-	m.breakerResult(res.Err, time.Now())
+	m.routeResult(rt, ownerId, res.Err, time.Now())
 
 	mind := m.minds[key]
 	if mind == nil {
-		m.settleTokens(ownerId, reserved, res.Tokens)
+		m.settleRoute(rt, ownerId, 0, reserved, res.Tokens)
 		return
 	}
-	m.settleTokens(mind.OwnerUserId, reserved, res.Tokens)
+	m.settleRoute(rt, mind.OwnerUserId, 0, reserved, res.Tokens)
+	keepBare := func() {
+		if cm.Text == `` {
+			return
+		}
+		mind.addCore(cm)
+		if c := m.ctrls[mind.OwnerUserId]; c != nil {
+			c.dirty = true
+		} else if err := saveMind(m.plug, mind); err != nil {
+			mudlog.Error(`aicompanion`, `action`, `saveMind`, `owner`, mind.OwnerUserId, `error`, err)
+		}
+	}
 	if res.Err != nil {
 		m.logModelError(res.Err)
+		keepBare()
 		return
 	}
 	var note CoreMemoryNote
 	if err := parseJSONContent(res.Content, &note); err != nil {
 		m.logModelError(fmt.Errorf(`parse core memory: %w`, err))
+		keepBare()
 		return
 	}
 	text := cleanText(note.Text, maxRememberRunes)
 	if text == `` || breaksCharacter(text) {
+		keepBare()
 		return
 	}
 	cm.Text = text

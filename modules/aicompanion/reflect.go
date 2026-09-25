@@ -124,9 +124,6 @@ func (m *AICompanionModule) startReflection(mind *Mind, p *Profile, ownerName st
 		Session:     mind.SessionCount,
 	}
 	ts := m.settingsFor(tierDeep, false)
-	if ts.Model == `` {
-		return
-	}
 	call := modelCall{
 		BaseURL:     m.cfg.BaseURL,
 		APIKey:      m.apiKey(),
@@ -141,8 +138,13 @@ func (m *AICompanionModule) startReflection(mind *Mind, p *Profile, ownerName st
 		Retry:       m.cfg.RetryTransient,
 		OwnerUserId: mind.OwnerUserId,
 	}
+	m.applyRoute(&call)
+	rt := call.Route
+	if rt.kind == routeNone || call.Model == `` {
+		return
+	}
 	reserved := worstCaseTokens(estimateTokens(call.Messages), ts.MaxTokens, 0, call.Retry)
-	if !m.tryReserveTokens(mind.OwnerUserId, reserved) {
+	if !m.reserveRoute(rt, mind.OwnerUserId, 0, reserved) {
 		return // the day's thinking is spent; the session simply goes unrecorded
 	}
 	m.callsToday++
@@ -160,21 +162,23 @@ func (m *AICompanionModule) startReflection(mind *Mind, p *Profile, ownerName st
 
 		util.LockMud()
 		defer util.UnlockMud()
-		m.applyReflection(key, call.OwnerUserId, session, call.Model, reserved, res)
+		m.applyReflection(key, call.OwnerUserId, session, call.Model, reserved, rt, res)
 	}()
 }
 
 // applyReflection stores a reflection. Runs under the mud lock.
-func (m *AICompanionModule) applyReflection(key string, ownerId int, session int, model string, reserved int, res modelResult) {
+func (m *AICompanionModule) applyReflection(key string, ownerId int, session int, model string, reserved int, rt route, res modelResult) {
 	m.rollDay()
 	m.recordCall(tierDeep, res)
-	m.breakerResult(res.Err, time.Now())
+	m.routeResult(rt, ownerId, res.Err, time.Now())
 	if mind := m.minds[key]; mind == nil {
 		// Nobody left to remember it, but the reservation still has to go
 		// back, to the owner it was held against.
-		m.settleTokens(ownerId, reserved, res.Tokens)
+		m.settleRoute(rt, ownerId, 0, reserved, res.Tokens)
 	}
-	if modelRefused(res) {
+	// A model the player's provider refused says nothing about the
+	// server's choice of models.
+	if rt.kind == routeServer && modelRefused(res) {
 		m.models.refuse(model)
 	}
 
@@ -182,7 +186,7 @@ func (m *AICompanionModule) applyReflection(key string, ownerId int, session int
 	if mind == nil {
 		return
 	}
-	m.settleTokens(mind.OwnerUserId, reserved, res.Tokens)
+	m.settleRoute(rt, mind.OwnerUserId, 0, reserved, res.Tokens)
 	mind.TokensLifetime += int64(res.Tokens)
 	if res.Err != nil {
 		m.logModelError(res.Err)

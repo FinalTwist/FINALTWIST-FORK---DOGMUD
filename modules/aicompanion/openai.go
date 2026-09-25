@@ -129,6 +129,10 @@ type modelCall struct {
 	// doings, this request carries. The door in send refuses it unless
 	// that player has agreed; left at 0 it is refused outright.
 	OwnerUserId int
+
+	// Route is who pays for the call and how it travels, set once by
+	// applyRoute when the call is built.
+	Route route
 }
 
 // modelResult is what comes back: the raw JSON content, which the caller

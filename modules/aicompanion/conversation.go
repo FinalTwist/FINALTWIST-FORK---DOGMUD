@@ -126,13 +126,9 @@ func (m *AICompanionModule) closeConversation(c *controller, why string) {
 
 	// A talk with a passer-by alone is summed up on their allowance, the
 	// way their questions are answered on it, so it is not refused because
-	// her owner's is spent, and never charged to it (tryReserveFor).
+	// her owner's is spent, and never charged to it (reserveRoute).
 	asker := convo.payer()
-	ownerCheck := c.ownerUserId
-	if asker > 0 {
-		ownerCheck = 0
-	}
-	if m.cfg.ConversationSummaries && m.consented(c.ownerUserId) && m.modelReady(ownerCheck) &&
+	if m.cfg.ConversationSummaries && m.consented(c.ownerUserId) && m.modelReadyFor(c.ownerUserId, asker) &&
 		m.summariseConversation(c, convo, asker) {
 		return
 	}
@@ -197,9 +193,6 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 	b.WriteString("\nSum the whole talk up as one memory, the way you would remember it in a month.")
 
 	ts := m.settingsFor(tierFast, false)
-	if ts.Model == `` {
-		return false
-	}
 	messages := []chatMessage{
 		{Role: `system`, Content: fmt.Sprintf("You are %s. %s\nYou are looking back on a conversation you have just had. Answer in your own voice, briefly, and never with a transcript.",
 			c.profile.Name, strings.TrimSpace(c.profile.Summary))},
@@ -211,8 +204,13 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 		Messages: messages, SchemaName: `companion_conversation`, Schema: conversationSchema(),
 		Effort: ts.Effort, Retry: false, OwnerUserId: c.ownerUserId,
 	}
+	m.applyRoute(&call)
+	rt := call.Route
+	if rt.kind == routeNone || call.Model == `` {
+		return false
+	}
 	reserved := worstCaseTokens(estimateTokens(messages), ts.MaxTokens, 0, false)
-	if !m.tryReserveFor(c.ownerUserId, asker, reserved) {
+	if !m.reserveRoute(rt, c.ownerUserId, asker, reserved) {
 		return false
 	}
 	m.callsToday++
@@ -230,26 +228,26 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 
 		util.LockMud()
 		defer util.UnlockMud()
-		m.applyConversationSummary(key, call.OwnerUserId, partner, place, asker, reserved, res)
+		m.applyConversationSummary(key, call.OwnerUserId, partner, place, asker, reserved, rt, res)
 	}()
 	return true
 }
 
 // applyConversationSummary stores the one memory a talk left behind.
-func (m *AICompanionModule) applyConversationSummary(key string, ownerId int, partner string, placeId int, asker int, reserved int, res modelResult) {
+func (m *AICompanionModule) applyConversationSummary(key string, ownerId int, partner string, placeId int, asker int, reserved int, rt route, res modelResult) {
 	m.rollDay()
 	m.recordCall(tierFast, res)
-	m.breakerResult(res.Err, time.Now())
+	m.routeResult(rt, ownerId, res.Err, time.Now())
 
 	mind := m.minds[key]
 	if mind == nil {
 		// Nobody left to remember it, but the reservation still goes back
 		// to whoever it was held against.
-		m.settleFor(ownerId, asker, reserved, res.Tokens)
+		m.settleRoute(rt, ownerId, asker, reserved, res.Tokens)
 		return
 	}
 	// Settled against whoever the reservation was held against.
-	m.settleFor(mind.OwnerUserId, asker, reserved, res.Tokens)
+	m.settleRoute(rt, mind.OwnerUserId, asker, reserved, res.Tokens)
 	mind.TokensLifetime += int64(res.Tokens)
 	if res.Err != nil {
 		m.logModelError(res.Err)

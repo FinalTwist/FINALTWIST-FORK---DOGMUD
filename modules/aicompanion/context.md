@@ -83,6 +83,15 @@ Roadmap and phase plan: `docs/aicompanion/`.
   under the mud lock from player-visible information only.
 - **models.go**: model tiers (fast, main, deep) and their routing, the
   circuit breaker, per-companion budgets, per-tier metrics, decision traces.
+- **tiers.go**: who pays for a call. `route` picks the owner's own key
+  through their browser (`routeRelay`, tier 2, only when
+  `playerKeysOffered`: `PlayerKeys` on and `validRelayOrigin`), else the
+  server's key (`routeServer`, tier 3), else nothing (`routeNone`, set
+  lines). `applyRoute` stamps the route on every `modelCall` at build
+  time; `reserveRoute`, `settleRoute` and `routeResult` read that one
+  route, so a call settles once, to the ledger it was held against, and
+  its outcome reaches the breaker of whoever paid (`relayTable` keeps a
+  per-owner breaker; the global one is the server key's alone).
 - **conversation.go**: talk gathered into one conversation per exchange
   (`noteConversation`, which also notes whether her owner spoke and the
   last passer-by who did), held mid-talk notes, and `closeConversation`,
@@ -195,11 +204,14 @@ skills, health) is never in the mind file; it lives on the owner's
   `applyResult` drop everything if it has changed.
 - `controller.cancelInFlight` cancels the HTTP call on logout, pause, reset
   and death. Budgets are reserved at dispatch in one check-and-hold step
-  (`tryReserveFor`; `tryReserveTokens` for the owner) and settled on return
-  against the same payer (`settleFor`/`settleTokens`), exactly once. A
-  call a passer-by prompted (`strangerBehind`) is held against their
-  `StrangerDailyTokens` and the server budget, never the owner's
-  allowance, and runs with no tool rounds so its worst case fits.
+  (`reserveRoute`, which is `tryReserveFor` on the server's key) and
+  settled on return against the same payer and route (`settleRoute`),
+  exactly once. A call a passer-by prompted (`strangerBehind`) is held
+  against their `StrangerDailyTokens` and, on the server's key, the server
+  budget, never the owner's allowance, and runs with no tool rounds so its
+  worst case fits. On the owner's own key (tier 2) nothing of the server's
+  is held: only a passer-by's allowance. `modelReadyFor(owner, asker)`
+  routes by the owner even when a passer-by asks.
 - `nextBatch` gives each decision one prompter: the owner's words (and an
   errand the owner sent her on) and each passer-by's are decided
   separately, with the world's stimuli going to the first. The owner-only
