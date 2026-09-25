@@ -197,20 +197,55 @@ func TestHelpfulCastsStayHerOwnJudgement(t *testing.T) {
 	}
 }
 
-func TestAreaHarmMustSpareEveryone(t *testing.T) {
+// An area harm spell is filtered when it resolves
+// (internal/hooks/mob_area_harm.go): whoever her owner could not harm is
+// spared there. So starting one is refused only when it would land on
+// nobody at all, or on someone she will not fight of her own accord.
+func TestAreaHarmStartsWhenResolutionWouldLandIt(t *testing.T) {
 	owner, _, room, her := harmWorld(t, configs.PVPDisabled)
-	harmMob(t, room, 302, `a grey wolf`)
-	if ok, _ := areaHarmAllowed(owner, room, her); ok {
-		t.Fatal("Bram is in the room and her owner could not fight him")
+	p := &Profile{}
+	if ok, _ := areaHarmAllowed(owner, room, her, p); ok {
+		t.Fatal("control: with only Bram, whom her owner could not fight, it lands on nobody")
 	}
-	room.RemovePlayer(2)
-	if ok, reason := areaHarmAllowed(owner, room, her); !ok {
-		t.Fatalf("with only her owner and a wolf, it is: %s", reason)
+	harmMob(t, room, 302, `a grey wolf`)
+	if ok, reason := areaHarmAllowed(owner, room, her, p); !ok {
+		t.Fatalf("Bram is spared when it resolves, so a wolf is reason enough: %s", reason)
 	}
 	immune := harmMob(t, room, 300, `a caravan guard`)
 	immune.PlayerAttackImmune = true
-	if ok, _ := areaHarmAllowed(owner, room, her); ok {
-		t.Fatal("a protected creature would be caught")
+	if ok, reason := areaHarmAllowed(owner, room, her, p); !ok {
+		t.Fatalf("a protected creature is spared when it resolves, too: %s", reason)
+	}
+}
+
+// She will not set about anyone on her refusal list who is not already
+// fighting, whoever asks, and an area spell would land on them: attack's
+// rule holds for a cast and for the room.
+func TestHarmfulCastsKeepHerRefusals(t *testing.T) {
+	owner, _, room, her := harmWorld(t, configs.PVPDisabled)
+	harmSpells(t, her)
+	child := harmMob(t, room, 303, `a small child`)
+	burn := spellRef(t, her, `burn`)
+	m, c, _ := strangerModule()
+	c.profile.Combat.Refuse = []string{`child`}
+	owners := []stimulus{{Kind: `heard`, FromOwner: true}}
+
+	out := m.performAction(c, her, owner, harmScene(child.InstanceId, 2),
+		ActionProposal{Verb: `cast`, Ref: burn, To: `t1`}, owners, 0, 0)
+	if out.Issued {
+		t.Fatalf("she will not burn a child who is not fighting: %+v", out)
+	}
+	if ok, _ := areaHarmAllowed(owner, room, her, c.profile); ok {
+		t.Fatal("nor loose an area spell that would land on one")
+	}
+	child.Character.SetAggro(0, her.InstanceId, characters.DefaultAttack)
+	if ok, reason := areaHarmAllowed(owner, room, her, c.profile); !ok {
+		t.Fatalf("one already fighting is fair, as attack has it: %s", reason)
+	}
+	out = m.performAction(c, her, owner, harmScene(child.InstanceId, 2),
+		ActionProposal{Verb: `cast`, Ref: burn, To: `t1`}, owners, 0, 0)
+	if !out.Issued {
+		t.Fatalf("and may be cast at: %+v", out)
 	}
 }
 

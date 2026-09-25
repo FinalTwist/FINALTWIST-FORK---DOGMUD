@@ -81,35 +81,47 @@ func harmAllowed(owner *users.UserRecord, room *rooms.Room, targetMobId int, tar
 	return false, `nobody to aim it at`
 }
 
-// areaHarmAllowed is harmAllowed for a harmful spell that lands on the
-// whole room. A mob's area harm spares only its caster, its owner, its
-// owner's other companions and non-combatants, not whoever her owner may
-// not touch, so she looses one only where everyone else it could land on
-// passes.
-func areaHarmAllowed(owner *users.UserRecord, room *rooms.Room, self *mobs.Mob) (bool, string) {
+// areaHarmAllowed is the start gate for a harmful spell that lands on the
+// whole room. Who it lands on is decided when it resolves, by the engine
+// (internal/hooks/mob_area_harm.go, mobAreaHarmTargets): a bonded
+// companion's area harm spares her owner, her owner's companions,
+// non-combatants and everyone her owner could not harm, so that is the
+// authority and nothing here repeats it as a refusal. What is left to ask
+// at the start is what resolution does not: that it would land on anyone
+// at all, and that it would not land on someone she will not fight of her
+// own accord (refusesToFight, the same rule `attack` keeps: not unless they
+// are already fighting).
+func areaHarmAllowed(owner *users.UserRecord, room *rooms.Room, self *mobs.Mob, p *Profile) (bool, string) {
 	if owner == nil || owner.Character == nil || room == nil || self == nil {
 		return false, `there is nobody to answer for it`
 	}
+	lands := false
 	for _, id := range room.GetMobs(rooms.FindAll) {
 		if id == self.InstanceId {
 			continue
 		}
-		// The engine's area spell passes over the owner's companions and
-		// anyone who takes no part in fighting, so those cannot be caught.
-		if m := mobs.GetInstance(id); m != nil && (m.Character.IsCharmed(owner.UserId) || m.IsNonCombatant()) {
+		m := mobs.GetInstance(id)
+		if m == nil || m.Character.IsCharmed(owner.UserId) || m.IsNonCombatant() {
 			continue
 		}
-		if ok, reason := harmAllowed(owner, room, id, 0); !ok {
-			return false, `it would catch someone: ` + reason
+		if ok, _ := harmAllowed(owner, room, id, 0); !ok {
+			continue // spared when it resolves
 		}
+		if p != nil && refusesToFight(p, m) && !m.Character.IsInCombat() {
+			return false, `it would catch someone you will not raise a hand to`
+		}
+		lands = true
 	}
 	for _, id := range room.GetPlayers(rooms.FindAll) {
 		if id == owner.UserId {
 			continue // the engine spares her owner
 		}
-		if ok, reason := harmAllowed(owner, room, 0, id); !ok {
-			return false, `it would catch someone: ` + reason
+		if ok, _ := harmAllowed(owner, room, 0, id); ok {
+			lands = true
 		}
+	}
+	if !lands {
+		return false, `it would land on nobody you could harm`
 	}
 	return true, ``
 }

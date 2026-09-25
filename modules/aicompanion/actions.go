@@ -192,8 +192,9 @@ func ownerPrompted(stims []stimulus) bool {
 
 // castHarm casts a harmful spell: only at her owner's word or her own
 // quiet judgement, never a stranger's, and only at a creature or person her
-// owner could harm here. One that lands on the whole room must pass for
-// everyone it could catch.
+// owner could harm here, and not at anyone she will not fight unless they
+// already are. One that lands on the whole room is filtered when it
+// resolves (areaHarmAllowed says why that is enough).
 func (m *AICompanionModule) castHarm(c *controller, mob *mobs.Mob, owner *users.UserRecord, sc *scene, room *rooms.Room,
 	opt spellOption, a ActionProposal, stims []stimulus, delay float64, round uint64) actionOutcome {
 
@@ -221,8 +222,13 @@ func (m *AICompanionModule) castHarm(c *controller, mob *mobs.Mob, owner *users.
 	if ok, reason := harmAllowed(owner, room, targetMob, targetUser); !ok {
 		return actionOutcome{Refused: reason}
 	}
+	// Her refusal list holds for a spell as it does for attack: not
+	// unless they are already fighting.
+	if target := mobs.GetInstance(targetMob); target != nil && refusesToFight(c.profile, target) && !target.Character.IsInCombat() {
+		return actionOutcome{Refused: `you will not raise a hand to them`}
+	}
 	if opt.Area {
-		if ok, reason := areaHarmAllowed(owner, room, mob); !ok {
+		if ok, reason := areaHarmAllowed(owner, room, mob, c.profile); !ok {
 			return actionOutcome{Refused: reason}
 		}
 	}

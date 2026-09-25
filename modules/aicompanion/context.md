@@ -91,9 +91,12 @@ Roadmap and phase plan: `docs/aicompanion/`.
   check for a person) asked with her OWNER as the one acting. The party
   check is the module's own, from `attack`, `shoot` and the special moves:
   `actions/cast.go` makes none for a player target, so she is stricter
-  with spells than a player is. An area harm spell is checked once more
-  when it resolves, by the engine (`internal/hooks/mob_area_harm.go`,
-  `mobAreaHarmTargets`), since the room may have changed while it folded.
+  with spells than a player is. Who an area harm spell lands on is the
+  engine's to say when it resolves (`internal/hooks/mob_area_harm.go`,
+  `mobAreaHarmTargets`), since the room may have changed while it folded:
+  it spares whoever her owner could not harm. So `areaHarmAllowed`
+  refuses only a spell that would land on nobody, or on someone she will
+  not fight (`refusesToFight`) who is not already fighting.
 - **goals.go**: goals, checks against live state, restock goals, the
   session agenda, and the model's goal proposals.
 - **combat.go**: the fight from the companion's side: tracking, the
@@ -379,9 +382,10 @@ skills, health) is never in the mind file; it lives on the owner's
   ref from the scene it was shown; code builds the command.
 - A `cast` is owner-driven when the spell harms (`SpellData.IsHarm`, the
   engine's answer): `castHarm` refuses it in any batch a passer-by
-  prompted, and aims it only at a creature or person `harmAllowed` passes;
-  one that lands on the room (`areaHarmAllowed`) must pass for everyone it
-  could catch. A helpful cast (a mending, a ward) stays her own judgement.
+  prompted, and aims it only at a creature or person `harmAllowed` passes
+  and, like `attack`, not at anyone on her refusal list who is not
+  already fighting; one that lands on the room must pass
+  `areaHarmAllowed` (see harm.go above). A helpful cast (a mending, a ward) stays her own judgement.
 - One non-perception action at a time: a new one is refused until the last
   one's outcome has been judged (two rounds after issue).
 - `look_at` and `consider` are answered by the module from what a player

@@ -9,14 +9,16 @@ import (
 )
 
 // A bonded companion harms only what her owner could harm. The aicompanion
-// module checks that when she starts a harmful spell (harmAllowed,
-// areaHarmAllowed), but an area spell folds over several rounds and lands on
+// module checks a single target when she starts a harmful spell
+// (harmAllowed), but an area spell folds over several rounds and lands on
 // whoever is in the room when it resolves, not whoever was there when she
-// began. So an area harm spell cast by a bonded companion is checked again
-// here, at resolution, against each target, asked as her owner: a creature
-// by mobs.CheckPlayerHarm (as a player's own area spell is,
-// playerHarmTargetPermitted), a person by (*rooms.Room).CanPvp with her owner
-// as the attacker and not a member of her owner's party.
+// began. So this filter is the authority on who an area harm spell cast by
+// a bonded companion lands on (the module's areaHarmAllowed only asks that
+// it would land on someone, and on nobody she refuses to fight). It is
+// applied here, at resolution, against each target, asked as her owner: a
+// creature by mobs.CheckPlayerHarm (as a player's own area spell is,
+// playerHarmTargetPermitted), a person by (*rooms.Room).CanPvp with her
+// owner as the attacker and not a member of her owner's party.
 //
 // The engine's own functions answer, with the owner read off the charm
 // (GetCharmedUserId), so no seam is needed; companionai.IsBondedCompanion
