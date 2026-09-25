@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -250,5 +251,35 @@ func TestConsentLaterKeepsTheFirstMeeting(t *testing.T) {
 	w.m.firstMet(w.c, w.owner, time.Now().Unix())
 	if firstMetMemories(w.c) != 1 || countKind(w.c.pending, `first_meeting`) != 1 {
 		t.Fatalf("firstMet then writes it and introduces her, once: %+v", w.c.pending)
+	}
+}
+
+// Owner decision: nothing about a romance moves before consent. Courting
+// her is answered plainly: she is a plain companion for now, and
+// companion-ai on changes that.
+func TestRomanceWaitsForConsent(t *testing.T) {
+	w := newConsentWorld(t, false)
+	w.c.profile.Romance.Romanceable = true
+	msg := w.m.courtStep(w.c, w.owner)
+	if !strings.Contains(msg, `plain companion`) || !strings.Contains(msg, `"companion-ai on"`) {
+		t.Fatalf("before consent courting is refused plainly: %q", msg)
+	}
+	if w.c.mind.Romance.Stage != `` && w.c.mind.Romance.Stage != romanceNone {
+		t.Fatalf("and nothing moves: %q", w.c.mind.Romance.Stage)
+	}
+	for _, line := range strings.Split(messaging.WrapAnsi(msg, 80), "\n") {
+		if n := len([]rune(line)); n > 80 {
+			t.Fatalf("wrapped at 80 columns: %d in %q", n, line)
+		}
+	}
+	w.m.tendRomance(w.c, w.owner, time.Now().Unix())
+	if queued(w.c, `romance`) || queued(w.c, `night`) {
+		t.Fatalf("she raises nothing about it either: %+v", w.c.pending)
+	}
+
+	w = newConsentWorld(t, true)
+	w.c.profile.Romance.Romanceable = true
+	if msg := w.m.courtStep(w.c, w.owner); strings.Contains(msg, `plain companion`) {
+		t.Fatalf("control: after consent it is her answer, not the refusal: %q", msg)
 	}
 }

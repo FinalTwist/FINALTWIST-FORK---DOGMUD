@@ -301,6 +301,9 @@ Every step needs all of: trust, affection, attachment, a count of those
 moments, and sessions passed at the stage below, each stretched by half
 again for a slow character. She says how she feels once and then waits;
 the step itself happens only when the owner types `companion-court`.
+Before the owner has agreed to the model (consent), nothing about a
+romance is counted, felt or raised, and `companion-court` answers that
+she is a plain companion for now and `companion-ai on` changes that.
 `companion-boundary friendship` ends it for good and is remembered;
 `companion-boundary none` lifts it again.
 

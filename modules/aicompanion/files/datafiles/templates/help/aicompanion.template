@@ -26,7 +26,8 @@ many sessions that can also become closeness, and then a romance. It is
 slow, it is earned, and it never moves a step except when you say so
 yourself with <ansi fg="command">companion-court</ansi>. If you would rather
 it never went that way, <ansi fg="command">companion-boundary friendship</ansi>
-settles it for good and they will not raise it again.
+settles it for good and they will not raise it again. None of this happens
+with a plain companion: only once you have agreed (see below).
 
 <ansi fg="yellow">━━━ Your choice ━━━</ansi>
 

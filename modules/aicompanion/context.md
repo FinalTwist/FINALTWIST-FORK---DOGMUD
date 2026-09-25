@@ -353,6 +353,11 @@ skills, health) is never in the mind file; it lives on the owner's
 - The bond ends only through `companion-part` (the owner's command), never
   on the model's word: `leave` sets a request that lapses after
   `LeaveConfirmSeconds`. The exception is `collapsed()`.
+- A romance (romance.go) moves only at the owner's command
+  (`companion-court`, `courtStep`) and only after consent: before it,
+  `courtStep` answers that she is a plain companion for now and
+  `companion-ai on` changes that, and `tendRomance` and `noteMilestone`
+  count, feel and raise nothing.
 - Every dispatch captures `controller.worldRev`; `answerTools` and
   `applyResult` drop everything if it has changed.
 - `controller.cancelInFlight` cancels the HTTP call on logout, pause, reset

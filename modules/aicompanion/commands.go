@@ -517,7 +517,8 @@ func (m *AICompanionModule) cmdCourt(rest string, user *users.UserRecord, room *
 		return true, nil
 	}
 	if msg := m.courtStep(c, user); msg != `` {
-		user.SendText(messaging.CategorySystem, msg)
+		// The system category is never wrapped for the reader.
+		user.SendText(messaging.CategorySystem, messaging.WrapAnsi(msg, 80))
 	}
 	return true, nil
 }
@@ -532,7 +533,7 @@ func (m *AICompanionModule) cmdBoundary(rest string, user *users.UserRecord, roo
 		user.SendText(messaging.CategorySystem, `You have no companion travelling with you.`)
 		return true, nil
 	}
-	user.SendText(messaging.CategorySystem, m.setBoundary(c, strings.ToLower(strings.TrimSpace(rest))))
+	user.SendText(messaging.CategorySystem, messaging.WrapAnsi(m.setBoundary(c, strings.ToLower(strings.TrimSpace(rest))), 80))
 	return true, nil
 }
 
