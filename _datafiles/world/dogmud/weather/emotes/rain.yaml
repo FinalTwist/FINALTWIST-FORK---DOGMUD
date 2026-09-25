@@ -14,13 +14,14 @@ outdoor:
     - "Leaf litter darkens and softens underfoot, soaking up the rain."
     - "Rivulets trace down every trunk, finding the same old grooves in bark."
     - "The undergrowth glistens, each leaf holding its own small pool."
-  city:
+  city_thoroughfare: &city_rain
     - "Rainwater chuckles along the gutters and pools between the cobbles."
     - "Awnings sag and drip; somewhere a shutter bangs against the wet."
     - "People duck under doorways, waiting out the heaviest of the rain."
     - "Water sheets off the roof lines and splatters loud against the stone."
     - "Lamplight smears long and wavering across the wet cobblestones."
     - "A gutter overflows somewhere close, sending a thin stream across the path."
+  city_backstreet: *city_rain
   swamp:
     - "Rain stipples the standing water, setting the reeds nodding."
     - "Rain pocks the mud flats, raising a rich, green smell from the ground."

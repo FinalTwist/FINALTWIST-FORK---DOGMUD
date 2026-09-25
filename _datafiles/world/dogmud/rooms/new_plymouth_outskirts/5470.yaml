@@ -14,7 +14,7 @@ description: >
   fixed to a heavy post displays gate rules, tariff schedules, and a
   column of wanted notices. The wall above makes everything here feel low
   and watched.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 76

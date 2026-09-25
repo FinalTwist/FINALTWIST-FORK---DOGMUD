@@ -22,7 +22,7 @@ description: >
   acoustic quality of the stone here returns sound
   in a way that makes ordinary speech audible at a
   distance one would not predict.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -14
   y: 94

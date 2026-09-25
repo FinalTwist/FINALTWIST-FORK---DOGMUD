@@ -23,7 +23,7 @@ description: >
   <ansi fg="itemname">house-gate</ansi>
   and the watcher behind it are the full extent of
   what this side of the wall offers.
-biome: city
+biome: city_backstreet
 coord:
   x: -9
   y: 91

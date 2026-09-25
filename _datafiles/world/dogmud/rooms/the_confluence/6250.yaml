@@ -14,7 +14,8 @@ description: >
   toward the town of Greenford a full day's travel
   away. The world is larger than the city, and the
   east road goes there.
-biome: city
+biome: road
+lamp: 38
 coord:
   x: 10
   y: -67

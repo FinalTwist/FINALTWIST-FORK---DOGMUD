@@ -27,7 +27,7 @@ description: >
   connects the four main draws of this block — the
   fountain, the dock, the armoury, and the permit office
   — and those who use it regularly know all four.
-biome: city
+biome: city_backstreet
 coord:
   x: -10
   y: 89

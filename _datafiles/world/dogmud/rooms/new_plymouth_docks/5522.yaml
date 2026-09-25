@@ -16,7 +16,7 @@ description: >
   South leads back toward the tenements; north continues toward
   the shop-fronts; east reaches the constable's post; west opens
   into the tar yard.
-biome: city
+biome: city_backstreet
 coord:
   x: -18
   y: 85

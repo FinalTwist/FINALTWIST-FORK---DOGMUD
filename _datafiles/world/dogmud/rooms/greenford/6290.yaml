@@ -14,7 +14,7 @@ description: >
   shelved. A crate below the table holds titles
   that have been here long enough to become local.
   Examine the shelves or the crate.
-biome: city
+biome: interior
 coord: {x: 21, y: -76, z: 1}
 exits:
   east: {roomid: 6288}

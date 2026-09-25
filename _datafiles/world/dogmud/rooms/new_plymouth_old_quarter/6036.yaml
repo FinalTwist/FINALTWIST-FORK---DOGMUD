@@ -20,7 +20,7 @@ description: >
   runs at the waterline — not stone, not metal, set into
   the lowest courses as a continuous element that passes
   through the joints and is not interrupted by them.
-biome: city
+biome: dungeon
 coord:
   x: -25
   y: 81

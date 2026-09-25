@@ -13,7 +13,7 @@ description: >
   is dry, which is notable at this depth, and the air
   is stale in the way of a space closed for a very long
   time. The hall is back to the north.
-biome: city
+biome: dungeon
 coord:
   x: 6
   y: -79

@@ -8,7 +8,7 @@ description: The western edge of Market Square is dominated by food vendors -- s
   prices, customers haggling, cart wheels grinding on stone. A food vendor has set
   up a cart with a brazier, selling skewered meat and roasted roots to the market
   crowd.
-biome: city
+biome: city_thoroughfare
 coord:
   x: 4
   y: 0

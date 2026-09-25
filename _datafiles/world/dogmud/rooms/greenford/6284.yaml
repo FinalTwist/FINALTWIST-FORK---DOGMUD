@@ -14,7 +14,7 @@ description: >
   university is now fully visible above the rooflines,
   its upper stonework clear against the sky. The town
   is above you, and the lane goes up into it.
-biome: city
+biome: city_thoroughfare
 coord: {x: 22, y: -75, z: 0}
 exits:
   north: {roomid: 6283}

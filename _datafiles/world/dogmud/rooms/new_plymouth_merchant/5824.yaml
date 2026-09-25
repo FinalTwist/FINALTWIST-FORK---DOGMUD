@@ -23,7 +23,7 @@ description: >
   place than the Walk at night, and both are different
   from the early morning hour when the glaziers' boys
   come to clean the windows before trade opens.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -12
   y: 89

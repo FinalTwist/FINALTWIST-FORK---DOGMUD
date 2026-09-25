@@ -13,7 +13,7 @@ description: >
   ends here, at a blank wall of fitted stone, as though
   it once led somewhere that has since been closed off.
   The gallery is back to the east.
-biome: city
+biome: dungeon
 coord:
   x: 4
   y: -78

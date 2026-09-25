@@ -19,7 +19,7 @@ description: >
   <ansi fg="itemname">ballad sheet</ansi> has been pasted
   to the corner post at eye level, still legible, already
   peeling at one corner.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -16
   y: 82

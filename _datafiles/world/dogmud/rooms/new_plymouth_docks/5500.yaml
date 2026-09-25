@@ -15,7 +15,7 @@ description: >
   direction — and below it, where the bank drops to the water,
   a line of <ansi fg="itemname">tide-wrack</ansi> marks the
   morning's high water in a dark stripe of weed and river-rubbish.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -17
   y: 79

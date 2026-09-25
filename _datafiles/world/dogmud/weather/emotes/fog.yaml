@@ -14,13 +14,14 @@ outdoor:
     - "Insects hum unseen somewhere inside the drifting gray."
     - "Fog clings to every reed stem, beading into slow, fat drops."
     - "The murk hides where solid ground ends and the mire begins."
-  city:
+  city_thoroughfare: &city_fog
     - "Lamplight and doorways become dim halos in the drifting murk."
     - "Cobblestones vanish underfoot, seen only a step before you reach them."
     - "Voices carry oddly between the buildings, muffled and hard to place."
     - "A figure passes close by and is swallowed again within a few steps."
     - "Rooflines and chimneys dissolve into the gray a short way up."
     - "Awning edges drip steadily, the only clear sound in the hush."
+  city_backstreet: *city_fog
 indoor:
   default:
     mild: []

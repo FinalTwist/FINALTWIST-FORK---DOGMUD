@@ -17,7 +17,7 @@ description: >
   the space over the working floor. The heat coming
   off the coals is a constant low presence, filling
   the yard from center to wall.
-biome: city
+biome: city_backstreet
 coord:
   x: -19
   y: 90

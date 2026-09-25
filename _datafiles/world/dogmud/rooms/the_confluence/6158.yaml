@@ -13,7 +13,7 @@ description: >
   and expects to be maintained that way for longer.
   The forecourt is back to the east; a smaller enclosure
   lies further west.
-biome: city
+biome: city_backstreet
 coord:
   x: -6
   y: -73

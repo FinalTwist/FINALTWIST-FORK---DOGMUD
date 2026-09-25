@@ -23,7 +23,7 @@ description: >
   deliveries, times, suppliers, the unpoetic
   logistics of keeping the Noble Quarter running.
   It is read, checked, and current.
-biome: city
+biome: city_backstreet
 coord:
   x: -12
   y: 94

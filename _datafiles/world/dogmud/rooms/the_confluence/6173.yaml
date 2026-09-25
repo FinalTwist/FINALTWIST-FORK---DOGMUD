@@ -13,7 +13,7 @@ description: >
   the capitals. The Chapel of the Solt opens to the
   west; a disused alcove is set into the east wall; the
   reliquary lies deeper to the south.
-biome: city
+biome: interior
 coord:
   x: 3
   y: -78

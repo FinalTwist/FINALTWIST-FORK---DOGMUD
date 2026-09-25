@@ -13,7 +13,7 @@ description: >
   here simply a fact of water and stone. The hall is
   east; the passage continues west; a stair descends
   further below; a cell opens to the south.
-biome: city
+biome: dungeon
 coord:
   x: 5
   y: -78

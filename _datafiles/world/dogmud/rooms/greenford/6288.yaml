@@ -14,7 +14,7 @@ description: >
   university tower is plainly visible now, squared
   against the sky, at its full height at last.
   Examine the stalls or the inn-sign.
-biome: city
+biome: city_thoroughfare
 coord: {x: 22, y: -76, z: 1}
 exits:
   down: {roomid: 6287}

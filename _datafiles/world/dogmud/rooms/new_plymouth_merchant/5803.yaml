@@ -22,7 +22,7 @@ description: >
   northern stretch is gated during working hours,
   admitting only those carrying the correct papers,
   and the gateguards know their faces.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -14
   y: 90

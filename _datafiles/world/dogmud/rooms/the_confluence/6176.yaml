@@ -13,7 +13,7 @@ description: >
   ground. The Aldren chapel is
   back to the north; the sanctuary opens to the east;
   the sacristy is through the south door.
-biome: city
+biome: interior
 coord:
   x: 2
   y: -78

@@ -23,6 +23,8 @@
   inconsistency as a follow-up.
 - The owner runs all deploys; Claude prepares and merges but never deploys.
 - Fable outranks Opus in capability and cost.
+- Every EOD runs `dogmud-end-of-day`: archive shipped specs and plans, tidy
+  the repo root, write the handoff.
 
 ## Tripwires
 
@@ -79,6 +81,6 @@ their package no longer defines. This phase proved the point:
 
 ## Skills
 
-Project procedure lives in `.claude/skills/` as twelve on-demand skills; the
+Project procedure lives in `.claude/skills/` as thirteen on-demand skills; the
 harness lists them with descriptions, so no index is repeated here.
 Subsystem detail lives in each package's `context.md`.

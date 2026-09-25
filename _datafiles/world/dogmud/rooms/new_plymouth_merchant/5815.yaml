@@ -25,7 +25,7 @@ description: >
   you arrived. The room smells faintly of a particular
   pipe-tobacco — expensive, and not common. The curtain
   behind you still moves.
-biome: city
+biome: interior
 coord:
   x: -11
   y: 90

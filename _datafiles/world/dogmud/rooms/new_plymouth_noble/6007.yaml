@@ -21,7 +21,7 @@ description: >
   match the history the newer paintings confirm.
   A stair at the hall's north wall leads up to the
   keeper's rooms above. The old wing continues west.
-biome: city
+biome: interior
 coord:
   x: -15
   y: 95

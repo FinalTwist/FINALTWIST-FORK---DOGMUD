@@ -8,7 +8,7 @@ description: Beyond the gate tunnel, Thornwall opens up around you. The Gate War
   a customs office to the right, and the wide avenue of Main Street running east into
   the city's heart. The city wall looms behind you, massive and reassuring from this
   side. Ahead, the noise and smell of civilization in all its dense, complicated glory.
-biome: city
+biome: city_thoroughfare
 coord:
   x: 0
   y: 0

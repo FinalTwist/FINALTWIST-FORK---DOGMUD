@@ -12,7 +12,7 @@ description: >
   people than the main wharf but handles the traffic
   that wants to avoid it — a quiet convenience at the
   edge of the east quarter.
-biome: city
+biome: city_backstreet
 coord:
   x: 10
   y: -66

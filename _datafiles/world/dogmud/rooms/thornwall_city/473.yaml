@@ -11,7 +11,7 @@ description: >-
   the far end, currently empty. A weathered bounty board stands beside the
   wall, papered with wanted notices. The air smells of metal polish and stale
   bread.
-biome: city
+biome: interior
 x: 10
 "y": 4
 exits:

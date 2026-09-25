@@ -13,7 +13,7 @@ description: >
   Greenford's hill rising toward the university tower at
   its crown. The sign above the arch carries the current
   toll-road notice.
-biome: city
+biome: city_thoroughfare
 coord: {x: 22, y: -72, z: 0}
 exits:
   north: {roomid: 6277, zone: East Road to Greenford}

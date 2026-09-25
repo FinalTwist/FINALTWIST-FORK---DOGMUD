@@ -11,7 +11,7 @@ import (
 )
 
 // M3 item 8 deleted ConsistentAttackMessages and the seeded message pick it
-// drove (docs/superpowers/specs/2026-09-16-messaging-m3-item8-combat-messages-design.md).
+// drove (docs/superpowers/specs/completed/2026-09-16-messaging-m3-item8-combat-messages-design.md).
 //
 // The knob was upstream GoMud's and it worked there, because upstream keeps
 // its role pools equal: one ItemId seed gave a coordinated triad and a

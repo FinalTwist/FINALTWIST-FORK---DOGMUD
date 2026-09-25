@@ -155,6 +155,11 @@ latitude coercion because an earlier test in the same file had already
 cached those exact rounds under a different, still-pinned latitude, and the
 break only showed up running the test in isolation.
 
+**`celestial.go`'s single-slot memo (`celestialRound`/`celestialValue`) has
+the same trap**, keyed on the round alone with no config fingerprint.
+`ClearCelestialMemoForTest()` exists for it, same pattern: call it both
+before sampling and via `t.Cleanup`, alongside `ClearDateCacheForTest()`.
+
 ## The three moons
 
 Cycle lengths are multiples of `RoundsPerDay`, matching the lore in

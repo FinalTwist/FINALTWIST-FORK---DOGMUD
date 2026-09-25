@@ -6,7 +6,7 @@ description: A deep, stone-walled pit serves as the proving ground for the arena
   across the bloodstained floor. The arena champion stands here, armored and armed,
   eyes locked on anyone who dares enter. This is no place for the unprepared. The
   training yard lies to the east.
-biome: fort
+biome: dungeon
 exits:
   east:
     roomid: 201

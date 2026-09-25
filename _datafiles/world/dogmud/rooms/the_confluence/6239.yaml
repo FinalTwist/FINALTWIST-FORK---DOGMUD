@@ -17,7 +17,7 @@ description: >
   below. This is a small-work smithy: nails, hinges,
   hook-and-staple sets, barrel-hoops. The market is
   north; the supply stall is east; the lane is south.
-biome: city
+biome: interior
 coord:
   x: -14
   y: -71

@@ -13,7 +13,7 @@ description: >
   by a short brass leash. The room does its business without
   ceremony, and without ever quite letting a visitor forget
   whose city this is.
-biome: city
+biome: interior
 isbank: true
 isstorage: true
 storagecapacity: 1000

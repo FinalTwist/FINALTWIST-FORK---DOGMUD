@@ -19,7 +19,8 @@ description: >
   in the old stone opens north into a private space
   beyond, and the walk continues west into the darker
   reaches of the buried quarter.
-biome: city
+biome: dungeon
+lamp: 38
 coord:
   x: -22
   y: 81

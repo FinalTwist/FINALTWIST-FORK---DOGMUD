@@ -14,7 +14,7 @@ description: >
   the road north, in both directions at once. A battered
   <ansi fg="itemname">basket</ansi> sits unattended on a bench near the
   trough, its owner presumably drawn off into the conversation.
-biome: city
+biome: city_backstreet
 coord:
   x: -19
   y: 40

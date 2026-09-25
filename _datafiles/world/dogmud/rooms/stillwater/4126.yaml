@@ -16,7 +16,7 @@ description: >
   a smaller chair waits at the case for a customer. The
   smell is beeswax polish and the faint metallic tang of
   freshly-filed silver.
-biome: city
+biome: interior
 station: jeweler_bench
 coord:
   x: -14

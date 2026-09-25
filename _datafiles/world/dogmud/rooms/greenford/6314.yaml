@@ -14,7 +14,7 @@ description: >
   front wall. The lane runs east and north,
   and ahead to the south toward the yew.
   Examine the gardens or the lane.
-biome: city
+biome: city_backstreet
 coord: {x: 21, y: -86, z: 2}
 exits:
   north: {roomid: 6311}

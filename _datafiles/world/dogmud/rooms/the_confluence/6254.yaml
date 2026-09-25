@@ -14,7 +14,7 @@ description: >
   notes on conditions east and west of the city.
   The inn entrance is back north; a door east leads
   out to the drying flats.
-biome: city
+biome: interior
 coord:
   x: 9
   y: -69

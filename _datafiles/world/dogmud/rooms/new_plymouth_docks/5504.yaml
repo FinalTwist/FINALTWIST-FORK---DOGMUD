@@ -16,7 +16,7 @@ description: >
   function for a generation. The <ansi fg="itemname">drying
   racks</ansi> are worth a look if you want to know what the river
   gives up this time of year; the variety is the season's testimony.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -19
   y: 80

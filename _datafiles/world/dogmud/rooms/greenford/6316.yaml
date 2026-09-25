@@ -13,7 +13,7 @@ description: >
   east toward the walled garden, and west toward
   the quieter lane. Examine the wall or the
   lane-end.
-biome: city
+biome: city_backstreet
 coord: {x: 22, y: -86, z: 2}
 exits:
   north: {roomid: 6310}

@@ -5,7 +5,7 @@ description: A long, narrow gallery with straw targets set at varying distances.
   of hay line the walls to catch stray arrows. A rack of training bows stands near
   the entrance. An archer practices here, loosing arrows with practiced precision.
   The training yard lies to the west.
-biome: fort
+biome: interior
 exits:
   west:
     roomid: 201

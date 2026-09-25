@@ -23,7 +23,7 @@ description: >
   The dormitory window is visible from here;
   occasionally a novice face appears in it and
   then withdraws.
-biome: city
+biome: city_backstreet
 coord:
   x: -5
   y: 86

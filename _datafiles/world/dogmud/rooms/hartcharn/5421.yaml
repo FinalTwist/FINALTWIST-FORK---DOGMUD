@@ -15,7 +15,7 @@ description: >
   comparing notes on the state of the road. Near the wall a teamster's
   <ansi fg="itemname">supply cache</ansi> of oilskin bags and iron-bound
   chests sits between two cookfires already lit against the early chill.
-biome: city
+biome: city_backstreet
 coord:
   x: -17
   y: 40

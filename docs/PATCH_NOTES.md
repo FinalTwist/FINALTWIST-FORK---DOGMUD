@@ -41,6 +41,97 @@ Two fixes to companions besides:
   fighting, a fellow member of your party, or another player where fighting
   players is not allowed.
 
+## 2026-09-25: You notice when the light changes
+
+The game now tells you when the light around you changes enough to change
+what you can make out. Walk from a lit street into a dark alley and you
+will read that you have stepped into darkness. Stand in a back lane as
+evening comes and, the next time you act, you will read that dusk has
+settled and faces have blurred into shapes. When someone carrying a light
+walks away, you will hear about that too.
+
+You only hear about it when it matters: when you go from reading faces to
+seeing only shapes, from shapes to nothing, or back again. Walking into a
+brighter room tells you nothing extra, since the room description already
+does. In a fight, you learn of the change each round. Asleep or blinded,
+you are told nothing, and waking up or getting your sight back does not
+count as the light changing.
+
+Very bright light can now hurt. A torch held up under the midsummer sun,
+or the lamps of a main street at midsummer noon, can make the glare
+painful to look into. A covered lantern or the right spell is the better
+choice on those days.
+
+## 2026-09-25: Thornwall, Stillwater, Hartcharn and Kilnreach light up
+
+Thornwall, Stillwater, Hartcharn and the Kilnreach Works now get the same
+treatment New Plymouth, the Confluence and Greenford already have. Their
+main streets, squares, markets and gates keep their lamps burning all
+night, so a face is readable there at any hour. That covers Thornwall's
+Main Street and Market Square, Stillwater's Lakefront Square and its lake
+promenade, and Hartcharn's market street running from gate to gate.
+
+Step off a main way into a lane or a yard after dark, and the lamps stop
+following you. You will still see shapes moving nearby, but not who they
+are.
+
+Many shops and homes across all four towns are now proper interiors, lit
+the way a building should be rather than the way the street outside is
+lit.
+
+The cells beneath Thornwall's guard barracks and Stillwater's
+constabulary catch only a thin slit of daylight: shapes by day, nothing
+at all after dark. Near Stillwater, the old chapel ruin has lost its roof
+and stands open to the sky, taking the weather and the night the way any
+roofless place does.
+
+## 2026-09-25: The Confluence and Greenford's lamps find their own streets
+
+The Confluence and Greenford now get the same treatment New Plymouth had.
+Their main streets, squares and gates keep their lamps burning all night,
+so a face is readable there at any hour. In the Confluence, that means
+Tri-Cross Square, the Processional Avenue, the Causeway and the Brenn
+Bridge. In Greenford, it means the Market Square, the road up from the
+river, and the university's gates and its Quadrangle.
+
+Step off a main way into a lane, a court or a yard after dark, and the
+lamps stop following you. You will still see shapes moving near you, but
+not who they are.
+
+Many shops, halls, the temple and the college rooms in both towns are now
+proper interiors, lit the way a building should be rather than the way
+the street outside is lit.
+
+Under the Confluence's temple lies an old crypt, dark since long before
+the temple itself was raised above it. If you plan to go down there,
+bring your own light. Every character starts out knowing how to make
+one: cast glow.
+
+## 2026-09-25: New Plymouth's lamps find their own streets
+
+New Plymouth's main streets, squares, markets and gates now stay lit
+through the whole night. The Long Market, Dock Street, the Central Square,
+the Processional, Lower Common Way, the City Road and the Temple Gate
+Plaza all keep their lamps burning, so you can read a face there at any
+hour.
+
+Step off one of those main ways into a lane, an alley, a court or a yard
+after dark, and the lamps do not follow you. You will still make out
+shapes moving nearby, but not who they are.
+
+Many shops, offices, inns and halls that used to shine as bright as the
+street outside their door are now proper interiors, lit the way a
+building should be rather than the way the street is.
+
+The buried Old Quarter, and the spaces under the docks, are dark except
+where a lamp is actually burning. If you plan to go down there, bring
+your own light. Every character starts out knowing how to make one: cast
+glow.
+
+Roofless ruins are open to the sky and the weather now, including the old
+watchtower and shrine at Pothole Coulee. Like any place with no roof,
+expect them dark once the sun goes down.
+
 ## 2026-09-23: The night now follows the season and the moon
 
 Until now, night fell the same way every day of the year, and moonlight made

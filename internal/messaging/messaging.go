@@ -102,6 +102,10 @@ const (
 	CategoryMutation
 	CategoryToxin
 
+	// Environment, appended rather than grouped with CategoryTimeOfDay so no
+	// existing Category value shifts. Lighting plan 3d's band-change notices.
+	CategoryLight
+
 	// categoryMax is the exclusive upper bound of the Category enum.
 	// Used by tests to iterate the full range; do not consume in
 	// production code.
@@ -234,6 +238,8 @@ func (c Category) String() string {
 		return "mutation"
 	case CategoryToxin:
 		return "toxin"
+	case CategoryLight:
+		return "light"
 	}
 	return "Unknown"
 }

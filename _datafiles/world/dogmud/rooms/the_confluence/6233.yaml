@@ -18,7 +18,7 @@ description: >
   street-facing sign painted over in flat grey — no one
   seems to mind that it stays open anyway. The gate is
   east; the cooperage is west; the row runs south.
-biome: city
+biome: city_backstreet
 coord:
   x: -14
   y: -68

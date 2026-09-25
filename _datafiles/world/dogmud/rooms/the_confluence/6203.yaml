@@ -12,7 +12,7 @@ description: >
   to the south; a stair cut into the floor itself
   descends further into the dark below. The crypt
   is back to the east.
-biome: city
+biome: dungeon
 coord:
   x: 7
   y: -78

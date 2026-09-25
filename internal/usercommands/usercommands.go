@@ -10,6 +10,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/keywords"
+	"github.com/GoMudEngine/GoMud/internal/lightnotice"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/questengine"
@@ -320,6 +321,11 @@ func TryCommand(cmd string, rest string, userId int, flags events.EventFlag) (bo
 	if user == nil {
 		return false, fmt.Errorf(`user %d not found`, userId)
 	}
+
+	// Tell the player about any light crossing since they last acted, before
+	// this command's own output. It runs before scripts, behaviour trees and
+	// quest intercepts so an intercepted command still gets it.
+	lightnotice.Check(user, lightnotice.TriggerCommand)
 
 	// Do not allow scripts to intercept server commands
 	if cmd != `server` {

@@ -17,7 +17,7 @@ description: >
   The
   <ansi fg="itemname">seal-press</ansi>
   on the desk's corner is the pivot of all of it.
-biome: city
+biome: interior
 coord:
   x: -3
   y: -68
