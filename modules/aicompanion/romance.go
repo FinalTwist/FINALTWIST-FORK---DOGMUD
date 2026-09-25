@@ -271,7 +271,7 @@ func applyAppearance(mob *mobs.Mob, p *Profile, mind *Mind) {
 	if mob == nil {
 		return
 	}
-	base := strings.TrimSpace(p.Summary)
+	var base string
 	if mind.BaseDescription != `` {
 		base = mind.BaseDescription
 	} else {
@@ -322,7 +322,7 @@ func nightReady(mind *Mind, mob *mobs.Mob, owner *users.UserRecord, nowUnix int6
 // remembers it, and lets her know it mattered. Nothing else moves
 // attachment: not the model's opinion of the evening, not kind words.
 func (m *AICompanionModule) noteMilestone(c *controller, kind string) {
-	if c == nil || !c.profile.Romance.Romanceable || c.mind.Romance.Boundary == `friendship` {
+	if c == nil || !c.profile.Romance.Romanceable || c.mind.Romance.Boundary == `friendship` || !m.consented(c.ownerUserId) {
 		return
 	}
 	now := time.Now().Unix()
@@ -341,7 +341,9 @@ func (m *AICompanionModule) noteMilestone(c *controller, kind string) {
 // offers her a night when the two of them are settled somewhere.
 func (m *AICompanionModule) tendRomance(c *controller, u *users.UserRecord, nowUnix int64) {
 	p := c.profile
-	if !p.Romance.Romanceable || c.mind.Romance.Boundary == `friendship` {
+	// Before consent she is a plain companion: nothing about a romance is
+	// counted, felt or raised.
+	if !p.Romance.Romanceable || c.mind.Romance.Boundary == `friendship` || !m.consented(c.ownerUserId) {
 		return
 	}
 	mob := mobs.GetInstance(c.instanceId)
@@ -391,6 +393,11 @@ func (m *AICompanionModule) tendRomance(c *controller, u *users.UserRecord, nowU
 // courtStep is the owner accepting: the stage moves, and it is remembered.
 func (m *AICompanionModule) courtStep(c *controller, u *users.UserRecord) string {
 	p := c.profile
+	// Nothing about a romance moves before her owner has agreed that she
+	// may think for herself: until then she is a plain companion.
+	if !m.consented(c.ownerUserId) {
+		return fmt.Sprintf(`(%s is a plain companion for now, answering with a few set lines, so nothing more grows between you. "companion-ai on" changes that.)`, p.Name)
+	}
 	if !p.Romance.Romanceable {
 		return c.profile.Name + ` is not looking for that, and says so kindly.`
 	}

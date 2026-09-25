@@ -7,9 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/GoMudEngine/GoMud/internal/companionai"
 )
 
 // chatMessage is one message in an OpenAI chat completions request. An
@@ -124,6 +127,15 @@ type modelCall struct {
 	Tools       []toolSpec
 	ToolChoice  string          // auto, none; empty = not sent
 	Ctx         context.Context // cancelled when the answer can no longer be used
+
+	// OwnerUserId is the player whose companion, and so whose words and
+	// doings, this request carries. The door in send refuses it unless
+	// that player has agreed; left at 0 it is refused outright.
+	OwnerUserId int
+
+	// Route is who pays for the call and how it travels, set once by
+	// applyRoute when the call is built.
+	Route route
 }
 
 // modelResult is what comes back: the raw JSON content, which the caller
@@ -135,6 +147,13 @@ type modelResult struct {
 	Err      error
 	Status   int  // HTTP status, 0 when the request never got an answer
 	Canceled bool // the caller gave up on it; not the provider's fault
+
+	// Sent is the request having left for the provider (or the owner's
+	// browser), so it may have been billed whatever came back. Estimated
+	// is Tokens being the prompt estimate for a sent request that
+	// reported no usage (callModelOnce).
+	Sent      bool
+	Estimated bool
 
 	// ToolCalls are the model's requests for more information, when it
 	// asked instead of answering. ToolsUsed counts them across a decision.
@@ -150,13 +169,68 @@ type modelResult struct {
 
 var httpClient = &http.Client{}
 
+// errNoConsent is the door refusing a request for a player who has not
+// agreed that anything of theirs may be sent. The request never left.
+var errNoConsent = errors.New(`not sent: the companion's owner has not agreed to the model`)
+
+// outboundKind says what a request carries. The zero value is the guarded
+// kind, so a request nobody thought to classify is treated as carrying a
+// player's words.
+type outboundKind int
+
+const (
+	// carriesPlayerData is every chat completion and every moderation
+	// check: a prompt built from her mind, or lines she means to say that
+	// were shaped by it.
+	carriesPlayerData outboundKind = iota
+	// carriesNoPlayerData is only the model list, which sends the key and
+	// nothing else.
+	carriesNoPlayerData
+)
+
+// admit is the one door through which anything leaves for a provider.
+// Every caller already checks consent before it builds a request; this is
+// the check that holds when one of them forgets. It is keyed on the owner
+// the request carries, reads the ledger rather than the bond records
+// because it runs off the mud lock, and fails closed: no owner, or no
+// ledger, is no send. There are two ways out, send (the server's key, over
+// HTTP) and sendRelay (the owner's key, through their browser), and each
+// passes admit before it reaches its transport.
+func admit(gate *consentLedger, ownerUserId int, kind outboundKind, path string) error {
+	if kind != carriesNoPlayerData && !gate.allows(ownerUserId) {
+		gate.noteRefusal(ownerUserId, path)
+		return errNoConsent
+	}
+	return nil
+}
+
+// send takes a request out over HTTP, through the door.
+func send(req *http.Request, gate *consentLedger, ownerUserId int, kind outboundKind) (*http.Response, error) {
+	if err := admit(gate, ownerUserId, kind, req.URL.Path); err != nil {
+		return nil, err
+	}
+	return httpClient.Do(req)
+}
+
+// sendRelay takes a request body to the owner's browser, through the same
+// door, and returns the provider's status and raw reply. A relay request
+// is always a chat completion built from her mind, so it has no kind to
+// choose: it is always guarded.
+func sendRelay(ctx context.Context, gate *consentLedger, ownerUserId int, calls *pendingRelays,
+	body []byte, via relaySender) (int, []byte, error) {
+	if err := admit(gate, ownerUserId, carriesPlayerData, `relay`); err != nil {
+		return 0, nil, err
+	}
+	return calls.do(ctx, ownerUserId, body, via)
+}
+
 // callModel performs a chat completions request, retrying once after a
 // short pause when the failure looks transient and the call allows it.
-func callModel(c modelCall) modelResult {
-	res := callModelOnce(c)
+func (m *AICompanionModule) callModel(c modelCall) modelResult {
+	res := m.callModelOnce(c)
 	if c.Retry && transient(res) {
 		time.Sleep(1500 * time.Millisecond)
-		again := callModelOnce(c)
+		again := m.callModelOnce(c)
 		again.Latency += res.Latency + 1500*time.Millisecond
 		again.Tokens += res.Tokens
 		return again
@@ -167,7 +241,7 @@ func callModel(c modelCall) modelResult {
 // transient reports failures worth one retry: rate limits, server errors
 // and requests that never got an answer.
 func transient(r modelResult) bool {
-	if r.Err == nil || r.Canceled {
+	if r.Err == nil || r.Canceled || errors.Is(r.Err, errNoConsent) || relayFinal(r.Err) {
 		return false
 	}
 	return r.Status == 0 || r.Status == http.StatusTooManyRequests || r.Status >= 500
@@ -177,7 +251,44 @@ func transient(r modelResult) bool {
 // call's strict JSON schema. It must only ever run on a goroutine that does
 // not hold the mud lock. The API key is sent in a header and never logged or
 // returned.
-func callModelOnce(c modelCall) modelResult {
+//
+// What it reports as spent is what the budgets are settled with, so it is
+// made trustworthy here, once, for every caller: a request that left but
+// came back with no usage (a timeout, a dropped connection, a call given up
+// on after it was sent) is counted at its prompt estimate plus its
+// MaxTokens, since the provider may well have billed a whole answer; and
+// a count relayed through a player's browser, which that player can
+// write, is held between nothing and the most this one request could
+// have cost.
+func (m *AICompanionModule) callModelOnce(c modelCall) modelResult {
+	res := m.exchangeOnce(c)
+	prompt := estimateTokens(c.Messages) + requestOverhead(c)
+	if res.Tokens < 0 {
+		res.Tokens = 0
+	}
+	if c.Route.kind == routeRelay && res.Tokens > prompt+c.MaxTokens {
+		res.Tokens = prompt + c.MaxTokens
+	}
+	if res.Sent && res.Tokens == 0 && (res.Status == 0 || res.Status == http.StatusOK) {
+		// It may have been billed for a whole answer that never reached
+		// us (a timeout after the provider finished, a dropped
+		// connection), so the prompt alone would under-count it.
+		res.Tokens = prompt + c.MaxTokens
+		res.Estimated = true
+	}
+	return res
+}
+
+// neverConnected reports an HTTP failure that happened before any byte of
+// the request could have left: the connection was never made.
+func neverConnected(err error) bool {
+	var op *net.OpError
+	return errors.As(err, &op) && op.Op == `dial`
+}
+
+// exchangeOnce is one request and its reply, on whichever transport the
+// call's route names, with nothing counted yet (callModelOnce).
+func (m *AICompanionModule) exchangeOnce(c modelCall) modelResult {
 	start := time.Now()
 	res := modelResult{}
 
@@ -212,6 +323,45 @@ func callModelOnce(c modelCall) modelResult {
 	if parent == nil {
 		parent = context.Background()
 	}
+	if err := parent.Err(); err != nil {
+		// Given up on before it left: nothing was sent, nothing spent.
+		res.Err, res.Canceled = err, errors.Is(err, context.Canceled)
+		return res
+	}
+
+	if c.Route.kind == routeRelay {
+		// The owner's own key, through their browser. The wait covers the
+		// browser's round trip as well as the provider, so it is the
+		// relay's own deadline. The per-owner breaker is fed once per call
+		// by routeResult at the call site, not here.
+		ctx, cancel := context.WithTimeout(parent, time.Duration(m.cfg.RelayTimeoutSeconds)*time.Second)
+		defer cancel()
+		via := m.relaySend
+		if via == nil {
+			via = companionai.SendRelay
+		}
+		status, raw, err := sendRelay(ctx, &m.consent, c.OwnerUserId, m.relayCalls, body, via)
+		res.Latency = time.Since(start)
+		res.Status = status
+		// It left unless the door refused it or there was no browser to
+		// take it; a relay that went away after taking it may already
+		// have posted it.
+		res.Sent = err == nil || !(errors.Is(err, errNoConsent) || errors.Is(err, errRelayUnsent))
+		if err != nil {
+			res.Err = err
+			res.Canceled = errors.Is(err, context.Canceled) || errors.Is(parent.Err(), context.Canceled)
+			return res
+		}
+		if status != http.StatusOK {
+			// The body is the provider's own text about the owner's own
+			// account, relayed by a page the server does not control: it is
+			// neither kept in the error nor logged. The status says enough.
+			res.Err = fmt.Errorf(`model API status %d through the owner's own key`, status)
+			return res
+		}
+		return decodeChatResponse(res, status, raw)
+	}
+
 	ctx, cancel := context.WithTimeout(parent, c.Timeout)
 	defer cancel()
 
@@ -223,14 +373,15 @@ func callModelOnce(c modelCall) modelResult {
 	httpReq.Header.Set(`Content-Type`, `application/json`)
 	httpReq.Header.Set(`Authorization`, `Bearer `+c.APIKey)
 
-	resp, err := httpClient.Do(httpReq)
+	resp, err := send(httpReq, &m.consent, c.OwnerUserId, carriesPlayerData)
+	res.Sent = err == nil || !(errors.Is(err, errNoConsent) || neverConnected(err))
 	if err != nil {
 		res.Err = err
 		res.Latency = time.Since(start)
 		res.Canceled = errors.Is(err, context.Canceled) || errors.Is(parent.Err(), context.Canceled)
 		return res
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	res.Latency = time.Since(start)
@@ -239,13 +390,21 @@ func callModelOnce(c modelCall) modelResult {
 		res.Err = err
 		return res
 	}
+	return decodeChatResponse(res, resp.StatusCode, raw)
+}
 
-	if resp.StatusCode != http.StatusOK {
+// maxToolCallsPerReply is the most questions one reply may put to the game.
+const maxToolCallsPerReply = 4
+
+// decodeChatResponse reads a provider's chat completions reply into res,
+// whichever way it came back: over HTTP or through the owner's browser.
+func decodeChatResponse(res modelResult, status int, raw []byte) modelResult {
+	if status != http.StatusOK {
 		snippet := strings.TrimSpace(string(raw))
 		if len(snippet) > 300 {
 			snippet = snippet[:300]
 		}
-		res.Err = fmt.Errorf(`model API status %d: %s`, resp.StatusCode, snippet)
+		res.Err = fmt.Errorf(`model API status %d: %s`, status, snippet)
 		return res
 	}
 
@@ -267,6 +426,13 @@ func callModelOnce(c modelCall) modelResult {
 	}
 	if len(ch.Message.ToolCalls) > 0 {
 		res.ToolCalls = ch.Message.ToolCalls
+		if len(res.ToolCalls) > maxToolCallsPerReply {
+			// Each question is answered under the mud lock and sent back
+			// in the next request, so a reply asking dozens at once would
+			// hold the game and swell the next prompt. The first few are
+			// answered; the rest were never asked.
+			res.ToolCalls = res.ToolCalls[:maxToolCallsPerReply]
+		}
 		return res
 	}
 	if ch.FinishReason == `length` {
@@ -296,8 +462,10 @@ type moderationResponse struct {
 
 // moderate checks texts with the moderation endpoint (F19.1) and returns
 // which were flagged. On any error it returns nil: moderation failing must
-// not silence the companion, and the in-character filters still apply.
-func moderate(baseURL string, apiKey string, model string, timeout time.Duration, texts []string) ([]bool, error) {
+// not silence the companion, and the in-character filters still apply. The
+// texts are what she means to say, shaped by her mind, so the check goes
+// through the same door as the call that produced them.
+func (m *AICompanionModule) moderate(ownerUserId int, baseURL string, apiKey string, model string, timeout time.Duration, texts []string) ([]bool, error) {
 	if len(texts) == 0 {
 		return nil, nil
 	}
@@ -313,11 +481,11 @@ func moderate(baseURL string, apiKey string, model string, timeout time.Duration
 	}
 	req.Header.Set(`Content-Type`, `application/json`)
 	req.Header.Set(`Authorization`, `Bearer `+apiKey)
-	resp, err := httpClient.Do(req)
+	resp, err := send(req, &m.consent, ownerUserId, carriesPlayerData)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf(`moderation API status %d`, resp.StatusCode)
 	}
@@ -342,7 +510,7 @@ func moderate(baseURL string, apiKey string, model string, timeout time.Duration
 // prompted the lines are dropped (fail closed), and for the owner's own
 // conversation they are kept (fail open), so a moderation outage costs a
 // server its harassment cover rather than its companions.
-func moderateDecision(d *Decision, baseURL string, apiKey string, model string, timeout time.Duration, strict bool) int {
+func (m *AICompanionModule) moderateDecision(ownerUserId int, d *Decision, baseURL string, apiKey string, model string, timeout time.Duration, strict bool) int {
 	var texts []string
 	for _, l := range d.Speech {
 		texts = append(texts, l.Text)
@@ -351,7 +519,7 @@ func moderateDecision(d *Decision, baseURL string, apiKey string, model string, 
 	if hasSayto {
 		texts = append(texts, d.Action.Query)
 	}
-	flags, err := moderate(baseURL, apiKey, model, timeout, texts)
+	flags, err := m.moderate(ownerUserId, baseURL, apiKey, model, timeout, texts)
 	if err != nil || flags == nil {
 		if !strict {
 			return 0
@@ -384,7 +552,9 @@ func moderateDecision(d *Decision, baseURL string, apiKey string, model string, 
 }
 
 // listModels returns the model ids the key can use (GET /models), or nil
-// when the list cannot be read.
+// when the list cannot be read. It carries the key and nothing of any
+// player's, so it is the one request the consent door lets through without
+// an owner.
 func listModels(baseURL string, apiKey string) map[string]bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -393,11 +563,11 @@ func listModels(baseURL string, apiKey string) map[string]bool {
 		return nil
 	}
 	req.Header.Set(`Authorization`, `Bearer `+apiKey)
-	resp, err := httpClient.Do(req)
+	resp, err := send(req, nil, 0, carriesNoPlayerData)
 	if err != nil {
 		return nil
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return nil
 	}

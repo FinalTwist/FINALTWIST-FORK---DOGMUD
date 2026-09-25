@@ -1,6 +1,7 @@
 package aicompanion
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -179,6 +180,12 @@ func (m *AICompanionModule) breakerOpen(now time.Time) bool {
 }
 
 func (m *AICompanionModule) breakerResult(err error, now time.Time) {
+	if errors.Is(err, errNoConsent) {
+		// The door refused a request that never left the server. That is a
+		// bug in the caller, not the provider failing, and must not pause
+		// every other companion.
+		return
+	}
 	if err == nil {
 		m.consecutiveErrors = 0
 		return
@@ -205,6 +212,52 @@ func (m *AICompanionModule) chargeOwner(ownerId int, tokens int) {
 		m.ownerTokens = map[int]int{}
 	}
 	m.ownerTokens[ownerId] += tokens
+}
+
+// chargeStranger is chargeOwner for a passer-by's own daily allowance. Like
+// chargeOwner it takes a negative amount, which is how a settlement gives
+// back what a reservation held and the call did not use.
+func (m *AICompanionModule) chargeStranger(userId int, tokens int) {
+	if userId <= 0 {
+		return
+	}
+	if m.strangerTokens == nil {
+		m.strangerTokens = map[int]int{}
+	}
+	m.strangerTokens[userId] += tokens
+}
+
+// strangerFits reports whether a passer-by's call of this size fits both
+// what that passer-by may spend in a day (StrangerDailyTokens) and what all
+// passers-by together may spend of this one owner's companion
+// (StrangerTokensPerOwner): many strangers, each within their own
+// allowance, could otherwise spend one owner's key without end. Zero is no
+// cap for either.
+func (m *AICompanionModule) strangerFits(ownerId int, askerId int, tokens int) bool {
+	if m.cfg.StrangerDailyTokens > 0 && m.strangerTokens[askerId]+tokens > m.cfg.StrangerDailyTokens {
+		return false
+	}
+	return m.cfg.StrangerTokensPerOwner <= 0 || m.strangersFor[ownerId]+tokens <= m.cfg.StrangerTokensPerOwner
+}
+
+// chargeStrangerFor charges a passer-by's call to both of the counts
+// strangerFits weighs, and takes a negative amount the same way (a
+// settlement), never leaving either below nothing.
+func (m *AICompanionModule) chargeStrangerFor(ownerId int, askerId int, tokens int) {
+	m.chargeStranger(askerId, tokens)
+	if m.strangerTokens[askerId] < 0 {
+		m.strangerTokens[askerId] = 0
+	}
+	if ownerId <= 0 || askerId <= 0 {
+		return
+	}
+	if m.strangersFor == nil {
+		m.strangersFor = map[int]int{}
+	}
+	m.strangersFor[ownerId] += tokens
+	if m.strangersFor[ownerId] < 0 {
+		m.strangersFor[ownerId] = 0
+	}
 }
 
 // traceEntry is one decision kept for the admin trace view.
@@ -473,7 +526,11 @@ func worstCaseTokens(prompt int, maxTokens int, toolRounds int, retry bool) int 
 	grown := prompt
 	for i := 0; i <= toolRounds; i++ {
 		total += grown + maxTokens
-		grown += maxTokens + 600 // the model's request, and the game's answer
+		// The model's questions (at most a completion), and the game's
+		// answers: as many as a reply may ask, each as long as an answer
+		// may be, at a token a rune (estimateTokens' worst case for bytes)
+		// plus a message's framing.
+		grown += maxTokens + maxToolCallsPerReply*(maxToolAnswerRunes+8)
 	}
 	if retry {
 		total *= 2
@@ -485,21 +542,55 @@ func worstCaseTokens(prompt int, maxTokens int, toolRounds int, retry bool) int 
 // budgets, and holds the tokens in the same step. Checking and charging
 // apart is what let two calls slip past a nearly spent budget together.
 func (m *AICompanionModule) tryReserveTokens(ownerId int, tokens int) bool {
+	return m.tryReserveFor(ownerId, 0, tokens)
+}
+
+// tryReserveFor is tryReserveTokens with the payer named: a call a
+// passer-by prompted (askerId above 0) is held against their own
+// StrangerDailyTokens instead of the owner's companion allowance, so a
+// stranger cannot spend somebody else's companion into silence. The
+// server's budget holds either way. Check and hold are still one step.
+func (m *AICompanionModule) tryReserveFor(ownerId int, askerId int, tokens int) bool {
 	m.rollDay()
 	if m.cfg.DailyTokenBudget > 0 && m.tokensToday+tokens > m.cfg.DailyTokenBudget {
 		return false
 	}
-	if m.cfg.DailyTokensPerCompanion > 0 && m.ownerTokens[ownerId]+tokens > m.cfg.DailyTokensPerCompanion {
+	if askerId > 0 {
+		if !m.strangerFits(ownerId, askerId, tokens) {
+			return false
+		}
+	} else if m.cfg.DailyTokensPerCompanion > 0 && m.ownerTokens[ownerId]+tokens > m.cfg.DailyTokensPerCompanion {
 		return false
 	}
 	m.tokensToday += tokens
 	m.outstanding += tokens
-	m.chargeOwner(ownerId, tokens)
+	if askerId > 0 {
+		m.chargeStrangerFor(ownerId, askerId, tokens)
+	} else {
+		m.chargeOwner(ownerId, tokens)
+	}
 	return true
 }
 
 // settleTokens replaces a reservation with what the call really used.
 func (m *AICompanionModule) settleTokens(ownerId int, reserved int, used int) {
+	m.settleFor(ownerId, 0, reserved, used)
+}
+
+// settleFor settles a reservation made by tryReserveFor today, against the
+// same payer it was held against.
+func (m *AICompanionModule) settleFor(ownerId int, askerId int, reserved int, used int) {
+	m.settleForDay(``, ownerId, askerId, reserved, used)
+}
+
+// settleForDay is settleFor for a reservation held on day (the budget day
+// when it was made; "" is today). The server's day total starts each day
+// from what is still held (rollDay), so it settles the same either way.
+// The owner's and passer-by's counters start the new day at nothing, so
+// a reservation from an earlier day gives nothing back to them: giving
+// back what the old day held would take it off what the new day really
+// spent. What it used past its reservation is still charged.
+func (m *AICompanionModule) settleForDay(day string, ownerId int, askerId int, reserved int, used int) {
 	m.rollDay()
 	m.outstanding -= reserved
 	if m.outstanding < 0 {
@@ -510,7 +601,13 @@ func (m *AICompanionModule) settleTokens(ownerId int, reserved int, used int) {
 	if m.tokensToday < 0 {
 		m.tokensToday = 0
 	}
-	if ownerId > 0 {
+	if day != `` && day != m.budgetDay && diff < 0 {
+		diff = 0
+	}
+	switch {
+	case askerId > 0:
+		m.chargeStrangerFor(ownerId, askerId, diff)
+	case ownerId > 0:
 		m.chargeOwner(ownerId, diff)
 		if m.ownerTokens[ownerId] < 0 {
 			m.ownerTokens[ownerId] = 0
@@ -527,6 +624,11 @@ type budgetState struct {
 	Calls     int         `yaml:"calls"`
 	Owners    map[int]int `yaml:"owners,omitempty"`
 	Strangers map[int]int `yaml:"strangers,omitempty"`
+	// StrangersFor is what passers-by together spent of each owner's
+	// companion (StrangerTokensPerOwner), by owner.
+	StrangersFor map[int]int `yaml:"strangers_for,omitempty"`
+	// Notices is each owner's "you notice" moments today (NoticeCallsPerDay).
+	Notices map[int]int `yaml:"notices,omitempty"`
 }
 
 const budgetStateId = `budget-state`
@@ -544,11 +646,19 @@ func (m *AICompanionModule) loadBudget() {
 	m.callsToday = st.Calls
 	m.ownerTokens = st.Owners
 	m.strangerTokens = st.Strangers
+	m.strangersFor = st.StrangersFor
+	m.noticesToday = st.Notices
 	if m.ownerTokens == nil {
 		m.ownerTokens = map[int]int{}
 	}
 	if m.strangerTokens == nil {
 		m.strangerTokens = map[int]int{}
+	}
+	if m.noticesToday == nil {
+		m.noticesToday = map[int]int{}
+	}
+	if m.strangersFor == nil {
+		m.strangersFor = map[int]int{}
 	}
 }
 
@@ -557,7 +667,7 @@ func (m *AICompanionModule) saveBudget() {
 		return
 	}
 	st := budgetState{Day: m.budgetDay, Tokens: m.tokensToday, Calls: m.callsToday,
-		Owners: m.ownerTokens, Strangers: m.strangerTokens}
+		Owners: m.ownerTokens, Strangers: m.strangerTokens, StrangersFor: m.strangersFor, Notices: m.noticesToday}
 	if err := m.plug.WriteStruct(budgetStateId, &st); err != nil {
 		mudlog.Error(`aicompanion`, `action`, `saveBudget`, `error`, err)
 	}

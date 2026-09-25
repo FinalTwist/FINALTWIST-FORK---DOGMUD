@@ -160,7 +160,9 @@ func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *u
 			if owner != nil && owner.Character != nil {
 				name = owner.Character.Name
 			}
-			c.mind.addLine(Line{Kind: `event`, Text: `You made your way back to ` + name + `.`}, m.cfg.WorkingMemoryLines)
+			if m.mayRemember(c) {
+				c.mind.addLine(Line{Kind: `event`, Text: `You made your way back to ` + name + `.`}, m.cfg.WorkingMemoryLines)
+			}
 			return
 		}
 		here := p.DestName
@@ -220,7 +222,7 @@ func (m *AICompanionModule) replan(c *controller, mob *mobs.Mob) bool {
 }
 
 // headBack returns a companion that has been apart from its owner for
-// ErrandLingerRounds, by its own map. If it knows no way back for LostRounds
+// ErrandLingerRounds, by its own map. If it knows no way back for RescueRounds
 // it rejoins through the engine's companion transport, as though it had
 // followed, rather than stay lost.
 func (m *AICompanionModule) headBack(c *controller, mob *mobs.Mob, u *users.UserRecord, round uint64) {
@@ -241,8 +243,10 @@ func (m *AICompanionModule) headBack(c *controller, mob *mobs.Mob, u *users.User
 	}
 	if reason := m.startTravel(c, mob, u.Character.RoomId, `return`, false); reason == `` {
 		c.lastErrand = ``
-		c.mind.addLine(Line{Kind: `event`, Text: `You started back toward ` + u.Character.Name + `.`}, m.cfg.WorkingMemoryLines)
-		c.dirty = true
+		if m.mayRemember(c) {
+			c.mind.addLine(Line{Kind: `event`, Text: `You started back toward ` + u.Character.Name + `.`}, m.cfg.WorkingMemoryLines)
+			c.dirty = true
+		}
 		return
 	}
 	// She could not work out a way back on her own. Try again each round:
@@ -252,9 +256,11 @@ func (m *AICompanionModule) headBack(c *controller, mob *mobs.Mob, u *users.User
 	// convenience.
 	if apart >= uint64(m.cfg.RescueRounds) && companionai.Rejoin(u.UserId) {
 		c.apartSince = 0
-		c.mind.addLine(Line{Kind: `event`, Text: `You were lost for a long while before you found ` + u.Character.Name + ` again.`},
-			m.cfg.WorkingMemoryLines)
-		c.dirty = true
+		if m.mayRemember(c) {
+			c.mind.addLine(Line{Kind: `event`, Text: `You were lost for a long while before you found ` + u.Character.Name + ` again.`},
+				m.cfg.WorkingMemoryLines)
+			c.dirty = true
+		}
 		mudlog.Info(`aicompanion`, `action`, `rescue`, `owner`, u.UserId, `roundsLost`, apart)
 	}
 }

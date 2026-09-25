@@ -12,12 +12,21 @@ type stimulus struct {
 	Kind        string // heard, asked, emote, gift, attacked, quiet, session_start, first_meeting, recovered, farewell
 	Speaker     string
 	Text        string
-	ElapsedSecs int64  // session_start only
-	FromOwner   bool   // the owner caused it; only these can move the owner opinion
-	Chain       int    // 1 for a follow-up to the companion's own look or consider
-	Authorized  bool   // arrived: the owner asked for this errand
-	AskerUserId int    // the passer-by whose words prompted it, when not the owner
-	Errand      string // arrived: what she set out to do there
+	ElapsedSecs int64 // session_start only
+	FromOwner   bool  // the owner caused it; only these can move the owner opinion
+	Chain       int   // 1 for a follow-up to the companion's own look or consider
+	Authorized  bool  // arrived: the owner asked for this errand
+	AskerUserId int   // the passer-by whose words prompted it, when not the owner
+	// PaidBy is who pays for the call this prompts when it is not their
+	// own doing: her owner, on the follow-up to a look their decision
+	// made (lookedFollowUp). It batches the stimulus with that payer
+	// (promptedBy) and refuses her no verb; a passer-by's follow-up
+	// carries AskerUserId instead, which does.
+	PaidBy int
+	Errand string // arrived: what she set out to do there
+	// Plain is Text without what another player looks like or carries,
+	// for a call through her owner's own browser (relaySafeStimuli).
+	Plain string
 }
 
 // promptInput is everything buildMessages needs. It is plain data so the
@@ -488,6 +497,42 @@ func formatLine(l Line, selfName string) string {
 	}
 }
 
+// relaySafeLines is what a prompt carries of her recent lines when the call
+// goes through her owner's own browser, where the owner can read the whole
+// prompt. Other people's names and deeds stay, and so does anything said to
+// her or by her owner or herself; speech she only overheard from someone
+// else (RecordBystanderSpeech) is left out, and a look at another player
+// keeps how they are but not their description (Line.Plain). The owner's
+// own speech is known by name, so what an owner she could not make out
+// said aloud, to nobody in particular, is left out as well.
+func relaySafeLines(lines []Line, ownerName string, selfName string) []Line {
+	out := make([]Line, 0, len(lines))
+	for _, l := range lines {
+		overheard := (l.Kind == `said` || l.Kind == `emoted`) && !l.ToMe
+		if overheard && l.Speaker != ownerName && l.Speaker != selfName {
+			continue
+		}
+		if l.Plain != `` {
+			l.Text, l.Plain = l.Plain, ``
+		}
+		out = append(out, l)
+	}
+	return out
+}
+
+// relaySafeStimuli is relaySafeLines for what prompted the call: a look at
+// another player keeps how they are but not their description.
+func relaySafeStimuli(stims []stimulus) []stimulus {
+	out := make([]stimulus, len(stims))
+	for i, s := range stims {
+		if s.Plain != `` {
+			s.Text, s.Plain = s.Plain, ``
+		}
+		out[i] = s
+	}
+	return out
+}
+
 func formatStimulus(s stimulus, ownerName string) string {
 	switch s.Kind {
 	case `heard`:
@@ -762,9 +807,9 @@ func capabilityWords(cfg Config) string {
 		`loot a body or take_from an open container`,
 		`browse a merchant's wares, buy or sell`,
 		`craft something you know how to make, where the place allows it`,
-		`cast a spell you know ([m] ref) on someone here, on your companion, or on yourself`,
+		`cast a spell you know ([m] ref) on someone here, on your companion, or on yourself. A spell that harms is like an attack: only when nobody else put you up to it, and only at something your companion could fight themselves`,
 		`rest when there is nothing to do and nowhere to be, and stand when there is`,
-		`attack someone or something here when your own companion asks you to: a practice dummy, a target, a beast, anything already fighting. What you refuse is a person who has done no harm: a shopkeeper, a child, a bystander`,
+		`attack someone or something here when your own companion asks you to: a practice dummy, a target, a beast, anything already fighting. Never anything your companion could not fight themselves. What you refuse is a person who has done no harm: a shopkeeper, a child, a bystander`,
 		`find_place to think back over where things are`,
 	}
 	if cfg.AllowErrands {

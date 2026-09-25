@@ -207,6 +207,7 @@ var mobOnlyCommands = map[string]string{
 	// exact identity chosen by the module, not a name, so they are of no use
 	// to anything else. Registered only while that module is enabled. ---
 	"companion-buy":     "module: aicompanion, buys from one exact merchant",
+	"companion-follow":  "module: aicompanion, the delayed step that trails an owner out of a room",
 	"companion-loot":    "module: aicompanion, loots under its owner's rights",
 	"companion-takeout": "module: aicompanion, takes one exact item from a container",
 	"companion-unlock":  "module: aicompanion, opens a door with a key it carries",

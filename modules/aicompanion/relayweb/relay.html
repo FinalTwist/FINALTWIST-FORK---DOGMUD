@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta name="game-origin" content="{{GAME_ORIGIN}}">
+<title>Companion key</title>
+<style>
+ body{font:14px system-ui,sans-serif;margin:0;padding:12px;background:#111;color:#ddd}
+ p{margin:8px 0} .warn{color:#e8b34a;font-size:12px} .row{display:flex;gap:8px;margin-top:10px}
+ button{font:inherit} [hidden]{display:none}
+</style>
+</head>
+<body data-page="frame">
+<!-- This frame holds the key and relays requests. It has no input: the key
+     is typed in a separate window on this origin, opened from here, so its
+     address bar can be checked and no page can draw over it. -->
+<div id="setup" hidden>
+ <p>Your key is entered in its own window, not in the game page.
+ Before you type, check that window's address bar: it must read
+ <strong id="host"></strong>.</p>
+ <p class="warn">Your key stays in this browser and is never sent to the game server.
+ Passers-by who talk to your companion cannot spend your key unless you
+ type companion-ai strangers on in the game; then your key pays for what
+ they say too, within a daily limit.</p>
+ <div class="row"><button type="button" id="open">Open the key window</button>
+ <button type="button" id="forget">Forget my key</button>
+ <button type="button" id="close">Close</button></div>
+ <p class="warn" id="status" role="status"></p>
+</div>
+<div id="unlock" hidden>
+ <p>You saved a key on this device. Unlock it with your passphrase in the key window.</p>
+ <div class="row"><button type="button" id="unlockopen">Open the key window</button>
+ <button type="button" id="unlockforget">Forget it</button>
+ <button type="button" id="unlockclose">Not now</button></div>
+ <p class="warn" id="unlockstatus" role="status"></p>
+</div>
+<script src="/companion-relay.js"></script>
+</body>
+</html>

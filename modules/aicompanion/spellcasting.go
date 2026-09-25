@@ -28,6 +28,11 @@ type spellOption struct {
 	What   string // what it does, in a word: mends, wards, harms, lights
 	Cost   int
 	SelfOK bool // needs no target
+	// Harm is the engine's own answer (SpellData.IsHarm): a harmful spell
+	// starts a fight, so it is owner-driven and its target must be one the
+	// owner could harm. Area is a harmful spell that lands on the room.
+	Harm bool
+	Area bool
 }
 
 // spellsReady lists what she knows, can pay for, and is allowed to cast.
@@ -56,6 +61,7 @@ func spellsReady(mob *mobs.Mob) []spellOption {
 		out = append(out, spellOption{
 			Ref: fmt.Sprintf(`m%d`, len(out)+1), Id: sd.SpellId, Name: sd.Name,
 			What: spellWhat(sd), Cost: sd.Cost, SelfOK: sd.Targeting == combatvocab.TargetSelf,
+			Harm: sd.IsHarm(), Area: sd.IsHarm() && sd.Targeting == combatvocab.TargetArea,
 		})
 		if len(out) >= 8 {
 			break

@@ -68,8 +68,14 @@ type pendingAction struct {
 }
 
 // ownerAskedNow reports whether this decision was triggered by the owner
-// speaking to the companion, which is what "ask first" requires.
+// speaking to the companion, which is what "ask first" requires. A
+// passer-by's words in the same decision void it, as they void the
+// owner-only verbs (ownerPrompted): the owner's say-so is not theirs to
+// borrow.
 func ownerAskedNow(stims []stimulus) bool {
+	if !ownerPrompted(stims) {
+		return false
+	}
 	for _, s := range stims {
 		if s.FromOwner && (s.Kind == `heard` || s.Kind == `asked`) {
 			return true
@@ -131,12 +137,11 @@ func stillThere(t *thing, mob *mobs.Mob, room *rooms.Room) bool {
 type actionOutcome struct {
 	Issued    bool   // a mob command was queued, or a trip begun
 	Perceived string // result text of a perception verb
+	Plain     string // Perceived without another player's looks or gear, when it had them
 	Refused   string // why the proposal was not acted on (for the trace and memory)
 	Pending   *pendingAction
 }
 
-// performAction validates and carries out one action. Runs under the mud
-// lock. delay is when, after the speech just issued, the command should run.
 // ownerDrivenOnly are the things a companion does only at its owner's word:
 // parting with goods, spending, and taking what is not hers. Another
 // traveller can talk to her all day; they cannot talk her out of her
@@ -147,38 +152,91 @@ var ownerDrivenOnly = map[string]bool{
 	// Starting a fight is the owner's call and nobody else's. A stranger
 	// cannot point a companion at something and watch it go.
 	`attack`: true,
+	// A harmful `cast` is owner-driven for the same reason; castHarm checks
+	// it there, because a helpful one (a mending, a ward) is not.
 }
 
-// ownerPrompted reports whether this decision came from the owner asking
-// for something, or from the companion's own quiet judgement with nobody
-// else involved.
+// ownerPrompted reports whether this decision is one the owner-only verbs
+// may come out of: her owner asking for something, or her own quiet
+// judgement with nobody else involved.
 //
-// Two things it must not do. It must not take FromOwner alone as the
-// owner's intent: most world moments carry that flag (a fight ending, a
-// wound, a rumour), and a stranger speaking in the same batch as one of
-// those would otherwise unlock the owner-only verbs. And it must not count
-// the owner's own gift or gesture as a stranger speaking, which is why the
-// stranger test is only applied to stimuli that are not the owner's.
+// Nobody speaking is her own judgement, and stays allowed: a quiet moment,
+// an errand she was sent on, a fight ending. That is why this looks for a
+// stranger rather than for the owner. It must not take FromOwner alone as
+// the owner's intent either way: most world moments carry that flag (a
+// fight ending, a wound, a rumour). And it must not count the owner's own
+// gift or gesture as a stranger speaking, which is why the stranger test is
+// only applied to stimuli that are not the owner's.
+//
+// Anything a passer-by put to her in the batch refuses these verbs, even
+// when her owner spoke too: otherwise a stranger speaking in the same
+// moment as the owner rides the owner's say-so ("give me the sword",
+// answered as though the owner had asked). nextBatch keeps the two apart,
+// so the owner's own request is decided on its own; this is the rule
+// holding even if a batch is ever put together some other way.
 func ownerPrompted(stims []stimulus) bool {
-	ownerSpoke, strangerSpoke := false, false
 	for _, s := range stims {
 		if s.FromOwner {
-			if s.Kind == `heard` || s.Kind == `asked` {
-				ownerSpoke = true
-			}
 			continue
 		}
+		if s.AskerUserId > 0 {
+			return false // a passer-by prompted it, whatever its kind
+		}
 		switch s.Kind {
-		case `heard`, `asked`, `emote`, `gift`, `attacked`:
-			strangerSpoke = true
+		case `heard`, `asked`, `emote`, `gift`, `attacked`, `healed`:
+			return false
 		}
 	}
-	if ownerSpoke {
-		return true
-	}
-	return !strangerSpoke
+	return true
 }
 
+// castHarm casts a harmful spell: only at her owner's word or her own
+// quiet judgement, never a stranger's, and only at a creature or person her
+// owner could harm here, and not at anyone she will not fight unless they
+// already are. One that lands on the whole room is filtered when it
+// resolves (areaHarmAllowed says why that is enough).
+func (m *AICompanionModule) castHarm(c *controller, mob *mobs.Mob, owner *users.UserRecord, sc *scene, room *rooms.Room,
+	opt spellOption, a ActionProposal, stims []stimulus, delay float64, round uint64) actionOutcome {
+
+	if !ownerPrompted(stims) {
+		return actionOutcome{Refused: `that is not a stranger's to ask for`}
+	}
+	if a.To == `owner` {
+		userId := 0
+		if owner != nil {
+			userId = owner.UserId
+		}
+		_, reason := harmAllowed(owner, room, 0, userId)
+		return actionOutcome{Refused: reason}
+	}
+	t := sc.get(a.To)
+	if t == nil || (t.Kind != `npc` && t.Kind != `player`) || !stillThere(t, mob, room) {
+		return actionOutcome{Refused: `there is nobody like that here to cast it at`}
+	}
+	targetMob, targetUser := 0, 0
+	if t.Kind == `npc` {
+		targetMob = t.MobInstanceId
+	} else {
+		targetUser = t.UserId
+	}
+	if ok, reason := harmAllowed(owner, room, targetMob, targetUser); !ok {
+		return actionOutcome{Refused: reason}
+	}
+	// Her refusal list holds for a spell as it does for attack: not
+	// unless they are already fighting.
+	if target := mobs.GetInstance(targetMob); target != nil && refusesToFight(c.profile, target) && !target.Character.IsInCombat() {
+		return actionOutcome{Refused: `you will not raise a hand to them`}
+	}
+	if opt.Area {
+		if ok, reason := areaHarmAllowed(owner, room, mob, c.profile); !ok {
+			return actionOutcome{Refused: reason}
+		}
+	}
+	return m.issue(c, mob, `cast`, castCommand(opt, t), `cast:`+opt.Id, opt.Name, t.Name, delay, round)
+}
+
+// performAction validates and carries out one action. Runs under the mud
+// lock. delay is when, after the speech just issued, the command should run.
 func (m *AICompanionModule) performAction(c *controller, mob *mobs.Mob, owner *users.UserRecord, sc *scene,
 	a ActionProposal, stims []stimulus, delay float64, round uint64) actionOutcome {
 
@@ -226,6 +284,13 @@ func (m *AICompanionModule) performAction(c *controller, mob *mobs.Mob, owner *u
 		opt, ok := findSpellOption(spellsReady(mob), a.Ref)
 		if !ok {
 			return actionOutcome{Refused: `that is not a spell you know, or you cannot pay for it now`}
+		}
+		// A harmful spell starts a fight as surely as `attack` does, so it
+		// is owner-driven the same way, and it may land only on what her
+		// owner could harm (harmAllowed). Whether it harms is the engine's
+		// answer, read off the spell, not a list kept here.
+		if opt.Harm {
+			return m.castHarm(c, mob, owner, sc, room, opt, a, stims, delay, round)
 		}
 		if !opt.SelfOK && a.To == `owner` && owner != nil {
 			return m.issue(c, mob, `cast`, fmt.Sprintf(`cast %s @%d`, opt.Id, owner.UserId),
@@ -373,6 +438,11 @@ func (m *AICompanionModule) performAction(c *controller, mob *mobs.Mob, owner *u
 		if who == `` || a.Query == `` {
 			return actionOutcome{Refused: `nothing to say`}
 		}
+		// Her words are her owner's to answer for, spoken aloud to the
+		// room like any say: a muted owner silences this as well.
+		if len(spokenLines(owner, []SpeechLine{{Kind: `sayto`, Text: a.Query}})) == 0 {
+			return actionOutcome{Refused: `you cannot speak just now`}
+		}
 		mob.Command(`sayto `+who+` `+util.EscapeAnsiTags(a.Query), delay)
 		// An NPC ignores a mob talking at it, so her question is put to it
 		// the way her owner's would be: the same quest, behaviour-tree and
@@ -399,8 +469,9 @@ func (m *AICompanionModule) performAction(c *controller, mob *mobs.Mob, owner *u
 		if target == nil || target.Character.RoomId != room.RoomId {
 			return actionOutcome{Refused: `they are not here`}
 		}
-		if target.Character.IsCharmed() {
-			return actionOutcome{Refused: `that is somebody's companion`}
+		// Only what her owner could attack, by the engine's own rules.
+		if ok, reason := harmAllowed(owner, room, t.MobInstanceId, 0); !ok {
+			return actionOutcome{Refused: reason}
 		}
 		// She will not set about a shopkeeper, a child or anyone else on
 		// her own refusal list, whoever asks her to.
@@ -546,7 +617,7 @@ func (m *AICompanionModule) issue(c *controller, mob *mobs.Mob, verb string, com
 // lookAt answers a look with what a player looking at the same thing would
 // read, and shows the look to the room as a small emote.
 func (m *AICompanionModule) lookAt(c *controller, mob *mobs.Mob, room *rooms.Room, t *thing, delay float64, visible bool) actionOutcome {
-	var desc, emote string
+	var desc, emote, plainDesc string
 	switch t.Kind {
 	case `item`, `carried`, `worn`:
 		item := t.Item
@@ -564,6 +635,9 @@ func (m *AICompanionModule) lookAt(c *controller, mob *mobs.Mob, room *rooms.Roo
 	case `player`:
 		if u := users.GetByUserId(t.UserId); u != nil && u.Character != nil {
 			desc = plainText(u.Character.Description) + ` They look ` + healthWords(u.Character) + `.`
+			// Their description is theirs: a prompt her owner's browser
+			// carries keeps only how they are.
+			plainDesc = `They look ` + healthWords(u.Character) + `.`
 		}
 		emote = fmt.Sprintf(`studies %s for a moment.`, t.Name)
 	case `corpse`:
@@ -611,8 +685,12 @@ func (m *AICompanionModule) lookAt(c *controller, mob *mobs.Mob, room *rooms.Roo
 	now := time.Now().Unix()
 	c.mind.recordInteraction(t.Key, `look_at`, true, now)
 	result := fmt.Sprintf(`You looked at %s: %s`, t.Name, desc)
-	c.mind.addLine(Line{Kind: `event`, Text: result}, m.cfg.WorkingMemoryLines)
-	return actionOutcome{Perceived: result}
+	plain := ``
+	if plainDesc != `` {
+		plain = fmt.Sprintf(`You looked at %s: %s`, t.Name, plainDesc)
+	}
+	c.mind.addLine(Line{Kind: `event`, Text: result, Plain: plain}, m.cfg.WorkingMemoryLines)
+	return actionOutcome{Perceived: result, Plain: plain}
 }
 
 // considerWords mirrors actions.predictionFor without its markup.

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -130,6 +132,18 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}
 
+	// The game page frames the companion key relay, which lives on its own
+	// origin. Only the game page gets this policy: /webclient is an outer page
+	// that frames webclient-pure.html from our own origin, and a frame-src
+	// naming only the relay would block that frame. No script-src: the game
+	// page runs inline and CDN scripts.
+	if pageFound && fileBase == `webclient-pure.html` {
+		if relay := companionai.RelayOrigin(); relay != `` {
+			w.Header().Set(`Content-Security-Policy`,
+				`frame-src `+relay+`; object-src 'none'; base-uri 'self'`)
+		}
+	}
+
 	// Log the request
 	mudlog.Info("Web", "ip", r.RemoteAddr, "ref", r.Header.Get("Referer"), "file path", fullPath, "file extension", fileExt, "file source", source, "size", fmt.Sprintf(`%.2fk`, float64(fSize)/1024))
 
@@ -144,6 +158,8 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 		"PATH":    reqPath,
 		"CONFIG":  configs.GetConfig(),
 		"STATS":   GetStats(),
+		// COMPANION_RELAY_ORIGIN_JSON is a JS string literal, see relayOriginJSON.
+		"COMPANION_RELAY_ORIGIN_JSON": relayOriginJSON(),
 		"NAV": []WebNav{
 			{`Home`, `/`},
 			{`Who's Online`, `/online`},
@@ -279,7 +295,9 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn, string)) 
 		return
 	}
 
-	// Routing
+	// Routing. Every route below registers on http.DefaultServeMux; both
+	// servers run it behind relayFirst, so a request for the companion key
+	// relay's host never reaches any of them.
 	// Basic homepage
 
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
@@ -455,6 +473,7 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn, string)) 
 					httpsServer = &http.Server{
 						Addr:      fmt.Sprintf(`:%d`, networkConfig.HttpsPort),
 						TLSConfig: tlsConfig,
+						Handler:   relayFirst(http.DefaultServeMux),
 					}
 					applyServerTimeouts(httpsServer, networkConfig)
 
@@ -486,10 +505,14 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn, string)) 
 	if networkConfig.HttpPort > 0 {
 
 		httpServer = &http.Server{
-			Addr: fmt.Sprintf(`:%d`, networkConfig.HttpPort),
+			Addr:    fmt.Sprintf(`:%d`, networkConfig.HttpPort),
+			Handler: relayFirst(http.DefaultServeMux),
 		}
 		applyServerTimeouts(httpServer, networkConfig)
 
+		// With the redirect on, the relay host is redirected to https like
+		// every other host and claimed there: the relay page runs only in a
+		// secure context, so serving it over plain http would help nobody.
 		if networkConfig.HttpsRedirect {
 
 			if httpsServer == nil {
@@ -641,4 +664,32 @@ func sendError(w http.ResponseWriter, r *http.Request, status int) {
 	if status == http.StatusNotFound {
 		fmt.Fprint(w, "custom 404")
 	}
+}
+
+// relayFirst is the outermost handler of both servers. The companion key
+// relay lives on its own origin, and the module claims EVERY request whose
+// Host is that origin's host before any route is consulted: the websocket,
+// the admin pages and the builder are the game's, and none of them may run
+// on the origin that holds a player's key. With no relay installed nothing
+// is claimed and next sees every request.
+func relayFirst(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if companionai.ServeRelayPage(w, r) {
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// relayOriginJSON is the companion key relay's origin as a JSON string
+// literal ("" when no relay is offered), for the game page's script. The
+// page templates are text/template, which escapes nothing, so the value is
+// encoded here: json.Marshal escapes quotes, backslashes and < > &, so no
+// origin can end the string or the script element.
+func relayOriginJSON() string {
+	b, err := json.Marshal(companionai.RelayOrigin())
+	if err != nil {
+		return `""`
+	}
+	return string(b)
 }

@@ -49,8 +49,9 @@ const (
 	CompanionPet      CompanionSourceType = "pet"
 	// CompanionBonded is a companion driven by the aicompanion module: a
 	// character with its own mind, memory and opinion of its owner. It is
-	// never summoned, costs no Conviction reserve, cannot be dismissed or
-	// renamed, and recovers from death instead of being lost. The stored value
+	// never summoned, costs no Conviction reserve, cannot be renamed, cannot
+	// be dismissed while the module drives it (companionai.DrivesBonded),
+	// and recovers from death instead of being lost. The stored value
 	// is shown to players by the companion list, so it names the relationship
 	// rather than the mechanism.
 	CompanionBonded CompanionSourceType = "bonded"

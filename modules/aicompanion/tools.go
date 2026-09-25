@@ -57,9 +57,17 @@ type toolArgs struct {
 	Query string `json:"query"`
 }
 
+// maxToolAnswerRunes is the longest answer one question gets. The worst
+// case a decision holds (worstCaseTokens) counts every answer of a round
+// at this length.
+const maxToolAnswerRunes = 1500
+
 // answerTools answers the model's questions. Runs under the mud lock. It
 // returns false if the companion is no longer the one the call was for.
-func (m *AICompanionModule) answerTools(ownerId int, seq uint64, rev uint64, sc *scene, calls []toolCall) ([]string, bool) {
+// relay is a call through her owner's own browser, where the owner reads
+// every answer: a closer look at another player then tells how they are,
+// never their description or what they carry (describePerson).
+func (m *AICompanionModule) answerTools(ownerId int, seq uint64, rev uint64, sc *scene, calls []toolCall, relay bool) ([]string, bool) {
 	c := m.ctrls[ownerId]
 	if c == nil || c.seq != seq || c.worldRev != rev {
 		return nil, false
@@ -79,7 +87,7 @@ func (m *AICompanionModule) answerTools(ownerId int, seq uint64, rev uint64, sc 
 		_ = json.Unmarshal([]byte(tc.Function.Arguments), &a)
 		a.Ref = strings.ToLower(strings.TrimSpace(a.Ref))
 		a.Query = strings.TrimSpace(a.Query)
-		out[i] = cleanText(m.answerTool(c, mob, owner, room, sc, tc.Function.Name, a), 1500)
+		out[i] = cleanText(m.answerTool(c, mob, owner, room, sc, tc.Function.Name, a, relay), maxToolAnswerRunes)
 		if out[i] == `` {
 			out[i] = `Nothing more to learn there.`
 		}
@@ -89,7 +97,7 @@ func (m *AICompanionModule) answerTools(ownerId int, seq uint64, rev uint64, sc 
 }
 
 func (m *AICompanionModule) answerTool(c *controller, mob *mobs.Mob, owner *users.UserRecord, room *rooms.Room,
-	sc *scene, name string, a toolArgs) string {
+	sc *scene, name string, a toolArgs, relay bool) string {
 
 	switch name {
 	case `look_closer`:
@@ -114,7 +122,7 @@ func (m *AICompanionModule) answerTool(c *controller, mob *mobs.Mob, owner *user
 				if cannotSee(mob, room) || !mob.Character.Perceives(u.Character) {
 					return `You cannot make them out from here.`
 				}
-				return describePerson(u.Character, true)
+				return describePerson(u.Character, !relay)
 			}
 		}
 		if t.Kind == `ware` {
@@ -196,15 +204,22 @@ func describeRoomFully(mob *mobs.Mob, room *rooms.Room) string {
 }
 
 // describePerson is what `look <player>` shows: description, condition,
-// kind, and what they wear and carry in plain view.
-func describePerson(ch *characters.Character, showGear bool) string {
+// kind, and what they wear and carry in plain view. Without full it is how
+// they are and what kind they are, and nothing of their description or
+// gear: what a prompt through her owner's own browser may carry of
+// somebody else.
+func describePerson(ch *characters.Character, full bool) string {
 	var b strings.Builder
-	d, _ := characters.ResolveDescriptionToken(ch.Description)
-	fmt.Fprintf(&b, `%s: %s They look %s.`, ch.Name, plainText(d), healthWords(ch))
+	if full {
+		d, _ := characters.ResolveDescriptionToken(ch.Description)
+		fmt.Fprintf(&b, `%s: %s They look %s.`, ch.Name, plainText(d), healthWords(ch))
+	} else {
+		fmt.Fprintf(&b, `%s: they look %s.`, ch.Name, healthWords(ch))
+	}
 	if sp := species.GetSpecies(ch.SpeciesId); sp != nil && sp.Name != `` {
 		fmt.Fprintf(&b, ` Kind: %s.`, strings.ToLower(sp.Name))
 	}
-	if showGear {
+	if full {
 		var gear []string
 		for _, it := range ch.Equipment.GetAllItems() {
 			if it.ItemId > 0 {
