@@ -236,12 +236,12 @@ Prefixes: `UNSURE:` defaulted dim · `DARK:` dungeon with no lamp · `LAMP 38:` 
 | 483 | Enchanter's Circle | city | interior | Roofed stone chamber at street level. |
 | 484 | The Back Corner | city | interior | Alcove behind the tavern bar. |
 | 510 | Thornwall Bank | city | interior | "a solid stone building", bank lobby and vault. |
-| 5000 | The Rift Chamber | city | dungeon | DARK: "beneath the Temple District", sealed, no sky; its light is rune glow, not a burning lamp. |
+| 5000 | The Rift Chamber | city | dungeon | LAMP 38: owner ruling, the pulsing runes count as a light source (a pulse schedule is plan 5 work). "beneath the Temple District", sealed, no sky; its light is rune glow, not a burning lamp. |
 | 5101 | A Loft Above the Forge | city | interior | Roofed home loft. |
 | 5102 | Marek's Quarters Above the Tavern | city | interior | Roofed home room. |
 | 5103 | Olen's Chamber Above the Temple | city | interior | Roofed home cell. |
 | 5104 | Guard Barracks, Sleeping Quarters | city | interior | Roofed bunk room. |
-| 5105 | Holding Cell | city | dungeon | DARK: "carved into the stone foundations beneath the guard barracks"; a window slit admits "a grudging bar of daylight". |
+| 5105 | Holding Cell | city | dungeon | SKY 0.1: the window slit takes a tenth of the outdoor light, so shapes by day and dark at night. "carved into the stone foundations beneath the guard barracks"; a window slit admits "a grudging bar of daylight". |
 
 ## stillwater (29, plus 1 ruin)
 
@@ -274,8 +274,8 @@ Prefixes: `UNSURE:` defaulted dim · `DARK:` dungeon with no lamp · `LAMP 38:` 
 | 4143 | Tailor's Cottage | city | interior | "the long front room of a cottage". |
 | 4146 | Boat-Builder's Yard | city | city_backstreet | "the open work-yard east of the fishing docks". |
 | 5100 | The Counting House | city | interior | "Inside, the room is small and deliberate". |
-| 5106 | Holding Cell | city | dungeon | DARK: "a single stone cell behind the constabulary's iron bars", below ground; a slit admits "a grey wedge of daylight". |
-| 6443 | The Chrysalis Workshop | city | dungeon | DARK: built into the alley's dead end below Coalsmoke Alley; its light is shard glow, not a burning lamp. |
+| 5106 | Holding Cell | city | dungeon | SKY 0.1: the window slit takes a tenth of the outdoor light, so shapes by day and dark at night. "a single stone cell behind the constabulary's iron bars", below ground; a slit admits "a grey wedge of daylight". |
+| 6443 | The Chrysalis Workshop | city | dungeon | LAMP 38: owner ruling, the shard glow counts as a light source. built into the alley's dead end below Coalsmoke Alley; its light is shard glow, not a burning lamp. |
 | 4144 | Old Chapel Ruin | plains | ruins | "broken stone foundation... three surviving courses... a single intact corner where a doorpost still stands": built, roof gone. |
 
 ## hartcharn (26)
@@ -389,3 +389,21 @@ neighbours both quiet.
    text never says which side of the wall. Classed UNSURE backstreet.
    Recommendation: keep backstreet, a dim riverside suburb; the alternative
    is `road`/`river` like the three rooms beyond it.
+
+## Owner answers (2026-09-25)
+
+1. The pulsing runes (5000) and the shard glow (6443) count as light sources:
+   `lamp: 38`. The two holding cells (5105, 5106) take a room-level
+   `skylight: 0.1` (`SKY 0.1:` rows): their slit passes a tenth of the outdoor
+   light, which follows the real sun, so they read as shapes by day and dark
+   at night with no new code. The room-level `skylight` override already
+   exists (`internal/rooms/rooms.go:103`).
+2. The east-bank enclave (6251, 6252, 6253) stays `city_backstreet`.
+
+**Recorded for plan 5, not built here:** light sources with SCHEDULES, the way
+NPCs already have them: a lamp that is lit only at night, runes that pulse
+bright and dim by the hour or on a faster timer, items that give light on a
+timetable. The Rift Chamber's runes are the example case.
+
+With the rulings: 22 dungeon rooms, of which 18 are dark, 2 lamplit and 2
+lit by their slit; `LAMP 38` rows 3; `SKY 0.1` rows 2.
