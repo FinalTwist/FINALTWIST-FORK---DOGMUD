@@ -14,13 +14,15 @@ outdoor:
     - "Bare branches overhead click together, brittle in the still air."
     - "Rime thickens along every trunk, turning the bark pale and hard."
     - "The undergrowth stands frozen mid-motion, every leaf locked in ice."
-  city:
+  city: &city_frost
     - "Rime whitens the eaves and doorframes; the streets ring hard underfoot."
     - "Freezing mist pools between the buildings, haloing each cold lantern."
     - "Frost glazes the cobblestones, and each footstep rings out sharply."
     - "Icicles hang stiff from every gutter, catching the pale lantern light."
     - "Doorways sit dark and shut, and the street feels emptied of people."
     - "A thin crust of frost seals shut every window not lately opened."
+  city_thoroughfare: *city_frost
+  city_backstreet: *city_frost
   water:
     - "A skin of ice creeps out from the banks, thin and clear as held breath."
     - "Frozen mist drifts across the still water, leaving rime on the reeds."

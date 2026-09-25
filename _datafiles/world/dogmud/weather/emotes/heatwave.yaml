@@ -7,13 +7,15 @@ outdoor:
     - "The light glares white and merciless off every pale surface."
     - "Your skin prickles with heat that has nowhere to escape to."
     - "Even the shade offers little relief from the heavy, still air."
-  city:
+  city: &city_heatwave
     - "The stones radiate stored heat like a banked forge."
     - "Heat rises off the cobbles in waves that blur the street beyond."
     - "Awnings hang limp, offering thin shade against the glare."
     - "Doorways stand open, everyone inside seeking whatever shade there is."
     - "Metal fixtures on every door are too hot to touch bare-handed."
     - "The city smells of hot dust and baked stone, thick in every breath."
+  city_thoroughfare: *city_heatwave
+  city_backstreet: *city_heatwave
 indoor:
   default:
     mild: []
