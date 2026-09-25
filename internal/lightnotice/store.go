@@ -7,6 +7,7 @@
 package lightnotice
 
 import (
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -77,39 +78,27 @@ func (g *CauseGroup) Filepath() string { return string(g.Cause) + ".yaml" }
 // transition, because the trigger rules can reach all of them: a missing pool
 // would be silence in play rather than a boot failure.
 func (g *CauseGroup) Validate() error {
-	known := false
-	for _, c := range allCauses {
-		if g.Cause == c {
-			known = true
-		}
-	}
-	if !known {
+	if !slices.Contains(allCauses, g.Cause) {
 		return errors.Errorf("unknown cause %q", g.Cause)
 	}
 	for tr := range g.Transitions {
-		if !knownTransition(tr) {
+		if !slices.Contains(allTransitions, tr) {
 			return errors.Errorf("cause %q declares unknown transition %q", g.Cause, tr)
 		}
 	}
 	for _, tr := range allTransitions {
-		p := g.Transitions[tr]
-		if p == nil {
+		p, ok := g.Transitions[tr]
+		if !ok {
 			return errors.Errorf("cause %q is missing transition %q", g.Cause, tr)
+		}
+		if p == nil {
+			return errors.Errorf("cause %q transition %q is empty", g.Cause, tr)
 		}
 		if err := p.validate(); err != nil {
 			return errors.Wrapf(err, "cause %q transition %q", g.Cause, tr)
 		}
 	}
 	return nil
-}
-
-func knownTransition(tr Transition) bool {
-	for _, t := range allTransitions {
-		if t == tr {
-			return true
-		}
-	}
-	return false
 }
 
 func (p *Pools) validate() error {
