@@ -377,7 +377,9 @@ skills, health) is never in the mind file; it lives on the owner's
   whenever any passer-by's stimulus is in the batch, whoever else spoke.
 - What she says is her owner's to answer for, on every tier: a muted owner
   (`UserRecord.Muted`) silences her say, emote and `sayto` alike
-  (`spokenLines`, in `speak` and the `sayto` action). On the owner's own
+  (`spokenLines`, in `speak` and the `sayto` action), and her authored
+  battle lines, idle gestures and thinking gestures too
+  (`ownerSilenced`). On the owner's own
   key nothing moderates her words, so each line she says that way is
   logged at Info against the owner (`speechLogLine`, `logSpeech`).
 - Item commands use `itemRef` (`!<itemId>:<uuid>`), never a display name.

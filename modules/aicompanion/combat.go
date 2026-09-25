@@ -656,7 +656,7 @@ func drinkablePotion(mob *mobs.Mob) string {
 // combatLine says or does one authored battle line, locally and at game
 // speed (F13.7). Returns whether a line was used.
 func (m *AICompanionModule) combatLine(c *controller, mob *mobs.Mob, round uint64, pool []string) bool {
-	if len(pool) == 0 || util.Rand(10) >= 7 {
+	if len(pool) == 0 || ownerSilenced(c.ownerUserId) || util.Rand(10) >= 7 {
 		return false
 	}
 	if c.fight != nil {

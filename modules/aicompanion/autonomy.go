@@ -304,7 +304,7 @@ func (m *AICompanionModule) pastime(c *controller, mob *mobs.Mob) {
 	case `emote`:
 		pool := c.profile.idlePool(c.mind.Opinion)
 		line := cleanText(pool[util.Rand(len(pool))], maxEmoteRunes)
-		if line == `` {
+		if line == `` || ownerSilenced(c.ownerUserId) {
 			return
 		}
 		c.lastIdleEmote = now

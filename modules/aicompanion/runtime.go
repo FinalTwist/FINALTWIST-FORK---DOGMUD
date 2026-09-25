@@ -1042,6 +1042,14 @@ func spokenLines(owner *users.UserRecord, lines []SpeechLine) []SpeechLine {
 	return lines
 }
 
+// ownerSilenced reports whether her authored words (a battle line, an idle
+// gesture, a thinking gesture) are to go unsaid: her owner is muted, or
+// cannot be found. It is spokenLines' rule for what no model wrote.
+func ownerSilenced(ownerUserId int) bool {
+	owner := users.GetByUserId(ownerUserId)
+	return owner == nil || owner.Muted
+}
+
 // speechLogLine is the log record for one line she says through her
 // owner's own key, or nil when the line is not logged. Nothing moderates
 // the owner's key (their provider may have no moderation, and the reply
@@ -1149,7 +1157,7 @@ func (m *AICompanionModule) fallback(c *controller, mob *mobs.Mob, stims []stimu
 // someone speaking to the companion is slow (F2.11), so a pause reads as a
 // pause and not as being ignored. Once per call, no model involved.
 func (m *AICompanionModule) maybeThink(c *controller, now time.Time) {
-	if !c.inFlight || !c.inFlightDirect || c.thinkShown || m.cfg.ThinkingSeconds <= 0 {
+	if !c.inFlight || !c.inFlightDirect || c.thinkShown || m.cfg.ThinkingSeconds <= 0 || ownerSilenced(c.ownerUserId) {
 		return
 	}
 	if now.Sub(c.lastCall) < time.Duration(m.cfg.ThinkingSeconds)*time.Second {

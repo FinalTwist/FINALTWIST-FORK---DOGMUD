@@ -298,3 +298,28 @@ func TestSpecialMoveAtAFoeAlreadyFightingHer(t *testing.T) {
 		t.Fatal("she never turns a move on her owner, even one fighting her")
 	}
 }
+
+// What she says is her owner's to answer for: a muted owner's companion
+// says no authored battle line either, say or emote.
+func TestBattleLinesRespectMute(t *testing.T) {
+	owner, _, _, her := harmWorld(t, configs.PVPDisabled)
+	m, c, _ := strangerModule()
+	c.instanceId = her.InstanceId
+	pool := []string{`"For the road!"`, `bares her teeth.`}
+	spoke := func() int {
+		n := 0
+		for i := 0; i < 60; i++ {
+			if m.combatLine(c, her, uint64(i*10), pool) {
+				n++
+			}
+		}
+		return n
+	}
+	if spoke() == 0 {
+		t.Fatal("control: unmuted, she says some of her battle lines")
+	}
+	owner.Muted = true
+	if n := spoke(); n != 0 {
+		t.Fatalf("muted, she says none: %d", n)
+	}
+}
