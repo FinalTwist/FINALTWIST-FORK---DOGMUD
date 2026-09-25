@@ -258,6 +258,9 @@ func (m *AICompanionModule) onLoad() {
 	// touches only the relay tables, which have their own locks, and
 	// ignores everything while player keys are not on offer.
 	companionai.SetRelayInbound(m.onRelayInbound)
+	// The key relay page, on its own origin, exists only while player
+	// keys are offered.
+	m.installRelayPage()
 
 	if m.cfg.RejectedBaseURL != `` {
 		mudlog.Error(`aicompanion`, `action`, `config`, `error`,

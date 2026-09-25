@@ -149,6 +149,28 @@ Roadmap and phase plan: `docs/aicompanion/`.
   first failure it does count in a relay session tells the owner once, in
   plain words (`noticeFallback`, `relayOwner.noticeSent`, reset by
   `ready`).
+- **relaypage.go**, **relayweb/relay.html**, **relayweb/relay.js**: the
+  key relay page, the only place a player's key exists. Both files are
+  embedded. `installRelayPage` (from `onLoad`) puts `serveRelayPage` on
+  `companionai.SetRelayPage` while `playerKeysOffered`, else removes it.
+  `serveRelayPage` claims EVERY request whose host is the `RelayOrigin`
+  host (port and case ignored): `/companion-relay.html` and
+  `/companion-relay.js` are served (GET and HEAD only), every other path
+  is a 404, so no game page ever runs on the key's origin. `gameOrigin`
+  turns `FilePaths.WebDomain` into `https://host[:port]` (a pasted scheme
+  or path is dropped; anything not a plain host gives "" and the page is
+  refused); it is the only `frame-ancestors` source in `relayCSP` (no
+  inline or eval script, inline styles only) and is HTML-escaped into the
+  page's `game-origin` meta tag (`renderRelayHTML`). `relay.js` is UMD:
+  node tests require its pure parts (`relayOne`, `seal`/`unseal`,
+  `createRelay`, `acceptMessage`), the browser runs `boot`. It posts only
+  to the stored endpoint (`redirect: 'error'`, no credentials, no
+  referrer), returns `{id, status, body}` with no body on an error status
+  and status 0 for a reply over 60 KiB or one echoing the key, accepts
+  messages only from its parent at the game origin and posts only to
+  that origin. A remembered key is PBKDF2-SHA256 (600000) into AES-GCM
+  with the account's storage key as additional data, blob `v: 1`. Tests:
+  `relaypage_test.go`, `tools/jstest/companion-relay.test.js`.
 - **decision.go**: the decision schema, `parseDecision`,
   `sanitizeDecision` and `cleanText`, which enforce everything the schema
   cannot.
