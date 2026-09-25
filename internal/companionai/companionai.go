@@ -77,6 +77,15 @@ func IsBondedCompanion(mobInstanceId int) bool {
 	return bondedFunc(mobInstanceId)
 }
 
+// DrivesBonded reports whether anything drives bonded companions: the
+// aicompanion module installs its bonded check only while it is switched
+// on. With nothing installed, a bonded companion left over from when it was
+// on is an ordinary companion nobody drives, and the engine lets its owner
+// dismiss it rather than leave them stuck with it.
+func DrivesBonded() bool {
+	return bondedFunc != nil
+}
+
 // SetHolder installs the follow-hold handler. Called by the aicompanion
 // module.
 func SetHolder(f HoldFunc) {

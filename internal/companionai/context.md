@@ -39,6 +39,7 @@ func AskNpc(ownerUserId int, mobInstanceId int, text string, authorized bool) bo
 
 func SetBondedCheck(f BondedFunc)
 func IsBondedCompanion(mobInstanceId int) bool
+func DrivesBonded() bool
 
 func SetHolder(f HoldFunc)
 func HoldPosition(userId int, mobInstanceId int) bool
@@ -69,6 +70,10 @@ func HoldPosition(userId int, mobInstanceId int) bool
   The aicompanion module installs `holdFollow`, which holds only the bonded
   companion it drives (its owner sneaking, or it walking in on foot a
   moment later); every other companion of the same owner follows as before.
+- `DrivesBonded` is called by `internal/usercommands/dismiss.go`. It is true
+  only while a bonded check is installed, which the aicompanion module does
+  only when switched on; `dismiss` refuses a bonded companion while it is,
+  and lets the owner part with one peacefully while it is not.
 
 ## Gotchas
 
@@ -81,5 +86,7 @@ func HoldPosition(userId int, mobInstanceId int) bool
 
 ## Consumers
 
-`internal/usercommands` (ask), `internal/hooks` (installs the respawner),
-`modules/aicompanion` (installs the ask handler, calls the respawner).
+`internal/usercommands` (ask, dismiss), `internal/hooks` (installs the
+respawner, asks the follow hold), `internal/actions` and `internal/seeders`
+(the bonded check), `modules/aicompanion` (installs the ask handler, the
+holder and the bonded check, calls the respawner).

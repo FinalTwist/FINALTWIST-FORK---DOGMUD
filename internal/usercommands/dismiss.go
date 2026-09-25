@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -22,6 +23,9 @@ import (
 //   - Summoned / Conjured / Raised (companions the player created):
 //     these are mage-crafted beings, not independent creatures. Dismiss
 //     dissolves them peacefully — no aggro, immediate despawn.
+//   - Bonded (driven by the aicompanion module): refused while the module
+//     drives it, since parting ways is companion-part's business. With the
+//     module switched off it parts peacefully and despawns.
 //
 // publishReleasedReservation republishes the player's vitals after a companion
 // record has been removed.
@@ -71,7 +75,11 @@ func Dismiss(rest string, user *users.UserRecord,
 
 	// A bonded companion is a person, not a working: it cannot be dismissed
 	// by command. Parting ways happens in conversation, on its own terms.
-	if sourceType == characters.CompanionBonded {
+	// That holds only while something drives it. With the aicompanion
+	// module switched off, its commands (companion-part among them) are
+	// gone, the engine still fields the companion from its saved record,
+	// and refusing here would leave the owner with no way to end the bond.
+	if sourceType == characters.CompanionBonded && companionai.DrivesBonded() {
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="mobname">%s</ansi> is not yours to dismiss. If you want to part ways, you will have to tell them.`,
 			compName,
@@ -108,6 +116,26 @@ func Dismiss(rest string, user *users.UserRecord,
 	isPlayerCrafted := sourceType == characters.CompanionSummoned ||
 		sourceType == characters.CompanionConjured ||
 		sourceType == characters.CompanionRaised
+
+	// An undriven bonded companion goes its own way peacefully, as it would
+	// by companion-part: it was never a creature bent to the owner's will,
+	// so there is no betrayal for it to answer. Its mind, kept by the module,
+	// is untouched.
+	if sourceType == characters.CompanionBonded {
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`You part ways with <ansi fg="mobname">%s</ansi>, who turns away and takes a different road.`,
+			compName,
+		))
+		room.SendTextVisual(messaging.CategoryMobEmote,
+			fmt.Sprintf(
+				`<ansi fg="mobname">%s</ansi> turns away and takes a different road.`,
+				compName,
+			),
+			user.UserId,
+		)
+		mob.Command("despawn")
+		return true, nil
+	}
 
 	if isPlayerCrafted {
 		// Mage-crafted companion dissolves peacefully — no aggro, immediate despawn.

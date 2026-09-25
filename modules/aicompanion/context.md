@@ -268,6 +268,13 @@ skills, health) is never in the mind file; it lives on the owner's
 - **Bonded companions cannot be dismissed or renamed by command**, cost no
   Conviction reserve, and recover from death (see
   `internal/hooks/companion_bonded.go`).
+- **Switched off, the module leaves bonded records alone.** Login still
+  fields a bonded companion from the owner's record (the engine's
+  `respawnCompanions` does not filter by source type), and nothing drives
+  it. Because the bonded check (`companionai.SetBondedCheck`) is installed
+  only while the module is on, `companionai.DrivesBonded` is false and the
+  engine's `dismiss` lets the owner part with it peacefully. Nothing is
+  deleted at boot, so switching the module back on picks the bond up again.
 - **Mob commands split on `;`.** `cleanText` replaces it; never bypass it.
 - **All model text is escaped** with `util.EscapeAnsiTags` before it reaches
   a mob command.
