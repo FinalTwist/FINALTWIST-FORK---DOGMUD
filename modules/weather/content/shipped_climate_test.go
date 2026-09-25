@@ -2,11 +2,14 @@ package content
 
 import (
 	"os"
+	"reflect"
 	"testing"
 )
 
-// Validates the shipped DOGMud climate profiles: this fixed set of 16
-// biomes covered, parseable, indoor biomes have zero spawn weight.
+// Validates the shipped DOGMud climate profiles: this fixed set of 19
+// biomes covered, parseable, indoor biomes have zero spawn weight. The
+// three biomes plan 3c added (city_thoroughfare, city_backstreet, ruins)
+// are included in that count.
 //
 // house is gone (folded into interior, plan 3b Task 4); this list is not
 // exhaustive over every shipped biome, so the six biomes plan 3b Task 3
@@ -21,6 +24,7 @@ func TestShippedDogmudClimateProfiles(t *testing.T) {
 
 	biomes := []string{"water", "shore", "cliffs", "desert", "snow", "mountains",
 		"swamp", "forest", "farmland", "land", "road", "city",
+		"city_thoroughfare", "city_backstreet", "ruins",
 		"cave", "dungeon", "fort", "spiderweb"}
 	for _, b := range biomes {
 		p, ok := climate[b]
@@ -36,6 +40,18 @@ func TestShippedDogmudClimateProfiles(t *testing.T) {
 	for _, indoor := range []string{"cave", "dungeon", "fort", "spiderweb"} {
 		if w := climate[indoor].SpawnWeight; w != 0 {
 			t.Errorf("%s: indoor biome must have spawnWeight 0, got %v", indoor, w)
+		}
+	}
+
+	// The two city tiers are a LIGHTING split, not a weather one: they must
+	// carry city's climate exactly, field for field (plan 3c). Skipped
+	// cleanly if city has no profile: plan 3c-2 deletes city.yaml and drops
+	// "city" from the required biomes list above.
+	if cityProfile, ok := climate["city"]; ok {
+		for _, tier := range []string{"city_thoroughfare", "city_backstreet"} {
+			if !reflect.DeepEqual(climate[tier], cityProfile) {
+				t.Errorf("%s: climate differs from city's; the tiers split light only", tier)
+			}
 		}
 	}
 

@@ -24,7 +24,8 @@ description: >
   timber</ansi>, fitted to pre-colonial openings they
   were not made for, hung on old iron that does not
   quite match.
-biome: city
+biome: dungeon
+lamp: 38
 coord:
   x: -23
   y: 82

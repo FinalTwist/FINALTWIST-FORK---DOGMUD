@@ -18,7 +18,7 @@ description: >
   fg="itemname">open threshold</ansi> beyond the door
   leads west into a low interior. Whatever once
   controlled entry here no longer does.
-biome: city
+biome: dungeon
 coord:
   x: -25
   y: 79

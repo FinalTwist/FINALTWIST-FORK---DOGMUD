@@ -16,7 +16,7 @@ description: >
   three lights, and three reflections, and the water moving between
   them without particular interest in the arithmetic. The only way
   back is east.
-biome: city
+biome: city_backstreet
 coord:
   x: -20
   y: 85

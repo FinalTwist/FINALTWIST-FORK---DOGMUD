@@ -22,7 +22,7 @@ description: >
   west. The Processional is east. The office connects
   the Quarter's public axis to its institutional
   interior, and is aware of that function.
-biome: city
+biome: interior
 coord:
   x: -15
   y: 94

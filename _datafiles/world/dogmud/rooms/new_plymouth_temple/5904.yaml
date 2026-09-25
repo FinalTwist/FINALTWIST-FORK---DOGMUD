@@ -25,7 +25,7 @@ description: >
   north — passages open toward the Keeper's House
   and the main precinct yard, still out of sight
   around the turn.
-biome: city
+biome: city_backstreet
 coord:
   x: -6
   y: 90

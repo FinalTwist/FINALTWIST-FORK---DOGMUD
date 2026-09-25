@@ -17,7 +17,7 @@ description: >
   <ansi fg="itemname">cobblestone-channel</ansi> runs
   down the lane's center, dry now, laid when the
   ink-works here required drainage.
-biome: city
+biome: city_backstreet
 coord:
   x: -18
   y: 89

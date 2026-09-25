@@ -6,7 +6,7 @@ description: A wide stone archway opens into a sunlit training compound. The cla
   sign reads "Combat Training Grounds - All skill levels welcome." A weapons rack
   displays various training weapons, and a large barrel holds weighted training stones.
   The Town Square lies to the north, while the training yard beckons further south.
-biome: fort
+biome: city_thoroughfare
 exits:
   north:
     roomid: 1

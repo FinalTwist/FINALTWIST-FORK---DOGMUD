@@ -15,7 +15,7 @@ description: >
   current inventory in the assessor's hand and notes the reason
   each item has been held. The reasons given do not always match
   what is in the crates. The only exit is south to the tar yard.
-biome: city
+biome: interior
 coord:
   x: -19
   y: 86

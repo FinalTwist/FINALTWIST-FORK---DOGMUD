@@ -8,7 +8,7 @@ description: A large open-air yard with packed earth underfoot. Wooden training 
   pit. The arena entrance lies back to the north.
 mapsymbol: T
 maplegend: Training Yard
-biome: fort
+biome: ruins
 exits:
   north:
     roomid: 200

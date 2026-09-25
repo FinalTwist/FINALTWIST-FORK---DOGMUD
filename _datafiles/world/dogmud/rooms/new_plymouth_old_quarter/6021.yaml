@@ -17,7 +17,8 @@ description: >
   shelter — the poorest end of the poorest quarter. A
   <ansi fg="itemname">guttering lamp</ansi> hangs from
   a peg in the old stone, its oil running low.
-biome: city
+biome: dungeon
+lamp: 38
 coord:
   x: -22
   y: 80

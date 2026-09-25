@@ -20,7 +20,7 @@ description: >
   in the ledger with a precision that does not require a tidy
   hand to be legible. North leads to the cookshop; east to
   Dock Street.
-biome: city
+biome: interior
 coord:
   x: -19
   y: 82

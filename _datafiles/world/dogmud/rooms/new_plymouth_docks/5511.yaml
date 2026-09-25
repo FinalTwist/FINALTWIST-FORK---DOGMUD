@@ -19,7 +19,7 @@ description: >
   Stairs lead down to the taproom and up to the lodging;
   north leads deeper into the quarter, west to the cookshop,
   south back to Dock Street.
-biome: city
+biome: city_backstreet
 coord:
   x: -18
   y: 83

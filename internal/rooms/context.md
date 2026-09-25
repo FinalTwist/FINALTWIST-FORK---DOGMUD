@@ -91,14 +91,30 @@ YAML keys are `skylight` and `lamp`:
   this override in most of the cases that once seemed to need it: a brick
   sewer vault, a wrecked ship's interior and a web-choked lair each got
   their own biome (`sewer`, `interior`, `spiderweb`) rather than a
-  room-level number. **The only shipped override is the three-room Planar
-  Oasis** (`instance_planar_oasis/500{3,4,5}.yaml`), which sets `lamp: 38`
-  against `ether`'s biome lamp of `60`. Its room text reads "Shapes move in
-  the heat haze, some are mirages, some are not," so a fully lit oasis
-  would contradict its own description; `38` lands it in the shapes band
-  on purpose. `fort` still shares one sky fraction between its open yard
-  and its buried vault with no override yet: a real granularity gap, left
-  for a later plan.
+  room-level number. **The override ships on thirteen rooms**: the
+  three-room Planar Oasis (`instance_planar_oasis/500{3,4,5}.yaml`), which
+  sets `lamp: 38` against `ether`'s biome lamp of `60` because its room
+  text reads "Shapes move in the heat haze, some are mirages, some are
+  not," so a fully lit oasis would contradict its own description; and, as
+  of plan 3c-1, ten more rooms carrying the same `lamp: 38` against a
+  biome that otherwise ships none: seven `dungeon` rooms in New Plymouth's
+  buried Old Quarter (`new_plymouth_old_quarter/60{21,26,27,30,31,33,35}.yaml`),
+  one `sewer` room under the docks (`new_plymouth_docks/5509.yaml`, the
+  chandlery's lamp-glow reaching down the stair), and two `road` rooms on
+  the riverside track (`new_plymouth_outskirts/54{78,80}.yaml`, security
+  lamps where the track meets the wall and the docks). Each is a room
+  whose own text names a burning lamp; every other room in the Old
+  Quarter and sewer pockets is dark (both biomes ship `skylight: 0.0`).
+  The riverside track is the exception: `road` and `river` both ship
+  `skylight: 1.0`, so 5478 and 5480 (the lamped rooms) and 5479 the Ford
+  (plain `river`, no lamp) are all open to the sky by day; the lamp on
+  5478 and 5480 only matters after dark.
+
+  `fort`'s old granularity gap, sharing one sky fraction between
+  an open yard and a buried vault, is gone: plan 3c-1 moved fort's open
+  portions (the burst-open watch room, the roofless shrine, the cracked
+  dome) out to `ruins`, so the eight rooms still biomed `fort` are all
+  fully enclosed and need no room-level override.
 
 ### The shipped biome vocabulary (plan 3b)
 
@@ -119,6 +135,21 @@ carried light or the room adds).
 | `river` | `1.0` | none | Flowing water, fully open sky |
 | `ether` | `0.0` | `60` | Outside the world; time-invariant. Character creation, the shadow realm, the planar oasis |
 | `spiderweb` | `0.0` | `45` | A web-choked lair. Declared before plan 3b but held zero rooms until this plan gave it the Foldweave |
+| `city_thoroughfare` | `0.95` | `52` | A city's main streets, squares, markets and gates. Lamps hold it in the faces band at any hour, day or night. Added by plan 3c-1 |
+| `city_backstreet` | `0.95` | `35` | A city's lanes, alleys, courts and yards off the main ways. No lamp reaches them, so a normal eye reads shapes, not faces, after dark. Added by plan 3c-1 |
+| `ruins` | `0.75` | none | A roofless building: takes weather and sky like open ground, a little shaded by whatever walls still stand, dark at night. `movementcost: 1.0` for the rubble underfoot. Added by plan 3c-1 |
+
+**`city` is being retired.** Plan 3c-1 split New Plymouth's 156 `city`
+rooms across `city_thoroughfare`, `city_backstreet`, `interior`, `dungeon`,
+`sewer`, `road` and `river`, but `city` itself still ships: 268 rooms
+across seven other zones (`the_confluence`, `greenford`, `thornwall_city`,
+`stillwater`, `hartcharn`, `kilnreach_works`, `pothole_coulee`) still carry
+it, and `weather/climate/city.yaml` stays until 3c-2 because those 268
+DOGMud rooms still read the `city` climate profile. (Not because the
+upstream `default` world needs it: `default` ships no weather data folder
+at all and falls back to the built-in `"city"` profile in
+`modules/weather/sim/climate.go`.) Plan 3c-2 sorts those remaining zones
+and deletes `city` once none of DOGMud's own rooms name it.
 
 **`house` is deleted.** Plan 3b folded its rooms into `interior` along with
 every other room that was really an indoor space wearing an outdoor biome:

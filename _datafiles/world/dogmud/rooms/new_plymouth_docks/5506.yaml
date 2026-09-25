@@ -17,7 +17,7 @@ description: >
   fg="itemname">loading dock</ansi> proper runs the depot's
   west side, its tally-slate nailed to the post where the wagon
   marshal can read it from the seat.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 81

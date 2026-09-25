@@ -19,7 +19,8 @@ description: >
   opening</ansi> at the corridor's far end gives onto
   the room beyond — the lamps were lit to serve what
   lies through that opening.
-biome: city
+biome: dungeon
+lamp: 38
 coord:
   x: -27
   y: 79

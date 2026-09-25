@@ -13,7 +13,7 @@ description: >
   <ansi fg="itemname">children</ansi> from roughly seven to roughly fourteen carry
   messages, run parcels, and occasionally carry something else that
   did not belong to them a moment before.
-biome: city
+biome: city_backstreet
 coord:
   x: -17
   y: 74

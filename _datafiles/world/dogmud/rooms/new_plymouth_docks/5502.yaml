@@ -22,7 +22,7 @@ description: >
   where a varnished <ansi fg="itemname">sailings board</ansi>
   is kept current and the <ansi fg="mobname">quay agent</ansi>
   minds a strongbox at his elbow.
-biome: city
+biome: city_backstreet
 coord:
   x: -19
   y: 79

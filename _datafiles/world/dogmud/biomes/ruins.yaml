@@ -1,0 +1,13 @@
+biomeid: ruins
+name: Ruins
+symbol: •
+description: A built place whose roof is gone, a fallen barracks, a cracked
+  dome, a burnt-out barn. It takes the weather and the sky as open ground
+  does, a little shaded by what walls still stand. Nothing lights it, and
+  after dark it is as black as the country around it. Rubble makes it slow
+  going.
+skylight: 0.75
+requireditemid: 0
+usesitem: false
+burns: false
+movementcost: 1.0

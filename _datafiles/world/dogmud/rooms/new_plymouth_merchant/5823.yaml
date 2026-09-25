@@ -26,7 +26,7 @@ description: >
   <ansi fg="itemname">hand-carts</ansi>
   know more about this block's supply lines than
   anything else here.
-biome: city
+biome: city_backstreet
 coord:
   x: -9
   y: 89

@@ -14,7 +14,7 @@ description: >
   Quarter's colours — marking where the Docks jurisdiction
   ends and the guild streets begin. The lane opens north
   into the district proper.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 87

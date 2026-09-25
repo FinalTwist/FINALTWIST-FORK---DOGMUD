@@ -19,7 +19,8 @@ description: >
   poor, and the poverty in it is managed — these are
   two different conditions, and the difference between
   them is visible in the arrangement of the shelf.
-biome: city
+biome: dungeon
+lamp: 38
 coord:
   x: -22
   y: 82

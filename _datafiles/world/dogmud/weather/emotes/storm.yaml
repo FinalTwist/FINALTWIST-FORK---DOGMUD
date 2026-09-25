@@ -14,13 +14,15 @@ outdoor:
     - "Rain hammers the canopy, and the drips below turn heavy and fast."
     - "Torn leaves plaster themselves flat against trunks and undergrowth."
     - "The wood roars with wind, drowning out every smaller sound."
-  city:
+  city: &city_storm
     - "A loose shutter hammers somewhere down the street, slave to the wind."
     - "Rain sheets off the rooflines in ragged silver curtains."
     - "Awnings snap and strain against ropes stretched taut by the wind."
     - "Gutters overflow, sending sheets of water across the cobblestones."
     - "Doorways stand empty, everyone gone in ahead of the worst of it."
     - "Lightning throws every rooftop into stark, sudden silhouette."
+  city_thoroughfare: *city_storm
+  city_backstreet: *city_storm
   water:
     - "The water heaves into whitecaps, spray mixing with the rain."
     - "Waves slap hard against anything standing in the water's way."

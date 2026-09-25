@@ -95,7 +95,7 @@ substitute `shooter`, which is `mobName` when not anonymous -- and mobName
 on shoot.go:49 is BUILT PRE-TAGGED
 (`fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, mob.Character.Name)`), unlike
 every other file's bare mobName. The implementation plan
-(docs/superpowers/plans/2026-09-21-messaging-m4e1-mob-special-moves.md,
+(docs/superpowers/plans/completed/2026-09-21-messaging-m4e1-mob-special-moves.md,
 around line 945) asserts the opposite -- that `shooter := mobName` is bare
 with no ansi tag -- and shoot.yaml's hit/partial/miss events were authored
 against that claim, using {actor_plain}. Reading shoot.go itself (this
@@ -549,7 +549,7 @@ def check_against_shipped_store(all_rows, disagreements):
 # silently resolved.
 #
 # Two extraction strategies, matching the two shapes PR 1a's census
-# (docs/superpowers/plans/2026-09-21-messaging-m4e1b-player-special-moves.md)
+# (docs/superpowers/plans/completed/2026-09-21-messaging-m4e1b-player-special-moves.md)
 # found in these twelve files:
 #
 #   POOLED files (drain, gore, kick, maul, pounce, rake, throttle) declare

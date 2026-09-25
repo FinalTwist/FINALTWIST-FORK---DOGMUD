@@ -18,7 +18,7 @@ description: >
   The smell is the lab's chemical atmosphere diluted
   by the alley's open air — a thin version of what
   fills the workshop proper, still unmistakable.
-biome: city
+biome: city_backstreet
 coord:
   x: -20
   y: 89

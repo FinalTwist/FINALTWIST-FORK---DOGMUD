@@ -20,7 +20,7 @@ description: >
   that has been cleaning itself into the same channel for
   as long as anyone can say. North leads to the Salt Cellar;
   west and east to the hiring office and the lodging house.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 82

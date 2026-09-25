@@ -15,7 +15,7 @@ description: >
   canal-side buildings, though what lies that way is not yet
   open to you; east, the market returns to its full noise
   at the crossing.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -19
   y: 88

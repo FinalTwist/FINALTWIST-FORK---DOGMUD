@@ -21,7 +21,7 @@ description: >
   road continues north, the buildings growing more careful
   as they climb, the Merchant Quarter visible and climbing
   beyond — but that passage is not yet open.
-biome: city
+biome: city_backstreet
 coord:
   x: -14
   y: 85

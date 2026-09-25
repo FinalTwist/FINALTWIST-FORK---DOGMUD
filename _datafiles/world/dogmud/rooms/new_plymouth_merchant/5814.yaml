@@ -25,7 +25,7 @@ description: >
   others, and the criterion for this is not stated. A
   passage east leads to a private parlor; the stair
   climbs to lodging above.
-biome: city
+biome: interior
 coord:
   x: -12
   y: 90

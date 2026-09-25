@@ -18,7 +18,7 @@ description: >
   north is the tannery's, carried ahead of anyone
   walking up from the market. South, the Long Market's
   east end is a short walk.
-biome: city
+biome: city_backstreet
 coord:
   x: -16
   y: 89

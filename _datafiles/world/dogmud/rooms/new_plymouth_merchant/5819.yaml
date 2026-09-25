@@ -23,7 +23,7 @@ description: >
   of deliberate quiet — the kind that is not natural
   to a city but can be maintained with enough
   consistent attention.
-biome: city
+biome: city_backstreet
 coord:
   x: -9
   y: 90

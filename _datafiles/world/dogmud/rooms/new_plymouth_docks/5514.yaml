@@ -19,7 +19,7 @@ description: >
   meet yours briefly, find nothing requiring comment, and
   return to what they were doing. North runs up to the lane;
   west back to Dock Street.
-biome: city
+biome: city_backstreet
 coord:
   x: -17
   y: 82
