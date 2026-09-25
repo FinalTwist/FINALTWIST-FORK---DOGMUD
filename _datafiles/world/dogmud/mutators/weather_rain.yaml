@@ -8,4 +8,5 @@ descriptionmodifier:
   behavior: append
   text: A steady rain falls, beading and dripping from every surface.
   colorpattern: blue
+skylight: 0.7
 decayrate: 4 hours
