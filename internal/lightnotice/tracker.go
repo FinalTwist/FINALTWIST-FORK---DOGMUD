@@ -156,6 +156,10 @@ func attribute(prev record, now observation) Cause {
 		return CauseCarried
 	case a.HasLamp != b.HasLamp || a.Lamp != b.Lamp:
 		return CauseLamp
+	// Exact comparison is safe while the shipped fractions are 0.5 and 0.7:
+	// their products are identical in any order. Two different fractions
+	// that are not powers of two could differ by float noise if the active
+	// mutator list reordered.
 	case a.SkyFilter != b.SkyFilter:
 		return CauseWeather
 	case skyMoved(a.Sky, b.Sky):

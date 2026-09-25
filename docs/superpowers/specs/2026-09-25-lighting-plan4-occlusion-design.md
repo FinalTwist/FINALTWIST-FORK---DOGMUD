@@ -119,6 +119,17 @@ Each test is shown able to fail before it is trusted.
 - **AI companion**: no sight API changes; the full suite, lint and a boot check
   with the companion enabled.
 
+## Corrections during implementation (2026-09-25)
+
+- The admin page shows `unchanged` for a nil `skylight`, not a blank.
+- The storm-at-night check shipped as "a storm takes one full step (8
+  points) off every sampled midnight, and at least one readable night goes
+  blind" rather than "a moonless midnight is blind", which clear weather
+  already is.
+- `SkyLight: 0` is legal and erases the sky entirely for an outdoor room.
+- Two `dungeon` rooms carry their own `skylight: 0.1`, so they join `fort`
+  and `interior` as the indoor rooms weather does not reach.
+
 ## Out of scope
 
 - Retuning any other light value: plan 6.

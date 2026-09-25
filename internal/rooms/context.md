@@ -69,8 +69,9 @@ Plan 4 deleted the old `-2..2` `LightMod` bridge entirely; a mutator now
 only ever dims the sky, never adds a light of its own. Every weather
 mutator is `outdooronly`, and `ActiveMutators` skips those in an indoor
 biome, so weather never dims a roofed room. Of the indoor biomes only
-`fort` and `interior` have any sky at all, so they are the only rooms this
-choice affects.
+`fort` and `interior` have any sky at all, plus two `dungeon` rooms that set
+their own (`stillwater/5106` and `thornwall_city/5105`, `skylight: 0.1`), so
+they are the only rooms this choice affects.
 
 `Room.IsLit() bool` reports whether a normal observer can see anything at
 all here (`LightLevel() >= cfg.BlindBelow`). It reads `configs.Lighting`

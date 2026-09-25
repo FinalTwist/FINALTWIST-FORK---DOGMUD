@@ -58,9 +58,14 @@ func TestShippedWeatherSkyLight(t *testing.T) {
 // a stale lightmod key would be silently ignored, and an author would believe
 // it still did something.
 func TestNoShippedMutatorCarriesLightmod(t *testing.T) {
-	files, err := filepath.Glob(filepath.Join(shippedMutatorDir, "*.yaml"))
-	if err != nil || len(files) == 0 {
-		t.Fatalf("glob found no mutator files (%v); the guard cannot run", err)
+	// Both worlds: the default world's mutators load the same way.
+	var files []string
+	for _, dir := range []string{shippedMutatorDir, "../../_datafiles/world/default/mutators"} {
+		found, err := filepath.Glob(filepath.Join(dir, "*.yaml"))
+		if err != nil || len(found) == 0 {
+			t.Fatalf("glob found no mutator files in %s (%v); the guard cannot run", dir, err)
+		}
+		files = append(files, found...)
 	}
 	key := regexp.MustCompile(`(?m)^\s*lightmod\s*:`)
 	for _, f := range files {

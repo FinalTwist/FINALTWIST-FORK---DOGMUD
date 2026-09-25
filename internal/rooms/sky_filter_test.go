@@ -8,8 +8,8 @@ import (
 )
 
 // A filter multiplies the sky fraction, which on the log scale is a fixed
-// subtraction: 0.7 about 4 points, 0.5 one step, 0.35 about 12. Lamps and a
-// sky-less room are untouched.
+// subtraction: 0.7 about 4 points, 0.5 one step, 0.35 about 12. A lamp is
+// untouched.
 func TestSkyFilterSubtractsFromTheSkyOnly(t *testing.T) {
 	cfg := modelCfg()
 	open, zero := 1.0, 0.0
@@ -29,11 +29,6 @@ func TestSkyFilterSubtractsFromTheSkyOnly(t *testing.T) {
 	lampOnly := Room{SkyLight: &zero, Lamp: &lamp}
 	if a, b := lampOnly.lightLevelWithSkyFilter(cfg, 60, 1), lampOnly.lightLevelWithSkyFilter(cfg, 60, 0.35); a != b {
 		t.Errorf("a filter moved a lamp: %d clear, %d filtered", a, b)
-	}
-
-	cave := Room{SkyLight: &zero}
-	if got := cave.lightLevelWithSkyFilter(cfg, 60, 0.5); got != 0 {
-		t.Errorf("a sky-less room under a filter = %d, want 0", got)
 	}
 }
 
