@@ -7,8 +7,28 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/lightscale"
 )
 
-// Level must be exactly what LightLevel reports: the two share one computation.
-func TestLightTermsLevelMatchesLightLevel(t *testing.T) {
+// TestPublicLightTermsMatchesLightLevel drives the public entry points, which
+// each read config, the clock and the mutators themselves, across shipped
+// biomes and the clock.
+func TestPublicLightTermsMatchesLightLevel(t *testing.T) {
+	withShippedBiomesAndClock(t)
+	for _, biome := range []string{"city_thoroughfare", "city_backstreet", "interior", "cave", "forest", "plains"} {
+		requireBiome(t, biome)
+		room := Room{Biome: biome}
+		for _, hour := range []float64{0, 6, 12, 18} {
+			setClock(172, hour)
+			if got, want := room.LightTerms().Level, room.LightLevel(); got != want {
+				t.Errorf("%s at %v: LightTerms().Level = %d, LightLevel() = %d", biome, hour, got, want)
+			}
+		}
+	}
+}
+
+// composeLight's Level reproduces the pre-refactor composition (the bridged
+// mutator sum through lightLevelWithMutatorBridge) across the input space.
+// This does NOT exercise the public LightTerms/LightLevel entry points; see
+// TestPublicLightTermsMatchesLightLevel for that.
+func TestComposeLightLevelMatchesBridgeAcrossInputs(t *testing.T) {
 	cfg := modelCfg()
 	zero, half, open := 0.0, 0.5, 1.0
 	lamp36, lamp55 := 36, 55
