@@ -9,9 +9,19 @@ import (
 
 // Harm, answered for. The engine gates harm by the actor: a player's
 // attack, special move, ranged shot and harmful spell all pass
-// mobs.CheckPlayerHarm for a creature and room.CanPvp plus the party check
-// for a person, and a mob's do not ("Mob casters are never gated",
-// actions.rejectHarmTarget). A bonded companion is a mob, so on her own
+// mobs.CheckPlayerHarm for a creature and room.CanPvp for a person, and a
+// mob's do not ("Mob casters are never gated", actions.rejectHarmTarget).
+// The party check is not uniform: `attack`, the special moves
+// (actions/melee_target.go) and `shoot` refuse a party member, but
+// actions/cast.go makes no party check for a player target at all.
+//
+// harmAllowed below checks, for a creature, mobs.CheckPlayerHarm and that
+// it stands in her room; for a person, that it is not her owner, that they
+// stand in her room, room.CanPvp, and that they are not in her owner's
+// party. That is the strictest of the player paths, applied to everything
+// she starts, spells included.
+//
+// A bonded companion is a mob, so on her own
 // she would pass nothing, and anyone who could talk her into a fight could
 // reach what they themselves may not touch.
 //
