@@ -232,30 +232,37 @@ func (m *AICompanionModule) launchReflection(d *deferredReflection) {
 	session := d.session // the session reflected on, not the one running now
 
 	go func() {
+		applied, used := false, 0
 		defer func() {
 			if r := recover(); r != nil {
 				mudlog.Error(`aicompanion`, `action`, `reflection`, `panic`, r, `stack`, string(debug.Stack()))
 			}
+			// It never reached applyReflection, which settles first thing.
+			if !applied {
+				util.LockMud()
+				defer util.UnlockMud()
+				m.settleRoute(rt, call.OwnerUserId, 0, reserved, used)
+			}
 		}()
 
 		res := m.callModel(call)
+		used = res.Tokens
 
 		util.LockMud()
 		defer util.UnlockMud()
+		applied = true
 		m.applyReflection(key, call.OwnerUserId, session, call.Model, reserved, rt, res)
 	}()
 }
 
 // applyReflection stores a reflection. Runs under the mud lock.
 func (m *AICompanionModule) applyReflection(key string, ownerId int, session int, model string, reserved int, rt route, res modelResult) {
+	// Settled first, to the owner it was held against, even when nobody is
+	// left to remember it, so nothing below can leave it held.
+	m.settleRoute(rt, ownerId, 0, reserved, res.Tokens)
 	m.rollDay()
 	m.recordCall(tierDeep, res)
 	m.routeResult(rt, ownerId, res.Err, time.Now())
-	if mind := m.minds[key]; mind == nil {
-		// Nobody left to remember it, but the reservation still has to go
-		// back, to the owner it was held against.
-		m.settleRoute(rt, ownerId, 0, reserved, res.Tokens)
-	}
 	// A model the player's provider refused says nothing about the
 	// server's choice of models.
 	if rt.kind == routeServer && modelRefused(res) {
@@ -266,7 +273,6 @@ func (m *AICompanionModule) applyReflection(key string, ownerId int, session int
 	if mind == nil {
 		return
 	}
-	m.settleRoute(rt, mind.OwnerUserId, 0, reserved, res.Tokens)
 	mind.TokensLifetime += int64(res.Tokens)
 	if res.Err != nil {
 		m.logModelError(res.Err)

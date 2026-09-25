@@ -238,15 +238,25 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 	place := convo.RoomId
 
 	go func() {
+		applied, used := false, 0
 		defer func() {
 			if r := recover(); r != nil {
 				mudlog.Error(`aicompanion`, `action`, `conversationSummary`, `panic`, r, `stack`, string(debug.Stack()))
 			}
+			// It never reached applyConversationSummary, which settles
+			// first thing: settle here, or the reservation is held all day.
+			if !applied {
+				util.LockMud()
+				defer util.UnlockMud()
+				m.settleRoute(rt, call.OwnerUserId, asker, reserved, used)
+			}
 		}()
 		res := m.callModel(call)
+		used = res.Tokens
 
 		util.LockMud()
 		defer util.UnlockMud()
+		applied = true
 		m.applyConversationSummary(key, call.OwnerUserId, partner, place, asker, reserved, rt, res)
 	}()
 	return true
@@ -254,19 +264,18 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 
 // applyConversationSummary stores the one memory a talk left behind.
 func (m *AICompanionModule) applyConversationSummary(key string, ownerId int, partner string, placeId int, asker int, reserved int, rt route, res modelResult) {
+	// Settled first, against whoever the reservation was held against
+	// (the owner the mind is keyed by, even when nobody is left to
+	// remember it), so nothing below can leave it held.
+	m.settleRoute(rt, ownerId, asker, reserved, res.Tokens)
 	m.rollDay()
 	m.recordCall(tierFast, res)
 	m.routeResult(rt, ownerId, res.Err, time.Now())
 
 	mind := m.minds[key]
 	if mind == nil {
-		// Nobody left to remember it, but the reservation still goes back
-		// to whoever it was held against.
-		m.settleRoute(rt, ownerId, asker, reserved, res.Tokens)
 		return
 	}
-	// Settled against whoever the reservation was held against.
-	m.settleRoute(rt, mind.OwnerUserId, asker, reserved, res.Tokens)
 	mind.TokensLifetime += int64(res.Tokens)
 	if res.Err != nil {
 		m.logModelError(res.Err)

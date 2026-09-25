@@ -440,6 +440,12 @@ func (m *AICompanionModule) describeDebug(charName string, what string) string {
 	return util.EscapeAnsiTags(strings.TrimRight(b.String(), "\n"))
 }
 
+// unstickSeconds is how long a companion-unstick waits before the next.
+const (
+	unstickCooldownTag = `aicompanion-unstick`
+	unstickSeconds     = 60
+)
+
 // cmdUnstick is the owner's out-of-character fallback (F18.2): it clears a
 // companion that seems stuck (a trip, a pending action, queued moments, a
 // hung call) without touching its mind. The companion never mentions it.
@@ -450,6 +456,13 @@ func (m *AICompanionModule) cmdUnstick(rest string, user *users.UserRecord, room
 	c, ok := m.ctrls[user.UserId]
 	if !ok {
 		user.SendText(messaging.CategorySystem, `You have no companion to reset.`)
+		return true, nil
+	}
+	// Each reset abandons a call that may already have been paid for, and
+	// frees her to start the next at once, so it is not to be used as a
+	// way to make her think again and again.
+	if user.Character != nil && !user.Character.TryCooldown(unstickCooldownTag, cooldownFor(unstickSeconds)) {
+		user.SendText(messaging.CategorySystem, `You reset your companion only a moment ago. Give it a minute.`)
 		return true, nil
 	}
 	c.seq++

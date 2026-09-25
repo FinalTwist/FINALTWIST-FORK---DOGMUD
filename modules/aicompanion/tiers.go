@@ -212,6 +212,10 @@ func (m *AICompanionModule) settleRoute(r route, ownerId int, askerId int, reser
 		if askerId <= 0 {
 			return
 		}
+		// The count came back through the owner's browser, which the
+		// owner can write: it may lower a passer-by's charge below the
+		// reservation, never raise it past it, and never below nothing.
+		used = max(0, min(used, reserved))
 		m.rollDay()
 		m.chargeStranger(askerId, used-reserved)
 		if m.strangerTokens[askerId] < 0 {

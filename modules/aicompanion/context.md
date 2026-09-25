@@ -135,6 +135,18 @@ Roadmap and phase plan: `docs/aicompanion/`.
   tier's timeout, since it includes the browser's round trip. A relayed
   error status keeps none of its body in the error (it is the provider's
   text about the owner's own account); the server key's keeps a snippet.
+  `callModelOnce` is where spend is counted, once for every caller
+  (`exchangeOnce` does the transport): a request that left (`Sent`) but
+  reported no usage (a timeout, a dropped connection, a call cancelled
+  after it was sent) counts its prompt estimate (`Estimated`); one the
+  door refused, that found no browser, that could not connect, or that
+  was cancelled before it left counts nothing; a count relayed through a
+  player's browser is held between nothing and prompt plus completion,
+  and `settleRoute` charges a passer-by at most their reservation. A
+  cancelled decision reaches no breaker (not even as a success, which
+  would reset the failure count). The background calls (reflection,
+  summary, core memory) settle first thing in their apply function, and
+  their recover handler settles when the apply was never reached.
 - **relay.go**: the relay transport (tier 2). `pendingRelays.do` sends
   `Companion.Relay.Request {id, body}` (a random 128-bit hex id and the
   chat completions body, nothing else) and waits for

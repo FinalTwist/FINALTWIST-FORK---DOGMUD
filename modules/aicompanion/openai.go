@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -147,6 +148,13 @@ type modelResult struct {
 	Status   int  // HTTP status, 0 when the request never got an answer
 	Canceled bool // the caller gave up on it; not the provider's fault
 
+	// Sent is the request having left for the provider (or the owner's
+	// browser), so it may have been billed whatever came back. Estimated
+	// is Tokens being the prompt estimate for a sent request that
+	// reported no usage (callModelOnce).
+	Sent      bool
+	Estimated bool
+
 	// ToolCalls are the model's requests for more information, when it
 	// asked instead of answering. ToolsUsed counts them across a decision.
 	ToolCalls []toolCall
@@ -243,7 +251,40 @@ func transient(r modelResult) bool {
 // call's strict JSON schema. It must only ever run on a goroutine that does
 // not hold the mud lock. The API key is sent in a header and never logged or
 // returned.
+//
+// What it reports as spent is what the budgets are settled with, so it is
+// made trustworthy here, once, for every caller: a request that left but
+// came back with no usage (a timeout, a dropped connection, a call given up
+// on after it was sent) is counted at its prompt estimate, since the
+// provider may well have billed it; and a count relayed through a player's
+// browser, which that player can write, is held between nothing and the
+// most this one request could have cost.
 func (m *AICompanionModule) callModelOnce(c modelCall) modelResult {
+	res := m.exchangeOnce(c)
+	prompt := estimateTokens(c.Messages) + requestOverhead(c)
+	if res.Tokens < 0 {
+		res.Tokens = 0
+	}
+	if c.Route.kind == routeRelay && res.Tokens > prompt+c.MaxTokens {
+		res.Tokens = prompt + c.MaxTokens
+	}
+	if res.Sent && res.Tokens == 0 && (res.Status == 0 || res.Status == http.StatusOK) {
+		res.Tokens = prompt
+		res.Estimated = true
+	}
+	return res
+}
+
+// neverConnected reports an HTTP failure that happened before any byte of
+// the request could have left: the connection was never made.
+func neverConnected(err error) bool {
+	var op *net.OpError
+	return errors.As(err, &op) && op.Op == `dial`
+}
+
+// exchangeOnce is one request and its reply, on whichever transport the
+// call's route names, with nothing counted yet (callModelOnce).
+func (m *AICompanionModule) exchangeOnce(c modelCall) modelResult {
 	start := time.Now()
 	res := modelResult{}
 
@@ -278,6 +319,11 @@ func (m *AICompanionModule) callModelOnce(c modelCall) modelResult {
 	if parent == nil {
 		parent = context.Background()
 	}
+	if err := parent.Err(); err != nil {
+		// Given up on before it left: nothing was sent, nothing spent.
+		res.Err, res.Canceled = err, errors.Is(err, context.Canceled)
+		return res
+	}
 
 	if c.Route.kind == routeRelay {
 		// The owner's own key, through their browser. The wait covers the
@@ -293,6 +339,10 @@ func (m *AICompanionModule) callModelOnce(c modelCall) modelResult {
 		status, raw, err := sendRelay(ctx, &m.consent, c.OwnerUserId, m.relayCalls, body, via)
 		res.Latency = time.Since(start)
 		res.Status = status
+		// It left unless the door refused it or there was no browser to
+		// take it; a relay that went away after taking it may already
+		// have posted it.
+		res.Sent = err == nil || !(errors.Is(err, errNoConsent) || errors.Is(err, errRelayUnsent))
 		if err != nil {
 			res.Err = err
 			res.Canceled = errors.Is(err, context.Canceled) || errors.Is(parent.Err(), context.Canceled)
@@ -320,6 +370,7 @@ func (m *AICompanionModule) callModelOnce(c modelCall) modelResult {
 	httpReq.Header.Set(`Authorization`, `Bearer `+c.APIKey)
 
 	resp, err := send(httpReq, &m.consent, c.OwnerUserId, carriesPlayerData)
+	res.Sent = err == nil || !(errors.Is(err, errNoConsent) || neverConnected(err))
 	if err != nil {
 		res.Err = err
 		res.Latency = time.Since(start)

@@ -155,15 +155,24 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 	key := mindIdentifier(c.mind.OwnerUserId, c.mind.MobId)
 
 	go func() {
+		applied, used := false, 0
 		defer func() {
 			if r := recover(); r != nil {
 				mudlog.Error(`aicompanion`, `action`, `coreMemory`, `panic`, r, `stack`, string(debug.Stack()))
 			}
+			// It never reached applyCore, which settles first thing.
+			if !applied {
+				util.LockMud()
+				defer util.UnlockMud()
+				m.settleRoute(rt, call.OwnerUserId, 0, reserved, used)
+			}
 		}()
 		res := m.callModel(call)
+		used = res.Tokens
 
 		util.LockMud()
 		defer util.UnlockMud()
+		applied = true
 		m.applyCore(key, call.OwnerUserId, bare, reserved, rt, res)
 	}()
 }
@@ -172,16 +181,16 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 // the bare fact, which is what is kept when the model gives no usable
 // account: the moment is never lost to a failed call.
 func (m *AICompanionModule) applyCore(key string, ownerId int, cm CoreMemory, reserved int, rt route, res modelResult) {
+	// Settled first, so nothing below can leave the reservation held.
+	m.settleRoute(rt, ownerId, 0, reserved, res.Tokens)
 	m.rollDay()
 	m.recordCall(tierFast, res)
 	m.routeResult(rt, ownerId, res.Err, time.Now())
 
 	mind := m.minds[key]
 	if mind == nil {
-		m.settleRoute(rt, ownerId, 0, reserved, res.Tokens)
 		return
 	}
-	m.settleRoute(rt, mind.OwnerUserId, 0, reserved, res.Tokens)
 	keepBare := func() {
 		if cm.Text == `` {
 			return

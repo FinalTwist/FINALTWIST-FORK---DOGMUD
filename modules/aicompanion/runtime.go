@@ -606,6 +606,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 
 	go func() {
 		settled := false
+		used := 0 // what the call spent, once it is known
 		defer func() {
 			if r := recover(); r != nil {
 				mudlog.Error(`aicompanion`, `action`, `modelCall`, `panic`, r, `stack`, string(debug.Stack()))
@@ -613,11 +614,11 @@ func (m *AICompanionModule) dispatch(c *controller) {
 			// The call never reached the settlement below (it panicked
 			// before the lock, or the goroutine was torn down): give the
 			// tokens back, or the day's budget drains on calls that never
-			// happened.
+			// happened, and keep what one that did happen spent.
 			if !settled {
 				util.LockMud()
 				defer util.UnlockMud()
-				m.settleRoute(rt, ownerId, asker, reserved, 0)
+				m.settleRoute(rt, ownerId, asker, reserved, used)
 				if c := m.ctrls[ownerId]; c != nil && c.seq == seq {
 					c.inFlight = false
 					c.cancelCall = nil
@@ -626,6 +627,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		}()
 
 		res := m.callWithTools(call, ownerId, seq, rev, sc, toolRounds)
+		used = res.Tokens
 
 		// Parse and moderate here, off the game loop.
 		if res.Err == nil {
@@ -676,11 +678,14 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 	// A call the module itself gave up on (logout, pause, a move that made
 	// the answer useless) is not the provider failing, and must not count
 	// towards the circuit breaker: ordinary play would otherwise switch the
-	// AI off for everyone.
+	// AI off for everyone. Nor is it a success: reporting it as one would
+	// reset the count of real failures, so a breaker could never open for
+	// an owner who keeps resetting her. It reaches no breaker at all.
 	if res.Canceled {
 		failure = nil
+	} else {
+		m.routeResult(rt, ownerId, failure, time.Now())
 	}
-	m.routeResult(rt, ownerId, failure, time.Now())
 	// A model the player's provider refused says nothing about the server's
 	// choice of models.
 	if rt.kind == routeServer && modelRefused(res) {
