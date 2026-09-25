@@ -23,7 +23,7 @@ description: >
   window looks over the back of the Walk. The counting
   room does not receive visitors who have not been
   specifically expected.
-biome: city
+biome: interior
 coord:
   x: -12
   y: 88
