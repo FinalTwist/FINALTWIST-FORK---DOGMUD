@@ -23,7 +23,7 @@ description: >
   The gate does not open to inspection or persistence.
   The servants' passages behind the estate block
   are accessible to the east.
-biome: city
+biome: interior
 coord:
   x: -13
   y: 95

@@ -21,7 +21,7 @@ description: >
   entirely closed, and some of the gaps are the right
   width for a person to stand in without being visible
   from below.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -14
   y: 92

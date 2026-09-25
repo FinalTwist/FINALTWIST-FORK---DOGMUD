@@ -24,7 +24,7 @@ description: >
   invitation has not been extended. The garden lies
   west; the barracks lie east. The gate stands north,
   and it is closed.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -14
   y: 96
