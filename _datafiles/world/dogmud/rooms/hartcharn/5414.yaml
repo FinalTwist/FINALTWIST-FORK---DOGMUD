@@ -16,7 +16,7 @@ description: >
   and a length of half-finished cloth across the breast beam. A
   tabby cat is stretched across a stone <ansi fg="itemname">step</ansi>
   in a patch of warmth, one ear tracking the street.
-biome: city
+biome: city_backstreet
 coord:
   x: -19
   y: 38

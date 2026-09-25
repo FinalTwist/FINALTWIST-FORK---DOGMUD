@@ -14,7 +14,7 @@ description: >
   <ansi fg="itemname">tallow</ansi> stands ready for
   sealing knots. The yard smells of pitch and fish-oil and
   the dry sweet must of cured cordage.
-biome: city
+biome: city_backstreet
 coord:
   x: -16
   y: 5

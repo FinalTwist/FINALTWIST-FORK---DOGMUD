@@ -22,7 +22,7 @@ description: >
   writing slope beside it. This is the town's bank -- not
   vaulted marble but a working counting house, built for
   fishing skiffs and pearl merchants, not emperors.
-biome: city
+biome: interior
 isbank: true
 isstorage: true
 storagecapacity: 1000

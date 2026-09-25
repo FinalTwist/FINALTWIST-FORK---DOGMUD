@@ -91,24 +91,45 @@ YAML keys are `skylight` and `lamp`:
   this override in most of the cases that once seemed to need it: a brick
   sewer vault, a wrecked ship's interior and a web-choked lair each got
   their own biome (`sewer`, `interior`, `spiderweb`) rather than a
-  room-level number. **The override ships on thirteen rooms**: the
-  three-room Planar Oasis (`instance_planar_oasis/500{3,4,5}.yaml`), which
-  sets `lamp: 38` against `ether`'s biome lamp of `60` because its room
-  text reads "Shapes move in the heat haze, some are mirages, some are
-  not," so a fully lit oasis would contradict its own description; and, as
-  of plan 3c-1, ten more rooms carrying the same `lamp: 38` against a
-  biome that otherwise ships none: seven `dungeon` rooms in New Plymouth's
-  buried Old Quarter (`new_plymouth_old_quarter/60{21,26,27,30,31,33,35}.yaml`),
-  one `sewer` room under the docks (`new_plymouth_docks/5509.yaml`, the
-  chandlery's lamp-glow reaching down the stair), and two `road` rooms on
-  the riverside track (`new_plymouth_outskirts/54{78,80}.yaml`, security
-  lamps where the track meets the wall and the docks). Each is a room
-  whose own text names a burning lamp; every other room in the Old
-  Quarter and sewer pockets is dark (both biomes ship `skylight: 0.0`).
-  The riverside track is the exception: `road` and `river` both ship
-  `skylight: 1.0`, so 5478 and 5480 (the lamped rooms) and 5479 the Ford
-  (plain `river`, no lamp) are all open to the sky by day; the lamp on
-  5478 and 5480 only matters after dark.
+  room-level number. **The `lamp` override ships on sixteen rooms** (grep
+  `^lamp:` under `_datafiles/world/dogmud/rooms`): the three-room Planar
+  Oasis (`instance_planar_oasis/500{3,4,5}.yaml`), which sets `lamp: 38`
+  against `ether`'s biome lamp of `60` because its room text reads "Shapes
+  move in the heat haze, some are mirages, some are not," so a fully lit
+  oasis would contradict its own description; ten rooms from plan 3c-1
+  carrying the same `lamp: 38` against a biome that otherwise ships none:
+  seven `dungeon` rooms in New Plymouth's buried Old Quarter
+  (`new_plymouth_old_quarter/60{21,26,27,30,31,33,35}.yaml`), one `sewer`
+  room under the docks (`new_plymouth_docks/5509.yaml`, the chandlery's
+  lamp-glow reaching down the stair), and two `road` rooms on the
+  riverside track (`new_plymouth_outskirts/54{78,80}.yaml`, security lamps
+  where the track meets the wall and the docks); and three more rooms from
+  plan 3c-2, each carrying `lamp: 38` where its own text names something
+  other than a burning lamp: 6250 The Greenford Road
+  (`the_confluence/6250.yaml`, `road` biome, a security lamp just outside
+  the Confluence's East Gate, the owner's wall-lamp ruling), 5000 The Rift
+  Chamber (`thornwall_city/5000.yaml`, `dungeon` biome, pulsing wall
+  runes) and 6443 The Chrysalis Workshop (`stillwater/6443.yaml`,
+  `dungeon` biome, pale green shard glow), the last two by the owner's
+  3c-2 ruling that a steady glow someone works by counts as light. Each is
+  a room whose own text names a light source; every other room in the Old
+  Quarter, the sewer pocket and the two new `dungeon` rooms' neighbours is
+  dark (all three biomes ship `skylight: 0.0`). The riverside track is the
+  exception: `road` and `river` both ship `skylight: 1.0`, so 5478 and
+  5480 (the lamped rooms) and 5479 the Ford (plain `river`, no lamp) are
+  all open to the sky by day; the lamp on 5478 and 5480 only matters after
+  dark.
+
+  **The `skylight` override ships on two rooms, both new in plan 3c-2 and
+  the package's first room-level `skylight` users** (grep `^skylight:`
+  under `_datafiles/world/dogmud/rooms` finds only these two): the holding
+  cells beneath Thornwall's guard barracks (`thornwall_city/5105.yaml`)
+  and Stillwater's constabulary (`stillwater/5106.yaml`), both `dungeon`
+  biome (`skylight: 0.0` by default) set to `skylight: 0.1`. Each cell's
+  own text names a window slit admitting a bar of daylight; the owner's
+  ruling was a room-level fraction rather than new code, since the
+  existing sky-tracking math already reads it as shapes by day and dark at
+  night.
 
   `fort`'s old granularity gap, sharing one sky fraction between
   an open yard and a buried vault, is gone: plan 3c-1 moved fort's open
@@ -139,17 +160,24 @@ carried light or the room adds).
 | `city_backstreet` | `0.95` | `35` | A city's lanes, alleys, courts and yards off the main ways. No lamp reaches them, so a normal eye reads shapes, not faces, after dark. Added by plan 3c-1 |
 | `ruins` | `0.75` | none | A roofless building: takes weather and sky like open ground, a little shaded by whatever walls still stand, dark at night. `movementcost: 1.0` for the rubble underfoot. Added by plan 3c-1 |
 
-**`city` is being retired.** Plan 3c-1 split New Plymouth's 156 `city`
-rooms across `city_thoroughfare`, `city_backstreet`, `interior`, `dungeon`,
-`sewer`, `road` and `river`, but `city` itself still ships: 268 rooms
-across seven other zones (`the_confluence`, `greenford`, `thornwall_city`,
-`stillwater`, `hartcharn`, `kilnreach_works`, `pothole_coulee`) still carry
-it, and `weather/climate/city.yaml` stays until 3c-2 because those 268
-DOGMud rooms still read the `city` climate profile. (Not because the
-upstream `default` world needs it: `default` ships no weather data folder
-at all and falls back to the built-in `"city"` profile in
-`modules/weather/sim/climate.go`.) Plan 3c-2 sorts those remaining zones
-and deletes `city` once none of DOGMud's own rooms name it.
+**`city` is gone from the dogmud world.** Plan 3c-1 split New Plymouth's
+156 `city` rooms and plan 3c-2 (in two PRs, 3c-2a and 3c-2b) sorted the
+remaining 268 across `the_confluence`, `greenford`, `thornwall_city`,
+`stillwater`, `hartcharn`, `kilnreach_works` and `pothole_coulee` into
+`city_thoroughfare`, `city_backstreet`, `interior`, `dungeon`, `road` or
+`ruins`. `city_thoroughfare` and `city_backstreet` are the vocabulary now:
+a thoroughfare's lamp holds it in the faces band at any hour, a backstreet
+has none and reads shapes after dark. `biomes/city.yaml`,
+`weather/climate/city.yaml` and the `city:` emote pool key are all deleted
+from `_datafiles/world/dogmud`, and all 12 zone-configs that defaulted an
+unauthored room to `city` now default to `city_backstreet`.
+`internal/rooms/no_city_biome_test.go` guards the deletion: it fails if
+any dogmud room file still reads `biome: city` or any zone-config still
+reads `defaultbiome: city`. The upstream `default` world is untouched and
+keeps its own `city` biome and climate key; `default` ships no weather
+data folder of its own, so it falls back to the built-in `"city"` profile
+in `modules/weather/sim/climate.go`, which plan 3c-2 deliberately left in
+place for exactly that reason.
 
 **`house` is deleted.** Plan 3b folded its rooms into `interior` along with
 every other room that was really an indoor space wearing an outdoor biome:

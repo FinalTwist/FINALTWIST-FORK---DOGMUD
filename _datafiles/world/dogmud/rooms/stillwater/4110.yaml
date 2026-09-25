@@ -19,7 +19,7 @@ description: >
   one-person <ansi fg="itemname">cell</ansi> furnished with
   a plank bench, a wooden slop bucket with a fitted lid, and
   clean straw on a packed-earth floor.
-biome: city
+biome: interior
 coord:
   x: -17
   y: 5

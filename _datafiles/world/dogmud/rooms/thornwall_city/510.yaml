@@ -8,7 +8,7 @@ description: A solid stone building with iron-banded doors and narrow
   air smells of ink, old paper, and the metallic tang of gold. A
   large iron strongbox sits against the far wall, its lock the size
   of a fist.
-biome: city
+biome: interior
 isbank: true
 isstorage: true
 storagecapacity: 1000

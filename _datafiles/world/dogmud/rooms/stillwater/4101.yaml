@@ -14,7 +14,7 @@ description: >
   the cottages from somewhere east; the lake is closer than
   it sounds. A waist-high <ansi fg="itemname">milestone</ansi>
   stands at the road's shoulder, half-buried in moss.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 2

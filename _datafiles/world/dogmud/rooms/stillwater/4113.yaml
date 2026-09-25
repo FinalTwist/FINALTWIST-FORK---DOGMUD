@@ -15,7 +15,7 @@ description: >
   worn stone <ansi fg="itemname">bench</ansi> faces the
   lake — generations of travelers have sat here to make
   the same calculations about distance and time.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -16
   y: 3

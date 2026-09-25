@@ -18,7 +18,7 @@ description: >
   north road, a heavy iron-posted
   <ansi fg="itemname">notice board</ansi> is papered and chalked
   with the business of the town.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 36

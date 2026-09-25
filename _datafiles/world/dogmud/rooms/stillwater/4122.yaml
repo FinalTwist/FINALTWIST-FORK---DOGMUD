@@ -14,7 +14,7 @@ description: >
   half a degree when it reaches the pillars. Worshippers
   pass through this approach in a slow steady trickle from
   dawn to dusk.
-biome: city
+biome: city_backstreet
 coord:
   x: -15
   y: 3

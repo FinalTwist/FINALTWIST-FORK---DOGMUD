@@ -5,7 +5,7 @@ description: A narrow loft tucked beneath the forge's rafters, warmed by the
   banked coals below. A straw mattress lies under a single thick blanket; a
   battered chest holds a change of work clothes. The faint smell of iron and
   woodsmoke drifts up through the floorboards.
-biome: city
+biome: interior
 mapsymbol: h
 maplegend: Home
 coord:

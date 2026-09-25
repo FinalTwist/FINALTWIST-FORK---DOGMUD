@@ -30,7 +30,7 @@ description: >
   the gaps between them, loading, hauling, shouting over the din.
   This is not a place built to be pleasant. It exists to make
   things for a city.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 67

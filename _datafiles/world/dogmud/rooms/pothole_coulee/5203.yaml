@@ -12,7 +12,7 @@ description: >
   direction: north toward the pool, south to the market, west along the
   stilt-walk, east to the squat strongbox-house. Stand here a spell and
   the town will find you on its own.
-biome: city
+biome: city_thoroughfare
 coord:
   x: 45
   y: 1

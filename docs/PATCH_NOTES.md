@@ -1,5 +1,28 @@
 # DOGMud Patch Notes
 
+## 2026-09-25: Thornwall, Stillwater, Hartcharn and Kilnreach light up
+
+Thornwall, Stillwater, Hartcharn and the Kilnreach Works now get the same
+treatment New Plymouth, the Confluence and Greenford already have. Their
+main streets, squares, markets and gates keep their lamps burning all
+night, so a face is readable there at any hour. That covers Thornwall's
+Main Street and Market Square, Stillwater's Lakefront Square and its lake
+promenade, and Hartcharn's market street running from gate to gate.
+
+Step off a main way into a lane or a yard after dark, and the lamps stop
+following you. You will still see shapes moving nearby, but not who they
+are.
+
+Many shops and homes across all four towns are now proper interiors, lit
+the way a building should be rather than the way the street outside is
+lit.
+
+The cells beneath Thornwall's guard barracks and Stillwater's
+constabulary catch only a thin slit of daylight: shapes by day, nothing
+at all after dark. Near Stillwater, the old chapel ruin has lost its roof
+and stands open to the sky, taking the weather and the night the way any
+roofless place does.
+
 ## 2026-09-25: The Confluence and Greenford's lamps find their own streets
 
 The Confluence and Greenford now get the same treatment New Plymouth had.

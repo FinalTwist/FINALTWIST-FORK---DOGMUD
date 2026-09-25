@@ -1,5 +1,8 @@
 # Graded room lighting, plan 3c: the city pass
 
+**Status (2026-09-25):** shipped in full: 3c-1 (#164), 3c-2a (#165), 3c-2b
+(this PR). `city` is deleted from the dogmud world.
+
 Owner-approved design, 2026-09-25. Parent spec:
 `docs/superpowers/specs/2026-09-22-graded-room-lighting-design.md`. Follows
 plan 3b (`docs/superpowers/specs/completed/2026-09-23-lighting-plan3b-biome-vocabulary-design.md`),

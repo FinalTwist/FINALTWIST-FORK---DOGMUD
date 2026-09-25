@@ -15,7 +15,7 @@ description: >
   plank <ansi fg="itemname">counter</ansi> divides the
   room, the <ansi fg="itemname">slate</ansi> behind it
   scrawled over with the current prices.
-biome: city
+biome: interior
 coord:
   x: -18
   y: 4

@@ -8,7 +8,8 @@ description: A cramped cell carved into the stone foundations beneath the guard
   slit near the ceiling lets in a grudging bar of daylight. The air is cool and
   close, smelling of damp stone and old straw. Footsteps and muffled voices
   drift down from the duty room above.
-biome: city
+biome: dungeon
+skylight: 0.1
 coord:
   x: 0
   y: 1
