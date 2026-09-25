@@ -22,5 +22,5 @@ transitions:
       - 'By the carried light, you can make out faces again.'
   dazzled:
     any:
-      - 'A carried light blazes up close and stabs at your widened eyes.'
-      - 'The carried light is too bright for your widened eyes.'
+      - 'With the carried light added, the glare stabs at your eyes.'
+      - 'The carried light tips the brightness into a glare that hurts.'

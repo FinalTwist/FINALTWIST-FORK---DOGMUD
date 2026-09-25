@@ -25,5 +25,5 @@ transitions:
       - 'The lamplight grows; you can make out faces again.'
   dazzled:
     any:
-      - 'The lamplight stabs at your widened eyes.'
-      - 'The lamps flare too bright for your widened eyes.'
+      - 'The lamplight stabs at your eyes.'
+      - 'The lamps flare too bright for your eyes.'

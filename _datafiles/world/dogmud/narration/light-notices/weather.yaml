@@ -22,5 +22,5 @@ transitions:
       - 'The sky opens; you can make out faces again.'
   dazzled:
     any:
-      - 'The cloud breaks, and the bright sky stabs at your widened eyes.'
-      - 'The weather clears into a glare too bright for your widened eyes.'
+      - 'The cloud breaks, and the bright sky stabs at your eyes.'
+      - 'The weather clears into a glare too bright for your eyes.'

@@ -22,5 +22,5 @@ transitions:
       - 'Your sight sharpens, and faces are clear.'
   dazzled:
     any:
-      - 'Your widened eyes ache in this light.'
+      - 'Your eyes ache in this light.'
       - 'The light here is suddenly too bright for your eyes.'

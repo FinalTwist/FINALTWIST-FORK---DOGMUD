@@ -37,8 +37,8 @@ transitions:
       - 'The light from outside grows; you can make out faces.'
   dazzled:
     outdoor:
-      - 'The bright sky stabs at your widened eyes.'
-      - 'Daylight floods in, too bright for your widened eyes.'
+      - 'The bright sky stabs at your eyes.'
+      - 'Daylight floods in, too bright for your eyes.'
     indoor:
-      - 'Daylight pours in, too bright for your widened eyes.'
-      - 'The light from outside stabs at your widened eyes.'
+      - 'Daylight pours in, too bright for your eyes.'
+      - 'The light from outside stabs at your eyes.'

@@ -22,5 +22,5 @@ transitions:
       - 'The light is better here; you can make out faces.'
   dazzled:
     any:
-      - 'You step into light so bright it stabs at your widened eyes.'
-      - 'The glare here is too much for your widened eyes.'
+      - 'You step into light so bright it stabs at your eyes.'
+      - 'The glare here is too much for your eyes.'
