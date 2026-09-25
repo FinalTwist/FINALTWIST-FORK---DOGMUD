@@ -50,12 +50,7 @@ func BandThroughWindow(light, strength, reach, blindBelow, dimBelow int) Band {
 	case SightShapes:
 		return BandShapes
 	}
-	if strength < 0 {
-		strength = 0
-	}
-	if strength > windowShiftCap {
-		strength = windowShiftCap
-	}
+	strength = clampShift(strength)
 	if light >= windowDazzleEdge-strength {
 		return BandDazzled
 	}
@@ -65,7 +60,8 @@ func BandThroughWindow(light, strength, reach, blindBelow, dimBelow int) Band {
 // LightBand is ParticipantSight's band-grained twin, for a caller that needs
 // to know about dazzle. It is optics only, exactly like ParticipantSight: it
 // does not consult sleep. A Blinded observer is dark; a nil observer or a nil
-// room reads faces, matching ParticipantSight's defensive defaults.
+// room reads faces, matching ParticipantSight's full-sight default at the
+// non-dazzled tier.
 //
 // It reads the narrow lighting config rather than the 400-field Balance copy
 // ParticipantSight takes; both carry the same two edges.
