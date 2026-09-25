@@ -2619,3 +2619,25 @@ func TestStrangerTalkSummaryIsTheStrangersToPayFor(t *testing.T) {
 		t.Fatalf("a shared talk is charged to her owner: owner=%d stranger=%d", m.ownerTokens[1], m.strangerTokens[2])
 	}
 }
+
+// A reply that finds no mind to write into still gives the reservation
+// back to the owner it was held against; settling against nobody left the
+// owner's count carrying tokens that were never spent.
+func TestGoneMindStillRefundsItsOwner(t *testing.T) {
+	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000, StrangerDailyTokens: 1000, DailyTokenBudget: 5000}}
+	failed := modelResult{Err: errors.New(`gone`)}
+
+	for name, apply := range map[string]func(){
+		`summary`:    func() { m.applyConversationSummary(`nobody`, 1, `Corvin`, 7, 0, 300, failed) },
+		`core`:       func() { m.applyCore(`nobody`, 1, CoreMemory{}, 300, failed) },
+		`reflection`: func() { m.applyReflection(`nobody`, 1, 0, `m`, 300, failed) },
+	} {
+		if !m.tryReserveTokens(1, 300) {
+			t.Fatalf("%s: fixture reservation refused", name)
+		}
+		apply()
+		if m.ownerTokens[1] != 0 || m.outstanding != 0 {
+			t.Fatalf("%s: owner=%d outstanding=%d after a refund", name, m.ownerTokens[1], m.outstanding)
+		}
+	}
+}

@@ -160,19 +160,19 @@ func (m *AICompanionModule) startReflection(mind *Mind, p *Profile, ownerName st
 
 		util.LockMud()
 		defer util.UnlockMud()
-		m.applyReflection(key, session, call.Model, reserved, res)
+		m.applyReflection(key, call.OwnerUserId, session, call.Model, reserved, res)
 	}()
 }
 
 // applyReflection stores a reflection. Runs under the mud lock.
-func (m *AICompanionModule) applyReflection(key string, session int, model string, reserved int, res modelResult) {
+func (m *AICompanionModule) applyReflection(key string, ownerId int, session int, model string, reserved int, res modelResult) {
 	m.rollDay()
 	m.recordCall(tierDeep, res)
 	m.breakerResult(res.Err, time.Now())
 	if mind := m.minds[key]; mind == nil {
 		// Nobody left to remember it, but the reservation still has to go
-		// back.
-		m.settleTokens(0, reserved, res.Tokens)
+		// back, to the owner it was held against.
+		m.settleTokens(ownerId, reserved, res.Tokens)
 	}
 	if modelRefused(res) {
 		m.models.refuse(model)

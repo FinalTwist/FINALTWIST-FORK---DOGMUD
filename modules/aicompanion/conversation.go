@@ -230,20 +230,22 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 
 		util.LockMud()
 		defer util.UnlockMud()
-		m.applyConversationSummary(key, partner, place, asker, reserved, res)
+		m.applyConversationSummary(key, call.OwnerUserId, partner, place, asker, reserved, res)
 	}()
 	return true
 }
 
 // applyConversationSummary stores the one memory a talk left behind.
-func (m *AICompanionModule) applyConversationSummary(key string, partner string, placeId int, asker int, reserved int, res modelResult) {
+func (m *AICompanionModule) applyConversationSummary(key string, ownerId int, partner string, placeId int, asker int, reserved int, res modelResult) {
 	m.rollDay()
 	m.recordCall(tierFast, res)
 	m.breakerResult(res.Err, time.Now())
 
 	mind := m.minds[key]
 	if mind == nil {
-		m.settleFor(0, asker, reserved, res.Tokens)
+		// Nobody left to remember it, but the reservation still goes back
+		// to whoever it was held against.
+		m.settleFor(ownerId, asker, reserved, res.Tokens)
 		return
 	}
 	// Settled against whoever the reservation was held against.

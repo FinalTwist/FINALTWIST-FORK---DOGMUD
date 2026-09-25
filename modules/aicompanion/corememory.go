@@ -152,19 +152,19 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 
 		util.LockMud()
 		defer util.UnlockMud()
-		m.applyCore(key, CoreMemory{Unix: now, Place: place, PlaceId: placeId, Positive: positive, Stage: stage}, reserved, res)
+		m.applyCore(key, call.OwnerUserId, CoreMemory{Unix: now, Place: place, PlaceId: placeId, Positive: positive, Stage: stage}, reserved, res)
 	}()
 }
 
 // applyCore writes the model's account of the moment.
-func (m *AICompanionModule) applyCore(key string, cm CoreMemory, reserved int, res modelResult) {
+func (m *AICompanionModule) applyCore(key string, ownerId int, cm CoreMemory, reserved int, res modelResult) {
 	m.rollDay()
 	m.recordCall(tierFast, res)
 	m.breakerResult(res.Err, time.Now())
 
 	mind := m.minds[key]
 	if mind == nil {
-		m.settleTokens(0, reserved, res.Tokens)
+		m.settleTokens(ownerId, reserved, res.Tokens)
 		return
 	}
 	m.settleTokens(mind.OwnerUserId, reserved, res.Tokens)
