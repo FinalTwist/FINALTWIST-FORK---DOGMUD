@@ -111,6 +111,19 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 	}
 	ts := m.settingsFor(tierFast, false)
 
+	call := modelCall{
+		BaseURL: m.cfg.BaseURL, APIKey: m.apiKey(), Model: ts.Model,
+		Timeout: ts.Timeout, MaxTokens: ts.MaxTokens, Temperature: m.cfg.Temperature,
+		SchemaName: `companion_core_memory`, Schema: coreSchema(), Effort: ts.Effort,
+		OwnerUserId: c.ownerUserId,
+	}
+	m.applyRoute(&call)
+	rt := call.Route
+	if rt.kind == routeNone || call.Model == `` {
+		bareFact()
+		return
+	}
+
 	var b strings.Builder
 	fmt.Fprintf(&b, "Something has just changed between you and %s", ownerName)
 	if place != `` {
@@ -122,7 +135,12 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 		b.WriteString(": it has been set back, or ended.\n")
 	}
 	b.WriteString("\nWhat led to it, most recent last:\n")
-	for _, l := range c.mind.lastLines(16) {
+	lines := c.mind.lastLines(16)
+	if rt.kind == routeRelay {
+		// Her owner reads this prompt in their browser (relaySafeLines).
+		lines = relaySafeLines(lines, ownerName, c.profile.Name)
+	}
+	for _, l := range lines {
 		b.WriteString(formatLine(l, c.profile.Name))
 		b.WriteString("\n")
 	}
@@ -133,18 +151,7 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 			c.profile.Name, strings.TrimSpace(c.profile.Summary))},
 		{Role: `user`, Content: b.String()},
 	}
-	call := modelCall{
-		BaseURL: m.cfg.BaseURL, APIKey: m.apiKey(), Model: ts.Model,
-		Timeout: ts.Timeout, MaxTokens: ts.MaxTokens, Temperature: m.cfg.Temperature,
-		Messages: messages, SchemaName: `companion_core_memory`, Schema: coreSchema(), Effort: ts.Effort,
-		OwnerUserId: c.ownerUserId,
-	}
-	m.applyRoute(&call)
-	rt := call.Route
-	if rt.kind == routeNone || call.Model == `` {
-		bareFact()
-		return
-	}
+	call.Messages = messages
 	reserved := worstCaseTokens(estimateTokens(messages), ts.MaxTokens, 0, false)
 	if !m.reserveRoute(rt, c.ownerUserId, 0, reserved) {
 		// The day's allowance cannot cover it: the moment is still kept.

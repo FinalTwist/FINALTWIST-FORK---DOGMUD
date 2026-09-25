@@ -1,0 +1,105 @@
+package hooks
+
+import (
+	"github.com/GoMudEngine/GoMud/internal/companionai"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/parties"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/users"
+)
+
+// A bonded companion harms only what her owner could harm. The aicompanion
+// module checks that when she starts a harmful spell (harmAllowed,
+// areaHarmAllowed), but an area spell folds over several rounds and lands on
+// whoever is in the room when it resolves, not whoever was there when she
+// began. So an area harm spell cast by a bonded companion is checked again
+// here, at resolution, against each target, asked as her owner: a creature
+// by mobs.CheckPlayerHarm (as a player's own area spell is,
+// playerHarmTargetPermitted), a person by (*rooms.Room).CanPvp with her owner
+// as the attacker and not a member of her owner's party.
+//
+// The engine's own functions answer, with the owner read off the charm
+// (GetCharmedUserId), so no seam is needed; companionai.IsBondedCompanion
+// says whether the caster is bonded and is false while the module is off,
+// when a bonded companion is an ordinary one and nothing changes.
+
+// mobAreaHarmTargets is who a mob's area harm spell lands on when it
+// resolves: every creature in the room but itself and non-combatants, and
+// every person. A charmed caster spares its owner and its owner's other
+// companions; a bonded one also spares whatever its owner could not harm.
+func mobAreaHarmTargets(caster *mobs.Mob, room *rooms.Room) (mobIds []int, userIds []int) {
+	charmedByUserId := caster.Character.GetCharmedUserId()
+	owner, bonded := bondedAreaHarmOwner(caster)
+
+	allMobs := room.GetMobs(rooms.FindAll)
+	mobIds = make([]int, 0, len(allMobs))
+	for _, mId := range allMobs {
+		if mId == caster.InstanceId {
+			continue // don't target self
+		}
+		// If this mob is charmed by a player, don't hit that player's other companions
+		// Also never hit non-combatant mobs (shopkeepers etc.)
+		if m := mobs.GetInstance(mId); m != nil {
+			if m.IsNonCombatant() {
+				continue
+			}
+			if charmedByUserId > 0 && m.Character.IsCharmed(charmedByUserId) {
+				continue
+			}
+			if bonded && !bondedMayHarmMob(m) {
+				continue
+			}
+		}
+		mobIds = append(mobIds, mId)
+	}
+
+	allUsers := room.GetPlayers(rooms.FindAll)
+	userIds = make([]int, 0, len(allUsers))
+	for _, pId := range allUsers {
+		// If charmed, don't hit the owner
+		if charmedByUserId > 0 && pId == charmedByUserId {
+			continue
+		}
+		if bonded && !bondedMayHarmPlayer(owner, room, pId) {
+			continue
+		}
+		userIds = append(userIds, pId)
+	}
+	return mobIds, userIds
+}
+
+// bondedAreaHarmOwner returns the owner a mob answers to for area harm, and
+// whether it answers to one at all. An owner who is not online answers for
+// nothing, so a bonded caster whose owner cannot be read harms no person.
+func bondedAreaHarmOwner(caster *mobs.Mob) (*users.UserRecord, bool) {
+	ownerId := caster.Character.GetCharmedUserId()
+	if ownerId <= 0 || !companionai.IsBondedCompanion(caster.InstanceId) {
+		return nil, false
+	}
+	return users.GetByUserId(ownerId), true
+}
+
+// bondedMayHarmMob reports whether a bonded companion's area harm may land
+// on this creature: only if her owner's own area spell could.
+func bondedMayHarmMob(target *mobs.Mob) bool {
+	return !mobs.CheckPlayerHarm(target).Blocked()
+}
+
+// bondedMayHarmPlayer reports whether a bonded companion's area harm may
+// land on this person: only if her owner could fight them here.
+func bondedMayHarmPlayer(owner *users.UserRecord, room *rooms.Room, targetUserId int) bool {
+	if owner == nil || owner.Character == nil || targetUserId == owner.UserId {
+		return false
+	}
+	target := users.GetByUserId(targetUserId)
+	if target == nil || target.Character == nil {
+		return false
+	}
+	if room.CanPvp(owner, target) != nil {
+		return false
+	}
+	if p := parties.Get(owner.UserId); p != nil && p.IsMember(targetUserId) {
+		return false
+	}
+	return true
+}

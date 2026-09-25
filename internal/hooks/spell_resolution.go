@@ -1369,37 +1369,7 @@ func resolveMobSpell(mob *mobs.Mob, cs activity.CastingData, spellData *spells.S
 	magnitude := spellData.EffectMagnitude
 
 	if spellData.IsHarm() && spellData.Targeting == combatvocab.TargetArea {
-		allMobs := room.GetMobs(rooms.FindAll)
-		filtered := make([]int, 0, len(allMobs))
-		charmedByUserId := mob.Character.GetCharmedUserId()
-		for _, mId := range allMobs {
-			if mId == mob.InstanceId {
-				continue // don't target self
-			}
-			// If this mob is charmed by a player, don't hit that player's other companions
-			// Also never hit non-combatant mobs (shopkeepers etc.)
-			if m := mobs.GetInstance(mId); m != nil {
-				if m.IsNonCombatant() {
-					continue
-				}
-				if charmedByUserId > 0 && m.Character.IsCharmed(charmedByUserId) {
-					continue
-				}
-			}
-			filtered = append(filtered, mId)
-		}
-		cs.TargetMobInstanceIds = filtered
-		cs.TargetUserIds = room.GetPlayers(rooms.FindAll)
-		// If charmed, don't hit the owner
-		if charmedByUserId > 0 {
-			ownerFiltered := make([]int, 0, len(cs.TargetUserIds))
-			for _, pId := range cs.TargetUserIds {
-				if pId != charmedByUserId {
-					ownerFiltered = append(ownerFiltered, pId)
-				}
-			}
-			cs.TargetUserIds = ownerFiltered
-		}
+		cs.TargetMobInstanceIds, cs.TargetUserIds = mobAreaHarmTargets(mob, room)
 	}
 
 	for _, mobInstId := range cs.TargetMobInstanceIds {

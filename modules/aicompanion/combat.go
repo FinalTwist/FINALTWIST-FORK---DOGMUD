@@ -597,11 +597,37 @@ func mayStrike(owner *users.UserRecord, room *rooms.Room, mobInstanceId int) boo
 
 // mayStrikeCurrent is mayStrike for whoever she is already fighting, which
 // is what a special move lands on. The engine's round chose that foe, not
-// her; a move is her choice, so it is held to her owner's rules too.
+// her; a move is her choice, so it is held to her owner's rules too, with
+// the one allowance a player gets: a player already in a fight may use a
+// move on their foe whoever it is (actions.StageMeleeTarget stages no
+// target checks in combat), so she may use one on a foe that is fighting
+// her. Never on her owner.
 func mayStrikeCurrent(owner *users.UserRecord, room *rooms.Room, mob *mobs.Mob) bool {
 	cur := mob.Character.CurrentCombatTarget()
+	if foeFightingHer(owner, room, mob, cur.MobInstanceId, cur.UserId) {
+		return true
+	}
 	ok, _ := harmAllowed(owner, room, cur.MobInstanceId, cur.UserId)
 	return ok
+}
+
+// foeFightingHer reports whether her current foe, a creature or a person
+// other than her owner, stands in her room and is fighting her.
+func foeFightingHer(owner *users.UserRecord, room *rooms.Room, mob *mobs.Mob, foeMobId int, foeUserId int) bool {
+	if room == nil {
+		return false
+	}
+	if foeMobId > 0 {
+		foe := mobs.GetInstance(foeMobId)
+		return foe != nil && foe.Character.RoomId == room.RoomId &&
+			foe.Character.CurrentCombatTarget().MobInstanceId == mob.InstanceId
+	}
+	if foeUserId > 0 && (owner == nil || foeUserId != owner.UserId) {
+		foe := users.GetByUserId(foeUserId)
+		return foe != nil && foe.Character != nil && foe.Character.RoomId == room.RoomId &&
+			foe.Character.CurrentCombatTarget().MobInstanceId == mob.InstanceId
+	}
+	return false
 }
 
 // strikeCommand chooses a shot or a blade, by style, weapon and whether
@@ -817,9 +843,12 @@ func (m *AICompanionModule) endFight(c *controller, mob *mobs.Mob, u *users.User
 	if f.Fled {
 		emotion = `fear`
 	}
-	c.mind.addMemory(Memory{Unix: now, Kind: `event`, Text: summary, Importance: importance, Emotion: emotion,
-		People: []string{owner}, PlaceId: mob.Character.RoomId}, m.cfg.MaxMemories)
-	c.mind.addLine(Line{Kind: `event`, Text: summary}, m.cfg.WorkingMemoryLines)
+	// The summary names her owner and anyone who fought them.
+	if m.mayRemember(c) {
+		c.mind.addMemory(Memory{Unix: now, Kind: `event`, Text: summary, Importance: importance, Emotion: emotion,
+			People: []string{owner}, PlaceId: mob.Character.RoomId}, m.cfg.MaxMemories)
+		c.mind.addLine(Line{Kind: `event`, Text: summary}, m.cfg.WorkingMemoryLines)
+	}
 	if !f.Fled && len(f.Killed) > 0 {
 		m.combatLine(c, mob, round, c.profile.Combat.Lines.Victory)
 	}
@@ -861,9 +890,11 @@ func (m *AICompanionModule) onPlayerDeath(e events.Event) events.ListenerReturn 
 		return events.Continue
 	}
 	now := time.Now().Unix()
-	c.mind.addMemory(Memory{Unix: now, Kind: `death`, Text: `I watched ` + evt.CharacterName + ` fall.`,
-		Importance: 9, Emotion: `sadness`, People: []string{evt.CharacterName}, PlaceId: evt.RoomId}, m.cfg.MaxMemories)
-	c.mind.addLine(Line{Kind: `event`, Text: evt.CharacterName + ` fell.`}, m.cfg.WorkingMemoryLines)
+	if m.mayRemember(c) {
+		c.mind.addMemory(Memory{Unix: now, Kind: `death`, Text: `I watched ` + evt.CharacterName + ` fall.`,
+			Importance: 9, Emotion: `sadness`, People: []string{evt.CharacterName}, PlaceId: evt.RoomId}, m.cfg.MaxMemories)
+		c.mind.addLine(Line{Kind: `event`, Text: evt.CharacterName + ` fell.`}, m.cfg.WorkingMemoryLines)
+	}
 	c.mind.Mood, c.mind.MoodSetUnix = `sad`, now
 	c.mind.markDanger(evt.RoomId, 3, now, false)
 	c.dirty = true

@@ -75,11 +75,13 @@ func Dismiss(rest string, user *users.UserRecord,
 
 	// A bonded companion is a person, not a working: it cannot be dismissed
 	// by command. Parting ways happens in conversation, on its own terms.
-	// That holds only while something drives it. With the aicompanion
-	// module switched off, its commands (companion-part among them) are
-	// gone, the engine still fields the companion from its saved record,
-	// and refusing here would leave the owner with no way to end the bond.
-	if sourceType == characters.CompanionBonded && companionai.DrivesBonded() {
+	// That holds only while something drives THIS companion. With the
+	// aicompanion module switched off, its commands (companion-part among
+	// them) are gone, the engine still fields the companion from its saved
+	// record, and refusing here would leave the owner with no way to end
+	// the bond; with the module on but no profile for this companion,
+	// nothing will ever take it up, and it is the same.
+	if sourceType == characters.CompanionBonded && companionai.DrivesBonded(comp.MobId) {
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`<ansi fg="mobname">%s</ansi> is not yours to dismiss. If you want to part ways, you will have to tell them.`,
 			compName,

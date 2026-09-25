@@ -22,6 +22,9 @@ type stimulus struct {
 	// Unlike AskerUserId it refuses her no verb; it only bills them.
 	PaidBy int
 	Errand string // arrived: what she set out to do there
+	// Plain is Text without what another player looks like or carries,
+	// for a call through her owner's own browser (relaySafeStimuli).
+	Plain string
 }
 
 // promptInput is everything buildMessages needs. It is plain data so the
@@ -490,6 +493,42 @@ func formatLine(l Line, selfName string) string {
 	default:
 		return fmt.Sprintf(`(%s)`, l.Text)
 	}
+}
+
+// relaySafeLines is what a prompt carries of her recent lines when the call
+// goes through her owner's own browser, where the owner can read the whole
+// prompt. Other people's names and deeds stay, and so does anything said to
+// her or by her owner or herself; speech she only overheard from someone
+// else (RecordBystanderSpeech) is left out, and a look at another player
+// keeps how they are but not their description (Line.Plain). The owner's
+// own speech is known by name, so what an owner she could not make out
+// said aloud, to nobody in particular, is left out as well.
+func relaySafeLines(lines []Line, ownerName string, selfName string) []Line {
+	out := make([]Line, 0, len(lines))
+	for _, l := range lines {
+		overheard := (l.Kind == `said` || l.Kind == `emoted`) && !l.ToMe
+		if overheard && l.Speaker != ownerName && l.Speaker != selfName {
+			continue
+		}
+		if l.Plain != `` {
+			l.Text, l.Plain = l.Plain, ``
+		}
+		out = append(out, l)
+	}
+	return out
+}
+
+// relaySafeStimuli is relaySafeLines for what prompted the call: a look at
+// another player keeps how they are but not their description.
+func relaySafeStimuli(stims []stimulus) []stimulus {
+	out := make([]stimulus, len(stims))
+	for i, s := range stims {
+		if s.Plain != `` {
+			s.Text, s.Plain = s.Plain, ``
+		}
+		out[i] = s
+	}
+	return out
 }
 
 func formatStimulus(s stimulus, ownerName string) string {

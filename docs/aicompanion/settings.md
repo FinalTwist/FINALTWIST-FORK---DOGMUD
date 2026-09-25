@@ -288,6 +288,11 @@ What changes on the owner's own key:
   `BreakerSeconds`), never the global one.
 - Her private reflection at logout cannot reach a closed browser, so it
   runs at the owner's next login once their key is ready.
+- The owner can read every prompt their browser carries, so those prompts
+  leave out what belongs to other players: speech she only overheard from
+  someone else (`RecordBystanderSpeech`), and what another player looks like
+  or carries (a closer look at them tells how they are and what kind they
+  are, nothing more). Their names, and what they did or said to her, stay.
 
 `companion-ai` tells a player which tier is answering; `aicompanion status`
 shows it per companion (`tier=relay|server|none`) for an admin.
@@ -301,6 +306,30 @@ shows it per companion (`tier=relay|server|none`) for an admin.
    The Go server tells the relay apart from the game by `Host` alone.
 3. `RelayOrigin: "https://keys.example.org"` and `PlayerKeys: true` in the
    production config.
+4. HSTS on both hosts in the proxy (`Strict-Transport-Security:
+   max-age=31536000; includeSubDomains`, a `header` line in each Caddy site
+   block). The relay refuses to run outside https, but a player's first
+   visit over plain http can be intercepted before any redirect; HSTS
+   closes that for every later visit.
+
+### What the relay protects, and what it does not
+
+The key lives only on the relay origin: typed in the relay's own window,
+kept in the relay frame's memory (or, when remembered, encrypted in the
+relay origin's storage), and sent only to the endpoint the player stored.
+No script on the game page can READ it: the browser keeps another origin's
+memory and storage out of reach, and the relay answers only with the
+provider's reply, never a header.
+
+A script running on the game page (an injected script, a hostile browser
+extension, a cross-site scripting bug in the web client) CAN still SPEND
+the key: it can post requests to the relay frame exactly as the game page
+does, and the relay cannot tell them apart. What bounds that is the relay's
+own cap (at most 2 requests in flight and 30 a minute, whatever asks) and
+the spending cap the setup text tells every player to set with their
+provider. That is the boundary to state to players: the key cannot be
+stolen from the game page, but while their game page is compromised it can
+be used, within those caps, until they close it or forget the key.
 
 Three operator traps:
 

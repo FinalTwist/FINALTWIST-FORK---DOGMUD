@@ -223,6 +223,11 @@ func (m *AICompanionModule) launchReflection(d *deferredReflection) {
 	if rt.kind == routeNone || call.Model == `` {
 		return
 	}
+	if rt.kind == routeRelay {
+		// Her owner reads this prompt in their browser (relaySafeLines).
+		in.Lines = relaySafeLines(in.Lines, in.OwnerName, in.Profile.Name)
+		call.Messages = buildReflectionMessages(in)
+	}
 	reserved := worstCaseTokens(estimateTokens(call.Messages), ts.MaxTokens, 0, call.Retry)
 	if !m.reserveRoute(rt, mind.OwnerUserId, 0, reserved) {
 		return // the day's thinking is spent; the session simply goes unrecorded

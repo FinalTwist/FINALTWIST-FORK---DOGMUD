@@ -137,6 +137,7 @@ func stillThere(t *thing, mob *mobs.Mob, room *rooms.Room) bool {
 type actionOutcome struct {
 	Issued    bool   // a mob command was queued, or a trip begun
 	Perceived string // result text of a perception verb
+	Plain     string // Perceived without another player's looks or gear, when it had them
 	Refused   string // why the proposal was not acted on (for the trace and memory)
 	Pending   *pendingAction
 }
@@ -610,7 +611,7 @@ func (m *AICompanionModule) issue(c *controller, mob *mobs.Mob, verb string, com
 // lookAt answers a look with what a player looking at the same thing would
 // read, and shows the look to the room as a small emote.
 func (m *AICompanionModule) lookAt(c *controller, mob *mobs.Mob, room *rooms.Room, t *thing, delay float64, visible bool) actionOutcome {
-	var desc, emote string
+	var desc, emote, plainDesc string
 	switch t.Kind {
 	case `item`, `carried`, `worn`:
 		item := t.Item
@@ -628,6 +629,9 @@ func (m *AICompanionModule) lookAt(c *controller, mob *mobs.Mob, room *rooms.Roo
 	case `player`:
 		if u := users.GetByUserId(t.UserId); u != nil && u.Character != nil {
 			desc = plainText(u.Character.Description) + ` They look ` + healthWords(u.Character) + `.`
+			// Their description is theirs: a prompt her owner's browser
+			// carries keeps only how they are.
+			plainDesc = `They look ` + healthWords(u.Character) + `.`
 		}
 		emote = fmt.Sprintf(`studies %s for a moment.`, t.Name)
 	case `corpse`:
@@ -675,8 +679,12 @@ func (m *AICompanionModule) lookAt(c *controller, mob *mobs.Mob, room *rooms.Roo
 	now := time.Now().Unix()
 	c.mind.recordInteraction(t.Key, `look_at`, true, now)
 	result := fmt.Sprintf(`You looked at %s: %s`, t.Name, desc)
-	c.mind.addLine(Line{Kind: `event`, Text: result}, m.cfg.WorkingMemoryLines)
-	return actionOutcome{Perceived: result}
+	plain := ``
+	if plainDesc != `` {
+		plain = fmt.Sprintf(`You looked at %s: %s`, t.Name, plainDesc)
+	}
+	c.mind.addLine(Line{Kind: `event`, Text: result, Plain: plain}, m.cfg.WorkingMemoryLines)
+	return actionOutcome{Perceived: result, Plain: plain}
 }
 
 // considerWords mirrors actions.predictionFor without its markup.

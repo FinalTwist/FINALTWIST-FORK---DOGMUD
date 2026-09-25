@@ -236,3 +236,30 @@ func TestCombatTargetsFollowTheOwnersRules(t *testing.T) {
 		t.Fatal("choosing a wolf is")
 	}
 }
+
+// A special move lands on whoever she is already fighting. A player in a
+// fight may use one on their foe whoever it is (actions.StageMeleeTarget
+// stages no target checks for a player in combat), so she may use one on a
+// foe that is fighting HER, even one her owner could not have picked a fight
+// with. A foe she is fighting that is not fighting her is still held to her
+// owner's rules, and her owner never is a fair target.
+func TestSpecialMoveAtAFoeAlreadyFightingHer(t *testing.T) {
+	owner, _, room, her := harmWorld(t, configs.PVPDisabled)
+	immune := harmMob(t, room, 300, `a caravan guard`)
+	immune.PlayerAttackImmune = true
+
+	her.Character.SetAggro(0, immune.InstanceId, characters.DefaultAttack)
+	if mayStrikeCurrent(owner, room, her) {
+		t.Fatal("control: a protected creature that is not fighting her is refused")
+	}
+	immune.Character.SetAggro(0, her.InstanceId, characters.DefaultAttack)
+	if !mayStrikeCurrent(owner, room, her) {
+		t.Fatal("a protected creature fighting her may be met with a move, as a player in a fight may")
+	}
+
+	owner.Character.SetAggro(0, her.InstanceId, characters.DefaultAttack)
+	her.Character.SetAggro(owner.UserId, 0, characters.DefaultAttack)
+	if mayStrikeCurrent(owner, room, her) {
+		t.Fatal("she never turns a move on her owner, even one fighting her")
+	}
+}

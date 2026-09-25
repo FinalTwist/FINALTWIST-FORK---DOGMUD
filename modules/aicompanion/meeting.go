@@ -291,6 +291,20 @@ func (m *AICompanionModule) consented(ownerUserId int) bool {
 	return rec != nil && rec.Consented
 }
 
+// mayRemember reports whether a deed with a person's name in it (a gift,
+// an attack, healing, her owner calling her, a fight, a fall, a party) may
+// be written into her mind. Her mind is what gets sent, so, as with speech,
+// nothing naming anyone is written down before her owner has agreed (or
+// while they have turned it off): writing first and gating the send later
+// would send it the moment they agreed. She still reacts to it: the
+// stimulus is queued and dispatch answers with her set lines, and the
+// rules that are her owner's own relationship (a gift's warmth, an attack's
+// cost) still apply. Events that name nobody ("You reached the mill") are
+// written as before.
+func (m *AICompanionModule) mayRemember(c *controller) bool {
+	return m.consented(c.ownerUserId)
+}
+
 // consentLedger is the model door's own copy of who has agreed. The bond
 // records live under the mud lock, and requests leave from goroutines that
 // do not hold it, so the door in send reads this instead. It is rebuilt

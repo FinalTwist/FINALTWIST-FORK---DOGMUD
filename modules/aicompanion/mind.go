@@ -119,6 +119,10 @@ type Line struct {
 	Kind    string `yaml:"kind"` // said, asked, emoted, event
 	ToMe    bool   `yaml:"to_me,omitempty"`
 	Text    string `yaml:"text"`
+	// Plain is the line without what another player looks like or
+	// carries, for a prompt that goes through her owner's own browser
+	// (relaySafeLines). Empty when Text carries nothing of the kind.
+	Plain string `yaml:"plain,omitempty"`
 }
 
 // Note is schema 1's long-term memory. Kept only for migration.
@@ -353,6 +357,7 @@ func capRunes(s string) string {
 // event) get a smaller allowance of their own.
 func (m *Mind) addLine(l Line, max int) {
 	l.Text = capRunes(l.Text)
+	l.Plain = capRunes(l.Plain)
 	if l.Text == `` {
 		return
 	}

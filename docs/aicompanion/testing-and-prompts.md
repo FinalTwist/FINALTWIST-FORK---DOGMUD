@@ -549,15 +549,23 @@ AES-GCM) in the frame's own storage, under their account name.
 What goes to the player's browser for each call, as GMCP
 `Companion.Relay.Request`: a random id and the chat completions body, the
 same JSON the server would post to OpenAI (the prompt above, the schema,
-the tools). What comes back, as `Companion.Relay.Response`: the id, the
+the tools), less what belongs to other players. The owner can read every
+body their browser carries, so on this route the prompt, the reflection
+and a core memory leave out speech she only overheard from someone other
+than her owner, and a look at another player (her own `look_at`, or a
+`look_closer` answer) keeps how they are and what kind they are but not
+their description or gear. Their names, and what they did or said to her,
+stay. What comes back, as `Companion.Relay.Response`: the id, the
 provider's status and its raw body.
 
 What never goes to the browser: the server's key, any endpoint URL, any
 header. What never comes to the server: the player's key, their endpoint,
 their passphrase. The relay page adds the key and posts only to the
 endpoint the player stored; the server never names a URL. A reply that
-looks as though it carries a key (`sk-`, `Bearer `, an `Authorization`
-header) is dropped unread and the call counts as failed.
+looks as though it carries a key (an `sk-` key, "Authorization: Bearer",
+or "Bearer" followed by a key or a token-length string) is dropped unread
+and the call fails for that turn, without counting against the owner's
+breaker, since the guard refused it, not the provider.
 
 The consent question still gates every call: a player who has not said
 "i agree" sends nothing through their own key either.

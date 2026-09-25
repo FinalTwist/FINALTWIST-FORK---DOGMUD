@@ -265,6 +265,7 @@ func (m *AICompanionModule) onLoad() {
 	companionai.SetIdleHandler(m.handleIdle)
 	companionai.SetHolder(m.holdFollow)
 	companionai.SetBondedCheck(m.isBonded)
+	companionai.SetDrivesCheck(m.drivesBonded)
 	// Relay messages arrive on connection goroutines. onRelayInbound
 	// touches only the relay tables, which have their own locks, and
 	// ignores everything while player keys are not on offer.
@@ -500,6 +501,19 @@ func (m *AICompanionModule) isBonded(mobInstanceId int) bool {
 		return false
 	}
 	return m.controllerForInstance(mobInstanceId) != nil
+}
+
+// drivesBonded reports whether this module drives the bonded companions of
+// a mob template: it is on and has their profile, so sync takes each one
+// up for its owner (bondedCompanionOf). The engine's dismiss asks it, per
+// companion, before refusing; a bonded companion with no profile here
+// would otherwise be one its owner could neither dismiss nor talk to.
+func (m *AICompanionModule) drivesBonded(mobId int) bool {
+	if !m.cfg.Enabled {
+		return false
+	}
+	_, ok := m.byMob[mobId]
+	return ok
 }
 
 // registerCommands puts the player and companion commands into the live

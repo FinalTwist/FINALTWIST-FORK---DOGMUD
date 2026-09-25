@@ -33,8 +33,8 @@ type CastResult struct {
 	NoTarget       bool // required target could not be resolved
 
 	// RefusalExplained is set alongside NoTarget when the refusal has ALREADY
-	// been narrated to the actor with a specific reason -- a protected NPC, or a
-	// player target for a mob-only spell.
+	// been narrated to the actor with a specific reason -- a protected NPC, a
+	// player target for a mob-only spell, or a person PvP rules protect here.
 	//
 	// Without it the caller adds its generic "You need a target to cast that
 	// spell", which flatly contradicts the line before it: the player DID name a
@@ -157,7 +157,7 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 					if casterUser != nil && targetUser != nil {
 						if pvpErr := room.CanPvp(casterUser, targetUser); pvpErr != nil {
 							actor.SendText(messaging.CategorySystem, pvpErr.Error())
-							return CastResult{SpellInfo: spellInfo, NoTarget: true}
+							return CastResult{SpellInfo: spellInfo, NoTarget: true, RefusalExplained: true}
 						}
 					}
 				}
@@ -217,7 +217,7 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 					if casterUser != nil && targetUser != nil {
 						if pvpErr := room.CanPvp(casterUser, targetUser); pvpErr != nil {
 							actor.SendText(messaging.CategorySystem, pvpErr.Error())
-							return CastResult{SpellInfo: spellInfo, NoTarget: true}
+							return CastResult{SpellInfo: spellInfo, NoTarget: true, RefusalExplained: true}
 						}
 					}
 				}

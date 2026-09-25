@@ -28,17 +28,43 @@ func seedBondedDismisser(t *testing.T) (*characters.Character, func() bool, func
 	return u.Character, dismiss, cleanup
 }
 
-// While the aicompanion module drives bonded companions, parting ways is its
-// business (companion-part), and dismiss refuses.
+// drives installs the module's per-companion check: it drives exactly the
+// companions of these mob templates.
+func drives(t *testing.T, mobIds ...int) {
+	t.Helper()
+	companionai.SetDrivesCheck(func(mobId int) bool {
+		for _, id := range mobIds {
+			if id == mobId {
+				return true
+			}
+		}
+		return false
+	})
+	t.Cleanup(func() { companionai.SetDrivesCheck(nil) })
+}
+
+// While the aicompanion module drives this bonded companion, parting ways
+// is its business (companion-part), and dismiss refuses.
 func TestDismiss_BondedCompanionRefusedWhileDriven(t *testing.T) {
 	_, dismiss, cleanup := seedBondedDismisser(t)
 	defer cleanup()
 
-	companionai.SetBondedCheck(func(int) bool { return true })
-	defer companionai.SetBondedCheck(nil)
-
+	drives(t, 9902)
 	if dismiss() {
 		t.Fatal("a driven bonded companion must not be dismissed by command")
+	}
+}
+
+// With the module on but not driving THIS companion (its profile is not
+// loaded, so nothing will ever take it up), dismiss is how the owner parts
+// with it: the refusal is per companion, not for the module as a whole.
+func TestDismiss_BondedCompanionNobodyDrivesPartsWhileTheModuleIsOn(t *testing.T) {
+	_, dismiss, cleanup := seedBondedDismisser(t)
+	defer cleanup()
+
+	drives(t, 9800) // some other companion's profile, not this one's
+	if !dismiss() {
+		t.Fatal("a bonded companion the module does not drive must be dismissable")
 	}
 }
 
@@ -50,7 +76,7 @@ func TestDismiss_UndrivenBondedCompanionPartsPeacefully(t *testing.T) {
 	ch, dismiss, cleanup := seedBondedDismisser(t)
 	defer cleanup()
 
-	if companionai.DrivesBonded() {
+	if companionai.DrivesBonded(9902) {
 		t.Fatal("fixture: nothing may drive bonded companions here")
 	}
 	if !dismiss() {

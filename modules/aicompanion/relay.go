@@ -179,7 +179,11 @@ func (p *pendingRelays) abandon(owner int) {
 // keyShaped matches what an API key or an auth header looks like. A reply
 // that contains one is a bug somewhere (the relay echoing its headers, or a
 // provider echoing the request), and is dropped rather than parsed or logged.
-var keyShaped = regexp.MustCompile(`(?i)(\bsk-[a-z0-9_-]{8,}|authorization\s*:|\bbearer\s+[a-z0-9._-]{8,})`)
+// "Bearer" and "authorization" alone are ordinary words a companion may say
+// (a standard-bearer, an authorization from the captain), so they count only
+// as an auth header would carry them: "authorization: bearer", or "bearer"
+// followed by an sk- key or a token-length run of key characters.
+var keyShaped = regexp.MustCompile(`(?i)(\bsk-[a-z0-9_-]{8,}|authorization\s*:\s*bearer|\bbearer\s+(sk-|[a-z0-9._-]{20,}))`)
 
 func looksLikeAKey(b []byte) bool { return keyShaped.Match(b) }
 

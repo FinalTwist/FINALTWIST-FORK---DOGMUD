@@ -39,7 +39,8 @@ func AskNpc(ownerUserId int, mobInstanceId int, text string, authorized bool) bo
 
 func SetBondedCheck(f BondedFunc)
 func IsBondedCompanion(mobInstanceId int) bool
-func DrivesBonded() bool
+func DrivesBonded(mobId int) bool
+func SetDrivesCheck(f DrivesFunc)
 
 func SetHolder(f HoldFunc)
 func HoldPosition(userId int, mobInstanceId int) bool
@@ -85,10 +86,18 @@ func RelayOrigin() string
   The aicompanion module installs `holdFollow`, which holds only the bonded
   companion it drives (its owner sneaking, or it walking in on foot a
   moment later); every other companion of the same owner follows as before.
-- `DrivesBonded` is called by `internal/usercommands/dismiss.go`. It is true
-  only while a bonded check is installed, which the aicompanion module does
-  only when switched on; `dismiss` refuses a bonded companion while it is,
-  and lets the owner part with one peacefully while it is not.
+- `DrivesBonded(mobId)` is called by `internal/usercommands/dismiss.go`
+  with the companion's mob template id. It is true only while a drives
+  check is installed (`SetDrivesCheck`, which the aicompanion module does
+  only when switched on) and that check says it drives this companion (it
+  has the companion's profile). `dismiss` refuses a bonded companion that
+  is driven, and lets the owner part with one peacefully that is not. It
+  asks by template rather than live instance so a fallen companion, or one
+  not yet taken up at login, is still driven.
+- `IsBondedCompanion` is also asked by `internal/hooks/mob_area_harm.go`:
+  a bonded companion's area harm spell, when it resolves, spares whatever
+  her owner (`GetCharmedUserId`) could not harm, by the engine's own
+  `mobs.CheckPlayerHarm`, `(*rooms.Room).CanPvp` and party check.
 
 - **The relay seams** carry a companion's model request to the owner's own
   browser and the provider's reply back, for a player running their

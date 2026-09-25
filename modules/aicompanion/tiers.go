@@ -230,10 +230,12 @@ func (m *AICompanionModule) routeResult(r route, ownerId int, err error, now tim
 		m.breakerResult(err, now)
 		return
 	}
-	if m.relays == nil || errors.Is(err, errNoConsent) || errors.Is(err, errRelayGone) || errors.Is(err, context.Canceled) {
+	if m.relays == nil || errors.Is(err, errNoConsent) || errors.Is(err, errRelayGone) ||
+		errors.Is(err, errRelayKeyShaped) || errors.Is(err, context.Canceled) {
 		// The door refused a request that never left, the owner's page
-		// went away, or the module gave up on the answer: none of them is
-		// the provider failing.
+		// went away, the guard refused a reply for looking like a key, or
+		// the module gave up on the answer: none of them is the provider
+		// failing.
 		return
 	}
 	if err == nil {

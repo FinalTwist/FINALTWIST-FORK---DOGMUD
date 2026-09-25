@@ -126,15 +126,7 @@ func (m *AICompanionModule) sync(round uint64) {
 			c.agenda = c.mind.pickAgenda()
 			c.mind.SessionCount++
 			if c.mind.FirstMetUnix == 0 {
-				c.mind.FirstMetUnix = now.Unix()
-				c.mind.addMemory(Memory{
-					Kind: `event`, Text: `I started travelling with ` + u.Character.Name + `.`,
-					Importance: 7, Emotion: `curiosity`, People: []string{u.Character.Name},
-				}, m.cfg.MaxMemories)
-				if m.consented(u.UserId) {
-					c.push(stimulus{Kind: `first_meeting`, Text: m.meetingPlace[u.UserId], FromOwner: true})
-					delete(m.meetingPlace, u.UserId)
-				}
+				m.firstMet(c, u, now.Unix())
 			} else if m.cfg.GreetOnLogin {
 				elapsed := int64(0)
 				if c.mind.LastSeenUnix > 0 {
@@ -200,6 +192,23 @@ func (m *AICompanionModule) sync(round uint64) {
 	}
 }
 
+// firstMet is the session in which she first travels with her owner: the
+// date is kept whatever they have agreed to, the memory (their name) only
+// once they have agreed, and she introduces herself in her own words only
+// then; agreeing later queues that introduction (answerConsent).
+func (m *AICompanionModule) firstMet(c *controller, u *users.UserRecord, now int64) {
+	c.mind.FirstMetUnix = now
+	if !m.mayRemember(c) {
+		return
+	}
+	c.mind.addMemory(Memory{
+		Kind: `event`, Text: `I started travelling with ` + u.Character.Name + `.`,
+		Importance: 7, Emotion: `curiosity`, People: []string{u.Character.Name},
+	}, m.cfg.MaxMemories)
+	c.push(stimulus{Kind: `first_meeting`, Text: m.meetingPlace[u.UserId], FromOwner: true})
+	delete(m.meetingPlace, u.UserId)
+}
+
 // handleFallen notices a fall and brings the companion back once it has
 // recovered.
 func (m *AICompanionModule) handleFallen(c *controller, u *users.UserRecord, p *Profile, round uint64, now time.Time) {
@@ -229,10 +238,12 @@ func (m *AICompanionModule) handleFallen(c *controller, u *users.UserRecord, p *
 		c.mind.FallenUntilUnix = now.Unix() + int64(m.cfg.RecoveryRounds)*4
 		c.mind.LastDeathUnix = now.Unix()
 		c.mind.addLine(Line{Kind: `event`, Text: `You were beaten unconscious in a fight.`}, m.cfg.WorkingMemoryLines)
-		c.mind.addMemory(Memory{
-			Kind: `death`, Text: `I was beaten unconscious in a fight while travelling with ` + u.Character.Name + `.`,
-			Importance: 8, Emotion: `fear`, People: []string{u.Character.Name},
-		}, m.cfg.MaxMemories)
+		if m.mayRemember(c) {
+			c.mind.addMemory(Memory{
+				Kind: `death`, Text: `I was beaten unconscious in a fight while travelling with ` + u.Character.Name + `.`,
+				Importance: 8, Emotion: `fear`, People: []string{u.Character.Name},
+			}, m.cfg.MaxMemories)
+		}
 		c.dirty = true
 	}
 	if c.fellRound > 0 && round-c.fellRound >= uint64(m.cfg.RecoveryRounds) {
@@ -516,7 +527,6 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		toolRounds = m.cfg.ToolRounds
 	}
 	ts := m.settingsFor(tier, toolRounds > 0)
-	messages := buildMessages(in)
 
 	call := modelCall{
 		BaseURL:     m.cfg.BaseURL,
@@ -525,7 +535,6 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		Timeout:     ts.Timeout,
 		MaxTokens:   ts.MaxTokens,
 		Temperature: m.cfg.Temperature,
-		Messages:    messages,
 		SchemaName:  `companion_decision`,
 		Schema:      decisionSchema(),
 		Effort:      ts.Effort,
@@ -534,6 +543,14 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	}
 	m.applyRoute(&call)
 	rt := call.Route
+	// Through her owner's own browser the owner can read the whole prompt,
+	// so it carries nothing another player did not show or say to them.
+	if rt.kind == routeRelay {
+		in.Lines = relaySafeLines(in.Lines, in.OwnerName, c.profile.Name)
+		in.Stimuli = relaySafeStimuli(in.Stimuli)
+	}
+	messages := buildMessages(in)
+	call.Messages = messages
 	if rt.kind == routeNone || (asker > 0 && m.strangersOffOn(c.ownerUserId, rt)) {
 		// Her owner's relay went away since modelReadyFor, and there is no
 		// server key to cover: nothing to call. Or the relay came up since
@@ -774,7 +791,7 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 	// A look or a size-up gets one follow-up, so the companion can react to
 	// what it learned. Never a second, so it cannot chain looks forever.
 	if outcome.Perceived != `` && !isFollowUp(stims) {
-		c.push(stimulus{Kind: `looked`, Text: outcome.Perceived, Chain: 1})
+		c.push(stimulus{Kind: `looked`, Text: outcome.Perceived, Plain: outcome.Plain, Chain: 1})
 	}
 
 	m.applyImpression(c, sc, d.Impression, now)
@@ -1154,8 +1171,10 @@ func (m *AICompanionModule) watchParty(c *controller, u *users.UserRecord) {
 	if len(names) > 0 {
 		text = u.Character.Name + ` is now travelling in a group with ` + strings.Join(names, `, `) + `.`
 	}
-	c.mind.addLine(Line{Kind: `event`, Text: text}, m.cfg.WorkingMemoryLines)
-	c.dirty = true
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Kind: `event`, Text: text}, m.cfg.WorkingMemoryLines)
+		c.dirty = true
+	}
 	c.push(stimulus{Kind: `party`, Text: text, FromOwner: true})
 }
 
@@ -1277,7 +1296,7 @@ func (m *AICompanionModule) callWithTools(call modelCall, ownerId int, seq uint6
 		func() {
 			util.LockMud()
 			defer util.UnlockMud()
-			answers, ok = m.answerTools(ownerId, seq, rev, sc, res.ToolCalls)
+			answers, ok = m.answerTools(ownerId, seq, rev, sc, res.ToolCalls, call.Route.kind == routeRelay)
 		}()
 		if !ok {
 			res.Err = fmt.Errorf(`companion changed while the model was asking`)

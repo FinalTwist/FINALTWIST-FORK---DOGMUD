@@ -1749,6 +1749,18 @@ still returns the materials. Subtracting what the target already reserves is
 what makes re-enchanting work, since the old enchantment is replaced rather
 than stacked.
 
+## Mob Area Harm Targets
+
+`resolveMobSpell` takes the targets of a mob's area harm spell from
+`mobAreaHarmTargets` (`mob_area_harm.go`), read when the spell resolves:
+every creature but the caster and non-combatants, every person, and for a
+charmed caster not its owner or its owner's other companions. A caster
+that `companionai.IsBondedCompanion` says is bonded also spares whatever its
+owner (`GetCharmedUserId`) could not harm: a creature `mobs.CheckPlayerHarm`
+blocks, and a person `(*rooms.Room).CanPvp` refuses to the owner or who is
+in the owner's party. With the aicompanion module off nothing is bonded and
+nothing changes.
+
 ## Spell Duration System
 
 `calcSpellDuration` lives here, in `spell_resolution.go`, not in

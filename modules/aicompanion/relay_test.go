@@ -206,7 +206,7 @@ func TestKeyShapedRepliesAreRefused(t *testing.T) {
 		`{"x":"sk-proj-abc123def456ghi789"}`,
 		`{"x":"sk-or-v1-0123456789abcdef"}`,
 		`{"echo":"Authorization: Bearer abc"}`,
-		`{"echo":"bearer abcdefghijklmnop"}`,
+		`{"echo":"bearer abcdefghijklmnopqrst"}`,
 	} {
 		if !looksLikeAKey([]byte(body)) {
 			t.Errorf("must refuse %s", body)
@@ -214,6 +214,46 @@ func TestKeyShapedRepliesAreRefused(t *testing.T) {
 	}
 	if looksLikeAKey([]byte(`{"choices":[{"message":{"content":"{\"speech\":[{\"kind\":\"say\",\"text\":\"I ask for nothing.\"}]}"}}]}`)) {
 		t.Error("an ordinary reply must pass")
+	}
+	// Words a companion may well say: a bearer of something, an
+	// authorization she was given. Only a key or an auth header is refused.
+	for _, body := range []string{
+		`{"text":"The standard-bearer carrying the banner fell at the gate."}`,
+		`{"text":"Bearer of the realm's seal, stand aside."}`,
+		`{"text":"Authorization: the captain gave it himself."}`,
+	} {
+		if looksLikeAKey([]byte(body)) {
+			t.Errorf("ordinary words must pass: %s", body)
+		}
+	}
+	for _, body := range []string{
+		`{"echo":"Bearer sk-abc"}`,
+		`{"echo":"bearer abcdefghijklmnopqrstuvwx"}`,
+		`{"echo":"Authorization:Bearer x"}`,
+	} {
+		if !looksLikeAKey([]byte(body)) {
+			t.Errorf("must refuse %s", body)
+		}
+	}
+}
+
+// A key-shaped reply is the guard refusing what came back, not the
+// provider failing: it neither trips the owner's breaker nor tells them
+// their provider did not answer.
+func TestKeyShapedReplyIsNotABreakerFailure(t *testing.T) {
+	m := relayModule(t)
+	m.relays.ready(5, `m`)
+	var told []string
+	m.tell = func(_ int, text string) { told = append(told, text) }
+	now := time.Now()
+	for i := 0; i < 5; i++ {
+		m.routeResult(route{kind: routeRelay, model: `m`}, 5, errRelayKeyShaped, now)
+	}
+	if m.route(5).kind != routeRelay {
+		t.Fatal("key-shaped replies must not open the owner's breaker")
+	}
+	if len(told) != 0 {
+		t.Fatalf("a key-shaped reply is not the provider failing: %q", told)
 	}
 }
 

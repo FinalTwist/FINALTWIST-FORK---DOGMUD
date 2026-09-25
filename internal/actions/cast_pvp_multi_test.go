@@ -50,6 +50,9 @@ func TestInitiateCast_HarmMulti_NamedPlayerHonoursPvp(t *testing.T) {
 		require.Empty(t, result.TargetUserIds, "%s", shape.spell)
 		require.Contains(t, strings.Join(actor.sent, "\n"), "PVP is disabled.",
 			"%s: the caster is told why, in the same words", shape.spell)
+		// Told why, so the caller must not add "You need a target to
+		// cast that spell" after it: the player named one.
+		require.True(t, result.RefusalExplained, "%s: the refusal was explained", shape.spell)
 	}
 }
 

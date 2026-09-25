@@ -77,13 +77,30 @@ func IsBondedCompanion(mobInstanceId int) bool {
 	return bondedFunc(mobInstanceId)
 }
 
-// DrivesBonded reports whether anything drives bonded companions: the
-// aicompanion module installs its bonded check only while it is switched
-// on. With nothing installed, a bonded companion left over from when it was
-// on is an ordinary companion nobody drives, and the engine lets its owner
-// dismiss it rather than leave them stuck with it.
-func DrivesBonded() bool {
-	return bondedFunc != nil
+// DrivesFunc reports whether the bonded companions of a mob template are
+// driven: the module is on and has that companion's profile.
+type DrivesFunc func(mobId int) bool
+
+var drivesFunc DrivesFunc
+
+// SetDrivesCheck installs the per-companion drives check. Called by the
+// aicompanion module, only while it is switched on.
+func SetDrivesCheck(f DrivesFunc) {
+	drivesFunc = f
+}
+
+// DrivesBonded reports whether anything drives a bonded companion of this
+// mob template (CompanionInfo.MobId). With nothing installed (the module
+// off), or with no profile for that companion, a bonded companion left
+// over is an ordinary companion nobody drives, and the engine lets its
+// owner dismiss it rather than leave them stuck with it. It asks by
+// template, not by live instance, so a companion that is fallen or not yet
+// taken up at login is still driven.
+func DrivesBonded(mobId int) bool {
+	if drivesFunc == nil {
+		return false
+	}
+	return drivesFunc(mobId)
 }
 
 // SetHolder installs the follow-hold handler. Called by the aicompanion

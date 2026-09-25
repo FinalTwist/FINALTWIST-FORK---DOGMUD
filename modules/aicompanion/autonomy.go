@@ -552,9 +552,11 @@ func (m *AICompanionModule) receiveGold(c *controller, mob *mobs.Mob, u *users.U
 	now := time.Now().Unix()
 	giver := speakerOf(u, mob)
 	fromOwner := u.UserId == c.ownerUserId
-	c.mind.addLine(Line{Speaker: giver, Kind: `event`, Text: giver + ` put some coin in your hand.`}, m.cfg.WorkingMemoryLines)
-	c.mind.addMemory(Memory{Unix: now, Kind: `gift`, Text: giver + ` gave me money.`,
-		Importance: 4, Emotion: `gratitude`, People: []string{giver}, PlaceId: mob.Character.RoomId}, m.cfg.MaxMemories)
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Speaker: giver, Kind: `event`, Text: giver + ` put some coin in your hand.`}, m.cfg.WorkingMemoryLines)
+		c.mind.addMemory(Memory{Unix: now, Kind: `gift`, Text: giver + ` gave me money.`,
+			Importance: 4, Emotion: `gratitude`, People: []string{giver}, PlaceId: mob.Character.RoomId}, m.cfg.MaxMemories)
+	}
 	if fromOwner && c.mind.ruleChangesSince(`gift`, now-86400) < 3 {
 		c.mind.applyOpinion(Opinion{Affection: 1}, `gift`, `rule`, `gave me money`, false)
 	}

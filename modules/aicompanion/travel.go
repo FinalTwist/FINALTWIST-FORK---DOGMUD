@@ -241,8 +241,10 @@ func (m *AICompanionModule) headBack(c *controller, mob *mobs.Mob, u *users.User
 	}
 	if reason := m.startTravel(c, mob, u.Character.RoomId, `return`, false); reason == `` {
 		c.lastErrand = ``
-		c.mind.addLine(Line{Kind: `event`, Text: `You started back toward ` + u.Character.Name + `.`}, m.cfg.WorkingMemoryLines)
-		c.dirty = true
+		if m.mayRemember(c) {
+			c.mind.addLine(Line{Kind: `event`, Text: `You started back toward ` + u.Character.Name + `.`}, m.cfg.WorkingMemoryLines)
+			c.dirty = true
+		}
 		return
 	}
 	// She could not work out a way back on her own. Try again each round:
@@ -252,9 +254,11 @@ func (m *AICompanionModule) headBack(c *controller, mob *mobs.Mob, u *users.User
 	// convenience.
 	if apart >= uint64(m.cfg.RescueRounds) && companionai.Rejoin(u.UserId) {
 		c.apartSince = 0
-		c.mind.addLine(Line{Kind: `event`, Text: `You were lost for a long while before you found ` + u.Character.Name + ` again.`},
-			m.cfg.WorkingMemoryLines)
-		c.dirty = true
+		if m.mayRemember(c) {
+			c.mind.addLine(Line{Kind: `event`, Text: `You were lost for a long while before you found ` + u.Character.Name + ` again.`},
+				m.cfg.WorkingMemoryLines)
+			c.dirty = true
+		}
 		mudlog.Info(`aicompanion`, `action`, `rescue`, `owner`, u.UserId, `roundsLost`, apart)
 	}
 }

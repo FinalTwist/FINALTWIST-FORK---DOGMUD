@@ -31,7 +31,12 @@ Roadmap and phase plan: `docs/aicompanion/`.
   per-companion halves (`hearSaid`, `seeEmote`, `hearAsked`) read the
   owner's literal "i agree"/"i decline" first, and before consent write
   nothing into the mind while still queueing the stimulus, so dispatch
-  answers with set lines. Anything a passer-by aims at her (speech to
+  answers with set lines. The same holds for every deed with a person's
+  name in it (`mayRemember`, meeting.go): a gift, gold, an attack,
+  healing, a witnessed crime, being called back, an errand interrupted,
+  a party change, the first meeting (`firstMet`), a fall, a fight's end,
+  her owner falling, the walk back; the stimulus is still queued and the
+  owner's own rules (a gift's warmth, an attack's cost) still apply. Anything a passer-by aims at her (speech to
   her, `ask`, an emote, a gift, healing) is heard and remembered as usual
   but queued only if `strangerMayAsk` passes (their daily allowance,
   then what passers-by together may spend of this owner's companion,
@@ -86,7 +91,9 @@ Roadmap and phase plan: `docs/aicompanion/`.
   check for a person) asked with her OWNER as the one acting. The party
   check is the module's own, from `attack`, `shoot` and the special moves:
   `actions/cast.go` makes none for a player target, so she is stricter
-  with spells than a player is.
+  with spells than a player is. An area harm spell is checked once more
+  when it resolves, by the engine (`internal/hooks/mob_area_harm.go`,
+  `mobAreaHarmTargets`), since the room may have changed while it folded.
 - **goals.go**: goals, checks against live state, restock goals, the
   session agenda, and the model's goal proposals.
 - **combat.go**: the fight from the companion's side: tracking, the
@@ -105,7 +112,10 @@ Roadmap and phase plan: `docs/aicompanion/`.
   `syncConsent` on every bond load and save).
 - **tools.go**: the read-only questions the model may ask the game before
   answering (look closer, size up, wares, recall, find a place), answered
-  under the mud lock from player-visible information only.
+  under the mud lock from player-visible information only. For a call
+  through her owner's own browser (`answerTools`' `relay`), a closer look
+  at another player is `describePerson` without `full`: how they are and
+  what kind, never their description or gear.
 - **models.go**: model tiers (fast, main, deep) and their routing, the
   circuit breaker, per-companion budgets, per-tier metrics, decision traces.
 - **tiers.go**: who pays for a call. `route` picks the owner's own key
@@ -179,8 +189,11 @@ Roadmap and phase plan: `docs/aicompanion/`.
   on `PlayerDespawn`) takes the relay down and fails pending calls at once
   (`errRelayGone`). Unsent, gone, timed-out (`errRelayTimeout`),
   key-shaped and oversized failures are never retried (`relayFinal`).
-  A relay that went away and a cancelled call are not the provider
-  failing: `routeResult` counts neither against the owner's breaker. The
+  A relay that went away, a key-shaped reply and a cancelled call are not
+  the provider failing: `routeResult` counts none of them against the
+  owner's breaker. `keyShaped` matches an `sk-` key, "authorization:
+  bearer", or "bearer" followed by `sk-` or a token-length run, not the
+  words alone (a standard-bearer is not a key). The
   first failure it does count in a relay session tells the owner once, in
   plain words (`noticeFallback`, `relayOwner.noticeSent`, reset by
   `ready`).
@@ -232,6 +245,13 @@ Roadmap and phase plan: `docs/aicompanion/`.
 - **prompt.go**: `buildMessages` and pure helpers (`isAddressed`,
   `humanizeElapsed`). Player text only ever appears quoted in the user
   message. Trust-gated backstory is withheld from the model until earned.
+  `relaySafeLines` and `relaySafeStimuli` are what a prompt carries when
+  the call goes through her owner's own browser, where the owner can read
+  it: speech she only overheard from someone other than her owner is left
+  out, and a look at another player uses its plain form (`Line.Plain`,
+  `stimulus.Plain`, set by `lookAt`). dispatch, the reflection launch and
+  `recordCore` build their messages after `applyRoute`, so they know the
+  route; a conversation summary carries only what was said to her.
 - **perception.go**: `describeSituation`, what the companion can currently
   perceive, as words (no numbers, no hidden creatures, no secret exits, no
   hidden containers, no container contents).
@@ -305,9 +325,13 @@ skills, health) is never in the mind file; it lives on the owner's
   owner, and a special move at her current foe all pass it (`mayStrike`,
   `mayStrikeCurrent`). The engine gates harm by a PLAYER actor and never
   a mob one, so without this a bonded companion could reach what her owner
-  may not. There is no self-defence exception, because a player gets none:
-  a protected creature that turns on her is fought by the engine's round,
-  not by anything she chooses. Ordinary companions are not gated; making
+  may not. There is no self-defence exception for what she starts, because
+  a player gets none: a protected creature that turns on her is fought by
+  the engine's round. The one allowance is the player's own: a player in a
+  fight may use a special move on their foe whoever it is
+  (`actions.StageMeleeTarget` stages no target checks in combat), so
+  `mayStrikeCurrent` allows a move at a foe that is fighting her
+  (`foeFightingHer`), never at her owner. Ordinary companions are not gated; making
   "a mob acting for a player is gated as that player" engine-wide is a
   separate call.
 - `refusesToFight` is personality only: shopkeepers and the profile's
@@ -420,10 +444,16 @@ skills, health) is never in the mind file; it lives on the owner's
 - **Switched off, the module leaves bonded records alone.** Login still
   fields a bonded companion from the owner's record (the engine's
   `respawnCompanions` does not filter by source type), and nothing drives
-  it. Because the bonded check (`companionai.SetBondedCheck`) is installed
-  only while the module is on, `companionai.DrivesBonded` is false and the
-  engine's `dismiss` lets the owner part with it peacefully. Nothing is
-  deleted at boot, so switching the module back on picks the bond up again.
+  it. The engine's `dismiss` asks `companionai.DrivesBonded(mobId)` for
+  that one companion, which is `drivesBonded` (on, and a profile for its
+  mob template) while the module is on and false while it is off, so the
+  owner can part with an undriven one peacefully. Nothing is deleted at
+  boot, so switching the module back on picks the bond up again. A
+  companion her owner DISMISSED while the module was off does not come
+  back when it is switched on: the bond record still says `Met`, which
+  stops `considerMeeting`, exactly as `companion-part` is for good while
+  it is on. There is no player path to a new companion after either; an
+  admin can `aicompanion grant` one.
 - **Mob commands split on `;`.** `cleanText` replaces it; never bypass it.
 - **All model text is escaped** with `util.EscapeAnsiTags` before it reaches
   a mob command.

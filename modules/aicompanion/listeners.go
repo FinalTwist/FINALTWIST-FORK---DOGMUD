@@ -257,11 +257,13 @@ func (m *AICompanionModule) onGiftAccepted(e events.Event) events.ListenerReturn
 	fromOwner := u.UserId == c.ownerUserId
 	now := time.Now().Unix()
 
-	c.mind.addLine(Line{Speaker: giver, Kind: `event`, Text: fmt.Sprintf(`%s gave you %s.`, giver, itemName)}, m.cfg.WorkingMemoryLines)
-	c.mind.addMemory(Memory{
-		Unix: now, Kind: `gift`, Text: fmt.Sprintf(`%s gave me %s.`, giver, itemName),
-		Importance: 5, Emotion: `gratitude`, People: []string{giver}, PlaceId: u.Character.RoomId,
-	}, m.cfg.MaxMemories)
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Speaker: giver, Kind: `event`, Text: fmt.Sprintf(`%s gave you %s.`, giver, itemName)}, m.cfg.WorkingMemoryLines)
+		c.mind.addMemory(Memory{
+			Unix: now, Kind: `gift`, Text: fmt.Sprintf(`%s gave me %s.`, giver, itemName),
+			Importance: 5, Emotion: `gratitude`, People: []string{giver}, PlaceId: u.Character.RoomId,
+		}, m.cfg.MaxMemories)
+	}
 
 	// A gift from the owner is something she keeps (F9.5).
 	if fromOwner {
@@ -344,15 +346,18 @@ func (m *AICompanionModule) onPlayerAttackedMob(e events.Event) events.ListenerR
 	attacker := speakerOf(u, mobs.GetInstance(c.instanceId))
 	fromOwner := u.UserId == c.ownerUserId
 
-	c.mind.addLine(Line{Speaker: attacker, Kind: `event`, Text: fmt.Sprintf(`%s attacked you.`, attacker)}, m.cfg.WorkingMemoryLines)
-	importance := 6
-	if fromOwner {
-		importance = 9
+	remember := m.mayRemember(c)
+	if remember {
+		c.mind.addLine(Line{Speaker: attacker, Kind: `event`, Text: fmt.Sprintf(`%s attacked you.`, attacker)}, m.cfg.WorkingMemoryLines)
+		importance := 6
+		if fromOwner {
+			importance = 9
+		}
+		c.mind.addMemory(Memory{
+			Unix: now, Kind: `attack`, Text: fmt.Sprintf(`%s attacked me.`, attacker),
+			Importance: importance, Emotion: `anger`, People: []string{attacker}, PlaceId: u.Character.RoomId,
+		}, m.cfg.MaxMemories)
 	}
-	c.mind.addMemory(Memory{
-		Unix: now, Kind: `attack`, Text: fmt.Sprintf(`%s attacked me.`, attacker),
-		Importance: importance, Emotion: `anger`, People: []string{attacker}, PlaceId: u.Character.RoomId,
-	}, m.cfg.MaxMemories)
 
 	// Being attacked by the person you travel with costs trust and
 	// affection whatever the model says (F5.4); the model may add more
@@ -361,7 +366,7 @@ func (m *AICompanionModule) onPlayerAttackedMob(e events.Event) events.ListenerR
 		c.mind.applyOpinion(Opinion{Trust: -5, Affection: -5}, `attacked`, `rule`, `attacked me`, false)
 		// Being struck by the person you have come to love is one of the
 		// few things that changes what you are to each other.
-		if romanceRank(c.mind.Romance.Stage) > 0 {
+		if remember && romanceRank(c.mind.Romance.Stage) > 0 {
 			m.recordCore(c, attacker, c.mind.Romance.Stage, false)
 		}
 	}
@@ -446,8 +451,10 @@ func (m *AICompanionModule) interruptErrand(c *controller, ownerName string) {
 	}
 	dest := c.travel.DestName
 	c.travel = nil
-	c.mind.addLine(Line{Kind: `event`, Text: `You stopped on your way to ` + dest + ` because ` + ownerName + ` spoke to you.`}, m.cfg.WorkingMemoryLines)
-	c.dirty = true
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Kind: `event`, Text: `You stopped on your way to ` + dest + ` because ` + ownerName + ` spoke to you.`}, m.cfg.WorkingMemoryLines)
+		c.dirty = true
+	}
 }
 
 // onHealed reacts to someone healing the companion with magic.
@@ -466,11 +473,13 @@ func (m *AICompanionModule) onHealed(e events.Event) events.ListenerReturn {
 	healer := speakerOf(u, mobs.GetInstance(c.instanceId))
 	fromOwner := u.UserId == c.ownerUserId
 
-	c.mind.addLine(Line{Speaker: healer, Kind: `event`, Text: fmt.Sprintf(`%s healed you.`, healer)}, m.cfg.WorkingMemoryLines)
-	c.mind.addMemory(Memory{
-		Unix: now, Kind: `event`, Text: fmt.Sprintf(`%s healed my wounds.`, healer),
-		Importance: 5, Emotion: `gratitude`, People: []string{healer}, PlaceId: u.Character.RoomId,
-	}, m.cfg.MaxMemories)
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Speaker: healer, Kind: `event`, Text: fmt.Sprintf(`%s healed you.`, healer)}, m.cfg.WorkingMemoryLines)
+		c.mind.addMemory(Memory{
+			Unix: now, Kind: `event`, Text: fmt.Sprintf(`%s healed my wounds.`, healer),
+			Importance: 5, Emotion: `gratitude`, People: []string{healer}, PlaceId: u.Character.RoomId,
+		}, m.cfg.MaxMemories)
+	}
 
 	// Being tended by the person you travel with earns a little trust and
 	// warmth whatever the model says, three times a day at most.
@@ -517,9 +526,11 @@ func (m *AICompanionModule) witnessAttack(userId int, mobInstanceId int) {
 	c.lastAttackBy[-mobInstanceId] = now
 
 	name := victim.Character.Name
-	c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` set about ` + name + `, who had done nothing.`}, m.cfg.WorkingMemoryLines)
-	c.mind.addMemory(Memory{Unix: now, Kind: `event`, Text: u.Character.Name + ` attacked ` + name + `, who had done nothing to anyone.`,
-		Importance: 8, Emotion: `disgust`, People: []string{u.Character.Name, name}, PlaceId: mob.Character.RoomId}, m.cfg.MaxMemories)
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` set about ` + name + `, who had done nothing.`}, m.cfg.WorkingMemoryLines)
+		c.mind.addMemory(Memory{Unix: now, Kind: `event`, Text: u.Character.Name + ` attacked ` + name + `, who had done nothing to anyone.`,
+			Importance: 8, Emotion: `disgust`, People: []string{u.Character.Name, name}, PlaceId: mob.Character.RoomId}, m.cfg.MaxMemories)
+	}
 	c.mind.applyOpinion(Opinion{Trust: -4, Respect: -5, Affection: -4}, `witnessed_crime`, `rule`, `set about `+name, false)
 	c.dirty = true
 	c.push(stimulus{Kind: `witnessed`, Speaker: u.Character.Name, Text: name, FromOwner: true})
@@ -594,13 +605,18 @@ func (m *AICompanionModule) calledBack(c *controller, mob *mobs.Mob, u *users.Us
 		return // already on her way
 	}
 	c.travel = nil
+	remember := m.mayRemember(c)
 	if reason := m.startTravel(c, mob, u.Character.RoomId, `return`, false); reason != `` {
-		c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` called you, and you could not find the way back.`},
-			m.cfg.WorkingMemoryLines)
-		c.dirty = true
+		if remember {
+			c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` called you, and you could not find the way back.`},
+				m.cfg.WorkingMemoryLines)
+			c.dirty = true
+		}
 		return
 	}
-	c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` called you by name; you started back.`},
-		m.cfg.WorkingMemoryLines)
-	c.dirty = true
+	if remember {
+		c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` called you by name; you started back.`},
+			m.cfg.WorkingMemoryLines)
+		c.dirty = true
+	}
 }
