@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -163,6 +164,8 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 		"PATH":    reqPath,
 		"CONFIG":  configs.GetConfig(),
 		"STATS":   GetStats(),
+		// COMPANION_RELAY_ORIGIN_JSON is a JS string literal, see relayOriginJSON.
+		"COMPANION_RELAY_ORIGIN_JSON": relayOriginJSON(),
 		"NAV": []WebNav{
 			{`Home`, `/`},
 			{`Who's Online`, `/online`},
@@ -660,4 +663,17 @@ func sendError(w http.ResponseWriter, r *http.Request, status int) {
 	if status == http.StatusNotFound {
 		fmt.Fprint(w, "custom 404")
 	}
+}
+
+// relayOriginJSON is the companion key relay's origin as a JSON string
+// literal ("" when no relay is offered), for the game page's script. The
+// page templates are text/template, which escapes nothing, so the value is
+// encoded here: json.Marshal escapes quotes, backslashes and < > &, so no
+// origin can end the string or the script element.
+func relayOriginJSON() string {
+	b, err := json.Marshal(companionai.RelayOrigin())
+	if err != nil {
+		return `""`
+	}
+	return string(b)
 }

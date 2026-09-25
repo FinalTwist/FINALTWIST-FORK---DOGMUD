@@ -118,6 +118,9 @@ The web system is built around Go's standard `net/http` package with several key
 {{.CONFIG}}   <!-- Game configuration -->
 {{.STATS}}    <!-- Server statistics -->
 {{.NAV}}      <!-- Navigation menu items -->
+{{.COMPANION_RELAY_ORIGIN_JSON}}  <!-- relayOriginJSON(): the companion key relay origin
+     as a JSON string literal ("" when none). Templates are text/template and escape
+     nothing, so it is JSON-encoded in Go and used UNQUOTED inside a script. -->
 
 <!-- Plugin-provided variables -->
 {{.PLUGIN_DATA}}  <!-- Custom data from plugins -->

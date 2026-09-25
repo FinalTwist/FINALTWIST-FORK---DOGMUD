@@ -238,9 +238,12 @@
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/hotinput.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/renderguard.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/gmcp.js"></script>
+    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/companion-relay-glue.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/item-icons.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/item-icon-map.js"></script>
     <script>window.ITEM_ICON_BASE = "{{ .CONFIG.FilePaths.WebCDNLocation }}/static/images/items";</script>
+    <!-- A JSON string literal encoded by the server (web.go relayOriginJSON), so no quotes here. -->
+    <script>window.COMPANION_RELAY_ORIGIN = {{ .COMPANION_RELAY_ORIGIN_JSON }};</script>
 </head>
 <body onLoad="init(); return false;">
 
@@ -271,7 +274,8 @@
         <span class="sess-conn" id="sess-conn">● Connected</span>
         <span class="sess-spacer"></span>
         <button type="button" id="menu-icon" onclick="toggleMenu()" title="Toggle sound" aria-label="Toggle sound">🔊</button>
-        <button class="brass" id="btn-reset-layout" onclick="window.Dashboard && Dashboard.resetLayout && Dashboard.resetLayout()">Reset layout</button>
+        <button type="button" class="brass" id="btn-companion-key" style="display:none" title="Run your companion on your own model key">Companion key</button>
+        <button class="brass" id="btn-reset-layout"onclick="window.Dashboard && Dashboard.resetLayout && Dashboard.resetLayout()">Reset layout</button>
       </div>
 
       <!-- LEFT column: Map · Vitals · Scene -->
@@ -511,6 +515,9 @@
         //
         /////////////////////////////////////////////
         let GMCPStructs = {};
+        // The companion key relay glue (static/js/companion-relay-glue.js),
+        // booted in init(); null when the server offers no relay.
+        let companionGlue = null;
         let allRooms = {
             currentZoneKey: "",
             roomZones: {},
@@ -647,12 +654,30 @@
                 }
 
             },
+            // A companion's model request, for the owner's own key relay.
+            // handleGMCP stores each push wholesale (a dotted namespace is
+            // never merged) and calls this synchronously from the same
+            // onmessage, one websocket message per push, so each request is
+            // seen exactly once even when two arrive back to back. The body
+            // is the server's JSON object and is forwarded as it is.
+            "Companion.Relay.Request": function() {
+                var obj = ((GMCPStructs["Companion"] || {}).Relay || {}).Request;
+                if ( companionGlue ) {
+                    companionGlue.onGMCPRequest(obj);
+                }
+            },
             "Char":function() {
 
                 var obj = GMCPStructs["Char"];
 
                 if ( obj.Vitals ) {
                     GMCPUpdateHandlers['Char.Vitals']();
+                }
+
+                // The companion key relay binds a saved key to the ACCOUNT
+                // (Char.Info.account is the login name), not the character.
+                if ( companionGlue && obj.Info && typeof obj.Info.account === 'string' ) {
+                    companionGlue.hello(obj.Info.account);
                 }
 
                 // Populate session strip with character name when available
@@ -954,6 +979,9 @@
         // replaced and anything bound to it must be bound again.
         function writeQuestsHTML(host, html) {
             if (window.RenderGuard) { return RenderGuard.setHTML(host, html); }
+            // Safe: renderQuests puts every GMCP string through escapeHTML;
+            // the id is Number(), the width a clamped number, the rest
+            // constants (tools/jstest/webclient-html-escape.test.js).
             host.innerHTML = html;
             return true;
         }
@@ -2177,6 +2205,9 @@
             // Char.Conditions ships with Char.Vitals, so this ran every round
             // even though conditions almost never change between rounds
             // (finding 19). Identical markup is not rewritten.
+            // Safe: every GMCP string above (name, race, class, condition
+            // name, description, duration) went through escapeHTML; the rest
+            // is constant markup (tools/jstest/webclient-html-escape.test.js).
             if (window.RenderGuard) {
                 RenderGuard.setHTML(container, html);
             } else {
@@ -2184,13 +2215,17 @@
             }
         }
 
+        // escapeHTML makes a GMCP string safe as element text or as a quoted
+        // attribute value (either quote style). A non-string renders empty.
+        // Guarded by tools/jstest/webclient-html-escape.test.js.
         function escapeHTML(str) {
             if (typeof str !== 'string') return '';
             return str
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
 
         /////////////////////////////////////////////
@@ -2318,6 +2353,10 @@
                     socket.send(t);
                 }
                 reconnectAttempts = 0;
+
+                // A new connection is a new login: the relay glue waits for
+                // Char.Info to name the account again before it does anything.
+                if (companionGlue) { companionGlue.disconnected(); }
 
                 textInput.focus();
             };
@@ -2459,6 +2498,9 @@
             };
 
             socket.onclose = function(event) {
+                // Logged out: hide the companion key button and its form.
+                if (companionGlue) { companionGlue.disconnected(); }
+
                 // Copyover: the server dropped us for a live restart and we hold a
                 // reconnect token — auto-reconnect (give the new process time to
                 // reload the world) instead of waiting on a click. Announce once,
@@ -2782,6 +2824,19 @@
         };
 
         function init() {
+            // The companion key relay frame, when the server offers one.
+            // First, so nothing below that throws can leave it unbuilt.
+            try {
+                if (window.CompanionRelayGlue) {
+                    companionGlue = CompanionRelayGlue.boot(window, document, {
+                        sendGMCP: SendGMCP,
+                        button: document.getElementById('btn-companion-key')
+                    });
+                }
+            } catch (e) {
+                console.warn("Companion key relay unavailable:", e);
+            }
+
             console.log("%cterminal commands:", "font-weight:bold;");
             let longest = 0;
             for (let i in specialCommands) {

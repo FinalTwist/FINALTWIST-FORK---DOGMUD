@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -104,5 +105,41 @@ func TestServeTemplate_GamePageCSPFramesOnlyTheRelay(t *testing.T) {
 		if csp := serve(t, `mud.example.org`, target).Header.Get(`Content-Security-Policy`); csp != `` {
 			t.Fatalf("%s frames the game page from our own origin and must get no frame-src policy, got %q", target, csp)
 		}
+	}
+}
+
+// The game page learns the relay origin from a script literal. The web
+// server's templates are text/template, which escapes nothing, so the origin
+// is JSON-encoded in Go: a hostile value must stay one string literal and
+// never close the script element.
+func TestRelayOriginJSON_StaysOneScriptLiteral(t *testing.T) {
+	hostile := `https://x"</script><script>alert(1)//`
+	companionai.SetRelayPage(func(w http.ResponseWriter, r *http.Request) bool { return false },
+		func() string { return hostile })
+	t.Cleanup(func() { companionai.SetRelayPage(nil) })
+
+	got := relayOriginJSON()
+	if strings.ContainsAny(got, `<>`) || strings.Contains(got, `</script`) {
+		t.Fatalf("relayOriginJSON let markup through: %s", got)
+	}
+	var back string
+	if err := json.Unmarshal([]byte(got), &back); err != nil || back != hostile {
+		t.Fatalf("relayOriginJSON is not one JSON string holding the origin: %s (%v)", got, err)
+	}
+
+	withPublicHtml(t, map[string]string{
+		`webclient-pure.html`: `<script>window.COMPANION_RELAY_ORIGIN = {{ .COMPANION_RELAY_ORIGIN_JSON }};</script>`,
+	})
+	page := bodyOf(t, serve(t, `mud.example.org`, `/webclient-pure.html`))
+	if strings.Count(page, `</script>`) != 1 || strings.Contains(page, `<script>alert`) {
+		t.Fatalf("a hostile relay origin escaped its script literal: %s", page)
+	}
+}
+
+// With no relay offered the page gets an empty string, not a missing value.
+func TestRelayOriginJSON_EmptyWhenNoRelay(t *testing.T) {
+	companionai.SetRelayPage(nil)
+	if got := relayOriginJSON(); got != `""` {
+		t.Fatalf("with no relay the origin literal is %s, want \"\"", got)
 	}
 }
