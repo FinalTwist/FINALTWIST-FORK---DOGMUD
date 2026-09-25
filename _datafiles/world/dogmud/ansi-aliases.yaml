@@ -265,6 +265,7 @@ colors:
   room-exit: 7
   weather: 75
   time-of-day: 179
+  light: 179
 
 # Other
   loot: 7
