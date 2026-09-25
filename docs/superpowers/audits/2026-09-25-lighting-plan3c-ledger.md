@@ -24,7 +24,7 @@ checkpoint, and the questions are collected at the foot.
 | 5506 | The Caravan Depot | city | city_thoroughfare | The hinge linking Long Quay and Dock Street, continuous cart traffic dawn to dusk. |
 | 5507 | The Harbormaster's Office | city | interior | "Inside it smells of tallow and old ink," counter and clerk inside. |
 | 5508 | The Chandlery | city | interior | "Inside it is dark by design," goods stacked, chandler working within. |
-| 5509 | The Underdock Stair | city | interior | Enclosed stair under the dock decking; "the chandlery's lamp-glow... is the only source" of light. FLAG: reads as sewer, see summary. |
+| 5509 | The Underdock Stair | city | sewer | LAMP 38: Enclosed stair under the dock decking; "the chandlery's lamp-glow... is the only source" of light. FLAG: reads as sewer, see summary. |
 | 5510 | Dock Street | city | city_thoroughfare | The docks' named main street. |
 | 5511 | The Salt Cellar | city | city_backstreet | UNSURE: building frontage the player stands outside of ("By day its face is ordinary"), a hub leading "deeper into the quarter." |
 | 5512 | The Salt Cellar Taproom | city | interior | The taproom inside the Salt Cellar. |
@@ -35,8 +35,8 @@ checkpoint, and the questions are collected at the foot.
 | 5517 | Jesset's Hiring Office | city | interior | Small office interior: desk, stool, strongbox. |
 | 5518 | Old Sable's Pawnshop | city | interior | Inside the pawnshop. |
 | 5519 | The Dockworker Tenements | city | city_backstreet | "Four storeys... above a narrow street," residential edge-of-ward block. |
-| 5520 | The Underdocks | city | interior | "The ceiling is the underside of the dock planking": roofed, no sky. FLAG: reads as sewer, see summary. |
-| 5521 | The Pilings Haunt | city | interior | Dead-end pocket within the same roofed underdock space. FLAG: reads as sewer, see summary. |
+| 5520 | The Underdocks | city | sewer | DARK: "The ceiling is the underside of the dock planking": roofed, no sky. FLAG: reads as sewer, see summary. |
+| 5521 | The Pilings Haunt | city | sewer | DARK: Dead-end pocket within the same roofed underdock space. FLAG: reads as sewer, see summary. |
 | 5522 | The Outer Dock Lane | city | city_backstreet | Named "Lane," a ward-edge transitional junction, not a main way. |
 | 5523 | Marn's Fabric-Remnants Shop | city | interior | Shop interior with front tables, bins, shelving, cupboard door. |
 | 5524 | Marn's Back Room | city | interior | "Low ceiling, no windows" storage room behind the shop. |
@@ -163,33 +163,33 @@ checkpoint, and the questions are collected at the foot.
 
 ## new_plymouth_old_quarter (20)
 
-OWNER CALL, whole zone: this is a buried city, sealed under the modern streets,
-windowless, "lit only by tended oil lamps". Every room is classed `interior`
-below as a placeholder, which would read at lamp 50, fully lit. See the
-checkpoint question at the foot of this ledger.
+A buried city, sealed under the modern streets and windowless. Owner ruling
+(question 1): `dungeon`, with a room-level `lamp: 38` only where the room's
+own text names a burning lamp (`LAMP 38:` rows); every other room is dark
+(`DARK:` rows). See "Owner answers" at the foot for what plan 5 owes these.
 
 | Room | Title | Old | New | Reason |
 |---|---|---|---|---|
-| 6020 | The Canal Mouth | city | interior | Sealed pre-colonial passage under the paved colony above, zero sky access. |
-| 6021 | Lower Lintel Street | city | interior | Buried street lit only by one guttering lamp; no window. |
-| 6022 | The Stone Footbridge | city | interior | Low stone arch underground, "ceiling dropping to dressed stone a handspan above your head." |
-| 6023 | Lintel Street | city | interior | Buried street with a sealed doorway; no sky access. |
-| 6024 | Upper Lintel Street | city | interior | "Still underground, still mineral-cold"; dark shuttered windows. |
-| 6025 | 215 Lintel Street — the Iron Door | city | interior | Stone that has "never seen open air" since burial. |
-| 6026 | The Seven Steps | city | interior | Stairwell under a dropped ceiling, lit only by two fixed oil lamps. |
-| 6027 | The Stone Corridor | city | interior | "No ventilation except what reaches down from the room above," lamp-lit only. |
-| 6028 | The Production Room | city | interior | Sealed stone room at depth; no natural light of any kind. |
-| 6029 | Deren's Ledger Room | city | interior | "Low ceiling, no window," sealed room behind the iron door. |
-| 6030 | Quill's Lamp-Walk | city | interior | Buried canal-side walk lit entirely by a maintained lamp row. |
-| 6031 | Quill's Hovel | city | interior | Single buried room; a narrow high vent, no view of sky. |
-| 6032 | A Drowned Court | city | interior | "Perfectly still in the lampless air," a flooded court beneath the quarter's ceiling. |
-| 6033 | Canal-side Hovels | city | interior | Doorways along the buried canal wall, lit by the court's lamps only. |
-| 6034 | The Flooded Stair | city | interior | Stairwell descending further underground beneath the court. |
-| 6035 | Gritta's Flooded Cellar | city | interior | A vaulted cellar lit by a hanging iron lamp. |
-| 6036 | The Pre-Founding Stonework | city | interior | Vaulted gallery deep underground, dry, no sky. |
-| 6037 | The Buried Lintel | city | interior | Passage beneath a massive stone lintel, lamp-lit only. |
-| 6038 | The Deep Canal | city | interior | Sealed canal terminus at depth, no natural light. |
-| 6039 | A Silted Gallery | city | interior | "Deepest and oldest accessible space in the buried city," lamp-lit only. |
+| 6020 | The Canal Mouth | city | dungeon | DARK: Sealed pre-colonial passage under the paved colony above, zero sky access. |
+| 6021 | Lower Lintel Street | city | dungeon | LAMP 38: Buried street lit only by one guttering lamp; no window. |
+| 6022 | The Stone Footbridge | city | dungeon | DARK: Low stone arch underground, "ceiling dropping to dressed stone a handspan above your head." |
+| 6023 | Lintel Street | city | dungeon | DARK: Buried street with a sealed doorway; no sky access. |
+| 6024 | Upper Lintel Street | city | dungeon | DARK: "Still underground, still mineral-cold"; dark shuttered windows. |
+| 6025 | 215 Lintel Street — the Iron Door | city | dungeon | DARK: Stone that has "never seen open air" since burial. |
+| 6026 | The Seven Steps | city | dungeon | LAMP 38: Stairwell under a dropped ceiling, lit only by two fixed oil lamps. |
+| 6027 | The Stone Corridor | city | dungeon | LAMP 38: "No ventilation except what reaches down from the room above," lamp-lit only. |
+| 6028 | The Production Room | city | dungeon | DARK: Sealed stone room at depth; no natural light of any kind. |
+| 6029 | Deren's Ledger Room | city | dungeon | DARK: "Low ceiling, no window," sealed room behind the iron door. |
+| 6030 | Quill's Lamp-Walk | city | dungeon | LAMP 38: Buried canal-side walk lit entirely by a maintained lamp row. |
+| 6031 | Quill's Hovel | city | dungeon | LAMP 38: Single buried room; a narrow high vent, no view of sky. |
+| 6032 | A Drowned Court | city | dungeon | DARK: "Perfectly still in the lampless air," a flooded court beneath the quarter's ceiling. |
+| 6033 | Canal-side Hovels | city | dungeon | LAMP 38: Doorways along the buried canal wall, lit by the court's lamps only. |
+| 6034 | The Flooded Stair | city | dungeon | DARK: Stairwell descending further underground beneath the court. |
+| 6035 | Gritta's Flooded Cellar | city | dungeon | LAMP 38: A vaulted cellar lit by a hanging iron lamp. |
+| 6036 | The Pre-Founding Stonework | city | dungeon | DARK: Vaulted gallery deep underground, dry, no sky. |
+| 6037 | The Buried Lintel | city | dungeon | DARK: Passage beneath a massive stone lintel, lamp-lit only. |
+| 6038 | The Deep Canal | city | dungeon | DARK: Sealed canal terminus at depth, no natural light. |
+| 6039 | A Silted Gallery | city | dungeon | DARK: "Deepest and oldest accessible space in the buried city," lamp-lit only. |
 
 ## new_plymouth_outskirts (16)
 
@@ -207,9 +207,9 @@ checkpoint question at the foot of this ledger.
 | 5475 | The Broken Gate | city | interior | Common room of an unlicensed inn, low beams, described from inside. |
 | 5476 | The Refugee Camp | city | city_backstreet | Improvised lean-to camp against the wall. |
 | 5477 | Workshop Warren | city | city_backstreet | Narrow gap of back-street workshops against the wall. |
-| 5478 | Riverside Path | city | city_backstreet | OWNER CALL: unpaved riverbank track outside the wall; reads as `road`, not city. |
-| 5479 | The Ford | city | city_backstreet | OWNER CALL: a natural river crossing, no paving; reads as `road` or `river`, not city. |
-| 5480 | River Road | city | city_backstreet | OWNER CALL: unpaved riverside track to the Docks; reads as `road`, not city. |
+| 5478 | Riverside Path | city | road | LAMP 38: security lamp at the wall by the Gate Approach. unpaved riverbank track outside the wall; reads as `road`, not city. |
+| 5479 | The Ford | city | river | Dark between the two wall lamps. a natural river crossing, no paving; reads as `road` or `river`, not city. |
+| 5480 | River Road | city | road | LAMP 38: security lamp where the track meets the docks. unpaved riverside track to the Docks; reads as `road`, not city. |
 | 5481 | The Doss-House | city | interior | Dormitory of rope-beds, described from inside. |
 
 ## fort (22)
@@ -217,8 +217,8 @@ checkpoint question at the foot of this ledger.
 | Room | Title | Old | New | Reason |
 |---|---|---|---|---|
 | 5239 | Collapsed Barracks | fort | ruins | "half-roofed": the bandit barracks off the gate has lost half its roof. |
-| 5240 | Tower Base | fort | ruins | OWNER CALL: hollow tower shaft open at the burst crown, "a pale smudge of daylight far up the throat of the shaft". Sky reaches it, but only from far above; ruins' 0.75 may be too bright. |
-| 5241 | Tower Stair | fort | ruins | OWNER CALL: mid-shaft landing in the same open tube as 5240 and 5242, climbing "toward the light". Same brightness question as 5240. |
+| 5240 | Tower Base | fort | ruins | OWNER: ruins for now (sun-angle shadowing is a possible later expansion). hollow tower shaft open at the burst crown, "a pale smudge of daylight far up the throat of the shaft". Sky reaches it, but only from far above; ruins' 0.75 may be too bright. |
+| 5241 | Tower Stair | fort | ruins | OWNER: ruins for now. mid-shaft landing in the same open tube as 5240 and 5242, climbing "toward the light". Same brightness question as 5240. |
 | 5242 | The Watch Room | fort | ruins | "one wall has burst clean open... stone torn open to the sky and the canyon beyond." |
 | 5245 | The Coulee Smithy | fort | fort | "roofed with split logs to make a proper smithy": intact roof. |
 | 5247 | Quench Shed | fort | fort | "a low shed roofed with overlapping split shakes": intact roof. |
@@ -227,17 +227,17 @@ checkpoint question at the foot of this ledger.
 | 5304 | Fallen Orrery | fort | fort | Side chamber lit by spill from the hall, no roof or sky language of its own. |
 | 5305 | Star Chamber | fort | fort | Domed practice room, damaged but no roof-open language. |
 | 5306 | Cracked Dome | fort | ruins | "a long jagged crack... through that gap the sky enters, a bright wound." |
-| 5307 | The High Rim | fort | ruins | OWNER CALL: you "step out onto the coulee rim", "the sky is very large". An open overlook, not a building, so `cliffs` (its neighbours' biome) may fit better than `ruins`. |
+| 5307 | The High Rim | fort | cliffs | OWNER: you "step out onto the coulee rim", "the sky is very large". An open overlook, not a building, so `cliffs` (its neighbours' biome) may fit better than `ruins`. |
 | 5341 | The Old Shrine | fort | ruins | "open to the sky where the roof has surrendered in sections." |
 | 5342 | Collapsed Nave | fort | ruins | The shrine side-hall "has given up most of its ceiling to time." |
 | 5343 | The Reliquary | fort | fort | "the ceiling is intact, which makes the room feel sealed." |
 | 5344 | Buried Vault | fort | fort | "a single continuous arch": intact ceiling, buried under drifted soil. |
 | 5345 | Shrine Loft | fort | ruins | "open to the outside air through a gap where the upper course of masonry has long since fallen away." |
-| 200 | Arena Entrance | fort | ruins | OWNER CALL: "opens into a sunlit training compound". Sky is visible but the compound is intact, not ruined: this is 3b's fort training-yard split. |
-| 201 | Training Yard | fort | ruins | OWNER CALL: "a large open-air yard with packed earth underfoot". Intact open yard, not a ruin; same question as 200. |
-| 202 | Sparring Ring | fort | fort | UNSURE: "enclosed by thick rope barriers" only, no walls, roof or sky described. |
-| 203 | Ranged Gallery | fort | fort | UNSURE: a gallery lined with hay bales, no sun, sky or roof language. |
-| 204 | Champion's Pit | fort | fort | "Iron sconces flicker with torchlight": artificial light, enclosed. |
+| 200 | Arena Entrance | fort | city_thoroughfare | TESTBED: owner ruled test_arena a mix of biomes and light for testing; this room is lamplit outdoor. |
+| 201 | Training Yard | fort | ruins | TESTBED: sky-following outdoor, dark at night. |
+| 202 | Sparring Ring | fort | city_backstreet | TESTBED: dim outdoor, shapes after dark. |
+| 203 | Ranged Gallery | fort | interior | TESTBED: lamplit indoor. |
+| 204 | Champion's Pit | fort | dungeon | TESTBED: dark indoor, no sky, no lamp. |
 
 ## ruin scan and title search (outside the fort rooms)
 
@@ -253,7 +253,7 @@ checkpoint question at the foot of this ledger.
 | 5338 | Stones' End | land | land | The outdoor approach to the shrine at 5341, not the shrine. |
 | 5396 | Basalt Badlands | land | land | Natural lava terrain; "burned out" is metaphor. |
 | 4154 | Old Weddell Farmstead | forest | ruins | "the roof long gone, the walls open to the sky." |
-| 6336 | The Crumbling Watchtower | mountains | ruins | OWNER CALL: title-search find the regex missed, "half a cylinder of old masonry", no roof. Moving it cuts crossing cost from mountains' 2.0 to 1.0. |
+| 6336 | The Crumbling Watchtower | mountains | ruins | OWNER: cheaper crossing accepted. title-search find the regex missed, "half a cylinder of old masonry", no roof. Moving it cuts crossing cost from mountains' 2.0 to 1.0. |
 
 Deferred: 5922 The Censer Court (classified by group A). To 3c-2 with this group's lean: 6297 The University Stair (greenford, not a ruin), 6129 The Weighhouse Yard, 6185 The Cloister Garth, 6197 The Kitchen Court, 6219 Inkwell Court (worth a second look), 6229 The Quiet Garden (the_confluence, open courts by design), 4144 Old Chapel Ruin (stillwater, a clear ruin).
 
@@ -323,3 +323,36 @@ of those 14 changes. The one change is 6336 The Crumbling Watchtower,
 5. **The hollow tower (5240 Tower Base, 5241 Tower Stair).** Open to the sky
    only at the burst crown far above. `ruins` at 0.75 makes the bottom of the
    shaft nearly as bright as open ground; `fort` (0.35) may read truer.
+
+## Owner answers (2026-09-25)
+
+1. **Old Quarter:** `dungeon`, plus `lamp: 38` (shapes, never faces) on the
+   seven rooms whose text names a burning lamp: 6021, 6026, 6027, 6030, 6031,
+   6033, 6035. The other thirteen are dark.
+2. **Underdocks:** `sewer`, same rule. 5509 keeps `lamp: 38` for the
+   chandlery's lamp-glow reaching down the stair; 5520 and 5521 are dark.
+3. **Riverside track:** 5478 and 5480 become `road` with `lamp: 38`, security
+   lamps where the track meets the wall and the docks; 5479 The Ford becomes
+   `river`, dark between them.
+4. 5307 The High Rim becomes `cliffs`. `test_arena` is a testbed with no
+   player access, so it takes one room of each light condition: 200
+   `city_thoroughfare`, 201 `ruins`, 202 `city_backstreet`, 203 `interior`,
+   204 `dungeon`. 6336 The Crumbling Watchtower's cheaper crossing is fine.
+5. 5240 and 5241 stay `ruins`. Sun-angle shadowing (a sky fraction that
+   varies with the sun's elevation, bright only near noon) is recorded as a
+   possible later expansion, not built.
+
+🔴 **What plan 5 owes these rooms.** Players have no way to carry light
+until plan 5 (the only light today is a rare harness's grapple proc). So the
+fifteen DARK rows above are blind to a normal observer, and that strands
+content: quest 67 (*The Bloom Trail*) sends players to Deren in 6029, quest
+70 (*The Pre-Founding Web*) runs through 6037 and 6038, Gritta's schedule
+crosses 6034 and 6039, 6020 is the Old Quarter's entrance, and seven dark
+rooms spawn mobs. The owner accepted this because nothing deploys until the
+lighting and messaging arcs finish. **Plan 5 must make those quests and
+spawns playable, by giving players light, before any deploy.**
+
+**Movement cost changes beyond `ruins`**, accepted with the biome calls:
+the twenty Old Quarter rooms and three underdock rooms go from 0.7 to 1.3;
+5478 and 5480 from 0.7 to `road`'s 0.5; 5479 from 0.7 to `river`'s 1.5; 5307 from
+1.0 to `cliffs`' 2.5.
