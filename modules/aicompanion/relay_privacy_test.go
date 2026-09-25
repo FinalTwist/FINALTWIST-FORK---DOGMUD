@@ -107,6 +107,9 @@ func TestRelayDecisionPromptLeavesOutOtherPlayersPrivateDetail(t *testing.T) {
 		util.LockMud()
 		c.cancelInFlight()
 		util.UnlockMud()
+		// The cancelled call still settles and applies under the lock; the
+		// next pass rebuilds the world, so it must be finished first.
+		m.decisions.Wait()
 
 		if sent == `` {
 			t.Fatalf("relay=%v: fixture: a prompt was sent", relay)

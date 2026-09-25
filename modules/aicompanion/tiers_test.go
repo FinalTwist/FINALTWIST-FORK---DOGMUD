@@ -744,6 +744,9 @@ func TestStrangersOffDispatchesSetLines(t *testing.T) {
 	inFlight = c.inFlight
 	c.cancelInFlight()
 	util.UnlockMud()
+	// The cancelled call still settles under the lock; the next test
+	// rebuilds the world, so it must be finished first.
+	m.decisions.Wait()
 	if !inFlight {
 		t.Fatal("control: the owner's own words start a call")
 	}

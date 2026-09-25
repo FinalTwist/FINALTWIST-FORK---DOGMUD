@@ -10,6 +10,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
@@ -139,6 +140,12 @@ func (c *controller) push(s stimulus) {
 
 // AICompanionModule is the module singleton.
 type AICompanionModule struct {
+	// decisions counts decision calls still running off the mud lock.
+	// Cancelling a call only tells it to stop; it still settles and applies
+	// under the lock afterwards, so anything that rebuilds the world under
+	// it (a test) waits on this first.
+	decisions sync.WaitGroup
+
 	plug     *plugins.Plugin
 	cfg      Config
 	profiles map[string]*Profile

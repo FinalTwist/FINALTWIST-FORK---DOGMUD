@@ -644,7 +644,9 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	}
 	m.callsToday++
 
+	m.decisions.Add(1)
 	go func() {
+		defer m.decisions.Done()
 		settled := false
 		used := 0 // what the call spent, once it is known
 		defer func() {
