@@ -21,6 +21,7 @@ func TestShippedDogmudClimateProfiles(t *testing.T) {
 
 	biomes := []string{"water", "shore", "cliffs", "desert", "snow", "mountains",
 		"swamp", "forest", "farmland", "land", "road", "city",
+		"city_thoroughfare", "city_backstreet", "ruins",
 		"cave", "dungeon", "fort", "spiderweb"}
 	for _, b := range biomes {
 		p, ok := climate[b]
@@ -36,6 +37,15 @@ func TestShippedDogmudClimateProfiles(t *testing.T) {
 	for _, indoor := range []string{"cave", "dungeon", "fort", "spiderweb"} {
 		if w := climate[indoor].SpawnWeight; w != 0 {
 			t.Errorf("%s: indoor biome must have spawnWeight 0, got %v", indoor, w)
+		}
+	}
+
+	// The two city tiers are a LIGHTING split, not a weather one: they must
+	// carry city's climate exactly (plan 3c).
+	for _, tier := range []string{"city_thoroughfare", "city_backstreet"} {
+		if climate[tier].SpawnWeight != climate["city"].SpawnWeight ||
+			len(climate[tier].Weather) != len(climate["city"].Weather) {
+			t.Errorf("%s: climate differs from city's; the tiers split light only", tier)
 		}
 	}
 
