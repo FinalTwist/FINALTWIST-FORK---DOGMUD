@@ -296,6 +296,25 @@ func (m *AICompanionModule) onGiftAccepted(e events.Event) events.ListenerReturn
 	return events.Continue
 }
 
+// onGoldGiven is a player giving her gold with `give`: the engine names the
+// giver, so the right person is thanked and, for a passer-by, paced and
+// charged (receiveGold). noticeGold matches the purse against it.
+func (m *AICompanionModule) onGoldGiven(e events.Event) events.ListenerReturn {
+	evt, ok := e.(events.GoldGiven)
+	if !ok || !m.cfg.Enabled || evt.Amount <= 0 {
+		return events.Continue
+	}
+	c := m.controllerForInstance(evt.MobInstanceId)
+	u := users.GetByUserId(evt.UserId)
+	mob := mobs.GetInstance(evt.MobInstanceId)
+	if c == nil || u == nil || u.Character == nil || mob == nil {
+		return events.Continue
+	}
+	c.goldByEvent += evt.Amount
+	m.receiveGold(c, mob, u, evt.Amount)
+	return events.Continue
+}
+
 // onPlayerAttackedMob reacts to someone attacking the companion. The combat
 // system handles the fight itself; this records the betrayal or threat.
 func (m *AICompanionModule) onPlayerAttackedMob(e events.Event) events.ListenerReturn {

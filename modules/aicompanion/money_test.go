@@ -16,6 +16,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -572,5 +574,110 @@ func TestRequestPlanCarriesTheStarter(t *testing.T) {
 	m.requestPlan(c, 1, `start`, `Bram`)
 	if len(c.pending) != 1 || c.pending[0].PaidBy != 2 {
 		t.Fatalf("the plan is queued as the starter's: %+v", c.pending)
+	}
+}
+
+// goldWorld is her, her owner Corvin and a passer-by Bram in one room, with
+// a module driving her for Corvin.
+func goldWorld(t *testing.T) (*AICompanionModule, *controller, *users.UserRecord, *users.UserRecord, *rooms.Room, *mobs.Mob) {
+	t.Helper()
+	owner, bram, room, her := harmWorld(t, `off`)
+	m, c := senderModule(`https://api.example.invalid`, true)
+	m.cfg.Enabled = true
+	c.instanceId = her.InstanceId
+	c.lastAttackBy = map[int]int64{}
+	m.ctrls = map[int]*controller{1: c}
+	her.Character.Gold = 10
+	m.noticeGold(c, her, owner, 1) // the purse is read once
+	return m, c, owner, bram, room, her
+}
+
+// goldMemories is each coin gift she noted, in order (the working lines,
+// which keep a repeat that the memory store folds into one).
+func goldMemories(c *controller) []string {
+	var out []string
+	for _, l := range c.mind.RecentLines {
+		if strings.Contains(l.Text, `put some coin in your hand`) {
+			out = append(out, l.Text)
+		}
+	}
+	return out
+}
+
+// Gold a passer-by gives her is theirs: remembered as from them, queued as
+// their prompt, and never warming her to her owner. The purse growth it
+// caused is not credited a second time.
+func TestGoldIsCreditedToWhoGaveIt(t *testing.T) {
+	m, c, owner, _, _, her := goldWorld(t)
+	her.Character.Gold += 50
+	m.onGoldGiven(events.GoldGiven{UserId: 2, MobInstanceId: her.InstanceId, Amount: 50})
+	for r := uint64(2); r < 5; r++ {
+		m.noticeGold(c, her, owner, r)
+	}
+	if got := goldMemories(c); len(got) != 1 || !strings.Contains(got[0], `Bram`) {
+		t.Fatalf("one gift, from Bram: %q", got)
+	}
+	if n := c.mind.ruleChangesSince(`gift`, 0); n != 0 {
+		t.Fatalf("a passer-by's coin does not warm her to her owner: %d changes", n)
+	}
+	if len(c.pending) != 1 || c.pending[0].FromOwner || c.pending[0].AskerUserId != 2 {
+		t.Fatalf("queued as Bram's, to be paid by Bram: %+v", c.pending)
+	}
+
+	// The purse can be read before the event arrives: it waits a round.
+	c.pending = nil
+	her.Character.Gold += 20
+	m.noticeGold(c, her, owner, 10)
+	m.onGoldGiven(events.GoldGiven{UserId: 2, MobInstanceId: her.InstanceId, Amount: 20})
+	m.noticeGold(c, her, owner, 11)
+	m.noticeGold(c, her, owner, 12)
+	if got := goldMemories(c); len(got) != 2 || !strings.Contains(got[1], `Bram`) {
+		t.Fatalf("read first, still Bram's and once: %q", got)
+	}
+	if n := c.mind.ruleChangesSince(`gift`, 0); n != 0 {
+		t.Fatalf("and her owner is never thanked for it: %d changes", n)
+	}
+}
+
+// Her owner's own gold, named by the event, is the owner's gift.
+func TestOwnersGoldIsTheOwnersGift(t *testing.T) {
+	m, c, owner, _, room, her := goldWorld(t)
+	room.RemovePlayer(2) // alone with her owner, so a second credit would show
+	her.Character.Gold += 50
+	m.onGoldGiven(events.GoldGiven{UserId: 1, MobInstanceId: her.InstanceId, Amount: 50})
+	for r := uint64(2); r < 5; r++ {
+		m.noticeGold(c, her, owner, r)
+	}
+	if got := goldMemories(c); len(got) != 1 || !strings.Contains(got[0], `Corvin`) {
+		t.Fatalf("one gift, from Corvin: %q", got)
+	}
+	if n := c.mind.ruleChangesSince(`gift`, 0); n != 1 {
+		t.Fatalf("her owner's coin warms her, once: %d changes", n)
+	}
+	if len(c.pending) != 1 || !c.pending[0].FromOwner {
+		t.Fatalf("queued as the owner's: %+v", c.pending)
+	}
+}
+
+// Coin no event names is credited to her owner only when nobody else was
+// there who could have given it.
+func TestUnnamedGoldIsNeverTheOwnersWhenOthersAreThere(t *testing.T) {
+	m, c, owner, _, room, her := goldWorld(t)
+	her.Character.Gold += 50
+	m.noticeGold(c, her, owner, 2)
+	m.noticeGold(c, her, owner, 3)
+	if got := goldMemories(c); len(got) != 0 || c.mind.ruleChangesSince(`gift`, 0) != 0 {
+		t.Fatalf("with Bram in the room nobody is thanked: %q", got)
+	}
+
+	room.RemovePlayer(2)
+	her.Character.Gold += 50
+	m.noticeGold(c, her, owner, 4)
+	if got := goldMemories(c); len(got) != 0 {
+		t.Fatalf("not in the round it was seen, while an event may still name a giver: %q", got)
+	}
+	m.noticeGold(c, her, owner, 5)
+	if got := goldMemories(c); len(got) != 1 || !strings.Contains(got[0], `Corvin`) {
+		t.Fatalf("alone with her owner, it is her owner's: %q", got)
 	}
 }

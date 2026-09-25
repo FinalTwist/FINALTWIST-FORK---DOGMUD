@@ -66,8 +66,17 @@ type controller struct {
 	convo        *conversation // talk in progress, gathered into one memory at its end
 	lastGold     int           // purse as last seen, to spot coin it did not earn
 	lastGoldSeen int           // 1 once the purse has been read at least once
-	lastSnapshot uint64        // round its gear and gold were last copied to the owner's record
-	snapshotDue  bool          // something changed its gear or gold; snapshot next round
+	// Coin that turned up in her purse, matched against the GoldGiven events
+	// that name who gave it: goldByEvent is given coin not yet seen in the
+	// purse, goldUnexplained is purse growth no event has named yet (held
+	// from round goldHeldRound), goldHers marks growth seen while she was
+	// about her own business (a sale, a loot).
+	goldByEvent     int
+	goldUnexplained int
+	goldHeldRound   uint64
+	goldHers        bool
+	lastSnapshot    uint64 // round its gear and gold were last copied to the owner's record
+	snapshotDue     bool   // something changed its gear or gold; snapshot next round
 
 	leaveAt      uint64 // round it walks away when nothing is left to stay for
 	leaveAskedAt int64  // when it asked to part ways, waiting on the owner
@@ -248,6 +257,7 @@ func (m *AICompanionModule) onLoad() {
 	events.RegisterListener(events.PlayerDespawn{}, m.onPlayerDespawn)
 	events.RegisterListener(events.Communication{}, m.onCommunication)
 	events.RegisterListener(events.GiftAccepted{}, m.onGiftAccepted)
+	events.RegisterListener(events.GoldGiven{}, m.onGoldGiven)
 	events.RegisterListener(events.PlayerAttackedMob{}, m.onPlayerAttackedMob)
 	events.RegisterListener(events.MobDeath{}, m.onMobDeath)
 	events.RegisterListener(events.PlayerDeath{}, m.onPlayerDeath)

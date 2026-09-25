@@ -379,6 +379,28 @@ func DrainQueuedPlayerAttackedMobsForTest(userId int) []PlayerAttackedMob {
 	return found
 }
 
+// DrainQueuedGoldGivenForTest removes all GoldGiven events for the given
+// giver and returns them. Pass 0 to drain every such event.
+//
+// FOR TEST USE ONLY. Mutates the queue.
+func DrainQueuedGoldGivenForTest(userId int) []GoldGiven {
+	qLock.Lock()
+	defer qLock.Unlock()
+	var found []GoldGiven
+	remaining := make(priorityQueue, 0, len(globalQueue))
+	for _, pe := range globalQueue {
+		given, ok := pe.event.(GoldGiven)
+		if !ok || (userId != 0 && given.UserId != userId) {
+			remaining = append(remaining, pe)
+			continue
+		}
+		found = append(found, given)
+	}
+	globalQueue = remaining
+	heap.Init(&globalQueue)
+	return found
+}
+
 // DrainQueuedPatrolWaypointArrivalsForTest removes all PatrolWaypointArrival
 // events from the global queue for the given mob instance id and returns them.
 //

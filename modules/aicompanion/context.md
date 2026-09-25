@@ -23,7 +23,8 @@ Roadmap and phase plan: `docs/aicompanion/`.
   farewell during `quit`, fall and recovery, initiative after quiet spells,
   mood decay; `dispatch`, `applyResult` (speech, memory, facts, promises,
   bounded opinion change), the decision trace, the fallback path.
-- **listeners.go**: `say`, emotes (`events.Emote`), gifts (`GiftAccepted`),
+- **listeners.go**: `say`, emotes (`events.Emote`), gifts (`GiftAccepted`,
+  and `GoldGiven` for coin, `onGoldGiven`, which names the real giver),
   attacks (`PlayerAttackedMob`), healing (`events.Healed`) and the `ask`
   hook; an owner speaking to the companion interrupts an errand. They record what the
   companion perceived and queue stimuli; they never call the model. The
@@ -58,7 +59,12 @@ Roadmap and phase plan: `docs/aicompanion/`.
 - **autonomy.go**: `perceive` (runs each round: settles the last action,
   notices new rooms and new things, offers quiet moments to act),
   `handleIdle` (owns the idle tick: first aid, idle gestures), impressions of
-  NPCs and places.
+  NPCs and places. `noticeGold` matches purse growth against the
+  `GoldGiven` events (either may come first, so unnamed growth waits a
+  round); what no event names is credited to her owner only when the
+  owner is with her and no other player is, and never while she is about
+  her own business. `receiveGold` credits a named giver: only the owner's
+  coin warms her, a passer-by's is paced and paid like their other gifts.
 - **worldmap.go**: the companion's own map (`Mind.Map`): rooms it has
   stood in, exits it has walked, a clearly marked guess at the way back,
   features and people seen, danger; the Dijkstra route finder over that map

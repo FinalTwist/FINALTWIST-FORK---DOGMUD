@@ -34,6 +34,7 @@ installed they return false and the engine carries on.
 | `companionai` calls in `MobIdle_HandleIdleMobs`, `companion_follow`, `PlayerSpawn_HandleJoin` | One nil check per call. |
 | `events.Emote`, fired by `emote` | One queued event per player emote, with no listeners. |
 | `events.Healed`, fired by a heal on a mob | One queued event per healing spell on a mob, with no listeners. |
+| `events.GoldGiven`, fired by `give` of gold to a mob | One queued event per gold gift to a mob, with no listeners. |
 | `ask.go`: the NPC dialogue chain moved into `askNpcChain` | Pure refactor; the player path is byte-for-byte the same sequence. |
 | `ask.go`: `companionai.RouteAsk` before the "it ignores you" reply | One nil check. |
 | Guard-test allowlists (`condition_apply_path_guard_test.go`, `pool_mutation_guard_test.go`) | Line numbers and one exemption; no runtime effect. |
@@ -114,8 +115,9 @@ companion neither remembered nor sent.
    and it never starts or advances on its own. It only moves at the
    player's own command (`companion-court`), and `companion-boundary
    friendship` closes it at any point.
-3. The two events are worth offering on their own merits: `Emote` and
-   `Healed` are general and cheap, and any module could use them.
+3. The three events are worth offering on their own merits: `Emote`,
+   `Healed` and `GoldGiven` are general and cheap, and any module could
+   use them.
 4. Expect the maintainers to want `internal/usercommands/ask.go` split into
    its own change, since it is the only engine refactor rather than an
    addition.
