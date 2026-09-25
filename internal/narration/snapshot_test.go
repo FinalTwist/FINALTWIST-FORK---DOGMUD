@@ -1610,7 +1610,7 @@ func buildPositionControlGolden(t *testing.T) string {
 }
 
 // ---------------------------------------------------------------------
-// Store: light notices (internal/lightnotice)
+// Store 17: light notices (internal/lightnotice)
 // ---------------------------------------------------------------------
 
 // buildLightNoticesGolden freezes every line of every cause, transition and
@@ -1653,7 +1653,7 @@ func buildLightNoticesGolden(t *testing.T) string {
 }
 
 // ---------------------------------------------------------------------
-// Store 15: special-move narration (internal/movenarration)
+// Store 16: special-move narration (internal/movenarration)
 // ---------------------------------------------------------------------
 
 func buildSpecialMovesGolden(t *testing.T) string {
