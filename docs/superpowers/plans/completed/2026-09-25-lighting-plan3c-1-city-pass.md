@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go tests (`internal/rooms`, `modules/weather/content`), YAML content, a read-only Python checker.
 
-**Spec:** `docs/superpowers/specs/2026-09-25-lighting-plan3c-city-pass-design.md`. Read its "Facts verified against source" table first. **Branch:** `feature/lighting-plan3c-city-pass` (spec commits already on it).
+**Spec:** `docs/superpowers/specs/completed/2026-09-25-lighting-plan3c-city-pass-design.md`. Read its "Facts verified against source" table first. **Branch:** `feature/lighting-plan3c-city-pass` (spec commits already on it).
 
 **Every commit** ends with:
 ```

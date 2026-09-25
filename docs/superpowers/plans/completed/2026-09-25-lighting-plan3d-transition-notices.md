@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, YAML via `internal/fileloader`, `internal/narration` picker core, `internal/events` listeners.
 
-**Spec:** `docs/superpowers/specs/2026-09-25-lighting-plan3d-transition-notices-design.md` (owner approved 2026-09-25). Owner rulings live there; do not re-ask them.
+**Spec:** `docs/superpowers/specs/completed/2026-09-25-lighting-plan3d-transition-notices-design.md` (owner approved 2026-09-25). Owner rulings live there; do not re-ask them.
 
 ---
 
