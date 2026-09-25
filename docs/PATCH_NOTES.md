@@ -1,5 +1,27 @@
 # DOGMud Patch Notes
 
+## 2026-09-25: The Confluence and Greenford's lamps find their own streets
+
+The Confluence and Greenford now get the same treatment New Plymouth had.
+Their main streets, squares and gates keep their lamps burning all night,
+so a face is readable there at any hour. In the Confluence, that means
+Tri-Cross Square, the Processional Avenue, the Causeway and the Brenn
+Bridge. In Greenford, it means the Market Square, the road up from the
+river, and the university's gates and its Quadrangle.
+
+Step off a main way into a lane, a court or a yard after dark, and the
+lamps stop following you. You will still see shapes moving near you, but
+not who they are.
+
+Many shops, halls, the temple and the college rooms in both towns are now
+proper interiors, lit the way a building should be rather than the way
+the street outside is lit.
+
+Under the Confluence's temple lies an old crypt, dark since long before
+the temple itself was raised above it. If you plan to go down there,
+bring your own light. Every character starts out knowing how to make
+one: cast glow.
+
 ## 2026-09-25: New Plymouth's lamps find their own streets
 
 New Plymouth's main streets, squares, markets and gates now stay lit
