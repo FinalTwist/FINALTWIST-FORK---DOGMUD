@@ -221,7 +221,10 @@ skills, health) is never in the mind file; it lives on the owner's
 - Travel: the companion only knows rooms it has stood in. `mapper.GetPath`
   is never used, because it searches the whole world. Errands start only
   from beside the owner, who is not fighting; the owner moving pulls the
-  companion back through the engine's companion transport. After
+  companion back through the engine's companion transport, which asks
+  `holdFollow` per companion; only the bonded companion is ever held (a
+  sneaking owner, or her walking in on foot), never another companion of
+  the same owner. After
   `ErrandLingerRounds` apart it walks back by its own map; after
   `LostRounds` with no known way it rejoins through `companionai.Rejoin`.
 - Exit names that are numbers or `home` are never walked: the mob `go`

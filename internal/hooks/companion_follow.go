@@ -46,12 +46,6 @@ func TransportCompanions(owner *users.UserRecord, oldRoomId, newRoomId int) {
 		return
 	}
 
-	// A bonded companion stays put when its owner is moving in secret: a
-	// second set of footsteps is the one thing a sneak cannot afford.
-	if companionai.HoldPosition(owner.UserId) {
-		return
-	}
-
 	for _, c := range owner.Character.Companions {
 		mob := mobs.GetInstance(c.InstanceId)
 		if mob == nil {
@@ -60,6 +54,14 @@ func TransportCompanions(owner *users.UserRecord, oldRoomId, newRoomId int) {
 		}
 		if mob.Character.RoomId == newRoomId {
 			// Already in destination room (e.g. summoned directly there).
+			continue
+		}
+
+		// A bonded companion stays put when its owner is moving in secret: a
+		// second set of footsteps is the one thing a sneak cannot afford.
+		// Asked per companion, so the hold keeps only the one the module
+		// drives; an ordinary charmed companion follows as it always has.
+		if companionai.HoldPosition(owner.UserId, mob.InstanceId) {
 			continue
 		}
 

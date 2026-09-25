@@ -1897,7 +1897,7 @@ func TestSwitchedOffTheModuleDoesNothing(t *testing.T) {
 	if off.handleIdle(1) {
 		t.Fatal("idle handling stays with the engine")
 	}
-	if off.holdFollow(1) {
+	if off.holdFollow(1, 2) {
 		t.Fatal("companions follow the way they always did")
 	}
 	if off.handleAsk(1, 2, `hello`) {

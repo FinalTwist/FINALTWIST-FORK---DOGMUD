@@ -15,6 +15,9 @@ type RespawnFunc func(userId int, mobId int) int
 type IdleFunc func(mobInstanceId int) bool
 type RejoinFunc func(userId int) bool
 type SnapshotFunc func(userId int) bool
+type NpcAskFunc func(ownerUserId int, mobInstanceId int, text string, authorized bool) bool
+type BondedFunc func(mobInstanceId int) bool
+type HoldFunc func(userId int, mobInstanceId int) bool
 
 func SetAskHandler(f AskFunc)
 func RouteAsk(userId int, mobInstanceId int, text string) bool
@@ -30,6 +33,15 @@ func Rejoin(userId int) bool
 
 func SetSnapshotter(f SnapshotFunc)
 func Snapshot(userId int) bool
+
+func SetNpcAsker(f NpcAskFunc)
+func AskNpc(ownerUserId int, mobInstanceId int, text string, authorized bool) bool
+
+func SetBondedCheck(f BondedFunc)
+func IsBondedCompanion(mobInstanceId int) bool
+
+func SetHolder(f HoldFunc)
+func HoldPosition(userId int, mobInstanceId int) bool
 ```
 
 - `RouteAsk` is called by `internal/usercommands/ask.go` before the normal
@@ -52,6 +64,11 @@ func Snapshot(userId int) bool
 - `RespawnBonded` is called by the aicompanion module when a fallen bonded
   companion has recovered. `internal/hooks` installs the implementation
   (`RespawnBondedCompanion`), because it owns `applyCompanionState`.
+- `HoldPosition` is called by `internal/hooks` `TransportCompanions` once
+  per companion it is about to move, with that companion's mob instance.
+  The aicompanion module installs `holdFollow`, which holds only the bonded
+  companion it drives (its owner sneaking, or it walking in on foot a
+  moment later); every other companion of the same owner follows as before.
 
 ## Gotchas
 

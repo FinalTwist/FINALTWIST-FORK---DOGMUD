@@ -38,11 +38,13 @@ type NpcAskFunc func(ownerUserId int, mobInstanceId int, text string, authorized
 // score that drives nothing.
 type BondedFunc func(mobInstanceId int) bool
 
-// HoldFunc reports that a user's bonded companion should not follow them
-// just now: the usual case is an owner moving in secret, where a companion
-// padding along behind would give them away. It leaves the companion where
-// it is until the owner comes back or stops sneaking.
-type HoldFunc func(userId int) bool
+// HoldFunc reports that one of a user's companions, the mob instance
+// mobInstanceId, should not follow them just now: the usual case is an owner
+// moving in secret, where a bonded companion padding along behind would give
+// them away. It leaves that companion where it is until the owner comes back
+// or stops sneaking. It is asked once per companion, so an ordinary companion
+// the handler does not drive keeps following.
+type HoldFunc func(userId int, mobInstanceId int) bool
 
 // SnapshotFunc copies a user's fielded bonded companion's live state (gear,
 // gold, progression) into its saved record without despawning it. It
@@ -81,13 +83,14 @@ func SetHolder(f HoldFunc) {
 	holdFunc = f
 }
 
-// HoldPosition asks whether a user's companions should stay where they are
-// rather than follow. Nil-safe: with nothing installed, they always follow.
-func HoldPosition(userId int) bool {
+// HoldPosition asks whether one of a user's companions (the mob instance
+// mobInstanceId) should stay where it is rather than follow. Nil-safe: with
+// nothing installed, every companion always follows.
+func HoldPosition(userId int, mobInstanceId int) bool {
 	if holdFunc == nil {
 		return false
 	}
-	return holdFunc(userId)
+	return holdFunc(userId, mobInstanceId)
 }
 
 // SetNpcAsker installs the NPC question handler. Called by

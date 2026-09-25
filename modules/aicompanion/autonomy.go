@@ -526,13 +526,15 @@ func (m *AICompanionModule) noticeGold(c *controller, mob *mobs.Mob, u *users.Us
 // with its owner. There are two reasons: the owner is moving in secret and
 // a second pair of footsteps would give them away, or the companion is
 // walking after them under her own feet a moment later (followOnFoot). The
-// engine asks this before it moves companions (companionai.HoldPosition).
-func (m *AICompanionModule) holdFollow(userId int) bool {
+// engine asks this before it moves each companion (companionai.HoldPosition),
+// and only the bonded companion this module drives is ever held: any other
+// companion of the same owner answers false and follows as it always has.
+func (m *AICompanionModule) holdFollow(userId int, mobInstanceId int) bool {
 	if !m.cfg.Enabled {
 		return false
 	}
 	c, ok := m.ctrls[userId]
-	if !ok || c.instanceId == 0 {
+	if !ok || c.instanceId == 0 || c.instanceId != mobInstanceId {
 		return false
 	}
 	u := users.GetByUserId(userId)

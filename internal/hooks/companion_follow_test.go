@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -361,4 +362,49 @@ func TestPushCompanionsToRoom_StaleCompanionEntry(t *testing.T) {
 	assert.NotPanics(t, func() {
 		PushCompanionsToRoom(u, 2)
 	})
+}
+
+// TestTransportCompanions_HoldKeepsOnlyTheHeldCompanion verifies that the
+// companionai follow hold is asked per companion: the one it holds stays
+// behind and every other companion of the same owner still follows.
+func TestTransportCompanions_HoldKeepsOnlyTheHeldCompanion(t *testing.T) {
+	cleanup := seedFollowRegistries(t)
+	defer cleanup()
+
+	other := &mobs.Mob{
+		MobId:      10,
+		InstanceId: 201,
+		HomeRoomId: 1,
+		Character: characters.Character{
+			Name:       "Hound",
+			RoomId:     1,
+			Health:     40,
+			Conditions: conditions.New(),
+			Cooldowns:  map[string]int{},
+		},
+	}
+	other.Character.HealthMax.Value = 40
+	mobs.SetInstanceForTest(201, other)
+	defer mobs.SetInstanceForTest(201, nil)
+	rooms.LoadRoom(1).AddMob(201)
+
+	owner := newOwnerWithCompanion(1, 2)
+	owner.Character.Companions = append(owner.Character.Companions,
+		characters.CompanionInfo{InstanceId: 201, Name: "Hound", MobId: 10})
+	cleanupUsers := users.SeedUsersForTest(map[int]*users.UserRecord{1: owner})
+	defer cleanupUsers()
+
+	// Hold instance 200 only, the way the aicompanion module holds its
+	// bonded companion and nothing else.
+	companionai.SetHolder(func(userId int, mobInstanceId int) bool {
+		return userId == 1 && mobInstanceId == 200
+	})
+	defer companionai.SetHolder(nil)
+
+	TransportCompanions(owner, 1, 2)
+
+	assert.Equal(t, 1, mobs.GetInstance(200).Character.RoomId,
+		"the held companion must stay where it was")
+	assert.Equal(t, 2, other.Character.RoomId,
+		"an unheld companion of the same owner must still follow")
 }
