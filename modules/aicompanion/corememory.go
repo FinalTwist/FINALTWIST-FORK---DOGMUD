@@ -95,7 +95,7 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 	now := time.Now().Unix()
 
 	ts := m.settingsFor(tierFast, false)
-	if !m.modelReady(c.ownerUserId) || ts.Model == `` {
+	if !m.consented(c.ownerUserId) || !m.modelReady(c.ownerUserId) || ts.Model == `` {
 		// No model to put words to it: keep the bare fact, which is still
 		// worth more than nothing.
 		text := fmt.Sprintf(`Something changed between %s and me here.`, ownerName)

@@ -599,3 +599,89 @@ func (m *AICompanionModule) cmdAskFor(rest string, user *users.UserRecord, room 
 		Text: `put a question to ` + target.Character.Name + ` about ` + topic, FromOwner: true})
 	return true, nil
 }
+
+// cmdStay is how an owner pins a companion without a conversation:
+// "companion-stay" on its own says where things stand, and "close",
+// "normal" or "free" sets how far they may roam. Saying it in words still
+// works; this is for when the model is not to be relied on, or not
+// available at all.
+func (m *AICompanionModule) cmdStay(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+	if !m.cfg.Enabled {
+		return false, nil
+	}
+	c, ok := m.ctrls[user.UserId]
+	if !ok {
+		user.SendText(messaging.CategorySystem, `You have no companion travelling with you.`)
+		return true, nil
+	}
+	want := strings.ToLower(strings.TrimSpace(rest))
+	switch want {
+	case autonomyClose, autonomyNormal, autonomyFree:
+		c.mind.Autonomy = want
+		c.travel = nil
+		c.dirty = true
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`%s will %s`, c.profile.Name, roamWords(want)))
+	case ``:
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`%s will %s (companion-stay close|normal|free)`, c.profile.Name, roamWords(c.mind.Autonomy)))
+	default:
+		user.SendText(messaging.CategorySystem, `Usage: companion-stay close|normal|free`)
+	}
+	return true, nil
+}
+
+// roamWords says what a roaming level means, in plain terms.
+func roamWords(level string) string {
+	switch level {
+	case autonomyClose:
+		return `stay at your side and go nowhere without you asking`
+	case autonomyFree:
+		return `go about their own business when nothing needs them`
+	}
+	return `stay with you unless you ask them to go somewhere`
+}
+
+// cmdAI is how a player changes their mind about the model after the first
+// meeting: "companion-ai" says where things stand, "on" agrees, "off"
+// stops anything they say from leaving the server. The spoken "i agree" is
+// only read while the question is actually open, so an ordinary
+// conversation cannot flip this by accident; this command is the durable
+// way to set it.
+func (m *AICompanionModule) cmdAI(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+	if !m.cfg.Enabled {
+		return false, nil
+	}
+	rec := m.bonds.Users[user.UserId]
+	if rec == nil {
+		user.SendText(messaging.CategorySystem, `You have no companion travelling with you.`)
+		return true, nil
+	}
+	name := `Your companion`
+	if c, ok := m.ctrls[user.UserId]; ok {
+		name = c.profile.Name
+	}
+	switch strings.ToLower(strings.TrimSpace(rest)) {
+	case `on`, `yes`, `enable`:
+		rec.Consented, rec.Refused = true, false
+		m.saveBonds()
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`(Agreed. What you say to %s, and what happens around you both, is sent to OpenAI to decide what they say, and is kept on this server. "companion-ai off" stops it.)`, name))
+	case `off`, `no`, `disable`:
+		rec.Consented, rec.Refused = false, true
+		m.saveBonds()
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`(Stopped. Nothing you say leaves this server. %s stays with you and answers with a few set lines. "companion-ai on" starts it again.)`, name))
+	case ``:
+		if rec.Consented {
+			user.SendText(messaging.CategorySystem, fmt.Sprintf(
+				`(%s is answering through OpenAI, and what is said is kept on this server. "companion-ai off" stops it. See "help aicompanion".)`, name))
+		} else {
+			user.SendText(messaging.CategorySystem, fmt.Sprintf(
+				`(%s is a plain companion: nothing you say leaves this server. "companion-ai on" changes that. See "help aicompanion".)`, name))
+		}
+	default:
+		user.SendText(messaging.CategorySystem, `Usage: companion-ai on|off`)
+	}
+	return true, nil
+}

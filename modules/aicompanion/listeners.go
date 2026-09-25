@@ -118,6 +118,13 @@ func (m *AICompanionModule) onCommunication(e events.Event) events.ListenerRetur
 			direct = isAddressed(evt.Message, c.profile.Name, fromOwner, others, m.cfg.RespondWhenAlone)
 		}
 
+		// Nothing anyone says is written into her mind until her owner has
+		// agreed that what is said may leave the server. Her memory is the
+		// thing that gets sent, so recording first and gating later is the
+		// same as not gating at all.
+		if !m.consented(c.ownerUserId) {
+			continue
+		}
 		// Speech that was not for her is remembered only when the server
 		// allows it: it is what lets her overhear, and it is also other
 		// people's conversation going to the API.
@@ -181,6 +188,9 @@ func (m *AICompanionModule) onEmote(e events.Event) events.ListenerReturn {
 		speaker := speakerOf(u, mob)
 		direct := mentionsName(text, c.profile.Name)
 		fromOwner := u.UserId == c.ownerUserId
+		if !m.consented(c.ownerUserId) {
+			continue // nothing is written down before they have agreed
+		}
 		if !direct && !m.cfg.RecordBystanderSpeech {
 			continue // other people's business, by the server's choice
 		}
@@ -350,6 +360,9 @@ func (m *AICompanionModule) handleAsk(userId int, mobInstanceId int, text string
 	speaker := speakerOf(u, mob)
 	if u.UserId == c.ownerUserId {
 		m.interruptErrand(c, speaker)
+	}
+	if !m.consented(c.ownerUserId) {
+		return true // heard, answered with set lines, and not written down
 	}
 	askLine := Line{Speaker: speaker, Kind: `asked`, ToMe: true, Text: text, Unix: time.Now().Unix()}
 	c.mind.addLine(askLine, m.cfg.WorkingMemoryLines)

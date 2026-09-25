@@ -424,6 +424,8 @@ func (m *AICompanionModule) registerCommands() {
 	usercommands.RegisterCommand(`companion-court`, m.cmdCourt, false, false, false)
 	usercommands.RegisterCommand(`companion-boundary`, m.cmdBoundary, false, true, false)
 	usercommands.RegisterCommand(`companion-ask`, m.cmdAskFor, false, false, false)
+	usercommands.RegisterCommand(`companion-stay`, m.cmdStay, false, true, false)
+	usercommands.RegisterCommand(`companion-ai`, m.cmdAI, false, true, false)
 
 	// mobcommands.RegisterCommand, not plug.AddMobCommand: the plugin
 	// helper only fills a map that plugins.Load copies into the registry

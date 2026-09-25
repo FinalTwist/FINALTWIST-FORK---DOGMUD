@@ -160,6 +160,8 @@ var userOnlyCommands = map[string]string{
 	"companion-boundary": "module: aicompanion",
 	"companion-court":    "module: aicompanion",
 	"companion-part":     "module: aicompanion",
+	"companion-ai":       "module: aicompanion",
+	"companion-stay":     "module: aicompanion",
 	"companion-unstick":  "module: aicompanion",
 
 	// --- Aliases (remapped to another command, no separate mob equivalent needed) ---

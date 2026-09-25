@@ -97,6 +97,12 @@ func buildReflectionMessages(in reflectionInput) []chatMessage {
 // stays in the module's cache, so if the owner returns before the reply
 // lands, both the new session and the reflection work on the same Mind.
 func (m *AICompanionModule) startReflection(mind *Mind, p *Profile, ownerName string, sessionStart int64) {
+	// Consent covers everything that leaves the server, not only what is
+	// said in the moment: a player who declined must not have their session
+	// posted to OpenAI the instant they log out.
+	if !m.consented(mind.OwnerUserId) {
+		return
+	}
 	if !m.cfg.ReflectOnLogout || !m.modelReady(mind.OwnerUserId) {
 		return
 	}

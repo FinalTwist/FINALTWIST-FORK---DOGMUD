@@ -102,7 +102,7 @@ func (m *AICompanionModule) closeConversation(c *controller, why string) {
 		return
 	}
 
-	if !m.cfg.ConversationSummaries || !m.modelReady(c.ownerUserId) {
+	if !m.cfg.ConversationSummaries || !m.consented(c.ownerUserId) || !m.modelReady(c.ownerUserId) {
 		// No model to sum it up: keep the single best note rather than the
 		// whole exchange.
 		best := Memory{}

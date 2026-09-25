@@ -2015,8 +2015,12 @@ func TestAttackIsOwnerDrivenAndLimited(t *testing.T) {
 	if refusesToFight(p, dummy) {
 		t.Fatal("a practice dummy is a fair target")
 	}
-	if !strings.Contains(capabilityWords(Config{AllowErrands: true}), `attack someone here`) {
+	caps := capabilityWords(Config{AllowErrands: true})
+	if !strings.Contains(caps, `attack someone or something here`) {
 		t.Fatal("the rules must list it, or she will not know she can")
+	}
+	if !strings.Contains(caps, `your own companion asks you to`) {
+		t.Fatal("and must say whose word it takes")
 	}
 }
 

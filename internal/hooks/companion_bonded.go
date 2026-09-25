@@ -30,30 +30,18 @@ import (
 // instead of removing the record. Called from CompanionCleanup.
 func bondedCompanionFell(user *users.UserRecord, comp *characters.CompanionInfo, instanceId int) {
 
-	mob := mobs.GetInstance(instanceId)
-
-	// Keep what was learned this session. saveCompanionState does this at
-	// logout; a death mid-session would otherwise lose it.
-	if mob != nil {
-		snapshotCompanionProgression(comp, mob)
-	}
-
-	// Gear follows the loot rules. PermaGear suppresses the drop, so a
-	// companion under it keeps everything; otherwise the corpse has it all.
-	if mob != nil && mob.Character.HasConditionFlag(conditions.PermaGear) {
-		if len(mob.Character.Items) > 0 {
-			comp.Items = make([]items.Item, len(mob.Character.Items))
-			copy(comp.Items, mob.Character.Items)
-		} else {
-			comp.Items = nil
-		}
-		comp.Equipment = mob.Character.Equipment
-		comp.Gold = mob.Character.Gold
-	} else {
+	// Progression and gear were taken by captureBondedCompanionOnDeath,
+	// while the instance still existed: this event is queued, and the mob
+	// is destroyed synchronously at the death transition. Only if that
+	// capture did not happen (a companion removed by some other path) is
+	// there anything to settle here, and then nothing of the mob survives
+	// to read, so the gear is simply gone with it.
+	if !comp.DiedCaptured {
 		comp.Items = nil
 		comp.Equipment = characters.Worn{}
 		comp.Gold = 0
 	}
+	comp.DiedCaptured = false
 
 	comp.InstanceId = 0
 	user.Character.TrackCharmed(instanceId, false)
@@ -191,4 +179,47 @@ func SnapshotBondedCompanion(userId int) bool {
 		done = true
 	}
 	return done
+}
+
+// captureBondedCompanionOnDeath records what a bonded companion was and had
+// at the moment it died, before the engine drops its loot and destroys the
+// instance. bondedCompanionFell runs from the queued MobDeath event, by
+// which time mobs.GetInstance returns nil, so everything that needs the
+// live mob has to be read here instead.
+func captureBondedCompanionOnDeath(mob *mobs.Mob) {
+	if mob == nil || !mob.Character.IsCharmed() {
+		return
+	}
+	user := users.GetByUserId(mob.Character.GetCharmedUserId())
+	if user == nil || user.Character == nil {
+		return
+	}
+	for i := range user.Character.Companions {
+		comp := &user.Character.Companions[i]
+		if comp.SourceType != characters.CompanionBonded || comp.InstanceId != mob.InstanceId {
+			continue
+		}
+		// What it learned this session is kept whatever happens to its gear.
+		snapshotCompanionProgression(comp, mob)
+
+		// Gear follows the ordinary companion rules: the corpse takes it,
+		// unless PermaGear suppressed the drop, in which case it keeps
+		// everything it was carrying.
+		if mob.Character.HasConditionFlag(conditions.PermaGear) {
+			if len(mob.Character.Items) > 0 {
+				comp.Items = make([]items.Item, len(mob.Character.Items))
+				copy(comp.Items, mob.Character.Items)
+			} else {
+				comp.Items = nil
+			}
+			comp.Equipment = mob.Character.Equipment
+			comp.Gold = mob.Character.Gold
+		} else {
+			comp.Items = nil
+			comp.Equipment = characters.Worn{}
+			comp.Gold = 0
+		}
+		comp.DiedCaptured = true
+		return
+	}
 }

@@ -87,6 +87,13 @@ type CompanionInfo struct {
 	// companion kinds keep the historical behaviour of not carrying money
 	// across a logout.
 	Gold int `yaml:"gold,omitempty"`
+	// DiedCaptured marks that this companion's gear and progression were
+	// taken at the moment it died, while its mob instance still existed.
+	// The death event is queued and the instance is destroyed before it is
+	// handled, so without this the handler cannot tell "already settled"
+	// from "nothing to settle". Not saved: it lives only between the death
+	// and the event that follows it.
+	DiedCaptured bool `yaml:"-"`
 }
 
 // GetCompanion finds a companion by name (case-insensitive partial match).

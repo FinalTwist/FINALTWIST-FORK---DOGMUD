@@ -250,12 +250,17 @@ func (m *AICompanionModule) confirmPart(c *controller, owner *users.UserRecord) 
 const consentPhrase = `i agree`
 const refusePhrase = `i decline`
 
+// consentWindowSeconds is how long the question stays open after it is put.
+// Outside it, and once it has been answered either way, those words are
+// just words: the answer is only read when the question is on the table.
+const consentWindowSeconds = 600
+
 // consentQuestion is what she puts to a new companion, in brackets, as
 // plainly as it can be put.
 func consentQuestion(name string) string {
 	return fmt.Sprintf(
-		`(%s is driven by OpenAI. If you agree, what you say to %s, and what happens around you both, is sent to OpenAI to decide what %s says, and is kept on this server where administrators can read it. Say "%s" to agree, or "%s" to keep %s as a plain companion: they will still travel with you, fight beside you and answer with a few set lines, and nothing you say will be sent anywhere.)`,
-		name, name, name, consentPhrase, refusePhrase, name)
+		`(%s is driven by OpenAI. If you agree, what you say to %s, and what happens around you both, is sent to OpenAI to decide what %s says, and is kept on this server where administrators can read it. %s forms an opinion of you over time, and if you travel together long enough that may include becoming close to you, which only ever moves at your word. Say "%s" now to agree, or "%s" to keep %s as a plain companion: they will still travel with you, fight beside you and answer with a few set lines, and nothing you say will be sent anywhere. You can change your mind later with "companion-ai on" or "companion-ai off"; the question itself is only asked this once.)`,
+		name, name, name, name, consentPhrase, refusePhrase, name)
 }
 
 // consented reports whether this owner has agreed to the model being used
@@ -275,18 +280,27 @@ func (m *AICompanionModule) answerConsent(c *controller, u *users.UserRecord, sa
 	if !m.cfg.RequireConsent || m.consented(u.UserId) {
 		return false
 	}
-	answer := strings.ToLower(strings.TrimSpace(said))
-	answer = strings.Trim(answer, `."!,`)
 	rec := m.bonds.Users[u.UserId]
 	if rec == nil {
 		return false
 	}
+	// These words only mean anything while the question is actually open:
+	// asked, not yet answered, and answered soon. Otherwise "I agree" is an
+	// ordinary thing to say to someone, and a player would find their own
+	// conversation quietly swallowed by a settings prompt. Changing their
+	// mind later is what companion-ai is for.
+	if rec.Consented || rec.Refused || rec.AskedAt == 0 ||
+		time.Now().Unix()-rec.AskedAt > consentWindowSeconds {
+		return false
+	}
+	answer := strings.ToLower(strings.TrimSpace(said))
+	answer = strings.Trim(answer, `."!,`)
 	switch answer {
 	case consentPhrase:
 		rec.Consented, rec.Refused = true, false
 		m.saveBonds()
 		u.SendText(messaging.CategorySystem, fmt.Sprintf(
-			`(Agreed. %s will answer in their own words from here on. "companion-part" ends it at any time.)`, c.profile.Name))
+			`(Agreed. %s will answer in their own words from here on. "companion-ai off" stops it at any time, and "companion-part" ends the companionship altogether.)`, c.profile.Name))
 		c.push(stimulus{Kind: `first_meeting`, Text: m.meetingPlace[u.UserId], FromOwner: true})
 		delete(m.meetingPlace, u.UserId)
 		return true
@@ -294,8 +308,8 @@ func (m *AICompanionModule) answerConsent(c *controller, u *users.UserRecord, sa
 		rec.Refused, rec.Consented = true, false
 		m.saveBonds()
 		u.SendText(messaging.CategorySystem, fmt.Sprintf(
-			`(Understood. %s stays with you as a plain companion, and nothing you say is sent anywhere. Say "%s" later if you change your mind.)`,
-			c.profile.Name, consentPhrase))
+			`(Understood. %s stays with you as a plain companion, and nothing you say is sent anywhere. Use "companion-ai on" if you ever change your mind.)`,
+			c.profile.Name))
 		return true
 	}
 	return false
