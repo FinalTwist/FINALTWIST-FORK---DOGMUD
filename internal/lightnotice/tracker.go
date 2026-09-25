@@ -2,9 +2,15 @@ package lightnotice
 
 import (
 	"math"
+	"sync"
 
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/state/perception"
+	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
 // Trigger names why a check is running, which decides what it may announce.
@@ -147,4 +153,99 @@ func skyMoved(a, b float64) bool {
 		return aAbsent != bAbsent
 	}
 	return math.Abs(a-b) > 1e-9
+}
+
+// Per-player state, in memory only: cleared on logout, never saved.
+var (
+	mu      sync.Mutex
+	records = map[int]record{}
+)
+
+// Check compares the player's current band with the last one recorded for
+// them and, if the trigger's rule allows, sends one notice.
+func Check(user *users.UserRecord, trigger Trigger) {
+	if user == nil || user.Character == nil {
+		return
+	}
+	room := rooms.LoadRoom(user.Character.RoomId)
+	if room == nil {
+		return
+	}
+	now := observe(user.Character, room)
+
+	mu.Lock()
+	prev, known := records[user.UserId]
+	n, speak, next := decide(prev, known, now, trigger)
+	records[user.UserId] = next
+	mu.Unlock()
+
+	if !speak {
+		return
+	}
+	if text, ok := line(n.cause, n.transition, n.indoor, nil); ok {
+		user.SendText(messaging.CategoryLight, text)
+	}
+}
+
+// NoteAttention marks a sleeping or blinded player so the first check after
+// they wake or see again records silently. It computes no light and sends no
+// text, so it is cheap enough to run for every player every round. It is the
+// seam for waking: sleep ends at many hand-rolled sites and by expiry, and no
+// event announces it.
+func NoteAttention(user *users.UserRecord) {
+	if user == nil || user.Character == nil || !inattentive(user.Character) {
+		return
+	}
+	mu.Lock()
+	r := records[user.UserId]
+	r.quiet = true
+	records[user.UserId] = r
+	mu.Unlock()
+}
+
+// Forget drops a player's record, at logout.
+func Forget(userId int) {
+	mu.Lock()
+	delete(records, userId)
+	mu.Unlock()
+}
+
+// ResetForTest unloads the store and clears every record.
+func ResetForTest() {
+	mu.Lock()
+	records = map[int]record{}
+	mu.Unlock()
+	loaded = nil
+}
+
+func inattentive(c *characters.Character) bool {
+	return c.HasConditionFlag(conditions.Sleeping) ||
+		(c.Perception != nil && c.Perception.State() == perception.Blinded)
+}
+
+// fixedLight hands LightBand the level LightTerms already computed, so band
+// and terms come from one computation rather than two.
+type fixedLight int
+
+func (l fixedLight) LightLevel() int { return int(l) }
+
+func observe(c *characters.Character, room *rooms.Room) observation {
+	terms := room.LightTerms()
+	indoor := false
+	if b := room.GetBiome(); b != nil {
+		indoor = b.Indoor
+	}
+	cfg := configs.GetLightingConfig()
+	strength, reach := c.NightVisionStrength(), c.InfraReach()
+	return observation{
+		roomId:  room.RoomId,
+		band:    messaging.LightBand(c, fixedLight(terms.Level)),
+		terms:   terms,
+		indoor:  indoor,
+		asleep:  c.HasConditionFlag(conditions.Sleeping),
+		blinded: c.Perception != nil && c.Perception.State() == perception.Blinded,
+		bandAt: func(light int) messaging.Band {
+			return messaging.BandThroughWindow(light, strength, reach, cfg.BlindBelow, cfg.DimBelow)
+		},
+	}
 }

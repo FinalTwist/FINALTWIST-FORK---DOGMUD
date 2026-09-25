@@ -216,6 +216,3 @@ func line(c Cause, tr Transition, indoor bool, pick narration.Picker) (string, b
 
 // setStoreForTest installs a store directly. Test-only by name.
 func setStoreForTest(m map[string]*CauseGroup) { loaded = m }
-
-// ResetForTest unloads the store.
-func ResetForTest() { loaded = nil }
