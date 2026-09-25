@@ -3,6 +3,7 @@ package rooms
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -13,12 +14,15 @@ import (
 // has been reclassified into a tier (`city_thoroughfare`, `city_backstreet`,
 // `interior`, `dungeon`, ...), and every zone-config that defaulted new rooms
 // to `city` now defaults to `city_backstreet`. `city.yaml` no longer exists,
-// so a stray reference here would leave a room or a whole zone falling back
-// onto a biome the game cannot load.
+// and an unknown biome does not fail at boot: the room silently falls back to
+// the synthetic `default` biome. This guard is the only thing that says so.
 //
-// Reads files as text and matches the exact anchored lines `biome: city` and
-// `defaultbiome: city`, so `city_backstreet` / `city_thoroughfare` never
-// match: those are the tiers this guard exists to protect.
+// Reads files as text and matches any line that YAML would read as the value
+// `city` (trailing spaces, quotes and a trailing comment included), anchored
+// so `city_backstreet` / `city_thoroughfare` never match: those are the tiers
+// this guard exists to protect.
+var cityBiomeLine = regexp.MustCompile(`^(default)?biome:\s*["']?city["']?\s*(#.*)?$`)
+
 func TestNoDogmudRoomOrZoneDefaultsToCityBiome(t *testing.T) {
 	root := "../../_datafiles/world/dogmud/rooms"
 
@@ -42,13 +46,14 @@ func TestNoDogmudRoomOrZoneDefaultsToCityBiome(t *testing.T) {
 		}
 		rel = filepath.ToSlash(rel)
 
-		for _, line := range strings.Split(string(b), "\n") {
-			line = strings.TrimRight(line, "\r")
-			switch line {
-			case "biome: city":
-				badRooms = append(badRooms, rel)
-			case "defaultbiome: city":
+		for line := range strings.SplitSeq(string(b), "\n") {
+			m := cityBiomeLine.FindStringSubmatch(strings.TrimRight(line, "\r"))
+			switch {
+			case m == nil:
+			case m[1] == "default":
 				badZones = append(badZones, rel)
+			default:
+				badRooms = append(badRooms, rel)
 			}
 		}
 		return nil
