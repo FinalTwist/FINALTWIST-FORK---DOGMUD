@@ -202,9 +202,11 @@ func (m *AICompanionModule) leave(c *controller, owner *users.UserRecord, why st
 		return
 	}
 	now := time.Now().Unix()
-	c.mind.addMemory(Memory{Unix: now, Kind: `event`, Text: `I parted ways with ` + owner.Character.Name + `. ` + why,
-		Importance: 9, Emotion: `sadness`, People: []string{owner.Character.Name}}, m.cfg.MaxMemories)
-	c.dirty = true
+	if m.mayRemember(c) {
+		c.mind.addMemory(Memory{Unix: now, Kind: `event`, Text: `I parted ways with ` + owner.Character.Name + `. ` + why,
+			Importance: 9, Emotion: `sadness`, People: []string{owner.Character.Name}}, m.cfg.MaxMemories)
+		c.dirty = true
+	}
 	profileId := c.profile.Id
 	if _, err := m.unbond(owner, `turns and walks away without looking back.`); err != nil {
 		mudlog.Error(`aicompanion`, `action`, `leave`, `owner`, owner.UserId, `error`, err)
@@ -239,8 +241,10 @@ func (m *AICompanionModule) requestLeave(c *controller, owner *users.UserRecord,
 	c.leaveAskedAt = time.Now().Unix()
 	c.leaveWhy = why
 	c.mind.Autonomy = autonomyClose
-	c.mind.addLine(Line{Kind: `event`, Text: `You told ` + owner.Character.Name + ` you would go, and hung back to see if they meant it.`},
-		m.cfg.WorkingMemoryLines)
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Kind: `event`, Text: `You told ` + owner.Character.Name + ` you would go, and hung back to see if they meant it.`},
+			m.cfg.WorkingMemoryLines)
+	}
 	c.dirty = true
 	owner.SendText(messaging.CategorySystem, fmt.Sprintf(
 		`(If you truly want %s to leave for good, type <ansi fg="command">companion-part</ansi> within %d minutes. Otherwise just carry on; they will stay.)`,

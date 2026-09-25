@@ -2068,6 +2068,9 @@ func consentModule(askedAgo int64) (*AICompanionModule, *controller) {
 	profiles, _ := loadProfiles()
 	p := profiles[`mara`]
 	m := &AICompanionModule{cfg: buildConfig(nil), bonds: bondState{Users: map[int]*bondRecord{}}}
+	// A developer's own OPENAI_API_KEY must never turn a test into a real,
+	// paid call: no key unless a test sets one.
+	m.cfg.APIKeyEnv = `AICOMPANION_TEST_KEY_NEVER_SET`
 	m.cfg.RequireConsent = true
 	m.bonds.Users[1] = &bondRecord{Profile: `mara`, Met: true, AskedAt: time.Now().Unix() - askedAgo}
 	m.syncConsent()

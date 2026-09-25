@@ -133,6 +133,19 @@ func TestNothingNamingAnyoneIsWrittenBeforeConsent(t *testing.T) {
 			w.c.apartSince = 1
 			w.m.headBack(w.c, w.her, w.owner, 50)
 		}, ``},
+		{`back beside her owner`, func(t *testing.T, w *consentWorld) {
+			w.c.travel = &travelPlan{Purpose: `return`, DestName: `Corvin`}
+			w.m.advanceTravel(w.c, w.her, w.owner, 50)
+		}, ``},
+		{`parting ways`, func(t *testing.T, w *consentWorld) {
+			w.m.leave(w.c, w.owner, `It was time.`)
+		}, ``},
+		{`asking to leave`, func(t *testing.T, w *consentWorld) {
+			w.m.requestLeave(w.c, w.owner, `It was time.`)
+		}, ``},
+		{`a line drawn at friendship`, func(t *testing.T, w *consentWorld) {
+			w.m.setBoundary(w.c, `friendship`)
+		}, `romance_no`},
 	}
 	for _, p := range paths {
 		t.Run(p.name, func(t *testing.T) {

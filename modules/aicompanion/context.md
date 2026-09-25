@@ -34,8 +34,10 @@ Roadmap and phase plan: `docs/aicompanion/`.
   answers with set lines. The same holds for every deed with a person's
   name in it (`mayRemember`, meeting.go): a gift, gold, an attack,
   healing, a witnessed crime, being called back, an errand interrupted,
-  a party change, the first meeting (`firstMet`), a fall, a fight's end,
-  her owner falling, the walk back; the stimulus is still queued and the
+  a party change, the first meeting (`firstMet`; agreeing later writes it
+  then, `keepFirstMeeting`), a fall, a fight's end, her owner falling,
+  the walk back and reaching them, parting ways, asking to leave, and a
+  core memory (`recordCore`); the stimulus is still queued and the
   owner's own rules (a gift's warmth, an attack's cost) still apply. Anything a passer-by aims at her (speech to
   her, `ask`, an emote, a gift, healing) is heard and remembered as usual
   but queued only if `strangerMayAsk` passes (their daily allowance,

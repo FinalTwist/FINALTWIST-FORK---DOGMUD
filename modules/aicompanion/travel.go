@@ -160,7 +160,9 @@ func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *u
 			if owner != nil && owner.Character != nil {
 				name = owner.Character.Name
 			}
-			c.mind.addLine(Line{Kind: `event`, Text: `You made your way back to ` + name + `.`}, m.cfg.WorkingMemoryLines)
+			if m.mayRemember(c) {
+				c.mind.addLine(Line{Kind: `event`, Text: `You made your way back to ` + name + `.`}, m.cfg.WorkingMemoryLines)
+			}
 			return
 		}
 		here := p.DestName

@@ -84,6 +84,11 @@ func coreSchema() map[string]any {
 // recordCore asks the model what just happened and keeps the answer for
 // good. Called when the romance between them moves either way.
 func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage string, positive bool) {
+	// A core memory names her owner, so, as with every deed, nothing is
+	// written before they have agreed (mayRemember).
+	if !m.mayRemember(c) {
+		return
+	}
 	mob := mobs.GetInstance(c.instanceId)
 	place, placeId := ``, 0
 	if mob != nil {
