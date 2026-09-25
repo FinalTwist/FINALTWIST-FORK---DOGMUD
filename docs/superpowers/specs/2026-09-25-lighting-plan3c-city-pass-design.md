@@ -2,7 +2,7 @@
 
 Owner-approved design, 2026-09-25. Parent spec:
 `docs/superpowers/specs/2026-09-22-graded-room-lighting-design.md`. Follows
-plan 3b (`docs/superpowers/specs/2026-09-23-lighting-plan3b-biome-vocabulary-design.md`),
+plan 3b (`docs/superpowers/specs/completed/2026-09-23-lighting-plan3b-biome-vocabulary-design.md`),
 which handed this plan three items in its "Out of scope" section: the
 main-street versus back-lane split, roughly 50 mis-biomed city interiors, and
 `fort`'s split between open and roofed rooms.

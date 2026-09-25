@@ -12,7 +12,7 @@
 # against it would die long before it reached this directory.
 #
 # Do not edit these to match dogmud. See
-# docs/superpowers/specs/2026-09-16-messaging-m3-item8-combat-messages-design.md
+# docs/superpowers/specs/completed/2026-09-16-messaging-m3-item8-combat-messages-design.md
 # Possible tokens: 
 # {itemname}    - name of weapon/object e.g. 'sword'
 # {actor}      - name of mob or user e.g. 'goblin'

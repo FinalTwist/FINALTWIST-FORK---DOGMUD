@@ -1448,7 +1448,7 @@ Verify every symbol you name exists (`Select-String -Path internal\gossip\*.go -
 
 - [ ] **Step 3: Existing context files**: `internal/hooks/context.md`: every mention of `BroadcastHints`, `HandleLookHints`, `hints.yaml` or the gossip loader updated to the new names and stores (grep the file first). `internal/migration/context.md`: add 0.18.0 in the file's existing per-version format. `internal/narration/context.md`: add `internal/gossip/gossip.go` to the Kind A callers and `gossip.golden`, `tips.golden` to the goldens list.
 
-- [ ] **Step 4: Arc spec**: in `2026-08-31-messaging-unification-design.md`, append to M3 table row 7's "What it proves" cell: ` **Ruled 2026-09-15:** conversations are not migrated (speakers of a sequence through say, not audiences of one moment); gossip joins the core; hints becomes tips. See [the item 7 spec](2026-09-15-messaging-m3-item7-gossip-tips-design.md).`
+- [ ] **Step 4: Arc spec**: in `2026-08-31-messaging-unification-design.md`, append to M3 table row 7's "What it proves" cell: ` **Ruled 2026-09-15:** conversations are not migrated (speakers of a sequence through say, not audiences of one moment); gossip joins the core; hints becomes tips. See [the item 7 spec](../../specs/completed/2026-09-15-messaging-m3-item7-gossip-tips-design.md).`
 
 - [ ] **Step 5: Patch note**: at the top of `docs/PATCH_NOTES.md` under the title:
 

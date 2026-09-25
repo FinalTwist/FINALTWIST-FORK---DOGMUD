@@ -16,7 +16,7 @@ content change, no change to `engine.EmitAmbient`.
 harness (`package narration_test`, external, so importing the weather module
 back is also cycle-free).
 
-Spec: [`docs/superpowers/specs/2026-09-16-messaging-m3-item9-weather-emotes-design.md`](../specs/2026-09-16-messaging-m3-item9-weather-emotes-design.md)
+Spec: [`docs/superpowers/specs/2026-09-16-messaging-m3-item9-weather-emotes-design.md`](../../specs/completed/2026-09-16-messaging-m3-item9-weather-emotes-design.md)
 
 ---
 

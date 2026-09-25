@@ -17,7 +17,7 @@ the entire sim side stay untouched.
 **Tech Stack:** Go, `gopkg.in/yaml.v2` (`,inline` on an embedded struct), the
 `internal/narration` snapshot harness.
 
-Spec: [`docs/superpowers/specs/2026-09-16-messaging-m3-item9-weather-emotes-design.md`](../specs/2026-09-16-messaging-m3-item9-weather-emotes-design.md)
+Spec: [`docs/superpowers/specs/2026-09-16-messaging-m3-item9-weather-emotes-design.md`](../../specs/completed/2026-09-16-messaging-m3-item9-weather-emotes-design.md)
 Depends on: [PR 1](2026-09-16-messaging-m3-item9-weather-core-join.md), which must be merged first.
 
 ---
