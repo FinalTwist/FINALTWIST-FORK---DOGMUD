@@ -180,3 +180,35 @@ Each test is shown able to fail before it is trusted.
   2026-09-25: plan 6.
 - Notices for mobs, and for players watching OTHER players' light change
   (for example "Bram's lantern goes out"): not requested.
+
+## Corrections during implementation (2026-09-25)
+
+- **Fact 3 is wrong.** It claimed a normal observer is never dazzled today,
+  natural light peaking at 73 against every authored lamp topping out at 52.
+  Two measured cases beat both numbers without any vision ability: a carried
+  light outdoors near midsummer noon (sky about 73.7 plus the carried term 50
+  combine to about 75.1) and a `city_thoroughfare` near midsummer noon (sky
+  73.1 plus lamp 52 combine to 75). The owner ruled this intended: "they
+  should have used the spell or a hooded lantern that adjusts; it makes the
+  lantern actually valuable." Every dazzle line shipped in `sky.yaml`,
+  `carried.yaml` and `lamp.yaml` reads true for any observer, not only one
+  whose ability shifted their window down. This also corrects the celestial
+  amendment's "natural daylight never dazzles" claim: the sky ALONE never
+  reaches 75, but its combine with a carried light or a thoroughfare lamp
+  does.
+- **The waking seam this spec assumed does not exist.** Sleep and blindness
+  end at eleven hand-rolled call sites plus condition expiry, and no single
+  event announces either. `internal/lightnotice.NoteAttention`, called from a
+  per-round `NewRound` sweep over every online player, replaced the single
+  seam the design implied: it reads two flags per player and marks their
+  record `quiet`, so the next attentive check resyncs silently without
+  computing light every round.
+- **The eyes attribution is a counterfactual, not a direction test.** The
+  design's intent ("the observer's sight changed, not the light") is
+  unchanged, but the mechanism is: `attribute` asks whether the OLD light,
+  read through the observer's CURRENT sight, already gives the NEW band,
+  checked BEFORE the light terms. A plain direction test (did the light move
+  the way the band moved) was tried first and shipped a real defect: the sky
+  drifts almost every round, and when it drifts the same direction as an
+  eyes-caused change, a direction test blames the sky for a change the
+  observer's own sight already explains (fixed in `9e03c4e20`).

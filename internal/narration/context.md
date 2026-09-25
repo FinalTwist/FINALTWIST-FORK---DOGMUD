@@ -22,7 +22,7 @@ package must never import (see Gotchas).
 | `picker_test.go` | Unit tests for the two pickers. |
 | `render_test.go` | Unit tests for the core, including the coordinated-index probe. |
 | `snapshot_test.go` | The M1 harness: golden snapshots of the message stores, raw and post-pipeline. |
-| `testdata/stores/` | Those goldens: 15 files, one per store plus the post-pipeline snapshot. |
+| `testdata/stores/` | Those goldens: 17 files, one per store plus the post-pipeline snapshot (`light_notices.golden`, lighting plan 3d, is the most recent addition; see the correction under `position_control.golden` below). |
 
 ## Public API
 
@@ -97,10 +97,12 @@ behaviour change and belonged to M4, not to this package.
 `internal/items` (defence and combat-message stores), `internal/itemvoices`,
 `internal/spells` (casting), `internal/combat` (taunt),
 `internal/grapplemessaging`, `internal/gossip` (gossip template pools, single
-role). Any store that wants deterministic selection under snapshot, or
-coordinated multi-role rendering. `internal/textutil` (the door for the
-condition, spell, quest and crafting stores, which do not call `Render`
-themselves).
+role), `internal/movenarration` (special moves), `internal/lightnotice`
+(lighting plan 3d's transition notices, single role, `line()` calls
+`narration.Render` directly with a nil picker). Any store that wants
+deterministic selection under snapshot, or coordinated multi-role
+rendering. `internal/textutil` (the door for the condition, spell, quest
+and crafting stores, which do not call `Render` themselves).
 
 ## The two-tier loader policy (messaging M4b-1)
 
@@ -258,16 +260,39 @@ row `tip|<index> => <text>` in file order, read through `tips.Load` and
 store's real API end to end rather than re-implementing the pre-store logic,
 because the stores existed before either golden was recorded.
 
-**`position_control.golden` (M4a) is the fifteenth golden, and the store it
-covers had none at all before the token flip needed a net.**
-`_datafiles/messages/position_control.yaml` is numbered Store 15 in
-`snapshot_test.go` and was the last store in the arc to gain a snapshot. It was
-recorded from PRE-migration code, the local `substitute` in
-`internal/hooks/Position_Messaging.go`, looping over the three separate
-authored name vocabularies the file used to carry. Its `gradient_messages` and
-`transition_messages` blocks have NO Go reader today, so those rows guard the
-DATA rather than a render path: a row deleted there would be invisible to every
-other test in the repo.
+**`position_control.golden` (M4a) was the fifteenth golden when it was
+recorded, and the store it covers had none at all before the token flip
+needed a net.** `_datafiles/messages/position_control.yaml` is numbered
+Store 15 in `snapshot_test.go` and was the last store in the messaging arc
+to gain a snapshot. It was recorded from PRE-migration code, the local
+`substitute` in `internal/hooks/Position_Messaging.go`, looping over the
+three separate authored name vocabularies the file used to carry. Its
+`gradient_messages` and `transition_messages` blocks have NO Go reader
+today, so those rows guard the DATA rather than a render path: a row
+deleted there would be invisible to every other test in the repo.
+
+**Corrected 2026-09-25: "fifteenth" is no longer the count, it is a
+historical fact about when this golden was added.** Two more stores have
+gained snapshots since: `special_moves.golden` (messaging M4e) and
+`light_notices.golden` (lighting plan 3d, below), bringing
+`testdata/stores/` to 17 files and `TestSnapshotStores` to 17 subtests.
+`snapshot_test.go`'s own `// Store N` comments now carry a duplicate: both
+`position_control` and `special_moves` are commented `Store 15`, and
+`light_notices` carries no number at all. That is a pre-existing label
+drift in the test file's comments, not a bug in what the goldens cover;
+verify a store count by listing `testdata/stores/` or counting
+`t.Run(` calls in `TestSnapshotStores`, never by reading a `// Store N`
+comment.
+
+**`light_notices.golden` (lighting plan 3d) freezes every line of every
+`internal/lightnotice` cause, transition and setting, at every index.**
+Built by `buildLightNoticesGolden`, keyed
+`<cause>|<transition>|<setting>|<index> => <line>` where `setting` is
+`any`, `outdoor` or `indoor`. Unlike the Kind B goldens above, it reads the
+shipped YAML straight through `fileloader.LoadAllFlatFiles` and
+`lightnotice.Causes()`/`Transitions()`, the store's own public vocabulary,
+rather than re-implementing pre-migration logic, because the store and this
+golden were born together in the same plan.
 
 **`Substitute` is the only NARRATION token engine, and a root guard says so.**
 `token_engine_guard_test.go` (repo root) parses every non-test Go file under

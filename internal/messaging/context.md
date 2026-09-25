@@ -20,8 +20,10 @@ the recipient's connection.
 5. **Apply category color tag** — `<ansi fg="<category-alias>">…</ansi>`.
 6. **Wrap** at recipient's `UserRecord.LineWidth` (default 80, range
    40-240), ANSI-aware, but only for the narration categories
-   `shouldWrap` admits (44 of the 61 `Category` values as of this
-   writing). Pre-formatted output is excluded by category: mixed
+   `shouldWrap` admits (45 of the 62 `Category` values as of this
+   writing, `CategoryLight` among them: lighting plan 3d's transition
+   notices wrap exactly as `CategoryTimeOfDay` does). Pre-formatted
+   output is excluded by category: mixed
    buckets that mix refusals or chat with tables, ASCII art or a
    banner (`System`, `Broadcast`, `Splash`, `SkillProgress`), the
    side-by-side minimap block (`RoomDescription`), categories that
@@ -48,7 +50,7 @@ full per-recipient pipeline.
 
 Types and constants:
 
-- `Category` — enum of 61 text classes (combat hits, defense, grapple,
+- `Category` — enum of 62 text classes (combat hits, defense, grapple,
   submissions, specials, spells by school, social, system, environment,
   loot/equipment/condition/mutation/toxin; plus `CategoryCombatSummary` for
   the per-round compact tally emitted by the light-verbosity path, and
@@ -65,6 +67,14 @@ Types and constants:
   same one-declaration constants messaging M4b-2 gave `internal/combat`,
   `internal/characters` and `internal/items` (see
   `internal/combatvocab/context.md`).
+- `CategoryLight` — lighting plan 3d's transition notices (when a room's
+  light crosses a band for a given observer), sent by
+  `internal/lightnotice`. Appended AFTER `CategoryToxin` rather than grouped
+  beside `CategoryTimeOfDay`, so no existing `Category` value shifts, but
+  treated exactly as `CategoryTimeOfDay` everywhere that matters: it wraps
+  (`shouldWrap`), skips the same normalisation stages (`normalize.go`'s
+  skip table), and no verbosity tier suppresses it. Alias `light` in
+  `ansi-aliases.yaml`, value 179.
 - `Verbosity`, `ParseVerbosity`, `(Verbosity).Suppresses` — combat-text
   verbosity primitives in `verbosity.go`. The allowlists
   (`suppressibleAtMedium`, `suppressibleAtLight`) declare which
@@ -132,6 +142,30 @@ Functions:
   decision; see the window-model description under `ParticipantSight`
   below. No locks, no global state, no config read: its caller owns
   fetching `blindBelow`/`dimBelow` from `Balance`.
+- `clampShift(strength int) int` (`window.go`): bounds an ability's window
+  shift to `[0, windowShiftCap]`. Shared by `SightThroughWindow` and
+  `BandThroughWindow` (added lighting plan 3d, `band.go`) so the two can
+  never clamp differently.
+- `Band` (`band.go`), added lighting plan 3d: one step finer than
+  `SightDecision`, splitting full sight into reading faces and being
+  dazzled. `BandDark`, `BandShapes`, `BandFaces`, `BandDazzled`, ordered
+  DARKEST TO BRIGHTEST (the opposite of `SightDecision`'s best-to-worst
+  order), because the one consumer (`internal/lightnotice`) asks "did it
+  get darker?" and an ordered comparison should read that way. Dazzled
+  carries no penalty yet: an observer there reads fully; plan 5 gives it
+  teeth.
+  - `BandThroughWindow(light, strength, reach, blindBelow, dimBelow int) Band`
+    is `SightThroughWindow` with the full tier split at the observer's
+    shifted dazzle edge (`windowDazzleEdge` minus the clamped `strength`).
+    It never moves a lower edge: dark, shapes and faces-or-dazzled are
+    still `SightThroughWindow`'s answers. This is the first reader of
+    `windowDazzleEdge`; see the correction below `ParticipantSight`.
+  - `LightBand(observer *characters.Character, room RoomVisibility) Band`
+    is `ParticipantSight`'s band-grained twin: optics only, does not
+    consult sleep, a `Blinded` observer reads `BandDark`, a nil observer
+    or room reads `BandFaces`. Reads the narrow `configs.GetLightingConfig()`
+    rather than the 400-field `Balance` copy `ParticipantSight` takes; both
+    carry the same two edges.
 - `ParticipantSight(observer *characters.Character, room RoomVisibility) SightDecision`
   is THE optics primitive, added M4d (`01bbee127`). It answers what an
   observer can make out and nothing else — blindness, room light,
@@ -162,12 +196,17 @@ Functions:
   (`Character.InfraReach()`, the separate heat-sensing number) reads
   anything, and only within `reach` points below zero, which is what lets
   a heat-sensing creature act in darkness a nightvision-only observer
-  cannot parse at all. The unexported `windowDazzleEdge` (75) is declared
-  but not yet consulted by any branch: it marks where the perfect band
-  ends and too-bright begins, reserved for a future plan's dazzle
-  penalty. It is a constant, not a `Balance` knob, on purpose: plan 1's
-  rule is that a config knob nothing reads does not ship, and nothing
-  reads this one yet.
+  cannot parse at all. The unexported `windowDazzleEdge` (75) marks where
+  the perfect band ends and too-bright begins. `SightThroughWindow` itself
+  still never consults it: `SightDecision` has no dazzled value, so a
+  return of `SightFull` at or above the edge carries no mechanical penalty
+  today, and none is due until plan 5. It is a constant, not a `Balance`
+  knob, on purpose: plan 1's rule is that a config knob nothing reads does
+  not ship. **Corrected 2026-09-25**: this file previously said nothing
+  read `windowDazzleEdge` at all; lighting plan 3d's `BandThroughWindow`
+  (`band.go`, see above) now reads it to compute `Band`, so a light-crossing
+  notice can tell a player the light stabs at their eyes, even though the
+  edge still changes no `SightDecision`.
 
   🔴 **Structural fact worth knowing before reading a bug into it:** with
   `windowShiftCap` at 24 and `LightDimBelow` at 50, no ability can shift
@@ -338,7 +377,8 @@ The package is the pipeline, one stage per file, plus the fan-out (`trio.go`):
 | `hidenames_tagged.go` | Identity-tag-aware name replacement `HideNames` and `Anonymize` share, including the trailing adjective span |
 | `wrap.go` | `WrapAnsi`, ANSI-aware folding at a caller-supplied width measured in visible runes; called by the pipeline for the categories `shouldWrap` admits, and directly by `motd.go` for its box-bordered banner |
 | `predicates.go` | `ParticipantSight` (the optics primitive) plus `CanSeeClearly`/`CanSeeShapes`/`CanSeeSightImpairedOnly`, the one-line attention policies built on it |
-| `window.go` | `SightThroughWindow`, the pure window-model function `ParticipantSight` calls, plus its three unexported constants (`windowDazzleEdge`, `windowShiftCap`, `windowFloor`) |
+| `window.go` | `SightThroughWindow`, the pure window-model function `ParticipantSight` calls, `clampShift`, plus its three unexported constants (`windowDazzleEdge`, `windowShiftCap`, `windowFloor`) |
+| `band.go` | `Band`, `BandThroughWindow`, `LightBand` (lighting plan 3d): the band-grained twin of `SightDecision`/`SightThroughWindow`/`ParticipantSight`, adding the dazzled tier for `internal/lightnotice` |
 | `verbosity.go` | Per-player verbosity filtering |
 | `trio.go` | `Line`/`Trio`/`Audience`/`SendTrio` — fan-out of one narrated event to its four audiences |
 
