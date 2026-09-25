@@ -204,6 +204,18 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 				}
 				targetMobInstanceIds = append(targetMobInstanceIds, mId)
 			} else if pId > 0 {
+				// PvP check, as HarmSingle makes it: a named person is a
+				// player target whatever the spell's shape.
+				if actor.IsPlayer() {
+					casterUser := users.GetByUserId(actor.GetUserId())
+					targetUser := users.GetByUserId(pId)
+					if casterUser != nil && targetUser != nil {
+						if pvpErr := room.CanPvp(casterUser, targetUser); pvpErr != nil {
+							actor.SendText(messaging.CategorySystem, pvpErr.Error())
+							return CastResult{SpellInfo: spellInfo, NoTarget: true}
+						}
+					}
+				}
 				targetUserIds = append(targetUserIds, pId)
 			}
 		} else if actor.IsPlayer() {
