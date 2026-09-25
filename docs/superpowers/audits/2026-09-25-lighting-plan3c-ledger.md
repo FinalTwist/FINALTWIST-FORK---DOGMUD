@@ -262,37 +262,46 @@ Title-search false positives checked and rejected: 6078, 6340, 6388, 6344, 3017,
 
 ## Summary
 
-| Zone | thoroughfare | backstreet | interior | ruins | fort | keeps biome |
-|---|---|---|---|---|---|---|
-| new_plymouth_docks | 6 | 9 | 15 | | | |
-| new_plymouth_crafting | 6 | 6 | 0 | | | |
-| new_plymouth_temple | 2 | 5 | 0 | | | |
-| new_plymouth_merchant | 8 | 4 | 14 | | | |
-| new_plymouth_noble | 6 | 3 | 11 | | | |
-| new_plymouth_common | 7 | 13 | 5 | | | |
-| new_plymouth_old_quarter | 0 | 0 | 20 | | | |
-| new_plymouth_outskirts | 7 | 6 | 3 | | | |
-| fort rooms | | | | 11 | 11 | |
-| ruin scan and title search | | | | 4 | | 7 |
-| **Total** | **42** | **46** | **68** | **15** | **11** | **7** |
+After the owner's answers (recounted from the rows):
 
-189 rows, 171 changing biome. New Plymouth's 156 city rooms: 42 lit ways,
-46 dim ones, 68 interiors. 3b estimated about 50 mis-biomed interiors across
-EIGHT zones; New Plymouth alone holds 68, so 3c-2's six zones should be
-expected to find more than 3b's estimate too.
+| Zone | thoroughfare | backstreet | interior | dungeon | sewer | ruins | other |
+|---|---|---|---|---|---|---|---|
+| new_plymouth_docks | 6 | 9 | 12 | | 3 | | |
+| new_plymouth_crafting | 6 | 6 | | | | | |
+| new_plymouth_temple | 2 | 5 | | | | | |
+| new_plymouth_merchant | 8 | 4 | 14 | | | | |
+| new_plymouth_noble | 6 | 3 | 11 | | | | |
+| new_plymouth_common | 7 | 13 | 5 | | | | |
+| new_plymouth_old_quarter | | | | 20 | | | |
+| new_plymouth_outskirts | 7 | 3 | 3 | | | | road 2, river 1 |
+| fort rooms (22) | 1 | 1 | 1 | 1 | | 9 | cliffs 1; 8 stay fort |
+| ruin scan and title search | | | | | | 4 | 7 keep their biome |
+| **Total changed** | **43** | **44** | **46** | **21** | **3** | **13** | **4** |
+
+189 rows, 174 changing biome, 10 of them also gaining `lamp: 38`. New
+Plymouth's 156 city rooms: 42 lit ways, 43 dim ones, 45 interiors, and 26
+rooms that were never streets or buildings at all (the buried Old Quarter,
+the underdocks, the riverside track). 3b estimated about 50 mis-biomed
+interiors across EIGHT zones; New Plymouth alone holds 45 plus 23 buried
+rooms, so 3c-2's six zones should be expected to find more than that too.
+
+The golden re-record (`83541f914`) confirmed room for room that exactly these
+174 rooms moved in both lighting goldens, each landing on the values of the
+existing rooms of its new biome, and nothing else moved.
 
 **Connectivity** (`tools/city_tier_ledger.py check`): one isolated
 thoroughfare remains, 5722 Craftwell Square, kept lit deliberately (see its
 row). Three others were re-read: 5621 became backstreet, and 5468 and 5469
 became thoroughfare because the only road to the East Gate runs through them.
 
-**UNSURE rows (9)**, all defaulted dim: 5511, 5514, 5904, 6004, 6019, 5608,
-5612, 202, 203.
+**UNSURE rows (7)**, all defaulted dim: 5511, 5514, 5904, 6004, 6019, 5608,
+5612. (202 and 203 were UNSURE until the owner made `test_arena` a testbed.)
 
-**Movement cost.** Of the 15 rooms moving to `ruins`, 11 come from `fort`,
-whose cost is already 1.0, and 3 from `forest` or `farmland` at 1.0, so none
-of those 14 changes. The one change is 6336 The Crumbling Watchtower,
-`mountains` 2.0 down to 1.0 (see question 4).
+**Movement cost.** Of the 13 rooms moving to `ruins`, 9 come from `fort` and
+3 from `forest` or `farmland`, all already at 1.0, so none of those 12
+changes. The one change is 6336 The Crumbling Watchtower, `mountains` 2.0
+down to 1.0 (see question 4). The other cost changes are listed under the
+owner's answers.
 
 ## Questions for the owner
 
