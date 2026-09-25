@@ -2342,10 +2342,12 @@ Modules:
   #   registers no listeners, installs no engine seams and answers none of
   #   its commands: the server behaves as though it were not built in.
   #
-  #   Switched on it needs an OpenAI API key, from the OPENAI_API_KEY
-  #   environment variable or the APIKey setting below. Without a key the
-  #   companion still appears, follows and fights, and speaks short authored
-  #   lines instead of model replies. IT SENDS PLAYER TEXT TO OPENAI: see
+  #   A companion's words are paid for in one of three ways, per call: by
+  #   her owner's own key through the web client (PlayerKeys below), else
+  #   by the server's OpenAI key (the OPENAI_API_KEY environment variable
+  #   or the APIKey setting), else by nobody: without a key the companion
+  #   still appears, follows and fights, and speaks short authored lines
+  #   instead of model replies. IT SENDS PLAYER TEXT TO THE PROVIDER: see
   #   docs/aicompanion/testing-and-prompts.md for exactly what is sent.
   #
   #   Every other setting the module has (models, tiers, budgets, memory
@@ -2383,7 +2385,9 @@ Modules:
     RequireConsent: true
     # Check what a companion is about to say with OpenAI's moderation
     # endpoint. Speech a passer-by prompted is dropped when the check cannot
-    # be made; the owner's own conversation is not.
+    # be made; the owner's own conversation is not. Server key only: a
+    # call on a player's own key is not moderated (their provider may have
+    # no such endpoint); it is logged as the owner's speech instead.
     ModerateOutput: true
     # A new character meets a companion shortly after character creation.
     # AutoBondExisting does the same for characters that already exist, at
@@ -2399,6 +2403,24 @@ Modules:
     # companion. Off by default: on a shared server that is other players'
     # conversation.
     RecordBystanderSpeech: false
+    # Let a player run their own companion on their OWN key (OpenAI,
+    # OpenRouter, a local Ollama: any OpenAI-compatible endpoint). The key
+    # stays in the player's browser, on a relay page served from its own
+    # origin, and never reaches this server; the player pays for their
+    # companion's calls. Web client only.
+    #
+    # Nothing is offered unless RelayOrigin below is also set: an https
+    # origin on its OWN subdomain (for example https://keys.example.org),
+    # never the game's own host (FilePaths.WebDomain). That needs a DNS
+    # record for the subdomain and a proxy route sending it to this server
+    # with the Host header kept. Players must reach the game on exactly the
+    # WebDomain host (not www. when WebDomain is the bare domain, or the
+    # other way round), or the relay page refuses to load inside it.
+    PlayerKeys: true
+    RelayOrigin: ""
+    # How long a call waits for the player's browser to answer before she
+    # falls back on her own few words for that turn. At least 5.
+    RelayTimeoutSeconds: 30
   playtest:
     Enabled: true
     SafeMode: true
