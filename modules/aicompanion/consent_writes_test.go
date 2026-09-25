@@ -168,3 +168,74 @@ func TestOwnersRulesApplyBeforeConsent(t *testing.T) {
 		t.Fatal("her owner's attack still costs her trust")
 	}
 }
+
+// firstMetMemories counts the "started travelling with" memory.
+func firstMetMemories(c *controller) int {
+	n := 0
+	for _, mem := range c.mind.Memories {
+		if strings.HasPrefix(mem.Text, `I started travelling with `) {
+			n++
+		}
+	}
+	return n
+}
+
+// The first meeting happened before her owner agreed, so nothing naming
+// them was written and she did not introduce herself. When they agree,
+// by the spoken answer or by companion-ai on, both happen then, once.
+func TestConsentLaterKeepsTheFirstMeeting(t *testing.T) {
+	agree := map[string]func(w *consentWorld){
+		`spoken`: func(w *consentWorld) {
+			w.m.bonds.Users[1].AskedAt = time.Now().Unix() - 5
+			if !w.m.answerConsent(w.c, w.owner, `I agree.`) {
+				t.Fatal("fixture: the spoken answer must be read")
+			}
+		},
+		`companion-ai on`: func(w *consentWorld) {
+			if _, err := w.m.cmdAI(`on`, w.owner, w.room, 0); err != nil {
+				t.Fatal(err)
+			}
+		},
+	}
+	for name, do := range agree {
+		t.Run(name, func(t *testing.T) {
+			w := newConsentWorld(t, false)
+			w.m.firstMet(w.c, w.owner, time.Now().Unix())
+			if firstMetMemories(w.c) != 0 || queued(w.c, `first_meeting`) {
+				t.Fatal("control: before consent the meeting is neither written nor introduced")
+			}
+			do(w)
+			if firstMetMemories(w.c) != 1 {
+				t.Fatalf("agreeing writes the first meeting: %+v", w.c.mind.Memories)
+			}
+			if !queued(w.c, `first_meeting`) {
+				t.Fatalf("and she introduces herself: %+v", w.c.pending)
+			}
+
+			// Off and on again is not a second first meeting.
+			if _, err := w.m.cmdAI(`off`, w.owner, w.room, 0); err != nil {
+				t.Fatal(err)
+			}
+			w.c.pending = nil
+			if _, err := w.m.cmdAI(`on`, w.owner, w.room, 0); err != nil {
+				t.Fatal(err)
+			}
+			if firstMetMemories(w.c) != 1 || queued(w.c, `first_meeting`) {
+				t.Fatalf("agreeing again changes nothing: %d memories, %+v", firstMetMemories(w.c), w.c.pending)
+			}
+		})
+	}
+
+	// Agreeing before she ever met them in a session leaves it to firstMet.
+	w := newConsentWorld(t, false)
+	if _, err := w.m.cmdAI(`on`, w.owner, w.room, 0); err != nil {
+		t.Fatal(err)
+	}
+	if firstMetMemories(w.c) != 0 || queued(w.c, `first_meeting`) {
+		t.Fatal("no meeting has happened yet: nothing to write")
+	}
+	w.m.firstMet(w.c, w.owner, time.Now().Unix())
+	if firstMetMemories(w.c) != 1 || countKind(w.c.pending, `first_meeting`) != 1 {
+		t.Fatalf("firstMet then writes it and introduces her, once: %+v", w.c.pending)
+	}
+}

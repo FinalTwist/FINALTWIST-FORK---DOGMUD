@@ -195,13 +195,31 @@ func (m *AICompanionModule) sync(round uint64) {
 // firstMet is the session in which she first travels with her owner: the
 // date is kept whatever they have agreed to, the memory (their name) only
 // once they have agreed, and she introduces herself in her own words only
-// then; agreeing later queues that introduction (answerConsent).
+// then; agreeing later writes it and queues that introduction
+// (keepFirstMeeting, from answerConsent and companion-ai on).
 func (m *AICompanionModule) firstMet(c *controller, u *users.UserRecord, now int64) {
 	c.mind.FirstMetUnix = now
-	if !m.mayRemember(c) {
+	m.keepFirstMeeting(c, u)
+}
+
+// keepFirstMeeting writes the first meeting into her mind and queues her
+// introduction, once: only after the meeting has happened (FirstMetUnix)
+// and only once her owner has agreed. Agreeing again later, after turning
+// it off, is not a second first meeting.
+func (m *AICompanionModule) keepFirstMeeting(c *controller, u *users.UserRecord) {
+	if c.mind.FirstMetUnix == 0 || c.mind.FirstMetKept || !m.mayRemember(c) || u == nil || u.Character == nil {
 		return
 	}
+	c.mind.FirstMetKept = true
+	c.dirty = true
+	// A mind from before FirstMetKept existed has the memory already.
+	for _, mem := range c.mind.Memories {
+		if strings.HasPrefix(mem.Text, `I started travelling with `) {
+			return
+		}
+	}
 	c.mind.addMemory(Memory{
+		Unix: c.mind.FirstMetUnix,
 		Kind: `event`, Text: `I started travelling with ` + u.Character.Name + `.`,
 		Importance: 7, Emotion: `curiosity`, People: []string{u.Character.Name},
 	}, m.cfg.MaxMemories)

@@ -2080,6 +2080,7 @@ func TestSpokenConsentIsReadWhileTheQuestionIsOpen(t *testing.T) {
 
 	// "i agree", said aloud without naming her, inside the window.
 	m, c := consentModule(10)
+	c.mind.FirstMetUnix = now // she has met him: the answer comes after
 	m.hearSaid(c, consentOwner(), `Corvin`, `I agree.`, 7, false, now)
 	if !m.consented(1) || !m.consent.allows(1) {
 		t.Fatal("a spoken \"i agree\" while the question is open must consent, and the door must know it")

@@ -41,6 +41,10 @@ type Mind struct {
 	MoodSetUnix int64  `yaml:"mood_set_unix,omitempty"`
 
 	FirstMetUnix int64 `yaml:"first_met_unix,omitempty"`
+	// FirstMetKept is the first meeting having been written down and her
+	// introduction queued (firstMet, or keepFirstMeeting when her owner
+	// agreed later), so agreeing again never repeats it.
+	FirstMetKept bool  `yaml:"first_met_kept,omitempty"`
 	LastSeenUnix int64 `yaml:"last_seen_unix,omitempty"`
 	SessionCount int   `yaml:"session_count,omitempty"`
 

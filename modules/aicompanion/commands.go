@@ -700,6 +700,9 @@ func (m *AICompanionModule) cmdAI(rest string, user *users.UserRecord, room *roo
 			// Anything still queued was said before they agreed, and the next
 			// call would carry it.
 			c.pending = nil
+			// A first meeting before they agreed was kept without their
+			// name and without her introduction: both happen now.
+			m.keepFirstMeeting(c, user)
 		}
 		tell(`(Agreed. What you say to %s, and what happens around you both, is sent to %s to decide what they say, and is kept on this server. "companion-ai off" stops it.)`, name, where)
 	case `off`, `no`, `disable`:

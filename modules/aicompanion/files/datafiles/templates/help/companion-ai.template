@@ -20,14 +20,16 @@ afterwards.
                         Passers-by who talk to them are still heard, but
                         get only a few set lines back.
   <ansi fg="command">companion-ai strangers on</ansi>
-                        Passers-by can talk with them again (the default).
+                        Passers-by can talk with them properly.
 
 Switched off, nothing new is recorded or sent. What was already remembered
 stays on the server; <ansi fg="command">companion-part</ansi> ends the
 companionship altogether.
 
-When your companion answers through your own key, a passer-by talking to
-them is paid for from your key too. That is what
-<ansi fg="command">companion-ai strangers off</ansi> is for.
+Until you say otherwise, passers-by can talk with your companion properly
+while this server's key is answering, and get only a few set lines while
+your own key is answering, so that they spend none of it.
+<ansi fg="command">companion-ai strangers on</ansi> lets them talk to your
+companion on your own key too, paid for from it within a daily limit.
 
 See <ansi fg="command">help aicompanion</ansi> for what is sent and kept.

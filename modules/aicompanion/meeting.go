@@ -392,8 +392,7 @@ func (m *AICompanionModule) answerConsent(c *controller, u *users.UserRecord, sa
 		// Anything still queued was said before they agreed, and a queued
 		// moment is exactly what the next call would carry.
 		c.pending = nil
-		c.push(stimulus{Kind: `first_meeting`, Text: m.meetingPlace[u.UserId], FromOwner: true})
-		delete(m.meetingPlace, u.UserId)
+		m.keepFirstMeeting(c, u)
 		return true
 	case refusePhrase:
 		rec.Refused, rec.Consented = true, false

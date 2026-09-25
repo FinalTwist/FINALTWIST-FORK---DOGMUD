@@ -16,11 +16,14 @@ key on this device" and choose a passphrase to keep it, locked, for next
 time. Please put a spending limit on the key with your provider, and do not
 use a work computer.
 
-When someone else talks to your companion, their words are answered from
-your key too. If you would rather they did not cost you anything, type
-`companion-ai strangers off`: she will still hear them, and answer them with
-a few set words of her own. `companion-ai strangers on` turns it back.
-`companion-ai` on its own tells you who is answering for her right now.
+When someone else talks to your companion while she thinks on your key,
+she still hears them, but answers them only with a few set words of her
+own, so they cost you nothing. If you would like her to talk with them
+properly, paid for from your key within a daily limit, type
+`companion-ai strangers on`; `companion-ai strangers off` turns it back.
+On the server's key, passers-by can talk with her properly unless you turn
+them off. `companion-ai` on its own tells you who is answering for her
+right now.
 
 What she says is yours to answer for. If you cannot speak, neither can she.
 
