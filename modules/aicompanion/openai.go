@@ -124,6 +124,11 @@ type modelCall struct {
 	Tools       []toolSpec
 	ToolChoice  string          // auto, none; empty = not sent
 	Ctx         context.Context // cancelled when the answer can no longer be used
+
+	// OwnerUserId is the player whose companion, and so whose words and
+	// doings, this request carries. The door in send refuses it unless
+	// that player has agreed; left at 0 it is refused outright.
+	OwnerUserId int
 }
 
 // modelResult is what comes back: the raw JSON content, which the caller
@@ -150,13 +155,46 @@ type modelResult struct {
 
 var httpClient = &http.Client{}
 
+// errNoConsent is the door refusing a request for a player who has not
+// agreed that anything of theirs may be sent. The request never left.
+var errNoConsent = errors.New(`not sent: the companion's owner has not agreed to the model`)
+
+// outboundKind says what a request carries. The zero value is the guarded
+// kind, so a request nobody thought to classify is treated as carrying a
+// player's words.
+type outboundKind int
+
+const (
+	// carriesPlayerData is every chat completion and every moderation
+	// check: a prompt built from her mind, or lines she means to say that
+	// were shaped by it.
+	carriesPlayerData outboundKind = iota
+	// carriesNoPlayerData is only the model list, which sends the key and
+	// nothing else.
+	carriesNoPlayerData
+)
+
+// send is the one door through which anything leaves for the provider.
+// Every caller already checks consent before it builds a request; this is
+// the check that holds when one of them forgets. It is keyed on the owner
+// the request carries, reads the ledger rather than the bond records
+// because it runs off the mud lock, and fails closed: no owner, or no
+// ledger, is no send.
+func send(req *http.Request, gate *consentLedger, ownerUserId int, kind outboundKind) (*http.Response, error) {
+	if kind != carriesNoPlayerData && !gate.allows(ownerUserId) {
+		gate.noteRefusal(ownerUserId, req.URL.Path)
+		return nil, errNoConsent
+	}
+	return httpClient.Do(req)
+}
+
 // callModel performs a chat completions request, retrying once after a
 // short pause when the failure looks transient and the call allows it.
-func callModel(c modelCall) modelResult {
-	res := callModelOnce(c)
+func (m *AICompanionModule) callModel(c modelCall) modelResult {
+	res := m.callModelOnce(c)
 	if c.Retry && transient(res) {
 		time.Sleep(1500 * time.Millisecond)
-		again := callModelOnce(c)
+		again := m.callModelOnce(c)
 		again.Latency += res.Latency + 1500*time.Millisecond
 		again.Tokens += res.Tokens
 		return again
@@ -167,7 +205,7 @@ func callModel(c modelCall) modelResult {
 // transient reports failures worth one retry: rate limits, server errors
 // and requests that never got an answer.
 func transient(r modelResult) bool {
-	if r.Err == nil || r.Canceled {
+	if r.Err == nil || r.Canceled || errors.Is(r.Err, errNoConsent) {
 		return false
 	}
 	return r.Status == 0 || r.Status == http.StatusTooManyRequests || r.Status >= 500
@@ -177,7 +215,7 @@ func transient(r modelResult) bool {
 // call's strict JSON schema. It must only ever run on a goroutine that does
 // not hold the mud lock. The API key is sent in a header and never logged or
 // returned.
-func callModelOnce(c modelCall) modelResult {
+func (m *AICompanionModule) callModelOnce(c modelCall) modelResult {
 	start := time.Now()
 	res := modelResult{}
 
@@ -223,7 +261,7 @@ func callModelOnce(c modelCall) modelResult {
 	httpReq.Header.Set(`Content-Type`, `application/json`)
 	httpReq.Header.Set(`Authorization`, `Bearer `+c.APIKey)
 
-	resp, err := httpClient.Do(httpReq)
+	resp, err := send(httpReq, &m.consent, c.OwnerUserId, carriesPlayerData)
 	if err != nil {
 		res.Err = err
 		res.Latency = time.Since(start)
@@ -296,8 +334,10 @@ type moderationResponse struct {
 
 // moderate checks texts with the moderation endpoint (F19.1) and returns
 // which were flagged. On any error it returns nil: moderation failing must
-// not silence the companion, and the in-character filters still apply.
-func moderate(baseURL string, apiKey string, model string, timeout time.Duration, texts []string) ([]bool, error) {
+// not silence the companion, and the in-character filters still apply. The
+// texts are what she means to say, shaped by her mind, so the check goes
+// through the same door as the call that produced them.
+func (m *AICompanionModule) moderate(ownerUserId int, baseURL string, apiKey string, model string, timeout time.Duration, texts []string) ([]bool, error) {
 	if len(texts) == 0 {
 		return nil, nil
 	}
@@ -313,7 +353,7 @@ func moderate(baseURL string, apiKey string, model string, timeout time.Duration
 	}
 	req.Header.Set(`Content-Type`, `application/json`)
 	req.Header.Set(`Authorization`, `Bearer `+apiKey)
-	resp, err := httpClient.Do(req)
+	resp, err := send(req, &m.consent, ownerUserId, carriesPlayerData)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +382,7 @@ func moderate(baseURL string, apiKey string, model string, timeout time.Duration
 // prompted the lines are dropped (fail closed), and for the owner's own
 // conversation they are kept (fail open), so a moderation outage costs a
 // server its harassment cover rather than its companions.
-func moderateDecision(d *Decision, baseURL string, apiKey string, model string, timeout time.Duration, strict bool) int {
+func (m *AICompanionModule) moderateDecision(ownerUserId int, d *Decision, baseURL string, apiKey string, model string, timeout time.Duration, strict bool) int {
 	var texts []string
 	for _, l := range d.Speech {
 		texts = append(texts, l.Text)
@@ -351,7 +391,7 @@ func moderateDecision(d *Decision, baseURL string, apiKey string, model string, 
 	if hasSayto {
 		texts = append(texts, d.Action.Query)
 	}
-	flags, err := moderate(baseURL, apiKey, model, timeout, texts)
+	flags, err := m.moderate(ownerUserId, baseURL, apiKey, model, timeout, texts)
 	if err != nil || flags == nil {
 		if !strict {
 			return 0
@@ -384,7 +424,9 @@ func moderateDecision(d *Decision, baseURL string, apiKey string, model string, 
 }
 
 // listModels returns the model ids the key can use (GET /models), or nil
-// when the list cannot be read.
+// when the list cannot be read. It carries the key and nothing of any
+// player's, so it is the one request the consent door lets through without
+// an owner.
 func listModels(baseURL string, apiKey string) map[string]bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -393,7 +435,7 @@ func listModels(baseURL string, apiKey string) map[string]bool {
 		return nil
 	}
 	req.Header.Set(`Authorization`, `Bearer `+apiKey)
-	resp, err := httpClient.Do(req)
+	resp, err := send(req, nil, 0, carriesNoPlayerData)
 	if err != nil {
 		return nil
 	}

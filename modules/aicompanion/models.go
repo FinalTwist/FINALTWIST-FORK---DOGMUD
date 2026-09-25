@@ -1,6 +1,7 @@
 package aicompanion
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -179,6 +180,12 @@ func (m *AICompanionModule) breakerOpen(now time.Time) bool {
 }
 
 func (m *AICompanionModule) breakerResult(err error, now time.Time) {
+	if errors.Is(err, errNoConsent) {
+		// The door refused a request that never left the server. That is a
+		// bug in the caller, not the provider failing, and must not pause
+		// every other companion.
+		return
+	}
 	if err == nil {
 		m.consecutiveErrors = 0
 		return

@@ -144,6 +144,11 @@ func conversationSchema() map[string]any {
 // summariseConversation turns a finished exchange into one memory, on the
 // fast tier, off the game loop.
 func (m *AICompanionModule) summariseConversation(c *controller, convo *conversation) {
+	// The whole talk is about to be posted: checked here as well as by the
+	// caller, because this is the function that sends it.
+	if !m.consented(c.ownerUserId) {
+		return
+	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "You have just finished talking with %s. Here is the whole of it, oldest first:\n", convo.Partner)
 	for _, l := range convo.Lines {
@@ -171,7 +176,7 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 		BaseURL: m.cfg.BaseURL, APIKey: m.apiKey(), Model: ts.Model,
 		Timeout: ts.Timeout, MaxTokens: ts.MaxTokens, Temperature: m.cfg.Temperature,
 		Messages: messages, SchemaName: `companion_conversation`, Schema: conversationSchema(),
-		Effort: ts.Effort, Retry: false,
+		Effort: ts.Effort, Retry: false, OwnerUserId: c.ownerUserId,
 	}
 	reserved := worstCaseTokens(estimateTokens(messages), ts.MaxTokens, 0, false)
 	if !m.tryReserveTokens(c.ownerUserId, reserved) {
@@ -188,7 +193,7 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 				mudlog.Error(`aicompanion`, `action`, `conversationSummary`, `panic`, r, `stack`, string(debug.Stack()))
 			}
 		}()
-		res := callModel(call)
+		res := m.callModel(call)
 
 		util.LockMud()
 		defer util.UnlockMud()

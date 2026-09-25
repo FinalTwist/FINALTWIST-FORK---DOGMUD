@@ -111,58 +111,70 @@ func (m *AICompanionModule) onCommunication(e events.Event) events.ListenerRetur
 				heardFrom = speakerOf(u, mob)
 			}
 		}
-		speaker := heardFrom
 		direct := false
 		fromOwner := speakerUserId > 0 && speakerUserId == c.ownerUserId
 		if speakerUserId > 0 {
 			direct = isAddressed(evt.Message, c.profile.Name, fromOwner, others, m.cfg.RespondWhenAlone)
 		}
-
-		// Nothing anyone says is written into her mind until her owner has
-		// agreed that what is said may leave the server. Her memory is the
-		// thing that gets sent, so recording first and gating later is the
-		// same as not gating at all.
-		if !m.consented(c.ownerUserId) {
-			continue
-		}
-		// Speech that was not for her is remembered only when the server
-		// allows it: it is what lets her overhear, and it is also other
-		// people's conversation going to the API.
-		if direct || m.cfg.RecordBystanderSpeech {
-			line := Line{Speaker: speaker, Kind: `said`, ToMe: direct, Text: evt.Message, Unix: now}
-			c.mind.addLine(line, m.cfg.WorkingMemoryLines)
-			c.dirty = true
-			if direct {
-				m.noteConversation(c, roomId, speaker, line)
-			}
-		}
-		if speakerUserId > 0 {
-			c.lastSocialUnix = now
-		}
-		if fromOwner && !direct {
-			c.ownerTalkedAway = now
-		}
-		if direct && fromOwner {
-			// A literal "i agree" or "i decline" while consent is pending is
-			// an answer, not conversation, and is never sent anywhere.
-			if u := users.GetByUserId(speakerUserId); u != nil && m.answerConsent(c, u, evt.Message) {
-				continue
-			}
-		}
-		if direct {
-			if fromOwner {
-				m.interruptErrand(c, speaker)
-			}
-			// Spoken to by an owner who is sneaking, she hears it and holds
-			// her tongue: answering aloud is what gets people caught.
-			if fromOwner && m.sneaking(c, users.GetByUserId(speakerUserId)) {
-				continue
-			}
-			c.push(stimulus{Kind: `heard`, Speaker: speaker, Text: evt.Message,
-				FromOwner: fromOwner, AskerUserId: speakerUserId})
-		}
+		m.hearSaid(c, users.GetByUserId(speakerUserId), heardFrom, evt.Message, roomId, direct, now)
 	}
 	return events.Continue
+}
+
+// hearSaid is one companion hearing one line of speech: u is the player who
+// said it (nil for a mob), speaker how she makes them out, direct whether
+// it was meant for her.
+func (m *AICompanionModule) hearSaid(c *controller, u *users.UserRecord, speaker string, text string, roomId int, direct bool, now int64) {
+	speakerUserId := 0
+	if u != nil {
+		speakerUserId = u.UserId
+	}
+	fromOwner := speakerUserId > 0 && speakerUserId == c.ownerUserId
+
+	// A literal "i agree" or "i decline" while the question is open is an
+	// answer, not conversation: it is not written down or answered, and it
+	// is read whether or not she was named, because the question asks for
+	// exactly those words and nothing else.
+	if fromOwner && m.answerConsent(c, u, text) {
+		return
+	}
+	// Nothing anyone says is written into her mind until her owner has
+	// agreed that what is said may leave the server. Her memory is the
+	// thing that gets sent, so recording first and gating later is the same
+	// as not gating at all. She still hears it, and still answers with her
+	// set lines (dispatch sends an unconsented owner to the fallback), so
+	// only the writing down waits.
+	//
+	// Speech that was not for her is remembered only when the server allows
+	// it: it is what lets her overhear, and it is also other people's
+	// conversation going to the API.
+	if m.consented(c.ownerUserId) && (direct || m.cfg.RecordBystanderSpeech) {
+		line := Line{Speaker: speaker, Kind: `said`, ToMe: direct, Text: text, Unix: now}
+		c.mind.addLine(line, m.cfg.WorkingMemoryLines)
+		c.dirty = true
+		if direct {
+			m.noteConversation(c, roomId, speaker, line)
+		}
+	}
+	if speakerUserId > 0 {
+		c.lastSocialUnix = now
+	}
+	if fromOwner && !direct {
+		c.ownerTalkedAway = now
+	}
+	if !direct {
+		return
+	}
+	if fromOwner {
+		m.interruptErrand(c, speaker)
+		// Spoken to by an owner who is sneaking, she hears it and holds her
+		// tongue: answering aloud is what gets people caught.
+		if m.sneaking(c, u) {
+			return
+		}
+	}
+	c.push(stimulus{Kind: `heard`, Speaker: speaker, Text: text,
+		FromOwner: fromOwner, AskerUserId: speakerUserId})
 }
 
 // onEmote notices emotes. An emote is something seen, so a companion that
@@ -185,30 +197,34 @@ func (m *AICompanionModule) onEmote(e events.Event) events.ListenerReturn {
 		if mob == nil || room == nil || cannotSee(mob, room) || !mob.Character.Perceives(u.Character) {
 			continue
 		}
-		speaker := speakerOf(u, mob)
-		direct := mentionsName(text, c.profile.Name)
-		fromOwner := u.UserId == c.ownerUserId
-		if !m.consented(c.ownerUserId) {
-			continue // nothing is written down before they have agreed
-		}
-		if !direct && !m.cfg.RecordBystanderSpeech {
-			continue // other people's business, by the server's choice
-		}
-		emoteLine := Line{Speaker: speaker, Kind: `emoted`, ToMe: direct, Text: text, Unix: time.Now().Unix()}
+		m.seeEmote(c, u, speakerOf(u, mob), text, evt.RoomId, mentionsName(text, c.profile.Name), time.Now().Unix())
+	}
+	return events.Continue
+}
+
+// seeEmote is one companion seeing one emote she could make out.
+func (m *AICompanionModule) seeEmote(c *controller, u *users.UserRecord, speaker string, text string, roomId int, direct bool, now int64) {
+	fromOwner := u.UserId == c.ownerUserId
+	if !direct && !m.cfg.RecordBystanderSpeech {
+		return // other people's business, by the server's choice
+	}
+	// Nothing is written down before they have agreed; she still sees it,
+	// and still answers with her set lines.
+	if m.consented(c.ownerUserId) {
+		emoteLine := Line{Speaker: speaker, Kind: `emoted`, ToMe: direct, Text: text, Unix: now}
 		c.mind.addLine(emoteLine, m.cfg.WorkingMemoryLines)
 		c.dirty = true
 		if direct {
-			m.noteConversation(c, evt.RoomId, speaker, emoteLine)
-		}
-		c.lastSocialUnix = time.Now().Unix()
-		if direct {
-			if fromOwner {
-				m.interruptErrand(c, speaker)
-			}
-			c.push(stimulus{Kind: `emote`, Speaker: speaker, Text: text, FromOwner: fromOwner})
+			m.noteConversation(c, roomId, speaker, emoteLine)
 		}
 	}
-	return events.Continue
+	c.lastSocialUnix = now
+	if direct {
+		if fromOwner {
+			m.interruptErrand(c, speaker)
+		}
+		c.push(stimulus{Kind: `emote`, Speaker: speaker, Text: text, FromOwner: fromOwner})
+	}
 }
 
 // onGiftAccepted reacts to an item given to the companion. The engine has
@@ -357,21 +373,33 @@ func (m *AICompanionModule) handleAsk(userId int, mobInstanceId int, text string
 			u.Character.Name, mob.Character.Name, safe), u.UserId)
 	}
 
-	speaker := speakerOf(u, mob)
-	if u.UserId == c.ownerUserId {
+	m.hearAsked(c, u, speakerOf(u, mob), text, time.Now().Unix())
+	return true
+}
+
+// hearAsked is the companion being put a question directly with `ask`.
+func (m *AICompanionModule) hearAsked(c *controller, u *users.UserRecord, speaker string, text string, now int64) {
+	fromOwner := u.UserId == c.ownerUserId
+	if fromOwner {
+		// "ask <her> i agree" is as good an answer to the question as saying
+		// it aloud, and is not conversation either.
+		if m.answerConsent(c, u, text) {
+			return
+		}
 		m.interruptErrand(c, speaker)
 	}
-	if !m.consented(c.ownerUserId) {
-		return true // heard, answered with set lines, and not written down
+	// Heard, and answered below, but written down only once her owner has
+	// agreed that her mind may be sent. Before that, dispatch answers with
+	// her set lines.
+	if m.consented(c.ownerUserId) {
+		askLine := Line{Speaker: speaker, Kind: `asked`, ToMe: true, Text: text, Unix: now}
+		c.mind.addLine(askLine, m.cfg.WorkingMemoryLines)
+		m.noteConversation(c, u.Character.RoomId, speaker, askLine)
+		c.dirty = true
 	}
-	askLine := Line{Speaker: speaker, Kind: `asked`, ToMe: true, Text: text, Unix: time.Now().Unix()}
-	c.mind.addLine(askLine, m.cfg.WorkingMemoryLines)
-	m.noteConversation(c, u.Character.RoomId, speaker, askLine)
-	c.dirty = true
-	c.lastSocialUnix = time.Now().Unix()
+	c.lastSocialUnix = now
 	c.push(stimulus{Kind: `asked`, Speaker: speaker, Text: text,
-		FromOwner: u.UserId == c.ownerUserId, AskerUserId: u.UserId})
-	return true
+		FromOwner: fromOwner, AskerUserId: u.UserId})
 }
 
 // interruptErrand stops a trip when the owner speaks to the companion

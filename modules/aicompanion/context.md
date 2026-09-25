@@ -26,7 +26,11 @@ Roadmap and phase plan: `docs/aicompanion/`.
 - **listeners.go**: `say`, emotes (`events.Emote`), gifts (`GiftAccepted`),
   attacks (`PlayerAttackedMob`), healing (`events.Healed`) and the `ask`
   hook; an owner speaking to the companion interrupts an errand. They record what the
-  companion perceived and queue stimuli; they never call the model.
+  companion perceived and queue stimuli; they never call the model. The
+  per-companion halves (`hearSaid`, `seeEmote`, `hearAsked`) read the
+  owner's literal "i agree"/"i decline" first, and before consent write
+  nothing into the mind while still queueing the stimulus, so dispatch
+  answers with set lines.
 - **scene.go**: `buildScene`, the structured, locally scored picture of what
   the companion can see and carry, with the refs ("t2", "p1", "w1") the
   model uses in actions; item and NPC classification; novelty from the
@@ -62,7 +66,10 @@ Roadmap and phase plan: `docs/aicompanion/`.
   once a round, hold-back with the owner's auto-assist restored, authored
   battle lines, and the summary afterwards.
 - **meeting.go**: meeting a companion after character creation (or at the
-  next login), the persisted bond state, and parting ways.
+  next login), the persisted bond state, parting ways, and consent:
+  `consented`, `answerConsent`, and `consentLedger`, the copy of who has
+  agreed that the model door reads off the mud lock (rebuilt by
+  `syncConsent` on every bond load and save).
 - **tools.go**: the read-only questions the model may ask the game before
   answering (look closer, size up, wares, recall, find a place), answered
   under the mud lock from player-visible information only.
@@ -77,7 +84,10 @@ Roadmap and phase plan: `docs/aicompanion/`.
   the audited `applyOpinion`, and `opinionWords` (the only form the model
   ever sees).
 - **openai.go**: `callModel`, the blocking HTTP call (goroutine only), with
-  a per-call strict JSON schema.
+  a per-call strict JSON schema. Every request leaves through `send`, the
+  one door, which refuses (`errNoConsent`) any request whose `OwnerUserId`
+  has not agreed, or is 0; only `listModels` (key, no player data) is
+  exempt, as `carriesNoPlayerData`.
 - **decision.go**: the decision schema, `parseDecision`,
   `sanitizeDecision` and `cleanText`, which enforce everything the schema
   cannot.

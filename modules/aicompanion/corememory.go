@@ -133,6 +133,7 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 		BaseURL: m.cfg.BaseURL, APIKey: m.apiKey(), Model: ts.Model,
 		Timeout: ts.Timeout, MaxTokens: ts.MaxTokens, Temperature: m.cfg.Temperature,
 		Messages: messages, SchemaName: `companion_core_memory`, Schema: coreSchema(), Effort: ts.Effort,
+		OwnerUserId: c.ownerUserId,
 	}
 	reserved := worstCaseTokens(estimateTokens(messages), ts.MaxTokens, 0, false)
 	if !m.tryReserveTokens(c.ownerUserId, reserved) {
@@ -147,7 +148,7 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 				mudlog.Error(`aicompanion`, `action`, `coreMemory`, `panic`, r, `stack`, string(debug.Stack()))
 			}
 		}()
-		res := callModel(call)
+		res := m.callModel(call)
 
 		util.LockMud()
 		defer util.UnlockMud()

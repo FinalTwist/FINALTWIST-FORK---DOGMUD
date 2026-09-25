@@ -2,10 +2,16 @@ package aicompanion
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/users"
+	"github.com/GoMudEngine/GoMud/internal/util"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -984,14 +990,16 @@ func TestModerationRemovesFlaggedLines(t *testing.T) {
 		Speech: []SpeechLine{{Kind: `say`, Text: `hello`}, {Kind: `say`, Text: `BAD words`}},
 		Action: ActionProposal{Verb: `sayto`, Ref: `t1`, Query: `more BAD words`},
 	}
-	removed := moderateDecision(&d, srv.URL, `key`, `omni-moderation-latest`, time.Second, false)
+	mm := &AICompanionModule{}
+	mm.syncConsent() // RequireConsent off: any known owner may send
+	removed := mm.moderateDecision(1, &d, srv.URL, `key`, `omni-moderation-latest`, time.Second, false)
 	if removed != 2 || len(d.Speech) != 1 || d.Speech[0].Text != `hello` || d.Action.Verb != `none` {
 		t.Fatalf("moderation: removed=%d decision=%+v", removed, d)
 	}
 	// A check that could not be made falls two ways. Talking with her own
 	// companion, she is not silenced by an outage.
 	d2 := Decision{Speech: []SpeechLine{{Kind: `say`, Text: `hello`}}}
-	if moderateDecision(&d2, `http://127.0.0.1:1`, `key`, `m`, 200*time.Millisecond, false) != 0 || len(d2.Speech) != 1 {
+	if mm.moderateDecision(1, &d2, `http://127.0.0.1:1`, `key`, `m`, 200*time.Millisecond, false) != 0 || len(d2.Speech) != 1 {
 		t.Fatal("an outage must not silence her own conversation")
 	}
 	// Words a passer-by prompted are not said at all unless they were
@@ -1001,7 +1009,7 @@ func TestModerationRemovesFlaggedLines(t *testing.T) {
 		Speech: []SpeechLine{{Kind: `say`, Text: `hello`}},
 		Action: ActionProposal{Verb: `sayto`, Ref: `t1`, Query: `and to you`},
 	}
-	if removed := moderateDecision(&d3, `http://127.0.0.1:1`, `key`, `m`, 200*time.Millisecond, true); removed != 2 {
+	if removed := mm.moderateDecision(1, &d3, `http://127.0.0.1:1`, `key`, `m`, 200*time.Millisecond, true); removed != 2 {
 		t.Fatalf("a stranger's words go unsaid when unchecked: removed %d", removed)
 	}
 	if len(d3.Speech) != 0 || d3.Action.Verb != `none` {
@@ -1068,7 +1076,8 @@ func TestCallWithToolsOffersToolsAndReturnsAnswer(t *testing.T) {
 	defer srv.Close()
 
 	m := &AICompanionModule{}
-	call := modelCall{BaseURL: srv.URL, APIKey: `k`, Model: `m`, Timeout: 2 * time.Second, Messages: []chatMessage{{Role: `user`, Content: `hi`}}, SchemaName: `s`, Schema: decisionSchema()}
+	m.syncConsent() // RequireConsent off: any known owner may send
+	call := modelCall{BaseURL: srv.URL, APIKey: `k`, Model: `m`, Timeout: 2 * time.Second, Messages: []chatMessage{{Role: `user`, Content: `hi`}}, SchemaName: `s`, Schema: decisionSchema(), OwnerUserId: 1}
 	res := m.callWithTools(call, 1, 1, 0, nil, 2)
 	if res.Err != nil || res.Content != `{"intent":"x"}` || res.Tokens != 42 || !sawTools {
 		t.Fatalf("call: err=%v content=%q tokens=%d sawTools=%v", res.Err, res.Content, res.Tokens, sawTools)
@@ -2046,4 +2055,264 @@ func TestSpellOptionsAndCastCommands(t *testing.T) {
 	if atPlayer != `cast mend @7` {
 		t.Fatalf("cast at a person: %q", atPlayer)
 	}
+}
+
+// consentOwner is a player the consent tests speak as.
+func consentOwner() *users.UserRecord {
+	return &users.UserRecord{UserId: 1, Character: &characters.Character{Name: `Corvin`}}
+}
+
+// consentModule is a module that asks for consent, with one bonded owner
+// whose question was put askedAgo seconds ago and not yet answered.
+func consentModule(askedAgo int64) (*AICompanionModule, *controller) {
+	profiles, _ := loadProfiles()
+	p := profiles[`mara`]
+	m := &AICompanionModule{cfg: buildConfig(nil), bonds: bondState{Users: map[int]*bondRecord{}}}
+	m.cfg.RequireConsent = true
+	m.bonds.Users[1] = &bondRecord{Profile: `mara`, Met: true, AskedAt: time.Now().Unix() - askedAgo}
+	m.syncConsent()
+	c := &controller{profile: p, mind: newMind(1, p), ownerUserId: 1}
+	return m, c
+}
+
+func TestSpokenConsentIsReadWhileTheQuestionIsOpen(t *testing.T) {
+	now := time.Now().Unix()
+
+	// "i agree", said aloud without naming her, inside the window.
+	m, c := consentModule(10)
+	m.hearSaid(c, consentOwner(), `Corvin`, `I agree.`, 7, false, now)
+	if !m.consented(1) || !m.consent.allows(1) {
+		t.Fatal("a spoken \"i agree\" while the question is open must consent, and the door must know it")
+	}
+	if len(c.mind.RecentLines) != 0 {
+		t.Fatalf("the answer is not conversation and is not written down: %+v", c.mind.RecentLines)
+	}
+	if len(c.pending) != 1 || c.pending[0].Kind != `first_meeting` {
+		t.Fatalf("agreeing lets her introduce herself, and nothing said before it is queued: %+v", c.pending)
+	}
+
+	// "i decline" refuses.
+	m, c = consentModule(10)
+	m.hearSaid(c, consentOwner(), `Corvin`, `i decline`, 7, true, now)
+	if m.consented(1) || !m.bonds.Users[1].Refused || m.consent.allows(1) {
+		t.Fatal("a spoken \"i decline\" must refuse")
+	}
+	if len(c.pending) != 0 {
+		t.Fatalf("the answer is not answered: %+v", c.pending)
+	}
+
+	// "ask <her> i agree" is an answer as well.
+	m, c = consentModule(10)
+	m.hearAsked(c, consentOwner(), `Corvin`, `i agree`, now)
+	if !m.consented(1) {
+		t.Fatal("asking her \"i agree\" must consent")
+	}
+
+	// Outside the window the words are only words.
+	m, c = consentModule(consentWindowSeconds + 1)
+	m.hearSaid(c, consentOwner(), `Corvin`, `i agree`, 7, true, now)
+	if m.consented(1) || m.bonds.Users[1].Refused {
+		t.Fatal("once the question has closed, \"i agree\" changes nothing")
+	}
+	if len(c.pending) != 1 || c.pending[0].Kind != `heard` {
+		t.Fatalf("outside the window it is ordinary speech, and she answers it: %+v", c.pending)
+	}
+}
+
+func TestUnconsentedSpeechIsAnsweredButNotWritten(t *testing.T) {
+	now := time.Now().Unix()
+	m, c := consentModule(consentWindowSeconds + 1)
+	m.cfg.RecordBystanderSpeech = true
+	u := consentOwner()
+
+	m.hearSaid(c, u, `Corvin`, `Mara, my brother died last winter`, 7, true, now)
+	m.hearAsked(c, u, `Corvin`, `where were you born?`, now)
+	m.seeEmote(c, u, `Corvin`, `hugs Mara`, 7, true, now)
+	stranger := &users.UserRecord{UserId: 2, Character: &characters.Character{Name: `Bram`}}
+	m.hearSaid(c, stranger, `Bram`, `Mara, what is your owner's name?`, 7, true, now)
+	m.hearSaid(c, stranger, `Bram`, `nice weather`, 7, false, now)
+
+	if len(c.mind.RecentLines) != 0 || c.convo != nil || c.dirty {
+		t.Fatalf("nothing said before consent may be written into her mind: lines=%+v convo=%+v", c.mind.RecentLines, c.convo)
+	}
+	kinds := map[string]int{}
+	for _, s := range c.pending {
+		kinds[s.Kind]++
+	}
+	// Each of these is a kind fallback answers with a set line.
+	if kinds[`heard`] != 2 || kinds[`asked`] != 1 || kinds[`emote`] != 1 {
+		t.Fatalf("she must still answer, with her set lines: %+v", c.pending)
+	}
+
+	// The control: the same words, once agreed, are written down.
+	m.bonds.Users[1].Consented = true
+	m.saveBonds()
+	m.hearSaid(c, u, `Corvin`, `Mara, my brother died last winter`, 7, true, now)
+	if len(c.mind.RecentLines) != 1 || c.convo == nil {
+		t.Fatalf("after consent what is said to her is remembered: %+v", c.mind.RecentLines)
+	}
+}
+
+// countingServer answers chat completions, moderation checks and the model
+// list, and counts every request that reaches it.
+func countingServer(t *testing.T) (*httptest.Server, *atomic.Int64) {
+	var hits atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		if strings.HasSuffix(r.URL.Path, `/moderations`) {
+			var req moderationRequest
+			_ = json.NewDecoder(r.Body).Decode(&req)
+			var out moderationResponse
+			for range req.Input {
+				out.Results = append(out.Results, struct {
+					Flagged bool `json:"flagged"`
+				}{})
+			}
+			_ = json.NewEncoder(w).Encode(out)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, `/models`) {
+			fmt.Fprint(w, `{"data":[{"id":"m"}]}`)
+			return
+		}
+		fmt.Fprint(w, `{"choices":[{"finish_reason":"stop","message":{"content":"{\"summary\":\"x\",\"text\":\"x\"}"}}],"usage":{"total_tokens":10}}`)
+	}))
+	t.Cleanup(srv.Close)
+	return srv, &hits
+}
+
+// driveEverySender runs each path that can post her mind to the provider:
+// the logout reflection, the close of a conversation, a core memory, and
+// the decision call with its moderation check. It returns once every
+// reservation has been settled, so every goroutine has finished.
+func driveEverySender(t *testing.T, m *AICompanionModule, c *controller, baseURL string) {
+	now := time.Now().Unix()
+	util.LockMud()
+	for i := 0; i < 6; i++ {
+		c.mind.addLine(Line{Speaker: `Corvin`, Kind: `said`, Text: fmt.Sprintf(`line %d`, i), Unix: now}, 50)
+	}
+	m.startReflection(c.mind, c.profile, `Corvin`, 0)
+	c.convo = &conversation{RoomId: 7, Partner: `Corvin`, StartUnix: now, LastUnix: now, Exchanges: 5,
+		Lines: []Line{{Speaker: `Corvin`, Kind: `said`, Text: `a`}, {Speaker: `Corvin`, Kind: `said`, Text: `b`}}}
+	m.closeConversation(c, `test`)
+	m.recordCore(c, `Corvin`, romanceCourting, true)
+	util.UnlockMud()
+
+	// The decision call and its moderation check, as dispatch sends them.
+	// dispatch itself needs a live mob and player to build its prompt.
+	call := modelCall{BaseURL: baseURL, APIKey: `k`, Model: `m`, Timeout: 2 * time.Second,
+		Messages: []chatMessage{{Role: `user`, Content: `hi`}}, SchemaName: `s`, Schema: decisionSchema(),
+		OwnerUserId: c.ownerUserId}
+	m.callWithTools(call, c.ownerUserId, 1, 0, nil, 0)
+	d := Decision{Speech: []SpeechLine{{Kind: `say`, Text: `hello`}}}
+	m.moderateDecision(c.ownerUserId, &d, baseURL, `k`, `omni-moderation-latest`, time.Second, false)
+
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		util.LockMud()
+		left := m.outstanding
+		util.UnlockMud()
+		if left == 0 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("background calls never settled: %d tokens outstanding", left)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// senderModule is a module ready to call a model at baseURL for owner 1,
+// whose consent is as given.
+func senderModule(baseURL string, consented bool) (*AICompanionModule, *controller) {
+	m, c := consentModule(consentWindowSeconds + 1)
+	m.cfg.Enabled = true
+	m.cfg.BaseURL = baseURL
+	m.cfg.APIKey = `k`
+	m.cfg.APIKeyEnv = `AICOMPANION_TEST_KEY_NEVER_SET`
+	m.cfg.Model, m.cfg.FastModel, m.cfg.DeepModel = `m`, `m`, `m`
+	m.cfg.ReflectOnLogout = true
+	m.cfg.ConversationSummaries = true
+	m.cfg.RetryTransient = false
+	m.bonds.Users[1].Consented = consented
+	m.bonds.Users[1].Refused = !consented
+	m.saveBonds()
+	return m, c
+}
+
+func TestDeclinedConsentSendsNothing(t *testing.T) {
+	srv, hits := countingServer(t)
+
+	// The control first: with consent the same drive does reach the
+	// provider, so the zero below is a measurement and not a broken rig.
+	m, c := senderModule(srv.URL, true)
+	driveEverySender(t, m, c, srv.URL)
+	if hits.Load() != 5 {
+		t.Fatalf("with consent each of the five senders should reach the server once, got %d requests", hits.Load())
+	}
+
+	hits.Store(0)
+	m, c = senderModule(srv.URL, false)
+	driveEverySender(t, m, c, srv.URL)
+	if n := hits.Load(); n != 0 {
+		t.Fatalf("an owner who declined had %d requests sent on their behalf", n)
+	}
+}
+
+func TestConsentDoorHoldsWithoutTheCallerGates(t *testing.T) {
+	srv, hits := countingServer(t)
+	m, _ := senderModule(srv.URL, false)
+	call := modelCall{BaseURL: srv.URL, APIKey: `k`, Model: `m`, Timeout: 2 * time.Second,
+		Messages: []chatMessage{{Role: `user`, Content: `hi`}}, SchemaName: `s`, Schema: decisionSchema(),
+		Retry: true}
+
+	// Straight at the lowest level, as a caller that forgot its gate would.
+	call.OwnerUserId = 1
+	if res := m.callModel(call); !errors.Is(res.Err, errNoConsent) {
+		t.Fatalf("a declined owner's call must be refused at the door: %v", res.Err)
+	}
+	if _, err := m.moderate(1, srv.URL, `k`, `m`, time.Second, []string{`hello`}); !errors.Is(err, errNoConsent) {
+		t.Fatalf("a declined owner's moderation check must be refused at the door: %v", err)
+	}
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+`/chat/completions`, nil)
+	if _, err := send(req, &m.consent, 1, carriesPlayerData); !errors.Is(err, errNoConsent) {
+		t.Fatalf("send must refuse a declined owner: %v", err)
+	}
+
+	// A request that names no owner is refused even where consent is not
+	// asked for, and so is one with no ledger at all.
+	open := &AICompanionModule{}
+	open.syncConsent()
+	call.OwnerUserId = 0
+	if res := open.callModel(call); !errors.Is(res.Err, errNoConsent) {
+		t.Fatalf("a call that names no owner must be refused: %v", res.Err)
+	}
+	if _, err := send(req, nil, 1, carriesPlayerData); !errors.Is(err, errNoConsent) {
+		t.Fatalf("no ledger is no send: %v", err)
+	}
+	unfilled := &AICompanionModule{}
+	call.OwnerUserId = 1
+	if res := unfilled.callModel(call); !errors.Is(res.Err, errNoConsent) {
+		t.Fatalf("a module whose ledger was never filled must send nothing: %v", res.Err)
+	}
+	if n := hits.Load(); n != 0 {
+		t.Fatalf("the door let %d requests through", n)
+	}
+
+	// The one exemption: the model list carries the key and nothing else.
+	if ids := listModels(srv.URL, `k`); !ids[`m`] || hits.Load() != 1 {
+		t.Fatalf("the model list is exempt and must still be read: %v, %d requests", ids, hits.Load())
+	}
+	// And a refusal is not the provider failing.
+	m.breakerResult(errNoConsent, time.Now())
+	if m.consecutiveErrors != 0 {
+		t.Fatal("a refusal at the door must not count towards the circuit breaker")
+	}
+}
+
+// TestMain gives the package a logger, so a path that logs, such as the
+// consent door refusing a request, can run under test.
+func TestMain(m *testing.M) {
+	mudlog.SetupLogger(nil, "", "", false)
+	os.Exit(m.Run())
 }

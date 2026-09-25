@@ -592,9 +592,13 @@ func (m *AICompanionModule) cmdAskFor(rest string, user *users.UserRecord, room 
 		return true, nil
 	}
 	c.askAuth = &askAuthority{MobInstanceId: mobInstanceId, Topic: topic, Expires: time.Now().Unix() + 60}
-	c.mind.addLine(Line{Speaker: user.Character.Name, Kind: `asked`, ToMe: true,
-		Text: `Ask ` + target.Character.Name + ` about ` + topic + `.`}, m.cfg.WorkingMemoryLines)
-	c.dirty = true
+	// The topic is the owner's own words, so it is written into her mind
+	// only once they have agreed that her mind may be sent.
+	if m.consented(user.UserId) {
+		c.mind.addLine(Line{Speaker: user.Character.Name, Kind: `asked`, ToMe: true,
+			Text: `Ask ` + target.Character.Name + ` about ` + topic + `.`}, m.cfg.WorkingMemoryLines)
+		c.dirty = true
+	}
 	c.push(stimulus{Kind: `errand_ask`, Speaker: user.Character.Name,
 		Text: `put a question to ` + target.Character.Name + ` about ` + topic, FromOwner: true})
 	return true, nil
@@ -665,6 +669,11 @@ func (m *AICompanionModule) cmdAI(rest string, user *users.UserRecord, room *roo
 	case `on`, `yes`, `enable`:
 		rec.Consented, rec.Refused = true, false
 		m.saveBonds()
+		if c, ok := m.ctrls[user.UserId]; ok {
+			// Anything still queued was said before they agreed, and the next
+			// call would carry it.
+			c.pending = nil
+		}
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`(Agreed. What you say to %s, and what happens around you both, is sent to OpenAI to decide what they say, and is kept on this server. "companion-ai off" stops it.)`, name))
 	case `off`, `no`, `disable`:

@@ -512,6 +512,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		Schema:      decisionSchema(),
 		Effort:      ts.Effort,
 		Retry:       m.cfg.RetryTransient && tier != tierFast,
+		OwnerUserId: c.ownerUserId,
 	}
 	moderation := m.cfg.ModerateOutput
 	moderationModel := m.cfg.ModerationModel
@@ -587,7 +588,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 				res.ParseErr = err
 			} else {
 				if moderation {
-					res.Moderated = moderateDecision(&d, call.BaseURL, call.APIKey, moderationModel, 5*time.Second, strictModeration)
+					res.Moderated = m.moderateDecision(ownerId, &d, call.BaseURL, call.APIKey, moderationModel, 5*time.Second, strictModeration)
 				}
 				res.Parsed = &d
 			}
@@ -1167,7 +1168,7 @@ func (m *AICompanionModule) callWithTools(call modelCall, ownerId int, seq uint6
 				call.ToolChoice = `none` // time to answer
 			}
 		}
-		res := callModel(call)
+		res := m.callModel(call)
 		tokens += res.Tokens
 		latency += res.Latency
 		res.Tokens, res.Latency, res.ToolsUsed = tokens, latency, used

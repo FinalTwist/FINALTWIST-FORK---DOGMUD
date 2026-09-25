@@ -143,6 +143,7 @@ type AICompanionModule struct {
 	lastErrLog  time.Time
 
 	bonds             bondState             // who has met or turned away a companion
+	consent           consentLedger         // who has agreed, as the model door reads it
 	pendingMeet       map[int]*meetWait     // characters waiting to meet one
 	meetingPlace      map[int]string        // where each first meeting happened
 	models            modelChooser          // automatic model choice per tier

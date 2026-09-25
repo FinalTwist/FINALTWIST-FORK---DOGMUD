@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -52,9 +53,17 @@ func (m *AICompanionModule) loadBonds() {
 	if m.bonds.Users == nil {
 		m.bonds.Users = map[int]*bondRecord{}
 	}
+	m.syncConsent()
 }
 
+// saveBonds writes the bond records, and brings the consent door's copy up
+// to date first: every change of mind about consent is saved, so this is
+// the one place that sees them all.
 func (m *AICompanionModule) saveBonds() {
+	m.syncConsent()
+	if m.plug == nil {
+		return // built without storage, as the tests build her
+	}
 	if err := m.plug.WriteStruct(bondStateId, &m.bonds); err != nil {
 		mudlog.Error(`aicompanion`, `action`, `saveBonds`, `error`, err)
 	}
@@ -273,6 +282,62 @@ func (m *AICompanionModule) consented(ownerUserId int) bool {
 	return rec != nil && rec.Consented
 }
 
+// consentLedger is the model door's own copy of who has agreed. The bond
+// records live under the mud lock, and requests leave from goroutines that
+// do not hold it, so the door in send reads this instead. It is rebuilt
+// from the bond records whenever they are loaded or saved. Its zero value
+// agrees to nothing, so a module that never filled it sends nothing.
+type consentLedger struct {
+	mu      sync.Mutex
+	open    bool         // this server does not ask for consent at all
+	agreed  map[int]bool // owners who have said yes
+	lastLog time.Time    // last refusal written to the log
+}
+
+// allows reports whether a request carrying this owner's data may leave.
+// An unknown owner never may, whatever the server's setting.
+func (l *consentLedger) allows(ownerUserId int) bool {
+	if l == nil || ownerUserId <= 0 {
+		return false
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.open || l.agreed[ownerUserId]
+}
+
+// noteRefusal logs a request the door turned away, at most once a minute.
+// Every caller checks consent before building a request, so a refusal here
+// means one of them forgot: worth a line, not a flood.
+func (l *consentLedger) noteRefusal(ownerUserId int, path string) {
+	if l != nil {
+		l.mu.Lock()
+		now := time.Now()
+		if now.Sub(l.lastLog) < time.Minute {
+			l.mu.Unlock()
+			return
+		}
+		l.lastLog = now
+		l.mu.Unlock()
+	}
+	mudlog.Error(`aicompanion`, `action`, `consentDoor`, `owner`, ownerUserId, `path`, path,
+		`error`, `a request for an owner who has not agreed reached the door; a caller is missing its consent check`)
+}
+
+// syncConsent rebuilds the door's copy from the bond records. Runs under
+// the mud lock.
+func (m *AICompanionModule) syncConsent() {
+	agreed := make(map[int]bool, len(m.bonds.Users))
+	for id, rec := range m.bonds.Users {
+		if rec != nil && rec.Consented {
+			agreed[id] = true
+		}
+	}
+	m.consent.mu.Lock()
+	m.consent.open = !m.cfg.RequireConsent
+	m.consent.agreed = agreed
+	m.consent.mu.Unlock()
+}
+
 // answerConsent reads a literal yes or no from something the owner said. It
 // returns true when the words were an answer, so the speech is not passed
 // on as ordinary conversation.
@@ -301,6 +366,9 @@ func (m *AICompanionModule) answerConsent(c *controller, u *users.UserRecord, sa
 		m.saveBonds()
 		u.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`(Agreed. %s will answer in their own words from here on. "companion-ai off" stops it at any time, and "companion-part" ends the companionship altogether.)`, c.profile.Name))
+		// Anything still queued was said before they agreed, and a queued
+		// moment is exactly what the next call would carry.
+		c.pending = nil
 		c.push(stimulus{Kind: `first_meeting`, Text: m.meetingPlace[u.UserId], FromOwner: true})
 		delete(m.meetingPlace, u.UserId)
 		return true

@@ -139,6 +139,7 @@ func (m *AICompanionModule) startReflection(mind *Mind, p *Profile, ownerName st
 		Schema:      reflectionSchema(),
 		Effort:      ts.Effort,
 		Retry:       m.cfg.RetryTransient,
+		OwnerUserId: mind.OwnerUserId,
 	}
 	reserved := worstCaseTokens(estimateTokens(call.Messages), ts.MaxTokens, 0, call.Retry)
 	if !m.tryReserveTokens(mind.OwnerUserId, reserved) {
@@ -155,7 +156,7 @@ func (m *AICompanionModule) startReflection(mind *Mind, p *Profile, ownerName st
 			}
 		}()
 
-		res := callModel(call)
+		res := m.callModel(call)
 
 		util.LockMud()
 		defer util.UnlockMud()
