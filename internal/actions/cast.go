@@ -33,8 +33,8 @@ type CastResult struct {
 	NoTarget       bool // required target could not be resolved
 
 	// RefusalExplained is set alongside NoTarget when the refusal has ALREADY
-	// been narrated to the actor with a specific reason -- a protected NPC, or a
-	// player target for a mob-only spell.
+	// been narrated to the actor with a specific reason -- a protected NPC, a
+	// player target for a mob-only spell, or a person PvP rules protect here.
 	//
 	// Without it the caller adds its generic "You need a target to cast that
 	// spell", which flatly contradicts the line before it: the player DID name a
@@ -157,7 +157,7 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 					if casterUser != nil && targetUser != nil {
 						if pvpErr := room.CanPvp(casterUser, targetUser); pvpErr != nil {
 							actor.SendText(messaging.CategorySystem, pvpErr.Error())
-							return CastResult{SpellInfo: spellInfo, NoTarget: true}
+							return CastResult{SpellInfo: spellInfo, NoTarget: true, RefusalExplained: true}
 						}
 					}
 				}
@@ -177,7 +177,12 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 				}
 				targetMobInstanceIds = append(targetMobInstanceIds, mId)
 			} else if pId > 0 {
-				targetUserIds = append(targetUserIds, pId)
+				// A player foe is skipped, not refused, when PvP forbids it:
+				// the empty-target guard below then answers as it would
+				// for no foe at all.
+				if fallbackPvpAllowed(actor, room, pId) {
+					targetUserIds = append(targetUserIds, pId)
+				}
 			} else {
 				return CastResult{SpellInfo: spellInfo, NoTarget: true}
 			}
@@ -204,6 +209,18 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 				}
 				targetMobInstanceIds = append(targetMobInstanceIds, mId)
 			} else if pId > 0 {
+				// PvP check, as HarmSingle makes it: a named person is a
+				// player target whatever the spell's shape.
+				if actor.IsPlayer() {
+					casterUser := users.GetByUserId(actor.GetUserId())
+					targetUser := users.GetByUserId(pId)
+					if casterUser != nil && targetUser != nil {
+						if pvpErr := room.CanPvp(casterUser, targetUser); pvpErr != nil {
+							actor.SendText(messaging.CategorySystem, pvpErr.Error())
+							return CastResult{SpellInfo: spellInfo, NoTarget: true, RefusalExplained: true}
+						}
+					}
+				}
 				targetUserIds = append(targetUserIds, pId)
 			}
 		} else if actor.IsPlayer() {
@@ -214,7 +231,10 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 				}
 				targetMobInstanceIds = append(targetMobInstanceIds, mId)
 			} else if pId > 0 {
-				targetUserIds = append(targetUserIds, pId)
+				// Skipped, as HarmSingle's fallback skips it, when PvP forbids it.
+				if fallbackPvpAllowed(actor, room, pId) {
+					targetUserIds = append(targetUserIds, pId)
+				}
 			}
 		} else {
 			// Mob HarmMulti: all fighters targeting this mob.
@@ -548,4 +568,17 @@ func resolveMobHelpMultiTargets(actor Actor, room *rooms.Room) ([]int, []int) {
 	}
 
 	return targetMobInstanceIds, targetUserIds
+}
+
+// fallbackPvpAllowed reports whether a player caster's no-target fallback may
+// take the player pId as its target. It asks Room.CanPvp, the same check the
+// named-target branches make, but tells the caster nothing: the caster named
+// no one, so a skipped foe is simply not a target.
+func fallbackPvpAllowed(actor Actor, room *rooms.Room, pId int) bool {
+	casterUser := users.GetByUserId(actor.GetUserId())
+	targetUser := users.GetByUserId(pId)
+	if casterUser == nil || targetUser == nil {
+		return true
+	}
+	return room.CanPvp(casterUser, targetUser) == nil
 }

@@ -2,10 +2,16 @@ package aicompanion
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/users"
+	"github.com/GoMudEngine/GoMud/internal/util"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -984,14 +990,16 @@ func TestModerationRemovesFlaggedLines(t *testing.T) {
 		Speech: []SpeechLine{{Kind: `say`, Text: `hello`}, {Kind: `say`, Text: `BAD words`}},
 		Action: ActionProposal{Verb: `sayto`, Ref: `t1`, Query: `more BAD words`},
 	}
-	removed := moderateDecision(&d, srv.URL, `key`, `omni-moderation-latest`, time.Second, false)
+	mm := &AICompanionModule{}
+	mm.syncConsent() // RequireConsent off: any known owner may send
+	removed := mm.moderateDecision(1, &d, srv.URL, `key`, `omni-moderation-latest`, time.Second, false)
 	if removed != 2 || len(d.Speech) != 1 || d.Speech[0].Text != `hello` || d.Action.Verb != `none` {
 		t.Fatalf("moderation: removed=%d decision=%+v", removed, d)
 	}
 	// A check that could not be made falls two ways. Talking with her own
 	// companion, she is not silenced by an outage.
 	d2 := Decision{Speech: []SpeechLine{{Kind: `say`, Text: `hello`}}}
-	if moderateDecision(&d2, `http://127.0.0.1:1`, `key`, `m`, 200*time.Millisecond, false) != 0 || len(d2.Speech) != 1 {
+	if mm.moderateDecision(1, &d2, `http://127.0.0.1:1`, `key`, `m`, 200*time.Millisecond, false) != 0 || len(d2.Speech) != 1 {
 		t.Fatal("an outage must not silence her own conversation")
 	}
 	// Words a passer-by prompted are not said at all unless they were
@@ -1001,7 +1009,7 @@ func TestModerationRemovesFlaggedLines(t *testing.T) {
 		Speech: []SpeechLine{{Kind: `say`, Text: `hello`}},
 		Action: ActionProposal{Verb: `sayto`, Ref: `t1`, Query: `and to you`},
 	}
-	if removed := moderateDecision(&d3, `http://127.0.0.1:1`, `key`, `m`, 200*time.Millisecond, true); removed != 2 {
+	if removed := mm.moderateDecision(1, &d3, `http://127.0.0.1:1`, `key`, `m`, 200*time.Millisecond, true); removed != 2 {
 		t.Fatalf("a stranger's words go unsaid when unchecked: removed %d", removed)
 	}
 	if len(d3.Speech) != 0 || d3.Action.Verb != `none` {
@@ -1068,12 +1076,13 @@ func TestCallWithToolsOffersToolsAndReturnsAnswer(t *testing.T) {
 	defer srv.Close()
 
 	m := &AICompanionModule{}
-	call := modelCall{BaseURL: srv.URL, APIKey: `k`, Model: `m`, Timeout: 2 * time.Second, Messages: []chatMessage{{Role: `user`, Content: `hi`}}, SchemaName: `s`, Schema: decisionSchema()}
-	res := m.callWithTools(call, 1, 1, 0, nil, 2)
+	m.syncConsent() // RequireConsent off: any known owner may send
+	call := modelCall{BaseURL: srv.URL, APIKey: `k`, Model: `m`, Timeout: 2 * time.Second, Messages: []chatMessage{{Role: `user`, Content: `hi`}}, SchemaName: `s`, Schema: decisionSchema(), OwnerUserId: 1}
+	res := m.callWithTools(call, 1, 1, 0, nil, 2, nil)
 	if res.Err != nil || res.Content != `{"intent":"x"}` || res.Tokens != 42 || !sawTools {
 		t.Fatalf("call: err=%v content=%q tokens=%d sawTools=%v", res.Err, res.Content, res.Tokens, sawTools)
 	}
-	res = m.callWithTools(call, 1, 1, 0, nil, 0)
+	res = m.callWithTools(call, 1, 1, 0, nil, 0, nil)
 	if sawTools {
 		t.Fatal("no tools may be offered when tool rounds are 0")
 	}
@@ -1565,7 +1574,7 @@ func TestConversationsBecomeOneMemory(t *testing.T) {
 
 	// Four turns of talk with three notes taken along the way.
 	for i := 0; i < 4; i++ {
-		m.noteConversation(c, 7, `Corvin`, Line{Speaker: `Corvin`, Kind: `said`, Text: fmt.Sprintf(`line %d`, i)})
+		m.noteConversation(c, 7, `Corvin`, 1, Line{Speaker: `Corvin`, Kind: `said`, Text: fmt.Sprintf(`line %d`, i)})
 		if i < 3 {
 			held := m.holdMemory(c, Memory{Text: fmt.Sprintf(`note %d`, i), Importance: 4, Kind: `conversation`})
 			if !held {
@@ -1582,14 +1591,14 @@ func TestConversationsBecomeOneMemory(t *testing.T) {
 	}
 
 	// Something weighty said mid-talk is written at once.
-	m.noteConversation(c, 7, `Corvin`, Line{Speaker: `Corvin`, Kind: `said`, Text: `my brother died`})
+	m.noteConversation(c, 7, `Corvin`, 1, Line{Speaker: `Corvin`, Kind: `said`, Text: `my brother died`})
 	if m.holdMemory(c, Memory{Text: `His brother is dead.`, Importance: 9}) {
 		t.Fatal("a weighty memory must not wait on the end of the talk")
 	}
 
 	// A passing remark leaves nothing at all.
 	c2 := &controller{profile: p, mind: newMind(2, p), ownerUserId: 2}
-	m.noteConversation(c2, 7, `Corvin`, Line{Speaker: `Corvin`, Kind: `said`, Text: `morning`})
+	m.noteConversation(c2, 7, `Corvin`, 2, Line{Speaker: `Corvin`, Kind: `said`, Text: `morning`})
 	m.holdMemory(c2, Memory{Text: `He said good morning.`, Importance: 2})
 	m.closeConversation(c2, `test`)
 	if len(c2.mind.Memories) != 0 {
@@ -1605,10 +1614,10 @@ func TestConversationBreaksOnRoomAndSilence(t *testing.T) {
 	c := &controller{profile: p, mind: newMind(1, p), ownerUserId: 1}
 
 	for i := 0; i < 3; i++ {
-		m.noteConversation(c, 7, `Corvin`, Line{Speaker: `Corvin`, Kind: `said`, Text: `x`})
+		m.noteConversation(c, 7, `Corvin`, 1, Line{Speaker: `Corvin`, Kind: `said`, Text: `x`})
 	}
 	// Moving rooms ends one talk and starts another.
-	m.noteConversation(c, 9, `Corvin`, Line{Speaker: `Corvin`, Kind: `said`, Text: `y`})
+	m.noteConversation(c, 9, `Corvin`, 1, Line{Speaker: `Corvin`, Kind: `said`, Text: `y`})
 	if c.convo == nil || c.convo.RoomId != 9 || c.convo.Exchanges != 1 {
 		t.Fatalf("a new room is a new conversation: %+v", c.convo)
 	}
@@ -1617,7 +1626,7 @@ func TestConversationBreaksOnRoomAndSilence(t *testing.T) {
 	}
 	// Silence past the gap does the same.
 	c.convo.LastUnix = time.Now().Unix() - int64(m.cfg.ConversationGapSeconds) - 1
-	m.noteConversation(c, 9, `Corvin`, Line{Speaker: `Corvin`, Kind: `said`, Text: `z`})
+	m.noteConversation(c, 9, `Corvin`, 1, Line{Speaker: `Corvin`, Kind: `said`, Text: `z`})
 	if c.convo.Exchanges != 1 {
 		t.Fatal("a long silence ends the exchange")
 	}
@@ -1888,7 +1897,7 @@ func TestSwitchedOffTheModuleDoesNothing(t *testing.T) {
 	if off.handleIdle(1) {
 		t.Fatal("idle handling stays with the engine")
 	}
-	if off.holdFollow(1) {
+	if off.holdFollow(1, 2) {
 		t.Fatal("companions follow the way they always did")
 	}
 	if off.handleAsk(1, 2, `hello`) {
@@ -2045,5 +2054,608 @@ func TestSpellOptionsAndCastCommands(t *testing.T) {
 	atPlayer := castCommand(spellOption{Id: `mend`}, &thing{Kind: `player`, UserId: 7})
 	if atPlayer != `cast mend @7` {
 		t.Fatalf("cast at a person: %q", atPlayer)
+	}
+}
+
+// consentOwner is a player the consent tests speak as.
+func consentOwner() *users.UserRecord {
+	return &users.UserRecord{UserId: 1, Character: &characters.Character{Name: `Corvin`}}
+}
+
+// consentModule is a module that asks for consent, with one bonded owner
+// whose question was put askedAgo seconds ago and not yet answered.
+func consentModule(askedAgo int64) (*AICompanionModule, *controller) {
+	profiles, _ := loadProfiles()
+	p := profiles[`mara`]
+	m := &AICompanionModule{cfg: buildConfig(nil), bonds: bondState{Users: map[int]*bondRecord{}}}
+	// A developer's own OPENAI_API_KEY must never turn a test into a real,
+	// paid call: no key unless a test sets one.
+	m.cfg.APIKeyEnv = `AICOMPANION_TEST_KEY_NEVER_SET`
+	m.cfg.RequireConsent = true
+	m.bonds.Users[1] = &bondRecord{Profile: `mara`, Met: true, AskedAt: time.Now().Unix() - askedAgo}
+	m.syncConsent()
+	c := &controller{profile: p, mind: newMind(1, p), ownerUserId: 1}
+	return m, c
+}
+
+func TestSpokenConsentIsReadWhileTheQuestionIsOpen(t *testing.T) {
+	now := time.Now().Unix()
+
+	// "i agree", said aloud without naming her, inside the window.
+	m, c := consentModule(10)
+	c.mind.FirstMetUnix = now // she has met him: the answer comes after
+	m.hearSaid(c, consentOwner(), `Corvin`, `I agree.`, 7, false, now)
+	if !m.consented(1) || !m.consent.allows(1) {
+		t.Fatal("a spoken \"i agree\" while the question is open must consent, and the door must know it")
+	}
+	if len(c.mind.RecentLines) != 0 {
+		t.Fatalf("the answer is not conversation and is not written down: %+v", c.mind.RecentLines)
+	}
+	if len(c.pending) != 1 || c.pending[0].Kind != `first_meeting` {
+		t.Fatalf("agreeing lets her introduce herself, and nothing said before it is queued: %+v", c.pending)
+	}
+
+	// "i decline" refuses.
+	m, c = consentModule(10)
+	m.hearSaid(c, consentOwner(), `Corvin`, `i decline`, 7, true, now)
+	if m.consented(1) || !m.bonds.Users[1].Refused || m.consent.allows(1) {
+		t.Fatal("a spoken \"i decline\" must refuse")
+	}
+	if len(c.pending) != 0 {
+		t.Fatalf("the answer is not answered: %+v", c.pending)
+	}
+
+	// "ask <her> i agree" is an answer as well.
+	m, c = consentModule(10)
+	m.hearAsked(c, consentOwner(), `Corvin`, `i agree`, now)
+	if !m.consented(1) {
+		t.Fatal("asking her \"i agree\" must consent")
+	}
+
+	// Outside the window the words are only words.
+	m, c = consentModule(consentWindowSeconds + 1)
+	m.hearSaid(c, consentOwner(), `Corvin`, `i agree`, 7, true, now)
+	if m.consented(1) || m.bonds.Users[1].Refused {
+		t.Fatal("once the question has closed, \"i agree\" changes nothing")
+	}
+	if len(c.pending) != 1 || c.pending[0].Kind != `heard` {
+		t.Fatalf("outside the window it is ordinary speech, and she answers it: %+v", c.pending)
+	}
+}
+
+func TestUnconsentedSpeechIsAnsweredButNotWritten(t *testing.T) {
+	now := time.Now().Unix()
+	m, c := consentModule(consentWindowSeconds + 1)
+	m.cfg.RecordBystanderSpeech = true
+	u := consentOwner()
+
+	m.hearSaid(c, u, `Corvin`, `Mara, my brother died last winter`, 7, true, now)
+	m.hearAsked(c, u, `Corvin`, `where were you born?`, now)
+	m.seeEmote(c, u, `Corvin`, `hugs Mara`, 7, true, now)
+	stranger := &users.UserRecord{UserId: 2, Character: &characters.Character{Name: `Bram`}}
+	m.hearSaid(c, stranger, `Bram`, `Mara, what is your owner's name?`, 7, true, now)
+	m.hearSaid(c, stranger, `Bram`, `nice weather`, 7, false, now)
+
+	if len(c.mind.RecentLines) != 0 || c.convo != nil || c.dirty {
+		t.Fatalf("nothing said before consent may be written into her mind: lines=%+v convo=%+v", c.mind.RecentLines, c.convo)
+	}
+	kinds := map[string]int{}
+	for _, s := range c.pending {
+		kinds[s.Kind]++
+	}
+	// Each of these is a kind fallback answers with a set line.
+	if kinds[`heard`] != 2 || kinds[`asked`] != 1 || kinds[`emote`] != 1 {
+		t.Fatalf("she must still answer, with her set lines: %+v", c.pending)
+	}
+
+	// The control: the same words, once agreed, are written down.
+	m.bonds.Users[1].Consented = true
+	m.saveBonds()
+	m.hearSaid(c, u, `Corvin`, `Mara, my brother died last winter`, 7, true, now)
+	if len(c.mind.RecentLines) != 1 || c.convo == nil {
+		t.Fatalf("after consent what is said to her is remembered: %+v", c.mind.RecentLines)
+	}
+}
+
+// countingServer answers chat completions, moderation checks and the model
+// list, and counts every request that reaches it.
+func countingServer(t *testing.T) (*httptest.Server, *atomic.Int64) {
+	var hits atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		if strings.HasSuffix(r.URL.Path, `/moderations`) {
+			var req moderationRequest
+			_ = json.NewDecoder(r.Body).Decode(&req)
+			var out moderationResponse
+			for range req.Input {
+				out.Results = append(out.Results, struct {
+					Flagged bool `json:"flagged"`
+				}{})
+			}
+			_ = json.NewEncoder(w).Encode(out)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, `/models`) {
+			fmt.Fprint(w, `{"data":[{"id":"m"}]}`)
+			return
+		}
+		fmt.Fprint(w, `{"choices":[{"finish_reason":"stop","message":{"content":"{\"summary\":\"x\",\"text\":\"x\"}"}}],"usage":{"total_tokens":10}}`)
+	}))
+	t.Cleanup(srv.Close)
+	return srv, &hits
+}
+
+// driveEverySender runs each path that can post her mind to the provider:
+// the logout reflection, the close of a conversation, a core memory, and
+// the decision call with its moderation check. It returns once every
+// reservation has been settled, so every goroutine has finished.
+func driveEverySender(t *testing.T, m *AICompanionModule, c *controller, baseURL string) {
+	now := time.Now().Unix()
+	util.LockMud()
+	for i := 0; i < 6; i++ {
+		c.mind.addLine(Line{Speaker: `Corvin`, Kind: `said`, Text: fmt.Sprintf(`line %d`, i), Unix: now}, 50)
+	}
+	m.startReflection(c.mind, c.profile, `Corvin`, 0)
+	c.convo = &conversation{RoomId: 7, Partner: `Corvin`, StartUnix: now, LastUnix: now, Exchanges: 5,
+		Lines: []Line{{Speaker: `Corvin`, Kind: `said`, Text: `a`}, {Speaker: `Corvin`, Kind: `said`, Text: `b`}}}
+	m.closeConversation(c, `test`)
+	m.recordCore(c, `Corvin`, romanceCourting, true)
+	util.UnlockMud()
+
+	// The decision call and its moderation check, as dispatch sends them.
+	// dispatch itself needs a live mob and player to build its prompt.
+	call := modelCall{BaseURL: baseURL, APIKey: `k`, Model: `m`, Timeout: 2 * time.Second,
+		Messages: []chatMessage{{Role: `user`, Content: `hi`}}, SchemaName: `s`, Schema: decisionSchema(),
+		OwnerUserId: c.ownerUserId}
+	m.callWithTools(call, c.ownerUserId, 1, 0, nil, 0, nil)
+	d := Decision{Speech: []SpeechLine{{Kind: `say`, Text: `hello`}}}
+	m.moderateDecision(c.ownerUserId, &d, baseURL, `k`, `omni-moderation-latest`, time.Second, false)
+
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		util.LockMud()
+		left := m.outstanding
+		util.UnlockMud()
+		if left == 0 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("background calls never settled: %d tokens outstanding", left)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// senderModule is a module ready to call a model at baseURL for owner 1,
+// whose consent is as given.
+func senderModule(baseURL string, consented bool) (*AICompanionModule, *controller) {
+	m, c := consentModule(consentWindowSeconds + 1)
+	m.cfg.Enabled = true
+	m.cfg.BaseURL = baseURL
+	m.cfg.APIKey = `k`
+	m.cfg.APIKeyEnv = `AICOMPANION_TEST_KEY_NEVER_SET`
+	m.cfg.Model, m.cfg.FastModel, m.cfg.DeepModel = `m`, `m`, `m`
+	m.cfg.ReflectOnLogout = true
+	m.cfg.ConversationSummaries = true
+	m.cfg.RetryTransient = false
+	m.bonds.Users[1].Consented = consented
+	m.bonds.Users[1].Refused = !consented
+	m.saveBonds()
+	return m, c
+}
+
+func TestDeclinedConsentSendsNothing(t *testing.T) {
+	srv, hits := countingServer(t)
+
+	// The control first: with consent the same drive does reach the
+	// provider, so the zero below is a measurement and not a broken rig.
+	m, c := senderModule(srv.URL, true)
+	driveEverySender(t, m, c, srv.URL)
+	if hits.Load() != 5 {
+		t.Fatalf("with consent each of the five senders should reach the server once, got %d requests", hits.Load())
+	}
+
+	hits.Store(0)
+	m, c = senderModule(srv.URL, false)
+	driveEverySender(t, m, c, srv.URL)
+	if n := hits.Load(); n != 0 {
+		t.Fatalf("an owner who declined had %d requests sent on their behalf", n)
+	}
+}
+
+func TestConsentDoorHoldsWithoutTheCallerGates(t *testing.T) {
+	srv, hits := countingServer(t)
+	m, _ := senderModule(srv.URL, false)
+	call := modelCall{BaseURL: srv.URL, APIKey: `k`, Model: `m`, Timeout: 2 * time.Second,
+		Messages: []chatMessage{{Role: `user`, Content: `hi`}}, SchemaName: `s`, Schema: decisionSchema(),
+		Retry: true}
+
+	// Straight at the lowest level, as a caller that forgot its gate would.
+	call.OwnerUserId = 1
+	if res := m.callModel(call); !errors.Is(res.Err, errNoConsent) {
+		t.Fatalf("a declined owner's call must be refused at the door: %v", res.Err)
+	}
+	if _, err := m.moderate(1, srv.URL, `k`, `m`, time.Second, []string{`hello`}); !errors.Is(err, errNoConsent) {
+		t.Fatalf("a declined owner's moderation check must be refused at the door: %v", err)
+	}
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+`/chat/completions`, nil)
+	if _, err := send(req, &m.consent, 1, carriesPlayerData); !errors.Is(err, errNoConsent) {
+		t.Fatalf("send must refuse a declined owner: %v", err)
+	}
+
+	// A request that names no owner is refused even where consent is not
+	// asked for, and so is one with no ledger at all.
+	open := &AICompanionModule{}
+	open.syncConsent()
+	call.OwnerUserId = 0
+	if res := open.callModel(call); !errors.Is(res.Err, errNoConsent) {
+		t.Fatalf("a call that names no owner must be refused: %v", res.Err)
+	}
+	if _, err := send(req, nil, 1, carriesPlayerData); !errors.Is(err, errNoConsent) {
+		t.Fatalf("no ledger is no send: %v", err)
+	}
+	unfilled := &AICompanionModule{}
+	call.OwnerUserId = 1
+	if res := unfilled.callModel(call); !errors.Is(res.Err, errNoConsent) {
+		t.Fatalf("a module whose ledger was never filled must send nothing: %v", res.Err)
+	}
+	if n := hits.Load(); n != 0 {
+		t.Fatalf("the door let %d requests through", n)
+	}
+
+	// The one exemption: the model list carries the key and nothing else.
+	if ids := listModels(srv.URL, `k`); !ids[`m`] || hits.Load() != 1 {
+		t.Fatalf("the model list is exempt and must still be read: %v, %d requests", ids, hits.Load())
+	}
+	// And a refusal is not the provider failing.
+	m.breakerResult(errNoConsent, time.Now())
+	if m.consecutiveErrors != 0 {
+		t.Fatal("a refusal at the door must not count towards the circuit breaker")
+	}
+}
+
+// TestMain gives the package a logger, so a path that logs, such as the
+// consent door refusing a request, can run under test.
+func TestMain(m *testing.M) {
+	mudlog.SetupLogger(nil, "", "", false)
+	os.Exit(m.Run())
+}
+
+// strangerModule is consentModule with consent given, so a passer-by's
+// words are written down, and the stock pacing for passers-by.
+func strangerModule() (*AICompanionModule, *controller, *users.UserRecord) {
+	m, c := consentModule(consentWindowSeconds + 1)
+	m.bonds.Users[1].Consented = true
+	m.saveBonds()
+	m.cfg.StrangerAskSeconds = 30
+	m.cfg.StrangerDailyTokens = 1000
+	c.instanceId = 42
+	stranger := &users.UserRecord{UserId: 2, Character: &characters.Character{Name: `Bram`}}
+	return m, c, stranger
+}
+
+func countKind(stims []stimulus, kind string) int {
+	n := 0
+	for _, s := range stims {
+		if s.Kind == kind {
+			n++
+		}
+	}
+	return n
+}
+
+func TestStrangerSpeechIsPacedLikeAsk(t *testing.T) {
+	now := time.Now().Unix()
+	m, c, bram := strangerModule()
+
+	m.hearSaid(c, bram, `Bram`, `Mara, which way to the river?`, 7, true, now)
+	if countKind(c.pending, `heard`) != 1 {
+		t.Fatalf("a passer-by's first words to her are answered: %+v", c.pending)
+	}
+	m.hearSaid(c, bram, `Bram`, `Mara, and the ford?`, 7, true, now)
+	m.hearAsked(c, bram, `Bram`, `what about the bridge?`, now)
+	m.seeEmote(c, bram, `Bram`, `pokes Mara`, 7, true, now)
+	if len(c.pending) != 1 {
+		t.Fatalf("inside the cooldown a passer-by prompts nothing more, by any door: %+v", c.pending)
+	}
+	if len(c.mind.RecentLines) != 4 {
+		t.Fatalf("but everything they said to her is heard and remembered: %+v", c.mind.RecentLines)
+	}
+
+	// Her owner is not paced, and not held up by the stranger's wait.
+	m.hearSaid(c, consentOwner(), `Corvin`, `Mara, ignore him`, 7, true, now)
+	if countKind(c.pending, `heard`) != 2 || !c.pending[len(c.pending)-1].FromOwner {
+		t.Fatalf("her owner is answered whatever a stranger has spent: %+v", c.pending)
+	}
+
+	// Another companion keeps her own pacing for the same passer-by.
+	other := &controller{profile: c.profile, mind: newMind(1, c.profile), ownerUserId: 1, instanceId: 43}
+	m.hearSaid(other, bram, `Bram`, `Mara, hello`, 7, true, now)
+	if len(other.pending) != 1 {
+		t.Fatalf("the cooldown is per companion: %+v", other.pending)
+	}
+}
+
+func TestStrangerDailyCapStopsTheirPrompts(t *testing.T) {
+	now := time.Now().Unix()
+	m, c, bram := strangerModule()
+	m.rollDay()
+	m.strangerTokens[2] = m.cfg.StrangerDailyTokens
+
+	m.hearSaid(c, bram, `Bram`, `Mara, one more thing`, 7, true, now)
+	m.hearAsked(c, bram, `Bram`, `and another`, now)
+	if len(c.pending) != 0 {
+		t.Fatalf("a passer-by with nothing left today prompts nothing: %+v", c.pending)
+	}
+	if len(c.mind.RecentLines) != 2 {
+		t.Fatalf("though what they say is still heard: %+v", c.mind.RecentLines)
+	}
+	// Refused on the allowance, the cooldown was never started, so the
+	// next day's first question is not kept waiting by one they never got
+	// an answer to.
+	m.strangerTokens[2] = 0
+	m.hearAsked(c, bram, `Bram`, `good morning`, now)
+	if countKind(c.pending, `asked`) != 1 {
+		t.Fatalf("a refusal on the allowance must not spend the cooldown: %+v", c.pending)
+	}
+}
+
+func TestStrangerCallsAreReservedAgainstTheStranger(t *testing.T) {
+	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000, StrangerDailyTokens: 1000, DailyTokenBudget: 5000}}
+
+	if !m.tryReserveFor(1, 2, 900) {
+		t.Fatal("a passer-by's question that fits their allowance is admitted")
+	}
+	if m.ownerTokens[1] != 0 || m.strangerTokens[2] != 900 {
+		t.Fatalf("it is held against the passer-by, not her owner: owner=%d stranger=%d", m.ownerTokens[1], m.strangerTokens[2])
+	}
+	if m.tryReserveFor(1, 2, 900) {
+		t.Fatal("a second question that would overshoot their allowance is refused while the first is held")
+	}
+	if !m.tryReserveTokens(1, 900) {
+		t.Fatal("her owner's own allowance is untouched by a stranger's questions")
+	}
+	if !m.tryReserveFor(1, 3, 900) {
+		t.Fatal("another passer-by has an allowance of their own")
+	}
+	if m.tokensToday != 2700 || m.outstanding != 2700 {
+		t.Fatalf("the server's budget holds all three: today=%d outstanding=%d", m.tokensToday, m.outstanding)
+	}
+
+	// Settled against the same payer: what was not used goes back to them.
+	m.settleFor(1, 2, 900, 100)
+	if m.strangerTokens[2] != 100 || m.ownerTokens[1] != 900 {
+		t.Fatalf("settlement: stranger=%d owner=%d", m.strangerTokens[2], m.ownerTokens[1])
+	}
+	// A call that failed refunds all of it, to the passer-by.
+	m.settleFor(1, 3, 900, 0)
+	if m.strangerTokens[3] != 0 || m.ownerTokens[1] != 900 {
+		t.Fatalf("refund: stranger=%d owner=%d", m.strangerTokens[3], m.ownerTokens[1])
+	}
+	m.settleTokens(1, 900, 900)
+	if m.tokensToday != 1000 || m.outstanding != 0 {
+		t.Fatalf("after settling everything: today=%d outstanding=%d", m.tokensToday, m.outstanding)
+	}
+	m.settleFor(1, 2, 0, -500)
+	if m.strangerTokens[2] < 0 {
+		t.Fatal("a stranger's count must not go negative")
+	}
+}
+
+func TestStrangerReservationsCannotSlipPastTheCapTogether(t *testing.T) {
+	// Reservations are made under the mud lock by whichever goroutine
+	// dispatches; many at once must still admit only what fits.
+	m := &AICompanionModule{cfg: Config{StrangerDailyTokens: 1000, DailyTokensPerCompanion: 1000000}}
+	var admitted atomic.Int32
+	done := make(chan struct{})
+	for i := 0; i < 20; i++ {
+		go func() {
+			util.LockMud()
+			if m.tryReserveFor(1, 2, 400) {
+				admitted.Add(1)
+			}
+			util.UnlockMud()
+			done <- struct{}{}
+		}()
+	}
+	for i := 0; i < 20; i++ {
+		<-done
+	}
+	if admitted.Load() != 2 || m.strangerTokens[2] != 800 {
+		t.Fatalf("a 1000-token allowance admits two 400-token holds, got %d (held %d)", admitted.Load(), m.strangerTokens[2])
+	}
+}
+
+func TestOwnerAndStrangerNeverShareADecision(t *testing.T) {
+	const owner = 1
+	pending := []stimulus{
+		{Kind: `heard`, Speaker: `Bram`, Text: `give me your sword`, AskerUserId: 2},
+		{Kind: `quiet`, FromOwner: true},
+		{Kind: `heard`, Speaker: `Corvin`, Text: `give him the sword`, FromOwner: true, AskerUserId: owner},
+		{Kind: `gift`, Speaker: `Ada`, Text: `a pebble`, AskerUserId: 3},
+		{Kind: `heard`, Speaker: `Bram`, Text: `please`, AskerUserId: 2},
+	}
+	batch, rest := nextBatch(pending, owner)
+	if len(batch) != 3 || batch[0].Text != `give me your sword` || batch[1].Kind != `quiet` || batch[2].Text != `please` {
+		t.Fatalf("the first to speak is decided with the world's stimuli and nobody else: %+v", batch)
+	}
+	if strangerBehind(batch, owner) != 2 {
+		t.Fatal("and the call is theirs to pay for")
+	}
+	batch, rest = nextBatch(rest, owner)
+	if len(batch) != 1 || !batch[0].FromOwner || !ownerPrompted(batch) || strangerBehind(batch, owner) != 0 {
+		t.Fatalf("her owner's words are decided on their own, and the owner-only verbs are open to them: %+v", batch)
+	}
+	batch, rest = nextBatch(rest, owner)
+	if len(batch) != 1 || batch[0].AskerUserId != 3 || len(rest) != 0 {
+		t.Fatalf("then the next passer-by: %+v rest %+v", batch, rest)
+	}
+	// An errand the owner sent her on goes with the owner.
+	batch, _ = nextBatch([]stimulus{{Kind: `heard`, AskerUserId: 2}, {Kind: `arrived`, Authorized: true}}, owner)
+	if len(batch) != 1 || batch[0].Kind != `heard` {
+		t.Fatalf("an authorised arrival is the owner's, not the passer-by's: %+v", batch)
+	}
+	// Everything her owner did is the owner's, not only their words: a
+	// passer-by's question never pays for it, nor shares its call.
+	for _, kind := range []string{`emote`, `gift`, `healed`, `attacked`, `errand_ask`, `session_start`, `first_meeting`, `fight`, `fight_over`} {
+		mixed := []stimulus{{Kind: `heard`, Speaker: `Bram`, AskerUserId: 2}, {Kind: kind, FromOwner: true}}
+		batch, rest = nextBatch(mixed, owner)
+		if len(batch) != 1 || strangerBehind(batch, owner) != 2 {
+			t.Fatalf("her owner's %s is not decided with a passer-by's words: %+v", kind, batch)
+		}
+		if batch, _ = nextBatch(rest, owner); len(batch) != 1 || batch[0].Kind != kind || strangerBehind(batch, owner) != 0 {
+			t.Fatalf("it is decided on its own, on the owner's account: %+v", batch)
+		}
+	}
+	// Nothing anyone put to her: all of it at once, as before.
+	all := []stimulus{{Kind: `quiet`, FromOwner: true}, {Kind: `noticed`}}
+	if batch, rest = nextBatch(all, owner); len(batch) != 2 || rest != nil {
+		t.Fatalf("with nobody asking, the batch is whole: %+v", batch)
+	}
+}
+
+func TestAStrangerCannotRideTheOwnersWord(t *testing.T) {
+	// Her owner and a passer-by in one decision: the owner-only verbs are
+	// refused, and so is anything "ask first" or an owner-sent errand needs.
+	for _, kind := range []string{`heard`, `asked`, `emote`, `gift`, `attacked`, `healed`} {
+		mixed := []stimulus{{Kind: `heard`, FromOwner: true}, {Kind: kind, Speaker: `Bram`}}
+		if ownerPrompted(mixed) {
+			t.Fatalf("a stranger's %s beside her owner's words must refuse the owner-only verbs", kind)
+		}
+		if ownerAskedNow(mixed) {
+			t.Fatalf("a stranger's %s beside her owner's words is not her owner asking", kind)
+		}
+	}
+	if ownerPrompted([]stimulus{{Kind: `heard`, FromOwner: true}, {Kind: `looked`, AskerUserId: 2}}) {
+		t.Fatal("anything a passer-by prompted counts, whatever its kind")
+	}
+	if !ownerPrompted([]stimulus{{Kind: `heard`, FromOwner: true}}) || !ownerAskedNow([]stimulus{{Kind: `heard`, FromOwner: true}}) {
+		t.Fatal("her owner alone still asks")
+	}
+	if !ownerPrompted([]stimulus{{Kind: `quiet`, FromOwner: true}}) {
+		t.Fatal("nobody speaking is still her own judgement")
+	}
+	// What the model is told when it is refused names nobody.
+	m, c, _ := strangerModule()
+	out := m.performAction(c, nil, nil, nil, ActionProposal{Verb: `give`, Ref: `t1`},
+		[]stimulus{{Kind: `heard`, FromOwner: true}, {Kind: `heard`, Speaker: `Bram`, AskerUserId: 2}}, 0, 0)
+	if out.Refused != `that is not a stranger's to ask for` {
+		t.Fatalf("refusal: %q", out.Refused)
+	}
+}
+
+// strangerTalk opens a finished talk with a passer-by (user 2) alone, long
+// enough to be summed up, on a module that can call a model at baseURL.
+func strangerTalk(t *testing.T, baseURL string) (*AICompanionModule, *controller) {
+	t.Helper()
+	m, c := senderModule(baseURL, true)
+	m.cfg.DailyTokensPerCompanion = 100000
+	m.cfg.StrangerDailyTokens = 100000
+	m.cfg.DailyTokenBudget = 1000000
+	// As getMind keeps it: the summary finds her mind through the cache.
+	m.minds = map[string]*Mind{mindIdentifier(c.mind.OwnerUserId, c.mind.MobId): c.mind}
+	m.ctrls = map[int]*controller{c.ownerUserId: c}
+	for i := 0; i < 4; i++ {
+		m.noteConversation(c, 7, `Bram`, 2, Line{Speaker: `Bram`, Kind: `said`, Text: fmt.Sprintf(`line %d`, i)})
+	}
+	return m, c
+}
+
+// waitSettled waits for every background call's reservation to be settled.
+func waitSettled(t *testing.T, m *AICompanionModule) {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		util.LockMud()
+		left := m.outstanding
+		util.UnlockMud()
+		if left == 0 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("background calls never settled: %d tokens outstanding", left)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestStrangerTalkSummaryIsTheStrangersToPayFor(t *testing.T) {
+	srv, hits := countingServer(t)
+
+	m, c := strangerTalk(t, srv.URL)
+	util.LockMud()
+	m.closeConversation(c, `test`)
+	util.UnlockMud()
+	waitSettled(t, m)
+	if hits.Load() != 1 {
+		t.Fatalf("a talk with a passer-by is still summed up: %d requests", hits.Load())
+	}
+	if m.ownerTokens[1] != 0 || m.strangerTokens[2] != 10 {
+		t.Fatalf("and it is charged to the passer-by, not her owner: owner=%d stranger=%d", m.ownerTokens[1], m.strangerTokens[2])
+	}
+
+	// The passer-by's allowance spent: no call, nothing charged to her
+	// owner, and the talk is still remembered, as a plain note.
+	hits.Store(0)
+	m, c = strangerTalk(t, srv.URL)
+	m.rollDay()
+	m.strangerTokens[2] = m.cfg.StrangerDailyTokens
+	util.LockMud()
+	m.closeConversation(c, `test`)
+	util.UnlockMud()
+	if hits.Load() != 0 || m.ownerTokens[1] != 0 {
+		t.Fatalf("a passer-by with nothing left is summed up on nobody's allowance: %d requests, owner=%d", hits.Load(), m.ownerTokens[1])
+	}
+	if len(c.mind.Memories) != 1 {
+		t.Fatalf("the talk is kept as a note instead: %+v", c.mind.Memories)
+	}
+
+	// Her owner spent out does not stop a passer-by's talk being summed up.
+	hits.Store(0)
+	m, c = strangerTalk(t, srv.URL)
+	m.rollDay()
+	m.ownerTokens[1] = m.cfg.DailyTokensPerCompanion
+	util.LockMud()
+	m.closeConversation(c, `test`)
+	util.UnlockMud()
+	waitSettled(t, m)
+	if hits.Load() != 1 {
+		t.Fatalf("her owner's spent allowance is not the passer-by's: %d requests", hits.Load())
+	}
+
+	// A talk her owner took part in is the owner's, whoever else joined.
+	hits.Store(0)
+	m, c = strangerTalk(t, srv.URL)
+	m.noteConversation(c, 7, `Corvin`, 1, Line{Speaker: `Corvin`, Kind: `said`, Text: `he is with me`})
+	util.LockMud()
+	m.closeConversation(c, `test`)
+	util.UnlockMud()
+	waitSettled(t, m)
+	if m.ownerTokens[1] != 10 || m.strangerTokens[2] != 0 {
+		t.Fatalf("a shared talk is charged to her owner: owner=%d stranger=%d", m.ownerTokens[1], m.strangerTokens[2])
+	}
+}
+
+// A reply that finds no mind to write into still gives the reservation
+// back to the owner it was held against; settling against nobody left the
+// owner's count carrying tokens that were never spent.
+func TestGoneMindStillRefundsItsOwner(t *testing.T) {
+	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000, StrangerDailyTokens: 1000, DailyTokenBudget: 5000}}
+	failed := modelResult{Err: errors.New(`gone`)}
+	server := route{kind: routeServer} // reserved below on the server's key
+
+	for name, apply := range map[string]func(h hold){
+		`summary`:    func(h hold) { m.applyConversationSummary(`nobody`, 1, `Corvin`, 7, 0, h, server, failed) },
+		`core`:       func(h hold) { m.applyCore(`nobody`, 1, CoreMemory{}, h, server, failed) },
+		`reflection`: func(h hold) { m.applyReflection(`nobody`, 1, 0, `m`, h, server, failed) },
+	} {
+		h, ok := m.reserveRoute(server, 1, 0, 300)
+		if !ok {
+			t.Fatalf("%s: fixture reservation refused", name)
+		}
+		apply(h)
+		if m.ownerTokens[1] != 0 || m.outstanding != 0 {
+			t.Fatalf("%s: owner=%d outstanding=%d after a refund", name, m.ownerTokens[1], m.outstanding)
+		}
 	}
 }

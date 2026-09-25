@@ -14,6 +14,47 @@ most nights go fully dark, and you will want a light.
 Weather never dims a lamp, a torch or your own glow, and it never reaches
 inside a building.
 
+## 2026-09-25: Your companion, on your own key
+
+This arrives when talking companions are switched on on this server.
+
+On a server where talking companions are switched on, you can now let your
+companion think with your OWN model key instead of the server's. Open the
+web client, log in, and press "Companion key". You give the address of the
+service (OpenAI's is filled in; OpenRouter, or a model running on your own
+computer, work too), paste your key and pick a model. Your key stays in
+your browser, in a page of its own that the game cannot read, and it is
+never sent to our server. You pay your provider for what your companion
+says.
+
+By default the key is forgotten when you close the page. Tick "Remember this
+key on this device" and choose a passphrase to keep it, locked, for next
+time. Please put a spending limit on the key with your provider, and do not
+use a work computer.
+
+When someone else talks to your companion while she thinks on your key,
+she still hears them, but answers them only with a few set words of her
+own, so they cost you nothing. If you would like her to talk with them
+properly, paid for from your key within a daily limit, type
+`companion-ai strangers on`; `companion-ai strangers off` turns it back.
+On the server's key, passers-by can talk with her properly unless you turn
+them off. `companion-ai` on its own tells you who is answering for her
+right now.
+
+What she says is yours to answer for. If you cannot speak, neither can she.
+
+If your key's service does not answer, she falls back on a few words of her
+own for a moment and tells you once, plainly. Nothing breaks.
+
+Two fixes to companions besides:
+
+- Companions answer "i agree" and "i decline" again. For a while a new
+  companion could not hear your answer to her first question and went quiet.
+- A companion now refuses to harm anyone or anything you could not harm
+  yourself: someone else's companion, a creature that takes no part in
+  fighting, a fellow member of your party, or another player where fighting
+  players is not allowed.
+
 ## 2026-09-25: You notice when the light changes
 
 The game now tells you when the light around you changes enough to change

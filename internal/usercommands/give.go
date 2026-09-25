@@ -172,6 +172,12 @@ func Give(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 					UserId:     user.UserId,
 					GoldChange: -giveGoldAmount,
 				})
+				// Who gave it, which the mob's purse alone cannot say.
+				events.AddToQueue(events.GoldGiven{
+					UserId:        user.UserId,
+					MobInstanceId: m.InstanceId,
+					Amount:        giveGoldAmount,
+				})
 
 				user.SendText(messaging.CategorySystem,
 					fmt.Sprintf(`You give <ansi fg="gold">%d gold</ansi> to <ansi fg="username">%s</ansi>.`, giveGoldAmount, m.Character.Name),

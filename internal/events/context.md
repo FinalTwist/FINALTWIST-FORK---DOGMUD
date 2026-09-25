@@ -611,6 +611,9 @@ This event system provides the foundation for GoMud's decoupled architecture, en
 Test-only queue drain seams in `events.go` include
 `DrainQueuedPlayerAttackedMobsForTest(userId)`. Passing zero drains all queued
 `PlayerAttackedMob` events; a nonzero ID drains only that player's events.
+`DrainQueuedGoldGivenForTest(userId)` does the same for `GoldGiven`, which
+`give` fires when a player hands gold to a mob (`GiftAccepted` is items
+only); `modules/aicompanion` reads it to know who gave a companion coin.
 
 This is the synchronous engine bus. `internal/worldevents` is a separate,
 passive record of notable happenings — do not confuse the two.

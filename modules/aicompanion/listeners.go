@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -111,58 +112,75 @@ func (m *AICompanionModule) onCommunication(e events.Event) events.ListenerRetur
 				heardFrom = speakerOf(u, mob)
 			}
 		}
-		speaker := heardFrom
 		direct := false
 		fromOwner := speakerUserId > 0 && speakerUserId == c.ownerUserId
 		if speakerUserId > 0 {
 			direct = isAddressed(evt.Message, c.profile.Name, fromOwner, others, m.cfg.RespondWhenAlone)
 		}
-
-		// Nothing anyone says is written into her mind until her owner has
-		// agreed that what is said may leave the server. Her memory is the
-		// thing that gets sent, so recording first and gating later is the
-		// same as not gating at all.
-		if !m.consented(c.ownerUserId) {
-			continue
-		}
-		// Speech that was not for her is remembered only when the server
-		// allows it: it is what lets her overhear, and it is also other
-		// people's conversation going to the API.
-		if direct || m.cfg.RecordBystanderSpeech {
-			line := Line{Speaker: speaker, Kind: `said`, ToMe: direct, Text: evt.Message, Unix: now}
-			c.mind.addLine(line, m.cfg.WorkingMemoryLines)
-			c.dirty = true
-			if direct {
-				m.noteConversation(c, roomId, speaker, line)
-			}
-		}
-		if speakerUserId > 0 {
-			c.lastSocialUnix = now
-		}
-		if fromOwner && !direct {
-			c.ownerTalkedAway = now
-		}
-		if direct && fromOwner {
-			// A literal "i agree" or "i decline" while consent is pending is
-			// an answer, not conversation, and is never sent anywhere.
-			if u := users.GetByUserId(speakerUserId); u != nil && m.answerConsent(c, u, evt.Message) {
-				continue
-			}
-		}
-		if direct {
-			if fromOwner {
-				m.interruptErrand(c, speaker)
-			}
-			// Spoken to by an owner who is sneaking, she hears it and holds
-			// her tongue: answering aloud is what gets people caught.
-			if fromOwner && m.sneaking(c, users.GetByUserId(speakerUserId)) {
-				continue
-			}
-			c.push(stimulus{Kind: `heard`, Speaker: speaker, Text: evt.Message,
-				FromOwner: fromOwner, AskerUserId: speakerUserId})
-		}
+		m.hearSaid(c, users.GetByUserId(speakerUserId), heardFrom, evt.Message, roomId, direct, now)
 	}
 	return events.Continue
+}
+
+// hearSaid is one companion hearing one line of speech: u is the player who
+// said it (nil for a mob), speaker how she makes them out, direct whether
+// it was meant for her.
+func (m *AICompanionModule) hearSaid(c *controller, u *users.UserRecord, speaker string, text string, roomId int, direct bool, now int64) {
+	speakerUserId := 0
+	if u != nil {
+		speakerUserId = u.UserId
+	}
+	fromOwner := speakerUserId > 0 && speakerUserId == c.ownerUserId
+
+	// A literal "i agree" or "i decline" while the question is open is an
+	// answer, not conversation: it is not written down or answered, and it
+	// is read whether or not she was named, because the question asks for
+	// exactly those words and nothing else.
+	if fromOwner && m.answerConsent(c, u, text) {
+		return
+	}
+	// Nothing anyone says is written into her mind until her owner has
+	// agreed that what is said may leave the server. Her memory is the
+	// thing that gets sent, so recording first and gating later is the same
+	// as not gating at all. She still hears it, and still answers with her
+	// set lines (dispatch sends an unconsented owner to the fallback), so
+	// only the writing down waits.
+	//
+	// Speech that was not for her is remembered only when the server allows
+	// it: it is what lets her overhear, and it is also other people's
+	// conversation going to the API.
+	if m.consented(c.ownerUserId) && (direct || m.cfg.RecordBystanderSpeech) {
+		line := Line{Speaker: speaker, Kind: `said`, ToMe: direct, Text: text, Unix: now}
+		c.mind.addLine(line, m.cfg.WorkingMemoryLines)
+		c.dirty = true
+		if direct {
+			m.noteConversation(c, roomId, speaker, speakerUserId, line)
+		}
+	}
+	if speakerUserId > 0 {
+		c.lastSocialUnix = now
+	}
+	if fromOwner && !direct {
+		c.ownerTalkedAway = now
+	}
+	if !direct {
+		return
+	}
+	if fromOwner {
+		m.interruptErrand(c, speaker)
+		// Spoken to by an owner who is sneaking, she hears it and holds her
+		// tongue: answering aloud is what gets people caught.
+		if m.sneaking(c, u) {
+			return
+		}
+	} else if !m.strangerMayAsk(u, c) {
+		// A passer-by speaking to her by name is asking her something as
+		// surely as one who uses `ask`, and is paced the same way. Heard,
+		// and remembered above if that is allowed, but not answered.
+		return
+	}
+	c.push(stimulus{Kind: `heard`, Speaker: speaker, Text: text,
+		FromOwner: fromOwner, AskerUserId: speakerUserId})
 }
 
 // onEmote notices emotes. An emote is something seen, so a companion that
@@ -185,30 +203,37 @@ func (m *AICompanionModule) onEmote(e events.Event) events.ListenerReturn {
 		if mob == nil || room == nil || cannotSee(mob, room) || !mob.Character.Perceives(u.Character) {
 			continue
 		}
-		speaker := speakerOf(u, mob)
-		direct := mentionsName(text, c.profile.Name)
-		fromOwner := u.UserId == c.ownerUserId
-		if !m.consented(c.ownerUserId) {
-			continue // nothing is written down before they have agreed
-		}
-		if !direct && !m.cfg.RecordBystanderSpeech {
-			continue // other people's business, by the server's choice
-		}
-		emoteLine := Line{Speaker: speaker, Kind: `emoted`, ToMe: direct, Text: text, Unix: time.Now().Unix()}
+		m.seeEmote(c, u, speakerOf(u, mob), text, evt.RoomId, mentionsName(text, c.profile.Name), time.Now().Unix())
+	}
+	return events.Continue
+}
+
+// seeEmote is one companion seeing one emote she could make out.
+func (m *AICompanionModule) seeEmote(c *controller, u *users.UserRecord, speaker string, text string, roomId int, direct bool, now int64) {
+	fromOwner := u.UserId == c.ownerUserId
+	if !direct && !m.cfg.RecordBystanderSpeech {
+		return // other people's business, by the server's choice
+	}
+	// Nothing is written down before they have agreed; she still sees it,
+	// and still answers with her set lines.
+	if m.consented(c.ownerUserId) {
+		emoteLine := Line{Speaker: speaker, Kind: `emoted`, ToMe: direct, Text: text, Unix: now}
 		c.mind.addLine(emoteLine, m.cfg.WorkingMemoryLines)
 		c.dirty = true
 		if direct {
-			m.noteConversation(c, evt.RoomId, speaker, emoteLine)
-		}
-		c.lastSocialUnix = time.Now().Unix()
-		if direct {
-			if fromOwner {
-				m.interruptErrand(c, speaker)
-			}
-			c.push(stimulus{Kind: `emote`, Speaker: speaker, Text: text, FromOwner: fromOwner})
+			m.noteConversation(c, roomId, speaker, u.UserId, emoteLine)
 		}
 	}
-	return events.Continue
+	c.lastSocialUnix = now
+	if !direct {
+		return
+	}
+	if fromOwner {
+		m.interruptErrand(c, speaker)
+	} else if !m.strangerMayAsk(u, c) {
+		return // seen, but a gesture is paced like a question
+	}
+	c.push(stimulus{Kind: `emote`, Speaker: speaker, Text: text, FromOwner: fromOwner, AskerUserId: u.UserId})
 }
 
 // onGiftAccepted reacts to an item given to the companion. The engine has
@@ -232,11 +257,13 @@ func (m *AICompanionModule) onGiftAccepted(e events.Event) events.ListenerReturn
 	fromOwner := u.UserId == c.ownerUserId
 	now := time.Now().Unix()
 
-	c.mind.addLine(Line{Speaker: giver, Kind: `event`, Text: fmt.Sprintf(`%s gave you %s.`, giver, itemName)}, m.cfg.WorkingMemoryLines)
-	c.mind.addMemory(Memory{
-		Unix: now, Kind: `gift`, Text: fmt.Sprintf(`%s gave me %s.`, giver, itemName),
-		Importance: 5, Emotion: `gratitude`, People: []string{giver}, PlaceId: u.Character.RoomId,
-	}, m.cfg.MaxMemories)
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Speaker: giver, Kind: `event`, Text: fmt.Sprintf(`%s gave you %s.`, giver, itemName)}, m.cfg.WorkingMemoryLines)
+		c.mind.addMemory(Memory{
+			Unix: now, Kind: `gift`, Text: fmt.Sprintf(`%s gave me %s.`, giver, itemName),
+			Importance: 5, Emotion: `gratitude`, People: []string{giver}, PlaceId: u.Character.RoomId,
+		}, m.cfg.MaxMemories)
+	}
 
 	// A gift from the owner is something she keeps (F9.5).
 	if fromOwner {
@@ -261,7 +288,32 @@ func (m *AICompanionModule) onGiftAccepted(e events.Event) events.ListenerReturn
 	c.dirty = true
 	c.snapshotDue = true
 	c.lastSocialUnix = now
-	c.push(stimulus{Kind: `gift`, Speaker: giver, Text: itemName, FromOwner: fromOwner})
+	// A passer-by pressing things on her is paced like one asking her
+	// things: the gift is hers and remembered, but she need not stop and
+	// think about every one.
+	if !fromOwner && !m.strangerMayAsk(u, c) {
+		return events.Continue
+	}
+	c.push(stimulus{Kind: `gift`, Speaker: giver, Text: itemName, FromOwner: fromOwner, AskerUserId: u.UserId})
+	return events.Continue
+}
+
+// onGoldGiven is a player giving her gold with `give`: the engine names the
+// giver, so the right person is thanked and, for a passer-by, paced and
+// charged (receiveGold). noticeGold matches the purse against it.
+func (m *AICompanionModule) onGoldGiven(e events.Event) events.ListenerReturn {
+	evt, ok := e.(events.GoldGiven)
+	if !ok || !m.cfg.Enabled || evt.Amount <= 0 {
+		return events.Continue
+	}
+	c := m.controllerForInstance(evt.MobInstanceId)
+	u := users.GetByUserId(evt.UserId)
+	mob := mobs.GetInstance(evt.MobInstanceId)
+	if c == nil || u == nil || u.Character == nil || mob == nil {
+		return events.Continue
+	}
+	c.goldByEvent += evt.Amount
+	m.receiveGold(c, mob, u, evt.Amount)
 	return events.Continue
 }
 
@@ -294,15 +346,18 @@ func (m *AICompanionModule) onPlayerAttackedMob(e events.Event) events.ListenerR
 	attacker := speakerOf(u, mobs.GetInstance(c.instanceId))
 	fromOwner := u.UserId == c.ownerUserId
 
-	c.mind.addLine(Line{Speaker: attacker, Kind: `event`, Text: fmt.Sprintf(`%s attacked you.`, attacker)}, m.cfg.WorkingMemoryLines)
-	importance := 6
-	if fromOwner {
-		importance = 9
+	remember := m.mayRemember(c)
+	if remember {
+		c.mind.addLine(Line{Speaker: attacker, Kind: `event`, Text: fmt.Sprintf(`%s attacked you.`, attacker)}, m.cfg.WorkingMemoryLines)
+		importance := 6
+		if fromOwner {
+			importance = 9
+		}
+		c.mind.addMemory(Memory{
+			Unix: now, Kind: `attack`, Text: fmt.Sprintf(`%s attacked me.`, attacker),
+			Importance: importance, Emotion: `anger`, People: []string{attacker}, PlaceId: u.Character.RoomId,
+		}, m.cfg.MaxMemories)
 	}
-	c.mind.addMemory(Memory{
-		Unix: now, Kind: `attack`, Text: fmt.Sprintf(`%s attacked me.`, attacker),
-		Importance: importance, Emotion: `anger`, People: []string{attacker}, PlaceId: u.Character.RoomId,
-	}, m.cfg.MaxMemories)
 
 	// Being attacked by the person you travel with costs trust and
 	// affection whatever the model says (F5.4); the model may add more
@@ -311,7 +366,7 @@ func (m *AICompanionModule) onPlayerAttackedMob(e events.Event) events.ListenerR
 		c.mind.applyOpinion(Opinion{Trust: -5, Affection: -5}, `attacked`, `rule`, `attacked me`, false)
 		// Being struck by the person you have come to love is one of the
 		// few things that changes what you are to each other.
-		if romanceRank(c.mind.Romance.Stage) > 0 {
+		if remember && romanceRank(c.mind.Romance.Stage) > 0 {
 			m.recordCore(c, attacker, c.mind.Romance.Stage, false)
 		}
 	}
@@ -320,7 +375,9 @@ func (m *AICompanionModule) onPlayerAttackedMob(e events.Event) events.ListenerR
 	c.lastSocialUnix = now
 	// An attack pre-empts anything that was waiting.
 	c.pending = nil
-	c.push(stimulus{Kind: `attacked`, Speaker: attacker, FromOwner: fromOwner})
+	// A stranger's attack is paced by the ten-minute rule above, and what
+	// she makes of it is paid for from their allowance, not her owner's.
+	c.push(stimulus{Kind: `attacked`, Speaker: attacker, FromOwner: fromOwner, AskerUserId: u.UserId})
 	return events.Continue
 }
 
@@ -329,13 +386,6 @@ func (m *AICompanionModule) onPlayerAttackedMob(e events.Event) events.ListenerR
 func (m *AICompanionModule) handleAsk(userId int, mobInstanceId int, text string) bool {
 	if !m.cfg.Enabled {
 		return false
-	}
-	if c := m.controllerForInstance(mobInstanceId); c != nil && userId != c.ownerUserId {
-		if !m.strangerMayAsk(userId, c) {
-			// Heard, and remembered, but she does not stop what she is
-			// doing to answer: a stranger cannot make her think on demand.
-			return true
-		}
 	}
 	c := m.controllerForInstance(mobInstanceId)
 	if c == nil {
@@ -357,21 +407,39 @@ func (m *AICompanionModule) handleAsk(userId int, mobInstanceId int, text string
 			u.Character.Name, mob.Character.Name, safe), u.UserId)
 	}
 
-	speaker := speakerOf(u, mob)
-	if u.UserId == c.ownerUserId {
+	m.hearAsked(c, u, speakerOf(u, mob), text, time.Now().Unix())
+	return true
+}
+
+// hearAsked is the companion being put a question directly with `ask`.
+func (m *AICompanionModule) hearAsked(c *controller, u *users.UserRecord, speaker string, text string, now int64) {
+	fromOwner := u.UserId == c.ownerUserId
+	if fromOwner {
+		// "ask <her> i agree" is as good an answer to the question as saying
+		// it aloud, and is not conversation either.
+		if m.answerConsent(c, u, text) {
+			return
+		}
 		m.interruptErrand(c, speaker)
 	}
-	if !m.consented(c.ownerUserId) {
-		return true // heard, answered with set lines, and not written down
+	// Heard, and answered below, but written down only once her owner has
+	// agreed that her mind may be sent. Before that, dispatch answers with
+	// her set lines.
+	if m.consented(c.ownerUserId) {
+		askLine := Line{Speaker: speaker, Kind: `asked`, ToMe: true, Text: text, Unix: now}
+		c.mind.addLine(askLine, m.cfg.WorkingMemoryLines)
+		m.noteConversation(c, u.Character.RoomId, speaker, u.UserId, askLine)
+		c.dirty = true
 	}
-	askLine := Line{Speaker: speaker, Kind: `asked`, ToMe: true, Text: text, Unix: time.Now().Unix()}
-	c.mind.addLine(askLine, m.cfg.WorkingMemoryLines)
-	m.noteConversation(c, u.Character.RoomId, speaker, askLine)
-	c.dirty = true
-	c.lastSocialUnix = time.Now().Unix()
+	c.lastSocialUnix = now
+	// A stranger's question is asked aloud, heard, and remembered like any
+	// other, but she stops what she is doing to answer only as often as
+	// strangerMayAsk allows: a passer-by cannot make her think on demand.
+	if !fromOwner && !m.strangerMayAsk(u, c) {
+		return
+	}
 	c.push(stimulus{Kind: `asked`, Speaker: speaker, Text: text,
-		FromOwner: u.UserId == c.ownerUserId, AskerUserId: u.UserId})
-	return true
+		FromOwner: fromOwner, AskerUserId: u.UserId})
 }
 
 // interruptErrand stops a trip when the owner speaks to the companion
@@ -383,8 +451,10 @@ func (m *AICompanionModule) interruptErrand(c *controller, ownerName string) {
 	}
 	dest := c.travel.DestName
 	c.travel = nil
-	c.mind.addLine(Line{Kind: `event`, Text: `You stopped on your way to ` + dest + ` because ` + ownerName + ` spoke to you.`}, m.cfg.WorkingMemoryLines)
-	c.dirty = true
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Kind: `event`, Text: `You stopped on your way to ` + dest + ` because ` + ownerName + ` spoke to you.`}, m.cfg.WorkingMemoryLines)
+		c.dirty = true
+	}
 }
 
 // onHealed reacts to someone healing the companion with magic.
@@ -403,11 +473,13 @@ func (m *AICompanionModule) onHealed(e events.Event) events.ListenerReturn {
 	healer := speakerOf(u, mobs.GetInstance(c.instanceId))
 	fromOwner := u.UserId == c.ownerUserId
 
-	c.mind.addLine(Line{Speaker: healer, Kind: `event`, Text: fmt.Sprintf(`%s healed you.`, healer)}, m.cfg.WorkingMemoryLines)
-	c.mind.addMemory(Memory{
-		Unix: now, Kind: `event`, Text: fmt.Sprintf(`%s healed my wounds.`, healer),
-		Importance: 5, Emotion: `gratitude`, People: []string{healer}, PlaceId: u.Character.RoomId,
-	}, m.cfg.MaxMemories)
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Speaker: healer, Kind: `event`, Text: fmt.Sprintf(`%s healed you.`, healer)}, m.cfg.WorkingMemoryLines)
+		c.mind.addMemory(Memory{
+			Unix: now, Kind: `event`, Text: fmt.Sprintf(`%s healed my wounds.`, healer),
+			Importance: 5, Emotion: `gratitude`, People: []string{healer}, PlaceId: u.Character.RoomId,
+		}, m.cfg.MaxMemories)
+	}
 
 	// Being tended by the person you travel with earns a little trust and
 	// warmth whatever the model says, three times a day at most.
@@ -420,7 +492,10 @@ func (m *AICompanionModule) onHealed(e events.Event) events.ListenerReturn {
 
 	c.dirty = true
 	c.lastSocialUnix = now
-	c.push(stimulus{Kind: `healed`, Speaker: healer, FromOwner: fromOwner})
+	if !fromOwner && !m.strangerMayAsk(u, c) {
+		return events.Continue // tended, and remembered, but paced like a question
+	}
+	c.push(stimulus{Kind: `healed`, Speaker: healer, FromOwner: fromOwner, AskerUserId: u.UserId})
 	return events.Continue
 }
 
@@ -451,38 +526,71 @@ func (m *AICompanionModule) witnessAttack(userId int, mobInstanceId int) {
 	c.lastAttackBy[-mobInstanceId] = now
 
 	name := victim.Character.Name
-	c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` set about ` + name + `, who had done nothing.`}, m.cfg.WorkingMemoryLines)
-	c.mind.addMemory(Memory{Unix: now, Kind: `event`, Text: u.Character.Name + ` attacked ` + name + `, who had done nothing to anyone.`,
-		Importance: 8, Emotion: `disgust`, People: []string{u.Character.Name, name}, PlaceId: mob.Character.RoomId}, m.cfg.MaxMemories)
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` set about ` + name + `, who had done nothing.`}, m.cfg.WorkingMemoryLines)
+		c.mind.addMemory(Memory{Unix: now, Kind: `event`, Text: u.Character.Name + ` attacked ` + name + `, who had done nothing to anyone.`,
+			Importance: 8, Emotion: `disgust`, People: []string{u.Character.Name, name}, PlaceId: mob.Character.RoomId}, m.cfg.MaxMemories)
+	}
 	c.mind.applyOpinion(Opinion{Trust: -4, Respect: -5, Affection: -4}, `witnessed_crime`, `rule`, `set about `+name, false)
 	c.dirty = true
 	c.push(stimulus{Kind: `witnessed`, Speaker: u.Character.Name, Text: name, FromOwner: true})
 }
 
-// strangerMayAsk paces what a passer-by can ask of somebody else's
-// companion. Without it, anyone could stand beside a companion and drive
-// the owner's model calls until the day's budget was gone. The cooldown
-// lives on the asker's own character, so it persists with them, and the
-// day's count is kept per asker.
-func (m *AICompanionModule) strangerMayAsk(userId int, c *controller) bool {
-	u := users.GetByUserId(userId)
+// strangerMayAsk paces what a passer-by can prompt of somebody else's
+// companion: speaking to her by name, `ask`, a gesture aimed at her, a gift
+// or healing. Without it, anyone could stand beside a companion and drive
+// model calls until the day's budget was gone. The day's allowance is read
+// first, because the cooldown is spent by trying it: a stranger with
+// nothing left does not also start a fresh wait. The cooldown lives on the
+// asker's own character, so it persists with them, and the day's count is
+// kept per asker (dispatch reserves each call against it).
+//
+// Call it once per thing said or done, and only when a stimulus is about
+// to be queued: every call that passes spends the cooldown.
+func (m *AICompanionModule) strangerMayAsk(u *users.UserRecord, c *controller) bool {
 	if u == nil || u.Character == nil {
 		return false
 	}
-	if m.cfg.StrangerAskSeconds > 0 {
-		tag := fmt.Sprintf(`aicompanion-ask-%d`, c.instanceId)
-		if !u.Character.TryCooldown(tag, fmt.Sprintf(`%d seconds`, m.cfg.StrangerAskSeconds)) {
+	// With strangers off nothing they prompt is paid for, so their day's
+	// allowance does not stop her set-line answer; the cooldown still
+	// paces it.
+	if m.cfg.StrangerDailyTokens > 0 && !m.strangersOff(c.ownerUserId) {
+		m.rollDay()
+		if m.strangerTokens[u.UserId] >= m.cfg.StrangerDailyTokens {
 			return false
 		}
 	}
-	if m.cfg.StrangerDailyTokens <= 0 {
-		return true
+	// Nor when passers-by together have spent all they may of this owner's
+	// companion today (StrangerTokensPerOwner).
+	if m.cfg.StrangerTokensPerOwner > 0 && !m.strangersOff(c.ownerUserId) {
+		m.rollDay()
+		if m.strangersFor[c.ownerUserId] >= m.cfg.StrangerTokensPerOwner {
+			return false
+		}
 	}
-	m.rollDay()
-	if m.strangerTokens == nil {
-		m.strangerTokens = map[int]int{}
+	if m.cfg.StrangerAskSeconds > 0 {
+		tag := fmt.Sprintf(`aicompanion-ask-%d`, c.instanceId)
+		if !u.Character.TryCooldown(tag, cooldownFor(m.cfg.StrangerAskSeconds)) {
+			return false
+		}
 	}
-	return m.strangerTokens[userId] < m.cfg.StrangerDailyTokens
+	return true
+}
+
+// cooldownFor turns real seconds into the period a character cooldown
+// counts in, rounds. The cooldown's period parser knows no seconds: "30
+// seconds" falls through to thirty ROUNDS, four times the wait on a
+// four-second round. At least one round.
+func cooldownFor(seconds int) string {
+	rs := int(configs.GetTimingConfig().RoundSeconds)
+	if rs < 1 {
+		rs = 1
+	}
+	n := (seconds + rs - 1) / rs
+	if n < 1 {
+		n = 1
+	}
+	return fmt.Sprintf(`%d rounds`, n)
 }
 
 // calledBack is the companion hearing her own name from her owner while she
@@ -497,13 +605,18 @@ func (m *AICompanionModule) calledBack(c *controller, mob *mobs.Mob, u *users.Us
 		return // already on her way
 	}
 	c.travel = nil
+	remember := m.mayRemember(c)
 	if reason := m.startTravel(c, mob, u.Character.RoomId, `return`, false); reason != `` {
-		c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` called you, and you could not find the way back.`},
-			m.cfg.WorkingMemoryLines)
-		c.dirty = true
+		if remember {
+			c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` called you, and you could not find the way back.`},
+				m.cfg.WorkingMemoryLines)
+			c.dirty = true
+		}
 		return
 	}
-	c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` called you by name; you started back.`},
-		m.cfg.WorkingMemoryLines)
-	c.dirty = true
+	if remember {
+		c.mind.addLine(Line{Kind: `event`, Text: u.Character.Name + ` called you by name; you started back.`},
+			m.cfg.WorkingMemoryLines)
+		c.dirty = true
+	}
 }

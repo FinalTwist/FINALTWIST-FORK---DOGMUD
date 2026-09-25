@@ -42,7 +42,7 @@ func (m *AICompanionModule) perceive(c *controller, u *users.UserRecord, round u
 		m.verifyPending(c, mob, u.Character.Name)
 	}
 
-	m.noticeGold(c, mob, u)
+	m.noticeGold(c, mob, u, round)
 
 	// Something going wrong with either of them is worth her saying
 	// something about when it happens, not whenever she next speaks.
@@ -167,13 +167,48 @@ func (m *AICompanionModule) perceive(c *controller, u *users.UserRecord, round u
 	}
 }
 
-// notice queues a "you notice" stimulus, rate limited.
+// notice queues a "you notice" stimulus, rate limited. Each one is a call
+// on her owner's account (nobody asked her anything), so they are capped
+// per owner per UTC day (NoticeCallsPerDay). And on the owner's own key
+// with strangers off, none is started while another player is in the
+// room: a passer-by walking in and out is a fresh thing to notice each
+// time, and would otherwise spend the owner's key as surely as talking
+// to her would.
 func (m *AICompanionModule) notice(c *controller, things []thing, now time.Time) {
 	if now.Unix()-c.lastNotice < int64(m.cfg.NoticeCooldownSeconds) {
 		return
 	}
+	m.rollDay()
+	if m.cfg.NoticeCallsPerDay > 0 && m.noticesToday[c.ownerUserId] >= m.cfg.NoticeCallsPerDay {
+		return
+	}
+	if rt := m.route(c.ownerUserId); rt.kind == routeRelay && m.strangersOffOn(c.ownerUserId, rt) && m.otherPlayerHere(c) {
+		return
+	}
 	c.lastNotice = now.Unix()
+	if m.noticesToday == nil {
+		m.noticesToday = map[int]int{}
+	}
+	m.noticesToday[c.ownerUserId]++
 	c.push(stimulus{Kind: `noticed`, Text: thingNames(things)})
+}
+
+// otherPlayerHere reports whether anyone but her owner is in her room.
+func (m *AICompanionModule) otherPlayerHere(c *controller) bool {
+	mob := mobs.GetInstance(c.instanceId)
+	if mob == nil {
+		return false
+	}
+	room := rooms.LoadRoom(mob.Character.RoomId)
+	if room == nil {
+		return false
+	}
+	for _, id := range room.GetPlayers() {
+		if id != c.ownerUserId {
+			return true
+		}
+	}
+	return false
 }
 
 func thingNames(ts []thing) string {
@@ -304,7 +339,7 @@ func (m *AICompanionModule) pastime(c *controller, mob *mobs.Mob) {
 	case `emote`:
 		pool := c.profile.idlePool(c.mind.Opinion)
 		line := cleanText(pool[util.Rand(len(pool))], maxEmoteRunes)
-		if line == `` {
+		if line == `` || ownerSilenced(c.ownerUserId) {
 			return
 		}
 		c.lastIdleEmote = now
@@ -490,49 +525,98 @@ func doingLines(c *controller) []string {
 	return out
 }
 
-// noticeGold spots coin arriving in the companion's purse that it did not
-// earn itself: the owner handing gold over (the engine sends no event for
-// that, unlike an item). It is treated like a gift, at the same daily cap.
-func (m *AICompanionModule) noticeGold(c *controller, mob *mobs.Mob, u *users.UserRecord) {
+// noticeGold keeps track of coin arriving in the companion's purse. Coin a
+// player gave her with `give` is named by a GoldGiven event
+// (onGoldGiven), which credits the real giver; the event and the purse
+// can arrive in either order, so growth is matched against it here. Growth
+// no event names within a round came some other way: it is credited to
+// her owner only when the owner is with her and no other player is, since
+// anyone else there could have been the one, and never while she was
+// about her own business.
+func (m *AICompanionModule) noticeGold(c *controller, mob *mobs.Mob, u *users.UserRecord, round uint64) {
 	gold := mob.Character.Gold
 	if c.lastGold == 0 && gold > 0 && c.lastGoldSeen == 0 {
 		c.lastGold, c.lastGoldSeen = gold, 1
 		return
 	}
 	c.lastGoldSeen = 1
-	defer func() { c.lastGold = gold }()
-
 	gained := gold - c.lastGold
-	if gained <= 0 || c.pendingAct != nil {
+	c.lastGold = gold
+	if gained > 0 {
+		if c.goldUnexplained == 0 {
+			c.goldHeldRound = round
+		}
+		c.goldUnexplained += gained
+		if c.pendingAct != nil {
+			c.goldHers = true
+		}
+	}
+
+	// What an event already named is accounted for.
+	matched := min(c.goldUnexplained, c.goldByEvent)
+	c.goldUnexplained -= matched
+	c.goldByEvent -= matched
+	if c.goldUnexplained == 0 {
+		// Given coin she has since spent is not waited for.
+		c.goldByEvent, c.goldHeldRound, c.goldHers = 0, 0, false
 		return
 	}
-	if u.Character.RoomId != mob.Character.RoomId {
-		return // nobody here to have handed it over
+	if round <= c.goldHeldRound {
+		return // give the event naming a giver a round to arrive
 	}
+	amount, hers := c.goldUnexplained, c.goldHers
+	c.goldUnexplained, c.goldHeldRound, c.goldHers, c.goldByEvent = 0, 0, false, 0
+	if hers || c.pendingAct != nil || u == nil || u.Character == nil || u.Character.RoomId != mob.Character.RoomId {
+		return // her own doing, or nobody here to have handed it over
+	}
+	if room := rooms.LoadRoom(mob.Character.RoomId); room != nil {
+		for _, id := range room.GetPlayers() {
+			if id != u.UserId {
+				return // it could have been them: nobody is thanked
+			}
+		}
+	}
+	m.receiveGold(c, mob, u, amount)
+}
+
+// receiveGold is coin from a player she knows handed it over: remembered
+// as a gift from them, and treated like one. Only her owner's gift warms
+// her to her owner, at the same daily cap as an item; a passer-by's is
+// paced and paid for as anything else they aim at her (strangerMayAsk).
+func (m *AICompanionModule) receiveGold(c *controller, mob *mobs.Mob, u *users.UserRecord, amount int) {
 	now := time.Now().Unix()
-	giver := u.Character.Name
-	c.mind.addLine(Line{Speaker: giver, Kind: `event`, Text: giver + ` put some coin in your hand.`}, m.cfg.WorkingMemoryLines)
-	c.mind.addMemory(Memory{Unix: now, Kind: `gift`, Text: giver + ` gave me money.`,
-		Importance: 4, Emotion: `gratitude`, People: []string{giver}, PlaceId: mob.Character.RoomId}, m.cfg.MaxMemories)
-	if c.mind.ruleChangesSince(`gift`, now-86400) < 3 {
+	giver := speakerOf(u, mob)
+	fromOwner := u.UserId == c.ownerUserId
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Speaker: giver, Kind: `event`, Text: giver + ` put some coin in your hand.`}, m.cfg.WorkingMemoryLines)
+		c.mind.addMemory(Memory{Unix: now, Kind: `gift`, Text: giver + ` gave me money.`,
+			Importance: 4, Emotion: `gratitude`, People: []string{giver}, PlaceId: mob.Character.RoomId}, m.cfg.MaxMemories)
+	}
+	if fromOwner && c.mind.ruleChangesSince(`gift`, now-86400) < 3 {
 		c.mind.applyOpinion(Opinion{Affection: 1}, `gift`, `rule`, `gave me money`, false)
 	}
 	c.snapshotDue = true
 	c.dirty = true
-	c.push(stimulus{Kind: `gift`, Speaker: giver, Text: `some gold`, FromOwner: true})
+	c.lastSocialUnix = now
+	if !fromOwner && !m.strangerMayAsk(u, c) {
+		return
+	}
+	c.push(stimulus{Kind: `gift`, Speaker: giver, Text: `some gold`, FromOwner: fromOwner, AskerUserId: u.UserId})
 }
 
 // holdFollow reports that the engine should not carry a companion along
 // with its owner. There are two reasons: the owner is moving in secret and
 // a second pair of footsteps would give them away, or the companion is
 // walking after them under her own feet a moment later (followOnFoot). The
-// engine asks this before it moves companions (companionai.HoldPosition).
-func (m *AICompanionModule) holdFollow(userId int) bool {
+// engine asks this before it moves each companion (companionai.HoldPosition),
+// and only the bonded companion this module drives is ever held: any other
+// companion of the same owner answers false and follows as it always has.
+func (m *AICompanionModule) holdFollow(userId int, mobInstanceId int) bool {
 	if !m.cfg.Enabled {
 		return false
 	}
 	c, ok := m.ctrls[userId]
-	if !ok || c.instanceId == 0 {
+	if !ok || c.instanceId == 0 || c.instanceId != mobInstanceId {
 		return false
 	}
 	u := users.GetByUserId(userId)

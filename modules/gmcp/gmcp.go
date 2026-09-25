@@ -70,6 +70,10 @@ func init() {
 	// (see handleCharOp) — HandleIAC runs on the connection goroutine.
 	events.RegisterListener(GMCPCharOp{}, gmcpModule.handleCharOp)
 
+	// Companion.Relay.* (see gmcp.Relay.go): the aicompanion module sends a
+	// player's own-key requests through this sender.
+	installRelaySender()
+
 }
 
 func isGMCPEnabled(connectionId uint64) bool {
@@ -272,7 +276,13 @@ func (g *GMCPModule) HandleIAC(connectionId uint64, iacCmd []byte) bool {
 			command = string(requestBody)
 		}
 
-		mudlog.Debug("Received", "type", "GMCP (Handling)", "command", command, "payload", string(payload))
+		// A Companion.Relay payload is a model reply on a player's own key
+		// (or their model choice); it is logged by size only.
+		if strings.HasPrefix(command, `Companion.Relay.`) {
+			mudlog.Debug("Received", "type", "GMCP (Handling)", "command", command, "payload", fmt.Sprintf(`[redacted %d bytes]`, len(payload)))
+		} else {
+			mudlog.Debug("Received", "type", "GMCP (Handling)", "command", command, "payload", string(payload))
+		}
 
 		switch command {
 
@@ -369,6 +379,12 @@ func (g *GMCPModule) HandleIAC(connectionId uint64, iacCmd []byte) bool {
 			if err := json.Unmarshal(payload, &decoded); err == nil {
 				mudlog.Debug("GMCP LOGIN", "username", decoded.Name, "password", strings.Repeat(`*`, len(decoded.Password)))
 			}
+
+		// ---- companion key relay (see gmcp.Relay.go) ----
+		// These touch no game state, so they are handed to the module here on
+		// the connection goroutine rather than queued for MainWorker.
+		case `Companion.Relay.Response`, `Companion.Relay.Ready`, `Companion.Relay.Gone`:
+			relayInbound(connectionId, command, payload)
 
 		// ---- state-touching Char.* ops ----
 		// These read/write shared game state (user records, quest progress,

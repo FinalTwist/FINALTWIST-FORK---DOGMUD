@@ -49,6 +49,7 @@ const handlersMap = sliceBalanced(html, html.indexOf('let GMCPUpdateHandlers =')
 const renderQuestsSrc = funcSrc(html, 'function renderQuests(');
 const handleGMCPSrc = funcSrc(html, 'function handleGMCP(');
 const escapeHTMLSrc = funcSrc(html, 'function escapeHTML(');
+const writeQuestsHTMLSrc = funcSrc(html, 'function writeQuestsHTML(');
 
 // ---------------------------------------------------------------- DOM stub
 function El(tag) {
@@ -100,12 +101,15 @@ for (const name of [
 // the zone you are standing in, so a cross-zone target is legitimately absent.
 const markerCalls = [];
 const mapRooms = new Map();
+// The page's companion key relay glue; absent here, as when no relay is offered.
+global.companionGlue = null;
 global.gr = { setQuestMarker: (m) => markerCalls.push(m), rooms: mapRooms };
 
 // eslint-disable-next-line no-eval
 (0, eval)([
   escapeHTMLSrc,
   renderQuestsSrc,
+  writeQuestsHTMLSrc,
   handlersMap.replace(/^\{/, 'globalThis.GMCPUpdateHandlers = {') + ';',
   handleGMCPSrc,
 ].join('\n'));
