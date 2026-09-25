@@ -19,7 +19,7 @@ description: >
   fg="itemname">bilge flow</ansi> enters from the east
   and is absorbed without ripple. The way west is the
   buried quarter.
-biome: city
+biome: dungeon
 coord:
   x: -21
   y: 80

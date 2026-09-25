@@ -19,7 +19,8 @@ description: >
   down; by the seventh step the temperature has dropped
   several degrees and the air is completely still.
   The passage west opens at the bottom.
-biome: city
+biome: dungeon
+lamp: 38
 coord:
   x: -26
   y: 79
