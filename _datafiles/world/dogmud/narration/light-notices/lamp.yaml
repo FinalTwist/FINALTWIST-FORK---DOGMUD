@@ -1,5 +1,6 @@
-# Lamp notices are authored now so a later plan needs no store change; the
-# lamp cause is not yet wired to fire at runtime.
+# The room's own light: its lamp, or a positive lightmod mutator. Lamps do
+# not change at runtime yet, so today only a lightmod mutator starting or
+# ending reaches these lines.
 cause: lamp
 transitions:
   darker_faces:
