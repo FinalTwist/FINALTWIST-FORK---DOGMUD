@@ -4,8 +4,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/lightnotice"
+	"github.com/GoMudEngine/GoMud/internal/prompt"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/stretchr/testify/require"
@@ -133,6 +135,78 @@ func TestLightNoticeEndToEndAcrossARoomChange(t *testing.T) {
 	require.NoError(t, err)
 	capCleanup2()
 	require.Empty(t, lightNoticeLines(*captured2, 1), "a second look in the same room and band is silent")
+}
+
+// TestAltSwapRecordsLightNoticeQuietly guards the alt-swap bug: SwapToAlt
+// (called from cmdCharacterChange below) replaces user.Character in place,
+// with no MoveToRoom, RoomChange or PlayerSpawn event, so without the
+// TriggerQuiet call cmdCharacterChange makes right after a successful swap
+// the stale per-user lightnotice record (still naming the OLD character's
+// room and band) would make the NEXT command look like a room change and
+// risk a false movement notice ("You step into darkness.") though nobody
+// walked.
+//
+// This calls cmdCharacterChange directly (same package) with a cmdPrompt
+// whose two Questions are pre-answered, bypassing the interactive
+// multi-step prompt flow that Character() would otherwise drive. SwapToAlt
+// itself reloads alts from disk independently of the nameToAlt map passed
+// in here, so the alt fixture is written for real via characters.SaveAlts
+// into the temp FilePaths.DataFiles TestMain points at.
+func TestAltSwapRecordsLightNoticeQuietly(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	useDogmudTemplates(t)
+	require.NoError(t, lightnotice.LoadFrom("../../_datafiles/world/dogmud/narration/light-notices"))
+	t.Cleanup(lightnotice.ResetForTest)
+
+	room1, room2 := rooms.LoadRoom(1), rooms.LoadRoom(2)
+	require.NotNil(t, room1)
+	require.NotNil(t, room2)
+	room1.SkyLight, room1.Lamp = rooms.SkyLightPtr(0), rooms.LampPtr(60)
+	room2.SkyLight, room2.Lamp = rooms.SkyLightPtr(0), rooms.LampPtr(0)
+
+	u := users.GetByUserId(1)
+	require.NotNil(t, u)
+	u.Character.RoomId = 1
+	lightnotice.Check(u, lightnotice.TriggerQuiet)
+
+	altChar := characters.Character{Name: "Bobalt", RoomId: 2}
+	require.True(t, characters.SaveAlts(u.UserId, []characters.Character{altChar}))
+	t.Cleanup(func() { characters.SaveAlts(u.UserId, nil) })
+
+	nameToAlt := map[string]characters.Character{"Bobalt": altChar}
+	altNames := []string{"Bobalt"}
+
+	cmdPrompt := prompt.New("character", "")
+	cmdPrompt.Questions = append(cmdPrompt.Questions,
+		&prompt.Question{Question: `Enter the name of the character you wish to change to:`, Response: "Bobalt", Done: true},
+		&prompt.Question{
+			Question:        `<ansi fg="51">Are you SURE you want to change to <ansi fg="username">Bobalt</ansi>?</ansi>`,
+			Options:         []string{"yes", "no"},
+			DefaultResponse: "no",
+			Response:        "yes",
+			Done:            true,
+		},
+	)
+
+	captured, capCleanup := captureAllMessages(t)
+	handled, err := cmdCharacterChange(u, room1, cmdPrompt, altNames, nameToAlt, map[string]characters.Character{}, 0)
+	require.True(t, handled)
+	require.NoError(t, err)
+	capCleanup()
+
+	require.Equal(t, "Bobalt", u.Character.Name, "the swap must have happened")
+	require.Equal(t, 2, u.Character.RoomId, "the alt's own room must now be current")
+	require.Empty(t, lightNoticeLines(*captured, 1), "the swap's own TriggerQuiet check must not speak")
+
+	// The next command must not announce a false movement: the swap's quiet
+	// check already recorded this exact room and band as the baseline.
+	captured2, capCleanup2 := captureAllMessages(t)
+	handled, err = TryCommand("look", "", 1, 0)
+	require.True(t, handled)
+	require.NoError(t, err)
+	capCleanup2()
+	require.Empty(t, lightNoticeLines(*captured2, 1), "no false movement notice for the alt swap")
 }
 
 // TestLightNoticeArrivesBeforeTheCommandOutput pins the ordering: the notice is
