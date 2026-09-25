@@ -1,0 +1,28 @@
+# Lamp notices are authored now so a later plan needs no store change; the
+# lamp cause is not yet wired to fire at runtime.
+cause: lamp
+transitions:
+  darker_faces:
+    any:
+      - 'The lamps dim, and the glare eases from your eyes.'
+      - 'The lamplight softens; your eyes stop aching.'
+  darker_shapes:
+    any:
+      - 'The lamps gutter low; faces blur into shapes.'
+      - 'The lamplight fades, and you can make out shapes, not faces.'
+  darker_dark:
+    any:
+      - 'The lamps go out, and darkness closes in.'
+      - 'The last lamplight dies; you can see nothing.'
+  lighter_shapes:
+    any:
+      - 'A lamp flickers to life; shapes come out of the dark.'
+      - 'Weak lamplight spreads; you can make out shapes.'
+  lighter_faces:
+    any:
+      - 'The lamps burn brighter; faces are clear again.'
+      - 'The lamplight grows; you can make out faces again.'
+  dazzled:
+    any:
+      - 'The lamplight stabs at your widened eyes.'
+      - 'The lamps flare too bright for your widened eyes.'

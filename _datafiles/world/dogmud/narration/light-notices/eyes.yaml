@@ -1,0 +1,26 @@
+cause: eyes
+transitions:
+  darker_faces:
+    any:
+      - 'Your eyes settle, and the glare no longer hurts.'
+      - 'The ache fades from your eyes; the light is bearable now.'
+  darker_shapes:
+    any:
+      - 'Your eyes lose their edge; faces blur into shapes.'
+      - 'Your sight dulls; you can make out shapes, not faces.'
+  darker_dark:
+    any:
+      - 'Your eyes can no longer use this light; you can see nothing.'
+      - 'Your sight fails in the gloom, and you can see nothing.'
+  lighter_shapes:
+    any:
+      - 'Your eyes adjust; shapes come out of the dark.'
+      - 'Your sight sharpens; you can make out shapes.'
+  lighter_faces:
+    any:
+      - 'Your eyes adjust; you can make out faces again.'
+      - 'Your sight sharpens, and faces are clear.'
+  dazzled:
+    any:
+      - 'Your widened eyes ache in this light.'
+      - 'The light here is suddenly too bright for your eyes.'

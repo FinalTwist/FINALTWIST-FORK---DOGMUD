@@ -1,0 +1,44 @@
+cause: sky
+transitions:
+  darker_faces:
+    outdoor:
+      - 'The sun sinks lower, and the glare eases from your eyes.'
+      - 'The day softens; your eyes stop aching.'
+    indoor:
+      - 'The light from outside softens; your eyes ease.'
+      - 'The glare from outside fades; your eyes stop aching.'
+  darker_shapes:
+    outdoor:
+      - 'Dusk settles around you; faces blur into shapes.'
+      - 'The sky darkens; you can make out shapes, not faces.'
+    indoor:
+      - 'The light from outside fades; faces blur into shapes.'
+      - 'Dusk dims the room; you can make out shapes, not faces.'
+  darker_dark:
+    outdoor:
+      - 'Night closes in, and you can see nothing.'
+      - 'The last light leaves the sky; darkness closes in.'
+    indoor:
+      - 'The last light from outside fades; you can see nothing.'
+      - 'Night falls outside, and darkness fills the room.'
+  lighter_shapes:
+    outdoor:
+      - 'The sky pales; shapes come out of the dark.'
+      - 'First light creeps in; you can make out shapes.'
+    indoor:
+      - 'Grey light reaches in from outside; shapes appear.'
+      - 'A little light comes in from outside; you can make out shapes.'
+  lighter_faces:
+    outdoor:
+      - 'Daylight grows; you can make out faces again.'
+      - 'The sky brightens, and faces are clear again.'
+    indoor:
+      - 'Daylight fills the room; faces are clear again.'
+      - 'The light from outside grows; you can make out faces.'
+  dazzled:
+    outdoor:
+      - 'The bright sky stabs at your widened eyes.'
+      - 'Daylight floods in, too bright for your widened eyes.'
+    indoor:
+      - 'Daylight pours in, too bright for your widened eyes.'
+      - 'The light from outside stabs at your widened eyes.'

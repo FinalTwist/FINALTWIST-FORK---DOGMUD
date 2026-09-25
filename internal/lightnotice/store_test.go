@@ -101,3 +101,11 @@ func TestUnloadedStoreIsSilent(t *testing.T) {
 		t.Fatal("an unloaded store produced a line")
 	}
 }
+
+// TestShippedStoreLoads is the boot check for the real files.
+func TestShippedStoreLoads(t *testing.T) {
+	t.Cleanup(ResetForTest)
+	if err := LoadFrom(shippedDir); err != nil {
+		t.Fatalf("shipped light notices refused: %v", err)
+	}
+}

@@ -1,0 +1,26 @@
+cause: weather
+transitions:
+  darker_faces:
+    any:
+      - 'Clouds cut the glare, and your eyes ease.'
+      - 'The weather dims the glare; your eyes stop aching.'
+  darker_shapes:
+    any:
+      - 'The weather dims the light; faces blur into shapes.'
+      - 'Heavy cloud steals the light; you can make out shapes, not faces.'
+  darker_dark:
+    any:
+      - 'The weather swallows the last light; you can see nothing.'
+      - 'Heavy cloud blots out the sky, and darkness closes in.'
+  lighter_shapes:
+    any:
+      - 'The weather thins, and shapes come out of the dark.'
+      - 'The cloud breaks a little; you can make out shapes.'
+  lighter_faces:
+    any:
+      - 'The weather clears, and faces are plain again.'
+      - 'The sky opens; you can make out faces again.'
+  dazzled:
+    any:
+      - 'The cloud breaks, and the bright sky stabs at your widened eyes.'
+      - 'The weather clears into a glare too bright for your widened eyes.'
