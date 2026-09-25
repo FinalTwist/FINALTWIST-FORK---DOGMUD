@@ -152,6 +152,18 @@ var userOnlyCommands = map[string]string{
 	// [[project_throwable_mobs_ranged_dependency]]. Do not allowlist it until
 	// that system lands.
 
+	// --- AI companion (modules/aicompanion): a player's side of a bonded
+	// companion. Registered only while that module is enabled; there is no
+	// mob equivalent because a mob has no owner to give it orders. ---
+	"aicompanion":        "module: aicompanion admin",
+	"companion-ask":      "module: aicompanion",
+	"companion-boundary": "module: aicompanion",
+	"companion-court":    "module: aicompanion",
+	"companion-part":     "module: aicompanion",
+	"companion-ai":       "module: aicompanion",
+	"companion-stay":     "module: aicompanion",
+	"companion-unstick":  "module: aicompanion",
+
 	// --- Aliases (remapped to another command, no separate mob equivalent needed) ---
 	"knee":      "alias",
 	"stomp":     "alias",
@@ -189,6 +201,15 @@ var mobOnlyCommands = map[string]string{
 	"sayto":          "mob-ai",
 	"saytoonly":      "mob-ai",
 	"wander":         "mob-ai",
+
+	// --- AI companion (modules/aicompanion): the few things a bonded
+	// companion needs that the engine has no mob command for. Each takes an
+	// exact identity chosen by the module, not a name, so they are of no use
+	// to anything else. Registered only while that module is enabled. ---
+	"companion-buy":     "module: aicompanion, buys from one exact merchant",
+	"companion-loot":    "module: aicompanion, loots under its owner's rights",
+	"companion-takeout": "module: aicompanion, takes one exact item from a container",
+	"companion-unlock":  "module: aicompanion, opens a door with a key it carries",
 }
 
 // AuditCommandParity compares the user and mob command registries and logs a

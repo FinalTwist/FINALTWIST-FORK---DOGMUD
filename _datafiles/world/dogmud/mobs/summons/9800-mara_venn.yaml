@@ -1,0 +1,31 @@
+mobid: 9800
+zone: Summons
+archetype: fighting
+behavior_archetype: generic_fighter
+statpool: 90
+itemdropchance: 0
+hostile: false
+maxwander: 0
+groups:
+  - humanoid
+activitylevel: 10
+character:
+  name: Mara Venn
+  description: |
+    A girl in her twenties with a lithe body and the steady,
+    unhurried look of someone who has walked a great many miles and expects
+    to walk a great many more. Her blonde hair is often in a pony tail,
+    and she stands with the poise of a hunter. She watches the edges of a room
+    before she watches its middle, and when she listens she tilts her head
+    very slightly, as though weighing every word for its true value.
+  speciesid: 1
+  level: 1
+  stats:
+    dexterity:
+      base: 110
+    perception:
+      base: 115
+    vitality:
+      base: 100
+    charisma:
+      base: 95

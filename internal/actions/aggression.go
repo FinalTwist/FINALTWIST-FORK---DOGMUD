@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -104,7 +105,12 @@ func SeedAggression(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, fre
 		return
 	}
 
-	opinions.Bump(int(mob.MobId), user.UserId,
-		int(configs.GetBalanceConfig().OpinionAttackBump))
+	// A bonded companion keeps how it feels in its own mind, and that is
+	// what drives what it does. Moving the per-template score as well would
+	// leave admin.opinion describing a number nothing reads.
+	if !companionai.IsBondedCompanion(mob.InstanceId) {
+		opinions.Bump(int(mob.MobId), user.UserId,
+			int(configs.GetBalanceConfig().OpinionAttackBump))
+	}
 	RecordAssaultCrime(user, mob, room)
 }

@@ -2333,6 +2333,66 @@ Roles:
 
 ################################################################################
 Modules:
+  # - aicompanion -
+  #   A bonded companion driven by the OpenAI API: it travels with a player,
+  #   talks, remembers, fights alongside them and keeps its own goals. See
+  #   docs/aicompanion/.
+  #
+  #   OFF BY DEFAULT. While Enabled is false the module loads nothing,
+  #   registers no listeners, installs no engine seams and answers none of
+  #   its commands: the server behaves as though it were not built in.
+  #
+  #   Switched on it needs an OpenAI API key, from the OPENAI_API_KEY
+  #   environment variable or the APIKey setting below. Without a key the
+  #   companion still appears, follows and fights, and speaks short authored
+  #   lines instead of model replies. IT SENDS PLAYER TEXT TO OPENAI: see
+  #   docs/aicompanion/testing-and-prompts.md for exactly what is sent.
+  #
+  #   Every other setting the module has (models, tiers, budgets, memory
+  #   sizes, combat, romance, idle behaviour) has a default in
+  #   modules/aicompanion/files/data-overlays/config.yaml, with a comment
+  #   for each. Any of them can be overridden here.
+  aicompanion:
+    # The module itself. Nothing below has any effect while this is false.
+    Enabled: false
+    # The OpenAI key. Prefer the OPENAI_API_KEY environment variable; anyone
+    # who can read this file can read a key put here.
+    APIKey: ""
+    # Empty means the module picks a model per tier from what the key can
+    # use. Set them to pin your own.
+    Model: ""
+    FastModel: ""
+    DeepModel: ""
+    # Tokens per UTC day across the server, per companion, and per
+    # passer-by asking somebody else's companion something. A call is
+    # refused unless its worst case still fits. The day's spend is kept on
+    # disk, so a restart does not hand out a fresh allowance.
+    DailyTokenBudget: 2000000
+    DailyTokensPerCompanion: 300000
+    StrangerAskSeconds: 30
+    StrangerDailyTokens: 50000
+    # Ask the player, in as many words, before anything they say is sent to
+    # OpenAI. They answer "i agree" or "i decline"; until they agree their
+    # companion behaves as a plain one and nothing leaves the server.
+    RequireConsent: true
+    # Check what a companion is about to say with OpenAI's moderation
+    # endpoint. Speech a passer-by prompted is dropped when the check cannot
+    # be made; the owner's own conversation is not.
+    ModerateOutput: true
+    # A new character meets a companion shortly after character creation.
+    # AutoBondExisting does the same for characters that already exist, at
+    # their next login: off by default, because it changes every player's
+    # game at once.
+    AutoBond: true
+    AutoBondExisting: false
+    AutoBondProfile: "mara"
+    # Treat anything the owner says as spoken to the companion when no other
+    # player is in the room.
+    RespondWhenAlone: true
+    # Remember (and send) speech in the room that was not addressed to the
+    # companion. Off by default: on a shared server that is other players'
+    # conversation.
+    RecordBystanderSpeech: false
   playtest:
     Enabled: true
     SafeMode: true

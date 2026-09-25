@@ -63,6 +63,12 @@ func wireMobInstanceCleanup(c *characters.Character) {
 //  4. Clean up the home-room spawn slot (no cooldown skip).
 //  5. Remove mob from its current room.
 func scheduleMobDespawnFromLife(m *mobs.Mob) {
+	// 0. A bonded companion's record is taken here, while the instance is
+	// still alive. MobDeath is only queued, so anything reading the mob
+	// from that event finds it already destroyed: what a companion learned
+	// this session would be lost, and its gear could not be checked.
+	captureBondedCompanionOnDeath(m)
+
 	// 1. Drop loot + corpse BEFORE destroying the instance.
 	if room := rooms.LoadRoom(m.Character.RoomId); room != nil {
 		dropMobLootAndSetCorpse(m, room)
