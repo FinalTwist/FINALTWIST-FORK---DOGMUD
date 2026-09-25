@@ -2,8 +2,10 @@ package aicompanion
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -201,12 +203,13 @@ func usageCall(m *AICompanionModule, baseURL string) modelCall {
 }
 
 // A request that left and came back with no usage may still have been
-// billed: it is counted at its prompt estimate, not as nothing. One that
+// billed, completion and all: it is counted at its prompt estimate plus
+// its MaxTokens, not as nothing and not as the prompt alone. One that
 // never left counts nothing.
 func TestSentCallWithNoUsageCountsItsPrompt(t *testing.T) {
 	m, _ := senderModule(`https://api.example.invalid`, true)
 	probe := usageCall(m, `x`)
-	prompt := estimateTokens(probe.Messages) + requestOverhead(probe)
+	prompt := estimateTokens(probe.Messages) + requestOverhead(probe) + probe.MaxTokens
 
 	// An answer with no usage at all.
 	srv := usageServer(t, `{"choices":[{"finish_reason":"stop","message":{"content":"{}"}}]}`, nil)
@@ -284,7 +287,7 @@ func TestRelayUsageIsNeverTrusted(t *testing.T) {
 		want  func(prompt, max int) int
 	}{
 		{`"usage":{"total_tokens":999999999}`, func(p, x int) int { return p + x }},
-		{`"usage":{"total_tokens":-5000}`, func(p, x int) int { return p }}, // no usage: the estimate
+		{`"usage":{"total_tokens":-5000}`, func(p, x int) int { return p + x }}, // no usage: the whole request
 		{`"usage":{"total_tokens":12}`, func(p, x int) int { return 12 }},
 	} {
 		c := relayCall(m)
@@ -724,5 +727,106 @@ func TestNoticedIsCappedAndSparesTheOwnersKey(t *testing.T) {
 	m.notice(c, see, now)
 	if countKind(c.pending, `noticed`) != 1 {
 		t.Fatalf("on the server's key a passer-by in the room does not stop her noticing: %+v", c.pending)
+	}
+}
+
+// heldServer takes each chat completion, hands its body to the test and
+// waits until the test lets it answer with no usage.
+func heldServer(t *testing.T) (*httptest.Server, chan []byte, chan struct{}) {
+	t.Helper()
+	bodies, release := make(chan []byte, 4), make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		bodies <- b
+		select {
+		case <-release:
+		case <-r.Context().Done():
+			return
+		}
+		fmt.Fprint(w, `{"choices":[{"finish_reason":"stop","message":{"content":"{}"}}]}`)
+	}))
+	t.Cleanup(srv.Close)
+	return srv, bodies, release
+}
+
+// holdFromBody is the worst case of a request as it left: its messages,
+// the schema that goes with every call, and a full answer.
+func holdFromBody(t *testing.T, body []byte) int {
+	t.Helper()
+	var req struct {
+		Messages []struct {
+			Content string `json:"content"`
+		} `json:"messages"`
+		MaxCompletionTokens int `json:"max_completion_tokens"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
+		t.Fatal(err)
+	}
+	msgs := make([]chatMessage, 0, len(req.Messages))
+	for _, mm := range req.Messages {
+		msgs = append(msgs, chatMessage{Content: mm.Content})
+	}
+	return worstCaseTokens(estimateTokens(msgs)+requestOverhead(modelCall{Schema: map[string]any{}}), req.MaxCompletionTokens, 0, false)
+}
+
+// The background calls (reflection, conversation summary, core memory)
+// hold what they send, the schema included, as a decision does: a hold
+// that leaves the schema out lets a budget be overspent by it.
+func TestBackgroundHoldsIncludeTheSchema(t *testing.T) {
+	srv, bodies, release := heldServer(t)
+	m, c := senderModule(srv.URL, true)
+	m.minds = map[string]*Mind{mindIdentifier(c.mind.OwnerUserId, c.mind.MobId): c.mind}
+	now := time.Now().Unix()
+	for i := 0; i < 6; i++ {
+		c.mind.addLine(Line{Speaker: `Corvin`, Kind: `said`, Text: fmt.Sprintf(`line %d`, i), Unix: now}, 50)
+	}
+	start := map[string]func(){
+		`reflection`: func() { m.startReflection(c.mind, c.profile, `Corvin`, 0) },
+		`summary`: func() {
+			c.convo = &conversation{RoomId: 7, Partner: `Corvin`, StartUnix: now, LastUnix: now, Exchanges: 5, OwnerSpoke: true,
+				Lines: []Line{{Speaker: `Corvin`, Kind: `said`, Text: `a`}, {Speaker: `Corvin`, Kind: `said`, Text: `b`}}}
+			m.closeConversation(c, `test`)
+		},
+		`core memory`: func() { m.recordCore(c, `Corvin`, romanceCourting, true) },
+	}
+	for name, begin := range start {
+		util.LockMud()
+		begin()
+		util.UnlockMud()
+		var body []byte
+		select {
+		case body = <-bodies:
+		case <-time.After(5 * time.Second):
+			t.Fatalf("%s: no request arrived", name)
+		}
+		util.LockMud()
+		held := m.outstanding
+		util.UnlockMud()
+		if want := holdFromBody(t, body); held != want {
+			t.Errorf("%s: held %d, want %d (the schema included)", name, held, want)
+		}
+		release <- struct{}{}
+		waitSettled(t, m)
+	}
+}
+
+// Each round of questions can bring back as many answers as a reply may
+// ask (maxToolCallsPerReply), each as long as an answer may be
+// (maxToolAnswerRunes, counted at a token a rune, as estimateTokens would
+// count its bytes at worst). The next round sends all of it again, so the
+// worst case holds all of it.
+func TestWorstCaseHoldsFullToolAnswers(t *testing.T) {
+	plain := worstCaseTokens(1000, 500, 0, false)
+	oneRound := worstCaseTokens(1000, 500, 1, false)
+	answers := maxToolCallsPerReply * (maxToolAnswerRunes + 8)
+	if want := plain + 1000 + 500 + answers + 500; oneRound != want {
+		t.Fatalf("one round of questions: %d, want %d", oneRound, want)
+	}
+	long := make([]chatMessage, 0, maxToolCallsPerReply)
+	for i := 0; i < maxToolCallsPerReply; i++ {
+		long = append(long, chatMessage{Role: `tool`, Content: strings.Repeat(`𝄞`, maxToolAnswerRunes)})
+	}
+	if got := estimateTokens(long); got > answers {
+		t.Fatalf("the allowance covers %d answers at the cap: %d estimated, %d held", maxToolCallsPerReply, got, answers)
 	}
 }

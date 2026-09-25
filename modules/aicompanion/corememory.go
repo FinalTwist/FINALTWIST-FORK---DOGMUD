@@ -157,7 +157,7 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 		{Role: `user`, Content: b.String()},
 	}
 	call.Messages = messages
-	reserved := worstCaseTokens(estimateTokens(messages), ts.MaxTokens, 0, false)
+	reserved := worstCaseTokens(estimateTokens(call.Messages)+requestOverhead(call), ts.MaxTokens, 0, false)
 	if !m.reserveRoute(rt, c.ownerUserId, 0, reserved) {
 		// The day's allowance cannot cover it: the moment is still kept.
 		bareFact()

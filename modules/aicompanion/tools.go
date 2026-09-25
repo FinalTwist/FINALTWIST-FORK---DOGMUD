@@ -57,6 +57,11 @@ type toolArgs struct {
 	Query string `json:"query"`
 }
 
+// maxToolAnswerRunes is the longest answer one question gets. The worst
+// case a decision holds (worstCaseTokens) counts every answer of a round
+// at this length.
+const maxToolAnswerRunes = 1500
+
 // answerTools answers the model's questions. Runs under the mud lock. It
 // returns false if the companion is no longer the one the call was for.
 // relay is a call through her owner's own browser, where the owner reads
@@ -82,7 +87,7 @@ func (m *AICompanionModule) answerTools(ownerId int, seq uint64, rev uint64, sc 
 		_ = json.Unmarshal([]byte(tc.Function.Arguments), &a)
 		a.Ref = strings.ToLower(strings.TrimSpace(a.Ref))
 		a.Query = strings.TrimSpace(a.Query)
-		out[i] = cleanText(m.answerTool(c, mob, owner, room, sc, tc.Function.Name, a, relay), 1500)
+		out[i] = cleanText(m.answerTool(c, mob, owner, room, sc, tc.Function.Name, a, relay), maxToolAnswerRunes)
 		if out[i] == `` {
 			out[i] = `Nothing more to learn there.`
 		}

@@ -526,7 +526,11 @@ func worstCaseTokens(prompt int, maxTokens int, toolRounds int, retry bool) int 
 	grown := prompt
 	for i := 0; i <= toolRounds; i++ {
 		total += grown + maxTokens
-		grown += maxTokens + 600 // the model's request, and the game's answer
+		// The model's questions (at most a completion), and the game's
+		// answers: as many as a reply may ask, each as long as an answer
+		// may be, at a token a rune (estimateTokens' worst case for bytes)
+		// plus a message's framing.
+		grown += maxTokens + maxToolCallsPerReply*(maxToolAnswerRunes+8)
 	}
 	if retry {
 		total *= 2

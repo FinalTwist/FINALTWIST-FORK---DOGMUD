@@ -255,10 +255,11 @@ func transient(r modelResult) bool {
 // What it reports as spent is what the budgets are settled with, so it is
 // made trustworthy here, once, for every caller: a request that left but
 // came back with no usage (a timeout, a dropped connection, a call given up
-// on after it was sent) is counted at its prompt estimate, since the
-// provider may well have billed it; and a count relayed through a player's
-// browser, which that player can write, is held between nothing and the
-// most this one request could have cost.
+// on after it was sent) is counted at its prompt estimate plus its
+// MaxTokens, since the provider may well have billed a whole answer; and
+// a count relayed through a player's browser, which that player can
+// write, is held between nothing and the most this one request could
+// have cost.
 func (m *AICompanionModule) callModelOnce(c modelCall) modelResult {
 	res := m.exchangeOnce(c)
 	prompt := estimateTokens(c.Messages) + requestOverhead(c)
@@ -269,7 +270,10 @@ func (m *AICompanionModule) callModelOnce(c modelCall) modelResult {
 		res.Tokens = prompt + c.MaxTokens
 	}
 	if res.Sent && res.Tokens == 0 && (res.Status == 0 || res.Status == http.StatusOK) {
-		res.Tokens = prompt
+		// It may have been billed for a whole answer that never reached
+		// us (a timeout after the provider finished, a dropped
+		// connection), so the prompt alone would under-count it.
+		res.Tokens = prompt + c.MaxTokens
 		res.Estimated = true
 	}
 	return res

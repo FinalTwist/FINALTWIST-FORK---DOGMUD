@@ -228,7 +228,7 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 	if rt.kind == routeNone || call.Model == `` || (asker > 0 && m.strangersOffOn(c.ownerUserId, rt)) {
 		return false
 	}
-	reserved := worstCaseTokens(estimateTokens(messages), ts.MaxTokens, 0, false)
+	reserved := worstCaseTokens(estimateTokens(call.Messages)+requestOverhead(call), ts.MaxTokens, 0, false)
 	if !m.reserveRoute(rt, c.ownerUserId, asker, reserved) {
 		return false
 	}

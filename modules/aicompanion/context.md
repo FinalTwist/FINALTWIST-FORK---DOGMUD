@@ -172,7 +172,8 @@ Roadmap and phase plan: `docs/aicompanion/`.
   `callModelOnce` is where spend is counted, once for every caller
   (`exchangeOnce` does the transport): a request that left (`Sent`) but
   reported no usage (a timeout, a dropped connection, a call cancelled
-  after it was sent) counts its prompt estimate (`Estimated`); one the
+  after it was sent) counts its prompt estimate plus its MaxTokens
+  (`Estimated`), since it may have been billed a whole answer; one the
   door refused, that found no browser, that could not connect, or that
   was cancelled before it left counts nothing; a count relayed through a
   player's browser is held between nothing and prompt plus completion,
