@@ -13,7 +13,7 @@ description: >
   The <ansi fg="itemname">stalls</ansi> press so close that the crowd must turn sideways
   to pass between them — a shuffling press of householders, workers,
   and sharpers, every second exchange a price and every third a counteroffer.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -17
   y: 73

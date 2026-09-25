@@ -13,7 +13,7 @@ description: >
   <ansi fg="itemname">skiff</ansi> is moored and a man sits wrapped
   in a heavy coat, watching the crossing without appearing to. He
   will ferry the wet-shy for a coin and ask nothing about the rest.
-biome: city
+biome: river
 coord:
   x: -17
   y: 77

@@ -16,7 +16,7 @@ description: >
   unlicensed inn called the Broken Gate opens its low door to
   the west. Every gap between the stalls holds somebody —
   sheltering, watching, waiting for something not yet arrived.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 74

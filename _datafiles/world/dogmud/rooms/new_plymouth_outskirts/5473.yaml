@@ -13,7 +13,7 @@ description: >
   is the rag-and-bone trade — a long <ansi fg="itemname">salvage</ansi> heap of bent
   metal, cracked leather, old fabric, and broken tools, presided over
   by a seller who will name a price for anything a hand touches.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -19
   y: 73

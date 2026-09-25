@@ -13,7 +13,7 @@ description: >
   of those who have learned not to ask. These people reached the
   city and found it shut. They wait at the wall because they have
   nowhere else to wait — and the gate has not opened for them yet.
-biome: city
+biome: city_backstreet
 coord:
   x: -17
   y: 75
