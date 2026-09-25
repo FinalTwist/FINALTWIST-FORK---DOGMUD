@@ -2384,6 +2384,10 @@ Modules:
     # it, many strangers each within their own allowance could spend one
     # owner's key without end. 0 is no cap.
     StrangerTokensPerOwner: 100000
+    # "You notice" moments (a companion remarking on something new) per
+    # owner per UTC day. Each is a call nobody asked for, so it is capped.
+    # 0 is no cap.
+    NoticeCallsPerDay: 40
     # Ask the player, in as many words, before anything they say is sent to
     # OpenAI. They answer "i agree" or "i decline"; until they agree their
     # companion behaves as a plain one and nothing leaves the server.

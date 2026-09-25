@@ -609,6 +609,8 @@ type budgetState struct {
 	// StrangersFor is what passers-by together spent of each owner's
 	// companion (StrangerTokensPerOwner), by owner.
 	StrangersFor map[int]int `yaml:"strangers_for,omitempty"`
+	// Notices is each owner's "you notice" moments today (NoticeCallsPerDay).
+	Notices map[int]int `yaml:"notices,omitempty"`
 }
 
 const budgetStateId = `budget-state`
@@ -627,11 +629,15 @@ func (m *AICompanionModule) loadBudget() {
 	m.ownerTokens = st.Owners
 	m.strangerTokens = st.Strangers
 	m.strangersFor = st.StrangersFor
+	m.noticesToday = st.Notices
 	if m.ownerTokens == nil {
 		m.ownerTokens = map[int]int{}
 	}
 	if m.strangerTokens == nil {
 		m.strangerTokens = map[int]int{}
+	}
+	if m.noticesToday == nil {
+		m.noticesToday = map[int]int{}
 	}
 	if m.strangersFor == nil {
 		m.strangersFor = map[int]int{}
@@ -643,7 +649,7 @@ func (m *AICompanionModule) saveBudget() {
 		return
 	}
 	st := budgetState{Day: m.budgetDay, Tokens: m.tokensToday, Calls: m.callsToday,
-		Owners: m.ownerTokens, Strangers: m.strangerTokens, StrangersFor: m.strangersFor}
+		Owners: m.ownerTokens, Strangers: m.strangerTokens, StrangersFor: m.strangersFor, Notices: m.noticesToday}
 	if err := m.plug.WriteStruct(budgetStateId, &st); err != nil {
 		mudlog.Error(`aicompanion`, `action`, `saveBudget`, `error`, err)
 	}

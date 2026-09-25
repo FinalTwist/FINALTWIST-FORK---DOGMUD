@@ -161,6 +161,7 @@ type AICompanionModule struct {
 	ownerTokens       map[int]int           // tokens today per companion owner
 	strangerTokens    map[int]int           // tokens today spent on behalf of a passer-by
 	strangersFor      map[int]int           // tokens today passers-by spent of each owner's companion, all of them together
+	noticesToday      map[int]int           // "you notice" moments today per owner (NoticeCallsPerDay)
 	breakerUntil      time.Time             // model calls paused until then
 	consecutiveErrors int
 	outstanding       int // tokens held for calls that have not come back
@@ -352,6 +353,7 @@ func (m *AICompanionModule) rollDay() {
 		m.ownerTokens = map[int]int{}
 		m.strangerTokens = map[int]int{}
 		m.strangersFor = map[int]int{}
+		m.noticesToday = map[int]int{}
 	}
 }
 

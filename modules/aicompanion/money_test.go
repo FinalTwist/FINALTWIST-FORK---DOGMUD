@@ -683,3 +683,46 @@ func TestLookedFollowUpCarriesThePayer(t *testing.T) {
 		t.Fatalf("her own look carries no payer: %+v", own)
 	}
 }
+
+// "You notice" moments are calls on whoever pays: at most
+// NoticeCallsPerDay a day per owner, and on the owner's own key with
+// strangers off none while another player is in the room, since any
+// passer-by walking in and out would otherwise spend the owner's key.
+func TestNoticedIsCappedAndSparesTheOwnersKey(t *testing.T) {
+	_, _, room, her := harmWorld(t, `off`)
+	m := relayModule(t)
+	m.relays.ready(1, `player-model`)
+	m.bonds = bondState{Users: map[int]*bondRecord{}}
+	m.cfg.NoticeCallsPerDay = 2
+	m.cfg.NoticeCooldownSeconds = 0
+	profiles, _ := loadProfiles()
+	c := &controller{ownerUserId: 1, instanceId: her.InstanceId, profile: profiles[`mara`], mind: newMind(1, profiles[`mara`])}
+	see := []thing{{Name: `a rusty key`}}
+	now := time.Now()
+
+	m.notice(c, see, now)
+	if queued(c, `noticed`) {
+		t.Fatal("on her owner's own key, strangers off, Bram in the room: nothing noticed aloud")
+	}
+	room.RemovePlayer(2)
+	m.notice(c, see, now)
+	if countKind(c.pending, `noticed`) != 1 {
+		t.Fatalf("with only her owner here she notices: %+v", c.pending)
+	}
+	m.notice(c, see, now)
+	m.notice(c, see, now)
+	if n := countKind(c.pending, `noticed`); n != 2 {
+		t.Fatalf("at most NoticeCallsPerDay a day: %d", n)
+	}
+
+	// On the server's key, strangers on by default: Bram does not stop it.
+	c.pending = nil
+	room.AddPlayer(2)
+	m.relays.gone(1)
+	m.cfg.APIKey, m.cfg.APIKeyEnv = `k`, `AICOMPANION_TEST_KEY_NEVER_SET`
+	m.noticesToday = nil
+	m.notice(c, see, now)
+	if countKind(c.pending, `noticed`) != 1 {
+		t.Fatalf("on the server's key a passer-by in the room does not stop her noticing: %+v", c.pending)
+	}
+}

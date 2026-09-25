@@ -167,13 +167,48 @@ func (m *AICompanionModule) perceive(c *controller, u *users.UserRecord, round u
 	}
 }
 
-// notice queues a "you notice" stimulus, rate limited.
+// notice queues a "you notice" stimulus, rate limited. Each one is a call
+// on her owner's account (nobody asked her anything), so they are capped
+// per owner per UTC day (NoticeCallsPerDay). And on the owner's own key
+// with strangers off, none is started while another player is in the
+// room: a passer-by walking in and out is a fresh thing to notice each
+// time, and would otherwise spend the owner's key as surely as talking
+// to her would.
 func (m *AICompanionModule) notice(c *controller, things []thing, now time.Time) {
 	if now.Unix()-c.lastNotice < int64(m.cfg.NoticeCooldownSeconds) {
 		return
 	}
+	m.rollDay()
+	if m.cfg.NoticeCallsPerDay > 0 && m.noticesToday[c.ownerUserId] >= m.cfg.NoticeCallsPerDay {
+		return
+	}
+	if rt := m.route(c.ownerUserId); rt.kind == routeRelay && m.strangersOffOn(c.ownerUserId, rt) && m.otherPlayerHere(c) {
+		return
+	}
 	c.lastNotice = now.Unix()
+	if m.noticesToday == nil {
+		m.noticesToday = map[int]int{}
+	}
+	m.noticesToday[c.ownerUserId]++
 	c.push(stimulus{Kind: `noticed`, Text: thingNames(things)})
+}
+
+// otherPlayerHere reports whether anyone but her owner is in her room.
+func (m *AICompanionModule) otherPlayerHere(c *controller) bool {
+	mob := mobs.GetInstance(c.instanceId)
+	if mob == nil {
+		return false
+	}
+	room := rooms.LoadRoom(mob.Character.RoomId)
+	if room == nil {
+		return false
+	}
+	for _, id := range room.GetPlayers() {
+		if id != c.ownerUserId {
+			return true
+		}
+	}
+	return false
 }
 
 func thingNames(ts []thing) string {

@@ -38,6 +38,7 @@ type Config struct {
 	InitiativeMinutes            int
 	NoticeThreshold              float64
 	NoticeCooldownSeconds        int
+	NoticeCallsPerDay            int
 	AutonomyMinutes              int
 	IdleEmoteMinutes             int
 	IdlePastimeMinutes           int
@@ -214,6 +215,7 @@ func buildConfig(get getter) Config {
 		InitiativeMinutes:            asInt(get(`InitiativeMinutes`), 5),
 		NoticeThreshold:              asFloat(get(`NoticeThreshold`), 0.6),
 		NoticeCooldownSeconds:        asInt(get(`NoticeCooldownSeconds`), 45),
+		NoticeCallsPerDay:            asInt(get(`NoticeCallsPerDay`), 40),
 		AutonomyMinutes:              asInt(get(`AutonomyMinutes`), 3),
 		IdleEmoteMinutes:             asInt(get(`IdleEmoteMinutes`), 6),
 		IdlePastimeMinutes:           asInt(get(`IdlePastimeMinutes`), 4),
@@ -394,6 +396,9 @@ func buildConfig(get getter) Config {
 	}
 	if c.NoticeCooldownSeconds < 0 {
 		c.NoticeCooldownSeconds = 0
+	}
+	if c.NoticeCallsPerDay < 0 {
+		c.NoticeCallsPerDay = 0
 	}
 	if c.AutonomyMinutes < 0 {
 		c.AutonomyMinutes = 0

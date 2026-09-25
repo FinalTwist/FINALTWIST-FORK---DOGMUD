@@ -100,6 +100,10 @@ InitiativeMinutes: 5
 NoticeThreshold: 0.6
 # Minimum seconds between two "you notice" moments.
 NoticeCooldownSeconds: 45
+# "You notice" moments per owner per UTC day; each is a call nobody asked
+# for, on whoever pays. On the owner's own key with passers-by off, none
+# starts while another player is in the room. 0 = no cap.
+NoticeCallsPerDay: 40
 # Minutes between chances to deal with something nearby on its own when
 # nothing else is happening. 0 = never acts unprompted.
 AutonomyMinutes: 3
