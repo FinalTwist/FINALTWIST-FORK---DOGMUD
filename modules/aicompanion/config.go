@@ -83,6 +83,7 @@ type Config struct {
 	RequireConsent               bool
 	StrangerAskSeconds           int
 	StrangerDailyTokens          int
+	StrangerTokensPerOwner       int
 	HoldWhenSneaking             bool
 	FollowOnFoot                 bool
 	FollowDelayMin               float64
@@ -258,6 +259,7 @@ func buildConfig(get getter) Config {
 		RequireConsent:               true,
 		StrangerAskSeconds:           asInt(get(`StrangerAskSeconds`), 30),
 		StrangerDailyTokens:          asInt(get(`StrangerDailyTokens`), 50000),
+		StrangerTokensPerOwner:       asInt(get(`StrangerTokensPerOwner`), 100000),
 		HoldWhenSneaking:             true,
 		FollowOnFoot:                 true,
 		FollowDelayMin:               asFloat(get(`FollowDelayMin`), 0.15),

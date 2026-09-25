@@ -571,9 +571,12 @@ nothing at all, say or emote, on any tier. Forging her answers is possible
 and buys the forger only a somewhat faster arc with their own companion:
 opinion, romance and memory keep the same bounds as on the server's key.
 
-Passers-by who talk to a tier 2 companion spend the OWNER's key, within
-the usual passer-by pacing. `companion-ai strangers off` stops that: she
-still hears them and answers with set lines.
+Passers-by who talk to a tier 2 companion would spend the OWNER's key, so
+by default they cannot: she hears them and answers with set lines until
+the owner says `companion-ai strangers on`. From then on they spend it
+within the usual passer-by pacing and `StrangerTokensPerOwner`, and
+`companion-ai strangers off` stops them again. On the server's key
+passers-by are on unless the owner turned them off.
 
 Any failure (no relay, a closed tab, a timeout, a provider error, a reply
 refused) falls back to set lines for that turn; the owner is told once per

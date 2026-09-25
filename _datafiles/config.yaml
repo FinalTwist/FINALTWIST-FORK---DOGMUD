@@ -2379,6 +2379,11 @@ Modules:
     DailyTokensPerCompanion: 300000
     StrangerAskSeconds: 30
     StrangerDailyTokens: 50000
+    # Tokens per UTC day that passers-by, all of them together, may spend of
+    # one owner's companion, on the server's key or the owner's own. Without
+    # it, many strangers each within their own allowance could spend one
+    # owner's key without end. 0 is no cap.
+    StrangerTokensPerOwner: 100000
     # Ask the player, in as many words, before anything they say is sent to
     # OpenAI. They answer "i agree" or "i decline"; until they agree their
     # companion behaves as a plain one and nothing leaves the server.

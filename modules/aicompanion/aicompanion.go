@@ -151,6 +151,7 @@ type AICompanionModule struct {
 	stats             map[string]*tierStats // per model tier, since boot
 	ownerTokens       map[int]int           // tokens today per companion owner
 	strangerTokens    map[int]int           // tokens today spent on behalf of a passer-by
+	strangersFor      map[int]int           // tokens today passers-by spent of each owner's companion, all of them together
 	breakerUntil      time.Time             // model calls paused until then
 	consecutiveErrors int
 	outstanding       int // tokens held for calls that have not come back
@@ -338,6 +339,7 @@ func (m *AICompanionModule) rollDay() {
 		m.errorsToday = 0
 		m.ownerTokens = map[int]int{}
 		m.strangerTokens = map[int]int{}
+		m.strangersFor = map[int]int{}
 	}
 }
 
@@ -449,11 +451,27 @@ func (c *controller) cancelInFlight() {
 	c.inFlight = false
 }
 
-// strangersOff reports whether the owner has asked that passers-by prompt
-// no model calls for their companion (companion-ai strangers off).
+// strangersOff reports whether passers-by may prompt no model calls for the
+// owner's companion right now, on whichever key would pay for them now.
 func (m *AICompanionModule) strangersOff(ownerId int) bool {
-	rec := m.bonds.Users[ownerId]
-	return rec != nil && rec.StrangersOff
+	return m.strangersOffOn(ownerId, m.route(ownerId))
+}
+
+// strangersOffOn is strangersOff for a call on route r. The owner's own
+// word (companion-ai strangers on|off) decides; without it, passers-by are
+// off on the owner's own key, since it is the owner who pays and they
+// never agreed to pay for strangers, and on for the server's key, as
+// before player keys existed.
+func (m *AICompanionModule) strangersOffOn(ownerId int, r route) bool {
+	if rec := m.bonds.Users[ownerId]; rec != nil {
+		if rec.StrangersOff {
+			return true
+		}
+		if rec.StrangersOn {
+			return false
+		}
+	}
+	return r.kind == routeRelay
 }
 
 // strangerMayPrompt reports whether a call prompted by this passer-by may

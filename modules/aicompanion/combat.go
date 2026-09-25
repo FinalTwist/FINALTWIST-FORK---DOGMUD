@@ -81,6 +81,10 @@ type fightState struct {
 	SaidNoAmmo   bool
 	AssistWas    bool // the owner's AutoAssist setting before hold_back, to restore
 	AssistSet    bool
+	// StarterUserId is the passer-by who started this fight, 0 when it was
+	// her owner, a creature or nobody can tell (fightStarter). The plans
+	// she makes in it are paid for by them.
+	StarterUserId int
 }
 
 const (
@@ -314,6 +318,7 @@ func (m *AICompanionModule) combatTick(c *controller, u *users.UserRecord, round
 		for id, name := range enemyUsers {
 			f.EnemyUsers[id] = name
 		}
+		f.StarterUserId = fightStarter(c, mob, u, enemyUsers, time.Now().Unix())
 		c.travel = nil
 		c.bumpWorld()
 		f.AmmoAtStart, f.AmmoItemId = ammoOnHand(mob)
@@ -398,6 +403,43 @@ func enemyNames(a map[int]string, b map[int]string) string {
 	return strings.Join(names, `, `)
 }
 
+// fightStarter names the passer-by who started a fight, so that the plans
+// she makes in it are theirs to pay for: otherwise anyone could pick a
+// fight with a companion, or her owner, and spend the owner's allowance or
+// key on her thinking. enemyUsers is who, as it starts, is fighting her or
+// her owner. It is a player who attacked her within the attack reaction
+// window (lastAttackBy), or failing that one fighting them whom neither
+// she nor her owner was fighting first. A fight her owner picked has
+// neither, and stays the owner's. The lowest user id wins a tie, so the
+// choice does not depend on map order.
+func fightStarter(c *controller, mob *mobs.Mob, owner *users.UserRecord, enemyUsers map[int]string, nowUnix int64) int {
+	ids := make([]int, 0, len(enemyUsers))
+	for id := range enemyUsers {
+		if owner == nil || id != owner.UserId {
+			ids = append(ids, id)
+		}
+	}
+	sort.Ints(ids)
+	for _, id := range ids {
+		if t, ok := c.lastAttackBy[id]; ok && nowUnix-t < 600 {
+			return id
+		}
+	}
+	var ownerTarget, herTarget int
+	if owner != nil && owner.Character != nil {
+		ownerTarget = owner.Character.CurrentCombatTarget().UserId
+	}
+	if mob != nil {
+		herTarget = mob.Character.CurrentCombatTarget().UserId
+	}
+	for _, id := range ids {
+		if id != ownerTarget && id != herTarget {
+			return id
+		}
+	}
+	return 0
+}
+
 // requestPlan asks the model for a stance, rate limited, jumping the queue.
 func (m *AICompanionModule) requestPlan(c *controller, round uint64, why string, text string) {
 	f := c.fight
@@ -413,7 +455,7 @@ func (m *AICompanionModule) requestPlan(c *controller, round uint64, why string,
 		}
 	}
 	c.pending = keep
-	c.push(stimulus{Kind: `fight`, Text: why + `: ` + text})
+	c.push(stimulus{Kind: `fight`, Text: why + `: ` + text, PaidBy: f.StarterUserId})
 	if !c.inFlight {
 		m.dispatch(c)
 	}
@@ -782,7 +824,7 @@ func (m *AICompanionModule) endFight(c *controller, mob *mobs.Mob, u *users.User
 		m.combatLine(c, mob, round, c.profile.Combat.Lines.Victory)
 	}
 	c.dirty = true
-	c.push(stimulus{Kind: `fight_over`, Text: summary, FromOwner: true})
+	c.push(stimulus{Kind: `fight_over`, Text: summary, FromOwner: true, PaidBy: f.StarterUserId})
 }
 
 // onMobDeath notes an enemy falling in a fight the companion is in.

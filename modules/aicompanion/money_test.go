@@ -10,7 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"gopkg.in/yaml.v2"
+
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -364,5 +368,209 @@ func TestPanickedBackgroundCallsSettle(t *testing.T) {
 			}
 			time.Sleep(10 * time.Millisecond)
 		}
+	}
+}
+
+// On the owner's own key passers-by prompt nothing until the owner says
+// so; on the server's key they may, until the owner says not. The owner's
+// word, either way, holds on both keys, and a record saved before the
+// choice had a default still means what it meant.
+func TestStrangersDefaultOffOnlyOnTheOwnersKey(t *testing.T) {
+	m := relayModule(t)
+	m.bonds = bondState{Users: map[int]*bondRecord{5: {Profile: `mara`}}}
+	relay, server := route{kind: routeRelay}, route{kind: routeServer}
+	if !m.strangersOffOn(5, relay) || m.strangersOffOn(5, server) {
+		t.Fatal("unset: off on the owner's key, on for the server's")
+	}
+	if !m.strangersOff(5) || m.strangerMayPrompt(5, 2) {
+		t.Fatal("with the owner's relay live, a passer-by prompts nothing by default")
+	}
+	if !m.strangerMayPrompt(5, 0) {
+		t.Fatal("the owner's own calls are untouched")
+	}
+	m.bonds.Users[5].StrangersOn = true
+	if m.strangersOffOn(5, relay) || m.strangersOffOn(5, server) || !m.strangerMayPrompt(5, 2) {
+		t.Fatal("strangers on: on for both keys")
+	}
+	m.bonds.Users[5].StrangersOn, m.bonds.Users[5].StrangersOff = false, true
+	if !m.strangersOffOn(5, relay) || !m.strangersOffOn(5, server) {
+		t.Fatal("strangers off: off for both keys")
+	}
+	if m.strangersOffOn(6, server) || !m.strangersOffOn(6, relay) {
+		t.Fatal("no record at all is the default too")
+	}
+
+	var old bondState
+	if err := yaml.Unmarshal([]byte("users:\n  5:\n    profile: mara\n    strangers_off: true\n"), &old); err != nil {
+		t.Fatal(err)
+	}
+	m.bonds = old
+	if !m.strangersOffOn(5, server) {
+		t.Fatal("an old record that said off is still off, on the server's key too")
+	}
+	old.Users[5].StrangersOff, old.Users[5].StrangersOn = false, true
+	b, err := yaml.Marshal(&old)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var back bondState
+	if err := yaml.Unmarshal(b, &back); err != nil {
+		t.Fatal(err)
+	}
+	if !back.Users[5].StrangersOn || back.Users[5].StrangersOff {
+		t.Fatalf("strangers on survives a save: %s", b)
+	}
+}
+
+// companion-ai strangers on and off record the owner's word, and the bare
+// status says, on the owner's own key, that passers-by are held off until
+// the owner lets them.
+func TestCompanionAIStrangersDefaultWording(t *testing.T) {
+	owner, _, _, _ := harmWorld(t, `off`)
+	m, _ := senderModule(`https://api.example.invalid`, true)
+	withWebDomain(t, `example.org`)
+	m.cfg.PlayerKeys, m.cfg.RelayOrigin = true, `https://keys.example.org`
+	m.relays = newRelayTable()
+	m.relays.ready(1, `player-model`)
+	events.DrainQueuedMessagesForTest(1)
+	say := func(arg string) string {
+		t.Helper()
+		if _, err := m.cmdAI(arg, owner, nil, 0); err != nil {
+			t.Fatal(err)
+		}
+		sent := events.DrainQueuedMessagesForTest(1)
+		if len(sent) != 1 {
+			t.Fatalf("%q: one reply, got %q", arg, sent)
+		}
+		for _, line := range strings.Split(strings.TrimRight(sent[0], "\n"), "\n") {
+			if n := len([]rune(ansiTag.ReplaceAllString(line, ``))); n > 80 {
+				t.Fatalf("%q: a line of %d columns: %q", arg, n, line)
+			}
+		}
+		return strings.Join(strings.Fields(sent[0]), ` `)
+	}
+	if got := say(`strangers`); !strings.Contains(got, `your own key`) || !strings.Contains(got, `strangers on`) {
+		t.Fatalf("by default on the owner's key, the status says they are held off and how to allow them: %q", got)
+	}
+	if got := say(`strangers on`); !m.bonds.Users[1].StrangersOn || m.bonds.Users[1].StrangersOff || !strings.Contains(got, `paid for from your key`) {
+		t.Fatalf("strangers on is recorded and says who pays: %q %+v", got, m.bonds.Users[1])
+	}
+	if !m.strangerMayPrompt(1, 2) {
+		t.Fatal("and passers-by may now prompt calls on the owner's key")
+	}
+	if got := say(`strangers off`); !m.bonds.Users[1].StrangersOff || m.bonds.Users[1].StrangersOn || !strings.Contains(got, `set lines`) {
+		t.Fatalf("strangers off is recorded: %q %+v", got, m.bonds.Users[1])
+	}
+}
+
+// Passers-by together may spend only so much of one owner's companion in a
+// day, on either key, however many of them there are.
+func TestStrangerTokensPerOwnerCapsThemTogether(t *testing.T) {
+	if got := buildConfig(nil).StrangerTokensPerOwner; got != 100000 {
+		t.Fatalf("default StrangerTokensPerOwner is 100000, got %d", got)
+	}
+	for _, rt := range []route{{kind: routeServer}, {kind: routeRelay, model: `player-model`}} {
+		m := relayModule(t)
+		m.cfg.DailyTokenBudget, m.cfg.StrangerDailyTokens, m.cfg.StrangerTokensPerOwner = 100000, 1000, 1500
+		if !m.reserveRoute(rt, 5, 2, 900) || !m.reserveRoute(rt, 5, 3, 500) {
+			t.Fatalf("%v: two passers-by within both caps are admitted", rt.kind)
+		}
+		if m.reserveRoute(rt, 5, 4, 200) {
+			t.Fatalf("%v: a third, within their own allowance, would overshoot the owner's cap", rt.kind)
+		}
+		if !m.reserveRoute(rt, 6, 4, 200) {
+			t.Fatalf("%v: another owner's companion has its own cap", rt.kind)
+		}
+		m.settleRoute(rt, 5, 2, 900, 100)
+		if m.strangersFor[5] != 600 {
+			t.Fatalf("%v: a settlement gives back what was not used, got %d", rt.kind, m.strangersFor[5])
+		}
+		if !m.reserveRoute(rt, 5, 4, 200) {
+			t.Fatalf("%v: and the room it frees is usable", rt.kind)
+		}
+	}
+
+	m := relayModule(t)
+	m.cfg.StrangerTokensPerOwner = 1500
+	c := &controller{ownerUserId: 5, instanceId: 42}
+	m.bonds = bondState{Users: map[int]*bondRecord{5: {StrangersOn: true}}}
+	m.rollDay()
+	m.strangersFor[5] = 1500
+	bram := &users.UserRecord{UserId: 2, Character: &characters.Character{Name: `Bram`}}
+	if m.strangerMayAsk(bram, c) {
+		t.Fatal("a spent owner's cap queues nothing more from passers-by")
+	}
+}
+
+// The day's stranger spend per owner survives a restart with the rest of
+// the budget file.
+func TestStrangersForIsKeptWithTheBudget(t *testing.T) {
+	st := budgetState{Day: `2026-09-25`, StrangersFor: map[int]int{5: 1234}}
+	b, err := yaml.Marshal(&st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var back budgetState
+	if err := yaml.Unmarshal(b, &back); err != nil {
+		t.Fatal(err)
+	}
+	if back.StrangersFor[5] != 1234 {
+		t.Fatalf("strangers_for survives a save: %s", b)
+	}
+}
+
+// A fight a passer-by started is theirs to pay for: they are named as its
+// starter, its plans are billed to them without refusing her anything, and
+// a fight her owner picked stays the owner's.
+func TestFightAPasserByStartedIsTheirs(t *testing.T) {
+	owner, bram, _, her := harmWorld(t, `on`)
+	c := &controller{ownerUserId: 1, instanceId: her.InstanceId, lastAttackBy: map[int]int64{}}
+	now := time.Now().Unix()
+	enemies := map[int]string{2: `Bram`}
+
+	if got := fightStarter(c, her, owner, enemies, now); got != 2 {
+		t.Fatalf("a passer-by fighting them whom neither was fighting started it, got %d", got)
+	}
+	owner.Character.SetAggro(2, 0, characters.DefaultAttack)
+	if owner.Character.CurrentCombatTarget().UserId != 2 {
+		t.Fatal("fixture: the owner is fighting Bram")
+	}
+	if got := fightStarter(c, her, owner, enemies, now); got != 0 {
+		t.Fatalf("a fight her owner picked is the owner's, got %d", got)
+	}
+	c.lastAttackBy[2] = now - 5
+	if got := fightStarter(c, her, owner, enemies, now); got != 2 {
+		t.Fatalf("a passer-by who attacked her started it, whoever hit back, got %d", got)
+	}
+	c.lastAttackBy[2] = now - 700
+	if got := fightStarter(c, her, owner, enemies, now); got != 0 {
+		t.Fatalf("an attack long ago is not this fight, got %d", got)
+	}
+	_ = bram
+
+	plan := stimulus{Kind: `fight`, Text: `start: Bram`, PaidBy: 2}
+	over := stimulus{Kind: `fight_over`, Text: `over`, FromOwner: true, PaidBy: 2}
+	if strangerBehind([]stimulus{plan}, 1) != 2 || strangerBehind([]stimulus{over}, 1) != 2 {
+		t.Fatal("the plans and the end of their fight are billed to the passer-by")
+	}
+	if promptedBy(plan, 1) != 2 {
+		t.Fatal("and never share a call with her owner's words")
+	}
+	if !ownerPrompted([]stimulus{plan}) {
+		t.Fatal("paying for it refuses her nothing: she may still defend herself as she sees fit")
+	}
+	if strangerBehind([]stimulus{{Kind: `fight`, PaidBy: 1}}, 1) != 0 {
+		t.Fatal("the owner is never a passer-by")
+	}
+}
+
+// requestPlan carries the fight's starter on the stimulus it queues.
+func TestRequestPlanCarriesTheStarter(t *testing.T) {
+	m, c := senderModule(`https://api.example.invalid`, true)
+	c.inFlight = true // queue only
+	c.fight = &fightState{StarterUserId: 2}
+	m.requestPlan(c, 1, `start`, `Bram`)
+	if len(c.pending) != 1 || c.pending[0].PaidBy != 2 {
+		t.Fatalf("the plan is queued as the starter's: %+v", c.pending)
 	}
 }

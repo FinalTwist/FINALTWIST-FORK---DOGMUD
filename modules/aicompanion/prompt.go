@@ -12,12 +12,16 @@ type stimulus struct {
 	Kind        string // heard, asked, emote, gift, attacked, quiet, session_start, first_meeting, recovered, farewell
 	Speaker     string
 	Text        string
-	ElapsedSecs int64  // session_start only
-	FromOwner   bool   // the owner caused it; only these can move the owner opinion
-	Chain       int    // 1 for a follow-up to the companion's own look or consider
-	Authorized  bool   // arrived: the owner asked for this errand
-	AskerUserId int    // the passer-by whose words prompted it, when not the owner
-	Errand      string // arrived: what she set out to do there
+	ElapsedSecs int64 // session_start only
+	FromOwner   bool  // the owner caused it; only these can move the owner opinion
+	Chain       int   // 1 for a follow-up to the companion's own look or consider
+	Authorized  bool  // arrived: the owner asked for this errand
+	AskerUserId int   // the passer-by whose words prompted it, when not the owner
+	// PaidBy is a passer-by who pays for the call this prompts without
+	// having asked her anything: the one who started a fight she is in.
+	// Unlike AskerUserId it refuses her no verb; it only bills them.
+	PaidBy int
+	Errand string // arrived: what she set out to do there
 }
 
 // promptInput is everything buildMessages needs. It is plain data so the

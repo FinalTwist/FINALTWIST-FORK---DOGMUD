@@ -530,6 +530,14 @@ func (m *AICompanionModule) strangerMayAsk(u *users.UserRecord, c *controller) b
 			return false
 		}
 	}
+	// Nor when passers-by together have spent all they may of this owner's
+	// companion today (StrangerTokensPerOwner).
+	if m.cfg.StrangerTokensPerOwner > 0 && !m.strangersOff(c.ownerUserId) {
+		m.rollDay()
+		if m.strangersFor[c.ownerUserId] >= m.cfg.StrangerTokensPerOwner {
+			return false
+		}
+	}
 	if m.cfg.StrangerAskSeconds > 0 {
 		tag := fmt.Sprintf(`aicompanion-ask-%d`, c.instanceId)
 		if !u.Character.TryCooldown(tag, cooldownFor(m.cfg.StrangerAskSeconds)) {

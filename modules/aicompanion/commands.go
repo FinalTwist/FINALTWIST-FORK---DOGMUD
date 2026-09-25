@@ -707,21 +707,24 @@ func (m *AICompanionModule) cmdAI(rest string, user *users.UserRecord, room *roo
 		m.saveBonds()
 		tell(`(Stopped. Nothing you say leaves this server. %s stays with you and answers with a few set lines. "companion-ai on" starts it again.)`, name)
 	case `strangers on`:
-		rec.StrangersOff = false
+		rec.StrangersOff, rec.StrangersOn = false, true
 		m.saveBonds()
-		if m.route(user.UserId).kind == routeRelay {
-			tell(`(Passers-by can talk to %s again, and their words are paid for from your key.)`, name)
+		if m.playerKeysOffered() {
+			tell(`(Passers-by can talk to %s now. While %s thinks on your own key, what they say is paid for from your key too.)`, name, name)
 		} else {
-			tell(`(Passers-by can talk to %s again.)`, name)
+			tell(`(Passers-by can talk to %s now.)`, name)
 		}
 	case `strangers off`:
-		rec.StrangersOff = true
+		rec.StrangersOff, rec.StrangersOn = true, false
 		m.saveBonds()
 		tell(`(%s will hear passers-by but answer them only with a few set lines.)`, name)
 	case `strangers`:
-		if rec.StrangersOff {
+		switch {
+		case m.strangersOff(user.UserId) && !rec.StrangersOff:
+			tell(`(%s answers passers-by only with a few set lines while thinking on your own key, so that they spend none of it. "companion-ai strangers on" lets them talk to %s on your key.)`, name, name)
+		case m.strangersOff(user.UserId):
 			tell(`(%s answers passers-by only with a few set lines. "companion-ai strangers on" changes that.)`, name)
-		} else {
+		default:
 			tell(`(Passers-by can talk to %s. "companion-ai strangers off" stops them costing anything.)`, name)
 		}
 	case ``:

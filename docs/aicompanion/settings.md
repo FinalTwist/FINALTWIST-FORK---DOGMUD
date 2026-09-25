@@ -234,6 +234,11 @@ RequireConsent: true
 # companion feels about its owner.
 StrangerAskSeconds: 30
 StrangerDailyTokens: 50000
+# What passers-by, all of them together, may spend of one owner's companion
+# in a UTC day, on either key: many strangers each within their own
+# allowance could otherwise spend one owner's key without end. A fight a
+# passer-by started counts as theirs too. 0 is no cap.
+StrangerTokensPerOwner: 100000
 # Player keys (tier 2): a player runs their own companion on their OWN key,
 # from the web client. The key stays in their browser, on a relay page served
 # from RelayOrigin, and never reaches this server. Off by default here; the
@@ -264,10 +269,15 @@ companion's OWNER, even when a passer-by is the one talking to her:
 What changes on the owner's own key:
 
 - The server's `DailyTokenBudget` and `DailyTokensPerCompanion` are not
-  charged (the player pays). `StrangerAskSeconds` and `StrangerDailyTokens`
-  still apply, as limits on what passers-by can spend of the owner's key,
-  and the owner can stop passers-by prompting calls at all with
-  `companion-ai strangers off`.
+  charged (the player pays).
+- Passers-by prompt NO calls on the owner's key until the owner says
+  `companion-ai strangers on`; she hears them and answers with set lines.
+  An owner who has never used the command is off on their own key and on
+  for the server's key; `companion-ai strangers off` stops them on both.
+  Once on, `StrangerAskSeconds`, `StrangerDailyTokens` and
+  `StrangerTokensPerOwner` limit what passers-by can spend of the owner's
+  key, and a count the browser reports is never trusted past what was
+  reserved.
 - `ModerateOutput` does not apply: the player's provider may have no
   moderation endpoint, and a reply from a browser could be forged anyway.
   Each line she says that way is logged at Info against the owner instead,

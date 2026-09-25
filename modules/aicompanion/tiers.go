@@ -183,7 +183,8 @@ func (m *AICompanionModule) applyRoute(c *modelCall) {
 // budget and the owner's or passer-by's allowance (tryReserveFor). A
 // player's own key spends nothing of the server's, so it is held against
 // nothing, except that a passer-by's question is still held against their
-// StrangerDailyTokens: the owner's key is not theirs to spend without end.
+// StrangerDailyTokens and the owner's StrangerTokensPerOwner (strangerFits):
+// the owner's key is not theirs to spend without end.
 func (m *AICompanionModule) reserveRoute(r route, ownerId int, askerId int, tokens int) bool {
 	switch r.kind {
 	case routeServer:
@@ -193,10 +194,10 @@ func (m *AICompanionModule) reserveRoute(r route, ownerId int, askerId int, toke
 			return true
 		}
 		m.rollDay()
-		if m.cfg.StrangerDailyTokens > 0 && m.strangerTokens[askerId]+tokens > m.cfg.StrangerDailyTokens {
+		if !m.strangerFits(ownerId, askerId, tokens) {
 			return false
 		}
-		m.chargeStranger(askerId, tokens)
+		m.chargeStrangerFor(ownerId, askerId, tokens)
 		return true
 	}
 	return false
@@ -217,10 +218,7 @@ func (m *AICompanionModule) settleRoute(r route, ownerId int, askerId int, reser
 		// reservation, never raise it past it, and never below nothing.
 		used = max(0, min(used, reserved))
 		m.rollDay()
-		m.chargeStranger(askerId, used-reserved)
-		if m.strangerTokens[askerId] < 0 {
-			m.strangerTokens[askerId] = 0
-		}
+		m.chargeStrangerFor(ownerId, askerId, used-reserved)
 	}
 }
 

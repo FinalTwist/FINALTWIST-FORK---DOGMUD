@@ -227,6 +227,39 @@ func (m *AICompanionModule) chargeStranger(userId int, tokens int) {
 	m.strangerTokens[userId] += tokens
 }
 
+// strangerFits reports whether a passer-by's call of this size fits both
+// what that passer-by may spend in a day (StrangerDailyTokens) and what all
+// passers-by together may spend of this one owner's companion
+// (StrangerTokensPerOwner): many strangers, each within their own
+// allowance, could otherwise spend one owner's key without end. Zero is no
+// cap for either.
+func (m *AICompanionModule) strangerFits(ownerId int, askerId int, tokens int) bool {
+	if m.cfg.StrangerDailyTokens > 0 && m.strangerTokens[askerId]+tokens > m.cfg.StrangerDailyTokens {
+		return false
+	}
+	return m.cfg.StrangerTokensPerOwner <= 0 || m.strangersFor[ownerId]+tokens <= m.cfg.StrangerTokensPerOwner
+}
+
+// chargeStrangerFor charges a passer-by's call to both of the counts
+// strangerFits weighs, and takes a negative amount the same way (a
+// settlement), never leaving either below nothing.
+func (m *AICompanionModule) chargeStrangerFor(ownerId int, askerId int, tokens int) {
+	m.chargeStranger(askerId, tokens)
+	if m.strangerTokens[askerId] < 0 {
+		m.strangerTokens[askerId] = 0
+	}
+	if ownerId <= 0 || askerId <= 0 {
+		return
+	}
+	if m.strangersFor == nil {
+		m.strangersFor = map[int]int{}
+	}
+	m.strangersFor[ownerId] += tokens
+	if m.strangersFor[ownerId] < 0 {
+		m.strangersFor[ownerId] = 0
+	}
+}
+
 // traceEntry is one decision kept for the admin trace view.
 type traceEntry struct {
 	Unix     int64
@@ -519,7 +552,7 @@ func (m *AICompanionModule) tryReserveFor(ownerId int, askerId int, tokens int) 
 		return false
 	}
 	if askerId > 0 {
-		if m.cfg.StrangerDailyTokens > 0 && m.strangerTokens[askerId]+tokens > m.cfg.StrangerDailyTokens {
+		if !m.strangerFits(ownerId, askerId, tokens) {
 			return false
 		}
 	} else if m.cfg.DailyTokensPerCompanion > 0 && m.ownerTokens[ownerId]+tokens > m.cfg.DailyTokensPerCompanion {
@@ -528,7 +561,7 @@ func (m *AICompanionModule) tryReserveFor(ownerId int, askerId int, tokens int) 
 	m.tokensToday += tokens
 	m.outstanding += tokens
 	if askerId > 0 {
-		m.chargeStranger(askerId, tokens)
+		m.chargeStrangerFor(ownerId, askerId, tokens)
 	} else {
 		m.chargeOwner(ownerId, tokens)
 	}
@@ -555,10 +588,7 @@ func (m *AICompanionModule) settleFor(ownerId int, askerId int, reserved int, us
 	}
 	switch {
 	case askerId > 0:
-		m.chargeStranger(askerId, diff)
-		if m.strangerTokens[askerId] < 0 {
-			m.strangerTokens[askerId] = 0
-		}
+		m.chargeStrangerFor(ownerId, askerId, diff)
 	case ownerId > 0:
 		m.chargeOwner(ownerId, diff)
 		if m.ownerTokens[ownerId] < 0 {
@@ -576,6 +606,9 @@ type budgetState struct {
 	Calls     int         `yaml:"calls"`
 	Owners    map[int]int `yaml:"owners,omitempty"`
 	Strangers map[int]int `yaml:"strangers,omitempty"`
+	// StrangersFor is what passers-by together spent of each owner's
+	// companion (StrangerTokensPerOwner), by owner.
+	StrangersFor map[int]int `yaml:"strangers_for,omitempty"`
 }
 
 const budgetStateId = `budget-state`
@@ -593,11 +626,15 @@ func (m *AICompanionModule) loadBudget() {
 	m.callsToday = st.Calls
 	m.ownerTokens = st.Owners
 	m.strangerTokens = st.Strangers
+	m.strangersFor = st.StrangersFor
 	if m.ownerTokens == nil {
 		m.ownerTokens = map[int]int{}
 	}
 	if m.strangerTokens == nil {
 		m.strangerTokens = map[int]int{}
+	}
+	if m.strangersFor == nil {
+		m.strangersFor = map[int]int{}
 	}
 }
 
@@ -606,7 +643,7 @@ func (m *AICompanionModule) saveBudget() {
 		return
 	}
 	st := budgetState{Day: m.budgetDay, Tokens: m.tokensToday, Calls: m.callsToday,
-		Owners: m.ownerTokens, Strangers: m.strangerTokens}
+		Owners: m.ownerTokens, Strangers: m.strangerTokens, StrangersFor: m.strangersFor}
 	if err := m.plug.WriteStruct(budgetStateId, &st); err != nil {
 		mudlog.Error(`aicompanion`, `action`, `saveBudget`, `error`, err)
 	}

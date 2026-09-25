@@ -37,11 +37,15 @@ type bondRecord struct {
 	Consented bool  `yaml:"consented,omitempty"`
 	Refused   bool  `yaml:"refused,omitempty"`
 	AskedAt   int64 `yaml:"asked_at,omitempty"`
-	// StrangersOff is the owner saying passers-by may not prompt a model
-	// call for their companion (companion-ai strangers off). She still
-	// hears them and answers with set lines. Absent, as in every record
-	// saved before it existed, is strangers on.
+	// StrangersOff and StrangersOn are the owner's own word on whether
+	// passers-by may prompt a model call for their companion
+	// (companion-ai strangers off, or on); at most one is set. With
+	// strangers off she still hears them and answers with set lines.
+	// Neither set, as in every record saved before the choice existed, is
+	// the default for whoever pays (strangersOffOn): off on the owner's
+	// own key, which is their money, and on for the server's key.
 	StrangersOff bool `yaml:"strangers_off,omitempty"`
+	StrangersOn  bool `yaml:"strangers_on,omitempty"`
 }
 
 type bondState struct {

@@ -301,6 +301,9 @@ func TestRelaySummaryChargesOnlyThePasserBy(t *testing.T) {
 	m.cfg.PlayerKeys, m.cfg.RelayOrigin = true, `https://keys.example.org`
 	m.relays = newRelayTable()
 	m.relays.ready(1, `player-model`)
+	// On the owner's own key passers-by prompt nothing until the owner
+	// lets them.
+	m.bonds.Users[1].StrangersOn = true
 	m.rollDay()
 	m.tokensToday = m.cfg.DailyTokenBudget
 	m.ownerTokens[1] = m.cfg.DailyTokensPerCompanion

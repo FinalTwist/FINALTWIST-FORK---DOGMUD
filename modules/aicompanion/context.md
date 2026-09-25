@@ -32,14 +32,20 @@ Roadmap and phase plan: `docs/aicompanion/`.
   nothing into the mind while still queueing the stimulus, so dispatch
   answers with set lines. Anything a passer-by aims at her (speech to
   her, `ask`, an emote, a gift, healing) is heard and remembered as usual
-  but queued only if `strangerMayAsk` passes (their daily allowance, then
-  a per-companion cooldown that trying spends), called once per thing,
-  just before the push. Their stimuli carry `AskerUserId`. With the
-  owner's `companion-ai strangers off` (`bondRecord.StrangersOff`,
-  `strangersOff`) she still hears them and answers with set lines, paced
-  by the same cooldown, but `strangerMayPrompt` stops any call they would
-  prompt: dispatch falls back, and a talk with passers-by alone is not
-  summed up.
+  but queued only if `strangerMayAsk` passes (their daily allowance,
+  then what passers-by together may spend of this owner's companion,
+  then a per-companion cooldown that trying spends; `cooldownFor` turns
+  its seconds into the rounds a character cooldown counts), called once
+  per thing, just before the push. Their stimuli carry `AskerUserId`.
+  With strangers off she still hears them and answers with set lines,
+  paced by the same cooldown, but `strangerMayPrompt` stops any call they
+  would prompt: dispatch falls back, and a talk with passers-by alone is
+  not summed up. Strangers are off when the owner said
+  `companion-ai strangers off` (`bondRecord.StrangersOff`), on when they
+  said `on` (`StrangersOn`), and otherwise off on the owner's own key and
+  on for the server's (`strangersOffOn`, by route; `strangersOff` asks
+  for the route live). dispatch and the summary ask again with the route
+  the call really carries, after `applyRoute`.
 - **scene.go**: `buildScene`, the structured, locally scored picture of what
   the companion can see and carry, with the refs ("t2", "p1", "w1") the
   model uses in actions; item and NPC classification; novelty from the
@@ -80,7 +86,12 @@ Roadmap and phase plan: `docs/aicompanion/`.
 - **combat.go**: the fight from the companion's side: tracking, the
   model's plan (stance, target, flee point, style), local reflexes at most
   once a round, hold-back with the owner's auto-assist restored, authored
-  battle lines, and the summary afterwards.
+  battle lines, and the summary afterwards. `fightStarter` names the
+  passer-by who started a fight (one who attacked her within the reaction
+  window, else one fighting her or her owner whom neither was fighting
+  first); the fight's `fight` and `fight_over` stimuli carry them as
+  `PaidBy`, which bills them like an asker (`strangerBehind`,
+  `promptedBy`) without refusing her any verb.
 - **meeting.go**: meeting a companion after character creation (or at the
   next login), the persisted bond state, parting ways, and consent:
   `consented`, `answerConsent`, and `consentLedger`, the copy of who has
@@ -312,10 +323,12 @@ skills, health) is never in the mind file; it lives on the owner's
   (`reserveRoute`, which is `tryReserveFor` on the server's key) and
   settled on return against the same payer and route (`settleRoute`),
   exactly once. A call a passer-by prompted (`strangerBehind`) is held
-  against their `StrangerDailyTokens` and, on the server's key, the server
-  budget, never the owner's allowance, and runs with no tool rounds so its
-  worst case fits. On the owner's own key (tier 2) nothing of the server's
-  is held: only a passer-by's allowance. `modelReadyFor(owner, asker)`
+  against their `StrangerDailyTokens`, what passers-by together may spend
+  of that owner's companion (`StrangerTokensPerOwner`, `strangersFor`,
+  kept in the budget file; `strangerFits`, `chargeStrangerFor`) and, on
+  the server's key, the server budget, never the owner's allowance, and
+  runs with no tool rounds so its worst case fits. On the owner's own key
+  (tier 2) nothing of the server's is held: only the passer-by caps. `modelReadyFor(owner, asker)`
   routes by the owner even when a passer-by asks.
 - `nextBatch` gives each decision one prompter: the owner's words (and an
   errand the owner sent her on) and each passer-by's are decided

@@ -534,9 +534,12 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	}
 	m.applyRoute(&call)
 	rt := call.Route
-	if rt.kind == routeNone {
+	if rt.kind == routeNone || (asker > 0 && m.strangersOffOn(c.ownerUserId, rt)) {
 		// Her owner's relay went away since modelReadyFor, and there is no
-		// server key to cover: nothing to call.
+		// server key to cover: nothing to call. Or the relay came up since
+		// strangerMayPrompt, and on the owner's own key a passer-by prompts
+		// nothing unless the owner said so: the route the call really
+		// carries decides.
 		m.fallback(c, mob, stims)
 		return
 	}
@@ -1357,10 +1360,14 @@ func lastRuneIndex(haystack []rune, needle []rune) int {
 	return -1
 }
 
-// strangerBehind is the passer-by whose words prompted this decision, or 0
-// when it was the owner's doing or her own.
+// strangerBehind is the passer-by who pays for this decision: whose words
+// prompted it, or who started the fight it is about (PaidBy); 0 when it was
+// the owner's doing or her own.
 func strangerBehind(stims []stimulus, ownerUserId int) int {
 	for _, s := range stims {
+		if s.PaidBy > 0 && s.PaidBy != ownerUserId {
+			return s.PaidBy
+		}
 		if s.FromOwner || s.AskerUserId == 0 || s.AskerUserId == ownerUserId {
 			continue
 		}
@@ -1378,6 +1385,11 @@ func promptedBy(s stimulus, ownerUserId int) int {
 	// carried to the place (ownerAskedNow), so it goes with the owner.
 	if s.Kind == `arrived` && s.Authorized {
 		return ownerUserId
+	}
+	// A fight a passer-by started is theirs to pay for, not to be batched
+	// with her owner's words, whatever else it is.
+	if s.PaidBy > 0 && s.PaidBy != ownerUserId {
+		return s.PaidBy
 	}
 	if s.FromOwner {
 		if s.Kind == `heard` || s.Kind == `asked` {

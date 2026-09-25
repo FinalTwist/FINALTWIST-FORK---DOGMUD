@@ -52,8 +52,10 @@ to OpenAI goes to your key's provider instead, and you pay for it.
 
   - Put a spending limit on the key with its provider before you use it.
   - Do not use a work computer, or any computer you share.
-  - Passers-by who talk to your companion are paid for from your key too;
-    <ansi fg="command">companion-ai strangers off</ansi> stops that.
+  - Passers-by who talk to your companion cannot spend your key: they get
+    a few set lines. <ansi fg="command">companion-ai strangers on</ansi> lets them talk
+    to your companion properly, paid for from your key, within a daily
+    limit; <ansi fg="command">companion-ai strangers off</ansi> stops it again.
 
 Nothing checks what your own key's provider has your companion say, so
 every word they say that way is logged here as yours to answer for. If you
