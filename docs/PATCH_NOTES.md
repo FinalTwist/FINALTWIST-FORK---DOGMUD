@@ -1,5 +1,30 @@
 # DOGMud Patch Notes
 
+## 2026-09-25: New Plymouth's lamps find their own streets
+
+New Plymouth's main streets, squares, markets and gates now stay lit
+through the whole night. The Long Market, Dock Street, the Central Square,
+the Processional, Lower Common Way, the City Road and the Temple Gate
+Plaza all keep their lamps burning, so you can read a face there at any
+hour.
+
+Step off one of those main ways into a lane, an alley, a court or a yard
+after dark, and the lamps do not follow you. You will still make out
+shapes moving nearby, but not who they are.
+
+Many shops, offices, inns and halls that used to shine as bright as the
+street outside their door are now proper interiors, lit the way a
+building should be rather than the way the street is.
+
+The buried Old Quarter, and the spaces under the docks, are dark except
+where a lamp is actually burning. If you plan to go down there, bring
+your own light. Every character starts out knowing how to make one: cast
+glow.
+
+Roofless ruins are open to the sky and the weather now, including the old
+watchtower and shrine at Pothole Coulee. Like any place with no roof,
+expect them dark once the sun goes down.
+
 ## 2026-09-23: The night now follows the season and the moon
 
 Until now, night fell the same way every day of the year, and moonlight made
