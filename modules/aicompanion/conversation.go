@@ -142,6 +142,14 @@ func (m *AICompanionModule) closeConversation(c *controller, why string) {
 	// way their questions are answered on it, so it is not refused because
 	// her owner's is spent, and never charged to it (reserveRoute).
 	asker := convo.payer()
+	// An owner whose own key was live this session pays for their own
+	// companion's thinking, her summaries included. With their relay down
+	// (at logout their browser is closing) the talk waits for it, as the
+	// reflection does, rather than moving to the server's key.
+	if m.cfg.ConversationSummaries && m.consented(c.ownerUserId) && c.relaySeen && m.route(c.ownerUserId).kind != routeRelay {
+		m.deferSummary(c, convo, asker)
+		return
+	}
 	if m.cfg.ConversationSummaries && m.consented(c.ownerUserId) && m.modelReadyFor(c.ownerUserId, asker) &&
 		m.summariseConversation(c, convo, asker) {
 		return
@@ -149,6 +157,12 @@ func (m *AICompanionModule) closeConversation(c *controller, why string) {
 
 	// No model to sum it up, or nobody's allowance to pay for it: keep the
 	// single best note rather than the whole exchange.
+	m.keepBestNote(c.mind, convo, now)
+	c.dirty = true
+}
+
+// keepBestNote keeps the single best note of a talk that is not summed up.
+func (m *AICompanionModule) keepBestNote(mind *Mind, convo *conversation, now int64) {
 	best := Memory{}
 	for _, mem := range convo.Provisional {
 		if mem.Importance > best.Importance {
@@ -160,8 +174,57 @@ func (m *AICompanionModule) closeConversation(c *controller, why string) {
 			Text: fmt.Sprintf(`I talked with %s for a while.`, convo.Partner)}
 	}
 	best.Unix = now
-	c.mind.addMemory(best, m.cfg.MaxMemories)
-	c.dirty = true
+	mind.addMemory(best, m.cfg.MaxMemories)
+}
+
+// deferredSummary is a finished talk of a relay owner's, kept until they
+// are back with their relay up (deferSummary, startDueSummaries).
+type deferredSummary struct {
+	mind    *Mind
+	profile *Profile
+	convo   *conversation
+	asker   int
+}
+
+// maxDeferredSummaries is how many talks wait per owner; the oldest is
+// kept as its best note when a newer one pushes it out.
+const maxDeferredSummaries = 4
+
+// deferSummary keeps a relay owner's finished talk until startDueSummaries
+// finds them online with their relay up. Called under the mud lock.
+func (m *AICompanionModule) deferSummary(c *controller, convo *conversation, asker int) {
+	if m.deferredSummaries == nil {
+		m.deferredSummaries = map[int][]*deferredSummary{}
+	}
+	list := append(m.deferredSummaries[c.ownerUserId], &deferredSummary{mind: c.mind, profile: c.profile, convo: convo, asker: asker})
+	for len(list) > maxDeferredSummaries {
+		m.keepBestNote(list[0].mind, list[0].convo, list[0].convo.LastUnix)
+		c.dirty = true
+		list = list[1:]
+	}
+	m.deferredSummaries[c.ownerUserId] = list
+}
+
+// startDueSummaries sums up the owner's waiting talks once they are online
+// with their relay up; a talk that still cannot be summed up (consent
+// withdrawn, strangers off, nothing left to pay) keeps its best note. It
+// is called from the round tick, under the mud lock, beside
+// startDueReflection.
+func (m *AICompanionModule) startDueSummaries(ownerId int) {
+	list := m.deferredSummaries[ownerId]
+	if len(list) == 0 || m.route(ownerId).kind != routeRelay {
+		return
+	}
+	delete(m.deferredSummaries, ownerId)
+	for _, d := range list {
+		if m.consented(ownerId) && m.modelReadyFor(ownerId, d.asker) && m.summariseFor(d.mind, d.profile, ownerId, d.convo, d.asker) {
+			continue
+		}
+		m.keepBestNote(d.mind, d.convo, d.convo.LastUnix)
+		if c := m.ctrls[ownerId]; c != nil {
+			c.dirty = true
+		}
+	}
 }
 
 // ConversationSummary is what the model gives back for a finished talk.
@@ -187,20 +250,26 @@ func conversationSchema() map[string]any {
 // not, the caller keeps the best note instead, so a talk is never lost to
 // a budget.
 func (m *AICompanionModule) summariseConversation(c *controller, convo *conversation, asker int) bool {
+	return m.summariseFor(c.mind, c.profile, c.ownerUserId, convo, asker)
+}
+
+// summariseFor is summariseConversation for a mind and profile, so a talk
+// kept for later (deferSummary) can be summed up without its session.
+func (m *AICompanionModule) summariseFor(mind *Mind, p *Profile, ownerId int, convo *conversation, asker int) bool {
 	// The whole talk is about to be posted: checked here as well as by the
 	// caller, because this is the function that sends it.
-	if !m.consented(c.ownerUserId) {
+	if !m.consented(ownerId) {
 		return false
 	}
 	// A talk with passers-by alone is theirs to prompt, and her owner has
 	// asked that they prompt nothing: the best note is kept instead.
-	if !m.strangerMayPrompt(c.ownerUserId, asker) {
+	if !m.strangerMayPrompt(ownerId, asker) {
 		return false
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "You have just finished talking with %s. Here is the whole of it, oldest first:\n", convo.Partner)
 	for _, l := range convo.Lines {
-		b.WriteString(formatLine(l, c.profile.Name))
+		b.WriteString(formatLine(l, p.Name))
 		b.WriteString("\n")
 	}
 	if len(convo.Provisional) > 0 {
@@ -214,27 +283,27 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 	ts := m.settingsFor(tierFast, false)
 	messages := []chatMessage{
 		{Role: `system`, Content: fmt.Sprintf("You are %s. %s\nYou are looking back on a conversation you have just had. Answer in your own voice, briefly, and never with a transcript.",
-			c.profile.Name, strings.TrimSpace(c.profile.Summary))},
+			p.Name, strings.TrimSpace(p.Summary))},
 		{Role: `user`, Content: b.String()},
 	}
 	call := modelCall{
 		BaseURL: m.cfg.BaseURL, APIKey: m.apiKey(), Model: ts.Model,
 		Timeout: ts.Timeout, MaxTokens: ts.MaxTokens, Temperature: m.cfg.Temperature,
 		Messages: messages, SchemaName: `companion_conversation`, Schema: conversationSchema(),
-		Effort: ts.Effort, Retry: false, OwnerUserId: c.ownerUserId,
+		Effort: ts.Effort, Retry: false, OwnerUserId: ownerId,
 	}
 	m.applyRoute(&call)
 	rt := call.Route
-	if rt.kind == routeNone || call.Model == `` || (asker > 0 && m.strangersOffOn(c.ownerUserId, rt)) {
+	if rt.kind == routeNone || call.Model == `` || (asker > 0 && m.strangersOffOn(ownerId, rt)) {
 		return false
 	}
 	reserved := worstCaseTokens(estimateTokens(call.Messages)+requestOverhead(call), ts.MaxTokens, 0, false)
-	held, ok := m.reserveRoute(rt, c.ownerUserId, asker, reserved)
+	held, ok := m.reserveRoute(rt, ownerId, asker, reserved)
 	if !ok {
 		return false
 	}
 	m.callsToday++
-	key := mindIdentifier(c.mind.OwnerUserId, c.mind.MobId)
+	key := mindIdentifier(mind.OwnerUserId, mind.MobId)
 	partner := convo.Partner
 	place := convo.RoomId
 

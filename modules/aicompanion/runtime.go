@@ -105,6 +105,7 @@ func (m *AICompanionModule) sync(round uint64) {
 		if m.route(u.UserId).kind == routeRelay {
 			c.relaySeen = true
 			m.startDueReflection(u.UserId)
+			m.startDueSummaries(u.UserId)
 		}
 
 		if comp.InstanceId == 0 {

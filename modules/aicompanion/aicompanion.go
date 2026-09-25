@@ -175,6 +175,9 @@ type AICompanionModule struct {
 	// until they are back online with their relay up (one per owner, the
 	// newest). Read and written only under the mud lock.
 	deferredReflect map[int]*deferredReflection
+	// deferredSummaries are a relay owner's finished talks, kept the same
+	// way until their relay is up (deferSummary). Under the mud lock.
+	deferredSummaries map[int][]*deferredSummary
 
 	tell func(userId int, text string) // how the owner is told things; nil sends a system line
 }

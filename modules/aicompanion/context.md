@@ -147,7 +147,13 @@ Roadmap and phase plan: `docs/aicompanion/`.
   (`summariseConversation`) or keeps the best note when there is no model
   or nobody's allowance to pay. A talk with passers-by alone is paid for
   by the one who said the most (`conversation.payer`, a tie to the lower
-  user id); one her owner took part in is the owner's.
+  user id); one her owner took part in is the owner's. An owner whose own
+  key was live this session (`relaySeen`) but whose relay is down now (at
+  logout) has the talk kept (`deferSummary`, at most
+  `maxDeferredSummaries` per owner, the oldest kept as its best note) and
+  summed up through their relay once they are back
+  (`startDueSummaries`, beside `startDueReflection`), never on the
+  server's key.
 - **reflect.go**: the private end-of-session reflection (summary,
   conclusions, facts), run in the background after logout
   (`detachReflection`). An owner whose own key was live this session

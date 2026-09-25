@@ -897,3 +897,71 @@ func TestAHoldAcrossMidnightRefundsNothing(t *testing.T) {
 		t.Fatalf("a same-day hold settles at what was used: %d", m.ownerTokens[5])
 	}
 }
+
+// An owner whose own key was live this session pays for their own
+// companion's summaries: with their relay down (at logout their browser
+// is closing) a finished talk waits for it, as the reflection does, and is
+// never moved to the server's key.
+func TestRelayOwnersSummaryWaitsForTheirRelay(t *testing.T) {
+	srv, hits := countingServer(t)
+	m, f := relayCallModule(t, true)
+	m.cfg.BaseURL, m.cfg.APIKey, m.cfg.APIKeyEnv = srv.URL, `k`, `AICOMPANION_TEST_KEY_NEVER_SET`
+	m.cfg.Model, m.cfg.FastModel = `m`, `m`
+	m.cfg.ConversationSummaries = true
+	m.cfg.DailyTokensPerCompanion, m.cfg.DailyTokenBudget = 100000, 1000000
+	m.cfg.FastTimeoutSeconds, m.cfg.FastMaxCompletionTokens = 5, 200
+	profiles, _ := loadProfiles()
+	p := profiles[`mara`]
+	c := &controller{profile: p, mind: newMind(5, p), ownerUserId: 5, relaySeen: true}
+	m.minds = map[string]*Mind{mindIdentifier(5, c.mind.MobId): c.mind}
+	m.ctrls = map[int]*controller{5: c}
+	now := time.Now().Unix()
+	talk := func() {
+		c.convo = &conversation{RoomId: 7, Partner: `Corvin`, StartUnix: now, LastUnix: now, Exchanges: 5, OwnerSpoke: true,
+			Lines: []Line{{Speaker: `Corvin`, Kind: `said`, Text: `a`}, {Speaker: `Corvin`, Kind: `said`, Text: `b`}}}
+	}
+
+	m.relays.gone(5)
+	if m.route(5).kind != routeServer {
+		t.Fatal("fixture: with the relay down the server's key would answer")
+	}
+	util.LockMud()
+	talk()
+	m.closeConversation(c, `they logged out`)
+	util.UnlockMud()
+	if hits.Load() != 0 {
+		t.Fatalf("nothing goes to the server's key: %d requests", hits.Load())
+	}
+	if len(m.deferredSummaries[5]) != 1 {
+		t.Fatalf("the talk waits for her owner's relay: %d kept", len(m.deferredSummaries[5]))
+	}
+	if len(c.mind.Memories) != 0 {
+		t.Fatalf("and the talk is not reduced to its best note: %+v", c.mind.Memories)
+	}
+
+	// Back, relay up: the talk is summed up through it.
+	m.relays.ready(5, `player-model`)
+	util.LockMud()
+	m.startDueSummaries(5)
+	util.UnlockMud()
+	req := f.next(t)
+	m.relayCalls.deliver(5, relayResponse{Id: req.Id, Status: 200,
+		Body: `{"choices":[{"finish_reason":"stop","message":{"content":"{\"summary\":\"We talked.\",\"importance\":4,\"emotion\":\"neutral\",\"facts\":[]}"}}]}`})
+	waitSettled(t, m)
+	if hits.Load() != 0 {
+		t.Fatalf("still nothing on the server's key: %d", hits.Load())
+	}
+
+	// Control: an owner who never used their own key is summed up on the
+	// server's key at once.
+	c.relaySeen = false
+	m.relays.gone(5)
+	util.LockMud()
+	talk()
+	m.closeConversation(c, `they logged out`)
+	util.UnlockMud()
+	waitSettled(t, m)
+	if hits.Load() != 1 {
+		t.Fatalf("control: the server's key sums up everyone else's talk: %d", hits.Load())
+	}
+}
