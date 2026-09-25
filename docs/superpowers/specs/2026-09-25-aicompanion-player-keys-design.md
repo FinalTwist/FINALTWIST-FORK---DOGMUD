@@ -149,21 +149,52 @@ wants a fork (finaltwist's, or anyone's) to be able to pay server-side. So:
 - Audit both `innerHTML` assignments; replace with DOM building or prove the
   inputs are escaped, with a `tools/jstest` test for each.
 
+### Clarifications from planning (2026-09-25, read from source)
+
+- **Budgets and breaker.** `DailyTokenBudget`, `DailyTokensPerCompanion` and
+  the circuit breaker (`models.go:174-195`, global `breakerUntil`) exist to
+  bound the SERVER key's bill. Tier 2 calls do not reserve against the server
+  or per-companion budgets (the player pays); stranger pacing and
+  `StrangerDailyTokens` still apply as abuse limits on the owner's key.
+  Relay failures count against a per-owner breaker, never the global one, so
+  one player's broken provider cannot stop everyone's companions.
+- **Model.** A relay owner's model (from `Companion.Relay.Ready`) is used for
+  every tier (fast, main, deep); `settingsFor`'s auto-pick from the server's
+  model list applies only to tier 3. Reasoning effort is not sent in tier 2.
+- **Game page CSP.** `webclient-pure.html` is a Go template with large inline
+  scripts (`<script>` blocks at lines 381 and 3162, among others), so its CSP
+  must allow `'unsafe-inline'` scripts. It still sets `frame-src` to the
+  relay origin, `object-src 'none'` and `base-uri 'self'`. The key's
+  protection is the separate relay origin (D7), not the game page's CSP.
+- **Serving the relay.** The relay page and its script are embedded in the
+  module (`//go:embed`). The engine's `serveTemplate` asks a new nil-safe
+  seam in `internal/companionai` whether the module claims the request (Host
+  equals the `RelayOrigin` host) before anything else; with the module off,
+  nothing is claimed and the relay paths 404.
+- **Spike result (done 2026-09-25).** A CORS preflight from origin
+  `https://keys.example.org` with `authorization,content-type` headers:
+  `api.openai.com/v1/chat/completions` answers 200 with
+  `Access-Control-Allow-Origin` echoing the origin;
+  `openrouter.ai/api/v1/chat/completions` answers 204 with `*`. Both are
+  usable from the relay. Ollama needs `OLLAMA_ORIGINS` set to the relay
+  origin; the setup panel says so.
+
 ## Error handling
 
 Every failure in tier 2 degrades to tier 1 for that turn and refunds the
 reservation: no relay, locked relay, timeout, provider error status,
 malformed JSON, no tool-call support, a dropped key-shaped reply. Repeated
-failures use the existing circuit breaker. A player sees at most one plain
+failures open a per-owner breaker (tier 2) or the global one (tier 3).
+A player sees at most one plain
 notice per session ("Mara falls back on her own few words: your key's
 provider did not answer"), never raw errors.
 
 ## Testing
 
-- **Spike first:** confirm from a browser page that OpenAI and OpenRouter
-  accept a cross-origin `POST /chat/completions` with a bearer key, and what
-  Ollama needs (`OLLAMA_ORIGINS`). If a provider refuses, it is documented as
-  unsupported rather than proxied (proxying would put the key on our server).
+- **Spike (preflight done, see Clarifications):** the final boot check makes
+  one real browser call through the relay to OpenRouter or OpenAI with a
+  capped key. A provider that refuses browser calls is documented as
+  unsupported, never proxied (proxying would put the key on our server).
 - Go: a relay request payload never contains the key, an endpoint or any
   header; replies are matched by id and owner only; key-shaped replies are
   dropped; timeout falls back and refunds; muted owner silences speech;
