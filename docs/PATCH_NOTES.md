@@ -2,6 +2,8 @@
 
 ## 2026-09-25: Your companion, on your own key
 
+This arrives when talking companions are switched on on this server.
+
 On a server where talking companions are switched on, you can now let your
 companion think with your OWN model key instead of the server's. Open the
 web client, log in, and press "Companion key". You give the address of the
