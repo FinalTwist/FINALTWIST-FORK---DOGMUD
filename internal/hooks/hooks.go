@@ -38,6 +38,7 @@ func RegisterListeners() {
 	events.RegisterListener(events.RoomChange{}, MobRoomChangeFactsAutoWithdraw)
 	events.RegisterListener(events.RoomChange{}, MobRoomChangeShadowFollow)
 	events.RegisterListener(events.RoomChange{}, PresencePlayerEntry)
+	events.RegisterListener(events.RoomChange{}, LightNoticeOnMove)
 
 	// NewRound Listeners
 	events.RegisterListener(events.NewRound{}, InactivePlayers)
@@ -62,6 +63,7 @@ func RegisterListeners() {
 	events.RegisterListener(events.NewRound{}, BloomTick) // Bloom drug: Crash, Withdrawal, decay
 	events.RegisterListener(events.NewRound{}, BroadcastTips)
 	events.RegisterListener(events.NewRound{}, IdleMobs)
+	events.RegisterListener(events.NewRound{}, LightNoticeAttention)
 	events.RegisterListener(events.MobIdle{}, HandleIdleMobs)
 	events.RegisterListener(events.NewRound{}, FerryTick)     // Ferry vessels: schedule reconcile
 	events.RegisterListener(events.NewRound{}, WarehouseTick) // Warehouse pools: accrual + dirty save
@@ -82,10 +84,12 @@ func RegisterListeners() {
 	events.RegisterListener(events.Quest{}, HandleQuestUpdate)
 	// Spawn events
 	events.RegisterListener(events.PlayerSpawn{}, HandleJoin)
+	events.RegisterListener(events.PlayerSpawn{}, LightNoticeOnSpawn)
 	// Player despawn: clear tracking/shadow state pointing at the leaving player
 	events.RegisterListener(events.PlayerDespawn{}, PlayerDespawnTrackingCleanup)
 	// Player despawn: tear down ephemeral jail cell + preserve sentence record
 	events.RegisterListener(events.PlayerDespawn{}, PlayerDespawnJailCleanup)
+	events.RegisterListener(events.PlayerDespawn{}, LightNoticeOnDespawn)
 	events.RegisterListener(events.PlayerDespawn{}, HandleLeave, events.Last) // This is a final listener, has to happen last
 
 	// Day/Night cycle

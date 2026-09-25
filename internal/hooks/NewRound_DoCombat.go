@@ -12,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
+	"github.com/GoMudEngine/GoMud/internal/lightnotice"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -156,6 +157,10 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 				continue
 			}
 		}
+
+		// A fighting player hears about a light crossing each round, in both
+		// directions, before this round's combat text.
+		lightnotice.Check(user, lightnotice.TriggerCombatRound)
 
 		user.Character.CancelCombatConditions()
 
