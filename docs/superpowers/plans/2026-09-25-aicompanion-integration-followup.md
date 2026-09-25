@@ -1306,3 +1306,105 @@ Expected: gofmt empty; `go test ./...` all ok (the full suite; `internal/combat`
 - [ ] **Step 9: Boot check, module OFF and ON.** Use a NEW detached worktree at `C:/tmp/dogmud-pr161-boot` (NOT `C:/tmp/dogmud-boot-check`). Copy `_datafiles/config.yaml` in. Pick free ports (check with PowerShell `Get-NetTCPConnection -State Listen` first) and override them with a `CONFIG_PATH` overlay as `reference_boot_test_in_isolated_worktree` describes. Build to `boot-check.exe`, run with a 180s timeout, record the PID you started, and stop ONLY that PID. Run 1: module off. Run 2: `Modules.aicompanion.Enabled: true`, `PlayerKeys: true`, `RelayOrigin: https://keys.localtest.me` (or any host other than WebDomain), no server key. For each: zero `^panic:|goroutine [0-9]+ \[running\]|runtime error`, one `Server Ready`, no `no listener for event` lines. In run 2 also `curl -H "Host: keys.localtest.me" http://127.0.0.1:<webport>/companion-relay.html` returns the page with the CSP header, and the same path with the normal host returns 404. Remove the worktree after (PowerShell `Remove-Item -Recurse -Force`, then `git worktree prune`).
 - [ ] **Step 10: Owner-assisted browser check (NOT a subagent step).** List for the owner: open the web client locally with the relay origin reachable, enter a capped OpenRouter or OpenAI key, confirm a companion answers, confirm the Network tab shows the key only on the provider request and never on the websocket. The main session runs this with the owner.
 - [ ] **Step 11: PR.** Push `fix/aicompanion-integration` and open the PR with `gh pr create --repo pruuk/DOGMud --base master --head fix/aicompanion-integration`; read the printed URL and confirm it says `pruuk/DOGMud`. The body ends with the Claude Code line. Watch checks; the lint job may invert on size (check the file count and line count first; the log signals are in `dogmud-shipping`). The main session does this step, not a subagent.
+
+---
+
+### Task 14: Fixes from the four blind adversarial reviews (2026-09-25)
+
+Four read-only reviews (browser key theft, server trust boundary, cost and
+abuse, regressions vs master) ran against `e90762f50`. The main session
+spot-verified the top findings against source (gold gift attributed to the
+owner `autonomy.go:496-522`; relay usage charged to strangers unbounded
+`tiers.go:216`; `addLine` uncapped `mind.go:334`; `companion-unstick` no
+cooldown `commands.go:450-460`). Each group below re-verifies every item
+against source before fixing; a finding that does not hold is reported, not
+"fixed". Every fix gets a test proven red. Groups run sequentially.
+
+**Owner-default decision (main session, 2026-09-25):** on the RELAY route,
+strangers cannot prompt calls unless the owner has turned it on
+(`companion-ai strangers on`); the bond record keeps the explicit choice and
+an absent value means OFF for relay, ON for the server key. Setup text and
+help say so.
+
+#### 14A: browser and web (relay.js, relay.html, glue, web.go, gmcp)
+1. Key entry moves to a top-level popup on the relay origin
+   (`window.open(relay + '/companion-relay.html#setup')`), opened by the
+   glue from the button's click; the framed relay keeps relaying and unlock
+   only if unlock can also move to the popup, else unlock moves too. The
+   popup and the frame share the relay origin's localStorage; the popup tells
+   the frame (BroadcastChannel on the relay origin, or storage event) that
+   settings changed; the in-memory key for a non-remembered session must
+   reach the frame without passing through the game page. The frame no
+   longer shows any key input. Popup `window.opener` is nulled after use.
+2. Relay-side request cap: at most 2 in flight and at most 30 per minute;
+   excess returns status 0 at once without fetching.
+3. No password-manager save: key and passphrase inputs outside any `<form>`,
+   buttons wired by click, key input `type="text"` with a masking style and
+   `autocomplete="off"`, passphrase likewise.
+4. Relay host claimed outermost: wrap the server's handler so every request
+   whose Host is the relay host goes to `ServeRelayPage` before the mux; test
+   `/ws`, `/admin/`, `/build`, `/favicon.ico` on the relay host return 404.
+5. Redact `Companion.Relay.*` payloads in `modules/gmcp/gmcp.go:279`'s debug
+   line.
+6. `relaySend` returns false for a zombie connection
+   (`users.IsZombieConnection` or the real equivalent).
+7. Cosmetic: `webclient-pure.html:278` missing space before `onclick`.
+
+#### 14B: money (modules/aicompanion, internal/usercommands/give.go)
+1. `companion-unstick`: a cooldown (60 s); a cancelled call whose request was
+   already sent settles at the prompt estimate, not 0; a cancel never calls
+   `breakerResult`.
+2. Gold given to her: attribute to the real giver (engine event carrying the
+   giver's UserId from `give.go`, or equivalent); a stranger's gold goes
+   through the stranger path (pacing, allowance, strangers toggle).
+3. Cap stored text at 300 runes in `addLine` and `noteConversation` (and any
+   memory/fact writer taking player text).
+4. A call that was sent but returned no usage (timeout, dropped connection)
+   settles at the prompt estimate, not 0.
+5. Fight plan calls in a fight a non-owner player started are billed to that
+   player as a stranger.
+6. Per-owner daily cap on stranger-prompted tokens (new config
+   `StrangerTokensPerOwner`, default 100000) on both routes; the relay
+   default above.
+7. Relay-reported usage is never trusted for accounting: settle relay
+   stranger calls at the reservation (or min(used, reserved)); clamp before
+   `TokensLifetime`/stats.
+8. Cap tool calls per reply at 4 in `decodeChatResponse`.
+9. Relay error replies carry no body snippet into errors or logs.
+10. Recover handlers in `reflect.go`, `conversation.go`, `corememory.go`
+    settle their reservation.
+11. `conversation.payer()` bills the stranger who said the most, not the
+    last.
+Deferred with reason (report, do not build): tier-weighted budgets (a
+balance question for the owner); crash losing up to one autosave of spend;
+midnight clamp; half-open breaker single probe (write it up if it is small,
+else defer).
+
+#### 14C: correctness and privacy (modules/aicompanion, internal/actions, internal/hooks, internal/usercommands)
+1. Key-shaped guard: tighten (`bearer\s+(sk-|[A-Za-z0-9._-]{20,})`, keep
+   `sk-` and `authorization\s*:\s*bearer`), test "standard-bearer carrying
+   the banner" passes; `errRelayKeyShaped` does not count on the breaker.
+2. Pre-consent writes of other players' names and deeds (gift, attacked,
+   healed, witnessed, calledBack, interruptErrand, watchParty, sync): gate on
+   consent like speech.
+3. Relay prompts: `look_closer` on a player and scene lines about other
+   players omit gear and descriptions on the relay route (names and what
+   they did stay).
+4. Area harm: at resolution, a bonded companion's area harm spell skips
+   targets its owner could not harm (engine seam or a check in
+   `resolveMobSpell`'s area branch keyed on `companionai.IsBondedCompanion`).
+5. `RefusalExplained: true` on both PvP refusals in `internal/actions/cast.go`.
+6. `mayStrikeCurrent`: allow a special move at a foe already fighting her,
+   as `StageMeleeTarget` allows an owner in combat.
+7. Dismiss: refuse only when this bonded companion is actually driven
+   (profile loaded), not whenever the module is on; a bonded companion
+   dismissed while the module was off can meet its owner again when it is
+   switched back on (check `considerMeeting`'s `Met` early return).
+8. Owner-facing docs: `settings.md` states the XSS boundary plainly (a script
+   on the game page can spend the key through the relay within its caps but
+   cannot read it) and recommends HSTS in the proxy.
+
+Gates after each group: gofmt, `go build ./...`, package tests, the root
+package, every `tools/jstest` test, lint new-from-merge-base 0 issues. After
+14C: full `go test ./...` and a repeat of Task 13 Step 9's boot (new
+worktree `C:/tmp/dogmud-pr161-boot`, own ports, own PID).
