@@ -16,7 +16,7 @@ description: >
   loops of rope that someone has made fast with more confidence
   than artistry. This is where you arrive if you came by water.
   The city begins here, not gently.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 79
