@@ -381,8 +381,13 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	if len(c.pending) == 0 {
 		return
 	}
-	stims := c.pending
-	c.pending = nil
+	// One prompter per decision: her owner's words never share a call with
+	// a passer-by's, which wait for the next one (see nextBatch).
+	stims, rest := nextBatch(c.pending, c.ownerUserId)
+	c.pending = rest
+	// Whoever prompted this pays for it: a passer-by from their own daily
+	// allowance, never the owner's.
+	asker := strangerBehind(stims, c.ownerUserId)
 
 	mob := mobs.GetInstance(c.instanceId)
 	owner := users.GetByUserId(c.ownerUserId)
@@ -396,7 +401,15 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		m.fallback(c, mob, stims)
 		return
 	}
-	if !m.modelReady(c.ownerUserId) {
+	// A stranger's question is not refused because her owner's allowance is
+	// spent (it is not theirs to spend); the server's budget and the
+	// breaker still apply, and the stranger's own allowance is weighed when
+	// the call is reserved.
+	ownerCheck := c.ownerUserId
+	if asker > 0 {
+		ownerCheck = 0
+	}
+	if !m.modelReady(ownerCheck) {
 		m.fallback(c, mob, stims)
 		return
 	}
@@ -485,7 +498,11 @@ func (m *AICompanionModule) dispatch(c *controller) {
 
 	tier := tierFor(stims)
 	toolRounds := 0
-	if tier == tierMain {
+	if tier == tierMain && asker == 0 {
+		// A passer-by gets her answer without her stopping to consult the
+		// game first: those rounds are what make a call's worst case
+		// several times its prompt, and held against StrangerDailyTokens
+		// they could leave no room for a single question.
 		toolRounds = m.cfg.ToolRounds
 	}
 	ts := m.settingsFor(tier, toolRounds > 0)
@@ -518,7 +535,6 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	moderationModel := m.cfg.ModerationModel
 	// Words a passer-by prompted are held to the stricter rule: if the
 	// check cannot be made, they are not said at all.
-	asker := strangerBehind(stims, c.ownerUserId)
 	strictModeration := asker > 0
 
 	c.seq++
@@ -531,19 +547,25 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	// let two calls slip past a nearly spent budget together.
 	// Whoever prompted this pays for it in their own daily allowance: a
 	// passer-by cannot spend an owner's companion into silence (asker,
-	// above).
+	// above). The settlement below goes back to the same payer.
 	reserved := worstCaseTokens(estimateTokens(messages)+requestOverhead(call), ts.MaxTokens, toolRounds, call.Retry)
-	if !m.tryReserveTokens(ownerId, reserved) {
+	if !m.tryReserveFor(ownerId, asker, reserved) {
 		// Out of allowance, not out of sorts: without this line a spent
 		// budget looks exactly like a broken companion, because she carries
-		// on answering with her authored lines and nothing is logged.
-		c.budgetSpent = true
-		m.logBudgetRefusal(ownerId, reserved)
+		// on answering with her authored lines and nothing is logged. A
+		// passer-by's spent allowance is theirs, not her owner's, so it does
+		// not mark her as spent.
+		if asker == 0 {
+			c.budgetSpent = true
+		}
+		m.logBudgetRefusal(ownerId, asker, reserved)
 		c.seq++ // the decision is abandoned, not merely delayed
 		m.fallback(c, mob, stims)
 		return
 	}
-	c.budgetSpent = false
+	if asker == 0 {
+		c.budgetSpent = false
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	c.cancelCall = cancel
 	call.Ctx = ctx
@@ -571,7 +593,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 			if !settled {
 				util.LockMud()
 				defer util.UnlockMud()
-				m.settleTokens(ownerId, reserved, 0)
+				m.settleFor(ownerId, asker, reserved, 0)
 				if c := m.ctrls[ownerId]; c != nil && c.seq == seq {
 					c.inFlight = false
 					c.cancelCall = nil
@@ -605,10 +627,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 			defer util.UnlockMud()
 			defer func() {
 				settled = true
-				m.settleTokens(ownerId, reserved, res.Tokens)
-				if asker > 0 {
-					m.chargeStranger(asker, res.Tokens)
-				}
+				m.settleFor(ownerId, asker, reserved, res.Tokens)
 				if c := m.ctrls[ownerId]; c != nil && c.seq == seq {
 					c.inFlight = false
 					c.cancelCall = nil
@@ -1279,28 +1298,70 @@ func strangerBehind(stims []stimulus, ownerUserId int) int {
 	return 0
 }
 
-// chargeStranger counts what a passer-by's question cost, against their own
-// daily allowance rather than the owner's.
-func (m *AICompanionModule) chargeStranger(userId int, tokens int) {
-	if userId <= 0 || tokens <= 0 {
-		return
+// promptedBy is who a stimulus puts a question to her for: her owner
+// speaking to her, a passer-by (their user id) for anything they did that
+// was aimed at her, or 0 for the world and her own business, which can go
+// with anyone's.
+func promptedBy(s stimulus, ownerUserId int) int {
+	// Arriving on an errand her owner asked for is the owner's say-so
+	// carried to the place (ownerAskedNow), so it goes with the owner.
+	if s.Kind == `arrived` && s.Authorized {
+		return ownerUserId
 	}
-	m.rollDay()
-	if m.strangerTokens == nil {
-		m.strangerTokens = map[int]int{}
+	if s.FromOwner {
+		if s.Kind == `heard` || s.Kind == `asked` {
+			return ownerUserId
+		}
+		return 0
 	}
-	m.strangerTokens[userId] += tokens
+	if s.AskerUserId > 0 && s.AskerUserId != ownerUserId {
+		return s.AskerUserId
+	}
+	return 0
+}
+
+// nextBatch takes the next decision's stimuli from the queue: everything
+// that belongs to the first person who put something to her, with the
+// world's stimuli, and leaves anyone else's for the decision after. So her
+// owner's words and a passer-by's never share a call. Sharing one let the
+// stranger ride on the owner's say-so into the owner-only verbs, and put
+// the whole call on whichever of them strangerBehind happened to find.
+// Nobody's words are dropped, only put back in the order they came.
+func nextBatch(pending []stimulus, ownerUserId int) (batch []stimulus, rest []stimulus) {
+	first := 0
+	for _, s := range pending {
+		if first = promptedBy(s, ownerUserId); first != 0 {
+			break
+		}
+	}
+	if first == 0 {
+		return pending, nil
+	}
+	for _, s := range pending {
+		if p := promptedBy(s, ownerUserId); p == 0 || p == first {
+			batch = append(batch, s)
+		} else {
+			rest = append(rest, s)
+		}
+	}
+	return batch, rest
 }
 
 // logBudgetRefusal notes a decision the budgets would not pay for, at most
 // once a minute per server, so a spent allowance is visible in the log
 // rather than silently turning a companion into a set of stock phrases.
-func (m *AICompanionModule) logBudgetRefusal(ownerId int, wanted int) {
+func (m *AICompanionModule) logBudgetRefusal(ownerId int, askerId int, wanted int) {
 	now := time.Now()
 	if now.Sub(m.lastBudgetLog) < time.Minute {
 		return
 	}
 	m.lastBudgetLog = now
+	if askerId > 0 {
+		mudlog.Warn(`aicompanion`, `action`, `budgetRefused`, `owner`, ownerId, `asker`, askerId, `wanted`, wanted,
+			`askerSpentToday`, m.strangerTokens[askerId], `askerCap`, m.cfg.StrangerDailyTokens,
+			`serverSpentToday`, m.tokensToday, `serverCap`, m.cfg.DailyTokenBudget)
+		return
+	}
 	mudlog.Warn(`aicompanion`, `action`, `budgetRefused`, `owner`, ownerId, `wanted`, wanted,
 		`ownerSpentToday`, m.ownerTokens[ownerId], `ownerCap`, m.cfg.DailyTokensPerCompanion,
 		`serverSpentToday`, m.tokensToday, `serverCap`, m.cfg.DailyTokenBudget)

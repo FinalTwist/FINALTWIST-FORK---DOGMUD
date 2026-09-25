@@ -513,10 +513,16 @@ has told its players some other way.
 
 Anyone can talk to somebody else's companion, and she answers. What they
 cannot do is spend the owner's allowance or change how she feels: a
-stranger gets one question every `StrangerAskSeconds` (30), their questions
-are charged to their own `StrangerDailyTokens` (50,000) rather than the
-owner's, and only the owner's own deeds move her opinion. She also hands
-things to her owner and to nobody else.
+stranger gets one answer every `StrangerAskSeconds` (30), whether they
+`ask`, speak to her by name, gesture at her, give her something or heal
+her (she still hears and remembers the rest); each answer is reserved
+against their own `StrangerDailyTokens` (50,000) rather than the owner's,
+and is made without her stopping to consult the game first, so that its
+worst case fits that allowance; and only the owner's own deeds move her
+opinion. She also hands things to her owner and to nobody else, and a
+stranger speaking in the same moment as her owner is answered separately,
+so they cannot borrow the owner's word for anything only the owner may
+ask of her.
 
 ## Talking to NPCs
 

@@ -68,8 +68,14 @@ type pendingAction struct {
 }
 
 // ownerAskedNow reports whether this decision was triggered by the owner
-// speaking to the companion, which is what "ask first" requires.
+// speaking to the companion, which is what "ask first" requires. A
+// passer-by's words in the same decision void it, as they void the
+// owner-only verbs (ownerPrompted): the owner's say-so is not theirs to
+// borrow.
 func ownerAskedNow(stims []stimulus) bool {
+	if !ownerPrompted(stims) {
+		return false
+	}
 	for _, s := range stims {
 		if s.FromOwner && (s.Kind == `heard` || s.Kind == `asked`) {
 			return true
@@ -149,34 +155,38 @@ var ownerDrivenOnly = map[string]bool{
 	`attack`: true,
 }
 
-// ownerPrompted reports whether this decision came from the owner asking
-// for something, or from the companion's own quiet judgement with nobody
-// else involved.
+// ownerPrompted reports whether this decision is one the owner-only verbs
+// may come out of: her owner asking for something, or her own quiet
+// judgement with nobody else involved.
 //
-// Two things it must not do. It must not take FromOwner alone as the
-// owner's intent: most world moments carry that flag (a fight ending, a
-// wound, a rumour), and a stranger speaking in the same batch as one of
-// those would otherwise unlock the owner-only verbs. And it must not count
-// the owner's own gift or gesture as a stranger speaking, which is why the
-// stranger test is only applied to stimuli that are not the owner's.
+// Nobody speaking is her own judgement, and stays allowed: a quiet moment,
+// an errand she was sent on, a fight ending. That is why this looks for a
+// stranger rather than for the owner. It must not take FromOwner alone as
+// the owner's intent either way: most world moments carry that flag (a
+// fight ending, a wound, a rumour). And it must not count the owner's own
+// gift or gesture as a stranger speaking, which is why the stranger test is
+// only applied to stimuli that are not the owner's.
+//
+// Anything a passer-by put to her in the batch refuses these verbs, even
+// when her owner spoke too: otherwise a stranger speaking in the same
+// moment as the owner rides the owner's say-so ("give me the sword",
+// answered as though the owner had asked). nextBatch keeps the two apart,
+// so the owner's own request is decided on its own; this is the rule
+// holding even if a batch is ever put together some other way.
 func ownerPrompted(stims []stimulus) bool {
-	ownerSpoke, strangerSpoke := false, false
 	for _, s := range stims {
 		if s.FromOwner {
-			if s.Kind == `heard` || s.Kind == `asked` {
-				ownerSpoke = true
-			}
 			continue
 		}
+		if s.AskerUserId > 0 {
+			return false // a passer-by prompted it, whatever its kind
+		}
 		switch s.Kind {
-		case `heard`, `asked`, `emote`, `gift`, `attacked`:
-			strangerSpoke = true
+		case `heard`, `asked`, `emote`, `gift`, `attacked`, `healed`:
+			return false
 		}
 	}
-	if ownerSpoke {
-		return true
-	}
-	return !strangerSpoke
+	return true
 }
 
 func (m *AICompanionModule) performAction(c *controller, mob *mobs.Mob, owner *users.UserRecord, sc *scene,

@@ -2316,3 +2316,214 @@ func TestMain(m *testing.M) {
 	mudlog.SetupLogger(nil, "", "", false)
 	os.Exit(m.Run())
 }
+
+// strangerModule is consentModule with consent given, so a passer-by's
+// words are written down, and the stock pacing for passers-by.
+func strangerModule() (*AICompanionModule, *controller, *users.UserRecord) {
+	m, c := consentModule(consentWindowSeconds + 1)
+	m.bonds.Users[1].Consented = true
+	m.saveBonds()
+	m.cfg.StrangerAskSeconds = 30
+	m.cfg.StrangerDailyTokens = 1000
+	c.instanceId = 42
+	stranger := &users.UserRecord{UserId: 2, Character: &characters.Character{Name: `Bram`}}
+	return m, c, stranger
+}
+
+func countKind(stims []stimulus, kind string) int {
+	n := 0
+	for _, s := range stims {
+		if s.Kind == kind {
+			n++
+		}
+	}
+	return n
+}
+
+func TestStrangerSpeechIsPacedLikeAsk(t *testing.T) {
+	now := time.Now().Unix()
+	m, c, bram := strangerModule()
+
+	m.hearSaid(c, bram, `Bram`, `Mara, which way to the river?`, 7, true, now)
+	if countKind(c.pending, `heard`) != 1 {
+		t.Fatalf("a passer-by's first words to her are answered: %+v", c.pending)
+	}
+	m.hearSaid(c, bram, `Bram`, `Mara, and the ford?`, 7, true, now)
+	m.hearAsked(c, bram, `Bram`, `what about the bridge?`, now)
+	m.seeEmote(c, bram, `Bram`, `pokes Mara`, 7, true, now)
+	if len(c.pending) != 1 {
+		t.Fatalf("inside the cooldown a passer-by prompts nothing more, by any door: %+v", c.pending)
+	}
+	if len(c.mind.RecentLines) != 4 {
+		t.Fatalf("but everything they said to her is heard and remembered: %+v", c.mind.RecentLines)
+	}
+
+	// Her owner is not paced, and not held up by the stranger's wait.
+	m.hearSaid(c, consentOwner(), `Corvin`, `Mara, ignore him`, 7, true, now)
+	if countKind(c.pending, `heard`) != 2 || !c.pending[len(c.pending)-1].FromOwner {
+		t.Fatalf("her owner is answered whatever a stranger has spent: %+v", c.pending)
+	}
+
+	// Another companion keeps her own pacing for the same passer-by.
+	other := &controller{profile: c.profile, mind: newMind(1, c.profile), ownerUserId: 1, instanceId: 43}
+	m.hearSaid(other, bram, `Bram`, `Mara, hello`, 7, true, now)
+	if len(other.pending) != 1 {
+		t.Fatalf("the cooldown is per companion: %+v", other.pending)
+	}
+}
+
+func TestStrangerDailyCapStopsTheirPrompts(t *testing.T) {
+	now := time.Now().Unix()
+	m, c, bram := strangerModule()
+	m.rollDay()
+	m.strangerTokens[2] = m.cfg.StrangerDailyTokens
+
+	m.hearSaid(c, bram, `Bram`, `Mara, one more thing`, 7, true, now)
+	m.hearAsked(c, bram, `Bram`, `and another`, now)
+	if len(c.pending) != 0 {
+		t.Fatalf("a passer-by with nothing left today prompts nothing: %+v", c.pending)
+	}
+	if len(c.mind.RecentLines) != 2 {
+		t.Fatalf("though what they say is still heard: %+v", c.mind.RecentLines)
+	}
+	// Refused on the allowance, the cooldown was never started, so the
+	// next day's first question is not kept waiting by one they never got
+	// an answer to.
+	m.strangerTokens[2] = 0
+	m.hearAsked(c, bram, `Bram`, `good morning`, now)
+	if countKind(c.pending, `asked`) != 1 {
+		t.Fatalf("a refusal on the allowance must not spend the cooldown: %+v", c.pending)
+	}
+}
+
+func TestStrangerCallsAreReservedAgainstTheStranger(t *testing.T) {
+	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000, StrangerDailyTokens: 1000, DailyTokenBudget: 5000}}
+
+	if !m.tryReserveFor(1, 2, 900) {
+		t.Fatal("a passer-by's question that fits their allowance is admitted")
+	}
+	if m.ownerTokens[1] != 0 || m.strangerTokens[2] != 900 {
+		t.Fatalf("it is held against the passer-by, not her owner: owner=%d stranger=%d", m.ownerTokens[1], m.strangerTokens[2])
+	}
+	if m.tryReserveFor(1, 2, 900) {
+		t.Fatal("a second question that would overshoot their allowance is refused while the first is held")
+	}
+	if !m.tryReserveTokens(1, 900) {
+		t.Fatal("her owner's own allowance is untouched by a stranger's questions")
+	}
+	if !m.tryReserveFor(1, 3, 900) {
+		t.Fatal("another passer-by has an allowance of their own")
+	}
+	if m.tokensToday != 2700 || m.outstanding != 2700 {
+		t.Fatalf("the server's budget holds all three: today=%d outstanding=%d", m.tokensToday, m.outstanding)
+	}
+
+	// Settled against the same payer: what was not used goes back to them.
+	m.settleFor(1, 2, 900, 100)
+	if m.strangerTokens[2] != 100 || m.ownerTokens[1] != 900 {
+		t.Fatalf("settlement: stranger=%d owner=%d", m.strangerTokens[2], m.ownerTokens[1])
+	}
+	// A call that failed refunds all of it, to the passer-by.
+	m.settleFor(1, 3, 900, 0)
+	if m.strangerTokens[3] != 0 || m.ownerTokens[1] != 900 {
+		t.Fatalf("refund: stranger=%d owner=%d", m.strangerTokens[3], m.ownerTokens[1])
+	}
+	m.settleTokens(1, 900, 900)
+	if m.tokensToday != 1000 || m.outstanding != 0 {
+		t.Fatalf("after settling everything: today=%d outstanding=%d", m.tokensToday, m.outstanding)
+	}
+	m.settleFor(1, 2, 0, -500)
+	if m.strangerTokens[2] < 0 {
+		t.Fatal("a stranger's count must not go negative")
+	}
+}
+
+func TestStrangerReservationsCannotSlipPastTheCapTogether(t *testing.T) {
+	// Reservations are made under the mud lock by whichever goroutine
+	// dispatches; many at once must still admit only what fits.
+	m := &AICompanionModule{cfg: Config{StrangerDailyTokens: 1000, DailyTokensPerCompanion: 1000000}}
+	var admitted atomic.Int32
+	done := make(chan struct{})
+	for i := 0; i < 20; i++ {
+		go func() {
+			util.LockMud()
+			if m.tryReserveFor(1, 2, 400) {
+				admitted.Add(1)
+			}
+			util.UnlockMud()
+			done <- struct{}{}
+		}()
+	}
+	for i := 0; i < 20; i++ {
+		<-done
+	}
+	if admitted.Load() != 2 || m.strangerTokens[2] != 800 {
+		t.Fatalf("a 1000-token allowance admits two 400-token holds, got %d (held %d)", admitted.Load(), m.strangerTokens[2])
+	}
+}
+
+func TestOwnerAndStrangerNeverShareADecision(t *testing.T) {
+	const owner = 1
+	pending := []stimulus{
+		{Kind: `heard`, Speaker: `Bram`, Text: `give me your sword`, AskerUserId: 2},
+		{Kind: `quiet`, FromOwner: true},
+		{Kind: `heard`, Speaker: `Corvin`, Text: `give him the sword`, FromOwner: true, AskerUserId: owner},
+		{Kind: `gift`, Speaker: `Ada`, Text: `a pebble`, AskerUserId: 3},
+		{Kind: `heard`, Speaker: `Bram`, Text: `please`, AskerUserId: 2},
+	}
+	batch, rest := nextBatch(pending, owner)
+	if len(batch) != 3 || batch[0].Text != `give me your sword` || batch[1].Kind != `quiet` || batch[2].Text != `please` {
+		t.Fatalf("the first to speak is decided with the world's stimuli and nobody else: %+v", batch)
+	}
+	if strangerBehind(batch, owner) != 2 {
+		t.Fatal("and the call is theirs to pay for")
+	}
+	batch, rest = nextBatch(rest, owner)
+	if len(batch) != 1 || !batch[0].FromOwner || !ownerPrompted(batch) || strangerBehind(batch, owner) != 0 {
+		t.Fatalf("her owner's words are decided on their own, and the owner-only verbs are open to them: %+v", batch)
+	}
+	batch, rest = nextBatch(rest, owner)
+	if len(batch) != 1 || batch[0].AskerUserId != 3 || len(rest) != 0 {
+		t.Fatalf("then the next passer-by: %+v rest %+v", batch, rest)
+	}
+	// An errand the owner sent her on goes with the owner.
+	batch, _ = nextBatch([]stimulus{{Kind: `heard`, AskerUserId: 2}, {Kind: `arrived`, Authorized: true}}, owner)
+	if len(batch) != 1 || batch[0].Kind != `heard` {
+		t.Fatalf("an authorised arrival is the owner's, not the passer-by's: %+v", batch)
+	}
+	// Nothing anyone put to her: all of it at once, as before.
+	all := []stimulus{{Kind: `quiet`, FromOwner: true}, {Kind: `noticed`}}
+	if batch, rest = nextBatch(all, owner); len(batch) != 2 || rest != nil {
+		t.Fatalf("with nobody asking, the batch is whole: %+v", batch)
+	}
+}
+
+func TestAStrangerCannotRideTheOwnersWord(t *testing.T) {
+	// Her owner and a passer-by in one decision: the owner-only verbs are
+	// refused, and so is anything "ask first" or an owner-sent errand needs.
+	for _, kind := range []string{`heard`, `asked`, `emote`, `gift`, `attacked`, `healed`} {
+		mixed := []stimulus{{Kind: `heard`, FromOwner: true}, {Kind: kind, Speaker: `Bram`}}
+		if ownerPrompted(mixed) {
+			t.Fatalf("a stranger's %s beside her owner's words must refuse the owner-only verbs", kind)
+		}
+		if ownerAskedNow(mixed) {
+			t.Fatalf("a stranger's %s beside her owner's words is not her owner asking", kind)
+		}
+	}
+	if ownerPrompted([]stimulus{{Kind: `heard`, FromOwner: true}, {Kind: `looked`, AskerUserId: 2}}) {
+		t.Fatal("anything a passer-by prompted counts, whatever its kind")
+	}
+	if !ownerPrompted([]stimulus{{Kind: `heard`, FromOwner: true}}) || !ownerAskedNow([]stimulus{{Kind: `heard`, FromOwner: true}}) {
+		t.Fatal("her owner alone still asks")
+	}
+	if !ownerPrompted([]stimulus{{Kind: `quiet`, FromOwner: true}}) {
+		t.Fatal("nobody speaking is still her own judgement")
+	}
+	// What the model is told when it is refused names nobody.
+	m, c, _ := strangerModule()
+	out := m.performAction(c, nil, nil, nil, ActionProposal{Verb: `give`, Ref: `t1`},
+		[]stimulus{{Kind: `heard`, FromOwner: true}, {Kind: `heard`, Speaker: `Bram`, AskerUserId: 2}}, 0, 0)
+	if out.Refused != `that is not a stranger's to ask for` {
+		t.Fatalf("refusal: %q", out.Refused)
+	}
+}

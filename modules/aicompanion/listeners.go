@@ -172,6 +172,11 @@ func (m *AICompanionModule) hearSaid(c *controller, u *users.UserRecord, speaker
 		if m.sneaking(c, u) {
 			return
 		}
+	} else if !m.strangerMayAsk(u, c) {
+		// A passer-by speaking to her by name is asking her something as
+		// surely as one who uses `ask`, and is paced the same way. Heard,
+		// and remembered above if that is allowed, but not answered.
+		return
 	}
 	c.push(stimulus{Kind: `heard`, Speaker: speaker, Text: text,
 		FromOwner: fromOwner, AskerUserId: speakerUserId})
@@ -219,12 +224,15 @@ func (m *AICompanionModule) seeEmote(c *controller, u *users.UserRecord, speaker
 		}
 	}
 	c.lastSocialUnix = now
-	if direct {
-		if fromOwner {
-			m.interruptErrand(c, speaker)
-		}
-		c.push(stimulus{Kind: `emote`, Speaker: speaker, Text: text, FromOwner: fromOwner})
+	if !direct {
+		return
 	}
+	if fromOwner {
+		m.interruptErrand(c, speaker)
+	} else if !m.strangerMayAsk(u, c) {
+		return // seen, but a gesture is paced like a question
+	}
+	c.push(stimulus{Kind: `emote`, Speaker: speaker, Text: text, FromOwner: fromOwner, AskerUserId: u.UserId})
 }
 
 // onGiftAccepted reacts to an item given to the companion. The engine has
@@ -277,7 +285,13 @@ func (m *AICompanionModule) onGiftAccepted(e events.Event) events.ListenerReturn
 	c.dirty = true
 	c.snapshotDue = true
 	c.lastSocialUnix = now
-	c.push(stimulus{Kind: `gift`, Speaker: giver, Text: itemName, FromOwner: fromOwner})
+	// A passer-by pressing things on her is paced like one asking her
+	// things: the gift is hers and remembered, but she need not stop and
+	// think about every one.
+	if !fromOwner && !m.strangerMayAsk(u, c) {
+		return events.Continue
+	}
+	c.push(stimulus{Kind: `gift`, Speaker: giver, Text: itemName, FromOwner: fromOwner, AskerUserId: u.UserId})
 	return events.Continue
 }
 
@@ -336,7 +350,9 @@ func (m *AICompanionModule) onPlayerAttackedMob(e events.Event) events.ListenerR
 	c.lastSocialUnix = now
 	// An attack pre-empts anything that was waiting.
 	c.pending = nil
-	c.push(stimulus{Kind: `attacked`, Speaker: attacker, FromOwner: fromOwner})
+	// A stranger's attack is paced by the ten-minute rule above, and what
+	// she makes of it is paid for from their allowance, not her owner's.
+	c.push(stimulus{Kind: `attacked`, Speaker: attacker, FromOwner: fromOwner, AskerUserId: u.UserId})
 	return events.Continue
 }
 
@@ -345,13 +361,6 @@ func (m *AICompanionModule) onPlayerAttackedMob(e events.Event) events.ListenerR
 func (m *AICompanionModule) handleAsk(userId int, mobInstanceId int, text string) bool {
 	if !m.cfg.Enabled {
 		return false
-	}
-	if c := m.controllerForInstance(mobInstanceId); c != nil && userId != c.ownerUserId {
-		if !m.strangerMayAsk(userId, c) {
-			// Heard, and remembered, but she does not stop what she is
-			// doing to answer: a stranger cannot make her think on demand.
-			return true
-		}
 	}
 	c := m.controllerForInstance(mobInstanceId)
 	if c == nil {
@@ -398,6 +407,12 @@ func (m *AICompanionModule) hearAsked(c *controller, u *users.UserRecord, speake
 		c.dirty = true
 	}
 	c.lastSocialUnix = now
+	// A stranger's question is asked aloud, heard, and remembered like any
+	// other, but she stops what she is doing to answer only as often as
+	// strangerMayAsk allows: a passer-by cannot make her think on demand.
+	if !fromOwner && !m.strangerMayAsk(u, c) {
+		return
+	}
 	c.push(stimulus{Kind: `asked`, Speaker: speaker, Text: text,
 		FromOwner: fromOwner, AskerUserId: u.UserId})
 }
@@ -448,7 +463,10 @@ func (m *AICompanionModule) onHealed(e events.Event) events.ListenerReturn {
 
 	c.dirty = true
 	c.lastSocialUnix = now
-	c.push(stimulus{Kind: `healed`, Speaker: healer, FromOwner: fromOwner})
+	if !fromOwner && !m.strangerMayAsk(u, c) {
+		return events.Continue // tended, and remembered, but paced like a question
+	}
+	c.push(stimulus{Kind: `healed`, Speaker: healer, FromOwner: fromOwner, AskerUserId: u.UserId})
 	return events.Continue
 }
 
@@ -487,15 +505,26 @@ func (m *AICompanionModule) witnessAttack(userId int, mobInstanceId int) {
 	c.push(stimulus{Kind: `witnessed`, Speaker: u.Character.Name, Text: name, FromOwner: true})
 }
 
-// strangerMayAsk paces what a passer-by can ask of somebody else's
-// companion. Without it, anyone could stand beside a companion and drive
-// the owner's model calls until the day's budget was gone. The cooldown
-// lives on the asker's own character, so it persists with them, and the
-// day's count is kept per asker.
-func (m *AICompanionModule) strangerMayAsk(userId int, c *controller) bool {
-	u := users.GetByUserId(userId)
+// strangerMayAsk paces what a passer-by can prompt of somebody else's
+// companion: speaking to her by name, `ask`, a gesture aimed at her, a gift
+// or healing. Without it, anyone could stand beside a companion and drive
+// model calls until the day's budget was gone. The day's allowance is read
+// first, because the cooldown is spent by trying it: a stranger with
+// nothing left does not also start a fresh wait. The cooldown lives on the
+// asker's own character, so it persists with them, and the day's count is
+// kept per asker (dispatch reserves each call against it).
+//
+// Call it once per thing said or done, and only when a stimulus is about
+// to be queued: every call that passes spends the cooldown.
+func (m *AICompanionModule) strangerMayAsk(u *users.UserRecord, c *controller) bool {
 	if u == nil || u.Character == nil {
 		return false
+	}
+	if m.cfg.StrangerDailyTokens > 0 {
+		m.rollDay()
+		if m.strangerTokens[u.UserId] >= m.cfg.StrangerDailyTokens {
+			return false
+		}
 	}
 	if m.cfg.StrangerAskSeconds > 0 {
 		tag := fmt.Sprintf(`aicompanion-ask-%d`, c.instanceId)
@@ -503,14 +532,7 @@ func (m *AICompanionModule) strangerMayAsk(userId int, c *controller) bool {
 			return false
 		}
 	}
-	if m.cfg.StrangerDailyTokens <= 0 {
-		return true
-	}
-	m.rollDay()
-	if m.strangerTokens == nil {
-		m.strangerTokens = map[int]int{}
-	}
-	return m.strangerTokens[userId] < m.cfg.StrangerDailyTokens
+	return true
 }
 
 // calledBack is the companion hearing her own name from her owner while she

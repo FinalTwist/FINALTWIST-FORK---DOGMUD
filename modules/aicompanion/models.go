@@ -214,6 +214,19 @@ func (m *AICompanionModule) chargeOwner(ownerId int, tokens int) {
 	m.ownerTokens[ownerId] += tokens
 }
 
+// chargeStranger is chargeOwner for a passer-by's own daily allowance. Like
+// chargeOwner it takes a negative amount, which is how a settlement gives
+// back what a reservation held and the call did not use.
+func (m *AICompanionModule) chargeStranger(userId int, tokens int) {
+	if userId <= 0 {
+		return
+	}
+	if m.strangerTokens == nil {
+		m.strangerTokens = map[int]int{}
+	}
+	m.strangerTokens[userId] += tokens
+}
+
 // traceEntry is one decision kept for the admin trace view.
 type traceEntry struct {
 	Unix     int64
@@ -492,21 +505,44 @@ func worstCaseTokens(prompt int, maxTokens int, toolRounds int, retry bool) int 
 // budgets, and holds the tokens in the same step. Checking and charging
 // apart is what let two calls slip past a nearly spent budget together.
 func (m *AICompanionModule) tryReserveTokens(ownerId int, tokens int) bool {
+	return m.tryReserveFor(ownerId, 0, tokens)
+}
+
+// tryReserveFor is tryReserveTokens with the payer named: a call a
+// passer-by prompted (askerId above 0) is held against their own
+// StrangerDailyTokens instead of the owner's companion allowance, so a
+// stranger cannot spend somebody else's companion into silence. The
+// server's budget holds either way. Check and hold are still one step.
+func (m *AICompanionModule) tryReserveFor(ownerId int, askerId int, tokens int) bool {
 	m.rollDay()
 	if m.cfg.DailyTokenBudget > 0 && m.tokensToday+tokens > m.cfg.DailyTokenBudget {
 		return false
 	}
-	if m.cfg.DailyTokensPerCompanion > 0 && m.ownerTokens[ownerId]+tokens > m.cfg.DailyTokensPerCompanion {
+	if askerId > 0 {
+		if m.cfg.StrangerDailyTokens > 0 && m.strangerTokens[askerId]+tokens > m.cfg.StrangerDailyTokens {
+			return false
+		}
+	} else if m.cfg.DailyTokensPerCompanion > 0 && m.ownerTokens[ownerId]+tokens > m.cfg.DailyTokensPerCompanion {
 		return false
 	}
 	m.tokensToday += tokens
 	m.outstanding += tokens
-	m.chargeOwner(ownerId, tokens)
+	if askerId > 0 {
+		m.chargeStranger(askerId, tokens)
+	} else {
+		m.chargeOwner(ownerId, tokens)
+	}
 	return true
 }
 
 // settleTokens replaces a reservation with what the call really used.
 func (m *AICompanionModule) settleTokens(ownerId int, reserved int, used int) {
+	m.settleFor(ownerId, 0, reserved, used)
+}
+
+// settleFor settles a reservation made by tryReserveFor, against the same
+// payer it was held against.
+func (m *AICompanionModule) settleFor(ownerId int, askerId int, reserved int, used int) {
 	m.rollDay()
 	m.outstanding -= reserved
 	if m.outstanding < 0 {
@@ -517,7 +553,13 @@ func (m *AICompanionModule) settleTokens(ownerId int, reserved int, used int) {
 	if m.tokensToday < 0 {
 		m.tokensToday = 0
 	}
-	if ownerId > 0 {
+	switch {
+	case askerId > 0:
+		m.chargeStranger(askerId, diff)
+		if m.strangerTokens[askerId] < 0 {
+			m.strangerTokens[askerId] = 0
+		}
+	case ownerId > 0:
 		m.chargeOwner(ownerId, diff)
 		if m.ownerTokens[ownerId] < 0 {
 			m.ownerTokens[ownerId] = 0

@@ -30,7 +30,11 @@ Roadmap and phase plan: `docs/aicompanion/`.
   per-companion halves (`hearSaid`, `seeEmote`, `hearAsked`) read the
   owner's literal "i agree"/"i decline" first, and before consent write
   nothing into the mind while still queueing the stimulus, so dispatch
-  answers with set lines.
+  answers with set lines. Anything a passer-by aims at her (speech to
+  her, `ask`, an emote, a gift, healing) is heard and remembered as usual
+  but queued only if `strangerMayAsk` passes (their daily allowance, then
+  a per-companion cooldown that trying spends), called once per thing,
+  just before the push. Their stimuli carry `AskerUserId`.
 - **scene.go**: `buildScene`, the structured, locally scored picture of what
   the companion can see and carry, with the refs ("t2", "p1", "w1") the
   model uses in actions; item and NPC classification; novelty from the
@@ -165,8 +169,17 @@ skills, health) is never in the mind file; it lives on the owner's
 - Every dispatch captures `controller.worldRev`; `answerTools` and
   `applyResult` drop everything if it has changed.
 - `controller.cancelInFlight` cancels the HTTP call on logout, pause, reset
-  and death. Budgets are reserved at dispatch (`reserveTokens`) and settled
-  on return (`settleTokens`).
+  and death. Budgets are reserved at dispatch in one check-and-hold step
+  (`tryReserveFor`; `tryReserveTokens` for the owner) and settled on return
+  against the same payer (`settleFor`/`settleTokens`), exactly once. A
+  call a passer-by prompted (`strangerBehind`) is held against their
+  `StrangerDailyTokens` and the server budget, never the owner's
+  allowance, and runs with no tool rounds so its worst case fits.
+- `nextBatch` gives each decision one prompter: the owner's words (and an
+  errand the owner sent her on) and each passer-by's are decided
+  separately, with the world's stimuli going to the first. The owner-only
+  verbs (`ownerPrompted`) and "ask first" (`ownerAskedNow`) are refused
+  whenever any passer-by's stimulus is in the batch, whoever else spoke.
 - Item commands use `itemRef` (`!<itemId>:<uuid>`), never a display name.
 - Sight is `messaging.ParticipantSight`, the engine's own rule.
 
