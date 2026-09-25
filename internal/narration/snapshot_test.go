@@ -99,6 +99,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/grapplemessaging"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/itemvoices"
+	"github.com/GoMudEngine/GoMud/internal/lightnotice"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -859,6 +860,9 @@ func TestSnapshotStores(t *testing.T) {
 	t.Run("special_moves", func(t *testing.T) {
 		checkGolden(t, "special_moves.golden", buildSpecialMovesGolden(t))
 	})
+	t.Run("light_notices", func(t *testing.T) {
+		checkGolden(t, "light_notices.golden", buildLightNoticesGolden(t))
+	})
 }
 
 // ---------------------------------------------------------------------
@@ -1602,6 +1606,49 @@ func buildPositionControlGolden(t *testing.T) string {
 		emitTriple("submission|"+key, tri)
 	}
 
+	return b.String()
+}
+
+// ---------------------------------------------------------------------
+// Store: light notices (internal/lightnotice)
+// ---------------------------------------------------------------------
+
+// buildLightNoticesGolden freezes every line of every cause, transition and
+// setting, every index, so a dropped, reordered or reworded line goes red.
+func buildLightNoticesGolden(t *testing.T) string {
+	t.Helper()
+	dir := filepath.Join(dogmudDataDir(t), "narration", "light-notices")
+	groups, err := fileloader.LoadAllFlatFiles[string, *lightnotice.CauseGroup](dir)
+	if err != nil {
+		t.Fatalf("loading %s: %v", dir, err)
+	}
+	if len(groups) == 0 {
+		t.Fatal("no light-notice files loaded; the golden would be vacuous")
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "# light-notices store snapshot (lighting plan 3d)\n")
+	fmt.Fprintf(&b, "# dimensions: cause x transition x setting(any/outdoor/indoor) x index\n\n")
+	for _, c := range lightnotice.Causes() {
+		g := groups[string(c)]
+		if g == nil {
+			t.Fatalf("cause %q has no file", c)
+		}
+		for _, tr := range lightnotice.Transitions() {
+			p := g.Transitions[tr]
+			if p == nil {
+				t.Fatalf("cause %q lost transition %q", c, tr)
+			}
+			for _, set := range []struct {
+				name string
+				pool []string
+			}{{"any", p.Any}, {"outdoor", p.Outdoor}, {"indoor", p.Indoor}} {
+				for i, text := range set.pool {
+					fmt.Fprintf(&b, "%s|%s|%s|%d => %s\n", c, tr, set.name, i, text)
+				}
+			}
+		}
+	}
 	return b.String()
 }
 
