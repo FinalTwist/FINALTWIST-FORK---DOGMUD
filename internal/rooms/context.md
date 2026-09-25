@@ -74,6 +74,18 @@ purpose: sixteen hand-rolled call sites used to copy the whole 424-field
 `Balance` struct to check one threshold, and `IsLit` collapsed all of them
 onto itself.
 
+**`(*Room) LightTerms() LightTerms`**, added by lighting plan 3d, reports the
+same light broken into the terms `LightLevel` combines, for a caller that
+needs to know WHY the light is what it is: `Level` (identical to
+`LightLevel()`, both come from the shared `composeLight`), `Sky` (the sky
+term after fraction and weather occlusion, `lightscale.Absent()` when the
+room has no sky), `OcclusionSteps`, `Lamp`/`HasLamp`, `LightMod` (the
+positive bridge total) and `Carried`. `internal/lightnotice` is the one
+consumer: it compares two `LightTerms` snapshots to name which term moved
+and so which cause to report for a band change. `LightTerms` and
+`LightLevel` share one computation (`composeLight`), so a caller reading
+both never risks the two disagreeing.
+
 **Sky fraction and lamp are both `*float64`/`*int` POINTERS, on both
 `Room` and `BiomeInfo`, because zero is meaningful for both.** A cave's sky
 fraction is genuinely `0` (no sky reaches it at all) and must be
@@ -338,7 +350,7 @@ When writing hidden noun descriptions:
 |------|---------|
 | `rooms.go` | The `Room` type and its core behaviour |
 | `roommanager.go` | The room registry, load/unload, and lookup |
-| `lighting.go` | `Room.LightLevel()`, `Room.IsLit()`, and the sky/lamp/mutator/carried-light composition |
+| `lighting.go` | `Room.LightLevel()`, `Room.IsLit()`, `Room.LightTerms()` (plan 3d), and the sky/lamp/mutator/carried-light composition |
 | `save_and_load.go` | Room YAML + instance-save persistence, `restoreSkipTaggedFields` |
 | `prose_wrap.go` | Re-folds long prose into wrapped `>` block scalars on template save |
 | `roomdetails.go` | Assembled per-look detail payload |

@@ -1,5 +1,26 @@
 # DOGMud Patch Notes
 
+## 2026-09-25: You notice when the light changes
+
+The game now tells you when the light around you changes enough to change
+what you can make out. Walk from a lit street into a dark alley and you
+will read that you have stepped into darkness. Stand in a back lane as
+evening comes and, the next time you act, you will read that dusk has
+settled and faces have blurred into shapes. When someone carrying a light
+walks away, you will hear about that too.
+
+You only hear about it when it matters: when you go from reading faces to
+seeing only shapes, from shapes to nothing, or back again. Walking into a
+brighter room tells you nothing extra, since the room description already
+does. In a fight, you learn of the change each round. Asleep or blinded,
+you are told nothing, and waking up or getting your sight back does not
+count as the light changing.
+
+Very bright light can now hurt. A torch held up under the midsummer sun,
+or the lamps of a main street at midsummer noon, can make the glare
+painful to look into. A covered lantern or the right spell is the better
+choice on those days.
+
 ## 2026-09-25: Thornwall, Stillwater, Hartcharn and Kilnreach light up
 
 Thornwall, Stillwater, Hartcharn and the Kilnreach Works now get the same

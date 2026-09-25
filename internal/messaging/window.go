@@ -35,12 +35,7 @@ const (
 // it stays a pure function with no locks and no global state. Its caller owns
 // the config read.
 func SightThroughWindow(light, strength, reach int, blindBelow, dimBelow int) SightDecision {
-	if strength < 0 {
-		strength = 0
-	}
-	if strength > windowShiftCap {
-		strength = windowShiftCap
-	}
+	strength = clampShift(strength)
 	if reach < 0 {
 		reach = 0
 	}
@@ -50,8 +45,8 @@ func SightThroughWindow(light, strength, reach int, blindBelow, dimBelow int) Si
 
 	if light >= shiftedDim {
 		// Perfect and too-bright both read fully. Dazzle has no mechanical
-		// penalty in this plan, so the upper edge is not consulted yet; it is
-		// declared above so the next plan has one place to add the penalty.
+		// penalty yet; BandThroughWindow (band.go) is the one reader of the
+		// upper edge, and only to tell a player the light hurts.
 		return SightFull
 	}
 	if light >= shiftedBlind && light >= windowFloor {
@@ -65,4 +60,17 @@ func SightThroughWindow(light, strength, reach int, blindBelow, dimBelow int) Si
 		return SightShapes
 	}
 	return SightNone
+}
+
+// clampShift bounds an ability's window shift to [0, windowShiftCap]. Shared
+// by SightThroughWindow and BandThroughWindow so the two can never clamp
+// differently.
+func clampShift(strength int) int {
+	if strength < 0 {
+		return 0
+	}
+	if strength > windowShiftCap {
+		return windowShiftCap
+	}
+	return strength
 }

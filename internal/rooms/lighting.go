@@ -51,11 +51,44 @@ func (r *Room) lightLevel(cfg configs.Lighting, celestial float64) int {
 // lightMod is the total POSITIVE LightMod across active mutators, and
 // occlusionSteps the total NEGATIVE, expressed as doubling steps of sky removed.
 func (r *Room) lightLevelWithMutatorBridge(cfg configs.Lighting, celestial float64, lightMod, occlusionSteps int) int {
+	return r.composeLight(cfg, celestial, lightMod, occlusionSteps).Level
+}
+
+// LightTerms is the room's light broken into the terms LightLevel combines,
+// for a caller that needs to know WHY the light is what it is.
+// internal/lightnotice names the cause of a band change from them.
+type LightTerms struct {
+	// Level is exactly LightLevel(): both come from composeLight.
+	Level int
+	// Sky is the sky term after the sky fraction and weather occlusion, in
+	// light-scale units; lightscale.Absent() when the room has no sky.
+	Sky float64
+	// OcclusionSteps is the doubling steps of sky removed by weather mutators.
+	OcclusionSteps int
+	// Lamp is the room's own lamp; 0 when HasLamp is false.
+	Lamp    int
+	HasLamp bool
+	// LightMod is the positive LightMod bridge total.
+	LightMod int
+	// Carried reports that someone in the room carries a light.
+	Carried bool
+}
+
+// LightTerms reports the terms behind LightLevel, from the same single
+// computation.
+func (r *Room) LightTerms() LightTerms {
+	lightMod, occlusionSteps := r.mutatorLightTerms()
+	return r.composeLight(configs.GetLightingConfig(), gametime.CelestialLight(), lightMod, occlusionSteps)
+}
+
+// composeLight is the one computation behind LightLevel and LightTerms.
+func (r *Room) composeLight(cfg configs.Lighting, celestial float64, lightMod, occlusionSteps int) LightTerms {
 	step := cfg.DoublingStep
 	if !(step > 0) {
 		step = 1
 	}
 
+	out := LightTerms{OcclusionSteps: occlusionSteps}
 	terms := make([]float64, 0, 4)
 
 	// 1. The sky, attenuated by this room's fraction and then by any weather
@@ -65,10 +98,12 @@ func (r *Room) lightLevelWithMutatorBridge(cfg configs.Lighting, celestial float
 	if occlusionSteps > 0 {
 		sky *= math.Exp2(-float64(occlusionSteps))
 	}
-	terms = append(terms, lightscale.Attenuate(step, celestial, sky))
+	out.Sky = lightscale.Attenuate(step, celestial, sky)
+	terms = append(terms, out.Sky)
 
 	// 2. The room's own lamp.
 	if lamp, ok := r.lampValue(); ok {
+		out.Lamp, out.HasLamp = lamp, true
 		terms = append(terms, float64(lamp))
 	}
 
@@ -77,6 +112,7 @@ func (r *Room) lightLevelWithMutatorBridge(cfg configs.Lighting, celestial float
 	// rooms and 12 Foldweave rooms that a static `lightmod: 2` holds lit today
 	// stay fully visible. Plan 4 replaces this with an authored lamp value.
 	if lightMod > 0 {
+		out.LightMod = lightMod
 		terms = append(terms, float64(cfg.DimBelow)+float64(lightMod-1)*step)
 	}
 
@@ -85,6 +121,7 @@ func (r *Room) lightLevelWithMutatorBridge(cfg configs.Lighting, celestial float
 	// room to the bottom of the perfect band, which is what the old model's
 	// "someone has light, cancel the darkness" rule effectively did.
 	if len(r.GetMobs(FindHasLight)) > 0 || len(r.GetPlayers(FindHasLight)) > 0 {
+		out.Carried = true
 		terms = append(terms, float64(cfg.DimBelow))
 	}
 
@@ -102,7 +139,8 @@ func (r *Room) lightLevelWithMutatorBridge(cfg configs.Lighting, celestial float
 	} else if n > 100 {
 		n = 100
 	}
-	return n
+	out.Level = n
+	return out
 }
 
 // mutatorLightTerms sums the active mutators' LightMod into a positive

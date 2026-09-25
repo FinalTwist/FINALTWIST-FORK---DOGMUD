@@ -144,6 +144,16 @@ real geometry at this latitude and calibration will not do that, and equinox
 would have to be about 72 for it to. Dazzle therefore remains entirely
 exceptional, which matches plan 2 having shipped it with no mechanical effect.
 
+> **Correction (lighting plan 3d, 2026-09-25).** The sky ALONE never
+> reaches 75, so this callout is still true as written. But a normal
+> observer's TOTAL light can: the sky combines with a carried light or a
+> `city_thoroughfare` lamp, and near midsummer noon both combines cross 75
+> (about 75.1 for a carried light outdoors, 75 for the thoroughfare) with
+> no vision ability involved. The owner ruled this intended: a hooded
+> lantern that adjusts, or the right spell, is what a player should reach
+> for instead. Plan 5 must price it. See the "What this calibration does to
+> dazzle" correction below.
+
 ⚠️ **The annual mean night is 12 hours at any latitude**, against the shipped flat
 8. Night rises from 33% of the day to 50%, and 65% at midwinter. This is a
 consequence of the latitude, not a dial.
@@ -364,6 +374,19 @@ peak, so a normal observer is dazzled by exactly two things: a shifted window, o
 an artificial source strong enough to push a room past 75. That is precisely the
 "light becomes a weapon" case, and it means plan 5 is not merely the plan that
 *may* give dazzle teeth, it is the only plan in which dazzle is reachable at all.
+
+> **Correction (lighting plan 3d, 2026-09-25).** "Only plan in which dazzle
+> is reachable" is wrong: the sky's 73 combines with an ordinary carried
+> light or a `city_thoroughfare`'s lamp, and near midsummer noon both
+> combines land at or just above 75 (about 75.1 for a carried light
+> outdoors, 75 for the thoroughfare), reachable by any player today with no
+> vision ability at all. The owner ruled it intended: "they should have
+> used the spell or a hooded lantern that adjusts; it makes the lantern
+> actually valuable." Plan 3d's `internal/lightnotice` therefore ships
+> dazzle lines that read true for any observer, not only a shifted-window
+> one. This does not change the point below about the Cat's Eye Draught
+> overhang, which is a second, independent way to be dazzled; it only
+> retracts the claim that it is the ONLY way.
 
 ⚠️ **The Cat's Eye Draught overhang is structural, and plan 5 must price it.**
 The draught runs `triggercount: 500` at `triggerrate: 1 round`

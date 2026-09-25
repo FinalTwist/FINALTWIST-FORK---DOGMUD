@@ -48,6 +48,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/itemvoices"
 	"github.com/GoMudEngine/GoMud/internal/keywords"
 	"github.com/GoMudEngine/GoMud/internal/language"
+	"github.com/GoMudEngine/GoMud/internal/lightnotice"
 	"github.com/GoMudEngine/GoMud/internal/migration"
 	"github.com/GoMudEngine/GoMud/internal/mobcommands"
 	"github.com/GoMudEngine/GoMud/internal/movenarration"
@@ -1945,6 +1946,7 @@ func loadAllDataFiles(isReload bool) {
 	colorpatterns.LoadColorPatterns()
 	combat.LoadTauntMessageFiles()
 	movenarration.LoadMoveNarrationFiles()
+	lightnotice.LoadLightNoticeFiles()
 	spells.LoadCastingMessages()
 	audio.LoadAudioConfig()
 	characters.CompileAdjectiveSwaps() // This should come after loading color patterns.
