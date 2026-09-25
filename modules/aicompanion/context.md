@@ -102,12 +102,14 @@ Roadmap and phase plan: `docs/aicompanion/`.
 - **combat.go**: the fight from the companion's side: tracking, the
   model's plan (stance, target, flee point, style), local reflexes at most
   once a round, hold-back with the owner's auto-assist restored, authored
-  battle lines, and the summary afterwards. `fightStarter` names the
-  passer-by who started a fight (one who attacked her within the reaction
-  window, else one fighting her or her owner whom neither was fighting
-  first); the fight's `fight` and `fight_over` stimuli carry them as
-  `PaidBy`, which bills them like an asker (`strangerBehind`,
-  `promptedBy`) without refusing her any verb.
+  battle lines (silent while her owner is muted), and the summary
+  afterwards. Every plan is her owner's to pay for, whoever started the
+  fight: defending her owner is the owner's concern, PvP is off on the
+  live server and companions are harm-protected. `requestPlan` puts the
+  `fight` stimulus at the front of the queue and `promptedBy` gives
+  `fight` and `fight_over` to the owner, so a plan is never batched with
+  a passer-by's words, never billed to them, and never refused because
+  strangers are off.
 - **meeting.go**: meeting a companion after character creation (or at the
   next login), the persisted bond state, parting ways, and consent:
   `consented`, `answerConsent`, and `consentLedger`, the copy of who has
@@ -363,9 +365,12 @@ skills, health) is never in the mind file; it lives on the owner's
   runs with no tool rounds so its worst case fits. On the owner's own key
   (tier 2) nothing of the server's is held: only the passer-by caps. `modelReadyFor(owner, asker)`
   routes by the owner even when a passer-by asks.
-- `nextBatch` gives each decision one prompter: the owner's words (and an
-  errand the owner sent her on) and each passer-by's are decided
-  separately, with the world's stimuli going to the first. The owner-only
+- `nextBatch` gives each decision one prompter: everything the owner did
+  or asked (`ownerDeeds`: words, emote, gift, healing, an attack,
+  `companion-ask`, greeting, farewell, first meeting, a fight, an errand
+  the owner sent her on) and each passer-by's are decided separately,
+  with the world's stimuli going to the first. The follow-up to a look
+  keeps the payer of the decision that looked (`lookedFollowUp`). The owner-only
   verbs (`ownerPrompted`) and "ask first" (`ownerAskedNow`) are refused
   whenever any passer-by's stimulus is in the batch, whoever else spoke.
 - What she says is her owner's to answer for, on every tier: a muted owner

@@ -17,9 +17,11 @@ type stimulus struct {
 	Chain       int   // 1 for a follow-up to the companion's own look or consider
 	Authorized  bool  // arrived: the owner asked for this errand
 	AskerUserId int   // the passer-by whose words prompted it, when not the owner
-	// PaidBy is a passer-by who pays for the call this prompts without
-	// having asked her anything: the one who started a fight she is in.
-	// Unlike AskerUserId it refuses her no verb; it only bills them.
+	// PaidBy is who pays for the call this prompts when it is not their
+	// own doing: her owner, on the follow-up to a look their decision
+	// made (lookedFollowUp). It batches the stimulus with that payer
+	// (promptedBy) and refuses her no verb; a passer-by's follow-up
+	// carries AskerUserId instead, which does.
 	PaidBy int
 	Errand string // arrived: what she set out to do there
 	// Plain is Text without what another player looks like or carries,

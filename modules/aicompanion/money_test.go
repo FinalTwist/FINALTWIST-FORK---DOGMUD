@@ -521,59 +521,38 @@ func TestStrangersForIsKeptWithTheBudget(t *testing.T) {
 	}
 }
 
-// A fight a passer-by started is theirs to pay for: they are named as its
-// starter, its plans are billed to them without refusing her anything, and
-// a fight her owner picked stays the owner's.
-func TestFightAPasserByStartedIsTheirs(t *testing.T) {
-	owner, bram, _, her := harmWorld(t, `on`)
-	c := &controller{ownerUserId: 1, instanceId: her.InstanceId, lastAttackBy: map[int]int64{}}
-	now := time.Now().Unix()
-	enemies := map[int]string{2: `Bram`}
-
-	if got := fightStarter(c, her, owner, enemies, now); got != 2 {
-		t.Fatalf("a passer-by fighting them whom neither was fighting started it, got %d", got)
-	}
-	owner.Character.SetAggro(2, 0, characters.DefaultAttack)
-	if owner.Character.CurrentCombatTarget().UserId != 2 {
-		t.Fatal("fixture: the owner is fighting Bram")
-	}
-	if got := fightStarter(c, her, owner, enemies, now); got != 0 {
-		t.Fatalf("a fight her owner picked is the owner's, got %d", got)
-	}
-	c.lastAttackBy[2] = now - 5
-	if got := fightStarter(c, her, owner, enemies, now); got != 2 {
-		t.Fatalf("a passer-by who attacked her started it, whoever hit back, got %d", got)
-	}
-	c.lastAttackBy[2] = now - 700
-	if got := fightStarter(c, her, owner, enemies, now); got != 0 {
-		t.Fatalf("an attack long ago is not this fight, got %d", got)
-	}
-	_ = bram
-
-	plan := stimulus{Kind: `fight`, Text: `start: Bram`, PaidBy: 2}
-	over := stimulus{Kind: `fight_over`, Text: `over`, FromOwner: true, PaidBy: 2}
-	if strangerBehind([]stimulus{plan}, 1) != 2 || strangerBehind([]stimulus{over}, 1) != 2 {
-		t.Fatal("the plans and the end of their fight are billed to the passer-by")
-	}
-	if promptedBy(plan, 1) != 2 {
-		t.Fatal("and never share a call with her owner's words")
-	}
-	if !ownerPrompted([]stimulus{plan}) {
-		t.Fatal("paying for it refuses her nothing: she may still defend herself as she sees fit")
-	}
-	if strangerBehind([]stimulus{{Kind: `fight`, PaidBy: 1}}, 1) != 0 {
-		t.Fatal("the owner is never a passer-by")
-	}
-}
-
-// requestPlan carries the fight's starter on the stimulus it queues.
-func TestRequestPlanCarriesTheStarter(t *testing.T) {
+// A fight a passer-by started is planned on her owner's account, as any
+// other fight: defending her owner is the owner's concern. The plan and
+// the fight's end name no payer, so strangers being off on the owner's own
+// key never leaves her planless.
+func TestFightAPasserByStartedIsPlannedOnTheOwnersAccount(t *testing.T) {
+	_, bram, _, her := harmWorld(t, `on`)
 	m, c := senderModule(`https://api.example.invalid`, true)
+	m.cfg.Enabled = true
+	c.instanceId = her.InstanceId
+	c.lastAttackBy = map[int]int64{2: time.Now().Unix() - 5}
+	m.ctrls = map[int]*controller{1: c}
+	m.bonds.Users[1].StrangersOff = true
 	c.inFlight = true // queue only
-	c.fight = &fightState{StarterUserId: 2}
-	m.requestPlan(c, 1, `start`, `Bram`)
-	if len(c.pending) != 1 || c.pending[0].PaidBy != 2 {
-		t.Fatalf("the plan is queued as the starter's: %+v", c.pending)
+
+	// Bram's blow is already waiting to be answered, as the listener
+	// queues it.
+	c.pending = []stimulus{{Kind: `attacked`, Speaker: `Bram`, AskerUserId: 2}}
+	bram.Character.SetAggro(0, her.InstanceId, characters.DefaultAttack)
+	her.Character.SetAggro(2, 0, characters.DefaultAttack)
+	m.combatTick(c, users.GetByUserId(1), 10)
+	if c.fight == nil || countKind(c.pending, `fight`) != 1 {
+		t.Fatalf("fixture: Bram's attack starts a fight and a plan is asked for: %+v", c.pending)
+	}
+	batch, _ := nextBatch(c.pending, 1)
+	if countKind(batch, `fight`) != 1 {
+		t.Fatalf("the plan jumps the queue: it is decided first: %+v", batch)
+	}
+	if asker := strangerBehind(batch, 1); asker != 0 || !m.strangerMayPrompt(1, asker) {
+		t.Fatalf("the plan is her owner's to pay for, strangers off or not: asker %d", asker)
+	}
+	if promptedBy(stimulus{Kind: `fight_over`, FromOwner: true}, 1) != 1 {
+		t.Fatal("and so is the end of the fight")
 	}
 }
 
@@ -679,5 +658,28 @@ func TestUnnamedGoldIsNeverTheOwnersWhenOthersAreThere(t *testing.T) {
 	m.noticeGold(c, her, owner, 5)
 	if got := goldMemories(c); len(got) != 1 || !strings.Contains(got[0], `Corvin`) {
 		t.Fatalf("alone with her owner, it is her owner's: %q", got)
+	}
+}
+
+// The follow-up to a look is paid by whoever paid for the look: a
+// passer-by's stays theirs (and opens no owner-only verb), her owner's
+// stays the owner's, and so never joins a passer-by's next question.
+func TestLookedFollowUpCarriesThePayer(t *testing.T) {
+	saw := actionOutcome{Perceived: `a rusty key`}
+	bram := lookedFollowUp([]stimulus{{Kind: `heard`, AskerUserId: 2}}, 1, saw)
+	if bram.AskerUserId != 2 || strangerBehind([]stimulus{bram}, 1) != 2 || ownerPrompted([]stimulus{bram}) {
+		t.Fatalf("a passer-by's look is followed up on their account: %+v", bram)
+	}
+	corvin := lookedFollowUp([]stimulus{{Kind: `heard`, FromOwner: true}}, 1, saw)
+	if promptedBy(corvin, 1) != 1 || strangerBehind([]stimulus{corvin}, 1) != 0 || !ownerPrompted([]stimulus{corvin}) {
+		t.Fatalf("her owner's look is followed up on the owner's: %+v", corvin)
+	}
+	batch, _ := nextBatch([]stimulus{{Kind: `heard`, AskerUserId: 3}, corvin}, 1)
+	if len(batch) != 1 || strangerBehind(batch, 1) != 3 || batch[0].Kind != `heard` {
+		t.Fatalf("and never rides a passer-by's question: %+v", batch)
+	}
+	own := lookedFollowUp([]stimulus{{Kind: `quiet`, FromOwner: true}}, 1, saw)
+	if own.PaidBy != 0 || own.AskerUserId != 0 {
+		t.Fatalf("her own look carries no payer: %+v", own)
 	}
 }

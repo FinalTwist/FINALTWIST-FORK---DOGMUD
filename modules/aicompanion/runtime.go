@@ -809,7 +809,7 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 	// A look or a size-up gets one follow-up, so the companion can react to
 	// what it learned. Never a second, so it cannot chain looks forever.
 	if outcome.Perceived != `` && !isFollowUp(stims) {
-		c.push(stimulus{Kind: `looked`, Text: outcome.Perceived, Plain: outcome.Plain, Chain: 1})
+		c.push(lookedFollowUp(stims, c.ownerUserId, outcome))
 	}
 
 	m.applyImpression(c, sc, d.Impression, now)
@@ -1397,9 +1397,29 @@ func lastRuneIndex(haystack []rune, needle []rune) int {
 	return -1
 }
 
+// lookedFollowUp is the one follow-up a look or a size-up earns, carrying
+// the payer of the decision that looked: a passer-by's as their asking
+// (AskerUserId, so it is theirs and opens no owner-only verb), her
+// owner's as PaidBy, so it is decided with the owner's and never lands
+// on a passer-by's allowance; her own look carries neither.
+func lookedFollowUp(stims []stimulus, ownerUserId int, outcome actionOutcome) stimulus {
+	s := stimulus{Kind: `looked`, Text: outcome.Perceived, Plain: outcome.Plain, Chain: 1}
+	if asker := strangerBehind(stims, ownerUserId); asker > 0 {
+		s.AskerUserId = asker
+		return s
+	}
+	for _, st := range stims {
+		if promptedBy(st, ownerUserId) == ownerUserId {
+			s.PaidBy = ownerUserId
+			break
+		}
+	}
+	return s
+}
+
 // strangerBehind is the passer-by who pays for this decision: whose words
-// prompted it, or who started the fight it is about (PaidBy); 0 when it was
-// the owner's doing or her own.
+// prompted it, or the payer a follow-up carries (PaidBy) when that is not
+// her owner; 0 when it was the owner's doing or her own.
 func strangerBehind(stims []stimulus, ownerUserId int) int {
 	for _, s := range stims {
 		if s.PaidBy > 0 && s.PaidBy != ownerUserId {
@@ -1413,23 +1433,41 @@ func strangerBehind(stims []stimulus, ownerUserId int) int {
 	return 0
 }
 
-// promptedBy is who a stimulus puts a question to her for: her owner
-// speaking to her, a passer-by (their user id) for anything they did that
-// was aimed at her, or 0 for the world and her own business, which can go
-// with anyone's.
+// ownerDeeds are the kinds of stimulus that, carried FromOwner, are
+// something her owner did or asked: their words, an emote, a gift,
+// healing, an attack, a question they sent her to ask (companion-ask),
+// the greeting and the farewell of a session, the first meeting, an
+// answer to her about the two of them, and a deed of theirs she saw. The
+// rest of what is marked FromOwner (a quiet moment, a memory, a trouble
+// noticed) is her own business and goes with anyone's decision.
+var ownerDeeds = map[string]bool{
+	`heard`: true, `asked`: true, `emote`: true, `gift`: true, `healed`: true,
+	`attacked`: true, `errand_ask`: true, `session_start`: true, `farewell`: true,
+	`first_meeting`: true, `romance_yes`: true, `romance_no`: true, `witnessed`: true,
+}
+
+// promptedBy is who a stimulus puts a question to her for: her owner for
+// anything they did or asked (ownerDeeds) and for a fight, a passer-by
+// (their user id) for anything they did that was aimed at her, the payer
+// a follow-up carries (PaidBy), or 0 for the world and her own business,
+// which can go with anyone's.
 func promptedBy(s stimulus, ownerUserId int) int {
 	// Arriving on an errand her owner asked for is the owner's say-so
 	// carried to the place (ownerAskedNow), so it goes with the owner.
 	if s.Kind == `arrived` && s.Authorized {
 		return ownerUserId
 	}
-	// A fight a passer-by started is theirs to pay for, not to be batched
-	// with her owner's words, whatever else it is.
-	if s.PaidBy > 0 && s.PaidBy != ownerUserId {
+	// A follow-up carries the payer of the decision it follows.
+	if s.PaidBy > 0 {
 		return s.PaidBy
 	}
+	// A fight is her owner's to plan and pay for, whoever started it:
+	// defending her owner is the owner's concern.
+	if s.Kind == `fight` || s.Kind == `fight_over` {
+		return ownerUserId
+	}
 	if s.FromOwner {
-		if s.Kind == `heard` || s.Kind == `asked` {
+		if ownerDeeds[s.Kind] {
 			return ownerUserId
 		}
 		return 0

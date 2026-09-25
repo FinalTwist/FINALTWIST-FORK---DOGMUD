@@ -2492,6 +2492,18 @@ func TestOwnerAndStrangerNeverShareADecision(t *testing.T) {
 	if len(batch) != 1 || batch[0].Kind != `heard` {
 		t.Fatalf("an authorised arrival is the owner's, not the passer-by's: %+v", batch)
 	}
+	// Everything her owner did is the owner's, not only their words: a
+	// passer-by's question never pays for it, nor shares its call.
+	for _, kind := range []string{`emote`, `gift`, `healed`, `attacked`, `errand_ask`, `session_start`, `first_meeting`, `fight`, `fight_over`} {
+		mixed := []stimulus{{Kind: `heard`, Speaker: `Bram`, AskerUserId: 2}, {Kind: kind, FromOwner: true}}
+		batch, rest = nextBatch(mixed, owner)
+		if len(batch) != 1 || strangerBehind(batch, owner) != 2 {
+			t.Fatalf("her owner's %s is not decided with a passer-by's words: %+v", kind, batch)
+		}
+		if batch, _ = nextBatch(rest, owner); len(batch) != 1 || batch[0].Kind != kind || strangerBehind(batch, owner) != 0 {
+			t.Fatalf("it is decided on its own, on the owner's account: %+v", batch)
+		}
+	}
 	// Nothing anyone put to her: all of it at once, as before.
 	all := []stimulus{{Kind: `quiet`, FromOwner: true}, {Kind: `noticed`}}
 	if batch, rest = nextBatch(all, owner); len(batch) != 2 || rest != nil {
