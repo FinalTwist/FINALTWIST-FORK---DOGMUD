@@ -17,7 +17,7 @@ description: >
   pinned to the pillar nearest the counter, thick with folded papers,
   road notices, and messages left for travelers passing through.
   The door east leads to the lodging wing.
-biome: city
+biome: interior
 coord:
   x: -17
   y: 37

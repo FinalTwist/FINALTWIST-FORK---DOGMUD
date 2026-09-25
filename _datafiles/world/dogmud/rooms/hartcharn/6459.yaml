@@ -9,7 +9,7 @@ description: >
   wall holds a row of covered crocks. The smell of woodsmoke and
   simmering broth fills the room, thick enough to cling to a coat
   after only a few minutes inside.
-biome: city
+biome: interior
 coord:
   x: -22
   y: 35

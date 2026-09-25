@@ -11,7 +11,7 @@ description: >
   spans the far end of the room, and brass <ansi fg="itemname">scales</ansi>
   at the centre handle dry goods sold by measure — salt, beans, and
   grain weighed out to order.
-biome: city
+biome: interior
 coord:
   x: -17
   y: 35

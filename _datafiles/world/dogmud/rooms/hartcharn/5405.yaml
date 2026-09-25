@@ -15,7 +15,7 @@ description: >
   west, the coaching yard rings with iron-shod wheels on cobblestone
   and the calls of ostlers working teams free of their traces. The
   door east leads into the inn proper.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 37

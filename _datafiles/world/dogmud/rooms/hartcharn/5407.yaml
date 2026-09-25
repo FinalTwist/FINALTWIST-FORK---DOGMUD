@@ -14,7 +14,7 @@ description: >
   the alcove beside the stairhead, its basin and ewer in plain white
   ceramic. A small <ansi fg="itemname">window</ansi> at the hall's end
   looks out over the coaching yard below.
-biome: city
+biome: interior
 coord:
   x: -16
   y: 37

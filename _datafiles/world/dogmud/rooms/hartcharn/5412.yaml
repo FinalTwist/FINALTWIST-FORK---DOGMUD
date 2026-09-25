@@ -14,7 +14,7 @@ description: >
   <ansi fg="itemname">lane</ansi> cuts east between the end-gables, and
   a matching gap to the west opens between a close row of townhouses.
   The street pushes on northward into quieter residential blocks.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 38

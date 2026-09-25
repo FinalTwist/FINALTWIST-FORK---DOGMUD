@@ -12,7 +12,7 @@ description: >
   Ostlers move without hurry, hauling water and checking cinches. A long
   <ansi fg="itemname">tack rack</ansi> by the stable door holds collars,
   traces, and spare leatherwork for the next team out.
-biome: city
+biome: city_backstreet
 coord:
   x: -19
   y: 37
