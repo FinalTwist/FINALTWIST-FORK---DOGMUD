@@ -467,7 +467,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		Goals:        goalLines(c.mind, c.agenda),
 		Autonomy:     c.mind.Autonomy,
 		Core:         coreLines(c.mind, now.Unix()),
-		Conditions:   conditionLines(mob, owner, owner != nil && owner.Character != nil && !cannotSeeOwner(mob, owner)),
+		Conditions:   conditionLines(mob, owner, owner.Character != nil && !cannotSeeOwner(mob, owner)),
 		Factions:     factionLines(rooms.LoadRoom(mob.Character.RoomId), mob, owner),
 		Quests:       questLines(ownerIfPresent(mob, owner), 4),
 		Talk:         talkLines(rooms.LoadRoom(mob.Character.RoomId), mob, m.cfg.RoadTalkLines),
@@ -766,9 +766,8 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 		}
 	}
 
-	goalResult := ``
 	if d.Goal.Action != `none` && d.Goal.Action != `` {
-		goalResult = c.mind.applyGoalProposal(d.Goal, ownerAskedNow(stims), now)
+		goalResult := c.mind.applyGoalProposal(d.Goal, ownerAskedNow(stims), now)
 		if d.Goal.Action == `add` && strings.HasPrefix(goalResult, `added`) {
 			c.agenda = c.mind.pickAgenda()
 		}

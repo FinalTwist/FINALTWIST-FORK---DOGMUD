@@ -271,7 +271,7 @@ func applyAppearance(mob *mobs.Mob, p *Profile, mind *Mind) {
 	if mob == nil {
 		return
 	}
-	base := strings.TrimSpace(p.Summary)
+	var base string
 	if mind.BaseDescription != `` {
 		base = mind.BaseDescription
 	} else {

@@ -230,7 +230,7 @@ func callModelOnce(c modelCall) modelResult {
 		res.Canceled = errors.Is(err, context.Canceled) || errors.Is(parent.Err(), context.Canceled)
 		return res
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	res.Latency = time.Since(start)
@@ -317,7 +317,7 @@ func moderate(baseURL string, apiKey string, model string, timeout time.Duration
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf(`moderation API status %d`, resp.StatusCode)
 	}
@@ -397,7 +397,7 @@ func listModels(baseURL string, apiKey string) map[string]bool {
 	if err != nil {
 		return nil
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return nil
 	}

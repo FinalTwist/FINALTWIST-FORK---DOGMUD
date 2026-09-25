@@ -2349,9 +2349,15 @@ Modules:
   #   docs/aicompanion/testing-and-prompts.md for exactly what is sent.
   #
   #   Every other setting the module has (models, tiers, budgets, memory
-  #   sizes, combat, romance, idle behaviour) has a default in
-  #   modules/aicompanion/files/data-overlays/config.yaml, with a comment
-  #   for each. Any of them can be overridden here.
+  #   sizes, combat, romance, idle behaviour) has a default built into
+  #   buildConfig (modules/aicompanion/config.go), documented setting by
+  #   setting in docs/aicompanion/settings.md. Any of them can be
+  #   overridden here. The module ships no data-overlays/config.yaml.
+  #
+  #   Turning this on also turns on the possibility of a companion
+  #   romance. It never starts or advances on its own: it only moves at
+  #   the player's own command (companion-court), and companion-boundary
+  #   friendship closes it at any point.
   aicompanion:
     # The module itself. Nothing below has any effect while this is false.
     Enabled: false

@@ -262,7 +262,7 @@ func otherPlayersPresent(room *rooms.Room, speakerUserId int, mob *mobs.Mob) int
 // timeWords describes the game time the way a person would: the part of
 // the day and the month, as a player sees from the game's clock.
 func timeWords(d gametime.GameDate) string {
-	part := `night`
+	var part string
 	switch h := d.Hour24; {
 	case d.Night && h >= 3 && h < 6:
 		part = `the small hours before dawn`

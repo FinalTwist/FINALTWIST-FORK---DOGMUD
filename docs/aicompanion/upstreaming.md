@@ -72,8 +72,15 @@ companion neither remembered nor sent.
 1. Say plainly in the PR that the module sends player text to OpenAI when
    it is switched on, what is sent (`testing-and-prompts.md`), and that it
    is inert without a key.
-4. The two events are worth offering on their own merits: `Emote` and
+2. Say plainly that switching the module on also switches on the
+   possibility of a companion romance. A player is asked for consent
+   before anything they say is sent to OpenAI at all (`testing-and-prompts.md`,
+   Consent); romance is a further, separate step on top of that consent,
+   and it never starts or advances on its own. It only moves at the
+   player's own command (`companion-court`), and `companion-boundary
+   friendship` closes it at any point.
+3. The two events are worth offering on their own merits: `Emote` and
    `Healed` are general and cheap, and any module could use them.
-5. Expect the maintainers to want `internal/usercommands/ask.go` split into
+4. Expect the maintainers to want `internal/usercommands/ask.go` split into
    its own change, since it is the only engine refactor rather than an
    addition.

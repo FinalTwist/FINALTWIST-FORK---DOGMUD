@@ -731,15 +731,14 @@ func (m *AICompanionModule) endFight(c *controller, mob *mobs.Mob, u *users.User
 	if long {
 		parts = append(parts, `it was a long fight`)
 	}
+	if recovered := m.gatherArrows(c, mob, f); recovered > 0 {
+		parts = append(parts, fmt.Sprintf(`you got %d of your arrows back`, recovered))
+	}
 	summary := `The fight with ` + enemyNames(f.Enemies, f.EnemyUsers) + ` is over`
 	if len(parts) > 0 {
 		summary += `: ` + strings.Join(parts, `; `)
 	}
 	summary += `.`
-
-	if recovered := m.gatherArrows(c, mob, f); recovered > 0 {
-		parts = append(parts, fmt.Sprintf(`you got %d of your arrows back`, recovered))
-	}
 
 	importance := 4
 	if f.WorstSelf < 15 || f.WorstOwner < 15 {
