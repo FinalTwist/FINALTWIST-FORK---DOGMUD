@@ -17,7 +17,7 @@ description: >
   <ansi fg="itemname">The way south</ansi>
   runs on into the Processional district, the avenue
   open and well-maintained toward the great temple.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -5
   y: -69

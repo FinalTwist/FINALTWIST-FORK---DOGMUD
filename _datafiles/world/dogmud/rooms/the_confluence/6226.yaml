@@ -17,7 +17,7 @@ description: >
   but the junction rendering still visible past the
   damage. The bookseller knows what is in stock and
   does not need to be asked twice.
-biome: city
+biome: interior
 coord:
   x: -8
   y: -68

@@ -16,7 +16,7 @@ description: >
   house; there is no privacy here that is not maintained
   entirely by consent. The lane is north; a functionary's
   door is east; the well-court is south.
-biome: city
+biome: city_backstreet
 coord:
   x: -14
   y: -73

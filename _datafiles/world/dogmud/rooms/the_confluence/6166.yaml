@@ -13,7 +13,7 @@ description: >
   here, its facade rising above the top of the stair.
   The causeway runs west back toward the city and
   the far bank.
-biome: city
+biome: city_thoroughfare
 coord:
   x: 3
   y: -73

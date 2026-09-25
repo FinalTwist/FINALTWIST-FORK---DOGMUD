@@ -11,7 +11,7 @@ description: >
   half-finished blade-blanks line the far wall. The air
   smells of coal-smoke and hot metal. Examine the forge or
   the anvil.
-biome: city
+biome: interior
 coord: {x: 24, y: -77, z: 1}
 station: forge
 exits:

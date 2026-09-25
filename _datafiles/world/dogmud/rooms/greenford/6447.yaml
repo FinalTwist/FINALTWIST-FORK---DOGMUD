@@ -9,7 +9,7 @@ description: >
   bottles, and a set of brass scales. The air is thick with
   the mixed smell of dried mint, bitter root, and something
   faintly sweet underneath. Examine the bench or the herbs.
-biome: city
+biome: interior
 coord: {x: 26, y: -77, z: 1}
 station: alchemy_bench
 exits:

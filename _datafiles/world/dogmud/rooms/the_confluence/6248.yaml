@@ -14,7 +14,7 @@ description: >
   <ansi fg="itemname">east gate</ansi>
   arch is visible a short walk away, the road running
   straight from the bridge's foot.
-biome: city
+biome: city_thoroughfare
 coord:
   x: 8
   y: -67

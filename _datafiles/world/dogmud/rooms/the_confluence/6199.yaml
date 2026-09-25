@@ -11,7 +11,7 @@ description: >
   The <ansi fg="itemname">descending-stair</ansi> drops
   away into the dark below; the corridor is back to the
   west.
-biome: city
+biome: interior
 coord:
   x: 10
   y: -78

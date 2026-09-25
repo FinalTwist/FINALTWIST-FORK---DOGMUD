@@ -14,7 +14,7 @@ description: >
   this week's announcements in several hands. The
   town crier works the stalls on most mornings.
   Examine the cross or the board.
-biome: city
+biome: city_thoroughfare
 coord: {x: 22, y: -77, z: 1}
 exits:
   north: {roomid: 6288}

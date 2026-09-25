@@ -18,7 +18,7 @@ description: >
   traffic and has organized itself accordingly. The
   inn's common-room door opens south; the Civic Stores
   occupy the building to the east.
-biome: city
+biome: city_backstreet
 coord:
   x: -4
   y: -66

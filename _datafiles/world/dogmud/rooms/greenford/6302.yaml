@@ -13,7 +13,7 @@ description: >
   one doing nothing visible but thinking. The
   cloister walk is west; the archive south. Examine
   the reading-stands or the tables.
-biome: city
+biome: interior
 coord: {x: 23, y: -82, z: 2}
 exits:
   north: {roomid: 6301}

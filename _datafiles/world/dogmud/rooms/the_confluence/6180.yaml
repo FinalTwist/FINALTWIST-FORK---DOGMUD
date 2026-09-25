@@ -11,7 +11,7 @@ description: >
   warm from the candle-racks and from the steady press
   of people who pass through it. The temple entrance
   is back to the east.
-biome: city
+biome: interior
 coord:
   x: 2
   y: -75

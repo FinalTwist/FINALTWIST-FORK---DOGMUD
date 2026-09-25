@@ -14,7 +14,7 @@ description: >
   line the near wall, close enough to the door that river
   air keeps the worst of the smoke from settling. The stall
   is south.
-biome: city
+biome: interior
 station: forge
 coord:
   x: -13

@@ -14,7 +14,7 @@ description: >
   made illegible. The inn's south lane opens east, the
   Municipal Hall's service lane west. The square's
   monument is visible north, centered in the paving.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -5
   y: -68

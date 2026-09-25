@@ -13,7 +13,7 @@ description: >
   <ansi fg="itemname">road east</ansi>
   continues beyond sight, toward Greenford and the
   wider world. The city is behind to the north.
-biome: city
+biome: road
 coord:
   x: 10
   y: -70

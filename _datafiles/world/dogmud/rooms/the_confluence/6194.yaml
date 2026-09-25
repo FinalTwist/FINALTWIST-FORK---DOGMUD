@@ -9,7 +9,7 @@ description: >
   whose cell is which -- no names, no marks -- but the
   Keepers know without looking. The South Walk is back
   to the north.
-biome: city
+biome: interior
 coord:
   x: 7
   y: -79

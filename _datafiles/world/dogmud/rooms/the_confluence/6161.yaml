@@ -14,7 +14,7 @@ description: >
   approach is visible, the avenue running north toward
   the gate-piers, the city's rooftops beyond. The stair
   descends to the hall below.
-biome: city
+biome: interior
 coord:
   x: -5
   y: -74

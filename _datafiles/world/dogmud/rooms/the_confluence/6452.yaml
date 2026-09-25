@@ -13,7 +13,7 @@ description: >
   paste, and settings not yet fitted to anything. The air
   carries a faint, unplaceable hum that never quite settles.
   The stall is north.
-biome: city
+biome: interior
 station: enchanting_circle
 coord:
   x: -13

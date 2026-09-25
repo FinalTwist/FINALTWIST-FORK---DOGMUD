@@ -16,7 +16,7 @@ description: >
   lies open on the reading-stand. The restricted
   collection is east. Examine the filed-survey or
   the shelves.
-biome: city
+biome: interior
 coord: {x: 23, y: -83, z: 2}
 exits:
   north: {roomid: 6302}

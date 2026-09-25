@@ -14,7 +14,7 @@ description: >
   the row itself does not have. The tea house
   is north; the lane end is west. Examine the
   garden beds or the wall.
-biome: city
+biome: city_backstreet
 coord: {x: 23, y: -86, z: 2}
 exits:
   north: {roomid: 6312}

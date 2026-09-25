@@ -16,7 +16,7 @@ description: >
   The college gate is north; College Row
   opens to the south. Examine the lane or
   the houses.
-biome: city
+biome: city_backstreet
 coord: {x: 22, y: -84, z: 2}
 exits:
   north: {roomid: 6308}

@@ -15,7 +15,7 @@ description: >
   a script too small to read comfortably from the
   street, which is almost certainly not an accident.
   The court is to the west.
-biome: city
+biome: city_backstreet
 coord:
   x: -13
   y: -73

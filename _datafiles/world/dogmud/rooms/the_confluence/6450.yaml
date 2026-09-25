@@ -16,7 +16,7 @@ description: >
   writing-slope beside it. The air smells of beeswax, old
   paper, and the faint silt-smell that never quite leaves
   a building this close to three rivers. The stall is west.
-biome: city
+biome: interior
 isbank: true
 isstorage: true
 storagecapacity: 1000

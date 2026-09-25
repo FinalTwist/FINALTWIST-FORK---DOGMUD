@@ -13,7 +13,7 @@ description: >
   marker, older than the surrounding buildings. The
   riverfolk still leave things at it. Examine the stone
   to read whatever the carving preserves.
-biome: city
+biome: city_backstreet
 coord: {x: 21, y: -75, z: 0}
 exits:
   east: {roomid: 6284}

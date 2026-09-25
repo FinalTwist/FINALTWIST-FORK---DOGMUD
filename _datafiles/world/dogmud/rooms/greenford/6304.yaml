@@ -14,7 +14,7 @@ description: >
   supervised use that the notice presupposes. The
   only way back is west. Examine the door or the
   notice.
-biome: city
+biome: interior
 coord: {x: 24, y: -83, z: 2}
 exits:
   west: {roomid: 6303}

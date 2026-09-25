@@ -11,7 +11,7 @@ description: >
   was built on rather than built of. The air is cool
   and carries the smell of still water from the west.
   The stair goes back up; the undercroft opens west.
-biome: city
+biome: dungeon
 coord:
   x: 10
   y: -78

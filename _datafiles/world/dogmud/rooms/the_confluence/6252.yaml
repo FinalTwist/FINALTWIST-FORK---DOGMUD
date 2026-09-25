@@ -12,7 +12,7 @@ description: >
   have a reputation among road traffic: not luxurious,
   but clean and reliable, and the keeper knows which
   rooms face the road and which face the quiet yard.
-biome: city
+biome: city_backstreet
 coord:
   x: 9
   y: -68

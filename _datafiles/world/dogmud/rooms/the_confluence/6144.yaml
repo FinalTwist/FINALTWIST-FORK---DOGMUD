@@ -14,7 +14,7 @@ description: >
   taking a longer way around. The south edge of the
   square connects through it to the east, and the hall's
   north entry above.
-biome: city
+biome: city_backstreet
 coord:
   x: -6
   y: -68

@@ -13,7 +13,7 @@ description: >
   is available. A stair from the south corner climbs
   to the lodging floor; a door beside it opens to the
   Guild Lane. Examine the hearth or the stair.
-biome: city
+biome: interior
 coord: {x: 23, y: -76, z: 1}
 exits:
   west: {roomid: 6288}

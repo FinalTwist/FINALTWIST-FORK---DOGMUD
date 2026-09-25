@@ -13,7 +13,7 @@ description: >
   purpose. The Keepers come down occasionally to
   check the level, which they have noted in reports
   does not change. The passage back is north.
-biome: city
+biome: dungeon
 coord:
   x: 7
   y: -79

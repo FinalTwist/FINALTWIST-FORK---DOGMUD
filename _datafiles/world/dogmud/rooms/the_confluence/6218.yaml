@@ -17,7 +17,7 @@ description: >
   A wooden
   <ansi fg="itemname">notice-board</ansi>
   is pegged with rosters and duty schedules.
-biome: city
+biome: interior
 coord:
   x: -8
   y: -67

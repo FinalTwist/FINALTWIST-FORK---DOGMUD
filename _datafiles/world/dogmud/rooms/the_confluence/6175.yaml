@@ -15,7 +15,7 @@ description: >
   east aisle connects to the north; a disused alcove
   opens to the south; a passage leads east to the inner
   threshold.
-biome: city
+biome: interior
 coord:
   x: 4
   y: -77

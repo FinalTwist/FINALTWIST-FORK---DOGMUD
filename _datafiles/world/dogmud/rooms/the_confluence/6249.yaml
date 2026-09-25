@@ -14,7 +14,7 @@ description: >
   runs toward Greenford and the wider world. The
   Brennside wharf is a short walk north; the travelers'
   inn is to the south.
-biome: city
+biome: city_thoroughfare
 coord:
   x: 9
   y: -67

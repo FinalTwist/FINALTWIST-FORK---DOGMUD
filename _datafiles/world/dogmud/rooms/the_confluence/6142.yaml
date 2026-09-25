@@ -16,7 +16,7 @@ description: >
   civic bell visible in its open upper stage. The square
   lies to the east; the hall's south service lane
   descends below.
-biome: city
+biome: city_backstreet
 coord:
   x: -6
   y: -66

@@ -12,7 +12,7 @@ description: >
   of the inner temple's life turns around this space --
   the walks branch north, south, and east from the arcade
   columns, and the gate passage lies to the west.
-biome: city
+biome: city_backstreet
 coord:
   x: 7
   y: -77

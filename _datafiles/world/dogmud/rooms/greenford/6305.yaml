@@ -14,7 +14,7 @@ description: >
   — survey sheets covering the region and its
   margins, pinned and overlapping, annotated in
   several hands. Examine the old-maps or the desk.
-biome: city
+biome: interior
 coord: {x: 21, y: -82, z: 2}
 exits:
   north: {roomid: 6300}

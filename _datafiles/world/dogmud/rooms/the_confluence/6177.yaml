@@ -15,7 +15,7 @@ description: >
   keeper tends it on any regular schedule. The Brenn
   chapel is back to the north; the sanctuary is to the
   west.
-biome: city
+biome: interior
 coord:
   x: 4
   y: -78

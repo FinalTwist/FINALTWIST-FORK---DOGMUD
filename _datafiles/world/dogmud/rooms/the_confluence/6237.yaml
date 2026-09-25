@@ -16,7 +16,7 @@ description: >
   around the stalls at the speed of children who want
   something and have not been given it. The potter's is
   north; the baker's is west; the smithy is south.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -14
   y: -70

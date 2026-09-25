@@ -9,7 +9,7 @@ description: >
   the chapter house to the west and the archive to the
   east; the scriptorium lies north. The Cloister Garth
   is back to the south through the arcade.
-biome: city
+biome: interior
 coord:
   x: 7
   y: -76

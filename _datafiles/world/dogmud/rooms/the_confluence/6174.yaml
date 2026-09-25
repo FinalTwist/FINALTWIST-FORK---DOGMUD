@@ -14,7 +14,7 @@ description: >
   relief wall and disappears back into the floor. The
   crossing is to the east; the west aisle connects to
   the north; the Chapel of the Solt is to the south.
-biome: city
+biome: interior
 coord:
   x: 2
   y: -77

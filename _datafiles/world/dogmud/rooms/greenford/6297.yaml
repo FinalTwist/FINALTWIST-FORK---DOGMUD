@@ -12,7 +12,7 @@ description: >
   windows — all plainly visible from the gate.
   The grounds are open. Go up to enter. Examine
   the gate or the grounds.
-biome: city
+biome: city_thoroughfare
 coord: {x: 22, y: -80, z: 1}
 exits:
   north: {roomid: 6296}
