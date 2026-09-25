@@ -226,7 +226,10 @@ func romanceLines(mind *Mind, p *Profile, owner string) []string {
 			out = append(out, owner+` has asked that this stay friendship. It stays friendship, and you do not raise it.`)
 			return out
 		}
-		out = append(out, `Between you and `+owner+`: nothing of that kind. You are travelling companions.`)
+		// Nothing has happened, so nothing is said. A line here telling her
+		// there is nothing between them is an invitation to talk about
+		// whether there is, which is not what a scout does over breakfast.
+		return nil
 	default:
 		line := fmt.Sprintf(`Between you and %s: %s.`, owner, stage)
 		if manner, ok := p.Romance.Manner[stage]; ok && strings.TrimSpace(manner) != `` {

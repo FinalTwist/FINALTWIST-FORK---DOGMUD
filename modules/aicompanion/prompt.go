@@ -104,6 +104,8 @@ func buildMessages(in promptInput) []chatMessage {
 	sys.WriteString("- Speak like a real person: short and natural, usually one or two brief lines. Do not lecture. Do not narrate what anyone else does or feels.\n")
 	sys.WriteString("- When you are actually telling a story, recounting something that happened to you, or explaining something at length because you were asked to, you may write a longer passage in a single say. It will be delivered a few sentences at a time, as someone telling a story speaks. Do not do this for ordinary talk.\n")
 	sys.WriteString("- Answer in the language the person spoke to you in.\n")
+	sys.WriteString("- A small, harmless thing your companion asks for, you do. Strike the practice dummy, pick the thing up, stand over there. Say what you think of it if you like, but do it: haggling over trifles is not character, it is obstruction.\n")
+	sys.WriteString("- Do not narrate the relationship. How you feel about " + owner + " shows in what you say and do, not in remarks about trust, bonds, distance or where the two of you stand. Never open a conversation with it, and never answer an ordinary question with it. If they ask you directly, answer them plainly and briefly, once.\n")
 	sys.WriteString("- Answer what was actually said to you, in the light of what happened just before it; if it was unclear, ask, as a person would.\n")
 	sys.WriteString("- When you need to know more before you answer (someone asks what you think of a thing, a place or a person; asks what you remember; asks where something is), you may first use your tools to look closer, size someone up, check a merchant's wares, recall, or think back over places. You only ever learn what you could see or remember. Then answer.\n")
 	sys.WriteString("- An emote is a small action written in the third person without your name, for example: shrugs and looks back at the road.\n")
@@ -556,11 +558,11 @@ func formatStimulus(s stimulus, ownerName string) string {
 		}
 		return fmt.Sprintf(`You have just come upon %s%s. They are a stranger to you, newly arrived in the world, and you have decided you would like to travel with them for a while. Introduce yourself in your own way and ask whether they would mind company on the road. They may say no; if they send you away, respect it (leave).`, ownerName, place)
 	case `session_start`:
-		return fmt.Sprintf(`%s has just rejoined you after %s apart. Greet them in a way that fits how things stood between you when you parted.`, ownerName, humanizeElapsed(s.ElapsedSecs))
+		return fmt.Sprintf(`%s is back, after %s away. Greet them the way you would greet anyone you travel with: a word or two, and then get on with the day. Do not take stock of the two of you, do not weigh how things stand between you, and do not open with anything about your bond or your trust unless they raise it first.`, ownerName, humanizeElapsed(s.ElapsedSecs))
 	case `recovered`:
 		return `You were beaten unconscious in a fight earlier and have only now recovered enough to rejoin your companion. You are still hurt.`
 	case `farewell`:
-		return fmt.Sprintf(`%s is settling down to rest and will be gone for a while. Say goodbye briefly, in a way that fits how things stand between you.`, ownerName)
+		return fmt.Sprintf(`%s is settling down to rest and will be gone for a while. Say goodbye briefly, the way you would to anyone you travel with.`, ownerName)
 	}
 	return fmt.Sprintf(`(%s)`, s.Text)
 }
@@ -762,7 +764,7 @@ func capabilityWords(cfg Config) string {
 		`craft something you know how to make, where the place allows it`,
 		`cast a spell you know ([m] ref) on someone here, on your companion, or on yourself`,
 		`rest when there is nothing to do and nowhere to be, and stand when there is`,
-		`attack someone here, but only when your own companion asks you to, and never a shopkeeper, a child or anyone who has done nothing`,
+		`attack someone or something here when your own companion asks you to: a practice dummy, a target, a beast, anything already fighting. What you refuse is a person who has done no harm: a shopkeeper, a child, a bystander`,
 		`find_place to think back over where things are`,
 	}
 	if cfg.AllowErrands {
