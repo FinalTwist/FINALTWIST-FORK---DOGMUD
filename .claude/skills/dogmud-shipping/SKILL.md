@@ -110,11 +110,34 @@ catch what CI cannot see or what wastes a CI round-trip.
 1. **`gofmt -l internal/ modules/`** must print nothing. This has its own CI
    gate and has broken a push before. Cheapest possible check; run it first.
 2. **`go build ./...`** and the tests for every package you touched.
-3. **Update `docs/PATCH_NOTES.md`** with a dated entry. Player-facing framing,
+3. **`golangci-lint run --new-from-merge-base=origin/master`** must report
+   `0 issues`. Takes about 60s.
+
+   🔑 **This is the only local gate that sees what CI's lint gate sees.** CI
+   runs golangci-lint with `--new-from-patch`, and its linter set is wider than
+   `go vet` and `gofmt` combined: `unconvert`, `staticcheck` and friends are in
+   it and in neither of those. A push can pass steps 1 and 2 cleanly and still
+   redden CI on a linter you never ran.
+
+   The binary is already installed at `~/go/bin/golangci-lint` and is pinned to
+   the same version CI uses. Check with `golangci-lint --version` and match
+   `.github/workflows/` if it has drifted; a different version reports a
+   different set.
+
+   🪤 **A pre-existing issue can enter the "new issues" set without anyone
+   touching it.** CI classifies by whether the LINE is in the patch, not by
+   whether the DEFECT is new, so a `gofmt` realignment of a neighbouring line
+   is enough to pull an old finding into scope. PR #162 went red on a no-op
+   `uint64()` conversion that predated the branch entirely, because removing a
+   redundant `float64()` two lines away re-tabbed the block's trailing
+   comments. Do not assume an unfamiliar finding means you wrote it; check
+   `git log -L` before hunting for a bug you did not introduce.
+
+4. **Update `docs/PATCH_NOTES.md`** with a dated entry. Player-facing framing,
    no raw numbers, no em dashes.
-4. **`Logging.LogToFile: false`** in `_datafiles/config.yaml` (the droplet has
+5. **`Logging.LogToFile: false`** in `_datafiles/config.yaml` (the droplet has
    limited disk). Note this file has `skip-worktree` set.
-5. **Boot the server and confirm `Server Ready`.** `go build` only checks
+6. **Boot the server and confirm `Server Ready`.** `go build` only checks
    compilation. YAML data files (mobs, items, quests, dialogues, rooms, schedules,
    patrols) panic at *startup* on a filename/name-field mismatch, an invalid
    trigger event, an ID collision, or an unresolved reference. Nothing but a
@@ -155,16 +178,16 @@ catch what CI cannot see or what wastes a CI round-trip.
    and `/*.exe` are already gitignored). One firewall rule for that path and the
    prompt stops for good.
 
-6. **Push, open the PR, watch the checks.** A green check is **not** proof: a
+7. **Push, open the PR, watch the checks.** A green check is **not** proof: a
    run can pass while emitting annotations, and the lint gate is configured
    `only-new-issues`. Confirm with `gh run view <id> --repo pruuk/DOGMud
    --log-failed` rather than trusting the summary.
 
-7. After merge, delete the stray `refs/tags/master` if it re-seeds on origin.
+8. After merge, delete the stray `refs/tags/master` if it re-seeds on origin.
 
 ## Boot check in an isolated worktree
 
-The boot-check recipe above (step 5 of the Pre-Push SOP), repeated on its own
+The boot-check recipe above (step 6 of the Pre-Push SOP), repeated on its own
 because it is a distinct, reusable procedure: build to a fixed-path
 `boot-check.exe` inside a detached worktree, never `go run .`, treat exit code
 124 as success, and do not grep for the bare word `panic` because
@@ -287,18 +310,31 @@ asked:
   touching a path-filtered trigger, confirm the expected workflows actually
   ran with `gh run list`. [[feedback-gh-pr-checks-can-return-early]]
 - **A red `validate / lint` check on a large PR can be meaningless.** The
-  `only-new-issues` gate asks GitHub's API for the PR patch, and that API
-  refuses any diff over 20,000 lines; when it fails, the action cannot tell
-  new findings from old and reports the entire grandfathered backlog as if the
-  branch introduced it. Verify locally with `golangci-lint run
-  --new-from-rev=master` before trusting a red check on a big PR.
-  [[reference-lint-gate-inverts-on-large-prs]]
+  `only-new-issues` gate asks GitHub's API for the PR patch; when that call
+  fails the action cannot tell new findings from old and reports the entire
+  grandfathered backlog as if the branch introduced it.
+
+  🔴 **TWO separate limits trigger it, and this note used to name only one.**
+  The API refuses a diff over **20,000 lines**, AND it pages the file list at
+  **300 files**. PR #163 inverted the gate at **307 files and only 9,963
+  lines**, so the file count is a real and independent trigger.
+
+  **How to recognise it in the log**, rather than guessing:
+  - `only new issues on pull_request:` prints with an **empty value**
+  - the invocation is a bare `golangci-lint run`, with **no `--new-from-patch`**
+    flag (a healthy run shows `--new-from-patch=/tmp/.../pull.patch`)
+  - the findings name files the branch never touched
+
+  Verify locally with `golangci-lint run --new-from-merge-base=origin/master`,
+  which is step 3 of the Pre-Push SOP and reproduces the healthy check exactly.
+  A green local run plus those three log signals is proof the red is an
+  artifact. [[reference-lint-gate-inverts-on-large-prs]]
 
 ## Sources
 
 Lifted verbatim from CLAUDE.md:
 - "Git Workflow" (lines 44-98)
-- "Pre-Push SOP" (lines 99-158)
+- "Pre-Push SOP" (lines 99-180)
 - "Instance Saves & Smoke-Test SOP" (lines 159-205)
 
 Folded memory files (rule stated inline above, cited here):
