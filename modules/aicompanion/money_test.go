@@ -830,3 +830,28 @@ func TestWorstCaseHoldsFullToolAnswers(t *testing.T) {
 		t.Fatalf("the allowance covers %d answers at the cap: %d estimated, %d held", maxToolCallsPerReply, got, answers)
 	}
 }
+
+// A round of questions that was answered and billed stays spent when the
+// game's answering of the next round panics: the settlement is told what
+// the completed rounds cost, not nothing.
+func TestPanicInToolAnswersKeepsCompletedSpend(t *testing.T) {
+	_, _, _, her := harmWorld(t, `off`)
+	srv := usageServer(t, `{"choices":[{"finish_reason":"tool_calls","message":{"tool_calls":[`+
+		`{"id":"q1","type":"function","function":{"name":"recall","arguments":"{\"query\":\"the old mill\"}"}}]}}],`+
+		`"usage":{"total_tokens":77}}`, nil)
+	m := &AICompanionModule{}
+	m.syncConsent()
+	// Her mind is missing, so answering "recall" panics.
+	m.ctrls = map[int]*controller{1: {ownerUserId: 1, instanceId: her.InstanceId, seq: 1}}
+	call := modelCall{BaseURL: srv.URL, APIKey: `k`, Model: `m`, Timeout: 2 * time.Second,
+		Messages: []chatMessage{{Role: `user`, Content: `hi`}}, SchemaName: `s`, Schema: decisionSchema(), OwnerUserId: 1}
+	spent := 0
+	func() {
+		defer func() { _ = recover() }()
+		m.callWithTools(call, 1, 1, 0, nil, 2, &spent)
+		t.Fatal("fixture: answering must panic")
+	}()
+	if spent != 77 {
+		t.Fatalf("the completed round's spend is kept: %d", spent)
+	}
+}

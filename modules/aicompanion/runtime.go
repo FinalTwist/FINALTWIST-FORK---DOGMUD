@@ -664,7 +664,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 			}
 		}()
 
-		res := m.callWithTools(call, ownerId, seq, rev, sc, toolRounds)
+		res := m.callWithTools(call, ownerId, seq, rev, sc, toolRounds, &used)
 		used = res.Tokens
 
 		// Parse and moderate here, off the game loop.
@@ -1295,7 +1295,9 @@ func (m *AICompanionModule) snapshotIfDue(c *controller, round uint64) {
 // toolRounds rounds of read-only questions first (look closer, size up,
 // wares, recall, find a place). Runs on the model goroutine; the answers
 // are read under the mud lock, which is released before the next call.
-func (m *AICompanionModule) callWithTools(call modelCall, ownerId int, seq uint64, rev uint64, sc *scene, toolRounds int) modelResult {
+// spent, when not nil, is kept up to date with what the rounds so far
+// cost, so a panic while answering still settles what was billed.
+func (m *AICompanionModule) callWithTools(call modelCall, ownerId int, seq uint64, rev uint64, sc *scene, toolRounds int, spent *int) modelResult {
 	tokens, used := 0, 0
 	latency := time.Duration(0)
 	for round := 0; ; round++ {
@@ -1308,6 +1310,9 @@ func (m *AICompanionModule) callWithTools(call modelCall, ownerId int, seq uint6
 		}
 		res := m.callModel(call)
 		tokens += res.Tokens
+		if spent != nil {
+			*spent = tokens
+		}
 		latency += res.Latency
 		res.Tokens, res.Latency, res.ToolsUsed = tokens, latency, used
 		if res.Err != nil || len(res.ToolCalls) == 0 || round >= toolRounds {

@@ -1078,11 +1078,11 @@ func TestCallWithToolsOffersToolsAndReturnsAnswer(t *testing.T) {
 	m := &AICompanionModule{}
 	m.syncConsent() // RequireConsent off: any known owner may send
 	call := modelCall{BaseURL: srv.URL, APIKey: `k`, Model: `m`, Timeout: 2 * time.Second, Messages: []chatMessage{{Role: `user`, Content: `hi`}}, SchemaName: `s`, Schema: decisionSchema(), OwnerUserId: 1}
-	res := m.callWithTools(call, 1, 1, 0, nil, 2)
+	res := m.callWithTools(call, 1, 1, 0, nil, 2, nil)
 	if res.Err != nil || res.Content != `{"intent":"x"}` || res.Tokens != 42 || !sawTools {
 		t.Fatalf("call: err=%v content=%q tokens=%d sawTools=%v", res.Err, res.Content, res.Tokens, sawTools)
 	}
-	res = m.callWithTools(call, 1, 1, 0, nil, 0)
+	res = m.callWithTools(call, 1, 1, 0, nil, 0, nil)
 	if sawTools {
 		t.Fatal("no tools may be offered when tool rounds are 0")
 	}
@@ -2207,7 +2207,7 @@ func driveEverySender(t *testing.T, m *AICompanionModule, c *controller, baseURL
 	call := modelCall{BaseURL: baseURL, APIKey: `k`, Model: `m`, Timeout: 2 * time.Second,
 		Messages: []chatMessage{{Role: `user`, Content: `hi`}}, SchemaName: `s`, Schema: decisionSchema(),
 		OwnerUserId: c.ownerUserId}
-	m.callWithTools(call, c.ownerUserId, 1, 0, nil, 0)
+	m.callWithTools(call, c.ownerUserId, 1, 0, nil, 0, nil)
 	d := Decision{Speech: []SpeechLine{{Kind: `say`, Text: `hello`}}}
 	m.moderateDecision(c.ownerUserId, &d, baseURL, `k`, `omni-moderation-latest`, time.Second, false)
 
