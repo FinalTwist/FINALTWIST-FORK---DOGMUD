@@ -325,11 +325,23 @@ A script running on the game page (an injected script, a hostile browser
 extension, a cross-site scripting bug in the web client) CAN still SPEND
 the key: it can post requests to the relay frame exactly as the game page
 does, and the relay cannot tell them apart. What bounds that is the relay's
-own cap (at most 2 requests in flight and 30 a minute, whatever asks) and
-the spending cap the setup text tells every player to set with their
+own cap (at most 2 requests in flight, 30 a minute and 40000 answer tokens
+a minute, whatever asks), its rules for a request body (the stored model
+always, at most 4000 answer tokens and 256 KiB, one answer, not streamed,
+and only under a schema this server uses; anything else is refused unsent)
+and the spending cap the setup text tells every player to set with their
 provider. That is the boundary to state to players: the key cannot be
 stolen from the game page, but while their game page is compromised it can
 be used, within those caps, until they close it or forget the key.
+
+A remembered key is only as strong as its passphrase. It is kept
+encrypted in the relay origin's browser storage, and anyone who gets a
+copy of that browser profile (a shared or stolen computer, a backup, malware
+that reads files) can try passphrases against it offline, as fast as their
+hardware allows, with nothing to stop or notice them. The relay slows each
+guess (600000 rounds of PBKDF2), which defeats a long random passphrase but
+not a short or common one. Tell players to choose a long passphrase they use
+nowhere else, or not to tick "Remember" on a computer others can reach.
 
 Three operator traps:
 
