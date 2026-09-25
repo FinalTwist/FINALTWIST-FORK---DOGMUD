@@ -276,6 +276,12 @@ skills, health) is never in the mind file; it lives on the owner's
 - **The farewell rides the `quit` meditation.** `quit` applies condition 0
   and the owner leaves when it expires; `sync` sees the condition and
   dispatches a goodbye immediately. A dropped connection gets no farewell.
+- **Two listeners are registered even when the module is off.** The engine
+  raises `events.Emote` and `events.Healed` for this module alone, so
+  `onLoad` registers `onEmote` and `onHealed` before the `Enabled` check
+  (both return at once while off); otherwise every emote and every heal
+  cast at a creature is logged as "no listener for event". The events
+  package has no notion of an event that may go unheard.
 - **Config is read through the plugin config bag**, so a mistyped key is a
   silent default. `aicompanion status` shows what is actually in effect.
 

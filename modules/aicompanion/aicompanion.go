@@ -187,10 +187,18 @@ func init() {
 func (m *AICompanionModule) onLoad() {
 	m.cfg = loadConfig(m.plug)
 
-	// Switched off, the module stops here: nothing is loaded, no listener
-	// is registered and no seam is installed, so the engine's nil checks
-	// find nothing and the server behaves as though this module were not
-	// built at all.
+	// The engine raises two events for this module alone, an emote and a
+	// heal cast at a creature, and nothing else listens to either. Left
+	// unheard, every one would be counted and logged as an event nobody
+	// handled, so these two listeners are registered on or off. Both return
+	// at once while the module is off.
+	events.RegisterListener(events.Emote{}, m.onEmote)
+	events.RegisterListener(events.Healed{}, m.onHealed)
+
+	// Switched off, the module stops here: nothing is loaded, no other
+	// listener is registered and no seam is installed, so the engine's nil
+	// checks find nothing and the server behaves as though this module were
+	// not built at all.
 	if !m.cfg.Enabled {
 		mudlog.Info(`aicompanion`, `enabled`, false,
 			`message`, `switched off; set Modules.aicompanion.Enabled: true to use it`)
@@ -224,10 +232,8 @@ func (m *AICompanionModule) onLoad() {
 	events.RegisterListener(events.CharacterCreated{}, m.onCharacterCreated)
 	events.RegisterListener(events.PlayerDespawn{}, m.onPlayerDespawn)
 	events.RegisterListener(events.Communication{}, m.onCommunication)
-	events.RegisterListener(events.Emote{}, m.onEmote)
 	events.RegisterListener(events.GiftAccepted{}, m.onGiftAccepted)
 	events.RegisterListener(events.PlayerAttackedMob{}, m.onPlayerAttackedMob)
-	events.RegisterListener(events.Healed{}, m.onHealed)
 	events.RegisterListener(events.MobDeath{}, m.onMobDeath)
 	events.RegisterListener(events.PlayerDeath{}, m.onPlayerDeath)
 	companionai.SetAskHandler(m.handleAsk)
