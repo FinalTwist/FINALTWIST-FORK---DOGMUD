@@ -145,6 +145,36 @@ superseded by Task 13 at the end of Part 2, which runs last.
 
 ---
 
+### Findings from Task 7 (`7a12c974a`) that bind later tasks
+
+- **Inbound websocket messages are capped at 64 KiB** (`wsMaxMessageBytes`,
+  `internal/web/web.go:28`, applied at `:343`); a larger one closes the
+  player's connection. Task 12's glue MUST measure the encoded
+  `Companion.Relay.Response` frame (JSON-escaped body included) and, if it
+  would exceed 60 KiB, send `{id, status: 0, body: ""}` instead. Task 9 keeps
+  its 1 MiB check as a second line, and its tests should also cover a reply
+  refused for size.
+- **`/webclient` serves `webclient.html`, which frames `/webclient-pure.html`.**
+  The game page CSP is set only on `webclient-pure.html`; the glue script and
+  the relay iframe live in `webclient-pure.html`. Relay `frame-ancestors`
+  must therefore allow the game origin that serves `webclient-pure.html` (the
+  same `WebDomain` origin), which Task 11's CSP already does.
+- **No `Core.Supports.Set` is needed** for a web client to receive
+  `Companion.*`; skip that step in Task 12.
+- The relay sender returns false when the client has not finished GMCP
+  negotiation, so Task 9 sees `errRelayUnsent` rather than a timeout.
+
+### Findings from Task 8 (`f75b37fea`) that bind later tasks
+
+- The per-owner breaker's `failure`/`success` are called ONCE per call by
+  `routeResult` at each call site. Task 9 must NOT call them inside
+  `callModelOnce` (the plan's Task 9 code does; drop those two lines).
+  `TestRelaySummaryChargesOnlyThePasserBy` would time out on a double count.
+- Moderation is already skipped for relay routes (done in Task 8). Task 9
+  adds only the transport branch in `callModelOnce`.
+- Dispatch and summaries call `modelReadyFor(owner, asker)`; `relays` is
+  created in `init()`. The route rides on `modelCall.Route`.
+
 ### Task 7: Engine seams for the relay
 
 **Files:**
