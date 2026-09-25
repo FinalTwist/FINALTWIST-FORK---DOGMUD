@@ -177,7 +177,12 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 				}
 				targetMobInstanceIds = append(targetMobInstanceIds, mId)
 			} else if pId > 0 {
-				targetUserIds = append(targetUserIds, pId)
+				// A player foe is skipped, not refused, when PvP forbids it:
+				// the empty-target guard below then answers as it would
+				// for no foe at all.
+				if fallbackPvpAllowed(actor, room, pId) {
+					targetUserIds = append(targetUserIds, pId)
+				}
 			} else {
 				return CastResult{SpellInfo: spellInfo, NoTarget: true}
 			}
@@ -226,7 +231,10 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 				}
 				targetMobInstanceIds = append(targetMobInstanceIds, mId)
 			} else if pId > 0 {
-				targetUserIds = append(targetUserIds, pId)
+				// Skipped, as HarmSingle's fallback skips it, when PvP forbids it.
+				if fallbackPvpAllowed(actor, room, pId) {
+					targetUserIds = append(targetUserIds, pId)
+				}
 			}
 		} else {
 			// Mob HarmMulti: all fighters targeting this mob.
@@ -560,4 +568,17 @@ func resolveMobHelpMultiTargets(actor Actor, room *rooms.Room) ([]int, []int) {
 	}
 
 	return targetMobInstanceIds, targetUserIds
+}
+
+// fallbackPvpAllowed reports whether a player caster's no-target fallback may
+// take the player pId as its target. It asks Room.CanPvp, the same check the
+// named-target branches make, but tells the caster nothing: the caster named
+// no one, so a skipped foe is simply not a target.
+func fallbackPvpAllowed(actor Actor, room *rooms.Room, pId int) bool {
+	casterUser := users.GetByUserId(actor.GetUserId())
+	targetUser := users.GetByUserId(pId)
+	if casterUser == nil || targetUser == nil {
+		return true
+	}
+	return room.CanPvp(casterUser, targetUser) == nil
 }
