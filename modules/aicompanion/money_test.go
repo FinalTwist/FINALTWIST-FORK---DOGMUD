@@ -305,17 +305,17 @@ func TestRelayUsageIsNeverTrusted(t *testing.T) {
 	}
 
 	relay := route{kind: routeRelay, model: `player-model`}
-	if !m.reserveRoute(relay, 5, 2, 400) {
+	if !tryRoute(m, relay, 5, 2, 400) {
 		t.Fatal("fixture: the passer-by's question fits")
 	}
-	m.settleRoute(relay, 5, 2, 400, 5000)
+	settleToday(m, relay, 5, 2, 400, 5000)
 	if m.strangerTokens[2] != 400 {
 		t.Fatalf("a passer-by pays at most what was held, got %d", m.strangerTokens[2])
 	}
-	if !m.reserveRoute(relay, 5, 3, 400) {
+	if !tryRoute(m, relay, 5, 3, 400) {
 		t.Fatal("fixture: a second passer-by's question fits")
 	}
-	m.settleRoute(relay, 5, 3, 400, -900)
+	settleToday(m, relay, 5, 3, 400, -900)
 	if m.strangerTokens[3] != 0 {
 		t.Fatalf("and never less than nothing, got %d", m.strangerTokens[3])
 	}
@@ -477,20 +477,20 @@ func TestStrangerTokensPerOwnerCapsThemTogether(t *testing.T) {
 	for _, rt := range []route{{kind: routeServer}, {kind: routeRelay, model: `player-model`}} {
 		m := relayModule(t)
 		m.cfg.DailyTokenBudget, m.cfg.StrangerDailyTokens, m.cfg.StrangerTokensPerOwner = 100000, 1000, 1500
-		if !m.reserveRoute(rt, 5, 2, 900) || !m.reserveRoute(rt, 5, 3, 500) {
+		if !tryRoute(m, rt, 5, 2, 900) || !tryRoute(m, rt, 5, 3, 500) {
 			t.Fatalf("%v: two passers-by within both caps are admitted", rt.kind)
 		}
-		if m.reserveRoute(rt, 5, 4, 200) {
+		if tryRoute(m, rt, 5, 4, 200) {
 			t.Fatalf("%v: a third, within their own allowance, would overshoot the owner's cap", rt.kind)
 		}
-		if !m.reserveRoute(rt, 6, 4, 200) {
+		if !tryRoute(m, rt, 6, 4, 200) {
 			t.Fatalf("%v: another owner's companion has its own cap", rt.kind)
 		}
-		m.settleRoute(rt, 5, 2, 900, 100)
+		settleToday(m, rt, 5, 2, 900, 100)
 		if m.strangersFor[5] != 600 {
 			t.Fatalf("%v: a settlement gives back what was not used, got %d", rt.kind, m.strangersFor[5])
 		}
-		if !m.reserveRoute(rt, 5, 4, 200) {
+		if !tryRoute(m, rt, 5, 4, 200) {
 			t.Fatalf("%v: and the room it frees is usable", rt.kind)
 		}
 	}
@@ -853,5 +853,47 @@ func TestPanicInToolAnswersKeepsCompletedSpend(t *testing.T) {
 	}()
 	if spent != 77 {
 		t.Fatalf("the completed round's spend is kept: %d", spent)
+	}
+}
+
+// A call held before midnight and settled after it gives nothing back to
+// its payer: their count started the new day at nothing, and a refund
+// would come off what they really spent today.
+func TestAHoldAcrossMidnightRefundsNothing(t *testing.T) {
+	m := relayModule(t)
+	m.cfg.DailyTokensPerCompanion, m.cfg.StrangerDailyTokens, m.cfg.StrangerTokensPerOwner = 100000, 100000, 100000
+	server, relay := route{kind: routeServer}, route{kind: routeRelay, model: `player-model`}
+
+	ownerHold, ok1 := m.reserveRoute(server, 5, 0, 900)
+	strangerHold, ok2 := m.reserveRoute(relay, 5, 2, 400)
+	if !ok1 || !ok2 {
+		t.Fatal("fixture: both holds fit")
+	}
+	// They were held yesterday, and the day turns.
+	ownerHold.day, strangerHold.day = `1999-01-01`, `1999-01-01`
+	m.budgetDay = `1999-01-01`
+	m.rollDay()
+	// Today's own spending.
+	settleToday(m, server, 5, 0, 0, 0)
+	m.chargeOwner(5, 500)
+	m.chargeStrangerFor(5, 2, 300)
+
+	m.settleRoute(ownerHold, 100)
+	m.settleRoute(strangerHold, 0)
+	if m.ownerTokens[5] != 500 {
+		t.Fatalf("the owner's count today is untouched by yesterday's hold: %d", m.ownerTokens[5])
+	}
+	if m.strangerTokens[2] != 300 || m.strangersFor[5] != 300 {
+		t.Fatalf("so is the passer-by's: %d, %d", m.strangerTokens[2], m.strangersFor[5])
+	}
+	if m.outstanding != 0 {
+		t.Fatalf("and nothing is left held: %d", m.outstanding)
+	}
+
+	// Control: the same holds settled on their own day do give back.
+	h, _ := m.reserveRoute(server, 5, 0, 900)
+	m.settleRoute(h, 100)
+	if m.ownerTokens[5] != 600 {
+		t.Fatalf("a same-day hold settles at what was used: %d", m.ownerTokens[5])
 	}
 }

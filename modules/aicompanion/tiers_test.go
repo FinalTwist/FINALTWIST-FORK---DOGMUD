@@ -230,17 +230,17 @@ func TestRelayCallsReserveNothingOfTheServers(t *testing.T) {
 	m.tokensToday = m.cfg.DailyTokenBudget
 	m.ownerTokens[5] = m.cfg.DailyTokensPerCompanion
 
-	if !m.reserveRoute(relay, 5, 0, 900) {
+	if !tryRoute(m, relay, 5, 0, 900) {
 		t.Fatal("the owner's own key is not refused for the server's spent budgets")
 	}
 	if m.tokensToday != m.cfg.DailyTokenBudget || m.outstanding != 0 || m.ownerTokens[5] != m.cfg.DailyTokensPerCompanion {
 		t.Fatalf("and holds nothing against them: today=%d outstanding=%d owner=%d", m.tokensToday, m.outstanding, m.ownerTokens[5])
 	}
-	m.settleRoute(relay, 5, 0, 900, 700)
+	settleToday(m, relay, 5, 0, 900, 700)
 	if m.tokensToday != m.cfg.DailyTokenBudget || m.outstanding != 0 || m.ownerTokens[5] != m.cfg.DailyTokensPerCompanion {
 		t.Fatalf("nor settles anything against them: today=%d outstanding=%d owner=%d", m.tokensToday, m.outstanding, m.ownerTokens[5])
 	}
-	if m.reserveRoute(route{kind: routeNone}, 5, 0, 1) {
+	if tryRoute(m, route{kind: routeNone}, 5, 0, 1) {
 		t.Fatal("tier 1 reserves nothing because it calls nothing")
 	}
 }
@@ -249,24 +249,24 @@ func TestStrangerRelayCallsStopAtTheStrangerCap(t *testing.T) {
 	m := relayModule(t)
 	relay := route{kind: routeRelay, model: `player-model`}
 
-	if !m.reserveRoute(relay, 5, 2, 900) {
+	if !tryRoute(m, relay, 5, 2, 900) {
 		t.Fatal("a passer-by's question that fits their allowance is admitted")
 	}
-	if m.reserveRoute(relay, 5, 2, 900) {
+	if tryRoute(m, relay, 5, 2, 900) {
 		t.Fatal("a second that would overshoot it is refused while the first is held")
 	}
 	if m.strangerTokens[2] != 900 || m.tokensToday != 0 || m.outstanding != 0 || m.ownerTokens[5] != 0 {
 		t.Fatalf("held against the passer-by alone: stranger=%d today=%d outstanding=%d owner=%d",
 			m.strangerTokens[2], m.tokensToday, m.outstanding, m.ownerTokens[5])
 	}
-	m.settleRoute(relay, 5, 2, 900, 100)
+	settleToday(m, relay, 5, 2, 900, 100)
 	if m.strangerTokens[2] != 100 {
 		t.Fatalf("settled to what was used: %d", m.strangerTokens[2])
 	}
-	if !m.reserveRoute(relay, 5, 3, 900) {
+	if !tryRoute(m, relay, 5, 3, 900) {
 		t.Fatal("another passer-by has their own allowance")
 	}
-	m.settleRoute(relay, 5, 3, 900, 0)
+	settleToday(m, relay, 5, 3, 900, 0)
 	if m.strangerTokens[3] != 0 {
 		t.Fatalf("a failed call refunds all of it, once: %d", m.strangerTokens[3])
 	}
@@ -280,7 +280,7 @@ func TestStrangerRelayReservationsCannotSlipPastTheCapTogether(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		go func() {
 			util.LockMud()
-			ok := m.reserveRoute(relay, 5, 2, 400)
+			ok := tryRoute(m, relay, 5, 2, 400)
 			util.UnlockMud()
 			done <- ok
 		}()
@@ -849,4 +849,15 @@ func TestRelayGoneAndCancelledSpareTheBreaker(t *testing.T) {
 	if n := m.relays.owners[5].failures; n != 1 {
 		t.Fatalf("control: a silent provider counts, got %d", n)
 	}
+}
+
+// tryRoute is reserveRoute for a test that settles the same day.
+func tryRoute(m *AICompanionModule, r route, ownerId int, askerId int, tokens int) bool {
+	_, ok := m.reserveRoute(r, ownerId, askerId, tokens)
+	return ok
+}
+
+// settleToday settles a reservation tryRoute made today.
+func settleToday(m *AICompanionModule, r route, ownerId int, askerId int, reserved int, used int) {
+	m.settleRoute(hold{r: r, owner: ownerId, asker: askerId, tokens: reserved, day: m.budgetDay}, used)
 }

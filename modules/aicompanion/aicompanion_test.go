@@ -2644,15 +2644,16 @@ func TestGoneMindStillRefundsItsOwner(t *testing.T) {
 	failed := modelResult{Err: errors.New(`gone`)}
 	server := route{kind: routeServer} // reserved below on the server's key
 
-	for name, apply := range map[string]func(){
-		`summary`:    func() { m.applyConversationSummary(`nobody`, 1, `Corvin`, 7, 0, 300, server, failed) },
-		`core`:       func() { m.applyCore(`nobody`, 1, CoreMemory{}, 300, server, failed) },
-		`reflection`: func() { m.applyReflection(`nobody`, 1, 0, `m`, 300, server, failed) },
+	for name, apply := range map[string]func(h hold){
+		`summary`:    func(h hold) { m.applyConversationSummary(`nobody`, 1, `Corvin`, 7, 0, h, server, failed) },
+		`core`:       func(h hold) { m.applyCore(`nobody`, 1, CoreMemory{}, h, server, failed) },
+		`reflection`: func(h hold) { m.applyReflection(`nobody`, 1, 0, `m`, h, server, failed) },
 	} {
-		if !m.tryReserveTokens(1, 300) {
+		h, ok := m.reserveRoute(server, 1, 0, 300)
+		if !ok {
 			t.Fatalf("%s: fixture reservation refused", name)
 		}
-		apply()
+		apply(h)
 		if m.ownerTokens[1] != 0 || m.outstanding != 0 {
 			t.Fatalf("%s: owner=%d outstanding=%d after a refund", name, m.ownerTokens[1], m.outstanding)
 		}

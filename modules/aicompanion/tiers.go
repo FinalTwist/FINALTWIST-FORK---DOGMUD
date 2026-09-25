@@ -197,40 +197,58 @@ func (m *AICompanionModule) applyRoute(c *modelCall) {
 // nothing, except that a passer-by's question is still held against their
 // StrangerDailyTokens and the owner's StrangerTokensPerOwner (strangerFits):
 // the owner's key is not theirs to spend without end.
-func (m *AICompanionModule) reserveRoute(r route, ownerId int, askerId int, tokens int) bool {
+//
+// The hold it returns is what settleRoute takes back: the route, the
+// payer, the amount and the UTC day it was held on.
+func (m *AICompanionModule) reserveRoute(r route, ownerId int, askerId int, tokens int) (hold, bool) {
+	m.rollDay()
+	h := hold{r: r, owner: ownerId, asker: askerId, tokens: tokens, day: m.budgetDay}
 	switch r.kind {
 	case routeServer:
-		return m.tryReserveFor(ownerId, askerId, tokens)
+		return h, m.tryReserveFor(ownerId, askerId, tokens)
 	case routeRelay:
 		if askerId <= 0 {
-			return true
+			return h, true
 		}
-		m.rollDay()
 		if !m.strangerFits(ownerId, askerId, tokens) {
-			return false
+			return h, false
 		}
 		m.chargeStrangerFor(ownerId, askerId, tokens)
-		return true
+		return h, true
 	}
-	return false
+	return h, false
+}
+
+// hold is one call's reservation, as reserveRoute made it.
+type hold struct {
+	r      route
+	owner  int
+	asker  int
+	tokens int
+	day    string // the budget day it was held on
 }
 
 // settleRoute settles a reservation made by reserveRoute with the same
-// route, against the same payer, exactly once.
-func (m *AICompanionModule) settleRoute(r route, ownerId int, askerId int, reserved int, used int) {
-	switch r.kind {
+// route, against the same payer, exactly once. A hold from an earlier day
+// gives nothing back to the payer's counters, which started the new day at
+// nothing (settleForDay).
+func (m *AICompanionModule) settleRoute(h hold, used int) {
+	switch h.r.kind {
 	case routeServer:
-		m.settleFor(ownerId, askerId, reserved, used)
+		m.settleForDay(h.day, h.owner, h.asker, h.tokens, used)
 	case routeRelay:
-		if askerId <= 0 {
+		if h.asker <= 0 {
 			return
 		}
 		// The count came back through the owner's browser, which the
 		// owner can write: it may lower a passer-by's charge below the
 		// reservation, never raise it past it, and never below nothing.
-		used = max(0, min(used, reserved))
+		used = max(0, min(used, h.tokens))
 		m.rollDay()
-		m.chargeStrangerFor(ownerId, askerId, used-reserved)
+		if h.day != m.budgetDay {
+			return // held on an earlier day: nothing to give back today
+		}
+		m.chargeStrangerFor(h.owner, h.asker, used-h.tokens)
 	}
 }
 

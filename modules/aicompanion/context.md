@@ -134,6 +134,12 @@ Roadmap and phase plan: `docs/aicompanion/`.
   route, so a call settles once, to the ledger it was held against, and
   its outcome reaches the breaker of whoever paid (`relayTable` keeps a
   per-owner breaker; the global one is the server key's alone).
+  `reserveRoute` returns a `hold` (route, payer, amount and the budget
+  day it was made on) that `settleRoute` takes back; a hold from an
+  earlier day gives nothing back to the owner's or passer-by's counts,
+  which started the new day at nothing (`settleForDay`).
+  `validRelayOrigin` reads `WebDomain` through `gameHostname`, the same
+  reading `gameOrigin` gives the relay page.
 - **conversation.go**: talk gathered into one conversation per exchange
   (`noteConversation`, which also notes whether her owner spoke and how
   many turns each passer-by took), held mid-talk notes, and `closeConversation`,

@@ -229,7 +229,8 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 		return false
 	}
 	reserved := worstCaseTokens(estimateTokens(call.Messages)+requestOverhead(call), ts.MaxTokens, 0, false)
-	if !m.reserveRoute(rt, c.ownerUserId, asker, reserved) {
+	held, ok := m.reserveRoute(rt, c.ownerUserId, asker, reserved)
+	if !ok {
 		return false
 	}
 	m.callsToday++
@@ -248,7 +249,7 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 			if !applied {
 				util.LockMud()
 				defer util.UnlockMud()
-				m.settleRoute(rt, call.OwnerUserId, asker, reserved, used)
+				m.settleRoute(held, used)
 			}
 		}()
 		res := m.callModel(call)
@@ -257,17 +258,17 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 		util.LockMud()
 		defer util.UnlockMud()
 		applied = true
-		m.applyConversationSummary(key, call.OwnerUserId, partner, place, asker, reserved, rt, res)
+		m.applyConversationSummary(key, call.OwnerUserId, partner, place, asker, held, rt, res)
 	}()
 	return true
 }
 
 // applyConversationSummary stores the one memory a talk left behind.
-func (m *AICompanionModule) applyConversationSummary(key string, ownerId int, partner string, placeId int, asker int, reserved int, rt route, res modelResult) {
+func (m *AICompanionModule) applyConversationSummary(key string, ownerId int, partner string, placeId int, asker int, held hold, rt route, res modelResult) {
 	// Settled first, against whoever the reservation was held against
 	// (the owner the mind is keyed by, even when nobody is left to
 	// remember it), so nothing below can leave it held.
-	m.settleRoute(rt, ownerId, asker, reserved, res.Tokens)
+	m.settleRoute(held, res.Tokens)
 	m.rollDay()
 	m.recordCall(tierFast, res)
 	m.routeResult(rt, ownerId, res.Err, time.Now())

@@ -229,7 +229,8 @@ func (m *AICompanionModule) launchReflection(d *deferredReflection) {
 		call.Messages = buildReflectionMessages(in)
 	}
 	reserved := worstCaseTokens(estimateTokens(call.Messages)+requestOverhead(call), ts.MaxTokens, 0, call.Retry)
-	if !m.reserveRoute(rt, mind.OwnerUserId, 0, reserved) {
+	held, ok := m.reserveRoute(rt, mind.OwnerUserId, 0, reserved)
+	if !ok {
 		return // the day's thinking is spent; the session simply goes unrecorded
 	}
 	m.callsToday++
@@ -246,7 +247,7 @@ func (m *AICompanionModule) launchReflection(d *deferredReflection) {
 			if !applied {
 				util.LockMud()
 				defer util.UnlockMud()
-				m.settleRoute(rt, call.OwnerUserId, 0, reserved, used)
+				m.settleRoute(held, used)
 			}
 		}()
 
@@ -256,15 +257,15 @@ func (m *AICompanionModule) launchReflection(d *deferredReflection) {
 		util.LockMud()
 		defer util.UnlockMud()
 		applied = true
-		m.applyReflection(key, call.OwnerUserId, session, call.Model, reserved, rt, res)
+		m.applyReflection(key, call.OwnerUserId, session, call.Model, held, rt, res)
 	}()
 }
 
 // applyReflection stores a reflection. Runs under the mud lock.
-func (m *AICompanionModule) applyReflection(key string, ownerId int, session int, model string, reserved int, rt route, res modelResult) {
+func (m *AICompanionModule) applyReflection(key string, ownerId int, session int, model string, held hold, rt route, res modelResult) {
 	// Settled first, to the owner it was held against, even when nobody is
 	// left to remember it, so nothing below can leave it held.
-	m.settleRoute(rt, ownerId, 0, reserved, res.Tokens)
+	m.settleRoute(held, res.Tokens)
 	m.rollDay()
 	m.recordCall(tierDeep, res)
 	m.routeResult(rt, ownerId, res.Err, time.Now())

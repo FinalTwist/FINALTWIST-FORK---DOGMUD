@@ -577,9 +577,20 @@ func (m *AICompanionModule) settleTokens(ownerId int, reserved int, used int) {
 	m.settleFor(ownerId, 0, reserved, used)
 }
 
-// settleFor settles a reservation made by tryReserveFor, against the same
-// payer it was held against.
+// settleFor settles a reservation made by tryReserveFor today, against the
+// same payer it was held against.
 func (m *AICompanionModule) settleFor(ownerId int, askerId int, reserved int, used int) {
+	m.settleForDay(``, ownerId, askerId, reserved, used)
+}
+
+// settleForDay is settleFor for a reservation held on day (the budget day
+// when it was made; "" is today). The server's day total starts each day
+// from what is still held (rollDay), so it settles the same either way.
+// The owner's and passer-by's counters start the new day at nothing, so
+// a reservation from an earlier day gives nothing back to them: giving
+// back what the old day held would take it off what the new day really
+// spent. What it used past its reservation is still charged.
+func (m *AICompanionModule) settleForDay(day string, ownerId int, askerId int, reserved int, used int) {
 	m.rollDay()
 	m.outstanding -= reserved
 	if m.outstanding < 0 {
@@ -589,6 +600,9 @@ func (m *AICompanionModule) settleFor(ownerId int, askerId int, reserved int, us
 	m.tokensToday += diff
 	if m.tokensToday < 0 {
 		m.tokensToday = 0
+	}
+	if day != `` && day != m.budgetDay && diff < 0 {
+		diff = 0
 	}
 	switch {
 	case askerId > 0:

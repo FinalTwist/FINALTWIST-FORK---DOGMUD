@@ -158,7 +158,8 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 	}
 	call.Messages = messages
 	reserved := worstCaseTokens(estimateTokens(call.Messages)+requestOverhead(call), ts.MaxTokens, 0, false)
-	if !m.reserveRoute(rt, c.ownerUserId, 0, reserved) {
+	held, ok := m.reserveRoute(rt, c.ownerUserId, 0, reserved)
+	if !ok {
 		// The day's allowance cannot cover it: the moment is still kept.
 		bareFact()
 		return
@@ -176,7 +177,7 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 			if !applied {
 				util.LockMud()
 				defer util.UnlockMud()
-				m.settleRoute(rt, call.OwnerUserId, 0, reserved, used)
+				m.settleRoute(held, used)
 			}
 		}()
 		res := m.callModel(call)
@@ -185,16 +186,16 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 		util.LockMud()
 		defer util.UnlockMud()
 		applied = true
-		m.applyCore(key, call.OwnerUserId, bare, reserved, rt, res)
+		m.applyCore(key, call.OwnerUserId, bare, held, rt, res)
 	}()
 }
 
 // applyCore writes the model's account of the moment. cm arrives holding
 // the bare fact, which is what is kept when the model gives no usable
 // account: the moment is never lost to a failed call.
-func (m *AICompanionModule) applyCore(key string, ownerId int, cm CoreMemory, reserved int, rt route, res modelResult) {
+func (m *AICompanionModule) applyCore(key string, ownerId int, cm CoreMemory, held hold, rt route, res modelResult) {
 	// Settled first, so nothing below can leave the reservation held.
-	m.settleRoute(rt, ownerId, 0, reserved, res.Tokens)
+	m.settleRoute(held, res.Tokens)
 	m.rollDay()
 	m.recordCall(tierFast, res)
 	m.routeResult(rt, ownerId, res.Err, time.Now())

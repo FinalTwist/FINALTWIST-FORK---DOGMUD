@@ -611,7 +611,8 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	// same route: on her owner's own key only a passer-by's allowance is
 	// held (reserveRoute).
 	reserved := worstCaseTokens(estimateTokens(messages)+requestOverhead(call), ts.MaxTokens, toolRounds, call.Retry)
-	if !m.reserveRoute(rt, ownerId, asker, reserved) {
+	held, ok := m.reserveRoute(rt, ownerId, asker, reserved)
+	if !ok {
 		// Out of allowance, not out of sorts: without this line a spent
 		// budget looks exactly like a broken companion, because she carries
 		// on answering with her authored lines and nothing is logged. A
@@ -656,7 +657,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 			if !settled {
 				util.LockMud()
 				defer util.UnlockMud()
-				m.settleRoute(rt, ownerId, asker, reserved, used)
+				m.settleRoute(held, used)
 				if c := m.ctrls[ownerId]; c != nil && c.seq == seq {
 					c.inFlight = false
 					c.cancelCall = nil
@@ -691,7 +692,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 			defer util.UnlockMud()
 			defer func() {
 				settled = true
-				m.settleRoute(rt, ownerId, asker, reserved, res.Tokens)
+				m.settleRoute(held, res.Tokens)
 				if c := m.ctrls[ownerId]; c != nil && c.seq == seq {
 					c.inFlight = false
 					c.cancelCall = nil
