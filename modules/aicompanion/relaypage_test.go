@@ -67,8 +67,10 @@ func TestRelayPageServedOnlyOnTheRelayHost(t *testing.T) {
 	}
 
 	// Everything else on the relay host is claimed and refused, so no game
-	// page ever runs on the origin that holds the key.
-	for _, path := range []string{`/`, `/webclient-pure.html`, `/static/js/gmcp.js`} {
+	// page ever runs on the origin that holds the key: not the pages, not
+	// the websocket, not the admin or builder routes.
+	for _, path := range []string{`/`, `/webclient-pure.html`, `/static/js/gmcp.js`,
+		`/ws`, `/admin/`, `/build`, `/favicon.ico`} {
 		rec := httptest.NewRecorder()
 		if !m.serveRelayPage(rec, httptest.NewRequest(http.MethodGet, `https://keys.example.org`+path, nil)) || rec.Code != http.StatusNotFound {
 			t.Fatalf("%s on the relay host must be claimed and 404, got %d", path, rec.Code)
@@ -83,6 +85,60 @@ func TestRelayPageServedOnlyOnTheRelayHost(t *testing.T) {
 	m.cfg.PlayerKeys = false
 	if m.serveRelayPage(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, `https://keys.example.org/companion-relay.html`, nil)) {
 		t.Fatal("with player keys off nothing is claimed")
+	}
+}
+
+// The key window is a top-level page: nothing, not even the game page, may
+// frame it, so a page drawn over it can never be mistaken for it. Neither
+// page has a form or a password field (no password manager is offered the
+// key), and the frame has no input at all: the key is typed only in the
+// window.
+func TestRelaySetupPageIsServedAndNeverFramed(t *testing.T) {
+	m := relayPageModule(t)
+	rec := httptest.NewRecorder()
+	if !m.serveRelayPage(rec, httptest.NewRequest(http.MethodGet, `https://keys.example.org/companion-relay-setup.html`, nil)) || rec.Code != 200 {
+		t.Fatalf("the relay host serves the key window, got %d", rec.Code)
+	}
+	csp := rec.Header().Get(`Content-Security-Policy`)
+	if !strings.Contains(csp, `frame-ancestors 'none'`) || strings.Contains(csp, `example.org`) {
+		t.Fatalf("the key window may be framed by nobody, got %s", csp)
+	}
+	for _, want := range []string{`default-src 'none'`, `script-src 'self'`, `form-action 'none'`} {
+		if !strings.Contains(csp, want) {
+			t.Fatalf("the key window keeps the relay policy %q: %s", want, csp)
+		}
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `<body data-page="setup">`) || !strings.Contains(body, `<script src="/companion-relay.js"></script>`) {
+		t.Fatalf("the key window is the embedded setup page:\n%s", body)
+	}
+	if strings.Contains(body, `{{`) {
+		t.Fatal("the key window has no placeholder to render")
+	}
+
+	frame := httptest.NewRecorder()
+	m.serveRelayPage(frame, httptest.NewRequest(http.MethodGet, `https://keys.example.org/companion-relay.html`, nil))
+	if fcsp := frame.Header().Get(`Content-Security-Policy`); !strings.Contains(fcsp, `frame-ancestors https://example.org`) {
+		t.Fatalf("the frame is still framable by the game origin: %s", fcsp)
+	}
+	for name, page := range map[string]string{`frame`: frame.Body.String(), `key window`: body} {
+		lower := strings.ToLower(page)
+		if strings.Contains(lower, `<form`) || strings.Contains(lower, `type="password"`) || strings.Contains(lower, `type="submit"`) {
+			t.Fatalf("the %s has no form, password field or submit button:\n%s", name, page)
+		}
+	}
+	if strings.Contains(strings.ToLower(frame.Body.String()), `<input`) {
+		t.Fatalf("the frame shows no input; the key is typed in the window:\n%s", frame.Body.String())
+	}
+	for _, id := range []string{`key`, `pass`, `unlockpass`} {
+		at := strings.Index(body, `<input id="`+id+`"`)
+		if at < 0 {
+			t.Fatalf("the key window has the %s input", id)
+		}
+		tag := body[at : at+strings.Index(body[at:], `>`)]
+		if !strings.Contains(tag, `type="text"`) || !strings.Contains(tag, `autocomplete="off"`) || !strings.Contains(tag, `class="secret"`) {
+			t.Fatalf("the %s input is plain text, no autocomplete, masked by style: %s", id, tag)
+		}
 	}
 }
 
@@ -112,6 +168,9 @@ func TestRelayPageNamesTheGameOriginInItsMeta(t *testing.T) {
 	if strings.Contains(body, `<script>`) || strings.Contains(strings.ToLower(body), ` on`+`submit=`) ||
 		strings.Contains(strings.ToLower(body), ` on`+`click=`) {
 		t.Fatal("the relay page has no inline script or handler")
+	}
+	if !strings.Contains(body, `<body data-page="frame">`) {
+		t.Fatal("the relay page is marked as the frame for relay.js")
 	}
 	if !strings.Contains(body, `<script src="/companion-relay.js"></script>`) {
 		t.Fatal("the page loads its script from its own origin")

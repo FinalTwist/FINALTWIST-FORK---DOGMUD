@@ -362,8 +362,8 @@ function fakeDom() {
     var frame = dom.made.filter(function (e) { return e.tagName === 'IFRAME'; })[0];
     check('boot builds one frame', !!frame, true);
     check('the frame loads the relay page on the relay origin', frame.src, RELAY + '/companion-relay.html');
-    check('the frame is sandboxed to scripts, its own origin and forms',
-        frame.attrs.sandbox, 'allow-scripts allow-same-origin allow-forms');
+    check('the frame is sandboxed to scripts, its own origin and opening the key window, with no forms',
+        frame.attrs.sandbox, 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox');
     check('the frame sends no referrer', frame.attrs.referrerpolicy, 'no-referrer');
     check('the frame is given no browser features', frame.attrs.allow, undefined);
     check('the frame has no name to target', frame.attrs.name === undefined && frame.name === undefined, true);
@@ -400,11 +400,15 @@ function fakeDom() {
         page.indexOf('/static/js/companion-relay-glue.js"></script>') !== -1, true);
     check('the page handles Companion.Relay.Request',
         /"Companion\.Relay\.Request"\s*:\s*function/.test(page), true);
+    // An attribute glued to the closing quote of the one before it
+    // (id="x"onclick=...) parses, but only by accident of the HTML parser.
+    check('no event attribute is glued to the attribute before it', /"on[a-z]+=/.test(page), false);
 
     var src = fs.readFileSync(GLUE_PATH, 'utf8');
     check('the glue never posts to the frame with a wildcard origin', /postMessage\([^)]*['"]\*['"]/.test(src), false);
     check('the glue sets the frame sandbox',
-        src.indexOf("'allow-scripts allow-same-origin allow-forms'") !== -1, true);
+        src.indexOf("'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox'") !== -1, true);
+    check('the glue never gives the frame allow-forms', /setAttribute\('sandbox', '[^']*allow-forms/.test(src), false);
     check('the glue sets no referrer on the frame', src.indexOf("'no-referrer'") !== -1, true);
     check('the glue never spreads a frame message into what it sends',
         /Object\.assign|\.\.\.\s*(m|msg|data|ev)/.test(src), false);

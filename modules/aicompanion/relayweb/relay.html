@@ -7,39 +7,32 @@
 <title>Companion key</title>
 <style>
  body{font:14px system-ui,sans-serif;margin:0;padding:12px;background:#111;color:#ddd}
- label{display:block;margin:8px 0 2px} input{width:100%;box-sizing:border-box}
- input[type=checkbox]{width:auto}
- .warn{color:#e8b34a;font-size:12px} .row{display:flex;gap:8px;margin-top:10px}
- [hidden]{display:none}
+ p{margin:8px 0} .warn{color:#e8b34a;font-size:12px} .row{display:flex;gap:8px;margin-top:10px}
+ button{font:inherit} [hidden]{display:none}
 </style>
 </head>
-<body>
-<form id="setup" hidden autocomplete="off" novalidate>
+<body data-page="frame">
+<!-- This frame holds the key and relays requests. It has no input: the key
+     is typed in a separate window on this origin, opened from here, so its
+     address bar can be checked and no page can draw over it. -->
+<div id="setup" hidden>
+ <p>Your key is entered in its own window, not in the game page.
+ Before you type, check that window's address bar: it must read
+ <strong id="host"></strong>.</p>
  <p class="warn">Your key stays in this browser and is never sent to the game server.
- Put a monthly spending limit on it. Do not use a work computer.
  When a passer-by talks to your companion, your key pays for that too.</p>
- <p class="warn" id="ollama">For a model on this computer, such as Ollama, allow this page's address in the model's settings (OLLAMA_ORIGINS).</p>
- <label for="endpoint">Endpoint</label>
- <input id="endpoint" type="url" autocomplete="off" spellcheck="false" autocapitalize="off" value="https://api.openai.com/v1">
- <label for="key">Key</label>
- <input id="key" type="password" autocomplete="new-password" spellcheck="false" autocapitalize="off">
- <label for="model">Model</label>
- <input id="model" autocomplete="off" spellcheck="false" autocapitalize="off" value="gpt-4.1-mini">
- <label><input id="remember" type="checkbox"> Remember this key on this device</label>
- <label for="pass" id="passlabel" hidden>Passphrase, needed to unlock it next time (at least eight characters)</label>
- <input id="pass" type="password" autocomplete="new-password" spellcheck="false" autocapitalize="off" hidden>
- <div class="row"><button type="submit">Use this key</button>
+ <div class="row"><button type="button" id="open">Open the key window</button>
  <button type="button" id="forget">Forget my key</button>
  <button type="button" id="close">Close</button></div>
  <p class="warn" id="status" role="status"></p>
-</form>
-<form id="unlock" hidden autocomplete="off" novalidate>
- <label for="unlockpass">Passphrase to unlock your saved key</label>
- <input id="unlockpass" type="password" autocomplete="off" spellcheck="false" autocapitalize="off">
- <div class="row"><button type="submit">Unlock</button> <button type="button" id="unlockforget">Forget it</button>
+</div>
+<div id="unlock" hidden>
+ <p>You saved a key on this device. Unlock it with your passphrase in the key window.</p>
+ <div class="row"><button type="button" id="unlockopen">Open the key window</button>
+ <button type="button" id="unlockforget">Forget it</button>
  <button type="button" id="unlockclose">Not now</button></div>
  <p class="warn" id="unlockstatus" role="status"></p>
-</form>
+</div>
 <script src="/companion-relay.js"></script>
 </body>
 </html>

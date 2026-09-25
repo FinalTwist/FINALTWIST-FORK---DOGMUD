@@ -292,8 +292,13 @@ shows it per companion (`tier=relay|server|none`) for an admin.
 3. `RelayOrigin: "https://keys.example.org"` and `PlayerKeys: true` in the
    production config.
 
-Two operator traps:
+Three operator traps:
 
+- **The key is typed in a pop-up window on the relay host.** The relay
+  frame opens it from a click inside the frame, so browsers allow it, but
+  a player who has blocked pop-ups for the relay host sees a note asking
+  them to allow it. The window's address bar is the player's proof of where
+  the key is going: the setup text tells them to check it.
 - **Players must reach the game on exactly the `FilePaths.WebDomain` host.**
   The relay page allows only `https://` plus `WebDomain` to frame it
   (`frame-ancestors`), so a player on `www.example.org` when `WebDomain` is

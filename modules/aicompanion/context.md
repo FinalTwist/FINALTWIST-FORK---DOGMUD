@@ -152,28 +152,48 @@ Roadmap and phase plan: `docs/aicompanion/`.
   first failure it does count in a relay session tells the owner once, in
   plain words (`noticeFallback`, `relayOwner.noticeSent`, reset by
   `ready`).
-- **relaypage.go**, **relayweb/relay.html**, **relayweb/relay.js**: the
-  key relay page, the only place a player's key exists. Both files are
-  embedded. `installRelayPage` (from `onLoad`) puts `serveRelayPage` on
-  `companionai.SetRelayPage` while `playerKeysOffered`, else removes it.
+- **relaypage.go**, **relayweb/relay.html**, **relayweb/relay-setup.html**,
+  **relayweb/relay.js**: the key relay origin, the only place a player's
+  key exists. All three files are embedded. `installRelayPage` (from
+  `onLoad`) puts `serveRelayPage` on `companionai.SetRelayPage` while
+  `playerKeysOffered`, else removes it. The engine runs it OUTERMOST
+  (`internal/web.relayFirst` wraps the mux of both servers), and
   `serveRelayPage` claims EVERY request whose host is the `RelayOrigin`
-  host (port and case ignored): `/companion-relay.html` and
-  `/companion-relay.js` are served (GET and HEAD only), every other path
-  is a 404, so no game page ever runs on the key's origin. `gameOrigin`
-  turns `FilePaths.WebDomain` into `https://host[:port]` (a pasted scheme
-  or path is dropped; anything not a plain host gives "" and the page is
-  refused); it is the only `frame-ancestors` source in `relayCSP` (no
-  inline or eval script, inline styles only) and is HTML-escaped into the
-  page's `game-origin` meta tag (`renderRelayHTML`). `relay.js` is UMD:
-  node tests require its pure parts (`relayOne`, `seal`/`unseal`,
-  `createRelay`, `acceptMessage`), the browser runs `boot`. It posts only
-  to the stored endpoint (`redirect: 'error'`, no credentials, no
-  referrer), returns `{id, status, body}` with no body on an error status
-  and status 0 for a reply over 60 KiB or one echoing the key, accepts
-  messages only from its parent at the game origin and posts only to
-  that origin. A remembered key is PBKDF2-SHA256 (600000) into AES-GCM
-  with the account's storage key as additional data, blob `v: 1`. Tests:
-  `relaypage_test.go`, `tools/jstest/companion-relay.test.js`.
+  host (port and case ignored): `/companion-relay.html` (the frame),
+  `/companion-relay-setup.html` (the key window) and `/companion-relay.js`
+  are served (GET and HEAD only), every other path (`/`, `/ws`, `/admin/`,
+  `/build`, ...) is a 404, so no game page, websocket or admin route ever
+  runs on the key's origin. `gameOrigin` turns `FilePaths.WebDomain` into
+  `https://host[:port]` (a pasted scheme or path is dropped; anything not
+  a plain host gives "" and nothing is served); it is the frame's only
+  `frame-ancestors` source in `relayCSP` (no inline or eval script, inline
+  styles only) and is HTML-escaped into the frame's `game-origin` meta tag
+  (`renderRelayHTML`). The key window gets `frame-ancestors 'none'`: it is
+  a top-level window, opened by the FRAME (`window.open` from a click
+  inside the frame, so the frame is its `opener` and the game page never
+  holds it), and its address bar is the player's proof of where the key
+  is going. The key is typed only there; the frame has no input. The
+  window hands the frame `{type:'settings', endpoint, key, model, sealed,
+  remember}` by `postMessage` to its opener at its own origin, and the
+  frame owns the storage, so no storage or BroadcastChannel is shared
+  between the two and browser storage partitioning (a cross-site relay
+  framed by the game) cannot break the handoff. Neither page has a
+  `<form>` or a password field: the key and passphrase inputs are
+  `type="text"` with `autocomplete="off"`, masked by
+  `-webkit-text-security` where the browser has it (Firefox does not; the
+  window says so there). `relay.js` is UMD: node tests require its pure
+  parts (`relayOne`, `seal`/`unseal`, `createRelay`, `createSetup`,
+  `acceptMessage`), the browser runs `boot`, which picks the page by
+  `<body data-page>`. The frame posts only to the stored endpoint
+  (`redirect: 'error'`, no credentials, no referrer), returns `{id,
+  status, body}` with no body on an error status and status 0 for a reply
+  over 60 KiB or one echoing the key, allows at most 2 requests in flight
+  and 30 a minute (excess is status 0 without a fetch), accepts messages
+  only from its parent at the game origin and from the window it opened at
+  its own origin, and posts only to those. A remembered key is
+  PBKDF2-SHA256 (600000) into AES-GCM with the account's storage key as
+  additional data, blob `v: 1`, sealed in the window and stored by the
+  frame. Tests: `relaypage_test.go`, `tools/jstest/companion-relay.test.js`.
 - **decision.go**: the decision schema, `parseDecision`,
   `sanitizeDecision` and `cleanText`, which enforce everything the schema
   cannot.

@@ -536,11 +536,15 @@ ask of her.
 With `PlayerKeys` on and a valid `RelayOrigin` (see `settings.md`, "Who
 pays for a call"), a player can run their own companion on their own
 OpenAI-compatible key from the web client's Companion key button. The key
-is typed into, and kept by, a relay page on its own origin, loaded in a
-hidden frame the game page cannot read into. It is held in memory for the
-session, or, if the player ticks "remember on this device", encrypted with
-a passphrase (PBKDF2-SHA256 into AES-GCM) in that page's own storage,
-under their account name.
+is kept by a relay page on its own origin, loaded in a hidden frame the
+game page cannot read into, and typed only in a separate key window that
+the relay frame opens on that same origin: a top-level window, so its
+address bar shows where the key is going and no page can draw over it.
+The window hands the key to the frame directly (same origin, by
+postMessage); the game page never holds the window and never sees the
+key. It is held in memory for the session, or, if the player ticks
+"remember on this device", encrypted with a passphrase (PBKDF2-SHA256 into
+AES-GCM) in the frame's own storage, under their account name.
 
 What goes to the player's browser for each call, as GMCP
 `Companion.Relay.Request`: a random id and the chat completions body, the

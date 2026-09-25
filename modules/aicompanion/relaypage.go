@@ -13,24 +13,31 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 )
 
-// The relay page is the only place a player's key ever exists. It is served
-// on its own origin (RelayOrigin), which the game page frames but cannot
-// read into, and it talks to the game page only by postMessage.
+// The relay origin (RelayOrigin) is the only place a player's key ever
+// exists. It serves two pages: the relay frame, which the game page frames
+// but cannot read into and which holds the key and relays requests, and the
+// key window, a top-level popup the frame opens on this same origin, where
+// the key is typed. Both talk only by postMessage.
 
 //go:embed relayweb/relay.html
 var relayHTML []byte
 
+//go:embed relayweb/relay-setup.html
+var relaySetupHTML []byte
+
 //go:embed relayweb/relay.js
 var relayJS []byte
 
-// relayCSP is the relay page's policy. No inline or eval script at all:
-// relay.js is its only script. Styles may be inline (the page's one style
-// block). It may call any https endpoint and a model on this machine, and
-// only the game's own origin may frame it.
-func relayCSP(game string) string {
+// relayCSP is the relay origin's policy. No inline or eval script at all:
+// relay.js is its only script. Styles may be inline (each page's one style
+// block). It may call any https endpoint and a model on this machine.
+// ancestors is who may frame the page: the game's own origin for the relay
+// frame, nobody for the key window, which must be a top-level window so its
+// address bar is the player's proof of where the key is going.
+func relayCSP(ancestors string) string {
 	return `default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; ` +
 		`connect-src https: http://localhost:* http://127.0.0.1:*; ` +
-		`base-uri 'none'; form-action 'none'; frame-ancestors ` + game
+		`base-uri 'none'; form-action 'none'; frame-ancestors ` + ancestors
 }
 
 // installRelayPage puts the relay page on the engine's web seam while
@@ -45,8 +52,9 @@ func (m *AICompanionModule) installRelayPage() {
 }
 
 // serveRelayPage answers every request for the relay host and nothing
-// else. Every path but the page and its script is refused rather than
-// passed on, so no game page ever runs on the origin that holds the key.
+// else. Every path but the two pages and their script is refused rather
+// than passed on, so no game page, websocket or admin route ever runs on
+// the origin that holds the key.
 func (m *AICompanionModule) serveRelayPage(w http.ResponseWriter, r *http.Request) bool {
 	if !m.playerKeysOffered() {
 		return false
@@ -65,7 +73,6 @@ func (m *AICompanionModule) serveRelayPage(w http.ResponseWriter, r *http.Reques
 	}
 
 	h := w.Header()
-	h.Set(`Content-Security-Policy`, relayCSP(game))
 	h.Set(`Referrer-Policy`, `no-referrer`)
 	h.Set(`X-Content-Type-Options`, `nosniff`)
 	h.Set(`Cross-Origin-Resource-Policy`, `same-origin`)
@@ -74,9 +81,15 @@ func (m *AICompanionModule) serveRelayPage(w http.ResponseWriter, r *http.Reques
 	var body []byte
 	switch r.URL.Path {
 	case `/companion-relay.html`:
+		h.Set(`Content-Security-Policy`, relayCSP(game))
 		h.Set(`Content-Type`, `text/html; charset=utf-8`)
 		body = renderRelayHTML(game)
+	case `/companion-relay-setup.html`:
+		h.Set(`Content-Security-Policy`, relayCSP(`'none'`))
+		h.Set(`Content-Type`, `text/html; charset=utf-8`)
+		body = relaySetupHTML
 	case `/companion-relay.js`:
+		h.Set(`Content-Security-Policy`, relayCSP(`'none'`))
 		h.Set(`Content-Type`, `text/javascript; charset=utf-8`)
 		body = relayJS
 	default:

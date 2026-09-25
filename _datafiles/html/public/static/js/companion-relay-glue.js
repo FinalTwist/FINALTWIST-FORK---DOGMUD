@@ -235,11 +235,15 @@
     var frame = doc.createElement('iframe');
     // allow-scripts: the relay is a script. allow-same-origin: it keeps its
     // OWN origin (the relay host) for its localStorage and WebCrypto; it
-    // gains nothing over this page, whose origin differs. allow-forms: its
-    // key form's submit handler. Nothing else: it may not navigate this
-    // page, open windows or show dialogs. No allow attribute, so it gets no
-    // browser features; no name, so nothing can target it.
-    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
+    // gains nothing over this page, whose origin differs. allow-popups and
+    // allow-popups-to-escape-sandbox: from a click INSIDE the frame it opens
+    // the key window, a top-level page on its own origin whose address bar
+    // the player can check; the window is the frame's, never this page's.
+    // No allow-forms: the relay has no form, so no password manager is ever
+    // offered the key. Nothing else: it may not navigate this page or show
+    // dialogs. No allow attribute, so it gets no browser features; no name,
+    // so nothing can target it.
+    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox');
     frame.setAttribute('referrerpolicy', 'no-referrer');
     frame.title = 'Companion key';
     frame.style.cssText = 'width:min(440px,95vw);height:min(560px,90vh);border:1px solid #6b5a3a;' +

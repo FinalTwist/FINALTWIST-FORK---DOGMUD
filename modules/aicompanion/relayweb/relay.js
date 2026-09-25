@@ -1,18 +1,36 @@
-// relay.js: the companion key relay. This page is the only place a player's
-// own model key ever exists. It lives on its own origin (RelayOrigin), is
-// framed by the game page, and talks to it only by postMessage:
+// relay.js: the companion key relay. This origin (RelayOrigin) is the only
+// place a player's own model key ever exists. It serves two pages, both run
+// by this one script:
 //
-//   game -> relay  {type:'hello', account}   who is logged in
-//                  {type:'setup'}            show the key form (or unlock)
+// The FRAME (/companion-relay.html), framed by the game page. It holds the
+// key and relays requests. It talks to the game page only by postMessage:
+//
+//   game -> frame  {type:'hello', account}    who is logged in
+//                  {type:'setup'}             show the frame's key panel
 //                  {type:'request', id, body} one chat completions body
-//   relay -> game  {type:'status', ready, model?, locked}
+//   frame -> game  {type:'status', ready, model?, locked}
 //                  {type:'response', id, status, body}
 //                  {type:'hide'}
 //
-// The key never appears in any message, URL, attribute, log or error text.
-// The endpoint a request goes to is the one the player stored, never one a
-// message names. Served by modules/aicompanion/relaypage.go with a CSP that
-// allows no inline script; tests in tools/jstest/companion-relay.test.js.
+// The POPUP (/companion-relay-setup.html), a top-level window the FRAME
+// opens on its own origin, so its address bar authenticates the key form
+// and no page can draw over it. It is the only place the key is typed. It
+// talks only to the frame that opened it (window.opener, same origin), by
+// postMessage; storage partitioning cannot come between them, because no
+// storage is shared: the popup hands the frame the key, and the frame owns
+// the storage.
+//
+//   popup -> frame {type:'popup-hello'}
+//                  {type:'settings', endpoint, key, model, sealed, remember}
+//                  {type:'forget'}
+//   frame -> popup {type:'popup-state', account, view, endpoint, model, sealed}
+//                  {type:'popup-done', ok, message}
+//
+// The key never appears in any message to the game page, any URL, attribute,
+// log or error text. The endpoint a request goes to is the one the player
+// stored, never one a message names. Served by modules/aicompanion/relaypage.go
+// with a CSP that allows no inline script; tests in
+// tools/jstest/companion-relay.test.js.
 
 (function (root, factory) {
   var api = factory();
@@ -36,6 +54,12 @@
   var MAX_MODEL = 100;
   var MAX_ACCOUNT = 64;
   var FETCH_TIMEOUT_MS = 90000;
+  // The server allows far fewer calls than this; more means the page or the
+  // server is misbehaving, and the key must not pay for it.
+  var MAX_INFLIGHT = 2;
+  var MAX_PER_MINUTE = 30;
+  var MINUTE_MS = 60000;
+  var SETUP_PATH = '/companion-relay-setup.html';
 
   // isAllowedEndpoint accepts https anywhere, or http only on this
   // computer, with no user info, query or fragment.
@@ -65,6 +89,15 @@
 
   function isValidId(id) {
     return typeof id === 'string' && /^[0-9a-f]{1,64}$/i.test(id);
+  }
+
+  // isSealedBlob is the shape check on a stored blob: versioned, with the
+  // three base64 fields. Opening it is unseal's job.
+  function isSealedBlob(s) {
+    if (typeof s !== 'string' || s.length > 8192) { return false; }
+    var o;
+    try { o = JSON.parse(s); } catch (e) { return false; }
+    return !!o && o.v === BLOB_VERSION && typeof o.salt === 'string' && typeof o.iv === 'string' && typeof o.ct === 'string';
   }
 
   function storageKey(account) { return 'companion-key:' + String(account || '').toLowerCase(); }
@@ -171,20 +204,26 @@
     }
   }
 
-  // acceptMessage admits only a message the game page sent from the frame's
-  // own parent, carrying an object.
-  function acceptMessage(ev, gameOrigin, parentWin) {
-    return !!ev && typeof gameOrigin === 'string' && gameOrigin !== '' && ev.origin === gameOrigin &&
-      !!parentWin && ev.source === parentWin &&
+  // acceptMessage admits only a message from the expected window at the
+  // expected origin, carrying an object. The frame uses it for its parent
+  // at the game origin and for the popup it opened at its own origin; the
+  // popup uses it for its opener at its own origin.
+  function acceptMessage(ev, origin, fromWin) {
+    return !!ev && typeof origin === 'string' && origin !== '' && ev.origin === origin &&
+      !!fromWin && ev.source === fromWin &&
       !!ev.data && typeof ev.data === 'object' && !Array.isArray(ev.data);
   }
 
-  // createRelay is the relay's state and rules, apart from the DOM. env:
-  // post(msg) to the game page, storage {get, set, remove}, cryptoObj,
-  // fetchFn. Its settings are held here and nowhere else.
+  // createRelay is the frame's state and rules, apart from the DOM. env:
+  // post(msg) to the game page, storage {get, set, remove}, fetchFn, and
+  // now() for the request cap (Date.now by default). Its settings are held
+  // here and nowhere else; they arrive only from the popup, by settings().
   function createRelay(env) {
     var settings = null;
     var account = '';
+    var inflight = 0;
+    var sentAt = []; // times of the requests fetched in the last minute
+    var now = env.now || function () { return Date.now(); };
 
     function stored() { return account === '' ? null : env.storage.get(storageKey(account)); }
 
@@ -197,6 +236,19 @@
     function view() {
       if (account === '') { return 'none'; }
       return !settings && stored() ? 'unlock' : 'setup';
+    }
+
+    function fail(id) { env.post({ type: 'response', id: id, status: 0, body: '' }); }
+
+    // overCap says whether one more fetch would pass the in-flight or
+    // per-minute cap, and records it when not.
+    function overCap() {
+      var t = now();
+      while (sentAt.length > 0 && t - sentAt[0] >= MINUTE_MS) { sentAt.shift(); }
+      if (inflight >= MAX_INFLIGHT || sentAt.length >= MAX_PER_MINUTE) { return true; }
+      sentAt.push(t);
+      inflight++;
+      return false;
     }
 
     function handle(data) {
@@ -215,65 +267,54 @@
         case 'setup': {
           var v = view();
           if (v === 'none') { env.post({ type: 'hide' }); return null; }
-          return { show: v, endpoint: settings ? settings.endpoint : '', model: settings ? settings.model : '' };
+          return { show: v };
         }
         case 'request': {
           if (!isValidId(data.id)) { return null; }
-          if (!settings) {
-            env.post({ type: 'response', id: data.id, status: 0, body: '' });
+          if (!settings || overCap()) {
+            fail(data.id);
             return null;
           }
-          return relayOne(env.fetchFn, settings, { id: data.id, body: data.body }).then(function (r) {
-            env.post({ type: 'response', id: r.id, status: r.status, body: r.body });
-          });
+          var done = function (r) {
+            inflight--;
+            if (r) { env.post({ type: 'response', id: r.id, status: r.status, body: r.body }); } else { fail(data.id); }
+          };
+          return relayOne(env.fetchFn, settings, { id: data.id, body: data.body }).then(done, function () { done(null); });
         }
       }
       return null;
     }
 
-    async function setup(f) {
-      if (account === '') { return { ok: false, message: 'Log in to the game first.' }; }
-      var endpoint = typeof f.endpoint === 'string' ? f.endpoint.trim() : '';
-      var model = typeof f.model === 'string' ? f.model.trim() : '';
-      if (!isAllowedEndpoint(endpoint)) {
-        return { ok: false, message: 'That endpoint is not allowed. Use an https address, or http on this computer.' };
+    // popupState is what the popup needs to show its form: never the key,
+    // only the account, which view, the current endpoint and model, and the
+    // sealed blob when there is one to unlock.
+    function popupState() {
+      var v = view();
+      return { type: 'popup-state', account: account, view: v,
+        endpoint: settings ? settings.endpoint : '', model: settings ? settings.model : '',
+        sealed: v === 'unlock' ? stored() : null };
+    }
+
+    // applySettings takes the popup's outcome: the key to use from now on,
+    // and the sealed blob to keep (remember) or the order to keep nothing.
+    function applySettings(data) {
+      if (account === '') { return { type: 'popup-done', ok: false, message: 'Log in to the game first.' }; }
+      if (!isAllowedEndpoint(data.endpoint) || !isValidKey(data.key) || !isValidModel(data.model) || data.model === '') {
+        return { type: 'popup-done', ok: false, message: 'That key could not be used.' };
       }
-      if (!isValidModel(model) || model === '') { return { ok: false, message: 'Enter a model name.' }; }
-      if (!isValidKey(f.key)) { return { ok: false, message: 'Enter your key.' }; }
-      var next = { endpoint: endpoint, key: f.key, model: model };
       var note = '';
-      if (f.remember) {
-        if (typeof f.pass !== 'string' || f.pass.length < MIN_PASS) {
-          return { ok: false, message: 'Choose a passphrase of at least eight characters.' };
-        }
-        var blob;
-        try { blob = await seal(env.cryptoObj, f.pass, next, account); } catch (e) {
-          return { ok: false, message: 'This browser could not lock your key. Nothing was saved.' };
-        }
-        if (!env.storage.set(storageKey(account), blob)) {
+      if (data.remember === true) {
+        if (!isSealedBlob(data.sealed)) { return { type: 'popup-done', ok: false, message: 'That key could not be saved.' }; }
+        if (!env.storage.set(storageKey(account), data.sealed)) {
           note = 'This browser would not save it, so it is kept for this visit only.';
         }
       } else {
         env.storage.remove(storageKey(account));
       }
-      settings = next;
+      settings = { endpoint: data.endpoint, key: data.key, model: data.model };
       status();
       env.post({ type: 'hide' });
-      return { ok: true, message: note };
-    }
-
-    async function unlock(pass) {
-      var blob = stored();
-      if (!blob) { return { ok: false, message: 'There is no saved key to unlock.' }; }
-      if (typeof pass !== 'string' || pass === '') { return { ok: false, message: 'Enter your passphrase.' }; }
-      var opened;
-      try { opened = await unseal(env.cryptoObj, pass, blob, account); } catch (e) {
-        return { ok: false, message: 'That passphrase did not open it.' };
-      }
-      settings = opened;
-      status();
-      env.post({ type: 'hide' });
-      return { ok: true, message: '' };
+      return { type: 'popup-done', ok: true, message: note };
     }
 
     function forget() {
@@ -282,7 +323,60 @@
       status();
     }
 
-    return { handle: handle, setup: setup, unlock: unlock, forget: forget, view: view };
+    // handlePopup takes one message from the popup and returns the reply to
+    // post back to it, or null.
+    function handlePopup(data) {
+      switch (data.type) {
+        case 'popup-hello': return popupState();
+        case 'settings': return applySettings(data);
+        case 'forget':
+          forget();
+          return { type: 'popup-done', ok: true, message: 'Your key is forgotten on this device.' };
+      }
+      return null;
+    }
+
+    return { handle: handle, handlePopup: handlePopup, forget: forget, view: view };
+  }
+
+  // createSetup is the popup's rules, apart from the DOM: it turns the form
+  // into a settings message for the frame, sealing the key first when the
+  // player wants it remembered, or opens a sealed blob with the passphrase.
+  function createSetup(cryptoObj) {
+    async function setup(f, account) {
+      if (typeof account !== 'string' || account === '') { return { ok: false, message: 'Log in to the game first.' }; }
+      var endpoint = typeof f.endpoint === 'string' ? f.endpoint.trim() : '';
+      var model = typeof f.model === 'string' ? f.model.trim() : '';
+      if (!isAllowedEndpoint(endpoint)) {
+        return { ok: false, message: 'That endpoint is not allowed. Use an https address, or http on this computer.' };
+      }
+      if (!isValidModel(model) || model === '') { return { ok: false, message: 'Enter a model name.' }; }
+      if (!isValidKey(f.key)) { return { ok: false, message: 'Enter your key.' }; }
+      var msg = { type: 'settings', endpoint: endpoint, key: f.key, model: model, sealed: null, remember: false };
+      if (f.remember) {
+        if (typeof f.pass !== 'string' || f.pass.length < MIN_PASS) {
+          return { ok: false, message: 'Choose a passphrase of at least eight characters.' };
+        }
+        try { msg.sealed = await seal(cryptoObj, f.pass, msg, account); } catch (e) {
+          return { ok: false, message: 'This browser could not lock your key. Nothing was saved.' };
+        }
+        msg.remember = true;
+      }
+      return { ok: true, message: '', msg: msg };
+    }
+
+    async function unlock(pass, sealed, account) {
+      if (!isSealedBlob(sealed)) { return { ok: false, message: 'There is no saved key to unlock.' }; }
+      if (typeof pass !== 'string' || pass === '') { return { ok: false, message: 'Enter your passphrase.' }; }
+      var opened;
+      try { opened = await unseal(cryptoObj, pass, sealed, account); } catch (e) {
+        return { ok: false, message: 'That passphrase did not open it.' };
+      }
+      return { ok: true, message: '', msg: { type: 'settings', endpoint: opened.endpoint, key: opened.key,
+        model: opened.model, sealed: sealed, remember: true } };
+    }
+
+    return { setup: setup, unlock: unlock };
   }
 
   function isOrigin(s) {
@@ -290,19 +384,29 @@
     try { return new URL(s).origin === s; } catch (e) { return false; }
   }
 
-  // boot wires the page. It does nothing outside a secure context, outside
-  // a frame, or without a game origin to answer to.
+  // boot wires whichever page this is. It does nothing outside a secure
+  // context or on a page it does not know.
   function boot(win, doc) {
-    if (!win || !doc || !win.isSecureContext || win.parent === win) { return; }
+    if (!win || !doc || !win.isSecureContext || !doc.body || typeof doc.body.getAttribute !== 'function') { return; }
+    switch (doc.body.getAttribute('data-page')) {
+      case 'frame': bootFrame(win, doc); break;
+      case 'setup': bootSetup(win, doc); break;
+    }
+  }
+
+  // bootFrame wires the framed relay. It does nothing outside a frame or
+  // without a game origin to answer to. The frame shows no input: the key
+  // is typed in the popup it opens, and arrives from it.
+  function bootFrame(win, doc) {
+    if (win.parent === win) { return; }
     var meta = doc.querySelector('meta[name="game-origin"]');
     var gameOrigin = meta ? meta.getAttribute('content') : '';
     if (!isOrigin(gameOrigin)) { return; }
+    var relayOrigin = win.location.origin;
 
     var el = function (id) { return doc.getElementById(id); };
-    var setupForm = el('setup'), unlockForm = el('unlock');
-    var endpointIn = el('endpoint'), keyIn = el('key'), modelIn = el('model');
-    var rememberIn = el('remember'), passIn = el('pass'), passLabel = el('passlabel');
-    var unlockIn = el('unlockpass'), statusEl = el('status'), unlockStatus = el('unlockstatus');
+    var setupView = el('setup'), unlockView = el('unlock');
+    var statusEl = el('status'), unlockStatus = el('unlockstatus');
 
     var storage = {
       get: function (k) { try { return win.localStorage.getItem(k); } catch (e) { return null; } },
@@ -312,37 +416,146 @@
     var relay = createRelay({
       post: function (m) { win.parent.postMessage(m, gameOrigin); },
       storage: storage,
-      cryptoObj: win.crypto,
       fetchFn: win.fetch.bind(win)
     });
 
-    function clearSecrets() { keyIn.value = ''; passIn.value = ''; unlockIn.value = ''; }
     function show(which) {
-      setupForm.hidden = which !== 'setup';
-      unlockForm.hidden = which !== 'unlock';
-      if (which !== 'setup' && which !== 'unlock') { clearSecrets(); }
+      setupView.hidden = which !== 'setup';
+      unlockView.hidden = which !== 'unlock';
     }
     function hide() { show(''); win.parent.postMessage({ type: 'hide' }, gameOrigin); }
 
-    var ollama = el('ollama');
-    if (ollama) {
-      ollama.textContent = 'For a model on this computer, such as Ollama, allow this page\'s address (' +
-        win.location.origin + ') in its settings, for Ollama in OLLAMA_ORIGINS.';
+    var host = el('host');
+    if (host) { host.textContent = win.location.host; }
+
+    // The popup is opened by the frame itself, from a click inside the
+    // frame, so its opener is this window and never the game page. One at a
+    // time: a second click brings the open one forward.
+    var popup = null;
+    function openPopup() {
+      if (popup && !popup.closed) {
+        try { popup.focus(); } catch (e) { /* focus is a courtesy */ }
+        return;
+      }
+      popup = win.open(relayOrigin + SETUP_PATH, '_blank', 'popup=yes,width=480,height=680');
+      if (!popup) {
+        var blocked = 'Your browser blocked the key window. Allow pop-ups for ' + win.location.host + ' and try again.';
+        statusEl.textContent = blocked;
+        unlockStatus.textContent = blocked;
+      }
     }
 
     win.addEventListener('message', function (ev) {
+      if (popup && acceptMessage(ev, relayOrigin, popup)) {
+        var reply = relay.handlePopup(ev.data);
+        if (reply) {
+          popup.postMessage(reply, relayOrigin);
+          if (reply.type === 'popup-done' && reply.ok) {
+            // A forgotten key leaves the panel open on setup; a new or
+            // unlocked key closes it (applySettings told the game page).
+            show(ev.data.type === 'forget' ? 'setup' : '');
+          }
+        }
+        return;
+      }
       if (!acceptMessage(ev, gameOrigin, win.parent)) { return; }
       var r = relay.handle(ev.data);
       if (r && r.show) {
         statusEl.textContent = '';
         unlockStatus.textContent = '';
-        if (r.endpoint) { endpointIn.value = r.endpoint; }
-        if (r.model) { modelIn.value = r.model; }
         show(r.show);
       } else if (r && r.hide) {
-        hide(); // another account: close any open form
+        hide(); // another account: close any open panel
       }
     });
+
+    el('open').addEventListener('click', openPopup);
+    el('unlockopen').addEventListener('click', openPopup);
+    el('forget').addEventListener('click', function () {
+      relay.forget();
+      statusEl.textContent = 'Your key is forgotten on this device.';
+    });
+    el('unlockforget').addEventListener('click', function () {
+      relay.forget();
+      show('setup');
+    });
+    el('close').addEventListener('click', hide);
+    el('unlockclose').addEventListener('click', hide);
+  }
+
+  // bootSetup wires the popup. It runs only as a top-level window with an
+  // opener, and speaks only to that opener at its own origin: the frame
+  // that opened it. Framed, or opened by anyone else, it shows nothing.
+  function bootSetup(win, doc) {
+    if (win.parent !== win || !win.opener) { return; }
+    var opener = win.opener;
+    var relayOrigin = win.location.origin;
+    var setupLogic = createSetup(win.crypto);
+
+    var el = function (id) { return doc.getElementById(id); };
+    var waiting = el('waiting'), setupView = el('setup'), unlockView = el('unlock');
+    var endpointIn = el('endpoint'), keyIn = el('key'), modelIn = el('model');
+    var rememberIn = el('remember'), passIn = el('pass'), passLabel = el('passlabel');
+    var unlockIn = el('unlockpass'), statusEl = el('status'), unlockStatus = el('unlockstatus');
+
+    var account = '';
+    var sealed = null;
+    var busy = false;
+
+    var originEl = el('origin');
+    if (originEl) { originEl.textContent = win.location.host; }
+    var ollama = el('ollama');
+    if (ollama) {
+      ollama.textContent = 'For a model on this computer, such as Ollama, allow this page\'s address (' +
+        relayOrigin + ') in its settings, for Ollama in OLLAMA_ORIGINS.';
+    }
+
+    function clearSecrets() { keyIn.value = ''; passIn.value = ''; unlockIn.value = ''; }
+    function show(which) {
+      waiting.hidden = which !== 'waiting';
+      setupView.hidden = which !== 'setup';
+      unlockView.hidden = which !== 'unlock';
+    }
+    function post(msg) { opener.postMessage(msg, relayOrigin); }
+    // leave severs the popup from its opener and closes it. Nothing typed
+    // survives it.
+    function leave() {
+      clearSecrets();
+      try { win.opener = null; } catch (e) { /* some browsers refuse; the window closes anyway */ }
+      win.close();
+    }
+
+    show('waiting');
+
+    win.addEventListener('message', function (ev) {
+      if (!acceptMessage(ev, relayOrigin, opener)) { return; }
+      var d = ev.data;
+      switch (d.type) {
+        case 'popup-state': {
+          account = typeof d.account === 'string' ? d.account : '';
+          sealed = isSealedBlob(d.sealed) ? d.sealed : null;
+          if (account === '' || (d.view !== 'setup' && d.view !== 'unlock')) {
+            waiting.textContent = 'Log in to the game first, then open this window again.';
+            show('waiting');
+            return;
+          }
+          if (typeof d.endpoint === 'string' && d.endpoint !== '') { endpointIn.value = d.endpoint; }
+          if (typeof d.model === 'string' && d.model !== '') { modelIn.value = d.model; }
+          show(d.view);
+          break;
+        }
+        case 'popup-done': {
+          busy = false;
+          if (d.ok === true) { leave(); return; }
+          var m = typeof d.message === 'string' ? d.message : 'That did not work.';
+          statusEl.textContent = m;
+          unlockStatus.textContent = m;
+          break;
+        }
+      }
+    });
+
+    post({ type: 'popup-hello' });
 
     rememberIn.addEventListener('change', function () {
       passLabel.hidden = !rememberIn.checked;
@@ -350,56 +563,64 @@
       if (!rememberIn.checked) { passIn.value = ''; }
     });
 
-    var busy = false;
-    setupForm.addEventListener('submit', function (ev) {
-      ev.preventDefault();
+    function useKey() {
       if (busy) { return; }
       busy = true;
       statusEl.textContent = 'Working...';
       var fields = { endpoint: endpointIn.value, key: keyIn.value, model: modelIn.value,
         remember: rememberIn.checked, pass: passIn.value };
-      relay.setup(fields).then(function (r) {
+      setupLogic.setup(fields, account).then(function (r) {
         fields = null;
+        if (!r.ok) {
+          statusEl.textContent = r.message;
+          busy = false;
+          return;
+        }
         clearSecrets();
-        statusEl.textContent = r.message;
-        if (r.ok) { show(''); }
-        busy = false;
+        post(r.msg); // the frame answers with popup-done
       });
-    });
+    }
 
-    unlockForm.addEventListener('submit', function (ev) {
-      ev.preventDefault();
+    function unlockKey() {
       if (busy) { return; }
       busy = true;
       unlockStatus.textContent = 'Working...';
       var pass = unlockIn.value;
-      relay.unlock(pass).then(function (r) {
+      setupLogic.unlock(pass, sealed, account).then(function (r) {
         pass = null;
         clearSecrets();
-        unlockStatus.textContent = r.message;
-        if (r.ok) { show(''); }
-        busy = false;
+        if (!r.ok) {
+          unlockStatus.textContent = r.message;
+          busy = false;
+          return;
+        }
+        post(r.msg);
       });
-    });
+    }
 
-    el('forget').addEventListener('click', function () {
-      relay.forget();
-      clearSecrets();
-      statusEl.textContent = 'Your key is forgotten on this device.';
-    });
+    function onEnter(fn) {
+      return function (ev) { if (ev && ev.key === 'Enter') { ev.preventDefault(); fn(); } };
+    }
+
+    el('use').addEventListener('click', useKey);
+    [endpointIn, keyIn, modelIn, passIn].forEach(function (input) { input.addEventListener('keydown', onEnter(useKey)); });
+    el('unlockbtn').addEventListener('click', unlockKey);
+    unlockIn.addEventListener('keydown', onEnter(unlockKey));
     el('unlockforget').addEventListener('click', function () {
-      relay.forget();
+      if (busy) { return; }
+      busy = true;
       clearSecrets();
-      show('setup');
+      post({ type: 'forget' });
     });
-    el('close').addEventListener('click', hide);
-    el('unlockclose').addEventListener('click', hide);
+    el('cancel').addEventListener('click', leave);
+    el('unlockcancel').addEventListener('click', leave);
   }
 
   return {
-    ITER: ITER, MAX_REPLY_BYTES: MAX_REPLY_BYTES,
-    isAllowedEndpoint: isAllowedEndpoint, endpointURL: endpointURL, storageKey: storageKey,
+    ITER: ITER, MAX_REPLY_BYTES: MAX_REPLY_BYTES, MAX_INFLIGHT: MAX_INFLIGHT, MAX_PER_MINUTE: MAX_PER_MINUTE,
+    SETUP_PATH: SETUP_PATH,
+    isAllowedEndpoint: isAllowedEndpoint, endpointURL: endpointURL, storageKey: storageKey, isSealedBlob: isSealedBlob,
     seal: seal, unseal: unseal, relayOne: relayOne, acceptMessage: acceptMessage,
-    createRelay: createRelay, boot: boot
+    createRelay: createRelay, createSetup: createSetup, boot: boot
   };
 }));
