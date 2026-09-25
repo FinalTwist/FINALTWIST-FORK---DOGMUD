@@ -18,7 +18,7 @@ description: >
   <ansi fg="itemname">drays</ansi> take on bound timber for
   the city's framers and builders — a tally-clerk marks each
   load off against a board nailed to the gate-post.
-biome: city
+biome: city_backstreet
 coord:
   x: -17
   y: 68

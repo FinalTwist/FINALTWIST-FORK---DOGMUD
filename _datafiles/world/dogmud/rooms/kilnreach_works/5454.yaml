@@ -24,7 +24,7 @@ description: >
   workers of Kilnreach come to exist for a moment outside the din,
   smoking short pipes and exchanging words they would not bother
   with on the floor.
-biome: city
+biome: city_backstreet
 coord:
   x: -18
   y: 68
