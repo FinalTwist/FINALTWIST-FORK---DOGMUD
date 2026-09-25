@@ -8,7 +8,7 @@ description: Main Street runs east through the city, wide enough for two carts a
   of traffic, and drainage channels run along the gutters. The western end has a
   rougher character than the city center -- the shops are smaller, the paint is
   peeling, and the people move with the hurried purpose of those who work for a living.
-biome: city
+biome: city_thoroughfare
 coord:
   x: 1
   y: 0

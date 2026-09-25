@@ -10,7 +10,7 @@ description: The easternmost point of the city opens into a circular plaza surro
   place for public announcements. A weathered <ansi fg="itemname">board</ansi>
   near the eastern gate is papered with notices and handbills. The citadel watches
   over it all with the patience of something that was old when the city was young.
-biome: city
+biome: city_thoroughfare
 coord:
   x: 7
   y: 0

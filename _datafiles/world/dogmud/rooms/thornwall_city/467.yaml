@@ -7,7 +7,7 @@ description: A quieter part of the city, set apart from the market's noise by a 
   buildings cluster around it -- a hospice, a scriptorium, and residences for the
   temple staff. The cobblestones here are cleaner than the rest of the city, swept
   daily by acolytes. The air smells of incense and old stone.
-biome: city
+biome: city_backstreet
 coord:
   x: 2
   y: 1

@@ -11,7 +11,7 @@ description: A low-ceilinged tavern tucked into the south end of the Craftsmen's
   end of the bar, a moth-eaten curtain half-hides a back corner where the old
   regulars hold court. The tavern has the feel of a place where people come to
   talk seriously over cheap drinks.
-biome: city
+biome: interior
 coord:
   x: 2
   y: -2

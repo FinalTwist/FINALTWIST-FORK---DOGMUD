@@ -7,7 +7,7 @@ description: The eastern stretch of the back alley is marginally wider and sligh
   things without asking where they came from. Further along, the alley opens into a
   narrow yard where someone has stacked empty crates and barrels. The yard connects
   to the market square through a gap between buildings to the north.
-biome: city
+biome: city_backstreet
 coord:
   x: 6
   y: -1

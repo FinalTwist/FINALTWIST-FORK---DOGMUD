@@ -9,7 +9,8 @@ description: >-
   closely. The air smells of ozone and something older -- the dry,
   electric scent of places that should not be connected touching.
   The riftkeeper Sable tends the archway with practiced care.
-biome: city
+biome: dungeon
+lamp: 38
 coord:
   x: 2
   y: 1

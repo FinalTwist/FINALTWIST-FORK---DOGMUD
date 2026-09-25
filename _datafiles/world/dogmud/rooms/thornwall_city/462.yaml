@@ -8,7 +8,7 @@ description: The center of Main Street is marked by a worn stone fountain that h
   District's spire is visible above the rooftops. To the south, a narrower street
   leads toward the Craftsmen's Quarter. The buildings here are better maintained --
   fresh paint, clean windows, the occasional decorative ironwork.
-biome: city
+biome: city_thoroughfare
 coord:
   x: 2
   y: 0
