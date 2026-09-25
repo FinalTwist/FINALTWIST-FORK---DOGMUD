@@ -19,7 +19,7 @@ description: >
   the herb garden behind. A worn iron-banded
   <ansi fg="itemname">lockbox</ansi> sits half-hidden
   behind one of the altar's flanking columns.
-biome: city
+biome: interior
 mapsymbol: '+'
 maplegend: Temple
 coord:

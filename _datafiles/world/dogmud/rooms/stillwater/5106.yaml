@@ -14,7 +14,8 @@ description: >
   and a small carved fish, patient work from a previous occupant's long
   afternoon. The barred door is the only way out, and it opens only from
   the office above.
-biome: city
+biome: dungeon
+skylight: 0.1
 allow_recall: false
 coord:
   x: -17

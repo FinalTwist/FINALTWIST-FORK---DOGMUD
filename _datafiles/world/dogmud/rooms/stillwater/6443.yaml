@@ -11,7 +11,8 @@ description: >
   air smells faintly of ozone and lake-mud, and somewhere beneath
   the workbench a chrysalis core hums at a pitch just below
   hearing.
-biome: city
+biome: dungeon
+lamp: 38
 station: enchanting_circle
 coord:
   x: -20
