@@ -994,7 +994,7 @@ func (m *AICompanionModule) speak(c *controller, mob *mobs.Mob, lines []SpeechLi
 		c.mind.addLine(line, m.cfg.WorkingMemoryLines)
 		c.mind.addOwnPhrase(l.Text, 12)
 		if mob != nil {
-			m.noteConversation(c, mob.Character.RoomId, ``, line)
+			m.noteConversation(c, mob.Character.RoomId, ``, 0, line)
 		}
 	}
 	if len(lines) > 0 {

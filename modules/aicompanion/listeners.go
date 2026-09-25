@@ -153,7 +153,7 @@ func (m *AICompanionModule) hearSaid(c *controller, u *users.UserRecord, speaker
 		c.mind.addLine(line, m.cfg.WorkingMemoryLines)
 		c.dirty = true
 		if direct {
-			m.noteConversation(c, roomId, speaker, line)
+			m.noteConversation(c, roomId, speaker, speakerUserId, line)
 		}
 	}
 	if speakerUserId > 0 {
@@ -220,7 +220,7 @@ func (m *AICompanionModule) seeEmote(c *controller, u *users.UserRecord, speaker
 		c.mind.addLine(emoteLine, m.cfg.WorkingMemoryLines)
 		c.dirty = true
 		if direct {
-			m.noteConversation(c, roomId, speaker, emoteLine)
+			m.noteConversation(c, roomId, speaker, u.UserId, emoteLine)
 		}
 	}
 	c.lastSocialUnix = now
@@ -403,7 +403,7 @@ func (m *AICompanionModule) hearAsked(c *controller, u *users.UserRecord, speake
 	if m.consented(c.ownerUserId) {
 		askLine := Line{Speaker: speaker, Kind: `asked`, ToMe: true, Text: text, Unix: now}
 		c.mind.addLine(askLine, m.cfg.WorkingMemoryLines)
-		m.noteConversation(c, u.Character.RoomId, speaker, askLine)
+		m.noteConversation(c, u.Character.RoomId, speaker, u.UserId, askLine)
 		c.dirty = true
 	}
 	c.lastSocialUnix = now

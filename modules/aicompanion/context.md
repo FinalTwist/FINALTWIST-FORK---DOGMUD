@@ -83,6 +83,14 @@ Roadmap and phase plan: `docs/aicompanion/`.
   under the mud lock from player-visible information only.
 - **models.go**: model tiers (fast, main, deep) and their routing, the
   circuit breaker, per-companion budgets, per-tier metrics, decision traces.
+- **conversation.go**: talk gathered into one conversation per exchange
+  (`noteConversation`, which also notes whether her owner spoke and the
+  last passer-by who did), held mid-talk notes, and `closeConversation`,
+  which sums the whole talk up as one memory on the fast tier
+  (`summariseConversation`) or keeps the best note when there is no model
+  or nobody's allowance to pay. A talk with passers-by alone is paid for
+  by the last of them (`conversation.payer`); one her owner took part in is
+  the owner's.
 - **reflect.go**: the private end-of-session reflection (summary,
   conclusions, facts), run in the background after logout.
 - **memory.go**: retrieval (importance, recency, relevance by words, place

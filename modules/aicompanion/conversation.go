@@ -38,12 +38,27 @@ type conversation struct {
 	Exchanges   int // turns from the other side
 	Lines       []Line
 	Provisional []Memory // what she thought worth remembering, pending the whole
+
+	OwnerSpoke bool // her owner said something to her in it
+	StrangerId int  // the last passer-by to speak to her in it, 0 for none
+}
+
+// payer is who the summary of this talk is charged to: a passer-by when
+// the talk was theirs alone, or 0 for her owner. A talk her owner took part
+// in is the owner's, whoever else joined it; one with only a creature is
+// her own business, which the owner's allowance pays for as always.
+func (cv *conversation) payer() int {
+	if cv.OwnerSpoke {
+		return 0
+	}
+	return cv.StrangerId
 }
 
 const maxConversationLines = 40
 
-// noteConversation records one turn of talk. speaker is empty for her own.
-func (m *AICompanionModule) noteConversation(c *controller, roomId int, partner string, l Line) {
+// noteConversation records one turn of talk. partner is empty for her own;
+// partnerUserId is the player who spoke, 0 for her own turn or a creature.
+func (m *AICompanionModule) noteConversation(c *controller, roomId int, partner string, partnerUserId int, l Line) {
 	now := time.Now().Unix()
 	if c.convo != nil && (c.convo.RoomId != roomId || now-c.convo.LastUnix > int64(m.cfg.ConversationGapSeconds)) {
 		m.closeConversation(c, `the talk moved on`)
@@ -54,6 +69,13 @@ func (m *AICompanionModule) noteConversation(c *controller, roomId int, partner 
 	if partner != `` {
 		c.convo.Partner = partner
 		c.convo.Exchanges++
+	}
+	switch {
+	case partnerUserId <= 0:
+	case partnerUserId == c.ownerUserId:
+		c.convo.OwnerSpoke = true
+	default:
+		c.convo.StrangerId = partnerUserId
 	}
 	c.convo.LastUnix = now
 	c.convo.Lines = append(c.convo.Lines, l)
@@ -102,26 +124,34 @@ func (m *AICompanionModule) closeConversation(c *controller, why string) {
 		return
 	}
 
-	if !m.cfg.ConversationSummaries || !m.consented(c.ownerUserId) || !m.modelReady(c.ownerUserId) {
-		// No model to sum it up: keep the single best note rather than the
-		// whole exchange.
-		best := Memory{}
-		for _, mem := range convo.Provisional {
-			if mem.Importance > best.Importance {
-				best = mem
-			}
-		}
-		if best.Text == `` {
-			best = Memory{Kind: `conversation`, Importance: 3, Emotion: `neutral`,
-				Text: fmt.Sprintf(`I talked with %s for a while.`, convo.Partner)}
-		}
-		best.Unix = now
-		c.mind.addMemory(best, m.cfg.MaxMemories)
-		c.dirty = true
+	// A talk with a passer-by alone is summed up on their allowance, the
+	// way their questions are answered on it, so it is not refused because
+	// her owner's is spent, and never charged to it (tryReserveFor).
+	asker := convo.payer()
+	ownerCheck := c.ownerUserId
+	if asker > 0 {
+		ownerCheck = 0
+	}
+	if m.cfg.ConversationSummaries && m.consented(c.ownerUserId) && m.modelReady(ownerCheck) &&
+		m.summariseConversation(c, convo, asker) {
 		return
 	}
 
-	m.summariseConversation(c, convo)
+	// No model to sum it up, or nobody's allowance to pay for it: keep the
+	// single best note rather than the whole exchange.
+	best := Memory{}
+	for _, mem := range convo.Provisional {
+		if mem.Importance > best.Importance {
+			best = mem
+		}
+	}
+	if best.Text == `` {
+		best = Memory{Kind: `conversation`, Importance: 3, Emotion: `neutral`,
+			Text: fmt.Sprintf(`I talked with %s for a while.`, convo.Partner)}
+	}
+	best.Unix = now
+	c.mind.addMemory(best, m.cfg.MaxMemories)
+	c.dirty = true
 }
 
 // ConversationSummary is what the model gives back for a finished talk.
@@ -142,12 +172,15 @@ func conversationSchema() map[string]any {
 }
 
 // summariseConversation turns a finished exchange into one memory, on the
-// fast tier, off the game loop.
-func (m *AICompanionModule) summariseConversation(c *controller, convo *conversation) {
+// fast tier, off the game loop. asker is the passer-by who pays for it, or
+// 0 for her owner. It reports whether the call was started; when it was
+// not, the caller keeps the best note instead, so a talk is never lost to
+// a budget.
+func (m *AICompanionModule) summariseConversation(c *controller, convo *conversation, asker int) bool {
 	// The whole talk is about to be posted: checked here as well as by the
 	// caller, because this is the function that sends it.
 	if !m.consented(c.ownerUserId) {
-		return
+		return false
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "You have just finished talking with %s. Here is the whole of it, oldest first:\n", convo.Partner)
@@ -165,7 +198,7 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 
 	ts := m.settingsFor(tierFast, false)
 	if ts.Model == `` {
-		return
+		return false
 	}
 	messages := []chatMessage{
 		{Role: `system`, Content: fmt.Sprintf("You are %s. %s\nYou are looking back on a conversation you have just had. Answer in your own voice, briefly, and never with a transcript.",
@@ -179,8 +212,8 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 		Effort: ts.Effort, Retry: false, OwnerUserId: c.ownerUserId,
 	}
 	reserved := worstCaseTokens(estimateTokens(messages), ts.MaxTokens, 0, false)
-	if !m.tryReserveTokens(c.ownerUserId, reserved) {
-		return
+	if !m.tryReserveFor(c.ownerUserId, asker, reserved) {
+		return false
 	}
 	m.callsToday++
 	key := mindIdentifier(c.mind.OwnerUserId, c.mind.MobId)
@@ -197,22 +230,24 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 
 		util.LockMud()
 		defer util.UnlockMud()
-		m.applyConversationSummary(key, partner, place, reserved, res)
+		m.applyConversationSummary(key, partner, place, asker, reserved, res)
 	}()
+	return true
 }
 
 // applyConversationSummary stores the one memory a talk left behind.
-func (m *AICompanionModule) applyConversationSummary(key string, partner string, placeId int, reserved int, res modelResult) {
+func (m *AICompanionModule) applyConversationSummary(key string, partner string, placeId int, asker int, reserved int, res modelResult) {
 	m.rollDay()
 	m.recordCall(tierFast, res)
 	m.breakerResult(res.Err, time.Now())
 
 	mind := m.minds[key]
 	if mind == nil {
-		m.settleTokens(0, reserved, res.Tokens)
+		m.settleFor(0, asker, reserved, res.Tokens)
 		return
 	}
-	m.settleTokens(mind.OwnerUserId, reserved, res.Tokens)
+	// Settled against whoever the reservation was held against.
+	m.settleFor(mind.OwnerUserId, asker, reserved, res.Tokens)
 	mind.TokensLifetime += int64(res.Tokens)
 	if res.Err != nil {
 		m.logModelError(res.Err)

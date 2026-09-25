@@ -1574,7 +1574,7 @@ func TestConversationsBecomeOneMemory(t *testing.T) {
 
 	// Four turns of talk with three notes taken along the way.
 	for i := 0; i < 4; i++ {
-		m.noteConversation(c, 7, `Corvin`, Line{Speaker: `Corvin`, Kind: `said`, Text: fmt.Sprintf(`line %d`, i)})
+		m.noteConversation(c, 7, `Corvin`, 1, Line{Speaker: `Corvin`, Kind: `said`, Text: fmt.Sprintf(`line %d`, i)})
 		if i < 3 {
 			held := m.holdMemory(c, Memory{Text: fmt.Sprintf(`note %d`, i), Importance: 4, Kind: `conversation`})
 			if !held {
@@ -1591,14 +1591,14 @@ func TestConversationsBecomeOneMemory(t *testing.T) {
 	}
 
 	// Something weighty said mid-talk is written at once.
-	m.noteConversation(c, 7, `Corvin`, Line{Speaker: `Corvin`, Kind: `said`, Text: `my brother died`})
+	m.noteConversation(c, 7, `Corvin`, 1, Line{Speaker: `Corvin`, Kind: `said`, Text: `my brother died`})
 	if m.holdMemory(c, Memory{Text: `His brother is dead.`, Importance: 9}) {
 		t.Fatal("a weighty memory must not wait on the end of the talk")
 	}
 
 	// A passing remark leaves nothing at all.
 	c2 := &controller{profile: p, mind: newMind(2, p), ownerUserId: 2}
-	m.noteConversation(c2, 7, `Corvin`, Line{Speaker: `Corvin`, Kind: `said`, Text: `morning`})
+	m.noteConversation(c2, 7, `Corvin`, 2, Line{Speaker: `Corvin`, Kind: `said`, Text: `morning`})
 	m.holdMemory(c2, Memory{Text: `He said good morning.`, Importance: 2})
 	m.closeConversation(c2, `test`)
 	if len(c2.mind.Memories) != 0 {
@@ -1614,10 +1614,10 @@ func TestConversationBreaksOnRoomAndSilence(t *testing.T) {
 	c := &controller{profile: p, mind: newMind(1, p), ownerUserId: 1}
 
 	for i := 0; i < 3; i++ {
-		m.noteConversation(c, 7, `Corvin`, Line{Speaker: `Corvin`, Kind: `said`, Text: `x`})
+		m.noteConversation(c, 7, `Corvin`, 1, Line{Speaker: `Corvin`, Kind: `said`, Text: `x`})
 	}
 	// Moving rooms ends one talk and starts another.
-	m.noteConversation(c, 9, `Corvin`, Line{Speaker: `Corvin`, Kind: `said`, Text: `y`})
+	m.noteConversation(c, 9, `Corvin`, 1, Line{Speaker: `Corvin`, Kind: `said`, Text: `y`})
 	if c.convo == nil || c.convo.RoomId != 9 || c.convo.Exchanges != 1 {
 		t.Fatalf("a new room is a new conversation: %+v", c.convo)
 	}
@@ -1626,7 +1626,7 @@ func TestConversationBreaksOnRoomAndSilence(t *testing.T) {
 	}
 	// Silence past the gap does the same.
 	c.convo.LastUnix = time.Now().Unix() - int64(m.cfg.ConversationGapSeconds) - 1
-	m.noteConversation(c, 9, `Corvin`, Line{Speaker: `Corvin`, Kind: `said`, Text: `z`})
+	m.noteConversation(c, 9, `Corvin`, 1, Line{Speaker: `Corvin`, Kind: `said`, Text: `z`})
 	if c.convo.Exchanges != 1 {
 		t.Fatal("a long silence ends the exchange")
 	}
@@ -2525,5 +2525,97 @@ func TestAStrangerCannotRideTheOwnersWord(t *testing.T) {
 		[]stimulus{{Kind: `heard`, FromOwner: true}, {Kind: `heard`, Speaker: `Bram`, AskerUserId: 2}}, 0, 0)
 	if out.Refused != `that is not a stranger's to ask for` {
 		t.Fatalf("refusal: %q", out.Refused)
+	}
+}
+
+// strangerTalk opens a finished talk with a passer-by (user 2) alone, long
+// enough to be summed up, on a module that can call a model at baseURL.
+func strangerTalk(t *testing.T, baseURL string) (*AICompanionModule, *controller) {
+	t.Helper()
+	m, c := senderModule(baseURL, true)
+	m.cfg.DailyTokensPerCompanion = 100000
+	m.cfg.StrangerDailyTokens = 100000
+	m.cfg.DailyTokenBudget = 1000000
+	// As getMind keeps it: the summary finds her mind through the cache.
+	m.minds = map[string]*Mind{mindIdentifier(c.mind.OwnerUserId, c.mind.MobId): c.mind}
+	m.ctrls = map[int]*controller{c.ownerUserId: c}
+	for i := 0; i < 4; i++ {
+		m.noteConversation(c, 7, `Bram`, 2, Line{Speaker: `Bram`, Kind: `said`, Text: fmt.Sprintf(`line %d`, i)})
+	}
+	return m, c
+}
+
+// waitSettled waits for every background call's reservation to be settled.
+func waitSettled(t *testing.T, m *AICompanionModule) {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		util.LockMud()
+		left := m.outstanding
+		util.UnlockMud()
+		if left == 0 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("background calls never settled: %d tokens outstanding", left)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestStrangerTalkSummaryIsTheStrangersToPayFor(t *testing.T) {
+	srv, hits := countingServer(t)
+
+	m, c := strangerTalk(t, srv.URL)
+	util.LockMud()
+	m.closeConversation(c, `test`)
+	util.UnlockMud()
+	waitSettled(t, m)
+	if hits.Load() != 1 {
+		t.Fatalf("a talk with a passer-by is still summed up: %d requests", hits.Load())
+	}
+	if m.ownerTokens[1] != 0 || m.strangerTokens[2] != 10 {
+		t.Fatalf("and it is charged to the passer-by, not her owner: owner=%d stranger=%d", m.ownerTokens[1], m.strangerTokens[2])
+	}
+
+	// The passer-by's allowance spent: no call, nothing charged to her
+	// owner, and the talk is still remembered, as a plain note.
+	hits.Store(0)
+	m, c = strangerTalk(t, srv.URL)
+	m.rollDay()
+	m.strangerTokens[2] = m.cfg.StrangerDailyTokens
+	util.LockMud()
+	m.closeConversation(c, `test`)
+	util.UnlockMud()
+	if hits.Load() != 0 || m.ownerTokens[1] != 0 {
+		t.Fatalf("a passer-by with nothing left is summed up on nobody's allowance: %d requests, owner=%d", hits.Load(), m.ownerTokens[1])
+	}
+	if len(c.mind.Memories) != 1 {
+		t.Fatalf("the talk is kept as a note instead: %+v", c.mind.Memories)
+	}
+
+	// Her owner spent out does not stop a passer-by's talk being summed up.
+	hits.Store(0)
+	m, c = strangerTalk(t, srv.URL)
+	m.rollDay()
+	m.ownerTokens[1] = m.cfg.DailyTokensPerCompanion
+	util.LockMud()
+	m.closeConversation(c, `test`)
+	util.UnlockMud()
+	waitSettled(t, m)
+	if hits.Load() != 1 {
+		t.Fatalf("her owner's spent allowance is not the passer-by's: %d requests", hits.Load())
+	}
+
+	// A talk her owner took part in is the owner's, whoever else joined.
+	hits.Store(0)
+	m, c = strangerTalk(t, srv.URL)
+	m.noteConversation(c, 7, `Corvin`, 1, Line{Speaker: `Corvin`, Kind: `said`, Text: `he is with me`})
+	util.LockMud()
+	m.closeConversation(c, `test`)
+	util.UnlockMud()
+	waitSettled(t, m)
+	if m.ownerTokens[1] != 10 || m.strangerTokens[2] != 0 {
+		t.Fatalf("a shared talk is charged to her owner: owner=%d stranger=%d", m.ownerTokens[1], m.strangerTokens[2])
 	}
 }
