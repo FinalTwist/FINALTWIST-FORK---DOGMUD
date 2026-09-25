@@ -1408,3 +1408,90 @@ Gates after each group: gofmt, `go build ./...`, package tests, the root
 package, every `tools/jstest` test, lint new-from-merge-base 0 issues. After
 14C: full `go test ./...` and a repeat of Task 13 Step 9's boot (new
 worktree `C:/tmp/dogmud-pr161-boot`, own ports, own PID).
+
+---
+
+### Task 15: Fixes from the second round of blind reviews (2026-09-25)
+
+Three blind reviews (browser key handling, money, whole-diff consistency) ran
+against `4aa161a81`. Re-verify each item against source before fixing; report
+any that does not hold. Every fix gets a test proven red. 15A and 15B run in
+parallel on disjoint files.
+
+**Owner decision (2026-09-25):** `companion-court` (and any romance stage
+change) requires consent; before consent it answers plainly that she is a
+plain companion for now and `companion-ai on` changes that.
+**Main-session decisions:** fight plans in a fight another player started are
+paid by the OWNER's route (defending her owner is the owner's concern; PvP is
+off on prod and companions are harm-protected, so griefing room is small),
+still within the owner's allowance on the server key; `noticed` calls get a
+per-owner daily cap (`NoticeCallsPerDay`, default 40) and, on the relay route
+with strangers off, are not started while another player is in the room.
+
+#### 15A: browser (relayweb/relay.js, relay-setup.html, glue, tools/jstest, and ONLY the request-message shape in modules/aicompanion/relay.go)
+1. `relayOne` treats the body as data it constrains: parse to an object;
+   overwrite `model` with the stored model; cap `max_completion_tokens` and
+   `max_tokens` at 4000 (delete if absent is fine); refuse `n > 1`,
+   `stream: true`, and any body whose `response_format.json_schema.name` is
+   not one the server uses (grep the module for every `SchemaName`); refuse
+   bodies over 256 KiB. Refusal = status 0, no fetch. Add a per-minute
+   budget of summed `max_completion_tokens` (e.g. 40000) alongside the
+   request cap.
+2. Popup account binding: `popup-state` carries the frame's account; the
+   popup echoes it in `settings`/`forget`; the frame refuses a mismatch
+   (case-insensitive) and closes or re-posts to the popup on every account
+   change.
+3. Deadline: the server's `Companion.Relay.Request` carries `deadlineMs`
+   (the relay timeout); the relay aborts the fetch at that deadline (never
+   longer than its own 90 s ceiling). Update `relayRequest` in
+   `modules/aicompanion/relay.go` and its test; nothing else in the module.
+4. Document in `docs/aicompanion/settings.md`: a weak passphrase can be
+   brute-forced offline by someone with the browser profile.
+
+#### 15B: module and docs (modules/aicompanion except relayweb/ and relay.go; internal/usercommands; docs; config.yaml)
+1. Player text on the strangers default: `companion-ai.template` and the
+   `docs/PATCH_NOTES.md` top entry say OFF by default on your own key, ON on
+   the server's key, and how to turn it on. Grep every help template, doc
+   and command message for other contradictions.
+2. First meeting: when consent arrives (spoken or `companion-ai on`), write
+   the "started travelling with" memory if the first meeting happened and it
+   is absent, and queue `first_meeting` from `cmdAI on` too.
+3. Area harm start gate: `areaHarmAllowed` refuses only when resolution would
+   not spare (or only checks there is a valid target); resolution filtering
+   (`internal/hooks/mob_area_harm.go`) is the authority. Fix the stale
+   comment and context.md.
+4. `castHarm` and the area check apply `refusesToFight && !IsInCombat` like
+   `attack`.
+5. Fight plans in a stranger-started fight: owner's route (decision above);
+   remove the fallback that left her planless; update context.md.
+6. `validRelayOrigin` normalises `WebDomain` exactly as `gameOrigin` does
+   (scheme, trailing slash, port); share one helper; test
+   `https://example.org` and `example.org/`.
+7. Register `onGoldGiven` before the enabled check (returns early when off);
+   extend `moduleoff_test.go`.
+8. `mayRemember` on `travel.go:163`, `meeting.go:205` (leave),
+   `meeting.go:242` (requestLeave), `romance.go:431-440` and the core memory
+   from `companion-boundary friendship`.
+9. Battle lines (`combat.go:711` `combatLine`) respect mute.
+10. Romance requires consent (owner decision above): `companion-court` and
+    stage changes refuse before consent with the plain message.
+11. Money: `noticed` attribution and cap (decision above); `promptedBy`
+    returns the owner for everything the owner did (emote, gift, heal,
+    attack, `companion-ask`, greeting, first meeting) and extend
+    `TestOwnerAndStrangerNeverShareADecision` to those kinds; the `looked`
+    follow-up carries the batch's payer; a server-key call sent with no usage
+    records prompt plus MaxTokens (not the estimate alone); midnight: tag
+    holds with their day and do not refund across a rollover; include the
+    schema overhead in summary/reflection/core holds and raise the per-round
+    tool allowance in `worstCaseTokens` to the real cap (4 answers x 1500
+    runes); a panic in the tool-answer step keeps the spend of rounds already
+    completed; a relay owner whose relay is down at logout has the
+    conversation summary deferred like the reflection, not moved to the
+    server key.
+12. `RescueRounds` added to `settings.md`.
+Deferred with reason: crash loses up to one autosave of spend; moderation
+calls uncounted (free on OpenAI; note it in settings.md).
+
+Gates after both: gofmt; `go build ./...`; full `go test ./...`; all
+`tools/jstest` and `tools/webclient-tests`; lint new-from-merge-base 0 issues;
+repeat Task 13 Step 9's boot.
