@@ -50,8 +50,8 @@ func SightThroughWindow(light, strength, reach int, blindBelow, dimBelow int) Si
 
 	if light >= shiftedDim {
 		// Perfect and too-bright both read fully. Dazzle has no mechanical
-		// penalty in this plan, so the upper edge is not consulted yet; it is
-		// declared above so the next plan has one place to add the penalty.
+		// penalty yet; BandThroughWindow (band.go) is the one reader of the
+		// upper edge, and only to tell a player the light hurts.
 		return SightFull
 	}
 	if light >= shiftedBlind && light >= windowFloor {
