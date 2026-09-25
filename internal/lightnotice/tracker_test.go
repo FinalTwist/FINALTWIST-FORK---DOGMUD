@@ -53,6 +53,8 @@ func TestDecideTriggerRules(t *testing.T) {
 		{"command lighter speaks", rec(1, messaging.BandShapes, termsDim), obs(1, messaging.BandFaces, termsLit), TriggerCommand, true, LighterFaces},
 		{"quiet never speaks", rec(1, messaging.BandFaces, termsLit), obs(1, messaging.BandShapes, termsDim), TriggerQuiet, false, ""},
 		{"same band is silent", rec(1, messaging.BandFaces, termsLit), obs(1, messaging.BandFaces, termsDim), TriggerCommand, false, ""},
+		{"command sees a room change to lighter and is silent", rec(1, messaging.BandShapes, termsDim), obs(2, messaging.BandFaces, termsLit), TriggerCommand, false, ""},
+		{"command sees a room change to darker and speaks", rec(1, messaging.BandFaces, termsLit), obs(2, messaging.BandShapes, termsDim), TriggerCommand, true, DarkerShapes},
 	}
 	for _, c := range cases {
 		n, speak, next := decide(c.prev, true, c.now, c.trig)

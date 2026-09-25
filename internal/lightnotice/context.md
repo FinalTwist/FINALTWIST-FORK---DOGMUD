@@ -20,9 +20,20 @@ exactly like `ParticipantSight`, and does not consult sleep.
 | Trigger | Fires on | Notes |
 |---|---|---|
 | `TriggerMove` | a band getting **darker**, or moving **into dazzle** | Walking into ordinary light needs no notice; the room description already says it. Runs after `RoomChange`, in the new room |
-| `TriggerCombatRound` | any band change, **both directions** | Once per combat round the player is fighting in, after aggro validation, before that round's combat text |
-| `TriggerCommand` | any band change, **both directions** | Before every command's own output, so an intercepted command still gets it |
+| `TriggerCombatRound` | any band change, **both directions**, in the SAME room | Once per combat round the player is fighting in, after aggro validation and retarget, before the round's attacks |
+| `TriggerCommand` | any band change, **both directions**, in the SAME room | Before every command's own output, so an intercepted command still gets it |
 | `TriggerQuiet` | never speaks | Login, and the placeholder first check. Records the band silently |
+
+**The move rule keys off the room, not the trigger.** `decide` compares
+`now.roomId` against the stored record's room on every trigger. If they
+differ, the move rule applies (a lighter band is recorded but not
+announced) whether or not the trigger is `TriggerMove`. This matters because
+`TriggerCombatRound` and `TriggerCommand` can themselves run after a room
+change has already happened but before the queued `RoomChange` listener
+fires `TriggerMove`; without this rule such a check would announce a
+lighter band with the movement cause, which the move rule is supposed to
+suppress. A room change that got DARKER still speaks under any trigger,
+attributed to `CauseMovement`.
 
 **Sleeping and blinded players get nothing, and their state's end is silent.**
 `decide` refuses to speak while `now.asleep` or `now.blinded`, and marks the
@@ -69,7 +80,7 @@ when `decide` says to speak.
 | Seam | File | Trigger / call |
 |---|---|---|
 | Before every command | `internal/usercommands/usercommands.go` (`TryCommand`) | `lightnotice.Check(user, lightnotice.TriggerCommand)`, before scripts, behaviour trees and quest intercepts |
-| Each combat round | `internal/hooks/NewRound_DoCombat.go` | `lightnotice.Check(user, lightnotice.TriggerCombatRound)`, after aggro validation, before that round's combat text |
+| Each combat round | `internal/hooks/NewRound_DoCombat.go` | `lightnotice.Check(user, lightnotice.TriggerCombatRound)`, after aggro validation and retarget, before the round's attacks |
 | Arriving in a room | `internal/hooks/LightNotice_Triggers.go` (`LightNoticeOnMove`), on `events.RoomChange` | `TriggerMove`; players only (`MobInstanceId == 0`) |
 | Login | `LightNoticeOnSpawn`, on `events.PlayerSpawn` | `TriggerQuiet` |
 | Logout | `LightNoticeOnDespawn`, on `events.PlayerDespawn` | `lightnotice.Forget(evt.UserId)` |

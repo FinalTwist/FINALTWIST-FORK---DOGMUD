@@ -19,12 +19,18 @@ type Trigger uint8
 const (
 	// TriggerMove runs after a player arrives in a room. It announces only a
 	// darker band or dazzle: walking into light needs no notice, the room
-	// description already says it.
+	// description already says it. This is the move rule; decide applies it
+	// to ANY trigger that finds the room already changed, not only this one,
+	// so a check that happens to run between MoveToRoom and the queued
+	// RoomChange listener cannot announce a lighter band as if it were a
+	// non-movement cause.
 	TriggerMove Trigger = iota
 	// TriggerCombatRound runs once per combat round the player is fighting in.
+	// A room change seen under this trigger still obeys the move rule above.
 	TriggerCombatRound
 	// TriggerCommand runs before every command the player issues, so the
-	// notice lands before the command's own output.
+	// notice lands before the command's own output. A room change seen under
+	// this trigger still obeys the move rule above.
 	TriggerCommand
 	// TriggerQuiet records the current band and never speaks: login. Waking
 	// and the end of blindness are NOT this trigger: they are handled by the
@@ -70,6 +76,12 @@ type notice struct {
 
 // decide applies the trigger rules. It returns the notice to send, if any, and
 // the record to store. It is pure so every rule is table-testable.
+//
+// The move rule (a lighter band needs no notice) keys off the ROOM having
+// changed, not off TriggerMove itself: any trigger that runs after the room
+// id has already changed, such as a combat round or command check that lands
+// between MoveToRoom and the queued RoomChange listener, sees the same
+// crossing TriggerMove would and must suppress it the same way.
 func decide(prev record, known bool, now observation, trigger Trigger) (notice, bool, record) {
 	if now.asleep || now.blinded {
 		// On a player's very first check, known is false and prev is the zero
@@ -86,7 +98,12 @@ func decide(prev record, known bool, now observation, trigger Trigger) (notice, 
 		return notice{}, false, next
 	}
 	tr := transitionOf(prev.band, now.band)
-	if trigger == TriggerMove && (tr == LighterShapes || tr == LighterFaces) {
+	// The move rule (walking into better light needs no notice) applies
+	// whenever the room actually changed, not only under TriggerMove: a
+	// combat-round or command check that runs after MoveToRoom but before
+	// the queued RoomChange listener also sees the new room and must not
+	// announce a lighter band with the movement cause.
+	if (trigger == TriggerMove || now.roomId != prev.roomId) && (tr == LighterShapes || tr == LighterFaces) {
 		return notice{}, false, next
 	}
 	return notice{cause: attribute(prev, now), transition: tr, indoor: now.indoor}, true, next
