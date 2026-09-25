@@ -31,6 +31,14 @@ var KEY = 'sk-test-THISISTHEPLAYERSKEY1234567890';
 var GAME = 'https://example.org';
 var RELAY = 'https://keys.example.org';
 var STORED = { endpoint: 'https://api.openai.com/v1', key: KEY, model: 'gpt-4.1-mini' };
+// A body shaped like the server's (modules/aicompanion/openai.go chatRequest).
+var BODY = {
+    model: 'server-model', messages: [{ role: 'user', content: 'hi' }],
+    response_format: { type: 'json_schema', json_schema: { name: 'companion_decision', strict: true, schema: {} } },
+    max_completion_tokens: 900
+};
+var BODY_TEXT = JSON.stringify(BODY);
+function bodyWith(extra) { return Object.assign({}, BODY, extra); }
 
 function fakeFetch(reply) {
     var calls = [];
@@ -116,7 +124,7 @@ async function main() {
     // --- relayOne posts only to the stored endpoint ---------------------------
     var f = fakeFetch(textReply(200, '{"ok":true}'));
     var got = await Relay.relayOne(f, STORED, {
-        id: 'abc', body: { model: 'x' },
+        id: 'abc', body: bodyWith({ model: 'x' }),
         url: 'https://evil.example/steal', endpoint: 'https://evil.example', headers: { Authorization: 'x' }
     });
     check('fetch called once', f.calls.length, 1);
@@ -130,53 +138,54 @@ async function main() {
     check('mode cors', init.mode, 'cors');
     check('cache no-store', init.cache, 'no-store');
     check('method POST', init.method, 'POST');
-    check('an object body is sent as JSON', init.body, '{"model":"x"}');
+    check('an object body is sent as JSON', JSON.parse(init.body).messages[0].content, 'hi');
+    check('the body names the STORED model, whatever it asked for', JSON.parse(init.body).model, STORED.model);
     check('returned keys are exactly id,status,body', sortedKeys(got), 'body,id,status');
     check('returned body is the reply', got.body, '{"ok":true}');
     check('returned status is the reply status', got.status, 200);
 
     var f2 = fakeFetch(textReply(200, 'x'));
-    await Relay.relayOne(f2, { endpoint: 'https://openrouter.ai/api/v1/', key: KEY, model: 'm' }, { id: 'a', body: '{}' });
+    await Relay.relayOne(f2, { endpoint: 'https://openrouter.ai/api/v1/', key: KEY, model: 'm' }, { id: 'a', body: BODY_TEXT });
     check('trailing slashes collapse', f2.calls[0].url, 'https://openrouter.ai/api/v1/chat/completions');
 
     var f3 = fakeFetch(textReply(200, 'x'));
-    var none = await Relay.relayOne(f3, null, { id: 'abc', body: '{}' });
+    var none = await Relay.relayOne(f3, null, { id: 'abc', body: BODY_TEXT });
     check('no settings: status 0', none.status, 0);
     check('no settings: empty body', none.body, '');
     check('no settings: fetch never called', f3.calls.length, 0);
 
     var f3b = fakeFetch(textReply(200, 'x'));
-    await Relay.relayOne(f3b, { endpoint: 'http://evil.example/v1', key: KEY, model: 'm' }, { id: 'a', body: '{}' });
+    await Relay.relayOne(f3b, { endpoint: 'http://evil.example/v1', key: KEY, model: 'm' }, { id: 'a', body: BODY_TEXT });
     check('a stored endpoint that is not allowed is never called', f3b.calls.length, 0);
 
     // --- replies too big for the game page never leave the relay ------------
     check('the reply cap is 60 KiB', Relay.MAX_REPLY_BYTES, 60 * 1024);
     var big = new Array(60 * 1024 + 2).join('a');
-    var over = await Relay.relayOne(fakeFetch(textReply(200, big)), STORED, { id: 'a', body: '{}' });
+    var over = await Relay.relayOne(fakeFetch(textReply(200, big)), STORED, { id: 'a', body: BODY_TEXT });
     check('oversized text reply: status 0', over.status, 0);
     check('oversized text reply: empty body', over.body, '');
     var atCap = new Array(60 * 1024 + 1).join('a');
-    var fits = await Relay.relayOne(fakeFetch(textReply(200, atCap)), STORED, { id: 'a', body: '{}' });
+    var fits = await Relay.relayOne(fakeFetch(textReply(200, atCap)), STORED, { id: 'a', body: BODY_TEXT });
     check('a reply exactly at the cap passes', fits.body.length, 60 * 1024);
     var s = streamReply(200, [big.slice(0, 40000), big.slice(40000)]);
-    var overStream = await Relay.relayOne(fakeFetch(s), STORED, { id: 'a', body: '{}' });
+    var overStream = await Relay.relayOne(fakeFetch(s), STORED, { id: 'a', body: BODY_TEXT });
     check('oversized streamed reply: status 0', overStream.status, 0);
     check('oversized streamed reply: stream cancelled', s.cancelled, true);
-    var sOk = await Relay.relayOne(fakeFetch(streamReply(200, ['{"a":', '1}'])), STORED, { id: 'a', body: '{}' });
+    var sOk = await Relay.relayOne(fakeFetch(streamReply(200, ['{"a":', '1}'])), STORED, { id: 'a', body: BODY_TEXT });
     check('a streamed reply is joined', sOk.body, '{"a":1}');
     var declared = await Relay.relayOne(fakeFetch(textReply(200, 'x', { 'content-length': String(60 * 1024 + 1) })),
-        STORED, { id: 'a', body: '{}' });
+        STORED, { id: 'a', body: BODY_TEXT });
     check('a declared oversize reply: status 0', declared.status, 0);
 
     // --- error text and echoes never carry the key back ----------------------
     var err = await Relay.relayOne(fakeFetch(textReply(401, 'Incorrect API key provided: sk-test-****7890')),
-        STORED, { id: 'a', body: '{}' });
+        STORED, { id: 'a', body: BODY_TEXT });
     check('an error status comes back', err.status, 401);
     check('an error status comes back without its body', err.body, '');
-    var echo = await Relay.relayOne(fakeFetch(textReply(200, 'you sent ' + KEY)), STORED, { id: 'a', body: '{}' });
+    var echo = await Relay.relayOne(fakeFetch(textReply(200, 'you sent ' + KEY)), STORED, { id: 'a', body: BODY_TEXT });
     check('a reply echoing the key: status 0', echo.status, 0);
     check('a reply echoing the key: empty body', echo.body, '');
-    var thrown = await Relay.relayOne(fakeFetch(new TypeError('redirect was blocked')), STORED, { id: 'a', body: '{}' });
+    var thrown = await Relay.relayOne(fakeFetch(new TypeError('redirect was blocked')), STORED, { id: 'a', body: BODY_TEXT });
     check('a failed fetch (a refused redirect) is status 0', thrown.status, 0);
     check('a failed fetch has no error text', thrown.body, '');
 
@@ -220,7 +229,11 @@ async function main() {
     check('storageKey ignores case', Relay.storageKey('Alice'), Relay.storageKey('aLICE'));
 
     await relayRules(c);
+    await bodyRules();
+    await deadlineRules();
+    await accountBinding();
     await requestCap();
+    await tokenBudget();
     await frameBootTests();
     await setupBootTests();
     staticPageChecks();
@@ -244,7 +257,7 @@ async function relayRules(c) {
     var noAcct = relay.handlePopup({ type: 'popup-hello' });
     check('before hello the window is told there is no account', noAcct.view, 'none');
     check('setup before hello is refused', (await win.setup({ endpoint: STORED.endpoint, key: KEY, model: 'm', remember: false }, '')).ok, false);
-    var early = relay.handlePopup({ type: 'settings', endpoint: STORED.endpoint, key: KEY, model: 'm', sealed: null, remember: false });
+    var early = relay.handlePopup({ type: 'settings', account: 'Alice', endpoint: STORED.endpoint, key: KEY, model: 'm', sealed: null, remember: false });
     check('settings before hello are refused', early.ok, false);
 
     relay.handle({ type: 'hello', account: 'Alice' });
@@ -265,7 +278,8 @@ async function relayRules(c) {
 
     var ok = await win.setup({ endpoint: STORED.endpoint, key: KEY, model: 'gpt-4.1-mini', remember: true, pass: 'correct horse' }, 'Alice');
     check('setup with remember succeeds', ok.ok, true);
-    check('the settings message carries exactly endpoint,key,model,remember,sealed,type', sortedKeys(ok.msg), 'endpoint,key,model,remember,sealed,type');
+    check('the settings message carries exactly account,endpoint,key,model,remember,sealed,type', sortedKeys(ok.msg), 'account,endpoint,key,model,remember,sealed,type');
+    check('the settings message names the account the window was shown', ok.msg.account, 'Alice');
     check('the settings message never carries the passphrase', JSON.stringify(ok.msg).indexOf('correct horse'), -1);
     check('the settings message carries a sealed blob when remembered', Relay.isSealedBlob(ok.msg.sealed), true);
     check('the sealed blob is not the key in plain text', ok.msg.sealed.indexOf(KEY), -1);
@@ -277,20 +291,20 @@ async function relayRules(c) {
     check('ready is posted with the model', ready.length > 0 && ready[ready.length - 1].model, 'gpt-4.1-mini');
     check('the game page is told to hide the panel', posts[posts.length - 1].type, 'hide');
 
-    var bogus = relay.handlePopup({ type: 'settings', endpoint: STORED.endpoint, key: KEY, model: 'm', sealed: '{"key":"x"}', remember: true });
+    var bogus = relay.handlePopup({ type: 'settings', account: 'Alice', endpoint: STORED.endpoint, key: KEY, model: 'm', sealed: '{"key":"x"}', remember: true });
     check('a remembered key with no real blob is refused', bogus.ok, false);
-    var badKey = relay.handlePopup({ type: 'settings', endpoint: STORED.endpoint, key: 'has space', model: 'm', sealed: null, remember: false });
+    var badKey = relay.handlePopup({ type: 'settings', account: 'Alice', endpoint: STORED.endpoint, key: 'has space', model: 'm', sealed: null, remember: false });
     check('a key the relay could not send is refused', badKey.ok, false);
     check('a refused settings message changes nothing', relay.handlePopup({ type: 'popup-hello' }).model, 'gpt-4.1-mini');
 
-    await relay.handle({ type: 'request', id: 'deadbeef', body: { a: 1 } });
+    await relay.handle({ type: 'request', id: 'deadbeef', body: BODY });
     var resp = posts.filter(function (p) { return p.type === 'response'; });
     check('a request is answered', resp.length, 1);
     check('the answer carries only type,id,status,body', sortedKeys(resp[0]), 'body,id,status,type');
     check('the answer body is the reply', resp[0].body, '{"r":1}');
     var n = posts.length;
-    relay.handle({ type: 'request', id: 'not hex!', body: {} });
-    relay.handle({ type: 'request', id: 42, body: {} });
+    relay.handle({ type: 'request', id: 'not hex!', body: BODY });
+    relay.handle({ type: 'request', id: 42, body: BODY });
     check('a request with a malformed id is dropped', posts.length, n);
 
     // Another account on the same browser.
@@ -300,7 +314,7 @@ async function relayRules(c) {
     check('Bob is not offered Alice\'s saved key', bobStatus.locked, false);
     check('Bob is shown setup, not unlock', relay.handle({ type: 'setup' }).show, 'setup');
     check('Bob\'s window is not handed Alice\'s blob', relay.handlePopup({ type: 'popup-hello' }).sealed, null);
-    await relay.handle({ type: 'request', id: 'beef', body: {} });
+    await relay.handle({ type: 'request', id: 'beef', body: BODY });
     check('Alice\'s key never answers for Bob', posts[posts.length - 1].status, 0);
     check('Bob\'s request never reached fetch', rf.calls.length, 1);
 
@@ -316,16 +330,16 @@ async function relayRules(c) {
     check('a wrong passphrase yields no settings', badUnlock.msg, undefined);
     check('unlock with no blob fails cleanly', (await win.unlock('x', null, 'Alice')).ok, false);
     check('unlock with no passphrase fails cleanly', (await win.unlock('', locked.sealed, 'Alice')).ok, false);
-    await relay.handle({ type: 'request', id: 'cafe', body: {} });
+    await relay.handle({ type: 'request', id: 'cafe', body: BODY });
     check('a failed unlock leaves no partial key', posts[posts.length - 1].status, 0);
     var goodUnlock = await win.unlock('correct horse', locked.sealed, 'Alice');
     check('the right passphrase unlocks', goodUnlock.ok, true);
     check('an unlocked key comes back as settings for the frame', goodUnlock.msg.key, KEY);
     check('the frame takes the unlocked settings', relay.handlePopup(goodUnlock.msg).ok, true);
-    await relay.handle({ type: 'request', id: 'cafe', body: {} });
+    await relay.handle({ type: 'request', id: 'cafe', body: BODY });
     check('after unlock requests are answered', posts[posts.length - 1].status, 200);
 
-    var forgot = relay.handlePopup({ type: 'forget' });
+    var forgot = relay.handlePopup({ type: 'forget', account: 'Alice' });
     check('forget from the window is acknowledged', forgot.ok, true);
     check('forget removes the saved blob', store.get(Relay.storageKey('Alice')), null);
     check('forget posts not ready', posts[posts.length - 1].ready, false);
@@ -333,6 +347,190 @@ async function relayRules(c) {
 
     check('no message to the game page ever carries the key, an endpoint, a header or a passphrase',
         posts.filter(leaks).length, 0);
+}
+
+// refusedUnfetched runs one relayOne with body and says whether it was
+// refused (status 0, empty body) without any fetch.
+async function refusedUnfetched(body) {
+    var f = fakeFetch(textReply(200, '{"ok":1}'));
+    var r = await Relay.relayOne(f, STORED, { id: 'a', body: body });
+    return r.status === 0 && r.body === '' && f.calls.length === 0;
+}
+
+// sentBody runs one relayOne with body and returns the body it posted, or
+// null when nothing was fetched.
+async function sentBody(body) {
+    var f = fakeFetch(textReply(200, '{"ok":1}'));
+    await Relay.relayOne(f, STORED, { id: 'a', body: body });
+    return f.calls.length === 1 ? JSON.parse(f.calls[0].init.body) : null;
+}
+
+// --- the body is data the relay constrains, not an order it obeys ---------------
+async function bodyRules() {
+    // The schema names are the server's: every SchemaName in the module's
+    // Go source, no more and no fewer.
+    var modDir = path.join(__dirname, '..', '..', 'modules', 'aicompanion');
+    var names = {};
+    fs.readdirSync(modDir).filter(function (n) { return /\.go$/.test(n) && !/_test\.go$/.test(n); }).forEach(function (n) {
+        var src = fs.readFileSync(path.join(modDir, n), 'utf8');
+        var re = /SchemaName:\s*`([^`]+)`/g, m;
+        while ((m = re.exec(src)) !== null) { names[m[1]] = true; }
+    });
+    var goNames = Object.keys(names).sort().join(',');
+    check('the Go source names at least four schemas (the scan works)', Object.keys(names).length >= 4, true);
+    check('the relay accepts exactly the schemas the server uses', Relay.SCHEMA_NAMES.slice().sort().join(','), goNames);
+    for (var i = 0; i < Relay.SCHEMA_NAMES.length; i++) {
+        var n = Relay.SCHEMA_NAMES[i];
+        var sent = await sentBody(bodyWith({ response_format: { type: 'json_schema', json_schema: { name: n, strict: true, schema: {} } } }));
+        check('the schema ' + n + ' is relayed', sent !== null, true);
+    }
+
+    check('the per-request token cap is 4000', Relay.MAX_TOKENS, 4000);
+    check('the body cap is 256 KiB', Relay.MAX_BODY_BYTES, 256 * 1024);
+
+    var plain = await sentBody(BODY);
+    check('a server-shaped body is relayed', plain !== null, true);
+    check('its model is the stored one', plain.model, STORED.model);
+    check('its token cap under the limit is kept', plain.max_completion_tokens, 900);
+    check('a body with no max_tokens gets none', plain.max_tokens, undefined);
+    check('the caller\'s body object is not changed', BODY.model, 'server-model');
+
+    check('max_completion_tokens over the cap is capped',
+        (await sentBody(bodyWith({ max_completion_tokens: 100000 }))).max_completion_tokens, 4000);
+    var noCap = bodyWith({});
+    delete noCap.max_completion_tokens;
+    check('a body with no max_completion_tokens is given the cap', (await sentBody(noCap)).max_completion_tokens, 4000);
+    check('max_tokens over the cap is capped', (await sentBody(bodyWith({ max_tokens: 9000 }))).max_tokens, 4000);
+    check('max_tokens under the cap is kept', (await sentBody(bodyWith({ max_tokens: 300 }))).max_tokens, 300);
+    check('a string body is constrained the same', (await sentBody(JSON.stringify(bodyWith({ max_completion_tokens: 99999, model: 'x' })))).model, STORED.model);
+
+    check('n of 1 is relayed', (await sentBody(bodyWith({ n: 1 }))) !== null, true);
+    check('stream false is relayed', (await sentBody(bodyWith({ stream: false }))) !== null, true);
+    check('n of 2 is refused unfetched', await refusedUnfetched(bodyWith({ n: 2 })), true);
+    check('n of 0 is refused unfetched', await refusedUnfetched(bodyWith({ n: 0 })), true);
+    check('n as text is refused unfetched', await refusedUnfetched(bodyWith({ n: '5' })), true);
+    check('stream true is refused unfetched', await refusedUnfetched(bodyWith({ stream: true })), true);
+    check('an unknown schema is refused unfetched', await refusedUnfetched(bodyWith({
+        response_format: { type: 'json_schema', json_schema: { name: 'write_me_a_novel', strict: true, schema: {} } } })), true);
+    var noFormat = bodyWith({});
+    delete noFormat.response_format;
+    check('a body with no response_format is refused unfetched', await refusedUnfetched(noFormat), true);
+    check('a text response_format is refused unfetched', await refusedUnfetched(bodyWith({ response_format: { type: 'text' } })), true);
+    check('a token cap that is not a whole number is refused', await refusedUnfetched(bodyWith({ max_completion_tokens: 1.5 })), true);
+    check('a negative token cap is refused', await refusedUnfetched(bodyWith({ max_completion_tokens: -1 })), true);
+    check('a token cap as text is refused', await refusedUnfetched(bodyWith({ max_completion_tokens: '4000' })), true);
+    check('a bad max_tokens is refused', await refusedUnfetched(bodyWith({ max_tokens: 0 })), true);
+    check('an array body is refused', await refusedUnfetched([BODY]), true);
+    check('a body that is not JSON is refused', await refusedUnfetched('{not json'), true);
+    check('an empty object is refused', await refusedUnfetched({}), true);
+    check('a missing body is refused', await refusedUnfetched(undefined), true);
+
+    var pad = new Array(256 * 1024).join('a');
+    var huge = bodyWith({ messages: [{ role: 'user', content: pad }] });
+    check('an object body over 256 KiB is refused unfetched', await refusedUnfetched(huge), true);
+    check('a text body over 256 KiB is refused unfetched', await refusedUnfetched(JSON.stringify(huge)), true);
+    // Refused before it is parsed, even when what it parses to is small.
+    check('a text body over 256 KiB of mostly white space is refused unfetched',
+        await refusedUnfetched(BODY_TEXT + new Array(256 * 1024).join(' ')), true);
+    var roomy = bodyWith({ messages: [{ role: 'user', content: new Array(200 * 1024).join('a') }] });
+    check('a body under 256 KiB is relayed', (await sentBody(roomy)) !== null, true);
+
+    // Through the frame: a refused body is answered at once and not counted.
+    var posts = [];
+    var ff = fakeFetch(textReply(200, 'x'));
+    var relay = Relay.createRelay({ post: function (m) { posts.push(m); }, storage: memoryStorage(), fetchFn: ff });
+    relay.handle({ type: 'hello', account: 'Alice' });
+    relay.handlePopup({ type: 'settings', account: 'Alice', endpoint: STORED.endpoint, key: KEY, model: 'm', sealed: null, remember: false });
+    posts.length = 0;
+    await relay.handle({ type: 'request', id: 'd1', body: bodyWith({ stream: true }) });
+    check('frame: a refused body is answered as a failure', JSON.stringify(posts[0]), JSON.stringify({ type: 'response', id: 'd1', status: 0, body: '' }));
+    check('frame: a refused body is never fetched', ff.calls.length, 0);
+    await relay.handle({ type: 'request', id: 'd2', body: BODY });
+    check('frame: the frame posts the stored model', JSON.parse(ff.calls[0].init.body).model, 'm');
+}
+
+// --- the fetch stops when the server stops waiting --------------------------------
+async function deadlineRules() {
+    check('the relay ceiling is 90 seconds', Relay.FETCH_TIMEOUT_MS, 90000);
+    check('a deadline under the ceiling is used', Relay.fetchTimeout(5000), 5000);
+    check('a deadline over the ceiling is capped', Relay.fetchTimeout(200000), 90000);
+    check('no deadline is the ceiling', Relay.fetchTimeout(undefined), 90000);
+    check('a zero deadline is the ceiling', Relay.fetchTimeout(0), 90000);
+    check('a negative deadline is the ceiling', Relay.fetchTimeout(-5), 90000);
+    check('a fractional deadline is the ceiling', Relay.fetchTimeout(1.5), 90000);
+    check('a text deadline is the ceiling', Relay.fetchTimeout('5'), 90000);
+
+    // A fetch that never answers until it is aborted.
+    function hanging() {
+        var fn = function (url, init) {
+            fn.signal = init.signal;
+            return new Promise(function (resolve, reject) {
+                init.signal.addEventListener('abort', function () { reject(new Error('aborted')); });
+            });
+        };
+        return fn;
+    }
+    var h = hanging();
+    var start = Date.now();
+    var r = await Relay.relayOne(h, STORED, { id: 'a', body: BODY, deadlineMs: 30 });
+    check('a fetch past the deadline is aborted', h.signal.aborted, true);
+    check('an aborted fetch is status 0', r.status, 0);
+    check('the abort comes at the deadline, not the ceiling', Date.now() - start < 5000, true);
+
+    var posts = [];
+    var h2 = hanging();
+    var relay = Relay.createRelay({ post: function (m) { posts.push(m); }, storage: memoryStorage(), fetchFn: h2 });
+    relay.handle({ type: 'hello', account: 'Alice' });
+    relay.handlePopup({ type: 'settings', account: 'Alice', endpoint: STORED.endpoint, key: KEY, model: 'm', sealed: null, remember: false });
+    posts.length = 0;
+    var start2 = Date.now();
+    await relay.handle({ type: 'request', id: 'e1', body: BODY, deadlineMs: 30 });
+    check('frame: the request\'s deadline reaches the fetch', h2.signal.aborted && Date.now() - start2 < 5000, true);
+    check('frame: the aborted request is answered as a failure', posts.length === 1 && posts[0].status, 0);
+}
+
+// --- the key window is bound to the account it was opened for ---------------------
+async function accountBinding() {
+    var posts = [];
+    var store = memoryStorage();
+    var relay = Relay.createRelay({ post: function (m) { posts.push(m); }, storage: store, fetchFn: fakeFetch(textReply(200, 'x')) });
+    relay.handle({ type: 'hello', account: 'Alice' });
+    var base = { type: 'settings', endpoint: STORED.endpoint, key: KEY, model: 'm', sealed: null, remember: false };
+    var other = relay.handlePopup(Object.assign({ account: 'Bob' }, base));
+    check('settings for another account are refused', other.ok, false);
+    check('and the player is told why', /someone else/.test(other.message), true);
+    check('refused settings leave the relay not ready', relay.handlePopup({ type: 'popup-hello' }).model, '');
+    check('settings naming no account are refused', relay.handlePopup(base).ok, false);
+    check('settings with a non-text account are refused', relay.handlePopup(Object.assign({ account: 7 }, base)).ok, false);
+    check('the account name matches whatever its case', relay.handlePopup(Object.assign({ account: 'ALICE' }, base)).ok, true);
+
+    store.set(Relay.storageKey('Alice'), 'blob');
+    check('forget for another account is refused', relay.handlePopup({ type: 'forget', account: 'Bob' }).ok, false);
+    check('a refused forget keeps the saved key', store.get(Relay.storageKey('Alice')), 'blob');
+    check('a refused forget keeps the key in use', relay.handlePopup({ type: 'popup-hello' }).model, 'm');
+    check('forget naming no account is refused', relay.handlePopup({ type: 'forget' }).ok, false);
+    check('forget for this account works', relay.handlePopup({ type: 'forget', account: 'alice' }).ok, true);
+
+    // The frame closes its popup when the game page logs in as someone else,
+    // and stops listening to it.
+    var p = fakePage({ page: 'frame' });
+    Relay.boot(p.win, p.doc);
+    var fromGame = function (data) { p.listeners.message({ origin: GAME, source: p.parent, data: data }); };
+    fromGame({ type: 'hello', account: 'Alice' });
+    fromGame({ type: 'setup' });
+    p.els.open.fire('click');
+    p.listeners.message({ origin: RELAY, source: p.popupWin, data: { type: 'popup-hello' } });
+    check('frame: the popup is answered for Alice', p.popupWin.posted.length === 1 && p.popupWin.posted[0].m.account, 'Alice');
+    fromGame({ type: 'hello', account: 'alice' });
+    check('frame: the same account in another case keeps the popup', p.popupWin.closeCalls, 0);
+    fromGame({ type: 'hello', account: 'Bob' });
+    check('frame: another account closes the popup', p.popupWin.closeCalls, 1);
+    p.listeners.message({ origin: RELAY, source: p.popupWin, data: Object.assign({ account: 'Bob' }, base) });
+    check('frame: the closed popup is no longer heard', p.popupWin.posted.length, 1);
+    var ready = p.posted.filter(function (x) { return x.m.type === 'status' && x.m.ready; });
+    check('frame: nothing from the closed popup made Bob ready', ready.length, 0);
+    p.els.open.fire('click');
+    check('frame: a new popup is opened for Bob', p.win.opened.length, 2);
 }
 
 // --- the request cap: the key never pays for a runaway page ---------------------
@@ -346,17 +544,17 @@ async function requestCap() {
     var slow = function () { return new Promise(function (r) { resolvers.push(r); }); };
     var relay = Relay.createRelay({ post: function (m) { posts.push(m); }, storage: memoryStorage(), fetchFn: slow });
     relay.handle({ type: 'hello', account: 'Alice' });
-    relay.handlePopup({ type: 'settings', endpoint: STORED.endpoint, key: KEY, model: 'm', sealed: null, remember: false });
+    relay.handlePopup({ type: 'settings', account: 'Alice', endpoint: STORED.endpoint, key: KEY, model: 'm', sealed: null, remember: false });
     posts.length = 0;
     var ids = ['a1', 'a2', 'a3'];
-    ids.forEach(function (id) { relay.handle({ type: 'request', id: id, body: {} }); });
+    ids.forEach(function (id) { relay.handle({ type: 'request', id: id, body: BODY }); });
     check('two requests are fetched', resolvers.length, 2);
     check('the third is answered at once', posts.length, 1);
     check('the third is a failure for its id', JSON.stringify(posts[0]), JSON.stringify({ type: 'response', id: 'a3', status: 0, body: '' }));
     resolvers.forEach(function (r) { r(textReply(200, 'x')); });
     await until(function () { return posts.length === 3; });
     check('the two in flight are answered when they return', posts.filter(function (p) { return p.status === 200; }).length, 2);
-    relay.handle({ type: 'request', id: 'a4', body: {} });
+    relay.handle({ type: 'request', id: 'a4', body: BODY });
     check('a slot freed by a reply is used again', resolvers.length, 3);
     resolvers[2](textReply(200, 'x'));
     await until(function () { return posts.length === 4; });
@@ -367,21 +565,52 @@ async function requestCap() {
     var posts2 = [];
     var relay2 = Relay.createRelay({ post: function (m) { posts2.push(m); }, storage: memoryStorage(), fetchFn: fast, now: function () { return t; } });
     relay2.handle({ type: 'hello', account: 'Alice' });
-    relay2.handlePopup({ type: 'settings', endpoint: STORED.endpoint, key: KEY, model: 'm', sealed: null, remember: false });
+    relay2.handlePopup({ type: 'settings', account: 'Alice', endpoint: STORED.endpoint, key: KEY, model: 'm', sealed: null, remember: false });
     posts2.length = 0;
     for (var i = 0; i < 30; i++) {
         t += 1000;
-        await relay2.handle({ type: 'request', id: 'b' + i, body: {} });
+        await relay2.handle({ type: 'request', id: 'b' + i, body: BODY });
     }
     check('thirty requests in a minute are all fetched', fast.calls.length, 30);
     check('thirty requests in a minute are all answered', posts2.filter(function (p) { return p.status === 200; }).length, 30);
-    await relay2.handle({ type: 'request', id: 'b30', body: {} });
+    await relay2.handle({ type: 'request', id: 'b30', body: BODY });
     check('the thirty-first in the minute is not fetched', fast.calls.length, 30);
     check('the thirty-first is answered as a failure at once', posts2[posts2.length - 1].status, 0);
     t += 60000; // the first request is now a minute old
-    await relay2.handle({ type: 'request', id: 'b31', body: {} });
+    await relay2.handle({ type: 'request', id: 'b31', body: BODY });
     check('a minute later requests are fetched again', fast.calls.length, 31);
     check('a request refused for no settings is not counted', true, true);
+}
+
+// --- the token budget: a minute's requests may ask for 40000 tokens in all -------
+async function tokenBudget() {
+    check('the per-minute token budget is 40000', Relay.MAX_TOKENS_PER_MINUTE, 40000);
+    var t = 5000000;
+    var fast = fakeFetch(textReply(200, 'x'));
+    var posts = [];
+    var relay = Relay.createRelay({ post: function (m) { posts.push(m); }, storage: memoryStorage(), fetchFn: fast, now: function () { return t; } });
+    relay.handle({ type: 'hello', account: 'Alice' });
+    relay.handlePopup({ type: 'settings', account: 'Alice', endpoint: STORED.endpoint, key: KEY, model: 'm', sealed: null, remember: false });
+    posts.length = 0;
+    var bigAsk = bodyWith({ max_completion_tokens: 50000 }); // capped to 4000 each
+    for (var i = 0; i < 10; i++) {
+        t += 1000;
+        await relay.handle({ type: 'request', id: 'c' + i, body: bigAsk });
+    }
+    check('ten requests at the cap fit the budget', fast.calls.length, 10);
+    t += 1000;
+    await relay.handle({ type: 'request', id: 'c10', body: bigAsk });
+    check('the eleventh is refused though under the request cap', fast.calls.length, 10);
+    check('the eleventh is answered as a failure', posts[posts.length - 1].status, 0);
+    await relay.handle({ type: 'request', id: 'c11', body: bodyWith({ stream: true }) });
+    t += 50000; // the first request is now a minute old
+    await relay.handle({ type: 'request', id: 'c12', body: bodyWith({ max_completion_tokens: 3000 }) });
+    check('a minute later the budget has room again', fast.calls.length, 11);
+    // In the window now: nine at 4000 and one at 3000, 39000 in all.
+    await relay.handle({ type: 'request', id: 'c13', body: bodyWith({ max_completion_tokens: 1000 }) });
+    check('an ask that exactly fills the budget fits', fast.calls.length, 12);
+    await relay.handle({ type: 'request', id: 'c14', body: bodyWith({ max_completion_tokens: 1000 }) });
+    check('but not past it', fast.calls.length, 12);
 }
 
 // --- fake pages ------------------------------------------------------------------
@@ -431,9 +660,10 @@ function fakePage(opts) {
     };
     win.parent = opts.topLevel ? win : parent;
     if (opts.opener !== undefined) { win.opener = opts.opener; }
-    var popupWin = { posted: [], closed: false, focused: 0,
+    var popupWin = { posted: [], closed: false, focused: 0, closeCalls: 0,
         postMessage: function (m, target) { popupWin.posted.push({ m: m, target: target }); },
-        focus: function () { popupWin.focused++; } };
+        focus: function () { popupWin.focused++; },
+        close: function () { popupWin.closeCalls++; popupWin.closed = true; } };
     var doc = {
         body: { getAttribute: function (k) { return k === 'data-page' ? opts.page : null; } },
         querySelector: function (sel) {
@@ -500,7 +730,7 @@ async function frameBootTests() {
     check('frame: the state names the account', p.popupWin.posted[0].m.account, 'Alice');
     check('frame: the state shows setup', p.popupWin.posted[0].m.view, 'setup');
 
-    var settings = { type: 'settings', endpoint: STORED.endpoint, key: KEY, model: 'gpt-4.1-mini', sealed: null, remember: false };
+    var settings = { type: 'settings', account: 'Alice', endpoint: STORED.endpoint, key: KEY, model: 'gpt-4.1-mini', sealed: null, remember: false };
     var gamePosts = p.posted.length;
     fromPopup(settings, GAME);
     fromPopup(settings, RELAY, { other: true });
@@ -513,7 +743,7 @@ async function frameBootTests() {
     check('frame: the game page is told to hide the panel', p.posted[p.posted.length - 1].m.type, 'hide');
     check('frame: the panel is hidden', p.els.setup.hidden, true);
 
-    fromGame({ type: 'request', id: 'feed', body: { a: 1 } });
+    fromGame({ type: 'request', id: 'feed', body: BODY });
     await until(function () { return p.posted.some(function (x) { return x.m.type === 'response'; }); });
     var r = p.posted.filter(function (x) { return x.m.type === 'response'; })[0];
     check('frame: a request is answered', r && r.m.status, 200);
@@ -522,7 +752,7 @@ async function frameBootTests() {
 
     // A message claiming the game origin but sent from another window.
     var before = p.posted.length;
-    p.listeners.message({ origin: GAME, source: {}, data: { type: 'request', id: 'beef', body: {} } });
+    p.listeners.message({ origin: GAME, source: {}, data: { type: 'request', id: 'beef', body: BODY } });
     await tick();
     check('frame: a message from a window other than the parent is ignored', p.posted.length, before);
     check('frame: it never reached fetch', bf.calls.length, 1);
@@ -530,7 +760,7 @@ async function frameBootTests() {
     // Forget from the window: the panel stays open, on setup.
     p.popupWin.closed = true;
     fromGame({ type: 'setup' });
-    fromPopup({ type: 'forget' });
+    fromPopup({ type: 'forget', account: 'Alice' });
     check('frame: forget from the window is acknowledged', p.popupWin.posted[2].m.ok, true);
     check('frame: forget leaves the panel on setup', p.els.setup.hidden, false);
     check('frame: the game page hears not ready', p.posted.filter(function (x) { return x.m.type === 'status'; }).pop().m.ready, false);
@@ -627,6 +857,7 @@ async function setupBootTests() {
     check('window: the settings carry the key', sent.m.key, KEY);
     check('window: the settings carry a sealed blob', Relay.isSealedBlob(sent.m.sealed), true);
     check('window: the settings say remember', sent.m.remember, true);
+    check('window: the settings name the account the frame showed', sent.m.account, 'Alice');
     check('window: the settings never carry the passphrase', JSON.stringify(sent.m).indexOf('correct horse'), -1);
     check('window: the key field is cleared once sent', w.els.key.value, '');
     check('window: the passphrase field is cleared once sent', w.els.pass.value, '');
@@ -657,13 +888,25 @@ async function setupBootTests() {
     check('window: the right passphrase sends the opened key to the frame', u.toFrame[1].m.key, KEY);
     check('window: the opened key keeps its blob', u.toFrame[1].m.sealed, sealed);
     check('window: the opened key stays remembered', u.toFrame[1].m.remember, true);
+    check('window: the opened key names the account it was shown', u.toFrame[1].m.account, 'Alice');
     check('window: the passphrase never leaves the window', JSON.stringify(u.toFrame).indexOf('correct horse'), -1);
 
     var g = openWindow();
     g.fromFrame({ type: 'popup-state', account: 'Alice', view: 'unlock', endpoint: '', model: '', sealed: sealed });
     g.els.unlockforget.fire('click');
     check('window: forget tells the frame', g.toFrame[1].m.type, 'forget');
-    check('window: forget carries nothing else', sortedKeys(g.toFrame[1].m), 'type');
+    check('window: forget carries only the account it was shown', sortedKeys(g.toFrame[1].m), 'account,type');
+    check('window: forget names that account', g.toFrame[1].m.account, 'Alice');
+
+    var sw = openWindow();
+    sw.fromFrame({ type: 'popup-state', account: 'Alice', view: 'setup', endpoint: '', model: '', sealed: null });
+    sw.els.key.value = KEY;
+    sw.fromFrame({ type: 'popup-state', account: 'alice', view: 'setup', endpoint: '', model: '', sealed: null });
+    check('window: a state for the same account keeps what was typed', sw.els.key.value, KEY);
+    sw.fromFrame({ type: 'popup-state', account: 'Bob', view: 'setup', endpoint: '', model: '', sealed: null });
+    check('window: a state for another account clears what was typed', sw.els.key.value, '');
+    sw.els.unlockforget.fire('click');
+    check('window: it then speaks for the new account', sw.toFrame[sw.toFrame.length - 1].m.account, 'Bob');
 
     var x = openWindow();
     x.fromFrame({ type: 'popup-state', account: 'Alice', view: 'setup', endpoint: '', model: '', sealed: null });
@@ -687,6 +930,8 @@ function staticPageChecks() {
     check('setup page: has no form', /<form/i.test(setup), false);
     check('setup page: has no password field', /type="password"/i.test(setup), false);
     check('setup page: has no submit button', /type="submit"/i.test(setup), false);
+    check('setup page: warns that a weak passphrase can be guessed from a copy of the browser',
+        /use it nowhere else: anyone with a copy of this browser's\s+data can try guesses/.test(setup), true);
     check('setup page: loads the relay script from its own origin', setup.indexOf('<script src="/companion-relay.js"></script>') !== -1, true);
     ['key', 'pass', 'unlockpass'].forEach(function (id) {
         var m = setup.match(new RegExp('<input id="' + id + '"[^>]*>'));

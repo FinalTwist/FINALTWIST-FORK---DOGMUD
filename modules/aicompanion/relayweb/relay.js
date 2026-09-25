@@ -7,7 +7,9 @@
 //
 //   game -> frame  {type:'hello', account}    who is logged in
 //                  {type:'setup'}             show the frame's key panel
-//                  {type:'request', id, body} one chat completions body
+//                  {type:'request', id, body, deadlineMs?}
+//                                             one chat completions body, and
+//                                             how long the server waits for it
 //   frame -> game  {type:'status', ready, model?, locked}
 //                  {type:'response', id, status, body}
 //                  {type:'hide'}
@@ -21,10 +23,14 @@
 // the storage.
 //
 //   popup -> frame {type:'popup-hello'}
-//                  {type:'settings', endpoint, key, model, sealed, remember}
-//                  {type:'forget'}
+//                  {type:'settings', account, endpoint, key, model, sealed, remember}
+//                  {type:'forget', account}
 //   frame -> popup {type:'popup-state', account, view, endpoint, model, sealed}
 //                  {type:'popup-done', ok, message}
+//
+// The popup echoes the account it was shown, and the frame refuses a
+// settings or forget message for any account but its current one. When the
+// game page logs in as someone else, the frame closes the popup.
 //
 // The key never appears in any message to the game page, any URL, attribute,
 // log or error text. The endpoint a request goes to is the one the player
@@ -60,6 +66,15 @@
   var MAX_PER_MINUTE = 30;
   var MINUTE_MS = 60000;
   var SETUP_PATH = '/companion-relay-setup.html';
+  // A request body is data the relay constrains, not an order it obeys:
+  // whatever asks, the key pays for no more than these.
+  var MAX_BODY_BYTES = 256 * 1024;
+  var MAX_TOKENS = 4000; // per request, max_completion_tokens and max_tokens
+  var MAX_TOKENS_PER_MINUTE = 40000; // summed max_completion_tokens
+  // The response_format.json_schema.name of every call the server makes
+  // (modules/aicompanion: runtime.go, conversation.go, reflect.go,
+  // corememory.go). A body naming any other schema is not the server's.
+  var SCHEMA_NAMES = ['companion_decision', 'companion_conversation', 'companion_reflection', 'companion_core_memory'];
 
   // isAllowedEndpoint accepts https anywhere, or http only on this
   // computer, with no user info, query or fragment.
@@ -168,18 +183,64 @@
     return utf8(text).length > cap ? null : text;
   }
 
+  function isTokenCount(n) { return typeof n === 'number' && Number.isInteger(n) && n > 0; }
+
+  // constrainBody turns a request body into the text the relay will post, or
+  // null to refuse it. The body must be a JSON object of at most
+  // MAX_BODY_BYTES, asking for one answer, not streamed, under a schema the
+  // server uses. The model is always the stored one, and the answer is
+  // capped at MAX_TOKENS (set to it when the body names no cap). tokens is
+  // the cap the request carries, for the per-minute budget.
+  function constrainBody(body, model) {
+    if (typeof body === 'string') {
+      if (utf8(body).length > MAX_BODY_BYTES) { return null; }
+      try { body = JSON.parse(body); } catch (e) { return null; }
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body) || !isValidModel(model)) { return null; }
+    var o = Object.assign({}, body);
+    if (o.n !== undefined && o.n !== 1) { return null; }
+    if (o.stream !== undefined && o.stream !== false) { return null; }
+    var rf = o.response_format;
+    var name = rf && typeof rf === 'object' && rf.json_schema && typeof rf.json_schema === 'object' ? rf.json_schema.name : undefined;
+    if (typeof name !== 'string' || SCHEMA_NAMES.indexOf(name) === -1) { return null; }
+    o.model = model;
+    if (o.max_completion_tokens === undefined) {
+      o.max_completion_tokens = MAX_TOKENS;
+    } else if (isTokenCount(o.max_completion_tokens)) {
+      o.max_completion_tokens = Math.min(o.max_completion_tokens, MAX_TOKENS);
+    } else {
+      return null;
+    }
+    if (o.max_tokens !== undefined) {
+      if (!isTokenCount(o.max_tokens)) { return null; }
+      o.max_tokens = Math.min(o.max_tokens, MAX_TOKENS);
+    }
+    var text = JSON.stringify(o);
+    if (utf8(text).length > MAX_BODY_BYTES) { return null; }
+    return { text: text, tokens: o.max_completion_tokens };
+  }
+
+  // fetchTimeout is how long one fetch may run: the server's deadline for
+  // the call when it sent one, never longer than the relay's own ceiling.
+  function fetchTimeout(deadlineMs) {
+    return isTokenCount(deadlineMs) ? Math.min(deadlineMs, FETCH_TIMEOUT_MS) : FETCH_TIMEOUT_MS;
+  }
+
   // relayOne posts one request body to the STORED endpoint and returns only
-  // {id, status, body}. A message cannot name a URL or a header. An error
-  // status comes back without its body: providers echo part of a bad key in
-  // their error text, and the server needs only the status.
+  // {id, status, body}. A message cannot name a URL or a header, and its
+  // body is constrained (constrainBody) or refused before any fetch. The
+  // fetch is aborted at the server's deadline (msg.deadlineMs), when the
+  // server has stopped waiting. An error status comes back without its
+  // body: providers echo part of a bad key in their error text, and the
+  // server needs only the status.
   async function relayOne(fetchFn, settings, msg) {
     var fail = { id: msg.id, status: 0, body: '' };
     if (!settings || !isValidKey(settings.key) || !isAllowedEndpoint(settings.endpoint)) { return fail; }
-    var body = msg.body;
-    if (body === undefined || body === null) { return fail; }
-    if (typeof body !== 'string') { body = JSON.stringify(body); }
+    var c = constrainBody(msg.body, settings.model);
+    if (!c) { return fail; }
+    var body = c.text;
     var ctl = typeof AbortController === 'function' ? new AbortController() : null;
-    var timer = ctl ? setTimeout(function () { ctl.abort(); }, FETCH_TIMEOUT_MS) : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, fetchTimeout(msg.deadlineMs)) : null;
     try {
       var init = {
         method: 'POST', mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer',
@@ -222,7 +283,7 @@
     var settings = null;
     var account = '';
     var inflight = 0;
-    var sentAt = []; // times of the requests fetched in the last minute
+    var sentAt = []; // {t, tokens} of the requests fetched in the last minute
     var now = env.now || function () { return Date.now(); };
 
     function stored() { return account === '' ? null : env.storage.get(storageKey(account)); }
@@ -240,15 +301,27 @@
 
     function fail(id) { env.post({ type: 'response', id: id, status: 0, body: '' }); }
 
-    // overCap says whether one more fetch would pass the in-flight or
-    // per-minute cap, and records it when not.
-    function overCap() {
+    // overCap says whether one more fetch asking for up to tokens would pass
+    // the in-flight cap, the per-minute request cap or the per-minute token
+    // budget, and records it when not.
+    function overCap(tokens) {
       var t = now();
-      while (sentAt.length > 0 && t - sentAt[0] >= MINUTE_MS) { sentAt.shift(); }
-      if (inflight >= MAX_INFLIGHT || sentAt.length >= MAX_PER_MINUTE) { return true; }
-      sentAt.push(t);
+      while (sentAt.length > 0 && t - sentAt[0].t >= MINUTE_MS) { sentAt.shift(); }
+      var spent = 0;
+      for (var i = 0; i < sentAt.length; i++) { spent += sentAt[i].tokens; }
+      if (inflight >= MAX_INFLIGHT || sentAt.length >= MAX_PER_MINUTE || spent + tokens > MAX_TOKENS_PER_MINUTE) {
+        return true;
+      }
+      sentAt.push({ t: t, tokens: tokens });
       inflight++;
       return false;
+    }
+
+    // sameAccount says whether a popup message names the account the frame
+    // serves now. The popup was opened for one account; a key it sends
+    // after the game page logged in as another is not that account's.
+    function sameAccount(a) {
+      return typeof a === 'string' && account !== '' && a.toLowerCase() === account.toLowerCase();
     }
 
     function handle(data) {
@@ -271,7 +344,9 @@
         }
         case 'request': {
           if (!isValidId(data.id)) { return null; }
-          if (!settings || overCap()) {
+          // A refused body is never fetched and never counted.
+          var c = settings ? constrainBody(data.body, settings.model) : null;
+          if (!c || overCap(c.tokens)) {
             fail(data.id);
             return null;
           }
@@ -279,7 +354,8 @@
             inflight--;
             if (r) { env.post({ type: 'response', id: r.id, status: r.status, body: r.body }); } else { fail(data.id); }
           };
-          return relayOne(env.fetchFn, settings, { id: data.id, body: data.body }).then(done, function () { done(null); });
+          return relayOne(env.fetchFn, settings, { id: data.id, body: c.text, deadlineMs: data.deadlineMs })
+            .then(done, function () { done(null); });
         }
       }
       return null;
@@ -299,6 +375,7 @@
     // and the sealed blob to keep (remember) or the order to keep nothing.
     function applySettings(data) {
       if (account === '') { return { type: 'popup-done', ok: false, message: 'Log in to the game first.' }; }
+      if (!sameAccount(data.account)) { return accountChanged(); }
       if (!isAllowedEndpoint(data.endpoint) || !isValidKey(data.key) || !isValidModel(data.model) || data.model === '') {
         return { type: 'popup-done', ok: false, message: 'That key could not be used.' };
       }
@@ -323,13 +400,20 @@
       status();
     }
 
+    function accountChanged() {
+      return { type: 'popup-done', ok: false, message: 'You logged in as someone else. Open this window again from the game.' };
+    }
+
     // handlePopup takes one message from the popup and returns the reply to
-    // post back to it, or null.
+    // post back to it, or null. A settings or forget message must name the
+    // account the popup was shown (popup-state), and that must still be the
+    // frame's account.
     function handlePopup(data) {
       switch (data.type) {
         case 'popup-hello': return popupState();
         case 'settings': return applySettings(data);
         case 'forget':
+          if (!sameAccount(data.account)) { return accountChanged(); }
           forget();
           return { type: 'popup-done', ok: true, message: 'Your key is forgotten on this device.' };
       }
@@ -352,7 +436,7 @@
       }
       if (!isValidModel(model) || model === '') { return { ok: false, message: 'Enter a model name.' }; }
       if (!isValidKey(f.key)) { return { ok: false, message: 'Enter your key.' }; }
-      var msg = { type: 'settings', endpoint: endpoint, key: f.key, model: model, sealed: null, remember: false };
+      var msg = { type: 'settings', account: account, endpoint: endpoint, key: f.key, model: model, sealed: null, remember: false };
       if (f.remember) {
         if (typeof f.pass !== 'string' || f.pass.length < MIN_PASS) {
           return { ok: false, message: 'Choose a passphrase of at least eight characters.' };
@@ -372,7 +456,7 @@
       try { opened = await unseal(cryptoObj, pass, sealed, account); } catch (e) {
         return { ok: false, message: 'That passphrase did not open it.' };
       }
-      return { ok: true, message: '', msg: { type: 'settings', endpoint: opened.endpoint, key: opened.key,
+      return { ok: true, message: '', msg: { type: 'settings', account: account, endpoint: opened.endpoint, key: opened.key,
         model: opened.model, sealed: sealed, remember: true } };
     }
 
@@ -465,7 +549,13 @@
         unlockStatus.textContent = '';
         show(r.show);
       } else if (r && r.hide) {
-        hide(); // another account: close any open panel
+        // Another account: close any open panel, and the popup, which was
+        // opened for the account before and may hold what was typed for it.
+        if (popup && !popup.closed) {
+          try { popup.close(); } catch (e) { /* the frame refuses its messages anyway */ }
+        }
+        popup = null;
+        hide();
       }
     });
 
@@ -532,7 +622,10 @@
       var d = ev.data;
       switch (d.type) {
         case 'popup-state': {
-          account = typeof d.account === 'string' ? d.account : '';
+          var a = typeof d.account === 'string' ? d.account : '';
+          // Nothing typed for one account is kept for another.
+          if (a.toLowerCase() !== account.toLowerCase()) { clearSecrets(); }
+          account = a;
           sealed = isSealedBlob(d.sealed) ? d.sealed : null;
           if (account === '' || (d.view !== 'setup' && d.view !== 'unlock')) {
             waiting.textContent = 'Log in to the game first, then open this window again.';
@@ -610,7 +703,7 @@
       if (busy) { return; }
       busy = true;
       clearSecrets();
-      post({ type: 'forget' });
+      post({ type: 'forget', account: account });
     });
     el('cancel').addEventListener('click', leave);
     el('unlockcancel').addEventListener('click', leave);
@@ -618,7 +711,9 @@
 
   return {
     ITER: ITER, MAX_REPLY_BYTES: MAX_REPLY_BYTES, MAX_INFLIGHT: MAX_INFLIGHT, MAX_PER_MINUTE: MAX_PER_MINUTE,
-    SETUP_PATH: SETUP_PATH,
+    SETUP_PATH: SETUP_PATH, MAX_BODY_BYTES: MAX_BODY_BYTES, MAX_TOKENS: MAX_TOKENS,
+    MAX_TOKENS_PER_MINUTE: MAX_TOKENS_PER_MINUTE, FETCH_TIMEOUT_MS: FETCH_TIMEOUT_MS, SCHEMA_NAMES: SCHEMA_NAMES,
+    constrainBody: constrainBody, fetchTimeout: fetchTimeout,
     isAllowedEndpoint: isAllowedEndpoint, endpointURL: endpointURL, storageKey: storageKey, isSealedBlob: isSealedBlob,
     seal: seal, unseal: unseal, relayOne: relayOne, acceptMessage: acceptMessage,
     createRelay: createRelay, createSetup: createSetup, boot: boot

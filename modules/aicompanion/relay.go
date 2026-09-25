@@ -23,11 +23,24 @@ import (
 // the key, the endpoint or any header passes through the server: a request
 // is an id and a chat completions body, a reply an id, a status and a body.
 
-// relayRequest is all that goes to the owner's browser: an id and the chat
-// completions body. No key, no URL, no header: the relay page adds its own.
+// relayRequest is all that goes to the owner's browser: an id, the chat
+// completions body, and how long the server will wait for the answer. No
+// key, no URL, no header: the relay page adds its own. The relay stops its
+// fetch at DeadlineMs, since an answer after it is paid for and never read.
 type relayRequest struct {
-	Id   string          `json:"id"`
-	Body json.RawMessage `json:"body"`
+	Id         string          `json:"id"`
+	Body       json.RawMessage `json:"body"`
+	DeadlineMs int64           `json:"deadlineMs,omitempty"`
+}
+
+// relayDeadlineMs is how long, from now, ctx lets a call wait: at least a
+// millisecond, or 0 (not sent) when ctx sets no deadline.
+func relayDeadlineMs(ctx context.Context) int64 {
+	dl, ok := ctx.Deadline()
+	if !ok {
+		return 0
+	}
+	return max(time.Until(dl).Milliseconds(), 1)
 }
 
 // relayResponse is what comes back: the provider's status and raw body.
@@ -109,7 +122,7 @@ func (p *pendingRelays) do(ctx context.Context, owner int, body []byte, send rel
 		p.mu.Unlock()
 	}()
 
-	payload, err := json.Marshal(relayRequest{Id: id, Body: body})
+	payload, err := json.Marshal(relayRequest{Id: id, Body: body, DeadlineMs: relayDeadlineMs(ctx)})
 	if err != nil {
 		return 0, nil, err
 	}

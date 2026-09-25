@@ -109,6 +109,21 @@ check('a non-string is refused', Glue.canonicalRelayOrigin({}), '');
 (function () {
     var h = harness();
     h.up();
+    h.glue.onGMCPRequest({ id: ID, body: {}, deadlineMs: 29950 });
+    check('a request with a deadline carries it to the frame', keys(h.posted[0].msg), 'body,deadlineMs,id,type');
+    check('the deadline is the server\'s', h.posted[0].msg.deadlineMs, 29950);
+    ['30000', -5, 0, 1.5, null, {}].forEach(function (bad, i) {
+        var id = 'ab' + i;
+        h.glue.onGMCPRequest({ id: id, body: {}, deadlineMs: bad });
+        var m = h.posted[h.posted.length - 1].msg;
+        check('a deadline that is not a positive whole number is not passed on (' + JSON.stringify(bad) + ')',
+            m.id === id && m.deadlineMs === undefined, true);
+    });
+}());
+
+(function () {
+    var h = harness();
+    h.up();
     h.glue.onGMCPRequest({ id: 'not hex!', body: {} });
     h.glue.onGMCPRequest(null);
     h.glue.onGMCPRequest({ id: ID });

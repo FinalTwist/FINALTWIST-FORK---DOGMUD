@@ -93,6 +93,42 @@ func TestRelayRequestCarriesOnlyTheBody(t *testing.T) {
 	}
 }
 
+// The browser is told how long the server will wait, so it stops a fetch
+// whose answer nobody will read (the relay caps it at its own 90 seconds).
+func TestRelayRequestCarriesTheDeadline(t *testing.T) {
+	p := newPendingRelays()
+	f := newFakeRelay()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	go f.answer(t, p, 5, 200, `{}`)
+	var fields map[string]json.RawMessage
+	if _, _, err := p.do(ctx, 5, []byte(`{}`), func(u int, mod string, payload []byte) bool {
+		_ = json.Unmarshal(payload, &fields)
+		return f.send(u, mod, payload)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var ms int64
+	if err := json.Unmarshal(fields[`deadlineMs`], &ms); err != nil {
+		t.Fatalf("a request with a deadline carries deadlineMs: %v %v", fields, err)
+	}
+	if ms <= 25000 || ms > 30000 {
+		t.Fatalf("deadlineMs is the time left on the call, about 30000: %d", ms)
+	}
+	if len(fields) != 3 {
+		t.Fatalf("the request is exactly {id, body, deadlineMs}: %v", fields)
+	}
+
+	expired, cancel2 := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel2()
+	if got := relayDeadlineMs(expired); got != 1 {
+		t.Fatalf("a deadline already past is sent as 1 ms, never 0 or less: %d", got)
+	}
+	if got := relayDeadlineMs(context.Background()); got != 0 {
+		t.Fatalf("no deadline sends none: %d", got)
+	}
+}
+
 func TestRelayRepliesMatchIdAndOwnerOnce(t *testing.T) {
 	p := newPendingRelays()
 	f := newFakeRelay()

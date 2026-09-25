@@ -8,8 +8,9 @@
 // one: every message it sends is built field by field from checked values,
 // never by passing on what the frame sent.
 //
-//   server -> page  Companion.Relay.Request {id, body}
-//   page -> frame   {type:'hello', account} {type:'setup'} {type:'request', id, body}
+//   server -> page  Companion.Relay.Request {id, body, deadlineMs?}
+//   page -> frame   {type:'hello', account} {type:'setup'}
+//                   {type:'request', id, body, deadlineMs?}
 //   frame -> page   {type:'status', ready, model?, locked}
 //                   {type:'response', id, status, body} {type:'hide'}
 //   page -> server  Companion.Relay.Ready {model} | Companion.Relay.Gone {}
@@ -148,8 +149,12 @@
       var id = obj.id;
       var body = obj.body;
       if (body === undefined || body === null) { fail(id); return; }
-      if (account === '' || pending.indexOf(id) !== -1 ||
-          !post({ type: 'request', id: id, body: body })) {
+      var msg = { type: 'request', id: id, body: body };
+      // How long the server waits for this call; the frame stops its fetch
+      // then. Passed on only as a positive whole number of milliseconds.
+      var d = obj.deadlineMs;
+      if (typeof d === 'number' && Number.isInteger(d) && d > 0) { msg.deadlineMs = d; }
+      if (account === '' || pending.indexOf(id) !== -1 || !post(msg)) {
         fail(id);
         return;
       }
