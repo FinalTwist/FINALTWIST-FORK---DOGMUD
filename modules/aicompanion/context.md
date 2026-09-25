@@ -63,6 +63,10 @@ Roadmap and phase plan: `docs/aicompanion/`.
   memory, the money rules for buying.
 - **loot.go**: the module's own mob commands `companion-loot` (owner's loot
   rights only) and `companion-takeout` (unhidden, unlocked containers).
+- **harm.go**: `harmAllowed` and `areaHarmAllowed`, the one gate on
+  everything she starts: the engine's own player harm rules
+  (`mobs.CheckPlayerHarm` for a creature; `(*Room).CanPvp` plus the party
+  check for a person) asked with her OWNER as the one acting.
 - **goals.go**: goals, checks against live state, restock goals, the
   session agenda, and the model's goal proposals.
 - **combat.go**: the fight from the companion's side: tracking, the
@@ -156,6 +160,19 @@ skills, health) is never in the mind file; it lives on the owner's
 - Plans come from the model in the background; reflexes run every round
   with `CombatReactionRounds` between moves, using only `attack #id`,
   `fire #id`, `taunt`, `flee`, `drink` and `aid @id`.
+- She harms only what her owner could harm (`harmAllowed`): the `attack`
+  verb, a harmful `cast`, the plan's chosen target
+  (`applyCombatProposal`), the reflex strike at whatever is hurting the
+  owner, and a special move at her current foe all pass it (`mayStrike`,
+  `mayStrikeCurrent`). The engine gates harm by a PLAYER actor and never
+  a mob one, so without this a bonded companion could reach what her owner
+  may not. There is no self-defence exception, because a player gets none:
+  a protected creature that turns on her is fought by the engine's round,
+  not by anything she chooses. Ordinary companions are not gated; making
+  "a mob acting for a player is gated as that player" engine-wide is a
+  separate call.
+- `refusesToFight` is personality only: shopkeepers and the profile's
+  `refuse` words. What nobody may attack is the engine's to say.
 - Holding back switches the owner's `AutoAssist` off for that fight only.
   The previous value is kept in `Mind.AssistToRestore` and put back when
   the fight ends, when the companion falls, when the session ends, or at
@@ -187,6 +204,11 @@ skills, health) is never in the mind file; it lives on the owner's
 
 - The model never writes a command. It picks a verb from a closed list and a
   ref from the scene it was shown; code builds the command.
+- A `cast` is owner-driven when the spell harms (`SpellData.IsHarm`, the
+  engine's answer): `castHarm` refuses it in any batch a passer-by
+  prompted, and aims it only at a creature or person `harmAllowed` passes;
+  one that lands on the room (`areaHarmAllowed`) must pass for everyone it
+  could catch. A helpful cast (a mending, a ward) stays her own judgement.
 - One non-perception action at a time: a new one is refused until the last
   one's outcome has been judged (two rounds after issue).
 - `look_at` and `consider` are answered by the module from what a player
@@ -257,7 +279,8 @@ skills, health) is never in the mind file; it lives on the owner's
 ## Dependencies
 
 `actions`, `characters`, `companionai`, `events`, `items`, `messaging`,
-`mobs`, `mudlog`, `plugins`, `rooms`, `targeting`, `users`, `util`;
+`mobs`, `mudlog`, `parties`, `plugins`, `rooms`, `spells`, `targeting`,
+`users`, `util`;
 `net/http` and `gopkg.in/yaml.v3`.
 
 ## Opinion

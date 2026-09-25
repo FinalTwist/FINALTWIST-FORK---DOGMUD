@@ -362,11 +362,16 @@ night with her owner.
 ## Starting a fight
 
 She can be set on something, but only by her own companion: `attack` is in
-the owner-only list, so a stranger cannot point her at anyone. She still
-refuses a shopkeeper, a child, anyone on her profile's refusal list and
-anyone else's companion, whoever is asking, unless they are already
-fighting. Once it has started, the plan takes over and she does not attack
-again each moment.
+the owner-only list, so a stranger cannot point her at anyone, and a spell
+that harms is owner-only the same way. Whatever she starts, by attack, by a
+harmful spell, or by a target the combat plan picks, must be something her
+owner could harm: the engine's own player rules are asked with the owner as
+the one acting (`harmAllowed`), so she never touches a companion, a
+non-combatant, a `player_attack_immune` creature, her owner, their party, or
+a person the owner could not fight under the PvP settings. She also refuses a
+shopkeeper, a child and anyone on her profile's refusal list, whoever is
+asking, unless they are already fighting. Once it has started, the plan
+takes over and she does not attack again each moment.
 
 ## In a fight
 

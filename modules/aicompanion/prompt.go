@@ -762,9 +762,9 @@ func capabilityWords(cfg Config) string {
 		`loot a body or take_from an open container`,
 		`browse a merchant's wares, buy or sell`,
 		`craft something you know how to make, where the place allows it`,
-		`cast a spell you know ([m] ref) on someone here, on your companion, or on yourself`,
+		`cast a spell you know ([m] ref) on someone here, on your companion, or on yourself. A spell that harms is like an attack: only when nobody else put you up to it, and only at something your companion could fight themselves`,
 		`rest when there is nothing to do and nowhere to be, and stand when there is`,
-		`attack someone or something here when your own companion asks you to: a practice dummy, a target, a beast, anything already fighting. What you refuse is a person who has done no harm: a shopkeeper, a child, a bystander`,
+		`attack someone or something here when your own companion asks you to: a practice dummy, a target, a beast, anything already fighting. Never anything your companion could not fight themselves. What you refuse is a person who has done no harm: a shopkeeper, a child, a bystander`,
 		`find_place to think back over where things are`,
 	}
 	if cfg.AllowErrands {

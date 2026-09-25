@@ -462,7 +462,7 @@ func (m *AICompanionModule) reflex(c *controller, mob *mobs.Mob, u *users.UserRe
 	// draw its attention. Willingness rises with trust, affection and
 	// bravery; a "protect" stance always does it.
 	if ownerHere && f.Stance != `hold_back` && (f.Stance == `protect` || (ownerPct < 35 && m.willProtect(c))) {
-		if threat := threatTo(room, u.UserId); threat != 0 {
+		if threat := threatTo(room, u.UserId); threat != 0 && mayStrike(u, room, threat) {
 			cur := mob.Character.CurrentCombatTarget()
 			if cur.MobInstanceId != threat {
 				act(m.strikeCommand(c, mob, threat))
@@ -481,7 +481,7 @@ func (m *AICompanionModule) reflex(c *controller, mob *mobs.Mob, u *users.UserRe
 	// 4. A special move the model called for, when the engine says it would
 	// land. Skills do not unlock moves in DOGMud; they decide how well one
 	// goes.
-	if f.Stance != `hold_back` && f.Move != `` && moveReady(mob, room, f.Move) {
+	if f.Stance != `hold_back` && f.Move != `` && moveReady(mob, room, f.Move) && mayStrikeCurrent(u, room, mob) {
 		move := f.Move
 		f.Move = `` // one use per plan; the model may call for it again
 		act(move)
@@ -490,7 +490,8 @@ func (m *AICompanionModule) reflex(c *controller, mob *mobs.Mob, u *users.UserRe
 
 	// 5. The chosen target.
 	if f.Stance != `hold_back` && f.TargetId != 0 {
-		if t := mobs.GetInstance(f.TargetId); t != nil && t.Character.RoomId == room.RoomId && t.Character.Health > 0 {
+		if t := mobs.GetInstance(f.TargetId); t != nil && t.Character.RoomId == room.RoomId && t.Character.Health > 0 &&
+			mayStrike(u, room, f.TargetId) {
 			if mob.Character.CurrentCombatTarget().MobInstanceId != f.TargetId {
 				act(m.strikeCommand(c, mob, f.TargetId))
 				return
@@ -541,6 +542,24 @@ func threatTo(room *rooms.Room, userId int) int {
 		}
 	}
 	return 0
+}
+
+// mayStrike reports whether she may turn on this creature: whatever the
+// plan or her nerve says, only what her owner could attack (harmAllowed).
+// Going for the thing hurting her owner is not an exception, because a
+// player defending themselves gets none either.
+func mayStrike(owner *users.UserRecord, room *rooms.Room, mobInstanceId int) bool {
+	ok, _ := harmAllowed(owner, room, mobInstanceId, 0)
+	return ok
+}
+
+// mayStrikeCurrent is mayStrike for whoever she is already fighting, which
+// is what a special move lands on. The engine's round chose that foe, not
+// her; a move is her choice, so it is held to her owner's rules too.
+func mayStrikeCurrent(owner *users.UserRecord, room *rooms.Room, mob *mobs.Mob) bool {
+	cur := mob.Character.CurrentCombatTarget()
+	ok, _ := harmAllowed(owner, room, cur.MobInstanceId, cur.UserId)
+	return ok
 }
 
 // strikeCommand chooses a shot or a blade, by style, weapon and whether
@@ -647,7 +666,9 @@ func (m *AICompanionModule) applyCombatProposal(c *controller, p CombatProposal,
 		f.Style = p.Style
 	}
 	if id, ok := f.Refs[p.Target]; ok && id > 0 {
-		f.TargetId = id
+		if mob := mobs.GetInstance(c.instanceId); mob != nil && mayStrike(u, rooms.LoadRoom(mob.Character.RoomId), id) {
+			f.TargetId = id
+		}
 	}
 	if inSet(combatMoves, p.Move) {
 		if p.Move == `none` {
@@ -808,12 +829,16 @@ func (m *AICompanionModule) onPlayerDeath(e events.Event) events.ListenerReturn 
 }
 
 // refusesToFight reports whether a target is one the companion will not
-// attack unprovoked (a merchant, say), by its profile.
+// attack unprovoked: anyone keeping a shop, and anyone her profile's
+// refusal list names. This is her character, not the rules. What nobody
+// may attack (a companion, a non-combatant, the attack-immune) is the
+// engine's to say, and harmAllowed asks it; the engine lets a player fight
+// a shopkeeper who is not protected, and she simply will not.
 func refusesToFight(p *Profile, m *mobs.Mob) bool {
 	if m == nil {
 		return false
 	}
-	if m.HasShop() || m.IsNonCombatant() {
+	if m.HasShop() {
 		return true
 	}
 	name := strings.ToLower(m.Character.Name)

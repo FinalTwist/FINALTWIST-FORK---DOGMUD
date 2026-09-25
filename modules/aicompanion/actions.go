@@ -141,8 +141,6 @@ type actionOutcome struct {
 	Pending   *pendingAction
 }
 
-// performAction validates and carries out one action. Runs under the mud
-// lock. delay is when, after the speech just issued, the command should run.
 // ownerDrivenOnly are the things a companion does only at its owner's word:
 // parting with goods, spending, and taking what is not hers. Another
 // traveller can talk to her all day; they cannot talk her out of her
@@ -153,6 +151,8 @@ var ownerDrivenOnly = map[string]bool{
 	// Starting a fight is the owner's call and nobody else's. A stranger
 	// cannot point a companion at something and watch it go.
 	`attack`: true,
+	// A harmful `cast` is owner-driven for the same reason; castHarm checks
+	// it there, because a helpful one (a mending, a ward) is not.
 }
 
 // ownerPrompted reports whether this decision is one the owner-only verbs
@@ -189,6 +189,47 @@ func ownerPrompted(stims []stimulus) bool {
 	return true
 }
 
+// castHarm casts a harmful spell: only at her owner's word or her own
+// quiet judgement, never a stranger's, and only at a creature or person her
+// owner could harm here. One that lands on the whole room must pass for
+// everyone it could catch.
+func (m *AICompanionModule) castHarm(c *controller, mob *mobs.Mob, owner *users.UserRecord, sc *scene, room *rooms.Room,
+	opt spellOption, a ActionProposal, stims []stimulus, delay float64, round uint64) actionOutcome {
+
+	if !ownerPrompted(stims) {
+		return actionOutcome{Refused: `that is not a stranger's to ask for`}
+	}
+	if a.To == `owner` {
+		userId := 0
+		if owner != nil {
+			userId = owner.UserId
+		}
+		_, reason := harmAllowed(owner, room, 0, userId)
+		return actionOutcome{Refused: reason}
+	}
+	t := sc.get(a.To)
+	if t == nil || (t.Kind != `npc` && t.Kind != `player`) || !stillThere(t, mob, room) {
+		return actionOutcome{Refused: `there is nobody like that here to cast it at`}
+	}
+	targetMob, targetUser := 0, 0
+	if t.Kind == `npc` {
+		targetMob = t.MobInstanceId
+	} else {
+		targetUser = t.UserId
+	}
+	if ok, reason := harmAllowed(owner, room, targetMob, targetUser); !ok {
+		return actionOutcome{Refused: reason}
+	}
+	if opt.Area {
+		if ok, reason := areaHarmAllowed(owner, room, mob); !ok {
+			return actionOutcome{Refused: reason}
+		}
+	}
+	return m.issue(c, mob, `cast`, castCommand(opt, t), `cast:`+opt.Id, opt.Name, t.Name, delay, round)
+}
+
+// performAction validates and carries out one action. Runs under the mud
+// lock. delay is when, after the speech just issued, the command should run.
 func (m *AICompanionModule) performAction(c *controller, mob *mobs.Mob, owner *users.UserRecord, sc *scene,
 	a ActionProposal, stims []stimulus, delay float64, round uint64) actionOutcome {
 
@@ -236,6 +277,13 @@ func (m *AICompanionModule) performAction(c *controller, mob *mobs.Mob, owner *u
 		opt, ok := findSpellOption(spellsReady(mob), a.Ref)
 		if !ok {
 			return actionOutcome{Refused: `that is not a spell you know, or you cannot pay for it now`}
+		}
+		// A harmful spell starts a fight as surely as `attack` does, so it
+		// is owner-driven the same way, and it may land only on what her
+		// owner could harm (harmAllowed). Whether it harms is the engine's
+		// answer, read off the spell, not a list kept here.
+		if opt.Harm {
+			return m.castHarm(c, mob, owner, sc, room, opt, a, stims, delay, round)
 		}
 		if !opt.SelfOK && a.To == `owner` && owner != nil {
 			return m.issue(c, mob, `cast`, fmt.Sprintf(`cast %s @%d`, opt.Id, owner.UserId),
@@ -409,8 +457,9 @@ func (m *AICompanionModule) performAction(c *controller, mob *mobs.Mob, owner *u
 		if target == nil || target.Character.RoomId != room.RoomId {
 			return actionOutcome{Refused: `they are not here`}
 		}
-		if target.Character.IsCharmed() {
-			return actionOutcome{Refused: `that is somebody's companion`}
+		// Only what her owner could attack, by the engine's own rules.
+		if ok, reason := harmAllowed(owner, room, t.MobInstanceId, 0); !ok {
+			return actionOutcome{Refused: reason}
 		}
 		// She will not set about a shopkeeper, a child or anyone else on
 		// her own refusal list, whoever asks her to.
