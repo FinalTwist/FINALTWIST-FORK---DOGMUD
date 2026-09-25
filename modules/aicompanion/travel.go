@@ -222,7 +222,7 @@ func (m *AICompanionModule) replan(c *controller, mob *mobs.Mob) bool {
 }
 
 // headBack returns a companion that has been apart from its owner for
-// ErrandLingerRounds, by its own map. If it knows no way back for LostRounds
+// ErrandLingerRounds, by its own map. If it knows no way back for RescueRounds
 // it rejoins through the engine's companion transport, as though it had
 // followed, rather than stay lost.
 func (m *AICompanionModule) headBack(c *controller, mob *mobs.Mob, u *users.UserRecord, round uint64) {

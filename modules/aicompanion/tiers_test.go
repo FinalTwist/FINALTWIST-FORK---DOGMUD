@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -860,4 +863,25 @@ func tryRoute(m *AICompanionModule, r route, ownerId int, askerId int, tokens in
 // settleToday settles a reservation tryRoute made today.
 func settleToday(m *AICompanionModule, r route, ownerId int, askerId int, reserved int, used int) {
 	m.settleRoute(hold{r: r, owner: ownerId, asker: askerId, tokens: reserved, day: m.budgetDay}, used)
+}
+
+// Every setting buildConfig reads is documented in settings.md, so an
+// operator can find it: a mistyped key is a silent default, and an
+// undocumented one is a setting nobody knows to set.
+func TestEverySettingIsDocumented(t *testing.T) {
+	var keys []string
+	buildConfig(func(k string) any { keys = append(keys, k); return nil })
+	_, here, _, _ := runtime.Caller(0)
+	doc, err := os.ReadFile(filepath.Join(filepath.Dir(here), `..`, `..`, `docs`, `aicompanion`, `settings.md`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(keys) < 50 {
+		t.Fatalf("fixture: buildConfig reads its settings through the getter, got %d", len(keys))
+	}
+	for _, k := range keys {
+		if !regexp.MustCompile(`(?m)^\s*` + regexp.QuoteMeta(k) + `:`).Match(doc) {
+			t.Errorf("%s is not in docs/aicompanion/settings.md", k)
+		}
+	}
 }

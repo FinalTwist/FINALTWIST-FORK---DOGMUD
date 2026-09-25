@@ -118,9 +118,13 @@ AllowErrands: true
 MaxErrandSteps: 15
 # Rounds the companion lingers at an errand's end before heading back.
 ErrandLingerRounds: 8
-# Rounds apart after which a companion that knows no way back rejoins its
-# owner as though it had followed.
+# A companion that knows no way back keeps trying to find one each round.
+# LostRounds is only the least RescueRounds may be (never below
+# ErrandLingerRounds itself).
 LostRounds: 40
+# Rounds apart, with no known way back, after which the engine puts her back
+# beside her owner as though she had followed. Never below LostRounds.
+RescueRounds: 90
 # Nearby known places with something in them, listed in each decision.
 NearbyPlacesInPrompt: 6
 # Rooms the companion remembers; the least recently seen are forgotten first.
@@ -145,6 +149,8 @@ DailyTokensPerCompanion: 300000
 # is said. Adds a short delay to each reply. Server key only: a call on a
 # player's own key is not moderated (see the tiers below).
 ModerateOutput: true
+# The moderation check is a call of its own and is not counted against any
+# token budget: OpenAI does not charge for it.
 ModerationModel: "omni-moderation-latest"
 # Keep a rotating backup of each mind every N sessions (three are kept).
 # 0 = no backups.
@@ -240,8 +246,8 @@ StrangerAskSeconds: 30
 StrangerDailyTokens: 50000
 # What passers-by, all of them together, may spend of one owner's companion
 # in a UTC day, on either key: many strangers each within their own
-# allowance could otherwise spend one owner's key without end. A fight a
-# passer-by started counts as theirs too. 0 is no cap.
+# allowance could otherwise spend one owner's key without end. A fight is
+# not theirs: her plans in any fight are her owner's to pay for. 0 is no cap.
 StrangerTokensPerOwner: 100000
 # Player keys (tier 2): a player runs their own companion on their OWN key,
 # from the web client. The key stays in their browser, on a relay page served

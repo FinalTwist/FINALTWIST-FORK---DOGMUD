@@ -430,7 +430,8 @@ skills, health) is never in the mind file; it lives on the owner's
   sneaking owner, or her walking in on foot), never another companion of
   the same owner. After
   `ErrandLingerRounds` apart it walks back by its own map; after
-  `LostRounds` with no known way it rejoins through `companionai.Rejoin`.
+  `RescueRounds` (never fewer than `LostRounds`) with no known way it
+  rejoins through `companionai.Rejoin`.
 - Exit names that are numbers or `home` are never walked: the mob `go`
   command would treat them as a teleport to a room id or as its own
   pathing.
