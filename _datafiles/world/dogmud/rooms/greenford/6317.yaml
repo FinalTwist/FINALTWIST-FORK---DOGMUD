@@ -14,7 +14,7 @@ description: >
   worn flat with use. East, the lane returns to the hall
   steps and the square. Examine the
   <ansi fg="itemname">distance-board</ansi> or the gateposts.
-biome: city
+biome: city_thoroughfare
 coord: {x: 21, y: -78, z: 1}
 exits:
   east: {roomid: 6295}

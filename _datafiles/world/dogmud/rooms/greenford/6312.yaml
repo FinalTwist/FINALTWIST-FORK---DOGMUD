@@ -13,7 +13,7 @@ description: >
   opens before the rest of the row is moving.
   The walled garden is south; College Row is
   west. Examine the tables or the counter.
-biome: city
+biome: interior
 coord: {x: 23, y: -85, z: 2}
 exits:
   west: {roomid: 6310}

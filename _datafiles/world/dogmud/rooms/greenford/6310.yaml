@@ -14,7 +14,7 @@ description: >
   window fogged with morning steam. The street
   continues south toward the quieter end. Examine
   the street or the gardens.
-biome: city
+biome: city_backstreet
 coord: {x: 22, y: -85, z: 2}
 exits:
   north: {roomid: 6309}

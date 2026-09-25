@@ -14,7 +14,7 @@ description: >
   fires already at the chimneys. The gate is
   unbolted; the streets begin on the other side.
   Examine the back gate or the lane.
-biome: city
+biome: city_backstreet
 coord: {x: 22, y: -83, z: 2}
 exits:
   north: {roomid: 6307}

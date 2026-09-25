@@ -14,7 +14,7 @@ description: >
   beside the window holds a small collection of things
   guests have left behind and no one has claimed.
   Examine the shelf or the window.
-biome: city
+biome: interior
 coord: {x: 23, y: -76, z: 2}
 exits:
   down: {roomid: 6291}

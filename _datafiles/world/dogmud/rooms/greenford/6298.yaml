@@ -13,7 +13,7 @@ description: >
   the south the open quad carries faint voices —
   a lecture in progress, its words just out of reach.
   Examine the lodge or the board.
-biome: city
+biome: city_thoroughfare
 coord: {x: 22, y: -80, z: 2}
 exits:
   down: {roomid: 6297}

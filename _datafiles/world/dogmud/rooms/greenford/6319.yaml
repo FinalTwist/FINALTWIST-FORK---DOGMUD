@@ -14,7 +14,7 @@ description: >
   The smell is layered: fresh straw, sweat-salt on leather,
   the dry-dust of summer oats. Examine the coach-trunk or
   the feed-bin.
-biome: city
+biome: city_backstreet
 coord: {x: 20, y: -77, z: 1}
 exits:
   south: {roomid: 6318}

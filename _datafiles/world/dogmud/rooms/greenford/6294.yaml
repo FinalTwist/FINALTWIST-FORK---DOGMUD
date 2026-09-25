@@ -18,7 +18,7 @@ description: >
   door holds correspondence awaiting collection — a
   dozen slots, half of them full. Examine the scribe's
   shop or the board.
-biome: city
+biome: city_backstreet
 coord: {x: 23, y: -77, z: 1}
 exits:
   west: {roomid: 6289}

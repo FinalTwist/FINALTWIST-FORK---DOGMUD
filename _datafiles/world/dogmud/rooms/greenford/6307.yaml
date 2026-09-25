@@ -13,7 +13,7 @@ description: >
   lingering. Brennan's office is west; the reading
   room east; the college lane south. Examine the
   arches or the old quince.
-biome: city
+biome: interior
 coord: {x: 22, y: -82, z: 2}
 exits:
   north: {roomid: 6299}

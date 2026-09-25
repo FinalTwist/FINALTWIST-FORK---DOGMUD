@@ -10,7 +10,7 @@ description: >
   paste, and other materials too particular to be left in
   daylight. The air carries a faint, unplaceable hum.
   Examine the circle or the shelves.
-biome: city
+biome: interior
 coord: {x: 27, y: -77, z: 1}
 station: enchanting_circle
 exits:

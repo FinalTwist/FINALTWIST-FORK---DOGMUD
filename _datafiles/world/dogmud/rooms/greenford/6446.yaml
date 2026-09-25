@@ -10,7 +10,7 @@ description: >
   wall, sorted more by habit than by any visible system.
   The air smells faintly of lanolin and dye. Examine the
   loom or the baskets.
-biome: city
+biome: interior
 coord: {x: 25, y: -77, z: 1}
 station: loom
 exits:

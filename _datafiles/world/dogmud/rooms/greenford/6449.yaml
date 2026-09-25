@@ -9,7 +9,7 @@ description: >
   over the bench, and a shallow tray of raw stones and wire
   sits within easy reach. The room is quiet, suited to close
   work. Examine the bench or the tray.
-biome: city
+biome: interior
 coord: {x: 28, y: -77, z: 1}
 station: jeweler_bench
 exits:

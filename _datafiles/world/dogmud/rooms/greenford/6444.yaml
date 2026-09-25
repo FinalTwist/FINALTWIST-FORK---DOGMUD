@@ -11,7 +11,7 @@ description: >
   cartwheel lies open on a slanted writing desk. The smell
   is beeswax and old paper, with a faint mineral note from
   the strongbox iron. Examine the counter or the ledger.
-biome: city
+biome: interior
 isbank: true
 isstorage: true
 storagecapacity: 1000
