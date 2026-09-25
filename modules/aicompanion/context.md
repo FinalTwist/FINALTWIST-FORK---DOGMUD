@@ -195,8 +195,9 @@ Roadmap and phase plan: `docs/aicompanion/`.
   summary, core memory) settle first thing in their apply function, and
   their recover handler settles when the apply was never reached.
 - **relay.go**: the relay transport (tier 2). `pendingRelays.do` sends
-  `Companion.Relay.Request {id, body}` (a random 128-bit hex id and the
-  chat completions body, nothing else) and waits for
+  `Companion.Relay.Request {id, body, deadlineMs?}` (a random 128-bit hex
+  id, the chat completions body, and the time left on the call from
+  `relayDeadlineMs`; nothing else) and waits for
   `Companion.Relay.Response {id, status, body}`; `deliver` accepts a reply
   only from the owner it went to, for a pending id, once (refusals are
   counted in `dropped`). A reply over 1 MiB (`errRelayTooLarge`) or that
@@ -252,8 +253,13 @@ Roadmap and phase plan: `docs/aicompanion/`.
   `<body data-page>`. The frame posts only to the stored endpoint
   (`redirect: 'error'`, no credentials, no referrer), returns `{id,
   status, body}` with no body on an error status and status 0 for a reply
-  over 60 KiB or one echoing the key, allows at most 2 requests in flight
-  and 30 a minute (excess is status 0 without a fetch), accepts messages
+  over 60 KiB or one echoing the key, allows at most 2 requests in flight,
+  30 a minute and 40000 summed completion tokens a minute (excess is
+  status 0 without a fetch), rewrites every body through `constrainBody`
+  (stored model forced, token caps at 4000, `n` 1 and no streaming, one of
+  the four companion schema names, at most 256 KiB), aborts the fetch at
+  the server's deadline (`fetchTimeout`, never past 90 s), binds the key
+  window to the account it was opened for,, accepts messages
   only from its parent at the game origin and from the window it opened at
   its own origin, and posts only to those. A remembered key is
   PBKDF2-SHA256 (600000) into AES-GCM with the account's storage key as
