@@ -53,7 +53,8 @@ git grep -nF -f moved.txt -- . ':!docs/superpowers/specs/completed/*.md' ':!docs
 within-line substitution. That is harmless only where the index stores LF
 (`git ls-files --eol` shows `i/lf`), because `core.autocrlf` restores CRLF on
 checkout. Check it before trusting a `sed` pass, and use the Edit tool on any
-file whose index is CRLF (room YAMLs were: plan 3b).
+file whose index is CRLF. Either way, `git diff --numstat` must show only the
+lines you meant to change.
 
 ⚠️ `_datafiles/config.yaml` carries skip-worktree. If a moved path is cited
 there, build the change from the `git show HEAD:` blob (`dogmud-balance-config`).

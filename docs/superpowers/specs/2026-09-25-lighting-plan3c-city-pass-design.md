@@ -22,7 +22,9 @@ Read from master `5fab94896` on 2026-09-25.
 | 7 | Bands for a normal observer: blind below 25, shapes below 50, faces at 50, exits visible at 65. Go defaults; `config.yaml` sets none of the three | `internal/configs/config.balance.go:1099-1101` |
 | 8 | Every `city` room reads 38 to 42 at night, so shapes only | lighting arc memory, measured in 3a |
 | 9 | **Light terms combine on a log scale and the result is never below the brightest term.** Weather occlusion attenuates the SKY term only; a lamp is untouched by weather | `internal/rooms/lighting.go:53-111` |
-| 10 | The only Go code keyed on the biome id `city` is the weather climate table, `modules/weather/sim/climate.go:187`. **`fort` is deliberately left unbound there** because it is indoor | grep; `climate.go` comment at the `fort` entry |
+| 10 | **DOGMud's weather is DATA, keyed by biome id.** Climate: one file per biome in `_datafiles/world/dogmud/weather/climate/` (`city.yaml`, `fort.yaml` with `spawnWeight: 0.0`, `road.yaml`...). The Go table in `modules/weather/sim/climate.go` is only the fallback for worlds without data. Emotes: **six files carry a `city:` pool** (`emotes/fog`, `frost`, `heatwave`, `rain`, `storm`, `seasons/temperate_winter`); a biome with no pool falls back to `default`, which is what 3b's six new biomes do. Parsed with `gopkg.in/yaml.v2`, which honours anchors | `modules/weather/content/emotes.go:104`, `climate.go`; grep |
+| 10a | **`modules/weather/content/biome_coupling_test.go` fails on any emote key that is not a real biome** (`TestAuthoredBiomeKeysAreRealBiomes`) and requires every `indoor: true` biome to be classified. So deleting `city` while an emote file still keys it goes red and names the pool | the test |
+| 10b | The only other consumer of a biome's identity is GMCP `Room.Info`, which sends the biome's display NAME as `Environment` (`modules/gmcp/gmcp.Room.go:356`). The web client never reads it | grep of `_datafiles/html` |
 | 11 | **The upstream `default` world has its own `biomes/city.yaml`** and uses the `city` climate key. It is out of scope and must keep working | `_datafiles/world/default/biomes/` |
 | 12 | A title search for ruin words finds 3 `fort` rooms plus a handful elsewhere (`Ruined Barn`, `The Ruined Waypoint`, `The Crumbling Watchtower`, `Old Chapel Ruin`). Titles are only a first filter | grep of `^title:` |
 | 13 | CI's lint gate inverts above **300 files** or 20,000 diff lines | `dogmud-shipping` skill; PR #163 |
@@ -58,9 +60,14 @@ Read from master `5fab94896` on 2026-09-25.
   visible.
 - **The 12 zone defaults become `city_backstreet`**, so a room authored later
   without thought lands dim, not bright.
-- **Climate:** add `city_thoroughfare` and `city_backstreet` to
-  `climate.go`, each a copy of the `city` entry. **The `city` key stays**,
-  because the `default` world still uses it (fact 11).
+- **Climate (fact 10):** add `weather/climate/city_thoroughfare.yaml` and
+  `city_backstreet.yaml`, each a copy of `city.yaml`. 3c-2 deletes the
+  `dogmud` `city.yaml`. The Go table in `modules/weather/sim/climate.go` is
+  not touched: it is the fallback the `default` world relies on (fact 11).
+- **Emotes (fact 10):** the six `city:` pools become shared by both new keys
+  through a yaml.v2 anchor, so the urban lines are written once and neither
+  tier loses them. 3c-1 keeps the `city:` key alongside (rooms still use it);
+  3c-2 drops it, and `biome_coupling_test.go` (fact 10a) proves none remain.
 
 ### 2. A new `ruins` biome, and `fort` narrows to roofed rooms
 
@@ -75,9 +82,10 @@ Read from master `5fab94896` on 2026-09-25.
 - Description intent: whatever roof it had is gone; it takes the weather and
   the sky as open ground does, a little shaded by what walls still stand, and
   after dark it is as black as the country around it.
-- **Climate:** `ruins` is outdoor, so it needs a `climate.go` entry. Use
-  `road`'s shape (temperate, travelled ground) unless the plan finds a better
-  sibling; it must not be left unbound the way `fort` is.
+- **Climate:** `ruins` is outdoor, so it gets `weather/climate/ruins.yaml`,
+  copied from `road.yaml` (temperate, `spawnWeight: 0.6`) with its `biome:`
+  changed. No emote pool: it falls back to `default` outdoor lines, as 3b's
+  biomes do. Not indoor, so `biome_coupling_test.go` needs no classification.
 - `fort` keeps its niche: an unlit roofed stronghold, distinct from the
   lamplit `interior`.
 - **Accepted side effect (owner, 2026-09-25):** rooms moving to `ruins` from
@@ -125,7 +133,9 @@ Two PRs, each under it:
 - **3c-2.** Sort the remaining zones (`the_confluence`, `greenford`,
   `thornwall_city`, `stillwater`, `hartcharn`, `kilnreach_works`, and the 2
   `pothole_coulee` city rooms), change the 12 zone defaults, then **delete
-  `biomes/city.yaml`**. About 280 files.
+  `biomes/city.yaml` and `weather/climate/city.yaml`**, drop the `city:` key
+  from the six emote files (moving each anchor onto a new key), and remove
+  `city` from `shipped_climate_test.go`'s list. About 280 files.
 
 ## Verification
 
