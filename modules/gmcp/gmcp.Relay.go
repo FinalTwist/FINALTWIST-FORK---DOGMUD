@@ -21,12 +21,13 @@ func installRelaySender() {
 }
 
 // relaySend queues one relay message for a player's client. It reports
-// false when the player has no connection, or one that has not finished
-// GMCP negotiation, since dispatchGMCP would drop the message silently and
-// the module would wait out its whole deadline for a reply that cannot come.
+// false when the player has no connection, a zombie one (the socket is gone
+// and the character lingers), or one that has not finished GMCP
+// negotiation, since dispatchGMCP would drop the message silently and the
+// module would wait out its whole deadline for a reply that cannot come.
 func relaySend(userId int, module string, payload []byte) bool {
 	connId := users.GetConnectionId(userId)
-	if connId == 0 || !isGMCPEnabled(connId) {
+	if connId == 0 || users.IsZombieConnection(connId) || !isGMCPEnabled(connId) {
 		return false
 	}
 	events.AddToQueue(GMCPOut{UserId: userId, Module: module, Payload: payload})

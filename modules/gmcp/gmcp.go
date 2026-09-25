@@ -276,7 +276,13 @@ func (g *GMCPModule) HandleIAC(connectionId uint64, iacCmd []byte) bool {
 			command = string(requestBody)
 		}
 
-		mudlog.Debug("Received", "type", "GMCP (Handling)", "command", command, "payload", string(payload))
+		// A Companion.Relay payload is a model reply on a player's own key
+		// (or their model choice); it is logged by size only.
+		if strings.HasPrefix(command, `Companion.Relay.`) {
+			mudlog.Debug("Received", "type", "GMCP (Handling)", "command", command, "payload", fmt.Sprintf(`[redacted %d bytes]`, len(payload)))
+		} else {
+			mudlog.Debug("Received", "type", "GMCP (Handling)", "command", command, "payload", string(payload))
+		}
 
 		switch command {
 
