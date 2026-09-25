@@ -65,12 +65,6 @@ func SetWebPlugin(wp WebPlugin) {
 // parses it as a template, and serves it.
 func serveTemplate(w http.ResponseWriter, r *http.Request) {
 
-	// The companion key relay lives on its own origin. The module claims
-	// requests for that host; nothing else is served there.
-	if companionai.ServeRelayPage(w, r) {
-		return
-	}
-
 	if httpRoot == "" {
 		httpRoot = filepath.Clean(configs.GetFilePathsConfig().PublicHtml.String())
 	}
@@ -301,7 +295,9 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn, string)) 
 		return
 	}
 
-	// Routing
+	// Routing. Every route below registers on http.DefaultServeMux; both
+	// servers run it behind relayFirst, so a request for the companion key
+	// relay's host never reaches any of them.
 	// Basic homepage
 
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
@@ -477,6 +473,7 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn, string)) 
 					httpsServer = &http.Server{
 						Addr:      fmt.Sprintf(`:%d`, networkConfig.HttpsPort),
 						TLSConfig: tlsConfig,
+						Handler:   relayFirst(http.DefaultServeMux),
 					}
 					applyServerTimeouts(httpsServer, networkConfig)
 
@@ -508,10 +505,14 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn, string)) 
 	if networkConfig.HttpPort > 0 {
 
 		httpServer = &http.Server{
-			Addr: fmt.Sprintf(`:%d`, networkConfig.HttpPort),
+			Addr:    fmt.Sprintf(`:%d`, networkConfig.HttpPort),
+			Handler: relayFirst(http.DefaultServeMux),
 		}
 		applyServerTimeouts(httpServer, networkConfig)
 
+		// With the redirect on, the relay host is redirected to https like
+		// every other host and claimed there: the relay page runs only in a
+		// secure context, so serving it over plain http would help nobody.
 		if networkConfig.HttpsRedirect {
 
 			if httpsServer == nil {
@@ -663,6 +664,21 @@ func sendError(w http.ResponseWriter, r *http.Request, status int) {
 	if status == http.StatusNotFound {
 		fmt.Fprint(w, "custom 404")
 	}
+}
+
+// relayFirst is the outermost handler of both servers. The companion key
+// relay lives on its own origin, and the module claims EVERY request whose
+// Host is that origin's host before any route is consulted: the websocket,
+// the admin pages and the builder are the game's, and none of them may run
+// on the origin that holds a player's key. With no relay installed nothing
+// is claimed and next sees every request.
+func relayFirst(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if companionai.ServeRelayPage(w, r) {
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // relayOriginJSON is the companion key relay's origin as a JSON string

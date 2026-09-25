@@ -28,13 +28,18 @@ func withPublicHtml(t *testing.T, pages map[string]string) {
 	t.Cleanup(func() { httpRoot = prev })
 }
 
-// withFakeRelay installs a relay page that claims only requests for
-// keys.example.org, the way the aicompanion module does for its relay host.
+// withFakeRelay installs a relay page that claims every request for
+// keys.example.org, the way the aicompanion module does for its relay host:
+// the page itself is served, any other path there is a 404.
 func withFakeRelay(t *testing.T) {
 	t.Helper()
 	companionai.SetRelayPage(func(w http.ResponseWriter, r *http.Request) bool {
 		if r.Host != `keys.example.org` {
 			return false
+		}
+		if r.URL.Path != `/companion-relay.html` {
+			http.NotFound(w, r)
+			return true
 		}
 		_, _ = io.WriteString(w, `relay page`)
 		return true
@@ -42,12 +47,25 @@ func withFakeRelay(t *testing.T) {
 	t.Cleanup(func() { companionai.SetRelayPage(nil) })
 }
 
+// siteMux is the game's routes as Listen registers them, on a mux of the
+// test's own: the page handler at "/", and the routes that are NOT pages.
+func siteMux() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc(`/`, serveTemplate)
+	for _, route := range []string{`/ws`, `/admin/`, `/build`, `/favicon.ico`} {
+		mux.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
+			_, _ = io.WriteString(w, `mux `+r.URL.Path)
+		})
+	}
+	return relayFirst(mux)
+}
+
 func serve(t *testing.T, host, target string) *http.Response {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodGet, target, nil)
 	req.Host = host
 	rec := httptest.NewRecorder()
-	serveTemplate(rec, req)
+	siteMux().ServeHTTP(rec, req)
 	return rec.Result()
 }
 
@@ -72,6 +90,25 @@ func TestServeTemplate_RelayHostIsClaimedByTheModuleOnly(t *testing.T) {
 	}
 	if got := bodyOf(t, serve(t, `mud.example.org`, `/companion-relay.html`)); got != `site page` {
 		t.Fatalf("another host must fall through to the site, got %q", got)
+	}
+
+	// The claim sits outside the mux: the websocket, the admin pages, the
+	// builder and the favicon route are never reached on the relay host, and
+	// are untouched on the game host.
+	for _, route := range []string{`/ws`, `/admin/`, `/build`, `/favicon.ico`} {
+		res := serve(t, `keys.example.org`, route)
+		if body := bodyOf(t, res); res.StatusCode != http.StatusNotFound || strings.HasPrefix(body, `mux`) {
+			t.Fatalf("%s on the relay host must be claimed and refused before the mux, got %d %q", route, res.StatusCode, body)
+		}
+		if got := bodyOf(t, serve(t, `mud.example.org`, route)); got != `mux `+route {
+			t.Fatalf("%s on the game host must reach its route, got %q", route, got)
+		}
+	}
+
+	// With no relay installed nothing is claimed anywhere.
+	companionai.SetRelayPage(nil)
+	if got := bodyOf(t, serve(t, `keys.example.org`, `/ws`)); got != `mux /ws` {
+		t.Fatalf("with no relay the wrapper passes everything on, got %q", got)
 	}
 }
 
