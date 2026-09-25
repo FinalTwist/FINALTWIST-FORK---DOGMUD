@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -148,6 +149,49 @@ func TestUnloadedStoreNeverSpeaks(t *testing.T) {
 	Check(u, TriggerCommand)
 	if got := drain(); len(got) != 0 {
 		t.Fatalf("an unloaded store must be silent, got %q", got)
+	}
+}
+
+// TestSleepingConditionEndingIsSilent drives the sleeping flag through a
+// real conditions.Condition rather than a hand-set observation field
+// (TestBlindnessEndingIsSilent's perception path already covers that half).
+// A condition with no TriggerCount is born already expired, so the seeded
+// spec carries one, matching the trap noted elsewhere in this codebase.
+func TestSleepingConditionEndingIsSilent(t *testing.T) {
+	u, r1, _ := seedLampWorld(t)
+	drain := captureFor(t, 1)
+
+	cleanupConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		900: {
+			ConditionId:  900,
+			Name:         "Test Sleep",
+			Flags:        []conditions.Flag{conditions.Sleeping},
+			TriggerCount: 1,
+		},
+	})
+	t.Cleanup(cleanupConditions)
+
+	Check(u, TriggerQuiet)
+	if err := u.Character.AddCondition(900, false); err != nil {
+		t.Fatal(err)
+	}
+	if !u.Character.HasConditionFlag(conditions.Sleeping) {
+		t.Fatal("fixture: the seeded condition must carry the sleeping flag")
+	}
+
+	NoteAttention(u)
+	r1.Lamp = rooms.LampPtr(30)
+	u.Character.RemoveCondition(900)
+
+	Check(u, TriggerCommand)
+	if got := drain(); len(got) != 0 {
+		t.Fatalf("the first check after sleep ends must record silently, got %q", got)
+	}
+
+	r1.Lamp = rooms.LampPtr(60)
+	Check(u, TriggerCommand)
+	if got := drain(); len(got) != 1 {
+		t.Fatalf("after the silent resync a real change must speak, got %q", got)
 	}
 }
 

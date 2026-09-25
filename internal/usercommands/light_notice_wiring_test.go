@@ -11,6 +11,130 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// lightNoticeLines returns the full text of every message sent to userId
+// that contains a line from any lightnotice pool (any cause, any
+// transition, either setting).
+func lightNoticeLines(msgs []events.Message, userId int) []string {
+	var pool []string
+	for _, c := range lightnotice.Causes() {
+		for _, tr := range lightnotice.Transitions() {
+			pool = append(pool, lightnotice.Pool(c, tr, false)...)
+			pool = append(pool, lightnotice.Pool(c, tr, true)...)
+		}
+	}
+	var out []string
+	for _, m := range msgs {
+		if m.UserId != userId {
+			continue
+		}
+		text := strings.ReplaceAll(m.Text, "\n", " ")
+		for _, l := range pool {
+			if strings.Contains(text, l) {
+				out = append(out, text)
+				break
+			}
+		}
+	}
+	return out
+}
+
+// containsAny reports whether text contains any line from pool.
+func containsAny(text string, pool []string) bool {
+	for _, l := range pool {
+		if strings.Contains(text, l) {
+			return true
+		}
+	}
+	return false
+}
+
+// captureAllMessages records every events.Message sent while the returned
+// stop function has not yet been called. The caller must call stop() (which
+// drains the queue once more so anything queued mid-test is captured) before
+// reading the slice.
+func captureAllMessages(t *testing.T) (*[]events.Message, func()) {
+	t.Helper()
+	captured := []events.Message{}
+	events.ProcessEvents() // drop anything queued before the capture
+	id := events.RegisterListener(events.Message{}, func(e events.Event) events.ListenerReturn {
+		if msg, ok := e.(events.Message); ok {
+			captured = append(captured, msg)
+		}
+		return events.Continue
+	})
+	return &captured, func() {
+		events.ProcessEvents()
+		events.UnregisterListener(events.Message{}, id)
+	}
+}
+
+// TestLightNoticeEndToEndAcrossARoomChange drives a real "north" command all
+// the way through TryCommand and the event queue, proving the wiring that
+// spans two packages: usercommands.TryCommand's TriggerCommand check (before
+// the move) and the RoomChange -> TriggerMove seam that in production lives
+// in internal/hooks.LightNoticeOnMove.
+//
+// usercommands cannot import internal/hooks (hooks imports usercommands, so
+// the reverse import would cycle), so the RoomChange listener below is a
+// small local copy of LightNoticeOnMove, registered for this test only and
+// unregistered on cleanup. It is not exercising hooks' own registration;
+// item 5a covers that registration is wired in hooks.go.
+func TestLightNoticeEndToEndAcrossARoomChange(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	useDogmudTemplates(t)
+	require.NoError(t, lightnotice.LoadFrom("../../_datafiles/world/dogmud/narration/light-notices"))
+	t.Cleanup(lightnotice.ResetForTest)
+
+	moveListenerId := events.RegisterListener(events.RoomChange{}, func(e events.Event) events.ListenerReturn {
+		evt, ok := e.(events.RoomChange)
+		if !ok || evt.UserId == 0 || evt.MobInstanceId != 0 {
+			return events.Continue
+		}
+		lightnotice.Check(users.GetByUserId(evt.UserId), lightnotice.TriggerMove)
+		return events.Continue
+	})
+	t.Cleanup(func() { events.UnregisterListener(events.RoomChange{}, moveListenerId) })
+
+	// Room 1 (lit) and room 2, north of it in the seed, pinned sky-less and
+	// dark so the crossing is unambiguous.
+	room1, room2 := rooms.LoadRoom(1), rooms.LoadRoom(2)
+	require.NotNil(t, room1)
+	require.NotNil(t, room2)
+	room1.SkyLight, room1.Lamp = rooms.SkyLightPtr(0), rooms.LampPtr(60)
+	room2.SkyLight, room2.Lamp = rooms.SkyLightPtr(0), rooms.LampPtr(0)
+
+	u := users.GetByUserId(1)
+	require.NotNil(t, u)
+	u.Character.RoomId = 1
+	u.Character.ActionPoints = 100
+	lightnotice.Check(u, lightnotice.TriggerQuiet)
+
+	captured, capCleanup := captureAllMessages(t)
+	handled, err := TryCommand("north", "", 1, 0)
+	require.True(t, handled)
+	require.NoError(t, err)
+	// ProcessEvents drains the queue including events it enqueues along the
+	// way (its own doc comment), but a second call is cheap insurance
+	// against anything left mid-flight.
+	events.ProcessEvents()
+	events.ProcessEvents()
+	capCleanup()
+
+	require.Equal(t, 2, u.Character.RoomId, "north must have moved the player")
+	got := lightNoticeLines(*captured, 1)
+	require.Len(t, got, 1, "exactly one light notice for the move, got %q", got)
+	require.True(t, containsAny(got[0], lightnotice.Pool(lightnotice.CauseMovement, lightnotice.DarkerDark, false)),
+		"the one notice must be from the movement darker_dark pool, got %q", got[0])
+
+	captured2, capCleanup2 := captureAllMessages(t)
+	handled, err = TryCommand("look", "", 1, 0)
+	require.True(t, handled)
+	require.NoError(t, err)
+	capCleanup2()
+	require.Empty(t, lightNoticeLines(*captured2, 1), "a second look in the same room and band is silent")
+}
+
 // TestLightNoticeArrivesBeforeTheCommandOutput pins the ordering: the notice is
 // delivered before the command's own output, and only once.
 //

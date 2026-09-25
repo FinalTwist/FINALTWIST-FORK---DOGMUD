@@ -105,6 +105,31 @@ func TestLightNoticeDespawnForgets(t *testing.T) {
 	require.Empty(t, lightLines(*captured, 1), "after despawn the next check records silently")
 }
 
+// TestLightNoticeOnSpawnRecordsBaseline proves LightNoticeOnSpawn actually
+// records a baseline rather than leaving the record unknown. If it did
+// nothing, the first TriggerCommand check after login would find no known
+// record and, per decide's first-check rule, record the new band silently
+// instead of speaking, so a real lamp change right after spawn would go
+// unannounced.
+func TestLightNoticeOnSpawnRecordsBaseline(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	loadLightNotices(t)
+	r1, _ := lampRooms(t, 30, 30)
+
+	u := users.GetByUserId(1)
+	u.Character.RoomId = 1
+	LightNoticeOnSpawn(events.PlayerSpawn{UserId: 1, RoomId: 1})
+
+	r1.Lamp = rooms.LampPtr(60)
+	captured, capCleanup := captureMessages(t)
+	lightnotice.Check(u, lightnotice.TriggerCommand)
+	capCleanup()
+
+	got := lightLines(*captured, 1)
+	require.Len(t, got, 1, "the command right after a lamp change following spawn must speak exactly once")
+}
+
 // TestLightNoticeCombatRound drives the real combat pass: a fighting player
 // whose light changed gets the notice from handlePlayerCombat.
 func TestLightNoticeCombatRound(t *testing.T) {
