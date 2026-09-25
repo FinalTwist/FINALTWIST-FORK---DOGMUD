@@ -108,11 +108,30 @@ Roadmap and phase plan: `docs/aicompanion/`.
   (envelope, personality sensitivity, diminishing returns on praise),
   the audited `applyOpinion`, and `opinionWords` (the only form the model
   ever sees).
-- **openai.go**: `callModel`, the blocking HTTP call (goroutine only), with
-  a per-call strict JSON schema. Every request leaves through `send`, the
-  one door, which refuses (`errNoConsent`) any request whose `OwnerUserId`
-  has not agreed, or is 0; only `listModels` (key, no player data) is
-  exempt, as `carriesNoPlayerData`.
+- **openai.go**: `callModel`, the blocking call (goroutine only), with a
+  per-call strict JSON schema. Every request passes `admit`, the one door,
+  which refuses (`errNoConsent`) any request whose `OwnerUserId` has not
+  agreed, or is 0; only `listModels` (key, no player data) is exempt, as
+  `carriesNoPlayerData`. There are two ways out and both call `admit`
+  first: `send` (HTTP, the server's key) and `sendRelay` (the owner's
+  browser, always guarded). Both transports decode through one
+  `decodeChatResponse`. A relay call waits `RelayTimeoutSeconds`, not the
+  tier's timeout, since it includes the browser's round trip.
+- **relay.go**: the relay transport (tier 2). `pendingRelays.do` sends
+  `Companion.Relay.Request {id, body}` (a random 128-bit hex id and the
+  chat completions body, nothing else) and waits for
+  `Companion.Relay.Response {id, status, body}`; `deliver` accepts a reply
+  only from the owner it went to, for a pending id, once (refusals are
+  counted in `dropped`). A reply over 1 MiB (`errRelayTooLarge`) or that
+  `looksLikeAKey` (`errRelayKeyShaped`, logged once a minute without the
+  text) is a failed call. `onRelayInbound` (installed as
+  `companionai.SetRelayInbound` while the module is on) handles `Ready`
+  (model name checked by `relayModelOK`: at most 100 printable,
+  space-free characters, not key-shaped), `Gone` and `Response`, and does
+  nothing while `playerKeysOffered` is false. `relayGone` (on `Gone` and
+  on `PlayerDespawn`) takes the relay down and fails pending calls at once
+  (`errRelayGone`). Unsent, gone, key-shaped and oversized failures are
+  never retried (`relayFinal`).
 - **decision.go**: the decision schema, `parseDecision`,
   `sanitizeDecision` and `cleanText`, which enforce everything the schema
   cannot.

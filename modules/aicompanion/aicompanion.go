@@ -155,7 +155,9 @@ type AICompanionModule struct {
 	outstanding       int // tokens held for calls that have not come back
 	lastBudgetLog     time.Time
 
-	relays *relayTable // owners with a live relay for their own key (tier 2)
+	relays     *relayTable    // owners with a live relay for their own key (tier 2)
+	relayCalls *pendingRelays // calls waiting on an owner's browser for a reply
+	relaySend  relaySender    // how a request reaches the browser; nil is companionai.SendRelay
 }
 
 var module AICompanionModule
@@ -171,6 +173,7 @@ func init() {
 		pendingMeet:  map[int]*meetWait{},
 		meetingPlace: map[int]string{},
 		relays:       newRelayTable(),
+		relayCalls:   newPendingRelays(),
 	}
 	// No data-overlays/config.yaml is shipped. A plugin overlay is pushed
 	// into the live config AFTER _datafiles/config.yaml is read, and
@@ -243,6 +246,10 @@ func (m *AICompanionModule) onLoad() {
 	companionai.SetIdleHandler(m.handleIdle)
 	companionai.SetHolder(m.holdFollow)
 	companionai.SetBondedCheck(m.isBonded)
+	// Relay messages arrive on connection goroutines. onRelayInbound
+	// touches only the relay tables, which have their own locks, and
+	// ignores everything while player keys are not on offer.
+	companionai.SetRelayInbound(m.onRelayInbound)
 
 	if m.cfg.RejectedBaseURL != `` {
 		mudlog.Error(`aicompanion`, `action`, `config`, `error`,

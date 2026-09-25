@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/GoMudEngine/GoMud/internal/companionai"
 )
 
 // chatMessage is one message in an OpenAI chat completions request. An
@@ -178,18 +180,40 @@ const (
 	carriesNoPlayerData
 )
 
-// send is the one door through which anything leaves for the provider.
+// admit is the one door through which anything leaves for a provider.
 // Every caller already checks consent before it builds a request; this is
 // the check that holds when one of them forgets. It is keyed on the owner
 // the request carries, reads the ledger rather than the bond records
 // because it runs off the mud lock, and fails closed: no owner, or no
-// ledger, is no send.
-func send(req *http.Request, gate *consentLedger, ownerUserId int, kind outboundKind) (*http.Response, error) {
+// ledger, is no send. There are two ways out, send (the server's key, over
+// HTTP) and sendRelay (the owner's key, through their browser), and each
+// passes admit before it reaches its transport.
+func admit(gate *consentLedger, ownerUserId int, kind outboundKind, path string) error {
 	if kind != carriesNoPlayerData && !gate.allows(ownerUserId) {
-		gate.noteRefusal(ownerUserId, req.URL.Path)
-		return nil, errNoConsent
+		gate.noteRefusal(ownerUserId, path)
+		return errNoConsent
+	}
+	return nil
+}
+
+// send takes a request out over HTTP, through the door.
+func send(req *http.Request, gate *consentLedger, ownerUserId int, kind outboundKind) (*http.Response, error) {
+	if err := admit(gate, ownerUserId, kind, req.URL.Path); err != nil {
+		return nil, err
 	}
 	return httpClient.Do(req)
+}
+
+// sendRelay takes a request body to the owner's browser, through the same
+// door, and returns the provider's status and raw reply. A relay request
+// is always a chat completion built from her mind, so it has no kind to
+// choose: it is always guarded.
+func sendRelay(ctx context.Context, gate *consentLedger, ownerUserId int, calls *pendingRelays,
+	body []byte, via relaySender) (int, []byte, error) {
+	if err := admit(gate, ownerUserId, carriesPlayerData, `relay`); err != nil {
+		return 0, nil, err
+	}
+	return calls.do(ctx, ownerUserId, body, via)
 }
 
 // callModel performs a chat completions request, retrying once after a
@@ -209,7 +233,7 @@ func (m *AICompanionModule) callModel(c modelCall) modelResult {
 // transient reports failures worth one retry: rate limits, server errors
 // and requests that never got an answer.
 func transient(r modelResult) bool {
-	if r.Err == nil || r.Canceled || errors.Is(r.Err, errNoConsent) {
+	if r.Err == nil || r.Canceled || errors.Is(r.Err, errNoConsent) || relayFinal(r.Err) {
 		return false
 	}
 	return r.Status == 0 || r.Status == http.StatusTooManyRequests || r.Status >= 500
@@ -254,6 +278,29 @@ func (m *AICompanionModule) callModelOnce(c modelCall) modelResult {
 	if parent == nil {
 		parent = context.Background()
 	}
+
+	if c.Route.kind == routeRelay {
+		// The owner's own key, through their browser. The wait covers the
+		// browser's round trip as well as the provider, so it is the
+		// relay's own deadline. The per-owner breaker is fed once per call
+		// by routeResult at the call site, not here.
+		ctx, cancel := context.WithTimeout(parent, time.Duration(m.cfg.RelayTimeoutSeconds)*time.Second)
+		defer cancel()
+		via := m.relaySend
+		if via == nil {
+			via = companionai.SendRelay
+		}
+		status, raw, err := sendRelay(ctx, &m.consent, c.OwnerUserId, m.relayCalls, body, via)
+		res.Latency = time.Since(start)
+		res.Status = status
+		if err != nil {
+			res.Err = err
+			res.Canceled = errors.Is(err, context.Canceled) || errors.Is(parent.Err(), context.Canceled)
+			return res
+		}
+		return decodeChatResponse(res, status, raw)
+	}
+
 	ctx, cancel := context.WithTimeout(parent, c.Timeout)
 	defer cancel()
 
@@ -281,13 +328,18 @@ func (m *AICompanionModule) callModelOnce(c modelCall) modelResult {
 		res.Err = err
 		return res
 	}
+	return decodeChatResponse(res, resp.StatusCode, raw)
+}
 
-	if resp.StatusCode != http.StatusOK {
+// decodeChatResponse reads a provider's chat completions reply into res,
+// whichever way it came back: over HTTP or through the owner's browser.
+func decodeChatResponse(res modelResult, status int, raw []byte) modelResult {
+	if status != http.StatusOK {
 		snippet := strings.TrimSpace(string(raw))
 		if len(snippet) > 300 {
 			snippet = snippet[:300]
 		}
-		res.Err = fmt.Errorf(`model API status %d: %s`, resp.StatusCode, snippet)
+		res.Err = fmt.Errorf(`model API status %d: %s`, status, snippet)
 		return res
 	}
 

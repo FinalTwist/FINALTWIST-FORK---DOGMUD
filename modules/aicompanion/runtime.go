@@ -51,6 +51,8 @@ func (m *AICompanionModule) onPlayerDespawn(e events.Event) events.ListenerRetur
 	if c, found := m.ctrls[evt.UserId]; found {
 		m.detach(c, evt.CharacterName)
 	}
+	// Their browser is closing: no call may wait on it or be routed to it.
+	m.relayGone(evt.UserId)
 	return events.Continue
 }
 
