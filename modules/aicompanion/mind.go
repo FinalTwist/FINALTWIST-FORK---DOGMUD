@@ -326,13 +326,33 @@ func saveMind(plug *plugins.Plugin, m *Mind) error {
 	return plug.WriteStruct(mindIdentifier(m.OwnerUserId, m.MobId), m)
 }
 
+// maxStoredRunes bounds any one piece of text kept in her mind. A player's
+// words reach it whole (what they said, their emote, a name they chose),
+// and each stored line goes out again in every prompt, so without a bound
+// one long speech is paid for on every call until it is forgotten.
+const maxStoredRunes = 300
+
+// capRunes trims text to at most maxStoredRunes runes, cutting on a rune
+// boundary, never inside a character.
+func capRunes(s string) string {
+	s = strings.TrimSpace(s)
+	if len(s) <= maxStoredRunes {
+		return s // bytes bound runes: short enough either way
+	}
+	r := []rune(s)
+	if len(r) <= maxStoredRunes {
+		return s
+	}
+	return strings.TrimSpace(string(r[:maxStoredRunes]))
+}
+
 // addLine appends to recent memory. Words are kept apart from goings-on:
 // what was said, asked or done at each other (kinds said, asked, emoted)
 // has its own allowance, so a busy hour of searching, walking and looting
 // can never push a conversation out of her head. Routine events (kind
 // event) get a smaller allowance of their own.
 func (m *Mind) addLine(l Line, max int) {
-	l.Text = strings.TrimSpace(l.Text)
+	l.Text = capRunes(l.Text)
 	if l.Text == `` {
 		return
 	}
@@ -411,7 +431,7 @@ func (m *Mind) linesSince(unix int64) []Line {
 // addMemory stores a memory, ignoring a near-duplicate of one of the last
 // few, and prunes to max (0 = no pruning). Returns whether it was stored.
 func (m *Mind) addMemory(mem Memory, max int) bool {
-	mem.Text = strings.TrimSpace(mem.Text)
+	mem.Text = capRunes(mem.Text)
 	if mem.Text == `` {
 		return false
 	}
@@ -442,7 +462,7 @@ func (m *Mind) addMemory(mem Memory, max int) bool {
 
 // addFact stores a fact about the owner, ignoring duplicates, capped at max.
 func (m *Mind) addFact(f Fact, max int) bool {
-	f.Text = strings.TrimSpace(f.Text)
+	f.Text = capRunes(f.Text)
 	if f.Text == `` {
 		return false
 	}
@@ -464,7 +484,7 @@ func (m *Mind) addFact(f Fact, max int) bool {
 
 // addPromise records a new open promise and returns its id.
 func (m *Mind) addPromise(by string, text string) int {
-	text = strings.TrimSpace(text)
+	text = capRunes(text)
 	if text == `` {
 		return 0
 	}
@@ -598,7 +618,7 @@ func impressionOf(store map[int]*Impression, id int, name string) *Impression {
 // addOwnPhrase remembers something the companion said or did, keeping the
 // most recent max.
 func (m *Mind) addOwnPhrase(text string, max int) {
-	text = strings.TrimSpace(text)
+	text = capRunes(text)
 	if text == `` {
 		return
 	}

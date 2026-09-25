@@ -40,7 +40,7 @@ const maxCoreMemories = 24
 // addCore stores a core memory. They are kept, not pruned; the oldest is
 // only dropped when there are more than a life's worth.
 func (m *Mind) addCore(cm CoreMemory) {
-	cm.Text = strings.TrimSpace(cm.Text)
+	cm.Text = capRunes(cm.Text)
 	if cm.Text == `` {
 		return
 	}

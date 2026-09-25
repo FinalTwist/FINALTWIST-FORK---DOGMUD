@@ -39,19 +39,29 @@ type conversation struct {
 	Lines       []Line
 	Provisional []Memory // what she thought worth remembering, pending the whole
 
-	OwnerSpoke bool // her owner said something to her in it
-	StrangerId int  // the last passer-by to speak to her in it, 0 for none
+	OwnerSpoke    bool        // her owner said something to her in it
+	StrangerTurns map[int]int // turns each passer-by spoke in it, by user id
 }
 
-// payer is who the summary of this talk is charged to: a passer-by when
-// the talk was theirs alone, or 0 for her owner. A talk her owner took part
-// in is the owner's, whoever else joined it; one with only a creature is
-// her own business, which the owner's allowance pays for as always.
+// payer is who the summary of this talk is charged to: the passer-by who
+// said the most in it when it was passers-by alone, or 0 for her owner. A
+// talk her owner took part in is the owner's, whoever else joined it; one
+// with only a creature is her own business, which the owner's allowance
+// pays for as always. The one who said the most pays, not the last to
+// speak: otherwise one word at the end of somebody else's long talk would
+// hand them the bill. A tie goes to the lower user id, so the choice does
+// not depend on map order.
 func (cv *conversation) payer() int {
 	if cv.OwnerSpoke {
 		return 0
 	}
-	return cv.StrangerId
+	best, most := 0, 0
+	for id, n := range cv.StrangerTurns {
+		if n > most || (n == most && id < best) {
+			best, most = id, n
+		}
+	}
+	return best
 }
 
 const maxConversationLines = 40
@@ -59,6 +69,7 @@ const maxConversationLines = 40
 // noteConversation records one turn of talk. partner is empty for her own;
 // partnerUserId is the player who spoke, 0 for her own turn or a creature.
 func (m *AICompanionModule) noteConversation(c *controller, roomId int, partner string, partnerUserId int, l Line) {
+	l.Text = capRunes(l.Text) // the whole talk goes out again in its summary
 	now := time.Now().Unix()
 	if c.convo != nil && (c.convo.RoomId != roomId || now-c.convo.LastUnix > int64(m.cfg.ConversationGapSeconds)) {
 		m.closeConversation(c, `the talk moved on`)
@@ -75,7 +86,10 @@ func (m *AICompanionModule) noteConversation(c *controller, roomId int, partner 
 	case partnerUserId == c.ownerUserId:
 		c.convo.OwnerSpoke = true
 	default:
-		c.convo.StrangerId = partnerUserId
+		if c.convo.StrangerTurns == nil {
+			c.convo.StrangerTurns = map[int]int{}
+		}
+		c.convo.StrangerTurns[partnerUserId]++
 	}
 	c.convo.LastUnix = now
 	c.convo.Lines = append(c.convo.Lines, l)

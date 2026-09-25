@@ -298,6 +298,13 @@ func (m *AICompanionModule) callModelOnce(c modelCall) modelResult {
 			res.Canceled = errors.Is(err, context.Canceled) || errors.Is(parent.Err(), context.Canceled)
 			return res
 		}
+		if status != http.StatusOK {
+			// The body is the provider's own text about the owner's own
+			// account, relayed by a page the server does not control: it is
+			// neither kept in the error nor logged. The status says enough.
+			res.Err = fmt.Errorf(`model API status %d through the owner's own key`, status)
+			return res
+		}
 		return decodeChatResponse(res, status, raw)
 	}
 
@@ -331,6 +338,9 @@ func (m *AICompanionModule) callModelOnce(c modelCall) modelResult {
 	return decodeChatResponse(res, resp.StatusCode, raw)
 }
 
+// maxToolCallsPerReply is the most questions one reply may put to the game.
+const maxToolCallsPerReply = 4
+
 // decodeChatResponse reads a provider's chat completions reply into res,
 // whichever way it came back: over HTTP or through the owner's browser.
 func decodeChatResponse(res modelResult, status int, raw []byte) modelResult {
@@ -361,6 +371,13 @@ func decodeChatResponse(res modelResult, status int, raw []byte) modelResult {
 	}
 	if len(ch.Message.ToolCalls) > 0 {
 		res.ToolCalls = ch.Message.ToolCalls
+		if len(res.ToolCalls) > maxToolCallsPerReply {
+			// Each question is answered under the mud lock and sent back
+			// in the next request, so a reply asking dozens at once would
+			// hold the game and swell the next prompt. The first few are
+			// answered; the rest were never asked.
+			res.ToolCalls = res.ToolCalls[:maxToolCallsPerReply]
+		}
 		return res
 	}
 	if ch.FinishReason == `length` {

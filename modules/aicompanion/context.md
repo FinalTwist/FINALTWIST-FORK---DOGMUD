@@ -101,13 +101,13 @@ Roadmap and phase plan: `docs/aicompanion/`.
   its outcome reaches the breaker of whoever paid (`relayTable` keeps a
   per-owner breaker; the global one is the server key's alone).
 - **conversation.go**: talk gathered into one conversation per exchange
-  (`noteConversation`, which also notes whether her owner spoke and the
-  last passer-by who did), held mid-talk notes, and `closeConversation`,
+  (`noteConversation`, which also notes whether her owner spoke and how
+  many turns each passer-by took), held mid-talk notes, and `closeConversation`,
   which sums the whole talk up as one memory on the fast tier
   (`summariseConversation`) or keeps the best note when there is no model
   or nobody's allowance to pay. A talk with passers-by alone is paid for
-  by the last of them (`conversation.payer`); one her owner took part in is
-  the owner's.
+  by the one who said the most (`conversation.payer`, a tie to the lower
+  user id); one her owner took part in is the owner's.
 - **reflect.go**: the private end-of-session reflection (summary,
   conclusions, facts), run in the background after logout
   (`detachReflection`). An owner whose own key was live this session
@@ -130,8 +130,11 @@ Roadmap and phase plan: `docs/aicompanion/`.
   `carriesNoPlayerData`. There are two ways out and both call `admit`
   first: `send` (HTTP, the server's key) and `sendRelay` (the owner's
   browser, always guarded). Both transports decode through one
-  `decodeChatResponse`. A relay call waits `RelayTimeoutSeconds`, not the
-  tier's timeout, since it includes the browser's round trip.
+  `decodeChatResponse`, which keeps at most `maxToolCallsPerReply` (4)
+  questions of a reply. A relay call waits `RelayTimeoutSeconds`, not the
+  tier's timeout, since it includes the browser's round trip. A relayed
+  error status keeps none of its body in the error (it is the provider's
+  text about the owner's own account); the server key's keeps a snippet.
 - **relay.go**: the relay transport (tier 2). `pendingRelays.do` sends
   `Companion.Relay.Request {id, body}` (a random 128-bit hex id and the
   chat completions body, nothing else) and waits for
@@ -204,7 +207,12 @@ Roadmap and phase plan: `docs/aicompanion/`.
   perceive, as words (no numbers, no hidden creatures, no secret exits, no
   hidden containers, no container contents).
 - **mind.go**: `Mind` (schema 2: memories, facts, promises, summaries,
-  opinion and its audit log), migration from schema 1, save/load.
+  opinion and its audit log), migration from schema 1, save/load. Every
+  writer of text into her mind (`addLine`, `addMemory`, `addFact`,
+  `addPromise`, `addOwnPhrase`, `addHearsay`, `addCore`) and
+  `noteConversation` keep at most `maxStoredRunes` (300) runes
+  (`capRunes`), since player text arrives whole and goes out in every
+  prompt.
 - **profile.go**, **profiles/*.yaml**: authored companion definitions,
   embedded in the binary.
 - **commands.go**: the admin-only `aicompanion` command, including
