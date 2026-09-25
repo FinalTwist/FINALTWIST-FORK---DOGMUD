@@ -1,6 +1,9 @@
 package mutators
 
 import (
+	"os"
+	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
@@ -48,5 +51,25 @@ func TestShippedWeatherSkyLight(t *testing.T) {
 	}
 	for id := range want {
 		t.Errorf("%s is not shipped", id)
+	}
+}
+
+// TestNoShippedMutatorCarriesLightmod exists because the loader is non-strict:
+// a stale lightmod key would be silently ignored, and an author would believe
+// it still did something.
+func TestNoShippedMutatorCarriesLightmod(t *testing.T) {
+	files, err := filepath.Glob(filepath.Join(shippedMutatorDir, "*.yaml"))
+	if err != nil || len(files) == 0 {
+		t.Fatalf("glob found no mutator files (%v); the guard cannot run", err)
+	}
+	key := regexp.MustCompile(`(?m)^\s*lightmod\s*:`)
+	for _, f := range files {
+		src, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if key.Match(src) {
+			t.Errorf("%s carries lightmod, which nothing reads; use skylight", filepath.Base(f))
+		}
 	}
 }

@@ -12,6 +12,5 @@ alertmodifier:
   behavior: append
   text: A storm rages overhead.
   colorpattern: mute-dblue
-lightmod: -1
 skylight: 0.5
 decayrate: 3 hours
