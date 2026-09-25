@@ -342,15 +342,16 @@ of those 14 changes. The one change is 6336 The Crumbling Watchtower,
    varies with the sun's elevation, bright only near noon) is recorded as a
    possible later expansion, not built.
 
-🔴 **What plan 5 owes these rooms.** Players have no way to carry light
-until plan 5 (the only light today is a rare harness's grapple proc). So the
-fifteen DARK rows above are blind to a normal observer, and that strands
-content: quest 67 (*The Bloom Trail*) sends players to Deren in 6029, quest
-70 (*The Pre-Founding Web*) runs through 6037 and 6038, Gritta's schedule
-crosses 6034 and 6039, 6020 is the Old Quarter's entrance, and seven dark
-rooms spawn mobs. The owner accepted this because nothing deploys until the
-lighting and messaging arcs finish. **Plan 5 must make those quests and
-spawns playable, by giving players light, before any deploy.**
+**The dark rooms are playable.** The fifteen DARK rows are blind to a
+player who brings no light, but every player can make light:
+`chrysalis-glow` (alias `glow`) applies condition 1, *Illumination*, whose
+`lightsource` flag lifts the room to the faces band, and the Pothole Coulee
+NPCs (dialogue 9100, 9117) teach it before the mine. That matters here
+because content runs through these rooms: quest 67 (*The Bloom Trail*) sends
+players to Deren in 6029, quest 70 (*The Pre-Founding Web*) runs through 6037
+and 6038, Gritta's schedule crosses 6034 and 6039, 6020 is the Old Quarter's
+entrance, and seven dark rooms spawn mobs. Worth watching in plan 6's
+playtest: a player who never learned to glow meets the Old Quarter blind.
 
 **Movement cost changes beyond `ruins`**, accepted with the biome calls:
 the twenty Old Quarter rooms and three underdock rooms go from 0.7 to 1.3;
