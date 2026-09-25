@@ -30,6 +30,8 @@ func withShippedBiomesAndClock(t *testing.T) {
 
 	gametime.ClearDateCacheForTest()
 	t.Cleanup(gametime.ClearDateCacheForTest)
+	gametime.ClearCelestialMemoForTest()
+	t.Cleanup(gametime.ClearCelestialMemoForTest)
 
 	original := util.GetRoundCount()
 	t.Cleanup(func() { util.SetRoundCountForTest(original) })
@@ -40,6 +42,7 @@ func withShippedBiomesAndClock(t *testing.T) {
 func setClock(doy int, hour float64) {
 	util.SetRoundCountForTest(uint64(float64(doy-1)*900 + hour*37.5))
 	gametime.ClearDateCacheForTest()
+	gametime.ClearCelestialMemoForTest()
 }
 
 func requireBiome(t *testing.T, id string) {

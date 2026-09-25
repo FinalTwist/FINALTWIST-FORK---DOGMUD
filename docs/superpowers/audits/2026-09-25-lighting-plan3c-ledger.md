@@ -289,10 +289,14 @@ The golden re-record (`83541f914`) confirmed room for room that exactly these
 174 rooms moved in both lighting goldens, each landing on the values of the
 existing rooms of its new biome, and nothing else moved.
 
-**Connectivity** (`tools/city_tier_ledger.py check`): one isolated
-thoroughfare remains, 5722 Craftwell Square, kept lit deliberately (see its
-row). Three others were re-read: 5621 became backstreet, and 5468 and 5469
-became thoroughfare because the only road to the East Gate runs through them.
+**Connectivity** (`tools/city_tier_ledger.py check`): two isolated
+thoroughfares remain. 5722 Craftwell Square is kept lit deliberately (see
+its row): a lamplit public well square reached only through dark backstreet
+lanes. 200 Arena Entrance is the `test_arena` testbed (see its row), where
+the owner ruled a deliberate mix of biomes and light for testing; the room
+is unreachable by players and not part of the world proper. Three other
+rows were re-read: 5621 became backstreet, and 5468 and 5469 became
+thoroughfare because the only road to the East Gate runs through them.
 
 **UNSURE rows (7)**, all defaulted dim: 5511, 5514, 5904, 6004, 6019, 5608,
 5612. (202 and 203 were UNSURE until the owner made `test_arena` a testbed.)

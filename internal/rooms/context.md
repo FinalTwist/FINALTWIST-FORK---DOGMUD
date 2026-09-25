@@ -103,8 +103,14 @@ YAML keys are `skylight` and `lamp`:
   chandlery's lamp-glow reaching down the stair), and two `road` rooms on
   the riverside track (`new_plymouth_outskirts/54{78,80}.yaml`, security
   lamps where the track meets the wall and the docks). Each is a room
-  whose own text names a burning lamp; every other room in those pockets
-  is dark. `fort`'s old granularity gap, sharing one sky fraction between
+  whose own text names a burning lamp; every other room in the Old
+  Quarter and sewer pockets is dark (both biomes ship `skylight: 0.0`).
+  The riverside track is the exception: `road` and `river` both ship
+  `skylight: 1.0`, so 5478 and 5480 (the lamped rooms) and 5479 the Ford
+  (plain `river`, no lamp) are all open to the sky by day; the lamp on
+  5478 and 5480 only matters after dark.
+
+  `fort`'s old granularity gap, sharing one sky fraction between
   an open yard and a buried vault, is gone: plan 3c-1 moved fort's open
   portions (the burst-open watch room, the roofless shrine, the cracked
   dome) out to `ruins`, so the eight rooms still biomed `fort` are all
@@ -138,9 +144,12 @@ rooms across `city_thoroughfare`, `city_backstreet`, `interior`, `dungeon`,
 `sewer`, `road` and `river`, but `city` itself still ships: 268 rooms
 across seven other zones (`the_confluence`, `greenford`, `thornwall_city`,
 `stillwater`, `hartcharn`, `kilnreach_works`, `pothole_coulee`) still carry
-it, and its climate file stays because the upstream `default` world also
-keys weather off `city`. Plan 3c-2 sorts those remaining zones and deletes
-`city` once none of DOGMud's own rooms name it.
+it, and `weather/climate/city.yaml` stays until 3c-2 because those 268
+DOGMud rooms still read the `city` climate profile. (Not because the
+upstream `default` world needs it: `default` ships no weather data folder
+at all and falls back to the built-in `"city"` profile in
+`modules/weather/sim/climate.go`.) Plan 3c-2 sorts those remaining zones
+and deletes `city` once none of DOGMud's own rooms name it.
 
 **`house` is deleted.** Plan 3b folded its rooms into `interior` along with
 every other room that was really an indoor space wearing an outdoor biome:
