@@ -37,6 +37,11 @@ type bondRecord struct {
 	Consented bool  `yaml:"consented,omitempty"`
 	Refused   bool  `yaml:"refused,omitempty"`
 	AskedAt   int64 `yaml:"asked_at,omitempty"`
+	// StrangersOff is the owner saying passers-by may not prompt a model
+	// call for their companion (companion-ai strangers off). She still
+	// hears them and answers with set lines. Absent, as in every record
+	// saved before it existed, is strangers on.
+	StrangersOff bool `yaml:"strangers_off,omitempty"`
 }
 
 type bondState struct {

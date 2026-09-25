@@ -51,6 +51,7 @@ type controller struct {
 	farewellSaid bool   // goodbye already queued for the owner's current quit
 
 	sessionStartUnix    int64         // when this session began (for reflection)
+	relaySeen           bool          // the owner's own key was live at some point this session
 	lastSocialUnix      int64         // last time anyone spoke or acted socially near it
 	lastInitiativeCheck int64         // last time a quiet-spell roll was made
 	lastAttackBy        map[int]int64 // attacker user id -> last reaction time
@@ -158,6 +159,13 @@ type AICompanionModule struct {
 	relays     *relayTable    // owners with a live relay for their own key (tier 2)
 	relayCalls *pendingRelays // calls waiting on an owner's browser for a reply
 	relaySend  relaySender    // how a request reaches the browser; nil is companionai.SendRelay
+
+	// deferredReflect is a relay owner's end-of-session reflection, kept
+	// until they are back online with their relay up (one per owner, the
+	// newest). Read and written only under the mud lock.
+	deferredReflect map[int]*deferredReflection
+
+	tell func(userId int, text string) // how the owner is told things; nil sends a system line
 }
 
 var module AICompanionModule
@@ -436,6 +444,21 @@ func (c *controller) cancelInFlight() {
 		c.cancelCall = nil
 	}
 	c.inFlight = false
+}
+
+// strangersOff reports whether the owner has asked that passers-by prompt
+// no model calls for their companion (companion-ai strangers off).
+func (m *AICompanionModule) strangersOff(ownerId int) bool {
+	rec := m.bonds.Users[ownerId]
+	return rec != nil && rec.StrangersOff
+}
+
+// strangerMayPrompt reports whether a call prompted by this passer-by may
+// be made for the owner's companion at all. askerId 0 is the owner's own
+// call. With strangers off she still hears a passer-by and answers them
+// with her set lines, but nothing they say starts a call on anyone's key.
+func (m *AICompanionModule) strangerMayPrompt(ownerId int, askerId int) bool {
+	return askerId <= 0 || !m.strangersOff(ownerId)
 }
 
 // isBonded reports whether a mob instance is a bonded companion this module

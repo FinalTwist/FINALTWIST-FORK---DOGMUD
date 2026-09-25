@@ -43,6 +43,22 @@ changes nothing. To change your mind afterwards use
 <ansi fg="command">companion-ai off</ansi>, or
 <ansi fg="command">companion-part</ansi> to send them away for good.
 
+<ansi fg="yellow">━━━ Your own key ━━━</ansi>
+
+Where this server offers it, you can have your companion think on your own
+key instead: set it up from the web client's Companion key button. Your key
+stays in your browser and never reaches this server; what would have gone
+to OpenAI goes to your key's provider instead, and you pay for it.
+
+  - Put a spending limit on the key with its provider before you use it.
+  - Do not use a work computer, or any computer you share.
+  - Passers-by who talk to your companion are paid for from your key too;
+    <ansi fg="command">companion-ai strangers off</ansi> stops that.
+
+Nothing checks what your own key's provider has your companion say, so
+every word they say that way is logged here as yours to answer for. If you
+are muted, so are they, whichever key they answer on.
+
 <ansi fg="yellow">━━━ Related ━━━</ansi>
 
   <ansi fg="command">help companion-part</ansi>      Part ways for good.

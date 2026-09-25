@@ -178,6 +178,11 @@ func (m *AICompanionModule) summariseConversation(c *controller, convo *conversa
 	if !m.consented(c.ownerUserId) {
 		return false
 	}
+	// A talk with passers-by alone is theirs to prompt, and her owner has
+	// asked that they prompt nothing: the best note is kept instead.
+	if !m.strangerMayPrompt(c.ownerUserId, asker) {
+		return false
+	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "You have just finished talking with %s. Here is the whole of it, oldest first:\n", convo.Partner)
 	for _, l := range convo.Lines {

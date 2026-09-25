@@ -92,36 +92,116 @@ func buildReflectionMessages(in reflectionInput) []chatMessage {
 	}
 }
 
+// deferredReflection is one session's reflection, taken as the session
+// ended and started later. It is a copy, so a new session writing to the
+// same Mind does not change what the old one is remembered as.
+type deferredReflection struct {
+	mind    *Mind
+	in      reflectionInput
+	session int
+}
+
+// detachReflection is the reflection at the end of a session: started at
+// once, or, for an owner who used their own key this session, kept until
+// they are back with their relay up. At logout their browser is closing,
+// so a call sent to it now would only fail.
+//
+// A server that also has its own key could run a relay owner's reflection
+// on it at logout instead. It deliberately does not: an owner on their own
+// key pays for their own companion, her private thoughts included, and the
+// server's budget is kept for the owners who have no key of their own.
+func (m *AICompanionModule) detachReflection(c *controller, ownerName string) {
+	owner := c.mind.OwnerUserId
+	if c.relaySeen || m.route(owner).kind == routeRelay {
+		m.deferReflection(c.mind, c.profile, ownerName, c.sessionStartUnix)
+		return
+	}
+	m.startReflection(c.mind, c.profile, ownerName, c.sessionStartUnix)
+}
+
+// deferReflection keeps a relay owner's reflection until startDueReflection
+// finds them online with their relay up. One waits per owner: a newer
+// session's replaces an older one's. Called under the mud lock.
+func (m *AICompanionModule) deferReflection(mind *Mind, p *Profile, ownerName string, sessionStart int64) {
+	in, ok := m.prepareReflection(mind, p, ownerName, sessionStart)
+	if !ok {
+		return
+	}
+	if m.deferredReflect == nil {
+		m.deferredReflect = map[int]*deferredReflection{}
+	}
+	m.deferredReflect[mind.OwnerUserId] = &deferredReflection{mind: mind, in: in, session: mind.SessionCount}
+}
+
+// dueReflection takes the owner's waiting reflection when it may start:
+// the owner is online and their relay is live. A relay that comes back
+// while they are logged out starts nothing. Called under the mud lock.
+func (m *AICompanionModule) dueReflection(ownerId int, online bool) *deferredReflection {
+	d := m.deferredReflect[ownerId]
+	if d == nil || !online || m.route(ownerId).kind != routeRelay {
+		return nil
+	}
+	delete(m.deferredReflect, ownerId)
+	return d
+}
+
+// startDueReflection starts the owner's waiting reflection if it is due.
+// It is called from the round tick for an owner who is online, under the
+// mud lock, never from the connection goroutine a relay's Ready arrives
+// on. The launch passes consent again, and the call the consent door.
+func (m *AICompanionModule) startDueReflection(ownerId int) {
+	if d := m.dueReflection(ownerId, true); d != nil {
+		m.launchReflection(d)
+	}
+}
+
 // startReflection launches a background reflection for a mind whose owner
 // has just left. Called under the mud lock from detach. The mind pointer
 // stays in the module's cache, so if the owner returns before the reply
 // lands, both the new session and the reflection work on the same Mind.
 func (m *AICompanionModule) startReflection(mind *Mind, p *Profile, ownerName string, sessionStart int64) {
+	in, ok := m.prepareReflection(mind, p, ownerName, sessionStart)
+	if !ok {
+		return
+	}
+	m.launchReflection(&deferredReflection{mind: mind, in: in, session: mind.SessionCount})
+}
+
+// prepareReflection gathers what a session's reflection is built from, as
+// it stands now, or reports that there is to be none.
+func (m *AICompanionModule) prepareReflection(mind *Mind, p *Profile, ownerName string, sessionStart int64) (reflectionInput, bool) {
 	// Consent covers everything that leaves the server, not only what is
 	// said in the moment: a player who declined must not have their session
 	// posted to OpenAI the instant they log out.
-	if !m.consented(mind.OwnerUserId) {
-		return
-	}
-	if !m.cfg.ReflectOnLogout || !m.modelReady(mind.OwnerUserId) {
-		return
+	if !m.consented(mind.OwnerUserId) || !m.cfg.ReflectOnLogout {
+		return reflectionInput{}, false
 	}
 	lines := mind.linesSince(sessionStart)
 	if len(lines) < m.cfg.MinSessionLinesForReflection {
-		return
+		return reflectionInput{}, false
 	}
 	if len(lines) > 80 {
 		lines = lines[len(lines)-80:]
 	}
-
-	in := reflectionInput{
+	return reflectionInput{
 		Profile:     p,
 		OwnerName:   ownerName,
 		Opinion:     mind.Opinion,
-		Facts:       mind.Facts,
-		Reflections: mind.reflections(3),
+		Facts:       append([]Fact(nil), mind.Facts...),
+		Reflections: append([]Memory(nil), mind.reflections(3)...),
 		Lines:       append([]Line(nil), lines...),
 		Session:     mind.SessionCount,
+	}, true
+}
+
+// launchReflection starts a prepared reflection's call. Called under the
+// mud lock.
+func (m *AICompanionModule) launchReflection(d *deferredReflection) {
+	mind, in := d.mind, d.in
+	// Asked again at launch: a deferred one may start long after it was
+	// taken, and the owner may have withdrawn in between.
+	if !m.consented(mind.OwnerUserId) || !m.cfg.ReflectOnLogout || !m.modelReady(mind.OwnerUserId) {
+		return
 	}
 	ts := m.settingsFor(tierDeep, false)
 	call := modelCall{
@@ -149,7 +229,7 @@ func (m *AICompanionModule) startReflection(mind *Mind, p *Profile, ownerName st
 	}
 	m.callsToday++
 	key := mindIdentifier(mind.OwnerUserId, mind.MobId)
-	session := mind.SessionCount
+	session := d.session // the session reflected on, not the one running now
 
 	go func() {
 		defer func() {

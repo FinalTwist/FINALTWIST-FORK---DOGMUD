@@ -520,7 +520,10 @@ func (m *AICompanionModule) strangerMayAsk(u *users.UserRecord, c *controller) b
 	if u == nil || u.Character == nil {
 		return false
 	}
-	if m.cfg.StrangerDailyTokens > 0 {
+	// With strangers off nothing they prompt is paid for, so their day's
+	// allowance does not stop her set-line answer; the cooldown still
+	// paces it.
+	if m.cfg.StrangerDailyTokens > 0 && !m.strangersOff(c.ownerUserId) {
 		m.rollDay()
 		if m.strangerTokens[u.UserId] >= m.cfg.StrangerDailyTokens {
 			return false

@@ -34,7 +34,12 @@ Roadmap and phase plan: `docs/aicompanion/`.
   her, `ask`, an emote, a gift, healing) is heard and remembered as usual
   but queued only if `strangerMayAsk` passes (their daily allowance, then
   a per-companion cooldown that trying spends), called once per thing,
-  just before the push. Their stimuli carry `AskerUserId`.
+  just before the push. Their stimuli carry `AskerUserId`. With the
+  owner's `companion-ai strangers off` (`bondRecord.StrangersOff`,
+  `strangersOff`) she still hears them and answers with set lines, paced
+  by the same cooldown, but `strangerMayPrompt` stops any call they would
+  prompt: dispatch falls back, and a talk with passers-by alone is not
+  summed up.
 - **scene.go**: `buildScene`, the structured, locally scored picture of what
   the companion can see and carry, with the refs ("t2", "p1", "w1") the
   model uses in actions; item and NPC classification; novelty from the
@@ -101,7 +106,14 @@ Roadmap and phase plan: `docs/aicompanion/`.
   by the last of them (`conversation.payer`); one her owner took part in is
   the owner's.
 - **reflect.go**: the private end-of-session reflection (summary,
-  conclusions, facts), run in the background after logout.
+  conclusions, facts), run in the background after logout
+  (`detachReflection`). An owner whose own key was live this session
+  (`controller.relaySeen`) cannot be reached at logout, so their
+  reflection is copied (`deferReflection`, one per owner, the newest) and
+  started by the round tick (`startDueReflection` in `sync`, under the
+  lock) once they are online with their relay up (`dueReflection`), never
+  on the server's key and never from the connection goroutine. The launch
+  asks for consent again.
 - **memory.go**: retrieval (importance, recency, relevance by words, place
   and people) and forgetting.
 - **opinion.go**: `Opinion`, per-trigger envelopes, `boundDelta`
@@ -130,8 +142,11 @@ Roadmap and phase plan: `docs/aicompanion/`.
   space-free characters, not key-shaped), `Gone` and `Response`, and does
   nothing while `playerKeysOffered` is false. `relayGone` (on `Gone` and
   on `PlayerDespawn`) takes the relay down and fails pending calls at once
-  (`errRelayGone`). Unsent, gone, key-shaped and oversized failures are
-  never retried (`relayFinal`).
+  (`errRelayGone`). Unsent, gone, timed-out (`errRelayTimeout`),
+  key-shaped and oversized failures are never retried (`relayFinal`).
+  The first failure the provider causes in a relay session (not a relay
+  that went away, not a cancelled call) tells the owner once, in plain
+  words (`noticeFallback`, `relayOwner.noticeSent`, reset by `ready`).
 - **decision.go**: the decision schema, `parseDecision`,
   `sanitizeDecision` and `cleanText`, which enforce everything the schema
   cannot.
@@ -146,7 +161,11 @@ Roadmap and phase plan: `docs/aicompanion/`.
 - **profile.go**, **profiles/*.yaml**: authored companion definitions,
   embedded in the binary.
 - **commands.go**: the admin-only `aicompanion` command, including
-  `aicompanion mind <character>`.
+  `aicompanion mind <character>` and a status line per companion with its
+  `tier=relay|server|none`; the player's `companion-ai` (consent, the
+  `strangers on|off` toggle, and which tier is answering, `tierWords`).
+  Its lines are wrapped at 80 columns before sending, since the system
+  category is never wrapped for the reader.
 - **primer.txt**: the common-knowledge world primer given to the model.
 - **config.go**: every setting and its default (`buildConfig`). The module
   ships no data-overlay: a plugin overlay overwrites `_datafiles/config.yaml`
@@ -236,6 +255,11 @@ skills, health) is never in the mind file; it lives on the owner's
   separately, with the world's stimuli going to the first. The owner-only
   verbs (`ownerPrompted`) and "ask first" (`ownerAskedNow`) are refused
   whenever any passer-by's stimulus is in the batch, whoever else spoke.
+- What she says is her owner's to answer for, on every tier: a muted owner
+  (`UserRecord.Muted`) silences her say, emote and `sayto` alike
+  (`spokenLines`, in `speak` and the `sayto` action). On the owner's own
+  key nothing moderates her words, so each line she says that way is
+  logged at Info against the owner (`speechLogLine`, `logSpeech`).
 - Item commands use `itemRef` (`!<itemId>:<uuid>`), never a display name.
 - Sight is `messaging.ParticipantSight`, the engine's own rule.
 

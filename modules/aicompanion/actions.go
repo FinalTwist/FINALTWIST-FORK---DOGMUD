@@ -431,6 +431,11 @@ func (m *AICompanionModule) performAction(c *controller, mob *mobs.Mob, owner *u
 		if who == `` || a.Query == `` {
 			return actionOutcome{Refused: `nothing to say`}
 		}
+		// Her words are her owner's to answer for, spoken aloud to the
+		// room like any say: a muted owner silences this as well.
+		if len(spokenLines(owner, []SpeechLine{{Kind: `sayto`, Text: a.Query}})) == 0 {
+			return actionOutcome{Refused: `you cannot speak just now`}
+		}
 		mob.Command(`sayto `+who+` `+util.EscapeAnsiTags(a.Query), delay)
 		// An NPC ignores a mob talking at it, so her question is put to it
 		// the way her owner's would be: the same quest, behaviour-tree and

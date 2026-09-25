@@ -1,7 +1,9 @@
 package aicompanion
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/url"
 	"strings"
@@ -9,6 +11,8 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
 // Three tiers pay for a companion's thinking. Tier 1 is nobody: she answers
@@ -67,17 +71,21 @@ type relayOwner struct {
 	model        string
 	failures     int
 	breakerUntil time.Time
+	noticeSent   bool // the owner was told this relay session that she fell back
 }
 
 func newRelayTable() *relayTable { return &relayTable{owners: map[int]*relayOwner{}} }
 
 // ready records that the owner's relay is up with this model. A relay that
-// comes back keeps its breaker: reloading the page must not reset it.
+// comes back keeps its breaker: reloading the page must not reset it. It
+// starts a new relay session for the fallback notice, which may be given
+// once more.
 func (t *relayTable) ready(userId int, model string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if o := t.owners[userId]; o != nil {
 		o.model = strings.TrimSpace(model)
+		o.noticeSent = false
 		return
 	}
 	t.owners[userId] = &relayOwner{model: strings.TrimSpace(model)}
@@ -119,6 +127,19 @@ func (t *relayTable) failure(userId int, now time.Time, cfg Config) {
 		o.breakerUntil = now.Add(time.Duration(cfg.BreakerSeconds) * time.Second)
 		o.failures = 0
 	}
+}
+
+// noticeDue reports, once per relay session, that the owner should be told
+// their companion fell back on set lines.
+func (t *relayTable) noticeDue(userId int) bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	o := t.owners[userId]
+	if o == nil || o.noticeSent {
+		return false
+	}
+	o.noticeSent = true
+	return true
 }
 
 func (t *relayTable) success(userId int) {
@@ -216,4 +237,35 @@ func (m *AICompanionModule) routeResult(r route, ownerId int, err error, now tim
 		return
 	}
 	m.relays.failure(ownerId, now, m.cfg)
+	m.noticeFallback(ownerId, err)
+}
+
+// noticeFallback tells the owner, once per relay session, that their
+// companion fell back on set lines because their key's provider did not
+// answer: in plain words, never the error, which may carry the provider's
+// own text. A relay that went away (the page closed, the owner logged out)
+// or a call the module gave up on is nobody's failure to report. Runs
+// under the mud lock, as every routeResult does.
+func (m *AICompanionModule) noticeFallback(ownerId int, err error) {
+	if errors.Is(err, errRelayGone) || errors.Is(err, context.Canceled) || !m.relays.noticeDue(ownerId) {
+		return
+	}
+	name := `Your companion`
+	if c := m.ctrls[ownerId]; c != nil && c.profile != nil {
+		name = c.profile.Name
+	}
+	m.tellOwner(ownerId, fmt.Sprintf(`(%s falls back on a few set words: your key's provider did not answer.)`, name))
+}
+
+// tellOwner sends a player a system line, wrapped at 80 columns: the
+// system category is never wrapped for them.
+func (m *AICompanionModule) tellOwner(userId int, text string) {
+	text = messaging.WrapAnsi(text, 80)
+	if m.tell != nil {
+		m.tell(userId, text)
+		return
+	}
+	if u := users.GetByUserId(userId); u != nil {
+		u.SendText(messaging.CategorySystem, text)
+	}
 }

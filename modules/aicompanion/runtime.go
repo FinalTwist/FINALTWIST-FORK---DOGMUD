@@ -98,6 +98,15 @@ func (m *AICompanionModule) sync(round uint64) {
 			}
 		}
 
+		// An owner on their own key this session reflects on it later,
+		// through their relay, not at logout (detachReflection). A
+		// reflection kept from an earlier session starts here, on the
+		// round, once they are back with their relay up.
+		if m.route(u.UserId).kind == routeRelay {
+			c.relaySeen = true
+			m.startDueReflection(u.UserId)
+		}
+
 		if comp.InstanceId == 0 {
 			m.handleFallen(c, u, p, round, now)
 			continue
@@ -332,7 +341,7 @@ func (m *AICompanionModule) detach(c *controller, ownerName string) {
 	if ownerName == `` {
 		ownerName = `your companion`
 	}
-	m.startReflection(c.mind, c.profile, ownerName, c.sessionStartUnix)
+	m.detachReflection(c, ownerName)
 }
 
 func (m *AICompanionModule) dispatchAll() {
@@ -408,7 +417,9 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	// breaker still apply on the server's key, and the stranger's own
 	// allowance is weighed when the call is reserved. It is routed by her
 	// owner either way: on the owner's own key, the owner's key pays.
-	if !m.modelReadyFor(c.ownerUserId, asker) {
+	// Her owner has asked that passers-by start no calls: she answers
+	// them with her set lines.
+	if !m.strangerMayPrompt(c.ownerUserId, asker) || !m.modelReadyFor(c.ownerUserId, asker) {
 		m.fallback(c, mob, stims)
 		return
 	}
@@ -720,7 +731,7 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 	}
 
 	d := sanitizeDecision(raw, mob.Character.Name, c.mind.Mood)
-	m.speak(c, mob, d.Speech)
+	m.speak(c, mob, d.Speech, rt)
 
 	now := time.Now().Unix()
 	owner := users.GetByUserId(c.ownerUserId)
@@ -734,6 +745,10 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 	outcome := actionOutcome{}
 	if c.pendingAct == nil || d.Action.Verb == `look_at` || d.Action.Verb == `consider` || d.Action.Verb == `find_place` || d.Action.Verb == `sayto` || d.Action.Verb == `browse` {
 		outcome = m.performAction(c, mob, owner, sc, d.Action, stims, actDelay, util.GetRoundCount())
+		if d.Action.Verb == `sayto` && outcome.Issued {
+			// Words to someone, spoken aloud: logged like any other line.
+			logSpeech(rt, c.ownerUserId, c.profile.Name, `sayto`, d.Action.Query)
+		}
 	} else if d.Action.Verb != `none` {
 		outcome.Refused = `still busy with the last thing`
 	}
@@ -973,12 +988,47 @@ func (m *AICompanionModule) traceDecision(c *controller, stims []stimulus, d Dec
 	)
 }
 
-// speak issues each line as an ordinary mob command, spaced so a reply reads
-// like someone talking rather than a block of text.
-// speak issues what she says as ordinary commands. A long line is broken at
-// sentence ends into pieces a screen can hold, each said in turn with a
+// spokenLines is what she may say of lines: all of them, or nothing when
+// her owner is muted (or cannot be found). What she says is her owner's to
+// answer for, on every tier: a say and an emote are both free text, so the
+// owner's mute silences both.
+func spokenLines(owner *users.UserRecord, lines []SpeechLine) []SpeechLine {
+	if owner == nil || owner.Muted {
+		return nil
+	}
+	return lines
+}
+
+// speechLogLine is the log record for one line she says through her
+// owner's own key, or nil when the line is not logged. Nothing moderates
+// the owner's key (their provider may have no moderation, and the reply
+// could be forged anyway), so each line is logged against the owner who
+// answers for it. The server's key passed moderation, and set lines are
+// authored, so neither is logged.
+func speechLogLine(rt route, ownerId int, name string, kind string, text string) []any {
+	if rt.kind != routeRelay {
+		return nil
+	}
+	return []any{`action`, `speech`, `owner`, ownerId, `companion`, name, `kind`, kind, `text`, text}
+}
+
+// logSpeech logs one line she said through her owner's own key.
+func logSpeech(rt route, ownerId int, name string, kind string, text string) {
+	if attrs := speechLogLine(rt, ownerId, name, kind, text); attrs != nil {
+		mudlog.Info(`aicompanion`, attrs...)
+	}
+}
+
+// speak issues what she says as ordinary commands, spaced so a reply reads
+// like someone talking rather than a block of text. A long line is broken
+// at sentence ends into pieces a screen can hold, each said in turn with a
 // pause, so a story arrives the way someone telling one would deliver it.
-func (m *AICompanionModule) speak(c *controller, mob *mobs.Mob, lines []SpeechLine) {
+// rt is the route the words came by: routeNone for her set lines.
+func (m *AICompanionModule) speak(c *controller, mob *mobs.Mob, lines []SpeechLine, rt route) {
+	lines = spokenLines(users.GetByUserId(c.ownerUserId), lines)
+	if len(lines) == 0 {
+		return
+	}
 	spoken := 0
 	for i, l := range lines {
 		delay := 0.5
@@ -996,6 +1046,7 @@ func (m *AICompanionModule) speak(c *controller, mob *mobs.Mob, lines []SpeechLi
 			}
 			spoken++
 			mob.Command(l.Kind+` `+util.EscapeAnsiTags(piece), delay)
+			logSpeech(rt, c.ownerUserId, c.profile.Name, l.Kind, piece)
 			// The next piece waits for this one to have been read: about a
 			// second and a half, and longer for a longer piece.
 			delay = 1.4 + float64(len(piece))/45.0
@@ -1048,7 +1099,7 @@ func (m *AICompanionModule) fallback(c *controller, mob *mobs.Mob, stims []stimu
 		return
 	}
 	line := pool[util.Rand(len(pool))]
-	m.speak(c, mob, []SpeechLine{{Kind: `emote`, Text: cleanText(line, maxEmoteRunes)}})
+	m.speak(c, mob, []SpeechLine{{Kind: `emote`, Text: cleanText(line, maxEmoteRunes)}}, route{kind: routeNone})
 }
 
 // maybeThink makes a small authored "thinking" gesture when a reply to

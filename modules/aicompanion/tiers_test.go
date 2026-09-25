@@ -1,11 +1,19 @@
 package aicompanion
 
 import (
+	"context"
 	"errors"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
+	"gopkg.in/yaml.v2"
+
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
@@ -386,5 +394,432 @@ func TestRelayReflectionAndCoreMemorySpendNothingOfTheServers(t *testing.T) {
 	}
 	if len(c.mind.CoreMemories) != 1 || c.mind.CoreMemories[0].Text != `Something changed between Corvin and me here.` {
 		t.Fatalf("a failed call keeps the bare fact: %+v", c.mind.CoreMemories)
+	}
+}
+
+// A muted owner's companion says nothing of her own: say and emote alike
+// are free text, and her words are her owner's to answer for. Not muted,
+// the lines pass unchanged.
+func TestMutedOwnerSilencesHer(t *testing.T) {
+	lines := []SpeechLine{{Kind: `say`, Text: `Hello there.`}, {Kind: `emote`, Text: `waves.`}}
+	owner := users.NewTestUser(1, `corvin`, `Corvin`, 0)
+	if got := spokenLines(owner, lines); len(got) != 2 || got[0] != lines[0] || got[1] != lines[1] {
+		t.Fatalf("an owner who is not muted leaves her lines alone: %+v", got)
+	}
+	owner.Muted = true
+	if got := spokenLines(owner, lines); len(got) != 0 {
+		t.Fatalf("a muted owner silences say and emote alike: %+v", got)
+	}
+	if got := spokenLines(nil, lines); len(got) != 0 {
+		t.Fatal("with no owner to answer for her, she says nothing")
+	}
+}
+
+// speak itself honours the mute, on every tier: nothing is said, so
+// nothing is remembered as said.
+func TestSpeakHonoursTheMute(t *testing.T) {
+	owner, _, _, her := harmWorld(t, `off`)
+	m, c := senderModule(`https://api.example.invalid`, true)
+	c.instanceId = her.InstanceId
+	owner.Muted = true
+	m.speak(c, her, []SpeechLine{{Kind: `say`, Text: `Hello there.`}}, route{kind: routeServer})
+	if len(c.mind.RecentLines) != 0 {
+		t.Fatalf("a muted owner's companion said something: %+v", c.mind.RecentLines)
+	}
+	owner.Muted = false
+	m.speak(c, her, []SpeechLine{{Kind: `say`, Text: `Hello there.`}}, route{kind: routeServer})
+	if len(c.mind.RecentLines) != 1 {
+		t.Fatalf("control: not muted, she speaks: %+v", c.mind.RecentLines)
+	}
+}
+
+// On the owner's own key nothing moderates her words, so each line is
+// logged against the owner. On the server's key the lines passed
+// moderation and are not logged.
+func TestRelaySpeechIsLoggedAgainstTheOwner(t *testing.T) {
+	attrs := speechLogLine(route{kind: routeRelay}, 7, `Mara`, `say`, `Hello there.`)
+	if len(attrs) == 0 {
+		t.Fatal("relay speech is logged")
+	}
+	got := map[string]any{}
+	for i := 0; i+1 < len(attrs); i += 2 {
+		got[attrs[i].(string)] = attrs[i+1]
+	}
+	if got[`owner`] != 7 || got[`companion`] != `Mara` || got[`kind`] != `say` || got[`text`] != `Hello there.` || got[`action`] != `speech` {
+		t.Fatalf("the log names the owner, her, the kind and the text: %+v", got)
+	}
+	if attrs := speechLogLine(route{kind: routeServer}, 7, `Mara`, `say`, `x`); attrs != nil {
+		t.Fatalf("server-key speech is not logged: %+v", attrs)
+	}
+	if attrs := speechLogLine(route{kind: routeNone}, 7, `Mara`, `emote`, `x`); attrs != nil {
+		t.Fatalf("set lines are not logged: %+v", attrs)
+	}
+}
+
+// deferredModule is a consenting owner 1 with a relay module around them.
+func deferredModule(t *testing.T) (*AICompanionModule, *controller, *fakeRelay) {
+	t.Helper()
+	m, c := senderModule(`https://api.example.invalid`, true)
+	withWebDomain(t, `example.org`)
+	m.cfg.PlayerKeys, m.cfg.RelayOrigin = true, `https://keys.example.org`
+	m.cfg.RelayTimeoutSeconds = 5
+	m.cfg.MinSessionLinesForReflection = 1
+	m.relays = newRelayTable()
+	m.relayCalls = newPendingRelays()
+	f := newFakeRelay()
+	m.relaySend = f.send
+	m.minds = map[string]*Mind{mindIdentifier(c.mind.OwnerUserId, c.mind.MobId): c.mind}
+	now := time.Now().Unix()
+	for i := 0; i < 4; i++ {
+		c.mind.addLine(Line{Speaker: `Corvin`, Kind: `said`, Text: `hello`, Unix: now}, 50)
+	}
+	return m, c, f
+}
+
+// A relay owner's reflection cannot reach a browser that is closing, so it
+// waits for their next login with the relay up. One waits per owner, the
+// newest; it starts once, only for an owner who is online, and only once
+// their relay is live.
+func TestReflectionWaitsForTheRelay(t *testing.T) {
+	m, c, f := deferredModule(t)
+	m.relays.ready(1, `player-model`)
+	c.relaySeen = true
+	util.LockMud()
+	m.detachReflection(c, `Corvin`)
+	m.relayGone(1)
+	util.UnlockMud()
+	select {
+	case r := <-f.sent:
+		t.Fatalf("the reflection went to a relay that was closing: %+v", r)
+	default:
+	}
+	first := m.deferredReflect[1]
+	if first == nil {
+		t.Fatal("a relay owner's reflection is kept for later")
+	}
+
+	// A newer session's reflection replaces the older one.
+	util.LockMud()
+	m.detachReflection(c, `Corvin`)
+	util.UnlockMud()
+	if m.deferredReflect[1] == nil || m.deferredReflect[1] == first {
+		t.Fatal("the newer reflection replaces the older")
+	}
+
+	if d := m.dueReflection(1, true); d != nil {
+		t.Fatal("not while the relay is down")
+	}
+	m.relays.ready(1, `player-model`)
+	if d := m.dueReflection(1, false); d != nil {
+		t.Fatal("not while the owner is logged out, even with a relay up")
+	}
+	d := m.dueReflection(1, true)
+	if d == nil {
+		t.Fatal("online with the relay up, it is due")
+	}
+	if again := m.dueReflection(1, true); again != nil {
+		t.Fatal("exactly once")
+	}
+	util.LockMud()
+	m.launchReflection(d)
+	util.UnlockMud()
+	r := f.next(t)
+	if !strings.Contains(string(r.Body), `player-model`) {
+		t.Fatalf("it runs on the owner's model through the relay: %s", r.Body)
+	}
+}
+
+// The round tick is what starts a waiting reflection, for an owner who is
+// online and whose relay is live, and it still passes the consent door.
+func TestTheRoundStartsAWaitingReflection(t *testing.T) {
+	m, c, f := deferredModule(t)
+	m.relays.ready(1, `player-model`)
+	c.relaySeen = true
+	util.LockMud()
+	m.detachReflection(c, `Corvin`)
+	m.relays.gone(1)
+	// Consent withdrawn while they were away: nothing is sent.
+	m.bonds.Users[1].Consented, m.bonds.Users[1].Refused = false, true
+	m.saveBonds()
+	m.relays.ready(1, `player-model`)
+	m.startDueReflection(1)
+	util.UnlockMud()
+	select {
+	case r := <-f.sent:
+		t.Fatalf("a reflection was sent for an owner who withdrew consent: %+v", r)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	m, c, f = deferredModule(t)
+	m.relays.ready(1, `player-model`)
+	c.relaySeen = true
+	util.LockMud()
+	m.detachReflection(c, `Corvin`)
+	m.relays.gone(1)
+	m.relays.ready(1, `player-model`)
+	m.startDueReflection(1)
+	util.UnlockMud()
+	f.next(t)
+}
+
+// An owner who never had a relay this session reflects at logout, as
+// before, on the server's key.
+func TestReflectionWithoutARelayRunsAtOnce(t *testing.T) {
+	srv, hits := countingServer(t)
+	m, c, f := deferredModule(t)
+	m.cfg.BaseURL = srv.URL
+	util.LockMud()
+	m.detachReflection(c, `Corvin`)
+	util.UnlockMud()
+	if m.deferredReflect[1] != nil {
+		t.Fatal("no relay this session: nothing waits")
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for hits.Load() == 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("the reflection ran on the server's key at logout")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	select {
+	case r := <-f.sent:
+		t.Fatalf("nothing goes to a relay: %+v", r)
+	default:
+	}
+}
+
+// With strangers off, a passer-by prompts no call on anyone's key: the
+// predicate, and the conversation summary a talk with passers-by alone
+// would start.
+func TestStrangersOffStopsStrangerPrompts(t *testing.T) {
+	srv, hits := countingServer(t)
+	m, c := senderModule(srv.URL, true)
+	if !m.strangerMayPrompt(1, 2) || !m.strangerMayPrompt(1, 0) {
+		t.Fatal("strangers on by default")
+	}
+	m.bonds.Users[1].StrangersOff = true
+	if m.strangerMayPrompt(1, 2) {
+		t.Fatal("strangers off: a passer-by prompts no call")
+	}
+	if !m.strangerMayPrompt(1, 0) {
+		t.Fatal("the owner's own prompts are untouched")
+	}
+
+	now := time.Now().Unix()
+	convo := &conversation{RoomId: 7, Partner: `Bram`, StartUnix: now, LastUnix: now, Exchanges: 5,
+		Lines: []Line{{Speaker: `Bram`, Kind: `said`, Text: `a`}}}
+	util.LockMud()
+	started := m.summariseConversation(c, convo, 2)
+	util.UnlockMud()
+	if started || hits.Load() != 0 {
+		t.Fatalf("a passers-by talk is not summed up on the owner's key: started=%v hits=%d", started, hits.Load())
+	}
+	m.bonds.Users[1].StrangersOff = false
+	util.LockMud()
+	started = m.summariseConversation(c, convo, 2)
+	util.UnlockMud()
+	if !started {
+		t.Fatal("control: strangers on, the summary starts")
+	}
+}
+
+// Old bond records have no strangers field and load as strangers on; the
+// field survives a save and a load, through the same YAML the plugin
+// store writes.
+func TestStrangersOffPersistsOnTheBond(t *testing.T) {
+	var old bondState
+	if err := yaml.Unmarshal([]byte("users:\n  1:\n    profile: mara\n    met: true\n    consented: true\n"), &old); err != nil {
+		t.Fatal(err)
+	}
+	if old.Users[1] == nil || old.Users[1].StrangersOff {
+		t.Fatalf("an old record loads as strangers on: %+v", old.Users[1])
+	}
+	old.Users[1].StrangersOff = true
+	b, err := yaml.Marshal(&old)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var back bondState
+	if err := yaml.Unmarshal(b, &back); err != nil {
+		t.Fatal(err)
+	}
+	if !back.Users[1].StrangersOff {
+		t.Fatalf("strangers off survives a save: %s", b)
+	}
+}
+
+// The owner hears once per relay session that her words fell back, in
+// plain words and never the error; a second failure says nothing, and a
+// relay that comes back may say it again.
+func TestRelayFallbackNoticeOncePerSession(t *testing.T) {
+	m := relayModule(t)
+	var told []string
+	m.tell = func(userId int, text string) {
+		if userId == 5 {
+			told = append(told, text)
+		}
+	}
+	now := time.Now()
+	m.routeResult(route{kind: routeRelay}, 5, errors.New(`model API status 500: boom`), now)
+	m.routeResult(route{kind: routeRelay}, 5, errors.New(`model API status 500: boom`), now)
+	if len(told) != 1 {
+		t.Fatalf("told once, got %d: %q", len(told), told)
+	}
+	if plain := strings.Join(strings.Fields(told[0]), ` `); strings.Contains(plain, `500`) || strings.Contains(plain, `boom`) || !strings.Contains(plain, `your key's provider did not answer`) {
+		t.Fatalf("plain words, never the error: %q", told[0])
+	}
+	for _, line := range strings.Split(told[0], "\n") {
+		if len([]rune(line)) > 80 {
+			t.Fatalf("the notice wraps at 80 columns: %q", told[0])
+		}
+	}
+	m.relays.ready(5, `player-model`)
+	m.routeResult(route{kind: routeServer}, 5, errors.New(`x`), now)
+	m.routeResult(route{kind: routeRelay}, 5, errRelayGone, now)
+	m.routeResult(route{kind: routeRelay}, 5, context.Canceled, now)
+	if len(told) != 1 {
+		t.Fatalf("only a relay call the provider failed is worth telling: %q", told)
+	}
+	m.routeResult(route{kind: routeRelay}, 5, errRelayTimeout, now)
+	if len(told) != 2 {
+		t.Fatalf("a relay that came back may be told again: %q", told)
+	}
+}
+
+// A browser that never answers is not asked twice: the timeout is final.
+func TestRelayTimeoutIsNotRetried(t *testing.T) {
+	m, f := relayCallModule(t, true)
+	m.cfg.RelayTimeoutSeconds = 1
+	c := relayCall(m)
+	if !c.Retry {
+		t.Fatal("fixture: the call allows a retry")
+	}
+	res := m.callModel(c)
+	if !errors.Is(res.Err, errRelayTimeout) || transient(res) {
+		t.Fatalf("a relay timeout is final: %v", res.Err)
+	}
+	f.next(t)
+	select {
+	case r := <-f.sent:
+		t.Fatalf("a silent browser was asked again: %+v", r)
+	default:
+	}
+}
+
+// dispatch answers a passer-by with set lines, and starts no call, while
+// her owner has strangers off; the owner's own words still start one.
+func TestStrangersOffDispatchesSetLines(t *testing.T) {
+	_, _, _, her := harmWorld(t, `off`)
+	srv, _ := countingServer(t)
+	m, c := senderModule(srv.URL, true)
+	c.instanceId = her.InstanceId
+	m.ctrls = map[int]*controller{1: c}
+	m.minds = map[string]*Mind{mindIdentifier(c.mind.OwnerUserId, c.mind.MobId): c.mind}
+	m.bonds.Users[1].StrangersOff = true
+
+	util.LockMud()
+	c.push(stimulus{Kind: `heard`, Speaker: `Bram`, Text: `Mara, hello`, AskerUserId: 2})
+	m.dispatch(c)
+	inFlight, said := c.inFlight, len(c.mind.RecentLines)
+	util.UnlockMud()
+	if inFlight || said == 0 {
+		t.Fatalf("a passer-by gets set lines and no call: inFlight=%v lines=%d", inFlight, said)
+	}
+
+	util.LockMud()
+	c.push(stimulus{Kind: `heard`, Speaker: `Corvin`, Text: `Mara, hello`, FromOwner: true, AskerUserId: 1})
+	m.dispatch(c)
+	inFlight = c.inFlight
+	c.cancelInFlight()
+	util.UnlockMud()
+	if !inFlight {
+		t.Fatal("control: the owner's own words start a call")
+	}
+}
+
+// companion-ai strangers off and on set the bond record, and every line
+// the command sends fits 80 columns.
+func TestCompanionAIStrangersCommand(t *testing.T) {
+	owner, _, _, _ := harmWorld(t, `off`)
+	m, _ := senderModule(`https://api.example.invalid`, true)
+	m.cfg.Enabled = true
+	withWebDomain(t, `example.org`)
+	m.cfg.PlayerKeys, m.cfg.RelayOrigin = true, `https://keys.example.org`
+	m.relays = newRelayTable()
+	m.relays.ready(1, `player-model`)
+	events.DrainQueuedMessagesForTest(1)
+	for _, arg := range []string{`strangers off`, `strangers`, ``, `strangers  on`, `nonsense`, `on`, `off`, ``} {
+		if _, err := m.cmdAI(arg, owner, nil, 0); err != nil {
+			t.Fatal(err)
+		}
+		sent := events.DrainQueuedMessagesForTest(1)
+		if len(sent) != 1 {
+			t.Fatalf("%q: one reply, got %q", arg, sent)
+		}
+		for _, line := range strings.Split(strings.TrimRight(sent[0], "\n"), "\n") {
+			if n := len([]rune(ansiTag.ReplaceAllString(line, ``))); n > 80 {
+				t.Fatalf("%q: a line of %d columns: %q", arg, n, line)
+			}
+		}
+		if arg == `` && m.bonds.Users[1].Consented && !strings.Contains(strings.Join(strings.Fields(sent[0]), ` `), `your own key`) {
+			t.Fatalf("the status says which tier answers: %q", sent[0])
+		}
+		if arg == `strangers off` && !m.bonds.Users[1].StrangersOff {
+			t.Fatal("strangers off is set on the bond")
+		}
+		if arg == `strangers  on` && m.bonds.Users[1].StrangersOff {
+			t.Fatal("strangers on clears it")
+		}
+	}
+}
+
+// ansiTag matches the markup a rendered line carries, which takes no column.
+var ansiTag = regexp.MustCompile(`<[^>]*>`)
+
+// The round tick itself starts a waiting reflection once its owner is
+// online with the relay up, and marks the session as one on their own key.
+func TestSyncStartsTheWaitingReflection(t *testing.T) {
+	owner, _, _, _ := harmWorld(t, `off`)
+	m, c, f := deferredModule(t)
+	m.cfg.AutoBond = false
+	m.byMob = map[int]*Profile{c.profile.MobId: c.profile}
+	owner.Character.Companions = []characters.CompanionInfo{{MobId: c.profile.MobId, SourceType: characters.CompanionBonded}}
+	m.relays.ready(1, `player-model`)
+	c.relaySeen = true
+	util.LockMud()
+	m.detachReflection(c, `Corvin`)
+	m.relays.gone(1)
+	fresh := &controller{ownerUserId: 1, profile: c.profile, mind: c.mind, lastAttackBy: map[int]int64{}}
+	m.ctrls = map[int]*controller{1: fresh}
+	m.sync(1)
+	util.UnlockMud()
+	if m.deferredReflect[1] == nil || fresh.relaySeen {
+		t.Fatal("with the relay down the round starts nothing")
+	}
+	m.relays.ready(1, `player-model`)
+	util.LockMud()
+	m.sync(2)
+	util.UnlockMud()
+	if m.deferredReflect[1] != nil || !fresh.relaySeen {
+		t.Fatal("online with the relay up, the round takes the waiting reflection")
+	}
+	f.next(t)
+}
+
+// Her words to one person are spoken aloud too, and a muted owner
+// silences them as well.
+func TestMutedOwnerSilencesSayto(t *testing.T) {
+	owner, _, _, her := harmWorld(t, `off`)
+	m, c, _ := strangerModule()
+	stims := []stimulus{{Kind: `heard`, FromOwner: true}}
+	owner.Muted = true
+	out := m.performAction(c, her, owner, harmScene(0, 2), ActionProposal{Verb: `sayto`, Ref: `t2`, Query: `hello`}, stims, 0, 0)
+	if out.Issued || out.Refused == `` {
+		t.Fatalf("a muted owner's companion speaks to nobody: %+v", out)
+	}
+	owner.Muted = false
+	out = m.performAction(c, her, owner, harmScene(0, 2), ActionProposal{Verb: `sayto`, Ref: `t2`, Query: `hello`}, stims, 0, 0)
+	if !out.Issued {
+		t.Fatalf("control: not muted, she speaks: %+v", out)
 	}
 }

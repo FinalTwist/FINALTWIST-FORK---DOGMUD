@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"sync"
@@ -68,13 +69,18 @@ var (
 	errRelayGone      = errors.New(`the owner's relay went away before it answered`)
 	errRelayKeyShaped = errors.New(`a relay reply looked like it carried a key; dropped`)
 	errRelayTooLarge  = errors.New(`a relay reply was too large; dropped`)
+	errRelayTimeout   = errors.New(`the owner's browser did not answer in time`)
 )
 
 // relayFinal reports relay failures a second try cannot mend: nobody to
-// send to, the relay gone, or a reply refused for what it was.
+// send to, the relay gone, a browser that stayed silent for the whole
+// wait, or a reply refused for what it was. A silent browser is not asked
+// again: the retry would hold the owner's companion for another full wait
+// on a page that is most likely closed or asleep.
 func relayFinal(err error) bool {
 	return errors.Is(err, errRelayUnsent) || errors.Is(err, errRelayGone) ||
-		errors.Is(err, errRelayKeyShaped) || errors.Is(err, errRelayTooLarge)
+		errors.Is(err, errRelayKeyShaped) || errors.Is(err, errRelayTooLarge) ||
+		errors.Is(err, errRelayTimeout)
 }
 
 func newRelayId() string {
@@ -123,6 +129,9 @@ func (p *pendingRelays) do(ctx context.Context, owner int, body []byte, send rel
 	case <-w.gone:
 		return 0, nil, errRelayGone
 	case <-ctx.Done():
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return 0, nil, fmt.Errorf(`%w: %w`, errRelayTimeout, ctx.Err())
+		}
 		return 0, nil, ctx.Err()
 	}
 }
