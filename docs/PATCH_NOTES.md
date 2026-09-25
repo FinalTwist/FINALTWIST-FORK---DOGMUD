@@ -1,5 +1,19 @@
 # DOGMud Patch Notes
 
+## 2026-09-25: Weather dims the sky
+
+The weather now changes how much of the sky's light reaches you. Fog,
+cloud, rain and snow dim it a little. Storms, dust storms and blizzards
+dim it a lot.
+
+By day you will barely notice: even under a storm, there is light enough
+to read faces. At night it matters. Light cloud still leaves a moonlit
+night bright enough to make out shapes, but under a storm or a blizzard
+most nights go fully dark, and you will want a light.
+
+Weather never dims a lamp, a torch or your own glow, and it never reaches
+inside a building.
+
 ## 2026-09-25: You notice when the light changes
 
 The game now tells you when the light around you changes enough to change
