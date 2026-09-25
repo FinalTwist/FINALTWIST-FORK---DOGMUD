@@ -52,20 +52,21 @@ The `internal/rooms` package is the core world management system for GoMud, hand
 - **Item requirements**: Biomes that require specific items to navigate safely
 - **Dynamic loading**: File-based biome definitions with validation
 
-### Room Lighting (`lighting.go`, graded scale, plans 1 through 3a of the lighting arc)
+### Room Lighting (`lighting.go`, graded scale, plans 1 through 4 of the lighting arc)
 
 `Room.LightLevel() int` is the light accessor every consumer reads. It
-reports light on a continuous -100 to 100 scale, composed from up to four
+reports light on a continuous -100 to 100 scale, composed from up to three
 terms on one logarithmic operator (`internal/lightscale.Combine`):
 
 1. **The sky**: `internal/gametime.CelestialLight()` (sun plus moons, one
    value for the whole world per round), attenuated by this room's sky
-   fraction and by any active weather/mutator occlusion.
+   fraction and then by `mutatorSkyFilter()`, the product of every active
+   mutator's `SkyLight` fraction (1 when clear; weather multiplies it down).
 2. **The room's own lamp**, if it has one.
-3. **The positive `LightMod` bridge** from the pre-graded mutator
-   vocabulary (plan 4 replaces this with an authored lamp value; do not
-   extend it).
-4. **Anyone present carrying a light.**
+3. **Anyone present carrying a light.**
+
+Plan 4 deleted the old `-2..2` `LightMod` bridge entirely; a mutator now
+only ever dims the sky, never adds a light of its own.
 
 `Room.IsLit() bool` reports whether a normal observer can see anything at
 all here (`LightLevel() >= cfg.BlindBelow`). It reads `configs.Lighting`
@@ -78,13 +79,13 @@ onto itself.
 same light broken into the terms `LightLevel` combines, for a caller that
 needs to know WHY the light is what it is: `Level` (identical to
 `LightLevel()`, both come from the shared `composeLight`), `Sky` (the sky
-term after fraction and weather occlusion, `lightscale.Absent()` when the
-room has no sky), `OcclusionSteps`, `Lamp`/`HasLamp`, `LightMod` (the
-positive bridge total) and `Carried`. `internal/lightnotice` is the one
-consumer: it compares two `LightTerms` snapshots to name which term moved
-and so which cause to report for a band change. `LightTerms` and
-`LightLevel` share one computation (`composeLight`), so a caller reading
-both never risks the two disagreeing.
+term after fraction and the weather filter, `lightscale.Absent()` when the
+room has no sky), `SkyFilter` (the product of the active mutators'
+`SkyLight` fractions, 1 when clear), `Lamp`/`HasLamp` and `Carried`.
+`internal/lightnotice` is the one consumer: it compares two `LightTerms`
+snapshots to name which term moved and so which cause to report for a band
+change. `LightTerms` and `LightLevel` share one computation
+(`composeLight`), so a caller reading both never risks the two disagreeing.
 
 **Sky fraction and lamp are both `*float64`/`*int` POINTERS, on both
 `Room` and `BiomeInfo`, because zero is meaningful for both.** A cave's sky

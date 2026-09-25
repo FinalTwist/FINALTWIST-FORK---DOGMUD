@@ -154,9 +154,9 @@ func attribute(prev record, now observation) Cause {
 	switch {
 	case a.Carried != b.Carried:
 		return CauseCarried
-	case a.HasLamp != b.HasLamp || a.Lamp != b.Lamp || a.LightMod != b.LightMod:
+	case a.HasLamp != b.HasLamp || a.Lamp != b.Lamp:
 		return CauseLamp
-	case a.OcclusionSteps != b.OcclusionSteps:
+	case a.SkyFilter != b.SkyFilter:
 		return CauseWeather
 	case skyMoved(a.Sky, b.Sky):
 		return CauseSky

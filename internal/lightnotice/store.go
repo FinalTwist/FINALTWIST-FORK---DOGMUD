@@ -23,8 +23,8 @@ type Cause string
 const (
 	CauseMovement Cause = "movement" // the player is in a different room
 	CauseCarried  Cause = "carried"  // a carried light arrived or left
-	CauseLamp     Cause = "lamp"     // the room's own light (lamp or LightMod bridge)
-	CauseWeather  Cause = "weather"  // weather occlusion of the sky
+	CauseLamp     Cause = "lamp"     // the room's own lamp
+	CauseWeather  Cause = "weather"  // weather filtering the sky
 	CauseSky      Cause = "sky"      // the sky itself: dusk, dawn, moons
 	CauseEyes     Cause = "eyes"     // no light term explains it; the observer's sight changed
 )

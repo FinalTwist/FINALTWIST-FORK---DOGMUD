@@ -116,6 +116,32 @@ func TestAdminMutatorTemplateExecutesWithConditionIds(t *testing.T) {
 	require.Contains(t, out.String(), `Probe Aura`, `the player/mob/native condition checkbox lists must render the seeded condition's name`)
 }
 
+// TestAdminMutatorTemplateShowsSkyLight pins the sky-light display that
+// replaced the -2..2 LightMod select: the template reaches the field by
+// reflection, which the compiler cannot check.
+func TestAdminMutatorTemplateShowsSkyLight(t *testing.T) {
+	tmpl, err := template.New(`mutator.data.html`).Funcs(funcMap).ParseFiles(filepath.Join(adminHtmlDir(t), `mutators`, `mutator.data.html`))
+	require.NoError(t, err)
+
+	half := 0.5
+	for _, c := range []struct {
+		spec mutators.MutatorSpec
+		want string
+	}{
+		{mutators.MutatorSpec{MutatorId: `probe-storm`, SkyLight: &half}, `value="0.5"`},
+		{mutators.MutatorSpec{MutatorId: `probe-clear`}, `value="unchanged"`},
+	} {
+		tplData := map[string]any{
+			`mutatorSpec`:    c.spec,
+			`conditionSpecs`: []conditions.ConditionSpec{},
+			`colorPatterns`:  colorpatterns.GetColorPatternNames(),
+		}
+		var out bytes.Buffer
+		require.NoError(t, tmpl.Execute(&out, tplData))
+		require.Contains(t, out.String(), c.want)
+	}
+}
+
 // buildConditionSpecsForTest mirrors the conditionSpecs slice every admin data
 // handler (mobData, roomData, speciesData, itemData, mutatorData) builds from
 // the live condition registry, so a test can hand a template the exact shape

@@ -56,8 +56,8 @@ either state; see "The seams" below.
    reports that band for `prev.terms.Level`, the light never had to move;
    the observer's own sight did (a draught wearing off, or taking hold).
 3. Otherwise, the first light term that moved: **carried**, then the
-   **room's own light** (lamp value or the positive `LightMod` bridge),
-   then **weather** occlusion, then the **sky**.
+   **room's own lamp**, then **weather** filtering the sky, then the
+   **sky** itself.
 4. **Eyes**, as a fallback, if nothing above explains it.
 
 Step 2 runs BEFORE step 3 on purpose. A plain direction test (did the light

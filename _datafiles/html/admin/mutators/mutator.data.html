@@ -197,15 +197,9 @@
         </div>
 
         <div class="form-group col-sm">
-            <label for="lightmod">Adjust Light</label>
-            <select class="form-control form-control-sm" name="type" id="lightmod" aria-describedby="lightmod-help"  rows="10">
-                <option value="-2" {{ if eq $mutator.LightMod -2 }}SELECTED{{end}}>-2</option>
-                <option value="-1" {{ if eq $mutator.LightMod -1 }}SELECTED{{end}}>-1</option>
-                <option value="0" {{ if eq $mutator.LightMod 0 }}SELECTED{{end}}>0</option>
-                <option value="1" {{ if eq $mutator.LightMod 1 }}SELECTED{{end}}>+1</option>
-                <option value="2" {{ if eq $mutator.LightMod 2 }}SELECTED{{end}}>+2</option>
-            </select>
-            <small id="lightmod-help" class="form-text text-muted">Adjust lighting?</small>
+            <label for="skylight">Sky Light</label>
+            <input class="form-control form-control-sm" type="text" id="skylight" readonly value="{{ if $mutator.SkyLight }}{{ $mutator.SkyLight }}{{ else }}unchanged{{ end }}" aria-describedby="skylight-help">
+            <small id="skylight-help" class="form-text text-muted">Fraction of the sky's light this mutator lets through (1 changes nothing, 0.5 is one step darker).</small>
         </div>
         
     </div>
