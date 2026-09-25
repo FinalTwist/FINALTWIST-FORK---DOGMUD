@@ -62,6 +62,11 @@ func TestRelayOriginMustBeHTTPSAndForeign(t *testing.T) {
 		{`https://user@keys.example.org`, `example.org`, false},
 		{`keys.example.org`, `example.org`, false},
 		{``, `example.org`, false},
+		// WebDomain as an operator may paste it, normalised as gameOrigin does.
+		{`https://example.org`, `https://example.org`, false},
+		{`https://example.org`, `example.org/`, false},
+		{`https://example.org`, ` HTTPS://Example.ORG:8443/play `, false},
+		{`https://keys.example.org`, `https://example.org/`, true},
 	} {
 		if got := validRelayOrigin(tc.origin, tc.web); got != tc.ok {
 			t.Errorf("validRelayOrigin(%q, %q) = %v, want %v", tc.origin, tc.web, got, tc.ok)

@@ -34,7 +34,7 @@ func (l *logTee) contains(s string) bool {
 	return false
 }
 
-// The engine raises Emote and Healed for this module alone. Switched off,
+// The engine raises Emote, Healed and GoldGiven for this module alone. Switched off,
 // it used to register nothing, so every emote and every heal cast at a
 // creature was logged as an event nobody handled.
 func TestSwitchedOffStillHearsItsOwnEvents(t *testing.T) {
@@ -56,9 +56,10 @@ func TestSwitchedOffStillHearsItsOwnEvents(t *testing.T) {
 	for i := 0; i < events.NoListenerSampleSize; i++ {
 		events.DoListeners(events.Emote{UserId: 1, RoomId: 1, Text: `waves`})
 		events.DoListeners(events.Healed{HealerUserId: 1, MobInstanceId: 42})
+		events.DoListeners(events.GoldGiven{UserId: 1, MobInstanceId: 42, Amount: 5})
 	}
 	if tee.contains(`no listener for event`) {
-		t.Fatal("an emote or a heal with the module off must not be logged as unhandled")
+		t.Fatal("an emote, a heal or gold given with the module off must not be logged as unhandled")
 	}
 
 	// And the null probe: an event nobody listens to is still reported, so

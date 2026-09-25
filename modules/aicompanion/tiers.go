@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/url"
 	"strings"
 	"sync"
@@ -46,11 +45,24 @@ func validRelayOrigin(origin string, webDomain string) bool {
 		(u.Path != `` && u.Path != `/`) || u.RawQuery != `` || u.Fragment != `` || u.ForceQuery {
 		return false
 	}
-	game := strings.TrimSpace(webDomain)
-	if h, _, err := net.SplitHostPort(game); err == nil {
-		game = h
+	return !strings.EqualFold(u.Hostname(), gameHostname(webDomain))
+}
+
+// gameHostname is the game's own host, read from FilePaths.WebDomain
+// exactly as gameOrigin reads it (a pasted scheme, path or port is
+// dropped, case is ignored), or "" when it is not a plain host. The relay
+// page and the relay origin check share it, so what one calls the game's
+// host the other does too.
+func gameHostname(webDomain string) string {
+	origin := gameOrigin(webDomain)
+	if origin == `` {
+		return ``
 	}
-	return !strings.EqualFold(u.Hostname(), game)
+	u, err := url.Parse(origin)
+	if err != nil {
+		return ``
+	}
+	return u.Hostname()
 }
 
 // playerKeysOffered reports whether tier 2 is on offer at all.

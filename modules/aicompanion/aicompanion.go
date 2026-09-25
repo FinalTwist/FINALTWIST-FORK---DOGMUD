@@ -211,13 +211,15 @@ func init() {
 func (m *AICompanionModule) onLoad() {
 	m.cfg = loadConfig(m.plug)
 
-	// The engine raises two events for this module alone, an emote and a
-	// heal cast at a creature, and nothing else listens to either. Left
-	// unheard, every one would be counted and logged as an event nobody
-	// handled, so these two listeners are registered on or off. Both return
-	// at once while the module is off.
+	// The engine raises three events for this module alone, an emote, a
+	// heal cast at a creature and gold given to a creature (give.go), and
+	// nothing else listens to any of them. Left unheard, every one would be
+	// counted and logged as an event nobody handled, so these listeners are
+	// registered on or off. All three return at once while the module is
+	// off.
 	events.RegisterListener(events.Emote{}, m.onEmote)
 	events.RegisterListener(events.Healed{}, m.onHealed)
+	events.RegisterListener(events.GoldGiven{}, m.onGoldGiven)
 
 	// Switched off, the module stops here: nothing is loaded, no other
 	// listener is registered and no seam is installed, so the engine's nil
@@ -257,7 +259,6 @@ func (m *AICompanionModule) onLoad() {
 	events.RegisterListener(events.PlayerDespawn{}, m.onPlayerDespawn)
 	events.RegisterListener(events.Communication{}, m.onCommunication)
 	events.RegisterListener(events.GiftAccepted{}, m.onGiftAccepted)
-	events.RegisterListener(events.GoldGiven{}, m.onGoldGiven)
 	events.RegisterListener(events.PlayerAttackedMob{}, m.onPlayerAttackedMob)
 	events.RegisterListener(events.MobDeath{}, m.onMobDeath)
 	events.RegisterListener(events.PlayerDeath{}, m.onPlayerDeath)
