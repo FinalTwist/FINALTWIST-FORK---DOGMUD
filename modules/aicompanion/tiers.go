@@ -228,8 +228,10 @@ func (m *AICompanionModule) routeResult(r route, ownerId int, err error, now tim
 		m.breakerResult(err, now)
 		return
 	}
-	if m.relays == nil || errors.Is(err, errNoConsent) {
-		// The door refused a request that never left: not the provider.
+	if m.relays == nil || errors.Is(err, errNoConsent) || errors.Is(err, errRelayGone) || errors.Is(err, context.Canceled) {
+		// The door refused a request that never left, the owner's page
+		// went away, or the module gave up on the answer: none of them is
+		// the provider failing.
 		return
 	}
 	if err == nil {
@@ -237,17 +239,17 @@ func (m *AICompanionModule) routeResult(r route, ownerId int, err error, now tim
 		return
 	}
 	m.relays.failure(ownerId, now, m.cfg)
-	m.noticeFallback(ownerId, err)
+	m.noticeFallback(ownerId)
 }
 
 // noticeFallback tells the owner, once per relay session, that their
 // companion fell back on set lines because their key's provider did not
 // answer: in plain words, never the error, which may carry the provider's
-// own text. A relay that went away (the page closed, the owner logged out)
-// or a call the module gave up on is nobody's failure to report. Runs
-// under the mud lock, as every routeResult does.
-func (m *AICompanionModule) noticeFallback(ownerId int, err error) {
-	if errors.Is(err, errRelayGone) || errors.Is(err, context.Canceled) || !m.relays.noticeDue(ownerId) {
+// own text. It is reached only for a failure routeResult counts against the
+// owner, so a relay that went away or a call the module gave up on says
+// nothing. Runs under the mud lock, as every routeResult does.
+func (m *AICompanionModule) noticeFallback(ownerId int) {
+	if !m.relays.noticeDue(ownerId) {
 		return
 	}
 	name := `Your companion`

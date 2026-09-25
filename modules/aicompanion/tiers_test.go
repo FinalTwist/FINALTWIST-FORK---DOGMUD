@@ -3,6 +3,7 @@ package aicompanion
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"testing"
@@ -821,5 +822,23 @@ func TestMutedOwnerSilencesSayto(t *testing.T) {
 	out = m.performAction(c, her, owner, harmScene(0, 2), ActionProposal{Verb: `sayto`, Ref: `t2`, Query: `hello`}, stims, 0, 0)
 	if !out.Issued {
 		t.Fatalf("control: not muted, she speaks: %+v", out)
+	}
+}
+
+// A relay that went away (the page closed, the owner logged out) and a
+// call the module gave up on are not the provider failing, and do not
+// count toward the owner's breaker; a provider error does.
+func TestRelayGoneAndCancelledSpareTheBreaker(t *testing.T) {
+	m := relayModule(t)
+	m.tell = func(int, string) {}
+	now := time.Now()
+	m.routeResult(route{kind: routeRelay}, 5, errRelayGone, now)
+	m.routeResult(route{kind: routeRelay}, 5, fmt.Errorf(`wrapped: %w`, context.Canceled), now)
+	if n := m.relays.owners[5].failures; n != 0 {
+		t.Fatalf("gone and cancelled count nothing, got %d", n)
+	}
+	m.routeResult(route{kind: routeRelay}, 5, errRelayTimeout, now)
+	if n := m.relays.owners[5].failures; n != 1 {
+		t.Fatalf("control: a silent provider counts, got %d", n)
 	}
 }

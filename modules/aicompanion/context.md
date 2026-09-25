@@ -144,9 +144,11 @@ Roadmap and phase plan: `docs/aicompanion/`.
   on `PlayerDespawn`) takes the relay down and fails pending calls at once
   (`errRelayGone`). Unsent, gone, timed-out (`errRelayTimeout`),
   key-shaped and oversized failures are never retried (`relayFinal`).
-  The first failure the provider causes in a relay session (not a relay
-  that went away, not a cancelled call) tells the owner once, in plain
-  words (`noticeFallback`, `relayOwner.noticeSent`, reset by `ready`).
+  A relay that went away and a cancelled call are not the provider
+  failing: `routeResult` counts neither against the owner's breaker. The
+  first failure it does count in a relay session tells the owner once, in
+  plain words (`noticeFallback`, `relayOwner.noticeSent`, reset by
+  `ready`).
 - **decision.go**: the decision schema, `parseDecision`,
   `sanitizeDecision` and `cleanText`, which enforce everything the schema
   cannot.
