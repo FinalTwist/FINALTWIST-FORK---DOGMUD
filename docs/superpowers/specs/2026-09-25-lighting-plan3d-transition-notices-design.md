@@ -212,3 +212,22 @@ Each test is shown able to fail before it is trusted.
   drifts almost every round, and when it drifts the same direction as an
   eyes-caused change, a direction test blames the sky for a change the
   observer's own sight already explains (fixed in `9e03c4e20`).
+- **The store shipped as six transitions per cause, with `any` or an
+  outdoor/indoor split, not the setting split the design assumed.** Every
+  `CauseGroup` authors all six `Transition`s (`DarkerFaces`, `DarkerShapes`,
+  `DarkerDark`, `LighterShapes`, `LighterFaces`, `IntoDazzle`) as either one
+  `Any` pool or a matched `Outdoor` + `Indoor` split; only `sky.yaml` splits
+  by setting, the other five (`movement`, `carried`, `lamp`, `weather`,
+  `eyes`) author `Any` only.
+- **Two review findings from the final pass, both about a stale record
+  surviving something other than a real move.** First, `SwapToAlt` replaces
+  `user.Character` in place with no `MoveToRoom`, `RoomChange` or
+  `PlayerSpawn`, so `cmdCharacterChange` now calls
+  `lightnotice.Check(user, lightnotice.TriggerQuiet)` right after a
+  successful swap to resync the record silently rather than let the next
+  command read the swap as an unannounced move. Second, `decide` applied the
+  move rule (no notice for a lighter band) only under `TriggerMove`; any
+  trigger that happens to run after the room already changed but before the
+  queued `RoomChange` listener fires now applies the same rule, keyed off
+  `now.roomId` differing from the stored record's room rather than off the
+  trigger.

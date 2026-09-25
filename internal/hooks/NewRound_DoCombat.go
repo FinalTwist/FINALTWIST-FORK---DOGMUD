@@ -159,7 +159,8 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 		}
 
 		// A fighting player hears about a light crossing each round, in both
-		// directions, before this round's combat text.
+		// directions, after aggro validation and retarget, before the round's
+		// attacks.
 		lightnotice.Check(user, lightnotice.TriggerCombatRound)
 
 		user.Character.CancelCombatConditions()

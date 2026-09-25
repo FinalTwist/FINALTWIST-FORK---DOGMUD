@@ -50,7 +50,7 @@ full per-recipient pipeline.
 
 Types and constants:
 
-- `Category` — enum of 62 text classes (combat hits, defense, grapple,
+- `Category`: enum of 62 text classes (combat hits, defense, grapple,
   submissions, specials, spells by school, social, system, environment,
   loot/equipment/condition/mutation/toxin; plus `CategoryCombatSummary` for
   the per-round compact tally emitted by the light-verbosity path, and
@@ -67,7 +67,7 @@ Types and constants:
   same one-declaration constants messaging M4b-2 gave `internal/combat`,
   `internal/characters` and `internal/items` (see
   `internal/combatvocab/context.md`).
-- `CategoryLight` — lighting plan 3d's transition notices (when a room's
+- `CategoryLight`: lighting plan 3d's transition notices (when a room's
   light crosses a band for a given observer), sent by
   `internal/lightnotice`. Appended AFTER `CategoryToxin` rather than grouped
   beside `CategoryTimeOfDay`, so no existing `Category` value shifts, but
