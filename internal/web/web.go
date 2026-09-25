@@ -16,6 +16,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -62,6 +63,12 @@ func SetWebPlugin(wp WebPlugin) {
 // serveTemplate searches for the requested file in the HTTP_ROOT,
 // parses it as a template, and serves it.
 func serveTemplate(w http.ResponseWriter, r *http.Request) {
+
+	// The companion key relay lives on its own origin. The module claims
+	// requests for that host; nothing else is served there.
+	if companionai.ServeRelayPage(w, r) {
+		return
+	}
 
 	if httpRoot == "" {
 		httpRoot = filepath.Clean(configs.GetFilePathsConfig().PublicHtml.String())
@@ -128,6 +135,18 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 		fSize = fInfo.Size()
 
 		w.WriteHeader(http.StatusNotFound)
+	}
+
+	// The game page frames the companion key relay, which lives on its own
+	// origin. Only the game page gets this policy: /webclient is an outer page
+	// that frames webclient-pure.html from our own origin, and a frame-src
+	// naming only the relay would block that frame. No script-src: the game
+	// page runs inline and CDN scripts.
+	if pageFound && fileBase == `webclient-pure.html` {
+		if relay := companionai.RelayOrigin(); relay != `` {
+			w.Header().Set(`Content-Security-Policy`,
+				`frame-src `+relay+`; object-src 'none'; base-uri 'self'`)
+		}
 	}
 
 	// Log the request

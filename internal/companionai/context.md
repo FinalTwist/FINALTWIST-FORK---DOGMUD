@@ -43,6 +43,21 @@ func DrivesBonded() bool
 
 func SetHolder(f HoldFunc)
 func HoldPosition(userId int, mobInstanceId int) bool
+
+// relay.go: the player's own-key relay (player keys, tier 2)
+type RelaySendFunc func(userId int, module string, payload []byte) bool
+type RelayInboundFunc func(userId int, command string, payload []byte)
+type RelayPageFunc func(w http.ResponseWriter, r *http.Request) bool
+
+func SetRelaySender(f RelaySendFunc)
+func SendRelay(userId int, module string, payload []byte) bool
+
+func SetRelayInbound(f RelayInboundFunc)
+func RelayInbound(userId int, command string, payload []byte)
+
+func SetRelayPage(f RelayPageFunc, origin ...func() string)
+func ServeRelayPage(w http.ResponseWriter, r *http.Request) bool
+func RelayOrigin() string
 ```
 
 - `RouteAsk` is called by `internal/usercommands/ask.go` before the normal
@@ -75,17 +90,40 @@ func HoldPosition(userId int, mobInstanceId int) bool
   only when switched on; `dismiss` refuses a bonded companion while it is,
   and lets the owner part with one peacefully while it is not.
 
+- **The relay seams** carry a companion's model request to the owner's own
+  browser and the provider's reply back, for a player running their
+  companion on their own key (spec
+  `docs/superpowers/specs/2026-09-25-aicompanion-player-keys-design.md`).
+  `modules/gmcp` installs the sender (`gmcp.Relay.go`), which returns false
+  when the player has no GMCP-negotiated connection; it forwards inbound
+  `Companion.Relay.Response`, `.Ready` and `.Gone` to `RelayInbound`. The
+  aicompanion module installs the inbound handler and the page (player-keys
+  plan Tasks 9 and 11; until then nothing installs them and both are inert).
+  `internal/web` `serveTemplate` asks `ServeRelayPage` before anything else,
+  so the module alone answers its relay host, and sets a
+  `Content-Security-Policy` with `frame-src` = `RelayOrigin()` on the game
+  page (`webclient-pure.html`) only. `SetRelayPage(nil)` removes the page
+  and its origin together.
+
 ## Gotchas
 
 - **Every entry point is nil-safe.** With nothing installed each returns
   "not handled", so the engine behaves as before when the module is absent.
-- **Callers hold the mud lock.** Both paths run on the game loop; the
-  installed functions must never take `util.LockMud()` themselves.
-- **No imports.** This package must stay dependency-free so anything can call
-  it without creating an import cycle.
+- **Callers hold the mud lock, except for the relay seams.** The seams in
+  `companionai.go` run on the game loop; the installed functions must never
+  take `util.LockMud()` themselves. The relay seams do NOT: `RelayInbound`
+  runs on the player's connection goroutine, `ServeRelayPage` and
+  `RelayOrigin` on web request goroutines, and `SendRelay` wherever the
+  module makes its model call. So they are stored atomically, and an
+  installed inbound handler must touch no game state.
+- **No engine imports.** This package imports only the standard library
+  (`net/http`, `sync/atomic`) so anything can call it without creating an
+  import cycle.
 
 ## Consumers
 
+`internal/web` (the relay page and the game page CSP), `modules/gmcp`
+(installs the relay sender, forwards relay messages),
 `internal/usercommands` (ask, dismiss), `internal/hooks` (installs the
 respawner, asks the follow hold), `internal/actions` and `internal/seeders`
 (the bonded check), `modules/aicompanion` (installs the ask handler, the
