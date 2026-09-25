@@ -71,7 +71,10 @@ Roadmap and phase plan: `docs/aicompanion/`.
 - **harm.go**: `harmAllowed` and `areaHarmAllowed`, the one gate on
   everything she starts: the engine's own player harm rules
   (`mobs.CheckPlayerHarm` for a creature; `(*Room).CanPvp` plus the party
-  check for a person) asked with her OWNER as the one acting.
+  check for a person) asked with her OWNER as the one acting. The party
+  check is the module's own, from `attack`, `shoot` and the special moves:
+  `actions/cast.go` makes none for a player target, so she is stricter
+  with spells than a player is.
 - **goals.go**: goals, checks against live state, restock goals, the
   session agenda, and the model's goal proposals.
 - **combat.go**: the fight from the companion's side: tracking, the
@@ -381,10 +384,18 @@ skills, health) is never in the mind file; it lives on the owner's
 
 ## Dependencies
 
-`actions`, `characters`, `companionai`, `events`, `items`, `messaging`,
-`mobs`, `mudlog`, `parties`, `plugins`, `rooms`, `spells`, `targeting`,
-`users`, `util`;
-`net/http` and `gopkg.in/yaml.v3`.
+From `internal/` (read from `go list -f '{{.Imports}}'`, 2026-09-25):
+`actions`, `characters`, `combatvocab`, `companionai`, `conditions`,
+`configs`, `crafting`, `events`, `factions`, `gametime`, `items`,
+`justice`, `messaging`, `mobcommands`, `mobs`, `mudlog`, `parties`,
+`plugins`, `quests`, `rooms`, `shops`, `skills`, `species`, `spells`,
+`targeting`, `usercommands`, `users`, `util`, `worldevents`. No other
+module is imported: the relay reaches `modules/gmcp` and `internal/web`
+only through the `companionai` seams.
+
+Outside the repo: `gopkg.in/yaml.v3`. Standard library of note:
+`net/http`, `net/url`, `crypto/rand` (relay ids), `embed` (the relay
+page), `html`.
 
 ## Opinion
 

@@ -2,11 +2,13 @@
 
 ## Getting started
 
-Nothing needs configuring. Set the `OPENAI_API_KEY` environment variable
-(the one OpenAI's own tools use) before starting the server, or put the key
-in `Modules.aicompanion.APIKey` in `_datafiles/config.yaml` on a private
-server. The module is on by default. It asks the API which models the key
-can use and picks, per tier, the first it can:
+The module is off by default: set `Modules.aicompanion.Enabled: true` in
+`_datafiles/config.yaml`. For the server's own key (tier 3), set the
+`OPENAI_API_KEY` environment variable (the one OpenAI's own tools use)
+before starting the server, or put the key in `Modules.aicompanion.APIKey`
+on a private server. For players' own keys (tier 2) see "A player's own
+key" below. With the server's key, the module asks the API which models the
+key can use and picks, per tier, the first it can:
 
 | Tier | Preference order |
 |---|---|
@@ -528,6 +530,51 @@ opinion. She also hands things to her owner and to nobody else, and a
 stranger speaking in the same moment as her owner is answered separately,
 so they cannot borrow the owner's word for anything only the owner may
 ask of her.
+
+## A player's own key (tier 2)
+
+With `PlayerKeys` on and a valid `RelayOrigin` (see `settings.md`, "Who
+pays for a call"), a player can run their own companion on their own
+OpenAI-compatible key from the web client's Companion key button. The key
+is typed into, and kept by, a relay page on its own origin, loaded in a
+hidden frame the game page cannot read into. It is held in memory for the
+session, or, if the player ticks "remember on this device", encrypted with
+a passphrase (PBKDF2-SHA256 into AES-GCM) in that page's own storage,
+under their account name.
+
+What goes to the player's browser for each call, as GMCP
+`Companion.Relay.Request`: a random id and the chat completions body, the
+same JSON the server would post to OpenAI (the prompt above, the schema,
+the tools). What comes back, as `Companion.Relay.Response`: the id, the
+provider's status and its raw body.
+
+What never goes to the browser: the server's key, any endpoint URL, any
+header. What never comes to the server: the player's key, their endpoint,
+their passphrase. The relay page adds the key and posts only to the
+endpoint the player stored; the server never names a URL. A reply that
+looks as though it carries a key (`sk-`, `Bearer `, an `Authorization`
+header) is dropped unread and the call counts as failed.
+
+The consent question still gates every call: a player who has not said
+"i agree" sends nothing through their own key either.
+
+There is no output moderation on this tier. The player's provider may have
+none, and a reply from a browser can be forged by the player anyway, so a
+check would stop nobody who meant to get round it. Instead, what she says
+is her owner's to answer for: each line she says on the owner's key is
+logged at Info with the owner's user id, and a muted owner's companion says
+nothing at all, say or emote, on any tier. Forging her answers is possible
+and buys the forger only a somewhat faster arc with their own companion:
+opinion, romance and memory keep the same bounds as on the server's key.
+
+Passers-by who talk to a tier 2 companion spend the OWNER's key, within
+the usual passer-by pacing. `companion-ai strangers off` stops that: she
+still hears them and answers with set lines.
+
+Any failure (no relay, a closed tab, a timeout, a provider error, a reply
+refused) falls back to set lines for that turn; the owner is told once per
+session, in plain words, and repeated failures pause their own key for a
+while without touching anyone else's companion.
 
 ## Talking to NPCs
 

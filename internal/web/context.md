@@ -323,6 +323,29 @@ func RunWithMUDLocked(next http.HandlerFunc) http.HandlerFunc {
 }
 ```
 
+### The companion key relay (own origin) and the game page CSP
+
+- `serveTemplate` asks `companionai.ServeRelayPage` before anything else.
+  With `modules/aicompanion` on and player keys offered, the module claims
+  every request whose Host is the `RelayOrigin` host and serves only
+  `/companion-relay.html` and `/companion-relay.js` there (everything else
+  on that host is a 404). With the module off the seam claims nothing and
+  those paths 404 on every host.
+- `webclient-pure.html` (and only it) gets
+  `Content-Security-Policy: frame-src <RelayOrigin>; object-src 'none';
+  base-uri 'self'` while `companionai.RelayOrigin()` is non-empty. There is
+  no `script-src`: the game page runs inline and CDN scripts. `/webclient`
+  serves `webclient.html`, an outer page that frames `webclient-pure.html`
+  from our own origin, so it must NOT get a `frame-src` naming only the
+  relay.
+- The template value `COMPANION_RELAY_ORIGIN_JSON` (`relayOriginJSON`) is
+  the relay origin as a JSON string literal, used unquoted in a script.
+- The relay page's own `frame-ancestors` is `https://` plus
+  `FilePaths.WebDomain` exactly: a player on any other host name for the
+  game (www. against the bare domain) cannot load it.
+- `wsMaxMessageBytes` (64 KiB) caps one inbound websocket frame; a relay
+  reply must fit under it, which the web client glue enforces.
+
 ## Configuration and Setup
 
 ### Network Configuration
@@ -448,6 +471,7 @@ mudlog.Info("Web",
 - `internal/mudlog` - Logging and monitoring
 - `internal/util` - Game state mutex protection
 - `internal/plugins` - Plugin system integration
+- `internal/companionai` - The companion key relay seams (relay page, relay origin)
 
 ## Usage Examples
 

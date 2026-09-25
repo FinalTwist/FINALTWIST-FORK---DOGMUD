@@ -138,7 +138,8 @@ BreakerSeconds: 60
 # Tokens per UTC day for any one companion. 0 = only the server budget.
 DailyTokensPerCompanion: 300000
 # Check the companion's speech with the OpenAI moderation endpoint before it
-# is said. Adds a short delay to each reply.
+# is said. Adds a short delay to each reply. Server key only: a call on a
+# player's own key is not moderated (see the tiers below).
 ModerateOutput: true
 ModerationModel: "omni-moderation-latest"
 # Keep a rotating backup of each mind every N sessions (three are kept).
@@ -233,5 +234,72 @@ RequireConsent: true
 # companion feels about its owner.
 StrangerAskSeconds: 30
 StrangerDailyTokens: 50000
+# Player keys (tier 2): a player runs their own companion on their OWN key,
+# from the web client. The key stays in their browser, on a relay page served
+# from RelayOrigin, and never reaches this server. Off by default here; the
+# shipped _datafiles/config.yaml turns it on. Nothing is offered unless
+# RelayOrigin is also set.
+PlayerKeys: false
+# The relay page's origin: "https://" plus a host on its OWN subdomain, for
+# example "https://keys.example.org". It must be https and must not be the
+# game's own host (FilePaths.WebDomain); anything else offers nothing.
+RelayOrigin: ""
+# Seconds a call waits for the player's browser (which includes the
+# provider's own answer) before she falls back on set lines for that turn.
+# Values under 5 are raised to 5.
+RelayTimeoutSeconds: 30
 
 ```
+
+## Who pays for a call: the three tiers
+
+Each model call is paid for by the first of these that is available for the
+companion's OWNER, even when a passer-by is the one talking to her:
+
+1. **The owner's own key (tier 2).** The owner has the web client open with a
+   key set up and unlocked (`Companion.Relay.Ready` received this session).
+2. **The server's key (tier 3).** `APIKeyEnv` or `APIKey` holds a key.
+3. **Nobody (tier 1).** She follows, fights and answers with authored lines.
+
+What changes on the owner's own key:
+
+- The server's `DailyTokenBudget` and `DailyTokensPerCompanion` are not
+  charged (the player pays). `StrangerAskSeconds` and `StrangerDailyTokens`
+  still apply, as limits on what passers-by can spend of the owner's key,
+  and the owner can stop passers-by prompting calls at all with
+  `companion-ai strangers off`.
+- `ModerateOutput` does not apply: the player's provider may have no
+  moderation endpoint, and a reply from a browser could be forged anyway.
+  Each line she says that way is logged at Info against the owner instead,
+  and a muted owner's companion says nothing on any tier.
+- The model is the one the player chose, for every tier of call (fast, main,
+  deep); reasoning effort is not sent.
+- Failures count against that owner's own breaker (`BreakerErrors`,
+  `BreakerSeconds`), never the global one.
+- Her private reflection at logout cannot reach a closed browser, so it
+  runs at the owner's next login once their key is ready.
+
+`companion-ai` tells a player which tier is answering; `aicompanion status`
+shows it per companion (`tier=relay|server|none`) for an admin.
+
+### Deploying player keys
+
+1. A DNS record for the relay subdomain (for example `keys.example.org`)
+   pointing at the same server as the game.
+2. A site block in the reverse proxy (Caddy on our droplet) for that host,
+   proxying to this server's web port with the `Host` header kept as sent.
+   The Go server tells the relay apart from the game by `Host` alone.
+3. `RelayOrigin: "https://keys.example.org"` and `PlayerKeys: true` in the
+   production config.
+
+Two operator traps:
+
+- **Players must reach the game on exactly the `FilePaths.WebDomain` host.**
+  The relay page allows only `https://` plus `WebDomain` to frame it
+  (`frame-ancestors`), so a player on `www.example.org` when `WebDomain` is
+  `example.org` (or the other way round) sees no key setup at all. Redirect
+  the other name to `WebDomain`.
+- **A local model needs to allow the relay origin.** The browser posts to it
+  from the relay page, so Ollama must be started with `OLLAMA_ORIGINS` set to
+  the relay origin (for example `OLLAMA_ORIGINS=https://keys.example.org`);
+  the setup panel tells the player the same.
