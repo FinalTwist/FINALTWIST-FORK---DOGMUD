@@ -12,7 +12,7 @@ description: >
   cellarer moves between the kitchen court to the south
   and the serving table against the wall. The South Walk
   is back to the east.
-biome: city
+biome: interior
 coord:
   x: 6
   y: -78

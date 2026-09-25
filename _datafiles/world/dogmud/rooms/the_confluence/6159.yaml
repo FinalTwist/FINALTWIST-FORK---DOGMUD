@@ -13,7 +13,7 @@ description: >
   texture that the newer paving has not yet reached.
   There is nothing else here. The garden is back
   to the east.
-biome: city
+biome: city_backstreet
 coord:
   x: -7
   y: -73

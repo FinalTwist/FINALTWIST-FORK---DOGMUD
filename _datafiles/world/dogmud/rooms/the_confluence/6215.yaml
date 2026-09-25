@@ -16,7 +16,7 @@ description: >
   <ansi fg="itemname">ring-inscription</ansi>
   in a script that is not the temple's. The way back
   is east.
-biome: city
+biome: dungeon
 coord:
   x: 2
   y: -78

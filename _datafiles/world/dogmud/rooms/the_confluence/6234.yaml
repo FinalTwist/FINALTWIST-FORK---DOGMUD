@@ -15,7 +15,7 @@ description: >
   timbers. A half-built cask sits on a stand near the
   door, waiting for its head. The row is east; the
   weaver's is south.
-biome: city
+biome: interior
 coord:
   x: -15
   y: -68

@@ -13,7 +13,7 @@ description: >
   the inn's wall waiting for the dray. The lane connects
   the south edge of the square to the east through to
   the notary's building, and to the hall side west.
-biome: city
+biome: city_backstreet
 coord:
   x: -4
   y: -68

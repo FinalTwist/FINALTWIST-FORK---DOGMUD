@@ -18,7 +18,7 @@ description: >
   stock covers enough range that there is rarely a need
   to go further for basic materials. The smithy is to
   the west.
-biome: city
+biome: interior
 coord:
   x: -13
   y: -71

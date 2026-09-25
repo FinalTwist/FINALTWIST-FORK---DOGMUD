@@ -12,7 +12,7 @@ description: >
   temple; a low door to the west leads to the almonry.
   The great doors of the portico stand open at your
   back to the north.
-biome: city
+biome: interior
 coord:
   x: 3
   y: -75

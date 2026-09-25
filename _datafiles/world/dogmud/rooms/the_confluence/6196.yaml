@@ -13,7 +13,7 @@ description: >
   a question long considered, not yet resolved. The East
   Walk is back to the west; the older corridor continues
   to the south.
-biome: city
+biome: interior
 coord:
   x: 9
   y: -77

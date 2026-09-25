@@ -12,7 +12,7 @@ description: >
   attention of a child who has been out here for a while
   and found the lane sufficient. The smithy is north;
   the riverman's house is west; the court is south.
-biome: city
+biome: city_backstreet
 coord:
   x: -14
   y: -72

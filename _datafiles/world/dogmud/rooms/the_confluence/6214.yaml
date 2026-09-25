@@ -13,7 +13,7 @@ description: >
   not say who opened it or when. A vault opens to
   the south; the antechamber is back east; the
   chamber waits to the west.
-biome: city
+biome: dungeon
 coord:
   x: 3
   y: -78

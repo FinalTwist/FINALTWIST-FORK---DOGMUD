@@ -16,7 +16,7 @@ description: >
   distant, filtered by the walls to something
   manageable. A gravel walk extends west along the
   garden's far edge.
-biome: city
+biome: city_backstreet
 coord:
   x: -11
   y: -68

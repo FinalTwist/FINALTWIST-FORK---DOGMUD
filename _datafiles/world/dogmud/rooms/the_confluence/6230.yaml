@@ -17,7 +17,7 @@ description: >
   <ansi fg="itemname">locked case</ansi>
   of iron and glass, its contents the most fragile
   holdings of the entire collection.
-biome: city
+biome: interior
 coord:
   x: -12
   y: -67
