@@ -2,6 +2,7 @@ package mutators
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -61,17 +62,23 @@ type MutatorSpec struct {
 	DescriptionModifier *TextModifier `yaml:"descriptionmodifier,omitempty"`
 	AlertModifier       *TextModifier `yaml:"alertmodifier,omitempty"` // These can only append.
 	// End text based changes
-	DecayIntoId        string                   `yaml:"decayintoid,omitempty"`        // Id of another Mutator that replaces this one when it decays. This can be a circular behavior.
-	PlayerConditionIds []int                    `yaml:"playerconditionids,omitempty"` // conditionId's that apply conditionally TO PLAYERS AND PLAYER FOLLOWERS
-	MobConditionIds    []int                    `yaml:"mobconditionids,omitempty"`    // conditionId's that apply conditionally TO MOBS
-	NativeConditionIds []int                    `yaml:"nativeconditionids,omitempty"` // conditionId's that apply conditionally TO MOBS THAT SPAWNED IN THIS ROOM
-	DecayRate          string                   `yaml:"decayrate,omitempty"`          // how long until it is gone
-	RespawnRate        string                   `yaml:"respawnrate,omitempty"`        // daily, weekly, 1 day, 3 day, monthly, etc.
-	LightMod           int                      `yaml:"lightmod,omitempty"`           //  -2 to 2 (change). If result is 0 = none. 1 = can see this room. 2 = can see this room and all exits
-	RegenMultiplier    float64                  `yaml:"regenmultiplier,omitempty"`    // multiplies HP/SP/CP regen for any actor in the room (1.0 / 0 = no bonus)
-	Exits              map[string]exit.RoomExit `yaml:"exits,omitempty"`              // name/roomId pairs of exits only available while mutator is live.
-	Pvp                PvpOverride              `yaml:"pvp,omitempty"`                // optionally force room pvp attributes.
-	OutdoorOnly        bool                     `yaml:"outdooronly,omitempty"`        // skip this mutator's effects in indoor-biome rooms (weather etc.)
+	DecayIntoId        string `yaml:"decayintoid,omitempty"`        // Id of another Mutator that replaces this one when it decays. This can be a circular behavior.
+	PlayerConditionIds []int  `yaml:"playerconditionids,omitempty"` // conditionId's that apply conditionally TO PLAYERS AND PLAYER FOLLOWERS
+	MobConditionIds    []int  `yaml:"mobconditionids,omitempty"`    // conditionId's that apply conditionally TO MOBS
+	NativeConditionIds []int  `yaml:"nativeconditionids,omitempty"` // conditionId's that apply conditionally TO MOBS THAT SPAWNED IN THIS ROOM
+	DecayRate          string `yaml:"decayrate,omitempty"`          // how long until it is gone
+	RespawnRate        string `yaml:"respawnrate,omitempty"`        // daily, weekly, 1 day, 3 day, monthly, etc.
+	LightMod           int    `yaml:"lightmod,omitempty"`           //  -2 to 2 (change). If result is 0 = none. 1 = can see this room. 2 = can see this room and all exits
+	// SkyLight is the fraction of the sky's light this mutator lets through,
+	// the same word and meaning as a biome's or a room's skylight: 1 changes
+	// nothing, 0.5 is one doubling step darker. Several active mutators
+	// multiply. Nil leaves the sky alone. Lamps and carried light are never
+	// touched.
+	SkyLight        *float64                 `yaml:"skylight,omitempty"`
+	RegenMultiplier float64                  `yaml:"regenmultiplier,omitempty"` // multiplies HP/SP/CP regen for any actor in the room (1.0 / 0 = no bonus)
+	Exits           map[string]exit.RoomExit `yaml:"exits,omitempty"`           // name/roomId pairs of exits only available while mutator is live.
+	Pvp             PvpOverride              `yaml:"pvp,omitempty"`             // optionally force room pvp attributes.
+	OutdoorOnly     bool                     `yaml:"outdooronly,omitempty"`     // skip this mutator's effects in indoor-biome rooms (weather etc.)
 }
 
 func GetAllMutatorSpecs() []MutatorSpec {
@@ -319,6 +326,12 @@ func (m *MutatorSpec) Id() string {
 }
 
 func (m *MutatorSpec) Validate() error {
+
+	if m.SkyLight != nil {
+		if v := *m.SkyLight; math.IsNaN(v) || v < 0 || v > 1 {
+			return errors.Errorf("mutator %q skylight %v is outside 0 to 1", m.MutatorId, v)
+		}
+	}
 
 	if m.NameModifier != nil && !m.NameModifier.Behavior.IsValid() {
 		m.NameModifier.Behavior = TextDefault
