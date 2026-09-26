@@ -828,8 +828,7 @@ medium / light). Touch-points live in `dispatchCritAndMessaging`
   The floor rule (incoming hit-category lines always pass to the
   defender regardless of setting) is enforced here. Sight-gating is NOT
   uniform: participant tally recording (below) gates on
-  `messaging.CanSeeSightImpairedOnly` (no sleep gate, the same
-  predicate that drives `Balance.DarknessCombatPenalty`), while
+  `messaging.CanSeeSightImpairedOnly` (no sleep gate), while
   `recordSpectatorTallies` gates on `messaging.CanSeeClearly` (sleep-
   gated). Read the source at the call site before assuming either one;
   they answer different questions on purpose (see that function's
@@ -848,8 +847,11 @@ medium / light). Touch-points live in `dispatchCritAndMessaging`
   `dispatchCritAndMessaging`) while their sight verdict was not
   `SightFull`, using the same `CanSeeSightImpairedOnly`-derived
   booleans (`srcCanSee`/`tgtCanSee`) that section already computes.
-  Shapes-only viewers are included, not just fully blind ones, because
-  `DarknessCombatPenalty` applies to both. Membership in this set is
+  Shapes-only viewers are included, not just fully blind ones: the
+  notice keys on the sight VERDICT, while the score rides the sight ramp
+  (lighting plan 5b, `internal/combat/context.md`). Dazzle has its own
+  plan 3d notices, so a dazzled combatant with full sight gets no blind
+  notice, by design. Membership in this set is
   the "fought this round" signal; `roundTallies` cannot serve that role
   because it only contains Light-verbosity viewers who could ALSO see
   clearly (recording is skipped for a blind participant precisely to

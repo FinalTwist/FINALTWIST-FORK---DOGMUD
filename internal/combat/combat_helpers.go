@@ -564,11 +564,8 @@ func calcAttackScore(sourceChar *characters.Character, targetChar *characters.Ch
 		attackScore *= float64(bal.GrappleGroundedVulnerabilityMultiplier)
 	}
 
-	// Sight ramp (lighting plan 5b): the attacker pays by how far the room's
-	// light sits outside its own comfortable band, too dark or too bright.
-	// This replaces the old flat band, where a shapes-only attacker took 0.90
-	// whatever the light; now it pays by distance, and a comfortable attacker
-	// pays nothing. The sight verdict no longer scores; it only gates names.
+	// Sight ramp (plan 5b): the attacker pays by how far the light sits
+	// outside its comfortable band; the sight verdict does not score.
 	attackScore *= messaging.SightScoreMultiplier(ctx.sourceDark, ctx.sourceBright, bal)
 
 	// Winged Flight: a flyer beats the earthbound on the melee opposed roll —
@@ -758,11 +755,8 @@ func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.
 			defenseScore *= float64(bal.ThirdPartyGrapplePenalty)
 		}
 
-		// Sight ramp (lighting plan 5b): the defender pays by how far the
-		// room's light sits outside its own comfortable band, too dark or too
-		// bright. This replaces the old flat band, where a shapes-only
-		// defender took 0.90 whatever the light; now it pays by distance, and
-		// a comfortable defender pays nothing.
+		// Sight ramp (plan 5b): the defender pays by how far the light sits
+		// outside its comfortable band; the sight verdict does not score.
 		defenseScore *= messaging.SightScoreMultiplier(ctx.targetDark, ctx.targetBright, bal)
 
 		// Incorporeal mutation: physical defense bonus (channel-scoped

@@ -257,7 +257,7 @@ Functions:
     corrupted `combat-analytics.jsonl`'s contest telemetry with a term
     nobody asked for. M4d closed that gap for good: combat no longer reads
     a messaging predicate by name at all (see `internal/combat/context.md`,
-    "Sight and the darkness penalty").
+    "Sight: the verdict and the ramp").
   - `sleep_policy_test.go` pins the contract by absence: a sleeper reads
     NOTHING from `CanSeeClearly`/`CanSeeShapes` (both false regardless of
     light), and `CanSeeSightImpairedOnly` ignores sleep entirely.
