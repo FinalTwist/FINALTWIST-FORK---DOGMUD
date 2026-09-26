@@ -147,6 +147,14 @@ The worn-item refresh re-adds a held record WITHOUT touching them, so a trim
 survives an unrelated equipment change; an equip path that wants a fresh light
 must call `ResetLight` itself (`Character.Wear` does).
 
+🪤 **A magnitude light added without a magnitude sheds nothing.** `LightMax`
+reads `Magnitude`, so a `light_strength: magnitude` record added through plain
+`AddCondition` (an admin `setcondition`, for one) reads 0 and is dark; cast the
+spell instead. A glow record saved before plan 5a was applied that way and
+carries `Magnitude` 0, so on the first login after deploy it lists as
+Illumination but sheds no light until it expires (at most 20 real minutes) or
+is recast; no migration is needed.
+
 ### Cadence
 
 121 Poisoned and 122 Bleeding tick every round (`triggerrate: 1 round`). Slice
