@@ -31,7 +31,7 @@ func CalcSneakScore(c *characters.Character, effectiveLit bool) float64 {
 		float64(c.GetSkillLevel(skills.Skullduggery))*float64(cfg.SkillWeight) +
 		mutations.GetStealthBonus(c.Mutations)
 
-	emits := c.HasFlagFromAnySource(conditions.EmitsLight)
+	emits := c.EmitsLight()
 
 	switch {
 	case emits && !effectiveLit:

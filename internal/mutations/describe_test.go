@@ -21,7 +21,6 @@ func TestDescribeEffect(t *testing.T) {
 		{"stamina_regen down", MutationEffect{Type: "stamina_regen_multiplier", Value: -0.15}, "Slows how fast your stamina returns."},
 		{"conviction_cost down", MutationEffect{Type: "conviction_cost_multiplier", Value: -0.2}, "Lessens the conviction your abilities cost."},
 		{"conviction_cost up", MutationEffect{Type: "conviction_cost_multiplier", Value: 0.2}, "Raises the conviction your abilities cost."},
-		{"lightsource", MutationEffect{Type: "flag", Target: "lightsource", Value: 1}, "You shed light -- a beacon in the dark, easy to spot."},
 		{"nightvision", MutationEffect{Type: "flag", Target: "nightvision", Value: 1}, "You see clearly in the dark."},
 		{"see-hidden", MutationEffect{Type: "flag", Target: "see-hidden", Value: 1}, "You notice hidden creatures and things others miss."},
 		{"natural_armor", MutationEffect{Type: "natural_armor", Value: 5}, "Hardens your hide against physical blows."},

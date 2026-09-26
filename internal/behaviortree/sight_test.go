@@ -34,7 +34,7 @@ func sightScene(t *testing.T, biome string) (*mobs.Mob, *rooms.Room) {
 	}))
 	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		sightNightVisionConditionId:  {ConditionId: sightNightVisionConditionId, Name: "Night Vision", Flags: []conditions.Flag{conditions.NightVision}},
-		sightIlluminationConditionId: {ConditionId: sightIlluminationConditionId, Name: "Illumination", Flags: []conditions.Flag{conditions.EmitsLight}},
+		sightIlluminationConditionId: {ConditionId: sightIlluminationConditionId, Name: "Illumination", Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectLightStrength: {Literal: 50}}},
 	}))
 
 	room := &rooms.Room{RoomId: 8100, Biome: biome}

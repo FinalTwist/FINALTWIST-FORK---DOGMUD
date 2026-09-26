@@ -63,7 +63,6 @@ const (
 	// Useful flags
 	Hidden         Flag = `hidden`
 	Sleeping       Flag = `sleeping` // chunk 3.3: bearer is asleep
-	EmitsLight     Flag = `lightsource`
 	SuperHearing   Flag = `superhearing`
 	NightVision    Flag = `nightvision`
 	InfraredVision Flag = `infraredvision`
@@ -140,7 +139,6 @@ var AllFlags = []Flag{
 	PoisonImmunity,
 	Hidden,
 	Sleeping,
-	EmitsLight,
 	SuperHearing,
 	NightVision,
 	InfraredVision,

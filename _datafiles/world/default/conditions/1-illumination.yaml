@@ -6,5 +6,3 @@ triggerrate: 5 real minutes
 triggercount: 1
 effects:
   light_strength: 50
-flags:
-  - lightsource

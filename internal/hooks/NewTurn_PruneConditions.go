@@ -135,11 +135,9 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 // Anonymize cannot see, so the name must be handed to HideNames explicitly.
 // This is the End-phase twin of the start and trigger senders.
 func sendConditionEndRoomText(r *rooms.Room, spec *conditions.ConditionSpec, msg string, names []string, skip ...int) {
-	for _, flag := range spec.Flags {
-		if flag == conditions.EmitsLight {
-			r.SendTextVisualAsLitHidingNames(messaging.CategoryConditionExpire, msg, names, skip...)
-			return
-		}
+	if spec.IsLightSource() {
+		r.SendTextVisualAsLitHidingNames(messaging.CategoryConditionExpire, msg, names, skip...)
+		return
 	}
 	r.SendTextVisualHidingNames(messaging.CategoryConditionExpire, msg, names, skip...)
 }
