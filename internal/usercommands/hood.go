@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/lightnotice"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -59,6 +60,10 @@ func Hood(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			fmt.Sprintf(`<ansi fg="username">%s</ansi> lowers the hood of their lantern, and its glow goes dark.`, user.Character.Name),
 			user.UserId)
 	}
+	// The band notice rides this command's own output. Left to the next
+	// command's pre-check, "darkness closes in" arrives after whatever the
+	// player types next and reads backwards.
+	lightnotice.Check(user, lightnotice.TriggerCommand)
 	return true, nil
 }
 
@@ -82,5 +87,6 @@ func Unhood(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 			fmt.Sprintf(`<ansi fg="username">%s</ansi> throws back the hood of their lantern, and light floods out.`, user.Character.Name),
 			user.UserId)
 	}
+	lightnotice.Check(user, lightnotice.TriggerCommand)
 	return true, nil
 }

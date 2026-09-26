@@ -6,6 +6,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/lightnotice"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -41,6 +42,13 @@ func Remove(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		})
 
 		sendReservationReturnDisclosure(user, beforeReservation)
+
+		for _, item := range removedItems {
+			if item.GetSpec().Type == items.Light {
+				lightnotice.Check(user, lightnotice.TriggerCommand)
+				break
+			}
+		}
 
 		return true, nil
 	}
@@ -79,6 +87,11 @@ func Remove(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 				user.UserId,
 			)
 			sendReservationReturnDisclosure(user, beforeReservation)
+			// Taking off a light changes the band at once; the notice rides
+			// this command rather than waiting for the next one.
+			if result.Item.GetSpec().Type == items.Light {
+				lightnotice.Check(user, lightnotice.TriggerCommand)
+			}
 		} else if result.Found {
 			user.SendText(messaging.CategorySystem,
 				fmt.Sprintf(`You can't seem to remove your <ansi fg="item">%s</ansi>.`, matchItem.DisplayName()),

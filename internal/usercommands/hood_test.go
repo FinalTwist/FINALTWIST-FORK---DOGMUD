@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/lightnotice"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/species"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -180,4 +181,65 @@ func TestHood_TwiceSaysAlreadyHooded(t *testing.T) {
 	_, err = Unhood("", user, room, 0)
 	require.NoError(t, err)
 	require.Contains(t, hoodTestText(user.UserId), "already open")
+}
+
+// laterIndex returns the position of the first line from pool that appears in
+// out after position from, or -1.
+func laterIndex(out string, from int, pool []string) int {
+	for _, l := range pool {
+		if i := strings.Index(out[from:], l); i >= 0 {
+			return from + i
+		}
+	}
+	return -1
+}
+
+// Playtest finding (plan 5a): the band notice for the player's OWN light ran
+// only in the NEXT command's pre-check, so "darkness closes in" printed after
+// whatever was typed next and read backwards. Hood and unhood now carry their
+// own notice, after the action line.
+func TestHood_BandNoticeFollowsTheActionLine(t *testing.T) {
+	user, room := hoodFixture(t)
+	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
+		"cave": {BiomeId: "cave", Name: "Cave", Symbol: ".", SkyLight: rooms.SkyLightPtr(0.0), Indoor: true, MovementCost: 1},
+	}))
+	room.Biome = "cave"
+	require.NoError(t, lightnotice.LoadFrom("../../_datafiles/world/dogmud/narration/light-notices"))
+	t.Cleanup(lightnotice.ResetForTest)
+
+	_, ok, why := user.Character.Wear(items.New(hoodTestLanternItem))
+	require.True(t, ok, why)
+	require.True(t, user.Character.EmitsLight(), "fixture: the lantern must be lit")
+	lightnotice.Check(user, lightnotice.TriggerQuiet)
+	events.DrainQueuedMessagesForTest(user.UserId)
+
+	var darker, lighter []string
+	for _, tr := range []lightnotice.Transition{lightnotice.DarkerDark, lightnotice.DarkerShapes} {
+		darker = append(darker, lightnotice.Pool(lightnotice.CauseCarried, tr, true)...)
+	}
+	for _, tr := range []lightnotice.Transition{lightnotice.LighterFaces, lightnotice.LighterShapes} {
+		lighter = append(lighter, lightnotice.Pool(lightnotice.CauseCarried, tr, true)...)
+	}
+	require.NotEmpty(t, darker)
+	require.NotEmpty(t, lighter)
+
+	_, err := Hood("", user, room, 0)
+	require.NoError(t, err)
+	out := hoodTestText(user.UserId)
+	at := strings.Index(out, "You lower the hood over your lantern")
+	require.GreaterOrEqual(t, at, 0, out)
+	require.GreaterOrEqual(t, laterIndex(out, at, darker), 0,
+		"hood must be followed by its darkness notice in the same output:\n%s", out)
+
+	// The next command's pre-check finds the band unchanged and says nothing.
+	lightnotice.Check(user, lightnotice.TriggerCommand)
+	require.Empty(t, hoodTestText(user.UserId), "the notice was sent twice")
+
+	_, err = Unhood("", user, room, 0)
+	require.NoError(t, err)
+	out = hoodTestText(user.UserId)
+	at = strings.Index(out, "You throw back the hood of your lantern")
+	require.GreaterOrEqual(t, at, 0, out)
+	require.GreaterOrEqual(t, laterIndex(out, at, lighter), 0,
+		"unhood must be followed by its light-returns notice in the same output:\n%s", out)
 }

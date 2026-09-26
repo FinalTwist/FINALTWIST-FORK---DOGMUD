@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/lightnotice"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -122,6 +123,9 @@ func cancelCondition(name string, user *users.UserRecord) (bool, error) {
 		}
 		user.Character.RemoveCondition(rec.ConditionId)
 		user.SendText(messaging.CategorySystem, `You let the spell go.`)
+		// A cancelled glow darkens the room at once; say so with this
+		// command, not before the next one.
+		lightnotice.Check(user, lightnotice.TriggerCommand)
 		return true, nil
 	}
 	user.SendText(messaging.CategorySystem, fmt.Sprintf(`You have no %s you can let go of.`, name))

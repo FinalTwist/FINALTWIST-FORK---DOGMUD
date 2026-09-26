@@ -9,6 +9,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/lightnotice"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/questengine"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -308,6 +309,12 @@ func Equip(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			}
 
 			sendReservationDisclosure(user, beforeReservation)
+
+			// A light just put on changes the band at once; the notice rides
+			// the "You wear" line rather than waiting for the next command.
+			if result.Item.GetSpec().Type == items.Light {
+				lightnotice.Check(user, lightnotice.TriggerCommand)
+			}
 
 			// Trigger any outstanding condition onStart events
 			if len(result.Item.GetSpec().WornConditionIds) > 0 {

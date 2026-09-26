@@ -10,8 +10,8 @@ you are holding, a crafting activity, or a multi-round command.
                       <ansi fg="command">cancel glow</ansi>.
 
 If you are holding spell folds, cancelling loses the conviction you
-already spent. If no cancellable action is active, the command is a
-no-op.
+already spent. If no cancellable action is active, the command does
+nothing.
 
 Some spells can be let go of before they run out. Chrysalis Glow is
 one: <ansi fg="command">cancel glow</ansi> puts it out at once. While you are casting, any
