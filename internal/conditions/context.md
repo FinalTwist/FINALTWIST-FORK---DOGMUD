@@ -64,7 +64,7 @@ mirror record side by side; there is one record now, and the
 Every instance carries `Magnitude float64` (`yaml:"magnitude,omitempty"`), the
 strength the applier computed for that one holder. What the strength DOES is
 declared by the spec, in the closed `effects:` map documented under "Effects
-Vocabulary (`effects.go`)" below: seven keys, each value either a literal
+Vocabulary (`effects.go`)" below: ten keys (`AllEffectKinds`), each value either a literal
 number or the word `magnitude`, meaning "read the holding instance".
 
 Combat reads timed state through `Conditions.Effect(kind)` and
@@ -112,6 +112,40 @@ to plug into.
   last stack. Requires `tick_from_magnitude` and a one-round `triggerrate`
   (`Validate` refuses anything else). Only 122 Bleeding carries it. See
   "Stacking records (`stacks.go`)" below.
+- `adjustable` (lighting plan 5a): a light source that trims itself to its
+  bearer's eyes on each room entry (`internal/rooms.(*Room).TrimLightFor`).
+  `validateEffects` refuses it without `light_strength`.
+- `cancellable` (lighting plan 5a): the holder may end the record early with
+  `cancel <spell>` (`internal/usercommands/cancel.go`). Opt-in; the Cat's Eye
+  Draught is ruled uncancellable.
+- `lightsource` (`EmitsLight`) was DELETED in plan 5a. A light is now any
+  record whose spec declares `light_strength`; ask `ConditionSpec.IsLightSource()`.
+
+### Light sources (`light.go`, lighting plan 5a)
+
+`effects: {light_strength: N}` makes a record a light: a literal for an item,
+`magnitude` for a spell cast at a scaled strength. It is **per-record, never
+aggregated**: `Conditions.Effect(EffectLightStrength)` returns 0, and each held
+light is its own term in the room's combine, found through
+`(*Conditions).LightSources() []*Condition` (held, unexpired, in held order).
+`validateEffects` refuses a literal `light_strength` of 0 or less, `adjustable`
+without `light_strength`, and a `stacking` record that is also a light.
+
+Per-record state lives on `Condition`: `LightTrim` (`LightFull`,
+`LightTrimmed`, `LightOff`; an explicit state so a save never encodes -Inf),
+`LightOutput`, `Hooded`.
+- `LightMax(spec) float64`: full strength (the magnitude or the literal).
+- `LightNow(spec) (float64, bool)`: the term it adds right now; false when
+  expired, hooded, off or strengthless. An unrecognised saved state fails open
+  to full strength.
+- `SetLightOutput(out)`: records a `lightscale.Trim` result; any non-finite
+  value lands on `LightOff`.
+- `ResetLight()`: full strength, hood open.
+
+🪤 **Only `AddConditionMagnitude` resets these automatically** (a fresh cast).
+The worn-item refresh re-adds a held record WITHOUT touching them, so a trim
+survives an unrelated equipment change; an equip path that wants a fresh light
+must call `ResetLight` itself (`Character.Wear` does).
 
 ### Cadence
 
@@ -182,7 +216,9 @@ The conditions system is built around several key components:
 - Death prevention and revival mechanics
 - Equipment interaction flags (permanent gear, curse removal)
 - Status effect flags (poison, accuracy, stealth, vision enhancement)
-- Environmental interaction flags (water cancellation, light emission)
+- Environmental interaction flags (water cancellation). Light emission is not a
+  flag: since lighting plan 5a a light is a record declaring the
+  `light_strength` effect (see "Light sources (`light.go`)" below)
 
 ### 2. **Advanced Timing System**
 - Round-based trigger intervals with game time integration
@@ -228,6 +264,9 @@ type Condition struct {
     TickAmount     int     // Signed per-trigger amount snapshot
     Magnitude      float64 // Per-instance strength the applier set
     Stacks         []Stack // A stacking record's applications; see stacks.go
+    LightTrim      LightTrim // plan 5a: full, trimmed or off; see light.go
+    LightOutput    float64   // plan 5a: the trimmed term when LightTrim is LightTrimmed
+    Hooded         bool      // plan 5a: a hooded light sheds nothing
 }
 ```
 
@@ -270,7 +309,6 @@ const (
     Blink          Flag = "blink"            // Dodge enhancement
     
     // Sensory Enhancement
-    EmitsLight     Flag = "lightsource"      // Provides illumination
     SuperHearing   Flag = "superhearing"     // Enhanced hearing
     NightVision    Flag = "nightvision"      // See in darkness
     SeeHidden      Flag = "see-hidden"       // Detect hidden entities
@@ -601,6 +639,7 @@ const (
     EffectAttacksCap     EffectKind = "attacks_cap"     // upper bound on swings per round
     EffectNightVisionStrength EffectKind = "nightvision_strength" // graded lighting plan 2: how far DOWN the light scale the observer's usable band shifts
     EffectInfraReach          EffectKind = "infra_reach"          // graded lighting plan 2: how far BELOW the window floor heat-sensing still reads shapes
+    EffectLightStrength       EffectKind = "light_strength"       // lighting plan 5a: a light's full strength; per-record, Effect() returns 0 for it
 )
 ```
 
@@ -689,7 +728,9 @@ today (79, 80, 117 to 123) ticks once a round, so the two coincide. A
 above. `triggers` of `0` leaves the spec's own `TriggerCount` in place. It also
 stamps `Magnitude`, and for a spec with `TickFromMagnitude` set, snapshots
 `TickAmount` from the magnitude's sign (floored to plus or minus 1 rather than
-0, since a zero tick would never recover). Returns `false` on refusal (e.g.
+0, since a zero tick would never recover). For a light source
+(`IsLightSource`) it calls `ResetLight`, since a fresh magnitude is a fresh
+cast. Returns `false` on refusal (e.g.
 poison immunity via `AddConditionScaled`) or an unknown condition id, exactly
 like `AddConditionScaled`.
 
@@ -1212,6 +1253,7 @@ they live downstream, in the damage pipeline.
 | `tick.go` | `ComputeTickAmount`, the tick-pool amount formula |
 | `stacks.go` | `Stack`, the stacking tick (`addStack`, `syncStacks`, `tickStacks`), `tickAmountFor`, `DisplayName` |
 | `effects.go` | `EffectKind`, the closed effects vocabulary, `Conditions.Effect` / `Conditions.HasEffect` |
+| `light.go` | Lighting plan 5a: `LightTrim`, `Condition.LightMax` / `LightNow` / `SetLightOutput` / `ResetLight`, `Conditions.LightSources` |
 | `ids.go` | The record ids the engine names in code: `ConditionIdWarcry` (79) through `ConditionIdEnchantWithdrawal` (123) |
 | `test_helpers.go` | Test fixtures: `SeedConditionsForTest` (replaces the registry) and `SeedConditionRecordsForTest` (adds 79, 80 and 117 to 123 on top of whatever is already seeded) |
 

@@ -18,6 +18,8 @@ shipped at 8, and it is passed in rather than read here.
 | `Absent() float64` | A term that is not present at all, distinct from a dark term |
 | `Combine(step float64, terms ...float64) float64` | Every present term together |
 | `Attenuate(step, light, fraction float64) float64` | A transmission fraction applied to one term |
+| `Polarity` (`Brightens`, `Darkens`) | Which way an adjustable source pushes its room (`trim.go`, lighting plan 5a) |
+| `Trim(step, others, max, target float64, p Polarity) float64` | The one adjustment function: the output an adjustable source runs at so the room lands on `target` (`trim.go`) |
 
 ## Traps
 
@@ -27,9 +29,18 @@ shipped at 8, and it is passed in rather than read here.
 - **A multiplier is a subtraction here.** Half the light is minus one step.
 - `Combine` skips NaN as well as -Inf, so one bad caller cannot poison a room.
 - Both functions coerce a non-positive step to 1 rather than dividing by zero.
+  `Trim` does the same.
+- **`Trim` for a light solves the combine exactly; it is not `target - others`.**
+  It returns `Absent()` when the room already reaches `target` without the
+  source, or when the needed term would fall below 0 (a light never runs at a
+  negative term). A NaN `target` or `max` returns `Absent()` for a light and 0
+  for a darkness.
+- **`Darkens` is the inverted subtraction** (points cut from the combined
+  light, an Absent room counting as 0). Plan 5a ships only the light half;
+  darkness sources wire it in a later slice.
 
 ## Who uses it
 
 `internal/gametime` (sun plus moons), `internal/rooms` (ambient plus lamp plus
-mutators). Plans 4 and 5 add weather occlusion and darkness sources on the same
-two functions.
+carried light; `Trim` from `light_trim.go`). Plan 4 added weather occlusion;
+later plan 5 slices add darkness sources on the same functions.

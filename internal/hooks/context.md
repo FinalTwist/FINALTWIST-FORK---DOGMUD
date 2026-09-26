@@ -950,7 +950,31 @@ Scaffolding for future light-source re-roll mechanics. Registers a
 `OnCharacterCreated` callback to set up the listener registration hooks
 for light-state-change events. Today a no-op pending full light-system
 design; the file exists to document the integration point for future
-chapters.
+chapters. Since lighting plan 5a the room-change listener asks
+`Character.EmitsLight()` (any light term right now, so a hooded or
+trimmed-off source does not count) instead of the deleted `lightsource`
+flag.
+
+### Light spells (`light_spell.go`, lighting plan 5a)
+
+A spell condition whose spec declares `light_strength: magnitude` is applied
+at a strength and duration scaled from the CASTER's primary stat and
+Spellcasting skill: `lightSpellApplication(spellData, caster, conditionId)
+(magnitude float64, triggers int, ok bool)`, reading the six `configs.Lighting`
+`SpellStrength*`/`SpellDuration*` knobs (triggers floored at 1). `ok` is false
+for any other condition. `applySpellCondition(target, spellData, caster,
+conditionId)` is the one door the four spell-condition sites in
+`spell_resolution.go` (`applyMobEffect_condition`, `applyPlayerEffect`,
+`applyMobSelfEffect`, `resolveMobSpellAgainstPlayer`) now call: a light goes
+through `AddConditionMagnitude`, anything else through `AddCondition`, both on
+the small `spellConditionTarget` interface a `*users.UserRecord` and a
+`*mobs.Mob` both satisfy. The record then trims to its HOLDER's eyes, who may
+not be the caster.
+
+`sendConditionEndRoomText` (`NewTurn_PruneConditions.go`) judges a light's end
+line as lit by `spec.IsLightSource()`; the judgement is per spec, so a hooded
+or trimmed-off light's end line is judged as lit too (accepted, as the retired
+flag was spec-level as well).
 
 ### Logout_AwarenessCleanup.go
 
@@ -1917,24 +1941,26 @@ room targeting the shooter", a wider question than "who has engaged me".
 - `internal/state/presence` - Presence state machine (chunk 5)
 ## Files: one handler per file
 
-129 non-test files. The filename **is** the index. Each is named for the event
+134 non-test files (recounted for lighting plan 5a, which added
+`light_spell.go`). The filename **is** the index. Each is named for the event
 it handles and the job it does, so `NewRound_IdleMobs.go` is the idle-mob step
 of the new-round event.
 
-The prefix IS the event name, so there is no short list of them: 98 of the 129
-files carry one and they spell 41 distinct events. The big ones are
+The prefix IS the event name, so there is no short list of them: 99 of the 134
+files carry one and they spell 42 distinct events. The big ones are
 `NewRound_*` (21 files), `Death_*` (11), `MobDeath_*` (7), `NewTurn_*` and
 `Position_*` (5 each), `CombatPhase_*` (4), and `Awareness_*`,
-`MobRoomChange_*`, `PlayerDespawn_*` and `RoomChange_*` (3 each); the other 31
+`MobRoomChange_*`, `PlayerDespawn_*` and `RoomChange_*` (3 each); the other 32
 prefixes carry one or two files apiece. Enumerate them with
 `ls internal/hooks/*.go | sed 's/_.*//' | sort -u` rather than trusting a list
 here. There is no `Input_*` or `Combat_*` prefix.
 
-The remaining 31 files are shared helpers rather than handlers and carry no
+The remaining 35 files are shared helpers rather than handlers and carry no
 prefix at all; they are the lowercase-named ones, for example
 `combat_shared_helpers.go`, `spell_resolution.go`, `item_procs.go`,
-`machine_resolver.go`, and `tick_cause.go` (the death-cause tag a damaging
-health tick stamps; see "The damaging condition tick" above). `hooks.go` is in that
+`machine_resolver.go`, `tick_cause.go` (the death-cause tag a damaging
+health tick stamps; see "The damaging condition tick" above), and
+`light_spell.go` (see "Light spells" below). `hooks.go` is in that
 set and is the odd one out: it is not a helper but the registration table.
 
 Do not go looking for a registration in these files. **`hooks.go` holds

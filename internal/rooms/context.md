@@ -52,18 +52,40 @@ The `internal/rooms` package is the core world management system for GoMud, hand
 - **Item requirements**: Biomes that require specific items to navigate safely
 - **Dynamic loading**: File-based biome definitions with validation
 
-### Room Lighting (`lighting.go`, graded scale, plans 1 through 4 of the lighting arc)
+### Room Lighting (`lighting.go`, `light_trim.go`, graded scale, plans 1 through 5a of the lighting arc)
 
 `Room.LightLevel() int` is the light accessor every consumer reads. It
-reports light on a continuous -100 to 100 scale, composed from up to three
-terms on one logarithmic operator (`internal/lightscale.Combine`):
+reports light on a continuous -100 to 100 scale, composed from three kinds
+of term on one logarithmic operator (`internal/lightscale.Combine`):
 
 1. **The sky**: `internal/gametime.CelestialLight()` (sun plus moons, one
    value for the whole world per round), attenuated by this room's sky
    fraction and then by `mutatorSkyFilter()`, the product of every active
    mutator's `SkyLight` fraction (1 when clear; weather multiplies it down).
 2. **The room's own lamp**, if it has one.
-3. **Anyone present carrying a light.**
+3. **Every light anyone present carries, one term each** (lighting plan 5a).
+   `carriedLight(exclude)` makes one pass over `r.mobs` and `r.players`,
+   reading each bearer's `Conditions.LightSources()` through
+   `Condition.LightNow`, so a hooded or trimmed-off source adds nothing and
+   two torches are one doubling step brighter than one. Before 5a any light
+   lifted the room to a flat `DimBelow`; the `FindHasLight` find flag that
+   test used is DELETED.
+
+The composition is layered so a trim can leave one source out: `composeLight`
+calls `composeLightExcluding(cfg, celestial, skyFilter, exclude)`, which calls
+`composeWith(cfg, celestial, skyFilter, carried)` (the pure core a test can feed
+carried terms without users or mobs).
+
+**Trimming (`light_trim.go`, plan 5a).** `(*Room).TrimLightFor(c)` trims every
+adjustable, unhooded light record `c` holds to `c`'s own eyes: the least cut
+from full strength that keeps the room under
+`messaging.LightTrimTarget(c.NightVisionStrength())`, solved by
+`lightscale.Trim` against `LightTerms.Raw` with that record excluded. Several
+sources trim in held order after a pre-pass sets them all off. It is the ONLY
+trim trigger: `MoveToRoom` (`roommanager.go`) and `AddMob` (`rooms.go`) call it
+once the mover is in the room. Nobody already present re-trims when someone
+arrives, and nothing re-trims on a round tick, so a room that brightens or
+darkens around a standing bearer leaves their light as it was.
 
 Plan 4 deleted the old `-2..2` `LightMod` bridge entirely; a mutator now
 only ever dims the sky, never adds a light of its own. Every weather
@@ -86,7 +108,9 @@ needs to know WHY the light is what it is: `Level` (identical to
 `LightLevel()`, both come from the shared `composeLight`), `Sky` (the sky
 term after fraction and the weather filter, `lightscale.Absent()` when the
 room has no sky), `SkyFilter` (the product of the active mutators'
-`SkyLight` fractions, 1 when clear), `Lamp`/`HasLamp` and `Carried`.
+`SkyLight` fractions, 1 when clear), `Lamp`/`HasLamp`, `Carried`, and (plan
+5a) `Raw`, the combined light before rounding and clamping (`Absent` when
+nothing lights the room), which a trim solves against.
 `internal/lightnotice` is the one consumer: it compares two `LightTerms`
 snapshots to name which term moved and so which cause to report for a band
 change. `LightTerms` and `LightLevel` share one computation
@@ -356,7 +380,8 @@ When writing hidden noun descriptions:
 |------|---------|
 | `rooms.go` | The `Room` type and its core behaviour |
 | `roommanager.go` | The room registry, load/unload, and lookup |
-| `lighting.go` | `Room.LightLevel()`, `Room.IsLit()`, `Room.LightTerms()` (plan 3d), and the sky/lamp/mutator/carried-light composition |
+| `lighting.go` | `Room.LightLevel()`, `Room.IsLit()`, `Room.LightTerms()` (plan 3d), and the sky/lamp/mutator/carried-light composition (`composeLight`, `composeLightExcluding`, `composeWith`, `carriedLight`) |
+| `light_trim.go` | `Room.TrimLightFor` (lighting plan 5a): trims an arrival's adjustable lights to their eyes; called from `MoveToRoom` and `AddMob` only |
 | `save_and_load.go` | Room YAML + instance-save persistence, `restoreSkipTaggedFields` |
 | `prose_wrap.go` | Re-folds long prose into wrapped `>` block scalars on template save |
 | `roomdetails.go` | Assembled per-look detail payload |

@@ -302,8 +302,31 @@ sent; `progression_notifier_guard_test.go` asserts the boot registration and
 
 ### Equipment System (`worn.go`)
 - **Equipment slots**: Weapon, Offhand, Head, Neck, Body, Belt, Gloves, Ring, Legs, Feet
+  (the full list is `(*Worn).AllSlots()`, which every slot walker should read).
+  Lighting plan 5a added the `Light` slot (`Worn.Light`, yaml `light`, item type
+  `items.Light`): it is in `AllSlots()`, `GetSlotPointer`, `wearArmorSlot` and
+  `RemoveFromBody`. `Wear` resets a light item's condition records with
+  `ResetLight` AFTER the permanent-condition refresh, so a fresh equip is always
+  full strength with the hood open even when the displaced item shared the record.
 - **Stat modifications**: Equipment provides stat bonuses aggregated across all slots
 - **Item management**: Worn item tracking and validation
+- **Permanent-condition refresh**: `reapplyPermanentConditions()` takes no
+  arguments since plan 5a. It builds one `map[int]bool` of "this condition still
+  has a source" (permanent ids, species, pet, every item still worn) and removes
+  a held permanent record nothing sources. The old `removedItems` parameter
+  subtracted a displaced item a second time and could strip a condition the new
+  item still granted.
+
+### Carried light and item nouns (plan 5a)
+- `LightTerms() []float64` (`light.go`): one light-scale term per held light
+  record (`Conditions.LightSources` then `Condition.LightNow`), what
+  `internal/rooms` feeds into the room's combine.
+- `EmitsLight() bool` (`light.go`): any term at all. A shut hood or a source
+  trimmed to nothing does not count. It replaced the retired `lightsource` flag.
+- `FindItemNoun(word) (noun, desc string, ok bool)` (`itemnouns.go`): an EXACT
+  match on `ItemSpec.Nouns` across worn items first, then the backpack and
+  bandolier. Exact on purpose: `look` runs it before item matching, and a prefix
+  would let "hood" shadow an item named "hooded lantern".
 
 ### Character States and Modifiers
 - 🔑 **Timed state is `Character.Conditions` and nothing else.** Read
@@ -1899,8 +1922,9 @@ implementation-detail rationale.
 
 ## Files
 
-50 non-test files (`conditions.go` was deleted by the conditions unification,
-2026-09-12; `vision.go` was added by the graded lighting arc's plan 2).
+52 non-test files (`conditions.go` was deleted by the conditions unification,
+2026-09-12; `vision.go` was added by the graded lighting arc's plan 2;
+`light.go` and `itemnouns.go` by lighting plan 5a).
 `progression_notify.go` is corrected into this table by the same plan 2 pass;
 it was already on disk but had drifted out of the list. Every file on disk
 appears in exactly one row below, and the rows name nothing that is not on
@@ -1910,8 +1934,8 @@ disk. Grouped by what they own:
 |-------|-------|
 | Core | `character.go`, `validate.go`, `migrations.go`, `overrides.go`, `description.go`, `formattedname.go`, `actor_identity.go` |
 | Stats & progression | `progression.go`, `progression_award_resolved.go` (`AwardResolved`, the U10b-1 firing rule), `progression_notify.go` (`SetProgressionNotifier`, the injected notify-text callback), `skills.go`, `effective_stats.go`, `mobmastery.go`, `kdstats.go` |
-| Resources & timed state | `pools.go`, `reservation.go`, `resources.go`, `cooldowns.go`, `conditions.go` (holds `Character.AddCondition`, `AddConditionScaled` and the `AddConditionMagnitude` writer door), `sight.go`, `vision.go` (`NightVisionStrength`, `InfraReach`, the window model's two observer numbers) |
-| Inventory & gear | `inventory.go`, `inventory_handle.go`, `worn.go`, `hand_slots.go`, `anatomy.go`, `masterwork.go`, `migrate_enchantments.go`, `migrate_detuned_bows.go` |
+| Resources & timed state | `pools.go`, `reservation.go`, `resources.go`, `cooldowns.go`, `conditions.go` (holds `Character.AddCondition`, `AddConditionScaled` and the `AddConditionMagnitude` writer door), `sight.go`, `vision.go` (`NightVisionStrength`, `InfraReach`, the window model's two observer numbers), `light.go` (`LightTerms`, `EmitsLight`, plan 5a) |
+| Inventory & gear | `inventory.go`, `inventory_handle.go`, `itemnouns.go` (`FindItemNoun`, plan 5a), `worn.go`, `hand_slots.go`, `anatomy.go`, `masterwork.go`, `migrate_enchantments.go`, `migrate_detuned_bows.go` |
 | Combat | `combat.go`, `combat_tokens.go`, `position_predicates.go`, `taunt_hold.go`, `submission_policy.go`, `die.go`, `respawn_home.go`, `engagement_storage.go` (was `combat_state_compat.go`; renamed by U12c-2 when the struct it kept compatible was deleted) |
 | Casting | `cast_helpers.go`, `spells.go` |
 | Mutation | `intrinsic.go`, `bloom.go`, `bloom_mutation.go`, `chrysifier.go`, `mutation_scour.go` |
