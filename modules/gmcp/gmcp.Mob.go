@@ -809,7 +809,7 @@ func listBehaviorArchetypeFiles() []string {
 // ---- Worn slot mapping ----
 // wornToMap / mapToWornPreserving / wornSlotNames all derive from
 // characters.Worn's AllSlots() — the package's single source of truth for the
-// equipment slot list (25 slots as of the lighting plan 5a light slot:
+// equipment slot list (26 slots as of the lighting plan 5a light slot:
 // weapon, offhand, extraarm1-4, head, neck, shoulders, body, back, belt,
 // wrist1/2, extrawrist1-4, gloves, ring, ring2, legs, feet, tail,
 // componentbag, light).

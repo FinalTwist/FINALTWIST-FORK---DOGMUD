@@ -465,9 +465,10 @@ func (c *Character) wearWeaponOrShield(i items.Item, spec items.ItemSpec, iHands
 }
 
 // wearArmorSlot handles placement for non-weapon equipment (armor, rings, wrists,
-// back, shoulders, component bag, tail). Returns the same tuple as Wear.
-// Does NOT call reapplyPermanentConditions — the caller handles that (to preserve the
-// pre-refactor semantics where reapplyPermanentConditions is called with returnItems).
+// back, shoulders, component bag, tail, light). Returns the same tuple as Wear.
+// Does NOT call reapplyPermanentConditions: Wear calls it after the
+// reservation check passes, so a refused equip never refreshes against a
+// placement it is about to revert.
 func (c *Character) wearArmorSlot(i items.Item, spec items.ItemSpec) (returnItems []items.Item, newItemWorn bool, failureReason string) {
 	switch spec.Type {
 	case items.Head:

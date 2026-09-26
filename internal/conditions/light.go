@@ -74,8 +74,8 @@ func (b *Condition) SetLightOutput(out float64) {
 
 // ResetLight returns the record to full strength with any hood open: a fresh
 // cast, a fresh equip, or unhood. Only AddConditionMagnitude calls it
-// automatically. An equip path must call it itself (the equip path in a
-// later lighting task does), and a plain AddCondition that revives an
+// automatically. An equip path must call it itself (Character.Wear in
+// internal/characters/worn.go does), and a plain AddCondition that revives an
 // expired-but-unpruned record keeps that record's old hood and trim.
 func (b *Condition) ResetLight() {
 	b.LightTrim, b.LightOutput, b.Hooded = LightFull, 0, false

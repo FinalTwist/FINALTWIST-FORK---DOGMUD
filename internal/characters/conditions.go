@@ -205,58 +205,58 @@ func (c *Character) RemovePermanentCondition(conditionId int) {
 }
 
 // reapplyPermanentConditions refreshes item, species, pet and permanent
-// conditions against what the character wears NOW. It counts only items still
-// on the body, so an item already taken off drops its conditions by being
-// absent. It once also subtracted the caller's removed items, which counted
-// them twice: swapping an item for another granting the same condition (a
-// lantern for a lantern) dropped the condition both items grant.
+// conditions against what the character has NOW. It builds one map of
+// condition id to "this condition still has a source": the permanent-id list,
+// the species, the pet and every item still worn set true. Every permanent
+// record already held is entered false unless something sourced it, so a
+// permanent record nothing grants any more is removed. That covers a record
+// whose item was taken off, and one whose item yaml changed under a save and
+// no longer grants it. Every id with a source is (re)added.
 func (c *Character) reapplyPermanentConditions() {
 
-	conditionIdCount := map[int]int{}
+	hasSource := map[int]bool{}
 
+	// Permanent conditions associated with certain mobs.
 	for _, conditionId := range c.permanentConditionIds {
-		conditionIdCount[conditionId] = 100 // Special case permanent conditions associated with certain mobs
+		hasSource[conditionId] = true
 	}
 
-	// Apply any conditions that come from a species
+	// Conditions that come from a species.
 	if rInfo := species.GetSpecies(c.SpeciesId); rInfo != nil {
 		for _, conditionId := range rInfo.ConditionIds {
-			conditionIdCount[conditionId] = 100 // Don't allow species conditions to be removed, keep this number high
+			hasSource[conditionId] = true
 		}
 	}
 
-	// Apply any conditions from pet
+	// Conditions that come from a pet.
 	if c.Pet.Exists() {
 		for _, conditionId := range c.Pet.GetConditions() {
-			conditionIdCount[conditionId] = 100 // Don't allow pet conditions to be removed, keep this number high
+			hasSource[conditionId] = true
 		}
 	}
 
-	// Track any conditions that come from an item
-	// If these don't show up as still being required by an item (such as a yaml file was changed)
-	// This will cause them to be removed.
+	// Permanent records with no source so far default to false, so they are
+	// removed unless a worn item below still grants them.
 	for _, b := range c.Conditions.List {
 		if b.Permanent {
-			if _, ok := conditionIdCount[b.ConditionId]; !ok {
-				conditionIdCount[b.ConditionId] = 0
+			if _, ok := hasSource[b.ConditionId]; !ok {
+				hasSource[b.ConditionId] = false
 			}
 		}
 	}
 
-	// Make a list of all item conditions provided by existing worn items
+	// Conditions granted by items still worn.
 	for _, itm := range c.GetAllWornItems() {
-		spec := itm.GetSpec()
-		for _, conditionId := range spec.WornConditionIds {
-			conditionIdCount[conditionId] = conditionIdCount[conditionId] + 1
+		for _, conditionId := range itm.GetSpec().WornConditionIds {
+			hasSource[conditionId] = true
 		}
-
 	}
 
-	for conditionId, ct := range conditionIdCount {
-		if ct < 1 {
-			c.RemoveCondition(conditionId)
-		} else {
+	for conditionId, sourced := range hasSource {
+		if sourced {
 			_ = c.AddCondition(conditionId, true)
+		} else {
+			c.RemoveCondition(conditionId)
 		}
 	}
 }
