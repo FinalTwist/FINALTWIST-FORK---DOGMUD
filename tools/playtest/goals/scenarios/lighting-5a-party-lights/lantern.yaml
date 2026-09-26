@@ -1,0 +1,35 @@
+# Lighting 5a party-lights: the OIL LANTERN bearer. You are Ordel Quist,
+# starting at the Cliff Base (3100) with an Oil Lantern (40038) already in your
+# light slot. A plain oil lantern always burns at full strength; it never trims.
+# Do NOT drink the draught in your pack: it changes your eyes and voids the lane.
+# Quote every line VERBATIM. 3 commands per round on the AI port.
+
+ephemeral:
+  profile: m2-witness
+  start_room: 3100
+  overlays:
+    equip:
+      light: 40038
+  budgets:
+    wall_clock: 25m
+
+goals:
+  - >-
+    confirm-start: type `look`, `time` and `equipment`. Record the hour. VERIFY
+    the lantern shows in your light slot. Quote any dazzle line: under a summer
+    noon sky a lantern may dazzle; at night it must not.
+  - >-
+    enter-in-order: after Fold Adept has gone east and cast glow, go `east`
+    and `look`. The oil lantern adds a little on top of the glow. Quote it.
+  - >-
+    hood-and-unhood: watch Sil `hood` and `unhood`; quote every line you see
+    and `look` after each.
+  - >-
+    re-entry: go `west` when told, then back `east` for cancel-glow.
+  - >-
+    cancel-glow: when Fold Adept types `cancel glow`, `look` at once and again
+    a round later. Report what you see; your own lantern should still light
+    the room.
+  - >-
+    reads-well: report anything repeated, machine-made, raw-numbered, or wider
+    than 80 columns.

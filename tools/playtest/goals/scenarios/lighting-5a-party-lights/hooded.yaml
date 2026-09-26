@@ -1,0 +1,37 @@
+# Lighting 5a party-lights: the HOODED LANTERN bearer. You are Sil Vantage,
+# starting at the Cliff Base (3100) with a Hooded Lantern (20097) already in
+# your light slot. It is ADJUSTABLE: it trims to your eyes on each room ENTRY
+# only; `hood` shuts it off; `unhood` opens it at full strength until you next
+# move. Trims are silent by design. Quote every line VERBATIM.
+
+ephemeral:
+  profile: m2-actor
+  start_room: 3100
+  overlays:
+    equip:
+      light: 20097
+  budgets:
+    wall_clock: 25m
+
+goals:
+  - >-
+    confirm-start: type `look`, `time` and `equipment`. Record the hour and any
+    dazzle line.
+  - >-
+    enter-in-order: go `east` LAST, after Fold Adept and Ordel are in the Cave
+    Mouth. `look`. The room was already bright, so your lantern should have
+    trimmed to nothing. Ask the others whether the room got brighter.
+  - >-
+    hood-and-unhood: type `hood`, quote the line, `look`; then `unhood`, quote
+    the line, `look`. Ask the others what they saw.
+  - >-
+    re-entry: go `west`. When Fold Adept is back in the cave alone, go `east`
+    and `look`. When Fold Adept then leaves west, `look` again: THE DESIGNED
+    CONSEQUENCE is that the cave goes dark, because your lantern trimmed to
+    nothing on entry and does not re-trim. Record it exactly. Then `unhood`
+    and `look`: it should relight at full.
+  - >-
+    cancel-glow: type `hood` before Fold Adept cancels, then watch and `look`.
+  - >-
+    reads-well: report anything repeated, machine-made, raw-numbered, or wider
+    than 80 columns.

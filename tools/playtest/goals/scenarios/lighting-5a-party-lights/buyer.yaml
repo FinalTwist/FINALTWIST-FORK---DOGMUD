@@ -1,0 +1,27 @@
+# Lighting 5a party-lights: the BUYER (content gate). You are Midroad Scout,
+# starting in Coulee Provisions (room 5207) with Trader Onna and 200 gold. You
+# work alone. Read every line as a confused new player would. Quote VERBATIM.
+
+ephemeral:
+  profile: mid
+  start_room: 5207
+  overlays:
+    set_gold: 200
+  budgets:
+    wall_clock: 25m
+
+goals:
+  - >-
+    Type `look` and `list`. If Onna is asleep or `list` fails, `shout` to wake
+    her and record it. Note the item names and whether any price or line reads
+    oddly.
+  - >-
+    `buy torch`, `buy hooded lantern` (use the names `list` shows). `equip
+    torch`, `look torch`, `remove torch`. Quote every line.
+  - >-
+    `equip lantern`, `look lantern` (the hood noun must be highlighted), `look
+    hood`, `hood`, `unhood`. Quote every line.
+  - >-
+    `help light`, `help hood`, `help seasons`, `help moons`, `help
+    chrysalis-glow`, `help cancel`, `help equipment`. Report anything
+    confusing, mis-rendered, over 80 columns, or showing a raw number.
