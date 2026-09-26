@@ -1,0 +1,40 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="command">light</ansi>
+
+What you can see depends on the light where you stand and on your own
+eyes. In good light you read faces and details. In dim light you make
+out only shapes, and cannot tell who is who. In darkness you see
+nothing at all. Light that is too bright dazzles you.
+
+<ansi fg="yellow">Where light comes from</ansi>
+
+  The sun by day, the moons by night, the lamps of towns and taverns,
+  and anything the people around you carry. Trees, roofs and rock
+  shut out the sky, and cloud, rain and storms dim it.
+
+<ansi fg="yellow">Carrying a light</ansi>
+
+  Everyone has a light slot. Equip a candle, a lantern or a torch
+  there and it burns until you take it off. A candle shows you shapes
+  in the dark; a lantern or a torch shows you faces. Every light adds
+  to the others in the room, but a second light adds less than the
+  first did.
+
+  A plain lantern or torch always burns at full strength. Out of doors
+  near a summer noon that is too much, and it will dazzle you.
+
+<ansi fg="yellow">Lights that adjust</ansi>
+
+  The Chrysalis Glow spell and the hooded lantern trim themselves to
+  your eyes each time you walk into a new place, so they never dazzle
+  you there. Nothing else trims them: if the light changes around you,
+  yours stays as it was until you move.
+
+  A fresh glow, a light you have just equipped, or a hood you have
+  just opened starts at full strength. A strong enough light can
+  dazzle creatures whose eyes are made for the dark.
+
+  Use <ansi fg="command">hood</ansi> to close a hooded lantern and <ansi fg="command">unhood</ansi> to open it. A closed
+  hood gives no light, and you are harder to spot behind it.
+
+<ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help chrysalis-glow</ansi>, <ansi fg="command">help hood</ansi>, <ansi fg="command">help weather</ansi>,
+  <ansi fg="command">help seasons</ansi>, <ansi fg="command">help moons</ansi>, <ansi fg="command">help biome</ansi>, <ansi fg="command">help equipment</ansi>

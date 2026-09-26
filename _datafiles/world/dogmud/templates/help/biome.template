@@ -4,6 +4,9 @@ The <ansi fg="command">biome</ansi> tells you a little bit about the biome you a
 
 Different biomes have risks or benefits associated with them.
 
+Some places are open to the sky, some are shaded by trees, and some
+are roofed or underground. See <ansi fg="command">help light</ansi>.
+
 <ansi fg="yellow">Usage: </ansi>
 
   <ansi fg="command">biome</ansi>

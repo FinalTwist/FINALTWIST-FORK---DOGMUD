@@ -7,9 +7,12 @@ stand, including any weather system moving through the area.
 
   <ansi fg="command">weather</ansi>   Report the local weather conditions.
 
-Weather moves across the world as fronts — a storm born over open
+Weather moves across the world as fronts. A storm born over open
 water may roll inland, batter the coast, and spend itself against
 the mountains. Watch room descriptions, listen for it on the roof,
 and plan your travels accordingly.
 
-<ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help biome</ansi>
+Cloud, rain, snow and storms dim the light of the sun and the moons.
+
+<ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help biome</ansi>, <ansi fg="command">help light</ansi>, <ansi fg="command">help seasons</ansi>,
+<ansi fg="command">help moons</ansi>
