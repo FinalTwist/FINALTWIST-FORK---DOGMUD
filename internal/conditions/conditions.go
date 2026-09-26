@@ -33,6 +33,14 @@ type Condition struct {
 	// Stacks holds a stacking record's applications, each with its own
 	// timer. Empty for every other record. See stacks.go.
 	Stacks []Stack `yaml:"stacks,omitempty"`
+
+	// Light-source state (lighting plan 5a), meaningful only on a record whose
+	// spec declares light_strength. See light.go. The worn-item refresh
+	// re-adds a held record without touching these, so a trim survives an
+	// unrelated equipment change.
+	LightTrim   LightTrim `yaml:"lighttrim,omitempty"`
+	LightOutput float64   `yaml:"lightoutput,omitempty"`
+	Hooded      bool      `yaml:"hooded,omitempty"`
 }
 
 func (b *Condition) StatMod(statName string) int {
@@ -351,9 +359,15 @@ func (bs *Conditions) AddConditionMagnitude(conditionId int, triggers int, magni
 		bs.List[idx].TriggersLeft = triggers
 	}
 	bs.List[idx].Magnitude = magnitude
-	if spec := GetConditionSpec(conditionId); spec != nil && spec.TickFromMagnitude {
-		// The magnitude IS the signed per-round amount; see tickAmountFor.
-		bs.List[idx].TickAmount = tickAmountFor(magnitude)
+	if spec := GetConditionSpec(conditionId); spec != nil {
+		if spec.TickFromMagnitude {
+			// The magnitude IS the signed per-round amount; see tickAmountFor.
+			bs.List[idx].TickAmount = tickAmountFor(magnitude)
+		}
+		if spec.IsLightSource() {
+			// A fresh magnitude is a fresh cast: full strength, hood open.
+			bs.List[idx].ResetLight()
+		}
 	}
 	return true
 }

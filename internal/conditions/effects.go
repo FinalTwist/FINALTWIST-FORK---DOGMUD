@@ -2,6 +2,7 @@ package conditions
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 )
@@ -27,13 +28,19 @@ const (
 	// reads shapes. Independent of strength: a creature can sense heat deeply
 	// while being no better than anyone else at using faint light.
 	EffectInfraReach EffectKind = `infra_reach`
+	// EffectLightStrength is a light source's full strength on the light
+	// scale: a literal for an item, "magnitude" for a spell cast at a scaled
+	// strength (lighting plan 5a). It is NOT aggregated through Effect():
+	// every held light record is its own term in the room's combine, read
+	// through Conditions.LightSources. See light.go.
+	EffectLightStrength EffectKind = `light_strength`
 )
 
 // AllEffectKinds is the closed set, for validation and docs.
 var AllEffectKinds = []EffectKind{
 	EffectDamageMult, EffectDefenseMult, EffectDodgeMult, EffectRegenMult,
 	EffectMitigationFlat, EffectPoolMaxPct, EffectAttacksCap,
-	EffectNightVisionStrength, EffectInfraReach,
+	EffectNightVisionStrength, EffectInfraReach, EffectLightStrength,
 }
 
 func (k EffectKind) isMultiplier() bool {
@@ -115,6 +122,14 @@ func (b *ConditionSpec) validateEffects() error {
 			return fmt.Errorf("conditionId %d (%s) declares unknown effect %q; see conditions.AllEffectKinds", b.ConditionId, b.Name, k)
 		}
 	}
+	if v, ok := b.Effects[EffectLightStrength]; ok && !v.UsesMagnitude && v.Literal <= 0 {
+		return fmt.Errorf("conditionId %d (%s) declares light_strength %v; a light must be brighter than nothing", b.ConditionId, b.Name, v.Literal)
+	}
+	if slices.Contains(b.Flags, Adjustable) {
+		if _, ok := b.Effects[EffectLightStrength]; !ok {
+			return fmt.Errorf("conditionId %d (%s) is adjustable but declares no light_strength", b.ConditionId, b.Name)
+		}
+	}
 	if b.TickFromMagnitude {
 		if b.TickPool == "" {
 			return fmt.Errorf("conditionId %d (%s) sets tick_from_magnitude without tick_pool", b.ConditionId, b.Name)
@@ -134,6 +149,10 @@ func (b *ConditionSpec) validateEffects() error {
 // combat was its first reader, and optics (the vision window) is now another.
 // It never calls HasFlag with expire=true, which mutates.
 func (bs *Conditions) Effect(kind EffectKind) float64 {
+	if kind == EffectLightStrength {
+		// Per-record, never aggregated: see LightSources.
+		return 0
+	}
 	product := 1.0
 	sum := 0.0
 	capValue := 0.0
