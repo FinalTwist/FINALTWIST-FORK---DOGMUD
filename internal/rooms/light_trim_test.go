@@ -4,7 +4,9 @@ import (
 	"math"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -87,8 +89,9 @@ func TestTrimSolvesTheCombineInALitRoom(t *testing.T) {
 	}
 }
 
-func TestHoodedAndNonAdjustableSourcesDoNotTrim(t *testing.T) {
+func TestAHoodedSourceIsNotTrimmed(t *testing.T) {
 	a, _ := seedTrimFixture(t)
+	requireBiome(t, "cave")
 	room := &Room{RoomId: 7724, Biome: "cave"}
 	room.AddPlayer(a.UserId)
 	rec := a.Character.Conditions.LightSources()[0]
@@ -152,6 +155,55 @@ func TestANonAdjustableSourceIsLeftAlone(t *testing.T) {
 	}
 	if got := room.LightLevel(); got != 56 {
 		t.Errorf("cave with a full torch = %d, want 56", got)
+	}
+}
+
+// A source too weak to reach the target runs uncut: it is at full strength,
+// and its record says so rather than calling it trimmed.
+func TestAnUncutSourceStaysFull(t *testing.T) {
+	withShippedBiomesAndClock(t)
+	requireBiome(t, "cave")
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		trimGlowId: {ConditionId: trimGlowId, Name: "Test Glow", TriggerCount: 4, RoundInterval: 1,
+			Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectLightStrength: {UsesMagnitude: true}},
+			Flags:   []conditions.Flag{conditions.Adjustable}},
+	}))
+	u := users.NewTestUser(7728, "dima", "Dima", 97728)
+	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{7728: u}))
+	u.Character.Conditions.AddConditionMagnitude(trimGlowId, 4, 54)
+
+	room := &Room{RoomId: 7729, Biome: "cave"}
+	room.AddPlayer(u.UserId)
+	room.TrimLightFor(u.Character)
+
+	rec := u.Character.Conditions.LightSources()[0]
+	if rec.LightTrim != conditions.LightFull {
+		t.Errorf("a source below target trimmed to %q, want full", rec.LightTrim)
+	}
+	if got := room.LightLevel(); got != 54 {
+		t.Errorf("cave with an uncut 54 glow = %d, want 54", got)
+	}
+}
+
+// AddMob is the other seam: a mob walking into a dark cave with a full glow
+// arrives with it trimmed to its eyes.
+func TestAddMobTrimsTheArrivalsLight(t *testing.T) {
+	seedTrimFixture(t)
+	requireBiome(t, "cave")
+
+	const instId = 7740
+	m := &mobs.Mob{MobId: 7741, InstanceId: instId, Character: characters.Character{Name: "glowmob", RoomId: trimFromRoom, Conditions: conditions.New()}}
+	m.Character.Conditions.AddConditionMagnitude(trimGlowId, 4, 90)
+	t.Cleanup(mobs.SeedMobsForTest(map[int]*mobs.Mob{}, map[int]*mobs.Mob{instId: m}))
+
+	rec := m.Character.Conditions.LightSources()[0]
+	if v, ok := rec.LightNow(conditions.GetConditionSpec(rec.ConditionId)); !ok || math.Abs(v-90) > 1e-9 {
+		t.Fatalf("mob glow before entry = (%v, %v), want full strength 90", v, ok)
+	}
+	room := &Room{RoomId: trimToRoom, Biome: "cave"}
+	room.AddMob(instId)
+	if v, ok := rec.LightNow(conditions.GetConditionSpec(rec.ConditionId)); !ok || math.Abs(v-74) > 1e-9 {
+		t.Errorf("mob glow after entering the cave = (%v, %v), want 74", v, ok)
 	}
 }
 
