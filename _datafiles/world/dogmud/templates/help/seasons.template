@@ -1,0 +1,17 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="command">seasons</ansi>
+
+The year turns through four seasons. In summer the days are long, the
+sun climbs high and the nights are short. In winter the sun stays low,
+the days are short and the nights are long, far longer than a summer
+night. Spring and autumn sit between.
+
+A higher sun gives brighter days. Even at noon a winter sun lights the
+open ground less than a summer one, and under deep trees the
+difference can be enough to hide faces. Near a summer noon the open
+sky is bright enough that a lantern or torch carried under it will
+dazzle you.
+
+Weather dims the sky in any season, and a roof, a canopy or rock shuts
+it out altogether.
+
+<ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help light</ansi>, <ansi fg="command">help moons</ansi>, <ansi fg="command">help weather</ansi>, <ansi fg="command">help biome</ansi>

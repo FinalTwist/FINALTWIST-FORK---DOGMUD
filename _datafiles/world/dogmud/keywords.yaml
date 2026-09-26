@@ -133,6 +133,7 @@ help:
       - gearup
       - get
       - give
+      - hood
       - loot
       - put
       - read
@@ -161,6 +162,9 @@ help:
       - quit
       - scan
       - suggest
+      - light
+      - moons
+      - seasons
     parties:
       - party
       - share
@@ -296,6 +300,10 @@ help-aliases:
   instances:        [instance, rift, rifts, riftkeeper, portal, portals, instanced]
   arena:            [arena instance, pit, fighting pit, gauntlet]
   oasis:            [oasis instance, planar oasis, elemental oasis, cube, elemental cube]
+  light:            [lighting, lantern, lanterns, torch, torches, candle, candles,
+                     dazzle, dazzled, dark, darkness]
+  seasons:          [season, winter, summer, spring, autumn, calendar]
+  moons:            [moon, swiftmoon, wanderer, eye]
 
 # Default aliases for commands
 # For example: inv -> inventory

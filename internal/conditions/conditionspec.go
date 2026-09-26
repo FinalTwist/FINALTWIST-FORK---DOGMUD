@@ -63,7 +63,6 @@ const (
 	// Useful flags
 	Hidden         Flag = `hidden`
 	Sleeping       Flag = `sleeping` // chunk 3.3: bearer is asleep
-	EmitsLight     Flag = `lightsource`
 	SuperHearing   Flag = `superhearing`
 	NightVision    Flag = `nightvision`
 	InfraredVision Flag = `infraredvision`
@@ -104,6 +103,14 @@ const (
 	// Meant for the bleed record (122).
 	Stacking Flag = `stacking`
 
+	// Adjustable marks a light source that trims itself to its bearer's eyes
+	// each time the bearer enters a room (lighting plan 5a). It requires the
+	// light_strength effect.
+	Adjustable Flag = `adjustable`
+	// Cancellable marks a condition its holder may end early with
+	// `cancel <spell>`. Opt-in: the Cat's Eye Draught is ruled uncancellable.
+	Cancellable Flag = `cancellable`
+
 	// Arbitrarily chosen round for calculating trigger round counts
 	validationRound = 1000000
 )
@@ -132,7 +139,6 @@ var AllFlags = []Flag{
 	PoisonImmunity,
 	Hidden,
 	Sleeping,
-	EmitsLight,
 	SuperHearing,
 	NightVision,
 	InfraredVision,
@@ -151,6 +157,8 @@ var AllFlags = []Flag{
 	Bleeding,
 	Quiet,
 	Stacking,
+	Adjustable,
+	Cancellable,
 }
 
 var (
@@ -234,6 +242,12 @@ func (b *ConditionSpec) GetValue() int {
 // ruling 2026-09-14: shown in neither list, not as "Mysterious Affliction").
 func (b *ConditionSpec) Listed() bool {
 	return !b.Secret && !slices.Contains(b.Flags, Hidden)
+}
+
+// IsLightSource reports whether a record of this spec sheds light.
+func (b *ConditionSpec) IsLightSource() bool {
+	_, ok := b.Effects[EffectLightStrength]
+	return ok
 }
 
 type ConditionMessage struct {

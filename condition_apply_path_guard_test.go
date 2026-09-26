@@ -29,6 +29,7 @@ var (
 	_ func(int, float64, string)            = (*users.UserRecord)(nil).AddConditionScaled
 	_ func(int, int, float64, string)       = (*users.UserRecord)(nil).AddConditionMagnitude
 	_ func(int, string)                     = (*mobs.Mob)(nil).AddCondition
+	_ func(int, int, float64, string)       = (*mobs.Mob)(nil).AddConditionMagnitude
 	_ func(int, string)                     = (*actions.UserActor)(nil).AddCondition
 	_ func(int, string)                     = (*actions.MobActor)(nil).AddCondition
 )
@@ -50,11 +51,14 @@ var (
 //
 //	users.UserRecord.AddCondition(conditionId int, source string)
 //	users.UserRecord.AddConditionScaled(conditionId int, durationMult float64, source string)
+//	users.UserRecord.AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
 //	mobs.Mob.AddCondition(conditionId int, source string)
+//	mobs.Mob.AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
 //	actions.Actor.AddCondition(conditionId int, source string)   // UserActor + MobActor
 //
 //	characters.Character.AddCondition(conditionId int, isPermanent bool)      // silent
 //	characters.Character.AddConditionScaled(conditionId int, durationMult float64) // silent
+//	characters.Character.AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string) // silent
 //	conditions.Conditions.AddCondition / AddConditionScaled                  // silent
 //
 // A call passes when its ARITY and its final argument both fit the event-path
@@ -76,10 +80,11 @@ var (
 // appears, either route it through the event path or record why it cannot
 // be.
 //
-// Character.AddConditionMagnitude and UserRecord.AddConditionMagnitude share
-// one four-argument shape ending in a source string, so arity cannot tell
-// the silent character door from the event-queuing user door apart the way
-// it does for AddCondition/AddConditionScaled; isEventPathCall reads every
+// Character.AddConditionMagnitude, UserRecord.AddConditionMagnitude and
+// Mob.AddConditionMagnitude share one four-argument shape ending in a source
+// string, so arity cannot tell the silent character door from the
+// event-queuing user and mob doors apart the way it does for
+// AddCondition/AddConditionScaled; isEventPathCall reads every
 // AddConditionMagnitude call as a direct add, the safe reading, and every
 // former-condition producer site OUTSIDE the primitive packages is
 // allowlisted by hand with a reason worded like "former combat condition
@@ -91,7 +96,10 @@ var (
 // producers inside it, the prone-recovery
 // AddConditionMagnitude(conditions.ConditionIdRecovering, ...) calls in
 // internal/characters/skills.go (lines 76, 99, 103), never reach this walk
-// and carry no allowlist entry.
+// and carry no allowlist entry. The allowlist also records EVENT-door
+// magnitude calls, which narrate correctly and are listed only because
+// arity cannot tell them from the silent door: see the light-spell entry
+// for internal/hooks/light_spell.go.
 var conditionApplyPathAllowlist = map[string]string{
 	// ── The sanctioned consumer of the event ────────────────────────────────
 	"internal/hooks/Condition_ApplyConditions.go|103": "this IS the hook the event feeds; it is where every routed condition is finally applied",
@@ -182,6 +190,14 @@ var conditionApplyPathAllowlist = map[string]string{
 	// shift as above) ──────────────────────────────────────────────────────
 	"internal/hooks/spell_resolution.go|663":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 	"internal/hooks/spell_resolution.go|1679": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+
+	// ── light spells (lighting plan 5a): an EVENT door, not the silent
+	// character door. applySpellCondition's target is a spellConditionTarget,
+	// which the silent Character door cannot satisfy (its
+	// AddConditionMagnitude returns an error); its implementers are
+	// *users.UserRecord and *mobs.Mob, both of which queue events.Condition,
+	// so Condition_ApplyConditions runs and narrates the start ─────────────
+	"internal/hooks/light_spell.go|53": "light spell at the caster's scaled magnitude and triggers: the EVENT door (users.UserRecord / mobs.Mob AddConditionMagnitude both queue events.Condition); listed only because arity cannot tell it from the silent character door",
 
 	// ── former combat condition: Bleeding is now one stacking record (Task 9;
 	// re-keyed slice 1b; re-keyed again counters slice Task 3 when the

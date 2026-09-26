@@ -1,0 +1,38 @@
+# Lighting 5a party-lights: the GLOW caster. You are Fold Adept, starting at the
+# Cliff Base (3100) with the Chrysalis Glow spell and NO item light. Your glow
+# is ADJUSTABLE: it trims to your eyes each time you ENTER a room, and a fresh
+# cast is full strength until you next move. Quote every line VERBATIM.
+# 3 commands per round on the AI port; the overflow is dropped.
+
+ephemeral:
+  profile: specialist-caster
+  start_room: 3100
+  overlays:
+    grant_spells:
+      chrysalis-glow: 1
+  budgets:
+    wall_clock: 25m
+
+goals:
+  - >-
+    confirm-start: type `look` and `time`. Record the hour and any dazzle or
+    light line.
+  - >-
+    enter-in-order: type `cast glow` and quote every cast line. Then `east`
+    into the Cave Mouth FIRST and `look`. VERIFY you can read the room and see
+    faces. After Ordel enters, `look` again: VERIFY your view did not change.
+    After Sil enters, `look` again and say whether the room got brighter.
+  - >-
+    hood-and-unhood: watch Sil `hood` and `unhood`; quote every line you see
+    and `look` after each.
+  - >-
+    re-entry: after the others go west, go `west` then `east` alone and
+    `look`. VERIFY the cave is lit at your own trim (readable, not dazzling).
+    When Sil has come back east, go `west` and stay there until told.
+  - >-
+    cancel-glow: back in 3101 with the others, type `cancel glow`. VERIFY you
+    read "You let the spell go." and, a round later, "Your glow fades away."
+    `look` at once and report whether the room darkened.
+  - >-
+    reads-well: report anything repeated, machine-made, raw-numbered, or wider
+    than 80 columns.

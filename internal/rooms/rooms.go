@@ -9,7 +9,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/audio"
 	"github.com/GoMudEngine/GoMud/internal/characters"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
@@ -54,7 +53,6 @@ const (
 	FindMerchant       FindFlag = 0b00000100000 // is a merchant
 	FindDowned         FindFlag = 0b00001000000 // hp < 1
 	FindWithConditions FindFlag = 0b00010000000 // has a condition
-	FindHasLight       FindFlag = 0b00100000000 // has a light source
 	FindHasPet         FindFlag = 0b01000000000 // has a pet
 	FindNative         FindFlag = 0b10000000000 // spawns in this room
 
@@ -1180,6 +1178,9 @@ func (r *Room) AddMob(mobInstanceId int) {
 
 	r.mobs = append(r.mobs, mobInstanceId)
 
+	// Lighting plan 5a: see MoveToRoom.
+	r.TrimLightFor(&mob.Character)
+
 	roomManager.roomsWithMobs[r.RoomId] = len(r.mobs)
 }
 
@@ -1640,11 +1641,6 @@ func (r *Room) GetMobs(findTypes ...FindFlag) []int {
 			}
 		}
 
-		if typeFlag&FindHasLight == FindHasLight && mob.Character.HasFlagFromAnySource(conditions.EmitsLight) {
-			mobMatches = append(mobMatches, mobId)
-			continue
-		}
-
 		// Useful to find any mobs that will always attack players
 		if mob.AutoAggro && typeFlag&FindHostile == FindHostile {
 			mobMatches = append(mobMatches, mobId)
@@ -1734,11 +1730,6 @@ func (r *Room) GetPlayers(findTypes ...FindFlag) []int {
 				playerMatches = append(playerMatches, userId)
 				continue
 			}
-		}
-
-		if typeFlag&FindHasLight == FindHasLight && user.Character.HasFlagFromAnySource(conditions.EmitsLight) {
-			playerMatches = append(playerMatches, userId)
-			continue
 		}
 
 		isCharmed = user.Character.IsCharmed()

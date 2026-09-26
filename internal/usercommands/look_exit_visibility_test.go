@@ -49,7 +49,7 @@ func TestLookExit_RoomOnlyLightBlocksExitPeering(t *testing.T) {
 			Name:          "Test Torch",
 			RoundInterval: 1,
 			TriggerCount:  1,
-			Flags:         []conditions.Flag{conditions.EmitsLight},
+			Effects:       map[conditions.EffectKind]conditions.EffectValue{conditions.EffectLightStrength: {Literal: 50}},
 		},
 	})
 	defer restoreConditions()

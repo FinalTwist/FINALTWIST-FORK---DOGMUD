@@ -519,6 +519,7 @@ func (c *Character) FindItem(itemName string) (items.Item, string, bool) {
 		{c.Equipment.Feet, "worn - feet"},
 		{c.Equipment.Tail, "worn - tail"},
 		{c.Equipment.ComponentBag, "worn - componentbag"},
+		{c.Equipment.Light, "worn - light"},
 	}
 	for _, slot := range slotItems {
 		if slot.item.ItemId > 0 {

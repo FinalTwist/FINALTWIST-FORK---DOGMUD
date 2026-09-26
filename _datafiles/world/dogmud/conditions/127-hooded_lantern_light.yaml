@@ -1,0 +1,10 @@
+conditionid: 127
+name: Hooded Lantern Light
+description: Your hooded lantern trims its light to your eyes.
+secret: true
+triggerrate: 5 real minutes
+triggercount: 1
+effects:
+  light_strength: 54
+flags:
+  - adjustable

@@ -4,5 +4,5 @@ description: Light surrounds you.
 secret: false
 triggerrate: 5 real minutes
 triggercount: 1
-flags:
-  - lightsource
+effects:
+  light_strength: 50

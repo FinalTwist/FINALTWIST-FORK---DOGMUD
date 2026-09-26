@@ -1,0 +1,76 @@
+# Lighting plan 5a, Task 16: carried light in a party, plus the content gate.
+#
+# Room 3100 Cliff Base (cliffs biome, open sky) and room 3101 Cave Mouth (cave
+# biome, unlit), Ironwind Steppe. Three light bearers enter the cave in a fixed
+# order so the entry-order trim rule can be read off each `look`. The buyer
+# runs the shop and help content gate independently at Trader Onna (room 5207).
+#
+# Profiles differ per actor ONLY so each character has a distinct name in the
+# room roster; m2-actor used four times would put four "Sil Vantage"s in one
+# room. All four are human (speciesid 1) with no sight conditions.
+name: lighting-5a-party-lights
+mode: party
+summary: >-
+  A glow caster, an oil lantern bearer and a hooded lantern bearer walk into an
+  unlit cave in order and report how the light composes and trims; a buyer
+  checks the new light items, the hood and the new help pages.
+on_actor_stop: continue
+budgets:
+  wall_clock: 25m
+requires:
+  max_connections: 20
+roster:
+  - id: glow
+    personality: bug-finder
+    goals: goals/scenarios/lighting-5a-party-lights/glow.yaml
+  - id: lantern
+    personality: bug-finder
+    goals: goals/scenarios/lighting-5a-party-lights/lantern.yaml
+  - id: hooded
+    personality: bug-finder
+    goals: goals/scenarios/lighting-5a-party-lights/hooded.yaml
+  - id: buyer
+    personality: bug-finder
+    goals: goals/scenarios/lighting-5a-party-lights/buyer.yaml
+
+group_goals:
+  - id: confirm-start
+    do: Glow, lantern and hooded each type `look` and `time` in 3100.
+    verify: >-
+      Everyone reads the Cliff Base. Record the hour. By day near summer noon
+      the lantern bearer may see a dazzle notice; at night nobody should.
+  - id: enter-in-order
+    do: >-
+      Glow types `cast glow` in 3100, then `east` FIRST and `look`. Then
+      lantern goes `east`; glow and lantern `look`. Then hooded goes `east`;
+      all three `look`.
+    verify: >-
+      Glow reads the Cave Mouth with faces. Glow's view does not change when
+      lantern enters (the oil lantern burns full and may add a little). Hooded's
+      lantern trims to nothing on entry: the room does not get brighter when
+      hooded enters. Trims are silent.
+  - id: hood-and-unhood
+    do: Hooded types `hood`, everyone `look`s, then hooded types `unhood`.
+    verify: >-
+      Every actor sees the hood line. With glow and oil lantern still burning
+      the room stays lit. `unhood` opens at full strength, which may dazzle.
+  - id: re-entry
+    do: >-
+      Lantern and hooded go `west`. Glow goes `west` then `east` alone and
+      `look`s. Hooded goes `east` (glow present), then glow goes `west`, and
+      hooded `look`s. Hooded then types `unhood` and `look`s.
+    verify: >-
+      Glow alone in 3101 is lit at their own trim. Hooded's lantern trimmed to
+      nothing on entry because glow already lit the room; when glow leaves the
+      cave goes dark around hooded (designed: a source already in the room does
+      not re-trim). `unhood` relights it at full.
+  - id: cancel-glow
+    do: All three gather in 3101 with hooded's lantern hooded; glow types `cancel glow`.
+    verify: >-
+      Glow reads "You let the spell go." then "Your glow fades away." a round
+      later. The room darkens at once for everyone except what the oil lantern
+      still lights.
+  - id: reads-well
+    do: Everyone judges every line as prose.
+    verify: >-
+      Nothing repeated, machine-made, raw-numbered or wider than 80 columns.

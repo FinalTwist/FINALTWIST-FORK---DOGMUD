@@ -166,7 +166,7 @@ func (c *Character) GetPhysicalMitigation() float64 {
 		c.Equipment.ExtraWrist3, c.Equipment.ExtraWrist4,
 		c.Equipment.Gloves, c.Equipment.Ring, c.Equipment.Ring2,
 		c.Equipment.Legs, c.Equipment.Feet, c.Equipment.Tail,
-		c.Equipment.ComponentBag,
+		c.Equipment.ComponentBag, c.Equipment.Light,
 	}
 	for _, slot := range slots {
 		if slot.ItemId <= 0 {
@@ -211,7 +211,7 @@ func (c *Character) GetMagicalMitigation() float64 {
 		c.Equipment.ExtraWrist3, c.Equipment.ExtraWrist4,
 		c.Equipment.Gloves, c.Equipment.Ring, c.Equipment.Ring2,
 		c.Equipment.Legs, c.Equipment.Feet, c.Equipment.Tail,
-		c.Equipment.ComponentBag,
+		c.Equipment.ComponentBag, c.Equipment.Light,
 	}
 	for _, slot := range slots {
 		if slot.ItemId <= 0 {
@@ -250,7 +250,7 @@ func (c *Character) GetConvictionMitigation() float64 {
 		c.Equipment.ExtraWrist3, c.Equipment.ExtraWrist4,
 		c.Equipment.Gloves, c.Equipment.Ring, c.Equipment.Ring2,
 		c.Equipment.Legs, c.Equipment.Feet, c.Equipment.Tail,
-		c.Equipment.ComponentBag,
+		c.Equipment.ComponentBag, c.Equipment.Light,
 	}
 	for _, slot := range slots {
 		if slot.ItemId <= 0 {

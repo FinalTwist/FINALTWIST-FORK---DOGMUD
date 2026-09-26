@@ -1,0 +1,17 @@
+itemid: 20097
+name: Hooded Lantern
+namesimple: lantern
+description: A brass lantern with a hinged hood over its glass. It
+  trims its own light to your eyes each time you step somewhere new,
+  and the hood can close it off entirely.
+type: light
+subtype: wearable
+weight: 0.3
+value: 20
+vendor_categories:
+- blacksmithing
+wornconditionids:
+  - 127
+nouns:
+  hood: The hood swings down over the glass. Use hood to close it and
+    shut the light away, and unhood to throw it open at full strength.

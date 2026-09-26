@@ -45,8 +45,9 @@ func SightThroughWindow(light, strength, reach int, blindBelow, dimBelow int) Si
 
 	if light >= shiftedDim {
 		// Perfect and too-bright both read fully. Dazzle has no mechanical
-		// penalty yet; BandThroughWindow (band.go) is the one reader of the
-		// upper edge, and only to tell a player the light hurts.
+		// penalty yet; BandThroughWindow (band.go) and LightTrimTarget below
+		// read the upper edge, to tell a player the light hurts and to trim
+		// an adjustable light under it, respectively.
 		return SightFull
 	}
 	if light >= shiftedBlind && light >= windowFloor {
@@ -73,4 +74,12 @@ func clampShift(strength int) int {
 		return windowShiftCap
 	}
 	return strength
+}
+
+// LightTrimTarget is the brightest room light an observer with this
+// night-vision strength reads without being dazzled: one point under the
+// shifted dazzle edge. An adjustable light trims toward it (lighting plan 5a).
+// One point, not half: a room at exactly 74.5 would round up to the edge.
+func LightTrimTarget(strength int) float64 {
+	return float64(windowDazzleEdge - clampShift(strength) - 1)
 }

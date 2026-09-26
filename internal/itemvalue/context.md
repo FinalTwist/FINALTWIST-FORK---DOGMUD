@@ -189,7 +189,7 @@ to be loaded; they construct synthetic `ItemSpec` and
 
 ## SlotName Constants
 
-All 25 equipment slots, matching `characters.Equipment` field names:
+All 26 equipment slots, matching `characters.Equipment` field names:
 
 - Weapon slots: `Weapon`, `Offhand`, `ExtraArm1-4`
 - Head/neck/torso: `Head`, `Neck`, `Shoulders`, `Body`, `Back`
@@ -199,6 +199,8 @@ All 25 equipment slots, matching `characters.Equipment` field names:
 - Legs/feet: `Legs`, `Feet`
 - Mutation-gated: `Tail` (requires tail mutation)
 - Utility: `ComponentBag`
+- Carried light: `Light` (`SlotLight`, lighting plan 5a; `items.Light` maps
+  only to it in `compatibleSlotsFor`, and it closes `canonicalSlotOrder`)
 
 ## Performance Considerations
 

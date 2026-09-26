@@ -3,14 +3,18 @@ package rooms
 import (
 	"math"
 
+	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/lightscale"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
 // LightLevel reports the room's light on the graded -100 to 100 scale.
 //
-// Three terms compose it, all on one logarithmic operator:
+// Three kinds of term compose it, all on one logarithmic operator:
 //
 //  1. The sky, which is the celestial term attenuated by this room's sky
 //     fraction. A room with no sky receives no term at all, which is not the
@@ -18,7 +22,7 @@ import (
 //  2. The room's own lamp, if it has one, joining the combine rather than
 //     acting as a floor, so a lantern-lit tavern plus a carried torch does not
 //     double-count.
-//  3. Anyone in the room carrying a light.
+//  3. Everything anyone in the room carries, one term per light.
 //
 // Weather attenuates the SKY only, through each active mutator's skylight
 // fraction: a blizzard does not dim a lantern.
@@ -55,6 +59,9 @@ func (r *Room) lightLevelWithSkyFilter(cfg configs.Lighting, celestial, skyFilte
 type LightTerms struct {
 	// Level is exactly LightLevel(): both come from composeLight.
 	Level int
+	// Raw is the combined light before rounding and clamping; Absent when
+	// nothing lights the room. A trim solves against it.
+	Raw float64
 	// Sky is the sky term after the sky fraction and the weather filter, in
 	// light-scale units; lightscale.Absent() when the room has no sky.
 	Sky float64
@@ -76,13 +83,25 @@ func (r *Room) LightTerms() LightTerms {
 
 // composeLight is the one computation behind LightLevel and LightTerms.
 func (r *Room) composeLight(cfg configs.Lighting, celestial, skyFilter float64) LightTerms {
+	return r.composeLightExcluding(cfg, celestial, skyFilter, nil)
+}
+
+// composeLightExcluding is composeLight with one carried record left out, which
+// is the room a trimming source sees: everything except itself.
+func (r *Room) composeLightExcluding(cfg configs.Lighting, celestial, skyFilter float64, exclude *conditions.Condition) LightTerms {
+	return r.composeWith(cfg, celestial, skyFilter, r.carriedLight(exclude))
+}
+
+// composeWith is the composition with the carried terms supplied, so a test
+// needs no users or mobs.
+func (r *Room) composeWith(cfg configs.Lighting, celestial, skyFilter float64, carried []float64) LightTerms {
 	step := cfg.DoublingStep
 	if !(step > 0) {
 		step = 1
 	}
 
 	out := LightTerms{SkyFilter: skyFilter}
-	terms := make([]float64, 0, 3)
+	terms := make([]float64, 0, 2+len(carried))
 
 	// 1. The sky, attenuated by this room's fraction and then by any weather
 	// filtering it. A filter multiplies the fraction, which on this log scale
@@ -99,20 +118,20 @@ func (r *Room) composeLight(cfg configs.Lighting, celestial, skyFilter float64) 
 		terms = append(terms, float64(lamp))
 	}
 
-	// 3. Anyone carrying a light. Plan 5 gives carried sources real magnitudes
-	// that scale from stat and skill; until then any light source lifts the
-	// room to the bottom of the perfect band, which is what the old model's
-	// "someone has light, cancel the darkness" rule effectively did.
-	if len(r.GetMobs(FindHasLight)) > 0 || len(r.GetPlayers(FindHasLight)) > 0 {
+	// 3. Every light anyone here carries, each its own term (lighting plan 5a):
+	// a candle and a torch are different sources, and two torches are one
+	// doubling step brighter than one.
+	if len(carried) > 0 {
 		out.Carried = true
-		terms = append(terms, float64(cfg.DimBelow))
+		terms = append(terms, carried...)
 	}
 
 	v := lightscale.Combine(step, terms...)
+	out.Raw = v
 	if math.IsInf(v, -1) {
 		// No light of any kind. Zero is the darkest light that NATURALLY
 		// occurs, which is what an unlit cave is. Magical darkness goes below
-		// this and arrives in plan 5.
+		// this and arrives in plan 5d.
 		v = 0
 	}
 
@@ -124,6 +143,34 @@ func (r *Room) composeLight(cfg configs.Lighting, celestial, skyFilter float64) 
 	}
 	out.Level = n
 	return out
+}
+
+// carriedLight is every carried light term in the room, leaving out one record
+// (the source being trimmed) when exclude is non-nil. One pass over the room's
+// occupants: each bearer's records are read exactly once.
+func (r *Room) carriedLight(exclude *conditions.Condition) []float64 {
+	var terms []float64
+	add := func(c *characters.Character) {
+		for _, rec := range c.Conditions.LightSources() {
+			if rec == exclude {
+				continue
+			}
+			if v, ok := rec.LightNow(conditions.GetConditionSpec(rec.ConditionId)); ok {
+				terms = append(terms, v)
+			}
+		}
+	}
+	for _, id := range r.mobs {
+		if m := mobs.GetInstance(id); m != nil {
+			add(&m.Character)
+		}
+	}
+	for _, id := range r.players {
+		if u := users.GetByUserId(id); u != nil && u.Character != nil {
+			add(u.Character)
+		}
+	}
+	return terms
 }
 
 // mutatorSkyFilter multiplies the skylight fraction of every active mutator

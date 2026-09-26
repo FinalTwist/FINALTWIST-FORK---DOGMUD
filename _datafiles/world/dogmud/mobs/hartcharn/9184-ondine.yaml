@@ -50,6 +50,8 @@ character:
       base: 105
   shop:
     - itemid: 40038
+    - itemid: 20096
+    - itemid: 20097
     - itemid: 30021
     - itemid: 30020
     - itemid: 30001

@@ -332,7 +332,8 @@ func isFinishedGood(itemType items.ItemType) bool {
 		items.ComponentBag,
 		items.Legs,
 		items.Feet,
-		items.Tail:
+		items.Tail,
+		items.Light:
 		return true
 	// Consumables
 	case items.Potion,

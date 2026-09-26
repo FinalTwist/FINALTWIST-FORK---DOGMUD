@@ -994,6 +994,12 @@ func (m *Mob) AddCondition(conditionId int, source string) {
     })
 }
 
+// AddConditionMagnitude (lighting plan 5a) is the mob twin of
+// UserRecord.AddConditionMagnitude: it queues the same events.Condition with
+// Triggers, Magnitude and the mob's LifeEpoch, so a light spell cast on a mob
+// lands at the caster's scaled strength (internal/hooks/light_spell.go).
+func (m *Mob) AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
+
 // Command execution through Input events
 // All mob commands go through the same event system as player commands
 ```

@@ -158,8 +158,15 @@ Functions:
     is `SightThroughWindow` with the full tier split at the observer's
     shifted dazzle edge (`windowDazzleEdge` minus the clamped `strength`).
     It never moves a lower edge: dark, shapes and faces-or-dazzled are
-    still `SightThroughWindow`'s answers. This is the first reader of
-    `windowDazzleEdge`; see the correction below `ParticipantSight`.
+    still `SightThroughWindow`'s answers. It is one of two readers of
+    `windowDazzleEdge` (the other is `LightTrimTarget`); see the
+    correction below `ParticipantSight`.
+- `LightTrimTarget(strength int) float64` (`window.go`), added lighting
+  plan 5a: the brightest room light an observer with this night-vision
+  strength reads without being dazzled, one point under the shifted dazzle
+  edge (`windowDazzleEdge - clampShift(strength) - 1`). An adjustable
+  light (`internal/rooms.(*Room).TrimLightFor`) trims toward it. One
+  point, not half, so a room at 74.5 cannot round up onto the edge.
   - `LightBand(observer *characters.Character, room RoomVisibility) Band`
     is `ParticipantSight`'s band-grained twin: optics only, does not
     consult sleep, a `Blinded` observer reads `BandDark`, a nil observer
@@ -206,7 +213,9 @@ Functions:
   read `windowDazzleEdge` at all; lighting plan 3d's `BandThroughWindow`
   (`band.go`, see above) now reads it to compute `Band`, so a light-crossing
   notice can tell a player the light stabs at their eyes, even though the
-  edge still changes no `SightDecision`.
+  edge still changes no `SightDecision`. Since lighting plan 5a it has a
+  second reader, `LightTrimTarget` (`window.go`), which sets the level an
+  adjustable light trims to.
 
   🔴 **Structural fact worth knowing before reading a bug into it:** with
   `windowShiftCap` at 24 and `LightDimBelow` at 50, no ability can shift
@@ -377,7 +386,7 @@ The package is the pipeline, one stage per file, plus the fan-out (`trio.go`):
 | `hidenames_tagged.go` | Identity-tag-aware name replacement `HideNames` and `Anonymize` share, including the trailing adjective span |
 | `wrap.go` | `WrapAnsi`, ANSI-aware folding at a caller-supplied width measured in visible runes; called by the pipeline for the categories `shouldWrap` admits, and directly by `motd.go` for its box-bordered banner |
 | `predicates.go` | `ParticipantSight` (the optics primitive) plus `CanSeeClearly`/`CanSeeShapes`/`CanSeeSightImpairedOnly`, the one-line attention policies built on it |
-| `window.go` | `SightThroughWindow`, the pure window-model function `ParticipantSight` calls, `clampShift`, plus its three unexported constants (`windowDazzleEdge`, `windowShiftCap`, `windowFloor`) |
+| `window.go` | `SightThroughWindow`, the pure window-model function `ParticipantSight` calls, `clampShift`, `LightTrimTarget` (lighting plan 5a, the adjustable-light trim target and second reader of `windowDazzleEdge`), plus its three unexported constants (`windowDazzleEdge`, `windowShiftCap`, `windowFloor`) |
 | `band.go` | `Band`, `BandThroughWindow`, `LightBand` (lighting plan 3d): the band-grained twin of `SightDecision`/`SightThroughWindow`/`ParticipantSight`, adding the dazzled tier for `internal/lightnotice` |
 | `verbosity.go` | Per-player verbosity filtering |
 | `trio.go` | `Line`/`Trio`/`Audience`/`SendTrio` — fan-out of one narrated event to its four audiences |

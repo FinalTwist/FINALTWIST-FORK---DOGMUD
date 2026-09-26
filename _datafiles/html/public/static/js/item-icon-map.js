@@ -174,7 +174,7 @@
   var EQUIPMENT_TYPES = {
     "weapon": 1, "offhand": 1, "head": 1, "neck": 1, "shoulders": 1,
     "body": 1, "back": 1, "belt": 1, "wrist": 1, "gloves": 1, "ring": 1,
-    "legs": 1, "feet": 1, "tail": 1, "componentbag": 1
+    "legs": 1, "feet": 1, "tail": 1, "componentbag": 1, "light": 1
   };
 
   // type-subtype (then type) -> representative icon. Keys mirror the SVG
@@ -209,6 +209,7 @@
     "feet": "worn_boots",
     "tail": "tail_guard",
     "componentbag": "component_satchel",
+    "light": "oil_lantern",
     "potion": "small_red_potion",
     "food": "cheese_sandwich",
     "drink": "mug_of_ale",

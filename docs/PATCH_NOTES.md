@@ -1,5 +1,33 @@
 # DOGMud Patch Notes
 
+## 2026-09-26: Carry your own light
+
+Everyone now has a light slot among their equipment. Equip a candle, an
+oil lantern, a torch or a hooded lantern there and it lights your way
+until you take it off. A candle is enough to make out shapes in the dark.
+A lantern or a torch lets you read faces. The torch and the hooded lantern
+are new, and the shopkeepers who sell lanterns now stock both.
+
+A plain lantern or torch always burns at full strength. Under open sky
+near a summer noon that is too much, and it will dazzle you.
+
+The hooded lantern turns itself down to suit your eyes each time you walk
+into a new room, so it does not dazzle you there. Type `hood` to close its
+hood and carry it dark, which also makes you harder to spot, and `unhood`
+to open it again.
+
+Items can now have details you can look at, highlighted the same way as
+the details in a room description. Look at the hooded lantern and you
+will see its hood; type `look hood` to read about it.
+
+The Chrysalis Glow spell now shines brighter and lasts longer the stronger
+your willpower and your spellcasting are. Like the hooded lantern, it
+turns itself down to suit your eyes when you walk into a new room. Type
+`cancel glow` to put it out at once, or cast it again for full strength.
+
+New help topics explain how light works: `help light`, `help seasons` and
+`help moons`.
+
 ## 2026-09-25: Weather dims the sky
 
 The weather now changes how much of the sky's light reaches you. Fog,

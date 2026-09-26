@@ -47,6 +47,8 @@
 {{ end -}}
 {{- if not .Equipment.Tail.IsDisabled }}   <ansi fg="yellow">Tail:       </ansi><ansi fg="itemname">{{ .Equipment.Tail.NameComplex }}</ansi>
 {{ end -}}
+{{- if not .Equipment.Light.IsDisabled }}   <ansi fg="yellow">Light:      </ansi><ansi fg="itemname">{{ .Equipment.Light.NameComplex }}</ansi>
+{{ end -}}
 {{- if not .Equipment.ComponentBag.IsDisabled }}   <ansi fg="yellow">Components: </ansi><ansi fg="itemname">{{ .Equipment.ComponentBag.NameComplex }}</ansi>
 {{ end }} └────────────────────────────────────────────────────────────────────────────┘
  {{ $itemCt := len .ItemNames -}}{{ $formattedNames := .ItemNamesFormatted -}}{{- $strlen := 0 -}}{{- $lineCt := 1 -}}

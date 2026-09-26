@@ -77,6 +77,7 @@ Ring    ItemType = "ring"
 Legs    ItemType = "legs"
 Feet    ItemType = "feet"
 Offhand ItemType = "offhand"
+Light   ItemType = "light"   // lighting plan 5a: a carried light; new ones in armor-20000/light/ (torch 20096, hooded lantern 20097), while the older tallow candle 40077 and oil lantern 40038 keep their materials-40000 ids
 
 // Consumables: 30000-39999
 Potion     ItemType = "potion"
@@ -183,7 +184,9 @@ swaps to `tailsweep` (enhanced damage/knockdown) when the mutation is present
 Relevant `ItemSpec` fields: `is_component` (bool), `weight_reduction`
 (float64, 0.0-1.0), `bag_capacity` (int), `is_bandolier` (bool),
 `bandolier_capacity` (int, see Alchemy & Potions below). `ItemType`s that
-back these slots: `wrist`, `back`, `shoulders`, `componentbag`, `tail`.
+back these slots: `wrist`, `back`, `shoulders`, `componentbag`, `tail`, and
+`light` (lighting plan 5a: the carried-light slot; its items shed light through
+a `light_strength` worn condition, not a flag).
 
 ## Item Specification Structure
 
@@ -203,6 +206,7 @@ type ItemSpec struct {
     Uses            int           // Number of uses before consumption
     ConditionIds         []int         // Conditions applied when used
     WornConditionIds     []int         // Conditions applied while worn
+    Nouns                map[string]string // lighting plan 5a: lookable details (the hooded lantern's hood); see characters.FindItemNoun
     QuestToken      string        // Quest progress granted when obtained
 
     // Combat Properties

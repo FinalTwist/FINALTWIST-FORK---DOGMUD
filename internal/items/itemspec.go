@@ -55,6 +55,7 @@ func ItemTypes() []ItemTypeInfo {
 		{string(Legs), `This can be worn in the players legs equipment slot.`, 0, 20000, 29999},
 		{string(Feet), `This can be worn in the players feet equipment slot.`, 0, 20000, 29999},
 		{string(Tail), `Worn on the tail.`, 0, 20000, 29999},
+		{string(Light), `A light you carry to see by.`, 0, 20000, 29999},
 		{string(Wrist), `Worn on the wrist.`, 0, 20000, 29999},
 		{string(Back), `Worn on the back.`, 0, 20000, 29999},
 		{string(Shoulders), `Worn on the shoulders.`, 0, 20000, 29999},
@@ -123,7 +124,8 @@ const (
 	ComponentBag ItemType = "componentbag" // Crafting material bags
 	Legs         ItemType = "legs"
 	Feet         ItemType = "feet"
-	Tail         ItemType = "tail" // Tail attachments (tail mutation slot)
+	Tail         ItemType = "tail"  // Tail attachments (tail mutation slot)
+	Light        ItemType = "light" // A carried light: candle, lantern, torch (lighting plan 5a)
 	// Consumables
 	Potion  ItemType = "potion"
 	Food    ItemType = "food"
@@ -272,6 +274,10 @@ type ItemSpec struct {
 	Uses             int   `yaml:"uses,omitempty"`             // How many uses it starts with
 	ConditionIds     []int `yaml:"conditionids,omitempty"`     // What conditions it can apply (if used)
 	WornConditionIds []int `yaml:"wornconditionids,omitempty"` // ConditionId's that are applied while worn, and expired when removed.
+	// Nouns are details of the item a player can look at by name, highlighted
+	// in the item's description the way a room's nouns are (lighting plan 5a:
+	// the hooded lantern's hood).
+	Nouns map[string]string `yaml:"nouns,omitempty"`
 	// ── Pinnacle Stage 1: procs, reserves, bandolier, mutation drip, hunger, voice ──
 	Procs                 []ItemProc `yaml:"procs,omitempty"`                   // data-driven combat procs
 	ReserveHealthPct      float64    `yaml:"reserve_health_pct,omitempty"`      // 0-1 fraction of HealthMax reserved while equipped

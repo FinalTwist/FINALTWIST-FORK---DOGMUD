@@ -1205,6 +1205,24 @@ type Balance struct {
 	LightMoonWeightSwiftmoon ConfigFloat `yaml:"LightMoonWeightSwiftmoon"` // Relative light at full (default 4.0, derived: 2x Luna's size is 4x the area)
 	LightMoonWeightWanderer  ConfigFloat `yaml:"LightMoonWeightWanderer"`  // Relative light at full (default 1.0, the baseline)
 	LightMoonWeightEye       ConfigFloat `yaml:"LightMoonWeightEye"`       // Relative light at full (default 0.5, a reading of "Small, bright", not derived)
+
+	// Light-spell scaling (lighting plan 5a). A spell whose condition declares
+	// light_strength: magnitude is cast at
+	//   LightSpellStrengthBase + stat/LightSpellStrengthStatDivisor + spellcasting/LightSpellStrengthSkillDivisor
+	// on the light scale, for
+	//   LightSpellDurationBase + stat/LightSpellDurationStatDivisor + spellcasting/LightSpellDurationSkillDivisor
+	// triggers (rounded, at least 1) of the condition's own trigger rate. stat is
+	// the spell's primarystat ValueAdj; spellcasting runs 0 to 100. Shipped: a
+	// new character (100, 0) glows at 50 for 4 triggers, 20 real minutes; an
+	// endgame caster (175, 65) at 90 for 9, 45 minutes. The house idiom is
+	// unarmed damage's base + stat/D1 + skill/D2. The spell scaling
+	// unification arc should absorb these rather than keep glow an exception.
+	LightSpellStrengthBase         ConfigFloat `yaml:"LightSpellStrengthBase"`         // default 40
+	LightSpellStrengthStatDivisor  ConfigFloat `yaml:"LightSpellStrengthStatDivisor"`  // default 10
+	LightSpellStrengthSkillDivisor ConfigFloat `yaml:"LightSpellStrengthSkillDivisor"` // default 2
+	LightSpellDurationBase         ConfigFloat `yaml:"LightSpellDurationBase"`         // default 2
+	LightSpellDurationStatDivisor  ConfigFloat `yaml:"LightSpellDurationStatDivisor"`  // default 50
+	LightSpellDurationSkillDivisor ConfigFloat `yaml:"LightSpellDurationSkillDivisor"` // default 20
 }
 
 func (b *Balance) Validate() {

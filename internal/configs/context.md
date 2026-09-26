@@ -668,7 +668,7 @@ special-move base instead. Physical rows add encumbrance, every row applies the
 inverse governing-skill term, and callers may supply a documented modifier.
 See the live config and validation code for tuning values.
 
-### Graded room lighting (plans 1, 2 and 3a of the graded lighting arc)
+### Graded room lighting (plans 1, 2, 3a and 5a of the graded lighting arc)
 
 Twelve knobs, validated in their own file (`config.balance.lighting.go`)
 rather than folded into `validateMisc`, because the arc kept adding more
@@ -692,6 +692,27 @@ case.
 | `LightMoonWeightSwiftmoon` | ConfigFloat | 4.0 | Swiftmoon's relative light at full. Plan 3a. |
 | `LightMoonWeightWanderer` | ConfigFloat | 1.0 | The Wanderer's relative light at full (the baseline). Plan 3a. |
 | `LightMoonWeightEye` | ConfigFloat | 0.5 | The Eye's relative light at full. Plan 3a. |
+
+**Light-spell scaling (lighting plan 5a).** Six more `ConfigFloat` knobs,
+validated in the same `validateLighting` and exposed on `configs.Lighting` as
+`SpellStrengthBase`/`SpellStrengthStatDivisor`/`SpellStrengthSkillDivisor` and
+`SpellDurationBase`/`SpellDurationStatDivisor`/`SpellDurationSkillDivisor`.
+`internal/hooks.lightSpellApplication` casts a `light_strength: magnitude`
+condition at `StrengthBase + stat/StrengthStatDivisor + skill/StrengthSkillDivisor`
+for `DurationBase + stat/DurationStatDivisor + skill/DurationSkillDivisor`
+triggers (rounded, at least 1). Unlike the twelve above, these six DO ship in
+`_datafiles/config.yaml`, at their defaults. Any value not above 0 is coerced
+to its default (a zero divisor would divide by zero, and a test binary never
+loads `config.yaml`).
+
+| Knob | Default |
+|------|---------|
+| `LightSpellStrengthBase` | 40 |
+| `LightSpellStrengthStatDivisor` | 10 |
+| `LightSpellStrengthSkillDivisor` | 2 |
+| `LightSpellDurationBase` | 2 |
+| `LightSpellDurationStatDivisor` | 50 |
+| `LightSpellDurationSkillDivisor` | 20 |
 
 `LightBlindBelow` and `LightDimBelow` validate as a PAIR, the
 `DarknessShapesCombatPenalty` precedent: an inverted or out-of-range pair

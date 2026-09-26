@@ -191,7 +191,8 @@ func compHasEquipment(comp *characters.CompanionInfo) bool {
 		e.ExtraArm3.ItemId != 0 || e.ExtraArm4.ItemId != 0 ||
 		e.ExtraWrist1.ItemId != 0 || e.ExtraWrist2.ItemId != 0 ||
 		e.ExtraWrist3.ItemId != 0 || e.ExtraWrist4.ItemId != 0 ||
-		e.Tail.ItemId != 0 || e.ComponentBag.ItemId != 0
+		e.Tail.ItemId != 0 || e.ComponentBag.ItemId != 0 ||
+		e.Light.ItemId != 0
 }
 
 //

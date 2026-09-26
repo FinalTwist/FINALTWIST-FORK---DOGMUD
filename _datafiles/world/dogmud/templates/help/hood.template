@@ -1,0 +1,20 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for </ansi><ansi fg="command">hood</ansi>
+
+<ansi fg="yellow">Usage: </ansi>
+
+  <ansi fg="command">hood</ansi>     Close the hood of the lantern in your light slot.
+  <ansi fg="command">unhood</ansi>   Open it again.
+
+A hooded lantern trims its light to your eyes every time you walk
+into a new place, so it never dazzles you there.
+
+Closing the hood shuts its light off without putting it out. You
+carry it dark, and you are harder to spot.
+
+Opening the hood throws its light out at full strength until you
+next move, which can dazzle anyone nearby whose eyes are used to
+the dark.
+
+Look at your lantern to find its hood.
+
+<ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help equipment</ansi>, <ansi fg="command">help light</ansi>

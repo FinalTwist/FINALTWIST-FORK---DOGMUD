@@ -85,7 +85,8 @@ statmods:
 | `cancel-on-action` | Condition is automatically removed when any action is taken. |
 | `hidden` | Condition is not visible to other players examining the character. |
 | `secret` | Condition hidden from the character's own status (same as `secret: true`). |
-| `lightsource` | Character acts as a light source while this condition is active. |
+| `adjustable` | A light that trims itself to its bearer's eyes on each room entry. Requires `effects: light_strength`. |
+| `cancellable` | The holder may end the condition early with `cancel <spell>`. |
 | `see-nouns` | Character can perceive hidden nouns in rooms. |
 | `nightvision` | Character can see in darkness while this condition is active. |
 | `poison` | Marks the condition as a poison. Damage per tick comes from `tick_pool`. |
@@ -135,8 +136,9 @@ conditionid: 1
 name: Illumination
 description: A soft glow surrounds you, lighting the way.
 triggercount: 0                # 0 = permanent until removed
-flags:
-  - lightsource
+effects:
+  light_strength: 50           # A light is an effect, not a flag. A spell
+                               # light writes `magnitude` for its cast strength.
 ```
 
 **Worn-item condition (referenced from item's wornconditionids):**

@@ -927,6 +927,22 @@ Balance:
   #   0.90 is a STARTING POINT from M4d PR 2, not a tuned value.
   DarknessShapesCombatPenalty: 0.90
 
+  # ── LIGHT: SPELL SCALING (lighting plan 5a) ─────────────────────────────────
+  # A light spell (condition with light_strength: magnitude) is cast at
+  #   base + stat/StatDivisor + spellcasting/SkillDivisor
+  # on the light scale, and lasts the same shape in triggers of its condition's
+  # trigger rate. stat is the spell's primary stat; spellcasting runs 0-100.
+  # A new character (100, 0) glows at 50 (faces in a cave) for 20 minutes; an
+  # endgame caster (175, 65) at 90 (dazzles anyone) for about 45. A fresh cast
+  # runs at full strength and trims to the holder's eyes when they next move.
+  # Zero or negative reverts to the default (test binaries never load this file).
+  LightSpellStrengthBase: 40
+  LightSpellStrengthStatDivisor: 10
+  LightSpellStrengthSkillDivisor: 2
+  LightSpellDurationBase: 2
+  LightSpellDurationStatDivisor: 50
+  LightSpellDurationSkillDivisor: 20
+
   # ── COMBAT: DAMAGE ────────────────────────────────────────────────────────
   # Global panic buttons. 1.0 = no change. GlobalDamageMultiplier is
   # applied to ALL damage channels in CalcRawDamage().

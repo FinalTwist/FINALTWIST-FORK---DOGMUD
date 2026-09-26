@@ -48,6 +48,8 @@
 {{ end -}}
 {{- if not .Equipment.Tail.IsDisabled }}   <ansi fg="yellow">Tail:       </ansi><ansi fg="itemname">{{ .Equipment.Tail.NameSimple }}</ansi>
 {{ end -}}
+{{- if not .Equipment.Light.IsDisabled }}   <ansi fg="yellow">Light:      </ansi><ansi fg="itemname">{{ .Equipment.Light.NameSimple }}</ansi>
+{{ end -}}
 {{- if not .Equipment.ComponentBag.IsDisabled }}   <ansi fg="yellow">Components: </ansi><ansi fg="itemname">{{ .Equipment.ComponentBag.NameSimple }}</ansi>
 {{ end }} └────────────────────────────────────────────────────────────────────────────┘
 {{- end }}

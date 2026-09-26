@@ -2,7 +2,6 @@ package hooks
 
 import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -21,8 +20,8 @@ import (
 // Triggers:
 //   - events.RoomChange  — actor entered or left a room (may change room
 //     light balance when the actor emits light)
-//   - events.EquipmentChange — equipment slot changed (may toggle EmitsLight
-//     if the equipped/unequipped item has the lightsource condition flag)
+//   - events.EquipmentChange — equipment slot changed (may toggle
+//     EmitsLight() if the equipped/unequipped item carries a light record)
 //
 // FUTURE expansion (not in chunk 1): light-spell cast/cancel, glow-mutation
 // gain/lose. Those events don't currently have hooks; add in followups.
@@ -66,7 +65,7 @@ func onRoomChangeForAwareness(e events.Event) events.ListenerReturn {
 
 	// Only act when the mover emits light — a non-emitting actor's movement
 	// doesn't change room visibility.
-	if c == nil || !c.HasFlagFromAnySource(conditions.EmitsLight) {
+	if c == nil || !c.EmitsLight() {
 		return events.Continue
 	}
 
@@ -80,11 +79,11 @@ func onRoomChangeForAwareness(e events.Event) events.ListenerReturn {
 }
 
 // onEquipmentChangeForAwareness handles the case where an actor equips or
-// removes an item that affects their EmitsLight state. If the actor is
+// removes an item that affects their EmitsLight() state. If the actor is
 // currently Hidden and their light emission changed, detection needs to
 // be re-rolled against all observers in the same room.
 //
-// FUTURE: diff EmitsLight before/after the equipment change, then call
+// FUTURE: diff EmitsLight() before/after the equipment change, then call
 // rerollHiddenActorVsRoom(actor, room) if the state changed.
 func onEquipmentChangeForAwareness(e events.Event) events.ListenerReturn {
 	evt, ok := e.(events.EquipmentChange)
@@ -111,8 +110,8 @@ func onEquipmentChangeForAwareness(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
-	// FUTURE: check whether the equipment change toggled EmitsLight (compare
-	// HasFlagFromAnySource(conditions.EmitsLight) before and after via the
+	// FUTURE: check whether the equipment change toggled EmitsLight() (compare
+	// Character.EmitsLight() before and after via the
 	// ItemsWorn / ItemsRemoved slices on the event). If it changed, call
 	// rerollHiddenActorVsRoom to re-roll against all observers.
 	//

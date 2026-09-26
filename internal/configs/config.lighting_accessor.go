@@ -23,6 +23,9 @@ type Lighting struct {
 	MoonWeightSwiftmoon float64
 	MoonWeightWanderer  float64
 	MoonWeightEye       float64
+
+	SpellStrengthBase, SpellStrengthStatDivisor, SpellStrengthSkillDivisor float64
+	SpellDurationBase, SpellDurationStatDivisor, SpellDurationSkillDivisor float64
 }
 
 // GetLightingConfig returns the lighting knobs without copying Balance.
@@ -48,5 +51,12 @@ func GetLightingConfig() Lighting {
 		MoonWeightSwiftmoon: float64(b.LightMoonWeightSwiftmoon),
 		MoonWeightWanderer:  float64(b.LightMoonWeightWanderer),
 		MoonWeightEye:       float64(b.LightMoonWeightEye),
+
+		SpellStrengthBase:         float64(b.LightSpellStrengthBase),
+		SpellStrengthStatDivisor:  float64(b.LightSpellStrengthStatDivisor),
+		SpellStrengthSkillDivisor: float64(b.LightSpellStrengthSkillDivisor),
+		SpellDurationBase:         float64(b.LightSpellDurationBase),
+		SpellDurationStatDivisor:  float64(b.LightSpellDurationStatDivisor),
+		SpellDurationSkillDivisor: float64(b.LightSpellDurationSkillDivisor),
 	}
 }

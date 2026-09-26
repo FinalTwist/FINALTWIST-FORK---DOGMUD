@@ -66,3 +66,5 @@ character:
       quantity: 0
       quantitymax: 0
       price: 5
+    - itemid: 20096    # torch
+    - itemid: 20097    # hooded lantern

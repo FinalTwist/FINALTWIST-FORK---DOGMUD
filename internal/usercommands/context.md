@@ -21,6 +21,23 @@ The `internal/usercommands` package implements the complete command system for p
 - **Communication**: `say`, `shout`, `whisper`, `emote`, `broadcast` - Player communication
 - **Observation**: `look`, `inspect`, `consider`, `who`, `online` - Information gathering
 - **Inventory**: `inventory`, `get`, `drop`, `give`, `put` - Item management
+- **Carried light (lighting plan 5a)**:
+  - `hood` / `unhood` (`hood.go`: `Hood`, `Unhood`, helper `hoodedLight`)
+    shut or open the hood of the `adjustable` light in the `Light` slot. A
+    hooded record stays held and lit but sheds nothing (`Condition.Hooded`).
+    `hoodedLight` sends its own refusal and tells an empty slot apart from a
+    light with no hood.
+  - `cancel <spell>` (`cancel.go`: `Cancel`, `cancelCondition`,
+    `cancelNameMatches`): an activity in progress ALWAYS wins, whatever the
+    argument; only a free user reaches `cancelCondition`, which ends the first
+    HELD record (held order, so deterministic) whose spec carries
+    `conditions.Cancellable` and whose condition name, or a granting spell's
+    id, alias or name, matches exactly or by a prefix of at least
+    `cancelMinPrefix` (3) characters. A spell whose condition is not held can
+    never be reached.
+  - `look` (`look.go`) tries `Character.FindItemNoun` (exact noun on a worn or
+    carried item) BEFORE item matching, so `look hood` reaches the lantern's
+    hood; looking at an item highlights its `ItemSpec.Nouns` before wrapping.
 
 #### **Combat Commands**
 - **Direct combat**: `attack`, `fire`, `throw` - Offensive actions
@@ -247,7 +264,7 @@ searchScore = dice.RollStat(Perception + SkillMultiplier(searchRank) * 25.0)
 This package serves as the primary interface between players and the game world, providing a rich and comprehensive command system that supports all aspects of gameplay from basic interaction to advanced administrative functions.
 ## Files: one command per file
 
-182 non-test files, and enumerating them would be noise — the filename **is**
+186 non-test files (recounted for lighting plan 5a, which added `hood.go`), and enumerating them would be noise — the filename **is**
 the index. `command.go` implements `command`; `admin.<name>.go` is an admin
 command; `skill.<name>.go` is a skill-gated one.
 

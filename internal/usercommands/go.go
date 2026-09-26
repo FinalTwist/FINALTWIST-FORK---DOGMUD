@@ -816,7 +816,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 			// sleepers in the destination room. False positives possible if
 			// the room was already lit; acceptable for chunk 3.3 scope (most
 			// NPC sleep rooms are dim/dark indoors).
-			if user.Character.HasFlagFromAnySource(conditions.EmitsLight) {
+			if user.Character.EmitsLight() {
 				for _, otherUserId := range destRoom.GetPlayers() {
 					if otherUserId == user.UserId {
 						continue

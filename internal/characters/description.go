@@ -155,7 +155,7 @@ func (c *Character) GetAdjectives() []string {
 		retAdjectives = append(retAdjectives, `shop`)
 	}
 
-	if c.HasFlagFromAnySource(conditions.EmitsLight) {
+	if c.EmitsLight() {
 		retAdjectives = append(retAdjectives, `lit`)
 	}
 

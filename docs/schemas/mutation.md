@@ -46,7 +46,7 @@ Filename must match `{mutationid}.yaml`.
 | `health_regen` | — | Passive HP regen per tick |
 | `skill_progression_multiplier` | — | Scale skill gain chance |
 | `stat_progression_multiplier` | — | Scale stat gain chance |
-| `flag` | flag name | Grant a permanent flag (nightvision, lightsource, hidden, see-hidden) |
+| `flag` | flag name | Grant a permanent flag (nightvision, hidden, see-hidden). Light is not a flag: a light is a condition with `effects: light_strength` |
 | `health_regen_if_lit` | — | HP regen only in lit rooms |
 
 ## Conflicts

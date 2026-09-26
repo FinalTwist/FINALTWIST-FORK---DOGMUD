@@ -123,8 +123,6 @@ func statPhrase(target string, up bool) string {
 // flagPhrase renders a flag effect by its target.
 func flagPhrase(target string) string {
 	switch target {
-	case "lightsource":
-		return "You shed light -- a beacon in the dark, easy to spot."
 	case "nightvision":
 		return "You see clearly in the dark."
 	case "see-hidden":

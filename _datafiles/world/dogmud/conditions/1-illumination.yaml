@@ -4,8 +4,11 @@ description: Light surrounds you.
 secret: false
 triggerrate: 5 real minutes
 triggercount: 4
+effects:
+  light_strength: magnitude
 flags:
-  - lightsource
+  - adjustable
+  - cancellable
 start_actee: "A warm glow surrounds you."
 start_observer: "A warm glow surrounds {actee_plain}."
 end_actee: "Your glow fades away."

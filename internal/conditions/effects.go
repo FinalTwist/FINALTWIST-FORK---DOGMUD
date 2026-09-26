@@ -2,6 +2,7 @@ package conditions
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 )
@@ -27,13 +28,19 @@ const (
 	// reads shapes. Independent of strength: a creature can sense heat deeply
 	// while being no better than anyone else at using faint light.
 	EffectInfraReach EffectKind = `infra_reach`
+	// EffectLightStrength is a light source's full strength on the light
+	// scale: a literal for an item, "magnitude" for a spell cast at a scaled
+	// strength (lighting plan 5a). It is NOT aggregated through Effect():
+	// every held light record is its own term in the room's combine, read
+	// through Conditions.LightSources. See light.go.
+	EffectLightStrength EffectKind = `light_strength`
 )
 
 // AllEffectKinds is the closed set, for validation and docs.
 var AllEffectKinds = []EffectKind{
 	EffectDamageMult, EffectDefenseMult, EffectDodgeMult, EffectRegenMult,
 	EffectMitigationFlat, EffectPoolMaxPct, EffectAttacksCap,
-	EffectNightVisionStrength, EffectInfraReach,
+	EffectNightVisionStrength, EffectInfraReach, EffectLightStrength,
 }
 
 func (k EffectKind) isMultiplier() bool {
@@ -85,8 +92,17 @@ func (v EffectValue) MarshalYAML() (interface{}, error) {
 	return v.Literal, nil
 }
 
-// validateEffects refuses an unknown key and a magnitude-bound tick without a
-// pool. It is called from ConditionSpec.Validate.
+// validateEffects refuses an unknown key, a magnitude-bound tick without a
+// pool, a literal light_strength of zero or less, an adjustable record that
+// declares no light_strength, and a stacking record that is also a light
+// source (a stack's summed magnitude is not a light strength, and
+// AddConditionMagnitude takes the addStack path for a stacking spec, so a
+// recast would never reset the light). It is called from
+// ConditionSpec.Validate.
+//
+// The literal light rule is the one load-time range check here, and it is
+// safe: LightNow refuses a strengthless magnitude record at runtime, so the
+// two checks can never disagree about what counts as a light.
 //
 // It deliberately adds no range rule for EffectNightVisionStrength or
 // EffectInfraReach. An EffectValue with UsesMagnitude set is not a number
@@ -115,6 +131,17 @@ func (b *ConditionSpec) validateEffects() error {
 			return fmt.Errorf("conditionId %d (%s) declares unknown effect %q; see conditions.AllEffectKinds", b.ConditionId, b.Name, k)
 		}
 	}
+	if v, ok := b.Effects[EffectLightStrength]; ok && !v.UsesMagnitude && v.Literal <= 0 {
+		return fmt.Errorf("conditionId %d (%s) declares light_strength %v; a light must be brighter than nothing", b.ConditionId, b.Name, v.Literal)
+	}
+	if slices.Contains(b.Flags, Adjustable) {
+		if _, ok := b.Effects[EffectLightStrength]; !ok {
+			return fmt.Errorf("conditionId %d (%s) is adjustable but declares no light_strength", b.ConditionId, b.Name)
+		}
+	}
+	if b.IsStacking() && b.IsLightSource() {
+		return fmt.Errorf("conditionId %d (%s) is a stacking record and a light source; a stack's summed magnitude is not a light strength", b.ConditionId, b.Name)
+	}
 	if b.TickFromMagnitude {
 		if b.TickPool == "" {
 			return fmt.Errorf("conditionId %d (%s) sets tick_from_magnitude without tick_pool", b.ConditionId, b.Name)
@@ -134,6 +161,10 @@ func (b *ConditionSpec) validateEffects() error {
 // combat was its first reader, and optics (the vision window) is now another.
 // It never calls HasFlag with expire=true, which mutates.
 func (bs *Conditions) Effect(kind EffectKind) float64 {
+	if kind == EffectLightStrength {
+		// Per-record, never aggregated: see LightSources.
+		return 0
+	}
 	product := 1.0
 	sum := 0.0
 	capValue := 0.0
