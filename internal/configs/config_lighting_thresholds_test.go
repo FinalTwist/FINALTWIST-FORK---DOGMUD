@@ -314,6 +314,43 @@ func TestLightingThresholds_ShippedDefaultsUnchangedByFallbackFix(t *testing.T) 
 	}
 }
 
+// TestLightingThresholds_DazzleAboveClampsAboveElevatedDim is the
+// LightDazzleAbove counterpart to
+// TestLightingThresholds_ElevatedBlindWithInvalidExitsDoesNotFallBelowBlind:
+// an unconditional fallback of 75 can itself land at or below an operator's
+// legitimately elevated LightDimBelow (dim=80), inverting the comfortable
+// band. The fallback must clamp up to one above the final LightDimBelow
+// instead.
+func TestLightingThresholds_DazzleAboveClampsAboveElevatedDim(t *testing.T) {
+	b := Balance{LightBlindBelow: 25, LightDimBelow: 80, LightDazzleAbove: 0}
+	b.Validate()
+	if b.LightDimBelow != 80 {
+		t.Fatalf("a valid blind/dim pair must survive untouched, got dim=%v", b.LightDimBelow)
+	}
+	if b.LightDazzleAbove <= b.LightDimBelow {
+		t.Fatalf("LightDazzleAbove fallback must never sit at or below the final LightDimBelow, got dazzle=%v dim=%v",
+			b.LightDazzleAbove, b.LightDimBelow)
+	}
+	if b.LightDazzleAbove != 81 {
+		t.Fatalf("LightDazzleAbove fallback should clamp up to one above the elevated LightDimBelow of 80, got %v", b.LightDazzleAbove)
+	}
+}
+
+// TestLightingThresholds_DazzleAboveFallsBackToDefaultWithNegativeDim covers
+// the never-blind escape hatch: a negative LightDimBelow used to let an
+// absent LightDazzleAbove key of 0 pass the range check outright (0 > -10),
+// skipping the fallback entirely instead of landing on the shipped default.
+func TestLightingThresholds_DazzleAboveFallsBackToDefaultWithNegativeDim(t *testing.T) {
+	b := Balance{LightBlindBelow: -100, LightDimBelow: -10, LightDazzleAbove: 0}
+	b.Validate()
+	if b.LightDimBelow != -10 {
+		t.Fatalf("a valid blind/dim pair must survive untouched, got dim=%v", b.LightDimBelow)
+	}
+	if b.LightDazzleAbove != 75 {
+		t.Fatalf("LightDazzleAbove fallback should settle at the shipped default of 75, got %v", b.LightDazzleAbove)
+	}
+}
+
 // Graded lighting arc, plan 2 task 4. LightDefaultVisionStrength is the
 // window shift a bare vision flag (one that declares no strength of its
 // own, like condition 29's nightvision) falls back to.

@@ -23,9 +23,24 @@ func (b *Balance) validateLighting() {
 	}
 
 	// LightDazzleAbove: must sit above the dim edge and within the scale. Zero
-	// means unset (a test binary never loads config.yaml).
-	if b.LightDazzleAbove <= b.LightDimBelow || b.LightDazzleAbove > 100 {
-		b.LightDazzleAbove = 75
+	// means unset (a test binary never loads config.yaml). The fallback is NOT
+	// the bare literal 75, following the LightExitsAbove precedent below: an
+	// unconditional 75 can itself land below (or at) an operator's
+	// legitimately elevated LightDimBelow (e.g. dim=80, or dim=100 leaves no
+	// room above it at all), and a negative LightDimBelow (the never-blind
+	// escape hatch) would let an absent dazzle key of 0 pass the range check
+	// outright instead of falling back at all. The fallback is clamped above
+	// LightDimBelow whenever 75 would not clear it; at dim=100 there is no
+	// room for a comfortable band above the dim edge, so the fallback settles
+	// for the one point still on the scale.
+	dazzleInRange := b.LightDazzleAbove != 0 && b.LightDazzleAbove <= 100
+	if !dazzleInRange || b.LightDazzleAbove <= b.LightDimBelow {
+		fallback := ConfigInt(75)
+		if fallback <= b.LightDimBelow {
+			// dim=100 leaves no comfortable band; see the comment above.
+			fallback = min(b.LightDimBelow+1, 100)
+		}
+		b.LightDazzleAbove = fallback
 	}
 
 	// LightExitsAbove is checked after the pair above so it sees the final,
@@ -47,10 +62,11 @@ func (b *Balance) validateLighting() {
 	// LightBlindBelow/LightDimBelow revert-both style above) on purpose: the
 	// blind/dim pair here was independently valid, and discarding it over an
 	// unrelated exits typo would surprise an operator debugging their config
-	// more than a single knob quietly self-correcting to the nearest valid value. The
-	// fallback is 65 in the overwhelmingly common case (any LightBlindBelow
-	// at or below 65, which includes every shipped default), so this only
-	// changes behaviour for the unusual configs that raise blind above 65.
+	// more than a single knob quietly self-correcting to the nearest valid
+	// value. The fallback is 65 in the overwhelmingly common case (any
+	// LightBlindBelow at or below 65, which includes every shipped default),
+	// so this only changes behaviour for the unusual configs that raise
+	// blind above 65.
 	exitsInRange := b.LightExitsAbove >= -100 && b.LightExitsAbove <= 100 && b.LightExitsAbove != 0
 	if !exitsInRange || b.LightExitsAbove < b.LightBlindBelow {
 		exitsFallback := ConfigInt(65)

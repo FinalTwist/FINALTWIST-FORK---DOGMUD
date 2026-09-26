@@ -221,9 +221,10 @@ func TestDarknessShapesPenaltyIsBetweenBlindAndClean(t *testing.T) {
 
 	// DarknessShapesCombatPenalty is retired (plan 5b, task 1);
 	// DarknessScoreMultiplier's shapes case now returns the ramp's midpoint
-	// until task 3 deletes the function. The midpoint IS the old shipped
-	// 0.90 at the shipped 0.80 cap.
-	wantMidpoint := 1.0 - (1.0-float64(cfg.Balance.DarknessCombatPenalty))/2
+	// until task 3 deletes the function. 0.75 is that midpoint at this
+	// test's DarknessCombatPenalty of 0.50, hardcoded rather than
+	// recomputed so this test cannot agree with a broken shim by construction.
+	wantMidpoint := 0.75
 	wantShapesScore := clearScore * wantMidpoint
 	if math.Abs(shapesScore-wantShapesScore) > 1e-9 {
 		t.Fatalf("shapesScore = %v, want %v (clear %v x midpoint %v)",
