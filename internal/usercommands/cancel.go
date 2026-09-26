@@ -121,7 +121,7 @@ func cancelCondition(name string, user *users.UserRecord) (bool, error) {
 			continue
 		}
 		user.Character.RemoveCondition(rec.ConditionId)
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(`You let your %s go.`, strings.ToLower(spec.Name)))
+		user.SendText(messaging.CategorySystem, `You let the spell go.`)
 		return true, nil
 	}
 	user.SendText(messaging.CategorySystem, fmt.Sprintf(`You have no %s you can let go of.`, name))

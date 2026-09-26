@@ -72,7 +72,7 @@ func TestCancelEndsACancellableSpell(t *testing.T) {
 	_, err = Cancel("test radiance", user, nil, 0)
 	require.NoError(t, err)
 	require.False(t, holds(user, cancelTestRadiance), "cancel did not end a cancellable condition")
-	require.Contains(t, cancelOutput(user), `You let your test radiance go.`)
+	require.Contains(t, cancelOutput(user), `You let the spell go.`)
 }
 
 func TestCancelResolvesASpellAlias(t *testing.T) {
