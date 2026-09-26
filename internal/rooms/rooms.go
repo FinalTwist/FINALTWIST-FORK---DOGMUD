@@ -9,7 +9,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/audio"
 	"github.com/GoMudEngine/GoMud/internal/characters"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
@@ -1640,7 +1639,7 @@ func (r *Room) GetMobs(findTypes ...FindFlag) []int {
 			}
 		}
 
-		if typeFlag&FindHasLight == FindHasLight && mob.Character.HasFlagFromAnySource(conditions.EmitsLight) {
+		if typeFlag&FindHasLight == FindHasLight && mob.Character.EmitsLight() {
 			mobMatches = append(mobMatches, mobId)
 			continue
 		}
@@ -1736,7 +1735,7 @@ func (r *Room) GetPlayers(findTypes ...FindFlag) []int {
 			}
 		}
 
-		if typeFlag&FindHasLight == FindHasLight && user.Character.HasFlagFromAnySource(conditions.EmitsLight) {
+		if typeFlag&FindHasLight == FindHasLight && user.Character.EmitsLight() {
 			playerMatches = append(playerMatches, userId)
 			continue
 		}

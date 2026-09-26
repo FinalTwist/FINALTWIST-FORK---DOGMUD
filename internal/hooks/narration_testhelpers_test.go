@@ -68,14 +68,16 @@ func seedNarrationConditions() func() {
 			Flags:   []conditions.Flag{conditions.InfraredVision},
 			Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: 30}}},
 		lanternConditionId: {ConditionId: lanternConditionId, Name: "Test Lantern", RoundInterval: 5, TriggerCount: 3,
-			Flags: []conditions.Flag{conditions.EmitsLight}, EndRoomText: "{actee}'s light gutters out."},
+			Flags: []conditions.Flag{conditions.EmitsLight}, EndRoomText: "{actee}'s light gutters out.",
+			Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectLightStrength: {Literal: 50}}},
 		dozeConditionId: {ConditionId: dozeConditionId, Name: "Test Doze",
 			Flags: []conditions.Flag{conditions.Sleeping}},
 		shadeConditionId: {ConditionId: shadeConditionId, Name: "Test Shade", RoundInterval: 5, TriggerCount: 3,
 			EndRoomText: "{actee_plain} emerges from the shadows."},
 		emberConditionId: {ConditionId: emberConditionId, Name: "Test Ember", RoundInterval: 5, TriggerCount: 3,
 			Flags:       []conditions.Flag{conditions.EmitsLight},
-			EndRoomText: "The glow surrounding {actee_plain} fades away."},
+			EndRoomText: "The glow surrounding {actee_plain} fades away.",
+			Effects:     map[conditions.EffectKind]conditions.EffectValue{conditions.EffectLightStrength: {Literal: 50}}},
 	})
 }
 
