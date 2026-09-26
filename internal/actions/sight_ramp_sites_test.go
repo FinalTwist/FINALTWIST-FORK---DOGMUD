@@ -1,37 +1,89 @@
 package actions
 
 import (
+	"math"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/gamelock"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/perception"
 )
 
-// Lighting plan 5b, score-only sites: the actor who needs to see pays
-// SightMult on their score. These sites hand-build a score straight into
-// combat.RunContest with no recording seam, so each test compares success
-// RATES at a comfortable lamp (60, SightMult 1.0) and a dazzling one (90,
-// SightMult 0.88) with a 175-vs-125 matchup (~80% comfortable through the
-// floored opposed seam; the dazzled 154 falls well below). A 5-point gap at
-// 3000 trials is many standard errors wide. Sabotage-checked 2026-09-26: with
-// the site's SightMult replaced by 1 both tests fail (rates within 1.5 points).
+// Lighting plan 5b, score-only sites: the party who needs to see pays
+// SightMult on their score. Where the score is a pure helper the check is an
+// exact ratio (0.88 at lamp 90 against lamp 60). Where the score is built
+// inline and handed straight to combat.RunContest there is no recording seam,
+// so the test compares success RATES at a comfortable lamp (60, SightMult
+// 1.0) and a dazzling one (90, SightMult 0.88).
+//
+// The rate matchups sit at parity (about 50% comfortable), the steepest part
+// of the contest curve, so the 0.88 score cut moves the rate by well over ten
+// points. The bar is computed, not guessed: the dazzled rate must sit at least
+// sightRampSEs standard errors of the difference below the measured
+// comfortable rate. At 3000 trials and p near 0.5 one standard error of the
+// difference is about 1.3 points, so the bar is about 4 points; measured gaps
+// on 2026-09-26 were 16 (thief) and 18 (defuser) points. Sabotage-checked the
+// same day: with the thief's SightMult replaced by 1 the thief test fails.
 
-const sightRampTrials = 3000
+const (
+	sightRampTrials = 3000
+	sightRampSEs    = 3.0
+)
 
-// The thief's attack score pays the thief's eyes.
+// sightRampRateGap fails the test unless dazzled sits at least sightRampSEs
+// standard errors of the difference below comfortable.
+func sightRampRateGap(t *testing.T, what string, comfortable, dazzled float64) {
+	t.Helper()
+	n := float64(sightRampTrials)
+	se := math.Sqrt(comfortable*(1-comfortable)/n + dazzled*(1-dazzled)/n)
+	t.Logf("%s: comfortable %.1f%%, dazzled %.1f%%, se %.2f points",
+		what, comfortable*100, dazzled*100, se*100)
+	if bar := comfortable - sightRampSEs*se; dazzled > bar {
+		t.Fatalf("%s: dazzled %.1f%% vs comfortable %.1f%%, want at most %.1f%% "+
+			"(%.0f standard errors below); the sight ramp is not reaching the roll",
+			what, dazzled*100, comfortable*100, bar*100, sightRampSEs)
+	}
+}
+
+// The victim's (or bystander's) noticing score pays the victim's eyes.
+func TestStealVictimScoreTakesTheVictimsEyes(t *testing.T) {
+	cfg := configs.GetConfig()
+	cfg.Balance.Validate()
+	configs.SetConfigForTest(t, cfg)
+	v := characters.New()
+	v.Stats.Perception.ValueAdj = 100
+	comfortable := stealVictimScore(v, fixedLight(60))
+	dazzled := stealVictimScore(v, fixedLight(90))
+	if math.Abs(dazzled/comfortable-0.88) > 1e-9 {
+		t.Errorf("dazzled/comfortable = %v, want 0.88", dazzled/comfortable)
+	}
+}
+
+// The thief's attack score pays the thief's eyes. The victim is Blinded, so
+// its own sight ramp is fully dark (0.80) at both lamps and only the thief's
+// side moves between the two runs.
 func TestStealPaysTheThiefsEyes(t *testing.T) {
+	sw := float64(configs.GetBalanceConfig().SkillWeight)
 	rate := func(lamp int) float64 {
-		target := newStealTestMob(testMobInstId, 50, 125) // victim score 125
+		target := &mobs.Mob{InstanceId: testMobInstId}
+		target.Character = *characters.New()
+		target.Character.Name = "Bandit"
+		target.Character.Stats.Perception.ValueAdj = 188 // x0.80 blind = 150.4
+		if err := target.Character.Perception.TransitionTo(perception.Blinded,
+			state.TransitionReason{Trigger: "test"}); err != nil {
+			t.Fatalf("blind the victim: %v", err)
+		}
 		mobs.SetInstanceForTest(testMobInstId, target)
 		defer mobs.SetInstanceForTest(testMobInstId, nil)
 
 		won := 0
 		for i := 0; i < sightRampTrials; i++ {
-			// Rank 2 is the steal floor; Dex tops the score up to 175.
-			sw := float64(configs.GetBalanceConfig().SkillWeight)
-			actor := newStealPlayerActor(175-int(2*sw), 2)
+			// Rank 2 is the steal floor; Dex tops the thief up to 150.
+			actor := newStealPlayerActor(150-int(2*sw), 2)
 			actor.room.Lamp = rooms.LampPtr(lamp)
 			target.Character.Gold = 50
 			if Steal(actor, StealOptions{TargetMobInstanceId: testMobInstId}).Succeeded {
@@ -40,20 +92,17 @@ func TestStealPaysTheThiefsEyes(t *testing.T) {
 		}
 		return float64(won) / sightRampTrials
 	}
-	comfortable, dazzled := rate(60), rate(90)
-	if dazzled > comfortable-0.05 {
-		t.Fatalf("dazzled thief won %.1f%% vs %.1f%% comfortable; the sight ramp "+
-			"is not reaching the theft contest", dazzled*100, comfortable*100)
-	}
+	sightRampRateGap(t, "thief", rate(60), rate(90))
 }
 
-// The defuser's score pays the defuser's eyes.
+// The defuser's score pays the defuser's eyes; the trap is a fixed number.
 func TestDefusePaysTheDefusersEyes(t *testing.T) {
 	rate := func(lamp int) float64 {
 		won := 0
 		for i := 0; i < sightRampTrials; i++ {
-			// Perception 100 + rank 3 x 25 = 175 against lock difficulty 12 x 10.
-			actor := newDefuseActor(100, 3)
+			// Perception 45 + rank 3 x 25 = 120 against lock difficulty 12 x 10:
+			// parity when comfortable.
+			actor := newDefuseActor(45, 3)
 			actor.room.Lamp = rooms.LampPtr(lamp)
 			actor.room.Containers = map[string]rooms.Container{
 				defuseTestContainerName: {Lock: gamelock.Lock{
@@ -68,9 +117,5 @@ func TestDefusePaysTheDefusersEyes(t *testing.T) {
 		}
 		return float64(won) / sightRampTrials
 	}
-	comfortable, dazzled := rate(60), rate(90)
-	if dazzled > comfortable-0.05 {
-		t.Fatalf("dazzled defuser won %.1f%% vs %.1f%% comfortable; the sight ramp "+
-			"is not reaching the defuse contest", dazzled*100, comfortable*100)
-	}
+	sightRampRateGap(t, "defuser", rate(60), rate(90))
 }

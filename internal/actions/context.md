@@ -943,6 +943,9 @@ tell you. `FireResult.Chambered` carries the auto-reload's outcome, and its
   hider's side already folds light in through `CalcSneakScoreVsObserver`), so
   every detection caller (sneak, go, search's `spotsHider`, track's opposed
   contest, the steal/plant/shadow notice rolls) gets it by construction.
+  `stealVictimScore(c, room)` does the same for the theft and plant
+  victims and container bystanders: noticing is the victim's roll, so the
+  victim pays their own eyes inside the helper.
   Actor-side sites multiply where the score is computed: the thief's and
   planter's attack score (once in `Steal`/`Plant`, feeding all three
   sub-paths), the shadower's sneak score, the defuser's score, the searcher's

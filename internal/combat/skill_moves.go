@@ -175,6 +175,12 @@ func ExecuteSkillMove(p SkillMoveParams) SkillMoveResult {
 	return executeSkillMoveWithRunner(p, channelAttackContestRunner)
 }
 
+// knockdownContestRunner resolves the knockdown contest inside
+// executeSkillMoveWithRunner. Production-initialised to RunContest and never
+// repointed outside tests; it is separate from the channel runner so a test
+// can force the swing's outcome and still observe the knockdown scores.
+var knockdownContestRunner defenceContestRunner = RunContest
+
 // executeSkillMoveWithRunner is ExecuteSkillMove with an injectable contest
 // runner, so tests can force crit/fumble/defended outcomes deterministically.
 func executeSkillMoveWithRunner(p SkillMoveParams, runner defenceContestRunner) SkillMoveResult {
@@ -261,7 +267,11 @@ func executeSkillMoveWithRunner(p SkillMoveParams, runner defenceContestRunner) 
 		if !mutations.IsControlImmune(p.Defender.Mutations) && p.KnockdownFactor > 0 {
 			defScore := float64(p.Defender.Stats.Dexterity.ValueAdj) +
 				float64(p.Defender.GetSkillLevel(skills.UnarmedCombat))*float64(configs.GetBalanceConfig().SkillWeight)
-			kd := RunContest(p.Attack.score()*p.KnockdownFactor, []contest.Entry{{Score: defScore}})
+			// sight ramp (plan 5b): resisting a knockdown is a defence, so the
+			// defender pays the shape's defence-side sight row. The attacker's
+			// side already carries its row inside p.Attack.Mult.
+			defScore *= SituationalDefenceMult(p.Defender, p.Room, p.Shape)
+			kd := knockdownContestRunner(p.Attack.score()*p.KnockdownFactor, []contest.Entry{{Score: defScore}})
 			if kd.Success && knockdownSurvivesGlobalDamper() {
 				result.KnockedDown = true
 			} else {

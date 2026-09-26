@@ -154,7 +154,7 @@ func plantOnMob(actor Actor, mobInstanceId int, plantItem items.Item,
 		}
 	}
 
-	defenderScore := stealVictimScore(&m.Character)
+	defenderScore := stealVictimScore(&m.Character, combat.SightRoom(actor.GetRoom()))
 	success := combat.RunContest(attackerScore, []contest.Entry{{Score: defenderScore}}).Success
 	// U10b-1 Task 18: moved DOWN from before the contest, and it now carries
 	// the outcome. This fired unconditionally at full weight -- the comment
@@ -286,7 +286,7 @@ func plantOnPlayer(actor Actor, targetUserId int, plantItem items.Item,
 		return PlantResult{Reason: "target not found"}
 	}
 
-	defenderScore := stealVictimScore(targetUser.Character)
+	defenderScore := stealVictimScore(targetUser.Character, combat.SightRoom(actor.GetRoom()))
 	success := combat.RunContest(attackerScore, []contest.Entry{{Score: defenderScore}}).Success
 	// U10b-1 Task 18: moved DOWN from before the contest, and it now carries
 	// the outcome. This fired unconditionally at full weight -- the comment
@@ -406,7 +406,7 @@ func plantInContainer(actor Actor, containerName string, plantItem items.Item,
 		if observer == nil {
 			continue
 		}
-		obsScore := stealVictimScore(observer.Character)
+		obsScore := stealVictimScore(observer.Character, room)
 		if obsScore > highestObserverScore {
 			highestObserverScore = obsScore
 			spotterName = observer.Character.Name
@@ -422,7 +422,7 @@ func plantInContainer(actor Actor, containerName string, plantItem items.Item,
 		if m == nil {
 			continue
 		}
-		obsScore := stealVictimScore(&m.Character)
+		obsScore := stealVictimScore(&m.Character, room)
 		if obsScore > highestObserverScore {
 			highestObserverScore = obsScore
 			spotterName = m.Character.Name

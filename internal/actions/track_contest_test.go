@@ -73,16 +73,12 @@ func TestTrailDetectionCompressesAtTheTop(t *testing.T) {
 
 // TestTrailDetectionPaysTheTrackersEyes (lighting plan 5b): a dazzled
 // tracker's score pays SightMult 0.88 before resolveTrailDetail, so score 175
-// plays as 154 against the 125 band. See TestSearchTierPaysTheSearchersEyes
-// for why a 5-point gap at 3000 trials is safe.
+// plays as 154 against the 125 band. The bar is sightRampRateGap's computed
+// one (sight_ramp_sites_test.go).
 func TestTrailDetectionPaysTheTrackersEyes(t *testing.T) {
-	const trials = 3000
-	comfortable := trackDetectRateAt(t, 150, 60, trials)
-	dazzled := trackDetectRateAt(t, 150, 90, trials)
-	if dazzled > comfortable-0.05 {
-		t.Fatalf("dazzled tracker read the trail %.1f%% vs %.1f%% comfortable; "+
-			"the sight ramp is not reaching resolveTrailDetail", dazzled*100, comfortable*100)
-	}
+	comfortable := trackDetectRateAt(t, 150, 60, sightRampTrials)
+	dazzled := trackDetectRateAt(t, 150, 90, sightRampTrials)
+	sightRampRateGap(t, "tracker", comfortable, dazzled)
 }
 
 // TestTrailDetailBandsAreNested is THE regression guard for the defect that got

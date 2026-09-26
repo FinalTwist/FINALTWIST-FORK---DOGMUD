@@ -100,7 +100,7 @@ var contestSiteOwners = map[string]string{
 	// stale allowlist entry, which is how it caught the premature removal of
 	// the first one.
 
-	"internal/combat/skill_moves.go:executeSkillMoveWithRunner": "U10 (knockdown opposed contest after a landed special move)",
+	"internal/combat/skill_moves.go:var knockdownContestRunner": "U10 (knockdown opposed contest after a landed special move; lighting plan 5b moved it behind this test seam)",
 	"internal/hooks/recovery_contest.go:recoveryContest":        "U10 (prone-recovery opposed contest; free stands never contest)",
 }
 

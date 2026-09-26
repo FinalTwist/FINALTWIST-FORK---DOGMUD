@@ -102,17 +102,12 @@ func TestSearchTier1CompressesAtTheTop(t *testing.T) {
 
 // TestSearchTierPaysTheSearchersEyes (lighting plan 5b): a dazzled searcher's
 // score pays SightMult 0.88, so score 175 plays as 154 against the 125 tier.
-// The comfortable rate is ~91%; the dazzled one sits near 80%. A 5-point gap
-// at 3000 trials is many standard errors wide, so this is not flaky, and it
-// cannot pass if the ramp never reaches the AgainstDifficulty tiers.
+// The bar is sightRampRateGap's computed one (sight_ramp_sites_test.go), so
+// the test cannot pass if the ramp never reaches the AgainstDifficulty tiers.
 func TestSearchTierPaysTheSearchersEyes(t *testing.T) {
-	const trials = 3000
-	comfortable := searchFindRateAt(t, 150, 60, trials)
-	dazzled := searchFindRateAt(t, 150, 90, trials)
-	if dazzled > comfortable-0.05 {
-		t.Fatalf("dazzled searcher found the exit %.1f%% vs %.1f%% comfortable; "+
-			"the sight ramp is not reaching the search tiers", dazzled*100, comfortable*100)
-	}
+	comfortable := searchFindRateAt(t, 150, 60, sightRampTrials)
+	dazzled := searchFindRateAt(t, 150, 90, sightRampTrials)
+	sightRampRateGap(t, "searcher", comfortable, dazzled)
 }
 
 // TestSearch_AFoundSecretExitIsNotRolledAgain closes the secret-exit search

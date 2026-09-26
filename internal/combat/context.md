@@ -1111,9 +1111,13 @@ party who needs to see, once per roll per party:
   after the ramp.
 - `ResolveFleeBlockers`: the fleer's score and every blocker's score, each
   through their own eyes, in the room it already takes.
-- NOT here: the knockdown contest inside `executeSkillMoveWithRunner` reads
-  `p.Attack.score()`, whose `Mult` already carries the attacker's sight
-  row; the defender's knockdown resistance score takes none.
+- The knockdown contest inside `executeSkillMoveWithRunner`: the attacker
+  side is `p.Attack.score()`, whose `Mult` already carries the attacker's
+  sight row; the defender's resistance score (Dex + unarmed x SkillWeight)
+  takes `SituationalDefenceMult(p.Defender, p.Room, p.Shape)`, the defence
+  twin, so the shape's Y/N sight row stays authoritative. The contest runs
+  through `knockdownContestRunner` (production `RunContest`), a test seam
+  separate from the channel runner.
 
 Combat's OWN room lines are sight-gated separately, through
 `messaging.SendTrio`/`Room.SendTextVisual*`, not through this context.

@@ -68,10 +68,17 @@ type StealResult struct {
 // are caught/unseen, not damage, so a margin-scaled multiplier has nothing
 // to scale (spec section 4.5: a documented reason where a defence set is not
 // meaningful).
-func stealVictimScore(c *characters.Character) float64 {
-	return float64(c.Stats.Perception.ValueAdj) +
+//
+// room is the VICTIM's room (lighting plan 5b): noticing a hand in your pocket
+// is an observer's roll, so the victim or bystander pays their own sight ramp
+// (messaging.SightMult) here, once. The thief pays theirs on the attack
+// score in Steal/Plant. A nil room is unity; pass combat.SightRoom for a
+// *rooms.Room that may be nil.
+func stealVictimScore(c *characters.Character, room messaging.RoomVisibility) float64 {
+	return (float64(c.Stats.Perception.ValueAdj) +
 		float64(c.GetSkillLevel(skills.Skullduggery))*
-			float64(configs.GetBalanceConfig().SkillWeight)
+			float64(configs.GetBalanceConfig().SkillWeight)) *
+		messaging.SightMult(c, room)
 }
 
 // Steal runs a skullduggery theft attempt from actor against the
@@ -195,7 +202,7 @@ func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 		}
 	}
 
-	defenderScore := stealVictimScore(&m.Character)
+	defenderScore := stealVictimScore(&m.Character, combat.SightRoom(actor.GetRoom()))
 	success := combat.RunContest(attackerScore, []contest.Entry{{Score: defenderScore}}).Success
 	// U10b-1 Task 18: moved DOWN from before the contest, and it now carries
 	// the outcome. This fired unconditionally at full weight -- the comment
@@ -384,7 +391,7 @@ func stealFromPlayer(actor Actor, targetUserId int, attackerScore float64,
 		}
 	}
 
-	defenderScore := stealVictimScore(targetUser.Character)
+	defenderScore := stealVictimScore(targetUser.Character, combat.SightRoom(actor.GetRoom()))
 	success := combat.RunContest(attackerScore, []contest.Entry{{Score: defenderScore}}).Success
 	// U10b-1 Task 18: moved DOWN from before the contest, and it now carries
 	// the outcome. This fired unconditionally at full weight -- the comment
@@ -527,7 +534,7 @@ func stealFromContainer(actor Actor, containerName string,
 		if observer == nil {
 			continue
 		}
-		obsScore := stealVictimScore(observer.Character)
+		obsScore := stealVictimScore(observer.Character, room)
 		if obsScore > highestObserverScore {
 			highestObserverScore = obsScore
 			spotterName = observer.Character.Name
@@ -543,7 +550,7 @@ func stealFromContainer(actor Actor, containerName string,
 		if m == nil {
 			continue
 		}
-		obsScore := stealVictimScore(&m.Character)
+		obsScore := stealVictimScore(&m.Character, room)
 		if obsScore > highestObserverScore {
 			highestObserverScore = obsScore
 			spotterName = m.Character.Name
