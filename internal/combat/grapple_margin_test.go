@@ -35,7 +35,7 @@ func TestAttemptGrapple_SkillTermsUseSkillWeight(t *testing.T) {
 	atk := newGrappleMarginChar(100, 20)
 	def := newGrappleMarginChar(80, 10)
 
-	res := AttemptGrapple(atk, def)
+	res := AttemptGrapple(atk, def, nil)
 
 	assert.InDelta(t, float64(atk.GetEffectiveDexterity())+20*3, res.AttackScore, 0.001,
 		"attack score must be Dex + unarmed rank x SkillWeight")
@@ -60,7 +60,7 @@ func TestAttemptGrapple_ProneKnobsKeepTheirSides(t *testing.T) {
 		def := newGrappleMarginChar(100, 25)
 		setCombatPositionParallel(def, position.Prone)
 
-		res := AttemptGrapple(atk, def)
+		res := AttemptGrapple(atk, def, nil)
 
 		base := float64(def.GetEffectiveDexterity()) + 25*2
 		assert.InDelta(t, base*0.1, res.DefenseScore, 0.001,
@@ -74,7 +74,7 @@ func TestAttemptGrapple_ProneKnobsKeepTheirSides(t *testing.T) {
 		def := newGrappleMarginChar(100, 25)
 		setCombatPositionParallel(atk, position.Prone)
 
-		res := AttemptGrapple(atk, def)
+		res := AttemptGrapple(atk, def, nil)
 
 		base := float64(atk.GetEffectiveDexterity()) + 25*2
 		assert.InDelta(t, base*0.9, res.AttackScore, 0.001,
@@ -96,7 +96,7 @@ func TestAttemptGrapple_ThreadsMarginAndPairBar(t *testing.T) {
 	atk := newGrappleMarginChar(100, 40)
 	def := newGrappleMarginChar(100, 10)
 
-	res := AttemptGrapple(atk, def)
+	res := AttemptGrapple(atk, def, nil)
 
 	assert.Equal(t, CritBarFor(40, 10), res.CritBar,
 		"CritBar must be CritBarFor over the unarmed-combat pair")
@@ -122,7 +122,7 @@ func TestAttemptGrapple_CritDerivesFromMarginNotSelfZScore(t *testing.T) {
 		for i := 0; i < iterations; i++ {
 			atk := newGrappleMarginChar(1000, 50)
 			def := newGrappleMarginChar(10, 1)
-			if AttemptGrapple(atk, def).Crit {
+			if AttemptGrapple(atk, def, nil).Crit {
 				crits++
 			}
 		}
@@ -135,7 +135,7 @@ func TestAttemptGrapple_CritDerivesFromMarginNotSelfZScore(t *testing.T) {
 		for i := 0; i < iterations; i++ {
 			atk := newGrappleMarginChar(10, 1)
 			def := newGrappleMarginChar(1000, 50)
-			if AttemptGrapple(atk, def).Crit {
+			if AttemptGrapple(atk, def, nil).Crit {
 				crits++
 			}
 		}

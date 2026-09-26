@@ -60,7 +60,7 @@ func TestCalcDetectionScore_Linear(t *testing.T) {
 		char.Stats.Perception.ValueAdj = 100
 		char.Skills[string(skills.Search)] = rank
 
-		got := CalcDetectionScore(char)
+		got := CalcDetectionScore(char, nil) // nil room: sight ramp is unity
 		want := 100.0 + float64(rank)*sw
 		require.Equal(t, want, got,
 			"CalcDetectionScore rank %d must be Per + rank*SkillWeight", rank)

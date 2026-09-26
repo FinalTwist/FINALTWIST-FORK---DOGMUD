@@ -645,7 +645,9 @@ penalty profile via `IsProne() || IsSupine()` reads in
    `recoveryContest()` (`internal/hooks/recovery_contest.go`, the
    `contestSiteOwners` entry for this contest): it scores `Dex +
    UnarmedCombat×SkillWeight` for the recoverer and the strongest living
-   same-room attacker from `Character.Attackers()`, then runs
+   same-room attacker from `Character.Attackers()`, multiplies each by that
+   party's own `messaging.SightMult` in the recoverer's room (lighting plan
+   5b; the holder is picked on the raw score first), then runs
    `combat.RunContest`. `nil` (nobody qualifies) means an automatic stand
    with no roll and no progression; a contest that actually ran fires one
    `AwardResolved(..., success, CandidateFor(UnarmedCombat))` whether it was
@@ -1095,6 +1097,23 @@ nothing. Infra reach does not soften the ramp. A **BLINDED** character is
 fully dark (`ComfortDistance` returns dark 1) whatever vision it holds.
 A test literal that sets only the verdict fields leaves the comfort fields
 at zero, which means "comfortable".
+
+**Score-only rolls in this package (plan 5b Task 5).** Rolls that hand a
+hand-built score straight to `RunContest` pay `messaging.SightMult` on the
+party who needs to see, once per roll per party:
+
+- `AttemptGrapple(attacker, defender, room messaging.RoomVisibility)` and
+  `RollSubmissionAttempt(attempter, recipient, subType, room)`: BOTH sides,
+  each through their own eyes. `ExecuteGrappleMove` passes
+  `SightRoom(room)`; the submission tick loads the attempter's room.
+  `GrappleResult.AttackScore/DefenseScore` and
+  `SubmissionAttemptResult.AttackerScore/DefenderScore` report the scores
+  after the ramp.
+- `ResolveFleeBlockers`: the fleer's score and every blocker's score, each
+  through their own eyes, in the room it already takes.
+- NOT here: the knockdown contest inside `executeSkillMoveWithRunner` reads
+  `p.Attack.score()`, whose `Mult` already carries the attacker's sight
+  row; the defender's knockdown resistance score takes none.
 
 Combat's OWN room lines are sight-gated separately, through
 `messaging.SendTrio`/`Room.SendTextVisual*`, not through this context.
@@ -1808,7 +1827,7 @@ values directly.
 | `combat/attackresult.go` | `AttackResult` struct (includes `Hit`/`CleanHit` — dealt damage vs. won the contest, see the Task 10/14 section — `DefenseAttempts`, `AttackZScore`, `DefenseZScore`, `ParryCritDetected`, `DodgeCritDetected`), `SwingEvent`, `SwingDefence`/`SwingDefences` (U10b-1; see "Defender progression" below) and message helpers |
 | `combat/ai.go` | `ChooseSpecialMove`, `ChooseCastAction`, `GetAIProfile`, AI profiles, viability checks (`CanUseBash`, `CanUseKick`, etc.), scoring functions |
 | `combat/criteffects.go` | `AttemptCritDisarm`, `SetGrappleOpportunity`, `HasGrappleOpportunity`, `GetGrappleOpportunityBonus`, `ClearGrappleOpportunity` |
-| `combat/grapple.go` | `AttemptGrapple`, `ApplyGrappleResult`, `CheckClinchProgression`, `CheckGroundedEscape`, `ApplyPositionProgression`, `IsThirdPartyAttack` |
+| `combat/grapple.go` | `AttemptGrapple(attacker, defender, room)` (both scores pay their own sight ramp), `ApplyGrappleResult`, `CheckClinchProgression`, `CheckGroundedEscape`, `ApplyPositionProgression`, `IsThirdPartyAttack` |
 | `combat/grapple_narration.go` | `renderGrappleEvent` (unexported), reads grapple's `crit_failure` and `disarm` events from `internal/movenarration` for `HandleGrappleCritFailure` and `AttemptCritDisarm`. These two results are shared by both `mobcommands/grapple.go` and `usercommands/grapple.go`, so the rendering lives here rather than in either twin's move_narration.go-style helper (M4e-1) |
 | `combat/grapple_move.go` | `ExecuteGrappleMove`, `GrappleMoveResult`, `GrappleMoveDisarmWeapon` |
 | `combat/skill_moves.go` | `ExecuteSkillMove`, `SkillMoveResult`, `SkillMoveParams`. U6b Task 10: `SkillMoveResult.IsCounter` echoes `SkillMoveParams.IsCounter` so counter-tier wiring that only sees the result can refuse to fire off a move that IS a counter. Lighting plan 5b: `SkillMoveParams.Room` (a `messaging.RoomVisibility`, nil is unity) is handed to the seam's defender-side sight row; every production caller sets it and builds `Attack.Mult` from `SituationalAttackMult` with the same room (or, for the counter-swing, `messaging.SightMult` alone) |
@@ -1924,7 +1943,8 @@ rolls a fresh opposed check and applies the outcome.
 
 ### Key files
 
-- `internal/combat/submission.go` — `RollSubmissionAttempt`, tier
+- `internal/combat/submission.go`: `RollSubmissionAttempt(attempter,
+  recipient, subType, room)` (both scores pay their own sight ramp), tier
   classification (`ClassifySubmissionTier`), `SubmissionTier` enum,
   `SubmissionAttemptResult` struct, `Role` enum (RoleTop / RoleBottom).
 - `internal/combat/submission_outcome.go` — `ResolveSubmissionOutcome`,
@@ -2160,7 +2180,7 @@ own identical terms (converging that is not Task 17's mandate).
 | `grapple.go` / `grapple_move.go` | The grappling state machine and transitions |
 | `submission.go` / `submission_outcome.go` | Submissions and their resolution |
 | `reach.go` | Weapon reach and its interaction with clinch |
-| `flee.go` / `flight.go` | Disengaging and flight movement. `ResolveFleeBlockers(fleer, room, includeSkill) (*FleeBlocker, bool)` keeps Dexterity, prone/supine penalty, blocker ordering, blocker Unarmed Combat, and `RunContest`; `includeSkill=false` removes only the fleer's Skullduggery term. It performs **no progression write** — the second return reports whether an opposed roll actually happened, and the two flee wrappers award Skullduggery practice on `contested && includeSkill`. |
+| `flee.go` / `flight.go` | Disengaging and flight movement. `ResolveFleeBlockers(fleer, room, includeSkill) (*FleeBlocker, bool)` keeps Dexterity, prone/supine penalty, blocker ordering, blocker Unarmed Combat, and `RunContest`; the fleer and each blocker pay their own `messaging.SightMult` (lighting plan 5b); `includeSkill=false` removes only the fleer's Skullduggery term. It performs **no progression write**: the second return reports whether an opposed roll actually happened, and the two flee wrappers award Skullduggery practice on `contested && includeSkill`. |
 | `taunt_messages.go` | Rhetoric channel messaging |
 | `ai.go` | Combat-side AI helpers |
 | `analytics.go` | Combat statistics collection |

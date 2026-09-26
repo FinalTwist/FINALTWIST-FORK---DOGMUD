@@ -451,7 +451,7 @@ func TestExecuteCraft_ConsumesIngredientsViaRoundAwareRemove(t *testing.T) {
 	giveCraftScore(mob)
 
 	// Run executeCraft (success or failure doesn't matter for ingredient consumption).
-	executeCraft(mob, recipe, shopInv)
+	executeCraft(mob, recipe, shopInv, nil)
 
 	// Ingredient stock should be zero.
 	entry := shopInv.GetStock(crafterTestIngredientID)
@@ -501,7 +501,7 @@ func TestExecuteCraft_SuccessAddsOutputViaRoundAwareAdd(t *testing.T) {
 
 	mob := makeCrafterMob()
 	giveCraftScore(mob)
-	executeCraft(mob, recipe, shopInv)
+	executeCraft(mob, recipe, shopInv, nil)
 
 	// Output must be present.
 	outEntry := shopInv.GetStock(crafterTestOutputID)
@@ -535,7 +535,7 @@ func TestExecuteCraft_SuccessCallsSaveShop(t *testing.T) {
 
 	mob := makeCrafterMob()
 	giveCraftScore(mob)
-	executeCraft(mob, recipe, shopInv)
+	executeCraft(mob, recipe, shopInv, nil)
 
 	assert.Equal(t, 1, *saveCount,
 		"executeCraft must call SaveShop exactly once after a successful craft")
@@ -552,7 +552,7 @@ func TestExecuteCraft_FailureStillConsumesIngredients(t *testing.T) {
 
 	mob := makeCrafterMob()
 	giveCraftScore(mob)
-	result := executeCraft(mob, recipe, shopInv)
+	result := executeCraft(mob, recipe, shopInv, nil)
 
 	assert.False(t, result.Success, "craft must have failed with forced-failure config")
 
@@ -591,7 +591,7 @@ func TestExecuteCraft_OutputItemFreshlyCreated(t *testing.T) {
 
 	mob := makeCrafterMob()
 	giveCraftScore(mob)
-	result := executeCraft(mob, recipe, shopInv)
+	result := executeCraft(mob, recipe, shopInv, nil)
 
 	require.True(t, result.Success, "craft must succeed with forced-success config")
 
@@ -684,7 +684,7 @@ func TestTickMobCraft_ScheduleGate_BlocksWhenActivityNotCraft(t *testing.T) {
 	// Pin to hour 19: Kerra's tavern segment (18-22, activity="").
 	defer setTestHourForCrafter(t, 19)()
 
-	result := TickMobCraft(mob)
+	result := TickMobCraft(mob, nil)
 	if result != nil {
 		t.Errorf("expected nil during non-craft segment (hour=19, activity=\"\"), got %+v", result)
 	}
@@ -701,7 +701,7 @@ func TestTickMobCraft_ScheduleGate_NoScheduleIsUnaffected(t *testing.T) {
 	mob.ScheduleId = "" // no schedule — gate must be a no-op
 
 	// Should complete without panic regardless of result.
-	_ = TickMobCraft(mob)
+	_ = TickMobCraft(mob, nil)
 }
 
 // TestExecuteCraft_SuccessAlwaysRoutesToShop is the regression for the
@@ -723,7 +723,7 @@ func TestExecuteCraft_SuccessAlwaysRoutesToShop(t *testing.T) {
 	giveCraftScore(mob)
 	preInventoryCount := len(mob.Character.Items)
 
-	result := executeCraft(mob, recipe, shopInv)
+	result := executeCraft(mob, recipe, shopInv, nil)
 	require.True(t, result.Success)
 
 	// Output must be in shop stock.
@@ -868,7 +868,7 @@ func TestExecuteCraftLegacy_AFailedCraftStillAwards(t *testing.T) {
 
 	executeCraftLegacy(mob, &crafting.RecipeSpec{
 		RecipeId: "u10b1-mobcraft-fail", Skill: skill, SkillMinimum: 0,
-	})
+	}, nil)
 
 	if got := mob.Character.GetSkillUseCount(skill) - before; got != 1 {
 		t.Fatalf("%s use count rose by %d after a FAILED mob craft, want 1", skill, got)
@@ -887,7 +887,7 @@ func TestExecuteCraftLegacy_ASucceedingCraftAwardsOnce(t *testing.T) {
 
 	result := executeCraftLegacy(mob, &crafting.RecipeSpec{
 		RecipeId: "u10b1-mobcraft-win", Skill: skill, SkillMinimum: 0,
-	})
+	}, nil)
 
 	if !result.Success {
 		t.Fatal("fixture premise: a chance of 100 must succeed")
@@ -932,7 +932,7 @@ func TestExecuteCraftLegacy_TheAwardIgnoresRecipeDifficulty(t *testing.T) {
 			before := m.Character.Skills[skill]
 			executeCraftLegacy(m, &crafting.RecipeSpec{
 				RecipeId: recipeId, Skill: skill, SkillMinimum: skillMinimum,
-			})
+			}, nil)
 			if m.Character.Skills[skill] > before {
 				advanced++
 			}

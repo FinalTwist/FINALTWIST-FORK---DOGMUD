@@ -40,10 +40,11 @@ func secretExitDiscoveryKey(exitName string) string {
 // per-observer lighting (NightVision counts as lit for that observer alone).
 //
 // roomLit is the room's own light state, computed once by the caller (see
-// CalcSneakScoreVsObserver) rather than refetched per occupant.
-func spotsHider(observer *characters.Character, hider *characters.Character, roomLit bool) bool {
+// CalcSneakScoreVsObserver) rather than refetched per occupant. room is the
+// observer's room, for the observer's sight ramp inside CalcDetectionScore.
+func spotsHider(observer *characters.Character, hider *characters.Character, room messaging.RoomVisibility, roomLit bool) bool {
 	return combat.RunContest(
-		CalcDetectionScore(observer),
+		CalcDetectionScore(observer, room),
 		[]contest.Entry{{Score: CalcSneakScoreVsObserver(hider, observer, roomLit)}},
 	).Success
 }
@@ -111,7 +112,10 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 		return result
 	}
 
-	searchScore := CalcSearchScore(char)
+	// sight ramp (plan 5b): the searcher needs to see. This score feeds only
+	// the static AgainstDifficulty tiers; the hidden-occupant tiers go through
+	// spotsHider, whose CalcDetectionScore pays the ramp itself.
+	searchScore := CalcSearchScore(char) * messaging.SightMult(char, room)
 
 	if actor.IsPlayer() {
 		actor.SendText(messaging.CategorySystem, "You snoop around for a bit...\n")
@@ -245,7 +249,7 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 			continue
 		}
 		rolledAgainstSomething = true
-		if spotsHider(char, p.Character, roomLit) {
+		if spotsHider(char, p.Character, room, roomLit) {
 			result.HiddenPlayersFound = append(result.HiddenPlayersFound, pId)
 			if actor.IsPlayer() {
 				hiddenPlayerNames = append(hiddenPlayerNames,
@@ -272,7 +276,7 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 			continue
 		}
 		rolledAgainstSomething = true
-		if spotsHider(char, &m.Character, roomLit) {
+		if spotsHider(char, &m.Character, room, roomLit) {
 			result.HiddenMobsFound = append(result.HiddenMobsFound, mId)
 			if actor.IsPlayer() {
 				hiddenMobNames = append(hiddenMobNames,

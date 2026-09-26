@@ -936,6 +936,22 @@ tell you. `FireResult.Chambered` carries the auto-reload's outcome, and its
   point). For OPPOSED contests, do not reach `internal/contest` directly; this
   package goes through `internal/combat`.
 
+  **Sight ramp on score-only rolls (lighting plan 5b).** Every hand-built
+  score here pays `messaging.SightMult` on the party who needs to SEE, once
+  per roll per party. `CalcDetectionScore(c, room messaging.RoomVisibility)`
+  applies it for the OBSERVER (pass the observer's room; nil is unity; the
+  hider's side already folds light in through `CalcSneakScoreVsObserver`), so
+  every detection caller (sneak, go, search's `spotsHider`, track's opposed
+  contest, the steal/plant/shadow notice rolls) gets it by construction.
+  Actor-side sites multiply where the score is computed: the thief's and
+  planter's attack score (once in `Steal`/`Plant`, feeding all three
+  sub-paths), the shadower's sneak score, the defuser's score, the searcher's
+  static-tier score in `Search`, the tracker's `searchScore` in `Track` (fed
+  to `resolveTrailDetail`, which stays pure), the forager's
+  `ForageAttempt.SearchScore` (`ForageCore` stays pure), the salvager's
+  `score` in `Salvage`, and the caster's `hold` in `ExecuteThrottle`'s cast
+  interrupt. Voice contests never call it.
+
   **The one exception, added by U10b-1b Phase A: STATIC-DIFFICULTY checks call
   `contest.AgainstDifficulty` directly**, because there is no `internal/combat`
   wrapper for them and deliberately never will be — `combat.RunContest`'s doc

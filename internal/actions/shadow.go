@@ -162,8 +162,11 @@ func shadowPlayer(actor Actor, targetUserId int, cfg configs.Balance) ShadowResu
 	// defending entry. Same formula as shadowDetectionRoll in
 	// usercommands/skill.skullduggery.shadow.go (Per+Search vs Dex+Skullduggery).
 	roomLit := actor.GetRoom().IsLit()
+	sight := combat.SightRoom(actor.GetRoom())
 	sneakScore := CalcSneakScoreVsObserver(char, targetUser.Character, roomLit)
-	searchScore := CalcDetectionScore(targetUser.Character)
+	// sight ramp (plan 5b): the shadower needs to see the quarry to keep on it.
+	sneakScore *= messaging.SightMult(char, sight)
+	searchScore := CalcDetectionScore(targetUser.Character, sight)
 	detected := combat.RunContest(searchScore, []contest.Entry{{Score: sneakScore}}).Success
 	// U10b-1 Task 18: moved DOWN below the detection contest and given its
 	// outcome. detected means the TARGET spotted the shadower -- RunContest is

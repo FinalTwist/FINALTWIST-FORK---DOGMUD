@@ -39,7 +39,7 @@ func TestRollSubmissionAttempt_Structure(t *testing.T) {
 	setupBalanceForSubmissionTests(t)
 	atk := newCharFor(t, 120, 100, 30)
 	def := newCharFor(t, 100, 100, 10)
-	res := combat.RollSubmissionAttempt(atk, def, position.SubArmbar)
+	res := combat.RollSubmissionAttempt(atk, def, position.SubArmbar, nil)
 	assert.Equal(t, position.SubArmbar, res.SubType)
 	assert.NotZero(t, res.AttackerScore)
 	assert.NotZero(t, res.DefenderScore)
@@ -93,7 +93,7 @@ func TestRollSubmissionAttempt_SkillWeightOnBothSides(t *testing.T) {
 	atk := newCharFor(t, 120, 100, 30)
 	def := newCharFor(t, 100, 90, 10)
 
-	res := combat.RollSubmissionAttempt(atk, def, position.SubArmbar)
+	res := combat.RollSubmissionAttempt(atk, def, position.SubArmbar, nil)
 	assert.InDelta(t, 120+30*3.0, res.AttackerScore, 0.001,
 		"attacker score must be Str + unarmed rank x SkillWeight")
 	assert.InDelta(t, 100+90+10*3.0, res.DefenderScore, 0.001,
@@ -116,7 +116,7 @@ func TestRollSubmissionAttempt_StunCritTracksTheMatchup(t *testing.T) {
 		for i := 0; i < iterations; i++ {
 			atk := newCharFor(t, 1000, 100, 50)
 			def := newCharFor(t, 10, 10, 1)
-			if combat.RollSubmissionAttempt(atk, def, position.SubArmbar).Tier == combat.SubTierCrit {
+			if combat.RollSubmissionAttempt(atk, def, position.SubArmbar, nil).Tier == combat.SubTierCrit {
 				crits++
 			}
 		}
@@ -129,7 +129,7 @@ func TestRollSubmissionAttempt_StunCritTracksTheMatchup(t *testing.T) {
 		for i := 0; i < iterations; i++ {
 			atk := newCharFor(t, 10, 10, 1)
 			def := newCharFor(t, 1000, 100, 50)
-			if combat.RollSubmissionAttempt(atk, def, position.SubArmbar).Tier == combat.SubTierCrit {
+			if combat.RollSubmissionAttempt(atk, def, position.SubArmbar, nil).Tier == combat.SubTierCrit {
 				crits++
 			}
 		}

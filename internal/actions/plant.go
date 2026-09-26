@@ -111,6 +111,9 @@ func Plant(actor Actor, opts PlantOptions) PlantResult {
 	if isHidden {
 		attackerScore += float64(cfg.StealHiddenBonus)
 	}
+	// sight ramp (plan 5b): the planter needs to see. Once here; the score
+	// feeds all three plant contests below.
+	attackerScore *= messaging.SightMult(char, room)
 
 	// Dispatch to the appropriate path.
 	if opts.TargetMobInstanceId > 0 {
@@ -337,7 +340,7 @@ func plantOnPlayer(actor Actor, targetUserId int, plantItem items.Item,
 
 	// Independent detection roll: victim may notice even on success.
 	if !actor.IsPlayer() {
-		searchScore := CalcDetectionScore(targetUser.Character)
+		searchScore := CalcDetectionScore(targetUser.Character, combat.SightRoom(actor.GetRoom()))
 		roomLit := actor.GetRoom().IsLit()
 		sneakScore := CalcSneakScoreVsObserver(actor.GetCharacter(), targetUser.Character, roomLit)
 		detected := combat.RunContest(searchScore, []contest.Entry{{Score: sneakScore}}).Success

@@ -11,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
@@ -143,7 +144,9 @@ func checkConcentrationBreak(ch *characters.Character, damage int) bool {
 		// Chip damage does not generate rolls at all (U10).
 		return false
 	}
-	res := combat.RunConcentrationContest(concentrationScore(ch), float64(damagePct*10))
+	// sight ramp (plan 5b): the caster needs to see to hold the weave.
+	hold := concentrationScore(ch) * messaging.SightMult(ch, combat.SightRoom(rooms.LoadRoom(ch.RoomId)))
+	res := combat.RunConcentrationContest(hold, float64(damagePct*10))
 	// U10b-1 Task 12: win OR lose. This was success-only -- one spellcasting
 	// event per HELD contest, nothing at all for a broken one -- which is the
 	// convention this slice replaces. Holding against a blow and failing to
@@ -616,7 +619,9 @@ func processFoldRound(char *characters.Character) FoldRoundResult {
 			// Chunk 4f's lattice keeps its full granularity; the x10
 			// conversion is the design (owner 2026-08-21, re-ratified over
 			// the corrected table — prone 300, deep holds 600-700).
-			res := combat.RunConcentrationContest(concentrationScore(char), float64(dmgPctEquiv*10))
+			// sight ramp (plan 5b): the caster needs to see to hold the weave.
+			hold := concentrationScore(char) * messaging.SightMult(char, combat.SightRoom(rooms.LoadRoom(char.RoomId)))
+			res := combat.RunConcentrationContest(hold, float64(dmgPctEquiv*10))
 			// U10b-1 Task 12: awarded BEFORE the branch, so it fires win or
 			// lose. It used to sit inside the success arm only. Note the loss
 			// arm returns, so an award placed there would never run.

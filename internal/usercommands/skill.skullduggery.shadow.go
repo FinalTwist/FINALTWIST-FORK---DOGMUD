@@ -134,8 +134,11 @@ func shadowIsTargetingUser(shadower *users.UserRecord, moverId int) bool {
 // to compute per-observer light conditions (NightVision, room darkness).
 func shadowDetectionRoll(shadower *users.UserRecord, target *users.UserRecord, room *rooms.Room) bool {
 	roomLit := room.IsLit()
+	sight := combat.SightRoom(room)
 	sneakScore := actions.CalcSneakScoreVsObserver(shadower.Character, target.Character, roomLit)
-	targetScore := actions.CalcDetectionScore(target.Character)
+	// sight ramp (plan 5b): the shadower needs to see the quarry to keep on it.
+	sneakScore *= messaging.SightMult(shadower.Character, sight)
+	targetScore := actions.CalcDetectionScore(target.Character, sight)
 
 	// The target is the attacker in this contest: Success means they noticed.
 	// Target detects when targetScore beats sneakScore.

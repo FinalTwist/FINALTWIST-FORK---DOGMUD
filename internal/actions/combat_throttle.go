@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -168,6 +169,9 @@ func ExecuteThrottle(actor Actor) ThrottleResult {
 					float64(char.GetSkillLevel(skills.UnarmedCombat))*w
 				hold := float64(target.Char.Stats.Willpower.ValueAdj) +
 					float64(target.Char.GetSkillLevel(skills.Spellcasting))*w
+				// sight ramp (plan 5b): the caster needs to see to hold the
+				// weave; the choke is felt, not seen, so grip takes none.
+				hold *= messaging.SightMult(target.Char, sightRoom)
 				res := combat.RunConcentrationContest(hold, grip)
 				// U10b-1 Task 12: the DEFENDER's concentration award, win or
 				// lose, fired before the branch because the loss arm has its

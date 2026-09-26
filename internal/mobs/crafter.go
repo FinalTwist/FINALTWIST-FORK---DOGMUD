@@ -6,6 +6,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/itemvalue"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/shops"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -236,7 +237,12 @@ func TickMobShopBaselineRestock(mob *Mob) bool {
 // Returns a CraftResult summarizing what (if anything) the crafter
 // did on this tick. Returns nil when the mob is not a crafter, the
 // crafting feature is disabled, or the mob is in combat.
-func TickMobCraft(mob *Mob) *CraftResult {
+//
+// room is the crafter's room, threaded to the craft roll for the crafter's
+// sight ramp (lighting plan 5b, messaging.SightMult). mobs cannot import
+// rooms or combat, so the caller converts: pass nil (unity) when the room did
+// not load, never a typed-nil *rooms.Room.
+func TickMobCraft(mob *Mob, room messaging.RoomVisibility) *CraftResult {
 	if !mob.Crafter {
 		return nil
 	}
@@ -330,7 +336,7 @@ func TickMobCraft(mob *Mob) *CraftResult {
 
 		// ── Priority 1: Self-gear upgrade ──────────────────────────────────
 		if selfRecipe := pickSelfGearRecipe(mob, recipeIds, shopInv, reservePct); selfRecipe != nil {
-			return tagRestock(executeCraft(mob, selfRecipe, shopInv))
+			return tagRestock(executeCraft(mob, selfRecipe, shopInv, room))
 		}
 
 		// ── Priority 2: Profitable craft ──────────────────────────────────
@@ -338,7 +344,7 @@ func TickMobCraft(mob *Mob) *CraftResult {
 		if craftDecision != nil {
 			recipe := crafting.GetRecipe(craftDecision.RecipeId)
 			if recipe != nil {
-				return tagRestock(executeCraft(mob, recipe, shopInv))
+				return tagRestock(executeCraft(mob, recipe, shopInv, room))
 			}
 		}
 
@@ -396,7 +402,7 @@ func TickMobCraft(mob *Mob) *CraftResult {
 		return nil
 	}
 
-	return executeCraftLegacy(mob, recipe)
+	return executeCraftLegacy(mob, recipe, room)
 }
 
 // mergeRecipeIds combines two slices of recipe IDs, deduplicating them.
@@ -462,8 +468,9 @@ func pickSelfGearRecipe(mob *Mob, recipeIds []string, shopInv *shops.ShopInvento
 }
 
 // executeCraft performs a craft attempt using ShopInventory for material
-// tracking. On success, the output is added directly to shopInv stock.
-func executeCraft(mob *Mob, recipe *crafting.RecipeSpec, shopInv *shops.ShopInventory) *CraftResult {
+// tracking. On success, the output is added directly to shopInv stock. room is
+// the crafter's room for the sight ramp; nil is unity.
+func executeCraft(mob *Mob, recipe *crafting.RecipeSpec, shopInv *shops.ShopInventory, room messaging.RoomVisibility) *CraftResult {
 	round := util.GetRoundCount()
 
 	// Consume ingredients from shop stock (round-aware so depletion events
@@ -504,6 +511,8 @@ func executeCraft(mob *Mob, recipe *crafting.RecipeSpec, shopInv *shops.ShopInve
 	// same recipe would have different odds depending on who crafted it.
 	craftScore := crafting.CraftScore(
 		float64(mob.Character.GetStatValue(crafting.CraftPrimaryStat(recipe))), skillLevel)
+	// sight ramp (plan 5b): the crafter needs to see.
+	craftScore *= messaging.SightMult(&mob.Character, room)
 	craftDiff := crafting.CraftDifficulty(
 		recipe.SkillMinimum, crafting.DearestMaterialTier(consumed))
 
@@ -563,8 +572,9 @@ func executeCraft(mob *Mob, recipe *crafting.RecipeSpec, shopInv *shops.ShopInve
 }
 
 // executeCraftLegacy performs a craft attempt using the mob's backpack for
-// ingredient tracking. Used when no ShopInventory is registered.
-func executeCraftLegacy(mob *Mob, recipe *crafting.RecipeSpec) *CraftResult {
+// ingredient tracking. Used when no ShopInventory is registered. room is the
+// crafter's room for the sight ramp; nil is unity.
+func executeCraftLegacy(mob *Mob, recipe *crafting.RecipeSpec, room messaging.RoomVisibility) *CraftResult {
 	skillLevel := mob.Character.GetSkillLevel(skills.SkillTag(recipe.Skill))
 
 	result := &CraftResult{
@@ -583,6 +593,8 @@ func executeCraftLegacy(mob *Mob, recipe *crafting.RecipeSpec) *CraftResult {
 	consumed := crafting.SelectIngredients(backpack, []items.Item{}, recipe)
 	craftScore := crafting.CraftScore(
 		float64(mob.Character.GetStatValue(crafting.CraftPrimaryStat(recipe))), skillLevel)
+	// sight ramp (plan 5b): the crafter needs to see.
+	craftScore *= messaging.SightMult(&mob.Character, room)
 	craftDiff := crafting.CraftDifficulty(
 		recipe.SkillMinimum, crafting.DearestMaterialTier(consumed))
 

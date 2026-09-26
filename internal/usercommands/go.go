@@ -572,7 +572,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 						continue
 					}
 					sneakScore := actions.CalcSneakScoreVsObserver(user.Character, p.Character, destRoomLit)
-					observerScore := actions.CalcDetectionScore(p.Character)
+					observerScore := actions.CalcDetectionScore(p.Character, destRoom)
 					success := combat.RunContest(sneakScore, []contest.Entry{{Score: observerScore}}).Success
 					if !success {
 						p.SendText(messaging.CategorySystem, fmt.Sprintf(
@@ -591,7 +591,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 							continue
 						}
 						sneakScore := actions.CalcSneakScoreVsObserver(user.Character, &mob.Character, destRoomLit)
-						observerScore := actions.CalcDetectionScore(&mob.Character)
+						observerScore := actions.CalcDetectionScore(&mob.Character, destRoom)
 						success := combat.RunContest(sneakScore, []contest.Entry{{Score: observerScore}}).Success
 						if !success {
 							spotted = true
@@ -622,7 +622,9 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 
 			// Newcomer tries to spot hidden occupants (players and mobs)
 			if !isSneaking {
-				observerScore := actions.CalcDetectionScore(user.Character)
+				// The newcomer now stands in destRoom: that is the light their
+				// eyes meet.
+				observerScore := actions.CalcDetectionScore(user.Character, destRoom)
 
 				// Check hidden players
 				for _, pId := range destRoom.GetPlayers() {

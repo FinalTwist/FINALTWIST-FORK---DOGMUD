@@ -92,7 +92,7 @@ func TestAttemptGrapple_Statistical(t *testing.T) {
 			def.Stats.Dexterity.ValueAdj = 80
 			def.Skills["unarmed-combat"] = 10
 
-			result := AttemptGrapple(atk, def)
+			result := AttemptGrapple(atk, def, nil)
 			if result.Success {
 				wins++
 			}
@@ -112,7 +112,7 @@ func TestAttemptGrapple_Statistical(t *testing.T) {
 			def.Stats.Dexterity.ValueAdj = 100
 			def.Skills["unarmed-combat"] = 25
 
-			result := AttemptGrapple(atk, def)
+			result := AttemptGrapple(atk, def, nil)
 			if result.Success {
 				wins++
 			}
@@ -133,7 +133,7 @@ func TestAttemptGrapple_Statistical(t *testing.T) {
 			def.Skills["unarmed-combat"] = 25
 			setCombatPositionParallel(def, position.Prone)
 
-			result := AttemptGrapple(atk, def)
+			result := AttemptGrapple(atk, def, nil)
 			if result.Success {
 				wins++
 			}
@@ -154,7 +154,7 @@ func TestAttemptGrapple_PositionTransition(t *testing.T) {
 		def.Stats.Dexterity.ValueAdj = 50
 		def.Skills["unarmed-combat"] = 5
 
-		result := AttemptGrapple(atk, def)
+		result := AttemptGrapple(atk, def, nil)
 		if result.Success {
 			assert.False(t, result.IsGroundGrapple,
 				"successful grapple on standing defender → clinch (not ground grapple)")

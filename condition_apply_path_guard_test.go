@@ -107,7 +107,7 @@ var conditionApplyPathAllowlist = map[string]string{
 	"internal/hooks/Condition_ApplyConditions.go|107": "this IS the hook the event feeds; it is where every routed condition is finally applied",
 
 	// ── silent-start conditions whose applier narrates the moment itself ────
-	"internal/actions/combat_throttle.go|148": "condition 89 is silent-start; the throttle move narrates the choke as it lands and must apply it in the same tick",
+	"internal/actions/combat_throttle.go|149": "condition 89 is silent-start; the throttle move narrates the choke as it lands and must apply it in the same tick",
 	"internal/actions/sleep.go|60":            "condition 15 is silent-start; Sleep reads the Sleeping flag back for its own idempotence check, so it sends the start line itself",
 
 	// ── former combat conditions: warcry and rally are now one record each,
@@ -207,7 +207,7 @@ var conditionApplyPathAllowlist = map[string]string{
 	"internal/actions/combat_hamstring.go|138": "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
 	"internal/actions/combat_maul.go|132":      "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
 	"internal/actions/combat_rake.go|132":      "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
-	"internal/actions/combat_throttle.go|145":  "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
+	"internal/actions/combat_throttle.go|146":  "former combat condition (bleed): silent-start record, the move narrates; must apply synchronously within the move's resolution",
 	"internal/hooks/item_procs.go|215":         "former combat condition (bleed): silent-start record, the proc's item narrates; must apply synchronously within the move's resolution",
 }
 

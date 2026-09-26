@@ -97,6 +97,9 @@ func Salvage(actor Actor, opts SalvageOptions) SalvageResult {
 	score := crafting.CraftScore(
 		float64(char.GetStatValue(skills.GetSkillPrimaryStat(string(skills.Salvage)))), salvageSkill)
 	score = salvageScoreWithMutations(char, score)
+	// sight ramp (plan 5b): the salvager needs to see. Once here; score feeds
+	// only the RollSalvageReturns* rolls in salvageCorpse and salvageItem.
+	score *= messaging.SightMult(char, room)
 
 	if opts.TargetCorpse {
 		return salvageCorpse(actor, room, opts, score)

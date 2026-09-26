@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/exit"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
 
@@ -23,13 +24,28 @@ func newSecretExitRoom(roomId int) *rooms.Room {
 // A FRESH ACTOR PER TRIAL is required, not an optimisation: Search is
 // cooldown-gated per character (TestSearch_CooldownGate), so looping one actor
 // would measure the cooldown rather than the roll.
+//
+// The room carries a lamp at 60, inside a normal observer's comfort band, so
+// the sight ramp (lighting plan 5b) is unity and the score is exactly what
+// the rate tests below compute. searchFindRateAt takes the lamp as a knob.
 func searchFindRate(t *testing.T, perception int, trials int) float64 {
+	t.Helper()
+	return searchFindRateAt(t, perception, 60, trials)
+}
+
+func searchFindRateAt(t *testing.T, perception, lamp int, trials int) float64 {
 	t.Helper()
 	found := 0
 	for i := 0; i < trials; i++ {
 		room := newSecretExitRoom(9300 + i)
+		room.Lamp = rooms.LampPtr(lamp)
 		actor := newSearchFakeActor("ContestSearcher", room, false, 0)
 		actor.char.Stats.Perception.ValueAdj = perception
+		if i == 0 && lamp == 60 {
+			if m := messaging.SightMult(actor.char, room); m != 1.0 {
+				t.Fatalf("fixture premise: a lamp-60 room must be comfortable (SightMult %v, light %d)", m, room.LightLevel())
+			}
+		}
 		if len(Search(actor, SearchOptions{}).HiddenExitsFound) > 0 {
 			found++
 		}
@@ -81,6 +97,21 @@ func TestSearchTier1CompressesAtTheTop(t *testing.T) {
 		t.Fatalf("search score 175 vs the 125 tier found the exit %.1f%% of the "+
 			"time, want ~91.1%% (the contest form). Above 95.5%% means the "+
 			"threshold form's near-certainty survived.", rate*100)
+	}
+}
+
+// TestSearchTierPaysTheSearchersEyes (lighting plan 5b): a dazzled searcher's
+// score pays SightMult 0.88, so score 175 plays as 154 against the 125 tier.
+// The comfortable rate is ~91%; the dazzled one sits near 80%. A 5-point gap
+// at 3000 trials is many standard errors wide, so this is not flaky, and it
+// cannot pass if the ramp never reaches the AgainstDifficulty tiers.
+func TestSearchTierPaysTheSearchersEyes(t *testing.T) {
+	const trials = 3000
+	comfortable := searchFindRateAt(t, 150, 60, trials)
+	dazzled := searchFindRateAt(t, 150, 90, trials)
+	if dazzled > comfortable-0.05 {
+		t.Fatalf("dazzled searcher found the exit %.1f%% vs %.1f%% comfortable; "+
+			"the sight ramp is not reaching the search tiers", dazzled*100, comfortable*100)
 	}
 }
 

@@ -2,19 +2,36 @@ package actions
 
 import (
 	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
 
 // trackDetectRate reports the fraction of `trials` tracks that saw anything.
 //
 // Fresh actor per trial: Track is cooldown-gated per character, so looping one
 // actor would measure the cooldown rather than the roll.
+//
+// The room carries a lamp at 60, inside a normal observer's comfort band, so
+// the sight ramp (lighting plan 5b) is unity. trackDetectRateAt takes the lamp.
 func trackDetectRate(t *testing.T, perception int, trials int) float64 {
+	t.Helper()
+	return trackDetectRateAt(t, perception, 60, trials)
+}
+
+func trackDetectRateAt(t *testing.T, perception, lamp int, trials int) float64 {
 	t.Helper()
 	detected := 0
 	for i := 0; i < trials; i++ {
 		room := newTrackTestRoom(9400 + i)
+		room.Lamp = rooms.LampPtr(lamp)
 		actor := newTrackFakeActor("ContestTracker", room, false, 0)
 		actor.char.Stats.Perception.ValueAdj = perception
+		if i == 0 && lamp == 60 {
+			if m := messaging.SightMult(actor.char, room); m != 1.0 {
+				t.Fatalf("fixture premise: a lamp-60 room must be comfortable (SightMult %v, light %d)", m, room.LightLevel())
+			}
+		}
 		if Track(actor, TrackOptions{}).Reason != "lost the trail-detection contest" {
 			detected++
 		}
@@ -51,6 +68,20 @@ func TestTrailDetectionCompressesAtTheTop(t *testing.T) {
 		t.Fatalf("track score 175 vs the 125 band detected %.1f%% of the time, "+
 			"want ~91.1%% (the contest form). Above 95.5%% means the threshold "+
 			"form's near-certainty survived.", rate*100)
+	}
+}
+
+// TestTrailDetectionPaysTheTrackersEyes (lighting plan 5b): a dazzled
+// tracker's score pays SightMult 0.88 before resolveTrailDetail, so score 175
+// plays as 154 against the 125 band. See TestSearchTierPaysTheSearchersEyes
+// for why a 5-point gap at 3000 trials is safe.
+func TestTrailDetectionPaysTheTrackersEyes(t *testing.T) {
+	const trials = 3000
+	comfortable := trackDetectRateAt(t, 150, 60, trials)
+	dazzled := trackDetectRateAt(t, 150, 90, trials)
+	if dazzled > comfortable-0.05 {
+		t.Fatalf("dazzled tracker read the trail %.1f%% vs %.1f%% comfortable; "+
+			"the sight ramp is not reaching resolveTrailDetail", dazzled*100, comfortable*100)
 	}
 }
 

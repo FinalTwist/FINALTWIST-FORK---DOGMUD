@@ -5,6 +5,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -70,10 +71,17 @@ func CalcSneakScoreVsObserver(sneaker, observer *characters.Character, roomLit b
 // Task 16 (U6b) split the old CalcSearchScore consumers two ways: every
 // opposed contest site moved here; the non-contest / flat-threshold sites
 // stayed on CalcSearchScore (see below).
-func CalcDetectionScore(c *characters.Character) float64 {
-	return float64(c.Stats.Perception.ValueAdj) +
+//
+// room is the OBSERVER's room, and the score pays the observer's sight ramp
+// (lighting plan 5b, messaging.SightMult): the observer's eyes count here. The
+// hider's side already folds the room's light in (CalcSneakScoreVsObserver),
+// so this is the one place the observer's comfort band enters. A nil room is
+// unity; pass combat.SightRoom for a *rooms.Room that may be nil.
+func CalcDetectionScore(c *characters.Character, room messaging.RoomVisibility) float64 {
+	return (float64(c.Stats.Perception.ValueAdj) +
 		float64(c.GetSkillLevel(skills.Search))*
-			float64(configs.GetBalanceConfig().SkillWeight)
+			float64(configs.GetBalanceConfig().SkillWeight)) *
+		messaging.SightMult(c, room)
 }
 
 // CalcSearchScore returns the observation score for a character detecting

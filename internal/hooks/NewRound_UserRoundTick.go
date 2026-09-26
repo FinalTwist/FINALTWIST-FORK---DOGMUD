@@ -586,6 +586,8 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 									user.Character.Items, user.Character.ComponentItems, recipe)
 								craftScore := crafting.CraftScore(
 									float64(user.Character.GetStatValue(crafting.CraftPrimaryStat(recipe))), sl)
+								// sight ramp (plan 5b): the crafter needs to see.
+								craftScore *= messaging.SightMult(user.Character, room)
 								craftDiff := crafting.CraftDifficulty(
 									recipe.SkillMinimum, crafting.DearestMaterialTier(consumed))
 								won := crafting.RunCraftContest(craftScore, craftDiff).Success
