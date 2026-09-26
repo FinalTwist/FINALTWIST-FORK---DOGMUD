@@ -12,11 +12,13 @@ package combat
 // real one.
 //
 // M4d PR 2 (owner ruling 6, 2026-09-20) changes the row that matters most:
-// "dark, infrared only" now takes DarknessShapesCombatPenalty, a REDUCED
-// penalty, not the full DarknessCombatPenalty every other impaired row
-// still takes. TestDarknessShapesPenaltyIsBetweenBlindAndClean below is the
-// test that pins the ruling itself; this test's job is only to keep pinning
-// which verdict each observer/room state produces.
+// "dark, infrared only" now takes a REDUCED penalty, not the full
+// DarknessCombatPenalty every other impaired row still takes. That reduced
+// penalty was DarknessShapesCombatPenalty; plan 5b retired the knob, and
+// DarknessScoreMultiplier's shapes case now returns the ramp's midpoint
+// until task 3 deletes the function. TestDarknessShapesPenaltyIsBetweenBlindAndClean
+// below is the test that pins the ruling itself; this test's job is only to
+// keep pinning which verdict each observer/room state produces.
 
 import (
 	"math"

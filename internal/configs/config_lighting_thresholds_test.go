@@ -3,7 +3,7 @@ package configs
 import "testing"
 
 // Graded lighting arc, plan 1 task 2. LightBlindBelow and LightDimBelow are
-// validated as a PAIR, following the DarknessShapesCombatPenalty precedent,
+// validated as a PAIR, following the LightStarlight/LightMoonsFull precedent,
 // so a typo cannot ship a world where the shapes band is empty or inverted.
 // LightExitsAbove is checked separately against LightBlindBelow only.
 
@@ -130,8 +130,9 @@ func TestLightingThresholds_ExitsEqualToBlindSurvives(t *testing.T) {
 // The comparison is `>=`, not `>`, precisely so this case reverts too; an
 // equal pair leaves the shapes band empty, which the struct comment already
 // says is invalid. Without this test, `>=` reads as an arbitrary choice a
-// future editor could "fix" to `>` to match the DarknessShapesCombatPenalty
-// precedent, where an equal pair is allowed.
+// future editor could "fix" to `>`: the blind/dim pair must be STRICTLY
+// ordered, since an equal pair collapses the shapes band to nothing, so
+// `>=` is deliberate, not a typo.
 func TestLightingThresholds_EqualBlindDimPairReverts(t *testing.T) {
 	b := Balance{LightBlindBelow: 40, LightDimBelow: 40, LightExitsAbove: 65}
 	b.Validate()
