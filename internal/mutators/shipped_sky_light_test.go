@@ -1,0 +1,80 @@
+package mutators
+
+import (
+	"os"
+	"path/filepath"
+	"regexp"
+	"testing"
+
+	"github.com/GoMudEngine/GoMud/internal/fileloader"
+)
+
+// shippedMutatorDir is the dogmud world's mutator folder. A test binary never
+// reads config.yaml, so this test loads it explicitly.
+const shippedMutatorDir = "../../_datafiles/world/dogmud/mutators"
+
+func loadShippedMutators(t *testing.T) map[string]*MutatorSpec {
+	t.Helper()
+	specs, err := fileloader.LoadAllFlatFiles[string, *MutatorSpec](shippedMutatorDir)
+	if err != nil {
+		t.Fatalf("loading shipped mutators: %v", err)
+	}
+	if len(specs) == 0 {
+		t.Fatal("no shipped mutators loaded; the test would be vacuous")
+	}
+	return specs
+}
+
+// TestShippedWeatherSkyLight pins the owner's gentle grading: light weather
+// lets 0.7 of the sky through, heavy weather 0.5, and nothing else filters it.
+func TestShippedWeatherSkyLight(t *testing.T) {
+	want := map[string]float64{
+		"weather-fog":      0.7,
+		"weather-overcast": 0.7,
+		"weather-rain":     0.7,
+		"weather-snow":     0.7,
+		"weather-storm":    0.5,
+		"weather-dust":     0.5,
+		"weather-blizzard": 0.5,
+	}
+	for id, spec := range loadShippedMutators(t) {
+		w, filtered := want[id]
+		switch {
+		case filtered && spec.SkyLight == nil:
+			t.Errorf("%s: no skylight, want %v", id, w)
+		case filtered && *spec.SkyLight != w:
+			t.Errorf("%s: skylight %v, want %v", id, *spec.SkyLight, w)
+		case !filtered && spec.SkyLight != nil:
+			t.Errorf("%s: skylight %v, but only weather filters the sky", id, *spec.SkyLight)
+		}
+		delete(want, id)
+	}
+	for id := range want {
+		t.Errorf("%s is not shipped", id)
+	}
+}
+
+// TestNoShippedMutatorCarriesLightmod exists because the loader is non-strict:
+// a stale lightmod key would be silently ignored, and an author would believe
+// it still did something.
+func TestNoShippedMutatorCarriesLightmod(t *testing.T) {
+	// Both worlds: the default world's mutators load the same way.
+	var files []string
+	for _, dir := range []string{shippedMutatorDir, "../../_datafiles/world/default/mutators"} {
+		found, err := filepath.Glob(filepath.Join(dir, "*.yaml"))
+		if err != nil || len(found) == 0 {
+			t.Fatalf("glob found no mutator files in %s (%v); the guard cannot run", dir, err)
+		}
+		files = append(files, found...)
+	}
+	key := regexp.MustCompile(`(?m)^\s*lightmod\s*:`)
+	for _, f := range files {
+		src, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if key.Match(src) {
+			t.Errorf("%s carries lightmod, which nothing reads; use skylight", filepath.Base(f))
+		}
+	}
+}

@@ -8,7 +8,7 @@ description: South of Main Street, the city takes on a different character. The
   rasp of saws from a woodworker's shop. The people here have the calloused hands
   and direct manner of those who make things for a living. An apothecary's shop
   is visible to the east, its window cluttered with bottles.
-biome: city
+biome: city_backstreet
 coord:
   x: 2
   y: -1

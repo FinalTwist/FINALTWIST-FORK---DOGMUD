@@ -23,7 +23,7 @@ description: >
   to appear in the public roll. A stair at the rear
   leads to the auctioneer's room above; the room smells
   of good wood and handled paper.
-biome: city
+biome: interior
 coord:
   x: -11
   y: 88

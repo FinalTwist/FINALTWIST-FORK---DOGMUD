@@ -38,6 +38,7 @@ type Config struct {
 	InitiativeMinutes            int
 	NoticeThreshold              float64
 	NoticeCooldownSeconds        int
+	NoticeCallsPerDay            int
 	AutonomyMinutes              int
 	IdleEmoteMinutes             int
 	IdlePastimeMinutes           int
@@ -83,6 +84,7 @@ type Config struct {
 	RequireConsent               bool
 	StrangerAskSeconds           int
 	StrangerDailyTokens          int
+	StrangerTokensPerOwner       int
 	HoldWhenSneaking             bool
 	FollowOnFoot                 bool
 	FollowDelayMin               float64
@@ -93,6 +95,16 @@ type Config struct {
 	MinConversationExchanges     int
 	AllowCustomEndpoint          bool
 	RejectedBaseURL              string
+
+	// PlayerKeys lets a player run their companion on their own key, held
+	// in their browser on the relay origin. Off unless the config says so.
+	PlayerKeys bool
+	// RelayOrigin is where the relay page is served, "https://host". Tier 2
+	// is offered only when this is a valid https origin other than the
+	// game's own (validRelayOrigin).
+	RelayOrigin string
+	// RelayTimeoutSeconds bounds how long a call waits for the browser.
+	RelayTimeoutSeconds int
 }
 
 type getter func(string) any
@@ -203,6 +215,7 @@ func buildConfig(get getter) Config {
 		InitiativeMinutes:            asInt(get(`InitiativeMinutes`), 5),
 		NoticeThreshold:              asFloat(get(`NoticeThreshold`), 0.6),
 		NoticeCooldownSeconds:        asInt(get(`NoticeCooldownSeconds`), 45),
+		NoticeCallsPerDay:            asInt(get(`NoticeCallsPerDay`), 40),
 		AutonomyMinutes:              asInt(get(`AutonomyMinutes`), 3),
 		IdleEmoteMinutes:             asInt(get(`IdleEmoteMinutes`), 6),
 		IdlePastimeMinutes:           asInt(get(`IdlePastimeMinutes`), 4),
@@ -248,6 +261,7 @@ func buildConfig(get getter) Config {
 		RequireConsent:               true,
 		StrangerAskSeconds:           asInt(get(`StrangerAskSeconds`), 30),
 		StrangerDailyTokens:          asInt(get(`StrangerDailyTokens`), 50000),
+		StrangerTokensPerOwner:       asInt(get(`StrangerTokensPerOwner`), 100000),
 		HoldWhenSneaking:             true,
 		FollowOnFoot:                 true,
 		FollowDelayMin:               asFloat(get(`FollowDelayMin`), 0.15),
@@ -257,6 +271,11 @@ func buildConfig(get getter) Config {
 		ConversationGapSeconds:       asInt(get(`ConversationGapSeconds`), 240),
 		MinConversationExchanges:     asInt(get(`MinConversationExchanges`), 3),
 		AllowCustomEndpoint:          asBool(get(`AllowCustomEndpoint`)),
+		RelayOrigin:                  strings.TrimRight(strings.TrimSpace(asString(get(`RelayOrigin`))), `/`),
+		RelayTimeoutSeconds:          asInt(get(`RelayTimeoutSeconds`), 30),
+	}
+	if v := get(`PlayerKeys`); v != nil {
+		c.PlayerKeys = asBool(v)
 	}
 	if v := get(`Enabled`); v != nil {
 		c.Enabled = asBool(v)
@@ -324,6 +343,9 @@ func buildConfig(get getter) Config {
 	if c.RequestTimeoutSeconds < 5 {
 		c.RequestTimeoutSeconds = 5
 	}
+	if c.RelayTimeoutSeconds < 5 {
+		c.RelayTimeoutSeconds = 5
+	}
 	if c.MaxCompletionTokens < 200 {
 		c.MaxCompletionTokens = 200
 	}
@@ -374,6 +396,9 @@ func buildConfig(get getter) Config {
 	}
 	if c.NoticeCooldownSeconds < 0 {
 		c.NoticeCooldownSeconds = 0
+	}
+	if c.NoticeCallsPerDay < 0 {
+		c.NoticeCallsPerDay = 0
 	}
 	if c.AutonomyMinutes < 0 {
 		c.AutonomyMinutes = 0

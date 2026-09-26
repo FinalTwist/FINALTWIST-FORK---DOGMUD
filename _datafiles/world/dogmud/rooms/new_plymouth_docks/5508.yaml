@@ -19,7 +19,7 @@ description: >
   where anything is for many years. A ship's master who needs to
   refit can find nearly everything here; a traveler can find lamp-
   oil, rope, and canvas that serves on land as well as water.
-biome: city
+biome: interior
 coord:
   x: -20
   y: 81

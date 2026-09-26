@@ -13,7 +13,7 @@ description: >
   coffee grown cold in the cups on the side table.
   Faculty come here to be not-working. Examine
   the fire or the sideboard.
-biome: city
+biome: interior
 coord: {x: 21, y: -83, z: 2}
 exits:
   north: {roomid: 6305}

@@ -13,7 +13,7 @@ description: >
   <ansi fg="itemname">hayloft</ansi> hangs out over the
   stable's front, the loose straw of last winter's bedding
   still littering the loft's edge.
-biome: city
+biome: city_backstreet
 coord:
   x: -20
   y: 3

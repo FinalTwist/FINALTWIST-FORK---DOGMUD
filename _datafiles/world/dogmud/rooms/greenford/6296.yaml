@@ -15,7 +15,7 @@ description: >
   the upper face. The air smells of old stone and
   chalk-dust from the windows above. The university
   stair is just ahead. Examine the tower or the lane.
-biome: city
+biome: city_thoroughfare
 coord: {x: 22, y: -79, z: 1}
 exits:
   north: {roomid: 6295}

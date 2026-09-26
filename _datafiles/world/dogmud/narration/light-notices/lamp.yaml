@@ -1,0 +1,29 @@
+# The room's own lamp. Lamps do not change at runtime yet and no mutator
+# adds light any more, so nothing reaches these lines until runtime lamps
+# arrive (scheduled light sources).
+cause: lamp
+transitions:
+  darker_faces:
+    any:
+      - 'The lamps dim, and the glare eases from your eyes.'
+      - 'The lamplight softens; your eyes stop aching.'
+  darker_shapes:
+    any:
+      - 'The lamps gutter low; faces blur into shapes.'
+      - 'The lamplight fades, and you can make out shapes, not faces.'
+  darker_dark:
+    any:
+      - 'The lamps go out, and darkness closes in.'
+      - 'The last lamplight dies; you can see nothing.'
+  lighter_shapes:
+    any:
+      - 'A lamp flickers to life; shapes come out of the dark.'
+      - 'Weak lamplight spreads; you can make out shapes.'
+  lighter_faces:
+    any:
+      - 'The lamps burn brighter; faces are clear again.'
+      - 'The lamplight grows; you can make out faces again.'
+  dazzled:
+    any:
+      - 'The lamplight stabs at your eyes.'
+      - 'The lamps flare too bright for your eyes.'

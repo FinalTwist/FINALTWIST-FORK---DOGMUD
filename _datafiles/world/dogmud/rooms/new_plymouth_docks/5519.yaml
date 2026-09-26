@@ -23,7 +23,7 @@ description: >
   rhythmic — not a sound the quarter discusses. South leads
   back to the Salt Cellar; west to the pawnshop; north the
   street gives out at the ward's frayed outer edge.
-biome: city
+biome: city_backstreet
 coord:
   x: -18
   y: 84

@@ -14,7 +14,7 @@ description: >
   arrives. Whatever this room was built to contain before it
   became a workroom, it kept some of the old caution in its
   bones. The main workshop lies back to the west.
-biome: city
+biome: interior
 coord:
   x: -13
   y: -68

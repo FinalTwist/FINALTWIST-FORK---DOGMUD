@@ -17,7 +17,7 @@ description: >
   side, its plank bed stacked with crated goods that still want
   unloading; the <ansi fg="itemname">stalls</ansi> on either side
   run on up the slope toward the square.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 35

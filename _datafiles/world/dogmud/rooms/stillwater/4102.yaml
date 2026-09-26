@@ -15,7 +15,7 @@ description: >
   on racks somewhere east. A slate
   <ansi fg="itemname">map board</ansi> on the well's eastern
   face names the roads that run from this square.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 3

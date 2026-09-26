@@ -17,7 +17,7 @@ description: >
   on a board above the door. The shopkeeper knows what
   every office in the civic district needs and keeps it
   in stock without waiting to be asked.
-biome: city
+biome: interior
 coord:
   x: -3
   y: -66

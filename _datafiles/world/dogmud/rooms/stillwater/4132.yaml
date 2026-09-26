@@ -14,7 +14,7 @@ description: >
   finished casks and racks of bent <ansi fg="itemname">staves</ansi>
   line the southern frontage. The smell here is sweet
   shaved oak and the faint mustiness of barrel-pitch.
-biome: city
+biome: city_backstreet
 coord:
   x: -19
   y: 2

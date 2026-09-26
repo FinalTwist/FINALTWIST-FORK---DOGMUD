@@ -24,7 +24,7 @@ Modes:
                slice/map type, ...).
   --dry-run    with any of the above: print what would change, write nothing.
 
-The mapping is the spec's table (docs/superpowers/specs/2026-09-18-messaging-m4b2-axes-design.md,
+The mapping is the spec's table (docs/superpowers/specs/completed/2026-09-18-messaging-m4b2-axes-design.md,
 section 6). core-drain is the one special case (owner ruling: physical).
 """
 import argparse

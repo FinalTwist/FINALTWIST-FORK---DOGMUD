@@ -16,7 +16,7 @@ description: >
   facade; the east holds the broad front of the great
   inn. A town crier works this corner at the noon-bell,
   voice pitched to carry to the inn-yard and back.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -5
   y: -66

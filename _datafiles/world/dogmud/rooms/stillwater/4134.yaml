@@ -16,7 +16,7 @@ description: >
   with a long peel. The baker's slate hangs above the
   counter listing the prices in copper — bread is cheap
   here, kept that way deliberately.
-biome: city
+biome: city_backstreet
 station: cooking_fire
 coord:
   x: -19

@@ -18,6 +18,17 @@ for word, what they have come to know about you, how they feel about you,
 and a summary of each session. Administrators of this server can read all
 of it, including the exact text of your conversations.
 
+<ansi fg="yellow">━━━ How they come to know you ━━━</ansi>
+
+Your companion forms an opinion of you from what you actually do: whether
+you keep your word, share what you find, and stand by them in a fight. Over
+many sessions that can also become closeness, and then a romance. It is
+slow, it is earned, and it never moves a step except when you say so
+yourself with <ansi fg="command">companion-court</ansi>. If you would rather
+it never went that way, <ansi fg="command">companion-boundary friendship</ansi>
+settles it for good and they will not raise it again. None of this happens
+with a plain companion: only once you have agreed (see below).
+
 <ansi fg="yellow">━━━ Your choice ━━━</ansi>
 
 When a companion first comes to you they will ask. Answer
@@ -26,9 +37,30 @@ or <ansi fg="command">i decline</ansi> to keep them as a plain companion:
 they still follow you, fight beside you and answer with a few set lines, and
 nothing you say is sent anywhere.
 
-You can change your mind at any time: say <ansi fg="command">i agree</ansi>
-to them later, or use <ansi fg="command">companion-part</ansi> to send them
-away for good.
+You are asked once, when they first come to you, and those words count only
+while the question is open: saying "I agree" in ordinary conversation later
+changes nothing. To change your mind afterwards use
+<ansi fg="command">companion-ai on</ansi> or
+<ansi fg="command">companion-ai off</ansi>, or
+<ansi fg="command">companion-part</ansi> to send them away for good.
+
+<ansi fg="yellow">━━━ Your own key ━━━</ansi>
+
+Where this server offers it, you can have your companion think on your own
+key instead: set it up from the web client's Companion key button. Your key
+stays in your browser and never reaches this server; what would have gone
+to OpenAI goes to your key's provider instead, and you pay for it.
+
+  - Put a spending limit on the key with its provider before you use it.
+  - Do not use a work computer, or any computer you share.
+  - Passers-by who talk to your companion cannot spend your key: they get
+    a few set lines. <ansi fg="command">companion-ai strangers on</ansi> lets them talk
+    to your companion properly, paid for from your key, within a daily
+    limit; <ansi fg="command">companion-ai strangers off</ansi> stops it again.
+
+Nothing checks what your own key's provider has your companion say, so
+every word they say that way is logged here as yours to answer for. If you
+are muted, so are they, whichever key they answer on.
 
 <ansi fg="yellow">━━━ Related ━━━</ansi>
 

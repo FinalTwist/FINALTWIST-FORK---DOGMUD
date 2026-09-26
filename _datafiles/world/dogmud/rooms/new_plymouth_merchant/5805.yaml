@@ -20,7 +20,7 @@ description: >
   the avenue running straight between the merchant
   houses and into a distance that carries the faint
   smell of incense on the right wind.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -13
   y: 89

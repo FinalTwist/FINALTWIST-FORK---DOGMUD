@@ -22,7 +22,7 @@ description: >
   The cistern is the quarter's other gathering point —
   the one where the conversation is horizontal and the
   work never stops.
-biome: city
+biome: city_backstreet
 coord:
   x: -16
   y: 84

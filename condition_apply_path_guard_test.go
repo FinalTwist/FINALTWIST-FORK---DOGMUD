@@ -120,7 +120,7 @@ var conditionApplyPathAllowlist = map[string]string{
 	"internal/usercommands/skill.disenchant.go|71": "former combat condition (withdrawal): the disenchant command narrates; must apply synchronously so Validate clamps the pool now",
 
 	// ── mob holders: no client, so no line could reach anyone ───────────────
-	"internal/usercommands/character.go|413":     "the holder is a MOB (m.Character), and condition 99 is a perma-gear pin, not something a player reads",
+	"internal/usercommands/character.go|423":     "the holder is a MOB (m.Character), and condition 99 is a perma-gear pin, not something a player reads",
 	"internal/hooks/item_procs.go|265":           "the holder is a MOB (m.Character); an item proc stunning a mob has nobody to tell",
 	"internal/hooks/manifester_companions.go|40": "the holder is a MOB (a summoned companion), not a player",
 
@@ -161,7 +161,7 @@ var conditionApplyPathAllowlist = map[string]string{
 	// re-keyed again messaging M4d PR 3 Task 3 when the purge/heal/condition
 	// self-cast branches above the shield case moved onto SendTrio) ────────
 	"internal/hooks/spell_resolution.go|1224": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
-	"internal/hooks/spell_resolution.go|1566": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	"internal/hooks/spell_resolution.go|1536": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
 	// ── former combat condition: Regenerating is now one record (Task 7;
 	// re-keyed slice 1b, same shift as above; re-keyed again Task 10 and
@@ -170,7 +170,7 @@ var conditionApplyPathAllowlist = map[string]string{
 	// above; re-keyed again messaging M4d PR 3 Task 3, same shift as above) ─
 	"internal/hooks/spell_resolution.go|867":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/hooks/spell_resolution.go|1102": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1527": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1497": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|55":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 
@@ -181,7 +181,7 @@ var conditionApplyPathAllowlist = map[string]string{
 	// same shift as above; re-keyed again messaging M4d PR 3 Task 3, same
 	// shift as above) ──────────────────────────────────────────────────────
 	"internal/hooks/spell_resolution.go|663":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
-	"internal/hooks/spell_resolution.go|1709": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	"internal/hooks/spell_resolution.go|1679": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 
 	// ── former combat condition: Bleeding is now one stacking record (Task 9;
 	// re-keyed slice 1b; re-keyed again counters slice Task 3 when the

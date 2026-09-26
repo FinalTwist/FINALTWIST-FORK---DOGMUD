@@ -18,7 +18,7 @@ description: >
   over the threshold. A plank
   <ansi fg="itemname">stair</ansi> climbs the southwestern
   corner toward the lodging loft above.
-biome: city
+biome: interior
 station: cooking_fire
 coord:
   x: -19

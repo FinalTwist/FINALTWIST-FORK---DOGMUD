@@ -8,7 +8,7 @@ description: >
   a plain counter, and a single narrow window lets in just enough light
   to read a ledger by. Hill-town gold does not amount to much, but what
   there is of it rests here, locked down tight and watched close.
-biome: city
+biome: interior
 isbank: true
 isstorage: true
 storagecapacity: 1000

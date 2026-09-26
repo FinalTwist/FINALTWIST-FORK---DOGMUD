@@ -15,7 +15,7 @@ description: >
   without particular urgency; this is repetitive work and has long
   since found its own pace. East leads back to the outer lane;
   north to the customs shed; west to the wharf steps.
-biome: city
+biome: city_backstreet
 coord:
   x: -19
   y: 85

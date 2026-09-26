@@ -13,7 +13,7 @@ description: >
   list. The lane connects the landing to the rest of the
   riverfront. Examine the stalls or the counter for what
   the row sells today.
-biome: city
+biome: city_backstreet
 coord: {x: 23, y: -73, z: 0}
 exits:
   west: {roomid: 6279}

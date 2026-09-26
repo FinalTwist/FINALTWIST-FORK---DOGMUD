@@ -489,7 +489,7 @@ func searchPlaces(mind *Mind, from int, query string, max int, nowUnix int64) []
 
 // addHearsay stores a tip about a place, ignoring duplicates.
 func (m *Mind) addHearsay(from string, text string, nowUnix int64) bool {
-	text = strings.TrimSpace(text)
+	text = capRunes(text)
 	if text == `` {
 		return false
 	}

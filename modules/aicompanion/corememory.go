@@ -40,7 +40,7 @@ const maxCoreMemories = 24
 // addCore stores a core memory. They are kept, not pruned; the oldest is
 // only dropped when there are more than a life's worth.
 func (m *Mind) addCore(cm CoreMemory) {
-	cm.Text = strings.TrimSpace(cm.Text)
+	cm.Text = capRunes(cm.Text)
 	if cm.Text == `` {
 		return
 	}
@@ -84,6 +84,11 @@ func coreSchema() map[string]any {
 // recordCore asks the model what just happened and keeps the answer for
 // good. Called when the romance between them moves either way.
 func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage string, positive bool) {
+	// A core memory names her owner, so, as with every deed, nothing is
+	// written before they have agreed (mayRemember).
+	if !m.mayRemember(c) {
+		return
+	}
 	mob := mobs.GetInstance(c.instanceId)
 	place, placeId := ``, 0
 	if mob != nil {
@@ -94,16 +99,33 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 	}
 	now := time.Now().Unix()
 
-	ts := m.settingsFor(tierFast, false)
-	if !m.modelReady(c.ownerUserId) || ts.Model == `` {
-		// No model to put words to it: keep the bare fact, which is still
-		// worth more than nothing.
-		text := fmt.Sprintf(`Something changed between %s and me here.`, ownerName)
-		if !positive {
-			text = fmt.Sprintf(`Something between %s and me was spoiled here.`, ownerName)
-		}
-		c.mind.addCore(CoreMemory{Unix: now, Text: text, Place: place, PlaceId: placeId, Positive: positive, Stage: stage})
+	// No model to put words to it: keep the bare fact, which is still worth
+	// more than nothing. A call that fails keeps it too (applyCore).
+	bare := CoreMemory{Unix: now, Text: fmt.Sprintf(`Something changed between %s and me here.`, ownerName),
+		Place: place, PlaceId: placeId, Positive: positive, Stage: stage}
+	if !positive {
+		bare.Text = fmt.Sprintf(`Something between %s and me was spoiled here.`, ownerName)
+	}
+	bareFact := func() {
+		c.mind.addCore(bare)
 		c.dirty = true
+	}
+	if !m.consented(c.ownerUserId) || !m.modelReady(c.ownerUserId) {
+		bareFact()
+		return
+	}
+	ts := m.settingsFor(tierFast, false)
+
+	call := modelCall{
+		BaseURL: m.cfg.BaseURL, APIKey: m.apiKey(), Model: ts.Model,
+		Timeout: ts.Timeout, MaxTokens: ts.MaxTokens, Temperature: m.cfg.Temperature,
+		SchemaName: `companion_core_memory`, Schema: coreSchema(), Effort: ts.Effort,
+		OwnerUserId: c.ownerUserId,
+	}
+	m.applyRoute(&call)
+	rt := call.Route
+	if rt.kind == routeNone || call.Model == `` {
+		bareFact()
 		return
 	}
 
@@ -118,7 +140,12 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 		b.WriteString(": it has been set back, or ended.\n")
 	}
 	b.WriteString("\nWhat led to it, most recent last:\n")
-	for _, l := range c.mind.lastLines(16) {
+	lines := c.mind.lastLines(16)
+	if rt.kind == routeRelay {
+		// Her owner reads this prompt in their browser (relaySafeLines).
+		lines = relaySafeLines(lines, ownerName, c.profile.Name)
+	}
+	for _, l := range lines {
 		b.WriteString(formatLine(l, c.profile.Name))
 		b.WriteString("\n")
 	}
@@ -129,55 +156,79 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 			c.profile.Name, strings.TrimSpace(c.profile.Summary))},
 		{Role: `user`, Content: b.String()},
 	}
-	call := modelCall{
-		BaseURL: m.cfg.BaseURL, APIKey: m.apiKey(), Model: ts.Model,
-		Timeout: ts.Timeout, MaxTokens: ts.MaxTokens, Temperature: m.cfg.Temperature,
-		Messages: messages, SchemaName: `companion_core_memory`, Schema: coreSchema(), Effort: ts.Effort,
-	}
-	reserved := worstCaseTokens(estimateTokens(messages), ts.MaxTokens, 0, false)
-	if !m.tryReserveTokens(c.ownerUserId, reserved) {
+	call.Messages = messages
+	reserved := worstCaseTokens(estimateTokens(call.Messages)+requestOverhead(call), ts.MaxTokens, 0, false)
+	held, ok := m.reserveRoute(rt, c.ownerUserId, 0, reserved)
+	if !ok {
+		// The day's allowance cannot cover it: the moment is still kept.
+		bareFact()
 		return
 	}
 	m.callsToday++
 	key := mindIdentifier(c.mind.OwnerUserId, c.mind.MobId)
 
 	go func() {
+		applied, used := false, 0
 		defer func() {
 			if r := recover(); r != nil {
 				mudlog.Error(`aicompanion`, `action`, `coreMemory`, `panic`, r, `stack`, string(debug.Stack()))
 			}
+			// It never reached applyCore, which settles first thing.
+			if !applied {
+				util.LockMud()
+				defer util.UnlockMud()
+				m.settleRoute(held, used)
+			}
 		}()
-		res := callModel(call)
+		res := m.callModel(call)
+		used = res.Tokens
 
 		util.LockMud()
 		defer util.UnlockMud()
-		m.applyCore(key, CoreMemory{Unix: now, Place: place, PlaceId: placeId, Positive: positive, Stage: stage}, reserved, res)
+		applied = true
+		m.applyCore(key, call.OwnerUserId, bare, held, rt, res)
 	}()
 }
 
-// applyCore writes the model's account of the moment.
-func (m *AICompanionModule) applyCore(key string, cm CoreMemory, reserved int, res modelResult) {
+// applyCore writes the model's account of the moment. cm arrives holding
+// the bare fact, which is what is kept when the model gives no usable
+// account: the moment is never lost to a failed call.
+func (m *AICompanionModule) applyCore(key string, ownerId int, cm CoreMemory, held hold, rt route, res modelResult) {
+	// Settled first, so nothing below can leave the reservation held.
+	m.settleRoute(held, res.Tokens)
 	m.rollDay()
 	m.recordCall(tierFast, res)
-	m.breakerResult(res.Err, time.Now())
+	m.routeResult(rt, ownerId, res.Err, time.Now())
 
 	mind := m.minds[key]
 	if mind == nil {
-		m.settleTokens(0, reserved, res.Tokens)
 		return
 	}
-	m.settleTokens(mind.OwnerUserId, reserved, res.Tokens)
+	keepBare := func() {
+		if cm.Text == `` {
+			return
+		}
+		mind.addCore(cm)
+		if c := m.ctrls[mind.OwnerUserId]; c != nil {
+			c.dirty = true
+		} else if err := saveMind(m.plug, mind); err != nil {
+			mudlog.Error(`aicompanion`, `action`, `saveMind`, `owner`, mind.OwnerUserId, `error`, err)
+		}
+	}
 	if res.Err != nil {
 		m.logModelError(res.Err)
+		keepBare()
 		return
 	}
 	var note CoreMemoryNote
 	if err := parseJSONContent(res.Content, &note); err != nil {
 		m.logModelError(fmt.Errorf(`parse core memory: %w`, err))
+		keepBare()
 		return
 	}
 	text := cleanText(note.Text, maxRememberRunes)
 	if text == `` || breaksCharacter(text) {
+		keepBare()
 		return
 	}
 	cm.Text = text

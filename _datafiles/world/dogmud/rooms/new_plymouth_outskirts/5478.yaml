@@ -12,7 +12,8 @@ description: >
   unwatched from this angle. Reeds and scrub press in on the left.
   This is the way taken by those who would rather not be counted at
   the gate — and the path does not judge.
-biome: city
+biome: road
+lamp: 38
 coord:
   x: -17
   y: 76

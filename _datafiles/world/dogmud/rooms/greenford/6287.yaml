@@ -14,7 +14,7 @@ description: >
   full height finally apparent from this close. The stair
   goes up into all of it; the Market Square opens at
   the top.
-biome: city
+biome: city_thoroughfare
 coord: {x: 22, y: -76, z: 0}
 exits:
   north: {roomid: 6284}

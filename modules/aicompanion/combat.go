@@ -412,8 +412,15 @@ func (m *AICompanionModule) requestPlan(c *controller, round uint64, why string,
 			keep = append(keep, s)
 		}
 	}
+	// The plan goes first, so it is decided on its own payer, her owner's
+	// (promptedBy), and never waits behind a passer-by's words or rides
+	// on their allowance: whoever started the fight, defending her owner
+	// is the owner's concern.
 	c.pending = keep
 	c.push(stimulus{Kind: `fight`, Text: why + `: ` + text})
+	if n := len(c.pending); n > 1 && c.pending[n-1].Kind == `fight` {
+		c.pending = append([]stimulus{c.pending[n-1]}, c.pending[:n-1]...)
+	}
 	if !c.inFlight {
 		m.dispatch(c)
 	}
@@ -462,7 +469,7 @@ func (m *AICompanionModule) reflex(c *controller, mob *mobs.Mob, u *users.UserRe
 	// draw its attention. Willingness rises with trust, affection and
 	// bravery; a "protect" stance always does it.
 	if ownerHere && f.Stance != `hold_back` && (f.Stance == `protect` || (ownerPct < 35 && m.willProtect(c))) {
-		if threat := threatTo(room, u.UserId); threat != 0 {
+		if threat := threatTo(room, u.UserId); threat != 0 && mayStrike(u, room, threat) {
 			cur := mob.Character.CurrentCombatTarget()
 			if cur.MobInstanceId != threat {
 				act(m.strikeCommand(c, mob, threat))
@@ -481,7 +488,7 @@ func (m *AICompanionModule) reflex(c *controller, mob *mobs.Mob, u *users.UserRe
 	// 4. A special move the model called for, when the engine says it would
 	// land. Skills do not unlock moves in DOGMud; they decide how well one
 	// goes.
-	if f.Stance != `hold_back` && f.Move != `` && moveReady(mob, room, f.Move) {
+	if f.Stance != `hold_back` && f.Move != `` && moveReady(mob, room, f.Move) && mayStrikeCurrent(u, room, mob) {
 		move := f.Move
 		f.Move = `` // one use per plan; the model may call for it again
 		act(move)
@@ -490,7 +497,8 @@ func (m *AICompanionModule) reflex(c *controller, mob *mobs.Mob, u *users.UserRe
 
 	// 5. The chosen target.
 	if f.Stance != `hold_back` && f.TargetId != 0 {
-		if t := mobs.GetInstance(f.TargetId); t != nil && t.Character.RoomId == room.RoomId && t.Character.Health > 0 {
+		if t := mobs.GetInstance(f.TargetId); t != nil && t.Character.RoomId == room.RoomId && t.Character.Health > 0 &&
+			mayStrike(u, room, f.TargetId) {
 			if mob.Character.CurrentCombatTarget().MobInstanceId != f.TargetId {
 				act(m.strikeCommand(c, mob, f.TargetId))
 				return
@@ -541,6 +549,50 @@ func threatTo(room *rooms.Room, userId int) int {
 		}
 	}
 	return 0
+}
+
+// mayStrike reports whether she may turn on this creature: whatever the
+// plan or her nerve says, only what her owner could attack (harmAllowed).
+// Going for the thing hurting her owner is not an exception, because a
+// player defending themselves gets none either.
+func mayStrike(owner *users.UserRecord, room *rooms.Room, mobInstanceId int) bool {
+	ok, _ := harmAllowed(owner, room, mobInstanceId, 0)
+	return ok
+}
+
+// mayStrikeCurrent is mayStrike for whoever she is already fighting, which
+// is what a special move lands on. The engine's round chose that foe, not
+// her; a move is her choice, so it is held to her owner's rules too, with
+// the one allowance a player gets: a player already in a fight may use a
+// move on their foe whoever it is (actions.StageMeleeTarget stages no
+// target checks in combat), so she may use one on a foe that is fighting
+// her. Never on her owner.
+func mayStrikeCurrent(owner *users.UserRecord, room *rooms.Room, mob *mobs.Mob) bool {
+	cur := mob.Character.CurrentCombatTarget()
+	if foeFightingHer(owner, room, mob, cur.MobInstanceId, cur.UserId) {
+		return true
+	}
+	ok, _ := harmAllowed(owner, room, cur.MobInstanceId, cur.UserId)
+	return ok
+}
+
+// foeFightingHer reports whether her current foe, a creature or a person
+// other than her owner, stands in her room and is fighting her.
+func foeFightingHer(owner *users.UserRecord, room *rooms.Room, mob *mobs.Mob, foeMobId int, foeUserId int) bool {
+	if room == nil {
+		return false
+	}
+	if foeMobId > 0 {
+		foe := mobs.GetInstance(foeMobId)
+		return foe != nil && foe.Character.RoomId == room.RoomId &&
+			foe.Character.CurrentCombatTarget().MobInstanceId == mob.InstanceId
+	}
+	if foeUserId > 0 && (owner == nil || foeUserId != owner.UserId) {
+		foe := users.GetByUserId(foeUserId)
+		return foe != nil && foe.Character != nil && foe.Character.RoomId == room.RoomId &&
+			foe.Character.CurrentCombatTarget().MobInstanceId == mob.InstanceId
+	}
+	return false
 }
 
 // strikeCommand chooses a shot or a blade, by style, weapon and whether
@@ -604,7 +656,7 @@ func drinkablePotion(mob *mobs.Mob) string {
 // combatLine says or does one authored battle line, locally and at game
 // speed (F13.7). Returns whether a line was used.
 func (m *AICompanionModule) combatLine(c *controller, mob *mobs.Mob, round uint64, pool []string) bool {
-	if len(pool) == 0 || util.Rand(10) >= 7 {
+	if len(pool) == 0 || ownerSilenced(c.ownerUserId) || util.Rand(10) >= 7 {
 		return false
 	}
 	if c.fight != nil {
@@ -647,7 +699,9 @@ func (m *AICompanionModule) applyCombatProposal(c *controller, p CombatProposal,
 		f.Style = p.Style
 	}
 	if id, ok := f.Refs[p.Target]; ok && id > 0 {
-		f.TargetId = id
+		if mob := mobs.GetInstance(c.instanceId); mob != nil && mayStrike(u, rooms.LoadRoom(mob.Character.RoomId), id) {
+			f.TargetId = id
+		}
 	}
 	if inSet(combatMoves, p.Move) {
 		if p.Move == `none` {
@@ -731,15 +785,14 @@ func (m *AICompanionModule) endFight(c *controller, mob *mobs.Mob, u *users.User
 	if long {
 		parts = append(parts, `it was a long fight`)
 	}
+	if recovered := m.gatherArrows(c, mob, f); recovered > 0 {
+		parts = append(parts, fmt.Sprintf(`you got %d of your arrows back`, recovered))
+	}
 	summary := `The fight with ` + enemyNames(f.Enemies, f.EnemyUsers) + ` is over`
 	if len(parts) > 0 {
 		summary += `: ` + strings.Join(parts, `; `)
 	}
 	summary += `.`
-
-	if recovered := m.gatherArrows(c, mob, f); recovered > 0 {
-		parts = append(parts, fmt.Sprintf(`you got %d of your arrows back`, recovered))
-	}
 
 	importance := 4
 	if f.WorstSelf < 15 || f.WorstOwner < 15 {
@@ -755,9 +808,12 @@ func (m *AICompanionModule) endFight(c *controller, mob *mobs.Mob, u *users.User
 	if f.Fled {
 		emotion = `fear`
 	}
-	c.mind.addMemory(Memory{Unix: now, Kind: `event`, Text: summary, Importance: importance, Emotion: emotion,
-		People: []string{owner}, PlaceId: mob.Character.RoomId}, m.cfg.MaxMemories)
-	c.mind.addLine(Line{Kind: `event`, Text: summary}, m.cfg.WorkingMemoryLines)
+	// The summary names her owner and anyone who fought them.
+	if m.mayRemember(c) {
+		c.mind.addMemory(Memory{Unix: now, Kind: `event`, Text: summary, Importance: importance, Emotion: emotion,
+			People: []string{owner}, PlaceId: mob.Character.RoomId}, m.cfg.MaxMemories)
+		c.mind.addLine(Line{Kind: `event`, Text: summary}, m.cfg.WorkingMemoryLines)
+	}
 	if !f.Fled && len(f.Killed) > 0 {
 		m.combatLine(c, mob, round, c.profile.Combat.Lines.Victory)
 	}
@@ -799,9 +855,11 @@ func (m *AICompanionModule) onPlayerDeath(e events.Event) events.ListenerReturn 
 		return events.Continue
 	}
 	now := time.Now().Unix()
-	c.mind.addMemory(Memory{Unix: now, Kind: `death`, Text: `I watched ` + evt.CharacterName + ` fall.`,
-		Importance: 9, Emotion: `sadness`, People: []string{evt.CharacterName}, PlaceId: evt.RoomId}, m.cfg.MaxMemories)
-	c.mind.addLine(Line{Kind: `event`, Text: evt.CharacterName + ` fell.`}, m.cfg.WorkingMemoryLines)
+	if m.mayRemember(c) {
+		c.mind.addMemory(Memory{Unix: now, Kind: `death`, Text: `I watched ` + evt.CharacterName + ` fall.`,
+			Importance: 9, Emotion: `sadness`, People: []string{evt.CharacterName}, PlaceId: evt.RoomId}, m.cfg.MaxMemories)
+		c.mind.addLine(Line{Kind: `event`, Text: evt.CharacterName + ` fell.`}, m.cfg.WorkingMemoryLines)
+	}
 	c.mind.Mood, c.mind.MoodSetUnix = `sad`, now
 	c.mind.markDanger(evt.RoomId, 3, now, false)
 	c.dirty = true
@@ -809,12 +867,16 @@ func (m *AICompanionModule) onPlayerDeath(e events.Event) events.ListenerReturn 
 }
 
 // refusesToFight reports whether a target is one the companion will not
-// attack unprovoked (a merchant, say), by its profile.
+// attack unprovoked: anyone keeping a shop, and anyone her profile's
+// refusal list names. This is her character, not the rules. What nobody
+// may attack (a companion, a non-combatant, the attack-immune) is the
+// engine's to say, and harmAllowed asks it; the engine lets a player fight
+// a shopkeeper who is not protected, and she simply will not.
 func refusesToFight(p *Profile, m *mobs.Mob) bool {
 	if m == nil {
 		return false
 	}
-	if m.HasShop() || m.IsNonCombatant() {
+	if m.HasShop() {
 		return true
 	}
 	name := strings.ToLower(m.Character.Name)

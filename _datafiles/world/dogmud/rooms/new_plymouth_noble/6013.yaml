@@ -22,7 +22,7 @@ description: >
   The chest at the bed's foot is locked with a small
   padlock — the personal lock of someone who has
   decided that some things are hers.
-biome: city
+biome: interior
 coord:
   x: -12
   y: 96

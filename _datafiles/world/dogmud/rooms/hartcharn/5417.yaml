@@ -13,7 +13,7 @@ description: >
   plaster — a clay shelf with two burnt-down candles and a knot of
   dried flowers left by someone who passes this way often. The
   tavern lies west at the corner; the back lane runs east.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 39

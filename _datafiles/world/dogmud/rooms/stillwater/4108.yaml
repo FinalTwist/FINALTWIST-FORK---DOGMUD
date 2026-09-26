@@ -15,7 +15,7 @@ description: >
   and a good place for travelers to sit and watch the square
   go about its business. East of here the lane bends toward
   the lake.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -17
   y: 3

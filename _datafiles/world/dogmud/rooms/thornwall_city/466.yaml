@@ -7,7 +7,7 @@ description: The eastern edge of the market thins into a row of permanent shops 
   windows display quality goods, and their prices are correspondingly higher. A narrow
   alley runs south between the buildings, leading to the less respectable parts of
   the city. To the east, a gated archway leads to the Old Citadel Plaza.
-biome: city
+biome: city_thoroughfare
 coord:
   x: 6
   y: 0

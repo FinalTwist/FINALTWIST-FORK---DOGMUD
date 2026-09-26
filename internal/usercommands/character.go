@@ -10,6 +10,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/lightnotice"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -279,6 +280,15 @@ func cmdCharacterChange(user *users.UserRecord, room *rooms.Room, cmdPrompt *pro
 			user.Character.RoomId = 0
 			newRoom = rooms.LoadRoom(user.Character.RoomId)
 		}
+
+		// SwapToAlt replaced user.Character in place: no MoveToRoom, no
+		// RoomChange, no PlayerSpawn. The per-user lightnotice record from
+		// before the swap is now stale (it still names the OLD character's
+		// room and band), so without this the next command would see what
+		// looks like a room change and could announce it with the movement
+		// cause, even though nobody walked. TriggerQuiet resyncs the record
+		// to the new character's room and band without ever speaking.
+		lightnotice.Check(user, lightnotice.TriggerQuiet)
 
 		// Remove from old room
 		room.RemovePlayer(user.UserId)

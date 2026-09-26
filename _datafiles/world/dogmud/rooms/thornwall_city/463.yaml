@@ -7,7 +7,7 @@ description: The eastern end of Main Street opens into the approach to Market Sq
   the windows, and a wine merchant whose casks line the pavement. The foot traffic
   thickens as the market draws near, and the air fills with the competing smells of
   spices, leather, and roasting meat from the square ahead.
-biome: city
+biome: city_thoroughfare
 coord:
   x: 3
   y: 0

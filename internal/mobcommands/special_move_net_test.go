@@ -51,7 +51,7 @@ import (
 //     PRE-TAGGED (`<ansi fg="mobname">%s</ansi>`), not bare -- unlike every
 //     other file's mobName. shoot.yaml's hit/partial/miss events use
 //     {actor_plain} for this slot, which renders bare. The implementation
-//     plan (2026-09-21-messaging-m4e1-mob-special-moves.md, ~line 945)
+//     plan (docs/superpowers/plans/completed/2026-09-21-messaging-m4e1-mob-special-moves.md, ~line 945)
 //     asserts shooter is bare and that is why {actor_plain} was chosen; the
 //     source does not support that claim.
 //

@@ -15,7 +15,7 @@ description: >
   <ansi fg="itemname">washstand</ansi> against the southern
   wall holds a chipped enamel basin and a clay jug. The
   plank floor is swept and the boards creak honestly.
-biome: city
+biome: interior
 coord:
   x: -19
   y: 3

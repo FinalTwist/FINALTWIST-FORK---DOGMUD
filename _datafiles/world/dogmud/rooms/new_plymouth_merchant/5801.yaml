@@ -18,7 +18,7 @@ description: >
   separate itself from the general city sound — more
   layered, more various, the particular register of
   a place where everyone passes through.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -15
   y: 89

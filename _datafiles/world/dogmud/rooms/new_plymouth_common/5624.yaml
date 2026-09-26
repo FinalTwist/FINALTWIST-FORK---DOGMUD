@@ -21,7 +21,7 @@ description: >
   Whatever was placed in it was placed before the city
   above existed. The chamber is silent in a way that
   silence in occupied buildings is not.
-biome: city
+biome: interior
 coord:
   x: -12
   y: 87

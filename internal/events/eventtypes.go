@@ -568,6 +568,18 @@ type GiftAccepted struct {
 
 func (g GiftAccepted) Type() string { return "GiftAccepted" }
 
+// GoldGiven fires when a player gives gold to a mob with the `give`
+// command, after the gold has changed hands. GiftAccepted is items only.
+// Consumed by modules/aicompanion, so a bonded companion knows who handed
+// her coin rather than guessing from whoever was standing nearby.
+type GoldGiven struct {
+	UserId        int
+	MobInstanceId int
+	Amount        int
+}
+
+func (g GoldGiven) Type() string { return "GoldGiven" }
+
 // Emote fires after a player's emote has been shown to the room. Text is the
 // emote as the room read it, without the actor's name (for an emote alias,
 // the alias text). Consumed by modules/aicompanion so bonded companions can

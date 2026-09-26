@@ -13,7 +13,7 @@ description: >
   doorstep, a <ansi fg="handcart">handcart</ansi> piled with salvage and
   dry goods holds up the passage while its keeper haggles through an open
   door, oblivious to the press of bodies edging around it.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 75

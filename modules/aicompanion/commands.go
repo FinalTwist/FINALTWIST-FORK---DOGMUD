@@ -93,6 +93,8 @@ func (m *AICompanionModule) cmdStatus(user *users.UserRecord) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "AI companions: enabled=%v model=%q apiKey=%v profiles=%d\n",
 		m.cfg.Enabled, m.cfg.Model, m.apiKey() != ``, len(m.profiles))
+	fmt.Fprintf(&b, "Player keys: offered=%v relayOrigin=%q waitingReflections=%d\n",
+		m.playerKeysOffered(), m.cfg.RelayOrigin, len(m.deferredReflect))
 	budget := `unlimited`
 	if m.cfg.DailyTokenBudget > 0 {
 		budget = fmt.Sprintf(`%d`, m.cfg.DailyTokenBudget)
@@ -132,7 +134,10 @@ func (m *AICompanionModule) cmdStatus(user *users.UserRecord) {
 		fmt.Fprintf(&b, "  %s -> %s [%s] mood=%s sessions=%d memories=%d facts=%d lines=%d pending=%d",
 			ownerName, c.profile.Name, state, c.mind.Mood, c.mind.SessionCount,
 			len(c.mind.Memories), len(c.mind.Facts), len(c.mind.RecentLines), len(c.pending))
-		fmt.Fprintf(&b, " spentToday=%d", m.ownerTokens[c.ownerUserId])
+		fmt.Fprintf(&b, " spentToday=%d tier=%s", m.ownerTokens[c.ownerUserId], tierName(m.route(c.ownerUserId).kind))
+		if m.strangersOff(c.ownerUserId) {
+			b.WriteString(` strangers=off`)
+		}
 		if !m.consented(c.ownerUserId) {
 			b.WriteString(` NOT CONSENTED (they have not said "i agree", so she answers with set lines only)`)
 		}
@@ -435,6 +440,12 @@ func (m *AICompanionModule) describeDebug(charName string, what string) string {
 	return util.EscapeAnsiTags(strings.TrimRight(b.String(), "\n"))
 }
 
+// unstickSeconds is how long a companion-unstick waits before the next.
+const (
+	unstickCooldownTag = `aicompanion-unstick`
+	unstickSeconds     = 60
+)
+
 // cmdUnstick is the owner's out-of-character fallback (F18.2): it clears a
 // companion that seems stuck (a trip, a pending action, queued moments, a
 // hung call) without touching its mind. The companion never mentions it.
@@ -445,6 +456,13 @@ func (m *AICompanionModule) cmdUnstick(rest string, user *users.UserRecord, room
 	c, ok := m.ctrls[user.UserId]
 	if !ok {
 		user.SendText(messaging.CategorySystem, `You have no companion to reset.`)
+		return true, nil
+	}
+	// Each reset abandons a call that may already have been paid for, and
+	// frees her to start the next at once, so it is not to be used as a
+	// way to make her think again and again.
+	if user.Character != nil && !user.Character.TryCooldown(unstickCooldownTag, cooldownFor(unstickSeconds)) {
+		user.SendText(messaging.CategorySystem, `You reset your companion only a moment ago. Give it a minute.`)
 		return true, nil
 	}
 	c.seq++
@@ -499,7 +517,8 @@ func (m *AICompanionModule) cmdCourt(rest string, user *users.UserRecord, room *
 		return true, nil
 	}
 	if msg := m.courtStep(c, user); msg != `` {
-		user.SendText(messaging.CategorySystem, msg)
+		// The system category is never wrapped for the reader.
+		user.SendText(messaging.CategorySystem, messaging.WrapAnsi(msg, 80))
 	}
 	return true, nil
 }
@@ -514,7 +533,7 @@ func (m *AICompanionModule) cmdBoundary(rest string, user *users.UserRecord, roo
 		user.SendText(messaging.CategorySystem, `You have no companion travelling with you.`)
 		return true, nil
 	}
-	user.SendText(messaging.CategorySystem, m.setBoundary(c, strings.ToLower(strings.TrimSpace(rest))))
+	user.SendText(messaging.CategorySystem, messaging.WrapAnsi(m.setBoundary(c, strings.ToLower(strings.TrimSpace(rest))), 80))
 	return true, nil
 }
 
@@ -592,10 +611,157 @@ func (m *AICompanionModule) cmdAskFor(rest string, user *users.UserRecord, room 
 		return true, nil
 	}
 	c.askAuth = &askAuthority{MobInstanceId: mobInstanceId, Topic: topic, Expires: time.Now().Unix() + 60}
-	c.mind.addLine(Line{Speaker: user.Character.Name, Kind: `asked`, ToMe: true,
-		Text: `Ask ` + target.Character.Name + ` about ` + topic + `.`}, m.cfg.WorkingMemoryLines)
-	c.dirty = true
+	// The topic is the owner's own words, so it is written into her mind
+	// only once they have agreed that her mind may be sent.
+	if m.consented(user.UserId) {
+		c.mind.addLine(Line{Speaker: user.Character.Name, Kind: `asked`, ToMe: true,
+			Text: `Ask ` + target.Character.Name + ` about ` + topic + `.`}, m.cfg.WorkingMemoryLines)
+		c.dirty = true
+	}
 	c.push(stimulus{Kind: `errand_ask`, Speaker: user.Character.Name,
 		Text: `put a question to ` + target.Character.Name + ` about ` + topic, FromOwner: true})
 	return true, nil
+}
+
+// cmdStay is how an owner pins a companion without a conversation:
+// "companion-stay" on its own says where things stand, and "close",
+// "normal" or "free" sets how far they may roam. Saying it in words still
+// works; this is for when the model is not to be relied on, or not
+// available at all.
+func (m *AICompanionModule) cmdStay(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+	if !m.cfg.Enabled {
+		return false, nil
+	}
+	c, ok := m.ctrls[user.UserId]
+	if !ok {
+		user.SendText(messaging.CategorySystem, `You have no companion travelling with you.`)
+		return true, nil
+	}
+	want := strings.ToLower(strings.TrimSpace(rest))
+	switch want {
+	case autonomyClose, autonomyNormal, autonomyFree:
+		c.mind.Autonomy = want
+		c.travel = nil
+		c.dirty = true
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`%s will %s`, c.profile.Name, roamWords(want)))
+	case ``:
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`%s will %s (companion-stay close|normal|free)`, c.profile.Name, roamWords(c.mind.Autonomy)))
+	default:
+		user.SendText(messaging.CategorySystem, `Usage: companion-stay close|normal|free`)
+	}
+	return true, nil
+}
+
+// roamWords says what a roaming level means, in plain terms.
+func roamWords(level string) string {
+	switch level {
+	case autonomyClose:
+		return `stay at your side and go nowhere without you asking`
+	case autonomyFree:
+		return `go about their own business when nothing needs them`
+	}
+	return `stay with you unless you ask them to go somewhere`
+}
+
+// cmdAI is how a player changes their mind about the model after the first
+// meeting: "companion-ai" says where things stand, "on" agrees, "off"
+// stops anything they say from leaving the server. The spoken "i agree" is
+// only read while the question is actually open, so an ordinary
+// conversation cannot flip this by accident; this command is the durable
+// way to set it.
+func (m *AICompanionModule) cmdAI(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+	if !m.cfg.Enabled {
+		return false, nil
+	}
+	rec := m.bonds.Users[user.UserId]
+	if rec == nil {
+		user.SendText(messaging.CategorySystem, `You have no companion travelling with you.`)
+		return true, nil
+	}
+	name := `Your companion`
+	if c, ok := m.ctrls[user.UserId]; ok {
+		name = c.profile.Name
+	}
+	// The system category is never wrapped for the reader, so every line
+	// here is wrapped at 80 columns before it is sent.
+	tell := func(format string, args ...any) {
+		user.SendText(messaging.CategorySystem, messaging.WrapAnsi(fmt.Sprintf(format, args...), 80))
+	}
+	where := `OpenAI`
+	if m.playerKeysOffered() {
+		where = `OpenAI, or to your own key's provider when you use one,`
+	}
+	switch arg := strings.ToLower(strings.Join(strings.Fields(rest), ` `)); arg {
+	case `on`, `yes`, `enable`:
+		rec.Consented, rec.Refused = true, false
+		m.saveBonds()
+		if c, ok := m.ctrls[user.UserId]; ok {
+			// Anything still queued was said before they agreed, and the next
+			// call would carry it.
+			c.pending = nil
+			// A first meeting before they agreed was kept without their
+			// name and without her introduction: both happen now.
+			m.keepFirstMeeting(c, user)
+		}
+		tell(`(Agreed. What you say to %s, and what happens around you both, is sent to %s to decide what they say, and is kept on this server. "companion-ai off" stops it.)`, name, where)
+	case `off`, `no`, `disable`:
+		rec.Consented, rec.Refused = false, true
+		m.saveBonds()
+		tell(`(Stopped. Nothing you say leaves this server. %s stays with you and answers with a few set lines. "companion-ai on" starts it again.)`, name)
+	case `strangers on`:
+		rec.StrangersOff, rec.StrangersOn = false, true
+		m.saveBonds()
+		if m.playerKeysOffered() {
+			tell(`(Passers-by can talk to %s now. While %s thinks on your own key, what they say is paid for from your key too.)`, name, name)
+		} else {
+			tell(`(Passers-by can talk to %s now.)`, name)
+		}
+	case `strangers off`:
+		rec.StrangersOff, rec.StrangersOn = true, false
+		m.saveBonds()
+		tell(`(%s will hear passers-by but answer them only with a few set lines.)`, name)
+	case `strangers`:
+		switch {
+		case m.strangersOff(user.UserId) && !rec.StrangersOff:
+			tell(`(%s answers passers-by only with a few set lines while thinking on your own key, so that they spend none of it. "companion-ai strangers on" lets them talk to %s on your key.)`, name, name)
+		case m.strangersOff(user.UserId):
+			tell(`(%s answers passers-by only with a few set lines. "companion-ai strangers on" changes that.)`, name)
+		default:
+			tell(`(Passers-by can talk to %s. "companion-ai strangers off" stops them costing anything.)`, name)
+		}
+	case ``:
+		if !rec.Consented {
+			tell(`(%s is a plain companion, answering with a few set lines: nothing you say leaves this server. "companion-ai on" changes that. See "help aicompanion".)`, name)
+			break
+		}
+		tell(`(%s is %s, and what is said is kept on this server. "companion-ai off" stops it. See "help aicompanion".)`,
+			name, tierWords(m.route(user.UserId).kind))
+	default:
+		tell(`Usage: companion-ai on|off, or companion-ai strangers on|off`)
+	}
+	return true, nil
+}
+
+// tierWords says, for the owner, which tier is answering for her now.
+func tierWords(k routeKind) string {
+	switch k {
+	case routeRelay:
+		return `answering through your own key`
+	case routeServer:
+		return `answering through this server's key`
+	}
+	return `answering with a few set lines`
+}
+
+// tierName is the tier as the admin status shows it.
+func tierName(k routeKind) string {
+	switch k {
+	case routeRelay:
+		return `relay`
+	case routeServer:
+		return `server`
+	}
+	return `none`
 }

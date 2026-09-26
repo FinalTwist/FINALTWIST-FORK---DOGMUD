@@ -19,13 +19,14 @@ outdoor:
     - "The trunks stand pale and cold, ringed with a crust of rime."
     - "Snow lies deep between the roots, undisturbed and quiet."
     - "The wood holds an unbroken hush, deadened by cold and snow."
-  city:
+  city_thoroughfare: &city_winter
     - "Icicles hang fanged from every eave along the street."
     - "Chimney smoke rises arrow-straight into the cold above the rooftops."
     - "Frost silvers every cobblestone, and boots ring hard on the street."
     - "Windows fog thick from warmth trapped just behind the glass."
     - "Doorways stand shut tight, and the street feels emptied of people."
     - "A thin crust of ice rims every puddle between the cobbles."
+  city_backstreet: *city_winter
 indoor:
   default:
     strong:

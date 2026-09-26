@@ -15,7 +15,7 @@ description: >
   south toward the university; west, a quiet lane leads
   out to the edge of town. Examine the board or the
   knocker.
-biome: city
+biome: city_thoroughfare
 coord: {x: 22, y: -78, z: 1}
 exits:
   north: {roomid: 6289}

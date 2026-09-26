@@ -22,6 +22,7 @@ PR head `83f6b8ef3` unless attributed to `master`.
 1. **The module is being taken, after the blockers and after the graded lighting
    arc.** Owner's call, recorded in "Decisions" below. This supersedes 09-22's
    recommendation to salvage the deterministic pieces and not adopt.
+   (Amended 2026-09-25: it did not wait for the lighting arc; see decision 2.)
 2. Three defects can freeze the world or remove the spend ceiling, and a green
    test suite cannot see any of them, because coverage is 28.3% and the entire
    apply path is at zero.
@@ -57,7 +58,7 @@ document.
 | # | Decision | Consequence |
 |---|---|---|
 | 1 | **Take the module**, after the blockers are fixed | Supersedes 09-22's salvage-and-decline. We own 19,645 lines and an OpenAI dependency. `git log master..HEAD` is two commits for 71 files, so there was never a cherry-pick option |
-| 2 | **Merge after graded lighting plan 6** | `perception.go:304` reads `messaging.ParticipantSight`, which plans 3 to 6 replace with bands. The contributor rebases once onto a settled API; the lighting arc never carries 19.6k extra lines through 3b and 3c |
+| 2 | **Merge after graded lighting plan 6** (SUPERSEDED) | `perception.go:304` reads `messaging.ParticipantSight`, which plans 3 to 6 replace with bands. The contributor rebases once onto a settled API; the lighting arc never carries 19.6k extra lines through 3b and 3c. **Amended 2026-09-25:** the merge no longer waited for lighting plan 6 (owner, 2026-09-24); PR #161 merged 2026-09-25 as `d4a23b47a`, and the follow-up on `fix/aicompanion-integration` (`docs/superpowers/plans/2026-09-25-aicompanion-integration-followup.md`) carries the fixes |
 | 3 | **`ask.go` ships now as its own PR** | The only piece worth having independent of the module, and the only defect that reaches players with the module off. Does not wait for lighting |
 | 4 | **Consent prompt at first meeting** | `AutoBond` stays on, but the companion introduces itself, states that talking to it sends text to OpenAI and is kept on the server, and nothing is sent before the player accepts. See S7 |
 | 5 | **Non-owner asks are throttled, not banned** | Strangers can still talk to companions. 30 second per-caller cooldown plus a per-caller daily ask cap. See S5 |

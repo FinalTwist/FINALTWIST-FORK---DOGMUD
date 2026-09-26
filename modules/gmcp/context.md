@@ -406,6 +406,7 @@ payload schema and push triggers — this table is the map, not the schema.
 | `gmcp.Behavior.go` | `Behavior` | Behaviour-tree state (admin/builder tooling) |
 | `gmcp.Build.go` | `Build` | The admin web building tools' data feed |
 | `gmcp.CharOp.go` | — | `GMCPCharOp` + `handleCharOp`: inbound state-touching `Char.*` ops, deferred to MainWorker |
+| `gmcp.Relay.go` | `Companion.Relay.*` | The companion key relay: installs `companionai.SetRelaySender`, forwards inbound relay messages to `companionai.RelayInbound` |
 | `gmcp.Game.go` | `Game` | Game-level metadata |
 | `gmcp.World.go` | `World` | World-level state (weather, time) |
 | `gmcp.Mudlet.go` | `Client.GUI` | Mudlet-specific package download support |
@@ -432,3 +433,16 @@ payloads carry ids that index into it.
   `handleBuildOp` (`gmcp.Build.go`) and `GMCPCharOp` / `handleCharOp`
   (`gmcp.CharOp.go`) both do. **Copy the payload** when you queue it — it
   aliases the IAC read buffer, which is reused once `HandleIAC` returns.
+- **`Companion.Relay.*` is the one inbound family handled inline.**
+  `Companion.Relay.Response`, `.Ready` and `.Gone` touch no game state, so
+  `relayInbound` (`gmcp.Relay.go`) resolves the connection's user and hands a
+  COPY of the payload to `companionai.RelayInbound` on the connection
+  goroutine; the aicompanion module's pending-request table has its own lock.
+  Outbound, `relaySend` returns false for a user with no connection or one
+  that has not finished GMCP negotiation, because `dispatchGMCP` would drop
+  the message silently. Web socket clients are negotiated on connect
+  (`onNetConnect`), and `Core.Supports.Set` gates nothing: `EnabledModules`
+  is recorded but never read by `dispatchGMCP`.
+- **An inbound web socket frame is capped at 64 KiB** (`wsMaxMessageBytes`
+  in `internal/web/web.go`); a bigger one closes the player's connection.
+  Anything a client sends back, such as a relay reply, must stay under it.

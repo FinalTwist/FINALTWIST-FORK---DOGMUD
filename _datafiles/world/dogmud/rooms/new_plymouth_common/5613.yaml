@@ -21,7 +21,7 @@ description: >
   but the boards are working loose at one corner, and
   something above shifts its weight as if it has heard
   you arrive.
-biome: city
+biome: city_backstreet
 coord:
   x: -16
   y: 85

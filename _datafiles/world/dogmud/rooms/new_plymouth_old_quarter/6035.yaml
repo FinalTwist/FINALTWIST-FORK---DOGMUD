@@ -20,7 +20,8 @@ description: >
   water for what the silt holds. An iron lamp hangs on
   a hook in the vault — burning. The passage west leads
   into the older, deeper structure beyond.
-biome: city
+biome: dungeon
+lamp: 38
 coord:
   x: -24
   y: 81

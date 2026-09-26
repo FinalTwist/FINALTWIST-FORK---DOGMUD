@@ -20,7 +20,7 @@ description: >
   them, each one quick and unremarkable by design. North
   leads to the pawnshop; south to the hiring office; east
   to the Salt Cellar.
-biome: city
+biome: interior
 coord:
   x: -19
   y: 83

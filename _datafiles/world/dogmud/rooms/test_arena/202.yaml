@@ -5,7 +5,7 @@ description: A circular arena enclosed by thick rope barriers. The ground is cov
   in packed sand, stained here and there with old sweat and the occasional drop of
   blood. A sparring partner waits in the center, weapon drawn and ready to test your
   mettle. The training yard lies to the north.
-biome: fort
+biome: city_backstreet
 exits:
   north:
     roomid: 201

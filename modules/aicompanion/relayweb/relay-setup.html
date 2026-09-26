@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<title>Companion key</title>
+<style>
+ body{font:14px system-ui,sans-serif;margin:0;padding:16px;background:#111;color:#ddd}
+ p{margin:8px 0} label{display:block;margin:8px 0 2px} input{width:100%;box-sizing:border-box;font:inherit}
+ input[type=checkbox]{width:auto} button{font:inherit}
+ .warn{color:#e8b34a;font-size:12px} .row{display:flex;gap:8px;margin-top:10px}
+ .origin{border:1px solid #6b5a3a;padding:8px;border-radius:4px}
+ /* The key and passphrase are plain text inputs so no password manager
+    offers to keep them; this hides what is typed where the browser can. */
+ .secret{-webkit-text-security:disc}
+ #plainkey{display:none}
+ @supports not (-webkit-text-security: disc){ #plainkey{display:block} }
+ [hidden]{display:none}
+</style>
+</head>
+<body data-page="setup">
+<p class="origin">You are on <strong id="origin"></strong>. Type your key only when the
+address bar of this window shows that address.</p>
+<div id="waiting"><p>This window works only when opened from the game's Companion key
+panel. Close it and open it again from the game.</p></div>
+<!-- No form element anywhere on this page: a form invites the browser's
+     password manager to keep what is typed, and this key must not be kept
+     by anything but the relay. Buttons act on click. -->
+<div id="setup" hidden>
+ <p class="warn">Your key stays in this browser and is never sent to the game server.
+ Put a monthly spending limit on it. Do not use a work computer.
+ Passers-by who talk to your companion cannot spend your key unless you
+ type companion-ai strangers on in the game; then your key pays for what
+ they say too, within a daily limit.</p>
+ <p class="warn" id="ollama">For a model on this computer, such as Ollama, allow this page's address in the model's settings (OLLAMA_ORIGINS).</p>
+ <label for="endpoint">Endpoint</label>
+ <input id="endpoint" type="url" autocomplete="off" spellcheck="false" autocapitalize="off" value="https://api.openai.com/v1">
+ <label for="key">Key</label>
+ <input id="key" type="text" class="secret" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off">
+ <p class="warn" id="plainkey">This browser shows the key as you type it. Make sure nobody is looking.</p>
+ <label for="model">Model</label>
+ <input id="model" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" value="gpt-4.1-mini">
+ <label><input id="remember" type="checkbox"> Remember this key on this device</label>
+ <label for="pass" id="passlabel" hidden>Passphrase, needed to unlock it next time (at least eight
+ characters). Make it long and use it nowhere else: anyone with a copy of this browser's
+ data can try guesses at it.</label>
+ <input id="pass" type="text" class="secret" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off" hidden>
+ <div class="row"><button type="button" id="use">Use this key</button>
+ <button type="button" id="cancel">Cancel</button></div>
+ <p class="warn" id="status" role="status"></p>
+</div>
+<div id="unlock" hidden>
+ <label for="unlockpass">Passphrase to unlock your saved key</label>
+ <input id="unlockpass" type="text" class="secret" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off">
+ <div class="row"><button type="button" id="unlockbtn">Unlock</button>
+ <button type="button" id="unlockforget">Forget it</button>
+ <button type="button" id="unlockcancel">Not now</button></div>
+ <p class="warn" id="unlockstatus" role="status"></p>
+</div>
+<script src="/companion-relay.js"></script>
+</body>
+</html>

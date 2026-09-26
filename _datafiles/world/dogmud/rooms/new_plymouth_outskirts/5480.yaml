@@ -13,7 +13,8 @@ description: >
   unpaved and rarely inspected, the route for goods that travel
   without declaring themselves. The dock quarter and the Temple
   District lie beyond the wall — the docks open now to the north up the road, the Temple still sealed beyond.
-biome: city
+biome: road
+lamp: 38
 coord:
   x: -17
   y: 78

@@ -18,7 +18,7 @@ import (
 )
 
 // Conditions unification slice 3 renamed every on-disk and wire spelling of
-// buff to condition (docs/superpowers/specs/2026-09-15-conditions-unification-slice-3-disk-wire-design.md).
+// buff to condition (docs/superpowers/specs/completed/2026-09-15-conditions-unification-slice-3-disk-wire-design.md).
 // These tests pin the new literal keys, values and strings, and that the old
 // ones no longer bind: loaders ignore unknown keys, so a stale key would load
 // as a silent zero value.

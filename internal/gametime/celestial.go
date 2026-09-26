@@ -213,3 +213,23 @@ func CelestialLight() float64 {
 	celestialKnown = true
 	return celestialValue
 }
+
+// ClearCelestialMemoForTest empties the celestial light memo.
+//
+// It exists because the memo above carries no config fingerprint either,
+// only a round number: a test that changes lighting config and then calls
+// CelestialLight() at a round another test already memoised under a
+// different config silently gets that other test's answer. Named ForTest
+// in the same spirit as gametime.ClearDateCacheForTest,
+// configs.SetConfigForTest and util.SetRoundCountForTest.
+//
+// Production has no reason to call this: the round counter only advances,
+// so the memo is never asked about a round it already answered under a
+// different config.
+func ClearCelestialMemoForTest() {
+	celestialMu.Lock()
+	defer celestialMu.Unlock()
+	celestialKnown = false
+	celestialRound = 0
+	celestialValue = 0
+}

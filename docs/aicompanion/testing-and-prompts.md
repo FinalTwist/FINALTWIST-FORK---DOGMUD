@@ -2,11 +2,13 @@
 
 ## Getting started
 
-Nothing needs configuring. Set the `OPENAI_API_KEY` environment variable
-(the one OpenAI's own tools use) before starting the server, or put the key
-in `Modules.aicompanion.APIKey` in `_datafiles/config.yaml` on a private
-server. The module is on by default. It asks the API which models the key
-can use and picks, per tier, the first it can:
+The module is off by default: set `Modules.aicompanion.Enabled: true` in
+`_datafiles/config.yaml`. For the server's own key (tier 3), set the
+`OPENAI_API_KEY` environment variable (the one OpenAI's own tools use)
+before starting the server, or put the key in `Modules.aicompanion.APIKey`
+on a private server. For players' own keys (tier 2) see "A player's own
+key" below. With the server's key, the module asks the API which models the
+key can use and picks, per tier, the first it can:
 
 | Tier | Preference order |
 |---|---|
@@ -299,6 +301,9 @@ Every step needs all of: trust, affection, attachment, a count of those
 moments, and sessions passed at the stage below, each stretched by half
 again for a slow character. She says how she feels once and then waits;
 the step itself happens only when the owner types `companion-court`.
+Before the owner has agreed to the model (consent), nothing about a
+romance is counted, felt or raised, and `companion-court` answers that
+she is a plain companion for now and `companion-ai on` changes that.
 `companion-boundary friendship` ends it for good and is remembered;
 `companion-boundary none` lifts it again.
 
@@ -362,11 +367,16 @@ night with her owner.
 ## Starting a fight
 
 She can be set on something, but only by her own companion: `attack` is in
-the owner-only list, so a stranger cannot point her at anyone. She still
-refuses a shopkeeper, a child, anyone on her profile's refusal list and
-anyone else's companion, whoever is asking, unless they are already
-fighting. Once it has started, the plan takes over and she does not attack
-again each moment.
+the owner-only list, so a stranger cannot point her at anyone, and a spell
+that harms is owner-only the same way. Whatever she starts, by attack, by a
+harmful spell, or by a target the combat plan picks, must be something her
+owner could harm: the engine's own player rules are asked with the owner as
+the one acting (`harmAllowed`), so she never touches a companion, a
+non-combatant, a `player_attack_immune` creature, her owner, their party, or
+a person the owner could not fight under the PvP settings. She also refuses a
+shopkeeper, a child and anyone on her profile's refusal list, whoever is
+asking, unless they are already fighting. Once it has started, the plan
+takes over and she does not attack again each moment.
 
 ## In a fight
 
@@ -513,10 +523,76 @@ has told its players some other way.
 
 Anyone can talk to somebody else's companion, and she answers. What they
 cannot do is spend the owner's allowance or change how she feels: a
-stranger gets one question every `StrangerAskSeconds` (30), their questions
-are charged to their own `StrangerDailyTokens` (50,000) rather than the
-owner's, and only the owner's own deeds move her opinion. She also hands
-things to her owner and to nobody else.
+stranger gets one answer every `StrangerAskSeconds` (30), whether they
+`ask`, speak to her by name, gesture at her, give her something or heal
+her (she still hears and remembers the rest); each answer is reserved
+against their own `StrangerDailyTokens` (50,000) rather than the owner's,
+and is made without her stopping to consult the game first, so that its
+worst case fits that allowance; and only the owner's own deeds move her
+opinion. She also hands things to her owner and to nobody else, and a
+stranger speaking in the same moment as her owner is answered separately,
+so they cannot borrow the owner's word for anything only the owner may
+ask of her.
+
+## A player's own key (tier 2)
+
+With `PlayerKeys` on and a valid `RelayOrigin` (see `settings.md`, "Who
+pays for a call"), a player can run their own companion on their own
+OpenAI-compatible key from the web client's Companion key button. The key
+is kept by a relay page on its own origin, loaded in a hidden frame the
+game page cannot read into, and typed only in a separate key window that
+the relay frame opens on that same origin: a top-level window, so its
+address bar shows where the key is going and no page can draw over it.
+The window hands the key to the frame directly (same origin, by
+postMessage); the game page never holds the window and never sees the
+key. It is held in memory for the session, or, if the player ticks
+"remember on this device", encrypted with a passphrase (PBKDF2-SHA256 into
+AES-GCM) in the frame's own storage, under their account name.
+
+What goes to the player's browser for each call, as GMCP
+`Companion.Relay.Request`: a random id and the chat completions body, the
+same JSON the server would post to OpenAI (the prompt above, the schema,
+the tools), less what belongs to other players. The owner can read every
+body their browser carries, so on this route the prompt, the reflection
+and a core memory leave out speech she only overheard from someone other
+than her owner, and a look at another player (her own `look_at`, or a
+`look_closer` answer) keeps how they are and what kind they are but not
+their description or gear. Their names, and what they did or said to her,
+stay. What comes back, as `Companion.Relay.Response`: the id, the
+provider's status and its raw body.
+
+What never goes to the browser: the server's key, any endpoint URL, any
+header. What never comes to the server: the player's key, their endpoint,
+their passphrase. The relay page adds the key and posts only to the
+endpoint the player stored; the server never names a URL. A reply that
+looks as though it carries a key (an `sk-` key, "Authorization: Bearer",
+or "Bearer" followed by a key or a token-length string) is dropped unread
+and the call fails for that turn, without counting against the owner's
+breaker, since the guard refused it, not the provider.
+
+The consent question still gates every call: a player who has not said
+"i agree" sends nothing through their own key either.
+
+There is no output moderation on this tier. The player's provider may have
+none, and a reply from a browser can be forged by the player anyway, so a
+check would stop nobody who meant to get round it. Instead, what she says
+is her owner's to answer for: each line she says on the owner's key is
+logged at Info with the owner's user id, and a muted owner's companion says
+nothing at all, say or emote, on any tier. Forging her answers is possible
+and buys the forger only a somewhat faster arc with their own companion:
+opinion, romance and memory keep the same bounds as on the server's key.
+
+Passers-by who talk to a tier 2 companion would spend the OWNER's key, so
+by default they cannot: she hears them and answers with set lines until
+the owner says `companion-ai strangers on`. From then on they spend it
+within the usual passer-by pacing and `StrangerTokensPerOwner`, and
+`companion-ai strangers off` stops them again. On the server's key
+passers-by are on unless the owner turned them off.
+
+Any failure (no relay, a closed tab, a timeout, a provider error, a reply
+refused) falls back to set lines for that turn; the owner is told once per
+session, in plain words, and repeated failures pause their own key for a
+while without touching anyone else's companion.
 
 ## Talking to NPCs
 

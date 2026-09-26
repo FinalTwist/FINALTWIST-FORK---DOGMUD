@@ -13,7 +13,7 @@ description: >
   <ansi fg="itemname">houses</ansi> on the others. A worn
   flagstone path leads east to the constabulary's front
   door; the road continues north to the gate.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -18
   y: 5

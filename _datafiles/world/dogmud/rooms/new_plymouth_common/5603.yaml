@@ -20,7 +20,7 @@ description: >
   <ansi fg="itemname">reading-mat</ansi> spread on the
   cobbles before them is worn to threads at the center
   from the boots of people considering their futures.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -13
   y: 82

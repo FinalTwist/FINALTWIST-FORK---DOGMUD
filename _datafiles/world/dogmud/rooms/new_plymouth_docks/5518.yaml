@@ -21,7 +21,7 @@ description: >
   present in the way that certain shopkeepers are present —
   not always visible, but the transaction happens anyway.
   East to the tenements; south back to the cookshop.
-biome: city
+biome: interior
 coord:
   x: -19
   y: 84

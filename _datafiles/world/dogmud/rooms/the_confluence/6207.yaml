@@ -12,7 +12,7 @@ description: >
   standing. This was built to last, by people who
   knew how. The landing is east; the way continues
   west; an alcove opens to the south.
-biome: city
+biome: dungeon
 coord:
   x: 6
   y: -78

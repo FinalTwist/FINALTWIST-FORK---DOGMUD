@@ -9,7 +9,7 @@ description: North of the market, the city settles into a residential neighbourh
   merchants, and families who have lived in the same buildings for generations. It is
   quiet compared to the market, with the particular hush of a neighbourhood where
   people are either at work or sleeping.
-biome: city
+biome: city_backstreet
 coord:
   x: 5
   y: 2

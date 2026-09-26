@@ -3,7 +3,7 @@
 // and which defences may answer it. Every other package imports this one; it
 // imports nothing but the standard library.
 //
-// M4b-2 of the messaging arc (docs/superpowers/specs/2026-09-18-messaging-m4b2-axes-design.md).
+// M4b-2 of the messaging arc (docs/superpowers/specs/completed/2026-09-18-messaging-m4b2-axes-design.md).
 // Before it, the same five defence names were declared three times, the
 // attack and damage axes were flattened into one five-value enum, and the
 // three damage types were spelt differently in three places.

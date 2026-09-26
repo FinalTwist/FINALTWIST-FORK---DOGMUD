@@ -14,7 +14,7 @@ description: >
   are ahead to the east, their scale growing perceptibly
   as the causeway climbs toward its crown. The forecourt
   is back to the west.
-biome: city
+biome: city_thoroughfare
 coord:
   x: -4
   y: -73

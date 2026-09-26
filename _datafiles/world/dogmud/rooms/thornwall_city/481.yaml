@@ -11,7 +11,7 @@ description: >
   with the smell of grease, onions, and wood smoke. A narrow doorway opens
   east to the main tavern floor. A trapdoor in the floor leads down to the
   cellar.
-biome: city
+biome: interior
 coord:
   x: 1
   y: -2

@@ -86,10 +86,11 @@ func TestLightingParityAcrossEveryShippedRoom(t *testing.T) {
 	// 1862): biomes, then rooms, then conditions, then mutators last.
 	// Mutators load after rooms in main.go too, because Room.LightLevel()
 	// -> ActiveMutators() is only ever called once content is fully up, and
-	// LightLevel() itself dereferences the mutator registry
-	// unconditionally (internal/rooms/lighting.go:87-88: `spec :=
-	// mut.GetSpec(); if spec.LightMod != 0` has no nil guard on spec). Load
-	// it before the walk below calls LightLevel for the first time.
+	// LightLevel() itself walks the mutator registry through
+	// mutatorSkyFilter (internal/rooms/lighting.go), which nil-guards each
+	// mutator's spec (`if spec := mut.GetSpec(); spec != nil && spec.SkyLight
+	// != nil`). Load it before the walk below calls LightLevel for the first
+	// time.
 	rooms.LoadBiomeDataFiles()
 	rooms.LoadDataFiles()
 	conditions.LoadDataFiles()

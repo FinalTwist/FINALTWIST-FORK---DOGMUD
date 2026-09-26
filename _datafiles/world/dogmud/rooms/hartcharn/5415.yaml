@@ -13,7 +13,7 @@ description: >
   disagreement that has been in progress for years. A scrawled
   <ansi fg="itemname">board</ansi> beside the entrance holds notices
   in a dozen hands — debts, scores, and grievances not yet settled.
-biome: city
+biome: interior
 coord:
   x: -19
   y: 39

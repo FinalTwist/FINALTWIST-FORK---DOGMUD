@@ -13,7 +13,7 @@ description: >
   dust should be deeper than this. The landing is
   east; the way west ends at a door; a vault opens
   to the south.
-biome: city
+biome: dungeon
 coord:
   x: 4
   y: -78

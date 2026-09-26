@@ -135,7 +135,7 @@ func shouldWrap(cat Category) bool {
 		// NPC and ambient prose.
 		CategoryNPCDialogue, CategoryDialogueHint, CategoryMobIdle,
 		CategoryMobEmote, CategoryRoomEntry, CategoryRoomExit,
-		CategoryWeather, CategoryTimeOfDay,
+		CategoryWeather, CategoryTimeOfDay, CategoryLight,
 		// Other narration plus tips.
 		CategoryLoot, CategoryEquipment, CategoryConditionApply,
 		CategoryConditionExpire, CategoryMutation, CategoryTip:

@@ -15,7 +15,7 @@ description: >
   <ansi fg="itemname">crypt-tablets</ansi>
   cover most of the visible wall. The vault is east;
   the passage continues west.
-biome: city
+biome: dungeon
 coord:
   x: 8
   y: -78

@@ -20,10 +20,10 @@ import (
 // player- or admin-facing template field reference that said buff to
 // condition (docs/superpowers/specs/completed/2026-09-14-conditions-unification-slice-2-rename-design.md).
 // Slice 3 renamed every on-disk, wire and content spelling
-// (docs/superpowers/specs/2026-09-15-conditions-unification-slice-3-disk-wire-design.md).
+// (docs/superpowers/specs/completed/2026-09-15-conditions-unification-slice-3-disk-wire-design.md).
 // These guards keep the word from coming back.
 
-const identifierGuardSpecPath = "docs/superpowers/specs/2026-09-15-conditions-unification-slice-3-disk-wire-design.md"
+const identifierGuardSpecPath = "docs/superpowers/specs/completed/2026-09-15-conditions-unification-slice-3-disk-wire-design.md"
 
 // identifierGuardWordPattern matches "buff" in any case.
 // identifierGuardBufferSubstring strips every case-sensitive "buffer",

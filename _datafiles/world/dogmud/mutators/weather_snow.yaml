@@ -8,4 +8,5 @@ descriptionmodifier:
   behavior: append
   text: Snow drifts down in fat, silent flakes, softening every edge.
   colorpattern: mute-lblue
+skylight: 0.7
 decayrate: 5 hours

@@ -14,7 +14,7 @@ description: >
   elsewhere. The row opens east; the lane
   continues south. Examine the blue door or
   the window.
-biome: city
+biome: city_backstreet
 coord: {x: 21, y: -85, z: 2}
 exits:
   east: {roomid: 6310}

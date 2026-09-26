@@ -13,7 +13,7 @@ description: >
   of raw stones and coiled wire sits within easy reach. A
   narrow window looks down over the stall's rooftop toward
   the confluence of the three rivers. The stall is below.
-biome: city
+biome: interior
 station: jeweler_bench
 coord:
   x: -13

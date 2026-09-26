@@ -100,6 +100,10 @@ InitiativeMinutes: 5
 NoticeThreshold: 0.6
 # Minimum seconds between two "you notice" moments.
 NoticeCooldownSeconds: 45
+# "You notice" moments per owner per UTC day; each is a call nobody asked
+# for, on whoever pays. On the owner's own key with passers-by off, none
+# starts while another player is in the room. 0 = no cap.
+NoticeCallsPerDay: 40
 # Minutes between chances to deal with something nearby on its own when
 # nothing else is happening. 0 = never acts unprompted.
 AutonomyMinutes: 3
@@ -114,9 +118,13 @@ AllowErrands: true
 MaxErrandSteps: 15
 # Rounds the companion lingers at an errand's end before heading back.
 ErrandLingerRounds: 8
-# Rounds apart after which a companion that knows no way back rejoins its
-# owner as though it had followed.
+# A companion that knows no way back keeps trying to find one each round.
+# LostRounds is only the least RescueRounds may be (never below
+# ErrandLingerRounds itself).
 LostRounds: 40
+# Rounds apart, with no known way back, after which the engine puts her back
+# beside her owner as though she had followed. Never below LostRounds.
+RescueRounds: 90
 # Nearby known places with something in them, listed in each decision.
 NearbyPlacesInPrompt: 6
 # Rooms the companion remembers; the least recently seen are forgotten first.
@@ -138,8 +146,11 @@ BreakerSeconds: 60
 # Tokens per UTC day for any one companion. 0 = only the server budget.
 DailyTokensPerCompanion: 300000
 # Check the companion's speech with the OpenAI moderation endpoint before it
-# is said. Adds a short delay to each reply.
+# is said. Adds a short delay to each reply. Server key only: a call on a
+# player's own key is not moderated (see the tiers below).
 ModerateOutput: true
+# The moderation check is a call of its own and is not counted against any
+# token budget: OpenAI does not charge for it.
 ModerationModel: "omni-moderation-latest"
 # Keep a rotating backup of each mind every N sessions (three are kept).
 # 0 = no backups.
@@ -233,5 +244,128 @@ RequireConsent: true
 # companion feels about its owner.
 StrangerAskSeconds: 30
 StrangerDailyTokens: 50000
+# What passers-by, all of them together, may spend of one owner's companion
+# in a UTC day, on either key: many strangers each within their own
+# allowance could otherwise spend one owner's key without end. A fight is
+# not theirs: her plans in any fight are her owner's to pay for. 0 is no cap.
+StrangerTokensPerOwner: 100000
+# Player keys (tier 2): a player runs their own companion on their OWN key,
+# from the web client. The key stays in their browser, on a relay page served
+# from RelayOrigin, and never reaches this server. Off by default here; the
+# shipped _datafiles/config.yaml turns it on. Nothing is offered unless
+# RelayOrigin is also set.
+PlayerKeys: false
+# The relay page's origin: "https://" plus a host on its OWN subdomain, for
+# example "https://keys.example.org". It must be https and must not be the
+# game's own host (FilePaths.WebDomain); anything else offers nothing.
+RelayOrigin: ""
+# Seconds a call waits for the player's browser (which includes the
+# provider's own answer) before she falls back on set lines for that turn.
+# Values under 5 are raised to 5.
+RelayTimeoutSeconds: 30
 
 ```
+
+## Who pays for a call: the three tiers
+
+Each model call is paid for by the first of these that is available for the
+companion's OWNER, even when a passer-by is the one talking to her:
+
+1. **The owner's own key (tier 2).** The owner has the web client open with a
+   key set up and unlocked (`Companion.Relay.Ready` received this session).
+2. **The server's key (tier 3).** `APIKeyEnv` or `APIKey` holds a key.
+3. **Nobody (tier 1).** She follows, fights and answers with authored lines.
+
+What changes on the owner's own key:
+
+- The server's `DailyTokenBudget` and `DailyTokensPerCompanion` are not
+  charged (the player pays).
+- Passers-by prompt NO calls on the owner's key until the owner says
+  `companion-ai strangers on`; she hears them and answers with set lines.
+  An owner who has never used the command is off on their own key and on
+  for the server's key; `companion-ai strangers off` stops them on both.
+  Once on, `StrangerAskSeconds`, `StrangerDailyTokens` and
+  `StrangerTokensPerOwner` limit what passers-by can spend of the owner's
+  key, and a count the browser reports is never trusted past what was
+  reserved.
+- `ModerateOutput` does not apply: the player's provider may have no
+  moderation endpoint, and a reply from a browser could be forged anyway.
+  Each line she says that way is logged at Info against the owner instead,
+  and a muted owner's companion says nothing on any tier.
+- The model is the one the player chose, for every tier of call (fast, main,
+  deep); reasoning effort is not sent.
+- Failures count against that owner's own breaker (`BreakerErrors`,
+  `BreakerSeconds`), never the global one.
+- Her private reflection at logout cannot reach a closed browser, so it
+  runs at the owner's next login once their key is ready.
+- The owner can read every prompt their browser carries, so those prompts
+  leave out what belongs to other players: speech she only overheard from
+  someone else (`RecordBystanderSpeech`), and what another player looks like
+  or carries (a closer look at them tells how they are and what kind they
+  are, nothing more). Their names, and what they did or said to her, stay.
+
+`companion-ai` tells a player which tier is answering; `aicompanion status`
+shows it per companion (`tier=relay|server|none`) for an admin.
+
+### Deploying player keys
+
+1. A DNS record for the relay subdomain (for example `keys.example.org`)
+   pointing at the same server as the game.
+2. A site block in the reverse proxy (Caddy on our droplet) for that host,
+   proxying to this server's web port with the `Host` header kept as sent.
+   The Go server tells the relay apart from the game by `Host` alone.
+3. `RelayOrigin: "https://keys.example.org"` and `PlayerKeys: true` in the
+   production config.
+4. HSTS on both hosts in the proxy (`Strict-Transport-Security:
+   max-age=31536000; includeSubDomains`, a `header` line in each Caddy site
+   block). The relay refuses to run outside https, but a player's first
+   visit over plain http can be intercepted before any redirect; HSTS
+   closes that for every later visit.
+
+### What the relay protects, and what it does not
+
+The key lives only on the relay origin: typed in the relay's own window,
+kept in the relay frame's memory (or, when remembered, encrypted in the
+relay origin's storage), and sent only to the endpoint the player stored.
+No script on the game page can READ it: the browser keeps another origin's
+memory and storage out of reach, and the relay answers only with the
+provider's reply, never a header.
+
+A script running on the game page (an injected script, a hostile browser
+extension, a cross-site scripting bug in the web client) CAN still SPEND
+the key: it can post requests to the relay frame exactly as the game page
+does, and the relay cannot tell them apart. What bounds that is the relay's
+own cap (at most 2 requests in flight, 30 a minute and 40000 answer tokens
+a minute, whatever asks), its rules for a request body (the stored model
+always, at most 4000 answer tokens and 256 KiB, one answer, not streamed,
+and only under a schema this server uses; anything else is refused unsent)
+and the spending cap the setup text tells every player to set with their
+provider. That is the boundary to state to players: the key cannot be
+stolen from the game page, but while their game page is compromised it can
+be used, within those caps, until they close it or forget the key.
+
+A remembered key is only as strong as its passphrase. It is kept
+encrypted in the relay origin's browser storage, and anyone who gets a
+copy of that browser profile (a shared or stolen computer, a backup, malware
+that reads files) can try passphrases against it offline, as fast as their
+hardware allows, with nothing to stop or notice them. The relay slows each
+guess (600000 rounds of PBKDF2), which defeats a long random passphrase but
+not a short or common one. Tell players to choose a long passphrase they use
+nowhere else, or not to tick "Remember" on a computer others can reach.
+
+Three operator traps:
+
+- **The key is typed in a pop-up window on the relay host.** The relay
+  frame opens it from a click inside the frame, so browsers allow it, but
+  a player who has blocked pop-ups for the relay host sees a note asking
+  them to allow it. The window's address bar is the player's proof of where
+  the key is going: the setup text tells them to check it.
+- **Players must reach the game on exactly the `FilePaths.WebDomain` host.**
+  The relay page allows only `https://` plus `WebDomain` to frame it
+  (`frame-ancestors`), so a player on `www.example.org` when `WebDomain` is
+  `example.org` (or the other way round) sees no key setup at all. Redirect
+  the other name to `WebDomain`.
+- **A local model needs to allow the relay origin.** The browser posts to it
+  from the relay page, so Ollama must be started with `OLLAMA_ORIGINS` set to
+  the relay origin (for example `OLLAMA_ORIGINS=https://keys.example.org`);
+  the setup panel tells the player the same.

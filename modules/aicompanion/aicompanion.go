@@ -10,6 +10,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
@@ -51,6 +52,7 @@ type controller struct {
 	farewellSaid bool   // goodbye already queued for the owner's current quit
 
 	sessionStartUnix    int64         // when this session began (for reflection)
+	relaySeen           bool          // the owner's own key was live at some point this session
 	lastSocialUnix      int64         // last time anyone spoke or acted socially near it
 	lastInitiativeCheck int64         // last time a quiet-spell roll was made
 	lastAttackBy        map[int]int64 // attacker user id -> last reaction time
@@ -65,8 +67,17 @@ type controller struct {
 	convo        *conversation // talk in progress, gathered into one memory at its end
 	lastGold     int           // purse as last seen, to spot coin it did not earn
 	lastGoldSeen int           // 1 once the purse has been read at least once
-	lastSnapshot uint64        // round its gear and gold were last copied to the owner's record
-	snapshotDue  bool          // something changed its gear or gold; snapshot next round
+	// Coin that turned up in her purse, matched against the GoldGiven events
+	// that name who gave it: goldByEvent is given coin not yet seen in the
+	// purse, goldUnexplained is purse growth no event has named yet (held
+	// from round goldHeldRound), goldHers marks growth seen while she was
+	// about her own business (a sale, a loot).
+	goldByEvent     int
+	goldUnexplained int
+	goldHeldRound   uint64
+	goldHers        bool
+	lastSnapshot    uint64 // round its gear and gold were last copied to the owner's record
+	snapshotDue     bool   // something changed its gear or gold; snapshot next round
 
 	leaveAt      uint64 // round it walks away when nothing is left to stay for
 	leaveAskedAt int64  // when it asked to part ways, waiting on the owner
@@ -129,6 +140,12 @@ func (c *controller) push(s stimulus) {
 
 // AICompanionModule is the module singleton.
 type AICompanionModule struct {
+	// decisions counts decision calls still running off the mud lock.
+	// Cancelling a call only tells it to stop; it still settles and applies
+	// under the lock afterwards, so anything that rebuilds the world under
+	// it (a test) waits on this first.
+	decisions sync.WaitGroup
+
 	plug     *plugins.Plugin
 	cfg      Config
 	profiles map[string]*Profile
@@ -143,16 +160,33 @@ type AICompanionModule struct {
 	lastErrLog  time.Time
 
 	bonds             bondState             // who has met or turned away a companion
+	consent           consentLedger         // who has agreed, as the model door reads it
 	pendingMeet       map[int]*meetWait     // characters waiting to meet one
 	meetingPlace      map[int]string        // where each first meeting happened
 	models            modelChooser          // automatic model choice per tier
 	stats             map[string]*tierStats // per model tier, since boot
 	ownerTokens       map[int]int           // tokens today per companion owner
 	strangerTokens    map[int]int           // tokens today spent on behalf of a passer-by
+	strangersFor      map[int]int           // tokens today passers-by spent of each owner's companion, all of them together
+	noticesToday      map[int]int           // "you notice" moments today per owner (NoticeCallsPerDay)
 	breakerUntil      time.Time             // model calls paused until then
 	consecutiveErrors int
 	outstanding       int // tokens held for calls that have not come back
 	lastBudgetLog     time.Time
+
+	relays     *relayTable    // owners with a live relay for their own key (tier 2)
+	relayCalls *pendingRelays // calls waiting on an owner's browser for a reply
+	relaySend  relaySender    // how a request reaches the browser; nil is companionai.SendRelay
+
+	// deferredReflect is a relay owner's end-of-session reflection, kept
+	// until they are back online with their relay up (one per owner, the
+	// newest). Read and written only under the mud lock.
+	deferredReflect map[int]*deferredReflection
+	// deferredSummaries are a relay owner's finished talks, kept the same
+	// way until their relay is up (deferSummary). Under the mud lock.
+	deferredSummaries map[int][]*deferredSummary
+
+	tell func(userId int, text string) // how the owner is told things; nil sends a system line
 }
 
 var module AICompanionModule
@@ -167,6 +201,8 @@ func init() {
 
 		pendingMeet:  map[int]*meetWait{},
 		meetingPlace: map[int]string{},
+		relays:       newRelayTable(),
+		relayCalls:   newPendingRelays(),
 	}
 	// No data-overlays/config.yaml is shipped. A plugin overlay is pushed
 	// into the live config AFTER _datafiles/config.yaml is read, and
@@ -186,10 +222,20 @@ func init() {
 func (m *AICompanionModule) onLoad() {
 	m.cfg = loadConfig(m.plug)
 
-	// Switched off, the module stops here: nothing is loaded, no listener
-	// is registered and no seam is installed, so the engine's nil checks
-	// find nothing and the server behaves as though this module were not
-	// built at all.
+	// The engine raises three events for this module alone, an emote, a
+	// heal cast at a creature and gold given to a creature (give.go), and
+	// nothing else listens to any of them. Left unheard, every one would be
+	// counted and logged as an event nobody handled, so these listeners are
+	// registered on or off. All three return at once while the module is
+	// off.
+	events.RegisterListener(events.Emote{}, m.onEmote)
+	events.RegisterListener(events.Healed{}, m.onHealed)
+	events.RegisterListener(events.GoldGiven{}, m.onGoldGiven)
+
+	// Switched off, the module stops here: nothing is loaded, no other
+	// listener is registered and no seam is installed, so the engine's nil
+	// checks find nothing and the server behaves as though this module were
+	// not built at all.
 	if !m.cfg.Enabled {
 		mudlog.Info(`aicompanion`, `enabled`, false,
 			`message`, `switched off; set Modules.aicompanion.Enabled: true to use it`)
@@ -223,16 +269,22 @@ func (m *AICompanionModule) onLoad() {
 	events.RegisterListener(events.CharacterCreated{}, m.onCharacterCreated)
 	events.RegisterListener(events.PlayerDespawn{}, m.onPlayerDespawn)
 	events.RegisterListener(events.Communication{}, m.onCommunication)
-	events.RegisterListener(events.Emote{}, m.onEmote)
 	events.RegisterListener(events.GiftAccepted{}, m.onGiftAccepted)
 	events.RegisterListener(events.PlayerAttackedMob{}, m.onPlayerAttackedMob)
-	events.RegisterListener(events.Healed{}, m.onHealed)
 	events.RegisterListener(events.MobDeath{}, m.onMobDeath)
 	events.RegisterListener(events.PlayerDeath{}, m.onPlayerDeath)
 	companionai.SetAskHandler(m.handleAsk)
 	companionai.SetIdleHandler(m.handleIdle)
 	companionai.SetHolder(m.holdFollow)
 	companionai.SetBondedCheck(m.isBonded)
+	companionai.SetDrivesCheck(m.drivesBonded)
+	// Relay messages arrive on connection goroutines. onRelayInbound
+	// touches only the relay tables, which have their own locks, and
+	// ignores everything while player keys are not on offer.
+	companionai.SetRelayInbound(m.onRelayInbound)
+	// The key relay page, on its own origin, exists only while player
+	// keys are offered.
+	m.installRelayPage()
 
 	if m.cfg.RejectedBaseURL != `` {
 		mudlog.Error(`aicompanion`, `action`, `config`, `error`,
@@ -310,15 +362,35 @@ func (m *AICompanionModule) rollDay() {
 		m.errorsToday = 0
 		m.ownerTokens = map[int]int{}
 		m.strangerTokens = map[int]int{}
+		m.strangersFor = map[int]int{}
+		m.noticesToday = map[int]int{}
 	}
 }
 
-// modelReady reports whether a model call may be made right now: a model
-// and key are set, the circuit breaker is closed, and neither the server's
-// nor this owner's companion's daily budget is spent. ownerId 0 skips the
-// per-companion check.
+// modelReady reports whether a model call may be made right now for this
+// owner's companion, on the owner's own account (modelReadyFor with no
+// passer-by). ownerId 0 is no owner: never a relay, and no per-companion
+// check.
 func (m *AICompanionModule) modelReady(ownerId ...int) bool {
-	if !m.cfg.Enabled || m.apiKey() == `` {
+	owner := 0
+	if len(ownerId) > 0 {
+		owner = ownerId[0]
+	}
+	return m.modelReadyFor(owner, 0)
+}
+
+// modelReadyFor reports whether a call may be made right now, routed by the
+// owner (route) whoever prompted it. On the owner's own key (tier 2) the
+// server's budgets and breaker do not apply; the owner's breaker is part of
+// the route. On the server's key (tier 3) the global breaker must be closed
+// and the server's budget unspent, and a call on the owner's account
+// (askerId 0) also needs the owner's companion allowance: a passer-by's is
+// weighed when the call is reserved (reserveRoute), not here.
+func (m *AICompanionModule) modelReadyFor(ownerId int, askerId int) bool {
+	switch m.route(ownerId).kind {
+	case routeRelay:
+		return true
+	case routeNone:
 		return false
 	}
 	if m.breakerOpen(time.Now()) {
@@ -328,7 +400,7 @@ func (m *AICompanionModule) modelReady(ownerId ...int) bool {
 	if m.cfg.DailyTokenBudget > 0 && m.tokensToday >= m.cfg.DailyTokenBudget {
 		return false
 	}
-	if len(ownerId) > 0 && ownerId[0] > 0 && !m.ownerBudgetLeft(ownerId[0]) {
+	if askerId <= 0 && ownerId > 0 && !m.ownerBudgetLeft(ownerId) {
 		return false
 	}
 	return true
@@ -403,6 +475,37 @@ func (c *controller) cancelInFlight() {
 	c.inFlight = false
 }
 
+// strangersOff reports whether passers-by may prompt no model calls for the
+// owner's companion right now, on whichever key would pay for them now.
+func (m *AICompanionModule) strangersOff(ownerId int) bool {
+	return m.strangersOffOn(ownerId, m.route(ownerId))
+}
+
+// strangersOffOn is strangersOff for a call on route r. The owner's own
+// word (companion-ai strangers on|off) decides; without it, passers-by are
+// off on the owner's own key, since it is the owner who pays and they
+// never agreed to pay for strangers, and on for the server's key, as
+// before player keys existed.
+func (m *AICompanionModule) strangersOffOn(ownerId int, r route) bool {
+	if rec := m.bonds.Users[ownerId]; rec != nil {
+		if rec.StrangersOff {
+			return true
+		}
+		if rec.StrangersOn {
+			return false
+		}
+	}
+	return r.kind == routeRelay
+}
+
+// strangerMayPrompt reports whether a call prompted by this passer-by may
+// be made for the owner's companion at all. askerId 0 is the owner's own
+// call. With strangers off she still hears a passer-by and answers them
+// with her set lines, but nothing they say starts a call on anyone's key.
+func (m *AICompanionModule) strangerMayPrompt(ownerId int, askerId int) bool {
+	return askerId <= 0 || !m.strangersOff(ownerId)
+}
+
 // isBonded reports whether a mob instance is a bonded companion this module
 // drives. Used by the engine to leave its own per-template opinion score
 // alone for companions, which keep their feelings in their own mind.
@@ -411,6 +514,19 @@ func (m *AICompanionModule) isBonded(mobInstanceId int) bool {
 		return false
 	}
 	return m.controllerForInstance(mobInstanceId) != nil
+}
+
+// drivesBonded reports whether this module drives the bonded companions of
+// a mob template: it is on and has their profile, so sync takes each one
+// up for its owner (bondedCompanionOf). The engine's dismiss asks it, per
+// companion, before refusing; a bonded companion with no profile here
+// would otherwise be one its owner could neither dismiss nor talk to.
+func (m *AICompanionModule) drivesBonded(mobId int) bool {
+	if !m.cfg.Enabled {
+		return false
+	}
+	_, ok := m.byMob[mobId]
+	return ok
 }
 
 // registerCommands puts the player and companion commands into the live
@@ -424,6 +540,8 @@ func (m *AICompanionModule) registerCommands() {
 	usercommands.RegisterCommand(`companion-court`, m.cmdCourt, false, false, false)
 	usercommands.RegisterCommand(`companion-boundary`, m.cmdBoundary, false, true, false)
 	usercommands.RegisterCommand(`companion-ask`, m.cmdAskFor, false, false, false)
+	usercommands.RegisterCommand(`companion-stay`, m.cmdStay, false, true, false)
+	usercommands.RegisterCommand(`companion-ai`, m.cmdAI, false, true, false)
 
 	// mobcommands.RegisterCommand, not plug.AddMobCommand: the plugin
 	// helper only fills a map that plugins.Load copies into the registry

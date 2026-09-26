@@ -1,7 +1,7 @@
 # internal/conditionrename
 
 The single spelling map for conditions unification slice 3
-(`docs/superpowers/specs/2026-09-15-conditions-unification-slice-3-disk-wire-design.md`).
+(`docs/superpowers/specs/completed/2026-09-15-conditions-unification-slice-3-disk-wire-design.md`).
 
 - `Apply(s string) string` renames every buff spelling in `s` to its
   condition spelling. Case-preserving (`buff`/`Buff`/`BUFF`), with explicit

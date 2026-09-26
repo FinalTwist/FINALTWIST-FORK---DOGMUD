@@ -51,6 +51,8 @@ func (m *AICompanionModule) onPlayerDespawn(e events.Event) events.ListenerRetur
 	if c, found := m.ctrls[evt.UserId]; found {
 		m.detach(c, evt.CharacterName)
 	}
+	// Their browser is closing: no call may wait on it or be routed to it.
+	m.relayGone(evt.UserId)
 	return events.Continue
 }
 
@@ -96,6 +98,16 @@ func (m *AICompanionModule) sync(round uint64) {
 			}
 		}
 
+		// An owner on their own key this session reflects on it later,
+		// through their relay, not at logout (detachReflection). A
+		// reflection kept from an earlier session starts here, on the
+		// round, once they are back with their relay up.
+		if m.route(u.UserId).kind == routeRelay {
+			c.relaySeen = true
+			m.startDueReflection(u.UserId)
+			m.startDueSummaries(u.UserId)
+		}
+
 		if comp.InstanceId == 0 {
 			m.handleFallen(c, u, p, round, now)
 			continue
@@ -115,15 +127,7 @@ func (m *AICompanionModule) sync(round uint64) {
 			c.agenda = c.mind.pickAgenda()
 			c.mind.SessionCount++
 			if c.mind.FirstMetUnix == 0 {
-				c.mind.FirstMetUnix = now.Unix()
-				c.mind.addMemory(Memory{
-					Kind: `event`, Text: `I started travelling with ` + u.Character.Name + `.`,
-					Importance: 7, Emotion: `curiosity`, People: []string{u.Character.Name},
-				}, m.cfg.MaxMemories)
-				if m.consented(u.UserId) {
-					c.push(stimulus{Kind: `first_meeting`, Text: m.meetingPlace[u.UserId], FromOwner: true})
-					delete(m.meetingPlace, u.UserId)
-				}
+				m.firstMet(c, u, now.Unix())
 			} else if m.cfg.GreetOnLogin {
 				elapsed := int64(0)
 				if c.mind.LastSeenUnix > 0 {
@@ -189,6 +193,41 @@ func (m *AICompanionModule) sync(round uint64) {
 	}
 }
 
+// firstMet is the session in which she first travels with her owner: the
+// date is kept whatever they have agreed to, the memory (their name) only
+// once they have agreed, and she introduces herself in her own words only
+// then; agreeing later writes it and queues that introduction
+// (keepFirstMeeting, from answerConsent and companion-ai on).
+func (m *AICompanionModule) firstMet(c *controller, u *users.UserRecord, now int64) {
+	c.mind.FirstMetUnix = now
+	m.keepFirstMeeting(c, u)
+}
+
+// keepFirstMeeting writes the first meeting into her mind and queues her
+// introduction, once: only after the meeting has happened (FirstMetUnix)
+// and only once her owner has agreed. Agreeing again later, after turning
+// it off, is not a second first meeting.
+func (m *AICompanionModule) keepFirstMeeting(c *controller, u *users.UserRecord) {
+	if c.mind.FirstMetUnix == 0 || c.mind.FirstMetKept || !m.mayRemember(c) || u == nil || u.Character == nil {
+		return
+	}
+	c.mind.FirstMetKept = true
+	c.dirty = true
+	// A mind from before FirstMetKept existed has the memory already.
+	for _, mem := range c.mind.Memories {
+		if strings.HasPrefix(mem.Text, `I started travelling with `) {
+			return
+		}
+	}
+	c.mind.addMemory(Memory{
+		Unix: c.mind.FirstMetUnix,
+		Kind: `event`, Text: `I started travelling with ` + u.Character.Name + `.`,
+		Importance: 7, Emotion: `curiosity`, People: []string{u.Character.Name},
+	}, m.cfg.MaxMemories)
+	c.push(stimulus{Kind: `first_meeting`, Text: m.meetingPlace[u.UserId], FromOwner: true})
+	delete(m.meetingPlace, u.UserId)
+}
+
 // handleFallen notices a fall and brings the companion back once it has
 // recovered.
 func (m *AICompanionModule) handleFallen(c *controller, u *users.UserRecord, p *Profile, round uint64, now time.Time) {
@@ -218,10 +257,12 @@ func (m *AICompanionModule) handleFallen(c *controller, u *users.UserRecord, p *
 		c.mind.FallenUntilUnix = now.Unix() + int64(m.cfg.RecoveryRounds)*4
 		c.mind.LastDeathUnix = now.Unix()
 		c.mind.addLine(Line{Kind: `event`, Text: `You were beaten unconscious in a fight.`}, m.cfg.WorkingMemoryLines)
-		c.mind.addMemory(Memory{
-			Kind: `death`, Text: `I was beaten unconscious in a fight while travelling with ` + u.Character.Name + `.`,
-			Importance: 8, Emotion: `fear`, People: []string{u.Character.Name},
-		}, m.cfg.MaxMemories)
+		if m.mayRemember(c) {
+			c.mind.addMemory(Memory{
+				Kind: `death`, Text: `I was beaten unconscious in a fight while travelling with ` + u.Character.Name + `.`,
+				Importance: 8, Emotion: `fear`, People: []string{u.Character.Name},
+			}, m.cfg.MaxMemories)
+		}
 		c.dirty = true
 	}
 	if c.fellRound > 0 && round-c.fellRound >= uint64(m.cfg.RecoveryRounds) {
@@ -330,7 +371,7 @@ func (m *AICompanionModule) detach(c *controller, ownerName string) {
 	if ownerName == `` {
 		ownerName = `your companion`
 	}
-	m.startReflection(c.mind, c.profile, ownerName, c.sessionStartUnix)
+	m.detachReflection(c, ownerName)
 }
 
 func (m *AICompanionModule) dispatchAll() {
@@ -381,8 +422,13 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	if len(c.pending) == 0 {
 		return
 	}
-	stims := c.pending
-	c.pending = nil
+	// One prompter per decision: her owner's words never share a call with
+	// a passer-by's, which wait for the next one (see nextBatch).
+	stims, rest := nextBatch(c.pending, c.ownerUserId)
+	c.pending = rest
+	// Whoever prompted this pays for it: a passer-by from their own daily
+	// allowance, never the owner's.
+	asker := strangerBehind(stims, c.ownerUserId)
 
 	mob := mobs.GetInstance(c.instanceId)
 	owner := users.GetByUserId(c.ownerUserId)
@@ -396,7 +442,14 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		m.fallback(c, mob, stims)
 		return
 	}
-	if !m.modelReady(c.ownerUserId) {
+	// A stranger's question is not refused because her owner's allowance is
+	// spent (it is not theirs to spend); the server's budget and the
+	// breaker still apply on the server's key, and the stranger's own
+	// allowance is weighed when the call is reserved. It is routed by her
+	// owner either way: on the owner's own key, the owner's key pays.
+	// Her owner has asked that passers-by start no calls: she answers
+	// them with her set lines.
+	if !m.strangerMayPrompt(c.ownerUserId, asker) || !m.modelReadyFor(c.ownerUserId, asker) {
 		m.fallback(c, mob, stims)
 		return
 	}
@@ -467,7 +520,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		Goals:        goalLines(c.mind, c.agenda),
 		Autonomy:     c.mind.Autonomy,
 		Core:         coreLines(c.mind, now.Unix()),
-		Conditions:   conditionLines(mob, owner, owner != nil && owner.Character != nil && !cannotSeeOwner(mob, owner)),
+		Conditions:   conditionLines(mob, owner, owner.Character != nil && !cannotSeeOwner(mob, owner)),
 		Factions:     factionLines(rooms.LoadRoom(mob.Character.RoomId), mob, owner),
 		Quests:       questLines(ownerIfPresent(mob, owner), 4),
 		Talk:         talkLines(rooms.LoadRoom(mob.Character.RoomId), mob, m.cfg.RoadTalkLines),
@@ -485,20 +538,14 @@ func (m *AICompanionModule) dispatch(c *controller) {
 
 	tier := tierFor(stims)
 	toolRounds := 0
-	if tier == tierMain {
+	if tier == tierMain && asker == 0 {
+		// A passer-by gets her answer without her stopping to consult the
+		// game first: those rounds are what make a call's worst case
+		// several times its prompt, and held against StrangerDailyTokens
+		// they could leave no room for a single question.
 		toolRounds = m.cfg.ToolRounds
 	}
 	ts := m.settingsFor(tier, toolRounds > 0)
-	if ts.Model == `` {
-		// Every model this tier knows has been refused by the API. Rather
-		// than hammer one that will not answer, she falls back to her own
-		// lines until an operator sets a model or the key is fixed.
-		m.logModelError(fmt.Errorf(`no usable model for the %s tier; set Model in the config`, tier))
-		m.fallback(c, mob, stims)
-		return
-	}
-	messages := buildMessages(in)
-	c.lastPrompt = messages
 
 	call := modelCall{
 		BaseURL:     m.cfg.BaseURL,
@@ -507,17 +554,48 @@ func (m *AICompanionModule) dispatch(c *controller) {
 		Timeout:     ts.Timeout,
 		MaxTokens:   ts.MaxTokens,
 		Temperature: m.cfg.Temperature,
-		Messages:    messages,
 		SchemaName:  `companion_decision`,
 		Schema:      decisionSchema(),
 		Effort:      ts.Effort,
 		Retry:       m.cfg.RetryTransient && tier != tierFast,
+		OwnerUserId: c.ownerUserId,
 	}
-	moderation := m.cfg.ModerateOutput
+	m.applyRoute(&call)
+	rt := call.Route
+	// Through her owner's own browser the owner can read the whole prompt,
+	// so it carries nothing another player did not show or say to them.
+	if rt.kind == routeRelay {
+		in.Lines = relaySafeLines(in.Lines, in.OwnerName, c.profile.Name)
+		in.Stimuli = relaySafeStimuli(in.Stimuli)
+	}
+	messages := buildMessages(in)
+	call.Messages = messages
+	if rt.kind == routeNone || (asker > 0 && m.strangersOffOn(c.ownerUserId, rt)) {
+		// Her owner's relay went away since modelReadyFor, and there is no
+		// server key to cover: nothing to call. Or the relay came up since
+		// strangerMayPrompt, and on the owner's own key a passer-by prompts
+		// nothing unless the owner said so: the route the call really
+		// carries decides.
+		m.fallback(c, mob, stims)
+		return
+	}
+	if call.Model == `` {
+		// Every model this tier knows has been refused by the API. Rather
+		// than hammer one that will not answer, she falls back to her own
+		// lines until an operator sets a model or the key is fixed.
+		m.logModelError(fmt.Errorf(`no usable model for the %s tier; set Model in the config`, tier))
+		m.fallback(c, mob, stims)
+		return
+	}
+	c.lastPrompt = messages
+	// Moderation is the server's check on what the server's key bought. A
+	// reply from a player's own key is forgeable by that player anyway, and
+	// their provider may have no moderation endpoint; the owner answers for
+	// it instead.
+	moderation := m.cfg.ModerateOutput && rt.kind == routeServer
 	moderationModel := m.cfg.ModerationModel
 	// Words a passer-by prompted are held to the stricter rule: if the
 	// check cannot be made, they are not said at all.
-	asker := strangerBehind(stims, c.ownerUserId)
 	strictModeration := asker > 0
 
 	c.seq++
@@ -530,19 +608,28 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	// let two calls slip past a nearly spent budget together.
 	// Whoever prompted this pays for it in their own daily allowance: a
 	// passer-by cannot spend an owner's companion into silence (asker,
-	// above).
+	// above). The settlement below goes back to the same payer, by the
+	// same route: on her owner's own key only a passer-by's allowance is
+	// held (reserveRoute).
 	reserved := worstCaseTokens(estimateTokens(messages)+requestOverhead(call), ts.MaxTokens, toolRounds, call.Retry)
-	if !m.tryReserveTokens(ownerId, reserved) {
+	held, ok := m.reserveRoute(rt, ownerId, asker, reserved)
+	if !ok {
 		// Out of allowance, not out of sorts: without this line a spent
 		// budget looks exactly like a broken companion, because she carries
-		// on answering with her authored lines and nothing is logged.
-		c.budgetSpent = true
-		m.logBudgetRefusal(ownerId, reserved)
+		// on answering with her authored lines and nothing is logged. A
+		// passer-by's spent allowance is theirs, not her owner's, so it does
+		// not mark her as spent.
+		if asker == 0 {
+			c.budgetSpent = true
+		}
+		m.logBudgetRefusal(ownerId, asker, reserved)
 		c.seq++ // the decision is abandoned, not merely delayed
 		m.fallback(c, mob, stims)
 		return
 	}
-	c.budgetSpent = false
+	if asker == 0 {
+		c.budgetSpent = false
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	c.cancelCall = cancel
 	call.Ctx = ctx
@@ -557,8 +644,11 @@ func (m *AICompanionModule) dispatch(c *controller) {
 	}
 	m.callsToday++
 
+	m.decisions.Add(1)
 	go func() {
+		defer m.decisions.Done()
 		settled := false
+		used := 0 // what the call spent, once it is known
 		defer func() {
 			if r := recover(); r != nil {
 				mudlog.Error(`aicompanion`, `action`, `modelCall`, `panic`, r, `stack`, string(debug.Stack()))
@@ -566,11 +656,11 @@ func (m *AICompanionModule) dispatch(c *controller) {
 			// The call never reached the settlement below (it panicked
 			// before the lock, or the goroutine was torn down): give the
 			// tokens back, or the day's budget drains on calls that never
-			// happened.
+			// happened, and keep what one that did happen spent.
 			if !settled {
 				util.LockMud()
 				defer util.UnlockMud()
-				m.settleTokens(ownerId, reserved, 0)
+				m.settleRoute(held, used)
 				if c := m.ctrls[ownerId]; c != nil && c.seq == seq {
 					c.inFlight = false
 					c.cancelCall = nil
@@ -578,7 +668,8 @@ func (m *AICompanionModule) dispatch(c *controller) {
 			}
 		}()
 
-		res := m.callWithTools(call, ownerId, seq, rev, sc, toolRounds)
+		res := m.callWithTools(call, ownerId, seq, rev, sc, toolRounds, &used)
+		used = res.Tokens
 
 		// Parse and moderate here, off the game loop.
 		if res.Err == nil {
@@ -587,7 +678,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 				res.ParseErr = err
 			} else {
 				if moderation {
-					res.Moderated = moderateDecision(&d, call.BaseURL, call.APIKey, moderationModel, 5*time.Second, strictModeration)
+					res.Moderated = m.moderateDecision(ownerId, &d, call.BaseURL, call.APIKey, moderationModel, 5*time.Second, strictModeration)
 				}
 				res.Parsed = &d
 			}
@@ -604,16 +695,13 @@ func (m *AICompanionModule) dispatch(c *controller) {
 			defer util.UnlockMud()
 			defer func() {
 				settled = true
-				m.settleTokens(ownerId, reserved, res.Tokens)
-				if asker > 0 {
-					m.chargeStranger(asker, res.Tokens)
-				}
+				m.settleRoute(held, res.Tokens)
 				if c := m.ctrls[ownerId]; c != nil && c.seq == seq {
 					c.inFlight = false
 					c.cancelCall = nil
 				}
 			}()
-			m.applyResult(ownerId, seq, rev, roomAtCall, reserved, stims, sc, tier, call.Model, res)
+			m.applyResult(ownerId, seq, rev, roomAtCall, reserved, stims, sc, tier, call.Model, rt, res)
 		}()
 	}()
 }
@@ -622,7 +710,7 @@ func (m *AICompanionModule) dispatch(c *controller) {
 // applyResult applies one model reply. Its caller owns the mud lock, the
 // token settlement and the in-flight flags (see dispatch), so a panic in
 // here cannot leave the budget or the companion stuck.
-func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roomAtCall int, reserved int, stims []stimulus, sc *scene, tier string, model string, res modelResult) {
+func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roomAtCall int, reserved int, stims []stimulus, sc *scene, tier string, model string, rt route, res modelResult) {
 	m.rollDay()
 	m.recordCall(tier, res)
 	failure := res.Err
@@ -632,12 +720,17 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 	// A call the module itself gave up on (logout, pause, a move that made
 	// the answer useless) is not the provider failing, and must not count
 	// towards the circuit breaker: ordinary play would otherwise switch the
-	// AI off for everyone.
+	// AI off for everyone. Nor is it a success: reporting it as one would
+	// reset the count of real failures, so a breaker could never open for
+	// an owner who keeps resetting her. It reaches no breaker at all.
 	if res.Canceled {
 		failure = nil
+	} else {
+		m.routeResult(rt, ownerId, failure, time.Now())
 	}
-	m.breakerResult(failure, time.Now())
-	if modelRefused(res) {
+	// A model the player's provider refused says nothing about the server's
+	// choice of models.
+	if rt.kind == routeServer && modelRefused(res) {
 		m.models.refuse(model)
 		mudlog.Warn(`aicompanion`, `action`, `modelRefused`, `tier`, tier, `model`, model, `next`, m.models.pick(tier))
 	}
@@ -685,7 +778,7 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 	}
 
 	d := sanitizeDecision(raw, mob.Character.Name, c.mind.Mood)
-	m.speak(c, mob, d.Speech)
+	m.speak(c, mob, d.Speech, rt)
 
 	now := time.Now().Unix()
 	owner := users.GetByUserId(c.ownerUserId)
@@ -699,6 +792,10 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 	outcome := actionOutcome{}
 	if c.pendingAct == nil || d.Action.Verb == `look_at` || d.Action.Verb == `consider` || d.Action.Verb == `find_place` || d.Action.Verb == `sayto` || d.Action.Verb == `browse` {
 		outcome = m.performAction(c, mob, owner, sc, d.Action, stims, actDelay, util.GetRoundCount())
+		if d.Action.Verb == `sayto` && outcome.Issued {
+			// Words to someone, spoken aloud: logged like any other line.
+			logSpeech(rt, c.ownerUserId, c.profile.Name, `sayto`, d.Action.Query)
+		}
 	} else if d.Action.Verb != `none` {
 		outcome.Refused = `still busy with the last thing`
 	}
@@ -716,7 +813,7 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 	// A look or a size-up gets one follow-up, so the companion can react to
 	// what it learned. Never a second, so it cannot chain looks forever.
 	if outcome.Perceived != `` && !isFollowUp(stims) {
-		c.push(stimulus{Kind: `looked`, Text: outcome.Perceived, Chain: 1})
+		c.push(lookedFollowUp(stims, c.ownerUserId, outcome))
 	}
 
 	m.applyImpression(c, sc, d.Impression, now)
@@ -766,9 +863,8 @@ func (m *AICompanionModule) applyResult(ownerId int, seq uint64, rev uint64, roo
 		}
 	}
 
-	goalResult := ``
 	if d.Goal.Action != `none` && d.Goal.Action != `` {
-		goalResult = c.mind.applyGoalProposal(d.Goal, ownerAskedNow(stims), now)
+		goalResult := c.mind.applyGoalProposal(d.Goal, ownerAskedNow(stims), now)
 		if d.Goal.Action == `add` && strings.HasPrefix(goalResult, `added`) {
 			c.agenda = c.mind.pickAgenda()
 		}
@@ -939,12 +1035,55 @@ func (m *AICompanionModule) traceDecision(c *controller, stims []stimulus, d Dec
 	)
 }
 
-// speak issues each line as an ordinary mob command, spaced so a reply reads
-// like someone talking rather than a block of text.
-// speak issues what she says as ordinary commands. A long line is broken at
-// sentence ends into pieces a screen can hold, each said in turn with a
+// spokenLines is what she may say of lines: all of them, or nothing when
+// her owner is muted (or cannot be found). What she says is her owner's to
+// answer for, on every tier: a say and an emote are both free text, so the
+// owner's mute silences both.
+func spokenLines(owner *users.UserRecord, lines []SpeechLine) []SpeechLine {
+	if owner == nil || owner.Muted {
+		return nil
+	}
+	return lines
+}
+
+// ownerSilenced reports whether her authored words (a battle line, an idle
+// gesture, a thinking gesture) are to go unsaid: her owner is muted, or
+// cannot be found. It is spokenLines' rule for what no model wrote.
+func ownerSilenced(ownerUserId int) bool {
+	owner := users.GetByUserId(ownerUserId)
+	return owner == nil || owner.Muted
+}
+
+// speechLogLine is the log record for one line she says through her
+// owner's own key, or nil when the line is not logged. Nothing moderates
+// the owner's key (their provider may have no moderation, and the reply
+// could be forged anyway), so each line is logged against the owner who
+// answers for it. The server's key passed moderation, and set lines are
+// authored, so neither is logged.
+func speechLogLine(rt route, ownerId int, name string, kind string, text string) []any {
+	if rt.kind != routeRelay {
+		return nil
+	}
+	return []any{`action`, `speech`, `owner`, ownerId, `companion`, name, `kind`, kind, `text`, text}
+}
+
+// logSpeech logs one line she said through her owner's own key.
+func logSpeech(rt route, ownerId int, name string, kind string, text string) {
+	if attrs := speechLogLine(rt, ownerId, name, kind, text); attrs != nil {
+		mudlog.Info(`aicompanion`, attrs...)
+	}
+}
+
+// speak issues what she says as ordinary commands, spaced so a reply reads
+// like someone talking rather than a block of text. A long line is broken
+// at sentence ends into pieces a screen can hold, each said in turn with a
 // pause, so a story arrives the way someone telling one would deliver it.
-func (m *AICompanionModule) speak(c *controller, mob *mobs.Mob, lines []SpeechLine) {
+// rt is the route the words came by: routeNone for her set lines.
+func (m *AICompanionModule) speak(c *controller, mob *mobs.Mob, lines []SpeechLine, rt route) {
+	lines = spokenLines(users.GetByUserId(c.ownerUserId), lines)
+	if len(lines) == 0 {
+		return
+	}
 	spoken := 0
 	for i, l := range lines {
 		delay := 0.5
@@ -962,6 +1101,7 @@ func (m *AICompanionModule) speak(c *controller, mob *mobs.Mob, lines []SpeechLi
 			}
 			spoken++
 			mob.Command(l.Kind+` `+util.EscapeAnsiTags(piece), delay)
+			logSpeech(rt, c.ownerUserId, c.profile.Name, l.Kind, piece)
 			// The next piece waits for this one to have been read: about a
 			// second and a half, and longer for a longer piece.
 			delay = 1.4 + float64(len(piece))/45.0
@@ -975,7 +1115,7 @@ func (m *AICompanionModule) speak(c *controller, mob *mobs.Mob, lines []SpeechLi
 		c.mind.addLine(line, m.cfg.WorkingMemoryLines)
 		c.mind.addOwnPhrase(l.Text, 12)
 		if mob != nil {
-			m.noteConversation(c, mob.Character.RoomId, ``, line)
+			m.noteConversation(c, mob.Character.RoomId, ``, 0, line)
 		}
 	}
 	if len(lines) > 0 {
@@ -1014,14 +1154,14 @@ func (m *AICompanionModule) fallback(c *controller, mob *mobs.Mob, stims []stimu
 		return
 	}
 	line := pool[util.Rand(len(pool))]
-	m.speak(c, mob, []SpeechLine{{Kind: `emote`, Text: cleanText(line, maxEmoteRunes)}})
+	m.speak(c, mob, []SpeechLine{{Kind: `emote`, Text: cleanText(line, maxEmoteRunes)}}, route{kind: routeNone})
 }
 
 // maybeThink makes a small authored "thinking" gesture when a reply to
 // someone speaking to the companion is slow (F2.11), so a pause reads as a
 // pause and not as being ignored. Once per call, no model involved.
 func (m *AICompanionModule) maybeThink(c *controller, now time.Time) {
-	if !c.inFlight || !c.inFlightDirect || c.thinkShown || m.cfg.ThinkingSeconds <= 0 {
+	if !c.inFlight || !c.inFlightDirect || c.thinkShown || m.cfg.ThinkingSeconds <= 0 || ownerSilenced(c.ownerUserId) {
 		return
 	}
 	if now.Sub(c.lastCall) < time.Duration(m.cfg.ThinkingSeconds)*time.Second {
@@ -1061,8 +1201,10 @@ func (m *AICompanionModule) watchParty(c *controller, u *users.UserRecord) {
 	if len(names) > 0 {
 		text = u.Character.Name + ` is now travelling in a group with ` + strings.Join(names, `, `) + `.`
 	}
-	c.mind.addLine(Line{Kind: `event`, Text: text}, m.cfg.WorkingMemoryLines)
-	c.dirty = true
+	if m.mayRemember(c) {
+		c.mind.addLine(Line{Kind: `event`, Text: text}, m.cfg.WorkingMemoryLines)
+		c.dirty = true
+	}
 	c.push(stimulus{Kind: `party`, Text: text, FromOwner: true})
 }
 
@@ -1157,7 +1299,9 @@ func (m *AICompanionModule) snapshotIfDue(c *controller, round uint64) {
 // toolRounds rounds of read-only questions first (look closer, size up,
 // wares, recall, find a place). Runs on the model goroutine; the answers
 // are read under the mud lock, which is released before the next call.
-func (m *AICompanionModule) callWithTools(call modelCall, ownerId int, seq uint64, rev uint64, sc *scene, toolRounds int) modelResult {
+// spent, when not nil, is kept up to date with what the rounds so far
+// cost, so a panic while answering still settles what was billed.
+func (m *AICompanionModule) callWithTools(call modelCall, ownerId int, seq uint64, rev uint64, sc *scene, toolRounds int, spent *int) modelResult {
 	tokens, used := 0, 0
 	latency := time.Duration(0)
 	for round := 0; ; round++ {
@@ -1168,8 +1312,11 @@ func (m *AICompanionModule) callWithTools(call modelCall, ownerId int, seq uint6
 				call.ToolChoice = `none` // time to answer
 			}
 		}
-		res := callModel(call)
+		res := m.callModel(call)
 		tokens += res.Tokens
+		if spent != nil {
+			*spent = tokens
+		}
 		latency += res.Latency
 		res.Tokens, res.Latency, res.ToolsUsed = tokens, latency, used
 		if res.Err != nil || len(res.ToolCalls) == 0 || round >= toolRounds {
@@ -1184,7 +1331,7 @@ func (m *AICompanionModule) callWithTools(call modelCall, ownerId int, seq uint6
 		func() {
 			util.LockMud()
 			defer util.UnlockMud()
-			answers, ok = m.answerTools(ownerId, seq, rev, sc, res.ToolCalls)
+			answers, ok = m.answerTools(ownerId, seq, rev, sc, res.ToolCalls, call.Route.kind == routeRelay)
 		}()
 		if !ok {
 			res.Err = fmt.Errorf(`companion changed while the model was asking`)
@@ -1267,10 +1414,34 @@ func lastRuneIndex(haystack []rune, needle []rune) int {
 	return -1
 }
 
-// strangerBehind is the passer-by whose words prompted this decision, or 0
-// when it was the owner's doing or her own.
+// lookedFollowUp is the one follow-up a look or a size-up earns, carrying
+// the payer of the decision that looked: a passer-by's as their asking
+// (AskerUserId, so it is theirs and opens no owner-only verb), her
+// owner's as PaidBy, so it is decided with the owner's and never lands
+// on a passer-by's allowance; her own look carries neither.
+func lookedFollowUp(stims []stimulus, ownerUserId int, outcome actionOutcome) stimulus {
+	s := stimulus{Kind: `looked`, Text: outcome.Perceived, Plain: outcome.Plain, Chain: 1}
+	if asker := strangerBehind(stims, ownerUserId); asker > 0 {
+		s.AskerUserId = asker
+		return s
+	}
+	for _, st := range stims {
+		if promptedBy(st, ownerUserId) == ownerUserId {
+			s.PaidBy = ownerUserId
+			break
+		}
+	}
+	return s
+}
+
+// strangerBehind is the passer-by who pays for this decision: whose words
+// prompted it, or the payer a follow-up carries (PaidBy) when that is not
+// her owner; 0 when it was the owner's doing or her own.
 func strangerBehind(stims []stimulus, ownerUserId int) int {
 	for _, s := range stims {
+		if s.PaidBy > 0 && s.PaidBy != ownerUserId {
+			return s.PaidBy
+		}
 		if s.FromOwner || s.AskerUserId == 0 || s.AskerUserId == ownerUserId {
 			continue
 		}
@@ -1279,28 +1450,93 @@ func strangerBehind(stims []stimulus, ownerUserId int) int {
 	return 0
 }
 
-// chargeStranger counts what a passer-by's question cost, against their own
-// daily allowance rather than the owner's.
-func (m *AICompanionModule) chargeStranger(userId int, tokens int) {
-	if userId <= 0 || tokens <= 0 {
-		return
+// ownerDeeds are the kinds of stimulus that, carried FromOwner, are
+// something her owner did or asked: their words, an emote, a gift,
+// healing, an attack, a question they sent her to ask (companion-ask),
+// the greeting and the farewell of a session, the first meeting, an
+// answer to her about the two of them, and a deed of theirs she saw. The
+// rest of what is marked FromOwner (a quiet moment, a memory, a trouble
+// noticed) is her own business and goes with anyone's decision.
+var ownerDeeds = map[string]bool{
+	`heard`: true, `asked`: true, `emote`: true, `gift`: true, `healed`: true,
+	`attacked`: true, `errand_ask`: true, `session_start`: true, `farewell`: true,
+	`first_meeting`: true, `romance_yes`: true, `romance_no`: true, `witnessed`: true,
+}
+
+// promptedBy is who a stimulus puts a question to her for: her owner for
+// anything they did or asked (ownerDeeds) and for a fight, a passer-by
+// (their user id) for anything they did that was aimed at her, the payer
+// a follow-up carries (PaidBy), or 0 for the world and her own business,
+// which can go with anyone's.
+func promptedBy(s stimulus, ownerUserId int) int {
+	// Arriving on an errand her owner asked for is the owner's say-so
+	// carried to the place (ownerAskedNow), so it goes with the owner.
+	if s.Kind == `arrived` && s.Authorized {
+		return ownerUserId
 	}
-	m.rollDay()
-	if m.strangerTokens == nil {
-		m.strangerTokens = map[int]int{}
+	// A follow-up carries the payer of the decision it follows.
+	if s.PaidBy > 0 {
+		return s.PaidBy
 	}
-	m.strangerTokens[userId] += tokens
+	// A fight is her owner's to plan and pay for, whoever started it:
+	// defending her owner is the owner's concern.
+	if s.Kind == `fight` || s.Kind == `fight_over` {
+		return ownerUserId
+	}
+	if s.FromOwner {
+		if ownerDeeds[s.Kind] {
+			return ownerUserId
+		}
+		return 0
+	}
+	if s.AskerUserId > 0 && s.AskerUserId != ownerUserId {
+		return s.AskerUserId
+	}
+	return 0
+}
+
+// nextBatch takes the next decision's stimuli from the queue: everything
+// that belongs to the first person who put something to her, with the
+// world's stimuli, and leaves anyone else's for the decision after. So her
+// owner's words and a passer-by's never share a call. Sharing one let the
+// stranger ride on the owner's say-so into the owner-only verbs, and put
+// the whole call on whichever of them strangerBehind happened to find.
+// Nobody's words are dropped, only put back in the order they came.
+func nextBatch(pending []stimulus, ownerUserId int) (batch []stimulus, rest []stimulus) {
+	first := 0
+	for _, s := range pending {
+		if first = promptedBy(s, ownerUserId); first != 0 {
+			break
+		}
+	}
+	if first == 0 {
+		return pending, nil
+	}
+	for _, s := range pending {
+		if p := promptedBy(s, ownerUserId); p == 0 || p == first {
+			batch = append(batch, s)
+		} else {
+			rest = append(rest, s)
+		}
+	}
+	return batch, rest
 }
 
 // logBudgetRefusal notes a decision the budgets would not pay for, at most
 // once a minute per server, so a spent allowance is visible in the log
 // rather than silently turning a companion into a set of stock phrases.
-func (m *AICompanionModule) logBudgetRefusal(ownerId int, wanted int) {
+func (m *AICompanionModule) logBudgetRefusal(ownerId int, askerId int, wanted int) {
 	now := time.Now()
 	if now.Sub(m.lastBudgetLog) < time.Minute {
 		return
 	}
 	m.lastBudgetLog = now
+	if askerId > 0 {
+		mudlog.Warn(`aicompanion`, `action`, `budgetRefused`, `owner`, ownerId, `asker`, askerId, `wanted`, wanted,
+			`askerSpentToday`, m.strangerTokens[askerId], `askerCap`, m.cfg.StrangerDailyTokens,
+			`serverSpentToday`, m.tokensToday, `serverCap`, m.cfg.DailyTokenBudget)
+		return
+	}
 	mudlog.Warn(`aicompanion`, `action`, `budgetRefused`, `owner`, ownerId, `wanted`, wanted,
 		`ownerSpentToday`, m.ownerTokens[ownerId], `ownerCap`, m.cfg.DailyTokensPerCompanion,
 		`serverSpentToday`, m.tokensToday, `serverCap`, m.cfg.DailyTokenBudget)
