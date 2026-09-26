@@ -51,11 +51,14 @@ var (
 //
 //	users.UserRecord.AddCondition(conditionId int, source string)
 //	users.UserRecord.AddConditionScaled(conditionId int, durationMult float64, source string)
+//	users.UserRecord.AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
 //	mobs.Mob.AddCondition(conditionId int, source string)
+//	mobs.Mob.AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
 //	actions.Actor.AddCondition(conditionId int, source string)   // UserActor + MobActor
 //
 //	characters.Character.AddCondition(conditionId int, isPermanent bool)      // silent
 //	characters.Character.AddConditionScaled(conditionId int, durationMult float64) // silent
+//	characters.Character.AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string) // silent
 //	conditions.Conditions.AddCondition / AddConditionScaled                  // silent
 //
 // A call passes when its ARITY and its final argument both fit the event-path
@@ -77,10 +80,11 @@ var (
 // appears, either route it through the event path or record why it cannot
 // be.
 //
-// Character.AddConditionMagnitude and UserRecord.AddConditionMagnitude share
-// one four-argument shape ending in a source string, so arity cannot tell
-// the silent character door from the event-queuing user door apart the way
-// it does for AddCondition/AddConditionScaled; isEventPathCall reads every
+// Character.AddConditionMagnitude, UserRecord.AddConditionMagnitude and
+// Mob.AddConditionMagnitude share one four-argument shape ending in a source
+// string, so arity cannot tell the silent character door from the
+// event-queuing user and mob doors apart the way it does for
+// AddCondition/AddConditionScaled; isEventPathCall reads every
 // AddConditionMagnitude call as a direct add, the safe reading, and every
 // former-condition producer site OUTSIDE the primitive packages is
 // allowlisted by hand with a reason worded like "former combat condition
@@ -92,7 +96,10 @@ var (
 // producers inside it, the prone-recovery
 // AddConditionMagnitude(conditions.ConditionIdRecovering, ...) calls in
 // internal/characters/skills.go (lines 76, 99, 103), never reach this walk
-// and carry no allowlist entry.
+// and carry no allowlist entry. The allowlist also records EVENT-door
+// magnitude calls, which narrate correctly and are listed only because
+// arity cannot tell them from the silent door: see the light-spell entry
+// for internal/hooks/light_spell.go.
 var conditionApplyPathAllowlist = map[string]string{
 	// ── The sanctioned consumer of the event ────────────────────────────────
 	"internal/hooks/Condition_ApplyConditions.go|103": "this IS the hook the event feeds; it is where every routed condition is finally applied",
@@ -160,21 +167,18 @@ var conditionApplyPathAllowlist = map[string]string{
 	// dispatch loop was deleted; re-keyed again messaging M4d Task 6 when the
 	// default case's self-cast line moved onto SendTrio and grew a comment;
 	// re-keyed again messaging M4d PR 3 Task 3 when the purge/heal/condition
-	// self-cast branches above the shield case moved onto SendTrio; re-keyed
-	// again lighting plan 5a Task 7 when the light-spell routing grew the
-	// condition loops above) ───────────────────────────────────────────────
-	"internal/hooks/spell_resolution.go|1232": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
-	"internal/hooks/spell_resolution.go|1548": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	// self-cast branches above the shield case moved onto SendTrio) ────────
+	"internal/hooks/spell_resolution.go|1224": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	"internal/hooks/spell_resolution.go|1536": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
 	// ── former combat condition: Regenerating is now one record (Task 7;
 	// re-keyed slice 1b, same shift as above; re-keyed again Task 10 and
 	// Task 10's follow-up; re-keyed again counters slice Task 3, same
 	// deletion as above; re-keyed again messaging M4d Task 6, same shift as
-	// above; re-keyed again messaging M4d PR 3 Task 3, same shift as above;
-	// re-keyed again lighting plan 5a Task 7, same shift as above) ─────────
-	"internal/hooks/spell_resolution.go|871":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1106": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1505": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	// above; re-keyed again messaging M4d PR 3 Task 3, same shift as above) ─
+	"internal/hooks/spell_resolution.go|867":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1102": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1497": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|55":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 
@@ -183,21 +187,17 @@ var conditionApplyPathAllowlist = map[string]string{
 	// Task 10 and Task 10's follow-up; re-keyed again counters slice
 	// Task 3, same deletion as above; re-keyed again messaging M4d Task 6,
 	// same shift as above; re-keyed again messaging M4d PR 3 Task 3, same
-	// shift as above; re-keyed again lighting plan 5a Task 7, same shift as
-	// above) ───────────────────────────────────────────────────────────────
+	// shift as above) ──────────────────────────────────────────────────────
 	"internal/hooks/spell_resolution.go|663":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
-	"internal/hooks/spell_resolution.go|1691": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	"internal/hooks/spell_resolution.go|1679": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 
-	// ── light spells (lighting plan 5a Task 7): a magnitude-driven light is
-	// cast at a strength and duration scaled from the caster, which only the
-	// four-argument door can carry. Every one of these is an EVENT door, not
-	// the silent character door: mobs.Mob.AddConditionMagnitude and
-	// users.UserRecord.AddConditionMagnitude both queue events.Condition, so
-	// Condition_ApplyConditions runs and narrates the start ─────────────────
-	"internal/hooks/spell_resolution.go|784":  "light spell on a mob target: the EVENT door (mobs.Mob.AddConditionMagnitude queues events.Condition), carrying the caster-scaled magnitude and triggers",
-	"internal/hooks/spell_resolution.go|1142": "light spell on a player target: the EVENT door (users.UserRecord.AddConditionMagnitude queues events.Condition), carrying the caster-scaled magnitude and triggers",
-	"internal/hooks/spell_resolution.go|1511": "light spell a mob casts on itself: the EVENT door (mobs.Mob.AddConditionMagnitude queues events.Condition), carrying the caster-scaled magnitude and triggers",
-	"internal/hooks/spell_resolution.go|1776": "light spell a mob casts on a player: the EVENT door (users.UserRecord.AddConditionMagnitude queues events.Condition), carrying the caster-scaled magnitude and triggers",
+	// ── light spells (lighting plan 5a): an EVENT door, not the silent
+	// character door. applySpellCondition's target is a spellConditionTarget,
+	// which the silent Character door cannot satisfy (its
+	// AddConditionMagnitude returns an error); its implementers are
+	// *users.UserRecord and *mobs.Mob, both of which queue events.Condition,
+	// so Condition_ApplyConditions runs and narrates the start ─────────────
+	"internal/hooks/light_spell.go|53": "light spell at the caster's scaled magnitude and triggers: the EVENT door (users.UserRecord / mobs.Mob AddConditionMagnitude both queue events.Condition); listed only because arity cannot tell it from the silent character door",
 
 	// ── former combat condition: Bleeding is now one stacking record (Task 9;
 	// re-keyed slice 1b; re-keyed again counters slice Task 3 when the

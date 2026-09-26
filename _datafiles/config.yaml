@@ -935,6 +935,7 @@ Balance:
   # A new character (100, 0) glows at 50 (faces in a cave) for 20 minutes; an
   # endgame caster (175, 65) at 90 (dazzles anyone) for about 45. A fresh cast
   # runs at full strength and trims to the holder's eyes when they next move.
+  # Zero or negative reverts to the default (test binaries never load this file).
   LightSpellStrengthBase: 40
   LightSpellStrengthStatDivisor: 10
   LightSpellStrengthSkillDivisor: 2

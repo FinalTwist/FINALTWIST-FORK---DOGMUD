@@ -780,11 +780,7 @@ func applyMobEffect_condition(
 		return 0
 	}
 	for _, conditionId := range spellData.ConditionIds {
-		if mag, trig, ok := lightSpellApplication(spellData, casterChar, conditionId); ok {
-			mob.AddConditionMagnitude(conditionId, trig, mag, "spell")
-		} else {
-			mob.AddCondition(conditionId, "spell")
-		}
+		applySpellCondition(mob, spellData, casterChar, conditionId)
 		// Compute tick snapshot for config-driven conditions
 		if user != nil {
 			if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil && conditionSpec.TickPool != "" {
@@ -1138,11 +1134,7 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 
 	case "condition":
 		for _, conditionId := range spellData.ConditionIds {
-			if mag, trig, ok := lightSpellApplication(spellData, user.Character, conditionId); ok {
-				target.AddConditionMagnitude(conditionId, trig, mag, "spell")
-			} else {
-				target.AddCondition(conditionId, "spell")
-			}
+			applySpellCondition(target, spellData, user.Character, conditionId)
 			// Compute tick snapshot for config-driven conditions
 			if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil && conditionSpec.TickPool != "" {
 				skillLevel := user.Character.GetSkillLevel(skills.Spellcasting)
@@ -1507,11 +1499,7 @@ func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spell
 			`%s channels restorative magic.`, mobDisplayName(mob, room, 0)))
 	case "condition":
 		for _, conditionId := range spellData.ConditionIds {
-			if mag, trig, ok := lightSpellApplication(spellData, &mob.Character, conditionId); ok {
-				mob.AddConditionMagnitude(conditionId, trig, mag, "spell")
-			} else {
-				mob.AddCondition(conditionId, "spell")
-			}
+			applySpellCondition(mob, spellData, &mob.Character, conditionId)
 			// Compute tick snapshot for config-driven conditions (matches
 			// applyMobEffect_condition for consistency across all caster paths).
 			if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil && conditionSpec.TickPool != "" {
@@ -1772,11 +1760,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 			break
 		}
 		for _, conditionId := range spellData.ConditionIds {
-			if mag, trig, ok := lightSpellApplication(spellData, &caster.Character, conditionId); ok {
-				target.AddConditionMagnitude(conditionId, trig, mag, "spell")
-			} else {
-				target.AddCondition(conditionId, "spell")
-			}
+			applySpellCondition(target, spellData, &caster.Character, conditionId)
 		}
 		// Set aggro for harmful condition spells
 		if spellData.IsHarm() {

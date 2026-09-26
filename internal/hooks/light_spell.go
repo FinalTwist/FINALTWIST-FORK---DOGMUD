@@ -36,3 +36,22 @@ func lightSpellApplication(spellData *spells.SpellData, caster *characters.Chara
 	}
 	return magnitude, triggers, true
 }
+
+// spellConditionTarget is what a spell condition lands on: a player record or
+// a mob, both of which queue the narrating events.Condition.
+type spellConditionTarget interface {
+	AddCondition(conditionId int, source string)
+	AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
+}
+
+// applySpellCondition applies one of a spell's conditions to its target: a
+// magnitude light at the caster's scaled strength and duration, anything else
+// at its authored values. Both doors queue events.Condition, so the holder
+// reads the start notice either way.
+func applySpellCondition(target spellConditionTarget, spellData *spells.SpellData, caster *characters.Character, conditionId int) {
+	if mag, trig, ok := lightSpellApplication(spellData, caster, conditionId); ok {
+		target.AddConditionMagnitude(conditionId, trig, mag, "spell")
+		return
+	}
+	target.AddCondition(conditionId, "spell")
+}
