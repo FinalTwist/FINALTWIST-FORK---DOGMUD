@@ -5,9 +5,11 @@ description: A short, fat candle of rendered tallow, greasy to the touch
   and smelling faintly of the kitchen it came from. It burns with a smoky
   yellow flame and a good deal of guttering, but it is cheap and it lasts,
   which is all most people ask of a light.
-type: object
-subtype: mundane
+type: light
+subtype: wearable
 weight: 0.2
 value: 1
+wornconditionids:
+  - 124
 vendor_categories:
 - blacksmithing

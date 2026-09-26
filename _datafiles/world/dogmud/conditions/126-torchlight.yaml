@@ -1,0 +1,8 @@
+conditionid: 126
+name: Torchlight
+description: Your torch burns bright and smoky.
+secret: true
+triggerrate: 5 real minutes
+triggercount: 1
+effects:
+  light_strength: 56

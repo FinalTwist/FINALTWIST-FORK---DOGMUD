@@ -52,6 +52,8 @@ character:
   shop:
     # Light + dry goods
     - itemid: 40038    # oil lantern
+    - itemid: 20096    # torch
+    - itemid: 20097    # hooded lantern
     - itemid: 30021    # trail rations
     - itemid: 30013    # fungal ration
     # Healing basics

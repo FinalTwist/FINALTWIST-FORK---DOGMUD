@@ -1,0 +1,14 @@
+itemid: 20096
+name: Torch
+namesimple: torch
+description: A length of pine wrapped in pitch-soaked rag. It burns hot
+  and bright and throws a harsh, smoky light, too much of it on a
+  sunny day.
+type: light
+subtype: wearable
+weight: 0.5
+value: 1
+vendor_categories:
+- blacksmithing
+wornconditionids:
+  - 126
