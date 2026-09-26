@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go tests, YAML content, the read-only ledger tool.
 
-**Spec:** `docs/superpowers/specs/2026-09-25-lighting-plan3c-city-pass-design.md` (3c-2 is its second slice). **Prior art:** `docs/superpowers/plans/2026-09-25-lighting-plan3c-1-city-pass.md` and its ledger `docs/superpowers/audits/2026-09-25-lighting-plan3c-ledger.md`, whose "Owner answers" section is binding here.
+**Spec:** `docs/superpowers/specs/completed/2026-09-25-lighting-plan3c-city-pass-design.md` (3c-2 is its second slice). **Prior art:** `docs/superpowers/plans/completed/2026-09-25-lighting-plan3c-1-city-pass.md` and its ledger `docs/superpowers/audits/2026-09-25-lighting-plan3c-ledger.md`, whose "Owner answers" section is binding here.
 
 **Every commit** ends with `Co-Authored-By: <your model> <noreply@anthropic.com>`.
 

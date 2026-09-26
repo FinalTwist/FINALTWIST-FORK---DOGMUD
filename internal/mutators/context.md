@@ -39,7 +39,7 @@ type MutatorSpec struct {
     NativeConditionIds       []int                    // applied only to mobs that spawned here
     DecayRate           string                   // gametime period string
     RespawnRate         string                   // gametime period string
-    LightMod            int                      // -2..2
+    SkyLight            *float64                 // fraction of the sky's light let through; nil = unchanged
     RegenMultiplier     float64                  // 1.0 / 0 = no change
     Exits               map[string]exit.RoomExit // only reachable while live
     Pvp                 PvpOverride
@@ -132,6 +132,12 @@ func (m *MutatorSpec) Save() error
   data directory — no zone subfoldering.
 - **`OutdoorOnly` is honoured by the caller, not here.** The spec field is
   inert inside this package; room/weather code checks it before applying.
+- **`SkyLight`, when non-nil, is a multiplicative fraction of the sky's
+  light, not an offset.** `Validate` rejects anything outside 0 to 1. Several
+  active mutators on one room multiply together (`internal/rooms` reads
+  every active mutator's `SkyLight` and takes the product); nil leaves the
+  sky untouched rather than contributing a no-op 1. It replaced the old
+  `-2..2` `LightMod` field, which is gone.
 
 ## Dependencies
 

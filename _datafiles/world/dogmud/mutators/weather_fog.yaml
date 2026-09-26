@@ -8,4 +8,5 @@ descriptionmodifier:
   behavior: append
   text: A dense fog presses close, swallowing shapes more than a few paces out.
   colorpattern: gray
+skylight: 0.7
 decayrate: 4 hours

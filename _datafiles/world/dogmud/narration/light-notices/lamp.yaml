@@ -1,6 +1,6 @@
-# The room's own light: its lamp, or a positive lightmod mutator. Lamps do
-# not change at runtime yet, so today only a lightmod mutator starting or
-# ending reaches these lines.
+# The room's own lamp. Lamps do not change at runtime yet and no mutator
+# adds light any more, so nothing reaches these lines until runtime lamps
+# arrive (scheduled light sources).
 cause: lamp
 transitions:
   darker_faces:

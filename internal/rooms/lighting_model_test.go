@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
-	"github.com/GoMudEngine/GoMud/internal/lightscale"
 )
 
 func modelCfg() configs.Lighting {
@@ -56,30 +55,6 @@ func TestLanternIsNearlyIrrelevantAtNoon(t *testing.T) {
 	got := r.lightLevel(modelCfg(), 70)
 	if got < 70 || got > 74 {
 		t.Errorf("lantern 55 at noon 70 = %d, want 70 to 74", got)
-	}
-}
-
-// A positive lightmod mutator must still make a dark room readable: the 31
-// Crash Site Interior rooms and 12 Foldweave rooms depend on it.
-func TestPositiveLightModBridgeKeepsLitCavesLit(t *testing.T) {
-	zero := 0.0
-	r := Room{SkyLight: &zero}
-	got := r.lightLevelWithMutatorBridge(modelCfg(), lightscale.Absent(), 2, 0)
-	if got < modelCfg().DimBelow {
-		t.Errorf("lightmod +2 in a cave = %d, want at or above DimBelow (%d)",
-			got, modelCfg().DimBelow)
-	}
-}
-
-// A negative lightmod attenuates the SKY only. A blizzard does not dim your
-// lantern.
-func TestNegativeLightModAttenuatesSkyNotLamp(t *testing.T) {
-	open := 1.0
-	r := Room{SkyLight: &open}
-	clear := r.lightLevelWithMutatorBridge(modelCfg(), 60, 0, 0)
-	stormy := r.lightLevelWithMutatorBridge(modelCfg(), 60, 0, 1)
-	if clear-stormy != 8 {
-		t.Errorf("one step of occlusion moved light by %d, want 8", clear-stormy)
 	}
 }
 

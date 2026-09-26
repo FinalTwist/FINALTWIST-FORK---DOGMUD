@@ -1,7 +1,7 @@
 # Lighting plan 3c-2: classification ledger
 
 Every remaining `city` room in the six zones 3c-1 left, plus the ruin 3c-1
-deferred, each with the biome it moves to and why. Rubric: `docs/superpowers/plans/2026-09-25-lighting-plan3c-2-city-pass.md`.
+deferred, each with the biome it moves to and why. Rubric: `docs/superpowers/plans/completed/2026-09-25-lighting-plan3c-2-city-pass.md`.
 Classified 2026-09-25 by four read-only subagents reading every room file in
 full; assembled, connectivity-checked and second-read by the controller.
 

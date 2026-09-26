@@ -2,7 +2,7 @@
 
 Every New Plymouth `city` room, every `fort` room, and every ruin candidate the
 world-wide scan found, each with the biome it moves to and why. Rubric and
-rules: `docs/superpowers/plans/2026-09-25-lighting-plan3c-1-city-pass.md`,
+rules: `docs/superpowers/plans/completed/2026-09-25-lighting-plan3c-1-city-pass.md`,
 Task 6. Classified 2026-09-25 by four read-only subagents, each reading every
 room file in full; assembled and checked by the controller.
 

@@ -36,7 +36,7 @@ import (
 // needs), not a fixed constant. A dark biome (cave, sky fraction 0) plus one
 // carried light source lands exactly on LightDimBelow (the model lifts a lit
 // room to the bottom of the "room readable, exits not" band; see
-// internal/rooms/lighting.go's lightLevelWithMutatorBridge, term 4), which is
+// internal/rooms/lighting.go's composeLight, term 3), which is
 // inside the band asserted below by construction.
 func TestLookExit_RoomOnlyLightBlocksExitPeering(t *testing.T) {
 	cleanup := seedAllRegistries()

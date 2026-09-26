@@ -8,4 +8,5 @@ descriptionmodifier:
   behavior: append
   text: A flat gray ceiling of cloud hangs low overhead, dulling every color.
   colorpattern: gray
+skylight: 0.7
 decayrate: 6 hours

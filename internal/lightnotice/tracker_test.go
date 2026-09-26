@@ -135,7 +135,7 @@ func TestTransitionOf(t *testing.T) {
 // shared base) in faces and Level 40 in shapes, which is why most cases move
 // between exactly those two levels.
 func TestAttribution(t *testing.T) {
-	base := rooms.LightTerms{Level: 60, Sky: 55, Lamp: 40, HasLamp: true}
+	base := rooms.LightTerms{Level: 60, Sky: 55, SkyFilter: 1, Lamp: 40, HasLamp: true}
 	with := func(f func(*rooms.LightTerms)) rooms.LightTerms { t2 := base; f(&t2); return t2 }
 
 	cases := []struct {
@@ -150,10 +150,8 @@ func TestAttribution(t *testing.T) {
 			rec(1, messaging.BandFaces, with(func(x *rooms.LightTerms) { x.Carried = true })), obs(1, messaging.BandShapes, with(func(x *rooms.LightTerms) { x.Level = 40 })), CauseCarried},
 		{"lamp value changing",
 			rec(1, messaging.BandFaces, base), obs(1, messaging.BandShapes, with(func(x *rooms.LightTerms) { x.Level = 40; x.Lamp = 20 })), CauseLamp},
-		{"LightMod bridge changing is the lamp",
-			rec(1, messaging.BandFaces, with(func(x *rooms.LightTerms) { x.LightMod = 2 })), obs(1, messaging.BandShapes, with(func(x *rooms.LightTerms) { x.Level = 40 })), CauseLamp},
 		{"weather occlusion",
-			rec(1, messaging.BandFaces, base), obs(1, messaging.BandShapes, with(func(x *rooms.LightTerms) { x.Level = 40; x.OcclusionSteps = 1; x.Sky = 30 })), CauseWeather},
+			rec(1, messaging.BandFaces, base), obs(1, messaging.BandShapes, with(func(x *rooms.LightTerms) { x.Level = 40; x.SkyFilter = 0.5; x.Sky = 30 })), CauseWeather},
 		{"the sky alone",
 			rec(1, messaging.BandFaces, base), obs(1, messaging.BandShapes, with(func(x *rooms.LightTerms) { x.Level = 40; x.Sky = 30 })), CauseSky},
 		{"sky gone entirely counts as the sky",
