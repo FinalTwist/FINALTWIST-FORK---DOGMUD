@@ -7,10 +7,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 )
 
-type fixedLight int
-
-func (f fixedLight) LightLevel() int { return int(f) }
-
 func TestSightScoreMultiplierWorkedValues(t *testing.T) {
 	cfg := configs.GetConfig()
 	cfg.Balance.Validate() // dark 0.80, dazzle 0.80
@@ -47,14 +43,14 @@ func TestSightMultFollowsTheRamp(t *testing.T) {
 		light int
 		want  float64
 	}{{60, 1.0}, {37, 0.896}, {90, 0.88}, {0, 0.80}} {
-		if got := SightMult(c, fixedLight(tc.light)); !near(got, tc.want) {
+		if got := SightMult(c, sightLight(tc.light)); !near(got, tc.want) {
 			t.Errorf("light %d: %v, want %v", tc.light, got, tc.want)
 		}
 	}
 	if got := SightMult(c, nil); got != 1.0 {
 		t.Error("nil room must be unity")
 	}
-	if got := SightMult(nil, fixedLight(0)); got != 1.0 {
+	if got := SightMult(nil, sightLight(0)); got != 1.0 {
 		t.Error("nil observer must be unity")
 	}
 }
