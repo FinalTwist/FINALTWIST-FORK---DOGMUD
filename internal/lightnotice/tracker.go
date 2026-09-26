@@ -266,7 +266,7 @@ func observe(c *characters.Character, room *rooms.Room) observation {
 		asleep:  c.HasConditionFlag(conditions.Sleeping),
 		blinded: c.Perception != nil && c.Perception.State() == perception.Blinded,
 		bandAt: func(light int) messaging.Band {
-			return messaging.BandThroughWindow(light, strength, reach, cfg.BlindBelow, cfg.DimBelow)
+			return messaging.BandThroughWindow(light, strength, reach, cfg.BlindBelow, cfg.DimBelow, cfg.DazzleAbove)
 		},
 	}
 }

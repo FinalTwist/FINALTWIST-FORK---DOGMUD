@@ -70,7 +70,7 @@ func logLightAt(t *testing.T, label string, roomId int) {
 	}
 	terms := room.LightTerms()
 	cfg := configs.GetLightingConfig()
-	band := messaging.BandThroughWindow(terms.Level, 0, 0, cfg.BlindBelow, cfg.DimBelow)
+	band := messaging.BandThroughWindow(terms.Level, 0, 0, cfg.BlindBelow, cfg.DimBelow, cfg.DazzleAbove)
 	t.Logf("%s: room %d LightTerms().Level=%d band=%s sky=%v lamp=%d hasLamp=%v",
 		label, roomId, terms.Level, band, terms.Sky, terms.Lamp, terms.HasLamp)
 }
@@ -163,7 +163,7 @@ func TestNightSightIsDazzledByTheThoroughfare(t *testing.T) {
 	if room := rooms.LoadRoom(2); room != nil {
 		terms := room.LightTerms()
 		band := messaging.BandThroughWindow(terms.Level, u.Character.NightVisionStrength(), u.Character.InfraReach(),
-			configs.GetLightingConfig().BlindBelow, configs.GetLightingConfig().DimBelow)
+			configs.GetLightingConfig().BlindBelow, configs.GetLightingConfig().DimBelow, configs.GetLightingConfig().DazzleAbove)
 		t.Logf("thoroughfare midnight for strength 24: LightTerms().Level=%d band=%s", terms.Level, band)
 	}
 	u.Character.RoomId = 2

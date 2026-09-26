@@ -40,10 +40,10 @@ func (b Band) String() string {
 }
 
 // BandThroughWindow is SightThroughWindow with the full tier split at the
-// observer's shifted dazzle edge (windowDazzleEdge minus strength, strength
+// observer's shifted dazzle edge (dazzleAbove minus strength, strength
 // clamped exactly as SightThroughWindow clamps it). It never moves a lower
 // edge: dark, shapes and faces-or-dazzled are SightThroughWindow's answers.
-func BandThroughWindow(light, strength, reach, blindBelow, dimBelow int) Band {
+func BandThroughWindow(light, strength, reach, blindBelow, dimBelow, dazzleAbove int) Band {
 	switch SightThroughWindow(light, strength, reach, blindBelow, dimBelow) {
 	case SightNone:
 		return BandDark
@@ -51,7 +51,7 @@ func BandThroughWindow(light, strength, reach, blindBelow, dimBelow int) Band {
 		return BandShapes
 	}
 	strength = clampShift(strength)
-	if light >= windowDazzleEdge-strength {
+	if light >= dazzleAbove-strength {
 		return BandDazzled
 	}
 	return BandFaces
@@ -79,5 +79,6 @@ func LightBand(observer *characters.Character, room RoomVisibility) Band {
 		observer.InfraReach(),
 		cfg.BlindBelow,
 		cfg.DimBelow,
+		cfg.DazzleAbove,
 	)
 }

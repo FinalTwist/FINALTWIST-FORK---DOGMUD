@@ -3,19 +3,10 @@ package messaging
 // The normal observer's band edges on the graded light scale, and the two
 // numbers that bound how far an ability may move them.
 //
-// These are CONSTANTS, not config knobs, and that is deliberate. Plan 1's rule
-// is that a config knob nothing reads does not ship. windowDazzleEdge is needed
-// to compute the window's upper edge but carries no mechanical penalty in this
-// plan, so exposing it as a balance lever would ship a knob an operator could
-// turn with no observable effect. It becomes a knob in the plan that gives
-// dazzle teeth.
-//
-// The lower two edges DO have config knobs already (LightBlindBelow and
-// LightDimBelow, shipped by plan 1) and the window function takes them as
+// All three edges now have config knobs (LightBlindBelow, LightDimBelow, and
+// plan 5b's LightDazzleAbove), and every function below takes them as
 // arguments rather than reading config, so this file stays pure and testable.
 const (
-	// windowDazzleEdge is where the perfect band ends and too-bright begins.
-	windowDazzleEdge = 75
 	// windowShiftCap is the most any ability may move the window down.
 	windowShiftCap = 24
 	// windowFloor is the light below which a shifted window reads nothing,
@@ -44,10 +35,14 @@ func SightThroughWindow(light, strength, reach int, blindBelow, dimBelow int) Si
 	shiftedDim := dimBelow - strength
 
 	if light >= shiftedDim {
-		// Perfect and too-bright both read fully. Dazzle has no mechanical
-		// penalty yet; BandThroughWindow (band.go) and LightTrimTarget below
-		// read the upper edge, to tell a player the light hurts and to trim
-		// an adjustable light under it, respectively.
+		// Perfect and too-bright both read fully; SightThroughWindow does not
+		// take a dazzle edge because dazzle never changes whether an
+		// observer can make out a shape, only how much it costs them. Plan
+		// 5b's cost lives in ComfortDistance and SightScoreMultiplier
+		// (comfort.go, sight_mult.go); BandThroughWindow (band.go) and
+		// LightTrimTarget below read the upper edge, to tell a player the
+		// light hurts and to trim an adjustable light under it,
+		// respectively.
 		return SightFull
 	}
 	if light >= shiftedBlind && light >= windowFloor {
@@ -80,6 +75,8 @@ func clampShift(strength int) int {
 // night-vision strength reads without being dazzled: one point under the
 // shifted dazzle edge. An adjustable light trims toward it (lighting plan 5a).
 // One point, not half: a room at exactly 74.5 would round up to the edge.
-func LightTrimTarget(strength int) float64 {
-	return float64(windowDazzleEdge - clampShift(strength) - 1)
+// dazzleAbove is the caller's config knob (Balance.LightDazzleAbove via
+// Lighting.DazzleAbove), a plan 5b knob rather than a package constant.
+func LightTrimTarget(strength, dazzleAbove int) float64 {
+	return float64(dazzleAbove - clampShift(strength) - 1)
 }
