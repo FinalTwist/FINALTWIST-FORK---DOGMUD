@@ -66,8 +66,28 @@ func TestReloadConfig_ReadsOverridesFromLoadedDataFiles(t *testing.T) {
 	}
 
 	if got := GetConfig().Server.NextRoomId; got != 424242 {
-		t.Fatalf("NextRoomId = %d, want 424242: world/x/config-overrides.yaml was not loaded (override path = %q)",
-			got, overridePathFor(GetConfig().FilePaths.DataFiles.String()))
+		t.Fatalf("NextRoomId = %d, want 424242: world/x/config-overrides.yaml was not loaded", got)
+	}
+}
+
+// A config.yaml with no FilePaths.DataFiles key reads its overrides from the
+// default world, the value FilePaths.Validate fills in.
+func TestReloadConfig_NoDataFilesKeyReadsDefaultWorld(t *testing.T) {
+	isolateReloadGlobals(t)
+	t.Setenv("CONFIG_PATH", "")
+	dir := t.TempDir()
+	mustWrite(t, filepath.Join(dir, "_datafiles", "config.yaml"),
+		"Server:\n  MudName: test\n")
+	mustWrite(t, filepath.Join(dir, "_datafiles", "world", "default", "config-overrides.yaml"),
+		"Server:\n  NextRoomId: 515151\n")
+	t.Chdir(dir)
+
+	if err := ReloadConfig(); err != nil {
+		t.Fatalf("ReloadConfig: %v", err)
+	}
+
+	if got := GetConfig().Server.NextRoomId; got != 515151 {
+		t.Fatalf("NextRoomId = %d, want 515151: _datafiles/world/default/config-overrides.yaml was not loaded", got)
 	}
 }
 

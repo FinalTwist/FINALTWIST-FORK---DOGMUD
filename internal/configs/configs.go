@@ -419,6 +419,11 @@ func GetConfig() Config {
 	return configData
 }
 
+// OverridePathFor is overridePathFor for callers outside this package.
+func OverridePathFor(dataFiles string) string {
+	return overridePathFor(dataFiles)
+}
+
 // overridePathFor returns where config-overrides.yaml lives for a world whose
 // DataFiles is dataFiles. CONFIG_PATH, when set, wins. The caller passes the
 // DataFiles that is (or is about to be) in effect: ReloadConfig must pass the

@@ -53,11 +53,7 @@ import (
 // back to disk, which would restore the old key.
 func migrate_ConditionKeys(dryRun bool) error {
 	dataDir := string(configs.GetConfig().FilePaths.DataFiles)
-	// Mirrors configs.overridePath (unexported).
-	overridesPath := os.Getenv(`CONFIG_PATH`)
-	if overridesPath == `` {
-		overridesPath = filepath.Join(dataDir, `config-overrides.yaml`)
-	}
+	overridesPath := configs.OverridePathFor(dataDir)
 	return migrateConditionKeys(dataDir, overridesPath, dryRun, configs.ReloadConfig)
 }
 

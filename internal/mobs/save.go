@@ -20,7 +20,7 @@ import (
 // than reading configs.GetFilePathsConfig() inline everywhere) so tests can
 // redirect it at a temp dir without going through configs.SetVal, which
 // persists to the real config-overrides.yaml on disk (see
-// configs.overridePath) — a footgun for a unit test that must never touch the
+// configs.OverridePathFor) — a footgun for a unit test that must never touch the
 // developer's real config. Mirrors items.itemsBasePath's test-injection shape.
 var mobsDataRoot = func() string {
 	return configs.GetFilePathsConfig().DataFiles.String()
