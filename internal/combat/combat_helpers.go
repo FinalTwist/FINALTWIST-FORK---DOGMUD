@@ -519,7 +519,11 @@ func DarknessScoreMultiplier(sight messaging.SightDecision, bal configs.Balance)
 	case messaging.SightFull:
 		return 1.0
 	case messaging.SightShapes:
-		return float64(bal.DarknessShapesCombatPenalty)
+		// Task 3 of plan 5b deletes this function. Until then, shapes takes
+		// the ramp's midpoint between full sight and the blind cap: the
+		// DarknessShapesCombatPenalty knob is retired, but this preserves
+		// its shipped value (0.90 at the shipped 0.80 cap).
+		return 1.0 - (1.0-float64(bal.DarknessCombatPenalty))/2
 	default:
 		return float64(bal.DarknessCombatPenalty)
 	}

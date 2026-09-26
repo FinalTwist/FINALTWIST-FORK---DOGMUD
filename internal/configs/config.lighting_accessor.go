@@ -12,6 +12,7 @@ type Lighting struct {
 	BlindBelow            int
 	DimBelow              int
 	ExitsAbove            int
+	DazzleAbove           int
 	DefaultVisionStrength int
 
 	DoublingStep  float64
@@ -40,6 +41,7 @@ func GetLightingConfig() Lighting {
 		BlindBelow:            int(b.LightBlindBelow),
 		DimBelow:              int(b.LightDimBelow),
 		ExitsAbove:            int(b.LightExitsAbove),
+		DazzleAbove:           int(b.LightDazzleAbove),
 		DefaultVisionStrength: int(b.LightDefaultVisionStrength),
 
 		DoublingStep:  float64(b.LightDoublingStep),

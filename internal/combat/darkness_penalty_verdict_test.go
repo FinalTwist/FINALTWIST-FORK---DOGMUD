@@ -166,7 +166,10 @@ func TestDarknessPenaltyVerdictMatchesOldBoolean(t *testing.T) {
 				// SightNone) still takes the full blind penalty.
 				wantMult := float64(cfg.Balance.DarknessCombatPenalty)
 				if verdict == messaging.SightShapes {
-					wantMult = float64(cfg.Balance.DarknessShapesCombatPenalty)
+					// DarknessShapesCombatPenalty is retired (plan 5b, task
+					// 1); DarknessScoreMultiplier's shapes case now returns
+					// the ramp's midpoint until task 3 deletes it.
+					wantMult = 1.0 - (1.0-float64(cfg.Balance.DarknessCombatPenalty))/2
 				}
 				wantScore := clean * wantMult
 				if math.Abs(ctxScore-wantScore) > 1e-9 {
@@ -200,7 +203,6 @@ func TestDarknessPenaltyVerdictMatchesOldBoolean(t *testing.T) {
 func TestDarknessShapesPenaltyIsBetweenBlindAndClean(t *testing.T) {
 	cfg := configs.GetConfig()
 	cfg.Balance.DarknessCombatPenalty = 0.50
-	cfg.Balance.DarknessShapesCombatPenalty = 0.75
 	configs.SetConfigForTest(t, cfg)
 
 	observer := characters.New()
@@ -215,9 +217,14 @@ func TestDarknessShapesPenaltyIsBetweenBlindAndClean(t *testing.T) {
 			blindScore, shapesScore, clearScore)
 	}
 
-	wantShapesScore := clearScore * float64(cfg.Balance.DarknessShapesCombatPenalty)
+	// DarknessShapesCombatPenalty is retired (plan 5b, task 1);
+	// DarknessScoreMultiplier's shapes case now returns the ramp's midpoint
+	// until task 3 deletes the function. The midpoint IS the old shipped
+	// 0.90 at the shipped 0.80 cap.
+	wantMidpoint := 1.0 - (1.0-float64(cfg.Balance.DarknessCombatPenalty))/2
+	wantShapesScore := clearScore * wantMidpoint
 	if math.Abs(shapesScore-wantShapesScore) > 1e-9 {
-		t.Fatalf("shapesScore = %v, want %v (clear %v x DarknessShapesCombatPenalty %v)",
-			shapesScore, wantShapesScore, clearScore, cfg.Balance.DarknessShapesCombatPenalty)
+		t.Fatalf("shapesScore = %v, want %v (clear %v x midpoint %v)",
+			shapesScore, wantShapesScore, clearScore, wantMidpoint)
 	}
 }
