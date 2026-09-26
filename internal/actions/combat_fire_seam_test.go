@@ -143,6 +143,8 @@ func TestFireSeam_ShieldedDefenderGetsBlockEntry(t *testing.T) {
 	// Lighting plan 5b: the defender's sight row in the fixture room scales
 	// every entry alike (pinned in internal/combat; here it only composes).
 	sight := combat.SituationalDefenceMult(defChar, combat.SightRoom(rooms.LoadRoom(1)), combatvocab.Ranged(combatvocab.TargetSingle))
+	require.Less(t, sight, 1.0,
+		"fixture room must be off-comfort or this test cannot see the sight row (light %d)", rooms.LoadRoom(1).LightLevel())
 	wantDodge := defChar.GetDefenseScoreFor(combatvocab.DefenceDodge, true) * sight
 	wantBlock := defChar.GetDefenseScoreFor(combatvocab.DefenceBlock, true) * sight
 	require.InDelta(t, wantDodge, entries[0].Score, 1e-9)
@@ -173,6 +175,8 @@ func TestFireSeam_ShieldlessDefenderDodgeOnly(t *testing.T) {
 	require.Len(t, entries, 1, "shieldless defender vs a shot: dodge alone")
 	require.Equal(t, string(combatvocab.DefenceDodge), entries[0].Name)
 	sight := combat.SituationalDefenceMult(defChar, combat.SightRoom(rooms.LoadRoom(1)), combatvocab.Ranged(combatvocab.TargetSingle))
+	require.Less(t, sight, 1.0,
+		"fixture room must be off-comfort or this test cannot see the sight row (light %d)", rooms.LoadRoom(1).LightLevel())
 	require.InDelta(t, defChar.GetDefenseScoreFor(combatvocab.DefenceDodge, true)*sight,
 		entries[0].Score, 1e-9,
 		"dodge must be scored identically shielded or not — the shield adds an ENTRY, not an addend")

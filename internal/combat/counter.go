@@ -151,8 +151,9 @@ func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.
 	//
 	// Lighting plan 5b: the counter-swing sees too. This function holds only
 	// the characters, so the room (shared: sameRoom is true here) is loaded
-	// once. The swing keeps its flat prone/stamina Mult and takes the sight
-	// row alone; the seam applies the answering side's sight row.
+	// once. The swing never composed prone or stamina (its Mult was a flat
+	// 1.0); it takes the sight row alone. The seam applies the answering
+	// side's sight row.
 	room := SightRoom(rooms.LoadRoom(defender.RoomId))
 	move := ExecuteSkillMove(SkillMoveParams{
 		Attacker: defender,

@@ -233,6 +233,8 @@ func TestThrowSeam_AttackSideAndDefenceSets(t *testing.T) {
 	// Lighting plan 5b: the thrower's sight row in the fixture room scales
 	// the side (pinned in internal/combat; here it only has to compose).
 	sight := messaging.SightMult(user.Character, room)
+	require.Less(t, sight, 1.0,
+		"fixture room must be off-comfort or this test cannot see the sight row (light %d)", room.LightLevel())
 	for i, score := range atkScores {
 		assert.InDelta(t, (100+8*5.0)*sight, score, 0.001,
 			"contest %d: attack side must be (Dex + rank x SkillWeight) x sight", i)
