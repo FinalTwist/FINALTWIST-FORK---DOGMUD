@@ -229,7 +229,7 @@ func runAvoidanceContest(t *testing.T, n int, channel combatvocab.Attack, attack
 	for i := 0; i < n; i++ {
 		// The defender carries no userId, which is the no-user sentinel: the
 		// progression calls inside look up nothing and must not panic.
-		result := ResolveChannelAttack(channel, side, attacker, defender)
+		result := ResolveChannelAttack(nil, channel, side, attacker, defender)
 		mult := result.DamageMultiplier
 		if result.Defence == "" {
 			t.Errorf("iteration %d returned no selected defence for a contested channel", i)

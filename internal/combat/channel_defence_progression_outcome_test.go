@@ -107,7 +107,7 @@ func TestResolveChannelAttack_ALostDefenceAwardsAtTheFractionExactlyOnce(t *test
 	beforeSkill := defender.GetSkillLevel(skills.SkillTag(channelDefenceSkill))
 	beforeStat := defender.GetStatTraining(channelDefenceStat)
 
-	out := ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100}, attacker, defender)
+	out := ResolveChannelAttack(nil, combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100}, attacker, defender)
 	if out.Defence != combatvocab.DefenceDefy {
 		t.Fatalf("precondition: the contest resolved on %q, want %q", out.Defence, combatvocab.DefenceDefy)
 	}
@@ -146,7 +146,7 @@ func TestResolveChannelAttack_AWonDefenceStillAwardsFullWeight(t *testing.T) {
 	beforeSkill := defender.GetSkillLevel(skills.SkillTag(channelDefenceSkill))
 	beforeStat := defender.GetStatTraining(channelDefenceStat)
 
-	ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100}, attacker, defender)
+	ResolveChannelAttack(nil, combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100}, attacker, defender)
 
 	if got := defender.GetSkillLevel(skills.SkillTag(channelDefenceSkill)) - beforeSkill; got != 1 {
 		t.Errorf("%s advanced by %d on a WON defence, want 1", channelDefenceSkill, got)
@@ -184,7 +184,7 @@ func TestResolveChannelAttack_ForcedCritIsALostDefenceEvenThoughTheContestSaysOt
 	beforeSkill := defender.GetSkillLevel(skills.SkillTag(channelDefenceSkill))
 	beforeStat := defender.GetStatTraining(channelDefenceStat)
 
-	out := ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100, ForceCrit: true}, attacker, defender)
+	out := ResolveChannelAttack(nil, combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100, ForceCrit: true}, attacker, defender)
 
 	if !out.AttackerCrit {
 		t.Fatalf("precondition: ForceCrit did not produce an attacker crit; the fixture is not exercising the forced-win path")

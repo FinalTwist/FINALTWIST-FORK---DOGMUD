@@ -195,7 +195,7 @@ func TestSpellCounter_MobDefenderCountersPlayerCaster(t *testing.T) {
 	t.Cleanup(restore)
 
 	spell := physicalHarmSpellForCollapseTest()
-	side := spellAttackSideFor(spell, caster.Character)
+	side := spellAttackSideFor(spell, caster.Character, nil)
 	fumbled, _ := resolveAgainstMob(caster, mob, room, spell, side, spell.EffectMagnitude)
 	require.False(t, fumbled)
 
@@ -234,7 +234,7 @@ func TestSpellCounter_PlayerDefenderCountersMobCaster(t *testing.T) {
 	t.Cleanup(restore)
 
 	spell := physicalHarmSpellForCollapseTest()
-	side := spellAttackSideFor(spell, &caster.Character)
+	side := spellAttackSideFor(spell, &caster.Character, nil)
 	resolveMobSpellAgainstPlayer(caster, target, room, spell, side, spell.EffectMagnitude)
 
 	require.Equal(t, 2, calls,
@@ -271,7 +271,7 @@ func TestSpellCounter_PlayerVsPlayerAndMobVsMob(t *testing.T) {
 	))
 	t.Cleanup(restore)
 
-	side := spellAttackSideFor(spell, caster.Character)
+	side := spellAttackSideFor(spell, caster.Character, nil)
 	resolveAgainstPlayer(caster, target, room, spell, side, spell.EffectMagnitude)
 	require.Equal(t, 2, calls)
 	require.Less(t, caster.Character.Health, 100000,
@@ -286,7 +286,7 @@ func TestSpellCounter_PlayerVsPlayerAndMobVsMob(t *testing.T) {
 	mobDefender.Character.Conditions = conditions.New()
 
 	calls = 0
-	side2 := spellAttackSideFor(spell, &mobCaster.Character)
+	side2 := spellAttackSideFor(spell, &mobCaster.Character, nil)
 	resolveMobSpellAgainstMob(mobCaster, mobDefender, room, spell, side2, spell.EffectMagnitude)
 	require.Equal(t, 2, calls,
 		"the mob-vs-mob exit must feed the tier too")
@@ -325,7 +325,7 @@ func TestSpellCounter_NarrationReachesCasterFromTheWinningDefencePool(t *testing
 	t.Cleanup(restore)
 
 	spell := physicalHarmSpellForCollapseTest()
-	side := spellAttackSideFor(spell, caster.Character)
+	side := spellAttackSideFor(spell, caster.Character, nil)
 	events.DrainQueuedMessagesForTest(caster.UserId)
 	fumbled, _ := resolveAgainstMob(caster, mob, room, spell, side, spell.EffectMagnitude)
 	require.False(t, fumbled)
@@ -407,7 +407,7 @@ func TestResolveAgainstMob_ReportsWhetherTheCastLanded(t *testing.T) {
 			t.Cleanup(restore)
 
 			spell := physicalHarmSpellForCollapseTest()
-			side := spellAttackSideFor(spell, caster.Character)
+			side := spellAttackSideFor(spell, caster.Character, nil)
 			fumbled, landed := resolveAgainstMob(caster, mob, room, spell, side, spell.EffectMagnitude)
 
 			require.False(t, fumbled, "fixture sanity: neither runner fumbles")
@@ -446,7 +446,7 @@ func TestSpellCounter_AnAreaCastEarnsNoCounter(t *testing.T) {
 
 	spell := physicalHarmSpellForCollapseTest()
 	spell.Targeting = combatvocab.TargetArea
-	side := spellAttackSideFor(spell, caster.Character)
+	side := spellAttackSideFor(spell, caster.Character, nil)
 	fumbled, _ := resolveAgainstMob(caster, mob, room, spell, side, spell.EffectMagnitude)
 	require.False(t, fumbled)
 
@@ -487,7 +487,7 @@ func TestSpellCounter_ADefiedCharmIsAnsweredWithACounterTaunt(t *testing.T) {
 	t.Cleanup(restore)
 
 	spell := charmTestSpellData()
-	side := spellAttackSideFor(spell, caster.Character)
+	side := spellAttackSideFor(spell, caster.Character, nil)
 	events.DrainQueuedMessagesForTest(caster.UserId)
 	resolveAgainstMob(caster, mob, room, spell, side, spell.EffectMagnitude)
 
@@ -545,7 +545,7 @@ func TestSpellCounter_ADefiedAreaCastEarnsNoRetort(t *testing.T) {
 
 	spell := charmTestSpellData()
 	spell.Targeting = combatvocab.TargetArea
-	side := spellAttackSideFor(spell, caster.Character)
+	side := spellAttackSideFor(spell, caster.Character, nil)
 	events.DrainQueuedMessagesForTest(caster.UserId)
 	resolveAgainstMob(caster, mob, room, spell, side, spell.EffectMagnitude)
 

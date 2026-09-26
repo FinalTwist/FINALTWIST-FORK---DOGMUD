@@ -115,7 +115,7 @@ func TestSpellResolution_OneContest_QuellAlwaysConsulted(t *testing.T) {
 	scoreWithDefenderSkill := func(rank int) float64 {
 		capturedEntries = nil
 		target.Character.Skills = map[string]int{"spellcasting": rank}
-		side := spellAttackSideFor(spell, caster.Character)
+		side := spellAttackSideFor(spell, caster.Character, nil)
 		resolveAgainstPlayer(caster, target, room, spell, side, spell.EffectMagnitude)
 		require.Len(t, capturedEntries, 1, "a mental spell must face exactly one defence: quell")
 		require.Equal(t, string(combatvocab.DefenceQuell), capturedEntries[0].Name)
@@ -157,7 +157,7 @@ func TestSpellCrit_FacesQuell(t *testing.T) {
 
 	spell := mentalHarmSpellForCollapseTest()
 	drainChannelRoutingQueues(1, 2)
-	side := spellAttackSideFor(spell, caster.Character)
+	side := spellAttackSideFor(spell, caster.Character, nil)
 	resolveAgainstPlayer(caster, target, room, spell, side, spell.EffectMagnitude)
 
 	require.Equal(t, 100, target.Character.Health, "a defensive crit must fully negate the spell's damage")
@@ -192,7 +192,7 @@ func TestSpellDefendedCast_DealsPartialDamage(t *testing.T) {
 
 	spell := mentalHarmSpellForCollapseTest()
 	drainChannelRoutingQueues(1, 2)
-	side := spellAttackSideFor(spell, caster.Character)
+	side := spellAttackSideFor(spell, caster.Character, nil)
 	resolveAgainstPlayer(caster, target, room, spell, side, spell.EffectMagnitude)
 
 	require.Less(t, target.Character.Health, 1000,
@@ -284,7 +284,7 @@ func TestSpellCritReceived_TracksDefenderWillpowerOnce(t *testing.T) {
 
 	spell := physicalHarmSpellForCollapseTest()
 	before := target.Character.GetStatUseCount("willpower")
-	side := spellAttackSideFor(spell, caster.Character)
+	side := spellAttackSideFor(spell, caster.Character, nil)
 	resolveAgainstPlayer(caster, target, room, spell, side, spell.EffectMagnitude)
 
 	if got := target.Character.GetStatUseCount("willpower") - before; got != 1 {
@@ -313,7 +313,7 @@ func TestMobSpellCritReceived_TracksDefenderWillpowerOnce(t *testing.T) {
 
 	spell := physicalHarmSpellForCollapseTest()
 	before := target.Character.GetStatUseCount("willpower")
-	side := spellAttackSideFor(spell, &caster.Character)
+	side := spellAttackSideFor(spell, &caster.Character, nil)
 	resolveMobSpellAgainstPlayer(caster, target, room, spell, side, spell.EffectMagnitude)
 
 	if got := target.Character.GetStatUseCount("willpower") - before; got != 1 {

@@ -188,7 +188,11 @@ func executeCounterTaunt(counterer, target *characters.Character) CounterTauntRe
 	// ONE contest through the seam: the original taunter defies the
 	// counter-taunt, and that defence is charged and progressed exactly like
 	// any other (the countered-party economy).
-	out := combat.ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), side, counterer, target)
+	//
+	// Lighting plan 5b: this function holds only the characters, so the room
+	// is loaded once here. Rhetoric is unity on the sight rows.
+	room := combat.SightRoom(rooms.LoadRoom(counterer.RoomId))
+	out := combat.ResolveChannelAttack(room, combatvocab.Rhetoric(combatvocab.TargetSingle), side, counterer, target)
 	result.Fired = true
 	result.Defence = out
 

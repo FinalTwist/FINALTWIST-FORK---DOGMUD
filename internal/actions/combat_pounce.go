@@ -113,14 +113,17 @@ func ExecutePounce(actor Actor) PounceResult {
 	// U6b Task 7: through the channel seam — raw rank in, the seam applies
 	// SkillWeight (x1 -> x5 both sides); the defence is the equipment-gated
 	// set, charged and progressed; the crit tier and fumble abort exist now.
+	// Lighting plan 5b: the actor's room feeds both sight rows.
+	sightRoom := combat.SightRoom(actor.GetRoom())
 	result := combat.ExecuteSkillMove(combat.SkillMoveParams{
 		Attacker: char,
 		Defender: target.Char,
 		Shape:    combatvocab.Melee(combatvocab.TargetSingle),
+		Room:     sightRoom,
 		Attack: combat.AttackSide{
 			Stat: char.GetEffectiveDexterity(), StatName: "dexterity",
 			Skill: skills.UnarmedCombat, SkillRank: char.GetSkillLevel(skills.UnarmedCombat),
-			Mult:      combat.SituationalAttackMult(char, combatvocab.Melee(combatvocab.TargetSingle)),
+			Mult:      combat.SituationalAttackMult(char, sightRoom, combatvocab.Melee(combatvocab.TargetSingle)),
 			ForceCrit: combat.SleepingForceCrit(target.Char),
 		},
 		DamagePercent:     float64(cfg.BashDamagePercent),

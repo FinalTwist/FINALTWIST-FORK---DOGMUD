@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -80,7 +81,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 		defer cleanup()
 		events.DrainQueuedConditionsForTest(0)
 		original := runSpellChannelAttack
-		runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+		runSpellChannelAttack = func(messaging.RoomVisibility, combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 			return spellContestAttackWin()
 		}
 		t.Cleanup(func() { runSpellChannelAttack = original })
@@ -138,7 +139,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 		defer cleanup()
 		events.DrainQueuedConditionsForTest(0)
 		original := runSpellChannelAttack
-		runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+		runSpellChannelAttack = func(messaging.RoomVisibility, combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 			return spellContestAttackWin()
 		}
 		t.Cleanup(func() { runSpellChannelAttack = original })
@@ -192,7 +193,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 	}
 	winContests := func(t *testing.T) {
 		original := runSpellChannelAttack
-		runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+		runSpellChannelAttack = func(messaging.RoomVisibility, combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 			return spellContestAttackWin()
 		}
 		t.Cleanup(func() { runSpellChannelAttack = original })

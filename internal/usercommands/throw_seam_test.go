@@ -26,6 +26,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -229,9 +230,12 @@ func TestThrowSeam_AttackSideAndDefenceSets(t *testing.T) {
 	require.True(t, handled)
 
 	require.Len(t, atkScores, 2)
+	// Lighting plan 5b: the thrower's sight row in the fixture room scales
+	// the side (pinned in internal/combat; here it only has to compose).
+	sight := messaging.SightMult(user.Character, room)
 	for i, score := range atkScores {
-		assert.InDelta(t, 100+8*5.0, score, 0.001,
-			"contest %d: attack side must be Dex + rank x SkillWeight", i)
+		assert.InDelta(t, (100+8*5.0)*sight, score, 0.001,
+			"contest %d: attack side must be (Dex + rank x SkillWeight) x sight", i)
 	}
 
 	require.Len(t, entrySets, 2)

@@ -53,7 +53,7 @@ func TestSituationalAttackMult_HealthyStandingIsUnity(t *testing.T) {
 	pinSituationalKnobs(t)
 	atk := newSituationalAttacker(t)
 	for _, ch := range []combatvocab.Attack{combatvocab.Melee(combatvocab.TargetSingle), combatvocab.Ranged(combatvocab.TargetSingle), combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), combatvocab.Rhetoric(combatvocab.TargetSingle)} {
-		if got := SituationalAttackMult(atk, ch); got != 1.0 {
+		if got := SituationalAttackMult(atk, nil, ch); got != 1.0 {
 			t.Errorf("channel %s: healthy standing attacker mult = %v, want 1.0", ch, got)
 		}
 	}
@@ -77,7 +77,7 @@ func TestSituationalAttackMult_ProneAttackerTable(t *testing.T) {
 		{combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), 1.0},
 		{combatvocab.Rhetoric(combatvocab.TargetSingle), 1.0},
 	} {
-		if got := SituationalAttackMult(atk, tc.channel); math.Abs(got-tc.want) > 1e-9 {
+		if got := SituationalAttackMult(atk, nil, tc.channel); math.Abs(got-tc.want) > 1e-9 {
 			t.Errorf("channel %s: prone attacker mult = %v, want %v", tc.channel, got, tc.want)
 		}
 	}
@@ -107,7 +107,7 @@ func TestSituationalAttackMult_StaminaDepletionTable(t *testing.T) {
 		{combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), 1.0},
 		{combatvocab.Rhetoric(combatvocab.TargetSingle), 1.0},
 	} {
-		if got := SituationalAttackMult(atk, tc.channel); math.Abs(got-tc.want) > 1e-9 {
+		if got := SituationalAttackMult(atk, nil, tc.channel); math.Abs(got-tc.want) > 1e-9 {
 			t.Errorf("channel %s: depleted-stamina mult = %v, want %v", tc.channel, got, tc.want)
 		}
 	}
@@ -124,13 +124,13 @@ func TestSituationalAttackMult_ProneAndDepletionCompound(t *testing.T) {
 	depletion := ResourceMultiplier(atk.Stamina, atk.EffectivePoolMax(characters.PoolStamina),
 		float64(configs.GetBalanceConfig().StaminaPenaltyMax))
 	want := 0.80 * depletion
-	if got := SituationalAttackMult(atk, combatvocab.Melee(combatvocab.TargetSingle)); math.Abs(got-want) > 1e-9 {
+	if got := SituationalAttackMult(atk, nil, combatvocab.Melee(combatvocab.TargetSingle)); math.Abs(got-want) > 1e-9 {
 		t.Errorf("melee prone+depleted mult = %v, want %v", got, want)
 	}
 }
 
 func TestSituationalAttackMult_NilAttackerIsUnity(t *testing.T) {
-	if got := SituationalAttackMult(nil, combatvocab.Melee(combatvocab.TargetSingle)); got != 1.0 {
+	if got := SituationalAttackMult(nil, nil, combatvocab.Melee(combatvocab.TargetSingle)); got != 1.0 {
 		t.Errorf("nil attacker mult = %v, want 1.0", got)
 	}
 }
@@ -226,7 +226,7 @@ func TestResolveChannelAttack_ForceCritOverridesEverything(t *testing.T) {
 
 	s := side(148, 52)
 	s.ForceCrit = true
-	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), s, atk, def, decisiveDefenceWinRunner)
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), s, atk, def, decisiveDefenceWinRunner)
 
 	if !out.AttackerCrit {
 		t.Error("ForceCrit did not set AttackerCrit")
@@ -254,7 +254,7 @@ func TestResolveChannelAttack_SameContestWithoutForceCritIsDefended(t *testing.T
 	pinDefenceAdmissionConfig(t)
 	atk, def := newDefenceTestCharacter(t), newDefenceTestCharacter(t)
 
-	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), side(148, 52), atk, def, decisiveDefenceWinRunner)
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), side(148, 52), atk, def, decisiveDefenceWinRunner)
 	if !out.Defended {
 		t.Fatal("fixture is broken: the decisive defence win did not defend")
 	}
@@ -276,7 +276,7 @@ func TestResolveChannelAttack_ForceCritUncontested(t *testing.T) {
 	runner := func(_ float64, _ []contest.Entry) contest.Result {
 		return contest.Result{Contested: false}
 	}
-	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), s, atk, def, runner)
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), s, atk, def, runner)
 	if !out.AttackerCrit {
 		t.Error("ForceCrit must survive an uncontested outcome")
 	}

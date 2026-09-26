@@ -162,7 +162,7 @@ func TestCritOnWin_ChannelSeamUpgradesWinButNeverRescuesALoss(t *testing.T) {
 
 	t.Run("clean attack win becomes a crit", func(t *testing.T) {
 		attacker, defender := defenceAdmissionCharacters()
-		out := resolveChannelAttackWithRunner(combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(true),
+		out := resolveChannelAttackWithRunner(nil, combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(true),
 			attacker, defender, channelContestAt(0.5))
 		if out.Defended {
 			t.Fatalf("precondition: expected a clean attack win, got %+v", out)
@@ -174,7 +174,7 @@ func TestCritOnWin_ChannelSeamUpgradesWinButNeverRescuesALoss(t *testing.T) {
 
 	t.Run("defence win stays a defence win", func(t *testing.T) {
 		attacker, defender := defenceAdmissionCharacters()
-		out := resolveChannelAttackWithRunner(combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(true),
+		out := resolveChannelAttackWithRunner(nil, combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(true),
 			attacker, defender, channelContestAt(-0.5))
 		if !out.Defended {
 			t.Fatalf("precondition: expected a defence win, got %+v", out)
@@ -186,7 +186,7 @@ func TestCritOnWin_ChannelSeamUpgradesWinButNeverRescuesALoss(t *testing.T) {
 
 	t.Run("CritOnWin false is unchanged behaviour", func(t *testing.T) {
 		attacker, defender := defenceAdmissionCharacters()
-		out := resolveChannelAttackWithRunner(combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(false),
+		out := resolveChannelAttackWithRunner(nil, combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(false),
 			attacker, defender, channelContestAt(0.5))
 		if out.Defended {
 			t.Fatalf("precondition: expected a clean attack win, got %+v", out)
@@ -201,7 +201,7 @@ func TestCritOnWin_ChannelSeamUpgradesWinButNeverRescuesALoss(t *testing.T) {
 	// dominance. The CritOnWin clause mirrors that gate rather than bypassing it.
 	t.Run("a FLOORED win must not crit", func(t *testing.T) {
 		attacker, defender := defenceAdmissionCharacters()
-		out := resolveChannelAttackWithRunner(combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(true),
+		out := resolveChannelAttackWithRunner(nil, combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(true),
 			attacker, defender, func(atkScore float64, entries []contest.Entry) contest.Result {
 				res := channelContestAt(0.5)(atkScore, entries)
 				res.Floored = true
@@ -231,7 +231,7 @@ func TestCritOnWin_ChannelCritReachesTheProgressionTier(t *testing.T) {
 
 	t.Run("the crit pays the attacker's bonus tier", func(t *testing.T) {
 		attacker, defender := defenceAdmissionCharacters()
-		out := resolveChannelAttackWithRunner(combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(true),
+		out := resolveChannelAttackWithRunner(nil, combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(true),
 			attacker, defender, channelContestAt(0.5))
 		if !out.AttackerCrit {
 			t.Fatalf("precondition: CritOnWin must have produced a crit, got %+v", out)
@@ -247,7 +247,7 @@ func TestCritOnWin_ChannelCritReachesTheProgressionTier(t *testing.T) {
 	// on every contest, which would make it no guard at all.
 	t.Run("control: the same contest without CritOnWin pays nothing", func(t *testing.T) {
 		attacker, defender := defenceAdmissionCharacters()
-		out := resolveChannelAttackWithRunner(combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(false),
+		out := resolveChannelAttackWithRunner(nil, combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(false),
 			attacker, defender, channelContestAt(0.5))
 		if out.AttackerCrit {
 			t.Fatalf("precondition: this fixture must be sub-crit without CritOnWin, got %+v", out)
@@ -278,7 +278,7 @@ func TestCritOnWin_ChannelEarlyReturnsAreAttackWins(t *testing.T) {
 			return contest.Result{}
 		}
 		unknownPair := combatvocab.Attack{Type: combatvocab.AttackMelee, Damage: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle}
-		out := resolveChannelAttackWithRunner(unknownPair, channelSurpriseSide(true),
+		out := resolveChannelAttackWithRunner(nil, unknownPair, channelSurpriseSide(true),
 			attacker, defender, runner)
 		if ran {
 			t.Fatal("precondition: the empty-defence exit must return before the contest runs")
@@ -290,7 +290,7 @@ func TestCritOnWin_ChannelEarlyReturnsAreAttackWins(t *testing.T) {
 
 	t.Run("uncontested roll", func(t *testing.T) {
 		attacker, defender := defenceAdmissionCharacters()
-		out := resolveChannelAttackWithRunner(combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(true),
+		out := resolveChannelAttackWithRunner(nil, combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(true),
 			attacker, defender, func(float64, []contest.Entry) contest.Result {
 				return contest.Result{Contested: false}
 			})
@@ -303,7 +303,7 @@ func TestCritOnWin_ChannelEarlyReturnsAreAttackWins(t *testing.T) {
 	t.Run("control: CritOnWin false leaves the empty defence set uncritted", func(t *testing.T) {
 		attacker, defender := defenceAdmissionCharacters()
 		unknownPair := combatvocab.Attack{Type: combatvocab.AttackMelee, Damage: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle}
-		out := resolveChannelAttackWithRunner(unknownPair, channelSurpriseSide(false),
+		out := resolveChannelAttackWithRunner(nil, unknownPair, channelSurpriseSide(false),
 			attacker, defender, func(float64, []contest.Entry) contest.Result {
 				return contest.Result{}
 			})
@@ -314,7 +314,7 @@ func TestCritOnWin_ChannelEarlyReturnsAreAttackWins(t *testing.T) {
 
 	t.Run("control: CritOnWin false leaves the uncontested roll uncritted", func(t *testing.T) {
 		attacker, defender := defenceAdmissionCharacters()
-		out := resolveChannelAttackWithRunner(combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(false),
+		out := resolveChannelAttackWithRunner(nil, combatvocab.Ranged(combatvocab.TargetSingle), channelSurpriseSide(false),
 			attacker, defender, func(float64, []contest.Entry) contest.Result {
 				return contest.Result{Contested: false}
 			})

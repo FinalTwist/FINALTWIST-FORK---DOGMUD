@@ -53,7 +53,7 @@ func TestResolveChannelAttack_FlooredNeverCrits(t *testing.T) {
 			Floored: true, Success: true, Margin: 1, // floor-promoted "win"
 		}
 	}
-	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), side(148, 52), atk, def, runner)
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), side(148, 52), atk, def, runner)
 	if out.AttackerCrit {
 		t.Error("a floor-promoted win was promoted again to a crit")
 	}
@@ -83,7 +83,7 @@ func TestResolveChannelAttack_FumblePreemptsSuccess(t *testing.T) {
 			},
 		}
 	}
-	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), side(148, 52), atk, def, runner)
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), side(148, 52), atk, def, runner)
 	if !out.AttackerFumble {
 		t.Error("AttackRoll.ZScore -2.5 did not surface as AttackerFumble")
 	}
@@ -124,7 +124,7 @@ func TestResolveChannelAttack_CritUsesThePairBar(t *testing.T) {
 			},
 		}
 	}
-	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), side(148, 52), atk, def, runner)
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), side(148, 52), atk, def, runner)
 	if !out.AttackerCrit {
 		t.Error("normalized margin 1.8 vs pair bar 1.5 (rank 52 vs 0) must crit; the const 2.0 bar leaked back in")
 	}
@@ -145,7 +145,7 @@ func TestResolveChannelAttack_ProgressionNamesTheCallersSkill(t *testing.T) {
 		Stat: 100, StatName: "charisma",
 		Skill: skills.Manifestation, SkillRank: 30, Mult: 1.0,
 	}
-	out := resolveChannelAttackWithRunner(combatvocab.Rhetoric(combatvocab.TargetSingle), manifestSide, attacker, defender,
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Rhetoric(combatvocab.TargetSingle), manifestSide, attacker, defender,
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			if atkScore != 160 {
 				t.Fatalf("attack score = %.2f, want 160 from the caller's side (100 + 30x2)", atkScore)

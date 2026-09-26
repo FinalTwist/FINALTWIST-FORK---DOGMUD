@@ -288,6 +288,9 @@ func charActorRef(c *characters.Character) state.ActorRef {
 func applyCritEffects(attacker, defender *characters.Character, roundResult combat.AttackResult, room *rooms.Room) CritEffectResult {
 	result := CritEffectResult{}
 	cfg := configs.GetBalanceConfig()
+	// Lighting plan 5b: the room feeds both sight rows of the auto-trip and
+	// auto-bash counters below.
+	sightRoom := combat.SightRoom(room)
 
 	// ── Parry crit → riposte: free counter-swing ────────────────────────
 	// U6b Task 10: the damage fraction is the CounterDamagePercent knob (the
@@ -339,13 +342,14 @@ func applyCritEffects(attacker, defender *characters.Character, roundResult comb
 			Attacker: defender,
 			Defender: attacker,
 			Shape:    combatvocab.Melee(combatvocab.TargetSingle),
+			Room:     sightRoom,
 			Attack: combat.AttackSide{
 				Stat: defender.GetEffectiveDexterity(), StatName: "dexterity",
 				Skill: skills.UnarmedCombat, SkillRank: defender.GetSkillLevel(skills.UnarmedCombat),
 				// Task 17: the countering character pays their own prone /
 				// stamina-depletion accuracy terms. No ForceCrit: the counter
 				// target just swung, so they cannot be sleeping.
-				Mult: combat.SituationalAttackMult(defender, combatvocab.Melee(combatvocab.TargetSingle)),
+				Mult: combat.SituationalAttackMult(defender, sightRoom, combatvocab.Melee(combatvocab.TargetSingle)),
 			},
 			IsCounter:       true,
 			DamagePercent:   float64(cfg.TripDamagePercent),
@@ -398,13 +402,14 @@ func applyCritEffects(attacker, defender *characters.Character, roundResult comb
 			Attacker: defender,
 			Defender: attacker,
 			Shape:    combatvocab.Melee(combatvocab.TargetSingle),
+			Room:     sightRoom,
 			Attack: combat.AttackSide{
 				Stat: defender.Stats.Strength.ValueAdj, StatName: "strength",
 				Skill: skills.WeaponCombat, SkillRank: defender.GetSkillLevel(skills.WeaponCombat),
 				// Task 17: the countering character pays their own prone /
 				// stamina-depletion accuracy terms. No ForceCrit: the counter
 				// target just swung, so they cannot be sleeping.
-				Mult: combat.SituationalAttackMult(defender, combatvocab.Melee(combatvocab.TargetSingle)),
+				Mult: combat.SituationalAttackMult(defender, sightRoom, combatvocab.Melee(combatvocab.TargetSingle)),
 			},
 			IsCounter:         true,
 			DamagePercent:     float64(cfg.BashDamagePercent),

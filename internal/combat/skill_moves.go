@@ -5,6 +5,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/progression"
@@ -74,6 +75,12 @@ type SkillMoveParams struct {
 	// AttackSide.score(), not here). Attack.SkillRank is the single rank
 	// input for the score, the crit bar, AND the damage multiplier curve.
 	Attack AttackSide
+
+	// Room is where the move happens (lighting plan 5b); the seam passes it
+	// to ResolveChannelAttack's defender-side sight row. Every production
+	// caller sets it, and builds Attack.Mult from SituationalAttackMult with
+	// the same room. Nil is unity (comfortable light).
+	Room messaging.RoomVisibility
 
 	// IsCounter marks a move executed AS a counter. Plumbed in U6b Task 6,
 	// consumed by Task 10: when set, the counter tier must not fire from
@@ -189,7 +196,7 @@ func executeSkillMoveWithRunner(p SkillMoveParams, runner defenceContestRunner) 
 	// already has. The crit/fumble bonus tier fires once INSIDE the seam;
 	// nothing here derives a second verdict. (Task 7 deleted the legacy
 	// scalar-defence branch; the seam is now the only path.)
-	out := resolveChannelAttackWithRunner(p.Shape, p.Attack, p.Attacker, p.Defender, runner)
+	out := resolveChannelAttackWithRunner(p.Room, p.Shape, p.Attack, p.Attacker, p.Defender, runner)
 	result.Defence = out
 	result.Crit = out.AttackerCrit
 	result.CritSource = out.CritSource

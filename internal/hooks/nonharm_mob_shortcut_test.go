@@ -47,7 +47,7 @@ func TestNonHarmCastAtAMobRunsNoContest(t *testing.T) {
 		AttackType: combatvocab.AttackNone, DamageType: combatvocab.DamageNonHarm, Targeting: combatvocab.TargetSingle,
 		EffectType: "heal", EffectMagnitude: 10,
 	}
-	fumbled, landed := resolveAgainstMob(user, mob, room, heal, spellAttackSideFor(heal, user.Character), heal.EffectMagnitude)
+	fumbled, landed := resolveAgainstMob(user, mob, room, heal, spellAttackSideFor(heal, user.Character, nil), heal.EffectMagnitude)
 
 	if contests != 0 {
 		t.Fatalf("a non-harm cast ran %d contest(s) against a mob", contests)
@@ -90,7 +90,7 @@ func TestHarmCastAtAMobStillRunsOneContest(t *testing.T) {
 		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
 		EffectType: "damage", DamageMultiplier: 1,
 	}
-	resolveAgainstMob(user, mob, room, bolt, spellAttackSideFor(bolt, user.Character), 0)
+	resolveAgainstMob(user, mob, room, bolt, spellAttackSideFor(bolt, user.Character, nil), 0)
 	if contests != 1 {
 		t.Fatalf("a harm cast ran %d contest(s), want exactly 1", contests)
 	}

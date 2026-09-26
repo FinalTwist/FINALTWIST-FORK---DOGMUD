@@ -290,7 +290,9 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		StatName:  "dexterity",
 		Skill:     skills.Skullduggery,
 		SkillRank: skullduggery,
-		Mult:      1.0,
+		// Lighting plan 5b: the thrower must see to aim. Throw has never
+		// composed the prone/stamina rows, so it takes the sight row alone.
+		Mult: messaging.SightMult(user.Character, room),
 	}
 
 	// Throw is an AREA effect against mobs, so it has no actee at all and
@@ -340,7 +342,7 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		// ONE contest per target through the seam: the defender's set is
 		// quoted, charged, and progressed inside; the attacker's crit and
 		// fumble verdicts come from this same contest.
-		out := combat.ResolveChannelAttack(combatvocab.Thrown(combatvocab.TargetArea), side,
+		out := combat.ResolveChannelAttack(room, combatvocab.Thrown(combatvocab.TargetArea), side,
 			user.Character, &mob.Character)
 
 		// Fumble check (self-relative, resolved BEFORE success — a fumbled

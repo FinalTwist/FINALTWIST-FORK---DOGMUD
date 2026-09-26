@@ -11,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/progression"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -412,8 +413,15 @@ func genericDefenceTriad(identities ChannelDefenceIdentities, attack string) ite
 // fractional carry and the distinct physical modifiers, so this path must not
 // fall back to the lossy integer compatibility price. An earlier comment here
 // asserted the physical three never reached this site; that was never true.
-func ResolveChannelAttack(shape combatvocab.Attack, side AttackSide, attacker, defender *characters.Character) ChannelDefenceResult {
-	return resolveChannelAttackWithRunner(shape, side, attacker, defender, channelAttackContestRunner)
+//
+// room is where the exchange happens (lighting plan 5b). Every defence entry
+// is scaled by SituationalDefenceMult, the defender-side sight row: a
+// defender out of their comfortable light defends worse against a swing, a
+// shot, a throw or a cast, never against a rhetoric attack. A nil room is
+// unity. The attacker's own sight row rides AttackSide.Mult through
+// SituationalAttackMult, so it is not applied again here.
+func ResolveChannelAttack(room messaging.RoomVisibility, shape combatvocab.Attack, side AttackSide, attacker, defender *characters.Character) ChannelDefenceResult {
+	return resolveChannelAttackWithRunner(room, shape, side, attacker, defender, channelAttackContestRunner)
 }
 
 // channelAttackContestRunner is the contest core behind ResolveChannelAttack.
@@ -431,7 +439,7 @@ func SetChannelAttackContestRunnerForTest(runner func(float64, []contest.Entry) 
 	return func() { channelAttackContestRunner = prev }
 }
 
-func resolveChannelAttackWithRunner(shape combatvocab.Attack, side AttackSide, attacker, defender *characters.Character, runner defenceContestRunner) ChannelDefenceResult {
+func resolveChannelAttackWithRunner(room messaging.RoomVisibility, shape combatvocab.Attack, side AttackSide, attacker, defender *characters.Character, runner defenceContestRunner) ChannelDefenceResult {
 	out := ChannelDefenceResult{
 		DamageMultiplier: 1.0,
 		Cost:             characters.CostCommitResult{Status: characters.CostNoCharge},
@@ -481,6 +489,8 @@ func resolveChannelAttackWithRunner(shape combatvocab.Attack, side AttackSide, a
 				score *= float64(bal.ProneBlockPenalty)
 			}
 		}
+		// Lighting plan 5b: the defender-side sight row (unity for rhetoric).
+		score *= SituationalDefenceMult(defender, room, shape)
 
 		entry := contest.Entry{
 			Name:  string(d),

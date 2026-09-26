@@ -441,7 +441,7 @@ already taken by `AttackSide` on `SkillMoveParams`), not the old flattened
 single-string enum it replaced.
 
 ```go
-func ResolveChannelAttack(shape combatvocab.Attack, side AttackSide, attacker, defender *characters.Character) ChannelDefenceResult
+func ResolveChannelAttack(room messaging.RoomVisibility, shape combatvocab.Attack, side AttackSide, attacker, defender *characters.Character) ChannelDefenceResult
 func RenderChannelDefenceMessages(out ChannelDefenceResult, identities ChannelDefenceIdentities, attack string, indexOverride ...int) items.DefenseMessageTriad
 func AwardDefenceProgression(c *characters.Character, userId int, defenceType string, won bool)
 
@@ -459,6 +459,15 @@ seam applies `SkillWeight` inside `AttackSide.score()`), a situational `Mult`
 (0 reads as unset, 1.0), and `ForceCrit` (the sleeping-victim auto-crit).
 Progression and cost read the same fields, so the score and the events cannot
 drift apart.
+
+**The room (lighting plan 5b)** is the first parameter. Inside the defence
+loop every entry's score is multiplied by `SituationalDefenceMult(defender,
+room, shape)`, the defender-side sight row, after the per-defence prone
+penalties. The attacker's sight row is NOT applied here; it rides
+`AttackSide.Mult` through `SituationalAttackMult`. A nil room is unity. A
+caller holding a `*rooms.Room` it has not nil-checked passes it through
+`SightRoom`, because a typed-nil `*rooms.Room` in the interface would panic on
+`LightLevel`. `ExecuteSkillMove` threads `SkillMoveParams.Room` into the seam.
 
 `ResolveChannelAttack` runs ONE opposed contest and returns the canonical
 structured outcome. Damage consumers read `DamageMultiplier`; narration reads
@@ -1802,7 +1811,7 @@ values directly.
 | `combat/grapple.go` | `AttemptGrapple`, `ApplyGrappleResult`, `CheckClinchProgression`, `CheckGroundedEscape`, `ApplyPositionProgression`, `IsThirdPartyAttack` |
 | `combat/grapple_narration.go` | `renderGrappleEvent` (unexported), reads grapple's `crit_failure` and `disarm` events from `internal/movenarration` for `HandleGrappleCritFailure` and `AttemptCritDisarm`. These two results are shared by both `mobcommands/grapple.go` and `usercommands/grapple.go`, so the rendering lives here rather than in either twin's move_narration.go-style helper (M4e-1) |
 | `combat/grapple_move.go` | `ExecuteGrappleMove`, `GrappleMoveResult`, `GrappleMoveDisarmWeapon` |
-| `combat/skill_moves.go` | `ExecuteSkillMove`, `SkillMoveResult`, `SkillMoveParams`. U6b Task 10: `SkillMoveResult.IsCounter` echoes `SkillMoveParams.IsCounter` so counter-tier wiring that only sees the result can refuse to fire off a move that IS a counter |
+| `combat/skill_moves.go` | `ExecuteSkillMove`, `SkillMoveResult`, `SkillMoveParams`. U6b Task 10: `SkillMoveResult.IsCounter` echoes `SkillMoveParams.IsCounter` so counter-tier wiring that only sees the result can refuse to fire off a move that IS a counter. Lighting plan 5b: `SkillMoveParams.Room` (a `messaging.RoomVisibility`, nil is unity) is handed to the seam's defender-side sight row; every production caller sets it and builds `Attack.Mult` from `SituationalAttackMult` with the same room |
 | `combat/counter.go` | U6b Task 10 counter tier, re-keyed by the counters slice: `ExecuteCounter(defender, attacker, shape, defence, sameRoom) CounterResult` is one free counter-swing for a defensive crit, priced by `CounterDamagePercent` (0 = off-switch, handled here because `CalcRawDamage` treats `itemMult <= 0` as "unset" 0.30), routed through `ExecuteSkillMove` with `IsCounter` so the countered party defends it (charged + progressed: the countered-party economy) and no counter can chain. Four narration-relevant refusals in the primitive (nil or dead participants and the knob off-switch also return early): not `sameRoom` (the cross-room shot), `shape.Targeting != TargetSingle` (area and multi attacks earn no counter, owner ruling 2026-09-18), `defence == DefenceNone` (logged; cannot happen today), and `defence == DefenceDefy` (words answer words: every defy crit counter-taunts via `internal/actions.FireCounterTaunt`, which this package cannot call, so every exit that can see a defy win branches on it first and that function carries the same single-target gate). Narration is rendered from the WINNING DEFENCE's pool, `items.CounterPoolFor(defence)` (counter-dodge, counter-parry, counter-block, counter-quell, counter-defy; bands: weak = turned aside, normal = lands, heavy = crits), damage description appended to the two personal lines only, generic fallback when pools are not loaded. `BuildCounterTauntMessages(counterer, countered *characters.Character, crit, damage, counteredMaxCP)` renders the defy retort triad from counter-defy, tagging both identities with `meleeIdentityTag` (Task 4c) so an infrared-only observer in a dark room can no longer read the raw names off a counter-defy line. `CounterResult.CountererUserId` lets wrappers dispatch AFTER the move outcome (`actions.DispatchCounterMessages`) |
 | `combat/calculations.go` | Hit chance, crit probability, power ranking, alignment calculations |
 | `combat/descriptions.go` | `GetDamageDescription`, `GetHealDescription`, `GetDifficultyDescription` helpers |
@@ -2092,7 +2101,7 @@ the two distinct — see "U10d — the opening strike" above.
 
 ## Shared situational-modifier layer (U6b Task 17)
 
-`SituationalAttackMult(attacker, channel)` (`situational.go`) composes
+`SituationalAttackMult(attacker, room, shape)` (`situational.go`) composes
 the attacker-side situational accuracy multipliers per a DECLARED
 per-channel table (absence is deliberate):
 
@@ -2100,6 +2109,20 @@ per-channel table (absence is deliberate):
 |---|---|---|---|---|---|
 | prone attacker (`ProneAttackMultiplier`) | Y | Y | Y | N | N |
 | stamina depletion (`ResourceMultiplier`, `StaminaPenaltyMax`) | Y | Y | Y | N* | N* |
+| sight (`messaging.SightMult`, lighting plan 5b) | Y | Y | Y | Y | N |
+
+Thrown rides the ranged column. The sight row reads the roller's comfort
+distance in `room`; a nil room is unity. A taunt needs no eyes, so social
+never pays it. `SituationalDefenceMult(defender, room, shape)` is the
+defender-side twin: today one row, sight, on the same four channels, applied
+per defence entry inside `ResolveChannelAttack`. Prone defence penalties stay
+per-defence in the funnel and in melee. `SightRoom(r *rooms.Room)` converts a
+possibly-nil room into a nil interface for both.
+
+Two channel callers take the sight row WITHOUT the rest of the table, because
+they never composed prone and stamina: the cross-channel counter-swing
+(`ExecuteCounter`, `Mult` was a flat 1.0) and `usercommands.Throw` (`Mult` was
+a flat 1.0). Both multiply `messaging.SightMult` into `Mult` directly.
 
 \* spell and social pay resource depletion in their DAMAGE term
 (conviction, in `calcSpellDamageForCharacter` / taunt's `convMult`),
@@ -2123,7 +2146,7 @@ own identical terms (converging that is not Task 17's mandate).
 | `crit_floor.go` | Crit floors, 1% both directions (5.11e). **U6 Task 9 changed the DENOMINATORS: the attack floor applies to swings that WON THE CONTEST and the defence floor to swings the DEFENCE won, keyed on `best.margin` (defence-positive, so `<= 0` is an attack win), not on `res.hit`.** The old hit/miss split stops being answerable once a defensive win deals partial damage, because a deflected swing then has `res.hit == true` while the defence won. A floored outcome and an uncontested swing (`defenseType == ""`) are promoted by neither floor. **`applyCritFloors` must stay the LAST thing `resolveDefenseOutcome` does** — an attack crit forces a hit, so flooring earlier becomes an undeclared second hit floor stacked on `ContestFloor`. **U6 Task 10:** a promotion to a defence crit now also clears `res.hit` and `res.damageMult`, because an ordinary defensive win arrives here already landing partial damage. |
 | `defence_multiplier.go` | `DefenceMitigation` — the margin-scaled damage reduction a defensive win now earns (U6 Task 10). 50% at a bare win, 100% at `ContestCritThreshold`. Its 0.5 and its threshold are STRUCTURAL, not config knobs: the threshold is the point the curve has to meet so that full negation by a defensive crit is continuous with it rather than a cliff. Also `ResolveChannelAttack` / `AttackSide` / `AwardDefenceProgression` — the U6 Task 12 resolver (then `ResolveChannelDefence`) that replaced the deleted `avoidance.go`, widened by U6b Task 4 into THE seam every non-melee attack rides, with the attack score caller-supplied via `AttackSide` (the internal `ChannelAttackScore` helper was deleted with the flip). **U6 Task 13** extracted `defenceDamageMultiplier(res contest.Result) float64` from the resolver's tail — it converts a finished opposed contest into the attacker's damage multiplier (1.0 attack win, 0.0 defensive crit, exactly 0.5 on a floored save, 0.0-0.5 off the curve otherwise) and is now the ONE place the sign negation, the floored sentinel, and the sqrt(2) normaliser live, reached through `ResolveChannelAttack` (and so by `ExecuteSkillMove`). |
 | `crit_damage.go` | `CritDamageMultiplier` (skill-scaled crit worth) and `CritOrMitigatedDamage` (5.11g) |
-| `situational.go` | U6b Task 17: `SituationalAttackMult(attacker, shape combatvocab.Attack)` — the shared attacker-side situational accuracy layer (prone + stamina depletion on `Melee`/`Ranged`/`Thrown` only; see "Shared situational-modifier layer"). Also the round-start sleeping snapshot: `PublishSleepingSnapshot` (written once per round by `hooks.DoCombat`) and `SleepingForceCrit(defender)` — THE lookup for the sleeping-victim auto-crit contract, consumed by melee's round passes and threaded into channel contests as `AttackSide.ForceCrit`. |
+| `situational.go` | U6b Task 17: `SituationalAttackMult(attacker, room messaging.RoomVisibility, shape combatvocab.Attack)` — the shared attacker-side situational accuracy layer (prone + stamina depletion on `Melee`/`Ranged`/`Thrown` only; lighting plan 5b's sight row on those and `Spell`, never `Rhetoric`; see "Shared situational-modifier layer"). Lighting plan 5b also added `SituationalDefenceMult(defender, room, shape)`, the defender-side sight row `ResolveChannelAttack` applies per defence entry, and `SightRoom(r *rooms.Room)`, the typed-nil guard. Also the round-start sleeping snapshot: `PublishSleepingSnapshot` (written once per round by `hooks.DoCombat`) and `SleepingForceCrit(defender)` — THE lookup for the sleeping-victim auto-crit contract, consumed by melee's round passes and threaded into channel contests as `AttackSide.ForceCrit`. |
 | `calculations.go` | Core combat maths |
 | `run_contest.go` | `RunContest`, the single entry point for every opposed contest, wrapping `internal/contest`. The one place `Balance.ContestFloor` is read. U6 deleted the three floor-pair wrappers this replaced. |
 | `run_concentration_contest.go` | `RunConcentrationContest(casterScore, disruption) contest.Result` (U10) — the single entry point for every concentration contest (damage, position, throttle triggers). The one place `Balance.ConcentrationFloor` (0.02) is read; deliberately its own, much smaller mercy band than `ContestFloor`. |

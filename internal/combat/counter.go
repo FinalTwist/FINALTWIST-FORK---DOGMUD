@@ -7,7 +7,9 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
 
 // CounterResult holds the outcome of one counter tier firing: whether the
@@ -146,15 +148,22 @@ func ExecuteCounter(defender, attacker *characters.Character, shape combatvocab.
 	// of weapon damage, marked IsCounter so no exit can chain another counter
 	// off it. No knockdown rider: the opening buys a strike, not a takedown —
 	// dedicated followups (auto-trip/auto-bash) remain melee-crit-only.
+	//
+	// Lighting plan 5b: the counter-swing sees too. This function holds only
+	// the characters, so the room (shared: sameRoom is true here) is loaded
+	// once. The swing keeps its flat prone/stamina Mult and takes the sight
+	// row alone; the seam applies the answering side's sight row.
+	room := SightRoom(rooms.LoadRoom(defender.RoomId))
 	move := ExecuteSkillMove(SkillMoveParams{
 		Attacker: defender,
 		Defender: attacker,
 		Shape:    combatvocab.Melee(combatvocab.TargetSingle),
+		Room:     room,
 		Attack: AttackSide{
 			Stat: defender.Stats.Strength.ValueAdj, StatName: "strength",
 			Skill:     defender.GetCombatSkillTag(),
 			SkillRank: defender.GetCombatSkillLevel(),
-			Mult:      1.0,
+			Mult:      messaging.SightMult(defender, room),
 		},
 		IsCounter:       true,
 		DamagePercent:   pct,
