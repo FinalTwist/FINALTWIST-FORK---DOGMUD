@@ -146,6 +146,8 @@ func equipSlotLabel(slot string) string {
 		return "worn - feet"
 	case "tail":
 		return "worn - tail"
+	case "light":
+		return "worn - light"
 	case "componentbag":
 		return "worn - componentbag"
 	}

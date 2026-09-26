@@ -29,6 +29,7 @@ var canonicalSlotOrder = []SlotName{
 	SlotRing, SlotRing2,
 	SlotLegs, SlotFeet,
 	SlotTail, SlotComponentBag,
+	SlotLight,
 }
 
 // extraArmsLevel returns the active level of the Extra Arms
@@ -105,6 +106,8 @@ func compatibleSlotsFor(spec items.ItemSpec, char *characters.Character) []SlotN
 		return nil
 	case items.ComponentBag:
 		return []SlotName{SlotComponentBag}
+	case items.Light:
+		return []SlotName{SlotLight}
 	}
 	return nil
 }
@@ -164,6 +167,8 @@ func itemInSlot(slot SlotName, char *characters.Character) items.Item {
 		return e.Tail
 	case SlotComponentBag:
 		return e.ComponentBag
+	case SlotLight:
+		return e.Light
 	}
 	return items.Item{}
 }
@@ -205,6 +210,7 @@ func slotOf(item items.Item, char *characters.Character) SlotName {
 		{SlotFeet, e.Feet},
 		{SlotTail, e.Tail},
 		{SlotComponentBag, e.ComponentBag},
+		{SlotLight, e.Light},
 	}
 	for _, p := range pairs {
 		if p.got.ItemId == item.ItemId &&

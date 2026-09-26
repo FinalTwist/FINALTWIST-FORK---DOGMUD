@@ -254,6 +254,7 @@ func TestGetAllSlotTypes(t *testing.T) {
 		string(items.Feet),
 		string(items.Tail),
 		string(items.ComponentBag),
+		string(items.Light),
 	}
 
 	got := GetAllSlotTypes()

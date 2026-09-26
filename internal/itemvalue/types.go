@@ -37,6 +37,7 @@ const (
 	SlotFeet         SlotName = "Feet"
 	SlotTail         SlotName = "Tail"
 	SlotComponentBag SlotName = "ComponentBag"
+	SlotLight        SlotName = "Light"
 )
 
 // WeightProfile defines per-axis multipliers used to score

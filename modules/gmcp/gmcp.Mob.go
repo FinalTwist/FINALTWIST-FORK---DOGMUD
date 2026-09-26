@@ -809,9 +809,10 @@ func listBehaviorArchetypeFiles() []string {
 // ---- Worn slot mapping ----
 // wornToMap / mapToWornPreserving / wornSlotNames all derive from
 // characters.Worn's AllSlots() — the package's single source of truth for the
-// equipment slot list (24 slots as of Extra Arms/Tail/ComponentBag: weapon,
-// offhand, extraarm1-4, head, neck, shoulders, body, back, belt, wrist1/2,
-// extrawrist1-4, gloves, ring, ring2, legs, feet, tail, componentbag).
+// equipment slot list (25 slots as of the lighting plan 5a light slot:
+// weapon, offhand, extraarm1-4, head, neck, shoulders, body, back, belt,
+// wrist1/2, extrawrist1-4, gloves, ring, ring2, legs, feet, tail,
+// componentbag, light).
 // internal/mobs/save.go's equippedItemIds validator already iterates
 // AllSlots() for the same reason: a slot added later is picked up here
 // automatically instead of silently going unmapped by the builder.

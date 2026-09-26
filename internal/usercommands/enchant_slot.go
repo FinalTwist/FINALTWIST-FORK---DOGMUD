@@ -149,6 +149,8 @@ func buildSlotCandidates(eq *characters.Worn, targetType string) []enchantSlotCa
 		scanOrder = []slotEntry{{"worn - feet", eq.Feet}}
 	case "tail":
 		scanOrder = []slotEntry{{"worn - tail", eq.Tail}}
+	case "light":
+		scanOrder = []slotEntry{{"worn - light", eq.Light}}
 	}
 
 	for _, s := range scanOrder {

@@ -31,6 +31,7 @@ type Worn struct {
 	Feet         items.Item `yaml:"feet,omitempty"`
 	Tail         items.Item `yaml:"tail,omitempty"` // Tail mutation slot
 	ComponentBag items.Item `yaml:"componentbag,omitempty"`
+	Light        items.Item `yaml:"light,omitempty"` // Carried light (lighting plan 5a)
 }
 
 // WornSlot describes one equipment slot: its yaml/slot key, its display
@@ -63,6 +64,7 @@ func (w *Worn) AllSlots() []WornSlot {
 		{"gloves", "Gloves", &w.Gloves}, {"ring", "Ring", &w.Ring}, {"ring2", "Ring", &w.Ring2},
 		{"legs", "Legs", &w.Legs}, {"feet", "Feet", &w.Feet},
 		{"tail", "Tail", &w.Tail}, {"componentbag", "Component Bag", &w.ComponentBag},
+		{"light", "Light", &w.Light},
 	}
 }
 
@@ -116,7 +118,8 @@ func (w *Worn) StatMod(stat ...string) int {
 		w.Legs.StatMod(stat...) +
 		w.Feet.StatMod(stat...) +
 		w.Tail.StatMod(stat...) +
-		w.ComponentBag.StatMod(stat...)
+		w.ComponentBag.StatMod(stat...) +
+		w.Light.StatMod(stat...)
 }
 
 func (w *Worn) EnableAll() {
@@ -245,6 +248,8 @@ func (w *Worn) GetSlotPointer(label string) *items.Item {
 		return &w.Tail
 	case "worn - componentbag":
 		return &w.ComponentBag
+	case "worn - light":
+		return &w.Light
 	}
 	return nil
 }
@@ -266,6 +271,7 @@ func GetAllSlotTypes() []string {
 		string(items.Feet),
 		string(items.Tail),
 		string(items.ComponentBag),
+		string(items.Light),
 	}
 }
 
@@ -567,6 +573,9 @@ func (c *Character) wearArmorSlot(i items.Item, spec items.ItemSpec) (returnItem
 		}
 		returnItems = append(returnItems, c.Equipment.Tail)
 		c.Equipment.Tail = i
+	case items.Light:
+		returnItems = append(returnItems, c.Equipment.Light)
+		c.Equipment.Light = i
 	default:
 		return returnItems, false, `Unrecognized object.`
 	}
@@ -646,7 +655,17 @@ func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bo
 		// Preserved from the pre-U7b shape: permanent conditions are reapplied on the
 		// armour path only (wearWeaponOrShield does its own), and only on
 		// success.
-		c.reapplyPermanentConditions(returnItems...)
+		c.reapplyPermanentConditions()
+	}
+	if spec.Type == items.Light {
+		// Equipping a light is its fresh start (lighting plan 5a): full
+		// strength, hood open, even when the item it replaced shared its
+		// condition and the refresh above kept that record.
+		for _, id := range spec.WornConditionIds {
+			for _, rec := range c.Conditions.GetConditions(id) {
+				rec.ResetLight()
+			}
+		}
 	}
 	return returnItems, newItemWorn, failureReason
 }
@@ -716,11 +735,13 @@ func (c *Character) RemoveFromBody(i items.Item) bool {
 		}
 		c.ComponentItems = nil
 		c.Equipment.ComponentBag = items.Item{}
+	} else if i.Equals(c.Equipment.Light) {
+		c.Equipment.Light = items.Item{}
 	} else {
 		return false
 	}
 
-	c.reapplyPermanentConditions(i)
+	c.reapplyPermanentConditions()
 
 	return true
 }

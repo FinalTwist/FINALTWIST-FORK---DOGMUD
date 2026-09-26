@@ -5,7 +5,6 @@ import (
 	"math"
 
 	"github.com/GoMudEngine/GoMud/internal/conditions"
-	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/species"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -205,7 +204,13 @@ func (c *Character) RemovePermanentCondition(conditionId int) {
 	}
 }
 
-func (c *Character) reapplyPermanentConditions(removedItems ...items.Item) {
+// reapplyPermanentConditions refreshes item, species, pet and permanent
+// conditions against what the character wears NOW. It counts only items still
+// on the body, so an item already taken off drops its conditions by being
+// absent. It once also subtracted the caller's removed items, which counted
+// them twice: swapping an item for another granting the same condition (a
+// lantern for a lantern) dropped the condition both items grant.
+func (c *Character) reapplyPermanentConditions() {
 
 	conditionIdCount := map[int]int{}
 
@@ -245,15 +250,6 @@ func (c *Character) reapplyPermanentConditions(removedItems ...items.Item) {
 			conditionIdCount[conditionId] = conditionIdCount[conditionId] + 1
 		}
 
-	}
-	// Remove any conditions that come specifically from item
-	for _, removedItem := range removedItems {
-		iSpec := removedItem.GetSpec()
-		if len(iSpec.WornConditionIds) > 0 {
-			for _, conditionId := range iSpec.WornConditionIds {
-				conditionIdCount[conditionId] = conditionIdCount[conditionId] - 1
-			}
-		}
 	}
 
 	for conditionId, ct := range conditionIdCount {
