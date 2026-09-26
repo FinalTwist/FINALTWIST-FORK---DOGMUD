@@ -153,7 +153,9 @@ func Steal(actor Actor, opts StealOptions) StealResult {
 	return stealFromContainer(actor, opts.ContainerNoun, attackerScore, rank)
 }
 
-// stealFromMob handles the creature steal path.
+// stealFromMob handles the creature steal path. attackerScore arrives with
+// the thief's sight ramp already applied in Steal; do not apply SightMult
+// again.
 func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 	rank int, cfg configs.Balance) StealResult {
 
@@ -372,7 +374,8 @@ func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 // score is rolled against the target player's Perception. On
 // success, gold is lifted (no item steal against players). An
 // independent detection roll then decides whether the victim
-// notices.
+// notices. attackerScore arrives with the thief's sight ramp already
+// applied in Steal; do not apply SightMult again.
 func stealFromPlayer(actor Actor, targetUserId int, attackerScore float64,
 	rank int, cfg configs.Balance) StealResult {
 
@@ -466,7 +469,9 @@ func stealFromPlayer(actor Actor, targetUserId int, attackerScore float64,
 	return result
 }
 
-// stealFromContainer handles the room-container steal path.
+// stealFromContainer handles the room-container steal path. attackerScore
+// arrives with the thief's sight ramp already applied in Steal; do not apply
+// SightMult again.
 func stealFromContainer(actor Actor, containerName string,
 	attackerScore float64, rank int) StealResult {
 

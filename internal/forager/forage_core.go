@@ -91,7 +91,7 @@ func buildForagePool(biome, zone, weather string, atNight bool) []int {
 // and leaked into vendor stock.
 type ForageAttempt struct {
 	Biome       string
-	SearchScore float64 // perception + skill multiplier
+	SearchScore float64 // perception + skill multiplier, times the forager's sight ramp, applied in actions.Forage
 	AtNight     bool
 	Zone        string // player-forage only; see ZoneForageYields
 	Weather     string // player-forage only; see StormForageYields

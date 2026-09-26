@@ -344,6 +344,10 @@ type trailDetail struct {
 // a visitor took while failing to see that anyone passed at all — an outcome
 // that independent per-band contests would produce roughly 1 time in 140 at
 // high scores.
+//
+// searchScore arrives with the tracker's sight ramp already applied in Track;
+// do not apply SightMult again. It stays a pure function of the score so the
+// band tests can drive it directly.
 func resolveTrailDetail(searchScore float64) trailDetail {
 	d := trailDetail{}
 	if !contest.AgainstDifficulty(searchScore, trailDetectTarget).Success {

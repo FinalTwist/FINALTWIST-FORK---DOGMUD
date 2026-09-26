@@ -20,13 +20,18 @@ import (
 // so the test compares success RATES at a comfortable lamp (60, SightMult
 // 1.0) and a dazzling one (90, SightMult 0.88).
 //
-// The rate matchups sit at parity (about 50% comfortable), the steepest part
-// of the contest curve, so the 0.88 score cut moves the rate by well over ten
-// points. The bar is computed, not guessed: the dazzled rate must sit at least
+// The bar is computed, not guessed: the dazzled rate must sit at least
 // sightRampSEs standard errors of the difference below the measured
-// comfortable rate. At 3000 trials and p near 0.5 one standard error of the
-// difference is about 1.3 points, so the bar is about 4 points; measured gaps
-// on 2026-09-26 were 16 (thief) and 18 (defuser) points. Sabotage-checked the
+// comfortable rate (sightRampRateGap, shared with the search and track tests).
+//
+// The thief and defuser tests in this file sit at parity (about 50%
+// comfortable), the steepest part of the contest curve: one standard error of
+// the difference is about 1.3 points at 3000 trials, so the bar is near 4
+// points; measured gaps on 2026-09-26 were 16 (thief) and 18 (defuser) points.
+// The search and track tests (search_contest_test.go, track_contest_test.go)
+// reuse the 175-vs-125 rate fixtures and sit near 91% comfortable: one
+// standard error is about 0.86 points, so their bar is about 2.6 points
+// against measured gaps of about 10 (search 92.2 to 81.3, track 91.9 to 82.3). Sabotage-checked the
 // same day: with the thief's SightMult replaced by 1 the thief test fails.
 
 const (
@@ -35,11 +40,21 @@ const (
 )
 
 // sightRampRateGap fails the test unless dazzled sits at least sightRampSEs
-// standard errors of the difference below comfortable.
+// standard errors of the difference below comfortable. It first refuses a
+// degenerate fixture: a comfortable rate near 0 or 1 (for example a fixture
+// that breaks every attempt) or a zero standard error means the comparison
+// cannot see the ramp, and must not leave the test green.
 func sightRampRateGap(t *testing.T, what string, comfortable, dazzled float64) {
 	t.Helper()
+	if comfortable <= 0.05 || comfortable >= 0.95 {
+		t.Fatalf("%s: fixture premise: comfortable rate %.1f%% is outside (5%%, 95%%); "+
+			"the fixture is broken or saturated and cannot show the ramp", what, comfortable*100)
+	}
 	n := float64(sightRampTrials)
 	se := math.Sqrt(comfortable*(1-comfortable)/n + dazzled*(1-dazzled)/n)
+	if se == 0 {
+		t.Fatalf("%s: fixture premise: zero standard error; the rates cannot be compared", what)
+	}
 	t.Logf("%s: comfortable %.1f%%, dazzled %.1f%%, se %.2f points",
 		what, comfortable*100, dazzled*100, se*100)
 	if bar := comfortable - sightRampSEs*se; dazzled > bar {

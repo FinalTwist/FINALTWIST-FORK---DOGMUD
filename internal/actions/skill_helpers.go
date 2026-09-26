@@ -64,7 +64,8 @@ func CalcSneakScoreVsObserver(sneaker, observer *characters.Character, roomLit b
 }
 
 // CalcDetectionScore is the observer-side score for OPPOSED detection
-// contests (spotting a sneaker, sensing a shadower, noticing a pickpocket).
+// contests (spotting a sneaker, sensing a shadower, a player victim's
+// after-the-fact notice of a mob thief or planter).
 // Linear regime, matching the unified contest formula:
 // Perception + rank(search)*SkillWeight.
 //
@@ -74,9 +75,11 @@ func CalcSneakScoreVsObserver(sneaker, observer *characters.Character, roomLit b
 //
 // room is the OBSERVER's room, and the score pays the observer's sight ramp
 // (lighting plan 5b, messaging.SightMult): the observer's eyes count here. The
-// hider's side already folds the room's light in (CalcSneakScoreVsObserver),
-// so this is the one place the observer's comfort band enters. A nil room is
-// unity; pass combat.SightRoom for a *rooms.Room that may be nil.
+// hider's side already folds the room's light in (CalcSneakScoreVsObserver).
+// Its defence twin for the theft and plant contests themselves is
+// stealVictimScore (steal.go), which prices the victim's or bystander's eyes
+// the same way. A nil room is unity; pass combat.SightRoom for a *rooms.Room
+// that may be nil.
 func CalcDetectionScore(c *characters.Character, room messaging.RoomVisibility) float64 {
 	return (float64(c.Stats.Perception.ValueAdj) +
 		float64(c.GetSkillLevel(skills.Search))*

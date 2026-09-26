@@ -109,7 +109,9 @@ func Salvage(actor Actor, opts SalvageOptions) SalvageResult {
 
 // salvageCorpse handles the corpse-target path. Finds the target
 // corpse (specific by MobId+RoundCreated, or first eligible),
-// rolls returns, removes the corpse, stores materials.
+// rolls returns, removes the corpse, stores materials. score arrives with
+// the salvager's sight ramp already applied in Salvage; do not apply
+// SightMult again.
 func salvageCorpse(actor Actor, room *rooms.Room, opts SalvageOptions, score float64) SalvageResult {
 	result := SalvageResult{}
 
@@ -257,7 +259,9 @@ func salvageCorpse(actor Actor, room *rooms.Room, opts SalvageOptions, score flo
 
 // salvageItem handles the item-target path (by UUID). Mirrors the
 // logic of the prior resolveSalvageFromData in
-// hooks/NewRound_UserRoundTick.go, adapted for the actor interface.
+// hooks/NewRound_UserRoundTick.go, adapted for the actor interface. score
+// arrives with the salvager's sight ramp already applied in Salvage; do not
+// apply SightMult again.
 func salvageItem(actor Actor, uuid string, spoiledPotion bool, score float64) SalvageResult {
 	result := SalvageResult{}
 	char := actor.GetCharacter()

@@ -132,6 +132,8 @@ func Plant(actor Actor, opts PlantOptions) PlantResult {
 }
 
 // plantOnMob handles slipping an item into a creature's inventory.
+// attackerScore arrives with the planter's sight ramp already applied in
+// Plant; do not apply SightMult again.
 func plantOnMob(actor Actor, mobInstanceId int, plantItem items.Item,
 	attackerScore float64, rank int) PlantResult {
 
@@ -277,6 +279,8 @@ func plantOnMob(actor Actor, mobInstanceId int, plantItem items.Item,
 // score is rolled against the target player's Perception. On
 // success, the item is slipped into the player's inventory. An
 // independent detection roll then decides whether the victim notices.
+// attackerScore arrives with the planter's sight ramp already applied in
+// Plant; do not apply SightMult again.
 func plantOnPlayer(actor Actor, targetUserId int, plantItem items.Item,
 	attackerScore float64, rank int, cfg configs.Balance) PlantResult {
 
@@ -357,6 +361,8 @@ func plantOnPlayer(actor Actor, targetUserId int, plantItem items.Item,
 }
 
 // plantInContainer handles slipping an item into a room container.
+// attackerScore arrives with the planter's sight ramp already applied in
+// Plant; do not apply SightMult again.
 func plantInContainer(actor Actor, containerName string, plantItem items.Item,
 	attackerScore float64, rank int) PlantResult {
 
