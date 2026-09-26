@@ -43,31 +43,78 @@ Brainstormed with the owner 2026-09-26. The load-bearing ruling:
 3. **The party who needs to see pays.** In stealth contests that is the observer; in a theft the thief, and the victim as observer; in an attack both sides.
 4. **Bartering requires full sight**; `list`, `buy` and `sell` refuse below the faces band.
 5. Lockpicking is a minigame with no roll; nothing changes.
-6. Dazzle ships at the same cost as shapes (0.90) until plan 6 tunes it.
+6. **The penalty is a ramp, not a band** (owner, 2026-09-26, spitballed and
+   adopted): it grows with the distance from the observer's own comfort band,
+   linearly, to a cap of 0.80 on both sides. Dazzle's cap equals dark's. The
+   tiers keep governing what you can SEE (names, shapes, refusals); the ramp
+   governs what you can DO.
 
 ---
 
 ## Design
 
-### 1. One multiplier, four bands
+### 1. One multiplier, a ramp on each side of comfort
 
-`DarknessScoreMultiplier(SightDecision)` is replaced by
-`combat.SightScoreMultiplier(band messaging.Band, bal configs.Balance) float64`:
+Two functions replace `DarknessScoreMultiplier(SightDecision)`, split where
+the knowledge lives:
 
-| Band | Multiplier | Knob |
+**`messaging.ComfortDistance(observer, room) (dark, bright float64)`** owns
+the geometry, beside `LightBand`. For the observer's shifted window (edges
+`blind = LightBlindBelow - strength`, `dim = LightDimBelow - strength`,
+`dazzle = LightDazzleAbove - strength`, top = 100):
+
+```
+width = dim - blind                                             (25 at the shipped knobs)
+light in [dim, dazzle)   → (0, 0)                              comfortable
+light <  dim             → dark   = min(1, (dim - light) / width)
+light >= dazzle          → bright = min(1, (light - dazzle) / width)
+Perception Blinded       → (1, 0)
+```
+
+Each is the fraction of the way from the comfort band to the cap: 0 at the
+band's edge, 1 one width beyond it, and 1 past that. The bright ramp is as
+wide as the dark one, so for normal eyes it reaches the cap at exactly the
+top of the scale (75 + 25 = 100), and for a shifted window it reaches it at
+`dazzle + 25` (76 for nightvision 24): a strong window is punished by excess
+light as fast as it is helped by faint light. Exactly one of the two is
+non-zero. Infra reach does not soften the ramp: heat-sense gives shapes to
+SEE by, not steadiness to act by.
+
+**`combat.SightScoreMultiplier(dark, bright float64, bal) float64`** owns the
+knobs:
+
+```
+mult = 1 - dark * (1 - DarknessCombatPenalty) - bright * (1 - DazzleCap)
+```
+
+| Knob | Ships | Meaning |
 |---|---|---|
-| dark | 0.80 | `DarknessCombatPenalty` (existing) |
-| shapes | 0.90 | `DarknessShapesCombatPenalty` (existing) |
-| faces | 1.0 | |
-| dazzled | 0.90 | `DazzlePenalty` (new; validated with the pair: at or above the shapes penalty is NOT required, but within (0, 1]) |
+| `DarknessCombatPenalty` | 0.80 (existing) | the multiplier at and below the blind edge |
+| `DazzleCap` | 0.80 (new) | the multiplier at and above the top of the scale |
+| `LightDazzleAbove` | 75 (new; today the constant `windowDazzleEdge`) | where the comfort band ends |
+| `DarknessShapesCombatPenalty` | RETIRED | its 0.90 is now the ramp's midpoint |
 
-The two existing knob names keep their `Combat` suffix for config compatibility;
-their doc comments say they now price every roll. `windowDazzleEdge` becomes
-the knob `LightDazzleAbove` (75), read through `configs.Lighting`, validated
-above `LightDimBelow` and at most 100, because something reads it now.
+`DarknessCombatPenalty` keeps its name for config compatibility; its doc says
+it prices every roll. `DazzleCap` is validated in (0, 1]; `LightDazzleAbove`
+above `LightDimBelow` and at most 100. The retired knob is deleted from
+`config.balance.go`, its validator and `config.yaml` (grep the yaml TAG, per
+`dogmud-balance-config`).
 
-The band comes from `messaging.LightBand(c, room)` (plan 3d), which already
-composes light, night-vision strength, infra reach and blindness.
+Worked values at the shipped knobs (normal eyes: dim 50, blind 25, dazzle 75;
+nightvision 24: 26, 1, 51):
+
+| Situation | Light | Multiplier |
+|---|---|---|
+| Normal eyes, dim street at night | 37 | 0.90 |
+| Normal eyes, just above blind | 26 | 0.81 |
+| Normal eyes, torch at midsummer noon | 75 | 1.00 |
+| Normal eyes, endgame glow flash | 90 | 0.88 |
+| Nightvision 24, equinox noon | 70 | 0.85 |
+| Nightvision 24, endgame glow flash | 90 | 0.80 |
+| Cat's Eye drinker at midsummer noon | 73 | 0.82 |
+
+The tiers (`SightDecision`, `LightBand`) are unchanged and keep governing
+what an observer can see and the notices they read.
 
 ### 2. The channel funnel: a sight row and a defence side
 
@@ -90,7 +137,7 @@ number.
 ### 3. Score-only sites: one helper, applied to the party who needs to see
 
 `actions.SightMult(c *characters.Character, room *rooms.Room) float64` wraps
-`LightBand` and `SightScoreMultiplier`. Applied at:
+`ComfortDistance` and `SightScoreMultiplier`. Applied at:
 
 | Site | Whose eyes | Where the multiplier lands |
 |---|---|---|
@@ -109,9 +156,9 @@ folds per-observer light into the hider's score.
 ### 4. Shops
 
 `list`, `buy` and `sell` refuse below the faces band with one line, "You can't
-make out the goods well enough to deal.", placed beside the sleep gate. At the
-dazzled band they work and the bartering discount is multiplied by
-`SightScoreMultiplier(dazzled)`, so a dazzled haggler bargains worse.
+make out the goods well enough to deal.", placed beside the sleep gate. Above
+it they work and the bartering discount is multiplied by `SightMult`, so a
+dazzled haggler bargains worse in proportion to the glare.
 
 ### 5. The guard
 
@@ -136,22 +183,29 @@ fails when a site is dropped from both tables.
 
 ### 7. Config
 
-`DazzlePenalty` and `LightDazzleAbove` declared in `config.balance.go`,
-defaulted in `config.balance.lighting.go`, written into `config.yaml` beside
-the darkness knobs with the "zero reverts to the default" line, committed from
-the `git show HEAD:` blob per `dogmud-balance-config`.
+`DazzleCap` and `LightDazzleAbove` declared in `config.balance.go`, defaulted
+in `config.balance.lighting.go`, written into `config.yaml` beside the
+darkness knobs with the "zero reverts to the default" line;
+`DarknessShapesCombatPenalty` deleted from all three places and its pair
+validator reduced to the single-knob rule. Committed from the `git show HEAD:`
+blob per `dogmud-balance-config`.
 
 ---
 
 ## Consequences accepted
 
 - A nightvision creature in daylight, and a Cat's Eye drinker after sunrise,
-  now fight, search and haggle at 0.90 all day. That is the cost the plan 3
-  amendment quantified and the owner accepted ("say so on the tin").
-- A torch bearer under a midsummer noon sky is dazzled and pays the same 0.90
-  in every roll. The hooded lantern is the answer, as ruled 09-25.
-- Overloading a cave with a fresh endgame glow now blinds its residents'
-  rolls, which is what "light is a weapon" meant.
+  now act at about 0.82 to 0.85 all day, worse than the flat 0.90 first
+  proposed. That is the cost the plan 3 amendment quantified and the owner
+  accepted ("say so on the tin"), now priced in proportion.
+- A torch bearer under a midsummer noon sky is dazzled by a point or two and
+  pays almost nothing, which is the "narrow consequence" ruled 09-25; a fresh
+  endgame glow in a cave takes its night-eyed residents to the 0.80 cap,
+  which is what "light is a weapon" meant.
+- Cave residents at light 25 to 35 fight at 0.81 to 0.86 instead of a flat
+  0.90: a small shift for plan 6 to retune if it shows.
+- The graded light scale now produces graded outcomes instead of three; every
+  point of light a lantern, a hood or a cloud moves is felt in a roll.
 
 ## Out of scope
 
@@ -161,12 +215,17 @@ Tuning any of the four multipliers (plan 6). The vision spells and potion
 
 ## Testing and gates
 
-- Table tests for `SightScoreMultiplier` over all four bands, and the pair
-  validator for the new knobs.
+- Table tests for `ComfortDistance` (both edges, both caps, the shifted
+  window at strength 24, Blinded, the top of the scale) and for
+  `SightScoreMultiplier` (the worked-values table above, to two decimals),
+  plus the validators for the new knobs and the deletion of the old one.
 - The situational table test (`situational_test.go`) extended with the sight
   row for every channel, including the social N.
-- A defence-side test: a dazzled defender's defence score is 0.90 of the
-  same defender's at faces, on melee, ranged and spell; unchanged on rhetoric.
+- A defence-side test: a defender at light 90 defends at 0.88 of the same
+  defender's score at 60, on melee, ranged and spell; unchanged on rhetoric.
+- Melee parity: at the old band midpoints (light 37 and 15) the new ramp
+  gives 0.90 and 0.80, so the melee census tool's numbers move only where the
+  ramp differs from the band; the plan records the census before and after.
 - Stealth: a dazzled observer spots a fixed hider less often than a faces
   observer over a seeded run; the hider's score is unchanged.
 - Shops: `list` refuses at shapes, works at faces and dazzled.
