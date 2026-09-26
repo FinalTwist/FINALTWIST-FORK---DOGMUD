@@ -92,8 +92,17 @@ func (v EffectValue) MarshalYAML() (interface{}, error) {
 	return v.Literal, nil
 }
 
-// validateEffects refuses an unknown key and a magnitude-bound tick without a
-// pool. It is called from ConditionSpec.Validate.
+// validateEffects refuses an unknown key, a magnitude-bound tick without a
+// pool, a literal light_strength of zero or less, an adjustable record that
+// declares no light_strength, and a stacking record that is also a light
+// source (a stack's summed magnitude is not a light strength, and
+// AddConditionMagnitude takes the addStack path for a stacking spec, so a
+// recast would never reset the light). It is called from
+// ConditionSpec.Validate.
+//
+// The literal light rule is the one load-time range check here, and it is
+// safe: LightNow refuses a strengthless magnitude record at runtime, so the
+// two checks can never disagree about what counts as a light.
 //
 // It deliberately adds no range rule for EffectNightVisionStrength or
 // EffectInfraReach. An EffectValue with UsesMagnitude set is not a number
@@ -129,6 +138,9 @@ func (b *ConditionSpec) validateEffects() error {
 		if _, ok := b.Effects[EffectLightStrength]; !ok {
 			return fmt.Errorf("conditionId %d (%s) is adjustable but declares no light_strength", b.ConditionId, b.Name)
 		}
+	}
+	if b.IsStacking() && b.IsLightSource() {
+		return fmt.Errorf("conditionId %d (%s) is a stacking record and a light source; a stack's summed magnitude is not a light strength", b.ConditionId, b.Name)
 	}
 	if b.TickFromMagnitude {
 		if b.TickPool == "" {

@@ -45,13 +45,25 @@ func (b *Condition) LightNow(spec *ConditionSpec) (float64, bool) {
 	case LightOff:
 		return 0, false
 	case LightTrimmed:
-		return b.LightOutput, true
+		// lightscale.Trim never produces a negative output or one above full
+		// strength, but a hand-edited or future save could. Neither may
+		// enter the combine as stored.
+		if b.LightOutput < 0 {
+			return 0, false
+		}
+		return math.Min(b.LightOutput, max), true
+	case LightFull:
+		return max, true
+	default:
+		// An unrecognised state from a save is treated as full strength:
+		// fail open, deliberately, so a bad save never snuffs a light.
+		return max, true
 	}
-	return max, true
 }
 
-// SetLightOutput records a trim result from lightscale.Trim. A non-finite
-// output (lightscale.Absent) means the room needs nothing from this source.
+// SetLightOutput records a trim result from lightscale.Trim. Any non-finite
+// output means the room needs nothing from this source and lands on LightOff:
+// -Inf (lightscale.Absent), and equally +Inf and NaN.
 func (b *Condition) SetLightOutput(out float64) {
 	if math.IsInf(out, 0) || math.IsNaN(out) {
 		b.LightTrim, b.LightOutput = LightOff, 0
@@ -61,7 +73,10 @@ func (b *Condition) SetLightOutput(out float64) {
 }
 
 // ResetLight returns the record to full strength with any hood open: a fresh
-// cast, a fresh equip, or unhood.
+// cast, a fresh equip, or unhood. Only AddConditionMagnitude calls it
+// automatically. An equip path must call it itself (the equip path in a
+// later lighting task does), and a plain AddCondition that revives an
+// expired-but-unpruned record keeps that record's old hood and trim.
 func (b *Condition) ResetLight() {
 	b.LightTrim, b.LightOutput, b.Hooded = LightFull, 0, false
 }
