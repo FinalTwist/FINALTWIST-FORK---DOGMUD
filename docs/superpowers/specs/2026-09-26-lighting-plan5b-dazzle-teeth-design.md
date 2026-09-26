@@ -80,8 +80,12 @@ light as fast as it is helped by faint light. Exactly one of the two is
 non-zero. Infra reach does not soften the ramp: heat-sense gives shapes to
 SEE by, not steadiness to act by.
 
-**`combat.SightScoreMultiplier(dark, bright float64, bal) float64`** owns the
-knobs:
+**`messaging.SightScoreMultiplier(dark, bright float64, bal) float64`** owns the
+knobs. It lives in `messaging`, beside `ComfortDistance`, rather than in
+`combat`, because `mobs` (the shopkeeper crafter) and `crafting` sit below
+`combat` in the import graph (`combat` imports `mobs`) and must reach the same
+body; `messaging` is the lowest package that already holds the inputs and is
+importable from all of them (checked with `go list -deps` 2026-09-26).
 
 ```
 mult = 1 - dark * (1 - DarknessCombatPenalty) - bright * (1 - DazzleCap)
@@ -136,8 +140,9 @@ number.
 
 ### 3. Score-only sites: one helper, applied to the party who needs to see
 
-`actions.SightMult(c *characters.Character, room *rooms.Room) float64` wraps
-`ComfortDistance` and `SightScoreMultiplier`. Applied at:
+`messaging.SightMult(c *characters.Character, room messaging.RoomVisibility) float64`
+wraps `ComfortDistance` and `SightScoreMultiplier` (same package, same import
+reasoning as above; `*rooms.Room` satisfies `RoomVisibility`). Applied at:
 
 | Site | Whose eyes | Where the multiplier lands |
 |---|---|---|
