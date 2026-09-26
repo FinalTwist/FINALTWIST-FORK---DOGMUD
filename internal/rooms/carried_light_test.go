@@ -32,3 +32,16 @@ func TestCarriedSourcesEachJoinTheCombine(t *testing.T) {
 		t.Errorf("an empty cave: Raw %v Level %d, want -Inf and 0", empty.Raw, empty.Level)
 	}
 }
+
+// A carried term of exactly 0 is a present term, not an absent one: 0 is the
+// darkest natural light and lightscale.Trim can produce it.
+func TestCarriedTermOfZeroIsPresent(t *testing.T) {
+	cfg := modelCfg()
+	zero := 0.0
+	cave := Room{SkyLight: &zero}
+
+	got := cave.composeWith(cfg, 60, 1, []float64{0})
+	if got.Raw != 0 || got.Level != 0 || !got.Carried {
+		t.Errorf("a zero carried term in a cave: Raw %v Level %d Carried %v, want 0, 0, true", got.Raw, got.Level, got.Carried)
+	}
+}

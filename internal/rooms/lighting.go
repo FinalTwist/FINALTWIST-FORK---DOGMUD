@@ -14,7 +14,7 @@ import (
 
 // LightLevel reports the room's light on the graded -100 to 100 scale.
 //
-// Three terms compose it, all on one logarithmic operator:
+// Three kinds of term compose it, all on one logarithmic operator:
 //
 //  1. The sky, which is the celestial term attenuated by this room's sky
 //     fraction. A room with no sky receives no term at all, which is not the
@@ -146,7 +146,8 @@ func (r *Room) composeWith(cfg configs.Lighting, celestial, skyFilter float64, c
 }
 
 // carriedLight is every carried light term in the room, leaving out one record
-// (the source being trimmed) when exclude is non-nil.
+// (the source being trimmed) when exclude is non-nil. One pass over the room's
+// occupants: each bearer's records are read exactly once.
 func (r *Room) carriedLight(exclude *conditions.Condition) []float64 {
 	var terms []float64
 	add := func(c *characters.Character) {
@@ -159,13 +160,13 @@ func (r *Room) carriedLight(exclude *conditions.Condition) []float64 {
 			}
 		}
 	}
-	for _, id := range r.GetMobs(FindHasLight) {
+	for _, id := range r.mobs {
 		if m := mobs.GetInstance(id); m != nil {
 			add(&m.Character)
 		}
 	}
-	for _, id := range r.GetPlayers(FindHasLight) {
-		if u := users.GetByUserId(id); u != nil {
+	for _, id := range r.players {
+		if u := users.GetByUserId(id); u != nil && u.Character != nil {
 			add(u.Character)
 		}
 	}

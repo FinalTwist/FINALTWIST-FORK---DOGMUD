@@ -53,7 +53,6 @@ const (
 	FindMerchant       FindFlag = 0b00000100000 // is a merchant
 	FindDowned         FindFlag = 0b00001000000 // hp < 1
 	FindWithConditions FindFlag = 0b00010000000 // has a condition
-	FindHasLight       FindFlag = 0b00100000000 // has a light source
 	FindHasPet         FindFlag = 0b01000000000 // has a pet
 	FindNative         FindFlag = 0b10000000000 // spawns in this room
 
@@ -1639,11 +1638,6 @@ func (r *Room) GetMobs(findTypes ...FindFlag) []int {
 			}
 		}
 
-		if typeFlag&FindHasLight == FindHasLight && mob.Character.EmitsLight() {
-			mobMatches = append(mobMatches, mobId)
-			continue
-		}
-
 		// Useful to find any mobs that will always attack players
 		if mob.AutoAggro && typeFlag&FindHostile == FindHostile {
 			mobMatches = append(mobMatches, mobId)
@@ -1733,11 +1727,6 @@ func (r *Room) GetPlayers(findTypes ...FindFlag) []int {
 				playerMatches = append(playerMatches, userId)
 				continue
 			}
-		}
-
-		if typeFlag&FindHasLight == FindHasLight && user.Character.EmitsLight() {
-			playerMatches = append(playerMatches, userId)
-			continue
 		}
 
 		isCharmed = user.Character.IsCharmed()
