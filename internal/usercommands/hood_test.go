@@ -96,12 +96,12 @@ func TestHood_NoLightWornRefuses(t *testing.T) {
 	handled, err := Hood("", user, room, 0)
 	require.True(t, handled)
 	require.NoError(t, err)
-	require.Contains(t, hoodTestText(user.UserId), "no hooded light")
+	require.Contains(t, hoodTestText(user.UserId), "You have no lantern with a hood.")
 
 	handled, err = Unhood("", user, room, 0)
 	require.True(t, handled)
 	require.NoError(t, err)
-	require.Contains(t, hoodTestText(user.UserId), "no hooded light")
+	require.Contains(t, hoodTestText(user.UserId), "You have no lantern with a hood.")
 }
 
 func TestHood_NonAdjustableLightRefuses(t *testing.T) {
@@ -116,9 +116,46 @@ func TestHood_NonAdjustableLightRefuses(t *testing.T) {
 
 	_, err := Hood("", user, room, 0)
 	require.NoError(t, err)
-	require.Contains(t, hoodTestText(user.UserId), "no hooded light")
+	out := hoodTestText(user.UserId)
+	require.Contains(t, out, "Test Fixed Light")
+	require.Contains(t, out, "has no hood.")
 	require.False(t, rec.Hooded, "a non-adjustable light was hooded")
 	require.True(t, user.Character.EmitsLight(), "refusing to hood must leave the light shining")
+
+	_, err = Unhood("", user, room, 0)
+	require.NoError(t, err)
+	out = hoodTestText(user.UserId)
+	require.Contains(t, out, "Test Fixed Light")
+	require.Contains(t, out, "has no hood.")
+	require.Equal(t, conditions.LightFull, rec.LightTrim)
+}
+
+// The room line for hood is sent judged as if lit: in a dark room the lantern
+// is the only light, so by the time the line goes out the room is dark and a
+// plain SendTextVisual would hide it from the very people who saw by it.
+func TestHood_ObserverSeesBothLinesInADarkRoom(t *testing.T) {
+	user, room := hoodFixture(t)
+	room.Biome = "cave"
+
+	observer := users.GetByUserId(2)
+	require.NotNil(t, observer)
+	observer.Character.RoomId = room.RoomId
+	room.AddPlayer(observer.UserId)
+
+	_, ok, why := user.Character.Wear(items.New(hoodTestLanternItem))
+	require.True(t, ok, why)
+	events.DrainQueuedMessagesForTest(observer.UserId)
+
+	_, err := Hood("", user, room, 0)
+	require.NoError(t, err)
+	require.False(t, user.Character.EmitsLight(), "fixture: the hood must have gone dark")
+	require.Contains(t, hoodTestText(observer.UserId), "lowers the hood of their lantern, and its glow goes dark.",
+		"an observer who saw by the lantern missed the hood line")
+
+	_, err = Unhood("", user, room, 0)
+	require.NoError(t, err)
+	require.Contains(t, hoodTestText(observer.UserId), "throws back the hood of their lantern, and light floods out.",
+		"an observer missed the unhood line")
 }
 
 func TestHood_TwiceSaysAlreadyHooded(t *testing.T) {
