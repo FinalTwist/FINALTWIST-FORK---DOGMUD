@@ -55,8 +55,19 @@ Brainstormed with the owner 2026-09-26. The tuning page used for the ladder is
 | **5a** Carried light with real strengths | the light slot, the four light items, one trim function, glow strength and duration scaling, `hood` / `unhood`, `cancel <spell>`, item nouns, help | none |
 | **5b** Dazzle gets teeth | the penalty for being dazzled; `windowDazzleEdge` becomes a config knob; the daylight-cost text on every vision grant | 5a |
 | **5c** Vision spells and potion | a nightvision spell, an infravision spell, an infravision potion | 5b |
-| **5d** Darkness | the darkness spell, a term below zero, the inverted trim | 5a |
+| **5d** Darkness | the darkness spell, a term below zero, the inverted trim; the web client's Game-window border showing the player's own band (see below) | 5a |
 | **5e** Scheduled light sources | room fixtures and items with a schedule (lamps lit at night, pulsing runes) | 5a |
+
+**Deferred to 5d (owner, 2026-09-26): the Game-window border.** The centre Game
+window's border takes one of four subtle tones from the player's own band:
+dark for blind, dim for shapes, the normal gold for faces, bright for dazzled,
+with a short tooltip so it is not colour alone. The band is
+`messaging.LightBand` (plan 3d), already per observer and nightvision-aware.
+It travels as one small GMCP field holding only the player's own band, which
+the text already tells them, so it does not widen the open "GMCP bypasses
+darkness" leak (room contents). It updates at 3d's cadence (command, combat
+round, move), matching the 3d ruling that an idle player learns of dusk when
+they next act.
 
 ## Arc-level rulings (owner, 2026-09-26; do not relitigate)
 
@@ -258,6 +269,15 @@ IDs come from `tools/id_inventory.py` at plan time. The plan confirms which
 of the 9 mob files referencing 40038 are merchants rather than carriers
 before stocking the new items. Each item has its own condition, so condition
 1 stays the glow's alone.
+
+**A light shows at most once in the conditions list (owner, 2026-09-26).** The
+web client's Status & Conditions panel and the `conditions` command both filter
+on `ConditionSpec.Listed()` (`internal/conditions/conditionspec.go:235`: not
+`secret`, not `hidden`) and show one entry per held record. Every item light
+condition is therefore `secret: true`, since the item already shows in the
+equipment panel; only the glow's Illumination lists, and its duration is what
+tells a player when to recast. A shipped-data test pins every item light
+condition as secret.
 
 The default world's `lantern` 20036 and condition 1 are not loaded by the
 shipped config. The plan checks whether they still validate once the flag is
