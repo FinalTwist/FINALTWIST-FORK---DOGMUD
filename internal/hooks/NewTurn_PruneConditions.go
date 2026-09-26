@@ -128,7 +128,10 @@ func PruneConditions(e events.Event) events.ListenerReturn {
 // sendConditionEndRoomText sends a condition's end room line on the visual channel. A
 // light condition's line is judged as if the room were still lit, because its light
 // went out when the condition expired, a round before this prune: see
-// Room.SendTextVisualAsLit. Every other end line is judged by the room as it is.
+// Room.SendTextVisualAsLit. The judgement is per spec, so a hooded or
+// trimmed-off light's end line is judged as lit too; accepted for now, as the
+// retired lightsource flag was spec-level as well. Every other end line is
+// judged by the room as it is.
 //
 // names is the holder's PLAIN name. An end line may author a bare
 // {actee_plain} (shipped conditions 1 and 9 both do), which tag-based

@@ -15,8 +15,8 @@ func (c *Character) LightTerms() []float64 {
 }
 
 // EmitsLight reports whether this character sheds any light right now. A
-// shut hood or a source trimmed to nothing does not count. It replaces the
-// lightsource flag, which the next task retires.
+// shut hood or a source trimmed to nothing does not count. It replaced the
+// retired lightsource flag.
 func (c *Character) EmitsLight() bool {
 	return len(c.LightTerms()) > 0
 }

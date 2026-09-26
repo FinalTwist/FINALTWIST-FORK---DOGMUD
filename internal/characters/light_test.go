@@ -29,3 +29,25 @@ func TestEmitsLightReadsLightRecords(t *testing.T) {
 		t.Error("a hooded source still emits light")
 	}
 }
+
+// A held condition that carries flags but no light_strength sheds no light.
+// Light is an effect; a flag-only light must never come back silently.
+func TestFlagOnlyConditionEmitsNoLight(t *testing.T) {
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		9712: {ConditionId: 9712, Name: "Test Flagged", TriggerCount: 1, RoundInterval: 1,
+			Flags: []conditions.Flag{conditions.NightVision, conditions.Cancellable}},
+	}))
+	c := New()
+	if err := c.AddCondition(9712, true); err != nil {
+		t.Fatal(err)
+	}
+	if !c.HasConditionFlag(conditions.NightVision) {
+		t.Fatal("fixture condition was not held")
+	}
+	if c.EmitsLight() {
+		t.Error("a flag-only condition emits light")
+	}
+	if got := c.LightTerms(); len(got) != 0 {
+		t.Errorf("LightTerms = %v, want none", got)
+	}
+}
