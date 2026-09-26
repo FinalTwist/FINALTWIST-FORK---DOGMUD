@@ -54,6 +54,7 @@ var commandHelpAliases = map[string]string{
 	"knee":       "kick",
 	"tailsweep":  "trip",
 	"rep":        "report",
+	"unhood":     "hood",
 }
 
 // commandHelpSkip lists internal/debug commands that don't need

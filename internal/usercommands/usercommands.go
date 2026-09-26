@@ -121,6 +121,7 @@ var (
 		`cocoon`:          {Cocoon, false, true, false},
 		`help`:            {Help, true, true, false},
 		`hint`:            {Hint, true, true, false},
+		`hood`:            {Hood, false, true, false},
 		`keyring`:         {KeyRing, true, true, false},
 		`kick`:            {Kick, false, true, false},
 		`stomp`:           {Kick, false, true, false},
@@ -232,6 +233,7 @@ var (
 		`warcry`:          {Warcry, false, true, false},
 		`rally`:           {Rally, false, true, false},
 		`tailsweep`:       {Trip, false, true, false},
+		`unhood`:          {Unhood, false, true, false},
 		`unlock`:          {Unlock, false, true, false},
 		`undeafen`:        {UnDeafen, true, true, true}, // Admin only
 		`unmute`:          {UnMute, true, true, true},   // Admin only
