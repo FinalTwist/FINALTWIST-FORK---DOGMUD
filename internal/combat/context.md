@@ -1051,52 +1051,44 @@ and `Deprecated:` markers; the deletion U6 owed is still outstanding.
   `combatvocab.Ranged(TargetSingle)`, a shield is a real block contest entry,
   and a shot can crit against `CritBarFor`'s pair bar.
 
-## Sight and the darkness penalty (M4d)
+## Sight: the verdict and the ramp (M4d, lighting plan 5b)
 
-`combatContext` (`combat_helpers.go`) carries `sourceSight` and
-`targetSight`, both `messaging.SightDecision` (`SightFull` / `SightShapes`
-/ `SightNone`), set once per round in `combat.go` from
-`messaging.ParticipantSight(character, room)` — one call per side, at each
-of the four `calculateCombat` call sites (player-vs-mob, player-vs-player,
-mob-vs-player, mob-vs-mob).
+`combatContext` (`combat_helpers.go`) carries two kinds of sight field, set
+once per round in `combat.go` at each of the four `calculateCombat` call
+sites (player-vs-mob, player-vs-player, mob-vs-player, mob-vs-mob), one
+call per side:
 
-They drive `DarknessScoreMultiplier(sight messaging.SightDecision, bal
-configs.Balance) float64` (`combat_helpers.go`), applied to both sides'
-scores —
+- `sourceSight` / `targetSight`, both `messaging.SightDecision`
+  (`SightFull` / `SightShapes` / `SightNone`), from
+  `messaging.ParticipantSight(character, room)`. Since plan 5b these are
+  the NARRATION gate only: personal-line identity hiding (below) reads
+  them, and no score does.
+- `sourceDark` / `sourceBright` and `targetDark` / `targetBright`, from
+  `messaging.ComfortDistance(character, room)`: how far the room's light
+  sits outside that side's own comfortable band, as fractions of the way
+  to the cap. These are the only sight input the scoring reads:
 
 ```go
 // combat_helpers.go
-attackScore *= DarknessScoreMultiplier(ctx.sourceSight, bal)   // ~line 580
+attackScore *= messaging.SightScoreMultiplier(ctx.sourceDark, ctx.sourceBright, bal)   // calcAttackScore
 ...
-defenseScore *= DarknessScoreMultiplier(ctx.targetSight, bal)  // ~line 772
+defenseScore *= messaging.SightScoreMultiplier(ctx.targetDark, ctx.targetBright, bal)  // runBestOfAllDefenseWithRunner
 ```
 
-**M4d PR 2 (`25bf2e479`) gave the three verdicts three different
-multipliers**, replacing the boolean `!= SightFull` test the function used
-to be:
+`SightScoreMultiplier` is a linear ramp: 1.0 inside the comfortable band,
+falling to `Balance.DarknessCombatPenalty` (shipped 0.80) at the blind edge
+and to `Balance.DazzleCap` (shipped 0.80) one ramp-width past the dazzle
+edge. It replaced M4d PR 2's flat three-verdict band (full 1.0, shapes
+0.90, none 0.80) and its `DarknessScoreMultiplier`, now deleted: a
+shapes-only combatant used to take a flat 0.90 whatever the light and now
+pays by distance, a dazzled one pays too, and a comfortable one pays
+nothing. Infra reach does not soften the ramp. A **BLINDED** character is
+fully dark (`ComfortDistance` returns dark 1) whatever vision it holds.
+A test literal that sets only the verdict fields leaves the comfort fields
+at zero, which means "comfortable".
 
-| Verdict | Multiplier | Config knob (shipped) |
-|---|---|---|
-| `SightFull` | 1.0 (no penalty) | — |
-| `SightShapes` | `Balance.DarknessShapesCombatPenalty` | 0.90 |
-| `SightNone` | `Balance.DarknessCombatPenalty` | 0.80 |
-
-An infrared-only combatant (`SightShapes`) is now worse off than one with
-full sight but better off than one with no sight at all — the whole reason
-`combatContext` carries `SightDecision` rather than a bare `bool`. A
-**BLINDED** character still takes the full `SightNone` penalty even with
-InfraredVision equipped: `messaging.ParticipantSight` (see
-`internal/messaging/context.md`) checks the Blinded Perception state FIRST
-and returns `SightNone` unconditionally, before it ever reaches the
-InfraredVision branch — blindness overrides vision in the verdict.
-`DarknessShapesCombatPenalty` is a starting point (owner ruling,
-2026-09-20), not a tuned value; see `_datafiles/config.yaml`.
-
-Nothing else reads `sourceSight`/`targetSight` for SCORING. They are not a
-narration gate — combat's OWN room lines are sight-gated separately,
-through `messaging.SendTrio`/`Room.SendTextVisual*`, not through this
-context. (Personal-line IDENTITY hiding, below, reads the same two fields
-for a different purpose — narration, not score.)
+Combat's OWN room lines are sight-gated separately, through
+`messaging.SendTrio`/`Room.SendTextVisual*`, not through this context.
 
 Before M4d (`b7acfc018`), this context carried `sourceCanSee`/`targetCanSee`
 `bool`, filled from `messaging.CanSeeSightImpairedOnly` — combat reading a

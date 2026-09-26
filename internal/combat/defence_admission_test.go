@@ -325,7 +325,9 @@ func TestRunBestOfAllDefense_ShortScoreRetainsNonSkillMultipliers(t *testing.T) 
 
 	runBestOfAllDefenseWithRunner(result, attacker, defender,
 		[]combatvocab.Defence{combatvocab.DefenceDodge}, 100, false,
-		combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightNone},
+		// Plan 5b: the verdict no longer scores; targetDark 1 (the blind edge
+		// of the sight ramp) is what applies DarknessCombatPenalty.
+		combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightNone, targetDark: 1},
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			// Base Dexterity 100 remains. Only Unarmed Combat is omitted, then
 			// effectiveness 0.5 and darkness 0.5 both still apply: 100/4 = 25.
