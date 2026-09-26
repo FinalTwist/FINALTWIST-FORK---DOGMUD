@@ -79,7 +79,8 @@ type SkillMoveParams struct {
 	// Room is where the move happens (lighting plan 5b); the seam passes it
 	// to ResolveChannelAttack's defender-side sight row. Every production
 	// caller sets it, and builds Attack.Mult from SituationalAttackMult with
-	// the same room. Nil is unity (comfortable light).
+	// the same room (or, for the counter-swing, messaging.SightMult alone).
+	// Nil is unity (comfortable light).
 	Room messaging.RoomVisibility
 
 	// IsCounter marks a move executed AS a counter. Plumbed in U6b Task 6,
