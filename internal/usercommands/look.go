@@ -301,6 +301,20 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	}
 
 	//
+	// A noun on something you wear or carry (lighting plan 5a). Exact match,
+	// and before item matching, so "hood" reaches the lantern's hood rather
+	// than the lantern.
+	//
+	if noun, desc, ok := user.Character.FindItemNoun(lookAt); ok {
+		user.SendText(messaging.CategoryRoomDescription, ``)
+		user.SendText(messaging.CategoryRoomDescription, fmt.Sprintf(`You look at the <ansi fg="noun">%s</ansi>:`, noun))
+		user.SendText(messaging.CategoryRoomDescription, ``)
+		user.SendText(messaging.CategoryRoomDescription, util.SplitStringNL(desc, 80))
+		user.SendText(messaging.CategoryRoomDescription, ``)
+		return true, nil
+	}
+
+	//
 	// Check for anything in their backpack they might want to look at
 	//
 	lookItem, lookDestination, foundItem := user.Character.FindItem(lookAt)
@@ -322,9 +336,14 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			)
 		}
 
-		user.SendText(messaging.CategoryRoomDescription,
-			util.SplitStringNL(lookItem.GetLongDescription(), 80),
-		)
+		// Highlight the item's nouns, then wrap, the same order the room-noun
+		// branch below uses, so a multi-word noun is never split by a wrap
+		// before it can be matched.
+		itemDesc := lookItem.GetLongDescription()
+		for noun := range lookItem.GetSpec().Nouns {
+			itemDesc = strings.Replace(itemDesc, noun, `<ansi fg="noun">`+noun+`</ansi>`, 1)
+		}
+		user.SendText(messaging.CategoryRoomDescription, util.SplitStringNL(itemDesc, 80))
 
 		// Show potion aging info based on alchemy skill
 		lookSpec := lookItem.GetSpec()

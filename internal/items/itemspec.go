@@ -274,6 +274,10 @@ type ItemSpec struct {
 	Uses             int   `yaml:"uses,omitempty"`             // How many uses it starts with
 	ConditionIds     []int `yaml:"conditionids,omitempty"`     // What conditions it can apply (if used)
 	WornConditionIds []int `yaml:"wornconditionids,omitempty"` // ConditionId's that are applied while worn, and expired when removed.
+	// Nouns are details of the item a player can look at by name, highlighted
+	// in the item's description the way a room's nouns are (lighting plan 5a:
+	// the hooded lantern's hood).
+	Nouns map[string]string `yaml:"nouns,omitempty"`
 	// ── Pinnacle Stage 1: procs, reserves, bandolier, mutation drip, hunger, voice ──
 	Procs                 []ItemProc `yaml:"procs,omitempty"`                   // data-driven combat procs
 	ReserveHealthPct      float64    `yaml:"reserve_health_pct,omitempty"`      // 0-1 fraction of HealthMax reserved while equipped
