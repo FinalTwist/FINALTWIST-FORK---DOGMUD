@@ -84,15 +84,16 @@ func TestTrimNaNTargetOrMaxIsNeverNaN(t *testing.T) {
 }
 
 // Mirrors TestNonPositiveStepDoesNotPanicOrNaN in lightscale_test.go: a
-// non-positive step must not panic or hand back NaN or Inf, for either
-// polarity.
+// non-positive step must not panic or hand back NaN or +Inf, for either
+// polarity. -Inf (Absent) is a legitimate light result and is not checked
+// against.
 func TestTrimNonPositiveStepDoesNotPanicOrNaN(t *testing.T) {
 	for _, step := range []float64{0, -4} {
-		if got := Trim(step, 20, 90, 74, Brightens); math.IsNaN(got) {
-			t.Errorf("step %v, light: Trim = NaN", step)
+		if got := Trim(step, 20, 90, 74, Brightens); math.IsNaN(got) || math.IsInf(got, 1) {
+			t.Errorf("step %v, light: Trim = %v", step, got)
 		}
-		if got := Trim(step, 20, 90, 74, Darkens); math.IsNaN(got) {
-			t.Errorf("step %v, darkness: Trim = NaN", step)
+		if got := Trim(step, 20, 90, 74, Darkens); math.IsNaN(got) || math.IsInf(got, 1) {
+			t.Errorf("step %v, darkness: Trim = %v", step, got)
 		}
 	}
 }

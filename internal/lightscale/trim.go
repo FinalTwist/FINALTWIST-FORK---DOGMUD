@@ -37,12 +37,18 @@ const (
 //
 // For a darkness, max and the result are points subtracted from the combined
 // light. The result is the cut that lands the room on target, capped at max,
-// and 0 when the room is already at or below target, when max is
-// non-positive, or when others is not present. An Absent room counts as 0,
-// the darkest light that occurs naturally.
+// and 0 when the room is already at or below target or when max is
+// non-positive. An Absent room counts as 0, the darkest light that occurs
+// naturally, and is cut like any other level.
 //
 // A NaN target or max cannot produce a meaningful term; Trim returns Absent
 // for a light and 0 for a darkness rather than propagate the NaN.
+//
+// The "never below 0" floor on a light assumes a target well above 0 (5a's
+// run 50 to 74). At a target at or below 0, a present room would always
+// return Absent while an Absent room still returns min(target, max): a
+// caller with a low target must apply the same floor to that branch's result
+// before using it, which is 5d's problem to solve, not this function's.
 func Trim(step, others, max, target float64, p Polarity) float64 {
 	if math.IsNaN(target) || math.IsNaN(max) {
 		if p == Darkens {
