@@ -867,6 +867,20 @@ func (m *Mob) AddCondition(conditionId int, source string) {
 
 }
 
+// AddConditionMagnitude queues a record with an exact trigger count and a
+// per-instance magnitude through the event path, the mob twin of
+// UserRecord.AddConditionMagnitude.
+func (m *Mob) AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string) {
+	events.AddToQueue(events.Condition{
+		MobInstanceId: m.InstanceId,
+		ConditionId:   conditionId,
+		Source:        source,
+		Triggers:      triggers,
+		Magnitude:     magnitude,
+		LifeEpoch:     m.Character.LifeEpoch,
+	})
+}
+
 func (m *Mob) PlayerAttacked(userId int) {
 	if m.playersAttacked == nil {
 		m.playersAttacked = map[int]struct{}{}

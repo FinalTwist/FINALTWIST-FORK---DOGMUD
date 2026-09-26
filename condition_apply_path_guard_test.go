@@ -29,6 +29,7 @@ var (
 	_ func(int, float64, string)            = (*users.UserRecord)(nil).AddConditionScaled
 	_ func(int, int, float64, string)       = (*users.UserRecord)(nil).AddConditionMagnitude
 	_ func(int, string)                     = (*mobs.Mob)(nil).AddCondition
+	_ func(int, int, float64, string)       = (*mobs.Mob)(nil).AddConditionMagnitude
 	_ func(int, string)                     = (*actions.UserActor)(nil).AddCondition
 	_ func(int, string)                     = (*actions.MobActor)(nil).AddCondition
 )
@@ -159,18 +160,21 @@ var conditionApplyPathAllowlist = map[string]string{
 	// dispatch loop was deleted; re-keyed again messaging M4d Task 6 when the
 	// default case's self-cast line moved onto SendTrio and grew a comment;
 	// re-keyed again messaging M4d PR 3 Task 3 when the purge/heal/condition
-	// self-cast branches above the shield case moved onto SendTrio) ────────
-	"internal/hooks/spell_resolution.go|1224": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
-	"internal/hooks/spell_resolution.go|1536": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	// self-cast branches above the shield case moved onto SendTrio; re-keyed
+	// again lighting plan 5a Task 7 when the light-spell routing grew the
+	// condition loops above) ───────────────────────────────────────────────
+	"internal/hooks/spell_resolution.go|1232": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	"internal/hooks/spell_resolution.go|1548": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
 	// ── former combat condition: Regenerating is now one record (Task 7;
 	// re-keyed slice 1b, same shift as above; re-keyed again Task 10 and
 	// Task 10's follow-up; re-keyed again counters slice Task 3, same
 	// deletion as above; re-keyed again messaging M4d Task 6, same shift as
-	// above; re-keyed again messaging M4d PR 3 Task 3, same shift as above) ─
-	"internal/hooks/spell_resolution.go|867":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1102": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1497": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	// above; re-keyed again messaging M4d PR 3 Task 3, same shift as above;
+	// re-keyed again lighting plan 5a Task 7, same shift as above) ─────────
+	"internal/hooks/spell_resolution.go|871":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1106": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1505": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|55":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 
@@ -179,9 +183,21 @@ var conditionApplyPathAllowlist = map[string]string{
 	// Task 10 and Task 10's follow-up; re-keyed again counters slice
 	// Task 3, same deletion as above; re-keyed again messaging M4d Task 6,
 	// same shift as above; re-keyed again messaging M4d PR 3 Task 3, same
-	// shift as above) ──────────────────────────────────────────────────────
+	// shift as above; re-keyed again lighting plan 5a Task 7, same shift as
+	// above) ───────────────────────────────────────────────────────────────
 	"internal/hooks/spell_resolution.go|663":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
-	"internal/hooks/spell_resolution.go|1679": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	"internal/hooks/spell_resolution.go|1691": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+
+	// ── light spells (lighting plan 5a Task 7): a magnitude-driven light is
+	// cast at a strength and duration scaled from the caster, which only the
+	// four-argument door can carry. Every one of these is an EVENT door, not
+	// the silent character door: mobs.Mob.AddConditionMagnitude and
+	// users.UserRecord.AddConditionMagnitude both queue events.Condition, so
+	// Condition_ApplyConditions runs and narrates the start ─────────────────
+	"internal/hooks/spell_resolution.go|784":  "light spell on a mob target: the EVENT door (mobs.Mob.AddConditionMagnitude queues events.Condition), carrying the caster-scaled magnitude and triggers",
+	"internal/hooks/spell_resolution.go|1142": "light spell on a player target: the EVENT door (users.UserRecord.AddConditionMagnitude queues events.Condition), carrying the caster-scaled magnitude and triggers",
+	"internal/hooks/spell_resolution.go|1511": "light spell a mob casts on itself: the EVENT door (mobs.Mob.AddConditionMagnitude queues events.Condition), carrying the caster-scaled magnitude and triggers",
+	"internal/hooks/spell_resolution.go|1776": "light spell a mob casts on a player: the EVENT door (users.UserRecord.AddConditionMagnitude queues events.Condition), carrying the caster-scaled magnitude and triggers",
 
 	// ── former combat condition: Bleeding is now one stacking record (Task 9;
 	// re-keyed slice 1b; re-keyed again counters slice Task 3 when the

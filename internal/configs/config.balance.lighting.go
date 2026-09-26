@@ -153,4 +153,19 @@ func (b *Balance) validateLighting() {
 		b.LightMoonWeightWanderer = 1.0
 		b.LightMoonWeightEye = 0.5
 	}
+
+	// Light-spell scaling. Zero or negative is coerced: a zero divisor divides
+	// by zero, and a test binary never loads config.yaml, so zero must mean
+	// "unset" for the two bases too.
+	for _, k := range []struct {
+		v   *ConfigFloat
+		def ConfigFloat
+	}{
+		{&b.LightSpellStrengthBase, 40}, {&b.LightSpellStrengthStatDivisor, 10}, {&b.LightSpellStrengthSkillDivisor, 2},
+		{&b.LightSpellDurationBase, 2}, {&b.LightSpellDurationStatDivisor, 50}, {&b.LightSpellDurationSkillDivisor, 20},
+	} {
+		if !(*k.v > 0) {
+			*k.v = k.def
+		}
+	}
 }
