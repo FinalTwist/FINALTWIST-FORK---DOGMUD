@@ -21,15 +21,16 @@ import (
 // Crafting: no refund (materials not consumed until completion).
 // Salvaging: no refund (item not consumed until completion).
 //
-// With an argument, `cancel <spell>` instead ends a cancellable condition the
-// user holds (see cancelCondition).
+// An activity in progress always wins, whatever the argument: players type
+// `cancel cast` or `cancel spell` to stop a cast. Only when the user is free
+// does `cancel <spell>` end a cancellable condition they hold (see
+// cancelCondition).
 func Cancel(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
-	if rest = strings.TrimSpace(rest); rest != `` {
-		return cancelCondition(rest, user)
-	}
-
 	a := user.Character.Activity
 	if a == nil || a.IsFree() {
+		if rest = strings.TrimSpace(rest); rest != `` {
+			return cancelCondition(rest, user)
+		}
 		user.SendText(messaging.CategorySystem, `You aren't doing anything to cancel.`)
 		return true, nil
 	}
@@ -66,32 +67,61 @@ func Cancel(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 	return true, nil
 }
 
-// cancelCondition ends a cancellable condition the user holds, named by the
-// spell that grants it (id, alias or name, via spells.ResolveSpell) or by the
-// prefix of the condition's own name. Only conditions carrying the
-// conditions.Cancellable flag can be let go of. RemoveCondition only marks the
-// record expired; the next NewTurn prune removes it and sends its end
-// narration, so a successful cancel prints nothing of its own.
+// cancelMinPrefix is the shortest partial name cancel accepts; anything
+// shorter must match a name exactly, so `cancel i` cannot end Illumination.
+const cancelMinPrefix = 3
+
+// cancelNameMatches reports whether the lowercased token names candidate:
+// equal to it, or a prefix of it at least cancelMinPrefix characters long.
+func cancelNameMatches(token, candidate string) bool {
+	candidate = strings.ToLower(candidate)
+	if candidate == `` {
+		return false
+	}
+	return token == candidate || (len(token) >= cancelMinPrefix && strings.HasPrefix(candidate, token))
+}
+
+// cancelCondition ends a cancellable condition the user holds. It walks only
+// the held, unexpired records, in held order, and ends the first one whose
+// spec carries conditions.Cancellable and whose name the token matches (see
+// cancelNameMatches): the condition's own name, or the id, any alias or the
+// display name of a spell whose ConditionIds grants it. A spell the user does
+// not hold a condition from can never be reached.
+//
+// RemoveCondition only marks the record expired; the light (or whatever the
+// condition does) stops at once, and the next NewTurn prune removes the record
+// and sends its end narration. The immediate actor line says the cancel
+// landed, since the end line arrives a round later.
 func cancelCondition(name string, user *users.UserRecord) (bool, error) {
-	var ids []int
-	if sd := spells.ResolveSpell(name); sd != nil {
-		ids = append(ids, sd.ConditionIds...)
-	}
-	lower := strings.ToLower(name)
+	token := strings.ToLower(name)
+	var allSpells map[string]*spells.SpellData
+
 	for _, rec := range user.Character.Conditions.GetConditions() {
-		if spec := conditions.GetConditionSpec(rec.ConditionId); spec != nil && strings.HasPrefix(strings.ToLower(spec.Name), lower) {
-			ids = append(ids, rec.ConditionId)
-		}
-	}
-	for _, id := range ids {
-		spec := conditions.GetConditionSpec(id)
-		// GetConditions, not HasCondition: HasCondition reads the id index,
-		// which keeps a let-go record until the next prune, so a second
-		// cancel in the same round would "succeed" silently.
-		if spec == nil || !slices.Contains(spec.Flags, conditions.Cancellable) || len(user.Character.Conditions.GetConditions(id)) == 0 {
+		spec := conditions.GetConditionSpec(rec.ConditionId)
+		if spec == nil || !slices.Contains(spec.Flags, conditions.Cancellable) {
 			continue
 		}
-		user.Character.RemoveCondition(id)
+		matched := cancelNameMatches(token, spec.Name)
+		if !matched {
+			if allSpells == nil {
+				allSpells = spells.GetAllSpells()
+			}
+			for _, sd := range allSpells {
+				if !slices.Contains(sd.ConditionIds, rec.ConditionId) {
+					continue
+				}
+				if cancelNameMatches(token, sd.SpellId) || cancelNameMatches(token, sd.Name) ||
+					slices.ContainsFunc(sd.Aliases, func(a string) bool { return cancelNameMatches(token, a) }) {
+					matched = true
+					break
+				}
+			}
+		}
+		if !matched {
+			continue
+		}
+		user.Character.RemoveCondition(rec.ConditionId)
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(`You let your %s go.`, strings.ToLower(spec.Name)))
 		return true, nil
 	}
 	user.SendText(messaging.CategorySystem, fmt.Sprintf(`You have no %s you can let go of.`, name))
