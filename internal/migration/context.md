@@ -167,6 +167,12 @@ or alias.
 - **`Run` only writes `Server.CurrentVersion` on full success.** A failed
   migration leaves the version untouched, so the next boot retries from the
   same point.
+- **`users/*.yaml` is not only user saves.** `<id>.alts.yaml` (and the legacy
+  `<name>-alts.yaml`) is a YAML sequence of characters. Every user-file
+  migration that parses a save as a mapping filters with `isUserSaveFile`
+  (`migration.go`); a new one must too, or the first alts file on disk fails
+  the whole boot. 0.17.0's whole-tree walk deliberately does NOT use it: it
+  renames keys inside alts files as well.
 
 ## Dependencies
 

@@ -27,7 +27,7 @@ func migrate_RaceToSpecies() error {
 
 	for _, userFilePath := range matches {
 
-		if filepath.Base(userFilePath) == "users.idx" {
+		if !isUserSaveFile(userFilePath) {
 			continue
 		}
 

@@ -57,8 +57,8 @@ func migrate_UserStatsRename() error {
 
 	for _, userFilePath := range matches {
 
-		// Skip the index file
-		if filepath.Base(userFilePath) == "users.idx" {
+		// Skip the index file and alts files
+		if !isUserSaveFile(userFilePath) {
 			continue
 		}
 

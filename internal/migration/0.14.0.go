@@ -63,7 +63,7 @@ func reclassifyUsersInDir(usersDir string, dryRun bool) error {
 	mudlog.Info("Migration 0.14.0", "message", "Reclassifying player mutations onto the cluster graph", "mode", mode)
 
 	for _, path := range matches {
-		if filepath.Base(path) == "users.idx" {
+		if !isUserSaveFile(path) {
 			continue
 		}
 		raw, err := os.ReadFile(path)
