@@ -3,6 +3,8 @@ package migration
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/factions"
@@ -149,4 +151,19 @@ func Run(lastConfigVersion version.Version, serverVersion version.Version) error
 	configs.SetVal(`Server.CurrentVersion`, serverVersion.String())
 
 	return nil
+}
+
+// isUserSaveFile reports whether path is a user save (users/<id>.yaml) that a
+// user-file migration should parse as a mapping. It rejects users.idx and
+// <id>.alts.yaml: internal/characters/alts.go writes an alts file as a YAML
+// SEQUENCE of characters (`[]` when empty), which a map-shaped user migration
+// cannot parse. internal/users/character_index.go applies the same rule when
+// it scans users/. It also rejects the legacy <name>-alts.yaml, the same
+// sequence under its pre-rename name (internal/users/migration.go renames it).
+func isUserSaveFile(path string) bool {
+	name := filepath.Base(path)
+	return strings.HasSuffix(name, ".yaml") &&
+		!strings.HasSuffix(name, ".alts.yaml") &&
+		!strings.HasSuffix(name, "-alts.yaml") &&
+		name != "users.idx"
 }

@@ -44,6 +44,9 @@ func renameTipsConfigOptionInDir(usersDir string, dryRun bool) error {
 
 	renamed := 0
 	for _, path := range matches {
+		if !isUserSaveFile(path) {
+			continue
+		}
 		raw, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("failed to read %s: %w", path, err)

@@ -42,7 +42,7 @@ func migrate_SeedWarrenRepFromQuestToken() error {
 	}
 
 	for _, userFilePath := range matches {
-		if filepath.Base(userFilePath) == "users.idx" {
+		if !isUserSaveFile(userFilePath) {
 			continue
 		}
 

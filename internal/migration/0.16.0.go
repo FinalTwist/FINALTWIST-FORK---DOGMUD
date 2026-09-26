@@ -55,7 +55,7 @@ func freezeExploitedVitalityInDir(usersDir string, dryRun bool) error {
 
 	found := false
 	for _, path := range matches {
-		if filepath.Base(path) == "users.idx" {
+		if !isUserSaveFile(path) {
 			continue
 		}
 
