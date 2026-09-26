@@ -397,7 +397,7 @@ func SetVal(propertyPath string, newVal string) error {
 		return err
 	}
 
-	overridePath := overridePath()
+	overridePath := overridePathFor(GetConfig().FilePaths.DataFiles.String())
 	if err := util.Save(overridePath, writeBytes, bool(configData.FilePaths.CarefulSaveFiles)); err != nil {
 		return err
 	}
@@ -419,10 +419,15 @@ func GetConfig() Config {
 	return configData
 }
 
-func overridePath() string {
+// overridePathFor returns where config-overrides.yaml lives for a world whose
+// DataFiles is dataFiles. CONFIG_PATH, when set, wins. The caller passes the
+// DataFiles that is (or is about to be) in effect: ReloadConfig must pass the
+// one it just loaded, because on the first boot call configData is still the
+// unloaded default and would name _datafiles/world/default.
+func overridePathFor(dataFiles string) string {
 	overridePath := os.Getenv(`CONFIG_PATH`)
 	if overridePath == `` {
-		overridePath = GetConfig().FilePaths.DataFiles.String() + `/config-overrides.yaml`
+		overridePath = dataFiles + `/config-overrides.yaml`
 	}
 
 	return overridePath
@@ -509,7 +514,11 @@ func ReloadConfig() error {
 		typeLookups[k] = reflect.TypeOf(v).String()
 	}
 
-	overridePath := overridePath()
+	// Resolve DataFiles the way FilePaths.Validate will, so an absent key
+	// still maps to the default world.
+	loadedPaths := tmpConfigData.FilePaths
+	loadedPaths.Validate()
+	overridePath := overridePathFor(loadedPaths.DataFiles.String())
 
 	mudlog.Info("ReloadConfig()", "overridePath", overridePath)
 

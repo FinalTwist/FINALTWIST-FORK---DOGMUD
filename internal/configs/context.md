@@ -293,7 +293,7 @@ func isEditAllowed(configPath string) bool {
 
 ### Startup Process
 1. **Load Base Configuration**: Read `_datafiles/config.yaml`
-2. **Load Overrides**: Read `config-overrides.yaml` if it exists
+2. **Load Overrides**: Read `config-overrides.yaml` if it exists, from `$CONFIG_PATH` or else `<DataFiles>/config-overrides.yaml`, where DataFiles is the value step 1 just loaded (`overridePathFor`); `SetVal` writes to the same path
 3. **Apply Environment Variables**: Set values from environment
 4. **Validate Configuration**: Run all validation functions
 5. **Build Lookup Tables**: Create path and type lookup maps
