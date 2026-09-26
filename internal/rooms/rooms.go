@@ -1178,6 +1178,9 @@ func (r *Room) AddMob(mobInstanceId int) {
 
 	r.mobs = append(r.mobs, mobInstanceId)
 
+	// Lighting plan 5a: see MoveToRoom.
+	r.TrimLightFor(&mob.Character)
+
 	roomManager.roomsWithMobs[r.RoomId] = len(r.mobs)
 }
 

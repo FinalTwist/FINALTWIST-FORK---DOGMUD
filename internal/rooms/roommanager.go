@@ -464,6 +464,10 @@ func MoveToRoom(userId int, toRoomId int, isSpawn ...bool) error {
 	playerCt := newRoom.AddPlayer(userId)
 	roomManager.roomsWithUsers[newRoom.RoomId] = playerCt
 
+	// Lighting plan 5a: the arrival's adjustable lights trim to their eyes
+	// now, before anything reads the room, so arrivals trim in entry order.
+	newRoom.TrimLightFor(user.Character)
+
 	events.AddToQueue(events.RoomChange{
 		UserId:     userId,
 		FromRoomId: fromRoomId,
