@@ -9,7 +9,7 @@ nothing at all. Light that is too bright dazzles you.
 
   The sun by day, the moons by night, the lamps of towns and taverns,
   and anything the people around you carry. Trees, roofs and rock
-  shut out the sky, and cloud, rain and storms dim it.
+  shut out the sky, and cloud, rain, snow and storms dim it.
 
 <ansi fg="yellow">Carrying a light</ansi>
 
@@ -19,15 +19,15 @@ nothing at all. Light that is too bright dazzles you.
   to the others in the room, but a second light adds less than the
   first did.
 
-  A plain lantern or torch always burns at full strength. Out of doors
-  near a summer noon that is too much, and it will dazzle you.
+  A plain lantern or torch always burns at full strength. Under open
+  sky near a summer noon that is too much, and it will dazzle you.
 
 <ansi fg="yellow">Lights that adjust</ansi>
 
   The Chrysalis Glow spell and the hooded lantern trim themselves to
   your eyes each time you walk into a new place, so they never dazzle
-  you there. Nothing else trims them: if the light changes around you,
-  yours stays as it was until you move.
+  you there. They trim only when you move: if the light changes around
+  you, yours stays as it was until you move.
 
   A fresh glow, a light you have just equipped, or a hood you have
   just opened starts at full strength. A strong enough light can
