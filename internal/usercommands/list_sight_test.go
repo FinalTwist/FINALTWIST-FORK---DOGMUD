@@ -98,7 +98,7 @@ func itemsSeedForListSight() func() {
 // exact functions renderMobMerchantListing calls), so a typo in the fixture
 // (wrong item id, wrong Name) fails loudly here instead of silently. The
 // sight gate itself is proven by the refusal-line assertions in the dark and
-// shapes tests above, and by the absent-refusal-line assertions in the lit
+// shapes tests below, and by the absent-refusal-line assertions in the lit
 // and dazzled tests below.
 //
 // It cannot check the rendered TEXT the way those refusal assertions do:
@@ -171,7 +171,7 @@ func TestList_LitRoom_Lists(t *testing.T) {
 	assert.NotContains(t, joined, actions.ShopSightRefusalText)
 
 	names := listedStockNames(t)
-	assert.Contains(t, names, "Tin Cup", "the merchant's stock name must actually appear, not just an absent refusal")
+	assert.Contains(t, names, "Tin Cup", "fixture stock must render as Tin Cup")
 }
 
 // TestList_DazzledRoom_StillLists pins the far edge of full sight: dazzled
@@ -198,5 +198,5 @@ func TestList_DazzledRoom_StillLists(t *testing.T) {
 	}
 
 	names := listedStockNames(t)
-	assert.Contains(t, names, "Tin Cup", "the merchant's stock name must actually appear, not just an absent refusal")
+	assert.Contains(t, names, "Tin Cup", "fixture stock must render as Tin Cup")
 }

@@ -675,8 +675,9 @@ rather than folded into `validateMisc`, because the arc kept adding more
 here across plans: plan 1 shipped the three band thresholds, plan 2 added
 the vision-strength fallback, plan 3a added the eight knobs that turn the
 sky itself into a solar and lunar model, and plan 5b added the dazzle
-edge. None of the thirteen appears in `_datafiles/config.yaml`, so the
-shipped value is the Go default in every case.
+edge. Twelve of the thirteen are absent from `_datafiles/config.yaml`, so
+the shipped value is the Go default in every case; `LightDazzleAbove` is
+the exception, shipped in the file at its default of 75.
 
 | Knob | Type | Default | Effect |
 |------|------|---------|--------|
