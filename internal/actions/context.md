@@ -737,7 +737,7 @@ type SellResult struct {
 
 `SellStopReason` values: `SellStopSoldAll` (normal), `SellStopNoItem`,
 `SellStopNoMerchant`, `SellStopMerchantBroke` (player path only),
-`SellStopRejected`.
+`SellStopRejected`, `SellStopNoSight` (lighting plan 5b, see below).
 
 **Messaging:** Player sellers receive "You don't have that item." and merchant
 speech lines synchronously (not via the mob's async command queue — see
@@ -754,6 +754,34 @@ Entry points that call `Sell`:
 **See also:** `internal/forager/vendor_sell.go` (`forager.SellToVendor`) and
 `internal/forager/chest_backfill.go` (`forager.BackfillVendorFromChests`) for
 the free supply-handoff paths — these are NOT routed through `actions.Sell`.
+
+### Shop sight gate (lighting plan 5b, `shop_sight.go`)
+
+`list`, `buy` and `sell` all need full sight to deal: below the faces band
+(`messaging.LightBand`) a customer can't make out the goods.
+
+- **`ShopSightRefusal(c *characters.Character, room *rooms.Room) bool`**,
+  true when `messaging.LightBand(c, room) < messaging.BandFaces`. A nil room
+  reads as no refusal (callers have already handled "no room" their own way).
+  Mirrors `ShopClosedForSleep` beside it in `sleeping_target.go`: `Buy` and
+  `Sell` check it only once a merchant is confirmed present in the room
+  (`SellStopNoSight` / `BuyReasonNoSight`), so "there's no merchant here"
+  still wins over a sight refusal, and a nil-Mob `MobActor` test fixture
+  (no merchant path) never calls `GetCharacter()` unguarded. `usercommands.List`
+  checks it directly, right after its own sleep gate.
+- **`ShopSightRefusalText`**, the one line every refusing verb prints:
+  "You can't make out the goods well enough to deal."
+- **`barterDiscount(char *characters.Character, room *rooms.Room) float64`**,
+  the ONE place the bartering discount is computed: skill-derived, capped
+  at 15% (skill 50), times `messaging.SightMult(char, room)`. A dazzled
+  haggler (bright band, still full sight) bargains worse than a comfortable
+  one; a nil room reads as comfortable (mult 1.0), matching `SightMult`'s own
+  nil-room reading. Replaces three previously hand-rolled, slightly
+  inconsistent discount computations in `buy.go` and `sell.go`.
+
+A mob actor gets no refusal text: `MobActor.SendText` is already a no-op, so
+the gate calls `SendText` unconditionally guarded on `buyer.IsPlayer()` for
+readability, matching every other refusal in `buy.go`/`sell.go`.
 
 ---
 
@@ -999,7 +1027,7 @@ the rest are ordinary verbs.
 | Casting | `cast.go`, `cast_interrupt.go` |
 | Mutation actives | `mutation_cocoon.go`, `mutation_venom_coat.go` |
 | Stealth / perception | `sneak.go`, `shadow.go`, `search.go`, `scan.go`, `track.go`, `steal.go` |
-| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `remove_equip.go` |
+| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `remove_equip.go`, `shop_sight.go` |
 | Trades | `craft.go`, `salvage.go`, `forage.go`, `plant.go`, `defuse.go` |
 | Movement & state | `go.go`, `sleep.go`, `consider.go` |
 | Social | `say.go`, `emote.go`, `emote_aliases.go` |

@@ -33,6 +33,12 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		return true, nil
 	}
 
+	// Below the faces band you can't make out the goods (lighting plan 5b).
+	if actions.ShopSightRefusal(user.Character, room) {
+		user.SendText(messaging.CategorySystem, actions.ShopSightRefusalText)
+		return true, nil
+	}
+
 	for _, mobId := range room.GetMobs(rooms.FindMerchant) {
 
 		mob := mobs.GetInstance(mobId)

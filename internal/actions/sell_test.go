@@ -77,6 +77,14 @@ func seedSellItemSpecs() func() {
 
 // seedSellRoom builds a minimal one-room world for the sell tests and returns
 // a cleanup function.
+//
+// Lamp pins this market comfortably lit (faces band, no dazzle) regardless of
+// the ambient test-time celestial light. Lighting plan 5b gates buy/sell on
+// the light band, so an unpinned room here would read whatever the shared
+// round counter happens to be at test time, which measures below the faces
+// band by default, and every ordinary sale in this file would start failing
+// on a sight refusal that has nothing to do with what each test means to
+// exercise.
 func seedSellRoom(t *testing.T) func() {
 	t.Helper()
 	room := &rooms.Room{
@@ -84,6 +92,7 @@ func seedSellRoom(t *testing.T) func() {
 		Zone:   "TestZone",
 		Title:  "Market",
 		Exits:  map[string]exit.RoomExit{},
+		Lamp:   rooms.LampPtr(60),
 	}
 	return rooms.SeedRoomsForTest(
 		map[int]*rooms.Room{1: room},
