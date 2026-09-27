@@ -89,7 +89,7 @@ superseded by Task 13 at the end of Part 2, which runs last.
 
 **Tech Stack:** Go 1.x (existing), GMCP over the existing websocket, browser WebCrypto (PBKDF2 + AES-GCM), dependency-free node tests in `tools/jstest`.
 
-**Spec:** `docs/superpowers/specs/2026-09-25-aicompanion-player-keys-design.md` (read it, including "Clarifications from planning").
+**Spec:** `docs/superpowers/specs/completed/2026-09-25-aicompanion-player-keys-design.md` (read it, including "Clarifications from planning").
 
 ## Rules for every Part 2 task
 

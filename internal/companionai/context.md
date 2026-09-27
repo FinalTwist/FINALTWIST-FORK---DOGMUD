@@ -102,7 +102,7 @@ func RelayOrigin() string
 - **The relay seams** carry a companion's model request to the owner's own
   browser and the provider's reply back, for a player running their
   companion on their own key (spec
-  `docs/superpowers/specs/2026-09-25-aicompanion-player-keys-design.md`).
+  `docs/superpowers/specs/completed/2026-09-25-aicompanion-player-keys-design.md`).
   `modules/gmcp` installs the sender (`gmcp.Relay.go`), which returns false
   when the player has no GMCP-negotiated connection; it forwards inbound
   `Companion.Relay.Response`, `.Ready` and `.Gone` to `RelayInbound`. The
