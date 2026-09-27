@@ -9,20 +9,19 @@ light so bright it dazzles you costs you as much as light too dim to see
 by, and it grows worse the further you are from what your eyes find
 comfortable.
 
-Taunting, demoralizing, rallying, giving a war cry or defying someone are
-shouted, not seen, and none of it is touched by any of this.
+Taunting, demoralizing, rallying, giving a war cry and defying someone
+all use your voice, not your eyes, so light does not affect them.
 
-Creatures whose eyes are built for the dark, anyone with Night Vision, and
-anyone under a potion that sharpens night sight are all dazzled by
-ordinary daylight, the same way anyone else is dazzled by staring into
-the sun.
+Creatures whose eyes are built for the dark, and anyone under a potion
+or ability that sharpens their eyes, are dazzled by ordinary daylight
+the same way anyone else is dazzled by staring into the sun.
 
-Shops now expect you to see well enough to deal. Try to list, buy or sell
-in light too dim or too bright to make out faces and the shopkeeper turns
-you away. If the light still lets you trade, being dazzled makes you a
-worse haggler. The cap on how good a discount bargaining can win now
-applies to buying as well as selling, so a very skilled bargainer gets a
-smaller discount than before when buying.
+Shops now expect you to see well enough to deal. Try to list, buy or
+sell in light too dim to make out faces and the shopkeeper turns you
+away. In light too bright for your eyes you can still trade, but being
+dazzled makes you a worse haggler. Bargaining now has the same limit
+when you buy as when you sell, so a very skilled bargainer saves a
+little less when buying.
 
 ## 2026-09-26: Carry your own light
 

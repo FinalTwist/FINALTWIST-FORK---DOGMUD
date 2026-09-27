@@ -1,8 +1,9 @@
 conditionid: 29
 name: Night Vision
 description: Your eyes make use of light too faint for most people to read by,
-  though pitch darkness still leaves you blind. Daylight dazzles these eyes;
-  everything done by sight suffers until dark.
+  though pitch darkness still leaves you blind. In daylight these sharpened
+  eyes are dazzled, and everything you do by sight suffers until dusk or
+  until the effect fades.
 start_actee: The dark thins and you make out grey shapes around you.
 end_actee: The dark closes in again and the shapes are gone.
 start_observer: "{actee}'s eyes widen and catch the faint light."

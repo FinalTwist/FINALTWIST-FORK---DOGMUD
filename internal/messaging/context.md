@@ -249,11 +249,14 @@ Functions:
   `Band` itself still changes no `SightDecision`. Lighting plan 5a added
   `LightTrimTarget` (`window.go`) as a second reader, to set the level an
   adjustable light trims to. **Since lighting plan 5b**, the edge finally
-  prices something directly: `ComfortDistance` (`comfort.go`) and
-  `SightScoreMultiplier` (`sight_mult.go`) read the same knob,
-  independently of `Band`/`SightDecision`, to turn distance past the edge
-  into a score penalty on every opposed or difficulty roll; see the
-  `ComfortDistance`/`SightScoreMultiplier`/`SightMult` entries above.
+  prices something directly: `ComfortDistance` (`comfort.go`) reads it (as
+  `cfg.DazzleAbove`), independently of `Band`/`SightDecision`, to measure
+  how far past the edge a room's light sits. `SightScoreMultiplier`
+  (`sight_mult.go`) does NOT read the edge itself; it takes
+  `ComfortDistance`'s fractions and reads only the two ramp caps,
+  `Balance.DarknessCombatPenalty` and `Balance.DazzleCap`, to turn that
+  distance into a score penalty on every opposed or difficulty roll; see
+  the `ComfortDistance`/`SightScoreMultiplier`/`SightMult` entries above.
 
   🔴 **Structural fact worth knowing before reading a bug into it:** with
   `windowShiftCap` at 24 and `LightDimBelow` at 50, no ability can shift
