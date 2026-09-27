@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -179,7 +180,7 @@ func TestConditionNotice_ARefusedPoisonedRecordNarratesNothing(t *testing.T) {
 	defer restore()
 	defer conditions.SeedConditionRecordsForTest()()
 	original := runSpellChannelAttack
-	runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+	runSpellChannelAttack = func(messaging.RoomVisibility, combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 		return spellContestAttackWin()
 	}
 	t.Cleanup(func() { runSpellChannelAttack = original })

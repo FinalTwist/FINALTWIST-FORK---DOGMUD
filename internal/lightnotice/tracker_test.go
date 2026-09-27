@@ -32,7 +32,7 @@ func obs(room int, b messaging.Band, terms rooms.LightTerms, bandAt ...func(int)
 // sight returns a bandAt for an observer with the given night-sight strength
 // and the shipped 25/50 edges (LightBlindBelow, LightDimBelow).
 func sight(strength int) func(int) messaging.Band {
-	return func(light int) messaging.Band { return messaging.BandThroughWindow(light, strength, 0, 25, 50) }
+	return func(light int) messaging.Band { return messaging.BandThroughWindow(light, strength, 0, 25, 50, 75) }
 }
 
 func TestDecideTriggerRules(t *testing.T) {

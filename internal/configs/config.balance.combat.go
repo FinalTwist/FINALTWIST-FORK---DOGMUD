@@ -335,10 +335,8 @@ func (b *Balance) validateCombat() {
 	if b.DarknessCombatPenalty <= 0 || b.DarknessCombatPenalty > 1.0 {
 		b.DarknessCombatPenalty = 0.80
 	}
-	if b.DarknessShapesCombatPenalty <= 0 || b.DarknessShapesCombatPenalty > 1.0 ||
-		b.DarknessShapesCombatPenalty < b.DarknessCombatPenalty {
-		b.DarknessCombatPenalty = 0.80
-		b.DarknessShapesCombatPenalty = 0.90
+	if b.DazzleCap <= 0 || b.DazzleCap > 1.0 {
+		b.DazzleCap = 0.80
 	}
 
 	// ── DAMAGE ───────────────────────────────────────────────────────────────

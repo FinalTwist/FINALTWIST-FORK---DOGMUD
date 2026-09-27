@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
+	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -100,8 +101,11 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
 	}
 
 	// Stage 38.5.4: Crafter mob tick — background activity alongside normal idle
-	if result := mobs.TickMobCraft(mob); result != nil {
-		if room := rooms.LoadRoom(mob.Character.RoomId); room != nil {
+	// The crafter's room, loaded once: the craft roll's sight ramp reads it
+	// and the result line below is sent to it.
+	craftRoom := rooms.LoadRoom(mob.Character.RoomId)
+	if result := mobs.TickMobCraft(mob, combat.SightRoom(craftRoom)); result != nil {
+		if room := craftRoom; room != nil {
 			var msg string
 			if result.Restocked && !result.Success && result.RecipeName == "" {
 				// Restock-only tick — supply cart delivery, no craft.

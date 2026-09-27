@@ -4,6 +4,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
 )
@@ -72,10 +73,15 @@ type SubmissionAttemptResult struct {
 // self-relative z-threshold form was opponent-blind (a flat ~2%
 // stun rate); modelling puts the margin form at 18-62% depending on
 // matchup, accepted for playtest.
+//
+// Sight (lighting plan 5b): both scores then pay their own
+// messaging.SightMult in room, the room the pair are grappling in. A nil
+// room is unity; convert a possibly-nil *rooms.Room with SightRoom.
 func RollSubmissionAttempt(
 	attempter *characters.Character,
 	recipient *characters.Character,
 	subType position.SubmissionType,
+	room messaging.RoomVisibility,
 ) SubmissionAttemptResult {
 	cfg := configs.GetBalanceConfig()
 	skillWeight := float64(cfg.SkillWeight)
@@ -87,6 +93,10 @@ func RollSubmissionAttempt(
 	defScore := float64(recipient.Stats.Strength.ValueAdj) +
 		float64(recipient.Stats.Vitality.ValueAdj) +
 		float64(defRank)*skillWeight
+	// sight ramp (plan 5b): attempter and recipient both need to see, each
+	// through their own eyes.
+	atkScore *= messaging.SightMult(attempter, room)
+	defScore *= messaging.SightMult(recipient, room)
 
 	res := RunContest(atkScore, []contest.Entry{{Score: defScore}})
 

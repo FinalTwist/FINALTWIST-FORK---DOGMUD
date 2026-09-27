@@ -9,6 +9,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/behaviortree"
 	"github.com/GoMudEngine/GoMud/internal/bountyhunter"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crafting"
@@ -573,6 +574,8 @@ func tickMobCrafting(mob *mobs.Mob) {
 		mob.Character.Items, mob.Character.ComponentItems, recipe)
 	craftScore := crafting.CraftScore(
 		float64(mob.Character.GetStatValue(crafting.CraftPrimaryStat(recipe))), sl)
+	// sight ramp (plan 5b): the crafter needs to see.
+	craftScore *= messaging.SightMult(&mob.Character, combat.SightRoom(rooms.LoadRoom(mob.Character.RoomId)))
 	craftDiff := crafting.CraftDifficulty(
 		recipe.SkillMinimum, crafting.DearestMaterialTier(consumed))
 	won := crafting.RunCraftContest(craftScore, craftDiff).Success

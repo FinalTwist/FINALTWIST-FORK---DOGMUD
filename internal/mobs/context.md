@@ -606,8 +606,15 @@ crafterLastRestockRound uint64   `yaml:"-"`
 
 ### Crafting Algorithm (`crafter.go`)
 ```go
-func TickMobCraft(mob *Mob) *CraftResult
+func TickMobCraft(mob *Mob, room messaging.RoomVisibility) *CraftResult
 ```
+`room` is the crafter's room, threaded to `executeCraft` and
+`executeCraftLegacy`, which multiply `craftScore` by
+`messaging.SightMult(&mob.Character, room)` (lighting plan 5b: the crafter
+needs to see). `mobs` cannot import `rooms` or `combat`, so the caller
+(`hooks/MobIdle_HandleIdleMobs.go`) converts with `combat.SightRoom`; pass
+nil for unity, never a typed-nil `*rooms.Room`.
+
 1. Guard: skip if `!Crafter`, `!CrafterEnabled` config, or mob is in combat
 2. Wait for restock tick: `roundCount - lastRestock >= CrafterMaterialRestockRate`
 3. Restock materials: add items from `CrafterRestockMaterials` to mob's backpack

@@ -36,7 +36,7 @@ func TestAttackerNormalizedMargin_PopulatedOnAttackWin(t *testing.T) {
 		})
 	defer restore()
 
-	out := ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100}, attacker, defender)
+	out := ResolveChannelAttack(nil, combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100}, attacker, defender)
 
 	want := 30.0 / (10.0 * math.Sqrt2)
 	if math.Abs(out.AttackerNormalizedMargin-want) > 1e-9 {
@@ -71,7 +71,7 @@ func TestAttackerNormalizedMargin_ZeroWhenDefenceWon(t *testing.T) {
 		})
 	defer restore()
 
-	out := ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100}, attacker, defender)
+	out := ResolveChannelAttack(nil, combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100}, attacker, defender)
 
 	if out.AttackerNormalizedMargin != 0 {
 		t.Errorf("AttackerNormalizedMargin = %v, want 0 when the defence won", out.AttackerNormalizedMargin)
@@ -103,7 +103,7 @@ func TestAttackerNormalizedMargin_ZeroWhenFloored(t *testing.T) {
 		})
 	defer restore()
 
-	out := ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100}, attacker, defender)
+	out := ResolveChannelAttack(nil, combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100}, attacker, defender)
 
 	if out.AttackerNormalizedMargin != 0 {
 		t.Errorf("AttackerNormalizedMargin = %v, want 0 on a floored win", out.AttackerNormalizedMargin)
@@ -136,7 +136,7 @@ func TestAttackerNormalizedMargin_ZeroOnForcedCritWin_KNOWN(t *testing.T) {
 		})
 	defer restore()
 
-	out := ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100, ForceCrit: true}, attacker, defender)
+	out := ResolveChannelAttack(nil, combatvocab.Rhetoric(combatvocab.TargetSingle), AttackSide{Stat: 100, ForceCrit: true}, attacker, defender)
 
 	if !out.AttackerCrit {
 		t.Fatal("precondition: ForceCrit must produce an attacker crit")

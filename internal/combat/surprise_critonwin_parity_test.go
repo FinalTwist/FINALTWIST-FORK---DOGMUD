@@ -218,7 +218,7 @@ func TestCritOnWin_MeleeAndChannelAgree(t *testing.T) {
 
 			// ── channel ──────────────────────────────────────────────────
 			attacker, defender := defenceAdmissionCharacters()
-			channelOut := resolveChannelAttackWithRunner(combatvocab.Ranged(combatvocab.TargetSingle),
+			channelOut := resolveChannelAttackWithRunner(nil, combatvocab.Ranged(combatvocab.TargetSingle),
 				channelSurpriseSide(tc.critOnWin), attacker, defender, channelRunnerFor(tc.variant))
 			assertChannelPrecondition(t, tc.variant, channelOut)
 

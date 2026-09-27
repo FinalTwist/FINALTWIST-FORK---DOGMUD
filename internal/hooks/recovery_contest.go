@@ -5,7 +5,9 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
@@ -50,7 +52,13 @@ func recoveryContest(ch *characters.Character) func() bool {
 		return nil
 	}
 
-	self, other := score(ch), score(best)
+	// sight ramp (plan 5b): the one getting up and the one holding them down
+	// both need to see, each through their own eyes. The holder is filtered
+	// to ch's room above, so one room serves both. Applied after the holder
+	// is chosen so the pick stays a pure strength comparison.
+	sight := combat.SightRoom(rooms.LoadRoom(ch.RoomId))
+	self := score(ch) * messaging.SightMult(ch, sight)
+	other := score(best) * messaging.SightMult(best, sight)
 	return func() bool {
 		return combat.RunContest(self, []contest.Entry{{Score: other}}).Success
 	}

@@ -151,22 +151,54 @@ Functions:
   dazzled. `BandDark`, `BandShapes`, `BandFaces`, `BandDazzled`, ordered
   DARKEST TO BRIGHTEST (the opposite of `SightDecision`'s best-to-worst
   order), because the one consumer (`internal/lightnotice`) asks "did it
-  get darker?" and an ordered comparison should read that way. Dazzled
-  carries no penalty yet: an observer there reads fully; plan 5 gives it
-  teeth.
-  - `BandThroughWindow(light, strength, reach, blindBelow, dimBelow int) Band`
-    is `SightThroughWindow` with the full tier split at the observer's
-    shifted dazzle edge (`windowDazzleEdge` minus the clamped `strength`).
-    It never moves a lower edge: dark, shapes and faces-or-dazzled are
-    still `SightThroughWindow`'s answers. It is one of two readers of
-    `windowDazzleEdge` (the other is `LightTrimTarget`); see the
-    correction below `ParticipantSight`.
-- `LightTrimTarget(strength int) float64` (`window.go`), added lighting
-  plan 5a: the brightest room light an observer with this night-vision
-  strength reads without being dazzled, one point under the shifted dazzle
-  edge (`windowDazzleEdge - clampShift(strength) - 1`). An adjustable
-  light (`internal/rooms.(*Room).TrimLightFor`) trims toward it. One
-  point, not half, so a room at 74.5 cannot round up onto the edge.
+  get darker?" and an ordered comparison should read that way. `Band`
+  itself still carries no score penalty and is narration-only; since
+  lighting plan 5b the actual dazzle cost is priced independently by
+  `ComfortDistance`/`SightScoreMultiplier` below, which do not consult
+  `Band` at all.
+  - `BandThroughWindow(light, strength, reach, blindBelow, dimBelow,
+    dazzleAbove int) Band` is `SightThroughWindow` with the full tier
+    split at the observer's shifted dazzle edge (`dazzleAbove` minus the
+    clamped `strength`). It never moves a lower edge: dark, shapes and
+    faces-or-dazzled are still `SightThroughWindow`'s answers.
+    `dazzleAbove` is the caller's config knob (`Balance.LightDazzleAbove`
+    via `Lighting.DazzleAbove`), a plan 5b knob, not a package constant;
+    the unexported `windowDazzleEdge` constant this used to read is GONE,
+    replaced by this parameter.
+- `LightTrimTarget(strength, dazzleAbove int) float64` (`window.go`),
+  added lighting plan 5a and reparameterized in 5b: the brightest room
+  light an observer with this night-vision strength reads without being
+  dazzled, one point under the shifted dazzle edge
+  (`dazzleAbove - clampShift(strength) - 1`). An adjustable light
+  (`internal/rooms.(*Room).TrimLightFor`) trims toward it. One point, not
+  half, so a room at 74.5 cannot round up onto the edge.
+- `ComfortDistance(observer *characters.Character, room RoomVisibility)
+  (dark, bright float64)` (`comfort.go`), lighting plan 5b: how far the
+  room's light sits outside the observer's own comfortable band, as two
+  fractions of the way to the cap. `dark` is nonzero below the dim edge (1
+  at the blind edge); `bright` is nonzero above the dazzle edge (0 at the
+  edge itself, 1 one ramp-width beyond it). At most one is non-zero. A nil
+  observer or room reads comfortable (0, 0); a `Blinded` observer reads
+  fully dark (1, 0). The bright ramp is exactly as wide as the dark one, so
+  a strong window is punished by excess light as fast as it is helped by
+  faint light; infra reach softens neither side.
+- `SightScoreMultiplier(dark, bright float64, bal configs.Balance)
+  float64` (`sight_mult.go`), lighting plan 5b: the ONE place the sight
+  ramp becomes a number. Runs from 1.0 at the edge of the comfortable band
+  down to `Balance.DarknessCombatPenalty` at the blind edge and to
+  `Balance.DazzleCap` one ramp-width above the dazzle edge; never returns
+  below 0. It replaced the flat three-verdict penalty (`DarknessScoreMultiplier`,
+  now deleted, and the knob it read, `DarknessShapesCombatPenalty`, also
+  retired). It prices every opposed or difficulty roll, not only combat;
+  the voice contests (taunt, demoralize, rally, warcry, defy) are exempt by
+  never calling it.
+- `SightMult(c *characters.Character, room RoomVisibility) float64`
+  (`sight_mult.go`), lighting plan 5b: the sight ramp for one roller in one
+  room, composing `ComfortDistance` and `SightScoreMultiplier` against
+  `configs.GetBalanceConfig()` so no call site can pair the two
+  differently. Apply it to the score of whoever needs to SEE for the roll
+  (the observer in a detection roll, the thief in a theft, the actor in a
+  search, track, defuse, forage, craft or concentration roll).
   - `LightBand(observer *characters.Character, room RoomVisibility) Band`
     is `ParticipantSight`'s band-grained twin: optics only, does not
     consult sleep, a `Blinded` observer reads `BandDark`, a nil observer
@@ -203,19 +235,28 @@ Functions:
   (`Character.InfraReach()`, the separate heat-sensing number) reads
   anything, and only within `reach` points below zero, which is what lets
   a heat-sensing creature act in darkness a nightvision-only observer
-  cannot parse at all. The unexported `windowDazzleEdge` (75) marks where
-  the perfect band ends and too-bright begins. `SightThroughWindow` itself
+  cannot parse at all. The dazzle edge, `LightDazzleAbove` (default 75),
+  marks where the perfect band ends and too-bright begins. It lived as the
+  unexported constant `windowDazzleEdge` from plan 1 through plan 5a; plan
+  5b retired that constant and made the edge a `Balance` knob instead, once
+  it had something for an operator to retune. `SightThroughWindow` itself
   still never consults it: `SightDecision` has no dazzled value, so a
-  return of `SightFull` at or above the edge carries no mechanical penalty
-  today, and none is due until plan 5. It is a constant, not a `Balance`
-  knob, on purpose: plan 1's rule is that a config knob nothing reads does
-  not ship. **Corrected 2026-09-25**: this file previously said nothing
-  read `windowDazzleEdge` at all; lighting plan 3d's `BandThroughWindow`
-  (`band.go`, see above) now reads it to compute `Band`, so a light-crossing
-  notice can tell a player the light stabs at their eyes, even though the
-  edge still changes no `SightDecision`. Since lighting plan 5a it has a
-  second reader, `LightTrimTarget` (`window.go`), which sets the level an
-  adjustable light trims to.
+  return of `SightFull` at or above the edge carries no penalty from
+  `SightThroughWindow` alone. Lighting plan 3d's `BandThroughWindow`
+  (`band.go`, see above) reads it, as the `dazzleAbove` parameter now
+  rather than the old constant, to compute `Band`, so a light-crossing
+  notice can tell a player the light stabs at their eyes, even though
+  `Band` itself still changes no `SightDecision`. Lighting plan 5a added
+  `LightTrimTarget` (`window.go`) as a second reader, to set the level an
+  adjustable light trims to. **Since lighting plan 5b**, the edge finally
+  prices something directly: `ComfortDistance` (`comfort.go`) reads it (as
+  `cfg.DazzleAbove`), independently of `Band`/`SightDecision`, to measure
+  how far past the edge a room's light sits. `SightScoreMultiplier`
+  (`sight_mult.go`) does NOT read the edge itself; it takes
+  `ComfortDistance`'s fractions and reads only the two ramp caps,
+  `Balance.DarknessCombatPenalty` and `Balance.DazzleCap`, to turn that
+  distance into a score penalty on every opposed or difficulty roll; see
+  the `ComfortDistance`/`SightScoreMultiplier`/`SightMult` entries above.
 
   🔴 **Structural fact worth knowing before reading a bug into it:** with
   `windowShiftCap` at 24 and `LightDimBelow` at 50, no ability can shift
@@ -257,7 +298,7 @@ Functions:
     corrupted `combat-analytics.jsonl`'s contest telemetry with a term
     nobody asked for. M4d closed that gap for good: combat no longer reads
     a messaging predicate by name at all (see `internal/combat/context.md`,
-    "Sight and the darkness penalty").
+    "Sight: the verdict and the ramp").
   - `sleep_policy_test.go` pins the contract by absence: a sleeper reads
     NOTHING from `CanSeeClearly`/`CanSeeShapes` (both false regardless of
     light), and `CanSeeSightImpairedOnly` ignores sleep entirely.
@@ -386,8 +427,10 @@ The package is the pipeline, one stage per file, plus the fan-out (`trio.go`):
 | `hidenames_tagged.go` | Identity-tag-aware name replacement `HideNames` and `Anonymize` share, including the trailing adjective span |
 | `wrap.go` | `WrapAnsi`, ANSI-aware folding at a caller-supplied width measured in visible runes; called by the pipeline for the categories `shouldWrap` admits, and directly by `motd.go` for its box-bordered banner |
 | `predicates.go` | `ParticipantSight` (the optics primitive) plus `CanSeeClearly`/`CanSeeShapes`/`CanSeeSightImpairedOnly`, the one-line attention policies built on it |
-| `window.go` | `SightThroughWindow`, the pure window-model function `ParticipantSight` calls, `clampShift`, `LightTrimTarget` (lighting plan 5a, the adjustable-light trim target and second reader of `windowDazzleEdge`), plus its three unexported constants (`windowDazzleEdge`, `windowShiftCap`, `windowFloor`) |
+| `window.go` | `SightThroughWindow`, the pure window-model function `ParticipantSight` calls, `clampShift`, `LightTrimTarget` (lighting plan 5a, reparameterized in 5b to take `dazzleAbove` instead of reading the now-retired `windowDazzleEdge` constant), plus its two remaining unexported constants (`windowShiftCap`, `windowFloor`) |
 | `band.go` | `Band`, `BandThroughWindow`, `LightBand` (lighting plan 3d): the band-grained twin of `SightDecision`/`SightThroughWindow`/`ParticipantSight`, adding the dazzled tier for `internal/lightnotice` |
+| `comfort.go` | `ComfortDistance` (lighting plan 5b): how far a room's light sits outside the observer's comfortable band, as dark/bright fractions of the way to the cap |
+| `sight_mult.go` | `SightScoreMultiplier` and `SightMult` (lighting plan 5b): the sight ramp as a score multiplier, replacing the deleted `DarknessScoreMultiplier` |
 | `verbosity.go` | Per-player verbosity filtering |
 | `trio.go` | `Line`/`Trio`/`Audience`/`SendTrio` — fan-out of one narrated event to its four audiences |
 

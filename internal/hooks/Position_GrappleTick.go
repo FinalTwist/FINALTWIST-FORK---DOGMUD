@@ -327,6 +327,11 @@ func processGrapplePairWithContest(
 	// initiator keeps the bonus.
 	ctrlScore := grappleScore(controller, isAggressorSide(controller), cfg, !ctrlCost.Short())
 	cdScore := grappleScore(controlled, isAggressorSide(controlled), cfg, !cdCost.Short())
+	// sight ramp (plan 5b): both grapplers need to see, each through their
+	// own eyes. The pair are locked together, so one room serves both.
+	sight := combat.SightRoom(rooms.LoadRoom(controller.RoomId))
+	ctrlScore *= messaging.SightMult(controller, sight)
+	cdScore *= messaging.SightMult(controlled, sight)
 
 	res := runContest(ctrlScore, []contest.Entry{{Score: cdScore}})
 

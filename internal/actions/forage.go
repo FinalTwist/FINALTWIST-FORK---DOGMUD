@@ -100,8 +100,10 @@ func Forage(actor Actor, opts ForageOptions) ForageResult {
 	// zone/storm-gated ultra-rare reagents leaking into vendor stock via
 	// forager NPCs.
 	attempt := forager.ForageAttempt{
-		Biome:       biome.BiomeId,
-		SearchScore: searchScore,
+		Biome: biome.BiomeId,
+		// sight ramp (plan 5b): the forager needs to see. Applied here so
+		// ForageCore stays pure; the NPC forager path comes through here too.
+		SearchScore: searchScore * messaging.SightMult(char, room),
 		AtNight:     gametime.IsNight(),
 	}
 	if actor.IsPlayer() {

@@ -1094,7 +1094,7 @@ func TestTickMobCraftInCombat(t *testing.T) {
 	mob.Character.SetAggro(0, 1, characters.DefaultAttack)
 	// Mob in combat → skip (but configs not loaded, may return nil earlier)
 	defer func() { recover() }()
-	result := TickMobCraft(mob)
+	result := TickMobCraft(mob, nil)
 	assert.Nil(t, result)
 }
 
@@ -1238,7 +1238,7 @@ func TestInstanceFilename(t *testing.T) {
 func TestTickMobCraft(t *testing.T) {
 	t.Run("non-crafter returns nil", func(t *testing.T) {
 		mob := &Mob{Crafter: false}
-		result := TickMobCraft(mob)
+		result := TickMobCraft(mob, nil)
 		assert.Nil(t, result)
 	})
 }

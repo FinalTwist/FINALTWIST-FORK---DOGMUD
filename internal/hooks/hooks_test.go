@@ -14,6 +14,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/facts"
 	"github.com/GoMudEngine/GoMud/internal/gossip"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -1062,7 +1063,7 @@ func TestDotProducerRecordsNegativeHarm_PlayerTarget(t *testing.T) {
 	defer cleanup()
 	defer conditions.SeedConditionRecordsForTest()()
 	original := runSpellChannelAttack
-	runSpellChannelAttack = func(combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
+	runSpellChannelAttack = func(messaging.RoomVisibility, combatvocab.Attack, combat.AttackSide, *characters.Character, *characters.Character) combat.ChannelDefenceResult {
 		return spellContestAttackWin()
 	}
 	t.Cleanup(func() { runSpellChannelAttack = original })
@@ -2537,7 +2538,7 @@ func TestResolveAgainstMob_Basic(t *testing.T) {
 	mob.Character.Health = 100
 	spellData := spells.GetSpell("sparks")
 
-	resolveAgainstMob(u, mob, room, spellData, spellAttackSideFor(spellData, u.Character), 30)
+	resolveAgainstMob(u, mob, room, spellData, spellAttackSideFor(spellData, u.Character, nil), 30)
 	// Should resolve without panic
 }
 
@@ -2674,7 +2675,7 @@ func TestResolveAgainstPlayer_Basic(t *testing.T) {
 	room := rooms.LoadRoom(1)
 
 	spellData := spells.GetSpell("sparks")
-	resolveAgainstPlayer(caster, target, room, spellData, spellAttackSideFor(spellData, caster.Character), 30)
+	resolveAgainstPlayer(caster, target, room, spellData, spellAttackSideFor(spellData, caster.Character, nil), 30)
 	// Should resolve without panic
 }
 
@@ -2914,7 +2915,7 @@ func TestResolveMobSpellAgainstPlayer(t *testing.T) {
 	room := rooms.LoadRoom(1)
 	spellData := spells.GetSpell("sparks")
 
-	resolveMobSpellAgainstPlayer(mob, target, room, spellData, spellAttackSideFor(spellData, &mob.Character), 30)
+	resolveMobSpellAgainstPlayer(mob, target, room, spellData, spellAttackSideFor(spellData, &mob.Character, nil), 30)
 }
 
 // ─── Combat Helper: handlePartyAutoAttack ─────────────────────────────────────

@@ -1,0 +1,30 @@
+# Lighting 5b: the SEARCHER. You are Midroad Scout, starting on Main Street,
+# Central (462), Thornwall, open sky. You have search and skullduggery skills.
+# Quote VERBATIM.
+ephemeral:
+  profile: mid
+  start_room: 462
+  overlays:
+    grant_skills:
+      search: 25
+      skullduggery: 15
+  budgets:
+    wall_clock: 20m
+
+goals:
+  - >-
+    `look`, `time`, `skills`. Record the hour. Then `search` five times (pace
+    one per round) and `track` any creature named in the room or nearby; quote
+    every result.
+  - >-
+    Go to Back Alley, West (474) with `west`, `south`, and repeat: five `search`, then `track thug`.
+    Then `sneak` and try `steal` from the thug if it is there (do not start a
+    fight on purpose).
+  - >-
+    Go `north`, `east`, `north`, `down` to the Rift Chamber (5000, dim, lamp-lit, no sky) and repeat five
+    `search` and a `track`. Compare success across the three places.
+  - >-
+    If the clock reaches dusk or night, repeat on Main Street.
+  - >-
+    reads-well: report any raw number in player text, any sentence over 80
+    columns, any em dash, and any light notice that fires twice on one entry.

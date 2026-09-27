@@ -162,6 +162,10 @@ func ExecuteTaunt(actor Actor) TauntResult {
 	cpPenalty := float64(cfg.ConvictionPenaltyMax)
 	convMult := combat.ResourceMultiplier(char.Conviction, char.EffectivePoolMax(characters.PoolConviction), cpPenalty)
 
+	// Lighting plan 5b: the room feeds both sight rows, which are unity on the
+	// social channel by the declared table; passed so the seam sees one room.
+	sightRoom := combat.SightRoom(actor.GetRoom())
+
 	side := combat.AttackSide{
 		Stat:      char.Stats.Charisma.ValueAdj,
 		StatName:  "charisma",
@@ -171,10 +175,10 @@ func ExecuteTaunt(actor Actor) TauntResult {
 		// on the social channel by the declared table (prone: N; the resource
 		// depletion cell is the convMult already applied here plus the damage
 		// term below — the shared layer must not tax it a second time).
-		Mult:      convMult * combat.SituationalAttackMult(char, combatvocab.Rhetoric(combatvocab.TargetSingle)),
+		Mult:      convMult * combat.SituationalAttackMult(char, sightRoom, combatvocab.Rhetoric(combatvocab.TargetSingle)),
 		ForceCrit: combat.SleepingForceCrit(target.Char),
 	}
-	out := combat.ResolveChannelAttack(combatvocab.Rhetoric(combatvocab.TargetSingle), side, char, target.Char)
+	out := combat.ResolveChannelAttack(sightRoom, combatvocab.Rhetoric(combatvocab.TargetSingle), side, char, target.Char)
 
 	// Determine source/target types for analytics.
 	sourceType := combat.User

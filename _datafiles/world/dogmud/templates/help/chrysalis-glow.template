@@ -7,8 +7,8 @@ it lasts.
 
 A fresh glow starts at full strength. The next time you walk into a
 new place it turns itself down to suit your eyes, so it does not
-dazzle you there. Cast it again for full strength, or use
-<ansi fg="command">cancel glow</ansi> to let it go.
+dazzle you there. Until then it can dazzle you and your party. Cast
+it again for full strength, or use <ansi fg="command">cancel glow</ansi> to let it go.
 
 <ansi fg="yellow">Usage: </ansi>
 

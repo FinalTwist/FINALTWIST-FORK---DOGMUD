@@ -136,6 +136,8 @@ func Defuse(actor Actor, opts DefuseOptions) DefuseResult {
 	defuseScore := float64(char.Stats.Perception.ValueAdj) +
 		float64(skillLevel)*25.0 +
 		float64(kitBonus)
+	// sight ramp (plan 5b): the defuser needs to see.
+	defuseScore *= messaging.SightMult(char, room)
 	trapDifficulty := float64(tgt.lockDifficulty) * 10.0
 
 	success := combat.RunContest(defuseScore, []contest.Entry{{Score: trapDifficulty}}).Success

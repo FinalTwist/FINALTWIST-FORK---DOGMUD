@@ -48,7 +48,7 @@ func (r *Room) TrimLightFor(c *characters.Character) {
 	cfg := configs.GetLightingConfig()
 	celestial := gametime.CelestialLight()
 	skyFilter := r.mutatorSkyFilter()
-	target := messaging.LightTrimTarget(c.NightVisionStrength())
+	target := messaging.LightTrimTarget(c.NightVisionStrength(), cfg.DazzleAbove)
 
 	// Every source about to trim leaves the room first. Otherwise a source
 	// would see the later ones still at full strength, trim to nothing, and

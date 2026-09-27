@@ -2,7 +2,9 @@ conditionid: 65
 name: Cat's Eye Draught
 description: Your eyes catch every bit of dim light and moonlight, like a
   cat's. Hidden things reveal themselves, though total darkness still
-  leaves you blind.
+  leaves you blind. Daylight or any bright lamp dazzles the same sharpened
+  eyes, and everything you do by sight suffers until the light fades or the
+  draught wears off.
 start_actee: Your eyes catch dim light and moonlight like a cat's. Hidden
   things reveal themselves, but you feel weak.
 end_actee: Your eyes lose their cat-like sharpness. The hidden things

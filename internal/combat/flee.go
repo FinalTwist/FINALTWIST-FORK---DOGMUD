@@ -4,6 +4,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -64,7 +65,9 @@ func ResolveFleeBlockers(fleer *characters.Character, room *rooms.Room, includeS
 	fleerUid := fleer.GetUserId()
 	fleerMid := fleer.GetMobInstanceId()
 
-	fleeScore := fleeContestScore(fleer, includeSkill)
+	// sight ramp (plan 5b): the fleer needs to see a way out, and each
+	// blocker below needs to see the fleer go. Each pays their own eyes.
+	fleeScore := fleeContestScore(fleer, includeSkill) * messaging.SightMult(fleer, room)
 
 	// Mobs first, then players. Both loops use FindFighting to scope
 	// to combatants only; the in-loop targeting filter narrows to
@@ -80,7 +83,7 @@ func ResolveFleeBlockers(fleer *characters.Character, room *rooms.Room, includeS
 		if !mobTargetsFleer(m, fleerUid, fleerMid) {
 			continue
 		}
-		blockScore := fleeBlockScore(&m.Character)
+		blockScore := fleeBlockScore(&m.Character) * messaging.SightMult(&m.Character, room)
 		contested = true
 		success := RunContest(fleeScore, []contest.Entry{{Score: blockScore}}).Success
 		if !success {
@@ -102,7 +105,7 @@ func ResolveFleeBlockers(fleer *characters.Character, room *rooms.Room, includeS
 		if !playerTargetsFleer(u, fleerUid, fleerMid) {
 			continue
 		}
-		blockScore := fleeBlockScore(u.Character)
+		blockScore := fleeBlockScore(u.Character) * messaging.SightMult(u.Character, room)
 		contested = true
 		success := RunContest(fleeScore, []contest.Entry{{Score: blockScore}}).Success
 		if !success {

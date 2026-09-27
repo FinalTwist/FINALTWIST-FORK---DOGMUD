@@ -1,0 +1,63 @@
+# Lighting plan 5b: dazzle's teeth. Every opposed or difficulty roll pays a
+# sight penalty that ramps from nothing at the edge of the comfort band to a
+# cap at the blind edge or one band-width above the dazzle edge. Voice
+# contests are exempt. Shops refuse list/buy/sell below the faces band.
+#
+# Fixtures (verified against room YAML 2026-09-26):
+#   474 Back Alley, West (city_backstreet, sky 0.95, lamp 35): Thornwall Thug.
+#   5000 Rift Chamber (dungeon, no sky, lamp 38): Sable; the arena rooms
+#     (instance_arena 5001-5008) are INTERIOR (sky 0.15, lamp 50), not open sky.
+#   4102 Lakefront Square, Stillwater (city_thoroughfare): Fishmonger Tov Brann.
+#   6443 Chrysalis Workshop, Stillwater (dungeon, no sky, lamp 38): Enchanter
+#     Rane, awake 6 to 22. Lamp 38 is below the faces band for normal eyes at
+#     every hour, so the refusal can be read by day.
+#   462 Main Street, Central (city_thoroughfare).
+# The game day is 900 rounds (one real hour); a 20 minute run covers about
+# eight game hours, so "noon then dusk" is compared by room where the clock
+# does not cooperate.
+name: lighting-5b-dazzle
+mode: party
+summary: >-
+  A Cat's Eye drinker fights in the open and in the arena, a lantern bearer
+  haggles in the open and in a dim workshop, and a searcher searches, tracks
+  and steals in light of several strengths; all read every line as prose.
+on_actor_stop: continue
+budgets:
+  wall_clock: 20m
+requires:
+  max_connections: 20
+roster:
+  - id: cateye
+    personality: bug-finder
+    goals: goals/scenarios/lighting-5b-dazzle/cateye.yaml
+  - id: torch
+    personality: bug-finder
+    goals: goals/scenarios/lighting-5b-dazzle/torch.yaml
+  - id: searcher
+    personality: bug-finder
+    goals: goals/scenarios/lighting-5b-dazzle/searcher.yaml
+
+group_goals:
+  - id: cateye-dazzled-by-day
+    do: >-
+      Cat-eye drinks the draught, fights the Thornwall Thug in the open alley
+      (474) and then the Sable arena mob, recording hit and dodge outcomes.
+    verify: >-
+      Outcomes in open daylight are no better than in the arena; dazzle and
+      blind-combat notices read as prose, once per round at most.
+  - id: shop-refusal
+    do: >-
+      Torch bearer deals at Lakefront Square (4102) with the lantern lit, then
+      in the Chrysalis Workshop (6443) hooded and with no light, then lit.
+    verify: >-
+      Unlit in 6443, list/buy/sell each print only "You can't make out the
+      goods well enough to deal." Lit, they work again.
+  - id: search-by-light
+    do: Searcher searches, tracks and steals in several lights.
+    verify: No raw numbers; results are plausible; commands behave per the patch note.
+  - id: notices-once
+    do: Everyone watches light-band notices on room entry.
+    verify: Each fires once per entry, never twice.
+  - id: reads-well
+    do: Everyone judges every line as prose.
+    verify: No raw numbers, no em dashes, nothing over 80 columns, no help contradiction.

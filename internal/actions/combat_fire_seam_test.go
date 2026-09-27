@@ -129,7 +129,7 @@ func TestFireSeam_ShieldedDefenderGetsBlockEntry(t *testing.T) {
 	cfg := configs.GetBalanceConfig()
 	wantAtk := (float64(atkChar.GetEffectivePerception()) +
 		float64(atkChar.GetSkillLevel(skills.RangedCombat))*float64(cfg.SkillWeight)) *
-		combat.SituationalAttackMult(atkChar, combatvocab.Ranged(combatvocab.TargetSingle))
+		combat.SituationalAttackMult(atkChar, combat.SightRoom(rooms.LoadRoom(1)), combatvocab.Ranged(combatvocab.TargetSingle))
 	require.InDelta(t, wantAtk, atkScore, 1e-9,
 		"ranged attack score must be (Perception + ranged rank x SkillWeight) x situational, with no defender term")
 
@@ -140,8 +140,13 @@ func TestFireSeam_ShieldedDefenderGetsBlockEntry(t *testing.T) {
 	// Scores come from the canonical per-defence formulas, exactly. The block
 	// entry equalling GetDefenseScoreFor(block) IS the no-flat-15 proof for
 	// this path: any surviving addend would break the equality.
-	wantDodge := defChar.GetDefenseScoreFor(combatvocab.DefenceDodge, true)
-	wantBlock := defChar.GetDefenseScoreFor(combatvocab.DefenceBlock, true)
+	// Lighting plan 5b: the defender's sight row in the fixture room scales
+	// every entry alike (pinned in internal/combat; here it only composes).
+	sight := combat.SituationalDefenceMult(defChar, combat.SightRoom(rooms.LoadRoom(1)), combatvocab.Ranged(combatvocab.TargetSingle))
+	require.Less(t, sight, 1.0,
+		"fixture room must be off-comfort or this test cannot see the sight row (light %d)", rooms.LoadRoom(1).LightLevel())
+	wantDodge := defChar.GetDefenseScoreFor(combatvocab.DefenceDodge, true) * sight
+	wantBlock := defChar.GetDefenseScoreFor(combatvocab.DefenceBlock, true) * sight
 	require.InDelta(t, wantDodge, entries[0].Score, 1e-9)
 	require.InDelta(t, wantBlock, entries[1].Score, 1e-9,
 		"block must be scored by GetDefenseScoreFor — (Str+Dex)/2 + skill + BlockRating — not by an addend")
@@ -169,7 +174,10 @@ func TestFireSeam_ShieldlessDefenderDodgeOnly(t *testing.T) {
 
 	require.Len(t, entries, 1, "shieldless defender vs a shot: dodge alone")
 	require.Equal(t, string(combatvocab.DefenceDodge), entries[0].Name)
-	require.InDelta(t, defChar.GetDefenseScoreFor(combatvocab.DefenceDodge, true),
+	sight := combat.SituationalDefenceMult(defChar, combat.SightRoom(rooms.LoadRoom(1)), combatvocab.Ranged(combatvocab.TargetSingle))
+	require.Less(t, sight, 1.0,
+		"fixture room must be off-comfort or this test cannot see the sight row (light %d)", rooms.LoadRoom(1).LightLevel())
+	require.InDelta(t, defChar.GetDefenseScoreFor(combatvocab.DefenceDodge, true)*sight,
 		entries[0].Score, 1e-9,
 		"dodge must be scored identically shielded or not — the shield adds an ENTRY, not an addend")
 }

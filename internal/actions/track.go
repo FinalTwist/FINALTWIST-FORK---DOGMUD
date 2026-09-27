@@ -123,7 +123,10 @@ func Track(actor Actor, opts TrackOptions) TrackResult {
 	}
 
 	// Roll the Perception+Search score.
-	searchScore := CalcSearchScore(char)
+	// sight ramp (plan 5b): the tracker needs to see. This score feeds only
+	// resolveTrailDetail's static bands; the opposed contest below pays the
+	// ramp through CalcDetectionScore.
+	searchScore := CalcSearchScore(char) * messaging.SightMult(char, room)
 	// ⚠️ THE QUALITY BANDS ARE STILL STATIC WHILE THE SCORE IS NOT. Phase A
 	// converted the 125 DETECTION GATE to a contest, so that one now compresses
 	// toward 50% and a developed tracker no longer clears it almost always. The
@@ -273,7 +276,7 @@ func Track(actor Actor, opts TrackOptions) TrackResult {
 		if tgt := trackTargetCharacter(targetUserId, targetMobId); tgt != nil {
 			roomLit := room.IsLit()
 			won := combat.RunContest(
-				CalcDetectionScore(char),
+				CalcDetectionScore(char, room),
 				[]contest.Entry{{Score: CalcSneakScoreVsObserver(tgt, char, roomLit)}},
 			).Success
 			awardTrack(won)
@@ -341,6 +344,10 @@ type trailDetail struct {
 // a visitor took while failing to see that anyone passed at all — an outcome
 // that independent per-band contests would produce roughly 1 time in 140 at
 // high scores.
+//
+// searchScore arrives with the tracker's sight ramp already applied in Track;
+// do not apply SightMult again. It stays a pure function of the score so the
+// band tests can drive it directly.
 func resolveTrailDetail(searchScore float64) trailDetail {
 	d := trailDetail{}
 	if !contest.AgainstDifficulty(searchScore, trailDetectTarget).Success {

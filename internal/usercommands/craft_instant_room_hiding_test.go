@@ -95,10 +95,16 @@ func seedCraftHidingCondition() func() {
 
 // darkenCraftRoom turns a fixture room into an unlit cave, so CanSeeClearly
 // fails and a bystander with InfraredVision sight lands at SightShapes.
+//
+// Room 1 carries a room-level Lamp pin (lighting plan 5b's shop sight gate
+// needs it lit; see seedAllRegistries) that overrides a biome switch, same
+// trap noted in combat_fire_test.go: a room-level Lamp is not a biome
+// default, so it survives switching Biome to "cave" unless cleared first.
 func darkenCraftRoom(t *testing.T, roomId int) {
 	t.Helper()
 	room := rooms.LoadRoom(roomId)
 	require.NotNil(t, room)
+	room.Lamp = nil
 	room.Biome = "cave"
 	require.Equal(t, 0, room.LightLevel(), "room %d must actually be unlit", roomId)
 }

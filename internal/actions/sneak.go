@@ -121,7 +121,7 @@ func Sneak(actor Actor) SneakResult {
 			continue
 		}
 		sneakScore := CalcSneakScoreVsObserver(char, observer.Character, roomLit)
-		observerScore := CalcDetectionScore(observer.Character)
+		observerScore := CalcDetectionScore(observer.Character, room)
 		rollHappened = true
 		success := combat.RunContest(sneakScore, []contest.Entry{{Score: observerScore}}).Success
 		if !success {
@@ -146,7 +146,7 @@ func Sneak(actor Actor) SneakResult {
 			continue
 		}
 		sneakScore := CalcSneakScoreVsObserver(char, &m.Character, roomLit)
-		observerScore := CalcDetectionScore(&m.Character)
+		observerScore := CalcDetectionScore(&m.Character, room)
 		rollHappened = true
 		success := combat.RunContest(sneakScore, []contest.Entry{{Score: observerScore}}).Success
 		if !success {

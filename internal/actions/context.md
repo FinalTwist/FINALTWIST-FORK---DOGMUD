@@ -737,7 +737,7 @@ type SellResult struct {
 
 `SellStopReason` values: `SellStopSoldAll` (normal), `SellStopNoItem`,
 `SellStopNoMerchant`, `SellStopMerchantBroke` (player path only),
-`SellStopRejected`.
+`SellStopRejected`, `SellStopNoSight` (lighting plan 5b, see below).
 
 **Messaging:** Player sellers receive "You don't have that item." and merchant
 speech lines synchronously (not via the mob's async command queue — see
@@ -754,6 +754,41 @@ Entry points that call `Sell`:
 **See also:** `internal/forager/vendor_sell.go` (`forager.SellToVendor`) and
 `internal/forager/chest_backfill.go` (`forager.BackfillVendorFromChests`) for
 the free supply-handoff paths — these are NOT routed through `actions.Sell`.
+
+### Shop sight gate (lighting plan 5b, `shop_sight.go`)
+
+`list`, `buy` and `sell` all need full sight to deal: below the faces band
+(`messaging.LightBand`) a customer can't make out the goods.
+
+- **`ShopSightRefusal(c *characters.Character, room *rooms.Room) bool`**,
+  true when `messaging.LightBand(c, room) < messaging.BandFaces`. A nil room
+  reads as no refusal (callers have already handled "no room" their own way).
+  Mirrors `ShopClosedForSleep` beside it in `sleeping_target.go`: `Buy` and
+  `Sell` check it only once a merchant is confirmed present in the room
+  (`SellStopNoSight` / `BuyReasonNoSight`), so "there's no merchant here"
+  still wins over a sight refusal, and a nil-Mob `MobActor` test fixture
+  (no merchant path) never calls `GetCharacter()` unguarded. `usercommands.List`
+  checks it directly, right after its own sleep gate.
+- **`ShopSightRefusalText`**, the one line every refusing verb prints:
+  "You can't make out the goods well enough to deal."
+- **`barterDiscount(char *characters.Character, room *rooms.Room, maxFrac float64) float64`**,
+  the ONE place the bartering discount is computed: skill-derived, capped at
+  `maxFrac` (skill 50 reaches the cap), times `messaging.SightMult(char, room)`.
+  A dazzled haggler (bright band, still full sight) bargains worse than a
+  comfortable one; a nil room reads as comfortable (mult 1.0), matching
+  `SightMult`'s own nil-room reading. Replaces three previously hand-rolled,
+  slightly inconsistent discount computations in `buy.go` and `sell.go`.
+  `maxFrac` is always the shipped knob, never a Go literal:
+  `configs.GetBalanceConfig().BarterMaxDiscount` for a buyer's price cut
+  (`tryPurchaseFromInventory` in `buy.go`), `.BarterMaxBonus` for a seller's
+  price bump (`sellOneToMerchant` in `sell.go`); the two differ because buy
+  and sell name different knobs, so the caller reads its own before calling in.
+
+A mob actor gets no refusal text: `MobActor.SendText` is already a no-op, so
+the gate calls `SendText` unconditionally guarded on `buyer.IsPlayer()` for
+readability, matching every other refusal in `buy.go`/`sell.go`. Both refusal
+sends use `messaging.CategorySystem`, matching `ShopClosedForSleep`'s own
+refusal category and the neighbouring "Visit a merchant" lines.
 
 ---
 
@@ -936,6 +971,25 @@ tell you. `FireResult.Chambered` carries the auto-reload's outcome, and its
   point). For OPPOSED contests, do not reach `internal/contest` directly; this
   package goes through `internal/combat`.
 
+  **Sight ramp on score-only rolls (lighting plan 5b).** Every hand-built
+  score here pays `messaging.SightMult` on the party who needs to SEE, once
+  per roll per party. `CalcDetectionScore(c, room messaging.RoomVisibility)`
+  applies it for the OBSERVER (pass the observer's room; nil is unity; the
+  hider's side already folds light in through `CalcSneakScoreVsObserver`), so
+  every detection caller (sneak, go, search's `spotsHider`, track's opposed
+  contest, the steal/plant/shadow notice rolls) gets it by construction.
+  `stealVictimScore(c, room)` does the same for the theft and plant
+  victims and container bystanders: noticing is the victim's roll, so the
+  victim pays their own eyes inside the helper.
+  Actor-side sites multiply where the score is computed: the thief's and
+  planter's attack score (once in `Steal`/`Plant`, feeding all three
+  sub-paths), the shadower's sneak score, the defuser's score, the searcher's
+  static-tier score in `Search`, the tracker's `searchScore` in `Track` (fed
+  to `resolveTrailDetail`, which stays pure), the forager's
+  `ForageAttempt.SearchScore` (`ForageCore` stays pure), the salvager's
+  `score` in `Salvage`, and the caster's `hold` in `ExecuteThrottle`'s cast
+  interrupt. Voice contests never call it.
+
   **The one exception, added by U10b-1b Phase A: STATIC-DIFFICULTY checks call
   `contest.AgainstDifficulty` directly**, because there is no `internal/combat`
   wrapper for them and deliberately never will be — `combat.RunContest`'s doc
@@ -980,7 +1034,7 @@ the rest are ordinary verbs.
 | Casting | `cast.go`, `cast_interrupt.go` |
 | Mutation actives | `mutation_cocoon.go`, `mutation_venom_coat.go` |
 | Stealth / perception | `sneak.go`, `shadow.go`, `search.go`, `scan.go`, `track.go`, `steal.go` |
-| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `remove_equip.go` |
+| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `remove_equip.go`, `shop_sight.go` |
 | Trades | `craft.go`, `salvage.go`, `forage.go`, `plant.go`, `defuse.go` |
 | Movement & state | `go.go`, `sleep.go`, `consider.go` |
 | Social | `say.go`, `emote.go`, `emote_aliases.go` |

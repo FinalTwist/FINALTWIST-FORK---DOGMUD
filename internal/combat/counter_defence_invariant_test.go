@@ -23,7 +23,7 @@ func TestResolveChannelAttack_ADefensiveCritNamesItsDefence(t *testing.T) {
 		Skill: attacker.GetCombatSkillTag(), SkillRank: attacker.GetCombatSkillLevel(),
 		Mult: 1.0,
 	}
-	out := ResolveChannelAttack(combatvocab.Melee(combatvocab.TargetSingle), side, attacker, defender)
+	out := ResolveChannelAttack(nil, combatvocab.Melee(combatvocab.TargetSingle), side, attacker, defender)
 	if !out.DefensiveCrit {
 		t.Fatalf("fixture error: the contest was supposed to be a defensive crit, got %+v", out)
 	}

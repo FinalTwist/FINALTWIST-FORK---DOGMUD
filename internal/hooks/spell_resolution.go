@@ -82,7 +82,7 @@ func playerHarmTargetPermitted(spellData *spells.SpellData, mob *mobs.Mob) bool 
 
 func resolveSpell(user *users.UserRecord, cs activity.CastingData, spellData *spells.SpellData, room *rooms.Room) (anyLanded bool) {
 
-	side := spellAttackSideFor(spellData, user.Character)
+	side := spellAttackSideFor(spellData, user.Character, combat.SightRoom(room))
 	magnitude := spellData.EffectMagnitude
 
 	// --- Identify: resolve against caster's item, no targets ---
@@ -330,7 +330,10 @@ var runSpellChannelAttack = combat.ResolveChannelAttack
 //
 // StatName mirrors CasterStatValue's default: an empty primarystat reads as
 // willpower there, so the progression events must name willpower too, not "".
-func spellAttackSideFor(spellData *spells.SpellData, casterChar *characters.Character) combat.AttackSide {
+//
+// room is the cast's room (lighting plan 5b): the caster must see to aim, so
+// Mult carries the sight row of the situational table. Nil is unity.
+func spellAttackSideFor(spellData *spells.SpellData, casterChar *characters.Character, room messaging.RoomVisibility) combat.AttackSide {
 	castSkill := skills.Spellcasting
 	if spellData.HasSchool(spells.SchoolManifestation) {
 		castSkill = skills.Manifestation
@@ -344,13 +347,14 @@ func spellAttackSideFor(spellData *spells.SpellData, casterChar *characters.Char
 		StatName:  statName,
 		Skill:     castSkill,
 		SkillRank: casterChar.GetSkillLevel(castSkill),
-		// Task 17: composed with the shared situational layer, which is 1.0
-		// on both spell channels by the declared table — you cast fine from
-		// the ground, and the conviction-depletion penalty is already applied
-		// in the damage term (calcSpellDamageForCharacter), so it must not
-		// reach accuracy a second time here. ForceCrit is per-target and set
-		// by each resolveAgainst* call site.
-		Mult: combat.SituationalAttackMult(casterChar, spellData.Attack()),
+		// Task 17: composed with the shared situational layer. Prone and
+		// stamina are 1.0 on both spell channels by the declared table: you
+		// cast fine from the ground, and the conviction-depletion penalty is
+		// already applied in the damage term (calcSpellDamageForCharacter),
+		// so it must not reach accuracy a second time here. The sight row
+		// (lighting plan 5b) does apply. ForceCrit is per-target and set by
+		// each resolveAgainst* call site.
+		Mult: combat.SituationalAttackMult(casterChar, room, spellData.Attack()),
 	}
 }
 
@@ -420,7 +424,7 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 		}
 		side.Mult *= charmInCombatMult(&mob.Character, user.UserId)
 	}
-	out := runSpellChannelAttack(spellData.Attack(), side, user.Character, &mob.Character)
+	out := runSpellChannelAttack(combat.SightRoom(room), spellData.Attack(), side, user.Character, &mob.Character)
 
 	round := util.GetRoundCount()
 
@@ -952,7 +956,7 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(target.Character)
-	out := runSpellChannelAttack(spellData.Attack(), side, user.Character, target.Character)
+	out := runSpellChannelAttack(combat.SightRoom(room), spellData.Attack(), side, user.Character, target.Character)
 
 	// Backfire on fumble — resolved BEFORE success, per the seam's contract.
 	if out.AttackerFumble {
@@ -1365,7 +1369,7 @@ func resolveMobSpell(mob *mobs.Mob, cs activity.CastingData, spellData *spells.S
 		return true // uncontested area drain
 	}
 
-	side := spellAttackSideFor(spellData, &mob.Character)
+	side := spellAttackSideFor(spellData, &mob.Character, combat.SightRoom(room))
 	magnitude := spellData.EffectMagnitude
 
 	if spellData.IsHarm() && spellData.Targeting == combatvocab.TargetArea {
@@ -1559,7 +1563,7 @@ func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.R
 	}
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(&target.Character)
-	out := runSpellChannelAttack(spellData.Attack(), side, &caster.Character, &target.Character)
+	out := runSpellChannelAttack(combat.SightRoom(room), spellData.Attack(), side, &caster.Character, &target.Character)
 	if out.AttackerFumble {
 		dmg := magnitude / 4
 		if dmg < 1 {
@@ -1590,7 +1594,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 	spellData *spells.SpellData, side combat.AttackSide, magnitude int) (landed bool) {
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(target.Character)
-	out := runSpellChannelAttack(spellData.Attack(), side, &caster.Character, target.Character)
+	out := runSpellChannelAttack(combat.SightRoom(room), spellData.Attack(), side, &caster.Character, target.Character)
 	round := util.GetRoundCount()
 	if out.AttackerFumble {
 		dmg := magnitude / 4

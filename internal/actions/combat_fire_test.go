@@ -280,7 +280,7 @@ func TestFire_SameRoomMob_PerceptionGoverns(t *testing.T) {
 	cfg := configs.GetBalanceConfig()
 	wantAtk := (float64(char.GetEffectivePerception()) +
 		float64(char.GetSkillLevel(skills.RangedCombat))*float64(cfg.SkillWeight)) *
-		combat.SituationalAttackMult(char, combatvocab.Ranged(combatvocab.TargetSingle))
+		combat.SituationalAttackMult(char, combat.SightRoom(actor.GetRoom()), combatvocab.Ranged(combatvocab.TargetSingle))
 	require.InDelta(t, wantAtk, gotAtkScore, 1e-9,
 		"the contested attack score must be governed by Perception")
 

@@ -36,6 +36,7 @@ const (
 	SellStopNoMerchant                          // no willing merchant in room
 	SellStopMerchantBroke                       // merchant ran out of gold (player path only)
 	SellStopRejected                            // merchant declined the item type
+	SellStopNoSight                             // a merchant is here but the seller can't see well enough to deal
 )
 
 type SellResult struct {
@@ -57,6 +58,20 @@ func Sell(seller Actor, opts SellOptions) SellResult {
 	if room == nil {
 		return SellResult{Reason: SellStopNoMerchant}
 	}
+
+	// Below the faces band you can't make out the goods (lighting plan 5b).
+	// Gated on a merchant actually being in the room, same as
+	// ShopClosedForSleep beside it: "there's no merchant here" still wins
+	// over a sight refusal when there is truly nobody to deal with.
+	if len(room.GetPlayers(rooms.FindMerchant)) > 0 || len(room.GetMobs(rooms.FindMerchant)) > 0 {
+		if ShopSightRefusal(seller.GetCharacter(), room) {
+			if seller.IsPlayer() {
+				seller.SendText(messaging.CategorySystem, ShopSightRefusalText)
+			}
+			return SellResult{Reason: SellStopNoSight}
+		}
+	}
+
 	if opts.SellAllSellable {
 		return sellSweep(seller, room)
 	}
@@ -280,12 +295,13 @@ func sellOneToMerchant(seller Actor, itemName string, room *rooms.Room,
 		sellValue = offer.Price
 		buyReason = offer.Reason
 		if sellValue > 0 {
-			barterSkill := char.GetSkillLevel(skills.Bartering)
-			if barterSkill > 0 {
-				bonus := float64(barterSkill) / 50.0 * 0.15
-				if bonus > 0.15 {
-					bonus = 0.15
-				}
+			// A dazzled seller bargains worse (lighting plan 5b): barterDiscount
+			// folds SightMult into the same BarterMaxBonus-at-skill-50 cap.
+			// Balance numbers come from config.yaml, never a Go literal: the
+			// sell-side cap is Balance.BarterMaxBonus (buy.go reads
+			// BarterMaxDiscount instead, see tryPurchaseFromInventory).
+			barterMaxBonus := float64(configs.GetBalanceConfig().BarterMaxBonus)
+			if bonus := barterDiscount(char, room, barterMaxBonus); bonus > 0 {
 				sellValue = shops.ApplyBarterBuyBonus(sellValue, bonus)
 			}
 		}

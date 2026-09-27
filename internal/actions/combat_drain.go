@@ -117,14 +117,17 @@ func ExecuteDrain(actor Actor) DrainResult {
 	// U6b Task 7: through the channel seam — raw rank in, the seam applies
 	// SkillWeight (x1 -> x5 both sides); the defence is the equipment-gated
 	// set, charged and progressed; the crit tier and fumble abort exist now.
+	// Lighting plan 5b: the actor's room feeds both sight rows.
+	sightRoom := combat.SightRoom(actor.GetRoom())
 	result := combat.ExecuteSkillMove(combat.SkillMoveParams{
 		Attacker: char,
 		Defender: target.Char,
 		Shape:    combatvocab.Melee(combatvocab.TargetSingle),
+		Room:     sightRoom,
 		Attack: combat.AttackSide{
 			Stat: char.Stats.Strength.ValueAdj, StatName: "strength",
 			Skill: skills.UnarmedCombat, SkillRank: char.GetSkillLevel(skills.UnarmedCombat),
-			Mult:      combat.SituationalAttackMult(char, combatvocab.Melee(combatvocab.TargetSingle)),
+			Mult:      combat.SituationalAttackMult(char, sightRoom, combatvocab.Melee(combatvocab.TargetSingle)),
 			ForceCrit: combat.SleepingForceCrit(target.Char),
 		},
 		DamagePercent:   float64(cfg.TripDamagePercent),
@@ -289,10 +292,11 @@ func ExecuteDrainArea(actor Actor) DrainAreaResult {
 			Attacker: char,
 			Defender: target.Character,
 			Shape:    combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetArea),
+			Room:     room, // lighting plan 5b: non-nil, checked above
 			Attack: combat.AttackSide{
 				Stat: char.Stats.Strength.ValueAdj, StatName: "strength",
 				Skill: skills.UnarmedCombat, SkillRank: char.GetSkillLevel(skills.UnarmedCombat),
-				Mult:      combat.SituationalAttackMult(char, combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetArea)),
+				Mult:      combat.SituationalAttackMult(char, room, combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetArea)),
 				ForceCrit: combat.SleepingForceCrit(target.Character),
 			},
 			DamagePercent: float64(cfg.TripDamagePercent),

@@ -22,6 +22,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/state/position"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -105,7 +106,9 @@ func processSubmissionTickForChar(c *characters.Character) {
 	}
 
 	subType := pickSubmissionRoundRobin(attempter, subPool)
-	result := combat.RollSubmissionAttempt(attempter, recipient, subType)
+	// The pair are locked together, so the attempter's room is the recipient's.
+	result := combat.RollSubmissionAttempt(attempter, recipient, subType,
+		combat.SightRoom(rooms.LoadRoom(attempter.RoomId)))
 
 	// Chunk 4e §8: if the submitter took qualifying third-party damage
 	// this round, force Bad-tier outcome. The damage was accumulated by

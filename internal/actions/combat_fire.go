@@ -391,14 +391,19 @@ func ExecuteFire(actor Actor, rest string) FireResult {
 	// shot can crit against CritBarFor's pair bar. The attack stat is
 	// GetEffectivePerception() (Assumption 2: aimed shots are
 	// deliberate-move actions, not auto-attack swings).
+	//
+	// Lighting plan 5b: both sight rows read targetRoom (non-nil; it is room
+	// for a same-room shot). The defender stands in it, and the shooter aims
+	// into it, the same room the CanSeeClearly aiming gate above judges.
 	result.MoveResult = combat.ExecuteSkillMove(combat.SkillMoveParams{
 		Attacker: char,
 		Defender: defChar,
 		Shape:    combatvocab.Ranged(combatvocab.TargetSingle),
+		Room:     targetRoom,
 		Attack: combat.AttackSide{
 			Stat: char.GetEffectivePerception(), StatName: "perception",
 			Skill: skills.RangedCombat, SkillRank: rangedRank,
-			Mult:      combat.SituationalAttackMult(char, combatvocab.Ranged(combatvocab.TargetSingle)),
+			Mult:      combat.SituationalAttackMult(char, targetRoom, combatvocab.Ranged(combatvocab.TargetSingle)),
 			ForceCrit: combat.SleepingForceCrit(defChar),
 			CritOnWin: surpriseShot,
 		},

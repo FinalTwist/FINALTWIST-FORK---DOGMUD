@@ -68,10 +68,17 @@ type StealResult struct {
 // are caught/unseen, not damage, so a margin-scaled multiplier has nothing
 // to scale (spec section 4.5: a documented reason where a defence set is not
 // meaningful).
-func stealVictimScore(c *characters.Character) float64 {
-	return float64(c.Stats.Perception.ValueAdj) +
+//
+// room is the VICTIM's room (lighting plan 5b): noticing a hand in your pocket
+// is an observer's roll, so the victim or bystander pays their own sight ramp
+// (messaging.SightMult) here, once. The thief pays theirs on the attack
+// score in Steal/Plant. A nil room is unity; pass combat.SightRoom for a
+// *rooms.Room that may be nil.
+func stealVictimScore(c *characters.Character, room messaging.RoomVisibility) float64 {
+	return (float64(c.Stats.Perception.ValueAdj) +
 		float64(c.GetSkillLevel(skills.Skullduggery))*
-			float64(configs.GetBalanceConfig().SkillWeight)
+			float64(configs.GetBalanceConfig().SkillWeight)) *
+		messaging.SightMult(c, room)
 }
 
 // Steal runs a skullduggery theft attempt from actor against the
@@ -129,6 +136,9 @@ func Steal(actor Actor, opts StealOptions) StealResult {
 	if isHidden {
 		attackerScore += float64(cfg.StealHiddenBonus)
 	}
+	// sight ramp (plan 5b): the thief needs to see. Once here; the score
+	// feeds all three theft contests below.
+	attackerScore *= messaging.SightMult(char, room)
 
 	// Dispatch to the appropriate path.
 	if opts.TargetMobInstanceId > 0 {
@@ -143,7 +153,9 @@ func Steal(actor Actor, opts StealOptions) StealResult {
 	return stealFromContainer(actor, opts.ContainerNoun, attackerScore, rank)
 }
 
-// stealFromMob handles the creature steal path.
+// stealFromMob handles the creature steal path. attackerScore arrives with
+// the thief's sight ramp already applied in Steal; do not apply SightMult
+// again.
 func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 	rank int, cfg configs.Balance) StealResult {
 
@@ -192,7 +204,7 @@ func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 		}
 	}
 
-	defenderScore := stealVictimScore(&m.Character)
+	defenderScore := stealVictimScore(&m.Character, combat.SightRoom(actor.GetRoom()))
 	success := combat.RunContest(attackerScore, []contest.Entry{{Score: defenderScore}}).Success
 	// U10b-1 Task 18: moved DOWN from before the contest, and it now carries
 	// the outcome. This fired unconditionally at full weight -- the comment
@@ -362,7 +374,8 @@ func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 // score is rolled against the target player's Perception. On
 // success, gold is lifted (no item steal against players). An
 // independent detection roll then decides whether the victim
-// notices.
+// notices. attackerScore arrives with the thief's sight ramp already
+// applied in Steal; do not apply SightMult again.
 func stealFromPlayer(actor Actor, targetUserId int, attackerScore float64,
 	rank int, cfg configs.Balance) StealResult {
 
@@ -381,7 +394,7 @@ func stealFromPlayer(actor Actor, targetUserId int, attackerScore float64,
 		}
 	}
 
-	defenderScore := stealVictimScore(targetUser.Character)
+	defenderScore := stealVictimScore(targetUser.Character, combat.SightRoom(actor.GetRoom()))
 	success := combat.RunContest(attackerScore, []contest.Entry{{Score: defenderScore}}).Success
 	// U10b-1 Task 18: moved DOWN from before the contest, and it now carries
 	// the outcome. This fired unconditionally at full weight -- the comment
@@ -440,7 +453,7 @@ func stealFromPlayer(actor Actor, targetUserId int, attackerScore float64,
 
 	// Independent detection roll: victim may notice even on success.
 	if !actor.IsPlayer() {
-		searchScore := CalcDetectionScore(targetUser.Character)
+		searchScore := CalcDetectionScore(targetUser.Character, combat.SightRoom(actor.GetRoom()))
 		roomLit := actor.GetRoom().IsLit()
 		sneakScore := CalcSneakScoreVsObserver(actor.GetCharacter(), targetUser.Character, roomLit)
 		detected := combat.RunContest(searchScore, []contest.Entry{{Score: sneakScore}}).Success
@@ -456,7 +469,9 @@ func stealFromPlayer(actor Actor, targetUserId int, attackerScore float64,
 	return result
 }
 
-// stealFromContainer handles the room-container steal path.
+// stealFromContainer handles the room-container steal path. attackerScore
+// arrives with the thief's sight ramp already applied in Steal; do not apply
+// SightMult again.
 func stealFromContainer(actor Actor, containerName string,
 	attackerScore float64, rank int) StealResult {
 
@@ -524,7 +539,7 @@ func stealFromContainer(actor Actor, containerName string,
 		if observer == nil {
 			continue
 		}
-		obsScore := stealVictimScore(observer.Character)
+		obsScore := stealVictimScore(observer.Character, room)
 		if obsScore > highestObserverScore {
 			highestObserverScore = obsScore
 			spotterName = observer.Character.Name
@@ -540,7 +555,7 @@ func stealFromContainer(actor Actor, containerName string,
 		if m == nil {
 			continue
 		}
-		obsScore := stealVictimScore(&m.Character)
+		obsScore := stealVictimScore(&m.Character, room)
 		if obsScore > highestObserverScore {
 			highestObserverScore = obsScore
 			spotterName = m.Character.Name

@@ -375,11 +375,11 @@ panel — a caching client would keep showing the last SIGHTED reading
 straight through a blind stretch, which is a worse leak than a uniform
 `0`.
 
-**This is a binary gate, not a three-verdict one.** Unlike combat's own
-`DarknessScoreMultiplier` (`internal/combat/context.md`), which treats
-`SightShapes` as its own tier, `Char.Enemies` has no "a figure" middle
-ground — it matches the prompt's existing binary behaviour
-(`CanSeeClearly`), not combat's three-verdict `SightDecision`.
+**This is a binary gate, not a three-verdict one.** Unlike combat's
+narration, which reads the three-verdict `SightDecision` and treats
+`SightShapes` as its own tier (`internal/combat/context.md`),
+`Char.Enemies` has no "a figure" middle ground: it matches the prompt's
+existing binary behaviour (`CanSeeClearly`).
 
 ## Module index
 

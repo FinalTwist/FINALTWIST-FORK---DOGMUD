@@ -33,13 +33,19 @@ const unloadedMeleeDamageCap = 0.30
 
 // combatContext carries per-round environmental info into the combat engine.
 type combatContext struct {
-	// sourceSight and targetSight are the OPTICS VERDICT, not a narration gate.
-	// They drive Balance.DarknessCombatPenalty on attack and defence scores and
-	// nothing else. They carry the full SightDecision rather than a bool
-	// because seeing shapes is not the same as seeing nothing: M4d PR 2 gives
-	// the shapes case its own reduced penalty, and a bool cannot say that.
+	// sourceSight and targetSight are the OPTICS VERDICT, and since lighting
+	// plan 5b they are the narration gate only: they decide whether a
+	// combatant's name is hidden (messaging.HideNames in combat.go) and no
+	// longer feed any score. They carry the full SightDecision rather than a
+	// bool because seeing shapes is not the same as seeing nothing.
 	sourceSight messaging.SightDecision
 	targetSight messaging.SightDecision
+	// sourceDark/sourceBright and targetDark/targetBright are
+	// messaging.ComfortDistance for each side: the sight RAMP's input (plan
+	// 5b). The verdict fields above stay the narration gate; these two pairs
+	// are the only thing the scoring reads.
+	sourceDark, sourceBright float64
+	targetDark, targetBright float64
 	// omitAttackSkill is set only when the round's aggregate attack quote was
 	// partially paid. It affects the opposed hit score and nothing else: swing
 	// planning and damage keep using the equipped combat skill.
@@ -509,22 +515,6 @@ func buildDamageParams(sourceChar *characters.Character, targetChar *characters.
 	}
 }
 
-// DarknessScoreMultiplier is the sight-based multiplier on an attack or
-// defence score. It is the ONE place the three SightDecision verdicts turn
-// into a number. SightDecision runs best-to-worst (SightFull = 0,
-// SightShapes = 1, SightNone = 2), so this switches on equality rather than
-// ordering it.
-func DarknessScoreMultiplier(sight messaging.SightDecision, bal configs.Balance) float64 {
-	switch sight {
-	case messaging.SightFull:
-		return 1.0
-	case messaging.SightShapes:
-		return float64(bal.DarknessShapesCombatPenalty)
-	default:
-		return float64(bal.DarknessCombatPenalty)
-	}
-}
-
 // calcAttackScore computes the attack roll score with all modifiers.
 // weapon is the weapon ACTUALLY BEING SWUNG, not whatever is in the main hand.
 // A zero Item means bare hands. Passing it is what stops an offhand fist being
@@ -574,10 +564,9 @@ func calcAttackScore(sourceChar *characters.Character, targetChar *characters.Ch
 		attackScore *= float64(bal.GrappleGroundedVulnerabilityMultiplier)
 	}
 
-	// Darkness penalty: attacker can't see. DarknessScoreMultiplier gives an
-	// infrared attacker (SightShapes) its own reduced penalty, owner ruling 6
-	// (2026-09-20): less than the blind penalty, not zero.
-	attackScore *= DarknessScoreMultiplier(ctx.sourceSight, bal)
+	// Sight ramp (plan 5b): the attacker pays by how far the light sits
+	// outside its comfortable band; the sight verdict does not score.
+	attackScore *= messaging.SightScoreMultiplier(ctx.sourceDark, ctx.sourceBright, bal)
 
 	// Winged Flight: a flyer beats the earthbound on the melee opposed roll —
 	// striking from a superior angle (attacker flying) or staying out of an
@@ -766,10 +755,9 @@ func runBestOfAllDefenseWithRunner(result *AttackResult, sourceChar *characters.
 			defenseScore *= float64(bal.ThirdPartyGrapplePenalty)
 		}
 
-		// Darkness penalty: defender can't see. DarknessScoreMultiplier gives an
-		// infrared defender (SightShapes) its own reduced penalty, owner ruling 6
-		// (2026-09-20): less than the blind penalty, not zero.
-		defenseScore *= DarknessScoreMultiplier(ctx.targetSight, bal)
+		// Sight ramp (plan 5b): the defender pays by how far the light sits
+		// outside its comfortable band; the sight verdict does not score.
+		defenseScore *= messaging.SightScoreMultiplier(ctx.targetDark, ctx.targetBright, bal)
 
 		// Incorporeal mutation: physical defense bonus (channel-scoped
 		// to physical attacks; this function only handles physical

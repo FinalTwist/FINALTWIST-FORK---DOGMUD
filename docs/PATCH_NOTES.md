@@ -1,5 +1,28 @@
 # DOGMud Patch Notes
 
+## 2026-09-26: Being dazzled has a price
+
+Light now works against you in everything you do by sight, not only in
+whether you can see. The worse the light is for your eyes, the more your
+aim, your guard and your eye for detail all suffer. This runs both ways:
+light so bright it dazzles you costs you as much as light too dim to see
+by, and it grows worse the further you are from what your eyes find
+comfortable.
+
+Taunting, demoralizing, rallying, giving a war cry and defying someone
+all use your voice, not your eyes, so light does not affect them.
+
+Creatures whose eyes are built for the dark, and anyone under a potion
+or ability that sharpens their eyes, are dazzled by ordinary daylight
+the same way anyone else is dazzled by staring into the sun.
+
+Shops now expect you to see well enough to deal. Try to list, buy or
+sell in light too dim to make out faces and the shopkeeper turns you
+away. In light too bright for your eyes you can still trade, but being
+dazzled makes you a worse haggler. Bargaining now has the same limit
+when you buy as when you sell, so a very skilled bargainer saves a
+little less when buying.
+
 ## 2026-09-26: Carry your own light
 
 Everyone now has a light slot among their equipment. Equip a candle, an

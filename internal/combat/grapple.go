@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/dice"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/movenarration"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -73,7 +74,11 @@ func normalizedContestMargin(margin float64, roll dice.RollResult) float64 {
 // Position transitions on success:
 // - Standing → Clinched
 // - Prone → Grounded (direct, skip Clinched)
-func AttemptGrapple(attacker *characters.Character, defender *characters.Character) GrappleResult {
+//
+// Sight (lighting plan 5b): both scores then pay their own
+// messaging.SightMult in room, the room the two stand in. A nil room is
+// unity; convert a possibly-nil *rooms.Room with SightRoom.
+func AttemptGrapple(attacker *characters.Character, defender *characters.Character, room messaging.RoomVisibility) GrappleResult {
 	result := GrappleResult{}
 	cfg := configs.GetBalanceConfig()
 	skillWeight := float64(cfg.SkillWeight)
@@ -114,6 +119,11 @@ func AttemptGrapple(attacker *characters.Character, defender *characters.Charact
 		// Attacker penalized when attacking from the ground
 		result.AttackScore *= float64(cfg.GrappleProneAttackerMod)
 	}
+
+	// sight ramp (plan 5b): the grappler and the grappled both need to see,
+	// each through their own eyes.
+	result.AttackScore *= messaging.SightMult(attacker, room)
+	result.DefenseScore *= messaging.SightMult(defender, room)
 
 	// Opposed roll
 	res := RunContest(result.AttackScore, []contest.Entry{{Score: result.DefenseScore}})

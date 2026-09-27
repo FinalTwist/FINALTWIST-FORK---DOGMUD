@@ -5,6 +5,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
@@ -15,6 +17,10 @@ import (
 //	prone attacker        Y      Y        Y        N      N     (you cast/talk fine from the ground)
 //	resource depletion    Y      Y        Y        Y*     Y*    (*already applied in damage; here it reaches ACCURACY on physical channels only — see spec 2.3)
 //	encumbrance           N (cost-side only, U7's domain — not an accuracy term)
+//	sight                 Y      Y        Y        Y      N     (lighting plan 5b: messaging.SightMult; thrown rides the ranged column)
+//
+// A nil room is unity on the sight row. SituationalDefenceMult below is the
+// defender-side twin of the sight row.
 //
 // "Specials" ride the attack type they declare: the physical maneuvers
 // (bash/kick/trip/gore/...) pass Melee and fire passes Ranged, so the
@@ -33,7 +39,7 @@ import (
 // attack via ChannelDefenceResult — CLAUDE.md always promised "the entire
 // first round of attacks against them auto-crits" and only melee delivered.
 // See AttackSide.ForceCrit and SleepingForceCrit below.
-func SituationalAttackMult(attacker *characters.Character, shape combatvocab.Attack) float64 {
+func SituationalAttackMult(attacker *characters.Character, room messaging.RoomVisibility, shape combatvocab.Attack) float64 {
 	if attacker == nil {
 		return 1.0
 	}
@@ -48,7 +54,41 @@ func SituationalAttackMult(attacker *characters.Character, shape combatvocab.Att
 			attacker.EffectivePoolMax(characters.PoolStamina),
 			float64(bal.StaminaPenaltyMax))
 	}
+	// Sight (lighting plan 5b): every channel but social. A taunt needs no
+	// eyes; a swing, a shot, a throw and a cast all do.
+	switch shape.Type {
+	case combatvocab.AttackMelee, combatvocab.AttackRanged, combatvocab.AttackThrown, combatvocab.AttackSpell:
+		mult *= messaging.SightMult(attacker, room)
+	}
 	return mult
+}
+
+// SightRoom converts a possibly-nil *rooms.Room into the RoomVisibility the
+// sight rows take. A typed-nil *rooms.Room stored in the interface is NOT a
+// nil interface and would panic on LightLevel (see messaging.ParticipantSight),
+// so a caller holding a room it has not nil-checked passes it through here and
+// a missing room reads as unity.
+func SightRoom(r *rooms.Room) messaging.RoomVisibility {
+	if r == nil {
+		return nil
+	}
+	return r
+}
+
+// SituationalDefenceMult composes the defender-side situational multipliers.
+// Today it carries one row, sight (lighting plan 5b): a defender must see a
+// swing, a shot, a throw or a cast coming, and a defy needs no eyes. Prone
+// defence penalties stay per-defence in the channel funnel and melee, where
+// they always were. A nil defender or a nil room is unity.
+func SituationalDefenceMult(defender *characters.Character, room messaging.RoomVisibility, shape combatvocab.Attack) float64 {
+	if defender == nil {
+		return 1.0
+	}
+	switch shape.Type {
+	case combatvocab.AttackMelee, combatvocab.AttackRanged, combatvocab.AttackThrown, combatvocab.AttackSpell:
+		return messaging.SightMult(defender, room)
+	}
+	return 1.0
 }
 
 // sleepingSnapshot is the round-start sleeping-victim snapshot, published once

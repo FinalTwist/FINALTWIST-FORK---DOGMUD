@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/costs"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -113,14 +114,17 @@ func ExecuteThrottle(actor Actor) ThrottleResult {
 	// U6b Task 7: through the channel seam — raw rank in, the seam applies
 	// SkillWeight (x1 -> x5 both sides); the defence is the equipment-gated
 	// set, charged and progressed; the crit tier and fumble abort exist now.
+	// Lighting plan 5b: the actor's room feeds both sight rows.
+	sightRoom := combat.SightRoom(actor.GetRoom())
 	result := combat.ExecuteSkillMove(combat.SkillMoveParams{
 		Attacker: char,
 		Defender: target.Char,
 		Shape:    combatvocab.Melee(combatvocab.TargetSingle),
+		Room:     sightRoom,
 		Attack: combat.AttackSide{
 			Stat: char.GetEffectiveDexterity(), StatName: "dexterity",
 			Skill: skills.UnarmedCombat, SkillRank: char.GetSkillLevel(skills.UnarmedCombat),
-			Mult:      combat.SituationalAttackMult(char, combatvocab.Melee(combatvocab.TargetSingle)),
+			Mult:      combat.SituationalAttackMult(char, sightRoom, combatvocab.Melee(combatvocab.TargetSingle)),
 			ForceCrit: combat.SleepingForceCrit(target.Char),
 		},
 		DamagePercent:   float64(cfg.KickDamagePercent),
@@ -165,6 +169,9 @@ func ExecuteThrottle(actor Actor) ThrottleResult {
 					float64(char.GetSkillLevel(skills.UnarmedCombat))*w
 				hold := float64(target.Char.Stats.Willpower.ValueAdj) +
 					float64(target.Char.GetSkillLevel(skills.Spellcasting))*w
+				// sight ramp (plan 5b): the caster needs to see to hold the
+				// weave; the choke is felt, not seen, so grip takes none.
+				hold *= messaging.SightMult(target.Char, sightRoom)
 				res := combat.RunConcentrationContest(hold, grip)
 				// U10b-1 Task 12: the DEFENDER's concentration award, win or
 				// lose, fired before the branch because the loss arm has its

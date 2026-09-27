@@ -5,6 +5,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/progression"
@@ -74,6 +75,13 @@ type SkillMoveParams struct {
 	// AttackSide.score(), not here). Attack.SkillRank is the single rank
 	// input for the score, the crit bar, AND the damage multiplier curve.
 	Attack AttackSide
+
+	// Room is where the move happens (lighting plan 5b); the seam passes it
+	// to ResolveChannelAttack's defender-side sight row. Every production
+	// caller sets it, and builds Attack.Mult from SituationalAttackMult with
+	// the same room (or, for the counter-swing, messaging.SightMult alone).
+	// Nil is unity (comfortable light).
+	Room messaging.RoomVisibility
 
 	// IsCounter marks a move executed AS a counter. Plumbed in U6b Task 6,
 	// consumed by Task 10: when set, the counter tier must not fire from
@@ -167,6 +175,12 @@ func ExecuteSkillMove(p SkillMoveParams) SkillMoveResult {
 	return executeSkillMoveWithRunner(p, channelAttackContestRunner)
 }
 
+// knockdownContestRunner resolves the knockdown contest inside
+// executeSkillMoveWithRunner. Production-initialised to RunContest and never
+// repointed outside tests; it is separate from the channel runner so a test
+// can force the swing's outcome and still observe the knockdown scores.
+var knockdownContestRunner defenceContestRunner = RunContest
+
 // executeSkillMoveWithRunner is ExecuteSkillMove with an injectable contest
 // runner, so tests can force crit/fumble/defended outcomes deterministically.
 func executeSkillMoveWithRunner(p SkillMoveParams, runner defenceContestRunner) SkillMoveResult {
@@ -189,7 +203,7 @@ func executeSkillMoveWithRunner(p SkillMoveParams, runner defenceContestRunner) 
 	// already has. The crit/fumble bonus tier fires once INSIDE the seam;
 	// nothing here derives a second verdict. (Task 7 deleted the legacy
 	// scalar-defence branch; the seam is now the only path.)
-	out := resolveChannelAttackWithRunner(p.Shape, p.Attack, p.Attacker, p.Defender, runner)
+	out := resolveChannelAttackWithRunner(p.Room, p.Shape, p.Attack, p.Attacker, p.Defender, runner)
 	result.Defence = out
 	result.Crit = out.AttackerCrit
 	result.CritSource = out.CritSource
@@ -253,7 +267,11 @@ func executeSkillMoveWithRunner(p SkillMoveParams, runner defenceContestRunner) 
 		if !mutations.IsControlImmune(p.Defender.Mutations) && p.KnockdownFactor > 0 {
 			defScore := float64(p.Defender.Stats.Dexterity.ValueAdj) +
 				float64(p.Defender.GetSkillLevel(skills.UnarmedCombat))*float64(configs.GetBalanceConfig().SkillWeight)
-			kd := RunContest(p.Attack.score()*p.KnockdownFactor, []contest.Entry{{Score: defScore}})
+			// sight ramp (plan 5b): resisting a knockdown is a defence, so the
+			// defender pays the shape's defence-side sight row. The attacker's
+			// side already carries its row inside p.Attack.Mult.
+			defScore *= SituationalDefenceMult(p.Defender, p.Room, p.Shape)
+			kd := knockdownContestRunner(p.Attack.score()*p.KnockdownFactor, []contest.Entry{{Score: defScore}})
 			if kd.Success && knockdownSurvivesGlobalDamper() {
 				result.KnockedDown = true
 			} else {

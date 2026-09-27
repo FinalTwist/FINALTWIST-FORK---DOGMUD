@@ -325,7 +325,9 @@ func TestRunBestOfAllDefense_ShortScoreRetainsNonSkillMultipliers(t *testing.T) 
 
 	runBestOfAllDefenseWithRunner(result, attacker, defender,
 		[]combatvocab.Defence{combatvocab.DefenceDodge}, 100, false,
-		combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightNone},
+		// Plan 5b: the verdict no longer scores; targetDark 1 (the blind edge
+		// of the sight ramp) is what applies DarknessCombatPenalty.
+		combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightNone, targetDark: 1},
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			// Base Dexterity 100 remains. Only Unarmed Combat is omitted, then
 			// effectiveness 0.5 and darkness 0.5 both still apply: 100/4 = 25.
@@ -373,7 +375,7 @@ func TestResolveChannelAttack_MixedAffordabilityCommitsAndProgressesOnlyWinner(t
 		PhysicalMitigation: 5,
 	}}
 
-	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), attacker), attacker, defender,
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), attacker), attacker, defender,
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			if len(entries) != 2 {
 				t.Fatalf("eligible entries = %d, want 2", len(entries))
@@ -409,7 +411,7 @@ func TestResolveChannelAttack_ShortWinnerUsesConvictionAndOmitsOnlySkill(t *test
 	attacker, defender := defenceAdmissionCharacters()
 	defender.Conviction = 5
 
-	out := resolveChannelAttackWithRunner(combatvocab.Rhetoric(combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Rhetoric(combatvocab.TargetSingle), attacker), attacker, defender,
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Rhetoric(combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Rhetoric(combatvocab.TargetSingle), attacker), attacker, defender,
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			if len(entries) != 1 || entries[0].Name != string(combatvocab.DefenceDefy) || entries[0].Score != 100 {
 				t.Fatalf("short defy entry = %+v, want Willpower-only score 100", entries)
@@ -435,7 +437,7 @@ func TestResolveChannelAttack_ReportsOpposedMarginDistinctFromRollZScore(t *test
 	attacker.SetSkill(string(skills.Spellcasting), 20)
 	defender.Conviction = 100
 
-	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), attacker), attacker, defender,
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), attacker), attacker, defender,
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			if atkScore != 140 {
 				t.Fatalf("spell attack score = %.2f, want 140", atkScore)
@@ -474,7 +476,7 @@ func TestResolveChannelAttack_FlooredSaveUsesBareWinSentinels(t *testing.T) {
 	attacker.SetSkill(string(skills.Spellcasting), 20)
 	defender.Conviction = 100
 
-	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), attacker), attacker, defender,
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), attacker), attacker, defender,
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			if atkScore != 140 || len(entries) != 1 || entries[0].Score != 140 {
 				t.Fatalf("floor inputs = attack %.2f entries %+v, want equal 140 scores", atkScore, entries)
@@ -501,7 +503,7 @@ func TestResolveChannelAttack_DefensiveCritReportsFullNegation(t *testing.T) {
 	attacker.SetSkill(string(skills.Rhetoric), 30)
 	defender.Conviction = 100
 
-	out := resolveChannelAttackWithRunner(combatvocab.Rhetoric(combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Rhetoric(combatvocab.TargetSingle), attacker), attacker, defender,
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Rhetoric(combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Rhetoric(combatvocab.TargetSingle), attacker), attacker, defender,
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			if atkScore != 160 || len(entries) != 1 || entries[0].Score != 160 {
 				t.Fatalf("crit inputs = attack %.2f entries %+v, want equal 160 scores", atkScore, entries)
@@ -529,7 +531,7 @@ func TestResolveChannelAttack_NonpositiveStdDevHasZeroNormalizedMargin(t *testin
 	attacker, defender := defenceAdmissionCharacters()
 	defender.Conviction = 100
 
-	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), attacker), attacker, defender,
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), attacker), attacker, defender,
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			if len(entries) != 1 || entries[0].Name != string(combatvocab.DefenceQuell) || entries[0].Score != 140 {
 				t.Fatalf("zero-spread entries = %+v, want full-score quell at 140", entries)
@@ -556,7 +558,7 @@ func TestResolveChannelAttack_UncontestedUsesZeroSentinels(t *testing.T) {
 	attacker, defender := defenceAdmissionCharacters()
 	called := false
 	unknownPair := combatvocab.Attack{Type: combatvocab.AttackMelee, Damage: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle}
-	out := resolveChannelAttackWithRunner(unknownPair, channelSideForSignTest(unknownPair, attacker), attacker, defender,
+	out := resolveChannelAttackWithRunner(nil, unknownPair, channelSideForSignTest(unknownPair, attacker), attacker, defender,
 		func(_ float64, _ []contest.Entry) contest.Result {
 			called = true
 			return contest.Result{}
@@ -575,7 +577,7 @@ func TestResolveChannelAttack_InjectedUncontestedResultUsesFullDamage(t *testing
 	attacker, defender := defenceAdmissionCharacters()
 	defender.Conviction = 100
 
-	out := resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), attacker), attacker, defender,
+	out := resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamageMental, combatvocab.TargetSingle), attacker), attacker, defender,
 		func(atkScore float64, entries []contest.Entry) contest.Result {
 			if len(entries) != 1 {
 				t.Fatalf("entries = %d, want one quoted quell before runner", len(entries))

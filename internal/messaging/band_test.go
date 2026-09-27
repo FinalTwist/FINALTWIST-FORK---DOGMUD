@@ -30,7 +30,7 @@ func TestBandThroughWindowEdges(t *testing.T) {
 		{"reach has a limit", -11, 0, 10, BandDark},
 	}
 	for _, c := range cases {
-		if got := BandThroughWindow(c.light, c.strength, c.reach, 25, 50); got != c.want {
+		if got := BandThroughWindow(c.light, c.strength, c.reach, 25, 50, 75); got != c.want {
 			t.Errorf("%s: BandThroughWindow(%d, s=%d, r=%d) = %v, want %v",
 				c.name, c.light, c.strength, c.reach, got, c.want)
 		}

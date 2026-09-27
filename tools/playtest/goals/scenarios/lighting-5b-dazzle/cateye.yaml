@@ -1,0 +1,35 @@
+# Lighting 5b: the CAT'S EYE fighter. You are Ordel Quist, starting in Back
+# Alley, West (474), Thornwall, open sky, where a Thornwall Thug spawns. You
+# carry a Cat's Eye Draught. Quote every line VERBATIM. 3 commands per round.
+ephemeral:
+  profile: m2-witness
+  start_room: 474
+  overlays:
+    grant_items: [30047]
+    set_gold: 800
+  budgets:
+    wall_clock: 20m
+
+goals:
+  - >-
+    Type `look`, `time`, `help light`. Record the hour. Then `drink draught`
+    and quote every line, then `look` again and quote any dazzle notice.
+  - >-
+    Fight the Thornwall Thug here (`attack thug`) for as many rounds as it
+    lasts. Record every swing: hit or miss, and every defence line (dodge,
+    parry, block). Quote every sight notice verbatim and count how many times
+    each appears per round.
+  - >-
+    Go to the Rift Chamber: `north`, `east`, `north`, `down` (4 rooms,
+    down under the Temple District; room 5000). `look` in each room and quote
+    any light notice; report if a notice fires twice on one entry.
+  - >-
+    In the Rift Chamber, `ask sable arena 200`, enter the arena and fight its
+    mob for several rounds. Record the same hit, miss and defence tally. Say
+    whether you fight better or worse than in the open alley.
+  - >-
+    Whenever the clock allows, type `time` again. If it is after dusk, fight
+    one more time in the open and compare.
+  - >-
+    reads-well: report any raw number in player text, any sentence over 80
+    columns, any em dash, and anything contradicting `help light`.

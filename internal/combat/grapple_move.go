@@ -26,7 +26,7 @@ func ExecuteGrappleMove(attacker, defender *characters.Character,
 	result := GrappleMoveResult{}
 
 	// Attempt the grapple
-	result.GrappleResult = AttemptGrapple(attacker, defender)
+	result.GrappleResult = AttemptGrapple(attacker, defender, SightRoom(room))
 
 	if result.Success {
 		// Apply grapple positions

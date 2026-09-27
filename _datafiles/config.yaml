@@ -911,21 +911,24 @@ Balance:
   StealHiddenBonus: 25   # Score added to steal AND plant attempts made while hidden
 
   # ── COMBAT: DARKNESS ───────────────────────────────────────────────────────
-  # Multiplier on attack AND defense scores when fighting in a dark room
-  # without nightvision. 0.80 = 20% penalty to hit and defend while blind.
+  # DarknessCombatPenalty: the dark-side cap of the sight ramp (plan 5b). At
+  #   and below the blind edge, attack and defense scores take this multiplier;
+  #   between the dim edge and the blind edge the penalty ramps linearly up to
+  #   1.0. 0.80 = 20% penalty to hit and defend while blind.
   DarknessCombatPenalty: 0.80
-  # DarknessShapesCombatPenalty: the same multiplier for a combatant who makes
-  #   out SHAPES but not detail, which today means infrared vision in an unlit
-  #   room. Seeing shapes is worth something in a fight and is not worth
-  #   everything, so it sits between the blind penalty above and no penalty.
-  #   A BLINDED character stays on the full penalty even with infrared, because
-  #   blindness overrides vision when the sight verdict is computed.
-  #   Validated as a PAIR with DarknessCombatPenalty: at or above the blind
-  #   penalty, at or below 1.0. An inverted or out-of-range pair reverts BOTH,
-  #   so a typo cannot ship a world where seeing shapes is worse than seeing
-  #   nothing. Zero is not legal (Go test binaries never load this file).
-  #   0.90 is a STARTING POINT from M4d PR 2, not a tuned value.
-  DarknessShapesCombatPenalty: 0.90
+  # DazzleCap: the same cap on the BRIGHT side. Plan 5b made the penalty a
+  #   ramp: from 1.0 at the edge of the observer's comfortable band to
+  #   DarknessCombatPenalty at the blind edge, and to DazzleCap one
+  #   ramp-width above the dazzle edge. Both price every opposed or
+  #   difficulty roll. (0, 1]; zero reverts to 0.80.
+  DazzleCap: 0.80
+
+  # ── LIGHT: THRESHOLDS ─────────────────────────────────────────────────────
+  # LightDazzleAbove: where the comfortable band ends and too-bright begins
+  #   for a normal observer, on the same -100..100 scale. Must sit above
+  #   LightDimBelow (default 50; not set in this file) and at most 100; zero
+  #   reverts to 75.
+  LightDazzleAbove: 75
 
   # ── LIGHT: SPELL SCALING (lighting plan 5a) ─────────────────────────────────
   # A light spell (condition with light_strength: magnitude) is cast at

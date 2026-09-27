@@ -223,12 +223,12 @@ func TestChannelDefence_ProneAppliesDefencePenalties(t *testing.T) {
 	}
 
 	var standingScores []float64
-	resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), attacker), attacker, defender, capture(&standingScores))
+	resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), attacker), attacker, defender, capture(&standingScores))
 
 	setCombatPositionParallel(defender, position.Prone)
 	defender.Stamina = 100
 	var proneScores []float64
-	resolveChannelAttackWithRunner(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), attacker), attacker, defender, capture(&proneScores))
+	resolveChannelAttackWithRunner(nil, combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), channelSideForSignTest(combatvocab.Spell(combatvocab.DamagePhysical, combatvocab.TargetSingle), attacker), attacker, defender, capture(&proneScores))
 
 	if len(standingScores) != 1 || len(proneScores) != 1 {
 		t.Fatalf("entry counts standing=%d prone=%d, want 1 each (bare defender: dodge only)",

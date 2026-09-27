@@ -202,6 +202,12 @@ func seedAllRegistries() func() {
 		},
 		Pvp:   true,
 		Biome: "city",
+		// Lighting plan 5b gates list/buy/sell on the light band. Pinned here
+		// (faces band, no dazzle) so the many shop-command tests below keep
+		// exercising an ordinary lit-square transaction rather than the
+		// ambient test-time celestial light, which reads below the faces
+		// band by default and would refuse every one of them on sight.
+		Lamp: rooms.LampPtr(60),
 	}
 	room2 := &rooms.Room{
 		RoomId:      2,
@@ -4848,11 +4854,18 @@ func TestLookMoreBranches(t *testing.T) {
 
 	t.Run("look_in_dark_room", func(t *testing.T) {
 		origBiome := room.Biome
+		origLamp := room.Lamp
+		// room1's Lamp pin (lighting plan 5b's shop sight gate) survives a
+		// biome switch, same trap noted in darkenCraftRoom and
+		// combat_fire_test.go, so it must be cleared before "cave" can
+		// actually darken the room.
+		room.Lamp = nil
 		room.Biome = "cave"
 		handled, err := Look("", user, room, 0)
 		assert.True(t, handled)
 		assert.NoError(t, err)
 		room.Biome = origBiome
+		room.Lamp = origLamp
 	})
 
 	t.Run("look_at_room_with_nouns", func(t *testing.T) {

@@ -566,7 +566,8 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
     // TickMobCraft returns a CraftResult only when a craft is attempted.
     // The hook handles room messaging and world event emission to avoid
     // import cycles in the mobs package.
-    if result := mobs.TickMobCraft(mob); result != nil {
+    craftRoom := rooms.LoadRoom(mob.Character.RoomId) // loaded once
+    if result := mobs.TickMobCraft(mob, combat.SightRoom(craftRoom)); result != nil {
         // Emit room flavor text (success/failure)
         // Emit MobCraftedRare world event if SkillMinimum >= CrafterRareThreshold
     }
@@ -828,8 +829,7 @@ medium / light). Touch-points live in `dispatchCritAndMessaging`
   The floor rule (incoming hit-category lines always pass to the
   defender regardless of setting) is enforced here. Sight-gating is NOT
   uniform: participant tally recording (below) gates on
-  `messaging.CanSeeSightImpairedOnly` (no sleep gate, the same
-  predicate that drives `Balance.DarknessCombatPenalty`), while
+  `messaging.CanSeeSightImpairedOnly` (no sleep gate), while
   `recordSpectatorTallies` gates on `messaging.CanSeeClearly` (sleep-
   gated). Read the source at the call site before assuming either one;
   they answer different questions on purpose (see that function's
@@ -848,8 +848,11 @@ medium / light). Touch-points live in `dispatchCritAndMessaging`
   `dispatchCritAndMessaging`) while their sight verdict was not
   `SightFull`, using the same `CanSeeSightImpairedOnly`-derived
   booleans (`srcCanSee`/`tgtCanSee`) that section already computes.
-  Shapes-only viewers are included, not just fully blind ones, because
-  `DarknessCombatPenalty` applies to both. Membership in this set is
+  Shapes-only viewers are included, not just fully blind ones: the
+  notice keys on the sight VERDICT, while the score rides the sight ramp
+  (lighting plan 5b, `internal/combat/context.md`). Dazzle has its own
+  plan 3d notices, so a dazzled combatant with full sight gets no blind
+  notice, by design. Membership in this set is
   the "fought this round" signal; `roundTallies` cannot serve that role
   because it only contains Light-verbosity viewers who could ALSO see
   clearly (recording is skipped for a blind participant precisely to
@@ -1252,6 +1255,11 @@ score = (0.7·Str + 0.3·Dex + skill_coef·UnarmedCombat)
         × stamina_multiplier × encumbrance_multiplier
 ```
 
+`processGrapplePairWithContest` then multiplies each side's score by that
+side's own `messaging.SightMult` in the pair's room (lighting plan 5b), after
+`grappleScore` and before the contest runner, so the injected runner in tests
+sees the post-ramp scores.
+
 where `skill_coef = 2.2` for the aggressor (the side that initiated
 the grapple via `grapple` command or btree `grapple` primitive) and
 `2.0` for the defender. Symmetric in shape — no role-based unilateral
@@ -1512,7 +1520,9 @@ fresh when this observer reads it.
 4. If eligible, pick a sub type via `pickSubmissionRoundRobin` (advances
    `c.LastSubmissionAttempted` index, cycling through the position's
    pool).
-5. Call `combat.RollSubmissionAttempt(attempter, recipient, subType)`.
+5. Call `combat.RollSubmissionAttempt(attempter, recipient, subType,
+   combat.SightRoom(rooms.LoadRoom(attempter.RoomId)))` (the room feeds both
+   sides' sight ramp, lighting plan 5b).
 6. Call `combat.ResolveSubmissionOutcome(attempter, recipient, result, role)`,
    then hand the `combat.SubmissionOutcomeEffects` it returns to
    `narrateSubmissionEffects` (in `Position_Messaging.go`): the hook narrates
@@ -1556,9 +1566,12 @@ U10 replaced the chunk-4f chance-based curve with an opposed contest:
    `internal/state/position/disruption.go`. Returns 0 for `Standing`
    (check skipped entirely).
 2. Multiplies the damage%-equivalent by 10 and runs
-   `combat.RunConcentrationContest(concentrationScore(char), dmgPctEquiv*10)`
-   (`internal/combat/run_concentration_contest.go`) — the caster's
-   `Wil + spellcasting×SkillWeight` against that difficulty, floored only by
+   `combat.RunConcentrationContest(hold, dmgPctEquiv*10)`
+   (`internal/combat/run_concentration_contest.go`): the caster's hold,
+   `concentrationScore(char)` (`Wil + spellcasting×SkillWeight`) times the
+   caster's `messaging.SightMult` in their room (lighting plan 5b; applied at
+   both concentration call sites, not inside `concentrationScore`), against
+   that difficulty, floored only by
    `Balance.ConcentrationFloor` (0.02).
 3. On a WON contest, one success-only `ApplyProgression` spellcasting event
    fires and fold accumulation continues normally.

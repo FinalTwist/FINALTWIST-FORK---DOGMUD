@@ -111,6 +111,9 @@ func Plant(actor Actor, opts PlantOptions) PlantResult {
 	if isHidden {
 		attackerScore += float64(cfg.StealHiddenBonus)
 	}
+	// sight ramp (plan 5b): the planter needs to see. Once here; the score
+	// feeds all three plant contests below.
+	attackerScore *= messaging.SightMult(char, room)
 
 	// Dispatch to the appropriate path.
 	if opts.TargetMobInstanceId > 0 {
@@ -129,6 +132,8 @@ func Plant(actor Actor, opts PlantOptions) PlantResult {
 }
 
 // plantOnMob handles slipping an item into a creature's inventory.
+// attackerScore arrives with the planter's sight ramp already applied in
+// Plant; do not apply SightMult again.
 func plantOnMob(actor Actor, mobInstanceId int, plantItem items.Item,
 	attackerScore float64, rank int) PlantResult {
 
@@ -151,7 +156,7 @@ func plantOnMob(actor Actor, mobInstanceId int, plantItem items.Item,
 		}
 	}
 
-	defenderScore := stealVictimScore(&m.Character)
+	defenderScore := stealVictimScore(&m.Character, combat.SightRoom(actor.GetRoom()))
 	success := combat.RunContest(attackerScore, []contest.Entry{{Score: defenderScore}}).Success
 	// U10b-1 Task 18: moved DOWN from before the contest, and it now carries
 	// the outcome. This fired unconditionally at full weight -- the comment
@@ -274,6 +279,8 @@ func plantOnMob(actor Actor, mobInstanceId int, plantItem items.Item,
 // score is rolled against the target player's Perception. On
 // success, the item is slipped into the player's inventory. An
 // independent detection roll then decides whether the victim notices.
+// attackerScore arrives with the planter's sight ramp already applied in
+// Plant; do not apply SightMult again.
 func plantOnPlayer(actor Actor, targetUserId int, plantItem items.Item,
 	attackerScore float64, rank int, cfg configs.Balance) PlantResult {
 
@@ -283,7 +290,7 @@ func plantOnPlayer(actor Actor, targetUserId int, plantItem items.Item,
 		return PlantResult{Reason: "target not found"}
 	}
 
-	defenderScore := stealVictimScore(targetUser.Character)
+	defenderScore := stealVictimScore(targetUser.Character, combat.SightRoom(actor.GetRoom()))
 	success := combat.RunContest(attackerScore, []contest.Entry{{Score: defenderScore}}).Success
 	// U10b-1 Task 18: moved DOWN from before the contest, and it now carries
 	// the outcome. This fired unconditionally at full weight -- the comment
@@ -337,7 +344,7 @@ func plantOnPlayer(actor Actor, targetUserId int, plantItem items.Item,
 
 	// Independent detection roll: victim may notice even on success.
 	if !actor.IsPlayer() {
-		searchScore := CalcDetectionScore(targetUser.Character)
+		searchScore := CalcDetectionScore(targetUser.Character, combat.SightRoom(actor.GetRoom()))
 		roomLit := actor.GetRoom().IsLit()
 		sneakScore := CalcSneakScoreVsObserver(actor.GetCharacter(), targetUser.Character, roomLit)
 		detected := combat.RunContest(searchScore, []contest.Entry{{Score: sneakScore}}).Success
@@ -354,6 +361,8 @@ func plantOnPlayer(actor Actor, targetUserId int, plantItem items.Item,
 }
 
 // plantInContainer handles slipping an item into a room container.
+// attackerScore arrives with the planter's sight ramp already applied in
+// Plant; do not apply SightMult again.
 func plantInContainer(actor Actor, containerName string, plantItem items.Item,
 	attackerScore float64, rank int) PlantResult {
 
@@ -403,7 +412,7 @@ func plantInContainer(actor Actor, containerName string, plantItem items.Item,
 		if observer == nil {
 			continue
 		}
-		obsScore := stealVictimScore(observer.Character)
+		obsScore := stealVictimScore(observer.Character, room)
 		if obsScore > highestObserverScore {
 			highestObserverScore = obsScore
 			spotterName = observer.Character.Name
@@ -419,7 +428,7 @@ func plantInContainer(actor Actor, containerName string, plantItem items.Item,
 		if m == nil {
 			continue
 		}
-		obsScore := stealVictimScore(&m.Character)
+		obsScore := stealVictimScore(&m.Character, room)
 		if obsScore > highestObserverScore {
 			highestObserverScore = obsScore
 			spotterName = m.Character.Name

@@ -2,29 +2,32 @@ package combat
 
 // M4d PR 1 -- combatContext.sourceSight/targetSight carry the SightDecision
 // verdict instead of the old sourceCanSee/targetCanSee booleans. This file
-// pins that the new field produces the SAME darkness-penalty decision the
-// booleans did, for every one of the eight observer/room states pinned in
-// internal/messaging/optics_pin_test.go.
+// pins which verdict each of the eight observer/room states pinned in
+// internal/messaging/optics_pin_test.go produces.
 //
-// It drives the real production scoring function, calcAttackScore, rather
-// than reimplementing the `!= messaging.SightFull` test here: a copy of the
-// conditional would only ever agree with itself, never catch a drift in the
-// real one.
+// Lighting plan 5b split combatContext in two. The verdict fields
+// (sourceSight/targetSight) are the NARRATION gate only: they decide name
+// hiding and no longer move a score. The comfort fields
+// (sourceDark/sourceBright, targetDark/targetBright, from
+// messaging.ComfortDistance) are the only thing the scoring reads, through
+// messaging.SightScoreMultiplier: a linear ramp from 1.0 at the edge of the
+// comfortable band to DarknessCombatPenalty at the blind edge and to
+// DazzleCap one ramp-width past the dazzle edge. The old flat band (shapes
+// 0.90, blind 0.80) is gone; a shapes-only attacker now pays by distance.
 //
-// M4d PR 2 (owner ruling 6, 2026-09-20) changes the row that matters most:
-// "dark, infrared only" now takes DarknessShapesCombatPenalty, a REDUCED
-// penalty, not the full DarknessCombatPenalty every other impaired row
-// still takes. TestDarknessShapesPenaltyIsBetweenBlindAndClean below is the
-// test that pins the ruling itself; this test's job is only to keep pinning
-// which verdict each observer/room state produces.
+// Every test here drives the real production scoring function,
+// calcAttackScore (or the real defence core), rather than reimplementing
+// the multiplier: a copy would only ever agree with itself.
 
 import (
 	"math"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/contest"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -94,9 +97,10 @@ func verdictObserver(t *testing.T, nightVision, infraredVision, asleep, blind bo
 
 // TestDarknessPenaltyVerdictMatchesOldBoolean is the equivalence test M4d PR
 // 1 requires: for every one of the eight optics_pin_test.go observer/room
-// states, calcAttackScore applies Balance.DarknessCombatPenalty under the new
-// combatContext.sourceSight field exactly when messaging.CanSeeSightImpairedOnly
-// -- the boolean combat used to store -- said the source could not see.
+// states, the combatContext.sourceSight verdict is SightFull exactly when
+// messaging.CanSeeSightImpairedOnly -- the boolean combat used to store --
+// said the source could see. Since plan 5b the verdict no longer scores, so
+// this test also pins that a verdict alone leaves calcAttackScore untouched.
 func TestDarknessPenaltyVerdictMatchesOldBoolean(t *testing.T) {
 	cfg := configs.GetConfig()
 	cfg.Balance.DarknessCombatPenalty = 0.4
@@ -144,80 +148,133 @@ func TestDarknessPenaltyVerdictMatchesOldBoolean(t *testing.T) {
 			}
 
 			verdict := messaging.ParticipantSight(observer, room)
-			// wantPenalized only tracks whether ANY penalty applies; it is
-			// derived from the old boolean and stays correct for that narrow
-			// question even for SightShapes, since PR 2 only changes WHICH
-			// multiplier a shapes verdict takes, not whether one applies at
-			// all.
-			wantPenalized := !tc.wantOldImpairedOnly
+			// The verdict still follows the old boolean: SightFull exactly
+			// when CanSeeSightImpairedOnly said the observer could see.
+			if gotFull := verdict == messaging.SightFull; gotFull != tc.wantOldImpairedOnly {
+				t.Fatalf("verdict = %v, want SightFull == %v", verdict, tc.wantOldImpairedOnly)
+			}
 
+			// Plan 5b: the verdict is the narration gate only. On its own it
+			// must not move the score in any row; the comfort fields do that.
 			clean := calcAttackScore(observer, target, items.Item{}, 0, combatContext{sourceSight: messaging.SightFull})
-			ctxScore := calcAttackScore(observer, target, items.Item{}, 0, combatContext{sourceSight: verdict})
-
-			gotPenalized := math.Abs(ctxScore-clean) > 1e-9
-			if gotPenalized != wantPenalized {
-				t.Fatalf("penalty applied = %v, want %v (verdict=%v, clean=%v, ctxScore=%v)",
-					gotPenalized, wantPenalized, verdict, clean, ctxScore)
-			}
-			if wantPenalized {
-				// M4d PR 2: the multiplier depends on the VERDICT, not just on
-				// whether a penalty applies. SightShapes takes the reduced
-				// shapes penalty; SightNone (and blind, which forces
-				// SightNone) still takes the full blind penalty.
-				wantMult := float64(cfg.Balance.DarknessCombatPenalty)
-				if verdict == messaging.SightShapes {
-					wantMult = float64(cfg.Balance.DarknessShapesCombatPenalty)
-				}
-				wantScore := clean * wantMult
-				if math.Abs(ctxScore-wantScore) > 1e-9 {
-					t.Fatalf("penalized score = %v, want %v (clean %v x multiplier %v, verdict %v)",
-						ctxScore, wantScore, clean, wantMult, verdict)
-				}
+			verdictOnly := calcAttackScore(observer, target, items.Item{}, 0, combatContext{sourceSight: verdict})
+			if math.Abs(verdictOnly-clean) > 1e-9 {
+				t.Fatalf("verdict %v alone moved the score: %v, want clean %v", verdict, verdictOnly, clean)
 			}
 
-			if tc.name == "dark, infrared only" {
-				if verdict != messaging.SightShapes {
-					t.Fatalf("infrared in the dark must resolve to SightShapes, got %v", verdict)
-				}
-				if !gotPenalized {
-					t.Fatal("infrared in the dark: PR 2 still applies a reduced darkness penalty, never zero (owner ruling 6, 2026-09-20)")
-				}
+			if tc.name == "dark, infrared only" && verdict != messaging.SightShapes {
+				t.Fatalf("infrared in the dark must resolve to SightShapes, got %v", verdict)
 			}
 		})
 	}
 }
 
-// TestDarknessShapesPenaltyIsBetweenBlindAndClean is the ruling test for
-// M4d PR 2 (owner ruling 6, 2026-09-20): "darkness combat penalty should be
-// less for infra characters, but not zero." An infrared combatant who only
-// makes out SHAPES must land and defend more often than one who is fully
-// blind, and still worse than one who can see clearly.
-//
-// This drives calcAttackScore directly with each SightDecision rather than
-// building room/vision fixtures: TestDarknessPenaltyVerdictMatchesOldBoolean
-// above already pins which verdict each observer/room state produces, so
-// this test only needs to pin what each verdict is WORTH.
-func TestDarknessShapesPenaltyIsBetweenBlindAndClean(t *testing.T) {
+// sightRampCases are the ramp points both scoring tests below pin, with the
+// multiplier HARDCODED at the shipped caps (DarknessCombatPenalty 0.80,
+// DazzleCap 0.80) rather than recomputed, so a test cannot agree with a
+// broken SightScoreMultiplier by construction. dark 0.52 is a dim street at
+// night for normal eyes (light 37); bright 0.6 is light 90 for normal eyes.
+var sightRampCases = []struct {
+	name         string
+	dark, bright float64
+	wantMult     float64
+}{
+	{name: "comfortable", wantMult: 1.0},
+	{name: "dark 0.52", dark: 0.52, wantMult: 0.896},
+	{name: "bright 0.6", bright: 0.6, wantMult: 0.88},
+	{name: "dark 1 (blind edge)", dark: 1, wantMult: 0.80},
+	{name: "bright 1 (dazzle cap)", bright: 1, wantMult: 0.80},
+}
+
+func pinSightRampCaps(t *testing.T) {
+	t.Helper()
 	cfg := configs.GetConfig()
-	cfg.Balance.DarknessCombatPenalty = 0.50
-	cfg.Balance.DarknessShapesCombatPenalty = 0.75
+	cfg.Balance.DarknessCombatPenalty = 0.80
+	cfg.Balance.DazzleCap = 0.80
 	configs.SetConfigForTest(t, cfg)
+}
+
+// TestAttackScoreRidesTheSightRamp pins plan 5b's attack side: the ramp
+// replaces the old flat band. A shapes-only attacker used to take a flat
+// 0.90 whatever the light; now it pays by its distance from the comfortable
+// band, a dazzled attacker pays too, and a comfortable one pays nothing.
+// Every case sets sourceSight to SightFull, so any move in the score comes
+// from the comfort fields alone.
+func TestAttackScoreRidesTheSightRamp(t *testing.T) {
+	pinSightRampCaps(t)
 
 	observer := characters.New()
 	target := characters.New()
-
-	clearScore := calcAttackScore(observer, target, items.Item{}, 0, combatContext{sourceSight: messaging.SightFull})
-	shapesScore := calcAttackScore(observer, target, items.Item{}, 0, combatContext{sourceSight: messaging.SightShapes})
-	blindScore := calcAttackScore(observer, target, items.Item{}, 0, combatContext{sourceSight: messaging.SightNone})
-
-	if !(blindScore < shapesScore && shapesScore < clearScore) {
-		t.Fatalf("want blindScore < shapesScore < clearScore, got blind=%v shapes=%v clear=%v",
-			blindScore, shapesScore, clearScore)
+	clean := calcAttackScore(observer, target, items.Item{}, 0, combatContext{sourceSight: messaging.SightFull})
+	if clean <= 0 {
+		t.Fatalf("fixture guard: clean attack score %v must be positive or every ratio passes", clean)
 	}
 
-	wantShapesScore := clearScore * float64(cfg.Balance.DarknessShapesCombatPenalty)
-	if math.Abs(shapesScore-wantShapesScore) > 1e-9 {
-		t.Fatalf("shapesScore = %v, want %v (clear %v x DarknessShapesCombatPenalty %v)",
-			shapesScore, wantShapesScore, clearScore, cfg.Balance.DarknessShapesCombatPenalty)
+	for _, tc := range sightRampCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := combatContext{sourceSight: messaging.SightFull, sourceDark: tc.dark, sourceBright: tc.bright}
+			got := calcAttackScore(observer, target, items.Item{}, 0, ctx)
+			want := clean * tc.wantMult
+			if math.Abs(got-want) > 1e-9 {
+				t.Fatalf("attack score = %v, want %v (clean %v x %v)", got, want, clean, tc.wantMult)
+			}
+
+			// The defender's comfort must not reach the attack score.
+			other := combatContext{sourceSight: messaging.SightFull, targetDark: tc.dark, targetBright: tc.bright}
+			if got := calcAttackScore(observer, target, items.Item{}, 0, other); math.Abs(got-clean) > 1e-9 {
+				t.Fatalf("target comfort moved the attack score: %v, want clean %v", got, clean)
+			}
+		})
+	}
+}
+
+// TestDefenceScoreRidesTheSightRamp pins the defence side through the real
+// defence core, capturing the dodge entry's score as handed to the contest.
+func TestDefenceScoreRidesTheSightRamp(t *testing.T) {
+	pinDefenceAdmissionConfig(t)
+	pinSightRampCaps(t)
+
+	capture := func(ctx combatContext) float64 {
+		attacker, defender := defenceAdmissionCharacters()
+		var captured float64
+		found := false
+		runner := func(atkScore float64, entries []contest.Entry) contest.Result {
+			for _, e := range entries {
+				if e.Name == string(combatvocab.DefenceDodge) {
+					captured = e.Score
+					found = true
+				}
+			}
+			return deterministicDefenceResult(t, atkScore, entries, combatvocab.DefenceDodge, 0, entries[0].Score)
+		}
+		runBestOfAllDefenseWithRunner(&AttackResult{}, attacker, defender,
+			[]combatvocab.Defence{combatvocab.DefenceDodge}, 100, false, ctx, runner)
+		if !found {
+			t.Fatal("fixture guard: the runner never saw a dodge entry")
+		}
+		return captured
+	}
+
+	full := combatContext{sourceSight: messaging.SightFull, targetSight: messaging.SightFull}
+	clean := capture(full)
+	if clean <= 0 {
+		t.Fatalf("fixture guard: clean defence score %v must be positive or every ratio passes", clean)
+	}
+
+	for _, tc := range sightRampCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := full
+			ctx.targetDark, ctx.targetBright = tc.dark, tc.bright
+			if got, want := capture(ctx), clean*tc.wantMult; math.Abs(got-want) > 1e-9 {
+				t.Fatalf("defence score = %v, want %v (clean %v x %v)", got, want, clean, tc.wantMult)
+			}
+
+			// The attacker's comfort must not reach the defence score.
+			other := full
+			other.sourceDark, other.sourceBright = tc.dark, tc.bright
+			if got := capture(other); math.Abs(got-clean) > 1e-9 {
+				t.Fatalf("source comfort moved the defence score: %v, want clean %v", got, clean)
+			}
+		})
 	}
 }

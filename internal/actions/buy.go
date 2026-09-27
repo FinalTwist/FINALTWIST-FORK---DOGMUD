@@ -7,6 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -15,7 +16,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/questengine"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/shops"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -56,6 +56,7 @@ const (
 	BuyReasonMissingTradeItem = "missing_trade_item"
 	BuyReasonOverburdened     = "overburdened"
 	BuyReasonSelfTarget       = "self_target"
+	BuyReasonNoSight          = "no_sight"
 )
 
 // legacyShopCatalog enumerates the in-stock items + conditions offered by a
@@ -352,6 +353,17 @@ func Buy(buyer Actor, opts BuyOptions) BuyResult {
 		return BuyResult{Reason: BuyReasonNoMerchant, Requested: quantity}
 	}
 
+	// Below the faces band you can't make out the goods (lighting plan 5b).
+	// Checked only once a merchant is confirmed present, matching every other
+	// check in this function that reads buyer.GetCharacter(): a nil-Mob
+	// MobActor (the "no merchant here" test fixture) never reaches this line.
+	if ShopSightRefusal(buyer.GetCharacter(), room) {
+		if buyer.IsPlayer() {
+			buyer.SendText(messaging.CategorySystem, ShopSightRefusalText)
+		}
+		return BuyResult{Reason: BuyReasonNoSight, Requested: quantity}
+	}
+
 	// tryMerchant wraps a per-merchant attempt closure to support retries up to quantity.
 	// The closure-passed attempt callback returns the result of a single purchase.
 	// If successful, tryMerchant loops up to quantity times, calling attempt()
@@ -515,6 +527,10 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 	var itemNamesFancy []string
 
 	char := buyer.GetCharacter()
+	// Balance numbers come from config.yaml, never a Go literal: the buy-side
+	// bartering cap is Balance.BarterMaxDiscount (sell.go reads BarterMaxBonus
+	// instead, see sellOneToMerchant).
+	barterMaxDiscount := float64(configs.GetBalanceConfig().BarterMaxDiscount)
 
 	for i := range shopInv.Stock {
 		entry := &shopInv.Stock[i]
@@ -529,10 +545,10 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 		restock := shops.PricingBaseline(entry, cfg)
 		basePrice := shops.CalcSellPrice(spec.Value, entry.Current, restock, cfg)
 
-		// Bartering discount — works symmetrically for both buyer types.
-		barterSkill := char.GetSkillLevel(skills.Bartering)
-		if barterSkill > 0 {
-			discount := float64(barterSkill) / 50.0 * 0.15 // max 15% at skill 50
+		// Bartering discount, works symmetrically for both buyer types. A
+		// dazzled buyer bargains worse (lighting plan 5b): barterDiscount
+		// folds SightMult into the same BarterMaxDiscount-at-skill-50 cap.
+		if discount := barterDiscount(char, buyer.GetRoom(), barterMaxDiscount); discount > 0 {
 			basePrice = shops.ApplyBarterSellDiscount(basePrice, discount)
 		}
 
@@ -553,8 +569,7 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 		e := &shopInv.AffixedStock[i]
 		spec := e.Item.GetSpec()
 		price := e.Price
-		if barterSkill := char.GetSkillLevel(skills.Bartering); barterSkill > 0 {
-			discount := float64(barterSkill) / 50.0 * 0.15
+		if discount := barterDiscount(char, buyer.GetRoom(), barterMaxDiscount); discount > 0 {
 			price = shops.ApplyBarterSellDiscount(price, discount)
 		}
 		available = append(available, invEntry{
