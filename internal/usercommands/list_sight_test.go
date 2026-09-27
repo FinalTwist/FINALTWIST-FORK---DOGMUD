@@ -91,20 +91,22 @@ func itemsSeedForListSight() func() {
 	})
 }
 
-// listedStockNames returns the item names List's own row-building path
-// (partitionShopStock -> buildItemRows, the exact functions renderMobMerchant
-// Listing calls) produces for the seeded merchant's current stock.
+// listedStockNames is a FIXTURE check, not a sight-gate check: it never
+// touches the room, its light, or List's actual output. It confirms only
+// that the seeded merchant's stock renders to the name "Tin Cup" through
+// List's own row-building path (partitionShopStock -> buildItemRows, the
+// exact functions renderMobMerchantListing calls), so a typo in the fixture
+// (wrong item id, wrong Name) fails loudly here instead of silently. The
+// sight gate itself is proven by the refusal-line assertions in the dark and
+// shapes tests above, and by the absent-refusal-line assertions in the lit
+// and dazzled tests below.
 //
-// This sidesteps internal/templates.Process: this package's TestMain
-// redirects FilePaths.DataFiles to an empty temp dir (so save writes can't
-// race a root-guard walk), and internal/templates.readFile's fileSystems
-// slice is never populated in a bare `go test` run here (no module import
-// chain calls templates.RegisterFS), so every Process call in this test
-// binary renders empty content regardless of DataFiles, a pre-existing gap
-// in that package, outside this task. buildItemRows is where List() commits
-// to a stock NAME before handing rows to that renderer, so asserting on its
-// output still proves the sight gate is choosing to show (or not show) this
-// merchant's actual goods.
+// It cannot check the rendered TEXT the way those refusal assertions do:
+// this package's test binary never registers a templates filesystem (no
+// module import chain calls templates.RegisterFS), so
+// internal/templates.Process("tables/shoplist", ...) renders empty content
+// regardless of FilePaths.DataFiles, a pre-existing gap in that package,
+// outside this task.
 func listedStockNames(t *testing.T) []string {
 	t.Helper()
 	merchant := mobs.GetInstance(8412)

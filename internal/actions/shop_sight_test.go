@@ -202,6 +202,9 @@ func TestBuy_DazzledRoom_StillBuys(t *testing.T) {
 	basePrice := shops.CalcSellPrice(100, entry.Current, shops.PricingBaseline(&entry, pricingCfg), pricingCfg)
 	expectedDiscount := 0.15 * 0.88 // 0.15 cap x SightMult 0.88 at light 90, skill 50
 	expectedPrice := shops.ApplyBarterSellDiscount(basePrice, expectedDiscount)
+	plainPrice := shops.ApplyBarterSellDiscount(basePrice, 0.15) // undazzled (SightMult 1.0)
+	require.NotEqual(t, plainPrice, expectedPrice,
+		"fixture must actually distinguish the dazzled price from the plain 0.15 price, or rounding on this small base price could make the test vacuous")
 
 	shopInv := &shops.ShopInventory{Gold: 1000, Stock: []shops.StockEntry{entry}}
 	shopMob := &mobs.Mob{Character: characters.Character{Name: "Merchant"}}
@@ -212,6 +215,57 @@ func TestBuy_DazzledRoom_StillBuys(t *testing.T) {
 	assert.Less(t, m.Character.Gold, 1000, "gold must go down on a successful purchase")
 	assert.Equal(t, 1000-expectedPrice, m.Character.Gold,
 		"price paid must reflect the 0.88 dazzle discount multiplier")
+	assert.NotEqual(t, 1000-plainPrice, m.Character.Gold,
+		"the dazzled price must differ from the plain (non-dazzled) 0.15 price")
+}
+
+// TestBuy_BarterMaxDiscount_NonDefaultKnobReachesPrice pins the KNOB WIRING
+// itself, not just the discount math: every other test in this file pins
+// Balance.BarterMaxDiscount at 0.15, which is ALSO the pre-lighting-plan-5b
+// hardcoded literal and the shipped default, so a buy.go call site that
+// regressed to that literal instead of reading configs.GetBalanceConfig()
+// would still pass every one of them. Pinning a value the old literal never
+// took (0.30) is the only way to catch that regression: a comfortable
+// (non-dazzled) skill-50 buyer must pay a price reflecting a 0.30 discount,
+// not 0.15.
+func TestBuy_BarterMaxDiscount_NonDefaultKnobReachesPrice(t *testing.T) {
+	defer seedSellItemSpecs()()
+
+	cfg := configs.GetConfig()
+	cfg.Balance.BarterMaxDiscount = 0.30
+	configs.SetConfigForTest(t, cfg)
+
+	comfortable := &rooms.Room{RoomId: 90022, SkyLight: rooms.SkyLightPtr(0.0), Lamp: rooms.LampPtr(60)}
+	require.GreaterOrEqual(t, comfortable.LightLevel(), 50, "fixture room must read at or above the dim edge")
+	require.Less(t, comfortable.LightLevel(), 75, "fixture room must read below the dazzle edge")
+
+	m := &mobs.Mob{}
+	m.Character.Name = "Buyer"
+	m.Character.Gold = 1000
+	m.Character.Conditions = conditions.New()
+	m.Character.Stats.Strength.ValueAdj = 100 // carry capacity
+	m.Character.Skills = map[string]int{string(skills.Bartering): 50}
+	buyer := &MobActor{Mob: m, Room: comfortable}
+
+	assert.False(t, ShopSightRefusal(buyer.GetCharacter(), comfortable),
+		"a comfortably lit room must not refuse")
+
+	pricingCfg := shops.PricingConfigFromBalance()
+	entry := shops.StockEntry{ItemId: sellTestItemId, Current: 5, MaxStock: 10, RestockQty: 5}
+	basePrice := shops.CalcSellPrice(100, entry.Current, shops.PricingBaseline(&entry, pricingCfg), pricingCfg)
+	pinnedPrice := shops.ApplyBarterSellDiscount(basePrice, 0.30) // the pinned knob, comfortable so SightMult 1.0
+	oldLiteralPrice := shops.ApplyBarterSellDiscount(basePrice, 0.15)
+	require.NotEqual(t, pinnedPrice, oldLiteralPrice,
+		"fixture must actually distinguish the pinned 0.30 knob from the old hardcoded 0.15, or rounding could make the test vacuous")
+
+	shopInv := &shops.ShopInventory{Gold: 1000, Stock: []shops.StockEntry{entry}}
+	shopMob := &mobs.Mob{Character: characters.Character{Name: "Merchant"}}
+
+	res := tryPurchaseFromInventory(buyer, "iron sword", shopMob, shopInv)
+
+	require.True(t, res.Success, "%+v", res)
+	assert.Equal(t, 1000-pinnedPrice, m.Character.Gold,
+		"price paid must reflect the pinned 0.30 knob, not a literal 0.15")
 }
 
 // TestShopSightRefusal_Bands is a direct, fixture-free pin of every band
