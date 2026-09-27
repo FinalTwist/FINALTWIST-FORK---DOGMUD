@@ -1,0 +1,35 @@
+# Lighting 5b: the LANTERN bearer. You are Sil Vantage, starting in Lakefront
+# Square, Stillwater (4102), open sky, beside Fishmonger Tov Brann. A Hooded
+# Lantern burns in your light slot and a Torch is in your pack. Quote VERBATIM.
+ephemeral:
+  profile: m2-actor
+  start_room: 4102
+  overlays:
+    equip:
+      light: 20097
+    grant_items: [20096]
+    set_gold: 100
+  budgets:
+    wall_clock: 20m
+
+goals:
+  - >-
+    `look`, `time`, `equipment`. Record the hour and any dazzle notice. Then
+    `list` and `buy` one cheap item at the fishmonger; note the price.
+    `unhood`/`hood` and try `list` again in each state.
+  - >-
+    Walk to the Chrysalis Workshop: `west`, `north`, `west`, `down` (6443).
+    `look` in each room. In the workshop, with the lantern OPEN, `list`.
+  - >-
+    Then `hood` and `look`. Type `list`, `buy <something>`, `sell <item>`.
+    Each must print only "You can't make out the goods well enough to deal."
+    and nothing else. Quote exactly.
+  - >-
+    `remove lantern` and `equip torch`; `look`; `list`, then `buy` one cheap
+    item. Dealing should work again. Then `remove torch` and `list` again.
+  - >-
+    `help light`, `help hood`, `help chrysalis-glow`. Report any contradiction
+    with what you saw.
+  - >-
+    reads-well: report any raw number in player text, any sentence over 80
+    columns, any em dash, and any light notice that fires twice on one entry.
