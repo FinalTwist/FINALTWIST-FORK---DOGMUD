@@ -2,10 +2,6 @@ package main
 
 import (
 	"go/ast"
-	"go/parser"
-	"go/token"
-	"io/fs"
-	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -153,58 +149,16 @@ func isExempt(rel, dir string, exemptions map[string]string) bool {
 // outcome -- add its FILE to the matching guardedRollExemptions entry with a
 // reason. If you cannot write the reason, you want a floored wrapper.
 func TestOpposedContestsAreFloored(t *testing.T) {
-	root, err := filepath.Abs(".")
-	if err != nil {
-		t.Fatalf("resolve repo root: %v", err)
-	}
+	// The walk (skip rules, parse, test-file exclusion) is shared with the
+	// sight guard: see parseProductionGoFiles in sight_penalty_guard_test.go.
+	fset, files := parseProductionGoFiles(t)
 
 	var offenders []string
-	fset := token.NewFileSet()
-
-	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			if os.IsNotExist(err) {
-				// A test elsewhere can create and remove a temp file under
-				// the tree while packages test in parallel; a vanished
-				// entry has nothing to scan.
-				return nil
-			}
-			return err
-		}
-		if d.IsDir() {
-			// Skip every dot-directory, not just .git. A git worktree under
-			// .claude/worktrees/ presents a SECOND full copy of internal/, and
-			// this walk would then report that copy's files as violations of a
-			// rule the real tree does not break. Agent worktrees are routine.
-			if strings.HasPrefix(d.Name(), ".") && d.Name() != "." {
-				return filepath.SkipDir
-			}
-			switch d.Name() {
-			case "vendor", "node_modules", "bin", "_datafiles", "docs", "tools":
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
-			return nil
-		}
-
-		rel, rerr := filepath.Rel(root, path)
-		if rerr != nil {
-			return nil
-		}
-		rel = filepath.ToSlash(rel)
-
+	for _, f := range files {
+		rel := f.Rel
 		dir := filepath.ToSlash(filepath.Dir(rel))
 
-		file, perr := parser.ParseFile(fset, path, nil, parser.ParseComments)
-		if perr != nil {
-			// A syntax error is the compiler's problem to report, not this
-			// test's. Skipping it keeps failures attributable.
-			return nil
-		}
-
-		ast.Inspect(file, func(n ast.Node) bool {
+		ast.Inspect(f.File, func(n ast.Node) bool {
 			call, ok := n.(*ast.CallExpr)
 			if !ok {
 				return true
@@ -228,11 +182,6 @@ func TestOpposedContestsAreFloored(t *testing.T) {
 					strconv.Itoa(fset.Position(call.Pos()).Line))
 			return true
 		})
-
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("walk repo: %v", err)
 	}
 
 	if len(offenders) > 0 {

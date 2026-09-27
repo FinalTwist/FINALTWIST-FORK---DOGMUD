@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -19,6 +20,23 @@ import (
 // internal/combat/contest_site_guard_test.go, which asks "does every contest
 // site have an OWNER"; this one asks "does every roll site apply the SIGHT
 // RAMP".
+//
+// KNOWN LIMITS of the roll-site check (each is a way a real omission can pass):
+//   - Compliance is per FUNCTION: any sight helper call anywhere in the body
+//     satisfies every roll in it, even one on a different score.
+//   - A function-typed PARAMETER (runner(...) inside
+//     resolveChannelAttackWithRunner) is invisible; the value is seen where it
+//     is passed instead.
+//   - An alias of an alias (y := x where x aliases combat.RunContest) is not
+//     followed.
+//   - A struct-field function value (s.runner = combat.RunContest, or
+//     Runner: RunContest in a literal) is not seen.
+//   - Packages are matched by NAME in code, not by import path, so an import
+//     alias (cmb ".../internal/combat") or a local variable named contest
+//     defeats the check.
+//   - A roll inside a package-level var x = func(){...} body is always
+//     reported, since there is no FuncDecl for it to comply in.
+//   - tools/ is not scanned, matching the floor guard.
 
 // guardedSightFuncs are the roll entry points, keyed by the package that
 // defines them. A production call to one of these must sit in a function
@@ -36,8 +54,13 @@ import (
 // listed: each takes a room and applies messaging.SightMult to both sides
 // itself, and the bare RunContest inside each is already guarded here, so
 // their callers owe nothing and guarding them would only demand exemptions.
+//
+// combat.ExecuteSkillMove IS listed, although its seam applies the defence
+// row itself: the ATTACK row arrives only through the caller's
+// SkillMoveParams.Attack.Mult, so a caller that sets Room but builds Mult
+// without SituationalAttackMult (or SightMult) must be caught here.
 var guardedSightFuncs = map[string]map[string]bool{
-	"combat":   {"RunContest": true, "ResolveChannelAttack": true, "RunConcentrationContest": true},
+	"combat":   {"RunContest": true, "ResolveChannelAttack": true, "RunConcentrationContest": true, "ExecuteSkillMove": true},
 	"contest":  {"AgainstDifficulty": true},
 	"crafting": {"RunCraftContest": true, "RunSalvageContest": true, "RollSalvageReturns": true, "RollSalvageReturnsFromSpec": true},
 	"forager":  {"ForageCore": true},
@@ -136,45 +159,70 @@ func guardedRefName(expr ast.Expr, filePkg string, aliases map[string]string) (s
 	return "", false
 }
 
-// collectSightAliases returns, per package directory, the variables assigned
-// a guarded function value: name -> the guarded function it aliases.
+// aliasesDeclaredIn records into out every variable that n declares or
+// assigns a guarded function value: name -> the guarded function it aliases.
+// The blank identifier is never an alias. When assignOnly is set, only plain
+// "=" assignments count (the package-wide init case); otherwise ":=", "=" and
+// "var" all do.
+func aliasesDeclaredIn(n ast.Node, pkg string, assignOnly bool, out map[string]string) {
+	add := func(name string, v ast.Expr) {
+		if name == "_" {
+			return
+		}
+		if target, ok := guardedRefName(v, pkg, nil); ok {
+			out[name] = target
+		}
+	}
+	ast.Inspect(n, func(n ast.Node) bool {
+		switch s := n.(type) {
+		case *ast.ValueSpec:
+			if assignOnly {
+				return true
+			}
+			for i, v := range s.Values {
+				if i < len(s.Names) {
+					add(s.Names[i].Name, v)
+				}
+			}
+		case *ast.AssignStmt:
+			if assignOnly && s.Tok != token.ASSIGN {
+				return true
+			}
+			for i, v := range s.Rhs {
+				if i >= len(s.Lhs) {
+					break
+				}
+				if id, ok := s.Lhs[i].(*ast.Ident); ok {
+					add(id.Name, v)
+				}
+			}
+		}
+		return true
+	})
+}
+
+// collectSightAliases returns, per package directory, the PACKAGE-WIDE
+// aliases: package-level var declarations, and plain "=" assignments inside an
+// init function. An alias made inside any other function is local to that
+// function and is collected by findUnpenalisedRollSites per FuncDecl.
 func collectSightAliases(files []sightFile) map[string]map[string]string {
 	out := map[string]map[string]string{}
-	add := func(dir, name, target string) {
-		if out[dir] == nil {
-			out[dir] = map[string]string{}
-		}
-		out[dir][name] = target
-	}
 	for _, f := range files {
 		dir := filepath.ToSlash(filepath.Dir(f.Rel))
 		pkg := f.File.Name.Name
-		ast.Inspect(f.File, func(n ast.Node) bool {
-			switch s := n.(type) {
-			case *ast.ValueSpec:
-				for i, v := range s.Values {
-					if i < len(s.Names) {
-						if target, ok := guardedRefName(v, pkg, nil); ok {
-							add(dir, s.Names[i].Name, target)
-						}
-					}
-				}
-			case *ast.AssignStmt:
-				for i, v := range s.Rhs {
-					if i >= len(s.Lhs) {
-						break
-					}
-					id, ok := s.Lhs[i].(*ast.Ident)
-					if !ok {
-						continue
-					}
-					if target, ok := guardedRefName(v, pkg, nil); ok {
-						add(dir, id.Name, target)
-					}
+		if out[dir] == nil {
+			out[dir] = map[string]string{}
+		}
+		for _, decl := range f.File.Decls {
+			switch d := decl.(type) {
+			case *ast.GenDecl:
+				aliasesDeclaredIn(d, pkg, false, out[dir])
+			case *ast.FuncDecl:
+				if d.Recv == nil && d.Name.Name == "init" && d.Body != nil {
+					aliasesDeclaredIn(d.Body, pkg, true, out[dir])
 				}
 			}
-			return true
-		})
+		}
 	}
 	return out
 }
@@ -214,7 +262,7 @@ func findUnpenalisedRollSites(fset *token.FileSet, files []sightFile, exempt map
 		pkg := f.File.Name.Name
 		pkgAliases := aliases[dir]
 
-		check := func(owner string, body ast.Node, complies bool) {
+		check := func(owner string, body ast.Node, complies bool, aliases map[string]string) {
 			ast.Inspect(body, func(n ast.Node) bool {
 				call, ok := n.(*ast.CallExpr)
 				if !ok {
@@ -223,7 +271,7 @@ func findUnpenalisedRollSites(fset *token.FileSet, files []sightFile, exempt map
 				// The callee, and any guarded function passed as a value.
 				refs := append([]ast.Expr{call.Fun}, call.Args...)
 				for _, ref := range refs {
-					name, ok := guardedRefName(ref, pkg, pkgAliases)
+					name, ok := guardedRefName(ref, pkg, aliases)
 					if !ok {
 						continue
 					}
@@ -246,7 +294,13 @@ func findUnpenalisedRollSites(fset *token.FileSet, files []sightFile, exempt map
 				if d.Body == nil {
 					continue
 				}
-				check(d.Name.Name, d.Body, callsSightHelper(d.Body))
+				// Package-wide aliases plus any this function makes itself.
+				local := map[string]string{}
+				for k, v := range pkgAliases {
+					local[k] = v
+				}
+				aliasesDeclaredIn(d.Body, pkg, false, local)
+				check(d.Name.Name, d.Body, callsSightHelper(d.Body), local)
 			case *ast.GenDecl:
 				// A package-level initialiser that CALLS a guarded roll has no
 				// function to comply in; it is always a finding. An alias
@@ -261,7 +315,7 @@ func findUnpenalisedRollSites(fset *token.FileSet, files []sightFile, exempt map
 						if len(vs.Names) > 0 {
 							owner = "var " + vs.Names[0].Name
 						}
-						check(owner, v, false)
+						check(owner, v, false, pkgAliases)
 					}
 				}
 			}
@@ -277,25 +331,54 @@ func findUnpenalisedRollSites(fset *token.FileSet, files []sightFile, exempt map
 	return out
 }
 
-// parseProductionGoFiles walks the repo exactly as contest_floor_guard_test.go
-// does (dot-directories, vendor, tools, docs and _datafiles skipped; test
-// files skipped) and parses every production Go file.
+// The production walk is shared by every repo-root AST guard
+// (TestOpposedContestsAreFloored, TestEveryRollSiteAppliesTheSightPenalty,
+// TestEverySkillMoveSetsItsRoom) and parsed once per test binary. The parsed
+// files are read-only; no guard may mutate them.
+var (
+	productionParseOnce  sync.Once
+	productionParseFset  *token.FileSet
+	productionParseFiles []sightFile
+	productionParseErr   error
+)
+
+// parseProductionGoFiles returns every production (non-_test.go) Go file in
+// the repo, parsed without comments, with its repo-relative slash path.
+// Test files are deliberately not scanned: tests probe raw distributions on
+// purpose, and the risk every guard here watches is a PRODUCTION site.
 func parseProductionGoFiles(t *testing.T) (*token.FileSet, []sightFile) {
 	t.Helper()
+	productionParseOnce.Do(func() {
+		productionParseFset, productionParseFiles, productionParseErr = walkProductionGoFiles()
+	})
+	if productionParseErr != nil {
+		t.Fatalf("walk repo: %v", productionParseErr)
+	}
+	return productionParseFset, productionParseFiles
+}
+
+func walkProductionGoFiles() (*token.FileSet, []sightFile, error) {
 	root, err := filepath.Abs(".")
 	if err != nil {
-		t.Fatalf("resolve repo root: %v", err)
+		return nil, nil, err
 	}
 	fset := token.NewFileSet()
 	var files []sightFile
 	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			if os.IsNotExist(err) {
+				// A test elsewhere can create and remove a temp file under
+				// the tree while packages test in parallel; a vanished
+				// entry has nothing to scan.
 				return nil
 			}
 			return err
 		}
 		if d.IsDir() {
+			// Skip every dot-directory, not just .git. A git worktree under
+			// .claude/worktrees/ presents a SECOND full copy of internal/, and
+			// this walk would then report that copy's files as violations of a
+			// rule the real tree does not break. Agent worktrees are routine.
 			if strings.HasPrefix(d.Name(), ".") && d.Name() != "." {
 				return filepath.SkipDir
 			}
@@ -314,15 +397,17 @@ func parseProductionGoFiles(t *testing.T) (*token.FileSet, []sightFile) {
 		}
 		file, perr := parser.ParseFile(fset, path, nil, 0)
 		if perr != nil {
+			// A syntax error is the compiler's problem to report, not a
+			// guard's. Skipping it keeps failures attributable.
 			return nil
 		}
 		files = append(files, sightFile{Rel: filepath.ToSlash(rel), File: file})
 		return nil
 	})
 	if err != nil {
-		t.Fatalf("walk repo: %v", err)
+		return nil, nil, err
 	}
-	return fset, files
+	return fset, files, nil
 }
 
 func formatSightSites(sites []sightSite) string {
@@ -335,11 +420,7 @@ func formatSightSites(sites []sightSite) string {
 
 // TestEveryRollSiteAppliesTheSightPenalty fails when production code rolls
 // through a guarded entry point in a function that applies no sight penalty
-// and is not exempt.
-//
-// KNOWN BLIND SPOT: a function-typed PARAMETER (runner(...) inside
-// resolveChannelAttackWithRunner) is invisible; the value is seen where it is
-// passed instead. Tools under tools/ are not scanned, matching the floor guard.
+// and is not exempt. Its blind spots are listed at the top of this file.
 func TestEveryRollSiteAppliesTheSightPenalty(t *testing.T) {
 	fset, files := parseProductionGoFiles(t)
 	if len(files) < 100 {
@@ -359,8 +440,9 @@ func TestEveryRollSiteAppliesTheSightPenalty(t *testing.T) {
 			formatSightSites(offenders), sightRuling)
 	}
 
-	// Every exemption must still name a real roll site; a stale row would
-	// silently pre-exempt whatever function later takes that name.
+	// A row whose site would pass WITHOUT it fails: either the site now
+	// complies on its own or no longer exists, and a row kept anyway would
+	// silently pre-exempt whatever later lands under that file|func.
 	all := findUnpenalisedRollSites(fset, files, nil)
 	live := map[string]bool{}
 	for _, s := range all {
@@ -432,6 +514,23 @@ func Flee(a float64) bool { return RunContest(a, nil).Success }
 	if len(got) != 1 || got[0].Func != "Flee" {
 		t.Errorf("bare in-package RunContest not reported, got:\n  %s", formatSightSites(got))
 	}
+
+	// A skill move that sets Room but builds Attack.Mult without the
+	// attack-side sight row is reported; one that folds it in is not.
+	move := parseSightSource(t, fset, "internal/actions/move.go", `package actions
+
+func kickNoSight(r interface{}) {
+	combat.ExecuteSkillMove(combat.SkillMoveParams{Room: r, Attack: combat.AttackSide{Mult: 1}})
+}
+
+func kickSight(c, r interface{}) {
+	combat.ExecuteSkillMove(combat.SkillMoveParams{Room: r, Attack: combat.AttackSide{Mult: combat.SituationalAttackMult(c, r, nil)}})
+}
+`)
+	got = findUnpenalisedRollSites(fset, []sightFile{move}, nil)
+	if len(got) != 1 || got[0].Func != "kickNoSight" || got[0].Call != "combat.ExecuteSkillMove" {
+		t.Errorf("want kickNoSight's ExecuteSkillMove reported, got:\n  %s", formatSightSites(got))
+	}
 }
 
 // TestSightPenaltyGuardSeesTheSpellAlias proves an alias declared from a
@@ -467,11 +566,40 @@ func unrelated() { runSpell() }
 	if !strings.Contains(got[0].Call, "alias of combat.ResolveChannelAttack") {
 		t.Errorf("finding should name the alias target, got %q", got[0].Call)
 	}
+
+	// A local alias (x := combat.RunContest) is guarded inside its function
+	// and does NOT leak to a same-named call elsewhere in the package; a blank
+	// assignment is never an alias.
+	local := parseSightSource(t, fset, "internal/actions/local.go", `package actions
+
+func withLocal(a float64) bool {
+	run := combat.RunContest
+	return run(a, nil).Success
+}
+
+func sameNameElsewhere() { run(0, nil) }
+
+func blank() {
+	_ = combat.RunContest
+	_(0, nil)
+}
+`)
+	got = findUnpenalisedRollSites(fset, []sightFile{local}, nil)
+	if len(got) != 1 || got[0].Func != "withLocal" || !strings.Contains(got[0].Call, "run (alias of combat.RunContest)") {
+		t.Errorf("want only withLocal's local alias reported, got:\n  %s", formatSightSites(got))
+	}
 }
 
 // findSkillMovesWithoutRoom returns file:line for every SkillMoveParams (or
-// combat.SkillMoveParams) composite literal that does not set Room. A missing
-// Room silently means "comfortable" for the defender.
+// combat.SkillMoveParams) composite literal that does not set Room, or sets it
+// to a literal nil. A missing Room silently means "comfortable" for the
+// defender.
+//
+// Limits: an elided-type literal inside a slice or map
+// ([]SkillMoveParams{{...}}) has no Type on the inner literal and is skipped;
+// a SkillMoveParams built field by field (var p SkillMoveParams; p.Room = r)
+// is not a literal and is not checked; Room set to a variable that happens to
+// hold nil passes.
 func findSkillMovesWithoutRoom(fset *token.FileSet, files []sightFile) []string {
 	var out []string
 	for _, f := range files {
@@ -498,6 +626,9 @@ func findSkillMovesWithoutRoom(fset *token.FileSet, files []sightFile) []string 
 					continue
 				}
 				if key, ok := kv.Key.(*ast.Ident); ok && key.Name == "Room" {
+					if val, ok := kv.Value.(*ast.Ident); ok && val.Name == "nil" {
+						break
+					}
 					return true
 				}
 			}
@@ -528,10 +659,11 @@ func kick() {
 	combat.ExecuteSkillMove(combat.SkillMoveParams{Attacker: a})
 	combat.ExecuteSkillMove(combat.SkillMoveParams{Attacker: a, Room: r})
 	_ = &SkillMoveParams{}
+	_ = SkillMoveParams{Room: nil}
 }
 `)
 	got := findSkillMovesWithoutRoom(fset, []sightFile{f})
-	want := []string{"internal/actions/kick.go:4", "internal/actions/kick.go:6"}
+	want := []string{"internal/actions/kick.go:4", "internal/actions/kick.go:6", "internal/actions/kick.go:7"}
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Errorf("got %v, want %v", got, want)
 	}
