@@ -22,6 +22,10 @@ nothing at all. Light that is too bright dazzles you.
   A plain lantern or torch always burns at full strength. Under open
   sky near a summer noon that is too much, and it will dazzle you.
 
+  Being dazzled costs you: your aim, your guard and your eye for
+  detail all suffer, more the brighter it gets, and the same is true
+  of dim light as it fades toward dark. Talking is unaffected.
+
 <ansi fg="yellow">Lights that adjust</ansi>
 
   The Chrysalis Glow spell and the hooded lantern trim themselves to

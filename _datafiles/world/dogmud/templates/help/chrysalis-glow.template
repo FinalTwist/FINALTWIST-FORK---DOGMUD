@@ -10,6 +10,9 @@ new place it turns itself down to suit your eyes, so it does not
 dazzle you there. Cast it again for full strength, or use
 <ansi fg="command">cancel glow</ansi> to let it go.
 
+A fresh glow at full strength can dazzle your own party until you
+move.
+
 <ansi fg="yellow">Usage: </ansi>
 
   <ansi fg="command">cast chrysalis-glow</ansi>

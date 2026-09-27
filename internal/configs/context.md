@@ -668,21 +668,22 @@ special-move base instead. Physical rows add encumbrance, every row applies the
 inverse governing-skill term, and callers may supply a documented modifier.
 See the live config and validation code for tuning values.
 
-### Graded room lighting (plans 1, 2, 3a and 5a of the graded lighting arc)
+### Graded room lighting (plans 1, 2, 3a, 5a and 5b of the graded lighting arc)
 
-Twelve knobs, validated in their own file (`config.balance.lighting.go`)
+Thirteen knobs, validated in their own file (`config.balance.lighting.go`)
 rather than folded into `validateMisc`, because the arc kept adding more
 here across plans: plan 1 shipped the three band thresholds, plan 2 added
-the vision-strength fallback, and plan 3a added the eight knobs that turn
-the sky itself into a solar and lunar model. None of the twelve appears in
-`_datafiles/config.yaml`, so the shipped value is the Go default in every
-case.
+the vision-strength fallback, plan 3a added the eight knobs that turn the
+sky itself into a solar and lunar model, and plan 5b added the dazzle
+edge. None of the thirteen appears in `_datafiles/config.yaml`, so the
+shipped value is the Go default in every case.
 
 | Knob | Type | Default | Effect |
 |------|------|---------|--------|
 | `LightBlindBelow` | ConfigInt | 25 | Below this, a normal observer is blind. |
 | `LightDimBelow` | ConfigInt | 50 | Below this, a normal observer reads shapes only. |
 | `LightExitsAbove` | ConfigInt | 65 | At or above this, exits into adjacent rooms are visible. |
+| `LightDazzleAbove` | ConfigInt | 75 | Where the comfortable band ends and too-bright begins for a normal observer; a vision ability moves it down by its strength. Plan 5b. |
 | `LightDefaultVisionStrength` | ConfigInt | 12 | Window shift (`internal/messaging.SightThroughWindow`'s `strength`) for a vision flag that declares no strength of its own. Plan 2. |
 | `LightDoublingStep` | ConfigFloat | 8 | Scale points per doubling of physical light; the one constant `internal/lightscale.Combine`/`Attenuate` take as `step`. Plan 3a. |
 | `WorldLatitude` | ConfigFloat | 46.5 | Degrees north; the world's ONLY seasonal input (declination, day length, sunrise, sunset, noon height all derive from it). Plan 3a. |
@@ -715,12 +716,32 @@ loads `config.yaml`).
 | `LightSpellDurationSkillDivisor` | 20 |
 
 `LightBlindBelow` and `LightDimBelow` validate as a PAIR, the
-`DarknessShapesCombatPenalty` precedent: an inverted or out-of-range pair
-reverts both to their defaults rather than leaving one knob correct and
-the other wrong. Zero is deliberately coerced rather than honoured for
-these two, unlike `SneakFailCooldown`'s honoured zero. `LightExitsAbove`
-validates on its own range plus one cross-axis rule, that it must not sit
-below `LightBlindBelow`.
+`LightStarlight`/`LightMoonsFull` precedent below: an inverted or
+out-of-range pair reverts both to their defaults rather than leaving one
+knob correct and the other wrong. Zero is deliberately coerced rather than
+honoured for these two, unlike `SneakFailCooldown`'s honoured zero.
+`LightExitsAbove` validates on its own range plus one cross-axis rule, that
+it must not sit below `LightBlindBelow`.
+
+`LightDazzleAbove` (plan 5b) validates in `validateLighting` on its own
+range and one cross-axis rule, that it must sit above `LightDimBelow` and
+at most 100; an invalid value falls back to one above the current
+`LightDimBelow`, or to its shipped default of 75 if that fallback would
+itself be out of range. It is where the observer's comfortable band ends
+and the dazzle ramp begins; a vision ability's strength shifts the whole
+band, dazzle edge included, down by that much.
+
+`DarknessCombatPenalty` and `DazzleCap` (both `ConfigFloat`, both COMBAT:
+DARKNESS knobs validated in `config.balance.combat.go`, not this file) are
+the ramp's two caps: `DarknessCombatPenalty` (default 0.80) at and below
+the blind edge, `DazzleCap` (default 0.80) one ramp-width past the dazzle
+edge and beyond. `internal/messaging.SightScoreMultiplier` reads both to
+build the linear ramp between them. Plan 5b retired the two knobs these
+replaced, `DarknessShapesCombatPenalty` and `DarknessScoreMultiplier`
+(the flat three-verdict penalty); `DarknessCombatPenalty`'s yaml key name
+is kept for config compatibility even though its meaning changed from a
+flat penalty to a ramp cap. See `internal/combat/context.md`'s "Sight: the
+verdict and the ramp" section for how the ramp is read.
 
 ⚠️ **`internal/rooms.LightDark`/`LightRoomOnly`/`LightFull` are GONE.** Plan
 1 shipped them as a bridge from the old three-value visibility model onto
