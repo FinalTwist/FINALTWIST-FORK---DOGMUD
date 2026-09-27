@@ -771,17 +771,24 @@ the free supply-handoff paths — these are NOT routed through `actions.Sell`.
   checks it directly, right after its own sleep gate.
 - **`ShopSightRefusalText`**, the one line every refusing verb prints:
   "You can't make out the goods well enough to deal."
-- **`barterDiscount(char *characters.Character, room *rooms.Room) float64`**,
-  the ONE place the bartering discount is computed: skill-derived, capped
-  at 15% (skill 50), times `messaging.SightMult(char, room)`. A dazzled
-  haggler (bright band, still full sight) bargains worse than a comfortable
-  one; a nil room reads as comfortable (mult 1.0), matching `SightMult`'s own
-  nil-room reading. Replaces three previously hand-rolled, slightly
-  inconsistent discount computations in `buy.go` and `sell.go`.
+- **`barterDiscount(char *characters.Character, room *rooms.Room, maxFrac float64) float64`**,
+  the ONE place the bartering discount is computed: skill-derived, capped at
+  `maxFrac` (skill 50 reaches the cap), times `messaging.SightMult(char, room)`.
+  A dazzled haggler (bright band, still full sight) bargains worse than a
+  comfortable one; a nil room reads as comfortable (mult 1.0), matching
+  `SightMult`'s own nil-room reading. Replaces three previously hand-rolled,
+  slightly inconsistent discount computations in `buy.go` and `sell.go`.
+  `maxFrac` is always the shipped knob, never a Go literal:
+  `configs.GetBalanceConfig().BarterMaxDiscount` for a buyer's price cut
+  (`tryPurchaseFromInventory` in `buy.go`), `.BarterMaxBonus` for a seller's
+  price bump (`sellOneToMerchant` in `sell.go`); the two differ because buy
+  and sell name different knobs, so the caller reads its own before calling in.
 
 A mob actor gets no refusal text: `MobActor.SendText` is already a no-op, so
 the gate calls `SendText` unconditionally guarded on `buyer.IsPlayer()` for
-readability, matching every other refusal in `buy.go`/`sell.go`.
+readability, matching every other refusal in `buy.go`/`sell.go`. Both refusal
+sends use `messaging.CategorySystem`, matching `ShopClosedForSleep`'s own
+refusal category and the neighbouring "Visit a merchant" lines.
 
 ---
 

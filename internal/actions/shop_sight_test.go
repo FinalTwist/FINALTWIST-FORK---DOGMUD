@@ -6,8 +6,12 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/shops"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -161,6 +165,55 @@ func TestSell_DazzledRoom_StillSells(t *testing.T) {
 	assert.Greater(t, char.Gold, goldBefore, "the sale must complete in a dazzled room")
 }
 
+// TestBuy_DazzledRoom_StillBuys is TestSell_DazzledRoom_StillSells's Buy-side
+// twin: dazzled (light 90) still completes a purchase, and the price paid
+// reflects the 0.88 SightMult multiplier on the bartering discount (0.15 x
+// 0.88 = 0.132), the same pin TestBarterDiscount_DazzledLessThanComfortable
+// uses below. Exercises tryPurchaseFromInventory directly (bypassing
+// room/merchant discovery), same as TestBuy_AffixedStockItem in buy_test.go:
+// the ShopInventory path needs no loaded shop data files, unlike the full
+// Buy() entry point (see the file comment on seedSellRoom's siblings).
+func TestBuy_DazzledRoom_StillBuys(t *testing.T) {
+	defer seedSellItemSpecs()()
+
+	cfg := configs.GetConfig()
+	cfg.Balance.BarterMaxDiscount = 0.15
+	configs.SetConfigForTest(t, cfg)
+
+	dazzled := &rooms.Room{RoomId: 90020, SkyLight: rooms.SkyLightPtr(0.0), Lamp: rooms.LampPtr(90)}
+	require.GreaterOrEqual(t, dazzled.LightLevel(), 75, "fixture room must read at or above the dazzle edge")
+
+	m := &mobs.Mob{}
+	m.Character.Name = "Buyer"
+	m.Character.Gold = 1000
+	m.Character.Conditions = conditions.New()
+	m.Character.Stats.Strength.ValueAdj = 100 // carry capacity
+	m.Character.Skills = map[string]int{string(skills.Bartering): 50}
+	buyer := &MobActor{Mob: m, Room: dazzled}
+
+	assert.False(t, ShopSightRefusal(buyer.GetCharacter(), dazzled),
+		"dazzled is still full sight and must not refuse")
+
+	// Compute the expected price the same way tryPurchaseFromInventory does,
+	// so this test proves the DISCOUNT reflects SightMult rather than
+	// asserting a hand-derived magic number.
+	pricingCfg := shops.PricingConfigFromBalance()
+	entry := shops.StockEntry{ItemId: sellTestItemId, Current: 5, MaxStock: 10, RestockQty: 5}
+	basePrice := shops.CalcSellPrice(100, entry.Current, shops.PricingBaseline(&entry, pricingCfg), pricingCfg)
+	expectedDiscount := 0.15 * 0.88 // 0.15 cap x SightMult 0.88 at light 90, skill 50
+	expectedPrice := shops.ApplyBarterSellDiscount(basePrice, expectedDiscount)
+
+	shopInv := &shops.ShopInventory{Gold: 1000, Stock: []shops.StockEntry{entry}}
+	shopMob := &mobs.Mob{Character: characters.Character{Name: "Merchant"}}
+
+	res := tryPurchaseFromInventory(buyer, "iron sword", shopMob, shopInv)
+
+	require.True(t, res.Success, "%+v", res)
+	assert.Less(t, m.Character.Gold, 1000, "gold must go down on a successful purchase")
+	assert.Equal(t, 1000-expectedPrice, m.Character.Gold,
+		"price paid must reflect the 0.88 dazzle discount multiplier")
+}
+
 // TestShopSightRefusal_Bands is a direct, fixture-free pin of every band
 // ShopSightRefusal must tell apart: dark and shapes refuse, faces and
 // dazzled do not.
@@ -184,14 +237,24 @@ func TestShopSightRefusal_Bands(t *testing.T) {
 // bargains worse, at exactly SightMult's 0.88 for a normal observer under the
 // Go test default lighting config (DazzleCap 0.80, dim/dazzle edges 50/75).
 // 0.15 (skill 50, at the cap) * 0.88 = 0.132 exactly.
+//
+// The cap itself is the shipped knob Balance.BarterMaxDiscount, never a Go
+// literal (see barterDiscount's doc comment), so it is pinned explicitly here
+// via SetConfigForTest rather than trusted to stay 0.15 by coincidence: the
+// 0.132 pin holds only as long as the pinned knob does.
 func TestBarterDiscount_DazzledLessThanComfortable(t *testing.T) {
+	cfg := configs.GetConfig()
+	cfg.Balance.BarterMaxDiscount = 0.15
+	configs.SetConfigForTest(t, cfg)
+	maxFrac := float64(configs.GetBalanceConfig().BarterMaxDiscount)
+
 	char := &characters.Character{Skills: map[string]int{string(skills.Bartering): 50}}
 
 	comfortable := &rooms.Room{RoomId: 90001, SkyLight: rooms.SkyLightPtr(0.0), Lamp: rooms.LampPtr(60)}
 	dazzled := &rooms.Room{RoomId: 90002, SkyLight: rooms.SkyLightPtr(0.0), Lamp: rooms.LampPtr(90)}
 
-	comfortableDiscount := barterDiscount(char, comfortable)
-	dazzledDiscount := barterDiscount(char, dazzled)
+	comfortableDiscount := barterDiscount(char, comfortable, maxFrac)
+	dazzledDiscount := barterDiscount(char, dazzled, maxFrac)
 
 	assert.InDelta(t, 0.15, comfortableDiscount, 1e-9,
 		"a comfortable haggler at skill 50 keeps the full 15% discount")

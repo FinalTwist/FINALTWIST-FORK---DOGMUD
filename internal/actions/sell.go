@@ -66,7 +66,7 @@ func Sell(seller Actor, opts SellOptions) SellResult {
 	if len(room.GetPlayers(rooms.FindMerchant)) > 0 || len(room.GetMobs(rooms.FindMerchant)) > 0 {
 		if ShopSightRefusal(seller.GetCharacter(), room) {
 			if seller.IsPlayer() {
-				seller.SendText(messaging.CategoryError, ShopSightRefusalText)
+				seller.SendText(messaging.CategorySystem, ShopSightRefusalText)
 			}
 			return SellResult{Reason: SellStopNoSight}
 		}
@@ -296,8 +296,12 @@ func sellOneToMerchant(seller Actor, itemName string, room *rooms.Room,
 		buyReason = offer.Reason
 		if sellValue > 0 {
 			// A dazzled seller bargains worse (lighting plan 5b): barterDiscount
-			// folds SightMult into the same 15%-at-skill-50 cap.
-			if bonus := barterDiscount(char, room); bonus > 0 {
+			// folds SightMult into the same BarterMaxBonus-at-skill-50 cap.
+			// Balance numbers come from config.yaml, never a Go literal: the
+			// sell-side cap is Balance.BarterMaxBonus (buy.go reads
+			// BarterMaxDiscount instead, see tryPurchaseFromInventory).
+			barterMaxBonus := float64(configs.GetBalanceConfig().BarterMaxBonus)
+			if bonus := barterDiscount(char, room, barterMaxBonus); bonus > 0 {
 				sellValue = shops.ApplyBarterBuyBonus(sellValue, bonus)
 			}
 		}

@@ -29,9 +29,10 @@ func listSightPlain(lines []string) []string {
 
 // listSightRoom seeds one room (id 8410), one browsing player (id 8411) and
 // one merchant mob (instance 8412, legacy Character.Shop) carrying a single
-// sellable item, in the given biome. "cave" (SkyLight 0, no lamp) is dark
-// (below the blind edge); "shapes" (Lamp 37) sits between the blind edge (25)
-// and the dim edge (50), the band a normal observer still only makes out
+// sellable item, in the given biome. All four biomes below are registered
+// here for this test only, not shipped ones: "cave" (SkyLight 0, no lamp) is
+// dark (below the blind edge); "shapes" (Lamp 37) sits between the blind edge
+// (25) and the dim edge (50), the band a normal observer still only makes out
 // shapes in; "city" (Lamp 60) is comfortably lit (faces, no dazzle); "dazzle"
 // (Lamp 90) is above the dazzle edge (75), still full sight.
 func listSightRoom(t *testing.T, biome string) (*users.UserRecord, *rooms.Room) {
@@ -90,6 +91,34 @@ func itemsSeedForListSight() func() {
 	})
 }
 
+// listedStockNames returns the item names List's own row-building path
+// (partitionShopStock -> buildItemRows, the exact functions renderMobMerchant
+// Listing calls) produces for the seeded merchant's current stock.
+//
+// This sidesteps internal/templates.Process: this package's TestMain
+// redirects FilePaths.DataFiles to an empty temp dir (so save writes can't
+// race a root-guard walk), and internal/templates.readFile's fileSystems
+// slice is never populated in a bare `go test` run here (no module import
+// chain calls templates.RegisterFS), so every Process call in this test
+// binary renders empty content regardless of DataFiles, a pre-existing gap
+// in that package, outside this task. buildItemRows is where List() commits
+// to a stock NAME before handing rows to that renderer, so asserting on its
+// output still proves the sight gate is choosing to show (or not show) this
+// merchant's actual goods.
+func listedStockNames(t *testing.T) []string {
+	t.Helper()
+	merchant := mobs.GetInstance(8412)
+	require.NotNil(t, merchant, "fixture merchant must exist")
+	merchant.Character.Shop.Restock()
+	itemStock, _, _, _ := partitionShopStock(merchant.Character.Shop.GetInstock())
+	_, rows := buildItemRows(itemStock, true, false)
+	names := make([]string, 0, len(rows))
+	for _, row := range rows {
+		names = append(names, row[1]) // columns are Qty, Name, Type, [Price]
+	}
+	return names
+}
+
 // TestList_DarkRoom_RefusesToDeal pins the lighting plan 5b shop sight gate:
 // below the faces band a customer cannot make out the goods, so `list`
 // refuses with the shared line and shows nothing.
@@ -103,7 +132,7 @@ func TestList_DarkRoom_RefusesToDeal(t *testing.T) {
 
 	lines := listSightPlain(events.DrainQueuedMessagesForTest(8411))
 	require.Len(t, lines, 1)
-	assert.Equal(t, "You can't make out the goods well enough to deal.", lines[0])
+	assert.Equal(t, actions.ShopSightRefusalText, lines[0])
 }
 
 // TestList_ShapesRoom_RefusesToDeal is dark's sibling in the OTHER refused
@@ -121,11 +150,11 @@ func TestList_ShapesRoom_RefusesToDeal(t *testing.T) {
 
 	lines := listSightPlain(events.DrainQueuedMessagesForTest(8411))
 	require.Len(t, lines, 1)
-	assert.Equal(t, "You can't make out the goods well enough to deal.", lines[0])
+	assert.Equal(t, actions.ShopSightRefusalText, lines[0])
 }
 
 // TestList_LitRoom_Lists is the control: a comfortably lit room lists the
-// merchant's stock as before.
+// merchant's stock as before, by name.
 func TestList_LitRoom_Lists(t *testing.T) {
 	user, room := listSightRoom(t, "city")
 	require.GreaterOrEqual(t, room.LightLevel(), 50, "fixture room must read at or above the dim edge")
@@ -136,9 +165,11 @@ func TestList_LitRoom_Lists(t *testing.T) {
 
 	lines := listSightPlain(events.DrainQueuedMessagesForTest(8411))
 	require.NotEmpty(t, lines)
-	for _, l := range lines {
-		assert.NotEqual(t, "You can't make out the goods well enough to deal.", l)
-	}
+	joined := strings.Join(lines, "\n")
+	assert.NotContains(t, joined, actions.ShopSightRefusalText)
+
+	names := listedStockNames(t)
+	assert.Contains(t, names, "Tin Cup", "the merchant's stock name must actually appear, not just an absent refusal")
 }
 
 // TestList_DazzledRoom_StillLists pins the far edge of full sight: dazzled
@@ -161,6 +192,9 @@ func TestList_DazzledRoom_StillLists(t *testing.T) {
 	lines := listSightPlain(events.DrainQueuedMessagesForTest(8411))
 	require.NotEmpty(t, lines)
 	for _, l := range lines {
-		assert.NotEqual(t, "You can't make out the goods well enough to deal.", l)
+		assert.NotEqual(t, actions.ShopSightRefusalText, l)
 	}
+
+	names := listedStockNames(t)
+	assert.Contains(t, names, "Tin Cup", "the merchant's stock name must actually appear, not just an absent refusal")
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -358,7 +359,7 @@ func Buy(buyer Actor, opts BuyOptions) BuyResult {
 	// MobActor (the "no merchant here" test fixture) never reaches this line.
 	if ShopSightRefusal(buyer.GetCharacter(), room) {
 		if buyer.IsPlayer() {
-			buyer.SendText(messaging.CategoryError, ShopSightRefusalText)
+			buyer.SendText(messaging.CategorySystem, ShopSightRefusalText)
 		}
 		return BuyResult{Reason: BuyReasonNoSight, Requested: quantity}
 	}
@@ -526,6 +527,10 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 	var itemNamesFancy []string
 
 	char := buyer.GetCharacter()
+	// Balance numbers come from config.yaml, never a Go literal: the buy-side
+	// bartering cap is Balance.BarterMaxDiscount (sell.go reads BarterMaxBonus
+	// instead, see sellOneToMerchant).
+	barterMaxDiscount := float64(configs.GetBalanceConfig().BarterMaxDiscount)
 
 	for i := range shopInv.Stock {
 		entry := &shopInv.Stock[i]
@@ -542,8 +547,8 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 
 		// Bartering discount, works symmetrically for both buyer types. A
 		// dazzled buyer bargains worse (lighting plan 5b): barterDiscount
-		// folds SightMult into the same 15%-at-skill-50 cap.
-		if discount := barterDiscount(char, buyer.GetRoom()); discount > 0 {
+		// folds SightMult into the same BarterMaxDiscount-at-skill-50 cap.
+		if discount := barterDiscount(char, buyer.GetRoom(), barterMaxDiscount); discount > 0 {
 			basePrice = shops.ApplyBarterSellDiscount(basePrice, discount)
 		}
 
@@ -564,7 +569,7 @@ func tryPurchaseFromInventory(buyer Actor, request string, shopMob *mobs.Mob, sh
 		e := &shopInv.AffixedStock[i]
 		spec := e.Item.GetSpec()
 		price := e.Price
-		if discount := barterDiscount(char, buyer.GetRoom()); discount > 0 {
+		if discount := barterDiscount(char, buyer.GetRoom(), barterMaxDiscount); discount > 0 {
 			price = shops.ApplyBarterSellDiscount(price, discount)
 		}
 		available = append(available, invEntry{

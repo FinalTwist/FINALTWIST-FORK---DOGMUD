@@ -28,23 +28,28 @@ func ShopSightRefusal(c *characters.Character, room *rooms.Room) bool {
 const ShopSightRefusalText = "You can't make out the goods well enough to deal."
 
 // barterDiscount is the ONE place a shop's bartering discount is computed
-// (lighting plan 5b): the raw skill-derived discount, capped at 15% same as
-// before, times SightMult, so a dazzled haggler bargains worse than a
-// comfortable one, who reads SightMult 1.0 and sees no change at all.
+// (lighting plan 5b): the raw skill-derived discount, capped at maxFrac,
+// times SightMult, so a dazzled haggler bargains worse than a comfortable
+// one, who reads SightMult 1.0 and sees no change at all.
+//
+// maxFrac is the shipped knob, never a Go literal: Balance.BarterMaxDiscount
+// for a buyer's price cut, Balance.BarterMaxBonus for a seller's price bump
+// (both from configs.GetBalanceConfig(), read by the caller since buy and
+// sell name different knobs).
 //
 // A nil room reads as comfortable (SightMult 1.0, unmultiplied), the same
 // reading messaging.SightMult itself gives a nil room. This only matters to
 // a caller exercising tryPurchaseFromInventory directly with no Room set on
 // its Actor fixture, and a typed-nil *rooms.Room must never reach SightMult
 // (see ShopSightRefusal's doc comment).
-func barterDiscount(char *characters.Character, room *rooms.Room) float64 {
+func barterDiscount(char *characters.Character, room *rooms.Room, maxFrac float64) float64 {
 	barterSkill := char.GetSkillLevel(skills.Bartering)
 	if barterSkill <= 0 {
 		return 0
 	}
-	discount := float64(barterSkill) / 50.0 * 0.15
-	if discount > 0.15 {
-		discount = 0.15
+	discount := float64(barterSkill) / 50.0 * maxFrac
+	if discount > maxFrac {
+		discount = maxFrac
 	}
 	if room == nil {
 		return discount
