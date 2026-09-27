@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -28,14 +29,19 @@ func listSightPlain(lines []string) []string {
 
 // listSightRoom seeds one room (id 8410), one browsing player (id 8411) and
 // one merchant mob (instance 8412, legacy Character.Shop) carrying a single
-// sellable item, in the given biome. "cave" (SkyLight 0, no lamp) is dark;
-// "city" (Lamp 60) is comfortably lit.
+// sellable item, in the given biome. "cave" (SkyLight 0, no lamp) is dark
+// (below the blind edge); "shapes" (Lamp 37) sits between the blind edge (25)
+// and the dim edge (50), the band a normal observer still only makes out
+// shapes in; "city" (Lamp 60) is comfortably lit (faces, no dazzle); "dazzle"
+// (Lamp 90) is above the dazzle edge (75), still full sight.
 func listSightRoom(t *testing.T, biome string) (*users.UserRecord, *rooms.Room) {
 	t.Helper()
 
 	t.Cleanup(rooms.SeedBiomesForTest(map[string]*rooms.BiomeInfo{
-		"cave": {BiomeId: "cave", SkyLight: rooms.SkyLightPtr(0.0)},
-		"city": {BiomeId: "city", Lamp: rooms.LampPtr(60)},
+		"cave":   {BiomeId: "cave", SkyLight: rooms.SkyLightPtr(0.0)},
+		"shapes": {BiomeId: "shapes", SkyLight: rooms.SkyLightPtr(0.0), Lamp: rooms.LampPtr(37)},
+		"city":   {BiomeId: "city", Lamp: rooms.LampPtr(60)},
+		"dazzle": {BiomeId: "dazzle", SkyLight: rooms.SkyLightPtr(0.0), Lamp: rooms.LampPtr(90)},
 	}))
 
 	const listSightItemId = 84001
@@ -100,11 +106,53 @@ func TestList_DarkRoom_RefusesToDeal(t *testing.T) {
 	assert.Equal(t, "You can't make out the goods well enough to deal.", lines[0])
 }
 
+// TestList_ShapesRoom_RefusesToDeal is dark's sibling in the OTHER refused
+// band: light 37 sits strictly between the blind edge (25) and the dim edge
+// (50), so a normal observer makes out shapes only, not faces. Refusal must
+// not be an accident of total darkness; the shapes band refuses too.
+func TestList_ShapesRoom_RefusesToDeal(t *testing.T) {
+	user, room := listSightRoom(t, "shapes")
+	require.GreaterOrEqual(t, room.LightLevel(), 25, "fixture room must read at or above the blind edge")
+	require.Less(t, room.LightLevel(), 50, "fixture room must read below the dim edge")
+
+	handled, err := List("", user, room, 0)
+	require.NoError(t, err)
+	assert.True(t, handled)
+
+	lines := listSightPlain(events.DrainQueuedMessagesForTest(8411))
+	require.Len(t, lines, 1)
+	assert.Equal(t, "You can't make out the goods well enough to deal.", lines[0])
+}
+
 // TestList_LitRoom_Lists is the control: a comfortably lit room lists the
 // merchant's stock as before.
 func TestList_LitRoom_Lists(t *testing.T) {
 	user, room := listSightRoom(t, "city")
 	require.GreaterOrEqual(t, room.LightLevel(), 50, "fixture room must read at or above the dim edge")
+
+	handled, err := List("", user, room, 0)
+	require.NoError(t, err)
+	assert.True(t, handled)
+
+	lines := listSightPlain(events.DrainQueuedMessagesForTest(8411))
+	require.NotEmpty(t, lines)
+	for _, l := range lines {
+		assert.NotEqual(t, "You can't make out the goods well enough to deal.", l)
+	}
+}
+
+// TestList_DazzledRoom_StillLists pins the far edge of full sight: dazzled
+// (light 90, above the dazzle edge of 75) is still faces-or-better, so
+// ShopSightRefusal reads false and List works exactly like a comfortable
+// room, with no refusal line. Dazzle costs a haggler's discount (see
+// internal/actions/shop_sight_test.go's barterDiscount tests), not the deal
+// itself.
+func TestList_DazzledRoom_StillLists(t *testing.T) {
+	user, room := listSightRoom(t, "dazzle")
+	require.GreaterOrEqual(t, room.LightLevel(), 75, "fixture room must read at or above the dazzle edge")
+
+	assert.False(t, actions.ShopSightRefusal(user.Character, room),
+		"dazzled is still full sight and must not refuse")
 
 	handled, err := List("", user, room, 0)
 	require.NoError(t, err)

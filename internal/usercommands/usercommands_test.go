@@ -4854,11 +4854,18 @@ func TestLookMoreBranches(t *testing.T) {
 
 	t.Run("look_in_dark_room", func(t *testing.T) {
 		origBiome := room.Biome
+		origLamp := room.Lamp
+		// room1's Lamp pin (lighting plan 5b's shop sight gate) survives a
+		// biome switch, same trap noted in darkenCraftRoom and
+		// combat_fire_test.go, so it must be cleared before "cave" can
+		// actually darken the room.
+		room.Lamp = nil
 		room.Biome = "cave"
 		handled, err := Look("", user, room, 0)
 		assert.True(t, handled)
 		assert.NoError(t, err)
 		room.Biome = origBiome
+		room.Lamp = origLamp
 	})
 
 	t.Run("look_at_room_with_nouns", func(t *testing.T) {

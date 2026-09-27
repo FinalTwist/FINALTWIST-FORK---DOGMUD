@@ -32,6 +32,32 @@ func darkenSellRoom(t *testing.T) *rooms.Room {
 	return room
 }
 
+// dimSellRoom mutates the seedSellRoom fixture into the shapes band: at or
+// above the blind edge (25) but below the dim edge (50), the OTHER refused
+// band, distinct from total darkness.
+func dimSellRoom(t *testing.T) *rooms.Room {
+	t.Helper()
+	room := rooms.LoadRoom(1)
+	require.NotNil(t, room, "room 1 must exist")
+	room.SkyLight = rooms.SkyLightPtr(0.0)
+	room.Lamp = rooms.LampPtr(37)
+	require.GreaterOrEqual(t, room.LightLevel(), 25, "fixture room must read at or above the blind edge")
+	require.Less(t, room.LightLevel(), 50, "fixture room must read below the dim edge")
+	return room
+}
+
+// dazzleSellRoom mutates the seedSellRoom fixture above the dazzle edge (75):
+// still full sight, just bright enough to cost a haggler's discount.
+func dazzleSellRoom(t *testing.T) *rooms.Room {
+	t.Helper()
+	room := rooms.LoadRoom(1)
+	require.NotNil(t, room, "room 1 must exist")
+	room.SkyLight = rooms.SkyLightPtr(0.0)
+	room.Lamp = rooms.LampPtr(90)
+	require.GreaterOrEqual(t, room.LightLevel(), 75, "fixture room must read at or above the dazzle edge")
+	return room
+}
+
 // TestBuy_DarkRoom_Refuses pins the lighting plan 5b shop sight gate on the
 // shared Buy entry point: below the faces band a buyer can't make out the
 // goods, so the purchase refuses with the shared line before any purchase
@@ -81,6 +107,75 @@ func TestSell_DarkRoom_Refuses(t *testing.T) {
 	lines := events.DrainQueuedMessagesForTest(seller.GetUserId())
 	require.Len(t, lines, 1)
 	assert.Equal(t, ShopSightRefusalText, shopSightPlain(lines[0]))
+}
+
+// TestSell_ShapesRoom_Refuses is TestSell_DarkRoom_Refuses's sibling in the
+// OTHER refused band: light 37 sits strictly between the blind edge (25) and
+// the dim edge (50), so a normal observer makes out shapes only, not faces.
+// Refusal must not be an accident of total darkness.
+func TestSell_ShapesRoom_Refuses(t *testing.T) {
+	defer seedSellItemSpecs()()
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 1000)()
+	dimSellRoom(t)
+
+	seller := newSellerActor(t, true, sellTestItemId)
+	char := seller.GetCharacter()
+	goldBefore := char.Gold
+	events.DrainQueuedMessagesForTest(seller.GetUserId())
+
+	res := Sell(seller, SellOptions{ItemName: "iron sword", Quantity: 1})
+
+	assert.Equal(t, 0, res.Sold)
+	assert.Equal(t, SellStopNoSight, res.Reason)
+	assert.Equal(t, goldBefore, char.Gold, "gold must not move on a sight refusal")
+	_, stillHeld := char.FindInBackpack("iron sword")
+	assert.True(t, stillHeld, "the item must stay in the seller's backpack")
+
+	lines := events.DrainQueuedMessagesForTest(seller.GetUserId())
+	require.Len(t, lines, 1)
+	assert.Equal(t, ShopSightRefusalText, shopSightPlain(lines[0]))
+}
+
+// TestSell_DazzledRoom_StillSells pins the far edge of full sight: dazzled
+// (light 90, above the dazzle edge of 75) is still faces-or-better, so
+// ShopSightRefusal reads false and a sale completes normally. Dazzle costs a
+// haggler's discount (see TestBarterDiscount_DazzledLessThanComfortable
+// below), not the deal itself.
+func TestSell_DazzledRoom_StillSells(t *testing.T) {
+	defer seedSellItemSpecs()()
+	defer seedSellRoom(t)()
+	defer seedSellMerchant(t, 1000)()
+	room := dazzleSellRoom(t)
+
+	seller := newSellerActor(t, true, sellTestItemId)
+	char := seller.GetCharacter()
+	goldBefore := char.Gold
+
+	assert.False(t, ShopSightRefusal(char, room), "dazzled is still full sight and must not refuse")
+
+	res := Sell(seller, SellOptions{ItemName: "iron sword", Quantity: 1})
+
+	assert.Equal(t, 1, res.Sold)
+	assert.NotEqual(t, SellStopNoSight, res.Reason)
+	assert.Greater(t, char.Gold, goldBefore, "the sale must complete in a dazzled room")
+}
+
+// TestShopSightRefusal_Bands is a direct, fixture-free pin of every band
+// ShopSightRefusal must tell apart: dark and shapes refuse, faces and
+// dazzled do not.
+func TestShopSightRefusal_Bands(t *testing.T) {
+	char := &characters.Character{}
+
+	dark := &rooms.Room{RoomId: 90010, SkyLight: rooms.SkyLightPtr(0.0)}
+	shapes := &rooms.Room{RoomId: 90011, SkyLight: rooms.SkyLightPtr(0.0), Lamp: rooms.LampPtr(37)}
+	faces := &rooms.Room{RoomId: 90012, SkyLight: rooms.SkyLightPtr(0.0), Lamp: rooms.LampPtr(60)}
+	dazzled := &rooms.Room{RoomId: 90013, SkyLight: rooms.SkyLightPtr(0.0), Lamp: rooms.LampPtr(90)}
+
+	assert.True(t, ShopSightRefusal(char, dark), "dark must refuse")
+	assert.True(t, ShopSightRefusal(char, shapes), "shapes must refuse")
+	assert.False(t, ShopSightRefusal(char, faces), "faces must not refuse")
+	assert.False(t, ShopSightRefusal(char, dazzled), "dazzled must not refuse")
 }
 
 // TestBarterDiscount_DazzledLessThanComfortable pins barterDiscount's sight
