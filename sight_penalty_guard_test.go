@@ -29,6 +29,10 @@ import (
 //     is passed instead.
 //   - An alias of an alias (y := x where x aliases combat.RunContest) is not
 //     followed.
+//   - A plain "=" assigning a package-level variable from a function other
+//     than init (func setup() { runLater = combat.RunContest }) counts as an
+//     alias only inside that function, so a later runLater(...) elsewhere is
+//     not caught. No production code does this today.
 //   - A struct-field function value (s.runner = combat.RunContest, or
 //     Runner: RunContest in a literal) is not seen.
 //   - Packages are matched by NAME in code, not by import path, so an import
