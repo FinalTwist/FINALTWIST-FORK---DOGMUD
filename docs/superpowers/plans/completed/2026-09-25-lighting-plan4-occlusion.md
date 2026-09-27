@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go, YAML via `internal/fileloader`, `text/template` admin pages.
 
-**Spec:** `docs/superpowers/specs/2026-09-25-lighting-plan4-occlusion-design.md` (owner approved 2026-09-25).
+**Spec:** `docs/superpowers/specs/completed/2026-09-25-lighting-plan4-occlusion-design.md` (owner approved 2026-09-25).
 
 ---
 

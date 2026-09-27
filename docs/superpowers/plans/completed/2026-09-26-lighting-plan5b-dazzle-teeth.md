@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go (DOGMud fork of GoMud), YAML content under `_datafiles/world/dogmud`, `_datafiles/config.yaml` (skip-worktree in the main checkout).
 
-**Spec:** `docs/superpowers/specs/2026-09-26-lighting-plan5b-dazzle-teeth-design.md`. Read it first. The spec was amended 2026-09-26 to put both helpers in `messaging` (fact 19 below says why).
+**Spec:** `docs/superpowers/specs/completed/2026-09-26-lighting-plan5b-dazzle-teeth-design.md`. Read it first. The spec was amended 2026-09-26 to put both helpers in `messaging` (fact 19 below says why).
 
 ---
 

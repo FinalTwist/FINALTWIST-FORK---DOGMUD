@@ -1,7 +1,7 @@
 # AI companion: player-supplied keys (three tiers)
 
 Status: design approved in brainstorm 2026-09-25, awaiting spec review.
-Ships in the same PR as `docs/superpowers/plans/2026-09-25-aicompanion-integration-followup.md`
+Ships in the same PR as `docs/superpowers/plans/completed/2026-09-25-aicompanion-integration-followup.md`
 (branch `fix/aicompanion-integration`).
 
 ## Why
