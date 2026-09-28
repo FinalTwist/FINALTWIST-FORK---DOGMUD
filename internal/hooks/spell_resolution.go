@@ -501,69 +501,6 @@ func spellDefenceIdentity(char *characters.Character, user *users.UserRecord, ro
 	return char.GetMobName(0).String()
 }
 
-// setMobSpellAggro sets reciprocal aggro between the caster and the
-// mob target immediately after a hostile spell lands.
-//
-// Note: applyMobEffect_condition does NOT call this helper — its aggro block
-// is gated on spell Type being Harm*. Kept inline there.
-func setMobSpellAggro(user *users.UserRecord, mob *mobs.Mob) {
-	if !mob.Character.IsInCombat() {
-		if user != nil {
-			targeting.Commit(&mob.Character, state.ActorRef{UserId: user.UserId}, targeting.ReasonAttack)
-		}
-	}
-	if user != nil && !user.Character.IsInCombat() {
-		targeting.Commit(user.Character, state.ActorRef{MobInstanceId: mob.InstanceId}, targeting.ReasonAttack)
-	}
-}
-
-func applyMobEffect_condition(
-	user *users.UserRecord,
-	casterChar *characters.Character,
-	mob *mobs.Mob,
-	room *rooms.Room,
-	spellData *spells.SpellData,
-	out combat.ChannelDefenceResult,
-	critTag string,
-	mName string,
-) int {
-	// U6b Task 4: a condition is a binary status — a defended cast narrates the
-	// channel defence triad and applies nothing. Hostile intent still aggros
-	// (the harm-type gate below is shared with the landed path).
-	if out.Defended {
-		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-			spellDefenceIdentity(casterChar, user, room), mName, spellData.Name, user, nil)
-		if spellData.IsHarm() {
-			setMobSpellAggro(user, mob)
-		}
-		return 0
-	}
-	for _, conditionId := range spellData.ConditionIds {
-		applySpellCondition(mob, spellData, casterChar, conditionId)
-	}
-	// Conditional aggro for harmful condition spells — kept inline because it is
-	// gated on Harm* spell types; not consolidated in Task 7's setMobSpellAggro.
-	if spellData.IsHarm() {
-		if !mob.Character.IsInCombat() {
-			if user != nil {
-				targeting.Commit(&mob.Character, state.ActorRef{UserId: user.UserId}, targeting.ReasonAttack)
-			}
-		}
-		if user != nil && !user.Character.IsInCombat() {
-			targeting.Commit(user.Character, state.ActorRef{MobInstanceId: mob.InstanceId}, targeting.ReasonAttack)
-		}
-	}
-	if user != nil {
-		user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
-			`Your %s takes effect on %s!%s`,
-			spellData.Name, mName, critTag))
-		sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
-			`<ansi fg="username">%s</ansi>'s <ansi fg="cyan">%s</ansi> affects %s!`,
-			user.Character.Name, spellData.Name, mName), user.UserId)
-	}
-	return 0
-}
-
 // applyMobEffect_heal handles the "heal" EffectType case for applyMobEffect —
 // a caster (mob or player) casting a HelpSingle heal at ANOTHER mob (e.g. an
 // ally construct healing a boss, or a player healing a charmed companion).
@@ -638,10 +575,6 @@ func applyMobEffect_default(
 func applyMobEffectArms(c spellEffectCtx) int {
 	user, casterChar, mob, room := c.casterUser(), c.casterChar, c.targetMob(), c.room
 	spellData, magnitude, out := c.spell, c.magnitude, c.out
-	critTag := ""
-	if out.AttackerCrit {
-		critTag = ` <ansi fg="yellow">[CRIT!]</ansi>`
-	}
 	viewerId := 0
 	if user != nil {
 		viewerId = user.UserId
@@ -649,8 +582,6 @@ func applyMobEffectArms(c spellEffectCtx) int {
 	mName := mobDisplayName(mob, room, viewerId)
 
 	switch spellData.EffectType {
-	case "condition":
-		return applyMobEffect_condition(user, casterChar, mob, room, spellData, out, critTag, mName)
 	case "heal":
 		if user != nil {
 			events.AddToQueue(events.Healed{HealerUserId: user.UserId, MobInstanceId: mob.InstanceId})
@@ -699,8 +630,9 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 
 	recordSpellResolution(c, applySpellEffect(c))
 
-	// Set reciprocal aggro for harm spells. The harmful appliers commit their
-	// own; this still serves harmful condition spells until slice 3b.
+	// Set reciprocal aggro for harm spells. Every applier commits its own
+	// except the player-to-player default arm; Task 5 of slice 3b deletes
+	// this when applySpellDefaultEffect takes that over.
 	if spellData.IsHarm() {
 		if !user.Character.IsInCombat() {
 			targeting.Commit(user.Character, state.ActorRef{UserId: target.UserId}, targeting.ReasonAttack)
@@ -820,54 +752,6 @@ func applyPlayerEffectArms(c spellEffectCtx) {
 				Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
 					`<ansi fg="username">%s</ansi> channels restorative magic.`,
 					user.Character.Name)),
-			}, messaging.Audience{
-				Actor:     user,
-				ActorId:   user.UserId,
-				ActorName: user.Character.Name,
-				ActeeName: messaging.NoName,
-				Room:      room,
-			})
-		}
-
-	case "condition":
-		for _, conditionId := range spellData.ConditionIds {
-			applySpellCondition(target, spellData, user.Character, conditionId)
-		}
-		// M1 audit defect: this case told the caster and the target and left
-		// the room out, while its sibling `case "heal":` above broadcasts. A
-		// spell visibly taking hold on someone is not a private exchange.
-		// Shape and exclusions mirror the heal line; the category follows this
-		// case's own two lines rather than heal's, because a condition is not
-		// necessarily vital magic.
-		//
-		// KNOWN AND DEFERRED: the condition's own start text ALSO narrates this
-		// moment to the target and the room, through the event AddCondition queues
-		// above, so a condition with authored start text reaches each audience
-		// twice. The messaging arc's M6 merges them into one line per audience.
-		// See docs/superpowers/specs/completed/2026-09-11-messaging-m3-item5a-narration-defects-design.md.
-		if target.UserId != user.UserId {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`Your %s takes effect on <ansi fg="username">%s</ansi>!%s`,
-					spellData.Name, target.Character.Name, critTag)),
-				Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="username">%s</ansi>'s %s takes effect on you!`,
-					user.Character.Name, spellData.Name)),
-				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="username">%s</ansi>'s <ansi fg="cyan">%s</ansi> settles over <ansi fg="username">%s</ansi>.`,
-					user.Character.Name, spellData.Name, target.Character.Name)),
-			}, spellAudience(user, user.Character.Name, target, target.Character.Name, room))
-		} else {
-			// SELF-CAST: see case "purge". The caster line stays, reworded,
-			// rather than being dropped: a condition with no authored start text
-			// would otherwise leave a self-caster reading nothing at all.
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`Your %s takes effect.%s`, spellData.Name, critTag)),
-				Actee: messaging.NoLine,
-				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="cyan">%s</ansi> settles over <ansi fg="username">%s</ansi>.`,
-					spellData.Name, target.Character.Name)),
 			}, messaging.Audience{
 				Actor:     user,
 				ActorId:   user.UserId,
@@ -1279,57 +1163,19 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 func applyMobOnPlayerArms(c spellEffectCtx) int {
 	caster, target, room := c.casterMob(), c.targetUser(), c.room
 	spellData, out := c.spell, c.out
-	critTag := ""
-	if out.AttackerCrit {
-		critTag = ` <ansi fg="yellow">[CRIT!]</ansi>`
+	if out.Defended {
+		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
+			spellDefenceIdentity(&caster.Character, nil, room),
+			spellDefenceIdentity(target.Character, target, room), spellData.Name, nil, target)
+		return 0
 	}
-	switch spellData.EffectType {
-	case "condition":
-		// Binary status: a defended cast narrates the triad and applies nothing.
-		if out.Defended {
-			sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-				spellDefenceIdentity(&caster.Character, nil, room),
-				spellDefenceIdentity(target.Character, target, room), spellData.Name, nil, target)
-			if spellData.IsHarm() {
-				if !target.Character.IsInCombat() {
-					targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)
-				}
-			}
-			break
-		}
-		for _, conditionId := range spellData.ConditionIds {
-			applySpellCondition(target, spellData, &caster.Character, conditionId)
-		}
-		// Set aggro for harmful condition spells
-		if spellData.IsHarm() {
-			if !target.Character.IsInCombat() {
-				targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)
-			}
-		}
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.NoLine,
-			Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-				`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> takes effect on you!%s`,
-				caster.Character.Name, spellData.Name, critTag)),
-			Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-				`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> affects <ansi fg="username">%s</ansi>!`,
-				caster.Character.Name, spellData.Name, target.Character.Name)),
-		}, spellAudience(nil, caster.Character.Name, target, target.Character.Name, room))
-	default:
-		if out.Defended {
-			sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-				spellDefenceIdentity(&caster.Character, nil, room),
-				spellDefenceIdentity(target.Character, target, room), spellData.Name, nil, target)
-			break
-		}
-		messaging.SendTrio(messaging.Trio{
-			Actor: messaging.NoLine,
-			Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-				`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> takes effect on you.`,
-				caster.Character.Name, spellData.Name)),
-			Observer: messaging.NoLine,
-		}, spellAudience(nil, caster.Character.Name, target, target.Character.Name, room))
-	}
+	messaging.SendTrio(messaging.Trio{
+		Actor: messaging.NoLine,
+		Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
+			`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> takes effect on you.`,
+			caster.Character.Name, spellData.Name)),
+		Observer: messaging.NoLine,
+	}, spellAudience(nil, caster.Character.Name, target, target.Character.Name, room))
 	return 0
 }
 
