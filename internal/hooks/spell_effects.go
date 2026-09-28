@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -17,6 +18,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/state/position"
 	"github.com/GoMudEngine/GoMud/internal/targeting"
 	"github.com/GoMudEngine/GoMud/internal/users"
+	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
 // Spell effect unification (parity slices 3a and 3b,
@@ -375,6 +377,75 @@ func applySpellKnockdown(c spellEffectCtx) int {
 		Observer: messaging.NoLine,
 	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
 	return dmg
+}
+
+// recordSpellResolution records one resolved (not backfired) cast for every
+// pairing. A defended cast records in the old fizzle column but keeps its
+// partial damage (Stage 30.1).
+func recordSpellResolution(c spellEffectCtx, dmg int) {
+	recordSpell(spellSourceTarget(c.caster), spellSourceTarget(c.target),
+		!c.out.Defended, c.out.AttackerCrit, false, c.out.Defended, dmg,
+		c.out.AttackRollZScore, c.casterChar, c.targetChar(), util.GetRoundCount())
+}
+
+// applySpellBackfire resolves a fumbled cast for every caster kind: the
+// caster takes a quarter of the magnitude (at least one), is told if it is a
+// player, the room sees it, and it is recorded.
+func applySpellBackfire(c spellEffectCtx) {
+	backfireDmg := c.magnitude / 4
+	if backfireDmg < 1 {
+		backfireDmg = 1
+	}
+	if c.casterChar != nil {
+		c.casterChar.ApplyHarm(characters.PoolHealth, backfireDmg, c.casterRef())
+	}
+	name := c.casterName()
+	messaging.SendTrio(messaging.Trio{
+		Actor: messaging.Say(messaging.CategorySpellDisruption,
+			`<ansi fg="red">Your spell backfires violently, wounding you!</ansi>`),
+		Actee: messaging.NoLine,
+		Observer: messaging.Say(messaging.CategorySpellDisruption, fmt.Sprintf(
+			`<ansi fg="red">%s's spell backfires!</ansi>`, name)),
+	}, spellAudience(c.casterUser(), name, nil, messaging.NoName, c.room))
+	recordSpell(spellSourceTarget(c.caster), spellSourceTarget(c.target), false, false, true, false, 0,
+		c.out.AttackRollZScore, c.casterChar, c.targetChar(), util.GetRoundCount())
+}
+
+// maybeInterruptSpellOnTarget cancels any character's in-progress cast when
+// spellId is a configured boss-interrupt disruption spell
+// (Balance.BossInterruptSpellIds) and the character is casting. It reuses
+// actions.InterruptTargetCast (conviction refund, cast cancel, and the
+// CastInterrupted event for a player). Returns whether a cast was cancelled.
+func maybeInterruptSpellOnTarget(target *characters.Character, spellId string, by state.ActorRef) bool {
+	if target == nil {
+		return false
+	}
+	if !configs.GetBalanceConfig().IsBossInterruptSpell(spellId) {
+		return false
+	}
+	if !target.IsCasting() {
+		return false
+	}
+	return actions.InterruptTargetCast(target, by)
+}
+
+// interruptSpellTarget runs the boss-interrupt for every pairing, after the
+// backfire check (a botched cast cannot interrupt) and whether or not the
+// target defends the damage: the interrupt is the point of the spell.
+func interruptSpellTarget(c spellEffectCtx) {
+	if !maybeInterruptSpellOnTarget(c.targetChar(), c.spell.SpellId, c.casterRef()) {
+		return
+	}
+	messaging.SendTrio(messaging.Trio{
+		Actor: messaging.Say(messaging.CategorySpellDisruption, fmt.Sprintf(
+			`<ansi fg="cyan-bold">Your %s scrambles %s's focus -- the spell collapses!</ansi>`,
+			c.spell.Name, c.targetName())),
+		Actee: messaging.Say(messaging.CategorySpellDisruption, fmt.Sprintf(
+			`<ansi fg="cyan-bold">%s's %s scrambles your focus -- your spell collapses!</ansi>`,
+			c.casterName(), c.spell.Name)),
+		Observer: messaging.Say(messaging.CategorySpellDisruption, fmt.Sprintf(
+			`<ansi fg="cyan">%s's spell collapses!</ansi>`, c.targetName())),
+	}, c.audience())
 }
 
 // ── Test-only wrappers. Slice 3b's last task deletes them once no test
