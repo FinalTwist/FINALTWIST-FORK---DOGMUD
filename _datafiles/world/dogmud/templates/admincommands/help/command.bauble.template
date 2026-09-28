@@ -1,0 +1,95 @@
+The <ansi fg="command">bauble</ansi> command manages the bauble catalog: the
+database behind item 900, where every bauble's name, description,
+value, weight, where it was found, and whether it was stolen are kept.
+Every change reaches items already in the world at once.
+
+<ansi fg="yellow-bold"><bauble></ansi> below is a catalog id (<ansi fg="cyan">B0000012</ansi>) or the name of a
+bauble in your pack or on the floor here, matched by any word of
+its name (<ansi fg="cyan">bauble show doll</ansi>).
+
+<ansi fg="yellow-bold">Looking:</ansi>
+
+<ansi fg="command">bauble status</ansi>
+  Whether finds are on (Balance.BaublesEnabled, off by default),
+  what names them (a finder's own key, the server key, or generic
+  trinkets), the shared token budget, and the search settings.
+
+<ansi fg="command">bauble stats</ansi>
+  Counts by status, tier and namer; unsold value; sales in the
+  last day and week; tokens spent; the busiest regions.
+
+<ansi fg="command">bauble list [n]</ansi>
+  Sales totals, then the newest n records (default 10).
+
+<ansi fg="command">bauble show <bauble></ansi>
+  One record in full, including who last edited it.
+
+<ansi fg="command">bauble prompt <bauble></ansi>
+  The exact prompt that would name it now. Works without a key.
+
+<ansi fg="yellow-bold">Changing:</ansi>
+
+<ansi fg="command">bauble edit <bauble> <field> <text></ansi>
+  Fields: name, keyword, desc, material, value, weight, tier.
+  Text is checked like a model's answer (no markup, no digits in
+  the name, no real item keyword such as key or sword). Value is
+  kept inside the tier; changing the tier moves the value into it.
+  e.g. <ansi fg="cyan">bauble edit small doll name Rag Doll</ansi>
+
+<ansi fg="command">bauble regen <bauble></ansi>
+  Ask the model to name it again, avoiding its current name. You
+  are told when it answers; nothing changes if it does not.
+
+<ansi fg="command">bauble retire <bauble></ansi>
+  Withdraw its text: it shows as a plain Trinket everywhere, with
+  its value kept. For a name that should not be in the game.
+<ansi fg="command">bauble restore <bauble></ansi>
+  Undo retire.
+
+<ansi fg="yellow-bold">Testing:</ansi>
+
+<ansi fg="command">bauble spawn [cheap|average|rare]</ansi>
+  Find one bauble in this room exactly as a search would: it is
+  named in the background and arrives in your pack after a few
+  seconds. Tier defaults to cheap.
+  Values: cheap 1-6, average 10-15, rare 40-200 gold.
+
+<ansi fg="command">bauble window [reset]</ansi>
+  Show this room's search roll window (rolls used, when it
+  reopens, and whether the zone is excluded), and each feature's
+  own window, and whether finds here go to the household.
+  <ansi fg="command">reset</ansi> reopens them all.
+
+<ansi fg="yellow-bold">Search:</ansi>
+  The chance per roll depends on where the search is (by biome:
+  buildings 5%, streets 2 to 2.5%, roads 1%, wilderness 0.25%,
+  deep water never; BaubleBiomeChancePct) and on the searcher's
+  search skill, which raises it by up to BaubleSkillMaxBonus (it
+  doubles at the skill soft cap). A room offers BaubleRollsPerWindow
+  (2) rolls, then none until BaubleWindowMinutes (60 real minutes)
+  after the first. A find trains search; a miss does not.
+  <ansi fg="command">search [feature]</ansi> (a noun, discovered hidden noun or visible
+  container) is a full room search plus one roll of the feature's
+  own, never from the room's window. The feature's roll comes once
+  per BaubleFeatureWindowMinutes (60); sooner, the search takes the
+  room's roll instead. Nothing is ever refused, so quests that use
+  search on a noun are unaffected.
+  Indoors with a resident about, a find stays in the room, on the
+  feature, and belongs to the household: <ansi fg="command">get</ansi> refuses it and
+  taking it is <ansi fg="command">steal</ansi>, with the steal checks.
+  Finds left lying untaken vanish after BaubleUntakenHours (24).
+  Instances, banks, storage and character rooms never offer rolls.
+  All knobs are in the Balance section of config.yaml; the model
+  settings are under Modules.baubles, and the server key, endpoint
+  and daily token budget (shared with the AI companion) under
+  APIFramework. A player who ticks "Also name things I find" on
+  their Companion key page has their finds named on their key. <ansi fg="command">bauble status</ansi> lists the
+  table and <ansi fg="command">bauble window</ansi> shows the chance where you stand.
+
+<ansi fg="yellow-bold">Notes:</ansi>
+  - Players refer to a bauble by any word of its name, in order
+    (<ansi fg="cyan">get doll</ansi>, <ansi fg="cyan">look childs doll</ansi>), or by <ansi fg="cyan">bauble</ansi> / <ansi fg="cyan">trinket</ansi>.
+  - Records live under <ansi fg="cyan">_datafiles/world/dogmud/baubles/</ansi>.
+  - General stores and jewellers buy baubles for their value times
+    ShopBuyRatio; other shops refuse. Sold baubles leave the world.
+  - Merchants appraise baubles for free.
