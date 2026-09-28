@@ -52,7 +52,7 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 			user.SendText(messaging.CategorySystem, ``)
 
-			cfgData := configs.GetConfig().AllConfigData()
+			cfgData := configs.GetConfig().DisplayConfigData()
 			cfgKeys := make([]string, 0, len(cfgData))
 			for k := range cfgData {
 				cfgKeys = append(cfgKeys, k)
@@ -317,7 +317,7 @@ func server_Config(_ string, user *users.UserRecord, room *rooms.Room, flags eve
 	}
 
 	if configPrefix != "" {
-		allConfigData := configs.GetConfig().AllConfigData()
+		allConfigData := configs.GetConfig().DisplayConfigData()
 		if configVal, ok := allConfigData[configPrefix]; ok {
 
 			if !isEditAllowed(configPrefix) {
@@ -335,7 +335,7 @@ func server_Config(_ string, user *users.UserRecord, room *rooms.Room, flags eve
 
 			err := configs.SetVal(configPrefix, question.Response)
 			if err == nil {
-				allConfigData := configs.GetConfig().AllConfigData()
+				allConfigData := configs.GetConfig().DisplayConfigData()
 				user.SendText(messaging.CategorySystem, ``)
 				user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="6">%s</ansi> has been set to: <ansi fg="9">%s<ansi>`, configPrefix, allConfigData[configPrefix]))
 				user.SendText(messaging.CategorySystem, ``)
@@ -389,7 +389,7 @@ func server_Config(_ string, user *users.UserRecord, room *rooms.Room, flags eve
 				return true, nil
 			}
 
-			allConfigData := configs.GetConfig().AllConfigData()
+			allConfigData := configs.GetConfig().DisplayConfigData()
 			if configVal, ok := allConfigData[fullPath]; ok {
 
 				cmdPrompt.Ask(fmt.Sprintf(newValuePrompt, fullPath), []string{fmt.Sprintf("%v", configVal)}, fmt.Sprintf("%v", configVal))
@@ -425,7 +425,7 @@ func getConfigOptions(input string) ([]templates.NameDescription, bool) {
 
 	configOptions := []templates.NameDescription{}
 
-	allConfigData := configs.GetConfig().AllConfigData()
+	allConfigData := configs.GetConfig().DisplayConfigData()
 	pathLookup := map[string]string{}
 	for name, _ := range allConfigData {
 

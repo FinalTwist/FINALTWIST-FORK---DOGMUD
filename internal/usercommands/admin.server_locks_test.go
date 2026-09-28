@@ -65,3 +65,30 @@ func TestIsEditAllowedDelegatesToConfigsIsLocked(t *testing.T) {
 	require.True(t, isEditAllowed(`modules.aicompanion`), `a partial path stays browsable`)
 	require.True(t, isEditAllowed(`server.motd`))
 }
+
+func TestServerListingsRedactSecrets(t *testing.T) {
+	t.Cleanup(seedAllRegistries())
+	serverLockConfig(t)
+	user, room := getTestUserAndRoom(t)
+	events.DrainQueuedMessagesForTest(user.UserId)
+
+	// `server set` with no key lists every value.
+	_, err := Server(`set`, user, room, 0)
+	require.NoError(t, err)
+	listing := serverOutput(user.UserId)
+	require.Contains(t, listing, `aicompanion.APIKey`, `the listing must still name the key`)
+	require.Contains(t, listing, configs.RedactedValue)
+	require.NotContains(t, listing, serverLockSentinel)
+
+	// The server config menu: section listings and single leaves.
+	for _, path := range []string{`modules.aicompanion`, `modules.aicompanion.apikey`, `integrations.discord`, `integrations.discord.webhookurl`} {
+		opts, ok := getConfigOptions(path)
+		require.True(t, ok, path)
+		require.NotEmpty(t, opts, path)
+		for _, o := range opts {
+			require.NotContains(t, o.Description, serverLockSentinel, path)
+		}
+	}
+	opts, _ := getConfigOptions(`modules.aicompanion.apikey`)
+	require.Equal(t, configs.RedactedValue, opts[0].Description)
+}
