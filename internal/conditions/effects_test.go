@@ -370,3 +370,33 @@ func TestEffectValuesListsEveryHeldValue(t *testing.T) {
 		t.Fatal("Effect must still read the max for a max kind")
 	}
 }
+
+func TestScaledKind(t *testing.T) {
+	cases := []struct {
+		name   string
+		fx     map[EffectKind]EffectValue
+		want   EffectKind
+		wantOk bool
+	}{
+		{"glow", map[EffectKind]EffectValue{EffectLightStrength: {UsesMagnitude: true}}, EffectLightStrength, true},
+		{"night sight", map[EffectKind]EffectValue{EffectNightVisionStrength: {UsesMagnitude: true}}, EffectNightVisionStrength, true},
+		{"heat sight", map[EffectKind]EffectValue{EffectNightVisionStrength: {Literal: 12}, EffectInfraReach: {UsesMagnitude: true}}, EffectInfraReach, true},
+		{"literal only", map[EffectKind]EffectValue{EffectInfraReach: {Literal: 30}}, "", false},
+		{"combat magnitude is not a sight kind", map[EffectKind]EffectValue{EffectDamageMult: {UsesMagnitude: true}}, "", false},
+	}
+	for _, c := range cases {
+		s := &ConditionSpec{ConditionId: 970, Name: c.name, Effects: c.fx}
+		got, ok := s.ScaledKind()
+		if got != c.want || ok != c.wantOk {
+			t.Errorf("%s: (%q, %v), want (%q, %v)", c.name, got, ok, c.want, c.wantOk)
+		}
+	}
+}
+
+func TestValidateRefusesTwoScaledKinds(t *testing.T) {
+	s := &ConditionSpec{ConditionId: 971, Name: "Probe", TriggerRate: "1 round", TriggerCount: 1,
+		Effects: map[EffectKind]EffectValue{EffectNightVisionStrength: {UsesMagnitude: true}, EffectInfraReach: {UsesMagnitude: true}}}
+	if err := s.Validate(); err == nil {
+		t.Fatal("a record carries one magnitude; two magnitude sight kinds must be refused at load")
+	}
+}

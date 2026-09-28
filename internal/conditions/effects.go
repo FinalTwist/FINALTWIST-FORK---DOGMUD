@@ -56,6 +56,23 @@ func (k EffectKind) isMax() bool {
 	return k == EffectNightVisionStrength || k == EffectInfraReach
 }
 
+// ScaledKinds are the effect kinds a spell or potion scales from its source
+// (lighting plan 5c): a light's strength, nightvision's strength, and infra's
+// reach. A record carries one Magnitude, so a condition may declare at most
+// one of them as "magnitude" (validateEffects refuses two).
+var ScaledKinds = []EffectKind{EffectLightStrength, EffectNightVisionStrength, EffectInfraReach}
+
+// ScaledKind reports which of ScaledKinds this condition reads from its
+// record's magnitude, if any.
+func (b *ConditionSpec) ScaledKind() (EffectKind, bool) {
+	for _, k := range ScaledKinds {
+		if v, ok := b.Effects[k]; ok && v.UsesMagnitude {
+			return k, true
+		}
+	}
+	return "", false
+}
+
 // EffectValue is either a literal number or the word "magnitude", meaning the
 // instance's own Magnitude, which the applier set.
 type EffectValue struct {
@@ -93,7 +110,8 @@ func (v EffectValue) MarshalYAML() (interface{}, error) {
 }
 
 // validateEffects refuses an unknown key, a magnitude-bound tick without a
-// pool, a literal light_strength of zero or less, an adjustable record that
+// pool, a record reading more than one of ScaledKinds from its magnitude, a
+// literal light_strength of zero or less, an adjustable record that
 // declares no light_strength, and a stacking record that is also a light
 // source (a stack's summed magnitude is not a light strength, and
 // AddConditionMagnitude takes the addStack path for a stacking spec, so a
@@ -130,6 +148,15 @@ func (b *ConditionSpec) validateEffects() error {
 		if !known {
 			return fmt.Errorf("conditionId %d (%s) declares unknown effect %q; see conditions.AllEffectKinds", b.ConditionId, b.Name, k)
 		}
+	}
+	scaled := 0
+	for _, k := range ScaledKinds {
+		if v, ok := b.Effects[k]; ok && v.UsesMagnitude {
+			scaled++
+		}
+	}
+	if scaled > 1 {
+		return fmt.Errorf("conditionId %d (%s) reads more than one of %v from its magnitude; a record carries one magnitude", b.ConditionId, b.Name, ScaledKinds)
 	}
 	if v, ok := b.Effects[EffectLightStrength]; ok && !v.UsesMagnitude && v.Literal <= 0 {
 		return fmt.Errorf("conditionId %d (%s) declares light_strength %v; a light must be brighter than nothing", b.ConditionId, b.Name, v.Literal)
