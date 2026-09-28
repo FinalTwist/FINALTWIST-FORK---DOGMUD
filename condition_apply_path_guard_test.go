@@ -202,14 +202,21 @@ var conditionApplyPathAllowlist = map[string]string{
 	// moved to conditions.SpellScaledMagnitude.
 	"internal/hooks/light_spell.go|60": "light or sight spell at the caster's scaled magnitude and triggers: the EVENT door (users.UserRecord / mobs.Mob AddConditionMagnitude both queue events.Condition); listed only because arity cannot tell it from the silent character door",
 
-	// ── magnitude potions (lighting plan 5c): user is a *users.UserRecord, whose
-	// AddConditionMagnitude queues events.Condition, so the drinker reads the
-	// start line ───────────────────────────────────────────────────────────
-	"internal/usercommands/drink.go|292": "potion at its item magnitude scaled by potency: the EVENT door (users.UserRecord.AddConditionMagnitude queues events.Condition); listed only because arity cannot tell it from the silent character door",
-	// The mob twin (lighting plan 5c final review): mob is a *mobs.Mob, whose
-	// AddConditionMagnitude also queues events.Condition. The AI companion
-	// and the survival planner drink through it.
-	"internal/mobcommands/drink.go|41": "mob potion at its item magnitude: the EVENT door (mobs.Mob.AddConditionMagnitude queues events.Condition); listed only because arity cannot tell it from the silent character door",
+	// ── magnitude potions (lighting plan 5c): the player's and the mob's drink
+	// each carried this call (usercommands/drink.go and mobcommands/drink.go)
+	// until drink path unification made both thin wrappers over one shared
+	// body. actor is a DrinkActor, whose two implementers are the UserActor
+	// and MobActor doors below; both queue events.Condition, so the drinker
+	// reads the start line. The AI companion and the survival planner drink
+	// through it. Re-keyed when the room lines moved to
+	// SendTextVisualHidingNames and their comment grew ────────────────────────
+	"internal/actions/drink.go|354": "potion at its item magnitude scaled by potency, player or mob: the EVENT door (DrinkActor.AddConditionMagnitude reaches users.UserRecord / mobs.Mob AddConditionMagnitude, both queue events.Condition); listed only because arity cannot tell it from the silent character door",
+
+	// ── the DrinkActor doors (drink path unification): a.User is a
+	// *users.UserRecord and a.Mob is a *mobs.Mob, whose AddConditionMagnitude
+	// both queue events.Condition, so the drinker reads the start line ──────
+	"internal/actions/actor_user.go|83": "DrinkActor magnitude door for a player: the EVENT door (users.UserRecord.AddConditionMagnitude queues events.Condition); listed only because arity cannot tell it from the silent character door",
+	"internal/actions/actor_mob.go|84":  "DrinkActor magnitude door for a mob: the EVENT door (mobs.Mob.AddConditionMagnitude queues events.Condition); listed only because arity cannot tell it from the silent character door",
 
 	// ── admin setcondition of a magnitude-scaled condition (lighting plan 5c
 	// final review): target is a *users.UserRecord or a *mobs.Mob, both of

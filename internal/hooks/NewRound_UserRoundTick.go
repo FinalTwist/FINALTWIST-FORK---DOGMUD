@@ -301,29 +301,14 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 							}
 						}
 
-						// Apply config-driven tick amount. TickAmount is
-						// normally snapshot at apply time (spell/drink
-						// paths), but area/mutator-applied conditions go through
-						// the async AddCondition event and never snapshot it —
-						// so for a tick_pool condition with TickAmount still 0,
-						// compute and cache it here (e.g. hazard-room DoTs).
-						// Runs on EVERY trigger, including the final one that
-						// also expires the condition (see the note above).
+						// Apply config-driven tick amount. A tick_pool
+						// condition that arrived through the async event path
+						// carries TickAmount 0; fillZeroTickAmount computes and
+						// caches it (shared with the mob round tick). Runs on
+						// EVERY trigger, including the final one that also
+						// expires the condition (see the note above).
 						if trigConditionSpec != nil && trigConditionSpec.TickPool != "" {
-							tickAmt := condition.TickAmount
-							if tickAmt == 0 {
-								var maxPool int
-								switch trigConditionSpec.TickPool {
-								case "health":
-									maxPool = user.Character.HealthMax.Value
-								case "stamina":
-									maxPool = user.Character.StaminaMax.Value
-								case "conviction":
-									maxPool = user.Character.ConvictionMax.Value
-								}
-								tickAmt = conditions.ComputeTickAmount(maxPool, trigConditionSpec.TickPercent, trigConditionSpec.TickVariance, trigConditionSpec.TickMin, 1.0)
-								user.Character.Conditions.SetTickAmount(condition.ConditionId, tickAmt)
-							}
+							tickAmt := fillZeroTickAmount(user.Character, condition, trigConditionSpec)
 							// tickAmt is SIGNED: conditions.ComputeTickAmount returns a
 							// negative value for TickPercent < 0, so this is a
 							// damage-over-time delivery path as well as a regen one.

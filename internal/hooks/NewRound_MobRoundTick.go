@@ -219,8 +219,13 @@ func tickMobConditions(mob *mobs.Mob, mobInstanceId int) {
 	if triggeredConditions := mob.Character.Conditions.Trigger(); len(triggeredConditions) > 0 {
 		triggeredConditionIds := []int{}
 		for _, condition := range triggeredConditions {
-			if condition.TickAmount != 0 {
-				if mobConditionSpec := conditions.GetConditionSpec(condition.ConditionId); mobConditionSpec != nil {
+			// Fill a zero TickAmount the way the player tick does; before
+			// this, every event-applied mob heal-over-time and
+			// damage-over-time skipped the branch below and never landed.
+			// Read the RETURNED amount, not condition.TickAmount.
+			mobConditionSpec := conditions.GetConditionSpec(condition.ConditionId)
+			if tickAmt := fillZeroTickAmount(&mob.Character, condition, mobConditionSpec); tickAmt != 0 {
+				if mobConditionSpec != nil {
 					// condition.TickAmount is SIGNED: conditions.ComputeTickAmount returns a
 					// negative value for TickPercent < 0, so this is a
 					// damage-over-time delivery path as well as a regen one.
@@ -231,7 +236,6 @@ func tickMobConditions(mob *mobs.Mob, mobInstanceId int) {
 					//
 					// DoT conditions carry no applier, so the harm source is anonymous
 					// (state.ActorRef{}). See ApplyHarm's docstring.
-					tickAmt := condition.TickAmount
 					switch mobConditionSpec.TickPool {
 					case "health":
 						if tickAmt > 0 {

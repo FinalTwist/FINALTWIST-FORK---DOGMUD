@@ -1,14 +1,14 @@
-package mobcommands
+package actions
 
 import (
 	"math"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
-	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,10 +18,10 @@ import (
 // this path, so a companion drinking the Pitsense Tincture got reach 0. It
 // now applies through items.PotionMagnitudeApplication at durationMult 1,
 // the same helper the player's drink uses.
+//
+// Moved from mobcommands with drink path unification: the mob now drinks
+// through actions.Drink, so the test drives that body with a MobActor.
 func TestMobDrink_AppliesPotionMagnitude(t *testing.T) {
-	cleanup := seedAllRegistries()
-	defer cleanup()
-
 	const heatId, plainId, tinctureId, brewId = 9811, 9812, 39811, 39812
 	restoreConditions := conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
 		heatId: {ConditionId: heatId, Name: "Test Tincture", RoundInterval: 1, TriggerCount: 400,
@@ -39,23 +39,20 @@ func TestMobDrink_AppliesPotionMagnitude(t *testing.T) {
 	})
 	defer restoreItems()
 
-	mob := mobs.GetInstance(100)
-	require.NotNil(t, mob)
-	room := rooms.LoadRoom(1)
-	require.NotNil(t, room)
+	mob := &mobs.Mob{InstanceId: 98110, Character: *characters.New()}
+	room := newEmptyTestRoom(t)
+	actor := NewMobActorInRoom(mob, room).(DrinkActor)
 
 	for _, id := range []int{tinctureId, brewId} {
 		require.True(t, mob.Character.StoreItem(items.New(id)))
 	}
 
-	events.DrainQueuedConditionsForTest(0)
-	_, err := Drink("tincture", mob, room)
-	require.NoError(t, err)
-	_, err = Drink("brew", mob, room)
-	require.NoError(t, err)
+	events.DrainQueuedMobConditionsForTest(mob.InstanceId)
+	require.True(t, Drink(actor, "tincture").Drank)
+	require.True(t, Drink(actor, "brew").Drank)
 
 	byId := map[int]events.Condition{}
-	for _, c := range events.DrainQueuedConditionsForTest(0) {
+	for _, c := range events.DrainQueuedMobConditionsForTest(mob.InstanceId) {
 		if c.MobInstanceId == mob.InstanceId {
 			byId[c.ConditionId] = c
 		}

@@ -71,6 +71,18 @@ func (a *UserActor) AddCondition(conditionId int, source string) {
 	a.User.AddCondition(conditionId, source)
 }
 
+// AddConditionScaled is the DrinkActor door for a duration-scaled condition;
+// it queues through the event path so the holder reads the start notice.
+func (a *UserActor) AddConditionScaled(conditionId int, durationMult float64, source string) {
+	a.User.AddConditionScaled(conditionId, durationMult, source)
+}
+
+// AddConditionMagnitude is the DrinkActor door for an exact trigger count and
+// magnitude; it queues through the event path.
+func (a *UserActor) AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string) {
+	a.User.AddConditionMagnitude(conditionId, triggers, magnitude, source)
+}
+
 func (a *UserActor) OnSkillUse(skillName string) bool {
 	return a.User.Character.OnSkillUse(skillName, a.User.UserId)
 }

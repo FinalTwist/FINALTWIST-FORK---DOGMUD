@@ -1,4 +1,4 @@
-package usercommands
+package actions
 
 import (
 	"testing"
@@ -38,7 +38,7 @@ func TestApplyPurgeEffects(t *testing.T) {
 		t.Fatalf("setup: expected the potion condition to be present before the purge")
 	}
 
-	applyPurgeEffects(u)
+	applyPurgeEffects(NewUserActor(u).(DrinkActor))
 
 	// RemoveCondition only marks TriggersLeft as expired; the map entry
 	// HasCondition checks isn't evicted until the next round's Prune() sweep
@@ -92,7 +92,7 @@ func TestApplyPurgeEffectsStripsADerivedPotionCondition(t *testing.T) {
 		}
 	}
 	events.DrainQueuedConditionsForTest(u.UserId)
-	applyPurgeEffects(u)
+	applyPurgeEffects(NewUserActor(u).(DrinkActor))
 	c.Conditions.Prune()
 	if c.HasCondition(82) {
 		t.Error("82 sits outside the old 54-75 block but only a potion grants it; the purge must strip it")
