@@ -28,6 +28,7 @@ func TestBandThroughWindowEdges(t *testing.T) {
 		{"negative strength reads as 0", 74, -5, 0, BandFaces},
 		{"reach reads shapes in the dark", 0, 0, 10, BandShapes},
 		{"reach has a limit", -11, 0, 10, BandDark},
+		{"reach reads a faint room", 12, 0, 10, BandShapes},
 	}
 	for _, c := range cases {
 		if got := BandThroughWindow(c.light, c.strength, c.reach, 25, 50, 75); got != c.want {

@@ -9,8 +9,9 @@ package messaging
 const (
 	// windowShiftCap is the most any ability may move the window down.
 	windowShiftCap = 24
-	// windowFloor is the light below which a shifted window reads nothing,
-	// no matter how strong. Only an infra reach sees past it.
+	// windowFloor is the light below which a shifted window reads nothing, no
+	// matter how strong. Infra reach is independent of it: heat-sense reads
+	// shapes at any light down to minus the reach (lighting plan 5c).
 	windowFloor = 1
 )
 
@@ -19,8 +20,9 @@ const (
 // strength moves every band edge DOWN by that many points, capped at
 // windowShiftCap and floored at zero, so an ability trades bright-light comfort
 // for dark-light acuity rather than simply gaining sight. reach is the separate
-// heat-sensing extension that operates only at or below windowFloor; light at
-// or above the negation of reach reads shapes, below that reads nothing.
+// heat-sensing extension: it reads SHAPES at any light down to the negation of
+// reach, never faces, and only where the window itself reads worse (lighting
+// plan 5c, the owner's ruling on 5b call 3).
 //
 // It takes the two lower band edges as arguments rather than reading config, so
 // it stays a pure function with no locks and no global state. Its caller owns
@@ -48,11 +50,10 @@ func SightThroughWindow(light, strength, reach int, blindBelow, dimBelow int) Si
 	if light >= shiftedBlind && light >= windowFloor {
 		return SightShapes
 	}
-	// Below the shifted window. Reach only operates at or below windowFloor;
-	// without this gate a large reach would read shapes for any light the
-	// shifted window merely failed to cover, even in ordinary dim light far
-	// above the floor, which is not what "heat-sensing in the dark" means.
-	if light <= windowFloor && reach > 0 && light >= -reach {
+	// Below the natural window. Infravision reads heat, not light, so it
+	// gives shapes at ANY light down to minus its reach. It never yields
+	// faces: natural sight has already won above wherever it reads fully.
+	if reach > 0 && light >= -reach {
 		return SightShapes
 	}
 	return SightNone
