@@ -226,8 +226,13 @@ func GetNextRoomId() int {
 	return int(configs.GetServerConfig().NextRoomId)
 }
 
+// SetNextRoomId persists the next room id. It uses configs.SetEngineVal
+// because the shipped Server.Locked names Server.NextRoomId, and SetVal
+// honours that list.
 func SetNextRoomId(nextRoomId int) {
-	configs.SetVal(`Server.NextRoomId`, strconv.Itoa(nextRoomId))
+	if err := configs.SetEngineVal(`Server.NextRoomId`, strconv.Itoa(nextRoomId)); err != nil {
+		mudlog.Error(`SetNextRoomId`, `nextRoomId`, nextRoomId, `error`, err)
+	}
 }
 
 func GetAllRoomIds() []int {
