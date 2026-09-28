@@ -195,8 +195,10 @@ var conditionApplyPathAllowlist = map[string]string{
 	// in spell_resolution.go, re-keyed for the same deletion's shift, and
 	// again Task 5 when the per-pairing arms above it were deleted; the MS
 	// row DELETED by Task 6, when applyMobSelfEffect's switch was deleted
-	// and a mob's self-cast shield reached applySpellShield's row) ────
-	"internal/hooks/spell_help_effects.go|188": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	// and a mob's self-cast shield reached applySpellShield's row; re-keyed
+	// again Task 7, when spellHelpAreaTargets' mobs, parties and rooms
+	// imports shifted spell_help_effects.go) ────
+	"internal/hooks/spell_help_effects.go|191": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
 	// ── former combat condition: Regenerating is now one record (Task 7;
 	// re-keyed slice 1b, same shift as above; re-keyed again Task 10 and
@@ -217,8 +219,9 @@ var conditionApplyPathAllowlist = map[string]string{
 	// spell_help_effects.go and the deleted PP shield arm shifted
 	// spell_resolution.go; re-keyed again Task 5, same deletion as above;
 	// the MS row DELETED by Task 6, same deletion as above, a mob's
-	// self-cast heal now reaching applySpellHeal's row) ───────
-	"internal/hooks/spell_help_effects.go|139": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	// self-cast heal now reaching applySpellHeal's row; re-keyed again
+	// Task 7, same import shift as above) ───────
+	"internal/hooks/spell_help_effects.go|142": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":       "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|55":       "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 

@@ -9,6 +9,9 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/parties"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
 
 // Spell effect unification, parity slice 3b
@@ -278,4 +281,61 @@ func applySpellDefaultEffect(c spellEffectCtx) int {
 		Observer: messaging.NoLine,
 	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
 	return 0
+}
+
+// spellHelpAreaTargets is the one area-help target filler (slice 3b, audit
+// row 13), for player and mob casters alike. It returns the players and the
+// mobs an area help spell (a mass heal, a cleansing wave) lands on,
+// replacing whatever the cast's initiation step put in the target lists.
+//
+// A player caster, or a mob charmed by a player, stands on that player's
+// side: every player in the room, plus every mob charmed by that player or
+// by any member of that player's party (helpAreaCharmAlly), so a party
+// member's companion is healed and a stranger's pet or an enemy is not. The
+// AI companion is charmed to its owner permanently
+// (modules/aicompanion/commands.go, Charm(owner.UserId, -1, ...)), so it
+// counts. A charmed mob caster also lands on itself.
+//
+// An uncharmed mob caster helps itself and its packmates: the rule its own
+// AI uses to choose whom to heal (behaviortree's cast_best_in_category picks
+// most_wounded_packmate and tanking_packmate from mobs.FindPackmatesInRoom).
+// No player is its ally.
+func spellHelpAreaTargets(caster actions.Actor, room *rooms.Room) (userIds []int, mobIds []int) {
+	self := actorMob(caster)
+	sideUserId := caster.GetUserId()
+	if self != nil {
+		sideUserId = self.Character.GetCharmedUserId()
+		mobIds = append(mobIds, self.InstanceId)
+	}
+	if sideUserId == 0 {
+		for _, pm := range mobs.FindPackmatesInRoom(self) {
+			mobIds = append(mobIds, pm.InstanceId)
+		}
+		return nil, mobIds
+	}
+	userIds = room.GetPlayers(rooms.FindAll)
+	for _, mId := range room.GetMobs(rooms.FindAll) {
+		if self != nil && mId == self.InstanceId {
+			continue
+		}
+		if m := mobs.GetInstance(mId); m != nil && helpAreaCharmAlly(m, sideUserId) {
+			mobIds = append(mobIds, mId)
+		}
+	}
+	return userIds, mobIds
+}
+
+// helpAreaCharmAlly reports whether m is charmed by sideUserId or by a member
+// of sideUserId's party (owner ruling, 2026-09-28). parties.Get also returns
+// the party of an invitee, so the side must be a member itself.
+func helpAreaCharmAlly(m *mobs.Mob, sideUserId int) bool {
+	charmer := m.Character.GetCharmedUserId()
+	if charmer == 0 {
+		return false
+	}
+	if charmer == sideUserId {
+		return true
+	}
+	p := parties.Get(sideUserId)
+	return p != nil && p.IsMember(sideUserId) && p.IsMember(charmer)
 }

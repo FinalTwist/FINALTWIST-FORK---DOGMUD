@@ -45,7 +45,9 @@ func calcSpellDuration(baseFolds int, spellcastingSkill int, willpower int) int 
 //   - resolveSpell handles the "identify" spell type (no mob equivalent).
 //   - HarmArea populates only mob targets for players; resolveMobSpell also
 //     hits players in the room (mobs can cleave all occupants).
-//   - HelpArea is player-only (mobs never cast area healing in this engine).
+//   - HelpArea fills through spellHelpAreaTargets on both paths: a player
+//     or a charmed mob helps the players and the party's companions, an
+//     uncharmed mob helps its packmates.
 //   - Both target paths take the non-harm shortcut (AttackType ==
 //     combatvocab.AttackNone); the mob path gained it in M4b-2.
 //   - Post-resolution: player fires the onMagic script and consumes a
@@ -100,20 +102,12 @@ func resolveSpell(user *users.UserRecord, cs activity.CastingData, spellData *sp
 	}
 
 	// --- Populate area targets for HelpArea ---
+	// REPLACES whatever the cast's initiation step filled in, so the
+	// caster's pre-spell aggro target (an enemy mob) is not healed alongside
+	// its allies. Symmetric with HarmArea above; the same filler serves mob
+	// casters in resolveMobSpell.
 	if !spellData.IsHarm() && spellData.Targeting == combatvocab.TargetArea {
-		cs.TargetUserIds = room.GetPlayers(rooms.FindAll)
-		// Apply to ally mobs only (charmed/companion). REPLACES any residual
-		// TargetMobInstanceIds from the cast's pre-resolution step —
-		// otherwise the caster's pre-spell aggro target (an enemy mob) gets
-		// healed alongside intended allies. Symmetric with HarmArea above.
-		allMobs := room.GetMobs(rooms.FindAll)
-		allies := make([]int, 0, len(allMobs))
-		for _, mId := range allMobs {
-			if m := mobs.GetInstance(mId); m != nil && m.Character.IsCharmed() {
-				allies = append(allies, mId)
-			}
-		}
-		cs.TargetMobInstanceIds = allies
+		cs.TargetUserIds, cs.TargetMobInstanceIds = spellHelpAreaTargets(actions.NewUserActorInRoom(user, room), room)
 	}
 
 	// --- Resolve against mob targets ---
@@ -572,6 +566,7 @@ func consumeSpellComponent(user *users.UserRecord, tag string) {
 // Why this is NOT merged with resolveSpell (see that function for details):
 //   - HarmArea here populates both mob AND player targets; player casters only
 //     hit mobs (players in the room are excluded from player-cast area spells).
+//   - HelpArea fills through the same spellHelpAreaTargets as resolveSpell.
 //   - Mob targets include a self-cast branch (MS) for help spells, through
 //     resolveHelpSpell; a player's self-cast arrives as a player target.
 //   - No onMagic script, no component consumption.
@@ -616,6 +611,9 @@ func resolveMobSpell(mob *mobs.Mob, cs activity.CastingData, spellData *spells.S
 
 	if spellData.IsHarm() && spellData.Targeting == combatvocab.TargetArea {
 		cs.TargetMobInstanceIds, cs.TargetUserIds = mobAreaHarmTargets(mob, room)
+	}
+	if !spellData.IsHarm() && spellData.Targeting == combatvocab.TargetArea {
+		cs.TargetUserIds, cs.TargetMobInstanceIds = spellHelpAreaTargets(actions.NewMobActorInRoom(mob, room), room)
 	}
 
 	for _, mobInstId := range cs.TargetMobInstanceIds {
