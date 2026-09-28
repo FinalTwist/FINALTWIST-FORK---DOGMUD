@@ -438,10 +438,10 @@ func interruptSpellTarget(c spellEffectCtx) {
 	}
 	messaging.SendTrio(messaging.Trio{
 		Actor: messaging.Say(messaging.CategorySpellDisruption, fmt.Sprintf(
-			`<ansi fg="cyan-bold">Your %s scrambles %s's focus -- the spell collapses!</ansi>`,
+			`<ansi fg="cyan-bold">Your %s scrambles %s's focus. The spell collapses!</ansi>`,
 			c.spell.Name, c.targetName())),
 		Actee: messaging.Say(messaging.CategorySpellDisruption, fmt.Sprintf(
-			`<ansi fg="cyan-bold">%s's %s scrambles your focus -- your spell collapses!</ansi>`,
+			`<ansi fg="cyan-bold">%s's %s scrambles your focus. Your spell collapses!</ansi>`,
 			c.casterName(), c.spell.Name)),
 		Observer: messaging.Say(messaging.CategorySpellDisruption, fmt.Sprintf(
 			`<ansi fg="cyan">%s's spell collapses!</ansi>`, c.targetName())),

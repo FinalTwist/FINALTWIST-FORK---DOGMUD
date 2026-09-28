@@ -118,7 +118,7 @@ func TestSpellInterrupt_ACastingPlayerIsInterrupted(t *testing.T) {
 		spellAttackSideFor(spell, f.casterUser.Character, nil), spell.EffectMagnitude)
 
 	assert.False(t, f.targetUser.Character.IsCasting(), "the target's cast must be cancelled")
-	assert.Equal(t, 1, countContaining(drainPlain(2), "your spell collapses!"))
+	assert.Equal(t, 1, countContaining(drainPlain(2), "Your spell collapses!"))
 }
 
 // The drain's personal lines were raw SendText with the mob's name baked in,
