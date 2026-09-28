@@ -141,12 +141,18 @@ durationMult)`, both through the event door (fact 9). Pitsense authors
 100 caps at 50. A potion carrying a magnitude condition with no `magnitude`
 fails load.
 
-**Purge.** Condition 129 must be stripped by the Purging Draught. The purge
-moves from the id block to `isPotionEffectCondition(id)`: the block plus an
-explicit list naming 129. **Owner call:** the pre-existing leak (fact 18:
-potions at 44 to 51 and 82 already escape the purge) can be closed in the
-same list now, or filed. Recommendation: close it now, since it is the same
-line.
+**Purge (owner 2026-09-28: close the leak now).** The hardcoded id block
+54 to 75 already misses shipped potions (fact 18), and a hand list would
+drift again with the next potion. The purge instead strips a set DERIVED
+from item data: every condition named by a `type: potion` item's
+`conditionids`, minus the draught's own 70, the weakness 76, and any
+condition also granted by a non-potion source. Verified 2026-09-28: that
+adds 7 (Conviction Draught 30012), 44, 47, 48, 49, 51, 82 and the new 129
+to today's block, and leaves out 5 (Minor Healing, also granted by the
+Fungal Ration 30013 and the Cloth Bandage 30020) and 93 (Ysolde's Purge is a
+material, not a potion). The set is built once after items load. A root test
+pins it: it contains every id of the old block except 70, it contains the
+eight additions, and it excludes 5, 70, 76 and 93.
 
 **Text.** Each new condition carries the 5b daylight sentence; the heat ones
 add that heat shows a shape, never a face. Help `light` gains an
