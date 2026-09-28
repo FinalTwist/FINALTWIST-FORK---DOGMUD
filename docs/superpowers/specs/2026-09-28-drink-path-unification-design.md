@@ -49,8 +49,12 @@ helpers and constants move with it; `applyPurgeEffects` and
 actor, call `actions.Drink`, return. Neither touches a condition, toxicity or
 an item.
 
-**Condition doors.** `Actor` gains `AddConditionScaled(id, mult, source)` and
-`AddConditionMagnitude(id, triggers, magnitude, source)`. `Mob` gains
+**Condition doors.** `actions.Drink` takes a `DrinkActor`: `Actor` plus
+`AddConditionScaled(id, mult, source)` and
+`AddConditionMagnitude(id, triggers, magnitude, source)`, implemented by
+`UserActor` and `MobActor`. It is a separate interface rather than two new
+`Actor` methods because eight test fakes implement `Actor`
+(`internal/actions/*_test.go`) and none of them drinks. `Mob` gains
 `AddConditionScaled`, the event-door twin of the user one (queues
 `events.Condition` with `DurationMult`), so a mob's potion start lines narrate
 through `Condition_ApplyConditions` the way a player's do.
