@@ -274,3 +274,15 @@ condition|122|trigger_actee => <ansi fg="red">Blood seeps from your wounds!</ans
 condition|122|end_actee => Your wounds stop bleeding.
 condition|123|start_actee => The severed bond leaves a hollow in you that will take time to fill.
 condition|123|end_actee => The hollow the severed bond left in you has finally closed.
+condition|128|start_actee => The dark thins and you make out grey shapes around you.
+condition|128|start_observer => <ansi fg="username">Aliceia</ansi>'s eyes widen and catch the faint light.
+condition|128|end_actee => The dark closes in again and the shapes are gone.
+condition|128|end_observer => The faint light leaves <ansi fg="username">Aliceia</ansi>'s eyes.
+condition|129|start_actee => Warmth blooms into pale shapes wherever something lives.
+condition|129|start_observer => A dull red sheen settles over <ansi fg="username">Aliceia</ansi>'s eyes.
+condition|129|end_actee => The pale shapes of warmth fade from your sight.
+condition|129|end_observer => The red sheen fades from <ansi fg="username">Aliceia</ansi>'s eyes.
+condition|130|start_actee => A dull heat spreads behind your eyes, and living warmth shows as pale shapes.
+condition|130|start_observer => A dull red sheen settles over <ansi fg="username">Aliceia</ansi>'s eyes.
+condition|130|end_actee => The heat behind your eyes cools, and the pale shapes fade.
+condition|130|end_observer => The red sheen fades from <ansi fg="username">Aliceia</ansi>'s eyes.

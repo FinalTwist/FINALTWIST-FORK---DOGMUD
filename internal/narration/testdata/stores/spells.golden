@@ -63,6 +63,9 @@ spell|fold-anchor|wait_actor => The anchor takes shape, binding to the Veil...
 spell|fold-recall|cast_actor => You reach through the Veil toward your anchor point...
 spell|fold-recall|cast_observer => <ansi fg="username">Aliceia</ansi> reaches into the Veil, reality blurring around them.
 spell|fold-recall|wait_actor => The Veil thins as you pull yourself toward the anchor...
+spell|heat-sight|cast_actor => You turn your sight from light to warmth.
+spell|heat-sight|cast_observer => <ansi fg="username">Aliceia</ansi>'s eyes take on a dull red sheen.
+spell|heat-sight|wait_actor => You let the warmth of living things gather in your sight...
 spell|hemorrhagic-burst|cast_actor => You focus on the blood of your enemies, willing it to boil and rupture outward!
 spell|hemorrhagic-burst|cast_observer => <ansi fg="username">Aliceia</ansi> clenches their fists, veins pulsing with terrible intent.
 spell|hemorrhagic-wave|cast_actor => You channel a wave of rupturing force outward.
@@ -94,6 +97,9 @@ spell|neural-stun|cast_actor => You focus a psionic pulse at your target's nervo
 spell|neural-stun|cast_observer => <ansi fg="username">Aliceia</ansi> stares intently, brow furrowed with concentration.
 spell|neural-toxin|cast_actor => You channel psionic venom toward your target's mind.
 spell|neural-toxin|cast_observer => <ansi fg="username">Aliceia</ansi> focuses with toxic intent, a sickly glow around their hands.
+spell|night-vision|cast_actor => You draw the faint light of this place into your eyes.
+spell|night-vision|cast_observer => <ansi fg="username">Aliceia</ansi> blinks slowly as their pupils widen.
+spell|night-vision|wait_actor => You hold the widening steady...
 spell|psychic-anchor|cast_actor => You drive a psionic anchor into the target's mind.
 spell|psychic-anchor|cast_observer => <ansi fg="username">Aliceia</ansi> stares at a target with piercing focus.
 spell|purge-affliction|cast_actor => You focus Chrysalis energy inward, seeking out foreign agents.
