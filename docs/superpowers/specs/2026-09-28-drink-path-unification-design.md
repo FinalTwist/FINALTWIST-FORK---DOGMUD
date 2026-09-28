@@ -19,6 +19,7 @@ Owner: "put mobs on the player one."
 | 10 | Mob drink callers: `mobcommands.go:42` registers it; the AI companion issues `drink <target>` (`modules/aicompanion/actions.go:418`, `combat.go:463`); the survival planner returns `drink <potion>` (`internal/planners/survival.go:51`) | grep |
 | 11 | Existing drink tests: `usercommands/drink_purge_test.go`, `drink_purge_shipped_test.go`, `drink_scour_test.go`, `mobcommands/drink_magnitude_test.go` | `ls` |
 | 12 | The repo-root guard `condition_apply_path_guard_test.go` allowlists condition-apply call sites by `file|line`; moving drink moves its keys | repo root |
+| 13 | A condition applied through the event queue starts with `TickAmount` 0 (the drink path's snapshot is a no-op on first application because the record is not in the list yet). The PLAYER tick fills a zero amount for any `tick_pool` condition (`ComputeTickAmount(maxPool, TickPercent, TickVariance, TickMin, 1.0)` then `SetTickAmount`); the MOB tick only acts when `TickAmount != 0`, so a mob's heal-over-time never heals (potions 5, 6, 7, 47, 50; spells 32, 33; throttle 89; room hazards) | `internal/hooks/NewRound_UserRoundTick.go:312-325`; `internal/hooks/NewRound_MobRoundTick.go:222` |
 
 ## Owner rulings (2026-09-28)
 
@@ -27,6 +28,11 @@ Owner: "put mobs on the player one."
    (Wafer, Catalyst, Phial, Ysolde's, the Purging Draught). "These pots are
    expensive, so if someone wants to take the time to use them on a
    companion, go for it."
+3. **The mob round tick fills a zero tick amount exactly as the player tick
+   does** (fact 13), so the merge delivers potions that actually heal. The
+   proper fix, computing the amount when the condition event is applied for
+   both sides (which also restores first-cast caster scaling for players and
+   so changes balance), is its own "ticks" slice.
 
 ## Design
 
@@ -67,6 +73,15 @@ brings nausea and triple toxicity; the busy gate applies; bandolier potions are
 found first; the purge strips potion effects; the Wafer, Catalyst and Phial
 change mutations and Bloom addiction. Nothing changes for players.
 
+**Mob tick parity (ruling 3).** The zero-amount fill-in moves out of
+`NewRound_UserRoundTick` into one helper both ticks call, taking the
+character and the condition: for a `tick_pool` condition whose `TickAmount`
+is 0, compute it from the holder's pool max with scaling 1.0 and cache it.
+`tickMobConditions` calls it before its `TickAmount != 0` test. The player
+tick's behaviour is unchanged. Effect: every mob heal-over-time, damage over
+time and room hazard now ticks (potions 5, 6, 7, 47, 50; Vital Surge and
+Chrysalis Regeneration on a mob or pet; throttle 89).
+
 **Guard against re-forking.** A repo-root test reads both wrapper files and
 fails if either calls a condition door (`AddCondition*`), `AddToxicity`,
 `UseItem*`, `ScourMutations`, or `AddBloomAddiction`. Only `actions` may.
@@ -83,6 +98,10 @@ Proven able to fail by a temporary violation.
 - The four existing drink tests move to `internal/actions` beside the body,
   unchanged in what they assert.
 - `Mob.AddConditionScaled` queues an event carrying the multiplier.
+- Mob tick parity: a mob holding a `tick_pool` heal condition with
+  `TickAmount` 0 gains health on its next trigger, and a damage-over-time one
+  loses health; red before the fix. The player tick's existing tests pass
+  unchanged.
 - The re-fork guard, proven able to fail.
 - Guard keys in `condition_apply_path_guard_test.go` re-keyed to the moved
   call sites.
