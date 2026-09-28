@@ -612,7 +612,7 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 // triad and applies nothing, mirroring ExecuteSkillMove's StatusApplied split.
 func applyPlayerEffectArms(c spellEffectCtx) {
 	user, target, room := c.casterUser(), c.targetUser(), c.room
-	spellData, magnitude, out := c.spell, c.magnitude, c.out
+	spellData, out := c.spell, c.out
 
 	critTag := ""
 	if out.AttackerCrit {
@@ -661,54 +661,6 @@ func applyPlayerEffectArms(c spellEffectCtx) {
 				Actor:     user,
 				ActorId:   user.UserId,
 				ActorName: user.Character.Name,
-				ActeeName: messaging.NoName,
-				Room:      room,
-			})
-		}
-
-	case "shield":
-		skillLevel := user.Character.GetSkillLevel(skills.Spellcasting)
-		weightedSkill := int(math.Round(float64(skillLevel) * float64(configs.GetBalanceConfig().SkillWeight)))
-		shieldBonus := (spellData.CasterStatValue(user.Character.Stats) + weightedSkill) / 3
-		if shieldBonus < 1 {
-			shieldBonus = 1
-		}
-		// Scale shield strength by spell magnitude (100 = 1.0x baseline)
-		if magnitude > 0 {
-			shieldBonus = int(math.Round(float64(shieldBonus) * float64(magnitude) / 100.0))
-			if shieldBonus < 1 {
-				shieldBonus = 1
-			}
-		}
-		duration := calcSpellDuration(spellData.BaseFolds, skillLevel, spellData.CasterStatValue(user.Character.Stats))
-		if out.AttackerCrit {
-			shieldBonus = int(float64(shieldBonus) * 1.5)
-		}
-		_ = target.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, duration, float64(shieldBonus), "spell")
-		if target.UserId != user.UserId {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`A shimmering magical barrier forms around <ansi fg="username">%s</ansi>, bolstering their defenses.`,
-					target.Character.Name)),
-				Actee: messaging.Say(spellSchoolCategory(spellData),
-					`A shimmering magical barrier forms around you, bolstering your defenses.`),
-				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`A shimmering barrier surrounds <ansi fg="username">%s</ansi>.`, target.Character.Name)),
-			}, spellAudience(user, user.Character.Name, target, target.Character.Name, room))
-		} else {
-			// SELF-CAST: the caster is the target, so there is no third-person
-			// line to send them, and the room line excludes them. It now goes
-			// through SendTrio, same as the other three self-cast branches above.
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(spellSchoolCategory(spellData),
-					`A shimmering magical barrier forms around you, bolstering your defenses.`),
-				Actee: messaging.NoLine,
-				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`A shimmering barrier surrounds <ansi fg="username">%s</ansi>.`, target.Character.Name)),
-			}, messaging.Audience{
-				Actor:     target,
-				ActorId:   target.UserId,
-				ActorName: target.Character.Name,
 				ActeeName: messaging.NoName,
 				Room:      room,
 			})

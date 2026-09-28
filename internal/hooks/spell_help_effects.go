@@ -2,9 +2,11 @@ package hooks
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 )
@@ -153,6 +155,54 @@ func applySpellHeal(c spellEffectCtx) int {
 			casterName, c.spell.Name)),
 		Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
 			`%s's <ansi fg="cyan">%s</ansi> envelops %s in healing light.`, casterName, c.spell.Name, targetName)),
+	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
+	return 0
+}
+
+// applySpellShield is the one shield applier (slice 3b): a Minor Shield
+// record on the target worth a third of the caster's primarystat plus its
+// weighted cast skill (at least one), scaled by the spell's magnitude (100
+// is 1x), for the full universal spell duration. Every pairing gains it: a
+// shield on a charmed pet, or from a creature onto a player, applied
+// nothing (audit rows 3 and 15). The dead player-to-player crit bump is
+// gone (owner ruling 3).
+func applySpellShield(c spellEffectCtx) int {
+	if spellStatusDefended(c) {
+		return 0
+	}
+	stat, skill := spellCasterStatAndSkill(c.spell, c.casterChar)
+	weightedSkill := int(math.Round(float64(skill) * float64(configs.GetBalanceConfig().SkillWeight)))
+	shieldBonus := (stat + weightedSkill) / 3
+	if shieldBonus < 1 {
+		shieldBonus = 1
+	}
+	// Scale shield strength by spell magnitude (100 = 1.0x baseline).
+	if c.magnitude > 0 {
+		shieldBonus = int(math.Round(float64(shieldBonus) * float64(c.magnitude) / 100.0))
+		if shieldBonus < 1 {
+			shieldBonus = 1
+		}
+	}
+	duration := calcSpellDuration(c.spell.BaseFolds, skill, stat)
+	casterName, targetName := c.casterName(), c.targetName()
+	_ = c.targetChar().AddConditionMagnitude(conditions.ConditionIdMinorShield, duration, float64(shieldBonus), "spell")
+	if c.selfCast() {
+		messaging.SendTrio(messaging.Trio{
+			Actor: messaging.Say(c.category(),
+				`A shimmering magical barrier forms around you, bolstering your defenses.`),
+			Actee: messaging.NoLine,
+			Observer: messaging.Say(c.category(), fmt.Sprintf(
+				`A shimmering barrier surrounds %s.`, casterName)),
+		}, c.selfCastAudience(casterName))
+		return 0
+	}
+	messaging.SendTrio(messaging.Trio{
+		Actor: messaging.Say(c.category(), fmt.Sprintf(
+			`A shimmering magical barrier forms around %s, bolstering their defenses.`, targetName)),
+		Actee: messaging.Say(c.category(),
+			`A shimmering magical barrier forms around you, bolstering your defenses.`),
+		Observer: messaging.Say(c.category(), fmt.Sprintf(
+			`A shimmering barrier surrounds %s.`, targetName)),
 	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
 	return 0
 }
