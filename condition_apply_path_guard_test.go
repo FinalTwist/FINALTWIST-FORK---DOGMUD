@@ -192,9 +192,10 @@ var conditionApplyPathAllowlist = map[string]string{
 	// into applySpellHeal shifted every later line in spell_resolution.go;
 	// the PP row MOVED into applySpellShield by Task 4, which replaced the
 	// player-to-player shield arm and gained PM, MM and MP; the MS row stays
-	// in spell_resolution.go, re-keyed for the same deletion's shift) ────
+	// in spell_resolution.go, re-keyed for the same deletion's shift, and
+	// again Task 5 when the per-pairing arms above it were deleted) ────
 	"internal/hooks/spell_help_effects.go|188": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
-	"internal/hooks/spell_resolution.go|944":   "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	"internal/hooks/spell_resolution.go|777":   "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
 	// ── former combat condition: Regenerating is now one record (Task 7;
 	// re-keyed slice 1b, same shift as above; re-keyed again Task 10 and
@@ -213,9 +214,9 @@ var conditionApplyPathAllowlist = map[string]string{
 	// row for the same line shift; re-keyed again Task 4, when
 	// applySpellShield's new math and configs imports shifted
 	// spell_help_effects.go and the deleted PP shield arm shifted
-	// spell_resolution.go) ───────
+	// spell_resolution.go; re-keyed again Task 5, same deletion as above) ───────
 	"internal/hooks/spell_help_effects.go|139": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|922":   "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|755":   "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":       "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|55":       "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 
@@ -236,8 +237,9 @@ var conditionApplyPathAllowlist = map[string]string{
 	// effects 3a when creditSpellDamage landed above applySpellDot; re-keyed
 	// again parity slice 3b Task 2 when the dispatcher gained its condition
 	// case, and again Task 3 when it gained its heal case, and again Task 4
-	// when it gained its shield case) ──────
-	"internal/hooks/spell_effects.go|335": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	// when it gained its shield case, and again Task 5 when its doc comment
+	// grew and the per-pairing fallthrough became the default arm) ──────
+	"internal/hooks/spell_effects.go|336": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 
 	// ── light spells (lighting plan 5a): an EVENT door, not the silent
 	// character door. applySpellCondition's target is a spellConditionTarget,

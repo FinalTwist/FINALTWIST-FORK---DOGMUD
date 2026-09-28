@@ -55,10 +55,10 @@ func TestNonHarmCastAtAMobRunsNoContest(t *testing.T) {
 	if fumbled || !landed {
 		t.Errorf("fumbled=%v landed=%v; an uncontested cast lands and cannot fumble", fumbled, landed)
 	}
-	// applyMobEffect_heal applies a regenerating condition rather than an
-	// instant heal (spell_resolution.go:848); confirm the effect actually
-	// applied rather than asserting on Health, which this arm never touches
-	// directly.
+	// applySpellHeal applies a regenerating condition rather than an
+	// instant heal (spell_help_effects.go); confirm the effect actually
+	// applied rather than asserting on Health, which the applier never
+	// touches directly.
 	if !mob.Character.HasCondition(conditions.ConditionIdRegenerating) {
 		t.Error("the heal did not apply: no regenerating condition on the mob")
 	}

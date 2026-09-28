@@ -500,56 +500,6 @@ func spellDefenceIdentity(char *characters.Character, user *users.UserRecord, ro
 	return char.GetMobName(0).String()
 }
 
-func applyMobEffect_default(
-	user *users.UserRecord,
-	casterChar *characters.Character,
-	room *rooms.Room,
-	spellData *spells.SpellData,
-	out combat.ChannelDefenceResult,
-	mName string,
-) int {
-	if out.Defended {
-		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-			spellDefenceIdentity(casterChar, user, room), mName, spellData.Name, user, nil)
-		return 0
-	}
-	// A spell whose narration resolveSpell's Go hook owns gets no generic
-	// line: the player-target twin in applyPlayerEffect's default arm skips
-	// it too. A help spell aimed at a charmed companion lands here.
-	if user != nil && !spellNarratedByGoHook(spellData.SpellId) {
-		user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
-			`Your %s takes effect on %s.`,
-			spellData.Name, mName))
-	}
-	return 0
-}
-
-// applyMobEffectArms is the pre-unification switch for a MOB target (PM and
-// MM). The dispatcher routes here every effect that has no unified applier
-// yet. user is nil when a mob casts; casterChar is nil for an anonymous
-// caster.
-//
-// U6b Task 4: `out` is the resolver's ONE channel contest, threaded through.
-func applyMobEffectArms(c spellEffectCtx) int {
-	user, casterChar, mob, room := c.casterUser(), c.casterChar, c.targetMob(), c.room
-	spellData, out := c.spell, c.out
-	viewerId := 0
-	if user != nil {
-		viewerId = user.UserId
-	}
-	mName := mobDisplayName(mob, room, viewerId)
-
-	switch spellData.EffectType {
-	case "charm":
-		// Charm resolves HERE, off the contest this cast already ran, rather
-		// than in a second private contest after the target loop. See
-		// applyMobEffect_charm.
-		return applyMobEffect_charm(user, mob, room, spellData, out, mName)
-	default:
-		return applyMobEffect_default(user, casterChar, room, spellData, out, mName)
-	}
-}
-
 // resolveAgainstPlayer runs the ONE channel contest and applies the effect to
 // a player. Returns true if the cast fumbled (the seam's self-relative
 // AttackerFumble). See resolveAgainstMob for the fumble semantics carrying
@@ -583,18 +533,6 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 
 	recordSpellResolution(c, applySpellEffect(c))
 
-	// Set reciprocal aggro for harm spells. Every applier commits its own
-	// except the player-to-player default arm; Task 5 of slice 3b deletes
-	// this when applySpellDefaultEffect takes that over.
-	if spellData.IsHarm() {
-		if !user.Character.IsInCombat() {
-			targeting.Commit(user.Character, state.ActorRef{UserId: target.UserId}, targeting.ReasonAttack)
-		}
-		if !target.Character.IsInCombat() {
-			targeting.Commit(target.Character, state.ActorRef{UserId: user.UserId}, targeting.ReasonAttack)
-		}
-	}
-
 	// U6b Task 10: the defending player's crit defence counters the caster.
 	fireSpellCounterTier(room, out, spellData.Attack(),
 		target.Character, user.Character, target, user)
@@ -602,115 +540,10 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 	return false, !out.Defended
 }
 
-// applyPlayerEffectArms is the pre-unification switch for a player caster
-// and a PLAYER target (PP). The dispatcher routes here every effect that has
-// no unified applier yet.
-//
-// U6b Task 4: `out` is the resolver's ONE channel contest, threaded through
-// (help spells with no defense pass an uncontested attack win). Non-damage
-// effects are binary statuses: a defended cast narrates the channel defence
-// triad and applies nothing, mirroring ExecuteSkillMove's StatusApplied split.
-func applyPlayerEffectArms(c spellEffectCtx) {
-	user, target, room := c.casterUser(), c.targetUser(), c.room
-	spellData, out := c.spell, c.out
-
-	critTag := ""
-	if out.AttackerCrit {
-		critTag = ` <ansi fg="yellow">[CRIT!]</ansi>`
-	}
-
-	if out.Defended {
-		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-			spellDefenceIdentity(user.Character, user, room),
-			spellDefenceIdentity(target.Character, target, room), spellData.Name, user, target)
-		return
-	}
-
-	switch spellData.EffectType {
-	case "purge":
-		target.Character.CancelConditionsWithFlag(conditions.Poison)
-		if target.UserId != user.UserId {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
-					`<ansi fg="green">Your %s cleanses <ansi fg="username">%s</ansi> of afflictions.%s</ansi>`,
-					spellData.Name, target.Character.Name, critTag)),
-				Actee: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
-					`<ansi fg="green"><ansi fg="username">%s</ansi>'s %s purges the toxins from your body.</ansi>`,
-					user.Character.Name, spellData.Name)),
-				Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
-					`<ansi fg="username">%s</ansi>'s <ansi fg="cyan">%s</ansi> cleanses <ansi fg="username">%s</ansi>.`,
-					user.Character.Name, spellData.Name, target.Character.Name)),
-			}, spellAudience(user, user.Character.Name, target, target.Character.Name, room))
-		} else {
-			// SELF-CAST: one line to the caster and one to the room, naming them
-			// once, the shape case "shield" below already has. An area spell
-			// puts the caster in its own target list (resolveSpell), so every
-			// Cleansing Wave reaches this branch, not only a deliberate self-cast.
-			// critTag stays on the caster's line so a crit on yourself is not lost.
-			// The room line goes through SendTrio (messaging M4d PR 3 Task 3) so
-			// a shapes-only observer reads "a figure" for the caster instead of
-			// the name; target == user here, so there is no Actee.
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
-					`<ansi fg="green">You purge the afflictions from your body.%s</ansi>`, critTag)),
-				Actee: messaging.NoLine,
-				Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
-					`<ansi fg="cyan">%s</ansi> cleanses <ansi fg="username">%s</ansi> of afflictions.`,
-					spellData.Name, target.Character.Name)),
-			}, messaging.Audience{
-				Actor:     user,
-				ActorId:   user.UserId,
-				ActorName: user.Character.Name,
-				ActeeName: messaging.NoName,
-				Room:      room,
-			})
-		}
-
-	default:
-		// A spell whose narration resolveSpell's Go hook owns gets no generic
-		// line here. fold-anchor, fold-recall and purge-affliction declare no
-		// effect_type, so they land in this arm, and the caster was told
-		// "Your Purge Affliction takes effect." before the hook said it
-		// properly.
-		if spellNarratedByGoHook(spellData.SpellId) {
-			break
-		}
-		if target.UserId == user.UserId {
-			// SELF-CAST: a single line to the caster, no room broadcast at all.
-			// The purge/heal/condition/shield self-cast branches above each
-			// pair a safe caster line with a room line that names the caster
-			// (target.Character.Name, since target == user here); those room
-			// lines now go through SendTrio too (messaging M4d PR 3 Task 3), so
-			// a shapes-only observer reads "a figure" instead of the name. This
-			// line has no such pairing, so no second party, and Actee/ActeeName
-			// are unset.
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`Your %s takes effect.`, spellData.Name)),
-				Actee:    messaging.NoLine,
-				Observer: messaging.NoLine,
-			}, messaging.Audience{
-				Actor:     user,
-				ActorId:   user.UserId,
-				ActorName: user.Character.Name,
-				ActeeName: messaging.NoName,
-			})
-		} else {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`Your %s takes effect on <ansi fg="username">%s</ansi>.`,
-					spellData.Name, target.Character.Name)),
-				Actee:    messaging.NoLine,
-				Observer: messaging.NoLine,
-			}, spellAudience(user, user.Character.Name, target, target.Character.Name, room))
-		}
-	}
-}
-
 // spellNarratedByGoHook reports whether resolveSpell's Go hook switch owns a
 // spell's narration. KEEP IT IN STEP WITH THAT SWITCH: a spell added there
-// without being added here is told twice, once by applyPlayerEffect's default
-// arm and once by its hook.
+// without being added here is told twice, once by applySpellDefaultEffect
+// and once by its hook.
 func spellNarratedByGoHook(spellId string) bool {
 	switch spellId {
 	case "fold-anchor", "fold-recall", "purge-affliction":
@@ -1012,28 +845,6 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 		target.Character, &caster.Character, target, nil)
 
 	return !out.Defended
-}
-
-// applyMobOnPlayerArms is the pre-unification switch for a MOB caster and a
-// PLAYER target (MP), moved out of resolveMobSpellAgainstPlayer unchanged.
-// The dispatcher routes here every effect that has no unified applier yet.
-func applyMobOnPlayerArms(c spellEffectCtx) int {
-	caster, target, room := c.casterMob(), c.targetUser(), c.room
-	spellData, out := c.spell, c.out
-	if out.Defended {
-		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-			spellDefenceIdentity(&caster.Character, nil, room),
-			spellDefenceIdentity(target.Character, target, room), spellData.Name, nil, target)
-		return 0
-	}
-	messaging.SendTrio(messaging.Trio{
-		Actor: messaging.NoLine,
-		Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-			`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> takes effect on you.`,
-			caster.Character.Name, spellData.Name)),
-		Observer: messaging.NoLine,
-	}, spellAudience(nil, caster.Character.Name, target, target.Character.Name, room))
-	return 0
 }
 
 // resolveIdentify finds the named item on the caster and renders

@@ -155,9 +155,12 @@ func spellSourceTarget(a actions.Actor) combat.SourceTarget {
 	return combat.Mob
 }
 
-// applySpellEffect applies one spell effect to one target and returns the
-// damage it dealt (0 for effects that deal none). Until slice 3b, effects
-// without a unified applier run on the per-pairing arms they always had.
+// applySpellEffect applies one spell effect to one target, whoever casts it
+// and whoever it hits, and returns the damage it dealt (0 for effects that
+// deal none). Each effect has one applier (spell_effects.go for the harmful
+// ones, spell_help_effects.go for the rest). Charm binds only a mob, and
+// applyMobEffect_charm refuses a caster that is not a player; charm on
+// anything else, and any effect with no applier, is the default arm.
 func applySpellEffect(c spellEffectCtx) int {
 	switch c.spell.EffectType {
 	case "damage":
@@ -172,16 +175,14 @@ func applySpellEffect(c spellEffectCtx) int {
 		return applySpellHeal(c)
 	case "shield":
 		return applySpellShield(c)
+	case "purge":
+		return applySpellPurge(c)
+	case "charm":
+		if m := c.targetMob(); m != nil {
+			return applyMobEffect_charm(c.casterUser(), m, c.room, c.spell, c.out, c.targetName())
+		}
 	}
-	switch {
-	case c.targetMob() != nil:
-		return applyMobEffectArms(c)
-	case c.casterMob() != nil:
-		return applyMobOnPlayerArms(c)
-	default:
-		applyPlayerEffectArms(c)
-		return 0
-	}
+	return applySpellDefaultEffect(c)
 }
 
 // commitHarmfulSpellAggro is the one place a harmful spell starts a fight,

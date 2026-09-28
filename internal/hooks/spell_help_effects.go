@@ -206,3 +206,76 @@ func applySpellShield(c spellEffectCtx) int {
 	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
 	return 0
 }
+
+// applySpellPurge is the one purge applier (slice 3b): it cancels every
+// poison on the target. A mob target gains it: Cleansing Wave over a
+// charmed companion said it took effect and cleansed nothing. The
+// Go-hooked Purge Affliction spell is a different path
+// (resolvePurgeAffliction, spell_purgeaffliction.go) and never comes here.
+func applySpellPurge(c spellEffectCtx) int {
+	if spellStatusDefended(c) {
+		return 0
+	}
+	// Names are read BEFORE the cure: cancelling the poison can drop an
+	// adjective from the target's rendered name.
+	casterName, targetName := c.casterName(), c.targetName()
+	c.targetChar().CancelConditionsWithFlag(conditions.Poison)
+	if c.selfCast() {
+		messaging.SendTrio(messaging.Trio{
+			Actor: messaging.Say(messaging.CategorySpellVital,
+				`<ansi fg="green">You purge the afflictions from your body.</ansi>`),
+			Actee: messaging.NoLine,
+			Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
+				`<ansi fg="cyan">%s</ansi> cleanses %s of afflictions.`, c.spell.Name, casterName)),
+		}, c.selfCastAudience(casterName))
+		return 0
+	}
+	messaging.SendTrio(messaging.Trio{
+		Actor: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
+			`<ansi fg="green">Your %s cleanses %s of afflictions.</ansi>`, c.spell.Name, targetName)),
+		Actee: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
+			`<ansi fg="green">%s's %s purges the toxins from your body.</ansi>`, casterName, c.spell.Name)),
+		Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
+			`%s's <ansi fg="cyan">%s</ansi> cleanses %s.`, casterName, c.spell.Name, targetName)),
+	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
+	return 0
+}
+
+// applySpellDefaultEffect is the arm for an effect with no applier of its
+// own (slice 3b): an unknown or empty effect_type, and charm on anything but
+// a mob. It applies nothing and says so to both sides. A harmful spell still
+// starts the fight (commitHarmfulSpellAggro), as resolveAgainstPlayer used
+// to do for every harmful spell. A spell whose narration a Go hook in
+// resolveSpell owns (spellNarratedByGoHook) gets no line here.
+func applySpellDefaultEffect(c spellEffectCtx) int {
+	fresh := !c.targetChar().IsInCombat()
+	if spellStatusDefended(c) {
+		if c.spell.IsHarm() {
+			commitHarmfulSpellAggro(c, fresh)
+		}
+		return 0
+	}
+	if c.spell.IsHarm() {
+		commitHarmfulSpellAggro(c, fresh)
+	}
+	if spellNarratedByGoHook(c.spell.SpellId) {
+		return 0
+	}
+	casterName, targetName := c.casterName(), c.targetName()
+	if c.selfCast() {
+		messaging.SendTrio(messaging.Trio{
+			Actor:    messaging.Say(c.category(), fmt.Sprintf(`Your %s takes effect.`, c.spell.Name)),
+			Actee:    messaging.NoLine,
+			Observer: messaging.NoLine,
+		}, c.selfCastAudience(casterName))
+		return 0
+	}
+	messaging.SendTrio(messaging.Trio{
+		Actor: messaging.Say(c.category(), fmt.Sprintf(
+			`Your %s takes effect on %s.`, c.spell.Name, targetName)),
+		Actee: messaging.Say(c.category(), fmt.Sprintf(
+			`%s's <ansi fg="cyan">%s</ansi> takes effect on you.`, casterName, c.spell.Name)),
+		Observer: messaging.NoLine,
+	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
+	return 0
+}
