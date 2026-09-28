@@ -473,15 +473,28 @@ in `NewRound_UserRoundTick.go` and its mirror `tickMobConditions` in
 the round: the round ticks run before `DoCombat`, AutoHeal ran after it.
 
 **Both ticks fill a zero tick amount through `fillZeroTickAmount`**
-(`condition_tick_amount.go`, drink path unification 2026-09-28). A
-`tick_pool` condition applied through the event queue is not yet in the list
-when its applier would snapshot the amount, so it arrives with `TickAmount`
-0: every potion, area and mutator conditions, and hazard-room dots.
-`fillZeroTickAmount` computes the amount from the holder's pool at scaling
-1.0, caches it with `SetTickAmount`, and returns it; read the RETURNED value,
-not `condition.TickAmount`. Before this only the player tick filled it, so
-every event-applied heal-over-time and damage-over-time on a MOB was inert.
-The mob round tick now heals and damages over time like the player tick.
+(`condition_tick_amount.go`, drink path unification 2026-09-28; narrowed by
+tick amount at apply, 2026-09-28). Before this only the player tick filled
+it, so every event-applied heal-over-time and damage-over-time on a MOB was
+inert; the mob round tick now heals and damages over time like the player
+tick.
+
+A `tick_pool` condition applied through the event queue (spells, potions,
+area and mutator conditions, hazard-room dots) no longer arrives at the tick
+with `TickAmount` 0: `Condition_ApplyConditions` computes it immediately
+after the record lands, via `setTickAmountAtApply(targetChar, conditionInfo,
+evt.ConditionId, evt.TickScale)` — `tickPoolMax(c, pool)` (the holder's max
+for `"health"`/`"stamina"`/`"conviction"`, extracted so both functions share
+it) times the spec's `TickPercent`/`TickVariance`/`TickMin`, at the
+applier's `TickScale` (0 means 1.0; a spell passes `spellTickScale(caster)`,
+everything else passes none). A refresh recomputes it too, so a recast
+rescales an existing record rather than leaving its first cast's amount
+stuck. `fillZeroTickAmount` is now the fallback for a `tick_pool` condition
+added SYNCHRONOUSLY, bypassing `Condition_ApplyConditions` entirely — e.g.
+`Character.AddConditionMagnitude` for a former combat condition — where
+`TickAmount` genuinely can still be 0 at tick time; it computes the amount
+from the holder's pool at scaling 1.0, caches it with `SetTickAmount`, and
+returns it; read the RETURNED value, not `condition.TickAmount`.
 
 Three things the tick path does at the moment health harm lands, all of which
 the old poison hook did and the condition tick path did NOT:
@@ -991,10 +1004,27 @@ the shared `SpellDuration*` trio all three kinds use (triggers floored at 1).
 the four spell-condition sites in `spell_resolution.go`
 (`applyMobEffect_condition`, `applyPlayerEffect`, `applyMobSelfEffect`,
 `resolveMobSpellAgainstPlayer`) now call: a magnitude-scaled light or sight
-goes through `AddConditionMagnitude`, anything else through `AddCondition`,
-both on the small `spellConditionTarget` interface a `*users.UserRecord` and a
-`*mobs.Mob` both satisfy. The record then trims to its HOLDER's eyes, who may
-not be the caster.
+goes through `AddConditionMagnitude`; a `tick_pool` condition (a heal- or
+damage-over-time) goes through `AddConditionTickScaled` at
+`spellTickScale(caster)` (`spell_tick_scale.go`, tick amount at apply,
+2026-09-28); anything else through `AddCondition`. All three sit on the small
+`spellConditionTarget` interface a `*users.UserRecord` and a `*mobs.Mob` both
+satisfy. The record then trims to its HOLDER's eyes, who may not be the
+caster.
+
+`spellTickScale(caster)` is the one caster formula for a spell tick's scale:
+the caster's `Spellcasting` `combat.SkillMultiplier` times an equipped
+weapon's `SpellDamageMultiplier`, adjusted for
+`mutations.GearEffectivenessMultiplier`. It replaced three copies of the same
+arithmetic that used to run AFTER `applySpellCondition` queued the event, one
+per player/mob-caster/mob-self-cast site in `spell_resolution.go`, and poke
+`Conditions.SetTickAmount` directly on a record that, on a first application,
+did not exist yet — the "Compute tick snapshot" blocks, all now deleted
+(`actions/drink.go` dropped its own matching snapshot the same way, at a flat
+1.0 rather than `spellTickScale`, since a potion has no caster). The amount
+is computed once `TickScale` reaches `hooks.setTickAmountAtApply` in
+`Condition_ApplyConditions`, where the record is guaranteed to exist; see
+"The damaging condition tick" below.
 
 `sendConditionEndRoomText` (`NewTurn_PruneConditions.go`) judges a light's end
 line as lit by `spec.IsLightSource()`; the judgement is per spec, so a hooded
