@@ -210,6 +210,9 @@ var conditionApplyPathAllowlist = map[string]string{
 	// AddConditionMagnitude also queues events.Condition. The AI companion
 	// and the survival planner drink through it.
 	"internal/mobcommands/drink.go|41": "mob potion at its item magnitude: the EVENT door (mobs.Mob.AddConditionMagnitude queues events.Condition); listed only because arity cannot tell it from the silent character door",
+	// The shared body (drink path unification): actor is a DrinkActor, whose
+	// two implementers are the UserActor and MobActor doors below.
+	"internal/actions/drink.go|352": "potion at its item magnitude scaled by potency, player or mob: the EVENT door (DrinkActor.AddConditionMagnitude reaches users.UserRecord / mobs.Mob AddConditionMagnitude, both queue events.Condition); listed only because arity cannot tell it from the silent character door",
 
 	// ── the DrinkActor doors (drink path unification): a.User is a
 	// *users.UserRecord and a.Mob is a *mobs.Mob, whose AddConditionMagnitude
