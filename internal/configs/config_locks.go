@@ -25,10 +25,13 @@ var hardLocked = []string{
 	`Modules.aicompanion.Model`,
 	`Modules.aicompanion.FastModel`,
 	`Modules.aicompanion.DeepModel`,
+	// ruling 13
 	`Modules.aicompanion.ModerateOutput`,
 	`Modules.aicompanion.ModerationModel`,
 	`FilePaths.WebDomain`,
 	`Server.Locked`,
+	// Names where server data is sent.
+	`Integrations.Discord.WebhookUrl`,
 }
 
 // isHardLocked reports whether configPath is on the hard list.
@@ -46,7 +49,7 @@ func isHardLocked(configPath string) bool {
 // it is on the hard list, it ends in "locked", or it starts with (lowercase)
 // an entry of Server.Locked, so "FilePaths" locks every FilePaths key. The
 // server config menu also passes partial paths while browsing; a partial path
-// is locked only by a Server.Locked prefix, never by the exact hard list.
+// is locked only by a Server.Locked prefix or the `locked` suffix rule.
 func IsLocked(configPath string) bool {
 	if isHardLocked(configPath) {
 		return true

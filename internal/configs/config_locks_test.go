@@ -62,6 +62,8 @@ func TestSetValRefusesLockedKeys(t *testing.T) {
 		{`Modules.aicompanion.ModerationModel`, `Modules.aicompanion.ModerationModel`, `hard list (ruling 13), not in the lookups: refused as LOCKED, not as unknown`},
 		{`Modules.aicompanion.BaseURL`, `Modules.aicompanion.BaseURL`, `not in the lookups: refused as LOCKED, not as unknown`},
 		{`APIFramework.APIKey`, `APIFramework.APIKey`, `section absent on master: the entry costs nothing and still binds`},
+		{`Integrations.Discord.WebhookUrl`, `Integrations.Discord.WebhookUrl`, `hard list: names where server data is sent`},
+		{`webhookurl`, `Integrations.Discord.WebhookUrl`, `hard list through a suffix key`},
 	}
 	for _, tc := range cases {
 		err := SetVal(tc.key, `x`)
@@ -126,7 +128,8 @@ func TestIsLocked(t *testing.T) {
 
 	for _, p := range []string{`filepaths`, `FilePaths.DataFiles`, `server.seed`, `Server.Locked`,
 		`modules.aicompanion.apikey`, `MODULES.AICOMPANION.PLAYERKEYS`, `APIFramework.BaseURL`,
-		`modules.aicompanion.moderateoutput`, `Modules.aicompanion.ModerationModel`} {
+		`modules.aicompanion.moderateoutput`, `Modules.aicompanion.ModerationModel`,
+		`Integrations.Discord.WebhookUrl`} {
 		if !IsLocked(p) {
 			t.Errorf(`IsLocked(%q) = false, want true`, p)
 		}
