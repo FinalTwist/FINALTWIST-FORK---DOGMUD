@@ -524,3 +524,10 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 	applySpellEffect(newSpellEffectCtx(user.Character, actions.NewUserActorInRoom(user, room),
 		actions.NewUserActorInRoom(target, room), room, spellData, magnitude, out))
 }
+
+// applyMobSelfEffect applies a mob's spell to itself (MS).
+func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.SpellData, magnitude int) {
+	self := actions.NewMobActorInRoom(mob, room)
+	applySpellEffect(newSpellEffectCtx(&mob.Character, self, self, room, spellData, magnitude,
+		uncontestedSpellResult()))
+}

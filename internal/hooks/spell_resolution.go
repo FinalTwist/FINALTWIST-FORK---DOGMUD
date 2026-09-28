@@ -9,8 +9,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
-	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -574,8 +572,8 @@ func consumeSpellComponent(user *users.UserRecord, tag string) {
 // Why this is NOT merged with resolveSpell (see that function for details):
 //   - HarmArea here populates both mob AND player targets; player casters only
 //     hit mobs (players in the room are excluded from player-cast area spells).
-//   - Mob targets include a self-cast branch (applyMobSelfEffect) for help
-//     spells; player casters never self-target via this dispatcher.
+//   - Mob targets include a self-cast branch (MS) for help spells, through
+//     resolveHelpSpell; a player's self-cast arrives as a player target.
 //   - No onMagic script, no component consumption.
 //   - Per-target helpers are entirely separate from the player equivalents.
 func resolveMobSpell(mob *mobs.Mob, cs activity.CastingData, spellData *spells.SpellData, room *rooms.Room) (anyLanded bool) {
@@ -622,8 +620,15 @@ func resolveMobSpell(mob *mobs.Mob, cs activity.CastingData, spellData *spells.S
 
 	for _, mobInstId := range cs.TargetMobInstanceIds {
 		if mobInstId == mob.InstanceId {
-			// Self-cast (HelpSingle with self target)
-			applyMobSelfEffect(mob, room, spellData, magnitude)
+			// MS: the caster is its own target. Only a help spell puts a mob
+			// in its own list (a HelpSingle with no target, or its own place
+			// in an area help), and it takes the same uncontested step and
+			// appliers as every other pairing. A mob never harms itself.
+			if !spellData.IsHarm() {
+				self := actions.NewMobActorInRoom(mob, room)
+				anyLanded = resolveHelpSpell(newSpellEffectCtx(&mob.Character, self, self, room, spellData,
+					magnitude, uncontestedSpellResult())) || anyLanded
+			}
 			continue
 		}
 		if target := mobs.GetInstance(mobInstId); target != nil && target.Character.Health > 0 && target.Character.RoomId == room.RoomId {
@@ -737,47 +742,6 @@ func resolveMobDrainArea(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spel
 	sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
 		`%s's <ansi fg="cyan">%s</ansi> tears the life from everyone in the room!`,
 		mobDisplayName(mob, room, 0), spellData.Name))
-}
-
-// applyMobSelfEffect handles self-targeted help spells (heal, minor-shield).
-func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.SpellData, magnitude int) {
-	switch spellData.EffectType {
-	case "heal":
-		skillLevel := mob.Character.GetSkillLevel(skills.Spellcasting)
-		regenMult := float64(magnitude)
-		if regenMult < 1.0 {
-			regenMult = 1.0
-		}
-		durationRounds := calcSpellDuration(spellData.BaseFolds, skillLevel, spellData.CasterStatValue(mob.Character.Stats)) / 2
-		if durationRounds < 6 {
-			durationRounds = 6
-		}
-		_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdRegenerating, durationRounds, regenMult, "heal spell")
-		sendVisualRoomText(room, messaging.CategorySpellVital, fmt.Sprintf(
-			`%s channels restorative magic.`, mobDisplayName(mob, room, 0)))
-	case "condition":
-		for _, conditionId := range spellData.ConditionIds {
-			applySpellCondition(mob, spellData, &mob.Character, conditionId)
-		}
-	case "shield":
-		skillLevel := mob.Character.GetSkillLevel(skills.Spellcasting)
-		weightedSkill := int(math.Round(float64(skillLevel) * float64(configs.GetBalanceConfig().SkillWeight)))
-		shieldBonus := (spellData.CasterStatValue(mob.Character.Stats) + weightedSkill) / 3
-		if shieldBonus < 1 {
-			shieldBonus = 1
-		}
-		// Scale shield strength by spell magnitude (100 = 1.0x baseline)
-		if magnitude > 0 {
-			shieldBonus = int(math.Round(float64(shieldBonus) * float64(magnitude) / 100.0))
-			if shieldBonus < 1 {
-				shieldBonus = 1
-			}
-		}
-		duration := calcSpellDuration(spellData.BaseFolds, skillLevel, spellData.CasterStatValue(mob.Character.Stats))
-		_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdMinorShield, duration, float64(shieldBonus), "spell")
-		sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
-			`A shimmering barrier forms around %s.`, mobDisplayName(mob, room, 0)))
-	}
 }
 
 // landed carries the same meaning as on the player path: the contest was WON
