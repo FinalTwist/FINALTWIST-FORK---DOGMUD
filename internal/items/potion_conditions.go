@@ -4,15 +4,15 @@ import (
 	"math"
 
 	"github.com/GoMudEngine/GoMud/internal/conditions"
-	"github.com/GoMudEngine/GoMud/internal/configs"
 )
 
 // PotionMagnitudeApplication reports how a potion applies a condition that
 // reads one of conditions.ScaledKinds from its magnitude (lighting plan 5c):
 // the item's Magnitude and the condition's trigger count, both scaled by
 // durationMult. The player drink path passes its potency multiplier (aging
-// phase times the crafter's skill); the mob drink path passes 1. Infra reach
-// is capped at LightInfraReachCap. ok is false for a condition with no scaled
+// phase times the crafter's skill); the mob drink path passes 1. The result
+// is capped by conditions.CapScaledMagnitude (infra reach at
+// LightInfraReachCap, nightvision at the window shift cap). ok is false for a condition with no scaled
 // kind or an item with no Magnitude, which keep the duration-only path.
 //
 // It lives here rather than beside either drink command so that both the
@@ -30,12 +30,7 @@ func PotionMagnitudeApplication(itemSpec *ItemSpec, spec *conditions.ConditionSp
 	if durationMult <= 0 {
 		durationMult = 1
 	}
-	magnitude = itemSpec.Magnitude * durationMult
-	if kind == conditions.EffectInfraReach {
-		if limit := float64(configs.GetLightingConfig().InfraReachCap); magnitude > limit {
-			magnitude = limit
-		}
-	}
+	magnitude = conditions.CapScaledMagnitude(kind, itemSpec.Magnitude*durationMult)
 	triggers = int(math.Round(float64(spec.TriggerCount) * durationMult))
 	if triggers < 1 {
 		triggers = 1

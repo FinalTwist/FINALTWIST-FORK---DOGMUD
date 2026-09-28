@@ -972,7 +972,8 @@ plan 5c, when it stopped being light-only. Its magnitude comes from
 base/stat-divisor/skill-divisor trio (`SpellStrength*` for light,
 `NightVisionSpell*` for nightvision, `InfraSpell*` for infra reach, all on
 `configs.Lighting`), caps an infra-reach result at `Lighting.InfraReachCap`
-(nightvision is left to the window's own clamp), and computes duration from
+and a nightvision result at `configs.LightWindowShiftCap`
+(`conditions.CapScaledMagnitude`), and computes duration from
 the shared `SpellDuration*` trio all three kinds use (triggers floored at 1).
 `ok` is false for any other condition, which keeps its authored application.
 `applySpellCondition(target, spellData, caster, conditionId)` is the one door

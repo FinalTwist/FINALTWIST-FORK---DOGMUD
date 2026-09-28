@@ -92,7 +92,7 @@ func TestVisionSpellsScaleFromStatAndSkill(t *testing.T) {
 	}{
 		{9733, 100, 0, 12, 4},
 		{9733, 130, 30, 4 + 130/12.5 + 30/6.5, 6},
-		{9733, 175, 65, 28, 9}, // uncapped here: the window clamps at 24
+		{9733, 175, 65, 24, 9}, // 28 capped at the window shift cap, so the record holds what it acts at
 		{9734, 100, 0, 5 + 100/7.0, 4},
 		{9734, 130, 30, 5 + 130/7.0 + 10, 6},
 		{9734, 175, 65, 50, 9}, // 51.67 capped at LightInfraReachCap

@@ -16,9 +16,9 @@ import (
 // (lighting plan 5a for light, 5c for nightvision and infra reach). Each kind
 // has its own base + stat/D1 + skill/D2 trio (conditions.SpellScaledMagnitude,
 // shared with the admin setcondition command); all three share the light
-// duration trio. Infra reach is capped at LightInfraReachCap there so the
-// record holds the value it acts at; nightvision is left to the window's own
-// clamp. ok is false for any other condition, which keeps its authored
+// duration trio. Infra reach is capped at LightInfraReachCap and nightvision
+// at the window shift cap there, so the record holds the value it acts at.
+// ok is false for any other condition, which keeps its authored
 // application. A light then trims to its HOLDER's eyes, who may not be the
 // caster.
 func magnitudeSpellApplication(spellData *spells.SpellData, caster *characters.Character, conditionId int) (magnitude float64, triggers int, ok bool) {

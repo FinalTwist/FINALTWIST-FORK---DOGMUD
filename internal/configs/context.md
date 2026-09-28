@@ -794,10 +794,12 @@ against these defaults"; they are not consulted anywhere any more.
 (whether authored directly or reached by clamping a negative) defaults to
 12, following the `ProgressMult` idiom where zero means "unset", not "shift
 by nothing", so the effective authored range is `[1, 24]`. The upper bound
-24 duplicates `windowShiftCap` in `internal/messaging/window.go` on purpose:
-`internal/configs` cannot import `internal/messaging` (the dependency runs
-the other way), so if `windowShiftCap` ever changes this literal must change
-with it. A value above 24 clamps down to it rather than reverting to the
+is the exported constant `LightWindowShiftCap` (24,
+`config.balance.lighting.go`), which `windowShiftCap` in
+`internal/messaging/window.go` is defined from, and which the spell and
+potion magnitude caps (`conditions.SpellScaledMagnitude`,
+`items.PotionMagnitudeApplication`) also read, so there is one number, not
+a duplicated literal. A value above 24 clamps down to it rather than reverting to the
 default, honouring the operator's intent (a strong shift) at the strongest
 the window model can express, the same way `LightExitsAbove` clamps rather
 than reverts for its own out-of-range case above.

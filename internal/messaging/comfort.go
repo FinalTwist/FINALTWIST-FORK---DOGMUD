@@ -27,6 +27,11 @@ func ComfortDistance(observer *characters.Character, room RoomVisibility) (dark,
 	cfg := configs.GetLightingConfig()
 	light := room.LightLevel()
 	dark, bright = comfortDistance(light, observer.NightVisionStrength(), cfg.BlindBelow, cfg.DimBelow, cfg.DazzleAbove)
+	// With no dark penalty there is nothing for infravision to ease, so skip
+	// InfraReach, which log-combines every held source on each call.
+	if dark == 0 {
+		return dark, bright
+	}
 	if capped, ok := infraDarkCap(light, observer.InfraReach(), cfg.InfraPenaltyFloor, cfg.InfraReachCap, cfg.DarkCap); ok && capped < dark {
 		dark = capped
 	}

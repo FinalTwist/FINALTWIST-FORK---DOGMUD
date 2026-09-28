@@ -1,5 +1,14 @@
 package configs
 
+// LightWindowShiftCap is the most any ability may move an observer's sight
+// window down the light scale: the ceiling on night-vision strength. It lives
+// here, the lowest package every consumer imports, so the window model
+// (internal/messaging's windowShiftCap), this file's validation of
+// LightDefaultVisionStrength, and the spell and potion magnitude caps in
+// internal/conditions and internal/items all read one number. It is a
+// constant rather than a knob: the whole band model was balanced against it.
+const LightWindowShiftCap = 24
+
 // validateLighting sets defaults for the graded room lighting thresholds
 // introduced by the graded lighting arc. It is a separate file from
 // config.balance.combat.go's DARKNESS section because those knobs price the
@@ -85,10 +94,8 @@ func (b *Balance) validateLighting() {
 	// default", not "shift by nothing"; see the struct field comment for
 	// why a bare flag cannot mean a shift of zero).
 	//
-	// The upper bound 24 is windowShiftCap in internal/messaging/window.go,
-	// duplicated here on purpose: internal/configs cannot import
-	// internal/messaging (messaging depends on configs, not the reverse).
-	// If windowShiftCap ever changes, this literal must change with it. A
+	// The upper bound is LightWindowShiftCap (24), the constant
+	// internal/messaging's windowShiftCap is defined from. A
 	// value above the cap is clamped down to 24 rather than reverted to the
 	// default, matching how LightExitsAbove clamps rather than reverts for
 	// its own out-of-range case above: the operator's intent (a strong
@@ -97,8 +104,8 @@ func (b *Balance) validateLighting() {
 	if b.LightDefaultVisionStrength < 0 {
 		b.LightDefaultVisionStrength = 0
 	}
-	if b.LightDefaultVisionStrength > 24 {
-		b.LightDefaultVisionStrength = 24
+	if b.LightDefaultVisionStrength > LightWindowShiftCap {
+		b.LightDefaultVisionStrength = LightWindowShiftCap
 	}
 	if b.LightDefaultVisionStrength == 0 {
 		b.LightDefaultVisionStrength = 12

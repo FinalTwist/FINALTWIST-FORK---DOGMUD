@@ -1,5 +1,7 @@
 package messaging
 
+import "github.com/GoMudEngine/GoMud/internal/configs"
+
 // The normal observer's band edges on the graded light scale, and the two
 // numbers that bound how far an ability may move them.
 //
@@ -7,8 +9,10 @@ package messaging
 // plan 5b's LightDazzleAbove), and every function below takes them as
 // arguments rather than reading config, so this file stays pure and testable.
 const (
-	// windowShiftCap is the most any ability may move the window down.
-	windowShiftCap = 24
+	// windowShiftCap is the most any ability may move the window down. It is
+	// configs.LightWindowShiftCap, the one number the config validation and
+	// the spell and potion magnitude caps also read.
+	windowShiftCap = configs.LightWindowShiftCap
 	// windowFloor is the light below which a shifted window reads nothing, no
 	// matter how strong. Infra reach is independent of it: heat-sense reads
 	// shapes at any light down to minus the reach (lighting plan 5c).

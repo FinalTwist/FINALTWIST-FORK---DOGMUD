@@ -1122,10 +1122,9 @@ type Balance struct {
 	// therefore effectively [1, 24], not [0, 24]; see validateLighting for
 	// the clamp.
 	//
-	// The upper bound of 24 mirrors windowShiftCap in
-	// internal/messaging/window.go, which internal/configs cannot import
-	// (messaging depends on configs, not the reverse). If windowShiftCap
-	// ever changes, this literal must change with it.
+	// The upper bound of 24 is LightWindowShiftCap
+	// (config.balance.lighting.go), which internal/messaging's windowShiftCap
+	// is defined from.
 	LightDefaultVisionStrength ConfigInt `yaml:"LightDefaultVisionStrength"` // Window shift for a vision flag that declares no strength of its own (default 12)
 
 	// LightDoublingStep is how many points on the -100..100 light scale are

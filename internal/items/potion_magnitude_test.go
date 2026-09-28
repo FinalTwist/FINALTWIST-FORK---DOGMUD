@@ -33,6 +33,11 @@ func TestPotionMagnitudeApplication(t *testing.T) {
 			t.Errorf("%s: (%v, %d, %v), want (%v, %d, true)", c.name, mag, trig, ok, c.wantMag, c.wantTriggers)
 		}
 	}
+	night := &conditions.ConditionSpec{ConditionId: 9803, Name: "Test Night Draught", TriggerCount: 100,
+		Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectNightVisionStrength: {UsesMagnitude: true}}}
+	if mag, _, ok := PotionMagnitudeApplication(&ItemSpec{ItemId: 39996, Magnitude: 20}, night, 1.5); !ok || mag != configs.LightWindowShiftCap {
+		t.Errorf("a nightvision potion's 30 caps at the window shift cap: (%v, %v)", mag, ok)
+	}
 	if _, _, ok := PotionMagnitudeApplication(tincture, plain, 1.3); ok {
 		t.Error("a condition with no scaled kind keeps the duration-only path")
 	}
