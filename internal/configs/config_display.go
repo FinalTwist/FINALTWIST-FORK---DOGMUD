@@ -29,7 +29,10 @@ var ErrRedactedValue = errors.New("value is the redaction marker, not a real val
 // suffix is "Tokens" or "Budget", never the literal word "token". Checked
 // against shipped keys (_datafiles/config.yaml and every internal/configs
 // yaml tag) on 2026-09-28: only APIKey and WebhookUrl match, both secrets.
-var secretNameRule = regexp.MustCompile(`(?i)(apikey|api_key|secret|password|token|webhookurl)$`)
+// secretkey and privatekey are added (Task 5 review) as their own suffixes,
+// not by adding a bare "key" suffix: a bare "key" would also catch ordinary
+// lookup keys (map key names, cache keys) that are not credentials.
+var secretNameRule = regexp.MustCompile(`(?i)(apikey|api_key|secret|password|token|webhookurl|secretkey|privatekey)$`)
 
 // DisplayConfigData is AllConfigData for anything a person reads: the boot
 // log, the server set listing, the server config menu and /viewconfig. A
@@ -67,14 +70,32 @@ func pathHasSecretSegment(path string) bool {
 	return false
 }
 
+// maxContainsSecretDepth caps how far containsSecret descends into a value.
+// Modules values come from a YAML decode, which never produces a cycle, so
+// the cap exists only to bound a pathological or hand-built value (this
+// package's own test builds a self-referential slice, and any code with
+// access to a Config could do the same). Past the cap containsSecret fails
+// closed: it reports the value as secret rather than risk showing one.
+const maxContainsSecretDepth = 32
+
 // containsSecret deep-scans a value that AllConfigData stored whole (a slice
 // or a map, at any nesting depth, reached through maps with string or any
-// keys, slices, arrays and interfaces) and reports whether it is or carries
-// a ConfigSecret, or a map key matching secretNameRule. A match redacts the
-// entire stored value, since DisplayConfigData cannot redact just the
-// offending piece without decomposing a value AllConfigData never
-// decomposed.
+// keys, slices, arrays, pointers and interfaces) and reports whether it is or
+// carries a ConfigSecret, or a map key matching secretNameRule. It descends
+// only maps, slices, arrays, pointers and interfaces, never struct fields,
+// because every value it is called on (a leaf AllConfigData/buildDotPaths
+// stored whole, always from Modules) comes from a YAML decode, which never
+// produces a struct. A match redacts the entire stored value, since
+// DisplayConfigData cannot redact just the offending piece without
+// decomposing a value AllConfigData never decomposed.
 func containsSecret(value any) bool {
+	return containsSecretAtDepth(value, 0)
+}
+
+func containsSecretAtDepth(value any, depth int) bool {
+	if depth >= maxContainsSecretDepth {
+		return true
+	}
 	if value == nil {
 		return false
 	}
@@ -88,19 +109,19 @@ func containsSecret(value any) bool {
 		if rv.IsNil() {
 			return false
 		}
-		return containsSecret(rv.Elem().Interface())
+		return containsSecretAtDepth(rv.Elem().Interface(), depth+1)
 	case reflect.Map:
 		for _, key := range rv.MapKeys() {
 			if secretNameRule.MatchString(fmt.Sprintf(`%v`, key.Interface())) {
 				return true
 			}
-			if containsSecret(rv.MapIndex(key).Interface()) {
+			if containsSecretAtDepth(rv.MapIndex(key).Interface(), depth+1) {
 				return true
 			}
 		}
 	case reflect.Slice, reflect.Array:
 		for i := 0; i < rv.Len(); i++ {
-			if containsSecret(rv.Index(i).Interface()) {
+			if containsSecretAtDepth(rv.Index(i).Interface(), depth+1) {
 				return true
 			}
 		}

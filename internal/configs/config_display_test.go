@@ -156,6 +156,13 @@ func nestedLeakTestConfig() Config {
 			`password`: map[string]any{
 				`db`: `innocuous-value`,
 			},
+
+			// Task 5 review extras: SecretKey and PrivateKey are suffix
+			// matches too. Neither ends in a word already in the rule
+			// ("Key" is not "Secret" or "Password"), so this fixture is
+			// only satisfied once the rule is widened.
+			`SecretKey`:  displaySentinel,
+			`PrivateKey`: displaySentinel,
 		},
 	}
 	return c
@@ -173,6 +180,8 @@ func TestDisplayConfigDataRedactsNestedAndWidenedNames(t *testing.T) {
 		`Modules.x.providers`,
 		`Modules.x.backends`,
 		`Modules.x.password.db`,
+		`Modules.x.SecretKey`,
+		`Modules.x.PrivateKey`,
 	} {
 		if shown[name] != RedactedValue {
 			t.Errorf(`DisplayConfigData[%q] = %#v, want RedactedValue`, name, shown[name])
@@ -190,5 +199,25 @@ func TestDisplayConfigDataRedactsNestedAndWidenedNames(t *testing.T) {
 		if shown[name] != want {
 			t.Errorf(`DisplayConfigData[%q] = %#v, want %#v (unredacted)`, name, shown[name], want)
 		}
+	}
+}
+
+// TestContainsSecretTerminatesOnSelfReferentialSlice: Task 5 review extra.
+// containsSecret descends slices, maps, arrays, pointers and interfaces with
+// no cycle detection, so a self-referential value (only reachable through an
+// interface element, since a slice cannot hold itself by value) would recurse
+// forever without a depth cap. The cap must fail closed: past it, the value
+// counts as a secret and gets redacted rather than shown.
+func TestContainsSecretTerminatesOnSelfReferentialSlice(t *testing.T) {
+	selfRef := make([]any, 1)
+	selfRef[0] = selfRef
+
+	c := GetConfig()
+	c.Modules = Modules{`x`: map[string]any{`cyclic`: selfRef}}
+
+	shown := c.DisplayConfigData()
+	if shown[`Modules.x.cyclic`] != RedactedValue {
+		t.Errorf(`DisplayConfigData[%q] = %#v, want RedactedValue (fail closed past the depth cap)`,
+			`Modules.x.cyclic`, shown[`Modules.x.cyclic`])
 	}
 }
