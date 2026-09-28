@@ -184,9 +184,11 @@ var conditionApplyPathAllowlist = map[string]string{
 	// resolvers' backfire, interrupt and record blocks moved into
 	// spell_effects.go; re-keyed again parity slice 3a Task 7 when the
 	// one-contest guard began parsing spell_effects.go too; re-keyed again
-	// parity slice 3a Task 8 when maybeInterruptSpellOnMob was deleted) ────
-	"internal/hooks/spell_resolution.go|908":  "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
-	"internal/hooks/spell_resolution.go|1213": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	// parity slice 3a Task 8 when maybeInterruptSpellOnMob was deleted;
+	// re-keyed again parity slice 3b Task 1 when the resolvers' help-spell
+	// shortcuts collapsed into resolveHelpSpell) ────
+	"internal/hooks/spell_resolution.go|898":  "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	"internal/hooks/spell_resolution.go|1203": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
 	// ── former combat condition: Regenerating is now one record (Task 7;
 	// re-keyed slice 1b, same shift as above; re-keyed again Task 10 and
@@ -198,10 +200,11 @@ var conditionApplyPathAllowlist = map[string]string{
 	// again spell effects 3a Task 4, same shift as above; re-keyed again
 	// spell effects 3a Task 5, same shift as above; re-keyed again parity
 	// slice 3a Task 7, same guard widening as above; re-keyed again parity
-	// slice 3a Task 8, same deletion as above) ───────────────────────────────
-	"internal/hooks/spell_resolution.go|615":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|809":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1191": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	// slice 3a Task 8, same deletion as above; re-keyed again parity slice 3b
+	// Task 1, same collapse as above) ───────────────────────────────────────
+	"internal/hooks/spell_resolution.go|601":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|799":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1181": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|55":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 

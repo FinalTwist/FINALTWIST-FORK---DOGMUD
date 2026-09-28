@@ -161,16 +161,11 @@ func resolveSpell(user *users.UserRecord, cs activity.CastingData, spellData *sp
 		if targetUser.Character.Health < 1 && spellData.IsHarm() {
 			continue
 		}
-		if spellData.AttackType == combatvocab.AttackNone {
-			// Non-harm cast: uncontested, an attack win by construction.
-			// Uncontested means it LANDED: there was no defence to beat.
-			applySpellEffect(newSpellEffectCtx(user.Character, actions.NewUserActorInRoom(user, room), actions.NewUserActorInRoom(targetUser, room), room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1}))
-			anyLanded = true
-		} else {
-			fumbled, landed := resolveAgainstPlayer(user, targetUser, room, spellData, side, magnitude)
-			castFumbled = castFumbled || fumbled
-			anyLanded = anyLanded || landed
-		}
+		// A help spell (attack_type none) resolves uncontested inside
+		// resolveAgainstPlayer, as it does in the other three resolvers.
+		fumbled, landed := resolveAgainstPlayer(user, targetUser, room, spellData, side, magnitude)
+		castFumbled = castFumbled || fumbled
+		anyLanded = anyLanded || landed
 		targetsResolved++
 	}
 
@@ -388,23 +383,14 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 	caster := actions.NewUserActorInRoom(user, room)
 	target := actions.NewMobActorInRoom(mob, room)
 
-	// Non-harm cast at a mob (a heal on your companion, an area mend over
-	// allies): uncontested, exactly as the player-target loop has always
-	// treated it. On master this ran a quell contest, so a companion could
-	// "defend" its own heal, a fumble backfired on the caster, and a
-	// defensive crit earned the companion a counter-swing at its owner.
-	// The empty eligible set would already skip the contest; the explicit
-	// shortcut makes the rule visible and independent of that detail.
-	// BEHAVIOUR CHANGE from master, own commit.
+	// A help spell (a heal on your companion, an area mend over allies) is
+	// uncontested, as in every resolver (resolveHelpSpell). On master
+	// 612b85d54 it ran a quell contest here, so a companion could "defend"
+	// its own heal, a fumble backfired on the caster, and a defensive crit
+	// earned the companion a counter-swing at its owner.
 	if spellData.AttackType == combatvocab.AttackNone {
-		// Every reachable non-harm arm (heal, condition, default) returns 0
-		// today, so threading it through is not a behaviour change; it just
-		// stops the record silently pinning itself to 0 if a future arm
-		// starts reporting a real amount (an area mend's total, say).
-		c := newSpellEffectCtx(user.Character, caster, target, room, spellData, magnitude,
-			combat.ChannelDefenceResult{DamageMultiplier: 1})
-		recordSpellResolution(c, applySpellEffect(c))
-		return false, true
+		return false, resolveHelpSpell(newSpellEffectCtx(user.Character, caster, target, room, spellData,
+			magnitude, uncontestedSpellResult()))
 	}
 
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
@@ -692,6 +678,10 @@ func applyMobEffectArms(c spellEffectCtx) int {
 // crit, and the once-per-round dedupe would have masked the double-fire
 // rather than prevented it.
 func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room *rooms.Room, spellData *spells.SpellData, side combat.AttackSide, magnitude int) (fumbled bool, landed bool) {
+	if spellData.AttackType == combatvocab.AttackNone {
+		return false, resolveHelpSpell(newSpellEffectCtx(user.Character, actions.NewUserActorInRoom(user, room),
+			actions.NewUserActorInRoom(target, room), room, spellData, magnitude, uncontestedSpellResult()))
+	}
 
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(target.Character)
@@ -1220,22 +1210,15 @@ func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spell
 // outright. See resolveAgainstMob.
 func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.Room,
 	spellData *spells.SpellData, side combat.AttackSide, magnitude int) (landed bool) {
-	// Non-harm effects (a heal, or a condition buff cast on an ally mob) are
-	// a cooperative cast, not an attack — the target should not roll defense
-	// against a friendly effect, and a "fumble" backfire makes no sense for
-	// it either. Bypass the contest/backfire gate entirely and apply
-	// directly, as an uncontested attack win. (Crash-site boss-mechanics
-	// Chunk B: the Repair Frame add heals Warden-Prime / the Core Guardian
-	// this way.) Widened from EffectType == "heal": a mob buffing an ally
-	// with a condition spell is just as cooperative and was contesting
-	// before this change.
+	// A help spell (a heal, or a condition buff cast on an ally mob) is a
+	// cooperative cast, not an attack: uncontested, as in every resolver
+	// (resolveHelpSpell). Crash-site boss-mechanics Chunk B: the Repair Frame
+	// add heals Warden-Prime and the Core Guardian this way.
 	casterActor := actions.NewMobActorInRoom(caster, room)
 	targetActor := actions.NewMobActorInRoom(target, room)
 	if spellData.AttackType == combatvocab.AttackNone {
-		applySpellEffect(newSpellEffectCtx(&caster.Character, casterActor, targetActor, room, spellData,
-			magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1}))
-		// Uncontested cooperative cast: no defence to beat, so it landed.
-		return true
+		return resolveHelpSpell(newSpellEffectCtx(&caster.Character, casterActor, targetActor, room, spellData,
+			magnitude, uncontestedSpellResult()))
 	}
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(&target.Character)
@@ -1264,6 +1247,13 @@ func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.R
 // outright. See resolveAgainstMob.
 func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, room *rooms.Room,
 	spellData *spells.SpellData, side combat.AttackSide, magnitude int) (landed bool) {
+	// A mob's help spell on a player is uncontested, as on every other
+	// pairing (audit row 3): it used to be contested, then fall to the
+	// default arm and apply nothing.
+	if spellData.AttackType == combatvocab.AttackNone {
+		return resolveHelpSpell(newSpellEffectCtx(&caster.Character, actions.NewMobActorInRoom(caster, room),
+			actions.NewUserActorInRoom(target, room), room, spellData, magnitude, uncontestedSpellResult()))
+	}
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(target.Character)
 	out := runSpellChannelAttack(combat.SightRoom(room), spellData.Attack(), side, &caster.Character, target.Character)

@@ -421,6 +421,25 @@ func recordSpellResolution(c spellEffectCtx, dmg int) {
 		c.out.AttackRollZScore, c.casterChar, c.targetChar(), util.GetRoundCount())
 }
 
+// uncontestedSpellResult is the contest result a help spell (attack_type
+// none) resolves with: an attack win at full strength and no crit. A help
+// spell never enters the contest, the only source of a crit, so help spells
+// do not crit (owner ruling 3, 2026-09-28).
+func uncontestedSpellResult() combat.ChannelDefenceResult {
+	return combat.ChannelDefenceResult{DamageMultiplier: 1}
+}
+
+// resolveHelpSpell is the one uncontested step every resolver takes for a
+// help spell (attack_type none), whoever casts it and whoever it lands on:
+// no contest, so no fumble, backfire, interrupt or counter; the effect
+// applies and the cast is recorded as landed. It always reports landed:
+// there was no defence to beat. A mob's help spell on a player used to be
+// contested and then apply nothing (audit row 3).
+func resolveHelpSpell(c spellEffectCtx) bool {
+	recordSpellResolution(c, applySpellEffect(c))
+	return true
+}
+
 // applySpellBackfire resolves a fumbled cast for every caster kind: the
 // caster takes a quarter of the magnitude (at least one), is told if it is a
 // player, the room sees it, and it is recorded.
