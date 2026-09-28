@@ -93,9 +93,17 @@ Server:
   NextRoomId: 1002
   # - Locked -
   #   All config names defined here are immutable to the `server set` admin
-  #   command. They can only be changed by editing the config file directly.
+  #   command and the `server config` menu. They can only be changed by
+  #   editing the config file directly. A name locks itself and everything
+  #   under it: FilePaths locks every FilePaths setting.
   #   It is a good idea to lock configs related to folder/file paths to prevent
   #   accidental changes that could break the game.
+  #   The server still updates CurrentVersion and NextRoomId itself.
+  #   Separately, the server always locks its security settings whatever this
+  #   list says: API keys and key variable names, provider addresses, the
+  #   companion's models, moderation switch and moderation model,
+  #   player-key switch and relay origin, FilePaths.WebDomain, and this list
+  #   itself (internal/configs/config_locks.go).
   Locked:
   - FilePaths
   - Server.CurrentVersion
