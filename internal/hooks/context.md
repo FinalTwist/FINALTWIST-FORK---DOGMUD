@@ -121,12 +121,13 @@ events.RegisterListener(events.MobIdle{}, HandleIdleMobs)         // Mob AI beha
 **Names in the dark.** Crit effect lines (`sendCritEffectTrio`), the
 return-damage recoil lines (`emitReturnDamageText`), counter lines
 (`actions.SendCounterTrio`) and spell lines between two parties
-(`spellAudience` in `spell_audience.go`, used by `applyPlayerEffect`,
-`sendSpellChannelDefenceMessages`, `resolveMobSpellAgainstPlayer` and
+(`spellAudience` in `spell_audience.go`, used by the appliers in
+`spell_effects.go`, `applyPlayerEffectArms`,
+`sendSpellChannelDefenceMessages`, `applyMobOnPlayerArms` and
 `resolvePurgeAffliction`, which takes a `purgeTarget`: a player, a mob such as a
 charmed companion, or the caster) all go through `messaging.SendTrio`, so a reader who
 cannot see the other party reads "something", or "a figure" with infrared.
-`applyPlayerEffect`'s four SELF-CAST branches (`"purge"`, `"heal"`,
+`applyPlayerEffectArms`'s four SELF-CAST branches (`"purge"`, `"heal"`,
 `"condition"`, `"shield"`, where `target.UserId == user.UserId`) have no
 second party for `spellAudience` to pair against, but each still sends a
 caster line plus a room line that names the caster
@@ -1897,6 +1898,51 @@ so there is no crit check to make: a mob's self-cast heal or shield can never
 get the crit boost a player's cast of the same spell gets. This mirrors the
 "Crits +50% strength" claim in the root `CLAUDE.md`'s Condition/Ward Spell System
 section, which is true on the player-cast shield path only.
+
+## Spell effects (`spell_effects.go`, parity slice 3a)
+
+Every spell effect on one target goes through one `spellEffectCtx` and one
+dispatcher, `applySpellEffect`. The four contested resolvers in
+`spell_resolution.go` (`resolveAgainstMob`, `resolveAgainstPlayer`,
+`resolveMobSpellAgainstMob`, `resolveMobSpellAgainstPlayer`) keep their names
+and their one `runSpellChannelAttack` call each, then build a context per
+target: the caster's `*characters.Character`, caster and target as
+`actions.Actor` (`*actions.UserActor` or `*actions.MobActor`; only tests pass
+a nil caster), the room, the spell, the magnitude and the contest result.
+Refs come from the actor (`casterRef`, `targetRef`), not the character.
+
+The harmful effects have one applier each, whoever casts and whoever is hit:
+`applySpellDamage`, `applySpellDot`, `applySpellKnockdown`. Each narrates
+through `messaging.SendTrio` with the context's audience (players in the
+username tag, mobs through `mobDisplayName`), so a mob-on-mob spell reaches
+the room and a reader in the dark reads "something". Each starts the fight
+through `commitHarmfulSpellAggro`: the target turns on the caster if it was
+not already fighting, the caster on the target likewise, and a player caster
+on a mob calls `actions.SeedAggression` with freshness judged per target, as
+`throw` does, which records the assault crime on a fresh engagement (owner
+ruling, 2026-09-28). Damage and knockdown on a mob call
+`creditSpellDamage` before the harm, which does what melee does with
+`TrackPlayerDamage`: a player caster is credited, and a mob caster charmed
+by a player credits that player, so a spell kill reaches the `MobDeath_*`
+hooks with its killer in `PlayerDamage`. The dot does not: its ticks harm
+anonymously (a filed follow-up). A dot's duration reads the spell's primarystat and the
+school's cast skill through `spellCasterStatAndSkill`, not
+`actions.GetSpellStatAndSkill`, which is the fold stat.
+
+The resolvers share three steps: `applySpellBackfire` (every caster kind is
+hurt, told, seen and recorded), `interruptSpellTarget` (a configured
+boss-interrupt spell cancels any casting target, player or mob, through
+`maybeInterruptSpellOnTarget`) and `recordSpellResolution`. `recordSpell` is
+the analytics seam over `combat.RecordSpell`, swapped by tests the way
+`runSpellChannelAttack` is. `channel_defence_routing_test.go` parses both
+files and allows the contest seam only in the four resolvers.
+
+Every other effect (condition, heal, shield, purge, charm, default) still runs
+on the per-pairing arms `applyMobEffectArms`, `applyPlayerEffectArms` and
+`applyMobOnPlayerArms` until slice 3b; `applyMobEffect` and
+`applyPlayerEffect` are test-only wrappers until then. `resolveMobDrainArea`
+keeps its own `actions.ExecuteDrainArea` contest; only its lines use the
+context.
 
 ## Counter tier wiring (U6b Task 10)
 

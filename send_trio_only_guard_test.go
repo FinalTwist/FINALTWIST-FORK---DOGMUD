@@ -73,12 +73,16 @@ import (
 //     and immediate dialogue lines), internal/actions/actor_mob.go:52, and
 //     internal/behaviortree/actions_dialogue.go:37,44,99.
 //   - CategorySpellElemental/Enhancement/Mental/Vital/Manifestation (four
-//     self-cast branches, PR 3 Task 3): the mob-target spell paths in the
-//     same file (applyMobEffect_damage, applyMobEffect_dot, and siblings,
-//     e.g. spell_resolution.go:607-670) still pair raw user.SendText /
-//     sendVisualRoomText calls carrying spellSchoolCategory(spellData) for
-//     every opposed/attack cast; CategorySpellFold was untouched by PR 3
-//     entirely.
+//     self-cast branches, PR 3 Task 3): the mob-target spell paths still
+//     pair raw user.SendText / sendVisualRoomText calls carrying
+//     spellSchoolCategory(spellData) for every opposed/attack cast.
+//     Parity slice 3a moved damage, dot and knockdown onto SendTrio (now
+//     spell_effects.go's applySpellDamage, applySpellDot and
+//     applySpellKnockdown); the raw senders left are
+//     applyMobEffect_condition (spell_resolution.go:534),
+//     applyMobEffect_heal (:591), applyMobEffect_default (:622), and
+//     applyMobEffect_charm (charm_spell.go:26). CategorySpellFold was
+//     untouched by PR 3 entirely.
 //   - CategoryGrappleFlow/CategorySubmission (position_control, PR 3 Task
 //     4): GrappleFlow is still sent raw at internal/hooks/
 //     Position_GrappleTick.go:668,706,708,710 and internal/mobcommands/

@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
@@ -1014,7 +1015,7 @@ func TestRoundTick_TriggerLineLandsOnExpiringTick(t *testing.T) {
 }
 
 // TestDotProducerRecordsNegativeHarm_MobTarget pins the sign of the mob-target
-// dot producer (spell_resolution.go's applyMobEffect_dot, a player's spell
+// dot producer (spell_effects.go's applySpellDot, a player's spell
 // landing on a mob) and that it passes dotDuration straight through as
 // TriggersLeft (the record ticks every round, slice 1b).
 func TestDotProducerRecordsNegativeHarm_MobTarget(t *testing.T) {
@@ -1044,7 +1045,7 @@ func TestDotProducerRecordsNegativeHarm_MobTarget(t *testing.T) {
 		wantDuration = 3
 	}
 
-	dmg := applyMobEffect(u, u.Character, mob, room, dotSpell, 10, spellContestAttackWin())
+	dmg := applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewMobActorInRoom(mob, room), room, dotSpell, 10, spellContestAttackWin()))
 	assert.Equal(t, 0, dmg, "the dot effect deals no immediate damage")
 
 	recs := mob.Character.GetConditions(conditions.ConditionIdPoisoned)
@@ -2544,7 +2545,7 @@ func TestResolveAgainstMob_Basic(t *testing.T) {
 
 // ─── Spell Resolution: applyMobEffect ─────────────────────────────────────────
 
-func TestApplyMobEffect_Damage(t *testing.T) {
+func TestApplySpellEffect_Damage(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	u := users.GetByUserId(1)
@@ -2553,11 +2554,11 @@ func TestApplyMobEffect_Damage(t *testing.T) {
 	mob.Character.Health = 100
 
 	spellData := spells.GetSpell("sparks")
-	dmg := applyMobEffect(u, u.Character, mob, room, spellData, 30, spellContestAttackWin())
+	dmg := applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewMobActorInRoom(mob, room), room, spellData, 30, spellContestAttackWin()))
 	assert.GreaterOrEqual(t, dmg, 0)
 }
 
-func TestApplyMobEffect_DamageWithCrit(t *testing.T) {
+func TestApplySpellEffect_DamageWithCrit(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	u := users.GetByUserId(1)
@@ -2566,11 +2567,11 @@ func TestApplyMobEffect_DamageWithCrit(t *testing.T) {
 	mob.Character.Health = 100
 
 	spellData := spells.GetSpell("sparks")
-	dmg := applyMobEffect(u, u.Character, mob, room, spellData, 30, spellContestAttackCrit())
+	dmg := applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewMobActorInRoom(mob, room), room, spellData, 30, spellContestAttackCrit()))
 	assert.GreaterOrEqual(t, dmg, 0)
 }
 
-func TestApplyMobEffect_DotEffect(t *testing.T) {
+func TestApplySpellEffect_DotEffect(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	u := users.GetByUserId(1)
@@ -2586,11 +2587,11 @@ func TestApplyMobEffect_DotEffect(t *testing.T) {
 		EffectMagnitude: 10,
 	}
 
-	dmg := applyMobEffect(u, u.Character, mob, room, dotSpell, 10, spellContestAttackWin())
+	dmg := applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewMobActorInRoom(mob, room), room, dotSpell, 10, spellContestAttackWin()))
 	assert.Equal(t, 0, dmg)
 }
 
-func TestApplyMobEffect_NilUser(t *testing.T) {
+func TestApplySpellEffect_NilCaster(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	mob := mobs.GetInstance(100)
@@ -2598,7 +2599,7 @@ func TestApplyMobEffect_NilUser(t *testing.T) {
 	mob.Character.Health = 100
 
 	spellData := spells.GetSpell("sparks")
-	dmg := applyMobEffect(nil, nil, mob, room, spellData, 30, spellContestAttackWin())
+	dmg := applySpellEffect(newSpellEffectCtx(nil, nil, actions.NewMobActorInRoom(mob, room), room, spellData, 30, spellContestAttackWin()))
 	assert.GreaterOrEqual(t, dmg, 0)
 }
 
@@ -2609,7 +2610,7 @@ func TestApplyMobEffect_NilUser(t *testing.T) {
 
 // ─── Spell Resolution: applyMobEffect — more branches ────────────────────────
 
-func TestApplyMobEffect_Knockdown(t *testing.T) {
+func TestApplySpellEffect_Knockdown(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	u := users.GetByUserId(1)
@@ -2625,7 +2626,7 @@ func TestApplyMobEffect_Knockdown(t *testing.T) {
 		DamageMultiplier: 0.5,
 		EffectMagnitude:  20,
 	}
-	dmg := applyMobEffect(u, u.Character, mob, room, kdSpell, 20, spellContestAttackWin())
+	dmg := applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewMobActorInRoom(mob, room), room, kdSpell, 20, spellContestAttackWin()))
 	assert.GreaterOrEqual(t, dmg, 0)
 	assert.True(t, mob.Character.IsSupine() || mob.Character.IsProne(), "mob should be knocked down")
 }

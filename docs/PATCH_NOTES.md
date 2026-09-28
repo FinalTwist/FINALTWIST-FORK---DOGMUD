@@ -1,5 +1,25 @@
 # DOGMud Patch Notes
 
+## 2026-09-28: Spells are attacks, whoever casts them
+
+Casting a harmful spell at a townsperson now counts as attacking them,
+exactly as swinging a sword does. Burn, poison or knock down a citizen
+in front of witnesses and it is a crime. The city remembers who did it,
+and its guards treat you as they would any other brawler.
+
+Creatures now cast damaging spells by the same rules you do. A poison
+a creature casts lingers as long as its own skill and focus allow, its
+spells break the same fragile effects damage always breaks, and when
+one creature casts a harmful spell at another, everyone in the room
+sees it happen. Where fighting other players is allowed, poisoning and
+knockdown spells now work on them too.
+
+A knockdown spell can now interrupt a foe who is casting a spell of
+their own, shattering their focus and collapsing the cast.
+
+A creature slain by your spell is now counted as your kill, for better
+and worse, just as one slain by your blade is.
+
 ## 2026-09-28: Server secrets stay secret
 
 The public server settings page no longer lists module settings, and no

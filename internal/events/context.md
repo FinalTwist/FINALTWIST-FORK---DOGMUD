@@ -593,6 +593,9 @@ only); `modules/aicompanion` reads it to know who gave a companion coin.
 player, and `DrainQueuedMobConditionsForTest(mobInstanceId)` is its mob twin
 (drink path unification), matching on `MobInstanceId`. Zero drains every
 queued `Condition` event in either.
+`DrainQueuedCharacterDiedForTest()` and `DrainQueuedMobDeathsForTest()` drain
+every queued `CharacterDied` and `MobDeath` event; the second lets a test
+assert on the damaging-players list the `MobDeath_*` hooks read.
 
 `Condition` (`eventtypes.go`) carries `TickScale float64` (tick amount at
 apply, 2026-09-28) alongside `Magnitude`/`Triggers` and `DurationMult`: it

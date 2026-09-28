@@ -15,18 +15,15 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
-	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/activity"
-	"github.com/GoMudEngine/GoMud/internal/state/position"
 	"github.com/GoMudEngine/GoMud/internal/targeting"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/textutil"
 	"github.com/GoMudEngine/GoMud/internal/users"
-	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
 // calcSpellDuration computes a universal spell duration in rounds based on
@@ -167,7 +164,7 @@ func resolveSpell(user *users.UserRecord, cs activity.CastingData, spellData *sp
 		if spellData.AttackType == combatvocab.AttackNone {
 			// Non-harm cast: uncontested, an attack win by construction.
 			// Uncontested means it LANDED: there was no defence to beat.
-			applyPlayerEffect(user, targetUser, room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1})
+			applySpellEffect(newSpellEffectCtx(user.Character, actions.NewUserActorInRoom(user, room), actions.NewUserActorInRoom(targetUser, room), room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1}))
 			anyLanded = true
 		} else {
 			fumbled, landed := resolveAgainstPlayer(user, targetUser, room, spellData, side, magnitude)
@@ -388,6 +385,8 @@ func scaleSpellDamageByDefence(dmg int, out combat.ChannelDefenceResult) int {
 // the shared mitigation curve, matching SkillMoveResult.Hit's contract. A
 // fumble is not landed either: it aborts before success.
 func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, spellData *spells.SpellData, side combat.AttackSide, magnitude int) (fumbled bool, landed bool) {
+	caster := actions.NewUserActorInRoom(user, room)
+	target := actions.NewMobActorInRoom(mob, room)
 
 	// Non-harm cast at a mob (a heal on your companion, an area mend over
 	// allies): uncontested, exactly as the player-target loop has always
@@ -402,8 +401,9 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 		// today, so threading it through is not a behaviour change; it just
 		// stops the record silently pinning itself to 0 if a future arm
 		// starts reporting a real amount (an area mend's total, say).
-		dmgDealt := applyMobEffect(user, user.Character, mob, room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1})
-		combat.RecordSpell(combat.User, combat.Mob, true, false, false, false, dmgDealt, 0, user.Character, &mob.Character, util.GetRoundCount())
+		c := newSpellEffectCtx(user.Character, caster, target, room, spellData, magnitude,
+			combat.ChannelDefenceResult{DamageMultiplier: 1})
+		recordSpellResolution(c, applySpellEffect(c))
 		return false, true
 	}
 
@@ -424,68 +424,25 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 		side.Mult *= charmInCombatMult(&mob.Character, user.UserId)
 	}
 	out := runSpellChannelAttack(combat.SightRoom(room), spellData.Attack(), side, user.Character, &mob.Character)
+	c := newSpellEffectCtx(user.Character, caster, target, room, spellData, magnitude, out)
 
-	round := util.GetRoundCount()
-
-	// Backfire on fumble — resolved BEFORE success, per the seam's contract:
-	// a fumbled cast aborts even a winning roll.
+	// Backfire on fumble, resolved BEFORE success per the seam's contract: a
+	// fumbled cast aborts even a winning roll.
 	if out.AttackerFumble {
-		backfireDmg := magnitude / 4
-		if backfireDmg < 1 {
-			backfireDmg = 1
-		}
-		user.Character.ApplyHarm(characters.PoolHealth, backfireDmg, charActorRef(user.Character))
-		user.SendText(messaging.CategorySpellDisruption, `<ansi fg="red">Your spell backfires violently, wounding you!</ansi>`)
-		sendVisualRoomText(room, messaging.CategorySpellDisruption, fmt.Sprintf(
-			`<ansi fg="red"><ansi fg="username">%s</ansi>'s spell backfires!</ansi>`, user.Character.Name), user.UserId)
-		// Stage 30.1: Record backfire
-		combat.RecordSpell(combat.User, combat.Mob, false, false, true, false, 0, out.AttackRollZScore, user.Character, &mob.Character, round)
+		applySpellBackfire(c)
 		return true, false
 	}
 
-	// Boss-interrupt: a disruption spell cast at a mid-fold-cast mob cancels the
-	// cast whether or not the target defends the damage — the interrupt is the
-	// point, and a tanky boss shouldn't dodge it. (Backfires return above, so a
-	// botched cast still can't interrupt.)
-	if maybeInterruptSpellOnMob(mob, spellData.SpellId, state.ActorRef{UserId: user.UserId}) {
-		user.SendText(messaging.CategorySpellDisruption, fmt.Sprintf(
-			`<ansi fg="cyan-bold">Your %s scrambles %s's focus -- its spell collapses!</ansi>`,
-			spellData.Name, mobDisplayName(mob, room, user.UserId)))
-		sendVisualRoomText(room, messaging.CategorySpellDisruption, fmt.Sprintf(
-			`<ansi fg="cyan">%s's spell collapses!</ansi>`,
-			mobDisplayName(mob, room, user.UserId)), user.UserId)
-	}
+	// Boss-interrupt, for every pairing (interruptSpellTarget).
+	interruptSpellTarget(c)
 
-	dmgDealt := applyMobEffect(user, user.Character, mob, room, spellData, magnitude, out)
-	// Stage 30.1: a defended cast records in the old fizzle column — the
-	// defence stopped or blunted it — but keeps its partial damage.
-	combat.RecordSpell(combat.User, combat.Mob, !out.Defended, out.AttackerCrit, false, out.Defended, dmgDealt, out.AttackRollZScore, user.Character, &mob.Character, round)
+	recordSpellResolution(c, applySpellEffect(c))
 
 	// U6b Task 10: the MOB defender's crit defence counters the player caster.
 	fireSpellCounterTier(room, out, spellData.Attack(),
 		&mob.Character, user.Character, nil, user)
 
 	return false, !out.Defended
-}
-
-// maybeInterruptSpellOnMob cancels a mob's in-progress fold-cast if spellId
-// is a configured boss-interrupt disruption spell (Balance.BossInterruptSpellIds)
-// AND the mob is currently casting (Character.IsCasting()). Non-allowlisted
-// spells never interrupt, even on a successful hit. Reuses the shared
-// InterruptTargetCast primitive (conviction refund + TriggerCastCancel)
-// rather than reimplementing cast cancellation here. Returns true if a cast
-// was actually interrupted.
-func maybeInterruptSpellOnMob(mob *mobs.Mob, spellId string, by state.ActorRef) bool {
-	if mob == nil {
-		return false
-	}
-	if !configs.GetBalanceConfig().IsBossInterruptSpell(spellId) {
-		return false
-	}
-	if !mob.Character.IsCasting() {
-		return false
-	}
-	return actions.InterruptTargetCast(&mob.Character, by)
 }
 
 // spellSchoolCategory picks the messaging Category from a spell's
@@ -572,193 +529,6 @@ func setMobSpellAggro(user *users.UserRecord, mob *mobs.Mob) {
 	if user != nil && !user.Character.IsInCombat() {
 		targeting.Commit(user.Character, state.ActorRef{MobInstanceId: mob.InstanceId}, targeting.ReasonAttack)
 	}
-}
-
-// applyMobEffect_damage handles the "damage" EffectType case for applyMobEffect.
-// Returns damage dealt to the mob.
-func applyMobEffect_damage(
-	user *users.UserRecord,
-	casterChar *characters.Character,
-	mob *mobs.Mob,
-	room *rooms.Room,
-	spellData *spells.SpellData,
-	magnitude int,
-	out combat.ChannelDefenceResult,
-	critTag string,
-	mName string,
-) int {
-	// U6b Task 4: one contest per cast. The resolver already ran it; this
-	// applier CONSUMES the threaded result. A defended cast is a PARTIAL
-	// outcome (the spell still lands, for less); the defensive crit zeroes it.
-	dmg := calcSpellDamageForCharacter(spellData, casterChar, &mob.Character, magnitude, out.AttackerCrit)
-	dmg = scaleSpellDamageByDefence(dmg, out)
-	mob.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(casterChar))
-	cancelDamageConditions(&mob.Character)
-	// on_spell_hit item procs (e.g. Staff of the Hollow Choir CP-steal) fire
-	// only on a landing harm hit that dealt damage. This applier is shared by
-	// the player-caster→mob and mob-caster→mob paths, so wiring it here covers
-	// both. For AoE/multi-target casts the dispatch runs once per damaged
-	// target; the proc's own chance+cooldown pace it, so one cast steals from
-	// at most a few targets before the cooldown gate closes — intended.
-	if dmg > 0 {
-		dispatchItemProcs("on_spell_hit", casterChar, &mob.Character, nil, dmg)
-	}
-	setMobSpellAggro(user, mob)
-	sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-		spellDefenceIdentity(casterChar, user, room), mName, spellData.Name, user, nil)
-	if user != nil {
-		if !out.Defended {
-			user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
-				`Your %s strikes %s! (<ansi fg="damage">%s</ansi>)%s`,
-				spellData.Name, mName, combat.GetDamageDescription(dmg, mob.Character.HealthMax.Value), critTag))
-			sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
-				`<ansi fg="username">%s</ansi>'s <ansi fg="cyan">%s</ansi> strikes %s!`,
-				user.Character.Name, spellData.Name, mName), user.UserId)
-		}
-	}
-	return dmg
-}
-
-// applyMobEffect_dot handles the "dot" EffectType case for applyMobEffect.
-// Returns 0 (no immediate damage; condition is applied for periodic ticks).
-//
-// The affliction is a binary status: like ExecuteSkillMove's StatusApplied,
-// it lands only on an attack win. A defended cast narrates the channel
-// defence triad and applies nothing (there is no partial dot).
-func applyMobEffect_dot(
-	user *users.UserRecord,
-	casterChar *characters.Character,
-	mob *mobs.Mob,
-	room *rooms.Room,
-	spellData *spells.SpellData,
-	magnitude int,
-	out combat.ChannelDefenceResult,
-	critTag string,
-	mName string,
-) int {
-	if out.Defended {
-		setMobSpellAggro(user, mob)
-		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-			spellDefenceIdentity(casterChar, user, room), mName, spellData.Name, user, nil)
-		return 0
-	}
-	casterSkill := 0
-	casterWil := 100
-	if user != nil {
-		casterSkill = user.Character.GetSkillLevel(skills.Spellcasting)
-		casterWil = spellData.CasterStatValue(user.Character.Stats)
-	}
-	dotDuration := calcSpellDuration(spellData.BaseFolds, casterSkill, casterWil) / 3
-	if dotDuration < 3 {
-		dotDuration = 3
-	}
-	// An immune target refuses the record, and nothing that did not happen
-	// may be narrated. The cast still earns aggro: it was made.
-	//
-	// The record's negative snapshot is int(magnitude) harm, floored at
-	// one. Condition 121 ticks every round (slice 1b, owner ruling 2026-09-14;
-	// it used to land every third round), so dotDuration is the trigger
-	// count as it stands.
-	dotAmount := magnitude
-	if dotAmount < 1 {
-		dotAmount = 1
-	}
-	afflicted := mob.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil
-	setMobSpellAggro(user, mob)
-	if afflicted && user != nil {
-		user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
-			`Your %s afflicts %s!%s`,
-			spellData.Name, mName, critTag))
-		sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
-			`<ansi fg="username">%s</ansi>'s <ansi fg="cyan">%s</ansi> afflicts %s!`,
-			user.Character.Name, spellData.Name, mName), user.UserId)
-	}
-	return 0
-}
-
-// applyMobEffect_knockdown handles the "knockdown" EffectType case for applyMobEffect.
-// Returns damage dealt to the mob.
-//
-// U6b Task 4: one contest per cast. The defence scales the DAMAGE (a defended
-// cast still lands a partial hit), while the knockdown is a binary status —
-// there is no partially knocked down — that lands only on an attack win,
-// exactly ExecuteSkillMove's Hit/StatusApplied split. Before the collapse the
-// hit gate and the defence were two separate contests, so a defended target
-// could "still go down"; with one contest a defence win IS the miss, and the
-// knockdown is stopped with it.
-func applyMobEffect_knockdown(
-	user *users.UserRecord,
-	casterChar *characters.Character,
-	mob *mobs.Mob,
-	room *rooms.Room,
-	spellData *spells.SpellData,
-	magnitude int,
-	out combat.ChannelDefenceResult,
-	critTag string,
-	mName string,
-) int {
-	dmg := calcSpellDamageForCharacter(spellData, casterChar, &mob.Character, magnitude, out.AttackerCrit)
-	dmg = scaleSpellDamageByDefence(dmg, out)
-	return applyMobKnockdownOutcome(user, casterChar, mob, room, spellData, dmg, out, critTag, mName)
-}
-
-// applyMobKnockdownOutcome applies the already-scaled damage and, on an attack
-// win only, the binary knockdown. See applyMobEffect_knockdown for the split.
-func applyMobKnockdownOutcome(
-	user *users.UserRecord,
-	casterChar *characters.Character,
-	mob *mobs.Mob,
-	room *rooms.Room,
-	spellData *spells.SpellData,
-	dmg int,
-	out combat.ChannelDefenceResult,
-	critTag string,
-	mName string,
-) int {
-	mob.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(casterChar))
-	cancelDamageConditions(&mob.Character)
-	if dmg > 0 {
-		dispatchItemProcs("on_spell_hit", casterChar, &mob.Character, nil, dmg)
-	}
-	// Chunk 4b W5 cutover: spell knockdowns default to Supine (the
-	// "slams to the ground" wording fits backward force). Skip the
-	// legacy parallel-write if the FSM transition fails so the two
-	// views stay consistent.
-	knocked := false
-	if !out.Defended {
-		knocked = true
-		if err := mob.Character.Position.TransitionToSupine(
-			position.SupineData{MinRecoveryRounds: 1},
-			state.TransitionReason{Trigger: position.TriggerKnockdownSpell},
-		); err != nil {
-			mudlog.Warn("applyMobEffect_knockdown: TransitionToSupine failed", "mob", mob.InstanceId, "err", err)
-			// Target was already grappled/prone — the spell hit and dealt damage,
-			// but no knockdown occurred; don't narrate one (grapple move-collision).
-			knocked = false
-		}
-	}
-	setMobSpellAggro(user, mob)
-	sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-		spellDefenceIdentity(casterChar, user, room), mName, spellData.Name, user, nil)
-	// A defended cast earns no strike line: the defence triad above already
-	// narrated the outcome, and a defended cast never knocks down.
-	if user != nil && !out.Defended {
-		if !knocked {
-			user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
-				`Your %s strikes %s, but %s is already down. (<ansi fg="damage">%s</ansi>)%s`,
-				spellData.Name, mName, mName, combat.GetDamageDescription(dmg, mob.Character.HealthMax.Value), critTag))
-		} else {
-			user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
-				`Your %s slams %s to the ground! (<ansi fg="damage">%s</ansi>)%s`,
-				spellData.Name, mName, combat.GetDamageDescription(dmg, mob.Character.HealthMax.Value), critTag))
-		}
-		if knocked {
-			sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
-				`<ansi fg="username">%s</ansi>'s <ansi fg="cyan">%s</ansi> knocks %s to the ground!`,
-				user.Character.Name, spellData.Name, mName), user.UserId)
-		}
-	}
-	return dmg
 }
 
 func applyMobEffect_condition(
@@ -873,14 +643,15 @@ func applyMobEffect_default(
 	return 0
 }
 
-// applyMobEffect applies the spell effect to a mob and returns damage dealt (0 for non-damage effects).
-// user may be nil when the caster is a mob (guards all user.* references).
-// casterChar is the caster's Character pointer (may be nil for mob-on-mob when unavailable).
+// applyMobEffectArms is the pre-unification switch for a MOB target (PM and
+// MM). The dispatcher routes here every effect that has no unified applier
+// yet. user is nil when a mob casts; casterChar is nil for an anonymous
+// caster.
 //
 // U6b Task 4: `out` is the resolver's ONE channel contest, threaded through.
-// The appliers consume it — damage scaling, defence narration, the
-// defensive-crit negation — instead of rolling a contest of their own.
-func applyMobEffect(user *users.UserRecord, casterChar *characters.Character, mob *mobs.Mob, room *rooms.Room, spellData *spells.SpellData, magnitude int, out combat.ChannelDefenceResult) int {
+func applyMobEffectArms(c spellEffectCtx) int {
+	user, casterChar, mob, room := c.casterUser(), c.casterChar, c.targetMob(), c.room
+	spellData, magnitude, out := c.spell, c.magnitude, c.out
 	critTag := ""
 	if out.AttackerCrit {
 		critTag = ` <ansi fg="yellow">[CRIT!]</ansi>`
@@ -892,12 +663,6 @@ func applyMobEffect(user *users.UserRecord, casterChar *characters.Character, mo
 	mName := mobDisplayName(mob, room, viewerId)
 
 	switch spellData.EffectType {
-	case "damage":
-		return applyMobEffect_damage(user, casterChar, mob, room, spellData, magnitude, out, critTag, mName)
-	case "dot":
-		return applyMobEffect_dot(user, casterChar, mob, room, spellData, magnitude, out, critTag, mName)
-	case "knockdown":
-		return applyMobEffect_knockdown(user, casterChar, mob, room, spellData, magnitude, out, critTag, mName)
 	case "condition":
 		return applyMobEffect_condition(user, casterChar, mob, room, spellData, out, critTag, mName)
 	case "heal":
@@ -931,23 +696,21 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(target.Character)
 	out := runSpellChannelAttack(combat.SightRoom(room), spellData.Attack(), side, user.Character, target.Character)
+	c := newSpellEffectCtx(user.Character, actions.NewUserActorInRoom(user, room),
+		actions.NewUserActorInRoom(target, room), room, spellData, magnitude, out)
 
-	// Backfire on fumble — resolved BEFORE success, per the seam's contract.
+	// Backfire on fumble, resolved BEFORE success per the seam's contract.
 	if out.AttackerFumble {
-		backfireDmg := magnitude / 4
-		if backfireDmg < 1 {
-			backfireDmg = 1
-		}
-		user.Character.ApplyHarm(characters.PoolHealth, backfireDmg, charActorRef(user.Character))
-		user.SendText(messaging.CategorySpellDisruption, `<ansi fg="red">Your spell backfires violently, wounding you!</ansi>`)
-		sendVisualRoomText(room, messaging.CategorySpellDisruption, fmt.Sprintf(
-			`<ansi fg="red"><ansi fg="username">%s</ansi>'s spell backfires!</ansi>`, user.Character.Name), user.UserId)
+		applySpellBackfire(c)
 		return true, false
 	}
 
-	applyPlayerEffect(user, target, room, spellData, magnitude, out)
+	interruptSpellTarget(c)
 
-	// Set reciprocal aggro for harm spells
+	recordSpellResolution(c, applySpellEffect(c))
+
+	// Set reciprocal aggro for harm spells. The harmful appliers commit their
+	// own; this still serves harmful condition spells until slice 3b.
 	if spellData.IsHarm() {
 		if !user.Character.IsInCombat() {
 			targeting.Commit(user.Character, state.ActorRef{UserId: target.UserId}, targeting.ReasonAttack)
@@ -964,20 +727,24 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 	return false, !out.Defended
 }
 
-// applyPlayerEffect applies the spell effect to a player target.
+// applyPlayerEffectArms is the pre-unification switch for a player caster
+// and a PLAYER target (PP). The dispatcher routes here every effect that has
+// no unified applier yet.
 //
 // U6b Task 4: `out` is the resolver's ONE channel contest, threaded through
 // (help spells with no defense pass an uncontested attack win). Non-damage
 // effects are binary statuses: a defended cast narrates the channel defence
 // triad and applies nothing, mirroring ExecuteSkillMove's StatusApplied split.
-func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *rooms.Room, spellData *spells.SpellData, magnitude int, out combat.ChannelDefenceResult) {
+func applyPlayerEffectArms(c spellEffectCtx) {
+	user, target, room := c.casterUser(), c.targetUser(), c.room
+	spellData, magnitude, out := c.spell, c.magnitude, c.out
 
 	critTag := ""
 	if out.AttackerCrit {
 		critTag = ` <ansi fg="yellow">[CRIT!]</ansi>`
 	}
 
-	if out.Defended && spellData.EffectType != "damage" {
+	if out.Defended {
 		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
 			spellDefenceIdentity(user.Character, user, room),
 			spellDefenceIdentity(target.Character, target, room), spellData.Name, user, target)
@@ -985,44 +752,6 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 	}
 
 	switch spellData.EffectType {
-	case "damage":
-		// One contest, on the channel's own defence set — already run by the
-		// resolver. A defended cast deals partial damage; the defensive crit
-		// negates it entirely.
-		dmg := calcSpellDamageForCharacter(spellData, user.Character, target.Character, magnitude, out.AttackerCrit)
-		dmg = scaleSpellDamageByDefence(dmg, out)
-		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-			spellDefenceIdentity(user.Character, user, room),
-			spellDefenceIdentity(target.Character, target, room), spellData.Name, user, target)
-		if out.DefensiveCrit {
-			return
-		}
-		target.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(user.Character))
-		cancelDamageConditions(target.Character)
-		if dmg > 0 {
-			dispatchItemProcs("on_spell_hit", user.Character, target.Character, nil, dmg)
-		}
-		dmgDesc := combat.GetDamageDescription(dmg, target.Character.HealthMax.Value)
-		if !out.Defended {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`Your %s strikes `+
-						`<ansi fg="username">%s</ansi>! `+
-						`(<ansi fg="damage">%s</ansi>)%s`,
-					spellData.Name, target.Character.Name, dmgDesc, critTag)),
-				Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="red"><ansi fg="username">%s</ansi>'s `+
-						`%s strikes you! `+
-						`(<ansi fg="damage">%s</ansi>)</ansi>`,
-					user.Character.Name, spellData.Name,
-					combat.GetDamageDescription(dmg, target.Character.HealthMax.Value))),
-				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="username">%s</ansi>'s <ansi fg="cyan">%s</ansi> strikes `+
-						`<ansi fg="username">%s</ansi>!`,
-					user.Character.Name, spellData.Name, target.Character.Name)),
-			}, spellAudience(user, user.Character.Name, target, target.Character.Name, room))
-		}
-
 	case "purge":
 		target.Character.CancelConditionsWithFlag(conditions.Poison)
 		if target.UserId != user.UserId {
@@ -1366,8 +1095,8 @@ func resolveMobDrainArea(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spel
 
 	if !result.Executed {
 		sendVisualRoomText(room, messaging.CategorySpellDisruption, fmt.Sprintf(
-			`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> crackles through the air, finding no one to drain.`,
-			mob.Character.Name, spellData.Name))
+			`%s's <ansi fg="cyan">%s</ansi> crackles through the air, finding no one to drain.`,
+			mobDisplayName(mob, room, 0), spellData.Name))
 		return
 	}
 
@@ -1402,6 +1131,8 @@ func resolveMobDrainArea(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spel
 		if target == nil {
 			continue
 		}
+		c := newSpellEffectCtx(&mob.Character, actions.NewMobActorInRoom(mob, room),
+			actions.NewUserActorInRoom(target, room), room, spellData, 0, pr.MoveResult.Defence)
 		if !pr.MoveResult.Hit && pr.MoveResult.Damage == 0 {
 			// Defended with zero damage (a defensive crit). This used to be a
 			// silent miss; U6b Task 9 speaks the defence triad so the player
@@ -1413,10 +1144,14 @@ func resolveMobDrainArea(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spel
 			continue
 		}
 		if pr.MoveResult.Hit {
-			target.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
-				`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> saps your strength! (<ansi fg="damage">%s</ansi>)`,
-				mob.Character.Name, spellData.Name,
-				combat.GetDamageDescription(pr.MoveResult.Damage, target.Character.HealthMax.Value)))
+			messaging.SendTrio(messaging.Trio{
+				Actor: messaging.NoLine,
+				Actee: messaging.Say(c.category(), fmt.Sprintf(
+					`%s's <ansi fg="cyan">%s</ansi> saps your strength! (<ansi fg="damage">%s</ansi>)`,
+					c.casterName(), spellData.Name,
+					combat.GetDamageDescription(pr.MoveResult.Damage, target.Character.HealthMax.Value))),
+				Observer: messaging.NoLine,
+			}, c.audience())
 			if !target.Character.IsInCombat() {
 				targeting.Commit(target.Character, state.ActorRef{MobInstanceId: mob.InstanceId}, targeting.ReasonAttack)
 			}
@@ -1424,16 +1159,20 @@ func resolveMobDrainArea(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spel
 			// Defended, but the drain still landed a partial pull. Since
 			// Task 13 a defended maneuver can deal partial damage; say so
 			// instead of letting the player's HP drop with no message at all.
-			target.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
-				`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> fails to take full hold of you, but still saps a little of your strength! (<ansi fg="damage">%s</ansi>)`,
-				mob.Character.Name, spellData.Name,
-				combat.GetDamageDescription(pr.MoveResult.Damage, target.Character.HealthMax.Value)))
+			messaging.SendTrio(messaging.Trio{
+				Actor: messaging.NoLine,
+				Actee: messaging.Say(c.category(), fmt.Sprintf(
+					`%s's <ansi fg="cyan">%s</ansi> fails to take full hold of you, but still saps a little of your strength! (<ansi fg="damage">%s</ansi>)`,
+					c.casterName(), spellData.Name,
+					combat.GetDamageDescription(pr.MoveResult.Damage, target.Character.HealthMax.Value))),
+				Observer: messaging.NoLine,
+			}, c.audience())
 		}
 	}
 
 	sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
-		`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> tears the life from everyone in the room!`,
-		mob.Character.Name, spellData.Name))
+		`%s's <ansi fg="cyan">%s</ansi> tears the life from everyone in the room!`,
+		mobDisplayName(mob, room, 0), spellData.Name))
 }
 
 // applyMobSelfEffect handles self-targeted help spells (heal, minor-shield).
@@ -1490,24 +1229,24 @@ func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.R
 	// this way.) Widened from EffectType == "heal": a mob buffing an ally
 	// with a condition spell is just as cooperative and was contesting
 	// before this change.
+	casterActor := actions.NewMobActorInRoom(caster, room)
+	targetActor := actions.NewMobActorInRoom(target, room)
 	if spellData.AttackType == combatvocab.AttackNone {
-		applyMobEffect(nil, &caster.Character, target, room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1})
+		applySpellEffect(newSpellEffectCtx(&caster.Character, casterActor, targetActor, room, spellData,
+			magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1}))
 		// Uncontested cooperative cast: no defence to beat, so it landed.
 		return true
 	}
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(&target.Character)
 	out := runSpellChannelAttack(combat.SightRoom(room), spellData.Attack(), side, &caster.Character, &target.Character)
+	c := newSpellEffectCtx(&caster.Character, casterActor, targetActor, room, spellData, magnitude, out)
 	if out.AttackerFumble {
-		dmg := magnitude / 4
-		if dmg < 1 {
-			dmg = 1
-		}
-		caster.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(&caster.Character))
-		sendVisualRoomText(room, messaging.CategorySpellDisruption, fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s spell backfires!`, caster.Character.Name))
+		applySpellBackfire(c)
 		return false
 	}
-	applyMobEffect(nil, &caster.Character, target, room, spellData, magnitude, out)
+	interruptSpellTarget(c)
+	recordSpellResolution(c, applySpellEffect(c))
 
 	// U6b Task 10: the defending mob's crit defence counters the mob caster.
 	fireSpellCounterTier(room, out, spellData.Attack(),
@@ -1517,8 +1256,7 @@ func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.R
 }
 
 // resolveMobSpellAgainstPlayer runs the ONE channel contest for a mob-cast
-// spell at a player and consumes the result inline (this path predates the
-// applier split and keeps its inline effect arms). Crit-received toughening
+// spell at a player and applies the effect through applySpellEffect. Crit-received toughening
 // for the defender fires inside the seam's bonus tier — the U9-era direct
 // block this function used to carry became a duplicate and was deleted with
 // the collapse (U6b Task 4).
@@ -1529,161 +1267,33 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 	// Task 17: the sleeping-victim forced crit reaches the spell channel.
 	side.ForceCrit = combat.SleepingForceCrit(target.Character)
 	out := runSpellChannelAttack(combat.SightRoom(room), spellData.Attack(), side, &caster.Character, target.Character)
-	round := util.GetRoundCount()
+	c := newSpellEffectCtx(&caster.Character, actions.NewMobActorInRoom(caster, room),
+		actions.NewUserActorInRoom(target, room), room, spellData, magnitude, out)
 	if out.AttackerFumble {
-		dmg := magnitude / 4
-		if dmg < 1 {
-			dmg = 1
-		}
-		caster.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(&caster.Character))
-		sendVisualRoomText(room, messaging.CategorySpellDisruption, fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s spell backfires!`, caster.Character.Name))
-		// Stage 30.1: Record backfire
-		combat.RecordSpell(combat.Mob, combat.User, false, false, true, false, 0, out.AttackRollZScore, &caster.Character, target.Character, round)
+		applySpellBackfire(c)
 		return false
 	}
-	isCrit := out.AttackerCrit
-	mobSpellDmg := 0
+	interruptSpellTarget(c)
+	recordSpellResolution(c, applySpellEffect(c))
+
+	// U6b Task 10: the PLAYER defender's crit defence counters the mob caster.
+	fireSpellCounterTier(room, out, spellData.Attack(),
+		target.Character, &caster.Character, target, nil)
+
+	return !out.Defended
+}
+
+// applyMobOnPlayerArms is the pre-unification switch for a MOB caster and a
+// PLAYER target (MP), moved out of resolveMobSpellAgainstPlayer unchanged.
+// The dispatcher routes here every effect that has no unified applier yet.
+func applyMobOnPlayerArms(c spellEffectCtx) int {
+	caster, target, room := c.casterMob(), c.targetUser(), c.room
+	spellData, out := c.spell, c.out
 	critTag := ""
-	if isCrit {
+	if out.AttackerCrit {
 		critTag = ` <ansi fg="yellow">[CRIT!]</ansi>`
 	}
 	switch spellData.EffectType {
-	case "damage":
-		// One contest (above), on the channel's own defence set. A defended
-		// cast deals partial damage; the defensive crit negates it entirely.
-		dmg := calcSpellDamageForCharacter(spellData, &caster.Character, target.Character, magnitude, isCrit)
-		dmg = scaleSpellDamageByDefence(dmg, out)
-		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-			spellDefenceIdentity(&caster.Character, nil, room),
-			spellDefenceIdentity(target.Character, target, room), spellData.Name, nil, target)
-		if out.DefensiveCrit {
-			break
-		}
-		mobSpellDmg = dmg
-		target.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(&caster.Character))
-		cancelDamageConditions(target.Character)
-		if dmg > 0 {
-			dispatchItemProcs("on_spell_hit", &caster.Character, target.Character, nil, dmg)
-		}
-		if !out.Defended {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.NoLine,
-				Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> `+
-						`strikes you! (<ansi fg="damage">%s</ansi>)%s`,
-					caster.Character.Name, spellData.Name,
-					combat.GetDamageDescription(dmg, target.Character.HealthMax.Value), critTag)),
-				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> strikes `+
-						`<ansi fg="username">%s</ansi>!`,
-					caster.Character.Name, spellData.Name, target.Character.Name)),
-			}, spellAudience(nil, caster.Character.Name, target, target.Character.Name, room))
-		}
-		if !target.Character.IsInCombat() {
-			targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)
-		}
-	case "dot":
-		// The affliction is a binary status: it lands only on an attack win.
-		// A defended cast narrates the channel defence triad and applies
-		// nothing (there is no partial dot).
-		if out.Defended {
-			sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-				spellDefenceIdentity(&caster.Character, nil, room),
-				spellDefenceIdentity(target.Character, target, room), spellData.Name, nil, target)
-			if !target.Character.IsInCombat() {
-				targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)
-			}
-			break
-		}
-		castSkill := skills.Spellcasting
-		if spellData.HasSchool(spells.SchoolManifestation) {
-			castSkill = skills.Manifestation
-		}
-		dotDuration := calcSpellDuration(spellData.BaseFolds, caster.Character.GetSkillLevel(castSkill), spellData.CasterStatValue(caster.Character.Stats)) / 3
-		if dotDuration < 3 {
-			dotDuration = 3
-		}
-		// An immune target refuses the record, and nothing that did not happen
-		// may be narrated. The targeting commit below still stands: the mob cast.
-		//
-		// The record's negative snapshot is int(magnitude) harm, floored at
-		// one. Condition 121 ticks every round (slice 1b, owner ruling 2026-09-14;
-		// it used to land every third round), so dotDuration is the trigger
-		// count as it stands.
-		dotAmount := magnitude
-		if dotAmount < 1 {
-			dotAmount = 1
-		}
-		if target.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.NoLine,
-				Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> afflicts you!%s`,
-					caster.Character.Name, spellData.Name, critTag)),
-				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> afflicts <ansi fg="username">%s</ansi>!`,
-					caster.Character.Name, spellData.Name, target.Character.Name)),
-			}, spellAudience(nil, caster.Character.Name, target, target.Character.Name, room))
-		}
-		if !target.Character.IsInCombat() {
-			targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)
-		}
-	case "knockdown":
-		// Defence scales the DAMAGE (partial hit); the knockdown is a binary
-		// status that lands only on an attack win — ExecuteSkillMove's
-		// Hit/StatusApplied split, matching the player-cast branch above.
-		dmg := calcSpellDamageForCharacter(spellData, &caster.Character, target.Character, magnitude, isCrit)
-		dmg = scaleSpellDamageByDefence(dmg, out)
-		mobSpellDmg = dmg
-		target.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(&caster.Character))
-		if dmg > 0 {
-			dispatchItemProcs("on_spell_hit", &caster.Character, target.Character, nil, dmg)
-		}
-		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-			spellDefenceIdentity(&caster.Character, nil, room),
-			spellDefenceIdentity(target.Character, target, room), spellData.Name, nil, target)
-		// Chunk 4b W5 cutover: mob-cast knockdown on player. Same
-		// Supine choice as the player-cast branch above.
-		knocked := false
-		if !out.Defended {
-			knocked = true
-			if err := target.Character.Position.TransitionToSupine(
-				position.SupineData{MinRecoveryRounds: 1},
-				state.TransitionReason{Trigger: position.TriggerKnockdownSpell},
-			); err != nil {
-				mudlog.Warn("mob spell knockdown: TransitionToSupine failed",
-					"target_user", target.UserId, "err", err)
-				// Already grappled/prone — spell hit + damaged, but no knockdown.
-				knocked = false
-			}
-		}
-		if knocked {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.NoLine,
-				Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> slams you `+
-						`to the ground! (<ansi fg="damage">%s</ansi>)%s`,
-					caster.Character.Name, spellData.Name,
-					combat.GetDamageDescription(dmg, target.Character.HealthMax.Value), critTag)),
-				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> knocks `+
-						`<ansi fg="username">%s</ansi> to the ground!`,
-					caster.Character.Name, spellData.Name, target.Character.Name)),
-			}, spellAudience(nil, caster.Character.Name, target, target.Character.Name, room))
-		} else if !out.Defended {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.NoLine,
-				Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> strikes you, but you're `+
-						`already down. (<ansi fg="damage">%s</ansi>)%s`,
-					caster.Character.Name, spellData.Name,
-					combat.GetDamageDescription(dmg, target.Character.HealthMax.Value), critTag)),
-				Observer: messaging.NoLine,
-			}, spellAudience(nil, caster.Character.Name, target, target.Character.Name, room))
-		}
-		if !target.Character.IsInCombat() {
-			targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)
-		}
 	case "condition":
 		// Binary status: a defended cast narrates the triad and applies nothing.
 		if out.Defended {
@@ -1730,15 +1340,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 			Observer: messaging.NoLine,
 		}, spellAudience(nil, caster.Character.Name, target, target.Character.Name, room))
 	}
-	// Stage 30.1: a defended cast records in the old fizzle column — the
-	// defence stopped or blunted it — but keeps its partial damage.
-	combat.RecordSpell(combat.Mob, combat.User, !out.Defended, isCrit, false, out.Defended, mobSpellDmg, out.AttackRollZScore, &caster.Character, target.Character, round)
-
-	// U6b Task 10: the PLAYER defender's crit defence counters the mob caster.
-	fireSpellCounterTier(room, out, spellData.Attack(),
-		target.Character, &caster.Character, target, nil)
-
-	return !out.Defended
+	return 0
 }
 
 // resolveIdentify finds the named item on the caster and renders
