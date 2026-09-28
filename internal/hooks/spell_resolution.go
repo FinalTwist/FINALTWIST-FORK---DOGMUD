@@ -574,63 +574,6 @@ func setMobSpellAggro(user *users.UserRecord, mob *mobs.Mob) {
 	}
 }
 
-// applyMobEffect_dot handles the "dot" EffectType case for applyMobEffect.
-// Returns 0 (no immediate damage; condition is applied for periodic ticks).
-//
-// The affliction is a binary status: like ExecuteSkillMove's StatusApplied,
-// it lands only on an attack win. A defended cast narrates the channel
-// defence triad and applies nothing (there is no partial dot).
-func applyMobEffect_dot(
-	user *users.UserRecord,
-	casterChar *characters.Character,
-	mob *mobs.Mob,
-	room *rooms.Room,
-	spellData *spells.SpellData,
-	magnitude int,
-	out combat.ChannelDefenceResult,
-	critTag string,
-	mName string,
-) int {
-	if out.Defended {
-		setMobSpellAggro(user, mob)
-		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-			spellDefenceIdentity(casterChar, user, room), mName, spellData.Name, user, nil)
-		return 0
-	}
-	casterSkill := 0
-	casterWil := 100
-	if user != nil {
-		casterSkill = user.Character.GetSkillLevel(skills.Spellcasting)
-		casterWil = spellData.CasterStatValue(user.Character.Stats)
-	}
-	dotDuration := calcSpellDuration(spellData.BaseFolds, casterSkill, casterWil) / 3
-	if dotDuration < 3 {
-		dotDuration = 3
-	}
-	// An immune target refuses the record, and nothing that did not happen
-	// may be narrated. The cast still earns aggro: it was made.
-	//
-	// The record's negative snapshot is int(magnitude) harm, floored at
-	// one. Condition 121 ticks every round (slice 1b, owner ruling 2026-09-14;
-	// it used to land every third round), so dotDuration is the trigger
-	// count as it stands.
-	dotAmount := magnitude
-	if dotAmount < 1 {
-		dotAmount = 1
-	}
-	afflicted := mob.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil
-	setMobSpellAggro(user, mob)
-	if afflicted && user != nil {
-		user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
-			`Your %s afflicts %s!%s`,
-			spellData.Name, mName, critTag))
-		sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
-			`<ansi fg="username">%s</ansi>'s <ansi fg="cyan">%s</ansi> afflicts %s!`,
-			user.Character.Name, spellData.Name, mName), user.UserId)
-	}
-	return 0
-}
-
 // applyMobEffect_knockdown handles the "knockdown" EffectType case for applyMobEffect.
 // Returns damage dealt to the mob.
 //
@@ -848,8 +791,6 @@ func applyMobEffectArms(c spellEffectCtx) int {
 	mName := mobDisplayName(mob, room, viewerId)
 
 	switch spellData.EffectType {
-	case "dot":
-		return applyMobEffect_dot(user, casterChar, mob, room, spellData, magnitude, out, critTag, mName)
 	case "knockdown":
 		return applyMobEffect_knockdown(user, casterChar, mob, room, spellData, magnitude, out, critTag, mName)
 	case "condition":
@@ -1486,52 +1427,6 @@ func applyMobOnPlayerArms(c spellEffectCtx) int {
 		critTag = ` <ansi fg="yellow">[CRIT!]</ansi>`
 	}
 	switch spellData.EffectType {
-	case "dot":
-		// The affliction is a binary status: it lands only on an attack win.
-		// A defended cast narrates the channel defence triad and applies
-		// nothing (there is no partial dot).
-		if out.Defended {
-			sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-				spellDefenceIdentity(&caster.Character, nil, room),
-				spellDefenceIdentity(target.Character, target, room), spellData.Name, nil, target)
-			if !target.Character.IsInCombat() {
-				targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)
-			}
-			break
-		}
-		castSkill := skills.Spellcasting
-		if spellData.HasSchool(spells.SchoolManifestation) {
-			castSkill = skills.Manifestation
-		}
-		dotDuration := calcSpellDuration(spellData.BaseFolds, caster.Character.GetSkillLevel(castSkill), spellData.CasterStatValue(caster.Character.Stats)) / 3
-		if dotDuration < 3 {
-			dotDuration = 3
-		}
-		// An immune target refuses the record, and nothing that did not happen
-		// may be narrated. The targeting commit below still stands: the mob cast.
-		//
-		// The record's negative snapshot is int(magnitude) harm, floored at
-		// one. Condition 121 ticks every round (slice 1b, owner ruling 2026-09-14;
-		// it used to land every third round), so dotDuration is the trigger
-		// count as it stands.
-		dotAmount := magnitude
-		if dotAmount < 1 {
-			dotAmount = 1
-		}
-		if target.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.NoLine,
-				Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> afflicts you!%s`,
-					caster.Character.Name, spellData.Name, critTag)),
-				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> afflicts <ansi fg="username">%s</ansi>!`,
-					caster.Character.Name, spellData.Name, target.Character.Name)),
-			}, spellAudience(nil, caster.Character.Name, target, target.Character.Name, room))
-		}
-		if !target.Character.IsInCombat() {
-			targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)
-		}
 	case "knockdown":
 		// Defence scales the DAMAGE (partial hit); the knockdown is a binary
 		// status that lands only on an attack win — ExecuteSkillMove's

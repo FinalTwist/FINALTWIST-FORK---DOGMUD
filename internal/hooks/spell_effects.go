@@ -6,9 +6,11 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/targeting"
@@ -156,6 +158,8 @@ func applySpellEffect(c spellEffectCtx) int {
 	switch c.spell.EffectType {
 	case "damage":
 		return applySpellDamage(c)
+	case "dot":
+		return applySpellDot(c)
 	}
 	switch {
 	case c.targetMob() != nil:
@@ -232,6 +236,72 @@ func applySpellDamage(c spellEffectCtx) int {
 			c.casterName(), c.spell.Name, c.targetName())),
 	}, c.audience())
 	return dmg
+}
+
+// spellCasterStatAndSkill is the caster side of a spell's duration: the
+// spell's own primarystat through CasterStatValue and the school's cast
+// skill (Manifestation for that school, Spellcasting otherwise), the formula
+// the mob-on-player dot always used. A nil caster reads stat 100 and skill 0,
+// the old anonymous-caster default, which only tests reach.
+//
+// Not actions.GetSpellStatAndSkill: that one returns Perception, the FOLD
+// stat, and would move every dot off its declared primarystat.
+func spellCasterStatAndSkill(spell *spells.SpellData, caster *characters.Character) (stat int, skill int) {
+	if caster == nil {
+		return 100, 0
+	}
+	castSkill := skills.Spellcasting
+	if spell.HasSchool(spells.SchoolManifestation) {
+		castSkill = skills.Manifestation
+	}
+	return spell.CasterStatValue(caster.Stats), caster.GetSkillLevel(castSkill)
+}
+
+// applySpellDot is the one damage-over-time applier (slice 3a). The
+// affliction is binary: it lands only on an attack win, and a defended cast
+// narrates the defence triad and applies nothing. Either way the cast was an
+// attack.
+func applySpellDot(c spellEffectCtx) int {
+	tc := c.targetChar()
+	fresh := !tc.IsInCombat()
+	if c.out.Defended {
+		sendSpellChannelDefenceMessages(c.room, c.category(), c.out,
+			spellDefenceIdentity(c.casterChar, c.casterUser(), c.room),
+			spellDefenceIdentity(tc, c.targetUser(), c.room), c.spell.Name, c.casterUser(), c.targetUser())
+		commitHarmfulSpellAggro(c, fresh)
+		return 0
+	}
+	stat, skill := spellCasterStatAndSkill(c.spell, c.casterChar)
+	dotDuration := calcSpellDuration(c.spell.BaseFolds, skill, stat) / 3
+	if dotDuration < 3 {
+		dotDuration = 3
+	}
+	// Condition 121 ticks every round, so dotDuration is the trigger count.
+	// The record's negative magnitude is the harm per tick, floored at one.
+	dotAmount := c.magnitude
+	if dotAmount < 1 {
+		dotAmount = 1
+	}
+	// Names are read BEFORE the condition lands: AddConditionMagnitude below
+	// can add the "poisoned" adjective to the target's own rendered name, and
+	// SendTrio's redaction must see the exact string the line prints.
+	casterName, targetName := c.casterName(), c.targetName()
+	// The character door, on purpose: an immune target refuses the record,
+	// and nothing that did not happen may be narrated.
+	afflicted := tc.AddConditionMagnitude(conditions.ConditionIdPoisoned, dotDuration, -float64(dotAmount), "spell") == nil
+	commitHarmfulSpellAggro(c, fresh)
+	if !afflicted {
+		return 0
+	}
+	messaging.SendTrio(messaging.Trio{
+		Actor: messaging.Say(c.category(), fmt.Sprintf(
+			`Your %s afflicts %s!%s`, c.spell.Name, targetName, c.critTag())),
+		Actee: messaging.Say(c.category(), fmt.Sprintf(
+			`%s's <ansi fg="cyan">%s</ansi> afflicts you!%s`, casterName, c.spell.Name, c.critTag())),
+		Observer: messaging.Say(c.category(), fmt.Sprintf(
+			`%s's <ansi fg="cyan">%s</ansi> afflicts %s!`, casterName, c.spell.Name, targetName)),
+	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
+	return 0
 }
 
 // ── Test-only wrappers. Slice 3b's last task deletes them once no test
