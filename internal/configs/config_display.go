@@ -105,7 +105,7 @@ func containsSecretAtDepth(value any, depth int) bool {
 
 	rv := reflect.ValueOf(value)
 	switch rv.Kind() {
-	case reflect.Interface, reflect.Ptr:
+	case reflect.Interface, reflect.Pointer:
 		if rv.IsNil() {
 			return false
 		}
