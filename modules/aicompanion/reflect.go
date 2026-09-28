@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -205,7 +206,7 @@ func (m *AICompanionModule) launchReflection(d *deferredReflection) {
 	}
 	ts := m.settingsFor(tierDeep, false)
 	call := modelCall{
-		BaseURL:     m.cfg.BaseURL,
+		BaseURL:     m.baseURL(),
 		APIKey:      m.apiKey(),
 		Model:       ts.Model,
 		Timeout:     ts.Timeout,
@@ -238,6 +239,12 @@ func (m *AICompanionModule) launchReflection(d *deferredReflection) {
 	session := d.session // the session reflected on, not the one running now
 
 	go func() {
+		// The breakers' leave is always handed back last: a no-op once its
+		// outcome was recorded, and what frees a half-open breaker's probe
+		// if a panic kept the outcome from ever being recorded.
+		var tk apiframework.Ticket
+		call.ticketOut = &tk
+		defer func() { m.fw().Release(apiframework.ConsumerCompanion, tk) }()
 		applied, used := false, 0
 		defer func() {
 			if r := recover(); r != nil {
@@ -268,7 +275,7 @@ func (m *AICompanionModule) applyReflection(key string, ownerId int, session int
 	m.settleRoute(held, res.Tokens)
 	m.rollDay()
 	m.recordCall(tierDeep, res)
-	m.routeResult(rt, ownerId, res.Err, time.Now())
+	m.routeResult(rt, ownerId, res.Ticket, res.Err, time.Now())
 	// A model the player's provider refused says nothing about the
 	// server's choice of models.
 	if rt.kind == routeServer && modelRefused(res) {

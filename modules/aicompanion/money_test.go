@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -262,13 +263,13 @@ func TestSentCallWithNoUsageCountsItsPrompt(t *testing.T) {
 // reaches it not at all, so it cannot reset the count of real failures.
 func TestCancelledCallNeverReachesTheBreaker(t *testing.T) {
 	m, _ := senderModule(`https://api.example.invalid`, true)
-	m.cfg.BreakerErrors = 3
-	m.consecutiveErrors = 2
+	freshServer(t, 2000000, 3, 60)
+	m.fw().SetConsumerBreakerForTest(apiframework.ConsumerCompanion, 2, time.Time{})
 	m.ctrls = map[int]*controller{}
 	m.applyResult(1, 1, 0, 0, 100, nil, nil, tierMain, `m`, route{kind: routeServer},
 		modelResult{Err: context.Canceled, Canceled: true})
-	if m.consecutiveErrors != 2 {
-		t.Fatalf("a cancel leaves the failure count alone, got %d", m.consecutiveErrors)
+	if m.fw().ConsumerFailures(apiframework.ConsumerCompanion) != 2 {
+		t.Fatalf("a cancel leaves the failure count alone, got %d", m.fw().ConsumerFailures(apiframework.ConsumerCompanion))
 	}
 	m.applyResult(1, 1, 0, 0, 100, nil, nil, tierMain, `m`, route{kind: routeServer},
 		modelResult{Err: errors.New(`status 500`)})
@@ -327,11 +328,13 @@ type panicTransport struct{}
 func (panicTransport) RoundTrip(*http.Request) (*http.Response, error) { panic(`transport blew up`) }
 
 // A reflection, a conversation summary or a core memory whose goroutine
-// panics before its reply is applied still gives its reservation back.
+// panics before its reply is applied still gives its reservation back, and
+// its breaker leave: a panicked probe of a half-open breaker does not keep
+// every companion on set lines until it expires.
 func TestPanickedBackgroundCallsSettle(t *testing.T) {
-	prev := httpClient
-	httpClient = &http.Client{Transport: panicTransport{}}
-	t.Cleanup(func() { httpClient = prev })
+	prev := apiframework.HTTPClient
+	apiframework.HTTPClient = &http.Client{Transport: panicTransport{}}
+	t.Cleanup(func() { apiframework.HTTPClient = prev })
 
 	for name, start := range map[string]func(m *AICompanionModule, c *controller){
 		`reflection`: func(m *AICompanionModule, c *controller) {
@@ -349,13 +352,15 @@ func TestPanickedBackgroundCallsSettle(t *testing.T) {
 	} {
 		m, c := senderModule(`https://api.example.invalid`, true)
 		m.minds = map[string]*Mind{mindIdentifier(c.mind.OwnerUserId, c.mind.MobId): c.mind}
+		// Half-open: the call about to be made is the breaker's probe.
+		m.fw().SetConsumerBreakerForTest(apiframework.ConsumerCompanion, 0, time.Now().Add(-time.Second))
 		now := time.Now().Unix()
 		util.LockMud()
 		for i := 0; i < 6; i++ {
 			c.mind.addLine(Line{Speaker: `Corvin`, Kind: `said`, Text: fmt.Sprintf(`line %d`, i), Unix: now}, 50)
 		}
 		start(m, c)
-		held := m.outstanding
+		held := serverHeld(m)
 		util.UnlockMud()
 		if held == 0 {
 			t.Fatalf("%s: fixture: the call held a reservation", name)
@@ -363,13 +368,26 @@ func TestPanickedBackgroundCallsSettle(t *testing.T) {
 		deadline := time.Now().Add(3 * time.Second)
 		for {
 			util.LockMud()
-			left, owner := m.outstanding, m.ownerTokens[1]
+			left, owner := serverHeld(m), m.ownerTokens[1]
 			util.UnlockMud()
 			if left == 0 && owner == 0 {
 				break
 			}
 			if time.Now().After(deadline) {
 				t.Fatalf("%s: a panicked call never gave back its reservation: outstanding=%d owner=%d", name, left, owner)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		for {
+			if tk, ok := m.fw().Allow(apiframework.ConsumerCompanion, time.Now()); ok {
+				if !tk.Probing() {
+					t.Fatalf("%s: fixture: the breaker was half-open", name)
+				}
+				m.fw().Release(apiframework.ConsumerCompanion, tk)
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("%s: a panicked probe was never handed back", name)
 			}
 			time.Sleep(10 * time.Millisecond)
 		}
@@ -436,7 +454,7 @@ func TestCompanionAIStrangersDefaultWording(t *testing.T) {
 	withWebDomain(t, `example.org`)
 	m.cfg.PlayerKeys, m.cfg.RelayOrigin = true, `https://keys.example.org`
 	m.relays = newRelayTable()
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	events.DrainQueuedMessagesForTest(1)
 	say := func(arg string) string {
 		t.Helper()
@@ -476,7 +494,8 @@ func TestStrangerTokensPerOwnerCapsThemTogether(t *testing.T) {
 	}
 	for _, rt := range []route{{kind: routeServer}, {kind: routeRelay, model: `player-model`}} {
 		m := relayModule(t)
-		m.cfg.DailyTokenBudget, m.cfg.StrangerDailyTokens, m.cfg.StrangerTokensPerOwner = 100000, 1000, 1500
+		freshServer(t, 100000, 3, 60)
+		m.cfg.StrangerDailyTokens, m.cfg.StrangerTokensPerOwner = 1000, 1500
 		if !tryRoute(m, rt, 5, 2, 900) || !tryRoute(m, rt, 5, 3, 500) {
 			t.Fatalf("%v: two passers-by within both caps are admitted", rt.kind)
 		}
@@ -694,7 +713,7 @@ func TestLookedFollowUpCarriesThePayer(t *testing.T) {
 func TestNoticedIsCappedAndSparesTheOwnersKey(t *testing.T) {
 	_, _, room, her := harmWorld(t, `off`)
 	m := relayModule(t)
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	m.bonds = bondState{Users: map[int]*bondRecord{}}
 	m.cfg.NoticeCallsPerDay = 2
 	m.cfg.NoticeCooldownSeconds = 0
@@ -722,7 +741,7 @@ func TestNoticedIsCappedAndSparesTheOwnersKey(t *testing.T) {
 	c.pending = nil
 	room.AddPlayer(2)
 	m.relays.gone(1)
-	m.cfg.APIKey, m.cfg.APIKeyEnv = `k`, `AICOMPANION_TEST_KEY_NEVER_SET`
+	pointAt(m, apiframework.DefaultBaseURL, `k`)
 	m.noticesToday = nil
 	m.notice(c, see, now)
 	if countKind(c.pending, `noticed`) != 1 {
@@ -800,7 +819,7 @@ func TestBackgroundHoldsIncludeTheSchema(t *testing.T) {
 			t.Fatalf("%s: no request arrived", name)
 		}
 		util.LockMud()
-		held := m.outstanding
+		held := serverHeld(m)
 		util.UnlockMud()
 		if want := holdFromBody(t, body); held != want {
 			t.Errorf("%s: held %d, want %d (the schema included)", name, held, want)
@@ -886,8 +905,8 @@ func TestAHoldAcrossMidnightRefundsNothing(t *testing.T) {
 	if m.strangerTokens[2] != 300 || m.strangersFor[5] != 300 {
 		t.Fatalf("so is the passer-by's: %d, %d", m.strangerTokens[2], m.strangersFor[5])
 	}
-	if m.outstanding != 0 {
-		t.Fatalf("and nothing is left held: %d", m.outstanding)
+	if serverHeld(m) != 0 {
+		t.Fatalf("and nothing is left held: %d", serverHeld(m))
 	}
 
 	// Control: the same holds settled on their own day do give back.
@@ -905,10 +924,11 @@ func TestAHoldAcrossMidnightRefundsNothing(t *testing.T) {
 func TestRelayOwnersSummaryWaitsForTheirRelay(t *testing.T) {
 	srv, hits := countingServer(t)
 	m, f := relayCallModule(t, true)
-	m.cfg.BaseURL, m.cfg.APIKey, m.cfg.APIKeyEnv = srv.URL, `k`, `AICOMPANION_TEST_KEY_NEVER_SET`
+	pointAt(m, srv.URL, `k`)
 	m.cfg.Model, m.cfg.FastModel = `m`, `m`
 	m.cfg.ConversationSummaries = true
-	m.cfg.DailyTokensPerCompanion, m.cfg.DailyTokenBudget = 100000, 1000000
+	m.cfg.DailyTokensPerCompanion = 100000
+	freshServer(t, 1000000, 3, 60)
 	m.cfg.FastTimeoutSeconds, m.cfg.FastMaxCompletionTokens = 5, 200
 	profiles, _ := loadProfiles()
 	p := profiles[`mara`]
@@ -940,7 +960,7 @@ func TestRelayOwnersSummaryWaitsForTheirRelay(t *testing.T) {
 	}
 
 	// Back, relay up: the talk is summed up through it.
-	m.relays.ready(5, `player-model`)
+	m.relays.ready(5, `player-model`, false)
 	util.LockMud()
 	m.startDueSummaries(5)
 	util.UnlockMud()

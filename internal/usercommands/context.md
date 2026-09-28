@@ -144,6 +144,44 @@ The `internal/usercommands` package implements the complete command system for p
 - **Punishment system**: Muting, deafening, and other disciplinary actions
 - **Server monitoring**: System status and performance monitoring
 
+#### **Bauble catalog** (`admin.bauble.go`, docs/baubles)
+- `bauble status | stats | list | show | prompt | spawn | edit | regen |
+  retire | restore | window`. Every subcommand that takes a record accepts a
+  catalog id or the name of a bauble in the admin's pack or on the floor,
+  matched as a player's `get` would match it (`resolveBaubleArg`).
+- `edit` splits target from text at the first field word, so
+  `bauble edit small doll name Rag Doll` works.
+- Edits, retire and restore reach every copy of the bauble in the world at
+  once, because items read their text from the catalog.
+- `regen` and `spawn` run in the background through `internal/actions`
+  (`RegenerateBauble`, `StartBaubleFind`); the admin is told when they finish.
+
+#### **Looking at the floor** (`look.go`)
+- `look <item>` falls back to items on the floor as its LAST branch, after
+  exits, nouns, creatures and corpses, so it never shadows them. A bauble
+  left lying (a household's, or its finder could not carry it) is looked at
+  this way: "on the bookshelf" instead of "on the ground", and a household's
+  adds "It belongs to this household. Taking it would be theft."
+- The ground listing appends `BaubleSpotSuffix()`: "a Small Doll (on the
+  bookshelf)".
+
+#### **Household baubles** (`get.go`, `skill.skullduggery.steal.go`)
+- `get` never takes a bauble that belongs to this room's household
+  (`Item.BaubleBelongsTo`), so no pickup can start a crime by accident. An
+  explicit `get <name>` refuses with "The X belongs to this household. To
+  take it anyway, steal <word>." before the ordinary pickup (which would end
+  the player's hiding); `get all`, `get all <name>` and `get all.<name>` skip
+  it with "You leave the X: it belongs to this household. To take it anyway,
+  steal <word>." (`leaveHouseholdBauble`), once each, and go on to take
+  everything else the name matches (`takeableOnFloor`: the floor without
+  this room's household baubles), so one protected trinket never stops the
+  sweep. `stealWord` is the bauble's keyword, or `trinket`.
+- Taking one is `steal <name>`: `parseStealArgs` falls back to
+  `householdBaubleNamed` (a household bauble on this room's floor) when no
+  creature or container matches, and hands it to `actions.Steal` as
+  `StealOptions.HouseholdItem` (the steal checks; see
+  `internal/actions/context.md`).
+
 ### Special Features
 
 #### **Command Suggestions**
@@ -244,6 +282,19 @@ searchScore = dice.RollStat(Perception + SkillMultiplier(searchRank) * 25.0)
 | 125 | Secret exits, hidden containers | Doors behind tapestries, false walls |
 | 135 | Stashed items, hidden creatures | Boxes under beds, camouflaged mobs |
 | 175 | Hidden nouns | Faint carvings, ancient runes |
+
+A player's search also takes a bauble roll after these tiers: no contest, a
+chance set by the room's biome and raised by search skill. A find counts as a
+won search; a roll that finds nothing awards nothing. See the Baubles section
+of `internal/actions/context.md`.
+
+`search <feature>` (`skill.search.go` passes `rest` as
+`actions.SearchOptions.Feature`) searches one noun, discovered hidden noun or
+visible container in the room: one bauble roll against that feature's own
+window, never the room's, and no contested tier. The quest `command`
+notification fires for every form of `search`, as before (quests 49 and 58
+gate on it in room 5343). See "Targeted search" in
+`internal/actions/context.md`.
 
 ### Per-Discovery Rolls
 - Each hidden object in the room gets compared against `searchScore` individually

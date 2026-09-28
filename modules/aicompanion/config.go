@@ -1,7 +1,6 @@
 package aicompanion
 
 import (
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -13,16 +12,12 @@ import (
 // types YAML and the config overlay can produce.
 type Config struct {
 	Enabled                      bool
-	APIKey                       string
 	Model                        string
 	FastModel                    string
-	BaseURL                      string
-	APIKeyEnv                    string
 	RequestTimeoutSeconds        int
 	MaxCompletionTokens          int
 	Temperature                  float64
 	MinSecondsBetweenCalls       int
-	DailyTokenBudget             int
 	RecoveryRounds               int
 	WorkingMemoryLines           int
 	PromptMemoryLines            int
@@ -93,8 +88,6 @@ type Config struct {
 	ConversationSummaries        bool
 	ConversationGapSeconds       int
 	MinConversationExchanges     int
-	AllowCustomEndpoint          bool
-	RejectedBaseURL              string
 
 	// PlayerKeys lets a player run their companion on their own key, held
 	// in their browser on the relay origin. Off unless the config says so.
@@ -190,16 +183,12 @@ func buildConfig(get getter) Config {
 	}
 	c := Config{
 		Enabled:                      false,
-		APIKey:                       strings.TrimSpace(asString(get(`APIKey`))),
 		Model:                        strings.TrimSpace(asString(get(`Model`))),
 		FastModel:                    strings.TrimSpace(asString(get(`FastModel`))),
-		BaseURL:                      strings.TrimRight(strings.TrimSpace(asString(get(`BaseURL`))), `/`),
-		APIKeyEnv:                    strings.TrimSpace(asString(get(`APIKeyEnv`))),
 		RequestTimeoutSeconds:        asInt(get(`RequestTimeoutSeconds`), 25),
 		MaxCompletionTokens:          asInt(get(`MaxCompletionTokens`), 900),
 		Temperature:                  asFloat(get(`Temperature`), 0),
 		MinSecondsBetweenCalls:       asInt(get(`MinSecondsBetweenCalls`), 2),
-		DailyTokenBudget:             asInt(get(`DailyTokenBudget`), 2000000),
 		RecoveryRounds:               asInt(get(`RecoveryRounds`), 40),
 		WorkingMemoryLines:           asInt(get(`WorkingMemoryLines`), 40),
 		PromptMemoryLines:            asInt(get(`PromptMemoryLines`), 24),
@@ -270,7 +259,6 @@ func buildConfig(get getter) Config {
 		ConversationSummaries:        true,
 		ConversationGapSeconds:       asInt(get(`ConversationGapSeconds`), 240),
 		MinConversationExchanges:     asInt(get(`MinConversationExchanges`), 3),
-		AllowCustomEndpoint:          asBool(get(`AllowCustomEndpoint`)),
 		RelayOrigin:                  strings.TrimRight(strings.TrimSpace(asString(get(`RelayOrigin`))), `/`),
 		RelayTimeoutSeconds:          asInt(get(`RelayTimeoutSeconds`), 30),
 	}
@@ -326,20 +314,9 @@ func buildConfig(get getter) Config {
 		c.RetryTransient = asBool(v)
 	}
 
-	// A BaseURL that is not OpenAI over https is refused and the official
-	// endpoint used instead, so a mistyped host is never sent the API key.
-	// What was refused is recorded rather than logged here: buildConfig also
-	// runs in tests, where there is no logger yet.
-	if c.BaseURL != `` && !endpointAllowed(c.BaseURL, c.AllowCustomEndpoint) {
-		c.RejectedBaseURL = c.BaseURL
-		c.BaseURL = ``
-	}
-	if c.BaseURL == `` {
-		c.BaseURL = `https://api.openai.com/v1`
-	}
-	if c.APIKeyEnv == `` {
-		c.APIKeyEnv = `OPENAI_API_KEY`
-	}
+	// The key, the endpoint (BaseURL, AllowCustomEndpoint) and the daily
+	// token budget are the server's, shared with every feature: the
+	// APIFramework config section (internal/apiframework).
 	if c.RequestTimeoutSeconds < 5 {
 		c.RequestTimeoutSeconds = 5
 	}
@@ -351,9 +328,6 @@ func buildConfig(get getter) Config {
 	}
 	if c.MinSecondsBetweenCalls < 0 {
 		c.MinSecondsBetweenCalls = 0
-	}
-	if c.DailyTokenBudget < 0 {
-		c.DailyTokenBudget = 0
 	}
 	if c.RecoveryRounds < 1 {
 		c.RecoveryRounds = 1
@@ -522,24 +496,6 @@ func buildConfig(get getter) Config {
 
 func loadConfig(p *plugins.Plugin) Config {
 	return buildConfig(func(k string) any { return p.Config.Get(k) })
-}
-
-// endpointAllowed keeps the API key and the players' words going where they
-// are meant to: https, and an OpenAI host, unless the operator has
-// deliberately allowed another provider.
-func endpointAllowed(raw string, allowCustom bool) bool {
-	u, err := url.Parse(raw)
-	if err != nil || u.Host == `` {
-		return false
-	}
-	if u.Scheme != `https` {
-		return false
-	}
-	if allowCustom {
-		return true
-	}
-	host := strings.ToLower(u.Hostname())
-	return host == `api.openai.com` || strings.HasSuffix(host, `.openai.com`) || strings.HasSuffix(host, `.azure.com`)
 }
 
 // defaultString is a trimmed setting, or a fallback when it is empty.

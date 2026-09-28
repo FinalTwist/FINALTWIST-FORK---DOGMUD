@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -81,9 +82,16 @@ type relayTable struct {
 
 type relayOwner struct {
 	model        string
+	finds        bool // the owner allowed their key to name what they find (apiframework.PurposeFinds)
 	failures     int
 	breakerUntil time.Time
 	noticeSent   bool // the owner was told this relay session that she fell back
+
+	// The finds breaker: another feature's calls on this key (bauble
+	// naming) have their own, so a request the player's provider will not
+	// serve for them never pauses the companion, nor the other way round.
+	findsFailures int
+	findsUntil    time.Time
 }
 
 func newRelayTable() *relayTable { return &relayTable{owners: map[int]*relayOwner{}} }
@@ -92,15 +100,55 @@ func newRelayTable() *relayTable { return &relayTable{owners: map[int]*relayOwne
 // comes back keeps its breaker: reloading the page must not reset it. It
 // starts a new relay session for the fallback notice, which may be given
 // once more.
-func (t *relayTable) ready(userId int, model string) {
+func (t *relayTable) ready(userId int, model string, finds bool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if o := t.owners[userId]; o != nil {
 		o.model = strings.TrimSpace(model)
+		o.finds = finds
 		o.noticeSent = false
 		return
 	}
-	t.owners[userId] = &relayOwner{model: strings.TrimSpace(model)}
+	t.owners[userId] = &relayOwner{model: strings.TrimSpace(model), finds: finds}
+}
+
+// liveFor is live for a purpose other than the companion herself: the
+// relay must be up, the companion's breaker and the purpose's own closed
+// (a key that is failing her is failing everything), and the owner must
+// have allowed that purpose on the key page. Only apiframework.PurposeFinds
+// exists.
+func (t *relayTable) liveFor(userId int, purpose string, now time.Time) (string, bool) {
+	model, ok := t.live(userId, now)
+	if !ok {
+		return ``, false
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	o := t.owners[userId]
+	if o == nil || purpose != apiframework.PurposeFinds || !o.finds || now.Before(o.findsUntil) {
+		return ``, false
+	}
+	return model, true
+}
+
+// findsResult is one outcome of a finds call on the owner's key, for the
+// finds breaker only; the companion's is never touched by it.
+func (t *relayTable) findsResult(userId int, failed bool, now time.Time, cfg Config) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	o := t.owners[userId]
+	if o == nil {
+		return
+	}
+	if !failed {
+		o.findsFailures = 0
+		return
+	}
+	o.findsFailures++
+	if cfg.BreakerErrors > 0 && o.findsFailures >= cfg.BreakerErrors {
+		o.findsUntil = now.Add(time.Duration(cfg.BreakerSeconds) * time.Second)
+		o.findsFailures = 0
+	}
 }
 
 // gone records that the owner's relay is down (locked, closed, logged out).
@@ -205,7 +253,9 @@ func (m *AICompanionModule) reserveRoute(r route, ownerId int, askerId int, toke
 	h := hold{r: r, owner: ownerId, asker: askerId, tokens: tokens, day: m.budgetDay}
 	switch r.kind {
 	case routeServer:
-		return h, m.tryReserveFor(ownerId, askerId, tokens)
+		fh, ok := m.reserveFor(ownerId, askerId, tokens)
+		h.fw = fh
+		return h, ok
 	case routeRelay:
 		if askerId <= 0 {
 			return h, true
@@ -225,7 +275,8 @@ type hold struct {
 	owner  int
 	asker  int
 	tokens int
-	day    string // the budget day it was held on
+	day    string            // the module's budget day it was held on
+	fw     apiframework.Hold // the server budget's own hold (server route)
 }
 
 // settleRoute settles a reservation made by reserveRoute with the same
@@ -235,7 +286,7 @@ type hold struct {
 func (m *AICompanionModule) settleRoute(h hold, used int) {
 	switch h.r.kind {
 	case routeServer:
-		m.settleForDay(h.day, h.owner, h.asker, h.tokens, used)
+		m.settleHeld(h.fw, h.tokens, h.day, h.owner, h.asker, used)
 	case routeRelay:
 		if h.asker <= 0 {
 			return
@@ -255,9 +306,9 @@ func (m *AICompanionModule) settleRoute(h hold, used int) {
 // routeResult feeds a call's outcome to the breaker of whoever paid: the
 // owner's own for their key, so one player's broken provider cannot stop
 // everyone's companions, and the global one for the server's.
-func (m *AICompanionModule) routeResult(r route, ownerId int, err error, now time.Time) {
+func (m *AICompanionModule) routeResult(r route, ownerId int, t apiframework.Ticket, err error, now time.Time) {
 	if r.kind != routeRelay {
-		m.breakerResult(err, now)
+		m.breakerResult(t, err, now)
 		return
 	}
 	if m.relays == nil || errors.Is(err, errNoConsent) || errors.Is(err, errRelayGone) ||

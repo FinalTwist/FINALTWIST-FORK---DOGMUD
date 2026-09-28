@@ -26,6 +26,7 @@ func newStealTestMob(instanceId int, gold int, perception int) *mobs.Mob {
 		InstanceId: instanceId,
 	}
 	m.Character.Name = "Bandit"
+	m.Character.RoomId = newStealTestRoom().RoomId // beside the thief, as a real mark is
 	m.Character.Conditions = conditions.New()
 	m.Character.Stats.Perception.ValueAdj = perception
 	m.Character.Gold = gold

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -73,8 +74,8 @@ func (m *AICompanionModule) cmdAICompanion(rest string, user *users.UserRecord, 
 	case `models`:
 		m.cmdModels(user)
 	case `breaker`:
-		m.breakerUntil = time.Time{}
-		m.consecutiveErrors = 0
+		// The server key's breaker is shared with every feature that uses it.
+		m.fw().ResetBreaker()
 		user.SendText(messaging.CategorySystem, `Circuit breaker reset; model calls resume.`)
 	case `pause`, `resume`:
 		if len(args) < 2 {
@@ -95,18 +96,37 @@ func (m *AICompanionModule) cmdStatus(user *users.UserRecord) {
 		m.cfg.Enabled, m.cfg.Model, m.apiKey() != ``, len(m.profiles))
 	fmt.Fprintf(&b, "Player keys: offered=%v relayOrigin=%q waitingReflections=%d\n",
 		m.playerKeysOffered(), m.cfg.RelayOrigin, len(m.deferredReflect))
-	budget := `unlimited`
-	if m.cfg.DailyTokenBudget > 0 {
-		budget = fmt.Sprintf(`%d`, m.cfg.DailyTokenBudget)
+	// The server's key has one daily budget, shared with every feature
+	// (APIFramework.DailyTokenBudget). An admin command runs on the game
+	// loop, so the settings are read fresh.
+	apiframework.RefreshServer()
+	u := m.fw().Today()
+	companionTokens := 0
+	for _, c := range u.ByConsumer {
+		if c.Consumer == apiframework.ConsumerCompanion {
+			companionTokens = c.Tokens
+		}
 	}
-	fmt.Fprintf(&b, "Today (UTC): calls=%d tokens=%d/%s errors=%d\n",
-		m.callsToday, m.tokensToday, budget, m.errorsToday)
+	limit := `unlimited`
+	if u.Limit > 0 {
+		limit = fmt.Sprintf(`%d`, u.Limit)
+	}
+	fmt.Fprintf(&b, "Today (UTC): calls=%d errors=%d; server key tokens=%d/%s (companions %d, all features together)\n",
+		m.callsToday, m.errorsToday, u.Tokens, limit, companionTokens)
 	if m.cfg.DailyTokensPerCompanion > 0 {
 		fmt.Fprintf(&b, "Per companion today: cap=%d tokens (0 = only the server budget applies)\n",
 			m.cfg.DailyTokensPerCompanion)
 	}
-	if m.breakerOpen(time.Now()) {
-		fmt.Fprintf(&b, "Circuit breaker OPEN until %s (fallback lines only).\n", m.breakerUntil.Format(`15:04:05`))
+	if now := time.Now(); m.breakerOpen(now) {
+		which := `the companion's own (calls failing; check her model settings)`
+		if m.fw().BreakerOpen(now) {
+			which = `the provider's, shared by every feature (the provider or key is unwell)`
+		}
+		if until := m.fw().BreakerUntil(apiframework.ConsumerCompanion); now.Before(until) {
+			fmt.Fprintf(&b, "Circuit breaker OPEN until %s: %s (fallback lines only).\n", until.Format(`15:04:05`), which)
+		} else {
+			fmt.Fprintf(&b, "Circuit breaker half-open, a probe call is out: %s.\n", which)
+		}
 	}
 
 	if len(m.ctrls) == 0 {
@@ -399,8 +419,9 @@ func (m *AICompanionModule) cmdModels(user *users.UserRecord) {
 		fmt.Fprintf(&b, "%s: model=%q maxTokens=%d timeout=%s effort=%s\n", tier, ts.Model, ts.MaxTokens, ts.Timeout, effort)
 	}
 	b.WriteString("Used for: fast = fights, noticing, quiet moments, follow-ups; main = conversation and relationship; deep = reflection after a session.\n")
-	fmt.Fprintf(&b, "Moderation: %v (%s). Retry transient: %v. Breaker: %d errors -> %ds.\n",
-		m.cfg.ModerateOutput, m.cfg.ModerationModel, m.cfg.RetryTransient, m.cfg.BreakerErrors, m.cfg.BreakerSeconds)
+	srv := apiframework.RefreshServer() // an admin command: on the game loop
+	fmt.Fprintf(&b, "Moderation: %v (%s). Retry transient: %v. Breaker: server key %d errors -> %ds; a player's own key %d errors -> %ds.\n",
+		m.cfg.ModerateOutput, m.cfg.ModerationModel, m.cfg.RetryTransient, srv.BreakerErrors, srv.BreakerSeconds, m.cfg.BreakerErrors, m.cfg.BreakerSeconds)
 	if lines := m.statsLines(); len(lines) > 0 {
 		b.WriteString("Since boot:\n")
 		b.WriteString(strings.Join(lines, "\n"))

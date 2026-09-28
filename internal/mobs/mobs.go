@@ -1036,6 +1036,13 @@ func (m *Mob) GetSellPrice(item items.Item) int {
 		return 0
 	}
 
+	// Baubles are priced from their catalog record by actions (sell_bauble.go),
+	// never here: this path prices and stocks by ItemId, and would put the
+	// bare carrier (item 900) on the shelf as a generic trinket.
+	if item.IsBauble() {
+		return 0
+	}
+
 	itemType := item.GetSpec().Type
 	itemSubtype := item.GetSpec().Subtype
 	value := 0

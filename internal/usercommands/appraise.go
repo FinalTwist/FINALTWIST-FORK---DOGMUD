@@ -2,7 +2,10 @@ package usercommands
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
+	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -45,6 +48,14 @@ func Appraise(rest string, user *users.UserRecord, room *rooms.Room, flags event
 			return true, nil
 		}
 
+		// Baubles: a merchant looks one over for free and says what it is
+		// and what they would pay (docs/baubles). A 20 gold fee on an object
+		// worth 1 to 6 gold would make appraising them pointless.
+		if item.IsBauble() {
+			appraiseBauble(item, user, room, mob)
+			return true, nil
+		}
+
 		type identifyDetails struct {
 			Item     *items.Item
 			ItemSpec *items.ItemSpec
@@ -82,4 +93,41 @@ func Appraise(rest string, user *users.UserRecord, room *rooms.Room, flags event
 	}
 
 	return true, nil
+}
+
+// appraiseBauble is the free appraisal of a bauble: what it is made of, how
+// heavy it is, where it turned up, and what this merchant would pay. It never
+// mentions whether the bauble was stolen; that is Phase 6's to decide.
+func appraiseBauble(item items.Item, user *users.UserRecord, room *rooms.Room, mob *mobs.Mob) {
+	rec, ok := baubles.Get(item.Bauble)
+	if !ok {
+		merchantSay(room, mob, "I can't make head or tail of that.")
+		return
+	}
+
+	spec := item.GetSpec()
+	user.SendText(messaging.CategorySystem, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> turns <ansi fg="itemname">%s</ansi> over in their hands.`, mob.Character.Name, item.DisplayName()))
+	room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> looks over something for <ansi fg="username">%s</ansi>.`, mob.Character.Name, user.Character.Name), user.UserId)
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "<ansi fg=\"itemname\">%s</ansi>\r\n", item.DisplayName())
+	if spec.Description != `` {
+		fmt.Fprintf(&b, "  %s\r\n", spec.Description)
+	}
+	if rec.Material != `` {
+		fmt.Fprintf(&b, "  Made of:  %s\r\n", rec.Material)
+	}
+	fmt.Fprintf(&b, "  Weight:   %.1f lb\r\n", spec.Weight)
+	fmt.Fprintf(&b, "  Worth:    <ansi fg=\"gold\">%d gold</ansi>\r\n", spec.Value)
+	if rec.Region != `` {
+		fmt.Fprintf(&b, "  Found in: %s\r\n", rec.Region)
+	}
+	user.SendText(messaging.CategorySystem, b.String())
+
+	offer := actions.BaubleOfferFrom(item, mob)
+	if offer.Price > 0 {
+		merchantSay(room, mob, fmt.Sprintf(`I'd give you <ansi fg="gold">%d gold</ansi> for it.`, offer.Price))
+	} else {
+		merchantSay(room, mob, offer.Refusal)
+	}
 }

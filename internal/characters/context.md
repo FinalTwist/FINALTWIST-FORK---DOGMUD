@@ -741,6 +741,13 @@ and `applyVitalChange` (the single signed pipeline behind harm and restore).
   eligibility table itself (which defences answer which `(AttackType,
   DamageType)` pair) lives in `internal/combatvocab.EligibleDefences`.
 
+### Found baubles and `StoreItem`
+
+`StoreItem` clears a bauble's placement (`items.Item.ClearBaublePlacement`):
+a found bauble someone picks up no longer lies anywhere, belongs to no
+household and never vanishes. Every pickup goes through `StoreItem`, which is
+why the clearing lives here and not in each command (docs/baubles).
+
 ### Combat and Interaction Systems
 - **Kill/Death statistics** (`kdstats.go`): PvP and PvE combat tracking
 - **Charm system** (`charminfo.go`): Mind control and pet mechanics

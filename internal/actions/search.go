@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
@@ -49,9 +50,13 @@ func spotsHider(observer *characters.Character, hider *characters.Character, roo
 	).Success
 }
 
-// SearchOptions is intentionally empty v1 — in-room search is the only
-// mode. Reserved for future "search container" path.
-type SearchOptions struct{}
+// SearchOptions selects what is searched.
+type SearchOptions struct {
+	// Feature is what a player typed after `search` (`search bookshelf`,
+	// `search under the table`). Empty searches the whole room. Only players
+	// search features; a mob's search ignores it. See search_feature.go.
+	Feature string
+}
 
 // SearchStashedItem represents a stashed item discovered by Tier 2.
 type SearchStashedItem struct {
@@ -67,21 +72,41 @@ type SearchResult struct {
 	HiddenPlayersFound    []int    // Tier 2 — user ids
 	HiddenMobsFound       []int    // Tier 2 — mob instance ids
 	HiddenNounsFound      []string // Tier 3 — player flavor
+	BaubleFound           bool     // Tier 4: a bauble is on its way to the player (see search_bauble.go)
+
+	// Feature is the room's name for what `search <feature>` searched;
+	// empty for a plain search. FeatureNotFound is words that name no
+	// feature (the search is then a plain one, as `search <anything>`
+	// always was). FeatureSearched is the feature's bauble roll already
+	// spent this BaubleFeatureWindowMinutes (the room's roll was taken
+	// instead). A feature search is ALWAYS the whole room search as well.
+	Feature         string
+	FeatureNotFound bool
+	FeatureSearched bool
 
 	OnCooldown bool
 	Reason     string
 }
 
-// FoundAnything reports whether the search turned up ANY of its six kinds of
-// discovery. It is the win/lose input to U10b-1's progression award.
+// FoundAnything reports whether the search turned up ANY of its kinds of
+// discovery. It decides whether the player is told "You find nothing of
+// interest."
 //
 // Derived from the result rather than tracked by a flag set beside each of the
-// six append sites: one predicate in one place cannot fall out of step with
-// five of its six siblings. ⚠️ A NEW TIER MUST ADD ITS SLICE HERE. That is the
-// one thing this shape does not make automatic, and forgetting it makes the new
-// tier's finds read as failures -- the search would award the loss fraction
-// while telling the player it found something.
+// append sites: one predicate in one place cannot fall out of step with its
+// siblings. ⚠️ A NEW TIER MUST ADD ITS SLICE HERE. That is the one thing this
+// shape does not make automatic, and forgetting it makes the new tier's finds
+// read as failures.
+//
+// ⚠️ A NEW CONTESTED TIER MUST ALSO ADD ITS SLICE TO foundByContest. The
+// bauble tier is the one tier that is here and NOT there: it is not a
+// contest, and it reaches the award its own way (awardSearch).
 func (r SearchResult) FoundAnything() bool {
+	return r.foundByContest() || r.BaubleFound
+}
+
+// foundByContest reports whether any CONTESTED tier found something.
+func (r SearchResult) foundByContest() bool {
 	return len(r.HiddenExitsFound) > 0 ||
 		len(r.HiddenContainersFound) > 0 ||
 		len(r.StashedItemsFound) > 0 ||
@@ -102,6 +127,21 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 		return result
 	}
 
+	// `search <feature>` is this whole search, every tier as always (quests
+	// hide their items behind `search shelf` and the like), plus one thing:
+	// the bauble roll is that feature's own (search_feature.go). Words that
+	// name no feature are a plain search, as `search <anything>` always was.
+	var feature SearchFeature
+	hasFeature := false
+	if actor.IsPlayer() && strings.TrimSpace(opts.Feature) != `` {
+		if f, ok := FindSearchFeature(char, room, opts.Feature); ok {
+			feature, hasFeature = f, true
+			result.Feature = f.Name
+		} else {
+			result.FeatureNotFound = true
+		}
+	}
+
 	if !char.TryCooldown("search", "2 rounds") {
 		result.OnCooldown = true
 		if actor.IsPlayer() {
@@ -118,11 +158,20 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 	searchScore := CalcSearchScore(char) * messaging.SightMult(char, room)
 
 	if actor.IsPlayer() {
-		actor.SendText(messaging.CategorySystem, "You snoop around for a bit...\n")
-		room.SendTextVisual(messaging.CategoryMobEmote,
-			fmt.Sprintf(`<ansi fg="username">%s</ansi> is snooping around.`, char.Name),
-			actor.GetUserId(),
-		)
+		if hasFeature {
+			actor.SendText(messaging.CategorySystem,
+				fmt.Sprintf("You search the <ansi fg=\"noun\">%s</ansi> and snoop around for a bit...\n", feature.Name))
+			room.SendTextVisual(messaging.CategoryMobEmote,
+				fmt.Sprintf(`<ansi fg="username">%s</ansi> is searching the %s.`, char.Name, feature.Name),
+				actor.GetUserId(),
+			)
+		} else {
+			actor.SendText(messaging.CategorySystem, "You snoop around for a bit...\n")
+			room.SendTextVisual(messaging.CategoryMobEmote,
+				fmt.Sprintf(`<ansi fg="username">%s</ansi> is snooping around.`, char.Name),
+				actor.GetUserId(),
+			)
+		}
 	}
 
 	rolledAgainstSomething := false
@@ -324,6 +373,26 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 		}
 	}
 
+	// ── Tier 4 (no contest): Baubles ────────────────────────────
+	// Players only. A flat chance per roll, rolls rationed per room per real
+	// hour (docs/baubles). Deliberately after every contested tier, and
+	// deliberately NOT a candidate for progression: see searchForBauble.
+	//
+	// A feature search takes the feature's roll instead (once per feature
+	// per BaubleFeatureWindowMinutes, apart from the room's two). When the
+	// feature's roll is spent, the room's is taken, exactly as a plain
+	// search would.
+	if actor.IsPlayer() {
+		used := false
+		if hasFeature {
+			result.BaubleFound, used = searchFeatureForBauble(actor, room, feature)
+			result.FeatureSearched = !used
+		}
+		if !used {
+			result.BaubleFound = searchForBauble(actor, room)
+		}
+	}
+
 	// ── Skill progression (anti-botting gate) ───────────────────
 	//
 	// The gate is unchanged and is NOT the firing rule: a search of an empty
@@ -341,9 +410,7 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 	// ONE AWARD PER SEARCH, unchanged. A room with five hidden things rolls
 	// five times and still pays once: the six tiers are one resolved action,
 	// not six. That was already true and is now pinned by test.
-	if rolledAgainstSomething {
-		actor.AwardResolved(result.FoundAnything(), char.CandidateFor(string(skills.Search)))
-	}
+	awardSearch(actor, char, result, rolledAgainstSomething)
 
 	// Close the loop for the player. Without this a search that finds nothing
 	// prints "You snoop around for a bit..." and then NOTHING, which reads as a
@@ -410,4 +477,23 @@ func endHidingOnSpot(searcher string, hider *characters.Character, hiderUser *us
 	} else {
 		hiderUser.SendText(messaging.CategorySystem, "Someone searches the room and spots you!")
 	}
+}
+
+// awardSearch pays the search's ONE progression award, if it earned one.
+//
+//   - A search that rolled a contest pays: a win if anything was found, the
+//     failure fraction if not.
+//   - A bauble find is a win too (owner ruling, 2026-09-26). The bauble chance
+//     grows with search skill and a find is rare, so it is fair training.
+//   - A bauble roll that found nothing pays NOTHING, and never makes a room a
+//     progression candidate on its own: every room offers bauble rolls, and
+//     letting a roll count would turn every room into the secret-exit farm
+//     described in the Tier 1 comment above.
+//
+// Still one award per search, however many tiers found things.
+func awardSearch(actor Actor, char *characters.Character, result SearchResult, rolledAgainstSomething bool) {
+	if !rolledAgainstSomething && !result.BaubleFound {
+		return
+	}
+	actor.AwardResolved(result.FoundAnything(), char.CandidateFor(string(skills.Search)))
 }

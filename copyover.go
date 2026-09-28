@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
+	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/caravan"
 	"github.com/GoMudEngine/GoMud/internal/copyover"
 	"github.com/GoMudEngine/GoMud/internal/forager"
@@ -51,6 +54,13 @@ func triggerCopyover() error {
 
 	serverAlive.Store(false)
 
+	// Finds a player was already told about ("Something glints...") and
+	// pickpockets in their pause are on goroutines that need this lock to
+	// finish: finish them here, before rooms and players are saved, or the
+	// re-exec loses them.
+	actions.FlushBaubleDeliveries()
+	actions.FlushPocketAttempts()
+
 	// Guard G4 (chunk 3.6b-1). Autosave now spreads its writes across ticks, so
 	// a cycle may be mid-flight. Those pending writes exist ONLY in memory, and
 	// copyover re-execs the process, so anything left in the queue is gone for
@@ -79,6 +89,8 @@ func triggerCopyover() error {
 	// here too — otherwise a copyover silently rewinds it. Keeps the reboot seamless.
 	shops.SaveAllShops()
 	warehouse.SaveAll()
+	baubles.SaveAll()
+	apiframework.SaveBudget()
 	forager.SaveAllThroughputs()
 	caravan.SaveAllThroughputs()
 	opinions.SaveAllOpinions()

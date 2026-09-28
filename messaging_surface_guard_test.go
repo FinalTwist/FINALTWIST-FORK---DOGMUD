@@ -243,6 +243,7 @@ var messagingSurfaceSkipDirs = map[string]bool{
 	"moderation":      true,
 	"plugin-data":     true,
 	"warehouses":      true,
+	"baubles":         true,
 }
 
 // messagingSurfaceKeyStems mirrors tools/messaging_surface_audit.py's
@@ -1223,7 +1224,7 @@ func narrationViewpointsLabel(s narrationCandidateSite) string {
 
 // narrationViewpointRegistry is the locked set of narration events this
 // guard's own walk (narrationWalk, via narrationCandidateEvent) finds
-// candidates today: 139 entries (messaging M4d PR 3 Task 3 removed 3, and
+// candidates today: 143 entries (messaging M4d PR 3 Task 3 removed 3, and
 // Task 5 removed 1 more, that moved off the sendVisualRoomText/
 // Room.SendTextVisual shape this walk keys on; see the removal notes below).
 // 103 trace to a row in
@@ -1233,7 +1234,7 @@ func narrationViewpointsLabel(s narrationCandidateSite) string {
 // different line than the audit's own "Site" column because the audit's
 // scanner anchors on whichever line ITS regex matched, not necessarily the
 // event's first call (see the header comment's SCOPE, MEASURED section).
-// The remaining 34 are events this walk finds that the audit's scanner never
+// The remaining 38 are events this walk finds that the audit's scanner never
 // surfaced -- most often the sendVisualRoomText wrapper, or a room/actor
 // value under a name other than "room"/"user"/"actor" -- each read against
 // source and marked as such in its own Reason.
@@ -1295,7 +1296,7 @@ var narrationViewpointRegistry = map[string]narrationEntry{
 	// line naming them, no actee since the caster and the target are the same
 	// person); messaging M4d PR 3 Task 3 (2026-09-20) moved all three off
 	// sendVisualRoomText onto messaging.SendTrio, so this walk -- which finds
-	// most of its not-audit-surfaced bucket (the "remaining 34" above) BY the
+	// most of its not-audit-surfaced bucket (the "remaining 38" above) BY the
 	// sendVisualRoomText wrapper -- no longer surfaces them as candidates at
 	// all. Removed rather than re-keyed: the call was rewritten onto the
 	// canonical SendTrio shape this walk does not separately track, not moved
@@ -1417,6 +1418,12 @@ var narrationViewpointRegistry = map[string]narrationEntry{
 	"usercommands/usercommands.go|<ansi fg=\"cyan\">You lose your concentration as you flee!</ansi>":            {verdictCorrect, true, false, true, "audit: loses concentration while fleeing a cast -- self-event (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, usercommands/usercommands.go:430)"},
 	"usercommands/warcry.go|<ansi fg=\"cyan-bold\">Your layered voice weaves a rallying cry into the same brea": {verdictGap, true, false, true, "audit: Resonant Larynx rally fold -- mirror of `rally.go:72`: the fold loop at :81-96 applies the condition with no `SendText`, while the main loop at :54-59 notifies each member (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, usercommands/warcry.go:76)"},
 	"usercommands/warcry.go|<ansi fg=\"red-bold\">You let out a thunderous warcry that ignites the fighting sp": {verdictCorrect, true, false, true, "audit: warcry strengthens the party -- each member gets their own `SendText` at :58-59 (docs/superpowers/audits/2026-09-07-narration-viewpoint-audit.md, usercommands/warcry.go:42)"},
+	// Bauble loot (docs/baubles/implementation-plan.md), read against source
+	// for this guard; none is part of the 2026-09-07 audit.
+	`actions/search.go|You search the <ansi fg=\"noun\">%s</ansi> and snoop around for a bit...\n`:              {verdictCorrect, true, false, true, "a player searches one of the room's features (search <feature>): the feature sibling of the audited room search above, a solo action on an object, with the room told via room.SendTextVisual; no actee."},
+	`actions/steal.go|<ansi fg="mobname">%s</ansi> spots you reaching for the <ansi fg="itemname">%s</`:         {verdictCorrect, true, false, true, "a failed steal of a household bauble, spotted: the household bauble sibling of the audited container case; the spotter is a mob and the bauble has no owning player, so actor+observer."},
+	`usercommands/appraise.go|<ansi fg="mobname">%s</ansi> turns <ansi fg="itemname">%s</ansi> over in their h`: {verdictCorrect, true, false, true, "a merchant's free appraisal of a bauble: the merchant is a mob and the target an item, same as the audited paid appraisal; the room is told via room.SendTextVisual."},
+	`usercommands/sell.go|You sell %d items for <ansi fg="gold">%d gold</ansi>.`:                                {verdictCorrect, true, false, true, "selling several different things at once (every bauble has its own name): the mixed-sale sibling of the two audited sell rows; the merchant is a mob."},
 	"usercommands/whisper.go|messaging.CategoryWhisper, util.SplitStringNL(whisperMsg, 80)":                     {verdictCorrect, true, true, false, "a whisper; the recipient is the actee, deliberately private with no room broadcast, same as reply.go."},
 }
 

@@ -501,6 +501,45 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 	}
 
+	//
+	// Items lying on the floor. Checked last, so an exit, a noun, a creature
+	// or a corpse of the same name always wins. A bauble left lying (in a
+	// household, or its finder could not carry it) is found here by any word
+	// of its name.
+	//
+	if floorItem, found := room.FindOnFloor(lookAt, false); found {
+
+		// A found bauble lies somewhere in particular ("on the bookshelf").
+		where := `on the ground`
+		if floorItem.IsBauble() && floorItem.BaubleSpot != `` {
+			where = floorItem.BaubleSpot
+		}
+
+		user.SendText(messaging.CategoryRoomDescription, ``)
+		user.SendText(messaging.CategoryRoomDescription,
+			fmt.Sprintf(`You look at the <ansi fg="item">%s</ansi> %s:`, floorItem.DisplayName(), where),
+		)
+		user.SendText(messaging.CategoryRoomDescription, ``)
+
+		if !isSneaking {
+			room.SendTextVisual(messaging.CategoryMobEmote,
+				fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at the <ansi fg="item">%s</ansi> %s.`, user.Character.Name, floorItem.DisplayName(), where),
+				user.UserId,
+			)
+		}
+
+		user.SendText(messaging.CategoryRoomDescription,
+			util.SplitStringNL(floorItem.GetLongDescription(), 80),
+		)
+		if floorItem.BaubleBelongsTo(room.RoomId) {
+			user.SendText(messaging.CategoryRoomDescription,
+				`It belongs to this household. Taking it would be theft.`)
+		}
+		user.SendText(messaging.CategoryRoomDescription, ``)
+
+		return true, nil
+	}
+
 	// Nothing found
 	user.SendText(messaging.CategorySystem, "Look at what???")
 
@@ -701,11 +740,13 @@ func lookRoom(user *users.UserRecord, roomId int, secretLook bool) {
 			room.RemoveItem(item, false)
 			continue
 		}
-		key := fmt.Sprintf("%d|%s|%d", item.ItemId, item.EnchantType, item.EnchantTier)
+		// Baubles share one ItemId; each is its own object with its own name.
+		key := fmt.Sprintf("%d|%s|%d|%s", item.ItemId, item.EnchantType, item.EnchantTier, item.Bauble)
 		if entry, exists := groundStacks[key]; exists {
 			entry.count++
 		} else {
-			groundStacks[key] = &groundStack{name: item.DisplayName(), count: 1}
+			// A found bauble left lying shows where: "(on the bookshelf)".
+			groundStacks[key] = &groundStack{name: item.DisplayName() + item.BaubleSpotSuffix(), count: 1}
 			groundStackOrder = append(groundStackOrder, key)
 		}
 	}

@@ -848,6 +848,10 @@ func (r *Room) Prepare(checkAdjacentRooms bool) {
 
 	r.Mutators.Update(roundNow)
 
+	// Before anyone sees the floor: found baubles left untaken too long are
+	// gone (baubles_untaken.go).
+	r.removeUntakenBaubles(time.Now())
+
 	if len(r.Containers) > 0 {
 		for k, c := range r.Containers {
 			if c.DespawnRound > 0 && c.DespawnRound <= roundNow {
@@ -2685,6 +2689,9 @@ func (r *Room) RoundTick() {
 	// Decay any corpses
 	//
 	r.UpdateCorpses(roundNow)
+
+	// Found baubles left untaken too long vanish (baubles_untaken.go).
+	r.removeUntakenBaubles(time.Now())
 }
 
 func (r *Room) AddPlayer(userId int) int {

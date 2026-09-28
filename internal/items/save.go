@@ -63,6 +63,7 @@ func SaveItemSpec(spec ItemSpec) error {
 
 	cp := spec
 	items[spec.ItemId] = &cp
+	rebuildAuthoredKeywords()
 	return nil
 }
 
@@ -77,5 +78,6 @@ func DeleteItemSpec(itemId int) error {
 		return err
 	}
 	delete(items, itemId)
+	rebuildAuthoredKeywords()
 	return nil
 }

@@ -906,6 +906,13 @@ Balance:
   # KEEP THESE KEYS PRESENT even when set to their default values. Deleting a
   # line here does not restore a default, it silently zeroes the knob.
   StealCooldown: 60      # Real seconds before another steal may be attempted
+  # A player's pickpocket of an NPC takes a moment: "You attempt to pick X's
+  # pocket...", then the outcome. The roll is made at once; the pause only
+  # holds the result back. REAL seconds at Dexterity 100, scaled by
+  # 100/Dexterity (quicker hands are faster), kept between the two bounds.
+  StealPocketSeconds: 3.0
+  StealPocketMinSeconds: 1.5
+  StealPocketMaxSeconds: 6.0
   ShadowCooldown: 5      # Rounds before shadow may be used again
   SneakFailCooldown: 3   # Rounds to wait after a failed sneak attempt
   StealHiddenBonus: 25   # Score added to steal AND plant attempts made while hidden
@@ -1399,6 +1406,77 @@ Balance:
   ShopOverstockDecayQty: 1         # Units removed per overstock decay fire
   BarterMaxDiscount: 0.15       # Max fractional buy-price discount from bartering
   BarterMaxBonus: 0.15          # Max fractional sell-price bonus from bartering
+
+  # ── BAUBLES (docs/baubles) ────────────────────────────────────────────────
+  # Sell-only trinkets that player `search` sometimes turns up. The Go
+  # defaults match these values (TestBaubleShippedConfigMatchesDefaults).
+  BaublesEnabled: false         # OFF by default: true lets search find baubles (see Modules.baubles to name them)
+  # Chance per roll depends on WHERE: by room biome, in percent. Where people
+  # live and lose things finds are common; out in the wild they are rare. A
+  # biome not listed uses BaubleSearchChancePct. A listed 0 never finds.
+  BaubleSearchChancePct: 1      # % per roll for a biome not in the table
+  BaubleBiomeChancePct:
+    interior: 5                 # buildings: houses, halls, shops, temples
+    fort: 4
+    ruins: 3.5
+    sewer: 3
+    city_backstreet: 2.5        # alleys and yards
+    city_thoroughfare: 2        # main streets, squares, markets
+    dungeon: 2
+    road: 1
+    shore: 1
+    farmland: 0.75
+    cave: 0.75
+    land: 0.5                   # open ground, including some road zones
+    river: 0.5
+    forest: 0.25                # wilderness
+    dense_forest: 0.25
+    plains: 0.25
+    swamp: 0.25
+    cliffs: 0.25
+    mountains: 0.25
+    desert: 0.25
+    snow: 0.25
+    spiderweb: 0.25
+    water: 0                    # deep water
+    ether: 0                    # not a place in the world
+  # Search skill raises the chance: the bonus grows with the square root of
+  # search rank and reaches this much at SkillSoftCap (1.0 doubles the
+  # chance). A find trains search; a roll that finds nothing does not.
+  BaubleSkillMaxBonus: 1.0
+  BaubleRollsPerWindow: 2       # rolls a room offers per window
+  BaubleFeatureWindowMinutes: 60  # REAL minutes: each feature (`search bookshelf`) can be searched once per this long, apart from the room's rolls
+  BaubleUntakenHours: 24        # REAL hours a find left lying in a room (a household's, too heavy, finder gone) stays before it vanishes
+  BaubleWindowMinutes: 60       # REAL minutes, from the window's first roll
+  BaubleWindowPerPlayer: false  # false = a room's rolls are shared by everyone
+  BaubleRevealSeconds: 3        # least REAL seconds before a find reaches the player (max 30)
+  # A successful pickpocket of an NPC takes the bauble it carries, if any;
+  # if it carries none, this percent of the time one is made (and named at
+  # once, while the pause runs). -1 = never. Pickpocketed baubles are
+  # pocket-sized: named as such, and no heavier than BaublePickpocketMaxWeight
+  # pounds. A naming not back this many REAL seconds after the pause ends
+  # is given up, and the bauble is a generic trinket.
+  BaublePickpocketChancePct: 50
+  BaublePickpocketMaxWeight: 1.0
+  BaublePickpocketGraceSecs: 5
+  BaubleExcludedZones: []       # zone names; instances are always excluded
+  # Which tier a find is (relative weights). A single 0 switches a tier off.
+  BaubleTierWeightCheap: 70
+  BaubleTierWeightAverage: 25
+  BaubleTierWeightRare: 5
+  # The value ladder, in gold. Tiers must climb without touching; a broken
+  # ladder resets all six numbers to these defaults.
+  BaubleCheapMinValue: 1
+  BaubleCheapMaxValue: 6
+  BaubleAverageMinValue: 10
+  BaubleAverageMaxValue: 15
+  BaubleRareMinValue: 40
+  BaubleRareMaxValue: 200
+  # Living-economy shops (by craft_support) that buy baubles. Legacy
+  # merchants always buy them.
+  BaubleBuyerCraftSupports:
+    - general
+    - jewelcrafting
 
   # ── STORAGE FEES ───────────────────────────────────────────────────────────
   StorageFeePerItem: 1               # Gold charged per stored item per game month
@@ -1974,6 +2052,49 @@ LLM:
 
 ################################################################################
 #
+#   API FRAMEWORK
+#   The server's own language-model key and what bounds it, shared by every
+#   feature that uses it (the AI companion, bauble naming): internal/
+#   apiframework. ONE daily token budget and ONE circuit breaker for the
+#   server's key, whichever feature spends it. A player's own key (the
+#   Companion key button in the web client) is theirs, and bounded by
+#   nothing here.
+#
+#   Everything here ships EMPTY on purpose. Anything left empty (or 0) is
+#   read from where the AI companion kept it before, Modules.aicompanion
+#   (same names, including any `config set` of them in config-overrides.yaml),
+#   and failing that the companion's old default, shown on each line below.
+#   So a server's existing settings keep working whether or not it takes this
+#   file; the companion logs which settings are still read from the old place.
+#   Set a value here to override it for every feature.
+#
+################################################################################
+APIFramework:
+  # The environment variable holding the key (empty: OPENAI_API_KEY). It
+  # wins over APIKey. Preferred: anyone who can read this file can read a key
+  # put in APIKey.
+  APIKeyEnv: ""
+  APIKey: ""
+  # Empty: https://api.openai.com/v1
+  BaseURL: ""
+  # Allow a BaseURL that is not OpenAI (https only): true or false. Empty:
+  # the companion's old AllowCustomEndpoint, else false. An explicit false
+  # here overrides an old true.
+  AllowCustomEndpoint: ""
+  # Tokens per UTC day on the server's key, all features together. Every
+  # call reserves its worst case first and is refused if it does not fit.
+  # Kept on disk (<DataFiles>/apiframework/budget.yaml) across restarts.
+  # 0: the companion's DailyTokenBudget if set (0 there is no cap), else
+  # 2000000. -1 = no cap.
+  DailyTokenBudget: 0
+  # Failures in a row on the server's key that pause every feature's calls
+  # on it, and for how many seconds (0: the companion's settings, else 5 and
+  # 60).
+  BreakerErrors: 0
+  BreakerSeconds: 0
+
+################################################################################
+#
 
 #   ANALYTICS
 #   Combat analytics subsystem. When enabled, records combat events to a
@@ -2382,19 +2503,19 @@ Modules:
   aicompanion:
     # The module itself. Nothing below has any effect while this is false.
     Enabled: false
-    # The OpenAI key. Prefer the OPENAI_API_KEY environment variable; anyone
-    # who can read this file can read a key put here.
-    APIKey: ""
+    # The server's key, its endpoint and its one daily token budget are in
+    # the APIFramework section, shared with every feature. (A key left here
+    # from before still works, with a warning at boot: move it.)
     # Empty means the module picks a model per tier from what the key can
     # use. Set them to pin your own.
     Model: ""
     FastModel: ""
     DeepModel: ""
-    # Tokens per UTC day across the server, per companion, and per
-    # passer-by asking somebody else's companion something. A call is
-    # refused unless its worst case still fits. The day's spend is kept on
-    # disk, so a restart does not hand out a fresh allowance.
-    DailyTokenBudget: 2000000
+    # Tokens per UTC day per companion, and per passer-by asking somebody
+    # else's companion something, on top of the server's one budget
+    # (APIFramework.DailyTokenBudget). A call is refused unless its worst
+    # case still fits. The day's spend is kept on disk, so a restart does
+    # not hand out a fresh allowance.
     DailyTokensPerCompanion: 300000
     StrangerAskSeconds: 30
     StrangerDailyTokens: 50000
@@ -2474,3 +2595,30 @@ Modules:
     IncludeSecretExits: true
     RebuildGraphOnBoot: false
     SeasonsEnabled: true
+  # ── baubles (docs/baubles) ──────────────────────────────────────────────────
+  # Names the trinkets `search` turns up, from the room they were found in,
+  # with a language model. OFF by default. ⚠️ Switched on, it sends authored
+  # ROOM text (title, description, feature names) to the model provider;
+  # never signs, player names or anything a player typed. Balance.
+  # BaublesEnabled must also be on for there to be finds at all.
+  #
+  # A find is named through the finder's OWN key when they ticked "Also name
+  # things I find while searching" on the Companion key page (UsePlayerKeys),
+  # else through the server's key (APIFramework: its one daily budget and
+  # breaker, shared with the AI companion), else it is a generic "Trinket".
+  baubles:
+    Enabled: false
+    UsePlayerKeys: true
+    Model: "gpt-5-nano"
+    ReasoningEffort: "minimal"
+    # A find waits for this call (at least Balance.BaubleRevealSeconds), so
+    # keep it short. Failures and timeouts become generic trinkets.
+    TimeoutSeconds: 15
+    MaxCompletionTokens: 800
+    RetryTransient: false
+    MaxConcurrent: 4           # more finds at once than this are generic
+    # Check names with the moderation endpoint (needs the server's key);
+    # fails closed. A find named on a player's own key on a server with no
+    # key of its own is not moderated, as with the AI companion.
+    ModerateOutput: true
+    LogRequests: false

@@ -6,13 +6,15 @@ package aicompanion
 
 import (
 	"embed"
+	"errors"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -153,26 +155,37 @@ type AICompanionModule struct {
 	ctrls    map[int]*controller // keyed by owner user id
 	minds    map[string]*Mind    // every mind loaded since boot, by mindIdentifier
 
+	// budgetDay is the UTC day of the companion's own daily counters (the
+	// per-owner and per-passer-by allowances, calls and errors). The server's
+	// token budget is apiframework's, shared with every feature.
 	budgetDay   string
-	tokensToday int
 	callsToday  int
 	errorsToday int
 	lastErrLog  time.Time
 
-	bonds             bondState             // who has met or turned away a companion
-	consent           consentLedger         // who has agreed, as the model door reads it
-	pendingMeet       map[int]*meetWait     // characters waiting to meet one
-	meetingPlace      map[int]string        // where each first meeting happened
-	models            modelChooser          // automatic model choice per tier
-	stats             map[string]*tierStats // per model tier, since boot
-	ownerTokens       map[int]int           // tokens today per companion owner
-	strangerTokens    map[int]int           // tokens today spent on behalf of a passer-by
-	strangersFor      map[int]int           // tokens today passers-by spent of each owner's companion, all of them together
-	noticesToday      map[int]int           // "you notice" moments today per owner (NoticeCallsPerDay)
-	breakerUntil      time.Time             // model calls paused until then
-	consecutiveErrors int
-	outstanding       int // tokens held for calls that have not come back
-	lastBudgetLog     time.Time
+	bonds          bondState             // who has met or turned away a companion
+	consent        consentLedger         // who has agreed, as the model door reads it
+	pendingMeet    map[int]*meetWait     // characters waiting to meet one
+	meetingPlace   map[int]string        // where each first meeting happened
+	models         modelChooser          // automatic model choice per tier
+	stats          map[string]*tierStats // per model tier, since boot
+	ownerTokens    map[int]int           // tokens today per companion owner
+	strangerTokens map[int]int           // tokens today spent on behalf of a passer-by
+	strangersFor   map[int]int           // tokens today passers-by spent of each owner's companion, all of them together
+	noticesToday   map[int]int           // "you notice" moments today per owner (NoticeCallsPerDay)
+	lastBudgetLog  time.Time
+
+	// endpoint, when set, replaces the server's key and endpoint
+	// (apiframework.Server) for this module only. Tests point it at a fake
+	// provider; production leaves it nil.
+	endpoint *apiframework.Endpoint
+
+	// books is the server key's budget and breaker for this module when it
+	// is not the shared set (apiframework.Shared): only in tests, where each
+	// module under test gets its own (isolateBooks), so a call an earlier
+	// test left in flight settles into that test's books, never the next
+	// one's. Production leaves it empty: one server, one set of books.
+	books atomic.Pointer[apiframework.Books]
 
 	relays     *relayTable    // owners with a live relay for their own key (tier 2)
 	relayCalls *pendingRelays // calls waiting on an owner's browser for a reply
@@ -286,9 +299,21 @@ func (m *AICompanionModule) onLoad() {
 	// keys are offered.
 	m.installRelayPage()
 
-	if m.cfg.RejectedBaseURL != `` {
+	// The companion is the one feature that can offer a player's own key,
+	// so it lends its relay to the others (bauble naming), for what each
+	// player allows (apiframework.PurposeFinds).
+	apiframework.SetRelay(relayFor{m: m})
+
+	s := apiframework.RefreshServer()
+	if s.RejectedBaseURL != `` {
 		mudlog.Error(`aicompanion`, `action`, `config`, `error`,
-			`BaseURL `+m.cfg.RejectedBaseURL+` is not an OpenAI endpoint over https; set AllowCustomEndpoint to use another provider. Using the official endpoint.`)
+			`BaseURL `+s.RejectedBaseURL+` is not an OpenAI endpoint over https; set AllowCustomEndpoint to use another provider. Using the official endpoint.`)
+	}
+	if len(s.Legacy) > 0 {
+		// Names only, never values: one of them may be the key.
+		mudlog.Warn(`aicompanion`, `action`, `config`, `note`,
+			`still read from Modules.aicompanion (it works as before): `+strings.Join(s.Legacy, `, `)+
+				`. Move them to the APIFramework section, which every feature shares.`)
 	}
 	mudlog.Info(`aicompanion`, `enabled`, m.cfg.Enabled, `profiles`, len(m.profiles),
 		`model`, m.cfg.Model, `apiKeyPresent`, m.apiKey() != ``)
@@ -339,25 +364,46 @@ func (m *AICompanionModule) getMind(ownerUserId int, p *Profile) *Mind {
 	return mind
 }
 
-// apiKey is the OpenAI key: the environment variable named by APIKeyEnv
-// (OPENAI_API_KEY by default, the variable OpenAI's own tools use), or, for a
-// single-player server, APIKey in the config file. It is never logged.
-func (m *AICompanionModule) apiKey() string {
-	if k := strings.TrimSpace(os.Getenv(m.cfg.APIKeyEnv)); k != `` {
-		return k
+// isolateBooks gives every module its own books on first use. Set only by
+// this package's TestMain; production never sets it.
+var isolateBooks bool
+
+// fw is the server key's budget and breaker this module spends from.
+func (m *AICompanionModule) fw() *apiframework.Books {
+	if b := m.books.Load(); b != nil {
+		return b
 	}
-	return m.cfg.APIKey
+	if !isolateBooks {
+		return apiframework.Shared()
+	}
+	m.books.CompareAndSwap(nil, apiframework.NewBooksForTest())
+	return m.books.Load()
 }
 
-// rollDay resets the daily counters at the UTC date boundary.
+// apiKey is the server's key (apiframework.Server: APIFramework.APIKeyEnv
+// or APIKey, shared with every feature). It is never logged.
+func (m *AICompanionModule) apiKey() string {
+	if m.endpoint != nil {
+		return m.endpoint.APIKey
+	}
+	return apiframework.Server().Endpoint.APIKey
+}
+
+// baseURL is the server key's endpoint (APIFramework.BaseURL).
+func (m *AICompanionModule) baseURL() string {
+	if m.endpoint != nil {
+		return m.endpoint.BaseURL
+	}
+	return apiframework.Server().Endpoint.BaseURL
+}
+
+// rollDay resets the companion's own daily counters at the UTC date
+// boundary. The server's token total rolls over in apiframework, carrying
+// what calls still in flight hold.
 func (m *AICompanionModule) rollDay() {
 	day := time.Now().UTC().Format(`2006-01-02`)
 	if day != m.budgetDay {
 		m.budgetDay = day
-		// Calls still in flight keep their reservation across the rollover,
-		// or settling them afterwards would credit back tokens the new day
-		// never spent.
-		m.tokensToday = m.outstanding
 		m.callsToday = 0
 		m.errorsToday = 0
 		m.ownerTokens = map[int]int{}
@@ -397,7 +443,7 @@ func (m *AICompanionModule) modelReadyFor(ownerId int, askerId int) bool {
 		return false
 	}
 	m.rollDay()
-	if m.cfg.DailyTokenBudget > 0 && m.tokensToday >= m.cfg.DailyTokenBudget {
+	if !m.fw().HasRoom() {
 		return false
 	}
 	if askerId <= 0 && ownerId > 0 && !m.ownerBudgetLeft(ownerId) {
@@ -448,6 +494,9 @@ func (m *AICompanionModule) sortedOwnerIds() []int {
 }
 
 func (m *AICompanionModule) logModelError(err error) {
+	if errors.Is(err, errServerResting) {
+		return // held back for a breaker's probe: no call, no error
+	}
 	m.errorsToday++
 	// One line per ten seconds at most; an outage must not flood the log.
 	if time.Since(m.lastErrLog) < 10*time.Second {

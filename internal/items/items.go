@@ -62,6 +62,10 @@ type Item struct {
 	ReservePool      string         `yaml:"reservepool,omitempty"`     // "health", "stamina", or "conviction"
 	StashedBy        int            `yaml:"stashedby,omitempty"`       // userid of whoever stashed this item
 	DetuneMigrated   bool           `yaml:"detunemigrated,omitempty"`  // U10d: this ranged weapon is already on the post-detune line; see detune_migration.go
+	Bauble           string         `yaml:"bauble,omitempty"`          // Bauble catalog record id (internal/baubles); the name, description, value and weight come from the catalog
+	BaubleSpot       string         `yaml:"baublespot,omitempty"`      // Where a found bauble lies in its room ("on the bookshelf"); cleared once anyone carries it
+	BaubleHousehold  int            `yaml:"baublehousehold,omitempty"` // Room id of the household a found bauble belongs to; taking it there is theft. Cleared once carried
+	BaubleLeftAt     int64          `yaml:"baubleleftat,omitempty"`    // Unix seconds a found bauble was left lying untaken; it vanishes BaubleUntakenHours later. Cleared once carried
 	tempDataStore    map[string]any // Temporary data store for this item. Not saved to disk.
 }
 
@@ -325,6 +329,9 @@ func (i *Item) GetSpec() ItemSpec {
 	iSpec := GetItemSpec(i.ItemId)
 	if iSpec == nil {
 		iSpec = &ItemSpec{}
+	}
+	if i.Bauble != `` {
+		return baubleSpec(*iSpec, i.Bauble)
 	}
 	return *iSpec
 }
@@ -606,8 +613,23 @@ func (i *Item) NameMatch(input string, allowContains bool) (partialMatch bool, f
 		adjName = util.NormalizeForMatch(strings.Join(i.Adjectives, " ") + " " + i.NameSimple())
 	}
 
-	// Check all name variants
-	for _, name := range []string{simpleName, displayName, adjName} {
+	// Check all name variants. Every bauble also answers to the generic
+	// bauble keywords, whatever its generated name.
+	names := []string{simpleName, displayName, adjName}
+	baublePartial := false
+	if i.Bauble != `` {
+		names = append(names, baubleKeywords...)
+		// Baubles are named by the model, so players will refer to them by any
+		// word of the name: `get doll` or `look childs doll` for "Small
+		// Child's Doll" (see baubleWordMatch). Such a word match is only ever
+		// a PARTIAL match: a bauble is a full match for its exact name or its
+		// keyword (checked below like any item's), so it never outranks a
+		// real item the player named in full, and among partial matches
+		// FindMatchIn prefers the real item.
+		wordPart, wordFull := baubleWordMatch(input, simpleName, displayName, withoutPossessives(i.Name()))
+		baublePartial = wordPart || wordFull
+	}
+	for _, name := range names {
 		if name == "" {
 			continue
 		}
@@ -627,7 +649,7 @@ func (i *Item) NameMatch(input string, allowContains bool) (partialMatch bool, f
 		}
 	}
 
-	return false, false
+	return baublePartial, false
 }
 
 func (i *Item) StatMod(statName ...string) int {
@@ -697,6 +719,12 @@ func FindMatchIn(itemName string, items ...Item) (pMatch Item, fMatch Item) {
 	var matchItemCt int = 0
 	var closeMatchItemCt int = 0
 
+	// A bauble (sell-only loot named by a model) never wins a partial match
+	// over a real item: with no N. given, the first real item that matches
+	// partially is preferred to a bauble earlier in the list. An explicit N.
+	// keeps plain list order.
+	var closeRealItem Item
+
 	for _, i := range items {
 
 		part, full := i.NameMatch(itemName, false)
@@ -705,6 +733,9 @@ func FindMatchIn(itemName string, items ...Item) (pMatch Item, fMatch Item) {
 			closeMatchItemCt++
 			if closeMatchItemCt == itemNumber {
 				closeMatchItem = i
+			}
+			if itemNumber == 1 && closeRealItem.ItemId == 0 && !i.IsBauble() {
+				closeRealItem = i
 			}
 		}
 
@@ -718,6 +749,37 @@ func FindMatchIn(itemName string, items ...Item) (pMatch Item, fMatch Item) {
 
 	}
 
+	// A full match too: a real item the name fully matches beats a bauble
+	// it fully matches as well, wherever each is in the list (a bauble's
+	// keyword is also kept off real items' keywords when it is made).
+	if itemNumber == 1 && matchItem.IsBauble() {
+		for _, i := range items {
+			if i.IsBauble() {
+				continue
+			}
+			if _, full := i.NameMatch(itemName, false); full {
+				matchItem = i
+				break
+			}
+		}
+	}
+
+	// A real item that only contains the name still beats a bauble.
+	if itemNumber == 1 && closeMatchItem.IsBauble() && closeRealItem.ItemId == 0 {
+		for _, i := range items {
+			if i.IsBauble() {
+				continue
+			}
+			if part, _ := i.NameMatch(itemName, true); part {
+				closeRealItem = i
+				break
+			}
+		}
+	}
+	if closeMatchItem.IsBauble() && closeRealItem.ItemId > 0 {
+		closeMatchItem = closeRealItem
+	}
+
 	// If no "starts with" or "exact" matches are found, try and find the first items that contain the supplied name
 	// Note: Can't have an exact match if there was never a close match
 	if closeMatchItem.ItemId == 0 {
@@ -729,10 +791,15 @@ func FindMatchIn(itemName string, items ...Item) (pMatch Item, fMatch Item) {
 				closeMatchItemCt++
 				if closeMatchItemCt == itemNumber {
 					closeMatchItem = i
-					break
+				}
+				if itemNumber == 1 && closeRealItem.ItemId == 0 && !i.IsBauble() {
+					closeRealItem = i
 				}
 			}
 
+		}
+		if closeMatchItem.IsBauble() && closeRealItem.ItemId > 0 {
+			closeMatchItem = closeRealItem
 		}
 
 	}

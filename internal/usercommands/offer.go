@@ -49,6 +49,17 @@ func Offer(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 		user.Character.CancelConditionsWithFlag(conditions.Hidden)
 
+		// Baubles are priced from their catalog record (docs/baubles).
+		if item.IsBauble() {
+			offer := actions.BaubleOfferFrom(item, mob)
+			if offer.Price <= 0 {
+				merchantSay(room, mob, offer.Refusal)
+				continue
+			}
+			merchantSay(room, mob, fmt.Sprintf(`I can give you <ansi fg="gold">%d gold</ansi> for that <ansi fg="itemname">%s</ansi>.`, offer.Price, item.DisplayName()))
+			break
+		}
+
 		if item.IsSpecial() {
 
 			merchantSay(room, mob, "I'm afraid I don't buy those.")

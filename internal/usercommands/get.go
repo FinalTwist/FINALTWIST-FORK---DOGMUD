@@ -27,9 +27,23 @@ import (
 // Stops early on an `exploding` item (never swept up by accident) and on the
 // first item the character cannot carry.
 func getAllMatchingFromFloor(user *users.UserRecord, room *rooms.Room, itemName string) {
+	// A household's bauble is never swept up: taking it is theft, and only
+	// `steal <name>` attempts that. Each one the name matches is left, and
+	// said so, once; the sweep goes on past it to everything else.
+	left := 0
+	for _, it := range room.Items {
+		if !it.BaubleBelongsTo(room.RoomId) {
+			continue
+		}
+		if part, full := it.NameMatch(itemName, true); part || full {
+			leaveHouseholdBauble(user, it)
+			left++
+		}
+	}
+
 	picked := 0
 	for {
-		matchItem, found := room.FindOnFloor(itemName, false)
+		matchItem, found := takeableOnFloor(room, itemName)
 		if !found {
 			break
 		}
@@ -58,7 +72,9 @@ func getAllMatchingFromFloor(user *users.UserRecord, room *rooms.Room, itemName 
 		}
 	}
 	if picked == 0 {
-		user.SendText(messaging.CategorySystem, fmt.Sprintf(`You don't see any "%s" to pick up.`, itemName))
+		if left == 0 {
+			user.SendText(messaging.CategorySystem, fmt.Sprintf(`You don't see any "%s" to pick up.`, itemName))
+		}
 		return
 	}
 	user.SendText(messaging.CategorySystem, fmt.Sprintf(`You pick up %d item(s).`, picked))
@@ -213,6 +229,11 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 			iCopies := append([]items.Item{}, room.Items...)
 
 			for _, item := range iCopies {
+				// Never by accident: see getAllMatchingFromFloor.
+				if item.BaubleBelongsTo(room.RoomId) {
+					leaveHouseholdBauble(user, item)
+					continue
+				}
 				Get(item.Name(), user, room, flags)
 			}
 		}
@@ -614,6 +635,15 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 				user.SendText(messaging.CategorySystem, `You can't pick that up, it's about to explode!`)
 				return true, nil
 			}
+			// A bauble found in this household belongs to it. `get` never
+			// commits a crime: it refuses and names the steal command, which
+			// is the theft (actions/steal.go, stealHouseholdBauble).
+			if peekFound && !getFromStash && peekItem.BaubleBelongsTo(room.RoomId) {
+				user.SendText(messaging.CategorySystem, fmt.Sprintf(
+					`The <ansi fg="itemname">%s</ansi> belongs to this household. To take it anyway, <ansi fg="command">steal %s</ansi>.`,
+					peekItem.DisplayName(), stealWord(peekItem)))
+				return true, nil
+			}
 			if peekFound {
 				result := actions.GetItemFromFloor(&actions.UserActor{User: user, Room: room}, rest, getFromStash)
 				if result.Found {
@@ -780,4 +810,40 @@ func grantCorpseGold(user *users.UserRecord, amt int) {
 		UserId:     user.UserId,
 		GoldChange: -amt,
 	})
+}
+
+// takeableOnFloor is room.FindOnFloor over what may be swept up: the floor
+// without this room's household baubles.
+func takeableOnFloor(room *rooms.Room, itemName string) (items.Item, bool) {
+	takeable := make([]items.Item, 0, len(room.Items))
+	for _, it := range room.Items {
+		if !it.BaubleBelongsTo(room.RoomId) {
+			takeable = append(takeable, it)
+		}
+	}
+	closeMatch, match := items.FindMatchIn(itemName, takeable...)
+	if match.ItemId != 0 {
+		return match, true
+	}
+	if closeMatch.ItemId != 0 {
+		return closeMatch, true
+	}
+	return items.Item{}, false
+}
+
+// leaveHouseholdBauble tells a player sweeping the floor with `get all` that
+// a household's bauble was left alone.
+func leaveHouseholdBauble(user *users.UserRecord, itm items.Item) {
+	user.SendText(messaging.CategorySystem, fmt.Sprintf(
+		`You leave the <ansi fg="itemname">%s</ansi>: it belongs to this household. To take it anyway, <ansi fg="command">steal %s</ansi>.`,
+		itm.DisplayName(), stealWord(itm)))
+}
+
+// stealWord is the word to steal a household's bauble by: its keyword, or
+// "trinket" when the keyword is the generic one.
+func stealWord(itm items.Item) string {
+	if w := itm.GetSpec().NameSimple; w != `` {
+		return w
+	}
+	return `trinket`
 }

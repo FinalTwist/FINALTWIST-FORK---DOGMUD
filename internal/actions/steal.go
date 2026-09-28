@@ -3,7 +3,9 @@ package actions
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
@@ -19,6 +21,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/questengine"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/seeders"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/state"
@@ -28,8 +31,8 @@ import (
 )
 
 // StealOptions parameterizes a theft attempt.
-// Exactly one of TargetMobInstanceId / TargetUserId / ContainerNoun
-// must be set. ItemNoun narrows the steal to a specific item;
+// Exactly one of TargetMobInstanceId / TargetUserId / ContainerNoun /
+// HouseholdItem must be set. ItemNoun narrows the steal to a specific item;
 // when empty, the action defaults to gold-or-random-item per the
 // existing player-side logic.
 type StealOptions struct {
@@ -37,6 +40,10 @@ type StealOptions struct {
 	TargetUserId        int
 	ContainerNoun       string
 	ItemNoun            string
+	// HouseholdItem is a bauble on the floor that belongs to this room's
+	// household (found by searching their home: household_bauble.go).
+	// Taking it is the container theft's contest (stealObserverPass).
+	HouseholdItem items.Item
 }
 
 // StealResult is the structured outcome of a steal attempt.
@@ -49,6 +56,10 @@ type StealResult struct {
 	DefenderName  string // who/what was robbed
 	OnCooldown    bool   // attempt was blocked by skullduggery cooldown
 	Reason        string // when Succeeded==false and !OnCooldown, why
+	// Pending: a player's pickpocket of an NPC was rolled and its outcome
+	// is held back for the pause (steal_pocket.go); it is revealed, and
+	// its loot handed over, when the pause ends.
+	Pending bool
 }
 
 // stealVictimScore is the defender's half of every theft/plant contest:
@@ -105,13 +116,20 @@ func Steal(actor Actor, opts StealOptions) StealResult {
 
 	// Require a target.
 	if opts.TargetMobInstanceId == 0 && opts.TargetUserId == 0 &&
-		opts.ContainerNoun == "" {
+		opts.ContainerNoun == "" && opts.HouseholdItem.ItemId == 0 {
 		actor.SendText(messaging.CategorySystem, "Steal from whom?")
 		return StealResult{Reason: "no target"}
 	}
 
 	cfg := configs.GetBalanceConfig()
 	cooldownKey := skills.Skullduggery.String(`steal`)
+
+	// One pickpocket at a time: a thief still in one's pause starts no other
+	// (the cooldown normally covers this, but it may be set to nothing).
+	if actor.IsPlayer() && pocketPending(actor.GetUserId()) {
+		actor.SendText(messaging.CategorySystem, "Your hand is still in someone's pocket.")
+		return StealResult{Reason: "busy"}
+	}
 
 	// Check cooldown before doing target resolution.
 	if !char.TryCooldown(cooldownKey,
@@ -147,6 +165,10 @@ func Steal(actor Actor, opts StealOptions) StealResult {
 
 	if opts.TargetUserId > 0 {
 		return stealFromPlayer(actor, opts.TargetUserId, attackerScore, rank, cfg)
+	}
+
+	if opts.HouseholdItem.ItemId > 0 {
+		return stealHouseholdBauble(actor, opts.HouseholdItem, attackerScore, rank)
 	}
 
 	// Container path.
@@ -206,16 +228,32 @@ func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 
 	defenderScore := stealVictimScore(&m.Character, combat.SightRoom(actor.GetRoom()))
 	success := combat.RunContest(attackerScore, []contest.Entry{{Score: defenderScore}}).Success
+	// A player's pickpocket takes a moment, Dexterity-scaled: the roll above
+	// is final, the outcome is revealed when the pause ends
+	// (steal_pocket.go), and it is awarded THERE, with the outcome: awarded
+	// now, its skill-up line would give the roll away before the reveal,
+	// and a thief who walked off to dodge being caught would still train.
+	// A mob thief's is at once.
+	if actor.IsPlayer() {
+		return startPocketAttempt(actor, m, success)
+	}
 	// U10b-1 Task 18: moved DOWN from before the contest, and it now carries
 	// the outcome. This fired unconditionally at full weight -- the comment
 	// it replaced said "always fire regardless of roll outcome" -- so a
 	// thief who was caught trained exactly as much as one who got away.
 	// This site is a CUT on failure.
 	actor.AwardResolved(success, actor.GetCharacter().CandidateFor(string(skills.Skullduggery)))
-
-	room := actor.GetRoom()
-
 	if success {
+		return takeFromMob(actor, m, nil)
+	}
+	return caughtByMob(actor, m, actor.GetRoom())
+}
+
+// takeFromMob is a successful theft from a mob: some of its gold, one of
+// its items at random, and extra (a pickpocketed bauble), with one line
+// naming everything taken.
+func takeFromMob(actor Actor, m *mobs.Mob, extra []items.Item) StealResult {
+	{
 		result := StealResult{
 			Succeeded:    true,
 			DefenderName: m.Character.Name,
@@ -246,6 +284,9 @@ func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 		if itemStolen, found := m.Character.GetRandomItem(); found {
 			m.Character.RemoveItem(itemStolen)
 			actor.GetCharacter().StoreItem(itemStolen)
+			if itemStolen.IsBauble() && actor.IsPlayer() {
+				markPocketStolen(itemStolen, actor.GetUserId(), actor.GetRoom().RoomId, m)
+			}
 			result.StoleItemId = itemStolen.ItemId
 			result.StoleItemName = itemStolen.DisplayName()
 
@@ -273,6 +314,24 @@ func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 				fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, itemStolen.DisplayName()))
 		}
 
+		// A pickpocketed bauble, already out of the mark's pocket (or made
+		// for it; the caller queued the mark's loss when it had one). Too
+		// heavy to carry after all, it falls at the thief's feet.
+		for _, b := range extra {
+			if !actor.GetCharacter().StoreItem(b) {
+				b.LeaveBaubleAt(``, 0, baubleNow())
+				actor.GetRoom().AddItem(b, false)
+				stolenStuff = append(stolenStuff,
+					fmt.Sprintf(`<ansi fg="itemname">%s</ansi> (too much to carry: it falls at your feet)`, b.DisplayName()))
+				continue
+			}
+			if actor.IsPlayer() {
+				events.AddToQueue(events.ItemOwnership{UserId: actor.GetUserId(), Item: b, Gained: true})
+			}
+			stolenStuff = append(stolenStuff,
+				fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, b.DisplayName()))
+		}
+
 		if len(stolenStuff) == 0 {
 			actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 				`You deftly rifle through <ansi fg="mobname">%s</ansi>'s `+
@@ -293,8 +352,10 @@ func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 
 		return result
 	}
+}
 
-	// Failure — detected.
+// caughtByMob is a failed theft from a mob: caught in the act.
+func caughtByMob(actor Actor, m *mobs.Mob, room *rooms.Room) StealResult {
 	actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 		`<ansi fg="mobname">%s</ansi> catches you in the act!`,
 		m.Character.Name))
@@ -309,58 +370,7 @@ func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 		)
 	}
 
-	actor.GetCharacter().Awareness.TransitionToRevealing(state.TransitionReason{
-		Trigger: awareness.TriggerSkullduggeryFailed,
-	})
-
-	// Chunk 3.3: failed theft wakes a sleeping victim.
-	if m.Character.HasConditionFlag(conditions.Sleeping) {
-		m.Character.CancelConditionsWithFlag(conditions.Sleeping)
-		mobs.OnSleeperWoken(&m.Character)
-	}
-
-	// chunk 1.3: record theft crime on faction-aligned victim.
-	if factionIds := factions.FactionsForMob(m); len(factionIds) > 0 {
-		// All witnesses including the victim (excludeInstanceId=0).
-		witnesses := crimes.WitnessesInRoom(factionIds, room, 0)
-		perp := crimes.IdentifiedPerp(actor.GetUserId(), witnesses)
-		// External witnesses (excluding victim) for HadExternalWitness.
-		externalWitnesses := crimes.WitnessesInRoom(factionIds, room, m.InstanceId)
-		// HadExternalWitness asks whether the theft was identified by
-		// someone other than the victim, not merely noticed, so it reads
-		// Identifying.
-		hadExternal := len(externalWitnesses.Identifying) > 0
-		delta := int(configs.GetBalanceConfig().CrimeRepDeltaTheft)
-		for _, fid := range factionIds {
-			crimeIds := crimes.Record([]string{fid}, crimes.KindTheft, perp,
-				m, m.InstanceId, room.RoomId, m.Character.Zone, hadExternal)
-			if perp.Type == crimes.PerpPlayer {
-				factions.BumpRep(fid, actor.GetUserId(), delta)
-				justice.MaybeDeclareBounty(fid, actor.GetUserId(), crimes.KindTheft)
-				// Knowledge: each witness records the player as the perp of
-				// these crimes. Range Identifying only. perp is computed
-				// once for the whole room, so a single clear-sighted
-				// witness makes perp.Type PerpPlayer for everyone present;
-				// writing this player-subject knowledge for a shapes-only
-				// witness would record that mob knowing exactly who it was
-				// when all it saw was a figure.
-				subject := knowledge.PlayerSubject(actor.GetUserId())
-				for _, witnessInstId := range witnesses.Identifying {
-					w := mobs.GetInstance(witnessInstId)
-					if w == nil {
-						continue
-					}
-					for _, crimeId := range crimeIds {
-						knowledge.RecordCrimeWitnessed(int(w.MobId), subject, crimeId)
-					}
-					knowledge.RecordMet(int(w.MobId), subject, room.RoomId,
-						knowledge.SourceWitnessed)
-				}
-			}
-		}
-	}
-
-	m.Command(fmt.Sprintf(`attack @%d`, actor.GetUserId()))
+	thiefCaught(actor, m, room)
 
 	return StealResult{
 		Detected:     true,
@@ -510,63 +520,7 @@ func stealFromContainer(actor Actor, containerName string,
 		}
 	}
 
-	// Find the best observer (players + mobs, excluding party). U6b Task 15:
-	// this is the FOURTH steal contest, and it was scored on raw
-	// highest-observer Perception -- the same x0-skill defender class as the
-	// victim contests above. Observers now score stealVictimScore
-	// (Perception + skullduggery x SkillWeight): spotting a theft in
-	// progress is the same counter-craft as noticing one worked on you.
-	partySet := map[int]bool{}
-	if uid := actor.GetUserId(); uid > 0 {
-		partySet[uid] = true
-		if party := parties.Get(uid); party != nil {
-			for _, memberId := range party.GetMembers() {
-				partySet[memberId] = true
-			}
-		}
-	}
-	selfMobId := actor.GetMobInstanceId()
-
-	highestObserverScore := 0.0
-	spotterName := ""
-	hasObserver := false
-
-	for _, observerId := range room.GetPlayers() {
-		if partySet[observerId] {
-			continue
-		}
-		observer := users.GetByUserId(observerId)
-		if observer == nil {
-			continue
-		}
-		obsScore := stealVictimScore(observer.Character, room)
-		if obsScore > highestObserverScore {
-			highestObserverScore = obsScore
-			spotterName = observer.Character.Name
-			hasObserver = true
-		}
-	}
-
-	for _, mobInstanceId := range room.GetMobs() {
-		if mobInstanceId == selfMobId {
-			continue
-		}
-		m := mobs.GetInstance(mobInstanceId)
-		if m == nil {
-			continue
-		}
-		obsScore := stealVictimScore(&m.Character, room)
-		if obsScore > highestObserverScore {
-			highestObserverScore = obsScore
-			spotterName = m.Character.Name
-			hasObserver = true
-		}
-	}
-
-	success := true
-	if hasObserver {
-		success = combat.RunContest(attackerScore, []contest.Entry{{Score: highestObserverScore}}).Success
-	}
+	success, spotterName, _ := stealObserverPass(actor, room, attackerScore)
 	// U10b-1 Task 18: moved DOWN from before the contest. success here means
 	// NOT SPOTTED: it starts true (no observer present is an uncontested
 	// win) and only a lost observer contest clears it. Previously this
@@ -656,4 +610,232 @@ func stealFromContainer(actor Actor, containerName string,
 	}
 
 	return result
+}
+
+// thiefCaught is what follows when m catches actor stealing in room: the
+// thief is revealed, a sleeping m wakes, the theft is recorded as a crime
+// against m's factions (reputation, bounty, witnesses' knowledge), and m
+// attacks. Shared by stealFromMob and taking a household's bauble
+// (household_bauble.go); the caller sends its own "caught" messages first.
+func thiefCaught(actor Actor, m *mobs.Mob, room *rooms.Room) {
+	actor.GetCharacter().Awareness.TransitionToRevealing(state.TransitionReason{
+		Trigger: awareness.TriggerSkullduggeryFailed,
+	})
+
+	// Chunk 3.3: failed theft wakes a sleeping victim.
+	if m.Character.HasConditionFlag(conditions.Sleeping) {
+		m.Character.CancelConditionsWithFlag(conditions.Sleeping)
+		mobs.OnSleeperWoken(&m.Character)
+	}
+
+	// chunk 1.3: record theft crime on faction-aligned victim.
+	if factionIds := factions.FactionsForMob(m); len(factionIds) > 0 {
+		// All witnesses including the victim (excludeInstanceId=0).
+		witnesses := crimes.WitnessesInRoom(factionIds, room, 0)
+		perp := crimes.IdentifiedPerp(actor.GetUserId(), witnesses)
+		// External witnesses (excluding victim) for HadExternalWitness.
+		externalWitnesses := crimes.WitnessesInRoom(factionIds, room, m.InstanceId)
+		// HadExternalWitness asks whether the theft was identified by
+		// someone other than the victim, not merely noticed, so it reads
+		// Identifying.
+		hadExternal := len(externalWitnesses.Identifying) > 0
+		delta := int(configs.GetBalanceConfig().CrimeRepDeltaTheft)
+		for _, fid := range factionIds {
+			crimeIds := crimes.Record([]string{fid}, crimes.KindTheft, perp,
+				m, m.InstanceId, room.RoomId, m.Character.Zone, hadExternal)
+			if perp.Type == crimes.PerpPlayer {
+				factions.BumpRep(fid, actor.GetUserId(), delta)
+				justice.MaybeDeclareBounty(fid, actor.GetUserId(), crimes.KindTheft)
+				// Knowledge: each witness records the player as the perp of
+				// these crimes. Range Identifying only. perp is computed
+				// once for the whole room, so a single clear-sighted
+				// witness makes perp.Type PerpPlayer for everyone present;
+				// writing this player-subject knowledge for a shapes-only
+				// witness would record that mob knowing exactly who it was
+				// when all it saw was a figure.
+				subject := knowledge.PlayerSubject(actor.GetUserId())
+				for _, witnessInstId := range witnesses.Identifying {
+					w := mobs.GetInstance(witnessInstId)
+					if w == nil {
+						continue
+					}
+					for _, crimeId := range crimeIds {
+						knowledge.RecordCrimeWitnessed(int(w.MobId), subject, crimeId)
+					}
+					knowledge.RecordMet(int(w.MobId), subject, room.RoomId,
+						knowledge.SourceWitnessed)
+				}
+			}
+		}
+	}
+
+	// A victim that cannot be fought (a non-combatant shopkeeper, a
+	// player-attack-immune NPC) does not attack; it has already raised the
+	// crime above. stealFromMob never reaches here with one (it refuses to
+	// steal from them), so for `steal` this changes nothing.
+	if !m.IsNonCombatant() && !m.PlayerAttackImmune {
+		m.Command(fmt.Sprintf(`attack @%d`, actor.GetUserId()))
+	}
+}
+
+// stealObserverPass is the theft observer contest: the thief's
+// attackerScore against the best-placed observer in the room (players
+// outside the thief's party, and mobs), each scored stealVictimScore. With
+// no observer the thief is unseen without a roll. spotter is that observer's
+// name, and spotterMob the mob when it was one (nil for a player).
+//
+// Shared by stealing from a room container and taking a household's bauble
+// (stealHouseholdBauble): both are lifting something from a place while
+// whoever is there might notice.
+func stealObserverPass(actor Actor, room *rooms.Room, attackerScore float64) (success bool, spotterName string, spotterMob *mobs.Mob) {
+	// Find the best observer (players + mobs, excluding party). U6b Task 15:
+	// this is the FOURTH steal contest, and it was scored on raw
+	// highest-observer Perception -- the same x0-skill defender class as the
+	// victim contests above. Observers now score stealVictimScore
+	// (Perception + skullduggery x SkillWeight): spotting a theft in
+	// progress is the same counter-craft as noticing one worked on you.
+	partySet := map[int]bool{}
+	if uid := actor.GetUserId(); uid > 0 {
+		partySet[uid] = true
+		if party := parties.Get(uid); party != nil {
+			for _, memberId := range party.GetMembers() {
+				partySet[memberId] = true
+			}
+		}
+	}
+	selfMobId := actor.GetMobInstanceId()
+
+	highestObserverScore := 0.0
+	hasObserver := false
+
+	for _, observerId := range room.GetPlayers() {
+		if partySet[observerId] {
+			continue
+		}
+		observer := users.GetByUserId(observerId)
+		if observer == nil {
+			continue
+		}
+		obsScore := stealVictimScore(observer.Character, combat.SightRoom(room))
+		if obsScore > highestObserverScore {
+			highestObserverScore = obsScore
+			spotterName = observer.Character.Name
+			spotterMob = nil
+			hasObserver = true
+		}
+	}
+
+	for _, mobInstanceId := range room.GetMobs() {
+		if mobInstanceId == selfMobId {
+			continue
+		}
+		m := mobs.GetInstance(mobInstanceId)
+		if m == nil {
+			continue
+		}
+		obsScore := stealVictimScore(&m.Character, combat.SightRoom(room))
+		if obsScore > highestObserverScore {
+			highestObserverScore = obsScore
+			spotterName = m.Character.Name
+			spotterMob = m
+			hasObserver = true
+		}
+	}
+
+	success = true
+	if hasObserver {
+		success = combat.RunContest(attackerScore, []contest.Entry{{Score: highestObserverScore}}).Success
+	}
+	return success, spotterName, spotterMob
+}
+
+// stealHouseholdBauble takes a bauble that belongs to this room's household
+// (`steal doll`): the steal checks throughout. The cooldown, the combat
+// gates and the thief's score (Dexterity + skullduggery, plus the hidden
+// bonus when sneaking) are Steal's; skullduggery rank 2 is required, as for
+// every theft; and the contest is the container theft's observer pass.
+//
+// Caught by one of the household (a resident, isResident) is caught
+// stealing from them: thiefCaught, the crime against their factions and
+// their attack, exactly as stealing from a mob. Spotted by anyone else, the
+// thief is revealed, as in a container theft. Either way the bauble stays.
+// Taken unseen, it is marked stolen in the catalog.
+func stealHouseholdBauble(actor Actor, itm items.Item, attackerScore float64, rank int) StealResult {
+	room := actor.GetRoom()
+	char := actor.GetCharacter()
+	name := itm.DisplayName()
+
+	if !itm.BaubleBelongsTo(room.RoomId) {
+		actor.SendText(messaging.CategorySystem, "You don't see that here.")
+		return StealResult{Reason: "not found"}
+	}
+	if rank < 2 {
+		actor.SendText(messaging.CategorySystem, "You aren't advanced enough at skullduggery for that.")
+		return StealResult{Reason: "not advanced enough"}
+	}
+	// Too heavy to lift is not a theft.
+	if char.GetCarriedWeight()+itm.GetSpec().GetWeight() > char.CarryCapacity()*2.0 {
+		actor.SendText(messaging.CategorySystem,
+			fmt.Sprintf(`You can't carry the <ansi fg="itemname">%s</ansi> - you're already overloaded!`, name))
+		return StealResult{Reason: "overloaded"}
+	}
+
+	if actor.IsPlayer() {
+		if u := users.GetByUserId(actor.GetUserId()); u != nil {
+			bridge := questengine.NewGameBridge(u, room.RoomId)
+			questengine.GetEngine().Notify("command", questengine.EventDetails{
+				UserId:  actor.GetUserId(),
+				RoomId:  room.RoomId,
+				Command: "steal",
+			}, bridge, bridge)
+		}
+	}
+
+	success, spotterName, spotterMob := stealObserverPass(actor, room, attackerScore)
+	actor.AwardResolved(success, char.CandidateFor(string(skills.Skullduggery)))
+
+	if !success {
+		actor.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`<ansi fg="mobname">%s</ansi> spots you reaching for the <ansi fg="itemname">%s</ansi>!`,
+			spotterName, name))
+		room.SendTextVisual(messaging.CategoryMobEmote,
+			fmt.Sprintf(`<ansi fg="username">%s</ansi> is caught trying to pocket the <ansi fg="itemname">%s</ansi>!`,
+				actor.GetName(), name),
+			actor.GetUserId(),
+		)
+		if spotterMob != nil && householdMember(spotterMob, room) {
+			householdCaught(actor, spotterMob, room)
+		} else {
+			actor.GetCharacter().Awareness.TransitionToRevealing(state.TransitionReason{
+				Trigger: awareness.TriggerSkullduggeryFailed,
+			})
+		}
+		return StealResult{Detected: true, DefenderName: spotterName, Reason: "detected"}
+	}
+
+	if !char.StoreItem(itm) {
+		actor.SendText(messaging.CategorySystem,
+			fmt.Sprintf(`You can't carry the <ansi fg="itemname">%s</ansi> - you're already overloaded!`, name))
+		return StealResult{Reason: "overloaded"}
+	}
+	room.RemoveItem(itm, false)
+	if actor.IsPlayer() {
+		events.AddToQueue(events.ItemOwnership{UserId: actor.GetUserId(), Item: itm, Gained: true})
+	} else {
+		events.AddToQueue(events.ItemOwnership{MobInstanceId: actor.GetMobInstanceId(), Item: itm, Gained: true})
+	}
+
+	theft := baubles.Theft{ByUserId: actor.GetUserId(), RoomId: room.RoomId}
+	if resident, ok := HouseholdResident(room); ok {
+		theft.FromMob = int(resident.MobId)
+		theft.FromName = resident.Character.Name
+		if fids := factions.FactionsForMob(resident); len(fids) > 0 {
+			theft.Faction = fids[0]
+		}
+	}
+	baubles.MarkStolen(itm.Bauble, theft, time.Now())
+
+	actor.SendText(messaging.CategoryLoot, fmt.Sprintf(
+		`You quietly slip the <ansi fg="itemname">%s</ansi> into your pack.`, name))
+	return StealResult{Succeeded: true, StoleItemId: itm.ItemId, StoleItemName: name}
 }

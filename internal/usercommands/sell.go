@@ -99,6 +99,12 @@ func Sell(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		user.EventLog.Add(`shop`, fmt.Sprintf(`Sold your <ansi fg="itemname">%s</ansi> for <ansi fg="gold">%d gold</ansi>`, displayName, res.TotalGold))
 		user.SendText(messaging.CategorySystem, fmt.Sprintf(`You sell a <ansi fg="itemname">%s</ansi> for <ansi fg="gold">%d gold</ansi>.`, displayName, res.TotalGold))
 		room.SendTextVisual(messaging.CategoryLoot, fmt.Sprintf(`<ansi fg="username">%s</ansi> sells a <ansi fg="itemname">%s</ansi>.`, user.Character.Name, displayName), user.UserId)
+	} else if res.Mixed {
+		// Different things (every bauble has its own name): count them
+		// rather than pluralising the last one.
+		user.EventLog.Add(`shop`, fmt.Sprintf(`Sold %d items for <ansi fg="gold">%d gold</ansi>`, res.Sold, res.TotalGold))
+		user.SendText(messaging.CategorySystem, fmt.Sprintf(`You sell %d items for <ansi fg="gold">%d gold</ansi>.`, res.Sold, res.TotalGold))
+		room.SendTextVisual(messaging.CategoryLoot, fmt.Sprintf(`<ansi fg="username">%s</ansi> sells %d items.`, user.Character.Name, res.Sold), user.UserId)
 	} else {
 		pluralName := displayName + "s"
 		user.EventLog.Add(`shop`, fmt.Sprintf(`Sold %d <ansi fg="itemname">%s</ansi> for <ansi fg="gold">%d gold</ansi>`, res.Sold, pluralName, res.TotalGold))

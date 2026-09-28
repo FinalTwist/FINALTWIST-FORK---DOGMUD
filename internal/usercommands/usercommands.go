@@ -64,6 +64,7 @@ var (
 		`ai-list`:         {AiList, true, true, true},      // Admin only
 		`badcommands`:     {BadCommands, true, true, true}, // Admin only
 		`bash`:            {Bash, false, true, false},
+		`bauble`:          {Bauble, true, true, true}, // Admin only: bauble catalog (docs/baubles)
 		`bug`:             {Bug, true, true, false},
 		`biome`:           {Biome, true, true, false},
 		`ban`:             {Ban, true, true, true},   // Admin only — account/IP ban

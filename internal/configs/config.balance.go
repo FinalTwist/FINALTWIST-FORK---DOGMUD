@@ -287,6 +287,9 @@ type Balance struct {
 	SneakFailCooldown           ConfigInt   `yaml:"SneakFailCooldown"`           // Absent/zero means no failure cooldown; an invalid negative falls back to 3
 	StealHiddenBonus            ConfigInt   `yaml:"StealHiddenBonus"`            // Bonus to attacker score when hidden (default 25)
 	StealCooldown               ConfigInt   `yaml:"StealCooldown"`               // Steal/plant cooldown in real seconds (default 60)
+	StealPocketSeconds          ConfigFloat `yaml:"StealPocketSeconds"`          // Real seconds a player's pickpocket takes at Dexterity 100; it scales with 100/Dexterity, so a quicker hand is faster (default 3)
+	StealPocketMinSeconds       ConfigFloat `yaml:"StealPocketMinSeconds"`       // Shortest pickpocket pause, however high Dexterity is (default 1.5)
+	StealPocketMaxSeconds       ConfigFloat `yaml:"StealPocketMaxSeconds"`       // Longest pickpocket pause, however low Dexterity is (default 6)
 	ShadowCooldown              ConfigInt   `yaml:"ShadowCooldown"`              // Rounds before re-shadowing (default 5)
 	HiddenMoveStaminaMultiplier ConfigFloat `yaml:"HiddenMoveStaminaMultiplier"` // Extra stamina cost multiplier for moving while hidden (default 3.0)
 	SneakModEmitsLightDarkRoom  ConfigFloat `yaml:"SneakModEmitsLightDarkRoom"`  // Sneak score multiplier: sneaker emits light, room dark (default 0.5)
@@ -887,6 +890,34 @@ type Balance struct {
 	GuildFoundingCost           ConfigInt   `yaml:"GuildFoundingCost"`                  // One-time gold cost (from bank) to found a guild (default 5000).
 	GuildVaultCapacity          ConfigInt   `yaml:"GuildVaultCapacity"`                 // Max items a guild vault holds (default 100).
 
+	// ── BAUBLES (docs/baubles) ───────────────────────────────────────────────
+	// Sell-only loot found by `search`. Defaults are set in
+	// config.balance.baubles.go; the ladder is validated as a whole (see there).
+	BaublesEnabled             ConfigBool         `yaml:"BaublesEnabled"`             // true turns baubles on: search finds them (default false: off, and search is exactly as it was)
+	BaubleSearchChancePct      ConfigFloat        `yaml:"BaubleSearchChancePct"`      // Percent chance per roll in a room whose biome is not in BaubleBiomeChancePct (default 1)
+	BaubleBiomeChancePct       map[string]float64 `yaml:"BaubleBiomeChancePct"`       // Percent chance per roll by room biome: buildings high, streets middling, wilderness low (defaults in config.balance.baubles.go)
+	BaubleSkillMaxBonus        ConfigFloat        `yaml:"BaubleSkillMaxBonus"`        // How much search skill raises the chance at SkillSoftCap: 1.0 doubles it; the bonus grows with the square root of rank (default 1.0)
+	BaubleRollsPerWindow       ConfigInt          `yaml:"BaubleRollsPerWindow"`       // Bauble rolls a room offers per window (default 2)
+	BaubleFeatureWindowMinutes ConfigInt          `yaml:"BaubleFeatureWindowMinutes"` // Real minutes a room feature (noun or container, `search bookshelf`) stays searched: it can be searched once per this long, apart from the room's own rolls (default 60)
+	BaubleUntakenHours         ConfigInt          `yaml:"BaubleUntakenHours"`         // Real hours a found bauble left lying in a room (a household's, too heavy, finder gone) stays before it vanishes (default 24)
+	BaubleWindowMinutes        ConfigInt          `yaml:"BaubleWindowMinutes"`        // Real minutes before a room's rolls reset, counted from the window's first roll (default 60)
+	BaubleWindowPerPlayer      ConfigBool         `yaml:"BaubleWindowPerPlayer"`      // false: a room's rolls are shared by everyone; true: each player gets their own (default false)
+	BaubleRevealSeconds        ConfigInt          `yaml:"BaubleRevealSeconds"`        // Least real seconds a find takes to reach the player, so model-named and generic finds arrive at one pace (default 3)
+	BaublePickpocketChancePct  ConfigFloat        `yaml:"BaublePickpocketChancePct"`  // Percent chance a successful pickpocket of an NPC carrying no bauble turns one up (default 50; -1 never)
+	BaublePickpocketMaxWeight  ConfigFloat        `yaml:"BaublePickpocketMaxWeight"`  // Heaviest a pickpocketed bauble may be, in pounds: pocket-sized (default 1.0)
+	BaublePickpocketGraceSecs  ConfigFloat        `yaml:"BaublePickpocketGraceSecs"`  // Real seconds past the pickpocket pause a bauble's naming is waited for before it is a generic trinket (default 5)
+	BaubleExcludedZones        ConfigSliceString  `yaml:"BaubleExcludedZones"`        // Zones where search never finds baubles (default none; instances are always excluded)
+	BaubleTierWeightCheap      ConfigInt          `yaml:"BaubleTierWeightCheap"`      // Relative chance a find is cheap (default 70)
+	BaubleTierWeightAverage    ConfigInt          `yaml:"BaubleTierWeightAverage"`    // Relative chance a find is average (default 25)
+	BaubleTierWeightRare       ConfigInt          `yaml:"BaubleTierWeightRare"`       // Relative chance a find is rare (default 5)
+	BaubleCheapMinValue        ConfigInt          `yaml:"BaubleCheapMinValue"`        // Cheap tier gold range (default 1 to 6)
+	BaubleCheapMaxValue        ConfigInt          `yaml:"BaubleCheapMaxValue"`        // Cheap tier upper bound
+	BaubleAverageMinValue      ConfigInt          `yaml:"BaubleAverageMinValue"`      // Average tier gold range (default 10 to 15)
+	BaubleAverageMaxValue      ConfigInt          `yaml:"BaubleAverageMaxValue"`      // Average tier upper bound
+	BaubleRareMinValue         ConfigInt          `yaml:"BaubleRareMinValue"`         // Rare tier gold range (default 40 to 200)
+	BaubleRareMaxValue         ConfigInt          `yaml:"BaubleRareMaxValue"`         // Rare tier upper bound
+	BaubleBuyerCraftSupports   ConfigSliceString  `yaml:"BaubleBuyerCraftSupports"`   // Living-economy shop craft_support values that buy baubles (default general, jewelcrafting)
+
 	// ── WAREHOUSES (Stage 3 ferry system) ────────────────────────────────────
 	WarehouseItemCap      ConfigInt `yaml:"WarehouseItemCap,omitempty"`      // Per-item stock cap in city warehouses (default 4,000,000 — effectively unbounded)
 	WarehouseAccrualHours ConfigInt `yaml:"WarehouseAccrualHours,omitempty"` // Game-hours between ambient accrual ticks (default 2)
@@ -1236,6 +1267,7 @@ func (b *Balance) Validate() {
 	b.validateSpells()
 	b.validateDiscovery()
 	b.validateShops()
+	b.validateBaubles()
 	b.validateMisc()
 	b.validateLighting()
 }

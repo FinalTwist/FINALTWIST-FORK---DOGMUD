@@ -9,6 +9,7 @@ import (
 	_ "github.com/GoMudEngine/GoMud/modules/achievements"
 	_ "github.com/GoMudEngine/GoMud/modules/aicompanion"
 	_ "github.com/GoMudEngine/GoMud/modules/auctions"
+	_ "github.com/GoMudEngine/GoMud/modules/baubles"
 	_ "github.com/GoMudEngine/GoMud/modules/cleanup"
 	_ "github.com/GoMudEngine/GoMud/modules/follow"
 	_ "github.com/GoMudEngine/GoMud/modules/gmcp"

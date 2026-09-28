@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -38,11 +39,12 @@ func withWebDomain(t *testing.T, domain string) {
 func relayModule(t *testing.T) *AICompanionModule {
 	t.Helper()
 	withWebDomain(t, `example.org`)
+	freshServer(t, 5000, 3, 60)
 	m := &AICompanionModule{cfg: Config{Enabled: true, PlayerKeys: true, RelayOrigin: `https://keys.example.org`,
 		BreakerErrors: 3, BreakerSeconds: 60,
-		DailyTokenBudget: 5000, DailyTokensPerCompanion: 1000, StrangerDailyTokens: 1000}}
+		DailyTokensPerCompanion: 1000, StrangerDailyTokens: 1000}}
 	m.relays = newRelayTable()
-	m.relays.ready(5, `player-model`)
+	m.relays.ready(5, `player-model`, false)
 	return m
 }
 
@@ -108,20 +110,19 @@ func TestPlayerKeysConfig(t *testing.T) {
 
 func TestRouteOrderRelayThenServerThenNone(t *testing.T) {
 	withWebDomain(t, `example.org`)
-	m := &AICompanionModule{cfg: Config{Enabled: true, PlayerKeys: true, RelayOrigin: `https://keys.example.org`,
-		APIKeyEnv: `AICOMPANION_TEST_KEY_NEVER_SET`}}
+	m := &AICompanionModule{cfg: Config{Enabled: true, PlayerKeys: true, RelayOrigin: `https://keys.example.org`}}
 	m.relays = newRelayTable()
 	if r := m.route(5); r.kind != routeNone {
 		t.Fatalf("no relay and no server key is tier 1, got %v", r.kind)
 	}
-	m.relays.ready(5, `gpt-4.1-mini`)
+	m.relays.ready(5, `gpt-4.1-mini`, false)
 	if r := m.route(5); r.kind != routeRelay || r.model != `gpt-4.1-mini` {
 		t.Fatalf("a live relay is used first, got %+v", r)
 	}
 	if r := m.route(6); r.kind != routeNone {
 		t.Fatalf("one owner's relay pays for nobody else, got %v", r.kind)
 	}
-	m.cfg.APIKey = `sk-server`
+	pointAt(m, apiframework.DefaultBaseURL, `sk-server`)
 	if r := m.route(5); r.kind != routeRelay {
 		t.Fatalf("the owner's relay is used before the server's key, got %v", r.kind)
 	}
@@ -130,7 +131,7 @@ func TestRouteOrderRelayThenServerThenNone(t *testing.T) {
 		t.Fatalf("with the relay gone the server key covers, got %v", r.kind)
 	}
 	m.cfg.PlayerKeys = false
-	m.relays.ready(5, `x`)
+	m.relays.ready(5, `x`, false)
 	if r := m.route(5); r.kind != routeServer {
 		t.Fatal("player keys switched off ignores a relay")
 	}
@@ -143,15 +144,15 @@ func TestRouteOrderRelayThenServerThenNone(t *testing.T) {
 
 func TestRelayFailuresTripOnlyThatOwnersBreaker(t *testing.T) {
 	m := relayModule(t)
-	m.relays.ready(6, `m`)
+	m.relays.ready(6, `m`, false)
 	now := time.Now()
 	for i := 0; i < 3; i++ {
-		m.routeResult(route{kind: routeRelay, model: `m`}, 5, errors.New(`provider said no`), now)
+		m.routeResult(route{kind: routeRelay, model: `m`}, 5, apiframework.Ticket{}, errors.New(`provider said no`), now)
 	}
 	if m.route(5).kind != routeNone {
 		t.Fatal("owner 5's own breaker must be open")
 	}
-	if m.route(6).kind != routeRelay || m.breakerOpen(now) || m.consecutiveErrors != 0 {
+	if m.route(6).kind != routeRelay || m.breakerOpen(now) || m.fw().ConsumerFailures(apiframework.ConsumerCompanion) != 0 {
 		t.Fatal("owner 6 and the global breaker are untouched")
 	}
 	if _, ok := m.relays.live(5, now.Add(61*time.Second)); !ok {
@@ -159,21 +160,21 @@ func TestRelayFailuresTripOnlyThatOwnersBreaker(t *testing.T) {
 	}
 
 	// A refusal at the door never left the server, and a success resets.
-	m.relays.ready(7, `m`)
+	m.relays.ready(7, `m`, false)
 	for i := 0; i < 3; i++ {
-		m.routeResult(route{kind: routeRelay}, 7, errNoConsent, now)
+		m.routeResult(route{kind: routeRelay}, 7, apiframework.Ticket{}, errNoConsent, now)
 	}
-	m.routeResult(route{kind: routeRelay}, 7, errors.New(`x`), now)
-	m.routeResult(route{kind: routeRelay}, 7, errors.New(`x`), now)
-	m.routeResult(route{kind: routeRelay}, 7, nil, now)
-	m.routeResult(route{kind: routeRelay}, 7, errors.New(`x`), now)
+	m.routeResult(route{kind: routeRelay}, 7, apiframework.Ticket{}, errors.New(`x`), now)
+	m.routeResult(route{kind: routeRelay}, 7, apiframework.Ticket{}, errors.New(`x`), now)
+	m.routeResult(route{kind: routeRelay}, 7, apiframework.Ticket{}, nil, now)
+	m.routeResult(route{kind: routeRelay}, 7, apiframework.Ticket{}, errors.New(`x`), now)
 	if m.route(7).kind != routeRelay {
 		t.Fatal("refusals do not count and a success clears the count")
 	}
 
 	// The server's key still trips the global breaker.
 	for i := 0; i < 3; i++ {
-		m.routeResult(route{kind: routeServer}, 6, errors.New(`x`), now)
+		m.routeResult(route{kind: routeServer}, 6, apiframework.Ticket{}, errors.New(`x`), now)
 	}
 	if !m.breakerOpen(now) {
 		t.Fatal("server-key failures open the global breaker")
@@ -182,11 +183,10 @@ func TestRelayFailuresTripOnlyThatOwnersBreaker(t *testing.T) {
 
 func TestModelReadyFollowsTheRoute(t *testing.T) {
 	m := relayModule(t)
-	m.cfg.APIKeyEnv = `AICOMPANION_TEST_KEY_NEVER_SET`
 	m.rollDay()
-	m.tokensToday = m.cfg.DailyTokenBudget
+	m.fw().SetSpentForTest(apiframework.Server().DailyTokenBudget, serverHeld(m))
 	m.ownerTokens[5] = m.cfg.DailyTokensPerCompanion
-	m.breakerUntil = time.Now().Add(time.Hour)
+	m.fw().SetBreakerForTest(0, time.Now().Add(time.Hour))
 	if !m.modelReadyFor(5, 0) || !m.modelReady(5) {
 		t.Fatal("the owner's own key is not held to the server's budgets or breaker")
 	}
@@ -196,15 +196,15 @@ func TestModelReadyFollowsTheRoute(t *testing.T) {
 	if m.modelReadyFor(6, 0) || m.modelReady() {
 		t.Fatal("no relay and no server key is no call")
 	}
-	m.cfg.APIKey = `k`
+	pointAt(m, apiframework.DefaultBaseURL, `k`)
 	if m.modelReadyFor(6, 0) {
 		t.Fatal("the server's key is still held to the breaker")
 	}
-	m.breakerUntil = time.Time{}
+	m.fw().SetBreakerForTest(0, time.Time{})
 	if m.modelReadyFor(6, 0) {
 		t.Fatal("and to the server's budget")
 	}
-	m.tokensToday = 0
+	m.fw().SetSpentForTest(0, serverHeld(m))
 	m.ownerTokens[6] = m.cfg.DailyTokensPerCompanion
 	if m.modelReadyFor(6, 0) || !m.modelReadyFor(6, 9) {
 		t.Fatal("the owner's allowance binds the owner's calls, not a passer-by's")
@@ -213,7 +213,7 @@ func TestModelReadyFollowsTheRoute(t *testing.T) {
 
 func TestApplyRouteUsesThePlayersModel(t *testing.T) {
 	m := relayModule(t)
-	m.cfg.APIKey = `k`
+	pointAt(m, apiframework.DefaultBaseURL, `k`)
 	call := modelCall{BaseURL: `https://api.openai.com/v1`, APIKey: `k`, Model: `server-model`, Effort: `low`, OwnerUserId: 5}
 	m.applyRoute(&call)
 	if call.Route.kind != routeRelay || call.Model != `player-model` || call.Effort != `` || call.APIKey != `` || call.BaseURL != `` {
@@ -230,18 +230,18 @@ func TestRelayCallsReserveNothingOfTheServers(t *testing.T) {
 	m := relayModule(t)
 	relay := route{kind: routeRelay, model: `player-model`}
 	m.rollDay()
-	m.tokensToday = m.cfg.DailyTokenBudget
+	m.fw().SetSpentForTest(apiframework.Server().DailyTokenBudget, serverHeld(m))
 	m.ownerTokens[5] = m.cfg.DailyTokensPerCompanion
 
 	if !tryRoute(m, relay, 5, 0, 900) {
 		t.Fatal("the owner's own key is not refused for the server's spent budgets")
 	}
-	if m.tokensToday != m.cfg.DailyTokenBudget || m.outstanding != 0 || m.ownerTokens[5] != m.cfg.DailyTokensPerCompanion {
-		t.Fatalf("and holds nothing against them: today=%d outstanding=%d owner=%d", m.tokensToday, m.outstanding, m.ownerTokens[5])
+	if serverSpent(m) != apiframework.Server().DailyTokenBudget || serverHeld(m) != 0 || m.ownerTokens[5] != m.cfg.DailyTokensPerCompanion {
+		t.Fatalf("and holds nothing against them: today=%d outstanding=%d owner=%d", serverSpent(m), serverHeld(m), m.ownerTokens[5])
 	}
 	settleToday(m, relay, 5, 0, 900, 700)
-	if m.tokensToday != m.cfg.DailyTokenBudget || m.outstanding != 0 || m.ownerTokens[5] != m.cfg.DailyTokensPerCompanion {
-		t.Fatalf("nor settles anything against them: today=%d outstanding=%d owner=%d", m.tokensToday, m.outstanding, m.ownerTokens[5])
+	if serverSpent(m) != apiframework.Server().DailyTokenBudget || serverHeld(m) != 0 || m.ownerTokens[5] != m.cfg.DailyTokensPerCompanion {
+		t.Fatalf("nor settles anything against them: today=%d outstanding=%d owner=%d", serverSpent(m), serverHeld(m), m.ownerTokens[5])
 	}
 	if tryRoute(m, route{kind: routeNone}, 5, 0, 1) {
 		t.Fatal("tier 1 reserves nothing because it calls nothing")
@@ -258,9 +258,9 @@ func TestStrangerRelayCallsStopAtTheStrangerCap(t *testing.T) {
 	if tryRoute(m, relay, 5, 2, 900) {
 		t.Fatal("a second that would overshoot it is refused while the first is held")
 	}
-	if m.strangerTokens[2] != 900 || m.tokensToday != 0 || m.outstanding != 0 || m.ownerTokens[5] != 0 {
+	if m.strangerTokens[2] != 900 || serverSpent(m) != 0 || serverHeld(m) != 0 || m.ownerTokens[5] != 0 {
 		t.Fatalf("held against the passer-by alone: stranger=%d today=%d outstanding=%d owner=%d",
-			m.strangerTokens[2], m.tokensToday, m.outstanding, m.ownerTokens[5])
+			m.strangerTokens[2], serverSpent(m), serverHeld(m), m.ownerTokens[5])
 	}
 	settleToday(m, relay, 5, 2, 900, 100)
 	if m.strangerTokens[2] != 100 {
@@ -308,12 +308,12 @@ func TestRelaySummaryChargesOnlyThePasserBy(t *testing.T) {
 	withWebDomain(t, `example.org`)
 	m.cfg.PlayerKeys, m.cfg.RelayOrigin = true, `https://keys.example.org`
 	m.relays = newRelayTable()
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	// On the owner's own key passers-by prompt nothing until the owner
 	// lets them.
 	m.bonds.Users[1].StrangersOn = true
 	m.rollDay()
-	m.tokensToday = m.cfg.DailyTokenBudget
+	m.fw().SetSpentForTest(apiframework.Server().DailyTokenBudget, serverHeld(m))
 	m.ownerTokens[1] = m.cfg.DailyTokensPerCompanion
 
 	util.LockMud()
@@ -344,10 +344,10 @@ func TestRelaySummaryChargesOnlyThePasserBy(t *testing.T) {
 	if hits.Load() != 0 {
 		t.Fatalf("a relay call never goes to the server's endpoint: %d requests", hits.Load())
 	}
-	if m.tokensToday != m.cfg.DailyTokenBudget || m.ownerTokens[1] != m.cfg.DailyTokensPerCompanion || m.outstanding != 0 {
-		t.Fatalf("the server's ledgers are untouched: today=%d owner=%d outstanding=%d", m.tokensToday, m.ownerTokens[1], m.outstanding)
+	if serverSpent(m) != apiframework.Server().DailyTokenBudget || m.ownerTokens[1] != m.cfg.DailyTokensPerCompanion || serverHeld(m) != 0 {
+		t.Fatalf("the server's ledgers are untouched: today=%d owner=%d outstanding=%d", serverSpent(m), m.ownerTokens[1], serverHeld(m))
 	}
-	if m.consecutiveErrors != 0 {
+	if m.fw().ConsumerFailures(apiframework.ConsumerCompanion) != 0 {
 		t.Fatal("a relay failure never counts toward the global breaker")
 	}
 }
@@ -363,11 +363,11 @@ func TestRelayReflectionAndCoreMemorySpendNothingOfTheServers(t *testing.T) {
 	m.cfg.PlayerKeys, m.cfg.RelayOrigin = true, `https://keys.example.org`
 	m.cfg.BreakerErrors = 10
 	m.relays = newRelayTable()
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	m.minds = map[string]*Mind{mindIdentifier(c.mind.OwnerUserId, c.mind.MobId): c.mind}
 	m.ctrls = map[int]*controller{c.ownerUserId: c}
 	m.rollDay()
-	m.tokensToday = m.cfg.DailyTokenBudget
+	m.fw().SetSpentForTest(apiframework.Server().DailyTokenBudget, serverHeld(m))
 	m.ownerTokens[1] = m.cfg.DailyTokensPerCompanion
 
 	now := time.Now().Unix()
@@ -398,11 +398,11 @@ func TestRelayReflectionAndCoreMemorySpendNothingOfTheServers(t *testing.T) {
 	}
 	util.LockMud()
 	defer util.UnlockMud()
-	if hits.Load() != 0 || m.consecutiveErrors != 0 {
-		t.Fatalf("nothing reached the server's endpoint (%d) or the global breaker (%d)", hits.Load(), m.consecutiveErrors)
+	if hits.Load() != 0 || m.fw().ConsumerFailures(apiframework.ConsumerCompanion) != 0 {
+		t.Fatalf("nothing reached the server's endpoint (%d) or the global breaker (%d)", hits.Load(), m.fw().ConsumerFailures(apiframework.ConsumerCompanion))
 	}
-	if m.tokensToday != m.cfg.DailyTokenBudget || m.ownerTokens[1] != m.cfg.DailyTokensPerCompanion || m.outstanding != 0 {
-		t.Fatalf("the server's ledgers are untouched: today=%d owner=%d outstanding=%d", m.tokensToday, m.ownerTokens[1], m.outstanding)
+	if serverSpent(m) != apiframework.Server().DailyTokenBudget || m.ownerTokens[1] != m.cfg.DailyTokensPerCompanion || serverHeld(m) != 0 {
+		t.Fatalf("the server's ledgers are untouched: today=%d owner=%d outstanding=%d", serverSpent(m), m.ownerTokens[1], serverHeld(m))
 	}
 	if len(c.mind.CoreMemories) != 1 || c.mind.CoreMemories[0].Text != `Something changed between Corvin and me here.` {
 		t.Fatalf("a failed call keeps the bare fact: %+v", c.mind.CoreMemories)
@@ -494,7 +494,7 @@ func deferredModule(t *testing.T) (*AICompanionModule, *controller, *fakeRelay) 
 // their relay is live.
 func TestReflectionWaitsForTheRelay(t *testing.T) {
 	m, c, f := deferredModule(t)
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	c.relaySeen = true
 	util.LockMud()
 	m.detachReflection(c, `Corvin`)
@@ -521,7 +521,7 @@ func TestReflectionWaitsForTheRelay(t *testing.T) {
 	if d := m.dueReflection(1, true); d != nil {
 		t.Fatal("not while the relay is down")
 	}
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	if d := m.dueReflection(1, false); d != nil {
 		t.Fatal("not while the owner is logged out, even with a relay up")
 	}
@@ -545,7 +545,7 @@ func TestReflectionWaitsForTheRelay(t *testing.T) {
 // online and whose relay is live, and it still passes the consent door.
 func TestTheRoundStartsAWaitingReflection(t *testing.T) {
 	m, c, f := deferredModule(t)
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	c.relaySeen = true
 	util.LockMud()
 	m.detachReflection(c, `Corvin`)
@@ -553,7 +553,7 @@ func TestTheRoundStartsAWaitingReflection(t *testing.T) {
 	// Consent withdrawn while they were away: nothing is sent.
 	m.bonds.Users[1].Consented, m.bonds.Users[1].Refused = false, true
 	m.saveBonds()
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	m.startDueReflection(1)
 	util.UnlockMud()
 	select {
@@ -563,12 +563,12 @@ func TestTheRoundStartsAWaitingReflection(t *testing.T) {
 	}
 
 	m, c, f = deferredModule(t)
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	c.relaySeen = true
 	util.LockMud()
 	m.detachReflection(c, `Corvin`)
 	m.relays.gone(1)
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	m.startDueReflection(1)
 	util.UnlockMud()
 	f.next(t)
@@ -579,7 +579,7 @@ func TestTheRoundStartsAWaitingReflection(t *testing.T) {
 func TestReflectionWithoutARelayRunsAtOnce(t *testing.T) {
 	srv, hits := countingServer(t)
 	m, c, f := deferredModule(t)
-	m.cfg.BaseURL = srv.URL
+	pointAt(m, srv.URL, m.apiKey())
 	util.LockMud()
 	m.detachReflection(c, `Corvin`)
 	util.UnlockMud()
@@ -672,8 +672,8 @@ func TestRelayFallbackNoticeOncePerSession(t *testing.T) {
 		}
 	}
 	now := time.Now()
-	m.routeResult(route{kind: routeRelay}, 5, errors.New(`model API status 500: boom`), now)
-	m.routeResult(route{kind: routeRelay}, 5, errors.New(`model API status 500: boom`), now)
+	m.routeResult(route{kind: routeRelay}, 5, apiframework.Ticket{}, errors.New(`model API status 500: boom`), now)
+	m.routeResult(route{kind: routeRelay}, 5, apiframework.Ticket{}, errors.New(`model API status 500: boom`), now)
 	if len(told) != 1 {
 		t.Fatalf("told once, got %d: %q", len(told), told)
 	}
@@ -685,14 +685,14 @@ func TestRelayFallbackNoticeOncePerSession(t *testing.T) {
 			t.Fatalf("the notice wraps at 80 columns: %q", told[0])
 		}
 	}
-	m.relays.ready(5, `player-model`)
-	m.routeResult(route{kind: routeServer}, 5, errors.New(`x`), now)
-	m.routeResult(route{kind: routeRelay}, 5, errRelayGone, now)
-	m.routeResult(route{kind: routeRelay}, 5, context.Canceled, now)
+	m.relays.ready(5, `player-model`, false)
+	m.routeResult(route{kind: routeServer}, 5, apiframework.Ticket{}, errors.New(`x`), now)
+	m.routeResult(route{kind: routeRelay}, 5, apiframework.Ticket{}, errRelayGone, now)
+	m.routeResult(route{kind: routeRelay}, 5, apiframework.Ticket{}, context.Canceled, now)
 	if len(told) != 1 {
 		t.Fatalf("only a relay call the provider failed is worth telling: %q", told)
 	}
-	m.routeResult(route{kind: routeRelay}, 5, errRelayTimeout, now)
+	m.routeResult(route{kind: routeRelay}, 5, apiframework.Ticket{}, errRelayTimeout, now)
 	if len(told) != 2 {
 		t.Fatalf("a relay that came back may be told again: %q", told)
 	}
@@ -761,7 +761,7 @@ func TestCompanionAIStrangersCommand(t *testing.T) {
 	withWebDomain(t, `example.org`)
 	m.cfg.PlayerKeys, m.cfg.RelayOrigin = true, `https://keys.example.org`
 	m.relays = newRelayTable()
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	events.DrainQueuedMessagesForTest(1)
 	for _, arg := range []string{`strangers off`, `strangers`, ``, `strangers  on`, `nonsense`, `on`, `off`, ``} {
 		if _, err := m.cmdAI(arg, owner, nil, 0); err != nil {
@@ -799,7 +799,7 @@ func TestSyncStartsTheWaitingReflection(t *testing.T) {
 	m.cfg.AutoBond = false
 	m.byMob = map[int]*Profile{c.profile.MobId: c.profile}
 	owner.Character.Companions = []characters.CompanionInfo{{MobId: c.profile.MobId, SourceType: characters.CompanionBonded}}
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	c.relaySeen = true
 	util.LockMud()
 	m.detachReflection(c, `Corvin`)
@@ -811,7 +811,7 @@ func TestSyncStartsTheWaitingReflection(t *testing.T) {
 	if m.deferredReflect[1] == nil || fresh.relaySeen {
 		t.Fatal("with the relay down the round starts nothing")
 	}
-	m.relays.ready(1, `player-model`)
+	m.relays.ready(1, `player-model`, false)
 	util.LockMud()
 	m.sync(2)
 	util.UnlockMud()
@@ -846,12 +846,12 @@ func TestRelayGoneAndCancelledSpareTheBreaker(t *testing.T) {
 	m := relayModule(t)
 	m.tell = func(int, string) {}
 	now := time.Now()
-	m.routeResult(route{kind: routeRelay}, 5, errRelayGone, now)
-	m.routeResult(route{kind: routeRelay}, 5, fmt.Errorf(`wrapped: %w`, context.Canceled), now)
+	m.routeResult(route{kind: routeRelay}, 5, apiframework.Ticket{}, errRelayGone, now)
+	m.routeResult(route{kind: routeRelay}, 5, apiframework.Ticket{}, fmt.Errorf(`wrapped: %w`, context.Canceled), now)
 	if n := m.relays.owners[5].failures; n != 0 {
 		t.Fatalf("gone and cancelled count nothing, got %d", n)
 	}
-	m.routeResult(route{kind: routeRelay}, 5, errRelayTimeout, now)
+	m.routeResult(route{kind: routeRelay}, 5, apiframework.Ticket{}, errRelayTimeout, now)
 	if n := m.relays.owners[5].failures; n != 1 {
 		t.Fatalf("control: a silent provider counts, got %d", n)
 	}

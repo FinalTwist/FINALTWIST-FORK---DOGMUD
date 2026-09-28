@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -31,12 +32,8 @@ func TestBuildConfigDefaultsAndFloors(t *testing.T) {
 	if c.DailyTokensPerCompanion != 300000 || c.StrangerDailyTokens != 50000 || c.DeepModel == `` {
 		t.Fatalf("budget defaults: %d %d %q", c.DailyTokensPerCompanion, c.StrangerDailyTokens, c.DeepModel)
 	}
-	if c.DailyTokenBudget != 2000000 {
-		t.Fatalf("default budget: %d", c.DailyTokenBudget)
-	}
-	if c.BaseURL != `https://api.openai.com/v1` || c.APIKeyEnv != `OPENAI_API_KEY` {
-		t.Fatalf("defaults not applied: %+v", c)
-	}
+	// The key, the endpoint and the day's token budget are the server's,
+	// shared with every feature (apiframework; APIFramework config).
 	if !c.GreetOnLogin {
 		t.Fatal("GreetOnLogin should default to true")
 	}
@@ -47,8 +44,6 @@ func TestBuildConfigDefaultsAndFloors(t *testing.T) {
 		`WorkingMemoryLines`:    20,
 		`PromptMemoryLines`:     float64(99),
 		`GreetOnLogin`:          false,
-		`BaseURL`:               `https://example.test/v1/`,
-		`AllowCustomEndpoint`:   true,
 	}
 	c = buildConfig(func(k string) any { return vals[k] })
 	if !c.Enabled {
@@ -62,9 +57,6 @@ func TestBuildConfigDefaultsAndFloors(t *testing.T) {
 	}
 	if c.GreetOnLogin {
 		t.Fatal("explicit GreetOnLogin false ignored")
-	}
-	if c.BaseURL != `https://example.test/v1` {
-		t.Fatalf("trailing slash not trimmed: %q", c.BaseURL)
 	}
 }
 
@@ -945,18 +937,19 @@ func TestModelTierRouting(t *testing.T) {
 }
 
 func TestBreakerAndBudgets(t *testing.T) {
-	m := &AICompanionModule{cfg: Config{BreakerErrors: 2, BreakerSeconds: 30, DailyTokensPerCompanion: 100}}
+	freshServer(t, 2000000, 2, 30) // the server key's breaker is apiframework's
+	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 100}}
 	now := time.Unix(1000, 0)
-	m.breakerResult(fmt.Errorf(`x`), now)
+	m.breakerResult(apiframework.Ticket{}, fmt.Errorf(`x`), now)
 	if m.breakerOpen(now) {
 		t.Fatal("one error must not open the breaker")
 	}
-	m.breakerResult(fmt.Errorf(`x`), now)
+	m.breakerResult(apiframework.Ticket{}, fmt.Errorf(`x`), now)
 	if !m.breakerOpen(now) || m.breakerOpen(now.Add(31*time.Second)) {
 		t.Fatal("breaker should open for its cooldown only")
 	}
-	m.breakerResult(nil, now)
-	if m.consecutiveErrors != 0 {
+	m.breakerResult(apiframework.Ticket{}, nil, now)
+	if m.fw().ConsumerFailures(apiframework.ConsumerCompanion) != 0 {
 		t.Fatal("a success resets the count")
 	}
 	m.chargeOwner(7, 90)
@@ -974,9 +967,15 @@ func TestBreakerAndBudgets(t *testing.T) {
 
 func TestModerationRemovesFlaggedLines(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var req moderationRequest
+		var req struct {
+			Input []string `json:"input"`
+		}
 		_ = json.NewDecoder(r.Body).Decode(&req)
-		var out moderationResponse
+		var out struct {
+			Results []struct {
+				Flagged bool `json:"flagged"`
+			} `json:"results"`
+		}
 		for _, in := range req.Input {
 			out.Results = append(out.Results, struct {
 				Flagged bool `json:"flagged"`
@@ -1048,12 +1047,11 @@ func TestContextHelpers(t *testing.T) {
 }
 
 func TestWireMessagesAndTools(t *testing.T) {
-	msgs := toWire([]chatMessage{
+	b, _ := apiframework.Chat{Messages: []chatMessage{
 		{Role: `user`, Content: `hi`},
 		{Role: `assistant`, ToolCalls: []toolCall{{Id: `c1`, Type: `function`, Function: toolFunction{Name: `recall`, Arguments: `{"query":"mill"}`}}}},
 		{Role: `tool`, ToolCallId: `c1`, Content: `Nothing comes to mind about that.`},
-	})
-	b, _ := json.Marshal(msgs)
+	}}.Body()
 	s := string(b)
 	if !strings.Contains(s, `"role":"assistant","content":null,"tool_calls"`) || !strings.Contains(s, `"tool_call_id":"c1"`) {
 		t.Fatalf("wire format: %s", s)
@@ -1242,7 +1240,8 @@ func TestCapabilityWordsMatchConfig(t *testing.T) {
 }
 
 func TestTokenReservationSettles(t *testing.T) {
-	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000, DailyTokenBudget: 5000}}
+	freshServer(t, 5000, 5, 60)
+	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000}}
 	if !m.tryReserveTokens(3, 900) {
 		t.Fatal("a call that fits must be admitted")
 	}
@@ -1261,7 +1260,7 @@ func TestTokenReservationSettles(t *testing.T) {
 		t.Fatalf("owner tokens after settlement: %d", m.ownerTokens[3])
 	}
 	m.settleTokens(3, 0, -500)
-	if m.tokensToday < 0 || m.ownerTokens[3] < 0 {
+	if serverSpent(m) < 0 || m.ownerTokens[3] < 0 {
 		t.Fatal("counters must not go negative")
 	}
 	// The whole worst case is held, not one completion's worth, and each
@@ -1279,28 +1278,8 @@ func TestTokenReservationSettles(t *testing.T) {
 	}
 }
 
-func TestEndpointMustBeOpenAIOverHTTPS(t *testing.T) {
-	if !endpointAllowed(`https://api.openai.com/v1`, false) {
-		t.Fatal("the official endpoint must be allowed")
-	}
-	for _, bad := range []string{`http://api.openai.com/v1`, `https://evil.example.com/v1`, `notaurl`} {
-		if endpointAllowed(bad, false) {
-			t.Errorf("%q must be refused without AllowCustomEndpoint", bad)
-		}
-	}
-	if !endpointAllowed(`https://llm.internal.example/v1`, true) {
-		t.Fatal("an operator may point at another provider deliberately")
-	}
-	refused := buildConfig(func(k string) any {
-		if k == `BaseURL` {
-			return `http://somewhere.else/v1`
-		}
-		return nil
-	})
-	if refused.BaseURL != `https://api.openai.com/v1` || refused.RejectedBaseURL == `` {
-		t.Fatalf("a refused endpoint falls back to the official one and is recorded: %q", refused.BaseURL)
-	}
-}
+// The endpoint rule (OpenAI over https unless AllowCustomEndpoint) is the
+// server's, in apiframework, and tested there.
 
 func TestEveryModelRefusedMeansNoModel(t *testing.T) {
 	mc := &modelChooser{}
@@ -1794,16 +1773,17 @@ func TestBudgetCountsTheWholeRequest(t *testing.T) {
 	}
 	// A reservation outstanding over the day boundary is not credited back
 	// against the new day.
-	m := &AICompanionModule{cfg: Config{DailyTokenBudget: 1000}}
+	freshServer(t, 1000, 5, 60)
+	m := &AICompanionModule{cfg: Config{}}
 	m.tryReserveTokens(1, 600)
 	m.budgetDay = `1999-01-01`
 	m.rollDay()
-	if m.tokensToday != 600 {
-		t.Fatalf("outstanding reservations carry over the rollover, got %d", m.tokensToday)
+	if serverSpent(m) != 600 {
+		t.Fatalf("outstanding reservations carry over the rollover, got %d", serverSpent(m))
 	}
 	m.settleTokens(1, 600, 100)
-	if m.tokensToday != 100 || m.outstanding != 0 {
-		t.Fatalf("settlement after a rollover: today=%d outstanding=%d", m.tokensToday, m.outstanding)
+	if serverSpent(m) != 100 || serverHeld(m) != 0 {
+		t.Fatalf("settlement after a rollover: today=%d outstanding=%d", serverSpent(m), serverHeld(m))
 	}
 }
 
@@ -2069,8 +2049,12 @@ func consentModule(askedAgo int64) (*AICompanionModule, *controller) {
 	p := profiles[`mara`]
 	m := &AICompanionModule{cfg: buildConfig(nil), bonds: bondState{Users: map[int]*bondRecord{}}}
 	// A developer's own OPENAI_API_KEY must never turn a test into a real,
-	// paid call: no key unless a test sets one.
-	m.cfg.APIKeyEnv = `AICOMPANION_TEST_KEY_NEVER_SET`
+	// paid call: TestMain clears it, and there is no key unless a test
+	// points the module at one (pointAt).
+	// Each module used to carry its own breaker and day's tokens; they are
+	// the framework's now, so a fresh module starts them fresh.
+	m.fw().ResetBreaker()
+	apiframework.ResetBudgetForTest(``)
 	m.cfg.RequireConsent = true
 	m.bonds.Users[1] = &bondRecord{Profile: `mara`, Met: true, AskedAt: time.Now().Unix() - askedAgo}
 	m.syncConsent()
@@ -2164,9 +2148,15 @@ func countingServer(t *testing.T) (*httptest.Server, *atomic.Int64) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hits.Add(1)
 		if strings.HasSuffix(r.URL.Path, `/moderations`) {
-			var req moderationRequest
+			var req struct {
+				Input []string `json:"input"`
+			}
 			_ = json.NewDecoder(r.Body).Decode(&req)
-			var out moderationResponse
+			var out struct {
+				Results []struct {
+					Flagged bool `json:"flagged"`
+				} `json:"results"`
+			}
 			for range req.Input {
 				out.Results = append(out.Results, struct {
 					Flagged bool `json:"flagged"`
@@ -2214,7 +2204,7 @@ func driveEverySender(t *testing.T, m *AICompanionModule, c *controller, baseURL
 	deadline := time.Now().Add(10 * time.Second)
 	for {
 		util.LockMud()
-		left := m.outstanding
+		left := serverHeld(m)
 		util.UnlockMud()
 		if left == 0 {
 			return
@@ -2231,9 +2221,7 @@ func driveEverySender(t *testing.T, m *AICompanionModule, c *controller, baseURL
 func senderModule(baseURL string, consented bool) (*AICompanionModule, *controller) {
 	m, c := consentModule(consentWindowSeconds + 1)
 	m.cfg.Enabled = true
-	m.cfg.BaseURL = baseURL
-	m.cfg.APIKey = `k`
-	m.cfg.APIKeyEnv = `AICOMPANION_TEST_KEY_NEVER_SET`
+	pointAt(m, baseURL, `k`)
 	m.cfg.Model, m.cfg.FastModel, m.cfg.DeepModel = `m`, `m`, `m`
 	m.cfg.ReflectOnLogout = true
 	m.cfg.ConversationSummaries = true
@@ -2278,9 +2266,8 @@ func TestConsentDoorHoldsWithoutTheCallerGates(t *testing.T) {
 	if _, err := m.moderate(1, srv.URL, `k`, `m`, time.Second, []string{`hello`}); !errors.Is(err, errNoConsent) {
 		t.Fatalf("a declined owner's moderation check must be refused at the door: %v", err)
 	}
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+`/chat/completions`, nil)
-	if _, err := send(req, &m.consent, 1, carriesPlayerData); !errors.Is(err, errNoConsent) {
-		t.Fatalf("send must refuse a declined owner: %v", err)
+	if err := doorFor(&m.consent, 1, carriesPlayerData)(`/chat/completions`); !errors.Is(err, errNoConsent) {
+		t.Fatalf("the door must refuse a declined owner: %v", err)
 	}
 
 	// A request that names no owner is refused even where consent is not
@@ -2291,7 +2278,7 @@ func TestConsentDoorHoldsWithoutTheCallerGates(t *testing.T) {
 	if res := open.callModel(call); !errors.Is(res.Err, errNoConsent) {
 		t.Fatalf("a call that names no owner must be refused: %v", res.Err)
 	}
-	if _, err := send(req, nil, 1, carriesPlayerData); !errors.Is(err, errNoConsent) {
+	if err := doorFor(nil, 1, carriesPlayerData)(`/chat/completions`); !errors.Is(err, errNoConsent) {
 		t.Fatalf("no ledger is no send: %v", err)
 	}
 	unfilled := &AICompanionModule{}
@@ -2308,8 +2295,9 @@ func TestConsentDoorHoldsWithoutTheCallerGates(t *testing.T) {
 		t.Fatalf("the model list is exempt and must still be read: %v, %d requests", ids, hits.Load())
 	}
 	// And a refusal is not the provider failing.
-	m.breakerResult(errNoConsent, time.Now())
-	if m.consecutiveErrors != 0 {
+	m.fw().ResetBreaker()
+	m.breakerResult(apiframework.Ticket{}, errNoConsent, time.Now())
+	if m.fw().ConsumerFailures(apiframework.ConsumerCompanion) != 0 {
 		t.Fatal("a refusal at the door must not count towards the circuit breaker")
 	}
 }
@@ -2318,6 +2306,7 @@ func TestConsentDoorHoldsWithoutTheCallerGates(t *testing.T) {
 // consent door refusing a request, can run under test.
 func TestMain(m *testing.M) {
 	mudlog.SetupLogger(nil, "", "", false)
+	frameworkForTests()
 	os.Exit(m.Run())
 }
 
@@ -2401,7 +2390,8 @@ func TestStrangerDailyCapStopsTheirPrompts(t *testing.T) {
 }
 
 func TestStrangerCallsAreReservedAgainstTheStranger(t *testing.T) {
-	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000, StrangerDailyTokens: 1000, DailyTokenBudget: 5000}}
+	freshServer(t, 5000, 5, 60)
+	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000, StrangerDailyTokens: 1000}}
 
 	if !m.tryReserveFor(1, 2, 900) {
 		t.Fatal("a passer-by's question that fits their allowance is admitted")
@@ -2418,8 +2408,8 @@ func TestStrangerCallsAreReservedAgainstTheStranger(t *testing.T) {
 	if !m.tryReserveFor(1, 3, 900) {
 		t.Fatal("another passer-by has an allowance of their own")
 	}
-	if m.tokensToday != 2700 || m.outstanding != 2700 {
-		t.Fatalf("the server's budget holds all three: today=%d outstanding=%d", m.tokensToday, m.outstanding)
+	if serverSpent(m) != 2700 || serverHeld(m) != 2700 {
+		t.Fatalf("the server's budget holds all three: today=%d outstanding=%d", serverSpent(m), serverHeld(m))
 	}
 
 	// Settled against the same payer: what was not used goes back to them.
@@ -2433,8 +2423,8 @@ func TestStrangerCallsAreReservedAgainstTheStranger(t *testing.T) {
 		t.Fatalf("refund: stranger=%d owner=%d", m.strangerTokens[3], m.ownerTokens[1])
 	}
 	m.settleTokens(1, 900, 900)
-	if m.tokensToday != 1000 || m.outstanding != 0 {
-		t.Fatalf("after settling everything: today=%d outstanding=%d", m.tokensToday, m.outstanding)
+	if serverSpent(m) != 1000 || serverHeld(m) != 0 {
+		t.Fatalf("after settling everything: today=%d outstanding=%d", serverSpent(m), serverHeld(m))
 	}
 	m.settleFor(1, 2, 0, -500)
 	if m.strangerTokens[2] < 0 {
@@ -2551,7 +2541,7 @@ func strangerTalk(t *testing.T, baseURL string) (*AICompanionModule, *controller
 	m, c := senderModule(baseURL, true)
 	m.cfg.DailyTokensPerCompanion = 100000
 	m.cfg.StrangerDailyTokens = 100000
-	m.cfg.DailyTokenBudget = 1000000
+	freshServer(t, 1000000, 5, 60)
 	// As getMind keeps it: the summary finds her mind through the cache.
 	m.minds = map[string]*Mind{mindIdentifier(c.mind.OwnerUserId, c.mind.MobId): c.mind}
 	m.ctrls = map[int]*controller{c.ownerUserId: c}
@@ -2567,7 +2557,7 @@ func waitSettled(t *testing.T, m *AICompanionModule) {
 	deadline := time.Now().Add(10 * time.Second)
 	for {
 		util.LockMud()
-		left := m.outstanding
+		left := serverHeld(m)
 		util.UnlockMud()
 		if left == 0 {
 			return
@@ -2640,7 +2630,8 @@ func TestStrangerTalkSummaryIsTheStrangersToPayFor(t *testing.T) {
 // back to the owner it was held against; settling against nobody left the
 // owner's count carrying tokens that were never spent.
 func TestGoneMindStillRefundsItsOwner(t *testing.T) {
-	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000, StrangerDailyTokens: 1000, DailyTokenBudget: 5000}}
+	freshServer(t, 5000, 5, 60)
+	m := &AICompanionModule{cfg: Config{DailyTokensPerCompanion: 1000, StrangerDailyTokens: 1000}}
 	failed := modelResult{Err: errors.New(`gone`)}
 	server := route{kind: routeServer} // reserved below on the server's key
 
@@ -2654,8 +2645,8 @@ func TestGoneMindStillRefundsItsOwner(t *testing.T) {
 			t.Fatalf("%s: fixture reservation refused", name)
 		}
 		apply(h)
-		if m.ownerTokens[1] != 0 || m.outstanding != 0 {
-			t.Fatalf("%s: owner=%d outstanding=%d after a refund", name, m.ownerTokens[1], m.outstanding)
+		if m.ownerTokens[1] != 0 || serverHeld(m) != 0 {
+			t.Fatalf("%s: owner=%d outstanding=%d after a refund", name, m.ownerTokens[1], serverHeld(m))
 		}
 	}
 }

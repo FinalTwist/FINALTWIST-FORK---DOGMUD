@@ -10,6 +10,47 @@ overwrites it (only `config-overrides.yaml` is protected), so an overlay would
 silently ignore the file operators actually edit. The defaults below live in
 `buildConfig` instead.
 
+## The key, the endpoint and the day's budget
+
+These are not the companion's alone any more. They live in the top-level
+`APIFramework:` section of `_datafiles/config.yaml`, shared by every feature
+that calls a model (the companion and bauble naming), so there is one key
+and one daily budget for the server's key. Its circuit breakers take the
+numbers below: one for the provider, shared, that only provider-wide
+failures open (no answer, a timeout, 401, 403, 429, a 5xx), and one per
+feature for everything else, so a bauble model the provider refuses never
+pauses the companion. After a pause exactly one call is let through to test
+the provider; its success reopens the way for everyone.
+
+```yaml
+APIFramework:
+  APIKeyEnv: "OPENAI_API_KEY"   # environment variable holding the key
+  APIKey: ""                     # or the key itself; the variable wins
+  BaseURL: "https://api.openai.com/v1"
+  AllowCustomEndpoint: ""        # "true"/"false"; empty inherits the old setting. Off: any other host is refused
+  DailyTokenBudget: 2000000      # tokens per UTC day, every feature together; -1 = no cap
+  BreakerErrors: 5               # failures in a row before a pause
+  BreakerSeconds: 60
+```
+
+A config.yaml from before this section keeps working exactly as it did.
+Anything `APIFramework` leaves empty or 0 is read from the old place under
+`Modules.aicompanion` (`APIKeyEnv`, `APIKey`, `BaseURL`,
+`AllowCustomEndpoint`, `DailyTokenBudget`, where 0 still means no cap,
+`BreakerErrors`, `BreakerSeconds`), and failing that the old defaults: the key
+from `OPENAI_API_KEY`, the OpenAI endpoint, 2,000,000 tokens a day, 5 errors
+and 60 seconds. The module logs at load which settings are still read from
+the old place (their names only), so they can be moved. The shipped
+`APIFramework` values are empty for exactly this reason: taking the new
+`config.yaml` changes nothing for a server whose settings live under
+`Modules.aicompanion` or in `config-overrides.yaml`.
+
+Changed with `config set`, these take effect within a round. The same short
+names now exist in both sections, so give the full path
+(`config set APIFramework.DailyTokenBudget 500000`). `aicompanion status` shows the day's
+server-key total, the limit and the companion's share of it. The spend is
+kept in `_datafiles/apiframework/budget.yaml` across restarts.
+
 ```yaml
 # Defaults for Modules.aicompanion.*. Override in _datafiles/config.yaml.
 #
@@ -48,13 +89,6 @@ DeepReasoningEffort: ""
 FastMaxCompletionTokens: 500
 DeepMaxCompletionTokens: 2000
 FastTimeoutSeconds: 12
-BaseURL: "https://api.openai.com/v1"
-# Environment variable holding the API key.
-APIKeyEnv: "OPENAI_API_KEY"
-# Alternatively, the key itself. Convenient on a private, single-player
-# server; anyone who can read the config file can read the key. The
-# environment variable wins when both are set. The key is never logged.
-APIKey: ""
 RequestTimeoutSeconds: 25
 # Upper bound on generated tokens per decision (reasoning models count their
 # reasoning against this, so do not set it too low).
@@ -63,8 +97,6 @@ MaxCompletionTokens: 900
 Temperature: 0
 # Minimum real seconds between two model calls for one companion.
 MinSecondsBetweenCalls: 2
-# Total tokens per UTC day across all companions. 0 = unlimited.
-DailyTokenBudget: 2000000
 # Rounds a fallen bonded companion takes to recover and rejoin mid-session.
 RecoveryRounds: 40
 # How many recent lines of conversation the companion keeps word for word.
@@ -139,8 +171,9 @@ CombatReactionRounds: 1
 # Retry a call once, after a short pause, on a rate limit, server error or
 # timeout.
 RetryTransient: true
-# Circuit breaker: after this many failures in a row, stop calling the model
-# for BreakerSeconds and use fallback lines.
+# Circuit breaker for an owner's own key (tier 2): after this many failures
+# in a row, stop calling the model on that key for BreakerSeconds and use
+# fallback lines. The server key's breaker is APIFramework's.
 BreakerErrors: 5
 BreakerSeconds: 60
 # Tokens per UTC day for any one companion. 0 = only the server budget.
@@ -200,10 +233,6 @@ IdlePastimeChance: 0.5
 # what lets it overhear and react later; it also means other players' words
 # reach the API as context. Turn it off on a shared server.
 RecordBystanderSpeech: false
-# Allow BaseURL to point somewhere other than OpenAI (an OpenAI-compatible
-# provider). Off, any other host is refused and the official endpoint used,
-# so a mistyped URL cannot send the API key and player text elsewhere.
-AllowCustomEndpoint: false
 # Talk is remembered as a whole, not line by line: an exchange in one room
 # becomes a single memory in her own words when it ends ("we talked about
 # bread, and he told me his mother baked it"). A talk ends when it has gone
@@ -273,13 +302,14 @@ companion's OWNER, even when a passer-by is the one talking to her:
 
 1. **The owner's own key (tier 2).** The owner has the web client open with a
    key set up and unlocked (`Companion.Relay.Ready` received this session).
-2. **The server's key (tier 3).** `APIKeyEnv` or `APIKey` holds a key.
+2. **The server's key (tier 3).** `APIFramework.APIKeyEnv` or
+   `APIFramework.APIKey` holds a key.
 3. **Nobody (tier 1).** She follows, fights and answers with authored lines.
 
 What changes on the owner's own key:
 
-- The server's `DailyTokenBudget` and `DailyTokensPerCompanion` are not
-  charged (the player pays).
+- The server's `APIFramework.DailyTokenBudget` and
+  `DailyTokensPerCompanion` are not charged (the player pays).
 - Passers-by prompt NO calls on the owner's key until the owner says
   `companion-ai strangers on`; she hears them and answers with set lines.
   An owner who has never used the command is off on their own key and on
@@ -306,6 +336,14 @@ What changes on the owner's own key:
 
 `companion-ai` tells a player which tier is answering; `aicompanion status`
 shows it per companion (`tier=relay|server|none`) for an admin.
+
+The key page also has a box, "Also name things I find while searching (uses
+this key)", off unless the player ticks it. Ticked, and with
+`Modules.baubles.Enabled` and `UsePlayerKeys` on, the baubles that player
+finds are named on their own key through the same relay, with nothing of
+theirs in the request (only the room's authored text). Unticked, their finds
+use the server's key, or stay generic trinkets when there is none. The relay
+page refuses the bauble request shape from a key whose box is not ticked.
 
 ### Deploying player keys
 

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -117,7 +118,7 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 	ts := m.settingsFor(tierFast, false)
 
 	call := modelCall{
-		BaseURL: m.cfg.BaseURL, APIKey: m.apiKey(), Model: ts.Model,
+		BaseURL: m.baseURL(), APIKey: m.apiKey(), Model: ts.Model,
 		Timeout: ts.Timeout, MaxTokens: ts.MaxTokens, Temperature: m.cfg.Temperature,
 		SchemaName: `companion_core_memory`, Schema: coreSchema(), Effort: ts.Effort,
 		OwnerUserId: c.ownerUserId,
@@ -168,6 +169,12 @@ func (m *AICompanionModule) recordCore(c *controller, ownerName string, stage st
 	key := mindIdentifier(c.mind.OwnerUserId, c.mind.MobId)
 
 	go func() {
+		// The breakers' leave is always handed back last: a no-op once its
+		// outcome was recorded, and what frees a half-open breaker's probe
+		// if a panic kept the outcome from ever being recorded.
+		var tk apiframework.Ticket
+		call.ticketOut = &tk
+		defer func() { m.fw().Release(apiframework.ConsumerCompanion, tk) }()
 		applied, used := false, 0
 		defer func() {
 			if r := recover(); r != nil {
@@ -198,7 +205,7 @@ func (m *AICompanionModule) applyCore(key string, ownerId int, cm CoreMemory, he
 	m.settleRoute(held, res.Tokens)
 	m.rollDay()
 	m.recordCall(tierFast, res)
-	m.routeResult(rt, ownerId, res.Err, time.Now())
+	m.routeResult(rt, ownerId, res.Ticket, res.Err, time.Now())
 
 	mind := m.minds[key]
 	if mind == nil {

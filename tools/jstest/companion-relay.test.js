@@ -216,6 +216,9 @@ async function main() {
     check('round trip: key', opened.key, KEY);
     check('round trip: endpoint', opened.endpoint, STORED.endpoint);
     check('round trip: model', opened.model, STORED.model);
+    check('round trip: finds off unless allowed', opened.finds, false);
+    var findsSealed = await Relay.seal(c, 'correct horse', Object.assign({}, STORED, { finds: true }), 'Alice');
+    check('round trip: a remembered key keeps "name my finds"', (await Relay.unseal(c, 'correct horse', findsSealed, 'Alice')).finds, true);
     check('round trip: account name case does not matter', (await Relay.unseal(c, 'correct horse', sealed, 'ALICE')).key, KEY);
     var wrong = await Relay.unseal(c, 'wrong horse', sealed, 'Alice').then(function () { return 'opened'; }, function () { return 'rejected'; });
     check('a wrong passphrase rejects', wrong, 'rejected');
@@ -278,7 +281,7 @@ async function relayRules(c) {
 
     var ok = await win.setup({ endpoint: STORED.endpoint, key: KEY, model: 'gpt-4.1-mini', remember: true, pass: 'correct horse' }, 'Alice');
     check('setup with remember succeeds', ok.ok, true);
-    check('the settings message carries exactly account,endpoint,key,model,remember,sealed,type', sortedKeys(ok.msg), 'account,endpoint,key,model,remember,sealed,type');
+    check('the settings message carries exactly account,endpoint,finds,key,model,remember,sealed,type', sortedKeys(ok.msg), 'account,endpoint,finds,key,model,remember,sealed,type');
     check('the settings message names the account the window was shown', ok.msg.account, 'Alice');
     check('the settings message never carries the passphrase', JSON.stringify(ok.msg).indexOf('correct horse'), -1);
     check('the settings message carries a sealed blob when remembered', Relay.isSealedBlob(ok.msg.sealed), true);
@@ -366,7 +369,28 @@ async function sentBody(body) {
 }
 
 // --- the body is data the relay constrains, not an order it obeys ---------------
+// findsRules: a find is named through a player's key only if they ticked
+// "Also name things I find while searching". The frame refuses the bauble
+// schema otherwise, whatever the server sends.
+function findsRules() {
+    var bauble = {
+        model: 'server-model', messages: [{ role: 'user', content: 'a room' }],
+        response_format: { type: 'json_schema', json_schema: { name: Relay.FINDS_SCHEMA, strict: true, schema: {} } },
+        max_completion_tokens: 800
+    };
+    check('finds: the bauble schema is named', Relay.FINDS_SCHEMA, 'bauble');
+    check('finds: refused without the player allowing it', Relay.constrainBody(bauble, 'player-model'), null);
+    check('finds: refused with it explicitly off', Relay.constrainBody(bauble, 'player-model', false), null);
+    var c = Relay.constrainBody(bauble, 'player-model', true);
+    check('finds: relayed when allowed', !!c, true);
+    check('finds: with the player\'s own model', c && JSON.parse(c.text).model, 'player-model');
+    check('finds: the companion schemas are unaffected', !!Relay.constrainBody(BODY, 'player-model', false), true);
+    check('finds: a name outside both lists stays refused', Relay.constrainBody(Object.assign({}, bauble,
+        { response_format: { type: 'json_schema', json_schema: { name: 'other', strict: true, schema: {} } } }), 'm', true), null);
+}
+
 async function bodyRules() {
+    findsRules();
     // The schema names are the server's: every SchemaName in the module's
     // Go source, no more and no fewer.
     var modDir = path.join(__dirname, '..', '..', 'modules', 'aicompanion');

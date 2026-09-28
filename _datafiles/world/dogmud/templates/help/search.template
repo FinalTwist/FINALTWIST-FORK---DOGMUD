@@ -12,6 +12,20 @@ skilled you are, the more you can uncover.
 <ansi fg="yellow">━━━ The search Command ━━━</ansi>
 
   <ansi fg="command">search</ansi>          Scour the current room for hidden things.
+  <ansi fg="command">search [thing]</ansi>  Search one thing in the room closely.
+
+A close search looks at one thing you can see in the room: something
+named in its description, a chest, or a hidden thing you have already
+found. Try <ansi fg="command">search bookshelf</ansi> or <ansi fg="command">search under the table</ansi>.
+It searches the whole room as well, so nothing a plain search would
+find is missed, and small lost things are often tucked away about the
+thing itself: a close search is a fresh chance to find one. Each
+thing gives that fresh chance once an hour; search it again sooner
+and it is an ordinary search of the room.
+
+Search someone's home while they are about, and what you turn up stays
+where you found it: it is theirs. Taking it is stealing, with
+<ansi fg="command">steal</ansi> (see <ansi fg="command">help steal</ansi>). Things left lying untouched are gone within a day.
 
 You can search once every couple of rounds. As your <ansi fg="skill">search</ansi>
 skill improves through repeated use, you may discover things you previously

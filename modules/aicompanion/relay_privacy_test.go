@@ -77,7 +77,7 @@ func relayDispatchModule(t *testing.T, relay bool) (*AICompanionModule, *control
 		m.cfg.PlayerKeys, m.cfg.RelayOrigin = true, `https://keys.example.org`
 		m.cfg.RelayTimeoutSeconds = 5
 		m.relays = newRelayTable()
-		m.relays.ready(1, `player-model`)
+		m.relays.ready(1, `player-model`, false)
 		m.relayCalls = newPendingRelays()
 		m.relaySend = f.send
 	}

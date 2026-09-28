@@ -320,13 +320,48 @@ Pickpockets a target mob or player, or robs an item from a room container.
 
 **Three paths:**
 
-1. **Mob pickpocket** (`opts.TargetMobId` set):
-   - Rolls `actor Dexterity + Skullduggery` vs `mob Dexterity +
-     Skullduggery`.
-   - If win: picks a random item from mob inventory.
-   - If succeed: returns `StealResult.Success = true` and item ID.
-   - If fail: returns `Success = false`.
-   - **Messaging:** Always silent on the thief side (no feedback).
+1. **Mob pickpocket** (`opts.TargetMobInstanceId` set; `stealFromMob`):
+   - Refused for non-combatant or player-attack-immune mobs, and below
+     skullduggery rank 2.
+   - One contest (`combat.RunContest`): the thief's Dexterity +
+     skullduggery x SkillWeight (+ StealHiddenBonus when hidden) against
+     `stealVictimScore` (the mob's Perception + skullduggery x
+     SkillWeight). Skullduggery is awarded won or lost: for a mob thief on
+     the roll, for a player at the reveal (`resolve`), since a skill-up line
+     at the roll would give the outcome away, and a chance lost trains
+     nothing. A player already in a pickpocket's pause starts no other
+     (`pocketPending`: "Your hand is still in someone's pocket.").
+   - A MOB thief's outcome is at once. A PLAYER's is held back for a pause
+     (`steal_pocket.go`, `startPocketAttempt`): "You attempt to pick X's
+     pocket...", then after `PocketDelay` (StealPocketSeconds at Dexterity
+     100, scaled by 100/Dexterity, kept between StealPocketMinSeconds and
+     StealPocketMaxSeconds) the outcome is revealed under the mud lock
+     (`resolve`). `StealResult.Pending` is set meanwhile. A thief who has
+     left the room, gone offline, started fighting or come under attack by
+     then, or a mark that has moved, died or gone, loses the chance ("You
+     lose your chance at X's pocket."): nothing taken, nothing caught,
+     nothing trained. The thief learns nothing before the reveal, so
+     walking off only ever forfeits.
+   - Success (`takeFromMob`): 75 to 100% of the mob's gold, one random item,
+     and, for a player, a bauble: the one the mark carries
+     (`carriedBauble`), or, when it carries none,
+     BaublePickpocketChancePct (50) of the time a new one, named during the
+     pause (`baubles.Generate` at the attempt, `SourcePickpocket`, `Victim`
+     the mark's authored name, never for anyone's companion or former
+     companion, whose name a player may have chosen: `pocketBaubleAllowed`,
+     `EverCharmed`). A naming not back when the pause ends is waited
+     for up to BaublePickpocketGraceSecs, then given up (a generic
+     trinket). It is minted pocket-sized (`baubles.MaxWeightFor`), marked
+     stolen (`markPocketStolen`; so is a bauble the random item happens to
+     be), and named in the one success line with the rest. A bauble
+     named for a lost chance goes into the mark's pocket (`intoPocket`),
+     for the next attempt.
+   - Failure (`caughtByMob`): "X catches you in the act!", the room sees it,
+     then `thiefCaught` (revealed, a sleeper wakes, the crime, the attack).
+   - Every pause is tracked (`pendingPockets`); copyover and shutdown call
+     `FlushPocketAttempts` under the lock before saving, which reveals each
+     at once. Tests resolve in line (`runPocketAttempt`, `pocketThief`,
+     `pocketBaubleRoll` are variables; `bauble_testinit_test.go`).
 
 2. **Player pickpocket** (`opts.TargetUserId` set):
    - Rolls `actor Dexterity + Skullduggery` vs `player Perception +
@@ -500,6 +535,136 @@ see the searcher. A mob's find ends nothing (slice F).
 
 **Cooldown:** Shares the `search` key (configurable duration, typically
   2 rounds).
+
+**Baubles (`search_bauble.go`, docs/baubles Phases 3, 4 and 5b).** After every
+contested tier, a PLAYER's search takes a bauble roll (`baubles.RollFind`): a
+chance set by the room's biome (`BaubleBiomeChancePct`: buildings 5%, streets
+2 to 2.5%, wilderness 0.25%) and raised by the searcher's search skill
+(`BaubleSkillFactor`, up to `BaubleSkillMaxBonus`), rationed to
+`BaubleRollsPerWindow` rolls per
+room per `BaubleWindowMinutes` of real time. A find is NOT handed over on the
+spot: the player is told they are working something loose, `SearchResult.
+BaubleFound` is set, and `StartBaubleFind` hands a `BaubleDelivery` to a
+goroutine. That goroutine names it with `baubles.Generate` (the model, or a
+generic trinket) WITHOUT the mud lock, waits out the rest of
+`BaubleRevealSeconds`, then takes `util.LockMud()` once to `Mint` and deliver
+(`deliver`): if the room it was found in is a household NOW (`HouseholdResident`:
+indoors, a resident about), it stays there, on the feature searched
+(`BaubleDelivery.Spot`, "on the bookshelf"), owned by the household
+(`items.Item.LeaveBaubleAt`, `baubles.MarkHousehold`); otherwise into the pack,
+at the finder's feet if they cannot carry it, or onto the floor where it was
+found if they logged off meanwhile. Anything left lying carries its spot and
+the time (`baubleNow`) and vanishes after `BaubleUntakenHours` (rooms'
+untaken sweep). Where it goes is settled BEFORE it is minted: a finder
+offline, from a room that can no longer be loaded, gets nothing minted, so
+no catalog record exists for a find that is nowhere.
+
+Every delivery is tracked from start to finish (`pendingFind`,
+`PendingBaubleDeliveries`): `startBaubleDelivery` tracks it before its
+goroutine exists, so a copyover in the same pass of the game loop still
+finds it. `FlushBaubleDeliveries`, called under the mud
+lock by `triggerCopyover` (copyover.go) and the shutdown path (world.go)
+before rooms and players are saved, finishes each one still on its way:
+named if its naming came back, otherwise the generic trinket it would have
+been. It cancels the naming, and the goroutine, which needs the lock the
+flush holds, finds it delivered (`claim`) and stands down. So a player told
+"Something glints..." never loses the find to a copyover. Rules:
+
+- Mobs never roll. Instance/ephemeral rooms, banks, storage and character
+  rooms never roll (`baubleRoomAllowed`); excluded zones are the baubles
+  package's check.
+- The roll never sets `rolledAgainstSomething`, so offering a roll does not
+  make a room a progression candidate, and a roll that finds nothing awards
+  nothing.
+- A FIND trains search (owner ruling, Phase 5b): `awardSearch` pays the one
+  award as a win when `BaubleFound` is set, even in a room with no contest,
+  and a find alongside lost contests makes the award a win. `BaubleFound` is
+  in `FoundAnything()` (no "You find nothing of interest." after a find) but
+  not in `foundByContest()`, which only reports the contested tiers.
+- In this package's tests the default roll never finds
+  (`bauble_testinit_test.go`); bauble tests stub it.
+- A spent window, an excluded room and a failed roll are silent and identical.
+- The minimum wait applies to generic trinkets too, so the timing never tells
+  a player whether the model named their find.
+- `BaubleRequest` copies AUTHORED room text only (title, description, noun
+  keys), never signs or anything a player typed.
+- `searchBaubleRoll`, `startBaubleDelivery`, `findBaubleRecipient` and
+  `findBaubleRoom` are variables so tests run delivery in line.
+- `BaublePlace(room)` is the room as the catalog records it. `StartBaubleFind`
+  is also what the admin `bauble spawn` command uses. `bauble_admin.go` holds
+  `BaubleRequestForRecord` (the request that would name a record now, for
+  `bauble prompt` and `bauble regen`) and `RegenerateBauble` (model call off
+  the lock, `baubles.ApplyRegenerated` under it, the admin told either way;
+  `runBaubleJob` and `tellBaubleAdmin` are variables for tests).
+
+**Targeted search (`search_feature.go`).** `SearchOptions.Feature` is what a
+player typed after `search`. Empty searches the room as above. Otherwise,
+BEFORE the cooldown, `FindSearchFeature` resolves it (leading articles and prepositions dropped, so
+`search under the table` works) to a room noun (`room.FindNoun`, aliases and
+plurals included), then a hidden noun THIS character has discovered, then a
+container they can see. No match says "You see no such thing here to search."
+and spends no cooldown (`SearchResult.FeatureNotFound`). A match is a FULL
+room search ("You search the X and snoop around for a bit..."): every
+contested tier runs exactly as for a plain `search`, so a quest that expects
+`search shelf` (or any room noun) to turn up its hidden item still works. Only
+the bauble roll differs: the feature's own roll (`searchFeatureForBauble`),
+never from the room's window. The hourly limit is for BAUBLES only: a feature
+whose bauble roll was taken in the last `BaubleFeatureWindowMinutes` (60,
+`baubles.FeatureSearchable`, claimed by `baubles.ClaimFeatureSearch`) is still
+searched in full, and the room's ordinary roll is offered instead
+(`SearchResult.FeatureSearched` records that). Nothing is refused, so the
+limit never locks a player out of a quest item. On a find the request names the feature
+(`GenRequest.Container`), carries its authored description
+(`ContainerDescription`), and `SearchFeature.Spot()` ("on the bookshelf",
+"beside the chest" for a container) is where it lies if left in the room.
+Rules:
+
+- Anti-oracle: an undiscovered hidden noun or container never matches, so it
+  gets the same reply as a word that means nothing; a miss and an excluded
+  room both read "You find nothing of interest.". That a feature was searched
+  in the last hour is never said: the reply is the same either way.
+- Progression: as for a room search (`awardSearch`).
+- Players only; a mob's `Feature` is ignored and it searches the room.
+- `SearchResult.Feature` is the room's canonical name for what was searched.
+  `SearchFeature.WindowName()` (lower case) is the window key, so a noun and
+  a container of the same name share one window, and an alias shares its
+  noun's. `RoomSearchFeatures(room)` lists every feature, hidden ones
+  included, for the admin `bauble window` view.
+
+**Household baubles (`household_bauble.go`).** A find in a household is left
+in the room and belongs to it (`items.Item.BaubleHousehold` = the room id).
+`isResident`: a person (the player species, a shopkeeper or a faction
+member), awake, able to see, not `AutoAggro`, not anyone's companion.
+`householdResidents` requires the room's biome to be `Indoor`.
+
+Taking one is `steal`, never `get` (`usercommands/get.go` refuses, and `get
+all` skips it, so a pickup can never start a crime by accident):
+`Steal(actor, StealOptions{HouseholdItem: itm})` runs the ordinary steal
+checks (skullduggery rank 2, the steal cooldown, the attacker score) and then
+`stealHouseholdBauble`:
+
+- Not this room's household's: refused.
+- Too heavy: refused ("overloaded"), no crime.
+- `stealObserverPass`, the container theft's observer contest (shared with
+  `stealFromContainer`, and the combat contest-site allowlist's entry for
+  both): the most watchful player or mob in the room (`stealVictimScore`,
+  the thief's party excluded) contests the thief's score; no one there, no
+  contest.
+  Skullduggery is awarded, won or lost.
+- Unseen: taken; marked stolen (`baubles.MarkStolen`).
+- Spotted by one of the household: `householdCaught` = `thiefCaught`
+  (steal.go, shared with `stealFromMob`): revealed, a sleeper wakes, a crime
+  against the resident's factions (rep, bounty, witnesses' knowledge), and it
+  attacks unless it is a non-combatant or player-attack-immune. The bauble
+  stays.
+- Spotted by someone else: revealed, no crime against the household.
+
+`findHouseholdResidents`, `householdCaught`, `householdMember` and
+`baubleNow` are variables for tests.
+
+**Selling (`sell.go`, `sell_bauble.go`).** Both record the sale's progression
+through one helper, `saleProgression(seller, mob)`, the single seam the
+progression guard allows for a sale.
 
 **Result struct:**
 ```go
@@ -732,6 +897,7 @@ type SellResult struct {
     TotalGold    int
     Reason       SellStopReason
     LastItemName string
+    Mixed        bool // the items sold were not all the same thing; do not pluralise LastItemName
 }
 ```
 
@@ -750,6 +916,26 @@ Entry points that call `Sell`:
 - `usercommands/sell.go` — player `sell` command
 - `mobcommands/sell.go` — mob `sell` command
 - `internal/planners/` — goal planner's wealth-gold save-up sell step
+
+**Baubles (`sell_bauble.go`, docs/baubles Phase 2).** A bauble is item 900 plus
+a catalog id, so it cannot go through the ItemId-keyed pricing and stocking
+above. `sellOneToMerchant` hands it to `sellBaubleToMerchant`, and
+`resolveMerchant` probes it with `baubleOfferFor`:
+
+- Price: `BaublePrice(catalog value)` = value × `ShopBuyRatio`, rounded up,
+  at least 1. No scarcity curve, no barter bonus (the affixed-loot spread).
+- Who buys: living-economy shops whose `CraftSupport` is listed in
+  `Balance.BaubleBuyerCraftSupports` (default `general`, `jewelcrafting`;
+  `baubleShopBuys`), and every legacy merchant.
+  Living-economy shops also keep their `ShopGoldReserveRatio` reserve.
+- Refusals are spoken: unknown record, wrong kind of shop, can't afford.
+- Never stocked, never resold: the item leaves the world, the record is
+  marked sold (`baubles.MarkSold`), a living-economy shop is saved.
+- `BaubleOfferFrom(item, mob)` is the same offer for the `offer` and
+  `appraise` commands. `mobs.GetSellPrice` returns 0 for any bauble.
+- `sellNamed` names each sale by the item actually sold (not the probe), and
+  sets `SellResult.Mixed` when they differ, so `sell all bauble` reports
+  "3 items" rather than pluralising one bauble's name.
 
 **See also:** `internal/forager/vendor_sell.go` (`forager.SellToVendor`) and
 `internal/forager/chest_backfill.go` (`forager.BackfillVendorFromChests`) for
@@ -877,7 +1063,7 @@ type ScanOptions struct {
 }
 
 type SearchOptions struct {
-	// No options — Search discovers all tiers in the room
+	Feature string // `search <feature>`; empty searches the room (search_feature.go)
 }
 
 type ShadowOptions struct {
@@ -1012,6 +1198,7 @@ tell you. `FireResult.Chambered` carries the auto-reload's outcome, and its
 - `internal/mobs` — NPC management
 - `internal/rooms` — Room context, containers, exits
 - `internal/items` — Item specs, damage calculations
+- `internal/baubles`: Bauble catalog records, for pricing and marking sales (`sell_bauble.go`)
 - `internal/conditions` — Condition system (Hidden condition for Sneak/Shadow)
 - `internal/skills` — Skill progression and names
 - `internal/modules/follow` — Auto-follow (used by Shadow)
@@ -1033,8 +1220,8 @@ the rest are ordinary verbs.
 | Combat specials | `combat_attack.go`, `combat_bash.go`, `combat_counter.go`, `combat_drain.go`, `combat_fire.go`, `combat_gore.go`, `combat_grapple.go`, `combat_hamstring.go`, `combat_kick.go`, `combat_maul.go`, `combat_pounce.go`, `combat_rake.go`, `combat_rally.go`, `combat_reload.go`, `combat_taunt.go`, `combat_throttle.go`, `combat_trip.go`, `combat_warcry.go` |
 | Casting | `cast.go`, `cast_interrupt.go` |
 | Mutation actives | `mutation_cocoon.go`, `mutation_venom_coat.go` |
-| Stealth / perception | `sneak.go`, `shadow.go`, `search.go`, `scan.go`, `track.go`, `steal.go` |
-| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `remove_equip.go`, `shop_sight.go` |
+| Stealth / perception | `sneak.go`, `shadow.go`, `search.go`, `search_bauble.go` (roll and delayed delivery), `search_feature.go` (`search <feature>`), `scan.go`, `track.go`, `steal.go`, `steal_pocket.go` (a player's pickpocket pause and bauble) |
+| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `sell_bauble.go`, `remove_equip.go`, `shop_sight.go` |
 | Trades | `craft.go`, `salvage.go`, `forage.go`, `plant.go`, `defuse.go` |
 | Movement & state | `go.go`, `sleep.go`, `consider.go` |
 | Social | `say.go`, `emote.go`, `emote_aliases.go` |

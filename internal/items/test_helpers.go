@@ -6,7 +6,9 @@ package items
 func SeedItemsForTest(specs map[int]*ItemSpec) func() {
 	orig := items
 	items = specs
+	rebuildAuthoredKeywords()
 	return func() {
 		items = orig
+		rebuildAuthoredKeywords()
 	}
 }

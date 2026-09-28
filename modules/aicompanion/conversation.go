@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -287,7 +288,7 @@ func (m *AICompanionModule) summariseFor(mind *Mind, p *Profile, ownerId int, co
 		{Role: `user`, Content: b.String()},
 	}
 	call := modelCall{
-		BaseURL: m.cfg.BaseURL, APIKey: m.apiKey(), Model: ts.Model,
+		BaseURL: m.baseURL(), APIKey: m.apiKey(), Model: ts.Model,
 		Timeout: ts.Timeout, MaxTokens: ts.MaxTokens, Temperature: m.cfg.Temperature,
 		Messages: messages, SchemaName: `companion_conversation`, Schema: conversationSchema(),
 		Effort: ts.Effort, Retry: false, OwnerUserId: ownerId,
@@ -308,6 +309,12 @@ func (m *AICompanionModule) summariseFor(mind *Mind, p *Profile, ownerId int, co
 	place := convo.RoomId
 
 	go func() {
+		// The breakers' leave is always handed back last: a no-op once its
+		// outcome was recorded, and what frees a half-open breaker's probe
+		// if a panic kept the outcome from ever being recorded.
+		var tk apiframework.Ticket
+		call.ticketOut = &tk
+		defer func() { m.fw().Release(apiframework.ConsumerCompanion, tk) }()
 		applied, used := false, 0
 		defer func() {
 			if r := recover(); r != nil {
@@ -340,7 +347,7 @@ func (m *AICompanionModule) applyConversationSummary(key string, ownerId int, pa
 	m.settleRoute(held, res.Tokens)
 	m.rollDay()
 	m.recordCall(tierFast, res)
-	m.routeResult(rt, ownerId, res.Err, time.Now())
+	m.routeResult(rt, ownerId, res.Ticket, res.Err, time.Now())
 
 	mind := m.minds[key]
 	if mind == nil {

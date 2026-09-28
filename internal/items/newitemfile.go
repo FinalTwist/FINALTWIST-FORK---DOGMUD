@@ -42,6 +42,7 @@ func CreateNewItemFile(newItemInfo ItemSpec) (int, error) {
 
 	// Save to in-memory cache
 	items[newItemInfo.Id()] = &newItemInfo
+	rebuildAuthoredKeywords()
 
 	return newItemInfo.Id(), nil
 }

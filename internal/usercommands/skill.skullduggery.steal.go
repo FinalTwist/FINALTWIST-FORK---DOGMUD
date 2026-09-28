@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -69,6 +70,7 @@ func Steal(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 //
 //	steal <mob|container>
 //	steal from <mob|container>
+//	steal <household bauble>   (a find that belongs to this room's household)
 //
 // Returns nil when the target cannot be resolved (message already sent).
 // The "can't steal from players" guard lives here since the player
@@ -100,6 +102,36 @@ func parseStealArgs(args []string, room *rooms.Room, user *users.UserRecord) *ac
 		}
 	}
 
+	// Try a bauble on the floor that belongs to this room's household
+	// (found by searching their home). Only those: anything else on the
+	// floor is simply picked up with get. Every word is used, so a bauble
+	// is found by any word of its name ("steal small doll").
+	if itm, ok := householdBaubleNamed(room, strings.Join(args, " ")); ok {
+		return &actions.StealOptions{HouseholdItem: itm}
+	}
+
 	user.SendText(messaging.CategorySystem, "Steal from whom?")
 	return nil
+}
+
+// householdBaubleNamed finds, among the floor's baubles that belong to this
+// room's household, the one the words name.
+func householdBaubleNamed(room *rooms.Room, words string) (items.Item, bool) {
+	var theirs []items.Item
+	for _, itm := range room.Items {
+		if itm.BaubleBelongsTo(room.RoomId) {
+			theirs = append(theirs, itm)
+		}
+	}
+	if len(theirs) == 0 {
+		return items.Item{}, false
+	}
+	closeMatch, exact := items.FindMatchIn(words, theirs...)
+	if exact.ItemId > 0 {
+		return exact, true
+	}
+	if closeMatch.ItemId > 0 {
+		return closeMatch, true
+	}
+	return items.Item{}, false
 }

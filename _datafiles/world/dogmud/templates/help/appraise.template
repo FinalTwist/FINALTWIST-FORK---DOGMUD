@@ -10,6 +10,10 @@ reveal the properties of an item in your backpack.
 Costs 20 gold per item. You must be in a room with a
 merchant.
 
+Small found trinkets (baubles) are appraised for free: the
+merchant tells you what it is made of, what it weighs, where
+it came from, and what they would pay for it.
+
 If you know the <ansi fg="spellname">identify</ansi> spell, you
 can examine items anywhere without a merchant. See
 <ansi fg="command">help identify</ansi>.
