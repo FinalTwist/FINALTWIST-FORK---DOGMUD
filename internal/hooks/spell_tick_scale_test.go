@@ -9,6 +9,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/stretchr/testify/assert"
@@ -82,6 +83,63 @@ func seedSpellPathConditions(t *testing.T) {
 			Flags:   []conditions.Flag{conditions.Adjustable}},
 	}))
 	events.DrainQueuedMobConditionsForTest(0)
+}
+
+// Regression for the whole spell path: a skilled caster's heal-over-time at a
+// target that does not hold it yet. On master the event carried no scale and
+// the post-queue SetTickAmount found no record, so the target held 0 until
+// the round tick's fallback computed it at 1.0; a recast alone got the
+// caster's scale.
+func TestConditionSpell_FreshTargetHealsAtCasterScale(t *testing.T) {
+	seedSpellPathConditions(t)
+	caster := users.GetByUserId(1)
+	target := users.GetByUserId(2)
+	caster.Character.SetSkill("spellcasting", 50)
+	seedRacialStats(target, 0)
+	target.Character.HealthMax.Base = 200
+	_ = target.Character.Validate()
+	require.Empty(t, target.Character.GetConditions(spellPathTickConditionId), "precondition: a fresh target")
+	scale := combat.SkillMultiplier(50)
+	require.Greater(t, scale, 2.0, "precondition: spellcasting 50 scales well above 1")
+
+	spell := &spells.SpellData{SpellId: "test-surge", Name: "Test Surge", EffectType: "condition",
+		ConditionIds: []int{spellPathTickConditionId}}
+	events.DrainQueuedConditionsForTest(0)
+	applyPlayerEffect(caster, target, rooms.LoadRoom(1), spell, 0, spellContestAttackWin())
+
+	queued := events.DrainQueuedConditionsForTest(2)
+	require.Len(t, queued, 1)
+	assert.Equal(t, events.Continue, ApplyConditions(queued[0]))
+
+	want := conditions.ComputeTickAmount(target.Character.HealthMax.Value, 0.05, 0, 0, scale)
+	assert.Equal(t, want, heldTickAmount(t, target.Character, spellPathTickConditionId),
+		"a first cast heals at the caster's scale")
+	assert.NotEqual(t, conditions.ComputeTickAmount(target.Character.HealthMax.Value, 0.05, 0, 0, 1.0), want,
+		"precondition: the pool is large enough that the scale shows")
+}
+
+// A mob healing itself now gets the same formula, weapon included.
+func TestConditionSpell_MobSelfCastHealsAtCasterScale(t *testing.T) {
+	seedSpellPathConditions(t)
+	seedSpellTickScaleWand(t)
+	mob := mobs.GetInstance(100)
+	mob.Character.SetSkill("spellcasting", 30)
+	mob.Character.Equipment.Weapon = items.Item{ItemId: spellTickScaleWandId}
+	mob.Character.HealthMax.Base = 200
+	_ = mob.Character.Validate()
+	mob.Character.RemoveCondition(spellPathTickConditionId)
+
+	spell := &spells.SpellData{SpellId: "test-surge", Name: "Test Surge", EffectType: "condition",
+		ConditionIds: []int{spellPathTickConditionId}}
+	applyMobSelfEffect(mob, rooms.LoadRoom(1), spell, 0)
+
+	queued := events.DrainQueuedMobConditionsForTest(100)
+	require.Len(t, queued, 1)
+	assert.Equal(t, events.Continue, ApplyConditions(queued[0]))
+
+	scale := combat.SkillMultiplier(30) * 1.5
+	want := conditions.ComputeTickAmount(mob.Character.HealthMax.Value, 0.05, 0, 0, scale)
+	assert.Equal(t, want, heldTickAmount(t, &mob.Character, spellPathTickConditionId))
 }
 
 func TestApplySpellCondition_TickPoolQueuesTheCasterScale(t *testing.T) {
