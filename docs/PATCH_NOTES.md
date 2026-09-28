@@ -1,5 +1,19 @@
 # DOGMud Patch Notes
 
+## 2026-09-28: Everyone drinks by the same rules
+
+Companions and other creatures now drink potions by the same rules as
+players. A potion's toxicity builds up in them too, and a creature that
+has had too much refuses the next one. A fresh potion, a well aged one or
+one brewed by a skilled hand works on them just as it would on you, and a
+spoiled one makes them retch. The special potions, from the purges to the
+Bloom Wafer and the remaking draughts, now take their full effect on
+whoever drinks them.
+
+Healing or harm that works over time now affects creatures too. A healing
+potion you hand your companion mends it round by round, and lingering
+harm such as a poisonous cloud now wears a creature down as it would you.
+
 ## 2026-09-28: Eyes for the dark
 
 Infravision now does what it promises. It sees the warmth of living

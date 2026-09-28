@@ -472,6 +472,17 @@ in `NewRound_UserRoundTick.go` and its mirror `tickMobConditions` in
 `NewRound_AutoHeal.go` (deleted). This moves poison and bleed harm EARLIER in
 the round: the round ticks run before `DoCombat`, AutoHeal ran after it.
 
+**Both ticks fill a zero tick amount through `fillZeroTickAmount`**
+(`condition_tick_amount.go`, drink path unification 2026-09-28). A
+`tick_pool` condition applied through the event queue is not yet in the list
+when its applier would snapshot the amount, so it arrives with `TickAmount`
+0: every potion, area and mutator conditions, and hazard-room dots.
+`fillZeroTickAmount` computes the amount from the holder's pool at scaling
+1.0, caches it with `SetTickAmount`, and returns it; read the RETURNED value,
+not `condition.TickAmount`. Before this only the player tick filled it, so
+every event-applied heal-over-time and damage-over-time on a MOB was inert.
+The mob round tick now heals and damages over time like the player tick.
+
 Three things the tick path does at the moment health harm lands, all of which
 the old poison hook did and the condition tick path did NOT:
 

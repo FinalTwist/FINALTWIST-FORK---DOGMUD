@@ -85,6 +85,36 @@ stay silent.
 
 ---
 
+## Drink (`drink.go`, drink path unification 2026-09-28)
+
+`Drink(actor DrinkActor, rest string) DrinkResult` is the ONE drink body for
+players, mobs and the AI companion. It was `usercommands.Drink`; the mob
+command was a separate copy with no toxicity, no aging or crafter scaling and
+no special potions. `usercommands.Drink` and `mobcommands.Drink` are now thin
+wrappers, and the repo-root `drink_wrapper_guard_test.go`
+(`TestDrinkWrappersDoNotReFork`) fails if either grows drink rules again.
+
+- **`DrinkActor`** is `Actor` plus `AddConditionScaled` and
+  `AddConditionMagnitude`. It is its own interface, not two new `Actor`
+  methods, because many test fakes implement `Actor` and none of them drinks.
+  `UserActor` and `MobActor` both satisfy it; each queues `events.Condition`
+  through the event door, so the drinker reads the condition's start line.
+- **`DrinkResult`** reports `Drank` (true for a spoiled potion too),
+  `Spoiled`, `ItemId` and a `Refusal`.
+- **`DrinkRefusal`**: `DrinkOK`, `DrinkRefuseBusy`, `DrinkRefuseGrappled`,
+  `DrinkRefuseNotFound`, `DrinkRefuseNotDrinkable`, `DrinkRefuseToxicity`.
+
+Every special potion (Ysolde's Purge, the Purging Draught, the Bloom Wafer,
+the Catalyst of Unmaking, the Phial of Second Birth) applies fully to a mob
+(owner ruling 2026-09-28). `SendText` is a no-op for a mob, so a mob drinks
+silently apart from the room line. Both room lines go out through
+`Room.SendTextVisualHidingNames` with the drinker's name: an observer at the
+shapes tier reads "a figure", one who sees nothing reads nothing, and a player
+drinker is excluded from their own line (`drink_room_line_sight_test.go`).
+`drink_parity_test.go` holds the player and mob parity table.
+
+---
+
 ## Combat Actions
 
 ### Every player attack path MUST seed aggression
@@ -836,6 +866,7 @@ taunt path's ordering).
 |--------|---------|---|---|---|---|
 | Consider | actions | self vs target | ConsiderResult | player only | none |
 | Defuse | actions | self vs trap | DefuseResult | varies | none |
+| Drink | actions | self | DrinkResult | both | none |
 | Forage | actions | self vs biome | ForageResult | varies | shared |
 | Plant | actions | self vs mob/container | PlantResult | varies | shared |
 | Salvage | actions | self vs corpse/item | SalvageResult | varies | none |
@@ -1038,7 +1069,7 @@ the rest are ordinary verbs.
 | Casting | `cast.go`, `cast_interrupt.go` |
 | Mutation actives | `mutation_cocoon.go`, `mutation_venom_coat.go` |
 | Stealth / perception | `sneak.go`, `shadow.go`, `search.go`, `scan.go`, `track.go`, `steal.go` |
-| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `remove_equip.go`, `shop_sight.go` |
+| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `remove_equip.go`, `shop_sight.go`, `drink.go` |
 | Trades | `craft.go`, `salvage.go`, `forage.go`, `plant.go`, `defuse.go` |
 | Movement & state | `go.go`, `sleep.go`, `consider.go` |
 | Social | `say.go`, `emote.go`, `emote_aliases.go` |
