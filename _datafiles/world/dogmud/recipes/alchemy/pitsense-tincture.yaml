@@ -1,0 +1,19 @@
+id: pitsense-tincture
+name: Pitsense Tincture
+aliases: [pitsense]
+skill: alchemy
+skill_minimum: 30
+station: alchemy_bench
+time_rounds: 6
+ingredients:
+  - item_tag: heat-pit
+    quantity: 1
+  - item_tag: moonpetal
+    quantity: 2
+  - item_tag: bottle
+    quantity: 1
+output:
+  item_id: 30068
+  quantity: 1
+success_actor: "The heat-pit steeps into the moonpetal and the tincture darkens to red. A pitsense tincture!"
+failure_actor: "The heat-pit tissue curdles and the tincture turns cloudy. The materials are wasted."

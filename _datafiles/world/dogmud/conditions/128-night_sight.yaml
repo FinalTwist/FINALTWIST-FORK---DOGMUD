@@ -1,0 +1,22 @@
+conditionid: 128
+name: Night Sight
+description: Your eyes make use of light too faint for most people to read
+  by, though pitch darkness still leaves you blind. Daylight or any bright
+  lamp dazzles these sharpened eyes, and everything you do by sight suffers
+  until the light fades or the spell wears off.
+start_actee: The dark thins and you make out grey shapes around you.
+end_actee: The dark closes in again and the shapes are gone.
+start_observer: "{actee}'s eyes widen and catch the faint light."
+end_observer: "The faint light leaves {actee}'s eyes."
+secret: false
+triggerrate: 3 real minutes
+# triggercount is a floor for the born-dead guard; the Night Vision spell
+# sets the real count from its caster (lighting plan 5c).
+triggercount: 1
+# nightvision_strength: magnitude. The spell scales it from willpower and
+# spellcasting (LightNightVisionSpell* in config.yaml); the window clamps it
+# at 24. Condition 29 stays literal because species grant it to mobs.
+effects:
+  nightvision_strength: magnitude
+flags:
+  - nightvision

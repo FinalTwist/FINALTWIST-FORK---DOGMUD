@@ -1,0 +1,17 @@
+itemid: 40233
+name: Heat-Pit Organ
+namesimple: organ
+description: A shallow cup of pale tissue lined with fine nerves, cut from
+  the face of a creature that hunts blind by the warmth of its prey. It is
+  still faintly warm. Alchemists prize it for draughts that let an eye
+  borrow the same sense.
+type: object
+subtype: mundane
+component_tag: heat-pit
+weight: 0.1
+value: 45
+rarity_tier: 20
+is_component: true
+vendor_categories:
+- alchemy
+material_tier: 3

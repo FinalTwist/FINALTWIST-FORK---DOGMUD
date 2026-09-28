@@ -1,0 +1,22 @@
+conditionid: 130
+name: Pitsense Tincture
+description: The warmth of living things shows as pale shapes in any
+  darkness short of the deepest magic, though never clearly enough to know
+  a face. Your eyes are also a little sharper for faint light, so daylight
+  or any bright lamp dazzles you, and everything you do by sight suffers
+  until the light fades or the tincture wears off.
+start_actee: A dull heat spreads behind your eyes, and living warmth shows
+  as pale shapes.
+end_actee: The heat behind your eyes cools, and the pale shapes fade.
+start_observer: "A dull red sheen settles over {actee}'s eyes."
+end_observer: "The red sheen fades from {actee}'s eyes."
+secret: false
+triggerrate: 1 round
+# 400 rounds before potency; the drink path scales both this count and the
+# reach by the potion's aging phase and its crafter's alchemy.
+triggercount: 400
+effects:
+  nightvision_strength: 12
+  infra_reach: magnitude
+flags:
+  - infraredvision

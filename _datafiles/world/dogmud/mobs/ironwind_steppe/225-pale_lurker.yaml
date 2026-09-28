@@ -38,6 +38,9 @@ character:
     passes beneath.
   speciesid: 23
   level: 1
+  items:
+    - itemid: 40233
+      dropchance: 15
   stats:
     strength:
       base: 90
