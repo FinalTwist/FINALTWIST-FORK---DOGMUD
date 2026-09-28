@@ -495,29 +495,7 @@ func ReloadConfig() error {
 	}
 
 	// Build a special lookup to attempt to match old data or even some minor typos
-	keyLookups = map[string]string{}
-	typeLookups = map[string]string{}
-	for k, v := range configData.AllConfigData() {
-
-		if strings.Index(k, `.`) != -1 {
-
-			parts := strings.Split(k, `.`)
-
-			for i := len(parts) - 1; i >= 0; i-- {
-				tmpKey := strings.Join(parts[i:], `.`)
-				keyLookups[strings.ToLower(tmpKey)] = k
-
-				tmpKey = strings.Join(parts[i:], ``)
-				keyLookups[strings.ToLower(tmpKey)] = k
-
-			}
-
-		} else {
-			keyLookups[strings.ToLower(k)] = k
-		}
-
-		typeLookups[k] = reflect.TypeOf(v).String()
-	}
+	keyLookups, typeLookups = buildKeyLookups(configData)
 
 	// Resolve DataFiles the way FilePaths.Validate will, so an absent key
 	// still maps to the default world.
@@ -575,6 +553,28 @@ func FindFullPath(inputKey string) (properKey string, typeName string) {
 		return v, typeLookups[v]
 	}
 	return inputKey, typeLookups[inputKey]
+}
+
+// buildKeyLookups builds the tables FindFullPath reads from c's dot paths.
+// Every key is reachable by its full path and by each dotted and undotted
+// suffix, lowercased, which is how `server set seed 1` finds Server.Seed. A
+// suffix shared by two keys resolves to whichever was walked last.
+func buildKeyLookups(c Config) (keys map[string]string, types map[string]string) {
+	keys = map[string]string{}
+	types = map[string]string{}
+	for k, v := range c.AllConfigData() {
+		if strings.Contains(k, `.`) {
+			parts := strings.Split(k, `.`)
+			for i := len(parts) - 1; i >= 0; i-- {
+				keys[strings.ToLower(strings.Join(parts[i:], `.`))] = k
+				keys[strings.ToLower(strings.Join(parts[i:], ``))] = k
+			}
+		} else {
+			keys[strings.ToLower(k)] = k
+		}
+		types[k] = reflect.TypeOf(v).String()
+	}
+	return keys, types
 }
 
 // Usage: configs.GetSecret(c.DiscordWebhookUrl)
