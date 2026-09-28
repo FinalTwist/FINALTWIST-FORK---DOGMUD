@@ -35,7 +35,7 @@ func TestSelfCastPurge_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 
 	_ = u.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, 10, -5, "test")
 	spell := &spells.SpellData{SpellId: "cleansing-wave", Name: "Cleansing Wave", EffectType: "purge"}
-	applyPlayerEffect(u, u, room, spell, 10, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewUserActorInRoom(u, room), room, spell, 10, spellContestAttackWin()))
 
 	caster, observer := drainPlain(1), drainPlain(2)
 	assert.Equal(t, 1, countContaining(caster, "You purge the afflictions from your body."))
@@ -55,7 +55,7 @@ func TestSelfCastHeal_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 	drainPlain(2)
 
 	spell := &spells.SpellData{SpellId: "heal", Name: "Heal", EffectType: "heal", EffectMagnitude: 3}
-	applyPlayerEffect(u, u, room, spell, 3, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewUserActorInRoom(u, room), room, spell, 3, spellContestAttackWin()))
 
 	caster, observer := drainPlain(1), drainPlain(2)
 	assert.Equal(t, 1, countContaining(caster, "A warm glow of healing magic envelops you."))
@@ -76,7 +76,7 @@ func TestSelfCastCondition_OneLineToCaster_RoomNamesCasterOnce(t *testing.T) {
 	drainPlain(2)
 
 	spell := &spells.SpellData{SpellId: "bless", Name: "Bless", EffectType: "condition", ConditionIds: []int{100}}
-	applyPlayerEffect(u, u, room, spell, 0, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewUserActorInRoom(u, room), room, spell, 0, spellContestAttackWin()))
 
 	caster, observer := drainPlain(1), drainPlain(2)
 	assert.Equal(t, 1, countContaining(caster, "Your Bless takes effect."))
@@ -98,7 +98,7 @@ func TestSelfCastDefault_NamesNoOneInTheThirdPerson(t *testing.T) {
 	drainPlain(1)
 
 	spell := &spells.SpellData{SpellId: "curiosity", Name: "Curiosity", EffectType: "curiosity"}
-	applyPlayerEffect(u, u, room, spell, 0, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewUserActorInRoom(u, room), room, spell, 0, spellContestAttackWin()))
 
 	caster := drainPlain(1)
 	assert.Equal(t, 1, countContaining(caster, "Your Curiosity takes effect."))
@@ -130,7 +130,7 @@ func TestCrossCast_WordingUnchanged(t *testing.T) {
 	for _, c := range cases {
 		drainPlain(1)
 		drainPlain(2)
-		applyPlayerEffect(caster, target, room, c.spell, 3, spellContestAttackWin())
+		applySpellEffect(newSpellEffectCtx(caster.Character, actions.NewUserActorInRoom(caster, room), actions.NewUserActorInRoom(target, room), room, c.spell, 3, spellContestAttackWin()))
 		assert.Equal(t, 1, countContaining(drainPlain(1), c.casterLine), c.spell.Name)
 		assert.Equal(t, 1, countContaining(drainPlain(2), c.targetLine), c.spell.Name)
 	}
@@ -213,7 +213,7 @@ func TestCrossCast_RoomLinesUnchanged(t *testing.T) {
 		drainPlain(1)
 		drainPlain(2)
 		drainPlain(3)
-		applyPlayerEffect(caster, target, room, c.spell, 3, spellContestAttackWin())
+		applySpellEffect(newSpellEffectCtx(caster.Character, actions.NewUserActorInRoom(caster, room), actions.NewUserActorInRoom(target, room), room, c.spell, 3, spellContestAttackWin()))
 		assert.Equal(t, 1, countContaining(drainPlain(3), c.roomLine), c.spell.Name)
 		assert.Equal(t, 0, countContaining(drainPlain(1), c.roomLine), "caster excluded: "+c.spell.Name)
 		assert.Equal(t, 0, countContaining(drainPlain(2), c.roomLine), "target excluded: "+c.spell.Name)

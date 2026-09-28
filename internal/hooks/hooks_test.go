@@ -2543,7 +2543,7 @@ func TestResolveAgainstMob_Basic(t *testing.T) {
 	// Should resolve without panic
 }
 
-// ─── Spell Resolution: applyMobEffect ─────────────────────────────────────────
+// ─── Spell Resolution: applySpellEffect on a mob ──────────────────────────────
 
 func TestApplySpellEffect_Damage(t *testing.T) {
 	cleanup := seedAllRegistries()
@@ -2608,7 +2608,7 @@ func TestApplySpellEffect_NilCaster(t *testing.T) {
 // Full DoCombat with aggro requires combat.ResolveAttack which depends on
 // items/weapons initialization — covered by integration tests.
 
-// ─── Spell Resolution: applyMobEffect — more branches ────────────────────────
+// ─── Spell Resolution: applySpellEffect, more branches ────────────────────────
 
 func TestApplySpellEffect_Knockdown(t *testing.T) {
 	cleanup := seedAllRegistries()
@@ -2631,7 +2631,7 @@ func TestApplySpellEffect_Knockdown(t *testing.T) {
 	assert.True(t, mob.Character.IsSupine() || mob.Character.IsProne(), "mob should be knocked down")
 }
 
-func TestApplyMobEffect_Condition(t *testing.T) {
+func TestApplySpellEffect_ConditionOnMob(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	u := users.GetByUserId(1)
@@ -2645,11 +2645,11 @@ func TestApplyMobEffect_Condition(t *testing.T) {
 		EffectType:   "condition",
 		ConditionIds: []int{100},
 	}
-	dmg := applyMobEffect(u, u.Character, mob, room, conditionSpell, 0, spellContestAttackWin())
+	dmg := applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewMobActorInRoom(mob, room), room, conditionSpell, 0, spellContestAttackWin()))
 	assert.Equal(t, 0, dmg)
 }
 
-func TestApplyMobEffect_DefaultEffect(t *testing.T) {
+func TestApplySpellEffect_DefaultOnMob(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	u := users.GetByUserId(1)
@@ -2662,7 +2662,7 @@ func TestApplyMobEffect_DefaultEffect(t *testing.T) {
 		AttackType: combatvocab.AttackSpell, DamageType: combatvocab.DamageMental, Targeting: combatvocab.TargetSingle,
 		EffectType: "unknown-effect",
 	}
-	dmg := applyMobEffect(u, u.Character, mob, room, unknownSpell, 10, spellContestAttackWin())
+	dmg := applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewMobActorInRoom(mob, room), room, unknownSpell, 10, spellContestAttackWin()))
 	assert.Equal(t, 0, dmg)
 }
 
@@ -2680,9 +2680,9 @@ func TestResolveAgainstPlayer_Basic(t *testing.T) {
 	// Should resolve without panic
 }
 
-// ─── Spell Resolution: applyPlayerEffect ──────────────────────────────────────
+// ─── Spell Resolution: applySpellEffect on a player ───────────────────────────
 
-func TestApplyPlayerEffect_Purge(t *testing.T) {
+func TestApplySpellEffect_PurgeOnPlayer(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	defer conditions.SeedConditionRecordsForTest()()
@@ -2696,10 +2696,10 @@ func TestApplyPlayerEffect_Purge(t *testing.T) {
 		EffectType: "purge",
 	}
 	_ = target.Character.AddConditionMagnitude(conditions.ConditionIdPoisoned, 10, -5, "test")
-	applyPlayerEffect(caster, target, room, purgeSpell, 10, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(caster.Character, actions.NewUserActorInRoom(caster, room), actions.NewUserActorInRoom(target, room), room, purgeSpell, 10, spellContestAttackWin()))
 }
 
-func TestApplyPlayerEffect_Heal(t *testing.T) {
+func TestApplySpellEffect_HealOnPlayer(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	caster := users.GetByUserId(1)
@@ -2712,10 +2712,10 @@ func TestApplyPlayerEffect_Heal(t *testing.T) {
 		EffectType:      "heal",
 		EffectMagnitude: 3,
 	}
-	applyPlayerEffect(caster, target, room, healSpell, 3, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(caster.Character, actions.NewUserActorInRoom(caster, room), actions.NewUserActorInRoom(target, room), room, healSpell, 3, spellContestAttackWin()))
 }
 
-func TestApplyPlayerEffect_Condition(t *testing.T) {
+func TestApplySpellEffect_ConditionOnPlayer(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	caster := users.GetByUserId(1)
@@ -2728,10 +2728,10 @@ func TestApplyPlayerEffect_Condition(t *testing.T) {
 		EffectType:   "condition",
 		ConditionIds: []int{100},
 	}
-	applyPlayerEffect(caster, target, room, conditionSpell, 0, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(caster.Character, actions.NewUserActorInRoom(caster, room), actions.NewUserActorInRoom(target, room), room, conditionSpell, 0, spellContestAttackWin()))
 }
 
-func TestApplyPlayerEffect_Shield(t *testing.T) {
+func TestApplySpellEffect_ShieldOnPlayer(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	caster := users.GetByUserId(1)
@@ -2743,7 +2743,7 @@ func TestApplyPlayerEffect_Shield(t *testing.T) {
 		Name:       "Shield",
 		EffectType: "shield",
 	}
-	applyPlayerEffect(caster, target, room, shieldSpell, 10, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(caster.Character, actions.NewUserActorInRoom(caster, room), actions.NewUserActorInRoom(target, room), room, shieldSpell, 10, spellContestAttackWin()))
 }
 
 func TestApplyPlayerEffect_ShieldSelf(t *testing.T) {
@@ -2757,10 +2757,10 @@ func TestApplyPlayerEffect_ShieldSelf(t *testing.T) {
 		Name:       "Shield",
 		EffectType: "shield",
 	}
-	applyPlayerEffect(u, u, room, shieldSpell, 10, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room), actions.NewUserActorInRoom(u, room), room, shieldSpell, 10, spellContestAttackWin()))
 }
 
-func TestApplyPlayerEffect_Default(t *testing.T) {
+func TestApplySpellEffect_DefaultOnPlayer(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	caster := users.GetByUserId(1)
@@ -2772,7 +2772,7 @@ func TestApplyPlayerEffect_Default(t *testing.T) {
 		Name:       "Mystery",
 		EffectType: "unknown-player-effect",
 	}
-	applyPlayerEffect(caster, target, room, unknownSpell, 10, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(caster.Character, actions.NewUserActorInRoom(caster, room), actions.NewUserActorInRoom(target, room), room, unknownSpell, 10, spellContestAttackWin()))
 }
 
 // ─── Spell Resolution: resolveMobSpell ────────────────────────────────────────
@@ -2847,9 +2847,9 @@ func TestResolveMobSpell_MobVsMob(t *testing.T) {
 	resolveMobSpell(mob, cs, spellData, room)
 }
 
-// ─── Spell Resolution: applyMobSelfEffect ─────────────────────────────────────
+// ─── Spell Resolution: applySpellEffect, a mob on itself ──────────────────────
 
-func TestApplyMobSelfEffect_Heal(t *testing.T) {
+func TestApplySpellEffect_MobSelfHeal(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	mob := mobs.GetInstance(100)
@@ -2862,10 +2862,10 @@ func TestApplyMobSelfEffect_Heal(t *testing.T) {
 		EffectMagnitude: 3,
 	}
 
-	applyMobSelfEffect(mob, room, healSpell, 3)
+	applySpellEffect(newSpellEffectCtx(&mob.Character, actions.NewMobActorInRoom(mob, room), actions.NewMobActorInRoom(mob, room), room, healSpell, 3, uncontestedSpellResult()))
 }
 
-func TestApplyMobSelfEffect_Shield(t *testing.T) {
+func TestApplySpellEffect_MobSelfShield(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()
 	mob := mobs.GetInstance(100)
@@ -2877,7 +2877,7 @@ func TestApplyMobSelfEffect_Shield(t *testing.T) {
 		EffectType: "shield",
 	}
 
-	applyMobSelfEffect(mob, room, shieldSpell, 10)
+	applySpellEffect(newSpellEffectCtx(&mob.Character, actions.NewMobActorInRoom(mob, room), actions.NewMobActorInRoom(mob, room), room, shieldSpell, 10, uncontestedSpellResult()))
 }
 
 // ─── Spell Resolution: consumeSpellComponent ──────────────────────────────────

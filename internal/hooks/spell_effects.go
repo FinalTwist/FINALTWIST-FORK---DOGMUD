@@ -52,21 +52,6 @@ func newSpellEffectCtx(casterChar *characters.Character, caster, target actions.
 		spell: spell, magnitude: magnitude, out: out}
 }
 
-// spellCasterActor wraps whichever caster a legacy call site was handed: the
-// player record when there is one, else the registered mob behind casterChar,
-// else nil (an anonymous caster, which only tests produce).
-func spellCasterActor(user *users.UserRecord, casterChar *characters.Character, room *rooms.Room) actions.Actor {
-	if user != nil {
-		return actions.NewUserActorInRoom(user, room)
-	}
-	if casterChar != nil && casterChar.MobInstanceId > 0 {
-		if m := mobs.GetInstance(casterChar.MobInstanceId); m != nil {
-			return actions.NewMobActorInRoom(m, room)
-		}
-	}
-	return nil
-}
-
 func actorUser(a actions.Actor) *users.UserRecord {
 	if ua, ok := a.(*actions.UserActor); ok && ua != nil {
 		return ua.User
@@ -505,29 +490,4 @@ func interruptSpellTarget(c spellEffectCtx) {
 		Observer: messaging.Say(messaging.CategorySpellDisruption, fmt.Sprintf(
 			`<ansi fg="cyan">%s's spell collapses!</ansi>`, c.targetName())),
 	}, c.audience())
-}
-
-// ── Test-only wrappers. Slice 3b's last task deletes them once no test
-// names them. ─────────────────────────────────────────────────────────────
-
-// applyMobEffect applies a spell effect to a mob target. user may be nil
-// (a mob caster); casterChar may be nil (an anonymous caster).
-func applyMobEffect(user *users.UserRecord, casterChar *characters.Character, mob *mobs.Mob, room *rooms.Room,
-	spellData *spells.SpellData, magnitude int, out combat.ChannelDefenceResult) int {
-	return applySpellEffect(newSpellEffectCtx(casterChar, spellCasterActor(user, casterChar, room),
-		actions.NewMobActorInRoom(mob, room), room, spellData, magnitude, out))
-}
-
-// applyPlayerEffect applies a player's spell effect to a player target.
-func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *rooms.Room,
-	spellData *spells.SpellData, magnitude int, out combat.ChannelDefenceResult) {
-	applySpellEffect(newSpellEffectCtx(user.Character, actions.NewUserActorInRoom(user, room),
-		actions.NewUserActorInRoom(target, room), room, spellData, magnitude, out))
-}
-
-// applyMobSelfEffect applies a mob's spell to itself (MS).
-func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.SpellData, magnitude int) {
-	self := actions.NewMobActorInRoom(mob, room)
-	applySpellEffect(newSpellEffectCtx(&mob.Character, self, self, room, spellData, magnitude,
-		uncontestedSpellResult()))
 }

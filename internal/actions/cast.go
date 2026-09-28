@@ -133,8 +133,8 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 				// Until U10c this was a silent no-op: charm declares
 				// damage_type social now, but back then it declared no
 				// target_defense_type, so a player target took resolveSpell's
-				// uncontested shortcut into applyPlayerEffect, which has no
-				// charm arm. Now that charm routes to the (spell, social)
+				// uncontested shortcut into the player-target effect switch,
+				// which had no charm arm. Now that charm routes to the (spell, social)
 				// pairing, leaving it unguarded would be worse -- a real
 				// contest charging the victim conviction for a defy and
 				// training their rhetoric, still for no effect. Mind control

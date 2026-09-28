@@ -76,12 +76,11 @@ import (
 //     self-cast branches, PR 3 Task 3): the mob-target spell paths still
 //     pair raw user.SendText / sendVisualRoomText calls carrying
 //     spellSchoolCategory(spellData) for every opposed/attack cast.
-//     Parity slice 3a moved damage, dot and knockdown onto SendTrio (now
-//     spell_effects.go's applySpellDamage, applySpellDot and
-//     applySpellKnockdown); the raw senders left are
-//     applyMobEffect_condition (spell_resolution.go:534),
-//     applyMobEffect_heal (:591), applyMobEffect_default (:622), and
-//     applyMobEffect_charm (charm_spell.go:26). CategorySpellFold was
+//     Parity slices 3a and 3b moved every spell effect onto SendTrio
+//     (spell_effects.go and spell_help_effects.go); the raw senders left
+//     are applyMobEffect_charm (charm_spell.go:26), resolveSpell's
+//     no-target and magic lines, resolveIdentify and
+//     resolvePurgeAffliction's self-cast lines. CategorySpellFold was
 //     untouched by PR 3 entirely.
 //   - CategoryGrappleFlow/CategorySubmission (position_control, PR 3 Task
 //     4): GrappleFlow is still sent raw at internal/hooks/

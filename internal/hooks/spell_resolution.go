@@ -228,7 +228,7 @@ func resolveSpell(user *users.UserRecord, cs activity.CastingData, spellData *sp
 	}
 	// Charm used to resolve HERE, in a second private contest run after the
 	// loop above had already contested every target and thrown the verdict
-	// away. It now resolves inside the loop, in applyMobEffect's "charm" arm,
+	// away. It now resolves inside the loop, in applySpellEffect's "charm" case,
 	// off that one contest.
 	//
 	// Removing this block also fixes two live defects. The player no longer

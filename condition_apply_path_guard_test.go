@@ -244,7 +244,7 @@ var conditionApplyPathAllowlist = map[string]string{
 	// case, and again Task 3 when it gained its heal case, and again Task 4
 	// when it gained its shield case, and again Task 5 when its doc comment
 	// grew and the per-pairing fallthrough became the default arm) ──────
-	"internal/hooks/spell_effects.go|336": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	"internal/hooks/spell_effects.go|321": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 
 	// ── light spells (lighting plan 5a): an EVENT door, not the silent
 	// character door. applySpellCondition's target is a spellConditionTarget,
