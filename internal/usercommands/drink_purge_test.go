@@ -6,6 +6,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -70,6 +71,34 @@ func TestApplyPurgeEffects(t *testing.T) {
 	}
 	if weakness.DurationMult != 1.0 {
 		t.Errorf("queued condition 76 DurationMult = %v, want 1.0 (the authored duration)", weakness.DurationMult)
+	}
+}
+
+func TestApplyPurgeEffectsStripsADerivedPotionCondition(t *testing.T) {
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		82: {ConditionId: 82, Name: "Steady Hand", TriggerCount: 400, RoundInterval: 1},
+		93: {ConditionId: 93, Name: "Bloom Detox", TriggerCount: 400, RoundInterval: 1},
+		76: {ConditionId: 76, Name: "Purging Weakness", TriggerCount: 50, RoundInterval: 1},
+	}))
+	t.Cleanup(items.SeedItemsForTest(map[int]*items.ItemSpec{
+		30060:              {ItemId: 30060, Type: items.Potion, ConditionIds: []int{82}},
+		ysoldesPurgeItemId: {ItemId: ysoldesPurgeItemId, Type: items.Potion, ConditionIds: []int{93}},
+	}))
+	c := characters.New()
+	u := &users.UserRecord{UserId: 7105, Character: c}
+	for _, id := range []int{82, 93} {
+		if err := c.AddConditionScaled(id, 1.0); err != nil {
+			t.Fatalf("setup %d: %v", id, err)
+		}
+	}
+	events.DrainQueuedConditionsForTest(u.UserId)
+	applyPurgeEffects(u)
+	c.Conditions.Prune()
+	if c.HasCondition(82) {
+		t.Error("82 sits outside the old 54-75 block but only a potion grants it; the purge must strip it")
+	}
+	if !c.HasCondition(93) {
+		t.Error("93 belongs to a detox item; one detox must not strip another")
 	}
 }
 

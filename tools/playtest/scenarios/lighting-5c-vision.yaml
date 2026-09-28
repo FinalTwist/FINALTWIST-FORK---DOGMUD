@@ -1,0 +1,90 @@
+# Lighting plan 5c: eyes for the dark. Infravision (Heat Sight spell 129,
+# Pitsense Tincture 130, cave mobs' 85) reads SHAPES, never faces, at any
+# light down to minus its reach; before 5c a faint room (light 2 to 24) was
+# blind to it. Its dark-side sight penalty shrinks with reach (0.90 up to 1.0
+# at reach 50); glare and dazzle still cost it in full. Night Vision (128)
+# shifts the window down; a nightvision holder in pitch dark is REFUSED `look`.
+# look/get/loot/look-dir/sneak follow actual sight. The Purging Draught strips
+# every potion-only effect, the tincture included.
+#
+# Fixtures (verified against room YAML 2026-09-28, branch head f2d12aa18):
+#   3102 Wind Gallery, Ironwind Steppe (cave: skylight 0, no lamp, so light 0,
+#     pitch dark): spawns Cave Crawler 224 (hostile) and Pale Lurker 225
+#     (ambusher, conditions 9 + 85). Exits N 3105, E 3103, S 3100.
+#   3105 Echo Chamber (cave, pitch dark): 225, Deep Gnawer 226 (hostile), 224.
+#   3108 Stalker's Gallery (cave, pitch dark): Blind Stalker 227 and two 225.
+#     Reached 3102 north, north.
+#   3106 Mineral Vein (cave, pitch dark): 225, 226, 227. Reached 3102 east
+#     (3103 Drip Chamber: 224, 225, 226), then north.
+#   3100 Cliff Base (cliffs: skylight 1.0, no lamp): open sky, the glare room
+#     by day. 3102 south.
+#   5105 Holding Cell, Thornwall (dungeon, room skylight 0.1, no lamp): no
+#     spawns. Light is the sky attenuated by 0.1 (about 27 points on the
+#     8-point doubling step): near 43 at equinox noon (dim), FAINT (2 to 24)
+#     with a low sun or a bright moon, 0 or below on a moonless night. The
+#     door down from 473 is locked (difficulty 255), so the actor STARTS in
+#     the cell; its up exit to 473 Guard Barracks (interior, sky 0.15, lamp
+#     50) is open, and 473 south is 460 Gate Ward (city_thoroughfare, sky
+#     0.95, lamp 52).
+# Thornwall and the Ironwind caves are far apart, so the faint-room case is
+# its own actor rather than a leg of the cave actors' route. The Pale Lurker
+# and Blind Stalker drop a Heat-Pit Organ (40233) at 15%.
+# The game day is 900 rounds (one real hour), so 20 minutes is about eight
+# game hours: every actor records `time` with each light observation.
+name: lighting-5c-vision
+mode: party
+summary: >-
+  A Heat Sight caster and a Night Vision caster compare sight in a pitch-dark
+  Ironwind cave and in open daylight, fight the cave's infravision hunters,
+  and test the tincture and the purge; a third actor compares unaided, heat
+  sight and night vision in a faint holding cell.
+on_actor_stop: continue
+budgets:
+  wall_clock: 20m
+requires:
+  max_connections: 20
+roster:
+  - id: heatsight
+    personality: bug-finder
+    goals: goals/scenarios/lighting-5c-vision/heatsight.yaml
+  - id: nightsight
+    personality: bug-finder
+    goals: goals/scenarios/lighting-5c-vision/nightsight.yaml
+  - id: cellmate
+    personality: bug-finder
+    goals: goals/scenarios/lighting-5c-vision/cellmate.yaml
+
+group_goals:
+  - id: infra-shapes-in-pitch-dark
+    do: >-
+      Heatsight casts heat-sight in the Wind Gallery (3102) and tries look,
+      get, look north, then fights a Pale Lurker or Blind Stalker.
+    verify: >-
+      Look works and shows shapes with names hidden, never faces; get and
+      look-in-a-direction behave as a sighted player in the dark would.
+  - id: infra-shapes-in-faint
+    do: >-
+      Cellmate in the Holding Cell (5105): unaided, then with heat-sight,
+      then with night-vision as well; look and get each time.
+    verify: >-
+      Unaided sees nothing or little; heat sight shows shapes with names
+      hidden in the faint cell, where before 5c it was blind.
+  - id: nightvision-refused-in-pitch-dark
+    do: Nightsight casts night-vision in the Wind Gallery and tries look.
+    verify: >-
+      Look is refused in the pitch-dark cave (nightvision cannot see where
+      no light is); in daylight it may report dazzle.
+  - id: infra-still-dazzled
+    do: Heatsight and nightsight step out to Cliff Base (3100) in daylight.
+    verify: Any glare or dazzle notice fires and reads as prose, once per entry.
+  - id: tincture-and-purge
+    do: Heatsight drinks the Pitsense Tincture, then the Purging Draught.
+    verify: >-
+      The tincture prints a start line and appears in `conditions`; after the
+      purge it no longer does.
+  - id: help-pages
+    do: Everyone reads help light, help night-vision, help heat-sight, help pitsense-tincture.
+    verify: No contradiction with what they saw.
+  - id: reads-well
+    do: Everyone judges every line as prose.
+    verify: No raw numbers, no em dashes, nothing over 80 columns.

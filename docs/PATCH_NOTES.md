@@ -1,5 +1,24 @@
 # DOGMud Patch Notes
 
+## 2026-09-28: Eyes for the dark
+
+Infravision now does what it promises. It sees the warmth of living
+things, not light, so it shows you shapes in any darkness it can reach,
+from a faint cellar to a cave no lamp has ever touched. The stronger it
+is, the less the dark costs you, and at its strongest the dark costs you
+nothing at all. It still never shows you a face, and it does nothing
+against glare.
+
+Two new spells can be discovered: Night Vision, which sharpens your eyes
+for faint light, and Heat Sight, a harder spell that grants infravision.
+Both grow stronger with your willpower and spellcasting.
+
+Alchemists can brew a Pitsense Tincture from the heat-pit of a blind cave
+hunter. An aged tincture from a skilled hand sees deeper and lasts longer.
+
+The Purging Draught now clears every potion's effect, including several
+older potions it used to miss.
+
 ## 2026-09-26: Being dazzled has a price
 
 Light now works against you in everything you do by sight, not only in

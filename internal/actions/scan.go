@@ -106,20 +106,47 @@ func Scan(actor Actor, opts ScanOptions) ScanResult {
 			actor.SendText(messaging.CategorySystem,
 				`  There are no visible exits to scan.`)
 		}
+		viewer := actor.GetCharacter()
+		seesOut := messaging.SeesThroughExit(viewer, room)
 		for _, s := range result.Sightings {
+			// The player's list follows the player's sight (lighting plan
+			// 5c): out through the exit from here, then into the next room.
+			// With faces, names; with shapes, the anonymous figure the room
+			// roster uses, one per creature and uncolored so a mob and a
+			// player read alike; with neither, nobody. The structured
+			// result is left whole for the mob callers.
+			sight := messaging.SightNone
+			if adjRoom := rooms.LoadRoom(s.RoomId); seesOut && adjRoom != nil {
+				sight = messaging.ParticipantSight(viewer, adjRoom)
+			}
 			parts := []string{}
 			for _, m := range s.Mobs {
 				parts = append(parts,
 					fmt.Sprintf(`<ansi fg="mobname">%s</ansi>`, m.Name))
 			}
 			for _, p := range s.Players {
+				if u := users.GetByUserId(p.Id); viewer != nil && u != nil && !viewer.Perceives(u.Character) {
+					continue
+				}
 				parts = append(parts,
 					fmt.Sprintf(`<ansi fg="username">%s</ansi>`, p.Name))
+			}
+			switch sight {
+			case messaging.SightShapes:
+				for i := range parts {
+					parts[i] = messaging.UnseenFigure(messaging.SightShapes)
+				}
+			case messaging.SightNone:
+				parts = nil
 			}
 			dirLabel := fmt.Sprintf(`<ansi fg="exit">%s</ansi>`, s.ExitName)
 			titleLabel := fmt.Sprintf(`<ansi fg="room-title">%s</ansi>`,
 				s.RoomTitle)
-			if len(parts) > 0 {
+			if sight == messaging.SightNone {
+				actor.SendText(messaging.CategorySystem,
+					fmt.Sprintf(`  %s (%s): too dark to make anything out`,
+						dirLabel, titleLabel))
+			} else if len(parts) > 0 {
 				actor.SendText(messaging.CategorySystem,
 					fmt.Sprintf(`  %s (%s): %s`,
 						dirLabel, titleLabel, strings.Join(parts, `, `)))

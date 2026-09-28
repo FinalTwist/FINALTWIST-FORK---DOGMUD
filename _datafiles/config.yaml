@@ -946,6 +946,25 @@ Balance:
   LightSpellDurationStatDivisor: 50
   LightSpellDurationSkillDivisor: 20
 
+  # ── LIGHT: VISION SPELLS AND INFRAVISION (lighting plan 5c) ────────────────
+  # Night Vision and Heat Sight scale like the light spells above:
+  #   base + stat/StatDivisor + spellcasting/SkillDivisor
+  # and last the light spells' duration. Night vision for a new (100, 0),
+  # mid (130, 30) and endgame (175, 65) caster: 12 / 19 / 28 (the window
+  # clamps at 24). Infra reach: 19 / 34 / 52 (capped at LightInfraReachCap).
+  LightNightVisionSpellBase: 4
+  LightNightVisionSpellStatDivisor: 12.5
+  LightNightVisionSpellSkillDivisor: 6.5
+  LightInfraSpellBase: 5
+  LightInfraSpellStatDivisor: 7
+  LightInfraSpellSkillDivisor: 3
+  # LightInfraReachCap bounds every infravision source's combined reach.
+  # Infravision sees shapes in any light down to minus its reach. Its sight
+  # multiplier is LightInfraPenaltyFloor at the first point of reach and
+  # rises linearly to 1.0 (no penalty) at the cap. It never eases dazzle.
+  LightInfraReachCap: 50
+  LightInfraPenaltyFloor: 0.90
+
   # ── COMBAT: DAMAGE ────────────────────────────────────────────────────────
   # Global panic buttons. 1.0 = no change. GlobalDamageMultiplier is
   # applied to ALL damage channels in CalcRawDamage().

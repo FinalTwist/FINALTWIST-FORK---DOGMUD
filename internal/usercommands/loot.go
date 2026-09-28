@@ -20,8 +20,9 @@ import (
 //	loot from <corpse>   (leading "from" tolerated)
 func Loot(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	// Can't loot if you can't see.
-	if !room.IsLit() && !user.Character.HasFlagFromAnySource(conditions.NightVision) {
+	// Can't loot if you can't see anything at all; shapes are enough (lighting
+	// plan 5c).
+	if messaging.ParticipantSight(user.Character, room) == messaging.SightNone {
 		user.SendText(messaging.CategorySystem, "You can't see anything to loot!")
 		return true, nil
 	}

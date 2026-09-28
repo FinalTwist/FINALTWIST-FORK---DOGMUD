@@ -153,6 +153,9 @@ GetPhysicalDefenseBonus(owned map[string]int) float64 // Sum bonus across owned
 
 // Flag magnitude (graded lighting arc, plan 2: vision window)
 FlagValue(owned map[string]int, flag string) float64 // Strongest RANK-SCALED Value across owned mutations granting flag, or 0
+
+// Flag magnitude, every source (lighting plan 5c: infra reach combines)
+FlagValues(owned map[string]int, flag string) []float64 // Each RANK-SCALED Value across owned mutations granting flag, zero values omitted
 ```
 
 `FlagValue` is the MAX analogue of the summing helpers above: same
@@ -167,6 +170,15 @@ Comparison happens AFTER scaling, so a rank-1 mutation with a larger raw
 rank-scaling in `FlagValue` is new, and the `Value` field it reads had been
 declared on `MutationEffect` and silently ignored by every flag-effect
 consumer until this plan.
+
+`FlagValues` is the same loop with the same per-mutation `mult :=
+LevelMultiplier(level)` scaling, but it appends every matching pro's or con's
+scaled `Value` (nonzero only) instead of keeping just the largest. It exists
+for a reader that combines sources some other way than MAX:
+`internal/characters.Character.InfraReach` log-sums every entry it returns
+(alongside every held condition's reach) through `lightscale.Combine`
+(lighting plan 5c, owner ruling: infra reach sources combine, unlike
+nightvision strength, which still reads `FlagValue`'s max).
 
 Authored convention for a four-rank vision mutation: `value: 6`. At the
 shipped rank multipliers (`MutationLevel2Multiplier` 1.6,

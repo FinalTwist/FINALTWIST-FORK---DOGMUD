@@ -1,6 +1,7 @@
 package mutations
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -1073,4 +1074,22 @@ func countOccurrences(pool []string, id string) int {
 		}
 	}
 	return n
+}
+
+func TestFlagValuesListsEachRankScaledValue(t *testing.T) {
+	prev := allMutations
+	defer func() { allMutations = prev }()
+	allMutations = map[string]*MutationSpec{
+		"testmut-heat-a": {MutationId: "testmut-heat-a", Name: "Heat A", Rarity: 1,
+			Pros: []MutationEffect{{Type: "flag", Target: "infraredvision", Value: 20}}},
+		"testmut-heat-b": {MutationId: "testmut-heat-b", Name: "Heat B", Rarity: 1,
+			Cons: []MutationEffect{{Type: "flag", Target: "infraredvision", Value: 10}}},
+		"testmut-other": {MutationId: "testmut-other", Name: "Other", Rarity: 1,
+			Pros: []MutationEffect{{Type: "flag", Target: "nightvision", Value: 18}}},
+	}
+	got := FlagValues(map[string]int{"testmut-heat-a": 1, "testmut-heat-b": 1, "testmut-other": 1}, "infraredvision")
+	sort.Float64s(got)
+	if len(got) != 2 || got[0] != 10 || got[1] != 20 {
+		t.Fatalf("FlagValues = %v, want [10 20]", got)
+	}
 }

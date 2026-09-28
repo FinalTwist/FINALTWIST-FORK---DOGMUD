@@ -47,23 +47,15 @@ func TestSightThroughWindow(t *testing.T) {
 		{"infra reach reads an unlit cave", 0, 24, 30, SightShapes},
 		{"infra reach reads shallow magical dark", -30, 24, 30, SightShapes},
 		{"infra reach bottoms out", -31, 24, 30, SightNone},
-		{"reach does not help above the floor", 24, 0, 30, SightNone},
+		// Infravision reads heat, not light (lighting plan 5c): shapes at ANY
+		// light down to minus its reach, never faces, and natural sight wins
+		// wherever it reads better.
+		{"infra reads a faint room", 12, 0, 30, SightShapes},
+		{"infra reads light a normal eye is blind in", 24, 0, 30, SightShapes},
 		{"reach without strength still reads dark", 0, 0, 10, SightShapes},
-
-		// windowFloor itself is otherwise unpinnable: windowShiftCap (24) never
-		// pushes shiftedBlind below 1, so the shapes branch's "light >=
-		// windowFloor" term is dead for any real strength, and no existing row
-		// puts a reach-carrying observer at light exactly windowFloor with no
-		// strength to shift the blind edge out of the way. This row does: at
-		// light 1 the shapes branch fails outright (1 is nowhere near the
-		// unshifted blind edge of 25), so the result comes entirely from the
-		// reach branch's "light <= windowFloor" gate. Move windowFloor to 0
-		// and this reddens to SightNone.
-		{"reach pins windowFloor at exactly 1", 1, 0, 5, SightShapes},
-		// The companion edge: one step above the pin, reach has already
-		// stopped mattering under either floor value (1 or 0), which is what
-		// "reach only operates at or below the floor" is supposed to mean.
-		{"reach stops one step above the floor", 2, 0, 5, SightNone},
+		{"a small reach still reads any lit room", 2, 0, 5, SightShapes},
+		{"infra never gives faces, even at the cap", 10, 0, 50, SightShapes},
+		{"natural faces beat infra", 60, 0, 30, SightFull},
 	}
 
 	for _, tc := range tests {
@@ -74,5 +66,42 @@ func TestSightThroughWindow(t *testing.T) {
 					tc.light, tc.strength, tc.reach, got, tc.want)
 			}
 		})
+	}
+}
+
+// windowFloor binds only when an operator sets LightBlindBelow below 1 (the
+// never-blind escape hatch): no ability shift can push the blind edge under
+// it, and infra reach no longer consults it.
+func TestWindowFloorHoldsForANeverBlindConfig(t *testing.T) {
+	if got := SightThroughWindow(0, 0, 0, -10, 50); got != SightNone {
+		t.Errorf("light 0 with blind edge -10 = %v, want SightNone (the floor)", got)
+	}
+	if got := SightThroughWindow(1, 0, 0, -10, 50); got != SightShapes {
+		t.Errorf("light 1 with blind edge -10 = %v, want SightShapes", got)
+	}
+}
+
+// TestExitThroughWindow pins the exit edge: LightExitsAbove for normal eyes,
+// moved down by night-vision strength and clamped exactly like the other
+// edges.
+func TestExitThroughWindow(t *testing.T) {
+	tests := []struct {
+		light, strength int
+		want            bool
+	}{
+		{64, 0, false},
+		{65, 0, true},
+		{52, 12, false},
+		{53, 12, true},
+		{41, 24, true},
+		{40, 24, false},
+		{40, 99, false}, // clamped at the window shift cap
+		{65, -5, true},  // negative strength clamps to zero
+		{64, -5, false},
+	}
+	for _, tc := range tests {
+		if got := ExitThroughWindow(tc.light, tc.strength, 65); got != tc.want {
+			t.Errorf("ExitThroughWindow(%d, %d, 65) = %v, want %v", tc.light, tc.strength, got, tc.want)
+		}
 	}
 }

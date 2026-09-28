@@ -1122,10 +1122,9 @@ type Balance struct {
 	// therefore effectively [1, 24], not [0, 24]; see validateLighting for
 	// the clamp.
 	//
-	// The upper bound of 24 mirrors windowShiftCap in
-	// internal/messaging/window.go, which internal/configs cannot import
-	// (messaging depends on configs, not the reverse). If windowShiftCap
-	// ever changes, this literal must change with it.
+	// The upper bound of 24 is LightWindowShiftCap
+	// (config.balance.lighting.go), which internal/messaging's windowShiftCap
+	// is defined from.
 	LightDefaultVisionStrength ConfigInt `yaml:"LightDefaultVisionStrength"` // Window shift for a vision flag that declares no strength of its own (default 12)
 
 	// LightDoublingStep is how many points on the -100..100 light scale are
@@ -1227,6 +1226,28 @@ type Balance struct {
 	LightSpellDurationBase         ConfigFloat `yaml:"LightSpellDurationBase"`         // default 2
 	LightSpellDurationStatDivisor  ConfigFloat `yaml:"LightSpellDurationStatDivisor"`  // default 50
 	LightSpellDurationSkillDivisor ConfigFloat `yaml:"LightSpellDurationSkillDivisor"` // default 20
+
+	// Vision-spell scaling (lighting plan 5c), the house idiom of the light
+	// trio above: base + stat/StatDivisor + spellcasting/SkillDivisor. A spell
+	// whose condition declares nightvision_strength: magnitude or
+	// infra_reach: magnitude is cast at that value, for the light trio's
+	// duration. Shipped, for a new (100, 0), mid (130, 30) and endgame
+	// (175, 65) caster: nightvision 12 / 19 / 28 (the window clamps at 24);
+	// infra reach 19 / 34 / 52 (capped at LightInfraReachCap).
+	LightNightVisionSpellBase         ConfigFloat `yaml:"LightNightVisionSpellBase"`         // default 4
+	LightNightVisionSpellStatDivisor  ConfigFloat `yaml:"LightNightVisionSpellStatDivisor"`  // default 12.5
+	LightNightVisionSpellSkillDivisor ConfigFloat `yaml:"LightNightVisionSpellSkillDivisor"` // default 6.5
+	LightInfraSpellBase               ConfigFloat `yaml:"LightInfraSpellBase"`               // default 5
+	LightInfraSpellStatDivisor        ConfigFloat `yaml:"LightInfraSpellStatDivisor"`        // default 7
+	LightInfraSpellSkillDivisor       ConfigFloat `yaml:"LightInfraSpellSkillDivisor"`       // default 3
+
+	// Infravision (lighting plan 5c). LightInfraReachCap bounds every
+	// source's combined reach (spell, potion, mutation, condition).
+	// LightInfraPenaltyFloor is the sight multiplier infravision gives at its
+	// first point of reach; it rises linearly to no penalty at the cap, so
+	// reach 25 reads 0.95. Infravision only ever eases the DARK side.
+	LightInfraReachCap     ConfigInt   `yaml:"LightInfraReachCap"`     // default 50
+	LightInfraPenaltyFloor ConfigFloat `yaml:"LightInfraPenaltyFloor"` // default 0.90
 }
 
 func (b *Balance) Validate() {

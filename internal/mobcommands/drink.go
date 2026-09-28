@@ -32,7 +32,15 @@ func Drink(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 		room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(`<ansi fg="mobname">%s</ansi> drinks <ansi fg="itemname">%s</ansi>.`, mob.Character.Name, matchItem.DisplayName()))
 
+		// A magnitude-scaled condition (lighting plan 5c) applies at the
+		// item's Magnitude through the same helper the player's drink uses.
+		// A mob's potion has no aging or crafter scaling here, so durationMult
+		// is 1. Everything else keeps its authored application.
 		for _, conditionId := range itemSpec.ConditionIds {
+			if mag, trig, ok := items.PotionMagnitudeApplication(&itemSpec, conditions.GetConditionSpec(conditionId), 1); ok {
+				mob.AddConditionMagnitude(conditionId, trig, mag, `drink`)
+				continue
+			}
 			mob.AddCondition(conditionId, `drink`)
 		}
 	}

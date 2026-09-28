@@ -1,0 +1,21 @@
+# Found by discovery, never taught (lighting plan 5c). Costs more and needs
+# more spellcasting than Night Vision (owner ruling 2026-09-28).
+spellid: heat-sight
+name: Heat Sight
+aliases: [infravision]
+description: Turns the eyes from light to the warmth of living things.
+attack_type: none
+damage_type: non_harm
+targeting: single
+schools:
+  - mental
+cost: 80
+waitrounds: 3
+difficulty: 35
+primarystat: willpower
+effect_type: condition
+condition_ids:
+  - 129
+cast_actor: "You turn your sight from light to warmth."
+cast_observer: "{actor}'s eyes take on a dull red sheen."
+wait_actor: "You let the warmth of living things gather in your sight..."

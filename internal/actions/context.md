@@ -975,7 +975,11 @@ tell you. `FireResult.Chambered` carries the auto-reload's outcome, and its
   score here pays `messaging.SightMult` on the party who needs to SEE, once
   per roll per party. `CalcDetectionScore(c, room messaging.RoomVisibility)`
   applies it for the OBSERVER (pass the observer's room; nil is unity; the
-  hider's side already folds light in through `CalcSneakScoreVsObserver`), so
+  hider's side already folds light in through `CalcSneakScoreVsObserver`,
+  which takes the room as a `messaging.RoomVisibility`, usually a hoisted
+  `messaging.FixedLight`, and counts it lit for an observer whose
+  `messaging.LightBand` is not `BandDark`; lighting plan 5c replaced the old
+  `roomLit || nightvision flag` test), so
   every detection caller (sneak, go, search's `spotsHider`, track's opposed
   contest, the steal/plant/shadow notice rolls) gets it by construction.
   `stealVictimScore(c, room)` does the same for the theft and plant

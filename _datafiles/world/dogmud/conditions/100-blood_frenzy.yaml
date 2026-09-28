@@ -1,6 +1,6 @@
 conditionid: 100
 name: Blood Frenzy
-description: A red haze — you hit like a cornered beast and cannot make yourself retreat.
+description: A red haze. You hit like a cornered beast and cannot make yourself retreat.
 triggerrate: 1 round
 triggercount: 2
 flags:

@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
-	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
@@ -27,14 +25,15 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 	secretLook := flags.Has(events.CmdSecretly)
 
-	light := room.LightLevel()
-	balance := configs.GetBalanceConfig()
-
-	if light < int(balance.LightBlindBelow) {
-		if !user.Character.HasFlagFromAnySource(conditions.NightVision) {
-			user.SendText(messaging.CategorySystem, `You can't see anything!`)
-			return true, nil
-		}
+	// Refuse exactly when the observer makes out nothing at all here. The old
+	// test (light below LightBlindBelow and no nightvision FLAG) was stale
+	// twice over: it refused an infravision holder the Game window gives
+	// shapes to, and it let a nightvision holder look in a room its shifted
+	// window reads as blind (lighting plan 5c).
+	sight := messaging.ParticipantSight(user.Character, room)
+	if sight == messaging.SightNone {
+		user.SendText(messaging.CategorySystem, `You can't see anything!`)
+		return true, nil
 	}
 
 	isSneaking := user.Character.IsHidden()
@@ -80,8 +79,13 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	// look for any mobs, players, npcs
 	//
 
+	// Only a viewer who sees faces looks at a creature by name (lighting plan
+	// 5c). At shapes the name is not resolved at all, so the reply cannot
+	// confirm who is standing there: a name that matches a figure and a name
+	// that matches nobody fall through alike to the shapes hint at the end.
+	// cast refuses a typed name at shapes the same way (actions.admitCastAim).
 	target, err := actions.ResolveTargetActor(room, lookAt, actions.ResolveTargetOptions{Viewer: user.Character})
-	if err == nil {
+	if err == nil && sight == messaging.SightFull {
 
 		if target.IsPlayer() {
 
@@ -92,9 +96,10 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 					fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at you.`, user.Character.Name),
 				)
 
+				// The looker and the looked-at each have their own line.
 				room.SendTextVisual(messaging.CategoryMobEmote,
 					fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at <ansi fg="username">%s</ansi>.`, user.Character.Name, u.Character.Name),
-					u.UserId)
+					user.UserId, u.UserId)
 			}
 
 			descTxt, _ := templates.Process("character/description", u.Character, user.UserId)
@@ -267,13 +272,16 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		// own, so the exemption only ever fired when a darkening mutator had
 		// dragged the room below the threshold, which is precisely the case
 		// where refusing is right. The light value decides now.
-		if light < int(balance.LightExitsAbove) {
-
-			if !user.Character.HasFlagFromAnySource(conditions.NightVision) {
-				user.SendText(messaging.CategorySystem, `It's too dark to see anything in that direction.`)
-				return true, nil
-			}
-
+		//
+		// LightExitsAbove stays the edge for normal eyes. Night vision moves
+		// it down by the holder's strength, exactly as it moves the blind and
+		// dim edges; it used to be a flag that waived the edge outright, even
+		// in a room the holder's own window reads as blind. Infra reach does
+		// not help: heat shows shapes here, not in the next room (lighting
+		// plan 5c; messaging.SeesThroughExit).
+		if !messaging.SeesThroughExit(user.Character, room) {
+			user.SendText(messaging.CategorySystem, `It's too dark to see anything in that direction.`)
+			return true, nil
 		}
 
 		exitInfo, _ := room.GetExitInfo(exitName)
@@ -429,7 +437,8 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	if petUserId == 0 && rest == `pet` && user.Character.Pet.Exists() {
 		petUserId = user.UserId
 	}
-	if petUserId > 0 {
+	// A pet is a creature too: by name only with faces (see above).
+	if petUserId > 0 && sight == messaging.SightFull {
 		if petUser := users.GetByUserId(petUserId); petUser != nil {
 
 			user.SendText(messaging.CategoryRoomDescription, fmt.Sprintf(`You look at %s`, petUser.Character.Pet.DisplayName()))
@@ -501,7 +510,12 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 	}
 
-	// Nothing found
+	// Nothing found. At shapes the name may have been a creature's, which
+	// was deliberately not resolved above; say why rather than deny it.
+	if sight == messaging.SightShapes {
+		user.SendText(messaging.CategorySystem, `You can only make out shapes here.`)
+		return true, nil
+	}
 	user.SendText(messaging.CategorySystem, "Look at what???")
 
 	return true, nil

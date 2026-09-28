@@ -668,7 +668,7 @@ special-move base instead. Physical rows add encumbrance, every row applies the
 inverse governing-skill term, and callers may supply a documented modifier.
 See the live config and validation code for tuning values.
 
-### Graded room lighting (plans 1, 2, 3a, 5a and 5b of the graded lighting arc)
+### Graded room lighting (plans 1, 2, 3a, 5a, 5b and 5c of the graded lighting arc)
 
 Thirteen knobs, validated in their own file (`config.balance.lighting.go`)
 rather than folded into `validateMisc`, because the arc kept adding more
@@ -699,13 +699,15 @@ the exception, shipped in the file at its default of 75.
 validated in the same `validateLighting` and exposed on `configs.Lighting` as
 `SpellStrengthBase`/`SpellStrengthStatDivisor`/`SpellStrengthSkillDivisor` and
 `SpellDurationBase`/`SpellDurationStatDivisor`/`SpellDurationSkillDivisor`.
-`internal/hooks.lightSpellApplication` casts a `light_strength: magnitude`
-condition at `StrengthBase + stat/StrengthStatDivisor + skill/StrengthSkillDivisor`
-for `DurationBase + stat/DurationStatDivisor + skill/DurationSkillDivisor`
-triggers (rounded, at least 1). Unlike the twelve above, these six DO ship in
-`_datafiles/config.yaml`, at their defaults. Any value not above 0 is coerced
-to its default (a zero divisor would divide by zero, and a test binary never
-loads `config.yaml`).
+`internal/hooks.magnitudeSpellApplication` (renamed from
+`lightSpellApplication` in lighting plan 5c, when it generalised past light;
+see "Vision-spell scaling and infravision" below) casts a `light_strength:
+magnitude` condition at `StrengthBase + stat/StrengthStatDivisor +
+skill/StrengthSkillDivisor` for `DurationBase + stat/DurationStatDivisor +
+skill/DurationSkillDivisor` triggers (rounded, at least 1). Unlike the twelve
+above, these six DO ship in `_datafiles/config.yaml`, at their defaults. Any
+value not above 0 is coerced to its default (a zero divisor would divide by
+zero, and a test binary never loads `config.yaml`).
 
 | Knob | Default |
 |------|---------|
@@ -715,6 +717,43 @@ loads `config.yaml`).
 | `LightSpellDurationBase` | 2 |
 | `LightSpellDurationStatDivisor` | 50 |
 | `LightSpellDurationSkillDivisor` | 20 |
+
+**Vision-spell scaling and infravision (lighting plan 5c).** Eight more
+knobs, validated in the same `validateLighting`. Six follow the light trio's
+own idiom (base + stat/StatDivisor + skill/SkillDivisor), one pair per scaled
+kind, exposed on `configs.Lighting` as `NightVisionSpellBase`/
+`NightVisionSpellStatDivisor`/`NightVisionSpellSkillDivisor` and
+`InfraSpellBase`/`InfraSpellStatDivisor`/`InfraSpellSkillDivisor`.
+`magnitudeSpellApplication` (through `conditions.SpellScaledMagnitude`, which
+the admin `setcondition` command also calls at a new character's stat 100 and
+skill 0) picks the trio matching `ConditionSpec.ScaledKind()` and shares the light trio's `SpellDuration*` knobs for all three kinds'
+duration. The other two are infravision's own: `LightInfraReachCap`
+(`ConfigInt`, bounds every infra-reach source's combined total — spell,
+potion, mutation, condition) and `LightInfraPenaltyFloor` (`ConfigFloat`, the
+sight multiplier infravision gives at its first point of reach, rising
+linearly to no penalty at the cap). All eight ship in `_datafiles/config.yaml`
+at their defaults, in the "LIGHT: VISION SPELLS AND INFRAVISION" block after
+the light trio's own.
+
+| Knob | Type | Default |
+|------|------|---------|
+| `LightNightVisionSpellBase` | ConfigFloat | 4 |
+| `LightNightVisionSpellStatDivisor` | ConfigFloat | 12.5 |
+| `LightNightVisionSpellSkillDivisor` | ConfigFloat | 6.5 |
+| `LightInfraSpellBase` | ConfigFloat | 5 |
+| `LightInfraSpellStatDivisor` | ConfigFloat | 7 |
+| `LightInfraSpellSkillDivisor` | ConfigFloat | 3 |
+| `LightInfraReachCap` | ConfigInt | 50 |
+| `LightInfraPenaltyFloor` | ConfigFloat | 0.90 |
+
+`LightInfraReachCap` coerces to 50 outside `(0, 100]` (a cap of zero divides
+by zero in the penalty ramp; above 100 reaches past the scale).
+`LightInfraPenaltyFloor` coerces to 0.90 outside `(0, 1.0]` (it is a
+multiplier). `configs.Lighting` also carries `DarkCap`, which is not its own
+knob: it is `Balance.DarknessCombatPenalty` (the COMBAT: DARKNESS knob below)
+copied onto `Lighting`, because `internal/messaging.infraDarkCap` expresses
+the infravision penalty as a dark fraction against it and reads it off the
+narrow `Lighting` struct rather than the 400-field `Balance` copy.
 
 `LightBlindBelow` and `LightDimBelow` validate as a PAIR, the
 `LightStarlight`/`LightMoonsFull` precedent below: an inverted or
@@ -755,10 +794,12 @@ against these defaults"; they are not consulted anywhere any more.
 (whether authored directly or reached by clamping a negative) defaults to
 12, following the `ProgressMult` idiom where zero means "unset", not "shift
 by nothing", so the effective authored range is `[1, 24]`. The upper bound
-24 duplicates `windowShiftCap` in `internal/messaging/window.go` on purpose:
-`internal/configs` cannot import `internal/messaging` (the dependency runs
-the other way), so if `windowShiftCap` ever changes this literal must change
-with it. A value above 24 clamps down to it rather than reverting to the
+is the exported constant `LightWindowShiftCap` (24,
+`config.balance.lighting.go`), which `windowShiftCap` in
+`internal/messaging/window.go` is defined from, and which the spell and
+potion magnitude caps (`conditions.SpellScaledMagnitude`,
+`items.PotionMagnitudeApplication`) also read, so there is one number, not
+a duplicated literal. A value above 24 clamps down to it rather than reverting to the
 default, honouring the operator's intent (a strong shift) at the strongest
 the window model can express, the same way `LightExitsAbove` clamps rather
 than reverts for its own out-of-range case above.

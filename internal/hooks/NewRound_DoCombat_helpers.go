@@ -9,7 +9,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -417,7 +416,11 @@ func isExcludedUser(uid int, excludeIds []int) bool {
 }
 
 // sendDarkRoomCombatFallback sends a one-time "sounds of fighting" message
-// to non-nightvision players in dark rooms.
+// in a dark room to every player who cannot follow the fight by eye: one the
+// visual pipeline delivers nothing to (messaging.CanSeeShapes is false).
+// It used to test the nightvision FLAG, which sent the sound to an
+// infravision holder reading shapes and withheld it from a nightvision
+// holder whose window reads the room as blind (lighting plan 5c).
 func sendDarkRoomCombatFallback(room *rooms.Room, excludeUserIds ...int) {
 	if room == nil || room.IsLit() {
 		return
@@ -427,8 +430,25 @@ func sendDarkRoomCombatFallback(room *rooms.Room, excludeUserIds ...int) {
 			continue
 		}
 		u := users.GetByUserId(uid)
-		if u != nil && !u.Character.HasFlagFromAnySource(conditions.NightVision) {
+		if u != nil && !messaging.CanSeeShapes(u.Character, room) {
 			u.SendText(messaging.CategoryDefault, `<ansi fg="yellow">You hear the sounds of fighting nearby.</ansi>`)
+		}
+	}
+}
+
+// sendVisualElseAudible sends visualMsg through the visual pipeline, which
+// delivers it to every reader who makes out at least shapes (anonymising
+// names for a shapes reader), and soundMsg to every player the pipeline
+// skipped. Every player in the room reads exactly one of the two.
+func sendVisualElseAudible(room *rooms.Room, cat messaging.Category, visualMsg, soundMsg string) {
+	if room == nil {
+		return
+	}
+	room.SendTextVisual(cat, visualMsg)
+	for _, uid := range room.GetPlayers() {
+		u := users.GetByUserId(uid)
+		if u != nil && !messaging.CanSeeShapes(u.Character, room) {
+			u.SendText(cat, soundMsg)
 		}
 	}
 }

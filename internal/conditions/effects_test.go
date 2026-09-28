@@ -1,6 +1,7 @@
 package conditions
 
 import (
+	"sort"
 	"testing"
 
 	"gopkg.in/yaml.v2"
@@ -346,5 +347,56 @@ func TestEffectMaxKindArithmeticTakesTheLarger(t *testing.T) {
 
 	if got := bs.Effect(EffectNightVisionStrength); got != 18 {
 		t.Fatalf("max kind must take the larger held value 18, not the sum 28: got %v", got)
+	}
+}
+
+func TestEffectValuesListsEveryHeldValue(t *testing.T) {
+	withSpecs(t,
+		&ConditionSpec{ConditionId: 960, Name: "Heat A", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectInfraReach: {UsesMagnitude: true}}},
+		&ConditionSpec{ConditionId: 961, Name: "Heat B", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectInfraReach: {Literal: 30}}},
+		&ConditionSpec{ConditionId: 962, Name: "Other", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectNightVisionStrength: {Literal: 12}}},
+	)
+	bs := Conditions{}
+	bs.Validate(true)
+	bs.AddConditionMagnitude(960, 5, 22)
+	bs.AddConditionMagnitude(961, 5, 0)
+	bs.AddConditionMagnitude(962, 5, 0)
+	got := bs.EffectValues(EffectInfraReach)
+	sort.Float64s(got)
+	if len(got) != 2 || got[0] != 22 || got[1] != 30 {
+		t.Fatalf("EffectValues = %v, want [22 30]", got)
+	}
+	if bs.Effect(EffectInfraReach) != 30 {
+		t.Fatal("Effect must still read the max for a max kind")
+	}
+}
+
+func TestScaledKind(t *testing.T) {
+	cases := []struct {
+		name   string
+		fx     map[EffectKind]EffectValue
+		want   EffectKind
+		wantOk bool
+	}{
+		{"glow", map[EffectKind]EffectValue{EffectLightStrength: {UsesMagnitude: true}}, EffectLightStrength, true},
+		{"night sight", map[EffectKind]EffectValue{EffectNightVisionStrength: {UsesMagnitude: true}}, EffectNightVisionStrength, true},
+		{"heat sight", map[EffectKind]EffectValue{EffectNightVisionStrength: {Literal: 12}, EffectInfraReach: {UsesMagnitude: true}}, EffectInfraReach, true},
+		{"literal only", map[EffectKind]EffectValue{EffectInfraReach: {Literal: 30}}, "", false},
+		{"combat magnitude is not a sight kind", map[EffectKind]EffectValue{EffectDamageMult: {UsesMagnitude: true}}, "", false},
+	}
+	for _, c := range cases {
+		s := &ConditionSpec{ConditionId: 970, Name: c.name, Effects: c.fx}
+		got, ok := s.ScaledKind()
+		if got != c.want || ok != c.wantOk {
+			t.Errorf("%s: (%q, %v), want (%q, %v)", c.name, got, ok, c.want, c.wantOk)
+		}
+	}
+}
+
+func TestValidateRefusesTwoScaledKinds(t *testing.T) {
+	s := &ConditionSpec{ConditionId: 971, Name: "Probe", TriggerRate: "1 round", TriggerCount: 1,
+		Effects: map[EffectKind]EffectValue{EffectNightVisionStrength: {UsesMagnitude: true}, EffectInfraReach: {UsesMagnitude: true}}}
+	if err := s.Validate(); err == nil {
+		t.Fatal("a record carries one magnitude; two magnitude sight kinds must be refused at load")
 	}
 }

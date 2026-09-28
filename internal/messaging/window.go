@@ -1,5 +1,7 @@
 package messaging
 
+import "github.com/GoMudEngine/GoMud/internal/configs"
+
 // The normal observer's band edges on the graded light scale, and the two
 // numbers that bound how far an ability may move them.
 //
@@ -7,10 +9,13 @@ package messaging
 // plan 5b's LightDazzleAbove), and every function below takes them as
 // arguments rather than reading config, so this file stays pure and testable.
 const (
-	// windowShiftCap is the most any ability may move the window down.
-	windowShiftCap = 24
-	// windowFloor is the light below which a shifted window reads nothing,
-	// no matter how strong. Only an infra reach sees past it.
+	// windowShiftCap is the most any ability may move the window down. It is
+	// configs.LightWindowShiftCap, the one number the config validation and
+	// the spell and potion magnitude caps also read.
+	windowShiftCap = configs.LightWindowShiftCap
+	// windowFloor is the light below which a shifted window reads nothing, no
+	// matter how strong. Infra reach is independent of it: heat-sense reads
+	// shapes at any light down to minus the reach (lighting plan 5c).
 	windowFloor = 1
 )
 
@@ -19,8 +24,9 @@ const (
 // strength moves every band edge DOWN by that many points, capped at
 // windowShiftCap and floored at zero, so an ability trades bright-light comfort
 // for dark-light acuity rather than simply gaining sight. reach is the separate
-// heat-sensing extension that operates only at or below windowFloor; light at
-// or above the negation of reach reads shapes, below that reads nothing.
+// heat-sensing extension: it reads SHAPES at any light down to the negation of
+// reach, never faces, and only where the window itself reads worse (lighting
+// plan 5c, the owner's ruling on 5b call 3).
 //
 // It takes the two lower band edges as arguments rather than reading config, so
 // it stays a pure function with no locks and no global state. Its caller owns
@@ -48,19 +54,28 @@ func SightThroughWindow(light, strength, reach int, blindBelow, dimBelow int) Si
 	if light >= shiftedBlind && light >= windowFloor {
 		return SightShapes
 	}
-	// Below the shifted window. Reach only operates at or below windowFloor;
-	// without this gate a large reach would read shapes for any light the
-	// shifted window merely failed to cover, even in ordinary dim light far
-	// above the floor, which is not what "heat-sensing in the dark" means.
-	if light <= windowFloor && reach > 0 && light >= -reach {
+	// Below the natural window. Infravision reads heat, not light, so it
+	// gives shapes at ANY light down to minus its reach. It never yields
+	// faces: natural sight has already won above wherever it reads fully.
+	if reach > 0 && light >= -reach {
 		return SightShapes
 	}
 	return SightNone
 }
 
+// ExitThroughWindow reports whether an observer sees THROUGH an exit into the
+// next room at a given light. exitsAbove (Balance.LightExitsAbove) is the edge
+// for normal eyes; night-vision strength moves it down exactly as it moves the
+// blind and dim edges, clamped the same way. Infra reach plays no part: heat
+// shows shapes in the observer's own room, not in the room beyond an exit.
+// The caller still refuses first when the observer reads nothing at all here.
+func ExitThroughWindow(light, strength, exitsAbove int) bool {
+	return light >= exitsAbove-clampShift(strength)
+}
+
 // clampShift bounds an ability's window shift to [0, windowShiftCap]. Shared
-// by SightThroughWindow and BandThroughWindow so the two can never clamp
-// differently.
+// by SightThroughWindow, BandThroughWindow and ExitThroughWindow so they can
+// never clamp differently.
 func clampShift(strength int) int {
 	if strength < 0 {
 		return 0

@@ -1,7 +1,7 @@
 conditionid: 84
 name: Stunned
 description: |
-  A particularly brutal submission left you reeling — you can't mount
+  A particularly brutal submission left you reeling. You can't mount
   any meaningful attack or defense this round.
 triggerrate: 1 round
 triggercount: 1

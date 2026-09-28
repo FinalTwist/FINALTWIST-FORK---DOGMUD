@@ -41,6 +41,8 @@ character:
   level: 1
   items:
     - itemid: 40048
+    - itemid: 40233
+      dropchance: 15
   stats:
     strength:
       base: 92

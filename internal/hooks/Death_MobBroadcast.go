@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -17,7 +16,7 @@ import (
 
 // wireMobDeathBroadcast subscribes to Life Alive→Dead transitions on
 // mob characters and handles:
-//  1. Room broadcast "X has died."  (respects dark rooms / night vision)
+//  1. Room broadcast "X has died."  (each reader's sight; a sound otherwise)
 //  2. Guide mob (MobId 38) tempdata for respawn throttle
 //  3. worldevents.MobKilledByPlayer emission when a player got the kill
 //
@@ -44,29 +43,16 @@ func wireMobDeathBroadcast(c *characters.Character) {
 
 			d, _ := c.Life.DeadData()
 
-			// 1. Room broadcast — replicate sendMovementMessage behaviour.
-			//    In lit rooms use SendTextVisual; in dark rooms respect
-			//    per-player night vision, falling back to the audible cue.
+			// 1. Room broadcast. Every reader who makes out at least shapes
+			//    reads the visual line (anonymised for a shapes reader);
+			//    everyone else hears the audible cue. This used to split on
+			//    the nightvision FLAG in a dark room (lighting plan 5c).
 			deathMsg := fmt.Sprintf(
 				`<ansi fg="mobname">%s</ansi> has died.`,
 				m.Character.Name,
 			)
 			soundMsg := `You hear something collapse to the ground.`
-			if room.IsLit() {
-				room.SendTextVisual(messaging.CategoryDeath, deathMsg)
-			} else {
-				for _, uid := range room.GetPlayers() {
-					u := users.GetByUserId(uid)
-					if u == nil {
-						continue
-					}
-					if u.Character.HasFlagFromAnySource(conditions.NightVision) {
-						u.SendText(messaging.CategoryDeath, deathMsg)
-					} else {
-						u.SendText(messaging.CategoryDeath, soundMsg)
-					}
-				}
-			}
+			sendVisualElseAudible(room, messaging.CategoryDeath, deathMsg, soundMsg)
 
 			// 2. Guide special-case: mark lastGuideRound to prevent an
 			//    immediate respawn.  MobId 38 = "The Guide".

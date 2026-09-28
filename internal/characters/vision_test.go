@@ -1,6 +1,7 @@
 package characters
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/conditions"
@@ -149,4 +150,37 @@ func TestVisionNumbers(t *testing.T) {
 			t.Fatalf("NightVisionStrength with condition 5 vs mutation 9.6 = %d, want 10 (the stronger, rounded)", got)
 		}
 	})
+}
+
+func TestInfraReachCombinesAndCaps(t *testing.T) {
+	configs.SetConfigForTest(t, configs.GetConfig()) // doubling step 8, cap 50
+	seed := func(reaches ...float64) *Character {
+		specs := map[int]*conditions.ConditionSpec{}
+		for i, r := range reaches {
+			id := 7404 + i
+			specs[id] = &conditions.ConditionSpec{ConditionId: id, Name: fmt.Sprintf("Heat %d", i),
+				Flags:   []conditions.Flag{conditions.InfraredVision},
+				Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectInfraReach: {Literal: r}}}
+		}
+		t.Cleanup(conditions.SeedConditionsForTest(specs))
+		c := visionChar(t, "Viewer")
+		for id := range specs {
+			if err := c.AddCondition(id, true); err != nil {
+				t.Fatalf("AddCondition(%d): %v", id, err)
+			}
+		}
+		return c
+	}
+	if got := seed(30).InfraReach(); got != 30 {
+		t.Errorf("one source 30 = %d, want 30", got)
+	}
+	if got := seed(30, 30).InfraReach(); got != 38 {
+		t.Errorf("two equal sources 30 = %d, want 38 (one doubling step)", got)
+	}
+	if got := seed(40, 30, 25).InfraReach(); got != 46 {
+		t.Errorf("40 + 30 + 25 = %d, want 46", got)
+	}
+	if got := seed(48, 48).InfraReach(); got != 50 {
+		t.Errorf("48 + 48 = %d, want the cap 50", got)
+	}
 }

@@ -350,10 +350,16 @@ type ItemSpec struct {
 	Aging                 AgingThresholds   `yaml:"aging,omitempty"`                   // Potion aging phase thresholds
 	BottleAgingMultiplier float64           `yaml:"bottle_aging_multiplier,omitempty"` // Bottle aging speed (clay=3.0, glass=1.0, phial=0.5, decanter=0.25)
 	Toxicity              int               `yaml:"toxicity,omitempty"`                // Toxicity cost when consumed
-	IsBandolier           bool              `yaml:"is_bandolier,omitempty"`            // Belt item that holds potions
-	BandolierCapacity     int               `yaml:"bandolier_capacity,omitempty"`      // Max potions storable in bandolier
-	SalvageReturns        []SalvageReturn   `yaml:"salvage_returns,omitempty"`         // Custom salvage returns for non-crafted items
-	RarityTier            int               `yaml:"rarity_tier,omitempty"`             // Vendor stock cap tier (50/40/30/20/10). Used by shops.EffectiveMaxStock with mob.StockMultiplier. 0 = untiered (quest items, defer-to-3.0e items). NOT a difficulty signal — see MaterialTier.
+	// Magnitude is the base strength for a condition in ConditionIds that
+	// reads its magnitude (conditions.ScaledKinds, lighting plan 5c). The
+	// drink path scales it by the same potency multiplier as duration. A
+	// potion carrying such a condition must declare it (repo-root guard
+	// potion_conditions_guard_test.go).
+	Magnitude         float64         `yaml:"magnitude,omitempty"`
+	IsBandolier       bool            `yaml:"is_bandolier,omitempty"`       // Belt item that holds potions
+	BandolierCapacity int             `yaml:"bandolier_capacity,omitempty"` // Max potions storable in bandolier
+	SalvageReturns    []SalvageReturn `yaml:"salvage_returns,omitempty"`    // Custom salvage returns for non-crafted items
+	RarityTier        int             `yaml:"rarity_tier,omitempty"`        // Vendor stock cap tier (50/40/30/20/10). Used by shops.EffectiveMaxStock with mob.StockMultiplier. 0 = untiered (quest items, defer-to-3.0e items). NOT a difficulty signal — see MaterialTier.
 	// MaterialTier is how RARE/DEMANDING a crafting material is, 1 (common) to
 	// 5 (rarest). It scales craft difficulty via items.MaterialTierMultiplier.
 	// 0 means untiered and is NEUTRAL (multiplier 1.0), not "cheapest" — so
