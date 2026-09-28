@@ -56,8 +56,9 @@ The configuration system is built around a centralized `Config` struct with seve
 
 ### 4. **Security Features**
 - `ConfigSecret` type automatically redacts sensitive values in logs and output
+- `Config.DisplayConfigData` is the only view a person may read (see "Locks and the redacted view")
 - Environment variable support for secure credential injection
-- Locked configuration properties to prevent unauthorized changes
+- `SetVal` refuses locked keys: `Server.Locked` plus the Go hard list `hardLocked`
 - Validation of user input against banned patterns
 
 ### 5. **Override System**
@@ -217,8 +218,9 @@ GamePlay:
 
 ### Dot-Notation Access
 ```go
-// All configuration paths support dot notation
-allConfig := config.AllConfigData()
+// All configuration paths support dot notation. AllConfigData is RAW (lookups
+// only); anything a person reads uses DisplayConfigData.
+allConfig := config.DisplayConfigData()
 // Returns map with keys like:
 // "Server.MudName" -> "My MUD Server"
 // "Network.HttpPort" -> 80
@@ -240,6 +242,61 @@ fullPath, typeName := configs.FindFullPath("httpport")
 
 // Supports partial matches and case-insensitive lookup
 ```
+
+## Locks and the redacted view
+
+**Locks (`config_locks.go`).** `IsLocked(path)` is true when the path is on
+`hardLocked` (exact, lowercase), ends in `locked`, or starts (lowercase) with
+an entry of `Server.Locked`. `hardLocked` holds the security keys no in-game
+command may change whatever `Server.Locked` says: `APIFramework.APIKey`,
+`.APIKeyEnv`, `.BaseURL`, `.AllowCustomEndpoint` (the section is absent on
+master; the entries cost nothing), `Modules.aicompanion.APIKey`, `.APIKeyEnv`,
+`.BaseURL`, `.AllowCustomEndpoint`, `.RelayOrigin`, `.PlayerKeys`, `.Model`,
+`.FastModel`, `.DeepModel`, `.ModerateOutput`, `.ModerationModel`,
+`FilePaths.WebDomain`, `Server.Locked`, and `Integrations.Discord.WebhookUrl`
+(where server data is sent).
+
+- `SetVal` is the OPERATOR write (`server set`, the `server config` menu,
+  `setmotd`, `plugins.PluginConfig.Set`). It resolves the key with
+  `FindFullPath`, then refuses with `ErrLockedConfig` when `IsLocked` names the
+  RESOLVED path, before the unknown-key check. A bare suffix key (`seed`)
+  cannot slip past a full-path lock.
+- `SetEngineVal` is the ENGINE write for values the server maintains itself
+  that `Server.Locked` keeps from operators: `Server.CurrentVersion`
+  (`internal/migration`) and `Server.NextRoomId` (`internal/rooms`). It skips
+  `Server.Locked` and still refuses `hardLocked`. A new engine-owned key in
+  the shipped lock list must use it, or its write is silently refused.
+- Both refuse `RedactedValue` as a value (`ErrRedactedValue`).
+- `usercommands.isEditAllowed` delegates to `IsLocked`.
+
+**Redacted view (`config_display.go`).** `AllConfigData` returns values raw
+and is for the lookups only (`buildKeyLookups`). `DisplayConfigData` takes the
+same exclusion patterns and replaces with `RedactedValue` every `ConfigSecret`
+and every value `isSecretConfigValue` names: the check runs `secretNameRule`,
+a case-insensitive suffix match of `apikey`, `api_key`, `secret`, `password`,
+`token`, `webhookurl`, `secretkey` or `privatekey`, against EVERY element of
+the dotted path, not only the leaf, and also deep-scans a stored slice or map
+value (`containsSecret`) for a nested `ConfigSecret` or a map key matching the
+same rule, since `buildDotPaths` stores a slice or map whole and never
+recurses into it. The scan caps at depth 32 and fails closed past the cap,
+reporting the value as secret rather than risk printing one. Module settings
+are untyped (`Modules map[string]any`), so a module's key is a plain string
+and only its name marks it. The boot log (`logBootConfig` in
+`boot_config_log.go`), the `server set` listing, the `server config` menu and
+`/viewconfig` all read `DisplayConfigData`; the root test
+`config_display_guard_test.go` (`TestNoDisplayReadsRawConfig`) fails on any
+`AllConfigData`, `DotPaths` or `GetOverrides` call outside this package, and
+on any page template that reaches `Modules` through `.CONFIG` or `getconfig`.
+
+**Tests.** `SetConfigWithLookupsForTest(t, c) string` installs `c` with real
+lookups (a test binary never runs `ReloadConfig`, so without it every key is
+"unknown" and a lock test passes for the wrong reason), snapshots `overrides`,
+and points `CONFIG_PATH` at a scratch file whose path it returns.
+
+**Known gap, not fixed here.** `ReloadConfig` builds the lookups from the
+config BEFORE the load, so on a single boot module keys without a data
+overlay (the aicompanion's) do not resolve and `SetVal` refuses them as
+unknown.
 
 ## Validation System
 
@@ -276,18 +333,11 @@ if isBanned {
 ```
 
 ### Locked Configuration Properties
-```go
-// Some properties cannot be changed at runtime
-func isEditAllowed(configPath string) bool {
-    serverConfig := configs.GetServerConfig()
-    for _, lockedPath := range serverConfig.Locked {
-        if configPath == lockedPath {
-            return false
-        }
-    }
-    return true
-}
-```
+
+See "Locks and the redacted view" above for the current lock rule
+(`configs.IsLocked`, `configs.SetVal`, `configs.SetEngineVal`) and the
+redacted display view (`configs.DisplayConfigData`). `usercommands.isEditAllowed`
+now delegates to `IsLocked` rather than walking `Server.Locked` itself.
 
 ## Configuration Loading and Persistence
 
@@ -300,7 +350,8 @@ func isEditAllowed(configPath string) bool {
 
 ### Runtime Updates
 ```go
-// Configuration changes are immediately persisted
+// Configuration changes are immediately persisted. SetVal refuses locked keys
+// (ErrLockedConfig); engine-owned locked keys use SetEngineVal.
 err := configs.SetVal("Server.MudName", "New Name")
 // This automatically:
 // 1. Validates the new value
@@ -340,7 +391,7 @@ func server_Config(rest string, user *users.UserRecord, room *rooms.Room, flags 
     }
     
     // Show current configuration
-    allConfigData := configs.GetConfig().AllConfigData()
+    allConfigData := configs.GetConfig().DisplayConfigData()
     // Display configuration options...
 }
 ```
@@ -867,6 +918,8 @@ Config is split one file per section, all assembled in `configs.go`.
 |------|---------|
 | `configs.go` | Assembly, load/save, `GetConfig`, overrides plumbing |
 | `config_types.go` | Shared config value types |
+| `config_locks.go` | `hardLocked`, `IsLocked`: which keys `SetVal` refuses |
+| `config_display.go` | `DisplayConfigData`, `RedactedValue`: the redacted view |
 | `overrides.go` | `CONFIG_PATH` override-file layering |
 | `discovery.go` | Reflection-based knob discovery |
 | `testing_support.go` | Test helpers |
