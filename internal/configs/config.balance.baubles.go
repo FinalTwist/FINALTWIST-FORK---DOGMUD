@@ -31,6 +31,14 @@ const (
 	defaultBaubleTierWeightAverage = 25
 	defaultBaubleTierWeightRare    = 5
 
+	// Finds that must be stolen lean richer (owner ruling, 2026-09-28).
+	defaultBaubleHouseholdTierWeightCheap    = 45
+	defaultBaubleHouseholdTierWeightAverage  = 40
+	defaultBaubleHouseholdTierWeightRare     = 15
+	defaultBaublePickpocketTierWeightCheap   = 50
+	defaultBaublePickpocketTierWeightAverage = 40
+	defaultBaublePickpocketTierWeightRare    = 10
+
 	defaultBaubleCheapMin   = 1
 	defaultBaubleCheapMax   = 6
 	defaultBaubleAverageMin = 10
@@ -172,23 +180,12 @@ func (b *Balance) validateBaubles() {
 		b.BaublePickpocketGraceSecs = maxBaublePickpocketGraceSecs
 	}
 
-	// Weights: a negative weight is invalid and takes its default; weights that
-	// are all zero (absent) take all three defaults. A single explicit zero is
-	// honoured, so a tier can be switched off.
-	if b.BaubleTierWeightCheap < 0 {
-		b.BaubleTierWeightCheap = defaultBaubleTierWeightCheap
-	}
-	if b.BaubleTierWeightAverage < 0 {
-		b.BaubleTierWeightAverage = defaultBaubleTierWeightAverage
-	}
-	if b.BaubleTierWeightRare < 0 {
-		b.BaubleTierWeightRare = defaultBaubleTierWeightRare
-	}
-	if b.BaubleTierWeightCheap+b.BaubleTierWeightAverage+b.BaubleTierWeightRare == 0 {
-		b.BaubleTierWeightCheap = defaultBaubleTierWeightCheap
-		b.BaubleTierWeightAverage = defaultBaubleTierWeightAverage
-		b.BaubleTierWeightRare = defaultBaubleTierWeightRare
-	}
+	validateTierWeights(&b.BaubleTierWeightCheap, &b.BaubleTierWeightAverage, &b.BaubleTierWeightRare,
+		defaultBaubleTierWeightCheap, defaultBaubleTierWeightAverage, defaultBaubleTierWeightRare)
+	validateTierWeights(&b.BaubleHouseholdTierWeightCheap, &b.BaubleHouseholdTierWeightAverage, &b.BaubleHouseholdTierWeightRare,
+		defaultBaubleHouseholdTierWeightCheap, defaultBaubleHouseholdTierWeightAverage, defaultBaubleHouseholdTierWeightRare)
+	validateTierWeights(&b.BaublePickpocketTierWeightCheap, &b.BaublePickpocketTierWeightAverage, &b.BaublePickpocketTierWeightRare,
+		defaultBaublePickpocketTierWeightCheap, defaultBaublePickpocketTierWeightAverage, defaultBaublePickpocketTierWeightRare)
 
 	ladderOk := b.BaubleCheapMinValue >= 1 &&
 		b.BaubleCheapMinValue <= b.BaubleCheapMaxValue &&
@@ -207,5 +204,24 @@ func (b *Balance) validateBaubles() {
 
 	if len(b.BaubleBuyerCraftSupports) == 0 {
 		b.BaubleBuyerCraftSupports = append(ConfigSliceString(nil), defaultBaubleBuyerCraftSupports...)
+	}
+}
+
+// validateTierWeights checks one set of cheap, average and rare weights: a
+// negative weight is invalid and takes its default; weights that are all
+// zero (absent) take all three defaults. A single explicit zero is honoured,
+// so a tier can be switched off.
+func validateTierWeights(cheap, average, rare *ConfigInt, defCheap, defAverage, defRare ConfigInt) {
+	if *cheap < 0 {
+		*cheap = defCheap
+	}
+	if *average < 0 {
+		*average = defAverage
+	}
+	if *rare < 0 {
+		*rare = defRare
+	}
+	if *cheap+*average+*rare == 0 {
+		*cheap, *average, *rare = defCheap, defAverage, defRare
 	}
 }

@@ -345,7 +345,8 @@ Pickpockets a target mob or player, or robs an item from a room container.
    - Success (`takeFromMob`): 75 to 100% of the mob's gold, one random item,
      and, for a player, a bauble: the one the mark carries
      (`carriedBauble`), or, when it carries none,
-     BaublePickpocketChancePct (50) of the time a new one, named during the
+     BaublePickpocketChancePct (50) of the time a new one, its tier from
+     the richer pickpocket weights (`baubles.PickPocketTier`), named during the
      pause (`baubles.Generate` at the attempt, `SourcePickpocket`, `Victim`
      the mark's authored name, never for anyone's companion or former
      companion, whose name a player may have chosen: `pocketBaubleAllowed`,
@@ -549,7 +550,12 @@ goroutine. That goroutine names it with `baubles.Generate` (the model, or a
 generic trinket) WITHOUT the mud lock, waits out the rest of
 `BaubleRevealSeconds`, then takes `util.LockMud()` once to `Mint` and deliver
 (`deliver`): if the room it was found in is a household NOW (`HouseholdResident`:
-indoors, a resident about), it stays there, on the feature searched
+indoors, a resident about), or the find was rolled as a household's
+(`BaubleDelivery.Household`, asked at the search by `householdFind`, which
+gives it the richer household tier weights through
+`baubles.FindOpts.Household`; it stays the household's even if they have
+stepped out by the delivery, so a richer find always has to be stolen), it
+stays there, on the feature searched
 (`BaubleDelivery.Spot`, "on the bookshelf"), owned by the household
 (`items.Item.LeaveBaubleAt`, `baubles.MarkHousehold`); otherwise into the pack,
 at the finder's feet if they cannot carry it, or onto the floor where it was

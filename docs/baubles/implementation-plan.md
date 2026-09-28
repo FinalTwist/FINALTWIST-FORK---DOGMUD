@@ -1,7 +1,8 @@
 # Baubles: AI-named loot from `search`
 
-Status: Phases 0 to 5 written in one cumulative patch (unverified: not yet
-compiled or tested). Rebased onto the owner's DOGMud master (see section 6).
+Status: Phases 0 to 6a written in one cumulative patch, built and tested
+(full suite, race detector on the touched packages, JS tests). Rebased onto
+the owner's DOGMud master at `cf5af4c55` (see section 6).
 
 A player who uses `search` has a small chance to turn up a **bauble**: a
 non-usable, non-wearable object that exists only to be sold. When one is
@@ -687,6 +688,49 @@ Owner request (2026-09-28). A player's `steal <npc>`:
   companion's model list probe uses the server's key; an admin's `bauble
   regenerate` uses the server's key.
 
+### Phase 6b: Stolen finds are worth more (written, after PR #175)
+
+Owner ruling (2026-09-28): a find that has to be stolen should more often
+be valuable: a household's find (indoors with an NPC about) more than one
+picked up, and a pickpocketed bauble more than one found on the ground.
+
+- Two more sets of tier weights in the BAUBLES block, with Go defaults and
+  the same validation as the search set (`configs.validateTierWeights`: a
+  negative takes its default, all zero takes all three, a single zero
+  switches a tier off):
+
+  | Set | Cheap | Average | Rare | Expected gold* |
+  |---|---|---|---|---|
+  | search (`BaubleTierWeight*`, unchanged) | 70 | 25 | 5 | about 12 |
+  | household (`BaubleHouseholdTierWeight*`) | 45 | 40 | 15 | about 25 |
+  | pickpocket (`BaublePickpocketTierWeight*`) | 50 | 40 | 10 | about 19 |
+
+  *At the middle of each tier's range on the default ladder (3.5, 12.5,
+  120 gold); rare finds carry most of the value.
+- Household finds lean richest because they are rationed (a room's two
+  rolls an hour, a feature once an hour) and still have to be stolen past
+  the household. Pickpocketing can repeat about once a minute (the steal
+  cooldown), so it is lifted less.
+- **When a find is a household's.** Its tier is chosen when the roll
+  succeeds, before naming starts, so the household check now also happens
+  at the search (`actions.householdFind`, the same `HouseholdResident` test)
+  and is passed to the roll (`baubles.FindOpts.Household`). A find rolled
+  as a household's stays the household's at delivery even if nobody of the
+  household is about by then (`BaubleDelivery.Household`): the finder is
+  told "It belongs to this household, so you leave it where it lies.", and
+  taking it is still `steal` (uncontested with nobody watching). So a
+  richer find always has to be stolen. A find rolled with nobody about that
+  finds a resident at delivery is the household's as before, at the search
+  weights.
+- A mob's own carried bauble keeps whatever tier it was made at.
+- Tests: `TestStolenFindsUseTheirOwnWeights`,
+  `TestSearch_HouseholdFindsRollAsTheHouseholds`,
+  `TestSearch_AHouseholdsFindStaysTheirsWhenTheyStepOut`,
+  `TestPickpocketBaubleTakesThePickpocketWeights`,
+  `TestBaubleStolenTierWeightsAreValidatedApart`,
+  `TestBaubleStolenFindsLeanRicher`; each checked to fail with its piece of
+  the change reverted.
+
 ### Phase 6: Theft readiness
 
 `baubles.Mint` with a source (`MarkStolen` exists since Phase 5d), merchant rules for stolen goods
@@ -712,7 +756,12 @@ quests, achievements, auctions, companion awareness, SQLite store, web admin.
 
 One cumulative patch, regenerated after each phase. Phases 0 to 5 were
 written against the FinalTwist fork at `a381b9abe`, then rebased onto the
-owner's DOGMud master of 2026-09-25 (the `DOGMud-master.zip` snapshot):
+owner's DOGMud master of 2026-09-25 (the `DOGMud-master.zip` snapshot), and
+finally onto master at `cf5af4c55` (lighting plan 5b: the steal observer
+helper takes the watcher's sight ramp, and `TestStealPaysTheThiefsEyes`
+puts its mark in the thief's room, which the pickpocket reveal requires).
+That patch shipped as PR #175. Changes after it (Phase 6b on) go in a new
+cumulative patch against the PR's head, `f57565f6c`:
 
 ```text
 git apply --check dogmud-baubles.patch

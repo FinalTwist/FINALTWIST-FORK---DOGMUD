@@ -122,6 +122,13 @@ type BaubleDelivery struct {
 	// Spot is where the find lies if it is left in the room it was found in
 	// ("on the bookshelf"); empty for a search of the whole room.
 	Spot string
+
+	// Household is a find rolled as a household's (one of the household was
+	// about when the search was made), so its tier came from the household
+	// weights, which lean richer. It stays the household's at delivery even
+	// if nobody of the household is about by then: a richer find always has
+	// to be stolen.
+	Household bool
 }
 
 // baubleNow is the clock for when a find is left lying. A variable for
@@ -275,8 +282,9 @@ func (d BaubleDelivery) runTracked(id uint64, p *pendingFind, lock bool) {
 // deliver mints the named find and hands it over. Runs under the mud lock.
 //
 //   - Found in a household (an indoor room with a resident about, checked
-//     now): it stays where it was found, on the feature searched, and belongs
-//     to the household; taking it is theft (household_bauble.go).
+//     now, or a find rolled as a household's at the search): it stays where
+//     it was found, on the feature searched, and belongs to the household;
+//     taking it is theft (household_bauble.go).
 //   - Otherwise into the finder's pack; at their feet if they cannot carry
 //     it; onto the floor where it was found if they have logged off.
 //
@@ -313,17 +321,28 @@ func (d BaubleDelivery) deliver(res baubles.GenResult, randn func(n int) int) {
 	now := baubleNow()
 	name := itm.DisplayName()
 
-	// A household keeps what is found in it.
+	// A household keeps what is found in it. A find rolled as a household's
+	// stays theirs even with nobody of the household about now: its richer
+	// tier is for stealing, not for picking up.
 	if foundRoom != nil {
-		if resident, ok := HouseholdResident(foundRoom); ok {
+		resident, ok := HouseholdResident(foundRoom)
+		if ok || d.Household {
 			itm.LeaveBaubleAt(d.Spot, foundRoom.RoomId, now)
 			foundRoom.AddItem(itm, false)
 			baubles.MarkHousehold(rec.Id)
-			mudlog.Info(`baubles`, `action`, `deliver`, `id`, rec.Id, `result`, `household; left in room`, `roomId`, foundRoom.RoomId, `resident`, resident.Character.Name)
+			residentName := ``
+			if resident != nil {
+				residentName = resident.Character.Name
+			}
+			mudlog.Info(`baubles`, `action`, `deliver`, `id`, rec.Id, `result`, `household; left in room`, `roomId`, foundRoom.RoomId, `resident`, residentName, `rolledAsHousehold`, d.Household)
 			if online {
 				where := itm.BaubleSpotSuffix() // " (on the bookshelf)", its own colour
 				if who.room != nil && who.room.RoomId == foundRoom.RoomId {
-					who.send(fmt.Sprintf(`You uncover <ansi fg="itemname">%s</ansi>%s. It belongs to this household, and <ansi fg="mobname">%s</ansi> is close by, so you leave it where it lies.`, name, where, resident.Character.Name))
+					if resident != nil {
+						who.send(fmt.Sprintf(`You uncover <ansi fg="itemname">%s</ansi>%s. It belongs to this household, and <ansi fg="mobname">%s</ansi> is close by, so you leave it where it lies.`, name, where, resident.Character.Name))
+					} else {
+						who.send(fmt.Sprintf(`You uncover <ansi fg="itemname">%s</ansi>%s. It belongs to this household, so you leave it where it lies.`, name, where))
+					}
 				} else {
 					who.send(fmt.Sprintf(`You had uncovered <ansi fg="itemname">%s</ansi>%s, but it belongs to that household, so you left it where it lay.`, name, where))
 				}
@@ -427,21 +446,32 @@ func BaubleRequest(room *rooms.Room, tier baubles.ValueTier, source baubles.Sour
 // `bauble spawn` command calls it to exercise the same path. Call under the
 // mud lock.
 func StartBaubleFind(userId int, room *rooms.Room, tier baubles.ValueTier, source baubles.Source) {
-	startBaubleFind(userId, room, tier, source, SearchFeature{})
+	startBaubleFind(userId, room, tier, source, SearchFeature{}, false)
 }
 
 // startBaubleFind is StartBaubleFind for a find in one feature of the room
-// (search_feature.go); an empty feature means the room itself.
-func startBaubleFind(userId int, room *rooms.Room, tier baubles.ValueTier, source baubles.Source, feature SearchFeature) {
+// (search_feature.go); an empty feature means the room itself. household is
+// a find rolled as a household's (BaubleDelivery.Household).
+func startBaubleFind(userId int, room *rooms.Room, tier baubles.ValueTier, source baubles.Source, feature SearchFeature, household bool) {
 	req := BaubleRequest(room, tier, source, feature.Name)
 	req.ContainerDescription = feature.Description
 	req.FinderUserId = userId
 	startBaubleDelivery(BaubleDelivery{
-		Request:  req,
-		UserId:   userId,
-		MinDelay: baubles.RevealDelay(),
-		Spot:     feature.Spot(),
+		Request:   req,
+		UserId:    userId,
+		MinDelay:  baubles.RevealDelay(),
+		Spot:      feature.Spot(),
+		Household: household,
 	})
+}
+
+// householdFind reports whether a find in room now would be the
+// household's: the room is indoors and one of the household is about. It is
+// asked at the search, so the find's tier can come from the household
+// weights (baubles.FindOpts.Household).
+func householdFind(room *rooms.Room) bool {
+	_, ok := HouseholdResident(room)
+	return ok
 }
 
 // BaubleSkillFactor is how much a searcher's search skill raises their
@@ -487,16 +517,18 @@ func searchForBauble(actor Actor, room *rooms.Room) bool {
 	if !baubleRoomAllowed(room) {
 		return false
 	}
+	household := householdFind(room)
 	tier, found := searchBaubleRoll(baubles.FindOpts{
 		Place:       BaublePlace(room),
 		UserId:      actor.GetUserId(),
 		SkillFactor: BaubleSkillFactor(actor.GetCharacter()),
+		Household:   household,
 	})
 	if !found {
 		return false
 	}
 	actor.SendText(messaging.CategorySystem,
 		`Something glints among the clutter. You set about working it loose...`)
-	StartBaubleFind(actor.GetUserId(), room, tier, baubles.SourceSearch)
+	startBaubleFind(actor.GetUserId(), room, tier, baubles.SourceSearch, SearchFeature{}, household)
 	return true
 }

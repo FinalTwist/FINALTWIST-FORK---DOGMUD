@@ -8,6 +8,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -202,6 +203,31 @@ func TestPickpocketTurnsUpAPocketSizedBauble(t *testing.T) {
 	}
 	if said(h.thief, "Tarnished Brass Thimble") != 1 {
 		t.Fatalf("in the success line: %q", h.thief.sent)
+	}
+}
+
+// A bauble made for a pickpocket takes the pickpocket weights, not the
+// search weights: stolen, so richer. Two sets that each allow one tier only
+// show which was used.
+func TestPickpocketBaubleTakesThePickpocketWeights(t *testing.T) {
+	h := setupPocket(t, 9616, 7616)
+	cfg := configs.GetConfig()
+	cfg.Balance.BaubleTierWeightCheap, cfg.Balance.BaubleTierWeightAverage, cfg.Balance.BaubleTierWeightRare = 1, 0, 0
+	cfg.Balance.BaublePickpocketTierWeightCheap, cfg.Balance.BaublePickpocketTierWeightAverage, cfg.Balance.BaublePickpocketTierWeightRare = 0, 0, 1
+	configs.SetConfigForTest(t, cfg)
+	h.name(t, 0)
+	pocketBaubleRoll = func(*rooms.Room) bool { return true }
+
+	res := startPocketAttempt(h.thief, h.mark, true)
+	got, ok := h.baubleCarried()
+	if !res.Succeeded || !ok {
+		t.Fatalf("a bauble among the loot: %+v", res)
+	}
+	if len(h.asked) != 1 || h.asked[0].Tier != baubles.TierRare {
+		t.Fatalf("asked for the pickpocket weights' tier: %+v", h.asked)
+	}
+	if rec, _ := baubles.Get(got.Bauble); rec.Tier != baubles.TierRare {
+		t.Fatalf("minted at that tier: %+v", rec)
 	}
 }
 

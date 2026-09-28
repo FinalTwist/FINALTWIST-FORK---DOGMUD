@@ -20,6 +20,12 @@ func TestBaubleDefaults(t *testing.T) {
 	if b.BaubleTierWeightCheap != 70 || b.BaubleTierWeightAverage != 25 || b.BaubleTierWeightRare != 5 {
 		t.Fatal("tier weight defaults")
 	}
+	if b.BaubleHouseholdTierWeightCheap != 45 || b.BaubleHouseholdTierWeightAverage != 40 || b.BaubleHouseholdTierWeightRare != 15 {
+		t.Fatal("household tier weight defaults")
+	}
+	if b.BaublePickpocketTierWeightCheap != 50 || b.BaublePickpocketTierWeightAverage != 40 || b.BaublePickpocketTierWeightRare != 10 {
+		t.Fatal("pickpocket tier weight defaults")
+	}
 	got := []ConfigInt{b.BaubleCheapMinValue, b.BaubleCheapMaxValue, b.BaubleAverageMinValue, b.BaubleAverageMaxValue, b.BaubleRareMinValue, b.BaubleRareMaxValue}
 	want := []ConfigInt{1, 6, 10, 15, 40, 200}
 	if !reflect.DeepEqual(got, want) {
@@ -51,6 +57,49 @@ func TestBaubleOneZeroWeightIsHonoured(t *testing.T) {
 	b.validateBaubles()
 	if b.BaubleTierWeightRare != 5 {
 		t.Fatal("a negative weight takes its default")
+	}
+}
+
+// The household and pickpocket weights follow the same rules as the search
+// weights, each set on its own: an explicit zero is kept, a negative takes
+// its default, and a set left out entirely takes all three defaults.
+func TestBaubleStolenTierWeightsAreValidatedApart(t *testing.T) {
+	b := &Balance{
+		BaubleHouseholdTierWeightCheap: 60, BaubleHouseholdTierWeightAverage: 40,
+		BaublePickpocketTierWeightRare: -1,
+	}
+	b.validateBaubles()
+	if b.BaubleHouseholdTierWeightCheap != 60 || b.BaubleHouseholdTierWeightAverage != 40 || b.BaubleHouseholdTierWeightRare != 0 {
+		t.Fatalf("household: an explicit zero switches rare off: %d/%d/%d",
+			b.BaubleHouseholdTierWeightCheap, b.BaubleHouseholdTierWeightAverage, b.BaubleHouseholdTierWeightRare)
+	}
+	if b.BaublePickpocketTierWeightCheap != 0 || b.BaublePickpocketTierWeightAverage != 0 || b.BaublePickpocketTierWeightRare != 10 {
+		t.Fatalf("pickpocket: a negative takes its default and the zeros stay: %d/%d/%d",
+			b.BaublePickpocketTierWeightCheap, b.BaublePickpocketTierWeightAverage, b.BaublePickpocketTierWeightRare)
+	}
+	if b.BaubleTierWeightCheap != 70 {
+		t.Fatal("the search weights are untouched by the other sets")
+	}
+}
+
+// A find that must be stolen leans richer than one picked up: the shipped
+// defaults give each stolen set a larger share of average and rare finds.
+func TestBaubleStolenFindsLeanRicher(t *testing.T) {
+	b := &Balance{}
+	b.validateBaubles()
+	share := func(cheap, average, rare ConfigInt) (float64, float64) {
+		total := float64(cheap + average + rare)
+		return float64(average) / total, float64(rare) / total
+	}
+	avg, rare := share(b.BaubleTierWeightCheap, b.BaubleTierWeightAverage, b.BaubleTierWeightRare)
+	for name, set := range map[string][3]ConfigInt{
+		`household`:  {b.BaubleHouseholdTierWeightCheap, b.BaubleHouseholdTierWeightAverage, b.BaubleHouseholdTierWeightRare},
+		`pickpocket`: {b.BaublePickpocketTierWeightCheap, b.BaublePickpocketTierWeightAverage, b.BaublePickpocketTierWeightRare},
+	} {
+		a, r := share(set[0], set[1], set[2])
+		if a <= avg || r <= rare {
+			t.Errorf("%s: average %.2f and rare %.2f must both beat search's %.2f and %.2f", name, a, r, avg, rare)
+		}
 	}
 }
 
@@ -107,6 +156,12 @@ func TestBaubleShippedConfigMatchesDefaults(t *testing.T) {
 		shipped.BaubleTierWeightCheap != defaults.BaubleTierWeightCheap ||
 		shipped.BaubleTierWeightAverage != defaults.BaubleTierWeightAverage ||
 		shipped.BaubleTierWeightRare != defaults.BaubleTierWeightRare ||
+		shipped.BaubleHouseholdTierWeightCheap != defaults.BaubleHouseholdTierWeightCheap ||
+		shipped.BaubleHouseholdTierWeightAverage != defaults.BaubleHouseholdTierWeightAverage ||
+		shipped.BaubleHouseholdTierWeightRare != defaults.BaubleHouseholdTierWeightRare ||
+		shipped.BaublePickpocketTierWeightCheap != defaults.BaublePickpocketTierWeightCheap ||
+		shipped.BaublePickpocketTierWeightAverage != defaults.BaublePickpocketTierWeightAverage ||
+		shipped.BaublePickpocketTierWeightRare != defaults.BaublePickpocketTierWeightRare ||
 		shipped.BaubleCheapMinValue != defaults.BaubleCheapMinValue ||
 		shipped.BaubleCheapMaxValue != defaults.BaubleCheapMaxValue ||
 		shipped.BaubleAverageMinValue != defaults.BaubleAverageMinValue ||

@@ -165,18 +165,20 @@ func searchFeatureForBauble(actor Actor, room *rooms.Room, feature SearchFeature
 	if !baubleRoomAllowed(room) {
 		return false, true
 	}
+	household := householdFind(room)
 	tier, found := searchBaubleRoll(baubles.FindOpts{
 		Place:       BaublePlace(room),
 		UserId:      actor.GetUserId(),
 		SkillFactor: BaubleSkillFactor(actor.GetCharacter()),
 		Feature:     feature.WindowName(),
+		Household:   household,
 	})
 	if !found {
 		return false, true
 	}
 	actor.SendText(messaging.CategorySystem,
 		fmt.Sprintf(`Something glints about the <ansi fg="noun">%s</ansi>. You set about working it loose...`, feature.Name))
-	startBaubleFind(actor.GetUserId(), room, tier, baubles.SourceSearch, feature)
+	startBaubleFind(actor.GetUserId(), room, tier, baubles.SourceSearch, feature, household)
 	return true, true
 }
 

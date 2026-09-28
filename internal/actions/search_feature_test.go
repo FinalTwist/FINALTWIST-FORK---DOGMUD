@@ -282,6 +282,84 @@ func TestSearchFeature_HouseholdFindStaysOnTheFeature(t *testing.T) {
 	}
 }
 
+// With one of the household about when the search is made, both the
+// feature's roll and the room's roll are a household's, so their tier comes
+// from the household weights; with nobody about, neither is.
+func TestSearch_HouseholdFindsRollAsTheHouseholds(t *testing.T) {
+	pinConfigForTest(t)
+	room := featureRoom(9611)
+	actor := newSearchFakeActor("Guest", room, true, 7612)
+	stubBaubleSearch(t, false, actor)
+	martha := newSearchTestMob(8803, "Martha", 9611)
+	var residents []*mobs.Mob
+	findHouseholdResidents = func(*rooms.Room) []*mobs.Mob { return residents }
+	var rolls []baubles.FindOpts
+	searchBaubleRoll = func(o baubles.FindOpts) (baubles.ValueTier, bool) {
+		rolls = append(rolls, o)
+		return ``, false
+	}
+
+	residents = []*mobs.Mob{martha}
+	_ = Search(actor, SearchOptions{Feature: "hearth"}) // the feature's roll
+	actor.char.Cooldowns = nil
+	_ = Search(actor, SearchOptions{}) // the room's roll
+	residents = nil
+	actor.char.Cooldowns = nil
+	_ = Search(actor, SearchOptions{})
+
+	if len(rolls) != 3 {
+		t.Fatalf("three rolls: %+v", rolls)
+	}
+	if rolls[0].Feature == `` || !rolls[0].Household {
+		t.Fatalf("the feature's roll is the household's: %+v", rolls[0])
+	}
+	if rolls[1].Feature != `` || !rolls[1].Household {
+		t.Fatalf("the room's roll is the household's: %+v", rolls[1])
+	}
+	if rolls[2].Household {
+		t.Fatalf("nobody about, no household: %+v", rolls[2])
+	}
+}
+
+// A find rolled as a household's stays theirs even when nobody of the
+// household is about by the time it is delivered: its richer tier is for
+// stealing, never for picking up.
+func TestSearch_AHouseholdsFindStaysTheirsWhenTheyStepOut(t *testing.T) {
+	pinConfigForTest(t)
+	room := featureRoom(9612)
+	actor := newSearchFakeActor("Guest", room, true, 7613)
+	canCarry(actor)
+	h := stubBaubleSearch(t, true, actor)
+	martha := newSearchTestMob(8804, "Martha", 9612)
+	asked := 0
+	findHouseholdResidents = func(*rooms.Room) []*mobs.Mob {
+		asked++
+		if asked == 1 {
+			return []*mobs.Mob{martha} // at the search
+		}
+		return nil // gone by the delivery
+	}
+
+	_ = Search(actor, SearchOptions{})
+
+	if len(h.deliveries) != 1 || !h.deliveries[0].Household {
+		t.Fatalf("the delivery carries the household: %+v", h.deliveries)
+	}
+	if _, has := actor.char.FindInBackpack("trinket"); has {
+		t.Fatal("not pocketed")
+	}
+	if len(room.Items) != 1 || !room.Items[0].BaubleBelongsTo(9612) {
+		t.Fatalf("left in the room as the household's: %+v", room.Items)
+	}
+	rec, _ := baubles.Get(room.Items[0].Bauble)
+	if !rec.Household {
+		t.Fatalf("the record is the household's: %+v", rec)
+	}
+	if !searchSaid(actor, "It belongs to this household, so you leave it where it lies.") || searchSaid(actor, "Martha") {
+		t.Fatalf("told it is the household's, without naming anyone: %q", actor.sent)
+	}
+}
+
 // Nobody home: the find is pocketed as usual. Too heavy: it is left on the
 // feature, not the household's, and still timed.
 func TestSearchFeature_TooHeavyIsLeftOnTheFeature(t *testing.T) {

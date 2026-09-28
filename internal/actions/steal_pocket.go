@@ -153,7 +153,7 @@ func startPocketAttempt(actor Actor, m *mobs.Mob, success bool) StealResult {
 		if b, ok := carriedBauble(m); ok {
 			p.takeBauble = b.Bauble
 		} else if pocketBaubleAllowed(m) && pocketBaubleRoll(room) {
-			tier := baubles.PickTier(p.randn)
+			tier := baubles.PickPocketTier(p.randn) // stolen, so richer than a find
 			p.req = BaubleRequest(room, tier, baubles.SourcePickpocket, ``)
 			p.req.Victim = m.Character.Name // authored: a companion never gets here
 			p.req.FinderUserId = p.userId   // picks the finder's own key; never sent

@@ -27,6 +27,8 @@ type settings struct {
 	perPlayer     bool
 	excludedZones []string
 	weights       [3]int // cheap, average, rare
+	household     [3]int // a household's find (FindOpts.Household)
+	pickpocket    [3]int // a bauble lifted from a pocket (PickPocketTier)
 }
 
 func currentSettings() settings {
@@ -42,6 +44,8 @@ func currentSettings() settings {
 		perPlayer:     bool(b.BaubleWindowPerPlayer),
 		excludedZones: []string(b.BaubleExcludedZones),
 		weights:       [3]int{int(b.BaubleTierWeightCheap), int(b.BaubleTierWeightAverage), int(b.BaubleTierWeightRare)},
+		household:     [3]int{int(b.BaubleHouseholdTierWeightCheap), int(b.BaubleHouseholdTierWeightAverage), int(b.BaubleHouseholdTierWeightRare)},
+		pickpocket:    [3]int{int(b.BaublePickpocketTierWeightCheap), int(b.BaublePickpocketTierWeightAverage), int(b.BaublePickpocketTierWeightRare)},
 	}
 }
 
@@ -100,6 +104,13 @@ func ZoneExcluded(zone string) bool {
 // returns [0, n); nil means util.Rand.
 func PickTier(randn func(n int) int) ValueTier {
 	return pickTier(currentSettings().weights, randn)
+}
+
+// PickPocketTier chooses the tier of a bauble made for a pickpocket, from
+// the pickpocket weights: a bauble that has to be stolen leans richer than
+// one picked up (BaublePickpocketTierWeight*).
+func PickPocketTier(randn func(n int) int) ValueTier {
+	return pickTier(currentSettings().pickpocket, randn)
 }
 
 func pickTier(weights [3]int, randn func(n int) int) ValueTier {
@@ -161,6 +172,13 @@ type FindOpts struct {
 	// BaubleFeatureWindowMinutes.
 	Feature string
 
+	// Household is a find the household will keep (an indoor room with one
+	// of the household about when the search was made): taking it means
+	// stealing it, so its tier comes from the household weights
+	// (BaubleHouseholdTierWeight*), which lean richer. The caller decides it
+	// (actions.HouseholdResident) and keeps the find the household's.
+	Household bool
+
 	// Randn is the dice: randn(n) returns [0, n). nil means util.Rand.
 	Randn func(n int) int
 	// Now is the clock for the roll window. Zero means time.Now().
@@ -203,8 +221,12 @@ func RollFind(o FindOpts) (tier ValueTier, found bool) {
 	if !rollChance(chance, randn) {
 		return ``, false
 	}
-	tier = pickTier(s.weights, randn)
-	mudlog.Info(`baubles`, `action`, `found`, `tier`, string(tier), `chancePct`, chance, `biome`, o.Place.Biome, `feature`, o.Feature, `roomId`, o.Place.RoomId, `zone`, o.Place.Zone, `userId`, o.UserId)
+	weights := s.weights
+	if o.Household {
+		weights = s.household
+	}
+	tier = pickTier(weights, randn)
+	mudlog.Info(`baubles`, `action`, `found`, `tier`, string(tier), `household`, o.Household, `chancePct`, chance, `biome`, o.Place.Biome, `feature`, o.Feature, `roomId`, o.Place.RoomId, `zone`, o.Place.Zone, `userId`, o.UserId)
 	return tier, true
 }
 

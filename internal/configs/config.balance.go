@@ -918,6 +918,16 @@ type Balance struct {
 	BaubleRareMaxValue         ConfigInt          `yaml:"BaubleRareMaxValue"`         // Rare tier upper bound
 	BaubleBuyerCraftSupports   ConfigSliceString  `yaml:"BaubleBuyerCraftSupports"`   // Living-economy shop craft_support values that buy baubles (default general, jewelcrafting)
 
+	// A find that must be stolen is worth more: one left with a household
+	// (searched indoors with a resident about) and one lifted from an NPC's
+	// pocket each have their own tier weights, in place of BaubleTierWeight*.
+	BaubleHouseholdTierWeightCheap    ConfigInt `yaml:"BaubleHouseholdTierWeightCheap"`    // Relative chance a household's find is cheap (default 45)
+	BaubleHouseholdTierWeightAverage  ConfigInt `yaml:"BaubleHouseholdTierWeightAverage"`  // Relative chance a household's find is average (default 40)
+	BaubleHouseholdTierWeightRare     ConfigInt `yaml:"BaubleHouseholdTierWeightRare"`     // Relative chance a household's find is rare (default 15)
+	BaublePickpocketTierWeightCheap   ConfigInt `yaml:"BaublePickpocketTierWeightCheap"`   // Relative chance a pickpocketed bauble is cheap (default 50)
+	BaublePickpocketTierWeightAverage ConfigInt `yaml:"BaublePickpocketTierWeightAverage"` // Relative chance a pickpocketed bauble is average (default 40)
+	BaublePickpocketTierWeightRare    ConfigInt `yaml:"BaublePickpocketTierWeightRare"`    // Relative chance a pickpocketed bauble is rare (default 10)
+
 	// ── WAREHOUSES (Stage 3 ferry system) ────────────────────────────────────
 	WarehouseItemCap      ConfigInt `yaml:"WarehouseItemCap,omitempty"`      // Per-item stock cap in city warehouses (default 4,000,000 — effectively unbounded)
 	WarehouseAccrualHours ConfigInt `yaml:"WarehouseAccrualHours,omitempty"` // Game-hours between ambient accrual ticks (default 2)

@@ -121,12 +121,13 @@ func PreviewPrompt(req GenRequest) ([]string, bool)
 func LooksLikeId(s string) bool
 func SalesSince(t time.Time) (count int, gold int)
 
-type FindOpts struct{ Place Place; UserId int; SkillFactor float64; Feature string; Randn func(n int) int; Now time.Time }
+type FindOpts struct{ Place Place; UserId int; SkillFactor float64; Feature string; Household bool; Randn func(n int) int; Now time.Time }
 func RollFind(o FindOpts) (tier ValueTier, found bool)
 func BaseChance(biome string) float64
 func ChanceFor(biome string, skillFactor float64) float64
 func RevealDelay() time.Duration
 func PickTier(randn func(n int) int) ValueTier
+func PickPocketTier(randn func(n int) int) ValueTier
 func ZoneExcluded(zone string) bool
 func WindowState(roomId int, userId int, now time.Time) (used int, allowed int, reopens time.Time, open bool)
 func FeatureWindowState(roomId int, userId int, feature string, now time.Time) (used int, allowed int, reopens time.Time, open bool)
@@ -143,9 +144,16 @@ func ResetWindow(roomId int)
   six numbers if the tiers overlap or invert. `TestTierRangesAreTheSpec` pins
   the defaults; `configs.TestBaubleShippedConfigMatchesDefaults` pins the
   shipped file to them.
-- The game chooses the tier before generation (`PickTier`, weights
-  70/25/5 by default); the model only picks a value inside it, and
-  `ApplyLimits` clamps whatever comes back.
+- The game chooses the tier before generation; the model only picks a
+  value inside it, and `ApplyLimits` clamps whatever comes back. Three sets
+  of weights (cheap/average/rare): a find nobody keeps uses
+  `BaubleTierWeight*` (70/25/5, `PickTier`); a household's find
+  (`FindOpts.Household`: searched indoors with one of the household about,
+  decided by the caller at the search) uses `BaubleHouseholdTierWeight*`
+  (45/40/15); a bauble made for a pickpocket uses
+  `BaublePickpocketTierWeight*` (50/40/10, `PickPocketTier`). A find that
+  has to be stolen leans richer (`configs.TestBaubleStolenFindsLeanRicher`
+  pins the defaults to that).
 - Search rolls: the chance per roll is `ChanceFor(biome, skillFactor)`:
   `BaubleBiomeChancePct[biome]` (or `BaubleSearchChancePct`, 1%, for an
   unlisted biome) times `1 + BaubleSkillMaxBonus x skillFactor`, capped at

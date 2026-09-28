@@ -89,6 +89,33 @@ func TestPickTierByWeight(t *testing.T) {
 	}
 }
 
+// A household's find and a pickpocketed bauble each take their own weights;
+// every other find takes the search weights. Three sets that each allow one
+// tier only show which set was used.
+func TestStolenFindsUseTheirOwnWeights(t *testing.T) {
+	setBaubleConfig(t, func(b *configs.Balance) {
+		b.BaubleTierWeightCheap, b.BaubleTierWeightAverage, b.BaubleTierWeightRare = 1, 0, 0
+		b.BaubleHouseholdTierWeightCheap, b.BaubleHouseholdTierWeightAverage, b.BaubleHouseholdTierWeightRare = 0, 0, 1
+		b.BaublePickpocketTierWeightCheap, b.BaublePickpocketTierWeightAverage, b.BaublePickpocketTierWeightRare = 0, 1, 0
+	})
+	resetAllWindowsForTest()
+	place := NewPlace(4033, `ashwick`, `Windward Marches`, `interior`)
+	now := time.Unix(2_000_000, 0)
+
+	if tier, found := RollFind(FindOpts{Place: place, UserId: 7, Feature: `shelf`, Randn: always(0), Now: now}); !found || tier != TierCheap {
+		t.Fatalf("a find nobody keeps takes the search weights: %s %v", tier, found)
+	}
+	if tier, found := RollFind(FindOpts{Place: place, UserId: 7, Feature: `chest`, Household: true, Randn: always(0), Now: now}); !found || tier != TierRare {
+		t.Fatalf("a household's find takes the household weights: %s %v", tier, found)
+	}
+	if tier := PickPocketTier(always(0)); tier != TierAverage {
+		t.Fatalf("a pickpocketed bauble takes the pickpocket weights: %s", tier)
+	}
+	if tier := PickTier(always(0)); tier != TierCheap {
+		t.Fatalf("PickTier is still the search weights: %s", tier)
+	}
+}
+
 func TestRollChance(t *testing.T) {
 	if !rollChance(3, always(29999)) || rollChance(3, always(30000)) {
 		t.Fatal("3% is 30000 in a million")

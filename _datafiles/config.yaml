@@ -1464,6 +1464,17 @@ Balance:
   BaubleTierWeightCheap: 70
   BaubleTierWeightAverage: 25
   BaubleTierWeightRare: 5
+  # A find that must be stolen is worth more. A household's find (searched
+  # indoors with one of the household about, so it stays theirs and taking
+  # it is `steal`) and a bauble lifted from an NPC's pocket use these
+  # weights in place of the three above. Same rules: a single 0 switches a
+  # tier off.
+  BaubleHouseholdTierWeightCheap: 45
+  BaubleHouseholdTierWeightAverage: 40
+  BaubleHouseholdTierWeightRare: 15
+  BaublePickpocketTierWeightCheap: 50
+  BaublePickpocketTierWeightAverage: 40
+  BaublePickpocketTierWeightRare: 10
   # The value ladder, in gold. Tiers must climb without touching; a broken
   # ladder resets all six numbers to these defaults.
   BaubleCheapMinValue: 1

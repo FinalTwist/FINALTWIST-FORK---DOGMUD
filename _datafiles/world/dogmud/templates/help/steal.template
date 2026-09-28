@@ -28,7 +28,8 @@ pocket before you know whether you were seen, and quick hands
 (<ansi fg="yellow">Dexterity</ansi>) make the moment shorter. Walk away or get into a
 fight before it is done, and you lose your chance. Now and then
 a pocket holds a small curiosity of its own, worth a coin or two
-to the right merchant.
+to the right merchant, and often more than the odds and ends
+people leave lying about.
 
 <ansi fg="yellow">Things that belong to a household:</ansi>
 
@@ -41,5 +42,7 @@ household about, is theirs, shown as, for example, "a small doll
 room, and being hidden helps. Seen by one of the household, you
 are treated as a thief caught stealing from them; seen by anyone
 else, your cover is blown. Either way the thing stays where it was.
+What a household keeps tends to be worth more than what lies about
+in the street, which is some comfort for the risk.
 
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help plant</ansi>, <ansi fg="command">help skullduggery</ansi>
