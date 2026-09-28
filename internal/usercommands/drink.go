@@ -36,10 +36,15 @@ const ysoldesPurgeItemId = 40109
 // other detox besides Ysolde's Purge.
 const purgingDraughtItemId = 30052
 
-// Potion-effect conditions occupy a contiguous id block. 76 is the purge's own
-// weakness harmful condition: it is APPLIED by a purge, never stripped by one. 70 is the
-// draught's flavour condition, which carries no statmods and expires after a round;
-// a purge leaves it alone so the drinker still sees that they drank something.
+// The original potion-effect conditions occupy a contiguous id block. It
+// stays as the floor of what a purge strips (so a test binary with no items
+// loaded keeps today's behaviour), and purgeableConditionIds adds every
+// condition only a potion grants (lighting plan 5c closed the leak: 7, 44, 47,
+// 48, 49, 51 and 82 had escaped the block). 76 is the purge's own weakness harmful
+// condition: it is APPLIED by a purge, never stripped by one. 70 is the
+// draught's flavour condition, which carries no statmods and expires after a
+// round; a purge leaves it alone so the drinker still sees that they drank
+// something.
 const (
 	potionConditionIdMin       = 54
 	potionConditionIdMax       = 75
@@ -58,6 +63,26 @@ func bypassesToxicityGate(itemId int) bool {
 	return itemId == ysoldesPurgeItemId || itemId == purgingDraughtItemId
 }
 
+// purgeableConditionIds is what a purge strips: the original block plus every
+// condition only a potion grants, minus the conditions of both detox items
+// (one detox does not undo another) and the weakness a purge applies.
+func purgeableConditionIds() map[int]bool {
+	set := items.PotionEffectConditionIds()
+	for id := potionConditionIdMin; id <= potionConditionIdMax; id++ {
+		set[id] = true
+	}
+	for _, detoxId := range []int{purgingDraughtItemId, ysoldesPurgeItemId} {
+		if spec := items.GetItemSpec(detoxId); spec != nil {
+			for _, id := range spec.ConditionIds {
+				delete(set, id)
+			}
+		}
+	}
+	delete(set, purgingDraughtConditionId)
+	delete(set, purgingWeaknessConditionId)
+	return set
+}
+
 // applyPurgeEffects undoes alchemy: it strips the potion effects the drinker is
 // carrying, clears the toxicity those potions cost, and leaves them weakened
 // for it.
@@ -73,10 +98,7 @@ func bypassesToxicityGate(itemId int) bool {
 // fifty-round harmful condition. The strips and the toxicity clear stay synchronous.
 func applyPurgeEffects(u *users.UserRecord) {
 	c := u.Character
-	for id := potionConditionIdMin; id <= potionConditionIdMax; id++ {
-		if id == purgingDraughtConditionId {
-			continue
-		}
+	for id := range purgeableConditionIds() {
 		c.RemoveCondition(id)
 	}
 	c.Toxicity = 0
