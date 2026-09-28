@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 )
 
@@ -101,6 +103,56 @@ func applySpellConditionEffect(c spellEffectCtx) int {
 			`%s's <ansi fg="cyan">%s</ansi> takes effect on you!%s`, casterName, c.spell.Name, c.critTag())),
 		Observer: messaging.Say(c.category(), fmt.Sprintf(
 			`%s's <ansi fg="cyan">%s</ansi> settles over %s.`, casterName, c.spell.Name, targetName)),
+	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
+	return 0
+}
+
+// applySpellHeal is the one heal applier (slice 3b): a Regenerating record
+// on the target at the spell's magnitude as a regen multiplier (floored at
+// 1x) for half the universal spell duration (floored at six rounds), read
+// from the caster's primarystat and cast skill. Every pairing gains it; a
+// mob's heal on a player used to apply nothing (audit row 3). The dead
+// player-to-player crit boost is gone (owner ruling 3).
+//
+// A player healing a mob queues events.Healed, which the AI companion reads
+// as "somebody tended me"; the event names a mob, so no other pairing
+// queues it.
+func applySpellHeal(c spellEffectCtx) int {
+	if spellStatusDefended(c) {
+		return 0
+	}
+	stat, skill := spellCasterStatAndSkill(c.spell, c.casterChar)
+	regenMult := float64(c.magnitude)
+	if regenMult < 1.0 {
+		regenMult = 1.0
+	}
+	durationRounds := calcSpellDuration(c.spell.BaseFolds, skill, stat) / 2
+	if durationRounds < 6 {
+		durationRounds = 6
+	}
+	casterName, targetName := c.casterName(), c.targetName()
+	if u, m := c.casterUser(), c.targetMob(); u != nil && m != nil {
+		events.AddToQueue(events.Healed{HealerUserId: u.UserId, MobInstanceId: m.InstanceId})
+	}
+	_ = c.targetChar().AddConditionMagnitude(conditions.ConditionIdRegenerating, durationRounds, regenMult, "heal spell")
+	if c.selfCast() {
+		messaging.SendTrio(messaging.Trio{
+			Actor: messaging.Say(messaging.CategorySpellVital,
+				`<ansi fg="green">A warm glow of healing magic envelops you. Your wounds begin to mend.</ansi>`),
+			Actee: messaging.NoLine,
+			Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
+				`%s channels restorative magic.`, casterName)),
+		}, c.selfCastAudience(casterName))
+		return 0
+	}
+	messaging.SendTrio(messaging.Trio{
+		Actor: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
+			`<ansi fg="green">You weave restorative magic around %s.</ansi>`, targetName)),
+		Actee: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
+			`<ansi fg="green">%s's %s envelops you in healing energy. Your wounds begin to mend.</ansi>`,
+			casterName, c.spell.Name)),
+		Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
+			`%s's <ansi fg="cyan">%s</ansi> envelops %s in healing light.`, casterName, c.spell.Name, targetName)),
 	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
 	return 0
 }

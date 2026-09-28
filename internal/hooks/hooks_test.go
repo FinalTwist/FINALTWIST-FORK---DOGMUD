@@ -2715,22 +2715,6 @@ func TestApplyPlayerEffect_Heal(t *testing.T) {
 	applyPlayerEffect(caster, target, room, healSpell, 3, spellContestAttackWin())
 }
 
-func TestApplyPlayerEffect_HealCrit(t *testing.T) {
-	cleanup := seedAllRegistries()
-	defer cleanup()
-	caster := users.GetByUserId(1)
-	target := users.GetByUserId(2)
-	room := rooms.LoadRoom(1)
-
-	healSpell := &spells.SpellData{
-		SpellId:         "heal",
-		Name:            "Heal",
-		EffectType:      "heal",
-		EffectMagnitude: 3,
-	}
-	applyPlayerEffect(caster, target, room, healSpell, 3, spellContestAttackCrit())
-}
-
 func TestApplyPlayerEffect_Condition(t *testing.T) {
 	cleanup := seedAllRegistries()
 	defer cleanup()

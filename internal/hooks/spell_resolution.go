@@ -11,7 +11,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
-	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -501,47 +500,6 @@ func spellDefenceIdentity(char *characters.Character, user *users.UserRecord, ro
 	return char.GetMobName(0).String()
 }
 
-// applyMobEffect_heal handles the "heal" EffectType case for applyMobEffect —
-// a caster (mob or player) casting a HelpSingle heal at ANOTHER mob (e.g. an
-// ally construct healing a boss, or a player healing a charmed companion).
-// Prior to Chunk B of the crash-site boss-mechanics work this case did not
-// exist: applyMobEffect's switch only handled damage/dot/knockdown/condition, so
-// a mob-to-mob (or player-to-companion) "heal" cast silently fell through to
-// applyMobEffect_default and did nothing. Mirrors applyMobSelfEffect's
-// "heal" case (percentage-of-max regen via the Regenerating record) but targets
-// `mob` instead of the caster. Returns 0 (no damage dealt) to match the
-// applyMobEffect_* int-return convention.
-func applyMobEffect_heal(
-	casterChar *characters.Character,
-	mob *mobs.Mob,
-	room *rooms.Room,
-	spellData *spells.SpellData,
-	magnitude int,
-	mName string,
-) int {
-	skillLevel := 0
-	willpower := 0
-	casterName := "Something"
-	if casterChar != nil {
-		skillLevel = casterChar.GetSkillLevel(skills.Spellcasting)
-		willpower = spellData.CasterStatValue(casterChar.Stats)
-		casterName = casterChar.Name
-	}
-	regenMult := float64(magnitude)
-	if regenMult < 1.0 {
-		regenMult = 1.0
-	}
-	durationRounds := calcSpellDuration(spellData.BaseFolds, skillLevel, willpower) / 2
-	if durationRounds < 6 {
-		durationRounds = 6
-	}
-	_ = mob.Character.AddConditionMagnitude(conditions.ConditionIdRegenerating, durationRounds, regenMult, "heal spell")
-	sendVisualRoomText(room, messaging.CategorySpellVital, fmt.Sprintf(
-		`<ansi fg="cyan">%s</ansi>'s %s washes over %s, knitting wounds shut.`,
-		casterName, spellData.Name, mName))
-	return 0
-}
-
 func applyMobEffect_default(
 	user *users.UserRecord,
 	casterChar *characters.Character,
@@ -574,7 +532,7 @@ func applyMobEffect_default(
 // U6b Task 4: `out` is the resolver's ONE channel contest, threaded through.
 func applyMobEffectArms(c spellEffectCtx) int {
 	user, casterChar, mob, room := c.casterUser(), c.casterChar, c.targetMob(), c.room
-	spellData, magnitude, out := c.spell, c.magnitude, c.out
+	spellData, out := c.spell, c.out
 	viewerId := 0
 	if user != nil {
 		viewerId = user.UserId
@@ -582,11 +540,6 @@ func applyMobEffectArms(c spellEffectCtx) int {
 	mName := mobDisplayName(mob, room, viewerId)
 
 	switch spellData.EffectType {
-	case "heal":
-		if user != nil {
-			events.AddToQueue(events.Healed{HealerUserId: user.UserId, MobInstanceId: mob.InstanceId})
-		}
-		return applyMobEffect_heal(casterChar, mob, room, spellData, magnitude, mName)
 	case "charm":
 		// Charm resolves HERE, off the contest this cast already ran, rather
 		// than in a second private contest after the target loop. See
@@ -704,54 +657,6 @@ func applyPlayerEffectArms(c spellEffectCtx) {
 				Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
 					`<ansi fg="cyan">%s</ansi> cleanses <ansi fg="username">%s</ansi> of afflictions.`,
 					spellData.Name, target.Character.Name)),
-			}, messaging.Audience{
-				Actor:     user,
-				ActorId:   user.UserId,
-				ActorName: user.Character.Name,
-				ActeeName: messaging.NoName,
-				Room:      room,
-			})
-		}
-
-	case "heal":
-		skillLevel := user.Character.GetSkillLevel(skills.Spellcasting)
-		// Magnitude from YAML is the regen multiplier (e.g. 3 = 3x base regen)
-		regenMult := float64(magnitude)
-		if regenMult < 1.0 {
-			regenMult = 1.0
-		}
-		if out.AttackerCrit {
-			// Crit: boost the multiplier portion above 1x by 2x
-			regenMult = 1.0 + (regenMult-1.0)*2.0
-		}
-		durationRounds := calcSpellDuration(spellData.BaseFolds, skillLevel, spellData.CasterStatValue(user.Character.Stats)) / 2
-		if durationRounds < 6 {
-			durationRounds = 6
-		}
-		_ = target.Character.AddConditionMagnitude(conditions.ConditionIdRegenerating, durationRounds, regenMult, "heal spell")
-		if target.UserId != user.UserId {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
-					`<ansi fg="green">You weave restorative magic around <ansi fg="username">%s</ansi>.%s</ansi>`,
-					target.Character.Name, critTag)),
-				Actee: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
-					`<ansi fg="green"><ansi fg="username">%s</ansi>'s %s envelops you in healing energy. Your wounds begin to mend.</ansi>`,
-					user.Character.Name, spellData.Name)),
-				Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
-					`<ansi fg="username">%s</ansi>'s <ansi fg="cyan">%s</ansi> envelops <ansi fg="username">%s</ansi> in healing light.`,
-					user.Character.Name, spellData.Name, target.Character.Name)),
-			}, spellAudience(user, user.Character.Name, target, target.Character.Name, room))
-		} else {
-			// SELF-CAST: see case "purge". The room line reuses the wording
-			// applyMobSelfEffect already uses for a mob healing itself, and now
-			// goes through SendTrio the same way.
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
-					`<ansi fg="green">A warm glow of healing magic envelops you. Your wounds begin to mend.%s</ansi>`, critTag)),
-				Actee: messaging.NoLine,
-				Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
-					`<ansi fg="username">%s</ansi> channels restorative magic.`,
-					user.Character.Name)),
 			}, messaging.Audience{
 				Actor:     user,
 				ActorId:   user.UserId,

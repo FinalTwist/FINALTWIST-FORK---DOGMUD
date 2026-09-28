@@ -168,6 +168,8 @@ func applySpellEffect(c spellEffectCtx) int {
 		return applySpellKnockdown(c)
 	case "condition":
 		return applySpellConditionEffect(c)
+	case "heal":
+		return applySpellHeal(c)
 	}
 	switch {
 	case c.targetMob() != nil:
