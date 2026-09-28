@@ -262,7 +262,15 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	// the multiplier rides on the event. Applying the scaled case through
 	// Character.AddConditionScaled instead is what made Purging Weakness silent.
 	for _, conditionId := range itemSpec.ConditionIds {
-		user.AddConditionScaled(conditionId, durationMult, `drink`)
+		conditionSpec := conditions.GetConditionSpec(conditionId)
+		if mag, trig, ok := potionMagnitudeApplication(&itemSpec, conditionSpec, durationMult); ok {
+			// A magnitude-scaled potion (lighting plan 5c) queues through the
+			// same event door with its value and count; the holder still reads
+			// the start line.
+			user.AddConditionMagnitude(conditionId, trig, mag, `drink`)
+		} else {
+			user.AddConditionScaled(conditionId, durationMult, `drink`)
+		}
 		// Compute tick snapshot for config-driven conditions (no stat scaling for
 		// potions). SetTickAmount below is live on a RE-drink, where the condition is
 		// still held and its index hits; it is a no-op only on the first
@@ -273,7 +281,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		// apply (5, 7, 47) none declares tick_variance, so the recomputation is
 		// deterministic, while no tick_pool condition carries a max-pool statmod, so
 		// it reads the same pool.
-		if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil && conditionSpec.TickPool != "" {
+		if conditionSpec != nil && conditionSpec.TickPool != "" {
 			var maxPool int
 			switch conditionSpec.TickPool {
 			case "health":
