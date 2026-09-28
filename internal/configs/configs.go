@@ -369,9 +369,33 @@ func (c Config) AllConfigData(excludeStrings ...string) map[string]any {
 	return finalOutput
 }
 
+// SetVal is the operator's write: `server set`, the `server config` menu,
+// `setmotd` and module config setters (plugins.PluginConfig.Set). It refuses
+// any key IsLocked names with ErrLockedConfig, checked on the RESOLVED path so
+// a bare suffix key ("seed") cannot slip past a full-path lock.
 func SetVal(propertyPath string, newVal string) error {
+	return setVal(propertyPath, newVal, true)
+}
+
+// SetEngineVal is the engine's own write, for values the server maintains
+// itself that Server.Locked keeps from operators: Server.CurrentVersion
+// (internal/migration) and Server.NextRoomId (internal/rooms). It skips the
+// Server.Locked list but still refuses the hard list, because no engine write
+// needs a security key.
+func SetEngineVal(propertyPath string, newVal string) error {
+	return setVal(propertyPath, newVal, false)
+}
+
+func setVal(propertyPath string, newVal string, operator bool) error {
 
 	propertyPath, propertyType := FindFullPath(propertyPath)
+
+	// Locks first, so a hard-locked key is refused as locked even where the
+	// lookups cannot resolve it.
+	if isHardLocked(propertyPath) || (operator && IsLocked(propertyPath)) {
+		return fmt.Errorf(`%w: %s`, ErrLockedConfig, propertyPath)
+	}
+
 	if propertyType == `` {
 		return errors.New(`invalid property name: ` + propertyPath)
 	}
@@ -558,7 +582,8 @@ func FindFullPath(inputKey string) (properKey string, typeName string) {
 // buildKeyLookups builds the tables FindFullPath reads from c's dot paths.
 // Every key is reachable by its full path and by each dotted and undotted
 // suffix, lowercased, which is how `server set seed 1` finds Server.Seed. A
-// suffix shared by two keys resolves to whichever was walked last.
+// suffix shared by two keys resolves to one of them; which one depends on map
+// iteration order, so it is not stable across runs.
 func buildKeyLookups(c Config) (keys map[string]string, types map[string]string) {
 	keys = map[string]string{}
 	types = map[string]string{}

@@ -1,6 +1,9 @@
 package configs
 
 import (
+	"errors"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -25,5 +28,114 @@ func TestSetConfigWithLookupsForTestResolvesKeys(t *testing.T) {
 
 	if p, typ := FindFullPath(`apikey`); p != beforePath || typ != beforeType {
 		t.Errorf(`lookups not restored: FindFullPath("apikey") = (%q, %q), was (%q, %q)`, p, typ, beforePath, beforeType)
+	}
+}
+
+// lockTestConfig is the shipped Server.Locked list plus an aicompanion block,
+// so the module keys resolve through FindFullPath. Modules is a fresh map:
+// never mutate a map GetConfig handed back, another test may share it.
+func lockTestConfig() Config {
+	c := GetConfig()
+	c.Server.Locked = ConfigSliceString{`FilePaths`, `Server.CurrentVersion`, `Server.NextRoomId`, `Server.Seed`, `Server.OnLoginCommands`, `Server.BannedNames`}
+	c.Modules = Modules{`aicompanion`: map[string]any{`APIKey`: ``, `Model`: ``, `RelayOrigin`: ``, `ModerateOutput`: true, `DailyTokenBudget`: 2000000}}
+	return c
+}
+
+func TestSetValRefusesLockedKeys(t *testing.T) {
+	overridePath := SetConfigWithLookupsForTest(t, lockTestConfig())
+
+	// Each case carries its reason as a field, not a trailing comment, so the
+	// table stays gofmt-stable when a row is added.
+	cases := []struct{ key, resolved, why string }{
+		{`Server.Seed`, `Server.Seed`, `Server.Locked, exact`},
+		{`seed`, `Server.Seed`, `bare suffix key: the RESOLVED path is checked`},
+		{`FilePaths.DataFiles`, `FilePaths.DataFiles`, `Server.Locked prefix`},
+		{`Server.Locked`, `Server.Locked`, `hard list`},
+		{`locked`, `Server.Locked`, `hard list through a suffix key`},
+		{`FilePaths.WebDomain`, `FilePaths.WebDomain`, `hard list`},
+		{`Modules.aicompanion.APIKey`, `Modules.aicompanion.APIKey`, `hard list, module key`},
+		{`apikey`, `Modules.aicompanion.APIKey`, `hard list through a suffix key`},
+		{`Modules.aicompanion.RelayOrigin`, `Modules.aicompanion.RelayOrigin`, `hard list`},
+		{`Modules.aicompanion.Model`, `Modules.aicompanion.Model`, `hard list`},
+		{`Modules.aicompanion.ModerateOutput`, `Modules.aicompanion.ModerateOutput`, `hard list (ruling 13), resolves through the lookups`},
+		{`moderateoutput`, `Modules.aicompanion.ModerateOutput`, `hard list (ruling 13) through a suffix key`},
+		{`Modules.aicompanion.ModerationModel`, `Modules.aicompanion.ModerationModel`, `hard list (ruling 13), not in the lookups: refused as LOCKED, not as unknown`},
+		{`Modules.aicompanion.BaseURL`, `Modules.aicompanion.BaseURL`, `not in the lookups: refused as LOCKED, not as unknown`},
+		{`APIFramework.APIKey`, `APIFramework.APIKey`, `section absent on master: the entry costs nothing and still binds`},
+	}
+	for _, tc := range cases {
+		err := SetVal(tc.key, `x`)
+		if !errors.Is(err, ErrLockedConfig) {
+			t.Errorf(`SetVal(%q) = %v, want ErrLockedConfig (%s)`, tc.key, err, tc.why)
+			continue
+		}
+		if !strings.Contains(err.Error(), tc.resolved) {
+			t.Errorf(`SetVal(%q) error %q does not name the resolved path %q (%s)`, tc.key, err, tc.resolved, tc.why)
+		}
+	}
+
+	if got := string(GetServerConfig().Seed); got == `x` {
+		t.Errorf(`Server.Seed changed to %q through a refused SetVal`, got)
+	}
+	if _, err := os.Stat(overridePath); !os.IsNotExist(err) {
+		t.Errorf(`a refused SetVal wrote %s (stat err %v)`, overridePath, err)
+	}
+}
+
+// TestSetValStillWritesAnUnlockedKey is the positive control: without it the
+// refusals above could come from a SetVal that refuses everything.
+func TestSetValStillWritesAnUnlockedKey(t *testing.T) {
+	overridePath := SetConfigWithLookupsForTest(t, lockTestConfig())
+
+	if err := SetVal(`motd`, `hello from the lock test`); err != nil {
+		t.Fatalf(`SetVal("motd") = %v, want nil`, err)
+	}
+	if got := string(GetServerConfig().Motd); got != `hello from the lock test` {
+		t.Errorf(`Server.Motd = %q after SetVal`, got)
+	}
+	written, err := os.ReadFile(overridePath)
+	if err != nil {
+		t.Fatalf(`read %s: %v`, overridePath, err)
+	}
+	if !strings.Contains(string(written), `hello from the lock test`) {
+		t.Errorf(`override file does not carry the new value:\n%s`, written)
+	}
+}
+
+func TestSetEngineValSkipsServerLockedButNotTheHardList(t *testing.T) {
+	SetConfigWithLookupsForTest(t, lockTestConfig())
+
+	if err := SetVal(`Server.NextRoomId`, `4321`); !errors.Is(err, ErrLockedConfig) {
+		t.Fatalf(`operator SetVal("Server.NextRoomId") = %v, want ErrLockedConfig`, err)
+	}
+	if err := SetEngineVal(`Server.NextRoomId`, `4321`); err != nil {
+		t.Fatalf(`SetEngineVal("Server.NextRoomId") = %v, want nil`, err)
+	}
+	if got := int(GetServerConfig().NextRoomId); got != 4321 {
+		t.Errorf(`Server.NextRoomId = %d after SetEngineVal, want 4321`, got)
+	}
+	for _, key := range []string{`Server.Locked`, `Modules.aicompanion.APIKey`, `Modules.aicompanion.ModerateOutput`, `FilePaths.WebDomain`} {
+		if err := SetEngineVal(key, `x`); !errors.Is(err, ErrLockedConfig) {
+			t.Errorf(`SetEngineVal(%q) = %v, want ErrLockedConfig`, key, err)
+		}
+	}
+}
+
+func TestIsLocked(t *testing.T) {
+	SetConfigWithLookupsForTest(t, lockTestConfig())
+
+	for _, p := range []string{`filepaths`, `FilePaths.DataFiles`, `server.seed`, `Server.Locked`,
+		`modules.aicompanion.apikey`, `MODULES.AICOMPANION.PLAYERKEYS`, `APIFramework.BaseURL`,
+		`modules.aicompanion.moderateoutput`, `Modules.aicompanion.ModerationModel`} {
+		if !IsLocked(p) {
+			t.Errorf(`IsLocked(%q) = false, want true`, p)
+		}
+	}
+	// A partial path must stay open: the server config menu browses through
+	// modules.aicompanion to reach its unlocked budget knobs.
+	for _, p := range []string{`Server.Motd`, `Modules.aicompanion.DailyTokenBudget`, `modules.aicompanion`, `Network.HttpPort`} {
+		if IsLocked(p) {
+			t.Errorf(`IsLocked(%q) = true, want false`, p)
+		}
 	}
 }
