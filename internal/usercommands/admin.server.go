@@ -413,22 +413,10 @@ func server_Config(_ string, user *users.UserRecord, room *rooms.Room, flags eve
 	return true, nil
 }
 
+// isEditAllowed asks configs.IsLocked, the same rule SetVal enforces, so the
+// menu and `server set` can never disagree about what is locked.
 func isEditAllowed(configPath string) bool {
-
-	configPath = strings.ToLower(configPath)
-
-	if strings.HasSuffix(configPath, "locked") {
-		return false
-	}
-
-	sc := configs.GetServerConfig()
-	for _, v := range sc.Locked {
-		if strings.HasPrefix(configPath, strings.ToLower(v)) {
-			return false
-		}
-	}
-
-	return true
+	return !configs.IsLocked(configPath)
 }
 
 func getConfigOptions(input string) ([]templates.NameDescription, bool) {
