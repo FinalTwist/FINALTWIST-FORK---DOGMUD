@@ -95,9 +95,13 @@ no test still names.
 - **Help skip on MP:** a mob's help spell on a player is uncontested, as on
   every other pairing (row 3).
 - **Area help:** one target filler shared by player and mob casters (row 13):
-  players in the room plus mobs charmed BY THE CASTER (or, for a mob caster,
-  its allies by the same rule the mob's own AI uses; the plan reads that rule
-  from source), fixing "any charmed mob" (fact 5).
+  players in the room plus mobs charmed by the caster OR by any member of the
+  caster's party (`parties.Get(userId).IsMember`), fixing "any charmed mob"
+  (fact 5) while keeping every party member's companion healed. The AI
+  companion is charmed to its owner permanently
+  (`modules/aicompanion/commands.go:211`, `Charm(owner.UserId, -1, ...)`), so
+  companions get heals (owner, 2026-09-28). For a mob caster, its allies by
+  the same rule the mob's own AI uses (the plan reads that rule from source).
 - **purge:** one applier over the existing purge body; mob targets gain it.
 - **Parity table:** each helpful effect through PM, PP, MS, MM, MP asserts the
   same heal amount, shield value, duration and condition queued; MP is
