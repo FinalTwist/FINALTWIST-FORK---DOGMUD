@@ -20,6 +20,13 @@ their own, shattering their focus and collapsing the cast.
 A creature slain by your spell is now counted as your kill, for better
 and worse, just as one slain by your blade is.
 
+## 2026-09-28: Server secrets stay secret
+
+The public server settings page no longer lists module settings, and no
+page, log or admin listing shows a secret setting any more. Security
+settings, such as service keys and where they are sent, can no longer be
+changed from inside the game; they change only in the config file.
+
 ## 2026-09-28: Healing over time trusts the caster from the first cast
 
 A healing spell that mends you gradually now draws on the caster's skill

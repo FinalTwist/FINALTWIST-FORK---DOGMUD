@@ -93,7 +93,7 @@ func (c ConfigString) String() string {
 }
 
 func (c ConfigSecret) String() string {
-	return `*** REDACTED ***`
+	return RedactedValue
 }
 
 func (c ConfigFloat) String() string {
