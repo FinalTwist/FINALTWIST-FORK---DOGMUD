@@ -958,19 +958,27 @@ chapters. Since lighting plan 5a the room-change listener asks
 trimmed-off source does not count) instead of the deleted `lightsource`
 flag.
 
-### Light spells (`light_spell.go`, lighting plan 5a)
+### Vision-scaled spells (`light_spell.go`, lighting plan 5a; generalised lighting plan 5c)
 
-A spell condition whose spec declares `light_strength: magnitude` is applied
-at a strength and duration scaled from the CASTER's primary stat and
-Spellcasting skill: `lightSpellApplication(spellData, caster, conditionId)
-(magnitude float64, triggers int, ok bool)`, reading the six `configs.Lighting`
-`SpellStrength*`/`SpellDuration*` knobs (triggers floored at 1). `ok` is false
-for any other condition. `applySpellCondition(target, spellData, caster,
-conditionId)` is the one door the four spell-condition sites in
-`spell_resolution.go` (`applyMobEffect_condition`, `applyPlayerEffect`,
-`applyMobSelfEffect`, `resolveMobSpellAgainstPlayer`) now call: a light goes
-through `AddConditionMagnitude`, anything else through `AddCondition`, both on
-the small `spellConditionTarget` interface a `*users.UserRecord` and a
+A spell condition whose spec declares one of `conditions.ScaledKinds`
+(`light_strength`, `nightvision_strength`, `infra_reach`) as `magnitude` (via
+`ConditionSpec.ScaledKind`) is applied at a value and duration scaled from the
+CASTER's primary stat and Spellcasting skill:
+`magnitudeSpellApplication(spellData, caster, conditionId) (magnitude float64,
+triggers int, ok bool)` — renamed from `lightSpellApplication` in lighting
+plan 5c, when it stopped being light-only. It picks the scaled kind's own
+base/stat-divisor/skill-divisor trio (`SpellStrength*` for light,
+`NightVisionSpell*` for nightvision, `InfraSpell*` for infra reach, all on
+`configs.Lighting`), caps an infra-reach result at `Lighting.InfraReachCap`
+(nightvision is left to the window's own clamp), and computes duration from
+the shared `SpellDuration*` trio all three kinds use (triggers floored at 1).
+`ok` is false for any other condition, which keeps its authored application.
+`applySpellCondition(target, spellData, caster, conditionId)` is the one door
+the four spell-condition sites in `spell_resolution.go`
+(`applyMobEffect_condition`, `applyPlayerEffect`, `applyMobSelfEffect`,
+`resolveMobSpellAgainstPlayer`) now call: a magnitude-scaled light or sight
+goes through `AddConditionMagnitude`, anything else through `AddCondition`,
+both on the small `spellConditionTarget` interface a `*users.UserRecord` and a
 `*mobs.Mob` both satisfy. The record then trims to its HOLDER's eyes, who may
 not be the caster.
 
@@ -1973,7 +1981,7 @@ prefix at all; they are the lowercase-named ones, for example
 `combat_shared_helpers.go`, `spell_resolution.go`, `item_procs.go`,
 `machine_resolver.go`, `tick_cause.go` (the death-cause tag a damaging
 health tick stamps; see "The damaging condition tick" above), and
-`light_spell.go` (see "Light spells" below). `hooks.go` is in that
+`light_spell.go` (see "Vision-scaled spells" below). `hooks.go` is in that
 set and is the odd one out: it is not a helper but the registration table.
 
 Do not go looking for a registration in these files. **`hooks.go` holds

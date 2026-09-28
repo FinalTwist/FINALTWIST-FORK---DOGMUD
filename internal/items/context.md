@@ -206,6 +206,7 @@ type ItemSpec struct {
     Uses            int           // Number of uses before consumption
     ConditionIds         []int         // Conditions applied when used
     WornConditionIds     []int         // Conditions applied while worn
+    Magnitude            float64       // lighting plan 5c: base strength for a ConditionIds record that reads its magnitude (conditions.ScaledKinds); drink.go scales it by potency, same as duration
     Nouns                map[string]string // lighting plan 5a: lookable details (the hooded lantern's hood); see characters.FindItemNoun
     QuestToken      string        // Quest progress granted when obtained
 
@@ -612,8 +613,21 @@ potion drinks into it.
   the nausea condition (condition 75).
 
 ### Craft Skill Scaling
-`durationMult = potencyMult(agingPhase) × (1.0 + Item.CraftSkill/100.0)`,
-applied via `UserRecord.AddConditionScaled(conditionId, durationMult, source)` in `drink.go`.
+`durationMult = potencyMult(agingPhase) × (1.0 + Item.CraftSkill/100.0)`. For
+an ordinary potion condition this scales duration only, via
+`UserRecord.AddConditionScaled(conditionId, durationMult, source)` in
+`drink.go`. **Since lighting plan 5c**, a condition whose spec reads one of
+`conditions.ScaledKinds` from its magnitude (`ConditionSpec.ScaledKind`)
+instead goes through `internal/usercommands.potionMagnitudeApplication`
+(`drink_magnitude.go`): it reads the new `ItemSpec.Magnitude` field (the
+potion's base strength for that scaled kind) and scales both it and the
+condition's `TriggerCount` by `durationMult`, capping an infra-reach result at
+`configs.Lighting.InfraReachCap`, then queues through
+`AddConditionMagnitude` instead. A potion carrying a magnitude-scaled
+condition with no `Magnitude` authored is caught by a repo-root guard test
+over the shipped world (the build, not the boot — a load-time check would
+break every test binary that loads items without conditions), not by
+`ItemSpec` validation itself.
 
 ### Potion Bandolier
 Belt-slot item (`is_bandolier: true`, `bandolier_capacity` int). Auto-routes
@@ -627,12 +641,34 @@ to its contents, the same mechanic the Component Bag uses.
 54-60 pool-regen potions (healing salve through elixir of renewal), 61-70
 combat/utility potions (ironhide through purging draught), 71-74 progression
 potions (essence of growth through chrysalis catalyst), 75 spoiled-potion
-nausea, 76 purging-draught weakness.
+nausea, 76 purging-draught weakness. Condition 130, Pitsense Tincture
+(lighting plan 5c), is a potion condition outside this block: literal
+`nightvision_strength: 12`, `infra_reach: magnitude`. See "The purge strips a
+derived set" below for how the Purging Draught reaches conditions outside
+54-75.
 
 ### Item IDs
 30036-30056 potion items (`items/consumables-30000/`), 40043-40049 alchemy
 materials, bottles (40043-40045) plus forage/drop ingredients
-(40046-40049), all under `items/materials-40000/`.
+(40046-40049), all under `items/materials-40000/`. Item 30068, Pitsense
+Tincture, and material 40233, Heat-Pit Organ (lighting plan 5c), sit outside
+both ranges.
+
+### The purge strips a derived set (`potion_conditions.go`, lighting plan 5c)
+
+`PotionEffectConditionIds() map[int]bool` returns every condition id a
+`type: potion` `ItemSpec` names in its `ConditionIds`, minus any id also
+named by a non-potion item's `ConditionIds` or `WornConditionIds` (a
+condition also granted by food or worn gear is not potion-only, so stripping
+it on purge would undo the other grant too). It is computed fresh on each
+call from `GetAllItemSpecs()`, so an admin item reload cannot leave it stale.
+`internal/usercommands.purgeableConditionIds` unions this set with the
+original hardcoded 54-75 block (a floor kept so a test binary with no items
+loaded still behaves as before) and then removes both detox items' own
+conditions and the purge's applied weakness, and the Purging Draught strips
+whatever that union contains — closing a leak where several shipped potions
+(first conditions 7, 44, 47, 48, 49, 51, 82) had already drifted outside the
+old hardcoded block.
 
 ## Data Storage and Persistence
 
@@ -1217,6 +1253,7 @@ and `TestPreDetuneBowTable_MatchesTheRealTemplates` both fail otherwise.
 | `newitemfile.go` | New-item scaffolding |
 | `stacking.go` | Display-only inventory stacking |
 | `aging.go` | Potion aging phases and effective aging speed |
+| `potion_conditions.go` | `PotionEffectConditionIds` (lighting plan 5c): the condition ids only a potion grants, for the Purging Draught's derived strip set |
 | `affixgen.go` | Affix/name generation |
 | `spec_baseline.go` | `SpecBaseline`: pre-enchant numeric snapshot, so a tier re-apply cannot wipe affix scaling |
 | `detune_migration.go` | U10d ranged-weapon rescale (`MigrateDetunedBow`); idempotent by value threshold, no run-once marker |

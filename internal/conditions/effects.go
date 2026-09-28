@@ -24,9 +24,14 @@ const (
 	// light band shifts. Aggregated as MAX, not summed: two night-sight
 	// sources do not stack into a wider window than the better one grants.
 	EffectNightVisionStrength EffectKind = `nightvision_strength`
-	// EffectInfraReach is how far BELOW the window floor heat-sensing still
-	// reads shapes. Independent of strength: a creature can sense heat deeply
-	// while being no better than anyone else at using faint light.
+	// EffectInfraReach is how far into the dark heat-sensing still reads
+	// shapes: shapes at any light down to minus this many points on the light
+	// scale (lighting plan 5c). Independent of strength: a creature can sense
+	// heat deeply while being no better than anyone else at using faint
+	// light. Effect() aggregates it by MAX (isMax) for any reader that calls
+	// Effect(); Character.InfraReach does not, it log-sums every held
+	// source's value through Conditions.EffectValues instead (owner ruling:
+	// reach sources combine).
 	EffectInfraReach EffectKind = `infra_reach`
 	// EffectLightStrength is a light source's full strength on the light
 	// scale: a literal for an item, "magnitude" for a spell cast at a scaled
@@ -49,9 +54,14 @@ func (k EffectKind) isMultiplier() bool {
 
 func (k EffectKind) isCap() bool { return k == EffectAttacksCap }
 
-// isMax reports whether this kind aggregates by taking the strongest held
-// value. Used by the vision window, where summing would let two abilities
-// stack into a window wider than either one grants.
+// isMax reports whether Effect() aggregates this kind by taking the
+// strongest held value, rather than summing. Used by NightVisionStrength,
+// where summing would let two abilities stack into a window wider than
+// either one grants. InfraReach is also isMax for Effect()'s own callers,
+// but Character.InfraReach itself does not call Effect(): it reads
+// Conditions.EffectValues and combines every source through
+// lightscale.Combine instead (lighting plan 5c, owner ruling: reach sources
+// combine, unlike nightvision strength).
 func (k EffectKind) isMax() bool {
 	return k == EffectNightVisionStrength || k == EffectInfraReach
 }
