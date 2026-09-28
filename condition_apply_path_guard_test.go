@@ -211,6 +211,12 @@ var conditionApplyPathAllowlist = map[string]string{
 	// and the survival planner drink through it.
 	"internal/mobcommands/drink.go|41": "mob potion at its item magnitude: the EVENT door (mobs.Mob.AddConditionMagnitude queues events.Condition); listed only because arity cannot tell it from the silent character door",
 
+	// ── the DrinkActor doors (drink path unification): a.User is a
+	// *users.UserRecord and a.Mob is a *mobs.Mob, whose AddConditionMagnitude
+	// both queue events.Condition, so the drinker reads the start line ──────
+	"internal/actions/actor_user.go|83": "DrinkActor magnitude door for a player: the EVENT door (users.UserRecord.AddConditionMagnitude queues events.Condition); listed only because arity cannot tell it from the silent character door",
+	"internal/actions/actor_mob.go|84":  "DrinkActor magnitude door for a mob: the EVENT door (mobs.Mob.AddConditionMagnitude queues events.Condition); listed only because arity cannot tell it from the silent character door",
+
 	// ── admin setcondition of a magnitude-scaled condition (lighting plan 5c
 	// final review): target is a *users.UserRecord or a *mobs.Mob, both of
 	// which queue events.Condition ───────────────────────────────────────

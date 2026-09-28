@@ -72,6 +72,18 @@ func (a *MobActor) AddCondition(conditionId int, source string) {
 	a.Mob.AddCondition(conditionId, source)
 }
 
+// AddConditionScaled is the DrinkActor door for a duration-scaled condition;
+// it queues through the event path, the same as the player door.
+func (a *MobActor) AddConditionScaled(conditionId int, durationMult float64, source string) {
+	a.Mob.AddConditionScaled(conditionId, durationMult, source)
+}
+
+// AddConditionMagnitude is the DrinkActor door for an exact trigger count and
+// magnitude; it queues through the event path.
+func (a *MobActor) AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string) {
+	a.Mob.AddConditionMagnitude(conditionId, triggers, magnitude, source)
+}
+
 func (a *MobActor) OnSkillUse(skillName string) bool {
 	return a.Mob.Character.OnSkillUse(skillName, 0)
 }

@@ -563,6 +563,33 @@ func DrainQueuedConditionsForTest(userId int) []Condition {
 	return found
 }
 
+// DrainQueuedMobConditionsForTest removes and returns the queued Condition
+// events for a mob instance, the mob twin of DrainQueuedConditionsForTest. A
+// mobInstanceId of 0 drains every queued Condition event, user ones included.
+//
+// FOR TEST USE ONLY. Mutates the queue.
+func DrainQueuedMobConditionsForTest(mobInstanceId int) []Condition {
+	qLock.Lock()
+	defer qLock.Unlock()
+	var found []Condition
+	remaining := make(priorityQueue, 0, len(globalQueue))
+	for _, pe := range globalQueue {
+		b, ok := pe.event.(Condition)
+		if !ok {
+			remaining = append(remaining, pe)
+			continue
+		}
+		if mobInstanceId == 0 || b.MobInstanceId == mobInstanceId {
+			found = append(found, b)
+			continue
+		}
+		remaining = append(remaining, pe)
+	}
+	globalQueue = remaining
+	heap.Init(&globalQueue)
+	return found
+}
+
 // Initialize the priority queue.
 func init() {
 	heap.Init(&globalQueue)
