@@ -208,17 +208,11 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 							msg := idleMsgs[idleMsgIndex]
 							if msg != `` {
 								wrappedMsg := util.SplitStringNL(msg, 80)
-								if !room.IsLit() {
-									// Idle flavor text is visual — only nightvision players see it
-									for _, uid := range room.GetPlayers() {
-										u := users.GetByUserId(uid)
-										if u != nil && u.Character.HasFlagFromAnySource(conditions.NightVision) {
-											u.SendText(messaging.CategoryRoomDescription, wrappedMsg)
-										}
-									}
-								} else {
-									sendVisualRoomText(room, messaging.CategoryRoomDescription, wrappedMsg)
-								}
+								// Idle flavor text is visual; the visual
+								// pipeline judges each reader's sight, dark room
+								// or lit. The dark-room branch that tested the
+								// nightvision FLAG is gone (lighting plan 5c).
+								sendVisualRoomText(room, messaging.CategoryRoomDescription, wrappedMsg)
 							}
 
 						}

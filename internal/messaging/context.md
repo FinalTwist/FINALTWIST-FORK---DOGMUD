@@ -143,9 +143,22 @@ Functions:
   below. No locks, no global state, no config read: its caller owns
   fetching `blindBelow`/`dimBelow` from `Balance`.
 - `clampShift(strength int) int` (`window.go`): bounds an ability's window
-  shift to `[0, windowShiftCap]`. Shared by `SightThroughWindow` and
-  `BandThroughWindow` (added lighting plan 3d, `band.go`) so the two can
-  never clamp differently.
+  shift to `[0, windowShiftCap]`. Shared by `SightThroughWindow`,
+  `BandThroughWindow` (added lighting plan 3d, `band.go`) and
+  `ExitThroughWindow` so they can never clamp differently.
+- `ExitThroughWindow(light, strength, exitsAbove int) bool` (`window.go`,
+  lighting plan 5c): whether an observer sees THROUGH an exit.
+  `exitsAbove` (`LightExitsAbove`) is the normal-eyes edge; night-vision
+  strength moves it down exactly as it moves the blind and dim edges. Infra
+  reach plays no part.
+- `SeesThroughExit(observer, room) bool` (`predicates.go`, lighting plan
+  5c): `ParticipantSight` is not `SightNone` AND `ExitThroughWindow` at
+  the room's light and the observer's strength. `look <direction>` gates on
+  it; it replaced a nightvision-FLAG waiver.
+- `FixedLight` (`predicates.go`, lighting plan 5c): an `int` that
+  satisfies `RoomVisibility`. A caller judging many observers in one room
+  reads `room.LightLevel()` once and passes `FixedLight`, as
+  `actions.CalcSneakScoreVsObserver`'s callers do.
 - `Band` (`band.go`), added lighting plan 3d: one step finer than
   `SightDecision`, splitting full sight into reading faces and being
   dazzled. `BandDark`, `BandShapes`, `BandFaces`, `BandDazzled`, ordered
@@ -444,8 +457,8 @@ The package is the pipeline, one stage per file, plus the fan-out (`trio.go`):
 | `hidenames.go` | `HideNames` — replacing specific names in bare prose, longest-first, whole-word |
 | `hidenames_tagged.go` | Identity-tag-aware name replacement `HideNames` and `Anonymize` share, including the trailing adjective span |
 | `wrap.go` | `WrapAnsi`, ANSI-aware folding at a caller-supplied width measured in visible runes; called by the pipeline for the categories `shouldWrap` admits, and directly by `motd.go` for its box-bordered banner |
-| `predicates.go` | `ParticipantSight` (the optics primitive) plus `CanSeeClearly`/`CanSeeShapes`/`CanSeeSightImpairedOnly`, the one-line attention policies built on it |
-| `window.go` | `SightThroughWindow`, the pure window-model function `ParticipantSight` calls, `clampShift`, `LightTrimTarget` (lighting plan 5a, reparameterized in 5b to take `dazzleAbove` instead of reading the now-retired `windowDazzleEdge` constant), plus its two remaining unexported constants (`windowShiftCap`, `windowFloor`) |
+| `predicates.go` | `ParticipantSight` (the optics primitive) plus `CanSeeClearly`/`CanSeeShapes`/`CanSeeSightImpairedOnly`, the one-line attention policies built on it; `SeesThroughExit` and `FixedLight` (lighting plan 5c) |
+| `window.go` | `SightThroughWindow`, the pure window-model function `ParticipantSight` calls, `clampShift`, `ExitThroughWindow` (lighting plan 5c), `LightTrimTarget` (lighting plan 5a, reparameterized in 5b to take `dazzleAbove` instead of reading the now-retired `windowDazzleEdge` constant), plus its two remaining unexported constants (`windowShiftCap`, `windowFloor`) |
 | `band.go` | `Band`, `BandThroughWindow`, `LightBand` (lighting plan 3d): the band-grained twin of `SightDecision`/`SightThroughWindow`/`ParticipantSight`, adding the dazzled tier for `internal/lightnotice` |
 | `comfort.go` | `ComfortDistance` (lighting plan 5b): how far a room's light sits outside the observer's comfortable band, as dark/bright fractions of the way to the cap; `infraDarkCap` (lighting plan 5c), the unexported cap it applies to the dark fraction for an observer with infra reach |
 | `sight_mult.go` | `SightScoreMultiplier` and `SightMult` (lighting plan 5b): the sight ramp as a score multiplier, replacing the deleted `DarknessScoreMultiplier` |

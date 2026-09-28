@@ -70,11 +70,16 @@ var updateDarkness = flag.Bool("update-darkness", false, "rewrite testdata/darkn
 // truly dark room: a shifted window is still blind below its floor no
 // matter how strong the shift (internal/messaging/window.go), and no
 // vision condition can restore SightFull at light 0. So the spectator's
-// room line now reads "(none)" in every cell, the same as an unsighted
-// bystander would -- which is itself the answer to what this column was
+// visual room line is gated off in every cell, the same as an unsighted
+// bystander's -- which is itself the answer to what this column was
 // built to show: replaceDarknessMessages is gone (M4d PR 2), and nothing
 // in the current production path treats MessagesToSourceRoom differently
 // depending on WHO the darkness gate blocks.
+//
+// Since lighting plan 5c the spectator reads the audible fallback ("You hear
+// the sounds of fighting nearby.") in every cell. sendDarkRoomCombatFallback
+// used to skip anyone holding the nightvision FLAG, so this blind-in-fact
+// spectator read nothing at all; it now follows sight (CanSeeShapes).
 
 func seedDarknessSpectator(t *testing.T) func() {
 	t.Helper()
@@ -222,8 +227,9 @@ func TestDarknessNarrationGolden(t *testing.T) {
 	fmt.Fprintf(&b, "# (it only ever touched MessagesToSource/MessagesToTarget, never MessagesToSourceRoom,\n")
 	fmt.Fprintf(&b, "# and M4d PR 2 deleted it regardless) -- but under the graded lighting arc's window\n")
 	fmt.Fprintf(&b, "# model, no vision condition restores SightFull in a truly dark room, so the spectator's\n")
-	fmt.Fprintf(&b, "# own darkness now gates their room line to (none) in every cell, same as an unsighted\n")
-	fmt.Fprintf(&b, "# bystander.\n\n")
+	fmt.Fprintf(&b, "# own darkness gates their visual room line off in every cell, same as an unsighted\n")
+	fmt.Fprintf(&b, "# bystander, and they read the audible fallback instead (lighting plan 5c: the fallback\n")
+	fmt.Fprintf(&b, "# follows sight, not the nightvision flag).\n\n")
 
 	for _, atkSight := range sights {
 		for _, defSight := range sights {
