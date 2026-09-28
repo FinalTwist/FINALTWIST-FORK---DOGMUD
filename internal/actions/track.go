@@ -274,10 +274,9 @@ func Track(actor Actor, opts TrackOptions) TrackResult {
 		// like every other opposed contest. Mirrors usercommands/go.go's hidden
 		// detection, which resolves the same shape of question.
 		if tgt := trackTargetCharacter(targetUserId, targetMobId); tgt != nil {
-			roomLit := room.IsLit()
 			won := combat.RunContest(
 				CalcDetectionScore(char, room),
-				[]contest.Entry{{Score: CalcSneakScoreVsObserver(tgt, char, roomLit)}},
+				[]contest.Entry{{Score: CalcSneakScoreVsObserver(tgt, char, room)}},
 			).Success
 			awardTrack(won)
 			if !won {

@@ -80,3 +80,28 @@ func TestWindowFloorHoldsForANeverBlindConfig(t *testing.T) {
 		t.Errorf("light 1 with blind edge -10 = %v, want SightShapes", got)
 	}
 }
+
+// TestExitThroughWindow pins the exit edge: LightExitsAbove for normal eyes,
+// moved down by night-vision strength and clamped exactly like the other
+// edges.
+func TestExitThroughWindow(t *testing.T) {
+	tests := []struct {
+		light, strength int
+		want            bool
+	}{
+		{64, 0, false},
+		{65, 0, true},
+		{52, 12, false},
+		{53, 12, true},
+		{41, 24, true},
+		{40, 24, false},
+		{40, 99, false}, // clamped at the window shift cap
+		{65, -5, true},  // negative strength clamps to zero
+		{64, -5, false},
+	}
+	for _, tc := range tests {
+		if got := ExitThroughWindow(tc.light, tc.strength, 65); got != tc.want {
+			t.Errorf("ExitThroughWindow(%d, %d, 65) = %v, want %v", tc.light, tc.strength, got, tc.want)
+		}
+	}
+}

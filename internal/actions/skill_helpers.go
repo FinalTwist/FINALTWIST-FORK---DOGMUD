@@ -3,7 +3,6 @@ package actions
 import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
@@ -12,9 +11,10 @@ import (
 )
 
 // CalcSneakScore computes a sneak score with light-conditional modifier.
-// effectiveLit reflects the room visibility from the observer's POV —
-// true if the room is lit OR the observer has NightVision. Caller is
-// responsible for computing effectiveLit per observer.
+// effectiveLit reflects the room visibility from the observer's POV:
+// true if the observer makes out anything at all there (see
+// CalcSneakScoreVsObserver). Caller is responsible for computing
+// effectiveLit per observer.
 //
 // The conditional modifier:
 //   - sneaker emits light, room dark:  0.5x  (beacon in darkness)
@@ -23,8 +23,8 @@ import (
 //   - sneaker dark, room dark:         1.0x  (best stealth, no penalty)
 //
 // Per-observer evaluation matters: the same sneaker may roll differently
-// against different observers in the same room (e.g., NightVision
-// observers see the room as lit; non-NightVision observers do not).
+// against different observers in the same room (e.g., an observer with
+// night vision or infra reach may perceive a room another reads as dark).
 func CalcSneakScore(c *characters.Character, effectiveLit bool) float64 {
 	cfg := configs.GetBalanceConfig()
 
@@ -48,18 +48,22 @@ func CalcSneakScore(c *characters.Character, effectiveLit bool) float64 {
 
 // CalcSneakScoreVsObserver is a convenience for the common detection-roll
 // case where the caller has sneaker + observer + room in scope. Computes
-// effectiveLit per-observer (NightVision counts as effectively lit for
-// that specific observer).
+// effectiveLit per observer: the room counts as lit for an observer that
+// makes out anything at all there (messaging.LightBand is not BandDark, the
+// band-grained twin of ParticipantSight not being SightNone). That folds in
+// blindness, night-vision strength and infra reach; it used to be the room's
+// own light OR the nightvision FLAG, which treated an infravision observer in
+// a faint room as blind and a nightvision holder in a pitch-dark room as
+// seeing (lighting plan 5c).
 //
-// roomLit is the room's own light state (room.LightLevel() >=
-// configs.GetBalanceConfig().LightBlindBelow), NOT the room itself. It is
+// room is usually messaging.FixedLight(room.LightLevel()): the light is
 // invariant across every observer in a room, so a caller looping over
-// occupants must compute it ONCE above the loop and pass it in here, rather
-// than letting this function fetch config.GetBalanceConfig() (424 fields,
-// copied by value) on every occupant. See internal/actions/sneak.go and
-// internal/usercommands/go.go for the hoisted call sites this exists for.
-func CalcSneakScoreVsObserver(sneaker, observer *characters.Character, roomLit bool) float64 {
-	effectiveLit := roomLit || observer.HasFlagFromAnySource(conditions.NightVision)
+// occupants reads it ONCE above the loop rather than recomposing the room's
+// light per occupant. See internal/actions/sneak.go and
+// internal/usercommands/go.go for the hoisted call sites. LightBand reads the
+// narrow lighting config, not the 424-field Balance copy.
+func CalcSneakScoreVsObserver(sneaker, observer *characters.Character, room messaging.RoomVisibility) float64 {
+	effectiveLit := messaging.LightBand(observer, room) != messaging.BandDark
 	return CalcSneakScore(sneaker, effectiveLit)
 }
 

@@ -454,8 +454,8 @@ func stealFromPlayer(actor Actor, targetUserId int, attackerScore float64,
 	// Independent detection roll: victim may notice even on success.
 	if !actor.IsPlayer() {
 		searchScore := CalcDetectionScore(targetUser.Character, combat.SightRoom(actor.GetRoom()))
-		roomLit := actor.GetRoom().IsLit()
-		sneakScore := CalcSneakScoreVsObserver(actor.GetCharacter(), targetUser.Character, roomLit)
+		roomLight := messaging.FixedLight(actor.GetRoom().LightLevel())
+		sneakScore := CalcSneakScoreVsObserver(actor.GetCharacter(), targetUser.Character, roomLight)
 		detected := combat.RunContest(searchScore, []contest.Entry{{Score: sneakScore}}).Success
 		if detected {
 			targetUser.SendText(messaging.CategorySystem, fmt.Sprintf(

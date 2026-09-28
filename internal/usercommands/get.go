@@ -71,8 +71,10 @@ func getAllMatchingFromFloor(user *users.UserRecord, room *rooms.Room, itemName 
 
 func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	// Can't pick things up if you can't see
-	if !room.IsLit() && !user.Character.HasFlagFromAnySource(conditions.NightVision) {
+	// Can't pick things up if you can't see anything at all. Shapes are enough
+	// to grope for an item, so an infravision holder in a faint room gets
+	// through (lighting plan 5c).
+	if messaging.ParticipantSight(user.Character, room) == messaging.SightNone {
 		user.SendText(messaging.CategorySystem, "You can't see anything to pick up!")
 		return true, nil
 	}

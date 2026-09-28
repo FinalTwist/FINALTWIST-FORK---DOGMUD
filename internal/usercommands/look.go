@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/actions"
-	"github.com/GoMudEngine/GoMud/internal/conditions"
-	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
@@ -27,14 +25,14 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 	secretLook := flags.Has(events.CmdSecretly)
 
-	light := room.LightLevel()
-	balance := configs.GetBalanceConfig()
-
-	if light < int(balance.LightBlindBelow) {
-		if !user.Character.HasFlagFromAnySource(conditions.NightVision) {
-			user.SendText(messaging.CategorySystem, `You can't see anything!`)
-			return true, nil
-		}
+	// Refuse exactly when the observer makes out nothing at all here. The old
+	// test (light below LightBlindBelow and no nightvision FLAG) was stale
+	// twice over: it refused an infravision holder the Game window gives
+	// shapes to, and it let a nightvision holder look in a room its shifted
+	// window reads as blind (lighting plan 5c).
+	if messaging.ParticipantSight(user.Character, room) == messaging.SightNone {
+		user.SendText(messaging.CategorySystem, `You can't see anything!`)
+		return true, nil
 	}
 
 	isSneaking := user.Character.IsHidden()
@@ -267,13 +265,16 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		// own, so the exemption only ever fired when a darkening mutator had
 		// dragged the room below the threshold, which is precisely the case
 		// where refusing is right. The light value decides now.
-		if light < int(balance.LightExitsAbove) {
-
-			if !user.Character.HasFlagFromAnySource(conditions.NightVision) {
-				user.SendText(messaging.CategorySystem, `It's too dark to see anything in that direction.`)
-				return true, nil
-			}
-
+		//
+		// LightExitsAbove stays the edge for normal eyes. Night vision moves
+		// it down by the holder's strength, exactly as it moves the blind and
+		// dim edges; it used to be a flag that waived the edge outright, even
+		// in a room the holder's own window reads as blind. Infra reach does
+		// not help: heat shows shapes here, not in the next room (lighting
+		// plan 5c; messaging.SeesThroughExit).
+		if !messaging.SeesThroughExit(user.Character, room) {
+			user.SendText(messaging.CategorySystem, `It's too dark to see anything in that direction.`)
+			return true, nil
 		}
 
 		exitInfo, _ := room.GetExitInfo(exitName)

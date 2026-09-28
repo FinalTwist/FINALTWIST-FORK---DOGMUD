@@ -37,15 +37,17 @@ func secretExitDiscoveryKey(exitName string) string {
 //
 // Scores follow the convention U6b Task 16 set — CalcDetectionScore for the
 // opposed observer side, CalcSneakScoreVsObserver for the hider, which folds in
-// per-observer lighting (NightVision counts as lit for that observer alone).
+// per-observer lighting (the observer's own sight decides whether the room
+// reads as lit for it).
 //
-// roomLit is the room's own light state, computed once by the caller (see
-// CalcSneakScoreVsObserver) rather than refetched per occupant. room is the
-// observer's room, for the observer's sight ramp inside CalcDetectionScore.
-func spotsHider(observer *characters.Character, hider *characters.Character, room messaging.RoomVisibility, roomLit bool) bool {
+// room is the observer's room, for the observer's sight ramp inside
+// CalcDetectionScore and the lit test inside CalcSneakScoreVsObserver. The
+// caller passes messaging.FixedLight so the room's light is composed once,
+// not once per occupant.
+func spotsHider(observer *characters.Character, hider *characters.Character, room messaging.RoomVisibility) bool {
 	return combat.RunContest(
 		CalcDetectionScore(observer, room),
-		[]contest.Entry{{Score: CalcSneakScoreVsObserver(hider, observer, roomLit)}},
+		[]contest.Entry{{Score: CalcSneakScoreVsObserver(hider, observer, room)}},
 	).Success
 }
 
@@ -233,10 +235,10 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 	// every other opposed contest. The four static tiers in this file are the
 	// other kind and stay on AgainstDifficulty.
 
-	// The room's own light state is invariant across every hidden occupant
-	// checked below, so it is computed once here rather than inside
-	// spotsHider on every iteration.
-	roomLit := room.IsLit()
+	// The room's light is invariant across every hidden occupant checked
+	// below, so it is composed once here rather than inside spotsHider on
+	// every iteration.
+	roomLight := messaging.FixedLight(room.LightLevel())
 
 	// ── Tier 2 (target 135): Hidden players ─────────────────────
 	hiddenPlayerNames := []string{}
@@ -249,7 +251,7 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 			continue
 		}
 		rolledAgainstSomething = true
-		if spotsHider(char, p.Character, room, roomLit) {
+		if spotsHider(char, p.Character, roomLight) {
 			result.HiddenPlayersFound = append(result.HiddenPlayersFound, pId)
 			if actor.IsPlayer() {
 				hiddenPlayerNames = append(hiddenPlayerNames,
@@ -276,7 +278,7 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 			continue
 		}
 		rolledAgainstSomething = true
-		if spotsHider(char, &m.Character, room, roomLit) {
+		if spotsHider(char, &m.Character, roomLight) {
 			result.HiddenMobsFound = append(result.HiddenMobsFound, mId)
 			if actor.IsPlayer() {
 				hiddenMobNames = append(hiddenMobNames,
