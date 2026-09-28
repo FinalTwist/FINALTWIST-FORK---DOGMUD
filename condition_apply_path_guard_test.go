@@ -198,8 +198,9 @@ var conditionApplyPathAllowlist = map[string]string{
 	// *users.UserRecord and *mobs.Mob, both of which queue events.Condition,
 	// so Condition_ApplyConditions runs and narrates the start ─────────────
 	// Re-keyed lighting plan 5c, when the hook became magnitudeSpellApplication
-	// and also scales nightvision and infra reach.
-	"internal/hooks/light_spell.go|71": "light or sight spell at the caster's scaled magnitude and triggers: the EVENT door (users.UserRecord / mobs.Mob AddConditionMagnitude both queue events.Condition); listed only because arity cannot tell it from the silent character door",
+	// and also scales nightvision and infra reach, and again when its formula
+	// moved to conditions.SpellScaledMagnitude.
+	"internal/hooks/light_spell.go|60": "light or sight spell at the caster's scaled magnitude and triggers: the EVENT door (users.UserRecord / mobs.Mob AddConditionMagnitude both queue events.Condition); listed only because arity cannot tell it from the silent character door",
 
 	// ── magnitude potions (lighting plan 5c): user is a *users.UserRecord, whose
 	// AddConditionMagnitude queues events.Condition, so the drinker reads the
@@ -209,6 +210,11 @@ var conditionApplyPathAllowlist = map[string]string{
 	// AddConditionMagnitude also queues events.Condition. The AI companion
 	// and the survival planner drink through it.
 	"internal/mobcommands/drink.go|41": "mob potion at its item magnitude: the EVENT door (mobs.Mob.AddConditionMagnitude queues events.Condition); listed only because arity cannot tell it from the silent character door",
+
+	// ── admin setcondition of a magnitude-scaled condition (lighting plan 5c
+	// final review): target is a *users.UserRecord or a *mobs.Mob, both of
+	// which queue events.Condition ───────────────────────────────────────
+	"internal/usercommands/admin.setcondition.go|38": "admin-applied scaled condition at a new character's spell value: the EVENT door (users.UserRecord / mobs.Mob AddConditionMagnitude both queue events.Condition); listed only because arity cannot tell it from the silent character door",
 
 	// ── former combat condition: Bleeding is now one stacking record (Task 9;
 	// re-keyed slice 1b; re-keyed again counters slice Task 3 when the

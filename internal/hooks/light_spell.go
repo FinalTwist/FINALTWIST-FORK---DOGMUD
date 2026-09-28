@@ -14,8 +14,9 @@ import (
 // when it reads one of conditions.ScaledKinds from its magnitude: at a value
 // and a duration scaled from the CASTER's primary stat and spellcasting skill
 // (lighting plan 5a for light, 5c for nightvision and infra reach). Each kind
-// has its own base + stat/D1 + skill/D2 trio; all three share the light
-// duration trio. Infra reach is capped at LightInfraReachCap here so the
+// has its own base + stat/D1 + skill/D2 trio (conditions.SpellScaledMagnitude,
+// shared with the admin setcondition command); all three share the light
+// duration trio. Infra reach is capped at LightInfraReachCap there so the
 // record holds the value it acts at; nightvision is left to the window's own
 // clamp. ok is false for any other condition, which keeps its authored
 // application. A light then trims to its HOLDER's eyes, who may not be the
@@ -33,21 +34,9 @@ func magnitudeSpellApplication(spellData *spells.SpellData, caster *characters.C
 		return 0, 0, false
 	}
 	cfg := configs.GetLightingConfig()
-	base, statDiv, skillDiv := cfg.SpellStrengthBase, cfg.SpellStrengthStatDivisor, cfg.SpellStrengthSkillDivisor
-	switch kind {
-	case conditions.EffectNightVisionStrength:
-		base, statDiv, skillDiv = cfg.NightVisionSpellBase, cfg.NightVisionSpellStatDivisor, cfg.NightVisionSpellSkillDivisor
-	case conditions.EffectInfraReach:
-		base, statDiv, skillDiv = cfg.InfraSpellBase, cfg.InfraSpellStatDivisor, cfg.InfraSpellSkillDivisor
-	}
 	stat := float64(spellData.CasterStatValue(caster.Stats))
 	skill := float64(caster.GetSkillLevel(skills.Spellcasting))
-	magnitude = base + stat/statDiv + skill/skillDiv
-	if kind == conditions.EffectInfraReach {
-		if limit := float64(cfg.InfraReachCap); magnitude > limit {
-			magnitude = limit
-		}
-	}
+	magnitude = conditions.SpellScaledMagnitude(kind, stat, skill)
 	triggers = int(math.Round(cfg.SpellDurationBase + stat/cfg.SpellDurationStatDivisor + skill/cfg.SpellDurationSkillDivisor))
 	if triggers < 1 {
 		triggers = 1

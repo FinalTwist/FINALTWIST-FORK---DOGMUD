@@ -966,7 +966,9 @@ A spell condition whose spec declares one of `conditions.ScaledKinds`
 CASTER's primary stat and Spellcasting skill:
 `magnitudeSpellApplication(spellData, caster, conditionId) (magnitude float64,
 triggers int, ok bool)` — renamed from `lightSpellApplication` in lighting
-plan 5c, when it stopped being light-only. It picks the scaled kind's own
+plan 5c, when it stopped being light-only. Its magnitude comes from
+`conditions.SpellScaledMagnitude(kind, stat, skill)`, shared with the admin
+`setcondition` command, which picks the scaled kind's own
 base/stat-divisor/skill-divisor trio (`SpellStrength*` for light,
 `NightVisionSpell*` for nightvision, `InfraSpell*` for infra reach, all on
 `configs.Lighting`), caps an infra-reach result at `Lighting.InfraReachCap`

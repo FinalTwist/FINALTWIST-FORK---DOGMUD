@@ -1285,6 +1285,7 @@ they live downstream, in the damage pipeline.
 | `tick.go` | `ComputeTickAmount`, the tick-pool amount formula |
 | `stacks.go` | `Stack`, the stacking tick (`addStack`, `syncStacks`, `tickStacks`), `tickAmountFor`, `DisplayName` |
 | `effects.go` | `EffectKind`, the closed effects vocabulary, `Conditions.Effect` / `Conditions.HasEffect` / `Conditions.EffectValues` (lighting plan 5c), `ScaledKinds` / `ConditionSpec.ScaledKind` (lighting plan 5c) |
+| `scaled_magnitude.go` | `SpellScaledMagnitude` (lighting plan 5c): the base + stat/D1 + skill/D2 value a spell applies a scaled kind at, capped; `NewCharacterSpellStat` / `NewCharacterSpellSkill`, the numbers the admin `setcondition` command evaluates it at |
 | `light.go` | Lighting plan 5a: `LightTrim`, `Condition.LightMax` / `LightNow` / `SetLightOutput` / `ResetLight`, `Conditions.LightSources` |
 | `ids.go` | The record ids the engine names in code: `ConditionIdWarcry` (79) through `ConditionIdEnchantWithdrawal` (123) |
 | `test_helpers.go` | Test fixtures: `SeedConditionsForTest` (replaces the registry) and `SeedConditionRecordsForTest` (adds 79, 80 and 117 to 123 on top of whatever is already seeded) |

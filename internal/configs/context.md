@@ -724,8 +724,9 @@ own idiom (base + stat/StatDivisor + skill/SkillDivisor), one pair per scaled
 kind, exposed on `configs.Lighting` as `NightVisionSpellBase`/
 `NightVisionSpellStatDivisor`/`NightVisionSpellSkillDivisor` and
 `InfraSpellBase`/`InfraSpellStatDivisor`/`InfraSpellSkillDivisor`.
-`magnitudeSpellApplication` picks the trio matching `ConditionSpec.ScaledKind()`
-and shares the light trio's `SpellDuration*` knobs for all three kinds'
+`magnitudeSpellApplication` (through `conditions.SpellScaledMagnitude`, which
+the admin `setcondition` command also calls at a new character's stat 100 and
+skill 0) picks the trio matching `ConditionSpec.ScaledKind()` and shares the light trio's `SpellDuration*` knobs for all three kinds'
 duration. The other two are infravision's own: `LightInfraReachCap`
 (`ConfigInt`, bounds every infra-reach source's combined total — spell,
 potion, mutation, condition) and `LightInfraPenaltyFloor` (`ConfigFloat`, the
