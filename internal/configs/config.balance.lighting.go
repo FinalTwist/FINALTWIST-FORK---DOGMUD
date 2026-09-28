@@ -185,9 +185,20 @@ func (b *Balance) validateLighting() {
 	}{
 		{&b.LightSpellStrengthBase, 40}, {&b.LightSpellStrengthStatDivisor, 10}, {&b.LightSpellStrengthSkillDivisor, 2},
 		{&b.LightSpellDurationBase, 2}, {&b.LightSpellDurationStatDivisor, 50}, {&b.LightSpellDurationSkillDivisor, 20},
+		{&b.LightNightVisionSpellBase, 4}, {&b.LightNightVisionSpellStatDivisor, 12.5}, {&b.LightNightVisionSpellSkillDivisor, 6.5},
+		{&b.LightInfraSpellBase, 5}, {&b.LightInfraSpellStatDivisor, 7}, {&b.LightInfraSpellSkillDivisor, 3},
 	} {
 		if !(*k.v > 0) {
 			*k.v = k.def
 		}
+	}
+
+	// Infravision. A cap of zero divides by zero in the penalty ramp; above
+	// 100 reaches past the scale. The floor is a multiplier in (0, 1].
+	if b.LightInfraReachCap <= 0 || b.LightInfraReachCap > 100 {
+		b.LightInfraReachCap = 50
+	}
+	if b.LightInfraPenaltyFloor <= 0 || b.LightInfraPenaltyFloor > 1.0 {
+		b.LightInfraPenaltyFloor = 0.90
 	}
 }
