@@ -1,0 +1,42 @@
+# Spell effects 3a: a harmful spell on a citizen is a crime. You are Fold
+# Adept, starting in the Gate Ward of Thornwall (460), where a City Guard and
+# a Thornwall Crossbowman stand. The City Beggar spawns next door east (461)
+# and wanders; the Street Performer wanders the city too. Quote every line
+# VERBATIM. 3 commands per round at most.
+ephemeral:
+  profile: specialist-caster
+  start_room: 460
+  overlays:
+    grant_spells:
+      mind-spike: 1
+      conviction-spike: 1
+      blood-boil: 1
+      kinetic-shove: 1
+    grant_skills:
+      spellcasting: 30
+  budgets:
+    wall_clock: 30m
+
+goals:
+  - >-
+    `look`, `time`, `spells`. Find a room where a citizen (the City Beggar or
+    the Street Performer) and a guard are both present: try here, then `east`
+    to Main Street, West (461). Do not attack anything yet.
+  - >-
+    With a citizen and a guard both in the room, `cast mind-spike <citizen>`
+    ONCE. Quote every line you read, including the cast wait and the hit or
+    resist line. Then watch for a few rounds (`look`) and report what the
+    guards do: do they turn on you, call out, or pursue you? Quote it.
+  - >-
+    Cast `blood-boil` and then `kinetic-shove` at the same citizen if it is
+    still alive. Quote the afflict and knockdown lines and say whether the
+    citizen fights back. Flee with `flee` if the guards are close to killing
+    you.
+  - >-
+    Control: find a different citizen with a guard present, `attack` it once,
+    then `flee`. Report whether the guards' reaction to the melee attack
+    matches their reaction to the spell. Any difference is a finding.
+  - >-
+    reads-well: a line naming the wrong party, a line sent twice, a raw
+    number in player text, an em dash or " -- ", a line over 80 columns, or
+    Go error text is a finding. Report bluntly.
