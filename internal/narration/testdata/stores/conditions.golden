@@ -46,9 +46,9 @@ condition|27|start_actee => Your mind hardens like iron, resolute and unyielding
 condition|27|end_actee => The iron resolve in your mind softens back to normal.
 condition|28|start_actee => Chrysalis energy floods your nerves — everything feels faster.
 condition|28|end_actee => The Chrysalis haste fades and your movements return to normal.
-condition|29|start_actee => The dark thins and you make out grey shapes around you.
+condition|29|start_actee => Your eyes sharpen for faint light.
 condition|29|start_observer => <ansi fg="username">Aliceia</ansi>'s eyes widen and catch the faint light.
-condition|29|end_actee => The dark closes in again and the shapes are gone.
+condition|29|end_actee => Your eyes lose their edge for faint light.
 condition|29|end_observer => The faint light leaves <ansi fg="username">Aliceia</ansi>'s eyes.
 condition|30|start_actee => Your muscles twitch uncontrollably as nerve signals misfire.
 condition|30|end_actee => Your nerves settle and control returns to your limbs.
@@ -274,9 +274,9 @@ condition|122|trigger_actee => <ansi fg="red">Blood seeps from your wounds!</ans
 condition|122|end_actee => Your wounds stop bleeding.
 condition|123|start_actee => The severed bond leaves a hollow in you that will take time to fill.
 condition|123|end_actee => The hollow the severed bond left in you has finally closed.
-condition|128|start_actee => The dark thins and you make out grey shapes around you.
+condition|128|start_actee => Your eyes sharpen for faint light.
 condition|128|start_observer => <ansi fg="username">Aliceia</ansi>'s eyes widen and catch the faint light.
-condition|128|end_actee => The dark closes in again and the shapes are gone.
+condition|128|end_actee => Your eyes lose their edge for faint light.
 condition|128|end_observer => The faint light leaves <ansi fg="username">Aliceia</ansi>'s eyes.
 condition|129|start_actee => Warmth blooms into pale shapes wherever something lives.
 condition|129|start_observer => A dull red sheen settles over <ansi fg="username">Aliceia</ansi>'s eyes.

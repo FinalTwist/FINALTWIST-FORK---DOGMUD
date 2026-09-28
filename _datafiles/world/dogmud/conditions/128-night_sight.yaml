@@ -4,8 +4,8 @@ description: Your eyes make use of light too faint for most people to read
   by, though pitch darkness still leaves you blind. Daylight or any bright
   lamp dazzles these sharpened eyes, and everything you do by sight suffers
   until the light fades or the spell wears off.
-start_actee: The dark thins and you make out grey shapes around you.
-end_actee: The dark closes in again and the shapes are gone.
+start_actee: Your eyes sharpen for faint light.
+end_actee: Your eyes lose their edge for faint light.
 start_observer: "{actee}'s eyes widen and catch the faint light."
 end_observer: "The faint light leaves {actee}'s eyes."
 secret: false
