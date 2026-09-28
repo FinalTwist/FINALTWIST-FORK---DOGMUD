@@ -171,9 +171,10 @@ func pocketBaubleAllowed(m *mobs.Mob) bool {
 	return !m.Character.IsCharmed() && !m.Character.EverCharmed && !companionai.IsBondedCompanion(m.InstanceId)
 }
 
-// markPocketStolen records a bauble taken from a mark's pocket as stolen.
-func markPocketStolen(it items.Item, userId int, roomId int, m *mobs.Mob) {
-	theft := baubles.Theft{ByUserId: userId, RoomId: roomId, FromMob: int(m.MobId), FromName: m.Character.Name}
+// markPocketStolen records a bauble taken from a mark's pocket, in room,
+// as stolen.
+func markPocketStolen(it items.Item, userId int, room *rooms.Room, m *mobs.Mob) {
+	theft := baubles.Theft{ByUserId: userId, RoomId: room.RoomId, Zone: room.Zone, FromMob: int(m.MobId), FromName: m.Character.Name}
 	if f := factions.FactionsForMob(m); len(f) > 0 {
 		theft.Faction = f[0]
 	}
@@ -317,7 +318,7 @@ func (p *pocketAttempt) resolve() StealResult {
 		}
 	}
 	for _, it := range extra {
-		markPocketStolen(it, p.userId, p.roomId, m)
+		markPocketStolen(it, p.userId, room, m)
 	}
 	return takeFromMob(thief, m, extra)
 }

@@ -1475,6 +1475,34 @@ Balance:
   BaublePickpocketTierWeightCheap: 50
   BaublePickpocketTierWeightAverage: 40
   BaublePickpocketTierWeightRare: 10
+  # Stolen baubles. After each theft a bauble is "hot" for this many REAL
+  # hours, but only in the area it was stolen in (its zone, or the group of
+  # zones in BaubleHeatAreas that zone belongs to, such as a city of several
+  # zones): there, honest merchants will not buy it, storage will not hold
+  # it and the auction house will not list it. Anywhere else it sells like
+  # any trinket. While it is hot the NPC it was taken from may recognise it
+  # on the thief wherever they meet (a catch, with the usual crime). Fences (mobs
+  # in one of BaubleFenceGroups) buy any stolen bauble, hot or not, for
+  # BaubleFenceBuyPct percent of its value; honest merchants pay
+  # ShopBuyRatio. A thief who gives a stolen bauble back to its owner earns
+  # back 1/BaubleReturnsPerCatch of the reputation a catch costs
+  # (CrimeRepDeltaTheft) with each of the owner's factions, but only what
+  # catches have actually cost them there (never a gain), and once per
+  # bauble. At least 2.
+  BaubleStolenHeatHours: 72     # three real days
+  BaubleHeatAreas:              # zones that count as one area (zone names as in zone-config)
+    New Plymouth:
+      - New Plymouth Common
+      - New Plymouth Crafting
+      - New Plymouth Docks
+      - New Plymouth Merchant
+      - New Plymouth Noble
+      - New Plymouth Old Quarter
+      - New Plymouth Sewers
+      - New Plymouth Temple
+  BaubleFenceBuyPct: 60
+  BaubleFenceGroups: [fence]
+  BaubleReturnsPerCatch: 3
   # The value ladder, in gold. Tiers must climb without touching; a broken
   # ladder resets all six numbers to these defaults.
   BaubleCheapMinValue: 1

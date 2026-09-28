@@ -9,9 +9,12 @@ maxwander: 0
 groups:
   - humanoid
   - gossiper
+  - fence
 knows_facts:
   - roads-caravans-guarded
 idlecommands:
+  - 'emote wraps a small trinket in a spare cloth and tucks it deep in his pack, no questions asked'
+  - ''
   - 'emote checks his inventory, counting crates with quiet precision'
   - ''
   - 'emote adjusts a wobbly wheel on his handcart, frowning'

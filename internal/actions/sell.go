@@ -68,7 +68,7 @@ func Sell(seller Actor, opts SellOptions) SellResult {
 	// Gated on a merchant actually being in the room, same as
 	// ShopClosedForSleep beside it: "there's no merchant here" still wins
 	// over a sight refusal when there is truly nobody to deal with.
-	if len(room.GetPlayers(rooms.FindMerchant)) > 0 || len(room.GetMobs(rooms.FindMerchant)) > 0 {
+	if len(room.GetPlayers(rooms.FindMerchant)) > 0 || len(BaubleBuyersInRoom(room)) > 0 {
 		if ShopSightRefusal(seller.GetCharacter(), room) {
 			if seller.IsPlayer() {
 				seller.SendText(messaging.CategorySystem, ShopSightRefusalText)
@@ -125,6 +125,9 @@ func affixedSellPrice(item items.Item, cfg shops.PricingConfig) int {
 // returning the merchant mob and its living-economy ShopInventory (nil for
 // legacy-shop merchants).
 func resolveMerchant(room *rooms.Room, probe items.Item) (*mobs.Mob, *shops.ShopInventory) {
+	if probe.IsBauble() {
+		return bestBaubleMerchant(room, probe)
+	}
 	for _, mobId := range room.GetMobs(rooms.FindMerchant) {
 		mob := mobs.GetInstance(mobId)
 		if mob == nil {
@@ -132,9 +135,7 @@ func resolveMerchant(room *rooms.Room, probe items.Item) (*mobs.Mob, *shops.Shop
 		}
 		shopInv := shops.GetShopInventory(mob.Zone, int(mob.MobId), mob.HomeRoomId)
 		var probeValue int
-		if probe.IsBauble() {
-			probeValue = baubleOfferFor(probe, shopInv).Price
-		} else if probe.Affixed {
+		if probe.Affixed {
 			probeValue = affixedSellPrice(probe, shops.PricingConfigFromBalance())
 		} else if shopInv != nil {
 			cfg := shops.PricingConfigFromBalance()
@@ -195,6 +196,12 @@ func sellNamed(seller Actor, room *rooms.Room, itemName string, quantity int) Se
 		// rather than the misleading SellStopNoMerchant ("There's no merchant
 		// here.").
 		mob, shopInv = firstMerchantInRoom(room)
+		if mob == nil && probe.IsBauble() {
+			// A fence who keeps no shop still says why it will not buy.
+			if buyers := BaubleBuyersInRoom(room); len(buyers) > 0 {
+				mob = mobs.GetInstance(buyers[0])
+			}
+		}
 		if mob == nil {
 			return SellResult{Reason: SellStopNoMerchant}
 		}

@@ -637,6 +637,43 @@ Rules:
   noun's. `RoomSearchFeatures(room)` lists every feature, hidden ones
   included, for the admin `bauble window` view.
 
+**Stolen baubles after the theft (`stolen_bauble.go`, docs/baubles Phase 6c).**
+Selling is `sell_bauble.go`'s (above); storage (`usercommands/storage.go`,
+`storageRefusesStolen`) and the auction house (`modules/auctions`,
+`auctionRefusesStolen`) refuse a hot bauble. This file is the owner's side:
+
+- `RecognizeStolenBaubles(roomId, userId, mobInstanceId)`, called by the
+  `RoomChange` listener (`hooks/RoomChange_StolenBaubleRecognition.go`): a
+  player's move looks at that player's hot baubles; a mob's move lets that
+  mob look. `isBaubleOwner`: the mob template it was lifted from
+  (`StolenFromMob`; so any instance of that template), or for a household's
+  bauble taken unwatched a `householdMember` whose `HomeRoomId` is that
+  house, at home. The owner must be awake, alive and nobody's companion
+  (`canRecognize`) and still in the room. Only the thief
+  (`StolenByUserId`) is ever accused, so nobody can be framed and the
+  recognition cannot be spent on a friend.
+  `stolenRecognitionRoll` pits `stealVictimScore` (the owner's own sight
+  ramp included) against `carrierScore` (Dexterity + skullduggery ×
+  SkillWeight + the hidden bonus). Recognised: `MarkRecognized`, the owner
+  says so, then `thiefCaught` (the `stolenCaught` seam): the crime, its
+  reputation and bounty, the attack. Once per theft
+  (`Record.RecognizedSinceTheft`).
+- `StolenBaubleGiven(giver, m, itm)`, from `usercommands/give.go` after a
+  transfer to a mob: a stolen bauble given to its owner is a return and
+  cools (`MarkReturned`). Given by its thief, each of the owner's factions
+  (`ownerFactions`) credits `returnShare`: the catch
+  (`-CrimeRepDeltaTheft`) split into `BaubleReturnsPerCatch` parts with the
+  remainder spread so that every that-many returns total exactly one catch
+  (5 in thirds pays 1, 2, 2). Only reputation actually lost is earned back:
+  a faction credits no more than `BaubleReturnsPerCatch` returns per open
+  theft crime it holds naming the thief as the identified perpetrator
+  (`identifiedTheftCatches`, the crimes log, unresolved only: a sentence
+  served resolves them and restores reputation, and stale ones are
+  forgotten), so a thief never caught gains nothing and stealing to return
+  cannot farm reputation. A bauble earns credit once ever.
+- Seams: `stolenNow`, `recognitionRoll`, `stolenCarriers`, `stolenCaught`,
+  `returnRepBump`, `ownerFactions`, `theftCatches`.
+
 **Household baubles (`household_bauble.go`).** A find in a household is left
 in the room and belongs to it (`items.Item.BaubleHousehold` = the room id).
 `isResident`: a person (the player species, a shopkeeper or a faction
@@ -934,7 +971,29 @@ above. `sellOneToMerchant` hands it to `sellBaubleToMerchant`, and
   `Balance.BaubleBuyerCraftSupports` (default `general`, `jewelcrafting`;
   `baubleShopBuys`), and every legacy merchant.
   Living-economy shops also keep their `ShopGoldReserveRatio` reserve.
-- Refusals are spoken: unknown record, wrong kind of shop, can't afford.
+- Refusals are spoken: unknown record, wrong kind of shop, can't afford,
+  and (Phase 6c) a hot stolen bauble at an honest merchant (`baubleSayHot`,
+  which hints at a fence).
+- Stolen goods (Phase 6c): `IsFence(mob)` is a mob in one of
+  `Balance.BaubleFenceGroups` (default `fence`; the roster is in the plan,
+  Phase 6c, and `TestEveryTownHasAFenceNearby` checks every town has one in
+  or near it). A fence who keeps no shop (`stashFence`: a go-between) buys
+  baubles and nothing else, pays from a stash (their own purse is neither
+  needed nor drawn down, so killing one never pays out a fence's worth),
+  and is found by `BaubleBuyersInRoom` (every merchant, plus every such
+  fence alive, awake and nobody's companion), which bauble sales,
+  `sell all`, and the `offer` and `appraise` commands use for baubles.
+  A fence buys every bauble, paying `FencePrice` (value ×
+  `BaubleFenceBuyPct`, 60%, rounded up) for any stolen one not given back
+  since (`Record.StolenGoods`), hot or cold, and the honest `BaublePrice`
+  for the rest. An honest merchant refuses one hot WHERE IT TRADES
+  (`baubles.Record.HotIn(zone, now)`: stolen within `BaubleStolenHeatHours`,
+  in the same heat area, the zone or its `BaubleHeatAreas` group; read
+  through the `baubleNowForSale` clock; a shop that buys no trinkets says so
+  first) and buys it anywhere else, or once cooled, at the honest price.
+  `baubleOfferFor(item, shopInv, fence, zone)`: the sale room's zone, or
+  `merchantZone(mob)` for `offer`/`appraise`; `resolveMerchant` sends a
+  bauble to the best offer in the room (`bestBaubleMerchant`).
 - Never stocked, never resold: the item leaves the world, the record is
   marked sold (`baubles.MarkSold`), a living-economy shop is saved.
 - `BaubleOfferFrom(item, mob)` is the same offer for the `offer` and
@@ -1227,7 +1286,7 @@ the rest are ordinary verbs.
 | Casting | `cast.go`, `cast_interrupt.go` |
 | Mutation actives | `mutation_cocoon.go`, `mutation_venom_coat.go` |
 | Stealth / perception | `sneak.go`, `shadow.go`, `search.go`, `search_bauble.go` (roll and delayed delivery), `search_feature.go` (`search <feature>`), `scan.go`, `track.go`, `steal.go`, `steal_pocket.go` (a player's pickpocket pause and bauble) |
-| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `sell_bauble.go`, `remove_equip.go`, `shop_sight.go` |
+| Items & economy | `get.go`, `drop.go`, `give.go`, `transfer.go`, `buy.go`, `sell.go`, `sell_bauble.go`, `stolen_bauble.go` (heat, recognition, returns), `remove_equip.go`, `shop_sight.go` |
 | Trades | `craft.go`, `salvage.go`, `forage.go`, `plant.go`, `defuse.go` |
 | Movement & state | `go.go`, `sleep.go`, `consider.go` |
 | Social | `say.go`, `emote.go`, `emote_aliases.go` |

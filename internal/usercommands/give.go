@@ -238,6 +238,11 @@ func Give(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 					user.UserId,
 				)
 
+				// A stolen bauble given back to whoever it was taken from is a
+				// return (docs/baubles Phase 6c): it cools, and its thief may
+				// earn back some of the reputation a catch costs.
+				actions.StolenBaubleGiven(userActor, m, giveItem)
+
 				// Chunk 4.5: notify seeders of every item give to a mob.
 				// GiftOffered: fires unconditionally (no consumers in 4.5;
 				//   reserved for future analytics / tutorial rules).

@@ -10,7 +10,10 @@ maxwander: 1
 groups:
   - humanoid
   - merchant
+  - fence
 idlecommands:
+  - 'emote palms a trinket from a passing hand and names a figure without looking at it'
+  - ''
   - 'emote throws both arms wide and cries something about genuine
     Fernway amber at a price that defies reason.'
   - ''

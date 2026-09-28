@@ -478,6 +478,23 @@ through `craftDeliverInstant`, so a shapes-only room observer reads "a
 figure" instead of the crafter's name on an instant complete, the same as
 every other `SendTrio` room line in the codebase.
 
+### Storage refuses hot stolen baubles (`storage.go`)
+
+Every `storage add` path (one, several, all of a name, everything) asks
+`storageRefusesStolen` (or, for a named add, `storageFindAddable`, which
+passes over a hot match to a cool one of the same name and checks an
+explicit `@handle` pick too) first: a bauble stolen within
+`BaubleStolenHeatHours`, in this room's heat area, and not returned since
+(`baubles.ItemIsHotIn(itm, room.Zone, now)`, read through the `storageNow`
+clock) stays with the player and they are told
+why (`storageSayStolen`); `add all` stores everything else. The Thornwall
+Bank's item vault is storage, so this is "the bank will not take it". The
+`add N` loop counts only deposits that happened. `give` hands a bauble
+given to a mob to `actions.StolenBaubleGiven`, which treats one given back
+to its owner as a return (docs/baubles Phase 6c). For a bauble, `offer`
+and `appraise` ask `actions.BaubleBuyersInRoom` rather than the room's
+merchants only, so a fence who keeps no shop answers too.
+
 ### Crafting: storage is part of the answer (`craft.go`)
 
 `user.ItemStorage` is known here and nowhere below. `actions.InitiateCraft`

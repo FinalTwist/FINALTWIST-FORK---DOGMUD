@@ -157,6 +157,7 @@ func TestPickpocketHoldsTheOutcomeForThePause(t *testing.T) {
 // line as the rest, and it is recorded as stolen.
 func TestPickpocketTakesTheBaubleTheMarkCarries(t *testing.T) {
 	h := setupPocket(t, 9602, 7602)
+	h.room.Zone = "Ashwick"
 	itm, rec, err := baubles.Mint(baubles.MintOpts{Tier: baubles.TierCheap, Source: baubles.SourcePickpocket,
 		Result: &baubles.GenResult{Reply: baubles.Reply{Name: "Bent Copper Ring", NameSimple: "ring", Description: "A copper ring, bent out of true.", WeightLbs: 0.1, Value: 2}, Generator: baubles.GeneratorOpenAI}})
 	if err != nil {
@@ -176,7 +177,7 @@ func TestPickpocketTakesTheBaubleTheMarkCarries(t *testing.T) {
 	if said(h.thief, "Bent Copper Ring") != 1 || said(h.thief, "successfully steal") != 1 {
 		t.Fatalf("in the one success line: %q", h.thief.sent)
 	}
-	if r, _ := baubles.Get(rec.Id); !r.Stolen || r.StolenByUserId != 7602 || r.StolenFromName != "a harried clerk" {
+	if r, _ := baubles.Get(rec.Id); !r.Stolen || r.StolenByUserId != 7602 || r.StolenFromName != "a harried clerk" || r.StolenZone != "Ashwick" {
 		t.Fatalf("recorded as stolen: %+v", r)
 	}
 }

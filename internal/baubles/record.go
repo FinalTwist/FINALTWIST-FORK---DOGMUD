@@ -75,6 +75,19 @@ type Record struct {
 	StolenFromName string    `yaml:"stolen_from_name,omitempty"`
 	StolenFaction  string    `yaml:"stolen_faction,omitempty"`
 	StolenAt       time.Time `yaml:"stolen_at,omitempty"`
+	StolenZone     string    `yaml:"stolen_zone,omitempty"` // the zone the theft happened in: heat is only there (HotIn)
+
+	// After a theft (Phase 6c). A stolen bauble is hot for
+	// BaubleStolenHeatHours after StolenAt, unless it was returned since
+	// (Hot). RecognizedAt is when its owner last recognised it on someone;
+	// once per theft. ReturnedAt is when it was last given back to its owner.
+	// ReturnCredit* is the one time a return earned its thief reputation
+	// (never set again, whoever steals it next).
+	RecognizedAt         time.Time `yaml:"recognized_at,omitempty"`
+	ReturnedAt           time.Time `yaml:"returned_at,omitempty"`
+	ReturnCreditUserId   int       `yaml:"return_credit_user_id,omitempty"`
+	ReturnCreditFactions []string  `yaml:"return_credit_factions,omitempty"`
+	ReturnCreditAt       time.Time `yaml:"return_credit_at,omitempty"`
 
 	// Generation audit.
 	Generator     Generator `yaml:"generator"`

@@ -928,6 +928,16 @@ type Balance struct {
 	BaublePickpocketTierWeightAverage ConfigInt `yaml:"BaublePickpocketTierWeightAverage"` // Relative chance a pickpocketed bauble is average (default 40)
 	BaublePickpocketTierWeightRare    ConfigInt `yaml:"BaublePickpocketTierWeightRare"`    // Relative chance a pickpocketed bauble is rare (default 10)
 
+	// Stolen baubles: "hot" for a while after each theft. Honest merchants,
+	// storage and the auction house refuse a hot bauble; fences buy any
+	// stolen one. Its owner may recognise it while hot, and a thief who gives
+	// it back earns back part of the reputation a catch costs.
+	BaubleStolenHeatHours ConfigInt           `yaml:"BaubleStolenHeatHours"` // Real hours a stolen bauble stays hot after its latest theft (default 72, three days)
+	BaubleHeatAreas       map[string][]string `yaml:"BaubleHeatAreas"`       // Zones that count as one area for heat (a city of several zones); a zone not listed is its own area (default New Plymouth's city zones)
+	BaubleFenceBuyPct     ConfigInt           `yaml:"BaubleFenceBuyPct"`     // Percent of a stolen bauble's value a fence pays (default 60)
+	BaubleFenceGroups     ConfigSliceString   `yaml:"BaubleFenceGroups"`     // Mob groups that make a merchant a fence (default fence)
+	BaubleReturnsPerCatch ConfigInt           `yaml:"BaubleReturnsPerCatch"` // Returned stolen baubles that earn back the reputation of one catch (default 3, at least 2)
+
 	// ── WAREHOUSES (Stage 3 ferry system) ────────────────────────────────────
 	WarehouseItemCap      ConfigInt `yaml:"WarehouseItemCap,omitempty"`      // Per-item stock cap in city warehouses (default 4,000,000 — effectively unbounded)
 	WarehouseAccrualHours ConfigInt `yaml:"WarehouseAccrualHours,omitempty"` // Game-hours between ambient accrual ticks (default 2)

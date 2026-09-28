@@ -731,11 +731,126 @@ picked up, and a pickpocketed bauble more than one found on the ground.
   `TestBaubleStolenFindsLeanRicher`; each checked to fail with its piece of
   the change reverted.
 
-### Phase 6: Theft readiness
+### Phase 6c: Stolen goods, fences and owners (written, after PR #175)
 
-`baubles.Mint` with a source (`MarkStolen` exists since Phase 5d), merchant rules for stolen goods
-(legit merchants of the victim's faction refuse; fences pay a ratio), a
-`fence` mob flag, heat that fades.
+Owner rulings (2026-09-28): fences buy stolen baubles at 60% of value so
+thieves seek them out; heat lasts three real days (first a week), and only
+in the area the bauble was stolen in, so a thief can sell it to an honest
+merchant in another town; banks will not take a hot bauble; the NPC robbed may recognise its bauble on the thief; a thief who
+returns what they took earns back reputation, three returns equal to one
+catch.
+
+- **Heat.** A stolen bauble is hot for `BaubleStolenHeatHours` (72) after
+  its latest theft, unless given back since (`baubles.Record.Hot`). Stolen
+  again, hot again. For selling, storing and listing it is hot only in the
+  heat area of the theft (`Record.HotIn`): the theft's zone, recorded as
+  `StolenZone` (pickpocket and household thefts pass the room's zone), or
+  the group of zones in `BaubleHeatAreas` that zone belongs to. New
+  Plymouth's eight inner zones ship as one area ("New Plymouth"); its
+  outskirts, and every other town (one zone each), are their own. A record
+  whose theft zone is unknown is hot everywhere while hot. Merchants judge
+  by the zone of the room they trade in, storage by the storage room's,
+  the auction house by the lister's room. The owner's recognition follows
+  the owner, not the area: it is time-only (`Hot`).
+- **Honest merchants** refuse a hot bauble ("That was stolen, and not long
+  ago. I won't touch it. Try someone less particular..."), and buy a
+  cooled one at the honest price (`ShopBuyRatio`, 50%). Before this phase a
+  stolen bauble sold anywhere at full rate, which the richer stolen-find
+  odds of Phase 6b made worse.
+- **Fences.** A merchant in one of `BaubleFenceGroups` (default `fence`;
+  Fence Dealer Siv in Thornwall, mob 104, now carries the group) buys every
+  bauble: any stolen one, hot or cold, at `BaubleFenceBuyPct` (60%) of its
+  value, rounded up, better than an honest merchant pays for anything; an
+  honest one at the honest price. The owner asked for all merchants to
+  refuse while hot rather than only the victim's faction, so fences are
+  the one outlet.
+- **Banks.** The bank itself holds only gold; items go into `storage` (the
+  Thornwall Bank's vault is a storage room). Every `storage add` path
+  refuses a hot bauble. The auction house refuses one too, since listing it
+  would launder what merchants refuse (`auctionRefusesStolen`).
+- **Recognition.** On any move into a room (a `RoomChange` listener), an
+  owner in the room may recognise its hot bauble on a player: the mob
+  template it was lifted from, or for a household's bauble taken with
+  nobody watching, any of that household at home. Awake, alive, not a
+  companion. A contest: the owner's noticing score (`stealVictimScore`,
+  with their own sight) against the carrier's steal score (Dexterity,
+  skullduggery at SkillWeight, the hidden bonus). Recognised, the owner
+  says so and it is a catch in the act (`thiefCaught`: crime, reputation,
+  bounty, the owner attacks unless it cannot fight). Once per theft.
+  Only the thief is ever accused: anyone else carrying it is left alone, so
+  a thief can neither frame a bystander nor spend the recognition on a
+  friend. The owner is the mob TEMPLATE (instance ids do not survive a
+  respawn), so any instance of a common template recognises it.
+- **Returns.** `give <bauble> <owner>` returns it: it cools, and the owner
+  is glad (the existing gift-to-opinion seeder also fires). Given by its
+  thief, each of the owner's factions credits a share of the catch: the
+  catch is `CrimeRepDeltaTheft` (default -5, applied per faction by
+  `thiefCaught`) split into `BaubleReturnsPerCatch` (3, at least 2) parts,
+  the remainder spread so every three returns total exactly one catch (1,
+  2, 2). No single return is worth a catch. A return earns back only
+  reputation actually lost: a faction credits at most three returns for
+  every OPEN theft its crimes log holds against the thief, so a thief who
+  is never caught gains nothing, stealing just to return cannot farm
+  reputation, and a sentence served (which resolves the crimes and
+  restores reputation) leaves nothing more to earn back. Known edge: a
+  catch at the reputation floor costs nothing (the bump is clamped) yet
+  counts until resolved. A bauble earns credit once ever. A returned bauble is no
+  longer stolen goods: a fence pays the honest price for it.
+- **Walking in to return it** can get the thief recognised first (the
+  owner looks on every entry); the help says so. Sneaking in helps.
+- New files: `internal/actions/stolen_bauble.go`,
+  `internal/actions/stolen_bauble_test.go`, `internal/baubles/theft_test.go`,
+  `internal/hooks/RoomChange_StolenBaubleRecognition.go`,
+  `internal/hooks/RoomChange_StolenBaubleRecognition_test.go`,
+  `internal/usercommands/stolen_bauble_test.go`.
+- Guards: `stolenRecognitionRoll` is on the contest-site allowlist, and
+  pays the owner's sight ramp inside itself (the sight-penalty guard).
+- An independent review found, and this phase fixed: returns paying a thief
+  who was never caught; recognition of a non-thief carrier (framing, and
+  spending the recognition on an alt); any passer-by in a house counting as
+  the household; the fence premium outliving a return; a returns-per-catch
+  of 1 making a return equal a catch; `storage add` stopping at a hot match
+  instead of storing a cool one of the same name (and saying two
+  contradictory things); a trinket-shy shop giving the stolen-goods line;
+  and a cold stolen bauble going to an honest merchant ahead of a fence in
+  the same room.
+- A second review pass found, and this phase fixed: `storage add @handle`
+  (an explicit item pick bypasses the name filter) storing a hot bauble;
+  returns earning back reputation a served sentence had already restored.
+- Left as they are (noted): a hot bauble can still be dropped, stashed or
+  mailed to wait out its three days; heat follows the record wherever it
+  goes. Since only
+  the thief is ever accused, a friend can carry it past the owner safely;
+  it stays hot, so merchants, storage and the auction house still refuse
+  it.
+- Every test was checked to fail with its piece of the change reverted,
+  except the one line in the `auction` command that calls
+  `auctionRefusesStolen` (the command runs through an interactive prompt;
+  the check itself is tested).
+- **Fence roster** (owner request: every town has a fence in it or near
+  it). Each got the `fence` group and one idle line hinting at the trade:
+
+  | Town | Fence | Where | Shop |
+  |---|---|---|---|
+  | Thornwall City | Fence Dealer Siv (104), Torvan Cresk (249) | in the city | Siv yes, Torvan no |
+  | New Plymouth | Ysolde (9323) | Common, in the city | no |
+  | New Plymouth, Kilnreach Works | Mother Coyle (9213), A Market Hawker (9209), A River-Road Smuggler (9215) | the Outskirts, next to both | Coyle and the Hawker yes |
+  | Stillwater | Sly Tam (9172) | North Road North, next door | no |
+  | Hartcharn | Wick Orrel (9185), of the Tap and Trough | in town | yes |
+  | The Confluence, Greenford | Varro the Importer (9428) | the Confluence; Greenford two zones away | yes |
+  | Ashwick, Watchers Crossing | Peddler Malk (250) | Marches Spur Road, next to both | no |
+  | Pothole Coulee | Thornwall City's fences | two zones away | |
+
+  The Tri-Rivers towns (Greenford, the Confluence) had no shady character
+  at all; Varro, an importer on the quay, was the closest fit.
+- **Go-betweens.** A fence who keeps no shop (Torvan, Ysolde, the
+  Smuggler, Tam, Malk) buys baubles only, and pays from a stash kept
+  elsewhere: their own purse (18 to 80 gold) is neither needed nor drawn
+  down. Raising their purses instead would have made them gold worth
+  killing (several can be fought), respawning. `BaubleBuyersInRoom` finds
+  them (awake, alive, nobody's companion) for sales, `sell all`, `offer`
+  and `appraise`. A fence who keeps a shop pays from their own purse, as
+  before.
 
 ### Phase 7: Optional
 
@@ -761,7 +876,9 @@ finally onto master at `cf5af4c55` (lighting plan 5b: the steal observer
 helper takes the watcher's sight ramp, and `TestStealPaysTheThiefsEyes`
 puts its mark in the thief's room, which the pickpocket reveal requires).
 That patch shipped as PR #175. Changes after it (Phase 6b on) go in a new
-cumulative patch against the PR's head, `f57565f6c`:
+cumulative patch against the PR's head, `f57565f6c`
+(`dogmud-post-pr175.patch`). Phase 6c is its own patch
+(`dogmud-stolen-goods.patch`), applied on top of that one:
 
 ```text
 git apply --check dogmud-baubles.patch

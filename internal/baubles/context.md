@@ -39,7 +39,18 @@ was stolen, and how its text was generated.
 - **mint.go**: `Place`, `NewPlace`, `MintOpts`, `Mint`.
 - **sales.go**: `MarkSold`, `SalesSince`.
 - **theft.go**: `Theft`, `MarkStolen` (a household's bauble taken),
-  `MarkHousehold`, `MarkVanished` (left untaken too long), `UntakenLimit`.
+  `MarkHousehold`, `MarkVanished` (left untaken too long), `UntakenLimit`;
+  after a theft (Phase 6c): `Record.Hot` (stolen within
+  `BaubleStolenHeatHours` and not returned since: when the owner may
+  recognise it), `Record.HotIn` (hot, and in the heat area of the theft's
+  zone, `StolenZone`: where it cannot be sold or stored), `HeatArea` (a
+  zone's area: its `BaubleHeatAreas` group, else itself), `HeatDuration`,
+  `ItemIsHotIn`, `Record.RecognizedSinceTheft`, `MarkRecognized`,
+  `MarkReturned` (cools it; the first credited return is kept for good),
+  `ReturnCredits` (a thief's credited returns per faction, which set the
+  next return's share and are capped by the catches it has cost them),
+  `Record.StolenGoods` (stolen and not given back since: what a fence pays
+  its premium for).
 - **admin.go**: `CatalogStats`, `Retire`, `Restore`, `Edit` (hand edits,
   checked like a model's answer), `ApplyRegenerated`, the prompt-preview
   seam (`SetPromptPreview`, `PreviewPrompt`) and `LooksLikeId`.
@@ -105,11 +116,21 @@ type MintOpts struct{ Source Source; Place Place; FinderUserId int; Tier ValueTi
 func Mint(o MintOpts) (items.Item, Record, error)
 
 func MarkSold(id string, gold int, sellerUserId int) bool
-type Theft struct{ ByUserId, RoomId, FromMob int; FromName, Faction string }
+type Theft struct{ ByUserId, RoomId, FromMob int; FromName, Faction, Zone string }
 func MarkStolen(id string, t Theft, at time.Time) bool
 func MarkHousehold(id string) bool
 func MarkVanished(id string, at time.Time) bool
 func UntakenLimit() time.Duration
+func HeatDuration() time.Duration
+func (r Record) Hot(now time.Time) bool
+func (r Record) RecognizedSinceTheft() bool
+func (r Record) HotIn(zone string, now time.Time) bool
+func HeatArea(zone string) string
+func ItemIsHotIn(itm items.Item, zone string, now time.Time) bool
+func MarkRecognized(id string, byUserId int, at time.Time) bool
+func MarkReturned(id string, byUserId int, credited []string, at time.Time) bool
+func ReturnCredits(userId int, faction string) int
+func (r Record) StolenGoods() bool
 
 func CatalogStats() Stats
 func Retire(id string, admin string) error

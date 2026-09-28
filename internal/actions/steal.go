@@ -285,7 +285,7 @@ func takeFromMob(actor Actor, m *mobs.Mob, extra []items.Item) StealResult {
 			m.Character.RemoveItem(itemStolen)
 			actor.GetCharacter().StoreItem(itemStolen)
 			if itemStolen.IsBauble() && actor.IsPlayer() {
-				markPocketStolen(itemStolen, actor.GetUserId(), actor.GetRoom().RoomId, m)
+				markPocketStolen(itemStolen, actor.GetUserId(), actor.GetRoom(), m)
 			}
 			result.StoleItemId = itemStolen.ItemId
 			result.StoleItemName = itemStolen.DisplayName()
@@ -825,7 +825,7 @@ func stealHouseholdBauble(actor Actor, itm items.Item, attackerScore float64, ra
 		events.AddToQueue(events.ItemOwnership{MobInstanceId: actor.GetMobInstanceId(), Item: itm, Gained: true})
 	}
 
-	theft := baubles.Theft{ByUserId: actor.GetUserId(), RoomId: room.RoomId}
+	theft := baubles.Theft{ByUserId: actor.GetUserId(), RoomId: room.RoomId, Zone: room.Zone}
 	if resident, ok := HouseholdResident(room); ok {
 		theft.FromMob = int(resident.MobId)
 		theft.FromName = resident.Character.Name

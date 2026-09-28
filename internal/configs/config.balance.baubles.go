@@ -39,6 +39,11 @@ const (
 	defaultBaublePickpocketTierWeightAverage = 40
 	defaultBaublePickpocketTierWeightRare    = 10
 
+	// Stolen baubles (owner rulings, 2026-09-28).
+	defaultBaubleStolenHeatHours = 72 // three real days
+	defaultBaubleFenceBuyPct     = 60
+	defaultBaubleReturnsPerCatch = 3
+
 	defaultBaubleCheapMin   = 1
 	defaultBaubleCheapMax   = 6
 	defaultBaubleAverageMin = 10
@@ -46,6 +51,23 @@ const (
 	defaultBaubleRareMin    = 40
 	defaultBaubleRareMax    = 200
 )
+
+// defaultBaubleHeatAreas groups zones that make one city, so a bauble stolen
+// in one of them is hot in all of them (and nowhere else). New Plymouth is
+// nine zones; its outskirts are outside the city. Every other town is one
+// zone, its own area already.
+func defaultBaubleHeatAreas() map[string][]string {
+	return map[string][]string{
+		`New Plymouth`: {
+			`New Plymouth Common`, `New Plymouth Crafting`, `New Plymouth Docks`,
+			`New Plymouth Merchant`, `New Plymouth Noble`, `New Plymouth Old Quarter`,
+			`New Plymouth Sewers`, `New Plymouth Temple`,
+		},
+	}
+}
+
+// defaultBaubleFenceGroups are the mob groups that make a merchant a fence.
+var defaultBaubleFenceGroups = []string{`fence`}
 
 // defaultBaubleBuyerCraftSupports mirrors shops.CraftSupportGeneral and
 // shops.CraftSupportJewelcrafting (configs cannot import shops).
@@ -178,6 +200,34 @@ func (b *Balance) validateBaubles() {
 	}
 	if b.BaublePickpocketGraceSecs > maxBaublePickpocketGraceSecs {
 		b.BaublePickpocketGraceSecs = maxBaublePickpocketGraceSecs
+	}
+
+	// Stolen baubles. Absent (0) or negative takes the default; the fence
+	// never pays more than the whole value.
+	if b.BaubleStolenHeatHours <= 0 {
+		b.BaubleStolenHeatHours = defaultBaubleStolenHeatHours
+	}
+	// Heat areas: absent (or empty) takes the default grouping; a table
+	// that is given is used as given.
+	if len(b.BaubleHeatAreas) == 0 {
+		b.BaubleHeatAreas = defaultBaubleHeatAreas()
+	}
+	if b.BaubleFenceBuyPct <= 0 {
+		b.BaubleFenceBuyPct = defaultBaubleFenceBuyPct
+	}
+	if b.BaubleFenceBuyPct > 100 {
+		b.BaubleFenceBuyPct = 100
+	}
+	if len(b.BaubleFenceGroups) == 0 {
+		b.BaubleFenceGroups = append(ConfigSliceString(nil), defaultBaubleFenceGroups...)
+	}
+	// A return must be worth less than a catch (owner ruling), so at least
+	// two returns make one catch.
+	if b.BaubleReturnsPerCatch <= 0 {
+		b.BaubleReturnsPerCatch = defaultBaubleReturnsPerCatch
+	}
+	if b.BaubleReturnsPerCatch < 2 {
+		b.BaubleReturnsPerCatch = 2
 	}
 
 	validateTierWeights(&b.BaubleTierWeightCheap, &b.BaubleTierWeightAverage, &b.BaubleTierWeightRare,

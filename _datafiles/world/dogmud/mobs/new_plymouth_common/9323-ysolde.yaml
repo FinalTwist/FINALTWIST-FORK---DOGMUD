@@ -10,7 +10,10 @@ maxwander: 0
 groups:
   - humanoid
   - np_commonfolk
+  - fence
 idlecommands:
+  - 'emote accepts a small bundle from a hooded caller and counts out coins without asking what is in it'
+  - ''
   - 'emote sets a small pestle back in its bowl and waits for whatever
     she just ground to settle, reading the color and texture of it
     with the patient attention of someone who has done this enough

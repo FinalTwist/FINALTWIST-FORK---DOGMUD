@@ -10,7 +10,10 @@ maxwander: 1
 groups:
   - humanoid
   - new_plymouth_outskirts_folk
+  - fence
 idlecommands:
+  - 'emote tucks a small trinket into a waterproof pouch and says nothing about where it came from'
+  - ''
   - 'emote watches the ford crossing from the shadow of the reed-bank,
     arms loose at his sides.'
   - ''

@@ -39,6 +39,7 @@ func RegisterListeners() {
 	events.RegisterListener(events.RoomChange{}, MobRoomChangeShadowFollow)
 	events.RegisterListener(events.RoomChange{}, PresencePlayerEntry)
 	events.RegisterListener(events.RoomChange{}, LightNoticeOnMove)
+	events.RegisterListener(events.RoomChange{}, StolenBaubleRecognition)
 
 	// NewRound Listeners
 	events.RegisterListener(events.NewRound{}, InactivePlayers)

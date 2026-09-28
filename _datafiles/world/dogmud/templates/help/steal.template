@@ -45,4 +45,19 @@ else, your cover is blown. Either way the thing stays where it was.
 What a household keeps tends to be worth more than what lies about
 in the street, which is some comfort for the risk.
 
+<ansi fg="yellow">After the theft:</ansi>
+
+A stolen trinket stays "hot" for three days, in the town where you
+took it. There, no honest merchant will buy it, no storage will
+hold it, and the auction house will not list it; somewhere else it
+is just a trinket. A fence will buy it anywhere, and pays well for
+stolen goods. While it is hot, the one you took it from may
+recognise it on you if your paths cross, wherever that is, and that
+is the same as being caught in the act. Give
+it back to its owner and it is no longer hot; but walk in carrying
+it and they may spot it before you can hand it over, so go quietly.
+A thief who has been caught stealing wins back a little of the
+goodwill that cost with each thing they return, though never as
+much as the catch itself, and never more than they lost.
+
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help plant</ansi>, <ansi fg="command">help skullduggery</ansi>

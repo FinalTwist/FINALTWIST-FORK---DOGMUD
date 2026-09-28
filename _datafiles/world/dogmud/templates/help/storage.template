@@ -22,3 +22,5 @@ but charges a monthly fee of 1 gold per item, deducted
 from your bank balance. Type <ansi fg="command">help
 bank</ansi> for details.
 
+No storage will hold a trinket stolen in the same town within
+the last three days. See <ansi fg="command">help steal</ansi>.

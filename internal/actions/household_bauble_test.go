@@ -104,6 +104,7 @@ func hide(t *testing.T, a *searchFakeActor) {
 
 func TestStealHousehold_NobodyWatchingTakesItUnseen(t *testing.T) {
 	h := setupHousehold(t, 9701, 2, nil, false)
+	h.room.Zone = "Ashwick"
 
 	res := h.steal()
 
@@ -116,7 +117,7 @@ func TestStealHousehold_NobodyWatchingTakesItUnseen(t *testing.T) {
 		}
 	}
 	rec, _ := baubles.Get(h.itm.Bauble)
-	if !rec.Stolen || rec.StolenFromRoom != 9701 || rec.StolenByUserId != h.thief.userId {
+	if !rec.Stolen || rec.StolenFromRoom != 9701 || rec.StolenByUserId != h.thief.userId || rec.StolenZone != "Ashwick" {
 		t.Fatalf("still stolen: %+v", rec)
 	}
 	if len(h.thief.awards) != 1 || !h.thief.awards[0].won {

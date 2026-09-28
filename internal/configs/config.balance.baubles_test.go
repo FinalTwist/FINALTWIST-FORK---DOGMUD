@@ -26,6 +26,12 @@ func TestBaubleDefaults(t *testing.T) {
 	if b.BaublePickpocketTierWeightCheap != 50 || b.BaublePickpocketTierWeightAverage != 40 || b.BaublePickpocketTierWeightRare != 10 {
 		t.Fatal("pickpocket tier weight defaults")
 	}
+	if b.BaubleStolenHeatHours != 72 || b.BaubleFenceBuyPct != 60 || b.BaubleReturnsPerCatch != 3 ||
+		len(b.BaubleHeatAreas[`New Plymouth`]) != 8 ||
+		!reflect.DeepEqual([]string(b.BaubleFenceGroups), []string{`fence`}) {
+		t.Fatalf("stolen bauble defaults: heat %d fence %d%% %v returns %d",
+			b.BaubleStolenHeatHours, b.BaubleFenceBuyPct, b.BaubleFenceGroups, b.BaubleReturnsPerCatch)
+	}
 	got := []ConfigInt{b.BaubleCheapMinValue, b.BaubleCheapMaxValue, b.BaubleAverageMinValue, b.BaubleAverageMaxValue, b.BaubleRareMinValue, b.BaubleRareMaxValue}
 	want := []ConfigInt{1, 6, 10, 15, 40, 200}
 	if !reflect.DeepEqual(got, want) {
@@ -57,6 +63,25 @@ func TestBaubleOneZeroWeightIsHonoured(t *testing.T) {
 	b.validateBaubles()
 	if b.BaubleTierWeightRare != 5 {
 		t.Fatal("a negative weight takes its default")
+	}
+}
+
+// A fence never pays more than the whole value; nonsense takes the defaults.
+func TestBaubleStolenSettingsAreBounded(t *testing.T) {
+	b := &Balance{BaubleStolenHeatHours: -4, BaubleFenceBuyPct: 250, BaubleReturnsPerCatch: -1}
+	b.validateBaubles()
+	if b.BaubleStolenHeatHours != 72 || b.BaubleFenceBuyPct != 100 || b.BaubleReturnsPerCatch != 3 {
+		t.Fatalf("bounded: %+v", b)
+	}
+	b = &Balance{BaubleReturnsPerCatch: 1}
+	b.validateBaubles()
+	if b.BaubleReturnsPerCatch != 2 {
+		t.Fatalf("a return is always worth less than a catch: %d returns per catch", b.BaubleReturnsPerCatch)
+	}
+	b = &Balance{BaubleFenceBuyPct: 75, BaubleFenceGroups: ConfigSliceString{`smuggler`}}
+	b.validateBaubles()
+	if b.BaubleFenceBuyPct != 75 || !reflect.DeepEqual([]string(b.BaubleFenceGroups), []string{`smuggler`}) {
+		t.Fatalf("a valid setting is kept: %+v", b)
 	}
 }
 
@@ -162,6 +187,11 @@ func TestBaubleShippedConfigMatchesDefaults(t *testing.T) {
 		shipped.BaublePickpocketTierWeightCheap != defaults.BaublePickpocketTierWeightCheap ||
 		shipped.BaublePickpocketTierWeightAverage != defaults.BaublePickpocketTierWeightAverage ||
 		shipped.BaublePickpocketTierWeightRare != defaults.BaublePickpocketTierWeightRare ||
+		shipped.BaubleStolenHeatHours != defaults.BaubleStolenHeatHours ||
+		!reflect.DeepEqual(shipped.BaubleHeatAreas, defaults.BaubleHeatAreas) ||
+		shipped.BaubleFenceBuyPct != defaults.BaubleFenceBuyPct ||
+		!reflect.DeepEqual(shipped.BaubleFenceGroups, defaults.BaubleFenceGroups) ||
+		shipped.BaubleReturnsPerCatch != defaults.BaubleReturnsPerCatch ||
 		shipped.BaubleCheapMinValue != defaults.BaubleCheapMinValue ||
 		shipped.BaubleCheapMaxValue != defaults.BaubleCheapMaxValue ||
 		shipped.BaubleAverageMinValue != defaults.BaubleAverageMinValue ||
@@ -269,6 +299,36 @@ func TestBaubleFloatsRefuseNaN(t *testing.T) {
 		`pause`: float64(b.StealPocketSeconds), `min`: float64(b.StealPocketMinSeconds), `max`: float64(b.StealPocketMaxSeconds)} {
 		if math.IsNaN(v) {
 			t.Errorf("%s is NaN after validation", name)
+		}
+	}
+}
+
+// Every zone named in the default heat areas is a real zone of the world:
+// a misspelt one would silently be an area of its own.
+func TestBaubleHeatAreaZonesExist(t *testing.T) {
+	files, err := filepath.Glob(filepath.Join("..", "..", "_datafiles", "world", "dogmud", "rooms", "*", "zone-config.yaml"))
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no zone configs found: %v", err)
+	}
+	zones := map[string]bool{}
+	for _, f := range files {
+		data, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var zc struct {
+			Name string `yaml:"name"`
+		}
+		if err := yaml.Unmarshal(data, &zc); err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		zones[zc.Name] = true
+	}
+	for area, list := range defaultBaubleHeatAreas() {
+		for _, z := range list {
+			if !zones[z] {
+				t.Errorf("heat area %q names %q, which is no zone", area, z)
+			}
 		}
 	}
 }
