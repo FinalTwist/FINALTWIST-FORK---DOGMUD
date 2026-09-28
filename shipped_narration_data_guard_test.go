@@ -1048,18 +1048,17 @@ var observerIdentityGuardContentSafeViaCode = map[string]bool{
 	"conditions/108-static_shock.yaml":     true,
 	"conditions/109-reeling.yaml":          true,
 	"conditions/110-mired.yaml":            true,
-
-	// Lighting plan 5c: the vision spells and the tincture, narrated by the
-	// same three phases as 29 and 65 above.
-	"conditions/128-night_sight.yaml":       true,
-	"conditions/129-heat_sight.yaml":        true,
-	"conditions/130-pitsense_tincture.yaml": true,
 	"conditions/111-ensnared.yaml":         true,
 	"conditions/112-paralysed.yaml":        true,
 	"conditions/114-cursed.yaml":           true,
 	"conditions/115-rending_bleed.yaml":    true,
 	"conditions/116-terrified.yaml":        true,
 	"conditions/119-minor_shield.yaml":     true,
+	// Lighting plan 5c: the vision spells and the tincture, narrated by the
+	// same three phases as 29 and 65 above.
+	"conditions/128-night_sight.yaml":       true,
+	"conditions/129-heat_sight.yaml":        true,
+	"conditions/130-pitsense_tincture.yaml": true,
 	// Special moves: messaging.SendTrio hides Audience ActorName and ActeeName
 	// from every reader by that reader's ParticipantSight. Applies to all
 	// fourteen shipped files, not only the two that author a `_plain` token;
