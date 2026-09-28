@@ -1,6 +1,7 @@
 package conditions
 
 import (
+	"sort"
 	"testing"
 
 	"gopkg.in/yaml.v2"
@@ -346,5 +347,26 @@ func TestEffectMaxKindArithmeticTakesTheLarger(t *testing.T) {
 
 	if got := bs.Effect(EffectNightVisionStrength); got != 18 {
 		t.Fatalf("max kind must take the larger held value 18, not the sum 28: got %v", got)
+	}
+}
+
+func TestEffectValuesListsEveryHeldValue(t *testing.T) {
+	withSpecs(t,
+		&ConditionSpec{ConditionId: 960, Name: "Heat A", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectInfraReach: {UsesMagnitude: true}}},
+		&ConditionSpec{ConditionId: 961, Name: "Heat B", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectInfraReach: {Literal: 30}}},
+		&ConditionSpec{ConditionId: 962, Name: "Other", TriggerRate: "1 round", TriggerCount: 5, Effects: map[EffectKind]EffectValue{EffectNightVisionStrength: {Literal: 12}}},
+	)
+	bs := Conditions{}
+	bs.Validate(true)
+	bs.AddConditionMagnitude(960, 5, 22)
+	bs.AddConditionMagnitude(961, 5, 0)
+	bs.AddConditionMagnitude(962, 5, 0)
+	got := bs.EffectValues(EffectInfraReach)
+	sort.Float64s(got)
+	if len(got) != 2 || got[0] != 22 || got[1] != 30 {
+		t.Fatalf("EffectValues = %v, want [22 30]", got)
+	}
+	if bs.Effect(EffectInfraReach) != 30 {
+		t.Fatal("Effect must still read the max for a max kind")
 	}
 }

@@ -5,16 +5,14 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/lightscale"
 	"github.com/GoMudEngine/GoMud/internal/mutations"
 )
 
-// bareFlagDefaults and bareFlagNoDefault name the two bestVisionNumber call
-// sites below, so neither reads as a bare true/false at the call site. Only
-// nightvision defaults on a bare flag; see bestVisionNumber's doc comment.
-const (
-	bareFlagDefaults  = true
-	bareFlagNoDefault = false
-)
+// bareFlagDefaults names the bestVisionNumber argument at its one call site
+// (NightVisionStrength), so it does not read as a bare true. Only nightvision
+// defaults on a bare flag; see bestVisionNumber's doc comment.
+const bareFlagDefaults = true
 
 // NightVisionStrength reports how far DOWN the light scale this character's
 // usable band shifts, in scale points.
@@ -30,18 +28,47 @@ func (c *Character) NightVisionStrength() int {
 	return c.bestVisionNumber(conditions.EffectNightVisionStrength, conditions.NightVision, bareFlagDefaults)
 }
 
-// InfraReach reports how far BELOW the window floor this character still
-// reads shapes by sensing heat. Zero means not at all.
+// InfraReach reports how far into the dark this character still reads shapes
+// by sensing heat: shapes at any light down to minus this number. Zero means
+// not at all.
 //
 // Independent of NightVisionStrength on purpose: a creature can sense heat
 // deeply while being no better than anyone else at using faint light.
+//
+// Unlike nightvision it COMBINES its sources (lighting plan 5c, owner ruling):
+// every held condition's reach and every mutation's rank-scaled reach are
+// log-summed through lightscale.Combine at the light scale's doubling step,
+// the rule room light already uses, so two equal sources read one step above
+// one and a much weaker source adds almost nothing. The result is capped at
+// LightInfraReachCap and rounded once. A bare infrared flag with no number
+// still reads zero.
 func (c *Character) InfraReach() int {
-	return c.bestVisionNumber(conditions.EffectInfraReach, conditions.InfraredVision, bareFlagNoDefault)
+	var vals []float64
+	for _, v := range c.Conditions.EffectValues(conditions.EffectInfraReach) {
+		if v > 0 {
+			vals = append(vals, v)
+		}
+	}
+	for _, v := range mutations.FlagValues(c.Mutations, string(conditions.InfraredVision)) {
+		if v > 0 {
+			vals = append(vals, v)
+		}
+	}
+	if len(vals) == 0 {
+		return 0
+	}
+	cfg := configs.GetLightingConfig()
+	reach := lightscale.Combine(cfg.DoublingStep, vals...)
+	if limit := float64(cfg.InfraReachCap); reach > limit {
+		reach = limit
+	}
+	return int(math.Round(reach))
 }
 
-// bestVisionNumber is the shared body. effectKind is the numeric channel
-// (conditions.Conditions.Effect, which already aggregates every held,
-// unexpired condition by MAX for these two kinds; see effects.go's isMax).
+// bestVisionNumber serves NightVisionStrength only; InfraReach combines its
+// sources instead of taking the strongest (lighting plan 5c). effectKind is
+// the numeric channel (conditions.Conditions.Effect, which aggregates every
+// held, unexpired condition by MAX for a max kind; see effects.go's isMax).
 // flag is the boolean channel, checked both on conditions and on mutations
 // via mutations.FlagValue, which independently scales each candidate mutation
 // by its own rank and also returns the largest scaled value, never a sum.
@@ -59,9 +86,9 @@ func (c *Character) InfraReach() int {
 // truncation.
 //
 // defaultOnBareFlag says whether a flag carrying no number falls back to the
-// configured default. Only nightvision does: "sees in the dark" plainly
-// means at least a little, while a bare infrared flag ("senses heat" with no
-// stated range) has no sensible fallback and reads reach 0.
+// configured default. Nightvision's does: "sees in the dark" plainly means at
+// least a little. (A bare infrared flag, "senses heat" with no stated range,
+// has no sensible fallback; InfraReach reads it as 0.)
 func (c *Character) bestVisionNumber(effectKind conditions.EffectKind, flag conditions.Flag, defaultOnBareFlag bool) int {
 	best := c.Conditions.Effect(effectKind)
 

@@ -214,6 +214,34 @@ func (bs *Conditions) Effect(kind EffectKind) float64 {
 	}
 }
 
+// EffectValues returns every held, unexpired record's value for one kind,
+// magnitude-aware exactly as Effect reads it, in list order. It exists for a
+// reader that combines values some other way than Effect's own rule:
+// Character.InfraReach log-sums reach through lightscale.Combine (lighting
+// plan 5c). Records that do not declare the kind contribute nothing.
+func (bs *Conditions) EffectValues(kind EffectKind) []float64 {
+	var out []float64
+	for _, b := range bs.List {
+		if b.Expired() {
+			continue
+		}
+		spec := GetConditionSpec(b.ConditionId)
+		if spec == nil {
+			continue
+		}
+		v, ok := spec.Effects[kind]
+		if !ok {
+			continue
+		}
+		val := v.Literal
+		if v.UsesMagnitude {
+			val = b.Magnitude
+		}
+		out = append(out, val)
+	}
+	return out
+}
+
 // HasEffect reports whether any held, unexpired record declares the kind.
 func (bs *Conditions) HasEffect(kind EffectKind) bool {
 	for _, b := range bs.List {

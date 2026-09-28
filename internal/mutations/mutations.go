@@ -626,6 +626,29 @@ func FlagValue(owned map[string]int, flag string) float64 {
 	return best
 }
 
+// FlagValues returns each owned mutation's rank-scaled Value for flag, one
+// entry per matching pro or con, zero values omitted. FlagValue takes the
+// max of the same numbers; this is for a reader that combines them some
+// other way (Character.InfraReach, lighting plan 5c).
+func FlagValues(owned map[string]int, flag string) []float64 {
+	var out []float64
+	for id, level := range owned {
+		spec := GetMutation(id)
+		if spec == nil {
+			continue
+		}
+		mult := LevelMultiplier(level)
+		for _, effects := range [][]MutationEffect{spec.Pros, spec.Cons} {
+			for _, p := range effects {
+				if p.Type == "flag" && p.Target == flag && p.Value != 0 {
+					out = append(out, p.Value*mult)
+				}
+			}
+		}
+	}
+	return out
+}
+
 // GetCompanionReserveRank returns the highest owned rank among mutations that
 // carry a "companion_reserve_reduction" effect (0 if none). The reduction
 // magnitude is computed by the caller from config knobs (linear per rank) —
