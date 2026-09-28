@@ -18,7 +18,7 @@ Depends on 5b (merged #173).
 | 8 | Glow scaling: `lightSpellApplication` scales only a condition whose `light_strength` is `magnitude`: `base + stat/D1 + skill/D2`, triggers `base + stat/D + skill/D` (knobs 40/10/2 and 2/50/20); `applySpellCondition` routes it to `AddConditionMagnitude` | `internal/hooks/light_spell.go:18`, `:51`; `config.yaml` :942-947 |
 | 9 | The condition event already carries `Magnitude` and `Triggers`; either non-zero routes to `AddConditionMagnitude` | `internal/events/eventtypes.go:34-35`; `internal/hooks/Condition_ApplyConditions.go:102-103` |
 | 10 | The drink path computes `durationMult = potencyMult * (1 + CraftSkill/100)` (aging phase: fresh 1.0, fermented 1.15, peak 1.30, declining to 0.5) and applies it to duration only, via `AddConditionScaled` | `internal/usercommands/drink.go:255-265`; `internal/items/aging.go:31` |
-| 11 | Condition 29 Night Vision: literal `nightvision_strength: 18`, triggerrate 3 real minutes, count 1; no content grants it (admin `setcondition` only) | `_datafiles/world/dogmud/conditions/29-night_vision.yaml` |
+| 11 | Condition 29 Night Vision: literal `nightvision_strength: 18`, triggerrate 3 real minutes, count 1; granted by `conditionids` of eight species (feline 11, arachnid 17, mustelid 24, canine 2, troll 4, goblin 5, serpent 8, raptor 9) to their mobs, so it must stay literal | `_datafiles/world/dogmud/conditions/29-night_vision.yaml`; `species/*.yaml` |
 | 12 | Condition 65 Cat's Eye Draught: `nightvision_strength: 24` (the cap), item 30047, recipe `cats-eye-draught` (alchemy min 12, 2 Moonpetal + 1 Dustwalk Herb + bottle), stocked by three apothecaries (98, 9592, 9601) | conditions, items, recipes, shops |
 | 13 | Condition 85 InfraredVision: literal strength 12, `infra_reach: 30`, secret; granted by `conditionids` to 15 mobs; no player path | `conditions/85-infraredvision.yaml`; grep |
 | 14 | Spell discovery gates on `difficulty` (required spellcasting = difficulty at `SpellDiscoverySkillPerDifficulty` 1.0) and draws weighted by difficulty from the elemental/enhancement/mental/vital pool; `cost` is CP | `internal/spells/spells.go:378,411`; `internal/hooks/NewRound_DoCombat_helpers.go:605-623` |
@@ -26,7 +26,7 @@ Depends on 5b (merged #173).
 | 16 | Rarity tier reads LOW = RARE: Moonpetal 30, Dustwalk Herb 40, Stillwater Black Pearl 20 | `items/materials-40000/` |
 | 17 | Pale Lurker (225) carries no items; Blind Stalker (227) drops Serpent Venom Sac 40048; both Ironwind Steppe cave hunters holding condition 85 | `mobs/ironwind_steppe/` |
 | 18 | The Purging Draught strips potion effects by a hardcoded id block 54 to 75; shipped potions already sit OUTSIDE it (first condition ids 5, 7, 44, 47, 48, 49, 51, 82) | `internal/usercommands/drink.go:44-47,76` |
-| 19 | Free ids: conditions 128, 129; items 30068 (consumables), 40233 (materials) | `tools/id_inventory.py --alloc` |
+| 19 | Free ids: conditions 128, 129, 130; items 30068 (consumables), 40233 (materials) | `tools/id_inventory.py --alloc` |
 | 20 | Help page `light` lives in `templates/help/light.template` | `_datafiles/world/dogmud/templates/help/` |
 
 ## Owner rulings (2026-09-26 call 3, 2026-09-28 brainstorm; do not relitigate)
@@ -111,25 +111,27 @@ Duration at 3-minute triggers: 4 triggers (12 min) for a new character, 9
 
 ## 3. Content
 
-**Night Vision spell** (`spells/night-vision.yaml`): mental, difficulty 15,
-cost 45, single target, `effect_type: condition`, `condition_ids: [29]`.
-Condition 29 switches to `nightvision_strength: magnitude`; an admin grant
-with no magnitude falls back to the bare-flag default 12.
+**Night Vision spell** (`spells/night-vision.yaml`, alias `nightvision`):
+mental, difficulty 15, cost 45, single target, `effect_type: condition`,
+condition 128. Condition 128 "Night Sight": `nightvision_strength:
+magnitude`, flag `nightvision`, triggerrate 3 real minutes like 29 (the
+spell sets its trigger count). Condition 29 stays literal 18, because eight
+species grant it to their mobs (fact 11) and a mob grant carries no
+magnitude.
 
 **Heat Sight spell** (`spells/heat-sight.yaml`, alias `infravision`):
-mental, difficulty 35, cost 80, single target, condition 128. Condition 128
+mental, difficulty 35, cost 80, single target, condition 129. Condition 129
 "Heat Sight": literal `nightvision_strength: 12`, `infra_reach: magnitude`,
-flag `infraredvision`, not secret, triggerrate 3 real minutes like 29 (the
-spell sets its trigger count). Condition 85 stays literal for its mobs
-(a mob grant carries no magnitude).
+flag `infraredvision`, not secret, triggerrate 3 real minutes. Condition 85
+stays literal for its mobs, for the same reason.
 
 **Heat-Pit Organ** (material 40233): the heat-sensing pit of a blind hunter.
 Rarity tier 20, component tag `heat-pit`, alchemy vendor category. Drops at
 15% from Pale Lurker 225 and Blind Stalker 227.
 
-**Pitsense Tincture** (potion 30068, condition 129): recipe `pitsense-tincture`,
+**Pitsense Tincture** (potion 30068, condition 130): recipe `pitsense-tincture`,
 alchemy minimum 30, 1 Heat-Pit Organ + 2 Moonpetal + 1 bottle. Toxicity 25,
-value 60, Cat's Eye aging thresholds. Condition 129: literal strength 12,
+value 60, Cat's Eye aging thresholds. Condition 130: literal strength 12,
 `infra_reach: magnitude`, triggerrate 1 round, triggercount 400 (Cat's Eye
 is 500: stronger, so shorter). Not stocked by any shop in 5c (see Deferred).
 
@@ -139,20 +141,27 @@ potion condition has a magnitude effect, the drink path queues it with
 durationMult)`, both through the event door (fact 9). Pitsense authors
 `magnitude: 20`: fresh at alchemy 30 reads 26, peak at 50 reads 39, peak at
 100 caps at 50. A potion carrying a magnitude condition with no `magnitude`
-fails load.
+fails a repo-root guard test over the shipped world (the build, not the
+boot: a load-time check would break every test binary that loads items
+without conditions).
 
 **Purge (owner 2026-09-28: close the leak now).** The hardcoded id block
 54 to 75 already misses shipped potions (fact 18), and a hand list would
 drift again with the next potion. The purge instead strips a set DERIVED
 from item data: every condition named by a `type: potion` item's
-`conditionids`, minus the draught's own 70, the weakness 76, and any
-condition also granted by a non-potion source. Verified 2026-09-28: that
-adds 7 (Conviction Draught 30012), 44, 47, 48, 49, 51, 82 and the new 129
-to today's block, and leaves out 5 (Minor Healing, also granted by the
-Fungal Ration 30013 and the Cloth Bandage 30020) and 93 (Ysolde's Purge is a
-material, not a potion). The set is built once after items load. A root test
-pins it: it contains every id of the old block except 70, it contains the
-eight additions, and it excludes 5, 70, 76 and 93.
+`conditionids`, minus the conditions of the two detox items
+(`bypassesToxicityGate`: the draught's own 70 and Ysolde's Purge's Bloom
+Detox 93, a potion-typed item in `materials-40000`), and minus any condition
+also named by a non-potion item's `conditionids` or `wornconditionids`
+(today 5, 42, 43, 45, 46, 77, 78, 98, 124 to 127). The weakness 76 is never
+a potion condition. Verified 2026-09-28: that adds 7 (Conviction Draught
+30012), 44, 47, 48, 49, 51, 82 and the new 130 to today's block, and leaves
+out 5 (Minor Healing, also granted by the Fungal Ration 30013 and the Cloth
+Bandage 30020). No spell grants any condition in the set (spells
+grant 1-3, 26-38, 41, 52, 53). The set is computed at purge time from the
+loaded item specs, so an admin item reload cannot leave it stale. A root
+test pins it: it contains every id of the old block except 70, it contains
+the eight additions, and it excludes 5, 70, 76 and 93.
 
 **Text.** Each new condition carries the 5b daylight sentence; the heat ones
 add that heat shows a shape, never a face. Help `light` gains an
@@ -168,8 +177,10 @@ and the tincture. 80-column wrap, no raw numbers.
 - `InfraReach` combine and cap; `EffectValues` and `FlagValues`.
 - `magnitudeSpellApplication` for all three kinds at the three reference
   characters; the two-magnitude-kinds load refusal.
-- Drink path magnitude and triggers; missing-`magnitude` load failure;
-  purge strips 129.
+- Drink path magnitude and triggers; missing-`magnitude` guard; purge
+  strips 130.
+- The parity golden's nightvision profile (condition 29) must not move:
+  29 is unchanged, so any nightvision-row diff is a defect.
 - Each new null test proven capable of failing before trusting a green.
 - Goldens: filtered diff first, then re-record.
 - Playtest gate: one scenario. An infravision caster and a nightvision
