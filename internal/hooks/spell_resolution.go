@@ -445,22 +445,6 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 	return false, !out.Defended
 }
 
-// maybeInterruptSpellOnMob cancels a mob's in-progress fold-cast if spellId
-// is a configured boss-interrupt disruption spell (Balance.BossInterruptSpellIds)
-// AND the mob is currently casting (Character.IsCasting()). Non-allowlisted
-// spells never interrupt, even on a successful hit. Reuses the shared
-// InterruptTargetCast primitive (conviction refund + TriggerCastCancel)
-// rather than reimplementing cast cancellation here. Returns true if a cast
-// was actually interrupted.
-//
-// Wrapper over maybeInterruptSpellOnTarget; Task 8 deletes it.
-func maybeInterruptSpellOnMob(mob *mobs.Mob, spellId string, by state.ActorRef) bool {
-	if mob == nil {
-		return false
-	}
-	return maybeInterruptSpellOnTarget(&mob.Character, spellId, by)
-}
-
 // spellSchoolCategory picks the messaging Category from a spell's
 // first declared school. Falls back to CategorySpellElemental if the
 // spell has no school tag — the historical default for damage spells.
