@@ -1,5 +1,20 @@
 # DOGMud Patch Notes
 
+## 2026-09-28: Healing and shields, whoever casts them
+
+Creatures now heal and shield you and each other by the same rules you
+do. A creature's mending spell or shield cast on you always takes hold,
+never turned aside the way an attack can be, and a creature can shield
+one of your allies too.
+
+Your area heals now reach your whole party's companions, a bonded
+companion included, and no longer patch up a stranger's pet. A shield
+cast on your pet now holds, and a cleansing spell now purges poison
+from a companion too.
+
+Casting a harmful spell such as a hex on a townsperson is now an
+assault, exactly like any other attack.
+
 ## 2026-09-28: Spells are attacks, whoever casts them
 
 Casting a harmful spell at a townsperson now counts as attacking them,
