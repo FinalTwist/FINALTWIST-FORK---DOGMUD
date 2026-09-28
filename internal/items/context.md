@@ -1213,9 +1213,10 @@ consuming logic lives in `internal/hooks`:
 - `calcSpellDamageForCharacter` (`internal/hooks/combat_shared_helpers.go`) is
   the single unified caster/mob spell-damage function (Stage 38.1), called
   from every direct spell-damage site in `internal/hooks/spell_resolution.go`.
-- `applyMobEffect_condition` (`internal/hooks/spell_resolution.go`) applies the
-  same multiplier separately when scaling a condition's tick-pool damage, since
-  that path doesn't route through `calcSpellDamageForCharacter`.
+- `spellTickScale` (`internal/hooks/spell_tick_scale.go`), which
+  `applySpellCondition` uses for a tick-pool condition, reads the same
+  multiplier separately, since that path doesn't route through
+  `calcSpellDamageForCharacter`.
 
 A prior version of this documentation named `calcSpellDamage()` and
 `calcMobSpellDamage()` as two separate functions in `spell_resolution.go`.

@@ -3,6 +3,7 @@ package hooks
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -107,7 +108,7 @@ func TestSelfCastShield_RealBranch_ShapesOnlyThirdPartyReadsAFigure(t *testing.T
 	drainPlain(3)
 
 	spell := &spells.SpellData{SpellId: "ward", Name: "Ward", EffectType: "shield"}
-	applyPlayerEffect(caster, caster, room, spell, 100, spellContestAttackWin())
+	applySpellEffect(newSpellEffectCtx(caster.Character, actions.NewUserActorInRoom(caster, room), actions.NewUserActorInRoom(caster, room), room, spell, 100, spellContestAttackWin()))
 
 	casterLines, watcherLines := drainPlain(1), drainPlain(3)
 	assert.Equal(t, 1, countContaining(casterLines, "A shimmering magical barrier forms around you, bolstering your defenses."))

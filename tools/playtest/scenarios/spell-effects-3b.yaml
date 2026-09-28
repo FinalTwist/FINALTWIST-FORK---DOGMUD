@@ -1,0 +1,92 @@
+# Spell effects parity slice 3b: one applier per helpful effect (condition,
+# heal, shield, purge) whoever casts and whoever is helped; help spells are
+# uncontested everywhere; one area-help filler. A player's area heal lands
+# on the players in the room and on creatures charmed by the caster or a
+# party member, never on a stranger's pet; an uncharmed creature's area help
+# lands on its packmates. A player's harmful condition spell on a mob is an
+# assault (SeedAggression), so a hex on a townsperson is a crime.
+#
+# Fixtures (verified against YAML 2026-09-28, and in play on run
+# b0ac6af57a0c9004):
+#   462 Main Street, Central, Thornwall. The Drowning Post Tavern (472) is
+#     south, south; Barmaid Dal 117 lives there and is charmable (the Street
+#     Performer and most citizens are charm_immune; the Market Merchant is
+#     refused by the harm policy). A charmed Dal walks home to 472 on her
+#     behaviour tree, so the healer charms and casts IN the tavern.
+#   Thornwall Thug 105 (hostile, 5 real minute respawn) spawns in Back
+#     Alley, West (474): west, south from 462; east, south from 474 to 472.
+#     A party member auto-follows its leader and kills the thug, so only the
+#     stranger (in no party) goes to 474.
+#   City Beggar 100 spawns in 461 (Main Street, West); the Gate Ward (460)
+#     holds a City Guard and a Crossbowman. Crimes persist per faction at
+#     /app/_datafiles/world/dogmud/factions.crimes/<id>.yaml in the
+#     container; an arrest is left with `fine` then `payfine`.
+#   4052 Bandit Camp, North Road: Bandit Fighter 284, Bandit Caster 285
+#     (spellbook mend-wounds, mind-spike, mind-fog, nerve-disruption), Soren
+#     286 and a Bandit Lookout. A death respawns the player in Pothole
+#     Coulee with no walking route back, so mobwatch must not die.
+# No shipped creature casts a heal or shield at a player; the unit tests
+# carry that case.
+name: spell-effects-3b
+mode: party
+summary: >-
+  A healer and a partner form a party in Thornwall's tavern; the healer
+  charms the barmaid and casts area and single help spells over the party,
+  the pet and a stranger who brings a charmed thug of their own. The
+  stranger then joins the party, and later hexes a citizen. A fourth caster
+  fights the North Road bandits and reads the Bandit Caster's mending lines.
+on_actor_stop: continue
+budgets:
+  wall_clock: 40m
+requires:
+  max_connections: 20
+roster:
+  - id: healer
+    personality: feature-tester
+    goals: goals/scenarios/spell-effects-3b/healer.yaml
+  - id: partner
+    personality: feature-tester
+    goals: goals/scenarios/spell-effects-3b/partner.yaml
+  - id: stranger
+    personality: feature-tester
+    goals: goals/scenarios/spell-effects-3b/stranger.yaml
+  - id: mobwatch
+    personality: feature-tester
+    goals: goals/scenarios/spell-effects-3b/mobwatch.yaml
+
+group_goals:
+  - id: party-formed
+    do: Healer invites Partner by character name; Partner accepts.
+    verify: Both see a two-member party in `party list`.
+  - id: pets-charmed
+    do: >-
+      Healer charms Barmaid Dal in the tavern (472); Stranger charms the
+      Thornwall Thug in 474 and brings it to 472.
+    verify: Each pet shows ♥friend and follows its owner.
+  - id: area-heal-own-pet-yes-stranger-pet-no
+    do: Healer casts mend-all with Partner, Dal, Stranger and the thug in 472.
+    verify: >-
+      Healer reads "You weave restorative magic around" for Partner, Dal
+      and Stranger, and one self line; NO such line for the thug.
+  - id: pet-shield-and-cleanse
+    do: Healer casts conviction-ward on Dal, then cleansing-wave.
+    verify: >-
+      A shimmering barrier forms around Dal; the cleanse names Dal and
+      Partner and skips the thug; neither says only "takes effect".
+  - id: party-members-pet
+    do: Stranger joins the party; Healer casts mend-all again.
+    verify: The thug now gets its own "You weave restorative magic" line.
+  - id: hex-is-assault
+    do: Stranger casts mind-fog at a Thornwall citizen.
+    verify: >-
+      The guards react, and the container's
+      factions.crimes/thornwall_citizens.yaml gains a kind assault row with
+      the stranger as perpetrator.
+  - id: mob-healer
+    do: Mobwatch fights the Bandit Caster's packmates without dying.
+    verify: >-
+      The Bandit Caster's mending reads on herself or on a packmate, never
+      on the player.
+  - id: reads-well
+    do: Everyone judges every new spell line as prose.
+    verify: No raw numbers, no em dashes, no " -- ", nothing over 80 columns.

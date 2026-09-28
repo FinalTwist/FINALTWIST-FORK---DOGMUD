@@ -593,6 +593,8 @@ only); `modules/aicompanion` reads it to know who gave a companion coin.
 player, and `DrainQueuedMobConditionsForTest(mobInstanceId)` is its mob twin
 (drink path unification), matching on `MobInstanceId`. Zero drains every
 queued `Condition` event in either.
+`DrainQueuedHealedForTest(healerUserId)` drains queued `Healed` events the
+same way (spell effects slice 3b); zero drains them all.
 `DrainQueuedCharacterDiedForTest()` and `DrainQueuedMobDeathsForTest()` drain
 every queued `CharacterDied` and `MobDeath` event; the second lets a test
 assert on the damaging-players list the `MobDeath_*` hooks read.

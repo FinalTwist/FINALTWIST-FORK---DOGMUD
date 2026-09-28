@@ -280,6 +280,15 @@ the target instead of an interrupt.
   `shape` / `N.shape` / `shape#N` (figures are perceived players then mobs, in
   room order); no sight refuses. Refusals are narrated, set
   `RefusalExplained`, and spend nothing.
+- **`HelpCharmAlly(m, sideUserId)`**: the one rule for which charmed mobs a
+  helpful spell from `sideUserId`'s side may land on: charmed by that player
+  or by a member of that player's party. `InitiateCast`'s single-target help
+  (through `helpSingleMobAllowed`) and `hooks.spellHelpAreaTargets` both call
+  it. A mob caster's single-target help follows the same sides: a charmed
+  mob helps any player and its owner's side; an uncharmed mob helps itself
+  and mobs charmed by no one (its packmates, a boss add's named boss), never
+  a player or a pet. A refused help target is plain `NoTarget`, so a player
+  hears `You don't see "x" here.`
 - **`SendCounterTrio(room, res, countered, counteredUserId)`**: the one counter
   dispatch, used by `DispatchCounterMessages` and `hooks.fireSpellCounterTier`.
   It goes through `messaging.SendTrio`, so a counter in the dark names nobody.

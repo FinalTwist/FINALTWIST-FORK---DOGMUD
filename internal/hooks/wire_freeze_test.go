@@ -3,6 +3,7 @@ package hooks
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
@@ -19,15 +20,15 @@ import (
 
 // TestWireFreeze_EffectTypeConditionStillApplies is a freeze test for the
 // spell effect type `effect_type: condition`. Nothing reads that string
-// except four `case "condition":` literals in spell_resolution.go (~906,
-// 1093, 1493, 1740) and internal/usercommands/spells.go:32. A text replace
-// across the codebase could change one of those case literals without the
-// compiler noticing (a string literal, not an identifier) and without a
-// parse-only freeze test going red. Each of these four subtests
-// drives a REAL `effect_type: condition` spell through one of the four dispatch
-// shapes and asserts the condition was actually queued for the target, so a
-// broken case literal shows up here even though it can't show up in a
-// yaml.Unmarshal-only test.
+// except the `case "condition":` literal in applySpellEffect
+// (spell_effects.go) and the spell-sorting switch in
+// internal/usercommands/spells.go. A text replace across the codebase could
+// change one of those literals without the compiler noticing (a string
+// literal, not an identifier) and without a parse-only freeze test going
+// red. Each of these four subtests drives a REAL `effect_type: condition`
+// spell through one caster-target pairing and asserts the condition was
+// actually queued for the target, so a broken case literal shows up here
+// even though it can't show up in a yaml.Unmarshal-only test.
 //
 // Condition application queues an events.Condition and narrates on drain (see
 // events.DrainQueuedConditionsForTest's doc comment) rather than landing
@@ -38,15 +39,14 @@ import (
 // Fixture pattern and the runSpellChannelAttack override for the two
 // contested paths follow TestDotProducerRecordsNegativeHarm_MobTarget and
 // TestDotProducerRecordsNegativeHarm_PlayerTarget (hooks_test.go), the
-// existing tests that already drive applyMobEffect and
+// existing tests that already drive applySpellEffect and
 // resolveMobSpellAgainstPlayer this way. Condition id 100 ("Test Strength Condition")
 // comes from seedAllRegistries and carries no TickPool, so the tick-snapshot
 // branch inside each case is not exercised here — only that the dispatch
 // queued the right condition for the right holder.
 func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 
-	// spell_resolution.go:906 — applyMobEffect's top-level switch, a
-	// player's spell landing on a mob, dispatching to applyMobEffect_condition.
+	// PM: a player's spell landing on a mob.
 	t.Run("PlayerCastsOnMob", func(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
@@ -64,18 +64,17 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 			ConditionIds: []int{100},
 		}
 
-		applyMobEffect(u, u.Character, mob, room, spell, 0, spellContestAttackWin())
+		applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, room),
+			actions.NewMobActorInRoom(mob, room), room, spell, 0, spellContestAttackWin()))
 
 		queued := events.DrainQueuedConditionsForTest(0)
 		require.Len(t, queued, 1,
-			"a player's effect_type: condition spell landing on a mob must queue exactly one condition (spell_resolution.go's applyMobEffect case \"condition\")")
+			"a player's effect_type: condition spell landing on a mob must queue exactly one condition (applySpellConditionEffect)")
 		assert.Equal(t, 100, queued[0].ConditionId)
 		assert.Equal(t, mob.InstanceId, queued[0].MobInstanceId)
 	})
 
-	// spell_resolution.go:1093 — applyPlayerEffect's switch (reached via
-	// resolveAgainstPlayer), the player self/single condition path: caster and
-	// target are the same UserRecord.
+	// PP self: resolveAgainstPlayer with the caster as its own target.
 	t.Run("PlayerSelfCast", func(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
@@ -101,13 +100,12 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 
 		queued := events.DrainQueuedConditionsForTest(0)
 		require.Len(t, queued, 1,
-			"a player self-casting an effect_type: condition spell must queue exactly one condition (spell_resolution.go's applyPlayerEffect case \"condition\")")
+			"a player self-casting an effect_type: condition spell must queue exactly one condition (applySpellConditionEffect)")
 		assert.Equal(t, 100, queued[0].ConditionId)
 		assert.Equal(t, u.UserId, queued[0].UserId)
 	})
 
-	// spell_resolution.go:1493 — applyMobSelfEffect's switch, a mob's
-	// special-move boosting itself.
+	// MS: a mob's spell on itself.
 	t.Run("MobSelfCast", func(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
@@ -123,17 +121,17 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 			ConditionIds: []int{100},
 		}
 
-		applyMobSelfEffect(mob, room, spell, 0)
+		applySpellEffect(newSpellEffectCtx(&mob.Character, actions.NewMobActorInRoom(mob, room),
+			actions.NewMobActorInRoom(mob, room), room, spell, 0, uncontestedSpellResult()))
 
 		queued := events.DrainQueuedConditionsForTest(0)
 		require.Len(t, queued, 1,
-			"a mob self-casting an effect_type: condition spell must queue exactly one condition (spell_resolution.go's applyMobSelfEffect case \"condition\")")
+			"a mob self-casting an effect_type: condition spell must queue exactly one condition (applySpellConditionEffect)")
 		assert.Equal(t, 100, queued[0].ConditionId)
 		assert.Equal(t, mob.InstanceId, queued[0].MobInstanceId)
 	})
 
-	// spell_resolution.go:1740 — resolveMobSpellAgainstPlayer's switch, a
-	// mob's spell landing on a player.
+	// MP: a mob's spell landing on a player.
 	t.Run("MobCastsOnPlayer", func(t *testing.T) {
 		cleanup := seedAllRegistries()
 		defer cleanup()
@@ -160,7 +158,7 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 
 		queued := events.DrainQueuedConditionsForTest(0)
 		require.Len(t, queued, 1,
-			"a mob's effect_type: condition spell landing on a player must queue exactly one condition (spell_resolution.go's resolveMobSpellAgainstPlayer case \"condition\")")
+			"a mob's effect_type: condition spell landing on a player must queue exactly one condition (applySpellConditionEffect)")
 		assert.Equal(t, 100, queued[0].ConditionId)
 		assert.Equal(t, target.UserId, queued[0].UserId)
 	})
@@ -212,7 +210,9 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 		newCaster(u.Character)
 		mob := mobs.GetInstance(100)
 
-		applyMobEffect(u, u.Character, mob, rooms.LoadRoom(1), lightSpell("test-glow-mob"), 0, spellContestAttackWin())
+		r := rooms.LoadRoom(1)
+		applySpellEffect(newSpellEffectCtx(u.Character, actions.NewUserActorInRoom(u, r),
+			actions.NewMobActorInRoom(mob, r), r, lightSpell("test-glow-mob"), 0, spellContestAttackWin()))
 
 		queued := events.DrainQueuedConditionsForTest(0)
 		assertScaledGlow(t, queued)
@@ -237,7 +237,9 @@ func TestWireFreeze_EffectTypeConditionStillApplies(t *testing.T) {
 		mob := mobs.GetInstance(100)
 		newCaster(&mob.Character)
 
-		applyMobSelfEffect(mob, rooms.LoadRoom(1), lightSpell("test-glow-mobself"), 0)
+		r := rooms.LoadRoom(1)
+		applySpellEffect(newSpellEffectCtx(&mob.Character, actions.NewMobActorInRoom(mob, r),
+			actions.NewMobActorInRoom(mob, r), r, lightSpell("test-glow-mobself"), 0, uncontestedSpellResult()))
 
 		queued := events.DrainQueuedConditionsForTest(0)
 		assertScaledGlow(t, queued)

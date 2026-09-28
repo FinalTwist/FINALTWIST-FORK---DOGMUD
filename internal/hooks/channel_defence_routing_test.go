@@ -61,9 +61,9 @@ func TestSpellResolversRunOneContestAndAppliersRollNone(t *testing.T) {
 
 	seamCallsByFunc := map[string]int{}
 	directCalls := 0
-	// spell_effects.go holds every applier since parity slice 3a; it must run
-	// no contest of its own either.
-	for _, name := range []string{"spell_resolution.go", "spell_effects.go"} {
+	// spell_effects.go (slice 3a) and spell_help_effects.go (slice 3b) hold
+	// every applier; neither may run a contest of its own.
+	for _, name := range []string{"spell_resolution.go", "spell_effects.go", "spell_help_effects.go"} {
 		parsed, err := parser.ParseFile(token.NewFileSet(), filepath.Join(filepath.Dir(here), name), nil, 0)
 		require.NoError(t, err)
 		for _, decl := range parsed.Decls {

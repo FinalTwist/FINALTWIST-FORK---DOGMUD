@@ -3,6 +3,7 @@ package hooks
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/combatvocab"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
@@ -19,7 +20,9 @@ import (
 func castHealOnBobrick(t *testing.T) (caster, target []string) {
 	t.Helper()
 	spell := &spells.SpellData{SpellId: "heal", Name: "Heal", EffectType: "heal", EffectMagnitude: 3}
-	applyPlayerEffect(users.GetByUserId(1), users.GetByUserId(2), rooms.LoadRoom(1), spell, 3, spellContestAttackWin())
+	c, tg, r := users.GetByUserId(1), users.GetByUserId(2), rooms.LoadRoom(1)
+	applySpellEffect(newSpellEffectCtx(c.Character, actions.NewUserActorInRoom(c, r),
+		actions.NewUserActorInRoom(tg, r), r, spell, 3, spellContestAttackWin()))
 	return drainPlain(1), drainPlain(2)
 }
 
@@ -72,7 +75,9 @@ func TestCrossCastDamage_TargetInTheDarkReadsSomething(t *testing.T) {
 	drainPlain(2)
 
 	spell := &spells.SpellData{SpellId: "sparks", Name: "Sparks", EffectType: "damage", DamageMultiplier: 0.8, BaseFolds: 4}
-	applyPlayerEffect(users.GetByUserId(1), users.GetByUserId(2), rooms.LoadRoom(1), spell, 10, spellContestAttackWin())
+	c, tg, r := users.GetByUserId(1), users.GetByUserId(2), rooms.LoadRoom(1)
+	applySpellEffect(newSpellEffectCtx(c.Character, actions.NewUserActorInRoom(c, r),
+		actions.NewUserActorInRoom(tg, r), r, spell, 10, spellContestAttackWin()))
 	target := drainPlain(2)
 	assert.Equal(t, 1, countContaining(target, "Something's Sparks strikes you!"))
 	assert.Equal(t, 0, countContaining(target, "Aliceia"))

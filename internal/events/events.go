@@ -424,6 +424,28 @@ func DrainQueuedGoldGivenForTest(userId int) []GoldGiven {
 	return found
 }
 
+// DrainQueuedHealedForTest removes all Healed events for the given healer
+// and returns them. Pass 0 to drain every such event.
+//
+// FOR TEST USE ONLY. Mutates the queue.
+func DrainQueuedHealedForTest(healerUserId int) []Healed {
+	qLock.Lock()
+	defer qLock.Unlock()
+	var found []Healed
+	remaining := make(priorityQueue, 0, len(globalQueue))
+	for _, pe := range globalQueue {
+		healed, ok := pe.event.(Healed)
+		if !ok || (healerUserId != 0 && healed.HealerUserId != healerUserId) {
+			remaining = append(remaining, pe)
+			continue
+		}
+		found = append(found, healed)
+	}
+	globalQueue = remaining
+	heap.Init(&globalQueue)
+	return found
+}
+
 // DrainQueuedPatrolWaypointArrivalsForTest removes all PatrolWaypointArrival
 // events from the global queue for the given mob instance id and returns them.
 //

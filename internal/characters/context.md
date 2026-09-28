@@ -600,9 +600,9 @@ and `applyVitalChange` (the single signed pipeline behind harm and restore).
   [-0.4, 0.4].
 - **Heal spells regenerate via a timed record, not a direct `Heal()` call.** The
   spell's `effect_magnitude` YAML field becomes the regen multiplier
-  (`spellData.EffectMagnitude`, e.g. 3 = 3x base regen, floored at 1.0; a
-  crit doubles the portion above 1x). `internal/hooks/spell_resolution.go`'s
-  `"heal"` case calls `target.Character.AddConditionMagnitude(conditions.ConditionIdRegenerating,
+  (`spellData.EffectMagnitude`, e.g. 3 = 3x base regen, floored at 1.0; help
+  spells do not crit). `internal/hooks/spell_help_effects.go`'s
+  `applySpellHeal` calls `c.targetChar().AddConditionMagnitude(conditions.ConditionIdRegenerating,
   durationRounds, regenMult, "heal spell")` with `durationRounds =
   calcSpellDuration(...)/2`, floored at 6 rounds. Each round after that,
   `NewRound_AutoHeal.go` reads `Conditions.HasEffect(conditions.EffectRegenMult)` and

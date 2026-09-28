@@ -3,6 +3,7 @@ package hooks
 import (
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
@@ -105,7 +106,9 @@ func TestConditionSpell_FreshTargetHealsAtCasterScale(t *testing.T) {
 	spell := &spells.SpellData{SpellId: "test-surge", Name: "Test Surge", EffectType: "condition",
 		ConditionIds: []int{spellPathTickConditionId}}
 	events.DrainQueuedConditionsForTest(0)
-	applyPlayerEffect(caster, target, rooms.LoadRoom(1), spell, 0, spellContestAttackWin())
+	r := rooms.LoadRoom(1)
+	applySpellEffect(newSpellEffectCtx(caster.Character, actions.NewUserActorInRoom(caster, r),
+		actions.NewUserActorInRoom(target, r), r, spell, 0, spellContestAttackWin()))
 
 	queued := events.DrainQueuedConditionsForTest(2)
 	require.Len(t, queued, 1)
@@ -131,7 +134,9 @@ func TestConditionSpell_MobSelfCastHealsAtCasterScale(t *testing.T) {
 
 	spell := &spells.SpellData{SpellId: "test-surge", Name: "Test Surge", EffectType: "condition",
 		ConditionIds: []int{spellPathTickConditionId}}
-	applyMobSelfEffect(mob, rooms.LoadRoom(1), spell, 0)
+	r := rooms.LoadRoom(1)
+	applySpellEffect(newSpellEffectCtx(&mob.Character, actions.NewMobActorInRoom(mob, r),
+		actions.NewMobActorInRoom(mob, r), r, spell, 0, uncontestedSpellResult()))
 
 	queued := events.DrainQueuedMobConditionsForTest(100)
 	require.Len(t, queued, 1)

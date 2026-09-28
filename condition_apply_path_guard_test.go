@@ -184,9 +184,23 @@ var conditionApplyPathAllowlist = map[string]string{
 	// resolvers' backfire, interrupt and record blocks moved into
 	// spell_effects.go; re-keyed again parity slice 3a Task 7 when the
 	// one-contest guard began parsing spell_effects.go too; re-keyed again
-	// parity slice 3a Task 8 when maybeInterruptSpellOnMob was deleted) ────
-	"internal/hooks/spell_resolution.go|908":  "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
-	"internal/hooks/spell_resolution.go|1213": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	// parity slice 3a Task 8 when maybeInterruptSpellOnMob was deleted;
+	// re-keyed again parity slice 3b Task 1 when the resolvers' help-spell
+	// shortcuts collapsed into resolveHelpSpell, and again parity slice 3b
+	// Task 2 when the three condition arms moved into
+	// applySpellConditionEffect, and again Task 3 when the heal arms it moved
+	// into applySpellHeal shifted every later line in spell_resolution.go;
+	// the PP row MOVED into applySpellShield by Task 4, which replaced the
+	// player-to-player shield arm and gained PM, MM and MP; the MS row stays
+	// in spell_resolution.go, re-keyed for the same deletion's shift, and
+	// again Task 5 when the per-pairing arms above it were deleted; the MS
+	// row DELETED by Task 6, when applyMobSelfEffect's switch was deleted
+	// and a mob's self-cast shield reached applySpellShield's row; re-keyed
+	// again Task 7, when spellHelpAreaTargets' mobs, parties and rooms
+	// imports shifted spell_help_effects.go; re-keyed again 3b playtest fix,
+	// when the party rule moved to actions.HelpCharmAlly and the parties
+	// import left spell_help_effects.go) ────
+	"internal/hooks/spell_help_effects.go|190": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
 	// ── former combat condition: Regenerating is now one record (Task 7;
 	// re-keyed slice 1b, same shift as above; re-keyed again Task 10 and
@@ -198,12 +212,21 @@ var conditionApplyPathAllowlist = map[string]string{
 	// again spell effects 3a Task 4, same shift as above; re-keyed again
 	// spell effects 3a Task 5, same shift as above; re-keyed again parity
 	// slice 3a Task 7, same guard widening as above; re-keyed again parity
-	// slice 3a Task 8, same deletion as above) ───────────────────────────────
-	"internal/hooks/spell_resolution.go|615":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|809":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1191": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/mobcommands/consume.go|46":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/mobcommands/consume.go|55":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	// slice 3a Task 8, same deletion as above; re-keyed again parity slice 3b
+	// Task 1, same collapse as above, and Task 2, same move as above;
+	// collapsed again parity slice 3b Task 3, when applySpellHeal replaced the
+	// PM/MM and PP heal arms and MP gained the heal; re-keyed the surviving MS
+	// row for the same line shift; re-keyed again Task 4, when
+	// applySpellShield's new math and configs imports shifted
+	// spell_help_effects.go and the deleted PP shield arm shifted
+	// spell_resolution.go; re-keyed again Task 5, same deletion as above;
+	// the MS row DELETED by Task 6, same deletion as above, a mob's
+	// self-cast heal now reaching applySpellHeal's row; re-keyed again
+	// Task 7, same import shift as above; re-keyed again 3b playtest fix,
+	// same import shift as above) ───────
+	"internal/hooks/spell_help_effects.go|141": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/mobcommands/consume.go|46":       "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/mobcommands/consume.go|55":       "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 
 	// ── former combat condition: the spell dot is now one record (Task 8;
 	// re-keyed slice 1b when the dot moved to every round; re-keyed again
@@ -219,8 +242,12 @@ var conditionApplyPathAllowlist = map[string]string{
 	// Task 4 when applySpellKnockdown's new imports shifted spell_effects.go,
 	// and Task 5 when the configs and util imports did; re-keyed again parity
 	// slice 3a Task 7, same guard widening as above; re-keyed again spell
-	// effects 3a when creditSpellDamage landed above applySpellDot) ──────
-	"internal/hooks/spell_effects.go|329": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	// effects 3a when creditSpellDamage landed above applySpellDot; re-keyed
+	// again parity slice 3b Task 2 when the dispatcher gained its condition
+	// case, and again Task 3 when it gained its heal case, and again Task 4
+	// when it gained its shield case, and again Task 5 when its doc comment
+	// grew and the per-pairing fallthrough became the default arm) ──────
+	"internal/hooks/spell_effects.go|321": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 
 	// ── light spells (lighting plan 5a): an EVENT door, not the silent
 	// character door. applySpellCondition's target is a spellConditionTarget,

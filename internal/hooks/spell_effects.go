@@ -52,21 +52,6 @@ func newSpellEffectCtx(casterChar *characters.Character, caster, target actions.
 		spell: spell, magnitude: magnitude, out: out}
 }
 
-// spellCasterActor wraps whichever caster a legacy call site was handed: the
-// player record when there is one, else the registered mob behind casterChar,
-// else nil (an anonymous caster, which only tests produce).
-func spellCasterActor(user *users.UserRecord, casterChar *characters.Character, room *rooms.Room) actions.Actor {
-	if user != nil {
-		return actions.NewUserActorInRoom(user, room)
-	}
-	if casterChar != nil && casterChar.MobInstanceId > 0 {
-		if m := mobs.GetInstance(casterChar.MobInstanceId); m != nil {
-			return actions.NewMobActorInRoom(m, room)
-		}
-	}
-	return nil
-}
-
 func actorUser(a actions.Actor) *users.UserRecord {
 	if ua, ok := a.(*actions.UserActor); ok && ua != nil {
 		return ua.User
@@ -155,9 +140,12 @@ func spellSourceTarget(a actions.Actor) combat.SourceTarget {
 	return combat.Mob
 }
 
-// applySpellEffect applies one spell effect to one target and returns the
-// damage it dealt (0 for effects that deal none). Until slice 3b, effects
-// without a unified applier run on the per-pairing arms they always had.
+// applySpellEffect applies one spell effect to one target, whoever casts it
+// and whoever it hits, and returns the damage it dealt (0 for effects that
+// deal none). Each effect has one applier (spell_effects.go for the harmful
+// ones, spell_help_effects.go for the rest). Charm binds only a mob, and
+// applyMobEffect_charm refuses a caster that is not a player; charm on
+// anything else, and any effect with no applier, is the default arm.
 func applySpellEffect(c spellEffectCtx) int {
 	switch c.spell.EffectType {
 	case "damage":
@@ -166,16 +154,20 @@ func applySpellEffect(c spellEffectCtx) int {
 		return applySpellDot(c)
 	case "knockdown":
 		return applySpellKnockdown(c)
+	case "condition":
+		return applySpellConditionEffect(c)
+	case "heal":
+		return applySpellHeal(c)
+	case "shield":
+		return applySpellShield(c)
+	case "purge":
+		return applySpellPurge(c)
+	case "charm":
+		if m := c.targetMob(); m != nil {
+			return applyMobEffect_charm(c.casterUser(), m, c.room, c.spell, c.out, c.targetName())
+		}
 	}
-	switch {
-	case c.targetMob() != nil:
-		return applyMobEffectArms(c)
-	case c.casterMob() != nil:
-		return applyMobOnPlayerArms(c)
-	default:
-		applyPlayerEffectArms(c)
-		return 0
-	}
+	return applySpellDefaultEffect(c)
 }
 
 // commitHarmfulSpellAggro is the one place a harmful spell starts a fight,
@@ -421,6 +413,25 @@ func recordSpellResolution(c spellEffectCtx, dmg int) {
 		c.out.AttackRollZScore, c.casterChar, c.targetChar(), util.GetRoundCount())
 }
 
+// uncontestedSpellResult is the contest result a help spell (attack_type
+// none) resolves with: an attack win at full strength and no crit. A help
+// spell never enters the contest, the only source of a crit, so help spells
+// do not crit (owner ruling 3, 2026-09-28).
+func uncontestedSpellResult() combat.ChannelDefenceResult {
+	return combat.ChannelDefenceResult{DamageMultiplier: 1}
+}
+
+// resolveHelpSpell is the one uncontested step every resolver takes for a
+// help spell (attack_type none), whoever casts it and whoever it lands on:
+// no contest, so no fumble, backfire, interrupt or counter; the effect
+// applies and the cast is recorded as landed. It always reports landed:
+// there was no defence to beat. A mob's help spell on a player used to be
+// contested and then apply nothing (audit row 3).
+func resolveHelpSpell(c spellEffectCtx) bool {
+	recordSpellResolution(c, applySpellEffect(c))
+	return true
+}
+
 // applySpellBackfire resolves a fumbled cast for every caster kind: the
 // caster takes a quarter of the magnitude (at least one), is told if it is a
 // player, the room sees it, and it is recorded.
@@ -479,22 +490,4 @@ func interruptSpellTarget(c spellEffectCtx) {
 		Observer: messaging.Say(messaging.CategorySpellDisruption, fmt.Sprintf(
 			`<ansi fg="cyan">%s's spell collapses!</ansi>`, c.targetName())),
 	}, c.audience())
-}
-
-// ── Test-only wrappers. Slice 3b's last task deletes them once no test
-// names them. ─────────────────────────────────────────────────────────────
-
-// applyMobEffect applies a spell effect to a mob target. user may be nil
-// (a mob caster); casterChar may be nil (an anonymous caster).
-func applyMobEffect(user *users.UserRecord, casterChar *characters.Character, mob *mobs.Mob, room *rooms.Room,
-	spellData *spells.SpellData, magnitude int, out combat.ChannelDefenceResult) int {
-	return applySpellEffect(newSpellEffectCtx(casterChar, spellCasterActor(user, casterChar, room),
-		actions.NewMobActorInRoom(mob, room), room, spellData, magnitude, out))
-}
-
-// applyPlayerEffect applies a player's spell effect to a player target.
-func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *rooms.Room,
-	spellData *spells.SpellData, magnitude int, out combat.ChannelDefenceResult) {
-	applySpellEffect(newSpellEffectCtx(user.Character, actions.NewUserActorInRoom(user, room),
-		actions.NewUserActorInRoom(target, room), room, spellData, magnitude, out))
 }

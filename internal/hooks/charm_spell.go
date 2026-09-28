@@ -17,7 +17,7 @@ import (
 //
 // Charm used to run its own RunContest here, on hand-built scores, on top of
 // the channel contest the cast had already run and then discarded in
-// applyMobEffect_default. One cast therefore resolved twice, and the player
+// the default arm. One cast therefore resolved twice, and the player
 // saw both narrations -- a resist line and a success line for the same spell.
 // The contest now happens once, in the seam, on the (spell, social) pairing,
 // and this reads its result.
@@ -31,8 +31,8 @@ func applyMobEffect_charm(
 	out combat.ChannelDefenceResult,
 	mName string,
 ) int {
-	// applyMobEffect is reached with a nil user when a MOB casts (see its
-	// docstring and resolveMobSpellAgainstMob). No mob carries charm today --
+	// applySpellEffect reaches this with a nil user when a MOB casts (a mob
+	// caster has no *users.UserRecord). No mob carries charm today --
 	// the behaviour tree skips it -- but every sibling arm guards, and a switch
 	// arm that depends on an exclusion elsewhere is a landmine.
 	if user == nil || targetMob == nil {

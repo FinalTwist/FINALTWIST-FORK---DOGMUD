@@ -122,25 +122,18 @@ events.RegisterListener(events.MobIdle{}, HandleIdleMobs)         // Mob AI beha
 return-damage recoil lines (`emitReturnDamageText`), counter lines
 (`actions.SendCounterTrio`) and spell lines between two parties
 (`spellAudience` in `spell_audience.go`, used by the appliers in
-`spell_effects.go`, `applyPlayerEffectArms`,
-`sendSpellChannelDefenceMessages`, `applyMobOnPlayerArms` and
+`spell_effects.go` and `spell_help_effects.go`,
+`sendSpellChannelDefenceMessages` and
 `resolvePurgeAffliction`, which takes a `purgeTarget`: a player, a mob such as a
 charmed companion, or the caster) all go through `messaging.SendTrio`, so a reader who
 cannot see the other party reads "something", or "a figure" with infrared.
-`applyPlayerEffectArms`'s four SELF-CAST branches (`"purge"`, `"heal"`,
-`"condition"`, `"shield"`, where `target.UserId == user.UserId`) have no
-second party for `spellAudience` to pair against, but each still sends a
-caster line plus a room line that names the caster
-(`target.Character.Name`, since `target == user`). Those room lines used to
-go out through `sendVisualRoomText` -> `room.SendTextVisual`, which never
-calls `messaging.HideNames`; every one of the four wraps the name in an
-`<ansi fg="username">` tag, so today's shipped text was incidentally safe
-via tag-based `messaging.Anonymize`, not by the delivery path itself. **M4d
-PR 3** moved all four onto `messaging.SendTrio` directly (`Actor` is the
-caster line, `Actee` is `messaging.NoLine`, `Observer` is the room line), so
-a future untagged name in that slot is caught too. The `default` arm's
-self-cast branch (no room line at all, single line to the caster) was
-already on `SendTrio` before this PR and is unaffected.
+A self-cast (the caster is its own target, `spellEffectCtx.selfCast`) has no
+second party to pair against: the helpful appliers send the caster's own
+line and a room line naming the caster once, through `SendTrio` with
+`selfCastAudience` (`Actee` is `messaging.NoLine`), so a shapes-only
+observer reads "a figure". **M4d PR 3** first moved the player self-cast
+room lines off `sendVisualRoomText`, which never calls `messaging.HideNames`;
+parity slice 3b made the same pair serve a mob casting on itself.
 The retarget notice ("You turn your attention to X!") is built once, by
 `actions.RetargetNotice` (`internal/actions/retarget_notice.go`), for
 `DoCombat`'s validate-aggro pass, `emitRetargetMessage`, and the mob-departure
@@ -1002,9 +995,8 @@ and a nightvision result at `configs.LightWindowShiftCap`
 the shared `SpellDuration*` trio all three kinds use (triggers floored at 1).
 `ok` is false for any other condition, which keeps its authored application.
 `applySpellCondition(target, spellData, caster, conditionId)` is the one door
-the four spell-condition sites in `spell_resolution.go`
-(`applyMobEffect_condition`, `applyPlayerEffect`, `applyMobSelfEffect`,
-`resolveMobSpellAgainstPlayer`) now call: a magnitude-scaled light or sight
+the one spell-condition applier, `applySpellConditionEffect`
+(`spell_help_effects.go`, every pairing since parity slice 3b), calls: a magnitude-scaled light or sight
 goes through `AddConditionMagnitude`; a `tick_pool` condition (a heal- or
 damage-over-time) goes through `AddConditionTickScaled` at
 `spellTickScale(caster)` (`spell_tick_scale.go`, tick amount at apply,
@@ -1801,7 +1793,7 @@ conviction. Summon reserve is derived from the spell's
 meaning unscaled, so charm's price did not move.
 
 U10c renamed the charm arm from `resolveCharmSpell` to `applyMobEffect_charm`
-and moved it into `applyMobEffect`'s switch, because the old function ran a
+and moved it into the effect dispatcher (now `applySpellEffect`), because the old function ran a
 second private `RunContest` on top of the one the cast had already run and
 discarded -- one cast resolved twice and the player saw both narrations. The
 flat reserve is deliberate (spec 3.8): a sewer rat and an Elemental King tie up
@@ -1865,84 +1857,103 @@ Formula: `baseFolds × (10 + willpower/20 + spellcastingSkill/2)`, rounded
 defaults to 4 before the multiply, so a spell YAML that omits `base_folds`
 still gets a sane duration rather than a zero one.
 
-There are seven call sites, all in this file, and they fall into exactly
-three effect-specific scaling patterns: CLAUDE.md's summary ("shield = full,
-heal = ÷2, DoT = ÷3") is accurate at every one of them, no discrepancy found:
+There are three call sites, one per effect, since parity slice 3, and each
+reads the caster through `spellCasterStatAndSkill` (the spell's primarystat
+through `CasterStatValue`, and the school's cast skill):
 
-- **Shield: full duration, no divisor.** `applyPlayerEffect`'s `"shield"`
-  case and `applyMobSelfEffect`'s `"shield"` case both call
-  `calcSpellDuration(...)` unmodified and pass the result straight to
+- **Shield: full duration, no divisor.** `applySpellShield`
+  (`spell_help_effects.go`) passes `calcSpellDuration(...)` unmodified to
   `AddConditionMagnitude(conditions.ConditionIdMinorShield, duration, ...)` as the trigger
   count (record 119 ticks once a round, so triggers and rounds coincide).
-- **Heal: `/2`, floored at 6.** `applyPlayerEffect`'s `"heal"` case,
-  `applyMobEffect_heal`, and `applyMobSelfEffect`'s `"heal"` case all compute
-  `calcSpellDuration(...) / 2`, then clamp `durationRounds < 6` up to 6, before
+- **Heal: `/2`, floored at 6.** `applySpellHeal` (`spell_help_effects.go`)
+  computes `calcSpellDuration(...) / 2`, then clamps `durationRounds < 6` up
+  to 6, before
   `AddConditionMagnitude(conditions.ConditionIdRegenerating, durationRounds, regenMult, ...)`.
-- **DoT: `/3`, floored at 3.** `applyMobEffect_dot` and the inline DoT branch
-  of `resolveMobSpellAgainstPlayer` both compute
-  `calcSpellDuration(...) / 3`, then clamp `dotDuration < 3` up to 3. Both
-  pass that rounds figure straight to
+- **DoT: `/3`, floored at 3.** `applySpellDot` (`spell_effects.go`) computes
+  `calcSpellDuration(...) / 3`, then clamps `dotDuration < 3` up to 3, and
+  passes that rounds figure straight to
   `AddConditionMagnitude(conditions.ConditionIdPoisoned, dotDuration, ...)`: record 121 ticks
   every round (slice 1b; it was every third round before). See
   `internal/conditions/context.md` under "Cadence".
 
-**Crit affects magnitude on some of these paths, never duration, on any of
-them.** `out.AttackerCrit` never touches the `calcSpellDuration` call or its
-result on any of the seven sites. Where crit does something, it scales a
-different number: `applyPlayerEffect`'s `"shield"` case multiplies
-`shieldBonus` (not duration) by 1.5 on crit, and `applyPlayerEffect`'s
-`"heal"` case doubles the portion of `regenMult` above 1x on crit. Both of
-those are the PLAYER-cast paths. `applyMobSelfEffect` (the mob-cast heal and
-shield paths) takes no `combat.ChannelDefenceResult`/`out` parameter at all,
-so there is no crit check to make: a mob's self-cast heal or shield can never
-get the crit boost a player's cast of the same spell gets. This mirrors the
-"Crits +50% strength" claim in the root `CLAUDE.md`'s Condition/Ward Spell System
-section, which is true on the player-cast shield path only.
+**Crit never touches a duration, and never touches a help spell.** A
+harmful spell's crit shows in its damage and its `[CRIT!]` tag. Heal and
+shield used to carry a player-only crit bump (x2 above 1x regen, x1.5
+shield) that no cast could reach, because a help spell never enters the
+contest, the only source of a crit; parity slice 3b deleted both (owner
+ruling, 2026-09-28).
 
-## Spell effects (`spell_effects.go`, parity slice 3a)
+## Spell effects (`spell_effects.go`, `spell_help_effects.go`, parity slices 3a and 3b)
 
 Every spell effect on one target goes through one `spellEffectCtx` and one
-dispatcher, `applySpellEffect`. The four contested resolvers in
-`spell_resolution.go` (`resolveAgainstMob`, `resolveAgainstPlayer`,
-`resolveMobSpellAgainstMob`, `resolveMobSpellAgainstPlayer`) keep their names
-and their one `runSpellChannelAttack` call each, then build a context per
-target: the caster's `*characters.Character`, caster and target as
-`actions.Actor` (`*actions.UserActor` or `*actions.MobActor`; only tests pass
-a nil caster), the room, the spell, the magnitude and the contest result.
-Refs come from the actor (`casterRef`, `targetRef`), not the character.
+dispatcher, `applySpellEffect`, whoever casts it and whoever it hits: player
+on mob, player on player, mob on itself, mob on mob, mob on player. The four
+contested resolvers in `spell_resolution.go` (`resolveAgainstMob`,
+`resolveAgainstPlayer`, `resolveMobSpellAgainstMob`,
+`resolveMobSpellAgainstPlayer`) keep their names and their one
+`runSpellChannelAttack` call each, then build a context per target: the
+caster's `*characters.Character`, caster and target as `actions.Actor`
+(`*actions.UserActor` or `*actions.MobActor`; only tests pass a nil caster),
+the room, the spell, the magnitude and the contest result. Refs come from the
+actor (`casterRef`, `targetRef`), not the character.
 
-The harmful effects have one applier each, whoever casts and whoever is hit:
-`applySpellDamage`, `applySpellDot`, `applySpellKnockdown`. Each narrates
-through `messaging.SendTrio` with the context's audience (players in the
-username tag, mobs through `mobDisplayName`), so a mob-on-mob spell reaches
-the room and a reader in the dark reads "something". Each starts the fight
-through `commitHarmfulSpellAggro`: the target turns on the caster if it was
-not already fighting, the caster on the target likewise, and a player caster
-on a mob calls `actions.SeedAggression` with freshness judged per target, as
+The harmful effects have one applier each: `applySpellDamage`,
+`applySpellDot`, `applySpellKnockdown`. Each starts the fight through
+`commitHarmfulSpellAggro`: the target turns on the caster if it was not
+already fighting, the caster on the target likewise, and a player caster on a
+mob calls `actions.SeedAggression` with freshness judged per target, as
 `throw` does, which records the assault crime on a fresh engagement (owner
-ruling, 2026-09-28). Damage and knockdown on a mob call
-`creditSpellDamage` before the harm, which does what melee does with
-`TrackPlayerDamage`: a player caster is credited, and a mob caster charmed
-by a player credits that player, so a spell kill reaches the `MobDeath_*`
-hooks with its killer in `PlayerDamage`. The dot does not: its ticks harm
-anonymously (a filed follow-up). A dot's duration reads the spell's primarystat and the
-school's cast skill through `spellCasterStatAndSkill`, not
-`actions.GetSpellStatAndSkill`, which is the fold stat.
+ruling, 2026-09-28). Damage and knockdown on a mob call `creditSpellDamage`
+before the harm, as melee does with `TrackPlayerDamage`; the dot does not
+(its ticks harm anonymously, a filed follow-up). A dot's duration reads the
+spell's primarystat and the school's cast skill through
+`spellCasterStatAndSkill`, not `actions.GetSpellStatAndSkill`, which is the
+fold stat.
 
-The resolvers share three steps: `applySpellBackfire` (every caster kind is
-hurt, told, seen and recorded), `interruptSpellTarget` (a configured
-boss-interrupt spell cancels any casting target, player or mob, through
-`maybeInterruptSpellOnTarget`) and `recordSpellResolution`. `recordSpell` is
-the analytics seam over `combat.RecordSpell`, swapped by tests the way
-`runSpellChannelAttack` is. `channel_defence_routing_test.go` parses both
-files and allows the contest seam only in the four resolvers.
+The helpful effects have one applier each in `spell_help_effects.go`:
+`applySpellConditionEffect` (every named condition through
+`applySpellCondition`'s event door), `applySpellHeal` (a Regenerating
+record), `applySpellShield` (a Minor Shield record) and `applySpellPurge`
+(cancels every poison). `applySpellDefaultEffect` serves an effect with no
+applier of its own, and charm binds a mob through `applyMobEffect_charm`.
+A defended status narrates the defence triad and applies nothing
+(`spellStatusDefended`); a harmful condition or default spell still starts
+the fight through `commitHarmfulSpellAggro`. When the caster is its own
+target (`selfCast`), the caster reads its own line and the room reads the
+caster named once (`selfCastAudience`). Heal and shield read the caster
+through `spellCasterStatAndSkill` and never crit: a help spell never enters
+the contest, the only source of a crit (owner ruling, 2026-09-28). A player
+healing a mob queues `events.Healed` for the AI companion. Every applier
+narrates through `messaging.SendTrio` (players in the username tag, mobs
+through `mobDisplayName`), so a mob's spell on a mob reaches the room and a
+reader in the dark reads "something".
 
-Every other effect (condition, heal, shield, purge, charm, default) still runs
-on the per-pairing arms `applyMobEffectArms`, `applyPlayerEffectArms` and
-`applyMobOnPlayerArms` until slice 3b; `applyMobEffect` and
-`applyPlayerEffect` are test-only wrappers until then. `resolveMobDrainArea`
-keeps its own `actions.ExecuteDrainArea` contest; only its lines use the
-context.
+Every resolver takes a help spell (`attack_type: none`) through
+`resolveHelpSpell` with `uncontestedSpellResult()`: no contest, no fumble,
+no counter, one landed record. `resolveMobSpell`'s self branch (a mob on
+itself) takes the same step and never applies a harmful spell to the
+caster. A contested cast shares three steps: `applySpellBackfire` (every
+caster kind is hurt, told, seen and recorded), `interruptSpellTarget` (a
+configured boss-interrupt spell cancels any casting target through
+`maybeInterruptSpellOnTarget`) and `recordSpellResolution`. `recordSpell`
+is the analytics seam over `combat.RecordSpell`, swapped by tests the way
+`runSpellChannelAttack` is.
+
+`spellHelpAreaTargets` fills an area help spell's targets for both caster
+kinds, replacing what the cast's initiation step put there. A player, or a
+mob charmed by one, helps every player in the room and every mob charmed by
+that player or by a member of that player's party (`actions.HelpCharmAlly`,
+the rule single-target help in `actions.InitiateCast` also calls), so the
+party's companions, the bonded AI
+companion included, are healed and a stranger's pet is not. An uncharmed
+mob helps itself and its `mobs.FindPackmatesInRoom` packmates, the rule its
+behaviour tree's `cast_best_in_category` uses to pick whom to heal, and no
+player.
+
+`resolveMobDrainArea` keeps its own `actions.ExecuteDrainArea` contest; only
+its lines use the context. `channel_defence_routing_test.go` parses
+`spell_resolution.go`, `spell_effects.go` and `spell_help_effects.go` and
+allows the contest seam only in the four resolvers.
 
 ## Counter tier wiring (U6b Task 10)
 
