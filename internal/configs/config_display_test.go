@@ -104,3 +104,91 @@ func TestSetValRefusesTheRedactionMarker(t *testing.T) {
 		t.Errorf(`SetEngineVal(seed, RedactedValue) = %v, want ErrRedactedValue`, err)
 	}
 }
+
+// nestedLeakTestConfig builds a config whose Modules map exercises the two
+// leak shapes buildDotPaths' default case cannot decompose: a slice stored
+// whole (a nested map full of secrets inside it never reaches its own
+// dotted path), and a map stored whole under a secret-named parent key
+// (recursed to leaves, but its OWN key name is what marks it, not the leaf).
+// It also exercises the widened secret-name rule (suffix match, one word)
+// and its required negatives: an *Env variable NAME, and plural/compound
+// token counters that must stay visible.
+func nestedLeakTestConfig() Config {
+	c := GetConfig()
+	c.Modules = Modules{
+		`x`: map[string]any{
+			// Widened rule: exact/suffix match of apikey, api_key, secret,
+			// password, token, webhookurl (case-insensitive, one segment).
+			`api_key`:      displaySentinel,
+			`ClientSecret`: displaySentinel,
+			`OpenAIAPIKey`: displaySentinel,
+			`token`:        displaySentinel,
+			`WebhookUrl`:   displaySentinel,
+
+			// Must stay visible: an *Env suffix names the variable, not a
+			// secret value; the token counters are plural/compound, not the
+			// literal word "token".
+			`APIKeyEnv`:               `OPENAI_API_KEY`,
+			`MaxCompletionTokens`:     10,
+			`DailyTokenBudget`:        5,
+			`StrangerDailyTokens`:     3,
+			`DailyTokensPerCompanion`: 2,
+
+			// A slice stored whole (buildDotPaths does not recurse into
+			// slice elements): a map[string]any inside it carries a
+			// secret-named key ("apikey") that never becomes its own
+			// dotted path, so only a deep scan of the slice's contents
+			// finds it.
+			`providers`: []any{
+				map[string]any{`apikey`: displaySentinel, `name`: `openai`},
+			},
+
+			// A slice containing a map with non-string (any) keys, proving
+			// the deep scan walks "maps with string or any keys" as the
+			// plan requires, not just map[string]any.
+			`backends`: []any{
+				map[any]any{`secret`: displaySentinel, `name`: `primary`},
+			},
+
+			// A map under a secret-named key: fully decomposed by
+			// buildDotPaths to Modules.x.password.db, whose LEAF ("db") is
+			// innocent. Only the mid-path segment "password" marks it.
+			`password`: map[string]any{
+				`db`: `innocuous-value`,
+			},
+		},
+	}
+	return c
+}
+
+func TestDisplayConfigDataRedactsNestedAndWidenedNames(t *testing.T) {
+	shown := nestedLeakTestConfig().DisplayConfigData()
+
+	for _, name := range []string{
+		`Modules.x.api_key`,
+		`Modules.x.ClientSecret`,
+		`Modules.x.OpenAIAPIKey`,
+		`Modules.x.token`,
+		`Modules.x.WebhookUrl`,
+		`Modules.x.providers`,
+		`Modules.x.backends`,
+		`Modules.x.password.db`,
+	} {
+		if shown[name] != RedactedValue {
+			t.Errorf(`DisplayConfigData[%q] = %#v, want RedactedValue`, name, shown[name])
+		}
+	}
+
+	visible := map[string]any{
+		`Modules.x.APIKeyEnv`:               `OPENAI_API_KEY`,
+		`Modules.x.MaxCompletionTokens`:     10,
+		`Modules.x.DailyTokenBudget`:        5,
+		`Modules.x.StrangerDailyTokens`:     3,
+		`Modules.x.DailyTokensPerCompanion`: 2,
+	}
+	for name, want := range visible {
+		if shown[name] != want {
+			t.Errorf(`DisplayConfigData[%q] = %#v, want %#v (unredacted)`, name, shown[name], want)
+		}
+	}
+}
