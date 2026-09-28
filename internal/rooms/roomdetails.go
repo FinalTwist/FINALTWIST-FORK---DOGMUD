@@ -11,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/guilds"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mutators"
 	"github.com/GoMudEngine/GoMud/internal/term"
@@ -360,6 +361,30 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 
 	// Add the friendly mobs to the end
 	details.VisibleMobs = append(details.VisibleMobs, visibleFriendlyMobs...)
+
+	// The roster follows the viewer's sight in THIS room (lighting plan 5c).
+	// Perceives above only answers hiding; light was never consulted, so a
+	// heat-sight caster in a pitch-dark cave read "Also here: Midroad Scout
+	// (100%)" while every narrated line about the same scout said "A figure".
+	//
+	// Shapes: each creature is the same anonymous figure HideNames writes,
+	// with no health, shop, guild, AFK or sleep adjective, and all of them in
+	// one list, because the template colors mobs and players differently and
+	// that color alone would sort them. The count stays. None: nobody is
+	// listed. look refuses before it gets here, but who and peering into
+	// the next room do not.
+	switch messaging.ParticipantSight(user.Character, r) {
+	case messaging.SightShapes:
+		figures := make([]string, 0, len(details.VisiblePlayers)+len(details.VisibleMobs))
+		for range len(details.VisiblePlayers) + len(details.VisibleMobs) {
+			figures = append(figures, messaging.UnseenFigure(messaging.SightShapes))
+		}
+		details.VisiblePlayers = figures
+		details.VisibleMobs = []string{}
+	case messaging.SightNone:
+		details.VisiblePlayers = []string{}
+		details.VisibleMobs = []string{}
+	}
 
 	for exitStr, exitInfo := range r.ExitsTemp {
 		details.TemporaryExits[exitStr] = exitInfo

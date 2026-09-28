@@ -103,11 +103,18 @@ func Track(actor Actor, opts TrackOptions) TrackResult {
 	// this action only consumes TargetNoun.
 	targetNoun := opts.TargetNoun
 
+	// The two in-room shortcuts below ("here in the open with you", "is in the
+	// room with you!") name a creature on the strength of seeing it, so they
+	// are for a tracker who sees faces (lighting plan 5c). Below that the
+	// tracker reads the ground like anyone else: the sight-scaled roll and the
+	// opposed trail contest decide.
+	seesFaces := messaging.ParticipantSight(char, room) == messaging.SightFull
+
 	// If the named target is right here in the room, there is nothing to track
 	// down -- you can see it. Report a clean positive read before the skill
 	// roll, so a tracker who would otherwise fail the roll is not told "you
 	// don't see any tracks" about a creature standing in front of them.
-	if targetNoun != "" {
+	if targetNoun != "" && seesFaces {
 		if name, isMob, found := findPresentTargetByNoun(castViewer(actor), room, targetNoun, actor.GetUserId()); found {
 			result.ActiveTargetName = name
 			if actor.IsPlayer() {
@@ -237,7 +244,12 @@ func Track(actor Actor, opts TrackOptions) TrackResult {
 	// No contest: the quarry is standing in front of you, so there is no trail
 	// to read and nothing to out-roll. Awarded as a win because the verb
 	// resolved and told the player something true.
-	if targetUser := findUserInRoomByName(room, targetNoun, actor.GetUserId()); targetUser != nil {
+	//
+	// Both lookups match by prefix with no perception rule of their own, so
+	// each also requires that the tracker perceives the match: without it a
+	// hidden creature the shortcut above rightly skipped was named here after
+	// the roll (owner ruling 9).
+	if targetUser := findUserInRoomByName(room, targetNoun, actor.GetUserId()); seesFaces && targetUser != nil && char.Perceives(targetUser.Character) {
 		awardTrack(true)
 		result.ActiveTargetUserId = targetUser.UserId
 		result.ActiveTargetName = targetUser.Character.Name
@@ -247,7 +259,7 @@ func Track(actor Actor, opts TrackOptions) TrackResult {
 		}
 		return result
 	}
-	if targetMob := findMobInRoomByName(room, targetNoun); targetMob != nil {
+	if targetMob := findMobInRoomByName(room, targetNoun); seesFaces && targetMob != nil && char.Perceives(&targetMob.Character) {
 		awardTrack(true)
 		result.ActiveTargetMobInstId = targetMob.InstanceId
 		result.ActiveTargetName = targetMob.Character.Name

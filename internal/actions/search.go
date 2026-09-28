@@ -51,6 +51,40 @@ func spotsHider(observer *characters.Character, hider *characters.Character, roo
 	).Success
 }
 
+// foundHiderEntry is one line of a searcher's find, as the searcher's sight in
+// the room lets them read it (lighting plan 5c): the name and the hiding mark
+// with faces, the anonymous figure HideNames writes below that. kind is the
+// FormattedName type, "username" or "mob".
+func foundHiderEntry(name, kind string, d messaging.SightDecision) string {
+	if d != messaging.SightFull {
+		return messaging.UnseenFigure(d)
+	}
+	return characters.FormattedName{Name: name + ` <ansi fg="black-bold">(hiding)</ansi>`, Type: kind, Suffix: "hidden"}.String()
+}
+
+// showFoundHiders renders a searcher's find through the room roster template.
+// Only the hiders found are listed: GetDetails fills both lists with everyone
+// already visible, and the find used to reset one list and keep the other, so
+// a found player was reported alongside every visible mob. Below full sight
+// the entries go in the player list, which the template does not color, so
+// the color cannot tell a mob from a player either.
+func showFoundHiders(actor Actor, room *rooms.Room, names []string, kind string) {
+	d := messaging.ParticipantSight(actor.GetCharacter(), room)
+	details := rooms.GetDetails(room, users.GetByUserId(actor.GetUserId()))
+	details.VisiblePlayers = []string{}
+	details.VisibleMobs = []string{}
+	for _, name := range names {
+		entry := foundHiderEntry(name, kind, d)
+		if kind == "mob" && d == messaging.SightFull {
+			details.VisibleMobs = append(details.VisibleMobs, entry)
+		} else {
+			details.VisiblePlayers = append(details.VisiblePlayers, entry)
+		}
+	}
+	text, _ := templates.Process("descriptions/who", details, actor.GetUserId())
+	actor.SendText(messaging.CategorySystem, text)
+}
+
 // SearchOptions is intentionally empty v1 — in-room search is the only
 // mode. Reserved for future "search container" path.
 type SearchOptions struct{}
@@ -254,20 +288,12 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 		if spotsHider(char, p.Character, roomLight) {
 			result.HiddenPlayersFound = append(result.HiddenPlayersFound, pId)
 			if actor.IsPlayer() {
-				hiddenPlayerNames = append(hiddenPlayerNames,
-					p.Character.Name+` <ansi fg="black-bold">(hiding)</ansi>`)
+				hiddenPlayerNames = append(hiddenPlayerNames, p.Character.Name)
 			}
 		}
 	}
 	if actor.IsPlayer() && len(hiddenPlayerNames) > 0 {
-		details := rooms.GetDetails(room, users.GetByUserId(actor.GetUserId()))
-		details.VisiblePlayers = []string{}
-		for _, name := range hiddenPlayerNames {
-			details.VisiblePlayers = append(details.VisiblePlayers,
-				characters.FormattedName{Name: name, Type: "username", Suffix: "hidden"}.String())
-		}
-		text, _ := templates.Process("descriptions/who", details, actor.GetUserId())
-		actor.SendText(messaging.CategorySystem, text)
+		showFoundHiders(actor, room, hiddenPlayerNames, "username")
 	}
 
 	// ── Tier 2 (target 135): Hidden mobs ────────────────────────
@@ -281,20 +307,12 @@ func Search(actor Actor, opts SearchOptions) SearchResult {
 		if spotsHider(char, &m.Character, roomLight) {
 			result.HiddenMobsFound = append(result.HiddenMobsFound, mId)
 			if actor.IsPlayer() {
-				hiddenMobNames = append(hiddenMobNames,
-					m.Character.Name+` <ansi fg="black-bold">(hiding)</ansi>`)
+				hiddenMobNames = append(hiddenMobNames, m.Character.Name)
 			}
 		}
 	}
 	if actor.IsPlayer() && len(hiddenMobNames) > 0 {
-		details := rooms.GetDetails(room, users.GetByUserId(actor.GetUserId()))
-		details.VisibleMobs = []string{}
-		for _, name := range hiddenMobNames {
-			details.VisibleMobs = append(details.VisibleMobs,
-				characters.FormattedName{Name: name, Type: "mob", Suffix: "hidden"}.String())
-		}
-		text, _ := templates.Process("descriptions/who", details, actor.GetUserId())
-		actor.SendText(messaging.CategorySystem, text)
+		showFoundHiders(actor, room, hiddenMobNames, "mob")
 	}
 
 	// Owner ruling 10 (follow-up slice A): a player's find ends the hider's

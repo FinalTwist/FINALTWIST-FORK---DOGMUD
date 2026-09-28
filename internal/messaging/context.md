@@ -348,6 +348,10 @@ Functions:
   it, so a caller may pass formatted names through the seam without leaking
   "(dead)" or "(♥friend)". A match inside tag markup itself is never
   replaced.
+- `UnseenNoun(d SightDecision) string`: the word `HideNames` substitutes, "a
+  figure" at shapes and "something" otherwise. `UnseenFigure(d)` is the same
+  word in the `combat-anon` tag, for a list entry that stands alone; the room
+  roster (`rooms.GetDetails`), `scan` and `search`'s found-hider list use it.
 - `Normalize(cat Category, text string) string`
 - `Anonymize(text string) string`: the pipeline's infrared fallback for every
   visual line. Replaces each identity tag with "a figure" and takes the

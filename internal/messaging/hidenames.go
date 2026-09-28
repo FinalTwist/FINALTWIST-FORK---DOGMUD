@@ -23,6 +23,23 @@ var identityOpenTag = regexp.MustCompile(`^<ansi fg="(?:(?:username|mobname)(?:-
 // the closing tag.
 var identityCloseAfterName = regexp.MustCompile(`^(?: #\d+)?</ansi>`)
 
+// UnseenNoun is what a reader at d calls a party it cannot make out: "a
+// figure" at shapes, "something" otherwise. It is the one spelling HideNames
+// and the room roster (rooms.GetDetails) share. Meaningless at SightFull,
+// where the reader sees the name; callers only ask below it.
+func UnseenNoun(d SightDecision) string {
+	if d == SightShapes {
+		return "a figure"
+	}
+	return "something"
+}
+
+// UnseenFigure is UnseenNoun in the combat-anon color HideNames uses, for a
+// list entry that stands alone rather than inside a sentence.
+func UnseenFigure(d SightDecision) string {
+	return `<ansi fg="combat-anon">` + UnseenNoun(d) + `</ansi>`
+}
+
 // HideNames replaces each of names in text with what a reader who cannot make
 // that party out perceives: "a figure" when they see shapes only, "something"
 // when they see nothing. Clear sight returns text unchanged.
@@ -39,10 +56,7 @@ func HideNames(text string, names []string, d SightDecision) string {
 	if d == SightFull || text == "" {
 		return text
 	}
-	word := "something"
-	if d == SightShapes {
-		word = "a figure"
-	}
+	word := UnseenNoun(d)
 	ordered := make([]string, 0, len(names))
 	for _, n := range names {
 		if n != NoName {
