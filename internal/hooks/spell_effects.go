@@ -9,10 +9,12 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/position"
 	"github.com/GoMudEngine/GoMud/internal/targeting"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
@@ -160,6 +162,8 @@ func applySpellEffect(c spellEffectCtx) int {
 		return applySpellDamage(c)
 	case "dot":
 		return applySpellDot(c)
+	case "knockdown":
+		return applySpellKnockdown(c)
 	}
 	switch {
 	case c.targetMob() != nil:
@@ -302,6 +306,75 @@ func applySpellDot(c spellEffectCtx) int {
 			`%s's <ansi fg="cyan">%s</ansi> afflicts %s!`, casterName, c.spell.Name, targetName)),
 	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
 	return 0
+}
+
+// applySpellKnockdown is the one knockdown applier (slice 3a). The defence
+// scales the DAMAGE (a defended cast still lands a partial hit, a defensive
+// crit negates it), while the knockdown is binary and lands only on an
+// attack win: ExecuteSkillMove's Hit/StatusApplied split.
+func applySpellKnockdown(c spellEffectCtx) int {
+	tc := c.targetChar()
+	fresh := !tc.IsInCombat()
+	dmg := scaleSpellDamageByDefence(
+		calcSpellDamageForCharacter(c.spell, c.casterChar, tc, c.magnitude, c.out.AttackerCrit), c.out)
+	// Names are read before ApplyHarm and TransitionToSupine: a lethal hit
+	// adds the "dead" adjective to the target's own rendered name, and
+	// SendTrio's redaction must see the exact string the line prints.
+	casterName, targetName := c.casterName(), c.targetName()
+	if c.out.DefensiveCrit {
+		dmg = 0
+	} else {
+		tc.ApplyHarm(characters.PoolHealth, dmg, c.casterRef())
+		cancelDamageConditions(tc)
+		if dmg > 0 {
+			dispatchItemProcs("on_spell_hit", c.casterChar, tc, nil, dmg)
+		}
+	}
+	// Spell knockdowns put the target on its back (Supine); a target already
+	// grappled or down takes the damage but no knockdown is narrated.
+	knocked := false
+	if !c.out.Defended {
+		knocked = true
+		if err := tc.Position.TransitionToSupine(
+			position.SupineData{MinRecoveryRounds: 1},
+			state.TransitionReason{Trigger: position.TriggerKnockdownSpell},
+		); err != nil {
+			mudlog.Warn("applySpellKnockdown: TransitionToSupine failed", "target", c.targetRef(), "err", err)
+			knocked = false
+		}
+	}
+	commitHarmfulSpellAggro(c, fresh)
+	sendSpellChannelDefenceMessages(c.room, c.category(), c.out,
+		spellDefenceIdentity(c.casterChar, c.casterUser(), c.room),
+		spellDefenceIdentity(tc, c.targetUser(), c.room), c.spell.Name, c.casterUser(), c.targetUser())
+	if c.out.Defended {
+		return dmg // the triad above already narrated it; a defended cast never knocks down
+	}
+	dmgDesc := combat.GetDamageDescription(dmg, tc.HealthMax.Value)
+	if knocked {
+		messaging.SendTrio(messaging.Trio{
+			Actor: messaging.Say(c.category(), fmt.Sprintf(
+				`Your %s slams %s to the ground! (<ansi fg="damage">%s</ansi>)%s`,
+				c.spell.Name, targetName, dmgDesc, c.critTag())),
+			Actee: messaging.Say(c.category(), fmt.Sprintf(
+				`%s's <ansi fg="cyan">%s</ansi> slams you to the ground! (<ansi fg="damage">%s</ansi>)%s`,
+				casterName, c.spell.Name, dmgDesc, c.critTag())),
+			Observer: messaging.Say(c.category(), fmt.Sprintf(
+				`%s's <ansi fg="cyan">%s</ansi> knocks %s to the ground!`,
+				casterName, c.spell.Name, targetName)),
+		}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
+		return dmg
+	}
+	messaging.SendTrio(messaging.Trio{
+		Actor: messaging.Say(c.category(), fmt.Sprintf(
+			`Your %s strikes %s, but %s is already down. (<ansi fg="damage">%s</ansi>)%s`,
+			c.spell.Name, targetName, targetName, dmgDesc, c.critTag())),
+		Actee: messaging.Say(c.category(), fmt.Sprintf(
+			`%s's <ansi fg="cyan">%s</ansi> strikes you, but you're already down. (<ansi fg="damage">%s</ansi>)%s`,
+			casterName, c.spell.Name, dmgDesc, c.critTag())),
+		Observer: messaging.NoLine,
+	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
+	return dmg
 }
 
 // ── Test-only wrappers. Slice 3b's last task deletes them once no test
