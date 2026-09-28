@@ -1,0 +1,41 @@
+# Spell effects 3b: you are a stranger, NOT in the healer's party, with a
+# charmed pet of your own. Then you hex a townsperson in front of the
+# guards. You are a charmer starting on Main Street, Central (462). Quote
+# every line VERBATIM. 3 commands per round at most.
+ephemeral:
+  profile: charmer
+  start_room: 462
+  overlays:
+    grant_spells:
+      mind-fog: 1
+      neural-stun: 1
+  budgets:
+    wall_clock: 30m
+
+goals:
+  - >-
+    `look`, `spells`. Do not join any party. Go south, south, west, down,
+    down to Drainage Junction (486). `cast charm swarm` at the Tunnel Rat
+    Swarm and quote every line; retry if it resists. When it is yours, go
+    back up, up, east, north, north to 462 and write 'stranger-home'.
+  - >-
+    Stay in 462 with your rat swarm until the blackboard key 'mend-done'
+    exists (up to about 5 minutes). Quote every line you read when the
+    healer casts Mend All: you should be healed (you are a player in the
+    room) but your rat swarm should NOT be. Also quote what you read when
+    the healer casts Cleansing Wave. Say whether any line names your rat
+    swarm being healed or cleansed; that would be a finding.
+  - >-
+    Hex a citizen. Go west to Main Street, West (461) and look for the City
+    Beggar; the Gate Ward (460, one more west) holds a City Guard and a
+    Crossbowman. With a citizen and a guard both in the room (walk the
+    beggar's rooms, or wait for a guard), `cast mind-fog <citizen>` ONCE.
+    Quote every line, including the cast wait and the land or resist line.
+    Watch a few rounds and report what the guards do. Write 'hex-cast' with
+    the room number and the time. If mind-fog is resisted, try `cast
+    neural-stun <citizen>` once. Flee (`flee`) if the guards are close to
+    killing you.
+  - >-
+    reads-well: a line naming the wrong party, a line sent twice, a raw
+    number in player text, an em dash or " -- ", a line over 80 columns, or
+    Go error text is a finding. Report bluntly.

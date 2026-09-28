@@ -1,0 +1,30 @@
+# Spell effects 3b: a creature heals itself and its packmates by the same
+# rules a player does. You start in the Bandit Camp on the North Road
+# (4052) with Bandit Fighter, Bandit Caster and Soren. Quote every line
+# VERBATIM. 3 commands per round at most.
+ephemeral:
+  profile: specialist-caster
+  start_room: 4052
+  overlays:
+    grant_spells:
+      mind-spike: 1
+    grant_skills:
+      spellcasting: 30
+  budgets:
+    wall_clock: 30m
+
+goals:
+  - >-
+    `look`. Fight the bandits (`attack fighter`, then `cast mind-spike
+    fighter` or `cast mind-spike soren`) so that one of her packmates is
+    hurt; also hurt the Bandit Caster herself once. Step `east` to 4043 to
+    recover when needed (`cast heal` on yourself). Watch for the Bandit
+    Caster mending: quote every line that mentions her Mend Wounds (or any
+    healing light, restorative magic, or mending), and say who she healed.
+  - >-
+    Note whether any of her help spells ever lands on YOU. It should not:
+    a creature heals only itself and its packmates.
+  - >-
+    reads-well: a line naming the wrong party, a line sent twice, a raw
+    number in player text, an em dash or " -- ", a line over 80 columns, or
+    Go error text is a finding. Report bluntly.

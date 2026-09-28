@@ -1,0 +1,27 @@
+# Spell effects 3b: you are the healer's party member. You start on Main
+# Street, Central (462). Quote every line VERBATIM. 3 commands per round at
+# most.
+ephemeral:
+  profile: mid
+  start_room: 462
+  budgets:
+    wall_clock: 30m
+
+goals:
+  - >-
+    `look`, `who`. Write the blackboard key 'partner-ready' with your
+    character name. Wait for 'healer-invited', then `party accept` and write
+    'partner-accepted'. `party list` to confirm two members.
+  - >-
+    Stay on Main Street, Central (462). Do not follow the healer into the
+    alley. Wait for 'pet-home'.
+  - >-
+    When the healer casts Mend All, quote every line you read. Expected: the
+    healer's Mend All envelops you in healing energy, and room lines about
+    it reaching the thug and the stranger, but not the stranger's rat swarm.
+    Then quote what you read when the healer casts Conviction Ward on the
+    thug and Cleansing Wave.
+  - >-
+    reads-well: a line naming the wrong party, a line sent twice, a raw
+    number in player text, an em dash or " -- ", a line over 80 columns, or
+    Go error text is a finding. Report bluntly.

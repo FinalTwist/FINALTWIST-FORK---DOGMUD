@@ -1,0 +1,44 @@
+# Spell effects 3b: a healer's area heal reaches a party member, a pet and
+# a stranger, but not the stranger's pet. You are Bindsong, a charmer,
+# starting on Main Street, Central (462). Quote every line VERBATIM. 3
+# commands per round at most.
+ephemeral:
+  profile: charmer
+  start_room: 462
+  overlays:
+    grant_spells:
+      mend-all: 1
+      conviction-ward: 1
+      cleansing-wave: 1
+  budgets:
+    wall_clock: 30m
+
+goals:
+  - >-
+    `look`, `spells`. Wait for the blackboard key 'partner-ready' (it holds
+    your partner's character name). `party invite <that name>` and write
+    'healer-invited'. Wait for 'partner-accepted', then `party list`.
+  - >-
+    Go west then south to Back Alley, West (474) alone. `cast charm thug`
+    and quote every line. If it resists, try again. When it is yours,
+    return to 462 (north, east) and write 'pet-home'.
+  - >-
+    Wait for 'stranger-home' (the stranger and their charmed rat swarm are
+    in 462; give up waiting after about 5 minutes and carry on). With your
+    partner, the thug, the stranger and the rat swarm in the room (check
+    with `look`), `cast mend-all`. Quote EVERY line you read. Expected: one
+    line about the glow around you, one "You weave restorative magic
+    around" your partner, one around the thug and one around the stranger,
+    and NONE around the rat swarm. A missing line for the partner, the thug
+    or the stranger is a finding; a line for the rat swarm is a finding.
+    Write 'mend-done'.
+  - >-
+    `cast conviction-ward thug`, then `cast cleansing-wave`. Quote every
+    line. The ward should say a shimmering barrier forms around the thug;
+    the cleanse should name the thug and your partner, and not the rat
+    swarm. A line that only says "takes effect" is a finding. Write
+    'healer-done'.
+  - >-
+    reads-well: a line naming the wrong party, a line sent twice, a raw
+    number in player text, an em dash or " -- ", a line over 80 columns, or
+    Go error text is a finding. Report bluntly.
