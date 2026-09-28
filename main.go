@@ -9,7 +9,6 @@ import (
 	"path"
 	"runtime"
 	"runtime/debug"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -242,17 +241,9 @@ func main() {
 	//
 	mudlog.Info(`========================`)
 	//
-	cfgData := c.AllConfigData()
-	cfgKeys := make([]string, 0, len(cfgData))
-	for k := range cfgData {
-		cfgKeys = append(cfgKeys, k)
-	}
-
-	// sort the keys
-	slices.Sort(cfgKeys)
-	for _, k := range cfgKeys {
-		mudlog.Info("Config", "name", k, "value", cfgData[k])
-	}
+	logBootConfig(c, func(name string, value any) {
+		mudlog.Info("Config", "name", name, "value", value)
+	})
 	//
 	mudlog.Info(`========================`)
 
