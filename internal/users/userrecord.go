@@ -470,6 +470,20 @@ func (u *UserRecord) AddConditionMagnitude(conditionId int, triggers int, magnit
 	})
 }
 
+// AddConditionTickScaled queues a tick_pool condition whose per-round amount
+// is scaled by scale, computed where the condition lands
+// (Condition_ApplyConditions). A spell passes its caster's scale; 0 means
+// 1.0. The record's duration is the authored one.
+func (u *UserRecord) AddConditionTickScaled(conditionId int, scale float64, source string) {
+	events.AddToQueue(events.Condition{
+		UserId:      u.UserId,
+		ConditionId: conditionId,
+		Source:      source,
+		TickScale:   scale,
+		LifeEpoch:   u.lifeEpoch(),
+	})
+}
+
 // lifeEpoch is the epoch every queued condition is stamped with, so ApplyConditions can
 // refuse one aimed at a life the holder has since ended. A record with no
 // character stamps zero, which matches a fresh character.

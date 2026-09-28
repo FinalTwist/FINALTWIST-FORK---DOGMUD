@@ -30,6 +30,8 @@ var (
 	_ func(int, int, float64, string)       = (*users.UserRecord)(nil).AddConditionMagnitude
 	_ func(int, string)                     = (*mobs.Mob)(nil).AddCondition
 	_ func(int, int, float64, string)       = (*mobs.Mob)(nil).AddConditionMagnitude
+	_ func(int, float64, string)            = (*users.UserRecord)(nil).AddConditionTickScaled
+	_ func(int, float64, string)            = (*mobs.Mob)(nil).AddConditionTickScaled
 	_ func(int, string)                     = (*actions.UserActor)(nil).AddCondition
 	_ func(int, string)                     = (*actions.MobActor)(nil).AddCondition
 )
@@ -54,7 +56,11 @@ var (
 //	users.UserRecord.AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
 //	mobs.Mob.AddCondition(conditionId int, source string)
 //	mobs.Mob.AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
+//	users.UserRecord.AddConditionTickScaled / mobs.Mob.AddConditionTickScaled(conditionId int, scale float64, source string)
 //	actions.Actor.AddCondition(conditionId int, source string)   // UserActor + MobActor
+//
+// AddConditionTickScaled has no silent character-level twin, so the call
+// pattern below does not scan it: every call to it queues the event.
 //
 //	characters.Character.AddCondition(conditionId int, isPermanent bool)      // silent
 //	characters.Character.AddConditionScaled(conditionId int, durationMult float64) // silent
@@ -199,8 +205,10 @@ var conditionApplyPathAllowlist = map[string]string{
 	// so Condition_ApplyConditions runs and narrates the start ─────────────
 	// Re-keyed lighting plan 5c, when the hook became magnitudeSpellApplication
 	// and also scales nightvision and infra reach, and again when its formula
-	// moved to conditions.SpellScaledMagnitude.
-	"internal/hooks/light_spell.go|60": "light or sight spell at the caster's scaled magnitude and triggers: the EVENT door (users.UserRecord / mobs.Mob AddConditionMagnitude both queue events.Condition); listed only because arity cannot tell it from the silent character door",
+	// moved to conditions.SpellScaledMagnitude, and again when the
+	// spellConditionTarget interface gained AddConditionTickScaled (parity
+	// slice 2).
+	"internal/hooks/light_spell.go|63": "light or sight spell at the caster's scaled magnitude and triggers: the EVENT door (users.UserRecord / mobs.Mob AddConditionMagnitude both queue events.Condition); listed only because arity cannot tell it from the silent character door",
 
 	// ── magnitude potions (lighting plan 5c): the player's and the mob's drink
 	// each carried this call (usercommands/drink.go and mobcommands/drink.go)
