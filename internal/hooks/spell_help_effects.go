@@ -238,7 +238,7 @@ func applySpellPurge(c spellEffectCtx) int {
 		Actee: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
 			`<ansi fg="green">%s's %s purges the toxins from your body.</ansi>`, casterName, c.spell.Name)),
 		Observer: messaging.Say(messaging.CategorySpellVital, fmt.Sprintf(
-			`%s's <ansi fg="cyan">%s</ansi> cleanses %s.`, casterName, c.spell.Name, targetName)),
+			`%s's <ansi fg="cyan">%s</ansi> cleanses %s of afflictions.`, casterName, c.spell.Name, targetName)),
 	}, spellAudience(c.casterUser(), casterName, c.targetUser(), targetName, c.room))
 	return 0
 }

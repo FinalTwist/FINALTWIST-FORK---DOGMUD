@@ -203,7 +203,7 @@ func TestCrossCast_RoomLinesUnchanged(t *testing.T) {
 		roomLine string
 	}{
 		{&spells.SpellData{SpellId: "purge", Name: "Purge", EffectType: "purge"},
-			"Aliceia's Purge cleanses Bobrick."},
+			"Aliceia's Purge cleanses Bobrick of afflictions."},
 		{&spells.SpellData{SpellId: "heal", Name: "Heal", EffectType: "heal", EffectMagnitude: 3},
 			"Aliceia's Heal envelops Bobrick in healing light."},
 		{&spells.SpellData{SpellId: "bless", Name: "Bless", EffectType: "condition", ConditionIds: []int{100}},
