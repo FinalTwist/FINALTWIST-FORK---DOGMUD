@@ -197,8 +197,10 @@ var conditionApplyPathAllowlist = map[string]string{
 	// row DELETED by Task 6, when applyMobSelfEffect's switch was deleted
 	// and a mob's self-cast shield reached applySpellShield's row; re-keyed
 	// again Task 7, when spellHelpAreaTargets' mobs, parties and rooms
-	// imports shifted spell_help_effects.go) ────
-	"internal/hooks/spell_help_effects.go|191": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	// imports shifted spell_help_effects.go; re-keyed again 3b playtest fix,
+	// when the party rule moved to actions.HelpCharmAlly and the parties
+	// import left spell_help_effects.go) ────
+	"internal/hooks/spell_help_effects.go|190": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
 	// ── former combat condition: Regenerating is now one record (Task 7;
 	// re-keyed slice 1b, same shift as above; re-keyed again Task 10 and
@@ -220,8 +222,9 @@ var conditionApplyPathAllowlist = map[string]string{
 	// spell_resolution.go; re-keyed again Task 5, same deletion as above;
 	// the MS row DELETED by Task 6, same deletion as above, a mob's
 	// self-cast heal now reaching applySpellHeal's row; re-keyed again
-	// Task 7, same import shift as above) ───────
-	"internal/hooks/spell_help_effects.go|142": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	// Task 7, same import shift as above; re-keyed again 3b playtest fix,
+	// same import shift as above) ───────
+	"internal/hooks/spell_help_effects.go|141": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":       "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|55":       "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 

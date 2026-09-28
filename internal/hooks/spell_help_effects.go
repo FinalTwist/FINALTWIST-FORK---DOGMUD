@@ -10,7 +10,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
-	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
 
@@ -290,7 +289,8 @@ func applySpellDefaultEffect(c spellEffectCtx) int {
 //
 // A player caster, or a mob charmed by a player, stands on that player's
 // side: every player in the room, plus every mob charmed by that player or
-// by any member of that player's party (helpAreaCharmAlly), so a party
+// by any member of that player's party (actions.HelpCharmAlly, the rule
+// single-target help uses too), so a party
 // member's companion is healed and a stranger's pet or an enemy is not. The
 // AI companion is charmed to its owner permanently
 // (modules/aicompanion/commands.go, Charm(owner.UserId, -1, ...)), so it
@@ -318,24 +318,9 @@ func spellHelpAreaTargets(caster actions.Actor, room *rooms.Room) (userIds []int
 		if self != nil && mId == self.InstanceId {
 			continue
 		}
-		if m := mobs.GetInstance(mId); m != nil && helpAreaCharmAlly(m, sideUserId) {
+		if m := mobs.GetInstance(mId); m != nil && actions.HelpCharmAlly(m, sideUserId) {
 			mobIds = append(mobIds, mId)
 		}
 	}
 	return userIds, mobIds
-}
-
-// helpAreaCharmAlly reports whether m is charmed by sideUserId or by a member
-// of sideUserId's party (owner ruling, 2026-09-28). parties.Get also returns
-// the party of an invitee, so the side must be a member itself.
-func helpAreaCharmAlly(m *mobs.Mob, sideUserId int) bool {
-	charmer := m.Character.GetCharmedUserId()
-	if charmer == 0 {
-		return false
-	}
-	if charmer == sideUserId {
-		return true
-	}
-	p := parties.Get(sideUserId)
-	return p != nil && p.IsMember(sideUserId) && p.IsMember(charmer)
 }

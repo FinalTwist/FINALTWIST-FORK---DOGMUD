@@ -248,8 +248,9 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 				if pId > 0 {
 					targetUserIds = append(targetUserIds, pId)
 				} else if mId > 0 {
-					// Allow targeting companions with help spells
-					if m := mobs.GetInstance(mId); m != nil && m.Character.IsCharmed(actor.GetUserId()) {
+					// A mob is a help target when it is on the caster's side:
+					// the one rule area help uses too (HelpCharmAlly).
+					if m := mobs.GetInstance(mId); m != nil && helpSingleMobAllowed(actor, m) {
 						targetMobInstanceIds = append(targetMobInstanceIds, mId)
 					} else {
 						return CastResult{SpellInfo: spellInfo, NoTarget: true}
@@ -261,13 +262,24 @@ func InitiateCast(actor Actor, spellName, targetName string) CastResult {
 				targetUserIds = append(targetUserIds, actor.GetUserId()) // default to self
 			}
 		} else {
-			// Mob HelpSingle: named target or self.
+			// Mob HelpSingle: named target on the caster's side, or self. A
+			// charmed mob stands on its owner's side, so any player and the
+			// party's companions; an uncharmed mob helps mobs on no player's
+			// side and no player (helpSingleMobAllowed). A refused target is
+			// NoTarget, as the player branch answers.
 			if targetName != `` {
 				pId, mId := room.FindByNameSeenBy(castViewer(actor), targetName)
 				if pId > 0 {
+					if actor.GetCharacter().GetCharmedUserId() == 0 {
+						return CastResult{SpellInfo: spellInfo, NoTarget: true}
+					}
 					targetUserIds = append(targetUserIds, pId)
 				} else if mId > 0 {
-					targetMobInstanceIds = append(targetMobInstanceIds, mId)
+					if m := mobs.GetInstance(mId); m != nil && helpSingleMobAllowed(actor, m) {
+						targetMobInstanceIds = append(targetMobInstanceIds, mId)
+					} else {
+						return CastResult{SpellInfo: spellInfo, NoTarget: true}
+					}
 				}
 			} else {
 				targetMobInstanceIds = append(targetMobInstanceIds, actor.GetMobInstanceId())
@@ -439,6 +451,44 @@ func rejectHarmTarget(actor Actor, mobInstanceId int) bool {
 	}
 
 	return false
+}
+
+// HelpCharmAlly reports whether m is charmed by sideUserId or by a member of
+// sideUserId's party (owner ruling, 2026-09-28): the companions a helpful
+// spell cast from sideUserId's side may land on. It is the one rule for
+// single-target help (helpSingleMobAllowed, here) and for area help
+// (hooks.spellHelpAreaTargets). parties.Get also returns the party of an
+// invitee, so the side must be a member itself.
+func HelpCharmAlly(m *mobs.Mob, sideUserId int) bool {
+	charmer := m.Character.GetCharmedUserId()
+	if charmer == 0 {
+		return false
+	}
+	if charmer == sideUserId {
+		return true
+	}
+	p := parties.Get(sideUserId)
+	return p != nil && p.IsMember(sideUserId) && p.IsMember(charmer)
+}
+
+// helpSingleMobAllowed reports whether a single-target help spell from actor
+// may land on the mob m, by the side area help uses. A player, or a mob
+// charmed by a player, stands on that player's side (HelpCharmAlly). A
+// mob may always help itself. An uncharmed mob helps mobs on no player's
+// side: its packmates, and a boss add's named boss (the Repair Frame heals
+// Warden-Prime by name, which is not a packmate).
+func helpSingleMobAllowed(actor Actor, m *mobs.Mob) bool {
+	sideUserId := actor.GetUserId()
+	if !actor.IsPlayer() {
+		if m.InstanceId == actor.GetMobInstanceId() {
+			return true
+		}
+		sideUserId = actor.GetCharacter().GetCharmedUserId()
+		if sideUserId == 0 {
+			return m.Character.GetCharmedUserId() == 0
+		}
+	}
+	return HelpCharmAlly(m, sideUserId)
 }
 
 // resolvePlayerAggroTarget returns the player's current aggro target, falling

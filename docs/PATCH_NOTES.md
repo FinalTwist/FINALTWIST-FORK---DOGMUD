@@ -8,7 +8,9 @@ never turned aside the way an attack can be, and a creature can shield
 one of your allies too.
 
 Your area heals now reach your whole party's companions, a bonded
-companion included, and no longer patch up a stranger's pet. A shield
+companion included, and no longer patch up a stranger's pet. You can
+also cast a healing or warding spell on a party member's companion, not
+only your own. A shield
 cast on your pet now holds, and a cleansing spell now purges poison
 from a companion too.
 

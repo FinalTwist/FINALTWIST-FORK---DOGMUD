@@ -9,7 +9,8 @@
 # Mechanism verified by reading the mob-spell resolution code
 # (internal/hooks/spell_resolution.go): a mob HelpSingle cast with a
 # named target resolves via room.FindByName into TargetMobInstanceIds
-# (internal/actions/cast.go "Mob HelpSingle: named target or self"),
+# (internal/actions/cast.go "Mob HelpSingle"; an uncharmed mob may help
+# any mob charmed by no one, so the bosses need not be its packmates),
 # and resolveMobSpellAgainstMob dispatches non-self mob targets through
 # the effect dispatcher (applySpellEffect, internal/hooks/spell_effects.go),
 # whose heal applier serves every caster and target. A help spell resolves

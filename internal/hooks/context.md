@@ -1942,8 +1942,9 @@ is the analytics seam over `combat.RecordSpell`, swapped by tests the way
 `spellHelpAreaTargets` fills an area help spell's targets for both caster
 kinds, replacing what the cast's initiation step put there. A player, or a
 mob charmed by one, helps every player in the room and every mob charmed by
-that player or by a member of that player's party (`helpAreaCharmAlly`,
-`parties.Get(...).IsMember`), so the party's companions, the bonded AI
+that player or by a member of that player's party (`actions.HelpCharmAlly`,
+the rule single-target help in `actions.InitiateCast` also calls), so the
+party's companions, the bonded AI
 companion included, are healed and a stranger's pet is not. An uncharmed
 mob helps itself and its `mobs.FindPackmatesInRoom` packmates, the rule its
 behaviour tree's `cast_best_in_category` uses to pick whom to heal, and no
