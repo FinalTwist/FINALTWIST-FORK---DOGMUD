@@ -24,9 +24,10 @@ import (
 //     internal/web/template_func.go's funcMap on 2026-09-28: getconfig is
 //     the only entry returning configs.Config; none returns Modules
 //     directly. This limit stays live if one is added later.
-//   - Template scope rebinding ({{ with .CONFIG }}{{ .Modules }}{{ end }})
-//     drops the ".CONFIG" prefix inside the block; a text/regex scan cannot
-//     follow text/template's dot rebinding. No shipped template does this.
+//   - Not a limit, named because it looks like one: template scope
+//     rebinding ({{ with .CONFIG }}{{ .Modules }}{{ end }}) is caught,
+//     because "with .CONFIG" puts ".CONFIG" before a space rather than a
+//     field selector, which the bare ".CONFIG" rule flags.
 //   - Not a real route, named for completeness: a typed sub-section cannot
 //     reach Modules by way of a captured variable ($s := .CONFIG.Server;
 //     $s.Modules) because Modules is a field of Config itself, not of any
