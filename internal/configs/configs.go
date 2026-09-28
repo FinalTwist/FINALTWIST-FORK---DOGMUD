@@ -396,6 +396,10 @@ func setVal(propertyPath string, newVal string, operator bool) error {
 		return fmt.Errorf(`%w: %s`, ErrLockedConfig, propertyPath)
 	}
 
+	if newVal == RedactedValue {
+		return fmt.Errorf(`%w: %s`, ErrRedactedValue, propertyPath)
+	}
+
 	if propertyType == `` {
 		return errors.New(`invalid property name: ` + propertyPath)
 	}
