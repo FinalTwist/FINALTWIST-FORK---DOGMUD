@@ -182,7 +182,8 @@ var conditionApplyPathAllowlist = map[string]string{
 	// spell effects 3a Task 4 when the three knockdown arms moved into
 	// applySpellKnockdown; re-keyed again spell effects 3a Task 5 when the
 	// resolvers' backfire, interrupt and record blocks moved into
-	// spell_effects.go) ───────────────────────────────────────────────────
+	// spell_effects.go; re-keyed again parity slice 3a Task 7 when the
+	// one-contest guard began parsing spell_effects.go too) ───────────────────────────────────────────────────
 	"internal/hooks/spell_resolution.go|924":  "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 	"internal/hooks/spell_resolution.go|1229": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
@@ -194,8 +195,9 @@ var conditionApplyPathAllowlist = map[string]string{
 	// re-keyed again parity slice 2, same deletion as above; re-keyed again
 	// spell effects 3a Task 1 and Task 2, same shifts as above; re-keyed
 	// again spell effects 3a Task 4, same shift as above; re-keyed again
-	// spell effects 3a Task 5, same shift as above) ─────────────────────────
-	"internal/hooks/spell_resolution.go|631":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	// spell effects 3a Task 5, same shift as above; re-keyed again parity
+	// slice 3a Task 7, same guard widening as above) ─────────────────────────
+	"internal/hooks/spell_resolution.go|631": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/hooks/spell_resolution.go|825":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/hooks/spell_resolution.go|1207": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
@@ -213,8 +215,9 @@ var conditionApplyPathAllowlist = map[string]string{
 	// by spell effects 3a Task 3, when applySpellDot replaced the PM/MM and
 	// MP dot arms and PP gained the dot; re-keyed again spell effects 3a
 	// Task 4 when applySpellKnockdown's new imports shifted spell_effects.go,
-	// and Task 5 when the configs and util imports did) ─────────────────────
-	"internal/hooks/spell_effects.go|297": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	// and Task 5 when the configs and util imports did; re-keyed again parity
+	// slice 3a Task 7, same guard widening as above) ─────────────────────
+	"internal/hooks/spell_effects.go|297":"former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 
 	// ── light spells (lighting plan 5a): an EVENT door, not the silent
 	// character door. applySpellCondition's target is a spellConditionTarget,
