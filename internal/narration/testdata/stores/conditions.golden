@@ -20,7 +20,7 @@ condition|1|end_observer => The glow surrounding Aliceia fades away.
 condition|2|start_actee => <ansi fg="yellow">You are stunned! You cannot attack.</ansi>
 condition|2|start_observer => Aliceia staggers, dazed!
 condition|2|end_actee => <ansi fg="green">You shake off the stun.</ansi>
-condition|3|start_actee => <ansi fg="yellow">Your vision goes dark — you have been blinded!</ansi>
+condition|3|start_actee => <ansi fg="yellow">Your vision goes dark. You have been blinded!</ansi>
 condition|3|start_observer => Aliceia claws at their eyes, blinded!
 condition|3|end_actee => <ansi fg="green">Your vision slowly returns to normal.</ansi>
 condition|5|start_actee => The compress warms against your skin as the herbs do their work.
@@ -198,25 +198,25 @@ condition|94|start_actee => The air over the buried surface crawls, and a cold s
 condition|94|start_observer => <ansi fg="username">Aliceia</ansi> jerks as the ground arcs against them.
 condition|94|trigger_actee => A cold arc bites up through you.
 condition|94|trigger_observer => <ansi fg="username">Aliceia</ansi> shudders as the ground arcs against them.
-condition|94|end_actee => The stinging in your bones fades — for now.
+condition|94|end_actee => The stinging in your bones fades, for now.
 condition|95|start_actee => The buried place presses your gift down and holds it.
 condition|95|end_actee => The pressure lifts and your gift stirs awake again.
 condition|96|start_actee => The dead metal wakes just enough to hate you, and a hard arc slams up through your bones.
 condition|96|start_observer => <ansi fg="username">Aliceia</ansi> convulses as the dead metal arcs against them.
 condition|96|trigger_actee => A savage arc bites up through you.
 condition|96|trigger_observer => <ansi fg="username">Aliceia</ansi> shudders as the dead metal arcs against them.
-condition|96|end_actee => The arcing fades — for now.
+condition|96|end_actee => The arcing fades, for now.
 condition|97|start_actee => Something you crossed was still armed. A ward discharges in a white lash and the pain arrives a half-beat later.
 condition|97|start_observer => <ansi fg="username">Aliceia</ansi> trips a dormant ward and the corridor flares white.
 condition|97|trigger_actee => The ward's charge crawls through you again.
 condition|97|trigger_observer => <ansi fg="username">Aliceia</ansi> spasms as the ward's charge finds them.
 condition|97|end_actee => The seared feeling dulls.
-condition|98|start_actee => The treads pulse — the world slows around your stride.
+condition|98|start_actee => The treads pulse, and the world slows around your stride.
 condition|98|end_actee => Your stride settles back to mortal pace.
 condition|100|start_actee => The world goes red. Something in you comes off its chain.
 condition|100|start_observer => <ansi fg="username">Aliceia</ansi>'s eyes go wide and bloodshot, and a low snarl builds in their throat.
 condition|100|end_actee => The red haze recedes, and your limbs sag with the ebb of it.
-condition|101|start_actee => You stand a little taller — someone at your side is worth following.
+condition|101|start_actee => You stand a little taller. Someone at your side is worth following.
 condition|101|end_actee => The steadying presence fades, and the fight feels lonelier.
 condition|102|start_actee => A grinding dissonance fills your skull and your aim wanders.
 condition|102|start_observer => <ansi fg="username">Aliceia</ansi> shudders as a grinding resonance sets their teeth on edge.
@@ -252,9 +252,9 @@ condition|112|start_actee => Silk and dissonance drag at your limbs and your foc
 condition|112|start_observer => Aliceia slows, snared and reeling in a smothering field of silk and dissonance.
 condition|112|end_actee => The field thins and your limbs move freely again.
 condition|112|end_observer => The smothering field around <ansi fg="username">Aliceia</ansi> thins and lifts.
-condition|113|start_actee => A radiant presence blazes at your side — you feel lifted beyond yourself.
+condition|113|start_actee => A radiant presence blazes at your side. You feel lifted beyond yourself.
 condition|113|end_actee => The radiant presence dims, and you settle back into yourself.
-condition|114|start_actee => A cold, watching malice settles over you — your aim wavers and your guard sags.
+condition|114|start_actee => A cold, watching malice settles over you. Your aim wavers and your guard sags.
 condition|114|start_observer => Aliceia falters under an unseen, baleful gaze.
 condition|114|end_actee => The watching malice lifts, and your focus returns.
 condition|115|start_actee => Ragged claw-wounds tear open across you, bleeding freely!

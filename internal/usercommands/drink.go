@@ -337,9 +337,11 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	// cannot pay a toxicity price for the thing that removes toxicity.
 	if itemSpec.ItemId == purgingDraughtItemId {
 		applyPurgeEffects(user)
-		user.SendText(messaging.CategoryWarning,
+		// Warning is not a category the pipeline wraps (messaging.shouldWrap),
+		// so the line is wrapped here, the way this package wraps prose.
+		user.SendText(messaging.CategoryWarning, util.SplitStringNL(
 			`The draught tears through you. Every trace of potion work is `+
-				`scoured out, and you are left shaking and hollow.`)
+				`scoured out, and you are left shaking and hollow.`, 80))
 	}
 
 	// ── Bloom Wafer special-case ──────────────────────────────────────────────
