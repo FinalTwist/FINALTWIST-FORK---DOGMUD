@@ -165,7 +165,9 @@ func Drink(actor DrinkActor, rest string) DrinkResult {
 
 	// The room line names a player in the username colour and excludes them
 	// (they read their own line); a mob is named in the mob colour and the
-	// line goes to everyone, as the mob path always sent it.
+	// line goes to everyone, as the mob path always sent it. Both room lines
+	// go out through SendTextVisualHidingNames with the drinker's name, so an
+	// observer at shapes reads "a figure" even if the name ever loses its tag.
 	nameColor := `mobname`
 	var roomExclude []int
 	if actor.IsPlayer() {
@@ -251,9 +253,9 @@ func Drink(actor DrinkActor, rest string) DrinkResult {
 		actor.SendText(messaging.CategorySystem,
 			`<ansi fg="red">The potion has gone bad! You retch as the foul liquid burns your throat.</ansi>`)
 		if room != nil {
-			room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(
+			room.SendTextVisualHidingNames(messaging.CategoryMobEmote, fmt.Sprintf(
 				`<ansi fg="%s">%s</ansi> drinks something and immediately gags.`,
-				nameColor, char.Name), roomExclude...)
+				nameColor, char.Name), []string{char.Name}, roomExclude...)
 		}
 
 		// Apply nausea harmful condition (condition 75) through the event, so the holder reads
@@ -313,9 +315,9 @@ func Drink(actor DrinkActor, rest string) DrinkResult {
 	actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 		`You drink the <ansi fg="itemname">%s</ansi>.`, matchItem.DisplayName()))
 	if room != nil {
-		room.SendTextVisual(messaging.CategoryMobEmote, fmt.Sprintf(
+		room.SendTextVisualHidingNames(messaging.CategoryMobEmote, fmt.Sprintf(
 			`<ansi fg="%s">%s</ansi> drinks <ansi fg="itemname">%s</ansi>.`,
-			nameColor, char.Name, matchItem.DisplayName()), roomExclude...)
+			nameColor, char.Name, matchItem.DisplayName()), []string{char.Name}, roomExclude...)
 	}
 
 	// Aging quality message
