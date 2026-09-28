@@ -1,5 +1,13 @@
 # DOGMud Patch Notes
 
+## 2026-09-28: Healing over time trusts the caster from the first cast
+
+A healing spell that mends you gradually now draws on the caster's skill
+and focus from the very first cast, not only when it is renewed. This
+also applies to creatures: a companion or other creature's own healing
+spell over time works the same way, including one such a creature casts
+on you.
+
 ## 2026-09-28: Everyone drinks by the same rules
 
 Companions and other creatures now drink potions by the same rules as

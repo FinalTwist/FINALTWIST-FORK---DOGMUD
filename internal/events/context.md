@@ -594,5 +594,17 @@ player, and `DrainQueuedMobConditionsForTest(mobInstanceId)` is its mob twin
 (drink path unification), matching on `MobInstanceId`. Zero drains every
 queued `Condition` event in either.
 
+`Condition` (`eventtypes.go`) carries `TickScale float64` (tick amount at
+apply, 2026-09-28) alongside `Magnitude`/`Triggers` and `DurationMult`: it
+scales a `tick_pool` condition's per-round amount, computed where the
+condition lands rather than snapshotted by its producer. Zero means 1.0.
+`users.UserRecord.AddConditionTickScaled` and `mobs.Mob.AddConditionTickScaled`
+are the only producers that set it, queuing it for `hooks.ApplyConditions`
+to read; `hooks.spellTickScale(caster)` is the one caster formula a spell
+passes through them, so a heal- or damage-over-time spell scales with the
+caster's skill and gear on the very first cast, not only on a recast.
+Potions and hazards queue `Condition` with no `TickScale`, so their tick
+amount computes at the fallback scale of 1.0.
+
 This is the synchronous engine bus. `internal/worldevents` is a separate,
 passive record of notable happenings — do not confuse the two.

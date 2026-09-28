@@ -113,6 +113,17 @@ shapes tier reads "a figure", one who sees nothing reads nothing, and a player
 drinker is excluded from their own line (`drink_room_line_sight_test.go`).
 `drink_parity_test.go` holds the player and mob parity table.
 
+`Drink` no longer snapshots a `tick_pool` condition's per-round amount (tick
+amount at apply, 2026-09-28): the old `ComputeTickAmount(...)` /
+`Conditions.SetTickAmount(...)` block after `AddConditionScaled` is gone.
+`AddConditionScaled` still queues `events.Condition` with no `TickScale`, so
+`hooks.setTickAmountAtApply` (`Condition_ApplyConditions`) computes the
+amount where the record lands, at the fallback scale of 1.0 — a potion has
+no caster to scale by. `DrinkActor` does not need
+`AddConditionTickScaled`: a drink's tick amount was already scale-1.0 before
+this slice, so nothing about a potion's strength changed, only where the
+number is computed.
+
 ---
 
 ## Combat Actions

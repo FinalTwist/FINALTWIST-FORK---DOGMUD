@@ -355,29 +355,9 @@ func Drink(actor DrinkActor, rest string) DrinkResult {
 		} else {
 			actor.AddConditionScaled(conditionId, durationMult, `drink`)
 		}
-		// Compute tick snapshot for config-driven conditions (no stat scaling for
-		// potions). SetTickAmount below is live on a RE-drink, where the condition is
-		// still held and its index hits; it is a no-op only on the first
-		// application, because the apply above is queued and the condition is not in
-		// the list yet. Either way the amount is the same: both round ticks
-		// (fillZeroTickAmount) recompute a tick_pool condition whose TickAmount is
-		// still 0 with the same scalingMult of 1.0, and of the three tick_pool
-		// conditions a drinkable can apply (5, 7, 47) none declares tick_variance, so
-		// the recomputation is deterministic, while no tick_pool condition carries a
-		// max-pool statmod, so it reads the same pool.
-		if conditionSpec != nil && conditionSpec.TickPool != "" {
-			var maxPool int
-			switch conditionSpec.TickPool {
-			case "health":
-				maxPool = char.HealthMax.Value
-			case "stamina":
-				maxPool = char.StaminaMax.Value
-			case "conviction":
-				maxPool = char.ConvictionMax.Value
-			}
-			tickAmt := conditions.ComputeTickAmount(maxPool, conditionSpec.TickPercent, conditionSpec.TickVariance, conditionSpec.TickMin, 1.0)
-			char.Conditions.SetTickAmount(conditionId, tickAmt)
-		}
+		// No tick snapshot here: a tick_pool condition's per-round amount is
+		// computed where it lands (Condition_ApplyConditions), at scale 1.0
+		// for a potion, which passes none.
 	}
 
 	// ── Ysolde's Purge special-case ──────────────────────────────────────────

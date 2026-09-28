@@ -898,6 +898,18 @@ func (m *Mob) AddConditionMagnitude(conditionId int, triggers int, magnitude flo
 	})
 }
 
+// AddConditionTickScaled queues a tick_pool condition whose per-round amount
+// is scaled by scale, the mob twin of UserRecord.AddConditionTickScaled.
+func (m *Mob) AddConditionTickScaled(conditionId int, scale float64, source string) {
+	events.AddToQueue(events.Condition{
+		MobInstanceId: m.InstanceId,
+		ConditionId:   conditionId,
+		Source:        source,
+		TickScale:     scale,
+		LifeEpoch:     m.Character.LifeEpoch,
+	})
+}
+
 func (m *Mob) PlayerAttacked(userId int) {
 	if m.playersAttacked == nil {
 		m.playersAttacked = map[int]struct{}{}

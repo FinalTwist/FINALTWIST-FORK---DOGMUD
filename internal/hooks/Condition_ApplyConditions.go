@@ -110,6 +110,11 @@ func ApplyConditions(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
+	// A tick_pool condition's per-round amount is computed here, where the
+	// record now exists, on a fresh application and a refresh alike, at the
+	// applier's scale (a spell's caster scale; 0, meaning 1.0, for the rest).
+	setTickAmountAtApply(targetChar, conditionInfo, evt.ConditionId, evt.TickScale)
+
 	//
 	// Send the start notice (authored, or the generic line; a secret condition is
 	// silent) only on first application, not on refresh.

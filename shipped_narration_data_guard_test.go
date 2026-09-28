@@ -960,7 +960,7 @@ var observerIdentityGuardRoots = []string{
 //	                                    internal/conditions/narration.go:45-50),
 //	                                    and all three phases pass that same
 //	                                    holder plain name to HideNames: start
-//	                                    Condition_ApplyConditions.go:170,
+//	                                    Condition_ApplyConditions.go:175,
 //	                                    trigger NewRound_UserRoundTick.go:302
 //	                                    and NewRound_MobRoundTick.go:287, end
 //	                                    sendConditionEndRoomText
@@ -1015,7 +1015,7 @@ var observerIdentityGuardContentSafeViaCode = map[string]bool{
 	"defense-messages/counter-quell.yaml": true,
 	"defense-messages/counter-defy.yaml":  true,
 	// Conditions: all three narration phases pass the holder's plain name
-	// into HideNames (start Condition_ApplyConditions.go:170, trigger
+	// into HideNames (start Condition_ApplyConditions.go:175, trigger
 	// NewRound_UserRoundTick.go:302 and NewRound_MobRoundTick.go:287, end
 	// sendConditionEndRoomText). Applies to the store's every
 	// name-referencing observer line, not only the ones that author a

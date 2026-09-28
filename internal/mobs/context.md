@@ -903,6 +903,16 @@ func (m *Mob) AddConditionMagnitude(conditionId int, triggers int, magnitude flo
 // authored duration. actions.Drink reaches it through MobActor.
 func (m *Mob) AddConditionScaled(conditionId int, durationMult float64, source string)
 
+// AddConditionTickScaled (tick amount at apply, 2026-09-28) is the mob twin
+// of UserRecord.AddConditionTickScaled: it queues events.Condition with
+// TickScale and the mob's LifeEpoch. hooks.applySpellCondition reaches it
+// for a spell condition whose spec has a TickPool, passing the caster's
+// spellTickScale; Condition_ApplyConditions computes the per-round amount
+// from it where the record lands (hooks.setTickAmountAtApply), so a mob
+// caster's heal- or damage-over-time scales with skill and gear exactly
+// like a player caster's, on the first cast, not only on a recast.
+func (m *Mob) AddConditionTickScaled(conditionId int, scale float64, source string)
+
 // Command execution through Input events
 // All mob commands go through the same event system as player commands
 ```

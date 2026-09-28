@@ -30,6 +30,8 @@ var (
 	_ func(int, int, float64, string)       = (*users.UserRecord)(nil).AddConditionMagnitude
 	_ func(int, string)                     = (*mobs.Mob)(nil).AddCondition
 	_ func(int, int, float64, string)       = (*mobs.Mob)(nil).AddConditionMagnitude
+	_ func(int, float64, string)            = (*users.UserRecord)(nil).AddConditionTickScaled
+	_ func(int, float64, string)            = (*mobs.Mob)(nil).AddConditionTickScaled
 	_ func(int, string)                     = (*actions.UserActor)(nil).AddCondition
 	_ func(int, string)                     = (*actions.MobActor)(nil).AddCondition
 )
@@ -54,7 +56,11 @@ var (
 //	users.UserRecord.AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
 //	mobs.Mob.AddCondition(conditionId int, source string)
 //	mobs.Mob.AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
+//	users.UserRecord.AddConditionTickScaled / mobs.Mob.AddConditionTickScaled(conditionId int, scale float64, source string)
 //	actions.Actor.AddCondition(conditionId int, source string)   // UserActor + MobActor
+//
+// AddConditionTickScaled has no silent character-level twin, so the call
+// pattern below does not scan it: every call to it queues the event.
 //
 //	characters.Character.AddCondition(conditionId int, isPermanent bool)      // silent
 //	characters.Character.AddConditionScaled(conditionId int, durationMult float64) // silent
@@ -167,18 +173,21 @@ var conditionApplyPathAllowlist = map[string]string{
 	// dispatch loop was deleted; re-keyed again messaging M4d Task 6 when the
 	// default case's self-cast line moved onto SendTrio and grew a comment;
 	// re-keyed again messaging M4d PR 3 Task 3 when the purge/heal/condition
-	// self-cast branches above the shield case moved onto SendTrio) ────────
-	"internal/hooks/spell_resolution.go|1228": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
-	"internal/hooks/spell_resolution.go|1540": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	// self-cast branches above the shield case moved onto SendTrio;
+	// re-keyed again parity slice 2 when the post-queue tick snapshot blocks
+	// and the mutations import were deleted) ────────────────────────────────
+	"internal/hooks/spell_resolution.go|1179": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	"internal/hooks/spell_resolution.go|1474": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
 	// ── former combat condition: Regenerating is now one record (Task 7;
 	// re-keyed slice 1b, same shift as above; re-keyed again Task 10 and
 	// Task 10's follow-up; re-keyed again counters slice Task 3, same
 	// deletion as above; re-keyed again messaging M4d Task 6, same shift as
-	// above; re-keyed again messaging M4d PR 3 Task 3, same shift as above) ─
-	"internal/hooks/spell_resolution.go|871":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1106": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1501": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	// above; re-keyed again messaging M4d PR 3 Task 3, same shift as above;
+	// re-keyed again parity slice 2, same deletion as above) ───────────────
+	"internal/hooks/spell_resolution.go|845":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1080": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1452": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|55":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 
@@ -187,9 +196,10 @@ var conditionApplyPathAllowlist = map[string]string{
 	// Task 10 and Task 10's follow-up; re-keyed again counters slice
 	// Task 3, same deletion as above; re-keyed again messaging M4d Task 6,
 	// same shift as above; re-keyed again messaging M4d PR 3 Task 3, same
-	// shift as above) ──────────────────────────────────────────────────────
-	"internal/hooks/spell_resolution.go|667":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
-	"internal/hooks/spell_resolution.go|1683": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	// shift as above; re-keyed again parity slice 2, same deletion as
+	// above) ───────────────────────────────────────────────────────────────
+	"internal/hooks/spell_resolution.go|666":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	"internal/hooks/spell_resolution.go|1617": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 
 	// ── light spells (lighting plan 5a): an EVENT door, not the silent
 	// character door. applySpellCondition's target is a spellConditionTarget,
@@ -199,8 +209,10 @@ var conditionApplyPathAllowlist = map[string]string{
 	// so Condition_ApplyConditions runs and narrates the start ─────────────
 	// Re-keyed lighting plan 5c, when the hook became magnitudeSpellApplication
 	// and also scales nightvision and infra reach, and again when its formula
-	// moved to conditions.SpellScaledMagnitude.
-	"internal/hooks/light_spell.go|60": "light or sight spell at the caster's scaled magnitude and triggers: the EVENT door (users.UserRecord / mobs.Mob AddConditionMagnitude both queue events.Condition); listed only because arity cannot tell it from the silent character door",
+	// moved to conditions.SpellScaledMagnitude, and again when the
+	// spellConditionTarget interface gained AddConditionTickScaled (parity
+	// slice 2).
+	"internal/hooks/light_spell.go|63": "light or sight spell at the caster's scaled magnitude and triggers: the EVENT door (users.UserRecord / mobs.Mob AddConditionMagnitude both queue events.Condition); listed only because arity cannot tell it from the silent character door",
 
 	// ── magnitude potions (lighting plan 5c): the player's and the mob's drink
 	// each carried this call (usercommands/drink.go and mobcommands/drink.go)

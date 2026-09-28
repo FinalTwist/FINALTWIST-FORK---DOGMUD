@@ -16,7 +16,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
-	"github.com/GoMudEngine/GoMud/internal/mutations"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/spells"
@@ -785,31 +784,6 @@ func applyMobEffect_condition(
 	}
 	for _, conditionId := range spellData.ConditionIds {
 		applySpellCondition(mob, spellData, casterChar, conditionId)
-		// Compute tick snapshot for config-driven conditions
-		if user != nil {
-			if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil && conditionSpec.TickPool != "" {
-				skillLevel := user.Character.GetSkillLevel(skills.Spellcasting)
-				scalingMult := combat.SkillMultiplier(skillLevel)
-				// Apply weapon spell damage multiplier if equipped, scaled
-				// by gear-effectiveness for incorporeal casters.
-				if user.Character.Equipment.Weapon.ItemId > 0 {
-					if weaponSpec := items.GetItemSpec(user.Character.Equipment.Weapon.ItemId); weaponSpec != nil && weaponSpec.SpellDamageMultiplier > 0 {
-						scalingMult *= weaponSpec.SpellDamageMultiplier * mutations.GearEffectivenessMultiplier(user.Character.Mutations)
-					}
-				}
-				var maxPool int
-				switch conditionSpec.TickPool {
-				case "health":
-					maxPool = mob.Character.HealthMax.Value
-				case "stamina":
-					maxPool = mob.Character.StaminaMax.Value
-				case "conviction":
-					maxPool = mob.Character.ConvictionMax.Value
-				}
-				tickAmt := conditions.ComputeTickAmount(maxPool, conditionSpec.TickPercent, conditionSpec.TickVariance, conditionSpec.TickMin, scalingMult)
-				mob.Character.Conditions.SetTickAmount(conditionId, tickAmt)
-			}
-		}
 	}
 	// Conditional aggro for harmful condition spells — kept inline because it is
 	// gated on Harm* spell types; not consolidated in Task 7's setMobSpellAggro.
@@ -1139,29 +1113,6 @@ func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *r
 	case "condition":
 		for _, conditionId := range spellData.ConditionIds {
 			applySpellCondition(target, spellData, user.Character, conditionId)
-			// Compute tick snapshot for config-driven conditions
-			if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil && conditionSpec.TickPool != "" {
-				skillLevel := user.Character.GetSkillLevel(skills.Spellcasting)
-				scalingMult := combat.SkillMultiplier(skillLevel)
-				// Apply weapon spell damage multiplier if equipped, scaled
-				// by gear-effectiveness for incorporeal casters.
-				if user.Character.Equipment.Weapon.ItemId > 0 {
-					if weaponSpec := items.GetItemSpec(user.Character.Equipment.Weapon.ItemId); weaponSpec != nil && weaponSpec.SpellDamageMultiplier > 0 {
-						scalingMult *= weaponSpec.SpellDamageMultiplier * mutations.GearEffectivenessMultiplier(user.Character.Mutations)
-					}
-				}
-				var maxPool int
-				switch conditionSpec.TickPool {
-				case "health":
-					maxPool = target.Character.HealthMax.Value
-				case "stamina":
-					maxPool = target.Character.StaminaMax.Value
-				case "conviction":
-					maxPool = target.Character.ConvictionMax.Value
-				}
-				tickAmt := conditions.ComputeTickAmount(maxPool, conditionSpec.TickPercent, conditionSpec.TickVariance, conditionSpec.TickMin, scalingMult)
-				target.Character.Conditions.SetTickAmount(conditionId, tickAmt)
-			}
 		}
 		// M1 audit defect: this case told the caster and the target and left
 		// the room out, while its sibling `case "heal":` above broadcasts. A
@@ -1504,23 +1455,6 @@ func applyMobSelfEffect(mob *mobs.Mob, room *rooms.Room, spellData *spells.Spell
 	case "condition":
 		for _, conditionId := range spellData.ConditionIds {
 			applySpellCondition(mob, spellData, &mob.Character, conditionId)
-			// Compute tick snapshot for config-driven conditions (matches
-			// applyMobEffect_condition for consistency across all caster paths).
-			if conditionSpec := conditions.GetConditionSpec(conditionId); conditionSpec != nil && conditionSpec.TickPool != "" {
-				skillLevel := mob.Character.GetSkillLevel(skills.Spellcasting)
-				scalingMult := combat.SkillMultiplier(skillLevel)
-				var maxPool int
-				switch conditionSpec.TickPool {
-				case "health":
-					maxPool = mob.Character.HealthMax.Value
-				case "stamina":
-					maxPool = mob.Character.StaminaMax.Value
-				case "conviction":
-					maxPool = mob.Character.ConvictionMax.Value
-				}
-				tickAmt := conditions.ComputeTickAmount(maxPool, conditionSpec.TickPercent, conditionSpec.TickVariance, conditionSpec.TickMin, scalingMult)
-				mob.Character.Conditions.SetTickAmount(conditionId, tickAmt)
-			}
 		}
 	case "shield":
 		skillLevel := mob.Character.GetSkillLevel(skills.Spellcasting)

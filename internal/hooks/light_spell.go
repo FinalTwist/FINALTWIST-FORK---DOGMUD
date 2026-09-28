@@ -49,15 +49,22 @@ func magnitudeSpellApplication(spellData *spells.SpellData, caster *characters.C
 type spellConditionTarget interface {
 	AddCondition(conditionId int, source string)
 	AddConditionMagnitude(conditionId int, triggers int, magnitude float64, source string)
+	AddConditionTickScaled(conditionId int, scale float64, source string)
 }
 
 // applySpellCondition applies one of a spell's conditions to its target: a
 // magnitude-scaled light or sight at the caster's scaled value and duration,
-// anything else at its authored values. Both doors queue events.Condition, so
-// the holder reads the start notice either way.
+// a heal- or damage-over-time at the caster's spellTickScale (the apply hook
+// computes the amount where it lands), anything else at its authored values.
+// Every door queues events.Condition, so the holder reads the start notice
+// either way.
 func applySpellCondition(target spellConditionTarget, spellData *spells.SpellData, caster *characters.Character, conditionId int) {
 	if mag, trig, ok := magnitudeSpellApplication(spellData, caster, conditionId); ok {
 		target.AddConditionMagnitude(conditionId, trig, mag, "spell")
+		return
+	}
+	if spec := conditions.GetConditionSpec(conditionId); spec != nil && spec.TickPool != "" {
+		target.AddConditionTickScaled(conditionId, spellTickScale(caster), "spell")
 		return
 	}
 	target.AddCondition(conditionId, "spell")
