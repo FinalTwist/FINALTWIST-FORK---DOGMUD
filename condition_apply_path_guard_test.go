@@ -218,8 +218,9 @@ var conditionApplyPathAllowlist = map[string]string{
 	// MP dot arms and PP gained the dot; re-keyed again spell effects 3a
 	// Task 4 when applySpellKnockdown's new imports shifted spell_effects.go,
 	// and Task 5 when the configs and util imports did; re-keyed again parity
-	// slice 3a Task 7, same guard widening as above) ─────────────────────
-	"internal/hooks/spell_effects.go|297": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	// slice 3a Task 7, same guard widening as above; re-keyed again spell
+	// effects 3a when creditSpellDamage landed above applySpellDot) ──────
+	"internal/hooks/spell_effects.go|329": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 
 	// ── light spells (lighting plan 5a): an EVENT door, not the silent
 	// character door. applySpellCondition's target is a spellConditionTarget,

@@ -17,6 +17,9 @@ knockdown spells now work on them too.
 A knockdown spell can now interrupt a foe who is casting a spell of
 their own, shattering their focus and collapsing the cast.
 
+A creature slain by your spell is now counted as your kill, for better
+and worse, just as one slain by your blade is.
+
 ## 2026-09-28: Healing over time trusts the caster from the first cast
 
 A healing spell that mends you gradually now draws on the caster's skill

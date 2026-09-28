@@ -1920,7 +1920,12 @@ through `commitHarmfulSpellAggro`: the target turns on the caster if it was
 not already fighting, the caster on the target likewise, and a player caster
 on a mob calls `actions.SeedAggression` with freshness judged per target, as
 `throw` does, which records the assault crime on a fresh engagement (owner
-ruling, 2026-09-28). A dot's duration reads the spell's primarystat and the
+ruling, 2026-09-28). Damage and knockdown on a mob call
+`creditSpellDamage` before the harm, which does what melee does with
+`TrackPlayerDamage`: a player caster is credited, and a mob caster charmed
+by a player credits that player, so a spell kill reaches the `MobDeath_*`
+hooks with its killer in `PlayerDamage`. The dot does not: its ticks harm
+anonymously (a filed follow-up). A dot's duration reads the spell's primarystat and the
 school's cast skill through `spellCasterStatAndSkill`, not
 `actions.GetSpellStatAndSkill`, which is the fold stat.
 

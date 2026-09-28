@@ -203,6 +203,32 @@ func commitHarmfulSpellAggro(c spellEffectCtx, fresh bool) {
 	}
 }
 
+// creditSpellDamage remembers who hurt a mob, as melee does: a player caster
+// is credited with the damage, and a mob caster charmed by a player credits
+// that player (combat.go AttackPlayerVsMob and AttackMobVsMob). Death
+// processing reads PlayerDamage for the murder upgrade, faction rep, bounty,
+// quest kill credit and item procs, so a spell kill without it counts for
+// no one.
+//
+// It runs BEFORE the harm. ApplyHarm only queues the death today, so melee's
+// after-the-harm order is safe too, but crediting first keeps the kill
+// attributed even if a death is ever resolved inline.
+func creditSpellDamage(c spellEffectCtx, dmg int) {
+	m := c.targetMob()
+	if m == nil || dmg <= 0 {
+		return
+	}
+	if u := c.casterUser(); u != nil {
+		m.Character.TrackPlayerDamage(u.UserId, dmg)
+		return
+	}
+	if cm := c.casterMob(); cm != nil {
+		if charmedUserId := cm.Character.GetCharmedUserId(); charmedUserId > 0 {
+			m.Character.TrackPlayerDamage(charmedUserId, dmg)
+		}
+	}
+}
+
 // applySpellDamage is the one damage applier (slice 3a). The resolver ran
 // the ONE contest; this consumes it. A defended cast lands partial damage, a
 // defensive crit negates it, and either way the cast was an attack.
@@ -217,6 +243,7 @@ func applySpellDamage(c spellEffectCtx) int {
 	if c.out.DefensiveCrit {
 		dmg = 0
 	} else {
+		creditSpellDamage(c, dmg)
 		tc.ApplyHarm(characters.PoolHealth, dmg, c.casterRef())
 		cancelDamageConditions(tc)
 		// on_spell_hit item procs fire only on a harm hit that dealt damage;
@@ -267,6 +294,11 @@ func spellCasterStatAndSkill(spell *spells.SpellData, caster *characters.Charact
 // affliction is binary: it lands only on an attack win, and a defended cast
 // narrates the defence triad and applies nothing. Either way the cast was an
 // attack.
+//
+// Unlike damage and knockdown, the dot does NOT credit its caster in the
+// mob's PlayerDamage (creditSpellDamage): the ticks harm with an anonymous
+// source, so a dot kill still counts for no one. Crediting it needs the
+// caster carried on the condition record; that is a filed follow-up.
 func applySpellDot(c spellEffectCtx) int {
 	tc := c.targetChar()
 	fresh := !tc.IsInCombat()
@@ -326,6 +358,7 @@ func applySpellKnockdown(c spellEffectCtx) int {
 	if c.out.DefensiveCrit {
 		dmg = 0
 	} else {
+		creditSpellDamage(c, dmg)
 		tc.ApplyHarm(characters.PoolHealth, dmg, c.casterRef())
 		cancelDamageConditions(tc)
 		if dmg > 0 {
