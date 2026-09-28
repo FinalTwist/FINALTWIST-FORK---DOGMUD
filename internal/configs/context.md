@@ -391,7 +391,7 @@ func server_Config(rest string, user *users.UserRecord, room *rooms.Room, flags 
     }
     
     // Show current configuration
-    allConfigData := configs.GetConfig().AllConfigData()
+    allConfigData := configs.GetConfig().DisplayConfigData()
     // Display configuration options...
 }
 ```

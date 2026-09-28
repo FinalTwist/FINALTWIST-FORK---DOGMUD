@@ -102,8 +102,8 @@ Server:
   #   Separately, the server always locks its security settings whatever this
   #   list says: API keys and key variable names, provider addresses, the
   #   companion's models, moderation switch and moderation model,
-  #   player-key switch and relay origin, FilePaths.WebDomain, and this list
-  #   itself (internal/configs/config_locks.go).
+  #   player-key switch and relay origin, FilePaths.WebDomain, the Discord
+  #   webhook URL, and this list itself (internal/configs/config_locks.go).
   Locked:
   - FilePaths
   - Server.CurrentVersion
