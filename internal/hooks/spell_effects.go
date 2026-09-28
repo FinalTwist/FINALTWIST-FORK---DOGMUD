@@ -11,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/targeting"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -152,6 +153,10 @@ func spellSourceTarget(a actions.Actor) combat.SourceTarget {
 // damage it dealt (0 for effects that deal none). Until slice 3b, effects
 // without a unified applier run on the per-pairing arms they always had.
 func applySpellEffect(c spellEffectCtx) int {
+	switch c.spell.EffectType {
+	case "damage":
+		return applySpellDamage(c)
+	}
 	switch {
 	case c.targetMob() != nil:
 		return applyMobEffectArms(c)
@@ -161,6 +166,72 @@ func applySpellEffect(c spellEffectCtx) int {
 		applyPlayerEffectArms(c)
 		return 0
 	}
+}
+
+// commitHarmfulSpellAggro is the one place a harmful spell starts a fight,
+// for every pairing. fresh is whether the target was out of combat BEFORE
+// this cast landed (the applier reads it first, because harm can end the
+// target's fight). The target turns on its caster only when fresh, so an
+// established fight is not yanked around; the caster turns on the target
+// when it is not already fighting.
+//
+// A player's harm on a mob is also an assault (owner ruling, 2026-09-28):
+// actions.SeedAggression fires PlayerAttackedMob on every cast and, when
+// fresh, the opinion bump and the assault crime. Freshness is judged per
+// target from the mob's own prior combat, exactly as usercommands/throw.go's
+// engageAfterThrow judges it for an area throw.
+func commitHarmfulSpellAggro(c spellEffectCtx, fresh bool) {
+	tc := c.targetChar()
+	if fresh {
+		targeting.Commit(tc, c.casterRef(), targeting.ReasonAttack)
+	}
+	if c.casterChar != nil && !c.casterChar.IsInCombat() {
+		targeting.Commit(c.casterChar, c.targetRef(), targeting.ReasonAttack)
+	}
+	if u, m := c.casterUser(), c.targetMob(); u != nil && m != nil {
+		actions.SeedAggression(u, m, c.room, fresh)
+	}
+}
+
+// applySpellDamage is the one damage applier (slice 3a). The resolver ran
+// the ONE contest; this consumes it. A defended cast lands partial damage, a
+// defensive crit negates it, and either way the cast was an attack.
+func applySpellDamage(c spellEffectCtx) int {
+	tc := c.targetChar()
+	fresh := !tc.IsInCombat()
+	dmg := scaleSpellDamageByDefence(
+		calcSpellDamageForCharacter(c.spell, c.casterChar, tc, c.magnitude, c.out.AttackerCrit), c.out)
+	sendSpellChannelDefenceMessages(c.room, c.category(), c.out,
+		spellDefenceIdentity(c.casterChar, c.casterUser(), c.room),
+		spellDefenceIdentity(tc, c.targetUser(), c.room), c.spell.Name, c.casterUser(), c.targetUser())
+	if c.out.DefensiveCrit {
+		dmg = 0
+	} else {
+		tc.ApplyHarm(characters.PoolHealth, dmg, c.casterRef())
+		cancelDamageConditions(tc)
+		// on_spell_hit item procs fire only on a harm hit that dealt damage;
+		// the proc's own chance and cooldown pace an area cast.
+		if dmg > 0 {
+			dispatchItemProcs("on_spell_hit", c.casterChar, tc, nil, dmg)
+		}
+	}
+	commitHarmfulSpellAggro(c, fresh)
+	if c.out.Defended {
+		return dmg // the defence triad above already told everyone
+	}
+	dmgDesc := combat.GetDamageDescription(dmg, tc.HealthMax.Value)
+	messaging.SendTrio(messaging.Trio{
+		Actor: messaging.Say(c.category(), fmt.Sprintf(
+			`Your %s strikes %s! (<ansi fg="damage">%s</ansi>)%s`,
+			c.spell.Name, c.targetName(), dmgDesc, c.critTag())),
+		Actee: messaging.Say(c.category(), fmt.Sprintf(
+			`%s's <ansi fg="cyan">%s</ansi> strikes you! (<ansi fg="damage">%s</ansi>)%s`,
+			c.casterName(), c.spell.Name, dmgDesc, c.critTag())),
+		Observer: messaging.Say(c.category(), fmt.Sprintf(
+			`%s's <ansi fg="cyan">%s</ansi> strikes %s!`,
+			c.casterName(), c.spell.Name, c.targetName())),
+	}, c.audience())
+	return dmg
 }
 
 // ── Test-only wrappers. Slice 3b's last task deletes them once no test

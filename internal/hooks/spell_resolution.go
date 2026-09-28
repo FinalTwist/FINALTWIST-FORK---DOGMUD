@@ -574,51 +574,6 @@ func setMobSpellAggro(user *users.UserRecord, mob *mobs.Mob) {
 	}
 }
 
-// applyMobEffect_damage handles the "damage" EffectType case for applyMobEffect.
-// Returns damage dealt to the mob.
-func applyMobEffect_damage(
-	user *users.UserRecord,
-	casterChar *characters.Character,
-	mob *mobs.Mob,
-	room *rooms.Room,
-	spellData *spells.SpellData,
-	magnitude int,
-	out combat.ChannelDefenceResult,
-	critTag string,
-	mName string,
-) int {
-	// U6b Task 4: one contest per cast. The resolver already ran it; this
-	// applier CONSUMES the threaded result. A defended cast is a PARTIAL
-	// outcome (the spell still lands, for less); the defensive crit zeroes it.
-	dmg := calcSpellDamageForCharacter(spellData, casterChar, &mob.Character, magnitude, out.AttackerCrit)
-	dmg = scaleSpellDamageByDefence(dmg, out)
-	mob.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(casterChar))
-	cancelDamageConditions(&mob.Character)
-	// on_spell_hit item procs (e.g. Staff of the Hollow Choir CP-steal) fire
-	// only on a landing harm hit that dealt damage. This applier is shared by
-	// the player-caster→mob and mob-caster→mob paths, so wiring it here covers
-	// both. For AoE/multi-target casts the dispatch runs once per damaged
-	// target; the proc's own chance+cooldown pace it, so one cast steals from
-	// at most a few targets before the cooldown gate closes — intended.
-	if dmg > 0 {
-		dispatchItemProcs("on_spell_hit", casterChar, &mob.Character, nil, dmg)
-	}
-	setMobSpellAggro(user, mob)
-	sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-		spellDefenceIdentity(casterChar, user, room), mName, spellData.Name, user, nil)
-	if user != nil {
-		if !out.Defended {
-			user.SendText(spellSchoolCategory(spellData), fmt.Sprintf(
-				`Your %s strikes %s! (<ansi fg="damage">%s</ansi>)%s`,
-				spellData.Name, mName, combat.GetDamageDescription(dmg, mob.Character.HealthMax.Value), critTag))
-			sendVisualRoomText(room, spellSchoolCategory(spellData), fmt.Sprintf(
-				`<ansi fg="username">%s</ansi>'s <ansi fg="cyan">%s</ansi> strikes %s!`,
-				user.Character.Name, spellData.Name, mName), user.UserId)
-		}
-	}
-	return dmg
-}
-
 // applyMobEffect_dot handles the "dot" EffectType case for applyMobEffect.
 // Returns 0 (no immediate damage; condition is applied for periodic ticks).
 //
@@ -893,8 +848,6 @@ func applyMobEffectArms(c spellEffectCtx) int {
 	mName := mobDisplayName(mob, room, viewerId)
 
 	switch spellData.EffectType {
-	case "damage":
-		return applyMobEffect_damage(user, casterChar, mob, room, spellData, magnitude, out, critTag, mName)
 	case "dot":
 		return applyMobEffect_dot(user, casterChar, mob, room, spellData, magnitude, out, critTag, mName)
 	case "knockdown":
@@ -982,7 +935,7 @@ func applyPlayerEffectArms(c spellEffectCtx) {
 		critTag = ` <ansi fg="yellow">[CRIT!]</ansi>`
 	}
 
-	if out.Defended && spellData.EffectType != "damage" {
+	if out.Defended {
 		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
 			spellDefenceIdentity(user.Character, user, room),
 			spellDefenceIdentity(target.Character, target, room), spellData.Name, user, target)
@@ -990,44 +943,6 @@ func applyPlayerEffectArms(c spellEffectCtx) {
 	}
 
 	switch spellData.EffectType {
-	case "damage":
-		// One contest, on the channel's own defence set — already run by the
-		// resolver. A defended cast deals partial damage; the defensive crit
-		// negates it entirely.
-		dmg := calcSpellDamageForCharacter(spellData, user.Character, target.Character, magnitude, out.AttackerCrit)
-		dmg = scaleSpellDamageByDefence(dmg, out)
-		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-			spellDefenceIdentity(user.Character, user, room),
-			spellDefenceIdentity(target.Character, target, room), spellData.Name, user, target)
-		if out.DefensiveCrit {
-			return
-		}
-		target.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(user.Character))
-		cancelDamageConditions(target.Character)
-		if dmg > 0 {
-			dispatchItemProcs("on_spell_hit", user.Character, target.Character, nil, dmg)
-		}
-		dmgDesc := combat.GetDamageDescription(dmg, target.Character.HealthMax.Value)
-		if !out.Defended {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`Your %s strikes `+
-						`<ansi fg="username">%s</ansi>! `+
-						`(<ansi fg="damage">%s</ansi>)%s`,
-					spellData.Name, target.Character.Name, dmgDesc, critTag)),
-				Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="red"><ansi fg="username">%s</ansi>'s `+
-						`%s strikes you! `+
-						`(<ansi fg="damage">%s</ansi>)</ansi>`,
-					user.Character.Name, spellData.Name,
-					combat.GetDamageDescription(dmg, target.Character.HealthMax.Value))),
-				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="username">%s</ansi>'s <ansi fg="cyan">%s</ansi> strikes `+
-						`<ansi fg="username">%s</ansi>!`,
-					user.Character.Name, spellData.Name, target.Character.Name)),
-			}, spellAudience(user, user.Character.Name, target, target.Character.Name, room))
-		}
-
 	case "purge":
 		target.Character.CancelConditionsWithFlag(conditions.Poison)
 		if target.UserId != user.UserId {
@@ -1571,40 +1486,6 @@ func applyMobOnPlayerArms(c spellEffectCtx) int {
 		critTag = ` <ansi fg="yellow">[CRIT!]</ansi>`
 	}
 	switch spellData.EffectType {
-	case "damage":
-		// One contest (above), on the channel's own defence set. A defended
-		// cast deals partial damage; the defensive crit negates it entirely.
-		dmg := calcSpellDamageForCharacter(spellData, &caster.Character, target.Character, magnitude, isCrit)
-		dmg = scaleSpellDamageByDefence(dmg, out)
-		sendSpellChannelDefenceMessages(room, spellSchoolCategory(spellData), out,
-			spellDefenceIdentity(&caster.Character, nil, room),
-			spellDefenceIdentity(target.Character, target, room), spellData.Name, nil, target)
-		if out.DefensiveCrit {
-			break
-		}
-		mobSpellDmg = dmg
-		target.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(&caster.Character))
-		cancelDamageConditions(target.Character)
-		if dmg > 0 {
-			dispatchItemProcs("on_spell_hit", &caster.Character, target.Character, nil, dmg)
-		}
-		if !out.Defended {
-			messaging.SendTrio(messaging.Trio{
-				Actor: messaging.NoLine,
-				Actee: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> `+
-						`strikes you! (<ansi fg="damage">%s</ansi>)%s`,
-					caster.Character.Name, spellData.Name,
-					combat.GetDamageDescription(dmg, target.Character.HealthMax.Value), critTag)),
-				Observer: messaging.Say(spellSchoolCategory(spellData), fmt.Sprintf(
-					`<ansi fg="mobname">%s</ansi>'s <ansi fg="cyan">%s</ansi> strikes `+
-						`<ansi fg="username">%s</ansi>!`,
-					caster.Character.Name, spellData.Name, target.Character.Name)),
-			}, spellAudience(nil, caster.Character.Name, target, target.Character.Name, room))
-		}
-		if !target.Character.IsInCombat() {
-			targeting.Commit(target.Character, state.ActorRef{MobInstanceId: caster.InstanceId}, targeting.ReasonAttack)
-		}
 	case "dot":
 		// The affliction is a binary status: it lands only on an attack win.
 		// A defended cast narrates the channel defence triad and applies
