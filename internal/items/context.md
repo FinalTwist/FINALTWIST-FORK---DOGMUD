@@ -618,8 +618,10 @@ an ordinary potion condition this scales duration only, via
 `UserRecord.AddConditionScaled(conditionId, durationMult, source)` in
 `drink.go`. **Since lighting plan 5c**, a condition whose spec reads one of
 `conditions.ScaledKinds` from its magnitude (`ConditionSpec.ScaledKind`)
-instead goes through `internal/usercommands.potionMagnitudeApplication`
-(`drink_magnitude.go`): it reads the new `ItemSpec.Magnitude` field (the
+instead goes through `PotionMagnitudeApplication` (`potion_conditions.go`,
+shared by the player's drink in `internal/usercommands` and a mob's in
+`internal/mobcommands`, which passes `durationMult` 1, so an AI companion's
+potion lands at its real strength): it reads the new `ItemSpec.Magnitude` field (the
 potion's base strength for that scaled kind) and scales both it and the
 condition's `TriggerCount` by `durationMult`, capping an infra-reach result at
 `configs.Lighting.InfraReachCap`, then queues through
@@ -1253,7 +1255,7 @@ and `TestPreDetuneBowTable_MatchesTheRealTemplates` both fail otherwise.
 | `newitemfile.go` | New-item scaffolding |
 | `stacking.go` | Display-only inventory stacking |
 | `aging.go` | Potion aging phases and effective aging speed |
-| `potion_conditions.go` | `PotionEffectConditionIds` (lighting plan 5c): the condition ids only a potion grants, for the Purging Draught's derived strip set |
+| `potion_conditions.go` | `PotionEffectConditionIds` (lighting plan 5c): the condition ids only a potion grants, for the Purging Draught's derived strip set; `PotionMagnitudeApplication`, the magnitude and trigger count a potion applies a scaled condition at, shared by the player and mob drink paths |
 | `affixgen.go` | Affix/name generation |
 | `spec_baseline.go` | `SpecBaseline`: pre-enchant numeric snapshot, so a tier re-apply cannot wipe affix scaling |
 | `detune_migration.go` | U10d ranged-weapon rescale (`MigrateDetunedBow`); idempotent by value threshold, no run-once marker |

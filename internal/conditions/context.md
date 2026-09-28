@@ -694,7 +694,7 @@ condition record carries exactly one `Magnitude`, so `ConditionSpec.ScaledKind()
 declares `UsesMagnitude` on more than one `ScaledKinds` entry at load time,
 with `ok == false` when none does. Both `internal/hooks.magnitudeSpellApplication`
 (the one spell-casting hook that replaced the light-only
-`lightSpellApplication`) and `internal/usercommands.potionMagnitudeApplication`
+`lightSpellApplication`) and `internal/items.PotionMagnitudeApplication`
 call it to find which trio of scaling knobs applies to a given condition.
 
 ## Condition Management Operations

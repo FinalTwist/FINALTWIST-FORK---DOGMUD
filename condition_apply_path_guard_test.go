@@ -205,6 +205,10 @@ var conditionApplyPathAllowlist = map[string]string{
 	// AddConditionMagnitude queues events.Condition, so the drinker reads the
 	// start line ───────────────────────────────────────────────────────────
 	"internal/usercommands/drink.go|292": "potion at its item magnitude scaled by potency: the EVENT door (users.UserRecord.AddConditionMagnitude queues events.Condition); listed only because arity cannot tell it from the silent character door",
+	// The mob twin (lighting plan 5c final review): mob is a *mobs.Mob, whose
+	// AddConditionMagnitude also queues events.Condition. The AI companion
+	// and the survival planner drink through it.
+	"internal/mobcommands/drink.go|41": "mob potion at its item magnitude: the EVENT door (mobs.Mob.AddConditionMagnitude queues events.Condition); listed only because arity cannot tell it from the silent character door",
 
 	// ── former combat condition: Bleeding is now one stacking record (Task 9;
 	// re-keyed slice 1b; re-keyed again counters slice Task 3 when the

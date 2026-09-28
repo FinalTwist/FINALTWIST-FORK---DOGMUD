@@ -285,7 +285,7 @@ func Drink(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	// Character.AddConditionScaled instead is what made Purging Weakness silent.
 	for _, conditionId := range itemSpec.ConditionIds {
 		conditionSpec := conditions.GetConditionSpec(conditionId)
-		if mag, trig, ok := potionMagnitudeApplication(&itemSpec, conditionSpec, durationMult); ok {
+		if mag, trig, ok := items.PotionMagnitudeApplication(&itemSpec, conditionSpec, durationMult); ok {
 			// A magnitude-scaled potion (lighting plan 5c) queues through the
 			// same event door with its value and count; the holder still reads
 			// the start line.
