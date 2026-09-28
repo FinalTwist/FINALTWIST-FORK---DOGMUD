@@ -175,19 +175,22 @@ var conditionApplyPathAllowlist = map[string]string{
 	// re-keyed again messaging M4d PR 3 Task 3 when the purge/heal/condition
 	// self-cast branches above the shield case moved onto SendTrio;
 	// re-keyed again parity slice 2 when the post-queue tick snapshot blocks
-	// and the mutations import were deleted) ────────────────────────────────
-	"internal/hooks/spell_resolution.go|1179": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
-	"internal/hooks/spell_resolution.go|1474": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	// and the mutations import were deleted; re-keyed again spell effects 3a
+	// Task 1 when the arms functions took their context headers and the MP
+	// switch moved out of its resolver) ─────────────────────────────────────
+	"internal/hooks/spell_resolution.go|1184": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
+	"internal/hooks/spell_resolution.go|1479": "former combat condition (ward): silent-start record, the spell narrates; must apply synchronously so the same resolution pass sees it",
 
 	// ── former combat condition: Regenerating is now one record (Task 7;
 	// re-keyed slice 1b, same shift as above; re-keyed again Task 10 and
 	// Task 10's follow-up; re-keyed again counters slice Task 3, same
 	// deletion as above; re-keyed again messaging M4d Task 6, same shift as
 	// above; re-keyed again messaging M4d PR 3 Task 3, same shift as above;
-	// re-keyed again parity slice 2, same deletion as above) ───────────────
+	// re-keyed again parity slice 2, same deletion as above; re-keyed again
+	// spell effects 3a Task 1, same shift as above) ─────────────────────────
 	"internal/hooks/spell_resolution.go|845":  "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1080": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
-	"internal/hooks/spell_resolution.go|1452": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1085": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
+	"internal/hooks/spell_resolution.go|1457": "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|46":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 	"internal/mobcommands/consume.go|55":      "former combat condition (regen): silent-start record, the spell or the feeding narrates; must apply synchronously",
 
@@ -197,9 +200,10 @@ var conditionApplyPathAllowlist = map[string]string{
 	// Task 3, same deletion as above; re-keyed again messaging M4d Task 6,
 	// same shift as above; re-keyed again messaging M4d PR 3 Task 3, same
 	// shift as above; re-keyed again parity slice 2, same deletion as
-	// above) ───────────────────────────────────────────────────────────────
+	// above; re-keyed again spell effects 3a Task 1 when the MP switch moved
+	// into applyMobOnPlayerArms) ────────────────────────────────────────────
 	"internal/hooks/spell_resolution.go|666":  "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
-	"internal/hooks/spell_resolution.go|1617": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
+	"internal/hooks/spell_resolution.go|1640": "former combat condition (spell dot): silent-start record, the spell narrates the affliction; must apply synchronously so the refusal is known to the narrator",
 
 	// ── light spells (lighting plan 5a): an EVENT door, not the silent
 	// character door. applySpellCondition's target is a spellConditionTarget,

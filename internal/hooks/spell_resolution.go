@@ -167,7 +167,7 @@ func resolveSpell(user *users.UserRecord, cs activity.CastingData, spellData *sp
 		if spellData.AttackType == combatvocab.AttackNone {
 			// Non-harm cast: uncontested, an attack win by construction.
 			// Uncontested means it LANDED: there was no defence to beat.
-			applyPlayerEffect(user, targetUser, room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1})
+			applySpellEffect(newSpellEffectCtx(user.Character, actions.NewUserActorInRoom(user, room), actions.NewUserActorInRoom(targetUser, room), room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1}))
 			anyLanded = true
 		} else {
 			fumbled, landed := resolveAgainstPlayer(user, targetUser, room, spellData, side, magnitude)
@@ -402,8 +402,8 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 		// today, so threading it through is not a behaviour change; it just
 		// stops the record silently pinning itself to 0 if a future arm
 		// starts reporting a real amount (an area mend's total, say).
-		dmgDealt := applyMobEffect(user, user.Character, mob, room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1})
-		combat.RecordSpell(combat.User, combat.Mob, true, false, false, false, dmgDealt, 0, user.Character, &mob.Character, util.GetRoundCount())
+		dmgDealt := applySpellEffect(newSpellEffectCtx(user.Character, actions.NewUserActorInRoom(user, room), actions.NewMobActorInRoom(mob, room), room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1}))
+		recordSpell(combat.User, combat.Mob, true, false, false, false, dmgDealt, 0, user.Character, &mob.Character, util.GetRoundCount())
 		return false, true
 	}
 
@@ -439,7 +439,7 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 		sendVisualRoomText(room, messaging.CategorySpellDisruption, fmt.Sprintf(
 			`<ansi fg="red"><ansi fg="username">%s</ansi>'s spell backfires!</ansi>`, user.Character.Name), user.UserId)
 		// Stage 30.1: Record backfire
-		combat.RecordSpell(combat.User, combat.Mob, false, false, true, false, 0, out.AttackRollZScore, user.Character, &mob.Character, round)
+		recordSpell(combat.User, combat.Mob, false, false, true, false, 0, out.AttackRollZScore, user.Character, &mob.Character, round)
 		return true, false
 	}
 
@@ -456,10 +456,10 @@ func resolveAgainstMob(user *users.UserRecord, mob *mobs.Mob, room *rooms.Room, 
 			mobDisplayName(mob, room, user.UserId)), user.UserId)
 	}
 
-	dmgDealt := applyMobEffect(user, user.Character, mob, room, spellData, magnitude, out)
+	dmgDealt := applySpellEffect(newSpellEffectCtx(user.Character, actions.NewUserActorInRoom(user, room), actions.NewMobActorInRoom(mob, room), room, spellData, magnitude, out))
 	// Stage 30.1: a defended cast records in the old fizzle column — the
 	// defence stopped or blunted it — but keeps its partial damage.
-	combat.RecordSpell(combat.User, combat.Mob, !out.Defended, out.AttackerCrit, false, out.Defended, dmgDealt, out.AttackRollZScore, user.Character, &mob.Character, round)
+	recordSpell(combat.User, combat.Mob, !out.Defended, out.AttackerCrit, false, out.Defended, dmgDealt, out.AttackRollZScore, user.Character, &mob.Character, round)
 
 	// U6b Task 10: the MOB defender's crit defence counters the player caster.
 	fireSpellCounterTier(room, out, spellData.Attack(),
@@ -873,14 +873,15 @@ func applyMobEffect_default(
 	return 0
 }
 
-// applyMobEffect applies the spell effect to a mob and returns damage dealt (0 for non-damage effects).
-// user may be nil when the caster is a mob (guards all user.* references).
-// casterChar is the caster's Character pointer (may be nil for mob-on-mob when unavailable).
+// applyMobEffectArms is the pre-unification switch for a MOB target (PM and
+// MM). The dispatcher routes here every effect that has no unified applier
+// yet. user is nil when a mob casts; casterChar is nil for an anonymous
+// caster.
 //
 // U6b Task 4: `out` is the resolver's ONE channel contest, threaded through.
-// The appliers consume it — damage scaling, defence narration, the
-// defensive-crit negation — instead of rolling a contest of their own.
-func applyMobEffect(user *users.UserRecord, casterChar *characters.Character, mob *mobs.Mob, room *rooms.Room, spellData *spells.SpellData, magnitude int, out combat.ChannelDefenceResult) int {
+func applyMobEffectArms(c spellEffectCtx) int {
+	user, casterChar, mob, room := c.casterUser(), c.casterChar, c.targetMob(), c.room
+	spellData, magnitude, out := c.spell, c.magnitude, c.out
 	critTag := ""
 	if out.AttackerCrit {
 		critTag = ` <ansi fg="yellow">[CRIT!]</ansi>`
@@ -945,7 +946,7 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 		return true, false
 	}
 
-	applyPlayerEffect(user, target, room, spellData, magnitude, out)
+	applySpellEffect(newSpellEffectCtx(user.Character, actions.NewUserActorInRoom(user, room), actions.NewUserActorInRoom(target, room), room, spellData, magnitude, out))
 
 	// Set reciprocal aggro for harm spells
 	if spellData.IsHarm() {
@@ -964,13 +965,17 @@ func resolveAgainstPlayer(user *users.UserRecord, target *users.UserRecord, room
 	return false, !out.Defended
 }
 
-// applyPlayerEffect applies the spell effect to a player target.
+// applyPlayerEffectArms is the pre-unification switch for a player caster
+// and a PLAYER target (PP). The dispatcher routes here every effect that has
+// no unified applier yet.
 //
 // U6b Task 4: `out` is the resolver's ONE channel contest, threaded through
 // (help spells with no defense pass an uncontested attack win). Non-damage
 // effects are binary statuses: a defended cast narrates the channel defence
 // triad and applies nothing, mirroring ExecuteSkillMove's StatusApplied split.
-func applyPlayerEffect(user *users.UserRecord, target *users.UserRecord, room *rooms.Room, spellData *spells.SpellData, magnitude int, out combat.ChannelDefenceResult) {
+func applyPlayerEffectArms(c spellEffectCtx) {
+	user, target, room := c.casterUser(), c.targetUser(), c.room
+	spellData, magnitude, out := c.spell, c.magnitude, c.out
 
 	critTag := ""
 	if out.AttackerCrit {
@@ -1491,7 +1496,7 @@ func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.R
 	// with a condition spell is just as cooperative and was contesting
 	// before this change.
 	if spellData.AttackType == combatvocab.AttackNone {
-		applyMobEffect(nil, &caster.Character, target, room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1})
+		applySpellEffect(newSpellEffectCtx(&caster.Character, actions.NewMobActorInRoom(caster, room), actions.NewMobActorInRoom(target, room), room, spellData, magnitude, combat.ChannelDefenceResult{DamageMultiplier: 1}))
 		// Uncontested cooperative cast: no defence to beat, so it landed.
 		return true
 	}
@@ -1507,7 +1512,7 @@ func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.R
 		sendVisualRoomText(room, messaging.CategorySpellDisruption, fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s spell backfires!`, caster.Character.Name))
 		return false
 	}
-	applyMobEffect(nil, &caster.Character, target, room, spellData, magnitude, out)
+	applySpellEffect(newSpellEffectCtx(&caster.Character, actions.NewMobActorInRoom(caster, room), actions.NewMobActorInRoom(target, room), room, spellData, magnitude, out))
 
 	// U6b Task 10: the defending mob's crit defence counters the mob caster.
 	fireSpellCounterTier(room, out, spellData.Attack(),
@@ -1517,8 +1522,7 @@ func resolveMobSpellAgainstMob(caster *mobs.Mob, target *mobs.Mob, room *rooms.R
 }
 
 // resolveMobSpellAgainstPlayer runs the ONE channel contest for a mob-cast
-// spell at a player and consumes the result inline (this path predates the
-// applier split and keeps its inline effect arms). Crit-received toughening
+// spell at a player and applies the effect through applySpellEffect. Crit-received toughening
 // for the defender fires inside the seam's bonus tier — the U9-era direct
 // block this function used to carry became a duplicate and was deleted with
 // the collapse (U6b Task 4).
@@ -1538,9 +1542,28 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 		caster.Character.ApplyHarm(characters.PoolHealth, dmg, charActorRef(&caster.Character))
 		sendVisualRoomText(room, messaging.CategorySpellDisruption, fmt.Sprintf(`<ansi fg="mobname">%s</ansi>'s spell backfires!`, caster.Character.Name))
 		// Stage 30.1: Record backfire
-		combat.RecordSpell(combat.Mob, combat.User, false, false, true, false, 0, out.AttackRollZScore, &caster.Character, target.Character, round)
+		recordSpell(combat.Mob, combat.User, false, false, true, false, 0, out.AttackRollZScore, &caster.Character, target.Character, round)
 		return false
 	}
+	mobSpellDmg := applySpellEffect(newSpellEffectCtx(&caster.Character, actions.NewMobActorInRoom(caster, room),
+		actions.NewUserActorInRoom(target, room), room, spellData, magnitude, out))
+	// Stage 30.1: a defended cast records in the old fizzle column — the
+	// defence stopped or blunted it — but keeps its partial damage.
+	recordSpell(combat.Mob, combat.User, !out.Defended, out.AttackerCrit, false, out.Defended, mobSpellDmg, out.AttackRollZScore, &caster.Character, target.Character, round)
+
+	// U6b Task 10: the PLAYER defender's crit defence counters the mob caster.
+	fireSpellCounterTier(room, out, spellData.Attack(),
+		target.Character, &caster.Character, target, nil)
+
+	return !out.Defended
+}
+
+// applyMobOnPlayerArms is the pre-unification switch for a MOB caster and a
+// PLAYER target (MP), moved out of resolveMobSpellAgainstPlayer unchanged.
+// The dispatcher routes here every effect that has no unified applier yet.
+func applyMobOnPlayerArms(c spellEffectCtx) int {
+	caster, target, room := c.casterMob(), c.targetUser(), c.room
+	spellData, magnitude, out := c.spell, c.magnitude, c.out
 	isCrit := out.AttackerCrit
 	mobSpellDmg := 0
 	critTag := ""
@@ -1730,15 +1753,7 @@ func resolveMobSpellAgainstPlayer(caster *mobs.Mob, target *users.UserRecord, ro
 			Observer: messaging.NoLine,
 		}, spellAudience(nil, caster.Character.Name, target, target.Character.Name, room))
 	}
-	// Stage 30.1: a defended cast records in the old fizzle column — the
-	// defence stopped or blunted it — but keeps its partial damage.
-	combat.RecordSpell(combat.Mob, combat.User, !out.Defended, isCrit, false, out.Defended, mobSpellDmg, out.AttackRollZScore, &caster.Character, target.Character, round)
-
-	// U6b Task 10: the PLAYER defender's crit defence counters the mob caster.
-	fireSpellCounterTier(room, out, spellData.Attack(),
-		target.Character, &caster.Character, target, nil)
-
-	return !out.Defended
+	return mobSpellDmg
 }
 
 // resolveIdentify finds the named item on the caster and renders
