@@ -71,6 +71,14 @@ func (c *Crate) Snapshot() []items.Item {
 	return out
 }
 
+// WalkItems calls fn with a pointer to each item in the crate, holding the
+// crate's lock. fn must not call back into the crate.
+func (c *Crate) WalkItems(fn func(*items.Item)) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	items.WalkSlice(c.items, fn)
+}
+
 // SetItemsForLoad replaces the items list wholesale. Used only by
 // the persistence loader at boot.
 func (c *Crate) SetItemsForLoad(its []items.Item) {

@@ -45,6 +45,7 @@ const (
 	defaultBaubleReturnsPerCatch = 3
 	defaultBaubleCatalogKeepDays = 30
 	minBaubleCatalogKeepDays     = 7 // sales stats read the last seven days
+	defaultBaubleSweepHours      = 6
 
 	defaultBaubleCheapMin   = 1
 	defaultBaubleCheapMax   = 6
@@ -228,6 +229,9 @@ func (b *Balance) validateBaubles() {
 	}
 	if b.BaubleCatalogKeepDays < minBaubleCatalogKeepDays {
 		b.BaubleCatalogKeepDays = minBaubleCatalogKeepDays
+	}
+	if b.BaubleSweepHours <= 0 {
+		b.BaubleSweepHours = defaultBaubleSweepHours
 	}
 
 	// A return must be worth less than a catch (owner ruling), so at least

@@ -112,9 +112,6 @@ func loadFrom(dir string) error {
 		}
 		mudlog.Info(`baubles.Load`, `action`, `moved records into their own shards`, `shards`, len(done))
 	}
-	if n := Prune(time.Now()); n > 0 {
-		mudlog.Info(`baubles.Load`, `action`, `pruned records`, `count`, n)
-	}
 	items.SetBaubleResolver(resolve)
 	mudlog.Info(`baubles.Load()`, `records`, len(res.records), `nextId`, idFor(res.nextSeq))
 	return err
@@ -246,6 +243,7 @@ func Recent(n int) []Record {
 
 // SaveAll retries any shard (and the meta file) whose last write failed.
 // Everything else is already on disk. Call at shutdown and copyover.
+// Pruning is the catalog sweep's alone (sweep.go).
 func SaveAll() {
 	cat.mu.RLock()
 	dir, metaBad := cat.dir, cat.metaBad
@@ -263,9 +261,6 @@ func SaveAll() {
 	for _, shard := range dirty {
 		_ = cat.persistShard(shard)
 	}
-	if n := Prune(time.Now()); n > 0 {
-		mudlog.Info(`baubles`, `action`, `pruned records`, `count`, n)
-	}
 }
 
 // shardWriter is writeShard. A variable so a test can hold a write open
@@ -275,33 +270,68 @@ var shardWriter = writeShard
 // persistShard writes every record of one shard, with mu free while it
 // marshals and writes (see the catalog comment). Never call it holding mu.
 func (c *catalog) persistShard(shard int) error {
+	_, err := c.persistShardPruning(shard, nil)
+	return err
+}
+
+// persistShardPruning writes one shard as persistShard does, leaving out
+// every record prune reports true for, and only once that write has
+// succeeded takes those records out of memory: persist before publish, so
+// a failed write prunes nothing. It holds writeMu from the snapshot to the
+// removal, so no other write of the shard can land in between. A record
+// that changed since the snapshot and is no longer prunable is kept, and
+// the shard is marked dirty so the next write puts it back on disk. prune
+// runs under the catalog lock: keep it to reading fields. It returns how
+// many records it removed.
+func (c *catalog) persistShardPruning(shard int, prune func(r *Record) bool) (int, error) {
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
 
 	c.mu.RLock()
 	dir := c.dir
 	recs := []*Record{}
+	left := []string{}
 	for id, r := range c.records {
-		if seq, ok := seqOf(id); ok && shardOf(seq) == shard {
-			cp := *r
-			recs = append(recs, &cp)
+		seq, ok := seqOf(id)
+		if !ok || shardOf(seq) != shard {
+			continue
 		}
+		if prune != nil && prune(r) {
+			left = append(left, id)
+			continue
+		}
+		cp := *r
+		recs = append(recs, &cp)
 	}
 	c.mu.RUnlock()
 
 	err := shardWriter(dir, shard, recs)
 
+	removed := 0
 	c.mu.Lock()
 	if err != nil {
 		c.dirty[shard] = true
 	} else {
 		delete(c.dirty, shard)
+		for _, id := range left {
+			r, ok := c.records[id]
+			if !ok {
+				continue
+			}
+			if !prune(r) {
+				c.dirty[shard] = true
+				continue
+			}
+			delete(c.records, id)
+			c.indexCreditLocked(&Record{Id: id})
+			removed++
+		}
 	}
 	c.mu.Unlock()
 	if err != nil {
 		mudlog.Error(`baubles`, `action`, `write shard`, `shard`, shard, `error`, err)
 	}
-	return err
+	return removed, err
 }
 
 // persistMeta writes the next id, with mu free while it writes. Never call
@@ -324,71 +354,43 @@ func (c *catalog) persistMeta() {
 	}
 }
 
-// KeepDuration is how long a record whose bauble is gone from the world
-// (sold, or vanished untaken) is kept before Prune removes it
-// (Balance.BaubleCatalogKeepDays). Sales stats read the last seven days,
-// and a crash can put a just-sold bauble back in a player's pack, so it is
-// never shorter than a week.
+// KeepDuration is how long a record nothing in the world points at any
+// more is kept before the catalog sweep prunes it
+// (Balance.BaubleCatalogKeepDays), counted from the last sign of its
+// bauble (Record.lastEvidence). Sales stats read the last seven days, so it
+// is never shorter than a week.
 func KeepDuration() time.Duration {
 	return time.Duration(configs.GetBalanceConfig().BaubleCatalogKeepDays) * 24 * time.Hour
 }
 
-// goneAt is when the record's bauble left the world for good: the later of
-// its sale and its vanishing, zero while it may still be somewhere.
-func (r Record) goneAt() time.Time {
-	gone := r.SoldAt
-	if r.VanishedAt.After(gone) {
-		gone = r.VanishedAt
+// minUnseenSweeps is how many complete sweeps in a row must find no item
+// pointing at a record before it can be pruned: one sweep can miss an item
+// that moves between stores while it looks (sweep.go).
+const minUnseenSweeps = 2
+
+// lastEvidence is the latest time anything showed this record's bauble
+// existed: found, stolen, recognised, returned, sold, vanished, or seen by a
+// sweep.
+func (r Record) lastEvidence() time.Time {
+	last := r.FoundAt
+	for _, t := range []time.Time{r.StolenAt, r.RecognizedAt, r.ReturnedAt, r.SoldAt, r.VanishedAt, r.LastSeenAt} {
+		if t.After(last) {
+			last = t
+		}
 	}
-	return gone
+	return last
 }
 
-// prunable reports whether Prune may remove r now. Only a record whose
-// bauble is gone from the world goes, once KeepDuration has passed: sold,
-// or vanished untaken; a retired record goes with them once it too is sold
-// or has vanished. A retired record whose bauble may still be in someone's
-// pack stays, since the item keeps its value and would otherwise become
-// an unknown, unsellable carrier. A record whose return earned its thief
-// reputation (ReturnCreditAt) always stays: the credit history lives only
-// there, and dropping it would let the bauble earn credit again.
-func (r Record) prunable(now time.Time, keep time.Duration) bool {
-	gone := r.goneAt()
-	if gone.IsZero() || !r.ReturnCreditAt.IsZero() {
+// prunableAt reports whether the sweep may remove r at now: at least
+// minUnseenSweeps complete sweeps in a row found nothing pointing at it AND
+// keep has passed since its lastEvidence. Sold, vanished and retired
+// records are no exception either way: a sold bauble a crash put back in a
+// pack is seen, and kept, like any other. A record whose return earned its
+// thief reputation (ReturnCreditAt) always stays: the credit history lives
+// only there, and dropping it would let the bauble earn credit again.
+func (r Record) prunableAt(now time.Time, keep time.Duration) bool {
+	if !r.ReturnCreditAt.IsZero() || r.UnseenSweeps < minUnseenSweeps {
 		return false
 	}
-	return now.Sub(gone) >= keep
-}
-
-// Prune removes the records prunable now and rewrites their shards, with
-// the catalog lock held only to take them out (the writes happen outside
-// it). It returns how many it removed. Only catalog shard files are
-// rewritten: nothing else in the baubles directory (the fallback corpus
-// overlay, for one) is touched. Load and SaveAll call it.
-func Prune(now time.Time) int {
-	keep := KeepDuration()
-	cat.mu.Lock()
-	if cat.dir == `` {
-		cat.mu.Unlock()
-		return 0
-	}
-	shards := map[int]bool{}
-	removed := 0
-	for id, r := range cat.records {
-		if !r.prunable(now, keep) {
-			continue
-		}
-		seq, ok := seqOf(id)
-		if !ok {
-			continue
-		}
-		delete(cat.records, id)
-		shards[shardOf(seq)] = true
-		removed++
-	}
-	cat.mu.Unlock()
-
-	for shard := range shards {
-		_ = cat.persistShard(shard)
-	}
-	return removed
+	return now.Sub(r.lastEvidence()) >= keep
 }

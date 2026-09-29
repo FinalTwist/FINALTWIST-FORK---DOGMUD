@@ -468,10 +468,20 @@ func TestResolveKeyHasNoSilentDefault(t *testing.T) {
 }
 
 func TestEndpointAllowed(t *testing.T) {
-	if !EndpointAllowed(`https://api.openai.com/v1`, false) || !EndpointAllowed(`https://x.openai.azure.com/v1`, false) {
-		t.Fatal("OpenAI and Azure OpenAI over https")
+	for _, good := range []string{`https://api.openai.com/v1`, `https://x.openai.azure.com/v1`, `https://API.OpenAI.com/v1`} {
+		if !EndpointAllowed(good, false) {
+			t.Errorf("%q is OpenAI or Azure OpenAI over https", good)
+		}
 	}
-	for _, bad := range []string{`http://api.openai.com/v1`, `https://evil.example.com/v1`, `notaurl`} {
+	// Exactly api.openai.com and *.openai.azure.com (spec S2): any other
+	// openai.com or azure.com host is somebody else's server.
+	for _, bad := range []string{
+		`http://api.openai.com/v1`, `https://evil.example.com/v1`, `notaurl`,
+		`https://files.openai.com/v1`, `https://evil.azure.com/v1`, `https://openai.azure.com.evil.example/v1`,
+		`https://xopenai.azure.com/v1`, `https://api.openai.com.evil.example/v1`,
+		// Azure AI Services hosts need AllowCustomEndpoint (documented).
+		`https://x.cognitiveservices.azure.com/v1`, `https://x.services.ai.azure.com/v1`,
+	} {
 		if EndpointAllowed(bad, false) {
 			t.Errorf("%q must be refused without AllowCustomEndpoint", bad)
 		}
@@ -663,4 +673,34 @@ func TestBooksAreIsolated(t *testing.T) {
 		t.Fatal("Shared is what the package functions use")
 	}
 	ResetBudgetForTest(``)
+}
+
+// A provider's error text can quote the key it was sent ("Incorrect API key
+// provided: sk-proj-...") and DecodeChat keeps that text in the error, which
+// callers log. Anything shaped like an OpenAI key is scrubbed first, so no
+// part of one survives, even one the 300-byte cut would have split (spec S2).
+func TestDecodeChatScrubsKeysFromErrorText(t *testing.T) {
+	cases := map[string]string{
+		`quoted`:   `{"error":{"message":"Incorrect API key provided: sk-proj-abc123SECRETwxyz. You can find your API key at https://platform.openai.com"}}`,
+		`masked`:   `{"error":{"message":"Incorrect API key provided: sk-proj-****wxyz."}}`,
+		`plain`:    `bad key sk-abcdefSECRET0123456789`,
+		`boundary`: strings.Repeat(`x`, 290) + ` sk-SECRETSECRETSECRETSECRETSECRET`,
+	}
+	for name, body := range cases {
+		err := DecodeChat(401, []byte(body)).Err
+		if err == nil {
+			t.Fatalf("%s: a 401 is an error", name)
+		}
+		got := err.Error()
+		if strings.Contains(got, `SECRET`) || strings.Contains(got, `abc123`) || strings.Contains(got, `wxyz`) {
+			t.Errorf("%v: key material survived in %d bytes of error text", name, len(got))
+		}
+		if !strings.Contains(got, `401`) {
+			t.Errorf("%s: the status is still reported", name)
+		}
+	}
+	// Ordinary words that merely contain "sk-" are left alone.
+	if got := DecodeChat(500, []byte(`task-queue risk-free`)).Err.Error(); !strings.Contains(got, `task-queue risk-free`) {
+		t.Errorf("words ending in sk- are not keys, got %d bytes", len(got))
+	}
 }

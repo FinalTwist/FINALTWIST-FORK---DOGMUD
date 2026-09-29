@@ -54,3 +54,10 @@ func LoadFrom(path string) (*Crate, error)
 ## Consumers
 
 `internal/caravan` and `internal/forager`.
+
+## WalkItems
+
+`(*Crate).WalkItems` walks the crate's items holding its lock; fn must not
+call back into the crate. The bauble sweep reaches a crate through
+`Room.WalkItems`, and a crate whose room is not attached through its file
+under `crates/`.

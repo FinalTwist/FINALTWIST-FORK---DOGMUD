@@ -1387,3 +1387,12 @@ index with the weapon's `ItemId`, which worked upstream where pools are equal
 but collapsed each pool to one line per intensity per skill tier here.
 `consistent_attack_messages_guard_test.go` fails the build if the name
 returns.
+
+## Item walkers
+
+`WalkSlice(s []Item, fn func(*Item))` (walk.go) calls fn with a pointer
+into s for each item with ItemId above zero. Every store's `WalkItems` is
+built on it: `characters.Character` and `Worn`, `users.UserRecord`,
+`rooms.Room`, `mobs.Mob`, `shops.ShopInventory`, `guilds.Guild`,
+`sealedcrate.Crate`, `modules/auctions.AuctionManager`. The bauble catalog
+sweep (`internal/baubles/sweep.go`) reads every live item through them.

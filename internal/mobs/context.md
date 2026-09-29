@@ -1167,3 +1167,9 @@ per-instance write allocates on the instance, which is safe. Before adding a
 new per-instance write to a template-sourced field, check which of those two
 categories it is in. `internal/mobs/spawn_template_isolation_test.go` guards
 the copies.
+
+## WalkItems (walk_items.go)
+
+`(*Mob).WalkItems` walks the mob's character (`Character.WalkItems`). A
+mob's pack exists only in memory (instance files keep equipment only), so
+the bauble sweep sees it through this live walk alone.

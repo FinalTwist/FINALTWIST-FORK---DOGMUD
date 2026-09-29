@@ -90,3 +90,10 @@ that has been spending cannot keep bidding, and outbid gold is refunded.
 
 Registered as a plugin; drives the `auction` command, the storage-seizure
 handler, and the Discord auction mirror.
+
+## WalkItems and the bauble sweep
+
+`(*AuctionManager).WalkItems` (walk_items.go) walks the lot on the block and
+the seized lots; past auctions keep names only. `init` registers it with
+`baubles.RegisterLiveSource("auctions", ...)`, so the bauble catalog sweep
+sees items held by the auction house between saves.

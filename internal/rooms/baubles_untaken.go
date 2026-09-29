@@ -17,8 +17,10 @@ import (
 // vanishes (carrying clears the mark).
 //
 // Swept on the room's round tick, which only runs while players are in the
-// room, and when the room is prepared for a visitor after lying empty, so an
-// expired bauble is never shown to someone walking in.
+// room, when the room is prepared for a visitor after lying empty, and when
+// a room is loaded from its instance file (LoadRoomInstance), so an expired
+// bauble is never shown to someone walking in and never left for the bauble
+// catalog sweep to count as a reference it should no longer see.
 
 // removeUntakenBaubles removes the baubles that have lain untaken for the
 // limit, records them as vanished, and tells anyone present. It returns how

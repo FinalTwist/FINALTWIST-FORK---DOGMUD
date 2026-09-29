@@ -156,8 +156,32 @@ func baubleStatus(user *users.UserRecord) (bool, error) {
 		b.WriteString("\r\n")
 	}
 	fmt.Fprintf(&b, "Catalog: %d records.\r\n", baubles.Count())
+	b.WriteString(baubleSweepLine(baubles.LastSweep(), baubles.SweepInterval()))
 	user.SendText(messaging.CategorySystem, b.String())
 	return true, nil
+}
+
+// baubleSweepLine is `bauble status`'s line about the catalog sweep: when it
+// last ran and what it did, or why it pruned nothing.
+func baubleSweepLine(st baubles.SweepStatus, every time.Duration) string {
+	hours := int(every.Hours())
+	when := st.At.UTC().Format(`2006-01-02 15:04 MST`)
+	switch {
+	case st.At.IsZero():
+		return fmt.Sprintf("Sweep: not run yet; it runs at boot and every %d hours.\r\n", hours)
+	case !st.OK:
+		return fmt.Sprintf("Sweep: <ansi fg=\"red\">failed</ansi> at %s, so nothing was pruned: %s\r\n", when, st.Err)
+	case st.Skipped:
+		return fmt.Sprintf("Sweep: %s, the catalog was empty. Every %d hours.\r\n", when, hours)
+	default:
+		line := fmt.Sprintf("Sweep: %s, %d records, %d still held somewhere, %d pruned. Read %d files (%d name a bauble) in %s; held the world %s. Every %d hours.",
+			when, st.Records, st.Referenced, st.Pruned, st.Files, st.Parsed,
+			st.Disk.Round(time.Millisecond), st.Live.Round(time.Millisecond), hours)
+		if st.ShardErrors > 0 {
+			line += fmt.Sprintf(" <ansi fg=\"red\">%d shard write(s) failed</ansi>; that shard is unpruned and will retry.", st.ShardErrors)
+		}
+		return line + "\r\n"
+	}
 }
 
 func baubleShow(args []string, user *users.UserRecord, room *rooms.Room) (bool, error) {

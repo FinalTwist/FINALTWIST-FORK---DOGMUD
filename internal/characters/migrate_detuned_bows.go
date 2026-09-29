@@ -37,11 +37,15 @@ import (
 //     never be rescaled at all. Running every load lets that exposure decay
 //     instead.
 //
-// COVERAGE -- populations this reaches:
-//   - backpack, component bag, potion bandolier, equipped items
+// COVERAGE -- populations this reaches: everything Character.WalkItems
+// walks (walk_items.go), which TestItemWalkersVisitEveryItemField (repo
+// root) keeps complete:
+//   - backpack, component bag, potion bandolier, every equipment slot
 //   - pet inventory (Character.Pet.Items): Pet.StoreItem accepts any item with
 //     ItemId >= 1 with no type filter, and get.go/give.go route items into it,
 //     so a pack pet is first-class player storage and can hold a bow.
+//   - each companion's saved pack and gear (Companions[i].Items and
+//     .Equipment), which the hand-listed version of this sweep missed.
 //
 // The account's bank is swept separately (it is not a Character collection);
 // see users.Storage.MigrateDetunedRangedWeapons.
@@ -62,21 +66,10 @@ import (
 // any of them still migrates on the next load -- that exposure decays instead
 // of being frozen in place.
 func (c *Character) MigrateDetunedRangedWeapons() {
-	ptrs := make([]*items.Item, 0,
-		len(c.Items)+len(c.ComponentItems)+len(c.PotionItems)+len(c.Pet.Items))
-	for i := range c.Items {
-		ptrs = append(ptrs, &c.Items[i])
-	}
-	for i := range c.ComponentItems {
-		ptrs = append(ptrs, &c.ComponentItems[i])
-	}
-	for i := range c.PotionItems {
-		ptrs = append(ptrs, &c.PotionItems[i])
-	}
-	for i := range c.Pet.Items {
-		ptrs = append(ptrs, &c.Pet.Items[i])
-	}
-	ptrs = append(ptrs, c.Equipment.GetAllItemPtrs()...)
+	// Every item the character holds, companions' gear included, through the
+	// one walker the bauble sweep also relies on (walk_items.go).
+	ptrs := []*items.Item{}
+	c.WalkItems(func(it *items.Item) { ptrs = append(ptrs, it) })
 
 	updated := items.MigrateDetunedRangedWeapons(ptrs)
 

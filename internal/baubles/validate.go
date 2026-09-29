@@ -4,8 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
+
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/GoMudEngine/GoMud/internal/items"
 )
@@ -28,8 +32,10 @@ const (
 var (
 	tagRE        = regexp.MustCompile(`<[^>]*>`)
 	ansiRE       = regexp.MustCompile("\x1b\\[[0-9;]*[A-Za-z]")
-	whitespaceRE = regexp.MustCompile(`\s+`)
 	nameSimpleRE = regexp.MustCompile(`^[a-z]{2,20}$`)
+	// linkRE is text that reads as a link: a scheme, a www., or a
+	// domain-shaped word (evil.com, shop.co/x). Matched on lower-cased text.
+	linkRE = regexp.MustCompile(`://|www\.|[a-z0-9-]+\.[a-z]{2,6}(/|\b)`)
 )
 
 // reservedNouns are keywords the game's real items answer to. A bauble whose
@@ -56,18 +62,53 @@ var reservedNouns = map[string]bool{
 // ErrUnusableReply wraps every reason a reply cannot be used.
 var ErrUnusableReply = errors.New(`unusable bauble reply`)
 
-// cleanLine strips markup and control characters and collapses whitespace.
+// typographyFold turns the typography a model reaches for into ASCII
+// (owner ruling 15): curly quotes to ' and ", en and em dashes to -, the
+// ellipsis to ... (NFKC already does the ellipsis; it is listed so the rule
+// reads whole). It also drops < and > (markup leftovers) and turns a
+// backtick into '.
+var typographyFold = strings.NewReplacer(
+	`<`, ``, `>`, ``, "`", `'`,
+	"\U00002018", `'`, "\U00002019", `'`, "\U0000201C", `"`, "\U0000201D", `"`,
+	"\U00002013", `-`, "\U00002014", `-`, "\U00002026", `...`,
+)
+
+// cleanLine folds compatibility forms (NFKC, so fullwidth markup and
+// letters become plain ones before anything else looks), strips markup,
+// turns control characters and every Unicode space into a plain space,
+// drops format, private-use, surrogate and combining characters, the line
+// and paragraph separators and the Hangul fillers (which render as
+// nothing), folds curly quotes, dashes and the ellipsis to ASCII
+// (typographyFold), and collapses whitespace.
 func cleanLine(s string) string {
+	s = norm.NFKC.String(s)
 	s = ansiRE.ReplaceAllString(s, ``)
 	s = tagRE.ReplaceAllString(s, ``)
-	s = strings.Map(func(r rune) rune {
-		if unicode.IsControl(r) {
-			return ' '
-		}
-		return r
-	}, s)
-	s = strings.NewReplacer(`<`, ``, `>`, ``, "`", `'`).Replace(s)
-	return strings.TrimSpace(whitespaceRE.ReplaceAllString(s, ` `))
+	s = strings.Map(cleanRune, s)
+	s = typographyFold.Replace(s)
+	return strings.Join(strings.Fields(s), ` `)
+}
+
+// cleanRune is cleanLine's per-character rule: -1 drops it.
+func cleanRune(r rune) rune {
+	switch {
+	case r == '\U00002028', r == '\U00002029', r == '\U0000115F', r == '\U00001160', r == '\U00003164', r == '\U0000FFA0':
+		return -1
+	case unicode.IsControl(r), unicode.Is(unicode.Zs, r):
+		return ' '
+	case unicode.In(r, unicode.Cf, unicode.Co, unicode.Cs, unicode.Mn):
+		return -1
+	}
+	return r
+}
+
+// quoteShort quotes at most 60 runes of s for an error that may be logged.
+func quoteShort(s string) string {
+	const most = 60
+	if utf8.RuneCountInString(s) > most {
+		s = string([]rune(s)[:most]) + `...`
+	}
+	return strconv.Quote(s)
 }
 
 // CleanReply validates and tidies the text of a model reply. It returns the
@@ -84,17 +125,22 @@ func CleanReply(r Reply) (Reply, error) {
 	r.Material = strings.ToLower(cleanLine(r.Material))
 
 	words := strings.Fields(r.Name)
-	if r.Name == `` || len(r.Name) > maxNameLen || len(words) < minNameWords || len(words) > maxNameWords {
-		return bad(`name %q`, r.Name)
+	if r.Name == `` || utf8.RuneCountInString(r.Name) > maxNameLen || len(words) < minNameWords || len(words) > maxNameWords {
+		return bad(`name %s`, quoteShort(r.Name))
 	}
 	if strings.IndexFunc(r.Name, unicode.IsDigit) >= 0 {
-		return bad(`name has digits: %q`, r.Name)
+		return bad(`name has digits: %s`, quoteShort(r.Name))
 	}
-	if len(r.Description) < minDescriptionLen || len(r.Description) > maxDescriptionLen {
-		return bad(`description length %d`, len(r.Description))
+	if n := utf8.RuneCountInString(r.Description); n < minDescriptionLen || n > maxDescriptionLen {
+		return bad(`description length %d`, n)
 	}
-	if len(r.Material) > maxMaterialLen {
+	if utf8.RuneCountInString(r.Material) > maxMaterialLen {
 		r.Material = ``
+	}
+	for _, f := range [...]struct{ field, text string }{{`name`, r.Name}, {`description`, r.Description}, {`material`, r.Material}} {
+		if linkRE.MatchString(strings.ToLower(f.text)) {
+			return bad(`%s reads as a link: %s`, f.field, quoteShort(f.text))
+		}
 	}
 
 	// The keyword must be one plain lowercase word that no real item
@@ -124,8 +170,10 @@ func usableKeyword(w string) bool {
 // authoredKeyword is items.AuthoredKeyword. A variable for tests.
 var authoredKeyword = items.AuthoredKeyword
 
-// PlainText is text with markup, colour codes and control characters removed
-// and whitespace collapsed: room text as it is sent to the model.
+// PlainText is cleanLine: room text sent in a prompt gets the same NFKC,
+// typography fold and invisible/format character drops as model output,
+// with markup, colour codes and control characters removed and whitespace
+// collapsed.
 func PlainText(s string) string {
 	return cleanLine(s)
 }
