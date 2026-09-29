@@ -50,6 +50,9 @@ const (
 	DefaultDailyTokenBudget = 2000000
 	DefaultBreakerErrors    = 5
 	DefaultBreakerSeconds   = 60
+
+	DefaultCompanionSharePercent = 100
+	DefaultBaublesSharePercent   = 25
 )
 
 // ResolveKey returns a key: the environment variable envName when it is
@@ -288,6 +291,8 @@ func resolveServer(c configs.APIFramework, old legacyConfig) ServerSettings {
 	s.BreakerSeconds = pick(int(c.BreakerSeconds), old, `BreakerSeconds`, DefaultBreakerSeconds)
 	s.BreakerErrors = max(s.BreakerErrors, 1)
 	s.BreakerSeconds = max(s.BreakerSeconds, 5)
+	s.CompanionSharePercent = sharePercent(int(c.CompanionSharePercent), DefaultCompanionSharePercent)
+	s.BaublesSharePercent = sharePercent(int(c.BaublesSharePercent), DefaultBaublesSharePercent)
 	return s
 }
 
@@ -305,4 +310,16 @@ func pick(framework int, old legacyConfig, name string, def int) int {
 		return n
 	}
 	return def
+}
+
+// sharePercent is a consumer's share as ServerSettings keeps it: 0 or
+// absent takes def; below 0, or 100 and above, is no share cap (0).
+func sharePercent(v int, def int) int {
+	if v == 0 {
+		v = def
+	}
+	if v < 0 || v >= 100 {
+		return 0
+	}
+	return v
 }

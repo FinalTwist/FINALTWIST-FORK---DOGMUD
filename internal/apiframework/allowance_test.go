@@ -13,6 +13,9 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/GoMudEngine/GoMud/internal/configs"
+	"gopkg.in/yaml.v2"
 )
 
 // R1, R3, R4, R8, R41: every charge is checked, and a refusal anywhere
@@ -447,5 +450,55 @@ func TestATinyShareIsAtLeastOneToken(t *testing.T) {
 	}
 	if _, err := budget.reserve(ConsumerBaubles, 1, 10, 5, true, nil); !errors.Is(err, ErrOverShare) {
 		t.Fatalf("and no more: %v", err)
+	}
+}
+
+func TestSharePercentsResolve(t *testing.T) {
+	s := resolveServer(configs.APIFramework{}, legacyConfig{})
+	if s.CompanionSharePercent != 0 || s.BaublesSharePercent != 25 {
+		t.Fatalf("absent: the companion uncapped, baubles 25: %d/%d", s.CompanionSharePercent, s.BaublesSharePercent)
+	}
+	s = resolveServer(configs.APIFramework{CompanionSharePercent: 60, BaublesSharePercent: -1}, legacyConfig{})
+	if s.CompanionSharePercent != 60 || s.BaublesSharePercent != 0 {
+		t.Fatalf("set, and -1 is no cap: %d/%d", s.CompanionSharePercent, s.BaublesSharePercent)
+	}
+	if s := resolveServer(configs.APIFramework{BaublesSharePercent: 100}, legacyConfig{}); s.BaublesSharePercent != 0 {
+		t.Fatal("100 is no cap")
+	}
+}
+
+// The yaml tags decode: a tag on the wrong field is a silent no-op.
+func TestShareKnobsDecode(t *testing.T) {
+	var a configs.APIFramework
+	if err := yaml.Unmarshal([]byte("CompanionSharePercent: 60\nBaublesSharePercent: 30\n"), &a); err != nil {
+		t.Fatal(err)
+	}
+	if a.CompanionSharePercent != 60 || a.BaublesSharePercent != 30 {
+		t.Fatalf("decoded: %+v", a)
+	}
+}
+
+// The committed config.yaml, read by repo path as the shipped-config tests
+// in internal/configs do (TestBaubleShippedConfigMatchesDefaults), resolves
+// to the shipped shares: a knob in the wrong block or with a typo is a
+// silent no-op otherwise. CI checks out the HEAD blob; locally, run it with
+// the disk copy equal to HEAD (Task 11 Step 5).
+func TestTheShippedShareKnobs(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(`..`, `..`, `_datafiles`, `config.yaml`))
+	if err != nil {
+		t.Fatalf("read shipped config: %v", err)
+	}
+	var shipped struct {
+		APIFramework configs.APIFramework `yaml:"APIFramework"`
+	}
+	if err := yaml.Unmarshal(data, &shipped); err != nil {
+		t.Fatalf("decode shipped config: %v", err)
+	}
+	if shipped.APIFramework.BaublesSharePercent != 25 || shipped.APIFramework.CompanionSharePercent != 0 {
+		t.Fatalf("shipped knobs: %+v", shipped.APIFramework)
+	}
+	s := resolveServer(shipped.APIFramework, legacyConfig{})
+	if s.BaublesSharePercent != 25 || s.CompanionSharePercent != 0 {
+		t.Fatalf("shipped shares resolve to baubles 25, the companion uncapped: %d/%d", s.BaublesSharePercent, s.CompanionSharePercent)
 	}
 }

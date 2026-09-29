@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -19,6 +20,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/apiframework"
 	eng "github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"gopkg.in/yaml.v2"
 )
 
 // The test binary never sees a real key: a developer's OPENAI_API_KEY is
@@ -1059,5 +1061,29 @@ func TestAdminRegenChargesNoFinder(t *testing.T) {
 	}
 	if finderSpent(0) != 0 || baublesTokens() != 240 {
 		t.Fatalf("no finder charged, the share counts it: finder0=%d share=%d", finderSpent(0), baublesTokens())
+	}
+}
+
+// The committed config.yaml's Modules.baubles block, read by repo path and
+// put through buildConfig, gives each finder the shipped 20000-token day.
+func TestTheShippedFinderAllowance(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(`..`, `..`, `_datafiles`, `config.yaml`))
+	if err != nil {
+		t.Fatalf("read shipped config: %v", err)
+	}
+	var shipped struct {
+		Modules struct {
+			Baubles map[string]any `yaml:"baubles"`
+		} `yaml:"Modules"`
+	}
+	if err := yaml.Unmarshal(data, &shipped); err != nil {
+		t.Fatalf("decode shipped config: %v", err)
+	}
+	if v, ok := shipped.Modules.Baubles[`DailyTokensPerUser`]; !ok || v != 20000 {
+		t.Fatalf("Modules.baubles.DailyTokensPerUser in config.yaml: %v (%v)", v, ok)
+	}
+	c := buildConfig(func(k string) any { return shipped.Modules.Baubles[k] })
+	if c.DailyTokensPerUser != 20000 {
+		t.Fatalf("shipped DailyTokensPerUser through buildConfig: %d", c.DailyTokensPerUser)
 	}
 }
