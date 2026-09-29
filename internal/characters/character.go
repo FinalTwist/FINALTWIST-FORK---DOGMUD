@@ -107,28 +107,30 @@ const (
 )
 
 type Character struct {
-	Name                string           // The name of the character
-	Description         string           // A description of the character.
-	Adjectives          []string         `yaml:"adjectives,omitempty"` // Decorative text for the name of the character (e.g. "sleeping", "dead", "wounded")
-	RoomId              int              // The room id the character is in.
-	Zone                string           // The zone the character is in. The folder the room can be located in too.
-	SpeciesId           int              // Character species
-	Stats               stats.Statistics // Character stats
-	Health              int              // The health of the character
-	Stamina             int              // The stamina of the character (physical energy)
-	Conviction          int              // The conviction of the character (mental/spiritual energy)
-	Toxicity            float64          `yaml:"toxicity,omitempty"`        // Current toxicity from potions
-	BloomAddiction      int              `yaml:"bloom_addiction,omitempty"` // Bloom-drug addiction level (0 = clean)
-	BloomLastDoseRound  uint64           `yaml:"-"`                         // runtime: round of last Bloom dose (abstinence clock)
-	BloomHadCommunion   bool             `yaml:"-"`                         // runtime: true while condition 90 was active last tick (Crash transition gate)
-	ActionPoints        int              // The resevoir of action points the character has to spend on movement etc.
-	Gold                int              // The gold the character is holding
-	Bank                int              // The gold the character has in the bank
-	StorageFeeLastMonth int              `yaml:"storagefee_lastmonth,omitempty"` // Game month when storage fees were last charged
-	LastMailSentRound   uint64           `yaml:"lastmailsentround,omitempty"`    // Round of the character's last sent mail (mail send cooldown)
-	Shop                Shop             `yaml:"shop,omitempty"`                 // Definition of shop services/items this character stocks (or just has at the moment)
-	SpellBook           map[string]int   `yaml:"spellbook,omitempty"`            // The spells the character has learned
-	KnownRecipes        map[string]int   `yaml:"knownrecipes,omitempty"`         // The crafting recipes the character has discovered
+	Name                    string           // The name of the character
+	Description             string           // A description of the character.
+	Adjectives              []string         `yaml:"adjectives,omitempty"` // Decorative text for the name of the character (e.g. "sleeping", "dead", "wounded")
+	RoomId                  int              // The room id the character is in.
+	Zone                    string           // The zone the character is in. The folder the room can be located in too.
+	SpeciesId               int              // Character species
+	Stats                   stats.Statistics // Character stats
+	Health                  int              // The health of the character
+	Stamina                 int              // The stamina of the character (physical energy)
+	Conviction              int              // The conviction of the character (mental/spiritual energy)
+	Toxicity                float64          `yaml:"toxicity,omitempty"`        // Current toxicity from potions
+	BloomAddiction          int              `yaml:"bloom_addiction,omitempty"` // Bloom-drug addiction level (0 = clean)
+	BloomLastDoseRound      uint64           `yaml:"-"`                         // runtime: round of last Bloom dose (abstinence clock)
+	BloomHadCommunion       bool             `yaml:"-"`                         // runtime: true while condition 90 was active last tick (Crash transition gate)
+	ActionPoints            int              // The resevoir of action points the character has to spend on movement etc.
+	ActionPointsSettled     bool             `yaml:"-"` // runtime: SettleActionPoints has run at least once (mobs only; movement parity 4b)
+	ActionPointsSettledTurn uint64           `yaml:"-"` // runtime: the turn ActionPoints was last settled to
+	Gold                    int              // The gold the character is holding
+	Bank                    int              // The gold the character has in the bank
+	StorageFeeLastMonth     int              `yaml:"storagefee_lastmonth,omitempty"` // Game month when storage fees were last charged
+	LastMailSentRound       uint64           `yaml:"lastmailsentround,omitempty"`    // Round of the character's last sent mail (mail send cooldown)
+	Shop                    Shop             `yaml:"shop,omitempty"`                 // Definition of shop services/items this character stocks (or just has at the moment)
+	SpellBook               map[string]int   `yaml:"spellbook,omitempty"`            // The spells the character has learned
+	KnownRecipes            map[string]int   `yaml:"knownrecipes,omitempty"`         // The crafting recipes the character has discovered
 	// NonCombatant indicates whether this character is exempt from combat.
 	// Default false (i.e., everyone is a combatant by default). Set true for
 	// non-combatant NPCs and future player passivity spells. Inverted name

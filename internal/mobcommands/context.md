@@ -109,6 +109,22 @@ The `internal/mobcommands` package implements the AI command system for non-play
 - **Territorial constraints**: Respecting home zones and wander limits
 - **Return-home logic**: Automatic navigation back to spawn points
 - **Environmental awareness**: Zone-restricted movement patterns
+- **Quote before issuing** (movement parity 4b): `Wander` calls
+  `actions.QuoteMobStep(mob, exitName)` before committing to a step; an
+  unaffordable step is neither taken nor counted against `WanderCount`, and
+  pack followers moved through the same exit are each gated the same way
+  (`mobs.MovePackFollowers`'s `canStep` argument — see
+  `internal/mobs/context.md`).
+
+#### **Movement (`go.go`, movement parity 4b)**
+- Before this slice a mob's walk was entirely free (no action points, no
+  stamina) and rolled no hidden-detection contest at all. `mobcommands.Go`
+  now calls the same shared bodies the player path uses
+  (`internal/actions/move.go`, see that package's "Movement" section): it
+  pays `actions.ChargeMove` AFTER its lock gates (silently refusing and
+  taking no step on a refusal — a mob has no one to tell), then
+  `actions.RelocateMob`, then rolls `actions.EntryDetection` on arrival and
+  the rare `actions.TrainSearchOnMove`, both ways, same as a player.
 
 #### **Dynamic Conversations** (`converse.go`)
 - **Context-aware dialogue**: Conversations based on mob types and situations

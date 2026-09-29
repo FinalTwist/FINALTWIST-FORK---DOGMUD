@@ -33,6 +33,16 @@ func (p *PathQueue) Next() PathRoom {
 	return p.currentRoom
 }
 
+// Peek returns the next step without advancing the queue, or nil when the
+// queue is empty. The path walker quotes a step before taking it, and a step
+// it cannot afford yet must stay queued (movement parity 4b).
+func (p PathQueue) Peek() PathRoom {
+	if len(p.roomQueue) == 0 {
+		return nil
+	}
+	return p.roomQueue[0]
+}
+
 // returns a list of remaining waypoint roomIds
 func (p *PathQueue) Waypoints() []int {
 	wpList := []int{}

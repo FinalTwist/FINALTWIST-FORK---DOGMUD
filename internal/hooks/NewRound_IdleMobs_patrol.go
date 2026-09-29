@@ -176,6 +176,12 @@ func applyPatrolPlan(mob *mobs.Mob, plan patrolPlan, activePatrolId string) {
 		if mob.Path.Len() == 0 && mob.Path.Current() == nil {
 			mob.Command(fmt.Sprintf("pathto %d", plan.TargetRoom))
 		}
+		// Movement parity 4b: a mob resting mid-path because it cannot pay
+		// its next step has not failed to path. Counting the rest would trip
+		// the home fallback on any long enough rest.
+		if mobPathStepWaiting(mob) {
+			return
+		}
 		fails := getMiscDataInt(&mob.Character, "patrol_path_fail_count")
 		mob.Character.SetMiscData("patrol_path_fail_count", fails+1)
 		return

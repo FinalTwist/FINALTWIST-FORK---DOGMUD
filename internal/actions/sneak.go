@@ -8,7 +8,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/costs"
 	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
-	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/state"
 	"github.com/GoMudEngine/GoMud/internal/state/awareness"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -36,9 +35,10 @@ type SneakResult struct {
 
 // Sneak attempts to put actor into the hidden (sneaking) state.
 //
-// It rolls the actor's sneak score against every observer in the room. Party
-// members of a player actor are excluded from the observer checks. If any
-// observer wins the opposed roll the attempt fails and SpottedByName is set.
+// It rolls the actor's sneak score against every observer in the room. A
+// player actor's party members and own charmed mobs and companions are
+// excluded from the observer checks (alliesOf). If any observer wins the
+// opposed roll the attempt fails and SpottedByName is set.
 //
 // On success the hidden condition (id 9) is applied via the event queue and the
 // "sneaking" misc-data key is set immediately so other systems can react
@@ -92,16 +92,13 @@ func Sneak(actor Actor) SneakResult {
 		return SneakResult{Cost: cost}
 	}
 
-	// Build party exclusion set for player actors.
-	// Mob actors have no party (GetUserId returns 0); parties.Get(0) returns nil.
-	partySet := map[int]bool{}
+	// A player actor's side (alliesOf: its party's players and its own
+	// charmed mobs and companions) never observes it. A mob actor skips only
+	// itself, as before.
+	allies := moverAllies{}
 	if uid := actor.GetUserId(); uid > 0 {
-		partySet[uid] = true
-		if party := parties.Get(uid); party != nil {
-			for _, memberId := range party.GetMembers() {
-				partySet[memberId] = true
-			}
-		}
+		allies = alliesOf(actor)
+		allies.users[uid] = true
 	}
 
 	// Exclude the mob actor itself from the observer lists.
@@ -113,7 +110,7 @@ func Sneak(actor Actor) SneakResult {
 	// that NightVision observers (effectiveLit=true) apply the appropriate
 	// light modifier even in a dark room.
 	for _, observerId := range room.GetPlayers() {
-		if partySet[observerId] {
+		if allies.users[observerId] {
 			continue
 		}
 		observer := users.GetByUserId(observerId)
@@ -138,8 +135,8 @@ func Sneak(actor Actor) SneakResult {
 
 	// Check each mob in the room.
 	for _, mobInstanceId := range room.GetMobs() {
-		if mobInstanceId == selfMobId {
-			continue // don't roll against yourself
+		if mobInstanceId == selfMobId || allies.mobs[mobInstanceId] {
+			continue // yourself, or your own pet or companion
 		}
 		m := mobs.GetInstance(mobInstanceId)
 		if m == nil {

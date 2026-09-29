@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
@@ -219,6 +220,18 @@ func mob_Spawn(rest string, user *users.UserRecord, room *rooms.Room, flags even
 	return true, nil
 }
 
+// mobVitalsLine is the stamina and action point readout for `mob schedule`
+// (movement parity 4b). The mob's points are settled first, so the number is
+// what its next step would see.
+func mobVitalsLine(m *mobs.Mob, turn uint64) string {
+	m.Character.SettleActionPoints(turn)
+	return fmt.Sprintf(
+		"  stamina:         %d / %d\n"+
+			"  action points:   %d / %d",
+		m.Character.Stamina, m.Character.EffectivePoolMax(characters.PoolStamina),
+		m.Character.ActionPoints, m.Character.ActionPointsMax.Value)
+}
+
 // mob_Schedule prints the schedule debug summary for a single mob instance.
 // Usage: mob schedule <instId>
 func mob_Schedule(args []string, user *users.UserRecord, room *rooms.Room, _ events.EventFlag) (bool, error) {
@@ -239,6 +252,10 @@ func mob_Schedule(args []string, user *users.UserRecord, room *rooms.Room, _ eve
 			fmt.Sprintf(`No mob instance with id %d.`, instId))
 		return true, nil
 	}
+	// Vitals come first so a patrol-only mob, which has no schedule, still
+	// shows whether it is too tired to walk (movement parity 4b).
+	user.SendText(messaging.CategorySystem, fmt.Sprintf("Vitals for %s (instance %d):\n%s",
+		m.Character.Name, instId, mobVitalsLine(m, util.GetTurnCount())))
 	if m.ScheduleId == "" {
 		user.SendText(messaging.CategorySystem,
 			fmt.Sprintf(`%s (mob %d, instance %d) has no schedule.`,

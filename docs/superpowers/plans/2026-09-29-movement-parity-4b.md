@@ -119,6 +119,77 @@ Config values are read from `git show HEAD:_datafiles/config.yaml`, never from d
 
 ---
 
+## Drift found at execution (2026-09-29, master `3d9a44f5f`)
+
+Master gained 4a (flee parity) and the baubles PR #175 (FinalTwist) since this
+plan's facts were verified at `c061ca58f`. Every row of the facts table was
+re-checked against `3d9a44f5f`. Signatures, call sites and behaviour all match;
+only citations drifted. Nothing below breaks a task's design.
+
+**Contract from 4a (Task 0 Steps 2-3): confirmed exactly.**
+`actions.RelocateMob(mob *mobs.Mob, from *rooms.Room, exitName string, dest *rooms.Room)`
+is defined once, at `internal/actions/relocate_mob.go:84`; `mobcommands/go.go`
+calls it once, at line 127, after the far-side lock gate. `grep -n
+"ChargeMove\|DeductActionPoints\|EntryDetection" internal/actions/relocate*.go
+internal/actions/flee*.go` returns nothing (exit 1): `RelocateMob` charges and
+detects nothing, as the contract requires. `mobcommands/go.go` is now 141
+lines total (down from the pre-4a 106-280 range V19 describes): the NPC party
+pull V19 placed inline is gone from this file, consistent with the contract's
+own claim that `RelocateMob` absorbed it.
+
+**Line-number-only drift (values, signatures and behaviour unchanged):**
+- V13: `hooks.go:75` -> `:76` (`RegisterListener(events.NewTurn{}, ActionPoints)`).
+- V14: `world.go:868` -> `:873` (`util.IncrementTurnCount()` call site).
+- V17: config.yaml block shifted roughly +7 lines starting after
+  `HiddenMoveStaminaMultiplier` (still `:900`, unchanged): `MobStaminaRegenPct`
+  `:1193`->`:1200`, `MovementBaseStaminaCost` `:1208`->`:1215`,
+  `MovementMaxStaminaCost` `:1210`->`:1217`, `MovementSearchTrainChance`
+  `:1218`->`:1225`, `StaminaBase` `:1249`->`:1256`, `StaminaPerVitality`
+  `:1250`->`:1257`, `StaminaPerWillpower` `:1251`->`:1258`. All values
+  unchanged. `FlightMoveStaminaMult` Go default: `config.balance.combat.go`
+  `:199-200` -> `:221-222`, value still 0.5.
+- V18: `MobSkillTrainingCap` in config.yaml `:1500` -> `:1621`, value still 25;
+  its declaration in `config.balance.go` `:476` -> `:484` (`MobSkillCap` legacy
+  row now at `:479`).
+- V25: `actGoToCallerRoom` `:293` -> `:294`; `actMoveTowardTracked` unchanged
+  at `:169`; `actMove` unchanged at `:348`.
+- V26: `advanceTravel`'s `go <exit>` issue `:193` -> `:192`; `stepTimeoutRounds`,
+  the two `Fails >= 3` sites and the mind-line pattern are all at the exact
+  cited lines, unchanged.
+- V27: `aicompanion/loot.go`'s `mobCompanionFollow` `:254` -> `:230`;
+  `witness_response.go:91` and `follow.go:301` unchanged exactly;
+  `usercommands/go.go`'s charmed-mob-follow loop `:477-490` -> `:485-502`;
+  ferry factor's stuck-recovery teleport (`moveFactorSilently`) `:311-330` ->
+  starts `:326`, called from `issueWalkIfDue` at `:320`. `seeders/` in the
+  plan's shorthand is `internal/seeders/` on disk, unchanged content.
+- V31: `narrationViewpointRegistry`'s two `usercommands/go.go` keys
+  `:1364-1365` -> `:1365-1366`; the walk-guard block `:1446-1515` ->
+  `:1470-1477` (guard logic condensed, same two failure modes: unregistered
+  new key, stale registered key).
+- V37: `boot_smoke_test.go`'s `loadAllDataFiles` call cited at `:31-60` is
+  actually at `:87` (and again at `:317`, `:361`); `main.go` `:398-401,1610`
+  -> `:397,403,1614`.
+- V9 (`GetMovementStaminaCost`, `resources.go:91-123`), V12 (`character.go:124`
+  `ActionPoints int`, `:150` `ActionPointsMax`), and V20
+  (`mobs_path.go` `PathQueue` methods, no `Peek`) verified at the exact cited
+  lines: no drift.
+
+**New since the facts table was written, not breaking any task:**
+- `internal/hooks/NewRound_IdleMobs.go` gained an NPC-NPC idle-conversation
+  chunk ("Chunk 3.6") between the patrol executor and the path-walker check
+  (now around `:118-140`); the walker's own `mob.Path.Next()` call is still
+  inside V21's cited `:140-196` range, now at `:165`. Task 6, which extracts
+  the walker into `advanceMobPath`, needs to route around this block rather
+  than through it; noted for that task, not acted on here.
+- `internal/mobcommands/wander.go` now early-returns before the wander body
+  for `mob.ScatterRounds > 0` and `mob.PackAlphaId > 0 && !mob.IsPackAlpha`
+  (pack-roaming state, Stage 42.8) before reaching the `WanderCount++` /
+  `mob.Command("go "+exit)` pair V23 describes, which is now at roughly
+  `:100-114` instead of `:93-110`. `pack_roaming.go`'s `MovePackFollowers`
+  (`:256-294`) is unchanged at the cited lines.
+
+---
+
 ### Task 0: Branch and verify the 4a contract
 
 **Files:** none

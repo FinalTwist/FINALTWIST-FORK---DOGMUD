@@ -625,6 +625,40 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
   MiscData in `applySchedulePlan` when the current segment has
   `activity: patrol`.
 
+### Movement parity 4b: a tired mob waits on its path
+
+`advanceMobPath(mob) bool` (`NewRound_IdleMobs.go`) is the path walker,
+extracted out of `IdleMobs`'s per-mob loop body; it returns true when the mob
+is busy with its path this round (a step issued, a re-path queued, or a
+tired wait) so the caller does not also queue an idle command. Before this
+slice a mob's step was free and unconditional; now `quoteMobPathStep(mob)
+(mobs.PathRoom, actions.MoveCharge, bool)` peeks the mob's next step
+(`mob.Path.Peek()`, which does NOT advance the queue) and quotes it with
+`actions.QuoteMobStep` before `advanceMobPath` issues it. Three outcomes:
+
+- **Affordable** (`quote.OK()`): `mob.Path.Next()` advances the queue and the
+  step is issued exactly as before.
+- **Not affordable now, but could be once rested** (`!quote.OK() &&
+  !quote.Never`): the mob WAITS. The path is left untouched (nothing is
+  dequeued) and `advanceMobPath` re-quotes the same step next round. This
+  replaced the old "not standing in `Current().RoomId()` re-paths through
+  remaining waypoints" behaviour for this case (fact V21 predates 4b): a
+  mob that simply cannot pay is not off its path, so it must not re-path.
+- **Never affordable, even rested** (`quote.Never`, `MoveCharge.Never`):
+  `mob.Path.Clear()` and, if home, `WanderCount` resets. A cleared path
+  hands the mob back to the idle command, schedule and patrol fallbacks
+  instead of parking it on an impossible step forever.
+
+`mobPathStepWaiting(mob) bool` re-runs `quoteMobPathStep` and reports the
+middle case above (a step the walker would take that is affordable-later,
+not-affordable-now). The patrol executor's `applyPatrolPlan` (`WantsPath`
+branch, `NewRound_IdleMobs_patrol.go`) calls it before incrementing
+`patrol_path_fail_count`: a mob resting mid-path has not failed to path, and
+counting the rest would trip the `MaxPathRetries` home fallback on any
+sufficiently long rest. The schedule executor's own path-progress counting
+(`NewRound_IdleMobs_schedule.go`) is unaffected — only a *new* `pathto` issue
+counts there (fact V22), which a waiting mob never triggers.
+
 ### Conversation executor (chunk 3.6)
 
 - `NewRound_IdleMobs_conversations.go`: conversation branch runs in

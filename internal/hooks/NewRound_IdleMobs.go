@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/conversationadapter"
@@ -136,63 +137,9 @@ func IdleMobs(e events.Event) events.ListenerReturn {
 		convDur += time.Since(tConv)
 
 		// Check whether they are currently in the middle of a path, or have one waiting to start.
-		// This comes after checks for whether they are currently in a conersation, or in combat, etc.
-		if currentStep := mob.Path.Current(); currentStep != nil || mob.Path.Len() > 0 {
-
-			if currentStep != nil {
-
-				// If their currentStep isn't actually the room they are in
-				// They've somehow been moved. Reclaculate a new path.
-				if currentStep.RoomId() != mob.Character.RoomId {
-
-					reDoWaypoints := mob.Path.Waypoints()
-					if len(reDoWaypoints) > 0 {
-						newCommand := `pathto`
-						for _, wpInt := range reDoWaypoints {
-							newCommand += ` ` + strconv.Itoa(wpInt)
-						}
-						mob.Command(newCommand)
-						continue
-					}
-
-					// if we were unable to come up with a new path, send them home.
-					mob.Command(`pathto home`)
-
-					continue
-				}
-			}
-
-			if nextStep := mob.Path.Next(); nextStep != nil {
-
-				if room := rooms.LoadRoom(mob.Character.RoomId); room != nil {
-					if exitInfo, ok := room.Exits[nextStep.ExitName()]; ok {
-						if exitInfo.RoomId == nextStep.RoomId() {
-							mob.Command(nextStep.ExitName())
-							// Stage 2 caravan: pace caravan crews a shade
-							// slower than default mob walking. The noop
-							// pushes lastCommandTurn forward so the next
-							// path step waits ~1.5s. ~1 step per 5.5s real
-							// instead of per 4s — visible in flavor without
-							// being painful.
-							for _, g := range mob.Groups {
-								if g == "caravan" {
-									mob.Command("noop", 1.5)
-									break
-								}
-							}
-							continue
-						}
-					}
-				}
-
-			}
-
-			mob.Path.Clear()
-
-			if mob.HomeRoomId == mob.Character.RoomId {
-				mob.WanderCount = 0
-			}
-
+		// This comes after checks for whether they are currently in a conversation, or in combat, etc.
+		if advanceMobPath(mob) {
+			continue
 		}
 
 		events.AddToQueue(events.MobIdle{MobInstanceId: mobId})
@@ -205,6 +152,99 @@ func IdleMobs(e events.Event) events.ListenerReturn {
 	util.TrackTime(`IdleMobs()`, time.Since(tStart).Seconds())
 
 	return events.Continue
+}
+
+// advanceMobPath moves a mob one step along its path. It returns true when the
+// mob is busy with its path this round (a step issued, a re-path queued, or a
+// tired wait) and the caller must not treat it as idle.
+//
+// Movement parity 4b: the next step is quoted before it is taken. A mob that
+// cannot pay yet keeps its path and waits, re-quoting each round but never
+// re-pathing; before, Next() advanced the queue first, so a step the mob never
+// took forced a re-path on the next tick. A step it could never pay clears the
+// path, which hands the mob to the schedule and patrol fallbacks rather than
+// parking it forever. A step it can pay is taken exactly as before.
+func advanceMobPath(mob *mobs.Mob) bool {
+	currentStep := mob.Path.Current()
+	if currentStep == nil && mob.Path.Len() == 0 {
+		return false
+	}
+
+	// If their currentStep isn't actually the room they are in, they've
+	// somehow been moved. Recalculate a new path.
+	if currentStep != nil && currentStep.RoomId() != mob.Character.RoomId {
+		reDoWaypoints := mob.Path.Waypoints()
+		if len(reDoWaypoints) > 0 {
+			newCommand := `pathto`
+			for _, wpInt := range reDoWaypoints {
+				newCommand += ` ` + strconv.Itoa(wpInt)
+			}
+			mob.Command(newCommand)
+			return true
+		}
+		// if we were unable to come up with a new path, send them home.
+		mob.Command(`pathto home`)
+		return true
+	}
+
+	if nextStep, quote, ok := quoteMobPathStep(mob); ok {
+		if quote.OK() {
+			mob.Path.Next()
+			mob.Command(nextStep.ExitName())
+			// Stage 2 caravan: pace caravan crews a shade slower than
+			// default mob walking. The noop pushes lastCommandTurn forward
+			// so the next path step waits ~1.5s. ~1 step per 5.5s real
+			// instead of per 4s, visible in flavor without being painful.
+			for _, g := range mob.Groups {
+				if g == "caravan" {
+					mob.Command("noop", 1.5)
+					break
+				}
+			}
+			return true
+		}
+		if !quote.Never {
+			return true // tired: keep the path, try again next round
+		}
+	}
+
+	mob.Path.Clear()
+	if mob.HomeRoomId == mob.Character.RoomId {
+		mob.WanderCount = 0
+	}
+	return false
+}
+
+// quoteMobPathStep peeks the mob's next path step and, when it is a step the
+// walker would take from where the mob stands (it has not been moved off its
+// path, and the room has that exit leading to the step's room), quotes it.
+// ok is false when the walker would not take the step at all.
+func quoteMobPathStep(mob *mobs.Mob) (mobs.PathRoom, actions.MoveCharge, bool) {
+	if cur := mob.Path.Current(); cur != nil && cur.RoomId() != mob.Character.RoomId {
+		return nil, actions.MoveCharge{}, false
+	}
+	nextStep := mob.Path.Peek()
+	if nextStep == nil {
+		return nil, actions.MoveCharge{}, false
+	}
+	room := rooms.LoadRoom(mob.Character.RoomId)
+	if room == nil {
+		return nil, actions.MoveCharge{}, false
+	}
+	exitInfo, found := room.Exits[nextStep.ExitName()]
+	if !found || exitInfo.RoomId != nextStep.RoomId() {
+		return nil, actions.MoveCharge{}, false
+	}
+	return nextStep, actions.QuoteMobStep(mob, nextStep.ExitName()), true
+}
+
+// mobPathStepWaiting reports whether the walker will wait on the mob's next
+// path step: a step it would take, which the mob cannot afford yet but could
+// once rested. The patrol executor reads it so a rest does not count as a
+// failed path.
+func mobPathStepWaiting(mob *mobs.Mob) bool {
+	_, q, ok := quoteMobPathStep(mob)
+	return ok && !q.OK() && !q.Never
 }
 
 // conversationsTriggerEligible gates the per-tick conversation trigger for a

@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/exit"
+	"github.com/GoMudEngine/GoMud/internal/keywords"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
 
@@ -13,6 +15,9 @@ import (
 // flees. actFlee walks away instead when the mob is not fighting.
 func TestActFlee_OutOfCombatWalksAway(t *testing.T) {
 	const here, there = 12, 13
+	// The walk is quoted first, which resolves the exit through the
+	// direction aliases; a test binary has none loaded.
+	t.Cleanup(keywords.SeedKeywordsForTest())
 	cleanup := rooms.SeedRoomsForTest(map[int]*rooms.Room{
 		here:  {RoomId: here, Zone: "test", Exits: map[string]exit.RoomExit{"north": {RoomId: there}}},
 		there: {RoomId: there, Zone: "test", Exits: map[string]exit.RoomExit{"south": {RoomId: here}}},
@@ -21,6 +26,11 @@ func TestActFlee_OutOfCombatWalksAway(t *testing.T) {
 
 	mob := newTestMob(t)
 	mob.Character.RoomId = here
+	// Rested enough to pay the step the walk quotes.
+	mob.Character.Stamina = 100
+	mob.Character.StaminaMax.Value = 100
+	mob.Character.ActionPointsMax.Value = 200
+	mob.Character.Conditions = conditions.New()
 	queuedCmds(mob.InstanceId)
 
 	if got := LookupAction("flee")(nil, &EvalContext{InstanceId: mob.InstanceId, RoomId: here}); got != Success {

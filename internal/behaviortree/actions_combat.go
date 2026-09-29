@@ -89,7 +89,8 @@ func actAttack(params map[string]any, ctx *EvalContext) Result {
 // actFlee flees a fight through the player's rules (slice 4a). Out of combat
 // there is nothing to flee and the flee command refuses, so the mob walks
 // away instead, toward home when it can: the thief's steal-and-run and a
-// skittish animal's bolt still leave the room.
+// skittish animal's bolt still leave the room. That walk is quoted first and
+// the node fails when the mob cannot pay for the step.
 func actFlee(params map[string]any, ctx *EvalContext) Result {
 	mob := mobs.GetInstance(ctx.InstanceId)
 	if mob == nil {
@@ -102,6 +103,11 @@ func actFlee(params map[string]any, ctx *EvalContext) Result {
 		}
 		dir := pickRetreatExit(mob, room)
 		if dir == "" {
+			return Failure
+		}
+		// Movement parity 4b: fail when the mob cannot pay for the step,
+		// as actMove does, rather than queue a walk that will be refused.
+		if !actions.QuoteMobStep(mob, dir).OK() {
 			return Failure
 		}
 		mob.Command("go " + dir)

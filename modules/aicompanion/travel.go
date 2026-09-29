@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/actions"
 	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -33,6 +34,7 @@ type travelPlan struct {
 	TriedKey   bool   // a locked way on this step has already had the key tried
 	Authorized bool   // the owner asked for this errand
 	Errand     string // what she set out to do there, in her own words
+	Resting    bool   // already told her mind she stopped to rest on this trip
 }
 
 const (
@@ -40,6 +42,16 @@ const (
 	maxReplans        = 2
 	returnMaxSteps    = 60
 )
+
+// tooTiredLine is what a companion remembers when it stops to rest mid-trip.
+const tooTiredLine = `You are too tired to go on, and stop to catch your breath.`
+
+// stepQuote prices a step through exitName for the companion right now
+// (movement parity 4b): OK when she can pay, Never when she could not pay it
+// even fully rested. A variable so tests can pin it.
+var stepQuote = func(mob *mobs.Mob, exitName string) actions.MoveCharge {
+	return actions.QuoteMobStep(mob, exitName)
+}
 
 // startTravel plans a route and begins a trip. It returns a reason when the
 // trip cannot start.
@@ -96,6 +108,14 @@ func (m *AICompanionModule) endTravel(c *controller, why string, tellModel bool)
 	}
 }
 
+// endTooWeak ends a trip whose next step the companion could not pay for even
+// fully rested (the quote's Never), the way any failed trip ends. Nothing is
+// charged to the map: the exit is not at fault.
+func (m *AICompanionModule) endTooWeak(c *controller) {
+	p := c.travel
+	m.endTravel(c, `You are too weak to go on toward `+p.DestName+`, however long you rest.`, p.Purpose != `return`)
+}
+
 // advanceTravel moves a trip on by at most one step. Called every round.
 func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *users.UserRecord, round uint64) {
 	p := c.travel
@@ -127,6 +147,17 @@ func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *u
 			}
 
 		case round >= p.Issued+stepTimeoutRounds:
+			// Movement parity 4b: a step that did not move because she
+			// could not pay for it is a rest, not a bad exit. Re-quote next
+			// round; never charge exhaustion to the map.
+			if q := stepQuote(mob, p.Steps[p.Next].Exit); !q.OK() {
+				if q.Never {
+					m.endTooWeak(c)
+					return
+				}
+				p.Expect = 0
+				return
+			}
 			// Did not move. A locked door she has the key for is worth one
 			// try before the way is written off.
 			if !p.TriedKey && m.tryUnlock(c, mob, p.Steps[p.Next].Exit) {
@@ -188,6 +219,22 @@ func (m *AICompanionModule) advanceTravel(c *controller, mob *mobs.Mob, owner *u
 	st := p.Steps[p.Next]
 	if !safeExitName(st.Exit) {
 		m.endTravel(c, `You could not find the way on.`, false)
+		return
+	}
+	// Movement parity 4b: quote before issuing. Tired, she waits without
+	// starting the step clock and tells her mind once per trip (a new trip is
+	// a new plan, so the flag starts clear). A step she could not pay for
+	// even fully rested ends the trip instead of waiting forever.
+	if q := stepQuote(mob, st.Exit); !q.OK() {
+		if q.Never {
+			m.endTooWeak(c)
+			return
+		}
+		if !p.Resting {
+			p.Resting = true
+			c.mind.addLine(Line{Kind: `event`, Text: tooTiredLine}, m.cfg.WorkingMemoryLines)
+			c.dirty = true
+		}
 		return
 	}
 	mob.Command(`go ` + util.EscapeAnsiTags(st.Exit))

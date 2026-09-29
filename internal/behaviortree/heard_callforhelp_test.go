@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
+	"github.com/GoMudEngine/GoMud/internal/keywords"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 )
@@ -18,6 +19,11 @@ import (
 // connecting exit.
 func TestGenericFighter_HeardCallforhelp_IssuesGoCommand(t *testing.T) {
 	LoadArchetypeForTest(t, "generic_fighter", genericFighterYAML)
+
+	// Movement parity 4b: actGoToCallerRoom now quotes the step through
+	// QuoteMobStep, which resolves the exit via FindExitByName and reads
+	// the direction aliases; a test binary has none loaded without this.
+	defer keywords.SeedKeywordsForTest()()
 
 	// Seed rooms: room 1 (caller), room 2 (responder). Responder's
 	// room has a south exit to room 1.
@@ -43,6 +49,7 @@ func TestGenericFighter_HeardCallforhelp_IssuesGoCommand(t *testing.T) {
 	responder.Character.Health = 100
 	responder.Character.Stamina = 100
 	responder.Character.Conviction = 500
+	responder.Character.ActionPointsMax.Value = 200 // movement parity 4b: steps cost action points
 	responder.Character.Conditions = conditions.New()
 
 	seed := mobs.SeedMobsForTest(nil, map[int]*mobs.Mob{
@@ -80,6 +87,11 @@ func TestGenericFighter_HeardCallforhelp_IssuesGoCommand(t *testing.T) {
 func TestLookout_HeardCallforhelp_IssuesGoCommand(t *testing.T) {
 	LoadArchetypeForTest(t, "lookout", lookoutYAML)
 
+	// Movement parity 4b: actGoToCallerRoom now quotes the step through
+	// QuoteMobStep, which resolves the exit via FindExitByName and reads
+	// the direction aliases; a test binary has none loaded without this.
+	defer keywords.SeedKeywordsForTest()()
+
 	room1 := &rooms.Room{RoomId: 1, Zone: "TestZone"}
 	room2 := &rooms.Room{RoomId: 2, Zone: "TestZone", Exits: map[string]exit.RoomExit{"south": {RoomId: 1}}}
 	cleanupRooms := rooms.SeedRoomsForTest(map[int]*rooms.Room{1: room1, 2: room2}, nil)
@@ -100,6 +112,7 @@ func TestLookout_HeardCallforhelp_IssuesGoCommand(t *testing.T) {
 	responder.Character.Health = 100
 	responder.Character.Stamina = 100
 	responder.Character.Conviction = 500
+	responder.Character.ActionPointsMax.Value = 200 // movement parity 4b: steps cost action points
 	responder.Character.Conditions = conditions.New()
 
 	seed := mobs.SeedMobsForTest(nil, map[int]*mobs.Mob{

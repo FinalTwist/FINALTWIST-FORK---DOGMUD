@@ -26,8 +26,7 @@ func (b *Balance) validateMisc() {
 	// flat 1.0 until the actor EXCEEDED capacity and therefore priced nothing for
 	// anyone who was not deliberately overloaded.
 	//
-	// config.yaml still ships MovementBaseStaminaCost: 2.0 and that value WINS
-	// over this default until the Task 12 config pass lowers it.
+	// config.yaml ships MovementBaseStaminaCost: 0.5, matching this default.
 	if b.MovementBaseStaminaCost <= 0 {
 		b.MovementBaseStaminaCost = 0.5
 	}
