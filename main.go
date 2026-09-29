@@ -595,6 +595,12 @@ func main() {
 		"ActiveConnections", totalConnections-totalDisconnections,
 	)
 
+	// Stop the bauble sweeper before anything below tears the world down or
+	// rewrites save files: a sweep in progress finishes its writes first,
+	// and none can start against a half-closed world. Not under the mud lock
+	// (a sweep in progress may be waiting on it).
+	baubles.StopSweeper()
+
 	// cleanup all connections
 	connections.Cleanup()
 
@@ -613,7 +619,6 @@ func main() {
 	forager.SaveAllThroughputs()
 	caravan.SaveAllThroughputs()
 	warehouse.SaveAll()
-	baubles.StopSweeper()     // a sweep in progress finishes its writes first
 	baubles.SaveAll()         // retries any catalog write that failed; the rest is already on disk
 	apiframework.SaveBudget() // the server key's day's spending, shared by every feature
 

@@ -877,15 +877,18 @@ The owner's review list, less items 2, 4, 6 and 8 (the owner's to do).
 
 - **Lint (1).** The two `TransitionToRevealing` results in `steal.go` are
   discarded with `_ =`.
-- **Catalog pruning and locking (3).** `baubles.Prune(now)` removes sold or
-  vanished records older than `KeepDuration()`
+- **Catalog pruning and locking (3).** Superseded by the catalog sweep
+  (`internal/baubles/sweep.go`), now the only pruner: `Load` and `SaveAll`
+  prune nothing. The sweep runs at boot and then every
+  `Balance.BaubleSweepHours`, collects every bauble id any item still
+  points at (the live world and every save file under DataFiles), and
+  prunes a record only after two sweeps in a row found nothing pointing at
+  it AND its latest evidence is older than `KeepDuration()`
   (`Balance.BaubleCatalogKeepDays`, 30, at least 7 since the sales stats
-  read a week) and keeps any with a return credit (`ReturnCreditAt`), which
-  the credit window still counts. A retired record is pruned only once it
-  too is sold or vanished: until then the bauble may still be in a
-  player's pack. Prune runs at load and at every
-  `SaveAll`, and rewrites only the `catalog-*` shards, so the corpus
-  overlay survives. Shard and meta writes happen outside the lock
+  read a week). A record with a return credit (`ReturnCreditAt`) is never
+  pruned, since the credit window still counts it. A sweep that goes wrong
+  anywhere applies nothing. It rewrites only the `catalog-*` shards, so
+  the corpus overlay survives. Shard and meta writes happen outside the lock
   `Get` takes (a separate write mutex orders them), so a read never waits
   on the disk. `ReturnCredits` reads a per-user index instead of scanning
   the catalog.
