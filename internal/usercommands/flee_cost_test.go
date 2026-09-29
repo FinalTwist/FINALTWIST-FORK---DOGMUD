@@ -38,11 +38,11 @@ func TestFleeCost_ShortAttemptCommitsAvailableStaminaAndCarriesNoSkill(t *testin
 	if !u.Character.IsDisengaging() {
 		t.Fatalf("short flee left state %v, want Disengaging", u.Character.CombatPhase.State())
 	}
-	includeSkill, admitted := TakeFleeAdmission(u)
-	if !admitted || includeSkill {
+	adm, admitted := u.Character.TakeFleeAdmission()
+	if !admitted || adm.IncludeSkill {
 		t.Error("short flee retained Skullduggery eligibility")
 	}
-	if _, admitted := TakeFleeAdmission(u); admitted {
+	if _, admitted := u.Character.TakeFleeAdmission(); admitted {
 		t.Error("a consumed flee admission was reusable")
 	}
 	if got := u.Character.GetSkillUseCount(string(costs.SpecFor(costs.ActionFlee).Skill)); got != 0 {
@@ -75,7 +75,7 @@ func TestFleeCost_TransitionVetoLeavesNoAdmission(t *testing.T) {
 	if u.Character.IsDisengaging() {
 		t.Fatal("position-vetoed flee entered Disengaging")
 	}
-	if _, admitted := TakeFleeAdmission(u); admitted {
+	if _, admitted := u.Character.TakeFleeAdmission(); admitted {
 		t.Fatal("transition-vetoed short admission leaked into a later resolution")
 	}
 	if u.Character.Stamina != before {
@@ -115,7 +115,7 @@ func TestFleeCost_TransitionRaceToIdleDoesNotPayOrClaimAttempt(t *testing.T) {
 	if u.Character.IsDisengaging() {
 		t.Fatal("transition-raced flee entered Disengaging")
 	}
-	if _, admitted := TakeFleeAdmission(u); admitted {
+	if _, admitted := u.Character.TakeFleeAdmission(); admitted {
 		t.Fatal("transition-raced flee published an admission with no resolver")
 	}
 
@@ -153,7 +153,7 @@ func TestFleeCost_IdleRaceAfterDeathDoesNotPayOrClaimAttempt(t *testing.T) {
 	if u.Character.IsDisengaging() {
 		t.Fatal("idle stale flee entered Disengaging")
 	}
-	if _, admitted := TakeFleeAdmission(u); admitted {
+	if _, admitted := u.Character.TakeFleeAdmission(); admitted {
 		t.Fatal("idle stale flee published an admission with no resolver")
 	}
 
@@ -190,7 +190,7 @@ func TestFleeCost_RejectedCommandClearsOrphanedAdmission(t *testing.T) {
 
 	u, room, cleanup := fleeFixture(t, 9257, 99850, 0)
 	defer cleanup()
-	u.SetTempData(fleeIncludeSkillTempKey, fleeAdmission{includeSkill: false})
+	u.Character.PublishFleeAdmission(characters.FleeAdmission{})
 	if !u.Character.Conditions.AddCondition(noFleeConditionID, false) {
 		t.Fatal("fixture could not apply the no-flee condition")
 	}
@@ -198,27 +198,8 @@ func TestFleeCost_RejectedCommandClearsOrphanedAdmission(t *testing.T) {
 	if _, err := Flee("", u, room, 0); err != nil {
 		t.Fatalf("Flee returned %v", err)
 	}
-	if _, admitted := TakeFleeAdmission(u); admitted {
+	if _, admitted := u.Character.TakeFleeAdmission(); admitted {
 		t.Fatal("rejected command left an orphaned flee admission reusable")
-	}
-}
-
-// The transition is visible to the round driver before the command has
-// finished committing its cost decision. A reentrant resolver must not consume
-// that pending marker, while terminal cancellation still must be able to.
-func TestTakeFleeAdmission_PendingHandoffWaitsForCommandOrCancellation(t *testing.T) {
-	u, _, cleanup := fleeFixture(t, 9260, 99853, 0)
-	defer cleanup()
-	u.SetTempData(fleeIncludeSkillTempKey, fleeAdmission{})
-
-	if _, admitted := TakeFleeAdmission(u); admitted {
-		t.Fatal("round resolver consumed a pending flee handoff")
-	}
-	if !CancelFleeAdmission(u) {
-		t.Fatal("terminal cancellation could not retract a pending flee handoff")
-	}
-	if CancelFleeAdmission(u) {
-		t.Fatal("pending flee handoff was canceled more than once")
 	}
 }
 
@@ -248,8 +229,8 @@ func TestFleeCost_ZeroStaminaFractionalCarryBecomesShortOnlyWhenWholeDue(t *test
 	if _, err := Flee("", u, room, 0); err != nil {
 		t.Fatalf("first Flee returned %v", err)
 	}
-	includeSkill, admitted := TakeFleeAdmission(u)
-	if !admitted || !includeSkill {
+	adm, admitted := u.Character.TakeFleeAdmission()
+	if !admitted || !adm.IncludeSkill {
 		t.Fatal("0.55 quote at zero Stamina was marked short before a whole point was due")
 	}
 	u.Character.CombatPhase.ResolveFlee(false)
@@ -258,8 +239,8 @@ func TestFleeCost_ZeroStaminaFractionalCarryBecomesShortOnlyWhenWholeDue(t *test
 	if _, err := Flee("", u, room, 0); err != nil {
 		t.Fatalf("second Flee returned %v", err)
 	}
-	includeSkill, admitted = TakeFleeAdmission(u)
-	if !admitted || includeSkill {
+	adm, admitted = u.Character.TakeFleeAdmission()
+	if !admitted || adm.IncludeSkill {
 		t.Fatal("carried 1.10 quote at zero Stamina was not reported partially paid")
 	}
 	if u.Character.Stamina != 0 {

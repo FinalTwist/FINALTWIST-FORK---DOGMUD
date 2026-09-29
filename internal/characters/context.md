@@ -529,6 +529,22 @@ and `applyVitalChange` (the single signed pipeline behind harm and restore).
   would allocate the map ON THE TEMPLATE and hand every instance spawned
   afterwards the same shared carry. Re-make it alongside `PlayerDamage` before
   doing that.
+- **The flee handoff (`flee_admission.go`, slice 4a) is a Character field for
+  the same reason `costCarry` is: the command and the round that resolves it
+  run on the same goroutine under `util.LockMud()`, so no mutex is needed, and
+  a mob's shallow-copied template is safe because `fleeHandoff` is a VALUE
+  field, not a pointer or map.** `PublishFleeAdmission(FleeAdmission)` writes a
+  pending admission (before the command's `Disengaging` transition) or a ready
+  one (after the cost is committed). `TakeFleeAdmission() (FleeAdmission,
+  bool)` consumes only a READY admission — a pending one is left for the
+  command to finish, so a round that observes `Disengaging` inside the
+  command's own handoff window cannot consume an attempt whose cost is not
+  decided yet. `CancelFleeAdmission() bool` retracts either and reports
+  whether there was one; the `hooks` terminal-cancellation callback uses it
+  when combat ends before the round can resolve. All three are nil-receiver
+  safe. `actions.BeginFlee` and `actions.ResolveFlee` (`internal/actions`) are
+  the only callers; before slice 4a this handoff lived in the player's temp
+  data (`usercommands`) and a mob had no equivalent.
 - **`CanAfford` reads the RAW pool, not reserve-excluded, and that is correct.**
   `RecalculateStats` already clamps the CURRENT pool to `max - reserve` every
   round, so a cost that subtracted the reservation a second time would charge the
@@ -1936,9 +1952,10 @@ implementation-detail rationale.
 
 ## Files
 
-52 non-test files (`conditions.go` was deleted by the conditions unification,
+53 non-test files (`conditions.go` was deleted by the conditions unification,
 2026-09-12; `vision.go` was added by the graded lighting arc's plan 2;
-`light.go` and `itemnouns.go` by lighting plan 5a).
+`light.go` and `itemnouns.go` by lighting plan 5a; `flee_admission.go` by
+flee parity slice 4a).
 `progression_notify.go` is corrected into this table by the same plan 2 pass;
 it was already on disk but had drifted out of the list. Every file on disk
 appears in exactly one row below, and the rows name nothing that is not on
@@ -1950,7 +1967,7 @@ disk. Grouped by what they own:
 | Stats & progression | `progression.go`, `progression_award_resolved.go` (`AwardResolved`, the U10b-1 firing rule), `progression_notify.go` (`SetProgressionNotifier`, the injected notify-text callback), `skills.go`, `effective_stats.go`, `mobmastery.go`, `kdstats.go` |
 | Resources & timed state | `pools.go`, `reservation.go`, `resources.go`, `cooldowns.go`, `conditions.go` (holds `Character.AddCondition`, `AddConditionScaled` and the `AddConditionMagnitude` writer door), `sight.go`, `vision.go` (`NightVisionStrength`, `InfraReach`, the window model's two observer numbers), `light.go` (`LightTerms`, `EmitsLight`, plan 5a) |
 | Inventory & gear | `inventory.go`, `inventory_handle.go`, `itemnouns.go` (`FindItemNoun`, plan 5a), `worn.go`, `hand_slots.go`, `anatomy.go`, `masterwork.go`, `migrate_enchantments.go`, `migrate_detuned_bows.go` |
-| Combat | `combat.go`, `combat_tokens.go`, `position_predicates.go`, `taunt_hold.go`, `submission_policy.go`, `die.go`, `respawn_home.go`, `engagement_storage.go` (was `combat_state_compat.go`; renamed by U12c-2 when the struct it kept compatible was deleted) |
+| Combat | `combat.go`, `combat_tokens.go`, `position_predicates.go`, `taunt_hold.go`, `submission_policy.go`, `die.go`, `respawn_home.go`, `engagement_storage.go` (was `combat_state_compat.go`; renamed by U12c-2 when the struct it kept compatible was deleted), `flee_admission.go` (`FleeAdmission`, `PublishFleeAdmission`, `TakeFleeAdmission`, `CancelFleeAdmission`, slice 4a) |
 | Casting | `cast_helpers.go`, `spells.go` |
 | Mutation | `intrinsic.go`, `bloom.go`, `bloom_mutation.go`, `chrysifier.go`, `mutation_scour.go` |
 | Social & economy | `companions.go`, `charminfo.go`, `shop.go`, `quests.go`, `alts.go` |

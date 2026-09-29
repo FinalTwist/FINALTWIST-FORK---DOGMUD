@@ -25,7 +25,7 @@ import (
 // player-target and a companion-target branch) share this builder: the round
 // driver's two retarget points (hooks.emitRetargetMessage and the
 // NewRound_DoCombat.go validate-aggro block) and the mob-departure retarget
-// in mobcommands.clearRoomAggroOnDeparture.
+// in ClearRoomAggroOnDeparture (relocate_mob.go).
 func RetargetNotice(room *rooms.Room, userId int, target state.ActorRef) (string, bool) {
 	var name, line string
 	if mob := mobs.GetInstance(target.MobInstanceId); target.MobInstanceId > 0 && mob != nil {

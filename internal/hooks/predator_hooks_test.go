@@ -9,6 +9,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/state/position"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -392,4 +393,81 @@ func TestPackFlee_SkipsNonGroupmates(t *testing.T) {
 	// This should not crash and should skip everyone (merchant has no groups)
 	result := PackFlee(evt)
 	assert.Equal(t, events.Continue, result)
+}
+
+// Owner ruling (2026-09-28, open question 1): when a packmate dies, only
+// packmates already fighting flee; idle ones stay put and are not counted in
+// the scatter line.
+func TestPackFlee_IdlePackmateStaysPut(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	mob, restore := packFleeFixture(t)
+	defer restore()
+	require.False(t, mob.Character.IsInCombat(), "fixture: mob 100 starts idle")
+
+	PackFlee(events.MobDeath{MobId: 1, InstanceId: 999, RoomId: 1, CharacterName: "Skeleton"})
+
+	require.False(t, packFleeQueued(mob), "an idle packmate was told to flee")
+}
+
+// The positive twin: without it the idle test above would pass on a PackFlee
+// that queues nothing at all.
+func TestPackFlee_FightingPackmateFlees(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	mob, restore := packFleeFixture(t)
+	defer restore()
+	fleeingMob(t)
+
+	PackFlee(events.MobDeath{MobId: 1, InstanceId: 999, RoomId: 1, CharacterName: "Skeleton"})
+
+	require.True(t, packFleeQueued(mob), "a fighting packmate was not told to flee")
+}
+
+// A fighting packmate that cannot begin a flee (here, knocked down) is not
+// told to flee and is not counted toward the scatter line: counting it printed
+// a scatter nobody performed.
+func TestPackFlee_FightingPackmateThatCannotFleeStaysPut(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	mob, restore := packFleeFixture(t)
+	defer restore()
+	fleeingMob(t)
+	setCombatPositionParallel(&mob.Character, position.Prone)
+	require.True(t, mob.Character.IsInCombat(), "fixture: the packmate is fighting")
+
+	PackFlee(events.MobDeath{MobId: 1, InstanceId: 999, RoomId: 1, CharacterName: "Skeleton"})
+
+	require.False(t, packFleeQueued(mob), "a knocked-down packmate was told to flee")
+}
+
+// packFleeFixture reseeds the mob registry so spec 1 and instance 100 carry a
+// species. The shared seedAllRegistries fixture leaves SpeciesId 0, and
+// PackFlee returns before looking at any packmate when the dead mob's spec has
+// no species, so a PackFlee test on the bare fixture cannot fail. GetMobSpec
+// returns a copy, hence the reseed. The caller defers the returned cleanup,
+// which must run before seedAllRegistries' own.
+func packFleeFixture(t *testing.T) (*mobs.Mob, func()) {
+	t.Helper()
+	spec := mobs.GetMobSpec(1)
+	require.NotNil(t, spec)
+	spec.Character.SpeciesId = 1
+	mob := mobs.GetInstance(100)
+	require.NotNil(t, mob)
+	mob.Character.SpeciesId = 1
+	restore := mobs.SeedMobsForTest(
+		map[int]*mobs.Mob{1: spec, 2: mobs.GetMobSpec(2)},
+		map[int]*mobs.Mob{100: mob},
+	)
+	events.DrainQueuedInputsForTest(mob.InstanceId)
+	return mob, restore
+}
+
+func packFleeQueued(mob *mobs.Mob) bool {
+	for _, cmd := range events.DrainQueuedInputsForTest(mob.InstanceId) {
+		if cmd == "flee" {
+			return true
+		}
+	}
+	return false
 }

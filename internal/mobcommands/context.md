@@ -46,7 +46,20 @@ The `internal/mobcommands` package implements the AI command system for non-play
   coordinated Defy renderer when defended. Its attacker, defender, and room
   lines replace the ordinary hit narration rather than following it.
 - **Tactical support**: `callforhelp` - Coordinated group combat behaviors
-- **Self-preservation**: Retreat and defensive behaviors
+- **Self-preservation**: `flee` (flee parity, slice 4a) is a wrapper over
+  `actions.BeginFlee` (`flee.go`): it only begins the escape (the gates, the
+  admission, the `Disengaging` transition, the stamina cost) and renders
+  nothing but the grapple line, because every other refusal is silent for a
+  mob. The escape itself resolves a round later, in
+  `hooks.handleMobFlee` -> `actions.ResolveFlee`, the same shared body the
+  player's round uses. Before 4a a mob's flee was free, instant, and ignored
+  roots, standing and whether the mob was even fighting. Like the player's
+  fold-casting intercept in `usercommands.go`, `Flee` first drops a fold-cast
+  (`activity.TriggerCastCancel`, no refund, the room sees "breaks their
+  concentration.") whenever the mob is casting and in combat, before the
+  gates; otherwise `hooks.handleMobFoldCasting`, which runs ahead of
+  `handleMobFlee`, would finish the spell first. An out-of-combat flee keeps
+  the cast.
 
 #### **Social and Communication AI**
 - **Conversation system**: `converse` - Dynamic NPC-to-NPC dialogue
@@ -209,3 +222,9 @@ why a command available to both players and mobs must be registered twice
 - **Partial shortages are silent too.** Mob autoattack, winning defence, flee,
   and grapple maintenance use the same short-funded, skill-less mechanics as
   players without an invisible private warning.
+- **`Go` relocates mobs through `actions.RelocateMob`** (`go.go`), after its
+  own far-side lock check; a successful `flee` (`hooks.handleMobFlee`) ends in
+  the same call, uncharged. There is no `clearRoomAggroOnDeparture` in this
+  package any more — aggro cleanup on departure moved to
+  `actions.ClearRoomAggroOnDeparture` alongside `RelocateMob`, so both callers
+  share it.

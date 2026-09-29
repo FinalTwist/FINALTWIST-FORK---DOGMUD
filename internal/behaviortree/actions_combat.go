@@ -86,10 +86,26 @@ func actAttack(params map[string]any, ctx *EvalContext) Result {
 	return Success
 }
 
+// actFlee flees a fight through the player's rules (slice 4a). Out of combat
+// there is nothing to flee and the flee command refuses, so the mob walks
+// away instead, toward home when it can: the thief's steal-and-run and a
+// skittish animal's bolt still leave the room.
 func actFlee(params map[string]any, ctx *EvalContext) Result {
 	mob := mobs.GetInstance(ctx.InstanceId)
 	if mob == nil {
 		return Failure
+	}
+	if !mob.Character.IsInCombat() {
+		room := rooms.LoadRoom(mob.Character.RoomId)
+		if room == nil {
+			return Failure
+		}
+		dir := pickRetreatExit(mob, room)
+		if dir == "" {
+			return Failure
+		}
+		mob.Command("go " + dir)
+		return Success
 	}
 	mob.Command("flee")
 	return Success
