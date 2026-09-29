@@ -853,6 +853,14 @@ The round driver reads Combat Phase state instead of legacy `Aggro`:
   `actions.RelocateMob` (a player's flee pays no movement cost either) and
   fires the `mob_flee` behaviour event. Before this slice a mob's `Flee`
   resolved instantly in `mobcommands.Flee` with no round-later step at all.
+  A mob still casting never reaches it, but `mobcommands.Flee` drops the
+  cast when it begins the flee, as the player's command does.
+- **`PackFlee`** (`MobDeath_PackFlee.go`) queues `flee` only on packmates for
+  which `actions.FleeGate` returns `FleeOK`, and counts only those toward the
+  scatter line. That covers the owner ruling that idle packmates stay put
+  (`FleeRefuseNotInCombat`) and also skips a fighting packmate that cannot
+  begin a flee (knocked down, grappled, rooted, frenzied), which would
+  otherwise be announced scattering while it stayed.
 
 ### Verbosity gating (combat_verbosity.go)
 

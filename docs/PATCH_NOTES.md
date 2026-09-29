@@ -6,7 +6,9 @@
   takes a moment to break away, and you get that moment to block it. A
   monster knocked off its feet cannot flee until it stands, running tires it
   out, and a cornered one keeps fighting instead of giving up the fight.
-- When a pack animal falls, only its packmates already in the fight scatter.
+- When a pack animal falls, only its packmates already in the fight, and
+  able to run, scatter.
+- A monster that runs in the middle of a spell loses the spell, as you do.
 - Archers pinned in melee now have to flee to get clear, so they can be
   blocked while they try.
 

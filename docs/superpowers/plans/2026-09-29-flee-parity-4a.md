@@ -62,7 +62,7 @@ Every row re-read today. Config numbers are Go defaults (tests load those, not `
 3. **The NPC party pull moves into `RelocateMob`.** A fleeing party leader dragged its idle members along today (flee went through `Go`); keeping that avoids a silent behaviour change. The waypoint `noop` is path-walking only and stays in `Go`.
 4. **A fleeing mob does not check the far-side lock.** A fleeing player does not either (`rooms.MoveToRoom`). Walking keeps the check in `Go`.
 5. **A mob grappled between command and round** gets today's command-time room line ("tries to break free but you've got them locked down!") at resolution too, mirroring the player's round-time grapple line.
-6. **Known, accepted:** a mob mid-fold-cast is skipped by `handleMobFoldCasting` before `handleMobFlee`, so its flee resolves when the cast ends, the same shape as the player loop (V12, V10 run after fold casting). A disengaging mob in a zone that goes idle waits for the zone to wake.
+6. **A mob fleeing mid-fold-cast drops the cast, as the player does.** This item first accepted that a casting mob's flee resolves only when the cast ends, because `handleMobFoldCasting` skips the mob before `handleMobFlee`. Review showed the player never reaches that state: `usercommands.go`'s fold-casting intercept drops the cast (`activity.TriggerCastCancel`, "breaks their concentration.") before `Flee` runs whenever the player is in combat. `mobcommands.Flee` now does the same, before `BeginFlee`, so the shape is no longer accepted. **Still known, accepted:** a disengaging mob in a zone that goes idle waits for the zone to wake.
 
 ## File map
 

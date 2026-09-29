@@ -71,6 +71,12 @@ func (m *Machine) TransitionToDisengaging(r TransitionReason) error
 
 Starts a flee attempt. Vetoes via `positionSelf` when trigger is
 `TriggerFleeCommand` and the character is grappled/clinched/grounded.
+Records `DisengagingData.LastTarget` from the `Engaged` target, or from the
+`Engaging` target when the flee starts mid wind-up (where
+`TransitionToEngaging` has already cleared the `Engaged` data). Without the
+fallback a failed flee from the wind-up restored `Engaged` on a zero target
+and the next round's aggro check dropped the fighter out of combat
+(`TestFlee_FailureFromTheWindUpKeepsTheWindUpTarget`).
 
 ### Round tick
 

@@ -16,8 +16,12 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/combatphase"
+	"github.com/GoMudEngine/GoMud/internal/state/position"
 )
 
 func TestBuildConfigDefaultsAndFloors(t *testing.T) {
@@ -2657,5 +2661,74 @@ func TestGoneMindStillRefundsItsOwner(t *testing.T) {
 		if m.ownerTokens[1] != 0 || m.outstanding != 0 {
 			t.Fatalf("%s: owner=%d outstanding=%d after a refund", name, m.ownerTokens[1], m.outstanding)
 		}
+	}
+}
+
+// reflexFleeMob is a companion mob fighting mob 9001, standing unless the
+// test knocks it down.
+func reflexFleeMob(t *testing.T, instanceId int) *mobs.Mob {
+	t.Helper()
+	mob := &mobs.Mob{MobId: 1, InstanceId: instanceId}
+	mob.Character.Name = `Mara`
+	mob.Character.MobInstanceId = instanceId
+	mob.Character.CombatPhase = combatphase.NewMachine()
+	mob.Character.Position = position.NewMachine()
+	mob.Character.Position.ForceStanding(state.TransitionReason{Trigger: `test_setup`})
+	mob.Character.SetAggro(0, 9001, characters.DefaultAttack)
+	mob.Character.CombatPhase.OnRoundTick()
+	if !mob.Character.IsInCombat() {
+		t.Fatal("fixture: the companion must be fighting")
+	}
+	events.DrainQueuedInputsForTest(instanceId)
+	return mob
+}
+
+func reflexQueuedFlee(instanceId int) bool {
+	for _, cmd := range events.DrainQueuedInputsForTest(instanceId) {
+		if cmd == `flee` {
+			return true
+		}
+	}
+	return false
+}
+
+// The run reflex must only fire when a flee can begin. A knocked-down
+// companion used to speak its flee line, set Fled and queue a flee the engine
+// refused, so it never fled but was remembered as having run.
+func TestReflexFlee_OnlyWhenAFleeCanBegin(t *testing.T) {
+	m := &AICompanionModule{}
+	newController := func() *controller {
+		return &controller{profile: &Profile{}, mind: &Mind{}, fight: &fightState{Stance: `flee`}}
+	}
+
+	standing := reflexFleeMob(t, 9101)
+	c := newController()
+	m.reflex(c, standing, nil, nil, 100, 90, 100, false)
+	if !c.fight.Fled || !reflexQueuedFlee(standing.InstanceId) {
+		t.Fatalf("a standing, fighting companion on a flee stance did not run: fled=%v", c.fight.Fled)
+	}
+
+	prone := reflexFleeMob(t, 9102)
+	_ = prone.Character.Position.TransitionToProne(position.ProneData{}, state.TransitionReason{Trigger: `test_setup`})
+	if prone.Character.IsStanding() {
+		t.Fatal("fixture: the companion must be knocked down")
+	}
+	c = newController()
+	m.reflex(c, prone, nil, nil, 100, 90, 100, false)
+	if c.fight.Fled || reflexQueuedFlee(prone.InstanceId) {
+		t.Fatalf("a knocked-down companion was sent to flee: fled=%v", c.fight.Fled)
+	}
+
+	// A flee already under way is left alone: no second flee, and nothing
+	// else queued over it.
+	running := reflexFleeMob(t, 9103)
+	if err := running.Character.CombatPhase.TransitionToDisengaging(
+		state.TransitionReason{Trigger: combatphase.TriggerFleeCommand}); err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+	c = newController()
+	m.reflex(c, running, nil, nil, 100, 10, 100, false)
+	if queued := events.DrainQueuedInputsForTest(running.InstanceId); len(queued) != 0 || c.fight.Fled {
+		t.Fatalf("a companion already fleeing was given %v (fled=%v)", queued, c.fight.Fled)
 	}
 }

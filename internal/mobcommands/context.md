@@ -53,7 +53,13 @@ The `internal/mobcommands` package implements the AI command system for non-play
   mob. The escape itself resolves a round later, in
   `hooks.handleMobFlee` -> `actions.ResolveFlee`, the same shared body the
   player's round uses. Before 4a a mob's flee was free, instant, and ignored
-  roots, standing and whether the mob was even fighting.
+  roots, standing and whether the mob was even fighting. Like the player's
+  fold-casting intercept in `usercommands.go`, `Flee` first drops a fold-cast
+  (`activity.TriggerCastCancel`, no refund, the room sees "breaks their
+  concentration.") whenever the mob is casting and in combat, before the
+  gates; otherwise `hooks.handleMobFoldCasting`, which runs ahead of
+  `handleMobFlee`, would finish the spell first. An out-of-combat flee keeps
+  the cast.
 
 #### **Social and Communication AI**
 - **Conversation system**: `converse` - Dynamic NPC-to-NPC dialogue

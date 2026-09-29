@@ -9,6 +9,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/state/position"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -421,6 +422,23 @@ func TestPackFlee_FightingPackmateFlees(t *testing.T) {
 	PackFlee(events.MobDeath{MobId: 1, InstanceId: 999, RoomId: 1, CharacterName: "Skeleton"})
 
 	require.True(t, packFleeQueued(mob), "a fighting packmate was not told to flee")
+}
+
+// A fighting packmate that cannot begin a flee (here, knocked down) is not
+// told to flee and is not counted toward the scatter line: counting it printed
+// a scatter nobody performed.
+func TestPackFlee_FightingPackmateThatCannotFleeStaysPut(t *testing.T) {
+	cleanup := seedAllRegistries()
+	defer cleanup()
+	mob, restore := packFleeFixture(t)
+	defer restore()
+	fleeingMob(t)
+	setCombatPositionParallel(&mob.Character, position.Prone)
+	require.True(t, mob.Character.IsInCombat(), "fixture: the packmate is fighting")
+
+	PackFlee(events.MobDeath{MobId: 1, InstanceId: 999, RoomId: 1, CharacterName: "Skeleton"})
+
+	require.False(t, packFleeQueued(mob), "a knocked-down packmate was told to flee")
 }
 
 // packFleeFixture reseeds the mob registry so spec 1 and instance 100 carry a
