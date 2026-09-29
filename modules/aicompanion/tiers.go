@@ -238,6 +238,24 @@ func (m *AICompanionModule) applyRoute(c *modelCall) {
 	}
 }
 
+// allowanceCharges names the per-user allowances a call counts against
+// (apiframework.Charge), each with its limit from the config now. A call a
+// passer-by prompted is theirs: their own StrangerDailyTokens, and what
+// passers-by together may spend of this owner's companion
+// (StrangerTokensPerOwner, when there is an owner); never the owner's
+// allowance. Every other call is the owner's (DailyTokensPerCompanion). 0
+// is no cap for any of them.
+func (m *AICompanionModule) allowanceCharges(ownerId int, askerId int) []apiframework.Charge {
+	if askerId > 0 {
+		cs := []apiframework.Charge{{Dim: apiframework.DimCompanionStranger, UserId: askerId, Limit: m.cfg.StrangerDailyTokens}}
+		if ownerId > 0 {
+			cs = append(cs, apiframework.Charge{Dim: apiframework.DimCompanionStrangersFor, UserId: ownerId, Limit: m.cfg.StrangerTokensPerOwner})
+		}
+		return cs
+	}
+	return []apiframework.Charge{{Dim: apiframework.DimCompanionOwner, UserId: ownerId, Limit: m.cfg.DailyTokensPerCompanion}}
+}
+
 // reserveRoute holds a call's worst case against whoever pays for it, in
 // one check-and-hold step. The server's key is held against the server's
 // budget and the owner's or passer-by's allowance (tryReserveFor). A
