@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/factions"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/opinions"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -76,12 +77,22 @@ func TestTheftWitnessesAwayAreTheMarkAlone(t *testing.T) {
 		t.Fatalf("fixture: the mark is of one faction, got %v", factionIds)
 	}
 
-	inAct, externalInAct := theftWitnesses(factionIds, mark, room, false)
+	inAct, externalInAct := theftWitnesses(factionIds, mark, room, false, messaging.SightNone)
 	if len(inAct.Identifying) != 2 || !externalInAct {
 		t.Fatalf("in the act, the bystander identifies the thief too: %+v external %v", inAct, externalInAct)
 	}
-	away, externalAway := theftWitnesses(factionIds, mark, room, true)
+	away, externalAway := theftWitnesses(factionIds, mark, room, true, messaging.SightFull)
 	if len(away.Identifying) != 1 || away.Identifying[0] != mark.InstanceId || len(away.ShapesOnly) != 0 || externalAway {
 		t.Fatalf("away, the mark alone: %+v external %v", away, externalAway)
+	}
+	// Away, the mark is judged by what it saw at the attempt, not by the
+	// room's light now (lit here).
+	shapes, _ := theftWitnesses(factionIds, mark, room, true, messaging.SightShapes)
+	if len(shapes.Identifying) != 0 || len(shapes.ShapesOnly) != 1 {
+		t.Fatalf("away, a mark that made out only a shape at the attempt: %+v", shapes)
+	}
+	none, _ := theftWitnesses(factionIds, mark, room, true, messaging.SightNone)
+	if len(none.Identifying) != 0 || len(none.ShapesOnly) != 0 {
+		t.Fatalf("away, a mark that saw nothing at the attempt: %+v", none)
 	}
 }

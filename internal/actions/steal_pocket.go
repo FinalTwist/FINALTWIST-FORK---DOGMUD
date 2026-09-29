@@ -62,6 +62,13 @@ type pocketAttempt struct {
 	mobName       string
 	success       bool
 
+	// markSaw is what the mark made out in the theft room at the attempt,
+	// when it felt the hand: a catch away from it (caught) names the thief
+	// by this, not by the room's light at the reveal, which the thief may
+	// have carried off. Optics only (ParticipantSight): a sleeping mark
+	// wakes as it is robbed (theftCrime), so its sleep does not blind it.
+	markSaw messaging.SightDecision
+
 	takeBauble string // the catalog id of a bauble the mark carries, to take
 	newBauble  bool   // one is made for this attempt (req is its naming)
 	req        baubles.GenRequest
@@ -145,6 +152,7 @@ func startPocketAttempt(actor Actor, m *mobs.Mob, success bool) StealResult {
 		mobInstanceId: m.InstanceId,
 		mobName:       m.Character.Name,
 		success:       success,
+		markSaw:       messaging.ParticipantSight(&m.Character, room),
 		randn:         util.Rand,
 		delay:         PocketDelay(actor.GetCharacter().Stats.Dexterity.ValueAdj),
 		grace:         time.Duration(float64(cfg.BaublePickpocketGraceSecs) * float64(time.Second)),
@@ -339,10 +347,11 @@ func (p *pocketAttempt) resolve() StealResult {
 
 // pocketCrime is the mark's side of a catch away from it: theftCrime in
 // the room the theft happened in, in away mode (the mark the only witness,
-// no meeting recorded). A variable so tests can see it raised without the
-// faction books.
-var pocketCrime = func(userId int, m *mobs.Mob, theftRoom *rooms.Room) {
-	theftCrime(userId, m, theftRoom, true)
+// no meeting recorded), judged by what the mark saw at the attempt
+// (markSaw). A variable so tests can see it raised without the faction
+// books.
+var pocketCrime = func(userId int, m *mobs.Mob, theftRoom *rooms.Room, markSaw messaging.SightDecision) {
+	theftCrime(userId, m, theftRoom, true, markSaw)
 }
 
 // caught is a failed roll's reveal, wherever the thief is by now (owner
@@ -382,7 +391,7 @@ func (p *pocketAttempt) caught(actor Actor, online bool, m *mobs.Mob) StealResul
 		theftRoom = room // the theft's room is gone: the crime is recorded where the mark is
 	}
 	if theftRoom != nil {
-		pocketCrime(p.userId, m, theftRoom)
+		pocketCrime(p.userId, m, theftRoom, p.markSaw)
 	}
 	if together {
 		markAttacksThief(actor, m)

@@ -636,7 +636,7 @@ func thiefCaught(actor Actor, m *mobs.Mob, room *rooms.Room) {
 		Trigger: awareness.TriggerSkullduggeryFailed,
 	})
 
-	theftCrime(actor.GetUserId(), m, room, false)
+	theftCrime(actor.GetUserId(), m, room, false, messaging.SightNone)
 
 	markAttacksThief(actor, m)
 }
@@ -656,10 +656,11 @@ func markAttacksThief(actor Actor, m *mobs.Mob) {
 // whether anyone but m identified the thief. In the act: every faction mob
 // in room that saw it, m included, by its sight (crimes.WitnessesInRoom).
 // Away (a pickpocket's failed roll revealed after the thief had gone; slice
-// H review finding b): m alone, by its own sight of room, the room the
-// theft happened in, which felt the hand; bystanders saw nothing, so
-// hadExternal is false.
-func theftWitnesses(factionIds []string, m *mobs.Mob, room *rooms.Room, away bool) (crimes.Witnesses, bool) {
+// H review finding b): m alone, which felt the hand, by markSaw, its sight
+// of the theft room at the attempt (not the room's light now, which the
+// thief may have carried off); bystanders saw nothing, so hadExternal is
+// false. markSaw is ignored in the act.
+func theftWitnesses(factionIds []string, m *mobs.Mob, room *rooms.Room, away bool, markSaw messaging.SightDecision) (crimes.Witnesses, bool) {
 	if !away {
 		// All witnesses including the victim (excludeInstanceId=0), and the
 		// external ones (excluding the victim) for HadExternalWitness, which
@@ -670,10 +671,10 @@ func theftWitnesses(factionIds []string, m *mobs.Mob, room *rooms.Room, away boo
 		return witnesses, len(external.Identifying) > 0
 	}
 	var w crimes.Witnesses
-	switch {
-	case messaging.CanSeeClearly(&m.Character, room):
+	switch markSaw {
+	case messaging.SightFull:
 		w.Identifying = []int{m.InstanceId}
-	case messaging.CanSeeShapes(&m.Character, room):
+	case messaging.SightShapes:
 		w.ShapesOnly = []int{m.InstanceId}
 	}
 	return w, false
@@ -685,9 +686,10 @@ func theftWitnesses(factionIds []string, m *mobs.Mob, room *rooms.Room, away boo
 // knowledge). Every part of it goes by user id, so it holds for a thief
 // who has left or logged out. away is a pickpocket's failed roll revealed
 // after the thief walked away (steal_pocket.go, pocketCrime): the mark is
-// the only witness (theftWitnesses) and nobody records meeting the thief.
+// the only witness (theftWitnesses), judged by markSaw, its sight at the
+// attempt, and nobody records meeting the thief.
 // thiefCaught runs it in the act.
-func theftCrime(userId int, m *mobs.Mob, room *rooms.Room, away bool) {
+func theftCrime(userId int, m *mobs.Mob, room *rooms.Room, away bool, markSaw messaging.SightDecision) {
 	// Chunk 3.3: failed theft wakes a sleeping victim.
 	if m.Character.HasConditionFlag(conditions.Sleeping) {
 		m.Character.CancelConditionsWithFlag(conditions.Sleeping)
@@ -696,7 +698,7 @@ func theftCrime(userId int, m *mobs.Mob, room *rooms.Room, away bool) {
 
 	// chunk 1.3: record theft crime on faction-aligned victim.
 	if factionIds := factions.FactionsForMob(m); len(factionIds) > 0 {
-		witnesses, hadExternal := theftWitnesses(factionIds, m, room, away)
+		witnesses, hadExternal := theftWitnesses(factionIds, m, room, away, markSaw)
 		perp := crimes.IdentifiedPerp(userId, witnesses)
 		delta := int(configs.GetBalanceConfig().CrimeRepDeltaTheft)
 		for _, fid := range factionIds {

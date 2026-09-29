@@ -605,7 +605,10 @@ Pickpockets a target mob or player, or robs an item from a room container.
      then `thiefCaught` (revealed, then `theftCrime` in the act: a sleeper
      wakes, the crime with every faction witness in the room; then the attack).
      Away, `theftCrime` runs in the theft's room with the mark its only witness
-     (`theftWitnesses`), no external witness and no meeting recorded.
+     (`theftWitnesses`), judged by `pocketAttempt.markSaw`, its sight of the
+     theft room taken at the attempt (`messaging.ParticipantSight`), so a
+     thief who carried the only light off before the reveal is still named;
+     no external witness and no meeting recorded.
    - Every pause is tracked (`pendingPockets`); copyover and shutdown call
      `FlushPocketAttempts` under the lock before saving, which reveals each
      at once. Tests resolve in line (`runPocketAttempt`, `pocketThief`,

@@ -8,11 +8,13 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/crimes"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/knowledge"
+	"github.com/GoMudEngine/GoMud/internal/messaging"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -446,7 +448,9 @@ func stubPocketCrime(t *testing.T) *[]int {
 	t.Helper()
 	got := &[]int{}
 	orig := pocketCrime
-	pocketCrime = func(userId int, m *mobs.Mob, room *rooms.Room) { *got = append(*got, userId) }
+	pocketCrime = func(userId int, m *mobs.Mob, room *rooms.Room, _ messaging.SightDecision) {
+		*got = append(*got, userId)
+	}
 	t.Cleanup(func() { pocketCrime = orig })
 	return got
 }
@@ -555,6 +559,57 @@ func TestPickpocketCaughtTogetherElsewhereIsNotInTheAct(t *testing.T) {
 	}
 	if attacks != 1 {
 		t.Fatalf("the mark, beside the thief, attacks: %d", attacks)
+	}
+}
+
+// The mark's sight of the thief is taken at the attempt, when it felt the
+// hand, not at the reveal. A thief whose own carried light was all that lit
+// the theft room, and who walked off with it before the reveal, was seen
+// by that light: the mark still names them.
+func TestPickpocketMarkJudgedByTheLightAtTheAttempt(t *testing.T) {
+	const torchId = 9731
+	h := setupPocket(t, 9619, 7619)
+	seedTheftFaction(t)
+	t.Cleanup(conditions.SeedConditionsForTest(map[int]*conditions.ConditionSpec{
+		torchId: {ConditionId: torchId, Name: "Test Torch", TriggerCount: 4, RoundInterval: 1,
+			Effects: map[conditions.EffectKind]conditions.EffectValue{conditions.EffectLightStrength: {Literal: 56}}},
+	}))
+	thiefUser := users.NewTestUser(7619, "nimble", "Nimble", 97619)
+	thiefUser.Character.Conditions.AddCondition(torchId, false)
+	t.Cleanup(users.SeedUsersForTest(map[int]*users.UserRecord{7619: thiefUser}))
+
+	noSky := 0.0
+	h.room.SkyLight = &noSky
+	h.room.AddPlayer(7619)
+	h.room.AddMob(h.mark.InstanceId)
+	h.mark.MobId = 9719
+	h.mark.Groups = []string{"thornwall_citizens"}
+	elsewhere := newSearchTestRoom(9693)
+	seedPocketRooms(t, h.room, elsewhere)
+	if !messaging.CanSeeClearly(&h.mark.Character, h.room) {
+		t.Fatalf("fixture: the thief's torch lights the theft room (%d)", h.room.LightLevel())
+	}
+
+	runPocketAttempt = func(p *pocketAttempt) StealResult {
+		h.thief.room = elsewhere // walks off, and the torch with them
+		h.room.RemovePlayer(7619)
+		if messaging.CanSeeShapes(&h.mark.Character, h.room) {
+			t.Fatalf("fixture: the theft room is dark once the thief has gone (%d)", h.room.LightLevel())
+		}
+		return resolvePocketInLine(p)
+	}
+	if res := startPocketAttempt(h.thief, h.mark, false); !res.Detected {
+		t.Fatalf("caught: %+v", res)
+	}
+	got := crimes.AllForFaction("thornwall_citizens", false)
+	if len(got) != 1 {
+		t.Fatalf("one theft recorded: %+v", got)
+	}
+	if got[0].Perpetrator.Type != crimes.PerpPlayer || got[0].Perpetrator.Id != 7619 {
+		t.Fatalf("the mark names the thief it saw by the torch: %+v", *got[0])
+	}
+	if r := knowledge.Get(int(h.mark.MobId), knowledge.PlayerSubject(7619)); r == nil {
+		t.Fatal("and learns who robbed it")
 	}
 }
 
