@@ -18,6 +18,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
+	"github.com/GoMudEngine/GoMud/internal/state"
+	"github.com/GoMudEngine/GoMud/internal/state/life"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -610,6 +612,44 @@ func TestPickpocketMarkJudgedByTheLightAtTheAttempt(t *testing.T) {
 	}
 	if r := knowledge.Get(int(h.mark.MobId), knowledge.PlayerSubject(7619)); r == nil {
 		t.Fatal("and learns who robbed it")
+	}
+}
+
+// A thief downed or dead beside the mark at the reveal is still caught, but
+// the mark does not attack them: there is nobody left to fight. A thief on
+// their feet is attacked, as ever.
+func TestPickpocketMarkDoesNotAttackAFallenThief(t *testing.T) {
+	for name, c := range map[string]struct {
+		fall    func(h *pocketHarness)
+		attacks int
+	}{
+		`standing`: {func(h *pocketHarness) {}, 1},
+		`downed`:   {func(h *pocketHarness) { h.thief.char.Health = 0 }, 0},
+		`dead`: {func(h *pocketHarness) {
+			if err := h.thief.char.Life.TransitionToDead(life.DeadData{}, state.TransitionReason{}); err != nil {
+				t.Fatal(err)
+			}
+		}, 0},
+	} {
+		h := setupPocket(t, 9620, 7620)
+		events.DrainQueuedInputsForTest(h.mark.InstanceId)
+		runPocketAttempt = func(p *pocketAttempt) StealResult {
+			c.fall(h)
+			return resolvePocketInLine(p)
+		}
+		res := startPocketAttempt(h.thief, h.mark, false)
+		if !res.Detected || said(h.thief, "catches you in the act") != 1 {
+			t.Errorf("%s: caught in the act: %+v %q", name, res, h.thief.sent)
+		}
+		attacks := 0
+		for _, in := range events.DrainQueuedInputsForTest(h.mark.InstanceId) {
+			if in == "attack @7620" {
+				attacks++
+			}
+		}
+		if attacks != c.attacks {
+			t.Errorf("%s: %d attacks, want %d", name, attacks, c.attacks)
+		}
 	}
 }
 

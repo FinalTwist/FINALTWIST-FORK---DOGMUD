@@ -645,8 +645,13 @@ func thiefCaught(actor Actor, m *mobs.Mob, room *rooms.Room) {
 // A victim that cannot be fought (a non-combatant shopkeeper, a
 // player-attack-immune NPC) does not attack; its caller has already raised
 // the crime. stealFromMob never reaches here with one (it refuses to steal
-// from them), so for `steal` this changes nothing.
+// from them), so for `steal` this changes nothing. Nor does it attack a
+// thief who is dead or downed (health below 1, rooms.FindDowned's test),
+// which a pickpocket's reveal can find beside the mark.
 func markAttacksThief(actor Actor, m *mobs.Mob) {
+	if thief := actor.GetCharacter(); !thief.IsAlive() || thief.Health < 1 {
+		return
+	}
 	if !m.IsNonCombatant() && !m.PlayerAttackImmune {
 		m.Command(fmt.Sprintf(`attack @%d`, actor.GetUserId()))
 	}

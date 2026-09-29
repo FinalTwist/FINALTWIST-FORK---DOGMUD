@@ -603,7 +603,8 @@ Pickpockets a target mob or player, or robs an item from a room container.
      for the next attempt.
    - Failure (`caughtByMob`): "X catches you in the act!", the room sees it,
      then `thiefCaught` (revealed, then `theftCrime` in the act: a sleeper
-     wakes, the crime with every faction witness in the room; then the attack).
+     wakes, the crime with every faction witness in the room; then the attack,
+     `markAttacksThief`, which spares a thief who is dead or downed).
      Away, `theftCrime` runs in the theft's room with the mark its only witness
      (`theftWitnesses`), judged by `pocketAttempt.markSaw`, its sight of the
      theft room taken at the attempt (`messaging.ParticipantSight`), so a
