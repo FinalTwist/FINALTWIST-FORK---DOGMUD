@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/baubles"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
+	"github.com/GoMudEngine/GoMud/internal/companionai"
 	"github.com/GoMudEngine/GoMud/internal/conditions"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/contest"
@@ -187,11 +188,23 @@ func stealFromMob(actor Actor, mobInstanceId int, attackerScore float64,
 		return StealResult{Reason: "target not found"}
 	}
 
-	// Deliberately NOT mobs.CheckPlayerHarm: that policy also blocks charmed
-	// companions, and stealing from a companion is currently allowed. Widening
-	// it here would be a gameplay change, not a finding-3 fix. Keep the two
-	// protections that do apply.
-	if m.IsNonCombatant() || m.PlayerAttackImmune {
+	// Any companion is off-limits to theft, the thief's own included: a
+	// charmed one (IsCharmed, the predicate mobs.CheckPlayerHarm refuses
+	// first) or one bonded to the AI companion, which need not be charmed.
+	// Its pocket is its owner's (owner ruling 2026-09-29). This holds for a
+	// mob thief as well, as the two protections below do.
+	if m.Character.IsCharmed() || companionai.IsBondedCompanion(m.InstanceId) {
+		actor.SendText(messaging.CategorySystem, fmt.Sprintf(
+			`<ansi fg="mobname">%s</ansi> is someone's companion. You can't steal from them.`,
+			m.Character.Name))
+		return StealResult{
+			DefenderName: m.Character.Name,
+			Reason:       "companion",
+		}
+	}
+
+	// The rest of mobs.CheckPlayerHarm's policy.
+	if block := mobs.CheckPlayerHarm(m); block.Blocked() {
 		actor.SendText(messaging.CategorySystem, fmt.Sprintf(
 			`You can't steal from <ansi fg="mobname">%s</ansi>.`,
 			m.Character.Name))
