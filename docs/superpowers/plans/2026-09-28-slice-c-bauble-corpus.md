@@ -10,7 +10,7 @@
 
 **Source spec:** `docs/superpowers/specs/2026-09-28-baubles-hardening-and-corpus-design.md`, section "Slice C: fallback corpus", its share of "Docs to update", and owner rulings 11 to 15.
 
-**Delivery (owner ruling 11).** PR #175 merges first. Then slices M, H, S5 and C each go to master as their own PR. Slice C branches FRESH from master once H and S5 are merged: worktree `C:\tmp\dogmud-baubles-c`, branch `feature/bauble-corpus`, created from the main checkout (`C:\Users\Calabe Davis\workspace\DOGMud`) by Task 0. `$BASE` is the master commit it branched from (Task 0 records it); every diff and size check in this plan is taken from `$BASE`. Our commits never rebase onto, and never push to, FinalTwist's branch. This plan and the spec reach master through the separate docs-only PR, not through this branch.
+**Delivery (owner ruling 11).** PR #175 merges first. Then slices M, H, S5 and C each go to master as their own PR. Slice C branches FRESH from master once H and S5 are merged: worktree `C:\tmp\dogmud-baubles-c`, branch `feature/bauble-corpus`, created from the main checkout (`C:\Users\Calabe Davis\workspace\DOGMud`) by Task 0. `$BASE` is the master commit it branched from: **`b5ac8b0fa`** (origin/master, recorded by Task 0 on 2026-09-29); every diff and size check in this plan is taken from `$BASE`. The main checkout's local `master` is stale (`62f9027a2`) and is not touched, so `git merge-base HEAD master` gives the WRONG commit: every step below uses `BASE=b5ac8b0fa`, and wherever this plan says `master` it means `origin/master` at `b5ac8b0fa`. Our commits never rebase onto, and never push to, FinalTwist's branch. This plan and the spec reach master through the separate docs-only PR, not through this branch.
 
 **Runs after slices H and S5.** Slice H adds `items.AuthoredName`, the S3 and S4 cleaning inside `CleanReply`, and `FindOpts.SightPenalty`; S5 adds the per-feature allowances in `internal/apiframework/budget.go` (`DimBaublesFinder`). Task 0 checks they are on master. This plan never re-implements them; it relies on `CleanReply` refusing an authored item name.
 
@@ -20,62 +20,65 @@
 
 ## Facts verified against source
 
-Read in `C:\tmp\pr175-ours` at `e711ee9de` (PR #175's head after FinalTwist's fix round) on 2026-09-28. Line numbers are at that commit; whatever else lands on #175 before it merges, and slices M, H and S5, may shift them, so every edit below is located by symbol and exact text, never by line alone, and Task 0 re-checks every quoted anchor against master with `grep -F`.
+First read in `C:\tmp\pr175-ours` at `e711ee9de` (PR #175's head after FinalTwist's fix round) on 2026-09-28. **Re-verified at `b5ac8b0fa`** (origin/master after #175, H1, the sweep, H2, H3 #191 and S5 #193) on 2026-09-29, in `C:\tmp\dogmud-baubles-c`: every line number below is at `b5ac8b0fa`, and every quoted anchor in Tasks 1 to 12 and 14 was grepped against that tree and corrected where it had drifted. Every edit is still located by symbol and exact text, never by line alone.
 
 | Fact | Where |
 |---|---|
-| `GenericTrinket(tier ValueTier, randn func(n int) int) Reply`; nil randn gives the first description, the tier midpoint and 0.1 lb; weights 0.1 to 0.8 lb | `internal/baubles/fallback.go:13-20, 34-53` |
-| Four `GenericTrinket` call sites: `search_bauble.go:237` (in `FlushBaubleDeliveries`), `steal_pocket.go:262` (in `(*pocketAttempt).naming`), `baubles/generate.go:118` (the `generic` closure in `Generate`), `baubles/mint.go:74` (only when `MintOpts.Result` is nil) | grep `GenericTrinket` |
-| Production always passes `Result` to `Mint`, so `mint.go:74` runs only in tests | `search_bauble.go:304-312`, `steal_pocket.go:326-335` |
-| `Mint` sets `StatusReady` only for `GeneratorOpenAI`, else `StatusFallback`; copies `Moderated` and `PlayerKey` from the result | `internal/baubles/mint.go:81-84, 110-111` |
+| `GenericTrinket(tier ValueTier, randn func(n int) int) Reply`; nil randn gives the first description, the tier midpoint and 0.1 lb; weights 0.1 to 0.8 lb. H added `genericDescriptionFor(id string) string`, the stable description everyone but the finder reads for a finder-only record | `internal/baubles/fallback.go:15-22, 32-55, 57-64` |
+| Four `GenericTrinket` call sites: `search_bauble.go:237` (in `FlushBaubleDeliveries`), `steal_pocket.go:283` (in `(*pocketAttempt).naming`), `baubles/generate.go:156` (the `generic` closure in `Generate`), `baubles/mint.go:74` (only when `MintOpts.Result` is nil) | grep `GenericTrinket(`, 2026-09-29 |
+| Production always passes `Result` to `Mint`, so `mint.go:74` runs only in tests | `search_bauble.go:304-312`, `steal_pocket.go:412-420` |
+| `Mint` sets `StatusReady` only for `GeneratorOpenAI`, else `StatusFallback`; copies `Moderated` and `PlayerKey` from the result; a `PlayerKey` result's value is rolled by the server | `internal/baubles/mint.go:81-84, 86-92, 116-117` |
 | Generators: `openai`, `local`, `admin`; statuses `ready`, `fallback`, `sold`, `retired` | `internal/baubles/record.go:14-19, 34-38` |
-| `Record` has `Moderated`, `PlayerKey`, `EditedBy` (line 99, `yaml:"edited_by,omitempty"`), `Model`, `PromptVersion`, `Biome`, `Zone`, `Source`, `Tier`; there is no hand-edit flag apart from `EditedBy` | `internal/baubles/record.go:43-107` |
+| `Record` has `Moderated`, `PlayerKey`, `EditedBy` (line 106, `yaml:"edited_by,omitempty"`), `Model`, `PromptVersion`, `Biome`, `Zone`, `Source`, `Tier`, and (the sweep) `LastSeenAt`, `UnseenSweeps`; there is no hand-edit flag apart from `EditedBy` | `internal/baubles/record.go:43-124` |
+| `(Record).KeptToFinder() bool` is `PlayerKey && !Moderated` (H2): derived, never stored; its comment says such a record is never promotable. `(Record).View()` shows everyone but the finder `genericName` and `genericDescriptionFor(id)` for it, and `Trinket` for a retired record | `internal/baubles/record.go:126-168` |
 | `Retire` sets `StatusRetired` and `EditedBy`; `Restore` sets `ready` only for `GeneratorOpenAI`, else `fallback`, and `sold` when `SoldValue > 0`; both set `EditedBy` | `internal/baubles/admin.go:96-124` |
 | `Edit(id, field, value, admin string) (Record, error)` runs `CleanReply` and `ApplyLimitsFor`, sets `EditedBy`, never touches `Moderated` | `internal/baubles/admin.go:134-201` |
-| `ApplyRegenerated(id string, res GenResult, admin string) (Record, error)` refuses any result whose `Generator` is not `GeneratorOpenAI`, sets `Moderated` from the result and `EditedBy` to `admin + " (regen)"` (slice H adds `r.PlayerKey = res.PlayerKey`) | `internal/baubles/admin.go:207-239` |
-| Callers of `Edit`: `internal/usercommands/admin.bauble.go:376` (`baubleEdit`) and eight calls in `internal/baubles/admin_test.go` (`TestEdit`). Callers of `ApplyRegenerated`: `internal/actions/bauble_admin.go:83` (`RegenerateBauble`) and `TestApplyRegenerated` in `admin_test.go` (slice H adds `TestApplyRegeneratedSetsPlayerKey`) | `git grep` at `e711ee9de` |
-| `events.DrainQueuedMessagesForTest(userId int) []string` returns a user's queued `SendText` output; usercommands tests already read admin output with it | `internal/events/events.go:338`; `cancel_spell_test.go:57-59` |
-| `RecentNames(zone string, n int) []string`: zone and `GeneratorOpenAI` only, newest id first, under `cat.mu.RLock` | `internal/baubles/generate.go:157-176` |
-| `Generate` is off the mud lock; its `generic` closure is used at three returns (no generator, error, `CleanReply` failure, `TooBigFor`) | `internal/baubles/generate.go:112-154` |
-| `CleanReply(r Reply) (Reply, error)` lowercases `NameSimple` and `Material`, refuses digits in the name, name over 40 bytes or outside 1 to 6 words, description outside 20 to 400; rewrites an unusable keyword (reserved or `items.AuthoredKeyword`) to a word of the name or `trinket`; never touches numbers | `internal/baubles/validate.go:18-26, 76-117` |
-| `reservedNouns` includes key, ring, coin, token, gem, bone, stone, shell, pearl, crystal and more | `internal/baubles/validate.go:39-54` |
-| `ApplyLimitsFor(r Reply, t ValueTier, s Source) Limited` clamps value (`ClampValue`) and weight (`ClampWeightFor`) | `internal/baubles/reply.go:84-91` |
-| `ClampWeight` rounds to a tenth and clamps to `MinWeightLbs` 0.1 to `MaxWeightLbs` 25 (Go constants, not config) | `internal/baubles/weight.go:14-36` |
+| `ApplyRegenerated(id string, res GenResult, admin string, randn func(n int) int) (Record, error)` (H2 added `randn`: a `PlayerKey` result's value is rolled, as in `Mint`) refuses any result whose `Generator` is not `GeneratorOpenAI`, sets `Moderated` and `PlayerKey` from the result and `EditedBy` to `admin + " (regen)"` | `internal/baubles/admin.go:203-249` |
+| Callers of `Edit`: `internal/usercommands/admin.bauble.go:426` (`baubleEdit`) and six calls in `internal/baubles/admin_test.go` (`TestEdit`, lines 64 to 81). Callers of `ApplyRegenerated`: `internal/actions/bauble_admin.go:86` (`RegenerateBauble`, passing `util.Rand`), `admin_test.go` (`TestApplyRegenerated` twice, `TestApplyRegeneratedSetsPlayerKey`, `TestApplyRegeneratedRollsPlayerKeyValue` twice, the second as `got, err =`) and `generate_test.go:493` (`TestFinderOnlyReachesTheRecordAndRegenClearsIt`); every test call passes `first` | `git grep`, 2026-09-29 |
+| `events.DrainQueuedMessagesForTest(userId int) []string` returns a user's queued `SendText` output; usercommands tests already read admin output with it, and `admin.bauble_test.go` already imports `events` | `internal/events/events.go:361`; `cancel_spell_test.go:58`; `admin.bauble_test.go:9, 119-128` |
+| `RecentNames(zone string, n int) []string`: zone, `GeneratorOpenAI` and NOT `PlayerKey` (H: a player-key name never reaches another prompt), newest id first, under `cat.mu.RLock` | `internal/baubles/generate.go:214-236` |
+| `Generate` is off the mud lock; its `generic` closure is used at four returns (no generator; an error, where a ledger refusal is logged by `noteRefusal` at most once a minute; a `CleanReply` or player-key text failure; `TooBigFor`). `` `result`, `generic trinket` `` appears four times in the file: once in `noteRefusal`, three times in `Generate` | `internal/baubles/generate.go:120-139, 150-212` |
+| `GenResult` has `FinderOnly` (H2): player-key text kept to its finder | `internal/baubles/generate.go:56-70` |
+| `CleanReply(r Reply) (Reply, error)` folds typography, lowercases `NameSimple` and `Material`, refuses digits in the name, an authored item's name (`items.AuthoredName`, H), a name over 40 runes or outside 1 to 6 words, a description outside 20 to 400, and text that reads as a link; rewrites an unusable keyword (reserved or `items.AuthoredKeyword`) to a word of the name or `trinket`; never touches numbers | `internal/baubles/validate.go:22-30, 117-166` |
+| `reservedNouns` includes key, ring, coin, token, gem, bone, stone, shell, pearl, crystal and more | `internal/baubles/validate.go:45-60` |
+| `ApplyLimitsFor(r Reply, t ValueTier, s Source) Limited` clamps value (`ClampValue`) and weight (`ClampWeightFor`) | `internal/baubles/reply.go:84-92` |
+| `ClampWeight` rounds to a tenth and clamps to `MinWeightLbs` 0.1 to `MaxWeightLbs` 25 (Go constants, not config) | `internal/baubles/weight.go:14-37` |
 | `MaxWeightFor(SourcePickpocket)` is `Balance.BaublePickpocketMaxWeight` when `0 < w < 25`; `TooBigFor(r Reply, s Source) bool` is false for every source but pickpocket, true when weight exceeds it or a name word is in `notPocketSized` (urn, vase, lamp, cloak, book, bowl and more) | `internal/baubles/weight.go:41-83` |
 | `ValueTier.ClampValue` and `RollValue`; nil randn gives `(Min+Max)/2` | `internal/baubles/tiers.go:99, 107-114` |
 | `BaseChance(biome string) float64` reads `BaubleBiomeChancePct`, else `BaubleSearchChancePct` | `internal/baubles/find.go:55-64` |
-| Catalog lives at `<DataFiles>/baubles` (`catalogDir`); `Load` is boot only | `internal/baubles/catalog.go:35-37, 42-84`; `main.go:1656-1660` |
-| The catalog loader reads only `catalog-*.yaml` (`shardPrefix`), quarantining only those | `internal/baubles/store.go:28, 106, 123-131` |
-| `baubles` test binary has `TestMain` (logger set, `BaublesEnabled` true); `withCatalog(t) string` seeds item 900 and a temp catalog; `seedRecord`, `goodReply`, `installGenerator`, `setBaubleConfig`, `first` helpers exist | `catalog_test.go:17-50`, `admin_test.go:8-18`, `generate_test.go:13-28`, `find_test.go:12-19` |
-| `util.ReadLivingState(path string) ([]byte, error)` returns `ErrStateAbsent` or `ErrStateCorrupt`; `util.QuarantineCorrupt(path string) (string, error)` fails when the file cannot be stat'ed or renamed, leaving it in place; `util.Save(path string, data []byte, doSafe ...bool) error` | `internal/util/livingstate.go:47-58, 67, 90-113`; `internal/util/util.go:779` |
-| Prior art for a living-state YAML reader: `ledger.loadLocked` (read, decode, quarantine on either failure) | `internal/apiframework/budget.go:102-130` |
-| `gossip.Load` panics on a bad file; `gossip.Pool(key)` is a plain map read and the fallback chain is in its caller | `internal/gossip/gossip.go:31-60, 92-94`; `internal/hooks/MobIdle_HandleIdleMobs.go:437-439, 502-505` |
-| Boot order: `conditions.LoadDataFiles()` then `items.LoadDataFiles()` then `baubles.Load()` inside `if !isReload` | `main.go:1648-1660` |
-| `items.LoadDataFiles` builds the authored snapshot (`rebuildAuthoredKeywords`, item 900 excluded); `items.AuthoredKeyword(word string) bool`; `items.SeedItemsForTest(map[int]*ItemSpec) func()` restores the original map | `internal/items/itemspec.go:546-577, 834-855`; `internal/items/test_helpers.go:6-14` |
+| Catalog lives at `<DataFiles>/baubles` (`catalogDir`); `Load` is boot only | `internal/baubles/catalog.go:71-81, 83-120`; `main.go:1658-1662` |
+| The catalog loader reads only `catalog-*.yaml` (`shardPrefix`), quarantining only those | `internal/baubles/store.go:28, 106, 122-131` |
+| The catalog sweep's disk scan walks every `.yaml` under DataFiles except `baubles/` and `economy/snapshots/` (`sweepSkipDirs`), so the overlay is never read by it; the seed at the world root is read but never parsed unless it has a `bauble:` key (`baubleKeyRe`, case-sensitive) | `internal/baubles/sweep_disk.go:21-47, 76-135` |
+| `baubles` test binary has `TestMain` (logger set, `BaublesEnabled` true); `withCatalog(t) string` seeds item 900 and a temp catalog; `seedRecord`, `goodReply`, `installGenerator`, `setBaubleConfig`, `first` helpers exist | `catalog_test.go:17-50`, `admin_test.go:8-18`, `generate_test.go:17-32`, `find_test.go:12-18` |
+| `util.ReadLivingState(path string) ([]byte, error)` returns `ErrStateAbsent` or `ErrStateCorrupt`; `util.QuarantineCorrupt(path string) (string, error)` fails when the file cannot be stat'ed or renamed, leaving it in place; `util.Save(path string, data []byte, doSafe ...bool) error` | `internal/util/livingstate.go:47-58, 67, 90-113`; `internal/util/util.go:804` |
+| Prior art for a living-state YAML reader: `ledger.loadLocked` (read, decode, quarantine on either failure, through `ledger.quarantine`) | `internal/apiframework/budget.go:180-207` |
+| `gossip.Load` panics on a bad file; `gossip.Pool(key)` is a plain map read and the fallback chain is in its caller | `internal/gossip/gossip.go:31-60, 92-94`; `internal/hooks/MobIdle_HandleIdleMobs.go:430, 494-505` |
+| Boot order: `conditions.LoadDataFiles()` then `items.LoadDataFiles()` then `baubles.Load()` inside `if !isReload` | `main.go:1650-1662` |
+| `items.LoadDataFiles` builds the authored snapshot (`rebuildAuthoredKeywords`, item 900 excluded); `items.AuthoredKeyword(word string) bool`; `items.AuthoredName(name string) bool`; `items.SeedItemsForTest(map[int]*ItemSpec) func()` restores the original map | `internal/items/itemspec.go:561, 593, 604, 888-908`; `internal/items/test_helpers.go:6-14` |
 | A test that loads real items needs conditions first and `Network.LogoutRounds = 3` | `internal/items/shipped_light_items_test.go:15-24` |
 | `Hooded Lantern` is item 20097 | `_datafiles/world/dogmud/items/armor-20000/light/20097-hooded_lantern.yaml:2` |
-| 24 biome files; each `biomeid` matches its filename; no `default.yaml`, so a room with no known biome gives `Place.Biome` "" | `_datafiles/world/dogmud/biomes/`; `internal/rooms/biomes.go:201-207`; `rooms.go:2916-2931`; `search_bauble.go:391-401` |
-| Shipped chances: interior 5, fort 4, ruins 3.5, sewer 3, city_backstreet 2.5, city_thoroughfare 2, dungeon 2, road 1, shore 1, farmland 0.75, cave 0.75, land 0.5, river 0.5, nine wild biomes 0.25, water 0, ether 0 | `git show HEAD:_datafiles/config.yaml` lines 1418-1442 |
-| Go defaults equal the shipped bauble block (so a test binary's `BaseChance` is the shipped one) | `internal/configs/config.balance.baubles_test.go:130-160` |
-| Value ladder: cheap 1 to 6, average 10 to 15, rare 40 to 200 | `config.yaml` 1508-1513 |
-| `BaublePickpocketMaxWeight: 1.0` | `config.yaml` 1460 |
-| Weight is NOT tiered in config: every tier is 0.1 to 25 lb (Go constants), pickpocket 1.0 lb (config) | `weight.go:14-16`, `config.yaml` 1460 |
-| Stale "generic trinket" config comments at `e711ee9de`: 1458, 2647, 2654, 2658. Slice H rewrites 2644-2647 and 2658 (its new text still says generic) and S5 adds a `DailyTokensPerUser` comment after 2658 that says generic too | `git show e711ee9de:_datafiles/config.yaml`; slice H plan Task 15 Step 8; S5 plan (the `DailyTokensPerUser` step) |
-| Other stale "generic trinket" wording at `e711ee9de` (Tasks 5, 6, 9 and 12 rewrite each, keyed by text): `admin.bauble.go:113` (spawn comment), `internal/baubles/context.md:214`, `mint.go:43, 52`, `generate.go:16, 81, 109`, `search_bauble.go:33, 120`, `steal_pocket.go:376`, `find.go:235`, `modules/baubles/baubles.go:11-14, 84` (the `naming`, `generic trinkets` log), `config.balance.go:908`, `modules/context.md:29`, `docs/README.md:179`, `docs/aicompanion/settings.md:345`. Slice H adds three more: the `bauble status` detail "No server key: every find is a generic trinket ...", the `takeServerSlot` comment and the `moderate` policy comment, all in `modules/baubles/` | grep at `e711ee9de`; slice H plan Task 10 Steps 6 and 7, Task 11 Step 3 |
-| `docs/baubles/implementation-plan.md` has `### Phase 6c: Stolen goods, fences and owners (written, after PR #175)` at line 734 and `### Phase 7: Optional` at line 855; there is no `Phase 6: Theft readiness` heading | `git show e711ee9de:docs/baubles/implementation-plan.md` |
-| No catalog prune at `e711ee9de`: the only prune in `internal/baubles/*.go` is `pruneLocked` in `window.go`, which sweeps expired search windows, not records | `git grep -n -i prune e711ee9de -- 'internal/baubles/*.go'` |
-| Root guards the seed and the overlay meet: `TestEveryTextSurfaceIsRegistered` (`messaging_surface_guard_test.go:554`), `TestNoStringOrDataSaysBuff` (`identifier_word_guard_test.go:379`; it lists files with `git ls-files`, line 391, so an untracked seed is not scanned), `TestLivingStateWritesAreDurable` (`durable_write_guard_test.go:92`) and `TestNoHandRolledTempRename` (line 185) | grep at `e711ee9de` |
-| In this worktree `config.yaml` carries `H` (no skip-worktree bit) | `git ls-files -v _datafiles/config.yaml` |
-| `_datafiles/**/baubles/*` is gitignored (except `.gitkeep`), so the overlay is ignored and the seed at the world root is not | `.gitignore:23-25`; `git check-ignore -v` |
-| The messaging surface guard skips `baubles/`; the corpus keys (`groups`, `entries`, `name_simple`, `weight_lbs`, `from_record`, `promoted_at`, `prompt_version`) carry no text stem, and `description` is already registered | `messaging_surface_guard_test.go:237-256` |
+| 24 biome files; each `biomeid` matches its filename; no `default.yaml`, so a room with no known biome gives `Place.Biome` "" | `_datafiles/world/dogmud/biomes/`; `internal/rooms/biomes.go:201-207`; `rooms.go:2916-2931`; `search_bauble.go:391-403` |
+| Shipped chances: interior 5, fort 4, ruins 3.5, sewer 3, city_backstreet 2.5, city_thoroughfare 2, dungeon 2, road 1, shore 1, farmland 0.75, cave 0.75, land 0.5, river 0.5, nine wild biomes 0.25, water 0, ether 0 | `git show HEAD:_datafiles/config.yaml` lines 1445-1469 |
+| Go defaults equal the shipped bauble block (so a test binary's `BaseChance` is the shipped one) | `internal/configs/config.balance.baubles_test.go:175-228` (`TestBaubleShippedConfigMatchesDefaults`) |
+| Value ladder: cheap 1 to 6, average 10 to 15, rare 40 to 200 | `config.yaml` 1546-1551 |
+| `BaublePickpocketMaxWeight: 1.0` | `config.yaml` 1487 |
+| Weight is NOT tiered in config: every tier is 0.1 to 25 lb (Go constants), pickpocket 1.0 lb (config) | `weight.go:14-18`, `config.yaml` 1487 |
+| Stale "generic trinket" bauble config comments at `b5ac8b0fa`: 1485, 2692 (H's text), 2701, 2705 (H's `MaxConcurrent` form; S5's alternative form did not land), 2707-2708 (S5's `DailyTokensPerUser` comment, which S5 then reworded: it now says `bauble spawn` charges the admin's own allowance and `bauble regen` charges nobody) | `grep -n -i generic _datafiles/config.yaml` at `b5ac8b0fa` |
+| Other stale "generic trinket" wording at `b5ac8b0fa` (Tasks 5, 6, 9 and 12 rewrite each, keyed by text): `admin.bauble.go:113, 117, 132` (spawn comment, spawn text, status line), `internal/baubles/context.md:86-88, 312, 358-360`, `mint.go:43, 52`, `generate.go:19, 90, 147` and the four `result` log values (138, 174, 197, 204), `admin.go:205` (`ApplyRegenerated`'s doc), `search_bauble.go:33, 120, 213`, `steal_pocket.go:277-278, 460`, `find.go:245`, `modules/baubles/baubles.go:10-13, 107, 124-125, 199`, `modules/baubles/generate.go:357`, `config.balance.go:908`, `modules/baubles/context.md:13, 94, 110`, `internal/actions/context.md:598-599, 805-806, 830-831, 849`, `modules/context.md:29`, `docs/README.md:196`, `docs/aicompanion/settings.md:358`. Finder-only and retired views that legitimately stay generic (unless the owner rules otherwise): `generate.go:65-69`, `record.go:156-161`, `modules/baubles/generate.go:363`, `modules/baubles/context.md:107-108`, `internal/baubles/context.md:337`, `internal/items/bauble_viewer.go:7`, `internal/items/context.md:395`, `internal/mobs/mobs.go:1093`, `docs/aicompanion/settings.md:353`, `config.yaml:2717` | grep, 2026-09-29 |
+| `docs/baubles/implementation-plan.md` has `### Phase 6c: Stolen goods, fences and owners (written, after PR #175)` at line 739, **`### Phase 6d: The owner's fix round on PR #175 (written)` at line 879**, and `### Phase 7: Optional` at line 931. Phase 6d is taken, so the corpus section is **Phase 6e** | `grep -n "^### Phase" docs/baubles/implementation-plan.md` at `b5ac8b0fa` |
+| The catalog prune landed with the sweep: `applySweep(now time.Time, refs map[string]bool, keep time.Duration) (referenced int, pruned int, shardErrors int)` (in package `baubles`) removes every record `(Record).prunableAt(now, keep)` allows, through `(*catalog).persistShardPruning(shard int, prune func(r *Record) bool) (int, error)`. A record is prunable only after `minUnseenSweeps` (2) complete sweeps in a row found nothing pointing at it AND `keep` has passed since its `lastEvidence()`; a record with `ReturnCreditAt` set is never pruned. The exported entry point `RunSweep(now time.Time) SweepStatus` also walks live sources and every save file. `window.go`'s `pruneLocked` still sweeps search windows only | `internal/baubles/sweep.go:52-111, 317`; `internal/baubles/catalog.go:276-335, 357-396` |
+| Root guards the seed and the overlay meet: `TestEveryTextSurfaceIsRegistered` (`messaging_surface_guard_test.go:554`), `TestNoStringOrDataSaysBuff` (`identifier_word_guard_test.go:379`; it lists files with `git ls-files`, line 391, so an untracked seed is not scanned), `TestLivingStateWritesAreDurable` (`durable_write_guard_test.go:92`) and `TestNoHandRolledTempRename` (line 185) | grep, 2026-09-29 |
+| In this worktree `config.yaml` carries `H` (no skip-worktree bit) | `git ls-files -v _datafiles/config.yaml`, 2026-09-29 |
+| `_datafiles/**/baubles/*` is gitignored (except `.gitkeep`), so the overlay is ignored and the seed at the world root is not | `.gitignore:24-26`; `git check-ignore -v` |
+| The messaging surface guard skips `baubles/`; the corpus keys (`groups`, `entries`, `name_simple`, `weight_lbs`, `from_record`, `promoted_at`, `prompt_version`) carry no text stem, and `description` is already registered | `messaging_surface_guard_test.go:216, 237-256` |
 | `TestNoStringOrDataSaysBuff` scans every tracked `_datafiles/**/*.yaml` line: the seed must never spell that word | `identifier_word_guard_test.go:379-440` |
-| Admin `bauble` switch, usage fallback text, spawn text, status text, stats "Named:" line | `internal/usercommands/admin.bauble.go:50-76, 79-99, 117, 129-133, 325-326` |
-| Pickpocket log `named` is `rec.Generator == baubles.GeneratorOpenAI`. FinalTwist's naming-at-reveal fix moves this line, so Task 0 re-finds it | `internal/actions/steal_pocket.go:317` |
-| `pocketAttempt` has `mu`, `req baubles.GenRequest`, `randn`, `res` | `internal/actions/steal_pocket.go:54-70, 256-263` |
-| Actions test harness: `stubBaubleSearch` (tier average, in-line delivery), `newSearchFakeActor`, `newSearchTestRoom` (no zone, no biome), `canCarry`, `pinConfigForTest` | `search_bauble_test.go:23-73`; `search_test.go:34, 89-91`; `testsupport_test.go:35-44` |
-| Room ids 9540 to 9549 and user ids 7160 to 7169 are unused in `internal/actions` tests | grep, 2026-09-28 (a grep for `9520` finds the flush test, so the search could succeed) |
-| `docs/README.md`: the Reference table ends at line 24 (the `worldbuilding/` row); the `baubles/implementation-plan.md` row is line 179 | `git show e711ee9de:docs/README.md` |
-| Slice H and S5 symbols are NOT at `e711ee9de`: `AuthoredName` has zero hits, `SightPenalty` appears only in the root sight guard, `DimBaublesFinder` is absent. Task 0 finds them on master | grep, 2026-09-28 |
+| Admin `bauble` switch, usage fallback text, spawn comment and text, status line, stats "Named:" line | `internal/usercommands/admin.bauble.go:50-75, 79-99, 112-117, 132, 375-376` |
+| Pickpocket log `named` is `rec.Generator == baubles.GeneratorOpenAI`, in `resolve`, unchanged in form by H and S5 | `internal/actions/steal_pocket.go:342` |
+| `pocketAttempt` has `mu`, `req baubles.GenRequest`, `randn`, `res`; `naming()` returns `(baubles.GenResult, bool)` | `internal/actions/steal_pocket.go:61-94, 275-284` |
+| Actions test harness: `stubBaubleSearch` (tier average, in-line delivery), `newSearchFakeActor`, `newSearchTestRoom` (no zone, no biome), `canCarry`, `pinConfigForTest` | `search_bauble_test.go:28-73`; `search_test.go:34, 89-91`; `testsupport_test.go:35-44` |
+| Room ids 9540 to 9549 and user ids 7160 to 7169 are unused in `internal/actions` tests | grep, 2026-09-29 |
+| `docs/README.md`: the Reference table ends at line 24 (the `worldbuilding/` row); the `baubles/implementation-plan.md` row is line 196 and already names Phase 6d (the owner's fix round) | `docs/README.md` at `b5ac8b0fa` |
+| Slice H and S5 symbols are on master: `func AuthoredName(name string) bool` (`internal/items/itemspec.go:604`), `authoredName` in `validate.go:177`, `FindOpts.SightPenalty` in `find.go`, `DimBaublesFinder` in `internal/apiframework/budget.go` | Task 0 Step 1, 2026-09-29 |
 
 ### Spec statements that did not survive the check
 
@@ -84,6 +87,15 @@ Read in `C:\tmp\pr175-ours` at `e711ee9de` (PR #175's head after FinalTwist's fi
 3. **Fact row 41 is imprecise:** `Restore` sets a retired record to `ready` only for `GeneratorOpenAI`; otherwise `fallback`, or `sold` when it was sold.
 4. **`EditedBy` cannot be the promotion test.** `Retire`, `Restore` and `regen` all set `EditedBy`, so under the spec's "no `EditedBy`" rule a record that was ever retired, restored or regenerated could never be promoted, although its text is still the model's. The review ruled: a new `HandEdited` record field, set only by `Edit` (and cleared by `ApplyRegenerated`, whose text is the model's again), is what `Promote` checks. Task 1 adds it; Task 7 tests that regenerated, and retired-then-restored, records are promotable.
 5. **A promoted record's text can change after promotion.** `Edit` and `ApplyRegenerated` rewrite the record, so the overlay entry copied from it would keep text that no longer matches anything the admin approved. Task 7 makes both remove the record's overlay entries, as `Retire` does, and report how many.
+
+### Open design questions from the 2026-09-29 re-verification (for the owner; not decided here)
+
+The plan's steps are unchanged on each of these; they are listed because H2, H3 or S5 changed what the corpus meets.
+
+1. **What others see of a finder-only record.** H2's `Record.View` shows everyone but the finder the generic "Trinket" (`genericName`, `genericDescriptionFor`) for a `KeptToFinder` record, and a retired record shows "Trinket" to all. The plan leaves both generic. Should either draw from the corpus instead?
+2. **A ledger refusal now yields a corpus find.** When the day's budget, the baubles share or the finder's `DailyTokensPerUser` allowance (S5) refuses, `Generate` logs it through `noteRefusal` and returns `generic()`, which Task 5 routes to `FallbackFor`. So a finder over their allowance keeps getting hand-written text rather than a Trinket. Task 5 relabels `noteRefusal`'s log value to `fallback`; should that log (and the other three) name the generator actually used (`corpus` or `local`), as Task 6 does for the pickpocket log?
+3. **`RecentFallbackNames` counts player-key records.** H made `RecentNames` skip `PlayerKey` records (a player-key name never reaches another prompt). The plan's `RecentFallbackNames` takes every `Named()` record, player-key ones included. It is only compared locally, never sent anywhere; confirm that is intended, or filter `PlayerKey` like `RecentNames`.
+4. **Phase number.** `docs/baubles/implementation-plan.md` already has Phase 6d (the owner's fix round on PR #175), so this plan now calls the corpus Phase 6e (Tasks 10 and 12). Confirm the number.
 
 ---
 
@@ -112,8 +124,8 @@ Read in `C:\tmp\pr175-ours` at `e711ee9de` (PR #175's head after FinalTwist's fi
 | `_datafiles/world/dogmud/bauble-corpus.yaml` | Create | the seed |
 | `_datafiles/config.yaml` | Modify | four stale comments (from the HEAD blob) |
 | `internal/baubles/context.md`, `modules/baubles/context.md`, `internal/actions/context.md`, `modules/context.md` | Modify | docs |
-| `internal/baubles/find.go`, `internal/configs/config.balance.go`, `modules/baubles/baubles.go`, `modules/baubles/generate.go` | Modify | comments, a log value and the status text that still say "generic trinket" (Task 12 Step 9) |
-| `docs/baubles/implementation-plan.md` | Modify | Phase 6d section |
+| `internal/baubles/find.go`, `internal/baubles/weight.go`, `internal/configs/config.balance.go`, `modules/baubles/baubles.go`, `modules/baubles/generate.go` | Modify | comments, a log value and the status text that still say "generic trinket" (Task 12 Step 9) |
+| `docs/baubles/implementation-plan.md` | Modify | Phase 6e section (6d is the owner's fix round) |
 | `docs/aicompanion/settings.md` | Modify | the bauble paragraph's last sentence |
 | `docs/README.md` | Modify | a row for the seed file; the baubles phase row's wording. No row for this plan: it reaches master through the docs-only PR |
 
@@ -144,9 +156,11 @@ cd "/c/Users/Calabe Davis/workspace/DOGMud" && git worktree add -b feature/baubl
 cd /c/tmp/dogmud-baubles-c && BASE=$(git rev-parse HEAD) && echo "BASE=$BASE" && git status --short && git ls-files -v _datafiles/config.yaml
 ```
 
-Expected: `C:/tmp/dogmud-baubles-c` was not in the first list (if it is, STOP: another session owns it); `BASE=<sha>` equal to `master`; no status output; `H _datafiles/config.yaml` (a fresh worktree has its own index, so no skip-worktree bit). Write the printed sha into the task report: shell variables do not persist between commands, so every later step that uses `$BASE` starts with `BASE=<that sha>` or `BASE=$(git merge-base HEAD master)`, which gives the same commit as long as `master` has not been merged into this branch.
+Expected: `C:/tmp/dogmud-baubles-c` was not in the first list (if it is, STOP: another session owns it); `BASE=<sha>` equal to `master`; no status output; `H _datafiles/config.yaml` (a fresh worktree has its own index, so no skip-worktree bit). Write the printed sha into the task report: shell variables do not persist between commands, so every later step that uses `$BASE` starts with `BASE=<that sha>`.
 
-- [ ] **Step 3: Every anchor this plan quotes is in the merged code.** The edits below are keyed by exact text, written against `e711ee9de` and the H and S5 plans. Check each against the tree now:
+**Done 2026-09-29 (Steps 1 and 2).** #175, H1, the sweep, H2, H3 (#191) and S5 (#193) are merged; all four Step 1 greps hit on `origin/master`. The main checkout's local `master` was NOT fast-forwarded (it is stale at `62f9027a2` and is left alone); the worktree `C:/tmp/dogmud-baubles-c` was created on `feature/bauble-corpus` from `origin/master`, and **`BASE=b5ac8b0fa`**. `git merge-base HEAD master` would return the stale `62f9027a2`, so no later step uses it.
+
+- [ ] **Step 3: Every anchor this plan quotes is in the merged code.** The edits below are keyed by exact text, first written against `e711ee9de` and the H and S5 plans, and corrected against `b5ac8b0fa` on 2026-09-29 (the list below is the corrected one). Check each against the tree now:
 
 ```bash
 cd /c/tmp/dogmud-baubles-c && while IFS= read -r line; do f="${line%% :: *}"; a="${line#* :: }"; n=$(grep -cF -- "$a" "$f" 2>/dev/null); echo "${n:-0}	$f	$a"; done <<'EOF' | sort -n | head -80
@@ -162,7 +176,10 @@ internal/baubles/admin.go :: if r.Generator == GeneratorOpenAI {
 internal/baubles/admin.go :: r.EditedBy = admin + ` (regen)`
 internal/baubles/admin.go :: // For a name or description that should not be in the game.
 internal/baubles/admin.go :: func Edit(id string, field string, value string, admin string) (Record, error) {
-internal/baubles/admin.go :: func ApplyRegenerated(id string, res GenResult, admin string) (Record, error) {
+internal/baubles/admin.go :: func ApplyRegenerated(id string, res GenResult, admin string, randn func(n int) int) (Record, error) {
+internal/baubles/admin.go :: // the theft fields are kept. It refuses a generic trinket: regenerating is
+internal/baubles/admin_test.go :: got, err = ApplyRegenerated(r.Id, GenResult{Reply: high, Generator: GeneratorOpenAI}, `Admin`, first)
+internal/baubles/generate_test.go :: got, err := ApplyRegenerated(rec.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Moderated: true}, `Admin`, first)
 internal/baubles/generate.go :: return GenResult{Reply: GenericTrinket(tier, randn), Generator: GeneratorLocal}
 internal/baubles/generate.go :: `result`, `generic trinket`
 internal/baubles/generate.go :: // With nothing installed, every bauble is a generic trinket (fallback.go).
@@ -173,6 +190,10 @@ internal/baubles/context.md :: book...): its text would name that thing, so it i
 internal/baubles/context.md :: **No API key means generic trinkets, always.**
 internal/baubles/context.md :: all give a generic trinket.
 internal/baubles/context.md :: `GenResult`, `Generate`, `RecentNames`.
+internal/baubles/context.md :: func Edit(id string, field string, value string, admin string) (Record, error) // EditFields
+internal/baubles/context.md :: func ApplyRegenerated(id string, res GenResult, admin string) (Record, error)
+internal/baubles/context.md :: - `internal/usercommands/admin.bauble.go` (`bauble spawn|show|list`;
+internal/baubles/context.md :: - `main.go` (`Load` at boot, `StartSweeper` before Server Ready,
 internal/actions/search_bauble.go :: res = baubles.GenResult{Reply: baubles.GenericTrinket(p.d.Request.Tier, p.randn), Generator: baubles.GeneratorLocal}
 internal/actions/search_bauble.go :: otherwise as the generic trinket it would have
 internal/actions/search_bauble.go :: // cannot tell a model-named find from a generic trinket by its timing, and
@@ -181,7 +202,7 @@ internal/actions/steal_pocket.go :: return baubles.GenResult{Reply: baubles.Gene
 internal/actions/steal_pocket.go :: // naming is the bauble's naming if it came back, else the generic
 internal/actions/steal_pocket.go :: `named`, rec.Generator == baubles.GeneratorOpenAI
 internal/actions/steal_pocket.go :: // whose naming is not back is the generic trinket it would have been).
-internal/actions/bauble_admin.go :: updated, err := baubles.ApplyRegenerated(id, res, adminName)
+internal/actions/bauble_admin.go :: updated, err := baubles.ApplyRegenerated(id, res, adminName, util.Rand)
 internal/actions/context.md :: then given up (a generic
 internal/actions/context.md :: generic trinket) WITHOUT the mud lock
 internal/actions/context.md :: named if its naming came back, otherwise the generic trinket it would have
@@ -196,7 +217,7 @@ internal/usercommands/admin.bauble.go :: updated, err := baubles.Edit(rec.Id, ar
 internal/configs/config.balance.go :: waited for before it is a generic trinket (default 5)
 modules/baubles/baubles.go :: // Off by default. Switched off, it installs nothing and every bauble is a
 modules/baubles/baubles.go :: `naming`, `generic trinkets`, `reason`, `Modules.baubles.Enabled is false`
-modules/baubles/baubles.go :: No server key: every find is a generic trinket (a finder's own key needs the server's moderation).
+modules/baubles/baubles.go :: (nothing can moderate them); every other find is a generic trinket.
 modules/baubles/baubles.go :: // reports none free. A find beyond them is not queued: it is a generic
 modules/baubles/generate.go :: //   - A flag always keeps the text out of the world: a generic trinket.
 modules/baubles/context.md :: find with, every find is a generic "Trinket" (value and weight random within
@@ -204,14 +225,15 @@ modules/baubles/context.md :: 5. Neither route: `errNoRoute`, a generic trinket.
 modules/baubles/context.md :: `ApplyLimits`; any failure anywhere is a generic trinket.
 modules/context.md :: without a key every find is a generic trinket |
 docs/README.md :: (a generic "Trinket" when no API key is set)
-docs/README.md :: returns that earn back a third of a catch (Phase 6c),
-docs/aicompanion/settings.md :: or stay generic trinkets
-docs/baubles/implementation-plan.md :: ### Phase 6c: Stolen goods, fences and owners
+docs/README.md :: fences as real shopkeepers),
+docs/aicompanion/settings.md :: or stay generic trinkets when there is none.
+docs/baubles/implementation-plan.md :: ### Phase 6d: The owner's fix round on PR #175 (written)
 docs/baubles/implementation-plan.md :: ### Phase 7: Optional
 _datafiles/world/dogmud/templates/admincommands/help/command.bauble.template :: what names them (a finder's own key, the server key, or generic
 _datafiles/world/dogmud/templates/admincommands/help/command.bauble.template :: Records live under
 _datafiles/config.yaml ::   # is given up, and the bauble is a generic trinket.
-_datafiles/config.yaml ::   # is a generic "Trinket". Model, MaxCompletionTokens, MaxConcurrent,
+_datafiles/config.yaml ::   # breaker, shared with the AI companion), else it is a generic "Trinket".
+_datafiles/config.yaml ::     # trinket. `bauble spawn` charges the admin's own allowance, as a find
 _datafiles/config.yaml ::     # keep it short. Failures and timeouts become generic trinkets.
 _datafiles/config.yaml ::     MaxConcurrent: 4           # server-key calls at once; more are generic
 _datafiles/config.yaml ::     # or their own (about 8 to 10 names). Over it, a find is a generic
@@ -220,6 +242,8 @@ EOF
 ```
 
 Expected: every count is at least 1 (the list prints lowest first, so a `0` is on top). For each `0`, find the merged text (`grep -n "generic" <file>`, or the symbol), and write it into the step that quotes the old anchor before running that step; record each substitution in the task report. Two known movers: the `steal_pocket.go` `named` log line (FinalTwist's naming-at-reveal fix moves it and may reshape it; Task 6 replaces whatever pickpocket log reports `named`), and the `MaxConcurrent: 4` comment (H and S5 both rewrite it; Task 12 Step 5 covers both forms).
+
+**Run 2026-09-29 at `b5ac8b0fa`.** Four anchors of the original list were at 0 and are corrected above and in the steps that quote them: `config.yaml`'s H naming comment (the `else it is a generic "Trinket".` line now closes the `breaker, shared with the AI companion),` line; Task 12 Step 5), `bauble_admin.go`'s and `admin.go`'s `ApplyRegenerated` (H2 added a `randn` argument; Tasks 1 and 7), and `modules/baubles/baubles.go`'s no-server-key detail (H2 rewrote it for finder-only text; Task 12 Step 9). Every other anchor was 1 or more; `generate.go`'s `` `result`, `generic trinket` `` is 4 (Task 5 notes the fourth, in `noteRefusal`). The anchors added in the re-verification (the `ApplyRegenerated` test callers, the context.md API and Consumers lines, the README Phase 6d clause, the settings.md line, the S5 allowance comment) were grepped at 1 too. The pickpocket log did not move in form (`steal_pocket.go:342`); H's `MaxConcurrent` form landed, S5's did not.
 
 - [ ] **Step 4: Baseline is green.**
 
@@ -230,6 +254,8 @@ cd /c/tmp/dogmud-baubles-c && go test . 2>&1 | tail -3
 
 Expected: `ok` for each. A red baseline is fixed or reported before Task 1.
 
+**Run 2026-09-29 at `b5ac8b0fa`:** green. `ok` for `internal/baubles` (2.1s), `internal/actions` (56.1s), `internal/usercommands` (1.5s) and the repo root (32.3s).
+
 - [ ] **Step 5: Re-find the four call sites and the pickpocket log** (lines move under FinalTwist's fixes, H and S5):
 
 ```bash
@@ -239,6 +265,8 @@ cd /c/tmp/dogmud-baubles-c && grep -n "named" internal/actions/steal_pocket.go
 
 Expected: `fallback.go` (definition) plus the four sites; the pickpocket `mudlog.Info` line that logs `named`. If FinalTwist's naming-at-reveal fix moved the pickpocket fallback or reshaped that log line, Task 6 edits whichever `GenericTrinket(` call remains in `steal_pocket.go` and whichever pickpocket log reports `named`; record the line numbers in the task report.
 
+**Run 2026-09-29 at `b5ac8b0fa`:** `fallback.go:36` (definition), `search_bauble.go:237` (`FlushBaubleDeliveries`), `steal_pocket.go:283` (`(*pocketAttempt).naming`), `generate.go:156` (the `generic` closure), `mint.go:74`. The pickpocket log is `steal_pocket.go:342`, in `resolve`, still `` `named`, rec.Generator == baubles.GeneratorOpenAI `` (the other `named` hits, 51, 89, 165, 243, 258, 306 and 371, are the `named` channel and comments).
+
 - [ ] **Step 6: FinalTwist's catalog prune is on master.** His fix round prunes the catalog ("catalog never pruned" in the review of his patch). Search every file of the package, not only `catalog.go` and `store.go`:
 
 ```bash
@@ -246,6 +274,8 @@ cd /c/tmp/dogmud-baubles-c && grep -n -i "prune" internal/baubles/*.go | grep -v
 ```
 
 Expected: at least one function that removes catalog records (read each hit to be sure; `window.go`'s `pruneLocked` sweeps search windows and does not count). Record its name and signature in the task report: Task 7 calls it from `TestOverlaySurvivesTheCatalog`. If nothing is found, report it to the controller now; Task 7 Step 5 and the gate (Task 14) then FAIL rather than pass without it.
+
+**Run 2026-09-29 at `b5ac8b0fa`:** the prune is the catalog sweep's. In `internal/baubles/sweep.go:59`, unexported: `func applySweep(now time.Time, refs map[string]bool, keep time.Duration) (referenced int, pruned int, shardErrors int)`. It marks every record not in `refs` unseen once more and removes those `(Record).prunableAt(now, keep)` allows (at least `minUnseenSweeps`, 2, complete sweeps in a row without a sighting AND `keep` since `lastEvidence()`; never one with `ReturnCreditAt`), writing each touched shard through `(*catalog).persistShardPruning(shard int, prune func(r *Record) bool) (int, error)` (`catalog.go:286`) before dropping the records from memory. `RunSweep(now time.Time) SweepStatus` (`sweep.go:317`) is the exported entry point, but it also walks the live sources and every save file under DataFiles.
 
 ---
 
@@ -308,7 +338,7 @@ func TestOnlyEditMarksHandEdited(t *testing.T) {
 		t.Fatalf("retire and restore set EditedBy, never HandEdited: %+v", got)
 	}
 	h := seedRecord(t, Record{Name: `Painted Wooden Pony`, NameSimple: `pony`, Tier: TierCheap, Value: 3, WeightLbs: 0.6, Status: StatusReady, Generator: GeneratorOpenAI, HandEdited: true})
-	got, err := ApplyRegenerated(h.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Model: `gpt-test`, Moderated: true}, `Admin`)
+	got, err := ApplyRegenerated(h.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Model: `gpt-test`, Moderated: true}, `Admin`, first)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -325,7 +355,7 @@ func TestOnlyEditMarksHandEdited(t *testing.T) {
 func TestApplyRegeneratedRefusesACorpusAnswer(t *testing.T) {
 	withCatalog(t)
 	r := seedRecord(t, Record{Name: `Painted Wooden Horse`, NameSimple: `horse`, Tier: TierCheap, Value: 3, Status: StatusReady, Generator: GeneratorOpenAI})
-	if _, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorCorpus, Model: `corpus:cheap`}, `Admin`); err == nil {
+	if _, err := ApplyRegenerated(r.Id, GenResult{Reply: goodReply(), Generator: GeneratorCorpus, Model: `corpus:cheap`}, `Admin`, first); err == nil {
 		t.Fatal("a corpus answer must not replace a record's text")
 	}
 }
@@ -1662,7 +1692,7 @@ with
 	}
 ```
 
-and, in the same function, replace every `` `result`, `generic trinket` `` in the `mudlog.Warn` calls with `` `result`, `fallback` `` (three occurrences; use Edit with replace_all on that exact text).
+and replace every `` `result`, `generic trinket` `` in the file's `mudlog.Warn` calls with `` `result`, `fallback` `` (four occurrences at `b5ac8b0fa`: three in `Generate` and one in `noteRefusal`, H's rate-limited log for a ledger refusal, whose find also returns through `generic()`; use Edit with replace_all on that exact text). In `Generate`'s `TooBigFor` branch also replace the comment line `// clamped to. A generic (small) trinket instead.` with `// clamped to. A fallback instead (the corpus's pocket pool, or a small trinket).`.
 
 In `internal/baubles/mint.go` replace
 
@@ -1939,13 +1969,13 @@ with
 
 and replace its two comment lines (`// naming is the bauble's naming if it came back, else the generic` and `// trinket it would have been.`) with `// naming is the bauble's naming if it came back, else the corpus` and `// fallback it would have been.`. In `FlushPocketAttempts`'s doc comment replace `// whose naming is not back is the generic trinket it would have been).` with `// whose naming is not back is the corpus fallback it would have been).`.
 
-The pickpocket log: at `e711ee9de` it is this line in `resolve`, but FinalTwist's naming-at-reveal fix moves it (Task 0 Step 5 recorded where it is now):
+The pickpocket log: at `b5ac8b0fa` it is this line in `resolve` (`steal_pocket.go:342`, Task 0 Step 5), unchanged in form since `e711ee9de`:
 
 ```go
 			mudlog.Info(`baubles`, `action`, `pickpocket`, `id`, rec.Id, `mob`, p.mobName, `named`, rec.Generator == baubles.GeneratorOpenAI)
 ```
 
-Wherever it now is, and whatever else it logs, replace only its `` `named`, rec.Generator == baubles.GeneratorOpenAI `` pair with `` `generator`, string(rec.Generator) ``, so at `e711ee9de` it would read:
+Wherever it now is, and whatever else it logs, replace only its `` `named`, rec.Generator == baubles.GeneratorOpenAI `` pair with `` `generator`, string(rec.Generator) ``, so at `b5ac8b0fa` it reads:
 
 ```go
 			mudlog.Info(`baubles`, `action`, `pickpocket`, `id`, rec.Id, `mob`, p.mobName, `generator`, string(rec.Generator))
@@ -1997,7 +2027,7 @@ EOF
 - Create: `internal/baubles/corpus_admin.go`
 - Modify: `internal/baubles/admin.go` (`Retire`, `Edit`, `ApplyRegenerated`)
 - Modify: `internal/actions/bauble_admin.go` (`RegenerateBauble`), `internal/usercommands/admin.bauble.go` (`baubleEdit`, `baubleRetire`): the callers of the two changed signatures
-- Modify: `internal/baubles/admin_test.go` (call sites of `Edit` and `ApplyRegenerated`)
+- Modify: `internal/baubles/admin_test.go` and `internal/baubles/generate_test.go` (call sites of `Edit` and `ApplyRegenerated`)
 - Test: `internal/baubles/corpus_admin_test.go`
 
 - [ ] **Step 1: Write the failing tests.** Create `internal/baubles/corpus_admin_test.go`:
@@ -2182,7 +2212,7 @@ func TestEditAndRegenRemoveTheRecordsCorpusEntry(t *testing.T) {
 	if err != nil || removed != 1 {
 		t.Fatalf("an edit removes its one promoted entry: %d %v", removed, err)
 	}
-	_, removed, err = ApplyRegenerated(regen.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Model: `gpt-test`, Moderated: true}, `Admin`)
+	_, removed, err = ApplyRegenerated(regen.Id, GenResult{Reply: goodReply(), Generator: GeneratorOpenAI, Model: `gpt-test`, Moderated: true}, `Admin`, first)
 	if err != nil || removed != 1 {
 		t.Fatalf("a regeneration removes its one promoted entry: %d %v", removed, err)
 	}
@@ -2210,7 +2240,7 @@ func TestPromoteLooksAtHandEditedNotEditedBy(t *testing.T) {
 	regen := seedRecord(t, r)
 	reply := goodReply()
 	reply.Name, reply.NameSimple = `Painted Clay Owl`, `owl`
-	if _, _, err := ApplyRegenerated(regen.Id, GenResult{Reply: reply, Generator: GeneratorOpenAI, Model: `gpt-test`, Moderated: true}, `Admin`); err != nil {
+	if _, _, err := ApplyRegenerated(regen.Id, GenResult{Reply: reply, Generator: GeneratorOpenAI, Model: `gpt-test`, Moderated: true}, `Admin`, first); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := Promote(regen.Id); err != nil {
@@ -2395,7 +2425,7 @@ func TestOverlaySurvivesTheCatalog(t *testing.T) {
 	}
 	_, _ = Create(Record{Name: `Another Find`, Generator: GeneratorLocal})
 	SaveAll()
-	// PRUNE: call FinalTwist's catalog prune here when it exists.
+	// PRUNE: call the catalog prune here (applySweep, Step 5).
 
 	after, err := os.ReadFile(overlayPath)
 	if err != nil || string(after) != string(before) {
@@ -2816,7 +2846,7 @@ func Retire(id string, admin string) error {
 `Edit` and `ApplyRegenerated` change a record's text, so an overlay entry promoted from it would keep text nobody approved any more. Both now remove those entries after the record is saved, and return how many. In `admin.go`:
 
 1. Change `Edit`'s signature to `func Edit(id string, field string, value string, admin string) (Record, int, error) {`, and in its body change every `return Record{}, ` to `return Record{}, 0, `.
-2. Change `ApplyRegenerated`'s signature to `func ApplyRegenerated(id string, res GenResult, admin string) (Record, int, error) {`, and in its body change every `return Record{}, ` to `return Record{}, 0, `.
+2. Change `ApplyRegenerated`'s signature to `func ApplyRegenerated(id string, res GenResult, admin string, randn func(n int) int) (Record, int, error) {` (keep H2's `randn`), and in its body change every `return Record{}, ` to `return Record{}, 0, `. In its doc comment also replace `// the theft fields are kept. It refuses a generic trinket: regenerating is` with `// the theft fields are kept. It refuses a fallback (corpus or generic): regenerating is`.
 3. In each of the two, replace the final `return updated, nil` with:
 
 ```go
@@ -2836,12 +2866,12 @@ Let the compiler list the callers:
 cd /c/tmp/dogmud-baubles-c && go vet ./internal/baubles/ ./internal/actions/ ./internal/usercommands/ 2>&1 | grep -E "assignment mismatch|too many|not enough" | head -30
 ```
 
-Expected at `e711ee9de` plus slice H: the `Edit` and `ApplyRegenerated` calls in `internal/baubles/admin_test.go` (`TestEdit`, `TestApplyRegenerated`, H's `TestApplyRegeneratedSetsPlayerKey`, and Task 1's three tests), `internal/actions/bauble_admin.go` and `internal/usercommands/admin.bauble.go`. In the test file, only in calls to `Edit(` and `ApplyRegenerated(` (never `Get(`), rewrite `got, err :=` as `got, _, err :=`, `got, _ :=` as `got, _, _ :=` and `_, err :=` as `_, _, err :=`.
+Expected at `b5ac8b0fa`: the `Edit` and `ApplyRegenerated` calls in `internal/baubles/admin_test.go` (`TestEdit`, `TestApplyRegenerated`, `TestApplyRegeneratedSetsPlayerKey`, `TestApplyRegeneratedRollsPlayerKeyValue`, and Task 1's three tests), in `internal/baubles/generate_test.go` (`TestFinderOnlyReachesTheRecordAndRegenClearsIt`, line 493), `internal/actions/bauble_admin.go` and `internal/usercommands/admin.bauble.go`. In the two test files, only in calls to `Edit(` and `ApplyRegenerated(` (never `Get(`), rewrite `got, err :=` as `got, _, err :=`, `got, err =` as `got, _, err =` (`TestApplyRegeneratedRollsPlayerKeyValue`'s second call), `got, _ :=` as `got, _, _ :=` and `_, err :=` as `_, _, err :=`; every `ApplyRegenerated` call keeps its `first` argument.
 
 In `internal/actions/bauble_admin.go` `RegenerateBauble`, add `"errors"` to the imports and replace
 
 ```go
-		updated, err := baubles.ApplyRegenerated(id, res, adminName)
+		updated, err := baubles.ApplyRegenerated(id, res, adminName, util.Rand)
 		if err != nil {
 			tellBaubleAdmin(adminUserId, fmt.Sprintf(`Bauble %s was not regenerated: %s.`, id, err))
 			return
@@ -2853,7 +2883,7 @@ In `internal/actions/bauble_admin.go` `RegenerateBauble`, add `"errors"` to the 
 with
 
 ```go
-		updated, removed, err := baubles.ApplyRegenerated(id, res, adminName)
+		updated, removed, err := baubles.ApplyRegenerated(id, res, adminName, util.Rand)
 		if err != nil && !errors.Is(err, baubles.ErrCorpusCleanup) {
 			tellBaubleAdmin(adminUserId, fmt.Sprintf(`Bauble %s was not regenerated: %s.`, id, err))
 			return
@@ -2933,6 +2963,8 @@ Read each hit. The one wanted removes catalog records (and rewrites or deletes s
 
 If no catalog prune exists, STOP and report BLOCKED to the controller: FinalTwist's fix round was expected to land it before this slice branched (Task 0 Step 6). Do not leave the `// PRUNE:` line in and carry on; the gate (Task 14 Step 4) fails while it is there.
 
+At `b5ac8b0fa` the prune exists (Task 0 Step 6): `applySweep(now time.Time, refs map[string]bool, keep time.Duration) (referenced int, pruned int, shardErrors int)` in `sweep.go`, callable from this in-package test. A record becomes prunable only after `minUnseenSweeps` (2) calls in a row that leave it out of `refs`, and only once `keep` has passed since its `lastEvidence()`, which the first such call moves to `now` for a record with no `LastSeenAt`. So call it at least twice with an empty `refs` and a `keep` the record has outlived (0 with the same `now` works), check that `pruned` counts the seeded record and `shardErrors` is 0, then that `Get` no longer finds it. `RunSweep` is not the tool here: it also walks the live sources and every save file under DataFiles.
+
 - [ ] **Step 6: Null probes (five).** One at a time, restoring after each: (a) in `Promote`, move `corpus.Store(next)` above the `saveOverlay` call; `TestPromoteChangesNothingWhenTheSaveFails` must fail with "nothing is published in memory". (b) In `Promote`, delete the `case !rec.Moderated:` pair; `TestPromoteRefusals` must fail naming `unmoderated`. (c) In `Promote`, change `case rec.HandEdited:` to `case rec.EditedBy != "":`; `TestPromoteLooksAtHandEditedNotEditedBy` must fail with "freshly regenerated". (d) In `Promote`, delete the `if p.nameInPool(key, rec.Name) {` block; `TestPromoteRefusals` must fail naming `a name in its group's seed`. (e) In `Edit`, replace the `removePromotedFrom` block with `return updated, 0, nil`; `TestEditAndRegenRemoveTheRecordsCorpusEntry` must fail with "an edit removes". Confirm green.
 
 - [ ] **Step 7: The packages the signature change reached.**
@@ -2946,7 +2978,7 @@ Expected: `ok` three times.
 - [ ] **Step 8: Commit.**
 
 ```bash
-cd /c/tmp/dogmud-baubles-c && git add internal/baubles/corpus_admin.go internal/baubles/admin.go internal/baubles/corpus_admin_test.go internal/baubles/admin_test.go internal/actions/bauble_admin.go internal/usercommands/admin.bauble.go
+cd /c/tmp/dogmud-baubles-c && git add internal/baubles/corpus_admin.go internal/baubles/admin.go internal/baubles/corpus_admin_test.go internal/baubles/admin_test.go internal/baubles/generate_test.go internal/actions/bauble_admin.go internal/usercommands/admin.bauble.go
 git commit -F - <<'EOF'
 feat(baubles): promote server-key model names into the corpus overlay
 
@@ -3009,7 +3041,7 @@ EOF
 - Modify: `_datafiles/world/dogmud/templates/admincommands/help/command.bauble.template`
 - Test: `internal/usercommands/admin.bauble_test.go`
 
-- [ ] **Step 1: Write the failing test.** In `internal/usercommands/admin.bauble_test.go` add `"os"`, `"path/filepath"`, `"github.com/GoMudEngine/GoMud/internal/events"`, `"github.com/GoMudEngine/GoMud/internal/rooms"` and `"github.com/GoMudEngine/GoMud/internal/users"` to the imports and append:
+- [ ] **Step 1: Write the failing test.** In `internal/usercommands/admin.bauble_test.go` add `"os"`, `"path/filepath"`, `"github.com/GoMudEngine/GoMud/internal/rooms"` and `"github.com/GoMudEngine/GoMud/internal/users"` to the imports (`events` is already imported at `b5ac8b0fa`; adding it again would not compile) and append:
 
 ```go
 // adminSaid runs one bauble subcommand and returns what the admin was sent,
@@ -3371,15 +3403,15 @@ EOF
 - `entries:` a map from key to a list of entries. A key is `<group>-<tier>`, `<biome>-<tier>` (a biome that appears in `groups`), `pocket-<tier>`, or a bare `<tier>`, where tier is `cheap`, `average` or `rare`.
 - Each entry has exactly these fields: `name` (1 to 6 words, Title Case, no digits, at most 40 characters, never an existing item's name), `name_simple` (one lowercase word, 2 to 20 letters, not a reserved noun and not a word any real item answers to), `material` (optional, one or two lowercase words, at most 30 characters), `weight_lbs` (tenths of a pound, 0.1 to 25; 1.0 or less for `pocket-*` and bare-tier pools), `value` (whole gold inside the tier), `description` (folded block scalar `>-`, 20 to 400 characters, two short sentences, third person).
 
-**Value and weight ranges from config** (`git show e711ee9de:_datafiles/config.yaml`; re-read on master with `grep -n "Bauble.*Value:" _datafiles/config.yaml`):
+**Value and weight ranges from config** (`_datafiles/config.yaml` at `b5ac8b0fa`; `grep -n "Bauble.*Value:" _datafiles/config.yaml`):
 
 | Tier | Value (gold) | Midpoint | Mean tolerance (15% of width) | Weight |
 |---|---|---|---|---|
-| cheap | 1 to 6 (lines 1508-1509) | 3.5 | 0.75 | 0.1 to 25 lb; pocket and bare tier 0.1 to 1.0 lb |
-| average | 10 to 15 (1510-1511) | 12.5 | 0.75 | same |
-| rare | 40 to 200 (1512-1513) | 120 | 24 | same |
+| cheap | 1 to 6 (lines 1546-1547) | 3.5 | 0.75 | 0.1 to 25 lb; pocket and bare tier 0.1 to 1.0 lb |
+| average | 10 to 15 (1548-1549) | 12.5 | 0.75 | same |
+| rare | 40 to 200 (1550-1551) | 120 | 24 | same |
 
-Weight is not tiered anywhere in config: the 0.1 and 25 lb bounds are Go constants (`weight.go:15-16`) and the pocket limit is `BaublePickpocketMaxWeight: 1.0` (`config.yaml` 1460). Use the model's own scale (`WeightGuidance`, `weight.go:100-105`): tiny 0.1 to 0.5 (coin, ring, button, charm), small 0.5 to 2 (toy, figurine, cup, pipe), medium 2 to 8 (candlestick, jug, small box), large 8 to 25 (big vase, small chest).
+Weight is not tiered anywhere in config: the 0.1 and 25 lb bounds are Go constants (`weight.go:15-16`) and the pocket limit is `BaublePickpocketMaxWeight: 1.0` (`config.yaml` 1487). Use the model's own scale (`WeightGuidance`, `weight.go:100-105`): tiny 0.1 to 0.5 (coin, ring, button, charm), small 0.5 to 2 (toy, figurine, cup, pipe), medium 2 to 8 (candlestick, jug, small box), large 8 to 25 (big vase, small chest).
 
 **Three written examples per tier** (from different groups; these are the first entries of the seed):
 
@@ -3401,7 +3433,7 @@ The nine keywords were grepped against every item file's `name:` and `namesimple
 
 ```yaml
 # Bauble fallback corpus: the seed (docs/baubles/implementation-plan.md,
-# Phase 6d). When no model names a find, its text comes from here, or from
+# Phase 6e). When no model names a find, its text comes from here, or from
 # names an admin promoted (baubles/corpus.promoted.yaml, living state).
 #
 # groups: the corpus group of each biome. A biome with no group (water and
@@ -3822,7 +3854,7 @@ EOF
 - Modify: `docs/baubles/implementation-plan.md`, `docs/aicompanion/settings.md`
 - Modify: `_datafiles/config.yaml`
 - Modify: `docs/README.md`
-- Modify: `internal/baubles/find.go`, `internal/configs/config.balance.go`, `modules/baubles/baubles.go`, `modules/baubles/generate.go` (Step 9: comments, one log value, one status line)
+- Modify: `internal/baubles/find.go`, `internal/baubles/weight.go`, `internal/configs/config.balance.go`, `modules/baubles/baubles.go`, `modules/baubles/generate.go` (Step 9: comments, one log value, one status line)
 
 - [ ] **Step 1: `internal/baubles/context.md`.** With the Edit tool:
 
@@ -3845,15 +3877,27 @@ Replace the `fallback.go` bullet in `## Files` with:
 
 In the `generate.go` bullet, change "`GenResult`, `Generate`, `RecentNames`." to "`GenResult`, `Generate`, `RecentNames`, `RecentFallbackNames`.".
 
-In the `## API` block, change the `GenResult` comment to `/* Reply, Generator, Model, PromptVersion, Tokens, Moderated, PlayerKey */` only if slice H has not already, and append before the closing fence:
+In the `## API` block, leave the `GenResult` comment alone (slice H already lists `PlayerKey` and `FinderOnly`). The block already declares `Edit` and `ApplyRegenerated` (the latter with H's old three-argument form); replace those two lines
+
+```go
+func Edit(id string, field string, value string, admin string) (Record, error) // EditFields
+func ApplyRegenerated(id string, res GenResult, admin string) (Record, error)
+```
+
+with
+
+```go
+func Edit(id string, field string, value string, admin string) (Record, int, error) // EditFields; int: corpus entries removed
+func ApplyRegenerated(id string, res GenResult, admin string, randn func(n int) int) (Record, int, error)
+```
+
+and append before the closing fence:
 
 ```go
 const GeneratorCorpus Generator = `corpus`
 func (g Generator) Named() bool // openai or corpus: a ready record
 func RecentFallbackNames(zone string, n int) []string
 // Record.HandEdited: set only by Edit, cleared by ApplyRegenerated; Promote refuses it
-func Edit(id, field, value, admin string) (Record, int, error)        // int: corpus entries removed
-func ApplyRegenerated(id string, res GenResult, admin string) (Record, int, error)
 
 type CorpusEntry struct{ Name, NameSimple, Description, Material string; WeightLbs float64; Value int }
 type PromotedEntry struct{ CorpusEntry; FromRecord, Zone, Biome, Model string; PromptVersion int; PromotedAt time.Time }
@@ -3945,7 +3989,7 @@ with
   corpus's pocket pool instead of being a clamped strongbox.
 ```
 
-In `## Consumers`, change the `main.go` line to "`main.go` (`Load` at boot, `LoadCorpus` at boot and data reload, `SaveAll` at shutdown), `copyover.go` (`SaveAll`)." and the admin line to "`internal/usercommands/admin.bauble.go` (`bauble spawn|show|list|promote|corpus`), `appraise.go` (free bauble appraisal).", and add "`internal/actions/search_bauble.go` and `steal_pocket.go` (`FallbackFor`)." to the actions consumer lines.
+In `## Consumers` (sweep-era text at `b5ac8b0fa`, keep everything already there): in the `main.go` bullet replace `` - `main.go` (`Load` at boot, `StartSweeper` before Server Ready, `` with `` - `main.go` (`Load` at boot, `LoadCorpus` at boot and data reload, `StartSweeper` before Server Ready, `` and rewrap to 80 columns; in the admin bullet replace `` (`bauble spawn|show|list`; `` with `` (`bauble spawn|show|list|promote|corpus`; ``; and add "`internal/actions/search_bauble.go` and `steal_pocket.go` (`FallbackFor`)." to the actions consumer lines.
 
 - [ ] **Step 2: `modules/baubles/context.md`.** Replace
 
@@ -3966,16 +4010,16 @@ Replace `5. Neither route: `errNoRoute`, a generic trinket.` with `5. Neither ro
 
 - [ ] **Step 3: `internal/actions/context.md`.** (A " / " below separates two consecutive lines of the file; rewrap any line the change pushes past 80 columns.) Replace `then given up (a generic` / `     trinket).` (the two lines in the pickpocket paragraph) with `then given up (from the` / `     fallback corpus).`; replace `goroutine. That goroutine names it with `baubles.Generate` (the model, or a` / `generic trinket) WITHOUT the mud lock` with `goroutine. That goroutine names it with `baubles.Generate` (the model, or the` / `fallback corpus) WITHOUT the mud lock`; replace `named if its naming came back, otherwise the generic trinket it would have` / `been.` with `named if its naming came back, otherwise the corpus fallback it would have` / `been (`baubles.FallbackFor`).`; and replace `The minimum wait applies to generic trinkets too` with `The minimum wait applies to corpus and generic finds too`.
 
-- [ ] **Step 4: `docs/baubles/implementation-plan.md`.** The file already has `### Phase 6c: Stolen goods, fences and owners (written, after PR #175)` (line 734 at `e711ee9de`) and no `Phase 6: Theft readiness` heading, so this section is Phase 6d. Confirm where it goes:
+- [ ] **Step 4: `docs/baubles/implementation-plan.md`.** The file already has `### Phase 6c: Stolen goods, fences and owners (written, after PR #175)` (line 739 at `b5ac8b0fa`) and `### Phase 6d: The owner's fix round on PR #175 (written)` (line 879), and no `Phase 6: Theft readiness` heading, so this section is Phase 6e. Confirm where it goes:
 
 ```bash
 cd /c/tmp/dogmud-baubles-c && grep -n "^### Phase 6\|^### Phase 7" docs/baubles/implementation-plan.md
 ```
 
-Expected: `### Phase 6a`, `6b` and `6c` headings, then `### Phase 7: Optional` (line 855 at `e711ee9de`), and no `Phase 6d` yet. Insert directly before the `### Phase 7: Optional` heading:
+Expected: `### Phase 6a`, `6b`, `6c` and `6d` headings, then `### Phase 7: Optional` (line 931 at `b5ac8b0fa`), and no `Phase 6e` yet. Insert directly before the `### Phase 7: Optional` heading:
 
 ```markdown
-### Phase 6d: Fallback corpus (hardening slice C) (written)
+### Phase 6e: Fallback corpus (hardening slice C) (written)
 
 Design: `docs/superpowers/specs/2026-09-28-baubles-hardening-and-corpus-design.md`,
 slice C. Plan: `docs/superpowers/plans/2026-09-28-slice-c-bauble-corpus.md`.
@@ -4007,38 +4051,36 @@ cd /c/tmp/dogmud-baubles-c && git diff --stat HEAD -- _datafiles/config.yaml
 cd /c/tmp/dogmud-baubles-c && grep -n -i "generic" _datafiles/config.yaml
 ```
 
-Expected: `H _datafiles/config.yaml`, no diff output, and the stale comments listed by the third command. If the diff is not empty, STOP and ask the controller: the disk copy has drifted from the blob and a commit would carry it. At `e711ee9de` the bauble comments that say generic are lines 1458, 2647, 2654 and 2658; slice H rewrites 2644-2647 and 2658, and S5 adds a `DailyTokensPerUser` comment after 2658, so the text below is the merged text the H and S5 plans write. Edit only bauble comments (the grep also finds unrelated hits such as "Generic melee never interrupts a cast"). With the Edit tool, one replacement each:
+Expected: `H _datafiles/config.yaml`, no diff output, and the stale comments listed by the third command. If the diff is not empty, STOP and ask the controller: the disk copy has drifted from the blob and a commit would carry it. At `b5ac8b0fa` the bauble comments that say generic are lines 1485, 2692, 2701, 2705 and 2707-2708 (the text below is the merged text, re-read 2026-09-29). Edit only bauble comments (the grep also finds unrelated hits such as "Generic melee never interrupts a cast"). Line 2717's `a plain "Trinket" to everyone else` is the finder-only view and stays. With the Edit tool, one replacement each:
 
 1. `  # is given up, and the bauble is a generic trinket.` becomes `  # is given up, and the bauble's text comes from the fallback corpus.`
-2. Slice H's lines
+2. Slice H's line (the second of the pair; the first, `  # else through the server's key (APIFramework: its one daily budget and`, stays)
 
 ```yaml
-  # its one daily budget and breaker, shared with the AI companion), else it
-  # is a generic "Trinket". Model, MaxCompletionTokens, MaxConcurrent,
+  # breaker, shared with the AI companion), else it is a generic "Trinket".
 ```
 
-become
+becomes
 
 ```yaml
-  # its one daily budget and breaker, shared with the AI companion), else its
-  # text comes from the fallback corpus (bauble-corpus.yaml and names promoted
-  # with bauble promote). Model, MaxCompletionTokens, MaxConcurrent,
+  # breaker, shared with the AI companion), else its text comes from the
+  # fallback corpus (bauble-corpus.yaml and promoted names).
 ```
 
 3. `    # keep it short. Failures and timeouts become generic trinkets.` becomes `    # keep it short. Failures and timeouts fall back to the corpus.`
-4. The `MaxConcurrent: 4` line: H writes `    MaxConcurrent: 4           # server-key calls at once; more are generic`, which becomes `    MaxConcurrent: 4           # server-key calls at once; more use the corpus`. If the merge of H and S5 left S5's form instead, `    MaxConcurrent: 4           # more finds at once than this are generic`, it becomes `    MaxConcurrent: 4           # more finds at once than this use the corpus`.
-5. S5's lines
+4. The `MaxConcurrent: 4` line, in H's form (S5's alternative form did not land): `    MaxConcurrent: 4           # server-key calls at once; more are generic` becomes `    MaxConcurrent: 4           # server-key calls at once; more use the corpus`.
+5. S5's lines (S5 #193 reworded the allowance sentence: `bauble spawn` now charges the admin's own allowance, `bauble regen` nobody; only the first two lines change)
 
 ```yaml
     # or their own (about 8 to 10 names). Over it, a find is a generic
-    # trinket. An admin's regeneration charges nobody. 0 is no cap.
+    # trinket. `bauble spawn` charges the admin's own allowance, as a find
 ```
 
 become
 
 ```yaml
     # or their own (about 8 to 10 names). Over it, a find falls back to the
-    # corpus. An admin's regeneration charges nobody. 0 is no cap.
+    # corpus. `bauble spawn` charges the admin's own allowance, as a find
 ```
 
 Then:
@@ -4048,7 +4090,7 @@ cd /c/tmp/dogmud-baubles-c && git diff HEAD -- _datafiles/config.yaml | grep -c 
 cd /c/tmp/dogmud-baubles-c && grep -n -i "generic" _datafiles/config.yaml
 ```
 
-Expected: `15` (seven lines out, eight in), and no bauble comment left in the second list. Any other count means an unintended change or merged text that differs from the above; inspect with `git diff` and account for every line in the task report.
+Expected: `13` (six lines out, seven in), and no bauble comment left in the second list. Any other count means an unintended change or merged text that differs from the above; inspect with `git diff` and account for every line in the task report.
 
 - [ ] **Step 6: `docs/README.md`.** In the `## Reference` table, after the `worldbuilding/` row, add:
 
@@ -4058,7 +4100,7 @@ Expected: `15` (seven lines out, eight in), and no bauble comment left in the se
 
 This plan gets no row here: it reaches master, with its row, through the separate docs-only PR (owner ruling 11).
 
-In the `baubles/implementation-plan.md` row (line 179 at `e711ee9de`), replace `(a generic "Trinket" when no API key is set)` with `(hand-written text from a fallback corpus when no API key is set)`, and replace `returns that earn back a third of a catch (Phase 6c),` with `returns that earn back a third of a catch (Phase 6c), the fallback corpus of hand-written bauble text by biome group, with admin promotion of good model names (Phase 6d),`.
+In the `baubles/implementation-plan.md` row (line 196 at `b5ac8b0fa`, which already names Phase 6d, the owner's fix round), replace `(a generic "Trinket" when no API key is set)` with `(hand-written text from a fallback corpus when no API key is set)`, and replace `fences as real shopkeepers),` with `fences as real shopkeepers), the fallback corpus of hand-written bauble text by biome group, with admin promotion of good model names (Phase 6e),`.
 
 - [ ] **Step 7: Audit context.md symbols.**
 
@@ -4068,7 +4110,7 @@ cd /c/tmp/dogmud-baubles-c && python tools/context_md_audit.py 2>&1 | tail -10
 
 Expected: no phantom symbol reported for `internal/baubles`, `internal/actions` or `modules/baubles`.
 
-- [ ] **Step 8: `docs/aicompanion/settings.md` and `modules/context.md`.** In `settings.md`'s bauble paragraph (as slice H rewrote it), the sentence reads `Unticked, or when moderation is unavailable, their finds use the server's key, or stay generic trinkets when there is none.` across two lines (a line break falls after `trinkets`). Replace `or stay generic trinkets` / `when there is none.` with `or take hand-written text from the fallback corpus when there is none.`, then rewrap that paragraph's lines to 80 columns or less. In `modules/context.md`'s `baubles` row, replace `without a key every find is a generic trinket |` with `without a key every find takes hand-written text from the engine's fallback corpus |`.
+- [ ] **Step 8: `docs/aicompanion/settings.md` and `modules/context.md`.** In `settings.md`'s bauble paragraph (as slice H rewrote it), the sentence reads `Unticked, their finds use the server's key, or stay generic trinkets when there is none.` across two lines (at `b5ac8b0fa` the break falls after `use the`, line 357; `or stay generic trinkets when there is none.` is on line 358). Replace `or stay generic trinkets when there is none.` with `or take hand-written text from the fallback corpus when there is none.`, then rewrap that paragraph's lines to 80 columns or less. The paragraph's earlier `everyone else sees a plain "Trinket"` (line 353) is the finder-only view and stays. In `modules/context.md`'s `baubles` row, replace `without a key every find is a generic trinket |` with `without a key every find takes hand-written text from the engine's fallback corpus |`.
 
 - [ ] **Step 9: The code comments, log value and status line that still say "generic trinket".** None of these changes behaviour. With the Edit tool, one replacement each:
 
@@ -4093,7 +4135,7 @@ becomes
 ```
 
 4. `modules/baubles/baubles.go`, the switched-off log: `` `naming`, `generic trinkets`, `reason`, `Modules.baubles.Enabled is false` `` becomes `` `naming`, `fallback corpus`, `reason`, `Modules.baubles.Enabled is false` ``.
-5. `modules/baubles/baubles.go` `info`, slice H's status detail: `` ` No server key: every find is a generic trinket (a finder's own key needs the server's moderation).` `` becomes `` ` No server key: every find comes from the fallback corpus (a finder's own key needs the server's moderation).` `` (`bauble status` shows it).
+5. `modules/baubles/baubles.go` `info`, the status detail as H2 rewrote it (line 199 at `b5ac8b0fa`): `` ` No server key: finds named on a finder's own key are shown to that finder alone (nothing can moderate them); every other find is a generic trinket.` `` becomes `` ` No server key: finds named on a finder's own key are shown to that finder alone (nothing can moderate them); every other find comes from the fallback corpus.` `` (`bauble status` shows it). Key the Edit on `every other find is a generic trinket.`.
 6. `modules/baubles/baubles.go`, slice H's `takeServerSlot` comment:
 
 ```go
@@ -4109,6 +4151,7 @@ becomes
 ```
 
 7. `modules/baubles/generate.go`, slice H's `moderate` policy comment: `//   - A flag always keeps the text out of the world: a generic trinket.` becomes `//   - A flag always keeps the text out of the world: a corpus fallback.`
+8. `internal/baubles/weight.go` (`TooBigFor`'s doc comment): `// it (a generic, small trinket) rather than only clamping the number.` becomes `// it (a fallback from the corpus's pocket pool) rather than only clamping the number.`
 
 Then confirm nothing that says a find "is a generic trinket" is left outside tests and `fallback.go` (the corpus's own last resort legitimately says so), and that the packages still build and pass:
 
@@ -4118,12 +4161,12 @@ cd /c/tmp/dogmud-baubles-c && grep -rn -i "generic trinket" --include=*.md inter
 cd /c/tmp/dogmud-baubles-c && go build ./... && go test ./modules/baubles/ ./internal/configs/ 2>&1 | tail -3
 ```
 
-Expected: the first two lists hold only lines that describe the last resort when the corpus has nothing (`fallback.go`, `corpus.go`, and the corpus rules and gotchas written in Steps 1 and 3); read each and rewrite any other. Then `ok` twice.
+Expected: the first two lists hold only lines that describe the last resort when the corpus has nothing (`fallback.go`, `corpus.go`, `record.go`'s new `StatusFallback` comment, and the corpus rules and gotchas written in Steps 1 and 3), plus the finder-only view that H2 added, which stays generic because this plan does not change what others see of a finder-only record: `generate.go` (the `GenResult.FinderOnly` comment), `record.go` (`View`), `modules/baubles/generate.go` (the `finderOnly` policy line), `internal/items/bauble_viewer.go`, `internal/mobs/mobs.go` (the bare carrier), `internal/baubles/context.md` (the viewer-agnostic gotcha), `internal/items/context.md` and `modules/baubles/context.md` (`FinderOnly`). Read each and rewrite any other. Then `ok` twice.
 
 - [ ] **Step 10: Commit.**
 
 ```bash
-cd /c/tmp/dogmud-baubles-c && git add internal/baubles/context.md modules/baubles/context.md internal/actions/context.md modules/context.md docs/baubles/implementation-plan.md docs/aicompanion/settings.md _datafiles/config.yaml docs/README.md internal/baubles/find.go internal/configs/config.balance.go modules/baubles/baubles.go modules/baubles/generate.go
+cd /c/tmp/dogmud-baubles-c && git add internal/baubles/context.md modules/baubles/context.md internal/actions/context.md modules/context.md docs/baubles/implementation-plan.md docs/aicompanion/settings.md _datafiles/config.yaml docs/README.md internal/baubles/find.go internal/baubles/weight.go internal/configs/config.balance.go modules/baubles/baubles.go modules/baubles/generate.go
 git commit -F - <<'EOF'
 docs(baubles): the fallback corpus in context.md, the phase doc and config
 
@@ -4218,14 +4261,14 @@ EOF
 
 **Files:** none, unless a check fails.
 
-Every diff below is taken from `$BASE`, the master commit this branch was cut from (Task 0 Step 2). Each command block sets it with `BASE=$(git merge-base HEAD master)`; if `master` has been merged into this branch since, use the sha Task 0 recorded instead.
+Every diff below is taken from `$BASE`, the master commit this branch was cut from (Task 0 Step 2). Each command block sets it with `BASE=b5ac8b0fa`, the sha Task 0 recorded (never `git merge-base HEAD master`: the main checkout's local `master` is stale at `62f9027a2`, so that would give the wrong commit).
 
 - [ ] **Step 1: The branch is ours alone and still fits CI's lint.** Nothing of FinalTwist's branch is in it, and the size stays under the lint inversion (owner ruling 11: under 20k lines and 300 files):
 
 ```bash
-cd /c/tmp/dogmud-baubles-c && BASE=$(git merge-base HEAD master) && echo "BASE=$BASE" && git log --oneline $BASE..HEAD
-cd /c/tmp/dogmud-baubles-c && BASE=$(git merge-base HEAD master) && git diff --shortstat $BASE..HEAD
-cd /c/tmp/dogmud-baubles-c && BASE=$(git merge-base HEAD master) && git diff --name-only $BASE..HEAD -- docs/superpowers
+cd /c/tmp/dogmud-baubles-c && BASE=b5ac8b0fa && echo "BASE=$BASE" && git log --oneline $BASE..HEAD
+cd /c/tmp/dogmud-baubles-c && BASE=b5ac8b0fa && git diff --shortstat $BASE..HEAD
+cd /c/tmp/dogmud-baubles-c && BASE=b5ac8b0fa && git diff --name-only $BASE..HEAD -- docs/superpowers
 ```
 
 Expected: `BASE` is the sha Task 0 recorded; the log lists only this plan's commits; the shortstat shows fewer than 300 files changed and fewer than 20000 insertions plus deletions (about 30 files and 3000 lines is the expected size); the last command prints nothing (the spec and plans ship in the docs-only PR, never here).
@@ -4233,7 +4276,7 @@ Expected: `BASE` is the sha Task 0 recorded; the log lists only this plan's comm
 - [ ] **Step 2: gofmt, on the committed blobs.** Windows `gofmt -l` false-positives on a CRLF working copy of an LF blob, so check what git holds for every Go file the branch added or changed:
 
 ```bash
-cd /c/tmp/dogmud-baubles-c && BASE=$(git merge-base HEAD master) && for f in $(git diff --name-only --diff-filter=AM $BASE..HEAD -- '*.go'); do out=$(git show HEAD:$f | gofmt -l); [ -n "$out" ] && echo "UNFORMATTED: $f"; done; echo done
+cd /c/tmp/dogmud-baubles-c && BASE=b5ac8b0fa && for f in $(git diff --name-only --diff-filter=AM $BASE..HEAD -- '*.go'); do out=$(git show HEAD:$f | gofmt -l); [ -n "$out" ] && echo "UNFORMATTED: $f"; done; echo done
 ```
 
 Expected: only `done`.
@@ -4288,10 +4331,10 @@ Expected: (1) exactly `fallback.go` and `corpus.go`. (2) at least one catalog pr
 - [ ] **Step 7: Docs are complete.** Confirm each is in the branch diff:
 
 ```bash
-cd /c/tmp/dogmud-baubles-c && BASE=$(git merge-base HEAD master) && git diff --stat $BASE..HEAD -- internal/baubles/context.md modules/baubles/context.md internal/actions/context.md modules/context.md docs/baubles/implementation-plan.md docs/aicompanion/settings.md docs/README.md _datafiles/world/dogmud/templates/admincommands/help/command.bauble.template _datafiles/config.yaml
+cd /c/tmp/dogmud-baubles-c && BASE=b5ac8b0fa && git diff --stat $BASE..HEAD -- internal/baubles/context.md modules/baubles/context.md internal/actions/context.md modules/context.md docs/baubles/implementation-plan.md docs/aicompanion/settings.md docs/README.md _datafiles/world/dogmud/templates/admincommands/help/command.bauble.template _datafiles/config.yaml
 ```
 
-Expected: all nine files listed. `docs/README.md` carries the seed row and the Phase 6d wording, and no row for this plan (that row ships in the docs-only PR).
+Expected: all nine files listed. `docs/README.md` carries the seed row and the Phase 6e wording, and no row for this plan (that row ships in the docs-only PR).
 
 - [ ] **Step 8: Owner review gate.** Task 11 Step 7 is checked, with the owner's approval recorded in the PR description. If not, the branch does not merge.
 
@@ -4303,5 +4346,5 @@ Expected: all nine files listed. `docs/README.md` carries the seed row and the P
 
 - **Spec coverage.** Seam (`Fallback` with the spec's signature, four call sites, `Generator: corpus`, `Model: "corpus:<key>"`, `Moderated`/`PlayerKey` false, `Mint` ready, record comment, stats line, pickpocket log, no migration): Tasks 1, 4, 5, 6, 9. Files (seed with `groups`/`entries`, overlay with provenance, ignore rules, prune survival test): Tasks 3, 7, 10. Loading and concurrency (after items, boot and reload, atomic snapshot, writers build/save/swap, seed ERROR without crash, overlay living-state contract, quarantine restarts empty, every entry through `CleanReply` and weight bounds, CI loads items and asserts the snapshot): Tasks 3, 7, 8, 10. Lookup (merge, empty or unmapped biome, pocket filter and empty-after-filter, recency sibling and least-recent, value clamp, weight limit): Task 4. Promotion and admin (refusals, sold promotable, exact key, `Edit` clears `Moderated`, `Retire` removes, four `corpus` subcommands admin-only, logic in `Promote`/`RemoveCorpusEntry`): Tasks 1, 7, 9. Seed content (player-copy rules, pocket entries pass `TooBigFor`, pool means tested, owner review): Tasks 10, 11. Docs share: Task 12.
 - **Requested tests, each mapped:** fallback order and merge (`TestFallbackMergesBiomeAndGroupThenTier`); empty biome (same, biomes `""` and `water`); pocket filter and empty-after-filter (`TestFallbackPocketFindsFitAPocket`); recent-avoidance with an all-recent pool (`TestFallbackAvoidsRecentNamesWithoutFallingThrough`); value clamp (`TestFallbackClampsTheValueIntoTheTier`); pool mean near midpoint (`TestShippedCorpusSeedIsComplete`); corrupt overlay quarantined (`TestCorruptOverlayIsQuarantined`); promotion refusals and sold-is-promotable (`TestPromoteRefusals`, `TestPromoteASoldFindAndUseIt`); retire removes overlay entries (`TestRetireRemovesItsCorpusEntry`); overlay survives the catalog, prune included (`TestOverlaySurvivesTheCatalog`); CI seed validation with a non-empty snapshot (`TestShippedCorpusSeed`); every findable biome maps to a group (`TestEveryFindableBiomeHasACorpusGroup`).
-- **Plan-review findings, each mapped.** Delivery from fresh master with `$BASE`, anchors re-checked, size and lint gate, boot smoke: Tasks 0 and 14. Phase 6d before Phase 7 and the seed header: Tasks 10 and 12. `HandEdited` as the promotion test (regenerated and restored records promotable, hand-edited not): Task 1 (`TestEditClearsModeratedAndMarksHandEdited`, `TestOnlyEditMarksHandEdited`), Task 7 (`TestPromoteLooksAtHandEditedNotEditedBy`). Edit and regen drop promoted entries and count them: Task 7 (`TestEditAndRegenRemoveTheRecordsCorpusEntry`). Stale "generic trinket" wording: Tasks 5, 6, 9 and 12 Steps 1, 5, 6, 8 and 9. A reload keeps the seed in use and a broken overlay refuses writes: Task 3 (`TestReloadWithABrokenSeedKeepsTheSeedInUse`, `TestAnOverlayThatCannotBeQuarantinedIsBroken`), Task 7 (`TestABrokenOverlayRefusesEveryWrite`). Durable-write guard named and the seed staged before the word guard: Tasks 10 and 11. Promotion refuses a name already in its merged pool: Task 7 (`TestPromoteRefusals`, `TestPromoteASoldFindAndUseIt`). Seed examples that stay true after sale and promise no reward: Task 10, and the drafting prompt in Task 11. Config line numbers at `e711ee9de`: facts table and Task 10. `TestApplyRegeneratedRefusesACorpusAnswer` marked a guard; removal by name or record id (`TestRemoveCorpusEntry`, `TestRemoveCorpusEntryRefusesAnAmbiguousName`); admin output asserted per subcommand (`TestAdminBauble_PromoteAndCorpus`): Tasks 1, 7 and 9. No README row for this plan: Task 12 Step 6.
+- **Plan-review findings, each mapped.** Delivery from fresh master with `$BASE`, anchors re-checked, size and lint gate, boot smoke: Tasks 0 and 14. Phase 6e (6d is the owner's fix round) before Phase 7 and the seed header: Tasks 10 and 12. `HandEdited` as the promotion test (regenerated and restored records promotable, hand-edited not): Task 1 (`TestEditClearsModeratedAndMarksHandEdited`, `TestOnlyEditMarksHandEdited`), Task 7 (`TestPromoteLooksAtHandEditedNotEditedBy`). Edit and regen drop promoted entries and count them: Task 7 (`TestEditAndRegenRemoveTheRecordsCorpusEntry`). Stale "generic trinket" wording: Tasks 5, 6, 9 and 12 Steps 1, 5, 6, 8 and 9. A reload keeps the seed in use and a broken overlay refuses writes: Task 3 (`TestReloadWithABrokenSeedKeepsTheSeedInUse`, `TestAnOverlayThatCannotBeQuarantinedIsBroken`), Task 7 (`TestABrokenOverlayRefusesEveryWrite`). Durable-write guard named and the seed staged before the word guard: Tasks 10 and 11. Promotion refuses a name already in its merged pool: Task 7 (`TestPromoteRefusals`, `TestPromoteASoldFindAndUseIt`). Seed examples that stay true after sale and promise no reward: Task 10, and the drafting prompt in Task 11. Config line numbers at `b5ac8b0fa` (first `e711ee9de`): facts table and Task 10. `TestApplyRegeneratedRefusesACorpusAnswer` marked a guard; removal by name or record id (`TestRemoveCorpusEntry`, `TestRemoveCorpusEntryRefusesAnAmbiguousName`); admin output asserted per subcommand (`TestAdminBauble_PromoteAndCorpus`): Tasks 1, 7 and 9. No README row for this plan: Task 12 Step 6.
 - **Type consistency.** `Fallback`, `FallbackFor`, `RecentFallbackNames`, `LoadCorpusFrom`, `ReloadCorpus`, `ClearCorpusForTest`, `CorpusCounts`, `CorpusList`, `CorpusKeys`, `Promote`, `RemoveCorpusEntry(key, which string)`, `ExportPromoted`, `GroupOf`, `Generator.Named`, `Record.HandEdited`, `Edit` and `ApplyRegenerated` returning `(Record, int, error)`, `CorpusReport.SeedKept` and `.OverlayBroken`, `ErrOverlayBroken`, `ErrCorpusCleanup` and the `ErrPromote*` names are used with the signatures defined in Tasks 1 to 7 throughout Tasks 8 to 12.
