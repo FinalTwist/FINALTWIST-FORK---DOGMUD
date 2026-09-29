@@ -47,6 +47,8 @@ func TestSingleStepNodesFailWhenTired(t *testing.T) {
 		{"move", func(ctx *EvalContext) Result {
 			return actMove(map[string]any{"direction": "south"}, ctx)
 		}},
+		// Out of combat, flee walks away through the same quote.
+		{"flee out of combat", func(ctx *EvalContext) Result { return actFlee(nil, ctx) }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name+" tired", func(t *testing.T) {

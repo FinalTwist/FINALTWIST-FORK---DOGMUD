@@ -382,7 +382,7 @@ are subject to perception-scaled reaction delays (see below).
 |--------|--------|-------------|
 | `move` | `direction` (string) | Mob moves in direction. Movement parity 4b: `actMove` quotes the step first (`actions.QuoteMobStep`) and returns `Failure`, issuing nothing, when the mob cannot currently pay for it. `actGoToCallerRoom` (packmate-rescue navigation, `actions_mob.go`) and `actMoveTowardTracked` (scout tracking, `actions_scout.go`) quote the same way and fail the same way; before this slice all three issued a step regardless of cost. |
 | `attack` | none | Mob attacks the triggering player; if none, picks random player in room. |
-| `flee` | none | Flee parity slice 4a: in combat, issues `flee` (the mob's `BeginFlee`/`ResolveFlee` escape, gated, costed, and blockable like a player's). Out of combat, walks instead — issues `go <dir>` via `pickRetreatExit` — because a flee out of combat now refuses; this keeps an out-of-combat authored `do: flee` (e.g. the thief's post-steal escape) working. |
+| `flee` | none | Flee parity slice 4a: in combat, issues `flee` (the mob's `BeginFlee`/`ResolveFlee` escape, gated, costed, and blockable like a player's). Out of combat, walks instead — issues `go <dir>` via `pickRetreatExit` — because a flee out of combat now refuses; this keeps an out-of-combat authored `do: flee` (e.g. the thief's post-steal escape) working. Movement parity 4b: that walk is quoted first (`actions.QuoteMobStep`, as `move` does) and the node returns Failure, queuing nothing, when the mob cannot pay for the step. |
 | `cast` | `spell` (string) | Mob casts the named spell. |
 
 ### Combat Targeting — instant
